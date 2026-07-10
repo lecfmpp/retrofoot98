@@ -179,6 +179,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'teamview':  html=titleBarTop('RetroFoot98')+deskWrap(scTeamView()); break;
     case 'live':      html=scLive(); break;
     case 'classif':   html=scClassif(); break;
+    case 'cupclassif':html=scCupClassif(); break;
     case 'cupdraw':   html=titleBarTop('RetroFoot98')+deskWrap(scCupDraw()); break;
     case 'online':    html=titleBarTop('RetroFoot98',{logo:true})+renderOnline(); break;
   }
@@ -1430,8 +1431,12 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
       <div class="cl-live-div-body">${rows.map(x=>rowHTML(x.m,x.i)).join('')}</div>
     </fieldset>`;
   }).join('');
-  const topLabel = RL.cup ? `🏆 ${COMP_DEFS[RL.cup.key].short}${RL.cup.stage==='group'?' — Fase de grupos':' — Mata-mata'}` : `${RL.jornada}ª Jornada - ${S.season}`;
-  return `<div class="cl-live"><div class="cl-live-top">${RL.cup?'':divisionTrophyImg(S.division,20)} ${topLabel}</div>
+  const cupTop = RL.cup ? `<div class="cl-live-cup-top">${trophyImg(RL.cup.key,64)}
+      <div class="cl-live-cup-name">${escC(COMP_DEFS[RL.cup.key].name)}</div>
+      <div class="cl-live-cup-stage">${RL.cup.stage==='group'?'Fase de grupos':'Fase eliminatória'}</div>
+    </div>` : '';
+  const topLabel = `${RL.jornada}ª Jornada - ${S.season}`;
+  return `<div class="cl-live">${cupTop}${RL.cup?'':`<div class="cl-live-top">${divisionTrophyImg(S.division,20)} ${topLabel}</div>`}
     <div class="cl-live-clock" id="cl-liveclock" style="--pct:${Math.min(100,Math.round(RL.minute/94*100))}"></div>
     ${groups}
     ${RL.sel!=null?`<div class="cl-live-overlay"><div class="cl-live-modal" id="cl-livemodal">${liveModalHTML(RL.matches[RL.sel])}</div></div>`:''}
@@ -1771,6 +1776,11 @@ function finishCupLiveMatch(){
   if(CL.online && typeof NET!=='undefined' && NET.saveGame){
     (async ()=>{ await NET.saveGame({ S, round: S.round }); })().catch(e=>console.warn('Save Supabase (copa):', e));
   }
+  // marca esta competição pra mostrar a classificação/chaveamento assim que todas as
+  // partidas de copa da rodada (pode haver mais de uma — Copa do Brasil + Libertadores
+  // na mesma semana, por exemplo) tiverem sido jogadas — ver clCupResultContinue().
+  CL._cupResultKeysThisRound = CL._cupResultKeysThisRound || [];
+  if(!CL._cupResultKeysThisRound.includes(pending.key)) CL._cupResultKeysThisRound.push(pending.key);
   CL.screen='main';
   overlayC(dlg(compShort, `<div class="cl-res"><div class="cl-res-score">${escC(m.hg+'×'+m.ag)}</div>
     <div class="cl-res-verd">${escC(resultMsg)}</div><div class="cl-cal-ok">${btn('Continuar','clCupResultContinue()',{icon:'✔',cls:'cl-btn-ok'})}</div></div>`,
@@ -1782,11 +1792,44 @@ function clCupResultContinue(){
   const queue=CL._pendingCupQueue||[];
   if(queue.length){ startCupLiveMatch(queue.shift()); return; }
   CL._pendingCupQueue=null;
-  // online: "terminei minha parte" é marcar pronto e esperar os outros (a rodada de liga
-  // só dispara depois, via onlineRunRound, quando o servidor avisa que virou 'running') —
-  // não inicia a partida de liga direto, igual o fluxo normal do botão Jogar em Resenha.
+  // todas as partidas de copa ao vivo desta rodada terminaram — mostra a classificação/
+  // chaveamento de CADA competição que teve jogo agora, uma tela por vez, pro jogador se
+  // situar (igual já fazemos com a tabela de Séries A/B/C/D depois da rodada de liga).
+  const classifQueue=(CL._cupResultKeysThisRound||[]).slice();
+  CL._cupResultKeysThisRound=null;
+  if(classifQueue.length){ CL._cupClassifQueue=classifQueue.slice(1); showCupClassif(classifQueue[0]); return; }
+  finishCupResultFlow();
+}
+/* cauda do fluxo pós-copa: igual ao que já existia antes das telas de classificação —
+   online marca pronto e espera os outros; solo volta pra tela principal. */
+function finishCupResultFlow(){
   if(CL.online){ onlineMarkReady(); return; }
   CL.screen='main'; cdraw();
+}
+/* ---- classificação/chaveamento da copa, mostrada automaticamente depois de uma
+   partida de copa ao vivo — reaproveita cupGroupHTML/cupBracketHTML (mesma visualização
+   de "Minhas competições"), com o troféu em destaque no topo. ---- */
+function showCupClassif(key){ CL.screen='cupclassif'; CL._cupClassifKey=key; cdraw(); }
+function scCupClassif(){
+  const key=CL._cupClassifKey, c=S.cups&&S.cups[key];
+  if(!c) return '';
+  const hasGroup=COMP_HAS_GROUP[key];
+  const inGroupStage = hasGroup && c.group && !c.bracket;
+  const body = inGroupStage ? cupGroupHTML(c) : cupBracketHTML(c,key);
+  return `<div class="cl-live cl-classif">
+    <div class="cl-classif-buttons">${btn('Continuar','cupClassifContinue()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})}</div>
+    <div class="cl-live-cup-top">${trophyImg(key,64)}
+      <div class="cl-live-cup-name">${escC(COMP_DEFS[key].name)}</div>
+      <div class="cl-live-cup-stage">${inGroupStage?'Fase de grupos':'Fase eliminatória'}</div>
+    </div>
+    <div class="cl-cup-classif-body">${body}</div>
+  </div>`;
+}
+function cupClassifContinue(){
+  const queue=CL._cupClassifQueue||[];
+  if(queue.length){ showCupClassif(queue.shift()); return; }
+  CL._cupClassifQueue=null;
+  finishCupResultFlow();
 }
 function updateLive(){ const RL=CL.live; if(!RL) return;
   const clk=document.querySelector('#cl-liveclock'); if(clk) clk.style.setProperty('--pct', Math.min(100,Math.round(RL.minute/94*100)));
@@ -1820,13 +1863,44 @@ function panAdversario(oppId){
 /* ---- 13 · CALENDÁRIO (modal) ---- */
 function userCalendar(){ const out=[]; (S.sched||[]).forEach((rd,i)=>{ const m=rd.find(([h,a])=>h===CL.clubId||a===CL.clubId);
   if(m){ const home=m[0]===CL.clubId; const opp=home?m[1]:m[0]; out.push({n:i+1,opp,home}); } }); return out; }
+/* TODOS os confrontos de copa ainda pendentes do clube do usuário, pro Calendário —
+   diferente de pendingUserCupMatches() (que só libera perto do avanço em segundo plano,
+   pra saber quando dá pra JOGAR ao vivo), esta função existe só pra EXIBIÇÃO e não tem
+   esse gate de "véspera da rodada". Na fase de grupos lista TODAS as rodadas restantes
+   (não só a próxima); no mata-mata só dá pra saber o confronto da rodada atual — o
+   próximo adversário só é conhecido depois que essa rodada terminar, igual na vida real. */
+function userCupCalendarRows(){
+  if(!S.cups || !CL.clubId) return [];
+  const out=[];
+  const cb=S.cups.copaBrasil;
+  if(cb && !cupIsFinished(cb)){
+    const tie=(cb.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
+    if(tie) out.push({key:'copaBrasil', opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
+  }
+  ['libertadores','sulamericana'].forEach(key=>{
+    const c=S.cups[key]; if(!c) return;
+    if(c.group && !c.bracket && !c.group.finished){
+      const mg=c.group;
+      Object.values(mg.groups).forEach(g=>{
+        if(!g.teams.includes(CL.clubId)) return;
+        for(let r=mg.round;r<mg.roundsTotal;r++){
+          const fx=(g.sched[r]||[]).find(([h,a])=>h===CL.clubId||a===CL.clubId);
+          if(fx) out.push({key, opp:fx[0]===CL.clubId?fx[1]:fx[0], home:fx[0]===CL.clubId});
+        }
+      });
+    } else if(c.bracket && !cupIsFinished(c.bracket)){
+      const tie=(c.bracket.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
+      if(tie) out.push({key, opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
+    }
+  });
+  return out;
+}
 function clCalendar(){
-  // partida(s) de copa pendente — só dá pra saber a PRÓXIMA (o confronto seguinte só é
-  // sorteado quando a fase/rodada atual termina), então entra destacada no topo, antes
-  // das rodadas de liga (ver pendingUserCupMatches).
-  const cupRows=pendingUserCupMatches().map(pc=>{ const opp=pc.h===CL.clubId?pc.a:pc.h; const home=pc.h===CL.clubId;
+  // confrontos de copa pendentes (todas as rodadas restantes já sorteadas) — entram
+  // destacados no topo, antes das rodadas de liga.
+  const cupRows=userCupCalendarRows().map(pc=>{
     return `<div class="cl-cal-row cl-cal-cup"><span class="cl-cal-n">🏆</span>
-      <span class="cl-cal-t">${COMP_DEFS[pc.key].short} · ${clubLink(opp)}</span><span class="cl-cal-cf">${home?'C':'F'}</span></div>`; }).join('');
+      <span class="cl-cal-t">${COMP_DEFS[pc.key].short} · ${clubLink(pc.opp)}</span><span class="cl-cal-cf">${pc.home?'C':'F'}</span></div>`; }).join('');
   const rows=userCalendar().map(r=>`<div class="cl-cal-row"><span class="cl-cal-n">${r.n}</span>
     <span class="cl-cal-t">${clubLink(r.opp)}</span><span class="cl-cal-cf">${r.home?'C':'F'}</span></div>`).join('');
   overlayC(dlg('Calendário', `<div class="cl-cal">${cupRows}${rows}</div>
@@ -2132,8 +2206,7 @@ function clCupView(key, tab){ CL.menu=null;
 }
 function clCupTab(key,tab){ CL.cupTab=tab; clCupView(key,tab); }
 function cupViewBodyHTML(key,c,hasGroup){
-  const trophyKey = key==='libertadores'?'libertadores':key==='sulamericana'?'sulamericana':null;
-  const trophyHdr = trophyKey ? `<div class="cl-comp-hdr-trophy">${trophyImg(trophyKey,44)}</div>` : '';
+  const trophyHdr = `<div class="cl-comp-hdr-trophy">${trophyImg(key,44)}</div>`;
   const champ=cupCompetitionChampion(c);
   const champBanner = champ ? `<div class="cl-cup-champ">🏆 Campeão: <b>${clubLink(champ)}</b></div>` : '';
   const tabsHTML = hasGroup ? `<div class="cl-cup-tabs">

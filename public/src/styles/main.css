@@ -364,6 +364,14 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* PARTIDA AO VIVO (placar por divisões) */
 .cl-live{min-height:100vh;background:var(--felt);padding:0 0 40px;position:relative}
 .cl-live-top{background:var(--navy);color:#fff;font-weight:800;text-align:center;padding:6px;font-size:15px}
+/* topo de destaque pra partidas/telas de copa — troféu grande + nome da competição,
+   pra deixar claro (Copa do Brasil/Libertadores/Sul-Americana) em vez do topo genérico
+   de rodada de liga */
+.cl-live-cup-top{background:var(--navy);color:#fff;text-align:center;padding:14px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.cl-live-cup-top .cl-trophy-img{width:64px;height:64px}
+.cl-live-cup-name{font-weight:900;font-size:19px;letter-spacing:.3px;text-shadow:0 2px 2px rgba(0,0,0,.4)}
+.cl-live-cup-stage{font-weight:700;font-size:13px;color:var(--yellow);text-transform:uppercase;letter-spacing:.5px}
+.cl-cup-classif-body{max-width:920px;margin:0 auto;padding:0 16px 20px}
 .cl-live-clock{position:fixed;right:36px;top:38px;z-index:80;width:56px;height:56px;border-radius:50%;background:conic-gradient(var(--navy) calc(var(--pct,0)*1%), #fff 0);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
 .cl-live-div{margin:12px 40px 0;border:1px solid var(--navy);padding:10px 16px}
 .cl-live-div:first-of-type{margin-top:56px}
