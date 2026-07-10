@@ -1426,6 +1426,10 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
       if(m.hg===m.ag){
         if(!RL.cup.wentExtra){ startExtraTime(m); return; }
         if(!RL.cup.wentPens){ startPenaltyShootout(m); return; }
+        // disputa de pênaltis ainda rolando (RL.pens existe mas finalH/finalA só são
+        // calculados em finishPenaltyShootout, quando de fato decide) — nunca finaliza
+        // a partida no meio, mesmo que algum tick perdido chegue até aqui.
+        if(RL.pens && RL.pens.finalH==null) return;
       }
     }
     RL.done=true; if(RL.cup&&RL.cup.spectate) finishCupSpectate(); else if(RL.cup) finishCupLiveMatch(); else finishLiveRound(); return;
@@ -1518,7 +1522,13 @@ function shootoutPenaltyTick(){ const RL=CL.live; if(!RL||!RL.pensPicking){ clea
 function resolveShootoutKick(takerName){
   const RL=CL.live; if(!RL||!RL.pensPicking) return;
   if(CL._penTimer){ clearInterval(CL._penTimer); CL._penTimer=null; }
-  RL.pensPicking=false;
+  // NÃO zera RL.pensPicking aqui — só quando a cobrança é de fato registrada em
+  // recordShootoutKick(), depois do suspense+revelação. Zerar cedo demais (como antes)
+  // fazia "shooting" (liveModalHTML) virar false no meio da animação, escondendo o modal
+  // de suspense/revelação e mostrando por engano a barra de ação normal ("Continuar" etc)
+  // — se o usuário clicasse nela, a partida seguia e terminava o mata-mata sem a disputa
+  // de pênaltis ter de fato terminado (RL.pens.finalH/finalA nunca calculados), travando
+  // o confronto com "pênaltis undefined×undefined" pra sempre.
   const m=RL.matches[0], side=RL.pens.turn;
   const teamId=side==='H'?m.h:m.a, oppId=side==='H'?m.a:m.h;
   const taker=findP(takerName,teamId);
@@ -1538,6 +1548,7 @@ function resolveShootoutKick(takerName){
 }
 function recordShootoutKick(side,takerName,scored){
   const RL=CL.live; if(!RL||!RL.pens) return;
+  RL.pensPicking=false;
   (side==='H'?RL.pens.h:RL.pens.a).push({name:takerName,scored});
   RL.pens.turn = side==='H' ? 'A' : 'H';
   cdraw();
@@ -1817,10 +1828,16 @@ function penaltyPickerHTML(){
    — só troca o título (numera a cobrança) e chama resolveShootoutKick em vez de
    resolvePenalty. Reaproveita CL.penSel/CL.penPhase/CL.penDeadline (só um dos dois
    fluxos — pênalti em campo ou disputa — está ativo por vez, nunca os dois juntos). ---- */
+/* placar (bolinhas ✔/✖) fica DENTRO do próprio modal — o modal de pênalti é um overlay
+   que cobre a tela inteira (.cl-live-overlay), então renderizar o placar só no corpo da
+   página (por trás do overlay) o deixava invisível durante toda a disputa. Passado como
+   `extra` pras 3 fases (escolha/suspense/revelação) — só aparece nas variantes de
+   DISPUTA de pênaltis; o pênalti normal em campo (penaltyPickerHTML) não passa `extra`. */
 function shootoutPickerHTML(){
-  if(CL.penPhase==='suspense') return penaltySuspenseHTML();
-  if(CL.penPhase==='result') return penaltyResultHTML();
   const RL=CL.live;
+  const board=shootoutScoreboardHTML(RL);
+  if(CL.penPhase==='suspense') return penaltySuspenseHTML(board);
+  if(CL.penPhase==='result') return penaltyResultHTML(board);
   const list=xiPlayers(CL.clubId).filter(p=>p.s!=='GK');
   const takers=(list.length?list:squad(CL.clubId).filter(p=>p.s!=='GK'));
   const secsLeft=Math.max(0,Math.ceil((CL.penDeadline-Date.now())/1000));
@@ -1829,6 +1846,7 @@ function shootoutPickerHTML(){
       <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span><span class="cl-pen-r">${p.f}</span>
     </div>`).join('');
   return `<div class="cl-pen-overlay"><div class="cl-pen-modal" ${penaltyClubStyle()}>
+    ${board}
     <div class="cl-pen-title">PÊNALTI ${kickNum}ª cobrança</div>
     <div class="cl-pen-sub">${escC(CL.mgr||'Técnico')}, escolha quem vai bater! <span id="cl-pen-count" class="cl-pen-count">${secsLeft}s</span></div>
     <div class="cl-pen-list">${rows}</div>
@@ -1836,16 +1854,18 @@ function shootoutPickerHTML(){
   </div></div>`;
 }
 /* fase 2: suspense — só o título, sem revelar nada ainda (a pausa dramática que faltava) */
-function penaltySuspenseHTML(){
+function penaltySuspenseHTML(extra){
   return `<div class="cl-pen-overlay"><div class="cl-pen-modal" ${penaltyClubStyle()}>
+    ${extra||''}
     <div class="cl-pen-title">PENALTI</div>
     <div class="cl-pen-suspense-dots">· · ·</div>
   </div></div>`;
 }
 /* fase 3: revelação — mesma cor do clube em todas as fases; só o texto GOLO/Defendeu muda */
-function penaltyResultHTML(){
+function penaltyResultHTML(extra){
   const scored=CL.penResultScored;
   return `<div class="cl-pen-overlay"><div class="cl-pen-modal" ${penaltyClubStyle()}>
+    ${extra||''}
     <div class="cl-pen-title">PENALTI</div>
     <div class="cl-pen-marcador">Marcador: ${escC(CL.penResultScorer||'')}</div>
     <div class="cl-pen-result ${scored?'golo':'defendeu'}">${scored?'GOL':'Defendeu'}</div>
@@ -2734,7 +2754,11 @@ function cupBracketHTML(c,key){
   // adversário de verdade, então só apareceriam como "fulano — de folga", confuso. Eles
   // simplesmente aparecem na rodada seguinte assim que caírem num confronto real.
   const tieBox=(t)=>{ const w=t.winner, decided=w!=null;
-    const pensTag = t.pens ? `<div class="cl-bracket-pens">pênaltis ${t.pens.h}×${t.pens.a}</div>` : '';
+    // defesa contra dados corrompidos de uma disputa de pênaltis que não terminou direito
+    // (ex: save antigo travado antes do bug do RL.pensPicking ser corrigido) — nunca
+    // mostra "pênaltis undefined×undefined", só omite a linha se os números não baterem.
+    const pensTag = (t.pens && Number.isFinite(t.pens.h) && Number.isFinite(t.pens.a))
+      ? `<div class="cl-bracket-pens">pênaltis ${t.pens.h}×${t.pens.a}</div>` : '';
     return `<div class="cl-bracket-tie ${(t.h===cid||t.a===cid)?'me':''}">
       <div class="cl-bracket-team ${w===t.h?'win':decided?'lose':''}"><span>${clubLink(t.h)}</span>${decided?`<b>${t.hg}</b>`:''}</div>
       <div class="cl-bracket-team ${w===t.a?'win':decided?'lose':''}"><span>${clubLink(t.a)}</span>${decided?`<b>${t.ag}</b>`:''}</div>
