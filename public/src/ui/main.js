@@ -1863,6 +1863,17 @@ function panAdversario(oppId){
 /* ---- 13 · CALENDÁRIO (modal) ---- */
 function userCalendar(){ const out=[]; (S.sched||[]).forEach((rd,i)=>{ const m=rd.find(([h,a])=>h===CL.clubId||a===CL.clubId);
   if(m){ const home=m[0]===CL.clubId; const opp=home?m[1]:m[0]; out.push({n:i+1,opp,home}); } }); return out; }
+/* as copas avançam em bloco a cada 3 rodadas de liga (ver advancePendingCups/playRound:
+   "if(S.round%3===0) advancePendingCups()"), e um confronto de copa só fica jogável ao
+   vivo na véspera desse avanço (ver o gate em pendingUserCupMatches: "(S.round+1)%3===0").
+   Ou seja, dá pra prever em QUAL jornada de liga cada confronto de copa pendente vai
+   rolar: a próxima jornada múltipla de 3 a partir de agora, +3 pra cada avanço seguinte
+   (2º confronto de grupo pendente, 3º, ...) — é isso que permite intercalar copa e liga
+   no calendário na ordem cronológica certa. */
+function nextCupJornada(stepsAhead){
+  let j=S.round+1; while(j%3!==0) j++;
+  return j + stepsAhead*3;
+}
 /* TODOS os confrontos de copa ainda pendentes do clube do usuário, pro Calendário —
    diferente de pendingUserCupMatches() (que só libera perto do avanço em segundo plano,
    pra saber quando dá pra JOGAR ao vivo), esta função existe só pra EXIBIÇÃO e não tem
@@ -1875,7 +1886,7 @@ function userCupCalendarRows(){
   const cb=S.cups.copaBrasil;
   if(cb && !cupIsFinished(cb)){
     const tie=(cb.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
-    if(tie) out.push({key:'copaBrasil', opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
+    if(tie) out.push({key:'copaBrasil', n:nextCupJornada(0), opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
   }
   ['libertadores','sulamericana'].forEach(key=>{
     const c=S.cups[key]; if(!c) return;
@@ -1885,25 +1896,28 @@ function userCupCalendarRows(){
         if(!g.teams.includes(CL.clubId)) return;
         for(let r=mg.round;r<mg.roundsTotal;r++){
           const fx=(g.sched[r]||[]).find(([h,a])=>h===CL.clubId||a===CL.clubId);
-          if(fx) out.push({key, opp:fx[0]===CL.clubId?fx[1]:fx[0], home:fx[0]===CL.clubId});
+          if(fx) out.push({key, n:nextCupJornada(r-mg.round), opp:fx[0]===CL.clubId?fx[1]:fx[0], home:fx[0]===CL.clubId});
         }
       });
     } else if(c.bracket && !cupIsFinished(c.bracket)){
       const tie=(c.bracket.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
-      if(tie) out.push({key, opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
+      if(tie) out.push({key, n:nextCupJornada(0), opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
     }
   });
   return out;
 }
 function clCalendar(){
-  // confrontos de copa pendentes (todas as rodadas restantes já sorteadas) — entram
-  // destacados no topo, antes das rodadas de liga.
-  const cupRows=userCupCalendarRows().map(pc=>{
-    return `<div class="cl-cal-row cl-cal-cup"><span class="cl-cal-n">🏆</span>
-      <span class="cl-cal-t">${COMP_DEFS[pc.key].short} · ${clubLink(pc.opp)}</span><span class="cl-cal-cf">${pc.home?'C':'F'}</span></div>`; }).join('');
-  const rows=userCalendar().map(r=>`<div class="cl-cal-row"><span class="cl-cal-n">${r.n}</span>
-    <span class="cl-cal-t">${clubLink(r.opp)}</span><span class="cl-cal-cf">${r.home?'C':'F'}</span></div>`).join('');
-  overlayC(dlg('Calendário', `<div class="cl-cal">${cupRows}${rows}</div>
+  // intercala copa e liga por jornada (ver nextCupJornada) — na mesma jornada, a(s)
+  // partida(s) de copa vêm antes da de liga, igual à ordem real de jogo (clJogar()
+  // enfileira as partidas de copa pendentes antes de liberar a rodada de liga).
+  const cupRows=userCupCalendarRows().map(pc=>({n:pc.n, cup:true, html:
+    `<div class="cl-cal-row cl-cal-cup"><span class="cl-cal-n">${pc.n}ª</span>
+      <span class="cl-cal-t">🏆 ${COMP_DEFS[pc.key].short} · ${clubLink(pc.opp)}</span><span class="cl-cal-cf">${pc.home?'C':'F'}</span></div>`}));
+  const ligaRows=userCalendar().map(r=>({n:r.n, cup:false, html:
+    `<div class="cl-cal-row"><span class="cl-cal-n">${r.n}ª</span>
+    <span class="cl-cal-t">${clubLink(r.opp)}</span><span class="cl-cal-cf">${r.home?'C':'F'}</span></div>`}));
+  const rows=cupRows.concat(ligaRows).sort((a,b)=>a.n-b.n || (a.cup?0:1)-(b.cup?0:1)).map(r=>r.html).join('');
+  overlayC(dlg('Calendário', `<div class="cl-cal">${rows}</div>
     <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
     {w:640,bodyClass:'cl-body-gray',min:true}));
 }
