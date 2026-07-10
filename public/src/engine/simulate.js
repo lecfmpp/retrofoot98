@@ -45,7 +45,8 @@ function penaltyConvChance(taker, gk){
   return clamp(base+takerBonus+posBonus-gkPenalty+moralAdj, 0.42, 0.93); // nunca abaixo de 42% nem acima de 93% — sempre emoção
 }
 
-function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed){
+function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
+  opts=opts||{};
   const R=makeRng((seed!=null?seed:matchSeed(homeId,awayId))>>>0);
   const H=ratings(homeId, isUser&&homeId===S.clubId), A=ratings(awayId, isUser&&awayId===S.clubId);
   const alpha=0.11, gammaHome=0.06;
@@ -144,15 +145,21 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed){
     }
     return ev;
   }
+  // prorrogação (opts.extraTime): mesmo motor, só 30min de tempo regulamentar em vez de 90
+  // (e acréscimo um pouco menor) — usado por startExtraTime() quando um mata-mata empata
+  // no tempo normal, pra jogar a prorrogação AO VIVO igual ao resto da partida, não
+  // resolvida instantaneamente. `minute`/os eventos ficam relativos (1-30ish); quem chama
+  // desloca pro +90 antes de acrescentar na timeline principal da partida.
+  const regularMinutes = opts.extraTime ? 30 : 90;
   const step=()=>{
     const ev=tickMinute(false);
     if(onTick) onTick({minute,pos,hg,ag,ev,mu:currentMu()});
-    if(minute>=90){ finish(); }
+    if(minute>=regularMinutes){ finish(); }
   };
   function finish(){
-    const add=Math.floor(R.rnd(1,5)); let m0=minute;
+    const add=opts.extraTime ? Math.floor(R.rnd(1,4)) : Math.floor(R.rnd(1,5));
     (function extra(){
-      if(minute>=90+add){ if(onEnd)onEnd({hg,ag,scorers}); return; }
+      if(minute>=regularMinutes+add){ if(onEnd)onEnd({hg,ag,scorers}); return; }
       const ev=tickMinute(true);
       if(onTick)onTick({minute,pos,hg,ag,ev,mu:currentMu(),stoppage:true});
       if(!onTick)extra(); else if(typeof SIM_SYNC!=='undefined'&&SIM_SYNC)extra(); else setTimeout(extra, MATCH.speed);

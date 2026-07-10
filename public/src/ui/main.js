@@ -117,10 +117,10 @@ function pickXIByFormation(id,f){ const need=FORMATIONS[f]||FORMATIONS['4-3-3'];
   if(xi.length<11){ const have=new Set(xi); for(const p of sq){ if(xi.length>=11)break; if(!have.has(p.n))xi.push(p.n); } }
   return xi.slice(0,11); }
 /* simula uma partida completa capturando eventos (determinístico; usa SIM_SYNC do motor) */
-function simEventsC(h,a,seed){ const evs=[]; let fin=null; const isU=(h===S.clubId||a===S.clubId);
+function simEventsC(h,a,seed,opts){ const evs=[]; let fin=null; const isU=(h===S.clubId||a===S.clubId);
   const prev=(typeof SIM_SYNC!=='undefined')?SIM_SYNC:false; if(typeof SIM_SYNC!=='undefined')SIM_SYNC=true;
   try{ const s=simulateMatch(h,a,isU,(t)=>{ if(t.ev) evs.push({min:t.minute,type:t.ev.type,team:t.ev.team,side:t.ev.side,scorer:t.ev.scorer,
-      player:t.ev.player,pos:t.ev.pos,cardType:t.ev.cardType,reason:t.ev.reason,severity:t.ev.severity,outMatches:t.ev.outMatches}); },(res)=>{fin=res;}, seed);
+      player:t.ev.player,pos:t.ev.pos,cardType:t.ev.cardType,reason:t.ev.reason,severity:t.ev.severity,outMatches:t.ev.outMatches}); },(res)=>{fin=res;}, seed, opts);
     let g=0; while(!fin && g++<600){ s.step(); } }
   finally{ if(typeof SIM_SYNC!=='undefined')SIM_SYNC=prev; }
   return {hg:fin.hg,ag:fin.ag,scorers:fin.scorers,events:evs}; }
@@ -1369,10 +1369,141 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
   if(RL.minute>=45 && !RL.halftimeDone){ RL.halftimeDone=true;
     const ui=RL.matches.findIndex(m=>m.user);
     if(ui>=0 && (!CL.options || CL.options.subsIntervalo!=='Não')){ RL.paused=true; RL.sel=ui; cdraw(); return; } }
-  if(RL.minute>=RL.maxMin){ RL.done=true; if(RL.cup&&RL.cup.spectate) finishCupSpectate(); else if(RL.cup) finishCupLiveMatch(); else finishLiveRound(); return; }
+  if(RL.minute>=RL.maxMin){
+    // mata-mata empatado, jogado ao vivo pelo próprio usuário: prorrogação e pênaltis
+    // acontecem AO VIVO na tela dele (não são resolvidos instantaneamente por trás) —
+    // só se aplica à partida que ele mesmo está jogando (RL.cup, sem spectate); partidas
+    // de fundo/espectador continuam resolvendo em segundo plano, sem essa pausa dramática.
+    if(RL.cup && RL.cup.stage==='bracket' && !RL.cup.spectate){
+      const m=RL.matches[0];
+      if(m.hg===m.ag){
+        if(!RL.cup.wentExtra){ startExtraTime(m); return; }
+        if(!RL.cup.wentPens){ startPenaltyShootout(m); return; }
+      }
+    }
+    RL.done=true; if(RL.cup&&RL.cup.spectate) finishCupSpectate(); else if(RL.cup) finishCupLiveMatch(); else finishLiveRound(); return;
+  }
   const spd=({Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37})[(CL.options&&CL.options.tempo)||'Usain Bolt']||37;
   const actualSpd=Math.max(12, spd / (CL.speedMult||1));
   CL._liveTimer=setTimeout(liveTick, actualSpd);
+}
+/* ---- PRORROGAÇÃO AO VIVO: mesma partida, mais 30min (2 tempos de 15) gerados com o
+   mesmo motor (gols/cartões/lesões/pênaltis podem acontecer igual ao tempo normal — um
+   pênalti do usuário aqui pausa e abre o modal normal, igual sempre). Os eventos entram
+   na timeline da própria partida (deslocados +90'), então liveTick continua tocando
+   normalmente — só o relógio muda de escala/rótulo (ver scLive). ---- */
+function startExtraTime(m){
+  const RL=CL.live;
+  RL.cup.wentExtra=true;
+  const roundLabel = RL.cup.key==='copaBrasil' ? ('copaBrasil-r'+RL.cup.bracket.round) : (RL.cup.key+'-r'+RL.cup.bracket.round);
+  const seed=hashSeed(S.seed,'cup',roundLabel,RL.cup.tie.h,RL.cup.tie.a,'extra');
+  const ev=simEventsC(m.h,m.a,seed,{extraTime:true});
+  ev.events.forEach(e=>{ e.min+=90; m.events.push(e); });
+  RL.extraStartMinute=RL.minute;
+  RL.maxMin=m.events.length ? m.events[m.events.length-1].min : (RL.minute+34);
+  toastC('⏱️ Empate! Vamos pra prorrogação.');
+  cdraw();
+  CL._liveTimer=setTimeout(liveTick,900);
+}
+/* ---- DISPUTA DE PÊNALTIS AO VIVO: mesma mecânica visual do pênalti batido em campo
+   (modal clássico, usuário escolhe quem bate, suspense, revelação) repetida cobrança a
+   cobrança, alternando os dois times — só o time do usuário (m.user) escolhe; o outro
+   lado (CPU, ou o adversário do usuário) tem o cobrador escolhido automaticamente pelo
+   motor (mesmo peso de força/posição de sempre) e resolve na hora, sem pausar. 5 cobranças
+   normais por time; se seguir empatado, morte súbita (1 cobrança cada, decide assim que
+   alguém marca e o outro não). ---- */
+function startPenaltyShootout(m){
+  const RL=CL.live;
+  RL.cup.wentPens=true; RL.paused=true;
+  RL.pens={ h:[], a:[], turn:'H' };
+  toastC('🥅 Segue empatado — vai pra disputa de pênaltis!');
+  cdraw();
+  setTimeout(shootoutNextKick,1000);
+}
+function shootoutDecided(P){
+  const nH=P.h.length, nA=P.a.length;
+  if(nH!==nA || nH===0) return false; // só decide depois que os dois já bateram nesta rodada
+  // P.h/P.a guardam {name,scored} — precisa filtrar por .scored, não pelo objeto em si
+  // (um objeto {scored:false} ainda é "truthy"; filtrar por Boolean direto nunca decidia
+  // nada, travando a disputa numa morte súbita infinita).
+  const scoredH=P.h.filter(k=>k.scored).length, scoredA=P.a.filter(k=>k.scored).length;
+  if(nH<5){ const remH=5-nH, remA=5-nA; return scoredH>scoredA+remA || scoredA>scoredH+remH; }
+  return scoredH!==scoredA; // morte súbita: qualquer diferença após rodada completa decide
+}
+function shootoutNextKick(){
+  const RL=CL.live; if(!RL || !RL.pens) return;
+  // teto de segurança (mesmo usado em resolveDrawnKnockoutTie pro caso não-interativo):
+  // decide na marra se por algum motivo passar de 20 cobranças cada — nunca deveria
+  // chegar nem perto disso na prática, é só rede de proteção contra loop infinito.
+  if(shootoutDecided(RL.pens) || RL.pens.h.length>=20){ finishPenaltyShootout(); return; }
+  const m=RL.matches[0], side=RL.pens.turn;
+  const teamId=side==='H'?m.h:m.a;
+  const isUserTurn = m.user && teamId===CL.clubId;
+  cdraw();
+  if(isUserTurn) openShootoutPickerModal();
+  else {
+    const oppId=side==='H'?m.a:m.h;
+    const gk=squad(oppId).find(p=>p.s==='GK')||null;
+    const pool=availableXI(teamId).filter(p=>p.s!=='GK');
+    const R=makeRng(hashSeed(S.seed,S.round,'pens',m.h,m.a,side,RL.pens.h.length+RL.pens.a.length));
+    const taker=pickPenaltyTaker(pool.length?pool:availableXI(teamId),R);
+    const scored=R.random()<penaltyConvChance(taker,gk);
+    setTimeout(()=>recordShootoutKick(side,taker?taker.n:null,scored),700);
+  }
+}
+function openShootoutPickerModal(){
+  const RL=CL.live;
+  const list=xiPlayers(CL.clubId).filter(p=>p.s!=='GK');
+  const takers=list.length?list:squad(CL.clubId).filter(p=>p.s!=='GK');
+  const best=takers.slice().sort((a,b)=>b.f-a.f)[0];
+  CL.penSel=best?best.n:(takers[0]&&takers[0].n)||null;
+  CL.penDeadline=Date.now()+10000;
+  RL.pensPicking=true;
+  sfx('penalti'); cdraw();
+  if(CL._penTimer) clearInterval(CL._penTimer);
+  CL._penTimer=setInterval(shootoutPenaltyTick,200);
+}
+function shootoutPenaltyTick(){ const RL=CL.live; if(!RL||!RL.pensPicking){ clearInterval(CL._penTimer); return; }
+  const left=Math.max(0,CL.penDeadline-Date.now()); const secs=Math.ceil(left/1000);
+  const cd=$c('#cl-pen-count'); if(cd) cd.textContent=secs+'s';
+  if(left<=0){ clearInterval(CL._penTimer); resolveShootoutKick(CL.penSel); }
+}
+function resolveShootoutKick(takerName){
+  const RL=CL.live; if(!RL||!RL.pensPicking) return;
+  if(CL._penTimer){ clearInterval(CL._penTimer); CL._penTimer=null; }
+  RL.pensPicking=false;
+  const m=RL.matches[0], side=RL.pens.turn;
+  const teamId=side==='H'?m.h:m.a, oppId=side==='H'?m.a:m.h;
+  const taker=findP(takerName,teamId);
+  const gk=squad(oppId).find(p=>p.s==='GK')||null;
+  const kickIdx=RL.pens.h.length+RL.pens.a.length;
+  const R=makeRng(hashSeed(S.seed,S.round,'pens',m.h,m.a,side,kickIdx,takerName));
+  const scored=R.random()<penaltyConvChance(taker,gk);
+  CL.penPhase='suspense'; CL.penResultScorer=taker?taker.n:takerName; CL.penResultScored=scored;
+  cdraw();
+  CL._penRevealTimer=setTimeout(()=>{
+    CL.penPhase='result'; sfx(scored?'penaltiGol':'penaltiPerdido'); cdraw();
+    CL._penCloseTimer=setTimeout(()=>{
+      CL.penPhase=null; CL.penResultScorer=null; CL.penResultScored=null;
+      recordShootoutKick(side, taker?taker.n:takerName, scored);
+    },2200);
+  },1400);
+}
+function recordShootoutKick(side,takerName,scored){
+  const RL=CL.live; if(!RL||!RL.pens) return;
+  (side==='H'?RL.pens.h:RL.pens.a).push({name:takerName,scored});
+  RL.pens.turn = side==='H' ? 'A' : 'H';
+  cdraw();
+  setTimeout(shootoutNextKick,1200);
+}
+function finishPenaltyShootout(){
+  const RL=CL.live; const P=RL.pens;
+  P.finalH=P.h.filter(k=>k.scored).length; P.finalA=P.a.filter(k=>k.scored).length;
+  // se bateu o teto de segurança (20 cobranças cada) ainda empatado — praticamente
+  // impossível na prática — desempata pro lado de casa, só pra sempre ter um vencedor.
+  if(P.finalH===P.finalA) P.finalH++;
+  RL.paused=false; RL.done=true;
+  finishCupLiveMatch();
 }
 /* ---- PÊNALTI INTERATIVO: pausa a partida, mostra o modal clássico, escolhe o batedor.
    Se não decidir em 10s, bate automaticamente com o jogador pré-selecionado (o de maior força). ---- */
@@ -1531,22 +1662,49 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
       <div class="cl-live-div-body">${rows.map(x=>rowHTML(x.m,x.i)).join('')}</div>
     </fieldset>`;
   }).join('');
+  // rótulo do estágio: prioriza pênaltis > prorrogação > fase normal da copa/liga
+  const stageLabel = RL.pens ? '🥅 Disputa de pênaltis'
+    : RL.extraStartMinute!=null ? '⏱️ Prorrogação'
+    : RL.cup ? (RL.cup.stage==='group'?'Fase de grupos':'Fase eliminatória') : null;
   const cupTop = RL.cup ? `<div class="cl-live-cup-top">${trophyImg(RL.cup.key,64)}
       <div class="cl-live-cup-name">${escC(COMP_DEFS[RL.cup.key].name)}</div>
-      <div class="cl-live-cup-stage">${RL.cup.stage==='group'?'Fase de grupos':'Fase eliminatória'}</div>
+      <div class="cl-live-cup-stage">${escC(stageLabel)}</div>
     </div>` : '';
   const topLabel = `${RL.jornada}ª Jornada - ${S.season}`;
+  const shootoutBoard = RL.pens ? shootoutScoreboardHTML(RL) : '';
   return `<div class="cl-live">${cupTop}${RL.cup?'':`<div class="cl-live-top">${divisionTrophyImg(S.division,20)} ${topLabel}</div>`}
-    <div class="cl-live-clock" id="cl-liveclock" style="--pct:${Math.min(100,Math.round(RL.minute/94*100))}"></div>
+    ${RL.pens ? '' : `<div class="cl-live-clock" id="cl-liveclock" style="--pct:${liveClockPct(RL)}">${RL.extraStartMinute!=null?'<span class="cl-live-clock-lbl">PRORR.</span>':''}</div>`}
+    ${shootoutBoard}
     ${groups}
     ${RL.sel!=null?`<div class="cl-live-overlay"><div class="cl-live-modal" id="cl-livemodal">${liveModalHTML(RL.matches[RL.sel])}</div></div>`:''}
   </div>`;
 }
+/* % do relógio circular — a prorrogação usa uma escala PRÓPRIA (34min: 30 + acréscimos),
+   proporcional ao tempo real dela, em vez da escala de 94min do tempo normal. */
+function liveClockPct(RL){
+  if(RL.extraStartMinute!=null) return Math.min(100, Math.round((RL.minute-RL.extraStartMinute)/34*100));
+  return Math.min(100, Math.round(RL.minute/94*100));
+}
+/* placar da disputa de pênaltis: uma linha de bolinhas por time, ✔ verde quando converte,
+   ✖ vermelho quando desperdiça/defende — cresce cobrança a cobrança, igual ao clássico. */
+function shootoutScoreboardHTML(RL){
+  const m=RL.matches[0], hc=clubOf(m.h), ac=clubOf(m.a);
+  const dot=k=>`<span class="cl-pens-dot ${k.scored?'ok':'miss'}">${k.scored?'✔':'✖'}</span>`;
+  return `<div class="cl-pens-board">
+    <div class="cl-pens-row"><span class="cl-pens-team" style="${clubStripe(hc)}">${escC(hc.short)}</span>
+      <span class="cl-pens-dots">${RL.pens.h.map(dot).join('')}</span>
+      <span class="cl-pens-score">${RL.pens.h.filter(k=>k.scored).length}</span></div>
+    <div class="cl-pens-row"><span class="cl-pens-team" style="${clubStripe(ac)}">${escC(ac.short)}</span>
+      <span class="cl-pens-dots">${RL.pens.a.map(dot).join('')}</span>
+      <span class="cl-pens-score">${RL.pens.a.filter(k=>k.scored).length}</span></div>
+  </div>`;
+}
 function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a);
-  const halftime=(RL.paused && m.user && !RL.penEvent && !RL.injEvent);
+  const shooting=!!RL.pensPicking;
+  const halftime=(RL.paused && m.user && !RL.penEvent && !RL.injEvent && !RL.pens);
   const penalty=(RL.penEvent && RL.penMatch===m);
   const injury=(RL.injEvent && RL.injMatch===m);
-  const showSubs = m.user && !penalty && !injury && (halftime || CL.subPanelOpen);
+  const showSubs = m.user && !penalty && !injury && !shooting && (halftime || CL.subPanelOpen);
   const incHTML=incidentLines(m);
   const subsLeft=Math.max(0,3-(CL.subsUsed||0));
   // botões de ação ficam FORA de .cl-lm-top de propósito: esse é um flex row com os
@@ -1554,7 +1712,7 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
   // (align-items:stretch) — com muitos incidentes na partida, isso inflava os botões
   // junto (mesmo com o teto de altura em .cl-lm-events). Como bloco separado abaixo,
   // os botões mantêm sempre o próprio tamanho natural, disputa alguma seja a duração do jogo.
-  const actionsHTML=(penalty||injury)?'':`<div class="cl-lm-cont" style="grid-template-columns:${m.user && !halftime ? 'repeat(3,1fr)' : '1fr 1fr'}">
+  const actionsHTML=(penalty||injury||shooting)?'':`<div class="cl-lm-cont" style="grid-template-columns:${m.user && !halftime ? 'repeat(3,1fr)' : '1fr 1fr'}">
         ${(m.user && !halftime)?btn(showSubs?'Fechar substituições':`Substituições (${subsLeft})`,'clToggleSubPanel()',{icon:'⇄',cls:'cl-btn-ok',dis:subsLeft<=0&&!showSubs}):''}
         ${m.user?btn('Compartilhar','clShareResult()',{icon:'📤',cls:'cl-btn-cancel cl-noshot'}):''}
         ${btn('Continuar','liveContinue()',{icon:'✔',cls:'cl-btn-ok'})}
@@ -1566,7 +1724,7 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
     </div>
     ${actionsHTML}
     ${showSubs?subPanelHTML(m):''}
-    ${penalty?penaltyPickerHTML():''}${injury?injurySubHTML(m,RL.injEvent):''}`;
+    ${penalty?penaltyPickerHTML():''}${injury?injurySubHTML(m,RL.injEvent):''}${shooting?shootoutPickerHTML():''}`;
 }
 function clToggleSubPanel(){ CL.subPanelOpen=!CL.subPanelOpen; CL.subOut=CL.subIn=null; cdraw(); }
 /* ---- modal clássico de pênalti: escolhe o batedor, com contagem regressiva de 10s ---- */
@@ -1574,8 +1732,12 @@ function penaltyRating(p){ return Math.max(1,Math.min(9,Math.round((p.f-40)/7)))
 /* cor do modal de pênalti = cor real do clube que está batendo (igual ao clássico:
    ATLETICO PR sai vermelho, VITORIA sai preto — cada time com sua própria paleta) */
 function penaltyClubStyle(){
-  const e=CL.live && CL.live.penEvent; if(!e) return '';
-  const c=clubOf(e.team); if(!c || !c.color) return '';
+  const RL=CL.live; if(!RL) return '';
+  let teamId=null;
+  if(RL.penEvent) teamId=RL.penEvent.team;
+  else if(RL.pens && RL.matches[0]) teamId = RL.pens.turn==='H'?RL.matches[0].h:RL.matches[0].a;
+  if(!teamId) return '';
+  const c=clubOf(teamId); if(!c || !c.color) return '';
   const {col,col2}=clubColors(c);
   return `style="--pen-bg:linear-gradient(165deg,${col} 45%,${col2} 100%);--pen-fg:${txtOn(col)}"`;
 }
@@ -1593,6 +1755,28 @@ function penaltyPickerHTML(){
     <div class="cl-pen-sub">${escC(CL.mgr||'Técnico')}, escolha o jogador para marcar o penalti! <span id="cl-pen-count" class="cl-pen-count">${secsLeft}s</span></div>
     <div class="cl-pen-list">${rows}</div>
     <div class="cl-pen-btn">${btn('Chutar','resolvePenalty(CL.penSel)',{icon:'✔',cls:'cl-btn-ok'})}</div>
+  </div></div>`;
+}
+/* ---- modal de pênalti da DISPUTA (mesma cara do pênalti normal, ver penaltyPickerHTML)
+   — só troca o título (numera a cobrança) e chama resolveShootoutKick em vez de
+   resolvePenalty. Reaproveita CL.penSel/CL.penPhase/CL.penDeadline (só um dos dois
+   fluxos — pênalti em campo ou disputa — está ativo por vez, nunca os dois juntos). ---- */
+function shootoutPickerHTML(){
+  if(CL.penPhase==='suspense') return penaltySuspenseHTML();
+  if(CL.penPhase==='result') return penaltyResultHTML();
+  const RL=CL.live;
+  const list=xiPlayers(CL.clubId).filter(p=>p.s!=='GK');
+  const takers=(list.length?list:squad(CL.clubId).filter(p=>p.s!=='GK'));
+  const secsLeft=Math.max(0,Math.ceil((CL.penDeadline-Date.now())/1000));
+  const kickNum=(RL.pens.h.length+RL.pens.a.length)+1;
+  const rows=takers.map(p=>`<div class="cl-pen-row ${CL.penSel===p.n?'sel':''}" onclick="penaltySelect('${escC(p.n)}')">
+      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span><span class="cl-pen-r">${p.f}</span>
+    </div>`).join('');
+  return `<div class="cl-pen-overlay"><div class="cl-pen-modal" ${penaltyClubStyle()}>
+    <div class="cl-pen-title">PÊNALTI ${kickNum}ª cobrança</div>
+    <div class="cl-pen-sub">${escC(CL.mgr||'Técnico')}, escolha quem vai bater! <span id="cl-pen-count" class="cl-pen-count">${secsLeft}s</span></div>
+    <div class="cl-pen-list">${rows}</div>
+    <div class="cl-pen-btn">${btn('Chutar','resolveShootoutKick(CL.penSel)',{icon:'✔',cls:'cl-btn-ok'})}</div>
   </div></div>`;
 }
 /* fase 2: suspense — só o título, sem revelar nada ainda (a pausa dramática que faltava) */
@@ -1848,25 +2032,31 @@ function finishCupLiveMatch(){
   if(pending.stage==='bracket'){
     const t=pending.tie;
     t.hg=m.hg; t.ag=m.ag; t.events=m.events;
-    // MESMA fórmula de seed que advanceCupBracket usa pra essa rodada (ver
-    // advancePendingCups) — garante prorrogação/pênaltis reprodutíveis, e que o
-    // resultado bate com o que o avanço em segundo plano teria calculado sozinho.
-    const roundLabel = pending.key==='copaBrasil' ? ('copaBrasil-r'+pending.bracket.round) : (pending.key+'-r'+pending.bracket.round);
-    const seed=hashSeed(S.seed,'cup',roundLabel,t.h,t.a);
-    const res=resolveDrawnKnockoutTie(t.h,t.a,seed,m.hg,m.ag);
-    t.winner=res.winner; t.pens=res.pens||null;
-    const loser=res.winner===t.h?t.a:t.h; pending.bracket.eliminated[loser]=true;
-    const userWon=res.winner===CL.clubId;
-    if(res.wentToPens){
+    // prorrogação/pênaltis (se houve) já rolaram AO VIVO na tela do usuário — ver
+    // startExtraTime/startPenaltyShootout/liveTick — então aqui só empacota o que já
+    // aconteceu, não recalcula nada. m.hg/m.ag já inclui os gols da prorrogação (os
+    // eventos dela entraram na timeline normal da partida e foram contados igual a
+    // qualquer gol do jogo).
+    let winner, pens=null, wentToPens=false, wentToExtra=!!RL.cup.wentExtra;
+    if(RL.pens){
+      wentToPens=true; pens={h:RL.pens.finalH,a:RL.pens.finalA};
+      winner = pens.h>pens.a ? t.h : t.a;
+    } else {
+      winner = m.hg>m.ag ? t.h : t.a; // liveTick garante m.hg!==m.ag antes de chegar aqui
+    }
+    t.winner=winner; t.pens=pens;
+    const loser=winner===t.h?t.a:t.h; pending.bracket.eliminated[loser]=true;
+    const userWon=(winner===CL.clubId);
+    if(wentToPens){
       const userIsHome=(t.h===CL.clubId);
-      const myPen=userIsHome?res.pens.h:res.pens.a, oppPen=userIsHome?res.pens.a:res.pens.h;
+      const myPen=userIsHome?pens.h:pens.a, oppPen=userIsHome?pens.a:pens.h;
       resultMsg = userWon
-        ? `Empate em ${m.hg}×${m.ag} no tempo normal — você venceu nos pênaltis por ${myPen}×${oppPen} e avança na ${compShort}.`
-        : `Empate em ${m.hg}×${m.ag} no tempo normal — eliminado nos pênaltis por ${oppPen}×${myPen} da ${compShort}.`;
-    } else if(res.wentToExtra){
+        ? `Empate em ${m.hg}×${m.ag} — você venceu nos pênaltis por ${myPen}×${oppPen} e avança na ${compShort}.`
+        : `Empate em ${m.hg}×${m.ag} — eliminado nos pênaltis por ${oppPen}×${myPen} da ${compShort}.`;
+    } else if(wentToExtra){
       resultMsg = userWon
-        ? `Vitória na prorrogação por ${res.hg}×${res.ag}! Você avança na ${compShort}.`
-        : `Eliminado na prorrogação — derrota por ${res.hg}×${res.ag} da ${compShort}.`;
+        ? `Vitória na prorrogação por ${m.hg}×${m.ag}! Você avança na ${compShort}.`
+        : `Eliminado na prorrogação — derrota por ${m.hg}×${m.ag} da ${compShort}.`;
     } else {
       resultMsg = userWon
         ? `Vitória por ${m.hg}×${m.ag}! Você avança na ${compShort}.`
@@ -1948,7 +2138,7 @@ function cupClassifContinue(){
   finishCupResultFlow();
 }
 function updateLive(){ const RL=CL.live; if(!RL) return;
-  const clk=document.querySelector('#cl-liveclock'); if(clk) clk.style.setProperty('--pct', Math.min(100,Math.round(RL.minute/94*100)));
+  const clk=document.querySelector('#cl-liveclock'); if(clk) clk.style.setProperty('--pct', liveClockPct(RL));
   RL.matches.forEach((m,i)=>{ const sc=document.querySelector('#cl-lm-'+i); if(sc) sc.innerHTML=liveScoreCells(m);
     const lg=document.querySelector('#cl-lg-'+i); if(lg){ const inc=(m.incidents||[])[m.incidents.length-1]; lg.textContent=inc?lastIncidentTxt(inc):''; } });
   if(RL.sel!=null){ const box=document.querySelector('#cl-livemodal'); if(box) box.innerHTML=liveModalHTML(RL.matches[RL.sel]); }
