@@ -611,10 +611,15 @@ async function saveV3(explicit){
   const name = CL.save||CL.mgr||'SAVE';
   const payload = { ts:Date.now(), mgr:CL.mgr, clubId:CL.clubId, currency:CL.currency, ticket:CL.ticket, humans:CL.humans, S };
   if(typeof NET==='undefined' || !NET.saveSoloGame){ if(explicit&&typeof toastC==='function') toastC('⚠ Sem conexão pra gravar.'); return; }
-  if(explicit) showSavingOverlay();
+  let finishSavingOverlay=null;
+  if(explicit) finishSavingOverlay=showSavingOverlay();
   try{
     await NET.saveSoloGame(name, payload);
-    if(explicit){ clCloseOverlay(); toastC('✓ Jogo gravado na nuvem.'); }
+    if(explicit){
+      finishSavingOverlay();
+      await new Promise(r=>setTimeout(r,350));
+      clCloseOverlay(); toastC('✓ Jogo gravado na nuvem.');
+    }
   } catch(e){
     console.warn('saveSolo erro:', e);
     if(explicit){
@@ -627,13 +632,24 @@ async function saveV3(explicit){
     }
   }
 }
-/* barra de "Gravando..." — mesmo visual da barra usada ao criar um save novo
-   (scLoading/.cl-loadbar), só que como overlay e com preenchimento indeterminado
-   em vez de uma porcentagem inventada, já que aqui é uma operação de rede real. */
+/* barra de "Gravando..." — visual e animação IDÊNTICOS à barra usada ao criar um save novo
+   (scLoading/runLoading: preenchimento sólido crescendo + porcentagem, não a barrinha
+   deslizante indeterminada de antes). Como aqui é uma operação de rede de verdade (duração
+   desconhecida), a barra sobe do mesmo jeito até travar em 90% — só pula pra 100% quando
+   NET.saveSoloGame() realmente terminar (ver finishSavingOverlay), nunca fingindo estar
+   pronta antes da hora. */
 function showSavingOverlay(){
   overlayC(dlg('', `<div class="cl-loadbar"><div class="cl-loadbar-title">Gravando na nuvem...</div>
-    <div class="cl-loadbar-track"><div class="cl-loadbar-fill-indeterminate"></div></div></div>`,
+    <div class="cl-loadbar-track"><div id="cl-save-fill" class="cl-loadbar-fill" style="width:0%"><span id="cl-save-pct">0%</span></div></div></div>`,
     {w:460,bodyClass:'cl-body-gray',min:true}));
+  let p=0;
+  const t=setInterval(()=>{ p=Math.min(90, p+Math.floor(8+Math.random()*14));
+    const f=$c('#cl-save-fill'), pc=$c('#cl-save-pct'); if(f)f.style.width=p+'%'; if(pc)pc.textContent=p+'%';
+    if(p>=90) clearInterval(t); }, 180);
+  return function finishSavingOverlay(){
+    clearInterval(t);
+    const f=$c('#cl-save-fill'), pc=$c('#cl-save-pct'); if(f)f.style.width='100%'; if(pc)pc.textContent='100%';
+  };
 }
 function clLoadSave(name){
   toastC('Carregando jogo…');
