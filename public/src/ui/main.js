@@ -1188,8 +1188,75 @@ function clJogar(){
   // da mesma sala, resolvido em segundo plano igual sempre foi).
   const cupQueue=pendingUserCupMatches();
   if(cupQueue.length){ CL._pendingCupQueue=cupQueue.slice(1); startCupLiveMatch(cupQueue[0]); return; }
+  // nenhuma partida de copa pra JOGAR nesta rodada — mas pode ter rodada de copa
+  // rolando de competições das quais o usuário não participa (ou já foi eliminado);
+  // oferece assistir, uma competição de cada vez, antes de liberar a rodada de liga.
+  const spectateQueue=cupSpectateCandidates();
+  if(spectateQueue.length){ CL._pendingSpectateQueue=spectateQueue.slice(1); askSpectate(spectateQueue[0]); return; }
   if(CL.online){ onlineMarkReady(); return; }
   startLiveRound();
+}
+/* ---- MODO ESPECTADOR: assistir a uma rodada de copa de fora, sem participar —
+   pergunta antes (Sim/Pular), e se aceitar mostra a partida (ou partidas, se for
+   fase de grupos com vários jogos na mesma rodada) exatamente como um participante
+   veria, só que nenhuma das duas equipes é controlada pelo usuário: motor roda
+   sozinho, sem pênalti/lesão/substituição interativos (ver liveTick — só pausa pra
+   modal quando `m.user` é verdadeiro, nunca é o caso aqui). Não escreve NADA no
+   estado — quem resolve de verdade a partida continua sendo o avanço em segundo
+   plano (advanceCupBracket/advanceGroupStageRound), que roda pouco depois; a seed
+   usada aqui é EXATAMENTE a mesma que ele vai usar, então o placar assistido bate
+   com o que fica gravado de verdade. */
+function askSpectate(cand){
+  CL._spectateCand=cand;
+  overlayC(dlg(COMP_DEFS[cand.key].name, `
+    <div class="cl-res"><div class="cl-live-cup-top" style="margin:-4px -4px 14px">${trophyImg(cand.key,48)}
+      <div class="cl-live-cup-name">${escC(COMP_DEFS[cand.key].name)}</div></div>
+    <div class="cl-res-verd">Tem uma rodada rolando agora — quer assistir ao vivo?</div>
+    <div class="cl-cal-ok">${btn('Assistir','clSpectateYes()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Pular','clSpectateNo()',{icon:'✖',cls:'cl-btn-cancel'})}</div></div>`,
+    {w:480,bodyClass:'cl-body-green'}));
+}
+function clSpectateYes(){ clCloseOverlay(); const cand=CL._spectateCand; CL._spectateCand=null; startCupSpectate(cand); }
+function clSpectateNo(){ clCloseOverlay(); CL._spectateCand=null; advanceSpectateQueue(); }
+function advanceSpectateQueue(){
+  const q=CL._pendingSpectateQueue||[];
+  if(q.length){ CL._pendingSpectateQueue=q.slice(1); askSpectate(q[0]); return; }
+  CL._pendingSpectateQueue=null;
+  if(CL.online){ onlineMarkReady(); return; }
+  startLiveRound();
+}
+/* monta a(s) partida(s) da rodada ATUAL da competição indicada, todas com user:false
+   (motor roda sozinho, sem pausar pra modal nenhum) — usa a MESMA fórmula de seed que
+   advanceCupBracket/advanceGroupStageRound vão usar pra resolver de verdade essa
+   mesma rodada em segundo plano (ver advancePendingCups), pro placar assistido bater
+   exatamente com o que fica gravado. */
+function startCupSpectate(cand){
+  const key=cand.key, c=S.cups[key];
+  const fixtures=[];
+  if(cand.stage==='bracket'){
+    const b = key==='copaBrasil' ? c : c.bracket;
+    const roundLabel = key==='copaBrasil' ? ('copaBrasil-r'+b.round) : (key+'-r'+b.round);
+    (b.ties||[]).forEach(t=>{ fixtures.push({h:t.h,a:t.a,seed:hashSeed(S.seed,'cup',roundLabel,t.h,t.a)}); });
+  } else {
+    const mg=c.group, roundLabel=key+'-grupo-r'+mg.round;
+    Object.values(mg.groups).forEach(g=>{
+      (g.sched[mg.round]||[]).forEach(([h,a])=>{
+        if(h==null||a==null) return;
+        fixtures.push({h,a,seed:hashSeed(S.seed,roundLabel,g.label,h,a)});
+      });
+    });
+  }
+  if(!fixtures.length){ advanceSpectateQueue(); return; } // nada pra assistir agora (raro)
+  const matches=fixtures.map(f=>buildLiveMatchObject(f.h,f.a,f.seed,{user:false,div:key}));
+  const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:matches.length===1?0:null, subOpen:false,
+    matches, cup:{key, stage:cand.stage, spectate:true} };
+  RL.maxMin=Math.max(94,...matches.map(m=>m.events.length?m.events[m.events.length-1].min:90));
+  CL.live=RL; CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
+}
+function finishCupSpectate(){
+  const RL=CL.live;
+  toastC('Rodada da '+COMP_DEFS[RL.cup.key].short+' assistida!');
+  CL.live=null; CL.screen='main'; cdraw();
+  advanceSpectateQueue();
 }
 /* ---------- PARTIDA AO VIVO (estilo RetroFoot98: placar por divisões) ---------- */
 function attendanceFor(homeId,rnd){
@@ -1274,7 +1341,7 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
   if(RL.minute>=45 && !RL.halftimeDone){ RL.halftimeDone=true;
     const ui=RL.matches.findIndex(m=>m.user);
     if(ui>=0 && (!CL.options || CL.options.subsIntervalo!=='Não')){ RL.paused=true; RL.sel=ui; cdraw(); return; } }
-  if(RL.minute>=RL.maxMin){ RL.done=true; if(RL.cup) finishCupLiveMatch(); else finishLiveRound(); return; }
+  if(RL.minute>=RL.maxMin){ RL.done=true; if(RL.cup&&RL.cup.spectate) finishCupSpectate(); else if(RL.cup) finishCupLiveMatch(); else finishLiveRound(); return; }
   const spd=({Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37})[(CL.options&&CL.options.tempo)||'Usain Bolt']||37;
   const actualSpd=Math.max(12, spd / (CL.speedMult||1));
   CL._liveTimer=setTimeout(liveTick, actualSpd);
@@ -1421,8 +1488,13 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
       <span class="cl-lteam" style="${clubStripe(ac)}">${escC(ac.short)}</span>
       <span class="cl-lgoal" id="cl-lg-${i}"></span></div>`;};
   const divLegend={A:'1ª Divisão',B:'2ª Divisão',C:'3ª Divisão',D:'4ª Divisão'};
+  // partida(s) de copa: lista simples (não tem divisão A/B/C/D pra agrupar) — cobre tanto
+  // a partida própria do usuário (uma só, modal abre sozinho) quanto o modo espectador
+  // (várias partidas simultâneas da mesma rodada, nenhuma do usuário — ver startCupSpectate).
   // divisão do usuário no topo e aberta; as demais colapsadas por padrão (accordion)
-  const groups=divOrderUserFirst().map(d=>{
+  const groups = RL.cup
+    ? `<div class="cl-live-div open"><div class="cl-live-div-body">${RL.matches.map((m,i)=>rowHTML(m,i)).join('')}</div></div>`
+    : divOrderUserFirst().map(d=>{
     const rows=RL.matches.map((m,i)=>({m,i})).filter(x=>(x.m.div||S.division)===d);
     if(!rows.length) return '';
     const open=divAccOpen('liveDivOpen',d); const mine=d===S.division;
@@ -2194,12 +2266,16 @@ function clCompList(){ CL.menu=null;
     const qualified = (!restrictToSerieA || inSerieA) && S.qualification && S.qualification[x.key] && S.qualification[x.key].includes(cid);
     const c=x.c;
     let statusTxt, statusCls, clickable=false;
+    // não classificado/eliminado/fora da Série A não bloqueia mais o acesso — só não
+    // dá pra ver uma competição desligada neste save ou que ainda nem foi sorteada
+    // (não existe nada pra mostrar). Fora isso, qualquer um pode acompanhar tabela e
+    // chaveamento, mesmo sem disputar.
     if(disabled){ statusTxt='Desligada neste save'; statusCls='off'; }
-    else if(restrictToSerieA && !inSerieA){ statusTxt='Só clubes da Série A'; statusCls='off'; }
-    else if(!qualified){ statusTxt='Não classificado'; statusCls='off'; }
     else if(!c){ statusTxt='Aguardando sorteio'; statusCls='off'; }
     else if(cupCompetitionChampion(c)===cid){ statusTxt='🏆 CAMPEÃO'; statusCls='ok'; clickable=true; }
-    else if(!cupCompetitionTeamAlive(c,cid)){ statusTxt='Eliminado'; statusCls='out'; clickable=true; }
+    else if(restrictToSerieA && !inSerieA){ statusTxt='Só clubes da Série A · acompanhar'; statusCls='out'; clickable=true; }
+    else if(!qualified){ statusTxt='Não classificado · acompanhar'; statusCls='out'; clickable=true; }
+    else if(!cupCompetitionTeamAlive(c,cid)){ statusTxt='Eliminado · acompanhar'; statusCls='out'; clickable=true; }
     else { statusTxt=cupCompetitionRoundLabel(c,x.key); statusCls='ok'; clickable=true; }
     const icon=trophyImg(trophyFor[x.key],24) || (x.key==='copaBrasil'?'🇧🇷':'🌎');
     rows.push(`<div class="cl-complist-row ${clickable?'':'disabled'}" ${clickable?`onclick="clCupView('${x.key}')"`:''}>

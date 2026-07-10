@@ -668,6 +668,35 @@ function pendingUserCupMatches(){
   }
   return out;
 }
+/* rodadas de copa acontecendo nesta mesma leva (mesma véspera de advancePendingCups)
+   em que o clube do usuário NÃO tem partida jogável — candidatas a "modo espectador"
+   (ver clSpectateYes/startCupSpectate em main.js): o jogador pode assistir de fora,
+   sem interagir, uma rodada de uma competição da qual não participa (ou já foi
+   eliminado, ou simplesmente não pegou jogo nesta rodada específica — ex: fez bye
+   no mata-mata). Puramente de exibição — não escreve nada no estado, então é seguro
+   mesmo no modo online (cada cliente só assiste, quem resolve de verdade continua
+   sendo o avanço em segundo plano de sempre). */
+function cupSpectateCandidates(){
+  if(!S.cups || !CL.clubId) return [];
+  if((S.round+1)%3!==0) return [];
+  const out=[];
+  const cb=S.cups.copaBrasil;
+  if(cb && !cupIsFinished(cb) && cb.ties.length && !cb.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId))){
+    out.push({key:'copaBrasil', stage:'bracket'});
+  }
+  ['libertadores','sulamericana'].forEach(key=>{
+    const c=S.cups[key]; if(!c) return;
+    if(c.group && !c.bracket && !c.group.finished){
+      const mg=c.group;
+      const userHasFixtureNow=Object.values(mg.groups).some(g=>(g.sched[mg.round]||[]).some(([h,a])=>h===CL.clubId||a===CL.clubId));
+      const roundHasFixtures=Object.values(mg.groups).some(g=>(g.sched[mg.round]||[]).some(([h,a])=>h!=null&&a!=null));
+      if(!userHasFixtureNow && roundHasFixtures) out.push({key, stage:'group'});
+    } else if(c.bracket && !cupIsFinished(c.bracket) && c.bracket.ties.length){
+      if(!c.bracket.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId))) out.push({key, stage:'bracket'});
+    }
+  });
+  return out;
+}
 
 /* ====================== SISTEMA DE DIVISÕES (Série A/B/C/D) ======================
    S.division = 'A'|'B'|'C'|'D' — divisão em que o usuário está jogando AGORA.
