@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "elifoot-static",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5173"],
+      "port": 5173
+    },
+    {
+      "name": "elifoot-dist",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "dist", "-l", "5174"],
+      "port": 5174
+    }
+  ]
+}

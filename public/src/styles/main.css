@@ -1,0 +1,826 @@
+:root{--felt:#2f8f2f;--navy:#000080;--chrome:#c0c0c0;--yellow:#ffff00;--yellowlite:#ffff66;--bluetxt:#3a3ad6;
+ --bevL:#ffffff;--bevL2:#dfdfdf;--bevD:#808080;--bevD2:#000000;
+ --serif:Georgia,'Times New Roman',serif;--sans:Tahoma,'Segoe UI',Arial,sans-serif;--mono:'Consolas','JetBrains Mono',monospace;
+ /* ---- Design system RetroFoot98 — tokens formalizados (aditivos; os 13 acima
+    continuam sendo a fonte da verdade e não mudam de valor) ---- */
+ --success:#0b7a2f; --success-alt:#1a8f3c; --success-deep:#063d18; --success-lite:#3fcf6a;
+ --ontext-lite:#eaffea; --ontext-lite2:#cfe6cf; --ontext-lite3:#9fe89f;
+ --danger:#cc0000; --danger-alt:#e21c1c; --danger-deep:#c0392b;
+ --gold:#cc9a1a; --gold-warm:#e67e22;
+ --body-green:var(--felt); --body-yellow:#ffffcc; --body-gray:var(--chrome); --body-estadio:#9be89b;
+ --ink:#000000; --paper:#ffffff; --gray-666:#666666; --gray-888:#888888; --gray-999:#999999; --gray-aaa:#aaaaaa;
+ --zone-lib-bg:#2a5a2a; --zone-lib-fg:#9fe89f; --zone-lib-bar:#2f8f2f;
+ --zone-sul-bg:#5a4a1a; --zone-sul-fg:#ffd97a; --zone-sul-bar:#cc9a1a;
+ --moral-grad:linear-gradient(90deg,#c0392b 0%,#e67e22 25%,#f1c40f 50%,#8bc34a 75%,#2ecc71 100%);
+ --sp-1:3px; --sp-2:6px; --sp-3:8px; --sp-4:12px; --sp-5:16px; --sp-6:20px; --sp-7:26px;
+ --bw-hair:1px; --bw-bevel:2px; --bw-frame:3px;
+ --radius-none:0; --radius-pill:12px; --radius-tag:3px; --radius-chip:99px;
+ --bevel-out:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);
+ --bevel-in:var(--bevD2) var(--bevL) var(--bevL) var(--bevD2);
+ --bevel-field:var(--bevD) var(--bevL) var(--bevL) var(--bevD);
+ --bevel-panel:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);
+ --shadow-dlg:0 10px 40px -8px rgba(0,0,0,.55); --shadow-badge:0 3px 10px rgba(0,0,0,.4);
+ --shadow-logo:drop-shadow(0 6px 14px rgba(0,0,0,.4)); --shadow-main:0 20px 60px -10px rgba(0,0,0,.6);
+ --topbar-h:26px; --bp-mobile:760px; --dlg-pad:18px 20px; --btn-min-h:46px;
+ --fs-min:11px; --fs-sm:13px; --fs-body:15px; --fs-lg:18px; --fs-title:20px; --fs-hero:30px; --fs-pen:52px;
+ --fw-normal:400; --fw-bold:700; --fw-black:800; --fw-heavy:900;
+ --lh-tight:1.1; --lh-ui:1.2; --lh-body:1.45;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antialiased;color:#000;overflow:auto}
+#c-root{min-height:100%}
+.cl-topbar{background:linear-gradient(#d8d8d8,#c0c0c0);border-bottom:1px solid #808080;height:26px;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:13px;color:#000;position:sticky;top:0;z-index:5}
+.cl-topbar-logo{width:18px;height:18px;object-fit:contain;display:block}
+.cl-logo-link{display:inline-flex;line-height:0;text-decoration:none;cursor:pointer}
+.cl-topbar-auth{position:absolute;right:6px;top:0;height:100%;display:flex;align-items:center;gap:6px;font-weight:600;font-size:11px}
+.cl-topbar-auth-name{color:#333;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl-topbar-auth-out{font-family:var(--sans);font-size:10px;font-weight:700;background:var(--chrome);border:1px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);padding:2px 7px;cursor:pointer;color:#000}
+.cl-topbar-auth-out:active{border-color:var(--bevD2) var(--bevL) var(--bevL) var(--bevD2)}
+@media (max-width:480px){ .cl-topbar-auth-name{display:none} }
+.cl-desk{min-height:calc(100vh - 26px);background:var(--felt);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:26px;gap:16px}
+.cl-desk-logo{display:block;width:140px;height:140px;max-width:50vw;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4));align-self:center}
+/* diálogos */
+.cl-dlg{background:var(--navy);padding:3px;box-shadow:0 10px 40px -8px rgba(0,0,0,.55);max-width:calc(100vw - 24px);position:relative}
+/* selo do campeonato (troféu + nome) no canto sup. esquerdo do modal — usado nos
+   sorteios (Copa do Brasil/Libertadores/Sul-Americana) pra deixar claro, de cara,
+   de qual competição se trata, mesmo antes de ler o título. */
+.cl-dlg-badge{position:absolute;top:-16px;left:14px;z-index:3;display:flex;align-items:center;gap:7px;background:#fff;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);border-radius:12px;padding:5px 12px 5px 5px;box-shadow:0 3px 10px rgba(0,0,0,.4)}
+.cl-dlg-badge .cl-trophy-img{width:30px;height:30px;display:block}
+.cl-dlg-badge-t{font-weight:800;font-size:13px;color:#111;white-space:nowrap;letter-spacing:.2px}
+.cl-dlg-title{background:var(--navy);color:#fff;font-weight:700;font-size:14px;padding:5px 8px;display:flex;align-items:center;justify-content:center;position:relative}
+.cl-min{position:absolute;left:6px;top:4px;width:16px;height:14px;background:var(--chrome);border:1px solid #000;font-size:10px;line-height:8px;text-align:center;color:#000}
+.cl-dlg-body{padding:18px 20px;position:relative}
+.cl-body-green{background:var(--felt)}
+.cl-body-yellow{background:#ffffcc}
+.cl-body-gray{background:var(--chrome);border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL)}
+.cl-hasside{padding-right:130px}
+.cl-dlg-side{position:absolute;right:16px;top:18px;display:flex;flex-direction:column;align-items:center;gap:4px}
+/* botões win3.1 */
+.cl-btn{font-family:var(--sans);font-size:13px;background:var(--chrome);border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);padding:8px 14px;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#000;min-width:70px;min-height:46px;box-sizing:border-box;text-align:center}
+.cl-btn:active{border-color:var(--bevD2) var(--bevL) var(--bevL) var(--bevD2)}
+.cl-btn:disabled{color:#808080;cursor:default}
+.cl-btn:disabled .cl-btn-ic{opacity:.4}
+.cl-btn-ic{font-size:20px;line-height:1}
+.cl-btn-ok .cl-btn-ic{color:#0a0}
+.cl-btn-cancel .cl-btn-ic{color:#c00}
+.cl-btn-big{padding:14px 18px;min-width:90px;min-height:56px}
+.cl-btn-big .cl-btn-ic{font-size:26px}
+.cl-btn-wide{padding:18px 34px;font-weight:700;font-size:15px;min-height:56px}
+.cl-btn-sm{padding:5px 9px;min-width:42px;min-height:28px;font-size:11px;gap:2px}
+.cl-btn-sm .cl-btn-ic{font-size:13px}
+.cl-btn-ico{flex-direction:column}
+/* 01 abertura */
+.cl-about{min-height:360px;position:relative;text-align:center;padding-top:34px}
+.cl-online{position:absolute;right:0;top:-8px;background:#0b7a2f;color:#fff;font-weight:800;font-size:13px;padding:4px 12px;border-radius:99px;border:1px solid #063d18;letter-spacing:.3px}
+.cl-about-ver{position:absolute;left:0;top:-6px;color:var(--yellow);font-size:12px}
+.cl-about-sub{text-align:center;color:#eaffea;font-weight:600;font-size:15px;margin-bottom:20px}
+.cl-chips{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin-bottom:22px}
+.cl-chip{display:inline-flex;align-items:center;justify-content:center}
+.cl-chip-badge{display:block;width:96px;height:96px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35))}
+.cl-about-enter{display:flex;flex-direction:column;align-items:center;gap:4px}
+/* 02 modo */
+.cl-modo{min-height:300px;padding-right:120px}
+.cl-radio{display:flex;align-items:center;gap:10px;color:var(--navy);font-weight:700;font-size:18px;cursor:pointer;margin:4px 0}
+.cl-radio.on{color:#001a66}
+.cl-rd{width:14px;height:14px;border-radius:50%;border:2px solid var(--navy);background:#fff;display:inline-block;position:relative}
+.cl-radio.on .cl-rd::after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--navy)}
+.cl-field-row{margin:8px 0 8px 34px;display:flex;align-items:center;gap:12px}
+.cl-field-row.cl-col{flex-direction:column;align-items:flex-start;gap:6px}
+.cl-lbl{color:var(--yellow);font-weight:700;font-size:14px}
+.cl-body-gray .cl-lbl,.cl-body-yellow .cl-lbl{color:#000}
+.cl-input{font-family:var(--sans);font-size:15px;padding:5px 8px;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);background:#fff;width:260px;outline:none}
+.cl-sep{height:3px;background:#fff;margin:14px 0;box-shadow:0 1px 0 #808080}
+.cl-savlist{width:340px;height:180px;background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);overflow:auto;padding:2px}
+.cl-savitem{padding:4px 8px;font-size:13px;cursor:pointer}
+.cl-savitem:hover{background:#e6e6ff}
+.cl-savitem.sel{background:var(--navy);color:#fff}
+.cl-savempty{padding:10px;color:#888;font-size:12px}
+/* 03 países */
+.cl-paises{display:flex;gap:18px;min-height:420px}
+.cl-ctry-list{width:520px;background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);overflow:auto;max-height:440px}
+.cl-ctry{display:flex;align-items:center;gap:12px;padding:7px 12px;cursor:pointer;font-size:20px}
+.cl-ctry:hover{background:#eef}
+.cl-ctry.sel{background:var(--navy);color:#fff}
+.cl-ctry.off{opacity:.4;cursor:default}
+.cl-flag{font-size:22px;width:34px;text-align:center}
+.cl-ctry-n{flex:1}
+.cl-ctry-t{font-size:19px}
+.cl-paises-side{flex:1;color:#fff}
+.cl-side-btns{display:flex;gap:10px;margin-bottom:6px}
+.cl-counters{margin-top:20px;font-size:17px}
+.cl-counters div{display:flex;justify-content:space-between;margin:2px 0;color:#fff}
+.cl-counters .cl-hl{color:var(--yellow)}
+.cl-counters .cl-hl b{color:var(--yellow)}
+.cl-counters .cl-gap{margin-top:16px}
+.cl-counters b{color:#fff}
+.cl-instr{margin-top:24px;color:#fff;font-size:15px;max-width:280px;line-height:1.4}
+/* troféu + divisão/competições na tela de países */
+.cl-trophy-img{object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));vertical-align:middle}
+.cl-paises-divisao{margin-top:16px;background:rgba(0,0,0,.18);border-radius:6px;padding:12px 16px}
+.cl-paises-sec-title{color:var(--yellow);font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.cl-divopt-row{display:flex;gap:10px;flex-wrap:wrap}
+.cl-divopt{display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.25);border-radius:6px;padding:8px 16px;cursor:pointer;color:#fff;font-size:13px;min-width:76px}
+.cl-divopt:hover{background:rgba(255,255,255,.16)}
+.cl-divopt.sel{background:rgba(255,220,60,.22);border-color:var(--yellow)}
+.cl-divopt-ic{font-size:26px}
+.cl-comp-toggle{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.25);border-radius:6px;padding:8px 14px;cursor:pointer;color:#fff;font-size:13px;min-width:150px}
+.cl-comp-toggle:hover{background:rgba(255,255,255,.16)}
+.cl-comp-toggle.on{background:rgba(120,220,120,.18);border-color:#7fdc7f}
+.cl-comp-check{margin-left:auto;color:#7fdc7f;font-weight:900}
+.cl-comp-toggle.start{border-color:var(--yellow);box-shadow:0 0 0 1px var(--yellow) inset}
+.cl-comp-start-tag{background:var(--yellow);color:#000;font-size:9px;font-weight:900;padding:1px 5px;border-radius:3px;text-transform:uppercase;margin-left:4px}
+/* troféu nas telas de competição/partida ao vivo */
+.cl-comp-hdr-trophy{display:flex;align-items:center;gap:8px;justify-content:center}
+/* 04 moeda */
+.cl-moeda{min-height:120px;padding-right:110px;display:flex;flex-direction:column;justify-content:center}
+.cl-moeda-q{font-size:15px;margin-bottom:22px}
+.cl-select{font-family:var(--sans);font-size:22px;font-weight:700;color:#fff;background:var(--navy);border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);padding:6px 8px;width:100%;outline:none}
+/* 05 loading */
+.cl-loadbar{width:640px;max-width:90vw;background:var(--navy);padding:3px}
+.cl-loadbar-title{color:#fff;font-weight:700;text-align:center;padding:6px;font-size:14px}
+.cl-loadbar-track{height:34px;background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);margin:0 4px 4px;position:relative}
+.cl-loadbar-fill{height:100%;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;transition:width .18s}
+.cl-loadbar-fill span{position:absolute;left:0;right:0;text-align:center;color:#000;mix-blend-mode:difference;filter:invert(1)}
+/* 06/07 jogadores */
+.cl-jog{min-height:320px;padding:6px 20px}
+.cl-jog-head{display:grid;grid-template-columns:120px 220px 1fr;font-weight:700;font-size:15px;margin-bottom:10px;padding-left:2px}
+.cl-jh-n{grid-column:2}.cl-jh-e{grid-column:3}.cl-jh-e2{grid-column:3}
+.cl-jrow{display:grid;grid-template-columns:120px 220px 1fr;align-items:center;margin:5px 0}
+.cl-jlbl{font-size:14px}
+.cl-jinput{font-family:var(--sans);font-weight:700;font-size:14px;padding:5px 8px;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);background:#fff;width:200px;outline:none}
+.cl-jfocus{background:var(--yellowlite)}
+.cl-jinput:focus{background:var(--yellowlite)}
+.cl-jname{font-weight:700;font-size:15px;background:var(--yellowlite);padding:5px 8px;width:200px;border:1px solid #999}
+.cl-jteam{font-weight:700;font-size:15px;color:#fff;padding:5px 10px;width:210px;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.cl-jog-actions{display:flex;justify-content:center;margin-top:26px}
+/* MAIN */
+.cl-main{width:min(1000px,96vw);background:#000;border:var(--bw-frame) solid var(--navy);box-shadow:var(--shadow-main)}
+.cl-main-top{background:var(--navy);color:#fff;font-weight:700;text-align:center;padding:5px;font-size:15px;letter-spacing:.5px}
+.cl-view-tag{font-weight:700;font-size:11px;color:var(--yellow);margin-left:8px;letter-spacing:.5px}
+.cl-menu{background:#fff;display:flex;gap:0;border-bottom:1px solid #000}
+.cl-menu-i{padding:5px 14px;font-weight:700;font-size:14px;cursor:pointer;color:#000;position:relative}
+.cl-menu-i:hover,.cl-menu-i.open{background:var(--navy);color:#fff}
+/* dropdown do menu topo — abre reto pra baixo, alinhado ao item */
+.cl-menu-dd{position:absolute;top:100%;left:0;min-width:210px;background:#fff;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);z-index:30;box-shadow:3px 3px 8px rgba(0,0,0,.4);text-align:left;cursor:default}
+.cl-menu-dd-i{display:flex;justify-content:space-between;gap:24px;padding:5px 14px;font-size:15px;font-weight:700;color:#000;cursor:pointer}
+.cl-menu-dd-i:hover{background:var(--navy);color:#fff}
+.cl-menu-dd-i b{font-weight:700;color:inherit}
+.cl-menu-sep{height:0;border-top:1px solid #808080;margin:3px 6px}
+/* Treinador > História */
+.cl-chist{background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);padding:6px 10px;min-height:90px;font-size:15px}
+.cl-chist-row{padding:4px 2px;display:flex;align-items:center;gap:8px}
+.cl-chist-ic{font-size:16px;width:22px;text-align:center;flex-shrink:0}
+.cl-chist-row img.cl-trophy-img{flex-shrink:0}
+/* Treinador > Ranking */
+.cl-rank{background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);max-height:58vh;overflow:auto}
+.cl-rank-row{display:grid;grid-template-columns:34px 1fr 150px 44px 44px 40px;align-items:center;gap:6px;padding:3px 10px;font-size:14px;color:#000}
+.cl-rank-row.me{font-weight:800}
+.cl-rank-p{font-family:var(--mono);text-align:right}
+.cl-rank-t{font-weight:700}
+.cl-rank-n{font-family:var(--mono);text-align:right}
+.cl-rank-n.b{font-weight:800}
+.cl-main-body{display:flex;min-height:520px}
+.cl-main-left{width:56%;background:#000;padding:10px 0 10px 14px}
+.cl-hdr{padding:6px 0 10px}
+.cl-mgr{font-family:var(--serif);font-weight:700;color:#fff;font-size:30px;line-height:1}
+.cl-hdr-sub{color:#fff;font-size:15px;margin-top:6px;display:flex;align-items:center;gap:8px}
+.cl-flag2{font-size:18px}
+.cl-div{margin-left:40px;color:#fff}
+.cl-roster{background:#fff;color:#000;border:1px solid #000;max-height:560px;overflow:auto}
+.cl-roster.cl-acc-body{overflow-y:auto;overflow-x:hidden} /* a regra genérica do acordeão (overflow:hidden) cortava a lista sem deixar rolar */
+.cl-share-mini{display:inline-flex;align-items:center;justify-content:center;padding:3px 10px;margin-left:6px;border-radius:5px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;font-weight:700;cursor:pointer;vertical-align:middle;line-height:1.4}
+.cl-share-mini:hover{background:rgba(255,255,255,.3)}
+.cl-roster-hd{background:#e8e8e8;color:#000;font-weight:800;font-size:13px;padding:5px 10px;border:1px solid #000;border-bottom:none;display:flex;justify-content:space-between;cursor:pointer}
+.cl-rgroup{border-bottom:1px solid #000}
+.cl-rgroup:last-child{border-bottom:none}
+.cl-rrow{display:grid;grid-template-columns:16px 22px 1fr 54px 66px;column-gap:6px;align-items:center;padding:2px 8px;font-weight:700;font-size:14px;cursor:pointer}
+.cl-rmark{text-align:center;font-weight:800}
+.cl-rmark.t,.cl-rmark.r{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;font-size:10px;font-weight:800;line-height:1}
+.cl-rmark.t{background:var(--success-alt);color:#fff}
+.cl-rmark.r{background:#9a9a9a;color:#000}
+.cl-rrow:hover{background:#e8e8e8}
+.cl-rrow.sel{background:#000;color:#fff}
+.cl-rpos{}
+.cl-rname{}
+.cl-rf{text-align:left}
+.cl-rv{text-align:left}
+.cl-main-right{flex:1;background:#000;color:#fff;padding:12px 16px;display:flex;flex-direction:column;position:relative}
+.cl-right-hdr{position:relative;min-height:56px;margin-bottom:8px}
+.cl-adv-lbl{color:#fff;font-size:15px}
+.cl-year{position:absolute;right:0;top:0;font-weight:700;font-size:18px;color:#fff}
+.cl-adv-name{color:var(--bluetxt);font-weight:700;font-size:16px}
+.cl-adv-loc{color:var(--bluetxt);font-size:15px}
+.cl-panel{flex:1}
+/* tabs */
+.cl-tabs{display:flex;gap:0;border-top:1px solid #666;padding-top:6px;margin-top:8px;justify-content:flex-start}
+.cl-tab{padding:3px 12px;font-size:14px;color:#ccc;cursor:pointer;border:1px solid transparent}
+.cl-tab.on{color:#fff;font-weight:700;border-color:#888 #888 #000 #888;background:#111;border-bottom:2px solid var(--yellow)}
+.cl-tab:hover{color:#fff}
+/* painel jogo */
+.cl-jogo{font-size:15px}
+.cl-jogo-empty{color:#888;font-size:13px;padding:12px 0}
+.cl-grow{display:flex;justify-content:space-between;align-items:center;color:#fff;margin:2px 0}
+.cl-grow.blue{color:var(--bluetxt)}
+.cl-gname{font-weight:700}
+.cl-gnums{display:flex;gap:14px}
+.cl-gnums b{font-weight:400;min-width:12px;text-align:center}
+.cl-blk{margin-top:20px}
+.cl-blk-l{color:#fff;font-size:15px}
+.cl-blk-v{font-size:15px;margin-top:2px}
+.cl-strong{font-weight:700}
+.cl-bar{height:22px;background:#c0c0c0;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);margin-top:6px;max-width:360px}
+.cl-bar-fill{height:100%;background:var(--yellow)}
+.cl-bar-lg{max-width:100%}
+/* moral do clube: gradiente vermelho (baixa) -> verde fluorescente (alta), com as cores
+   intermediárias (laranja/amarelo/verde-limão) nas transições — a barra inteira já mostra
+   o gradiente completo; só a parte "vazia" (à direita do valor atual) fica encoberta, então
+   a ponta da barra preenchida sempre exibe a cor certa pro nível de moral atual. */
+.cl-bar-moral{position:relative;overflow:hidden;background:linear-gradient(90deg,#c0392b 0%,#e67e22 25%,#f1c40f 50%,#8bc34a 75%,#2ecc71 100%)}
+.cl-bar-moral .cl-bar-fill{position:absolute;top:0;right:0;left:auto;height:100%;background:#c0c0c0;width:calc(100% - var(--val,0)*1%) !important}
+/* painel jogador */
+.cl-jgd{font-size:15px}
+.cl-jgd-name{font-family:var(--serif);font-size:30px;color:#fff}
+.cl-jgd-nat{display:flex;align-items:center;gap:8px;margin:6px 0 16px}
+.cl-jgd-row{display:flex;justify-content:space-between;max-width:340px;margin:6px 0}
+.cl-hist{border:1px solid #888;margin:14px 0;padding:6px 12px 10px;max-width:360px}
+.cl-hist legend{padding:0 6px;color:#fff}
+.cl-hist-row{display:flex;justify-content:space-between;margin:4px 0}
+.cl-jgd-act{margin-top:20px;display:flex;gap:12px;flex-direction:column}
+.cl-jgd-act .cl-btn{flex:1;flex-direction:row;justify-content:center;padding:12px 16px;font-weight:600}
+/* finanças */
+.cl-fin{font-size:15px;line-height:1.35}
+.cl-fin-row{display:flex;justify-content:space-between;max-width:380px}
+.cl-fin-h{font-weight:700;margin-bottom:4px}
+.cl-fin-sec{font-weight:700;margin:6px 0 2px}
+.cl-fin-tot{margin:10px 0}
+.cl-fin-foot{margin-top:12px}
+.cl-fin-row.big{font-size:16px}
+.cl-fin-row.big b{font-weight:700}
+.cl-fin-row.big2{font-size:20px;margin-top:8px}
+.cl-fin-row.big2 b{font-weight:800}
+/* selecção */
+.cl-sel{font-size:15px;position:relative;min-height:400px;padding-bottom:120px}
+.cl-sel-note{margin-bottom:16px;color:#aaa}
+.cl-sel-formations{margin-bottom:20px;padding:0}
+.cl-sel-escala{display:flex;gap:12px;margin-bottom:16px;align-items:center}
+.cl-sel-escala-note{font-size:13px;color:#aaa;margin-bottom:12px}
+.cl-sel-xi{display:flex;flex-direction:column;gap:3px;max-height:300px;overflow:auto}
+.cl-sel-p{color:#fff;font-size:14px}
+.cl-sel-p i{display:inline-block;width:18px;color:var(--yellow);font-style:normal;font-weight:700}
+.cl-sel-jogar{position:absolute;right:8px;bottom:8px;display:flex;flex-direction:column;align-items:center;gap:4px}
+/* adversário */
+.cl-adv{font-size:15px;min-height:400px;position:relative}
+.cl-adv-big{color:var(--bluetxt);font-size:26px;font-weight:400;margin:10px 0 14px}
+.cl-adv-coach{display:flex;gap:18px;margin-top:26px}
+.cl-adv-cal{position:absolute;right:8px;bottom:8px}
+/* calendário / classificação modais */
+.cl-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:50}
+.cl-cal,.cl-cls{background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);max-height:60vh;overflow:auto;width:420px}
+.cl-cal-row{display:grid;grid-template-columns:44px 1fr 40px;padding:3px 10px;font-weight:700;font-size:15px;color:var(--navy)}
+.cl-cal-row:nth-child(odd){background:var(--navy);color:#fff}
+.cl-cal-n{}.cl-cal-cf{text-align:center}
+.cl-cal-cup{background:var(--yellow)!important;color:#1a1a00!important}
+.cl-cal-ok{display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:14px}
+.cl-cls{width:600px}
+.cl-cls-head,.cl-cls-row{display:grid;grid-template-columns:32px 1fr 34px 34px 34px 34px 60px 40px 120px;padding:3px 8px;font-size:13px;align-items:center}
+.cl-cls-head{font-weight:700;background:#e0e0e0;position:sticky;top:0}
+.cl-cls-row.me{background:#fff7cc}
+.cl-cls-num{text-align:center}.cl-cls-num.b{font-weight:700}
+.cl-cls-zone{display:flex;align-items:center;gap:3px;font-size:10px;font-weight:800;padding:2px 5px;border-radius:3px;white-space:nowrap;justify-self:start}
+.cl-cls-zone.zone-lib{background:#2a5a2a;color:#9fe89f}
+.cl-cls-zone.zone-sul{background:#5a4a1a;color:#ffd97a}
+.cl-cls-row.zone-lib{border-left:4px solid #2f8f2f}
+.cl-cls-row.zone-sul{border-left:4px solid #cc9a1a}
+/* overlay res */
+.cl-res{text-align:center;min-width:280px}
+.cl-res-score{font-family:var(--mono);font-size:30px;font-weight:800;color:#fff;margin-bottom:6px}
+.cl-body-green .cl-res-score{color:#fff}
+.cl-res-verd{font-weight:700;color:#fff;margin-bottom:14px;font-size:16px}
+/* toast */
+#c-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;gap:6px;align-items:center}
+.cl-toast{background:#000080;color:#fff;padding:9px 16px;font-size:13px;font-weight:600;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL)}
+/* estádio */
+.cl-body-estadio{background:#9be89b}
+.cl-est{min-height:360px;padding-bottom:10px}
+.cl-est-svg{display:block;margin:6px auto 4px;width:280px;height:auto}
+.cl-est-cap{font-size:26px;font-weight:800;color:#000;margin:14px 0 8px}
+.cl-est-price{font-size:15px;color:#000;line-height:1.4}
+.cl-est-maxcap{font-size:13px;color:#333;margin-top:8px}
+/* antes eram position:absolute ancorados no rodapé do card — em telas onde o texto de
+   capacidade máxima quebrava em 2 linhas (ou o modal ficava mais baixo), os botões
+   ficavam sobrepostos ao texto e cobriam parte do conteúdo. Fluxo normal evita isso. */
+.cl-est-btns{display:flex;justify-content:flex-end;gap:12px;margin-top:20px}
+.cl-est-btns .cl-btn{min-width:96px}
+.cl-est-note{color:#c00;font-weight:700;font-size:14px;text-align:center;margin-top:14px}
+/* vender */
+.cl-sell{padding:8px 6px}
+.cl-sell-q{font-size:15px;margin-bottom:16px}
+.cl-sell-btns{display:flex;gap:12px;justify-content:center}
+/* Renovar contrato (painel na aba Jogador) */
+.cl-renew{text-align:center;padding-top:24px}
+.cl-renew-title{font-size:24px;font-weight:800;color:#fff;margin-bottom:40px}
+.cl-renew-row{display:flex;align-items:center;justify-content:center;gap:14px;color:#fff;font-size:16px;margin-bottom:44px}
+.cl-spin{display:inline-flex;align-items:stretch;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);background:#fff}
+.cl-spin-v{display:flex;align-items:center;justify-content:flex-end;min-width:110px;padding:6px 10px;font-family:var(--mono);font-size:22px;font-weight:800;color:#000}
+.cl-spin-btns{display:flex;flex-direction:column;border-left:1px solid #808080}
+.cl-spin-btns button{border:1px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);background:var(--chrome);font-size:9px;line-height:1;cursor:pointer;flex:1;padding:0 6px}
+.cl-renew-btns{display:flex;gap:14px;justify-content:center;margin-top:24px}
+/* Vender (painel na aba Jogador) */
+.cl-vender{text-align:center;padding-top:14px;color:#fff}
+.cl-vender-title{font-size:24px;font-weight:800;margin-bottom:36px}
+.cl-vender-lbl{font-size:15px;margin-bottom:14px;line-height:1.4}
+.cl-vender-in{font-family:var(--mono);font-size:16px;padding:7px 10px;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);background:#fff;width:220px;outline:none;text-align:left}
+/* campo de dinheiro: prefixo R$ + valor com separador de milhar (compra/venda) */
+.cl-money-field{display:inline-flex;align-items:center;gap:6px;background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);padding:0 10px;width:220px;max-width:100%;box-sizing:border-box}
+.cl-money-cur{font-weight:800;color:#0a7a2f;font-size:15px;flex:0 0 auto}
+.cl-money-in{border:none;outline:none;background:transparent;flex:1;min-width:0;font-family:var(--mono);font-size:16px;font-weight:700;color:#000;text-align:right;padding:7px 0;font-variant-numeric:tabular-nums}
+.cl-vender-btns{display:flex;gap:14px;justify-content:center;margin-top:24px}
+/* Leilão (modal amarelo) */
+.cl-leilao{min-height:360px;color:#000;position:relative}
+.cl-lei-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.cl-lei-row{display:flex;align-items:center;gap:16px;font-size:15px;margin:8px 0}
+.cl-lei-row span{min-width:120px;color:#000}
+.cl-lei-row b{font-weight:700}
+.cl-lei-team{color:#fff;padding:2px 12px;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.cl-lei-big{font-size:22px}
+.cl-lei-sold{font-size:20px;font-weight:800;color:#c00;margin-top:26px}
+.cl-lei-ok{display:flex;flex-direction:column;align-items:center;gap:3px;position:absolute;right:6px;bottom:0}
+/* Opções */
+.cl-opt{min-height:280px;padding-right:120px;position:relative}
+.cl-otabs{display:flex;gap:4px;border-bottom:2px solid #808080;margin-bottom:18px}
+.cl-otab{padding:6px 22px;background:var(--chrome);border:2px solid;border-color:var(--bevL) var(--bevD) transparent var(--bevL);color:#00008b;font-weight:700;font-size:15px;cursor:pointer;position:relative;top:2px}
+.cl-otab.on{background:#d8d8d8;border-bottom:2px solid #d8d8d8;color:#0000cc}
+.cl-opanel{min-height:170px}
+.cl-orow{display:flex;align-items:center;justify-content:space-between;gap:24px;margin:14px 0;font-size:15px;color:#000}
+.cl-pbody{min-width:420px;color:#000}
+.cl-pmsg{font-size:15px;margin-bottom:16px;line-height:1.4}
+.cl-pcheck{display:flex;align-items:center;gap:8px;font-size:14px;margin:12px 0;cursor:pointer}
+.cl-pfield{border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);padding:14px 16px 10px;margin-top:16px}
+.cl-pfield legend{font-size:13px;color:#000;padding:0 6px}
+.cl-pradio{display:flex;align-items:center;gap:8px;font-size:14px;margin:10px 0;cursor:pointer}
+.cl-osel{font-family:var(--sans);font-size:14px;padding:4px 6px;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);background:#fff;min-width:220px}
+.cl-oside{position:absolute;right:16px;top:44px;display:flex;flex-direction:column;align-items:center;gap:6px}
+/* PARTIDA AO VIVO (placar por divisões) */
+.cl-live{min-height:100vh;background:var(--felt);padding:0 0 40px;position:relative}
+.cl-live-top{background:var(--navy);color:#fff;font-weight:800;text-align:center;padding:6px;font-size:15px}
+.cl-live-clock{position:fixed;right:36px;top:38px;z-index:80;width:56px;height:56px;border-radius:50%;background:conic-gradient(var(--navy) calc(var(--pct,0)*1%), #fff 0);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.cl-live-div{margin:12px 40px 0;border:1px solid var(--navy);padding:10px 16px}
+.cl-live-div:first-of-type{margin-top:56px}
+.cl-live-div>legend{color:var(--yellow);font-weight:800;font-size:16px;padding:2px 8px;user-select:none;display:flex;align-items:center;gap:6px}
+.cl-live-legend-trophy{display:inline-flex;align-items:center}
+/* no DESKTOP tudo fica expandido (sem accordion) — a seta e o colapso só existem no mobile */
+.cl-live-div>legend .cl-acc-arrow{display:none}
+.cl-lrow{display:grid;grid-template-columns:66px 1fr 54px 1fr 160px;align-items:center;gap:8px;padding:3px 0;cursor:pointer}
+.cl-latt{font-family:var(--mono);color:var(--yellow);font-size:14px;text-align:right;font-weight:700}
+.cl-lteam{padding:5px 10px;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid rgba(255,255,255,.25);text-shadow:0 1px 1px rgba(0,0,0,.4)}
+.cl-lsc{display:flex;gap:16px;justify-content:center;font-family:var(--mono);font-weight:800;font-size:16px;color:#fff}
+.cl-lgoal{color:var(--yellow);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-live-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:40;padding:20px 0}
+.cl-live-modal{width:640px;max-width:92vw;max-height:90vh;overflow-y:auto;background:var(--navy);padding:3px;box-shadow:0 20px 60px -10px rgba(0,0,0,.6)}
+.cl-lm-title{background:var(--navy);color:#fff;font-weight:800;text-align:center;padding:6px;font-size:15px}
+.cl-lm-top{display:flex;align-items:flex-start;gap:14px;background:var(--chrome);padding:14px 16px;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);border-bottom:none}
+/* incidentes (gols/cartões/lesões) acumulam a partida inteira — sem teto, essa coluna
+   crescia sem parar e empurrava o modal pra fora da tela, deixando os botões
+   inalcançáveis. Altura fixa + scroll interno resolve sem cortar histórico.
+   align-items:flex-start em .cl-lm-top evita o efeito colateral: por padrão o flexbox
+   estica todo mundo pra altura do irmão mais alto (align-items:stretch), então mesmo
+   com o teto de altura os botões (agora fora de .cl-lm-top, ver .cl-lm-cont) inflavam
+   junto com a caixa de eventos conforme a partida acumulava gols/cartões. */
+.cl-lm-events{flex:1;font-size:14px;min-height:70px;max-height:220px;overflow-y:auto;color:#000;line-height:1.5}
+.cl-lm-ref{border:1px solid #808080;padding:6px 12px;font-size:14px;height:max-content;color:#000}
+.cl-lm-ref>legend{padding:0 5px}
+/* botões de ação (Substituições/Compartilhar/Continuar) — bloco próprio, FORA do flex
+   row dos eventos, pra nunca esticar de tamanho independente de quantos incidentes a
+   partida já teve (ver liveModalHTML). */
+.cl-lm-cont{display:grid;gap:12px;background:var(--chrome);padding:0 16px 16px;border-left:2px solid var(--bevL);border-right:2px solid var(--bevD2);border-bottom:2px solid var(--bevD2)}
+.cl-lm-checks{display:flex;gap:24px;background:var(--chrome);padding:8px 16px;font-size:13px;color:#000;border-left:2px solid var(--bevL);border-right:2px solid var(--bevD2)}
+.cl-lm-noinc{color:#666;font-style:italic;font-size:13px}
+.cl-rrow.unavail{opacity:.55}
+.cl-jgd-status{margin:6px 0 10px;padding:6px 10px;border-radius:4px;font-weight:800;font-size:12px}
+.cl-jgd-status.susp{background:#c0392b;color:#fff}
+.cl-jgd-status.hurt{background:#b8860b;color:#fff}
+/* Campeonatos > Minhas competições */
+.cl-complist{display:flex;flex-direction:column;gap:6px;min-width:420px}
+.cl-complist-row{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:8px;padding:9px 12px;border-radius:6px;background:#e8e8e8;cursor:pointer;color:#000}
+.cl-complist-row:hover{background:#dcdcdc}
+.cl-complist-row.disabled{opacity:.5;cursor:default;background:#f0f0f0}
+.cl-complist-ic{font-size:16px;text-align:center}
+.cl-complist-n{font-weight:800;font-size:13px}
+.cl-complist-st{font-size:11px;font-weight:700;padding:3px 8px;border-radius:3px}
+.cl-complist-st.ok{background:#1a8f3c;color:#fff}
+.cl-complist-st.off{background:#999;color:#fff}
+.cl-complist-st.out{background:#b03030;color:#fff}
+/* chaveamento de copa */
+.cl-cup{min-width:440px;max-height:60vh;overflow-y:auto}
+.cl-cup-champ{background:var(--yellow);color:#3a2f00;font-weight:900;text-align:center;padding:10px;border-radius:6px;margin-bottom:10px;font-size:14px}
+.cl-cup-round{border:1px solid #999;margin-bottom:8px;padding:6px 10px;border-radius:4px}
+.cl-cup-round>legend{font-weight:800;font-size:12px;padding:0 5px;color:#000}
+.cl-cup-tie{display:grid;grid-template-columns:1fr 40px 1fr;align-items:center;gap:6px;padding:3px 4px;font-size:13px;color:#000;text-align:center}
+.cl-cup-tie.me{background:#fff3b0;border-radius:3px}
+.cl-cup-tie .win{font-weight:900}
+.cl-cup-hint{color:#666;font-size:11px;font-style:italic;padding:4px 2px}
+/* fase de grupos / chaveamento (Libertadores, Sul-Americana, Copa do Brasil) */
+.cl-cup-tabs{display:flex;gap:6px;margin-bottom:10px}
+.cl-cup-tabbtn{flex:1;opacity:.6}
+.cl-cup-tabbtn.active{opacity:1;background:var(--yellow);color:#000;font-weight:900}
+.cl-cup-advances{box-shadow:inset 3px 0 0 0 #1a8f3c}
+.cl-cup-groups-wrap{max-height:56vh;overflow-y:auto;padding-right:2px}
+/* sorteio dos jogos da taça (cerimônia animada, igual ao clássico) */
+.cl-draw-cols{display:flex;gap:10px}
+.cl-draw-col{flex:1;background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);display:flex;flex-direction:column;min-width:0}
+.cl-draw-colhd{background:var(--navy);color:#fff;font-weight:800;font-size:12px;padding:5px 8px}
+.cl-draw-list{max-height:340px;overflow-y:auto;font-size:12px;color:#000}
+.cl-draw-team,.cl-draw-pair{padding:2px 8px;border-bottom:1px solid #eee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-draw-highlight{display:flex;flex-direction:column;gap:8px;align-items:center;margin-top:14px}
+.cl-draw-hrow{display:flex;gap:10px}
+.cl-draw-hbox{min-width:150px;text-align:center;padding:12px 10px;font-weight:900;font-size:15px;border-radius:2px}
+.cl-draw-hbox.bye{background:#ccc;color:#555}
+.cl-draw-actions{text-align:center;margin-top:12px}
+/* demissão / proposta de outro clube (carreira do treinador) */
+.cl-jobmodal-msg{font-size:14px;margin-bottom:14px;line-height:1.5}
+.cl-joboptlist{display:flex;flex-direction:column;gap:8px}
+.cl-jobopt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:5px;background:#eee;cursor:pointer;color:#000}
+.cl-jobopt:hover{background:#ddd}
+.cl-jobopt-club{font-weight:900;padding:4px 10px;border-radius:3px}
+.cl-jobopt-div{font-size:12px;color:#555;font-weight:700}
+.cl-bracket-wrap{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 10px;min-height:120px}
+.cl-bracket-col{display:flex;flex-direction:column;justify-content:space-around;gap:10px;min-width:170px}
+.cl-bracket-col-h{font-size:11px;font-weight:800;text-transform:uppercase;color:#666;text-align:center;margin-bottom:2px}
+.cl-bracket-tie{border:1px solid #999;border-radius:5px;overflow:hidden;background:#fff}
+.cl-bracket-tie.me{border-color:var(--yellow);border-width:2px}
+.cl-bracket-team{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:5px 8px;font-size:12px;color:#000;border-bottom:1px solid #eee}
+.cl-bracket-team:last-child{border-bottom:none}
+.cl-bracket-team.win{font-weight:900;background:#eafbea}
+.cl-bracket-team.lose{opacity:.55}
+.cl-bracket-team.bye-lbl{color:#999;font-style:italic;font-size:11px}
+.cl-bracket-tie.champ{border-color:var(--yellow);border-width:2px}
+.cl-bracket-tie.champ .cl-bracket-team{background:var(--yellow);font-weight:900;justify-content:center}
+/* mercado de transferências */
+.cl-mkt-clublist{display:flex;flex-direction:column;gap:6px;min-width:400px;max-height:60vh;overflow-y:auto}
+.cl-mkt-club{display:flex;justify-content:space-between;align-items:center;background:#e8e8e8;border-left:5px solid #888;border-radius:4px;padding:9px 12px;cursor:pointer;color:#000;font-weight:700;font-size:13px}
+.cl-mkt-club:hover{background:#dcdcdc}
+.cl-mkt-club-ov{color:#555;font-weight:600;font-size:12px}
+.cl-mkt-squad{display:flex;flex-direction:column;gap:4px;min-width:420px;max-height:60vh;overflow-y:auto}
+.cl-mkt-p{display:grid;grid-template-columns:24px 1fr 40px 70px;align-items:center;gap:8px;background:#eee;border-radius:3px;padding:6px 10px;cursor:pointer;color:#000;font-size:13px}
+.cl-mkt-p:hover{background:#ddd}
+.cl-mkt-p-pos{font-weight:900;color:#555}
+.cl-mkt-p-n{font-weight:700}
+.cl-mkt-p-f{font-weight:800;text-align:center}
+.cl-mkt-p-v{color:#555;font-size:11px;text-align:right}
+.cl-mkt-offer{min-width:420px;color:#000}
+.cl-mkt-offer-hd{font-weight:900;font-size:15px;margin-bottom:12px}
+.cl-mkt-offer-hd span{font-weight:600;color:#555;font-size:13px}
+.cl-mkt-offer-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #ccc;font-size:13px}
+.cl-mkt-offer-row input,.cl-mkt-sel{font-family:var(--sans);font-size:13px;padding:4px 8px;width:140px}
+.cl-mkt-counter{background:#fff3b0;border-radius:4px;padding:8px 10px;margin:10px 0;font-size:12px;color:#5a4a00}
+/* leilão */
+.cl-auc{display:flex;flex-direction:column;gap:5px;min-width:520px;max-height:60vh;overflow-y:auto}
+.cl-auc-row{display:grid;grid-template-columns:70px 22px 1fr 40px 90px auto;align-items:center;gap:8px;background:#eee;border-radius:3px;padding:6px 10px;color:#000;font-size:13px}
+.cl-auc-club{font-weight:800;font-size:11px;padding:3px 6px;border-radius:3px;text-align:center}
+.cl-auc-p-pos{font-weight:900;color:#555;text-align:center}
+.cl-auc-p-n{font-weight:700}
+.cl-auc-p-f{font-weight:800;text-align:center}
+.cl-auc-price{color:#1a6b1a;font-weight:800;text-align:right}
+.cl-winbadge{font-size:10px;font-weight:800;padding:2px 6px;border-radius:3px;margin-left:6px}
+.cl-winbadge.open{background:#1a6b1a;color:#fff}
+.cl-winbadge.closed{background:#888;color:#fff}
+.cl-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px}
+.cl-link:hover{color:#0645ad;text-decoration-style:solid}
+/* modal de pênalti — estilo clássico RetroFoot98: fundo preto, texto vermelho */
+.cl-pen-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:500}
+.cl-pen-modal{background:var(--pen-bg,#000);border:3px solid #444;box-shadow:0 0 0 2px #888,0 8px 30px rgba(0,0,0,.7);min-width:420px;max-width:92vw;padding:18px 22px;text-align:center;transition:background .2s}
+.cl-pen-suspense-dots{color:var(--pen-fg,#e21c1c);font-size:40px;font-weight:900;letter-spacing:10px;margin:30px 0;animation:cl-pen-pulse 1s infinite}
+@keyframes cl-pen-pulse{0%,100%{opacity:.35}50%{opacity:1}}
+.cl-pen-marcador{color:var(--pen-fg,#e21c1c);font-size:16px;font-weight:700;margin:14px 0 4px;text-align:left}
+.cl-pen-result{font-family:Georgia,'Times New Roman',serif;font-weight:900;font-style:italic;font-size:52px;margin-top:26px;color:var(--pen-fg,#e21c1c)}
+.cl-pen-title{color:var(--pen-fg,#e21c1c);font-family:Georgia,'Times New Roman',serif;font-weight:900;font-size:44px;letter-spacing:10px;margin-bottom:10px}
+.cl-pen-sub{color:var(--pen-fg,#e21c1c);font-size:13px;font-weight:700;margin-bottom:14px}
+.cl-pen-count{display:inline-block;background:#e21c1c;color:#fff;border-radius:3px;padding:1px 7px;margin-left:6px;font-weight:900}
+.cl-pen-list{border:2px solid var(--pen-fg,#888);background:rgba(0,0,0,.4);max-height:280px;overflow-y:auto;text-align:left}
+.cl-pen-row{display:grid;grid-template-columns:22px 1fr 30px;gap:8px;padding:5px 10px;color:var(--pen-fg,#e21c1c);font-weight:700;font-size:14px;cursor:pointer}
+.cl-pen-row:hover{background:#1a0000}
+.cl-pen-row.sel{background:var(--pen-fg,#e21c1c);color:var(--pen-bg,#fff)}
+.cl-pen-r{text-align:right}
+.cl-pen-btn{margin-top:14px}
+/* modal de lesão — janela clássica: barra de título + corpo, na cor do clube do jogador
+   lesionado (mesma lógica do modal de pênalti, --inj-bg/--inj-fg via injuryClubStyle()) */
+.cl-inj-modal{background:var(--inj-bg,#7a0e0e);border:3px solid #1e3a8a;box-shadow:0 0 0 2px #4a6fd4,0 8px 30px rgba(0,0,0,.7);min-width:460px;max-width:92vw}
+.cl-inj-title{background:rgba(0,0,0,.35);color:var(--inj-fg,#fff);font-weight:800;font-size:16px;padding:6px 12px;display:flex;align-items:center;gap:10px}
+.cl-inj-min{background:#c8c8c8;color:#000;border:1px solid #888;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;line-height:1;border-radius:1px}
+.cl-inj-body{padding:18px 20px}
+.cl-inj-msg{color:var(--inj-fg,#fff);font-weight:700;font-size:15px;line-height:1.5;margin-bottom:16px}
+.cl-inj-body .cl-pen-list{background:rgba(0,0,0,.35);border-color:var(--inj-fg,#fff)}
+.cl-inj-body .cl-pen-row{color:var(--inj-fg,#fff)}
+.cl-inj-body .cl-pen-row.sel{background:var(--inj-fg,#fff);color:var(--inj-bg,#5a0a0a)}
+.cl-inj-body .cl-pen-row:hover{background:rgba(0,0,0,.25)}
+.cl-sub{background:#000;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);margin:0;padding:8px 12px 12px}
+.cl-sub>legend{color:var(--yellow);font-weight:800;padding:0 6px;font-size:14px}
+.cl-sub-cols{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}
+.cl-sub-c{display:flex;flex-direction:column}
+.cl-sub-row{display:grid;grid-template-columns:20px 1fr 30px;align-items:center;color:#fff;font-weight:700;font-size:13px;padding:1px 4px;cursor:pointer}
+.cl-sub-row:hover{background:#222}
+.cl-sub-row.sel{background:#fff;color:#000}
+.cl-sub-btn{display:flex;justify-content:flex-end;margin-top:6px}
+/* alterar escalação: troca de titular direto na lista de elenco */
+.cl-sel-escala{margin:10px 0;padding:8px;background:rgba(255,255,255,.06);border-radius:6px}
+.cl-sel-escala-note{color:#ccc;font-size:12px;line-height:1.4;margin-bottom:8px}
+.cl-rrow.swap-out{background:var(--yellow);color:#000;font-weight:800}
+.cl-escala-confirm{padding:10px 4px;font-size:15px;text-align:center}
+/* Classificação (fim de rodada) */
+/* ranking pós-rodada: DESKTOP mostra as 4 divisões expandidas em grade 2x2 (há espaço);
+   MOBILE vira accordion vertical (divisão do usuário aberta, outras colapsadas). */
+.cl-clsacc-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;max-width:920px;margin:8px auto 0;padding:0 16px;align-items:start}
+.cl-clsacc{border:1px solid var(--navy);background:rgba(0,0,0,.15)}
+.cl-clsacc-h{display:flex;align-items:center;justify-content:space-between;gap:6px;background:var(--navy);color:var(--yellow);font-weight:800;font-size:15px;padding:8px 12px;user-select:none}
+.cl-clsacc-h-title{display:flex;align-items:center;gap:6px}
+/* desktop: sem colapso, sem seta (tudo expandido) */
+.cl-clsacc-h .cl-acc-arrow{display:none}
+.cl-clsacc-body{padding:4px}
+.cl-acc-you{background:var(--yellow);color:#000;font-size:10px;font-weight:800;padding:1px 6px;border-radius:3px;margin-left:6px;vertical-align:middle}
+.cl-cls2-head{display:grid;grid-template-columns:22px 1fr 20px 20px 20px 50px 24px;align-items:center;gap:3px;padding:1px 7px;color:#cfe;font-weight:800;font-size:10.5px}
+.cl-cls2-head.hasqual,.cl-cls2-row.hasqual{grid-template-columns:22px 1fr 20px 20px 20px 50px 24px 34px}
+.cl-cls2-head .cl-cls2-n{color:#cfe}
+.cl-cls2-row{display:grid;grid-template-columns:22px 1fr 20px 20px 20px 50px 24px;align-items:center;gap:3px;padding:0 7px;font-weight:700;font-size:11px;line-height:1.2;border:1px solid rgba(0,0,0,.2)}
+.cl-cls2-row.me{outline:2px solid var(--yellow);outline-offset:-2px}
+.cl-cls2-zone{text-align:center;font-size:9px;font-weight:800;border-radius:3px;padding:2px 0;line-height:1.1}
+.cl-cls2-zone.zone-lib{background:#2f8f2f;color:#fff}
+.cl-cls2-zone.zone-sul{background:#cc9a1a;color:#111}
+.cl-cls2-pos{text-align:center;font-family:var(--mono);opacity:.85}
+.cl-cls2-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-cls2-x{text-align:center;font-family:var(--mono)}
+.cl-cls2-x.b{font-weight:800}
+.cl-cls2-gf{text-align:center;font-family:var(--mono)}
+.cl-cls2-empty{padding:8px;color:#ccc;font-size:12px}
+.cl-classif-ok{max-width:640px;margin:10px auto;padding:0 10px;display:flex;flex-direction:column;gap:8px}
+.cl-classif-ok .cl-btn{width:100%;justify-content:center}
+.cl-classif-buttons{display:flex;justify-content:flex-end;gap:10px;max-width:920px;margin:0 auto;padding:12px 16px}
+/* ONLINE — conta / sala / lobby */
+.cl-online-cta{margin-top:16px;text-align:center}
+.cl-btn-online{background:#0b7a2f !important;color:#fff !important;border-color:#3fcf6a #063d18 #063d18 #3fcf6a !important;font-weight:800;padding:12px 20px}
+.cl-conta,.cl-sala,.cl-lobby{min-height:220px;color:#fff}
+.cl-conta-sub{font-size:14px;color:#eaffea;margin-bottom:16px}
+.cl-field2{display:flex;align-items:center;gap:12px;margin:10px 0}
+.cl-lbl2{color:var(--yellow);font-weight:700;font-size:14px;min-width:110px}
+/* login/cadastro (abertura): campos empilhados de largura total, todos alinhados,
+   e botões alinhados em coluna (primário + secundário) — boas práticas de form UI */
+.cl-authbox{color:#fff;max-width:380px;margin:0 auto}
+.cl-authsub{font-size:13.5px;color:#eaffea;line-height:1.45;margin:14px 2px 4px}
+.cl-authform{display:flex;flex-direction:column;gap:14px;margin:16px 0 4px}
+.cl-authfield{display:flex;flex-direction:column;gap:5px}
+.cl-authfield label{color:var(--yellow);font-weight:700;font-size:13px;letter-spacing:.2px}
+.cl-authfield input{width:100%;box-sizing:border-box;font-family:var(--sans);font-size:15px;height:44px;padding:0 12px;background:#fff;color:#000;outline:none;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD)}
+.cl-authfield input:focus{border-color:var(--yellow) var(--yellow) var(--yellow) var(--yellow)}
+.cl-auth-actions{display:flex;flex-direction:column;gap:8px;margin-top:20px}
+.cl-auth-actions .cl-btn{width:100%;justify-content:center;height:46px}
+.cl-forgot-link{align-self:flex-end;color:var(--yellow);font-size:12.5px;font-weight:700;cursor:pointer;text-decoration:underline;margin-top:-6px}
+.cl-forgot-link:hover{color:var(--yellowlite)}
+.cl-authwarn{background:var(--danger-deep,#c0392b);border:1px solid var(--danger,#c00);color:#ffdede;font-weight:700;font-size:12.5px;padding:6px 10px}
+.cl-authbtn-secondary{opacity:.9}
+.cl-joincode-in{text-transform:uppercase;letter-spacing:6px;font-weight:800;text-align:center;font-family:var(--mono)}
+.cl-savename-in{text-transform:uppercase;letter-spacing:3px;font-weight:700}
+.cl-resenha-rejoin{margin-top:16px;text-align:center;color:var(--yellow);font-weight:700;font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.cl-conta-room{margin-top:14px;color:#fff;font-size:14px}
+.cl-sala-modo{margin-top:18px}
+.cl-radio2{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:15px;cursor:pointer;margin:8px 0}
+.cl-radio2.on{color:#fff}
+.cl-radio2 .cl-rd{border-color:#fff}
+.cl-radio2.on .cl-rd::after{content:'';position:absolute;inset:3px;border-radius:50%;background:#000}
+/* lobby */
+.cl-lobby-code{font-size:15px;color:#fff;margin-bottom:12px}
+.cl-lobby-code b{color:var(--yellow);font-family:var(--mono);letter-spacing:1px}
+.cl-lobby-mode{color:#cfe6cf;font-size:13px}
+.cl-invite{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:10px 12px;margin-bottom:14px}
+.cl-invite-lbl{color:#eaffea;font-size:13px;margin-bottom:6px}
+.cl-invite-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cl-ddi{background:#0b7a2f;color:#fff;font-weight:800;padding:6px 10px;border-radius:6px}
+.cl-phone{width:180px}
+.cl-btn-wa{background:#0b7a2f !important;color:#fff !important;border-color:#3fcf6a #063d18 #063d18 #3fcf6a !important;font-weight:800}
+.cl-invite-link{margin-top:8px;font-size:12px;color:#cfe6cf;word-break:break-all}
+.cl-invite-link a{color:#ffd84d}
+.cl-part-hd{color:var(--yellow);font-weight:800;font-size:14px;margin:6px 0}
+.cl-parts{background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px;max-height:260px;overflow:auto}
+.cl-part{display:grid;grid-template-columns:16px 1fr 120px 150px;align-items:center;gap:8px;padding:5px 8px;font-size:14px;color:#fff}
+.cl-part-dot{width:10px;height:10px;border-radius:50%;background:#999;border:1px solid #fff}
+.cl-part-dot.ok{background:#2ecc40}
+.cl-part-n i{color:#cfe6cf;font-weight:400;font-size:12px}
+.cl-part-st{font-size:12px;color:#cfe6cf}
+.cl-part-team{padding:3px 8px;font-weight:700;text-align:center;text-shadow:0 1px 1px rgba(0,0,0,.4)}
+.cl-part-sel{font-family:var(--sans);font-size:13px;padding:3px 4px}
+.cl-lobby-actions{margin-top:12px}
+.cl-wait{color:#eaffea;font-size:13px;text-align:center;max-width:120px}
+/* barra "à espera dos treinadores" no hub */
+.cl-readybar{display:flex;align-items:center;gap:14px;background:var(--navy);color:#fff;padding:6px 14px;font-size:13px;border-bottom:2px solid var(--yellow);flex-wrap:wrap}
+.cl-readybar.urgent{background:#7a0b0b;animation:clpulse .5s steps(2,end) infinite}
+@keyframes clpulse{50%{background:#a11}}
+.cl-rb-t{font-weight:800}
+.cl-rb-list{display:flex;gap:10px;flex-wrap:wrap;flex:1}
+.cl-rb-p{color:#cfd6ff}
+.cl-rb-p.rdy{color:#7cff7c;font-weight:700}
+.cl-rb-clock{font-family:var(--mono);font-weight:800;font-size:15px;color:var(--yellow)}
+.cl-btn-mini{padding:3px 10px !important;font-size:12px !important;flex-direction:row !important;min-height:0 !important;min-width:0 !important}
+/* escolha Solo / Galera */
+.cl-modochoice{min-height:220px}
+.cl-mc-sub{color:#fff;font-weight:700;font-size:16px;text-align:center;margin-bottom:22px}
+.cl-mc-cards{display:flex;gap:20px;justify-content:center}
+.cl-mc-card{width:260px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.35);border-radius:12px;padding:22px 18px;text-align:center;cursor:pointer;transition:background .15s}
+.cl-mc-card:hover{background:rgba(255,255,255,.22);border-color:var(--yellow)}
+.cl-mc-ic{font-size:40px;margin-bottom:10px}
+.cl-mc-t{color:var(--yellow);font-weight:800;font-size:18px;margin-bottom:8px}
+.cl-mc-d{color:#eaffea;font-size:13px;line-height:1.4}
+/* chat da liga */
+.cl-chatbox{margin-top:14px;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:8px 10px}
+.cl-chatbox>legend{color:var(--yellow);font-weight:700;font-size:13px;padding:0 6px}
+.cl-chat-msgs{max-height:110px;overflow-y:auto;font-size:13px;color:#fff;margin-bottom:6px;display:flex;flex-direction:column;gap:2px}
+.cl-chat-empty{color:#cfe6cf;font-size:12px;font-style:italic}
+.cl-chat-who{font-weight:800}
+.cl-chat-txt{color:#eee}
+.cl-chat-in{display:flex;gap:6px}
+.cl-chat-input{flex:1;font-size:13px;padding:5px 8px}
+.cl-chatdock{position:fixed;right:18px;bottom:18px;width:280px;z-index:35;box-shadow:0 10px 30px -6px rgba(0,0,0,.6);font-family:var(--sans)}
+.cl-chatdock-bar{background:var(--navy);color:#fff;font-weight:800;font-size:13px;padding:8px 12px;cursor:pointer;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL)}
+.cl-chatdock-body{background:var(--chrome);border:2px solid;border-top:none;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);padding:8px}
+.cl-chatdock .cl-chat-msgs{max-height:220px;color:#000}
+.cl-chatdock .cl-chat-txt{color:#111}
+.cl-chatdock .cl-chat-empty{color:#555}
+/* speed controls — velocidade do jogo 1.5x, 2x, 3x */
+.cl-speed-ctl{display:flex;align-items:center;gap:12px;margin-top:12px;color:#fff;font-weight:700;font-size:13px}
+.cl-speed-lbl{flex-shrink:0}
+.cl-speed-opts{display:flex;gap:6px}
+.cl-speed-btn{background:var(--chrome);border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);color:#000;font-weight:700;font-size:13px;padding:4px 12px;cursor:pointer}
+.cl-speed-btn.on{background:var(--navy);color:var(--yellow);border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD)}
+/* chamar pra resenha */
+.cl-invres{min-height:160px;color:#fff}
+.cl-invres-msg{font-size:14px;margin-bottom:16px;line-height:1.4;color:#eaffea}
+.cl-invres-opt{display:flex;flex-direction:column;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:14px}
+.cl-invres-lbl{color:#fff;font-weight:700;font-size:13px}
+.cl-invres-item{display:flex;align-items:center;gap:12px}
+.cl-invres-club{font-weight:700;font-size:14px;min-width:140px}
+.cl-invres-sel{font-family:var(--sans);font-size:13px;padding:5px 8px;flex:1;max-width:300px}
+.cl-invres-phone{display:flex;align-items:center;gap:6px}
+.cl-invres-phone .cl-ddi{background:#0b7a2f;color:#fff;font-weight:800;padding:5px 8px;border-radius:4px;font-size:12px}
+.cl-invres-phone input{width:200px}
+.cl-invres-linkrow{display:flex;align-items:center;gap:10px}
+.cl-invres-link{flex:1;min-width:0;font-family:var(--mono);font-size:12px;cursor:pointer}
+/* login / criar conta */
+.cl-conta-tabs{display:flex;gap:2px;margin-bottom:14px;border-radius:6px;overflow:hidden;border:2px solid rgba(255,255,255,.3)}
+.cl-conta-tab{flex:1;text-align:center;padding:9px 6px;font-weight:800;font-size:13px;color:#eaffea;background:rgba(255,255,255,.08);cursor:pointer}
+.cl-conta-tab.on{background:var(--yellow);color:#113311}
+.cl-conta-switch{margin-top:10px;font-size:12px;color:#cfe6cf}
+.cl-conta-switch a{color:var(--yellow);font-weight:700}
+.cl-conta-logged{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.3);border-radius:8px;padding:12px 14px;margin-bottom:16px}
+.cl-conta-logged-ic{width:32px;height:32px;border-radius:50%;background:#1a8f3c;color:#fff;font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cl-conta-logged-t{color:#fff;font-weight:800;font-size:14px}
+.cl-conta-logged-e{color:#cfe6cf;font-size:12px}
+/* minhas salas */
+.cl-myrooms-list{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;margin-top:4px}
+.cl-myroom{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:12px 14px;cursor:pointer;transition:background .15s}
+.cl-myroom:hover{background:rgba(255,255,255,.2);border-color:var(--yellow)}
+.cl-myroom-main{flex:1;min-width:0}
+.cl-myroom-name{color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px}
+.cl-myroom-host{background:var(--yellow);color:#113311;font-size:9px;font-weight:900;padding:2px 6px;border-radius:3px;letter-spacing:.5px}
+.cl-myroom-sub{color:#cfe6cf;font-size:12px;margin-top:2px}
+.cl-myroom-code{color:#ffff66;font-family:Consolas,monospace;font-weight:700;font-size:13px;letter-spacing:1px}
+.cl-myroom-arrow{color:#cfe6cf;font-size:16px}
+.cl-myroom.pending{border-color:var(--yellow);background:rgba(255,255,0,.08)}
+.cl-myroom-pending{background:var(--yellow);color:#3a2f00;font-size:9px;font-weight:900;padding:2px 6px;border-radius:3px;letter-spacing:.5px}
+/* convite: WhatsApp + e-mail lado a lado, alinhados */
+.cl-invite2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0 6px}
+.cl-invite-col{display:flex;flex-direction:column;gap:8px}
+.cl-invite-lbl{color:var(--yellow);font-weight:700;font-size:13px}
+.cl-invite-row{display:flex;align-items:center;gap:8px}
+.cl-invite-row .cl-input{flex:1;min-width:0;height:34px;box-sizing:border-box;font-size:13px}
+.cl-invite-row .cl-ddi{background:#0b7a2f;color:#fff;font-weight:800;padding:0 8px;border-radius:4px;font-size:12px;height:34px;display:flex;align-items:center;flex-shrink:0}
+/* botão padrão dos convites: mesma largura/altura pros dois */
+.cl-btn-invite{height:34px !important;min-height:0 !important;min-width:84px;padding:0 14px !important;font-size:13px !important;flex-direction:row !important;flex-shrink:0;box-sizing:border-box}
+.cl-invite-link{margin-top:10px;color:#cfe6cf;font-size:11px}
+.cl-invite-link a{color:#ffff66;word-break:break-all}
+/* busca de usuários cadastrados (convite interno) */
+.cl-usersearch{margin:16px 0 6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:14px 16px}
+.cl-usersearch .cl-invite-row .cl-input{height:32px}
+.cl-usersearch-results{margin-top:8px;display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto}
+.cl-usersearch-item{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.08);border-radius:6px;padding:7px 10px}
+.cl-usersearch-name{color:#fff;font-size:13px;font-weight:700}
+.cl-usersearch-empty,.cl-usersearch-loading{color:#cfe6cf;font-size:12px;font-style:italic;padding:4px 2px}
+@media (max-width:680px){ .cl-invite2col{grid-template-columns:1fr} }
+/* entrar depois que a temporada já começou */
+.cl-midjoin-msg{color:#eaffea;font-size:14px;line-height:1.6;margin-bottom:16px}
+.cl-midjoin-list{display:flex;flex-direction:column;gap:7px;max-height:360px;overflow-y:auto}
+.cl-midjoin-club{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.25);border-left:5px solid #888;border-radius:6px;padding:10px 14px;cursor:pointer;transition:background .15s}
+.cl-midjoin-club:hover{background:rgba(255,255,255,.22)}
+.cl-midjoin-name{color:#fff;font-weight:800;font-size:14px;flex:1}
+.cl-midjoin-ov{color:#cfe6cf;font-size:12px}
+.cl-midjoin-cpu{background:rgba(0,0,0,.3);color:#eee;font-size:10px;font-weight:700;padding:3px 7px;border-radius:4px}
+.cl-midjoin-empty{color:#cfe6cf;font-size:13px;font-style:italic;padding:12px 0}
+.cl-start-hint{color:#ffe580;font-size:11px;text-align:center;margin-top:6px;max-width:110px}
+
+/* ================================================================
+   MOBILE — layout verticalizado, um botão por linha, menus/seções
+   retráteis. Tudo abaixo é adicional (não substitui o desktop).
+   ================================================================ */
+.cl-hamburger{display:none}
+.cl-acc-hd{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.cl-acc-arrow{transition:transform .2s;font-size:12px}
+.cl-acc-arrow.closed{transform:rotate(-90deg)}
+.cl-acc-body{overflow:hidden;transition:max-height .25s ease}
+.cl-acc-body.closed{max-height:0 !important}
+@media (max-width:760px){
+  /* moldura geral */
+  .cl-desk{padding:6px 4px;align-items:flex-start}
+  .cl-dlg{width:100% !important;max-width:100vw}
+  .cl-dlg-title{font-size:13px;padding:7px 8px}
+  .cl-dlg-body{padding:12px 10px;max-height:calc(100vh - 90px);overflow-y:auto;-webkit-overflow-scrolling:touch}
+  /* diálogos com painel lateral de botões -> empilha embaixo, cheio de largura */
+  .cl-hasside{padding-right:10px}
+  .cl-dlg-side{position:static;flex-direction:column;align-items:stretch;margin-top:16px;width:100%}
+  .cl-side-btns{flex-direction:column;width:100%}
+  .cl-side-btns .cl-btn{width:100%}
+  /* qualquer grupo de botões horizontal vira uma coluna, 1 ação por linha */
+  .cl-vender-btns,.cl-est-btns,.cl-jog-actions,.cl-cal-ok,.cl-pen-btn,
+  .cl-lm-cont,.cl-sub-btn,.cl-live-actions,.cl-invite-btns,.cl-auth-btns,
+  .cl-invres-linkrow{
+    display:flex;flex-direction:column;width:100%}
+  .cl-invres-link{width:100%;box-sizing:border-box}
+  .cl-btn{width:100%;box-sizing:border-box}
+  .cl-btn-wide{width:100%}
+  /* país: lista + painel lateral empilham; lista de países ganha largura total */
+  .cl-paises{flex-direction:column;gap:12px}
+  .cl-ctry-list{width:100%;max-height:280px}
+  .cl-paises-side{width:100%}
+  .cl-divopt-row{flex-direction:column}
+  .cl-divopt,.cl-comp-toggle{width:100%;min-width:0;box-sizing:border-box;flex-direction:row;justify-content:flex-start}
+  /* hub principal: colunas empilham, elenco vira acordeão retrátil */
+  .cl-main{width:100%}
+  .cl-main-body{flex-direction:column;min-height:0}
+  .cl-main-left,.cl-main-right{width:100% !important;padding:8px 10px}
+  .cl-roster{max-height:52vh}
+  .cl-div{margin-left:8px}
+  /* menu superior: colapsa num botão hambúrguer; itens abertos empilham 1 por linha */
+  .cl-menu{display:none;flex-direction:column;position:absolute;top:100%;left:0;right:0;background:#fff;z-index:40;
+    border:2px solid;border-color:var(--bevD2) var(--bevD2) var(--bevD2) var(--bevD2);box-shadow:0 8px 20px rgba(0,0,0,.4)}
+  .cl-menu.mob-open{display:flex}
+  .cl-menu-i{width:100%;box-sizing:border-box;border-bottom:1px solid #ddd}
+  .cl-menu-dd{position:static;width:100%;box-shadow:none;border:none;border-top:1px solid #ddd}
+  .cl-hamburger{display:flex;align-items:center;justify-content:space-between;background:#fff;color:#000;
+    font-weight:800;font-size:14px;padding:8px 12px;cursor:pointer;border-bottom:1px solid #000}
+  .cl-mobmenu-wrap{position:relative}
+  /* abas: rolagem horizontal em vez de espremer */
+  .cl-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
+  .cl-tab{flex:0 0 auto;white-space:nowrap}
+  /* linhas em grid ficam apertadas -> reduz fonte e gap */
+  .cl-rrow{grid-template-columns:14px 20px 1fr 44px 54px;column-gap:4px;font-size:12.5px;padding:4px 6px}
+  .cl-rmark.t,.cl-rmark.r{width:14px;height:14px;font-size:9px;border-radius:3px}
+  .cl-mkt-p,.cl-auc-row,.cl-cls-row{font-size:12px}
+  .cl-auc-row{grid-template-columns:56px 18px 1fr 32px 70px auto;gap:5px}
+  /* leilão/mercado: empilha melhor em telas estreitas */
+  .cl-mkt-clublist,.cl-mkt-squad,.cl-auc{min-width:0;width:100%}
+  .cl-mkt-offer{min-width:0;width:100%}
+  /* tela "Jogadores" (sorteio): larguras fixas em px não cabem no mobile —
+     empilha cada jogador num cartão, com o time sorteado em destaque total */
+  .cl-jog{min-width:0;width:100%;padding:6px 4px;box-sizing:border-box}
+  .cl-jog-head{display:none}
+  .cl-jrow{display:flex;flex-direction:column;align-items:stretch;gap:6px;
+    background:rgba(255,255,255,.06);border-radius:6px;padding:10px;margin:8px 0}
+  .cl-jlbl{font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.5px}
+  .cl-jname{width:100%;box-sizing:border-box}
+  .cl-jteam{width:100%;box-sizing:border-box;text-align:center;border-radius:4px}
+  /* modal de pênalti cabe na tela */
+  .cl-pen-modal{min-width:0;width:92vw;padding:14px}
+  .cl-pen-title{font-size:32px;letter-spacing:6px}
+  /* financeiro / classificação / calendário: já são listas verticais, só ajusta padding */
+  .cl-fin-row{font-size:13px}
+  .cl-complist-row,.cl-cal-row{font-size:13px;padding:8px 10px}
+  /* botão Jogar: fixo na base da tela, sempre alcançável sem rolar (era position:absolute
+     dentro do painel, o que exigia rolar até o fim da lista pra achar ele) */
+  .cl-sel-jogar{position:fixed;left:10px;right:10px;bottom:10px;top:auto;z-index:60;
+    align-items:stretch;box-shadow:0 -6px 18px rgba(0,0,0,.45);border-radius:6px;overflow:hidden}
+  .cl-sel-jogar .cl-btn{width:100%}
+  .cl-sel{padding-bottom:76px} /* espaço reservado pra não esconder conteúdo atrás do botão fixo */
+  /* dock de chat (modo Resenha online): encolhe e sobe um pouco pra não bater no botão Jogar fixo */
+  .cl-chatdock{width:min(280px,calc(100vw - 20px));right:10px;bottom:74px}
+  /* jogos ao vivo: vertical e compacto — mandante · placar · visitante numa linha;
+     público e ticker de gol saem (ficam no modal ao tocar na partida) */
+  .cl-live-div{margin:10px 8px 0;padding:8px 10px}
+  .cl-live-div:first-of-type{margin-top:48px}
+  .cl-live-div>legend{font-size:14px;cursor:pointer}
+  .cl-lrow{grid-template-columns:1fr 46px 1fr;gap:6px;padding:4px 0}
+  .cl-latt,.cl-lgoal{display:none}
+  .cl-lteam{font-size:13px;padding:4px 8px}
+  .cl-lsc{gap:10px;font-size:15px}
+  .cl-live-clock{width:38px;height:38px;right:10px;top:34px}
+  .cl-live-top{font-size:14px}
+  /* SÓ NO MOBILE: accordion (colapsar divisões que o usuário não joga) + setas visíveis */
+  .cl-live-div>legend .cl-acc-arrow{display:inline-block}
+  .cl-live-div.collapsed{padding-bottom:2px}
+  .cl-live-div.collapsed .cl-live-div-body{display:none}
+  /* ranking: no mobile vira coluna única com accordion */
+  .cl-clsacc-wrap{grid-template-columns:1fr;max-width:none;margin-top:10px}
+  .cl-clsacc-wrap,.cl-classif-ok{padding:0 8px}
+  .cl-classif-buttons{max-width:none;justify-content:center;padding:10px 8px}
+  .cl-clsacc{margin-bottom:8px}
+  .cl-clsacc-h{cursor:pointer}
+  .cl-clsacc-h .cl-acc-arrow{display:inline-block}
+  .cl-clsacc.collapsed .cl-clsacc-body{display:none}
+  .cl-cls2-head,.cl-cls2-row{grid-template-columns:22px 1fr 22px 22px 22px 52px 26px;font-size:12px}
+  .cl-cls2-head.hasqual,.cl-cls2-row.hasqual{grid-template-columns:22px 1fr 22px 22px 22px 52px 26px 40px}
+}

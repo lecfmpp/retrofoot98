@@ -1,0 +1,2491 @@
+/* ================================================================
+   ELIFOOT MODERNO v3 — pele "Clássico" sobre o motor v2 (app.js)
+   Recria a estética/fluxo do RetroFoot98 com assets e textos próprios.
+   Telas na ordem: 01 abertura · 02 modo · 03 países · 04 moeda ·
+   05 loading · 06 jogadores · 07 sorteio · 08-13 tela principal.
+   ================================================================ */
+const $c = s => document.querySelector(s);
+const CL = { screen:'abertura', save:'', currency:'Reais', countries:new Set(), names:['','','','','',''],
+             draw:[], clubId:null, tab:'jogo', selPlayer:null, menu:null, ticket:8, mgr:'', mobMenuOpen:false,
+             divisionToggle:{A:true,B:true,C:true,D:true}, compToggle:{libertadores:true, copaBrasil:true, sulamericana:true} };
+/* ---- troféu (imagem) das competições — usado na seleção de país e em qualquer
+   tela que mostre o nome de uma competição, pra dar mais identidade visual ---- */
+function trophyImg(key,size){ const src=(typeof TROPHIES!=='undefined')&&TROPHIES[key];
+  if(!src) return ''; size=size||28;
+  return `<img src="${src}" alt="" class="cl-trophy-img" style="width:${size}px;height:${size}px" draggable="false">`; }
+/* resolve o troféu certo por divisão (A/B/C/D) — cai pro emoji 🏆 se ainda não tivermos a imagem daquela divisão */
+function divisionTrophyImg(division,size){
+  const key=({A:'serieA',B:'serieB',C:'serieC',D:'serieD'})[division];
+  return trophyImg(key,size);
+}
+
+/* ---- helpers de dinheiro / texto ---- */
+function grp(n){ return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
+function spellMoney(n){ n=Math.round(n); const mi=Math.floor(n/1e6), mil=Math.floor((n%1e6)/1e3); const p=[];
+  if(mi) p.push(mi+(mi===1?' milhão':' milhões')); if(mil) p.push(mil+' mil');
+  if(!p.length) p.push(String(n)); return p.join(' e ')+' reais'; }
+function mvShort(mv){ mv=mv||0; return mv>=1e6? (mv/1e6).toFixed(mv>=1e7?0:1).replace('.',',')+'M' : Math.round(mv/1e3)+'k'; }
+function posLetter(s){ return ({GK:'G',DEF:'D',MID:'M',ATT:'A'})[s]||'M'; }
+/* ordena por posição (G, D, M, A) e depois por força — usado em listas de escalação/troca
+   pra que jogador comprado apareça na posição certa, não no fim da lista */
+function posRank(s){ return ({GK:0,DEF:1,MID:2,ATT:3})[s]!=null?({GK:0,DEF:1,MID:2,ATT:3})[s]:2; }
+function bySquadOrder(a,b){ return posRank(a.s)-posRank(b.s) || (b.f||0)-(a.f||0); }
+/* ---- atalhos universais: nome de clube/jogador em QUALQUER tela leva à
+   ação correspondente — clube abre o elenco (do usuário ou de outro time
+   pro mercado), jogador abre a ficha (venda, se for seu; oferta, se não). ---- */
+function clubLink(clubId, label){
+  if(!clubId || !clubOf(clubId)) return escC(label||'');
+  const txt = label!=null ? label : clubOf(clubId).short;
+  const action = clubId===CL.clubId ? `clGoSquad()` : `clViewTeam('${clubId}')`;
+  return `<span class="cl-link" onclick="event.stopPropagation();${action}">${escC(txt)}</span>`;
+}
+function playerLink(playerName, clubId, label){
+  if(!playerName) return '';
+  const txt = label!=null ? label : playerName;
+  if(!clubId) return escC(txt); // clube desconhecido (ex: jogador vendido/aposentado) — sem link quebrado
+  const action = clubId===CL.clubId
+    ? `clGoSquad('${escC(playerName)}')`
+    : `clMarketPlayer('${clubId}','${escC(playerName)}')`;
+  return `<span class="cl-link" onclick="event.stopPropagation();${action}">${escC(txt)}</span>`;
+}
+/* leva o usuário direto pro elenco do PRÓPRIO clube na aba Jogo, opcionalmente já selecionando um jogador */
+function clGoSquad(playerName){ CL.menu=null; CL.rightMode=null; CL.tab='jogo'; CL.screen='main';
+  if(playerName) CL.selPlayer=playerName; clCloseOverlay(); cdraw(); }
+function shade(hex,amt){ hex=(hex||'#12224a').replace('#',''); if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');
+  let r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
+  const f=amt<0?0:255, t=Math.abs(amt); r=Math.round(r+(f-r)*t); g=Math.round(g+(f-g)*t); b=Math.round(b+(f-b)*t);
+  return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+function lumin(hex){ hex=(hex||'#000').replace('#',''); if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');
+  const r=parseInt(hex.slice(0,2),16)/255,g=parseInt(hex.slice(2,4),16)/255,b=parseInt(hex.slice(4,6),16)/255; return 0.299*r+0.587*g+0.114*b; }
+/* ---- identidade visual do clube (as DUAS cores oficiais) ----
+   col = uniforme principal · col2 = secundária (clubes sem cor2 cadastrada,
+   como os da Série A, ganham uma secundária derivada automaticamente). ---- */
+function clubColors(club){ const col=(club&&club.color)||'#12224a'; const col2=(club&&club.color2)||shade(col,-0.35); return {col,col2}; }
+/* cor de texto legível sobre o fundo `bg`: usa a cor secundária do clube se ela
+   tiver contraste suficiente com o fundo; se as duas forem parecidas demais,
+   cai pra preto ou branco (o que contrastar melhor). */
+function barTextColor(bg, sec){
+  const Lbg=lumin(bg);
+  if(sec && Math.abs(Lbg - lumin(sec)) >= 0.45) return sec;
+  return Lbg>0.58 ? '#111' : '#fff';
+}
+/* barra do clube: FUNDO = cor primária, TEXTO = cor secundária (com contraste
+   garantido). O mesmo badge aparece igual em qualquer tela/tabela que mostra o
+   nome do time numa barra (ao vivo, resultado, classificação, lobby, sorteio...) */
+function clubStripe(club){ const {col,col2}=clubColors(club);
+  return `background:${col};color:${barTextColor(col,col2)}`; }
+/* acento de duas cores pra borda esquerda de linhas de lista (mercado, entrar na sala) */
+function clubEdge(club){ const {col,col2}=clubColors(club); return `border-left-color:${col2};box-shadow:inset 4px 0 0 0 ${col}`; }
+function clubTheme(id){ const cl=clubOf(id); const {col,col2}=clubColors(cl); return { col, col2, bg:shade(col,-0.6), bg2:shade(col,-0.42),
+  txt:lumin(col)>0.62?shade(col,-0.45):col, hdr:lumin(col)>0.62?'#111':'#fff' }; }
+/* formações: G-D-M-A */
+const FORMATIONS={ '3-3-4':[1,3,3,4],'3-4-3':[1,3,4,3],'4-2-4':[1,4,2,4],'4-3-3':[1,4,3,3],'4-4-2':[1,4,4,2],'4-5-1':[1,4,5,1] };
+const FKEY={ '3-3-4':'F1','3-4-3':'F2','4-2-4':'F3','4-3-3':'F4','4-4-2':'F5','4-5-1':'F6' };
+// preço propositalmente alto (aprox. o orçamento inicial inteiro de um clube recém-criado):
+// expandir estádio de verdade é obra pesada, não dá pra sair comprando bancada toda hora —
+// ver clBuildStand/pushFinanceEntry (aba Finanças) pra onde essa despesa é registrada.
+const STAND_SEATS=5000, STAND_PRICE=4000000, STAND_START=20000;
+/* limite de capacidade do estádio: por enquanto todos os clubes começam com o mesmo
+   tamanho (20 mil — depois ajustamos pra capacidade real de cada estádio); o teto de
+   expansão é proporcional ao valor do elenco (proxy das finanças do clube), pra evitar
+   o desequilíbrio de construir um estádio gigante e lucrar puro com bilheteria. */
+function stadiumMaxCapacity(){
+  const squadValue = (squad(S.clubId)||[]).reduce((s,p)=>s+(p.mv||1e6),0);
+  return Math.round(Math.min(80000, Math.max(STAND_START, squadValue*0.00035)));
+}
+function tacticPosture(f){ const a=(FORMATIONS[f]||[1,4,3,3])[3]; return a>=4?'ofensivo':a<=1?'retranca':'equilibrado'; }
+/* quando o elenco não tem jogadores suficientes numa posição pra formação escolhida
+   (ex: 4-5-1 sem 5 meio-campos), pickXIByFormation preenche com quem sobrar de outra
+   posição — mas o resultado real de defesas/meios/ataques deixa de bater com a
+   formação escolhida. Aqui a gente acha, entre as formações existentes, a mais
+   parecida que o elenco realmente comporta, pra manter o botão marcado e a tática
+   coerentes com o onze que vai a campo. */
+function squadPositionCounts(id){ const c={GK:0,DEF:0,MID:0,ATT:0}; squad(id).forEach(p=>{ if(c[p.s]!=null) c[p.s]++; }); return c; }
+function formationFits(f,counts){ const need=FORMATIONS[f]; return need && counts.DEF>=need[1] && counts.MID>=need[2] && counts.ATT>=need[3]; }
+function coherentFormation(id,preferred){
+  const counts=squadPositionCounts(id);
+  if(formationFits(preferred,counts)) return preferred;
+  const need0=FORMATIONS[preferred]; let best=null,bestScore=Infinity;
+  Object.keys(FORMATIONS).forEach(k=>{ if(!formationFits(k,counts)) return;
+    const n=FORMATIONS[k]; const score=Math.abs(n[1]-need0[1])+Math.abs(n[2]-need0[2])+Math.abs(n[3]-need0[3]);
+    if(score<bestScore){ bestScore=score; best=k; } });
+  return best || preferred;
+}
+function pickXIByFormation(id,f){ const need=FORMATIONS[f]||FORMATIONS['4-3-3']; const secs=['GK','DEF','MID','ATT'];
+  const sq=squad(id).slice().sort((a,b)=>b.f-a.f); const xi=[];
+  secs.forEach((sec,i)=>{ sq.filter(p=>p.s===sec).slice(0,need[i]).forEach(p=>xi.push(p.n)); });
+  if(xi.length<11){ const have=new Set(xi); for(const p of sq){ if(xi.length>=11)break; if(!have.has(p.n))xi.push(p.n); } }
+  return xi.slice(0,11); }
+/* simula uma partida completa capturando eventos (determinístico; usa SIM_SYNC do motor) */
+function simEventsC(h,a,seed){ const evs=[]; let fin=null; const isU=(h===S.clubId||a===S.clubId);
+  const prev=(typeof SIM_SYNC!=='undefined')?SIM_SYNC:false; if(typeof SIM_SYNC!=='undefined')SIM_SYNC=true;
+  try{ const s=simulateMatch(h,a,isU,(t)=>{ if(t.ev) evs.push({min:t.minute,type:t.ev.type,team:t.ev.team,side:t.ev.side,scorer:t.ev.scorer,
+      player:t.ev.player,pos:t.ev.pos,cardType:t.ev.cardType,reason:t.ev.reason,severity:t.ev.severity,outMatches:t.ev.outMatches}); },(res)=>{fin=res;}, seed);
+    let g=0; while(!fin && g++<600){ s.step(); } }
+  finally{ if(typeof SIM_SYNC!=='undefined')SIM_SYNC=prev; }
+  return {hg:fin.hg,ag:fin.ag,scorers:fin.scorers,events:evs}; }
+function escC(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function rngFrom(seed){ let x=(seed>>>0)||1; return ()=>{ x^=x<<13; x^=x>>>17; x^=x<<5; return ((x>>>0)/0xffffffff); }; }
+const REFS_C=['Anderson Daronco','Wilton Sampaio','Raphael Claus','Bráulio da Silva','Ramon Abatti','Flávio Rodrigues','Ferreira Rodrigues'];
+const COACHES_C=['Arnaldo Lira','Renato Bianchi','Vanderlei Souza','Paulo Meira','Zé Carlos','Ademir Fonseca','Cuca Ramires'];
+
+/* ---- chrome Win3.1 ---- */
+function deskWrap(inner,opts){ opts=opts||{};
+  const logoImg=`<img class="cl-desk-logo" src="img/logo.webp" width="500" height="500" alt="RetroFoot98" draggable="false">`;
+  const logo=opts.logo?(opts.linkHome?`<a class="cl-logo-link" href="https://retrofoot98.com.br/" aria-label="RetroFoot98 — página inicial">${logoImg}</a>`:logoImg):'';
+  return `<div class="cl-desk">${logo}${inner}</div>`; }
+function topbarAuth(){
+  if(typeof NET==='undefined' || !NET.authStatus) return '';
+  const st=NET.authStatus(); if(!st.loggedIn) return '';
+  const label=st.name||(st.email||'').split('@')[0]||'Conta';
+  return `<div class="cl-topbar-auth" title="${escC(st.email||'')}">
+    <span class="cl-topbar-auth-name">👤 ${escC(label)}</span>
+    <button class="cl-topbar-auth-out" onclick="clAuthLogout()">Sair</button>
+  </div>`;
+}
+async function clAuthLogout(){
+  try{ if(typeof NET!=='undefined' && NET.authSignOut) await NET.authSignOut(); }catch(e){ console.warn('Logout erro:', e); }
+  CL.screen='abertura'; cdraw();
+  if(typeof toastC==='function') toastC('Sessão encerrada.');
+}
+function titleBarTop(t,opts){ opts=opts||{};
+  const logoImg=`<img class="cl-topbar-logo" src="img/logo.webp" width="500" height="500" alt="">`;
+  const logo=opts.logo?(opts.linkHome?`<a class="cl-logo-link" href="https://retrofoot98.com.br/" aria-label="RetroFoot98 — página inicial">${logoImg}</a>`:logoImg):'';
+  return `<div class="cl-topbar">${logo}${escC(t)}${topbarAuth()}</div>`; }
+function dlg(title,body,opts){ opts=opts||{}; const w=opts.w||620;
+  const badge = opts.badge ? `<div class="cl-dlg-badge">${opts.badge.icon||''}<span class="cl-dlg-badge-t">${escC(opts.badge.label||'')}</span></div>` : '';
+  return `<div class="cl-dlg" style="width:${w}px">
+    ${badge}
+    <div class="cl-dlg-title"><span>${escC(title)}</span>${opts.min?'<span class="cl-min">–</span>':''}</div>
+    <div class="cl-dlg-body ${opts.bodyClass||''}">${body}</div>
+  </div>`; }
+function btn(label,onclick,opts){ opts=opts||{}; return `<button class="cl-btn ${opts.cls||''}" ${opts.dis?'disabled':''} onclick="${onclick}">${opts.icon?`<span class="cl-btn-ic">${opts.icon}</span>`:''}<span>${escC(label)}</span></button>`; }
+
+/* ================= RENDER RAIZ ================= */
+function cdraw(){ const r=$c('#c-root'); if(!r)return;
+  let html='';
+  switch(CL.screen){
+    case 'abertura':  html=titleBarTop('RetroFoot98',{logo:true,linkHome:true})+deskWrap(scAbertura(),{logo:true,linkHome:true}); break;
+    case 'login':     html=titleBarTop('RetroFoot98',{logo:true,linkHome:true})+deskWrap(scLogin(),{logo:true,linkHome:true}); break;
+    case 'resetpassword': html=titleBarTop('RetroFoot98',{logo:true,linkHome:true})+deskWrap(scResetPassword(),{logo:true,linkHome:true}); break;
+    case 'modo':      html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scModoChoice(),{logo:true}); break;
+    case 'modosolo':  html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scModoSolo(),{logo:true}); break;
+    case 'paises':    html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scPaises(),{logo:true}); break;
+    case 'moeda':     html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scMoeda(),{logo:true}); break;
+    case 'loading':   html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scLoading(),{logo:true}); break;
+    case 'jogadores': html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scJogadores(),{logo:true}); break;
+    case 'sorteio':   html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scSorteio(),{logo:true}); break;
+    case 'main':      html=titleBarTop('RetroFoot98')+deskWrap(scMain()); break;
+    case 'teamview':  html=titleBarTop('RetroFoot98')+deskWrap(scTeamView()); break;
+    case 'live':      html=scLive(); break;
+    case 'classif':   html=scClassif(); break;
+    case 'cupdraw':   html=titleBarTop('RetroFoot98')+deskWrap(scCupDraw()); break;
+    case 'online':    html=titleBarTop('RetroFoot98',{logo:true})+renderOnline(); break;
+  }
+  r.innerHTML=html;
+  if(CL.screen==='loading') runLoading();
+  const f=$c('#cl-focus'); if(f) f.focus();
+}
+
+/* ================= 01 · ABERTURA (capa) ================= */
+const FEATURES=[
+  {img:'img/badge-clubes.webp', t:'Clubes e Jogadores reais'},
+  {img:'img/badge-liga.webp', t:'Monte a sua liga com amigos'},
+  {img:'img/badge-chat.webp', t:'Chat em tempo real'}
+];
+function scAbertura(){
+  const chips=FEATURES.map(f=>`<div class="cl-chip"><img class="cl-chip-badge" src="${f.img}" width="500" height="500" alt="${escC(f.t)}" draggable="false"></div>`).join('');
+  return dlg('Acerca', `
+    <div class="cl-about">
+      <div class="cl-online">🟢 100% Online</div>
+      <div class="cl-about-ver">v2026.01</div>
+      <div class="cl-about-sub">o clássico da sua infância, agora online e com os amigos</div>
+      <div class="cl-chips">${chips}</div>
+      <div class="cl-about-enter">${btn('Entrar','clGoModo()',{icon:'✔',cls:'cl-btn-ok cl-btn-big'})}</div>
+    </div>`, {w:760,bodyClass:'cl-body-green'});
+}
+function clNoop(){}
+/* 'Entrar' na abertura: login é OBRIGATÓRIO (vale p/ Solo e Resenha). Se já houver
+   sessão salva, vai direto pra escolha de modo; senão mostra a tela de login. */
+function clGoModo(){
+  toastC('Conectando...');
+  (async ()=>{
+    await netInitSupabase();
+    const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+    if(st.loggedIn){ CL.mgr=CL.mgr||st.name; CL.screen='modo'; }
+    else { CL.auth={mode:'login',name:CL.mgr||'',email:'',password:''}; CL.screen='login'; }
+    cdraw();
+  })();
+}
+/* ================= LOGIN (abertura) — obrigatório, vale p/ os dois modos ================= */
+function scLogin(){ const a=CL.auth||(CL.auth={mode:'login',name:'',email:'',password:''});
+  const isSignup=a.mode==='signup';
+  const disabled=!(a.email&&a.password&&(!isSignup||a.name));
+  return dlg(isSignup?'Criar conta':'Entrar', `
+    <div class="cl-authbox">
+      <div class="cl-conta-tabs">
+        <div class="cl-conta-tab ${!isSignup?'on':''}" onclick="CL.auth.mode='login';cdraw()">Já tenho conta</div>
+        <div class="cl-conta-tab ${isSignup?'on':''}" onclick="CL.auth.mode='signup';cdraw()">Criar conta nova</div>
+      </div>
+      <div class="cl-authsub">${isSignup?'Crie sua conta pra salvar seus jogos na nuvem e continuar em qualquer aparelho.':'Entre pra acessar seus jogos salvos na nuvem.'}</div>
+      <div class="cl-authform">
+        ${isSignup?`<div class="cl-authfield"><label>Nome de treinador</label><input id="cl-focus" maxlength="14" value="${escC(a.name)}" oninput="CL.auth.name=this.value.toUpperCase();this.value=CL.auth.name;clLoginSync()"></div>`:''}
+        <div class="cl-authfield"><label>E-mail</label><input ${isSignup?'':'id="cl-focus"'} type="email" inputmode="email" autocomplete="email" value="${escC(a.email)}" oninput="CL.auth.email=this.value;clLoginSync()"></div>
+        <div class="cl-authfield"><label>Senha</label><input type="password" autocomplete="${isSignup?'new-password':'current-password'}" value="${escC(a.password||'')}" oninput="CL.auth.password=this.value;clLoginSync()" onkeydown="if(event.key==='Enter')${isSignup?'clLoginSignup':'clLoginDo'}()"></div>
+        ${!isSignup?`<div class="cl-forgot-link" onclick="clForgotPassword()">Esqueci minha senha</div>`:''}
+      </div>
+      <div class="cl-auth-actions">
+        ${btn(isSignup?'Criar conta':'Entrar',isSignup?'clLoginSignup()':'clLoginDo()',{icon:'✔',cls:'cl-btn-ok cl-authbtn-primary',dis:disabled})}
+        ${btn('Voltar','clGoAbertura()',{icon:'✖',cls:'cl-btn-cancel cl-authbtn-secondary'})}
+      </div>
+    </div>`,
+    {w:460,bodyClass:'cl-body-green'});
+}
+function clLoginSync(){ const b=document.querySelector('.cl-btn-ok'); if(!b) return; const a=CL.auth||{}; const isSignup=a.mode==='signup'; b.disabled=!(a.email&&a.password&&(!isSignup||a.name)); }
+function clLoginAfter(name){ CL.mgr=name||CL.mgr; CL.auth=null; CL.screen='modo'; cdraw(); }
+function clLoginDo(){ const a=CL.auth; if(!a||!(a.email&&a.password)) return; toastC('Entrando...');
+  (async ()=>{ try {
+    const user=await NET.authSignIn(a.email, a.password);
+    clLoginAfter(user.user_metadata?.name || a.email.split('@')[0]); toastC('Login feito!');
+  } catch(e){ toastC('⚠ '+e.message); } })();
+}
+function clLoginSignup(){ const a=CL.auth; if(!a||!(a.email&&a.password&&a.name)) return; toastC('Criando conta...');
+  (async ()=>{ try {
+    await NET.authSignUp(a.email, a.password, a.name);
+    clLoginAfter(a.name); toastC('Conta criada!');
+  } catch(e){
+    if(e.code==='DUPLICATE_ACCOUNT'){ CL.auth.mode='login'; cdraw(); }
+    toastC('⚠ '+e.message);
+  } })();
+}
+
+/* ---- Esqueci minha senha: modal simples pedindo o e-mail (pré-preenchido se
+   já tiver algo digitado na tela de login), manda o link de recuperação. ---- */
+function clForgotPassword(){
+  CL._resetEmail = (CL.auth&&CL.auth.email) || '';
+  overlayC(dlg('Esqueci minha senha', `<div class="cl-authbox">
+    <div class="cl-authsub">Informe seu e-mail. Vamos mandar um link pra você criar uma senha nova.</div>
+    <div class="cl-authform">
+      <div class="cl-authfield"><label>E-mail</label><input id="cl-focus" type="email" inputmode="email" autocomplete="email" value="${escC(CL._resetEmail)}" oninput="CL._resetEmail=this.value" onkeydown="if(event.key==='Enter')clSendResetLink()"></div>
+    </div>
+    <div class="cl-auth-actions">
+      ${btn('Enviar link','clSendResetLink()',{icon:'✔',cls:'cl-btn-ok cl-authbtn-primary'})}
+      ${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel cl-authbtn-secondary'})}
+    </div>
+  </div>`, {w:420,bodyClass:'cl-body-green'}));
+}
+function clSendResetLink(){
+  const email=(CL._resetEmail||'').trim();
+  if(!email||!email.includes('@')){ toastC('⚠ Informe um e-mail válido.'); return; }
+  toastC('Enviando...');
+  (async ()=>{ try {
+    await NET.authResetPassword(email);
+    clCloseOverlay();
+    toastC('✓ Link enviado! Confira seu e-mail (e a caixa de spam).');
+  } catch(e){ toastC('⚠ '+(e&&e.message||'Erro ao enviar o link.')); } })();
+}
+
+/* ---- Nova senha: só chega aqui via link de recuperação (evento PASSWORD_RECOVERY,
+   ver netInitSupabase) — a sessão temporária do link já autentica o updateUser. ---- */
+function scResetPassword(){
+  const st=CL.resetPw||(CL.resetPw={password:'',confirm:'',focus:'password'});
+  const ok=st.password.length>=6 && st.password===st.confirm;
+  const mismatch=st.confirm.length>0 && st.password!==st.confirm;
+  // o campo com foco muda dinamicamente (não fixo em "Nova senha"), senão o cdraw()
+  // disparado a cada tecla sempre devolvia o cursor pro primeiro campo — impossível
+  // digitar "Confirmar senha" de corrido.
+  const idP = st.focus!=='confirm' ? 'id="cl-focus"' : '';
+  const idC = st.focus==='confirm' ? 'id="cl-focus"' : '';
+  return dlg('Nova senha', `<div class="cl-authbox">
+    <div class="cl-authsub">Escolha uma senha nova pra sua conta.</div>
+    <div class="cl-authform">
+      <div class="cl-authfield"><label>Nova senha</label><input ${idP} type="password" autocomplete="new-password" minlength="6" value="${escC(st.password)}" onfocus="CL.resetPw.focus='password'" oninput="CL.resetPw.password=this.value;cdraw()"></div>
+      <div class="cl-authfield"><label>Confirmar senha</label><input ${idC} type="password" autocomplete="new-password" value="${escC(st.confirm)}" onfocus="CL.resetPw.focus='confirm'" oninput="CL.resetPw.confirm=this.value;cdraw()" onkeydown="if(event.key==='Enter')clDoUpdatePassword()"></div>
+      ${mismatch?'<div class="cl-authwarn">As senhas não coincidem.</div>':''}
+    </div>
+    <div class="cl-auth-actions">
+      ${btn('Salvar senha','clDoUpdatePassword()',{icon:'✔',cls:'cl-btn-ok cl-authbtn-primary',dis:!ok})}
+    </div>
+  </div>`, {w:420,bodyClass:'cl-body-green'});
+}
+function clDoUpdatePassword(){
+  const st=CL.resetPw; if(!st||st.password.length<6||st.password!==st.confirm) return;
+  toastC('Salvando...');
+  (async ()=>{ try {
+    await NET.updatePassword(st.password);
+    CL.resetPw=null;
+    // limpa o hash/query de recuperação da URL sem recarregar a página
+    try{ history.replaceState(null,'',window.location.pathname); }catch(e){}
+    toastC('✓ Senha alterada! Entrando...');
+    clLoginAfter(SB_AUTH_USER && (SB_AUTH_USER.user_metadata?.name || (SB_AUTH_USER.email||'').split('@')[0]));
+  } catch(e){ toastC('⚠ '+(e&&e.message||'Erro ao salvar a senha.')); } })();
+}
+
+/* ================= 02a · ESCOLHA DE MODO (Solo / Resenha) ================= */
+function scModoChoice(){
+  return dlg('RetroFoot98', `
+    <div class="cl-modochoice">
+      <div class="cl-mc-sub">Como você quer jogar?</div>
+      <div class="cl-mc-cards">
+        <div class="cl-mc-card" onclick="clPickSolo()">
+          <div class="cl-mc-ic">🎮</div>
+          <div class="cl-mc-t">Modo Solo</div>
+          <div class="cl-mc-d">Você contra a máquina, no estilo RetroFoot98 tradicional.</div>
+        </div>
+        <div class="cl-mc-card" onclick="clPickResenha()">
+          <div class="cl-mc-ic">👥</div>
+          <div class="cl-mc-t">Modo Resenha</div>
+          <div class="cl-mc-d">Jogue online com amigos — cada um assume um clube, com chat da liga.</div>
+        </div>
+      </div>
+    </div>
+    <div class="cl-dlg-side">${btn('Voltar','clGoAbertura()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
+    {w:760,bodyClass:'cl-body-green cl-hasside'});
+}
+function clPickSolo(){ CL.screen='modosolo'; CL.soloStep='choice'; CL.soloSaves=null; CL.mode=null; CL.contSel=null; CL.save=''; cdraw();
+  (async ()=>{ CL.soloSaves = (typeof NET!=='undefined'&&NET.listSoloSaves)?await NET.listSoloSaves():[]; if(CL.screen==='modosolo') cdraw(); })(); }
+function clPickResenha(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+  if(!st.loggedIn){ clOnlineStart(); return; } // fallback: o gate da abertura normalmente já garante login
+  CL.screen='online';
+  CL.net={ step:'escolha', intent:'host', authMode:'login', name:CL.mgr||st.name||'', email:st.email||'', roomName:'', phone:'', code:'', myRooms:null };
+  wireNet(); cdraw();
+  // busca em segundo plano as salas que o usuário já participa (pra oferecer reentrar)
+  (async ()=>{ try{ CL.net.myRooms = await NET.listMyRooms(); if(CL.net&&CL.net.step==='escolha') cdraw(); }catch(e){} })();
+}
+
+/* ================= 02 · MODO SOLO — escolha em cards (novo / continuar), saves na NUVEM ================= */
+function scModoSolo(){
+  const step=CL.soloStep||'choice';
+  if(step==='novo') return scSoloNovo();
+  if(step==='cont') return scSoloCont();
+  const loading=CL.soloSaves==null; const n=(CL.soloSaves||[]).length;
+  const contDesc = loading?'Carregando seus jogos salvos…' : (n?`Você tem ${n} jogo${n>1?'s':''} salvo${n>1?'s':''} na nuvem.`:'Nenhum jogo salvo ainda.');
+  return dlg('Modo Solo', `
+    <div class="cl-modochoice">
+      <div class="cl-mc-sub">Como você quer começar?</div>
+      <div class="cl-mc-cards">
+        <div class="cl-mc-card" onclick="clSoloNew()">
+          <div class="cl-mc-ic">🆕</div>
+          <div class="cl-mc-t">Novo jogo</div>
+          <div class="cl-mc-d">Comece uma carreira nova do zero, contra a máquina.</div>
+        </div>
+        <div class="cl-mc-card" onclick="clSoloContinue()">
+          <div class="cl-mc-ic">📂</div>
+          <div class="cl-mc-t">Continuar</div>
+          <div class="cl-mc-d">${contDesc}</div>
+        </div>
+      </div>
+    </div>
+    <div class="cl-dlg-side">${btn('Voltar','clGoModo()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
+    {w:760,bodyClass:'cl-body-green cl-hasside'});
+}
+function scSoloNovo(){
+  const ok=(CL.save||'').trim().length>0;
+  return dlg('Novo jogo', `
+    <div class="cl-authbox">
+      <div class="cl-authsub">Dê um nome pra este jogo (até 8 letras/números). Ele fica salvo na sua conta, na nuvem.</div>
+      <div class="cl-authform">
+        <div class="cl-authfield"><label>Nome do jogo</label>
+          <input id="cl-focus" class="cl-savename-in" maxlength="8" value="${escC(CL.save||'')}" oninput="CL.save=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');this.value=CL.save;clSyncOk()" onkeydown="if(event.key==='Enter')clModoOk()"></div>
+      </div>
+      <div class="cl-auth-actions">
+        ${btn('Começar','clModoOk()',{icon:'✔',cls:'cl-btn-ok',dis:!ok})}
+        ${btn('Voltar','clSoloBackChoice()',{icon:'✖',cls:'cl-btn-cancel'})}
+      </div>
+    </div>`, {w:460,bodyClass:'cl-body-green'});
+}
+function scSoloCont(){
+  const loading=CL.soloSaves==null; const saves=CL.soloSaves||[];
+  let body;
+  if(loading) body='<div class="cl-savempty">carregando seus jogos…</div>';
+  else if(!saves.length) body='<div class="cl-savempty">Você ainda não tem jogos salvos. Comece um novo jogo!</div>';
+  else body=saves.map(s=>`<div class="cl-myroom" onclick="clLoadSave('${escC(s.name)}')">
+      <div class="cl-myroom-main">
+        <div class="cl-myroom-name">${escC(s.name)}</div>
+        <div class="cl-myroom-sub">${s.updated_at?('Salvo em '+new Date(s.updated_at).toLocaleDateString('pt-BR')):'Jogo salvo'}</div>
+      </div>
+      <div class="cl-myroom-arrow">➜</div>
+    </div>`).join('');
+  return dlg('Continuar jogo', `
+    <div class="cl-conta">
+      <div class="cl-conta-sub">Toque num jogo pra continuar de onde parou.</div>
+      <div class="cl-myrooms-list">${body}</div>
+    </div>
+    <div class="cl-cal-ok">${btn('Voltar','clSoloBackChoice()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
+    {w:560,bodyClass:'cl-body-green'});
+}
+function clSoloNew(){ CL.soloStep='novo'; cdraw(); }
+function clSoloContinue(){ CL.soloStep='cont'; cdraw(); }
+function clSoloBackChoice(){ CL.soloStep='choice'; cdraw(); }
+function clSyncOk(){ const b=document.querySelector('.cl-btn-ok'); if(b) b.disabled = !((CL.save||'').trim().length>0); }
+function clGoAbertura(){ CL.screen='abertura'; cdraw(); }
+function clModoOk(){
+  if(CL.mode==='cont'&&CL.contSel){ clLoadSave(CL.contSel); return; }
+  if((CL.save||'').trim().length>0){ CL.mode='novo'; CL.screen='paises'; cdraw(); }
+}
+
+/* ================= 03 · SELECÇÃO DE PAÍSES ================= */
+const COUNTRY_LIST=[ // apenas Brasil é jogável nesta versão (nossos dados). Os demais são visuais.
+  {f:'🇧🇷',n:'Brasil',teams:(typeof DATA!=='undefined'?DATA.clubs.length:20),on:true},
+  {f:'🇦🇷',n:'Argentina',teams:0,on:false},{f:'🇩🇪',n:'Alemanha',teams:0,on:false},
+  {f:'🇪🇸',n:'Espanha',teams:0,on:false},{f:'🇫🇷',n:'França',teams:0,on:false},
+  {f:'🇮🇹',n:'Itália',teams:0,on:false},{f:'🇵🇹',n:'Portugal',teams:0,on:false},
+  {f:'🏴',n:'Inglaterra',teams:0,on:false},
+];
+function scPaises(){
+  const rows=COUNTRY_LIST.map(c=>{const sel=CL.countries.has(c.n);
+    return `<div class="cl-ctry ${sel?'sel':''} ${c.on?'':'off'}" ${c.on?`onclick="clToggleCountry('${c.n}')"`:''}>
+      <span class="cl-flag">${c.f}</span><span class="cl-ctry-n">${c.n}</span>
+      <span class="cl-ctry-t">${c.teams} ${c.teams===1?'equipa':'equipas'}</span></div>`;}).join('');
+  const teamsSel=[...CL.countries].reduce((s,n)=>{const c=COUNTRY_LIST.find(x=>x.n===n);return s+(c?c.teams:0);},0);
+  const okDis=teamsSel<20;
+  const brasilSel=CL.countries.has('Brasil');
+  const startDiv=computeStartDivision();
+  const divBadge=(d,label)=>`<div class="cl-comp-toggle on ${startDiv===d?'start':''}" style="cursor:default">
+      ${divisionTrophyImg(d,30)||`<span class="cl-divopt-ic">🏆</span>`}<b>${label}</b>${startDiv===d?'<span class="cl-comp-start-tag">início</span>':''}</div>`;
+  const divisaoSection = brasilSel ? `<div class="cl-paises-divisao">
+      <div class="cl-paises-sec-title cl-acc-hd" onclick="clToggleAcc('divSecOpen')">
+        <span>${trophyImg('serieA',22)} Competições do Brasil neste save</span><span class="cl-acc-arrow ${CL.divSecOpen===false?'closed':''}">▾</span></div>
+      <div class="cl-acc-body ${CL.divSecOpen===false?'closed':''}">
+        <div class="cl-divopt-row">${divBadge('D','Série D')}${divBadge('C','Série C')}${divBadge('B','Série B')}${divBadge('A','Série A')}</div>
+        <div class="cl-instr" style="margin-top:6px">Todo mundo começa na Série D, igual ao clássico — vive a jornada completa subindo até a Série A e chegando às competições internacionais.</div>
+      </div>
+    </div>` : '';
+  const compRow=(key,label,trophyKey)=>`<div class="cl-comp-toggle ${CL.compToggle[key]?'on':''}" onclick="clToggleComp('${key}')">
+      ${trophyKey?trophyImg(trophyKey,30):'<span class="cl-divopt-ic">🏆</span>'}<b>${label}</b><span class="cl-comp-check">${CL.compToggle[key]?'✔':''}</span></div>`;
+  const internacionaisSection = brasilSel ? `<div class="cl-paises-divisao">
+      <div class="cl-paises-sec-title cl-acc-hd" onclick="clToggleAcc('intlSecOpen')">
+        <span>${trophyImg('libertadores',22)} Internacionais e copas</span><span class="cl-acc-arrow ${CL.intlSecOpen===false?'closed':''}">▾</span></div>
+      <div class="cl-acc-body ${CL.intlSecOpen===false?'closed':''}">
+        <div class="cl-divopt-row">${compRow('libertadores','Libertadores','libertadores')}${compRow('sulamericana','Sul-Americana','sulamericana')}${compRow('copaBrasil','Copa do Brasil','copaBrasil')}</div>
+        <div class="cl-instr" style="margin-top:6px">Desligue as que não quiser disputar — o jogo não carrega nem simula o que estiver desligado.</div>
+      </div>
+    </div>` : '';
+  return dlg('Selecção de Países', `
+    <div class="cl-paises">
+      <div class="cl-ctry-list">${rows}</div>
+      <div class="cl-paises-side">
+        <div class="cl-side-btns">
+          ${btn('Todas','clAllCountries()',{icon:'▤'})}
+          ${btn('OK','clPaisesOk()',{icon:'✔',cls:'cl-btn-ok',dis:okDis})}
+          ${btn('Cancelar','clGoModo()',{icon:'✖',cls:'cl-btn-cancel'})}
+        </div>
+        <div class="cl-counters">
+          <div><span>Equipas existentes</span><b>${COUNTRY_LIST.reduce((s,c)=>s+c.teams,0)}</b></div>
+          <div class="cl-hl"><span>Equipas seleccionadas</span><b>${teamsSel}</b></div>
+          <div class="cl-gap"><span>Países existentes</span><b>${COUNTRY_LIST.length}</b></div>
+          <div><span>Países seleccionados</span><b>${CL.countries.size}</b></div>
+        </div>
+        <div class="cl-instr">Seleccione os países com que pretende jogar, de modo a totalizar pelo menos 20 equipas.</div>
+      </div>
+    </div>
+    ${divisaoSection}${internacionaisSection}`, {w:900,bodyClass:'cl-body-green'});
+}
+/* multi-seleção: qual(is) divisões do Brasil entram nesse save. Não deixa desmarcar
+   a última (precisa sobrar pelo menos uma pra começar o jogo). */
+function clToggleDivision(d){
+  const checkedCount=Object.values(CL.divisionToggle).filter(Boolean).length;
+  if(CL.divisionToggle[d] && checkedCount<=1){ toastC('Precisa deixar pelo menos uma divisão marcada.'); return; }
+  CL.divisionToggle[d]=!CL.divisionToggle[d]; cdraw();
+}
+/* divisão em que o save realmente começa: a mais alta marcada (A > B > C > D) */
+function computeStartDivision(){
+  // no clássico, todo mundo começa na Série D e vai subindo — não é mais escolha do usuário
+  return 'D';
+}
+function divisionShortLabel(d){ return ({A:'Série A',B:'Série B',C:'Série C',D:'Série D'})[d]||'Série A'; }
+function clToggleComp(key){ CL.compToggle[key]=!CL.compToggle[key]; cdraw(); }
+function clToggleCountry(n){ if(CL.countries.has(n))CL.countries.delete(n); else CL.countries.add(n); cdraw(); }
+function clAllCountries(){ COUNTRY_LIST.forEach(c=>{ if(c.on)CL.countries.add(c.n); }); cdraw(); }
+function clPaisesOk(){ CL.screen='moeda'; cdraw(); }
+
+/* ================= 04 · MOEDA ================= */
+function scMoeda(){
+  return dlg('Dinheiro', `
+    <div class="cl-moeda">
+      <div class="cl-moeda-q">Com que moeda vai querer jogar?</div>
+      <select class="cl-select" onchange="CL.currency=this.value">
+        <option ${CL.currency==='Reais'?'selected':''}>Reais</option>
+        <option ${CL.currency==='Dólares'?'selected':''}>Dólares</option>
+        <option ${CL.currency==='Euros'?'selected':''}>Euros</option>
+      </select>
+    </div>
+    <div class="cl-dlg-side">${btn('OK','clMoedaOk()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
+    {w:640,bodyClass:'cl-body-yellow cl-hasside'});
+}
+function clMoedaOk(){ CL.screen='loading'; cdraw(); }
+
+/* ================= 05 · A INICIAR O JOGO (loading) ================= */
+function scLoading(){ return `<div class="cl-loadbar"><div class="cl-loadbar-title">A iniciar o jogo...</div>
+  <div class="cl-loadbar-track"><div id="cl-load-fill" class="cl-loadbar-fill" style="width:0%"><span id="cl-load-pct">0%</span></div></div></div>`; }
+function runLoading(){ let p=0; const t=setInterval(()=>{ p+=Math.floor(8+Math.random()*14); if(p>=100)p=100;
+  const f=$c('#cl-load-fill'), pc=$c('#cl-load-pct'); if(f)f.style.width=p+'%'; if(pc)pc.textContent=p+'%';
+  if(p>=100){ clearInterval(t); setTimeout(()=>{ CL.screen='jogadores'; cdraw(); },350); } }, 180); }
+
+/* ================= 06 · JOGADORES (nomes) ================= */
+function scJogadores(){
+  const rows=[0,1,2,3,4,5].map(i=>`<div class="cl-jrow"><span class="cl-jlbl">Jogador ${i+1}</span>
+    <input class="cl-jinput ${i===0?'cl-jfocus':''}" ${i===0?'id="cl-focus"':''} maxlength="12" value="${escC(CL.names[i])}"
+      oninput="CL.names[${i}]=this.value.toUpperCase();"></div>`).join('');
+  return dlg('Jogadores', `
+    <div class="cl-jog">
+      <div class="cl-jog-head"><span class="cl-jh-n">Nome</span><span class="cl-jh-e">Equipa</span></div>
+      ${rows}
+      <div class="cl-jog-actions">${btn('Sortear equipas','clSortear()',{cls:'cl-btn-wide'})}</div>
+    </div>`, {w:820,bodyClass:'cl-body-gray',min:true});
+}
+function clSortear(){
+  const names=CL.names.map(n=>(n||'').trim()).filter(Boolean);
+  if(!names.length){ CL.names[0]='JOGADOR'; return cdraw(); }
+  const startDivision=computeStartDivision();
+  (async ()=>{
+    if(startDivision!=='A'){
+      if(typeof NET!=='undefined' && NET.getDivisionClubs && NET.authStatus && NET.authStatus().loggedIn){
+        toastC('Carregando times da Série '+startDivision+'...');
+        try{ await loadRealDivisionClubs(startDivision); }catch(e){ console.warn('divisão real indisponível, usando fallback procedural:',e); }
+      }
+      DATA.clubs = clubsForDivision(startDivision);
+    } else {
+      DATA.clubs = DATA.clubsSerieA || DATA.clubs;
+    }
+    const pool=DATA.clubs.map(c=>c.id); const seed=(Math.random()*1e9)>>>0; const rnd=rngFrom(seed);
+    // embaralha e distribui clubes distintos
+    for(let i=pool.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+    CL.draw=names.map((nm,i)=>({name:nm, clubId:pool[i]}));
+    CL.screen='sorteio'; cdraw();
+  })().catch(err=>{
+    console.error('Erro no sorteio:', err);
+    toastC('⚠ Erro ao preparar o sorteio: '+(err&&err.message||'desconhecido'));
+  });
+}
+
+/* ================= 07 · SORTEIO (nomes + clubes em cores) ================= */
+function scSorteio(){
+  const rows=[0,1,2,3,4,5].map(i=>{const d=CL.draw[i]; const c=d?clubOf(d.clubId):null;
+    return `<div class="cl-jrow"><span class="cl-jlbl">Jogador ${i+1}</span>
+      <span class="cl-jname">${d?escC(d.name):''}</span>
+      <span class="cl-jteam" style="${c?clubStripe(c):''}">${c?escC(c.short):''}</span></div>`;}).join('');
+  return dlg('Jogadores', `
+    <div class="cl-jog">
+      <div class="cl-jog-head"><span class="cl-jh-n">Nome</span><span class="cl-jh-e2">Equipa</span></div>
+      ${rows}
+      <div class="cl-jog-actions">${btn('Fechar','clEntrar()',{cls:'cl-btn-wide'})}</div>
+    </div>`, {w:820,bodyClass:'cl-body-gray',min:true});
+}
+function clEntrar(){
+  CL.clubId=CL.draw[0].clubId; CL.mgr=CL.draw[0].name;
+  newGame(CL.clubId, computeStartDivision(), CL.compToggle); S.xi=autoXI(CL.clubId);
+  if(!S.stadium) S.stadium={capacity:STAND_START};
+  CL.formation=null; CL.tacticChosen=false;   // precisa escolher tática no menu p/ liberar "Jogar"
+  S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
+  CL.speedMult=1;  // 1.0x, 1.5x, 2x, 3x (só anfitrião no modo Resenha pode mudar)
+  // modo solo de verdade: garante que nada do modo online "vaza" pra cá (ex: se o usuário
+  // tinha entrado numa sala online antes, na mesma aba, CL.online ficava travado em true e
+  // liveDone() chamava NET.start() sozinho, avançando a rodada seguinte sem o usuário pedir)
+  CL.online=false;
+  if(typeof NET!=='undefined'){ NET.isHost=false; NET.gameId=null; NET.onState=null; }
+  CL.humans={}; CL.draw.forEach(d=>CL.humans[d.clubId]=d.name);
+  CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||null;
+  saveV3();
+  cdraw();
+  checkPendingCupDraws(()=>{}); // mostra o sorteio da Copa do Brasil já no início do save, se houver
+}
+
+/* ================= SAVE / LOAD (Modo Solo — só nuvem via Supabase) =================
+   Salva/carrega por nome, vinculado ao usuário logado. O estado do jogo NUNCA fica
+   no localStorage — sempre no Supabase (tabela elifoot_v3.solo_saves).
+   `explicit=true` mostra toast (usado no menu "Gravar jogo"); os auto-saves são silenciosos.
+   Em modo online (Resenha) o save é o da sala (NET.saveGame), então aqui é no-op. */
+function saveV3(explicit){
+  if(CL.online) return; // online usa o save da sala (host-autoritativo), não o solo
+  const name = CL.save||CL.mgr||'SAVE';
+  const payload = { ts:Date.now(), mgr:CL.mgr, clubId:CL.clubId, currency:CL.currency, ticket:CL.ticket, humans:CL.humans, S };
+  if(typeof NET==='undefined' || !NET.saveSoloGame){ if(explicit&&typeof toastC==='function') toastC('⚠ Sem conexão pra gravar.'); return; }
+  NET.saveSoloGame(name, payload)
+    .then(()=>{ if(explicit && typeof toastC==='function') toastC('Jogo gravado na nuvem.'); })
+    .catch(e=>{ console.warn('saveSolo erro:', e); if(explicit && typeof toastC==='function') toastC('⚠ Não foi possível gravar na nuvem.'); });
+}
+function clLoadSave(name){
+  toastC('Carregando jogo…');
+  (async ()=>{ try {
+    const g = (typeof NET!=='undefined'&&NET.loadSoloSave)?await NET.loadSoloSave(name):null;
+    if(!g){ toastC('⚠ Save não encontrado.'); return; }
+    S=g.S; CL.clubId=g.clubId; CL.mgr=g.mgr; CL.currency=g.currency||'Reais'; CL.ticket=g.ticket||8; CL.humans=g.humans||{};
+    CL.save=name; CL.online=false; // jogo solo — nunca herda estado de sala online
+    if(typeof NET!=='undefined'){ NET.isHost=false; NET.gameId=null; NET.onState=null; }
+    syncDataClubsFromState(); // realinha DATA.clubs com a divisão real do save carregado
+    CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||null; cdraw();
+    // sorteio de copa pode ter ficado pendente de uma sessão anterior (fila em
+    // S._pendingDrawShows, ver initSeasonCups/advancePendingCups) — sem isso aqui, o
+    // usuário só via o sorteio depois de terminar a PRÓXIMA rodada ao vivo (via
+    // finishLiveRound), o que em muitas divisões passava despercebido por rodadas.
+    checkPendingCupDraws(()=>{});
+  } catch(e){ toastC('⚠ '+(e.message||'erro ao carregar')); } })();
+}
+
+/* ================= 08-13 · TELA PRINCIPAL ================= */
+function divisionLabel(){ return ({A:'Série A',B:'Série B',C:'Série C',D:'Série D'})[S.division]||'Série A'; }
+function scMain(){
+  const cl=clubOf(CL.clubId);
+  const uf=userFixture(); const oppId=uf?(uf[0]===CL.clubId?uf[1]:uf[0]):null; const home=uf?uf[0]===CL.clubId:true;
+  const menuNames=['RetroFoot98','Seleccionar','Equipa','Jogador','Campeonatos','Treinador']; if(CL.online) menuNames.push('Modo Resenha');
+  const hamburger=`<div class="cl-hamburger" onclick="clToggleMobMenu(event)"><span>☰ Menu</span><span>${CL.mobMenuOpen?'▲':'▼'}</span></div>`;
+  const menu=`<div class="cl-menu ${CL.mobMenuOpen?'mob-open':''}" id="cl-menubar">
+    ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
+  </div>`;
+  const tabs=['jogo','jogador','financas','seleccao','adversario'];
+  const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Selecção',adversario:'Adversário'};
+  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')">${tabLbl[t]}</span>`).join('')}</div>`;
+  let panel='';
+  if(CL.tab==='jogo') panel=panJogo(oppId,home,uf);
+  else if(CL.tab==='jogador') panel=panJogador();
+  else if(CL.tab==='financas') panel=panFinancas();
+  else if(CL.tab==='seleccao') panel=panSeleccao();
+  else panel=panAdversario(oppId);
+  const jornada=(S.round||0)+1;
+  const th=clubTheme(CL.clubId);
+  return `<div class="cl-main" style="border-color:${th.col}">
+    <div class="cl-main-top">${escC(cl.short)}</div>
+    <div class="cl-mobmenu-wrap">${hamburger}${menu}</div>
+    ${CL.online?onlineReadyBar():''}
+    <div class="cl-main-body">
+      <div class="cl-main-left" style="background:${th.bg}">
+        <div class="cl-hdr">
+          <div class="cl-mgr">${escC(CL.mgr||'TREINADOR')}</div>
+          <div class="cl-hdr-sub"><span class="cl-flag2">🇧🇷</span> Brasil <span class="cl-div">${divisionTrophyImg(S.division,16)||''} ${divisionLabel()}</span> ${windowBadge()} <span class="cl-share-mini cl-noshot" onclick="clShareTeam()" title="Compartilhar meu time">Compartilhar</span></div>
+        </div>
+        <div class="cl-roster-hd cl-acc-hd" onclick="clToggleRoster()">
+          <span>Elenco</span><span class="cl-acc-arrow ${CL.rosterOpen===false?'closed':''}">▾</span>
+        </div>
+        <div class="cl-roster cl-acc-body ${CL.rosterOpen===false?'closed':''}">${rosterHTML()}</div>
+      </div>
+      <div class="cl-main-right" style="background:${th.bg}">
+        <div class="cl-right-hdr">
+          <div class="cl-adv-lbl">Adversário</div>
+          <div class="cl-year">${S.season}</div>
+          <div class="cl-adv-name" style="background:${th.bg2};padding:3px 8px">${oppId?escC(clubOf(oppId).short):'—'}</div>
+          <div class="cl-adv-loc">${home?'CASA':'FORA'} ${jornada}ª Jornada</div>
+        </div>
+        <div class="cl-panel">${panel}</div>
+        ${tabBar}
+      </div>
+    </div>
+    ${CL.online?chatDockHTML():''}
+  </div>`;
+}
+function rosterHTML(){
+  const groups=[['GK','G'],['DEF','D'],['MID','M'],['ATT','A']];
+  const sq=squad(CL.clubId); const th=clubTheme(CL.clubId);
+  const showMarks=(CL.tab==='seleccao'||CL.escalacaoMode); const xiSet=new Set(S.xi||[]);
+  const escala=CL.escalacaoMode;
+  let html='';
+  groups.forEach(([sec])=>{ const list=sq.filter(p=>p.s===sec);
+    html+=`<div class="cl-rgroup">`+list.map(p=>{const starter=xiSet.has(p.n);
+      const marked=escala && CL.preSubOut===p.n;
+      const selc=!escala && CL.selPlayer===p.n;
+      const unavail=p.suspended>0||p.injuredMatches>0;
+      const badge=p.suspended>0?'🟥':(p.injuredMatches>0?'✚':'');
+      const onclickFn=escala?`clEscalaPick('${escC(p.n)}')`:`clSelPlayer('${escC(p.n)}')`;
+      return `<div class="cl-rrow ${selc?'sel':''} ${marked?'swap-out':''} ${unavail?'unavail':''}" style="${selc?'':`color:${th.txt}`}" onclick="${onclickFn}">
+        <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
+        <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
+        <span class="cl-rf">${p.f}</span><span class="cl-rv">${grp(Math.round(p.mv*0.00006)*10)}</span></div>`;}).join('')+`</div>`;
+  });
+  return html;
+}
+function clSelPlayer(n){ CL.selPlayer=n;
+  // na aba Selecção o clique NÃO tira o usuário da aba — assim o botão "Alterar
+  // Escalação" continua acessível até ele clicar em Jogar. Nas outras abas, abre o Jogador.
+  if(CL.tab!=='jogador' && CL.tab!=='seleccao') CL.tab='jogador';
+  cdraw(); }
+function clTab(t){ CL.tab=t; cdraw(); }
+
+/* ================= VISUALIZAR TIME (view-only) =================
+   Usado quando o usuário clica no nome de um clube que NÃO é o dele (ex: na
+   Classificação de "Minhas competições", ou em "Ver elenco" do adversário).
+   Mostra a mesma tela principal (elenco, próximo jogo, jogador, adversário),
+   só que 100% de LEITURA — sem comprar, vender, renovar, escalar ou jogar,
+   já que essas ações só fazem sentido pro dono do time. ---- */
+function clViewTeam(clubId){
+  clCloseOverlay();
+  CL.viewClubId=clubId; CL.viewTab='jogo'; CL.viewSelPlayer=null;
+  CL.screen='teamview'; cdraw();
+}
+function clViewTeamBack(){ clCloseOverlay(); CL.viewClubId=null; CL.screen='main'; cdraw(); }
+function clViewTab(t){ CL.viewTab=t; cdraw(); }
+function clViewSelPlayer(n){ CL.viewSelPlayer=n; CL.viewTab='jogador'; cdraw(); }
+function fixtureFor(clubId){ return currentFixtures().find(([h,a])=>h===clubId||a===clubId); }
+function scTeamView(){
+  const vid=CL.viewClubId; const c=clubOf(vid);
+  if(!c){ CL.viewClubId=null; CL.screen='main'; return scMain(); }
+  const th=clubTheme(vid);
+  const uf=fixtureFor(vid); const oppId=uf?(uf[0]===vid?uf[1]:uf[0]):null; const home=uf?uf[0]===vid:true;
+  const tabs=['jogo','jogador','adversario'];
+  const tabLbl={jogo:'Jogo',jogador:'Jogador',adversario:'Adversário'};
+  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.viewTab===t?'on':''}" onclick="clViewTab('${t}')">${tabLbl[t]}</span>`).join('')}</div>`;
+  let panel='';
+  if(CL.viewTab==='jogador') panel=panViewJogador(vid);
+  else if(CL.viewTab==='adversario') panel=panViewAdversario(oppId);
+  else panel=panViewJogo(vid,oppId,uf);
+  const jornada=(S.round||0)+1;
+  return `<div class="cl-main" style="border-color:${th.col}">
+    <div class="cl-main-top">${escC(c.short)} <span class="cl-view-tag">👁 Visualização</span></div>
+    <div class="cl-mobmenu-wrap">${btn('← Voltar','clViewTeamBack()',{cls:'cl-btn-mini'})}</div>
+    <div class="cl-main-body">
+      <div class="cl-main-left" style="background:${th.bg}">
+        <div class="cl-hdr">
+          <div class="cl-mgr">${escC(c.name)}</div>
+          <div class="cl-hdr-sub"><span class="cl-flag2">${clubCountry(c).flag}</span> ${escC(clubCountry(c).name)} ${!c.country?`<span class="cl-div">${divisionTrophyImg(S.division,16)||''} ${divisionLabel()}</span>`:''}</div>
+        </div>
+        <div class="cl-roster-hd cl-acc-hd" onclick="clToggleRoster()">
+          <span>Elenco</span><span class="cl-acc-arrow ${CL.rosterOpen===false?'closed':''}">▾</span>
+        </div>
+        <div class="cl-roster cl-acc-body ${CL.rosterOpen===false?'closed':''}">${viewRosterHTML(vid)}</div>
+      </div>
+      <div class="cl-main-right" style="background:${th.bg}">
+        <div class="cl-right-hdr">
+          <div class="cl-adv-lbl">Adversário</div>
+          <div class="cl-year">${S.season}</div>
+          <div class="cl-adv-name" style="background:${th.bg2};padding:3px 8px">${oppId?escC(clubOf(oppId).short):'—'}</div>
+          <div class="cl-adv-loc">${uf?(home?'CASA':'FORA')+' '+jornada+'ª Jornada':'—'}</div>
+        </div>
+        <div class="cl-panel">${panel}</div>
+        ${tabBar}
+      </div>
+    </div>
+  </div>`;
+}
+function viewRosterHTML(clubId){
+  const groups=[['GK','G'],['DEF','D'],['MID','M'],['ATT','A']];
+  const sq=squad(clubId)||[];
+  let html='';
+  groups.forEach(([sec])=>{ const list=sq.filter(p=>p.s===sec);
+    html+=`<div class="cl-rgroup">`+list.map(p=>{const selc=CL.viewSelPlayer===p.n;
+      const unavail=p.suspended>0||p.injuredMatches>0;
+      const badge=p.suspended>0?'🟥':(p.injuredMatches>0?'✚':'');
+      return `<div class="cl-rrow ${selc?'sel':''} ${unavail?'unavail':''}" onclick="clViewSelPlayer('${escC(p.n)}')">
+        <span class="cl-rmark"></span>
+        <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
+        <span class="cl-rf">${p.f}</span><span class="cl-rv">${grp(Math.round(p.mv*0.00006)*10)}</span></div>`;}).join('')+`</div>`;
+  });
+  return html || '<div class="cl-savempty">— sem elenco —</div>';
+}
+function panViewJogo(vid,oppId,uf){
+  const me=tableRow(vid), op=oppId?tableRow(oppId):null;
+  const rnd=rngFrom(uf?(hashC(uf[0])+hashC(uf[1])):hashC(vid));
+  const ref=REFS_C[Math.floor(rnd()*REFS_C.length)];
+  const sq=squad(vid)||[];
+  const moral=sq.length?Math.round(sq.reduce((s,p)=>s+(p.moral||70),0)/sq.length):70;
+  const line=(id,t,blue)=>`<div class="cl-grow ${blue?'blue':''}"><span class="cl-gname">${escC(clubOf(id).short)}</span>
+     <span class="cl-gnums"><b>${t.P}</b><b>${t.W}</b><b>${t.D}</b><b>${t.GF}:${t.GA}</b><b>${t.Pts}</b></span></div>`;
+  return `<div class="cl-jogo">
+    ${uf?line(vid,me,false):''}
+    ${oppId?line(oppId,op,true):''}
+    ${uf?`<div class="cl-blk"><div class="cl-blk-l">Árbitro</div><div class="cl-blk-v cl-strong">${escC(ref)}</div></div>`:'<div class="cl-jogo-empty">Sem jogo marcado nesta jornada.</div>'}
+    <div class="cl-blk"><div class="cl-blk-l">Moral do elenco</div><div class="cl-bar cl-bar-moral" style="--val:${moral}"><div class="cl-bar-fill" style="width:${moral}%"></div></div></div>
+  </div>`;
+}
+function panViewJogador(vid){
+  const sq=squad(vid)||[];
+  const p=sq.find(x=>x.n===CL.viewSelPlayer)||sq[0]; if(!p) return '<div class="cl-jgd">Sem jogadores.</div>';
+  const st=p.stats||{};
+  const statusBar = p.suspended>0 ? `<div class="cl-jgd-status susp">🟥 Suspenso — falta o próximo jogo</div>`
+    : p.injuredMatches>0 ? `<div class="cl-jgd-status hurt">✚ Lesionado — fora por ${p.injuredMatches} jogo${p.injuredMatches>1?'s':''}</div>` : '';
+  const ctry=clubCountry(clubOf(vid));
+  return `<div class="cl-jgd">
+    <div class="cl-jgd-name">${escC(p.n)}</div>
+    <div class="cl-jgd-nat"><span class="cl-flag2">${ctry.flag}</span> ${escC(ctry.name)}</div>
+    ${statusBar}
+    <div class="cl-jgd-row"><span>Posição</span><b>${posLetter(p.s)}</b></div>
+    <div class="cl-jgd-row"><span>Força</span><b>${p.f}</b></div>
+    <div class="cl-jgd-row"><span>Valor de mercado</span><b>${grp(p.mv)}</b></div>
+    <div class="cl-jgd-row"><span>Comportamento</span><b>${playerBehaviorLabel(p)}</b></div>
+    <div class="cl-jgd-row"><span>Gols nesta temporada</span><b>${(S.scorers&&S.scorers[p.n])||0}</b></div>
+    <fieldset class="cl-hist"><legend>Historial</legend>
+      <div class="cl-hist-row"><span>Jogos</span><b>${st.apps||0}</b></div>
+      <div class="cl-hist-row"><span>Gols</span><b>${st.goals||0}</b></div>
+      <div class="cl-hist-row"><span>Cartões amarelos</span><b>${st.yellows||0}</b></div>
+      <div class="cl-hist-row"><span>Cartões vermelhos</span><b>${st.reds||0}</b></div>
+      <div class="cl-hist-row"><span>Lesões</span><b>${st.injuries||0}</b></div>
+    </fieldset>
+  </div>`;
+}
+function panViewAdversario(oppId){
+  if(!oppId) return `<div class="cl-adv">Sem adversário nesta jornada.</div>`;
+  const r=ratings(oppId,false); const forca=Math.max(6,Math.min(100,Math.round((r.OS+r.DS)/2)));
+  const rnd=rngFrom(hashC(oppId)); const coach=COACHES_C[Math.floor(rnd()*COACHES_C.length)];
+  return `<div class="cl-adv">
+    <div class="cl-adv-big"><span class="cl-link" onclick="clViewTeam('${oppId}')">${escC(clubOf(oppId).short)}</span></div>
+    <div class="cl-bar cl-bar-lg"><div class="cl-bar-fill" style="width:${forca}%"></div></div>
+    <div class="cl-adv-coach"><span>Treinador</span><b>${escC(coach)}</b></div>
+  </div>`;
+}
+
+/* ---- painel: JOGO ---- */
+function tableRow(id){ const t=(S.table&&S.table[id])||{P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0}; return t; }
+function panJogo(oppId,home,uf){
+  const me=tableRow(CL.clubId), op=oppId?tableRow(oppId):null;
+  const rnd=rngFrom(uf?(hashC(uf[0])+hashC(uf[1])):12345);
+  const ref=REFS_C[Math.floor(rnd()*REFS_C.length)];
+  const moral=Math.round(squad(CL.clubId).reduce((s,p)=>s+(p.moral||70),0)/Math.max(1,squad(CL.clubId).length));
+  const line=(id,t,blue)=>`<div class="cl-grow ${blue?'blue':''}"><span class="cl-gname">${escC(clubOf(id).short)}</span>
+     <span class="cl-gnums"><b>${t.P}</b><b>${t.W}</b><b>${t.D}</b><b>${t.GF}:${t.GA}</b><b>${t.Pts}</b></span></div>`;
+  return `<div class="cl-jogo">
+    ${uf?line(CL.clubId,me,false):''}
+    ${oppId?line(oppId,op,true):''}
+    <div class="cl-blk"><div class="cl-blk-l">Árbitro</div><div class="cl-blk-v cl-strong">${escC(ref)}</div></div>
+    <div class="cl-blk"><div class="cl-blk-l">Dinheiro em caixa</div><div class="cl-blk-v">${spellMoney(S.budget)}</div></div>
+    <div class="cl-blk"><div class="cl-blk-l">Moral</div><div class="cl-bar cl-bar-moral" style="--val:${moral}"><div class="cl-bar-fill" style="width:${moral}%"></div></div></div>
+  </div>`;
+}
+function hashC(s){ s=String(s); let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return h; }
+
+/* ---- painel: JOGADOR ---- */
+/* comportamento é um traço FIXO do jogador (Casca-Grossa, Brigão, Encrenqueiro,
+   Discreto, Manso, Exemplar) — sorteado uma vez na criação
+   e nunca muda; afeta cartão, lesão e valor de mercado de verdade (ver app.js). */
+function playerBehaviorLabel(p){ return p.behavior || 'Exemplar'; }
+function panJogador(){
+  const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer)||squad(CL.clubId)[0]; if(!p) return '';
+  if(CL.rightMode==='renovar') return renewPanel(p);
+  if(CL.rightMode==='vender') return venderPanel(p);
+  const st=p.stats||{};
+  const statusBar = p.suspended>0 ? `<div class="cl-jgd-status susp">🟥 Suspenso — falta o próximo jogo</div>`
+    : p.injuredMatches>0 ? `<div class="cl-jgd-status hurt">✚ Lesionado — fora por ${p.injuredMatches} jogo${p.injuredMatches>1?'s':''}</div>` : '';
+  return `<div class="cl-jgd">
+    <div class="cl-jgd-name">${escC(p.n)}</div>
+    <div class="cl-jgd-nat"><span class="cl-flag2">🇧🇷</span> Brasil</div>
+    ${statusBar}
+    <div class="cl-jgd-row"><span>Comportamento</span><b>${playerBehaviorLabel(p)}</b></div>
+    <div class="cl-jgd-row"><span>Gols nesta temporada</span><b>${(S.scorers&&S.scorers[p.n])||0}</b></div>
+    <fieldset class="cl-hist"><legend>Historial</legend>
+      <div class="cl-hist-row"><span>Jogos</span><b>${st.apps||0}</b></div>
+      <div class="cl-hist-row"><span>Gols</span><b>${st.goals||0}</b></div>
+      <div class="cl-hist-row"><span>Cartões amarelos</span><b>${st.yellows||0}</b></div>
+      <div class="cl-hist-row"><span>Cartões vermelhos</span><b>${st.reds||0}</b></div>
+      <div class="cl-hist-row"><span>Lesões</span><b>${st.injuries||0}</b></div>
+    </fieldset>
+    <div class="cl-jgd-act">${btn('Renovar contrato...','clRenew()',{icon:'🔄',cls:'cl-btn-ok'})}${btn('Vender','clSell()',{icon:'💰',cls:'cl-btn-cancel'})}</div>
+  </div>`;
+}
+function renewPanel(p){
+  const currentSalary = (p.contract && p.contract.salary) || 0;
+  const currentYears = (p.contract && p.contract.years) || 0;
+  const newYears = 3;
+  const totalCost = CL.newSalary * newYears * 52; // 52 semanas
+  const currentBudget = S.budget;
+  const budgetAfterRenew = currentBudget - totalCost;
+  const budgetWarning = budgetAfterRenew < 0 ? ' ⚠️' : '';
+  return `<div class="cl-renew">
+  <div class="cl-renew-title">Renovar contrato</div>
+  <div style="color:#fff;font-size:13px;margin-bottom:24px;padding:12px;background:#1a3a1a;border-radius:4px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Salário atual:</span><b>${grp(currentSalary)}/sem</b></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Tempo restante:</span><b>${currentYears} ano(s)</b></div>
+    <div style="display:flex;justify-content:space-between;border-top:1px solid #2a4a2a;padding-top:8px;margin-top:8px"><span>Novo salário:</span><b>${grp(CL.newSalary)}/sem</b></div>
+  </div>
+  <div class="cl-renew-row"><span>Novo salário:</span>
+    <span class="cl-spin"><span id="cl-sal" class="cl-spin-v">${grp(CL.newSalary)}</span>
+      <span class="cl-spin-btns"><button onclick="clSalaryStep(1)">▲</button><button onclick="clSalaryStep(-1)">▼</button></span></span></div>
+  <div style="color:#fff;font-size:13px;margin-bottom:20px;padding:12px;background:#2a3a2a;border-radius:4px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Duração do contrato:</span><b>${newYears} ano(s)</b></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Custo total:</span><b>${grp(totalCost)}</b></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Caixa atual:</span><b>${grp(currentBudget)}</b></div>
+    <div style="display:flex;justify-content:space-between;border-top:1px solid #3a4a3a;padding-top:8px;margin-top:8px"><span>Caixa após renovação:</span><b>${grp(budgetAfterRenew)}${budgetWarning}</b></div>
+  </div>
+  <div class="cl-renew-btns">${btn('Propôr','clRenewPropose()',{icon:'🔄',cls:'cl-btn-ok'})}${btn('Cancelar','clCancelRight()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
+</div>`; }
+function venderPanel(p){
+  const askingPrice = CL.sellPrice ? parseInt(CL.sellPrice) : 0;
+  const mv = p.mv || 0;
+  const diff = askingPrice - mv;
+  const diffPct = mv > 0 ? Math.round((diff / mv) * 100) : 0;
+  const diffLabel = diff > 0 ? `+${grp(diff)} (+${diffPct}%)` : diff < 0 ? `${grp(diff)} (${diffPct}%)` : 'Preço igual';
+  return `<div class="cl-vender">
+  <div class="cl-vender-title">Vender</div>
+  <div style="color:#fff;font-size:13px;margin-bottom:20px;padding:12px;background:#3a2a2a;border-radius:4px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Valor de mercado:</span><b>${grp(mv)}</b></div>
+    <div style="display:flex;justify-content:space-between"><span>Preço pedido:</span><b id="cl-sellprice-asked">${askingPrice > 0 ? grp(askingPrice) : '-'}</b></div>
+  </div>
+  <div class="cl-vender-lbl">Preço de venda pedido<br><span id="cl-sellprice-diff" style="font-size:12px;opacity:.8;color:#aaa">${diffLabel}</span></div>
+  <div class="cl-money-field">
+    <span class="cl-money-cur">R$</span>
+    <input id="cl-sellprice" class="cl-money-in" inputmode="numeric" placeholder="0" value="${CL.sellPrice?grp(CL.sellPrice):''}" oninput="clSellPriceInput(this)">
+  </div>
+  <div class="cl-vender-btns">${btn('Vender','clSellConfirm()',{icon:'💰',cls:'cl-btn-ok'})}${btn('Cancelar','clCancelRight()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
+</div>`; }
+
+/* ---- Jogador > Comprar jogador: primeiro escolhe a DIVISÃO, depois o clube dela ---- */
+const MKT_DIV_LEGEND={A:'Série A — 1ª Divisão',B:'Série B — 2ª Divisão',C:'Série C — 3ª Divisão',D:'Série D — 4ª Divisão'};
+function clMarketClubs(){ CL.menu=null;
+  if(!inTransferWindow()){ toastC(windowClosedMsg()); return; }
+  CL.market={step:'divisions'};
+  const rows=DIV_ORDER.map(d=>{
+    const isOwn=d===S.division;
+    const count=isOwn ? DATA.clubs.length : ((S.otherDivs&&S.otherDivs[d])?S.otherDivs[d].clubs.length:0);
+    return `<div class="cl-mkt-club" onclick="clMarketDivision('${d}')">
+      ${divisionTrophyImg(d,28)||'<span class="cl-divopt-ic">🏆</span>'}
+      <span class="cl-mkt-club-n">${escC(MKT_DIV_LEGEND[d])}${isOwn?' <b>(sua divisão)</b>':''}</span>
+      <span class="cl-mkt-club-ov">${count} clubes</span>
+    </div>`;
+  }).join('');
+  overlayC(dlg('Comprar jogador — escolha a divisão', `<div class="cl-mkt-clublist">${rows}</div>
+    <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
+    {w:560,bodyClass:'cl-body-gray',min:true}));
+}
+/* ---- clubes daquela divisão específica ---- */
+function clMarketDivision(division){
+  CL.market={step:'clubs',division};
+  const isOwn=division===S.division;
+  const clubs=isOwn ? DATA.clubs.filter(c=>c.id!==CL.clubId) : ((S.otherDivs&&S.otherDivs[division])?S.otherDivs[division].clubs:[]);
+  const rows=clubs.map(c=>`<div class="cl-mkt-club" onclick="clMarketSquad('${c.id}')" style="${clubEdge(c)}">
+      <span class="cl-mkt-club-n">${escC(c.short)}</span><span class="cl-mkt-club-ov">força ${c.overall||Math.round(((c.OS||0)+(c.MS||0)+(c.DS||0))/3)}</span>
+    </div>`).join('') || '<div class="cl-mkt-counter">Sem clubes disponíveis nessa divisão ainda.</div>';
+  overlayC(dlg('Comprar jogador — '+escC(MKT_DIV_LEGEND[division]), `<div class="cl-mkt-clublist">${rows}</div>
+    <div class="cl-cal-ok">${btn('Voltar às divisões','clMarketClubs()',{icon:'↩',cls:'cl-btn-cancel'})}</div>`,
+    {w:560,bodyClass:'cl-body-gray',min:true}));
+}
+/* ---- elenco do clube escolhido ---- */
+function clMarketSquad(clubId){
+  const division=(CL.market&&CL.market.division)||S.division;
+  CL.market={step:'squad',clubId,division};
+  const sq=squad(clubId).slice().sort((a,b)=>b.f-a.f);
+  const rows=sq.map(p=>`<div class="cl-mkt-p" onclick="clMarketPlayer('${clubId}','${escC(p.n)}')">
+      <span class="cl-mkt-p-pos">${posLetter(p.s)}</span><span class="cl-mkt-p-n">${escC(p.n)}${p.age<=20?'*':''}</span>
+      <span class="cl-mkt-p-f">${p.f}</span><span class="cl-mkt-p-v">${grp(Math.round(p.mv*0.001))} mil</span>
+    </div>`).join('');
+  overlayC(dlg('Elenco — '+clubOf(clubId).short, `<div class="cl-mkt-squad">${rows}</div>
+    <div class="cl-cal-ok">${btn('Voltar','clMarketDivision(\''+division+'\')',{icon:'↩',cls:'cl-btn-cancel'})}</div>`,
+    {w:640,bodyClass:'cl-body-gray',min:true}));
+}
+/* ---- detalhe do jogador + início da proposta (Dia 1: taxa) ---- */
+function clMarketPlayer(clubId,name){
+  const p=findP(name,clubId); if(!p) return;
+  const ask=playerAsk(p,clubId);
+  CL.market={step:'offer',clubId,player:name,offer:Math.round(ask/1000)*1000,negoIdx:null};
+  renderMarketOffer();
+}
+function renderMarketOffer(){
+  const M=CL.market; const p=findP(M.player,M.clubId); if(!p){ clCloseOverlay(); return; }
+  const nego = M.negoIdx!=null ? S.negos[M.negoIdx] : null;
+  let body;
+  if(!nego || nego.stage==='fee' || nego.stage==='counterFee'){
+    const hint = nego && nego.stage==='counterFee' ? `<div class="cl-mkt-counter">O clube pediu um valor a partir de R$ ${grp(nego.clubCounter)}. Ofereça esse valor (ou mais) ou desista.</div>` : '';
+    body = `<div class="cl-mkt-offer">
+      <div class="cl-mkt-offer-hd">${escC(p.n)} <span>(${escC(clubOf(M.clubId).short)})</span></div>
+      <div class="cl-mkt-offer-row"><span>Força</span><b>${p.f}</b></div>
+      <div class="cl-mkt-offer-row"><span>Valor de mercado</span><b>R$ ${grp(p.mv)}</b></div>
+      ${hint}
+      <div class="cl-mkt-offer-row"><span>Sua proposta (taxa)</span>
+        <span class="cl-money-field"><span class="cl-money-cur">R$</span>
+          <input class="cl-money-in" id="cl-mkt-fee" inputmode="numeric" placeholder="0" value="${M.offer?grp(M.offer):''}" oninput="CL.market.offer=parseInt(this.value.replace(/\\D/g,''))||0;this.value=CL.market.offer?grp(CL.market.offer):''"></span></div>
+      ${btn('Propor','clMarketProposeFee()',{cls:'cl-btn-mini'})}
+    </div>`;
+  } else if(nego.stage==='terms'){
+    body = `<div class="cl-mkt-offer">
+      <div class="cl-mkt-offer-hd">${escC(p.n)} — taxa acertada em ${fmt(nego.offerFee)}</div>
+      <div class="cl-mkt-offer-row"><span>Salário semanal oferecido</span>
+        <span class="cl-money-field"><span class="cl-money-cur">R$</span>
+          <input class="cl-money-in" id="cl-mkt-sal" inputmode="numeric" placeholder="0" value="${nego.salary?grp(nego.salary):''}" oninput="S.negos[${M.negoIdx}].salary=parseInt(this.value.replace(/\\D/g,''))||0;this.value=S.negos[${M.negoIdx}].salary?grp(S.negos[${M.negoIdx}].salary):''"></span></div>
+      <div class="cl-mkt-offer-row"><span>Papel no elenco</span>
+        <select class="cl-mkt-sel" onchange="S.negos[${M.negoIdx}].role=this.value">
+          ${['Jogador Chave','Titular Regular','Rotação','Jovem da Base'].map(r=>`<option ${nego.role===r?'selected':''}>${r}</option>`).join('')}
+        </select></div>
+      ${btn('Negociar termos','clMarketProposeTerms()',{cls:'cl-btn-mini'})}
+    </div>`;
+  } else if(nego.stage==='verdict'){
+    const counterMsg = nego.agentCounter ? `<div class="cl-mkt-counter">Empresário pede ${fmt(nego.agentCounter)}/sem pra fechar.</div>
+      ${btn('Aceitar contraproposta','clMarketAcceptCounter()',{cls:'cl-btn-mini'})}` : '';
+    body = `<div class="cl-mkt-offer">
+      <div class="cl-mkt-offer-hd">${escC(p.n)} — pronto pra fechar!</div>
+      <div class="cl-mkt-offer-row"><span>Taxa</span><b>${fmt(nego.offerFee)}</b></div>
+      <div class="cl-mkt-offer-row"><span>Salário</span><b>${fmt(nego.salary)}/sem</b></div>
+      ${counterMsg}
+      ${btn('Fechar negócio','clMarketFinalize()',{cls:'cl-btn-ok'})}
+    </div>`;
+  } else {
+    body = `<div class="cl-mkt-offer"><div class="cl-mkt-offer-hd">${escC(p.n)}</div><div class="cl-mkt-counter">${escC(nego.status==='recusada'?'Negociação recusada.':'Negociação encerrada.')}</div></div>`;
+  }
+  overlayC(dlg('Fazer proposta', body+`<div class="cl-cal-ok">${btn('Voltar','clMarketSquad(\''+M.clubId+'\')',{icon:'↩',cls:'cl-btn-cancel'})}</div>`,
+    {w:560,bodyClass:'cl-body-gray',min:true}));
+}
+function clMarketProposeFee(){ const M=CL.market;
+  if(M.negoIdx==null) M.negoIdx=startNego(M.clubId,M.player,M.offer);
+  else S.negos[M.negoIdx].offerFee=M.offer;
+  const r=clubRespond(S.negos[M.negoIdx]);
+  toastC(r.msg); renderMarketOffer();
+}
+function clMarketProposeTerms(){ const M=CL.market;
+  const r=agentRespond(S.negos[M.negoIdx]); toastC(r.msg); renderMarketOffer();
+}
+function clMarketAcceptCounter(){ const M=CL.market; const n=S.negos[M.negoIdx];
+  if(n.agentCounter) n.salary=n.agentCounter; renderMarketOffer();
+}
+function clMarketFinalize(){ const M=CL.market;
+  const r=finalizeTransfer(M.negoIdx);
+  toastC(r.msg);
+  if(r.ok){ saveV3(); clCloseOverlay(); cdraw(); } else renderMarketOffer();
+}
+
+/* ---- Jogador > Leilão de jogadores (compra direta, sem regatear) ---- */
+function clAuctionScreen(){ CL.menu=null;
+  const st=transferWindowStatus();
+  if(!st.open){ toastC(windowClosedMsg()); return; }
+  const picks=(S.auctionPool&&S.auctionPool.picks)||[];
+  const rows=picks.map(x=>{ const p=findP(x.player,x.sellerId); if(!p) return ''; const c=clubOf(x.sellerId);
+    return `<div class="cl-auc-row">
+      <span class="cl-auc-club" style="${clubStripe(c)}">${clubLink(x.sellerId,c.short)}</span>
+      <span class="cl-auc-p-pos">${posLetter(p.s)}</span><span class="cl-auc-p-n">${escC(p.n)}</span>
+      <span class="cl-auc-p-f">${p.f}</span><span class="cl-auc-price">${grp(x.price)}</span>
+      ${btn('Comprar',`clAuctionConfirm('${x.sellerId}','${escC(p.n)}')`,{cls:'cl-btn-mini'})}
+    </div>`; }).join('') || '<div class="cl-mkt-counter">Sem jogadores em leilão nesta rodada — volta em breve.</div>';
+  overlayC(dlg('Leilão de jogadores', `<div class="cl-auc">${rows}</div>
+    <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
+    {w:640,bodyClass:'cl-body-gray',min:true}));
+}
+/* pede confirmação antes de arrematar — a compra em leilão é imediata e definitiva
+   (sem negociação), então um clique sem querer custava caro sem chance de desistir */
+function clAuctionConfirm(sellerId,player){
+  const pick=((S.auctionPool&&S.auctionPool.picks)||[]).find(x=>x.sellerId===sellerId && x.player===player);
+  const p=findP(player,sellerId); if(!pick||!p){ toastC('Esse jogador não está mais disponível no leilão.'); return; }
+  const c=clubOf(sellerId);
+  overlayC(dlg('Confirmar compra', `<div class="cl-jobmodal">
+    <div class="cl-jobmodal-msg">Arrematar <b>${escC(p.n)}</b> (${posLetter(p.s)}, força ${p.f}) do <b style="${clubStripe(c)};padding:2px 6px;border-radius:3px">${escC(c.short)}</b> por <b>${grp(pick.price)}</b>?<br><br>A compra em leilão é imediata e não pode ser desfeita.</div>
+    <div class="cl-jog-actions">${btn('Confirmar','clAuctionBuy(\''+sellerId+'\',\''+escC(p.n)+'\')',{icon:'✔',cls:'cl-btn-ok'})}${btn('Cancelar','clAuctionScreen()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
+  </div>`, {w:480,bodyClass:'cl-body-gray',min:true}));
+}
+function clAuctionBuy(sellerId,player){ const r=buyFromAuction(sellerId,player); toastC(r.msg);
+  if(r.ok){ saveV3(); clAuctionScreen(); cdraw(); } else { clAuctionScreen(); } }
+
+
+function panFinancas(){
+  const sq=squad(CL.clubId);
+  const totalSalaryPerWeek = sq.reduce((s,p)=>s+(p.contract?.salary||0),0);
+  const totalSalaryPerSeason = totalSalaryPerWeek * 52; // 52 semanas na temporada
+
+  // totais da temporada "até agora" vêm de S.seasonTotals — um acumulador SEM cap (ver
+  // pushFinanceEntry). Importante: NÃO somar isso a partir de S.finances, que é só um log
+  // das últimas 12 transações pro histórico recente — somar por ali fazia o total "esquecer"
+  // salário/bônus/receita de qualquer rodada mais antiga que a 12ª mais recente.
+  const st=S.seasonTotals||{income:0,salaries:0,bonuses:0,playerSales:0,playerPurchases:0,stadium:0};
+  const totalGate=st.income, totalSalaries=st.salaries, totalBonuses=st.bonuses,
+        totalPlayerSales=st.playerSales, totalPlayerPurchases=st.playerPurchases, totalStadium=st.stadium||0;
+  const financesLog = [];
+  (S.finances||[]).forEach(f=>{ if(f.log) financesLog.push(...f.log); });
+
+  const totalIncome = totalGate + totalPlayerSales;
+  const totalExpenses = totalSalaries + totalBonuses + totalPlayerPurchases + totalStadium;
+  const currentBalance = totalIncome - totalExpenses;
+
+  const R=(l,v)=>`<div class="cl-fin-row"><span>${l}</span><b>${grp(v)}</b></div>`;
+
+  // renderizar histórico de transações recentes
+  const recentLogs = financesLog.slice(0,8).map(log=>`<div class="cl-fin-log-item">${escC(log)}</div>`).join('');
+
+  return `<div class="cl-fin">
+    <div class="cl-fin-row cl-fin-h"><span>Temporada</span><b>${S.season}</b><span style="font-size:12px;color:#aaa">Rodada ${S.round}/${S.sched.length}</span></div>
+    <div class="cl-fin-sec">Receitas (até agora)</div>
+    ${R('Bilhetes',totalGate)}${R('Jogadores vendidos',totalPlayerSales)}${R('Prémios',0)}
+    <div class="cl-fin-sec">Despesas (até agora)</div>
+    ${R('Salários',totalSalaries)}${R('Bônus jogadores',totalBonuses)}${R('Jogadores comprados',totalPlayerPurchases)}${R('Bancadas',totalStadium)}${R('Juros',0)}
+    <div class="cl-fin-tot">${R('Total de receitas',totalIncome)}${R('Total de despesas',totalExpenses)}${R('Saldo até agora',currentBalance)}</div>
+    <div class="cl-fin-foot">
+      <div class="cl-fin-row big"><span>Salários (por semana)</span><b>${grp(totalSalaryPerWeek)}</b></div>
+      <div class="cl-fin-row big"><span>Salários (temporada)</span><b>${grp(totalSalaryPerSeason)}</b></div>
+      <div class="cl-fin-row big2"><span>Dinheiro em caixa</span><b>${grp(S.budget)}</b></div>
+      <div class="cl-fin-row"><span>Preço dos bilhetes</span><b>${CL.ticket} reais</b></div>
+      ${recentLogs ? `<div style="margin-top:20px;border-top:1px solid #2a4a2a;padding-top:12px"><div style="font-size:13px;color:#aaa;margin-bottom:8px">Transações recentes:</div>${recentLogs}</div>` : ''}
+    </div>
+  </div>`;
+}
+function panFinancasLog(){
+  const R=(l,v)=>`<div class="cl-fin-row"><span>${l}</span><b>${grp(v)}</b></div>`;
+  return (S.finances||[]).slice(0,12).map((f,i)=>{
+    const log=f.log||[];
+    return `<div style="margin-bottom:16px;padding:12px;background:#1a3a1a;border-radius:4px">
+      <div style="color:#aaa;font-size:12px;margin-bottom:8px">Rodada ${f.round}</div>
+      <div class="cl-fin-row"><span>Receita</span><b style="color:#4a9">+${grp(f.income||0)}</b></div>
+      ${f.playerSales?`<div class="cl-fin-row"><span>Venda de jogador</span><b style="color:#4a9">+${grp(f.playerSales)}</b></div>`:''}
+      <div class="cl-fin-row"><span>Salários</span><b style="color:#a44">-${grp(f.salaries||0)}</b></div>
+      <div class="cl-fin-row"><span>Bônus</span><b style="color:#a44">-${grp(f.bonuses||0)}</b></div>
+      ${f.playerPurchases?`<div class="cl-fin-row"><span>Compra de jogador</span><b style="color:#a44">-${grp(f.playerPurchases)}</b></div>`:''}
+      ${f.stadium?`<div class="cl-fin-row"><span>Bancada construída</span><b style="color:#a44">-${grp(f.stadium)}</b></div>`:''}
+      <div class="cl-fin-row" style="border-top:1px solid #2a4a2a;padding-top:8px;margin-top:8px"><span>Saldo</span><b style="color:${f.net>=0?'#4a9':'#a44'}">${f.net>=0?'+':''}${grp(f.net||0)}</b></div>
+      ${log.length ? `<div style="font-size:12px;color:#aaa;margin-top:8px">${log.map(l=>'• '+escC(l)).join('<br>')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+/* ---- painel: SELECÇÃO (+ Jogar) ---- */
+function panSeleccao(){
+  const xi=xiPlayers(CL.clubId); const ok=xi.length>=11 && CL.tacticChosen;
+  const escala=CL.escalacaoMode;
+  const escalaBlock = !CL.tacticChosen ? '' : escala
+    ? `<div class="cl-sel-escala">
+        <div class="cl-sel-escala-note">Toque num titular (T) no elenco à esquerda pra marcar, depois num reserva da mesma posição pra trocar.</div>
+        ${btn('Concluído','clToggleEscalacao()',{icon:'✔',cls:'cl-btn-mini'})}
+      </div>`
+    : '';
+
+  // formações disponíveis com atalhos — estilo vintage RetroFoot98
+  const formKeys = Object.keys(FORMATIONS);
+  const formationsBlock = `<div class="cl-sel-formations">
+    <div style="color:#aaa;font-size:12px;margin-bottom:10px">Formações:</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:340px">
+      ${formKeys.map((f,i)=>{
+        const isSelected = CL.formation===f;
+        const btnStyle = isSelected
+          ? 'border:2px solid;border-color:#fff #111 #111 #fff;background:#2f8f2f;color:#fff;font-weight:700'
+          : 'border:2px solid;border-color:#999 #333 #333 #999;background:#ccc;color:#000;font-weight:700';
+        return `<button style="padding:8px 6px;text-align:center;font-size:13px;cursor:pointer;${btnStyle}" onclick="clSelFormation('${f}');cdraw()" title="Tecla ${FKEY[f]}">${escC(f)}<br><small style="font-size:10px;opacity:.7">${FKEY[f]}</small></button>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  return `<div class="cl-sel">
+    <div class="cl-sel-note">${CL.tacticChosen?`Tática <b>${escC(CL.formation)}</b> · onze <b>${xi.length}/11</b>.<br>Titulares marcados com <b class="cl-rmark t" style="display:inline-flex">T</b> na lista.`:'Escolha a tática para liberar o <b>Jogar</b>.'}</div>
+    ${formationsBlock}
+    ${escalaBlock}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px;max-width:320px">
+      ${btn('Alterar Escalação','clToggleEscalacao()',{icon:'⇄',cls:'cl-btn-ok',dis:!CL.tacticChosen})}
+      ${btn('Jogar','clJogar()',{icon:'⚽',cls:'cl-btn-ok',dis:!ok})}
+    </div>
+  </div>`;
+}
+/* ---- troca de titular ANTES da partida, direto na lista de elenco (à esquerda) —
+   diferente da troca AO VIVO (liveSubPick/liveDoSub, limitada a 3 e só durante a
+   partida): aqui é livre. Fluxo: toca no titular (marca), toca num reserva da
+   mesma posição (pede confirmação num popup), confirma. ---- */
+function clToggleEscalacao(){ CL.escalacaoMode=!CL.escalacaoMode; CL.preSubOut=null; CL.preSubIn=null; cdraw(); }
+function clEscalaPick(name){
+  const xiSet=new Set(S.xi||[]);
+  if(xiSet.has(name)){ CL.preSubOut=(CL.preSubOut===name?null:name); CL.preSubIn=null; cdraw(); return; }
+  if(!CL.preSubOut){ toastC('Toque primeiro num titular (T) pra substituir.'); return; }
+  const outP=findP(CL.preSubOut,CL.clubId), inP=findP(name,CL.clubId);
+  if(!outP||!inP) return;
+  if(inP.suspended>0||inP.injuredMatches>0){ toastC('Esse jogador não está disponível.'); return; }
+  if(outP.s!==inP.s){ toastC('Só pode trocar por um reserva da mesma posição ('+posLetter(outP.s)+').'); return; }
+  CL.preSubIn=name;
+  overlayC(dlg('Trocar titular', `<div class="cl-escala-confirm">Você quer trocar <b>${escC(outP.n)}</b> por <b>${escC(inP.n)}</b>?</div>
+    <div class="cl-jog-actions">${btn('Sim','clEscalaDoSwap()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Desistir','clEscalaCancel()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
+    {w:420,bodyClass:'cl-body-gray',min:true}));
+}
+function clEscalaDoSwap(){
+  if(!CL.preSubOut || !CL.preSubIn){ clCloseOverlay(); return; }
+  S.xi=(S.xi||[]).map(n=>n===CL.preSubOut?CL.preSubIn:n);
+  toastC(CL.preSubIn.split(' ').slice(-1)[0]+' entrou no lugar de '+CL.preSubOut.split(' ').slice(-1)[0]+' na escalação.');
+  CL.preSubOut=null; CL.preSubIn=null;
+  saveV3(); clCloseOverlay(); cdraw();
+}
+function clEscalaCancel(){ CL.preSubOut=null; CL.preSubIn=null; clCloseOverlay(); cdraw(); }
+function clJogar(){
+  if(!CL.tacticChosen){ toastC('Escolha a tática no menu Seleccionar primeiro.'); CL.tab='seleccao'; cdraw(); return; }
+  // semana de avanço de copa com partida do clube pendente: joga a(s) copa(s) primeiro
+  // (fila, pode ter mais de uma — ex: Copa do Brasil + Libertadores na mesma semana), só
+  // depois libera a rodada — ver pendingUserCupMatches/clCupResultContinue. Vale pros dois
+  // modos: online já vem filtrado (pendingUserCupMatches exclui confronto humano x humano
+  // da mesma sala, resolvido em segundo plano igual sempre foi).
+  const cupQueue=pendingUserCupMatches();
+  if(cupQueue.length){ CL._pendingCupQueue=cupQueue.slice(1); startCupLiveMatch(cupQueue[0]); return; }
+  if(CL.online){ onlineMarkReady(); return; }
+  startLiveRound();
+}
+/* ---------- PARTIDA AO VIVO (estilo RetroFoot98: placar por divisões) ---------- */
+function attendanceFor(homeId,rnd){
+  const cap=(homeId===CL.clubId && S.stadium)?S.stadium.capacity:(9000+Math.floor(rnd()*46000));
+  const price=(homeId===CL.clubId)?(CL.ticket||8):(6+Math.floor(rnd()*10));
+  const tbl=S.table[homeId]||{Pts:0,P:0}; const form=(tbl.P?tbl.Pts/(tbl.P*3):0.5);       // momento do time (0..1)
+  const priceFactor=Math.max(0.28, Math.min(1, 1.25 - price/22));                            // ingresso alto => menos gente
+  const momFactor=0.6+form*0.7;                                                              // time em alta => mais gente
+  const fill=Math.max(0.12, Math.min(0.99, (0.45*priceFactor + 0.35*momFactor + rnd()*0.2)));
+  return { att:Math.round(cap*fill), price, cap };
+}
+/* monta um objeto de partida pra RL.matches — extraído de dentro de startLiveRound() pra
+   poder ser reusado por uma partida avulsa de copa (ver startCupLiveMatch), sem duplicar
+   a lógica de gerar eventos/público/árbitro. */
+function buildLiveMatchObject(h,a,seed,opts){
+  opts=opts||{};
+  const rnd=rngFrom(seed);
+  const ev=simEventsC(h,a,seed); const gate=attendanceFor(h,rnd);
+  return { h,a,hg:0,ag:0,idx:0,events:ev.events,att:gate.att,price:gate.price,cap:gate.cap,
+    ref:REFS_C[Math.floor(rnd()*REFS_C.length)], goals:[], incidents:[], fhg:ev.hg, fag:ev.ag,
+    user:opts.user!==undefined?opts.user:(h===CL.clubId||a===CL.clubId), div:opts.div };
+}
+function startLiveRound(){
+  fixUserXIAvailability(); // segunda camada de proteção: nunca deixa suspenso/lesionado marcado como titular
+  // Resenha (online): guarda a escalação que EU de fato uso nesta rodada pro meu clube —
+  // é o que outros clientes vão enxergar como "última escalação conhecida" desse clube
+  // (ver availableXI) caso eu não confirme a tempo numa rodada futura e ela expire sozinha.
+  if(CL.online && CL.humans && CL.humans[CL.clubId]){ S.clubXI=S.clubXI||{}; S.clubXI[CL.clubId]=(S.xi||[]).slice(); }
+  CL.subPanelOpen=false; CL.subsUsed=0; CL.liveDivOpen=null; // accordion reabre na divisão do usuário a cada rodada
+  const fx=(S.sched[S.round])||[]; const seedBase=hashC('rnd'+S.season+'-'+S.round);
+  const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[] };
+  fx.forEach(([h,a],i)=>{ const seed=(seedBase+hashC(h)+hashC(a))>>>0;
+    RL.matches.push(buildLiveMatchObject(h,a,matchSeed(h,a),{div:S.division})); });
+  // as outras 3 divisões rodam junto, em segundo plano, igual ao clássico (as 4 divisões
+  // ao mesmo tempo na mesma tela) — mesmo motor de simulação, só sem pausa interativa
+  // (nunca é o time do usuário, então pênalti/lesão nessas partidas resolvem sozinhos).
+  if(S.otherDivs){ Object.keys(S.otherDivs).forEach(d=>{
+    const od=S.otherDivs[d]; const oFx=od.sched[S.round % od.sched.length]||[];
+    const oSeedBase=hashC('rnd'+S.season+'-'+S.round+'-'+d);
+    oFx.forEach(([h,a])=>{ const seed=(oSeedBase+hashC(h)+hashC(a))>>>0;
+      RL.matches.push(buildLiveMatchObject(h,a,seed,{user:false,div:d})); }); }); }
+  RL.maxMin=Math.max(94,...RL.matches.map(m=>m.events.length?m.events[m.events.length-1].min:90));
+  CL.live=RL; CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
+}
+/* ---- PARTIDA DE COPA AO VIVO — mesma maquinaria de startLiveRound/liveTick/scLive/
+   liveModalHTML (pênalti, lesão, substituições), só que pra UMA partida avulsa, fora do
+   calendário de liga. RL.sel=0 já abre o modal da partida direto (só tem 1 jogo na lista,
+   então a lista agrupada por divisão fica vazia — inofensivo). Ver finishCupLiveMatch pro
+   fechamento, que NÃO passa por finishLiveRound/playRound (aquilo é só pra liga). ---- */
+function startCupLiveMatch(pending){
+  fixUserXIAvailability();
+  // Resenha (online): grava a escalação que EU de fato uso nesta partida pro meu clube,
+  // igual startLiveRound() já faz pra rodada de liga — é o que outros clientes vão
+  // enxergar como "última escalação conhecida" (ver availableXI) se meu clube precisar
+  // ser simulado em segundo plano antes de eu jogar a próxima partida de liga.
+  if(CL.online && CL.humans && CL.humans[CL.clubId]){ S.clubXI=S.clubXI||{}; S.clubXI[CL.clubId]=(S.xi||[]).slice(); }
+  CL.subPanelOpen=false; CL.subsUsed=0;
+  const seed=hashSeed(S.seed,'cupmatch',pending.key,pending.stage,S.round,pending.h,pending.a);
+  const m=buildLiveMatchObject(pending.h,pending.a,seed,{user:true,div:pending.key});
+  const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:0, subOpen:false, matches:[m], cup:pending };
+  RL.maxMin=Math.max(94, m.events.length?m.events[m.events.length-1].min:90);
+  CL.live=RL; CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
+}
+function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
+  RL.minute+=1;
+  let pendingPenalty=null, pendingInjury=null;
+  RL.matches.forEach(m=>{ while(m.idx<m.events.length && m.events[m.idx].min<=RL.minute){ const e=m.events[m.idx];
+    const isUserSide = m.user && ((e.side==='H'&&m.h===CL.clubId)||(e.side==='A'&&m.a===CL.clubId));
+    if(e.type==='penalti' && isUserSide && !e._resolved){ pendingPenalty={m,e}; break; } // não consome ainda — pausa antes, resolve pelo modal
+    if(e.type==='lesao' && isUserSide && !e._resolved){ pendingInjury={m,e}; break; } // idem — precisa escolher quem entra
+    m.idx++;
+    if(e.type==='gol'){ if(e.side==='H')m.hg++; else m.ag++; m.goals.push({min:e.min,side:e.side,scorer:e.scorer,team:e.team});
+      m.incidents.push({min:e.min,type:'gol',side:e.side,player:e.scorer}); }
+    else if(e.type==='penalti'){ if(e.scored){ if(e.side==='H')m.hg++; else m.ag++; m.goals.push({min:e.min,side:e.side,scorer:e.scorer,team:e.team}); }
+      m.incidents.push({min:e.min,type:'penalti',side:e.side,player:e.scorer,scored:e.scored}); }
+    else if(e.type==='cartao'){ m.incidents.push({min:e.min,type:'cartao',side:e.side,player:e.player,cardType:e.cardType,reason:e.reason}); }
+    else if(e.type==='lesao'){ m.incidents.push({min:e.min,type:'lesao',side:e.side,player:e.player,severity:e.severity}); }
+  } });
+  updateLive();
+  if(pendingPenalty){ openPenaltyModal(pendingPenalty.m, pendingPenalty.e); return; }
+  if(pendingInjury){ openInjuryModal(pendingInjury.m, pendingInjury.e); return; }
+  if(RL.minute>=45 && !RL.halftimeDone){ RL.halftimeDone=true;
+    const ui=RL.matches.findIndex(m=>m.user);
+    if(ui>=0 && (!CL.options || CL.options.subsIntervalo!=='Não')){ RL.paused=true; RL.sel=ui; cdraw(); return; } }
+  if(RL.minute>=RL.maxMin){ RL.done=true; if(RL.cup) finishCupLiveMatch(); else finishLiveRound(); return; }
+  const spd=({Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37})[(CL.options&&CL.options.tempo)||'Usain Bolt']||37;
+  const actualSpd=Math.max(12, spd / (CL.speedMult||1));
+  CL._liveTimer=setTimeout(liveTick, actualSpd);
+}
+/* ---- PÊNALTI INTERATIVO: pausa a partida, mostra o modal clássico, escolhe o batedor.
+   Se não decidir em 10s, bate automaticamente com o jogador pré-selecionado (o de maior força). ---- */
+function openPenaltyModal(m,e){ const RL=CL.live;
+  RL.paused=true; RL.penMatch=m; RL.penEvent=e; RL.sel=RL.matches.indexOf(m);
+  const list=xiPlayers(CL.clubId).filter(p=>p.s!=='GK');
+  const takers=list.length?list:squad(CL.clubId).filter(p=>p.s!=='GK');
+  const best=takers.slice().sort((a,b)=>b.f-a.f)[0];
+  CL.penSel = best ? best.n : (takers[0]&&takers[0].n) || null;
+  CL.penDeadline = Date.now()+10000;
+  sfx('penalti'); cdraw();
+  if(CL._penTimer) clearInterval(CL._penTimer);
+  CL._penTimer=setInterval(penaltyTick, 200);
+}
+function penaltyTick(){ const RL=CL.live; if(!RL || !RL.penEvent){ clearInterval(CL._penTimer); return; }
+  const left=Math.max(0, CL.penDeadline-Date.now());
+  const secs=Math.ceil(left/1000);
+  const cd=$c('#cl-pen-count'); if(cd) cd.textContent=secs+'s';
+  if(left<=0){ clearInterval(CL._penTimer); resolvePenalty(CL.penSel); }
+}
+function penaltySelect(name){ CL.penSel=name; cdraw(); }
+/* ---- resultado do pênalti: agora em 3 fases, igual ao RetroFoot98 clássico —
+   1) escolhe o batedor  2) suspense (só o título, alguns segundos)
+   3) revelação dramática (GOLO em vermelho / Defendeu em preto) antes de continuar. ---- */
+function resolvePenalty(takerName){
+  const RL=CL.live; if(!RL || !RL.penEvent) return;
+  if(CL._penTimer){ clearInterval(CL._penTimer); CL._penTimer=null; }
+  const e=RL.penEvent; const taker=findP(takerName,CL.clubId);
+  const oppId = RL.penMatch.h===CL.clubId ? RL.penMatch.a : RL.penMatch.h;
+  const gk=squad(oppId).find(p=>p.s==='GK')||null;
+  const R=makeRng(hashSeed(S.seed,S.round,'pen',e.min,takerName));
+  const pConv=penaltyConvChance(taker,gk);
+  const scored=R.random()<pConv;
+  e.scored=scored; e.scorer=taker?taker.n:e.scorer; e._resolved=true;
+  CL.penPhase='suspense'; CL.penResultScorer=e.scorer; CL.penResultScored=scored;
+  cdraw();
+  CL._penRevealTimer=setTimeout(()=>penaltyReveal(scored,e.scorer), 1400);
+}
+function penaltyReveal(scored,scorer){
+  CL.penPhase='result';
+  sfx(scored?'penaltiGol':'penaltiPerdido');
+  cdraw();
+  CL._penCloseTimer=setTimeout(closePenaltyModal, 2200);
+}
+function closePenaltyModal(){
+  const RL=CL.live; if(!RL) return;
+  const scored=CL.penResultScored, scorer=CL.penResultScorer;
+  toastC(scored ? `⚽ GOL! ${scorer||''} converteu o pênalti!` : `❌ ${scorer||''} desperdiçou o pênalti!`);
+  RL.paused=false; RL.penMatch=null; RL.penEvent=null;
+  CL.penSel=null; CL.penPhase=null; CL.penResultScorer=null; CL.penResultScored=null;
+  cdraw();
+  CL._liveTimer=setTimeout(liveTick,420);
+}
+
+function liveRowClick(i){ CL.live.sel=i; CL.subOut=CL.subIn=null; CL.subPanelOpen=false; cdraw(); }
+function liveContinue(){ const RL=CL.live; if(!RL) return;
+  CL.subPanelOpen=false;
+  if(RL.paused){ RL.paused=false; RL.sel=RL.cup?0:null; cdraw(); CL._liveTimer=setTimeout(liveTick,320); return; }
+  if(RL.cup) return; // partida avulsa de copa: só tem essa partida, não tem lista pra "voltar"
+  RL.sel=null; cdraw(); }
+/* ---- LESÃO: jogador do usuário se machuca em campo — pausa e pede pra escolher quem
+   entra no lugar, filtrando pela MESMA posição do lesionado (com reserva de emergência
+   se não sobrar ninguém daquela posição no banco). Modal clássico: barra de título com
+   o nome do clube, fundo vinho, lista de opções, botão OK. ---- */
+function openInjuryModal(m,e){ const RL=CL.live;
+  RL.paused=true; RL.injMatch=m; RL.injEvent=e; RL.sel=RL.matches.indexOf(m);
+  CL.injSel=null; sfx('lesao'); cdraw();
+}
+function injurySubOptions(e){
+  const xiSet=new Set(S.xi||[]);
+  const bench=squad(CL.clubId).filter(p=>!xiSet.has(p.n) && !(p.suspended>0) && !(p.injuredMatches>0)).sort(bySquadOrder);
+  const samePos=bench.filter(p=>p.s===e.pos);
+  return samePos.length ? samePos : bench; // sem ninguém da mesma posição -> qualquer reserva disponível (emergência)
+}
+/* cor do modal de lesão = cor real do clube do jogador lesionado (mesma lógica do
+   modal de pênalti, ver penaltyClubStyle) — antes ficava sempre vinho fixo. */
+function injuryClubStyle(){
+  const c=clubOf(CL.clubId); if(!c || !c.color) return '';
+  const {col,col2}=clubColors(c);
+  return `style="--inj-bg:linear-gradient(165deg,${col} 45%,${col2} 100%);--inj-fg:${txtOn(col)}"`;
+}
+function injurySubHTML(m,e){
+  const posName={GK:'Goleiro',DEF:'Zagueiro',MID:'Meia',ATT:'Atacante'}[e.pos]||'Jogador';
+  const opts=injurySubOptions(e);
+  const noOpts = !opts.length;
+  const rows=noOpts ? '<div class="cl-pen-row" style="cursor:default">Sem reservas disponíveis.</div>' : opts.map(p=>`<div class="cl-pen-row ${CL.injSel===p.n?'sel':''}" onclick="injurySelect('${escC(p.n)}')">
+      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span><span class="cl-pen-r">${p.f}</span>
+    </div>`).join('');
+  // sem reserva disponível (banco esgotado) -> não pode travar o jogo esperando uma escolha
+  // impossível: deixa seguir com um jogador a menos, igual acontece numa expulsão.
+  const actionBtn = noOpts
+    ? btn('Continuar com 10 jogadores','resolveInjuryNoSub()',{icon:'➡',cls:'cl-btn-ok'})
+    : btn('OK','resolveInjurySub(CL.injSel)',{icon:'✔',cls:'cl-btn-ok',dis:!CL.injSel});
+  return `<div class="cl-pen-overlay"><div class="cl-inj-modal" ${injuryClubStyle()}>
+    <div class="cl-inj-title"><span class="cl-inj-min">–</span><span>${escC(clubOf(CL.clubId).short)}</span></div>
+    <div class="cl-inj-body">
+      <div class="cl-inj-msg">${escC(e.player)} (${posName}) lesionou-se${noOpts?', mas não há reservas disponíveis':' e tem de ser substituído'}.<br>${noOpts?'O time seguirá com um jogador a menos.':'Escolha o jogador a entrar.'}</div>
+      <div class="cl-pen-list">${rows}</div>
+      <div class="cl-pen-btn">${actionBtn}</div>
+    </div>
+  </div></div>`;
+}
+function injurySelect(name){ CL.injSel=name; cdraw(); }
+function resolveInjurySub(replacementName){
+  const RL=CL.live; if(!RL || !RL.injEvent || !replacementName) return;
+  const e=RL.injEvent; const rep=findP(replacementName,CL.clubId); if(!rep) return;
+  const idx=(S.xi||[]).indexOf(e.player);
+  if(idx>=0) S.xi[idx]=rep.n;
+  e._resolved=true;
+  toastC(`✚→✔ ${rep.n} entrou no lugar de ${e.player}.`);
+  RL.paused=false; RL.injMatch=null; RL.injEvent=null; CL.injSel=null;
+  cdraw();
+  CL._liveTimer=setTimeout(liveTick,420);
+}
+function resolveInjuryNoSub(){
+  const RL=CL.live; if(!RL || !RL.injEvent) return;
+  const e=RL.injEvent; e._resolved=true;
+  toastC(`✚ ${e.player} lesionou-se — sem reservas, o time seguiu com um jogador a menos.`);
+  RL.paused=false; RL.injMatch=null; RL.injEvent=null; CL.injSel=null;
+  cdraw();
+  CL._liveTimer=setTimeout(liveTick,420);
+}
+function liveSubPick(side,n){ if(side==='out')CL.subOut=n; else CL.subIn=n; updateLive(); }
+function liveDoSub(){ if(!CL.subOut||!CL.subIn){ toastC('Escolha um titular e um reserva.'); return; }
+  if((CL.subsUsed||0)>=3){ toastC('Máximo de 3 substituições.'); return; }
+  S.xi=(S.xi||[]).map(x=>x===CL.subOut?CL.subIn:x); CL.subsUsed=(CL.subsUsed||0)+1;
+  toastC(CL.subIn.split(' ').slice(-1)[0]+' entrou no lugar de '+CL.subOut.split(' ').slice(-1)[0]); CL.subOut=CL.subIn=null; updateLive(); }
+function txtOn(hex){ return lumin(hex)>0.58?'#111':'#fff'; }
+function liveScoreCells(m){ return `<b>${m.hg}</b><b>${m.ag}</b>`; }
+/* ---- accordion por divisão (ranking + jogos ao vivo): a divisão do usuário
+   fica no topo e aberta por padrão; as outras começam colapsadas. ---- */
+function divAccOpen(key,d){ const st=CL[key]; if(st && st[d]!=null) return st[d]; return d===S.division; }
+function clToggleDivAcc(key,d){ if(!CL[key]){ CL[key]={}; DIV_ORDER.forEach(x=>CL[key][x]=(x===S.division)); } CL[key][d]=!CL[key][d]; cdraw(); }
+function divOrderUserFirst(){ return [S.division, ...DIV_ORDER.filter(d=>d!==S.division)]; }
+function scLive(){ const RL=CL.live; if(!RL) return '';
+  const rowHTML=(m,i)=>{const hc=clubOf(m.h),ac=clubOf(m.a);
+    return `<div class="cl-lrow" onclick="liveRowClick(${i})">
+      <span class="cl-latt">${grp(m.att)}</span>
+      <span class="cl-lteam" style="${clubStripe(hc)}">${escC(hc.short)}</span>
+      <span class="cl-lsc" id="cl-lm-${i}">${liveScoreCells(m)}</span>
+      <span class="cl-lteam" style="${clubStripe(ac)}">${escC(ac.short)}</span>
+      <span class="cl-lgoal" id="cl-lg-${i}"></span></div>`;};
+  const divLegend={A:'1ª Divisão',B:'2ª Divisão',C:'3ª Divisão',D:'4ª Divisão'};
+  // divisão do usuário no topo e aberta; as demais colapsadas por padrão (accordion)
+  const groups=divOrderUserFirst().map(d=>{
+    const rows=RL.matches.map((m,i)=>({m,i})).filter(x=>(x.m.div||S.division)===d);
+    if(!rows.length) return '';
+    const open=divAccOpen('liveDivOpen',d); const mine=d===S.division;
+    return `<fieldset class="cl-live-div ${open?'open':'collapsed'}">
+      <legend onclick="clToggleDivAcc('liveDivOpen','${d}')"><span class="cl-live-legend-trophy">${divisionTrophyImg(d,18)||'🏆'}</span> ${divLegend[d]}${mine?' <span class="cl-acc-you">você</span>':''} <span class="cl-acc-arrow ${open?'':'closed'}">▾</span></legend>
+      <div class="cl-live-div-body">${rows.map(x=>rowHTML(x.m,x.i)).join('')}</div>
+    </fieldset>`;
+  }).join('');
+  const topLabel = RL.cup ? `🏆 ${COMP_DEFS[RL.cup.key].short}${RL.cup.stage==='group'?' — Fase de grupos':' — Mata-mata'}` : `${RL.jornada}ª Jornada - ${S.season}`;
+  return `<div class="cl-live"><div class="cl-live-top">${RL.cup?'':divisionTrophyImg(S.division,20)} ${topLabel}</div>
+    <div class="cl-live-clock" id="cl-liveclock" style="--pct:${Math.min(100,Math.round(RL.minute/94*100))}"></div>
+    ${groups}
+    ${RL.sel!=null?`<div class="cl-live-overlay"><div class="cl-live-modal" id="cl-livemodal">${liveModalHTML(RL.matches[RL.sel])}</div></div>`:''}
+  </div>`;
+}
+function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a);
+  const halftime=(RL.paused && m.user && !RL.penEvent && !RL.injEvent);
+  const penalty=(RL.penEvent && RL.penMatch===m);
+  const injury=(RL.injEvent && RL.injMatch===m);
+  const showSubs = m.user && !penalty && !injury && (halftime || CL.subPanelOpen);
+  const incHTML=incidentLines(m);
+  const subsLeft=Math.max(0,3-(CL.subsUsed||0));
+  // botões de ação ficam FORA de .cl-lm-top de propósito: esse é um flex row com os
+  // eventos, e por padrão o flexbox estica todo mundo pra altura do irmão mais alto
+  // (align-items:stretch) — com muitos incidentes na partida, isso inflava os botões
+  // junto (mesmo com o teto de altura em .cl-lm-events). Como bloco separado abaixo,
+  // os botões mantêm sempre o próprio tamanho natural, disputa alguma seja a duração do jogo.
+  const actionsHTML=(penalty||injury)?'':`<div class="cl-lm-cont" style="grid-template-columns:${m.user && !halftime ? 'repeat(3,1fr)' : '1fr 1fr'}">
+        ${(m.user && !halftime)?btn(showSubs?'Fechar substituições':`Substituições (${subsLeft})`,'clToggleSubPanel()',{icon:'⇄',cls:'cl-btn-ok',dis:subsLeft<=0&&!showSubs}):''}
+        ${m.user?btn('Compartilhar','clShareResult()',{icon:'📤',cls:'cl-btn-cancel cl-noshot'}):''}
+        ${btn('Continuar','liveContinue()',{icon:'✔',cls:'cl-btn-ok'})}
+      </div>`;
+  return `<div class="cl-lm-title">${escC(hc.short)}, ${m.hg} - ${escC(ac.short)}, ${m.ag}</div>
+    <div class="cl-lm-top">
+      <div class="cl-lm-events">${incHTML}</div>
+      <fieldset class="cl-lm-ref"><legend>Árbitro</legend><b>${escC(m.ref)}</b></fieldset>
+    </div>
+    ${actionsHTML}
+    ${showSubs?subPanelHTML(m):''}
+    ${penalty?penaltyPickerHTML():''}${injury?injurySubHTML(m,RL.injEvent):''}`;
+}
+function clToggleSubPanel(){ CL.subPanelOpen=!CL.subPanelOpen; CL.subOut=CL.subIn=null; cdraw(); }
+/* ---- modal clássico de pênalti: escolhe o batedor, com contagem regressiva de 10s ---- */
+function penaltyRating(p){ return Math.max(1,Math.min(9,Math.round((p.f-40)/7))); }
+/* cor do modal de pênalti = cor real do clube que está batendo (igual ao clássico:
+   ATLETICO PR sai vermelho, VITORIA sai preto — cada time com sua própria paleta) */
+function penaltyClubStyle(){
+  const e=CL.live && CL.live.penEvent; if(!e) return '';
+  const c=clubOf(e.team); if(!c || !c.color) return '';
+  const {col,col2}=clubColors(c);
+  return `style="--pen-bg:linear-gradient(165deg,${col} 45%,${col2} 100%);--pen-fg:${txtOn(col)}"`;
+}
+function penaltyPickerHTML(){
+  if(CL.penPhase==='suspense') return penaltySuspenseHTML();
+  if(CL.penPhase==='result') return penaltyResultHTML();
+  const list=xiPlayers(CL.clubId).filter(p=>p.s!=='GK');
+  const takers=(list.length?list:squad(CL.clubId).filter(p=>p.s!=='GK'));
+  const secsLeft=Math.max(0,Math.ceil((CL.penDeadline-Date.now())/1000));
+  const rows=takers.map(p=>`<div class="cl-pen-row ${CL.penSel===p.n?'sel':''}" onclick="penaltySelect('${escC(p.n)}')">
+      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span><span class="cl-pen-r">${p.f}</span>
+    </div>`).join('');
+  return `<div class="cl-pen-overlay"><div class="cl-pen-modal" ${penaltyClubStyle()}>
+    <div class="cl-pen-title">PENALTI</div>
+    <div class="cl-pen-sub">${escC(CL.mgr||'Técnico')}, escolha o jogador para marcar o penalti! <span id="cl-pen-count" class="cl-pen-count">${secsLeft}s</span></div>
+    <div class="cl-pen-list">${rows}</div>
+    <div class="cl-pen-btn">${btn('Chutar','resolvePenalty(CL.penSel)',{icon:'✔',cls:'cl-btn-ok'})}</div>
+  </div></div>`;
+}
+/* fase 2: suspense — só o título, sem revelar nada ainda (a pausa dramática que faltava) */
+function penaltySuspenseHTML(){
+  return `<div class="cl-pen-overlay"><div class="cl-pen-modal" ${penaltyClubStyle()}>
+    <div class="cl-pen-title">PENALTI</div>
+    <div class="cl-pen-suspense-dots">· · ·</div>
+  </div></div>`;
+}
+/* fase 3: revelação — mesma cor do clube em todas as fases; só o texto GOLO/Defendeu muda */
+function penaltyResultHTML(){
+  const scored=CL.penResultScored;
+  return `<div class="cl-pen-overlay"><div class="cl-pen-modal" ${penaltyClubStyle()}>
+    <div class="cl-pen-title">PENALTI</div>
+    <div class="cl-pen-marcador">Marcador: ${escC(CL.penResultScorer||'')}</div>
+    <div class="cl-pen-result ${scored?'golo':'defendeu'}">${scored?'GOL':'Defendeu'}</div>
+  </div></div>`;
+}
+/* linha do tempo de incidentes: gols, cartões e lesões, mais recentes primeiro */
+function incidentLines(m){
+  let hh=0,aa=0;
+  const rows=(m.incidents||[]).map(inc=>{
+    if(inc.type==='gol'){ if(inc.side==='H')hh++; else aa++;
+      return {min:inc.min,html:`⚽ ${hh}:${aa} ${escC(inc.player)} ${inc.min}'`}; }
+    if(inc.type==='penalti'){
+      if(inc.scored){ if(inc.side==='H')hh++; else aa++;
+        return {min:inc.min,html:`⚽🥅 ${hh}:${aa} ${escC(inc.player)} converteu o pênalti! ${inc.min}'`}; }
+      return {min:inc.min,html:`❌🥅 ${escC(inc.player)} perdeu o pênalti! ${inc.min}'`}; }
+    if(inc.type==='cartao'){
+      const ic=inc.cardType==='vermelho'?'🟥':'🟨';
+      const suf=inc.reason==='segundo amarelo'?' (2º amarelo)':'';
+      return {min:inc.min,html:`${ic} ${escC(inc.player)}${suf} ${inc.min}'`}; }
+    if(inc.type==='lesao'){
+      const suf=inc.severity==='grave'?' (grave)':'';
+      return {min:inc.min,html:`✚ ${escC(inc.player)}${suf} ${inc.min}'`}; }
+    return null;
+  }).filter(Boolean).sort((a,b)=>b.min-a.min);
+  if(!rows.length) return '<div class="cl-lm-noinc">Sem incidentes ainda…</div>';
+  return rows.map(r=>`<div>${r.html}</div>`).join('');
+}
+function subPanelHTML(m){ const id=CL.clubId; const xiSet=new Set(S.xi||[]); const xi=squad(id).filter(p=>xiSet.has(p.n)).sort(bySquadOrder); const bench=squad(id).filter(p=>!xiSet.has(p.n)).sort(bySquadOrder);
+  const rowP=(p,side)=>`<div class="cl-sub-row ${((side==='out')?CL.subOut:CL.subIn)===p.n?'sel':''}" onclick="liveSubPick('${side}','${escC(p.n)}')"><span class="cl-sub-p">${posLetter(p.s)}</span><span class="cl-sub-n">${escC(p.n)}</span><b>${p.f}</b></div>`;
+  return `<fieldset class="cl-sub"><legend>${escC(clubOf(id).short)}</legend>
+    <div class="cl-sub-cols"><div class="cl-sub-c">${xi.map(p=>rowP(p,'out')).join('')}</div><div class="cl-sub-c">${bench.map(p=>rowP(p,'in')).join('')}</div></div>
+    <div class="cl-sub-btn">${btn('Substituir','liveDoSub()',{icon:'⇄',cls:'cl-btn-ico'})}</div>
+  </fieldset>`;
+}
+function showLiveClassif(){ CL.screen='classif';
+  // reseta o accordion pra sempre abrir na divisão do usuário ao mostrar o ranking
+  CL.clsDivOpen=null;
+  if(CL._classifTimer){ clearTimeout(CL._classifTimer); CL._classifTimer=null; }
+  cdraw();
+  // sem auto-fechar: o ranking agora é interativo (accordions) e fecha no botão "Continuar"
+}
+/* tabela genérica pra qualquer divisão (a do usuário OU uma das 3 que rodam em segundo plano) */
+function sortedTableOf(table){
+  return Object.values(table||{}).sort((a,b)=> b.Pts-a.Pts || (b.GF-b.GA)-(a.GF-a.GA) || b.GF-a.GF );
+}
+function scClassif(){
+  const legend={A:'1ª Divisão',B:'2ª Divisão',C:'3ª Divisão',D:'4ª Divisão'};
+  // accordion vertical: divisão do usuário no topo e aberta; as outras colapsadas.
+  const panelHTML=(d)=>{
+    const isMine = d===S.division;
+    const hasQual = d==='A'; // só a Série A classifica pra Libertadores/Sul-Americana
+    const tbl = isMine ? sortedTable() : (S.otherDivs && S.otherDivs[d] ? sortedTableOf(S.otherDivs[d].table) : null);
+    const open=divAccOpen('clsDivOpen',d);
+    const rows=tbl?tbl.map((t,i)=>{ const c=clubOf(t.id); const me=isMine && t.id===CL.clubId;
+      const zone=qualificationZone(d,i+1);
+      const zoneCell = hasQual ? `<span class="cl-cls2-zone ${zone?'zone-'+zone:''}" title="${zone==='lib'?'Libertadores':zone==='sul'?'Sul-Americana':''}">${zone==='lib'?'Lib':zone==='sul'?'Sul':''}</span>` : '';
+      return `<div class="cl-cls2-row ${me?'me':''} ${hasQual?'hasqual':''}" style="${clubStripe(c)}">
+        <span class="cl-cls2-pos">${i+1}</span><span class="cl-cls2-n">${escC(c.short)}</span>
+        <span class="cl-cls2-x">${t.W}</span><span class="cl-cls2-x">${t.D}</span><span class="cl-cls2-x">${t.L}</span>
+        <span class="cl-cls2-gf">${t.GF} : ${t.GA}</span><span class="cl-cls2-x b">${t.Pts}</span>${zoneCell}</div>`; }).join('')
+      : '<div class="cl-cls2-empty">—</div>';
+    return `<div class="cl-clsacc ${open?'open':'collapsed'}">
+      <div class="cl-clsacc-h" onclick="event.stopPropagation();clToggleDivAcc('clsDivOpen','${d}')">
+        <span class="cl-clsacc-h-title">${divisionTrophyImg(d,18)||'🏆'} ${legend[d]}${isMine?' <span class="cl-acc-you">você</span>':''}</span>
+        <span class="cl-acc-arrow ${open?'':'closed'}">▾</span></div>
+      <div class="cl-clsacc-body">
+        <div class="cl-cls2-head ${hasQual?'hasqual':''}"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-gf">G</span><span class="cl-cls2-x">P</span>${hasQual?'<span></span>':''}</div>
+        ${rows}</div></div>`;
+  };
+  return `<div class="cl-live cl-classif">
+    <div class="cl-classif-buttons">
+      ${btn('Compartilhar','clShareStandings()',{icon:'📤',cls:'cl-btn-cancel cl-btn-sm cl-noshot'})}
+      ${btn('Continuar','liveDone()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})}
+    </div>
+    <div class="cl-live-top">Classificação - ${S.round}ª jornada</div>
+    <div class="cl-clsacc-wrap">${divOrderUserFirst().map(panelHTML).join('')}</div>
+  </div>`;
+}
+function liveDone(){ if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classifTimer){clearTimeout(CL._classifTimer);CL._classifTimer=null;} CL.live=null; CL.subsUsed=0; CL._liveBusy=false; CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||CL.selPlayer; cdraw();
+  if(CL.lastGate) toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0;
+  if(CL.online && typeof NET!=='undefined' && NET.isHost && NET.gameId && !S.finished) NET.start();
+  if(S.finished) setTimeout(()=>seasonEndDialog(),300); }
+/* ---- fim de temporada: mostra campeão + posição final, botão avança a temporada
+   (com promoção/rebaixamento de verdade, pré-carregando dados reais da nova divisão) ---- */
+function seasonEndDialog(){
+  const champ=clubOf(sortedTable()[0].id).short;
+  const myPos=tablePos(S.clubId);
+  overlayC(dlg('Fim da temporada!', `<div class="cl-res">
+    <div class="cl-res-score">${escC(champ)} é campeão</div>
+    <div class="cl-res-verd">Você terminou em ${myPos}º na ${escC(divisionLabel())}</div>
+    <div class="cl-cal-ok">${btn('Nova temporada','clAdvanceSeason()',{icon:'✔',cls:'cl-btn-ok'})}</div>
+  </div>`,{w:520,bodyClass:'cl-body-green'}));
+}
+function clAdvanceSeason(){
+  clCloseOverlay();
+  const nd=pendingDivisionChange();
+  const goingReal = nd!==S.division && nd!=='A';
+  toastC(goingReal?'Preparando Série '+nd+'...':'Preparando nova temporada...');
+  (async ()=>{
+    if(goingReal && typeof NET!=='undefined' && NET.getDivisionClubs){
+      try{ await loadRealDivisionClubs(nd); }catch(e){ console.warn('divisão real indisponível, usando fallback:',e); }
+    }
+    newSeasonReset();
+    saveV3(); cdraw();
+    checkPendingCupDraws(()=>{ // mostra o sorteio da Copa do Brasil da nova temporada antes do aviso de acesso/queda
+      if(S._promoRelegNews==='promoted') resultDialog('🔺 Promoção!','Você subiu pra '+divisionLabel()+'!');
+      else if(S._promoRelegNews==='relegated') resultDialog('🔻 Rebaixamento','Você caiu pra '+divisionLabel()+'.');
+    });
+  })().catch(err=>{
+    // antes, qualquer erro aqui dentro travava a tela em silêncio (sem nenhum aviso).
+    // agora mostra o erro de verdade e tenta voltar pra tela principal mesmo assim.
+    console.error('Erro ao avançar de temporada:', err);
+    toastC('⚠ Erro ao avançar de temporada: '+(err&&err.message||'desconhecido')+'. Tentando recuperar...');
+    try{ CL.screen='main'; CL.tab='jogo'; cdraw(); }catch(e2){ console.error('Falha também ao recuperar:', e2); }
+  });
+}
+/* ---- corrige a escalação do usuário se algum titular ficou suspenso/lesionado ----
+   Chamada após cada rodada E de novo, defensivamente, antes de iniciar a próxima
+   partida ao vivo (startLiveRound) — garante que suspenso/lesionado NUNCA fique
+   marcado como titular, mesmo que algum estado antigo/salvo tenha escapado da
+   primeira correção. Prioriza repor por um reserva da MESMA posição; só usa
+   outra posição se não sobrar ninguém disponível daquela posição no banco. */
+function fixUserXIAvailability(){
+  if(!S.xi || !S.xi.length) return;
+  const sq=squad(CL.clubId);
+  const out=S.xi.filter(n=>{ const p=sq.find(x=>x.n===n); return p && (p.suspended>0 || p.injuredMatches>0); });
+  if(!out.length) return;
+  const avail=sq.filter(p=>!(p.suspended>0)&&!(p.injuredMatches>0));
+  const inXi=new Set(S.xi);
+  const bench=avail.filter(p=>!inXi.has(p.n)).sort((a,b)=>b.f-a.f);
+  const fixedXi=S.xi.slice();
+  out.forEach(n=>{
+    const p=sq.find(x=>x.n===n); const idx=fixedXi.indexOf(n); if(idx<0) return;
+    let subIdx=bench.findIndex(b=>b.s===(p&&p.s));
+    if(subIdx<0) subIdx=0; // sem reserva da mesma posição -> qualquer reserva disponível (emergência)
+    const sub=bench.splice(subIdx,1)[0];
+    if(sub) fixedXi[idx]=sub.n;
+  });
+  S.xi=fixedXi;
+  const names=out.map(n=>n.split(' ').slice(-1)[0]).join(', ');
+  toastC('⚠ '+names+' fora do próximo jogo — escalação ajustada automaticamente.');
+}
+/* atualiza a tabela das outras 3 divisões (que rodam em paralelo, só pra ambientação)
+   com os resultados que acabaram de ser simulados nesta rodada */
+function applyOtherDivResults(RL){
+  if(!S.otherDivs) return;
+  RL.matches.forEach(m=>{
+    if(m.user) return; // a partida do usuário já é tratada por playRound()
+    const od=S.otherDivs[m.div]; if(!od || !od.table[m.h] || !od.table[m.a]) return;
+    const th=od.table[m.h], ta=od.table[m.a];
+    th.P++; ta.P++; th.GF+=m.hg; th.GA+=m.ag; ta.GF+=m.ag; ta.GA+=m.hg;
+    if(m.hg>m.ag){ th.W++; th.Pts+=3; ta.L++; } else if(m.hg<m.ag){ ta.W++; ta.Pts+=3; th.L++; } else { th.D++; ta.D++; th.Pts++; ta.Pts++; }
+  });
+}
+/* ---- Fase 2 Etapa A (auditoria server-side): retrato do elenco JUSTO ANTES de
+   advancePlayerAvailability()/playRound() mexerem em energia/moral/suspensão — é
+   exatamente o estado que o motor usou pra simular a partida em startLiveRound().
+   Só os campos que ratings()/simulateMatch() realmente consomem. ---- */
+function snapshotSquadForAudit(clubId){
+  return squad(clubId).map(p=>({n:p.n,f:p.f,s:p.s,energy:p.energy,moral:p.moral,behavior:p.behavior,suspended:p.suspended,injuredMatches:p.injuredMatches}));
+}
+function finishLiveRound(){
+  const RL=CL.live; const uf=userFixture(); let userResult=null;
+  let _auditPayload=null;
+  if(uf){ const um=RL.matches.find(m=>m.h===uf[0]&&m.a===uf[1]);
+    // gols de pênalti (type:'penalti', scored:true) contam no placar (hg/ag) desde sempre,
+    // mas ficavam de fora daqui — o filtro só pegava type==='gol' — então o artilheiro
+    // sumia da artilharia e das estatísticas dele mesmo tendo balançado a rede de verdade.
+    if(um) userResult={hg:um.hg,ag:um.ag,scorers:um.events.filter(e=>e.type==='gol'||(e.type==='penalti'&&e.scored)).map(e=>({name:e.scorer,id:e.team}))};
+    // payload de auditoria (Fase 2 Etapa A) — só online, e só se a partida do usuário
+    // realmente rolou nesta rodada (uf). Capturado AGORA (elenco ainda intocado por
+    // advancePlayerAvailability/playRound abaixo) pra bater com o que o motor usou.
+    if(um && CL.online){
+      const isUserSide=e=>(e.side==='H'&&uf[0]===CL.clubId)||(e.side==='A'&&uf[1]===CL.clubId);
+      _auditPayload={
+        gameId: NET.gameId, round: S.round, h: uf[0], a: uf[1], submitterClubId: CL.clubId,
+        tactic: S.tactic, seed: S.seed,
+        xiKickoff: (S.clubXI && S.clubXI[CL.clubId]) || (S.xi||[]).slice(),
+        penaltyChoices: um.events.filter(e=>e.type==='penalti'&&e._resolved&&isUserSide(e)).map(e=>({min:e.min,takerName:e.scorer})),
+        squadH: snapshotSquadForAudit(uf[0]), squadA: snapshotSquadForAudit(uf[1]),
+        clientResult: userResult,
+      };
+    }
+  }
+  // receita de bilhetes do jogo do usuário em casa — só pro toast de feedback; o valor já
+  // entra no caixa via processFinances()/pushFinanceEntry() (ver core.js), que lê o mesmo
+  // CL.live.matches e loga isso na aba Finanças, então NÃO soma direto no S.budget aqui
+  // (fazia isso duas vezes: aqui E de novo na renda-base da rodada).
+  let gate=0; if(uf && uf[0]===CL.clubId){ const um=RL.matches.find(m=>m.h===uf[0]&&m.a===uf[1]); if(um){ gate=um.att*um.price; } }
+  CL.lastGate=gate;
+  // disciplina/lesões: cumpre suspensões pendentes e aplica os incidentes NOVOS desta rodada
+  // (precisa vir ANTES de playRound() pra ratePlayers() enxergar S._roundIncidents)
+  advancePlayerAvailability();
+  const allEvents=RL.matches.flatMap(m=>m.events||[]);
+  applyMatchIncidents(allEvents);
+  playRound(userResult);
+  applyOtherDivResults(RL);
+  fixUserXIAvailability();
+  // segurança no cargo do treinador: demissão ou proposta de outro clube, conforme desempenho
+  // recente (não durante o resumo de fim de temporada, pra não conflitar com aquele modal)
+  if(!S.finished){
+    tickJobSecurity();
+    const jobEvent=checkManagerJobEvent();
+    if(jobEvent) CL._pendingManagerEvent=jobEvent;
+  }
+  // a tática/formação escolhida agora PERSISTE entre rodadas — antes forçava reescolher
+  // toda vez (CL.tacticChosen=false), obrigando o usuário a voltar ao menu Seleccionar
+  // a cada rodada só pra liberar o botão Jogar de novo. saveV3() já grava o estado atual.
+  saveV3();
+  // salva em Supabase se online
+  if(CL.online && typeof NET!=='undefined' && NET.saveGame){
+    (async ()=>{ await NET.saveGame({ S, round: S.round }); })().catch(e=>console.warn('Save Supabase:', e));
+    // Fase 2 Etapa A: auditoria server-side em paralelo — só registra, nunca bloqueia
+    // nem afeta a experiência do jogador (silenciosa mesmo se falhar/timeout).
+    if(_auditPayload && typeof sb!=='undefined' && sb && sb.functions){
+      sb.functions.invoke('verify-round-result', { body: _auditPayload }).catch(()=>{});
+    }
+  }
+  // se a rodada acabou de decidir um sorteio de copa (Libertadores/Sul-Americana oitavas),
+  // mostra a cerimônia ANTES da classificação — igual ao clássico "Sorteio dos jogos da taça".
+  // Depois da classificação, se houver demissão/proposta pendente desta rodada, mostra o modal.
+  checkPendingCupDraws(()=>{ showLiveClassif(); checkPendingManagerEvents(); });
+}
+/* fecha uma partida de COPA jogada ao vivo — de propósito NÃO passa por finishLiveRound()/
+   playRound(): aquilo é "avançar o mundo em uma rodada inteira" (salários, energia/moral/
+   evolução de TODOS os elencos, S.round/S.week/S.day++, sorteio de mercado...). Uma partida
+   de copa é só UMA partida a mais na mesma rodada — aplica só os efeitos dela (cartão/
+   lesão/nota) e grava o resultado na própria copa, do mesmo jeito que advanceCupBracket/
+   advanceGroupStageRound já fazem em segundo plano (ver os guards que fazem o avanço
+   automático da mesma rodada pular essa partida específica, já resolvida aqui). */
+function finishCupLiveMatch(){
+  const RL=CL.live, pending=RL.cup, m=RL.matches[0];
+  applyMatchIncidents(m.events);
+  const scorers=m.events.filter(e=>e.type==='gol'||(e.type==='penalti'&&e.scored)).map(e=>({name:e.scorer,id:e.team}));
+  const Rm=makeRng(hashSeed(S.seed,'cuprate',pending.key,S.round,m.h,m.a));
+  ratePlayers(m.h,m.hg,m.ag,scorers,Rm); ratePlayers(m.a,m.ag,m.hg,scorers,Rm);
+  if(m.h===CL.clubId) S.budget=(S.budget||0)+(m.att*m.price); // bilheteria do mando de campo, igual à liga
+  const compShort=COMP_DEFS[pending.key].short;
+  let resultMsg;
+  if(pending.stage==='bracket'){
+    const t=pending.tie;
+    t.hg=m.hg; t.ag=m.ag; t.events=m.events;
+    let winner;
+    if(m.hg!==m.ag) winner=m.hg>m.ag?t.h:t.a;
+    else { const R=makeRng(hashSeed(S.seed,'cuppen',pending.key,S.round,m.h,m.a)); winner=R.random()<0.5?t.h:t.a; } // pênaltis simplificado, igual advanceCupBracket
+    t.winner=winner;
+    const loser=winner===t.h?t.a:t.h; pending.bracket.eliminated[loser]=true;
+    resultMsg = winner===CL.clubId
+      ? `Vitória por ${m.hg}×${m.ag}! Você avança na ${compShort}.`
+      : (m.hg===m.ag ? `Eliminado nos pênaltis da ${compShort}.` : `Eliminado da ${compShort} — derrota por ${m.hg}×${m.ag}.`);
+  } else {
+    const mg=pending.group, g=Object.values(mg.groups).find(gr=>gr.label===pending.groupLabel);
+    const T=g.table, h=m.h, a=m.a;
+    T[h].P++; T[a].P++; T[h].GF+=m.hg; T[h].GA+=m.ag; T[a].GF+=m.ag; T[a].GA+=m.hg;
+    if(m.hg>m.ag){ T[h].W++; T[a].L++; T[h].Pts+=3; }
+    else if(m.hg<m.ag){ T[a].W++; T[h].L++; T[a].Pts+=3; }
+    else { T[h].D++; T[a].D++; T[h].Pts++; T[a].Pts++; }
+    mg._userRoundDone=mg.round; // avanço em segundo plano desta rodada pula só a partida do usuário
+    const userIsHome=(h===CL.clubId);
+    const userGF=userIsHome?m.hg:m.ag, userGA=userIsHome?m.ag:m.hg;
+    const outcome=userGF>userGA?'Vitória':userGF<userGA?'Derrota':'Empate';
+    resultMsg = `${outcome} por ${userGF}×${userGA} pela fase de grupos da ${compShort}.`;
+  }
+  saveV3();
+  // Resenha (online): saveV3() é no-op nesse modo — persiste no Supabase igual finishLiveRound()
+  // já faz pra rodada de liga (só grava de fato se quem está jogando for o anfitrião da
+  // sala; característica já existente da arquitetura online, não nova pra copa).
+  if(CL.online && typeof NET!=='undefined' && NET.saveGame){
+    (async ()=>{ await NET.saveGame({ S, round: S.round }); })().catch(e=>console.warn('Save Supabase (copa):', e));
+  }
+  CL.screen='main';
+  overlayC(dlg(compShort, `<div class="cl-res"><div class="cl-res-score">${escC(m.hg+'×'+m.ag)}</div>
+    <div class="cl-res-verd">${escC(resultMsg)}</div><div class="cl-cal-ok">${btn('Continuar','clCupResultContinue()',{icon:'✔',cls:'cl-btn-ok'})}</div></div>`,
+    {w:520,bodyClass:'cl-body-green'}));
+  cdraw();
+}
+function clCupResultContinue(){
+  clCloseOverlay(); CL.live=null;
+  const queue=CL._pendingCupQueue||[];
+  if(queue.length){ startCupLiveMatch(queue.shift()); return; }
+  CL._pendingCupQueue=null;
+  // online: "terminei minha parte" é marcar pronto e esperar os outros (a rodada de liga
+  // só dispara depois, via onlineRunRound, quando o servidor avisa que virou 'running') —
+  // não inicia a partida de liga direto, igual o fluxo normal do botão Jogar em Resenha.
+  if(CL.online){ onlineMarkReady(); return; }
+  CL.screen='main'; cdraw();
+}
+function updateLive(){ const RL=CL.live; if(!RL) return;
+  const clk=document.querySelector('#cl-liveclock'); if(clk) clk.style.setProperty('--pct', Math.min(100,Math.round(RL.minute/94*100)));
+  RL.matches.forEach((m,i)=>{ const sc=document.querySelector('#cl-lm-'+i); if(sc) sc.innerHTML=liveScoreCells(m);
+    const lg=document.querySelector('#cl-lg-'+i); if(lg){ const inc=(m.incidents||[])[m.incidents.length-1]; lg.textContent=inc?lastIncidentTxt(inc):''; } });
+  if(RL.sel!=null){ const box=document.querySelector('#cl-livemodal'); if(box) box.innerHTML=liveModalHTML(RL.matches[RL.sel]); }
+}
+function lastIncidentTxt(inc){
+  if(inc.type==='gol') return `⚽ ${escC(inc.player)} ${inc.min}'`;
+  if(inc.type==='cartao') return `${inc.cardType==='vermelho'?'🟥':'🟨'} ${escC(inc.player)} ${inc.min}'`;
+  if(inc.type==='lesao') return `✚ ${escC(inc.player)} ${inc.min}'`;
+  return '';
+}
+
+/* ---- painel: ADVERSÁRIO (+ Calendário) ---- */
+function panAdversario(oppId){
+  if(!oppId) return `<div class="cl-adv">Sem adversário nesta jornada.</div>`;
+  const r=ratings(oppId,false); const forca=Math.max(6,Math.min(100,Math.round((r.OS+r.DS)/2)));
+  const rnd=rngFrom(hashC(oppId)); const coach=COACHES_C[Math.floor(rnd()*COACHES_C.length)];
+  return `<div class="cl-adv">
+    <div class="cl-adv-big">${clubLink(oppId)}</div>
+    <div class="cl-bar cl-bar-lg"><div class="cl-bar-fill" style="width:${forca}%"></div></div>
+    <div class="cl-adv-coach"><span>Treinador</span><b>${escC(coach)}</b></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;max-width:320px">
+      ${btn('Calendário','clCalendar()',{icon:'📅',cls:'cl-btn-ok'})}
+      ${btn('Ver elenco','clViewTeam(\''+oppId+'\')',{icon:'👥',cls:'cl-btn-ok'})}
+    </div>
+  </div>`;
+}
+
+/* ---- 13 · CALENDÁRIO (modal) ---- */
+function userCalendar(){ const out=[]; (S.sched||[]).forEach((rd,i)=>{ const m=rd.find(([h,a])=>h===CL.clubId||a===CL.clubId);
+  if(m){ const home=m[0]===CL.clubId; const opp=home?m[1]:m[0]; out.push({n:i+1,opp,home}); } }); return out; }
+function clCalendar(){
+  // partida(s) de copa pendente — só dá pra saber a PRÓXIMA (o confronto seguinte só é
+  // sorteado quando a fase/rodada atual termina), então entra destacada no topo, antes
+  // das rodadas de liga (ver pendingUserCupMatches).
+  const cupRows=pendingUserCupMatches().map(pc=>{ const opp=pc.h===CL.clubId?pc.a:pc.h; const home=pc.h===CL.clubId;
+    return `<div class="cl-cal-row cl-cal-cup"><span class="cl-cal-n">🏆</span>
+      <span class="cl-cal-t">${COMP_DEFS[pc.key].short} · ${clubLink(opp)}</span><span class="cl-cal-cf">${home?'C':'F'}</span></div>`; }).join('');
+  const rows=userCalendar().map(r=>`<div class="cl-cal-row"><span class="cl-cal-n">${r.n}</span>
+    <span class="cl-cal-t">${clubLink(r.opp)}</span><span class="cl-cal-cf">${r.home?'C':'F'}</span></div>`).join('');
+  overlayC(dlg('Calendário', `<div class="cl-cal">${cupRows}${rows}</div>
+    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
+    {w:640,bodyClass:'cl-body-gray',min:true}));
+}
+
+/* ---- menu dropdown (topo) ---- */
+function clMenu(m,e){ if(e)e.stopPropagation(); CL.menu=(CL.menu===m?null:m); cdraw(); }
+function clToggleMobMenu(e){ if(e)e.stopPropagation(); CL.mobMenuOpen=!CL.mobMenuOpen; if(!CL.mobMenuOpen)CL.menu=null; cdraw(); }
+function clToggleRoster(){ CL.rosterOpen = CL.rosterOpen===false ? true : false; cdraw(); }
+/* toggle genérico de acordeão — usado em qualquer seção recolhível (país, financeiro, etc.) */
+function clToggleAcc(key){ CL[key] = CL[key]===false ? true : false; cdraw(); }
+function menuDropdown(name){ name=name||CL.menu;
+  const F=Object.keys(FORMATIONS);
+  const items={
+    'RetroFoot98':[['Opções...','clOptions()'],['—'],['Gravar jogo','clSaveMenu()'],['Sair para o menu','clExit()']],
+    'Seleccionar':[...F.map((f,i)=>[`${f}`,`clSelFormation('${f}')`,(i+1)+'/'+FKEY[f]]),['—'],['Automático','clSelFormation(\'auto\')'],['Melhores','clSelFormation(\'best\')']],
+    'Equipa':[['Estádio...','clStadium()'],['Historial...','clStub(\'Historial da equipa\')']],
+    'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],['Leilão de jogadores...','clAuctionScreen()'],['Últimas transferências...','clStub(\'Últimas transferências\')']],
+    'Campeonatos':[['Minhas competições...','clCompList()','C'],['—'],['Melhores marcadores...','clScorers()'],['Calendário...','clCalendar()'],['—'],['Últimos vencedores...','clUltimosVencedores()'],['Melhores marcadores de sempre...','clScorersAllTime()']],
+    'Treinador':[['História...','clCoachHistory()'],['Ranking...','clCoachRanking()'],['Ofertas...','clJobOffers()'],['Perfil...','clPerfilTreinador()']]
+  };
+  if(CL.online){ items['Modo Resenha']=[['Chamar pra Resenha...','clInviteResenha()']]; }
+  const list=items[name]||[]; if(!list.length) return '';
+  const rows=list.map(it=>{ if(it[0]==='—') return '<div class="cl-menu-sep"></div>';
+    return `<div class="cl-menu-dd-i" onclick="${it[1]}"><span>${escC(it[0])}</span>${it[2]?`<b>${it[2]}</b>`:''}</div>`; }).join('');
+  return `<div class="cl-menu-dd" onclick="event.stopPropagation()">${rows}</div>`;
+}
+function clStub(t){ CL.menu=null; toastC(t+' — em breve.'); cdraw(); }
+/* ---- RetroFoot98 > Opções... ---- */
+function clOptions(){ CL.menu=null; CL.optTab='geral';
+  if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',gravar:'De 3 em 3 jornadas',som:'Sim',
+    subsIntervalo:'Sim',penaltisCPU:'Sim',tempo:'Usain Bolt'};
+  renderOptions(); }
+function renderOptions(){ const o=CL.options; const tab=CL.optTab||'geral';
+  const sel=(id,opts,val)=>`<select class="cl-osel" onchange="CL.options['${id}']=this.value">${opts.map(x=>`<option ${x===val?'selected':''}>${escC(x)}</option>`).join('')}</select>`;
+  const geral=`<div class="cl-orow"><span>Mostrar chicotadas psicológicas</span>${sel('chicotadas',['Nunca','Dos humanos','De todos'],o.chicotadas)}</div>
+    <div class="cl-orow"><span>Ver sorteio da taça</span>${sel('sorteio',['Nunca','Quando houver humanos','Sempre'],o.sorteio)}</div>
+    <div class="cl-orow"><span>Gravar o jogo</span>${sel('gravar',['Nunca','De 3 em 3 jornadas','Sempre'],o.gravar)}</div>
+    <div class="cl-orow"><span>Habilitar som</span>${sel('som',['Sim','Não'],o.som)}</div>`;
+  const jogo=`<div class="cl-orow"><span>Substituições ao intervalo</span>${sel('subsIntervalo',['Sim','Não'],o.subsIntervalo)}</div>
+    <div class="cl-orow"><span>Ver os desempates por penalties<br>nos jogos sem treinadores humanos</span>${sel('penaltisCPU',['Sim','Não'],o.penaltisCPU)}</div>
+    <div class="cl-orow"><span>Tempo de jogo</span>${sel('tempo',['Curto','Médio','Longo','Ultrassônico','Usain Bolt'],o.tempo)}</div>`;
+  overlayC(dlg('Opções', `<div class="cl-opt">
+    <div class="cl-otabs"><span class="cl-otab ${tab==='geral'?'on':''}" onclick="CL.optTab='geral';renderOptions()">Geral</span><span class="cl-otab ${tab==='jogo'?'on':''}" onclick="CL.optTab='jogo';renderOptions()">Jogo</span></div>
+    <div class="cl-opanel">${tab==='geral'?geral:jogo}</div>
+    <div class="cl-oside">${btn('OK','clOptOk()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
+  </div>`,{w:740,bodyClass:'cl-body-gray',min:true})); }
+function clOptOk(){ saveV3(); clCloseOverlay(); toastC('Opções guardadas.'); }
+
+/* ---- Treinador > Perfil: preferências de verdade, não só cosmética —
+   "Gestão de Salários" reajusta contratos sozinho a cada temporada (ver
+   autoManageSalaries em app.js) e "Compra em leilão" filtra de verdade
+   o que aparece no seu leilão (ver refreshAuctionPool em app.js). ---- */
+function clPerfilTreinador(){ CL.menu=null;
+  if(!S.config.profile) S.config.profile=freshConfig().profile; // migração defensiva pra saves antigos
+  CL._profileSnapshot=JSON.parse(JSON.stringify(S.config.profile));
+  CL.perfilTab='salarios';
+  renderPerfilTreinador();
+}
+function renderPerfilTreinador(){
+  const prof=S.config.profile; const tab=CL.perfilTab||'salarios';
+  const tabs=`<div class="cl-otabs">
+    <span class="cl-otab ${tab==='salarios'?'on':''}" onclick="CL.perfilTab='salarios';renderPerfilTreinador()">Gestão de Salários</span>
+    <span class="cl-otab ${tab==='leilao'?'on':''}" onclick="CL.perfilTab='leilao';renderPerfilTreinador()">Compra em leilão</span>
+  </div>`;
+  let body;
+  if(tab==='salarios'){
+    const cb=(key,label)=>`<label class="cl-pcheck"><input type="checkbox" ${prof.salaryMgmt[key]?'checked':''} onchange="S.config.profile.salaryMgmt['${key}']=this.checked"> ${label}</label>`;
+    body=`<div class="cl-pbody">
+      <div class="cl-pmsg">Quero que o computador faça a<br>gestão dos salários:</div>
+      ${cb('nacionais','aos jogadores nacionais')}
+      ${cb('bosman','aos jogadores estrangeiros abrangidos pela Lei Bosman')}
+      ${cb('estrangeiros','aos outros jogadores estrangeiros')}
+    </div>`;
+  } else {
+    const modeRadio=(val,label)=>`<label class="cl-pradio"><input type="radio" name="cl-auctionmode" ${prof.auctionMode===val?'checked':''} onchange="S.config.profile.auctionMode='${val}'"> ${label}</label>`;
+    body=`<div class="cl-pbody">
+      <label class="cl-pcheck"><input type="checkbox" ${prof.auctionPrivate?'checked':''} onchange="S.config.profile.auctionPrivate=this.checked"> Não quero que os outros vejam as minhas ofertas</label>
+      <fieldset class="cl-pfield"><legend>Ofertas</legend>
+        ${modeRadio('todos','Quero fazer ofertas a todos os jogadores')}
+        ${modeRadio('sem_fracos','Não quero fazer ofertas aos jogadores mais fracos')}
+        ${modeRadio('nenhum','Não quero comprar jogadores em leilão')}
+      </fieldset>
+    </div>`;
+  }
+  overlayC(dlg('Perfil de '+escC(CL.mgr||'Treinador'), `<div class="cl-opt">
+    ${tabs}
+    <div class="cl-opanel">${body}</div>
+    <div class="cl-oside">${btn('OK','clPerfilOk()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Cancelar','clPerfilCancel()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
+  </div>`,{w:740,bodyClass:'cl-body-gray',min:true}));
+}
+function clPerfilOk(){ saveV3(); clCloseOverlay(); toastC('Preferências do treinador guardadas.'); refreshAuctionPool(); }
+function clPerfilCancel(){ S.config.profile=CL._profileSnapshot; clCloseOverlay(); }
+
+/* ---- Treinador > História / Ranking ---- */
+const COACH_POOL=['C. A. Silva','Artur Nunes','Dimas Filgueiras','Wanderlei Sousa','Carlos A. Silva','Antônio Lopes','Celso Roth','Émerson Leão','Cláudio Duarte','Gassem','Eduardo Amorim','Joel Castro','Oswaldo Alvarez','Arnaldo Lira','Felipe Scolari','Rafael Granit','Nelsinho','C. A. Torres','Gilson Nunes','Rubens Minelli','Beto Almeida','Pardal','Lauro Búrigo','Amado Bucar','Abel Braga','Evaristo Macedo','Jair Pereira'];
+function coachName(clubId,idx){ if(CL.humans&&CL.humans[clubId]) return CL.humans[clubId]; return COACH_POOL[idx%COACH_POOL.length]; }
+/* ícone por tipo de evento da carreira do treinador — troféus de campeão usam a imagem
+   real da competição (ver comp); os demais tipos usam um emoji fixo */
+const COACH_HIST_ICON={contratado:'🤝', acesso:'🔺', rebaixamento:'🔻', campeao:'🏆', demissao:'🚪'};
+function coachHistRowHTML(entry){
+  // compat: saves antigos guardavam a linha como texto puro "TEMPORADA  Texto"; sem tipo,
+  // sem ícone reconhecido — mostra como estava antes.
+  if(typeof entry==='string') return `<div class="cl-chist-row"><span class="cl-chist-ic">📌</span><span>${escC(entry)}</span></div>`;
+  const trophy = entry.type==='campeao' && entry.comp ? trophyImg(entry.comp,20) : '';
+  const icon = trophy || `<span class="cl-chist-ic">${COACH_HIST_ICON[entry.type]||'📌'}</span>`;
+  return `<div class="cl-chist-row">${icon}<span><b>${entry.season}</b> — ${escC(entry.text)}</span></div>`;
+}
+function clCoachHistory(){ CL.menu=null;
+  const lines=(S.coachHistory&&S.coachHistory.length)?S.coachHistory:[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
+  overlayC(dlg(CL.mgr||'Treinador', `<div class="cl-chist">${lines.map(coachHistRowHTML).join('')}</div>
+    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:560,bodyClass:'cl-body-gray',min:true})); }
+function clCoachRanking(){ CL.menu=null;
+  const rows=DATA.clubs.map((c,i)=>{const t=S.table[c.id]||{W:0,D:0,Pts:0}; return {name:coachName(c.id,i),club:clubOf(c.id).short,W:t.W,D:t.D,Pts:t.Pts,human:!!(CL.humans&&CL.humans[c.id])};})
+    .sort((a,b)=>b.Pts-a.Pts||b.W-a.W);
+  const list=rows.map((r,i)=>`<div class="cl-rank-row ${r.human?'me':''}"><span class="cl-rank-p">${i+1}</span><span class="cl-rank-c">${escC(r.name)}</span><span class="cl-rank-t">${escC(r.club)}</span><span class="cl-rank-n">${r.W} +</span><span class="cl-rank-n">${r.D} =</span><span class="cl-rank-n b">${r.Pts}</span></div>`).join('');
+  overlayC(dlg('Ranking de Treinadores', `<div class="cl-rank">${list}</div>
+    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:780,bodyClass:'cl-body-gray',min:true})); }
+
+/* ---- Treinador > Ofertas ---- */
+function clJobOffers(){ CL.menu=null;
+  const offers=S.pendingJobOffers||[];
+  if(!offers.length){
+    overlayC(dlg('Ofertas', `<div class="cl-offers-empty">
+      <div style="padding:20px;text-align:center">Nenhuma oferta no momento.</div>
+    </div>
+    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:600,bodyClass:'cl-body-gray',min:true}));
+    return;
+  }
+  const rows=offers.map((o,i)=>{
+    const c=clubOf(o.clubId);
+    const sq = squad(o.clubId);
+    const avgMoral = sq ? sq.reduce((s,p)=>s+(p.moral||70),0) / (sq.length||1) : 0;
+    const tablePos = sortedTable().findIndex(t=>t.id===o.clubId)+1;
+    return `<div class="cl-offer-item">
+      <div class="cl-offer-header" style="${clubStripe(c)};padding:8px;border-radius:4px;color:white;margin-bottom:6px">
+        <span style="font-weight:bold">${escC(c.short)}</span> — <span>${DIV_LABEL_FULL[o.division]}</span>
+      </div>
+      <div class="cl-offer-details">
+        <div><span>Posição:</span><b>${tablePos}º lugar</b></div>
+        <div><span>Salário:</span><b>${fmt(o.salary)}/sem</b></div>
+        <div><span>Moral média do time:</span><b>${Math.round(avgMoral)}%</b></div>
+        <div><span>Caixa do clube:</span><b>${fmt(c.cash||0)}</b></div>
+      </div>
+      <div class="cl-offer-actions">
+        ${btn('Aceitar','clAcceptPendingOffer('+i+')',{icon:'✔',cls:'cl-btn-ok'})}
+        ${btn('Ver elenco','clViewOfferSquad('+i+')',{icon:'👥',cls:'cl-btn-info'})}
+        ${btn('Recusar','clDeclinePendingOffer('+i+')',{icon:'✖',cls:'cl-btn-cancel'})}
+      </div>
+    </div>`; }).join('');
+  overlayC(dlg('Ofertas de Contratação', `<div class="cl-offers-list">${rows}</div>
+    <div class="cl-offer-footer" style="padding:12px;background:#f5f5f5;border-top:1px solid #ddd;color:#666;font-size:13px">
+      Você tem até 5 rodadas para responder cada oferta.
+    </div>
+    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:700,bodyClass:'cl-body-gray'}));
+}
+function clAcceptPendingOffer(idx){
+  const o=S.pendingJobOffers[idx]; if(!o) return;
+  S.coachHistory=S.coachHistory||[];
+  S.coachHistory.push({season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(o.clubId).short.toUpperCase()}`});
+  applyManagerJobChange(o.clubId,o.division);
+  if(o.salary) S.coachSalary=o.salary;
+  S.pendingJobOffers.splice(idx,1);
+  clCloseOverlay(); saveV3(); cdraw();
+}
+function clDeclinePendingOffer(idx){
+  S.pendingJobOffers.splice(idx,1);
+  clJobOffers(); // reabrir modal
+}
+function clViewOfferSquad(idx){
+  const o=S.pendingJobOffers[idx]; if(!o) return;
+  const sq = squad(o.clubId) || [];
+  const rows=sq.map(p=>`<div class="cl-prow ${p.n===CL.selPlayer?'sel':''}" style="padding:4px 8px;border-bottom:1px solid #eee">
+    <span style="font-weight:bold">${escC(p.n)}</span> <span style="color:#666">${p.pos}</span> <span style="float:right">${p.ov||55}</span>
+  </div>`).join('');
+  overlayC(dlg('Elenco '+escC(clubOf(o.clubId).short), `<div style="max-height:400px;overflow-y:auto">${rows}</div>
+    <div class="cl-cal-ok">${btn('Voltar','clJobOffers()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:500,bodyClass:'cl-body-gray',min:true}));
+}
+
+/* ---- Modo Resenha > Chamar pra Resenha ---- */
+function clInviteResenha(){ CL.menu=null; if(!CL.online){ toastC('Modo Resenha requer jogo online.'); return; }
+  const link=(typeof NET!=='undefined')?NET.inviteLink():'';
+  overlayC(dlg('Chamar pra Resenha', `<div class="cl-invres">
+    <div class="cl-invres-msg">Convide amigos para assumir times de CPU nesta partida. Eles entrarão agora mesmo na sua sala de jogo.</div>
+    <div class="cl-invres-opt" style="margin-bottom:16px">
+      <div class="cl-invres-lbl">🔗 Link da sala</div>
+      <div class="cl-invres-linkrow">
+        <input class="cl-input cl-invres-link" id="cl-invres-link" readonly value="${escC(link)}" onclick="this.select()">
+        ${btn('Copiar link','clCopyResenhaLink()',{icon:'📋',cls:'cl-btn-ok'})}
+      </div>
+    </div>
+    <div class="cl-invres-item">
+      <div class="cl-invres-club">Qual time quer oferecer?</div>
+      <select class="cl-invres-sel" id="cl-invres-club">${DATA.clubs.map(c=>{const h=CL.humans&&CL.humans[c.id]; return `<option value="${c.id}" ${h?'disabled':''} style="${h?'color:#999':''}">${escC(clubOf(c.id).short)}${h?' ('+escC(h)+')':''}</option>`; }).join('')}</select>
+    </div>
+    <div class="cl-invite2col">
+      <div class="cl-invres-opt">
+        <div class="cl-invres-lbl">📱 Por WhatsApp</div>
+        <div class="cl-invres-phone"><span class="cl-ddi">+55</span><input class="cl-input" inputmode="numeric" placeholder="DDD + número" id="cl-invres-phone" maxlength="11"></div>
+        ${btn('Enviar por WhatsApp','clSendResenhaInvite()',{icon:'✔',cls:'cl-btn-ok'})}
+      </div>
+      <div class="cl-invres-opt">
+        <div class="cl-invres-lbl">✉️ Por e-mail</div>
+        <input class="cl-input" type="email" placeholder="email@exemplo.com" id="cl-invres-email">
+        ${btn('Enviar por e-mail','clSendResenhaEmailInvite()',{icon:'✔',cls:'cl-btn-ok'})}
+      </div>
+    </div>
+  </div>
+  <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
+  {w:700,bodyClass:'cl-body-green'})); }
+/* copia o link da sala com 1 clique — clipboard API com fallback pra execCommand
+   (alguns webviews/navegadores mais antigos não expõem navigator.clipboard) */
+function clCopyResenhaLink(){
+  const inp=document.querySelector('#cl-invres-link'); const link=inp?inp.value:'';
+  if(!link){ toastC('⚠ Link indisponível.'); return; }
+  const done=()=>toastC('✓ Link copiado!');
+  const fallback=()=>{ try{ inp.select(); inp.setSelectionRange(0,99999); document.execCommand('copy'); done(); }
+    catch(e){ toastC('⚠ Não foi possível copiar — selecione o link e copie manualmente.'); } };
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(link).then(done).catch(fallback); }
+  else fallback();
+}
+function clSendResenhaInvite(){ const clubId=document.querySelector('#cl-invres-club')?.value||''; const phone=(document.querySelector('#cl-invres-phone')?.value||'').replace(/\D/g,'');
+  if(!clubId || phone.length<10){ toastC('Selecione um time e informe um telefone válido.'); return; }
+  const club=clubOf(clubId); const link=(typeof NET!=='undefined')?NET.inviteLink():''; const wa='https://wa.me/55'+phone+'?text='+encodeURIComponent('Vem ser '+escC(club.short)+' na minha Resenha do RetroFoot98! '+link);
+  try{ window.open(wa,'_blank'); }catch(e){} toastC('Abrindo WhatsApp…'); }
+function clSendResenhaEmailInvite(){ const clubId=document.querySelector('#cl-invres-club')?.value||''; const email=(document.querySelector('#cl-invres-email')?.value||'').trim();
+  if(!clubId || !email || !email.includes('@')){ toastC('Selecione um time e informe um e-mail válido.'); return; }
+  if(typeof NET==='undefined' || !NET.sendEmailInvite){ toastC('Convite por e-mail requer jogo online.'); return; }
+  toastC('Enviando convite por e-mail…');
+  (async ()=>{ try { await NET.sendEmailInvite(email); toastC('✓ Convite enviado por e-mail!'); const inp=document.querySelector('#cl-invres-email'); if(inp) inp.value=''; }
+    catch(e){ toastC('⚠ '+(e&&e.message||'Erro ao enviar convite por e-mail')); } })(); }
+function clTab2(t){ CL.menu=null; CL.tab=t; cdraw(); }
+function clSaveMenu(){ CL.menu=null; saveV3(true); cdraw(); }
+function clExit(){ CL.menu=null; CL.screen='abertura'; cdraw(); }
+/* zona de classificação continental pra próxima temporada (só existe na Série A —
+   ver computeQualification: G6 -> Libertadores, 7º-12º -> Sul-Americana) */
+function qualificationZone(division,pos){
+  if(division!=='A') return null;
+  if(pos<=6) return 'lib';
+  if(pos<=12) return 'sul';
+  return null;
+}
+function qualificationZoneBadge(zone){
+  if(zone==='lib') return `<span class="cl-cls-zone zone-lib">${trophyImg('libertadores',14)||'🏆'} Libertadores</span>`;
+  if(zone==='sul') return `<span class="cl-cls-zone zone-sul">${trophyImg('sulamericana',14)||'🥈'} Sul-Americana</span>`;
+  return '';
+}
+function clClassif(){ CL.menu=null;
+  const rows=sortedTable().map((t,i)=>{const me=t.id===CL.clubId; const zone=qualificationZone(S.division,i+1);
+    return `<div class="cl-cls-row ${me?'me':''} ${zone?'zone-'+zone:''}"><span class="cl-cls-p">${i+1}</span><span class="cl-cls-n">${clubLink(t.id)}</span>
+      <span class="cl-cls-num">${t.P}</span><span class="cl-cls-num">${t.W}</span><span class="cl-cls-num">${t.D}</span><span class="cl-cls-num">${t.L}</span>
+      <span class="cl-cls-num">${t.GF}:${t.GA}</span><span class="cl-cls-num b">${t.Pts}</span>${qualificationZoneBadge(zone)}</div>`;}).join('');
+  overlayC(dlg('Classificação', `<div class="cl-cls-head"><span class="cl-cls-p">#</span><span class="cl-cls-n">Equipa</span>
+    <span class="cl-cls-num">J</span><span class="cl-cls-num">V</span><span class="cl-cls-num">E</span><span class="cl-cls-num">D</span><span class="cl-cls-num">G</span><span class="cl-cls-num">P</span><span></span></div>
+    <div class="cl-cls">${rows}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
+    {w:680,bodyClass:'cl-body-gray',min:true})); }
+
+
+/* ---- Campeonatos > Minhas competições (lista + estado de classificação) ---- */
+function clCompList(){ CL.menu=null;
+  const cid=CL.clubId;
+  const inSerieA = S.division==='A';
+  const cups=[
+    {key:'copaBrasil', def:COMP_DEFS.copaBrasil, c:S.cups&&S.cups.copaBrasil},
+    {key:'libertadores', def:COMP_DEFS.libertadores, c:S.cups&&S.cups.libertadores},
+    {key:'sulamericana', def:COMP_DEFS.sulamericana, c:S.cups&&S.cups.sulamericana}
+  ];
+  const trophyFor={copaBrasil:'copaBrasil', libertadores:'libertadores', sulamericana:'sulamericana'};
+  const rows=[`<div class="cl-complist-row" onclick="clClassif()">
+      <span class="cl-complist-ic">${divisionTrophyImg(S.division,24)||'🏆'}</span><span class="cl-complist-n">${escC(divisionLabel())}</span>
+      <span class="cl-complist-st ok">Disputando — ${tablePos(cid)}º lugar</span></div>`];
+  cups.forEach(x=>{
+    const disabled = S.compToggle && S.compToggle[x.key]===false;
+    const restrictToSerieA = x.key!=='copaBrasil'; // só Libertadores/Sul-Americana são exclusivas da Série A
+    const qualified = (!restrictToSerieA || inSerieA) && S.qualification && S.qualification[x.key] && S.qualification[x.key].includes(cid);
+    const c=x.c;
+    let statusTxt, statusCls, clickable=false;
+    if(disabled){ statusTxt='Desligada neste save'; statusCls='off'; }
+    else if(restrictToSerieA && !inSerieA){ statusTxt='Só clubes da Série A'; statusCls='off'; }
+    else if(!qualified){ statusTxt='Não classificado'; statusCls='off'; }
+    else if(!c){ statusTxt='Aguardando sorteio'; statusCls='off'; }
+    else if(cupCompetitionChampion(c)===cid){ statusTxt='🏆 CAMPEÃO'; statusCls='ok'; clickable=true; }
+    else if(!cupCompetitionTeamAlive(c,cid)){ statusTxt='Eliminado'; statusCls='out'; clickable=true; }
+    else { statusTxt=cupCompetitionRoundLabel(c,x.key); statusCls='ok'; clickable=true; }
+    const icon=trophyImg(trophyFor[x.key],24) || (x.key==='copaBrasil'?'🇧🇷':'🌎');
+    rows.push(`<div class="cl-complist-row ${clickable?'':'disabled'}" ${clickable?`onclick="clCupView('${x.key}')"`:''}>
+      <span class="cl-complist-ic">${icon}</span>
+      <span class="cl-complist-n">${escC(x.def.name)}</span>
+      <span class="cl-complist-st ${statusCls}">${statusTxt}</span></div>`);
+  });
+  overlayC(dlg('Minhas competições', `<div class="cl-complist">${rows.join('')}</div>
+    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
+    {w:620,bodyClass:'cl-body-gray',min:true}));
+}
+/* ---- tela da copa: fase de grupos (se houver) + fase eliminatória (chaveamento visual) ---- */
+function clCupView(key, tab){ CL.menu=null;
+  const c=S.cups&&S.cups[key]; if(!c) return;
+  const hasGroup=COMP_HAS_GROUP[key];
+  CL.cupTab = tab || (CL.cupTab && (hasGroup || CL.cupTab==='chave') ? CL.cupTab : null) || (hasGroup ? 'grupos' : 'chave');
+  overlayC(dlg(COMP_DEFS[key].name, cupViewBodyHTML(key,c,hasGroup), {w:720,bodyClass:'cl-body-gray',min:true}));
+}
+function clCupTab(key,tab){ CL.cupTab=tab; clCupView(key,tab); }
+function cupViewBodyHTML(key,c,hasGroup){
+  const trophyKey = key==='libertadores'?'libertadores':key==='sulamericana'?'sulamericana':null;
+  const trophyHdr = trophyKey ? `<div class="cl-comp-hdr-trophy">${trophyImg(trophyKey,44)}</div>` : '';
+  const champ=cupCompetitionChampion(c);
+  const champBanner = champ ? `<div class="cl-cup-champ">🏆 Campeão: <b>${clubLink(champ)}</b></div>` : '';
+  const tabsHTML = hasGroup ? `<div class="cl-cup-tabs">
+      ${btn('Fase de Grupos',`clCupTab('${key}','grupos')`,{cls:'cl-cup-tabbtn'+(CL.cupTab==='grupos'?' active':'')})}
+      ${btn('Fase Eliminatória',`clCupTab('${key}','chave')`,{cls:'cl-cup-tabbtn'+(CL.cupTab==='chave'?' active':'')})}
+    </div>` : '';
+  const body = (hasGroup && CL.cupTab==='grupos') ? cupGroupHTML(c) : cupBracketHTML(c,key);
+  return `<div class="cl-cup">${trophyHdr}${champBanner}${tabsHTML}${body}</div>
+    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`;
+}
+/* fase de grupos: turno-e-returno único entre os classificados brasileiros — os N
+   melhores (destacados) avançam pro mata-mata quando a fase termina */
+function cupGroupHTML(c){
+  if(!c.group) return '<div class="cl-cup-hint">Esta competição não tem fase de grupos.</div>';
+  const g=c.group, cid=CL.clubId;
+  const labels=Object.keys(g.groups);
+  const multi=labels.length>1;
+  const myLabel=labels.find(l=>g.groups[l].teams.includes(cid));
+  const groupHead=`<div class="cl-cls2-head"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Clube</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-gf">G</span><span class="cl-cls2-x">P</span></div>`;
+  const groupBlock=(label)=>{
+    const standings=groupTableStandings(g.groups[label]);
+    const rows=standings.map((t,i)=>{ const cl=clubOf(t.id); const me=t.id===cid;
+      return `<div class="cl-cls2-row ${me?'me':''} ${i<g.advancePerGroup?'cl-cup-advances':''}" style="${clubStripe(cl)}">
+        <span class="cl-cls2-pos">${i+1}</span><span class="cl-cls2-n">${clubLink(t.id)}</span>
+        <span class="cl-cls2-x">${t.W}</span><span class="cl-cls2-x">${t.D}</span><span class="cl-cls2-x">${t.L}</span>
+        <span class="cl-cls2-gf">${t.GF} : ${t.GA}</span><span class="cl-cls2-x b">${t.Pts}</span></div>`; }).join('');
+    return multi
+      ? `<fieldset class="cl-cup-round"><legend>Grupo ${escC(label)}${label===myLabel?' — seu grupo':''}</legend>${groupHead}${rows}</fieldset>`
+      : `${groupHead}${rows}`;
+  };
+  const ordered = (multi && myLabel) ? [myLabel, ...labels.filter(l=>l!==myLabel)] : labels;
+  const status = g.finished
+    ? `<div class="cl-cup-hint">Fase de grupos encerrada — os ${g.advancePerGroup} primeiros de cada grupo (destacados) avançam à fase eliminatória.</div>`
+    : `<div class="cl-cup-hint">Rodada ${g.round}/${g.roundsTotal} — avançam os ${g.advancePerGroup} primeiros de cada grupo ao final. Resolve automaticamente a cada 3 rodadas do Brasileirão.</div>`;
+  return `<div class="cl-cup-groups-wrap">${ordered.map(groupBlock).join('')}</div>${status}`;
+}
+/* fase eliminatória: chaveamento visual, uma coluna por rodada (estrutura de chaves) */
+function cupBracketHTML(c,key){
+  const b = c.champion!==undefined ? c : c.bracket;
+  if(!b){
+    if(c.group && c.group.finished){
+      const drawDate=key && S.season===2026 ? COMP_R16_DRAW_2026[key] : null;
+      return `<div class="cl-cup-hint">Fase de grupos encerrada — aguardando o sorteio das oitavas de final${drawDate?` (${fmtRealDate(drawDate)})`:''}.</div>`;
+    }
+    return `<div class="cl-cup-hint">A fase eliminatória ainda não começou — aguardando o fim da fase de grupos.</div>`;
+  }
+  const cid=CL.clubId;
+  const tieBox=(t)=>{ const w=t.winner, decided=w!=null;
+    return `<div class="cl-bracket-tie ${(t.h===cid||t.a===cid)?'me':''}">
+      <div class="cl-bracket-team ${w===t.h?'win':decided?'lose':''}"><span>${clubLink(t.h)}</span>${decided?`<b>${t.hg}</b>`:''}</div>
+      <div class="cl-bracket-team ${w===t.a?'win':decided?'lose':''}"><span>${clubLink(t.a)}</span>${decided?`<b>${t.ag}</b>`:''}</div>
+    </div>`; };
+  const byeBox=(id)=>`<div class="cl-bracket-tie ${id===cid?'me':''}"><div class="cl-bracket-team win"><span>${clubLink(id)}</span></div><div class="cl-bracket-team bye-lbl"><span>de folga (bye)</span></div></div>`;
+  const cols=[];
+  (b.history||[]).forEach(h=>{
+    const byeIds = h.advanced.filter(id=>!h.ties.some(t=>t.h===id||t.a===id));
+    cols.push({label:`Rodada ${h.round}`, boxes:[...h.ties.map(tieBox), ...byeIds.map(byeBox)]});
+  });
+  if(!cupIsFinished(b) && (b.ties.length || (b.pendingByes||[]).length)){
+    cols.push({label:`Rodada ${b.round} (pendente)`, boxes:[...b.ties.map(tieBox), ...(b.pendingByes||[]).map(byeBox)]});
+  }
+  if(b.champion) cols.push({label:'Campeão', boxes:[`<div class="cl-bracket-tie champ"><div class="cl-bracket-team win"><span>🏆 ${clubLink(b.champion)}</span></div></div>`]});
+  if(!cols.length) return '<div class="cl-cup-hint">O chaveamento ainda não começou.</div>';
+  return `<div class="cl-bracket-wrap">${cols.map(col=>`<div class="cl-bracket-col"><div class="cl-bracket-col-h">${escC(col.label)}</div>${col.boxes.join('')}</div>`).join('')}</div>`;
+}
+
+/* ================= SORTEIO DOS JOGOS DA TAÇA (cerimônia animada, igual ao RetroFoot98 clássico) =================
+   Quando um chaveamento novo é montado (Copa do Brasil no início da temporada; Libertadores/
+   Sul-Americana no dia real do sorteio das oitavas), o pareamento em si já foi decidido de
+   forma determinística (makeBracket — mesmo overall/seed de sempre); esta tela só ANIMA a
+   revelação bola-a-bola desse resultado, com ~2s entre cada sorteio (acelerável), igual à
+   tela clássica "Sorteio dos jogos da taça": lista de times à esquerda (encolhendo conforme
+   saem), confrontos sorteados à direita, e destaque embaixo pro(s) time(s) do usuário —
+   um único destaque no modo solo, ou um por jogador humano (cores do próprio clube) na Resenha. */
+function queueDrawShow(key){ S._pendingDrawShows=S._pendingDrawShows||[]; if(!S._pendingDrawShows.includes(key)) S._pendingDrawShows.push(key); }
+/* dispara o próximo sorteio pendente, se houver; encadeia até esvaziar a fila e só então
+   chama onDone (ex: mostrar a classificação da rodada, ou o aviso de acesso/queda) */
+function checkPendingCupDraws(onDone){
+  if(!S._pendingDrawShows || !S._pendingDrawShows.length){ if(onDone) onDone(); return false; }
+  const key=S._pendingDrawShows.shift();
+  startCupDrawReplay(key, ()=>checkPendingCupDraws(onDone));
+  return true;
+}
+function startCupDrawReplay(key, onDone){
+  const c=S.cups&&S.cups[key]; const b = c&&c.champion!==undefined ? c : (c&&c.bracket);
+  if(!b){ if(onDone) onDone(); return; }
+  const reveal=[]; b.byeTeams.forEach(id=>reveal.push({type:'bye',id})); b.ties.forEach(t=>reveal.push({type:'tie',h:t.h,a:t.a}));
+  const remaining=[...b.byeTeams,...b.ties.flatMap(t=>[t.h,t.a])].sort((x,y)=>clubOf(x).name.localeCompare(clubOf(y).name));
+  CL.cupDraw={ key, reveal, idx:0, drawn:[], remaining, fast:false, onDone };
+  CL.screen='cupdraw'; cdraw();
+  cupDrawTick();
+}
+function cupDrawTick(){
+  const st=CL.cupDraw; if(!st || CL.screen!=='cupdraw') return;
+  if(st.idx>=st.reveal.length){
+    CL._cupDrawTimer=setTimeout(()=>{ const done=st.onDone; CL.cupDraw=null; CL.screen='main'; cdraw(); if(done) done(); }, st.fast?400:1800);
+    cdraw(); return;
+  }
+  const item=st.reveal[st.idx++];
+  if(item.type==='bye'){ st.drawn.push({h:item.id,a:null,bye:true}); st.remaining=st.remaining.filter(id=>id!==item.id); }
+  else { st.drawn.push({h:item.h,a:item.a}); st.remaining=st.remaining.filter(id=>id!==item.h&&id!==item.a); }
+  cdraw();
+  CL._cupDrawTimer=setTimeout(cupDrawTick, st.fast?150:2000);
+}
+function clCupDrawSkip(){ if(CL.cupDraw){ CL.cupDraw.fast=true; toastC('⏩ Sorteio acelerado'); } }
+function cupDrawHighlightHTML(pair){
+  const hCl=clubOf(pair.h), aCl=pair.a?clubOf(pair.a):null;
+  return `<div class="cl-draw-hrow">
+    <div class="cl-draw-hbox" style="${clubStripe(hCl)}">${escC(hCl.short.toUpperCase())}</div>
+    ${aCl?`<div class="cl-draw-hbox" style="${clubStripe(aCl)}">${escC(aCl.short.toUpperCase())}</div>`:`<div class="cl-draw-hbox bye">ISENTO</div>`}
+  </div>`;
+}
+function scCupDraw(){
+  const st=CL.cupDraw; if(!st) return '';
+  const def=COMP_DEFS[st.key];
+  const leftRows=st.remaining.map(id=>`<div class="cl-draw-team">${escC(clubOf(id).name.toUpperCase())}</div>`).join('') || '<div class="cl-draw-team" style="color:#999">— fim —</div>';
+  const rightRows=st.drawn.slice().reverse().map(p=>`<div class="cl-draw-pair">${escC(clubOf(p.h).short.toUpperCase())} - ${p.bye?'ISENTO':escC(clubOf(p.a).short.toUpperCase())}</div>`).join('');
+  let highlight='';
+  if(!CL.online){
+    const mine=st.drawn.find(p=>p.h===CL.clubId||p.a===CL.clubId);
+    if(mine) highlight=cupDrawHighlightHTML(mine);
+  } else if(CL.humans){
+    highlight=st.drawn.filter(p=>CL.humans[p.h]||CL.humans[p.a]).map(cupDrawHighlightHTML).join('');
+  }
+  const done=st.idx>=st.reveal.length;
+  return dlg(`Sorteio dos jogos da ${def.short}`, `<div class="cl-draw">
+    <div class="cl-draw-cols">
+      <div class="cl-draw-col"><div class="cl-draw-colhd">Times</div><div class="cl-draw-list">${leftRows}</div></div>
+      <div class="cl-draw-col"><div class="cl-draw-colhd">Sorteados</div><div class="cl-draw-list">${rightRows}</div></div>
+    </div>
+    ${highlight?`<div class="cl-draw-highlight">${highlight}</div>`:''}
+    <div class="cl-draw-actions">${done?'<i>Sorteio encerrado...</i>':btn('Acelerar sorteio','clCupDrawSkip()',{icon:'⏩',cls:'cl-btn-ico',dis:st.fast})}</div>
+  </div>`, {w:900,bodyClass:'cl-body-yellow',badge:{icon:trophyImg(st.key,30)||'🏆',label:def.short}});
+}
+
+/* ---- Seleccionar (tática/formação) ---- */
+function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
+  if(f==='auto'){ S.xi=autoXI(CL.clubId); CL.formation='Automático'; S.tactic='equilibrado'; }
+  else if(f==='best'){ S.xi=squad(CL.clubId).slice().sort((a,b)=>b.f-a.f).slice(0,11).map(p=>p.n); CL.formation='Melhores'; S.tactic='equilibrado'; }
+  else { const real=coherentFormation(CL.clubId,f); if(real!==f) adjustedFrom=f;
+    S.xi=pickXIByFormation(CL.clubId,real); CL.formation=real; S.tactic=tacticPosture(real); }
+  CL.tacticChosen=true; CL.tab='seleccao'; CL.preSubOut=null; CL.preSubIn=null; CL.escalacaoMode=false; saveV3(); cdraw();
+  toastC(adjustedFrom ? `Sem jogadores pro ${adjustedFrom} — ajustado pra ${CL.formation}.` : 'Tática '+CL.formation+' seleccionada.'); }
+
+/* ---- Estádio (Equipa > Estádio...) ---- */
+function clStadium(){ CL.menu=null; renderStadium(false); }
+function standSVG(cap){ const tiers=Math.min(6,Math.max(1,Math.round((cap-STAND_START)/STAND_SEATS)+1)); const arcs=[];
+  for(let i=0;i<tiers;i++){ const ry=40+i*9; arcs.push(`<path d="M ${100-ry*1.55} 128 A ${ry*1.55} ${ry} 0 0 1 ${100+ry*1.55} 128" fill="none" stroke="#9a9a9a" stroke-width="7"/>`); }
+  return `<svg viewBox="0 0 200 165" class="cl-est-svg">${arcs.join('')}
+    <ellipse cx="100" cy="118" rx="64" ry="38" fill="#2f7d32" stroke="#e9e36a" stroke-width="3"/>
+    <rect x="68" y="96" width="64" height="44" fill="none" stroke="#fff" stroke-width="1.4"/>
+    <line x1="100" y1="96" x2="100" y2="140" stroke="#fff" stroke-width="1.4"/>
+    <circle cx="100" cy="118" r="8" fill="none" stroke="#fff" stroke-width="1.4"/></svg>`; }
+function renderStadium(built){ const cap=(S.stadium&&S.stadium.capacity)||STAND_START;
+  const maxCap=stadiumMaxCapacity(); const atMax=cap>=maxCap;
+  overlayC(dlg('Estádio', `<div class="cl-est">
+    ${standSVG(cap)}
+    <div class="cl-est-cap">${grp(cap)} lugares</div>
+    <div class="cl-est-price">Preço de uma bancada com<br>${grp(STAND_SEATS)} lugares: ${fmt(STAND_PRICE)}</div>
+    <div class="cl-est-maxcap">Capacidade máxima sustentada pelas finanças do clube hoje: ${grp(maxCap)} lugares</div>
+    <div class="cl-est-btns">${btn('Construir','clBuildStand()',{icon:'🚜',cls:'cl-btn-ico',dis:atMax})}${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok cl-btn-ico'})}</div>
+    ${built?`<div class="cl-est-note">As novas bancadas só estarão disponíveis para o próximo jogo</div>`:''}
+    ${atMax?`<div class="cl-est-note">⚠ Você atingiu o limite de expansão para o porte financeiro atual do clube.</div>`:''}
+  </div>`,{w:660,bodyClass:'cl-body-estadio',min:true})); }
+function clBuildStand(){
+  const cap=(S.stadium&&S.stadium.capacity)||STAND_START;
+  if(cap+STAND_SEATS>stadiumMaxCapacity()){ toastC('⚠ Não é possível expandir mais — as finanças do clube não sustentam um estádio maior agora.'); renderStadium(false); return; }
+  if((S.budget||0)<STAND_PRICE){ toastC('Caixa insuficiente para construir.'); return; }
+  S.budget-=STAND_PRICE; if(!S.stadium)S.stadium={capacity:STAND_START}; S.stadium.capacity+=STAND_SEATS;
+  pushFinanceEntry({stadium:STAND_PRICE, log:[`🏟️ Bancada construída: +${grp(STAND_SEATS)} lugares (${fmt(STAND_PRICE)})`]});
+  saveV3(); renderStadium(true); }
+
+/* ---- Jogador > Vender (painel na aba + leilão) ---- */
+function windowClosedMsg(){ const st=transferWindowStatus();
+  return st.opensIn!=null ? `⛔ Janela de transferências fechada. Abre em ${st.opensIn} rodada${st.opensIn===1?'':'s'}.` : '⛔ Janela de transferências fechada — não há mais janelas nesta temporada.'; }
+function windowBadge(){ const st=transferWindowStatus();
+  return st.open ? `<span class="cl-winbadge open">🟢 Janela aberta (fecha em ${st.closesIn})</span>`
+    : `<span class="cl-winbadge closed">🔒 Janela fechada${st.opensIn!=null?' (abre em '+st.opensIn+')':''}</span>`; }
+/* atualiza o preço de venda pedido SEM re-renderizar a tela inteira (cdraw() recriava o
+   <input>, derrubando o foco a cada tecla — tinha que clicar de novo pra continuar digitando).
+   Só mexe no texto/valor dos elementos afetados, mantendo o cursor no lugar. */
+function clSellPriceInput(input){
+  CL.sellPrice=input.value.replace(/[^0-9]/g,'');
+  input.value=CL.sellPrice?grp(CL.sellPrice):'';
+  const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer); if(!p) return;
+  const askingPrice=CL.sellPrice?parseInt(CL.sellPrice):0;
+  const mv=p.mv||0;
+  const diff=askingPrice-mv;
+  const diffPct=mv>0?Math.round((diff/mv)*100):0;
+  const diffLabel=diff>0?`+${grp(diff)} (+${diffPct}%)`:diff<0?`${grp(diff)} (${diffPct}%)`:'Preço igual';
+  const askedEl=$c('#cl-sellprice-asked'); if(askedEl) askedEl.textContent=askingPrice>0?grp(askingPrice):'-';
+  const diffEl=$c('#cl-sellprice-diff'); if(diffEl) diffEl.textContent=diffLabel;
+}
+function clSell(){ CL.menu=null;
+  if(!inTransferWindow()){ toastC(windowClosedMsg()); return; }
+  const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer);
+  if(!p){ toastC('Selecciona um jogador na lista primeiro.'); cdraw(); return; }
+  CL.tab='jogador'; CL.rightMode='vender'; CL.sellPrice=''; cdraw(); }
+function clSellConfirm(){
+  if(!inTransferWindow()){ toastC(windowClosedMsg()); CL.rightMode=null; cdraw(); return; }
+  const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer); if(!p){ CL.rightMode=null; cdraw(); return; }
+  const seed=(hashC(p.n)+ (S.round||0)*7)>>>0; const rnd=rngFrom(seed);
+  const buyers=DATA.clubs.filter(c=>c.id!==CL.clubId); const buyer=buyers[Math.floor(rnd()*buyers.length)];
+  const base=Math.round(p.mv/1000); const ask=Math.round((parseInt(CL.sellPrice,10)||0)/1000); // sellPrice em reais -> milhares
+  let feeK=Math.max(1,Math.round(base*(0.7+rnd()*0.7)));           // proposta do mercado em milhares
+  if(ask>0 && ask<=feeK*1.2) feeK=Math.max(ask,Math.round(feeK*0.9)); else if(ask>feeK*1.2) feeK=Math.round(feeK*0.85);
+  const fee=feeK*1000;
+  S.budget=(S.budget||0)+fee; S.squads[CL.clubId]=S.squads[CL.clubId].filter(x=>x.n!==p.n);
+  if(S.xi) S.xi=S.xi.filter(n=>n!==p.n);
+  pushFinanceEntry({playerSales:fee, log:[`💰 ${p.n} vendido ao ${clubOf(buyer.id).short} por ${fmt(fee)}.`]});
+  S.roundNews=S.roundNews||[]; S.roundNews.push(`💰 ${p.n} vendido ao ${clubOf(buyer.id).short} por ${fmt(fee)}.`);
+  saveV3(); auctionDialog(p,buyer,feeK); }
+function auctionDialog(p,buyer,feeK){
+  const st=p.stats||{}; const beh=playerBehaviorLabel(p);
+  overlayC(dlg('Venda de jogador por leilão', `<div class="cl-leilao">
+    <div class="cl-lei-grid">
+      <div class="cl-lei-l">
+        <div class="cl-lei-row"><span>Equipa</span><b class="cl-lei-team" style="${clubStripe(clubOf(CL.clubId))}">${escC(clubOf(CL.clubId).short)}</b></div>
+        <div class="cl-lei-row"><span>Jogador</span><b>${escC(p.n)}</b></div>
+        <div class="cl-lei-row"><span>Posição</span><b>${({GK:'Goleiro',DEF:'Zagueiro',MID:'Meia',ATT:'Atacante'})[p.s]||'Meia'}</b></div>
+        <div class="cl-lei-row"><span>Força</span><b class="cl-lei-big">${p.f}</b></div>
+        <div class="cl-lei-row" style="margin-top:14px"><span>Salário pretendido</span><b>${grp(Math.round(p.mv*0.0006))} reais</b></div>
+        <div class="cl-lei-row"><span>Preço base</span><b>zero</b></div>
+      </div>
+      <div class="cl-lei-r">
+        <div class="cl-lei-row"><span>Nacionalidade</span><b>🇧🇷 Brasil</b></div>
+        <div class="cl-lei-row"><span>Comportamento</span><b>${beh}</b></div>
+        <div class="cl-lei-row"><span>Gols nesta temporada</span><b>${(S.scorers&&S.scorers[p.n])||0}</b></div>
+        <fieldset class="cl-hist" style="max-width:300px;color:#000"><legend style="color:#000">Historial</legend>
+          <div class="cl-hist-row"><span>Jogos</span><b>${st.apps||0}</b></div>
+          <div class="cl-hist-row"><span>Gols</span><b>${st.goals||0}</b></div>
+          <div class="cl-hist-row"><span>Cartões amarelos</span><b>${st.yellows||0}</b></div>
+          <div class="cl-hist-row"><span>Cartões vermelhos</span><b>${st.reds||0}</b></div>
+          <div class="cl-hist-row"><span>Lesões</span><b>${st.injuries||0}</b></div>
+        </fieldset>
+      </div>
+    </div>
+    <div class="cl-lei-sold">Vendido ao ${escC(buyer.short.toUpperCase())} por ${spellMoney(feeK*1000)}</div>
+    <div class="cl-lei-ok">${btn('OK','clCloseAuction()',{icon:'✔',cls:'cl-btn-ok'})}</div>
+  </div>`,{w:760,bodyClass:'cl-body-yellow',min:true})); }
+function clCloseAuction(){ clCloseOverlay(); CL.rightMode=null; CL.selPlayer=squad(CL.clubId)[0]?.n||null; cdraw(); toastC('Jogador vendido.'); }
+
+/* ---- Jogador (aba) > Renovar contrato (painel) ---- */
+function clRenew(){ const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer); if(!p){ toastC('Selecciona um jogador.'); return; }
+  CL.tab='jogador'; CL.rightMode='renovar'; CL.newSalary=Math.round(p.mv*0.0006); cdraw(); }
+function clSalaryStep(d){ const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer); const base=Math.round((p?p.mv:1e6)*0.0006);
+  CL.newSalary=Math.max(Math.round(base*0.4), (CL.newSalary||base)+d*Math.max(100,Math.round(base*0.1))); const n=document.querySelector('#cl-sal'); if(n)n.textContent=grp(CL.newSalary); }
+function clRenewPropose(){
+  const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer);
+  if(!p) return;
+
+  const oldSalary = (p.contract && p.contract.salary) || 0;
+  const newYears = 3;
+  const weeksPerYear = 52;
+  const totalCost = CL.newSalary * newYears * weeksPerYear;
+  const oldAnnualCost = oldSalary * weeksPerYear;
+  const extraCost = totalCost - (oldAnnualCost * newYears);
+
+  // validar se há orçamento suficiente para a renovação
+  if(S.budget < 0 && extraCost > 0){
+    toastC('⚠️ Caixa insuficiente para renovar este contrato.');
+    return;
+  }
+
+  // atualizar contrato
+  p.contract = Object.assign({}, p.contract, {salary: CL.newSalary, years: newYears});
+  p.moral = Math.min(100, (p.moral||70) + 6);
+
+  // registrar na notícia de rodada
+  S.roundNews = S.roundNews || [];
+  S.roundNews.push(`✍️ ${p.n} renovou contrato: ${fmt(CL.newSalary)}/sem por ${newYears} ano(s).`);
+
+  saveV3();
+  CL.rightMode = null;
+  cdraw();
+  toastC('✓ Contrato renovado com sucesso.');
+}
+function clCancelRight(){ CL.rightMode=null; cdraw(); }
+
+/* ---- Campeonato > Melhores marcadores ---- */
+/* acha o clube de um jogador só pelo nome — útil em telas que só guardam o nome (artilheiros, notícias) */
+function findPlayerClub(name){
+  for(const cid of Object.keys(S.squads||{})){ if(S.squads[cid].some(p=>p.n===name)) return cid; }
+  return null;
+}
+function clScorers(){ CL.menu=null;
+  const arr=Object.entries(S.scorers||{}).map(([n,g])=>({n,g})).sort((a,b)=>b.g-a.g).slice(0,20);
+  const rows=arr.length?arr.map((s,i)=>{ const cid=findPlayerClub(s.n);
+    return `<div class="cl-cal-row"><span class="cl-cal-n">${i+1}</span><span class="cl-cal-t">${playerLink(s.n,cid)}${cid?' <small style="color:#666">('+escC(clubOf(cid).short)+')</small>':''}</span><span class="cl-cal-cf">${s.g}</span></div>`;
+  }).join(''):'<div style="padding:14px">Sem gols marcados ainda.</div>';
+  overlayC(dlg('Melhores marcadores', `<div class="cl-cal">${rows}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:520,bodyClass:'cl-body-gray',min:true})); }
+
+/* ---- Campeonato > Últimos vencedores: histórico persistido por save (S.history), com o
+   campeão da liga (por divisão) e das copas (Copa do Brasil/Libertadores/Sul-Americana). ---- */
+function clUltimosVencedores(){ CL.menu=null;
+  const hist=(S.history||[]).slice().reverse().slice(0,15);
+  const rows=hist.length?hist.map(h=>{
+    const cupsLine=['copaBrasil','libertadores','sulamericana'].map(k=>{
+      const w=h.cups&&h.cups[k]; return w?`${COMP_DEFS[k].short}: <b>${escC(w)}</b>`:'';
+    }).filter(Boolean).join(' &middot; ');
+    return `<div class="cl-cal-row" style="flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px">
+      <div><b>${h.season}</b> — Série ${escC(h.division||'A')}: <b>${escC(h.champ)}</b></div>
+      ${cupsLine?`<div style="font-size:12px;color:#666">${cupsLine}</div>`:''}
+    </div>`;
+  }).join(''):'<div style="padding:14px">Ainda não há temporadas concluídas neste save.</div>';
+  overlayC(dlg('Últimos vencedores', `<div class="cl-cal">${rows}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:560,bodyClass:'cl-body-gray',min:true})); }
+
+/* ---- Campeonato > Melhores marcadores de sempre: acumulado histórico (S.allTimeScorers,
+   gravado a cada fim de temporada) + gols da temporada em andamento, persistido no save. ---- */
+function clScorersAllTime(){ CL.menu=null;
+  const acc={...(S.allTimeScorers||{})};
+  Object.entries(S.scorers||{}).forEach(([n,g])=>{ acc[n]=(acc[n]||0)+g; });
+  const arr=Object.entries(acc).map(([n,g])=>({n,g})).sort((a,b)=>b.g-a.g).slice(0,20);
+  const rows=arr.length?arr.map((s,i)=>{ const cid=findPlayerClub(s.n);
+    return `<div class="cl-cal-row"><span class="cl-cal-n">${i+1}</span><span class="cl-cal-t">${playerLink(s.n,cid)}${cid?' <small style="color:#666">('+escC(clubOf(cid).short)+')</small>':''}</span><span class="cl-cal-cf">${s.g}</span></div>`;
+  }).join(''):'<div style="padding:14px">Sem gols marcados ainda.</div>';
+  overlayC(dlg('Melhores marcadores de sempre', `<div class="cl-cal">${rows}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:520,bodyClass:'cl-body-gray',min:true})); }
+
+/* ---- overlays / toasts ---- */
+function overlayC(html){ let o=$c('#c-overlay'); if(!o){ o=document.createElement('div'); o.id='c-overlay'; o.className='cl-overlay'; o.onclick=clCloseOverlay; document.body.appendChild(o); }
+  o.innerHTML=`<div class="cl-overlay-in" onclick="event.stopPropagation()">${html}</div>`; o.style.display='flex'; }
+function clCloseOverlay(){ const o=$c('#c-overlay'); if(o){ o.style.display='none'; o.innerHTML=''; } }
+function resultDialog(score,verd){ overlayC(dlg('RetroFoot98', `<div class="cl-res"><div class="cl-res-score">${escC(score)}</div>
+  <div class="cl-res-verd">${escC(verd)}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div></div>`,{w:520,bodyClass:'cl-body-green'})); }
+function toastC(msg){ let t=$c('#c-toast'); if(!t){ t=document.createElement('div'); t.id='c-toast'; document.body.appendChild(t); }
+  const d=document.createElement('div'); d.className='cl-toast'; d.textContent=msg; t.appendChild(d); setTimeout(()=>d.remove(),2600); }
+
+/* fechar dropdown ao clicar fora */
+document.addEventListener('click',()=>{ if(CL.menu||CL.mobMenuOpen){ CL.menu=null; CL.mobMenuOpen=false; cdraw(); } });
+/* ---- atalhos de teclado pra tática rápida (formação), sem precisar abrir o menu
+   Seleccionar. F1-F6 igual ao clássico — mas o navegador intercepta F1 (Ajuda) e
+   às vezes F5 (recarregar) ANTES do JavaScript da página receber o evento, então
+   nenhum preventDefault resolve isso. Por isso as teclas 1-6 funcionam igual, sem
+   esse problema — é o atalho confiável de verdade; F1-F6 continua valendo de bônus
+   nos navegadores onde não é bloqueado. ---- */
+const FKEY_INV = Object.fromEntries(Object.entries(FKEY).map(([f,k])=>[k,f]));
+/* atalho SÓ com F1-F6 (nunca dígito puro 1-6) — dígito puro conflitava com o
+   preenchimento do valor de venda do jogador (campo "Vender" na tela do time),
+   onde digitar 1-6 pra compor o preço trocava a tática sem querer. */
+function tacticShortcutsActive(){
+  // só faz sentido trocar tática na tela principal, fora de partida ao vivo e sem menu aberto
+  return CL.screen==='main' && !CL.live && !CL.menu;
+}
+function handleTacticShortcut(key){
+  const f=FKEY_INV[key];
+  if(!f || !tacticShortcutsActive()) return false;
+  clSelFormation(f);
+  return true;
+}
+document.addEventListener('keydown', (e)=>{
+  const tag=(e.target&&e.target.tagName)||'';
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return; // não atrapalha quem tá digitando
+  if(FKEY_INV[e.key] && handleTacticShortcut(e.key)) e.preventDefault(); // evita F1=ajuda do navegador, F5=recarregar, etc.
+});
+

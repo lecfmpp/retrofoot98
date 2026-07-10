@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2f8f2f">
+<link rel="icon" type="image/webp" href="img/logo.webp">
+<link rel="apple-touch-icon" href="img/logo.webp">
+<title>RetroFoot98 — 100% Online</title>
+<link rel="stylesheet" href="src/styles/main.css"></head>
+<body>
+<div id="c-root"></div>
+<script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0"></script>
+<script async src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="src/data/match-config.js"></script>
+<script src="src/data/trophies.js"></script>
+<script src="src/data/game-data.js"></script>
+<script>
+/* ================= ELIFOOT MODERNO — Brasileirão 2026 ================= */
+/* Dados reais via Investbola/Transfermarkt. Motor: random walk 1D.        */
+
+const DATA = window.GAME_DATA;
+DATA.clubsSerieA = DATA.clubs.slice(); // guarda os 20 clubes reais da Série A antes de qualquer troca de divisão
+const $ = (s,r=document)=>r.querySelector(s);
+const el = (t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+const fmt = n => 'R$ '+(n>=1e6?(n/1e6).toFixed(n>=1e7?0:1)+'M':(n/1e3).toFixed(0)+'k');
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rnd=(a,b)=>a+Math.random()*(b-a);
+function gauss(mu,sd){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return mu+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+function vibrate(ms){try{navigator.vibrate&&navigator.vibrate(ms);}catch(e){}}
+
+/* ---- persistence (History Scars) ---- */
+const KEY='elifoot2026_save';
+let MEM=null; // in-memory fallback
+function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){MEM=JSON.stringify(S);} }
+function loadRaw(){ try{return localStorage.getItem(KEY);}catch(e){return MEM;} }
+function wipe(){ try{localStorage.removeItem(KEY);}catch(e){} MEM=null; }
+
+/* ---- global state ---- */
+let S=null;
+function freshConfig(){return {sound:true,classic:false,voice:true,elevenKey:'',commentator:'galvao',
+  profile:{ salaryMgmt:{nacionais:false,bosman:false,estrangeiros:false}, auctionPrivate:false, auctionMode:'todos' }};}
+
+/* ---- contracts, wages, player form ---- */
+const SAL_RATE=0.00060;   // weekly wage as fraction of market value (tuned)
+const INCOME_BASE=11000;  // per-round income per point of club overall (tuned for pressure)
+let SIM_SYNC=false;       // quando true, simulateMatch roda os acréscimos de forma síncrona (usado por simEvents)
+function defaultContract(p){
+  const role = p.f>=80?'Jogador Chave' : p.f>=70?'Titular Regular' : (p.age<=20?'Jovem da Base':'Rotação');
+  return { role, salary: Math.max(20000, Math.round((p.mv||1e6)*SAL_RATE)),
+    bonusGoal: p.f>=72, releaseClause: null, // multa p/ Europa só quando você concede na negociação
+    benchStreak:0, gotMatchesBonus:false };
+}
+/* ---- "Gestão de Salários" (Perfil do treinador): quando ligado, o computador reajusta
+   sozinho o salário de jogadores cuja categoria está marcada, sem precisar renovar
+   manualmente — só quando o salário atual ficou visivelmente defasado do valor de mercado. ---- */
+function autoManageSalaries(){
+  const sm=(S.config&&S.config.profile&&S.config.profile.salaryMgmt)||{};
+  if(!sm.nacionais && !sm.bosman && !sm.estrangeiros) return;
+  (S.squads[S.clubId]||[]).forEach(p=>{
+    if(!p.contract) return;
+    const isNational=(p.nat||'Brasil')==='Brasil';
+    const covered = isNational ? sm.nacionais : (sm.bosman || sm.estrangeiros);
+    if(!covered) return;
+    const fairSalary=Math.max(20000, Math.round((p.mv||1e6)*SAL_RATE));
+    if(fairSalary > p.contract.salary*1.05){
+      p.contract.salary=fairSalary;
+      p.moral=clamp((p.moral||70)+4, 0, 100);
+    }
+  });
+}
+function initStats(p){ if(!p.stats)p.stats={r3:[],g3:[],apps:0,goals:0,cs:0,yellows:0,reds:0,injuries:0};
+  if(p.suspended==null)p.suspended=0; if(p.injuredMatches==null)p.injuredMatches=0; return p; }
+
+/* ================= NORMALIZAÇÃO DEFENSIVA DE JOGADOR =================
+   Alguns elencos vêm de fontes externas (clubes reais das divisões B/C/D, importados via
+   Supabase) que às vezes só trazem a posição "real" (p.p: GOL/ZAG/LAD/LAE/VOL/MC/MEI/PD/PE/SA/CA)
+   sem o setor normalizado (p.s: GK/DEF/MID/ATT) que o motor do jogo usa pra tudo — daí a posição
+   aparecer como "undefined" (ex: em lesão/pênalti). Também corrige força fora da escala 40-95
+   (ex: nota 1-5/1-10 vinda de outra fonte), que aparecia como "1,2,2,1" no banco de reservas. */
+const POS_CODE_TO_SECTOR={ GOL:'GK', GK:'GK',
+  ZAG:'DEF', LAD:'DEF', LAE:'DEF', DEF:'DEF', ZE:'DEF', ZD:'DEF', LD:'DEF', LE:'DEF',
+  VOL:'MID', MC:'MID', MEI:'MID', MID:'MID', ME:'MID', MD:'MID',
+  PD:'ATT', PE:'ATT', SA:'ATT', CA:'ATT', ATA:'ATT', ATT:'ATT' };
+function normalizePlayerFields(p){
+  if(!({GK:1,DEF:1,MID:1,ATT:1})[p.s]){
+    p.s = POS_CODE_TO_SECTOR[String(p.p||'').toUpperCase()] || 'MID';
+  }
+  if(typeof p.f!=='number' || !isFinite(p.f) || p.f<=12){
+    p.f = Math.max(40, Math.min(95, Math.round((p.f||3)*16 + 30))); // reescala nota fora do padrão pra força 40-95
+  }
+  return p;
+}
+function fatorIdade(p){ return p.age<=19?1.5 : p.age<=23?1.15 : p.age>=31?0.7 : 1.0; }
+function isHot(p){ const st=p.stats; if(!st||st.r3.length<3)return false;
+  return st.g3.reduce((a,b)=>a+b,0)>=1 || st.r3.every(x=>x>8); }
+function fatorDesempenho(p){ return isHot(p)?1.25:1.0; }
+function computeVM(p){
+  const base = p.mv || Math.round(50000*Math.pow(p.f/50,2)); // doc força-based fallback
+  return Math.round(base*fatorIdade(p)*fatorDesempenho(p));
+}
+
+/* ================= ATRIBUTOS DO JOGADOR (escala 1–20, original) =================
+   Sistema próprio inspirado nas convenções de manager (técnico/mental/físico), NÃO
+   copiado de bases proprietárias. Cada atributo é derivado de forma determinística
+   da força real (Transfermarkt) + posição, e evolui/regride com idade e desempenho.
+   A força `f` do jogador passa a refletir a média ponderada dos atributos, então
+   quando ele melhora em campo, valoriza (mv sobe junto).                          */
+const ATTR_KEYS=['fin','pas','dri','des','cab','cru','vis','pos','com','det','vel','res','fis','agi','ref','mao'];
+const ATTR_LABEL={fin:'Finalização',pas:'Passe',dri:'Drible',des:'Desarme',cab:'Cabeceio',cru:'Cruzamento',
+  vis:'Visão de jogo',pos:'Posicionamento',com:'Compostura',det:'Determinação',
+  vel:'Velocidade',res:'Resistência',fis:'Força física',agi:'Agilidade',ref:'Reflexos (GOL)',mao:'Defesa/mãos (GOL)'};
+const ATTR_GROUP={'Técnicos':['fin','pas','dri','des','cab','cru'],'Mentais':['vis','pos','com','det'],'Físicos':['vel','res','fis','agi'],'Goleiro':['ref','mao']};
+const POS_PROFILE={
+  ATT:{fin:22,dri:15,vel:13,com:10,pos:8,pas:8,cab:7,agi:7,fis:5,res:5},
+  MID:{pas:20,vis:16,pos:11,des:10,dri:9,res:8,com:7,fin:6,vel:5,fis:4,cru:4},
+  DEF:{des:22,pos:16,cab:14,fis:12,vel:9,pas:8,com:7,agi:6,res:6},
+  GK :{ref:34,mao:30,pos:14,agi:10,pas:6,fis:6},
+};
+function forceToLevel(f){return Math.max(1,Math.min(20,Math.round((f-45)/46*13+6)));}
+function levelToForce(L){return Math.max(40,Math.min(95,Math.round((L-6)/13*46+45)));}
+function attrLevel(a,s){const prof=POS_PROFILE[s]||POS_PROFILE.MID;let sw=0,acc=0;for(const k in prof){sw+=prof[k];acc+=prof[k]*(a[k]||1);}return acc/sw;}
+function genAttrs(p){
+  const R=makeRng(hashSeed('attr',p.n,p.f,p.s));
+  const lvl=forceToLevel(p.f), prof=POS_PROFILE[p.s]||POS_PROFILE.MID, a={};
+  for(const k of ATTR_KEYS){
+    const w=prof[k]||0; let base;
+    if(w>0) base=lvl+(w>=15?2:w>=8?1:0);                                 // atributos-chave da posição: acima
+    else if((k==='ref'||k==='mao')&&p.s!=='GK') base=2+R.random()*3;     // linha: skills de goleiro baixos
+    else if(p.s==='GK'&&(k==='fin'||k==='dri'||k==='cru'||k==='cab')) base=3+R.random()*4; // goleiro: skills de linha baixos
+    else base=lvl-3+R.random()*2;                                        // fora do perfil: alguns pontos abaixo
+    a[k]=Math.max(1,Math.min(20,Math.round(base+(R.random()*2-1)*1.5)));
+  }
+  const shift=lvl-attrLevel(a,p.s);                                      // calibra: média ponderada ≈ nível da força real
+  for(const k in prof) a[k]=Math.max(1,Math.min(20,Math.round(a[k]+shift)));
+  return a;
+}
+function attachAttrs(p){ normalizePlayerFields(p);
+  if(!p.attr){ p.attr=genAttrs(p); p.f0=p.f; p.mv0=(p.mv||1e6); }
+  if(!p.behavior){ p.behavior=assignBehavior(p); p.mv=Math.round((p.mv||1e6)*(BEHAVIOR_MV_MULT[p.behavior]||1)); }
+  return p; }
+
+/* ================= COMPORTAMENTO DO JOGADOR =================
+   6 categorias, do mais agressivo ao mais comportado: Casca-Grossa, Brigão, Encrenqueiro,
+   Discreto, Manso, Exemplar. É um TRAÇO FIXO do jogador (sorteado uma vez, na
+   criação, não calculado depois a partir do histórico) que influencia de verdade:
+   - chance de cartão (Casca-Grossa toma muito mais cartão que Exemplar)
+   - chance de lesão (Discreto se machuca mais; Manso, menos)
+   - valor de mercado (Exemplar é mais caro; Casca-Grossa, mais barato)
+   A distribuição também muda por posição: zagueiro tende a comportamentos mais agressivos
+   (como na vida real), goleiro/meio/atacante tendem mais a exemplar/manso. */
+const BEHAVIOR_CARD_MULT={ 'Casca-Grossa':3.2, 'Brigão':2.4, 'Encrenqueiro':1.7, 'Discreto':1.0, 'Manso':0.75, 'Exemplar':0.4 };
+const BEHAVIOR_INJURY_MULT={ 'Discreto':1.6, 'Manso':0.55, 'Exemplar':0.85, 'Encrenqueiro':1.0, 'Brigão':1.05, 'Casca-Grossa':1.1 };
+const BEHAVIOR_MV_MULT={ 'Exemplar':1.35, 'Manso':1.05, 'Discreto':1.15, 'Encrenqueiro':0.95, 'Brigão':0.8, 'Casca-Grossa':0.65 };
+// ordem de frequência (mais comum -> menos comum) por grupo de posição
+const BEHAVIOR_DIST={
+  GK:  ['Exemplar','Manso','Discreto','Encrenqueiro','Brigão','Casca-Grossa'],
+  MID: ['Exemplar','Manso','Discreto','Encrenqueiro','Brigão','Casca-Grossa'],
+  ATT: ['Exemplar','Manso','Discreto','Encrenqueiro','Brigão','Casca-Grossa'],
+  DEF: ['Discreto','Encrenqueiro','Brigão','Casca-Grossa','Exemplar','Manso'], // zagueiro leva mais cartão na vida real
+};
+const BEHAVIOR_WEIGHTS=[30,25,20,12,8,5]; // em ordem de frequência
+function assignBehavior(p){
+  const order=BEHAVIOR_DIST[p.s]||BEHAVIOR_DIST.MID;
+  const R=makeRng(hashSeed('behavior',p.n,p.s));
+  const total=BEHAVIOR_WEIGHTS.reduce((a,b)=>a+b,0);
+  let r=R.random()*total;
+  for(let i=0;i<order.length;i++){ r-=BEHAVIOR_WEIGHTS[i]; if(r<=0) return order[i]; }
+  return order[order.length-1];
+}
+/* evolução/regressão por rodada: idade define potencial de crescer/declinar; desempenho
+   recente (nota média) e minutos definem o ganho. Recalcula força e valor de mercado. */
+function evolvePlayer(p, R, played){
+  if(!p.attr){ attachAttrs(p); }
+  const a=p.attr, age=p.age||26;
+  const form=(p.stats&&p.stats.r3.length)?p.stats.r3.reduce((x,y)=>x+y,0)/p.stats.r3.length:6.5;
+  const goals3=(p.stats&&p.stats.g3)?p.stats.g3.reduce((x,y)=>x+y,0):0; // gols nas últimas partidas — valoriza mais rápido, não só a nota média
+  const growth = age<=20?1.0 : age<=23?0.7 : age<=27?0.35 : age<=30?0.10 : 0;
+  const decline = age>=33?0.55 : age>=31?0.32 : age>=29?0.12 : 0;
+  const prof=POS_PROFILE[p.s]||POS_PROFILE.MID, keys=Object.keys(prof);
+  let changed=false;
+
+  /* banco prolongado: quem não joga perde ritmo, independente da idade. p.contract só
+     existe pro elenco do próprio usuário (newGame só chama defaultContract nele) — clubes
+     da CPU usam um p.benchStreak solto no próprio jogador pra cobrir o mesmo caso. */
+  const bsBefore=(p.contract?p.contract.benchStreak:p.benchStreak)||0;
+  const benchStreak = played?0:bsBefore+1;
+  if(p.contract) p.contract.benchStreak=benchStreak; else p.benchStreak=benchStreak;
+
+  if(played && form>=6.8 && growth>0){
+    // títulos/temporadas na elite acumulados (ver p.career, atualizado em endSeason) dão uma
+    // vantagem extra e modesta de crescimento — jogador "consagrado" evolui um pouco mais rápido.
+    const careerBonus=1+Math.min(0.5,((p.career&&p.career.titles)||0)*0.08+((p.career&&p.career.seasonsTopDiv)||0)*0.02);
+    const golBonus=Math.min(0.08, goals3*0.03);          // artilheiro em fase boa valoriza um pouco mais rápido que só a nota
+    const chance = growth*((form-6.8)/2.2+golBonus)*careerBonus;
+    for(let i=0;i<2;i++){ const k=keys[R.int(keys.length)]; if(a[k]<20 && R.random()<chance){ a[k]++; changed=true; } }
+  }
+  if(decline>0){
+    for(const k of ['vel','agi','res']){ if(a[k]>1 && R.random()<decline*0.22){ a[k]--; changed=true; } }
+  }
+  // 4+ rodadas seguidas fora do XI: declínio leve espalhado por QUALQUER atributo do perfil
+  // da posição (não só os físicos do declínio por idade) — perda de ritmo de jogo.
+  if(benchStreak>=4){
+    const chance=Math.min(0.25,(benchStreak-3)*0.05);
+    const k=keys[R.int(keys.length)];
+    if(a[k]>1 && R.random()<chance){ a[k]--; changed=true; }
+  }
+  if(changed){
+    p.f=levelToForce(attrLevel(a,p.s));
+    const ratio=Math.max(0.4,Math.min(3,Math.pow(p.f/(p.f0||p.f||60),2)));
+    p.mv=Math.round((p.mv0||p.mv||1e6)*ratio);
+  }
+}
+
+/* strength → segments (out of max) */
+function segBar(val,max,segs,cls){
+  const on=Math.round((clamp(val,0,max)/max)*segs);
+  let h='';for(let i=0;i<segs;i++)h+=`<span class="seg${i<on?' on':''}"></span>`;
+  return `<span class="bar ${cls||''}">${h}</span>`;
+}
+
+/* ====================== SCHEDULE (double round-robin) ====================== */
+function makeSchedule(ids){
+  const teams=ids.slice(); if(teams.length%2)teams.push(null);
+  const n=teams.length, rounds=[];
+  let arr=teams.slice();
+  for(let r=0;r<n-1;r++){
+    const rr=[];
+    for(let i=0;i<n/2;i++){
+      const a=arr[i], b=arr[n-1-i];
+      if(a&&b) rr.push(r%2? [b,a]:[a,b]);
+    }
+    rounds.push(rr);
+    arr.splice(1,0,arr.pop());
+  }
+  // second leg (reversed home/away)
+  const second=rounds.map(rr=>rr.map(([a,b])=>[b,a]));
+  return rounds.concat(second);
+}
+
+/* ====================== NEW GAME ====================== */
+function newGame(clubId, division, compToggle){
+  division = division || 'A';
+  compToggle = compToggle || {libertadores:true, copaBrasil:true, sulamericana:true};
+  PROC_USED_NAMES=new Set(); // novo save -> zera o controle de nomes procedurais únicos
+  const ids=DATA.clubs.map(c=>c.id);
+  const sched=makeSchedule(ids);
+  const table={};
+  DATA.clubs.forEach(c=>table[c.id]={id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
+  // deep clone squads so morale/energy mutate independently
+  const squads={};
+  DATA.clubs.forEach(c=>squads[c.id]=c.squad.map(p=>attachAttrs(initStats({...p}))));
+  squads[clubId].forEach(p=>p.contract=defaultContract(p));
+  const squadValue=squads[clubId].reduce((s,p)=>s+(p.mv||1e6),0);
+  const seed=(Math.random()*0x7fffffff)>>>0;
+  const budget=Math.round(squadValue*makeRng(hashSeed(seed,'budget',clubId)).rnd(0.10,0.18));
+  S={
+    clubId, season:2026, round:0, day:1, week:1, seed,
+    division,               // divisão escolhida na tela de países (A/B/C/D)
+    compToggle:{...compToggle}, // quais copas internacionais estão ligadas neste save
+    budget,
+    tactic:'equilibrado',
+    sched, table, squads,
+    results:[],           // per round: [{h,a,hg,ag,scorers:[]}]
+    scorers:{},           // ticker/name -> goals
+    xi:null,
+    negos:[],             // active transfer negotiations
+    auctionPool:{round:0,picks:[]}, // leilão de jogadores de outros clubes
+    story:[],             // story log
+    finances:[],          // últimas transações (capado — só pro log "recentes" da aba Finanças)
+    seasonTotals:{income:0,salaries:0,bonuses:0,playerSales:0,playerPurchases:0,stadium:0}, // acumulado da temporada INTEIRA, sem cap (ver pushFinanceEntry) — é o que a aba Finanças soma pros totais
+    roundNews:[],          // this round's inbox (roles, europe raids)
+    pendingEvent:null,
+    history:[],           // consolidated past seasons (History Scars)
+    allTimeScorers:{},    // artilharia acumulada entre temporadas deste save (nunca zera)
+    coachHistory:[],      // carreira do treinador (ingresso, acessos, quedas...) — persiste com o save
+    jobSecurity:60,       // 0-100: segurança no cargo — converge pra posição na tabela a cada rodada
+    coachSalary:0,        // salário do treinador (renova a cada ano se não for demitido)
+    roundsSinceFired:null, // contador de rodadas desde demissão (null = nunca foi demitido, 0-inf = rodadas desde)
+    pendingJobOffers:[],   // array com ofertas pendentes de outros clubes
+    clubPool:{}, divisionClubs:{}, // registro persistente de clubes por divisão (promoção/rebaixamento real)
+    clubXI:{},             // Resenha: última escalação conhecida de cada clube humano (ver availableXI)
+    config: freshConfig(),
+    finished:false,
+  };
+  S.xi = autoXI(clubId);
+  registerClubs(division, DATA.clubs); // fixa a composição inicial da divisão do usuário
+  refreshAuctionPool();
+  buildOtherDivisions();
+  // primeira temporada (2026): usa a classificação REAL de Libertadores/Sul-Americana
+  // (Brasileirão 2025 + Copa do Brasil 2025 de verdade), não um proxy por força — assim o
+  // calendário 2026 já nasce igual à vida real (ver real2026Qualification). Copa do Brasil
+  // roda pra QUALQUER divisão (reúne clubes de A/B/C/D); Libertadores/Sul-Americana
+  // continuam só pra quem está na Série A, já que só ela classifica pras copas continentais.
+  const initQual = (division==='A') ? real2026Qualification() : {libertadores:[],sulamericana:[]};
+  initSeasonCups(initQual, compToggle);
+  save();
+}
+
+function clubOf(id){
+  let c=DATA.clubs.find(x=>x.id===id);
+  if(c) return c;
+  if(S && S.otherDivs){ for(const d in S.otherDivs){ c=S.otherDivs[d].clubs.find(x=>x.id===id); if(c) return c; } }
+  if(S && S.intlClubs && S.intlClubs[id]) return S.intlClubs[id];
+  return c;
+}
+function squad(id){return S.squads[id];}
+
+/* ====================== BEST XI (4-3-3-ish by sector) ====================== */
+function autoXI(id){
+  const sq=squad(id).filter(p=>!(p.suspended>0)&&!(p.injuredMatches>0)).sort((a,b)=>b.f-a.f);
+  const pick=(sec,n)=>sq.filter(p=>p.s===sec).slice(0,n);
+  const gk=pick('GK',1), df=pick('DEF',4), md=pick('MID',3), at=pick('ATT',3);
+  let xi=[...gk,...df,...md,...at];
+  if(xi.length<11){ // fill from best remaining
+    const have=new Set(xi.map(p=>p.n));
+    for(const p of sq){if(xi.length>=11)break;if(!have.has(p.n))xi.push(p);}
+  }
+  return xi.slice(0,11).map(p=>p.n);
+}
+function xiPlayers(id){const names=new Set(S.xi);return squad(id).filter(p=>names.has(p.n));}
+
+/* team sector ratings from CURRENT best XI + morale/energy */
+function ratings(id, useXI){
+  const avail=squad(id).filter(p=>!(p.suspended>0)&&!(p.injuredMatches>0));
+  const xiAvail=(id===S.clubId)?xiPlayers(id).filter(p=>!(p.suspended>0)&&!(p.injuredMatches>0)):null;
+  const players = (id===S.clubId && useXI)? (xiAvail.length?xiAvail:avail.slice().sort((a,b)=>b.f-a.f).slice(0,11)) : avail.slice().sort((a,b)=>b.f-a.f).slice(0,11);
+  const bySec=s=>players.filter(p=>p.s===s);
+  const avg=a=>a.length?a.reduce((s,p)=>s+p.f*(0.6+0.4*p.energy/100),0)/a.length:55;
+  let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avg(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
+  // morale coupling
+  const mor=teamMorale(id,players);
+  if(mor<50){OS*=0.85;MS*=0.85;DS*=0.85;}
+  return {OS,MS,DS,mor};
+}
+function teamMorale(id,players){
+  players=players||xiPlayers(id);
+  if(!players.length)return 70;
+  return players.reduce((s,p)=>s+p.moral,0)/players.length;
+}
+
+</script>
+<script src="src/engine/simulate.js"></script>
+<script src="src/engine/core.js"></script>
+<script src="src/ui/main.js"></script>
+<script src="src/net/local-transport.js"></script>
+<script src="src/net/supabase-adapter.js"></script>
+<script>
+/* init online ao carregar */
+document.addEventListener('DOMContentLoaded',async ()=>{
+  let sala=null; try{ sala=new URLSearchParams(location.search).get('sala'); }catch(e){}
+  // link de recuperação de senha (#access_token=...&type=recovery no hash, ou ?code=...&type=recovery
+  // se PKCE) — precisa criar o client Supabase JÁ, na carga da página, pra ele detectar o hash/código
+  // e disparar o evento PASSWORD_RECOVERY (ver netInitSupabase); senão o app ia direto pra splash
+  // normal e o link do e-mail não faria nada.
+  let isRecovery=false; try{ isRecovery = location.hash.includes('type=recovery') || new URLSearchParams(location.search).get('type')==='recovery'; }catch(e){}
+  if(isRecovery){
+    try{ await netInitSupabase(); }catch(e){ console.warn('Supabase init (recovery) erro:', e); }
+    if(CL.screen!=='resetpassword') cdraw(); // fallback se o evento não disparar a tempo
+  }
+  else if(sala && typeof clOnlineJoin==='function'){
+    clOnlineJoin(sala.toUpperCase());
+    /* aguarda init Supabase se online */
+    try{ await netInitSupabase(); NET.useSupabase=true; }catch(e){ console.warn('Supabase fallback para local'); }
+  }
+  else cdraw();
+  if(typeof onlineTimerLoop==='function') onlineTimerLoop();
+});
+</script>
+</body></html>
