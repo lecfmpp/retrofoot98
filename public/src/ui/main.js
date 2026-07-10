@@ -1235,13 +1235,18 @@ function clEscalaDoSwap(){
 function clEscalaCancel(){ CL.preSubOut=null; CL.preSubIn=null; clCloseOverlay(); cdraw(); }
 function clJogar(){
   if(!CL.tacticChosen){ toastC('Escolha a tática no menu Seleccionar primeiro.'); CL.tab='seleccao'; cdraw(); return; }
-  // semana de avanço de copa com partida do clube pendente: joga a(s) copa(s) primeiro
-  // (fila, pode ter mais de uma — ex: Copa do Brasil + Libertadores na mesma semana), só
-  // depois libera a rodada — ver pendingUserCupMatches/clCupResultContinue. Vale pros dois
-  // modos: online já vem filtrado (pendingUserCupMatches exclui confronto humano x humano
-  // da mesma sala, resolvido em segundo plano igual sempre foi).
+  // semana de avanço de copa com partida do clube pendente: joga a copa primeiro, só
+  // depois libera a rodada — ver pendingUserCupMatches/clCupResultContinue. Se houver
+  // mais de uma competição pendente na mesma semana (ex: Copa do Brasil + Libertadores),
+  // jogamos só a PRIMEIRA agora — ao voltar pra tela principal, pendingUserCupMatches()
+  // já não vai mais incluir essa (foi resolvida), e o próximo clique em "Jogar" pega a
+  // seguinte. Isso garante que o jogador sempre passa pela tela de escalação de novo
+  // antes de cada partida, mesmo dentro da mesma rodada/semana — nunca encadeamos duas
+  // partidas ao vivo direto uma atrás da outra. Vale pros dois modos: online já vem
+  // filtrado (pendingUserCupMatches exclui confronto humano x humano da mesma sala,
+  // resolvido em segundo plano igual sempre foi).
   const cupQueue=pendingUserCupMatches();
-  if(cupQueue.length){ CL._pendingCupQueue=cupQueue.slice(1); startCupLiveMatch(cupQueue[0]); return; }
+  if(cupQueue.length){ startCupLiveMatch(cupQueue[0]); return; }
   // nenhuma partida de copa pra JOGAR nesta rodada — mas pode ter rodada de copa
   // rolando de competições das quais o usuário não participa (ou já foi eliminado);
   // oferece assistir, uma competição de cada vez, antes de liberar a rodada de liga.
@@ -2142,11 +2147,12 @@ function finishCupLiveMatch(){
 }
 function clCupResultContinue(){
   clCloseOverlay(); CL.live=null;
-  const queue=CL._pendingCupQueue||[];
-  if(queue.length){ startCupLiveMatch(queue.shift()); return; }
-  CL._pendingCupQueue=null;
-  // todas as partidas de copa ao vivo desta rodada terminaram — mostra a classificação/
-  // chaveamento de CADA competição que teve jogo agora, uma tela por vez, pro jogador se
+  // nunca encadeia direto pra próxima partida de copa aqui, mesmo que já tenha outra
+  // pendente (ex: Copa do Brasil + Libertadores na mesma semana) — cada partida tem que
+  // passar pela tela principal antes da próxima, pro jogador rever/confirmar a escalação
+  // em vez de jogar duas competições seguidas com o mesmo time sem escolher nada. Se
+  // sobrar copa pendente, o próximo "Jogar" na tela principal pega ela (ver clJogar()).
+  // mostra a classificação/chaveamento da competição que teve jogo agora, pro jogador se
   // situar (igual já fazemos com a tabela de Séries A/B/C/D depois da rodada de liga).
   const classifQueue=(CL._cupResultKeysThisRound||[]).slice();
   CL._cupResultKeysThisRound=null;
