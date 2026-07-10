@@ -318,7 +318,14 @@ function autoXI(id){
   }
   return xi.slice(0,11).map(p=>p.n);
 }
-function xiPlayers(id){const names=new Set(S.xi);return squad(id).filter(p=>names.has(p.n));}
+/* defensivo: se por acaso dois jogadores do mesmo elenco tiverem o nome idêntico (não
+   deveria mais acontecer — dados de jogadores já foram deduplicados —, mas o motor
+   identifica escalação por nome, não por ID, então uma futura duplicata acidental num
+   elenco gerado proceduralmente voltaria a causar isso), só pega a PRIMEIRA ocorrência
+   de cada nome — sem isso, dois jogadores homônimos apareciam marcados ao mesmo tempo no
+   seletor de pênalti mesmo só um deles estando de fato escalado. */
+function xiPlayers(id){const names=new Set(S.xi);const seen=new Set();
+  return squad(id).filter(p=>{ if(!names.has(p.n)||seen.has(p.n)) return false; seen.add(p.n); return true; });}
 
 /* team sector ratings from CURRENT best XI + morale/energy */
 function ratings(id, useXI){

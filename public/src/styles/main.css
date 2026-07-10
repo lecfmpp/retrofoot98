@@ -284,7 +284,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-cal-draw{background:#3a3aa0!important;color:#fff!important;font-style:italic}
 .cl-cal-ok{display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:14px}
 .cl-cls{width:600px}
-.cl-cls-head,.cl-cls-row{display:grid;grid-template-columns:32px 1fr 34px 34px 34px 34px 60px 40px 120px;padding:3px 8px;font-size:13px;align-items:center}
+.cl-cls-head,.cl-cls-row{display:grid;grid-template-columns:32px 1fr 40px 34px 34px 34px 40px 40px 120px;padding:3px 8px;font-size:13px;align-items:center}
 .cl-cls-head{font-weight:700;background:#e0e0e0;position:sticky;top:0}
 .cl-cls-row.me{background:#fff7cc}
 .cl-cls-num{text-align:center}.cl-cls-num.b{font-weight:700}
@@ -396,7 +396,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-lsc{display:flex;gap:16px;justify-content:center;font-family:var(--mono);font-weight:800;font-size:16px;color:#fff}
 .cl-lgoal{color:var(--yellow);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cl-live-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:40;padding:20px 0}
-.cl-live-modal{width:640px;max-width:92vw;max-height:90vh;overflow-y:auto;background:var(--navy);padding:3px;box-shadow:0 20px 60px -10px rgba(0,0,0,.6)}
+.cl-live-modal{width:640px;max-width:92vw;max-height:90vh;overflow-y:auto;background:var(--navy);padding:3px;box-shadow:0 20px 60px -10px rgba(0,0,0,.6);animation:cl-modal-fadein .16s ease}
+/* só dispara quando o nó do modal é recriado de fato (troca de estado: lesão resolvida,
+   pênalti fechado, intervalo, "Continuar") — os ticks normais do jogo usam updateLive()
+   (atualização pontual via querySelector), não recriam este elemento, então essa
+   animação não repete a cada rodada de relógio; só suaviza a "travadinha" da troca. */
+@keyframes cl-modal-fadein{from{opacity:.35}to{opacity:1}}
 .cl-lm-title{background:var(--navy);color:#fff;font-weight:800;text-align:center;padding:6px;font-size:15px}
 .cl-lm-top{display:flex;align-items:flex-start;gap:14px;background:var(--chrome);padding:14px 16px;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);border-bottom:none}
 /* incidentes (gols/cartões/lesões) acumulam a partida inteira — sem teto, essa coluna
@@ -554,10 +559,16 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-sel-escala-note{color:#ccc;font-size:12px;line-height:1.4;margin-bottom:8px}
 .cl-rrow.swap-out{background:var(--yellow);color:#000;font-weight:800}
 .cl-escala-confirm{padding:10px 4px;font-size:15px;text-align:center}
+.cl-escala-warn{margin-top:8px;font-size:12px;font-weight:700;color:#a15c00}
 /* Classificação (fim de rodada) */
 /* ranking pós-rodada: DESKTOP mostra as 4 divisões expandidas em grade 2x2 (há espaço);
    MOBILE vira accordion vertical (divisão do usuário aberta, outras colapsadas). */
 .cl-clsacc-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;max-width:920px;margin:8px auto 0;padding:0 16px;align-items:start}
+/* lista simples de linhas (uma tabela só, sem accordions por divisão) — diferente de
+   .cl-clsacc-wrap, que é uma grade 2x2 pensada pra vários PAINÉIS lado a lado; usar aquela
+   aqui espalhava cada linha da tabela em duas colunas, cortando nomes e embaralhando a
+   ordem visualmente. */
+.cl-seasontbl-wrap{display:flex;flex-direction:column}
 .cl-clsacc{border:1px solid var(--navy);background:rgba(0,0,0,.15)}
 .cl-clsacc-h{display:flex;align-items:center;justify-content:space-between;gap:6px;background:var(--navy);color:var(--yellow);font-weight:800;font-size:15px;padding:8px 12px;user-select:none}
 .cl-clsacc-h-title{display:flex;align-items:center;gap:6px}
@@ -565,10 +576,10 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-clsacc-h .cl-acc-arrow{display:none}
 .cl-clsacc-body{padding:4px}
 .cl-acc-you{background:var(--yellow);color:#000;font-size:10px;font-weight:800;padding:1px 6px;border-radius:3px;margin-left:6px;vertical-align:middle}
-.cl-cls2-head{display:grid;grid-template-columns:22px 1fr 20px 20px 20px 50px 24px;align-items:center;gap:3px;padding:1px 7px;color:#cfe;font-weight:800;font-size:10.5px}
-.cl-cls2-head.hasqual,.cl-cls2-row.hasqual{grid-template-columns:22px 1fr 20px 20px 20px 50px 24px 34px}
+.cl-cls2-head{display:grid;grid-template-columns:24px 1fr 30px 22px 22px 22px 28px 28px;align-items:center;gap:4px;padding:3px 7px;color:#cfe;font-weight:800;font-size:11px}
+.cl-cls2-head.hasqual,.cl-cls2-row.hasqual{grid-template-columns:24px 1fr 30px 22px 22px 22px 28px 28px 34px}
 .cl-cls2-head .cl-cls2-n{color:#cfe}
-.cl-cls2-row{display:grid;grid-template-columns:22px 1fr 20px 20px 20px 50px 24px;align-items:center;gap:3px;padding:0 7px;font-weight:700;font-size:11px;line-height:1.2;border:1px solid rgba(0,0,0,.2)}
+.cl-cls2-row{display:grid;grid-template-columns:24px 1fr 30px 22px 22px 22px 28px 28px;align-items:center;gap:4px;padding:3px 7px;font-weight:700;font-size:12px;line-height:1.2;border:1px solid rgba(0,0,0,.2)}
 .cl-cls2-row.me{outline:2px solid var(--yellow);outline-offset:-2px}
 .cl-cls2-zone{text-align:center;font-size:9px;font-weight:800;border-radius:3px;padding:2px 0;line-height:1.1}
 .cl-cls2-zone.zone-lib{background:#2f8f2f;color:#fff}
@@ -577,6 +588,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-cls2-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cl-cls2-x{text-align:center;font-family:var(--mono)}
 .cl-cls2-x.b{font-weight:800}
+.cl-cls2-pts{text-align:center;font-family:var(--mono);font-weight:900;color:var(--yellow);background:rgba(0,0,0,.18);border-radius:3px}
+.cl-cls2-head .cl-cls2-pts{color:var(--yellow);background:transparent}
 .cl-cls2-gf{text-align:center;font-family:var(--mono)}
 /* tabela de histórico temporada-a-temporada (Treinador > História, Equipa > Historial) —
    colunas de largura variável (nomes de fase eliminatória são texto, não número), por
@@ -593,6 +606,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-classif-ok{max-width:640px;margin:10px auto;padding:0 10px;display:flex;flex-direction:column;gap:8px}
 .cl-classif-ok .cl-btn{width:100%;justify-content:center}
 .cl-classif-buttons{display:flex;justify-content:flex-end;gap:10px;max-width:920px;margin:0 auto;padding:12px 16px}
+.cl-classif-autohint{text-align:center;font-size:11px;color:rgba(255,255,255,.55);margin:-8px 0 4px}
 /* ONLINE — conta / sala / lobby */
 .cl-online-cta{margin-top:16px;text-align:center}
 .cl-btn-online{background:#0b7a2f !important;color:#fff !important;border-color:#3fcf6a #063d18 #063d18 #3fcf6a !important;font-weight:800;padding:12px 20px}
@@ -859,6 +873,6 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-clsacc-h{cursor:pointer}
   .cl-clsacc-h .cl-acc-arrow{display:inline-block}
   .cl-clsacc.collapsed .cl-clsacc-body{display:none}
-  .cl-cls2-head,.cl-cls2-row{grid-template-columns:22px 1fr 22px 22px 22px 52px 26px;font-size:12px}
-  .cl-cls2-head.hasqual,.cl-cls2-row.hasqual{grid-template-columns:22px 1fr 22px 22px 22px 52px 26px 40px}
+  .cl-cls2-head,.cl-cls2-row{grid-template-columns:22px 1fr 32px 24px 24px 24px 30px 30px;font-size:12px}
+  .cl-cls2-head.hasqual,.cl-cls2-row.hasqual{grid-template-columns:22px 1fr 32px 24px 24px 24px 30px 30px 40px}
 }

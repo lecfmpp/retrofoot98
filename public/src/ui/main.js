@@ -196,11 +196,11 @@ const FEATURES=[
 ];
 function scAbertura(){
   const chips=FEATURES.map(f=>`<div class="cl-chip"><img class="cl-chip-badge" src="${f.img}" width="500" height="500" alt="${escC(f.t)}" draggable="false"></div>`).join('');
-  return dlg('Acerca', `
+  return dlg('Bem-vindo', `
     <div class="cl-about">
       <div class="cl-online">🟢 100% Online</div>
       <div class="cl-about-ver">v2026.01</div>
-      <div class="cl-about-sub">o clássico da sua infância, agora online e com os amigos</div>
+      <div class="cl-about-sub">O clássico da sua infância, agora online e com os amigos</div>
       <div class="cl-chips">${chips}</div>
       <div class="cl-about-enter">${btn('Entrar','clGoModo()',{icon:'✔',cls:'cl-btn-ok cl-btn-big'})}</div>
     </div>`, {w:760,bodyClass:'cl-body-green'});
@@ -680,7 +680,7 @@ function scMain(){
     ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
   </div>`;
   const tabs=['jogo','jogador','financas','seleccao','adversario'];
-  const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Selecção',adversario:'Adversário'};
+  const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',adversario:'Adversário'};
   const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')">${tabLbl[t]}</span>`).join('')}</div>`;
   let panel='';
   if(CL.tab==='jogo') panel=panJogo(oppId,home,uf);
@@ -730,7 +730,7 @@ function rosterHTML(){
       const marked=escala && CL.preSubOut===p.n;
       const selc=!escala && CL.selPlayer===p.n;
       const unavail=p.suspended>0||p.injuredMatches>0;
-      const badge=p.suspended>0?'🟥':(p.injuredMatches>0?'✚':'');
+      const badge=p.suspended>0?'🟥':(p.injuredMatches>0?'✚'+p.injuredMatches:'');
       const onclickFn=escala?`clEscalaPick('${escC(p.n)}')`:`clSelPlayer('${escC(p.n)}')`;
       return `<div class="cl-rrow ${selc?'sel':''} ${marked?'swap-out':''} ${unavail?'unavail':''}" style="${selc?'':`color:${th.txt}`}" onclick="${onclickFn}">
         <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
@@ -808,7 +808,7 @@ function viewRosterHTML(clubId){
   groups.forEach(([sec])=>{ const list=sq.filter(p=>p.s===sec);
     html+=`<div class="cl-rgroup">`+list.map(p=>{const selc=CL.viewSelPlayer===p.n;
       const unavail=p.suspended>0||p.injuredMatches>0;
-      const badge=p.suspended>0?'🟥':(p.injuredMatches>0?'✚':'');
+      const badge=p.suspended>0?'🟥':(p.injuredMatches>0?'✚'+p.injuredMatches:'');
       return `<div class="cl-rrow ${selc?'sel':''} ${unavail?'unavail':''}" onclick="clViewSelPlayer('${escC(p.n)}')">
         <span class="cl-rmark"></span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
@@ -1235,9 +1235,14 @@ function clEscalaPick(name){
   const outP=findP(CL.preSubOut,CL.clubId), inP=findP(name,CL.clubId);
   if(!outP||!inP) return;
   if(inP.suspended>0||inP.injuredMatches>0){ toastC('Esse jogador não está disponível.'); return; }
-  if(outP.s!==inP.s){ toastC('Só pode trocar por um reserva da mesma posição ('+posLetter(outP.s)+').'); return; }
   CL.preSubIn=name;
-  overlayC(dlg('Trocar titular', `<div class="cl-escala-confirm">Você quer trocar <b>${escC(outP.n)}</b> por <b>${escC(inP.n)}</b>?</div>
+  // troca livre entre qualquer posição (ex: colocar um meia no lugar de um zagueiro
+  // machucado) — antes travava com "só mesma posição", forçando o time a jogar com um a
+  // menos mesmo tendo reservas disponíveis noutra posição. Só avisa quando é fora de
+  // posição, não impede mais.
+  const offPos=outP.s!==inP.s;
+  overlayC(dlg('Trocar titular', `<div class="cl-escala-confirm">Você quer trocar <b>${escC(outP.n)}</b> por <b>${escC(inP.n)}</b>?
+    ${offPos?`<div class="cl-escala-warn">⚠ ${escC(inP.n)} joga de ${posLetter(inP.s)} — fora da posição de ${posLetter(outP.s)}</div>`:''}</div>
     <div class="cl-jog-actions">${btn('Sim','clEscalaDoSwap()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Desistir','clEscalaCancel()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
     {w:420,bodyClass:'cl-body-gray',min:true}));
 }
@@ -1729,7 +1734,9 @@ function liveScoreCells(m){ return `<b>${m.hg}</b><b>${m.ag}</b>`; }
 /* ---- accordion por divisão (ranking + jogos ao vivo): a divisão do usuário
    fica no topo e aberta por padrão; as outras começam colapsadas. ---- */
 function divAccOpen(key,d){ const st=CL[key]; if(st && st[d]!=null) return st[d]; return d===S.division; }
-function clToggleDivAcc(key,d){ if(!CL[key]){ CL[key]={}; DIV_ORDER.forEach(x=>CL[key][x]=(x===S.division)); } CL[key][d]=!CL[key][d]; cdraw(); }
+function clToggleDivAcc(key,d){ if(!CL[key]){ CL[key]={}; DIV_ORDER.forEach(x=>CL[key][x]=(x===S.division)); } CL[key][d]=!CL[key][d];
+  if(CL.screen==='classif') armClassifTimer();
+  cdraw(); }
 function divOrderUserFirst(){ return [S.division, ...DIV_ORDER.filter(d=>d!==S.division)]; }
 function scLive(){ const RL=CL.live; if(!RL) return '';
   const rowHTML=(m,i)=>{const hc=clubOf(m.h),ac=clubOf(m.a);
@@ -1938,9 +1945,15 @@ function subPanelHTML(m){ const id=CL.clubId; const xiSet=new Set(S.xi||[]); con
 function showLiveClassif(){ CL.screen='classif';
   // reseta o accordion pra sempre abrir na divisão do usuário ao mostrar o ranking
   CL.clsDivOpen=null;
-  if(CL._classifTimer){ clearTimeout(CL._classifTimer); CL._classifTimer=null; }
+  armClassifTimer();
   cdraw();
-  // sem auto-fechar: o ranking agora é interativo (accordions) e fecha no botão "Continuar"
+}
+/* avança sozinho pra próxima tela depois de 10s sem interação — o "Continuar" continua
+   disponível pra quem quiser passar na hora. Reabrir/fechar um accordion (clToggleDivAcc)
+   reinicia a contagem, já que isso mostra que o jogador ainda está lendo a tabela. */
+function armClassifTimer(){
+  if(CL._classifTimer){ clearTimeout(CL._classifTimer); CL._classifTimer=null; }
+  CL._classifTimer=setTimeout(()=>{ CL._classifTimer=null; if(CL.screen==='classif') liveDone(); }, 10000);
 }
 /* tabela genérica pra qualquer divisão (a do usuário OU uma das 3 que rodam em segundo plano) */
 function sortedTableOf(table){
@@ -1959,15 +1972,15 @@ function scClassif(){
       const zoneCell = hasQual ? `<span class="cl-cls2-zone ${zone?'zone-'+zone:''}" title="${zone==='lib'?'Libertadores':zone==='sul'?'Sul-Americana':''}">${zone==='lib'?'Lib':zone==='sul'?'Sul':''}</span>` : '';
       return `<div class="cl-cls2-row ${me?'me':''} ${hasQual?'hasqual':''}" style="${clubStripe(c)}">
         <span class="cl-cls2-pos">${i+1}</span><span class="cl-cls2-n">${escC(c.short)}</span>
-        <span class="cl-cls2-x">${t.W}</span><span class="cl-cls2-x">${t.D}</span><span class="cl-cls2-x">${t.L}</span>
-        <span class="cl-cls2-gf">${t.GF} : ${t.GA}</span><span class="cl-cls2-x b">${t.Pts}</span>${zoneCell}</div>`; }).join('')
+        <span class="cl-cls2-pts">${t.Pts}</span><span class="cl-cls2-x">${t.W}</span><span class="cl-cls2-x">${t.D}</span><span class="cl-cls2-x">${t.L}</span>
+        <span class="cl-cls2-x">${t.GF}</span><span class="cl-cls2-x">${t.GA}</span>${zoneCell}</div>`; }).join('')
       : '<div class="cl-cls2-empty">—</div>';
     return `<div class="cl-clsacc ${open?'open':'collapsed'}">
       <div class="cl-clsacc-h" onclick="event.stopPropagation();clToggleDivAcc('clsDivOpen','${d}')">
         <span class="cl-clsacc-h-title">${divisionTrophyImg(d,18)||'🏆'} ${legend[d]}${isMine?' <span class="cl-acc-you">você</span>':''}</span>
         <span class="cl-acc-arrow ${open?'':'closed'}">▾</span></div>
       <div class="cl-clsacc-body">
-        <div class="cl-cls2-head ${hasQual?'hasqual':''}"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-gf">G</span><span class="cl-cls2-x">P</span>${hasQual?'<span></span>':''}</div>
+        <div class="cl-cls2-head ${hasQual?'hasqual':''}"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-pts">P</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-x">GP</span><span class="cl-cls2-x">GC</span>${hasQual?'<span></span>':''}</div>
         ${rows}</div></div>`;
   };
   return `<div class="cl-live cl-classif">
@@ -1975,6 +1988,7 @@ function scClassif(){
       ${btn('Compartilhar','clShareStandings()',{icon:'📤',cls:'cl-btn-cancel cl-btn-sm cl-noshot'})}
       ${btn('Continuar','liveDone()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})}
     </div>
+    <div class="cl-classif-autohint">avança sozinho em alguns segundos...</div>
     <div class="cl-live-top">Classificação - ${S.round}ª jornada</div>
     <div class="cl-clsacc-wrap">${divOrderUserFirst().map(panelHTML).join('')}</div>
   </div>`;
@@ -2003,13 +2017,13 @@ function seasonEndDialog(){
     const zoneCell = hasQual ? `<span class="cl-cls2-zone ${zone?'zone-'+zone:''}" title="${zone==='lib'?'Libertadores':zone==='sul'?'Sul-Americana':''}">${zone==='lib'?'Lib':zone==='sul'?'Sul':''}</span>` : '';
     return `<div class="cl-cls2-row ${me?'me':''} ${hasQual?'hasqual':''}" style="${clubStripe(c)}">
       <span class="cl-cls2-pos">${i+1}</span><span class="cl-cls2-n">${escC(c.short)}</span>
-      <span class="cl-cls2-x">${t.W}</span><span class="cl-cls2-x">${t.D}</span><span class="cl-cls2-x">${t.L}</span>
-      <span class="cl-cls2-gf">${t.GF} : ${t.GA}</span><span class="cl-cls2-x b">${t.Pts}</span>${zoneCell}</div>`; }).join('');
+      <span class="cl-cls2-pts">${t.Pts}</span><span class="cl-cls2-x">${t.W}</span><span class="cl-cls2-x">${t.D}</span><span class="cl-cls2-x">${t.L}</span>
+      <span class="cl-cls2-x">${t.GF}</span><span class="cl-cls2-x">${t.GA}</span>${zoneCell}</div>`; }).join('');
   overlayC(dlg('Fim da temporada!', `<div class="cl-res">
     <div class="cl-res-score">${escC(champ)} é campeão</div>
     <div class="cl-res-verd">Você terminou em ${myPos}º na ${escC(divisionLabel())}${qualMsg?'<br>'+escC(qualMsg):''}</div>
-    <div class="cl-clsacc-wrap" style="max-height:340px;overflow-y:auto;margin-top:10px">
-      <div class="cl-cls2-head ${hasQual?'hasqual':''}"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-gf">G</span><span class="cl-cls2-x">P</span>${hasQual?'<span></span>':''}</div>
+    <div class="cl-seasontbl-wrap" style="max-height:340px;overflow-y:auto;margin-top:10px">
+      <div class="cl-cls2-head ${hasQual?'hasqual':''}"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-pts">P</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-x">GP</span><span class="cl-cls2-x">GC</span>${hasQual?'<span></span>':''}</div>
       ${rows}
     </div>
     <div class="cl-cal-ok">${btn('Nova temporada','clAdvanceSeason()',{icon:'✔',cls:'cl-btn-ok'})}</div>
@@ -2680,10 +2694,10 @@ function qualificationZoneBadge(zone){
 function clClassif(){ CL.menu=null;
   const rows=sortedTable().map((t,i)=>{const me=t.id===CL.clubId; const zone=qualificationZone(S.division,i+1);
     return `<div class="cl-cls-row ${me?'me':''} ${zone?'zone-'+zone:''}"><span class="cl-cls-p">${i+1}</span><span class="cl-cls-n">${clubLink(t.id)}</span>
-      <span class="cl-cls-num">${t.P}</span><span class="cl-cls-num">${t.W}</span><span class="cl-cls-num">${t.D}</span><span class="cl-cls-num">${t.L}</span>
-      <span class="cl-cls-num">${t.GF}:${t.GA}</span><span class="cl-cls-num b">${t.Pts}</span>${qualificationZoneBadge(zone)}</div>`;}).join('');
+      <span class="cl-cls-num b">${t.Pts}</span><span class="cl-cls-num">${t.W}</span><span class="cl-cls-num">${t.D}</span><span class="cl-cls-num">${t.L}</span>
+      <span class="cl-cls-num">${t.GF}</span><span class="cl-cls-num">${t.GA}</span>${qualificationZoneBadge(zone)}</div>`;}).join('');
   overlayC(dlg('Classificação', `<div class="cl-cls-head"><span class="cl-cls-p">#</span><span class="cl-cls-n">Equipa</span>
-    <span class="cl-cls-num">J</span><span class="cl-cls-num">V</span><span class="cl-cls-num">E</span><span class="cl-cls-num">D</span><span class="cl-cls-num">G</span><span class="cl-cls-num">P</span><span></span></div>
+    <span class="cl-cls-num">P</span><span class="cl-cls-num">V</span><span class="cl-cls-num">E</span><span class="cl-cls-num">D</span><span class="cl-cls-num">GP</span><span class="cl-cls-num">GC</span><span></span></div>
     <div class="cl-cls">${rows}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
     {w:680,bodyClass:'cl-body-gray',min:true})); }
 
@@ -2756,14 +2770,14 @@ function cupGroupHTML(c){
   const labels=Object.keys(g.groups);
   const multi=labels.length>1;
   const myLabel=labels.find(l=>g.groups[l].teams.includes(cid));
-  const groupHead=`<div class="cl-cls2-head"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Clube</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-gf">G</span><span class="cl-cls2-x">P</span></div>`;
+  const groupHead=`<div class="cl-cls2-head"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Clube</span><span class="cl-cls2-pts">P</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-x">GP</span><span class="cl-cls2-x">GC</span></div>`;
   const groupBlock=(label)=>{
     const standings=groupTableStandings(g.groups[label]);
     const rows=standings.map((t,i)=>{ const cl=clubOf(t.id); const me=t.id===cid;
       return `<div class="cl-cls2-row ${me?'me':''} ${i<g.advancePerGroup?'cl-cup-advances':''}" style="${clubStripe(cl)}">
         <span class="cl-cls2-pos">${i+1}</span><span class="cl-cls2-n">${clubLink(t.id)}</span>
-        <span class="cl-cls2-x">${t.W}</span><span class="cl-cls2-x">${t.D}</span><span class="cl-cls2-x">${t.L}</span>
-        <span class="cl-cls2-gf">${t.GF} : ${t.GA}</span><span class="cl-cls2-x b">${t.Pts}</span></div>`; }).join('');
+        <span class="cl-cls2-pts">${t.Pts}</span><span class="cl-cls2-x">${t.W}</span><span class="cl-cls2-x">${t.D}</span><span class="cl-cls2-x">${t.L}</span>
+        <span class="cl-cls2-x">${t.GF}</span><span class="cl-cls2-x">${t.GA}</span></div>`; }).join('');
     return multi
       ? `<fieldset class="cl-cup-round"><legend>Grupo ${escC(label)}${label===myLabel?' — seu grupo':''}</legend>${groupHead}${rows}</fieldset>`
       : `${groupHead}${rows}`;
