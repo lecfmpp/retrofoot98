@@ -1266,8 +1266,13 @@ function clJogar(){
   // nenhuma partida de copa pra JOGAR nesta rodada — mas pode ter rodada de copa
   // rolando de competições das quais o usuário não participa (ou já foi eliminado);
   // oferece assistir, uma competição de cada vez, antes de liberar a rodada de liga.
-  const spectateQueue=cupSpectateCandidates();
+  // cupSpectateCandidates() não marca nada como "resolvido" (assistir é só visual, ver
+  // startCupSpectate) — sem esse filtro, a mesma competição seria oferecida de novo pra
+  // sempre depois de "Jogar" voltar pra tela principal; CL._spectatedKeysThisRound lembra
+  // o que já foi mostrado (assistido ou pulado) nesta leva, até a rodada de liga rolar.
+  const spectateQueue=cupSpectateCandidates().filter(c=>!(CL._spectatedKeysThisRound||[]).includes(c.key));
   if(spectateQueue.length){ CL._pendingSpectateQueue=spectateQueue.slice(1); askSpectate(spectateQueue[0]); return; }
+  CL._spectatedKeysThisRound=null;
   if(CL.online){ onlineMarkReady(); return; }
   startLiveRound();
 }
@@ -1291,13 +1296,20 @@ function askSpectate(cand){
     {w:480,bodyClass:'cl-body-green'}));
 }
 function clSpectateYes(){ clCloseOverlay(); const cand=CL._spectateCand; CL._spectateCand=null; startCupSpectate(cand); }
-function clSpectateNo(){ clCloseOverlay(); CL._spectateCand=null; advanceSpectateQueue(); }
+function clSpectateNo(){ clCloseOverlay(); const cand=CL._spectateCand; CL._spectateCand=null; markSpectateHandled(cand.key); advanceSpectateQueue(); }
+function markSpectateHandled(key){
+  CL._spectatedKeysThisRound=CL._spectatedKeysThisRound||[];
+  if(!CL._spectatedKeysThisRound.includes(key)) CL._spectatedKeysThisRound.push(key);
+}
+/* nunca encadeia direto pra rodada de liga daqui — mesmo princípio do mata-mata de copa
+   (ver clCupResultContinue): depois de assistir (ou pular) uma competição, sempre volta
+   pra tela principal e exige um novo clique em "Jogar" antes de continuar, mesmo que
+   ainda sobre outra competição pra assistir ou já esteja tudo resolvido. */
 function advanceSpectateQueue(){
   const q=CL._pendingSpectateQueue||[];
   if(q.length){ CL._pendingSpectateQueue=q.slice(1); askSpectate(q[0]); return; }
   CL._pendingSpectateQueue=null;
-  if(CL.online){ onlineMarkReady(); return; }
-  startLiveRound();
+  CL.screen='main'; cdraw();
 }
 /* monta a(s) partida(s) da rodada ATUAL da competição indicada, todas com user:false
    (motor roda sozinho, sem pausar pra modal nenhum) — usa a MESMA fórmula de seed que
@@ -1320,7 +1332,7 @@ function startCupSpectate(cand){
       });
     });
   }
-  if(!fixtures.length){ advanceSpectateQueue(); return; } // nada pra assistir agora (raro)
+  if(!fixtures.length){ markSpectateHandled(key); advanceSpectateQueue(); return; } // nada pra assistir agora (raro)
   const matches=fixtures.map(f=>buildLiveMatchObject(f.h,f.a,f.seed,{user:false,div:key}));
   const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:matches.length===1?0:null, subOpen:false,
     matches, cup:{key, stage:cand.stage, spectate:true} };
@@ -1330,6 +1342,7 @@ function startCupSpectate(cand){
 function finishCupSpectate(){
   const RL=CL.live;
   toastC('Rodada da '+COMP_DEFS[RL.cup.key].short+' assistida!');
+  markSpectateHandled(RL.cup.key);
   CL.live=null; CL.screen='main'; cdraw();
   advanceSpectateQueue();
 }
@@ -1481,6 +1494,15 @@ function shootoutDecided(P){
   if(nH<5){ const remH=5-nH, remA=5-nA; return scoredH>scoredA+remA || scoredA>scoredH+remH; }
   return scoredH!==scoredA; // morte súbita: qualquer diferença após rodada completa decide
 }
+/* regra oficial (IFAB): dentro da MESMA disputa, um jogador só pode bater de novo depois
+   que todos os outros elegíveis do time já bateram uma vez — nunca antes disso. `pool` já
+   vem sem goleiro (só bate goleiro em emergência, ver fallback abaixo); `takenNames` junta
+   os nomes que já bateram NESTA disputa pro lado em questão (RL.pens.h/a). Se todo mundo
+   elegível já bateu (disputa foi longe, morte súbita), reabre o ciclo do zero. */
+function shootoutEligibleTakers(pool, takenNames){
+  const fresh=pool.filter(p=>!takenNames.has(p.n));
+  return fresh.length ? fresh : pool;
+}
 function shootoutNextKick(){
   const RL=CL.live; if(!RL || !RL.pens) return;
   // teto de segurança (mesmo usado em resolveDrawnKnockoutTie pro caso não-interativo):
@@ -1496,8 +1518,10 @@ function shootoutNextKick(){
     const oppId=side==='H'?m.a:m.h;
     const gk=squad(oppId).find(p=>p.s==='GK')||null;
     const pool=availableXI(teamId).filter(p=>p.s!=='GK');
+    const takenNames=new Set((side==='H'?RL.pens.h:RL.pens.a).map(k=>k.name));
+    const eligible=shootoutEligibleTakers(pool.length?pool:availableXI(teamId), takenNames);
     const R=makeRng(hashSeed(S.seed,S.round,'pens',m.h,m.a,side,RL.pens.h.length+RL.pens.a.length));
-    const taker=pickPenaltyTaker(pool.length?pool:availableXI(teamId),R);
+    const taker=pickPenaltyTaker(eligible,R);
     const scored=R.random()<penaltyConvChance(taker,gk);
     setTimeout(()=>recordShootoutKick(side,taker?taker.n:null,scored),700);
   }
@@ -1505,7 +1529,9 @@ function shootoutNextKick(){
 function openShootoutPickerModal(){
   const RL=CL.live;
   const list=xiPlayers(CL.clubId).filter(p=>p.s!=='GK');
-  const takers=list.length?list:squad(CL.clubId).filter(p=>p.s!=='GK');
+  const pool=list.length?list:squad(CL.clubId).filter(p=>p.s!=='GK');
+  const takenNames=new Set((RL.pens.turn==='H'?RL.pens.h:RL.pens.a).map(k=>k.name));
+  const takers=shootoutEligibleTakers(pool, takenNames);
   const best=takers.slice().sort((a,b)=>b.f-a.f)[0];
   CL.penSel=best?best.n:(takers[0]&&takers[0].n)||null;
   CL.penDeadline=Date.now()+10000;
@@ -1839,12 +1865,21 @@ function shootoutPickerHTML(){
   if(CL.penPhase==='suspense') return penaltySuspenseHTML(board);
   if(CL.penPhase==='result') return penaltyResultHTML(board);
   const list=xiPlayers(CL.clubId).filter(p=>p.s!=='GK');
-  const takers=(list.length?list:squad(CL.clubId).filter(p=>p.s!=='GK'));
+  const pool=(list.length?list:squad(CL.clubId).filter(p=>p.s!=='GK'));
+  // quem já bateu NESTA disputa fica desabilitado na lista (regra oficial: só pode bater
+  // de novo depois que todo mundo elegível já bateu uma vez) — mas continua visível, só
+  // sem poder ser escolhido, pro treinador entender por que sumiu da seleção normal.
+  const takenNames=new Set((RL.pens.turn==='H'?RL.pens.h:RL.pens.a).map(k=>k.name));
+  const eligible=shootoutEligibleTakers(pool, takenNames);
+  const cycleReset = eligible.length===pool.length; // ninguém bateu ainda, ou o ciclo reabriu (todo mundo já bateu 1x)
   const secsLeft=Math.max(0,Math.ceil((CL.penDeadline-Date.now())/1000));
   const kickNum=(RL.pens.h.length+RL.pens.a.length)+1;
-  const rows=takers.map(p=>`<div class="cl-pen-row ${CL.penSel===p.n?'sel':''}" onclick="penaltySelect('${escC(p.n)}')">
-      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span><span class="cl-pen-r">${p.f}</span>
-    </div>`).join('');
+  const rows=pool.map(p=>{
+    const takenBefore = !cycleReset && takenNames.has(p.n);
+    return `<div class="cl-pen-row ${CL.penSel===p.n?'sel':''} ${takenBefore?'dis':''}" ${takenBefore?'':`onclick="penaltySelect('${escC(p.n)}')"`}>
+      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}${takenBefore?' <span class="cl-pen-taken">já bateu</span>':''}</span><span class="cl-pen-r">${p.f}</span>
+    </div>`;
+  }).join('');
   return `<div class="cl-pen-overlay"><div class="cl-pen-modal" ${penaltyClubStyle()}>
     ${board}
     <div class="cl-pen-title">PÊNALTI ${kickNum}ª cobrança</div>

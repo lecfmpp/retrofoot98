@@ -524,6 +524,9 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-pen-row{display:grid;grid-template-columns:22px 1fr 30px;gap:8px;padding:5px 10px;color:var(--pen-fg,#e21c1c);font-weight:700;font-size:14px;cursor:pointer}
 .cl-pen-row:hover{background:#1a0000}
 .cl-pen-row.sel{background:var(--pen-fg,#e21c1c);color:var(--pen-bg,#fff)}
+.cl-pen-row.dis{opacity:.4;cursor:default}
+.cl-pen-row.dis:hover{background:transparent}
+.cl-pen-taken{font-size:10px;font-weight:800;opacity:.85;margin-left:6px;letter-spacing:.3px}
 .cl-pen-r{text-align:right}
 .cl-pen-btn{margin-top:14px}
 /* modal de lesão — janela clássica: barra de título + corpo, na cor do clube do jogador
