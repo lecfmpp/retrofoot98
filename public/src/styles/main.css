@@ -537,6 +537,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-inj-body .cl-pen-row{color:var(--inj-fg,#fff)}
 .cl-inj-body .cl-pen-row.sel{background:var(--inj-fg,#fff);color:var(--inj-bg,#5a0a0a)}
 .cl-inj-body .cl-pen-row:hover{background:rgba(0,0,0,.25)}
+.cl-inj-suggest{font-size:10px;font-weight:800;opacity:.75;margin-left:6px;letter-spacing:.3px}
 .cl-sub{background:#000;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);margin:0;padding:8px 12px 12px}
 .cl-sub>legend{color:var(--yellow);font-weight:800;padding:0 6px;font-size:14px}
 .cl-sub-cols{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}

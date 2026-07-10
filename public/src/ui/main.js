@@ -1619,11 +1619,17 @@ function openInjuryModal(m,e){ const RL=CL.live;
   RL.paused=true; RL.injMatch=m; RL.injEvent=e; RL.sel=RL.matches.indexOf(m);
   CL.injSel=null; sfx('lesao'); cdraw();
 }
+/* sempre lista TODOS os reservas disponíveis, de qualquer posição — antes só mostrava os
+   da mesma posição do lesionado quando havia algum, então se um zagueiro se lesionasse o
+   goleiro reserva desaparecia da lista (só reaparecia numa lesão futura sem zagueiro
+   disponível), como se não pudesse ser escolhido ali. O treinador pode legitimamente
+   querer escalar qualquer reserva (ex: sacrificar um atacante pra fechar a defesa); só
+   ordena os da mesma posição primeiro, pra sugerir a troca mais natural sem obrigar nada. */
 function injurySubOptions(e){
   const xiSet=new Set(S.xi||[]);
   const bench=squad(CL.clubId).filter(p=>!xiSet.has(p.n) && !(p.suspended>0) && !(p.injuredMatches>0)).sort(bySquadOrder);
-  const samePos=bench.filter(p=>p.s===e.pos);
-  return samePos.length ? samePos : bench; // sem ninguém da mesma posição -> qualquer reserva disponível (emergência)
+  const samePos=bench.filter(p=>p.s===e.pos), rest=bench.filter(p=>p.s!==e.pos);
+  return [...samePos, ...rest];
 }
 /* cor do modal de lesão = cor real do clube do jogador lesionado (mesma lógica do
    modal de pênalti, ver penaltyClubStyle) — antes ficava sempre vinho fixo. */
@@ -1636,9 +1642,12 @@ function injurySubHTML(m,e){
   const posName={GK:'Goleiro',DEF:'Zagueiro',MID:'Meia',ATT:'Atacante'}[e.pos]||'Jogador';
   const opts=injurySubOptions(e);
   const noOpts = !opts.length;
-  const rows=noOpts ? '<div class="cl-pen-row" style="cursor:default">Sem reservas disponíveis.</div>' : opts.map(p=>`<div class="cl-pen-row ${CL.injSel===p.n?'sel':''}" onclick="injurySelect('${escC(p.n)}')">
-      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span><span class="cl-pen-r">${p.f}</span>
-    </div>`).join('');
+  const rows=noOpts ? '<div class="cl-pen-row" style="cursor:default">Sem reservas disponíveis.</div>' : opts.map(p=>{
+    const samePos=p.s===e.pos;
+    return `<div class="cl-pen-row ${CL.injSel===p.n?'sel':''}" onclick="injurySelect('${escC(p.n)}')">
+      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}${samePos?' <span class="cl-inj-suggest">★ sugerido</span>':''}</span><span class="cl-pen-r">${p.f}</span>
+    </div>`;
+  }).join('');
   // sem reserva disponível (banco esgotado) -> não pode travar o jogo esperando uma escolha
   // impossível: deixa seguir com um jogador a menos, igual acontece numa expulsão.
   const actionBtn = noOpts
