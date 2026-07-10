@@ -2169,15 +2169,16 @@ function panAdversario(oppId){
 /* ---- 13 · CALENDÁRIO (modal) ---- */
 function userCalendar(){ const out=[]; (S.sched||[]).forEach((rd,i)=>{ const m=rd.find(([h,a])=>h===CL.clubId||a===CL.clubId);
   if(m){ const home=m[0]===CL.clubId; const opp=home?m[1]:m[0]; out.push({n:i+1,opp,home}); } }); return out; }
-/* as copas avançam em bloco a cada 3 rodadas de liga (ver advancePendingCups/playRound:
-   "if(S.round%3===0) advancePendingCups()"), e um confronto de copa só fica jogável ao
-   vivo na véspera desse avanço (ver o gate em pendingUserCupMatches: "(S.round+1)%3===0").
-   Ou seja, dá pra prever em QUAL jornada de liga cada confronto de copa pendente vai
-   rolar: a próxima jornada múltipla de 3 a partir de agora, +3 pra cada avanço seguinte
-   (2º confronto de grupo pendente, 3º, ...) — é isso que permite intercalar copa e liga
-   no calendário na ordem cronológica certa. */
-function nextCupJornada(stepsAhead){
-  let j=S.round+1; while(j%3!==0) j++;
+/* cada copa avança numa rodada de liga PRÓPRIA (ver CUP_TICK_OFFSET/cupTickMatchesRound
+   em core.js — Copa do Brasil, Libertadores e Sul-Americana ficam defasadas por 1 rodada
+   cada, 7 dias no calendário do jogo, bem acima do mínimo de 2 dias pra não parecer que
+   clubes jogam duas competições no mesmo dia). Um confronto de copa só fica jogável ao
+   vivo na véspera do avanço daquela competição específica. Dá pra prever em QUAL jornada
+   de liga cada confronto pendente vai rolar: a próxima jornada em que essa competição bate
+   (cupTickMatchesRound), +3 pra cada avanço seguinte (2º confronto de grupo pendente, 3º,
+   ...) — é isso que permite intercalar copa e liga no calendário na ordem certa. */
+function nextCupJornada(key, stepsAhead){
+  let j=S.round+1; while(!cupTickMatchesRound(key,j)) j++;
   return j + stepsAhead*3;
 }
 /* TODOS os confrontos de copa ainda pendentes do clube do usuário, pro Calendário —
@@ -2192,7 +2193,7 @@ function userCupCalendarRows(){
   const cb=S.cups.copaBrasil;
   if(cb && !cupIsFinished(cb)){
     const tie=(cb.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
-    if(tie) out.push({key:'copaBrasil', n:nextCupJornada(0), opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
+    if(tie) out.push({key:'copaBrasil', n:nextCupJornada('copaBrasil',0), opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
   }
   ['libertadores','sulamericana'].forEach(key=>{
     const c=S.cups[key]; if(!c) return;
@@ -2202,12 +2203,12 @@ function userCupCalendarRows(){
         if(!g.teams.includes(CL.clubId)) return;
         for(let r=mg.round;r<mg.roundsTotal;r++){
           const fx=(g.sched[r]||[]).find(([h,a])=>h===CL.clubId||a===CL.clubId);
-          if(fx) out.push({key, n:nextCupJornada(r-mg.round), opp:fx[0]===CL.clubId?fx[1]:fx[0], home:fx[0]===CL.clubId});
+          if(fx) out.push({key, n:nextCupJornada(key,r-mg.round), opp:fx[0]===CL.clubId?fx[1]:fx[0], home:fx[0]===CL.clubId});
         }
       });
     } else if(c.bracket && !cupIsFinished(c.bracket)){
       const tie=(c.bracket.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
-      if(tie) out.push({key, n:nextCupJornada(0), opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
+      if(tie) out.push({key, n:nextCupJornada(key,0), opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
     }
   });
   return out;

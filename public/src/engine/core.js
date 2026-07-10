@@ -582,13 +582,23 @@ function jornadaForRealDate(d){
   return Math.max(1, Math.floor((dayOffset-1)/7)+1);
 }
 
-/* a cada 3 rodadas de liga, avança a rodada pendente de cada copa ativa —
-   roda inteiramente em segundo plano (quick-sim), sem bloquear o usuário */
+/* cada competição de copa avança numa rodada de liga DIFERENTE (defasada por 1 rodada =
+   7 dias no calendário do jogo, bem acima do mínimo de 2 dias) — antes as três avançavam
+   sempre na MESMA rodada%3===0, o que fazia Copa do Brasil e Libertadores parecerem jogar
+   no mesmo dia no Calendário, o que clubes de verdade nunca fazem. */
+const CUP_TICK_OFFSET={copaBrasil:0, libertadores:1, sulamericana:2};
+function cupTickMatchesRound(key, round){ return round%3===CUP_TICK_OFFSET[key]; }
+/* a cada 3 rodadas de liga, avança a rodada pendente de cada copa ativa (uma competição
+   por rodada, ver CUP_TICK_OFFSET) — roda inteiramente em segundo plano (quick-sim), sem
+   bloquear o usuário */
 function advancePendingCups(){
   if(!S.cups) return;
-  const cb=S.cups.copaBrasil;
-  if(cb && !cupIsFinished(cb) && cb.ties.length) advanceCupBracket(cb, 'copaBrasil-r'+cb.round);
+  if(cupTickMatchesRound('copaBrasil',S.round)){
+    const cb=S.cups.copaBrasil;
+    if(cb && !cupIsFinished(cb) && cb.ties.length) advanceCupBracket(cb, 'copaBrasil-r'+cb.round);
+  }
   ['libertadores','sulamericana'].forEach(key=>{
+    if(!cupTickMatchesRound(key,S.round)) return;
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket){
       if(!c.group.finished) advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round);
@@ -608,6 +618,25 @@ function advancePendingCups(){
     }
   });
 }
+/* divide uma lista de clubes em grupos de até 4 (nomeados A, B, C...), embaralhados de
+   forma determinística — usado nas temporadas SEM sorteio real conhecido (só 2026 tem os
+   grupos oficiais da CONMEBOL, ver LIBERTADORES_GROUPS_2026/SULAMERICANA_GROUPS_2026).
+   Antes disso as temporadas seguintes jogavam TODOS os classificados (6: G6 da Libertadores,
+   7º-12º da Sul-Americana) num "grupo único", o que também fazia todo mundo avançar de
+   graça (advancePerGroup acabava igual ao tamanho do grupo). Agora fica no mesmo formato
+   de grupos de 4 da vida real, só que com nomes gerados (6 times -> grupo A de 4 + grupo B
+   de 2, já que o pool de classificados aqui é menor que os 32 times da Libertadores real). */
+function splitIntoGroups(teamIds, seedNum){
+  const R=makeRng(seedNum>>>0);
+  const shuffled=teamIds.slice();
+  for(let i=shuffled.length-1;i>0;i--){ const j=R.int(i+1); [shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]; }
+  const groups={}; const letters='ABCDEFGH';
+  for(let i=0;i<shuffled.length;i+=4){
+    const label=letters[Math.floor(i/4)]||String(Math.floor(i/4)+1);
+    groups[label]=shuffled.slice(i,i+4);
+  }
+  return groups;
+}
 function initSeasonCups(qual, compToggle){
   compToggle = compToggle || (S.compToggle) || {libertadores:true, copaBrasil:true, sulamericana:true};
   const cbQual=copaBrasilQualification(); // sempre as 4 divisões, independente da divisão do usuário
@@ -616,8 +645,8 @@ function initSeasonCups(qual, compToggle){
     if(qual.libertadoresGroups){ // 2026: grupos reais A-H, top 2 de cada grupo avança (32 -> 16)
       libGroup=makeGroupStage(qual.libertadoresGroups, 2);
       qual={...qual, libertadores:Object.values(qual.libertadoresGroups).flat()};
-    } else if(qual.libertadores && qual.libertadores.length){ // temporadas seguintes: grupo único simulado
-      libGroup=makeGroupStage({Único:qual.libertadores}, Math.min(4,qual.libertadores.length));
+    } else if(qual.libertadores && qual.libertadores.length){ // temporadas seguintes: grupos de 4 simulados
+      libGroup=makeGroupStage(splitIntoGroups(qual.libertadores, hashSeed(S.seed,'libgroups',S.season)), 2);
     }
   }
   let sulGroup=null;
@@ -625,8 +654,8 @@ function initSeasonCups(qual, compToggle){
     if(qual.sulamericanaGroups){ // 2026: grupos reais A-H, top 2 de cada grupo avança (32 -> 16)
       sulGroup=makeGroupStage(qual.sulamericanaGroups, 2);
       qual={...qual, sulamericana:Object.values(qual.sulamericanaGroups).flat()};
-    } else if(qual.sulamericana && qual.sulamericana.length){ // temporadas seguintes: grupo único simulado
-      sulGroup=makeGroupStage({Único:qual.sulamericana}, Math.min(4,qual.sulamericana.length));
+    } else if(qual.sulamericana && qual.sulamericana.length){ // temporadas seguintes: grupos de 4 simulados
+      sulGroup=makeGroupStage(splitIntoGroups(qual.sulamericana, hashSeed(S.seed,'sulgroups',S.season)), 2);
     }
   }
   S.qualification={...qual, copaBrasil:cbQual};
@@ -646,14 +675,14 @@ function initSeasonCups(qual, compToggle){
    liberar o jogo de liga da rodada. */
 function pendingUserCupMatches(){
   if(!S.cups || !CL.clubId) return [];
-  if((S.round+1)%3!==0) return []; // só na véspera do avanço de copa
   const out=[];
   const cb=S.cups.copaBrasil;
-  if(cb && !cupIsFinished(cb)){
+  if(cupTickMatchesRound('copaBrasil',S.round+1) && cb && !cupIsFinished(cb)){
     const tie=(cb.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
     if(tie) out.push({key:'copaBrasil', stage:'bracket', bracket:cb, tie, h:tie.h, a:tie.a});
   }
   ['libertadores','sulamericana'].forEach(key=>{
+    if(!cupTickMatchesRound(key,S.round+1)) return;
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket && !c.group.finished){
       const mg=c.group;
@@ -687,13 +716,13 @@ function pendingUserCupMatches(){
    sendo o avanço em segundo plano de sempre). */
 function cupSpectateCandidates(){
   if(!S.cups || !CL.clubId) return [];
-  if((S.round+1)%3!==0) return [];
   const out=[];
   const cb=S.cups.copaBrasil;
-  if(cb && !cupIsFinished(cb) && cb.ties.length && !cb.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId))){
+  if(cupTickMatchesRound('copaBrasil',S.round+1) && cb && !cupIsFinished(cb) && cb.ties.length && !cb.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId))){
     out.push({key:'copaBrasil', stage:'bracket'});
   }
   ['libertadores','sulamericana'].forEach(key=>{
+    if(!cupTickMatchesRound(key,S.round+1)) return;
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket && !c.group.finished){
       const mg=c.group;
@@ -1425,7 +1454,7 @@ function playRound(userResult){
   cpuBackgroundTransfers(Rr); // mercado entre CPUs — dá vida ao jogo mesmo sem o usuário negociar
   if(S.round%2===0) refreshAuctionPool(Rr); // leilão gira a cada 2 rodadas
   rollStory(Rr);
-  if(S.round%3===0) advancePendingCups(); // rodada de copa a cada 3 rodadas de liga — 100% em segundo plano
+  advancePendingCups(); // cada copa avança na sua própria rodada — ver CUP_TICK_OFFSET
   if(S.round>=S.sched.length){ endSeason(); }
   S._roundIncidents={};
   save();
