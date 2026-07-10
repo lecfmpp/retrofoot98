@@ -1124,8 +1124,34 @@ function panFinancas(){
       <div class="cl-fin-row big2"><span>Dinheiro em caixa</span><b>${grp(S.budget)}</b></div>
       <div class="cl-fin-row"><span>Preço dos bilhetes</span><b>${CL.ticket} reais</b></div>
       ${recentLogs ? `<div style="margin-top:20px;border-top:1px solid #2a4a2a;padding-top:12px"><div style="font-size:13px;color:#aaa;margin-bottom:8px">Transações recentes:</div>${recentLogs}</div>` : ''}
+      ${(S.financeHistory&&S.financeHistory[CL.clubId]&&S.financeHistory[CL.clubId].length) ? `<div style="margin-top:20px;border-top:1px solid #2a4a2a;padding-top:12px">
+        <div style="font-size:13px;color:#aaa;margin-bottom:8px">Histórico de temporadas encerradas:</div>
+        ${btn('Ver histórico completo','clFinanceHistory()',{cls:'cl-btn-mini'})}
+      </div>` : ''}
     </div>
   </div>`;
+}
+/* ---- Finanças > histórico por temporada — resumo de receita/despesa/lucro de cada
+   temporada ENCERRADA do clube atual, gravado em S.financeHistory (ver endSeason() em
+   core.js), pra o treinador poder consultar mesmo depois de assumir outro clube (basta
+   trocar o clubId — por padrão mostra o clube atual). Reaproveita o grid de
+   .cl-seasonhist-* já usado pelo histórico de temporadas do Treinador/Equipa. ---- */
+function clFinanceHistory(clubId){
+  clubId = clubId || CL.clubId;
+  const c=clubOf(clubId);
+  const entries=((S.financeHistory&&S.financeHistory[clubId])||[]).slice().reverse();
+  const head=`<div class="cl-seasonhist-row cl-seasonhist-head" style="grid-template-columns:48px 1fr 1fr 1fr 1fr">
+    <span>Ano</span><span>Receita</span><span>Despesa</span><span>Lucro</span><span></span></div>`;
+  const rows=entries.map(f=>{
+    const income=f.income+f.playerSales, expense=f.salaries+f.bonuses+f.playerPurchases+(f.stadium||0);
+    return `<div class="cl-seasonhist-row" style="grid-template-columns:48px 1fr 1fr 1fr 1fr">
+      <span class="cl-seasonhist-season">${f.season}</span>
+      <span>${grp(income)}</span><span>${grp(expense)}</span>
+      <span style="color:${f.net>=0?'#1e9e3f':'#c0392b'};font-weight:800">${grp(f.net)}</span><span></span></div>`;
+  }).join('');
+  const body = entries.length ? head+rows : '<div class="cl-cup-hint">Nenhuma temporada encerrada ainda pra este clube.</div>';
+  overlayC(dlg('Histórico financeiro — '+(c?c.short:'clube'), `<div class="cl-seasonhist-wrap">${body}</div>
+    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:600,bodyClass:'cl-body-gray',min:true}));
 }
 function panFinancasLog(){
   const R=(l,v)=>`<div class="cl-fin-row"><span>${l}</span><b>${grp(v)}</b></div>`;
@@ -1875,13 +1901,34 @@ function liveDone(){ if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classi
 /* ---- fim de temporada: mostra campeão + posição final, botão avança a temporada
    (com promoção/rebaixamento de verdade, pré-carregando dados reais da nova divisão) ---- */
 function seasonEndDialog(){
-  const champ=clubOf(sortedTable()[0].id).short;
+  const tbl=sortedTable();
+  const champ=clubOf(tbl[0].id).short;
   const myPos=tablePos(S.clubId);
+  const hasQual = S.division==='A';
+  // mesma info que endSeason() já calculou pro histórico (S.history acabou de ganhar essa
+  // entrada) — reaproveita em vez de recalcular, e cobre o "pra qual competição classificou".
+  const hist=S.history[S.history.length-1];
+  const qualifiedFor=(hist&&hist.qualifiedFor)||[];
+  let qualMsg;
+  if(qualifiedFor.includes('libertadores')) qualMsg='🏆 Classificado pra Copa Libertadores '+(S.season+1)+'!';
+  else if(qualifiedFor.includes('sulamericana')) qualMsg='🏆 Classificado pra Copa Sul-Americana '+(S.season+1)+'!';
+  else if(myPos>tbl.length-4 && hasQual) qualMsg='⚠️ Fora das vagas continentais nesta temporada.';
+  const rows=tbl.map((t,i)=>{ const c=clubOf(t.id); const me=t.id===S.clubId;
+    const zone=hasQual?qualificationZone('A',i+1):null;
+    const zoneCell = hasQual ? `<span class="cl-cls2-zone ${zone?'zone-'+zone:''}" title="${zone==='lib'?'Libertadores':zone==='sul'?'Sul-Americana':''}">${zone==='lib'?'Lib':zone==='sul'?'Sul':''}</span>` : '';
+    return `<div class="cl-cls2-row ${me?'me':''} ${hasQual?'hasqual':''}" style="${clubStripe(c)}">
+      <span class="cl-cls2-pos">${i+1}</span><span class="cl-cls2-n">${escC(c.short)}</span>
+      <span class="cl-cls2-x">${t.W}</span><span class="cl-cls2-x">${t.D}</span><span class="cl-cls2-x">${t.L}</span>
+      <span class="cl-cls2-gf">${t.GF} : ${t.GA}</span><span class="cl-cls2-x b">${t.Pts}</span>${zoneCell}</div>`; }).join('');
   overlayC(dlg('Fim da temporada!', `<div class="cl-res">
     <div class="cl-res-score">${escC(champ)} é campeão</div>
-    <div class="cl-res-verd">Você terminou em ${myPos}º na ${escC(divisionLabel())}</div>
+    <div class="cl-res-verd">Você terminou em ${myPos}º na ${escC(divisionLabel())}${qualMsg?'<br>'+escC(qualMsg):''}</div>
+    <div class="cl-clsacc-wrap" style="max-height:340px;overflow-y:auto;margin-top:10px">
+      <div class="cl-cls2-head ${hasQual?'hasqual':''}"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-gf">G</span><span class="cl-cls2-x">P</span>${hasQual?'<span></span>':''}</div>
+      ${rows}
+    </div>
     <div class="cl-cal-ok">${btn('Nova temporada','clAdvanceSeason()',{icon:'✔',cls:'cl-btn-ok'})}</div>
-  </div>`,{w:520,bodyClass:'cl-body-green'}));
+  </div>`,{w:620,bodyClass:'cl-body-green'}));
 }
 function clAdvanceSeason(){
   clCloseOverlay();
@@ -2257,7 +2304,7 @@ function menuDropdown(name){ name=name||CL.menu;
   const items={
     'RetroFoot98':[['Opções...','clOptions()'],['—'],['Gravar jogo','clSaveMenu()'],['Sair para o menu','clExit()']],
     'Seleccionar':[...F.map((f,i)=>[`${f}`,`clSelFormation('${f}')`,(i+1)+'/'+FKEY[f]]),['—'],['Automático','clSelFormation(\'auto\')'],['Melhores','clSelFormation(\'best\')']],
-    'Equipa':[['Estádio...','clStadium()'],['Historial...','clStub(\'Historial da equipa\')']],
+    'Equipa':[['Estádio...','clStadium()'],['Historial...','clClubHistory()']],
     'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],['Leilão de jogadores...','clAuctionScreen()'],['Últimas transferências...','clStub(\'Últimas transferências\')']],
     'Campeonatos':[['Minhas competições...','clCompList()','C'],['—'],['Melhores marcadores...','clScorers()'],['Calendário...','clCalendar()'],['—'],['Últimos vencedores...','clUltimosVencedores()'],['Melhores marcadores de sempre...','clScorersAllTime()']],
     'Treinador':[['História...','clCoachHistory()'],['Ranking...','clCoachRanking()'],['Ofertas...','clJobOffers()'],['Perfil...','clPerfilTreinador()']]
@@ -2349,10 +2396,43 @@ function coachHistRowHTML(entry){
   const icon = trophy || `<span class="cl-chist-ic">${COACH_HIST_ICON[entry.type]||'📌'}</span>`;
   return `<div class="cl-chist-row">${icon}<span><b>${entry.season}</b> — ${escC(entry.text)}</span></div>`;
 }
+/* tabela temporada-a-temporada (posição na divisão + fase alcançada em cada copa) —
+   reaproveitada por clCoachHistory (carreira inteira, todos os clubes) e clClubHistory
+   (só as temporadas de um clube específico). Fonte: S.history, alimentado em endSeason(). */
+function seasonHistoryTableHTML(entries){
+  if(!entries.length) return '<div class="cl-cup-hint">Nenhuma temporada concluída ainda.</div>';
+  const head=`<div class="cl-seasonhist-row cl-seasonhist-head">
+    <span>Ano</span><span>Clube</span><span>Posição</span><span>Copa do Brasil</span><span>Libertadores</span><span>Sul-Americana</span></div>`;
+  const cupLabel=(h,k)=>escC((h.myCups&&h.myCups[k])||'—');
+  const rows=entries.slice().reverse().map(h=>`<div class="cl-seasonhist-row">
+      <span class="cl-seasonhist-season">${h.season}</span>
+      <span>${escC(h.myClubShort||'—')}</span>
+      <span>${h.myPos?h.myPos+'º — Série '+escC(h.division||'A'):'—'}</span>
+      <span>${cupLabel(h,'copaBrasil')}</span>
+      <span>${cupLabel(h,'libertadores')}</span>
+      <span>${cupLabel(h,'sulamericana')}</span>
+    </div>`).join('');
+  return head+rows;
+}
 function clCoachHistory(){ CL.menu=null;
   const lines=(S.coachHistory&&S.coachHistory.length)?S.coachHistory:[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
-  overlayC(dlg(CL.mgr||'Treinador', `<div class="cl-chist">${lines.map(coachHistRowHTML).join('')}</div>
-    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:560,bodyClass:'cl-body-gray',min:true})); }
+  const seasonTable=seasonHistoryTableHTML(S.history||[]);
+  overlayC(dlg(CL.mgr||'Treinador', `
+    <div class="cl-seasonhist-wrap">${seasonTable}</div>
+    <div class="cl-chist" style="margin-top:12px">${lines.map(coachHistRowHTML).join('')}</div>
+    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:660,bodyClass:'cl-body-gray',min:true})); }
+/* ---- Equipa > Historial: as temporadas em que o clube (o atual, por padrão) foi
+   comandado pelo treinador neste save — útil se ele já assumiu outros clubes e quer ver
+   o resumo de um deles. Só cobre clubes que o próprio jogador já comandou (S.history só
+   grava detalhe pra CL.clubId de cada temporada, não pra todos os 80 clubes do universo). */
+function clClubHistory(clubId){ CL.menu=null;
+  clubId = clubId || CL.clubId;
+  const c=clubOf(clubId);
+  const entries=(S.history||[]).filter(h=>h.clubId===clubId);
+  const table=seasonHistoryTableHTML(entries);
+  const hint = '<div class="cl-cup-hint">Mostra só as temporadas em que você comandou este clube neste save.</div>';
+  overlayC(dlg('Historial — '+(c?c.short:'clube'), `<div class="cl-seasonhist-wrap">${table}</div>${hint}
+    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:660,bodyClass:'cl-body-gray',min:true})); }
 function clCoachRanking(){ CL.menu=null;
   const rows=DATA.clubs.map((c,i)=>{const t=S.table[c.id]||{W:0,D:0,Pts:0}; return {name:coachName(c.id,i),club:clubOf(c.id).short,W:t.W,D:t.D,Pts:t.Pts,human:!!(CL.humans&&CL.humans[c.id])};})
     .sort((a,b)=>b.Pts-a.Pts||b.W-a.W);
@@ -2845,19 +2925,24 @@ function clScorers(){ CL.menu=null;
   overlayC(dlg('Melhores marcadores', `<div class="cl-cal">${rows}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:520,bodyClass:'cl-body-gray',min:true})); }
 
 /* ---- Campeonato > Últimos vencedores: histórico persistido por save (S.history), com o
-   campeão da liga (por divisão) e das copas (Copa do Brasil/Libertadores/Sul-Americana). ---- */
+   campeão da liga (por divisão) e das copas (Copa do Brasil/Libertadores/Sul-Americana).
+   Um bloco por temporada (fieldset/legend, mesmo estilo de cupGroupHTML) — cada competição
+   numa linha própria com nome à esquerda e campeão à direita, em vez do texto corrido de
+   antes, pra ficar fácil de escanear com muitas temporadas acumuladas. ---- */
 function clUltimosVencedores(){ CL.menu=null;
   const hist=(S.history||[]).slice().reverse().slice(0,15);
-  const rows=hist.length?hist.map(h=>{
-    const cupsLine=['copaBrasil','libertadores','sulamericana'].map(k=>{
-      const w=h.cups&&h.cups[k]; return w?`${COMP_DEFS[k].short}: <b>${escC(w)}</b>`:'';
-    }).filter(Boolean).join(' &middot; ');
-    return `<div class="cl-cal-row" style="flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px">
-      <div><b>${h.season}</b> — Série ${escC(h.division||'A')}: <b>${escC(h.champ)}</b></div>
-      ${cupsLine?`<div style="font-size:12px;color:#666">${cupsLine}</div>`:''}
-    </div>`;
-  }).join(''):'<div style="padding:14px">Ainda não há temporadas concluídas neste save.</div>';
-  overlayC(dlg('Últimos vencedores', `<div class="cl-cal">${rows}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:560,bodyClass:'cl-body-gray',min:true})); }
+  const winnerRow=(label,trophy,winner)=> winner ? `<div class="cl-winrow">
+      <span class="cl-winrow-lbl">${trophy?trophyImg(trophy,16)+' ':''}${escC(label)}</span>
+      <span class="cl-winrow-val">${escC(winner)}</span>
+    </div>` : '';
+  const divLegend={A:'Série A',B:'Série B',C:'Série C',D:'Série D'};
+  const blocks=hist.length?hist.map(h=>{
+    const rows=[winnerRow(divLegend[h.division||'A'], 'serie'+(h.division||'A'), h.champ)]
+      .concat(['copaBrasil','libertadores','sulamericana'].map(k=>winnerRow(COMP_DEFS[k].short, k, h.cups&&h.cups[k])))
+      .filter(Boolean).join('');
+    return `<fieldset class="cl-cup-round"><legend>${h.season}</legend>${rows}</fieldset>`;
+  }).join(''):'<div class="cl-cup-hint">Ainda não há temporadas concluídas neste save.</div>';
+  overlayC(dlg('Últimos vencedores', `<div class="cl-cup-groups-wrap">${blocks}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:560,bodyClass:'cl-body-gray',min:true})); }
 
 /* ---- Campeonato > Melhores marcadores de sempre: acumulado histórico (S.allTimeScorers,
    gravado a cada fim de temporada) + gols da temporada em andamento, persistido no save. ---- */

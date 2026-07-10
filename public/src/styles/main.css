@@ -575,6 +575,17 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-cls2-x{text-align:center;font-family:var(--mono)}
 .cl-cls2-x.b{font-weight:800}
 .cl-cls2-gf{text-align:center;font-family:var(--mono)}
+/* tabela de histórico temporada-a-temporada (Treinador > História, Equipa > Historial) —
+   colunas de largura variável (nomes de fase eliminatória são texto, não número), por
+   isso não reaproveita o grid fixo de .cl-cls2-* (pensado pra tabela de classificação). */
+.cl-winrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 7px;font-weight:700;font-size:11px;border:1px solid rgba(0,0,0,.2)}
+.cl-winrow-lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px}
+.cl-winrow-val{font-weight:800;text-align:right;white-space:nowrap;flex:0 0 auto}
+.cl-seasonhist-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.cl-seasonhist-row{display:grid;grid-template-columns:48px 84px 100px 160px 160px 160px;gap:6px;align-items:center;padding:4px 8px;font-size:11px;border-bottom:1px solid rgba(0,0,0,.15);min-width:max-content}
+.cl-seasonhist-head{font-weight:800;font-size:10px;color:#cfe;background:var(--navy);text-transform:uppercase;letter-spacing:.3px}
+.cl-seasonhist-season{font-family:var(--mono);font-weight:800}
+.cl-seasonhist-row span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cl-cls2-empty{padding:8px;color:#ccc;font-size:12px}
 .cl-classif-ok{max-width:640px;margin:10px auto;padding:0 10px;display:flex;flex-direction:column;gap:8px}
 .cl-classif-ok .cl-btn{width:100%;justify-content:center}

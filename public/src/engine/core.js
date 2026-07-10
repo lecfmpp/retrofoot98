@@ -1551,6 +1551,28 @@ function advanceNegos(){
 }
 
 /* ====================== END SEASON (History Scars) ====================== */
+/* fase que o CLUBE alcançou numa copa nesta temporada — pro histórico de clube/treinador
+   (ver S.history/clCoachHistory/clClubHistory). Não é só "campeão sim/não" (isso já existe
+   em `cups` acima); aqui é o rótulo de até onde foi (fase de grupos, oitavas, semifinal...). */
+function cupResultForClub(key, clubId){
+  const c=S.cups && S.cups[key]; if(!c) return null;
+  const champion=cupCompetitionChampion(c);
+  if(champion===clubId) return 'Campeão';
+  const bracketOnly = c.champion!==undefined;
+  if(!bracketOnly && c.group){
+    const inGroup=Object.values(c.group.groups).some(g=>g.teams.includes(clubId));
+    if(!inGroup) return null; // não se classificou pra essa copa nesta temporada
+  }
+  const b = bracketOnly ? c : c.bracket;
+  if(!b) return 'Fase de grupos'; // fase de grupos disputada, mata-mata ainda nem sorteado
+  let lastRound=null;
+  (b.history||[]).forEach(h=>{ if(h.ties.some(t=>t.h===clubId||t.a===clubId)) lastRound=h.round; });
+  if((b.ties||[]).some(t=>t.h===clubId||t.a===clubId)) lastRound=b.round;
+  if(lastRound==null) return bracketOnly ? 'Eliminado na 1ª fase' : 'Fase de grupos';
+  const left=b.roundsTotal-lastRound;
+  return left<=0?'Vice-campeão' : left===1?'Eliminado na semifinal' : left===2?'Eliminado nas quartas de final'
+    : left===3?'Eliminado nas oitavas de final' : `Eliminado na rodada ${lastRound} do mata-mata`;
+}
 function endSeason(){
   const tbl=sortedTable();
   const champ=clubOf(tbl[0].id).short;
@@ -1559,12 +1581,31 @@ function endSeason(){
   if(S.cups){ ['copaBrasil','libertadores','sulamericana'].forEach(k=>{
     const champ=cupCompetitionChampion(S.cups[k]); cups[k]=champ?clubOf(champ).short:null;
   }); }
-  S.history.push({season:S.season,division:S.division,champ,
+  // resultado do MEU clube em cada copa nesta temporada (fase alcançada, não só campeão) —
+  // e classificação conquistada pra temporada QUE VEM (mesma regra que newSeasonReset vai
+  // usar de verdade pra montar as copas) — alimenta o histórico de clube/treinador.
+  const myCups={};
+  ['copaBrasil','libertadores','sulamericana'].forEach(k=>{ myCups[k]=cupResultForClub(k,S.clubId); });
+  const qual=(S.division==='A')?computeQualification(tbl):null;
+  const qualifiedFor=[];
+  if(qual){
+    if(qual.libertadores.includes(S.clubId)) qualifiedFor.push('libertadores');
+    else if(qual.sulamericana.includes(S.clubId)) qualifiedFor.push('sulamericana');
+  }
+  S.history.push({season:S.season,division:S.division,clubId:S.clubId,champ,
     top3:tbl.slice(0,3).map(t=>clubOf(t.id).short),
     relegated:tbl.slice(-4).map(t=>clubOf(t.id).short),
     artilheiro:arty?`${arty[0]} (${arty[1]})`:'—',
     myPos:tablePos(S.clubId),
-    cups});
+    myClubShort:clubOf(S.clubId).short,
+    cups, myCups, qualifiedFor});
+  // resumo financeiro da temporada, acumulado POR CLUBE (não zera nunca) — pro treinador
+  // ver o histórico resumido de um clube que já comandou, mesmo depois de assumir outro
+  // (ver panFinancas). Precisa capturar ANTES de newSeasonReset() zerar S.seasonTotals.
+  S.financeHistory=S.financeHistory||{};
+  const st=S.seasonTotals||{income:0,salaries:0,bonuses:0,playerSales:0,playerPurchases:0,stadium:0};
+  (S.financeHistory[S.clubId]=S.financeHistory[S.clubId]||[]).push({season:S.season, ...st,
+    net:(st.income+st.playerSales)-(st.salaries+st.bonuses+st.playerPurchases+st.stadium)});
   // acumula artilharia histórica (nunca é apagada entre temporadas do mesmo save)
   S.allTimeScorers=S.allTimeScorers||{};
   Object.entries(S.scorers||{}).forEach(([n,g])=>{ S.allTimeScorers[n]=(S.allTimeScorers[n]||0)+g; });
