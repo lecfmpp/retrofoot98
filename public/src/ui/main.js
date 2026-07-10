@@ -2578,7 +2578,28 @@ function clSendResenhaEmailInvite(){ const clubId=document.querySelector('#cl-in
     catch(e){ toastC('⚠ '+(e&&e.message||'Erro ao enviar convite por e-mail')); } })(); }
 function clTab2(t){ CL.menu=null; CL.tab=t; cdraw(); }
 function clSaveMenu(){ CL.menu=null; cdraw(); saveV3(true); }
-function clExit(){ CL.menu=null; CL.screen='abertura'; cdraw(); }
+/* "Sair para o menu" não pode simplesmente descartar a partida em andamento — progresso
+   não gravado (rodadas jogadas desde o último save) se perderia sem aviso. Pergunta
+   primeiro; em modo online a sala já fica sincronizada a cada rodada (NET.saveGame), então
+   não faz sentido oferecer "gravar" ali, só confirmar a saída mesmo. */
+function clExit(){
+  CL.menu=null;
+  if(CL.online){
+    overlayC(dlg('Sair para o menu', `<div class="cl-escala-confirm">Sair da partida agora? A sala continua ativa pros outros treinadores — você pode voltar depois.</div>
+      <div class="cl-jog-actions">${btn('Sair','clExitConfirm(false)',{icon:'✔',cls:'cl-btn-ok'})}${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
+      {w:460,bodyClass:'cl-body-gray',min:true}));
+    return;
+  }
+  overlayC(dlg('Sair para o menu', `<div class="cl-escala-confirm">Quer gravar o jogo antes de sair? O progresso não gravado será perdido.</div>
+    <div class="cl-jog-actions">${btn('Gravar e sair','clExitConfirm(true)',{icon:'☁',cls:'cl-btn-ok'})}${btn('Sair sem gravar','clExitConfirm(false)',{icon:'✖',cls:'cl-btn-cancel'})}</div>
+    <div class="cl-cal-ok">${btn('Cancelar','clCloseOverlay()',{cls:'cl-btn-mini'})}</div>`,
+    {w:480,bodyClass:'cl-body-gray',min:true}));
+}
+async function clExitConfirm(shouldSave){
+  clCloseOverlay();
+  if(shouldSave) await saveV3(true); // já mostra a barra de gravação e um toast de sucesso/erro
+  CL.screen='abertura'; cdraw();
+}
 /* zona de classificação continental pra próxima temporada (só existe na Série A —
    ver computeQualification: G6 -> Libertadores, 7º-12º -> Sul-Americana) */
 function qualificationZone(division,pos){
