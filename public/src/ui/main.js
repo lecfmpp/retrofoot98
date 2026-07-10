@@ -596,16 +596,44 @@ function clEntrar(){
 /* ================= SAVE / LOAD (Modo Solo — só nuvem via Supabase) =================
    Salva/carrega por nome, vinculado ao usuário logado. O estado do jogo NUNCA fica
    no localStorage — sempre no Supabase (tabela elifoot_v3.solo_saves).
-   `explicit=true` mostra toast (usado no menu "Gravar jogo"); os auto-saves são silenciosos.
-   Em modo online (Resenha) o save é o da sala (NET.saveGame), então aqui é no-op. */
-function saveV3(explicit){
+   `explicit=true` mostra a barra de "Gravando..." e o toast de resultado (usado no
+   menu "Gravar jogo"); os auto-saves de fim de rodada continuam totalmente silenciosos
+   (nem toast, nem barra — só tentam gravar em segundo plano, sem incomodar o jogador).
+   Em modo online (Resenha) o save é o da sala (NET.saveGame), então aqui é no-op.
+   Antes disso era "fire and forget" (nunca esperado por quem chamava) — o menu fechava
+   e redesenhava a tela na hora, sem mostrar NADA enquanto a gravação de verdade ainda
+   estava em andamento, e o erro real (sessão expirada, timeout de rede num save grande,
+   etc.) era engolido num console.warn — o jogador só via um aviso genérico sem saber
+   por quê. Agora é de verdade assíncrono/esperado, mostra progresso real (indeterminado,
+   já que não dá pra saber % de upload) e tenta dar uma pista honesta do motivo do erro. */
+async function saveV3(explicit){
   if(CL.online) return; // online usa o save da sala (host-autoritativo), não o solo
   const name = CL.save||CL.mgr||'SAVE';
   const payload = { ts:Date.now(), mgr:CL.mgr, clubId:CL.clubId, currency:CL.currency, ticket:CL.ticket, humans:CL.humans, S };
   if(typeof NET==='undefined' || !NET.saveSoloGame){ if(explicit&&typeof toastC==='function') toastC('⚠ Sem conexão pra gravar.'); return; }
-  NET.saveSoloGame(name, payload)
-    .then(()=>{ if(explicit && typeof toastC==='function') toastC('Jogo gravado na nuvem.'); })
-    .catch(e=>{ console.warn('saveSolo erro:', e); if(explicit && typeof toastC==='function') toastC('⚠ Não foi possível gravar na nuvem.'); });
+  if(explicit) showSavingOverlay();
+  try{
+    await NET.saveSoloGame(name, payload);
+    if(explicit){ clCloseOverlay(); toastC('✓ Jogo gravado na nuvem.'); }
+  } catch(e){
+    console.warn('saveSolo erro:', e);
+    if(explicit){
+      clCloseOverlay();
+      const msg=(e&&e.message)?String(e.message):'';
+      const authIssue=/jwt|auth|session|401|403/i.test(msg);
+      toastC(authIssue
+        ? '⚠ Sessão expirada — faça login novamente pra gravar na nuvem.'
+        : '⚠ Não foi possível gravar na nuvem'+(msg?' ('+msg+')':'.')+'.');
+    }
+  }
+}
+/* barra de "Gravando..." — mesmo visual da barra usada ao criar um save novo
+   (scLoading/.cl-loadbar), só que como overlay e com preenchimento indeterminado
+   em vez de uma porcentagem inventada, já que aqui é uma operação de rede real. */
+function showSavingOverlay(){
+  overlayC(dlg('', `<div class="cl-loadbar"><div class="cl-loadbar-title">Gravando na nuvem...</div>
+    <div class="cl-loadbar-track"><div class="cl-loadbar-fill-indeterminate"></div></div></div>`,
+    {w:460,bodyClass:'cl-body-gray',min:true}));
 }
 function clLoadSave(name){
   toastC('Carregando jogo…');
@@ -1820,14 +1848,30 @@ function finishCupLiveMatch(){
   if(pending.stage==='bracket'){
     const t=pending.tie;
     t.hg=m.hg; t.ag=m.ag; t.events=m.events;
-    let winner;
-    if(m.hg!==m.ag) winner=m.hg>m.ag?t.h:t.a;
-    else { const R=makeRng(hashSeed(S.seed,'cuppen',pending.key,S.round,m.h,m.a)); winner=R.random()<0.5?t.h:t.a; } // pênaltis simplificado, igual advanceCupBracket
-    t.winner=winner;
-    const loser=winner===t.h?t.a:t.h; pending.bracket.eliminated[loser]=true;
-    resultMsg = winner===CL.clubId
-      ? `Vitória por ${m.hg}×${m.ag}! Você avança na ${compShort}.`
-      : (m.hg===m.ag ? `Eliminado nos pênaltis da ${compShort}.` : `Eliminado da ${compShort} — derrota por ${m.hg}×${m.ag}.`);
+    // MESMA fórmula de seed que advanceCupBracket usa pra essa rodada (ver
+    // advancePendingCups) — garante prorrogação/pênaltis reprodutíveis, e que o
+    // resultado bate com o que o avanço em segundo plano teria calculado sozinho.
+    const roundLabel = pending.key==='copaBrasil' ? ('copaBrasil-r'+pending.bracket.round) : (pending.key+'-r'+pending.bracket.round);
+    const seed=hashSeed(S.seed,'cup',roundLabel,t.h,t.a);
+    const res=resolveDrawnKnockoutTie(t.h,t.a,seed,m.hg,m.ag);
+    t.winner=res.winner; t.pens=res.pens||null;
+    const loser=res.winner===t.h?t.a:t.h; pending.bracket.eliminated[loser]=true;
+    const userWon=res.winner===CL.clubId;
+    if(res.wentToPens){
+      const userIsHome=(t.h===CL.clubId);
+      const myPen=userIsHome?res.pens.h:res.pens.a, oppPen=userIsHome?res.pens.a:res.pens.h;
+      resultMsg = userWon
+        ? `Empate em ${m.hg}×${m.ag} no tempo normal — você venceu nos pênaltis por ${myPen}×${oppPen} e avança na ${compShort}.`
+        : `Empate em ${m.hg}×${m.ag} no tempo normal — eliminado nos pênaltis por ${oppPen}×${myPen} da ${compShort}.`;
+    } else if(res.wentToExtra){
+      resultMsg = userWon
+        ? `Vitória na prorrogação por ${res.hg}×${res.ag}! Você avança na ${compShort}.`
+        : `Eliminado na prorrogação — derrota por ${res.hg}×${res.ag} da ${compShort}.`;
+    } else {
+      resultMsg = userWon
+        ? `Vitória por ${m.hg}×${m.ag}! Você avança na ${compShort}.`
+        : `Eliminado da ${compShort} — derrota por ${m.hg}×${m.ag}.`;
+    }
   } else {
     const mg=pending.group, g=Object.values(mg.groups).find(gr=>gr.label===pending.groupLabel);
     const T=g.table, h=m.h, a=m.a;
@@ -1978,17 +2022,34 @@ function userCupCalendarRows(){
   });
   return out;
 }
+/* datas de sorteio (Libertadores/Sul-Americana, oitavas de final 2026) pro Calendário —
+   só existe data real conhecida pra 2026 (ver COMP_R16_DRAW_2026); temporadas seguintes
+   não têm sorteio real, a virada é automática assim que a fase de grupos termina. */
+function userCupDrawRows(){
+  if(!S.cups || S.season!==2026) return [];
+  const out=[];
+  ['libertadores','sulamericana'].forEach(key=>{
+    const c=S.cups[key]; if(!c || !c.group || c.bracket) return; // só antes do sorteio acontecer
+    const d=COMP_R16_DRAW_2026[key]; if(!d) return;
+    out.push({key, n:Math.max(S.round+1, jornadaForRealDate(d)), date:d});
+  });
+  return out;
+}
 function clCalendar(){
-  // intercala copa e liga por jornada (ver nextCupJornada) — na mesma jornada, a(s)
-  // partida(s) de copa vêm antes da de liga, igual à ordem real de jogo (clJogar()
-  // enfileira as partidas de copa pendentes antes de liberar a rodada de liga).
-  const cupRows=userCupCalendarRows().map(pc=>({n:pc.n, cup:true, html:
+  // intercala copa, sorteio e liga por jornada (ver nextCupJornada/jornadaForRealDate) —
+  // na mesma jornada, a(s) partida(s) de copa vêm antes da de liga, igual à ordem real de
+  // jogo (clJogar() enfileira as partidas de copa pendentes antes de liberar a rodada de
+  // liga); sorteios entram como um marco à parte, sem confronto associado.
+  const cupRows=userCupCalendarRows().map(pc=>({n:pc.n, ord:0, html:
     `<div class="cl-cal-row cl-cal-cup"><span class="cl-cal-n">${pc.n}ª</span>
       <span class="cl-cal-t">🏆 ${COMP_DEFS[pc.key].short} · ${clubLink(pc.opp)}</span><span class="cl-cal-cf">${pc.home?'C':'F'}</span></div>`}));
-  const ligaRows=userCalendar().map(r=>({n:r.n, cup:false, html:
+  const drawRows=userCupDrawRows().map(dr=>({n:dr.n, ord:0, html:
+    `<div class="cl-cal-row cl-cal-draw"><span class="cl-cal-n">${dr.n}ª</span>
+      <span class="cl-cal-t">🎲 Sorteio das oitavas — ${COMP_DEFS[dr.key].short} (${fmtRealDate(dr.date)})</span><span class="cl-cal-cf"></span></div>`}));
+  const ligaRows=userCalendar().map(r=>({n:r.n, ord:1, html:
     `<div class="cl-cal-row"><span class="cl-cal-n">${r.n}ª</span>
     <span class="cl-cal-t">${clubLink(r.opp)}</span><span class="cl-cal-cf">${r.home?'C':'F'}</span></div>`}));
-  const rows=cupRows.concat(ligaRows).sort((a,b)=>a.n-b.n || (a.cup?0:1)-(b.cup?0:1)).map(r=>r.html).join('');
+  const rows=cupRows.concat(drawRows).concat(ligaRows).sort((a,b)=>a.n-b.n || a.ord-b.ord).map(r=>r.html).join('');
   overlayC(dlg('Calendário', `<div class="cl-cal">${rows}</div>
     <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
     {w:640,bodyClass:'cl-body-gray',min:true}));
@@ -2221,7 +2282,7 @@ function clSendResenhaEmailInvite(){ const clubId=document.querySelector('#cl-in
   (async ()=>{ try { await NET.sendEmailInvite(email); toastC('✓ Convite enviado por e-mail!'); const inp=document.querySelector('#cl-invres-email'); if(inp) inp.value=''; }
     catch(e){ toastC('⚠ '+(e&&e.message||'Erro ao enviar convite por e-mail')); } })(); }
 function clTab2(t){ CL.menu=null; CL.tab=t; cdraw(); }
-function clSaveMenu(){ CL.menu=null; saveV3(true); cdraw(); }
+function clSaveMenu(){ CL.menu=null; cdraw(); saveV3(true); }
 function clExit(){ CL.menu=null; CL.screen='abertura'; cdraw(); }
 /* zona de classificação continental pra próxima temporada (só existe na Série A —
    ver computeQualification: G6 -> Libertadores, 7º-12º -> Sul-Americana) */
@@ -2344,19 +2405,22 @@ function cupBracketHTML(c,key){
     return `<div class="cl-cup-hint">A fase eliminatória ainda não começou — aguardando o fim da fase de grupos.</div>`;
   }
   const cid=CL.clubId;
+  // times "de folga" (bye) não entram no chaveamento como caixa própria — ainda não têm
+  // adversário de verdade, então só apareceriam como "fulano — de folga", confuso. Eles
+  // simplesmente aparecem na rodada seguinte assim que caírem num confronto real.
   const tieBox=(t)=>{ const w=t.winner, decided=w!=null;
+    const pensTag = t.pens ? `<div class="cl-bracket-pens">pênaltis ${t.pens.h}×${t.pens.a}</div>` : '';
     return `<div class="cl-bracket-tie ${(t.h===cid||t.a===cid)?'me':''}">
       <div class="cl-bracket-team ${w===t.h?'win':decided?'lose':''}"><span>${clubLink(t.h)}</span>${decided?`<b>${t.hg}</b>`:''}</div>
       <div class="cl-bracket-team ${w===t.a?'win':decided?'lose':''}"><span>${clubLink(t.a)}</span>${decided?`<b>${t.ag}</b>`:''}</div>
+      ${pensTag}
     </div>`; };
-  const byeBox=(id)=>`<div class="cl-bracket-tie ${id===cid?'me':''}"><div class="cl-bracket-team win"><span>${clubLink(id)}</span></div><div class="cl-bracket-team bye-lbl"><span>de folga (bye)</span></div></div>`;
   const cols=[];
   (b.history||[]).forEach(h=>{
-    const byeIds = h.advanced.filter(id=>!h.ties.some(t=>t.h===id||t.a===id));
-    cols.push({label:`Rodada ${h.round}`, boxes:[...h.ties.map(tieBox), ...byeIds.map(byeBox)]});
+    if(h.ties.length) cols.push({label:`Rodada ${h.round}`, boxes:h.ties.map(tieBox)});
   });
-  if(!cupIsFinished(b) && (b.ties.length || (b.pendingByes||[]).length)){
-    cols.push({label:`Rodada ${b.round} (pendente)`, boxes:[...b.ties.map(tieBox), ...(b.pendingByes||[]).map(byeBox)]});
+  if(!cupIsFinished(b) && b.ties.length){
+    cols.push({label:`Rodada ${b.round} (pendente)`, boxes:b.ties.map(tieBox)});
   }
   if(b.champion) cols.push({label:'Campeão', boxes:[`<div class="cl-bracket-tie champ"><div class="cl-bracket-team win"><span>🏆 ${clubLink(b.champion)}</span></div></div>`]});
   if(!cols.length) return '<div class="cl-cup-hint">O chaveamento ainda não começou.</div>';

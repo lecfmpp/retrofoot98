@@ -461,11 +461,12 @@ function advanceCupBracket(b, roundLabel){
     const Rm=makeRng(hashSeed(seed,'rate'));
     applyMatchIncidents(evs);
     ratePlayers(t.h,fin.hg,fin.ag,fin.scorers,Rm); ratePlayers(t.a,fin.ag,fin.hg,fin.scorers,Rm);
-    let winner;
-    if(fin.hg!==fin.ag) winner=fin.hg>fin.ag?t.h:t.a;
-    else { const R=makeRng(seed+1); winner=R.random()<0.5?t.h:t.a; } // pênaltis simplificado
-    t.winner=winner; winners.push(winner);
-    const loser=winner===t.h?t.a:t.h; b.eliminated[loser]=true;
+    // empate no tempo normal: prorrogação + pênaltis de verdade (ver resolveDrawnKnockoutTie
+    // em simulate.js) — nada de sorteio 50/50, e a MESMA seed de sempre garante que bate com
+    // o que a partida ao vivo/espectador já mostrou, se for o caso.
+    const res=resolveDrawnKnockoutTie(t.h,t.a,seed,fin.hg,fin.ag);
+    t.winner=res.winner; t.pens=res.pens||null; winners.push(res.winner);
+    const loser=res.winner===t.h?t.a:t.h; b.eliminated[loser]=true;
   });
   const advancing=winners.concat(b.pendingByes||[]);
   b.history.push({round:b.round,ties:b.ties.slice(),advanced:advancing.slice()});
@@ -572,6 +573,14 @@ function realDateForDay(day){
 const PT_MONTHS_ABBR=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 function fmtRealDate(d){ return `${d.getDate()} de ${PT_MONTHS_ABBR[d.getMonth()]}`; }
 const COMP_R16_DRAW_2026={ libertadores:new Date(2026,4,29), sulamericana:new Date(2026,4,29) };
+/* inverso de realDateForDay: em qual jornada de liga (aproximada) cai uma data real —
+   usado pra colocar a data de sorteio no lugar certo do Calendário, intercalada com o
+   resto (ver userCupCalendarRows/clCalendar em main.js). */
+function jornadaForRealDate(d){
+  const epoch=new Date(SEASON_EPOCH_2026[0],SEASON_EPOCH_2026[1],SEASON_EPOCH_2026[2]);
+  const dayOffset=Math.round((d-epoch)/86400000)+1;
+  return Math.max(1, Math.floor((dayOffset-1)/7)+1);
+}
 
 /* a cada 3 rodadas de liga, avança a rodada pendente de cada copa ativa —
    roda inteiramente em segundo plano (quick-sim), sem bloquear o usuário */

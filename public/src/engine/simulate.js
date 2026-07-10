@@ -185,6 +185,47 @@ function availableXI(id){
   return chosen.slice(0,11);
 }
 
+/* ===== mata-mata empatado: prorrogação + pênaltis de verdade =====
+   NENHUMA copa aqui é jogo de ida-e-volta (motor sempre simula uma partida única
+   eliminatória, por design) — então um empate no tempo normal precisa de um
+   desempate de verdade, igual a qualquer mata-mata de jogo único na vida real:
+   30min de prorrogação (mais chance de sair um gol decisivo, força líquida dita
+   quem leva vantagem) e, se persistir, pênaltis alternados de verdade — cada
+   cobrador pesado por força/posição (igual pickPenaltyTaker) e a conversão real
+   depende do goleiro adversário (igual penaltyConvChance), nunca é sorteio 50/50.
+   Usado por TODAS as competições de mata-mata (Copa do Brasil, e a fase eliminatória
+   de Libertadores/Sul-Americana depois da fase de grupos) — mesma seed que o
+   avanço em segundo plano usa pra essa mesma partida, pro resultado bater sempre,
+   seja jogada ao vivo, assistida no modo espectador, ou resolvida sozinha. */
+function resolveDrawnKnockoutTie(homeId,awayId,seed,hg,ag){
+  if(hg!==ag) return {hg,ag,winner:hg>ag?homeId:awayId,wentToExtra:false,wentToPens:false,pens:null};
+  const R=makeRng(hashSeed(seed,'extra'));
+  const H=ratings(homeId,false), A=ratings(awayId,false);
+  const bias=(H.OS+H.MS-H.DS*0.3)-(A.OS+A.MS-A.DS*0.3); // vantagem líquida na prorrogação
+  const pHome=clamp(0.5+bias/500,0.18,0.55), pAway=clamp(0.5-bias/500,0.18,0.55);
+  const ehg=R.random()<pHome?1:0, eag=R.random()<pAway?1:0;
+  if(ehg!==eag) return {hg:hg+ehg,ag:ag+eag,winner:ehg>eag?homeId:awayId,wentToExtra:true,wentToPens:false,pens:null};
+  // pênaltis: 5 cobranças alternadas por time, cobradores escolhidos por peso de força/
+  // posição (não repete cobrador enquanto houver opção); se seguir empatado, morte súbita
+  // (1 cobrança cada por rodada) até decidir — teto de segurança em 20 rodadas.
+  const hp=availableXI(homeId).filter(p=>p.s!=='GK'), ap=availableXI(awayId).filter(p=>p.s!=='GK');
+  const gkH=availableXI(homeId).find(p=>p.s==='GK')||null, gkA=availableXI(awayId).find(p=>p.s==='GK')||null;
+  const kick=(taker,gk)=>taker && R.random()<penaltyConvChance(taker,gk);
+  let pH=0,pA=0;
+  for(let i=0;i<5;i++){
+    if(kick(hp.length?hp[i%hp.length]:null,gkA)) pH++;
+    if(kick(ap.length?ap[i%ap.length]:null,gkH)) pA++;
+  }
+  let round=5;
+  while(pH===pA && round<20){
+    if(kick(hp.length?hp[round%hp.length]:null,gkA)) pH++;
+    if(kick(ap.length?ap[round%ap.length]:null,gkH)) pA++;
+    round++;
+  }
+  const winner = pH!==pA ? (pH>pA?homeId:awayId) : (R.random()<0.5?homeId:awayId); // segurança extrema (teto batido)
+  return {hg,ag,winner,wentToExtra:true,wentToPens:true,pens:{h:pH,a:pA}};
+}
+
 /* simulate a full CPU match instantly */
 function quickSim(homeId,awayId,seed){
   let res=null;
