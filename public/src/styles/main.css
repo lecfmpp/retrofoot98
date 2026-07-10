@@ -480,6 +480,9 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-bracket-pens{text-align:center;font-size:10px;color:#666;padding:2px 4px 4px;background:#f4f4f4}
 .cl-bracket-tie.champ{border-color:var(--yellow);border-width:2px}
 .cl-bracket-tie.champ .cl-bracket-team{background:var(--yellow);font-weight:900;justify-content:center}
+.cl-bracket-col-ghost{opacity:.5}
+.cl-bracket-tie.champ-pending{border-style:dashed}
+.cl-bracket-tie.champ-pending .cl-bracket-team{justify-content:center;color:#888;font-style:italic}
 /* mercado de transferências */
 .cl-mkt-clublist{display:flex;flex-direction:column;gap:6px;min-width:400px;max-height:60vh;overflow-y:auto}
 .cl-mkt-club{display:flex;justify-content:space-between;align-items:center;background:#e8e8e8;border-left:5px solid #888;border-radius:4px;padding:9px 12px;cursor:pointer;color:#000;font-weight:700;font-size:13px}

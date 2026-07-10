@@ -2175,11 +2175,13 @@ function scCupClassif(){
   const hasGroup=COMP_HAS_GROUP[key];
   const inGroupStage = hasGroup && c.group && !c.bracket;
   const body = inGroupStage ? cupGroupHTML(c) : cupBracketHTML(c,key);
+  const b = inGroupStage ? null : (c.champion!==undefined ? c : c.bracket);
+  const stageLabel = inGroupStage ? 'Fase de grupos' : (b ? cupPhaseLabel(b.round,b.roundsTotal) : 'Fase eliminatória');
   return `<div class="cl-live cl-classif">
     <div class="cl-classif-buttons">${btn('Continuar','cupClassifContinue()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})}</div>
     <div class="cl-live-cup-top">${trophyImg(key,64)}
       <div class="cl-live-cup-name">${escC(COMP_DEFS[key].name)}</div>
-      <div class="cl-live-cup-stage">${inGroupStage?'Fase de grupos':'Fase eliminatória'}</div>
+      <div class="cl-live-cup-stage">${escC(stageLabel)}</div>
     </div>
     <div class="cl-cup-classif-body">${body}</div>
   </div>`;
@@ -2694,14 +2696,21 @@ function cupBracketHTML(c,key){
     </div>`; };
   const cols=[];
   (b.history||[]).forEach(h=>{
-    if(h.ties.length) cols.push({label:`Rodada ${h.round}`, boxes:h.ties.map(tieBox)});
+    if(h.ties.length) cols.push({label:cupPhaseLabel(h.round,b.roundsTotal), boxes:h.ties.map(tieBox)});
   });
   if(!cupIsFinished(b) && b.ties.length){
-    cols.push({label:`Rodada ${b.round} (pendente)`, boxes:b.ties.map(tieBox)});
+    cols.push({label:`${cupPhaseLabel(b.round,b.roundsTotal)} (pendente)`, boxes:b.ties.map(tieBox)});
   }
-  if(b.champion) cols.push({label:'Campeão', boxes:[`<div class="cl-bracket-tie champ"><div class="cl-bracket-team win"><span>🏆 ${clubLink(b.champion)}</span></div></div>`]});
   if(!cols.length) return '<div class="cl-cup-hint">O chaveamento ainda não começou.</div>';
-  return `<div class="cl-bracket-wrap">${cols.map(col=>`<div class="cl-bracket-col"><div class="cl-bracket-col-h">${escC(col.label)}</div>${col.boxes.join('')}</div>`).join('')}</div>`;
+  if(b.champion){
+    cols.push({label:'Campeão', boxes:[`<div class="cl-bracket-tie champ"><div class="cl-bracket-team win"><span>🏆 ${clubLink(b.champion)}</span></div></div>`]});
+  } else if(b.round<b.roundsTotal){
+    // taça sempre visível como destino final do chaveamento, mesmo faltando rodadas — não
+    // duplica quando a própria rodada pendente já É a final (já rotulada "Final (pendente)"
+    // acima) — ajuda o jogador a sentir o quão perto (ou longe) está do título.
+    cols.push({label:'Final', boxes:[`<div class="cl-bracket-tie champ-pending"><div class="cl-bracket-team"><span>🏆 ?</span></div></div>`], ghost:true});
+  }
+  return `<div class="cl-bracket-wrap">${cols.map(col=>`<div class="cl-bracket-col${col.ghost?' cl-bracket-col-ghost':''}"><div class="cl-bracket-col-h">${escC(col.label)}</div>${col.boxes.join('')}</div>`).join('')}</div>`;
 }
 
 /* ================= SORTEIO DOS JOGOS DA TAÇA (cerimônia animada, igual ao RetroFoot98 clássico) =================

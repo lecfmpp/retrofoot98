@@ -551,10 +551,31 @@ function cupCompetitionTeamAlive(c,id){ if(!c) return false;
   if(c.champion!==undefined) return cupTeamAlive(c,id);
   if(c.group && !c.group.finished) return Object.values(c.group.groups).some(g=>g.teams.includes(id));
   return c.bracket ? cupTeamAlive(c.bracket,id) : false; }
+/* nome da fase do mata-mata a partir da distância até a final — dá pro usuário a real
+   sensação de progresso ("oitavas", "quartas"...) em vez de um número de rodada cru.
+   roundsTotal varia por competição/temporada (Copa do Brasil parte de ~80 clubes, um
+   chaveamento bem maior que os 16 times de Libertadores/Sul-Americana 2026), então "16
+   avos de final" só aparece quando o chaveamento é grande o suficiente pra ter essa fase
+   de verdade — nunca é inventada pras copas continentais do formato atual. */
+function cupPhaseLabel(round, roundsTotal){
+  const dist=roundsTotal-round; // 0 = já é a rodada final
+  if(dist<=0) return 'Final';
+  if(dist===1) return 'Semifinal';
+  if(dist===2) return 'Quartas de final';
+  if(dist===3) return 'Oitavas de final';
+  if(dist===4) return '16 avos de final';
+  return `${round}ª fase`; // rodadas bem no início de chaveamentos grandes, sem nome padrão
+}
+function cupEliminationPhrase(round, roundsTotal){
+  const label=cupPhaseLabel(round, roundsTotal);
+  if(label==='Final') return 'Vice-campeão';
+  const singular = label==='Semifinal' || /ª fase$/.test(label);
+  return `Eliminado ${singular?'na':'nas'} ${label.charAt(0).toLowerCase()+label.slice(1)}`;
+}
 function cupCompetitionRoundLabel(c,key){ if(!c) return '';
-  if(c.champion!==undefined) return `Rodada ${c.round}/${c.roundsTotal}`;
+  if(c.champion!==undefined) return cupPhaseLabel(c.round, c.roundsTotal);
   if(c.group && !c.group.finished) return `Fase de grupos — rodada ${c.group.round+1}/${c.group.roundsTotal}`;
-  if(c.bracket) return `Mata-mata — rodada ${c.bracket.round}/${c.bracket.roundsTotal}`;
+  if(c.bracket) return `Mata-mata — ${cupPhaseLabel(c.bracket.round, c.bracket.roundsTotal)}`;
   const drawDate=key && S.season===2026 ? COMP_R16_DRAW_2026[key] : null;
   return drawDate ? `Aguardando sorteio das oitavas (${fmtRealDate(drawDate)})` : 'Aguardando fase de grupos'; }
 
@@ -1569,9 +1590,7 @@ function cupResultForClub(key, clubId){
   (b.history||[]).forEach(h=>{ if(h.ties.some(t=>t.h===clubId||t.a===clubId)) lastRound=h.round; });
   if((b.ties||[]).some(t=>t.h===clubId||t.a===clubId)) lastRound=b.round;
   if(lastRound==null) return bracketOnly ? 'Eliminado na 1ª fase' : 'Fase de grupos';
-  const left=b.roundsTotal-lastRound;
-  return left<=0?'Vice-campeão' : left===1?'Eliminado na semifinal' : left===2?'Eliminado nas quartas de final'
-    : left===3?'Eliminado nas oitavas de final' : `Eliminado na rodada ${lastRound} do mata-mata`;
+  return cupEliminationPhrase(lastRound, b.roundsTotal);
 }
 function endSeason(){
   const tbl=sortedTable();
