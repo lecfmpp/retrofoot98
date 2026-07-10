@@ -40,6 +40,87 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 @media (max-width:480px){ .cl-topbar-auth-name{display:none} }
 .cl-desk{min-height:calc(100vh - 26px);background:var(--felt);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:26px;gap:16px}
 .cl-desk-logo{display:block;width:140px;height:140px;max-width:50vw;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4));align-self:center}
+/* ================= HOME (landing) — redesenho do handoff de design =================
+   Janela cheia (barra de título + navbar de páginas institucionais + corpo + rodapé),
+   preenchendo a viewport de verdade (sem o truque de canvas de tamanho fixo + escala
+   por JS do protótipo original — aqui segue o mesmo padrão responsivo do resto do app:
+   fluido, único breakpoint em 760px). */
+.cl-home{min-height:100vh;display:flex;flex-direction:column;background:var(--felt)}
+.cl-home-titlebar{flex:none;height:30px;background:linear-gradient(90deg,var(--navy),#1a1aa8);display:flex;align-items:center;justify-content:space-between;padding:0 6px 0 8px;color:#fff}
+.cl-home-tb-l{display:flex;align-items:center;gap:7px;font-weight:800;font-size:13px;letter-spacing:.3px}
+.cl-home-tb-l img{width:18px;height:18px;object-fit:contain}
+.cl-home-tb-r{display:flex;gap:3px}
+.cl-home-tb-r span{width:18px;height:16px;background:var(--chrome);border:1px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);color:#111;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1}
+.cl-home-navbar{flex:none;display:flex;align-items:center;gap:2px;padding:0 6px;background:var(--chrome);border-bottom:2px solid var(--bevD);height:38px;overflow-x:auto}
+.cl-home-nav{background:transparent;border:none;border-top:2px solid transparent;border-bottom:2px solid transparent;font-family:var(--sans);font-size:13px;font-weight:700;color:var(--navy);padding:7px 12px;cursor:pointer;line-height:1;white-space:nowrap}
+.cl-home-nav:hover,.cl-home-nav.on{background:var(--navy);color:#fff}
+.cl-home-navsp{flex:1}
+.cl-home-online{display:inline-flex;align-items:center;gap:6px;background:var(--success-alt);color:#fff;font-weight:800;font-size:11px;padding:4px 11px;border-radius:var(--radius-chip);border:1px solid var(--success-deep);white-space:nowrap;margin-right:6px}
+.cl-home-online-dot{width:8px;height:8px;border-radius:50%;background:var(--success-lite);animation:cl-home-blink 1.6s infinite}
+@keyframes cl-home-blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cl-home-body{flex:1;position:relative}
+.cl-home-hero{min-height:calc(100vh - 30px - 38px - 30px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:36px 20px;box-sizing:border-box}
+.cl-home-hero-logo{width:112px;height:112px;object-fit:contain;filter:var(--shadow-logo)}
+.cl-home-hero-h{font-family:var(--serif);font-style:italic;font-weight:700;color:#fff;font-size:27px;line-height:1.18;margin-top:14px;text-shadow:0 2px 4px rgba(0,0,0,.35)}
+.cl-home-hero-sub{color:var(--ontext-lite2);font-size:14px;font-weight:600;margin-top:10px;max-width:520px}
+.cl-home-hero-cta{margin-top:26px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.cl-home-cta{font-family:var(--sans);font-weight:800;letter-spacing:.4px;font-size:19px;color:#fff;background:var(--success-alt);border:3px solid;border-color:var(--success-lite) var(--success-deep) var(--success-deep) var(--success-lite);padding:16px 46px;cursor:pointer;display:inline-flex;align-items:center;gap:12px;box-shadow:0 6px 0 rgba(0,0,0,.18)}
+.cl-home-cta span{font-size:22px}
+.cl-home-cta:active{border-color:var(--success-deep) var(--success-lite) var(--success-lite) var(--success-deep);box-shadow:none;transform:translateY(3px)}
+.cl-home-hero-links{display:flex;align-items:center;gap:14px}
+.cl-home-hero-links span{color:var(--ontext-lite2);font-size:11px}
+.cl-home-mini{font-family:var(--sans);font-weight:700;font-size:12px;color:#00005c;background:transparent;border:none;cursor:pointer;text-decoration:underline;padding:4px}
+.cl-home-mini:hover{color:var(--bluetxt)}
+.cl-home-hero .cl-home-mini{color:#fff}
+.cl-home-hero .cl-home-mini:hover{color:var(--yellow)}
+.cl-home-features{margin-top:30px;width:min(680px,94%);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:16px 10px 14px}
+.cl-home-features-lbl{color:var(--yellow);font-size:10px;font-weight:800;letter-spacing:1.5px;margin-bottom:12px}
+.cl-home-featrow{display:flex;justify-content:center;gap:26px;flex-wrap:wrap}
+.cl-home-feat{display:flex;flex-direction:column;align-items:center;width:180px}
+.cl-home-feat img{width:56px;height:56px;object-fit:contain}
+.cl-home-feat-t{color:#fff;font-size:12px;font-weight:800;margin-top:6px}
+.cl-home-feat-d{color:var(--ontext-lite2);font-size:11px;line-height:1.35;margin-top:2px}
+.cl-home-page{min-height:calc(100vh - 30px - 38px - 30px);display:flex;align-items:center;justify-content:center;padding:26px 20px;box-sizing:border-box}
+.cl-home-pagebox{width:600px;max-width:96%;background:var(--navy);padding:3px;box-shadow:var(--shadow-dlg)}
+.cl-home-pagebox-h{background:var(--navy);color:#fff;font-weight:800;font-size:14px;padding:7px 12px}
+.cl-home-pagebox-b{background:var(--felt);padding:22px 26px;color:#fff}
+.cl-home-pagebox-b-gray{background:var(--chrome);color:#111}
+.cl-home-pagebox-b p{font-size:14px;line-height:1.55;margin:0 0 14px}
+.cl-home-pagebox-b-gray p{font-size:13px;line-height:1.5;margin:0 0 10px}
+.cl-home-h2{font-family:var(--serif);font-style:italic;font-weight:700;font-size:20px;margin-bottom:14px}
+.cl-home-p2{color:var(--ontext-lite2)}
+.cl-home-fine{font-size:12px;color:var(--gray-666);margin:0 0 14px !important}
+.cl-home-back{margin-top:4px}
+.cl-home-pagebox-b .cl-home-back{color:var(--yellow)}
+.cl-home-steps{display:flex;flex-direction:column;gap:13px}
+.cl-home-step{display:flex;gap:12px;align-items:flex-start}
+.cl-home-step-n{flex:none;width:26px;height:26px;background:var(--yellow);color:#00005c;font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:center;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL)}
+.cl-home-step b{font-size:14px}
+.cl-home-step span{font-size:13px;color:var(--ontext-lite2);margin-left:5px}
+.cl-home-ajuda-actions{margin-top:20px;display:flex;gap:16px;align-items:center}
+.cl-home-ajuda-actions .cl-home-back{color:var(--yellow)}
+.cl-home-contact-list{display:flex;flex-direction:column;gap:8px;font-size:14px;margin-bottom:16px}
+.cl-home-contact-row{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);padding:8px 12px}
+.cl-home-contact-row span:first-child{font-size:17px}
+.cl-home-mono{font-family:var(--mono);font-weight:700}
+.cl-home-muted{color:var(--gray-666)}
+.cl-home-footer{flex:none;height:30px;background:var(--chrome);border-top:2px solid var(--bevL);display:flex;align-items:center;justify-content:space-between;padding:0 12px}
+.cl-home-foot-l{display:flex;align-items:center;gap:10px;font-size:11px;color:#3a3a3a}
+.cl-home-ver{font-family:var(--mono);font-weight:700}
+.cl-home-foot-r{display:flex;align-items:center;gap:14px}
+.cl-home-foot{color:#3a3a3a;font-weight:700;text-decoration:none;cursor:pointer;font-family:var(--sans);font-size:11px}
+.cl-home-foot:hover{text-decoration:underline;color:var(--navy)}
+@media (max-width:760px){
+  .cl-home-navbar{padding:3px 6px;height:auto}
+  .cl-home-nav{padding:9px 12px;font-size:14px}
+  .cl-home-online{display:none}
+  .cl-home-hero-h{font-size:22px}
+  .cl-home-featrow{flex-direction:column;align-items:center;gap:16px}
+  .cl-home-feat{width:100%;max-width:320px}
+  .cl-home-footer{height:auto;flex-direction:column;gap:6px;padding:9px 12px}
+  .cl-home-cta{font-size:17px;padding:15px 26px;max-width:90%;white-space:nowrap;justify-content:center}
+  .cl-home-page{padding:20px 14px}
+}
 /* diálogos */
 .cl-dlg{background:var(--navy);padding:3px;box-shadow:0 10px 40px -8px rgba(0,0,0,.55);max-width:calc(100vw - 24px);position:relative}
 /* selo do campeonato (troféu + nome) no canto sup. esquerdo do modal — usado nos

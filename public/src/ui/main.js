@@ -5,7 +5,7 @@
    05 loading · 06 jogadores · 07 sorteio · 08-13 tela principal.
    ================================================================ */
 const $c = s => document.querySelector(s);
-const CL = { screen:'abertura', save:'', currency:'Reais', countries:new Set(), names:['','','','','',''],
+const CL = { screen:'abertura', landingView:'home', save:'', currency:'Reais', countries:new Set(), names:['','','','','',''],
              draw:[], clubId:null, tab:'jogo', selPlayer:null, menu:null, ticket:8, mgr:'', mobMenuOpen:false,
              divisionToggle:{A:true,B:true,C:true,D:true}, compToggle:{libertadores:true, copaBrasil:true, sulamericana:true} };
 /* ---- troféu (imagem) das competições — usado na seleção de país e em qualquer
@@ -145,7 +145,7 @@ function topbarAuth(){
 }
 async function clAuthLogout(){
   try{ if(typeof NET!=='undefined' && NET.authSignOut) await NET.authSignOut(); }catch(e){ console.warn('Logout erro:', e); }
-  CL.screen='abertura'; cdraw();
+  CL.screen='abertura'; CL.landingView='home'; cdraw();
   if(typeof toastC==='function') toastC('Sessão encerrada.');
 }
 function titleBarTop(t,opts){ opts=opts||{};
@@ -165,7 +165,7 @@ function btn(label,onclick,opts){ opts=opts||{}; return `<button class="cl-btn $
 function cdraw(){ const r=$c('#c-root'); if(!r)return;
   let html='';
   switch(CL.screen){
-    case 'abertura':  html=titleBarTop('RetroFoot98',{logo:true,linkHome:true})+deskWrap(scAbertura(),{logo:true,linkHome:true}); break;
+    case 'abertura':  html=scAbertura(); break;
     case 'login':     html=titleBarTop('RetroFoot98',{logo:true,linkHome:true})+deskWrap(scLogin(),{logo:true,linkHome:true}); break;
     case 'resetpassword': html=titleBarTop('RetroFoot98',{logo:true,linkHome:true})+deskWrap(scResetPassword(),{logo:true,linkHome:true}); break;
     case 'modo':      html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scModoChoice(),{logo:true}); break;
@@ -188,36 +188,148 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
   const f=$c('#cl-focus'); if(f) f.focus();
 }
 
-/* ================= 01 · ABERTURA (capa) ================= */
+/* ================= 01 · ABERTURA (Home) =================
+   Redesenho do handoff de design (templates/home/Home.dc.html do pacote entregue):
+   janela com barra de título + navbar de páginas institucionais (Início/Sobre nós/Como
+   jogar/Contato) + corpo com UM CTA dominante (Jogar agora) + rodapé (Sobre/Contato/
+   Termos/Privacidade). O protótipo original usa um canvas de tamanho fixo (1100×632)
+   escalado por JS — truque específico da ferramenta de design pra caber num iframe de
+   preview. Aqui adaptado pro padrão responsivo real do resto do app: 100vh fluido,
+   único breakpoint em 760px (ver .cl-home-* no CSS), igual todo o resto do RetroFoot98. */
 const FEATURES=[
-  {img:'img/badge-clubes.webp', t:'Clubes e Jogadores reais'},
-  {img:'img/badge-liga.webp', t:'Monte a sua liga com amigos'},
-  {img:'img/badge-chat.webp', t:'Chat em tempo real'}
+  {img:'img/badge-clubes.webp', t:'Clubes e jogadores reais', d:'Elencos de verdade, das quatro divisões às copas.'},
+  {img:'img/badge-liga.webp', t:'Liga com amigos', d:'Monte a sua liga no Modo Resenha e dispute a rodada.'},
+  {img:'img/badge-chat.webp', t:'Chat em tempo real', d:'Resenha com a galera enquanto os jogos rolam.'}
 ];
+const LANDING_NAV=[['home','Início'],['sobre','Sobre nós'],['ajuda','Como jogar'],['contato','Contato']];
+const LANDING_FOOT=[['sobre','Sobre nós'],['contato','Contato'],['termos','Termos'],['priv','Privacidade']];
 function scAbertura(){
-  const chips=FEATURES.map(f=>`<div class="cl-chip"><img class="cl-chip-badge" src="${f.img}" width="500" height="500" alt="${escC(f.t)}" draggable="false"></div>`).join('');
-  return dlg('Bem-vindo', `
-    <div class="cl-about">
-      <div class="cl-online">🟢 100% Online</div>
-      <div class="cl-about-ver">v2026.01</div>
-      <div class="cl-about-sub">O clássico da sua infância, agora online e com os amigos</div>
-      <div class="cl-chips">${chips}</div>
-      <div class="cl-about-enter">${btn('Entrar','clGoModo()',{icon:'✔',cls:'cl-btn-ok cl-btn-big'})}</div>
-    </div>`, {w:760,bodyClass:'cl-body-green'});
+  const v=CL.landingView||'home';
+  const navHTML=LANDING_NAV.map(([view,label])=>`<button class="cl-home-nav ${v===view?'on':''}" onclick="clLandingGo('${view}')">${escC(label)}</button>`).join('');
+  const footHTML=LANDING_FOOT.map(([view,label])=>`<a class="cl-home-foot" onclick="clLandingGo('${view}')">${escC(label)}</a>`).join('');
+  const bodyFns={sobre:landingSobreHTML, ajuda:landingAjudaHTML, contato:landingContatoHTML, termos:landingTermosHTML, priv:landingPrivHTML};
+  const body=(bodyFns[v]||landingHomeHTML)();
+  return `<div class="cl-home">
+    <div class="cl-home-titlebar">
+      <div class="cl-home-tb-l"><img src="img/logo.webp" width="500" height="500" alt="">RetroFoot98</div>
+      <div class="cl-home-tb-r"><span>_</span><span>□</span><span>✕</span></div>
+    </div>
+    <div class="cl-home-navbar">
+      ${navHTML}
+      <div class="cl-home-navsp"></div>
+      <span class="cl-home-online"><span class="cl-home-online-dot"></span>100% Online</span>
+      <button class="cl-home-nav" onclick="clGoModo()" style="color:#00005c">🔑 Entrar</button>
+    </div>
+    <div class="cl-home-body">${body}</div>
+    <div class="cl-home-footer">
+      <div class="cl-home-foot-l"><span class="cl-home-ver">v2026.01</span><span>© 2026 RetroFoot98</span></div>
+      <div class="cl-home-foot-r">${footHTML}</div>
+    </div>
+  </div>`;
+}
+function landingHomeHTML(){
+  const featHTML=FEATURES.map(f=>`<div class="cl-home-feat">
+      <img src="${f.img}" width="500" height="500" alt="">
+      <div class="cl-home-feat-t">${escC(f.t)}</div>
+      <div class="cl-home-feat-d">${escC(f.d)}</div>
+    </div>`).join('');
+  return `<div class="cl-home-hero">
+    <img class="cl-home-hero-logo" src="img/logo.webp" width="500" height="500" alt="RetroFoot98">
+    <div class="cl-home-hero-h">O clássico da sua infância,<br>agora online e com os amigos.</div>
+    <div class="cl-home-hero-sub">Você é o técnico. Escale o time, negocie jogadores e leve o clube da Série D ao topo.</div>
+    <div class="cl-home-hero-cta">
+      <button class="cl-home-cta" onclick="clGoModo()"><span>⚽</span>Jogar agora</button>
+      <div class="cl-home-hero-links">
+        <button class="cl-home-mini" onclick="clGoModo('signup')">Criar conta grátis</button>
+        <span>·</span>
+        <button class="cl-home-mini" onclick="clGoModo('login')">Já tenho conta</button>
+      </div>
+    </div>
+    <div class="cl-home-features">
+      <div class="cl-home-features-lbl">POR QUE JOGAR</div>
+      <div class="cl-home-featrow">${featHTML}</div>
+    </div>
+  </div>`;
+}
+function landingPageHTML(title, bodyHTML, opts){ opts=opts||{};
+  return `<div class="cl-home-page">
+    <div class="cl-home-pagebox" style="${opts.w?`width:${opts.w}px`:''}">
+      <div class="cl-home-pagebox-h">${escC(title)}</div>
+      <div class="cl-home-pagebox-b ${opts.bodyClass||''}">${bodyHTML}</div>
+    </div>
+  </div>`;
+}
+function landingSobreHTML(){
+  return landingPageHTML('Sobre nós', `
+    <div class="cl-home-h2">Feito por quem cresceu jogando Elifoot.</div>
+    <p>O RetroFoot98 é o jogo de gerenciamento de futebol que você jogava na escola — a mesma pegada raiz de janelinha e placar em mono — só que agora online e com os amigos. Você comanda o clube: escolhe a tática, negocia jogadores, cuida do caixa e briga por acesso da Série D até o topo.</p>
+    <p class="cl-home-p2">É um projeto independente, tocado por gente apaixonada por futebol e pelos clássicos de PC. Sem tela de energia, sem pay-to-win: só o jogo que a gente sempre quis ter de volta.</p>
+    <button class="cl-home-mini cl-home-back" onclick="clLandingGo('home')">↩ Voltar ao início</button>
+  `, {w:620});
+}
+function landingAjudaHTML(){
+  const steps=[
+    ['1','Escolha o modo.','Solo contra a máquina ou Modo Resenha, com a liga da galera.'],
+    ['2','Pegue um clube.','Elencos reais das quatro divisões. Comece de onde quiser.'],
+    ['3','Monte a tática e jogue.','Escale os titulares, ajuste a Formação e mande ver na rodada.']
+  ];
+  const rows=steps.map(([n,t,d])=>`<div class="cl-home-step">
+      <span class="cl-home-step-n">${n}</span>
+      <div><b>${escC(t)}</b><span>${escC(d)}</span></div>
+    </div>`).join('');
+  return landingPageHTML('Como jogar', `
+    <div class="cl-home-steps">${rows}</div>
+    <div class="cl-home-ajuda-actions">
+      ${btn('Jogar agora','clGoModo()',{icon:'⚽',cls:'cl-btn-ok'})}
+      <button class="cl-home-mini cl-home-back" onclick="clLandingGo('home')">↩ Voltar</button>
+    </div>
+  `, {w:640});
+}
+function landingContatoHTML(){
+  return landingPageHTML('Contato', `
+    <p>Achou um bug, tem uma ideia ou quer chamar pra resenha? Fala com a gente:</p>
+    <div class="cl-home-contact-list">
+      <div class="cl-home-contact-row"><span>✉️</span><span class="cl-home-mono">contato@retrofoot98.com</span></div>
+      <div class="cl-home-contact-row"><span>💬</span><b>Discord da comunidade</b><span class="cl-home-muted">&nbsp;— resenha e suporte</span></div>
+      <div class="cl-home-contact-row"><span>🐦</span><b>@retrofoot98</b><span class="cl-home-muted">&nbsp;— novidades e updates</span></div>
+    </div>
+    <button class="cl-home-mini cl-home-back" onclick="clLandingGo('home')">↩ Voltar ao início</button>
+  `, {w:560, bodyClass:'cl-home-pagebox-b-gray'});
+}
+function landingTermosHTML(){
+  return landingPageHTML('Termos de uso', `
+    <p><b>1. O jogo.</b> O RetroFoot98 é gratuito para jogar. Você é responsável pela sua conta e pelo que faz nas ligas em que entra.</p>
+    <p><b>2. Fair play.</b> Nada de trapaça, bots ou ofensa na resenha. Contas fora da linha podem ser suspensas.</p>
+    <p><b>3. Marcas.</b> Nomes de clubes e jogadores pertencem aos seus donos e são usados apenas para fins de simulação.</p>
+    <p class="cl-home-fine">Versão v2026.01 — última atualização em julho de 2026.</p>
+    <button class="cl-home-mini cl-home-back" onclick="clLandingGo('home')">↩ Voltar ao início</button>
+  `, {w:620, bodyClass:'cl-home-pagebox-b-gray'});
+}
+function landingPrivHTML(){
+  return landingPageHTML('Privacidade', `
+    <p><b>O que guardamos.</b> Só o essencial pra você jogar: e-mail, apelido de treinador e o progresso do seu clube, gravado na nuvem.</p>
+    <p><b>O que não fazemos.</b> A gente não vende seus dados. Sem rastreio pra fora do jogo.</p>
+    <p><b>Seus direitos.</b> Você pode pedir seus dados ou apagar sua conta a qualquer momento, é só falar com a gente no Contato.</p>
+    <p class="cl-home-fine">Versão v2026.01 — última atualização em julho de 2026.</p>
+    <button class="cl-home-mini cl-home-back" onclick="clLandingGo('home')">↩ Voltar ao início</button>
+  `, {w:620, bodyClass:'cl-home-pagebox-b-gray'});
 }
 function clNoop(){}
 /* 'Entrar' na abertura: login é OBRIGATÓRIO (vale p/ Solo e Resenha). Se já houver
    sessão salva, vai direto pra escolha de modo; senão mostra a tela de login. */
-function clGoModo(){
+function clGoModo(mode){
   toastC('Conectando...');
   (async ()=>{
     await netInitSupabase();
     const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
     if(st.loggedIn){ CL.mgr=CL.mgr||st.name; CL.screen='modo'; }
-    else { CL.auth={mode:'login',name:CL.mgr||'',email:'',password:''}; CL.screen='login'; }
+    else { CL.auth={mode:mode||'login',name:CL.mgr||'',email:'',password:''}; CL.screen='login'; }
     cdraw();
   })();
 }
+/* páginas institucionais da Home (Sobre nós/Como jogar/Contato/Termos/Privacidade) —
+   trocam só o corpo da mesma página (mesmo header/footer), sem sair da tela 'abertura'. */
+function clLandingGo(view){ CL.landingView=view; cdraw(); }
 /* ================= LOGIN (abertura) — obrigatório, vale p/ os dois modos ================= */
 function scLogin(){ const a=CL.auth||(CL.auth={mode:'login',name:'',email:'',password:''});
   const isSignup=a.mode==='signup';
