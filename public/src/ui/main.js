@@ -696,11 +696,12 @@ function clSortear(){
   (async ()=>{
     if(uniCountry){
       // universo de país europeu único: liga própria com divisões (ex.: Inglaterra PL/CH).
-      // O usuário sempre começa na divisão TOPO; as demais tiers rodam em paralelo.
+      // O usuário SEMPRE começa na ÚLTIMA divisão (igual ao clássico: começa embaixo e sobe);
+      // ligas de divisão única começam nela mesma. As demais tiers rodam em paralelo.
       setUniverse(uniCountry);
       CL.intlUniverse = uniCountry;
-      const topDiv = DIV_ORDER[0];
-      DATA.clubs = clubsForDivision(topDiv).slice();
+      const startDiv = DIV_ORDER[DIV_ORDER.length-1];
+      DATA.clubs = clubsForDivision(startDiv).slice();
     } else if(intl){
       // múltiplos países (ou misto com Brasil): liga plana única, sem pirâmide/copas.
       setUniverse('brasil');
@@ -747,11 +748,11 @@ function scSorteio(){
 }
 function clEntrar(){
   CL.clubId=CL.draw[0].clubId; CL.mgr=CL.draw[0].name;
-  // universo: país europeu único = liga própria (divisão topo, ex.: Premier); 'flat' = liga
-  // internacional plana; false = Brasil. Copas brasileiras só no universo Brasil.
+  // universo: país europeu único = liga própria (começa na ÚLTIMA divisão, ex.: Championship);
+  // 'flat' = liga internacional plana; false = Brasil. Copas brasileiras só no universo Brasil.
   const isUni = CL.intlUniverse && CL.intlUniverse!=='flat';
   const isIntl = !!CL.intlUniverse;
-  const startDiv = isUni ? DIV_ORDER[0] : (isIntl ? 'A' : computeStartDivision());
+  const startDiv = isUni ? DIV_ORDER[DIV_ORDER.length-1] : (isIntl ? 'A' : computeStartDivision());
   const comps = isIntl ? {libertadores:false,copaBrasil:false,sulamericana:false} : CL.compToggle;
   newGame(CL.clubId, startDiv, comps); S.xi=autoXI(CL.clubId);
   S.intlUniverse = CL.intlUniverse; // false | 'flat' | país (ex.: 'Inglaterra')
