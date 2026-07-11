@@ -253,6 +253,37 @@ function cpuBackgroundTransfers(R){
     S.roundNews.push(`🔄 ${p.n} foi negociado do ${seller.short} pro ${buyer.short} por ${fmt(fee)}.`);
   }
 }
+/* ---- mercado das LIGAS DE BACKGROUND: os clubes estrangeiros negociam entre si (compra e
+   venda), dando vida às ligas que rodam sozinhas. Mesma cadência do mercado da liga do
+   usuário (0-2 por país/rodada, só na janela). Materializa os clubes envolvidos sob demanda.
+   As trocas ficam dentro de cada país (não misturamos elencos entre ligas). ---- */
+function bgCpuTransfers(R){
+  if(!S.bgLeagues || !inTransferWindow()) return;
+  R=R||makeRng(hashSeed(S.seed,S.round,'bgcpumkt'));
+  Object.keys(S.bgLeagues).forEach(country=>{
+    const L=S.bgLeagues[country];
+    const clubIds=[]; Object.keys(L.divs).forEach(d=>clubIds.push(...(L.divs[d].clubIds||[])));
+    if(clubIds.length<2) return;
+    const nT=Math.floor(R.rnd(0,3)); // 0-2 transferências por país por rodada de janela
+    for(let i=0;i<nT;i++){
+      const sellerId=clubIds[Math.floor(R.random()*clubIds.length)];
+      if(!ensureBgClubMaterialized(sellerId)) continue;
+      const sq=S.squads[sellerId]; if(!sq || sq.length<=18) continue; // não esvazia o elenco
+      const sorted=sq.slice().sort((a,b)=>b.f-a.f);
+      const pool=sorted.slice(Math.ceil(sorted.length*0.5)); if(!pool.length) continue; // vende metade mais fraca
+      const p=pool[Math.floor(R.random()*pool.length)];
+      let buyerId=clubIds[Math.floor(R.random()*clubIds.length)];
+      if(buyerId===sellerId || !ensureBgClubMaterialized(buyerId)) continue;
+      const fee=Math.round((p.mv||1e6)*(0.6+R.random()*0.6));
+      S.squads[sellerId]=sq.filter(x=>x.n!==p.n);
+      S.squads[buyerId]=S.squads[buyerId]||[]; S.squads[buyerId].push(p);
+      const fromShort=(intlClubById(sellerId)||{}).short||sellerId, toShort=(intlClubById(buyerId)||{}).short||buyerId;
+      L.transferLog=L.transferLog||[];
+      L.transferLog.unshift({ player:p.n, from:fromShort, to:toShort, fee, season:S.season });
+      if(L.transferLog.length>50) L.transferLog.pop();
+    }
+  });
+}
 /* ---- pool de leilão: uma seleção rotativa de jogadores de OUTROS clubes,
    compra direta (sem regatear) — "Leilão de jogadores" pedido pelo sócio ---- */
 function refreshAuctionPool(R){
@@ -1738,6 +1769,7 @@ function playRound(userResult){
   S.round++; S.week++; S.day+=7;
   advanceNegos();
   cpuBackgroundTransfers(Rr); // mercado entre CPUs — dá vida ao jogo mesmo sem o usuário negociar
+  bgCpuTransfers(Rr); // clubes das ligas de background negociam entre si (compra/venda)
   if(S.round%2===0) refreshAuctionPool(Rr); // leilão gira a cada 2 rodadas
   rollStory(Rr);
   advancePendingCups(); // cada copa avança na sua própria rodada — ver CUP_TICK_OFFSET

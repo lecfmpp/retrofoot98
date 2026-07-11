@@ -3345,7 +3345,7 @@ function renderBgLeagues(){
   if(!V.div || divKeys.indexOf(V.div)<0) V.div=divKeys[0];
   const ctryTabs=countries.map(c=>`<span class="cl-otab ${c===V.country?'on':''}" onclick="CL.bgView.country='${c}';CL.bgView.div=null;renderBgLeagues()">${(typeof COUNTRY_FLAG!=='undefined'&&COUNTRY_FLAG[c])||''} ${escC(c)}</span>`).join('');
   const divTabs=divKeys.length>1?('<div class="cl-otabs">'+divKeys.map(d=>`<span class="cl-otab ${d===V.div?'on':''}" onclick="CL.bgView.div='${d}';renderBgLeagues()">${escC(bgDivLabel(V.country,d))}</span>`).join('')+'</div>'):'';
-  const contentTabs=[['tabela','Tabela'],['artilheiros','Artilheiros'],['sempre','De sempre'],['historico','Campeões']].map(a=>`<span class="cl-otab ${V.tab===a[0]?'on':''}" onclick="CL.bgView.tab='${a[0]}';renderBgLeagues()">${a[1]}</span>`).join('');
+  const contentTabs=[['tabela','Tabela'],['artilheiros','Artilheiros'],['sempre','De sempre'],['transferencias','Transferências'],['historico','Campeões']].map(a=>`<span class="cl-otab ${V.tab===a[0]?'on':''}" onclick="CL.bgView.tab='${a[0]}';renderBgLeagues()">${a[1]}</span>`).join('');
   let body='';
   if(V.tab==='tabela'){
     body=bgStandings(V.country,V.div).map((t,i)=>{const c=intlClubById(t.id);return `<div class="cl-cal-row"><span class="cl-cal-n">${i+1}</span><span class="cl-cal-t">${escC(c?c.short:t.id)} <small style="color:#888">${t.P}j ${t.W}-${t.D}-${t.L}</small></span><span class="cl-cal-cf">${t.Pts}</span></div>`;}).join('');
@@ -3353,6 +3353,11 @@ function renderBgLeagues(){
     const src=V.tab==='sempre'?L.allTimeScorers:L.scorers;
     const list=Object.entries(src).sort((a,b)=>b[1]-a[1]).slice(0,25);
     body=list.length?list.map((x,i)=>`<div class="cl-cal-row"><span class="cl-cal-n">${i+1}</span><span class="cl-cal-t">${escC(x[0])}</span><span class="cl-cal-cf">${x[1]}</span></div>`).join(''):'<div style="padding:14px">Ainda sem gols nesta temporada.</div>';
+  } else if(V.tab==='transferencias'){
+    const log=L.transferLog||[];
+    body=log.length?log.slice(0,30).map(t=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid rgba(0,0,0,.12)">
+      <span style="flex:1;min-width:0"><b>${escC(t.player)}</b><br><small style="color:#888">${escC(t.from)} → ${escC(t.to)}</small></span>
+      <span style="white-space:nowrap;font-weight:700;font-size:12px">${fmt(t.fee)}</span></div>`).join(''):'<div style="padding:14px">Nenhuma transferência ainda (acontecem nas janelas de transferência).</div>';
   } else {
     body=(L.history||[]).length?L.history.slice().reverse().map(h=>`<div class="cl-cal-row"><span class="cl-cal-n">${h.season}</span><span class="cl-cal-t">🏆 ${escC(h.champ)}</span><span class="cl-cal-cf" style="font-size:11px">${escC(h.artilheiro)}</span></div>`).join(''):'<div style="padding:14px">Nenhuma temporada concluída ainda.</div>';
   }
