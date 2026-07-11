@@ -1178,7 +1178,7 @@ const MKT_DIV_LEGEND={A:'Série A — 1ª Divisão',B:'Série B — 2ª Divisão
    senão o rótulo da divisão do universo ativo (Premier League, Championship, La Liga...). */
 function divLegend(d){ return MKT_DIV_LEGEND[d] || (typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[d]) || d; }
 function clMarketClubs(){ CL.menu=null;
-  if(!inTransferWindow()){ toastC(windowClosedMsg()); return; }
+  if(!canNegotiate()){ toastC(windowClosedMsg()); return; }
   CL.market={step:'divisions'};
   // divisões do universo do usuário
   let rows=DIV_ORDER.map(d=>{
@@ -3177,10 +3177,12 @@ function clBuildStand(){
 
 /* ---- Jogador > Vender (painel na aba + leilão) ---- */
 function windowClosedMsg(){ const st=transferWindowStatus();
+  if(st.pre) return `🟡 Pré-janela: dá pra pré-acordar transferências agora — o jogador só troca de clube quando a janela abrir (em ${st.opensIn} rodada${st.opensIn===1?'':'s'}).`;
   return st.opensIn!=null ? `⛔ Janela de transferências fechada. Abre em ${st.opensIn} rodada${st.opensIn===1?'':'s'}.` : '⛔ Janela de transferências fechada — não há mais janelas nesta temporada.'; }
 function windowBadge(){ const st=transferWindowStatus();
-  return st.open ? `<span class="cl-winbadge open">🟢 Janela aberta (fecha em ${st.closesIn})</span>`
-    : `<span class="cl-winbadge closed">🔒 Janela fechada${st.opensIn!=null?' (abre em '+st.opensIn+')':''}</span>`; }
+  if(st.open) return `<span class="cl-winbadge open">🟢 Janela aberta (fecha em ${st.closesIn})</span>`;
+  if(st.pre) return `<span class="cl-winbadge closed" style="background:#b8860b">🟡 Pré-janela (abre em ${st.opensIn}) — pré-acordos liberados</span>`;
+  return `<span class="cl-winbadge closed">🔒 Janela fechada${st.opensIn!=null?' (abre em '+st.opensIn+')':''}</span>`; }
 /* atualiza o preço de venda pedido SEM re-renderizar a tela inteira (cdraw() recriava o
    <input>, derrubando o foco a cada tecla — tinha que clicar de novo pra continuar digitando).
    Só mexe no texto/valor dos elementos afetados, mantendo o cursor no lugar. */
@@ -3198,12 +3200,12 @@ function clSellPriceInput(input){
   const diffEl=$c('#cl-sellprice-diff'); if(diffEl) diffEl.textContent=diffLabel;
 }
 function clSell(){ CL.menu=null;
-  if(!inTransferWindow()){ toastC(windowClosedMsg()); return; }
+  if(!canNegotiate()){ toastC(windowClosedMsg()); return; }
   const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer);
   if(!p){ toastC('Selecciona um jogador na lista primeiro.'); cdraw(); return; }
   CL.tab='jogador'; CL.rightMode='vender'; CL.sellPrice=''; cdraw(); }
 function clSellConfirm(){
-  if(!inTransferWindow()){ toastC(windowClosedMsg()); CL.rightMode=null; cdraw(); return; }
+  if(!canNegotiate()){ toastC(windowClosedMsg()); CL.rightMode=null; cdraw(); return; }
   const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer); if(!p){ CL.rightMode=null; cdraw(); return; }
   const seed=(hashC(p.n)+ (S.round||0)*7)>>>0; const rnd=rngFrom(seed);
   const buyers=DATA.clubs.filter(c=>c.id!==CL.clubId); const buyer=buyers[Math.floor(rnd()*buyers.length)];
@@ -3211,6 +3213,17 @@ function clSellConfirm(){
   let feeK=Math.max(1,Math.round(base*(0.7+rnd()*0.7)));           // proposta do mercado em milhares
   if(ask>0 && ask<=feeK*1.2) feeK=Math.max(ask,Math.round(feeK*0.9)); else if(ask>feeK*1.2) feeK=Math.round(feeK*0.85);
   const fee=feeK*1000;
+  const preOpen=inPreWindow();
+  if(!inTransferWindow() && preOpen){
+    // PRÉ-ACORDO: fecha o negócio, mas o jogador só sai na abertura da janela (segue jogando até lá)
+    p._pendingSale=true;
+    S.pendingTransfers=S.pendingTransfers||[];
+    S.pendingTransfers.push({ kind:'sell', playerName:p.n, buyerId:buyer.id, buyerName:clubOf(buyer.id).short, buyerCountry:null, fee, executeRound:preOpen });
+    S.roundNews=S.roundNews||[]; S.roundNews.push(`🤝 Acordo fechado: ${p.n} vai pro ${clubOf(buyer.id).short} na abertura da janela (rodada ${preOpen+1}) por ${fmt(fee)}.`);
+    saveV3(); CL.rightMode=null;
+    resultDialog('🤝 Acordo fechado', `${p.n} vai pro ${clubOf(buyer.id).short} por ${fmt(fee)}, com a mudança de clube na abertura da janela (rodada ${preOpen+1}). Ele segue jogando por você até lá.`);
+    return;
+  }
   S.budget=(S.budget||0)+fee; S.squads[CL.clubId]=S.squads[CL.clubId].filter(x=>x.n!==p.n);
   if(S.xi) S.xi=S.xi.filter(n=>n!==p.n);
   pushFinanceEntry({playerSales:fee, log:[`💰 ${p.n} vendido ao ${clubOf(buyer.id).short} por ${fmt(fee)}.`]});
@@ -3384,8 +3397,14 @@ function clIncomingOffers(){ CL.menu=null;
       <div style="display:flex;gap:8px;margin-top:8px">
         ${btn('Aceitar','clAcceptOffer('+o.id+')',{cls:'cl-btn-mini'})}${btn('Recusar','clRejectOffer('+o.id+')',{cls:'cl-btn-cancel'})}
       </div></div>`;
-  }).join(''):'<div style="padding:16px;text-align:center;color:#888">Nenhuma proposta no momento.<br><small>Clubes fazem propostas pelos seus destaques durante as janelas de transferência.</small></div>';
-  overlayC(dlg('Propostas recebidas', `<div class="cl-cal">${rows}</div><div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:560,bodyClass:'cl-body-gray',min:true}));
+  }).join(''):'<div style="padding:16px;text-align:center;color:#888">Nenhuma proposta no momento.<br><small>Clubes fazem propostas pelos seus destaques durante as janelas (e na pré-janela).</small></div>';
+  // pré-acordos pendentes (entram em vigor na abertura da janela)
+  const pend=(S.pendingTransfers||[]);
+  const pendHtml=pend.length?`<div style="padding:8px 12px;background:#eee7cf;font-weight:700;font-size:13px">🤝 Pré-acordos (entram em vigor na abertura da janela)</div>`+
+    pend.map(t=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(0,0,0,.1)">
+      <span style="flex:1;min-width:0"><b>${escC(t.playerName)}</b><br><small style="color:#888">${t.kind==='buy'?'chega de '+escC(clubOf(t.sellerId)?clubOf(t.sellerId).short:'?'):'sai pro '+escC(t.buyerName)} · rodada ${t.executeRound+1}</small></span>
+      <span style="white-space:nowrap;font-weight:700;font-size:12px">${t.kind==='buy'?'−':'+'}${fmt(t.fee)}</span></div>`).join(''):'';
+  overlayC(dlg('Propostas recebidas', `${pendHtml}<div class="cl-cal">${rows}</div><div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:560,bodyClass:'cl-body-gray',min:true}));
 }
 function clAcceptOffer(id){ const r=acceptIncomingOffer(id); toastC(r&&r.msg||''); if(r&&r.ok){ clCloseOverlay(); cdraw(); } else { clIncomingOffers(); } }
 function clRejectOffer(id){ rejectIncomingOffer(id); clIncomingOffers(); }

@@ -147,7 +147,7 @@ function playerAsk(p, sellerId){
    Dia 1 (fee): clube decide a taxa. Dia 2 (terms): empresário avalia salário.
    Dia 3 (verdict): jogador aceita/recusa a contraproposta.                 */
 function startNego(sellerId,playerName,offerFee){
-  if(!inTransferWindow()) return -1; // fora da janela: nem inicia negociação
+  if(!canNegotiate()) return -1; // fora da janela E da pré-janela: nem inicia negociação
   const p=findP(playerName,sellerId);
   S.negos.push({ sellerId, player:playerName, stage:'fee', status:'aberta',
     offerFee, clubCounter:null, feeAgreed:false,
@@ -194,38 +194,92 @@ function agentRespond(n){ // Dia 2 -> Dia 3
    28/jan a 02/dez — usamos a posição proporcional de cada janela real
    dentro desse intervalo pra calcular em que rodada ela abre/fecha.  */
 const TRANSFER_WINDOWS=[[0,3],[19,24]]; // [rodada inicial, rodada final], inclusive — pré-temporada e meio de ano
+const PRE_WINDOW_ROUNDS=3; // quantas rodadas ANTES da janela já dá pra pré-acordar (nunca muito longe)
 function inTransferWindow(){ return TRANSFER_WINDOWS.some(([lo,hi])=>S.round>=lo && S.round<=hi); }
 function nextWindowRound(){ for(const [lo] of TRANSFER_WINDOWS){ if(S.round<lo) return lo; } return null; }
+/* pré-janela: dá pra NEGOCIAR (pré-acordar) até PRE_WINDOW_ROUNDS rodadas antes da abertura,
+   mas o jogador só troca de clube quando a janela abre de fato. Retorna a rodada de abertura
+   da próxima janela (o "executeRound" do pré-acordo) se estivermos na pré-janela; senão null. */
+function inPreWindow(){
+  if(inTransferWindow()) return null;
+  const nw=nextWindowRound();
+  return (nw!=null && nw-S.round>0 && nw-S.round<=PRE_WINDOW_ROUNDS) ? nw : null;
+}
+/* negociação liberada? (janela aberta OU pré-janela) */
+function canNegotiate(){ return inTransferWindow() || !!inPreWindow(); }
 function transferWindowStatus(){
   if(inTransferWindow()){ const w=TRANSFER_WINDOWS.find(([lo,hi])=>S.round>=lo&&S.round<=hi); return {open:true, closesIn:w[1]-S.round}; }
   const nxt=nextWindowRound();
-  return {open:false, opensIn: nxt!=null ? nxt-S.round : null};
+  const pre=inPreWindow();
+  return {open:false, pre:!!pre, opensIn: nxt!=null ? nxt-S.round : null};
+}
+/* executa os pré-acordos cuja rodada de abertura de janela chegou (chamado no avanço de rodada) */
+function executePendingTransfers(){
+  if(!S.pendingTransfers || !S.pendingTransfers.length) return;
+  const stay=[];
+  S.pendingTransfers.forEach(t=>{
+    if(S.round < t.executeRound){ stay.push(t); return; } // ainda não abriu a janela
+    S.roundNews=S.roundNews||[];
+    if(t.kind==='buy'){
+      // tira do vendedor (se ainda estiver lá), senão usa o snapshot guardado no acordo
+      let p=(S.squads[t.sellerId]||[]).find(x=>x.n===t.playerName);
+      if(p){ S.squads[t.sellerId]=S.squads[t.sellerId].filter(x=>x.n!==t.playerName); }
+      else { p=t.snapshot; }
+      if(!p) return;
+      p.contract=t.contract; p.moral=75;
+      MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division)); // gatilho de vitrine na chegada
+      S.squads[S.clubId]=S.squads[S.clubId]||[]; S.squads[S.clubId].push(p);
+      S.roundNews.push(`✍️ ${t.playerName} se apresentou ao ${clubOf(S.clubId).short} (transferência acordada, agora com a janela aberta).`);
+    } else if(t.kind==='sell'){
+      const p=(S.squads[S.clubId]||[]).find(x=>x.n===t.playerName);
+      if(!p){ return; } // já saiu por outro caminho
+      S.squads[S.clubId]=S.squads[S.clubId].filter(x=>x.n!==t.playerName);
+      S.budget+=t.fee;
+      if(t.buyerCountry) ensureBgClubMaterialized(t.buyerId);
+      delete p.contract; delete p._pendingSale;
+      if(S.squads[t.buyerId]) S.squads[t.buyerId].push(p);
+      S.roundNews.push(`💰 ${t.playerName} deixou o clube rumo ao ${t.buyerName} por ${fmt(t.fee)} (transferência acordada).`);
+      pushFinanceEntry({playerSales:t.fee, log:[`💰 ${t.playerName} vendido ao ${t.buyerName} por ${fmt(t.fee)}.`]});
+    }
+  });
+  S.pendingTransfers=stay;
 }
 
 
 /* ---- Dia 3 (verdict): fecha a negociação de verdade — move o jogador,
    desconta o caixa, cria o contrato. Chamado pela UI quando o usuário aceita. ---- */
 function finalizeTransfer(negoIdx){
-  if(!inTransferWindow()) return {ok:false,msg:'A janela de transferências está fechada.'};
+  const preOpen=inPreWindow();
+  if(!inTransferWindow() && !preOpen) return {ok:false,msg:'A janela de transferências está fechada.'};
   const n=S.negos[negoIdx]; if(!n || n.stage!=='verdict' || n.status!=='aberta') return {ok:false,msg:'Negociação inválida.'};
   const p=findP(n.player,n.sellerId); if(!p) return {ok:false,msg:'Jogador não encontrado.'};
   const fq=checkForeignQuota(p); if(!fq.ok) return {ok:false,msg:fq.msg}; // cota de estrangeiros da liga
   const totalCost=n.offerFee;
   if(totalCost>S.budget) return {ok:false,msg:'Caixa insuficiente pra fechar a taxa combinada.'};
   S.budget-=totalCost;
-  S.squads[n.sellerId]=S.squads[n.sellerId].filter(x=>x.n!==p.n);
-  p.contract={ salary:n.salary, role:n.role, gotMatchesBonus:false, benchStreak:0,
+  const contract={ salary:n.salary, role:n.role, gotMatchesBonus:false, benchStreak:0,
     releaseClause: n.clauses.europa? n.clauses.europaValue : null };
-  p.moral=75; // chega animado
-  // gatilho de vitrine (spec §4): ao mudar de liga, o passe é recalculado pelo MVL do
-  // novo clube (ex.: vindo da Série B pra Série A, valoriza) — sem mexer em atributo.
-  MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division));
-  S.squads[S.clubId]=S.squads[S.clubId]||[]; S.squads[S.clubId].push(p);
   n.status='fechada'; n.stage='done';
-  S.roundNews=S.roundNews||[]; S.roundNews.push(`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`);
-  pushFinanceEntry({playerPurchases:totalCost, log:[`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`]});
+  S.roundNews=S.roundNews||[];
+  if(inTransferWindow()){
+    // janela aberta: o jogador troca de clube AGORA
+    S.squads[n.sellerId]=S.squads[n.sellerId].filter(x=>x.n!==p.n);
+    p.contract=contract; p.moral=75;
+    MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division)); // gatilho de vitrine
+    S.squads[S.clubId]=S.squads[S.clubId]||[]; S.squads[S.clubId].push(p);
+    S.roundNews.push(`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`);
+    pushFinanceEntry({playerPurchases:totalCost, log:[`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`]});
+    save();
+    return {ok:true,msg:`${p.n} agora joga pelo ${clubOf(S.clubId).short}!`};
+  }
+  // PRÉ-ACORDO (pré-janela): fecha o negócio agora, mas o jogador só chega na abertura da janela.
+  S.pendingTransfers=S.pendingTransfers||[];
+  S.pendingTransfers.push({ kind:'buy', sellerId:n.sellerId, playerName:p.n, snapshot:p,
+    contract, fee:totalCost, executeRound:preOpen });
+  S.roundNews.push(`🤝 Acordo fechado: ${p.n} chega do ${clubOf(n.sellerId).short} na abertura da janela (rodada ${preOpen+1}). Pago ${fmt(totalCost)}.`);
+  pushFinanceEntry({playerPurchases:totalCost, log:[`🤝 ${p.n} pré-contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`]});
   save();
-  return {ok:true,msg:`${p.n} agora joga pelo ${clubOf(S.clubId).short}!`};
+  return {ok:true,msg:`Acordo fechado! ${p.n} chega na abertura da janela (rodada ${preOpen+1}).`};
 }
 /* ---- transferências entre CPUs, 100% em segundo plano — dão vida ao mercado
    mesmo se o usuário nunca comprar/vender nada (essencial no modo solo). ---- */
@@ -302,14 +356,14 @@ function bgCpuTransfers(R){
 function pruneIncomingOffers(){ S.incomingOffers=(S.incomingOffers||[]).filter(o=>o.expiresRound>S.round); }
 function generateIncomingOffers(R){
   pruneIncomingOffers();
-  if(!inTransferWindow()) return;
+  if(!canNegotiate()) return; // propostas chegam na janela E na pré-janela
   R=R||makeRng(hashSeed(S.seed,S.round,'incoming'));
   if((S.incomingOffers||[]).length>=4) return;   // no máximo 4 propostas pendentes
   if(R.random()>0.5) return;                       // nem toda rodada de janela gera proposta
   const mySquad=S.squads[S.clubId]||[]; if(mySquad.length<=16) return;
   const pending=new Set((S.incomingOffers||[]).map(o=>o.playerName));
   // clubes miram preferencialmente os melhores do elenco (que ainda não têm proposta)
-  const targets=mySquad.filter(p=>!pending.has(p.n)).sort((a,b)=>b.f-a.f).slice(0, Math.max(3,Math.ceil(mySquad.length*0.4)));
+  const targets=mySquad.filter(p=>!pending.has(p.n)&&!p._pendingSale).sort((a,b)=>b.f-a.f).slice(0, Math.max(3,Math.ceil(mySquad.length*0.4)));
   if(!targets.length) return;
   const p=targets[Math.floor(R.random()*targets.length)];
   // candidatos a comprador: liga do usuário + ligas de background (entre países)
@@ -335,12 +389,25 @@ function acceptIncomingOffer(id){
   const o=(S.incomingOffers||[]).find(x=>x.id===id); if(!o) return {ok:false,msg:'Proposta não existe mais.'};
   const p=(S.squads[S.clubId]||[]).find(x=>x.n===o.playerName); if(!p) return {ok:false,msg:'Jogador não está mais no elenco.'};
   if((S.squads[S.clubId]||[]).length<=15) return {ok:false,msg:'Elenco pequeno demais pra vender.'};
+  const preOpen=inPreWindow();
+  S.incomingOffers=(S.incomingOffers||[]).filter(x=>x.id!==id);
+  S.roundNews=S.roundNews||[];
+  if(!inTransferWindow() && preOpen){
+    // PRÉ-ACORDO: aceita agora, mas o jogador só sai na abertura da janela (segue jogando até lá)
+    p._pendingSale=true;
+    S.pendingTransfers=S.pendingTransfers||[];
+    S.pendingTransfers.push({ kind:'sell', playerName:o.playerName, buyerId:o.buyerId, buyerName:o.buyerName,
+      buyerCountry:o.buyerCountry, fee:o.fee, executeRound:preOpen });
+    S.roundNews.push(`🤝 Acordo fechado: ${o.playerName} vai pro ${o.buyerName} na abertura da janela (rodada ${preOpen+1}) por ${fmt(o.fee)}.`);
+    save();
+    return {ok:true, msg:`Acordo fechado! ${o.playerName} sai na abertura da janela.`};
+  }
+  // janela aberta: sai agora
   S.squads[S.clubId]=S.squads[S.clubId].filter(x=>x.n!==o.playerName);
   S.budget+=o.fee;
   if(o.buyerCountry) ensureBgClubMaterialized(o.buyerId);
   if(S.squads[o.buyerId]){ delete p.contract; S.squads[o.buyerId].push(p); } // vai pro clube comprador
-  S.incomingOffers=(S.incomingOffers||[]).filter(x=>x.id!==id);
-  S.roundNews=S.roundNews||[]; S.roundNews.push(`💰 ${o.playerName} vendido ao ${o.buyerName} por ${fmt(o.fee)}.`);
+  S.roundNews.push(`💰 ${o.playerName} vendido ao ${o.buyerName} por ${fmt(o.fee)}.`);
   pushFinanceEntry({playerSales:o.fee, log:[`💰 ${o.playerName} vendido ao ${o.buyerName} por ${fmt(o.fee)}.`]});
   save();
   return {ok:true, msg:`${o.playerName} vendido por ${fmt(o.fee)}!`};
@@ -1830,6 +1897,7 @@ function playRound(userResult){
   });
   S.round++; S.week++; S.day+=7;
   advanceNegos();
+  executePendingTransfers(); // pré-acordos entram em vigor quando a janela abre
   cpuBackgroundTransfers(Rr); // mercado entre CPUs — dá vida ao jogo mesmo sem o usuário negociar
   bgCpuTransfers(Rr); // clubes das ligas de background negociam entre si (compra/venda)
   generateIncomingOffers(Rr); // clubes fazem propostas de compra pelos jogadores do usuário
