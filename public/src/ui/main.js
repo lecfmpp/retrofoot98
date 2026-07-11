@@ -2644,7 +2644,7 @@ function menuDropdown(name){ name=name||CL.menu;
     'RetroFoot98':[['Opções...','clOptions()'],['—'],['Gravar jogo','clSaveMenu()'],['Sair para o menu','clExit()']],
     'Seleccionar':[...F.map((f,i)=>[`${f}`,`clSelFormation('${f}')`,(i+1)+'/'+FKEY[f]]),['—'],['Automático','clSelFormation(\'auto\')'],['Melhores','clSelFormation(\'best\')']],
     'Equipa':[['Estádio...','clStadium()'],['Historial...','clClubHistory()']],
-    'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],['Leilão de jogadores...','clAuctionScreen()'],['Últimas transferências...','clStub(\'Últimas transferências\')']],
+    'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],[`Propostas recebidas${(S.incomingOffers&&S.incomingOffers.length)?' ('+S.incomingOffers.length+')':''}...`,'clIncomingOffers()'],['Leilão de jogadores...','clAuctionScreen()'],['Últimas transferências...','clStub(\'Últimas transferências\')']],
     'Campeonatos':[['Minhas competições...','clCompList()','C'],['—'],['Melhores marcadores...','clScorers()'],['Calendário...','clCalendar()'],['—'],['Últimos vencedores...','clUltimosVencedores()'],['Melhores marcadores de sempre...','clScorersAllTime()']].concat((S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)?[['—'],['Ligas internacionais...','clBgLeaguesMenu()']]:[]),
     'Treinador':[['História...','clCoachHistory()'],['Ranking...','clCoachRanking()'],['Ofertas...','clJobOffers()'],['Perfil...','clPerfilTreinador()']]
   };
@@ -3369,6 +3369,26 @@ function renderBgLeagues(){
     <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
     {w:560,bodyClass:'cl-body-gray',min:true}));
 }
+
+/* ---- Jogador > Propostas recebidas: ofertas de compra pelos jogadores do usuário ---- */
+function clIncomingOffers(){ CL.menu=null;
+  const offers=(S.incomingOffers||[]).filter(o=>o.expiresRound>S.round);
+  const rows=offers.length?offers.map(o=>{
+    const roundsLeft=Math.max(0,o.expiresRound-S.round);
+    return `<div style="padding:10px 12px;border-bottom:1px solid rgba(0,0,0,.12)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div style="flex:1;min-width:0"><b>${escC(o.playerName)}</b> <small style="color:#888">(força ${o.playerForce})</small><br>
+          <small style="color:#888">${escC(o.buyerName)}${o.buyerCountry?' · '+escC(o.buyerCountry):''} · expira em ${roundsLeft} rodada(s)</small></div>
+        <div style="text-align:right;white-space:nowrap;font-weight:700">${fmt(o.fee)}</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        ${btn('Aceitar','clAcceptOffer('+o.id+')',{cls:'cl-btn-mini'})}${btn('Recusar','clRejectOffer('+o.id+')',{cls:'cl-btn-cancel'})}
+      </div></div>`;
+  }).join(''):'<div style="padding:16px;text-align:center;color:#888">Nenhuma proposta no momento.<br><small>Clubes fazem propostas pelos seus destaques durante as janelas de transferência.</small></div>';
+  overlayC(dlg('Propostas recebidas', `<div class="cl-cal">${rows}</div><div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:560,bodyClass:'cl-body-gray',min:true}));
+}
+function clAcceptOffer(id){ const r=acceptIncomingOffer(id); toastC(r&&r.msg||''); if(r&&r.ok){ clCloseOverlay(); cdraw(); } else { clIncomingOffers(); } }
+function clRejectOffer(id){ rejectIncomingOffer(id); clIncomingOffers(); }
 
 /* ---- overlays / toasts ---- */
 function overlayC(html){ let o=$c('#c-overlay'); if(!o){ o=document.createElement('div'); o.id='c-overlay'; o.className='cl-overlay'; o.onclick=clCloseOverlay; document.body.appendChild(o); }

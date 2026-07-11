@@ -234,7 +234,7 @@ function cpuBackgroundTransfers(R){
   R=R||makeRng(hashSeed(S.seed,S.round,'cpumkt'));
   const cpuClubs=DATA.clubs.filter(c=>c.id!==S.clubId);
   if(cpuClubs.length<2) return;
-  const nTransfers=Math.floor(R.rnd(0,3)); // 0-2 transferências por rodada, no máximo
+  const nTransfers=2+Math.floor(R.rnd(0,3)); // 2-4 por rodada — liga do usuário é o mercado mais ativo/real
   for(let i=0;i<nTransfers;i++){
     const seller=cpuClubs[Math.floor(R.random()*cpuClubs.length)];
     const sellerSquad=S.squads[seller.id]; if(!sellerSquad || sellerSquad.length<=16) continue; // não deixa o elenco vazio
@@ -260,30 +260,92 @@ function cpuBackgroundTransfers(R){
 function bgCpuTransfers(R){
   if(!S.bgLeagues || !inTransferWindow()) return;
   R=R||makeRng(hashSeed(S.seed,S.round,'bgcpumkt'));
-  Object.keys(S.bgLeagues).forEach(country=>{
-    const L=S.bgLeagues[country];
-    const clubIds=[]; Object.keys(L.divs).forEach(d=>clubIds.push(...(L.divs[d].clubIds||[])));
-    if(clubIds.length<2) return;
-    const nT=Math.floor(R.rnd(0,3)); // 0-2 transferências por país por rodada de janela
+  const countries=Object.keys(S.bgLeagues);
+  // clubes de cada país (todas as divisões)
+  const clubsByCountry={};
+  countries.forEach(c=>{ const ids=[]; Object.keys(S.bgLeagues[c].divs).forEach(d=>ids.push(...(S.bgLeagues[c].divs[d].clubIds||[]))); clubsByCountry[c]=ids; });
+  countries.forEach(country=>{
+    const sellers=clubsByCountry[country]; if(sellers.length<2) return;
+    // mais LENTO/RARO que a liga do usuário: na maioria das rodadas de janela, 0; às vezes 1.
+    if(R.random()>0.45) return;               // ~55% das rodadas de janela: nenhuma transferência
+    const nT=R.random()<0.2?2:1;              // quase sempre 1, raramente 2
     for(let i=0;i<nT;i++){
-      const sellerId=clubIds[Math.floor(R.random()*clubIds.length)];
+      const sellerId=sellers[Math.floor(R.random()*sellers.length)];
       if(!ensureBgClubMaterialized(sellerId)) continue;
       const sq=S.squads[sellerId]; if(!sq || sq.length<=18) continue; // não esvazia o elenco
       const sorted=sq.slice().sort((a,b)=>b.f-a.f);
       const pool=sorted.slice(Math.ceil(sorted.length*0.5)); if(!pool.length) continue; // vende metade mais fraca
       const p=pool[Math.floor(R.random()*pool.length)];
-      let buyerId=clubIds[Math.floor(R.random()*clubIds.length)];
+      // comprador: às vezes de OUTRO país (transferência entre países), como na vida real
+      let buyerCountry=country, buyerLog=S.bgLeagues[country];
+      if(countries.length>1 && R.random()<0.4){ // ~40%: cross-país
+        buyerCountry=countries[Math.floor(R.random()*countries.length)];
+        buyerLog=S.bgLeagues[buyerCountry];
+      }
+      const buyers=clubsByCountry[buyerCountry];
+      const buyerId=buyers[Math.floor(R.random()*buyers.length)];
       if(buyerId===sellerId || !ensureBgClubMaterialized(buyerId)) continue;
       const fee=Math.round((p.mv||1e6)*(0.6+R.random()*0.6));
       S.squads[sellerId]=sq.filter(x=>x.n!==p.n);
       S.squads[buyerId]=S.squads[buyerId]||[]; S.squads[buyerId].push(p);
       const fromShort=(intlClubById(sellerId)||{}).short||sellerId, toShort=(intlClubById(buyerId)||{}).short||buyerId;
-      L.transferLog=L.transferLog||[];
-      L.transferLog.unshift({ player:p.n, from:fromShort, to:toShort, fee, season:S.season });
-      if(L.transferLog.length>50) L.transferLog.pop();
+      // registra a transferência nos DOIS países envolvidos (origem e destino)
+      const entry={ player:p.n, from:fromShort, to:toShort, fee, season:S.season, cross:buyerCountry!==country };
+      [S.bgLeagues[country], buyerLog].forEach(LG=>{ if(!LG) return; LG.transferLog=LG.transferLog||[]; LG.transferLog.unshift(entry); if(LG.transferLog.length>50) LG.transferLog.pop(); });
     }
   });
 }
+/* ---- PROPOSTAS DE COMPRA recebidas: clubes (da liga do usuário OU das ligas de background,
+   inclusive de outros países) fazem ofertas em dinheiro pelos jogadores do usuário, que pode
+   aceitar (vende) ou recusar. Dá o outro lado do mercado — não só o usuário compra/vende, o
+   mundo também vem atrás das suas estrelas. Gerado nas janelas de transferência. ---- */
+function pruneIncomingOffers(){ S.incomingOffers=(S.incomingOffers||[]).filter(o=>o.expiresRound>S.round); }
+function generateIncomingOffers(R){
+  pruneIncomingOffers();
+  if(!inTransferWindow()) return;
+  R=R||makeRng(hashSeed(S.seed,S.round,'incoming'));
+  if((S.incomingOffers||[]).length>=4) return;   // no máximo 4 propostas pendentes
+  if(R.random()>0.5) return;                       // nem toda rodada de janela gera proposta
+  const mySquad=S.squads[S.clubId]||[]; if(mySquad.length<=16) return;
+  const pending=new Set((S.incomingOffers||[]).map(o=>o.playerName));
+  // clubes miram preferencialmente os melhores do elenco (que ainda não têm proposta)
+  const targets=mySquad.filter(p=>!pending.has(p.n)).sort((a,b)=>b.f-a.f).slice(0, Math.max(3,Math.ceil(mySquad.length*0.4)));
+  if(!targets.length) return;
+  const p=targets[Math.floor(R.random()*targets.length)];
+  // candidatos a comprador: liga do usuário + ligas de background (entre países)
+  const cand=[];
+  DATA.clubs.filter(c=>c.id!==S.clubId).forEach(c=>cand.push({id:c.id,name:c.short,country:null,overall:c.overall||70}));
+  Object.keys(S.bgLeagues||{}).forEach(country=>Object.keys(S.bgLeagues[country].divs).forEach(d=>
+    (S.bgLeagues[country].divs[d].clubIds||[]).forEach(id=>{ const c=intlClubById(id); if(c) cand.push({id,name:c.short,country,overall:c.overall||70}); })));
+  if(!cand.length) return;
+  // só clubes de nível compatível miram o jogador (overall de elenco ~80 no topo vs força
+  // individual até ~92, então usamos uma folga maior). Sem clube compatível => sem proposta
+  // (realista: ninguém "fraco" oferece pela sua estrela).
+  const eligible=cand.filter(c=>c.overall>=p.f-12);
+  if(!eligible.length) return;
+  const buyer=eligible[Math.floor(R.random()*eligible.length)];
+  const fee=Math.round((p.mv||1e6)*(1.0+R.random()*0.7)); // 1.0-1.7x (proposta cheia, às vezes acima)
+  S.incomingOffers=S.incomingOffers||[];
+  S.incomingOffers.push({ id:(hashSeed(S.seed,S.round,p.n,buyer.id)>>>0), buyerId:buyer.id, buyerName:buyer.name,
+    buyerCountry:buyer.country, playerName:p.n, playerForce:p.f, fee, expiresRound:S.round+3 });
+  S.roundNews=S.roundNews||[];
+  S.roundNews.push(`📩 ${buyer.name}${buyer.country?' ('+buyer.country+')':''} ofereceu ${fmt(fee)} por ${p.n}. Veja em Jogador → Propostas recebidas.`);
+}
+function acceptIncomingOffer(id){
+  const o=(S.incomingOffers||[]).find(x=>x.id===id); if(!o) return {ok:false,msg:'Proposta não existe mais.'};
+  const p=(S.squads[S.clubId]||[]).find(x=>x.n===o.playerName); if(!p) return {ok:false,msg:'Jogador não está mais no elenco.'};
+  if((S.squads[S.clubId]||[]).length<=15) return {ok:false,msg:'Elenco pequeno demais pra vender.'};
+  S.squads[S.clubId]=S.squads[S.clubId].filter(x=>x.n!==o.playerName);
+  S.budget+=o.fee;
+  if(o.buyerCountry) ensureBgClubMaterialized(o.buyerId);
+  if(S.squads[o.buyerId]){ delete p.contract; S.squads[o.buyerId].push(p); } // vai pro clube comprador
+  S.incomingOffers=(S.incomingOffers||[]).filter(x=>x.id!==id);
+  S.roundNews=S.roundNews||[]; S.roundNews.push(`💰 ${o.playerName} vendido ao ${o.buyerName} por ${fmt(o.fee)}.`);
+  pushFinanceEntry({playerSales:o.fee, log:[`💰 ${o.playerName} vendido ao ${o.buyerName} por ${fmt(o.fee)}.`]});
+  save();
+  return {ok:true, msg:`${o.playerName} vendido por ${fmt(o.fee)}!`};
+}
+function rejectIncomingOffer(id){ S.incomingOffers=(S.incomingOffers||[]).filter(x=>x.id!==id); save(); return {ok:true}; }
 /* ---- pool de leilão: uma seleção rotativa de jogadores de OUTROS clubes,
    compra direta (sem regatear) — "Leilão de jogadores" pedido pelo sócio ---- */
 function refreshAuctionPool(R){
@@ -1770,6 +1832,7 @@ function playRound(userResult){
   advanceNegos();
   cpuBackgroundTransfers(Rr); // mercado entre CPUs — dá vida ao jogo mesmo sem o usuário negociar
   bgCpuTransfers(Rr); // clubes das ligas de background negociam entre si (compra/venda)
+  generateIncomingOffers(Rr); // clubes fazem propostas de compra pelos jogadores do usuário
   if(S.round%2===0) refreshAuctionPool(Rr); // leilão gira a cada 2 rodadas
   rollStory(Rr);
   advancePendingCups(); // cada copa avança na sua própria rodada — ver CUP_TICK_OFFSET
