@@ -379,9 +379,12 @@ function generateIncomingOffers(R){
   if(!eligible.length) return;
   const buyer=eligible[Math.floor(R.random()*eligible.length)];
   const fee=Math.round((p.mv||1e6)*(1.0+R.random()*0.7)); // 1.0-1.7x (proposta cheia, às vezes acima)
+  // teto do comprador pra regatear: acima da 1ª oferta, maior se o jogador está em fase
+  // (mais valorizado) — é até onde ele topa subir numa contraproposta sua.
+  const maxFee=Math.round(fee*(1.15 + (isHot(p)?0.2:0) + R.random()*0.15));
   S.incomingOffers=S.incomingOffers||[];
   S.incomingOffers.push({ id:(hashSeed(S.seed,S.round,p.n,buyer.id)>>>0), buyerId:buyer.id, buyerName:buyer.name,
-    buyerCountry:buyer.country, playerName:p.n, playerForce:p.f, fee, expiresRound:S.round+3 });
+    buyerCountry:buyer.country, playerName:p.n, playerForce:p.f, fee, maxFee, negRound:0, lastMsg:null, expiresRound:S.round+3 });
   S.roundNews=S.roundNews||[];
   S.roundNews.push(`📩 ${buyer.name}${buyer.country?' ('+buyer.country+')':''} ofereceu ${fmt(fee)} por ${p.n}. Veja em Jogador → Propostas recebidas.`);
 }
@@ -413,6 +416,29 @@ function acceptIncomingOffer(id){
   return {ok:true, msg:`${o.playerName} vendido por ${fmt(o.fee)}!`};
 }
 function rejectIncomingOffer(id){ S.incomingOffers=(S.incomingOffers||[]).filter(x=>x.id!==id); save(); return {ok:true}; }
+/* CONTRAPROPOSTA numa proposta recebida: você pede um valor maior; o comprador responde
+   conforme o teto que ele topa pagar (maxFee — que já pesa valor de mercado + fase do jogador).
+   - pedido <= oferta atual: aceita na hora (você abriu mão) -> o.state 'agreed'
+   - pedido <= teto: o comprador topa esse valor -> o.state 'agreed' (é só confirmar)
+   - pedido acima do teto: sobe um meio-termo (até o teto) e devolve; após 3 rodadas ou
+     ganância grande (>1.3x teto), dá a palavra final (não passa do teto). */
+function counterIncomingOffer(id, askFee){
+  const o=(S.incomingOffers||[]).find(x=>x.id===id); if(!o) return {ok:false,msg:'Proposta não existe mais.'};
+  if(o.state==='final'){ return {ok:false, msg:`${o.buyerName} já deu a palavra final: ${fmt(o.fee)}. Aceite ou recuse.`, final:true}; }
+  askFee=Math.round(askFee)||0;
+  o.negRound=(o.negRound||0)+1;
+  if(askFee<=o.fee){ o.lastMsg=`Seu pedido ficou abaixo da oferta — segue valendo ${fmt(o.fee)}.`; save(); return {ok:true, agreed:true, msg:o.lastMsg}; }
+  if(askFee<=o.maxFee){
+    o.fee=askFee; o.state='agreed'; o.lastMsg=`${o.buyerName} topou ${fmt(askFee)}! Confirme a venda.`;
+    save(); return {ok:true, agreed:true, msg:o.lastMsg};
+  }
+  if(o.negRound>=3 || askFee>o.maxFee*1.3){
+    o.fee=o.maxFee; o.state='final'; o.lastMsg=`${o.buyerName} não passa de ${fmt(o.maxFee)} (proposta final).`;
+    save(); return {ok:false, final:true, msg:o.lastMsg};
+  }
+  o.fee=Math.min(o.maxFee, Math.round((o.fee+askFee)/2)); o.lastMsg=`${o.buyerName} subiu pra ${fmt(o.fee)}. Aceite ou peça mais.`;
+  save(); return {ok:false, countered:true, msg:o.lastMsg};
+}
 /* ---- pool de leilão: uma seleção rotativa de jogadores de OUTROS clubes,
    compra direta (sem regatear) — "Leilão de jogadores" pedido pelo sócio ---- */
 function refreshAuctionPool(R){
