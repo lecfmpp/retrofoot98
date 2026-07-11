@@ -90,14 +90,25 @@ const FKEY={ '3-3-4':'F1','3-4-3':'F2','4-2-4':'F3','4-3-3':'F4','4-4-2':'F5','4
 // expandir estádio de verdade é obra pesada, não dá pra sair comprando bancada toda hora —
 // ver clBuildStand/pushFinanceEntry (aba Finanças) pra onde essa despesa é registrada.
 const STAND_SEATS=5000, STAND_PRICE=4000000, STAND_START=20000;
-/* limite de capacidade do estádio: por enquanto todos os clubes começam com o mesmo
-   tamanho (20 mil — depois ajustamos pra capacidade real de cada estádio); o teto de
-   expansão é proporcional ao valor do elenco (proxy das finanças do clube), pra evitar
-   o desequilíbrio de construir um estádio gigante e lucrar puro com bilheteria. */
-function stadiumMaxCapacity(){
-  const squadValue = (squad(S.clubId)||[]).reduce((s,p)=>s+(p.mv||1e6),0);
-  return Math.round(Math.min(80000, Math.max(STAND_START, squadValue*0.00035)));
+const SEASON_BUILD_LIMIT=10000; // no máx. 2 bancadas (10 mil lugares) por temporada — obra é lenta, cresce por anos
+/* capacidade INICIAL realista por porte do clube (proxy pelo overall — não temos capacidade
+   real de estádio nos dados). Clube grande já nasce com estádio grande; pequeno, modesto. */
+function realStadiumCapacity(overall){
+  const ov=overall||70;
+  return Math.round(clamp(6000 + Math.max(0,ov-50)*1350, 10000, 68000)/1000)*1000;
 }
+/* TETO de expansão por porte do clube: maior que a inicial, mas realista — um clube pequeno
+   nunca constrói um estádio gigante. Nunca abaixo da capacidade atual (não "encolhe"). */
+function stadiumMaxCapacity(){
+  const c=(typeof clubOf==='function')?clubOf(S.clubId):null; const ov=(c&&c.overall)||70;
+  const byLevel = 20000 + Math.max(0,ov-50)*1550; // ov60~36k, ov70~51k, ov82~70k, ov90~82k
+  const cur=(S.stadium&&S.stadium.capacity)||STAND_START;
+  return Math.round(clamp(byLevel, cur, 85000)/1000)*1000;
+}
+/* custo de UMA bancada — escala com o tamanho atual (estádio grande é mais caro de expandir) */
+function standCost(){ const cap=(S.stadium&&S.stadium.capacity)||STAND_START; return Math.round(STAND_PRICE*(0.7+cap/50000)); }
+/* preço de ingresso "natural" por porte do clube — proporcional, sem exagero (faixa 6–16) */
+function levelTicketPrice(overall){ return Math.round(clamp(6 + Math.max(0,(overall||70)-58)*0.30, 6, 16)); }
 function tacticPosture(f){ const a=(FORMATIONS[f]||[1,4,3,3])[3]; return a>=4?'ofensivo':a<=1?'retranca':'equilibrado'; }
 /* quando o elenco não tem jogadores suficientes numa posição pra formação escolhida
    (ex: 4-5-1 sem 5 meio-campos), pickXIByFormation preenche com quem sobrar de outra
@@ -787,7 +798,7 @@ function clEntrar(){
   S.intlUniverse = CL.intlUniverse; // false | país (ex.: 'Inglaterra')
   S.bgCountries = (CL.bgCountries||[]).slice(); // outros países selecionados: ligas de background
   initBgLeagues(); // materializa as ligas de background pra simular/visualizar/negociar
-  if(!S.stadium) S.stadium={capacity:STAND_START};
+  if(!S.stadium){ const ov=(clubOf(CL.clubId)||{}).overall||70; S.stadium={capacity:realStadiumCapacity(ov), builtThisSeason:0}; CL.ticket=levelTicketPrice(ov); }
   CL.formation=null; CL.tacticChosen=false;   // precisa escolher tática no menu p/ liberar "Jogar"
   S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
   CL.speedMult=1;  // 1.0x, 1.5x, 2x, 3x (só anfitrião no modo Resenha pode mudar)
@@ -1590,8 +1601,10 @@ function finishCupSpectate(){
 }
 /* ---------- PARTIDA AO VIVO (estilo RetroFoot98: placar por divisões) ---------- */
 function attendanceFor(homeId,rnd){
-  const cap=(homeId===CL.clubId && S.stadium)?S.stadium.capacity:(9000+Math.floor(rnd()*46000));
-  const price=(homeId===CL.clubId)?(CL.ticket||8):(6+Math.floor(rnd()*10));
+  const homeClub=(typeof clubOf==='function')?clubOf(homeId):null; const homeOv=(homeClub&&homeClub.overall)||70;
+  // CPU: capacidade e ingresso proporcionais ao porte do clube (não mais aleatório puro)
+  const cap=(homeId===CL.clubId && S.stadium)?S.stadium.capacity:realStadiumCapacity(homeOv);
+  const price=(homeId===CL.clubId)?(CL.ticket||levelTicketPrice(homeOv)):levelTicketPrice(homeOv);
   const tbl=S.table[homeId]||{Pts:0,P:0}; const form=(tbl.P?tbl.Pts/(tbl.P*3):0.5);       // momento do time (0..1)
   const priceFactor=Math.max(0.28, Math.min(1, 1.25 - price/22));                            // ingresso alto => menos gente
   const momFactor=0.6+form*0.7;                                                              // time em alta => mais gente
@@ -3172,21 +3185,26 @@ function standSVG(cap){ const tiers=Math.min(6,Math.max(1,Math.round((cap-STAND_
     <circle cx="100" cy="118" r="8" fill="none" stroke="#fff" stroke-width="1.4"/></svg>`; }
 function renderStadium(built){ const cap=(S.stadium&&S.stadium.capacity)||STAND_START;
   const maxCap=stadiumMaxCapacity(); const atMax=cap>=maxCap;
+  const builtSeason=(S.stadium&&S.stadium.builtThisSeason)||0; const seasonLeft=Math.max(0,SEASON_BUILD_LIMIT-builtSeason);
+  const cost=standCost(); const seasonFull=seasonLeft<STAND_SEATS;
+  const dis=atMax||seasonFull;
   overlayC(dlg('Estádio', `<div class="cl-est">
     ${standSVG(cap)}
     <div class="cl-est-cap">${grp(cap)} lugares</div>
-    <div class="cl-est-price">Preço de uma bancada com<br>${grp(STAND_SEATS)} lugares: ${fmt(STAND_PRICE)}</div>
-    <div class="cl-est-maxcap">Capacidade máxima sustentada pelas finanças do clube hoje: ${grp(maxCap)} lugares</div>
-    <div class="cl-est-btns">${btn('Construir','clBuildStand()',{icon:'🚜',cls:'cl-btn-ico',dis:atMax})}${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok cl-btn-ico'})}</div>
+    <div class="cl-est-price">Preço de uma bancada com<br>${grp(STAND_SEATS)} lugares: ${fmt(cost)}</div>
+    <div class="cl-est-maxcap">Teto do estádio para o porte do clube: ${grp(maxCap)} lugares<br>Obras liberadas nesta temporada: ${grp(seasonLeft)} lugares</div>
+    <div class="cl-est-btns">${btn('Construir','clBuildStand()',{icon:'🚜',cls:'cl-btn-ico',dis:dis})}${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok cl-btn-ico'})}</div>
     ${built?`<div class="cl-est-note">As novas bancadas só estarão disponíveis para o próximo jogo</div>`:''}
-    ${atMax?`<div class="cl-est-note">⚠ Você atingiu o limite de expansão para o porte financeiro atual do clube.</div>`:''}
+    ${atMax?`<div class="cl-est-note">⚠ Estádio no teto para o porte atual do clube. Cresça o clube pra ampliar mais.</div>`:seasonFull?`<div class="cl-est-note">⚠ Limite de obras da temporada atingido — o resto só na próxima temporada (obra é lenta).</div>`:''}
   </div>`,{w:660,bodyClass:'cl-body-estadio',min:true})); }
 function clBuildStand(){
-  const cap=(S.stadium&&S.stadium.capacity)||STAND_START;
-  if(cap+STAND_SEATS>stadiumMaxCapacity()){ toastC('⚠ Não é possível expandir mais — as finanças do clube não sustentam um estádio maior agora.'); renderStadium(false); return; }
-  if((S.budget||0)<STAND_PRICE){ toastC('Caixa insuficiente para construir.'); return; }
-  S.budget-=STAND_PRICE; if(!S.stadium)S.stadium={capacity:STAND_START}; S.stadium.capacity+=STAND_SEATS;
-  pushFinanceEntry({stadium:STAND_PRICE, log:[`🏟️ Bancada construída: +${grp(STAND_SEATS)} lugares (${fmt(STAND_PRICE)})`]});
+  if(!S.stadium)S.stadium={capacity:STAND_START,builtThisSeason:0};
+  const cap=S.stadium.capacity||STAND_START; const cost=standCost();
+  if(cap+STAND_SEATS>stadiumMaxCapacity()){ toastC('⚠ Estádio no teto para o porte do clube — cresça o clube (título/elenco) pra poder ampliar mais.'); renderStadium(false); return; }
+  if(((S.stadium.builtThisSeason||0)+STAND_SEATS)>SEASON_BUILD_LIMIT){ toastC('⚠ Obra é lenta: só '+grp(SEASON_BUILD_LIMIT)+' lugares por temporada. Continue na próxima.'); renderStadium(false); return; }
+  if((S.budget||0)<cost){ toastC('Caixa insuficiente para construir ('+fmt(cost)+').'); return; }
+  S.budget-=cost; S.stadium.capacity+=STAND_SEATS; S.stadium.builtThisSeason=(S.stadium.builtThisSeason||0)+STAND_SEATS;
+  pushFinanceEntry({stadium:cost, log:[`🏟️ Bancada construída: +${grp(STAND_SEATS)} lugares (${fmt(cost)})`]});
   saveV3(); renderStadium(true); }
 
 /* ---- Jogador > Vender (painel na aba + leilão) ---- */

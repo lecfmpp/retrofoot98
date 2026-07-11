@@ -2228,6 +2228,7 @@ function newSeasonReset(){
   S.results=[]; S.scorers={}; S.negos=[]; S.finished=false; S.pendingEvent=null;
   S.finances=[]; S.roundNews=[];
   S.seasonTotals={income:0,salaries:0,bonuses:0,playerSales:0,playerPurchases:0,stadium:0}; // zera pra temporada nova
+  if(S.stadium) S.stadium.builtThisSeason=0; // libera a cota de obras da nova temporada (crescimento lento)
   // renovação automática do salário do treinador a cada temporada (se não foi demitido)
   if(S.coachSalary && S.roundsSinceFired===null){
     S.coachSalary = Math.round(S.coachSalary * 1.05); // aumento de 5% ao ano
