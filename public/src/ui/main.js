@@ -1180,7 +1180,8 @@ function divLegend(d){ return MKT_DIV_LEGEND[d] || (typeof DIV_LABEL_FULL!=='und
 function clMarketClubs(){ CL.menu=null;
   if(!inTransferWindow()){ toastC(windowClosedMsg()); return; }
   CL.market={step:'divisions'};
-  const rows=DIV_ORDER.map(d=>{
+  // divisões do universo do usuário
+  let rows=DIV_ORDER.map(d=>{
     const isOwn=d===S.division;
     const count=isOwn ? DATA.clubs.length : ((S.otherDivs&&S.otherDivs[d])?S.otherDivs[d].clubs.length:0);
     return `<div class="cl-mkt-club" onclick="clMarketDivision('${d}')">
@@ -1189,33 +1190,54 @@ function clMarketClubs(){ CL.menu=null;
       <span class="cl-mkt-club-ov">${count} clubes</span>
     </div>`;
   }).join('');
-  overlayC(dlg('Comprar jogador — escolha a divisão', `<div class="cl-mkt-clublist">${rows}</div>
+  // + ligas de background (outros países): dá pra buscar/comprar jogadores delas também
+  const bg=S.bgLeagues||{};
+  Object.keys(bg).forEach(country=>{
+    Object.keys(bg[country].divs).forEach(d=>{
+      const count=(bg[country].divs[d].clubIds||[]).length;
+      rows += `<div class="cl-mkt-club" onclick="clMarketDivision('${d}','${country}')">
+        <span class="cl-divopt-ic">${(typeof COUNTRY_FLAG!=='undefined'&&COUNTRY_FLAG[country])||'🌍'}</span>
+        <span class="cl-mkt-club-n">${escC(country)} — ${escC(bgDivLabel(country,d))}</span>
+        <span class="cl-mkt-club-ov">${count} clubes</span></div>`;
+    });
+  });
+  overlayC(dlg('Comprar jogador — escolha a liga', `<div class="cl-mkt-clublist">${rows}</div>
     <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
     {w:560,bodyClass:'cl-body-gray',min:true}));
 }
-/* ---- clubes daquela divisão específica ---- */
-function clMarketDivision(division){
-  CL.market={step:'clubs',division};
-  const isOwn=division===S.division;
-  const clubs=isOwn ? DATA.clubs.filter(c=>c.id!==CL.clubId) : ((S.otherDivs&&S.otherDivs[division])?S.otherDivs[division].clubs:[]);
-  const rows=clubs.map(c=>`<div class="cl-mkt-club" onclick="clMarketSquad('${c.id}')" style="${clubEdge(c)}">
+/* ---- clubes daquela divisão específica (country = país de background, se houver) ---- */
+function clMarketDivision(division,country){
+  CL.market={step:'clubs',division,country};
+  let clubs;
+  if(country){ // liga de background: clubes vêm de S.bgLeagues (dados reais via intlClubById)
+    const L=S.bgLeagues&&S.bgLeagues[country];
+    clubs=(L&&L.divs[division]?L.divs[division].clubIds:[]).map(id=>intlClubById(id)).filter(Boolean);
+  } else {
+    const isOwn=division===S.division;
+    clubs=isOwn ? DATA.clubs.filter(c=>c.id!==CL.clubId) : ((S.otherDivs&&S.otherDivs[division])?S.otherDivs[division].clubs:[]);
+  }
+  const cq=country?`,'${country}'`:'';
+  const rows=clubs.map(c=>`<div class="cl-mkt-club" onclick="clMarketSquad('${c.id}'${cq})" style="${clubEdge(c)}">
       <span class="cl-mkt-club-n">${escC(c.short)}</span><span class="cl-mkt-club-ov">força ${c.overall||Math.round(((c.OS||0)+(c.MS||0)+(c.DS||0))/3)}</span>
-    </div>`).join('') || '<div class="cl-mkt-counter">Sem clubes disponíveis nessa divisão ainda.</div>';
-  overlayC(dlg('Comprar jogador — '+escC(divLegend(division)), `<div class="cl-mkt-clublist">${rows}</div>
-    <div class="cl-cal-ok">${btn('Voltar às divisões','clMarketClubs()',{icon:'↩',cls:'cl-btn-cancel'})}</div>`,
+    </div>`).join('') || '<div class="cl-mkt-counter">Sem clubes disponíveis nessa liga ainda.</div>';
+  const title=country?`${escC(country)} — ${escC(bgDivLabel(country,division))}`:escC(divLegend(division));
+  overlayC(dlg('Comprar jogador — '+title, `<div class="cl-mkt-clublist">${rows}</div>
+    <div class="cl-cal-ok">${btn('Voltar','clMarketClubs()',{icon:'↩',cls:'cl-btn-cancel'})}</div>`,
     {w:560,bodyClass:'cl-body-gray',min:true}));
 }
 /* ---- elenco do clube escolhido ---- */
-function clMarketSquad(clubId){
+function clMarketSquad(clubId,country){
   const division=(CL.market&&CL.market.division)||S.division;
-  CL.market={step:'squad',clubId,division};
+  if(country) ensureBgClubMaterialized(clubId); // materializa o elenco real do clube de background
+  CL.market={step:'squad',clubId,division,country};
   const sq=squad(clubId).slice().sort((a,b)=>b.f-a.f);
   const rows=sq.map(p=>`<div class="cl-mkt-p" onclick="clMarketPlayer('${clubId}','${escC(p.n)}')">
       <span class="cl-mkt-p-pos">${posLetter(p.s)}</span><span class="cl-mkt-p-n">${escC(p.n)}${p.age<=20?'*':''}</span>
       <span class="cl-mkt-p-f">${p.f}</span><span class="cl-mkt-p-v">${grp(Math.round(curConv(p.mv)*0.001))} mil</span>
     </div>`).join('');
+  const backArg=country?`'${division}','${country}'`:`'${division}'`;
   overlayC(dlg('Elenco — '+clubOf(clubId).short, `<div class="cl-mkt-squad">${rows}</div>
-    <div class="cl-cal-ok">${btn('Voltar','clMarketDivision(\''+division+'\')',{icon:'↩',cls:'cl-btn-cancel'})}</div>`,
+    <div class="cl-cal-ok">${btn('Voltar','clMarketDivision('+backArg+')',{icon:'↩',cls:'cl-btn-cancel'})}</div>`,
     {w:640,bodyClass:'cl-body-gray',min:true}));
 }
 /* ---- detalhe do jogador + início da proposta (Dia 1: taxa) ---- */

@@ -209,6 +209,7 @@ function finalizeTransfer(negoIdx){
   if(!inTransferWindow()) return {ok:false,msg:'A janela de transferências está fechada.'};
   const n=S.negos[negoIdx]; if(!n || n.stage!=='verdict' || n.status!=='aberta') return {ok:false,msg:'Negociação inválida.'};
   const p=findP(n.player,n.sellerId); if(!p) return {ok:false,msg:'Jogador não encontrado.'};
+  const fq=checkForeignQuota(p); if(!fq.ok) return {ok:false,msg:fq.msg}; // cota de estrangeiros da liga
   const totalCost=n.offerFee;
   if(totalCost>S.budget) return {ok:false,msg:'Caixa insuficiente pra fechar a taxa combinada.'};
   S.budget-=totalCost;
@@ -283,6 +284,7 @@ function buyFromAuction(sellerId, playerName){
   const pick=pool.find(x=>x.sellerId===sellerId && x.player===playerName);
   if(!pick) return {ok:false,msg:'Esse jogador não está mais disponível no leilão.'};
   const p=findP(playerName, sellerId); if(!p) return {ok:false,msg:'Jogador não encontrado.'};
+  const fq=checkForeignQuota(p); if(!fq.ok) return {ok:false,msg:fq.msg}; // cota de estrangeiros da liga
   if(pick.price>S.budget) return {ok:false,msg:'Caixa insuficiente.'};
   S.budget-=pick.price;
   S.squads[sellerId]=S.squads[sellerId].filter(x=>x.n!==p.n);
@@ -778,8 +780,11 @@ function bgQuickSim(homeId, awayId, seed){
 }
 /* atribui N gols a jogadores do clube (ponderado por força, atacantes/meias primeiro) */
 function bgAttributeGoals(L, clubId, n){
-  const club=intlClubById(clubId); if(!club||!club.squad||n<=0) return;
-  const cand=club.squad.filter(p=>p.s==='ATT'||p.s==='MID'); const pool=cand.length?cand:club.squad;
+  if(n<=0) return;
+  // usa o elenco materializado se já existe (reflete transferências); senão o dado real
+  const squad=(S.squads&&S.squads[clubId]) || (intlClubById(clubId)||{}).squad;
+  if(!squad||!squad.length) return;
+  const cand=squad.filter(p=>p.s==='ATT'||p.s==='MID'); const pool=cand.length?cand:squad;
   for(let i=0;i<n;i++){
     let best=pool[0], bestW=-1;
     pool.forEach(p=>{ const w=(p.f||50)*(p.s==='ATT'?1.6:0.7)*Math.random(); if(w>bestW){bestW=w;best=p;} });
@@ -953,16 +958,48 @@ function cupSpectateCandidates(){
    - brasil: pirâmide A/B/C/D (dado real da Série A + procedural nas demais).
    - Inglaterra: Premier(PL) ↔ Championship(CH), com acesso/rebaixamento real (3 e 3).
    - demais países europeus: divisão única (sem pirâmide) — classificam pra copas continentais. */
+/* nat = nacionalidades "domésticas" (p.nat vem em inglês do Transfermarkt); foreignMax =
+   cota SIMPLIFICADA de estrangeiros no elenco (regra real varia muito por liga — números
+   abaixo refletem a abertura relativa de cada país e são facilmente ajustáveis). */
 const UNI_CONFIGS={
   brasil:    { order:['A','B','C','D'], size:{A:20,B:20,C:20,D:20}, promo:{A:0,B:4,C:4,D:4}, releg:{A:4,B:4,C:4,D:0},
-               label:{A:'Série A',B:'Série B',C:'Série C',D:'Série D'} },
+               label:{A:'Série A',B:'Série B',C:'Série C',D:'Série D'}, nat:['Brasil','Brazil'], foreignMax:8 },
   Inglaterra:{ order:['PL','CH'], size:{PL:20,CH:24}, promo:{PL:0,CH:3}, releg:{PL:3,CH:0},
-               label:{PL:'Premier League',CH:'Championship'}, lg:{PL:'ENG-1',CH:'ENG-2'}, country:'Inglaterra' },
-  Espanha:   { order:['ES'], size:{ES:20}, promo:{ES:0}, releg:{ES:0}, label:{ES:'La Liga'},        lg:{ES:'ESP-1'}, country:'Espanha' },
-  'Itália':  { order:['IT'], size:{IT:20}, promo:{IT:0}, releg:{IT:0}, label:{IT:'Serie A'},         lg:{IT:'ITA-1'}, country:'Itália' },
-  Alemanha:  { order:['DE'], size:{DE:18}, promo:{DE:0}, releg:{DE:0}, label:{DE:'Bundesliga'},      lg:{DE:'GER-1'}, country:'Alemanha' },
-  Portugal:  { order:['PT'], size:{PT:18}, promo:{PT:0}, releg:{PT:0}, label:{PT:'Primeira Liga'},   lg:{PT:'POR-1'}, country:'Portugal' },
+               label:{PL:'Premier League',CH:'Championship'}, lg:{PL:'ENG-1',CH:'ENG-2'}, country:'Inglaterra',
+               nat:['England','Wales','Scotland','Northern Ireland'], foreignMax:22 },
+  Espanha:   { order:['ES'], size:{ES:20}, promo:{ES:0}, releg:{ES:0}, label:{ES:'La Liga'},        lg:{ES:'ESP-1'}, country:'Espanha',
+               nat:['Spain'], foreignMax:15 },
+  'Itália':  { order:['IT'], size:{IT:20}, promo:{IT:0}, releg:{IT:0}, label:{IT:'Serie A'},         lg:{IT:'ITA-1'}, country:'Itália',
+               nat:['Italy'], foreignMax:16 },
+  Alemanha:  { order:['DE'], size:{DE:18}, promo:{DE:0}, releg:{DE:0}, label:{DE:'Bundesliga'},      lg:{DE:'GER-1'}, country:'Alemanha',
+               nat:['Germany'], foreignMax:17 },
+  Portugal:  { order:['PT'], size:{PT:18}, promo:{PT:0}, releg:{PT:0}, label:{PT:'Primeira Liga'},   lg:{PT:'POR-1'}, country:'Portugal',
+               nat:['Portugal'], foreignMax:18 },
 };
+/* jogador é estrangeiro no universo de um país? (nat doméstico definido em UNI_CONFIGS) */
+function playerIsForeign(p, uniKey){
+  const cfg=UNI_CONFIGS[uniKey||ACTIVE_UNI]; if(!cfg||!cfg.nat) return false;
+  return cfg.nat.indexOf(p&&p.nat)<0;
+}
+function squadForeignCount(clubId, uniKey){
+  return (S.squads[clubId]||[]).filter(p=>playerIsForeign(p, uniKey)).length;
+}
+/* verifica a cota de estrangeiros ao contratar p pro clube do usuário. Retorna {ok, msg}. */
+function checkForeignQuota(p){
+  const cfg=activeUniCfg(); if(!cfg||!cfg.foreignMax) return {ok:true};
+  if(!playerIsForeign(p, ACTIVE_UNI)) return {ok:true}; // doméstico nunca conta cota
+  const cur=squadForeignCount(S.clubId, ACTIVE_UNI);
+  if(cur>=cfg.foreignMax) return {ok:false, msg:`Cota de estrangeiros cheia (máx. ${cfg.foreignMax} na ${cfg.label[DIV_ORDER[0]]||'liga'}). Venda/dispense um estrangeiro ou contrate um nacional.`};
+  return {ok:true};
+}
+/* materializa o elenco de um clube de background sob demanda (pra ver/negociar no mercado) */
+function ensureBgClubMaterialized(clubId){
+  if(S.squads[clubId]) return true;
+  const club=intlClubById(clubId); if(!club||!club.squad) return false;
+  S.clubPool=S.clubPool||{}; S.clubPool[clubId]=club;
+  S.squads[clubId]=club.squad.map(p=>attachAttrs(initStats({...p})));
+  return true;
+}
 /* config do universo ativo — reatribuída por setUniverse(); os bindings abaixo são 'let'
    justamente pra que todo o código que já lê DIV_ORDER/DIVISION_* passe a enxergar o
    universo corrente sem precisar mudar as ~40 chamadas existentes. */
