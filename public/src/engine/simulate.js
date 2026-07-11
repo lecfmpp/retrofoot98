@@ -24,6 +24,62 @@ function matchSeed(homeId,awayId){ return hashSeed(S.seed, S.round, homeId, away
 /* S_t in [-1,1]; +1 => home goal, -1 => away goal                         */
 const TACTIC_BETA={retranca:-0.09, equilibrado:0, ofensivo:0.10};
 const ENG={rev:0.82, sd:0.33, danger:0.58, shot:0.28, conv:0.52, penaltyChance:0.085};
+/* ===== MOTOR 2.0: meio-campo central + índices ofensivo/defensivo + contexto =====
+   Toda a matemática que decide o jogo mora aqui (helpers compartilhados), pra os DOIS
+   motores (simulateMatch solo/ao-vivo e mpSim multiplayer) rodarem idêntico e determinístico.
+   Calibrado por harness em massa (ver relatorios / scratchpad) pra placares realistas. */
+const ENG2={ alphaAtk:0.08, alphaMid:0.05, alphaMidCount:0.018, convDiff:0.004 };
+/* índice ofensivo: ataque alimentado pelo meio-campo; defensivo: defesa + ajuda do meio (docx) */
+function atkIndex(os,ms){ return 0.55*os + 0.45*ms; }
+function defIndex(ds,ms){ return 0.72*ds + 0.28*ms; }
+/* drift de posse por minuto: ameaça (índices atq/def) + DOMÍNIO de meio-campo + tática + mando.
+   H/A = {OS,MS,DS} já com fadiga/moral/formação/expulsões aplicados. ctx = fatores de contexto. */
+function matchMu(H,A,betaH,betaA,ctx){
+  ctx=ctx||{};
+  const atkH=atkIndex(H.OS,H.MS), atkA=atkIndex(A.OS,A.MS);
+  const defH=defIndex(H.DS,H.MS), defA=defIndex(A.DS,A.MS);
+  const threat = ENG2.alphaAtk*((atkH/defA)-(atkA/defH));
+  const midDom = ENG2.alphaMid*((H.MS-A.MS)/(((H.MS+A.MS)/2)||1)); // meio forte controla o jogo
+  const midCount = ENG2.alphaMidCount*((ctx.nMidH||0)-(ctx.nMidA||0)); // povoar o meio dá posse
+  return threat + midDom + midCount + (betaH-betaA) + (ctx.homeAdv||0.06);
+}
+/* conversão de uma finalização: equilíbrio ataque/defesa (via índices) + bônus pela diferença
+   (docx) + moral baixa do finalizador corta pela metade. Sempre com teto/piso. */
+function shotConv(atkIdx,defIdx,finisherMoral){
+  let conv=ENG.conv*(atkIdx/(((atkIdx+defIdx)/2)||1));
+  conv += clamp(atkIdx-defIdx,-25,25)*ENG2.convDiff;
+  if((finisherMoral||70)<40) conv*=0.5;
+  return clamp(conv,0.08,0.85);
+}
+/* mando de campo por clube: capacidade real do estádio do usuário; proxy pelo overall pros
+   demais (clube maior => torcida maior => mando maior). Faixa [0.03, 0.10]. */
+function homeAdvantage(homeId){
+  let cap=null;
+  if(homeId===S.clubId && S.stadium && S.stadium.capacity) cap=S.stadium.capacity;
+  if(cap==null){ const c=(typeof clubOf==='function')?clubOf(homeId):null; const ov=(c&&c.overall)||70;
+    cap = 8000 + Math.max(0,ov-55)*2100; } // ov 55->8k ... 88->~77k
+  const t=clamp((cap-8000)/(75000-8000),0,1);
+  return 0.007 + t*0.009; // mando modesto e realista (clube maior/estádio maior = um pouco mais)
+}
+/* emphasis por formação a partir da contagem de setores no XI: mais zaga = mais defensivo,
+   mais ataque = mais ofensivo (sutil, pra não virar meta degenerada). Retorna multiplicadores. */
+function formationEmphasis(players){
+  const n=s=>players.filter(p=>p.s===s).length;
+  const nDEF=n('DEF'), nATT=n('ATT'), nMID=n('MID');
+  return { OS:1+(nATT-2)*0.025, MS:1+(nMID-3)*0.015, DS:1+(nDEF-4)*0.02, nMID };
+}
+/* tabela curada de clássicos/rivais (por nome curto) — só aumenta a VARIÂNCIA do jogo
+   (imprevisibilidade), não a força. Pares em qualquer ordem. */
+const RIVALRIES=[
+  ['Flamengo','Fluminense'],['Flamengo','Vasco'],['Flamengo','Botafogo'],['Fluminense','Vasco'],['Botafogo','Vasco'],
+  ['Corinthians','Palmeiras'],['Corinthians','São Paulo'],['Corinthians','Santos'],['Palmeiras','São Paulo'],['Palmeiras','Santos'],['São Paulo','Santos'],
+  ['Grêmio','Internacional'],['Atlético','Cruzeiro'],['Bahia','Vitória'],
+  ['Liverpool','Everton'],['Liverpool','Manchester Unite'],['Manchester Unite','Manchester City'],['Arsenal','Tottenham'],['Arsenal','Chelsea'],['Chelsea','Tottenham'],
+  ['Real Madrid','Barcelona'],['Real Madrid','Atlético de Madr'],['Barcelona','Espanyol'],['Sevilla','Real Betis Balom'],
+  ['Inter Milan','Milan'],['Juventus','Inter Milan'],['Juventus','Milan'],['Roma','Lazio'],['Napoli','Roma'],
+  ['Bayern Munich','Borussia Dortmun'],['Benfica','Porto'],['Benfica','Sporting CP'],['Porto','Sporting CP'],
+];
+function isDerby(aShort,bShort){ return RIVALRIES.some(([x,y])=>(x===aShort&&y===bShort)||(x===bShort&&y===aShort)); }
 /* ---- pênalti: escolhe o batedor padrão (pondera força + leve preferência por ATT/MID)
    e calcula a chance de conversão de forma justa — depende da força e moral do batedor
    E da força do goleiro adversário, sempre com uma margem de sorte (nunca é garantido). ---- */
@@ -48,19 +104,28 @@ function penaltyConvChance(taker, gk){
 function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
   opts=opts||{};
   const R=makeRng((seed!=null?seed:matchSeed(homeId,awayId))>>>0);
-  const H=ratings(homeId, isUser&&homeId===S.clubId), A=ratings(awayId, isUser&&awayId===S.clubId);
-  const alpha=0.11, gammaHome=0.06;
+  const hp=xiOrTop(homeId), ap=xiOrTop(awayId);
+  const H0=ratings(homeId, isUser&&homeId===S.clubId), A0=ratings(awayId, isUser&&awayId===S.clubId);
+  // emphasis por formação (contagem de setores no XI) — 3-5-2 domina meio, 5-3-2 defende, etc.
+  const emH=formationEmphasis(hp), emA=formationEmphasis(ap);
+  const H={OS:H0.OS*emH.OS, MS:H0.MS*emH.MS, DS:H0.DS*emH.DS, mor:H0.mor};
+  const A={OS:A0.OS*emA.OS, MS:A0.MS*emA.MS, DS:A0.DS*emA.DS, mor:A0.mor};
   const betaH=TACTIC_BETA[homeId===S.clubId?S.tactic:'equilibrado'];
   const betaA=TACTIC_BETA[awayId===S.clubId?S.tactic:'equilibrado'];
+  // contexto: mando por estádio + variância extra em clássico/decisão (imprevisibilidade)
+  const homeAdv=homeAdvantage(homeId);
+  const derby=(typeof clubOf==='function') && isDerby((clubOf(homeId)||{}).short,(clubOf(awayId)||{}).short);
+  const sd=ENG.sd*(derby?1.18:1)*(opts.importance?1.12:1);
+  const ctxMid={ nMidH:emH.nMID, nMidA:emA.nMID, homeAdv };
   let pos=0, minute=0, hg=0, ag=0, scorers=[];
-  const hp=xiOrTop(homeId), ap=xiOrTop(awayId);
+  // desempenho acumulado (separado do placar): posse (minutos de controle), finalizações, chances, grandes chances
+  const perf={H:{poss:0,shots:0,chances:0,big:0,goals:0}, A:{poss:0,shots:0,chances:0,big:0,goals:0}};
   // disciplina/lesões — só durante ESTA partida (não persiste; aplicação persistente é externa)
   const cardState={H:new Map(),A:new Map()}, offField={H:new Set(),A:new Set()}, menOnField={H:11,A:11};
   function activePool(side){ const players=side==='H'?hp:ap; const off=offField[side]; const a=players.filter(p=>!off.has(p.n)); return a.length?a:players; }
   function teamPenalty(side){ const n=menOnField[side]; return n>=11?1:n===10?0.90:n===9?0.78:0.65; }
-  function effOS(side){ return (side==='H'?H.OS:A.OS)*teamPenalty(side); }
-  function effDS(side){ return (side==='H'?H.DS:A.DS)*teamPenalty(side); }
-  function currentMu(){ return alpha*((effOS('H')/effDS('A'))-(effOS('A')/effDS('H'))) + (betaH-betaA) + gammaHome; }
+  function effRat(side){ const b=side==='H'?H:A; const tp=teamPenalty(side); return {OS:b.OS*tp, MS:b.MS*tp, DS:b.DS*tp}; }
+  function currentMu(){ return matchMu(effRat('H'), effRat('A'), betaH, betaA, ctxMid); }
   function scorerFrom(id,players){
     const atk=players.filter(p=>p.s==='ATT'||p.s==='MID');
     const pool=atk.length?atk:players;
@@ -80,13 +145,16 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
   function tickMinute(stoppage){
     minute++;
     const mu=currentMu();
-    pos = clamp(pos*ENG.rev + R.gauss(mu,ENG.sd), -1.15, 1.15);
+    pos = clamp(pos*ENG.rev + R.gauss(mu,sd), -1.15, 1.15);
+    perf[pos>0?'H':'A'].poss++; // minuto de controle territorial (posse aproximada)
     let ev=null;
     const home = pos>0; const hSide=home?'H':'A';
     if(Math.abs(pos)>=ENG.danger && R.random() < ENG.shot*((Math.abs(pos)-ENG.danger)/(1.15-ENG.danger)+0.15)){
       const atkId=home?homeId:awayId;
-      const atkR=effOS(hSide), defR=effDS(home?'A':'H');
+      const eA=effRat(hSide), eD=effRat(home?'A':'H');
+      const atkIdx=atkIndex(eA.OS,eA.MS), defIdx=defIndex(eD.DS,eD.MS);
       const atkPool=activePool(hSide);
+      perf[hSide].shots++;
       if(R.random()<ENG.penaltyChance){
         // PÊNALTI: batedor padrão escolhido por peso (força + posição); resultado calculado já aqui
         // pra rodar sozinho em partidas simuladas em segundo plano. Quando o usuário está assistindo
@@ -97,18 +165,20 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
         const taker=pickPenaltyTaker(atkPool,R);
         const pConv=penaltyConvChance(taker,gk);
         const scored=R.random()<pConv;
-        if(scored){ if(home){hg++;} else {ag++;} scorers.push({id:atkId,name:taker.n,min:minute}); pos=home?-0.15:0.15; }
+        perf[hSide].big++;
+        if(scored){ if(home){hg++;} else {ag++;} perf[hSide].goals++; scorers.push({id:atkId,name:taker.n,min:minute}); pos=home?-0.15:0.15; }
         ev={type:'penalti',side:hSide,min:minute,team:atkId,scorer:taker?taker.n:null,gk:gk?gk.n:null,scored,stoppage};
       } else {
       const sc=scorerFrom(atkId, atkPool);
-      // conversion scaled by attack/defence balance + finisher composure (low moral halves it)
-      let conv=ENG.conv*(atkR/((atkR+defR)/2));
-      if(sc.moral<40) conv*=0.5;
+      // conversão via índices ataque/defesa (com meio-campo) + moral do finalizador
+      const conv=shotConv(atkIdx,defIdx,sc.moral);
+      if(conv>=0.5) perf[hSide].big++; // grande chance
       if(R.random()<conv){
-        if(home){hg++;} else {ag++;}
+        if(home){hg++;} else {ag++;} perf[hSide].goals++;
         scorers.push({id:atkId,name:sc.n,min:minute}); pos=home?-0.15:0.15;
         ev={type:'gol',side:hSide,min:minute,scorer:sc.n,team:atkId,stoppage};
       } else {
+        perf[hSide].chances++;
         ev={type:'chance',side:hSide,min:minute,scorer:sc.n,team:atkId,pos};
       }
       }
@@ -159,7 +229,7 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
   function finish(){
     const add=opts.extraTime ? Math.floor(R.rnd(1,4)) : Math.floor(R.rnd(1,5));
     (function extra(){
-      if(minute>=regularMinutes+add){ if(onEnd)onEnd({hg,ag,scorers}); return; }
+      if(minute>=regularMinutes+add){ if(onEnd)onEnd({hg,ag,scorers,perf}); return; }
       const ev=tickMinute(true);
       if(onTick)onTick({minute,pos,hg,ag,ev,mu:currentMu(),stoppage:true});
       if(!onTick)extra(); else if(typeof SIM_SYNC!=='undefined'&&SIM_SYNC)extra(); else setTimeout(extra, MATCH.speed);
@@ -244,13 +314,25 @@ function quickSim(homeId,awayId,seed){
 /* who actually played (user = chosen XI, CPU = best 11) */
 function playedXI(id){ return availableXI(id); }
 /* assign match ratings + roll form stats for the players who played */
-function ratePlayers(id, gf, ga, scorers, R){
+/* nota da partida: base por força + resultado + gols + clean sheet + cartões/lesões, MAIS um
+   ajuste por DESEMPENHO (dominância) separado do placar — quem dominou e não venceu leva nota
+   melhor; quem venceu sofrendo, um pouco menos. myPerf/oppPerf = {poss,shots,chances,big,goals}. */
+function domAdjust(myPerf, oppPerf){
+  if(!myPerf||!oppPerf) return 0;
+  const mp=myPerf.poss||0, op=oppPerf.poss||0;
+  const possShare=(mp+op)? mp/(mp+op) : 0.5;
+  const chanceEdge=((myPerf.chances||0)+(myPerf.big||0)+(myPerf.goals||0))-((oppPerf.chances||0)+(oppPerf.big||0)+(oppPerf.goals||0));
+  return clamp((possShare-0.5)*1.4 + clamp(chanceEdge,-8,8)*0.05, -0.6, 0.6);
+}
+function ratePlayers(id, gf, ga, scorers, R, myPerf, oppPerf){
   R=R||makeRng(hashSeed(S.seed,S.round,'rate',id));
   const played=playedXI(id); const won=gf>ga, lost=gf<ga, cs=ga===0;
   const inc=S._roundIncidents||{};
+  const dom=domAdjust(myPerf,oppPerf); // dominância coletiva (atuação, não resultado)
   played.forEach(p=>{
     let r=6.0+(p.f-65)*0.045+R.gauss(0,0.75);
     if(won)r+=0.5; else if(lost)r-=0.5;
+    r+=dom;
     const myG=scorers.filter(s=>s.id===id && s.name===p.n).length;
     r+=myG*1.3;
     if(cs&&(p.s==='GK'||p.s==='DEF'))r+=0.6;

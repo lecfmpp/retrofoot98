@@ -128,7 +128,7 @@ function simEventsC(h,a,seed,opts){ const evs=[]; let fin=null; const isU=(h===S
       player:t.ev.player,pos:t.ev.pos,cardType:t.ev.cardType,reason:t.ev.reason,severity:t.ev.severity,outMatches:t.ev.outMatches}); },(res)=>{fin=res;}, seed, opts);
     let g=0; while(!fin && g++<600){ s.step(); } }
   finally{ if(typeof SIM_SYNC!=='undefined')SIM_SYNC=prev; }
-  return {hg:fin.hg,ag:fin.ag,scorers:fin.scorers,events:evs}; }
+  return {hg:fin.hg,ag:fin.ag,scorers:fin.scorers,events:evs,perf:fin.perf}; }
 function escC(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function rngFrom(seed){ let x=(seed>>>0)||1; return ()=>{ x^=x<<13; x^=x>>>17; x^=x<<5; return ((x>>>0)/0xffffffff); }; }
 const REFS_C=['Anderson Daronco','Wilton Sampaio','Raphael Claus','Bráulio da Silva','Ramon Abatti','Flávio Rodrigues','Ferreira Rodrigues'];
@@ -1606,7 +1606,7 @@ function buildLiveMatchObject(h,a,seed,opts){
   const rnd=rngFrom(seed);
   const ev=simEventsC(h,a,seed); const gate=attendanceFor(h,rnd);
   return { h,a,hg:0,ag:0,idx:0,events:ev.events,att:gate.att,price:gate.price,cap:gate.cap,
-    ref:REFS_C[Math.floor(rnd()*REFS_C.length)], goals:[], incidents:[], fhg:ev.hg, fag:ev.ag,
+    ref:REFS_C[Math.floor(rnd()*REFS_C.length)], goals:[], incidents:[], fhg:ev.hg, fag:ev.ag, perf:ev.perf,
     user:opts.user!==undefined?opts.user:(h===CL.clubId||a===CL.clubId), div:opts.div };
 }
 function startLiveRound(){
@@ -2036,6 +2036,19 @@ function shootoutScoreboardHTML(RL){
       <span class="cl-pens-score">${RL.pens.a.filter(k=>k.scored).length}</span></div>
   </div>`;
 }
+/* ficha da partida (desempenho): posse, finalizações e chances claras — reflete o novo
+   motor que separa domínio do placar. Reusa a caixa do árbitro (cl-lm-ref). */
+function matchStatsHTML(m){
+  if(!m.perf || !m.perf.H) return '';
+  const H=m.perf.H, A=m.perf.A;
+  const tot=(H.poss+A.poss)||1; const hP=Math.round(100*H.poss/tot);
+  const line=(lbl,hv,av)=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:1px 2px"><b style="min-width:36px">${hv}</b><span style="color:#888;flex:1;text-align:center">${lbl}</span><b style="min-width:36px;text-align:right">${av}</b></div>`;
+  return `<fieldset class="cl-lm-ref" style="margin-top:6px"><legend>Ficha da partida</legend>
+    ${line('posse %',hP+'%',(100-hP)+'%')}
+    ${line('finalizações',H.shots,A.shots)}
+    ${line('chances claras',H.big,A.big)}
+  </fieldset>`;
+}
 function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a);
   const shooting=!!RL.pensPicking;
   const halftime=(RL.paused && m.user && !RL.penEvent && !RL.injEvent && !RL.pens);
@@ -2059,6 +2072,7 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
       <div class="cl-lm-events">${incHTML}</div>
       <fieldset class="cl-lm-ref"><legend>Árbitro</legend><b>${escC(m.ref)}</b></fieldset>
     </div>
+    ${m.user?matchStatsHTML(m):''}
     ${actionsHTML}
     ${showSubs?subPanelHTML(m):''}
     ${penalty?penaltyPickerHTML():''}${injury?injurySubHTML(m,RL.injEvent):''}${shooting?shootoutPickerHTML():''}`;
@@ -2341,7 +2355,7 @@ function finishLiveRound(){
     // gols de pênalti (type:'penalti', scored:true) contam no placar (hg/ag) desde sempre,
     // mas ficavam de fora daqui — o filtro só pegava type==='gol' — então o artilheiro
     // sumia da artilharia e das estatísticas dele mesmo tendo balançado a rede de verdade.
-    if(um) userResult={hg:um.hg,ag:um.ag,scorers:um.events.filter(e=>e.type==='gol'||(e.type==='penalti'&&e.scored)).map(e=>({name:e.scorer,id:e.team}))};
+    if(um) userResult={hg:um.hg,ag:um.ag,perf:um.perf,scorers:um.events.filter(e=>e.type==='gol'||(e.type==='penalti'&&e.scored)).map(e=>({name:e.scorer,id:e.team}))};
     // payload de auditoria (Fase 2 Etapa A) — só online, e só se a partida do usuário
     // realmente rolou nesta rodada (uf). Capturado AGORA (elenco ainda intocado por
     // advancePlayerAvailability/playRound abaixo) pra bater com o que o motor usou.
@@ -2408,7 +2422,7 @@ function finishCupLiveMatch(){
   applyMatchIncidents(m.events);
   const scorers=m.events.filter(e=>e.type==='gol'||(e.type==='penalti'&&e.scored)).map(e=>({name:e.scorer,id:e.team}));
   const Rm=makeRng(hashSeed(S.seed,'cuprate',pending.key,S.round,m.h,m.a));
-  ratePlayers(m.h,m.hg,m.ag,scorers,Rm); ratePlayers(m.a,m.ag,m.hg,scorers,Rm);
+  ratePlayers(m.h,m.hg,m.ag,scorers,Rm,m.perf&&m.perf.H,m.perf&&m.perf.A); ratePlayers(m.a,m.ag,m.hg,scorers,Rm,m.perf&&m.perf.A,m.perf&&m.perf.H);
   if(m.h===CL.clubId) S.budget=(S.budget||0)+(m.att*m.price); // bilheteria do mando de campo, igual à liga
   const compShort=COMP_DEFS[pending.key].short;
   let resultMsg;

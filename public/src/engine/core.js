@@ -656,7 +656,7 @@ function advanceCupBracket(b, roundLabel){
     applyResult1off(t.h,t.a,fin.hg,fin.ag);
     const Rm=makeRng(hashSeed(seed,'rate'));
     applyMatchIncidents(evs);
-    ratePlayers(t.h,fin.hg,fin.ag,fin.scorers,Rm); ratePlayers(t.a,fin.ag,fin.hg,fin.scorers,Rm);
+    ratePlayers(t.h,fin.hg,fin.ag,fin.scorers,Rm,fin.perf&&fin.perf.H,fin.perf&&fin.perf.A); ratePlayers(t.a,fin.ag,fin.hg,fin.scorers,Rm,fin.perf&&fin.perf.A,fin.perf&&fin.perf.H);
     // empate no tempo normal: prorrogação + pênaltis de verdade (ver resolveDrawnKnockoutTie
     // em simulate.js) — nada de sorteio 50/50, e a MESMA seed de sempre garante que bate com
     // o que a partida ao vivo/espectador já mostrou, se for o caso.
@@ -724,7 +724,7 @@ function advanceGroupStageRound(mg, roundLabel){
       let steps=0; while(!fin&&steps++<600) sim.step();
       applyMatchIncidents(evs);
       const Rm=makeRng(hashSeed(seed,'rate'));
-      ratePlayers(h,fin.hg,fin.ag,fin.scorers,Rm); ratePlayers(a,fin.ag,fin.hg,fin.scorers,Rm);
+      ratePlayers(h,fin.hg,fin.ag,fin.scorers,Rm,fin.perf&&fin.perf.H,fin.perf&&fin.perf.A); ratePlayers(a,fin.ag,fin.hg,fin.scorers,Rm,fin.perf&&fin.perf.A,fin.perf&&fin.perf.H);
       const T=g.table;
       T[h].P++; T[a].P++; T[h].GF+=fin.hg; T[h].GA+=fin.ag; T[a].GF+=fin.ag; T[a].GA+=fin.hg;
       if(fin.hg>fin.ag){ T[h].W++; T[a].L++; T[h].Pts+=3; }
@@ -1766,29 +1766,40 @@ function mpRatings(players){
 }
 function mpSim(homeId,home,awayId,away,seed,log){
   const R=makeRng(seed>>>0);
-  const alpha=0.11,gammaHome=0.06;
   const betaH=TACTIC_BETA[home.tactic||'equilibrado'],betaA=TACTIC_BETA[away.tactic||'equilibrado'];
-  const mu=alpha*((home.OS/away.DS)-(away.OS/home.DS))+(betaH-betaA)+gammaHome;
+  // mesma matemática do motor solo (helpers compartilhados): formação + meio-campo + mando + índices
+  const emH=formationEmphasis(home.players), emA=formationEmphasis(away.players);
+  const H={OS:home.OS*emH.OS, MS:home.MS*emH.MS, DS:home.DS*emH.DS};
+  const A={OS:away.OS*emA.OS, MS:away.MS*emA.MS, DS:away.DS*emA.DS};
+  const homeAdv=homeAdvantage(homeId);
+  const derby=(typeof clubOf==='function') && isDerby((clubOf(homeId)||{}).short,(clubOf(awayId)||{}).short);
+  const sd=ENG.sd*(derby?1.18:1);
+  const mu=matchMu(H,A,betaH,betaA,{nMidH:emH.nMID,nMidA:emA.nMID,homeAdv});
   let pos=0,minute=0,hg=0,ag=0;const scorers=[];
+  const perf={H:{poss:0,shots:0,chances:0,big:0,goals:0}, A:{poss:0,shots:0,chances:0,big:0,goals:0}};
   const scorerFrom=(players)=>{const atk=players.filter(p=>p.s==='ATT'||p.s==='MID');const pool=atk.length?atk:players;let tot=pool.reduce((s,p)=>s+p.f,0),r=R.random()*tot;for(const p of pool){r-=p.f;if(r<=0)return p;}return pool[0];};
-  const tick=()=>{minute++;pos=clamp(pos*ENG.rev+R.gauss(mu,ENG.sd),-1.15,1.15);const isH=pos>0;
+  const tick=()=>{minute++;pos=clamp(pos*ENG.rev+R.gauss(mu,sd),-1.15,1.15);const isH=pos>0;perf[isH?'H':'A'].poss++;
     if(Math.abs(pos)>=ENG.danger && R.random()<ENG.shot*((Math.abs(pos)-ENG.danger)/(1.15-ENG.danger)+0.15)){
-      const atkId=isH?homeId:awayId;const atkR=isH?home.OS:away.OS,defR=isH?away.DS:home.DS;
-      const sc=scorerFrom(isH?home.players:away.players);let conv=ENG.conv*(atkR/((atkR+defR)/2));if(sc.moral<40)conv*=0.5;
-      if(R.random()<conv){if(isH)hg++;else ag++;scorers.push({id:atkId,name:sc.n,min:minute});pos=isH?-0.15:0.15;if(log)log.push({min:minute,type:'gol',side:isH?'H':'A',team:atkId,scorer:sc.n});}
-      else if(log){log.push({min:minute,type:'chance',side:isH?'H':'A',team:atkId,scorer:sc.n});}
+      const atkId=isH?homeId:awayId; const hSide=isH?'H':'A'; perf[hSide].shots++;
+      const atkIdx=atkIndex(isH?H.OS:A.OS, isH?H.MS:A.MS), defIdx=defIndex(isH?A.DS:H.DS, isH?A.MS:H.MS);
+      const sc=scorerFrom(isH?home.players:away.players); const conv=shotConv(atkIdx,defIdx,sc.moral);
+      if(conv>=0.5) perf[hSide].big++;
+      if(R.random()<conv){if(isH)hg++;else ag++;perf[hSide].goals++;scorers.push({id:atkId,name:sc.n,min:minute});pos=isH?-0.15:0.15;if(log)log.push({min:minute,type:'gol',side:hSide,team:atkId,scorer:sc.n});}
+      else {perf[hSide].chances++;if(log)log.push({min:minute,type:'chance',side:hSide,team:atkId,scorer:sc.n});}
     } else if(R.random()<0.028){if(log)log.push({min:minute,type:'card',side:isH?'A':'H',team:isH?awayId:homeId});}
   };
   for(let i=0;i<90;i++)tick();const add=Math.floor(R.rnd(1,5));while(minute<90+add)tick();
-  return {hg,ag,scorers};
+  return {hg,ag,scorers,perf};
 }
 function mpApply(T,h,a,hg,ag){T[h].P++;T[a].P++;T[h].GF+=hg;T[h].GA+=ag;T[a].GF+=ag;T[a].GA+=hg;
   if(hg>ag){T[h].W++;T[a].L++;T[h].Pts+=3;}else if(hg<ag){T[a].W++;T[h].L++;T[a].Pts+=3;}else{T[h].D++;T[a].D++;T[h].Pts++;T[a].Pts++;}}
-function mpRate(xi,gf,ga,scorers,cid,R){
+function mpRate(xi,gf,ga,scorers,cid,R,myPerf,oppPerf){
   const won=gf>ga,lost=gf<ga,cs=ga===0;
+  const dom=(typeof domAdjust==='function')?domAdjust(myPerf,oppPerf):0;
   xi.forEach(p=>{
     let r=6.0+(p.f-65)*0.045+R.gauss(0,0.75);
     if(won)r+=0.5;else if(lost)r-=0.5;
+    r+=dom;
     const myG=scorers.filter(s=>s.id===cid&&s.name===p.n).length;r+=myG*1.3;
     if(cs&&(p.s==='GK'||p.s==='DEF'))r+=0.6;r=clamp(r,3,10);
     const st=p.stats||(p.stats={r3:[],g3:[],apps:0,goals:0,cs:0});
@@ -1826,7 +1837,7 @@ function resolveRoundMP(state, subs){
     mpApply(state.table,h,a,r.hg,r.ag);
     r.scorers.forEach(s=>state.scorers[s.name]=(state.scorers[s.name]||0)+1);
     const Rm=makeRng(hashSeed(ms,'rate'));
-    mpRate(hXI,r.hg,r.ag,r.scorers,h,Rm); mpRate(aXI,r.ag,r.hg,r.scorers,a,Rm);
+    mpRate(hXI,r.hg,r.ag,r.scorers,h,Rm,r.perf&&r.perf.H,r.perf&&r.perf.A); mpRate(aXI,r.ag,r.hg,r.scorers,a,Rm,r.perf&&r.perf.A,r.perf&&r.perf.H);
     mpFinances(state,h,hXI,r.hg,r.ag,r.scorers); mpFinances(state,a,aXI,r.ag,r.hg,r.scorers);
     state.results.push({round,h,a,hg:r.hg,ag:r.ag});
     roundResults.push({round,h,a,hg:r.hg,ag:r.ag,scorers:r.scorers,seed:ms,events:log});
@@ -1899,14 +1910,14 @@ function playRound(userResult){
   const startedNames = new Set(playedXI(S.clubId).map(p=>p.n));
   if(uf&&userResult){ const [h,a]=uf; const uev=(typeof simEvents==='function')?simEvents(h,a,matchSeed(h,a)).events:undefined; applyResult(h,a,userResult.hg,userResult.ag); recordScorers(userResult.scorers);
     const Rm=makeRng(hashSeed(matchSeed(h,a),'rate'));
-    ratePlayers(h,userResult.hg,userResult.ag,userResult.scorers,Rm); ratePlayers(a,userResult.ag,userResult.hg,userResult.scorers,Rm);
+    ratePlayers(h,userResult.hg,userResult.ag,userResult.scorers,Rm,userResult.perf&&userResult.perf.H,userResult.perf&&userResult.perf.A); ratePlayers(a,userResult.ag,userResult.hg,userResult.scorers,Rm,userResult.perf&&userResult.perf.A,userResult.perf&&userResult.perf.H);
     S.results.push({round:S.round,h,a,hg:userResult.hg,ag:userResult.ag,user:true,scorers:userResult.scorers||[],events:uev}); postMatchMorale(userResult,h,a); }
   currentFixtures().forEach(([h,a])=>{
     if(uf&&(h===uf[0]&&a===uf[1]))return;
     const ms=matchSeed(h,a);
     const r=(typeof simEvents==='function')?simEvents(h,a,ms):quickSim(h,a,ms); applyResult(h,a,r.hg,r.ag); recordScorers(r.scorers);
     const Rm=makeRng(hashSeed(ms,'rate'));
-    ratePlayers(h,r.hg,r.ag,r.scorers,Rm); ratePlayers(a,r.ag,r.hg,r.scorers,Rm);
+    ratePlayers(h,r.hg,r.ag,r.scorers,Rm,r.perf&&r.perf.H,r.perf&&r.perf.A); ratePlayers(a,r.ag,r.hg,r.scorers,Rm,r.perf&&r.perf.A,r.perf&&r.perf.H);
     S.results.push({round:S.round,h,a,hg:r.hg,ag:r.ag,scorers:r.scorers||[],events:r.events});
   });
   processFinances(userResult,uf,startedNames);
