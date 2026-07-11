@@ -230,7 +230,8 @@ function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(ty
       <div class="cl-conta-sub">${isSignup?'Primeira vez aqui? Crie sua conta com e-mail e senha.':'Entre com o e-mail e senha da sua conta.'}</div>
       ${isSignup?`<div class="cl-field2"><span class="cl-lbl2">Nome de treinador</span><input id="cl-focus" class="cl-input" maxlength="14" value="${escC(n.name)}" oninput="CL.net.name=this.value.toUpperCase();this.value=CL.net.name;netContaSync()"></div>`:''}
       <div class="cl-field2"><span class="cl-lbl2">E-mail</span><input ${isSignup?'':'id="cl-focus"'} class="cl-input" type="email" value="${escC(n.email)}" oninput="CL.net.email=this.value;netContaSync()"></div>
-      <div class="cl-field2"><span class="cl-lbl2">Senha</span><input class="cl-input" type="password" value="${escC(n.password||'')}" oninput="CL.net.password=this.value;netContaSync()" onkeydown="if(event.key==='Enter')${isSignup?'clAuthDoSignup':'clAuthDoLogin'}()"></div>
+      <div class="cl-field2"><span class="cl-lbl2">Senha</span><input class="cl-input" type="password" minlength="6" value="${escC(n.password||'')}" oninput="CL.net.password=this.value;netContaSync()" onkeydown="if(event.key==='Enter')${isSignup?'clAuthDoSignup':'clAuthDoLogin'}()"></div>
+      ${isSignup?`<div class="cl-authhint">Pelo menos 6 caracteres. Evite senhas óbvias (ex.: 123456).</div>`:''}
       ${join && NET.room?`<div class="cl-conta-room">Sala: <b>${escC(NET.room.name||n.code)}</b> · código <b>${escC(n.code)}</b></div>`:''}
     </div>
     <div class="cl-cal-ok">${btn(isSignup?'Criar conta':'Entrar',isSignup?'clAuthDoSignup()':'clAuthDoLogin()',{icon:'✔',cls:'cl-btn-ok',dis:!(n.email&&n.password&&(!isSignup||n.name))})}${btn('Voltar','clGoModo()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,

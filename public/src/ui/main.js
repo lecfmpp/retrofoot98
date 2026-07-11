@@ -361,8 +361,8 @@ function scLogin(){ const a=CL.auth||(CL.auth={mode:'login',name:'',email:'',pas
       <div class="cl-authform">
         ${isSignup?`<div class="cl-authfield"><label>Nome de treinador</label><input id="cl-focus" maxlength="14" value="${escC(a.name)}" oninput="CL.auth.name=this.value.toUpperCase();this.value=CL.auth.name;clLoginSync()"></div>`:''}
         <div class="cl-authfield"><label>E-mail</label><input ${isSignup?'':'id="cl-focus"'} type="email" inputmode="email" autocomplete="email" value="${escC(a.email)}" oninput="CL.auth.email=this.value;clLoginSync()"></div>
-        <div class="cl-authfield"><label>Senha</label><input type="password" autocomplete="${isSignup?'new-password':'current-password'}" value="${escC(a.password||'')}" oninput="CL.auth.password=this.value;clLoginSync()" onkeydown="if(event.key==='Enter')${isSignup?'clLoginSignup':'clLoginDo'}()"></div>
-        ${!isSignup?`<div class="cl-forgot-link" onclick="clForgotPassword()">Esqueci minha senha</div>`:''}
+        <div class="cl-authfield"><label>Senha</label><input type="password" autocomplete="${isSignup?'new-password':'current-password'}" minlength="6" value="${escC(a.password||'')}" oninput="CL.auth.password=this.value;clLoginSync()" onkeydown="if(event.key==='Enter')${isSignup?'clLoginSignup':'clLoginDo'}()"></div>
+        ${isSignup?`<div class="cl-authhint">Pelo menos 6 caracteres. Evite senhas óbvias (ex.: 123456, sua data de nascimento).</div>`:`<div class="cl-forgot-link" onclick="clForgotPassword()">Esqueci minha senha</div>`}
       </div>
       <div class="cl-auth-actions">
         ${btn(isSignup?'Criar conta':'Entrar',isSignup?'clLoginSignup()':'clLoginDo()',{icon:'✔',cls:'cl-btn-ok cl-authbtn-primary',dis:disabled})}

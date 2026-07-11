@@ -60,6 +60,27 @@ function netAuthStatus(){
   return { loggedIn:true, email: SB_AUTH_USER.email, name: SB_AUTH_USER.user_metadata?.name || (SB_AUTH_USER.email||'').split('@')[0] };
 }
 
+/* ---- Traduz os erros crus do GoTrue (vêm em inglês) pra mensagens claras em PT.
+   Sem match: devolve a própria mensagem original como fallback. ---- */
+function authErrPt(error){
+  const msg=(error&&error.message||'').toLowerCase();
+  if(msg.includes('weak') || msg.includes('pwned') || msg.includes('easy to guess'))
+    return 'Essa senha é muito fácil de adivinhar. Escolha uma senha mais forte (misture letras, números e evite senhas óbvias).';
+  if(msg.includes('at least') || msg.includes('should be at least') || msg.includes('minimum') || (msg.includes('password')&&msg.includes('6 characters')))
+    return 'A senha precisa ter pelo menos 6 caracteres.';
+  if(msg.includes('invalid format') || msg.includes('unable to validate email') || msg.includes('invalid email'))
+    return 'E-mail inválido. Confira o endereço e tente de novo.';
+  if(msg.includes('requires a valid password') || (msg.includes('password')&&msg.includes('required')))
+    return 'Informe uma senha válida.';
+  if(msg.includes('for security purposes') || msg.includes('rate limit') || msg.includes('too many'))
+    return 'Muitas tentativas em pouco tempo. Aguarde alguns segundos e tente de novo.';
+  if(msg.includes('email not confirmed'))
+    return 'Confirme seu e-mail antes de entrar (verifique a caixa de entrada e o spam).';
+  if(msg.includes('failed to fetch') || msg.includes('network'))
+    return 'Sem conexão com o servidor. Verifique sua internet e tente de novo.';
+  return error&&error.message || 'Ocorreu um erro. Tente de novo.';
+}
+
 /* ---- CADASTRO: e-mail + senha + nome. Bloqueia duplicado com mensagem clara. ---- */
 async function netAuthSignUp(email, password, name){
   if(!sb) await netInitSupabase();
@@ -72,7 +93,7 @@ async function netAuthSignUp(email, password, name){
       e2.code = 'DUPLICATE_ACCOUNT';
       throw e2;
     }
-    throw error;
+    throw new Error(authErrPt(error));
   }
   // heurística extra: signUp com e-mail já cadastrado às vezes não retorna erro (proteção contra enumeração),
   // mas devolve um "user" com identities vazio — trata como duplicado também.
@@ -98,7 +119,7 @@ async function netAuthSignIn(email, password){
   if(error){
     const msg=(error.message||'').toLowerCase();
     if(msg.includes('invalid login')) throw new Error('E-mail ou senha incorretos.');
-    throw error;
+    throw new Error(authErrPt(error));
   }
   SB_AUTH_USER = data.user;
   return SB_AUTH_USER;
