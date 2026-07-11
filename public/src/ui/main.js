@@ -21,10 +21,15 @@ function divisionTrophyImg(division,size){
 
 /* ---- helpers de dinheiro / texto ---- */
 function grp(n){ return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
-function spellMoney(n){ n=Math.round(n); const mi=Math.floor(n/1e6), mil=Math.floor((n%1e6)/1e3); const p=[];
+/* número de dinheiro agrupado JÁ convertido pra moeda de exibição (curConv/curSym vêm do
+   index.html). O motor guarda tudo em R$; isto só apresenta na moeda escolhida. */
+function moneyDisp(n){ return grp(Math.round(curConv(n))); }
+function spellMoney(n){ n=Math.round(curConv(n)); const mi=Math.floor(n/1e6), mil=Math.floor((n%1e6)/1e3); const p=[];
   if(mi) p.push(mi+(mi===1?' milhão':' milhões')); if(mil) p.push(mil+' mil');
-  if(!p.length) p.push(String(n)); return p.join(' e ')+' reais'; }
-function mvShort(mv){ mv=mv||0; return mv>=1e6? (mv/1e6).toFixed(mv>=1e7?0:1).replace('.',',')+'M' : Math.round(mv/1e3)+'k'; }
+  if(!p.length) p.push(String(n));
+  const word={BRL:'reais',USD:'dólares',EUR:'euros'}[curInfo().iso]||'reais';
+  return p.join(' e ')+' '+word; }
+function mvShort(mv){ mv=curConv(mv||0); return mv>=1e6? (mv/1e6).toFixed(mv>=1e7?0:1).replace('.',',')+'M' : Math.round(mv/1e3)+'k'; }
 function posLetter(s){ return ({GK:'G',DEF:'D',MID:'M',ATT:'A'})[s]||'M'; }
 /* ordena por posição (G, D, M, A) e depois por força — usado em listas de escalação/troca
    pra que jogador comprado apareça na posição certa, não no fim da lista */
@@ -539,19 +544,26 @@ function clModoOk(){
 }
 
 /* ================= 03 · SELECÇÃO DE PAÍSES ================= */
-const COUNTRY_LIST=[ // apenas Brasil é jogável nesta versão (nossos dados). Os demais são visuais.
+/* nº de clubes reais carregados pra um país (via window.INTL_LEAGUES, gerado do Transfermarkt) */
+function intlTeams(country){ const l=(typeof window!=='undefined'&&window.INTL_LEAGUES||{})[country]; return l?l.length:0; }
+/* lista de países da tela — Brasil sempre jogável; europeus ficam clicáveis quando têm
+   clubes reais carregados. Função (não const) pra refletir os dados carregados. */
+function COUNTRY_LIST(){ return [
   {f:'🇧🇷',n:'Brasil',teams:(typeof DATA!=='undefined'?DATA.clubs.length:20),on:true},
-  {f:'🇦🇷',n:'Argentina',teams:0,on:false},{f:'🇩🇪',n:'Alemanha',teams:0,on:false},
-  {f:'🇪🇸',n:'Espanha',teams:0,on:false},{f:'🇫🇷',n:'França',teams:0,on:false},
-  {f:'🇮🇹',n:'Itália',teams:0,on:false},{f:'🇵🇹',n:'Portugal',teams:0,on:false},
-  {f:'🏴',n:'Inglaterra',teams:0,on:false},
-];
+  {f:'🇦🇷',n:'Argentina',teams:intlTeams('Argentina'),on:intlTeams('Argentina')>0},
+  {f:'🇩🇪',n:'Alemanha',teams:intlTeams('Alemanha'),on:intlTeams('Alemanha')>0},
+  {f:'🇪🇸',n:'Espanha',teams:intlTeams('Espanha'),on:intlTeams('Espanha')>0},
+  {f:'🇫🇷',n:'França',teams:intlTeams('França'),on:intlTeams('França')>0},
+  {f:'🇮🇹',n:'Itália',teams:intlTeams('Itália'),on:intlTeams('Itália')>0},
+  {f:'🇵🇹',n:'Portugal',teams:intlTeams('Portugal'),on:intlTeams('Portugal')>0},
+  {f:'🏴',n:'Inglaterra',teams:intlTeams('Inglaterra'),on:intlTeams('Inglaterra')>0},
+]; }
 function scPaises(){
-  const rows=COUNTRY_LIST.map(c=>{const sel=CL.countries.has(c.n);
+  const rows=COUNTRY_LIST().map(c=>{const sel=CL.countries.has(c.n);
     return `<div class="cl-ctry ${sel?'sel':''} ${c.on?'':'off'}" ${c.on?`onclick="clToggleCountry('${c.n}')"`:''}>
       <span class="cl-flag">${c.f}</span><span class="cl-ctry-n">${c.n}</span>
       <span class="cl-ctry-t">${c.teams} ${c.teams===1?'equipa':'equipas'}</span></div>`;}).join('');
-  const teamsSel=[...CL.countries].reduce((s,n)=>{const c=COUNTRY_LIST.find(x=>x.n===n);return s+(c?c.teams:0);},0);
+  const teamsSel=[...CL.countries].reduce((s,n)=>{const c=COUNTRY_LIST().find(x=>x.n===n);return s+(c?c.teams:0);},0);
   const okDis=teamsSel<20;
   const brasilSel=CL.countries.has('Brasil');
   const startDiv=computeStartDivision();
@@ -585,9 +597,9 @@ function scPaises(){
           ${btn('Cancelar','clGoModo()',{icon:'✖',cls:'cl-btn-cancel'})}
         </div>
         <div class="cl-counters">
-          <div><span>Equipas existentes</span><b>${COUNTRY_LIST.reduce((s,c)=>s+c.teams,0)}</b></div>
+          <div><span>Equipas existentes</span><b>${COUNTRY_LIST().reduce((s,c)=>s+c.teams,0)}</b></div>
           <div class="cl-hl"><span>Equipas seleccionadas</span><b>${teamsSel}</b></div>
-          <div class="cl-gap"><span>Países existentes</span><b>${COUNTRY_LIST.length}</b></div>
+          <div class="cl-gap"><span>Países existentes</span><b>${COUNTRY_LIST().length}</b></div>
           <div><span>Países seleccionados</span><b>${CL.countries.size}</b></div>
         </div>
         <div class="cl-instr">Seleccione os países com que pretende jogar, de modo a totalizar pelo menos 20 equipas.</div>
@@ -607,10 +619,14 @@ function computeStartDivision(){
   // no clássico, todo mundo começa na Série D e vai subindo — não é mais escolha do usuário
   return 'D';
 }
-function divisionShortLabel(d){ return ({A:'Série A',B:'Série B',C:'Série C',D:'Série D'})[d]||'Série A'; }
+function divisionShortLabel(d){ return (typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[d]) || ({A:'Série A',B:'Série B',C:'Série C',D:'Série D'})[d] || 'Série A'; }
+/* flag + nome do país do universo ativo (Brasil/Inglaterra/Espanha...) — usado no cabeçalho */
+const UNI_FLAGS={brasil:'🇧🇷',Inglaterra:'🏴',Espanha:'🇪🇸','Itália':'🇮🇹',Alemanha:'🇩🇪',Portugal:'🇵🇹'};
+function universeFlag(){ return UNI_FLAGS[(typeof S!=='undefined'&&S&&S.universe)||'brasil']||'🇧🇷'; }
+function universeCountryName(){ var u=(typeof S!=='undefined'&&S&&S.universe)||'brasil'; return u==='brasil'?'Brasil':u; }
 function clToggleComp(key){ CL.compToggle[key]=!CL.compToggle[key]; cdraw(); }
 function clToggleCountry(n){ if(CL.countries.has(n))CL.countries.delete(n); else CL.countries.add(n); cdraw(); }
-function clAllCountries(){ COUNTRY_LIST.forEach(c=>{ if(c.on)CL.countries.add(c.n); }); cdraw(); }
+function clAllCountries(){ COUNTRY_LIST().forEach(c=>{ if(c.on)CL.countries.add(c.n); }); cdraw(); }
 function clPaisesOk(){ CL.screen='moeda'; cdraw(); }
 
 /* ================= 04 · MOEDA ================= */
@@ -648,19 +664,62 @@ function scJogadores(){
       <div class="cl-jog-actions">${btn('Sortear equipas','clSortear()',{cls:'cl-btn-wide'})}</div>
     </div>`, {w:820,bodyClass:'cl-body-gray',min:true});
 }
+/* clubes reais dos países europeus selecionados (união de todas as ligas escolhidas) */
+function intlSelectedClubs(){
+  const out=[]; const seen=new Set();
+  [...CL.countries].forEach(country=>{
+    const clubs=(typeof window!=='undefined'&&window.INTL_LEAGUES||{})[country];
+    if(clubs) clubs.forEach(c=>{ if(!seen.has(c.id)){ seen.add(c.id); out.push(c); } });
+  });
+  return out;
+}
+/* algum país europeu (com dado real) selecionado? */
+function hasIntlSelection(){
+  return [...CL.countries].some(n=>n!=='Brasil' && intlTeams(n)>0);
+}
+/* país europeu ÚNICO selecionado que tem sistema de divisões próprio (UNI_CONFIGS).
+   Só nesse caso ligamos o universo com pirâmide/promoção (ex.: Inglaterra PL/CH) ou
+   divisão única com classificação continental (Espanha/Itália/Alemanha/Portugal). */
+function intlSingleUniverseCountry(){
+  const sel=[...CL.countries];
+  if(sel.length!==1) return null;
+  const c=sel[0];
+  if(c==='Brasil') return null;
+  return (typeof UNI_CONFIGS!=='undefined' && UNI_CONFIGS[c] && intlTeams(c)>0) ? c : null;
+}
 function clSortear(){
   const names=CL.names.map(n=>(n||'').trim()).filter(Boolean);
   if(!names.length){ CL.names[0]='JOGADOR'; return cdraw(); }
   const startDivision=computeStartDivision();
+  const uniCountry=intlSingleUniverseCountry();
+  const intl=hasIntlSelection();
   (async ()=>{
-    if(startDivision!=='A'){
-      if(typeof NET!=='undefined' && NET.getDivisionClubs && NET.authStatus && NET.authStatus().loggedIn){
-        toastC('Carregando times da Série '+startDivision+'...');
-        try{ await loadRealDivisionClubs(startDivision); }catch(e){ console.warn('divisão real indisponível, usando fallback procedural:',e); }
-      }
-      DATA.clubs = clubsForDivision(startDivision);
+    if(uniCountry){
+      // universo de país europeu único: liga própria com divisões (ex.: Inglaterra PL/CH).
+      // O usuário sempre começa na divisão TOPO; as demais tiers rodam em paralelo.
+      setUniverse(uniCountry);
+      CL.intlUniverse = uniCountry;
+      const topDiv = DIV_ORDER[0];
+      DATA.clubs = clubsForDivision(topDiv).slice();
+    } else if(intl){
+      // múltiplos países (ou misto com Brasil): liga plana única, sem pirâmide/copas.
+      setUniverse('brasil');
+      const clubs=intlSelectedClubs().slice();
+      if(CL.countries.has('Brasil')) clubs.unshift(...(DATA.clubsSerieA||[]));
+      DATA.clubs = clubs;
+      CL.intlUniverse = 'flat';
     } else {
-      DATA.clubs = DATA.clubsSerieA || DATA.clubs;
+      setUniverse('brasil');
+      CL.intlUniverse = false;
+      if(startDivision!=='A'){
+        if(typeof NET!=='undefined' && NET.getDivisionClubs && NET.authStatus && NET.authStatus().loggedIn){
+          toastC('Carregando times da Série '+startDivision+'...');
+          try{ await loadRealDivisionClubs(startDivision); }catch(e){ console.warn('divisão real indisponível, usando fallback procedural:',e); }
+        }
+        DATA.clubs = clubsForDivision(startDivision);
+      } else {
+        DATA.clubs = DATA.clubsSerieA || DATA.clubs;
+      }
     }
     const pool=DATA.clubs.map(c=>c.id); const seed=(Math.random()*1e9)>>>0; const rnd=rngFrom(seed);
     // embaralha e distribui clubes distintos
@@ -688,7 +747,14 @@ function scSorteio(){
 }
 function clEntrar(){
   CL.clubId=CL.draw[0].clubId; CL.mgr=CL.draw[0].name;
-  newGame(CL.clubId, computeStartDivision(), CL.compToggle); S.xi=autoXI(CL.clubId);
+  // universo: país europeu único = liga própria (divisão topo, ex.: Premier); 'flat' = liga
+  // internacional plana; false = Brasil. Copas brasileiras só no universo Brasil.
+  const isUni = CL.intlUniverse && CL.intlUniverse!=='flat';
+  const isIntl = !!CL.intlUniverse;
+  const startDiv = isUni ? DIV_ORDER[0] : (isIntl ? 'A' : computeStartDivision());
+  const comps = isIntl ? {libertadores:false,copaBrasil:false,sulamericana:false} : CL.compToggle;
+  newGame(CL.clubId, startDiv, comps); S.xi=autoXI(CL.clubId);
+  S.intlUniverse = CL.intlUniverse; // false | 'flat' | país (ex.: 'Inglaterra')
   if(!S.stadium) S.stadium={capacity:STAND_START};
   CL.formation=null; CL.tacticChosen=false;   // precisa escolher tática no menu p/ liberar "Jogar"
   S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
@@ -771,6 +837,8 @@ function clLoadSave(name){
     S=g.S; CL.clubId=g.clubId; CL.mgr=g.mgr; CL.currency=g.currency||'Reais'; CL.ticket=g.ticket||8; CL.humans=g.humans||{};
     CL.save=name; CL.online=false; // jogo solo — nunca herda estado de sala online
     if(typeof NET!=='undefined'){ NET.isHost=false; NET.gameId=null; NET.onState=null; }
+    setUniverse(S.universe||'brasil'); // restaura a config de divisões do universo do save (Brasil/Inglaterra/...)
+    CL.intlUniverse = S.intlUniverse||false;
     syncDataClubsFromState(); // realinha DATA.clubs com a divisão real do save carregado
     CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||null; cdraw();
     // sorteio de copa pode ter ficado pendente de uma sessão anterior (fila em
@@ -782,7 +850,7 @@ function clLoadSave(name){
 }
 
 /* ================= 08-13 · TELA PRINCIPAL ================= */
-function divisionLabel(){ return ({A:'Série A',B:'Série B',C:'Série C',D:'Série D'})[S.division]||'Série A'; }
+function divisionLabel(){ return (typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[S.division]) || ({A:'Série A',B:'Série B',C:'Série C',D:'Série D'})[S.division] || 'Série A'; }
 function scMain(){
   const cl=clubOf(CL.clubId);
   const uf=userFixture(); const oppId=uf?(uf[0]===CL.clubId?uf[1]:uf[0]):null; const home=uf?uf[0]===CL.clubId:true;
@@ -810,7 +878,7 @@ function scMain(){
       <div class="cl-main-left" style="background:${th.bg}">
         <div class="cl-hdr">
           <div class="cl-mgr">${escC(CL.mgr||'TREINADOR')}</div>
-          <div class="cl-hdr-sub"><span class="cl-flag2">🇧🇷</span> Brasil <span class="cl-div">${divisionTrophyImg(S.division,16)||''} ${divisionLabel()}</span> ${windowBadge()} <span class="cl-share-mini cl-noshot" onclick="clShareTeam()" title="Compartilhar meu time">Compartilhar</span></div>
+          <div class="cl-hdr-sub"><span class="cl-flag2">${universeFlag()}</span> ${escC(universeCountryName())} <span class="cl-div">${divisionTrophyImg(S.division,16)||''} ${divisionLabel()}</span> ${windowBadge()} <span class="cl-share-mini cl-noshot" onclick="clShareTeam()" title="Compartilhar meu time">Compartilhar</span></div>
         </div>
         <div class="cl-roster-hd cl-acc-hd" onclick="clToggleRoster()">
           <span>Elenco</span><span class="cl-acc-arrow ${CL.rosterOpen===false?'closed':''}">▾</span>
@@ -847,7 +915,7 @@ function rosterHTML(){
       return `<div class="cl-rrow ${selc?'sel':''} ${marked?'swap-out':''} ${unavail?'unavail':''}" style="${selc?'':`color:${th.txt}`}" onclick="${onclickFn}">
         <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
-        <span class="cl-rf">${p.f}</span><span class="cl-rv">${grp(Math.round(p.mv*0.00006)*10)}</span></div>`;}).join('')+`</div>`;
+        <span class="cl-rf">${p.f}</span><span class="cl-rv">${grp(Math.round(curConv(p.mv)*0.00006)*10)}</span></div>`;}).join('')+`</div>`;
   });
   return html;
 }
@@ -924,7 +992,7 @@ function viewRosterHTML(clubId){
       return `<div class="cl-rrow ${selc?'sel':''} ${unavail?'unavail':''}" onclick="clViewSelPlayer('${escC(p.n)}')">
         <span class="cl-rmark"></span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
-        <span class="cl-rf">${p.f}</span><span class="cl-rv">${grp(Math.round(p.mv*0.00006)*10)}</span></div>`;}).join('')+`</div>`;
+        <span class="cl-rf">${p.f}</span><span class="cl-rv">${grp(Math.round(curConv(p.mv)*0.00006)*10)}</span></div>`;}).join('')+`</div>`;
   });
   return html || '<div class="cl-savempty">— sem elenco —</div>';
 }
@@ -956,7 +1024,7 @@ function panViewJogador(vid){
     ${statusBar}
     <div class="cl-jgd-row"><span>Posição</span><b>${posLetter(p.s)}</b></div>
     <div class="cl-jgd-row"><span>Força</span><b>${p.f}</b></div>
-    <div class="cl-jgd-row"><span>Valor de mercado</span><b>${grp(p.mv)}</b></div>
+    <div class="cl-jgd-row"><span>Valor de mercado</span><b>${curSym()} ${moneyDisp(p.mv)}</b></div>
     <div class="cl-jgd-row"><span>Comportamento</span><b>${playerBehaviorLabel(p)}</b></div>
     <div class="cl-jgd-row"><span>Gols nesta temporada</span><b>${(S.scorers&&S.scorers[p.n])||0}</b></div>
     <fieldset class="cl-hist"><legend>Historial</legend>
@@ -1047,8 +1115,8 @@ function renewPanel(p){
   <div style="color:#fff;font-size:13px;margin-bottom:20px;padding:12px;background:#2a3a2a;border-radius:4px">
     <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Duração do contrato:</span><b>${newYears} ano(s)</b></div>
     <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Custo total:</span><b>${grp(totalCost)}</b></div>
-    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Caixa atual:</span><b>${grp(currentBudget)}</b></div>
-    <div style="display:flex;justify-content:space-between;border-top:1px solid #3a4a3a;padding-top:8px;margin-top:8px"><span>Caixa após renovação:</span><b>${grp(budgetAfterRenew)}${budgetWarning}</b></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Caixa atual:</span><b>${curSym()} ${moneyDisp(currentBudget)}</b></div>
+    <div style="display:flex;justify-content:space-between;border-top:1px solid #3a4a3a;padding-top:8px;margin-top:8px"><span>Caixa após renovação:</span><b>${curSym()} ${moneyDisp(budgetAfterRenew)}${budgetWarning}</b></div>
   </div>
   <div class="cl-renew-btns">${btn('Propôr','clRenewPropose()',{icon:'🔄',cls:'cl-btn-ok'})}${btn('Cancelar','clCancelRight()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
 </div>`; }
@@ -1057,23 +1125,26 @@ function venderPanel(p){
   const mv = p.mv || 0;
   const diff = askingPrice - mv;
   const diffPct = mv > 0 ? Math.round((diff / mv) * 100) : 0;
-  const diffLabel = diff > 0 ? `+${grp(diff)} (+${diffPct}%)` : diff < 0 ? `${grp(diff)} (${diffPct}%)` : 'Preço igual';
+  const diffLabel = diff > 0 ? `+${moneyDisp(diff)} (+${diffPct}%)` : diff < 0 ? `${moneyDisp(diff)} (${diffPct}%)` : 'Preço igual';
   return `<div class="cl-vender">
   <div class="cl-vender-title">Vender</div>
   <div style="color:#fff;font-size:13px;margin-bottom:20px;padding:12px;background:#3a2a2a;border-radius:4px">
-    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Valor de mercado:</span><b>${grp(mv)}</b></div>
-    <div style="display:flex;justify-content:space-between"><span>Preço pedido:</span><b id="cl-sellprice-asked">${askingPrice > 0 ? grp(askingPrice) : '-'}</b></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Valor de mercado:</span><b>${moneyDisp(mv)}</b></div>
+    <div style="display:flex;justify-content:space-between"><span>Preço pedido:</span><b id="cl-sellprice-asked">${askingPrice > 0 ? moneyDisp(askingPrice) : '-'}</b></div>
   </div>
   <div class="cl-vender-lbl">Preço de venda pedido<br><span id="cl-sellprice-diff" style="font-size:12px;opacity:.8;color:#aaa">${diffLabel}</span></div>
   <div class="cl-money-field">
-    <span class="cl-money-cur">R$</span>
-    <input id="cl-sellprice" class="cl-money-in" inputmode="numeric" placeholder="0" value="${CL.sellPrice?grp(CL.sellPrice):''}" oninput="clSellPriceInput(this)">
+    <span class="cl-money-cur">${curSym()}</span>
+    <input id="cl-sellprice" class="cl-money-in" inputmode="numeric" placeholder="0" value="${CL.sellPrice?moneyDisp(CL.sellPrice):''}" oninput="clSellPriceInput(this)">
   </div>
   <div class="cl-vender-btns">${btn('Vender','clSellConfirm()',{icon:'💰',cls:'cl-btn-ok'})}${btn('Cancelar','clCancelRight()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
 </div>`; }
 
 /* ---- Jogador > Comprar jogador: primeiro escolhe a DIVISÃO, depois o clube dela ---- */
 const MKT_DIV_LEGEND={A:'Série A — 1ª Divisão',B:'Série B — 2ª Divisão',C:'Série C — 3ª Divisão',D:'Série D — 4ª Divisão'};
+/* legenda de divisão universo-consciente: usa o nome brasileiro quando é o universo Brasil,
+   senão o rótulo da divisão do universo ativo (Premier League, Championship, La Liga...). */
+function divLegend(d){ return MKT_DIV_LEGEND[d] || (typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[d]) || d; }
 function clMarketClubs(){ CL.menu=null;
   if(!inTransferWindow()){ toastC(windowClosedMsg()); return; }
   CL.market={step:'divisions'};
@@ -1082,7 +1153,7 @@ function clMarketClubs(){ CL.menu=null;
     const count=isOwn ? DATA.clubs.length : ((S.otherDivs&&S.otherDivs[d])?S.otherDivs[d].clubs.length:0);
     return `<div class="cl-mkt-club" onclick="clMarketDivision('${d}')">
       ${divisionTrophyImg(d,28)||'<span class="cl-divopt-ic">🏆</span>'}
-      <span class="cl-mkt-club-n">${escC(MKT_DIV_LEGEND[d])}${isOwn?' <b>(sua divisão)</b>':''}</span>
+      <span class="cl-mkt-club-n">${escC(divLegend(d))}${isOwn?' <b>(sua divisão)</b>':''}</span>
       <span class="cl-mkt-club-ov">${count} clubes</span>
     </div>`;
   }).join('');
@@ -1098,7 +1169,7 @@ function clMarketDivision(division){
   const rows=clubs.map(c=>`<div class="cl-mkt-club" onclick="clMarketSquad('${c.id}')" style="${clubEdge(c)}">
       <span class="cl-mkt-club-n">${escC(c.short)}</span><span class="cl-mkt-club-ov">força ${c.overall||Math.round(((c.OS||0)+(c.MS||0)+(c.DS||0))/3)}</span>
     </div>`).join('') || '<div class="cl-mkt-counter">Sem clubes disponíveis nessa divisão ainda.</div>';
-  overlayC(dlg('Comprar jogador — '+escC(MKT_DIV_LEGEND[division]), `<div class="cl-mkt-clublist">${rows}</div>
+  overlayC(dlg('Comprar jogador — '+escC(divLegend(division)), `<div class="cl-mkt-clublist">${rows}</div>
     <div class="cl-cal-ok">${btn('Voltar às divisões','clMarketClubs()',{icon:'↩',cls:'cl-btn-cancel'})}</div>`,
     {w:560,bodyClass:'cl-body-gray',min:true}));
 }
@@ -1109,7 +1180,7 @@ function clMarketSquad(clubId){
   const sq=squad(clubId).slice().sort((a,b)=>b.f-a.f);
   const rows=sq.map(p=>`<div class="cl-mkt-p" onclick="clMarketPlayer('${clubId}','${escC(p.n)}')">
       <span class="cl-mkt-p-pos">${posLetter(p.s)}</span><span class="cl-mkt-p-n">${escC(p.n)}${p.age<=20?'*':''}</span>
-      <span class="cl-mkt-p-f">${p.f}</span><span class="cl-mkt-p-v">${grp(Math.round(p.mv*0.001))} mil</span>
+      <span class="cl-mkt-p-f">${p.f}</span><span class="cl-mkt-p-v">${grp(Math.round(curConv(p.mv)*0.001))} mil</span>
     </div>`).join('');
   overlayC(dlg('Elenco — '+clubOf(clubId).short, `<div class="cl-mkt-squad">${rows}</div>
     <div class="cl-cal-ok">${btn('Voltar','clMarketDivision(\''+division+'\')',{icon:'↩',cls:'cl-btn-cancel'})}</div>`,
@@ -1127,23 +1198,23 @@ function renderMarketOffer(){
   const nego = M.negoIdx!=null ? S.negos[M.negoIdx] : null;
   let body;
   if(!nego || nego.stage==='fee' || nego.stage==='counterFee'){
-    const hint = nego && nego.stage==='counterFee' ? `<div class="cl-mkt-counter">O clube pediu um valor a partir de R$ ${grp(nego.clubCounter)}. Ofereça esse valor (ou mais) ou desista.</div>` : '';
+    const hint = nego && nego.stage==='counterFee' ? `<div class="cl-mkt-counter">O clube pediu um valor a partir de ${curSym()} ${moneyDisp(nego.clubCounter)}. Ofereça esse valor (ou mais) ou desista.</div>` : '';
     body = `<div class="cl-mkt-offer">
       <div class="cl-mkt-offer-hd">${escC(p.n)} <span>(${escC(clubOf(M.clubId).short)})</span></div>
       <div class="cl-mkt-offer-row"><span>Força</span><b>${p.f}</b></div>
-      <div class="cl-mkt-offer-row"><span>Valor de mercado</span><b>R$ ${grp(p.mv)}</b></div>
+      <div class="cl-mkt-offer-row"><span>Valor de mercado</span><b>${curSym()} ${moneyDisp(p.mv)}</b></div>
       ${hint}
       <div class="cl-mkt-offer-row"><span>Sua proposta (taxa)</span>
-        <span class="cl-money-field"><span class="cl-money-cur">R$</span>
-          <input class="cl-money-in" id="cl-mkt-fee" inputmode="numeric" placeholder="0" value="${M.offer?grp(M.offer):''}" oninput="CL.market.offer=parseInt(this.value.replace(/\\D/g,''))||0;this.value=CL.market.offer?grp(CL.market.offer):''"></span></div>
+        <span class="cl-money-field"><span class="cl-money-cur">${curSym()}</span>
+          <input class="cl-money-in" id="cl-mkt-fee" inputmode="numeric" placeholder="0" value="${M.offer?moneyDisp(M.offer):''}" oninput="var t=parseInt(this.value.replace(/\\D/g,''))||0;CL.market.offer=curParse(t);this.value=t?grp(t):''"></span></div>
       ${btn('Propor','clMarketProposeFee()',{cls:'cl-btn-mini'})}
     </div>`;
   } else if(nego.stage==='terms'){
     body = `<div class="cl-mkt-offer">
       <div class="cl-mkt-offer-hd">${escC(p.n)} — taxa acertada em ${fmt(nego.offerFee)}</div>
       <div class="cl-mkt-offer-row"><span>Salário semanal oferecido</span>
-        <span class="cl-money-field"><span class="cl-money-cur">R$</span>
-          <input class="cl-money-in" id="cl-mkt-sal" inputmode="numeric" placeholder="0" value="${nego.salary?grp(nego.salary):''}" oninput="S.negos[${M.negoIdx}].salary=parseInt(this.value.replace(/\\D/g,''))||0;this.value=S.negos[${M.negoIdx}].salary?grp(S.negos[${M.negoIdx}].salary):''"></span></div>
+        <span class="cl-money-field"><span class="cl-money-cur">${curSym()}</span>
+          <input class="cl-money-in" id="cl-mkt-sal" inputmode="numeric" placeholder="0" value="${nego.salary?moneyDisp(nego.salary):''}" oninput="var t=parseInt(this.value.replace(/\\D/g,''))||0;S.negos[${M.negoIdx}].salary=curParse(t);this.value=t?grp(t):''"></span></div>
       <div class="cl-mkt-offer-row"><span>Papel no elenco</span>
         <select class="cl-mkt-sel" onchange="S.negos[${M.negoIdx}].role=this.value">
           ${['Jogador Chave','Titular Regular','Rotação','Jovem da Base'].map(r=>`<option ${nego.role===r?'selected':''}>${r}</option>`).join('')}
@@ -1193,7 +1264,7 @@ function clAuctionScreen(){ CL.menu=null;
     return `<div class="cl-auc-row">
       <span class="cl-auc-club" style="${clubStripe(c)}">${clubLink(x.sellerId,c.short)}</span>
       <span class="cl-auc-p-pos">${posLetter(p.s)}</span><span class="cl-auc-p-n">${escC(p.n)}</span>
-      <span class="cl-auc-p-f">${p.f}</span><span class="cl-auc-price">${grp(x.price)}</span>
+      <span class="cl-auc-p-f">${p.f}</span><span class="cl-auc-price">${moneyDisp(x.price)}</span>
       ${btn('Comprar',`clAuctionConfirm('${x.sellerId}','${escC(p.n)}')`,{cls:'cl-btn-mini'})}
     </div>`; }).join('') || '<div class="cl-mkt-counter">Sem jogadores em leilão nesta rodada — volta em breve.</div>';
   overlayC(dlg('Leilão de jogadores', `<div class="cl-auc">${rows}</div>
@@ -1207,7 +1278,7 @@ function clAuctionConfirm(sellerId,player){
   const p=findP(player,sellerId); if(!pick||!p){ toastC('Esse jogador não está mais disponível no leilão.'); return; }
   const c=clubOf(sellerId);
   overlayC(dlg('Confirmar compra', `<div class="cl-jobmodal">
-    <div class="cl-jobmodal-msg">Arrematar <b>${escC(p.n)}</b> (${posLetter(p.s)}, força ${p.f}) do <b style="${clubStripe(c)};padding:2px 6px;border-radius:3px">${escC(c.short)}</b> por <b>${grp(pick.price)}</b>?<br><br>A compra em leilão é imediata e não pode ser desfeita.</div>
+    <div class="cl-jobmodal-msg">Arrematar <b>${escC(p.n)}</b> (${posLetter(p.s)}, força ${p.f}) do <b style="${clubStripe(c)};padding:2px 6px;border-radius:3px">${escC(c.short)}</b> por <b>${curSym()} ${moneyDisp(pick.price)}</b>?<br><br>A compra em leilão é imediata e não pode ser desfeita.</div>
     <div class="cl-jog-actions">${btn('Confirmar','clAuctionBuy(\''+sellerId+'\',\''+escC(p.n)+'\')',{icon:'✔',cls:'cl-btn-ok'})}${btn('Cancelar','clAuctionScreen()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
   </div>`, {w:480,bodyClass:'cl-body-gray',min:true}));
 }
@@ -1249,7 +1320,7 @@ function panFinancas(){
     <div class="cl-fin-foot">
       <div class="cl-fin-row big"><span>Salários (por semana)</span><b>${grp(totalSalaryPerWeek)}</b></div>
       <div class="cl-fin-row big"><span>Salários (temporada)</span><b>${grp(totalSalaryPerSeason)}</b></div>
-      <div class="cl-fin-row big2"><span>Dinheiro em caixa</span><b>${grp(S.budget)}</b></div>
+      <div class="cl-fin-row big2"><span>Dinheiro em caixa</span><b>${curSym()} ${moneyDisp(S.budget)}</b></div>
       <div class="cl-fin-row"><span>Preço dos bilhetes</span><b>${CL.ticket} reais</b></div>
       ${recentLogs ? `<div style="margin-top:20px;border-top:1px solid #2a4a2a;padding-top:12px"><div style="font-size:13px;color:#aaa;margin-bottom:8px">Transações recentes:</div>${recentLogs}</div>` : ''}
       ${(S.financeHistory&&S.financeHistory[CL.clubId]&&S.financeHistory[CL.clubId].length) ? `<div style="margin-top:20px;border-top:1px solid #2a4a2a;padding-top:12px">
@@ -1274,8 +1345,8 @@ function clFinanceHistory(clubId){
     const income=f.income+f.playerSales, expense=f.salaries+f.bonuses+f.playerPurchases+(f.stadium||0);
     return `<div class="cl-seasonhist-row" style="grid-template-columns:48px 1fr 1fr 1fr 1fr">
       <span class="cl-seasonhist-season">${f.season}</span>
-      <span>${grp(income)}</span><span>${grp(expense)}</span>
-      <span style="color:${f.net>=0?'#1e9e3f':'#c0392b'};font-weight:800">${grp(f.net)}</span><span></span></div>`;
+      <span>${moneyDisp(income)}</span><span>${moneyDisp(expense)}</span>
+      <span style="color:${f.net>=0?'#1e9e3f':'#c0392b'};font-weight:800">${moneyDisp(f.net)}</span><span></span></div>`;
   }).join('');
   const body = entries.length ? head+rows : '<div class="cl-cup-hint">Nenhuma temporada encerrada ainda pra este clube.</div>';
   overlayC(dlg('Histórico financeiro — '+(c?c.short:'clube'), `<div class="cl-seasonhist-wrap">${body}</div>
@@ -1287,13 +1358,13 @@ function panFinancasLog(){
     const log=f.log||[];
     return `<div style="margin-bottom:16px;padding:12px;background:#1a3a1a;border-radius:4px">
       <div style="color:#aaa;font-size:12px;margin-bottom:8px">Rodada ${f.round}</div>
-      <div class="cl-fin-row"><span>Receita</span><b style="color:#4a9">+${grp(f.income||0)}</b></div>
+      <div class="cl-fin-row"><span>Receita</span><b style="color:#4a9">+${moneyDisp(f.income||0)}</b></div>
       ${f.playerSales?`<div class="cl-fin-row"><span>Venda de jogador</span><b style="color:#4a9">+${grp(f.playerSales)}</b></div>`:''}
-      <div class="cl-fin-row"><span>Salários</span><b style="color:#a44">-${grp(f.salaries||0)}</b></div>
-      <div class="cl-fin-row"><span>Bônus</span><b style="color:#a44">-${grp(f.bonuses||0)}</b></div>
+      <div class="cl-fin-row"><span>Salários</span><b style="color:#a44">-${moneyDisp(f.salaries||0)}</b></div>
+      <div class="cl-fin-row"><span>Bônus</span><b style="color:#a44">-${moneyDisp(f.bonuses||0)}</b></div>
       ${f.playerPurchases?`<div class="cl-fin-row"><span>Compra de jogador</span><b style="color:#a44">-${grp(f.playerPurchases)}</b></div>`:''}
       ${f.stadium?`<div class="cl-fin-row"><span>Bancada construída</span><b style="color:#a44">-${grp(f.stadium)}</b></div>`:''}
-      <div class="cl-fin-row" style="border-top:1px solid #2a4a2a;padding-top:8px;margin-top:8px"><span>Saldo</span><b style="color:${f.net>=0?'#4a9':'#a44'}">${f.net>=0?'+':''}${grp(f.net||0)}</b></div>
+      <div class="cl-fin-row" style="border-top:1px solid #2a4a2a;padding-top:8px;margin-top:8px"><span>Saldo</span><b style="color:${f.net>=0?'#4a9':'#a44'}">${f.net>=0?'+':''}${moneyDisp(f.net||0)}</b></div>
       ${log.length ? `<div style="font-size:12px;color:#aaa;margin-top:8px">${log.map(l=>'• '+escC(l)).join('<br>')}</div>` : ''}
     </div>`;
   }).join('');
@@ -2456,7 +2527,7 @@ function userCupCalendarRows(){
     const tie=(cb.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
     if(tie) out.push({key:'copaBrasil', n:nextCupJornada('copaBrasil',0), opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
   }
-  ['libertadores','sulamericana'].forEach(key=>{
+  groupCupKeys().forEach(key=>{
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket && !c.group.finished){
       const mg=c.group;
@@ -2480,7 +2551,7 @@ function userCupCalendarRows(){
 function userCupDrawRows(){
   if(!S.cups || S.season!==2026) return [];
   const out=[];
-  ['libertadores','sulamericana'].forEach(key=>{
+  groupCupKeys().forEach(key=>{
     const c=S.cups[key]; if(!c || !c.group || c.bracket) return; // só antes do sorteio acontecer
     const d=COMP_R16_DRAW_2026[key]; if(!d) return;
     out.push({key, n:Math.max(S.round+1, jornadaForRealDate(d)), date:d});
@@ -2818,18 +2889,18 @@ function clClassif(){ CL.menu=null;
 function clCompList(){ CL.menu=null;
   const cid=CL.clubId;
   const inSerieA = S.division==='A';
-  const cups=[
-    {key:'copaBrasil', def:COMP_DEFS.copaBrasil, c:S.cups&&S.cups.copaBrasil},
-    {key:'libertadores', def:COMP_DEFS.libertadores, c:S.cups&&S.cups.libertadores},
-    {key:'sulamericana', def:COMP_DEFS.sulamericana, c:S.cups&&S.cups.sulamericana}
-  ];
-  const trophyFor={copaBrasil:'copaBrasil', libertadores:'libertadores', sulamericana:'sulamericana'};
+  // competições do universo ativo (Brasil: Copa do Brasil/Libertadores/Sul-Americana;
+  // internacional: Champions League/Europa League)
+  const cups=allCupKeys().map(k=>({key:k, def:COMP_DEFS[k], c:S.cups&&S.cups[k]}));
+  const trophyFor={copaBrasil:'copaBrasil', libertadores:'libertadores', sulamericana:'sulamericana', championsLeague:'championsLeague', europaLeague:'europaLeague'};
   const rows=[`<div class="cl-complist-row" onclick="clClassif()">
       <span class="cl-complist-ic">${divisionTrophyImg(S.division,24)||'🏆'}</span><span class="cl-complist-n">${escC(divisionLabel())}</span>
       <span class="cl-complist-st ok">Disputando — ${tablePos(cid)}º lugar</span></div>`];
   cups.forEach(x=>{
     const disabled = S.compToggle && S.compToggle[x.key]===false;
-    const restrictToSerieA = x.key!=='copaBrasil'; // só Libertadores/Sul-Americana são exclusivas da Série A
+    // no Brasil, Libertadores/Sul-Americana são exclusivas da Série A; no universo intl não há
+    // essa restrição (a vaga na Champions/Europa vem de estar classificado, não da divisão).
+    const restrictToSerieA = !isIntlUniverse() && x.key!=='copaBrasil';
     const qualified = (!restrictToSerieA || inSerieA) && S.qualification && S.qualification[x.key] && S.qualification[x.key].includes(cid);
     const c=x.c;
     let statusTxt, statusCls, clickable=false;
@@ -3060,15 +3131,16 @@ function windowBadge(){ const st=transferWindowStatus();
    <input>, derrubando o foco a cada tecla — tinha que clicar de novo pra continuar digitando).
    Só mexe no texto/valor dos elementos afetados, mantendo o cursor no lugar. */
 function clSellPriceInput(input){
-  CL.sellPrice=input.value.replace(/[^0-9]/g,'');
-  input.value=CL.sellPrice?grp(CL.sellPrice):'';
+  const typed=parseInt(input.value.replace(/[^0-9]/g,''))||0;   // valor na moeda exibida
+  CL.sellPrice=String(curParse(typed));                          // guarda sempre em R$ interno
+  input.value=typed?grp(typed):'';                               // mantém o que ele digitou (moeda)
   const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer); if(!p) return;
-  const askingPrice=CL.sellPrice?parseInt(CL.sellPrice):0;
+  const askingPrice=CL.sellPrice?parseInt(CL.sellPrice):0;       // R$
   const mv=p.mv||0;
   const diff=askingPrice-mv;
   const diffPct=mv>0?Math.round((diff/mv)*100):0;
-  const diffLabel=diff>0?`+${grp(diff)} (+${diffPct}%)`:diff<0?`${grp(diff)} (${diffPct}%)`:'Preço igual';
-  const askedEl=$c('#cl-sellprice-asked'); if(askedEl) askedEl.textContent=askingPrice>0?grp(askingPrice):'-';
+  const diffLabel=diff>0?`+${moneyDisp(diff)} (+${diffPct}%)`:diff<0?`${moneyDisp(diff)} (${diffPct}%)`:'Preço igual';
+  const askedEl=$c('#cl-sellprice-asked'); if(askedEl) askedEl.textContent=askingPrice>0?moneyDisp(askingPrice):'-';
   const diffEl=$c('#cl-sellprice-diff'); if(diffEl) diffEl.textContent=diffLabel;
 }
 function clSell(){ CL.menu=null;
@@ -3099,7 +3171,7 @@ function auctionDialog(p,buyer,feeK){
         <div class="cl-lei-row"><span>Jogador</span><b>${escC(p.n)}</b></div>
         <div class="cl-lei-row"><span>Posição</span><b>${({GK:'Goleiro',DEF:'Zagueiro',MID:'Meia',ATT:'Atacante'})[p.s]||'Meia'}</b></div>
         <div class="cl-lei-row"><span>Força</span><b class="cl-lei-big">${p.f}</b></div>
-        <div class="cl-lei-row" style="margin-top:14px"><span>Salário pretendido</span><b>${grp(Math.round(p.mv*0.0006))} reais</b></div>
+        <div class="cl-lei-row" style="margin-top:14px"><span>Salário pretendido</span><b>${curSym()} ${moneyDisp(Math.round(p.mv*0.0006))}</b></div>
         <div class="cl-lei-row"><span>Preço base</span><b>zero</b></div>
       </div>
       <div class="cl-lei-r">
@@ -3184,7 +3256,7 @@ function clUltimosVencedores(){ CL.menu=null;
   const divLegend={A:'Série A',B:'Série B',C:'Série C',D:'Série D'};
   const blocks=hist.length?hist.map(h=>{
     const rows=[winnerRow(divLegend[h.division||'A'], 'serie'+(h.division||'A'), h.champ)]
-      .concat(['copaBrasil','libertadores','sulamericana'].map(k=>winnerRow(COMP_DEFS[k].short, k, h.cups&&h.cups[k])))
+      .concat(allCupKeys().map(k=>winnerRow(COMP_DEFS[k].short, k, h.cups&&h.cups[k])))
       .filter(Boolean).join('');
     return `<fieldset class="cl-cup-round"><legend>${h.season}</legend>${rows}</fieldset>`;
   }).join(''):'<div class="cl-cup-hint">Ainda não há temporadas concluídas neste save.</div>';

@@ -14,6 +14,8 @@
 <script src="src/data/match-config.js"></script>
 <script src="src/data/trophies.js"></script>
 <script src="src/data/game-data.js"></script>
+<script src="src/data/market-engine.js"></script>
+<script src="src/data/leagues-intl.js"></script>
 <script>
 /* ================= ELIFOOT MODERNO — Brasileirão 2026 ================= */
 /* Dados reais via Investbola/Transfermarkt. Motor: random walk 1D.        */
@@ -22,7 +24,13 @@ const DATA = window.GAME_DATA;
 DATA.clubsSerieA = DATA.clubs.slice(); // guarda os 20 clubes reais da Série A antes de qualquer troca de divisão
 const $ = (s,r=document)=>r.querySelector(s);
 const el = (t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
-const fmt = n => 'R$ '+(n>=1e6?(n/1e6).toFixed(n>=1e7?0:1)+'M':(n/1e3).toFixed(0)+'k');
+/* moeda de exibição escolhida pelo usuário (tela 'moeda'); o motor guarda tudo em R$
+   e converte só na apresentação. curInfo/curSym/curConv centralizam a conversão. */
+function curInfo(){ return window.MARKET.currencyInfo((typeof CL!=='undefined'&&CL.currency)||'Reais'); }
+function curSym(){ return curInfo().sym; }
+function curConv(n){ return (n||0)*curInfo().rate; }            // R$ interno -> moeda exibida
+function curParse(n){ return Math.round((n||0)/curInfo().rate); } // valor digitado -> R$ interno
+const fmt = n => { const v=curConv(n); return curSym()+' '+(v>=1e6?(v/1e6).toFixed(v>=1e7?0:1)+'M':(v/1e3).toFixed(0)+'k'); };
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const rnd=(a,b)=>a+Math.random()*(b-a);
 function gauss(mu,sd){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return mu+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
@@ -284,6 +292,7 @@ function newGame(clubId, division, compToggle){
     finished:false,
   };
   S.xi = autoXI(clubId);
+  S.universe = (typeof ACTIVE_UNI!=='undefined') ? ACTIVE_UNI : 'brasil'; // brasil | Inglaterra | Espanha...
   registerClubs(division, DATA.clubs); // fixa a composição inicial da divisão do usuário
   refreshAuctionPool();
   buildOtherDivisions();
@@ -302,6 +311,7 @@ function clubOf(id){
   if(c) return c;
   if(S && S.otherDivs){ for(const d in S.otherDivs){ c=S.otherDivs[d].clubs.find(x=>x.id===id); if(c) return c; } }
   if(S && S.intlClubs && S.intlClubs[id]) return S.intlClubs[id];
+  if(S && S.clubPool && S.clubPool[id]) return S.clubPool[id]; // adversários de copa (Champions/Europa) de outras ligas
   return c;
 }
 function squad(id){return S.squads[id];}

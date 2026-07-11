@@ -163,7 +163,7 @@ function clubRespond(n){ // Dia 1
   // com o pedido original e gerava contrapropostas infinitas — oferta "igual" nunca era aceita)
   if(n.clubCounter && n.offerFee>=n.clubCounter){ n.feeAgreed=true; n.stage='terms'; return {ok:true,msg:'Clube aceitou a taxa! Negocie os termos pessoais (Dia 2).'}; }
   if(n.offerFee>=ask){ n.feeAgreed=true; n.stage='terms'; return {ok:true,msg:'Clube aceitou a taxa! Negocie os termos pessoais (Dia 2).'}; }
-  if(n.offerFee>=ask*0.82){ n.clubCounter=Math.round((ask+n.offerFee)/2); n.stage='counterFee'; return {ok:false,counter:n.clubCounter,msg:`Clube pediu R$ ${grp(n.clubCounter)} pela taxa.`}; }
+  if(n.offerFee>=ask*0.82){ n.clubCounter=Math.round((ask+n.offerFee)/2); n.stage='counterFee'; return {ok:false,counter:n.clubCounter,msg:`Clube pediu ${fmt(n.clubCounter)} pela taxa.`}; }
   n.status='recusada'; n.stage='done'; return {ok:false,msg:'Clube recusou de imediato.'};
 }
 function agentInterest(n){ // Dia 2 satisfaction %
@@ -216,6 +216,9 @@ function finalizeTransfer(negoIdx){
   p.contract={ salary:n.salary, role:n.role, gotMatchesBonus:false, benchStreak:0,
     releaseClause: n.clauses.europa? n.clauses.europaValue : null };
   p.moral=75; // chega animado
+  // gatilho de vitrine (spec §4): ao mudar de liga, o passe é recalculado pelo MVL do
+  // novo clube (ex.: vindo da Série B pra Série A, valoriza) — sem mexer em atributo.
+  MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division));
   S.squads[S.clubId]=S.squads[S.clubId]||[]; S.squads[S.clubId].push(p);
   n.status='fechada'; n.stage='done';
   S.roundNews=S.roundNews||[]; S.roundNews.push(`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`);
@@ -285,6 +288,7 @@ function buyFromAuction(sellerId, playerName){
   S.squads[sellerId]=S.squads[sellerId].filter(x=>x.n!==p.n);
   p.contract={ salary:Math.round((p.mv||1e6)*SAL_RATE), role:'Rotação', gotMatchesBonus:false, benchStreak:0, releaseClause:null };
   p.moral=75;
+  MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division)); // gatilho de vitrine (spec §4)
   S.squads[S.clubId].push(p);
   S.auctionPool.picks=S.auctionPool.picks.filter(x=>x!==pick);
   S.roundNews=S.roundNews||[]; S.roundNews.push(`🔨 ${p.n} arrematado no leilão por ${fmt(pick.price)}.`);
@@ -306,7 +310,9 @@ const COMP_DEFS={
   serieA:{id:'serieA',name:'Brasileirão Série A',short:'Série A',type:'liga'},
   copaBrasil:{id:'copaBrasil',name:'Copa do Brasil',short:'Copa do Brasil',type:'mata-mata'},
   libertadores:{id:'libertadores',name:'Copa Libertadores',short:'Libertadores',type:'mata-mata'},
-  sulamericana:{id:'sulamericana',name:'Copa Sul-Americana',short:'Sul-Americana',type:'mata-mata'}
+  sulamericana:{id:'sulamericana',name:'Copa Sul-Americana',short:'Sul-Americana',type:'mata-mata'},
+  championsLeague:{id:'championsLeague',name:'UEFA Champions League',short:'Champions League',type:'mata-mata'},
+  europaLeague:{id:'europaLeague',name:'UEFA Europa League',short:'Europa League',type:'mata-mata'}
 };
 /* calcula quem se classifica pras copas continentais + Copa do Brasil, a partir
    da tabela final (ordenada, posição 0 = campeão) da Série A da temporada ANTERIOR */
@@ -364,8 +370,10 @@ function makeIntlClub(name, countryCode){
   const posPlan=[['GK',2],['DEF',6],['MID',6],['ATT',4]];
   posPlan.forEach(([pos,cnt])=>{ for(let k=0;k<cnt;k++){
     const f=Math.max(45,Math.min(92,Math.round(overall-8+R.random()*16)));
-    squad.push({n:pickIntlPlayerName(R), p:pos, s:pos, f, age:Math.round(19+R.random()*15),
-      mv:f*f*3500, ft:R.random()<0.75?'R':'L', num:String(Math.floor(R.random()*40)+1), nat:country.name, ag:'—', moral:70, energy:100}); } });
+    const age=Math.round(19+R.random()*15);
+    // liga = código do país CONMEBOL (fora do mapa de ligas modeladas → MVL de fallback)
+    squad.push({n:pickIntlPlayerName(R), p:pos, s:pos, f, age, lg:countryCode,
+      mv:MARKET.marketValue(f,age,countryCode), ft:R.random()<0.75?'R':'L', num:String(Math.floor(R.random()*40)+1), nat:country.name, ag:'—', moral:70, energy:100}); } });
   return { id, tk:id, name, short:name.length>14?name.slice(0,14):name,
     color:'#'+Math.floor(R.random()*16777215).toString(16).padStart(6,'0'), color2:'#FFFFFF', crest:null,
     OS:overall,MS:overall,DS:overall,overall, squad, country };
@@ -490,7 +498,12 @@ function applyResult1off(h,a,hg,ag){ /* copas não têm tabela de pontos corrido
    real. Na temporada 2026 a Libertadores usa os 8 grupos reais (A-H, com adversários
    estrangeiros — ver LIBERTADORES_GROUPS_2026); Sul-Americana e temporadas seguintes (sem
    um sorteio real conhecido) usam um grupo único com todos os classificados brasileiros. */
-const COMP_HAS_GROUP={copaBrasil:false, libertadores:true, sulamericana:true};
+const COMP_HAS_GROUP={copaBrasil:false, libertadores:true, sulamericana:true, championsLeague:true, europaLeague:true};
+/* copas do universo ativo. Brasil: Copa do Brasil + Libertadores + Sul-Americana.
+   Internacional: Champions League + Europa League (só as continentais de grupos+mata-mata).
+   groupCupKeys = as que têm fase de grupos; allCupKeys = todas (inclui mata-mata puro). */
+function groupCupKeys(){ return isIntlUniverse() ? ['championsLeague','europaLeague'] : ['libertadores','sulamericana']; }
+function allCupKeys(){ return isIntlUniverse() ? ['championsLeague','europaLeague'] : ['copaBrasil','libertadores','sulamericana']; }
 function makeGroupStage(groupsMap, advancePerGroup){
   const groups={};
   Object.entries(groupsMap).forEach(([label,ids])=>{
@@ -607,7 +620,7 @@ function jornadaForRealDate(d){
    7 dias no calendário do jogo, bem acima do mínimo de 2 dias) — antes as três avançavam
    sempre na MESMA rodada%3===0, o que fazia Copa do Brasil e Libertadores parecerem jogar
    no mesmo dia no Calendário, o que clubes de verdade nunca fazem. */
-const CUP_TICK_OFFSET={copaBrasil:0, libertadores:1, sulamericana:2};
+const CUP_TICK_OFFSET={copaBrasil:0, libertadores:1, sulamericana:2, championsLeague:1, europaLeague:2};
 function cupTickMatchesRound(key, round){ return round%3===CUP_TICK_OFFSET[key]; }
 /* a cada 3 rodadas de liga, avança a rodada pendente de cada copa ativa (uma competição
    por rodada, ver CUP_TICK_OFFSET) — roda inteiramente em segundo plano (quick-sim), sem
@@ -618,7 +631,7 @@ function advancePendingCups(){
     const cb=S.cups.copaBrasil;
     if(cb && !cupIsFinished(cb) && cb.ties.length) advanceCupBracket(cb, 'copaBrasil-r'+cb.round);
   }
-  ['libertadores','sulamericana'].forEach(key=>{
+  groupCupKeys().forEach(key=>{
     if(!cupTickMatchesRound(key,S.round)) return;
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket){
@@ -658,7 +671,69 @@ function splitIntoGroups(teamIds, seedNum){
   }
   return groups;
 }
+/* ================= COPAS CONTINENTAIS EUROPEIAS (Champions League + Europa League) =================
+   Espelham Libertadores/Sul-Americana (fase de grupos: 8 grupos de 4, top 2 avança; depois
+   mata-mata). Diferença: os adversários são os melhores clubes REAIS das 5 ligas europeias
+   raspadas (INTL_LEAGUES), mesmo que o usuário tenha carregado só um país — igual à Champions
+   de verdade, que reúne clubes de vários países. */
+/* clubes da 1ª divisão das 5 ligas europeias (elegíveis pras copas continentais) */
+function intlTopDivisionClubs(){
+  const TOP=['ENG-1','ESP-1','ITA-1','GER-1','POR-1'];
+  const src=(typeof window!=='undefined'&&window.INTL_LEAGUES)||{};
+  const out=[];
+  Object.keys(src).forEach(country=>src[country].forEach(c=>{ if(TOP.indexOf(c.lg)>=0) out.push(c); }));
+  return out;
+}
+/* registra e materializa o elenco dos clubes de copa que não estão na liga do usuário
+   (ex.: Real Madrid/Bayern quando o usuário joga a Premier) — sem isso simulateMatch não roda. */
+function ensureCupClubsMaterialized(ids){
+  S.clubPool=S.clubPool||{}; S.squads=S.squads||{};
+  const byId={}; intlTopDivisionClubs().forEach(c=>byId[c.id]=c);
+  ids.forEach(id=>{
+    if(!S.clubPool[id] && byId[id]) S.clubPool[id]=byId[id];
+    if(!S.squads[id]){ const c=S.clubPool[id]||byId[id]; if(c) S.squads[id]=c.squad.map(p=>attachAttrs(initStats({...p}))); }
+  });
+}
+/* qualificação continental: 32 pra Champions + 32 pra Europa (melhores clubes reais das 5
+   ligas por overall), garantindo a vaga do clube do usuário pela classificação doméstica
+   (1º-4º -> Champions; 5º-6º -> Europa). Na 1ª temporada (sem tabela anterior) entra por overall. */
+function intlContinentalQualification(userFinish){
+  // vagas por liga (como a UEFA na vida real), não um ranking global por overall — senão a
+  // Premier (mais rica) dominaria as duas copas. 7+7+6+6+6 = 32 pra cada competição.
+  const CL_SLOTS={'ENG-1':7,'ESP-1':7,'ITA-1':6,'GER-1':6,'POR-1':6};
+  const byLg={};
+  intlTopDivisionClubs().forEach(c=>{ (byLg[c.lg]=byLg[c.lg]||[]).push(c); });
+  Object.keys(byLg).forEach(lg=>byLg[lg].sort((a,b)=>(b.overall||0)-(a.overall||0)));
+  let cl=[], el=[];
+  Object.keys(CL_SLOTS).forEach(lg=>{
+    const clubs=byLg[lg]||[]; const n=CL_SLOTS[lg];
+    cl.push(...clubs.slice(0, n).map(c=>c.id));       // top N -> Champions
+    el.push(...clubs.slice(n, n+n).map(c=>c.id));     // próximos N -> Europa
+  });
+  const uid=S.clubId;
+  if(uid){
+    // garante a vaga do usuário conforme classificação doméstica (1º-4º Champions; 5º-6º Europa);
+    // na 1ª temporada (userFinish 0) mantém a vaga já obtida por overall, se houver.
+    const already = cl.indexOf(uid)>=0 ? 'cl' : (el.indexOf(uid)>=0 ? 'el' : null);
+    cl=cl.filter(id=>id!==uid); el=el.filter(id=>id!==uid);
+    if(userFinish>=1 && userFinish<=4){ cl.unshift(uid); }
+    else if(userFinish>=5 && userFinish<=6){ el.unshift(uid); }
+    else if(already==='cl'){ cl.unshift(uid); }
+    else if(already==='el'){ el.unshift(uid); }
+  }
+  return { championsLeague:cl.slice(0,32), europaLeague:el.slice(0,32) };
+}
+/* monta Champions + Europa (fase de grupos). Chamado por initSeasonCups no universo intl. */
+function initIntlCups(){
+  const qual=intlContinentalQualification(S._intlUserFinish||0);
+  ensureCupClubsMaterialized(qual.championsLeague.concat(qual.europaLeague));
+  const clGroups=makeGroupStage(splitIntoGroups(qual.championsLeague, hashSeed(S.seed,'clgroups',S.season)), 2);
+  const elGroups=makeGroupStage(splitIntoGroups(qual.europaLeague, hashSeed(S.seed,'elgroups',S.season)), 2);
+  S.qualification={...qual};
+  S.cups={ championsLeague:{group:clGroups, bracket:null}, europaLeague:{group:elGroups, bracket:null} };
+}
 function initSeasonCups(qual, compToggle){
+  if(isIntlUniverse()){ initIntlCups(); return; } // universo europeu: Champions + Europa
   compToggle = compToggle || (S.compToggle) || {libertadores:true, copaBrasil:true, sulamericana:true};
   const cbQual=copaBrasilQualification(); // sempre as 4 divisões, independente da divisão do usuário
   let libGroup=null;
@@ -702,7 +777,7 @@ function pendingUserCupMatches(){
     const tie=(cb.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
     if(tie) out.push({key:'copaBrasil', stage:'bracket', bracket:cb, tie, h:tie.h, a:tie.a});
   }
-  ['libertadores','sulamericana'].forEach(key=>{
+  groupCupKeys().forEach(key=>{
     if(!cupTickMatchesRound(key,S.round+1)) return;
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket && !c.group.finished){
@@ -742,7 +817,7 @@ function cupSpectateCandidates(){
   if(cupTickMatchesRound('copaBrasil',S.round+1) && cb && !cupIsFinished(cb) && cb.ties.length && !cb.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId))){
     out.push({key:'copaBrasil', stage:'bracket'});
   }
-  ['libertadores','sulamericana'].forEach(key=>{
+  groupCupKeys().forEach(key=>{
     if(!cupTickMatchesRound(key,S.round+1)) return;
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket && !c.group.finished){
@@ -762,10 +837,42 @@ function cupSpectateCandidates(){
    Só simulamos de verdade a divisão do usuário (as outras 3 não rodam em paralelo —
    custo computacional proibitivo pra um app 100% client-side). Promoção/rebaixamento
    troca o CONJUNTO de clubes (DATA.clubs) mantendo o elenco do usuário intacto.       */
-const DIVISION_SIZE={A:20,B:20,C:20,D:20}; // tamanho jogável (Série D real tem dezenas de clubes; recortamos 20)
-const DIVISION_PROMO={A:0,B:4,C:4,D:4};    // quantos sobem por temporada
-const DIVISION_RELEG={A:4,B:4,C:4,D:0};    // quantos descem por temporada
-const DIV_ORDER=['A','B','C','D'];
+/* ====================== UNIVERSOS (Brasil + ligas internacionais) ======================
+   O sistema de divisões é genérico (mesma maquinaria de swap/promoção/rebaixamento). Cada
+   "universo" define suas divisões: ordem (topo->base), tamanho, quantos sobem/descem e o
+   código de liga (lg) que liga a divisão aos clubes reais em window.INTL_LEAGUES.
+   - brasil: pirâmide A/B/C/D (dado real da Série A + procedural nas demais).
+   - Inglaterra: Premier(PL) ↔ Championship(CH), com acesso/rebaixamento real (3 e 3).
+   - demais países europeus: divisão única (sem pirâmide) — classificam pra copas continentais. */
+const UNI_CONFIGS={
+  brasil:    { order:['A','B','C','D'], size:{A:20,B:20,C:20,D:20}, promo:{A:0,B:4,C:4,D:4}, releg:{A:4,B:4,C:4,D:0},
+               label:{A:'Série A',B:'Série B',C:'Série C',D:'Série D'} },
+  Inglaterra:{ order:['PL','CH'], size:{PL:20,CH:24}, promo:{PL:0,CH:3}, releg:{PL:3,CH:0},
+               label:{PL:'Premier League',CH:'Championship'}, lg:{PL:'ENG-1',CH:'ENG-2'}, country:'Inglaterra' },
+  Espanha:   { order:['ES'], size:{ES:20}, promo:{ES:0}, releg:{ES:0}, label:{ES:'La Liga'},        lg:{ES:'ESP-1'}, country:'Espanha' },
+  'Itália':  { order:['IT'], size:{IT:20}, promo:{IT:0}, releg:{IT:0}, label:{IT:'Serie A'},         lg:{IT:'ITA-1'}, country:'Itália' },
+  Alemanha:  { order:['DE'], size:{DE:18}, promo:{DE:0}, releg:{DE:0}, label:{DE:'Bundesliga'},      lg:{DE:'GER-1'}, country:'Alemanha' },
+  Portugal:  { order:['PT'], size:{PT:18}, promo:{PT:0}, releg:{PT:0}, label:{PT:'Primeira Liga'},   lg:{PT:'POR-1'}, country:'Portugal' },
+};
+/* config do universo ativo — reatribuída por setUniverse(); os bindings abaixo são 'let'
+   justamente pra que todo o código que já lê DIV_ORDER/DIVISION_* passe a enxergar o
+   universo corrente sem precisar mudar as ~40 chamadas existentes. */
+let ACTIVE_UNI='brasil';
+let DIVISION_SIZE={A:20,B:20,C:20,D:20};
+let DIVISION_PROMO={A:0,B:4,C:4,D:4};
+let DIVISION_RELEG={A:4,B:4,C:4,D:0};
+let DIV_ORDER=['A','B','C','D'];
+/* aplica a config de um universo (chamado em newGame/clEntrar/clLoadSave). Universo
+   desconhecido cai em 'brasil' (retrocompatível com saves antigos, que não têm S.universe). */
+function setUniverse(key){
+  const cfg=UNI_CONFIGS[key]||UNI_CONFIGS.brasil;
+  ACTIVE_UNI = UNI_CONFIGS[key] ? key : 'brasil';
+  DIVISION_SIZE=cfg.size; DIVISION_PROMO=cfg.promo; DIVISION_RELEG=cfg.releg; DIV_ORDER=cfg.order.slice();
+  DIV_LABEL_FULL=cfg.label;
+  return ACTIVE_UNI;
+}
+function activeUniCfg(){ return UNI_CONFIGS[ACTIVE_UNI]||UNI_CONFIGS.brasil; }
+function isIntlUniverse(){ return ACTIVE_UNI!=='brasil'; }
 /* nomes/cidades pra gerar clubes de fallback OFFLINE quando não há Supabase/cache real
    nem entrada correspondente em REAL_LOWER_DIVISION_CLUBS ---- */
 const PROC_CITY=['Norte','Sul','Vale','Serra','Litoral','Central','Oeste','Leste','União','Palmares','Bela Vista','Rio Claro','Boa Esperança','Alto Paraná','Campo Verde','Porto Novo','Santa Fé','Monte Azul','Vitória','Progresso'];
@@ -896,8 +1003,9 @@ function proceduralDivisionClubs(division, n){
     posPlan.forEach(([pos,cnt])=>{ for(let k=0;k<cnt;k++){
       const age=Math.round(18+R.random()*17);
       const f=rollAgedForce(R,range,age);
+      const lg=MARKET.divisionToLeague(division);
       squad.push({n:pickProcPlayerName(R),
-        p:pos,s:pos,f,age,mv:f*f*4000,ft:R.random()<0.8?'R':'L',
+        p:pos,s:pos,f,age,lg,mv:MARKET.marketValue(f,age,lg),ft:R.random()<0.8?'R':'L',
         num:String(Math.floor(R.random()*40)+1),nat:'Brasil',ag:'—',moral:70,energy:100}); } });
     const overall=Math.round(squad.reduce((s,p)=>s+p.f,0)/squad.length);
     clubs.push({id,tk:id,name,short:real?real.short:name.split(' ')[0].slice(0,12),
@@ -933,6 +1041,15 @@ async function loadRealDivisionClubs(division){
 /* monta o conjunto de clubes de uma divisão: usa dados reais em cache se já tiver
    sido buscado nesta sessão; senão gera fallback procedural (sempre funciona offline) */
 function clubsForDivision(division){
+  // universo internacional: cada divisão vem dos clubes reais daquele país/liga (INTL_LEAGUES),
+  // filtrados pelo código de liga da divisão (ex.: PL->ENG-1, CH->ENG-2).
+  if(isIntlUniverse()){
+    const cfg=activeUniCfg();
+    const all=(typeof window!=='undefined' && window.INTL_LEAGUES && window.INTL_LEAGUES[cfg.country]) || [];
+    const lgCode=cfg.lg && cfg.lg[division];
+    const clubs = lgCode ? all.filter(c=>c.lg===lgCode) : all.slice();
+    return clubs.slice(0, DIVISION_SIZE[division]||clubs.length);
+  }
   if(division==='A') return DATA.clubsSerieA || DATA.clubs;
   const real=REAL_DIVISION_CACHE[division];
   if(real && real.length) return real.slice(0, DIVISION_SIZE[division]);
@@ -1201,7 +1318,8 @@ function applyManagerJobChange(newClubId, newDivision){
   squad(newClubId).forEach(p=>{ if(!p.contract) p.contract=defaultContract(p); });
   S.xi=autoXI(newClubId);
   const squadValue=squad(newClubId).reduce((s,p)=>s+(p.mv||1e6),0);
-  S.budget=Math.round(squadValue*makeRng(hashSeed(S.seed,'budget',newClubId,S.season)).rnd(0.10,0.18));
+  // orçamento = valor do elenco × ~0.20 (spec §3.B), com leve variação por clube/temporada
+  S.budget=Math.round(squadValue*makeRng(hashSeed(S.seed,'budget',newClubId,S.season)).rnd(0.18,0.22));
   // inicializa salário do treinador baseado no overall do clube
   const clubOverallVal=clubOverall(newClubId);
   S.coachSalary=Math.round(100000 + clubOverallVal*5000); // salário base + bonus por força do clube
@@ -1216,7 +1334,7 @@ function applyManagerJobChange(newClubId, newDivision){
   CL.tacticChosen=false; CL.formation=null; CL.selPlayer=squad(newClubId)[0]?.n||null;
   refreshAuctionPool();
 }
-const DIV_LABEL_FULL={A:'Série A',B:'Série B',C:'Série C',D:'Série D'};
+let DIV_LABEL_FULL={A:'Série A',B:'Série B',C:'Série C',D:'Série D'}; // reatribuído por setUniverse()
 function showFiredModal(options){
   const rows=options.map((o,i)=>{ const c=clubOf(o.clubId);
     return `<div class="cl-jobopt" onclick="clAcceptJob(${i})">
@@ -1289,7 +1407,8 @@ function mpBuildInitialState(clubs, seed){
     const sq=c.squad.map(p=>attachAttrs({...p,moral:70,energy:100,stats:{r3:[],g3:[],apps:0,goals:0,cs:0},contract:defaultContract(p)}));
     squads[c.id]=sq;
     const sv=sq.reduce((s,p)=>s+(p.mv||1e6),0);
-    budgets[c.id]=Math.round(sv*makeRng(hashSeed(seed,'budget',c.id)).rnd(0.10,0.18));
+    // orçamento = valor do elenco × ~0.20 (spec §3.B), com leve variação por clube
+    budgets[c.id]=Math.round(sv*makeRng(hashSeed(seed,'budget',c.id)).rnd(0.18,0.22));
     finances[c.id]=[];
   });
   return {seed,season:2026,round:0,sched,table,squads,budgets,scorers:{},results:[],finances};
@@ -1597,14 +1716,14 @@ function endSeason(){
   const champ=clubOf(tbl[0].id).short;
   const arty=topScorers(1)[0];
   const cups={};
-  if(S.cups){ ['copaBrasil','libertadores','sulamericana'].forEach(k=>{
+  if(S.cups){ allCupKeys().forEach(k=>{
     const champ=cupCompetitionChampion(S.cups[k]); cups[k]=champ?clubOf(champ).short:null;
   }); }
   // resultado do MEU clube em cada copa nesta temporada (fase alcançada, não só campeão) —
   // e classificação conquistada pra temporada QUE VEM (mesma regra que newSeasonReset vai
   // usar de verdade pra montar as copas) — alimenta o histórico de clube/treinador.
   const myCups={};
-  ['copaBrasil','libertadores','sulamericana'].forEach(k=>{ myCups[k]=cupResultForClub(k,S.clubId); });
+  allCupKeys().forEach(k=>{ myCups[k]=cupResultForClub(k,S.clubId); });
   const qual=(S.division==='A')?computeQualification(tbl):null;
   const qualifiedFor=[];
   if(qual){
@@ -1634,7 +1753,7 @@ function endSeason(){
     const divTrophy={A:'serieA',B:'serieB',C:'serieC',D:'serieD'}[S.division];
     S.coachHistory.push({season:S.season, type:'campeao', comp:divTrophy, text:`Campeão da Série ${S.division} pelo ${clubOf(S.clubId).short.toUpperCase()}`});
   }
-  if(S.cups){ ['copaBrasil','libertadores','sulamericana'].forEach(k=>{
+  if(S.cups){ allCupKeys().forEach(k=>{
     if(cupCompetitionChampion(S.cups[k])===S.clubId) S.coachHistory.push({season:S.season, type:'campeao', comp:k, text:`Campeão da ${COMP_DEFS[k].short} pelo ${clubOf(S.clubId).short.toUpperCase()}`});
   }); }
   /* histórico de carreira POR JOGADOR (títulos, temporadas na elite, melhor posição) —
@@ -1646,7 +1765,7 @@ function endSeason(){
   Object.keys(S.squads).forEach(cid=>{
     const pos=tbl.findIndex(t=>t.id===cid)+1; // 1-based; 0 se o clube não estava nesta tabela
     const wonDivision = tbl[0] && tbl[0].id===cid;
-    const wonCup = S.cups && ['copaBrasil','libertadores','sulamericana'].some(k=>cupCompetitionChampion(S.cups[k])===cid);
+    const wonCup = S.cups && allCupKeys().some(k=>cupCompetitionChampion(S.cups[k])===cid);
     S.squads[cid].forEach(p=>{
       p.career=p.career||{titles:0,seasonsTopDiv:0,bestFinish:99};
       if(wonDivision||wonCup) p.career.titles++;
@@ -1688,7 +1807,8 @@ function retirementReplacement(position, division, seedExtra){
   const R=makeRng(hashSeed('retire-repl',(S&&S.seed)||1,S.season,division,position,seedExtra));
   const age=Math.round(18+R.random()*4);
   const f=rollAgedForce(R,range,age);
-  return { n:pickProcPlayerName(R), p:position, s:position, f, age, mv:f*f*4000,
+  const lg=MARKET.divisionToLeague(division);
+  return { n:pickProcPlayerName(R), p:position, s:position, f, age, lg, mv:MARKET.marketValue(f,age,lg),
     ft:R.random()<0.8?'R':'L', num:String(Math.floor(R.random()*40)+1), nat:'Brasil', ag:'—',
     moral:70, energy:100 };
 }
@@ -1727,6 +1847,7 @@ function pendingDivisionChange(){
 function newSeasonReset(){
   const finalTable=sortedTable();
   const finalPos=tablePos(S.clubId);
+  S._intlUserFinish=finalPos; // classificação doméstica -> vaga na Champions/Europa da próxima temporada
   const totalClubs=DATA.clubs.length;
   const prevDivision=S.division;
   const newDivision=decidePromotionRelegation(finalPos, totalClubs);
@@ -1742,7 +1863,7 @@ function newSeasonReset(){
     switchToDivision(newDivision, outcome); // troca DATA.clubs/S.squads/S.table/S.sched/S.round/S.division
     S.coachHistory=S.coachHistory||[];
     S.coachHistory.push({season:S.season+1, type:outcome==='promoted'?'acesso':'rebaixamento',
-      text:`${outcome==='promoted'?'Acesso à Série':'Rebaixado para a Série'} ${newDivision}`});
+      text:`${outcome==='promoted'?'Acesso à':'Rebaixado para'} ${DIV_LABEL_FULL[newDivision]||('Série '+newDivision)}`});
   } else {
     // mesmo sem o usuário mudar de divisão, ela pode ter trocado até 4 clubes (quem
     // desceu da de cima / quem subiu da de baixo) — recompõe DATA.clubs de verdade.
