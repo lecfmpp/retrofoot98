@@ -732,6 +732,115 @@ function initIntlCups(){
   S.qualification={...qual};
   S.cups={ championsLeague:{group:clGroups, bracket:null}, europaLeague:{group:elGroups, bracket:null} };
 }
+/* ================= LIGAS DE BACKGROUND (outros países selecionados) =================
+   Cada país selecionado que NÃO é o jogável roda a sua liga sozinho: resultados simulados
+   por rodada (quick-sim por overall do clube), tabela, artilheiros e artilheiros de sempre,
+   com promoção/rebaixamento entre divisões e histórico por temporada. Visível no menu
+   Campeonatos e disponível pro mercado. Nunca mistura com o universo do usuário nem entre
+   países — cada liga é 100% do seu próprio país. */
+let INTL_CLUB_INDEX=null;
+function intlClubIndex(){
+  if(INTL_CLUB_INDEX) return INTL_CLUB_INDEX;
+  INTL_CLUB_INDEX={};
+  const src=(typeof window!=='undefined'&&window.INTL_LEAGUES)||{};
+  Object.keys(src).forEach(country=>src[country].forEach(c=>{ INTL_CLUB_INDEX[c.id]=c; }));
+  return INTL_CLUB_INDEX;
+}
+function intlClubById(id){ return intlClubIndex()[id]||null; }
+/* clubes de uma divisão de um universo qualquer (sem depender do universo ATIVO) */
+function bgClubsForDivision(uniKey, divKey){
+  const cfg=UNI_CONFIGS[uniKey]; if(!cfg||uniKey==='brasil') return [];
+  const all=(typeof window!=='undefined'&&window.INTL_LEAGUES&&window.INTL_LEAGUES[cfg.country])||[];
+  const lgCode=cfg.lg&&cfg.lg[divKey];
+  const clubs=lgCode?all.filter(c=>c.lg===lgCode):all.slice();
+  return clubs.slice(0, cfg.size[divKey]||clubs.length);
+}
+function initBgLeagues(){
+  S.bgLeagues={};
+  (S.bgCountries||[]).forEach(country=>{
+    const cfg=UNI_CONFIGS[country]; if(!cfg) return;
+    const divs={};
+    cfg.order.forEach(divKey=>{
+      const ids=bgClubsForDivision(country,divKey).map(c=>c.id);
+      const table={}; ids.forEach(id=>table[id]={id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
+      divs[divKey]={clubIds:ids, sched:makeSchedule(ids.slice()), table};
+    });
+    S.bgLeagues[country]={universe:country, divs, scorers:{}, allTimeScorers:{}, history:[], season:S.season};
+  });
+}
+/* quick-sim leve de uma partida de background (só placar, por overall + fator casa) */
+function bgQuickSim(homeId, awayId, seed){
+  const R=makeRng(seed>>>0);
+  const ho=(intlClubById(homeId)||{}).overall||70, ao=(intlClubById(awayId)||{}).overall||70;
+  const hExp=Math.max(0.2, 1.35+(ho-ao)*0.05), aExp=Math.max(0.2, 1.05+(ao-ho)*0.05);
+  const pois=(lam)=>{ const L=Math.exp(-lam); let k=0,p=1; do{ k++; p*=R.random(); }while(p>L); return k-1; };
+  return { hg:Math.min(7,pois(hExp)), ag:Math.min(7,pois(aExp)) };
+}
+/* atribui N gols a jogadores do clube (ponderado por força, atacantes/meias primeiro) */
+function bgAttributeGoals(L, clubId, n){
+  const club=intlClubById(clubId); if(!club||!club.squad||n<=0) return;
+  const cand=club.squad.filter(p=>p.s==='ATT'||p.s==='MID'); const pool=cand.length?cand:club.squad;
+  for(let i=0;i<n;i++){
+    let best=pool[0], bestW=-1;
+    pool.forEach(p=>{ const w=(p.f||50)*(p.s==='ATT'?1.6:0.7)*Math.random(); if(w>bestW){bestW=w;best=p;} });
+    if(best){ L.scorers[best.n]=(L.scorers[best.n]||0)+1; L.allTimeScorers[best.n]=(L.allTimeScorers[best.n]||0)+1; }
+  }
+}
+/* avança UMA rodada de cada liga de background (chamado junto do avanço de rodada do usuário) */
+function advanceBgLeagues(){
+  if(!S.bgLeagues) return;
+  Object.keys(S.bgLeagues).forEach(country=>{
+    const L=S.bgLeagues[country];
+    Object.keys(L.divs).forEach(divKey=>{
+      const d=L.divs[divKey]; if(!d.sched.length) return;
+      const fx=d.sched[S.round % d.sched.length]||[];
+      fx.forEach(pair=>{
+        const hId=pair[0], aId=pair[1]; if(hId==null||aId==null) return;
+        const r=bgQuickSim(hId,aId,hashSeed(S.seed,'bg',country,divKey,S.round,hId,aId));
+        const T=d.table; if(!T[hId]||!T[aId]) return;
+        T[hId].P++; T[aId].P++; T[hId].GF+=r.hg; T[hId].GA+=r.ag; T[aId].GF+=r.ag; T[aId].GA+=r.hg;
+        if(r.hg>r.ag){T[hId].W++;T[aId].L++;T[hId].Pts+=3;}
+        else if(r.hg<r.ag){T[aId].W++;T[hId].L++;T[aId].Pts+=3;}
+        else {T[hId].D++;T[aId].D++;T[hId].Pts++;T[aId].Pts++;}
+        bgAttributeGoals(L,hId,r.hg); bgAttributeGoals(L,aId,r.ag);
+      });
+    });
+  });
+}
+/* standings ordenados de uma divisão de background */
+function bgStandings(country, divKey){
+  const L=S.bgLeagues&&S.bgLeagues[country]; if(!L||!L.divs[divKey]) return [];
+  return Object.values(L.divs[divKey].table).sort((a,b)=>b.Pts-a.Pts||(b.GF-b.GA)-(a.GF-a.GA)||b.GF-a.GF);
+}
+/* fim de temporada das ligas de background: registra campeão/histórico, promove-rebaixa entre
+   divisões (mesma regra do universo daquele país) e zera as tabelas/artilheiros da temporada. */
+function rollBgLeaguesSeason(){
+  if(!S.bgLeagues) return;
+  Object.keys(S.bgLeagues).forEach(country=>{
+    const L=S.bgLeagues[country]; const cfg=UNI_CONFIGS[country]; if(!cfg) return;
+    // histórico (campeão da divisão de topo + artilheiro)
+    const topDiv=cfg.order[0]; const champ=bgStandings(country,topDiv)[0];
+    const arty=Object.entries(L.scorers).sort((a,b)=>b[1]-a[1])[0];
+    L.history.push({ season:L.season,
+      champ: champ?(intlClubById(champ.id)||{}).short:'—',
+      artilheiro: arty?`${arty[0]} (${arty[1]})`:'—' });
+    // promoção/rebaixamento entre divisões (só se houver mais de uma)
+    if(cfg.order.length>1){
+      const finalIds={}; cfg.order.forEach(d=>finalIds[d]=bgStandings(country,d).map(t=>t.id));
+      const promoted={}, relegated={}, stayed={};
+      cfg.order.forEach(d=>{ const ids=finalIds[d]; const rN=cfg.releg[d]||0, pN=cfg.promo[d]||0;
+        promoted[d]=pN>0?ids.slice(0,pN):[]; relegated[d]=rN>0?ids.slice(ids.length-rN):[]; stayed[d]=ids.slice(pN,Math.max(pN,ids.length-rN)); });
+      cfg.order.forEach((d,i)=>{ const above=cfg.order[i-1], below=cfg.order[i+1];
+        let list=stayed[d].slice(); if(above)list=list.concat(relegated[above]); if(below)list=list.concat(promoted[below]);
+        const ids=list.slice(0,cfg.size[d]); const table={}; ids.forEach(id=>table[id]={id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
+        L.divs[d]={clubIds:ids, sched:makeSchedule(ids.slice()), table}; });
+    } else {
+      const d=topDiv; const ids=L.divs[d].clubIds; const table={}; ids.forEach(id=>table[id]={id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
+      L.divs[d].table=table; L.divs[d].sched=makeSchedule(ids.slice());
+    }
+    L.scorers={}; L.season=S.season+1;
+  });
+}
 function initSeasonCups(qual, compToggle){
   if(isIntlUniverse()){ initIntlCups(); return; } // universo europeu: Champions + Europa
   compToggle = compToggle || (S.compToggle) || {libertadores:true, copaBrasil:true, sulamericana:true};
@@ -1595,6 +1704,7 @@ function playRound(userResult){
   if(S.round%2===0) refreshAuctionPool(Rr); // leilão gira a cada 2 rodadas
   rollStory(Rr);
   advancePendingCups(); // cada copa avança na sua própria rodada — ver CUP_TICK_OFFSET
+  advanceBgLeagues(); // ligas dos outros países selecionados rodam junto, no background
   if(S.round>=S.sched.length){ endSeason(); }
   S._roundIncidents={};
   save();
@@ -1900,6 +2010,7 @@ function newSeasonReset(){
   // novos — usa força (overall) como proxy, igual à 1ª temporada.
   const qualTable = (S.division==='A') ? ((prevDivision==='A') ? finalTable : DATA.clubs.slice().sort((a,b)=>b.overall-a.overall).map(c=>({id:c.id}))) : null;
   initSeasonCups(qualTable ? computeQualification(qualTable) : {libertadores:[],sulamericana:[]});
+  rollBgLeaguesSeason(); // vira a temporada das ligas de background (campeão/histórico/promoção)
   save();
 }
 

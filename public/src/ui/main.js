@@ -176,6 +176,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'modo':      html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scModoChoice(),{logo:true}); break;
     case 'modosolo':  html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scModoSolo(),{logo:true}); break;
     case 'paises':    html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scPaises(),{logo:true}); break;
+    case 'paisJogavel': html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scPaisJogavel(),{logo:true}); break;
     case 'moeda':     html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scMoeda(),{logo:true}); break;
     case 'loading':   html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scLoading(),{logo:true}); break;
     case 'jogadores': html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scJogadores(),{logo:true}); break;
@@ -627,7 +628,45 @@ function universeCountryName(){ var u=(typeof S!=='undefined'&&S&&S.universe)||'
 function clToggleComp(key){ CL.compToggle[key]=!CL.compToggle[key]; cdraw(); }
 function clToggleCountry(n){ if(CL.countries.has(n))CL.countries.delete(n); else CL.countries.add(n); cdraw(); }
 function clAllCountries(){ COUNTRY_LIST().forEach(c=>{ if(c.on)CL.countries.add(c.n); }); cdraw(); }
-function clPaisesOk(){ CL.screen='moeda'; cdraw(); }
+/* chave de universo de um país selecionável (Brasil = pirâmide A/B/C/D; europeus = UNI_CONFIGS) */
+function countryUniverseKey(country){ if(country==='Brasil') return 'brasil'; return (typeof UNI_CONFIGS!=='undefined'&&UNI_CONFIGS[country])?country:null; }
+/* países selecionados que têm liga jogável de verdade (têm clubes carregados) */
+function selectedPlayableCountries(){ return [...CL.countries].filter(c=>countryUniverseKey(c) && (c==='Brasil'||intlTeams(c)>0)); }
+function clPaisesOk(){
+  const playable=selectedPlayableCountries();
+  if(playable.length>1){
+    // 2+ países: usuário precisa escolher em qual terá time jogável (os outros rodam no background)
+    if(!CL.playCountry || playable.indexOf(CL.playCountry)<0) CL.playCountry=playable[0];
+    CL.screen='paisJogavel';
+  } else {
+    CL.playCountry=playable[0]||'Brasil';
+    CL.screen='moeda';
+  }
+  cdraw();
+}
+/* ================= 03b · PAÍS JOGÁVEL (só quando 2+ países selecionados) ================= */
+const COUNTRY_FLAG={Brasil:'🇧🇷',Argentina:'🇦🇷',Alemanha:'🇩🇪',Espanha:'🇪🇸','França':'🇫🇷','Itália':'🇮🇹',Portugal:'🇵🇹',Inglaterra:'🏴'};
+function scPaisJogavel(){
+  const playable=selectedPlayableCountries();
+  const rows=playable.map(c=>{
+    const sel=CL.playCountry===c;
+    const teams=intlTeams(c)|| (c==='Brasil'?20:0);
+    return `<div class="cl-ctry ${sel?'sel':''}" onclick="CL.playCountry='${c}';cdraw()">
+      <span class="cl-flag">${COUNTRY_FLAG[c]||'🏳️'}</span><span class="cl-ctry-n">${escC(c)}</span>
+      <span class="cl-ctry-t">${sel?'✔ seu time':`${teams} equipas`}</span></div>`;
+  }).join('');
+  const others=playable.filter(c=>c!==CL.playCountry);
+  return dlg('Onde você vai treinar?', `
+    <div class="cl-paises">
+      <div class="cl-ctry-list">${rows}</div>
+      <div class="cl-paises-side">
+        <div class="cl-side-btns">${btn('OK','clPaisJogavelOk()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Voltar','clGoPaises()',{icon:'↩',cls:'cl-btn-cancel'})}</div>
+        <div class="cl-instr">Escolha o país onde você vai comandar um clube. ${others.length?`As outras ligas (${others.map(escC).join(', ')}) rodam sozinhas no background — dá pra acompanhar tabelas, artilheiros e campeões no menu <b>Campeonatos</b>, e negociar jogadores com elas.`:''}</div>
+      </div>
+    </div>`, {w:900,bodyClass:'cl-body-green'});
+}
+function clGoPaises(){ CL.screen='paises'; cdraw(); }
+function clPaisJogavelOk(){ CL.screen='moeda'; cdraw(); }
 
 /* ================= 04 · MOEDA ================= */
 function scMoeda(){
@@ -690,28 +729,13 @@ function intlSingleUniverseCountry(){
 function clSortear(){
   const names=CL.names.map(n=>(n||'').trim()).filter(Boolean);
   if(!names.length){ CL.names[0]='JOGADOR'; return cdraw(); }
-  const startDivision=computeStartDivision();
-  const uniCountry=intlSingleUniverseCountry();
-  const intl=hasIntlSelection();
+  // universo jogável = país escolhido (CL.playCountry). NUNCA misturamos países numa liga:
+  // os demais países selecionados rodam sozinhos no background (ver S.bgCountries).
+  const uni = CL.playCountry || (selectedPlayableCountries()[0]) || 'Brasil';
   (async ()=>{
-    if(uniCountry){
-      // universo de país europeu único: liga própria com divisões (ex.: Inglaterra PL/CH).
-      // O usuário SEMPRE começa na ÚLTIMA divisão (igual ao clássico: começa embaixo e sobe);
-      // ligas de divisão única começam nela mesma. As demais tiers rodam em paralelo.
-      setUniverse(uniCountry);
-      CL.intlUniverse = uniCountry;
-      const startDiv = DIV_ORDER[DIV_ORDER.length-1];
-      DATA.clubs = clubsForDivision(startDiv).slice();
-    } else if(intl){
-      // múltiplos países (ou misto com Brasil): liga plana única, sem pirâmide/copas.
-      setUniverse('brasil');
-      const clubs=intlSelectedClubs().slice();
-      if(CL.countries.has('Brasil')) clubs.unshift(...(DATA.clubsSerieA||[]));
-      DATA.clubs = clubs;
-      CL.intlUniverse = 'flat';
-    } else {
-      setUniverse('brasil');
-      CL.intlUniverse = false;
+    if(uni==='Brasil'){
+      setUniverse('brasil'); CL.intlUniverse=false;
+      const startDivision=computeStartDivision();
       if(startDivision!=='A'){
         if(typeof NET!=='undefined' && NET.getDivisionClubs && NET.authStatus && NET.authStatus().loggedIn){
           toastC('Carregando times da Série '+startDivision+'...');
@@ -721,7 +745,13 @@ function clSortear(){
       } else {
         DATA.clubs = DATA.clubsSerieA || DATA.clubs;
       }
+    } else {
+      // universo europeu: liga própria; começa na ÚLTIMA divisão (começa embaixo e sobe).
+      setUniverse(uni); CL.intlUniverse=uni;
+      DATA.clubs = clubsForDivision(DIV_ORDER[DIV_ORDER.length-1]).slice();
     }
+    // demais países selecionados = ligas de background (visíveis em Campeonatos, mercado)
+    CL.bgCountries = selectedPlayableCountries().filter(c=>c!==uni);
     const pool=DATA.clubs.map(c=>c.id); const seed=(Math.random()*1e9)>>>0; const rnd=rngFrom(seed);
     // embaralha e distribui clubes distintos
     for(let i=pool.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
@@ -748,14 +778,15 @@ function scSorteio(){
 }
 function clEntrar(){
   CL.clubId=CL.draw[0].clubId; CL.mgr=CL.draw[0].name;
-  // universo: país europeu único = liga própria (começa na ÚLTIMA divisão, ex.: Championship);
-  // 'flat' = liga internacional plana; false = Brasil. Copas brasileiras só no universo Brasil.
-  const isUni = CL.intlUniverse && CL.intlUniverse!=='flat';
+  // universo: país europeu = liga própria (começa na ÚLTIMA divisão, ex.: Championship);
+  // false = Brasil. Copas brasileiras só no universo Brasil.
   const isIntl = !!CL.intlUniverse;
-  const startDiv = isUni ? DIV_ORDER[DIV_ORDER.length-1] : (isIntl ? 'A' : computeStartDivision());
+  const startDiv = isIntl ? DIV_ORDER[DIV_ORDER.length-1] : computeStartDivision();
   const comps = isIntl ? {libertadores:false,copaBrasil:false,sulamericana:false} : CL.compToggle;
   newGame(CL.clubId, startDiv, comps); S.xi=autoXI(CL.clubId);
-  S.intlUniverse = CL.intlUniverse; // false | 'flat' | país (ex.: 'Inglaterra')
+  S.intlUniverse = CL.intlUniverse; // false | país (ex.: 'Inglaterra')
+  S.bgCountries = (CL.bgCountries||[]).slice(); // outros países selecionados: ligas de background
+  initBgLeagues(); // materializa as ligas de background pra simular/visualizar/negociar
   if(!S.stadium) S.stadium={capacity:STAND_START};
   CL.formation=null; CL.tacticChosen=false;   // precisa escolher tática no menu p/ liberar "Jogar"
   S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
@@ -2592,7 +2623,7 @@ function menuDropdown(name){ name=name||CL.menu;
     'Seleccionar':[...F.map((f,i)=>[`${f}`,`clSelFormation('${f}')`,(i+1)+'/'+FKEY[f]]),['—'],['Automático','clSelFormation(\'auto\')'],['Melhores','clSelFormation(\'best\')']],
     'Equipa':[['Estádio...','clStadium()'],['Historial...','clClubHistory()']],
     'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],['Leilão de jogadores...','clAuctionScreen()'],['Últimas transferências...','clStub(\'Últimas transferências\')']],
-    'Campeonatos':[['Minhas competições...','clCompList()','C'],['—'],['Melhores marcadores...','clScorers()'],['Calendário...','clCalendar()'],['—'],['Últimos vencedores...','clUltimosVencedores()'],['Melhores marcadores de sempre...','clScorersAllTime()']],
+    'Campeonatos':[['Minhas competições...','clCompList()','C'],['—'],['Melhores marcadores...','clScorers()'],['Calendário...','clCalendar()'],['—'],['Últimos vencedores...','clUltimosVencedores()'],['Melhores marcadores de sempre...','clScorersAllTime()']].concat((S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)?[['—'],['Ligas internacionais...','clBgLeaguesMenu()']]:[]),
     'Treinador':[['História...','clCoachHistory()'],['Ranking...','clCoachRanking()'],['Ofertas...','clJobOffers()'],['Perfil...','clPerfilTreinador()']]
   };
   if(CL.online){ items['Modo Resenha']=[['Chamar pra Resenha...','clInviteResenha()']]; }
@@ -3273,6 +3304,44 @@ function clScorersAllTime(){ CL.menu=null;
     return `<div class="cl-cal-row"><span class="cl-cal-n">${i+1}</span><span class="cl-cal-t">${playerLink(s.n,cid)}${cid?' <small style="color:#666">('+escC(clubOf(cid).short)+')</small>':''}</span><span class="cl-cal-cf">${s.g}</span></div>`;
   }).join(''):'<div style="padding:14px">Sem gols marcados ainda.</div>';
   overlayC(dlg('Melhores marcadores de sempre', `<div class="cl-cal">${rows}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:520,bodyClass:'cl-body-gray',min:true})); }
+
+/* ---- Campeonatos > Ligas internacionais: visualizador das ligas de background por país
+   (tabela, artilheiros, artilheiros de sempre, campeões). Só leitura — cada liga roda sozinha. */
+function bgDivLabel(country,divKey){ const cfg=(typeof UNI_CONFIGS!=='undefined')&&UNI_CONFIGS[country]; return (cfg&&cfg.label&&cfg.label[divKey])||divKey; }
+function clBgLeaguesMenu(){ CL.menu=null;
+  if(!S.bgLeagues || !Object.keys(S.bgLeagues).length){ toastC('Nenhuma liga internacional neste save.'); return; }
+  const countries=Object.keys(S.bgLeagues);
+  CL.bgView=CL.bgView||{};
+  if(!CL.bgView.country || countries.indexOf(CL.bgView.country)<0) CL.bgView.country=countries[0];
+  CL.bgView.tab=CL.bgView.tab||'tabela';
+  renderBgLeagues();
+}
+function renderBgLeagues(){
+  const V=CL.bgView; const L=S.bgLeagues[V.country]; if(!L){ clCloseOverlay(); return; }
+  const countries=Object.keys(S.bgLeagues);
+  const divKeys=Object.keys(L.divs);
+  if(!V.div || divKeys.indexOf(V.div)<0) V.div=divKeys[0];
+  const ctryTabs=countries.map(c=>`<span class="cl-otab ${c===V.country?'on':''}" onclick="CL.bgView.country='${c}';CL.bgView.div=null;renderBgLeagues()">${(typeof COUNTRY_FLAG!=='undefined'&&COUNTRY_FLAG[c])||''} ${escC(c)}</span>`).join('');
+  const divTabs=divKeys.length>1?('<div class="cl-otabs">'+divKeys.map(d=>`<span class="cl-otab ${d===V.div?'on':''}" onclick="CL.bgView.div='${d}';renderBgLeagues()">${escC(bgDivLabel(V.country,d))}</span>`).join('')+'</div>'):'';
+  const contentTabs=[['tabela','Tabela'],['artilheiros','Artilheiros'],['sempre','De sempre'],['historico','Campeões']].map(a=>`<span class="cl-otab ${V.tab===a[0]?'on':''}" onclick="CL.bgView.tab='${a[0]}';renderBgLeagues()">${a[1]}</span>`).join('');
+  let body='';
+  if(V.tab==='tabela'){
+    body=bgStandings(V.country,V.div).map((t,i)=>{const c=intlClubById(t.id);return `<div class="cl-cal-row"><span class="cl-cal-n">${i+1}</span><span class="cl-cal-t">${escC(c?c.short:t.id)} <small style="color:#888">${t.P}j ${t.W}-${t.D}-${t.L}</small></span><span class="cl-cal-cf">${t.Pts}</span></div>`;}).join('');
+  } else if(V.tab==='artilheiros'||V.tab==='sempre'){
+    const src=V.tab==='sempre'?L.allTimeScorers:L.scorers;
+    const list=Object.entries(src).sort((a,b)=>b[1]-a[1]).slice(0,25);
+    body=list.length?list.map((x,i)=>`<div class="cl-cal-row"><span class="cl-cal-n">${i+1}</span><span class="cl-cal-t">${escC(x[0])}</span><span class="cl-cal-cf">${x[1]}</span></div>`).join(''):'<div style="padding:14px">Ainda sem gols nesta temporada.</div>';
+  } else {
+    body=(L.history||[]).length?L.history.slice().reverse().map(h=>`<div class="cl-cal-row"><span class="cl-cal-n">${h.season}</span><span class="cl-cal-t">🏆 ${escC(h.champ)}</span><span class="cl-cal-cf" style="font-size:11px">${escC(h.artilheiro)}</span></div>`).join(''):'<div style="padding:14px">Nenhuma temporada concluída ainda.</div>';
+  }
+  overlayC(dlg('Ligas internacionais', `
+    <div class="cl-otabs" style="flex-wrap:wrap">${ctryTabs}</div>
+    ${divTabs}
+    <div class="cl-otabs">${contentTabs}</div>
+    <div class="cl-cal">${body}</div>
+    <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
+    {w:560,bodyClass:'cl-body-gray',min:true}));
+}
 
 /* ---- overlays / toasts ---- */
 function overlayC(html){ let o=$c('#c-overlay'); if(!o){ o=document.createElement('div'); o.id='c-overlay'; o.className='cl-overlay'; o.onclick=clCloseOverlay; document.body.appendChild(o); }
