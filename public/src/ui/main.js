@@ -1661,7 +1661,10 @@ function startCupLiveMatch(pending){
   CL.subPanelOpen=false; CL.subsUsed=0;
   const seed=hashSeed(S.seed,'cupmatch',pending.key,pending.stage,S.round,pending.h,pending.a);
   const m=buildLiveMatchObject(pending.h,pending.a,seed,{user:true,div:pending.key});
-  const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:0, subOpen:false, matches:[m], cup:pending };
+  // sel:null (não 0): começa mostrando o CONFRONTO (placar + estágio da copa), sem o modal de
+  // acontecimentos já aberto por cima escondendo o jogo. O modal abre sozinho no intervalo e nos
+  // pênaltis (momentos decisivos), e o usuário pode tocar no confronto pra ver os lances — igual à liga.
+  const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], cup:pending };
   RL.maxMin=Math.max(94, m.events.length?m.events[m.events.length-1].min:90);
   CL.live=RL; CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
 }
@@ -1743,13 +1746,21 @@ function startPenaltyShootout(m){
 }
 function shootoutDecided(P){
   const nH=P.h.length, nA=P.a.length;
-  if(nH!==nA || nH===0) return false; // só decide depois que os dois já bateram nesta rodada
-  // P.h/P.a guardam {name,scored} — precisa filtrar por .scored, não pelo objeto em si
-  // (um objeto {scored:false} ainda é "truthy"; filtrar por Boolean direto nunca decidia
-  // nada, travando a disputa numa morte súbita infinita).
+  if(nH===0 && nA===0) return false;
+  // P.h/P.a guardam {name,scored} — filtra por .scored (um {scored:false} ainda é "truthy").
   const scoredH=P.h.filter(k=>k.scored).length, scoredA=P.a.filter(k=>k.scored).length;
-  if(nH<5){ const remH=5-nH, remA=5-nA; return scoredH>scoredA+remA || scoredA>scoredH+remH; }
-  return scoredH!==scoredA; // morte súbita: qualquer diferença após rodada completa decide
+  // FASE DE MELHOR-DE-5: decide a QUALQUER cobrança, inclusive no meio da rodada (regra oficial).
+  // Assim que o time que está atrás não tiver mais como alcançar — mesmo com um lado tendo batido
+  // uma vez a mais que o outro — a disputa acaba na hora, sem cobranças inúteis. Antes o código só
+  // olhava quando os dois tinham batido o mesmo número (nH===nA), então numa vantagem irreversível
+  // criada por uma cobrança ímpar (ex.: 4×1 com o rival tendo batido só 3) ele ainda deixava o
+  // próximo bater — daí "eu já tinha ganho e meu último jogador ainda foi bater".
+  if(nH<5 || nA<5){
+    const remH=Math.max(0,5-nH), remA=Math.max(0,5-nA);
+    return scoredH>scoredA+remA || scoredA>scoredH+remH;
+  }
+  // MORTE SÚBITA (os dois já bateram 5+): só decide com rodada completa (nº igual) e placar diferente.
+  return nH===nA && scoredH!==scoredA;
 }
 /* regra oficial (IFAB): dentro da MESMA disputa, um jogador só pode bater de novo depois
    que todos os outros elegíveis do time já bateram uma vez — nunca antes disso. `pool` já
@@ -2059,9 +2070,9 @@ function matchStatsHTML(m){
   const tot=(H.poss+A.poss)||1; const hP=Math.round(100*H.poss/tot);
   const line=(lbl,hv,av)=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:1px 2px"><b style="min-width:36px">${hv}</b><span style="color:#888;flex:1;text-align:center">${lbl}</span><b style="min-width:36px;text-align:right">${av}</b></div>`;
   return `<fieldset class="cl-lm-ref" style="margin-top:6px"><legend>Ficha da partida</legend>
-    ${line('posse %',hP+'%',(100-hP)+'%')}
-    ${line('finalizações',H.shots,A.shots)}
-    ${line('chances claras',H.big,A.big)}
+    ${line('Posse %',hP+'%',(100-hP)+'%')}
+    ${line('Finalizações',H.shots,A.shots)}
+    ${line('Chances Claras',H.big,A.big)}
   </fieldset>`;
 }
 function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a);

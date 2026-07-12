@@ -23,7 +23,7 @@ function matchSeed(homeId,awayId){ return hashSeed(S.seed, S.round, homeId, away
 /* ====================== MATCH ENGINE (Random Walk) ====================== */
 /* S_t in [-1,1]; +1 => home goal, -1 => away goal                         */
 const TACTIC_BETA={retranca:-0.09, equilibrado:0, ofensivo:0.10};
-const ENG={rev:0.82, sd:0.33, danger:0.58, shot:0.28, conv:0.52, penaltyChance:0.085};
+const ENG={rev:0.82, sd:0.33, danger:0.58, shot:0.28, conv:0.52, penaltyChance:0.055};
 /* ===== MOTOR 2.0: meio-campo central + índices ofensivo/defensivo + contexto =====
    Toda a matemática que decide o jogo mora aqui (helpers compartilhados), pra os DOIS
    motores (simulateMatch solo/ao-vivo e mpSim multiplayer) rodarem idêntico e determinístico.

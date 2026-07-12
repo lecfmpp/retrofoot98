@@ -1614,7 +1614,13 @@ function generateJobOffer(){
   const upDivPool = divIdx>0 ? ensureDivisionClubs(DIV_ORDER[divIdx-1]).slice().sort((a,b)=>a.overall-b.overall).slice(0,6) : [];
   const R=makeRng(hashSeed(S.seed,S.season,S.round,'joboffer'));
   const useUpDiv = upDivPool.length>0 && R.random()<0.25;
-  const pool = useUpDiv ? upDivPool : (sameDivPool.length?sameDivPool:upDivPool);
+  // fromUp = o clube escolhido veio da divisão DE CIMA — seja porque sorteamos "subir de divisão"
+  // (useUpDiv), seja porque não havia ninguém elegível na mesma divisão (sameDivPool vazio, ex.: o
+  // usuário é dos mais fortes da sua série) e caímos no upDivPool. A divisão do convite TEM que
+  // seguir de onde o clube realmente veio — senão um clube da Série C (ex.: Amazonas) aparecia
+  // rotulado com a divisão do usuário (Série D).
+  const fromUp = useUpDiv || sameDivPool.length===0;
+  const pool = fromUp ? upDivPool : sameDivPool;
   if(!pool.length) return null;
   const pick=pool[Math.floor(R.random()*pool.length)];
 
@@ -1624,7 +1630,7 @@ function generateJobOffer(){
   const salaryBump = Math.round(S.coachSalary * (0.1 + (clubOfferOverall-curOverall)*0.02)); // 10% base + 2% por ponto de overall
   const proposedSalary = S.coachSalary + salaryBump;
 
-  return { clubId:pick.id, division: useUpDiv?DIV_ORDER[divIdx-1]:S.division, salary:proposedSalary };
+  return { clubId:pick.id, division: fromUp?DIV_ORDER[divIdx-1]:S.division, salary:proposedSalary };
 }
 /* decide se algo acontece nesta rodada (demissão OU múltiplas ofertas pendentes) — chamada 1x por rodada,
    depois de tickJobSecurity(); precisa de pelo menos 5 rodadas na divisão atual (evita eventos
