@@ -511,16 +511,30 @@ function computeQualification(finalTableSorted){
     sulamericana: ids.slice(6,12)     // 7º ao 12º colocado
   };
 }
+/* ================= BANDEIRAS COMO IMAGEM =================
+   Emoji de bandeira não renderiza em vários sistemas (no Windows viram as letras do país,
+   e a Inglaterra 🏴 aparece como quadrado preto). Então usamos IMAGENS de bandeira (flagcdn.com,
+   SVG) via um helper único. Mapa nome-de-país (PT ou EN) -> código ISO (Inglaterra = gb-eng). */
+const FLAG_ISO={
+  brasil:'br', brazil:'br', argentina:'ar', chile:'cl', 'colômbia':'co', colombia:'co',
+  peru:'pe', uruguai:'uy', uruguay:'uy', paraguai:'py', paraguay:'py', equador:'ec', ecuador:'ec',
+  venezuela:'ve', 'bolívia':'bo', bolivia:'bo', alemanha:'de', germany:'de', espanha:'es', spain:'es',
+  'frança':'fr', france:'fr', 'itália':'it', italy:'it', portugal:'pt', inglaterra:'gb-eng', england:'gb-eng'
+};
+function flagIso(key){ if(!key) return null; return FLAG_ISO[String(key).toLowerCase()]||null; }
+function flagImgIso(iso){ return iso ? '<img class="cl-flagimg" src="https://flagcdn.com/'+iso+'.svg" alt="" loading="lazy">' : '<span class="cl-flagimg-none">🏳</span>'; }
+function flagImg(country){ return flagImgIso(flagIso(country)); }
+
 /* ================= PAÍSES/BANDEIRAS (clubes da CONMEBOL) =================
    Todo o resto do universo (Séries A/B/C/D) é brasileiro; clubes estrangeiros (Libertadores/
    Sul-Americana) carregam seu país real, pra aparecer com bandeira certa em qualquer tela que
    mostre nacionalidade do clube (visualizar time, ficha de jogador etc.), igual já acontece
    pros clubes brasileiros. */
 const CONMEBOL_COUNTRIES={
-  BRA:{flag:'🇧🇷',name:'Brasil'}, ARG:{flag:'🇦🇷',name:'Argentina'}, CHI:{flag:'🇨🇱',name:'Chile'},
-  COL:{flag:'🇨🇴',name:'Colômbia'}, PER:{flag:'🇵🇪',name:'Peru'}, URU:{flag:'🇺🇾',name:'Uruguai'},
-  PAR:{flag:'🇵🇾',name:'Paraguai'}, ECU:{flag:'🇪🇨',name:'Equador'}, VEN:{flag:'🇻🇪',name:'Venezuela'},
-  BOL:{flag:'🇧🇴',name:'Bolívia'}
+  BRA:{flag:flagImgIso('br'),name:'Brasil'}, ARG:{flag:flagImgIso('ar'),name:'Argentina'}, CHI:{flag:flagImgIso('cl'),name:'Chile'},
+  COL:{flag:flagImgIso('co'),name:'Colômbia'}, PER:{flag:flagImgIso('pe'),name:'Peru'}, URU:{flag:flagImgIso('uy'),name:'Uruguai'},
+  PAR:{flag:flagImgIso('py'),name:'Paraguai'}, ECU:{flag:flagImgIso('ec'),name:'Equador'}, VEN:{flag:flagImgIso('ve'),name:'Venezuela'},
+  BOL:{flag:flagImgIso('bo'),name:'Bolívia'}
 };
 /* país (bandeira+nome) do clube, na ordem: (1) .country próprio (clubes CONMEBOL da
    Libertadores/Sul-Americana); (2) derivado do código de liga lg (clubes das ligas
@@ -1174,8 +1188,8 @@ const UNI_CONFIGS={
                label:{PT:'Primeira Liga',PT2:'Liga Portugal 2'}, lg:{PT:'POR-1',PT2:'POR-2'}, country:'Portugal',
                nat:['Portugal'], foreignMax:18 },
 };
-/* bandeira de cada universo (UNI_CONFIGS só guarda o nome do país, não o emoji) */
-const UNI_COUNTRY_FLAG={brasil:'🇧🇷',Inglaterra:'🇬🇧',Espanha:'🇪🇸','Itália':'🇮🇹',Alemanha:'🇩🇪',Portugal:'🇵🇹'};
+/* código ISO da bandeira de cada universo (UNI_CONFIGS só guarda o nome do país) */
+const UNI_COUNTRY_FLAG={brasil:'br',Inglaterra:'gb-eng',Espanha:'es','Itália':'it',Alemanha:'de',Portugal:'pt'};
 /* mapa reverso código-de-liga -> {universo, divisão}. Ex.: 'GER-1' -> {uni:'Alemanha',div:'DE'};
    'ENG-2' -> {uni:'Inglaterra',div:'CH'}. Construído sob demanda (memoizado) a partir de UNI_CONFIGS.lg. */
 let _LG_TO_UNIDIV=null;
@@ -1197,7 +1211,7 @@ function universeCountryInfo(key){
   const k=key||activeUniverseKey();
   if(!k || k==='brasil') return CONMEBOL_COUNTRIES.BRA;
   const cfg=UNI_CONFIGS[k];
-  return { flag: UNI_COUNTRY_FLAG[k]||'🏳️', name:(cfg&&cfg.country)||k };
+  return { flag: flagImgIso(UNI_COUNTRY_FLAG[k]), name:(cfg&&cfg.country)||k };
 }
 /* rótulo da liga do clube (ex.: 'Bundesliga', 'La Liga') a partir do código lg — vazio se desconhecido */
 function clubLeagueLabel(c){

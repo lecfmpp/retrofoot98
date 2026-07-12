@@ -571,14 +571,14 @@ function intlTeams(country){
 /* lista de países da tela — Brasil sempre jogável; europeus ficam clicáveis quando têm
    clubes reais carregados. Função (não const) pra refletir os dados carregados. */
 function COUNTRY_LIST(){ return [
-  {f:'🇧🇷',n:'Brasil',teams:intlTeams('Brasil'),on:true},
-  {f:'🇦🇷',n:'Argentina',teams:intlTeams('Argentina'),on:intlTeams('Argentina')>0},
-  {f:'🇩🇪',n:'Alemanha',teams:intlTeams('Alemanha'),on:intlTeams('Alemanha')>0},
-  {f:'🇪🇸',n:'Espanha',teams:intlTeams('Espanha'),on:intlTeams('Espanha')>0},
-  {f:'🇫🇷',n:'França',teams:intlTeams('França'),on:intlTeams('França')>0},
-  {f:'🇮🇹',n:'Itália',teams:intlTeams('Itália'),on:intlTeams('Itália')>0},
-  {f:'🇵🇹',n:'Portugal',teams:intlTeams('Portugal'),on:intlTeams('Portugal')>0},
-  {f:'🇬🇧',n:'Inglaterra',teams:intlTeams('Inglaterra'),on:intlTeams('Inglaterra')>0},
+  {f:flagImg('Brasil'),n:'Brasil',teams:intlTeams('Brasil'),on:true},
+  {f:flagImg('Argentina'),n:'Argentina',teams:intlTeams('Argentina'),on:intlTeams('Argentina')>0},
+  {f:flagImg('Alemanha'),n:'Alemanha',teams:intlTeams('Alemanha'),on:intlTeams('Alemanha')>0},
+  {f:flagImg('Espanha'),n:'Espanha',teams:intlTeams('Espanha'),on:intlTeams('Espanha')>0},
+  {f:flagImg('França'),n:'França',teams:intlTeams('França'),on:intlTeams('França')>0},
+  {f:flagImg('Itália'),n:'Itália',teams:intlTeams('Itália'),on:intlTeams('Itália')>0},
+  {f:flagImg('Portugal'),n:'Portugal',teams:intlTeams('Portugal'),on:intlTeams('Portugal')>0},
+  {f:flagImg('Inglaterra'),n:'Inglaterra',teams:intlTeams('Inglaterra'),on:intlTeams('Inglaterra')>0},
 ]; }
 function scPaises(){
   const rows=COUNTRY_LIST().map(c=>{const sel=CL.countries.has(c.n);
@@ -646,7 +646,7 @@ function divisionShortLabel(d){ return (typeof DIV_LABEL_FULL!=='undefined'&&DIV
 /* bandeira/nome do universo ATIVO no cabeçalho do clube do usuário. Fonte de verdade:
    universeCountryInfo()/activeUniverseKey() (core.js), que leem S.intlUniverse — NÃO o
    antigo S.universe, que nunca era gravado e deixava tudo como Brasil. */
-function universeFlag(){ return (typeof universeCountryInfo==='function'?universeCountryInfo():{flag:'🇧🇷'}).flag; }
+function universeFlag(){ return (typeof universeCountryInfo==='function'?universeCountryInfo():{flag:flagImg('Brasil')}).flag; }
 function universeCountryName(){ return (typeof universeCountryInfo==='function'?universeCountryInfo():{name:'Brasil'}).name; }
 function clToggleComp(key){ CL.compToggle[key]=!CL.compToggle[key]; cdraw(); }
 function clToggleCountry(n){ if(CL.countries.has(n))CL.countries.delete(n); else CL.countries.add(n); cdraw(); }
@@ -668,14 +668,14 @@ function clPaisesOk(){
   cdraw();
 }
 /* ================= 03b · PAÍS JOGÁVEL (só quando 2+ países selecionados) ================= */
-const COUNTRY_FLAG={Brasil:'🇧🇷',Argentina:'🇦🇷',Alemanha:'🇩🇪',Espanha:'🇪🇸','França':'🇫🇷','Itália':'🇮🇹',Portugal:'🇵🇹',Inglaterra:'🇬🇧'};
+const COUNTRY_FLAG={Brasil:flagImg('Brasil'),Argentina:flagImg('Argentina'),Alemanha:flagImg('Alemanha'),Espanha:flagImg('Espanha'),'França':flagImg('França'),'Itália':flagImg('Itália'),Portugal:flagImg('Portugal'),Inglaterra:flagImg('Inglaterra')};
 function scPaisJogavel(){
   const playable=selectedPlayableCountries();
   const rows=playable.map(c=>{
     const sel=CL.playCountry===c;
     const teams=intlTeams(c)|| (c==='Brasil'?20:0);
     return `<div class="cl-ctry ${sel?'sel':''}" onclick="CL.playCountry='${c}';cdraw()">
-      <span class="cl-flag">${COUNTRY_FLAG[c]||'🏳️'}</span><span class="cl-ctry-n">${escC(c)}</span>
+      <span class="cl-flag">${flagImg(c)}</span><span class="cl-ctry-n">${escC(c)}</span>
       <span class="cl-ctry-t">${sel?'✔ seu time':`${teams} equipas`}</span></div>`;
   }).join('');
   const others=playable.filter(c=>c!==CL.playCountry);
@@ -1135,7 +1135,7 @@ function panJogador(){
     : p.injuredMatches>0 ? `<div class="cl-jgd-status hurt">✚ Lesionado — fora por ${p.injuredMatches} jogo${p.injuredMatches>1?'s':''}</div>` : '';
   return `<div class="cl-jgd">
     <div class="cl-jgd-name">${escC(p.n)}</div>
-    <div class="cl-jgd-nat"><span class="cl-flag2">🇧🇷</span> Brasil</div>
+    <div class="cl-jgd-nat"><span class="cl-flag2">${flagImg('Brasil')}</span> Brasil</div>
     ${statusBar}
     <div class="cl-jgd-row"><span>Comportamento</span><b>${playerBehaviorLabel(p)}</b></div>
     <div class="cl-jgd-row"><span>Gols nesta temporada</span><b>${(S.scorers&&S.scorers[p.n])||0}</b></div>
@@ -1219,7 +1219,7 @@ function clMarketClubs(){ CL.menu=null;
     Object.keys(bg[country].divs).forEach(d=>{
       const count=(bg[country].divs[d].clubIds||[]).length;
       rows += `<div class="cl-mkt-club" onclick="clMarketDivision('${d}','${country}')">
-        <span class="cl-divopt-ic">${(typeof COUNTRY_FLAG!=='undefined'&&COUNTRY_FLAG[country])||'🌍'}</span>
+        <span class="cl-divopt-ic">${flagImg(country)}</span>
         <span class="cl-mkt-club-n">${escC(country)} — ${escC(bgDivLabel(country,d))}</span>
         <span class="cl-mkt-club-ov">${count} clubes</span></div>`;
     });
@@ -3019,7 +3019,7 @@ function clCompList(){ CL.menu=null;
     else if(!qualified){ statusTxt='Não classificado · acompanhar'; statusCls='out'; clickable=true; }
     else if(!cupCompetitionTeamAlive(c,cid)){ statusTxt='Eliminado · acompanhar'; statusCls='out'; clickable=true; }
     else { statusTxt=cupCompetitionRoundLabel(c,x.key); statusCls='ok'; clickable=true; }
-    const icon=trophyImg(trophyFor[x.key],24) || (x.key==='copaBrasil'?'🇧🇷':'🌎');
+    const icon=trophyImg(trophyFor[x.key],24) || (x.key==='copaBrasil'?flagImg('Brasil'):'🌎');
     rows.push(`<div class="cl-complist-row ${clickable?'':'disabled'}" ${clickable?`onclick="clCupView('${x.key}')"`:''}>
       <span class="cl-complist-ic">${icon}</span>
       <span class="cl-complist-n">${escC(x.def.name)}</span>
@@ -3297,7 +3297,7 @@ function auctionDialog(p,buyer,feeK){
         <div class="cl-lei-row"><span>Preço base</span><b>zero</b></div>
       </div>
       <div class="cl-lei-r">
-        <div class="cl-lei-row"><span>Nacionalidade</span><b>🇧🇷 Brasil</b></div>
+        <div class="cl-lei-row"><span>Nacionalidade</span><b>${flagImg('Brasil')} Brasil</b></div>
         <div class="cl-lei-row"><span>Comportamento</span><b>${beh}</b></div>
         <div class="cl-lei-row"><span>Gols nesta temporada</span><b>${(S.scorers&&S.scorers[p.n])||0}</b></div>
         <fieldset class="cl-hist" style="max-width:300px;color:#000"><legend style="color:#000">Historial</legend>
@@ -3411,7 +3411,7 @@ function renderBgLeagues(){
   const countries=Object.keys(S.bgLeagues);
   const divKeys=Object.keys(L.divs);
   if(!V.div || divKeys.indexOf(V.div)<0) V.div=divKeys[0];
-  const ctryTabs=countries.map(c=>`<span class="cl-otab ${c===V.country?'on':''}" onclick="CL.bgView.country='${c}';CL.bgView.div=null;renderBgLeagues()">${(typeof COUNTRY_FLAG!=='undefined'&&COUNTRY_FLAG[c])||''} ${escC(c)}</span>`).join('');
+  const ctryTabs=countries.map(c=>`<span class="cl-otab ${c===V.country?'on':''}" onclick="CL.bgView.country='${c}';CL.bgView.div=null;renderBgLeagues()">${flagImg(c)} ${escC(c)}</span>`).join('');
   const divTabs=divKeys.length>1?('<div class="cl-otabs">'+divKeys.map(d=>`<span class="cl-otab ${d===V.div?'on':''}" onclick="CL.bgView.div='${d}';renderBgLeagues()">${escC(bgDivLabel(V.country,d))}</span>`).join('')+'</div>'):'';
   const contentTabs=[['tabela','Tabela'],['artilheiros','Artilheiros'],['sempre','De sempre'],['transferencias','Transferências'],['historico','Campeões']].map(a=>`<span class="cl-otab ${V.tab===a[0]?'on':''}" onclick="CL.bgView.tab='${a[0]}';renderBgLeagues()">${a[1]}</span>`).join('');
   let body='';

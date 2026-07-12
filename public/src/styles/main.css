@@ -185,6 +185,9 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-ctry.sel{background:var(--navy);color:#fff}
 .cl-ctry.off{opacity:.4;cursor:default}
 .cl-flag{font-size:22px;width:34px;text-align:center}
+/* bandeiras como imagem (flagcdn.com) — escalam com o font-size do container */
+.cl-flagimg{height:1em;width:auto;max-width:1.6em;vertical-align:-0.15em;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.18);object-fit:cover}
+.cl-flagimg-none{opacity:.55}
 .cl-ctry-n{flex:1}
 .cl-ctry-t{font-size:19px}
 .cl-paises-side{flex:1;color:#fff}
