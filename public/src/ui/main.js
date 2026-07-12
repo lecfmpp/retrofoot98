@@ -607,7 +607,7 @@ function clSyncOk(){ const b=document.querySelector('.cl-btn-ok'); if(b) b.disab
 function clGoAbertura(){ CL.screen='abertura'; cdraw(); }
 function clModoOk(){
   if(CL.mode==='cont'&&CL.contSel){ clLoadSave(CL.contSel); return; }
-  if((CL.save||'').trim().length>0){ CL.mode='novo'; CL.screen='paises'; cdraw(); }
+  if((CL.save||'').trim().length>0){ CL.mode='novo'; CL.compToggle={libertadores:true,copaBrasil:true,sulamericana:true}; CL.screen='paises'; cdraw(); }
 }
 
 /* ================= 03 · SELECÇÃO DE PAÍSES ================= */
@@ -647,7 +647,7 @@ function scPaises(){
   const selCountries = COUNTRY_LIST().filter(c=>CL.countries.has(c.n)).map(c=>c.n);
   const compCol = selCountries.map(countryCompSection).join('');
   const compHelp = selCountries.length
-    ? '<div class="cl-wiz-comphelp">Ligas e copas de cada país selecionado. As copas do Brasil você liga/desliga; as continentais entram junto com o país.</div>'
+    ? '<div class="cl-wiz-comphelp">Todas as ligas e copas de cada país selecionado entram no seu save.</div>'
     : '<div class="cl-wiz-comphelp">Selecione países à esquerda para ver as competições disponíveis.</div>';
   return wizShell({ step:4, title:'Selecção de Países', back:'clPaisesBack()',
     contentCls:'cl-wiz-paises', actionCls:'',
@@ -697,14 +697,11 @@ function countryCompSection(country){
     const start = d===startDiv;
     return `<div class="cl-comp-toggle on ${start?'start':''}" style="cursor:default">${ic}<b>${escC(label)}</b>${start?'<span class="cl-comp-start-tag">início</span>':''}</div>`;
   }).join('');
-  let cupBadges;
-  if(isBr){
-    const cupRow=(key,label,tk)=>`<div class="cl-comp-toggle ${CL.compToggle[key]?'on':''}" onclick="clToggleComp('${key}')">${trophyImg(tk,26)||'<span class="cl-divopt-ic">🏆</span>'}<b>${escC(label)}</b><span class="cl-comp-check">${CL.compToggle[key]?'✔':''}</span></div>`;
-    cupBadges = cupRow('libertadores','Libertadores','libertadores')+cupRow('sulamericana','Sul-Americana','sulamericana')+cupRow('copaBrasil','Copa do Brasil','copaBrasil');
-  } else {
-    const cupBadge=(label)=>`<div class="cl-comp-toggle on" style="cursor:default"><span class="cl-divopt-ic">🏆</span><b>${escC(label)}</b><span class="cl-comp-check">✔</span></div>`;
-    cupBadges = cupBadge('Champions League')+cupBadge('Europa League');
-  }
+  // toda competição do país entra sempre no save — badges informativos (✔), sem liga/desliga
+  const cupBadge=(label,tk)=>`<div class="cl-comp-toggle on" style="cursor:default">${(tk&&trophyImg(tk,26))||'<span class="cl-divopt-ic">🏆</span>'}<b>${escC(label)}</b><span class="cl-comp-check">✔</span></div>`;
+  const cupBadges = isBr
+    ? cupBadge('Libertadores','libertadores')+cupBadge('Sul-Americana','sulamericana')+cupBadge('Copa do Brasil','copaBrasil')
+    : cupBadge('Champions League')+cupBadge('Europa League');
   return `<div class="cl-paises-divisao">
     <div class="cl-paises-sec-title cl-acc-hd" onclick="clToggleAcc('${openKey}')">
       <span class="cl-comp-country">${flagImg(country)} ${escC(country)}</span>
