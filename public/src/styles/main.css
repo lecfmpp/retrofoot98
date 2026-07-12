@@ -144,7 +144,13 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-wiz-action-c{justify-content:center}
 .cl-wiz-action-e{justify-content:flex-end}
 .cl-wiz-action-r{display:flex;gap:10px}
-.cl-wiz-cta{min-width:92px}
+/* CTA primário verde (Começar / OK) — igual ao design system (rf-cta), tokens --success-*.
+   Escopado em .cl-wiz-actionbar pra vencer .cl-btn (mesma especificidade base). */
+.cl-wiz-actionbar .cl-wiz-cta{min-width:96px;color:#fff;background:var(--success-alt);border-color:var(--success-lite) var(--success-deep) var(--success-deep) var(--success-lite);font-weight:800;letter-spacing:.3px}
+.cl-wiz-actionbar .cl-wiz-cta:active{border-color:var(--success-deep) var(--success-lite) var(--success-lite) var(--success-deep)}
+.cl-wiz-actionbar .cl-wiz-cta .cl-btn-ic{color:#fff}
+.cl-wiz-actionbar .cl-wiz-cta:disabled{background:#9db89d;border-color:#c9dcc9 #7f957f #7f957f #c9dcc9;color:#e8f0e8}
+.cl-wiz-actionbar .cl-wiz-cta:disabled .cl-btn-ic{color:#e8f0e8;opacity:1}
 .cl-wiz-hint{color:var(--ontext-lite2);font-size:12.5px;font-weight:600}
 .cl-mc-card.sel{border-color:var(--yellow);background:rgba(255,255,255,.14);box-shadow:0 0 0 1px var(--yellow) inset}
 .cl-mc-badge{display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;letter-spacing:1px;color:#fff;background:linear-gradient(180deg,#7fb3ff,#3a7bd5);padding:9px 13px;border-radius:8px;box-shadow:0 2px 0 rgba(0,0,0,.25);margin-bottom:2px}
