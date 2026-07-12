@@ -607,7 +607,9 @@ function clSyncOk(){ const b=document.querySelector('.cl-btn-ok'); if(b) b.disab
 function clGoAbertura(){ CL.screen='abertura'; cdraw(); }
 function clModoOk(){
   if(CL.mode==='cont'&&CL.contSel){ clLoadSave(CL.contSel); return; }
-  if((CL.save||'').trim().length>0){ CL.mode='novo'; CL.compToggle={libertadores:true,copaBrasil:true,sulamericana:true}; CL.screen='paises'; cdraw(); }
+  if((CL.save||'').trim().length>0){ CL.mode='novo'; CL.compToggle={libertadores:true,copaBrasil:true,sulamericana:true};
+    if(!CL.countries.size) CL.countries.add('Brasil'); // Brasil pré-selecionado (default)
+    CL.screen='paises'; cdraw(); }
 }
 
 /* ================= 03 · SELECÇÃO DE PAÍSES ================= */
@@ -639,7 +641,7 @@ function scPaises(){
   const rows=COUNTRY_LIST().map(c=>{const sel=CL.countries.has(c.n);
     return `<div class="cl-ctry ${sel?'sel':''} ${c.on?'':'off'}" ${c.on?`onclick="clToggleCountry('${c.n}')"`:''}>
       <span class="cl-flag">${c.f}</span><span class="cl-ctry-n">${c.n}</span>
-      <span class="cl-ctry-t">${c.teams} ${c.teams===1?'equipa':'equipas'}</span></div>`;}).join('');
+      <span class="cl-ctry-t">${c.teams} ${c.teams===1?'clube':'clubes'}</span></div>`;}).join('');
   const teamsSel=[...CL.countries].reduce((s,n)=>{const c=COUNTRY_LIST().find(x=>x.n===n);return s+(c?c.teams:0);},0);
   const okDis=teamsSel<20;
   const totalTeams=COUNTRY_LIST().reduce((s,c)=>s+c.teams,0);
@@ -659,11 +661,9 @@ function scPaises(){
       </div>`,
     body:`
       <div class="cl-wiz-chips">
-        <span class="cl-wiz-chip"><span>Equipas</span><b>${totalTeams}</b></span>
-        <span class="cl-wiz-chip on"><span>Equipas selec.</span><b>${teamsSel}</b></span>
-        <span class="cl-wiz-chip"><span>Países</span><b>${COUNTRY_LIST().length}</b></span>
-        <span class="cl-wiz-chip on"><span>Países selec.</span><b>${CL.countries.size}</b></span>
-        <span class="cl-wiz-chips-note">Totalize pelo menos 20 equipas.</span>
+        <span class="cl-wiz-chip on"><span>Clubes</span><b>${teamsSel}</b><span class="cl-wiz-chip-tot">de ${totalTeams}</span></span>
+        <span class="cl-wiz-chip on"><span>Países</span><b>${CL.countries.size}</b><span class="cl-wiz-chip-tot">de ${COUNTRY_LIST().length}</span></span>
+        <span class="cl-wiz-chips-note">Totalize pelo menos 20 clubes.</span>
       </div>
       <div class="cl-wiz-paisescols">
         <div class="cl-wiz-col cl-wiz-col-paises">
