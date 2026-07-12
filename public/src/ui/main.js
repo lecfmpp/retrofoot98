@@ -195,6 +195,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'sorteio':   html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scSorteio(),{logo:true}); break;
     case 'main':      html=titleBarTop('RetroFoot98')+deskWrap(scMain()); break;
     case 'teamview':  html=titleBarTop('RetroFoot98')+deskWrap(scTeamView()); break;
+    case 'handoff':   html=titleBarTop('RetroFoot98')+deskWrap(scHandoff()); break;
     case 'live':      html=scLive(); break;
     case 'classif':   html=scClassif(); break;
     case 'cupclassif':html=scCupClassif(); break;
@@ -985,12 +986,136 @@ function clGoJogadores(){ CL.screen='jogadores'; cdraw(); }
 function clConfirmarClubes(){
   if(!(CL.pick||[]).every(p=>p.clubId)) return;
   CL.draw=CL.pick.map(p=>({name:p.name, clubId:p.clubId, country:p.country}));
+  // FASE 2: o assento PRIMÁRIO (universo completo, com copas) tem que ser um manager do Brasil
+  // se houver algum — o Brasil não é suportado como liga de background, então precisa ser o
+  // universo-base; os demais países viram ligas de fundo (já suportadas). Cobre o caso
+  // "Flamengo + Inter + Bayern + City": Flamengo comanda o universo, o resto joga no fundo.
+  const bi=CL.draw.findIndex(d=>d.country==='Brasil');
+  if(bi>0){ const [b]=CL.draw.splice(bi,1); CL.draw.unshift(b); }
   const uni=CL.draw[0].country;
   CL.playCountry=uni;
   if(uni==='Brasil'){ setUniverse('brasil'); CL.intlUniverse=false; DATA.clubs=clubsForDivision(computeStartDivision()); }
   else { setUniverse(uni); CL.intlUniverse=uni; DATA.clubs=clubsForDivision(DIV_ORDER[DIV_ORDER.length-1]).slice(); }
   CL.bgCountries=selectedPlayableCountries().filter(c=>c!==uni);
   clEntrar();
+}
+
+/* ================= FASE 2 · HOTSEAT MULTI-HUMANO (rodadas sincronizadas 1 a 1) =================
+   Cada humano (além do manager 1) joga a SUA partida ao vivo a cada rodada, passando o
+   aparelho. Humanos no país primário jogam na divisão do usuário; humanos de outros países
+   jogam na liga de fundo daquele país (clube materializado com elenco real). Os resultados
+   entram nas tabelas certas via playRound()/advanceBgLeagues(). Nada disso roda quando só
+   existe 1 humano — o caminho de 1 país fica idêntico. */
+function primaryCountry(){ return S.intlUniverse || 'Brasil'; }
+/* país (universo) onde o clube de um assento joga: primário (tabela do usuário / outras
+   divisões do universo) ou uma liga de background. */
+function seatCountryOfClub(cid){
+  if(S.table && S.table[cid]) return primaryCountry();
+  if(S.otherDivs){ for(const d in S.otherDivs){ const od=S.otherDivs[d]; if(od.clubs && od.clubs.find(x=>x.id===cid)) return primaryCountry(); } }
+  const bg=S.bgLeagues||{}; for(const c in bg){ for(const d in bg[c].divs){ if((bg[c].divs[d].clubIds||[]).indexOf(cid)>=0) return c; } }
+  return primaryCountry();
+}
+/* assentos humanos que NÃO são o manager 1 (o que este aparelho comanda por padrão) */
+function secondaryHumanSeats(){
+  const out=[]; const H=CL.humans||{};
+  Object.keys(H).forEach(cid=>{ if(cid===String(CL.clubId)) return;
+    out.push({ clubId:cid, name:H[cid], country:seatCountryOfClub(cid) }); });
+  return out;
+}
+function hasSecondaryHumans(){ return !CL.online && secondaryHumanSeats().length>0; }
+/* localiza a partida de um assento humano NESTA rodada. Retorna {kind,country,div,home,away,seed}
+   ou null (folga / divisão não hand-jogável nesta fase). */
+function secondaryHumanFixtureThisRound(cid){
+  const country=seatCountryOfClub(cid);
+  if(country===primaryCountry()){
+    if(S.table && S.table[cid]){ // divisão do usuário
+      const fx=(S.sched[S.round]||[]).find(([h,a])=>h===cid||a===cid);
+      if(!fx || fx[0]==null || fx[1]==null) return null;
+      return { kind:'primary', country, div:S.division, home:fx[0], away:fx[1], seed:matchSeed(fx[0],fx[1]) };
+    }
+    return null; // humano numa OUTRA divisão do universo primário: auto nesta fase (raro; só após temporadas)
+  }
+  const L=(S.bgLeagues||{})[country]; if(!L) return null;
+  for(const d in L.divs){ const dd=L.divs[d]; if((dd.clubIds||[]).indexOf(cid)<0) continue;
+    if(!dd.sched.length) return null;
+    const fx=(dd.sched[S.round % dd.sched.length]||[]).find(p=>p[0]===cid||p[1]===cid);
+    if(!fx || fx[0]==null || fx[1]==null) return null; // folga
+    return { kind:'bg', country, div:d, home:fx[0], away:fx[1], seed:hashSeed(S.seed,'bghuman',country,d,S.round,fx[0],fx[1]) };
+  }
+  return null;
+}
+/* fila de partidas hotseat desta rodada (dedup: uma mesma partida entre dois humanos, ou a
+   do manager 1, entra só uma vez). */
+function buildHumanQueue(uf){
+  const seen={}; if(uf) seen[uf[0]+'-'+uf[1]]=1;
+  const q=[];
+  secondaryHumanSeats().forEach(seat=>{
+    const fx=secondaryHumanFixtureThisRound(seat.clubId); if(!fx) return;
+    const k=fx.home+'-'+fx.away; if(seen[k]) return; seen[k]=1;
+    q.push({ seat, fx });
+  });
+  return q;
+}
+/* mostra a tela de "passe o aparelho" pro próximo humano, ou commita a rodada se a fila acabou */
+function startNextHotseatMatch(){
+  const H=CL._hotseat; if(!H) return;
+  if(!H.queue.length){
+    _commitLeagueRound(H.primaryRL, H.userResult, H.humanResults, H.allEvents, H.audit);
+    CL._hotseat=null; CL._handoff=null;
+    return;
+  }
+  CL._handoff=H.queue[0];
+  CL.screen='handoff'; cdraw();
+}
+function clPlayHotseatMatch(){
+  const H=CL._hotseat, item=CL._handoff; if(!H||!item) return;
+  H.queue=H.queue.slice(1); CL._handoff=null;
+  startHotseatMatch(item.seat, item.fx);
+}
+/* inicia a partida ao vivo de um assento: troca o contexto de "quem eu comando" (engine+UI)
+   pro clube do assento, joga com a MESMA maquinaria da rodada/copa (subs/pênaltis/lesões),
+   e restaura o manager 1 ao terminar (finishHotseatMatch). */
+function startHotseatMatch(seat, fx){
+  const H=CL._hotseat;
+  ensureBgClubMaterialized(fx.home); ensureBgClubMaterialized(fx.away);
+  H._prevClub=S.clubId; H._prevXI=(S.xi||[]).slice();
+  S.clubId=seat.clubId; CL.clubId=seat.clubId; S.xi=autoXI(seat.clubId);
+  fixUserXIAvailability();
+  CL.subPanelOpen=false; CL.subsUsed=0; CL.liveDivOpen=null;
+  const m=buildLiveMatchObject(fx.home,fx.away,fx.seed,{user:true, div:fx.div});
+  const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], humanSeat:{seat,fx} };
+  RL.maxMin=Math.max(94, m.events.length?m.events[m.events.length-1].min:90);
+  CL.live=RL; CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
+}
+function finishHotseatMatch(){
+  const RL=CL.live, m=RL.matches[0], H=CL._hotseat;
+  const scorers=m.events.filter(e=>e.type==='gol'||(e.type==='penalti'&&e.scored)).map(e=>({name:e.scorer,id:e.team}));
+  if(H){ H.humanResults[m.h+'-'+m.a]={hg:m.hg,ag:m.ag,perf:m.perf,scorers,events:m.events};
+    H.allEvents=(H.allEvents||[]).concat(m.events||[]);
+    S.clubId=H._prevClub; CL.clubId=H._prevClub; S.xi=H._prevXI; } // restaura o manager 1
+  CL.live=null; CL.subsUsed=0;
+  startNextHotseatMatch();
+}
+/* tela de passagem de aparelho (hotseat) entre os treinadores humanos */
+function scHandoff(){
+  const it=CL._handoff; if(!it) return deskWrap('');
+  const seat=it.seat, fx=it.fx;
+  // clube de fundo pode ainda não estar materializado (clubOf só resolve nesse ponto após
+  // ensureBgClubMaterialized) — cai no dado real do intlClubById pra mostrar nome/cores.
+  const anyClub=id=>clubOf(id)||(typeof intlClubById==='function'?intlClubById(id):null)||{};
+  const c=anyClub(seat.clubId);
+  const oppId=fx.home===seat.clubId?fx.away:fx.home; const opp=anyClub(oppId);
+  const loc=fx.home===seat.clubId?'em casa':'fora';
+  const flag=(typeof flagImg==='function')?flagImg(seat.country):'';
+  return dlg('Passe o aparelho', `
+    <div class="cl-handoff">
+      <div class="cl-handoff-to">Agora é a vez de</div>
+      <div class="cl-handoff-name">${escC(seat.name)}</div>
+      <div class="cl-handoff-club" style="${clubStripe?clubStripe(c):''}">${flag} ${escC(c.short||c.name||'')}</div>
+      <div class="cl-handoff-country">${flag} ${escC(seat.country)}</div>
+      <div class="cl-handoff-match">${escC(c.short||'')} <span class="cl-handoff-x">×</span> ${escC(opp.short||'')} <span class="cl-handoff-loc">(${loc})</span></div>
+      <div class="cl-handoff-actions">${btn('Jogar','clPlayHotseatMatch()',{icon:'▶',cls:'cl-btn-ok cl-btn-wide'})}</div>
+    </div>`, {w:600,bodyClass:'cl-body-green'});
 }
 
 /* ================= SAVE / LOAD (Modo Solo — só nuvem via Supabase) =================
@@ -1882,7 +2007,7 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
         if(RL.pens && RL.pens.finalH==null) return;
       }
     }
-    RL.done=true; if(RL.cup&&RL.cup.spectate) finishCupSpectate(); else if(RL.cup) finishCupLiveMatch(); else finishLiveRound(); return;
+    RL.done=true; if(RL.cup&&RL.cup.spectate) finishCupSpectate(); else if(RL.cup) finishCupLiveMatch(); else if(RL.humanSeat) finishHotseatMatch(); else finishLiveRound(); return;
   }
   const spd=({Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37})[(CL.options&&CL.options.tempo)||'Usain Bolt']||37;
   const actualSpd=Math.max(12, spd / (CL.speedMult||1));
@@ -2191,7 +2316,8 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
   // a partida própria do usuário (uma só, modal abre sozinho) quanto o modo espectador
   // (várias partidas simultâneas da mesma rodada, nenhuma do usuário — ver startCupSpectate).
   // divisão do usuário no topo e aberta; as demais colapsadas por padrão (accordion)
-  const groups = RL.cup
+  const single = RL.cup || RL.humanSeat; // partida avulsa (copa OU assento hotseat) — lista simples, sem accordion por divisão do universo primário
+  const groups = single
     ? `<div class="cl-live-div open"><div class="cl-live-div-body">${RL.matches.map((m,i)=>rowHTML(m,i)).join('')}</div></div>`
     : divOrderUserFirst().map(d=>{
     const rows=RL.matches.map((m,i)=>({m,i})).filter(x=>(x.m.div||S.division)===d);
@@ -2210,9 +2336,13 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
       <div class="cl-live-cup-name">${escC(COMP_DEFS[RL.cup.key].name)}</div>
       <div class="cl-live-cup-stage">${escC(stageLabel)}</div>
     </div>` : '';
+  // cabeçalho da partida de assento (hotseat): nome do treinador + clube + país
+  const hsTop = RL.humanSeat ? (function(){ const st=RL.humanSeat.seat; const c=clubOf(st.clubId)||{}; const fl=(typeof flagImg==='function')?flagImg(st.country):'';
+    return `<div class="cl-live-cup-top"><div class="cl-live-cup-name">${escC(st.name)} · ${escC(c.short||c.name||'')}</div>
+      <div class="cl-live-cup-stage">${fl} ${escC(st.country)} · ${RL.jornada}ª Jornada</div></div>`; })() : '';
   const topLabel = `${RL.jornada}ª Jornada - ${S.season}`;
   const shootoutBoard = RL.pens ? shootoutScoreboardHTML(RL) : '';
-  return `<div class="cl-live">${cupTop}${RL.cup?'':`<div class="cl-live-top">${divisionTrophyImg(S.division,20)} ${topLabel}</div>`}
+  return `<div class="cl-live">${cupTop}${hsTop}${single?'':`<div class="cl-live-top">${divisionTrophyImg(S.division,20)} ${topLabel}</div>`}
     ${RL.pens ? '' : `<div class="cl-live-clock" id="cl-liveclock" style="--pct:${liveClockPct(RL)}">${RL.extraStartMinute!=null?'<span class="cl-live-clock-lbl">PRORR.</span>':''}</div>`}
     ${shootoutBoard}
     ${groups}
@@ -2580,12 +2710,27 @@ function finishLiveRound(){
   // (fazia isso duas vezes: aqui E de novo na renda-base da rodada).
   let gate=0; if(uf && uf[0]===CL.clubId){ const um=RL.matches.find(m=>m.h===uf[0]&&m.a===uf[1]); if(um){ gate=um.att*um.price; } }
   CL.lastGate=gate;
+  // FASE 2 (hotseat solo): se há OUTROS humanos com jogo nesta rodada, cada um joga a SUA
+  // partida ao vivo (passando o aparelho) ANTES de commitar a rodada. Guarda o contexto do
+  // manager 1 e enfileira; ao esvaziar a fila, _commitLeagueRound roda com os resultados deles.
+  const hq = hasSecondaryHumans() ? buildHumanQueue(uf) : [];
+  if(hq.length){
+    CL._hotseat={ primaryRL:RL, userResult, audit:_auditPayload, humanResults:{},
+      allEvents:RL.matches.flatMap(m=>m.events||[]), queue:hq,
+      prevClub:CL.clubId, prevXI:(S.xi||[]).slice(), prevTactic:S.tactic };
+    startNextHotseatMatch();
+    return;
+  }
+  _commitLeagueRound(RL, userResult, {}, RL.matches.flatMap(m=>m.events||[]), _auditPayload);
+}
+/* commit de uma rodada de liga — extraído do fim de finishLiveRound pra ser reusado depois
+   da fila de partidas hotseat (FASE 2). humanResults = {fxKey:{hg,ag,scorers,perf,events}}. */
+function _commitLeagueRound(RL, userResult, humanResults, allEvents, _auditPayload){
   // disciplina/lesões: cumpre suspensões pendentes e aplica os incidentes NOVOS desta rodada
   // (precisa vir ANTES de playRound() pra ratePlayers() enxergar S._roundIncidents)
   advancePlayerAvailability();
-  const allEvents=RL.matches.flatMap(m=>m.events||[]);
   applyMatchIncidents(allEvents);
-  playRound(userResult);
+  playRound(userResult, humanResults);
   applyOtherDivResults(RL);
   fixUserXIAvailability();
   // segurança no cargo do treinador: demissão ou proposta de outro clube, conforme desempenho

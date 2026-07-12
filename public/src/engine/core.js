@@ -1005,22 +1005,30 @@ function bgAttributeGoals(L, clubId, n){
   }
 }
 /* avança UMA rodada de cada liga de background (chamado junto do avanço de rodada do usuário) */
-function advanceBgLeagues(){
+function advanceBgLeagues(humanResults, roundIdx){
   if(!S.bgLeagues) return;
+  humanResults=humanResults||{};
+  const rIdx=(roundIdx==null)?S.round:roundIdx;
   Object.keys(S.bgLeagues).forEach(country=>{
     const L=S.bgLeagues[country];
     Object.keys(L.divs).forEach(divKey=>{
       const d=L.divs[divKey]; if(!d.sched.length) return;
-      const fx=d.sched[S.round % d.sched.length]||[];
+      const fx=d.sched[rIdx % d.sched.length]||[];
       fx.forEach(pair=>{
         const hId=pair[0], aId=pair[1]; if(hId==null||aId==null) return;
-        const r=bgQuickSim(hId,aId,hashSeed(S.seed,'bg',country,divKey,S.round,hId,aId));
         const T=d.table; if(!T[hId]||!T[aId]) return;
-        T[hId].P++; T[aId].P++; T[hId].GF+=r.hg; T[hId].GA+=r.ag; T[aId].GF+=r.ag; T[aId].GA+=r.hg;
-        if(r.hg>r.ag){T[hId].W++;T[aId].L++;T[hId].Pts+=3;}
-        else if(r.hg<r.ag){T[aId].W++;T[hId].L++;T[aId].Pts+=3;}
+        // FASE 2: se um humano (hotseat) jogou esta partida ao vivo, usa o placar real dele (com artilheiros nomeados)
+        const hr=humanResults[hId+'-'+aId];
+        let hg,ag;
+        if(hr){ hg=hr.hg; ag=hr.ag; }
+        else { const r=bgQuickSim(hId,aId,hashSeed(S.seed,'bg',country,divKey,rIdx,hId,aId)); hg=r.hg; ag=r.ag; }
+        T[hId].P++; T[aId].P++; T[hId].GF+=hg; T[hId].GA+=ag; T[aId].GF+=ag; T[aId].GA+=hg;
+        if(hg>ag){T[hId].W++;T[aId].L++;T[hId].Pts+=3;}
+        else if(hg<ag){T[aId].W++;T[hId].L++;T[aId].Pts+=3;}
         else {T[hId].D++;T[aId].D++;T[hId].Pts++;T[aId].Pts++;}
-        bgAttributeGoals(L,hId,r.hg); bgAttributeGoals(L,aId,r.ag);
+        if(hr){ // artilheiros reais da partida ao vivo (por nome), em vez da atribuição ponderada
+          (hr.scorers||[]).forEach(s=>{ if(!s||!s.name) return; L.scorers[s.name]=(L.scorers[s.name]||0)+1; L.allTimeScorers[s.name]=(L.allTimeScorers[s.name]||0)+1; });
+        } else { bgAttributeGoals(L,hId,hg); bgAttributeGoals(L,aId,ag); }
       });
     });
   });
@@ -2130,7 +2138,9 @@ function applyMatchIncidents(events){
   });
 }
 
-function playRound(userResult){
+function playRound(userResult, humanResults){
+  humanResults=humanResults||{}; // FASE 2: {fxKey: {hg,ag,scorers,perf,events}} — partidas jogadas ao vivo por OUTROS humanos (hotseat), aplicadas em vez de simuladas
+  const bgRoundIdx=S.round; // FASE 2: índice da rodada SENDO jogada (antes do S.round++) — as ligas de fundo têm que usar o MESMO índice que buildHumanQueue usou, senão o resultado do humano não bate com a partida
   if(S.seed==null) S.seed=(Math.random()*0x7fffffff)>>>0; // legacy-save guard
   const uf=userFixture();
   S.roundNews=[];
@@ -2143,6 +2153,13 @@ function playRound(userResult){
     S.results.push({round:S.round,h,a,hg:userResult.hg,ag:userResult.ag,user:true,scorers:userResult.scorers||[],events:uev}); postMatchMorale(userResult,h,a); }
   currentFixtures().forEach(([h,a])=>{
     if(uf&&(h===uf[0]&&a===uf[1]))return;
+    // FASE 2: se OUTRO humano (hotseat) jogou esta partida ao vivo, aplica o resultado dele em vez de simular
+    const hr=humanResults[h+'-'+a];
+    if(hr){ applyResult(h,a,hr.hg,hr.ag); recordScorers(hr.scorers||[]);
+      const Rmh=makeRng(hashSeed(matchSeed(h,a),'rate'));
+      ratePlayers(h,hr.hg,hr.ag,hr.scorers,Rmh,hr.perf&&hr.perf.H,hr.perf&&hr.perf.A); ratePlayers(a,hr.ag,hr.hg,hr.scorers,Rmh,hr.perf&&hr.perf.A,hr.perf&&hr.perf.H);
+      S.results.push({round:S.round,h,a,hg:hr.hg,ag:hr.ag,scorers:hr.scorers||[],events:hr.events,human:true});
+      return; }
     const ms=matchSeed(h,a);
     const r=(typeof simEvents==='function')?simEvents(h,a,ms):quickSim(h,a,ms); applyResult(h,a,r.hg,r.ag); recordScorers(r.scorers);
     const Rm=makeRng(hashSeed(ms,'rate'));
@@ -2170,7 +2187,7 @@ function playRound(userResult){
   if(S.round%2===0) refreshAuctionPool(Rr); // leilão gira a cada 2 rodadas
   rollStory(Rr);
   advancePendingCups(); // cada copa avança na sua própria rodada — ver CUP_TICK_OFFSET
-  advanceBgLeagues(); // ligas dos outros países selecionados rodam junto, no background
+  advanceBgLeagues(humanResults, bgRoundIdx); // ligas dos outros países selecionados rodam junto, no background (humanos hotseat entram aqui) — mesmo índice de rodada do primário
   if(S.round>=S.sched.length){ endSeason(); }
   S._roundIncidents={};
   save();

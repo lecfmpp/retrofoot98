@@ -1049,3 +1049,15 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-cls2-head,.cl-cls2-row{grid-template-columns:22px 1fr 32px 24px 24px 24px 30px 30px;font-size:12px}
   .cl-cls2-head.hasqual,.cl-cls2-row.hasqual{grid-template-columns:22px 1fr 32px 24px 24px 24px 30px 30px 40px}
 }
+
+/* ===== FASE 2 · Hotseat — tela "passe o aparelho" ===== */
+.cl-handoff{display:flex;flex-direction:column;align-items:center;gap:12px;padding:26px 20px;text-align:center}
+.cl-handoff-to{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--on-dark-2,#cfe6cf)}
+.cl-handoff-name{font-size:30px;font-weight:800;color:var(--yellow,#ffff00);text-shadow:1px 1px 0 #000}
+.cl-handoff-club{font-size:20px;font-weight:800;color:#fff;padding:6px 16px;border-radius:8px}
+.cl-handoff-country{font-size:14px;font-weight:700;color:var(--on-dark-2,#cfe6cf);display:flex;align-items:center;gap:6px}
+.cl-handoff-match{font-size:17px;font-weight:700;color:#fff;margin-top:4px}
+.cl-handoff-match .cl-handoff-x{color:var(--yellow,#ffff00);margin:0 6px}
+.cl-handoff-match .cl-handoff-loc{color:var(--on-dark-2,#cfe6cf);font-weight:600;font-size:14px}
+.cl-handoff-actions{margin-top:14px}
+.cl-handoff-club img,.cl-handoff-country img{vertical-align:middle}
