@@ -633,9 +633,11 @@ function computeStartDivision(){
 }
 function divisionShortLabel(d){ return (typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[d]) || ({A:'Série A',B:'Série B',C:'Série C',D:'Série D'})[d] || 'Série A'; }
 /* flag + nome do país do universo ativo (Brasil/Inglaterra/Espanha...) — usado no cabeçalho */
-const UNI_FLAGS={brasil:'🇧🇷',Inglaterra:'🏴',Espanha:'🇪🇸','Itália':'🇮🇹',Alemanha:'🇩🇪',Portugal:'🇵🇹'};
-function universeFlag(){ return UNI_FLAGS[(typeof S!=='undefined'&&S&&S.universe)||'brasil']||'🇧🇷'; }
-function universeCountryName(){ var u=(typeof S!=='undefined'&&S&&S.universe)||'brasil'; return u==='brasil'?'Brasil':u; }
+/* bandeira/nome do universo ATIVO no cabeçalho do clube do usuário. Fonte de verdade:
+   universeCountryInfo()/activeUniverseKey() (core.js), que leem S.intlUniverse — NÃO o
+   antigo S.universe, que nunca era gravado e deixava tudo como Brasil. */
+function universeFlag(){ return (typeof universeCountryInfo==='function'?universeCountryInfo():{flag:'🇧🇷'}).flag; }
+function universeCountryName(){ return (typeof universeCountryInfo==='function'?universeCountryInfo():{name:'Brasil'}).name; }
 function clToggleComp(key){ CL.compToggle[key]=!CL.compToggle[key]; cdraw(); }
 function clToggleCountry(n){ if(CL.countries.has(n))CL.countries.delete(n); else CL.countries.add(n); cdraw(); }
 function clAllCountries(){ COUNTRY_LIST().forEach(c=>{ if(c.on)CL.countries.add(c.n); }); cdraw(); }
@@ -880,7 +882,7 @@ function clLoadSave(name){
     S=g.S; CL.clubId=g.clubId; CL.mgr=g.mgr; CL.currency=g.currency||'Reais'; CL.ticket=g.ticket||8; CL.humans=g.humans||{};
     CL.save=name; CL.online=false; // jogo solo — nunca herda estado de sala online
     if(typeof NET!=='undefined'){ NET.isHost=false; NET.gameId=null; NET.onState=null; }
-    setUniverse(S.universe||'brasil'); // restaura a config de divisões do universo do save (Brasil/Inglaterra/...)
+    setUniverse(S.intlUniverse||'brasil'); // restaura a config de divisões do universo do save (Brasil/Inglaterra/...)
     CL.intlUniverse = S.intlUniverse||false;
     syncDataClubsFromState(); // realinha DATA.clubs com a divisão real do save carregado
     CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||null; cdraw();
@@ -1004,7 +1006,7 @@ function scTeamView(){
       <div class="cl-main-left" style="background:${th.bg}">
         <div class="cl-hdr">
           <div class="cl-mgr">${escC(c.name)}</div>
-          <div class="cl-hdr-sub"><span class="cl-flag2">${clubCountry(c).flag}</span> ${escC(clubCountry(c).name)} ${!c.country?`<span class="cl-div">${divisionTrophyImg(S.division,16)||''} ${divisionLabel()}</span>`:''}</div>
+          <div class="cl-hdr-sub"><span class="cl-flag2">${clubCountry(c).flag}</span> ${escC(clubCountry(c).name)} ${(function(){ const lg=clubLeagueLabel(c); if(lg) return `<span class="cl-div">${escC(lg)}</span>`; return !c.country?`<span class="cl-div">${divisionTrophyImg(S.division,16)||''} ${divisionLabel()}</span>`:''; })()}</div>
         </div>
         <div class="cl-roster-hd cl-acc-hd" onclick="clToggleRoster()">
           <span>Elenco</span><span class="cl-acc-arrow ${CL.rosterOpen===false?'closed':''}">▾</span>

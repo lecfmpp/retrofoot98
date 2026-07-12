@@ -522,7 +522,15 @@ const CONMEBOL_COUNTRIES={
   PAR:{flag:'🇵🇾',name:'Paraguai'}, ECU:{flag:'🇪🇨',name:'Equador'}, VEN:{flag:'🇻🇪',name:'Venezuela'},
   BOL:{flag:'🇧🇴',name:'Bolívia'}
 };
-function clubCountry(c){ return (c&&c.country) || CONMEBOL_COUNTRIES.BRA; }
+/* país (bandeira+nome) do clube, na ordem: (1) .country próprio (clubes CONMEBOL da
+   Libertadores/Sul-Americana); (2) derivado do código de liga lg (clubes das ligas
+   europeias — jogáveis OU de background); (3) universo ativo (fallback: Brasil). */
+function clubCountry(c){
+  if(c && c.country) return c.country;
+  const m=(c && c.lg)?lgToUniDiv(c.lg):null;
+  if(m) return universeCountryInfo(m.uni);
+  return universeCountryInfo();
+}
 
 /* ================= CLASSIFICAÇÃO REAL PRA LIBERTADORES/SUL-AMERICANA 2026 =================
    A 1ª temporada do jogo (2026) não tem uma "Série A do ano anterior" simulada de verdade —
@@ -1162,6 +1170,36 @@ const UNI_CONFIGS={
   Portugal:  { order:['PT'], size:{PT:18}, promo:{PT:0}, releg:{PT:0}, label:{PT:'Primeira Liga'},   lg:{PT:'POR-1'}, country:'Portugal',
                nat:['Portugal'], foreignMax:18 },
 };
+/* bandeira de cada universo (UNI_CONFIGS só guarda o nome do país, não o emoji) */
+const UNI_COUNTRY_FLAG={brasil:'🇧🇷',Inglaterra:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',Espanha:'🇪🇸','Itália':'🇮🇹',Alemanha:'🇩🇪',Portugal:'🇵🇹'};
+/* mapa reverso código-de-liga -> {universo, divisão}. Ex.: 'GER-1' -> {uni:'Alemanha',div:'DE'};
+   'ENG-2' -> {uni:'Inglaterra',div:'CH'}. Construído sob demanda (memoizado) a partir de UNI_CONFIGS.lg. */
+let _LG_TO_UNIDIV=null;
+function lgToUniDiv(lg){
+  if(!_LG_TO_UNIDIV){ _LG_TO_UNIDIV={};
+    Object.keys(UNI_CONFIGS).forEach(uni=>{ const cfg=UNI_CONFIGS[uni];
+      if(cfg.lg) Object.keys(cfg.lg).forEach(dk=>{ _LG_TO_UNIDIV[cfg.lg[dk]]={uni,div:dk}; }); });
+  }
+  return lg?(_LG_TO_UNIDIV[lg]||null):null;
+}
+/* chave do universo ATIVO (fonte única de verdade): o save guarda em S.intlUniverse
+   (país ou false=Brasil); ACTIVE_UNI é o espelho em memória mantido por setUniverse. */
+function activeUniverseKey(){
+  if(typeof S!=='undefined' && S && S.intlUniverse) return S.intlUniverse;
+  return (typeof ACTIVE_UNI!=='undefined' && ACTIVE_UNI) || 'brasil';
+}
+/* {flag,name} de um universo (mesmo formato de CONMEBOL_COUNTRIES, pra usar em qualquer lugar) */
+function universeCountryInfo(key){
+  const k=key||activeUniverseKey();
+  if(!k || k==='brasil') return CONMEBOL_COUNTRIES.BRA;
+  const cfg=UNI_CONFIGS[k];
+  return { flag: UNI_COUNTRY_FLAG[k]||'🏳️', name:(cfg&&cfg.country)||k };
+}
+/* rótulo da liga do clube (ex.: 'Bundesliga', 'La Liga') a partir do código lg — vazio se desconhecido */
+function clubLeagueLabel(c){
+  const m=(c&&c.lg)?lgToUniDiv(c.lg):null;
+  return m?((UNI_CONFIGS[m.uni].label||{})[m.div]||''):'';
+}
 /* jogador é estrangeiro no universo de um país? (nat doméstico definido em UNI_CONFIGS) */
 function playerIsForeign(p, uniKey){
   const cfg=UNI_CONFIGS[uniKey||ACTIVE_UNI]; if(!cfg||!cfg.nat) return false;
