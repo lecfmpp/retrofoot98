@@ -522,7 +522,12 @@ const FLAG_ISO={
   'frança':'fr', france:'fr', 'itália':'it', italy:'it', portugal:'pt', inglaterra:'gb-eng', england:'gb-eng'
 };
 function flagIso(key){ if(!key) return null; return FLAG_ISO[String(key).toLowerCase()]||null; }
-function flagImgIso(iso){ return iso ? '<img class="cl-flagimg" src="https://flagcdn.com/'+iso+'.svg" alt="" loading="lazy">' : '<span class="cl-flagimg-none">🏳</span>'; }
+function flagImgIso(iso){
+  if(!iso) return '<span class="cl-flagimg-none">🏳</span>';
+  // bandeira embutida (base64, instantânea, sem rede); CDN só como fallback se faltar
+  const src=(typeof window!=='undefined' && window.FLAG_PNG && window.FLAG_PNG[iso]) || ('https://flagcdn.com/'+iso+'.svg');
+  return '<img class="cl-flagimg" src="'+src+'" alt="">';
+}
 function flagImg(country){ return flagImgIso(flagIso(country)); }
 
 /* ================= PAÍSES/BANDEIRAS (clubes da CONMEBOL) =================
