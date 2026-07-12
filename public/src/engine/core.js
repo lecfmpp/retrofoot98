@@ -1161,16 +1161,16 @@ const UNI_CONFIGS={
   Inglaterra:{ order:['PL','CH'], size:{PL:20,CH:24}, promo:{PL:0,CH:3}, releg:{PL:3,CH:0},
                label:{PL:'Premier League',CH:'Championship'}, lg:{PL:'ENG-1',CH:'ENG-2'}, country:'Inglaterra',
                nat:['England','Wales','Scotland','Northern Ireland'], foreignMax:22 },
-  Espanha:   { order:['ES','ES2'], size:{ES:20,ES2:20}, promo:{ES:0,ES2:3}, releg:{ES:3,ES2:0},
+  Espanha:   { order:['ES','ES2'], size:{ES:20,ES2:18}, promo:{ES:0,ES2:3}, releg:{ES:3,ES2:0},
                label:{ES:'La Liga',ES2:'La Liga 2'}, lg:{ES:'ESP-1',ES2:'ESP-2'}, country:'Espanha',
                nat:['Spain'], foreignMax:15 },
-  'Itália':  { order:['IT','IT2'], size:{IT:20,IT2:20}, promo:{IT:0,IT2:3}, releg:{IT:3,IT2:0},
+  'Itália':  { order:['IT','IT2'], size:{IT:20,IT2:18}, promo:{IT:0,IT2:3}, releg:{IT:3,IT2:0},
                label:{IT:'Serie A',IT2:'Serie B'}, lg:{IT:'ITA-1',IT2:'ITA-2'}, country:'Itália',
                nat:['Italy'], foreignMax:16 },
-  Alemanha:  { order:['DE','DE2'], size:{DE:18,DE2:20}, promo:{DE:0,DE2:3}, releg:{DE:3,DE2:0},
+  Alemanha:  { order:['DE','DE2'], size:{DE:18,DE2:18}, promo:{DE:0,DE2:3}, releg:{DE:3,DE2:0},
                label:{DE:'Bundesliga',DE2:'2. Bundesliga'}, lg:{DE:'GER-1',DE2:'GER-2'}, country:'Alemanha',
                nat:['Germany'], foreignMax:17 },
-  Portugal:  { order:['PT','PT2'], size:{PT:18,PT2:20}, promo:{PT:0,PT2:3}, releg:{PT:3,PT2:0},
+  Portugal:  { order:['PT','PT2'], size:{PT:18,PT2:18}, promo:{PT:0,PT2:3}, releg:{PT:3,PT2:0},
                label:{PT:'Primeira Liga',PT2:'Liga Portugal 2'}, lg:{PT:'POR-1',PT2:'POR-2'}, country:'Portugal',
                nat:['Portugal'], foreignMax:18 },
 };
@@ -1507,6 +1507,16 @@ function intlPlayerName(R, country){
   }while(PROC_USED_NAMES.has(nm) && tries<400);
   PROC_USED_NAMES.add(nm); return nm;
 }
+/* normaliza nome de clube pra casar real (scrape TM) x curado (ex.: '1.FC Kaiserslautern'
+   x 'Kaiserslautern', 'SL Benfica B' x 'Benfica B') — tira acentos, tokens de futebol e
+   pontuação, e compara só o núcleo. Usado no dedup do padding das 2ªs divisões. */
+function normClubName(s){
+  return String(s||'').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z ]+/g,' ')  // tira dígitos e pontuação (ex.: "1.FC", "Schalke 04")
+    .replace(/\b(fc|cf|sc|ac|as|ss|ssc|ssd|sg|cd|ud|rc|sd|sad|us|usd|uc|lr|ad|afc|calcio|futebol|sport|club|bsc|vfb|vfl|tsg|sv|spvgg|gd|cs|sl|ec|de|do|da)\b/g,'')
+    .replace(/[^a-z]/g,'');
+}
 /* gera os clubes de uma 2ª divisão europeia (nomes reais + elencos procedurais locais), já
    marcados com o código de liga (ex.: 'GER-2') e a nacionalidade doméstica do país. */
 function intlLowerDivisionClubs(country, divKey, lgCode, n, nat){
@@ -1563,9 +1573,16 @@ function clubsForDivision(division){
     const all=(typeof window!=='undefined' && window.INTL_LEAGUES && window.INTL_LEAGUES[cfg.country]) || [];
     const lgCode=cfg.lg && cfg.lg[division];
     let clubs = lgCode ? all.filter(c=>c.lg===lgCode) : all.slice();
-    // divisão sem dados reais (2ª divisão europeia criada por nós) -> nomes reais + elenco procedural
-    if(!clubs.length && lgCode){ clubs = intlLowerDivisionClubs(cfg.country, division, lgCode, DIVISION_SIZE[division]||20, cfg.nat); }
-    return clubs.slice(0, DIVISION_SIZE[division]||clubs.length);
+    const size = DIVISION_SIZE[division] || clubs.length;
+    // 2ª divisão: usa os clubes REAIS scrapeados (elencos reais) e, se vierem incompletos
+    // (o Transfermarkt nem sempre cobre a divisão inteira), completa com os clubes curados
+    // restantes (nomes reais + elenco procedural), sem duplicar quem já veio real.
+    if(clubs.length < size && lgCode && INTL_LOWER_DIVISION_CLUBS[cfg.country] && INTL_LOWER_DIVISION_CLUBS[cfg.country][division]){
+      const have=new Set(clubs.map(c=>normClubName(c.name)));
+      const fill=intlLowerDivisionClubs(cfg.country, division, lgCode, size, cfg.nat).filter(c=>!have.has(normClubName(c.name)));
+      clubs = clubs.concat(fill).slice(0, size);
+    }
+    return clubs.slice(0, size);
   }
   if(division==='A') return DATA.clubsSerieA || DATA.clubs;
   const real=REAL_DIVISION_CACHE[division];
