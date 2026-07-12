@@ -1578,7 +1578,9 @@ function clubsForDivision(division){
     // (o Transfermarkt nem sempre cobre a divisão inteira), completa com os clubes curados
     // restantes (nomes reais + elenco procedural), sem duplicar quem já veio real.
     if(clubs.length < size && lgCode && INTL_LOWER_DIVISION_CLUBS[cfg.country] && INTL_LOWER_DIVISION_CLUBS[cfg.country][division]){
-      const have=new Set(clubs.map(c=>normClubName(c.name)));
+      // dedup contra TODOS os clubes reais do país (todas as divisões), não só esta —
+      // senão um clube que já está na 1ª divisão (ex.: Schalke) reaparece na 2ª (duplicado).
+      const have=new Set(all.map(c=>normClubName(c.name)));
       const fill=intlLowerDivisionClubs(cfg.country, division, lgCode, size, cfg.nat).filter(c=>!have.has(normClubName(c.name)));
       clubs = clubs.concat(fill).slice(0, size);
     }
