@@ -191,6 +191,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'moeda':     html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scMoeda(),{logo:true}); break;
     case 'loading':   html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scLoading(),{logo:true}); break;
     case 'jogadores': html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scJogadores(),{logo:true}); break;
+    case 'escolhaclubes': html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scEscolhaClubes(),{logo:true}); break;
     case 'sorteio':   html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scSorteio(),{logo:true}); break;
     case 'main':      html=titleBarTop('RetroFoot98')+deskWrap(scMain()); break;
     case 'teamview':  html=titleBarTop('RetroFoot98')+deskWrap(scTeamView()); break;
@@ -814,7 +815,7 @@ function scJogadores(){
     <div class="cl-jog">
       <div class="cl-jog-head"><span class="cl-jh-n">Nome</span><span class="cl-jh-e">Equipa</span></div>
       ${rows}
-      <div class="cl-jog-actions">${btn('Sortear equipas','clSortear()',{cls:'cl-btn-wide'})}</div>
+      <div class="cl-jog-actions">${btn('Escolher clubes','clEscolherClubes()',{cls:'cl-btn-wide'})}</div>
     </div>`, {w:820,bodyClass:'cl-body-gray',min:true});
 }
 /* clubes reais dos países europeus selecionados (união de todas as ligas escolhidas) */
@@ -915,6 +916,81 @@ function clEntrar(){
   saveV3();
   cdraw();
   checkPendingCupDraws(()=>{}); // mostra o sorteio da Copa do Brasil já no início do save, se houver
+}
+
+/* ================= FASE 1 · ESCOLHA DE CLUBES POR MANAGER (multi-país) =================
+   Cada manager escolhe país + clube (livre). O clube do manager 1 é o que VOCÊ comanda
+   ao vivo (universo primário) hoje; os demais ficam registrados como humanos nas suas
+   ligas. A Fase 2 torna cada um jogável de verdade a cada rodada sincronizada. */
+function startClubsForCountry(country){
+  const uniKey = country==='Brasil' ? 'brasil' : country;
+  setUniverse(uniKey);
+  const div = country==='Brasil' ? computeStartDivision() : DIV_ORDER[DIV_ORDER.length-1];
+  return clubsForDivision(div).slice();
+}
+function buildPickPool(){
+  const pool={};
+  selectedPlayableCountries().forEach(c=>{ pool[c]=startClubsForCountry(c).map(x=>({id:x.id,short:x.short,name:x.name})); });
+  setUniverse('brasil'); // reset — clConfirmarClubes/clEntrar seta o universo certo depois
+  return pool;
+}
+function clEscolherClubes(){
+  const names=CL.names.map(n=>(n||'').trim()).filter(Boolean);
+  if(!names.length){ CL.names[0]='JOGADOR'; return cdraw(); }
+  toastC('Carregando clubes...');
+  (async ()=>{
+    // Brasil começa na Série D real (carrega se possível), como no sorteio clássico
+    if(CL.countries.has('Brasil') && computeStartDivision()!=='A' && typeof NET!=='undefined' && NET.getDivisionClubs && NET.authStatus && NET.authStatus().loggedIn){
+      try{ await loadRealDivisionClubs(computeStartDivision()); }catch(e){}
+    }
+    CL._pickPool = buildPickPool();
+    const countries = selectedPlayableCountries();
+    CL.pick = names.map(nm=>({ name:nm, country:countries[0]||'Brasil', clubId:null }));
+    CL.screen='escolhaclubes'; cdraw();
+  })().catch(err=>{ console.error(err); toastC('⚠ Erro ao carregar clubes.'); });
+}
+function scEscolhaClubes(){
+  const countries=selectedPlayableCountries();
+  const taken=new Set((CL.pick||[]).filter(p=>p.clubId).map(p=>p.clubId));
+  const rows=(CL.pick||[]).map((p,i)=>{
+    const clubs=((CL._pickPool||{})[p.country]||[]).filter(c=>!taken.has(c.id)||c.id===p.clubId).sort((a,b)=>a.short.localeCompare(b.short));
+    const countrySel=countries.map(c=>`<option value="${escC(c)}" ${p.country===c?'selected':''}>${escC(c)}</option>`).join('');
+    const clubSel=`<option value="">— escolha —</option>`+clubs.map(c=>`<option value="${escC(c.id)}" ${p.clubId===c.id?'selected':''}>${escC(c.short)}</option>`).join('');
+    return `<div class="cl-pickrow">
+      <span class="cl-pick-n">${escC(p.name)}${i===0?' <b class="cl-pick-you">(você)</b>':''}</span>
+      <select class="cl-select cl-pick-sel" onchange="clPickCountry(${i},this.value)">${countrySel}</select>
+      <select class="cl-select cl-pick-sel" onchange="clPickClub(${i},this.value)">${clubSel}</select>
+    </div>`;
+  }).join('');
+  const allChosen=(CL.pick||[]).length>0 && CL.pick.every(p=>p.clubId);
+  return dlg('Escolha os clubes', `
+    <div class="cl-pick">
+      <div class="cl-pickrow cl-pick-head"><span>Jogador</span><span>País</span><span>Clube</span></div>
+      ${rows}
+      <div class="cl-instr" style="margin-top:8px">Cada jogador escolhe seu país e um clube livre. ${countries.length>1?'Podem estar em países diferentes.':''}</div>
+    </div>
+    <div class="cl-cal-ok">${btn('Começar','clConfirmarClubes()',{icon:'✔',cls:'cl-btn-ok',dis:!allChosen})}${btn('Sortear','clSortearPick()',{icon:'🎲'})}${btn('Voltar','clGoJogadores()',{icon:'↩',cls:'cl-btn-cancel'})}</div>
+  `, {w:720,bodyClass:'cl-body-green'});
+}
+/* preenche aleatoriamente um clube livre pra cada manager (respeita o país escolhido) */
+function clSortearPick(){
+  const taken=new Set();
+  (CL.pick||[]).forEach(p=>{ const pool=((CL._pickPool||{})[p.country]||[]).filter(c=>!taken.has(c.id));
+    if(pool.length){ const pk=pool[Math.floor(Math.random()*pool.length)]; p.clubId=pk.id; taken.add(pk.id); } });
+  cdraw();
+}
+function clPickCountry(i,c){ if(!CL.pick[i])return; CL.pick[i].country=c; CL.pick[i].clubId=null; cdraw(); }
+function clPickClub(i,id){ if(!CL.pick[i])return; CL.pick[i].clubId=id||null; cdraw(); }
+function clGoJogadores(){ CL.screen='jogadores'; cdraw(); }
+function clConfirmarClubes(){
+  if(!(CL.pick||[]).every(p=>p.clubId)) return;
+  CL.draw=CL.pick.map(p=>({name:p.name, clubId:p.clubId, country:p.country}));
+  const uni=CL.draw[0].country;
+  CL.playCountry=uni;
+  if(uni==='Brasil'){ setUniverse('brasil'); CL.intlUniverse=false; DATA.clubs=clubsForDivision(computeStartDivision()); }
+  else { setUniverse(uni); CL.intlUniverse=uni; DATA.clubs=clubsForDivision(DIV_ORDER[DIV_ORDER.length-1]).slice(); }
+  CL.bgCountries=selectedPlayableCountries().filter(c=>c!==uni);
+  clEntrar();
 }
 
 /* ================= SAVE / LOAD (Modo Solo — só nuvem via Supabase) =================
