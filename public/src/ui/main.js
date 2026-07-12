@@ -220,6 +220,19 @@ const FEATURES=[
 ];
 const LANDING_NAV=[['home','Início'],['sobre','Sobre nós'],['ajuda','Como jogar'],['contato','Contato']];
 const LANDING_FOOT=[['sobre','Sobre nós'],['contato','Contato'],['termos','Termos'],['priv','Privacidade']];
+/* navbar da Home/wizard: links à esquerda + ações à direita. No mobile os links colapsam
+   num menu hambúrguer (☰) em vez de rolar horizontalmente. navItems = [[label,onclick,ativo]]. */
+function homeNavbar(navItems, rightHTML){
+  const open=CL.navMenuOpen?'open':'';
+  const links=navItems.map(([label,onclick,active])=>`<button class="cl-home-nav ${active?'on':''}" onclick="${onclick}">${escC(label)}</button>`).join('');
+  return `<div class="cl-home-navbar">
+    <button class="cl-home-burger" onclick="clToggleNavMenu(event)" aria-label="Menu">☰</button>
+    <div class="cl-home-navlinks ${open}">${links}</div>
+    <div class="cl-home-navsp"></div>
+    ${rightHTML}
+  </div>`;
+}
+function clToggleNavMenu(e){ if(e&&e.stopPropagation) e.stopPropagation(); CL.navMenuOpen=!CL.navMenuOpen; cdraw(); }
 function scAbertura(){
   const v=CL.landingView||'home';
   const navHTML=LANDING_NAV.map(([view,label])=>`<button class="cl-home-nav ${v===view?'on':''}" onclick="clLandingGo('${view}')">${escC(label)}</button>`).join('');
@@ -231,12 +244,9 @@ function scAbertura(){
       <div class="cl-home-tb-l"><img src="img/logo.webp" width="500" height="500" alt="">RetroFoot98</div>
       <div class="cl-home-tb-r"><span>_</span><span>□</span><span>✕</span></div>
     </div>
-    <div class="cl-home-navbar">
-      ${navHTML}
-      <div class="cl-home-navsp"></div>
-      <span class="cl-home-online"><span class="cl-home-online-dot"></span>100% Online</span>
-      <button class="cl-home-nav" onclick="clGoModo()" style="color:#00005c">🔑 Entrar</button>
-    </div>
+    ${homeNavbar(LANDING_NAV.map(([view,label])=>[label,`clLandingGo('${view}')`,v===view]),
+      `<span class="cl-home-online"><span class="cl-home-online-dot"></span>100% Online</span>
+       <button class="cl-home-entrar" onclick="clGoModo()"><span>🔑</span>Entrar</button>`)}
     <div class="cl-home-body">${body}</div>
     <div class="cl-home-footer">
       <div class="cl-home-foot-l"><span class="cl-home-ver">v2026.01</span><span>© 2026 RetroFoot98</span></div>
@@ -335,6 +345,7 @@ function clNoop(){}
 /* 'Entrar' na abertura: login é OBRIGATÓRIO (vale p/ Solo e Resenha). Se já houver
    sessão salva, vai direto pra escolha de modo; senão mostra a tela de login. */
 function clGoModo(mode){
+  CL.navMenuOpen=false;
   toastC('Conectando...');
   (async ()=>{
     await netInitSupabase();
@@ -346,7 +357,7 @@ function clGoModo(mode){
 }
 /* páginas institucionais da Home (Sobre nós/Como jogar/Contato/Termos/Privacidade) —
    trocam só o corpo da mesma página (mesmo header/footer), sem sair da tela 'abertura'. */
-function clLandingGo(view){ CL.landingView=view; cdraw(); }
+function clLandingGo(view){ CL.landingView=view; CL.navMenuOpen=false; cdraw(); }
 /* ================= LOGIN (abertura) — obrigatório, vale p/ os dois modos ================= */
 function scLogin(){ const a=CL.auth||(CL.auth={mode:'login',name:'',email:'',password:''});
   const isSignup=a.mode==='signup';
@@ -456,7 +467,7 @@ function clDoUpdatePassword(){
    título + navbar logada + footer), cabeçalho de etapa (‹ Voltar + título + pill N/4) e
    barra de ação inferior. Só markup/estilo/navegação — a lógica (handlers) é a mesma.
    Passos: 1 Escolher modo · 2 Modo Solo · 3 Novo jogo (nome) · 4 Selecção de Países. */
-function clWizHome(view){ CL.screen='abertura'; CL.landingView=view||'home'; cdraw(); }
+function clWizHome(view){ CL.screen='abertura'; CL.landingView=view||'home'; CL.navMenuOpen=false; cdraw(); }
 function wizShell(o){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   const user=st.name||CL.mgr||'jogador';
@@ -468,16 +479,11 @@ function wizShell(o){
       <div class="cl-home-tb-l"><img src="img/logo.webp" width="500" height="500" alt="">RetroFoot98</div>
       <div class="cl-home-tb-r"><span>_</span><span>□</span><span>✕</span></div>
     </div>
-    <div class="cl-home-navbar">
-      <button class="cl-home-nav" onclick="clWizHome('home')">Início</button>
-      <button class="cl-home-nav" onclick="clWizHome('sobre')">Sobre nós</button>
-      <button class="cl-home-nav" onclick="clWizHome('ajuda')">Como jogar</button>
-      <button class="cl-home-nav" onclick="clWizHome('contato')">Contato</button>
-      <div class="cl-home-navsp"></div>
-      <span class="cl-home-online"><span class="cl-home-online-dot"></span>100% Online</span>
-      <span class="cl-wiz-user">👤 ${escC(user)}</span>
-      <button class="cl-topbar-auth-out cl-wiz-sair" onclick="clAuthLogout()">Sair</button>
-    </div>
+    ${homeNavbar(
+      [['Início',"clWizHome('home')"],['Sobre nós',"clWizHome('sobre')"],['Como jogar',"clWizHome('ajuda')"],['Contato',"clWizHome('contato')"]],
+      `<span class="cl-home-online"><span class="cl-home-online-dot"></span>100% Online</span>
+       <span class="cl-wiz-user">👤 ${escC(user)}</span>
+       <button class="cl-topbar-auth-out cl-wiz-sair" onclick="clAuthLogout()">Sair</button>`)}
     <div class="cl-home-body cl-wiz-body">
       <div class="cl-wiz-stephead">
         ${back}

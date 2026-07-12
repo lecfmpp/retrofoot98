@@ -51,9 +51,15 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-home-tb-l img{width:18px;height:18px;object-fit:contain}
 .cl-home-tb-r{display:flex;gap:3px}
 .cl-home-tb-r span{width:18px;height:16px;background:var(--chrome);border:1px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);color:#111;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1}
-.cl-home-navbar{flex:none;display:flex;align-items:center;gap:2px;padding:0 6px;background:var(--chrome);border-bottom:2px solid var(--bevD);height:38px;overflow-x:auto}
+.cl-home-navbar{flex:none;display:flex;align-items:center;gap:2px;padding:0 6px;background:var(--chrome);border-bottom:2px solid var(--bevD);height:38px;overflow-x:auto;position:relative}
 .cl-home-nav{background:transparent;border:none;border-top:2px solid transparent;border-bottom:2px solid transparent;font-family:var(--sans);font-size:13px;font-weight:700;color:var(--navy);padding:7px 12px;cursor:pointer;line-height:1;white-space:nowrap}
 .cl-home-nav:hover,.cl-home-nav.on{background:var(--navy);color:#fff}
+.cl-home-navlinks{display:flex;align-items:center;gap:2px}
+.cl-home-burger{display:none;background:transparent;border:none;color:var(--navy);font-size:20px;font-weight:800;cursor:pointer;padding:4px 10px;line-height:1}
+/* botão Entrar — navy sólido com texto branco (alto contraste sobre a barra cinza) */
+.cl-home-entrar{display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:#fff;font-family:var(--sans);font-weight:800;font-size:13px;border:2px solid;border-color:#5a5adf #00003a #00003a #5a5adf;padding:6px 15px;cursor:pointer;white-space:nowrap;margin-left:2px}
+.cl-home-entrar:hover{background:#15159a}
+.cl-home-entrar:active{border-color:#00003a #5a5adf #5a5adf #00003a}
 .cl-home-navsp{flex:1}
 .cl-home-online{display:inline-flex;align-items:center;gap:6px;background:var(--success-alt);color:#fff;font-weight:800;font-size:11px;padding:4px 11px;border-radius:var(--radius-chip);border:1px solid var(--success-deep);white-space:nowrap;margin-right:6px}
 .cl-home-online-dot{width:8px;height:8px;border-radius:50%;background:var(--success-lite);animation:cl-home-blink 1.6s infinite}
@@ -111,9 +117,14 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-home-foot{color:#3a3a3a;font-weight:700;text-decoration:none;cursor:pointer;font-family:var(--sans);font-size:11px}
 .cl-home-foot:hover{text-decoration:underline;color:var(--navy)}
 @media (max-width:760px){
-  .cl-home-navbar{padding:3px 6px;height:auto}
+  .cl-home-navbar{padding:3px 6px;height:auto;overflow:visible}
   .cl-home-nav{padding:9px 12px;font-size:14px}
   .cl-home-online{display:none}
+  .cl-home-burger{display:inline-flex;align-items:center}
+  .cl-home-navlinks{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;background:var(--chrome);border-bottom:2px solid var(--bevD);box-shadow:0 10px 24px rgba(0,0,0,.4);z-index:40}
+  .cl-home-navlinks.open{display:flex}
+  .cl-home-navlinks .cl-home-nav{text-align:left;padding:13px 16px;border-top:none;border-bottom:1px solid rgba(0,0,0,.1)}
+  .cl-wiz-user{font-size:11px;padding:0 4px}
   .cl-home-hero-h{font-size:22px}
   .cl-home-featrow{flex-direction:column;align-items:center;gap:16px}
   .cl-home-feat{width:100%;max-width:320px}
