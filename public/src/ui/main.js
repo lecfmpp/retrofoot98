@@ -184,9 +184,9 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'abertura':  html=scAbertura(); break;
     case 'login':     html=titleBarTop('RetroFoot98',{logo:true,linkHome:true})+deskWrap(scLogin(),{logo:true,linkHome:true}); break;
     case 'resetpassword': html=titleBarTop('RetroFoot98',{logo:true,linkHome:true})+deskWrap(scResetPassword(),{logo:true,linkHome:true}); break;
-    case 'modo':      html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scModoChoice(),{logo:true}); break;
-    case 'modosolo':  html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scModoSolo(),{logo:true}); break;
-    case 'paises':    html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scPaises(),{logo:true}); break;
+    case 'modo':      html=scModoChoice(); break;
+    case 'modosolo':  html=scModoSolo(); break;
+    case 'paises':    html=scPaises(); break;
     case 'paisJogavel': html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scPaisJogavel(),{logo:true}); break;
     case 'moeda':     html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scMoeda(),{logo:true}); break;
     case 'loading':   html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scLoading(),{logo:true}); break;
@@ -451,12 +451,63 @@ function clDoUpdatePassword(){
   } catch(e){ toastC('⚠ '+(e&&e.message||'Erro ao salvar a senha.')); } })();
 }
 
-/* ================= 02a · ESCOLHA DE MODO (Solo / Resenha) ================= */
+/* ================= FLUXO "NOVO JOGO" — wizard de 4 passos =================
+   Redesign do handoff (design_handoff_novo_jogo): shell fixo igual à Home (barra de
+   título + navbar logada + footer), cabeçalho de etapa (‹ Voltar + título + pill N/4) e
+   barra de ação inferior. Só markup/estilo/navegação — a lógica (handlers) é a mesma.
+   Passos: 1 Escolher modo · 2 Modo Solo · 3 Novo jogo (nome) · 4 Selecção de Países. */
+function clWizHome(view){ CL.screen='abertura'; CL.landingView=view||'home'; cdraw(); }
+function wizShell(o){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+  const user=st.name||CL.mgr||'jogador';
+  const back = o.back
+    ? `<button class="cl-wiz-back" onclick="${o.back}">‹ ${escC(o.backLabel||'Voltar')}</button>`
+    : `<span class="cl-wiz-back-sp"></span>`;
+  return `<div class="cl-home cl-wiz">
+    <div class="cl-home-titlebar">
+      <div class="cl-home-tb-l"><img src="img/logo.webp" width="500" height="500" alt="">RetroFoot98</div>
+      <div class="cl-home-tb-r"><span>_</span><span>□</span><span>✕</span></div>
+    </div>
+    <div class="cl-home-navbar">
+      <button class="cl-home-nav" onclick="clWizHome('home')">Início</button>
+      <button class="cl-home-nav" onclick="clWizHome('sobre')">Sobre nós</button>
+      <button class="cl-home-nav" onclick="clWizHome('ajuda')">Como jogar</button>
+      <button class="cl-home-nav" onclick="clWizHome('contato')">Contato</button>
+      <div class="cl-home-navsp"></div>
+      <span class="cl-home-online"><span class="cl-home-online-dot"></span>100% Online</span>
+      <span class="cl-wiz-user">👤 ${escC(user)}</span>
+      <button class="cl-topbar-auth-out cl-wiz-sair" onclick="clAuthLogout()">Sair</button>
+    </div>
+    <div class="cl-home-body cl-wiz-body">
+      <div class="cl-wiz-stephead">
+        ${back}
+        <span class="cl-wiz-steptitle">${escC(o.title)}</span>
+        <span class="cl-wiz-steppill">${o.step} / 4</span>
+      </div>
+      <div class="cl-wiz-content ${o.contentCls||''}">${o.body}</div>
+      <div class="cl-wiz-actionbar ${o.actionCls||''}">${o.action||''}</div>
+    </div>
+    <div class="cl-home-footer">
+      <div class="cl-home-foot-l"><span class="cl-home-ver">v2026.01</span><span>© 2026 RetroFoot98</span></div>
+      <div class="cl-home-foot-r">
+        <a class="cl-home-foot" onclick="clWizHome('sobre')">Sobre nós</a>
+        <a class="cl-home-foot" onclick="clWizHome('contato')">Contato</a>
+        <a class="cl-home-foot" onclick="clWizHome('termos')">Termos</a>
+        <a class="cl-home-foot" onclick="clWizHome('priv')">Privacidade</a>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ================= 02a · PASSO 1 — ESCOLHER MODO (Solo / Resenha) ================= */
 function scModoChoice(){
-  return dlg('RetroFoot98', `
-    <div class="cl-modochoice">
-      <div class="cl-mc-sub">Como você quer jogar?</div>
-      <div class="cl-mc-cards">
+  return wizShell({ step:1, title:'Escolher modo', back:'clGoAbertura()', backLabel:'Voltar ao início',
+    contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
+    action:`<span class="cl-wiz-hint">Toque num cartão para continuar.</span>`,
+    body:`
+      <div class="cl-wiz-h">Como você quer jogar?</div>
+      <div class="cl-wiz-sub">Você pode mudar de modo depois, a qualquer momento.</div>
+      <div class="cl-wiz-cards">
         <div class="cl-mc-card" onclick="clPickSolo()">
           <div class="cl-mc-ic">🎮</div>
           <div class="cl-mc-t">Modo Solo</div>
@@ -467,10 +518,8 @@ function scModoChoice(){
           <div class="cl-mc-t">Modo Resenha</div>
           <div class="cl-mc-d">Jogue online com amigos — cada um assume um clube, com chat da liga.</div>
         </div>
-      </div>
-    </div>
-    <div class="cl-dlg-side">${btn('Voltar','clGoAbertura()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
-    {w:760,bodyClass:'cl-body-green cl-hasside'});
+      </div>`
+  });
 }
 function clPickSolo(){ CL.screen='modosolo'; CL.soloStep='choice'; CL.soloSaves=null; CL.mode=null; CL.contSel=null; CL.save=''; cdraw();
   (async ()=>{ CL.soloSaves = (typeof NET!=='undefined'&&NET.listSoloSaves)?await NET.listSoloSaves():[]; if(CL.screen==='modosolo') cdraw(); })(); }
@@ -484,66 +533,72 @@ function clPickResenha(){
   (async ()=>{ try{ CL.net.myRooms = await NET.listMyRooms(); if(CL.net&&CL.net.step==='escolha') cdraw(); }catch(e){} })();
 }
 
-/* ================= 02 · MODO SOLO — escolha em cards (novo / continuar), saves na NUVEM ================= */
+/* ================= PASSO 2 · MODO SOLO — novo / continuar (saves na NUVEM) ================= */
 function scModoSolo(){
   const step=CL.soloStep||'choice';
   if(step==='novo') return scSoloNovo();
   if(step==='cont') return scSoloCont();
   const loading=CL.soloSaves==null; const n=(CL.soloSaves||[]).length;
-  const contDesc = loading?'Carregando seus jogos salvos…' : (n?`Você tem ${n} jogo${n>1?'s':''} salvo${n>1?'s':''} na nuvem.`:'Nenhum jogo salvo ainda.');
-  return dlg('Modo Solo', `
-    <div class="cl-modochoice">
-      <div class="cl-mc-sub">Como você quer começar?</div>
-      <div class="cl-mc-cards">
-        <div class="cl-mc-card" onclick="clSoloNew()">
-          <div class="cl-mc-ic">🆕</div>
+  const contDesc = loading?'Carregando seus jogos salvos…' : (n?`Você tem <b>${n}</b> jogo${n>1?'s':''} salvo${n>1?'s':''} na nuvem.`:'Nenhum jogo salvo ainda.');
+  return wizShell({ step:2, title:'Modo Solo', back:'clGoModo()',
+    contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
+    action:`<span class="cl-wiz-hint">Toque num cartão para continuar.</span>`,
+    body:`
+      <div class="cl-wiz-h">Como você quer começar?</div>
+      <div class="cl-wiz-sub">Comece do zero ou retome um dos seus saves na nuvem.</div>
+      <div class="cl-wiz-cards">
+        <div class="cl-mc-card sel" onclick="clSoloNew()">
+          <span class="cl-mc-badge">NEW</span>
           <div class="cl-mc-t">Novo jogo</div>
           <div class="cl-mc-d">Comece uma carreira nova do zero, contra a máquina.</div>
         </div>
         <div class="cl-mc-card" onclick="clSoloContinue()">
-          <div class="cl-mc-ic">📂</div>
+          <div class="cl-mc-ic">📁</div>
           <div class="cl-mc-t">Continuar</div>
           <div class="cl-mc-d">${contDesc}</div>
         </div>
-      </div>
-    </div>
-    <div class="cl-dlg-side">${btn('Voltar','clGoModo()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
-    {w:760,bodyClass:'cl-body-green cl-hasside'});
+      </div>`
+  });
 }
+/* ================= PASSO 3 · NOVO JOGO — nome do save ================= */
 function scSoloNovo(){
-  const ok=(CL.save||'').trim().length>0;
-  return dlg('Novo jogo', `
-    <div class="cl-authbox">
-      <div class="cl-authsub">Dê um nome pra este jogo (até 8 letras/números). Ele fica salvo na sua conta, na nuvem.</div>
-      <div class="cl-authform">
-        <div class="cl-authfield"><label>Nome do jogo</label>
-          <input id="cl-focus" class="cl-savename-in" maxlength="8" value="${escC(CL.save||'')}" oninput="CL.save=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');this.value=CL.save;clSyncOk()" onkeydown="if(event.key==='Enter')clModoOk()"></div>
-      </div>
-      <div class="cl-auth-actions">
-        ${btn('Começar','clModoOk()',{icon:'✔',cls:'cl-btn-ok',dis:!ok})}
-        ${btn('Voltar','clSoloBackChoice()',{icon:'✖',cls:'cl-btn-cancel'})}
-      </div>
-    </div>`, {w:460,bodyClass:'cl-body-green'});
+  const val=CL.save||''; const ok=val.trim().length>0;
+  return wizShell({ step:3, title:'Novo jogo', back:'clSoloBackChoice()',
+    contentCls:'cl-wiz-top', actionCls:'cl-wiz-action-e',
+    action:`${btn('Começar','clModoOk()',{icon:'✔',cls:'cl-btn-ok cl-wiz-cta',dis:!ok})}`,
+    body:`
+      <div class="cl-wiz-form">
+        <p class="cl-wiz-p">Dê um nome pra este jogo (até 8 letras/números). Ele fica salvo na sua conta, na nuvem.</p>
+        <div class="cl-wiz-fieldhd">
+          <label class="cl-wiz-label">Nome do jogo</label>
+          <span class="cl-wiz-count">${val.length}/8</span>
+        </div>
+        <input id="cl-focus" class="cl-wiz-field" type="text" maxlength="8" placeholder="EX: SAVE01" value="${escC(val)}"
+          oninput="CL.save=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');this.value=CL.save;clSyncOk();clSyncCount()"
+          onkeydown="if(event.key==='Enter')clModoOk()">
+        <div class="cl-wiz-note">Só letras e números, sem espaços.</div>
+      </div>`
+  });
 }
+function clSyncCount(){ const el=document.querySelector('.cl-wiz-count'); if(el) el.textContent=(CL.save||'').length+'/8'; }
+/* Continuar: lista de saves na nuvem (variante do passo 2) */
 function scSoloCont(){
   const loading=CL.soloSaves==null; const saves=CL.soloSaves||[];
-  let body;
-  if(loading) body='<div class="cl-savempty">carregando seus jogos…</div>';
-  else if(!saves.length) body='<div class="cl-savempty">Você ainda não tem jogos salvos. Comece um novo jogo!</div>';
-  else body=saves.map(s=>`<div class="cl-myroom" onclick="clLoadSave('${escC(s.name)}')">
+  let list;
+  if(loading) list='<div class="cl-savempty">carregando seus jogos…</div>';
+  else if(!saves.length) list='<div class="cl-savempty">Você ainda não tem jogos salvos. Comece um novo jogo!</div>';
+  else list=saves.map(s=>`<div class="cl-myroom" onclick="clLoadSave('${escC(s.name)}')">
       <div class="cl-myroom-main">
         <div class="cl-myroom-name">${escC(s.name)}</div>
         <div class="cl-myroom-sub">${s.updated_at?('Salvo em '+new Date(s.updated_at).toLocaleDateString('pt-BR')):'Jogo salvo'}</div>
       </div>
       <div class="cl-myroom-arrow">➜</div>
     </div>`).join('');
-  return dlg('Continuar jogo', `
-    <div class="cl-conta">
-      <div class="cl-conta-sub">Toque num jogo pra continuar de onde parou.</div>
-      <div class="cl-myrooms-list">${body}</div>
-    </div>
-    <div class="cl-cal-ok">${btn('Voltar','clSoloBackChoice()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
-    {w:560,bodyClass:'cl-body-green'});
+  return wizShell({ step:2, title:'Continuar jogo', back:'clSoloBackChoice()',
+    contentCls:'cl-wiz-top', actionCls:'cl-wiz-action-c',
+    action:`<span class="cl-wiz-hint">Toque num jogo pra continuar de onde parou.</span>`,
+    body:`<div class="cl-wiz-form cl-wiz-form-wide"><div class="cl-myrooms-list">${list}</div></div>`
+  });
 }
 function clSoloNew(){ CL.soloStep='novo'; cdraw(); }
 function clSoloContinue(){ CL.soloStep='cont'; cdraw(); }
@@ -609,26 +664,41 @@ function scPaises(){
         <div class="cl-instr" style="margin-top:6px">Desligue as que não quiser disputar — o jogo não carrega nem simula o que estiver desligado.</div>
       </div>
     </div>` : '';
-  return dlg('Selecção de Países', `
-    <div class="cl-paises">
-      <div class="cl-ctry-list">${rows}</div>
-      <div class="cl-paises-side">
-        <div class="cl-side-btns">
-          ${btn('Todas','clAllCountries()',{icon:'▤'})}
-          ${btn('OK','clPaisesOk()',{icon:'✔',cls:'cl-btn-ok',dis:okDis})}
-          ${btn('Cancelar','clGoModo()',{icon:'✖',cls:'cl-btn-cancel'})}
-        </div>
-        <div class="cl-counters">
-          <div><span>Equipas existentes</span><b>${COUNTRY_LIST().reduce((s,c)=>s+c.teams,0)}</b></div>
-          <div class="cl-hl"><span>Equipas seleccionadas</span><b>${teamsSel}</b></div>
-          <div class="cl-gap"><span>Países existentes</span><b>${COUNTRY_LIST().length}</b></div>
-          <div><span>Países seleccionados</span><b>${CL.countries.size}</b></div>
-        </div>
-        <div class="cl-instr">Seleccione os países com que pretende jogar, de modo a totalizar pelo menos 20 equipas.</div>
+  const totalTeams=COUNTRY_LIST().reduce((s,c)=>s+c.teams,0);
+  const compHelp = brasilSel
+    ? '<div class="cl-wiz-comphelp">Escolha os países à esquerda; ajuste as competições de cada save aqui.</div>'
+    : '<div class="cl-wiz-comphelp">Selecione o Brasil para escolher divisões e copas nacionais.</div>';
+  const compCol = brasilSel ? `${divisaoSection}${internacionaisSection}` : '';
+  return wizShell({ step:4, title:'Selecção de Países', back:'clPaisesBack()',
+    contentCls:'cl-wiz-paises', actionCls:'',
+    action:`
+      ${btn('Todas','clAllCountries()',{icon:'▤',cls:'cl-btn-row'})}
+      <div class="cl-wiz-action-r">
+        ${btn('Cancelar','clPaisesBack()',{icon:'✖',cls:'cl-btn-cancel cl-btn-row'})}
+        ${btn('OK','clPaisesOk()',{icon:'✔',cls:'cl-btn-ok cl-wiz-cta',dis:okDis})}
+      </div>`,
+    body:`
+      <div class="cl-wiz-chips">
+        <span class="cl-wiz-chip"><span>Equipas</span><b>${totalTeams}</b></span>
+        <span class="cl-wiz-chip on"><span>Equipas selec.</span><b>${teamsSel}</b></span>
+        <span class="cl-wiz-chip"><span>Países</span><b>${COUNTRY_LIST().length}</b></span>
+        <span class="cl-wiz-chip on"><span>Países selec.</span><b>${CL.countries.size}</b></span>
+        <span class="cl-wiz-chips-note">Totalize pelo menos 20 equipas.</span>
       </div>
-    </div>
-    ${divisaoSection}${internacionaisSection}`, {w:900,bodyClass:'cl-body-green'});
+      <div class="cl-wiz-paisescols">
+        <div class="cl-wiz-col cl-wiz-col-paises">
+          <div class="cl-wiz-collabel">Países</div>
+          <div class="cl-ctry-list cl-wiz-clist">${rows}</div>
+        </div>
+        <div class="cl-wiz-col cl-wiz-col-comp">
+          <div class="cl-wiz-collabel">Competições</div>
+          ${compCol}
+          ${compHelp}
+        </div>
+      </div>`
+  });
 }
+function clPaisesBack(){ CL.screen='modosolo'; CL.soloStep='novo'; cdraw(); }
 /* multi-seleção: qual(is) divisões do Brasil entram nesse save. Não deixa desmarcar
    a última (precisa sobrar pelo menos uma pra começar o jogo). */
 function clToggleDivision(d){

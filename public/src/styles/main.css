@@ -121,6 +121,65 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-home-cta{font-size:17px;padding:15px 26px;max-width:90%;white-space:nowrap;justify-content:center}
   .cl-home-page{padding:20px 14px}
 }
+/* ===== FLUXO "NOVO JOGO" (wizard 4 passos) — reusa o shell .cl-home + tokens ===== */
+.cl-wiz-body{display:flex;flex-direction:column;min-height:0}
+.cl-wiz-user{color:var(--navy);font-weight:700;font-size:12px;padding:0 8px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.cl-wiz-sair{margin-left:2px;font-size:11px;padding:3px 10px}
+.cl-wiz-stephead{flex:none;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:rgba(0,0,0,.16);border-bottom:1px solid rgba(255,255,255,.12);color:#fff}
+.cl-wiz-back{font-family:var(--sans);font-weight:700;font-size:12px;color:var(--yellow);background:transparent;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;padding:5px 8px}
+.cl-wiz-back:hover{text-decoration:underline}
+.cl-wiz-back-sp{width:1px}
+.cl-wiz-steptitle{font-weight:800;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#fff;text-align:center}
+.cl-wiz-steppill{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--yellow);background:rgba(0,0,0,.28);padding:4px 9px;border-radius:999px;white-space:nowrap}
+.cl-wiz-content{flex:1;min-height:0;display:flex;flex-direction:column;padding:20px 22px;box-sizing:border-box;overflow:auto}
+.cl-wiz-center{align-items:center;justify-content:center;text-align:center}
+.cl-wiz-top{align-items:center;justify-content:flex-start;padding-top:40px}
+.cl-wiz-h{font-family:var(--serif);font-style:italic;font-weight:700;color:#fff;font-size:24px;text-shadow:0 2px 4px rgba(0,0,0,.35)}
+.cl-wiz-sub{color:var(--ontext-lite2);font-size:13px;margin:6px 0 24px}
+.cl-wiz-cards{display:flex;gap:22px;justify-content:center;align-items:stretch;width:min(760px,96%)}
+.cl-wiz-cards .cl-mc-card{flex:1;min-width:260px;max-width:340px;width:auto;display:flex;flex-direction:column;align-items:center;gap:9px}
+.cl-wiz-actionbar{flex:none;min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 18px;background:rgba(0,0,0,.16);border-top:1px solid rgba(255,255,255,.12)}
+.cl-wiz-actionbar .cl-btn{flex-direction:row;gap:7px;min-height:44px;padding:9px 16px}
+.cl-wiz-actionbar .cl-btn .cl-btn-ic{font-size:15px}
+.cl-wiz-action-c{justify-content:center}
+.cl-wiz-action-e{justify-content:flex-end}
+.cl-wiz-action-r{display:flex;gap:10px}
+.cl-wiz-cta{min-width:92px}
+.cl-wiz-hint{color:var(--ontext-lite2);font-size:12.5px;font-weight:600}
+.cl-mc-card.sel{border-color:var(--yellow);background:rgba(255,255,255,.14);box-shadow:0 0 0 1px var(--yellow) inset}
+.cl-mc-badge{display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;letter-spacing:1px;color:#fff;background:linear-gradient(180deg,#7fb3ff,#3a7bd5);padding:9px 13px;border-radius:8px;box-shadow:0 2px 0 rgba(0,0,0,.25);margin-bottom:2px}
+.cl-wiz-form{width:min(480px,96%)}
+.cl-wiz-form-wide{width:min(560px,96%)}
+.cl-wiz-p{color:#fff;font-size:14px;line-height:1.5;margin:0 0 22px}
+.cl-wiz-fieldhd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.cl-wiz-label{color:var(--yellow);font-weight:800;font-size:14px}
+.cl-wiz-count{font-family:var(--mono);font-size:12px;color:var(--ontext-lite2)}
+.cl-wiz-field{width:100%;box-sizing:border-box;font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111;background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);padding:12px 14px;outline:none}
+.cl-wiz-field:focus{box-shadow:0 0 0 2px var(--yellow)}
+.cl-wiz-note{color:var(--ontext-lite2);font-size:11.5px;margin-top:8px}
+.cl-wiz-paises{align-items:stretch;justify-content:flex-start;padding:14px 18px;gap:12px}
+.cl-wiz-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;width:100%}
+.cl-wiz-chip{display:inline-flex;align-items:center;gap:7px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:5px 12px;color:#fff;font-size:12px;font-weight:600;white-space:nowrap}
+.cl-wiz-chip b{font-family:var(--mono);font-size:13px}
+.cl-wiz-chip.on{border-color:var(--yellow);color:var(--yellow);background:rgba(0,0,0,.32)}
+.cl-wiz-chips-note{margin-left:auto;font-size:11.5px;color:var(--ontext-lite2)}
+.cl-wiz-paisescols{display:flex;gap:16px;width:100%;align-items:stretch;flex:1;min-height:0}
+.cl-wiz-col{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cl-wiz-col-paises{flex:1.7}
+.cl-wiz-col-comp{flex:1;min-width:210px}
+.cl-wiz-collabel{font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--yellow)}
+.cl-wiz-clist{flex:1;min-height:0;max-height:270px;width:auto}
+.cl-wiz-col-comp .cl-paises-divisao{margin-top:0}
+.cl-wiz-comphelp{font-size:12px;line-height:1.45;color:var(--ontext-lite2);margin-top:2px}
+@media (max-width:760px){
+  .cl-wiz-content{padding:20px 16px 26px}
+  .cl-wiz-cards{flex-direction:column;align-items:center}
+  .cl-wiz-cards .cl-mc-card{width:100%;max-width:380px;min-width:0}
+  .cl-wiz-paisescols{flex-direction:column}
+  .cl-ctry-list.cl-wiz-clist{max-height:none}
+  .cl-wiz-actionbar{flex-wrap:wrap}
+  .cl-wiz-chips-note{margin-left:0}
+}
 /* diálogos */
 .cl-dlg{background:var(--navy);padding:3px;box-shadow:0 10px 40px -8px rgba(0,0,0,.55);max-width:calc(100vw - 24px);position:relative}
 /* selo do campeonato (troféu + nome) no canto sup. esquerdo do modal — usado nos
