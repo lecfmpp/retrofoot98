@@ -556,19 +556,29 @@ function clModoOk(){
 }
 
 /* ================= 03 · SELECÇÃO DE PAÍSES ================= */
-/* nº de clubes reais carregados pra um país (via window.INTL_LEAGUES, gerado do Transfermarkt) */
-function intlTeams(country){ const l=(typeof window!=='undefined'&&window.INTL_LEAGUES||{})[country]; return l?l.length:0; }
+/* nº TOTAL de clubes jogáveis de um país = soma de todas as divisões do universo (1ª real +
+   2ª criada), pra a tela mostrar o tamanho de verdade e o botão de iniciar liberar (mín. 20).
+   País europeu só conta se os dados reais da 1ª divisão estiverem carregados (INTL_LEAGUES). */
+function intlTeams(country){
+  const uniKey = country==='Brasil' ? 'brasil' : country;
+  const cfg=(typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[uniKey];
+  const total = (cfg&&cfg.size&&cfg.order) ? cfg.order.reduce((s,d)=>s+(cfg.size[d]||0),0) : 0;
+  if(country==='Brasil') return total||80;
+  const l=(typeof window!=='undefined'&&window.INTL_LEAGUES||{})[country];
+  if(!l || !l.length) return 0; // sem dados reais carregados -> país não jogável
+  return total || l.length;
+}
 /* lista de países da tela — Brasil sempre jogável; europeus ficam clicáveis quando têm
    clubes reais carregados. Função (não const) pra refletir os dados carregados. */
 function COUNTRY_LIST(){ return [
-  {f:'🇧🇷',n:'Brasil',teams:(typeof DATA!=='undefined'?DATA.clubs.length:20),on:true},
+  {f:'🇧🇷',n:'Brasil',teams:intlTeams('Brasil'),on:true},
   {f:'🇦🇷',n:'Argentina',teams:intlTeams('Argentina'),on:intlTeams('Argentina')>0},
   {f:'🇩🇪',n:'Alemanha',teams:intlTeams('Alemanha'),on:intlTeams('Alemanha')>0},
   {f:'🇪🇸',n:'Espanha',teams:intlTeams('Espanha'),on:intlTeams('Espanha')>0},
   {f:'🇫🇷',n:'França',teams:intlTeams('França'),on:intlTeams('França')>0},
   {f:'🇮🇹',n:'Itália',teams:intlTeams('Itália'),on:intlTeams('Itália')>0},
   {f:'🇵🇹',n:'Portugal',teams:intlTeams('Portugal'),on:intlTeams('Portugal')>0},
-  {f:'🏴',n:'Inglaterra',teams:intlTeams('Inglaterra'),on:intlTeams('Inglaterra')>0},
+  {f:'🇬🇧',n:'Inglaterra',teams:intlTeams('Inglaterra'),on:intlTeams('Inglaterra')>0},
 ]; }
 function scPaises(){
   const rows=COUNTRY_LIST().map(c=>{const sel=CL.countries.has(c.n);
@@ -658,7 +668,7 @@ function clPaisesOk(){
   cdraw();
 }
 /* ================= 03b · PAÍS JOGÁVEL (só quando 2+ países selecionados) ================= */
-const COUNTRY_FLAG={Brasil:'🇧🇷',Argentina:'🇦🇷',Alemanha:'🇩🇪',Espanha:'🇪🇸','França':'🇫🇷','Itália':'🇮🇹',Portugal:'🇵🇹',Inglaterra:'🏴'};
+const COUNTRY_FLAG={Brasil:'🇧🇷',Argentina:'🇦🇷',Alemanha:'🇩🇪',Espanha:'🇪🇸','França':'🇫🇷','Itália':'🇮🇹',Portugal:'🇵🇹',Inglaterra:'🇬🇧'};
 function scPaisJogavel(){
   const playable=selectedPlayableCountries();
   const rows=playable.map(c=>{

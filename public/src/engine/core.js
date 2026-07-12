@@ -1161,17 +1161,21 @@ const UNI_CONFIGS={
   Inglaterra:{ order:['PL','CH'], size:{PL:20,CH:24}, promo:{PL:0,CH:3}, releg:{PL:3,CH:0},
                label:{PL:'Premier League',CH:'Championship'}, lg:{PL:'ENG-1',CH:'ENG-2'}, country:'Inglaterra',
                nat:['England','Wales','Scotland','Northern Ireland'], foreignMax:22 },
-  Espanha:   { order:['ES'], size:{ES:20}, promo:{ES:0}, releg:{ES:0}, label:{ES:'La Liga'},        lg:{ES:'ESP-1'}, country:'Espanha',
+  Espanha:   { order:['ES','ES2'], size:{ES:20,ES2:20}, promo:{ES:0,ES2:3}, releg:{ES:3,ES2:0},
+               label:{ES:'La Liga',ES2:'La Liga 2'}, lg:{ES:'ESP-1',ES2:'ESP-2'}, country:'Espanha',
                nat:['Spain'], foreignMax:15 },
-  'Itália':  { order:['IT'], size:{IT:20}, promo:{IT:0}, releg:{IT:0}, label:{IT:'Serie A'},         lg:{IT:'ITA-1'}, country:'Itália',
+  'Itália':  { order:['IT','IT2'], size:{IT:20,IT2:20}, promo:{IT:0,IT2:3}, releg:{IT:3,IT2:0},
+               label:{IT:'Serie A',IT2:'Serie B'}, lg:{IT:'ITA-1',IT2:'ITA-2'}, country:'Itália',
                nat:['Italy'], foreignMax:16 },
-  Alemanha:  { order:['DE'], size:{DE:18}, promo:{DE:0}, releg:{DE:0}, label:{DE:'Bundesliga'},      lg:{DE:'GER-1'}, country:'Alemanha',
+  Alemanha:  { order:['DE','DE2'], size:{DE:18,DE2:20}, promo:{DE:0,DE2:3}, releg:{DE:3,DE2:0},
+               label:{DE:'Bundesliga',DE2:'2. Bundesliga'}, lg:{DE:'GER-1',DE2:'GER-2'}, country:'Alemanha',
                nat:['Germany'], foreignMax:17 },
-  Portugal:  { order:['PT'], size:{PT:18}, promo:{PT:0}, releg:{PT:0}, label:{PT:'Primeira Liga'},   lg:{PT:'POR-1'}, country:'Portugal',
+  Portugal:  { order:['PT','PT2'], size:{PT:18,PT2:20}, promo:{PT:0,PT2:3}, releg:{PT:3,PT2:0},
+               label:{PT:'Primeira Liga',PT2:'Liga Portugal 2'}, lg:{PT:'POR-1',PT2:'POR-2'}, country:'Portugal',
                nat:['Portugal'], foreignMax:18 },
 };
 /* bandeira de cada universo (UNI_CONFIGS só guarda o nome do país, não o emoji) */
-const UNI_COUNTRY_FLAG={brasil:'🇧🇷',Inglaterra:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',Espanha:'🇪🇸','Itália':'🇮🇹',Alemanha:'🇩🇪',Portugal:'🇵🇹'};
+const UNI_COUNTRY_FLAG={brasil:'🇧🇷',Inglaterra:'🇬🇧',Espanha:'🇪🇸','Itália':'🇮🇹',Alemanha:'🇩🇪',Portugal:'🇵🇹'};
 /* mapa reverso código-de-liga -> {universo, divisão}. Ex.: 'GER-1' -> {uni:'Alemanha',div:'DE'};
    'ENG-2' -> {uni:'Inglaterra',div:'CH'}. Construído sob demanda (memoizado) a partir de UNI_CONFIGS.lg. */
 let _LG_TO_UNIDIV=null;
@@ -1385,6 +1389,147 @@ function proceduralDivisionClubs(division, n){
   }
   return clubs;
 }
+/* ================= 2ªS DIVISÕES EUROPEIAS (Série B por país) =================
+   Mesma abordagem das Séries B/C/D do Brasil: nomes/cores OFICIAIS dos clubes reais,
+   com elencos gerados proceduralmente (não temos dado de jogador dessas divisões).
+   A 1ª divisão de cada país continua 100% real (Transfermarkt). Cada país europeu passa
+   a ter 2 divisões (A + B), padronizando com o Brasil e dando pra onde subir/cair. */
+const INTL_LOWER_DIVISION_CLUBS={
+  Espanha:{ ES2:[
+    {name:'Real Zaragoza',short:'Zaragoza',color:'#0067B1',color2:'#FFFFFF'},
+    {name:'Sporting Gijón',short:'Sporting Gijón',color:'#E30613',color2:'#FFFFFF'},
+    {name:'Deportivo La Coruña',short:'Deportivo',color:'#009FE3',color2:'#FFFFFF'},
+    {name:'Racing Santander',short:'Racing',color:'#00843D',color2:'#FFFFFF'},
+    {name:'Almería',short:'Almería',color:'#EE2523',color2:'#FFFFFF'},
+    {name:'Granada',short:'Granada',color:'#C4122E',color2:'#FFFFFF'},
+    {name:'Cádiz',short:'Cádiz',color:'#FFE500',color2:'#0067B1'},
+    {name:'Eibar',short:'Eibar',color:'#0761AF',color2:'#E30613'},
+    {name:'Málaga',short:'Málaga',color:'#003DA5',color2:'#FFFFFF'},
+    {name:'Real Oviedo',short:'Oviedo',color:'#004B9B',color2:'#FFFFFF'},
+    {name:'SD Huesca',short:'Huesca',color:'#0067B1',color2:'#E30613'},
+    {name:'Mirandés',short:'Mirandés',color:'#E30613',color2:'#000000'},
+    {name:'Burgos CF',short:'Burgos',color:'#0A2A66',color2:'#FFFFFF'},
+    {name:'Albacete',short:'Albacete',color:'#FFFFFF',color2:'#0067B1'},
+    {name:'Racing Ferrol',short:'Racing Ferrol',color:'#00843D',color2:'#FFFFFF'},
+    {name:'CD Tenerife',short:'Tenerife',color:'#004B9B',color2:'#FFFFFF'},
+    {name:'Córdoba',short:'Córdoba',color:'#00843D',color2:'#FFFFFF'},
+    {name:'CD Castellón',short:'Castellón',color:'#000000',color2:'#F58220'},
+    {name:'FC Cartagena',short:'Cartagena',color:'#000000',color2:'#FFFFFF'},
+    {name:'CD Eldense',short:'Eldense',color:'#0067B1',color2:'#FFFFFF'},
+  ]},
+  'Itália':{ IT2:[
+    {name:'Sampdoria',short:'Sampdoria',color:'#1B5497',color2:'#FFFFFF'},
+    {name:'Palermo',short:'Palermo',color:'#F19FBD',color2:'#000000'},
+    {name:'Bari',short:'Bari',color:'#C8102E',color2:'#FFFFFF'},
+    {name:'Cremonese',short:'Cremonese',color:'#A6192E',color2:'#808080'},
+    {name:'Spezia',short:'Spezia',color:'#FFFFFF',color2:'#000000'},
+    {name:'Cesena',short:'Cesena',color:'#FFFFFF',color2:'#000000'},
+    {name:'Modena',short:'Modena',color:'#FFD100',color2:'#003DA5'},
+    {name:'Reggiana',short:'Reggiana',color:'#E30613',color2:'#FFFFFF'},
+    {name:'Brescia',short:'Brescia',color:'#004B87',color2:'#FFFFFF'},
+    {name:'Cosenza',short:'Cosenza',color:'#E30613',color2:'#003DA5'},
+    {name:'Frosinone',short:'Frosinone',color:'#FFCB05',color2:'#003DA5'},
+    {name:'Catanzaro',short:'Catanzaro',color:'#FFCB05',color2:'#E30613'},
+    {name:'Südtirol',short:'Südtirol',color:'#FFFFFF',color2:'#E30613'},
+    {name:'Pisa',short:'Pisa',color:'#000000',color2:'#003DA5'},
+    {name:'Salernitana',short:'Salernitana',color:'#6E1E32',color2:'#FFFFFF'},
+    {name:'Juve Stabia',short:'Juve Stabia',color:'#FFD100',color2:'#003DA5'},
+    {name:'Carrarese',short:'Carrarese',color:'#FFD100',color2:'#003DA5'},
+    {name:'Mantova',short:'Mantova',color:'#E30613',color2:'#FFFFFF'},
+    {name:'Cittadella',short:'Cittadella',color:'#6E1E32',color2:'#FFFFFF'},
+    {name:'Sassuolo',short:'Sassuolo',color:'#00A752',color2:'#000000'},
+  ]},
+  Alemanha:{ DE2:[
+    {name:'Schalke 04',short:'Schalke 04',color:'#004D9D',color2:'#FFFFFF'},
+    {name:'Hamburger SV',short:'Hamburger SV',color:'#003087',color2:'#FFFFFF'},
+    {name:'Hertha BSC',short:'Hertha BSC',color:'#005CA9',color2:'#FFFFFF'},
+    {name:'Fortuna Düsseldorf',short:'Düsseldorf',color:'#E2001A',color2:'#FFFFFF'},
+    {name:'Hannover 96',short:'Hannover 96',color:'#E30613',color2:'#000000'},
+    {name:'Kaiserslautern',short:'Kaiserslautern',color:'#E1000F',color2:'#FFFFFF'},
+    {name:'1. FC Nürnberg',short:'Nürnberg',color:'#AD1732',color2:'#FFFFFF'},
+    {name:'Karlsruher SC',short:'Karlsruher SC',color:'#0055A5',color2:'#FFFFFF'},
+    {name:'SC Paderborn',short:'Paderborn',color:'#0055A5',color2:'#000000'},
+    {name:'1. FC Magdeburg',short:'Magdeburg',color:'#164193',color2:'#FFFFFF'},
+    {name:'Eintracht Braunschweig',short:'Braunschweig',color:'#F7B500',color2:'#003DA5'},
+    {name:'Greuther Fürth',short:'Greuther Fürth',color:'#009E3D',color2:'#FFFFFF'},
+    {name:'Darmstadt 98',short:'Darmstadt',color:'#005CA9',color2:'#FFFFFF'},
+    {name:'SV Elversberg',short:'Elversberg',color:'#000000',color2:'#E2001A'},
+    {name:'Preußen Münster',short:'Münster',color:'#007A33',color2:'#FFFFFF'},
+    {name:'SSV Ulm',short:'Ulm',color:'#FFFFFF',color2:'#000000'},
+    {name:'Jahn Regensburg',short:'Regensburg',color:'#E2001A',color2:'#FFFFFF'},
+    {name:'Holstein Kiel',short:'Holstein Kiel',color:'#0057B8',color2:'#E2001A'},
+    {name:'VfL Bochum',short:'Bochum',color:'#005CA9',color2:'#FFFFFF'},
+    {name:'1. FC Köln',short:'Köln',color:'#ED1C24',color2:'#FFFFFF'},
+  ]},
+  Portugal:{ PT2:[
+    {name:'GD Chaves',short:'Chaves',color:'#003DA5',color2:'#E2001A'},
+    {name:'CD Feirense',short:'Feirense',color:'#003DA5',color2:'#FFFFFF'},
+    {name:'CD Tondela',short:'Tondela',color:'#FFD200',color2:'#00843D'},
+    {name:'CS Marítimo',short:'Marítimo',color:'#007A33',color2:'#E2001A'},
+    {name:'FC Penafiel',short:'Penafiel',color:'#E2001A',color2:'#FFFFFF'},
+    {name:'Leixões SC',short:'Leixões',color:'#E2001A',color2:'#FFFFFF'},
+    {name:'Académico de Viseu',short:'Ac. Viseu',color:'#00843D',color2:'#FFFFFF'},
+    {name:'UD Oliveirense',short:'Oliveirense',color:'#003DA5',color2:'#FFFFFF'},
+    {name:'FC Vizela',short:'Vizela',color:'#00843D',color2:'#FFFFFF'},
+    {name:'Portimonense',short:'Portimonense',color:'#000000',color2:'#FFFFFF'},
+    {name:'Paços de Ferreira',short:'Paços',color:'#FFD200',color2:'#00843D'},
+    {name:'União de Leiria',short:'U. Leiria',color:'#003DA5',color2:'#E2001A'},
+    {name:'SC Mafra',short:'Mafra',color:'#00843D',color2:'#FFFFFF'},
+    {name:'Torreense',short:'Torreense',color:'#000000',color2:'#00843D'},
+    {name:'Benfica B',short:'Benfica B',color:'#E30613',color2:'#FFFFFF'},
+    {name:'FC Porto B',short:'Porto B',color:'#003DA5',color2:'#FFFFFF'},
+    {name:'Sporting CP B',short:'Sporting B',color:'#007A33',color2:'#FFFFFF'},
+    {name:'CD Nacional',short:'Nacional',color:'#000000',color2:'#FFFFFF'},
+    {name:'SC Farense',short:'Farense',color:'#FFFFFF',color2:'#000000'},
+    {name:'AVS',short:'AVS',color:'#E2001A',color2:'#000000'},
+  ]},
+};
+/* faixa de força por 2ª divisão europeia (equilibrada com o MVL/ovrCommon de market-engine) */
+const INTL_LOWER_FORCE_RANGE={ 'ESP-2':[60,74], 'GER-2':[59,73], 'ITA-2':[59,73], 'POR-2':[54,68] };
+/* nomes de jogador por país (primeiro + sobrenome) — só pra os elencos procedurais das 2ªs
+   divisões parecerem locais (não "Norte A" à brasileira). Únicos no jogo todo via PROC_USED_NAMES. */
+const INTL_NAME_POOL={
+  Espanha:{ first:['Álvaro','Sergio','Javier','Carlos','Pablo','Rubén','Iker','Marcos','Adrián','Diego','Jorge','Raúl','Óscar','Iván','Mario','Hugo','Dani','Nacho'],
+    last:['García','Fernández','Martínez','López','Sánchez','Gómez','Ruiz','Torres','Navarro','Molina','Ortega','Serrano','Castro','Vidal','Herrera','Cano','Rubio','Marín','Peña','Vega','Bravo','Nieto','Gallardo','Reyes'] },
+  'Itália':{ first:['Marco','Luca','Andrea','Matteo','Alessandro','Federico','Davide','Simone','Giacomo','Nicolò','Lorenzo','Riccardo','Antonio','Gabriele','Stefano','Fabio','Emanuele','Christian'],
+    last:['Rossi','Bianchi','Romano','Colombo','Ricci','Marino','Greco','Bruno','Gallo','Conti','De Luca','Mancini','Costa','Giordano','Rizzo','Lombardi','Moretti','Barbieri','Fontana','Caruso','Ferrara','Longo','Marchetti','Villa'] },
+  Alemanha:{ first:['Lukas','Jonas','Leon','Finn','Tim','Niklas','Maximilian','Felix','Paul','Julian','Moritz','Jan','Tobias','Marvin','Philipp','Nico','Kevin','Sven'],
+    last:['Müller','Schmidt','Schneider','Fischer','Weber','Meyer','Wagner','Becker','Hoffmann','Schäfer','Koch','Bauer','Richter','Klein','Wolf','Neumann','Schwarz','Zimmermann','Braun','Krüger','Hofmann','Lange','Werner','Krause'] },
+  Portugal:{ first:['João','Miguel','Rui','Pedro','Tiago','André','Bruno','Diogo','Ricardo','Nuno','Gonçalo','Fábio','Rafael','Hélder','Vítor','Luís','Daniel','Sérgio'],
+    last:['Silva','Santos','Ferreira','Pereira','Oliveira','Costa','Rodrigues','Martins','Sousa','Fonseca','Gomes','Lopes','Marques','Almeida','Ribeiro','Pinto','Carvalho','Teixeira','Moreira','Cardoso','Nunes','Correia','Machado','Tavares'] },
+};
+function intlPlayerName(R, country){
+  const pool=INTL_NAME_POOL[country]; if(!pool) return pickProcPlayerName(R);
+  let nm, tries=0;
+  do{ const f=pool.first[Math.floor(R.random()*pool.first.length)];
+      const l=pool.last[Math.floor(R.random()*pool.last.length)];
+      nm=f+' '+l+(tries>=40?(' '+(Math.floor(tries/40)+1)):''); tries++;
+  }while(PROC_USED_NAMES.has(nm) && tries<400);
+  PROC_USED_NAMES.add(nm); return nm;
+}
+/* gera os clubes de uma 2ª divisão europeia (nomes reais + elencos procedurais locais), já
+   marcados com o código de liga (ex.: 'GER-2') e a nacionalidade doméstica do país. */
+function intlLowerDivisionClubs(country, divKey, lgCode, n, nat){
+  const roster=(INTL_LOWER_DIVISION_CLUBS[country]||{})[divKey]||[];
+  const range=INTL_LOWER_FORCE_RANGE[lgCode]||[56,72];
+  const R=makeRng(hashSeed('intldiv',country,divKey,(S&&S.seed)||1));
+  const clubs=[];
+  const size=n||roster.length||20;
+  for(let i=0;i<size;i++){
+    const real=roster[i%roster.length]||{name:country+' B '+(i+1)};
+    const id='intl_'+lgCode+'_'+i;
+    const squad=[];
+    [['GK',2],['DEF',6],['MID',6],['ATT',4]].forEach(([pos,cnt])=>{ for(let k=0;k<cnt;k++){
+      const age=Math.round(18+R.random()*17); const f=rollAgedForce(R,range,age);
+      squad.push({ n:intlPlayerName(R,country), p:pos, s:pos, f, age, lg:lgCode,
+        mv:MARKET.marketValue(f,age,lgCode), ft:R.random()<0.8?'R':'L',
+        num:String(Math.floor(R.random()*40)+1), nat:(nat&&nat[0])||country, ag:'—', moral:70, energy:100 }); } });
+    const overall=Math.round(squad.reduce((s,p)=>s+p.f,0)/squad.length);
+    clubs.push({ id, tk:id, name:real.name, short:real.short||real.name, color:real.color||'#888888',
+      color2:real.color2||null, crest:null, lg:lgCode, OS:overall, MS:overall, DS:overall, overall, squad });
+  }
+  return clubs;
+}
 /* normaliza uma linha vinda de elifoot_v3.division_clubs (dados reais) pro formato DATA.clubs */
 function normalizeDivisionClubRow(row){
   const sq=row.squad||[];
@@ -1417,7 +1562,9 @@ function clubsForDivision(division){
     const cfg=activeUniCfg();
     const all=(typeof window!=='undefined' && window.INTL_LEAGUES && window.INTL_LEAGUES[cfg.country]) || [];
     const lgCode=cfg.lg && cfg.lg[division];
-    const clubs = lgCode ? all.filter(c=>c.lg===lgCode) : all.slice();
+    let clubs = lgCode ? all.filter(c=>c.lg===lgCode) : all.slice();
+    // divisão sem dados reais (2ª divisão europeia criada por nós) -> nomes reais + elenco procedural
+    if(!clubs.length && lgCode){ clubs = intlLowerDivisionClubs(cfg.country, division, lgCode, DIVISION_SIZE[division]||20, cfg.nat); }
     return clubs.slice(0, DIVISION_SIZE[division]||clubs.length);
   }
   if(division==='A') return DATA.clubsSerieA || DATA.clubs;
