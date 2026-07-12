@@ -642,33 +642,13 @@ function scPaises(){
       <span class="cl-ctry-t">${c.teams} ${c.teams===1?'equipa':'equipas'}</span></div>`;}).join('');
   const teamsSel=[...CL.countries].reduce((s,n)=>{const c=COUNTRY_LIST().find(x=>x.n===n);return s+(c?c.teams:0);},0);
   const okDis=teamsSel<20;
-  const brasilSel=CL.countries.has('Brasil');
-  const startDiv=computeStartDivision();
-  const divBadge=(d,label)=>`<div class="cl-comp-toggle on ${startDiv===d?'start':''}" style="cursor:default">
-      ${divisionTrophyImg(d,30)||`<span class="cl-divopt-ic">🏆</span>`}<b>${label}</b>${startDiv===d?'<span class="cl-comp-start-tag">início</span>':''}</div>`;
-  const divisaoSection = brasilSel ? `<div class="cl-paises-divisao">
-      <div class="cl-paises-sec-title cl-acc-hd" onclick="clToggleAcc('divSecOpen')">
-        <span>${trophyImg('serieA',22)} Competições do Brasil neste save</span><span class="cl-acc-arrow ${CL.divSecOpen===false?'closed':''}">▾</span></div>
-      <div class="cl-acc-body ${CL.divSecOpen===false?'closed':''}">
-        <div class="cl-divopt-row">${divBadge('D','Série D')}${divBadge('C','Série C')}${divBadge('B','Série B')}${divBadge('A','Série A')}</div>
-        <div class="cl-instr" style="margin-top:6px">Todo mundo começa na Série D, igual ao clássico — vive a jornada completa subindo até a Série A e chegando às competições internacionais.</div>
-      </div>
-    </div>` : '';
-  const compRow=(key,label,trophyKey)=>`<div class="cl-comp-toggle ${CL.compToggle[key]?'on':''}" onclick="clToggleComp('${key}')">
-      ${trophyKey?trophyImg(trophyKey,30):'<span class="cl-divopt-ic">🏆</span>'}<b>${label}</b><span class="cl-comp-check">${CL.compToggle[key]?'✔':''}</span></div>`;
-  const internacionaisSection = brasilSel ? `<div class="cl-paises-divisao">
-      <div class="cl-paises-sec-title cl-acc-hd" onclick="clToggleAcc('intlSecOpen')">
-        <span>${trophyImg('libertadores',22)} Internacionais e copas</span><span class="cl-acc-arrow ${CL.intlSecOpen===false?'closed':''}">▾</span></div>
-      <div class="cl-acc-body ${CL.intlSecOpen===false?'closed':''}">
-        <div class="cl-divopt-row">${compRow('libertadores','Libertadores','libertadores')}${compRow('sulamericana','Sul-Americana','sulamericana')}${compRow('copaBrasil','Copa do Brasil','copaBrasil')}</div>
-        <div class="cl-instr" style="margin-top:6px">Desligue as que não quiser disputar — o jogo não carrega nem simula o que estiver desligado.</div>
-      </div>
-    </div>` : '';
   const totalTeams=COUNTRY_LIST().reduce((s,c)=>s+c.teams,0);
-  const compHelp = brasilSel
-    ? '<div class="cl-wiz-comphelp">Escolha os países à esquerda; ajuste as competições de cada save aqui.</div>'
-    : '<div class="cl-wiz-comphelp">Selecione o Brasil para escolher divisões e copas nacionais.</div>';
-  const compCol = brasilSel ? `${divisaoSection}${internacionaisSection}` : '';
+  // uma seção de competições por país SELECIONADO (ligas + copas), no estilo do Brasil
+  const selCountries = COUNTRY_LIST().filter(c=>CL.countries.has(c.n)).map(c=>c.n);
+  const compCol = selCountries.map(countryCompSection).join('');
+  const compHelp = selCountries.length
+    ? '<div class="cl-wiz-comphelp">Ligas e copas de cada país selecionado. As copas do Brasil você liga/desliga; as continentais entram junto com o país.</div>'
+    : '<div class="cl-wiz-comphelp">Selecione países à esquerda para ver as competições disponíveis.</div>';
   return wizShell({ step:4, title:'Selecção de Países', back:'clPaisesBack()',
     contentCls:'cl-wiz-paises', actionCls:'',
     action:`
@@ -699,6 +679,44 @@ function scPaises(){
   });
 }
 function clPaisesBack(){ CL.screen='modosolo'; CL.soloStep='novo'; cdraw(); }
+/* competições de UM país selecionado (divisões + copas), no mesmo visual do Brasil.
+   Brasil: Séries A–D + Copa do Brasil/Libertadores/Sul-Americana (ligáveis por CL.compToggle).
+   Países europeus: 1ª/2ª divisão + Champions League/Europa League (inclusas com o país).
+   'início' vai na divisão de baixo (onde a jornada começa se você jogar esse país). */
+function countryCompSection(country){
+  const uniKey = country==='Brasil' ? 'brasil' : country;
+  const cfg = (typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[uniKey];
+  if(!cfg || !cfg.order) return '';
+  const isBr = country==='Brasil';
+  const order = cfg.order, startDiv = order[order.length-1];
+  const openKey = 'compOpen_'+uniKey.replace(/[^a-z0-9]/gi,'');
+  const open = CL[openKey]!==false;
+  const divBadges = order.map(d=>{
+    const label=(cfg.label&&cfg.label[d])||d;
+    const ic = (isBr && divisionTrophyImg(d,26)) || '<span class="cl-divopt-ic">🏆</span>';
+    const start = d===startDiv;
+    return `<div class="cl-comp-toggle on ${start?'start':''}" style="cursor:default">${ic}<b>${escC(label)}</b>${start?'<span class="cl-comp-start-tag">início</span>':''}</div>`;
+  }).join('');
+  let cupBadges;
+  if(isBr){
+    const cupRow=(key,label,tk)=>`<div class="cl-comp-toggle ${CL.compToggle[key]?'on':''}" onclick="clToggleComp('${key}')">${trophyImg(tk,26)||'<span class="cl-divopt-ic">🏆</span>'}<b>${escC(label)}</b><span class="cl-comp-check">${CL.compToggle[key]?'✔':''}</span></div>`;
+    cupBadges = cupRow('libertadores','Libertadores','libertadores')+cupRow('sulamericana','Sul-Americana','sulamericana')+cupRow('copaBrasil','Copa do Brasil','copaBrasil');
+  } else {
+    const cupBadge=(label)=>`<div class="cl-comp-toggle on" style="cursor:default"><span class="cl-divopt-ic">🏆</span><b>${escC(label)}</b><span class="cl-comp-check">✔</span></div>`;
+    cupBadges = cupBadge('Champions League')+cupBadge('Europa League');
+  }
+  return `<div class="cl-paises-divisao">
+    <div class="cl-paises-sec-title cl-acc-hd" onclick="clToggleAcc('${openKey}')">
+      <span class="cl-comp-country">${flagImg(country)} ${escC(country)}</span>
+      <span class="cl-acc-arrow ${open?'':'closed'}">▾</span></div>
+    <div class="cl-acc-body ${open?'':'closed'}">
+      <div class="cl-comp-grouplbl">Ligas</div>
+      <div class="cl-divopt-row">${divBadges}</div>
+      <div class="cl-comp-grouplbl">Copas e continentais</div>
+      <div class="cl-divopt-row">${cupBadges}</div>
+    </div>
+  </div>`;
+}
 /* multi-seleção: qual(is) divisões do Brasil entram nesse save. Não deixa desmarcar
    a última (precisa sobrar pelo menos uma pra começar o jogo). */
 function clToggleDivision(d){
