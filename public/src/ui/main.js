@@ -1228,7 +1228,7 @@ function scSeatClassif(){
   const panelHTML=(d)=>{ const open=(CL.clsDivOpen&&CL.clsDivOpen[d]!=null)?CL.clsDivOpen[d]:(d===seatDiv); const mine=d===seatDiv;
     return `<div class="cl-clsacc ${open?'open':'collapsed'}">
       <div class="cl-clsacc-h" onclick="event.stopPropagation();clToggleDivAcc('clsDivOpen','${d}')">
-        <span class="cl-clsacc-h-title">🏆 ${escC(labels[d]||d)}${mine?' <span class="cl-acc-you">'+escC(seat.name)+'</span>':''}</span>
+        <span class="cl-clsacc-h-title">🏆 ${escC(classifDivName(d, country))}${mine?' <span class="cl-acc-you">'+escC(seat.name)+'</span>':''}</span>
         <span class="cl-acc-arrow ${open?'':'closed'}">▾</span></div>
       <div class="cl-clsacc-body">
         <div class="cl-cls2-head"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-pts">P</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-x">GP</span><span class="cl-cls2-x">GC</span></div>
@@ -2484,7 +2484,6 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
       <span class="cl-lsc" id="cl-lm-${i}">${liveScoreCells(m)}</span>
       <span class="cl-lteam" style="${clubStripe(ac)}">${escC(ac.short)}</span>
       <span class="cl-lgoal" id="cl-lg-${i}"></span></div>`;};
-  const divLegend={A:'1ª Divisão',B:'2ª Divisão',C:'3ª Divisão',D:'4ª Divisão'};
   // partida(s) de copa: lista simples (não tem divisão A/B/C/D pra agrupar) — cobre tanto
   // a partida própria do usuário (uma só, modal abre sozinho) quanto o modo espectador
   // (várias partidas simultâneas da mesma rodada, nenhuma do usuário — ver startCupSpectate).
@@ -2497,7 +2496,7 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
     if(!rows.length) return '';
     const open=divAccOpen('liveDivOpen',d); const mine=d===S.division;
     return `<fieldset class="cl-live-div ${open?'open':'collapsed'}">
-      <legend onclick="clToggleDivAcc('liveDivOpen','${d}')"><span class="cl-live-legend-trophy">${divisionTrophyImg(d,18)||'🏆'}</span> ${divLegend[d]}${mine?' <span class="cl-acc-you">você</span>':''} <span class="cl-acc-arrow ${open?'':'closed'}">▾</span></legend>
+      <legend onclick="clToggleDivAcc('liveDivOpen','${d}')"><span class="cl-live-legend-trophy">${divisionTrophyImg(d,18)||'🏆'}</span> ${escC(classifDivName(d))}${mine?' <span class="cl-acc-you">você</span>':''} <span class="cl-acc-arrow ${open?'':'closed'}">▾</span></legend>
       <div class="cl-live-div-body">${rows.map(x=>rowHTML(x.m,x.i)).join('')}</div>
     </fieldset>`;
   }).join('');
@@ -2716,8 +2715,17 @@ function armClassifTimer(){
 function sortedTableOf(table){
   return Object.values(table||{}).sort((a,b)=> b.Pts-a.Pts || (b.GF-b.GA)-(a.GF-a.GA) || b.GF-a.GF );
 }
-function scClassif(){
+/* nome da divisão pra classificação/ao-vivo — universo-consciente: Brasil usa "1ª..4ª Divisão";
+   universos intl (Alemanha, Itália...) usam o rótulo real (Bundesliga, Serie A...). Antes o
+   legend era fixo em A/B/C/D e dava "undefined" em qualquer divisão fora do Brasil. */
+function classifDivName(d, country){
   const legend={A:'1ª Divisão',B:'2ª Divisão',C:'3ª Divisão',D:'4ª Divisão'};
+  const labels = country
+    ? ((typeof UNI_CONFIGS!=='undefined' && UNI_CONFIGS[uniKeyOf(country)] && UNI_CONFIGS[uniKeyOf(country)].label) || {})
+    : ((typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL) || {});
+  return legend[d] || labels[d] || d;
+}
+function scClassif(){
   // accordion vertical: divisão do usuário no topo e aberta; as outras colapsadas.
   const panelHTML=(d)=>{
     const isMine = d===S.division;
@@ -2734,7 +2742,7 @@ function scClassif(){
       : '<div class="cl-cls2-empty">—</div>';
     return `<div class="cl-clsacc ${open?'open':'collapsed'}">
       <div class="cl-clsacc-h" onclick="event.stopPropagation();clToggleDivAcc('clsDivOpen','${d}')">
-        <span class="cl-clsacc-h-title">${divisionTrophyImg(d,18)||'🏆'} ${legend[d]}${isMine?' <span class="cl-acc-you">você</span>':''}</span>
+        <span class="cl-clsacc-h-title">${divisionTrophyImg(d,18)||'🏆'} ${escC(classifDivName(d))}${isMine?' <span class="cl-acc-you">você</span>':''}</span>
         <span class="cl-acc-arrow ${open?'':'closed'}">▾</span></div>
       <div class="cl-clsacc-body">
         <div class="cl-cls2-head ${hasQual?'hasqual':''}"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-pts">P</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-x">GP</span><span class="cl-cls2-x">GC</span>${hasQual?'<span></span>':''}</div>
@@ -3866,9 +3874,8 @@ function clUltimosVencedores(){ CL.menu=null;
       <span class="cl-winrow-lbl">${trophy?trophyImg(trophy,16)+' ':''}${escC(label)}</span>
       <span class="cl-winrow-val">${escC(winner)}</span>
     </div>` : '';
-  const divLegend={A:'Série A',B:'Série B',C:'Série C',D:'Série D'};
   const blocks=hist.length?hist.map(h=>{
-    const rows=[winnerRow(divLegend[h.division||'A'], 'serie'+(h.division||'A'), h.champ)]
+    const rows=[winnerRow(classifDivName(h.division||'A', h.country), 'serie'+(h.division||'A'), h.champ)]
       .concat(allCupKeys().map(k=>winnerRow(COMP_DEFS[k].short, k, h.cups&&h.cups[k])))
       .filter(Boolean).join('');
     return `<fieldset class="cl-cup-round"><legend>${h.season}</legend>${rows}</fieldset>`;
