@@ -191,7 +191,7 @@ function scJoinCode(){ const n=CL.net;
     action: btn('Entrar','clJoinCodeGo()',{icon:'✔',cls:'cl-wiz-cta',dis:!ok})
   });
 }
-function clJoinCodeSync(){ const b=document.querySelector('.cl-btn-ok'); if(b) b.disabled=!((CL.net.code||'').length>=4); }
+function clJoinCodeSync(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(b) b.disabled=!((CL.net.code||'').length>=4); }
 function clJoinCodeGo(){ const n=CL.net; const st=(NET.authStatus?NET.authStatus():{}); if(!(n.code&&n.code.length>=4)) return;
   toastC('Entrando na Resenha...');
   (async ()=>{ try {
@@ -241,7 +241,7 @@ function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(ty
     contentCls:'cl-wiz-authcenter', body, actionCls:'cl-wiz-action-e',
     action: btn(isSignup?'Criar conta':'Entrar',isSignup?'clAuthDoSignup()':'clAuthDoLogin()',{icon:'✔',cls:'cl-wiz-cta',dis:!(n.email&&n.password&&(!isSignup||n.name))}) });
 }
-function netContaSync(){ const b=document.querySelector('.cl-btn-ok'); if(!b) return;
+function netContaSync(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(!b) return;
   const n=CL.net; const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   if(st.loggedIn){ b.disabled=!n.name; return; }
   const isSignup=(n.authMode||'login')==='signup';
@@ -368,7 +368,7 @@ function scSalaHost(){ const n=CL.net;
     action: btn('Abrir','clOpenRoom()',{icon:'✔',cls:'cl-wiz-cta',dis:!n.roomName})
   });
 }
-function netSalaSync(){ const b=document.querySelector('.cl-btn-ok'); if(b) b.disabled=!CL.net.roomName; }
+function netSalaSync(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(b) b.disabled=!CL.net.roomName; }
 function clBackConta(){ CL.net.step='escolha'; cdraw(); }
 function clOpenRoom(){ if(!CL.net.roomName)return;
   toastC('Abrindo sala...');

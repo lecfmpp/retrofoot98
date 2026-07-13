@@ -390,7 +390,7 @@ function scLogin(){ const a=CL.auth||(CL.auth={mode:'login',name:'',email:'',pas
     action: btn(isSignup?'Criar conta':'Entrar', isSignup?'clLoginSignup()':'clLoginDo()', {icon:'✔',cls:'cl-wiz-cta',dis:disabled})
   });
 }
-function clLoginSync(){ const b=document.querySelector('.cl-btn-ok'); if(!b) return; const a=CL.auth||{}; const isSignup=a.mode==='signup'; b.disabled=!(a.email&&a.password&&(!isSignup||a.name)); }
+function clLoginSync(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(!b) return; const a=CL.auth||{}; const isSignup=a.mode==='signup'; b.disabled=!(a.email&&a.password&&(!isSignup||a.name)); }
 function clLoginAfter(name){ CL.mgr=name||CL.mgr; CL.auth=null; CL.screen='modo'; cdraw(); }
 function clLoginDo(){ const a=CL.auth; if(!a||!(a.email&&a.password)) return; toastC('Entrando...');
   (async ()=>{ try {
@@ -631,7 +631,7 @@ function scSoloCont(){
 function clSoloNew(){ CL.soloStep='novo'; cdraw(); }
 function clSoloContinue(){ CL.soloStep='cont'; cdraw(); }
 function clSoloBackChoice(){ CL.soloStep='choice'; cdraw(); }
-function clSyncOk(){ const b=document.querySelector('.cl-btn-ok'); if(b) b.disabled = !((CL.save||'').trim().length>0); }
+function clSyncOk(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(b) b.disabled = !((CL.save||'').trim().length>0); }
 function clGoAbertura(){ CL.screen='abertura'; cdraw(); }
 function clModoOk(){
   if(CL.mode==='cont'&&CL.contSel){ clLoadSave(CL.contSel); return; }
