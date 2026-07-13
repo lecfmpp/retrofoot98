@@ -1172,3 +1172,15 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-exitmodal-btns{flex-direction:column}
   .cl-exitmodal-btns .cl-btn{width:100%}
 }
+
+/* ===== Ação inline: botão principal logo abaixo do formulário (padronização) =====
+   Centralizado sob o form (independe da largura do formulário), sempre visível e junto dele. */
+.cl-wiz-inlineaction{margin-top:24px;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%}
+.cl-wiz-inlineaction .cl-btn{flex-direction:row;gap:7px;min-height:46px;padding:10px 24px}
+.cl-wiz-inlineaction .cl-btn .cl-btn-ic{font-size:15px}
+.cl-wiz-inlineaction .cl-wiz-cta{min-width:150px;color:#fff;background:var(--success-alt);border-color:var(--success-lite) var(--success-deep) var(--success-deep) var(--success-lite);font-weight:800;letter-spacing:.3px}
+.cl-wiz-inlineaction .cl-wiz-cta:active{border-color:var(--success-deep) var(--success-lite) var(--success-lite) var(--success-deep)}
+.cl-wiz-inlineaction .cl-wiz-cta .cl-btn-ic{color:#fff}
+.cl-wiz-inlineaction .cl-wiz-cta:disabled{background:#9db89d;border-color:#c9dcc9 #7f957f #7f957f #c9dcc9;color:#e8f0e8}
+.cl-wiz-inlineaction .cl-wiz-cta:disabled .cl-btn-ic{color:#e8f0e8;opacity:1}
+@media (max-width:760px){ .cl-wiz-inlineaction .cl-btn{width:100%} }

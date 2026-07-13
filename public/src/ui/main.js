@@ -478,6 +478,10 @@ function clDoUpdatePassword(){
    barra de ação inferior. Só markup/estilo/navegação — a lógica (handlers) é a mesma.
    Passos: 1 Escolher modo · 2 Modo Solo · 3 Novo jogo (nome) · 4 Selecção de Países. */
 function clWizHome(view){ CL.screen='abertura'; CL.landingView=view||'home'; CL.navMenuOpen=false; cdraw(); }
+/* ação inline (botão principal logo abaixo do formulário) — automática nas telas de formulário
+   (CTA único à direita, actionCls 'cl-wiz-action-e') ou quando o.actionInline for pedido. As
+   telas de escolha (action-c), o lobby e a Selecção de Países mantêm a barra de ação inferior. */
+function _wizInline(o){ return !!(o.actionInline || (o.actionCls && String(o.actionCls).indexOf('cl-wiz-action-e')>=0)); }
 function wizShell(o){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   const user=st.name||CL.mgr||'jogador';
@@ -507,8 +511,8 @@ function wizShell(o){
         <span class="cl-wiz-steptitle">${escC(o.title)}</span>
         ${pill}
       </div>`}
-      <div class="cl-wiz-content ${o.contentCls||''}">${o.body}</div>
-      ${o.action!=null?`<div class="cl-wiz-actionbar ${o.actionCls||''}">${o.action}</div>`:''}
+      <div class="cl-wiz-content ${o.contentCls||''}">${o.body}${(_wizInline(o) && o.action!=null)?`<div class="cl-wiz-inlineaction ${o.actionCls||''}">${o.action}</div>`:''}</div>
+      ${(o.action!=null && !_wizInline(o))?`<div class="cl-wiz-actionbar ${o.actionCls||''}">${o.action}</div>`:''}
     </div>
     <div class="cl-home-footer">
       <div class="cl-home-foot-l"><span class="cl-home-ver">v2026.01</span><span>© 2026 RetroFoot98</span></div>
