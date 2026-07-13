@@ -197,6 +197,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'teamview':  html=titleBarTop('RetroFoot98')+deskWrap(scTeamView()); break;
     case 'handoff':   html=titleBarTop('RetroFoot98')+deskWrap(scHandoff()); break;
     case 'seatturn':  html=titleBarTop('RetroFoot98')+deskWrap(scSeatTurn()); break;
+    case 'seatclassif': html=scSeatClassif(); break;
     case 'live':      html=scLive(); break;
     case 'classif':   html=scClassif(); break;
     case 'cupclassif':html=scCupClassif(); break;
@@ -1061,6 +1062,7 @@ function buildHumanQueue(uf){
 function startNextHotseatMatch(){
   const H=CL._hotseat; if(!H) return;
   if(!H.queue.length){
+    CL._postRoundSeats=(H.playedSeats||[]).slice(); // rotação de classificação de pós-jogo
     _commitLeagueRound(H.primaryRL, H.userResult, H.humanResults, H.allEvents, H.audit);
     CL._hotseat=null; CL._handoff=null;
     return;
@@ -1073,6 +1075,7 @@ function startNextHotseatMatch(){
 function clPlayHotseatMatch(){
   const H=CL._hotseat, item=CL._handoff; if(!H||!item) return;
   H.queue=H.queue.slice(1); CL._handoff=null;
+  H.playedSeats=(H.playedSeats||[]).concat(item.seat); // pra rotação de classificação pós-rodada
   enterSeatContext(item.seat, item.fx);
   CL.screen='seatturn'; cdraw();
 }
@@ -1124,16 +1127,67 @@ function finishHotseatMatch(){
 }
 /* rótulo da divisão do assento (no universo do país dele) */
 function seatDivLabel(seat, fx){ const cfg=UNI_CONFIGS[uniKeyOf(seat.country)]||{}; return (cfg.label&&cfg.label[fx.div])||fx.div; }
-/* classificação da liga do assento (liga de fundo OU divisão primária, se mesmo país) */
-function seatStandingsHTML(seat, fx){
-  const rows = fx.kind==='bg'
-    ? bgStandings(seat.country, fx.div)
-    : Object.values(S.table).sort((a,b)=>b.Pts-a.Pts||(b.GF-b.GA)-(a.GF-a.GA)||b.GF-a.GF);
-  const body=rows.slice(0,20).map((t,i)=>{ const c=clubOf(t.id)||bgClubById(t.id)||{short:String(t.id)}; const me=t.id===seat.clubId;
-    return `<div class="cl-seat-strow ${me?'me':''}"><span>${i+1}</span><span class="cl-seat-club">${escC(c.short||'')}</span><span>${t.P}</span><span>${t.W}</span><span>${t.D}</span><span>${t.L}</span><span><b>${t.Pts}</b></span></div>`;
-  }).join('');
-  return `<div class="cl-seat-standings"><div class="cl-seat-st-hd">Classificação — ${escC(seatDivLabel(seat,fx))}</div>
-    <div class="cl-seat-strow head"><span>#</span><span class="cl-seat-club">Clube</span><span>J</span><span>V</span><span>E</span><span>D</span><span>P</span></div>${body}</div>`;
+/* divisão da liga do assento que contém o clube dele (fundo OU primária) */
+function seatDivOfClub(seat){
+  const country=seat.country;
+  if(S.bgLeagues&&S.bgLeagues[country]){ const divs=S.bgLeagues[country].divs;
+    for(const d in divs){ if((divs[d].clubIds||[]).indexOf(seat.clubId)>=0) return d; } return Object.keys(divs)[0]; }
+  if(S.table&&S.table[seat.clubId]) return S.division;
+  if(S.otherDivs){ for(const d in S.otherDivs){ const od=S.otherDivs[d]; if(od.clubs&&od.clubs.find(x=>x.id===seat.clubId)) return d; } }
+  return S.division;
+}
+/* ---------- PÓS-JOGO AO VIVO (rotação de classificação por humano) ----------
+   Ao fim da rodada, o manager 1 vê a classificação (scClassif) e, em seguida, CADA outro
+   humano vê a SUA (a mesma tela de pós-jogo, com a liga dele). Igual pra todos. */
+function startPostRoundClassifs(seats){
+  CL._classifQueue=(seats||[]).slice(); // humanos secundários, mostrados DEPOIS do manager 1
+  CL.clsDivOpen=null; showLiveClassif(); // manager 1 primeiro (screen='classif')
+}
+function postRoundClassifNext(){
+  if(CL._classifTimer){ clearTimeout(CL._classifTimer); CL._classifTimer=null; }
+  const q=CL._classifQueue;
+  if(!q || !q.length){ CL._classifQueue=null; CL._classifSeat=null; liveDone(); return; }
+  CL._classifSeat=q[0]; CL._classifQueue=q.slice(1);
+  CL.clsDivOpen=null; CL.screen='seatclassif'; cdraw(); armClassifTimer();
+}
+/* "Continuar"/auto-avanço da tela de classificação: se há rotação ativa, vai pro próximo
+   humano; senão, volta pra tela principal do manager 1 (comportamento original). */
+function clClassifContinue(){
+  if(CL._classifQueue!=null){ postRoundClassifNext(); return; }
+  liveDone();
+}
+/* classificação de pós-jogo de um HUMANO secundário — mesma tela do manager 1 (scClassif),
+   só que com a liga do assento (fundo OU divisão primária, se mesmo país) e o clube dele em destaque. */
+function scSeatClassif(){
+  const seat=CL._classifSeat; if(!seat) return deskWrap('');
+  const country=seat.country, flag=(typeof flagImg==='function')?flagImg(country):'';
+  const cfg=UNI_CONFIGS[uniKeyOf(country)]||{}; const labels=cfg.label||{};
+  const isBg=!!(S.bgLeagues&&S.bgLeagues[country]);
+  const seatDiv=seatDivOfClub(seat);
+  const divs=isBg?Object.keys(S.bgLeagues[country].divs):(cfg.order||[S.division]);
+  const ordered=[seatDiv,...divs.filter(d=>d!==seatDiv)];
+  const rowsFor=(d)=>{
+    const tbl=isBg?bgStandings(country,d):sortedTableOf(d===S.division?S.table:((S.otherDivs&&S.otherDivs[d]&&S.otherDivs[d].table)||{}));
+    return (tbl||[]).map((t,i)=>{ const c=clubOf(t.id)||bgClubById(t.id)||{short:String(t.id)}; const me=t.id===seat.clubId;
+      return `<div class="cl-cls2-row ${me?'me':''}" style="${clubStripe(c)}">
+        <span class="cl-cls2-pos">${i+1}</span><span class="cl-cls2-n">${escC(c.short||'')}</span>
+        <span class="cl-cls2-pts">${t.Pts}</span><span class="cl-cls2-x">${t.W}</span><span class="cl-cls2-x">${t.D}</span><span class="cl-cls2-x">${t.L}</span>
+        <span class="cl-cls2-x">${t.GF}</span><span class="cl-cls2-x">${t.GA}</span></div>`; }).join('');
+  };
+  const panelHTML=(d)=>{ const open=(CL.clsDivOpen&&CL.clsDivOpen[d]!=null)?CL.clsDivOpen[d]:(d===seatDiv); const mine=d===seatDiv;
+    return `<div class="cl-clsacc ${open?'open':'collapsed'}">
+      <div class="cl-clsacc-h" onclick="event.stopPropagation();clToggleDivAcc('clsDivOpen','${d}')">
+        <span class="cl-clsacc-h-title">🏆 ${escC(labels[d]||d)}${mine?' <span class="cl-acc-you">'+escC(seat.name)+'</span>':''}</span>
+        <span class="cl-acc-arrow ${open?'':'closed'}">▾</span></div>
+      <div class="cl-clsacc-body">
+        <div class="cl-cls2-head"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-pts">P</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-x">GP</span><span class="cl-cls2-x">GC</span></div>
+        ${rowsFor(d)}</div></div>`; };
+  return `<div class="cl-live cl-classif">
+    <div class="cl-classif-buttons">${btn('Continuar','clClassifContinue()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})}</div>
+    <div class="cl-classif-autohint">avança sozinho em alguns segundos...</div>
+    <div class="cl-live-top">${flag} ${escC(seat.name)} · Classificação - ${S.round}ª jornada</div>
+    <div class="cl-clsacc-wrap">${ordered.map(panelHTML).join('')}</div>
+  </div>`;
 }
 /* TELA DO TIME do assento (hotseat): mesma pegada da tela principal — elenco à esquerda,
    tática + classificação + Jogar à direita. Reusa rosterHTML()/panSeleccao() com o contexto
@@ -1157,7 +1211,7 @@ function scSeatTurn(){
         <div class="cl-right-hdr"><div class="cl-adv-lbl">Adversário</div>
           <div class="cl-adv-name" style="background:${th.bg2};padding:3px 8px">${escC(opp.short||'')}</div>
           <div class="cl-adv-loc">${home?'CASA':'FORA'} · ${(S.round||0)+1}ª Jornada</div></div>
-        <div class="cl-panel">${panSeleccao()}${seatStandingsHTML(seat,fx)}</div>
+        <div class="cl-panel">${panSeleccao()}</div>
       </div>
     </div>
   </div>`;
@@ -2605,7 +2659,7 @@ function showLiveClassif(){ CL.screen='classif';
    reinicia a contagem, já que isso mostra que o jogador ainda está lendo a tabela. */
 function armClassifTimer(){
   if(CL._classifTimer){ clearTimeout(CL._classifTimer); CL._classifTimer=null; }
-  CL._classifTimer=setTimeout(()=>{ CL._classifTimer=null; if(CL.screen==='classif') liveDone(); }, 10000);
+  CL._classifTimer=setTimeout(()=>{ CL._classifTimer=null; if(CL.screen==='classif'||CL.screen==='seatclassif') clClassifContinue(); }, 10000);
 }
 /* tabela genérica pra qualquer divisão (a do usuário OU uma das 3 que rodam em segundo plano) */
 function sortedTableOf(table){
@@ -2638,7 +2692,7 @@ function scClassif(){
   return `<div class="cl-live cl-classif">
     <div class="cl-classif-buttons">
       ${btn('Compartilhar','clShareStandings()',{icon:'📤',cls:'cl-btn-cancel cl-btn-sm cl-noshot'})}
-      ${btn('Continuar','liveDone()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})}
+      ${btn('Continuar','clClassifContinue()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})}
     </div>
     <div class="cl-classif-autohint">avança sozinho em alguns segundos...</div>
     <div class="cl-live-top">Classificação - ${S.round}ª jornada</div>
@@ -2750,6 +2804,7 @@ function snapshotSquadForAudit(clubId){
   return squad(clubId).map(p=>({n:p.n,f:p.f,s:p.s,energy:p.energy,moral:p.moral,behavior:p.behavior,suspended:p.suspended,injuredMatches:p.injuredMatches}));
 }
 function finishLiveRound(){
+  CL._postRoundSeats=null; // reset da rotação de classificação (o caminho hotseat a preenche antes do commit)
   const RL=CL.live; const uf=userFixture(); let userResult=null;
   let _auditPayload=null;
   if(uf){ const um=RL.matches.find(m=>m.h===uf[0]&&m.a===uf[1]);
@@ -2824,7 +2879,12 @@ function _commitLeagueRound(RL, userResult, humanResults, allEvents, _auditPaylo
   // se a rodada acabou de decidir um sorteio de copa (Libertadores/Sul-Americana oitavas),
   // mostra a cerimônia ANTES da classificação — igual ao clássico "Sorteio dos jogos da taça".
   // Depois da classificação, se houver demissão/proposta pendente desta rodada, mostra o modal.
-  checkPendingCupDraws(()=>{ showLiveClassif(); checkPendingManagerEvents(); });
+  checkPendingCupDraws(()=>{
+    const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
+    if(seats.length) startPostRoundClassifs(seats); // cada humano vê a SUA classificação, em rotação
+    else showLiveClassif();                          // solo de 1 humano: como sempre
+    checkPendingManagerEvents();
+  });
 }
 /* fecha uma partida de COPA jogada ao vivo — de propósito NÃO passa por finishLiveRound()/
    playRound(): aquilo é "avançar o mundo em uma rodada inteira" (salários, energia/moral/
