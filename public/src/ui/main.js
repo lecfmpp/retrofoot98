@@ -967,34 +967,54 @@ function clEscolherClubes(){
 }
 function scEscolhaClubes(){
   const countries=selectedPlayableCountries();
+  // com VÁRIOS jogadores os times são SORTEADOS (modo solo, estilo clássico) — cada um só
+  // escolhe o país; o clube é sorteado. Com 1 jogador, ele escolhe o próprio clube.
+  const multi=(CL.pick||[]).length>1;
   const taken=new Set((CL.pick||[]).filter(p=>p.clubId).map(p=>p.clubId));
   const rows=(CL.pick||[]).map((p,i)=>{
-    const clubs=((CL._pickPool||{})[p.country]||[]).filter(c=>!taken.has(c.id)||c.id===p.clubId).sort((a,b)=>a.short.localeCompare(b.short));
     const countrySel=countries.map(c=>`<option value="${escC(c)}" ${p.country===c?'selected':''}>${escC(c)}</option>`).join('');
+    const countryCell=`<select class="cl-select cl-pick-sel" onchange="clPickCountry(${i},this.value)">${countrySel}</select>`;
+    if(multi){
+      return `<div class="cl-pickrow nocl">
+        <span class="cl-pick-n">${escC(p.name)}${i===0?' <b class="cl-pick-you">(você)</b>':''}</span>
+        ${countryCell}</div>`;
+    }
+    const clubs=((CL._pickPool||{})[p.country]||[]).filter(c=>!taken.has(c.id)||c.id===p.clubId).sort((a,b)=>a.short.localeCompare(b.short));
     const clubSel=`<option value="">— escolha —</option>`+clubs.map(c=>`<option value="${escC(c.id)}" ${p.clubId===c.id?'selected':''}>${escC(c.short)}</option>`).join('');
     return `<div class="cl-pickrow">
       <span class="cl-pick-n">${escC(p.name)}${i===0?' <b class="cl-pick-you">(você)</b>':''}</span>
-      <select class="cl-select cl-pick-sel" onchange="clPickCountry(${i},this.value)">${countrySel}</select>
+      ${countryCell}
       <select class="cl-select cl-pick-sel" onchange="clPickClub(${i},this.value)">${clubSel}</select>
     </div>`;
   }).join('');
   const allChosen=(CL.pick||[]).length>0 && CL.pick.every(p=>p.clubId);
-  return dlg('Escolha os clubes', `
+  const head=multi
+    ? `<div class="cl-pickrow nocl cl-pick-head"><span>Jogador</span><span>País</span></div>`
+    : `<div class="cl-pickrow cl-pick-head"><span>Jogador</span><span>País</span><span>Clube</span></div>`;
+  const instr=multi
+    ? `Cada jogador escolhe seu país. Os times são <b>sorteados</b>. ${countries.length>1?'Podem estar em países diferentes.':''}`
+    : `Cada jogador escolhe seu país e um clube livre.`;
+  const actions=multi
+    ? `${btn('Sortear e começar','clSortearStart()',{icon:'🎲',cls:'cl-btn-ok'})}${btn('Voltar','clGoJogadores()',{icon:'↩',cls:'cl-btn-cancel'})}`
+    : `${btn('Começar','clConfirmarClubes()',{icon:'✔',cls:'cl-btn-ok',dis:!allChosen})}${btn('Sortear','clSortearPick()',{icon:'🎲'})}${btn('Voltar','clGoJogadores()',{icon:'↩',cls:'cl-btn-cancel'})}`;
+  return dlg(multi?'Escolha o país (times sorteados)':'Escolha os clubes', `
     <div class="cl-pick">
-      <div class="cl-pickrow cl-pick-head"><span>Jogador</span><span>País</span><span>Clube</span></div>
+      ${head}
       ${rows}
-      <div class="cl-instr" style="margin-top:8px">Cada jogador escolhe seu país e um clube livre. ${countries.length>1?'Podem estar em países diferentes.':''}</div>
+      <div class="cl-instr" style="margin-top:8px">${instr}</div>
     </div>
-    <div class="cl-cal-ok">${btn('Começar','clConfirmarClubes()',{icon:'✔',cls:'cl-btn-ok',dis:!allChosen})}${btn('Sortear','clSortearPick()',{icon:'🎲'})}${btn('Voltar','clGoJogadores()',{icon:'↩',cls:'cl-btn-cancel'})}</div>
+    <div class="cl-cal-ok">${actions}</div>
   `, {w:720,bodyClass:'cl-body-green'});
 }
-/* preenche aleatoriamente um clube livre pra cada manager (respeita o país escolhido) */
-function clSortearPick(){
+/* atribui aleatoriamente um clube livre a cada manager (respeita o país escolhido) */
+function _assignRandomClubs(){
   const taken=new Set();
   (CL.pick||[]).forEach(p=>{ const pool=((CL._pickPool||{})[p.country]||[]).filter(c=>!taken.has(c.id));
     if(pool.length){ const pk=pool[Math.floor(Math.random()*pool.length)]; p.clubId=pk.id; taken.add(pk.id); } });
-  cdraw();
 }
+function clSortearPick(){ _assignRandomClubs(); cdraw(); }
+/* multi-jogador: sorteia os times e já começa */
+function clSortearStart(){ _assignRandomClubs(); clConfirmarClubes(); }
 function clPickCountry(i,c){ if(!CL.pick[i])return; CL.pick[i].country=c; CL.pick[i].clubId=null; cdraw(); }
 function clPickClub(i,id){ if(!CL.pick[i])return; CL.pick[i].clubId=id||null; cdraw(); }
 function clGoJogadores(){ CL.screen='jogadores'; cdraw(); }
