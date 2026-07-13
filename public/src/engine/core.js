@@ -962,18 +962,37 @@ function intlClubIndex(){
   return INTL_CLUB_INDEX;
 }
 function intlClubById(id){ return intlClubIndex()[id]||null; }
-/* clubes de uma divisão de um universo qualquer (sem depender do universo ATIVO) */
-function bgClubsForDivision(uniKey, divKey){
-  const cfg=UNI_CONFIGS[uniKey]; if(!cfg||uniKey==='brasil') return [];
+/* nome de país -> chave de universo (UNI_CONFIGS usa 'brasil' minúsculo; intl usa o próprio nome) */
+function uniKeyOf(country){ return (country==='Brasil'||country==='brasil')?'brasil':country; }
+/* clubes de uma divisão de um universo qualquer (sem depender do universo ATIVO).
+   FASE 4: agora inclui o Brasil como liga de fundo (topo = Série A real; B/C/D = procedurais,
+   os MESMOS clubes que o jogo primário geraria, por serem determinísticos pela seed). */
+function bgClubsForDivision(country, divKey){
+  const uniKey=uniKeyOf(country); const cfg=UNI_CONFIGS[uniKey]; if(!cfg) return [];
+  if(uniKey==='brasil'){
+    if(divKey===cfg.order[0]) return (DATA.clubsSerieA||DATA.clubs||[]).slice(0, cfg.size[divKey]||20);
+    return proceduralDivisionClubs(divKey, cfg.size[divKey]||20);
+  }
   const all=(typeof window!=='undefined'&&window.INTL_LEAGUES&&window.INTL_LEAGUES[cfg.country])||[];
   const lgCode=cfg.lg&&cfg.lg[divKey];
   const clubs=lgCode?all.filter(c=>c.lg===lgCode):all.slice();
   return clubs.slice(0, cfg.size[divKey]||clubs.length);
 }
+/* resolve um clube de liga de fundo por id: intl pelo índice real; Brasil pelo índice
+   procedural/Série A (reconstruído sob demanda, determinístico pela seed — não infla o save). */
+let BG_BRAZIL_INDEX=null, BG_BRAZIL_SEED=null;
+function bgBrazilIndex(){
+  const seed=(S&&S.seed)||1;
+  if(BG_BRAZIL_INDEX && BG_BRAZIL_SEED===seed) return BG_BRAZIL_INDEX;
+  const idx={}; const cfg=UNI_CONFIGS.brasil;
+  cfg.order.forEach(d=>{ bgClubsForDivision('Brasil',d).forEach(c=>{ idx[c.id]=c; }); });
+  BG_BRAZIL_INDEX=idx; BG_BRAZIL_SEED=seed; return idx;
+}
+function bgClubById(id){ const i=intlClubById(id); if(i) return i; return bgBrazilIndex()[id]||null; }
 function initBgLeagues(){
   S.bgLeagues={};
   (S.bgCountries||[]).forEach(country=>{
-    const cfg=UNI_CONFIGS[country]; if(!cfg) return;
+    const cfg=UNI_CONFIGS[uniKeyOf(country)]; if(!cfg) return;
     const divs={};
     cfg.order.forEach(divKey=>{
       const ids=bgClubsForDivision(country,divKey).map(c=>c.id);
@@ -986,7 +1005,7 @@ function initBgLeagues(){
 /* quick-sim leve de uma partida de background (só placar, por overall + fator casa) */
 function bgQuickSim(homeId, awayId, seed){
   const R=makeRng(seed>>>0);
-  const ho=(intlClubById(homeId)||{}).overall||70, ao=(intlClubById(awayId)||{}).overall||70;
+  const ho=(bgClubById(homeId)||{}).overall||70, ao=(bgClubById(awayId)||{}).overall||70;
   const hExp=Math.max(0.2, 1.35+(ho-ao)*0.05), aExp=Math.max(0.2, 1.05+(ao-ho)*0.05);
   const pois=(lam)=>{ const L=Math.exp(-lam); let k=0,p=1; do{ k++; p*=R.random(); }while(p>L); return k-1; };
   return { hg:Math.min(7,pois(hExp)), ag:Math.min(7,pois(aExp)) };
@@ -995,7 +1014,7 @@ function bgQuickSim(homeId, awayId, seed){
 function bgAttributeGoals(L, clubId, n){
   if(n<=0) return;
   // usa o elenco materializado se já existe (reflete transferências); senão o dado real
-  const squad=(S.squads&&S.squads[clubId]) || (intlClubById(clubId)||{}).squad;
+  const squad=(S.squads&&S.squads[clubId]) || (bgClubById(clubId)||{}).squad;
   if(!squad||!squad.length) return;
   const cand=squad.filter(p=>p.s==='ATT'||p.s==='MID'); const pool=cand.length?cand:squad;
   for(let i=0;i<n;i++){
@@ -1043,7 +1062,7 @@ function bgStandings(country, divKey){
 function rollBgLeaguesSeason(){
   if(!S.bgLeagues) return;
   Object.keys(S.bgLeagues).forEach(country=>{
-    const L=S.bgLeagues[country]; const cfg=UNI_CONFIGS[country]; if(!cfg) return;
+    const L=S.bgLeagues[country]; const cfg=UNI_CONFIGS[uniKeyOf(country)]; if(!cfg) return;
     // histórico (campeão da divisão de topo + artilheiro)
     const topDiv=cfg.order[0]; const champ=bgStandings(country,topDiv)[0];
     const arty=Object.entries(L.scorers).sort((a,b)=>b[1]-a[1])[0];
@@ -1792,6 +1811,23 @@ function generateFiringOptions(){
 /* proposta de outro clube quando o treinador está indo bem: prioriza um clube um pouco melhor
    (por overall) na MESMA divisão; só raramente oferece um clube (fraco) da divisão de cima
    Critérios de sucesso: títulos, gestão financeira, moral do time */
+/* FASE 4: sondagem de clube de OUTRO país (liga de fundo). Mais rara que a doméstica e exige
+   estar muito bem no cargo. O treinador de sucesso pode ser levado pra o exterior. */
+function maybeForeignJobOffer(){
+  const bg=(S.bgCountries||[]).filter(c=>UNI_CONFIGS[uniKeyOf(c)]); if(!bg.length) return null;
+  const R=makeRng(hashSeed(S.seed,S.season,S.round,'foreignjob'));
+  if((S.jobSecurity||0)<85 || R.random()>=0.40) return null; // só quando MUITO bem, e não toda vez
+  const country=bg[Math.floor(R.random()*bg.length)];
+  const L=S.bgLeagues&&S.bgLeagues[country]; const cfg=UNI_CONFIGS[uniKeyOf(country)]; if(!L||!cfg) return null;
+  const topDiv=cfg.order[0]; const dd=L.divs[topDiv]; if(!dd) return null;
+  const ids=(dd.clubIds||[]).slice(); if(!ids.length) return null;
+  // um bom degrau: sorteia entre a metade mais forte da divisão de topo daquele país
+  const ranked=ids.map(id=>({id, ov:(bgClubById(id)||{}).overall||70})).sort((a,b)=>b.ov-a.ov);
+  const top=ranked.slice(0, Math.max(3, Math.ceil(ranked.length/2)));
+  const pick=top[Math.floor(R.random()*top.length)];
+  const bump=Math.round((S.coachSalary||150000)*(0.25 + Math.max(0,(pick.ov-clubOverall(S.clubId)))*0.02));
+  return { clubId:pick.id, division:topDiv, country, foreign:true, salary:(S.coachSalary||150000)+bump };
+}
 function generateJobOffer(){
   // verificar critérios de sucesso do treinador
   const avgMoral = squad(S.clubId).reduce((s,p)=>s+(p.moral||70),0) / (squad(S.clubId).length||1);
@@ -1800,6 +1836,9 @@ function generateJobOffer(){
 
   // critério mínimo: media de moral aceitavel, ou algum título/final disputada
   if(avgMoral<65 && titles===0 && trophyDisputes===0) return null;
+
+  // FASE 4: às vezes a proposta vem de fora do país (liga de fundo) — tem prioridade quando aparece
+  const foreign=maybeForeignJobOffer(); if(foreign) return foreign;
 
   const divIdx=DIV_ORDER.indexOf(S.division);
   const curOverall=clubOverall(S.clubId);
@@ -1859,7 +1898,7 @@ function checkManagerJobEvent(){
           S.pendingJobOffers.push(offer);
           // mostrar notificação de nova oferta
           S.roundNews=S.roundNews||[];
-          S.roundNews.push(`🤝 Nova oferta de contratação do ${clubOf(offer.clubId).short}!`);
+          S.roundNews.push(`🤝 ${offer.foreign?'Proposta do exterior ('+offer.country+') — ':'Nova oferta de contratação do '}${(clubOf(offer.clubId)||bgClubById(offer.clubId)||{short:'?'}).short}!`);
           return {kind:'offer', offer}; // retornar para mostrar modal imediato
         }
       }
@@ -1869,20 +1908,37 @@ function checkManagerJobEvent(){
 }
 /* aplica a troca de clube do treinador (demissão aceita ou proposta aceita) — o clube antigo
    segue existindo normalmente, agora controlado só pela própria simulação (como qualquer CPU) */
-function applyManagerJobChange(newClubId, newDivision){
-  const sameDivision = newDivision===S.division;
+function applyManagerJobChange(newClubId, newDivision, newCountry){
+  // FASE 4: troca de PAÍS — o universo primário passa a ser o do novo clube; o país antigo
+  // vira liga de fundo (e o novo país sai do fundo). Materializa o novo clube no primário.
+  const oldCountry = S.intlUniverse || 'Brasil';
+  const crossCountry = !!newCountry && newCountry!==oldCountry;
+  // o marcador de humano acompanha o treinador pro novo clube (o clube antigo volta a ser CPU)
+  const oldClubId=S.clubId, mgrName=(CL.humans&&CL.humans[oldClubId])||CL.mgr;
+  if(CL.humans && oldClubId!=null){ delete CL.humans[oldClubId]; if(mgrName) CL.humans[newClubId]=mgrName; }
+  if(crossCountry){
+    setUniverse(uniKeyOf(newCountry));
+    S.intlUniverse = uniKeyOf(newCountry)==='brasil' ? false : newCountry;
+    const nc = clubOf(newClubId) || bgClubById(newClubId);
+    if(nc){ S.clubPool=S.clubPool||{}; S.clubPool[newClubId]=nc;
+      if(!S.squads[newClubId]) S.squads[newClubId]=nc.squad.map(p=>attachAttrs(initStats({...p}))); }
+    const set=new Set((S.bgCountries||[]).filter(c=>c!==newCountry)); set.add(oldCountry);
+    S.bgCountries=[...set];
+  }
+  const sameDivision = !crossCountry && newDivision===S.division;
   S.clubId=newClubId; CL.clubId=newClubId;
   if(!sameDivision){
     S.division=newDivision;
     const allClubs=ensureDivisionClubs(newDivision);
     const others=allClubs.filter(c=>c.id!==newClubId).slice(0,DIVISION_SIZE[newDivision]-1);
-    DATA.clubs=[clubOf(newClubId), ...others];
+    DATA.clubs=[clubOf(newClubId)||bgClubById(newClubId), ...others].filter(Boolean);
     DATA.clubs.forEach(c=>{ if(!S.squads[c.id]) S.squads[c.id]=c.squad.map(p=>attachAttrs(initStats({...p}))); });
     const ids=DATA.clubs.map(c=>c.id);
     S.sched=makeSchedule(ids); S.round=0;
     S.table={}; DATA.clubs.forEach(c=>S.table[c.id]={id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
     S._promoRelegNews=null;
     buildOtherDivisions();
+    if(crossCountry) initBgLeagues(); // recria as ligas de fundo (país antigo entra, novo sai)
   }
   squad(newClubId).forEach(p=>{ if(!p.contract) p.contract=defaultContract(p); });
   S.xi=autoXI(newClubId);
@@ -1925,20 +1981,28 @@ function clAcceptJob(idx){
   clCloseOverlay(); saveV3(); cdraw();
 }
 function showJobOfferModal(offer){
-  const c=clubOf(offer.clubId);
+  const c=clubOf(offer.clubId)||bgClubById(offer.clubId)||{short:'?'};
   CL._jobOffer=offer;
+  // FASE 4: oferta estrangeira mostra o país (bandeira) e o rótulo da liga do NOVO país
+  const divLabel = offer.foreign
+    ? ((UNI_CONFIGS[uniKeyOf(offer.country)]||{}).label||{})[offer.division] || offer.division
+    : DIV_LABEL_FULL[offer.division];
+  const flag = offer.foreign && typeof flagImg==='function' ? flagImg(offer.country)+' ' : '';
+  const abroad = offer.foreign ? `<div class="cl-jobmodal-msg" style="margin-top:6px">✈️ É um convite pra dirigir <b>fora do país</b>, na ${flag}<b>${escC(offer.country)}</b>. Sua liga atual passa a rodar em segundo plano.</div>` : '';
   const salaryInfo = offer.salary ? `<div class="cl-jobopt-info"><span>Salário proposto:</span><b>${fmt(offer.salary)}/sem</b></div>` : '';
-  overlayC(dlg('Proposta de outro clube', `<div class="cl-jobmodal">
-    <div class="cl-jobmodal-msg">O <b style="${clubStripe(c)};padding:2px 6px;border-radius:3px">${escC(c.short)}</b> (${DIV_LABEL_FULL[offer.division]}) gostou do seu trabalho e quer te contratar.</div>
+  overlayC(dlg(offer.foreign?'Proposta do exterior':'Proposta de outro clube', `<div class="cl-jobmodal">
+    <div class="cl-jobmodal-msg">O <b style="${clubStripe(c)};padding:2px 6px;border-radius:3px">${escC(c.short)}</b> (${flag}${divLabel}) gostou do seu trabalho e quer te contratar.</div>
+    ${abroad}
     ${salaryInfo}
     <div class="cl-jog-actions">${btn('Aceitar','clAcceptJobOffer()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Recusar','clDeclineJobOffer()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
   </div>`, {w:520,bodyClass:'cl-body-green'}));
 }
 function clAcceptJobOffer(){
   const o=CL._jobOffer; if(!o) return;
+  const clubName=(clubOf(o.clubId)||bgClubById(o.clubId)||{short:'?'}).short;
   S.coachHistory=S.coachHistory||[];
-  S.coachHistory.push({season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(o.clubId).short.toUpperCase()}`});
-  applyManagerJobChange(o.clubId,o.division);
+  S.coachHistory.push({season:S.season, type:'contratado', text:`Contratado pelo ${String(clubName).toUpperCase()}${o.foreign?' ('+o.country+')':''}`});
+  applyManagerJobChange(o.clubId,o.division,o.country); // country presente => troca de universo (FASE 4)
   if(o.salary) S.coachSalary=o.salary; // atualizar salário se houver proposta
   CL._jobOffer=null; clCloseOverlay(); saveV3(); cdraw();
 }
