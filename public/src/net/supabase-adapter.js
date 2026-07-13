@@ -351,7 +351,13 @@ async function netSendEmailInvite(toEmail){
   const { data, error } = await sb.functions.invoke('send-invite-email', {
     body: { to: toEmail, hostName: NET.self.name, roomName: NET.room.name, inviteUrl: NET.inviteLink() }
   });
-  if(error) throw error;
+  if(error){
+    // FunctionsHttpError esconde o corpo da resposta (só "non-2xx status") — extrai a mensagem
+    // REAL do servidor (ex.: "RESEND_API_KEY ausente", domínio não verificado) pra mostrar ao host.
+    let msg = (error && error.message) || 'Falha ao enviar o convite.';
+    try{ if(error.context && typeof error.context.json==='function'){ const b=await error.context.json(); if(b && b.error) msg=b.error; } }catch(_){}
+    throw new Error(msg);
+  }
   if(data && data.error) throw new Error(data.error);
   return data;
 }

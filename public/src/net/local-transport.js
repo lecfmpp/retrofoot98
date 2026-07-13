@@ -430,14 +430,10 @@ function scLobby(){ const room=NET.room;
       </div>
     </div>`;
 
-  // ---- coluna direita: partida (velocidade/sortear) + chat ----
-  const partidaPanel = host ? `<div class="cl-wiz-panel">
+  // ---- coluna direita: partida (sortear) + chat ----
+  const partidaPanel = (host && room.phase==='lobby') ? `<div class="cl-wiz-panel">
       <div class="cl-wiz-secttitle">Partida</div>
-      ${room.phase==='lobby'?`<button class="cl-btn cl-wiz-drawbtn" onclick="clLobbyDraw()">🎲 Sortear times</button>`:''}
-      <div class="cl-wiz-invlbl" style="margin-bottom:7px">Velocidade do jogo</div>
-      <div class="cl-wiz-speedrow">
-        ${[1,1.5,2,3,5].map(s=>`<button class="cl-speed-btn ${CL.speedMult===s?'on':''}" onclick="clSetSpeed(${s})">${s}x</button>`).join('')}
-      </div>
+      <button class="cl-btn cl-wiz-drawbtn" onclick="clLobbyDraw()">🎲 Sortear times</button>
     </div>` : '';
   const chatPanel=`<div class="cl-wiz-panel cl-wiz-chatpanel">
       <div class="cl-wiz-secttitle">💬 Chat da sala</div>
