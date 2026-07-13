@@ -1064,6 +1064,9 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 
 /* ===== Conta & Modo Resenha (redesign handoff_conta_resenha) — reusa wizShell ===== */
 /* card de formulário (login/criar conta/abrir sala/entrar) — ~440px, alinhado à esquerda */
+/* centraliza o cartão de autenticação no desktop (horizontal + vertical) — no mobile o
+   conteúdo flui e o cartão ocupa a largura toda, então isso não atrapalha */
+.cl-wiz-authcenter{align-items:center;justify-content:center}
 .cl-wiz-authcard{width:min(440px,96%);color:#fff}
 .cl-wiz-authsub{color:var(--ontext-lite2);font-size:13px;line-height:1.45;margin:0 0 16px}
 .cl-wiz-authcard .cl-authform{display:flex;flex-direction:column;gap:14px}

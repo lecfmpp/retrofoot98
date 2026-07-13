@@ -385,7 +385,7 @@ function scLogin(){ const a=CL.auth||(CL.auth={mode:'login',name:'',email:'',pas
   return wizShell({
     public:true, title:isSignup?'Criar conta':'Sua conta',
     back:'clGoAbertura()', backLabel:'Voltar ao início',
-    body,
+    contentCls:'cl-wiz-authcenter', body,
     actionCls:'cl-wiz-action-e',
     action: btn(isSignup?'Criar conta':'Entrar', isSignup?'clLoginSignup()':'clLoginDo()', {icon:'✔',cls:'cl-wiz-cta',dis:disabled})
   });
@@ -455,7 +455,7 @@ function scResetPassword(){
   </div>`;
   return wizShell({
     public:true, title:'Nova senha', back:'clGoAbertura()', backLabel:'Voltar ao início',
-    body, actionCls:'cl-wiz-action-e',
+    contentCls:'cl-wiz-authcenter', body, actionCls:'cl-wiz-action-e',
     action: btn('Salvar senha','clDoUpdatePassword()',{icon:'✔',cls:'cl-wiz-cta',dis:!ok})
   });
 }

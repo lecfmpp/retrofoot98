@@ -218,7 +218,7 @@ function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(ty
         <div class="cl-conta-switch">Não é você? <a href="javascript:void(0)" onclick="clAuthSwitchAccount()">Trocar de conta</a></div>
       </div>`;
     return wizShell({ title:join?'Entrar na sala':'Criar sala', back:'clGoModo()', backLabel:'Voltar',
-      contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
+      contentCls:'cl-wiz-authcenter', body, actionCls:'cl-wiz-action-e',
       action: btn(join?'Entrar':'Continuar',join?'clContaJoin()':'clContaHost()',{icon:'✔',cls:'cl-wiz-cta',dis:!n.name}) });
   }
 
@@ -238,7 +238,7 @@ function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(ty
       ${join && NET.room?`<div class="cl-conta-room">Sala: <b>${escC(NET.room.name||n.code)}</b> · código <b>${escC(n.code)}</b></div>`:''}
     </div>`;
   return wizShell({ public:true, title:join?'Entrar na sala':(isSignup?'Criar conta':'Sua conta'), back:'clGoModo()', backLabel:'Voltar',
-    body, actionCls:'cl-wiz-action-e',
+    contentCls:'cl-wiz-authcenter', body, actionCls:'cl-wiz-action-e',
     action: btn(isSignup?'Criar conta':'Entrar',isSignup?'clAuthDoSignup()':'clAuthDoLogin()',{icon:'✔',cls:'cl-wiz-cta',dis:!(n.email&&n.password&&(!isSignup||n.name))}) });
 }
 function netContaSync(){ const b=document.querySelector('.cl-btn-ok'); if(!b) return;
