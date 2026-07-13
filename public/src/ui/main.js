@@ -549,6 +549,11 @@ function clPickSolo(){ CL.screen='modosolo'; CL.soloStep='choice'; CL.soloSaves=
 function clPickResenha(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   if(!st.loggedIn){ clOnlineStart(); return; } // fallback: o gate da abertura normalmente já garante login
+  // Resenha é sempre Brasil Série A — limpa qualquer resíduo de um solo anterior (universo intl,
+  // divisão baixa) pra que a sala criada use os clubes certos e newGame não quebre depois.
+  if(typeof setUniverse==='function') setUniverse('brasil');
+  if(DATA.clubsSerieA) DATA.clubs=DATA.clubsSerieA.slice();
+  CL.intlUniverse=false; CL.bgCountries=[]; CL.playCountry='Brasil';
   CL.screen='online';
   CL.net={ step:'escolha', intent:'host', authMode:'login', name:CL.mgr||st.name||'', email:st.email||'', roomName:'', phone:'', code:'', myRooms:null };
   wireNet(); cdraw();

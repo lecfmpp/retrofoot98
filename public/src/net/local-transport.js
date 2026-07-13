@@ -503,6 +503,13 @@ function clLobbyStart(){ const room=NET.room;
   onlineBeginSeason();
 }
 function onlineBeginSeason(){ const room=NET.room; const me=room.participants.find(p=>p.id===NET.self.id);
+  // A Resenha é sempre Brasil Série A. Se este jogador vinha de um solo (universo intl,
+  // divisão baixa, transferência ao exterior), DATA.clubs/universo ficaram alterados e
+  // newGame(clubId) teria squads[clubId] === undefined -> crash "reading 'forEach'".
+  // Restaura o contexto do Brasil (Série A) antes de montar o jogo online.
+  if(typeof setUniverse==='function') setUniverse('brasil');
+  if(DATA.clubsSerieA) DATA.clubs = DATA.clubsSerieA.slice();
+  CL.intlUniverse=false; CL.bgCountries=[]; CL.playCountry='Brasil';
   CL.clubId=(me&&me.clubId)||room.participants[0].clubId; CL.mgr=me?me.name:CL.mgr;
   newGame(CL.clubId); if(!S.stadium) S.stadium={capacity:STAND_START}; S.seed=room.seed;
   CL.humans={}; room.participants.forEach(p=>{ if(p.clubId) CL.humans[p.clubId]=p.name; });
