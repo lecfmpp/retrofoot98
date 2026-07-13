@@ -1143,3 +1143,32 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-crow{grid-template-columns:1fr;gap:6px}
   .cl-crow-head,.cl-prow-head{display:none}
 }
+
+/* ===== Sorteio da Copa + modal "Sair para o menu" (redesign handoff_sorteio_dialogo) ===== */
+.cl-wiz-seal{display:inline-flex;align-items:center;gap:8px}
+.cl-wiz-seal img{vertical-align:middle}
+.cl-wiz-fixedh{height:100vh;min-height:0;overflow:hidden}
+.cl-draw2-content{padding:16px 18px;overflow:hidden}
+.cl-draw2-cols{display:flex;gap:16px;flex:1;min-height:0;width:100%}
+.cl-draw2-box{flex:1;min-width:0;display:flex;flex-direction:column;background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD)}
+.cl-draw2-head{flex:none;background:var(--navy);color:#fff;font-weight:800;font-size:14px;padding:9px 14px}
+.cl-draw2-body{flex:1;min-height:0;overflow:auto}
+.cl-draw2-row{padding:8px 14px;font-size:14px;color:#111;border-bottom:1px solid #ececec;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-draw2-row.drawn{font-weight:700;color:var(--navy)}
+.cl-draw2-tag{color:var(--success);font-weight:700;font-family:var(--mono);font-size:12.5px}
+.cl-draw2-highlight{flex:none;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.cl-exitmodal{width:min(520px,92vw);background:var(--chrome);border:2px solid;border-color:#fff #707070 #707070 #fff;box-shadow:0 18px 50px rgba(0,0,0,.5)}
+.cl-exitmodal-bar{background:var(--navy);color:#fff;font-weight:800;font-size:14px;text-align:center;padding:9px;position:relative}
+.cl-exitmodal-min{position:absolute;left:6px;top:50%;transform:translateY(-50%);width:20px;height:18px;background:var(--chrome);border:1px solid;border-color:#fff #707070 #707070 #fff;color:#111;font-weight:800;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.cl-exitmodal-body{padding:22px 24px 20px}
+.cl-exitmodal-text{color:#111;font-size:15px;line-height:1.5;text-align:center;margin:0 0 20px}
+.cl-exitmodal-btns{display:flex;gap:14px;justify-content:center}
+.cl-exitmodal-btns .cl-btn{min-width:150px}
+.cl-exitmodal-cancel{display:flex;justify-content:center;margin-top:14px}
+@media (max-width:760px){
+  .cl-wiz-fixedh{height:auto;min-height:100vh;overflow:visible}
+  .cl-draw2-cols{flex-direction:column}
+  .cl-draw2-body{max-height:38vh}
+  .cl-exitmodal-btns{flex-direction:column}
+  .cl-exitmodal-btns .cl-btn{width:100%}
+}

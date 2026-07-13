@@ -201,7 +201,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'live':      html=scLive(); break;
     case 'classif':   html=scClassif(); break;
     case 'cupclassif':html=scCupClassif(); break;
-    case 'cupdraw':   html=titleBarTop('RetroFoot98')+deskWrap(scCupDraw()); break;
+    case 'cupdraw':   html=scCupDraw(); break;
     case 'online':    html=renderOnline(); break;
   }
   r.innerHTML=html;
@@ -493,7 +493,7 @@ function wizShell(o){
   // pill à direita do cabeçalho de etapa: customizado (o.pill, ex.: código da sala), ou passo N/4, ou vazio
   const pill = o.pill!=null ? `<span class="cl-wiz-steppill">${o.pill}</span>`
     : (o.step!=null ? `<span class="cl-wiz-steppill">${o.step} / 4</span>` : `<span class="cl-wiz-back-sp"></span>`);
-  return `<div class="cl-home cl-wiz">
+  return `<div class="cl-home cl-wiz ${o.rootCls||''}">
     <div class="cl-home-titlebar">
       <div class="cl-home-tb-l"><img src="img/logo.webp" width="500" height="500" alt="">RetroFoot98</div>
       <div class="cl-home-tb-r"><span>_</span><span>□</span><span>✕</span></div>
@@ -503,7 +503,7 @@ function wizShell(o){
       navRight)}
     <div class="cl-home-body cl-wiz-body">
       ${o.noHeader?'':`<div class="cl-wiz-stephead">
-        ${back}
+        ${o.headLeft!=null?o.headLeft:back}
         <span class="cl-wiz-steptitle">${escC(o.title)}</span>
         ${pill}
       </div>`}
@@ -3448,16 +3448,26 @@ function clSaveMenu(){ CL.menu=null; cdraw(); saveV3(true); }
    não faz sentido oferecer "gravar" ali, só confirmar a saída mesmo. */
 function clExit(){
   CL.menu=null;
-  if(CL.online){
-    overlayC(dlg('Sair para o menu', `<div class="cl-escala-confirm">Sair da partida agora? A sala continua ativa pros outros treinadores — você pode voltar depois.</div>
-      <div class="cl-jog-actions">${btn('Sair','clExitConfirm(false)',{icon:'✔',cls:'cl-btn-ok'})}${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
-      {w:460,bodyClass:'cl-body-gray',min:true}));
-    return;
-  }
-  overlayC(dlg('Sair para o menu', `<div class="cl-escala-confirm">Quer gravar o jogo antes de sair? O progresso não gravado será perdido.</div>
-    <div class="cl-jog-actions">${btn('Gravar e sair','clExitConfirm(true)',{icon:'☁',cls:'cl-btn-ok'})}${btn('Sair sem gravar','clExitConfirm(false)',{icon:'✖',cls:'cl-btn-cancel'})}</div>
-    <div class="cl-cal-ok">${btn('Cancelar','clCloseOverlay()',{cls:'cl-btn-mini'})}</div>`,
-    {w:480,bodyClass:'cl-body-gray',min:true}));
+  overlayC(exitModalHTML(!!CL.online));
+}
+/* modal "Sair para o menu" (redesign handoff_sorteio_dialogo): barra navy com minimizar à
+   esquerda, texto centralizado, botões grandes (emoji acima do label) e Cancelar. Fecha no
+   backdrop (overlayC.onclick), no "_" ou no Cancelar. Online: só confirma a saída (sala segue). */
+function exitModalHTML(online){
+  const text = online
+    ? 'Sair da partida agora? A sala continua ativa pros outros treinadores — você pode voltar depois.'
+    : 'Quer gravar o jogo antes de sair? O progresso não gravado será perdido.';
+  const bigBtns = online
+    ? btn('Sair','clExitConfirm(false)',{icon:'✔',cls:'cl-btn-ok cl-btn-big'})
+    : `${btn('Gravar e sair','clExitConfirm(true)',{icon:'☁',cls:'cl-btn-ok cl-btn-big'})}${btn('Sair sem gravar','clExitConfirm(false)',{icon:'✖',cls:'cl-btn-cancel cl-btn-big'})}`;
+  return `<div class="cl-exitmodal">
+    <div class="cl-exitmodal-bar"><button class="cl-exitmodal-min" onclick="clCloseOverlay()" aria-label="Fechar">_</button>Sair para o menu</div>
+    <div class="cl-exitmodal-body">
+      <p class="cl-exitmodal-text">${text}</p>
+      <div class="cl-exitmodal-btns">${bigBtns}</div>
+      <div class="cl-exitmodal-cancel">${btn('Cancelar','clCloseOverlay()',{cls:'cl-btn-mini'})}</div>
+    </div>
+  </div>`;
 }
 async function clExitConfirm(shouldSave){
   clCloseOverlay();
@@ -3665,10 +3675,13 @@ function cupDrawHighlightHTML(pair){
   </div>`;
 }
 function scCupDraw(){
-  const st=CL.cupDraw; if(!st) return '';
+  const st=CL.cupDraw; if(!st) return deskWrap('');
   const def=COMP_DEFS[st.key];
-  const leftRows=st.remaining.map(id=>`<div class="cl-draw-team">${escC(clubOf(id).name.toUpperCase())}</div>`).join('') || '<div class="cl-draw-team" style="color:#999">— fim —</div>';
-  const rightRows=st.drawn.slice().reverse().map(p=>`<div class="cl-draw-pair">${escC(clubOf(p.h).short.toUpperCase())} - ${p.bye?'ISENTO':escC(clubOf(p.a).short.toUpperCase())}</div>`).join('');
+  // Times (restantes, alfabético) | Sorteados (bold navy + status mono verde)
+  const leftRows=st.remaining.map(id=>`<div class="cl-draw2-row">${escC(clubOf(id).name.toUpperCase())}</div>`).join('') || '<div class="cl-draw2-row" style="color:#999">— fim —</div>';
+  const rightRows=st.drawn.slice().reverse().map(p=>{ const h=escC(clubOf(p.h).short.toUpperCase());
+    const tag=p.bye?'— ISENTO':('× '+escC(clubOf(p.a).short.toUpperCase()));
+    return `<div class="cl-draw2-row drawn">${h} <span class="cl-draw2-tag">${tag}</span></div>`; }).join('') || '<div class="cl-draw2-row" style="color:#999">—</div>';
   let highlight='';
   if(!CL.online){
     const mine=st.drawn.find(p=>p.h===CL.clubId||p.a===CL.clubId);
@@ -3677,14 +3690,21 @@ function scCupDraw(){
     highlight=st.drawn.filter(p=>CL.humans[p.h]||CL.humans[p.a]).map(cupDrawHighlightHTML).join('');
   }
   const done=st.idx>=st.reveal.length;
-  return dlg(`Sorteio dos jogos da ${def.short}`, `<div class="cl-draw">
-    <div class="cl-draw-cols">
-      <div class="cl-draw-col"><div class="cl-draw-colhd">Times</div><div class="cl-draw-list">${leftRows}</div></div>
-      <div class="cl-draw-col"><div class="cl-draw-colhd">Sorteados</div><div class="cl-draw-list">${rightRows}</div></div>
+  const body=`<div class="cl-draw2-cols">
+      <div class="cl-draw2-box"><div class="cl-draw2-head">Times</div><div class="cl-draw2-body">${leftRows}</div></div>
+      <div class="cl-draw2-box"><div class="cl-draw2-head">Sorteados</div><div class="cl-draw2-body">${rightRows}</div></div>
     </div>
-    ${highlight?`<div class="cl-draw-highlight">${highlight}</div>`:''}
-    <div class="cl-draw-actions">${done?'<i>Sorteio encerrado...</i>':btn('Acelerar sorteio','clCupDrawSkip()',{icon:'⏩',cls:'cl-btn-ico',dis:st.fast})}</div>
-  </div>`, {w:900,bodyClass:'cl-body-yellow',badge:{icon:trophyImg(st.key,30)||'🏆',label:def.short}});
+    ${highlight?`<div class="cl-draw2-highlight">${highlight}</div>`:''}`;
+  const action = done
+    ? `<i class="cl-wiz-hint">Sorteio encerrado…</i>`
+    : btn('Acelerar sorteio','clCupDrawSkip()',{icon:'⏩',cls:'cl-btn',dis:st.fast});
+  return wizShell({
+    rootCls:'cl-wiz-fixedh',
+    headLeft:`<span class="cl-wiz-steptitle cl-wiz-seal">${trophyImg(st.key,20)||'🏆'} ${escC(def.short)}</span>`,
+    title:`Sorteio dos jogos da ${def.short}`,
+    contentCls:'cl-draw2-content', body,
+    actionCls:'cl-wiz-action-c', action
+  });
 }
 
 /* ---- Seleccionar (tática/formação) ---- */
