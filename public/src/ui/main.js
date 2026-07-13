@@ -196,6 +196,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'main':      html=titleBarTop('RetroFoot98')+deskWrap(scMain()); break;
     case 'teamview':  html=titleBarTop('RetroFoot98')+deskWrap(scTeamView()); break;
     case 'handoff':   html=titleBarTop('RetroFoot98')+deskWrap(scHandoff()); break;
+    case 'seatturn':  html=titleBarTop('RetroFoot98')+deskWrap(scSeatTurn()); break;
     case 'live':      html=scLive(); break;
     case 'classif':   html=scClassif(); break;
     case 'cupclassif':html=scCupClassif(); break;
@@ -1067,23 +1068,48 @@ function startNextHotseatMatch(){
   CL._handoff=H.queue[0];
   CL.screen='handoff'; cdraw();
 }
+/* do handoff "Continuar": entra no contexto do assento e mostra a TELA DO TIME dele
+   (elenco + tática + classificação), igual ao manager 1 — daí ele escolhe a tática e joga. */
 function clPlayHotseatMatch(){
   const H=CL._hotseat, item=CL._handoff; if(!H||!item) return;
   H.queue=H.queue.slice(1); CL._handoff=null;
-  startHotseatMatch(item.seat, item.fx);
+  enterSeatContext(item.seat, item.fx);
+  CL.screen='seatturn'; cdraw();
 }
-/* inicia a partida ao vivo de um assento: troca o contexto de "quem eu comando" (engine+UI)
-   pro clube do assento, joga com a MESMA maquinaria da rodada/copa (subs/pênaltis/lesões),
-   e restaura o manager 1 ao terminar (finishHotseatMatch). */
-function startHotseatMatch(seat, fx){
+/* troca o contexto de "quem eu comando" (engine+UI) pro clube do assento — assim rosterHTML/
+   panSeleccao/clJogar/clSelFormation e a partida ao vivo operam sobre o assento. Guarda o
+   contexto do manager 1 pra restaurar depois (exitSeatContext). A escolha de tática de cada
+   assento persiste entre rodadas em CL.seatStore (igual à do manager, que persiste em S). */
+function enterSeatContext(seat, fx){
   const H=CL._hotseat;
   ensureBgClubMaterialized(fx.home); ensureBgClubMaterialized(fx.away);
-  H._prevClub=S.clubId; H._prevXI=(S.xi||[]).slice();
-  S.clubId=seat.clubId; CL.clubId=seat.clubId; S.xi=autoXI(seat.clubId);
+  H._prev={ clubId:S.clubId, xi:(S.xi||[]).slice(), tactic:S.tactic, formation:CL.formation,
+    tacticChosen:CL.tacticChosen, selPlayer:CL.selPlayer, escalacaoMode:CL.escalacaoMode, tab:CL.tab };
+  CL._seatContext={ seat, fx };
+  const st=(CL.seatStore&&CL.seatStore[seat.clubId])||null;
+  S.clubId=seat.clubId; CL.clubId=seat.clubId;
+  if(st){ S.xi=(st.xi||[]).slice(); CL.formation=st.formation; S.tactic=st.tactic||'equilibrado'; CL.tacticChosen=true; }
+  else { S.xi=autoXI(seat.clubId); CL.formation=null; S.tactic='equilibrado'; CL.tacticChosen=false; }
   fixUserXIAvailability();
+  CL.selPlayer=squad(seat.clubId)[0]?.n||null; CL.escalacaoMode=false; CL.tab='seleccao';
+  CL.subPanelOpen=false; CL.subsUsed=0; CL.liveDivOpen=null;
+}
+function exitSeatContext(){
+  const H=CL._hotseat, seat=CL._seatContext&&CL._seatContext.seat;
+  if(seat){ CL.seatStore=CL.seatStore||{}; CL.seatStore[seat.clubId]={ xi:(S.xi||[]).slice(), formation:CL.formation, tactic:S.tactic }; }
+  const p=H&&H._prev;
+  if(p){ S.clubId=p.clubId; CL.clubId=p.clubId; S.xi=p.xi; S.tactic=p.tactic; CL.formation=p.formation;
+    CL.tacticChosen=p.tacticChosen; CL.selPlayer=p.selPlayer; CL.escalacaoMode=p.escalacaoMode; CL.tab=p.tab; }
+  CL._seatContext=null;
+}
+/* "Jogar partida" na tela do assento -> inicia a partida ao vivo dele (contexto já é o do assento) */
+function clSeatPlay(){
+  const c=CL._seatContext; if(!c) return;
+  const xi=xiPlayers(CL.clubId); if(!(xi.length>=11 && CL.tacticChosen)){ toastC('Escolha a tática primeiro.'); return; }
+  const fx=c.fx;
   CL.subPanelOpen=false; CL.subsUsed=0; CL.liveDivOpen=null;
   const m=buildLiveMatchObject(fx.home,fx.away,fx.seed,{user:true, div:fx.div});
-  const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], humanSeat:{seat,fx} };
+  const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], humanSeat:{seat:c.seat,fx} };
   RL.maxMin=Math.max(94, m.events.length?m.events[m.events.length-1].min:90);
   CL.live=RL; CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
 }
@@ -1091,10 +1117,50 @@ function finishHotseatMatch(){
   const RL=CL.live, m=RL.matches[0], H=CL._hotseat;
   const scorers=m.events.filter(e=>e.type==='gol'||(e.type==='penalti'&&e.scored)).map(e=>({name:e.scorer,id:e.team}));
   if(H){ H.humanResults[m.h+'-'+m.a]={hg:m.hg,ag:m.ag,perf:m.perf,scorers,events:m.events};
-    H.allEvents=(H.allEvents||[]).concat(m.events||[]);
-    S.clubId=H._prevClub; CL.clubId=H._prevClub; S.xi=H._prevXI; } // restaura o manager 1
+    H.allEvents=(H.allEvents||[]).concat(m.events||[]); }
   CL.live=null; CL.subsUsed=0;
+  exitSeatContext(); // restaura o manager 1 (persistindo a tática do assento)
   startNextHotseatMatch();
+}
+/* rótulo da divisão do assento (no universo do país dele) */
+function seatDivLabel(seat, fx){ const cfg=UNI_CONFIGS[uniKeyOf(seat.country)]||{}; return (cfg.label&&cfg.label[fx.div])||fx.div; }
+/* classificação da liga do assento (liga de fundo OU divisão primária, se mesmo país) */
+function seatStandingsHTML(seat, fx){
+  const rows = fx.kind==='bg'
+    ? bgStandings(seat.country, fx.div)
+    : Object.values(S.table).sort((a,b)=>b.Pts-a.Pts||(b.GF-b.GA)-(a.GF-a.GA)||b.GF-a.GF);
+  const body=rows.slice(0,20).map((t,i)=>{ const c=clubOf(t.id)||bgClubById(t.id)||{short:String(t.id)}; const me=t.id===seat.clubId;
+    return `<div class="cl-seat-strow ${me?'me':''}"><span>${i+1}</span><span class="cl-seat-club">${escC(c.short||'')}</span><span>${t.P}</span><span>${t.W}</span><span>${t.D}</span><span>${t.L}</span><span><b>${t.Pts}</b></span></div>`;
+  }).join('');
+  return `<div class="cl-seat-standings"><div class="cl-seat-st-hd">Classificação — ${escC(seatDivLabel(seat,fx))}</div>
+    <div class="cl-seat-strow head"><span>#</span><span class="cl-seat-club">Clube</span><span>J</span><span>V</span><span>E</span><span>D</span><span>P</span></div>${body}</div>`;
+}
+/* TELA DO TIME do assento (hotseat): mesma pegada da tela principal — elenco à esquerda,
+   tática + classificação + Jogar à direita. Reusa rosterHTML()/panSeleccao() com o contexto
+   já trocado pro assento (clJogar detecta o contexto e chama clSeatPlay). */
+function scSeatTurn(){
+  const c=CL._seatContext; if(!c) return deskWrap('');
+  const seat=c.seat, fx=c.fx; const cl=clubOf(seat.clubId)||bgClubById(seat.clubId)||{};
+  const oppId=fx.home===seat.clubId?fx.away:fx.home; const opp=clubOf(oppId)||bgClubById(oppId)||{};
+  const home=fx.home===seat.clubId; const flag=(typeof flagImg==='function')?flagImg(seat.country):'';
+  const th=clubTheme(seat.clubId);
+  return `<div class="cl-main" style="border-color:${th.col}">
+    <div class="cl-main-top">${flag} ${escC(seat.name)} · ${escC(cl.short||'')}</div>
+    <div class="cl-main-body">
+      <div class="cl-main-left" style="background:${th.bg}">
+        <div class="cl-hdr"><div class="cl-mgr">${escC(seat.name)}</div>
+          <div class="cl-hdr-sub"><span class="cl-flag2">${flag}</span> ${escC(seat.country)} <span class="cl-div">${escC(seatDivLabel(seat,fx))}</span></div></div>
+        <div class="cl-roster-hd cl-acc-hd"><span>Elenco</span></div>
+        <div class="cl-roster cl-acc-body">${rosterHTML()}</div>
+      </div>
+      <div class="cl-main-right" style="background:${th.bg}">
+        <div class="cl-right-hdr"><div class="cl-adv-lbl">Adversário</div>
+          <div class="cl-adv-name" style="background:${th.bg2};padding:3px 8px">${escC(opp.short||'')}</div>
+          <div class="cl-adv-loc">${home?'CASA':'FORA'} · ${(S.round||0)+1}ª Jornada</div></div>
+        <div class="cl-panel">${panSeleccao()}${seatStandingsHTML(seat,fx)}</div>
+      </div>
+    </div>
+  </div>`;
 }
 /* tela de passagem de aparelho (hotseat) entre os treinadores humanos */
 function scHandoff(){
@@ -1114,7 +1180,7 @@ function scHandoff(){
       <div class="cl-handoff-club" style="${clubStripe?clubStripe(c):''}">${flag} ${escC(c.short||c.name||'')}</div>
       <div class="cl-handoff-country">${flag} ${escC(seat.country)}</div>
       <div class="cl-handoff-match">${escC(c.short||'')} <span class="cl-handoff-x">×</span> ${escC(opp.short||'')} <span class="cl-handoff-loc">(${loc})</span></div>
-      <div class="cl-handoff-actions">${btn('Jogar','clPlayHotseatMatch()',{icon:'▶',cls:'cl-btn-ok cl-btn-wide'})}</div>
+      <div class="cl-handoff-actions">${btn('Continuar','clPlayHotseatMatch()',{icon:'▶',cls:'cl-btn-ok cl-btn-wide'})}</div>
     </div>`, {w:600,bodyClass:'cl-body-green'});
 }
 
@@ -1132,6 +1198,7 @@ function scHandoff(){
    por quê. Agora é de verdade assíncrono/esperado, mostra progresso real (indeterminado,
    já que não dá pra saber % de upload) e tenta dar uma pista honesta do motivo do erro. */
 async function saveV3(explicit){
+  if(CL._seatContext) return; // hotseat: contexto trocado pro assento — NÃO persistir (seria salvo com o clube errado como primário)
   if(CL.online) return; // online usa o save da sala (host-autoritativo), não o solo
   const name = CL.save||CL.mgr||'SAVE';
   const payload = { ts:Date.now(), mgr:CL.mgr, clubId:CL.clubId, currency:CL.currency, ticket:CL.ticket, humans:CL.humans, S };
@@ -1807,6 +1874,7 @@ function clEscalaDoSwap(){
 }
 function clEscalaCancel(){ CL.preSubOut=null; CL.preSubIn=null; clCloseOverlay(); cdraw(); }
 function clJogar(){
+  if(CL._seatContext){ clSeatPlay(); return; } // hotseat: "Jogar" na tela do assento inicia a partida dele
   if(!CL.tacticChosen){ toastC('Escolha a tática no menu Seleccionar primeiro.'); CL.tab='seleccao'; cdraw(); return; }
   // semana de avanço de copa com partida do clube pendente: joga a copa primeiro, só
   // depois libera a rodada — ver pendingUserCupMatches/clCupResultContinue. Se houver

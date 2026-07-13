@@ -1061,3 +1061,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-handoff-match .cl-handoff-loc{color:var(--on-dark-2,#cfe6cf);font-weight:600;font-size:14px}
 .cl-handoff-actions{margin-top:14px}
 .cl-handoff-club img,.cl-handoff-country img{vertical-align:middle}
+
+/* ===== FASE 2b · Tela do time do assento (hotseat) — classificação ===== */
+.cl-seat-standings{margin-top:14px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.14);border-radius:4px;padding:8px 8px 10px}
+.cl-seat-st-hd{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--yellow,#ffff00);margin-bottom:6px}
+.cl-seat-strow{display:grid;grid-template-columns:22px 1fr 26px 24px 24px 24px 30px;gap:2px;align-items:center;font-size:12px;color:#eee;padding:2px 4px;border-radius:3px}
+.cl-seat-strow.head{font-size:10px;color:#aaa;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.14);margin-bottom:2px}
+.cl-seat-strow .cl-seat-club{text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl-seat-strow span:not(.cl-seat-club){text-align:center}
+.cl-seat-strow.me{background:var(--navy,#000080);color:#fff;font-weight:700}
