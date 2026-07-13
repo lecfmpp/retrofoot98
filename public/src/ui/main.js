@@ -188,10 +188,10 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'modosolo':  html=scModoSolo(); break;
     case 'paises':    html=scPaises(); break;
     case 'paisJogavel': html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scPaisJogavel(),{logo:true}); break;
-    case 'moeda':     html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scMoeda(),{logo:true}); break;
-    case 'loading':   html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scLoading(),{logo:true}); break;
-    case 'jogadores': html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scJogadores(),{logo:true}); break;
-    case 'escolhaclubes': html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scEscolhaClubes(),{logo:true}); break;
+    case 'moeda':     html=scMoeda(); break;
+    case 'loading':   html=scLoading(); break;
+    case 'jogadores': html=scJogadores(); break;
+    case 'escolhaclubes': html=scEscolhaClubes(); break;
     case 'sorteio':   html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scSorteio(),{logo:true}); break;
     case 'main':      html=titleBarTop('RetroFoot98')+deskWrap(scMain()); break;
     case 'teamview':  html=titleBarTop('RetroFoot98')+deskWrap(scTeamView()); break;
@@ -502,11 +502,11 @@ function wizShell(o){
       [['Início',"clWizHome('home')"],['Sobre nós',"clWizHome('sobre')"],['Como jogar',"clWizHome('ajuda')"],['Contato',"clWizHome('contato')"]],
       navRight)}
     <div class="cl-home-body cl-wiz-body">
-      <div class="cl-wiz-stephead">
+      ${o.noHeader?'':`<div class="cl-wiz-stephead">
         ${back}
         <span class="cl-wiz-steptitle">${escC(o.title)}</span>
         ${pill}
-      </div>
+      </div>`}
       <div class="cl-wiz-content ${o.contentCls||''}">${o.body}</div>
       ${o.action!=null?`<div class="cl-wiz-actionbar ${o.actionCls||''}">${o.action}</div>`:''}
     </div>
@@ -799,40 +799,60 @@ function scPaisJogavel(){
 function clGoPaises(){ CL.screen='paises'; cdraw(); }
 function clPaisJogavelOk(){ CL.screen='moeda'; cdraw(); }
 
-/* ================= 04 · MOEDA ================= */
+/* ================= SETUP DO JOGO (redesign handoff_setup_jogo) — wizShell 1/4..4/4 =================
+   Dinheiro (1/4) → Jogadores (2/4) → Escolha os clubes (3/4) → A iniciar o jogo (loading).
+   Só markup/estilo/navegação; a lógica (nomes, moeda, sorteio, montagem do jogo) é a mesma. */
+/* ---- 1/4 · DINHEIRO (moeda) ---- */
 function scMoeda(){
-  return dlg('Dinheiro', `
-    <div class="cl-moeda">
-      <div class="cl-moeda-q">Com que moeda vai querer jogar?</div>
-      <select class="cl-select" onchange="CL.currency=this.value">
-        <option ${CL.currency==='Reais'?'selected':''}>Reais</option>
-        <option ${CL.currency==='Dólares'?'selected':''}>Dólares</option>
-        <option ${CL.currency==='Euros'?'selected':''}>Euros</option>
-      </select>
-    </div>
-    <div class="cl-dlg-side">${btn('OK','clMoedaOk()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
-    {w:640,bodyClass:'cl-body-yellow cl-hasside'});
+  const cur=CL.currency||'Reais';
+  const body=`<div class="cl-wiz-form">
+    <label class="cl-wiz-label" style="display:block;margin-bottom:8px">Com que moeda vai querer jogar?</label>
+    <select class="cl-bigsel" onchange="CL.currency=this.value">
+      <option ${cur==='Reais'?'selected':''}>Reais</option>
+      <option ${cur==='Dólares'?'selected':''}>Dólares</option>
+      <option ${cur==='Euros'?'selected':''}>Euros</option>
+    </select>
+    <div class="cl-wiz-note">A moeda vale pra toda a Resenha — todo mundo negocia jogadores e vê as finanças nela.</div>
+  </div>`;
+  return wizShell({ step:1, title:'Dinheiro', back:'clMoedaBack()', backLabel:'Voltar',
+    contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
+    action: btn('OK','clMoedaOk()',{icon:'✔',cls:'cl-wiz-cta'}) });
 }
-function clMoedaOk(){ CL.screen='loading'; cdraw(); }
+function clMoedaBack(){ CL.screen = selectedPlayableCountries().length>1 ? 'paisJogavel' : 'paises'; cdraw(); }
+function clMoedaOk(){ CL.screen='jogadores'; cdraw(); }
+function clGoMoeda(){ CL.screen='moeda'; cdraw(); }
 
-/* ================= 05 · A INICIAR O JOGO (loading) ================= */
-function scLoading(){ return `<div class="cl-loadbar"><div class="cl-loadbar-title">A iniciar o jogo...</div>
-  <div class="cl-loadbar-track"><div id="cl-load-fill" class="cl-loadbar-fill" style="width:0%"><span id="cl-load-pct">0%</span></div></div></div>`; }
+/* ---- 4/4 · A INICIAR O JOGO (loading + barra de progresso) ---- */
+function scLoading(){
+  const body=`<div class="cl-progwrap">
+    <div class="cl-progtitle">A iniciar o jogo…</div>
+    <div class="cl-progtrack"><div id="cl-load-fill" class="cl-progfill" style="width:0%"></div><div id="cl-load-pct" class="cl-progpct">0%</div></div>
+    <div class="cl-wiz-note" style="text-align:center;margin-top:10px">Montando tabelas, elencos e calendário da temporada.</div>
+  </div>`;
+  return wizShell({ noHeader:true, contentCls:'cl-wiz-center', body });
+}
 function runLoading(){ let p=0; const t=setInterval(()=>{ p+=Math.floor(8+Math.random()*14); if(p>=100)p=100;
   const f=$c('#cl-load-fill'), pc=$c('#cl-load-pct'); if(f)f.style.width=p+'%'; if(pc)pc.textContent=p+'%';
-  if(p>=100){ clearInterval(t); setTimeout(()=>{ CL.screen='jogadores'; cdraw(); },350); } }, 180); }
+  if(p>=100){ clearInterval(t); setTimeout(()=>{
+    if(CL._pendingLaunch){ const fn=CL._pendingLaunch; CL._pendingLaunch=null; fn(); } // clubes -> loading -> lança o jogo
+    else { CL.screen='jogadores'; cdraw(); }
+  },350); } }, 180); }
 
-/* ================= 06 · JOGADORES (nomes) ================= */
+/* ---- 2/4 · JOGADORES (nomes) ---- */
 function scJogadores(){
-  const rows=[0,1,2,3,4,5].map(i=>`<div class="cl-jrow"><span class="cl-jlbl">Jogador ${i+1}</span>
-    <input class="cl-jinput ${i===0?'cl-jfocus':''}" ${i===0?'id="cl-focus"':''} maxlength="12" value="${escC(CL.names[i])}"
-      oninput="CL.names[${i}]=this.value.toUpperCase();"></div>`).join('');
-  return dlg('Jogadores', `
-    <div class="cl-jog">
-      <div class="cl-jog-head"><span class="cl-jh-n">Nome</span><span class="cl-jh-e">Equipa</span></div>
-      ${rows}
-      <div class="cl-jog-actions">${btn('Escolher clubes','clEscolherClubes()',{cls:'cl-btn-wide'})}</div>
-    </div>`, {w:820,bodyClass:'cl-body-gray',min:true});
+  const rows=[0,1,2,3,4,5].map(i=>`<div class="cl-prow">
+      <span class="cl-plabel">Jogador ${i+1}</span>
+      <input class="cl-pinput ${i===0?'cur':''}" ${i===0?'id="cl-focus"':''} maxlength="12" placeholder="${i===0?'LEANDRO':''}" value="${escC(CL.names[i])}" oninput="CL.names[${i}]=this.value.toUpperCase();this.value=CL.names[${i}]">
+      <span class="cl-pteam">${i===0?'(você)':''}</span>
+    </div>`).join('');
+  const body=`<div class="cl-wiz-form-wide">
+    <div class="cl-prow cl-prow-head"><span></span><span class="cl-wiz-collabel">Nome</span><span class="cl-wiz-collabel">Equipa</span></div>
+    ${rows}
+    <div class="cl-wiz-note">Preencha o nome de cada treinador. Os vazios ficam com a CPU.</div>
+  </div>`;
+  return wizShell({ step:2, title:'Jogadores', back:'clGoMoeda()', backLabel:'Voltar',
+    contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
+    action: btn('Escolher clubes','clEscolherClubes()',{icon:'›',cls:'cl-wiz-cta'}) });
 }
 /* clubes reais dos países europeus selecionados (união de todas as ligas escolhidas) */
 function intlSelectedClubs(){
@@ -965,6 +985,7 @@ function clEscolherClubes(){
     CL.screen='escolhaclubes'; cdraw();
   })().catch(err=>{ console.error(err); toastC('⚠ Erro ao carregar clubes.'); });
 }
+/* ---- 3/4 · ESCOLHA OS CLUBES ---- */
 function scEscolhaClubes(){
   const countries=selectedPlayableCountries();
   // com VÁRIOS jogadores os times são SORTEADOS (modo solo, estilo clássico) — cada um só
@@ -973,38 +994,33 @@ function scEscolhaClubes(){
   const taken=new Set((CL.pick||[]).filter(p=>p.clubId).map(p=>p.clubId));
   const rows=(CL.pick||[]).map((p,i)=>{
     const countrySel=countries.map(c=>`<option value="${escC(c)}" ${p.country===c?'selected':''}>${escC(c)}</option>`).join('');
-    const countryCell=`<select class="cl-select cl-pick-sel" onchange="clPickCountry(${i},this.value)">${countrySel}</select>`;
+    const countryCell=`<select class="cl-navysel" onchange="clPickCountry(${i},this.value)">${countrySel}</select>`;
+    const nameCell=`<span class="cl-plabel">${escC(p.name)}${i===0?' <span class="cl-pick-you">(você)</span>':''}</span>`;
     if(multi){
-      return `<div class="cl-pickrow nocl">
-        <span class="cl-pick-n">${escC(p.name)}${i===0?' <b class="cl-pick-you">(você)</b>':''}</span>
-        ${countryCell}</div>`;
+      return `<div class="cl-crow nocl">${nameCell}${countryCell}</div>`;
     }
     const clubs=((CL._pickPool||{})[p.country]||[]).filter(c=>!taken.has(c.id)||c.id===p.clubId).sort((a,b)=>a.short.localeCompare(b.short));
     const clubSel=`<option value="">— escolha —</option>`+clubs.map(c=>`<option value="${escC(c.id)}" ${p.clubId===c.id?'selected':''}>${escC(c.short)}</option>`).join('');
-    return `<div class="cl-pickrow">
-      <span class="cl-pick-n">${escC(p.name)}${i===0?' <b class="cl-pick-you">(você)</b>':''}</span>
-      ${countryCell}
-      <select class="cl-select cl-pick-sel" onchange="clPickClub(${i},this.value)">${clubSel}</select>
-    </div>`;
+    return `<div class="cl-crow">${nameCell}${countryCell}
+      <select class="cl-navysel" onchange="clPickClub(${i},this.value)">${clubSel}</select></div>`;
   }).join('');
   const allChosen=(CL.pick||[]).length>0 && CL.pick.every(p=>p.clubId);
   const head=multi
-    ? `<div class="cl-pickrow nocl cl-pick-head"><span>Jogador</span><span>País</span></div>`
-    : `<div class="cl-pickrow cl-pick-head"><span>Jogador</span><span>País</span><span>Clube</span></div>`;
+    ? `<div class="cl-crow nocl cl-crow-head"><span class="cl-wiz-collabel">Jogador</span><span class="cl-wiz-collabel">País</span></div>`
+    : `<div class="cl-crow cl-crow-head"><span class="cl-wiz-collabel">Jogador</span><span class="cl-wiz-collabel">País</span><span class="cl-wiz-collabel">Clube</span></div>`;
   const instr=multi
     ? `Cada jogador escolhe seu país. Os times são <b>sorteados</b>. ${countries.length>1?'Podem estar em países diferentes.':''}`
     : `Cada jogador escolhe seu país e um clube livre.`;
-  const actions=multi
-    ? `${btn('Sortear e começar','clSortearStart()',{icon:'🎲',cls:'cl-btn-ok'})}${btn('Voltar','clGoJogadores()',{icon:'↩',cls:'cl-btn-cancel'})}`
-    : `${btn('Começar','clConfirmarClubes()',{icon:'✔',cls:'cl-btn-ok',dis:!allChosen})}${btn('Sortear','clSortearPick()',{icon:'🎲'})}${btn('Voltar','clGoJogadores()',{icon:'↩',cls:'cl-btn-cancel'})}`;
-  return dlg(multi?'Escolha o país (times sorteados)':'Escolha os clubes', `
-    <div class="cl-pick">
-      ${head}
-      ${rows}
-      <div class="cl-instr" style="margin-top:8px">${instr}</div>
-    </div>
-    <div class="cl-cal-ok">${actions}</div>
-  `, {w:720,bodyClass:'cl-body-green'});
+  const action=multi
+    ? `<span class="cl-wiz-back-sp"></span><div class="cl-wiz-actbtns">${btn('Voltar','clGoJogadores()',{icon:'↩',cls:'cl-btn'})}${btn('Sortear e começar','clSortearStart()',{icon:'🎲',cls:'cl-wiz-cta'})}</div>`
+    : `${btn('Sortear','clSortearPick()',{icon:'🎲',cls:'cl-btn'})}<div class="cl-wiz-actbtns">${btn('Voltar','clGoJogadores()',{icon:'↩',cls:'cl-btn'})}${btn('Começar','clStartGame()',{icon:'✔',cls:'cl-wiz-cta',dis:!allChosen})}</div>`;
+  const body=`<div class="cl-wiz-clubes">
+    ${head}
+    ${rows}
+    <div class="cl-wiz-note">${instr}</div>
+  </div>`;
+  return wizShell({ step:3, title:'Escolha os clubes', back:'clGoJogadores()', backLabel:'Voltar',
+    contentCls:'cl-wiz-top', body, action });
 }
 /* atribui aleatoriamente um clube livre a cada manager (respeita o país escolhido) */
 function _assignRandomClubs(){
@@ -1013,8 +1029,10 @@ function _assignRandomClubs(){
     if(pool.length){ const pk=pool[Math.floor(Math.random()*pool.length)]; p.clubId=pk.id; taken.add(pk.id); } });
 }
 function clSortearPick(){ _assignRandomClubs(); cdraw(); }
-/* multi-jogador: sorteia os times e já começa */
-function clSortearStart(){ _assignRandomClubs(); clConfirmarClubes(); }
+/* clubes -> loading (4/4) -> lança o jogo. Começar (1 jogador, clubes escolhidos) */
+function clStartGame(){ if(!(CL.pick||[]).every(p=>p.clubId)) return; CL._pendingLaunch=clConfirmarClubes; CL.screen='loading'; cdraw(); }
+/* multi-jogador: sorteia os times, passa pelo loading e começa */
+function clSortearStart(){ _assignRandomClubs(); CL._pendingLaunch=clConfirmarClubes; CL.screen='loading'; cdraw(); }
 function clPickCountry(i,c){ if(!CL.pick[i])return; CL.pick[i].country=c; CL.pick[i].clubId=null; cdraw(); }
 function clPickClub(i,id){ if(!CL.pick[i])return; CL.pick[i].clubId=id||null; cdraw(); }
 function clGoJogadores(){ CL.screen='jogadores'; cdraw(); }

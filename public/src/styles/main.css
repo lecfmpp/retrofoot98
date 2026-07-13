@@ -1112,3 +1112,34 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-wiz-actionbar{flex-wrap:wrap}
   .cl-wiz-authcard{width:100%}
 }
+
+/* ===== Setup do Jogo (redesign handoff_setup_jogo) — reusa wizShell ===== */
+/* selects navy (moeda grande + clubes) com seta branca */
+.cl-bigsel{width:100%;box-sizing:border-box;font-family:var(--sans);font-size:20px;font-weight:800;color:#fff;background:var(--navy);border:2px solid;border-color:#00003a #4a4ad8 #4a4ad8 #00003a;padding:13px 16px;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><path d='M4 6l4 4 4-4' stroke='white' stroke-width='2' fill='none'/></svg>");background-repeat:no-repeat;background-position:right 14px center}
+.cl-navysel{width:100%;box-sizing:border-box;font-family:var(--sans);font-size:15px;font-weight:700;color:#fff;background:var(--navy);border:2px solid;border-color:#00003a #4a4ad8 #4a4ad8 #00003a;padding:9px 12px;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 16 16'><path d='M4 6l4 4 4-4' stroke='white' stroke-width='2' fill='none'/></svg>");background-repeat:no-repeat;background-position:right 11px center}
+.cl-bigsel:focus,.cl-navysel:focus{box-shadow:0 0 0 2px var(--yellow)}
+/* tabela de Jogadores (Nome / Equipa) */
+.cl-prow{display:grid;grid-template-columns:110px 1fr 1fr;gap:14px;align-items:center;padding:7px 0}
+.cl-prow-head{padding:0 0 2px}
+.cl-plabel{color:#fff;font-weight:700;font-size:14px}
+.cl-pteam{color:var(--ontext-lite2);font-size:13px;font-style:italic}
+.cl-pinput{width:100%;box-sizing:border-box;font-family:var(--sans);font-size:14px;color:#111;background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);padding:9px 11px;outline:none}
+.cl-pinput:focus{box-shadow:0 0 0 2px var(--yellow)}
+.cl-pinput.cur{background:#fff7bd}
+/* tabela de Clubes (Jogador / País / Clube) */
+.cl-wiz-clubes{width:min(680px,96%)}
+.cl-crow{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px;align-items:center;padding:9px 0;border-top:1px solid rgba(255,255,255,.1)}
+.cl-crow.nocl{grid-template-columns:1.2fr 1.6fr}
+.cl-crow-head{border-top:none;padding-top:0}
+/* barra de progresso (loading) */
+.cl-progwrap{width:min(560px,92%)}
+.cl-progtitle{background:var(--navy);color:#fff;font-weight:800;font-size:15px;text-align:center;padding:11px;border:2px solid;border-color:#4a4ad8 #00003a #00003a #4a4ad8}
+.cl-progtrack{background:#000;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);padding:4px;position:relative;margin-top:2px}
+.cl-progfill{height:26px;background:linear-gradient(180deg,#4fd07d,#1a8f3c);transition:width .2s}
+.cl-progpct{position:absolute;left:0;right:0;top:calc(50% + 1px);transform:translateY(-50%);text-align:center;color:#fff;font-weight:800;font-family:var(--mono);font-size:14px;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+@media (max-width:760px){
+  .cl-prow{grid-template-columns:90px 1fr}
+  .cl-prow>.cl-pteam{grid-column:2}
+  .cl-crow{grid-template-columns:1fr;gap:6px}
+  .cl-crow-head,.cl-prow-head{display:none}
+}
