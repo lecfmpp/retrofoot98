@@ -135,24 +135,29 @@ function wireNet(){ NET.onState=(room)=>{ if(room && room.speedMult && !NET.isHo
     if(CL.online && room && room.phase==='running' && CL.screen!=='live'){ onlineRunRound(); } };
   NET.onChat=()=>{ if(CL.screen==='online') renderOnlineInto(); else renderChatBoxes(); }; }
 
+/* cada tela do fluxo Resenha já retorna o shell completo (wizShell) — sem deskWrap/titleBar */
 function renderOnline(){ const n=CL.net||{};
-  if(n.step==='escolha') return deskWrap(scResenhaChoice(),{logo:true});
-  if(n.step==='joincode') return deskWrap(scJoinCode(),{logo:true});
-  if(n.step==='conta')  return deskWrap(scConta(),{logo:true});
-  if(n.step==='minhassalas') return deskWrap(scMinhasSalas(),{logo:true});
-  if(n.step==='sala')   return deskWrap(scSalaHost(),{logo:true});
-  if(n.step==='midjoin') return deskWrap(scMidJoin(),{logo:true});
-  if(n.step==='lobby')  return deskWrap(scLobby(),{logo:true});
-  return deskWrap(scConta(),{logo:true});
+  if(n.step==='escolha') return scResenhaChoice();
+  if(n.step==='joincode') return scJoinCode();
+  if(n.step==='conta')  return scConta();
+  if(n.step==='minhassalas') return scMinhasSalas();
+  if(n.step==='sala')   return scSalaHost();
+  if(n.step==='midjoin') return scMidJoin();
+  if(n.step==='lobby')  return scLobby();
+  return scConta();
 }
 /* ---- Modo Resenha (logado): escolher entre CRIAR sala nova (anfitrião) ou ENTRAR por código ---- */
 function scResenhaChoice(){
   const rooms=CL.net.myRooms||[];
-  const rejoin = rooms.length ? `<div class="cl-resenha-rejoin" onclick="CL.net.step='minhassalas';cdraw()">↻ Você já joga ${rooms.length} Resenha${rooms.length>1?'s':''} — toque pra reentrar</div>` : '';
-  return dlg('Modo Resenha', `
-    <div class="cl-modochoice">
-      <div class="cl-mc-sub">O que você quer fazer?</div>
-      <div class="cl-mc-cards">
+  const rejoin = rooms.length ? `<button class="cl-wiz-rejoin" onclick="CL.net.step='minhassalas';cdraw()">↻ Você já joga ${rooms.length} Resenha${rooms.length>1?'s':''} — toque pra reentrar</button>` : '';
+  return wizShell({
+    title:'Modo Resenha', back:'clGoModo()', backLabel:'Voltar ao início',
+    contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
+    action:`<span class="cl-wiz-hint">Toque num cartão para continuar.</span>`,
+    body:`
+      <div class="cl-wiz-h">O que você quer fazer?</div>
+      <div class="cl-wiz-sub">Jogue online com amigos — cada um assume um clube.</div>
+      <div class="cl-wiz-cards">
         <div class="cl-mc-card" onclick="clResenhaCreate()">
           <div class="cl-mc-ic">🏟️</div>
           <div class="cl-mc-t">Criar nova Resenha</div>
@@ -164,10 +169,8 @@ function scResenhaChoice(){
           <div class="cl-mc-d">Já tem o código de um amigo? Entre na Resenha dele.</div>
         </div>
       </div>
-      ${rejoin}
-    </div>
-    <div class="cl-dlg-side">${btn('Voltar','clGoModo()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
-    {w:760,bodyClass:'cl-body-green cl-hasside'});
+      ${rejoin}`
+  });
 }
 function clResenhaCreate(){ CL.net.intent='host'; CL.net.step='sala'; cdraw(); }
 function clResenhaJoinPrompt(){ CL.net.intent='join'; CL.net.code=''; CL.net.step='joincode'; cdraw(); }
@@ -175,19 +178,18 @@ function clResenhaBackChoice(){ CL.net.step='escolha'; cdraw(); }
 /* ---- entrar por código ---- */
 function scJoinCode(){ const n=CL.net;
   const ok=(n.code||'').length>=4;
-  return dlg('Entrar numa Resenha', `
-    <div class="cl-authbox">
-      <div class="cl-authsub">Digite o código que o anfitrião te passou.</div>
+  const body=`<div class="cl-wiz-authcard">
+      <div class="cl-wiz-authsub" style="text-align:left">Digite o código que o anfitrião te passou.</div>
       <div class="cl-authform">
         <div class="cl-authfield"><label>Código da Resenha</label>
-          <input id="cl-focus" class="cl-joincode-in" maxlength="8" value="${escC(n.code||'')}" oninput="CL.net.code=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');this.value=CL.net.code;clJoinCodeSync()" onkeydown="if(event.key==='Enter')clJoinCodeGo()"></div>
+          <input id="cl-focus" class="cl-joincode-in" maxlength="6" placeholder="EX: S9RJH" value="${escC(n.code||'')}" oninput="CL.net.code=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);this.value=CL.net.code;clJoinCodeSync()" onkeydown="if(event.key==='Enter')clJoinCodeGo()"></div>
       </div>
-      <div class="cl-auth-actions">
-        ${btn('Entrar','clJoinCodeGo()',{icon:'✔',cls:'cl-btn-ok',dis:!ok})}
-        ${btn('Voltar','clResenhaBackChoice()',{icon:'✖',cls:'cl-btn-cancel'})}
-      </div>
-    </div>`,
-    {w:460,bodyClass:'cl-body-green'});
+    </div>`;
+  return wizShell({
+    title:'Entrar numa Resenha', back:'clResenhaBackChoice()', backLabel:'Voltar',
+    contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
+    action: btn('Entrar','clJoinCodeGo()',{icon:'✔',cls:'cl-wiz-cta',dis:!ok})
+  });
 }
 function clJoinCodeSync(){ const b=document.querySelector('.cl-btn-ok'); if(b) b.disabled=!((CL.net.code||'').length>=4); }
 function clJoinCodeGo(){ const n=CL.net; const st=(NET.authStatus?NET.authStatus():{}); if(!(n.code&&n.code.length>=4)) return;
@@ -198,44 +200,46 @@ function clJoinCodeGo(){ const n=CL.net; const st=(NET.authStatus?NET.authStatus
     routeAfterJoin();
   } catch(e){ toastC('⚠ '+(e.message||'Não foi possível entrar. Confira o código.')); } })();
 }
-function renderOnlineInto(){ const r=document.querySelector('#c-root'); if(!r) return; r.innerHTML=titleBarTop('RetroFoot98',{logo:true})+renderOnline(); const f=document.querySelector('#cl-focus'); if(f)f.focus(); }
+function renderOnlineInto(){ const r=document.querySelector('#c-root'); if(!r) return; r.innerHTML=renderOnline(); const f=document.querySelector('#cl-focus'); if(f)f.focus(); }
 
 /* ---- login / criar conta (e-mail + senha reais — nunca mais anônimo) ---- */
 function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
 
   // já logado nesta sessão do navegador: mostra atalho claro em vez de pedir login de novo
   if(st.loggedIn){
-    return dlg(join?'Entrar na sala':'Criar sala', `
-      <div class="cl-conta">
+    const body=`<div class="cl-wiz-authcard">
         <div class="cl-conta-logged">
           <div class="cl-conta-logged-ic">✓</div>
           <div><div class="cl-conta-logged-t">Você já está logado</div>
           <div class="cl-conta-logged-e">${escC(st.email)}</div></div>
         </div>
-        <div class="cl-field2"><span class="cl-lbl2">Nome de treinador</span><input id="cl-focus" class="cl-input" maxlength="14" value="${escC(n.name||st.name)}" oninput="CL.net.name=this.value.toUpperCase();this.value=CL.net.name;netContaSync()"></div>
+        <div class="cl-authfield"><label>Nome de treinador</label><input id="cl-focus" maxlength="14" value="${escC(n.name||st.name)}" oninput="CL.net.name=this.value.toUpperCase();this.value=CL.net.name;netContaSync()"></div>
         ${join && NET.room?`<div class="cl-conta-room">Sala: <b>${escC(NET.room.name||n.code)}</b> · código <b>${escC(n.code)}</b></div>`:''}
         <div class="cl-conta-switch">Não é você? <a href="javascript:void(0)" onclick="clAuthSwitchAccount()">Trocar de conta</a></div>
-      </div>
-      <div class="cl-cal-ok">${btn(join?'Entrar':'Continuar',join?'clContaJoin()':'clContaHost()',{icon:'✔',cls:'cl-btn-ok',dis:!n.name})}${btn('Voltar','clGoModo()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
-      {w:640,bodyClass:'cl-body-green'});
+      </div>`;
+    return wizShell({ title:join?'Entrar na sala':'Criar sala', back:'clGoModo()', backLabel:'Voltar',
+      contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
+      action: btn(join?'Entrar':'Continuar',join?'clContaJoin()':'clContaHost()',{icon:'✔',cls:'cl-wiz-cta',dis:!n.name}) });
   }
 
   const mode=n.authMode||'login'; const isSignup=(mode==='signup');
-  return dlg(join?'Entrar na sala':(isSignup?'Criar conta':'Entrar'), `
-    <div class="cl-conta">
+  const body=`<div class="cl-wiz-authcard">
       <div class="cl-conta-tabs">
         <div class="cl-conta-tab ${!isSignup?'on':''}" onclick="CL.net.authMode='login';cdraw()">Já tenho conta</div>
         <div class="cl-conta-tab ${isSignup?'on':''}" onclick="CL.net.authMode='signup';cdraw()">Criar conta nova</div>
       </div>
-      <div class="cl-conta-sub">${isSignup?'Primeira vez aqui? Crie sua conta com e-mail e senha.':'Entre com o e-mail e senha da sua conta.'}</div>
-      ${isSignup?`<div class="cl-field2"><span class="cl-lbl2">Nome de treinador</span><input id="cl-focus" class="cl-input" maxlength="14" value="${escC(n.name)}" oninput="CL.net.name=this.value.toUpperCase();this.value=CL.net.name;netContaSync()"></div>`:''}
-      <div class="cl-field2"><span class="cl-lbl2">E-mail</span><input ${isSignup?'':'id="cl-focus"'} class="cl-input" type="email" value="${escC(n.email)}" oninput="CL.net.email=this.value;netContaSync()"></div>
-      <div class="cl-field2"><span class="cl-lbl2">Senha</span><input class="cl-input" type="password" minlength="6" value="${escC(n.password||'')}" oninput="CL.net.password=this.value;netContaSync()" onkeydown="if(event.key==='Enter')${isSignup?'clAuthDoSignup':'clAuthDoLogin'}()"></div>
-      ${isSignup?`<div class="cl-authhint">Pelo menos 6 caracteres. Evite senhas óbvias (ex.: 123456).</div>`:''}
+      <div class="cl-wiz-authsub">${isSignup?'Primeira vez aqui? Crie sua conta com e-mail e senha.':'Entre com o e-mail e senha da sua conta.'}</div>
+      <div class="cl-authform">
+        ${isSignup?`<div class="cl-authfield"><label>Nome de treinador</label><input id="cl-focus" maxlength="14" placeholder="Como quer ser chamado" value="${escC(n.name)}" oninput="CL.net.name=this.value.toUpperCase();this.value=CL.net.name;netContaSync()"></div>`:''}
+        <div class="cl-authfield"><label>E-mail</label><input ${isSignup?'':'id="cl-focus"'} type="email" placeholder="voce@exemplo.com" value="${escC(n.email)}" oninput="CL.net.email=this.value;netContaSync()"></div>
+        <div class="cl-authfield"><label>Senha</label><input type="password" minlength="6" placeholder="••••••••" value="${escC(n.password||'')}" oninput="CL.net.password=this.value;netContaSync()" onkeydown="if(event.key==='Enter')${isSignup?'clAuthDoSignup':'clAuthDoLogin'}()"></div>
+        ${isSignup?`<div class="cl-authhint">Pelo menos 6 caracteres. Evite senhas óbvias (ex.: 123456).</div>`:''}
+      </div>
       ${join && NET.room?`<div class="cl-conta-room">Sala: <b>${escC(NET.room.name||n.code)}</b> · código <b>${escC(n.code)}</b></div>`:''}
-    </div>
-    <div class="cl-cal-ok">${btn(isSignup?'Criar conta':'Entrar',isSignup?'clAuthDoSignup()':'clAuthDoLogin()',{icon:'✔',cls:'cl-btn-ok',dis:!(n.email&&n.password&&(!isSignup||n.name))})}${btn('Voltar','clGoModo()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
-    {w:640,bodyClass:'cl-body-green'});
+    </div>`;
+  return wizShell({ public:true, title:join?'Entrar na sala':(isSignup?'Criar conta':'Sua conta'), back:'clGoModo()', backLabel:'Voltar',
+    body, actionCls:'cl-wiz-action-e',
+    action: btn(isSignup?'Criar conta':'Entrar',isSignup?'clAuthDoSignup()':'clAuthDoLogin()',{icon:'✔',cls:'cl-wiz-cta',dis:!(n.email&&n.password&&(!isSignup||n.name))}) });
 }
 function netContaSync(){ const b=document.querySelector('.cl-btn-ok'); if(!b) return;
   const n=CL.net; const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
@@ -293,7 +297,7 @@ function routeAfterJoin(){
 /* ---- escolher o próprio clube: aceitar convite (pré-temporada) ou entrar
    com a liga já rolando — sempre um clube livre, CPU até então ---- */
 function scMidJoin(){
-  const room=NET.room; if(!room) return dlg('Sala','<div style="padding:20px;color:#fff">A ligar à sala...</div>',{w:520,bodyClass:'cl-body-green'});
+  const room=NET.room; if(!room) return wizShell({ title:'Sala', back:'clLobbyExit()', backLabel:'Sair', contentCls:'cl-wiz-center', body:`<div class="cl-wiz-sub">A ligar à sala…</div>` });
   const midSeason=room.phase!=='lobby';
   const rows=freeClubIds().map(c=>`<div class="cl-midjoin-club" onclick="clPickMidJoinClub('${c.id}')" style="${clubEdge(c)}">
       <span class="cl-midjoin-name">${escC(c.short)}</span>
@@ -303,13 +307,11 @@ function scMidJoin(){
   const msg=midSeason
     ? `🏁 A Resenha <b>${escC(room.name)}</b> já começou (${room.round||1}ª rodada).<br>Escolha um clube disponível — hoje controlado pela CPU — pra assumir o comando:`
     : `👋 Você foi convidado pra Resenha <b>${escC(room.name)}</b>!<br>Escolha o clube que você quer assumir:`;
-  return dlg(room.name||'Sala', `
-    <div class="cl-lobby">
+  const body=`<div class="cl-wiz-authcard" style="max-width:600px">
       <div class="cl-midjoin-msg">${msg}</div>
       <div class="cl-midjoin-list">${rows}</div>
-    </div>
-    <div class="cl-dlg-side">${btn('Sair','clLobbyExit()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
-    {w:680,bodyClass:'cl-body-green cl-hasside'});
+    </div>`;
+  return wizShell({ title:'Sala · '+escC(room.name||''), back:'clLobbyExit()', backLabel:'Sair', contentCls:'cl-wiz-top', body });
 }
 function clPickMidJoinClub(clubId){
   toastC('Entrando...');
@@ -332,13 +334,13 @@ function scMinhasSalas(){
       <div class="cl-myroom-code">${escC(r.code)}</div>
       <div class="cl-myroom-arrow">➜</div>
     </div>`; }).join('');
-  return dlg('Minhas salas', `
-    <div class="cl-conta">
-      <div class="cl-conta-sub">Você já participa dessas salas ou foi convidado pra elas. Toque numa pra continuar.</div>
+  const body=`<div class="cl-wiz-authcard" style="max-width:560px">
+      <div class="cl-wiz-authsub" style="text-align:left">Você já participa dessas salas ou foi convidado pra elas. Toque numa pra continuar.</div>
       <div class="cl-myrooms-list">${rows}</div>
-    </div>
-    <div class="cl-cal-ok">${btn('Criar sala nova','clGoNovaSala()',{icon:'➕',cls:'cl-btn-ok'})}${btn('Voltar','clResenhaBackChoice()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
-    {w:680,bodyClass:'cl-body-green'});
+    </div>`;
+  return wizShell({ title:'Minhas salas', back:'clResenhaBackChoice()', backLabel:'Voltar',
+    contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
+    action: btn('Criar sala nova','clGoNovaSala()',{icon:'➕',cls:'cl-wiz-cta'}) });
 }
 function clGoNovaSala(){ CL.net.step='sala'; cdraw(); }
 function clJoinMyRoom(code, pending){
@@ -355,13 +357,16 @@ function clJoinMyRoom(code, pending){
    jogadores manualmente. "Sortear times" continua existindo como atalho opcional
    pro anfitrião preencher de uma vez as vagas que ninguém escolheu ainda. */
 function scSalaHost(){ const n=CL.net;
-  return dlg('Abrir sala', `
-    <div class="cl-sala">
-      <div class="cl-field2"><span class="cl-lbl2">Nome da sala</span><input id="cl-focus" class="cl-input" maxlength="18" value="${escC(n.roomName)}" oninput="CL.net.roomName=this.value;netSalaSync()"></div>
-      <div class="cl-sala-hint">Cada jogador escolhe o próprio time ao entrar, entre os clubes ainda controlados pela CPU.</div>
-    </div>
-    <div class="cl-cal-ok">${btn('Abrir','clOpenRoom()',{icon:'✔',cls:'cl-btn-ok',dis:!n.roomName})}${btn('Voltar','clBackConta()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
-    {w:660,bodyClass:'cl-body-green'});
+  const body=`<div class="cl-wiz-authcard">
+      <div class="cl-authfield"><label>Nome da sala</label>
+        <input id="cl-focus" maxlength="18" placeholder="Ex: Resenha da firma" value="${escC(n.roomName||'')}" oninput="CL.net.roomName=this.value;netSalaSync()" onkeydown="if(event.key==='Enter')clOpenRoom()"></div>
+      <div class="cl-authhint">Cada jogador escolhe o próprio time ao entrar, entre os clubes ainda controlados pela CPU.</div>
+    </div>`;
+  return wizShell({
+    title:'Abrir sala', back:'clBackConta()', backLabel:'Voltar',
+    contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
+    action: btn('Abrir','clOpenRoom()',{icon:'✔',cls:'cl-wiz-cta',dis:!n.roomName})
+  });
 }
 function netSalaSync(){ const b=document.querySelector('.cl-btn-ok'); if(b) b.disabled=!CL.net.roomName; }
 function clBackConta(){ CL.net.step='escolha'; cdraw(); }
@@ -380,8 +385,11 @@ function clOpenRoom(){ if(!CL.net.roomName)return;
    outro participante (a linha de cada um só mostra um seletor pro dono dela
    mesma, quando ainda não escolheu). "Sortear times" continua sendo um atalho
    do anfitrião pra preencher de uma vez só as vagas que ninguém pegou ainda. */
-function scLobby(){ const room=NET.room; if(!room) return dlg('Sala','<div style="padding:20px;color:#fff">A ligar à sala...</div>',{w:520,bodyClass:'cl-body-green'});
+function scLobby(){ const room=NET.room;
+  if(!room) return wizShell({ title:'Sala', back:'clLobbyExit()', backLabel:'Sair da sala',
+    contentCls:'cl-wiz-center', body:`<div class="cl-wiz-sub">A ligar à sala…</div>` });
   const host=NET.isHost;
+  const confirmedN=room.participants.filter(p=>p.confirmed).length;
   const parts=room.participants.map(p=>{ const c=p.clubId?clubOf(p.clubId):null;
     const isSelf=p.id===NET.self.id;
     return `<div class="cl-part">
@@ -393,45 +401,63 @@ function scLobby(){ const room=NET.room; if(!room) return dlg('Sala','<div style
         : `<span class="cl-part-team" style="${c?clubStripe(c):''}">${c?escC(c.short):'escolhendo...'}</span>`}
     </div>`; }).join('');
   const canStart=host && room.participants.length>=2;
-  return dlg(room.name||'Sala', `
-    <div class="cl-lobby">
-      <div class="cl-lobby-code">Código da sala: <b>${escC(room.code)}</b></div>
-      ${host?`<div class="cl-invite2col">
-        <div class="cl-invite-col">
-          <div class="cl-invite-lbl">🟢 Convidar por WhatsApp</div>
-          <div class="cl-invite-row"><span class="cl-ddi">+55</span><input class="cl-input cl-phone" inputmode="numeric" placeholder="DDD + número" value="${escC(CL.net.phone||'')}" oninput="CL.net.phone=this.value.replace(/\\D/g,'');this.value=CL.net.phone">
-          ${btn('Enviar','clWaInvite()',{icon:'🟢',cls:'cl-btn-invite'})}</div>
+
+  // ---- coluna esquerda: convites + participantes ----
+  const invitePanel = host ? `<div class="cl-wiz-panel">
+      <div class="cl-wiz-secttitle">Convidar treinadores</div>
+      <div class="cl-wiz-invitegrid">
+        <div>
+          <div class="cl-wiz-invlbl">🟢 Por WhatsApp</div>
+          <div class="cl-wiz-invrow"><span class="cl-ddi">+55</span><input class="cl-phone" inputmode="numeric" placeholder="DDD + número" value="${escC(CL.net.phone||'')}" oninput="CL.net.phone=this.value.replace(/\\D/g,'');this.value=CL.net.phone">${btn('Enviar','clWaInvite()',{cls:'cl-btn-sm'})}</div>
         </div>
-        <div class="cl-invite-col">
-          <div class="cl-invite-lbl">✉️ Convidar por e-mail</div>
-          <div class="cl-invite-row"><input class="cl-input cl-emailinv" type="email" placeholder="email@exemplo.com" value="${escC(CL.net.inviteEmail||'')}" oninput="CL.net.inviteEmail=this.value">
-          ${btn('Enviar','clEmailInvite()',{icon:'✉️',cls:'cl-btn-invite'})}</div>
+        <div>
+          <div class="cl-wiz-invlbl">✉ Por e-mail</div>
+          <div class="cl-wiz-invrow"><input class="cl-emailinv" type="email" placeholder="email@exemplo.com" value="${escC(CL.net.inviteEmail||'')}" oninput="CL.net.inviteEmail=this.value">${btn('Enviar','clEmailInvite()',{cls:'cl-btn-sm'})}</div>
         </div>
       </div>
-      <div class="cl-invite-link">Link da sala: <a href="${escC(NET.inviteLink())}" target="_blank">${escC(NET.inviteLink())}</a></div>`:''}
-      <div class="cl-part-hd">Participantes (${room.participants.filter(p=>p.confirmed).length})</div>
-      <div class="cl-parts">${parts}</div>
-      ${host?`<div class="cl-usersearch">
-        <div class="cl-invite-lbl">🔍 Convidar quem já tem conta</div>
-        <div class="cl-invite-row"><input class="cl-input" id="cl-usersearch-input" placeholder="Buscar por nome ou e-mail (mín. 3 letras)" oninput="clUserSearch(this.value)">
-        </div>
-        <div id="cl-usersearch-results" class="cl-usersearch-results"></div>
-      </div>`:''}
-      ${host && room.phase==='lobby'?`<div class="cl-lobby-actions">${btn('Sortear times','clLobbyDraw()',{})}</div>`:''}
-      ${host?`<div class="cl-speed-ctl">
-        <span class="cl-speed-lbl">Velocidade do jogo:</span>
-        <div class="cl-speed-opts">
-          ${[1, 1.5, 2, 3, 5].map(s=>`<button class="cl-speed-btn ${CL.speedMult===s?'on':''}" onclick="clSetSpeed(${s})">${s}x</button>`).join('')}
-        </div>
-      </div>`:''}
-      ${chatLobbyHTML()}
+      <div class="cl-wiz-invhint">Link da sala: <a class="cl-wiz-invlink" href="${escC(NET.inviteLink())}" target="_blank">${escC(NET.inviteLink())}</a></div>
     </div>
-    <div class="cl-cal-ok">
-      ${host?btn('Começar','clLobbyStart()',{icon:'✔',cls:'cl-btn-ok',dis:!canStart}):'<div class="cl-wait">À espera do anfitrião…</div>'}
-      ${host && room.participants.length<2?'<div class="cl-start-hint">Mínimo de 2 treinadores pra começar</div>':''}
-      ${btn('Sair','clLobbyExit()',{icon:'✖',cls:'cl-btn-cancel'})}
-    </div>`,
-    {w:840,bodyClass:'cl-body-green'});
+    <div class="cl-wiz-panel">
+      <div class="cl-wiz-secttitle">🔍 Convidar quem já tem conta</div>
+      <input id="cl-usersearch-input" class="cl-wiz-searchin" placeholder="Buscar por nome ou e-mail (mín. 3 letras)" oninput="clUserSearch(this.value)">
+      <div id="cl-usersearch-results" class="cl-usersearch-results"></div>
+    </div>` : '';
+  const leftCol=`<div class="cl-wiz-lobbyL">
+      ${invitePanel}
+      <div>
+        <div class="cl-wiz-secttitle">Participantes (${confirmedN})</div>
+        <div class="cl-parts">${parts}</div>
+      </div>
+    </div>`;
+
+  // ---- coluna direita: partida (velocidade/sortear) + chat ----
+  const partidaPanel = host ? `<div class="cl-wiz-panel">
+      <div class="cl-wiz-secttitle">Partida</div>
+      ${room.phase==='lobby'?`<button class="cl-btn cl-wiz-drawbtn" onclick="clLobbyDraw()">🎲 Sortear times</button>`:''}
+      <div class="cl-wiz-invlbl" style="margin-bottom:7px">Velocidade do jogo</div>
+      <div class="cl-wiz-speedrow">
+        ${[1,1.5,2,3,5].map(s=>`<button class="cl-speed-btn ${CL.speedMult===s?'on':''}" onclick="clSetSpeed(${s})">${s}x</button>`).join('')}
+      </div>
+    </div>` : '';
+  const chatPanel=`<div class="cl-wiz-panel cl-wiz-chatpanel">
+      <div class="cl-wiz-secttitle">💬 Chat da sala</div>
+      <div class="cl-chat-msgs cl-wiz-chatmsgs" id="cl-chat-msgs-lobby">${chatMsgsHTML()||'<div class="cl-wiz-chatempty">Nenhuma mensagem ainda. Diga oi! 👋</div>'}</div>
+      <div class="cl-wiz-invrow"><input id="cl-chat-input-lobby" class="cl-chat-input" placeholder="Escreva uma mensagem…" onkeydown="clChatKey(event,'cl-chat-input-lobby')">${btn('Enviar',"clChatSend('cl-chat-input-lobby')",{cls:'cl-btn-sm'})}</div>
+    </div>`;
+  const rightCol=`<div class="cl-wiz-lobbyR">${partidaPanel}${chatPanel}</div>`;
+
+  const action=`<span class="cl-wiz-hint">${host?'Mínimo de 2 treinadores pra começar.':'À espera do anfitrião…'}</span>
+    <div class="cl-wiz-actbtns">
+      ${btn('Sair','clLobbyExit()',{icon:'✖',cls:'cl-wiz-sairbtn'})}
+      ${host?btn('Começar','clLobbyStart()',{icon:'✔',cls:'cl-wiz-cta',dis:!canStart}):''}
+    </div>`;
+  return wizShell({
+    title:'Sala · '+escC(room.name||''), back:'clLobbyExit()', backLabel:'Sair da sala',
+    pill:'Código '+escC(room.code||''),
+    contentCls:'cl-wiz-lobbycontent',
+    body:`<div class="cl-wiz-lobbycols">${leftCol}${rightCol}</div>`,
+    action
+  });
 }
 /* clubes ainda controlados pela CPU nesta sala — o próprio jogador escolhe entre eles
    (mesma lista que scMidJoin usa pra convite/entrada com a liga já rolando). */

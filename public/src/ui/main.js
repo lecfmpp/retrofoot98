@@ -182,8 +182,8 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
   let html='';
   switch(CL.screen){
     case 'abertura':  html=scAbertura(); break;
-    case 'login':     html=titleBarTop('RetroFoot98',{logo:true,linkHome:true})+deskWrap(scLogin(),{logo:true,linkHome:true}); break;
-    case 'resetpassword': html=titleBarTop('RetroFoot98',{logo:true,linkHome:true})+deskWrap(scResetPassword(),{logo:true,linkHome:true}); break;
+    case 'login':     html=scLogin(); break;
+    case 'resetpassword': html=scResetPassword(); break;
     case 'modo':      html=scModoChoice(); break;
     case 'modosolo':  html=scModoSolo(); break;
     case 'paises':    html=scPaises(); break;
@@ -202,7 +202,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'classif':   html=scClassif(); break;
     case 'cupclassif':html=scCupClassif(); break;
     case 'cupdraw':   html=titleBarTop('RetroFoot98')+deskWrap(scCupDraw()); break;
-    case 'online':    html=titleBarTop('RetroFoot98',{logo:true})+renderOnline(); break;
+    case 'online':    html=renderOnline(); break;
   }
   r.innerHTML=html;
   if(CL.screen==='loading') runLoading();
@@ -366,25 +366,29 @@ function clLandingGo(view){ CL.landingView=view; CL.navMenuOpen=false; cdraw(); 
 function scLogin(){ const a=CL.auth||(CL.auth={mode:'login',name:'',email:'',password:''});
   const isSignup=a.mode==='signup';
   const disabled=!(a.email&&a.password&&(!isSignup||a.name));
-  return dlg(isSignup?'Criar conta':'Entrar', `
-    <div class="cl-authbox">
+  const body=`
+    <div class="cl-wiz-authcard">
       <div class="cl-conta-tabs">
         <div class="cl-conta-tab ${!isSignup?'on':''}" onclick="CL.auth.mode='login';cdraw()">Já tenho conta</div>
         <div class="cl-conta-tab ${isSignup?'on':''}" onclick="CL.auth.mode='signup';cdraw()">Criar conta nova</div>
       </div>
-      <div class="cl-authsub">${isSignup?'Crie sua conta pra salvar seus jogos na nuvem e continuar em qualquer aparelho.':'Entre pra acessar seus jogos salvos na nuvem.'}</div>
+      <div class="cl-wiz-authsub">${isSignup?'Crie sua conta pra salvar seus jogos na nuvem e continuar em qualquer aparelho.':'Entre pra acessar seus jogos salvos na nuvem.'}</div>
       <div class="cl-authform">
-        ${isSignup?`<div class="cl-authfield"><label>Nome de treinador</label><input id="cl-focus" maxlength="14" value="${escC(a.name)}" oninput="CL.auth.name=this.value.toUpperCase();this.value=CL.auth.name;clLoginSync()"></div>`:''}
-        <div class="cl-authfield"><label>E-mail</label><input ${isSignup?'':'id="cl-focus"'} type="email" inputmode="email" autocomplete="email" value="${escC(a.email)}" oninput="CL.auth.email=this.value;clLoginSync()"></div>
-        <div class="cl-authfield"><label>Senha</label><input type="password" autocomplete="${isSignup?'new-password':'current-password'}" minlength="6" value="${escC(a.password||'')}" oninput="CL.auth.password=this.value;clLoginSync()" onkeydown="if(event.key==='Enter')${isSignup?'clLoginSignup':'clLoginDo'}()"></div>
-        ${isSignup?`<div class="cl-authhint">Pelo menos 6 caracteres. Evite senhas óbvias (ex.: 123456, sua data de nascimento).</div>`:`<div class="cl-forgot-link" onclick="clForgotPassword()">Esqueci minha senha</div>`}
+        ${isSignup?`<div class="cl-authfield"><label>Nome de treinador</label><input id="cl-focus" maxlength="14" placeholder="Como quer ser chamado" value="${escC(a.name)}" oninput="CL.auth.name=this.value.toUpperCase();this.value=CL.auth.name;clLoginSync()"></div>`:''}
+        <div class="cl-authfield"><label>E-mail</label><input ${isSignup?'':'id="cl-focus"'} type="email" inputmode="email" autocomplete="email" placeholder="voce@exemplo.com" value="${escC(a.email)}" oninput="CL.auth.email=this.value;clLoginSync()"></div>
+        <div class="cl-authfield">
+          <div class="cl-wiz-fieldhd2"><label>Senha</label>${isSignup?'':'<span class="cl-forgot-link" onclick="clForgotPassword()">Esqueci minha senha</span>'}</div>
+          <input type="password" autocomplete="${isSignup?'new-password':'current-password'}" minlength="6" placeholder="••••••••" value="${escC(a.password||'')}" oninput="CL.auth.password=this.value;clLoginSync()" onkeydown="if(event.key==='Enter')${isSignup?'clLoginSignup':'clLoginDo'}()"></div>
+        ${isSignup?`<div class="cl-authhint">Pelo menos 6 caracteres. Evite senhas óbvias (ex.: 123456, sua data de nascimento).</div>`:''}
       </div>
-      <div class="cl-auth-actions">
-        ${btn(isSignup?'Criar conta':'Entrar',isSignup?'clLoginSignup()':'clLoginDo()',{icon:'✔',cls:'cl-btn-ok cl-authbtn-primary',dis:disabled})}
-        ${btn('Voltar','clGoAbertura()',{icon:'✖',cls:'cl-btn-cancel cl-authbtn-secondary'})}
-      </div>
-    </div>`,
-    {w:460,bodyClass:'cl-body-green'});
+    </div>`;
+  return wizShell({
+    public:true, title:isSignup?'Criar conta':'Sua conta',
+    back:'clGoAbertura()', backLabel:'Voltar ao início',
+    body,
+    actionCls:'cl-wiz-action-e',
+    action: btn(isSignup?'Criar conta':'Entrar', isSignup?'clLoginSignup()':'clLoginDo()', {icon:'✔',cls:'cl-wiz-cta',dis:disabled})
+  });
 }
 function clLoginSync(){ const b=document.querySelector('.cl-btn-ok'); if(!b) return; const a=CL.auth||{}; const isSignup=a.mode==='signup'; b.disabled=!(a.email&&a.password&&(!isSignup||a.name)); }
 function clLoginAfter(name){ CL.mgr=name||CL.mgr; CL.auth=null; CL.screen='modo'; cdraw(); }
@@ -441,17 +445,19 @@ function scResetPassword(){
   // digitar "Confirmar senha" de corrido.
   const idP = st.focus!=='confirm' ? 'id="cl-focus"' : '';
   const idC = st.focus==='confirm' ? 'id="cl-focus"' : '';
-  return dlg('Nova senha', `<div class="cl-authbox">
-    <div class="cl-authsub">Escolha uma senha nova pra sua conta.</div>
+  const body=`<div class="cl-wiz-authcard">
+    <div class="cl-wiz-authsub">Escolha uma senha nova pra sua conta.</div>
     <div class="cl-authform">
-      <div class="cl-authfield"><label>Nova senha</label><input ${idP} type="password" autocomplete="new-password" minlength="6" value="${escC(st.password)}" onfocus="CL.resetPw.focus='password'" oninput="CL.resetPw.password=this.value;cdraw()"></div>
-      <div class="cl-authfield"><label>Confirmar senha</label><input ${idC} type="password" autocomplete="new-password" value="${escC(st.confirm)}" onfocus="CL.resetPw.focus='confirm'" oninput="CL.resetPw.confirm=this.value;cdraw()" onkeydown="if(event.key==='Enter')clDoUpdatePassword()"></div>
+      <div class="cl-authfield"><label>Nova senha</label><input ${idP} type="password" autocomplete="new-password" minlength="6" placeholder="••••••••" value="${escC(st.password)}" onfocus="CL.resetPw.focus='password'" oninput="CL.resetPw.password=this.value;cdraw()"></div>
+      <div class="cl-authfield"><label>Confirmar senha</label><input ${idC} type="password" autocomplete="new-password" placeholder="••••••••" value="${escC(st.confirm)}" onfocus="CL.resetPw.focus='confirm'" oninput="CL.resetPw.confirm=this.value;cdraw()" onkeydown="if(event.key==='Enter')clDoUpdatePassword()"></div>
       ${mismatch?'<div class="cl-authwarn">As senhas não coincidem.</div>':''}
     </div>
-    <div class="cl-auth-actions">
-      ${btn('Salvar senha','clDoUpdatePassword()',{icon:'✔',cls:'cl-btn-ok cl-authbtn-primary',dis:!ok})}
-    </div>
-  </div>`, {w:420,bodyClass:'cl-body-green'});
+  </div>`;
+  return wizShell({
+    public:true, title:'Nova senha', back:'clGoAbertura()', backLabel:'Voltar ao início',
+    body, actionCls:'cl-wiz-action-e',
+    action: btn('Salvar senha','clDoUpdatePassword()',{icon:'✔',cls:'cl-wiz-cta',dis:!ok})
+  });
 }
 function clDoUpdatePassword(){
   const st=CL.resetPw; if(!st||st.password.length<6||st.password!==st.confirm) return;
@@ -478,6 +484,15 @@ function wizShell(o){
   const back = o.back
     ? `<button class="cl-wiz-back" onclick="${o.back}">‹ ${escC(o.backLabel||'Voltar')}</button>`
     : `<span class="cl-wiz-back-sp"></span>`;
+  // navbar à direita: público (login/criar conta) mostra "Entrar"; logado mostra chip + usuário + Sair
+  const navRight = o.public
+    ? `<button class="cl-home-entrar" onclick="clGoAbertura()"><span>🔑</span>Entrar</button>`
+    : `<span class="cl-home-online"><span class="cl-home-online-dot"></span>100% Online</span>
+       <span class="cl-wiz-user">👤 ${escC(user)}</span>
+       <button class="cl-topbar-auth-out cl-wiz-sair" onclick="clAuthLogout()">Sair</button>`;
+  // pill à direita do cabeçalho de etapa: customizado (o.pill, ex.: código da sala), ou passo N/4, ou vazio
+  const pill = o.pill!=null ? `<span class="cl-wiz-steppill">${o.pill}</span>`
+    : (o.step!=null ? `<span class="cl-wiz-steppill">${o.step} / 4</span>` : `<span class="cl-wiz-back-sp"></span>`);
   return `<div class="cl-home cl-wiz">
     <div class="cl-home-titlebar">
       <div class="cl-home-tb-l"><img src="img/logo.webp" width="500" height="500" alt="">RetroFoot98</div>
@@ -485,17 +500,15 @@ function wizShell(o){
     </div>
     ${homeNavbar(
       [['Início',"clWizHome('home')"],['Sobre nós',"clWizHome('sobre')"],['Como jogar',"clWizHome('ajuda')"],['Contato',"clWizHome('contato')"]],
-      `<span class="cl-home-online"><span class="cl-home-online-dot"></span>100% Online</span>
-       <span class="cl-wiz-user">👤 ${escC(user)}</span>
-       <button class="cl-topbar-auth-out cl-wiz-sair" onclick="clAuthLogout()">Sair</button>`)}
+      navRight)}
     <div class="cl-home-body cl-wiz-body">
       <div class="cl-wiz-stephead">
         ${back}
         <span class="cl-wiz-steptitle">${escC(o.title)}</span>
-        <span class="cl-wiz-steppill">${o.step} / 4</span>
+        ${pill}
       </div>
       <div class="cl-wiz-content ${o.contentCls||''}">${o.body}</div>
-      <div class="cl-wiz-actionbar ${o.actionCls||''}">${o.action||''}</div>
+      ${o.action!=null?`<div class="cl-wiz-actionbar ${o.actionCls||''}">${o.action}</div>`:''}
     </div>
     <div class="cl-home-footer">
       <div class="cl-home-foot-l"><span class="cl-home-ver">v2026.01</span><span>© 2026 RetroFoot98</span></div>
@@ -665,7 +678,7 @@ function scPaises(){
     contentCls:'cl-wiz-paises', actionCls:'',
     action:`
       ${btn('Todas','clAllCountries()',{icon:'▤',cls:'cl-btn-row'})}
-      <div class="cl-wiz-action-r">
+      <div class="cl-wiz-action-e">
         ${btn('Cancelar','clPaisesBack()',{icon:'✖',cls:'cl-btn-cancel cl-btn-row'})}
         ${btn('OK','clPaisesOk()',{icon:'✔',cls:'cl-btn-ok cl-wiz-cta',dis:okDis})}
       </div>`,

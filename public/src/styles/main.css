@@ -1061,3 +1061,50 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-handoff-match .cl-handoff-loc{color:var(--on-dark-2,#cfe6cf);font-weight:600;font-size:14px}
 .cl-handoff-actions{margin-top:14px}
 .cl-handoff-club img,.cl-handoff-country img{vertical-align:middle}
+
+/* ===== Conta & Modo Resenha (redesign handoff_conta_resenha) — reusa wizShell ===== */
+/* card de formulário (login/criar conta/abrir sala/entrar) — ~440px, alinhado à esquerda */
+.cl-wiz-authcard{width:min(440px,96%);color:#fff}
+.cl-wiz-authsub{color:var(--ontext-lite2);font-size:13px;line-height:1.45;margin:0 0 16px}
+.cl-wiz-authcard .cl-authform{display:flex;flex-direction:column;gap:14px}
+.cl-wiz-authcard .cl-conta-tabs{margin-bottom:16px}
+.cl-wiz-fieldhd2{display:flex;align-items:baseline;justify-content:space-between}
+.cl-wiz-fieldhd2 label{color:var(--yellow);font-weight:700;font-size:13px}
+.cl-wiz-authcard .cl-forgot-link{color:var(--yellow);font-weight:700;font-size:12.5px;text-decoration:underline;cursor:pointer;white-space:nowrap}
+.cl-wiz-authcard .cl-joincode-in{font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:4px;text-transform:uppercase}
+/* link "reentrar numa Resenha" */
+.cl-wiz-rejoin{margin-top:22px;background:none;border:none;color:var(--yellow);font-family:var(--sans);font-weight:700;font-size:12.5px;text-decoration:underline;cursor:pointer}
+/* ---- LOBBY: duas colunas ---- */
+.cl-wiz-lobbycontent{padding:16px 18px;align-items:stretch}
+.cl-wiz-lobbycols{display:flex;gap:16px;width:100%;align-items:stretch;flex:1;min-height:0}
+.cl-wiz-lobbyL{flex:1.4;min-width:0;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.cl-wiz-lobbyR{flex:1;min-width:250px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.cl-wiz-panel{background:rgba(0,0,0,.14);border:1px solid rgba(255,255,255,.16);padding:14px 16px}
+.cl-wiz-secttitle{font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--yellow);margin:0 0 9px}
+.cl-wiz-invitegrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cl-wiz-invlbl{color:#fff;font-weight:700;font-size:12.5px;margin-bottom:6px}
+.cl-wiz-invrow{display:flex;gap:6px;align-items:stretch}
+.cl-wiz-invrow input{flex:1;min-width:0;box-sizing:border-box;font-family:var(--sans);font-size:13px;padding:7px 9px;background:#fff;color:#000;outline:none;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD)}
+.cl-wiz-invrow input:focus{box-shadow:0 0 0 2px var(--yellow)}
+.cl-wiz-invrow .cl-btn{min-width:0;white-space:nowrap}
+.cl-wiz-invrow .cl-ddi{display:flex;align-items:center;background:var(--success-alt);color:#fff;font-weight:800;font-size:12px;padding:0 9px;border:2px solid;border-color:var(--success-lite) var(--success-deep) var(--success-deep) var(--success-lite)}
+.cl-wiz-invhint{color:var(--ontext-lite2);font-size:11.5px;margin-top:10px}
+.cl-wiz-invlink{color:var(--yellow);font-weight:700;text-decoration:underline;word-break:break-all}
+.cl-wiz-searchin{width:100%;box-sizing:border-box;font-family:var(--sans);font-size:13px;padding:8px 10px;background:#fff;color:#000;outline:none;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD)}
+.cl-wiz-searchin:focus{box-shadow:0 0 0 2px var(--yellow)}
+.cl-wiz-drawbtn{width:100%;margin-bottom:12px;flex-direction:row}
+.cl-wiz-speedrow{display:flex;gap:6px;flex-wrap:wrap}
+.cl-wiz-chatpanel{flex:1;min-height:120px;display:flex;flex-direction:column}
+.cl-wiz-chatmsgs{flex:1;min-height:60px;overflow:auto;margin-bottom:8px}
+.cl-wiz-chatempty{color:var(--ontext-lite2);font-size:12.5px;font-style:italic;height:100%;display:flex;align-items:center;justify-content:center;text-align:center}
+.cl-wiz-chatpanel .cl-chat-input{flex:1;min-width:0;box-sizing:border-box;font-size:13px;padding:7px 9px;background:#fff;color:#000;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD)}
+.cl-wiz-actbtns{display:flex;gap:10px;align-items:center}
+.cl-wiz-sairbtn{flex-direction:row}
+.cl-wiz-lobbyL .cl-parts{display:flex;flex-direction:column;gap:6px}
+@media (max-width:760px){
+  .cl-wiz-lobbycols{flex-direction:column}
+  .cl-wiz-lobbyR{min-width:0}
+  .cl-wiz-invitegrid{grid-template-columns:1fr}
+  .cl-wiz-actionbar{flex-wrap:wrap}
+  .cl-wiz-authcard{width:100%}
+}
