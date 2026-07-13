@@ -813,20 +813,35 @@ function cupCompetitionRoundLabel(c,key){ if(!c) return '';
    acontece a partir dessa data no jogo (mesmo que a fase de grupos simulada termine antes),
    pra seguir o calendário real. Só vale pra temporada 2026; temporadas seguintes não têm
    sorteio real conhecido, então a virada é imediata assim que a fase de grupos termina. */
-const SEASON_EPOCH_2026=[2026,0,18]; // 18 de janeiro de 2026 — abertura real do Brasileirão
+const SEASON_EPOCH_2026=[2026,0,18]; // Brasil: 18 de janeiro de 2026 — abertura real do Brasileirão
+const SEASON_EPOCH_INTL=[2026,7,15]; // Europa: ~15 de agosto de 2026 — abertura da temporada europeia 2026-27
+/* epoch (dia 1) do calendário conforme o universo: o Brasileirão roda jan-dez; as ligas
+   europeias rodam ago-mai. Assim as datas reais de sorteio das copas (grupos ~ago, oitavas
+   ~dez pra Champions/Europa; ~mai pra Libertadores/Sul-Americana) caem no lugar certo. */
+function seasonEpoch(){ return (typeof isIntlUniverse==='function' && isIntlUniverse()) ? SEASON_EPOCH_INTL : SEASON_EPOCH_2026; }
 function realDateForDay(day){
-  const d=new Date(SEASON_EPOCH_2026[0],SEASON_EPOCH_2026[1],SEASON_EPOCH_2026[2]);
+  const e=seasonEpoch();
+  const d=new Date(e[0],e[1],e[2]);
   d.setDate(d.getDate()+((day||1)-1));
   return d;
 }
 const PT_MONTHS_ABBR=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 function fmtRealDate(d){ return `${d.getDate()} de ${PT_MONTHS_ABBR[d.getMonth()]}`; }
-const COMP_R16_DRAW_2026={ libertadores:new Date(2026,4,29), sulamericana:new Date(2026,4,29) };
+/* data real do sorteio do MATA-MATA (oitavas) por competição, na temporada 2026:
+   CONMEBOL sorteou as oitavas em 29/mai; UEFA (Champions/Europa) sorteia as oitavas em
+   meados de dezembro — só então a fase de grupos vira mata-mata no jogo (ver advancePendingCups). */
+const COMP_R16_DRAW_2026={
+  libertadores:new Date(2026,4,29), sulamericana:new Date(2026,4,29),
+  championsLeague:new Date(2026,11,15), europaLeague:new Date(2026,11,16)
+};
+/* data real do sorteio da FASE DE GRUPOS (só Champions/Europa têm cerimônia de grupos) —
+   ~fim de agosto, batendo com o sorteio real da UEFA. */
+const COMP_GROUP_DRAW_2026={ championsLeague:new Date(2026,7,28), europaLeague:new Date(2026,7,29) };
 /* inverso de realDateForDay: em qual jornada de liga (aproximada) cai uma data real —
    usado pra colocar a data de sorteio no lugar certo do Calendário, intercalada com o
    resto (ver userCupCalendarRows/clCalendar em main.js). */
 function jornadaForRealDate(d){
-  const epoch=new Date(SEASON_EPOCH_2026[0],SEASON_EPOCH_2026[1],SEASON_EPOCH_2026[2]);
+  const e=seasonEpoch(); const epoch=new Date(e[0],e[1],e[2]);
   const dayOffset=Math.round((d-epoch)/86400000)+1;
   return Math.max(1, Math.floor((dayOffset-1)/7)+1);
 }
@@ -1087,7 +1102,12 @@ function rollBgLeaguesSeason(){
   });
 }
 function initSeasonCups(qual, compToggle){
-  if(isIntlUniverse()){ initIntlCups(); return; } // universo europeu: Champions + Europa
+  if(isIntlUniverse()){ initIntlCups(); // universo europeu: Champions + Europa
+    // cerimônia do sorteio da FASE DE GRUPOS (estilo Copa do Brasil, time -> grupo), no
+    // início da temporada — os jogos de grupo vêm depois, como na vida real.
+    if(S.cups&&S.cups.championsLeague) queueDrawShow('championsLeague','group');
+    if(S.cups&&S.cups.europaLeague) queueDrawShow('europaLeague','group');
+    return; }
   compToggle = compToggle || (S.compToggle) || {libertadores:true, copaBrasil:true, sulamericana:true};
   const cbQual=copaBrasilQualification(); // sempre as 4 divisões, independente da divisão do usuário
   let libGroup=null;

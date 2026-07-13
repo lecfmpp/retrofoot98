@@ -3641,21 +3641,35 @@ function cupBracketHTML(c,key){
    tela clássica "Sorteio dos jogos da taça": lista de times à esquerda (encolhendo conforme
    saem), confrontos sorteados à direita, e destaque embaixo pro(s) time(s) do usuário —
    um único destaque no modo solo, ou um por jogador humano (cores do próprio clube) na Resenha. */
-function queueDrawShow(key){ S._pendingDrawShows=S._pendingDrawShows||[]; if(!S._pendingDrawShows.includes(key)) S._pendingDrawShows.push(key); }
+/* fila de sorteios a mostrar: cada item é {key, stage} — stage 'group' (fase de grupos,
+   time -> grupo) ou 'bracket' (mata-mata, pares/isento). */
+function queueDrawShow(key, stage){ S._pendingDrawShows=S._pendingDrawShows||[]; stage=stage||'bracket';
+  if(!S._pendingDrawShows.some(x=>(x&&x.key)===key && (x&&x.stage||'bracket')===stage)) S._pendingDrawShows.push({key, stage}); }
 /* dispara o próximo sorteio pendente, se houver; encadeia até esvaziar a fila e só então
    chama onDone (ex: mostrar a classificação da rodada, ou o aviso de acesso/queda) */
 function checkPendingCupDraws(onDone){
   if(!S._pendingDrawShows || !S._pendingDrawShows.length){ if(onDone) onDone(); return false; }
-  const key=S._pendingDrawShows.shift();
-  startCupDrawReplay(key, ()=>checkPendingCupDraws(onDone));
+  const item=S._pendingDrawShows.shift();
+  const key=(item&&item.key)||item, stage=(item&&item.stage)||'bracket'; // retrocompat com saves que guardaram só a string
+  startCupDrawReplay(key, stage, ()=>checkPendingCupDraws(onDone));
   return true;
 }
-function startCupDrawReplay(key, onDone){
-  const c=S.cups&&S.cups[key]; const b = c&&c.champion!==undefined ? c : (c&&c.bracket);
-  if(!b){ if(onDone) onDone(); return; }
-  const reveal=[]; b.byeTeams.forEach(id=>reveal.push({type:'bye',id})); b.ties.forEach(t=>reveal.push({type:'tie',h:t.h,a:t.a}));
-  const remaining=[...b.byeTeams,...b.ties.flatMap(t=>[t.h,t.a])].sort((x,y)=>clubOf(x).name.localeCompare(clubOf(y).name));
-  CL.cupDraw={ key, reveal, idx:0, drawn:[], remaining, fast:false, onDone };
+function startCupDrawReplay(key, stage, onDone){
+  if(typeof stage==='function'){ onDone=stage; stage='bracket'; } // retrocompat
+  const c=S.cups&&S.cups[key];
+  let reveal=[], remaining=[];
+  if(stage==='group'){
+    const g=c&&c.group; if(!g||!g.groups){ if(onDone) onDone(); return; }
+    Object.values(g.groups).forEach(grp=>{ (grp.teams||[]).forEach(id=>reveal.push({type:'group',id,group:grp.label})); });
+    reveal.sort((a,b)=>clubOf(a.id).name.localeCompare(clubOf(b.id).name)); // sai em ordem alfabética
+    remaining=reveal.map(r=>r.id);
+  } else {
+    const b = c&&c.champion!==undefined ? c : (c&&c.bracket);
+    if(!b){ if(onDone) onDone(); return; }
+    b.byeTeams.forEach(id=>reveal.push({type:'bye',id})); b.ties.forEach(t=>reveal.push({type:'tie',h:t.h,a:t.a}));
+    remaining=[...b.byeTeams,...b.ties.flatMap(t=>[t.h,t.a])].sort((x,y)=>clubOf(x).name.localeCompare(clubOf(y).name));
+  }
+  CL.cupDraw={ key, stage, reveal, idx:0, drawn:[], remaining, fast:false, onDone };
   CL.screen='cupdraw'; cdraw();
   cupDrawTick();
 }
@@ -3667,6 +3681,7 @@ function cupDrawTick(){
   }
   const item=st.reveal[st.idx++];
   if(item.type==='bye'){ st.drawn.push({h:item.id,a:null,bye:true}); st.remaining=st.remaining.filter(id=>id!==item.id); }
+  else if(item.type==='group'){ st.drawn.push({h:item.id,group:item.group}); st.remaining=st.remaining.filter(id=>id!==item.id); }
   else { st.drawn.push({h:item.h,a:item.a}); st.remaining=st.remaining.filter(id=>id!==item.h&&id!==item.a); }
   cdraw();
   CL._cupDrawTimer=setTimeout(cupDrawTick, st.fast?150:2000);
@@ -3681,32 +3696,36 @@ function cupDrawHighlightHTML(pair){
 }
 function scCupDraw(){
   const st=CL.cupDraw; if(!st) return deskWrap('');
-  const def=COMP_DEFS[st.key];
-  // Times (restantes, alfabético) | Sorteados (bold navy + status mono verde)
+  const def=COMP_DEFS[st.key]; const isGroup=st.stage==='group';
+  // Times (restantes, alfabético) | Sorteados (bold navy + status mono verde: grupo OU confronto)
   const leftRows=st.remaining.map(id=>`<div class="cl-draw2-row">${escC(clubOf(id).name.toUpperCase())}</div>`).join('') || '<div class="cl-draw2-row" style="color:#999">— fim —</div>';
   const rightRows=st.drawn.slice().reverse().map(p=>{ const h=escC(clubOf(p.h).short.toUpperCase());
-    const tag=p.bye?'— ISENTO':('× '+escC(clubOf(p.a).short.toUpperCase()));
+    const tag = p.group!=null ? ('— GRUPO '+escC(p.group)) : (p.bye?'— ISENTO':('× '+escC(clubOf(p.a).short.toUpperCase())));
     return `<div class="cl-draw2-row drawn">${h} <span class="cl-draw2-tag">${tag}</span></div>`; }).join('') || '<div class="cl-draw2-row" style="color:#999">—</div>';
-  let highlight='';
-  if(!CL.online){
-    const mine=st.drawn.find(p=>p.h===CL.clubId||p.a===CL.clubId);
-    if(mine) highlight=cupDrawHighlightHTML(mine);
-  } else if(CL.humans){
-    highlight=st.drawn.filter(p=>CL.humans[p.h]||CL.humans[p.a]).map(cupDrawHighlightHTML).join('');
+  let highlight=''; // destaque "seu confronto" só faz sentido no mata-mata, não na fase de grupos
+  if(!isGroup){
+    if(!CL.online){
+      const mine=st.drawn.find(p=>p.h===CL.clubId||p.a===CL.clubId);
+      if(mine) highlight=cupDrawHighlightHTML(mine);
+    } else if(CL.humans){
+      highlight=st.drawn.filter(p=>CL.humans[p.h]||CL.humans[p.a]).map(cupDrawHighlightHTML).join('');
+    }
   }
   const done=st.idx>=st.reveal.length;
+  const rightHd=isGroup?'Grupos':'Sorteados';
   const body=`<div class="cl-draw2-cols">
       <div class="cl-draw2-box"><div class="cl-draw2-head">Times</div><div class="cl-draw2-body">${leftRows}</div></div>
-      <div class="cl-draw2-box"><div class="cl-draw2-head">Sorteados</div><div class="cl-draw2-body">${rightRows}</div></div>
+      <div class="cl-draw2-box"><div class="cl-draw2-head">${rightHd}</div><div class="cl-draw2-body">${rightRows}</div></div>
     </div>
     ${highlight?`<div class="cl-draw2-highlight">${highlight}</div>`:''}`;
   const action = done
     ? `<i class="cl-wiz-hint">Sorteio encerrado…</i>`
     : btn('Acelerar sorteio','clCupDrawSkip()',{icon:'⏩',cls:'cl-btn',dis:st.fast});
+  const title = isGroup ? `Sorteio da fase de grupos da ${def.short}` : `Sorteio dos jogos da ${def.short}`;
   return wizShell({
     rootCls:'cl-wiz-fixedh',
     headLeft:`<span class="cl-wiz-steptitle cl-wiz-seal">${trophyImg(st.key,20)||'🏆'} ${escC(def.short)}</span>`,
-    title:`Sorteio dos jogos da ${def.short}`,
+    title,
     contentCls:'cl-draw2-content', body,
     actionCls:'cl-wiz-action-c', action
   });
