@@ -101,6 +101,15 @@ function penaltyConvChance(taker, gk){
   return clamp(base+takerBonus+posBonus-gkPenalty+moralAdj, 0.42, 0.93); // nunca abaixo de 42% nem acima de 93% — sempre emoção
 }
 
+/* tática usada por um clube na simulação: o clube do usuário usa S.tactic; na Resenha, um clube
+   de OUTRO humano usa a tática da ÚLTIMA rodada dele (S.clubTactic[id], guardada em startLiveRound)
+   — assim, se ele não confirmar a tempo, o jogo dele é simulado com a tática que ele já vinha
+   usando, em vez de cair no 'equilibrado' padrão. Fora isso (CPU), 'equilibrado'. */
+function tacticForClub(id){
+  if(id===S.clubId) return S.tactic||'equilibrado';
+  if(typeof CL!=='undefined' && CL.online && S.clubTactic && S.clubTactic[id]) return S.clubTactic[id];
+  return 'equilibrado';
+}
 function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
   opts=opts||{};
   const R=makeRng((seed!=null?seed:matchSeed(homeId,awayId))>>>0);
@@ -110,8 +119,8 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
   const emH=formationEmphasis(hp), emA=formationEmphasis(ap);
   const H={OS:H0.OS*emH.OS, MS:H0.MS*emH.MS, DS:H0.DS*emH.DS, mor:H0.mor};
   const A={OS:A0.OS*emA.OS, MS:A0.MS*emA.MS, DS:A0.DS*emA.DS, mor:A0.mor};
-  const betaH=TACTIC_BETA[homeId===S.clubId?S.tactic:'equilibrado'];
-  const betaA=TACTIC_BETA[awayId===S.clubId?S.tactic:'equilibrado'];
+  const betaH=TACTIC_BETA[tacticForClub(homeId)];
+  const betaA=TACTIC_BETA[tacticForClub(awayId)];
   // contexto: mando por estádio + variância extra em clássico/decisão (imprevisibilidade)
   const homeAdv=homeAdvantage(homeId);
   const derby=(typeof clubOf==='function') && isDerby((clubOf(homeId)||{}).short,(clubOf(awayId)||{}).short);

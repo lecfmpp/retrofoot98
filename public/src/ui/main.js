@@ -2123,7 +2123,7 @@ function startLiveRound(){
   // Resenha (online): guarda a escalação que EU de fato uso nesta rodada pro meu clube —
   // é o que outros clientes vão enxergar como "última escalação conhecida" desse clube
   // (ver availableXI) caso eu não confirme a tempo numa rodada futura e ela expire sozinha.
-  if(CL.online && CL.humans && CL.humans[CL.clubId]){ S.clubXI=S.clubXI||{}; S.clubXI[CL.clubId]=(S.xi||[]).slice(); }
+  if(CL.online && CL.humans && CL.humans[CL.clubId]){ S.clubXI=S.clubXI||{}; S.clubXI[CL.clubId]=(S.xi||[]).slice(); S.clubTactic=S.clubTactic||{}; S.clubTactic[CL.clubId]=S.tactic||"equilibrado"; }
   CL.subPanelOpen=false; CL.subsUsed=0; CL.liveDivOpen=null; // accordion reabre na divisão do usuário a cada rodada
   const fx=(S.sched[S.round])||[]; const seedBase=hashC('rnd'+S.season+'-'+S.round);
   const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[] };
@@ -2151,7 +2151,7 @@ function startCupLiveMatch(pending){
   // igual startLiveRound() já faz pra rodada de liga — é o que outros clientes vão
   // enxergar como "última escalação conhecida" (ver availableXI) se meu clube precisar
   // ser simulado em segundo plano antes de eu jogar a próxima partida de liga.
-  if(CL.online && CL.humans && CL.humans[CL.clubId]){ S.clubXI=S.clubXI||{}; S.clubXI[CL.clubId]=(S.xi||[]).slice(); }
+  if(CL.online && CL.humans && CL.humans[CL.clubId]){ S.clubXI=S.clubXI||{}; S.clubXI[CL.clubId]=(S.xi||[]).slice(); S.clubTactic=S.clubTactic||{}; S.clubTactic[CL.clubId]=S.tactic||"equilibrado"; }
   CL.subPanelOpen=false; CL.subsUsed=0;
   const seed=hashSeed(S.seed,'cupmatch',pending.key,pending.stage,S.round,pending.h,pending.a);
   const m=buildLiveMatchObject(pending.h,pending.a,seed,{user:true,div:pending.key});
