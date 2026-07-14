@@ -1294,9 +1294,15 @@ function checkForeignQuota(p){
 /* materializa o elenco de um clube de background sob demanda (pra ver/negociar no mercado) */
 function ensureBgClubMaterialized(clubId){
   if(S.squads[clubId]) return true;
-  const club=intlClubById(clubId); if(!club||!club.squad) return false;
+  // bgClubById (não intlClubById) pra cobrir também o BRASIL como liga de background — os
+  // clubes brasileiros ficam no bgBrazilIndex, fora do índice intl (por isso "sem jogadores"
+  // ao buscar brasileiros jogando num universo europeu).
+  const club=bgClubById(clubId); if(!club||!club.squad) return false;
   S.clubPool=S.clubPool||{}; S.clubPool[clubId]=club;
-  S.squads[clubId]=club.squad.map(p=>attachAttrs(initStats({...p})));
+  // divisão do clube na liga de background -> remapeia a força na faixa certa (item 4)
+  let dv=null; const bg=S.bgLeagues||{};
+  for(const co in bg){ for(const d in bg[co].divs){ if((bg[co].divs[d].clubIds||[]).indexOf(clubId)>=0){ dv=d; break; } } if(dv) break; }
+  S.squads[clubId]=club.squad.map(p=>attachAttrs(initStats({...p}), dv||undefined));
   return true;
 }
 /* config do universo ativo — reatribuída por setUniverse(); os bindings abaixo são 'let'

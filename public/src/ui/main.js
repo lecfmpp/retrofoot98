@@ -1283,7 +1283,7 @@ function scHandoff(){
   const seat=it.seat, fx=it.fx;
   // clube de fundo pode ainda não estar materializado (clubOf só resolve nesse ponto após
   // ensureBgClubMaterialized) — cai no dado real do intlClubById pra mostrar nome/cores.
-  const anyClub=id=>clubOf(id)||(typeof intlClubById==='function'?intlClubById(id):null)||{};
+  const anyClub=id=>clubOf(id)||(typeof bgClubById==='function'?bgClubById(id):null)||{};
   const c=anyClub(seat.clubId);
   const oppId=fx.home===seat.clubId?fx.away:fx.home; const opp=anyClub(oppId);
   const loc=fx.home===seat.clubId?'em casa':'fora';
@@ -1706,9 +1706,9 @@ function clMarketClubs(){ CL.menu=null;
 function clMarketDivision(division,country){
   CL.market={step:'clubs',division,country};
   let clubs;
-  if(country){ // liga de background: clubes vêm de S.bgLeagues (dados reais via intlClubById)
+  if(country){ // liga de background: clubes vêm de S.bgLeagues (bgClubById cobre intl E Brasil-bg)
     const L=S.bgLeagues&&S.bgLeagues[country];
-    clubs=(L&&L.divs[division]?L.divs[division].clubIds:[]).map(id=>intlClubById(id)).filter(Boolean);
+    clubs=(L&&L.divs[division]?L.divs[division].clubIds:[]).map(id=>bgClubById(id)).filter(Boolean);
   } else {
     const isOwn=division===S.division;
     clubs=isOwn ? DATA.clubs.filter(c=>c.id!==CL.clubId) : ((S.otherDivs&&S.otherDivs[division])?S.otherDivs[division].clubs:[]);
@@ -3976,7 +3976,7 @@ function renderBgLeagues(){
   const contentTabs=[['tabela','Tabela'],['artilheiros','Artilheiros'],['sempre','De sempre'],['transferencias','Transferências'],['historico','Campeões']].map(a=>`<span class="cl-otab ${V.tab===a[0]?'on':''}" onclick="CL.bgView.tab='${a[0]}';renderBgLeagues()">${a[1]}</span>`).join('');
   let body='';
   if(V.tab==='tabela'){
-    body=bgStandings(V.country,V.div).map((t,i)=>{const c=intlClubById(t.id);return `<div class="cl-cal-row"><span class="cl-cal-n">${i+1}</span><span class="cl-cal-t">${escC(c?c.short:t.id)} <small style="color:#888">${t.P}j ${t.W}-${t.D}-${t.L}</small></span><span class="cl-cal-cf">${t.Pts}</span></div>`;}).join('');
+    body=bgStandings(V.country,V.div).map((t,i)=>{const c=bgClubById(t.id);return `<div class="cl-cal-row"><span class="cl-cal-n">${i+1}</span><span class="cl-cal-t">${escC(c?c.short:t.id)} <small style="color:#888">${t.P}j ${t.W}-${t.D}-${t.L}</small></span><span class="cl-cal-cf">${t.Pts}</span></div>`;}).join('');
   } else if(V.tab==='artilheiros'||V.tab==='sempre'){
     const src=V.tab==='sempre'?L.allTimeScorers:L.scorers;
     const list=Object.entries(src).sort((a,b)=>b[1]-a[1]).slice(0,25);
