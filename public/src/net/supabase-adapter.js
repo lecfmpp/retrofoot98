@@ -409,7 +409,10 @@ async function netSaveGame(stateObj){
   try {
     const { data: cur } = await sb.from('games').select('state_version').eq('id', NET.gameId).single();
     const nextV = (cur?.state_version||0) + 1;
-    const { error } = await sb.from('games').update({ shared_state: stateObj, state_version: nextV }).eq('id', NET.gameId).eq('state_version', cur?.state_version||0);
+    // publica a RODADA AUTORITATIVA junto (games.round) — é o que os outros clientes usam pra
+    // detectar que ficaram pra trás e recarregar o estado da sala (sincronização, itens 1 e 3).
+    const authRound = (stateObj && stateObj.round!=null) ? stateObj.round : (stateObj && stateObj.S && stateObj.S.round);
+    const { error } = await sb.from('games').update({ shared_state: stateObj, state_version: nextV, round: authRound }).eq('id', NET.gameId).eq('state_version', cur?.state_version||0);
     if(error) throw error;
     console.log('✓ Jogo salvo (v'+nextV+', rodada '+(stateObj.round)+')');
   } catch(e) { console.error('saveGame erro:', e); }

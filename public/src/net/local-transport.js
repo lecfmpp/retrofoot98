@@ -131,9 +131,33 @@ function clOnlineJoin(code){ CL.screen='online'; CL.net={step:'conta',intent:'jo
   (async ()=>{ await netInitSupabase(); const st=NET.authStatus(); if(st.loggedIn){ CL.net.email=st.email; CL.net.name=st.name; } cdraw(); })(); cdraw(); }
 function netUid(){ return 'u'+Math.random().toString(36).slice(2,9); }
 function wireNet(){ NET.onState=(room)=>{ if(room && room.speedMult && !NET.isHost) CL.speedMult=room.speedMult;
+    onlineReconcileIfBehind(room); // itens 1 e 3: mantém todos na MESMA rodada (recarrega se ficou pra trás)
     if(CL.screen==='online'){ renderOnlineInto(); } else { renderChatBoxes(); const rb=document.querySelector('.cl-readybar'); if(rb && room) rb.outerHTML=onlineReadyBar(); }
     if(CL.online && room && room.phase==='running' && CL.screen!=='live'){ onlineRunRound(); } };
   NET.onChat=()=>{ if(CL.screen==='online') renderOnlineInto(); else renderChatBoxes(); }; }
+/* SINCRONIZAÇÃO (itens 1 e 3): se este cliente (não-anfitrião) ficou PRA TRÁS da rodada
+   autoritativa da sala (ex.: perdeu uma rodada por desconexão), recarrega o estado da sala pra
+   voltar pra mesma rodada de todos — em TODAS as competições (liga + copas avançam por S.round).
+   Só reconcilia em tela segura (nunca no meio de uma partida/sorteio) e só quando ATRÁS, então
+   clientes em dia (e o anfitrião) nunca são afetados, e ninguém perde uma partida em andamento. */
+let ONLINE_RECONCILE_BUSY=false;
+function onlineReconcileIfBehind(room){
+  if(!CL.online || (typeof NET!=='undefined' && NET.isHost) || !room || !S) return;
+  if(CL.screen==='live' || CL.live || CL._liveBusy || CL._hotseat || CL.screen==='cupdraw' || CL.screen==='classif' || CL.screen==='seatclassif') return;
+  const authRound = room.round||0;
+  if(authRound <= (S.round||0)) return;            // já em dia (ou à frente) — nada a fazer
+  if(ONLINE_RECONCILE_BUSY || typeof NET==='undefined' || !NET.loadGame) return;
+  ONLINE_RECONCILE_BUSY=true;
+  (async ()=>{ try{
+    const saved = await NET.loadGame();
+    const sState = saved && saved.S;
+    if(sState && (sState.round||0) > (S.round||0)){
+      Object.assign(S, sState); if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
+      toastC('🔄 Sincronizado com a sala (rodada '+((S.round||0)+1)+').');
+      cdraw();
+    }
+  }catch(e){ console.warn('reconcile:', e && e.message); } finally { ONLINE_RECONCILE_BUSY=false; } })();
+}
 
 /* cada tela do fluxo Resenha já retorna o shell completo (wizShell) — sem deskWrap/titleBar */
 function renderOnline(){ const n=CL.net||{};
