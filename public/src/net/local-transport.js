@@ -542,19 +542,24 @@ function onlineReadyBar(){ const room=NET.room; if(!CL.online||!room||room.phase
   </div>`; }
 function clOnlinePause(){ NET.pause(); cdraw(); }
 function clSetSpeed(mult){ CL.speedMult=mult; if(CL.online && typeof NET!=='undefined' && NET.setSpeed) NET.setSpeed(mult).catch(()=>{}); cdraw(); }
-let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null;
+let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null, ONLINE_ADV_T=0;
 function onlineTimerLoop(){
   const room=(typeof NET!=='undefined')?NET.room:null;
   if(CL.online && room && room.phase==='ready' && !room.paused){
     const secs=Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
     if(secs!==ONLINE_LASTSEC){ ONLINE_LASTSEC=secs;
       if(secs<=10 && secs>0){ netBeep(secs<=3?1100:820); }
+      if(secs<=0){ netBeep(1400); }
       const bar=document.querySelector('.cl-rb-clock'); if(bar) bar.textContent=secs+'s';
       const wrap=document.querySelector('.cl-readybar'); if(wrap){ wrap.classList.toggle('urgent', secs<=10); }
     }
-    if(secs<=0 && NET.isHost){ room.participants.forEach(p=>{ if(!p.ready) p.ready=true; }); NET.toRunning(); netBeep(1400); }
     const all=room.participants.length>0 && room.participants.every(p=>p.ready);
-    if(all && NET.isHost && room.phase==='ready'){ NET.toRunning(); }
+    if(secs<=0 || all){
+      // início da rodada: QUALQUER cliente pede ao servidor pra avançar (validado pelo deadline/
+      // prontidão) — não depende mais do anfitrião estar com a aba ativa. Fallback local: só o host.
+      if(NET.advancePhaseExpired){ if(Date.now()-ONLINE_ADV_T>900){ ONLINE_ADV_T=Date.now(); NET.advancePhaseExpired(); } }
+      else if(NET.isHost){ room.participants.forEach(p=>{ if(!p.ready) p.ready=true; }); NET.toRunning(); }
+    }
   } else { ONLINE_LASTSEC=null; }
   const intv=Math.max(100, 300/(CL.speedMult||1));
   ONLINE_TIMER=setTimeout(onlineTimerLoop, intv);

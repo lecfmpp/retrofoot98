@@ -308,6 +308,17 @@ async function netToRunning(){
   if(NET.onState) NET.onState(NET.room);
   try { await sb.from('games').update({ phase:'running' }).eq('id', NET.gameId); } catch(e) { console.error('toRunning erro:', e); }
 }
+/* QUALQUER jogador pode pedir ao servidor pra iniciar a rodada quando o tempo zerou (ou todos
+   prontos) — o servidor valida o deadline, então não depende do anfitrião estar com a aba ativa.
+   Corrige o caso "cronômetro zerado mas a rodada não começa" quando o host está inativo. */
+async function netAdvancePhaseExpired(){
+  if(!sb || !NET.gameId || !NET.room || NET.room.phase!=='ready') return;
+  try {
+    const { data, error } = await sb.rpc('advance_phase_if_expired', { p_game: NET.gameId });
+    if(error) throw error;
+    if(data==='running' && NET.room && NET.room.phase!=='running'){ NET.room.phase='running'; if(NET.onState) NET.onState(NET.room); }
+  } catch(e){ console.warn('advancePhaseExpired:', e && e.message); }
+}
 
 async function netToLobby(){
   if(!NET.isHost) return;
@@ -492,6 +503,7 @@ NET.start = netStart;
 NET.pause = netPause;
 NET.setSpeed = netSetSpeed;
 NET.toRunning = netToRunning;
+NET.advancePhaseExpired = netAdvancePhaseExpired;
 NET.toLobby = netToLobby;
 NET.sendChat = netSendChat;
 NET.saveGame = netSaveGame;
