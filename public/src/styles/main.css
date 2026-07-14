@@ -826,7 +826,11 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-invite-link a{color:#ffd84d}
 .cl-part-hd{color:var(--yellow);font-weight:800;font-size:14px;margin:6px 0}
 .cl-parts{background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:6px;max-height:260px;overflow:auto}
-.cl-part{display:grid;grid-template-columns:16px 1fr 120px 150px;align-items:center;gap:8px;padding:5px 8px;font-size:14px;color:#fff}
+.cl-part{display:grid;grid-template-columns:16px 1fr 120px 150px auto;align-items:center;gap:8px;padding:5px 8px;font-size:14px;color:#fff}
+.cl-part-kick{border:none;background:#8a1f1f;color:#fff;width:22px;height:22px;border-radius:50%;font-size:12px;line-height:1;cursor:pointer;padding:0;opacity:.75;transition:opacity .15s,background .15s}
+.cl-part-kick:hover{opacity:1;background:#c0392b}
+.cl-rb-kick{border:none;background:transparent;color:#ff8a8a;cursor:pointer;font-size:11px;padding:0 0 0 4px;opacity:.7}
+.cl-rb-kick:hover{opacity:1;color:#ff5c5c}
 .cl-part-dot{width:10px;height:10px;border-radius:50%;background:#999;border:1px solid #fff}
 .cl-part-dot.ok{background:#2ecc40}
 .cl-part-n i{color:#cfe6cf;font-weight:400;font-size:12px}

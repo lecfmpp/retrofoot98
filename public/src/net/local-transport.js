@@ -17,7 +17,21 @@ const NET = {
     if(m.t==='state'){ this.room=m.room; this._persist(); if(this.onState) this.onState(this.room); }
     else if(m.t==='chat'){ if(this.room){ this.room.chat=(this.room.chat||[]).concat(m.msg).slice(-120); } if(this.onChat) this.onChat(m.msg); if(this.onState) this.onState(this.room); }
     else if(m.t==='join'){ if(this.isHost){ this._merge(m.p); this._push(); } }
+    else if(m.t==='kick'){ // expulso pelo anfitrião (fallback local)
+      if(this.self && m.uid===this.self.id){ this._onKicked(); return; }
+      if(this.room) this.room.participants=this.room.participants.filter(p=>p.id!==m.uid);
+      if(typeof CL!=='undefined' && CL.humans && m.clubId) delete CL.humans[m.clubId];
+      if(this.onState) this.onState(this.room); }
     else if(m.t==='hello'){ if(this.isHost) this._push(); } },
+  _onKicked(){ this.room=null; this.isHost=false; this.onState=null; this.onChat=null;
+    if(typeof CL!=='undefined'){ CL.online=false; CL.humans={}; CL.screen='abertura'; }
+    if(typeof toastC==='function') toastC('⚠ Você foi removido da sala pelo anfitrião.');
+    if(typeof cdraw==='function') cdraw(); },
+  kick(uid, clubId){ if(!this.isHost || !this.room || !uid || (this.self&&uid===this.self.id)) return;
+    this.room.participants=this.room.participants.filter(p=>p.id!==uid);
+    if(typeof CL!=='undefined' && CL.humans && clubId) delete CL.humans[clubId];
+    try{ if(this.bc) this.bc.postMessage({t:'kick',uid,clubId}); }catch(e){}
+    this._push(); },
   _push(){ this._persist(); try{ if(this.bc) this.bc.postMessage({t:'state',room:this.room}); }catch(e){} if(this.onState) this.onState(this.room); },
   gen(){ let s=''; const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; for(let i=0;i<5;i++) s+=A[Math.floor(Math.random()*A.length)]; return s; },
   _merge(p){ if(!this.room) return; const i=this.room.participants.findIndex(x=>x.id===p.id);
@@ -423,6 +437,7 @@ function scLobby(){ const room=NET.room;
       ${isSelf && !c
         ? `<select class="cl-part-sel" onchange="NET.assignClub('${p.id}',this.value)">${freeClubOptions()}</select>`
         : `<span class="cl-part-team" style="${c?clubStripe(c):''}">${c?escC(c.short):'escolhendo...'}</span>`}
+      ${host && !isSelf ? `<button class="cl-part-kick" title="Remover da sala" onclick="clKick('${p.id}','${p.clubId||''}')">✖</button>` : ''}
     </div>`; }).join('');
   const canStart=host && room.participants.length>=2;
 
@@ -557,13 +572,25 @@ function onlineBeginSeason(){ const room=NET.room; const me=room.participants.fi
 function onlineReadyBar(){ const room=NET.room; if(!CL.online||!room||room.phase==='lobby') return '';
   const ready=room.participants.filter(p=>p.ready).length, total=room.participants.length;
   const secs=room.paused?Math.ceil((room._left||0)/1000):Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
-  const list=room.participants.map(p=>`<span class="cl-rb-p ${p.ready?'rdy':''}">${p.ready?'✓':'⏳'} ${escC((p.name||'').split(' ')[0])}</span>`).join('');
+  const list=room.participants.map(p=>{ const self=NET.self&&p.id===NET.self.id;
+    const k=(NET.isHost && !self)?`<button class="cl-rb-kick" title="Remover da Resenha" onclick="clKick('${p.id}','${p.clubId||''}')">✖</button>`:'';
+    return `<span class="cl-rb-p ${p.ready?'rdy':''}">${p.ready?'✓':'⏳'} ${escC((p.name||'').split(' ')[0])}${k}</span>`; }).join('');
   return `<div class="cl-readybar ${secs<=10?'urgent':''}">
     <span class="cl-rb-t">À espera dos treinadores ${ready}/${total}</span>
     <span class="cl-rb-list">${list}</span>
     <span class="cl-rb-clock">${room.paused?'⏸ PAUSA':secs+'s'}</span>
     ${NET.isHost?btn(room.paused?'Retomar':'Pausar','clOnlinePause()',{cls:'cl-btn-mini'}):''}
   </div>`; }
+/* anfitrião remove um jogador da Resenha (lobby ou durante a partida): confirma, dispara o kick
+   (broadcast + libera assento -> clube vira CPU) e re-renderiza. O expulso recebe o sinal e volta ao menu. */
+function clKick(uid, clubId){
+  if(!uid || typeof NET==='undefined' || !NET.isHost) return;
+  const p=(NET.room && NET.room.participants || []).find(x=>x.id===uid);
+  const nm=(p&&p.name)||'este jogador';
+  if(!confirm('Remover '+nm+' da Resenha?\n\nO time dele passa a ser controlado pela CPU e ele volta ao menu.')) return;
+  if(NET.kick) NET.kick(uid, clubId||(p&&p.clubId));
+  if(typeof cdraw==='function') cdraw();
+}
 function clOnlinePause(){ NET.pause(); cdraw(); }
 function clSetSpeed(mult){ CL.speedMult=mult; if(CL.online && typeof NET!=='undefined' && NET.setSpeed) NET.setSpeed(mult).catch(()=>{}); cdraw(); }
 let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null, ONLINE_ADV_T=0;

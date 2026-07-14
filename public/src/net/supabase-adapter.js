@@ -10,6 +10,7 @@ const SB_URL = 'https://alxwgqvjmetjbbqtjkhx.supabase.co';
 const SB_KEY = 'sb_publishable_WxYyZVfS-ER00kl2q5bBHg_qifOGq5k';
 const SB_SCHEMA = 'elifoot_v3';
 let sb = null, SB_AUTH_USER = null, SB_CH = null, SB_ONLINE = {};
+let SB_KICKED = {}; // uids expulsos pelo anfitrião — excluídos do lobby/jogo na hora (sem esperar timeout de presença)
 
 /* ---- INIT: só cria o client e recupera sessão existente — NUNCA cria usuário anônimo ---- */
 /* o SDK do Supabase carrega via <script async>, então pode não estar pronto quando
@@ -172,12 +173,13 @@ function netMergeParticipants(){
   const seen = {};
   const list = [];
   Object.keys(SB_ONLINE||{}).forEach(uid=>{
+    if(SB_KICKED[uid]) return; // expulso: não conta mais como participante (mesmo se a presença ainda não caiu)
     const meta = (SB_ONLINE[uid]||[])[0]; if(!meta) return;
     seen[uid]=1; const c = claimed[uid]||{};
     list.push({ id:uid, name:meta.name||'(sem nome)', email:c.email||'', confirmed:true, clubId:c.clubId||null, ready:c.ready||false, host: uid===NET.room.hostId });
   });
   Object.keys(claimed).forEach(uid=>{
-    if(seen[uid]) return; const c=claimed[uid];
+    if(seen[uid] || SB_KICKED[uid]) return; const c=claimed[uid];
     list.push({ id:uid, name:c.name||'(sem nome)', email:c.email||'', confirmed:true, clubId:c.clubId||null, ready:c.ready||false, host: uid===NET.room.hostId });
   });
   if(!seen[SB_AUTH_USER.id] && !claimed[SB_AUTH_USER.id]){
@@ -488,12 +490,53 @@ function netSetupRealtime(){
     if(NET.onState) NET.onState(NET.room);
   });
 
+  // expulsão pelo anfitrião: sinal em tempo real pra TODOS (inclusive o expulso), independente de DB/RLS
+  SB_CH.on('broadcast', { event:'kick' }, ({ payload })=>{
+    if(!payload || !payload.uid) return;
+    const uid=payload.uid, clubId=payload.clubId;
+    SB_KICKED[uid]=1;
+    if(uid===(SB_AUTH_USER&&SB_AUTH_USER.id)){ netHandleKicked(); return; } // fui eu -> sair pro menu
+    if(NET._claimed) delete NET._claimed[uid];
+    if(typeof CL!=='undefined' && CL.humans && clubId) delete CL.humans[clubId]; // clube do expulso -> CPU
+    netMergeParticipants();
+    if(typeof cdraw==='function' && typeof CL!=='undefined' && CL.online && CL.screen!=='online') cdraw();
+  });
+
   SB_CH.on('presence', { event:'sync' }, ()=>{ SB_ONLINE = SB_CH.presenceState(); netMergeParticipants(); });
 
   SB_CH.subscribe(async (st)=>{ if(st==='SUBSCRIBED') console.log('✓ Realtime conectado (elifoot_v3)'); });
 }
 function netTrackPresence(){ if(SB_CH) SB_CH.track({ name: NET.self.name, club: null }); }
 function netIsOnline(uid){ return !!(SB_ONLINE && SB_ONLINE[uid] && SB_ONLINE[uid].length); }
+
+/* ---- EXPULSÃO (anfitrião remove um jogador da Resenha, no lobby ou durante a partida) ----
+   Sinal em tempo real via broadcast (chega em todos, inclusive o expulso, sem depender de RLS),
+   MAIS liberação do assento no banco (clube volta a CPU; persiste e impede reentrada). */
+async function netKick(uid, clubId){
+  if(!NET.isHost || !uid || uid===(SB_AUTH_USER&&SB_AUTH_USER.id)) return;
+  SB_KICKED[uid]=1;
+  try{ if(SB_CH) await SB_CH.send({ type:'broadcast', event:'kick', payload:{ uid, clubId: clubId||null } }); }
+  catch(e){ console.warn('kick broadcast:', e && e.message); }
+  // libera o assento -> clube controlado pela CPU (o host tem permissão de update na sua sala)
+  try{ await sb.from('game_seats').update({ user_id:null, is_ready:false, is_cpu:true }).eq('game_id', NET.gameId).eq('user_id', uid); }
+  catch(e){ console.warn('kick seat:', e && e.message); }
+  // remove convite pendente pra não reentrar sozinho
+  try{ await sb.from('room_invites').delete().eq('game_id', NET.gameId).eq('user_id', uid); }catch(e){}
+  // limpeza local imediata (host)
+  if(NET._claimed) delete NET._claimed[uid];
+  if(typeof CL!=='undefined' && CL.humans && clubId) delete CL.humans[clubId];
+  netMergeParticipants();
+}
+/* o cliente EXPULSO recebe o broadcast e cai aqui: desconecta do canal e volta ao menu */
+function netHandleKicked(){
+  try{ if(SB_CH){ if(SB_CH.untrack) SB_CH.untrack(); sb.removeChannel(SB_CH); } }catch(e){}
+  SB_CH=null; SB_ONLINE={};
+  NET.room=null; NET.gameId=null; NET.isHost=false; NET.onState=null; NET.onChat=null;
+  if(typeof CL!=='undefined'){ CL.online=false; CL.humans={}; }
+  if(typeof toastC==='function') toastC('⚠ Você foi removido da sala pelo anfitrião.');
+  if(typeof CL!=='undefined') CL.screen='abertura';
+  if(typeof cdraw==='function') cdraw();
+}
 
 /* ---- expõe no NET (mesma API já usada pela UI clássica) ---- */
 NET.createRoom = netCreateRoom;
@@ -508,6 +551,7 @@ NET.setSpeed = netSetSpeed;
 NET.toRunning = netToRunning;
 NET.advancePhaseExpired = netAdvancePhaseExpired;
 NET.toLobby = netToLobby;
+NET.kick = netKick;
 NET.sendChat = netSendChat;
 NET.saveGame = netSaveGame;
 NET.loadGame = netLoadGame;
