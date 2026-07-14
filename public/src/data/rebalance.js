@@ -43,17 +43,28 @@
   }
 
   /* ---- 1. REMAP DE FORÇA POR DIVISÃO: raw (40-95) -> escala NOVA (1-99) ----
-     As divisões têm faixas de força reais que SE SOBREPÕEM (Série A fraca ~ Série C forte),
-     então um remap global esmagaria os fracos e abriria goleadas. O remap POR DIVISÃO
-     comprime cada divisão na sua faixa — é o que "nivela" as partidas dentro da divisão.
-     Cada divisão: janela de força-bruta do jogador REGULAR -> faixa da categoria; jogadores
-     abaixo/acima extrapolam linearmente (reservas abaixo, craques acima, na faixa Estrela+).
-       src[rawLo,rawHi] -> dst[bandLo,bandHi] */
+     Curva POR PARTES (âncoras raw->nova), por divisão. Duas metas ao mesmo tempo:
+       (a) o jogador REGULAR de cada divisão cai na faixa da categoria (A 38-49, B 25-37,
+           C 13-24, D 3-12) — o que "nivela" as partidas dentro da divisão; e
+       (b) os jogadores excepcionais SOBEM para as faixas de craque (Estrela 50-69, Craque
+           Nacional 70-89, Craque Mundial 90-99), que na versão linear anterior ficavam
+           inalcançáveis (o topo bruto ~90 mapeava só pra ~54).
+     Calibrado pela distribuição real dos dados (raw 64-79 = regulares; 80-84 = Estrela;
+     85-89 = Craque Nacional; 90-91 = Craque Mundial, raríssimo — 1-3 por liga). Só as
+     divisões de topo (A / 1ª intl) têm força bruta alta o bastante pra chegar nos craques;
+     divisões inferiores raramente passam de Estrela — como na vida real. */
   const BANDS={
-    A:[64,82, 38,49],  // Série A / topo intl: regular raw 64-82 -> 38-49; craque raw90 -> ~54
-    B:[58,74, 25,37],  // Série B / 2ª divisão intl
-    C:[52,66, 13,24],  // Série C
-    D:[44,58,  3,12],  // Série D
+    // Série A / 1ª divisão intl — regular 38-49; topo estica pras faixas de craque (Estrela
+    // 50-69, Craque Nacional 70-89, Craque Mundial 90-99). Estas são as forças EXIBIDAS /
+    // de valor / salário. O MOTOR de partida usa engForce() (comprime o topo) pra não virar
+    // goleada — ver engForce abaixo e ratings().
+    A:[[48,28],[64,38],[79,49],[82,58],[85,70],[88,81],[90,90],[94,98]],
+    // Série B / 2ª divisão intl
+    B:[[46,18],[58,26],[74,37],[77,46],[81,60],[85,74],[90,90]],
+    // Série C
+    C:[[42,8],[52,14],[66,24],[70,32],[76,48],[82,66]],
+    // Série D
+    D:[[38,2],[44,4],[58,12],[63,23],[70,40]],
   };
   // intl usa chaves de divisão próprias (PL/CH/ES/ES2/...) — mapeia por tier pras faixas A/B
   const BAND_BY_DIV={ A:'A',B:'B',C:'C',D:'D',
@@ -62,8 +73,18 @@
   function force(rawF, division){
     const rf=(typeof rawF==='number' && isFinite(rawF))?rawF:60;
     const b=BANDS[bandKey(division)]||BANDS.A;
-    const f=b[2] + (rf-b[0])/(b[1]-b[0])*(b[3]-b[2]); // linear; extrapola nas pontas
-    return Math.max(1, Math.min(99, Math.round(f)));
+    return Math.max(1, Math.min(99, Math.round(interp(b, rf)))); // curva por partes (interp extrapola nas pontas)
+  }
+
+  /* FORÇA PARA O MOTOR: a força EXIBIDA (com Estrela/Craque/Craque Mundial) infla demais o
+     top-11 e viraria goleada, porque o motor mede o time pela MÉDIA dos titulares — um clube
+     recheado de craques ficaria imbatível. Aqui comprimimos a parte acima do jogador regular
+     (>49): o craque continua o MELHOR do elenco (ordem preservada) e ganha vantagem REAL, mas
+     moderada — mantém as partidas competitivas (calibração das Fases 1-4) enquanto a UI, o
+     valor e o salário mostram as faixas cheias. Usado só em ratings() (motor). */
+  function engForce(f){
+    if(typeof f!=='number' || !isFinite(f)) return 40;
+    return f<=49 ? f : 49 + (f-49)*0.33; // f60->52.6, f70->55.9, f82->59.9, f90->62.5, f99->65.5
   }
 
   /* ---- 2. VALOR DE MERCADO por força NOVA (R$), × fator idade ---- */
@@ -83,6 +104,15 @@
     [40,43e3],[45,58e3],[50,78e3],[60,130e3],[70,220e3],[80,420e3],[90,800e3],[99,1.3e6]
   ];
   function salary(f){ return Math.max(500, Math.round(interp(S_ANCHORS, f))); }
+  /* SALÁRIO efetivo (folha): comprime o TOPO (só >49, i.e. Estrela+). Um craque mostra f90 e
+     VALE ~150-200M (mercado realista), mas a folha fica na escala jogável/solvente — senão um
+     elenco de craques (folha ~4M/sem) quebraria o clube (caixa da divisão é 10-20M). Só afeta
+     Estrela+; regulares e divisões inferiores (<49) ficam iguais, sem inflar a receita delas. */
+  function wage(f){
+    if(typeof f!=='number' || !isFinite(f)) return salary(40);
+    const wf = f<=49 ? f : 49 + (f-49)*0.26; // f60->51.9, f70->54.5, f82->57.6, f90->59.7, f99->62
+    return salary(wf);
+  }
 
   /* ---- 4. CAIXA INICIAL por divisão ---- */
   const BUDGET={ A:[10e6,20e6], B:[6.5e6,9.5e6], C:[3e6,5e6], D:[1e6,2.5e6] };
@@ -101,5 +131,5 @@
     return Math.round(Math.max(10000, Math.min(90000, interp(CAP_ANCHORS, ov)))/1000)*1000;
   }
 
-  window.REBAL={ force, value, valueBase, salary, budget, stadiumCap, BUDGET, BANDS };
+  window.REBAL={ force, engForce, value, valueBase, salary, wage, budget, stadiumCap, BUDGET, BANDS };
 })();

@@ -62,11 +62,11 @@ function freshConfig(){return {sound:true,classic:false,voice:true,elevenKey:'',
 
 /* ---- contracts, wages, player form ---- */
 const SAL_RATE=0.00060;   // weekly wage as fraction of market value (tuned)
-const INCOME_BASE=36000;  // receita-base/rodada por ponto de overall (TV/patrocínio; escala NOVA + folha realista do item 4)
+const INCOME_BASE=36000;  // receita-base/rodada por ponto de overall (TV/patrocínio; escala nova + folha realista)
 let SIM_SYNC=false;       // quando true, simulateMatch roda os acréscimos de forma síncrona (usado por simEvents)
 function defaultContract(p){
   const role = p.f>=50?'Jogador Chave' : p.f>=36?'Titular Regular' : (p.age<=20?'Jovem da Base':'Rotação');
-  return { role, salary: Math.max(1000, REBAL.salary(p.f)),
+  return { role, salary: Math.max(1000, REBAL.wage(p.f)),
     bonusGoal: p.f>=42, releaseClause: null, // multa p/ Europa só quando você concede na negociação
     benchStreak:0, gotMatchesBonus:false };
 }
@@ -81,7 +81,7 @@ function autoManageSalaries(){
     const isNational=(p.nat||'Brasil')==='Brasil';
     const covered = isNational ? sm.nacionais : (sm.bosman || sm.estrangeiros);
     if(!covered) return;
-    const fairSalary=Math.max(1000, REBAL.salary(p.f));
+    const fairSalary=Math.max(1000, REBAL.wage(p.f));
     if(fairSalary > p.contract.salary*1.05){
       p.contract.salary=fairSalary;
       p.moral=clamp((p.moral||70)+4, 0, 100);
@@ -364,7 +364,7 @@ function ratings(id, useXI){
   const xiAvail=(id===S.clubId)?xiPlayers(id).filter(p=>!(p.suspended>0)&&!(p.injuredMatches>0)):null;
   const players = (id===S.clubId && useXI)? (xiAvail.length?xiAvail:avail.slice().sort((a,b)=>b.f-a.f).slice(0,11)) : avail.slice().sort((a,b)=>b.f-a.f).slice(0,11);
   const bySec=s=>players.filter(p=>p.s===s);
-  const avg=a=>a.length?a.reduce((s,p)=>s+p.f*(0.6+0.4*p.energy/100),0)/a.length:28;
+  const avg=a=>a.length?a.reduce((s,p)=>s+REBAL.engForce(p.f)*(0.6+0.4*p.energy/100),0)/a.length:28; // engForce: comprime craques só p/ o motor (equilíbrio)
   let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avg(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
   // morale coupling
   const mor=teamMorale(id,players);

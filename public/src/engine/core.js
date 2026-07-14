@@ -151,7 +151,7 @@ function startNego(sellerId,playerName,offerFee){
   const p=findP(playerName,sellerId);
   S.negos.push({ sellerId, player:playerName, stage:'fee', status:'aberta',
     offerFee, clubCounter:null, feeAgreed:false,
-    salary:REBAL.salary(p.f), role:'Titular Regular',
+    salary:REBAL.wage(p.f), role:'Titular Regular',
     clauses:{gol:true, europa:false, europaValue:Math.round((p.mv||1e6)*2)},
     agentCounter:null, interest:0, day:S.day });
   save();
@@ -168,7 +168,7 @@ function clubRespond(n){ // Dia 1
 }
 function agentInterest(n){ // Dia 2 satisfaction %
   const p=findP(n.player,n.sellerId); if(!p)return 0;
-  const expSal=Math.round(REBAL.salary(p.f)*1.1);
+  const expSal=Math.round(REBAL.wage(p.f)*1.1);
   let i=45;
   i += n.salary>=expSal?22 : n.salary>=expSal*0.85?8 : -18;
   i += (n.role==='Jogador Chave'?14:n.role==='Titular Regular'?7:n.role==='Rotação'?0:-4);
@@ -183,7 +183,7 @@ function agentRespond(n){ // Dia 2 -> Dia 3
   n.interest=agentInterest(n);
   const p=findP(n.player,n.sellerId);
   if(n.interest>=70){ n.stage='verdict'; return {ok:true,msg:'Empresário topou. Feche no Dia 3!'}; }
-  if(n.interest>=45){ n.agentCounter=Math.round(REBAL.salary(p.f)*1.15); n.stage='verdict'; return {ok:false,counter:n.agentCounter,msg:`Empresário pede ${fmt(n.agentCounter)}/sem.`}; }
+  if(n.interest>=45){ n.agentCounter=Math.round(REBAL.wage(p.f)*1.15); n.stage='verdict'; return {ok:false,counter:n.agentCounter,msg:`Empresário pede ${fmt(n.agentCounter)}/sem.`}; }
   return {ok:false,msg:'Empresário sem interesse nas condições.'};
 }
 
@@ -474,7 +474,7 @@ function buyFromAuction(sellerId, playerName){
   if(pick.price>S.budget) return {ok:false,msg:'Caixa insuficiente.'};
   S.budget-=pick.price;
   S.squads[sellerId]=S.squads[sellerId].filter(x=>x.n!==p.n);
-  p.contract={ salary:REBAL.salary(p.f), role:'Rotação', gotMatchesBonus:false, benchStreak:0, releaseClause:null };
+  p.contract={ salary:REBAL.wage(p.f), role:'Rotação', gotMatchesBonus:false, benchStreak:0, releaseClause:null };
   p.moral=75;
   MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division)); // gatilho de vitrine (spec §4)
   S.squads[S.clubId].push(p);
