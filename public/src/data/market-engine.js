@@ -157,7 +157,7 @@
     if(buyerLeague!=='POR-1') return false;
     const sellerLeague = leagueOfPlayer(player);
     if(sellerLeague!=='BRA-A' && sellerLeague!=='BRA-B') return false;
-    return (player.f>=72 && player.f<=78 && (player.age||30)<=24);
+    return (player.f>=40 && player.f<=54 && (player.age||30)<=24); // item 4: força na escala nova (ex-72-78)
   }
 
   /* ---- MOEDA DE EXIBIÇÃO (camada de apresentação) ----

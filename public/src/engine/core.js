@@ -151,7 +151,7 @@ function startNego(sellerId,playerName,offerFee){
   const p=findP(playerName,sellerId);
   S.negos.push({ sellerId, player:playerName, stage:'fee', status:'aberta',
     offerFee, clubCounter:null, feeAgreed:false,
-    salary:Math.round((p.mv||1e6)*SAL_RATE), role:'Titular Regular',
+    salary:REBAL.salary(p.f), role:'Titular Regular',
     clauses:{gol:true, europa:false, europaValue:Math.round((p.mv||1e6)*2)},
     agentCounter:null, interest:0, day:S.day });
   save();
@@ -168,7 +168,7 @@ function clubRespond(n){ // Dia 1
 }
 function agentInterest(n){ // Dia 2 satisfaction %
   const p=findP(n.player,n.sellerId); if(!p)return 0;
-  const expSal=Math.round((p.mv||1e6)*SAL_RATE*1.1);
+  const expSal=Math.round(REBAL.salary(p.f)*1.1);
   let i=45;
   i += n.salary>=expSal?22 : n.salary>=expSal*0.85?8 : -18;
   i += (n.role==='Jogador Chave'?14:n.role==='Titular Regular'?7:n.role==='Rotação'?0:-4);
@@ -183,7 +183,7 @@ function agentRespond(n){ // Dia 2 -> Dia 3
   n.interest=agentInterest(n);
   const p=findP(n.player,n.sellerId);
   if(n.interest>=70){ n.stage='verdict'; return {ok:true,msg:'Empresário topou. Feche no Dia 3!'}; }
-  if(n.interest>=45){ n.agentCounter=Math.round((p.mv||1e6)*SAL_RATE*1.15); n.stage='verdict'; return {ok:false,counter:n.agentCounter,msg:`Empresário pede ${fmt(n.agentCounter)}/sem.`}; }
+  if(n.interest>=45){ n.agentCounter=Math.round(REBAL.salary(p.f)*1.15); n.stage='verdict'; return {ok:false,counter:n.agentCounter,msg:`Empresário pede ${fmt(n.agentCounter)}/sem.`}; }
   return {ok:false,msg:'Empresário sem interesse nas condições.'};
 }
 
@@ -474,7 +474,7 @@ function buyFromAuction(sellerId, playerName){
   if(pick.price>S.budget) return {ok:false,msg:'Caixa insuficiente.'};
   S.budget-=pick.price;
   S.squads[sellerId]=S.squads[sellerId].filter(x=>x.n!==p.n);
-  p.contract={ salary:Math.round((p.mv||1e6)*SAL_RATE), role:'Rotação', gotMatchesBonus:false, benchStreak:0, releaseClause:null };
+  p.contract={ salary:REBAL.salary(p.f), role:'Rotação', gotMatchesBonus:false, benchStreak:0, releaseClause:null };
   p.moral=75;
   MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division)); // gatilho de vitrine (spec §4)
   S.squads[S.clubId].push(p);
@@ -584,14 +584,16 @@ function makeIntlClub(name, countryCode){
   const squad=[];
   const posPlan=[['GK',2],['DEF',6],['MID',6],['ATT',4]];
   posPlan.forEach(([pos,cnt])=>{ for(let k=0;k<cnt;k++){
-    const f=Math.max(45,Math.min(92,Math.round(overall-8+R.random()*16)));
+    const rawF=Math.max(45,Math.min(92,Math.round(overall-8+R.random()*16)));
+    const f=REBAL.force(rawF,'A'); // item 4: rival de copa CONMEBOL ~ nível de 1ª divisão
     const age=Math.round(19+R.random()*15);
     // liga = código do país CONMEBOL (fora do mapa de ligas modeladas → MVL de fallback)
-    squad.push({n:pickIntlPlayerName(R), p:pos, s:pos, f, age, lg:countryCode,
-      mv:MARKET.marketValue(f,age,countryCode), ft:R.random()<0.75?'R':'L', num:String(Math.floor(R.random()*40)+1), nat:country.name, ag:'—', moral:70, energy:100}); } });
+    squad.push({n:pickIntlPlayerName(R), p:pos, s:pos, f, rawF, _rb:1, _div:'A', age, lg:countryCode,
+      mv:REBAL.value(f,age), ft:R.random()<0.75?'R':'L', num:String(Math.floor(R.random()*40)+1), nat:country.name, ag:'—', moral:70, energy:100}); } });
+  const _novr=Math.round(squad.reduce((s,p)=>s+p.f,0)/squad.length); // overall na escala nova (do elenco remapeado)
   return { id, tk:id, name, short:name.length>14?name.slice(0,14):name,
     color:'#'+Math.floor(R.random()*16777215).toString(16).padStart(6,'0'), color2:'#FFFFFF', crest:null,
-    OS:overall,MS:overall,DS:overall,overall, squad, country };
+    OS:_novr,MS:_novr,DS:_novr,overall:_novr, _rbOv:1, squad, country };
 }
 /* garante elenco carregado (S.squads) e registro (S.intlClubs) pra um clube estrangeiro */
 function ensureIntlClub(name, countryCode){
@@ -1003,7 +1005,10 @@ function bgBrazilIndex(){
   cfg.order.forEach(d=>{ bgClubsForDivision('Brasil',d).forEach(c=>{ idx[c.id]=c; }); });
   BG_BRAZIL_INDEX=idx; BG_BRAZIL_SEED=seed; return idx;
 }
-function bgClubById(id){ const i=intlClubById(id); if(i) return i; return bgBrazilIndex()[id]||null; }
+function bgClubById(id){ const i=intlClubById(id); let c=i||bgBrazilIndex()[id]||null;
+  // item 4: normaliza overall pra escala nova (mesma lógica de clubOf; intl/procedurais já vêm com _rbOv)
+  if(c && !c._rbOv && typeof c.overall==='number'){ c.overall=REBAL.force(c.overall); c._rbOv=1; }
+  return c; }
 function initBgLeagues(){
   S.bgLeagues={};
   (S.bgCountries||[]).forEach(country=>{
@@ -1442,16 +1447,16 @@ function proceduralDivisionClubs(division, n){
     const posPlan=[['GK',2],['DEF',6],['MID',6],['ATT',4]];
     posPlan.forEach(([pos,cnt])=>{ for(let k=0;k<cnt;k++){
       const age=Math.round(18+R.random()*17);
-      const f=rollAgedForce(R,range,age);
+      const rawF=rollAgedForce(R,range,age); const f=REBAL.force(rawF,division); // item 4: remap por divisão
       const lg=MARKET.divisionToLeague(division);
       squad.push({n:pickProcPlayerName(R),
-        p:pos,s:pos,f,age,lg,mv:MARKET.marketValue(f,age,lg),ft:R.random()<0.8?'R':'L',
+        p:pos,s:pos,f,rawF,_rb:1,_div:division,age,lg,mv:REBAL.value(f,age),ft:R.random()<0.8?'R':'L',
         num:String(Math.floor(R.random()*40)+1),nat:'Brasil',ag:'—',moral:70,energy:100}); } });
     const overall=Math.round(squad.reduce((s,p)=>s+p.f,0)/squad.length);
     clubs.push({id,tk:id,name,short:real?real.short:name.split(' ')[0].slice(0,12),
       color:real?real.color:'#'+Math.floor(R.random()*16777215).toString(16).padStart(6,'0'),
       color2:real?real.color2:null,
-      crest:null,OS:overall,MS:overall,DS:overall,overall,squad});
+      crest:null,OS:overall,MS:overall,DS:overall,overall,_rbOv:1,squad});
   }
   return clubs;
 }
@@ -1596,13 +1601,14 @@ function intlLowerDivisionClubs(country, divKey, lgCode, n, nat){
     const id='intl_'+lgCode+'_'+i;
     const squad=[];
     [['GK',2],['DEF',6],['MID',6],['ATT',4]].forEach(([pos,cnt])=>{ for(let k=0;k<cnt;k++){
-      const age=Math.round(18+R.random()*17); const f=rollAgedForce(R,range,age);
-      squad.push({ n:intlPlayerName(R,country), p:pos, s:pos, f, age, lg:lgCode,
-        mv:MARKET.marketValue(f,age,lgCode), ft:R.random()<0.8?'R':'L',
+      const age=Math.round(18+R.random()*17);
+      const rawF=rollAgedForce(R,range,age); const f=REBAL.force(rawF, /-2$/.test(lgCode)?'B':'A'); // item 4: remap por tier da liga
+      squad.push({ n:intlPlayerName(R,country), p:pos, s:pos, f, rawF, _rb:1, _div:(/-2$/.test(lgCode)?'B':'A'), age, lg:lgCode,
+        mv:REBAL.value(f,age), ft:R.random()<0.8?'R':'L',
         num:String(Math.floor(R.random()*40)+1), nat:(nat&&nat[0])||country, ag:'—', moral:70, energy:100 }); } });
     const overall=Math.round(squad.reduce((s,p)=>s+p.f,0)/squad.length);
     clubs.push({ id, tk:id, name:real.name, short:real.short||real.name, color:real.color||'#888888',
-      color2:real.color2||null, crest:null, lg:lgCode, OS:overall, MS:overall, DS:overall, overall, squad });
+      color2:real.color2||null, crest:null, lg:lgCode, OS:overall, MS:overall, DS:overall, overall, _rbOv:1, squad });
   }
   return clubs;
 }
@@ -1962,9 +1968,8 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
   }
   squad(newClubId).forEach(p=>{ if(!p.contract) p.contract=defaultContract(p); });
   S.xi=autoXI(newClubId);
-  const squadValue=squad(newClubId).reduce((s,p)=>s+(p.mv||1e6),0);
-  // orçamento = valor do elenco × ~0.20 (spec §3.B), com leve variação por clube/temporada
-  S.budget=Math.round(squadValue*makeRng(hashSeed(S.seed,'budget',newClubId,S.season)).rnd(0.18,0.22));
+  // caixa ao trocar de clube = faixa da nova divisão (item 4)
+  S.budget=REBAL.budget(S.division, makeRng(hashSeed(S.seed,'budget',newClubId,S.season)));
   // inicializa salário do treinador baseado no overall do clube
   const clubOverallVal=clubOverall(newClubId);
   S.coachSalary=Math.round(100000 + clubOverallVal*5000); // salário base + bonus por força do clube
@@ -2293,7 +2298,10 @@ function processFinances(userResult,uf,startedNames){
     const um=CL.live.matches.find(m=>m.h===uf[0]&&m.a===uf[1]);
     if(um) gate=um.att*um.price;
   }
-  const income=gate!=null ? (gate+winBonus) : Math.round(cl.overall*INCOME_BASE+winBonus);
+  // item 4: receita = base (TV/patrocínio, por overall, SEMPRE) + bilheteria REAL quando joga em
+  // casa + bônus de vitória. Antes a bilheteria SUBSTITUÍA a base em casa, o que deixava as rodadas
+  // em casa mais pobres que as de fora (bilheteria << base) e inviabilizava os clubes grandes.
+  const income=Math.round(cl.overall*INCOME_BASE) + (gate!=null?gate:0) + winBonus;
   let salaries=0,bonuses=0,log=[];
   squad(S.clubId).forEach(p=>{
     if(!p.contract)return; const c=p.contract; salaries+=c.salary;
@@ -2304,7 +2312,7 @@ function processFinances(userResult,uf,startedNames){
       if(cs){bonuses+=50000;log.push(`🧤 Clean sheet ${p.n}: ${fmt(50000)}`);}
     }
     if(!c.gotMatchesBonus && p.stats && p.stats.apps>=Math.ceil(S.sched.length*0.5)){
-      const mb=c.salary*4; bonuses+=mb; c.gotMatchesBonus=true; log.push(`🎯 Meta 50% jogos ${p.n}: ${fmt(mb)}`);
+      const mb=c.salary*2; bonuses+=mb; c.gotMatchesBonus=true; log.push(`🎯 Meta 50% jogos ${p.n}: ${fmt(mb)}`);
     }
   });
   const net=income-salaries-bonuses; S.budget+=net;
@@ -2465,6 +2473,7 @@ function recomputeClubOverall(clubId){
   club.OS=avg(bySec('ATT')); club.MS=avg(bySec('MID'));
   club.DS=avg(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65;
   club.overall=Math.round(sq.reduce((s,p)=>s+p.f,0)/sq.length);
+  club._rbOv=1; // já na escala nova (calculado do elenco remapeado) — clubOf não deve remapear de novo
 }
 /* aposentadoria: degrau de chance a partir dos 32 anos, calibrado por simulação de Monte
    Carlo pra idade média de aposentadoria ficar perto de 34; a partir dos 40, é certa —
@@ -2483,9 +2492,9 @@ function retirementReplacement(position, division, seedExtra){
   const range=DIVISION_FORCE_RANGE[division]||DIVISION_FORCE_RANGE.D;
   const R=makeRng(hashSeed('retire-repl',(S&&S.seed)||1,S.season,division,position,seedExtra));
   const age=Math.round(18+R.random()*4);
-  const f=rollAgedForce(R,range,age);
+  const rawF=rollAgedForce(R,range,age); const f=REBAL.force(rawF,division); // item 4: remap por divisão
   const lg=MARKET.divisionToLeague(division);
-  return { n:pickProcPlayerName(R), p:position, s:position, f, age, lg, mv:MARKET.marketValue(f,age,lg),
+  return { n:pickProcPlayerName(R), p:position, s:position, f, rawF, _rb:1, _div:division, age, lg, mv:REBAL.value(f,age),
     ft:R.random()<0.8?'R':'L', num:String(Math.floor(R.random()*40)+1), nat:'Brasil', ag:'—',
     moral:70, energy:100 };
 }

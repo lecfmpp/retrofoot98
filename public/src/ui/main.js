@@ -94,21 +94,22 @@ const SEASON_BUILD_LIMIT=10000; // no máx. 2 bancadas (10 mil lugares) por temp
 /* capacidade INICIAL realista por porte do clube (proxy pelo overall — não temos capacidade
    real de estádio nos dados). Clube grande já nasce com estádio grande; pequeno, modesto. */
 function realStadiumCapacity(overall){
-  const ov=overall||70;
-  return Math.round(clamp(6000 + Math.max(0,ov-50)*1350, 10000, 68000)/1000)*1000;
+  // item 4: capacidade por divisão (overall na escala NOVA) — A 75k · B 50k · C 25k · D 10k
+  return (typeof REBAL!=='undefined') ? REBAL.stadiumCap(overall) : Math.round(clamp(6000 + Math.max(0,(overall||30)-50)*1350, 10000, 68000)/1000)*1000;
 }
 /* TETO de expansão por porte do clube: maior que a inicial, mas realista — um clube pequeno
    nunca constrói um estádio gigante. Nunca abaixo da capacidade atual (não "encolhe"). */
 function stadiumMaxCapacity(){
-  const c=(typeof clubOf==='function')?clubOf(S.clubId):null; const ov=(c&&c.overall)||70;
-  const byLevel = 20000 + Math.max(0,ov-50)*1550; // ov60~36k, ov70~51k, ov82~70k, ov90~82k
+  const c=(typeof clubOf==='function')?clubOf(S.clubId):null; const ov=(c&&c.overall)||30;
+  // teto de expansão = capacidade inicial da divisão + folga (item 4, escala nova de overall)
+  const byLevel = realStadiumCapacity(ov) + 15000;
   const cur=(S.stadium&&S.stadium.capacity)||STAND_START;
-  return Math.round(clamp(byLevel, cur, 85000)/1000)*1000;
+  return Math.round(clamp(byLevel, cur, 90000)/1000)*1000;
 }
 /* custo de UMA bancada — escala com o tamanho atual (estádio grande é mais caro de expandir) */
 function standCost(){ const cap=(S.stadium&&S.stadium.capacity)||STAND_START; return Math.round(STAND_PRICE*(0.7+cap/50000)); }
 /* preço de ingresso "natural" por porte do clube — proporcional, sem exagero (faixa 6–16) */
-function levelTicketPrice(overall){ return Math.round(clamp(6 + Math.max(0,(overall||70)-58)*0.30, 6, 16)); }
+function levelTicketPrice(overall){ return Math.round(clamp(6 + Math.max(0,(overall||30)-20)*0.32, 6, 16)); } // item 4: rebase p/ overall escala nova (A~44→~14, D~8→6)
 function tacticPosture(f){ const a=(FORMATIONS[f]||[1,4,3,3])[3]; return a>=4?'ofensivo':a<=1?'retranca':'equilibrado'; }
 /* quando o elenco não tem jogadores suficientes numa posição pra formação escolhida
    (ex: 4-5-1 sem 5 meio-campos), pickXIByFormation preenche com quem sobrar de outra

@@ -24,6 +24,7 @@
 <script src="src/data/trophies.js"></script>
 <script src="src/data/game-data.js"></script>
 <script src="src/data/market-engine.js"></script>
+<script src="src/data/rebalance.js"></script>
 <script src="src/data/leagues-intl.js"></script>
 <script src="src/data/flags.js"></script>
 <script>
@@ -61,12 +62,12 @@ function freshConfig(){return {sound:true,classic:false,voice:true,elevenKey:'',
 
 /* ---- contracts, wages, player form ---- */
 const SAL_RATE=0.00060;   // weekly wage as fraction of market value (tuned)
-const INCOME_BASE=11000;  // per-round income per point of club overall (tuned for pressure)
+const INCOME_BASE=36000;  // receita-base/rodada por ponto de overall (TV/patrocínio; escala NOVA + folha realista do item 4)
 let SIM_SYNC=false;       // quando true, simulateMatch roda os acréscimos de forma síncrona (usado por simEvents)
 function defaultContract(p){
-  const role = p.f>=80?'Jogador Chave' : p.f>=70?'Titular Regular' : (p.age<=20?'Jovem da Base':'Rotação');
-  return { role, salary: Math.max(20000, Math.round((p.mv||1e6)*SAL_RATE)),
-    bonusGoal: p.f>=72, releaseClause: null, // multa p/ Europa só quando você concede na negociação
+  const role = p.f>=50?'Jogador Chave' : p.f>=36?'Titular Regular' : (p.age<=20?'Jovem da Base':'Rotação');
+  return { role, salary: Math.max(1000, REBAL.salary(p.f)),
+    bonusGoal: p.f>=42, releaseClause: null, // multa p/ Europa só quando você concede na negociação
     benchStreak:0, gotMatchesBonus:false };
 }
 /* ---- "Gestão de Salários" (Perfil do treinador): quando ligado, o computador reajusta
@@ -80,7 +81,7 @@ function autoManageSalaries(){
     const isNational=(p.nat||'Brasil')==='Brasil';
     const covered = isNational ? sm.nacionais : (sm.bosman || sm.estrangeiros);
     if(!covered) return;
-    const fairSalary=Math.max(20000, Math.round((p.mv||1e6)*SAL_RATE));
+    const fairSalary=Math.max(1000, REBAL.salary(p.f));
     if(fairSalary > p.contract.salary*1.05){
       p.contract.salary=fairSalary;
       p.moral=clamp((p.moral||70)+4, 0, 100);
@@ -104,8 +105,9 @@ function normalizePlayerFields(p){
   if(!({GK:1,DEF:1,MID:1,ATT:1})[p.s]){
     p.s = POS_CODE_TO_SECTOR[String(p.p||'').toUpperCase()] || 'MID';
   }
-  if(typeof p.f!=='number' || !isFinite(p.f) || p.f<=12){
+  if(typeof p.f!=='number' || !isFinite(p.f) || (p.rawF==null && p.f<=12)){
     p.f = Math.max(40, Math.min(95, Math.round((p.f||3)*16 + 30))); // reescala nota fora do padrão pra força 40-95
+    // (só quando ainda NÃO foi remapeado — senão corromperia uma força baixa VÁLIDA da escala nova ao recarregar)
   }
   return p;
 }
@@ -139,8 +141,9 @@ function forceToLevel(f){return Math.max(1,Math.min(20,Math.round((f-45)/46*13+6
 function levelToForce(L){return Math.max(40,Math.min(95,Math.round((L-6)/13*46+45)));}
 function attrLevel(a,s){const prof=POS_PROFILE[s]||POS_PROFILE.MID;let sw=0,acc=0;for(const k in prof){sw+=prof[k];acc+=prof[k]*(a[k]||1);}return acc/sw;}
 function genAttrs(p){
-  const R=makeRng(hashSeed('attr',p.n,p.f,p.s));
-  const lvl=forceToLevel(p.f), prof=POS_PROFILE[p.s]||POS_PROFILE.MID, a={};
+  const rf=(p.rawF!=null?p.rawF:p.f);                       // atributos vêm da força na escala ANTIGA (rawF)
+  const R=makeRng(hashSeed('attr',p.n,rf,p.s));
+  const lvl=forceToLevel(rf), prof=POS_PROFILE[p.s]||POS_PROFILE.MID, a={};
   for(const k of ATTR_KEYS){
     const w=prof[k]||0; let base;
     if(w>0) base=lvl+(w>=15?2:w>=8?1:0);                                 // atributos-chave da posição: acima
@@ -153,8 +156,12 @@ function genAttrs(p){
   for(const k in prof) a[k]=Math.max(1,Math.min(20,Math.round(a[k]+shift)));
   return a;
 }
-function attachAttrs(p){ normalizePlayerFields(p);
-  if(!p.attr){ p.attr=genAttrs(p); p.f0=p.f; p.mv0=(p.mv||1e6); }
+function attachAttrs(p, division){ normalizePlayerFields(p);
+  if(p.rawF==null) p.rawF=p.f;                                    // força na escala de ATRIBUTOS (antiga), preservada
+  const dv = division || p._div || ((typeof S!=='undefined'&&S&&S.division)||'A'); // faixa por divisão
+  p._div = dv;
+  if(!p._rb){ p.f=REBAL.force(p.rawF, dv); p.mv=REBAL.value(p.f,p.age); p._rb=1; } // f na escala NOVA (motor/valor) + valor tabelado
+  if(!p.attr){ p.attr=genAttrs(p); p.f0=p.rawF; p.mv0=(p.mv||1e6); }
   if(!p.behavior){ p.behavior=assignBehavior(p); p.mv=Math.round((p.mv||1e6)*(BEHAVIOR_MV_MULT[p.behavior]||1)); }
   return p; }
 
@@ -224,9 +231,9 @@ function evolvePlayer(p, R, played){
     if(a[k]>1 && R.random()<chance){ a[k]--; changed=true; }
   }
   if(changed){
-    p.f=levelToForce(attrLevel(a,p.s));
-    const ratio=Math.max(0.4,Math.min(3,Math.pow(p.f/(p.f0||p.f||60),2)));
-    p.mv=Math.round((p.mv0||p.mv||1e6)*ratio);
+    p.rawF=levelToForce(attrLevel(a,p.s));   // recalcula na escala de ATRIBUTOS...
+    p.f=REBAL.force(p.rawF, p._div||(S&&S.division)||'A'); // ...e remapeia pra escala NOVA (motor/exibição)
+    p.mv=REBAL.value(p.f,p.age);              // valor segue a tabela pela força nova
   }
 }
 
@@ -267,11 +274,10 @@ function newGame(clubId, division, compToggle){
   DATA.clubs.forEach(c=>table[c.id]={id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
   // deep clone squads so morale/energy mutate independently
   const squads={};
-  DATA.clubs.forEach(c=>squads[c.id]=c.squad.map(p=>attachAttrs(initStats({...p}))));
+  DATA.clubs.forEach(c=>squads[c.id]=c.squad.map(p=>attachAttrs(initStats({...p}), division)));
   squads[clubId].forEach(p=>p.contract=defaultContract(p));
-  const squadValue=squads[clubId].reduce((s,p)=>s+(p.mv||1e6),0);
   const seed=(Math.random()*0x7fffffff)>>>0;
-  const budget=Math.round(squadValue*makeRng(hashSeed(seed,'budget',clubId)).rnd(0.10,0.18));
+  const budget=REBAL.budget(division, makeRng(hashSeed(seed,'budget',clubId))); // caixa inicial por divisão (item 4)
   S={
     clubId, season:2026, round:0, day:1, week:1, seed,
     division,               // divisão escolhida na tela de países (A/B/C/D)
@@ -303,6 +309,9 @@ function newGame(clubId, division, compToggle){
   };
   S.xi = autoXI(clubId);
   S.universe = (typeof ACTIVE_UNI!=='undefined') ? ACTIVE_UNI : 'brasil'; // brasil | Inglaterra | Espanha...
+  // item 4: overall de cada clube = média do elenco REMAPEADO (fonte única, escala nova);
+  // marca _rbOv, então clubOf não remapeia o overall curado de novo (evita divergir após transferências)
+  DATA.clubs.forEach(c=>{ if(typeof recomputeClubOverall==='function') recomputeClubOverall(c.id); });
   registerClubs(division, DATA.clubs); // fixa a composição inicial da divisão do usuário
   refreshAuctionPool();
   buildOtherDivisions();
@@ -318,10 +327,12 @@ function newGame(clubId, division, compToggle){
 
 function clubOf(id){
   let c=DATA.clubs.find(x=>x.id===id);
-  if(c) return c;
-  if(S && S.otherDivs){ for(const d in S.otherDivs){ c=S.otherDivs[d].clubs.find(x=>x.id===id); if(c) return c; } }
-  if(S && S.intlClubs && S.intlClubs[id]) return S.intlClubs[id];
-  if(S && S.clubPool && S.clubPool[id]) return S.clubPool[id]; // adversários de copa (Champions/Europa) de outras ligas
+  if(!c && S && S.otherDivs){ for(const d in S.otherDivs){ c=S.otherDivs[d].clubs.find(x=>x.id===id); if(c) break; } }
+  if(!c && S && S.intlClubs && S.intlClubs[id]) c=S.intlClubs[id];
+  if(!c && S && S.clubPool && S.clubPool[id]) c=S.clubPool[id]; // adversários de copa (Champions/Europa) de outras ligas
+  // item 4: normaliza o overall (agregado de forças) pra escala NOVA uma única vez, sob demanda.
+  // _rbOv marca "já na escala nova" — tanto aqui quanto no recálculo por elenco (recompute overall).
+  if(c && !c._rbOv && typeof c.overall==='number'){ c.overall=REBAL.force(c.overall); c._rbOv=1; }
   return c;
 }
 function squad(id){return S.squads[id];}
@@ -353,7 +364,7 @@ function ratings(id, useXI){
   const xiAvail=(id===S.clubId)?xiPlayers(id).filter(p=>!(p.suspended>0)&&!(p.injuredMatches>0)):null;
   const players = (id===S.clubId && useXI)? (xiAvail.length?xiAvail:avail.slice().sort((a,b)=>b.f-a.f).slice(0,11)) : avail.slice().sort((a,b)=>b.f-a.f).slice(0,11);
   const bySec=s=>players.filter(p=>p.s===s);
-  const avg=a=>a.length?a.reduce((s,p)=>s+p.f*(0.6+0.4*p.energy/100),0)/a.length:55;
+  const avg=a=>a.length?a.reduce((s,p)=>s+p.f*(0.6+0.4*p.energy/100),0)/a.length:28;
   let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avg(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
   // morale coupling
   const mor=teamMorale(id,players);
