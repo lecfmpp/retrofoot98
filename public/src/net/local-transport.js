@@ -617,6 +617,23 @@ function onlineTimerLoop(){
 }
 function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return; if(!CL.online || !S) return; CL._liveBusy=true; startLiveRound(); }
 
+/* Recupera a rodada de LIGA quando a fase virou 'running' enquanto o cliente estava numa
+   tela AO VIVO de copa/espectador. Nesse caso a borda que dispara onlineRunRound no onState
+   (wireNet) foi SUPRIMIDA pelo guard CL.screen==='live' e se perdeu (é edge-triggered de
+   disparo único) — o cronômetro de 60s da rodada de liga corre em paralelo e expira durante
+   a partida de copa (que dura mais que isso). Ao voltar pra tela normal, reavaliamos a fase e
+   destravamos a rodada. Se a fase ainda for 'ready', não faz nada (segue o fluxo normal:
+   marcar pronto + cronômetro). Corrige o travamento "host preso no pós-jogo da copa". */
+function onlineRecoverRunRound(){
+  const room=(typeof NET!=='undefined')?NET.room:null;
+  if(CL.online && room && room.phase==='running' && CL.screen!=='live' && !CL.live && !CL._liveBusy){
+    onlineRunRound(); return true;
+  }
+  return false;
+}
+
 /* quando o usuário clica Jogar no modo online, marca "pronto" em vez de rodar sozinho */
-function onlineMarkReady(){ NET.setReady(true, CL.clubId); toastC('Pronto! À espera dos outros treinadores.'); cdraw(); }
+function onlineMarkReady(){ NET.setReady(true, CL.clubId); toastC('Pronto! À espera dos outros treinadores.'); cdraw();
+  onlineRecoverRunRound(); // a fase já virou 'running' (cronômetro expirou enquanto eu jogava a copa)? destrava a rodada de liga
+}
 

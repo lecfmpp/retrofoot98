@@ -2095,6 +2095,9 @@ function finishCupSpectate(){
   markSpectateHandled(RL.cup.key);
   CL.live=null; CL.screen='main'; cdraw();
   advanceSpectateQueue();
+  // se a fase virou 'running' enquanto eu assistia (borda perdida pelo guard CL.screen==='live'),
+  // destrava a rodada de liga ao terminar de assistir — só age se não houver outra copa na fila.
+  if(CL.online && typeof onlineRecoverRunRound==='function') onlineRecoverRunRound();
 }
 /* ---------- PARTIDA AO VIVO (estilo RetroFoot98: placar por divisões) ---------- */
 function attendanceFor(homeId,rnd){
