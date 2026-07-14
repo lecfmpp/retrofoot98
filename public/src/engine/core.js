@@ -1619,14 +1619,22 @@ function intlLowerDivisionClubs(country, divKey, lgCode, n, nat){
   return clubs;
 }
 /* normaliza uma linha vinda de elifoot_v3.division_clubs (dados reais) pro formato DATA.clubs */
+/* divisão intl (chave do universo) -> código de liga (lg). Reverso do cfg.lg de UNI_CONFIGS.
+   Usado pra reconstruir clubes europeus vindos do Supabase IGUAIS aos do bundle (id/lg). */
+const INTL_DIV_LG={ PL:'ENG-1',CH:'ENG-2',ES:'ESP-1',ES2:'ESP-2',IT:'ITA-1',IT2:'ITA-2',DE:'GER-1',DE2:'GER-2',PT:'POR-1',PT2:'POR-2' };
 function normalizeDivisionClubRow(row){
   const sq=row.squad||[];
   const bySec=s=>sq.filter(p=>p.s===s);
   const avg=a=>a.length?a.reduce((s,p)=>s+p.f,0)/a.length:55;
-  return { id:'real_'+row.division+'_'+row.club_id, tk:row.club_id, name:row.name, short:row.short,
+  const base={ tk:row.club_id, name:row.name, short:row.short,
     color:row.color||'#888888', color2:row.color2||null, crest:row.crest||null,
     OS:avg(bySec('ATT')), MS:avg(bySec('MID')), DS:(avg(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65),
     overall:row.overall||55, squad:sq.map(p=>({...p})) };
+  const intlLg=INTL_DIV_LG[row.division];
+  // Europa: id='intl_'+tk e lg do país — IDÊNTICO ao window.INTL_LEAGUES (senão copas/bg-leagues
+  // que referenciam clubes por id quebrariam ao misturar Supabase x bundle).
+  if(intlLg) return Object.assign({ id:'intl_'+row.club_id, lg:intlLg }, base);
+  return Object.assign({ id:'real_'+row.division+'_'+row.club_id }, base); // Brasil B/C/D
 }
 /* pool de clubes reais em cache (client-side), preenchido via loadRealDivisionClubs() quando online */
 const REAL_DIVISION_CACHE={};
@@ -1650,8 +1658,11 @@ function clubsForDivision(division){
     const cfg=activeUniCfg();
     const all=(typeof window!=='undefined' && window.INTL_LEAGUES && window.INTL_LEAGUES[cfg.country]) || [];
     const lgCode=cfg.lg && cfg.lg[division];
-    let clubs = lgCode ? all.filter(c=>c.lg===lgCode) : all.slice();
-    const size = DIVISION_SIZE[division] || clubs.length;
+    const size = DIVISION_SIZE[division] || 20;
+    // FONTE ÚNICA: Supabase (division_clubs) tem prioridade se já foi carregado nesta sessão;
+    // senão, fallback pro bundle window.INTL_LEAGUES (offline / ainda não subido). Mesmo id/lg.
+    const cached=REAL_DIVISION_CACHE[division];
+    let clubs = (cached && cached.length) ? cached.slice() : (lgCode ? all.filter(c=>c.lg===lgCode) : all.slice());
     // 2ª divisão: usa os clubes REAIS scrapeados (elencos reais) e, se vierem incompletos
     // (o Transfermarkt nem sempre cobre a divisão inteira), completa com os clubes curados
     // restantes (nomes reais + elenco procedural), sem duplicar quem já veio real.

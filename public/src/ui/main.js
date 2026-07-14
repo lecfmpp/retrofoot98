@@ -909,7 +909,12 @@ function clSortear(){
     } else {
       // universo europeu: liga própria; começa na ÚLTIMA divisão (começa embaixo e sobe).
       setUniverse(uni); CL.intlUniverse=uni;
-      DATA.clubs = clubsForDivision(DIV_ORDER[DIV_ORDER.length-1]).slice();
+      const startDiv=DIV_ORDER[DIV_ORDER.length-1];
+      // fonte única: tenta o Supabase (division_clubs) igual ao Brasil; fallback = bundle INTL_LEAGUES
+      if(typeof NET!=='undefined' && NET.getDivisionClubs && NET.authStatus && NET.authStatus().loggedIn){
+        try{ await loadRealDivisionClubs(startDiv); }catch(e){ console.warn('liga real indisponível, usando bundle:',e); }
+      }
+      DATA.clubs = clubsForDivision(startDiv).slice();
     }
     // demais países selecionados = ligas de background (visíveis em Campeonatos, mercado)
     CL.bgCountries = selectedPlayableCountries().filter(c=>c!==uni);
@@ -985,9 +990,15 @@ function clEscolherClubes(){
   if(!names.length){ CL.names[0]='JOGADOR'; return cdraw(); }
   toastC('Carregando clubes...');
   (async ()=>{
-    // Brasil começa na Série D real (carrega se possível), como no sorteio clássico
-    if(CL.countries.has('Brasil') && computeStartDivision()!=='A' && typeof NET!=='undefined' && NET.getDivisionClubs && NET.authStatus && NET.authStatus().loggedIn){
-      try{ await loadRealDivisionClubs(computeStartDivision()); }catch(e){}
+    // pré-carrega do Supabase a divisão inicial de CADA país jogável (Brasil B/C/D E Europa),
+    // pra o pick pool já usar os clubes reais; fallback = bundle/procedural.
+    if(typeof NET!=='undefined' && NET.getDivisionClubs && NET.authStatus && NET.authStatus().loggedIn){
+      for(const c of selectedPlayableCountries()){
+        const uk=c==='Brasil'?'brasil':c; const cfg=UNI_CONFIGS[uk]; if(!cfg) continue;
+        const sd = c==='Brasil' ? computeStartDivision() : cfg.order[cfg.order.length-1];
+        if(c==='Brasil' && sd==='A') continue; // Série A vem do bundle
+        try{ await loadRealDivisionClubs(sd); }catch(e){}
+      }
     }
     CL._pickPool = buildPickPool();
     const countries = selectedPlayableCountries();
