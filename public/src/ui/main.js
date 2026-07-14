@@ -2027,11 +2027,21 @@ function clJogar(){
    com o que fica gravado de verdade. */
 function askSpectate(cand){
   CL._spectateCand=cand;
+  // Na RESENHA (item 1) assistir a rodada de copa é OBRIGATÓRIO — assim ninguém pula a rodada e
+  // fica adiantado; todos avançam juntos. O "Pular" só existe no solo (ou, no futuro, quando a
+  // rodada é de um jogador de OUTRO país com calendário diferente — cand.crossCalendar).
+  const mandatory = CL.online && !cand.crossCalendar;
+  const actions = mandatory
+    ? btn('Assistir','clSpectateYes()',{icon:'✔',cls:'cl-btn-ok'})
+    : `${btn('Assistir','clSpectateYes()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Pular','clSpectateNo()',{icon:'✖',cls:'cl-btn-cancel'})}`;
+  const prompt = mandatory
+    ? 'Tem uma rodada de copa rolando na Resenha — assista ao vivo pra todos seguirem na mesma rodada.'
+    : 'Tem uma rodada rolando agora — quer assistir ao vivo?';
   overlayC(dlg(COMP_DEFS[cand.key].name, `
     <div class="cl-res"><div class="cl-live-cup-top" style="margin:-4px -4px 14px">${trophyImg(cand.key,48)}
       <div class="cl-live-cup-name">${escC(COMP_DEFS[cand.key].name)}</div></div>
-    <div class="cl-res-verd">Tem uma rodada rolando agora — quer assistir ao vivo?</div>
-    <div class="cl-cal-ok">${btn('Assistir','clSpectateYes()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Pular','clSpectateNo()',{icon:'✖',cls:'cl-btn-cancel'})}</div></div>`,
+    <div class="cl-res-verd">${prompt}</div>
+    <div class="cl-cal-ok">${actions}</div></div>`,
     {w:480,bodyClass:'cl-body-green'}));
 }
 function clSpectateYes(){ clCloseOverlay(); const cand=CL._spectateCand; CL._spectateCand=null; startCupSpectate(cand); }
