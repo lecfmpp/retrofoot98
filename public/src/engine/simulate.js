@@ -66,7 +66,17 @@ function homeAdvantage(homeId){
 function formationEmphasis(players){
   const n=s=>players.filter(p=>p.s===s).length;
   const nDEF=n('DEF'), nATT=n('ATT'), nMID=n('MID');
-  return { OS:1+(nATT-2)*0.025, MS:1+(nMID-3)*0.015, DS:1+(nDEF-4)*0.02, nMID };
+  // Formação é uma TROCA de estilo, não um botão de vitória. Referência: 4-3-3 (neutro).
+  // Mais atacantes => +ataque E -defesa (o time todo empurra e fica exposto atrás); mais
+  // zagueiros => +defesa E -ataque. Assim, com times iguais, a taxa de vitória fica parecida
+  // entre as formações — o que muda é o PERFIL do placar (ofensiva = jogo aberto/mais gols dos
+  // dois lados; defensiva = jogo fechado/menos gols). Ver rebalance de formações.
+  return {
+    OS: 1 + (nATT-3)*0.045 - (nDEF-4)*0.010,  // atacante sobe o ataque; menos zagueiro também
+    MS: 1 + (nMID-3)*0.005,
+    DS: 1 + (nDEF-4)*0.010 - (nATT-3)*0.040,  // zagueiro a mais defende pouco; ATACANTE a mais expõe muito
+    nMID
+  };
 }
 /* tabela curada de clássicos/rivais (por nome curto) — só aumenta a VARIÂNCIA do jogo
    (imprevisibilidade), não a força. Pares em qualquer ordem. */
