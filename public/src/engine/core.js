@@ -1336,7 +1336,7 @@ function cupSpectateCandidates(){
    cota SIMPLIFICADA de estrangeiros no elenco (regra real varia muito por liga — números
    abaixo refletem a abertura relativa de cada país e são facilmente ajustáveis). */
 const UNI_CONFIGS={
-  brasil:    { order:['A','B','C','D'], size:{A:20,B:20,C:20,D:20}, promo:{A:0,B:4,C:4,D:4}, releg:{A:4,B:4,C:4,D:0},
+  brasil:    { order:['A','B','C','D'], size:{A:20,B:16,C:20,D:20}, promo:{A:0,B:4,C:4,D:4}, releg:{A:4,B:4,C:4,D:0},
                label:{A:'Série A',B:'Série B',C:'Série C',D:'Série D'}, nat:['Brasil','Brazil'], foreignMax:8 },
   Inglaterra:{ order:['PL','CH'], size:{PL:20,CH:24}, promo:{PL:0,CH:3}, releg:{PL:3,CH:0},
                label:{PL:'Premier League',CH:'Championship'}, lg:{PL:'ENG-1',CH:'ENG-2'}, country:'Inglaterra',
@@ -1824,6 +1824,10 @@ function clubsForDivision(division){
   if(division==='A') return DATA.clubsSerieA || DATA.clubs;
   const real=REAL_DIVISION_CACHE[division];
   if(real && real.length) return real.slice(0, DIVISION_SIZE[division]);
+  // Séries B/C/D reais empacotadas (Transfermarkt): substituem os procedurais quando existem
+  // (DIVISION_SIZE da divisão é ajustado ao nº de clubes reais disponíveis — ver UNI_CONFIGS.brasil).
+  const bundled=(typeof window!=='undefined'&&window.BRASIL_LOWER&&window.BRASIL_LOWER[division])||null;
+  if(bundled && bundled.length) return bundled.slice(0, DIVISION_SIZE[division]);
   return proceduralDivisionClubs(division, DIVISION_SIZE[division]);
 }
 /* ================= REGISTRO PERSISTENTE DE CLUBES POR DIVISÃO =================
