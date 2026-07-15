@@ -2588,12 +2588,14 @@ function matchStatsHTML(m){
   if(!m.perf || !m.perf.H) return '';
   const H=m.perf.H, A=m.perf.A;
   const tot=(H.poss+A.poss)||1; const hP=Math.round(100*H.poss/tot);
-  const line=(lbl,hv,av)=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:1px 2px"><b style="min-width:36px">${hv}</b><span style="color:#888;flex:1;text-align:center">${lbl}</span><b style="min-width:36px;text-align:right">${av}</b></div>`;
-  return `<fieldset class="cl-lm-ref" style="margin-top:6px"><legend>Ficha da partida</legend>
+  const line=(lbl,hv,av)=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:1px 2px;color:#111"><b style="min-width:36px">${hv}</b><span style="color:#444;flex:1;text-align:center">${lbl}</span><b style="min-width:36px;text-align:right">${av}</b></div>`;
+  // envolve num bloco CINZA (igual aos outros da janela) — sem isso a ficha ficava sobre o azul
+  // do modal, com texto escuro ilegível.
+  return `<div class="cl-lm-statswrap"><fieldset class="cl-lm-ref" style="margin:0"><legend>Ficha da partida</legend>
     ${line('Posse %',hP+'%',(100-hP)+'%')}
     ${line('Finalizações',H.shots,A.shots)}
     ${line('Chances Claras',H.big,A.big)}
-  </fieldset>`;
+  </fieldset></div>`;
 }
 function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a);
   const shooting=!!RL.pensPicking;
