@@ -518,10 +518,31 @@ function computeQualification(finalTableSorted){
    e a Inglaterra 🏴 aparece como quadrado preto). Então usamos IMAGENS de bandeira (flagcdn.com,
    SVG) via um helper único. Mapa nome-de-país (PT ou EN) -> código ISO (Inglaterra = gb-eng). */
 const FLAG_ISO={
+  // países jogáveis (pt + en)
   brasil:'br', brazil:'br', argentina:'ar', chile:'cl', 'colômbia':'co', colombia:'co',
   peru:'pe', uruguai:'uy', uruguay:'uy', paraguai:'py', paraguay:'py', equador:'ec', ecuador:'ec',
   venezuela:'ve', 'bolívia':'bo', bolivia:'bo', alemanha:'de', germany:'de', espanha:'es', spain:'es',
-  'frança':'fr', france:'fr', 'itália':'it', italy:'it', portugal:'pt', inglaterra:'gb-eng', england:'gb-eng'
+  'frança':'fr', france:'fr', 'itália':'it', italy:'it', portugal:'pt', inglaterra:'gb-eng', england:'gb-eng',
+  // demais nacionalidades reais dos elencos (nomes em inglês, como vêm dos dados; ISO flagcdn)
+  albania:'al', algeria:'dz', andorra:'ad', angola:'ao', armenia:'am', australia:'au', austria:'at',
+  azerbaijan:'az', barbados:'bb', belarus:'by', belgium:'be', benin:'bj', 'bosnia-herzegovina':'ba',
+  bulgaria:'bg', 'burkina faso':'bf', cameroon:'cm', canada:'ca', 'cape verde':'cv', comoros:'km',
+  congo:'cg', 'costa rica':'cr', "cote d'ivoire":'ci', croatia:'hr', cuba:'cu', curacao:'cw', cyprus:'cy',
+  'czech republic':'cz', 'dr congo':'cd', denmark:'dk', 'dominican republic':'do', egypt:'eg',
+  'equatorial guinea':'gq', eritrea:'er', estonia:'ee', 'faroe islands':'fo', finland:'fi', gabon:'ga',
+  georgia:'ge', ghana:'gh', greece:'gr', guadeloupe:'gp', guinea:'gn', 'guinea-bissau':'gw', haiti:'ht',
+  honduras:'hn', hungary:'hu', iceland:'is', indonesia:'id', iran:'ir', iraq:'iq', ireland:'ie',
+  israel:'il', jamaica:'jm', japan:'jp', jordan:'jo', kenya:'ke', 'korea, south':'kr', kosovo:'xk',
+  latvia:'lv', lebanon:'lb', libya:'ly', lithuania:'lt', luxembourg:'lu', madagascar:'mg', malawi:'mw',
+  malaysia:'my', mali:'ml', malta:'mt', martinique:'mq', mauritania:'mr', mauritius:'mu', mexico:'mx',
+  moldova:'md', montenegro:'me', morocco:'ma', mozambique:'mz', namibia:'na', netherlands:'nl',
+  'new zealand':'nz', niger:'ne', nigeria:'ng', 'north macedonia':'mk', 'northern ireland':'gb-nir',
+  norway:'no', palestine:'ps', panama:'pa', philippines:'ph', poland:'pl', 'puerto rico':'pr',
+  romania:'ro', russia:'ru', scotland:'gb-sct', senegal:'sn', serbia:'rs', 'sierra leone':'sl',
+  slovakia:'sk', slovenia:'si', 'south africa':'za', 'st. lucia':'lc', suriname:'sr', sweden:'se',
+  switzerland:'ch', syria:'sy', thailand:'th', 'the gambia':'gm', togo:'tg', 'trinidad and tobago':'tt',
+  tunisia:'tn', 'türkiye':'tr', turkiye:'tr', uganda:'ug', ukraine:'ua', 'united states':'us',
+  uzbekistan:'uz', wales:'gb-wls', zambia:'zm', zimbabwe:'zw'
 };
 function flagIso(key){ if(!key) return null; return FLAG_ISO[String(key).toLowerCase()]||null; }
 function flagImgIso(iso){

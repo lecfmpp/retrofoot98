@@ -1565,7 +1565,7 @@ function panViewJogador(vid){
   const ctry=clubCountry(clubOf(vid));
   return `<div class="cl-jgd">
     <div class="cl-jgd-name">${escC(p.n)}</div>
-    <div class="cl-jgd-nat"><span class="cl-flag2">${ctry.flag}</span> ${escC(ctry.name)}</div>
+    <div class="cl-jgd-nat"><span class="cl-flag2">${flagImg(p.nat||ctry.name)}</span> ${escC(p.nat||ctry.name)}</div>
     ${statusBar}
     <div class="cl-jgd-row"><span>Posição</span><b>${posLetter(p.s)}</b></div>
     <div class="cl-jgd-row"><span>Força</span><b>${p.f}</b></div>
@@ -1625,7 +1625,7 @@ function panJogador(){
     : p.injuredMatches>0 ? `<div class="cl-jgd-status hurt">✚ Lesionado — fora por ${p.injuredMatches} jogo${p.injuredMatches>1?'s':''}</div>` : '';
   return `<div class="cl-jgd">
     <div class="cl-jgd-name">${escC(p.n)}</div>
-    <div class="cl-jgd-nat"><span class="cl-flag2">${flagImg('Brasil')}</span> Brasil</div>
+    <div class="cl-jgd-nat"><span class="cl-flag2">${flagImg(p.nat||'Brasil')}</span> ${escC(p.nat||'Brasil')}</div>
     ${statusBar}
     <div class="cl-jgd-row"><span>Comportamento</span><b>${playerBehaviorLabel(p)}</b></div>
     <div class="cl-jgd-row"><span>Gols nesta temporada</span><b>${(S.scorers&&S.scorers[p.n])||0}</b></div>
