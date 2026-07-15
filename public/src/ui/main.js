@@ -1422,8 +1422,9 @@ function scMain(){
   const menuNames=['RetroFoot98','Seleccionar','Equipa','Jogador','Campeonatos','Treinador']; if(CL.online) menuNames.push('Modo Resenha');
   const hamburger=`<div class="cl-hamburger" onclick="clToggleMobMenu(event)"><span>☰ Menu</span><span>${CL.mobMenuOpen?'▲':'▼'}</span></div>`;
   const offerCoin=(S.incomingOffers&&S.incomingOffers.length)?' 💰':''; // propostas de compra pendentes
+  const resenhaBadge=(CL.online && typeof NET!=='undefined' && NET.isHost && CL.pendingJoins && CL.pendingJoins.length)?' 🔔':''; // pedidos de entrada pendentes
   const menu=`<div class="cl-menu ${CL.mobMenuOpen?'mob-open':''}" id="cl-menubar">
-    ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${mm==='Jogador'?offerCoin:''}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
+    ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${mm==='Jogador'?offerCoin:''}${mm==='Modo Resenha'?resenhaBadge:''}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
   </div>`;
   const tabs=['jogo','jogador','financas','seleccao','adversario'];
   const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',adversario:'Adversário'};
@@ -3281,7 +3282,12 @@ function menuDropdown(name){ name=name||CL.menu;
     'Campeonatos':[['Minhas competições...','clCompList()','C'],['—'],['Melhores marcadores...','clScorers()'],['Calendário...','clCalendar()'],['—'],['Últimos vencedores...','clUltimosVencedores()'],['Melhores marcadores de sempre...','clScorersAllTime()']].concat((S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)?[['—'],['Ligas internacionais...','clBgLeaguesMenu()']]:[]),
     'Treinador':[['História...','clCoachHistory()'],['Ranking...','clCoachRanking()'],['Ofertas...','clJobOffers()'],['Perfil...','clPerfilTreinador()']]
   };
-  if(CL.online){ items['Modo Resenha']=[['Chamar pra Resenha...','clInviteResenha()']]; }
+  if(CL.online){
+    const rItems=[];
+    if(typeof NET!=='undefined' && NET.isHost){ const nr=(CL.pendingJoins&&CL.pendingJoins.length)||0; rItems.push(['Aprovar entradas'+(nr?' ('+nr+')':'')+'...','clJoinRequestsPanel()']); }
+    rItems.push(['Chamar pra Resenha...','clInviteResenha()']);
+    items['Modo Resenha']=rItems;
+  }
   const list=items[name]||[]; if(!list.length) return '';
   const rows=list.map(it=>{ if(it[0]==='—') return '<div class="cl-menu-sep"></div>';
     return `<div class="cl-menu-dd-i" onclick="${it[1]}"><span>${escC(it[0])}</span>${it[2]?`<b>${it[2]}</b>`:''}</div>`; }).join('');
@@ -3554,6 +3560,7 @@ function exitModalHTML(online){
 }
 async function clExitConfirm(shouldSave){
   clCloseOverlay();
+  if(typeof clStopHostReqPoll==='function') clStopHostReqPoll(); // encerra o acompanhamento de pedidos
   if(shouldSave) await saveV3(true); // já mostra a barra de gravação e um toast de sucesso/erro
   CL.screen='abertura'; cdraw();
 }

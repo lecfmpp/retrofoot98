@@ -182,6 +182,7 @@ function renderOnline(){ const n=CL.net||{};
   if(n.step==='minhassalas') return scMinhasSalas();
   if(n.step==='sala')   return scSalaHost();
   if(n.step==='midjoin') return scMidJoin();
+  if(n.step==='waitapproval') return scWaitApproval();
   if(n.step==='lobby')  return scLobby();
   return scConta();
 }
@@ -231,13 +232,53 @@ function scJoinCode(){ const n=CL.net;
   });
 }
 function clJoinCodeSync(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(b) b.disabled=!((CL.net.code||'').length>=4); }
-function clJoinCodeGo(){ const n=CL.net; const st=(NET.authStatus?NET.authStatus():{}); if(!(n.code&&n.code.length>=4)) return;
+function clJoinCodeGo(){ const n=CL.net; if(!(n.code&&n.code.length>=4)) return;
+  CL.mgr = CL.mgr || n.name;
+  clRequestOrJoin(n.code);
+}
+/* pede pra entrar por código: pré-aprovado (host, já tem assento, convite interno ou pedido já
+   aprovado) entra direto; senão cria um pedido pendente e vai pra tela de espera. */
+function clRequestOrJoin(code){
+  const st=(NET.authStatus?NET.authStatus():{});
+  const me={ name: CL.mgr||CL.net.name, email: st.email };
   toastC('Entrando na Resenha...');
   (async ()=>{ try {
-    CL.mgr = CL.mgr || n.name;
-    await NET.joinRoom(n.code, { name: CL.mgr||n.name, email: st.email });
-    routeAfterJoin();
+    const res = await NET.requestJoin(code, me, clOnJoinDecision);
+    if(res && res.entered){ routeAfterJoin(); }
+    else { CL.net.code=code; CL.net.pendingName=(res&&res.name)||''; CL.net.step='waitapproval'; cdraw(); }
   } catch(e){ toastC('⚠ '+(e.message||'Não foi possível entrar. Confira o código.')); } })();
+}
+/* chamado pelo poll quando o anfitrião decide o pedido */
+function clOnJoinDecision(status, roomName){
+  if(status==='approved'){
+    toastC('✓ Entrada aprovada! Entrando...');
+    const st=(NET.authStatus?NET.authStatus():{});
+    (async ()=>{ try {
+      await NET.joinRoom(CL.net.code, { name: CL.mgr||CL.net.name, email: st.email });
+      CL.net.pendingName=null; routeAfterJoin();
+    } catch(e){ toastC('⚠ '+e.message); } })();
+  } else if(status==='rejected'){
+    if(typeof NET.clearJoinPoll==='function') NET.clearJoinPoll();
+    CL.net.pendingName=null; CL.net.step='escolha';
+    toastC('⚠ O anfitrião recusou sua entrada na Resenha.');
+    cdraw();
+  }
+}
+/* tela de espera do convidado enquanto o anfitrião não aprova/recusa (poll roda no NET) */
+function scWaitApproval(){ const n=CL.net;
+  const body=`<div class="cl-wiz-authcard" style="max-width:520px;text-align:center">
+      <div class="cl-wait-spin">⏳</div>
+      <div class="cl-wait-t">Pedido enviado!</div>
+      <div class="cl-wait-sub">Aguardando o anfitrião aprovar a sua entrada na Resenha${n.pendingName?` <b>${escC(n.pendingName)}</b>`:''}.<br>Assim que ele aprovar, você entra automaticamente.</div>
+      <div class="cl-wait-dots"><span></span><span></span><span></span></div>
+    </div>`;
+  return wizShell({ title:'À espera de aprovação', back:'clCancelJoinReq()', backLabel:'Cancelar pedido',
+    contentCls:'cl-wiz-center', body, actionCls:'cl-wiz-action-c',
+    action: btn('Cancelar pedido','clCancelJoinReq()',{icon:'✖',cls:'cl-wiz-sairbtn'}) });
+}
+function clCancelJoinReq(){
+  (async ()=>{ try{ await NET.cancelJoinRequest(CL.net.code); }catch(e){} })();
+  CL.net.pendingName=null; CL.net.step='escolha'; cdraw();
 }
 function renderOnlineInto(){ const r=document.querySelector('#c-root'); if(!r) return; r.innerHTML=renderOnline(); const f=document.querySelector('#cl-focus'); if(f)f.focus(); }
 
@@ -316,12 +357,8 @@ function clContaHost(){ const st=NET.authStatus(); if(!st.loggedIn || !CL.net.na
   })();
 }
 function clContaJoin(){ const st=NET.authStatus(); if(!st.loggedIn || !CL.net.name) return;
-  toastC('Entrando na sala...');
-  (async ()=>{ try {
-    CL.mgr = CL.net.name;
-    await NET.joinRoom(CL.net.code, { name: CL.net.name, email: st.email });
-    routeAfterJoin();
-  } catch(e) { toastC('⚠ '+e.message); } })();
+  CL.mgr = CL.net.name;
+  clRequestOrJoin(CL.net.code);
 }
 /* decide pra onde ir depois de entrar numa sala: lobby (pré-temporada),
    direto pro jogo (já tem clube) ou escolher um clube livre (temporada já rolando) */
@@ -411,11 +448,10 @@ function clDeleteRoomGo(code, isHost){
   })();
 }
 function clJoinMyRoom(code, pending){
-  toastC('Entrando na sala...');
-  (async ()=>{ try {
-    await NET.joinRoom(code, { name: CL.net.name, email: NET.authStatus().email });
-    if(pending){ CL.net.step='midjoin'; cdraw(); } else { routeAfterJoin(); }
-  } catch(e) { toastC('⚠ '+e.message); } })();
+  // salas em "Minhas salas" são sempre pré-aprovadas (tenho assento ou convite interno) OU
+  // são minhas (host) — clRequestOrJoin detecta isso e entra direto, sem virar pedido pendente.
+  CL.mgr = CL.mgr || CL.net.name;
+  clRequestOrJoin(code);
 }
 
 /* ---- abrir sala (nome) ---- */
@@ -488,8 +524,15 @@ function scLobby(){ const room=NET.room;
       <input id="cl-usersearch-input" class="cl-wiz-searchin" placeholder="Buscar por nome ou e-mail (mín. 3 letras)" oninput="clUserSearch(this.value)">
       <div id="cl-usersearch-results" class="cl-usersearch-results"></div>
     </div>` : '';
+  if(host) clStartHostReqPoll();
+  const nReq=(CL.pendingJoins&&CL.pendingJoins.length)||0;
+  const reqPanel = host ? `<div class="cl-wiz-panel">
+      <div class="cl-wiz-secttitle">🚪 Pedidos de entrada${nReq?' ('+nReq+')':''}</div>
+      <div class="cl-req-list">${clReqRowsHTML()}</div>
+    </div>` : '';
   const leftCol=`<div class="cl-wiz-lobbyL">
       ${invitePanel}
+      ${reqPanel}
       <div>
         <div class="cl-wiz-secttitle">Participantes (${confirmedN})</div>
         <div class="cl-parts">${parts}</div>
@@ -563,8 +606,72 @@ function clInviteInternalUser(uid,name){
     const inp=document.querySelector('#cl-usersearch-input'); if(inp) inp.value=''; const box=document.querySelector('#cl-usersearch-results'); if(box) box.innerHTML='';
   } catch(e){ toastC('⚠ '+e.message); } })();
 }
+/* ============ APROVAÇÃO DE ENTRADA — UI do anfitrião (lobby + dentro do jogo) ============
+   Poll leve do host: mantém CL.pendingJoins atualizado pro badge do menu, o painel do lobby e o
+   modal em jogo. Idempotente (não abre 2 intervalos); auto-limpa quando não é mais host. */
+let HOST_REQ_POLL=null;
+function clStartHostReqPoll(){
+  if(HOST_REQ_POLL || typeof NET==='undefined' || !NET.isHost) return;
+  const tick=async ()=>{
+    if(typeof NET==='undefined' || !NET.isHost || !NET.gameId){ return; }
+    try{
+      const reqs=await NET.listJoinRequests();
+      const prev=(CL.pendingJoins||[]).length;
+      CL.pendingJoins=reqs;
+      if(reqs.length>prev && CL.screen==='main'){ toastC('🔔 Novo pedido de entrada na Resenha — menu "Modo Resenha".'); }
+      if(CL.screen==='online' && CL.net && CL.net.step==='lobby' && reqs.length!==prev) renderOnlineInto();
+      if(CL._reqPanelOpen) clRenderReqPanel();
+    }catch(e){}
+  };
+  tick();
+  HOST_REQ_POLL=setInterval(tick, 5000);
+}
+function clStopHostReqPoll(){ if(HOST_REQ_POLL){ clearInterval(HOST_REQ_POLL); HOST_REQ_POLL=null; } CL.pendingJoins=[]; }
+/* linhas de pedidos (reusadas no painel do lobby e no modal em jogo) */
+function clReqRowsHTML(){
+  const reqs=CL.pendingJoins||[];
+  if(!reqs.length) return '<div class="cl-req-empty">Nenhum pedido de entrada no momento.</div>';
+  return reqs.map(r=>`<div class="cl-req-row">
+      <span class="cl-req-name">👤 ${escC(r.name||'Treinador')}</span>
+      <span class="cl-req-acts">
+        ${btn('Aprovar',`clApproveJoin('${r.user_id}')`,{cls:'cl-btn-mini cl-btn-ok'})}
+        ${btn('Recusar',`clRejectJoin('${r.user_id}')`,{cls:'cl-btn-mini cl-btn-cancel'})}
+      </span>
+    </div>`).join('');
+}
+function clRefreshReqSurfaces(){
+  if(CL.screen==='online' && CL.net && CL.net.step==='lobby') renderOnlineInto();
+  if(CL._reqPanelOpen) clRenderReqPanel();
+  else if(CL.screen==='main') cdraw();
+}
+function clApproveJoin(uid){
+  (async ()=>{ const ok=await NET.approveJoin(uid);
+    if(ok){ toastC('✓ Entrada aprovada.'); CL.pendingJoins=(CL.pendingJoins||[]).filter(r=>r.user_id!==uid); clRefreshReqSurfaces(); }
+    else toastC('⚠ Não foi possível aprovar.'); })();
+}
+function clRejectJoin(uid){
+  (async ()=>{ const ok=await NET.rejectJoin(uid);
+    if(ok){ toastC('Pedido recusado.'); CL.pendingJoins=(CL.pendingJoins||[]).filter(r=>r.user_id!==uid); clRefreshReqSurfaces(); }
+    else toastC('⚠ Não foi possível recusar.'); })();
+}
+/* modal compacto dentro do jogo (item "Aprovar entradas..." do menu Modo Resenha) */
+function clJoinRequestsPanel(){
+  CL.menu=null; CL._reqPanelOpen=true; clStartHostReqPoll(); clRenderReqPanel();
+  (async ()=>{ try{ CL.pendingJoins=await NET.listJoinRequests(); clRenderReqPanel(); }catch(e){} })();
+}
+function clRenderReqPanel(){
+  if(!CL._reqPanelOpen) return;
+  const html=`<div class="cl-req-panel">
+      <div class="cl-req-panel-sub">Quem entrou pelo código está aguardando seu OK para participar da Resenha.</div>
+      <div class="cl-req-list">${clReqRowsHTML()}</div>
+      <div class="cl-cal-ok" style="margin-top:12px">${btn('Fechar','clCloseReqPanel()',{icon:'✔',cls:'cl-btn-ok'})}</div>
+    </div>`;
+  overlayC(dlg('🚪 Aprovar entradas na Resenha', html, {w:480}));
+}
+function clCloseReqPanel(){ CL._reqPanelOpen=false; clCloseOverlay(); }
+
 function clLobbyDraw(){ NET.drawClubs(DATA.clubs.map(c=>c.id)); toastC('Times sorteados!'); }
-function clLobbyExit(){ CL.screen='modo'; cdraw(); }
+function clLobbyExit(){ clStopHostReqPoll(); CL.screen='modo'; cdraw(); }
 function clLobbyStart(){ const room=NET.room;
   // preenche com sorteio quem ainda não escolheu o próprio time até aqui
   if(!room.participants.every(p=>p.clubId)) NET.drawClubs(DATA.clubs.map(c=>c.id));
@@ -594,6 +701,7 @@ function onlineBeginSeason(){ const room=NET.room; const me=room.participants.fi
   }
   
   if(NET.isHost) NET.start();   // abre janela de 60s
+  if(NET.isHost) clStartHostReqPoll();   // acompanha pedidos de entrada durante a temporada
   cdraw();
   checkPendingCupDraws(()=>{}); // mostra o sorteio da Copa do Brasil (destaca os clubes humanos da sala)
 }

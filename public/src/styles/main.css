@@ -1211,3 +1211,23 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* ---- botão de apagar (lixeira) nos cards de sala/save ---- */
 .cl-myroom-del{flex:none;background:transparent;border:1px solid transparent;cursor:pointer;font-size:15px;padding:6px 8px;margin-left:2px;opacity:.5;border-radius:5px;line-height:1;transition:opacity .12s,background .12s}
 .cl-myroom-del:hover{opacity:1;background:rgba(200,40,40,.16);border-color:rgba(200,40,40,.4)}
+
+/* ---- Aprovação de entrada: pedidos pendentes (lobby + modal em jogo) ---- */
+.cl-req-list{display:flex;flex-direction:column;gap:6px}
+.cl-req-row{display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(255,255,255,.08);border-radius:6px;padding:7px 10px}
+.cl-req-name{font-size:13px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl-req-acts{display:flex;gap:6px;flex:none}
+.cl-req-empty{font-size:12px;color:rgba(255,255,255,.55);padding:6px 2px;font-style:italic}
+.cl-req-panel-sub{font-size:13px;color:rgba(255,255,255,.75);margin-bottom:12px;line-height:1.4}
+.cl-req-panel{padding:2px}
+
+/* ---- Tela de espera do convidado (aguardando aprovação) ---- */
+.cl-wait-spin{font-size:44px;margin:6px 0 10px;animation:cl-wait-pulse 1.6s ease-in-out infinite}
+.cl-wait-t{font-size:19px;font-weight:800;color:var(--yellow);margin-bottom:8px}
+.cl-wait-sub{font-size:14px;color:rgba(255,255,255,.85);line-height:1.5;max-width:400px;margin:0 auto}
+.cl-wait-dots{display:flex;gap:7px;justify-content:center;margin-top:16px}
+.cl-wait-dots span{width:9px;height:9px;border-radius:50%;background:var(--yellow);opacity:.4;animation:cl-wait-bounce 1.2s ease-in-out infinite}
+.cl-wait-dots span:nth-child(2){animation-delay:.2s}
+.cl-wait-dots span:nth-child(3){animation-delay:.4s}
+@keyframes cl-wait-pulse{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.12);opacity:1}}
+@keyframes cl-wait-bounce{0%,100%{opacity:.35;transform:translateY(0)}50%{opacity:1;transform:translateY(-5px)}}

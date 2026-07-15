@@ -357,21 +357,33 @@ async function netSendChat(text, clubId){
 async function netListMyRooms(){
   if(!sb || !SB_AUTH_USER) return [];
   try {
-    const [{ data: seatData, error: e1 }, { data: inviteData, error: e2 }] = await Promise.all([
+    // 3 fontes: (1) salas onde tenho ASSENTO (já reivindiquei clube), (2) salas que EU CRIEI
+    // (anfitrião) — aparecem MESMO sem eu ter reivindicado clube ainda, pois create_game só cria
+    // assentos CPU e o host não tem assento até escolher/sortear o time, (3) CONVITES pendentes.
+    const [{ data: seatData, error: e1 }, { data: inviteData, error: e2 }, { data: hostData, error: e3 }] = await Promise.all([
       sb.from('game_seats').select('game_id, club_id, is_ready, games(name, phase, round, host_id)').eq('user_id', SB_AUTH_USER.id),
-      sb.from('room_invites').select('game_id, games(name, phase, round, host_id)').eq('user_id', SB_AUTH_USER.id)
+      sb.from('room_invites').select('game_id, games(name, phase, round, host_id)').eq('user_id', SB_AUTH_USER.id),
+      sb.from('games').select('id, name, phase, round, host_id').eq('host_id', SB_AUTH_USER.id)
     ]);
     if(e1) throw e1;
-    const claimed = (seatData||[]).filter(r=>r.games && r.games.phase!=='deleted').map(r=>({
-      code: r.game_id, name: r.games.name, phase: r.games.phase, round: r.games.round,
-      isHost: r.games.host_id===SB_AUTH_USER.id, clubId: r.club_id, pending:false
-    }));
-    const claimedCodes = new Set(claimed.map(r=>r.code));
-    const pending = (e2?[]:(inviteData||[])).filter(r=>r.games && r.games.phase!=='deleted' && !claimedCodes.has(r.game_id)).map(r=>({
-      code: r.game_id, name: r.games.name, phase: r.games.phase, round: r.games.round,
-      isHost: false, clubId: null, pending: true
-    }));
-    return claimed.concat(pending);
+    const byCode = new Map();
+    // (1) assento reivindicado — tem prioridade (traz o clubId escolhido)
+    (seatData||[]).filter(r=>r.games && r.games.phase!=='deleted').forEach(r=>{
+      byCode.set(r.game_id, { code:r.game_id, name:r.games.name, phase:r.games.phase, round:r.games.round,
+        isHost:r.games.host_id===SB_AUTH_USER.id, clubId:r.club_id, pending:false });
+    });
+    // (2) salas que eu criei (mesmo sem assento) — não sobrescreve um assento já mapeado
+    (e3?[]:(hostData||[])).filter(g=>g.phase!=='deleted').forEach(g=>{
+      if(byCode.has(g.id)) return;
+      byCode.set(g.id, { code:g.id, name:g.name, phase:g.phase, round:g.round, isHost:true, clubId:null, pending:false });
+    });
+    // (3) convites pendentes — só se eu ainda não estiver na sala por outra via
+    (e2?[]:(inviteData||[])).filter(r=>r.games && r.games.phase!=='deleted').forEach(r=>{
+      if(byCode.has(r.game_id)) return;
+      byCode.set(r.game_id, { code:r.game_id, name:r.games.name, phase:r.games.phase, round:r.games.round,
+        isHost:false, clubId:null, pending:true });
+    });
+    return Array.from(byCode.values());
   } catch(e) { console.error('listMyRooms erro:', e); return []; }
 }
 
@@ -425,11 +437,14 @@ async function netSearchUsers(query){
    (aparece como "convite pendente" em Minhas Salas, leva pra scMidJoin). */
 async function netInviteInternal(targetUserId, targetName){
   if(!NET.isHost) return;
-  const { error } = await sb.from('room_invites').upsert(
-    { game_id: NET.gameId, user_id: targetUserId, invited_by: SB_AUTH_USER.id },
-    { onConflict: 'game_id,user_id' }
+  // INSERT puro (NÃO upsert): a RLS bloqueia QUALQUER cláusula ON CONFLICT aqui — mesmo DO NOTHING —
+  // porque o caminho de conflito exige a policy de SELECT/UPDATE sobre a linha, e a policy de leitura
+  // (v3_invites_read_own: user_id = auth.uid()) impede o host de "enxergar" a linha do convidado.
+  // Como reconvidar é idempotente, tratamos a violação de unicidade (23505) como "já convidado" (no-op).
+  const { error } = await sb.from('room_invites').insert(
+    { game_id: NET.gameId, user_id: targetUserId, invited_by: SB_AUTH_USER.id }
   );
-  if(error) { console.error('inviteInternal erro:', error); throw error; }
+  if(error && error.code !== '23505') { console.error('inviteInternal erro:', error); throw error; }
 }
 
 /* ---- Séries B/C/D: lê o cache de clubes reais ---- */
@@ -543,6 +558,90 @@ function netSetupRealtime(){
 function netTrackPresence(){ if(SB_CH) SB_CH.track({ name: NET.self.name, club: null }); }
 function netIsOnline(uid){ return !!(SB_ONLINE && SB_ONLINE[uid] && SB_ONLINE[uid].length); }
 
+/* ============ APROVAÇÃO DE ENTRADA (pendente -> aprovado) ============
+   Quem entra por CÓDIGO/LINK NÃO entra direto: cria um pedido 'pending' e espera o anfitrião
+   aprovar. São PRÉ-APROVADOS (entram direto) quem: é o host, já tem assento (reconexão), foi
+   convidado internamente (room_invites) ou já tem pedido 'approved'. A guarda no RPC claim_seat
+   reforça isso no servidor (não dá pra reivindicar assento sem aprovação). */
+let SB_JOINPOLL = null;
+function netClearJoinPoll(){ if(SB_JOINPOLL){ clearInterval(SB_JOINPOLL); SB_JOINPOLL=null; } }
+
+/* pede pra entrar: decide entre entrar direto (pré-aprovado) ou criar pedido pendente.
+   onDecision(status, roomName) é chamado pelo poll quando o host aprova/recusa. */
+async function netRequestJoin(code, me, onDecision){
+  if(!sb || !SB_AUTH_USER) throw new Error('Supabase não autenticado');
+  const upcode = String(code||'').toUpperCase();
+  const { data: gameData, error: e2 } = await sb.from('games').select('id,name,host_id,phase').eq('id', upcode).single();
+  if(e2 || !gameData) throw new Error('Sala não encontrada');
+  if(gameData.phase==='deleted') throw new Error('Esta sala foi encerrada.');
+  const uid = SB_AUTH_USER.id;
+  let preApproved = (gameData.host_id === uid);
+  if(!preApproved){ const { data:seat } = await sb.from('game_seats').select('game_id').eq('game_id',upcode).eq('user_id',uid).maybeSingle(); if(seat) preApproved=true; }
+  if(!preApproved){ const { data:inv } = await sb.from('room_invites').select('game_id').eq('game_id',upcode).eq('user_id',uid).maybeSingle(); if(inv) preApproved=true; }
+  if(!preApproved){ const { data:jr } = await sb.from('join_requests').select('status').eq('game_id',upcode).eq('user_id',uid).maybeSingle(); if(jr && jr.status==='approved') preApproved=true; }
+  if(preApproved){ await netJoinRoom(upcode, me); return { entered:true, name:gameData.name }; }
+  // cria pedido pendente — INSERT puro (nunca upsert): ignora 23505 (pedido já existe = segue pendente)
+  const { error: eIns } = await sb.from('join_requests').insert({ game_id:upcode, user_id:uid, name:(me&&me.name)||'', status:'pending' });
+  if(eIns && eIns.code !== '23505'){
+    // FALLBACK: se a migração de join_requests ainda não foi aplicada (tabela ausente), degrada pro
+    // comportamento antigo (entra direto) pra não travar a Resenha. Ao rodar o SQL, a aprovação
+    // passa a valer automaticamente, sem novo deploy.
+    const msg = (eIns.message||'');
+    const missingTable = eIns.code==='42P01' || eIns.code==='PGRST205' || eIns.code==='PGRST202'
+      || (/join_requests/i.test(msg) && /(does not exist|schema cache|not find|could not find)/i.test(msg));
+    if(missingTable){ console.warn('join_requests ausente — entrando direto (rode a migração p/ ativar a aprovação).'); await netJoinRoom(upcode, me); return { entered:true, name:gameData.name }; }
+    console.error('requestJoin erro:', eIns); throw eIns;
+  }
+  NET.pendingCode = upcode; NET.pendingRoomName = gameData.name;
+  netClearJoinPoll();
+  SB_JOINPOLL = setInterval(async ()=>{
+    try{
+      const st = await netJoinRequestStatus(upcode);
+      if(st==='approved'){ netClearJoinPoll(); if(onDecision) onDecision('approved', gameData.name); }
+      else if(st==='rejected'){ netClearJoinPoll(); if(onDecision) onDecision('rejected', gameData.name); }
+    }catch(_){/* mantém tentando */}
+  }, 3000);
+  return { entered:false, name:gameData.name };
+}
+async function netJoinRequestStatus(code){
+  if(!sb || !SB_AUTH_USER) return null;
+  const { data } = await sb.from('join_requests').select('status').eq('game_id', String(code||'').toUpperCase()).eq('user_id', SB_AUTH_USER.id).maybeSingle();
+  return data ? data.status : null;
+}
+async function netCancelJoinRequest(code){
+  netClearJoinPoll();
+  const c = String(code||NET.pendingCode||'').toUpperCase();
+  NET.pendingCode=null; NET.pendingRoomName=null;
+  if(!c || !sb || !SB_AUTH_USER) return;
+  try{ await sb.from('join_requests').delete().eq('game_id', c).eq('user_id', SB_AUTH_USER.id); }catch(e){}
+}
+/* ---- lado do anfitrião: listar / aprovar / recusar pedidos pendentes ---- */
+async function netListJoinRequests(){
+  if(!sb || !NET.gameId) return [];
+  try{
+    const { data, error } = await sb.from('join_requests').select('user_id,name,created_at').eq('game_id', NET.gameId).eq('status','pending').order('created_at');
+    if(error) throw error;
+    return data||[];
+  }catch(e){ console.error('listJoinRequests erro:', e); return []; }
+}
+async function netCountPendingJoins(){
+  if(!sb || !NET.gameId || !NET.isHost) return 0;
+  try{
+    const { count } = await sb.from('join_requests').select('user_id', { count:'exact', head:true }).eq('game_id', NET.gameId).eq('status','pending');
+    return count||0;
+  }catch(e){ return 0; }
+}
+async function netDecideJoin(userId, status){
+  if(!sb || !NET.isHost || !NET.gameId || !userId) return false;
+  try{
+    const { error } = await sb.from('join_requests').update({ status, decided_at: new Date().toISOString() }).eq('game_id', NET.gameId).eq('user_id', userId);
+    if(error) throw error;
+    return true;
+  }catch(e){ console.error('decideJoin erro:', e); return false; }
+}
+function netApproveJoin(userId){ return netDecideJoin(userId, 'approved'); }
+function netRejectJoin(userId){ return netDecideJoin(userId, 'rejected'); }
+
 /* ---- EXPULSÃO (anfitrião remove um jogador da Resenha, no lobby ou durante a partida) ----
    Sinal em tempo real via broadcast (chega em todos, inclusive o expulso, sem depender de RLS),
    MAIS liberação do assento no banco (clube volta a CPU; persiste e impede reentrada). */
@@ -602,6 +701,14 @@ NET.deleteRoom = netDeleteRoom;
 NET.sendEmailInvite = netSendEmailInvite;
 NET.searchUsers = netSearchUsers;
 NET.inviteInternal = netInviteInternal;
+NET.requestJoin = netRequestJoin;
+NET.joinRequestStatus = netJoinRequestStatus;
+NET.cancelJoinRequest = netCancelJoinRequest;
+NET.clearJoinPoll = netClearJoinPoll;
+NET.listJoinRequests = netListJoinRequests;
+NET.countPendingJoins = netCountPendingJoins;
+NET.approveJoin = netApproveJoin;
+NET.rejectJoin = netRejectJoin;
 NET.getDivisionClubs = netGetDivisionClubs;
 NET.listSoloSaves = netListSoloSaves;
 NET.loadSoloSave = netLoadSoloSave;
