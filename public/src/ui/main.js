@@ -1013,9 +1013,9 @@ function clEscolherClubes(){
 /* ---- 3/4 · ESCOLHA OS CLUBES ---- */
 function scEscolhaClubes(){
   const countries=selectedPlayableCountries();
-  // com VÁRIOS jogadores os times são SORTEADOS (modo solo, estilo clássico) — cada um só
-  // escolhe o país; o clube é sorteado. Com 1 jogador, ele escolhe o próprio clube.
-  const multi=(CL.pick||[]).length>1;
+  // SORTEIO OBRIGATÓRIO em todos os modos: cada jogador só escolhe o país; o clube é sempre
+  // sorteado (nunca escolhido). Antes, com 1 jogador, ele escolhia o próprio clube.
+  const multi=true;
   const taken=new Set((CL.pick||[]).filter(p=>p.clubId).map(p=>p.clubId));
   const rows=(CL.pick||[]).map((p,i)=>{
     const countrySel=countries.map(c=>`<option value="${escC(c)}" ${p.country===c?'selected':''}>${escC(c)}</option>`).join('');

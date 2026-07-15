@@ -435,9 +435,7 @@ function scLobby(){ const room=NET.room;
       <span class="cl-part-dot ${p.confirmed?'ok':''}"></span>
       <span class="cl-part-n">${escC(p.name||'—')}${p.host?' <i>(anfitrião)</i>':''}</span>
       <span class="cl-part-st">${p.confirmed?'Confirmado':'Não confirmado'}</span>
-      ${isSelf && !c
-        ? `<select class="cl-part-sel" onchange="NET.assignClub('${p.id}',this.value)">${freeClubOptions()}</select>`
-        : `<span class="cl-part-team" style="${c?clubStripe(c):''}">${c?escC(c.short):'escolhendo...'}</span>`}
+      <span class="cl-part-team" style="${c?clubStripe(c):''}">${c?escC(c.short):'🎲 sorteado no início'}</span>
       ${host && !isSelf ? `<button class="cl-part-kick" title="Remover da sala" onclick="clKick('${p.id}','${p.clubId||''}')">✖</button>` : ''}
     </div>`; }).join('');
   const canStart=host && room.participants.length>=2;
