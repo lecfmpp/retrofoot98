@@ -500,8 +500,11 @@ function scLobby(){ const room=NET.room;
 /* clubes ainda controlados pela CPU nesta sala — o próprio jogador escolhe entre eles
    (mesma lista que scMidJoin usa pra convite/entrada com a liga já rolando). */
 function freeClubIds(){ const room=NET.room; if(!room) return [];
+  // Resenha é sempre Brasil Série A — o pool de sorteio precisa ser a Série A (não o DATA.clubs
+  // local do convidado, que pode estar noutro universo/divisão e não bater com os assentos).
+  const pool = (typeof DATA!=='undefined' && DATA.clubsSerieA && DATA.clubsSerieA.length) ? DATA.clubsSerieA : DATA.clubs;
   const taken=new Set((room.participants||[]).map(p=>p.clubId).filter(Boolean));
-  return DATA.clubs.filter(c=>!taken.has(c.id));
+  return pool.filter(c=>!taken.has(c.id));
 }
 function freeClubOptions(){ const free=freeClubIds();
   return '<option value="">Escolher time...</option>'+free.map(c=>`<option value="${c.id}">${escC(c.short)} (${c.overall})</option>`).join('');

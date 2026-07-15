@@ -192,7 +192,11 @@ function netMergeParticipants(){
 /* ---- ROOMS: criar / entrar (código curto = id direto, sem UUID separado) ---- */
 async function netCreateRoom(name, host){
   if(!sb || !SB_AUTH_USER) throw new Error('Supabase não autenticado');
-  const clubIds = DATA.clubs.map(c=>c.id);
+  // A Resenha é SEMPRE Brasil Série A (ver onlineBeginSeason). O pool de clubes NÃO pode
+  // depender do universo/divisão em que o host estava (ex.: explorando Argentina/Europa) —
+  // senão os assentos ficam com clubes de outro país e o convidado não consegue reivindicar.
+  const poolClubs = (typeof DATA!=='undefined' && DATA.clubsSerieA && DATA.clubsSerieA.length) ? DATA.clubsSerieA : DATA.clubs;
+  const clubIds = poolClubs.map(c=>c.id);
   const { data: code, error } = await sb.rpc('create_game', { p_name:name, p_club_ids:clubIds, p_mode: CL.net.mode||'sorteio' });
   if(error) throw error;
   NET.code = code; NET.gameId = code; NET.isHost = true;
