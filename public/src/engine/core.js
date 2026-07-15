@@ -2192,7 +2192,7 @@ function mpRate(xi,gf,ga,scorers,cid,R,myPerf,oppPerf){
 }
 function mpFinances(state,cid,xi,gf,ga,scorers){
   const cl=DATA.clubs.find(c=>c.id===cid);const won=gf>ga,draw=gf===ga;
-  const income=Math.round(cl.overall*INCOME_BASE+(won?500000:draw?150000:0));
+  const income=Math.round(baseIncome(cl.overall)+(won?500000:draw?150000:0));
   let salaries=0,bonuses=0;const started=new Set(xi.map(p=>p.n));
   state.squads[cid].forEach(p=>{
     if(!p.contract)return;const c=p.contract;salaries+=c.salary;
@@ -2357,7 +2357,7 @@ function processFinances(userResult,uf,startedNames){
   // item 4: receita = base (TV/patrocínio, por overall, SEMPRE) + bilheteria REAL quando joga em
   // casa + bônus de vitória. Antes a bilheteria SUBSTITUÍA a base em casa, o que deixava as rodadas
   // em casa mais pobres que as de fora (bilheteria << base) e inviabilizava os clubes grandes.
-  const income=Math.round(cl.overall*INCOME_BASE) + (gate!=null?gate:0) + winBonus;
+  const income=Math.round(baseIncome(cl.overall)) + (gate!=null?gate:0) + winBonus;
   let salaries=0,bonuses=0,log=[];
   squad(S.clubId).forEach(p=>{
     if(!p.contract)return; const c=p.contract; salaries+=c.salary;

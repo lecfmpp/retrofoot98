@@ -104,14 +104,12 @@
     [40,43e3],[45,58e3],[50,78e3],[60,130e3],[70,220e3],[80,420e3],[90,800e3],[99,1.3e6]
   ];
   function salary(f){ return Math.max(500, Math.round(interp(S_ANCHORS, f))); }
-  /* SALÁRIO efetivo (folha): comprime o TOPO (só >49, i.e. Estrela+). Um craque mostra f90 e
-     VALE ~150-200M (mercado realista), mas a folha fica na escala jogável/solvente — senão um
-     elenco de craques (folha ~4M/sem) quebraria o clube (caixa da divisão é 10-20M). Só afeta
-     Estrela+; regulares e divisões inferiores (<49) ficam iguais, sem inflar a receita delas. */
+  /* SALÁRIO efetivo (folha) = a tabela EXATA na força do jogador (sem compressão). Um Craque
+     Mundial f90 ganha os 800k/sem da tabela. A receita (core.js) é escalada pra sustentar essa
+     folha — ver income() lá. */
   function wage(f){
     if(typeof f!=='number' || !isFinite(f)) return salary(40);
-    const wf = f<=49 ? f : 49 + (f-49)*0.26; // f60->51.9, f70->54.5, f82->57.6, f90->59.7, f99->62
-    return salary(wf);
+    return salary(f);
   }
 
   /* ---- 4. CAIXA INICIAL por divisão ---- */
@@ -130,6 +128,10 @@
     const ov=(typeof overall==='number' && isFinite(overall))?overall:30;
     return Math.round(Math.max(10000, Math.min(90000, interp(CAP_ANCHORS, ov)))/1000)*1000;
   }
+  /* Capacidade INICIAL por DIVISÃO (spec do usuário, exato): A 75k · B 50k · C 25k · D 10k.
+     Mapeia chaves intl (PL/ES/CH/...) pras faixas A/B via bandKey. */
+  const DIV_CAP={ A:75000, B:50000, C:25000, D:10000 };
+  function stadiumCapForDivision(division){ return DIV_CAP[bandKey(division)] || 25000; }
 
-  window.REBAL={ force, engForce, value, valueBase, salary, wage, budget, stadiumCap, BUDGET, BANDS };
+  window.REBAL={ force, engForce, value, valueBase, salary, wage, budget, stadiumCap, stadiumCapForDivision, BUDGET, BANDS };
 })();

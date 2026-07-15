@@ -957,7 +957,9 @@ function clEntrar(){
   S.intlUniverse = CL.intlUniverse; // false | país (ex.: 'Inglaterra')
   S.bgCountries = (CL.bgCountries||[]).slice(); // outros países selecionados: ligas de background
   initBgLeagues(); // materializa as ligas de background pra simular/visualizar/negociar
-  if(!S.stadium){ const ov=(clubOf(CL.clubId)||{}).overall||70; S.stadium={capacity:realStadiumCapacity(ov), builtThisSeason:0}; CL.ticket=levelTicketPrice(ov); }
+  if(!S.stadium){ const ov=(clubOf(CL.clubId)||{}).overall||70;
+    const cap=(typeof REBAL!=='undefined' && REBAL.stadiumCapForDivision) ? REBAL.stadiumCapForDivision(S.division) : realStadiumCapacity(ov);
+    S.stadium={capacity:cap, builtThisSeason:0}; CL.ticket=levelTicketPrice(ov); }
   CL.formation=null; CL.tacticChosen=false;   // precisa escolher tática no menu p/ liberar "Jogar"
   S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
   CL.speedMult=1;  // 1.0x, 1.5x, 2x, 3x (só anfitrião no modo Resenha pode mudar)
