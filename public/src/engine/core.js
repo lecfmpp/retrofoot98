@@ -1356,7 +1356,7 @@ const UNI_CONFIGS={
   /* CONMEBOL: divisão ÚNICA (só 1ª divisão real, sem pirâmide -> sem acesso/rebaixamento);
      clubes reais em window.CONMEBOL_LEAGUES (src:'conmebol'). Classificam pra Libertadores/
      Sul-Americana. size = nº real de clubes raspados (Argentina cortada em 20 p/ temporada padrão). */
-  Argentina: { order:['ARG'], size:{ARG:28}, promo:{ARG:0}, releg:{ARG:0}, label:{ARG:'Liga Profesional'}, lg:{ARG:'ARG-1'}, country:'Argentina', nat:['Argentina'], foreignMax:6, src:'conmebol' },
+  Argentina: { order:['ARG'], size:{ARG:30}, promo:{ARG:0}, releg:{ARG:0}, label:{ARG:'Liga Profesional'}, lg:{ARG:'ARG-1'}, country:'Argentina', nat:['Argentina'], foreignMax:6, src:'conmebol' },
   Uruguai:   { order:['URU'], size:{URU:16}, promo:{URU:0}, releg:{URU:0}, label:{URU:'Primera División'}, lg:{URU:'URU-1'}, country:'Uruguai', nat:['Uruguay'], foreignMax:6, src:'conmebol' },
   'Colômbia':{ order:['COL'], size:{COL:20}, promo:{COL:0}, releg:{COL:0}, label:{COL:'Categoría Primera A'}, lg:{COL:'COL-1'}, country:'Colômbia', nat:['Colombia'], foreignMax:5, src:'conmebol' },
   Chile:     { order:['CHI'], size:{CHI:16}, promo:{CHI:0}, releg:{CHI:0}, label:{CHI:'Primera División'}, lg:{CHI:'CHI-1'}, country:'Chile', nat:['Chile'], foreignMax:6, src:'conmebol' },
