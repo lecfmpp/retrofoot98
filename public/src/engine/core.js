@@ -599,7 +599,46 @@ function pickIntlPlayerName(R){
   return nm;
 }
 function intlClubId(name){ return 'intl_'+name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_'); }
+
+/* ===== CLUBES CONMEBOL REAIS (Transfermarkt, ver leagues-conmebol.js) =====
+   Quando existe elenco real pro clube da copa, ele SUBSTITUI o procedural. Casa o nome do
+   grupo (ex.: 'Boca','CCP','BSC') com o nome real via alias + normalização + "contém". */
+const CONMEBOL_CLUB_ALIAS = {
+  // nome-do-grupo (normalizado) -> nome-real (normalizado), pros que não casam por "contém".
+  bsc:'barcelonascguayaquil',        // BSC -> Barcelona SC Guayaquil (ECU)
+  ccp:'clubcerroporteno',            // CCP -> Club Cerro Porteño (PAR)
+  olimpiaasuncion:'clubolimpia'      // Olimpia Asunción -> Club Olimpia (PAR)
+};
+let _conmebolIndex=null;
+function normNameKey(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,''); }
+function conmebolIndex(){
+  if(_conmebolIndex) return _conmebolIndex;
+  _conmebolIndex={};
+  const L=(typeof window!=='undefined')?window.CONMEBOL_LEAGUES:null;
+  if(L){ for(const country in L){ (L[country]||[]).forEach(cl=>{ _conmebolIndex[cl.cc+'|'+(cl.nameKey||normNameKey(cl.name))]=cl; }); } }
+  return _conmebolIndex;
+}
+function realConmebolClub(name, countryCode){
+  const idx=conmebolIndex(); if(!Object.keys(idx).length) return null;
+  let key=normNameKey(name); key=CONMEBOL_CLUB_ALIAS[key]||key;
+  let cl=idx[countryCode+'|'+key];
+  if(!cl){ // casa por "contém" dentro do mesmo país (ex.: 'nacional' ~ 'clubnacional')
+    const pref=countryCode+'|';
+    const hit=Object.keys(idx).filter(k=>k.startsWith(pref)).find(k=>{ const nk=k.slice(pref.length); return nk.includes(key)||key.includes(nk); });
+    if(hit) cl=idx[hit];
+  }
+  if(!cl) return null;
+  const id=intlClubId(name);
+  const country=CONMEBOL_COUNTRIES[countryCode]||CONMEBOL_COUNTRIES.ARG;
+  const squad=cl.squad.map(p=>({...p})); // f RAW; attachAttrs remapeia depois (via ensureIntlClub)
+  const nf=squad.map(p=>Math.min(REBAL.force(p.f,'A'),99));
+  const novr=Math.round(nf.reduce((s,f)=>s+f,0)/(nf.length||1));
+  return { id, tk:cl.id, name:cl.name, short:cl.short, color:cl.color, color2:cl.color2||'#FFFFFF',
+    crest:cl.crest||null, OS:novr, MS:novr, DS:novr, overall:novr, _rbOv:1, squad, country };
+}
 function makeIntlClub(name, countryCode){
+  const real=realConmebolClub(name, countryCode); // clube real do Transfermarkt, se houver
+  if(real) return real;
   const id=intlClubId(name);
   const R=makeRng(hashSeed('intlclub',name));
   const country=CONMEBOL_COUNTRIES[countryCode]||CONMEBOL_COUNTRIES.ARG;
