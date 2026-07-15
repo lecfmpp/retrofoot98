@@ -1207,3 +1207,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-sell-min{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;margin-top:2px;background:rgba(204,154,26,.18);border:1px solid var(--gold);border-radius:3px}
 .cl-sell-min b{color:#ffcf4d}
 .cl-sell-warn{color:#ff8a8a;font-size:12px;font-weight:700;background:rgba(120,20,20,.35);border:1px solid #a33;border-radius:3px;padding:6px 8px;margin-bottom:10px}
+
+/* ---- botão de apagar (lixeira) nos cards de sala/save ---- */
+.cl-myroom-del{flex:none;background:transparent;border:1px solid transparent;cursor:pointer;font-size:15px;padding:6px 8px;margin-left:2px;opacity:.5;border-radius:5px;line-height:1;transition:opacity .12s,background .12s}
+.cl-myroom-del:hover{opacity:1;background:rgba(200,40,40,.16);border-color:rgba(200,40,40,.4)}

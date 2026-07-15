@@ -375,6 +375,7 @@ function scMinhasSalas(){
         <div class="cl-myroom-sub">${r.pending?'Toque pra aceitar e escolher seu time':(c?escC(c.short)+' · ':'')+(phaseLbl[r.phase]||r.phase)+(r.round?' · '+r.round+'ª rodada':'')}</div>
       </div>
       <div class="cl-myroom-code">${escC(r.code)}</div>
+      <button class="cl-myroom-del" title="${r.isHost?'Apagar sala':'Sair da sala'}" onclick="event.stopPropagation();clDeleteRoom('${escC(r.code)}',${r.isHost?'true':'false'})">🗑</button>
       <div class="cl-myroom-arrow">➜</div>
     </div>`; }).join('');
   const body=`<div class="cl-wiz-authcard" style="max-width:560px">
@@ -386,6 +387,29 @@ function scMinhasSalas(){
     action: btn('Criar sala nova','clGoNovaSala()',{icon:'➕',cls:'cl-wiz-cta'}) });
 }
 function clGoNovaSala(){ CL.net.step='sala'; cdraw(); }
+/* apagar (host) / sair (membro) de uma sala — confirmação + ação */
+function clDeleteRoom(code, isHost){
+  const room=(CL.net.myRooms||[]).find(r=>r.code===code); const nm=room?room.name:code;
+  const msg=isHost?`Apagar a Resenha <b>${escC(nm)}</b>? A sala some pra todos os participantes.`
+                  :`Sair da Resenha <b>${escC(nm)}</b>? Você deixa de participar dela.`;
+  overlayC(dlg(isHost?'Apagar sala?':'Sair da sala?', `<div class="cl-res">
+    <div class="cl-res-verd" style="text-align:center">${msg}</div>
+    <div class="cl-cal-ok" style="display:flex;gap:10px;justify-content:center;margin-top:14px">
+      ${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}
+      ${btn(isHost?'Apagar':'Sair',`clDeleteRoomGo('${escC(code)}',${isHost?'true':'false'})`,{icon:'🗑',cls:'cl-btn-ok'})}
+    </div></div>`,{w:440}));
+}
+function clDeleteRoomGo(code, isHost){
+  clCloseOverlay(); toastC(isHost?'Apagando sala...':'Saindo...');
+  (async ()=>{
+    const ok=await NET.deleteRoom(code, isHost);
+    if(ok){ CL.net.myRooms=(CL.net.myRooms||[]).filter(r=>r.code!==code);
+      toastC(isHost?'Sala apagada.':'Você saiu da sala.');
+      if(!(CL.net.myRooms||[]).length){ CL.net.step='sala'; }
+      cdraw();
+    } else toastC('⚠ Não foi possível concluir. Tente de novo.');
+  })();
+}
 function clJoinMyRoom(code, pending){
   toastC('Entrando na sala...');
   (async ()=>{ try {

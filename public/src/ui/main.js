@@ -629,6 +629,7 @@ function scSoloCont(){
         <div class="cl-myroom-name">${escC(s.name)}</div>
         <div class="cl-myroom-sub">${s.updated_at?('Salvo em '+new Date(s.updated_at).toLocaleDateString('pt-BR')):'Jogo salvo'}</div>
       </div>
+      <button class="cl-myroom-del" title="Apagar jogo" onclick="event.stopPropagation();clDeleteSave('${escC(s.name)}')">🗑</button>
       <div class="cl-myroom-arrow">➜</div>
     </div>`).join('');
   return wizShell({ step:2, title:'Continuar jogo', back:'clSoloBackChoice()',
@@ -636,6 +637,23 @@ function scSoloCont(){
     action:`<span class="cl-wiz-hint">Toque num jogo pra continuar de onde parou.</span>`,
     body:`<div class="cl-wiz-form cl-wiz-form-wide"><div class="cl-myrooms-list">${list}</div></div>`
   });
+}
+/* apagar um jogo salvo (solo) — confirmação + delete na nuvem */
+function clDeleteSave(name){
+  overlayC(dlg('Apagar jogo?', `<div class="cl-res">
+    <div class="cl-res-verd" style="text-align:center">Apagar o jogo salvo <b>${escC(name)}</b>? Esta ação não pode ser desfeita.</div>
+    <div class="cl-cal-ok" style="display:flex;gap:10px;justify-content:center;margin-top:14px">
+      ${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}
+      ${btn('Apagar',`clDeleteSaveGo('${escC(name)}')`,{icon:'🗑',cls:'cl-btn-ok'})}
+    </div></div>`,{w:440}));
+}
+function clDeleteSaveGo(name){
+  clCloseOverlay(); toastC('Apagando jogo...');
+  (async ()=>{
+    const ok=(typeof NET!=='undefined'&&NET.deleteSoloSave)?await NET.deleteSoloSave(name):false;
+    if(ok){ CL.soloSaves=(CL.soloSaves||[]).filter(s=>s.name!==name); toastC('Jogo apagado.'); cdraw(); }
+    else toastC('⚠ Não foi possível apagar o jogo. Tente de novo.');
+  })();
 }
 function clSoloNew(){ CL.soloStep='novo'; cdraw(); }
 function clSoloContinue(){ CL.soloStep='cont'; cdraw(); }

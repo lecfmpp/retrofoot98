@@ -362,17 +362,34 @@ async function netListMyRooms(){
       sb.from('room_invites').select('game_id, games(name, phase, round, host_id)').eq('user_id', SB_AUTH_USER.id)
     ]);
     if(e1) throw e1;
-    const claimed = (seatData||[]).filter(r=>r.games).map(r=>({
+    const claimed = (seatData||[]).filter(r=>r.games && r.games.phase!=='deleted').map(r=>({
       code: r.game_id, name: r.games.name, phase: r.games.phase, round: r.games.round,
       isHost: r.games.host_id===SB_AUTH_USER.id, clubId: r.club_id, pending:false
     }));
     const claimedCodes = new Set(claimed.map(r=>r.code));
-    const pending = (e2?[]:(inviteData||[])).filter(r=>r.games && !claimedCodes.has(r.game_id)).map(r=>({
+    const pending = (e2?[]:(inviteData||[])).filter(r=>r.games && r.games.phase!=='deleted' && !claimedCodes.has(r.game_id)).map(r=>({
       code: r.game_id, name: r.games.name, phase: r.games.phase, round: r.games.round,
       isHost: false, clubId: null, pending: true
     }));
     return claimed.concat(pending);
   } catch(e) { console.error('listMyRooms erro:', e); return []; }
+}
+
+/* ---- apagar/sair de uma sala ---- host marca a sala como 'deleted' (some pra todos, via a
+   política de UPDATE do anfitrião); membro só larga o próprio assento (some da SUA lista). ---- */
+async function netDeleteRoom(code, isHost){
+  if(!sb || !SB_AUTH_USER || !code) return false;
+  try {
+    if(isHost){
+      const { error } = await sb.from('games').update({ phase:'deleted' }).eq('id', code);
+      if(error) throw error;
+    } else {
+      const { error } = await sb.from('game_seats').update({ user_id:null, is_cpu:true, is_ready:false })
+        .eq('game_id', code).eq('user_id', SB_AUTH_USER.id);
+      if(error) throw error;
+    }
+    return true;
+  } catch(e) { console.error('deleteRoom erro:', e); return false; }
 }
 
 /* ---- convite por e-mail (Edge Function -> Resend) ---- */
@@ -581,6 +598,7 @@ NET.authSignOut = netAuthSignOut;
 NET.authResetPassword = netAuthResetPassword;
 NET.updatePassword = netUpdatePassword;
 NET.listMyRooms = netListMyRooms;
+NET.deleteRoom = netDeleteRoom;
 NET.sendEmailInvite = netSendEmailInvite;
 NET.searchUsers = netSearchUsers;
 NET.inviteInternal = netInviteInternal;
