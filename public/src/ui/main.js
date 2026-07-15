@@ -131,7 +131,11 @@ function coherentFormation(id,preferred){
 function pickXIByFormation(id,f){ const need=FORMATIONS[f]||FORMATIONS['4-3-3']; const secs=['GK','DEF','MID','ATT'];
   const sq=squad(id).slice().sort((a,b)=>b.f-a.f); const xi=[];
   secs.forEach((sec,i)=>{ sq.filter(p=>p.s===sec).slice(0,need[i]).forEach(p=>xi.push(p.n)); });
-  if(xi.length<11){ const have=new Set(xi); for(const p of sq){ if(xi.length>=11)break; if(!have.has(p.n))xi.push(p.n); } }
+  if(xi.length<11){ const have=new Set(xi); // completa sem colocar 2º goleiro na linha
+    const add=n=>{ if(xi.length<11 && !have.has(n)){ xi.push(n); have.add(n); } };
+    for(const p of sq){ if(p.s!=='GK') add(p.n); }  // jogadores de linha primeiro
+    for(const p of sq){ add(p.n); }                  // último recurso: evita XI < 11
+  }
   return xi.slice(0,11); }
 /* simula uma partida completa capturando eventos (determinístico; usa SIM_SYNC do motor) */
 function simEventsC(h,a,seed,opts){ const evs=[]; let fin=null; const isU=(h===S.clubId||a===S.clubId);
@@ -2537,7 +2541,9 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
   // rótulo do estágio: prioriza pênaltis > prorrogação > fase normal da copa/liga
   const stageLabel = RL.pens ? '🥅 Disputa de pênaltis'
     : RL.extraStartMinute!=null ? '⏱️ Prorrogação'
-    : RL.cup ? (RL.cup.stage==='group'?'Fase de grupos':'Fase eliminatória') : null;
+    : RL.cup ? (RL.cup.stage==='group' ? 'Fase de grupos'
+        : (RL.cup.bracket ? cupPhaseLabel(RL.cup.bracket.round, RL.cup.bracket.roundsTotal) : 'Fase eliminatória'))
+      : null;
   const cupTop = RL.cup ? `<div class="cl-live-cup-top">${trophyImg(RL.cup.key,64)}
       <div class="cl-live-cup-name">${escC(COMP_DEFS[RL.cup.key].name)}</div>
       <div class="cl-live-cup-stage">${escC(stageLabel)}</div>
@@ -2637,8 +2643,8 @@ function penaltyPickerHTML(){
   const list=xiPlayers(CL.clubId).filter(p=>p.s!=='GK');
   const takers=(list.length?list:squad(CL.clubId).filter(p=>p.s!=='GK'));
   const secsLeft=Math.max(0,Math.ceil((CL.penDeadline-Date.now())/1000));
-  const rows=takers.map(p=>`<div class="cl-pen-row ${CL.penSel===p.n?'sel':''}" onclick="penaltySelect('${escC(p.n)}')">
-      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span><span class="cl-pen-r">${p.f}</span>
+  const rows=takers.map(p=>`<div class="cl-pen-row ${CL.penSel===p.n?'sel':''}" style="grid-template-columns:22px 1fr" onclick="penaltySelect('${escC(p.n)}')">
+      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span>
     </div>`).join('');
   return `<div class="cl-pen-overlay"><div class="cl-pen-modal" ${penaltyClubStyle()}>
     <div class="cl-pen-title">PENALTI</div>

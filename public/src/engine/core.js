@@ -1334,13 +1334,24 @@ const PROC_SUFFIX=['FC','EC','AC','SC','Atlético','Esporte Clube','Futebol Club
    nomes repetidos entre clubes diferentes eram praticamente garantidos. Resetado a cada
    novo jogo (newGame) pra não vazar entre saves. */
 let PROC_USED_NAMES=new Set();
+/* nomes brasileiros reais pra jogadores procedurais/regens (antes eram "Oeste A", "Leste B"...
+   — cidade+letra, que ficava horrível). nome + sobrenome; em colisão, acrescenta 2º sobrenome. */
+const BR_FIRST=['Gabriel','Lucas','Matheus','Rafael','Bruno','Léo','Vitor','João','Pedro','Gustavo',
+  'Felipe','Diego','Rodrigo','Thiago','Wesley','Éverton','Caio','Igor','Vinícius','Douglas',
+  'Renato','Marcos','André','Fábio','Danilo','Kaio','Yuri','Alan','Juninho','Guilherme',
+  'Paulinho','Rennan','Éder','Wellington','Luan','Nathan','Richard','Kevin','Wanderson','Jonathan',
+  'Ronaldo','Ricardo','Fernando','Cristian','Emerson','Robson','Adriano','Cléber','Maicon','Otávio'];
+const BR_LAST=['Silva','Santos','Oliveira','Souza','Pereira','Lima','Costa','Ferreira','Almeida','Ribeiro',
+  'Rodrigues','Gomes','Martins','Barbosa','Rocha','Dias','Nascimento','Araújo','Cardoso','Teixeira',
+  'Moreira','Carvalho','Cavalcante','Mendes','Freitas','Vieira','Monteiro','Nunes','Correia','Machado',
+  'Fernandes','Ramos','Azevedo','Campos','Pinto','Cunha','Moraes','Farias','Batista','Andrade'];
 function pickProcPlayerName(R){
   let nm, tries=0;
   do{
-    const city=PROC_CITY[Math.floor(R.random()*PROC_CITY.length)];
-    const letter=String.fromCharCode(65+Math.floor(R.random()*26));
-    const suf = tries<26 ? '' : ' '+(Math.floor(tries/26)+1); // esgotou cidade+letra simples -> acrescenta número
-    nm = city+' '+letter+suf;
+    const fn=BR_FIRST[Math.floor(R.random()*BR_FIRST.length)];
+    const ln=BR_LAST[Math.floor(R.random()*BR_LAST.length)];
+    const ln2 = tries<1 ? '' : ' '+BR_LAST[Math.floor(R.random()*BR_LAST.length)]; // colisão -> 2º sobrenome
+    nm = fn+' '+ln+ln2;
     tries++;
   }while(PROC_USED_NAMES.has(nm) && tries<400);
   PROC_USED_NAMES.add(nm);
@@ -1422,6 +1433,11 @@ const REAL_LOWER_DIVISION_CLUBS={
    Transfermarkt e nunca é gerada por aqui — a entrada 'A' só serve de referência pra
    gerar um jovem repositor quando um jogador real se aposenta, ver retirementReplacement). */
 const DIVISION_FORCE_RANGE={A:[58,88],B:[58,80],C:[52,74],D:[48,68]};
+/* teto de força (escala NOVA) por divisão pra jogadores GERADOS (procedurais/regens): a faixa
+   de força-bruta remapeia acima da categoria no topo, então travamos no teto da divisão pra
+   não nascer "craque" na Série D. Só divisões inferiores brasileiras — A e ligas intl não têm
+   teto (podem ter estrelas reais). */
+const DIV_FORCE_CAP={B:37,C:24,D:12};
 /* força-base por idade dentro da faixa da divisão: em vez de sortear uniformemente,
    um jovem (18-22) tende à metade inferior (potencial, ainda não é o pico), o auge
    (23-29) tende à metade superior, e o veterano (30-35) recua um pouco — mesma lógica
@@ -1453,7 +1469,7 @@ function proceduralDivisionClubs(division, n){
     const posPlan=[['GK',2],['DEF',6],['MID',6],['ATT',4]];
     posPlan.forEach(([pos,cnt])=>{ for(let k=0;k<cnt;k++){
       const age=Math.round(18+R.random()*17);
-      const rawF=rollAgedForce(R,range,age); const f=REBAL.force(rawF,division); // item 4: remap por divisão
+      const rawF=rollAgedForce(R,range,age); const f=Math.min(REBAL.force(rawF,division), DIV_FORCE_CAP[division]||99); // item 4 + trava de cap por divisão
       const lg=MARKET.divisionToLeague(division);
       squad.push({n:pickProcPlayerName(R),
         p:pos,s:pos,f,rawF,_rb:1,_div:division,age,lg,mv:REBAL.value(f,age),ft:R.random()<0.8?'R':'L',
@@ -2509,7 +2525,7 @@ function retirementReplacement(position, division, seedExtra){
   const range=DIVISION_FORCE_RANGE[division]||DIVISION_FORCE_RANGE.D;
   const R=makeRng(hashSeed('retire-repl',(S&&S.seed)||1,S.season,division,position,seedExtra));
   const age=Math.round(18+R.random()*4);
-  const rawF=rollAgedForce(R,range,age); const f=REBAL.force(rawF,division); // item 4: remap por divisão
+  const rawF=rollAgedForce(R,range,age); const f=Math.min(REBAL.force(rawF,division), DIV_FORCE_CAP[division]||99); // item 4 + trava de cap por divisão
   const lg=MARKET.divisionToLeague(division);
   return { n:pickProcPlayerName(R), p:position, s:position, f, rawF, _rb:1, _div:division, age, lg, mv:REBAL.value(f,age),
     ft:R.random()<0.8?'R':'L', num:String(Math.floor(R.random()*40)+1), nat:'Brasil', ag:'—',

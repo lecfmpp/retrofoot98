@@ -383,9 +383,11 @@ function autoXI(id){
   const pick=(sec,n)=>sq.filter(p=>p.s===sec).slice(0,n);
   const gk=pick('GK',1), df=pick('DEF',4), md=pick('MID',3), at=pick('ATT',3);
   let xi=[...gk,...df,...md,...at];
-  if(xi.length<11){ // fill from best remaining
+  if(xi.length<11){ // completa com os melhores restantes — NUNCA um 2º goleiro na linha
     const have=new Set(xi.map(p=>p.n));
-    for(const p of sq){if(xi.length>=11)break;if(!have.has(p.n))xi.push(p);}
+    const add=p=>{ if(xi.length<11 && !have.has(p.n)){ xi.push(p); have.add(p.n); } };
+    for(const p of sq){ if(p.s!=='GK') add(p); }   // jogadores de linha primeiro
+    for(const p of sq){ add(p); }                   // último recurso (elenco minúsculo): evita XI < 11
   }
   return xi.slice(0,11).map(p=>p.n);
 }
