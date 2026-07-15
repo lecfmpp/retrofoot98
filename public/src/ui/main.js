@@ -1667,22 +1667,29 @@ function renewPanel(p){
   </div>
   <div class="cl-renew-btns">${btn('Propôr','clRenewPropose()',{icon:'🔄',cls:'cl-btn-ok'})}${btn('Cancelar','clCancelRight()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
 </div>`; }
+/* piso de venda: 70% do valor de mercado, arredondado. Abaixo disso é subvalorizar o
+   jogador (queima de ativo) — a janela avisa em vermelho. */
+function sellMinPrice(mv){ return Math.round((mv||0)*0.7/10000)*10000; }
 function venderPanel(p){
   const askingPrice = CL.sellPrice ? parseInt(CL.sellPrice) : 0;
   const mv = p.mv || 0;
+  const minPrice = sellMinPrice(mv);
   const diff = askingPrice - mv;
   const diffPct = mv > 0 ? Math.round((diff / mv) * 100) : 0;
   const diffLabel = diff > 0 ? `+${moneyDisp(diff)} (+${diffPct}%)` : diff < 0 ? `${moneyDisp(diff)} (${diffPct}%)` : 'Preço igual';
+  const belowMin = askingPrice > 0 && askingPrice < minPrice;
   return `<div class="cl-vender">
   <div class="cl-vender-title">Vender</div>
   <div style="color:#fff;font-size:13px;margin-bottom:20px;padding:12px;background:#3a2a2a;border-radius:4px">
-    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Valor de mercado:</span><b>${moneyDisp(mv)}</b></div>
-    <div style="display:flex;justify-content:space-between"><span>Preço pedido:</span><b id="cl-sellprice-asked">${askingPrice > 0 ? moneyDisp(askingPrice) : '-'}</b></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Valor de mercado <span style="opacity:.7">(preço sugerido)</span>:</span><b>${moneyDisp(mv)}</b></div>
+    <div class="cl-sell-min"><span>Preço mínimo:</span><b>${moneyDisp(minPrice)}</b></div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px"><span>Preço pedido:</span><b id="cl-sellprice-asked">${askingPrice > 0 ? moneyDisp(askingPrice) : '-'}</b></div>
   </div>
   <div class="cl-vender-lbl">Preço de venda pedido<br><span id="cl-sellprice-diff" style="font-size:12px;opacity:.8;color:#aaa">${diffLabel}</span></div>
+  <div id="cl-sellprice-warn" class="cl-sell-warn" style="${belowMin?'':'display:none'}">⚠ Abaixo do preço mínimo — você está subvalorizando o jogador.</div>
   <div class="cl-money-field">
     <span class="cl-money-cur">${curSym()}</span>
-    <input id="cl-sellprice" class="cl-money-in" inputmode="numeric" placeholder="0" value="${CL.sellPrice?moneyDisp(CL.sellPrice):''}" oninput="clSellPriceInput(this)">
+    <input id="cl-sellprice" class="cl-money-in" inputmode="numeric" placeholder="${grp(mv)}" value="${CL.sellPrice?moneyDisp(CL.sellPrice):''}" oninput="clSellPriceInput(this)">
   </div>
   <div class="cl-vender-btns">${btn('Vender','clSellConfirm()',{icon:'💰',cls:'cl-btn-ok'})}${btn('Cancelar','clCancelRight()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
 </div>`; }
@@ -3848,6 +3855,7 @@ function clSellPriceInput(input){
   const diffLabel=diff>0?`+${moneyDisp(diff)} (+${diffPct}%)`:diff<0?`${moneyDisp(diff)} (${diffPct}%)`:'Preço igual';
   const askedEl=$c('#cl-sellprice-asked'); if(askedEl) askedEl.textContent=askingPrice>0?moneyDisp(askingPrice):'-';
   const diffEl=$c('#cl-sellprice-diff'); if(diffEl) diffEl.textContent=diffLabel;
+  const warnEl=$c('#cl-sellprice-warn'); if(warnEl) warnEl.style.display=(askingPrice>0 && askingPrice<sellMinPrice(mv))?'block':'none';
 }
 function clSell(){ CL.menu=null;
   if(!canNegotiate()){ toastC(windowClosedMsg()); return; }
