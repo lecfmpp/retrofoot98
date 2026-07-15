@@ -59,6 +59,7 @@ const NET = {
   start(){ if(!this.isHost) return; this.room.phase='ready'; this.room.deadline=Date.now()+60000; this.room.paused=false; this.room.participants.forEach(p=>p.ready=false); this._push(); },
   pause(){ if(!this.isHost) return; if(this.room.paused){ this.room.deadline=Date.now()+(this.room._left||10000); this.room.paused=false; } else { this.room._left=Math.max(1000,(this.room.deadline||0)-Date.now()); this.room.paused=true; } this._push(); },
   toRunning(){ if(!this.isHost) return; this.room.phase='running'; this._push(); },
+  reopenReady(){ if(this.isHost && this.room && this.room.phase==='running') this.start(); }, // fallback local do cronômetro soberano
   toLobby(){ if(this.isHost){ this.room.phase='lobby'; this.room.round=(this.room.round||0)+1; this.room.deadline=0; this.room.participants.forEach(p=>p.ready=false); this._push(); } },
   sendChat(text, clubId){ const msg={id:this.self.id,name:this.self.name,clubId,text,ts:Date.now()};
     if(this.isHost){ this.room.chat=(this.room.chat||[]).concat(msg).slice(-120); this._push(); }
@@ -571,15 +572,15 @@ function onlineBeginSeason(){ const room=NET.room; const me=room.participants.fi
 /* ---- durante a rodada online: painel "à espera dos treinadores" + timer ---- */
 function onlineReadyBar(){ const room=NET.room; if(!CL.online||!room||room.phase==='lobby') return '';
   const ready=room.participants.filter(p=>p.ready).length, total=room.participants.length;
-  const secs=room.paused?Math.ceil((room._left||0)/1000):Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
+  // cronômetro SOBERANO/IMUTÁVEL: sempre conta pelo deadline (sem pausa do anfitrião)
+  const secs=Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
   const list=room.participants.map(p=>{ const self=NET.self&&p.id===NET.self.id;
     const k=(NET.isHost && !self)?`<button class="cl-rb-kick" title="Remover da Resenha" onclick="clKick('${p.id}','${p.clubId||''}')">✖</button>`:'';
     return `<span class="cl-rb-p ${p.ready?'rdy':''}">${p.ready?'✓':'⏳'} ${escC((p.name||'').split(' ')[0])}${k}</span>`; }).join('');
   return `<div class="cl-readybar ${secs<=10?'urgent':''}">
     <span class="cl-rb-t">À espera dos treinadores ${ready}/${total}</span>
     <span class="cl-rb-list">${list}</span>
-    <span class="cl-rb-clock">${room.paused?'⏸ PAUSA':secs+'s'}</span>
-    ${NET.isHost?btn(room.paused?'Retomar':'Pausar','clOnlinePause()',{cls:'cl-btn-mini'}):''}
+    <span class="cl-rb-clock">${secs+'s'}</span>
   </div>`; }
 /* anfitrião remove um jogador da Resenha (lobby ou durante a partida): confirma, dispara o kick
    (broadcast + libera assento -> clube vira CPU) e re-renderiza. O expulso recebe o sinal e volta ao menu. */
@@ -591,12 +592,12 @@ function clKick(uid, clubId){
   if(NET.kick) NET.kick(uid, clubId||(p&&p.clubId));
   if(typeof cdraw==='function') cdraw();
 }
-function clOnlinePause(){ NET.pause(); cdraw(); }
+function clOnlinePause(){ /* pausa removida: cronômetro da Resenha é soberano e imutável */ }
 function clSetSpeed(mult){ CL.speedMult=mult; if(CL.online && typeof NET!=='undefined' && NET.setSpeed) NET.setSpeed(mult).catch(()=>{}); cdraw(); }
 let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null, ONLINE_ADV_T=0;
 function onlineTimerLoop(){
   const room=(typeof NET!=='undefined')?NET.room:null;
-  if(CL.online && room && room.phase==='ready' && !room.paused){
+  if(CL.online && room && room.phase==='ready'){  // sem !room.paused: cronômetro imutável
     const secs=Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
     if(secs!==ONLINE_LASTSEC){ ONLINE_LASTSEC=secs;
       if(secs<=10 && secs>0){ netBeep(secs<=3?1100:820); }

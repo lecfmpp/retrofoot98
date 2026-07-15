@@ -281,6 +281,19 @@ async function netStart(){
   catch(e) { console.error('start erro:', e); }
 }
 
+/* CRONÔMETRO SOBERANO: QUALQUER cliente reabre a janela 'ready' da próxima rodada ao terminar
+   sua partida — via RPC reopen_ready (idempotente no servidor: só o 1º que chega, quando a fase
+   é 'running', reabre; os outros no-op). Antes isso era exclusivo do anfitrião (NET.start), então
+   se o host sumia depois da partida, ninguém reabria a rodada e todos travavam. */
+async function netReopenReady(){
+  if(!sb || !NET.gameId || !NET.room || NET.room.phase!=='running') return;
+  try{
+    const { data, error } = await sb.rpc('reopen_ready', { p_game: NET.gameId });
+    if(error) throw error;
+    if(data==='ready' && NET.room){ NET.room.phase='ready'; NET.room.deadline=Date.now()+60000; NET.room.paused=false; if(NET.onState) NET.onState(NET.room); }
+  }catch(e){ console.warn('reopenReady:', e && e.message); }
+}
+
 async function netPause(){
   if(!NET.isHost) return;
   try {
@@ -550,6 +563,7 @@ NET.pause = netPause;
 NET.setSpeed = netSetSpeed;
 NET.toRunning = netToRunning;
 NET.advancePhaseExpired = netAdvancePhaseExpired;
+NET.reopenReady = netReopenReady;
 NET.toLobby = netToLobby;
 NET.kick = netKick;
 NET.sendChat = netSendChat;

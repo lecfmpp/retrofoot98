@@ -2800,7 +2800,10 @@ function scClassif(){
 }
 function liveDone(){ if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classifTimer){clearTimeout(CL._classifTimer);CL._classifTimer=null;} CL.live=null; CL.subsUsed=0; CL._liveBusy=false; CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||CL.selPlayer; cdraw();
   if(CL.lastGate) toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0;
-  if(CL.online && typeof NET!=='undefined' && NET.isHost && NET.gameId && !S.finished) NET.start();
+  // cronômetro soberano: QUALQUER cliente reabre a rodada seguinte (não só o host) — ver reopen_ready
+  if(CL.online && typeof NET!=='undefined' && NET.gameId && !S.finished){
+    if(NET.reopenReady) NET.reopenReady(); else if(NET.isHost) NET.start(); // fallback: transporte local
+  }
   if(S.finished) setTimeout(()=>seasonEndDialog(),300); }
 /* ---- fim de temporada: mostra campeão + posição final, botão avança a temporada
    (com promoção/rebaixamento de verdade, pré-carregando dados reais da nova divisão) ---- */
