@@ -1035,12 +1035,25 @@ function conmebolTopDivisionClubs(){
   const out=[]; Object.keys(src).forEach(co=>src[co].forEach(c=>out.push(c)));
   return out;
 }
-function conmebolContinentalQualification(userFinish){
-  const LIB_SLOTS={Argentina:5,'Colômbia':4,Chile:3,Uruguai:3,Peru:3,Equador:3,Paraguai:3,Venezuela:3,'Bolívia':3};
-  const src=(typeof window!=='undefined'&&window.CONMEBOL_LEAGUES)||{};
+/* ===== CLASSIFICAÇÃO CONTINENTAL UNIFICADA (Brasil + 9 CONMEBOL) =====
+   Usada tanto no universo Brasil (temporadas 2+) quanto nos universos CONMEBOL, pra a
+   Libertadores/Sul-Americana SEMPRE reunirem clubes reais de TODOS os países sul-americanos
+   (não só o do usuário). Vagas por país ~ realidade (Brasil/Argentina levam mais); 32 por copa.
+   Clubes brasileiros vêm de DATA.clubsSerieA (real), os demais de window.CONMEBOL_LEAGUES. */
+const LIB_SLOTS_UNI={ 'Brasil':6,'Argentina':6,'Colômbia':4,'Chile':3,'Uruguai':3,'Peru':3,'Equador':2,'Paraguai':2,'Venezuela':2,'Bolívia':1 };
+const SUL_SLOTS_UNI={ 'Brasil':6,'Argentina':5,'Colômbia':4,'Chile':3,'Uruguai':3,'Peru':3,'Equador':2,'Paraguai':2,'Venezuela':2,'Bolívia':2 };
+function unifiedContinentalPool(){
+  const pool={};
+  pool['Brasil']=((typeof DATA!=='undefined'&&DATA.clubsSerieA)||[]).slice().sort((a,b)=>(b.overall||0)-(a.overall||0));
+  const CLG=(typeof window!=='undefined'&&window.CONMEBOL_LEAGUES)||{};
+  ['Argentina','Colômbia','Chile','Uruguai','Peru','Equador','Paraguai','Venezuela','Bolívia'].forEach(co=>{ pool[co]=(CLG[co]||[]).slice(); });
+  return pool;
+}
+function unifiedContinentalQualification(userFinish){
+  const pool=unifiedContinentalPool();
   let lib=[], sul=[];
-  Object.keys(LIB_SLOTS).forEach(co=>{ const clubs=(src[co]||[]); const n=LIB_SLOTS[co]; // já ordenados por força desc
-    lib.push(...clubs.slice(0,n).map(c=>c.id)); sul.push(...clubs.slice(n,n+n).map(c=>c.id)); });
+  Object.keys(LIB_SLOTS_UNI).forEach(co=>{ const clubs=pool[co]||[]; const nl=LIB_SLOTS_UNI[co], ns=SUL_SLOTS_UNI[co]||2;
+    lib.push(...clubs.slice(0,nl).map(c=>c.id)); sul.push(...clubs.slice(nl,nl+ns).map(c=>c.id)); });
   const uid=S.clubId;
   if(uid){
     const already=lib.indexOf(uid)>=0?'lib':(sul.indexOf(uid)>=0?'sul':null);
@@ -1052,17 +1065,22 @@ function conmebolContinentalQualification(userFinish){
   }
   return { libertadores:lib.slice(0,32), sulamericana:sul.slice(0,32) };
 }
-function ensureConmebolCupClubs(ids){
+/* materializa elenco dos clubes de copa (Brasil Série A + CONMEBOL) que não estão na liga do usuário */
+function ensureContinentalCupClubs(ids){
   S.clubPool=S.clubPool||{}; S.squads=S.squads||{};
-  const byId={}; conmebolTopDivisionClubs().forEach(c=>byId[c.id]=c);
+  const brById={}; ((typeof DATA!=='undefined'&&DATA.clubsSerieA)||[]).forEach(c=>brById[c.id]=c);
+  const cmbById={}; conmebolTopDivisionClubs().forEach(c=>cmbById[c.id]=c);
   ids.forEach(id=>{
-    if(!S.clubPool[id] && byId[id]) S.clubPool[id]=byId[id];
-    if(!S.squads[id]){ const c=S.clubPool[id]||byId[id]; if(c) S.squads[id]=c.squad.map(p=>attachAttrs(initStats({...p}),'A')); }
+    const c=S.clubPool[id]||brById[id]||cmbById[id]; if(!c) return;
+    // rotula o clube brasileiro como Brasil (senão clubCountry cai no universo ativo, ex.: Argentina)
+    if(brById[id] && !c.country) c.country=CONMEBOL_COUNTRIES.BRA;
+    if(!S.clubPool[id]) S.clubPool[id]=c;
+    if(!S.squads[id]) S.squads[id]=c.squad.map(p=>attachAttrs(initStats({...p}),'A'));
   });
 }
 function initConmebolCups(){
-  const qual=conmebolContinentalQualification(S._intlUserFinish||0);
-  ensureConmebolCupClubs(qual.libertadores.concat(qual.sulamericana));
+  const qual=unifiedContinentalQualification(S._intlUserFinish||0);
+  ensureContinentalCupClubs(qual.libertadores.concat(qual.sulamericana));
   const libGroups=makeGroupStage(splitIntoGroups(qual.libertadores, hashSeed(S.seed,'libgroups',S.season)), 2);
   const sulGroups=makeGroupStage(splitIntoGroups(qual.sulamericana, hashSeed(S.seed,'sulgroups',S.season)), 2);
   S.qualification={...qual};
@@ -1224,6 +1242,11 @@ function initSeasonCups(qual, compToggle){
     return; }
   compToggle = compToggle || (S.compToggle) || {libertadores:true, copaBrasil:true, sulamericana:true};
   const cbQual=copaBrasilQualification(); // sempre as 4 divisões, independente da divisão do usuário
+  // temporadas 2+ (sem grupos reais 2026): materializa os clubes continentais REAIS (Brasil +
+  // CONMEBOL) da classificação unificada, pra Libertadores/Sul-Americana reunirem todos os países.
+  if(!qual.libertadoresGroups && ((qual.libertadores&&qual.libertadores.length)||(qual.sulamericana&&qual.sulamericana.length))){
+    ensureContinentalCupClubs((qual.libertadores||[]).concat(qual.sulamericana||[]));
+  }
   let libGroup=null;
   if(compToggle.libertadores!==false){
     if(qual.libertadoresGroups){ // 2026: grupos reais A-H, top 2 de cada grupo avança (32 -> 16)
@@ -2808,7 +2831,8 @@ function newSeasonReset(){
   // promovido (vinha de B/C/D), não existe uma "tabela da Série A anterior" pros clubes
   // novos — usa força (overall) como proxy, igual à 1ª temporada.
   const qualTable = (S.division==='A') ? ((prevDivision==='A') ? finalTable : DATA.clubs.slice().sort((a,b)=>b.overall-a.overall).map(c=>({id:c.id}))) : null;
-  initSeasonCups(qualTable ? computeQualification(qualTable) : {libertadores:[],sulamericana:[]});
+  // temporadas 2+: classificação continental UNIFICADA (Brasil + 9 CONMEBOL), não só o Brasil
+  initSeasonCups(qualTable ? unifiedContinentalQualification(finalPos) : {libertadores:[],sulamericana:[]});
   rollBgLeaguesSeason(); // vira a temporada das ligas de background (campeão/histórico/promoção)
   save();
 }
