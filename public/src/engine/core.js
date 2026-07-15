@@ -2488,7 +2488,9 @@ function awardSeasonPrizes(tbl, myCups){
       pObj.mvBoost=Math.min(PRIZES.ART_VALUE_CAP, (pObj.mvBoost||1)*PRIZES.ART_VALUE_MULT);
       pObj.career=pObj.career||{titles:0,seasonsTopDiv:0,bestFinish:99};
       pObj.career.topScorer=(pObj.career.topScorer||0)+1;
-      pObj.mv=Math.round(((typeof REBAL!=='undefined')?REBAL.value(pObj.f,pObj.age):before)*pObj.mvBoost);
+      // valoriza sobre o valor ATUAL (preserva o multiplicador de comportamento embutido);
+      // o p.mvBoost persiste o prêmio quando evolvePlayer recalcula o valor pela força.
+      pObj.mv=Math.round(before*PRIZES.ART_VALUE_MULT);
       art={name, goals, valFrom:before, valTo:pObj.mv, mine:owner===S.clubId, cash:0};
       if(owner===S.clubId){
         const cash=PRIZES.artilheiroCash(div); art.cash=cash; total+=cash;
