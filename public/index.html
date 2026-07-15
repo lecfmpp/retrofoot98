@@ -65,6 +65,7 @@
 <script src="src/data/game-data.js"></script>
 <script src="src/data/market-engine.js"></script>
 <script src="src/data/rebalance.js"></script>
+<script src="src/data/prizes.js"></script>
 <script src="src/data/leagues-intl.js"></script>
 <script src="src/data/flags.js"></script>
 <script>
@@ -280,7 +281,7 @@ function evolvePlayer(p, R, played){
   if(changed){
     p.rawF=levelToForce(attrLevel(a,p.s));   // recalcula na escala de ATRIBUTOS...
     p.f=REBAL.force(p.rawF, p._div||(S&&S.division)||'A'); // ...e remapeia pra escala NOVA (motor/exibição)
-    p.mv=REBAL.value(p.f,p.age);              // valor segue a tabela pela força nova
+    p.mv=Math.round(REBAL.value(p.f,p.age)*(p.mvBoost||1)); // valor segue a tabela pela força nova (× prêmio de artilharia, se houver)
   }
 }
 

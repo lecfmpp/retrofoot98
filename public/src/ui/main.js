@@ -2834,9 +2834,17 @@ function seasonEndDialog(){
       <span class="cl-cls2-pos">${i+1}</span><span class="cl-cls2-n">${escC(c.short)}</span>
       <span class="cl-cls2-pts">${t.Pts}</span><span class="cl-cls2-x">${t.W}</span><span class="cl-cls2-x">${t.D}</span><span class="cl-cls2-x">${t.L}</span>
       <span class="cl-cls2-x">${t.GF}</span><span class="cl-cls2-x">${t.GA}</span>${zoneCell}</div>`; }).join('');
+  const pz=S._seasonPrizes;
+  const prizeBlock = (pz && pz.total>0) ? `<div class="cl-prizes">
+      <div class="cl-prizes-h">💰 Premiação da temporada</div>
+      ${pz.lines.map(l=>`<div class="cl-prize-row"><span class="cl-prize-ic">${l.icon}</span><span class="cl-prize-c">${escC(l.comp)}</span><span class="cl-prize-p">${escC(l.place)}</span><span class="cl-prize-v">+${fmt(l.amount)}</span></div>`).join('')}
+      <div class="cl-prize-total"><span>Total recebido</span><span>+${fmt(pz.total)}</span></div>
+      ${pz.art&&pz.art.mine?`<div class="cl-prize-art">👟 <b>${escC(pz.art.name)}</b> foi artilheiro (${pz.art.goals} gols) e valorizou: ${fmt(pz.art.valFrom)} → <b>${fmt(pz.art.valTo)}</b></div>`:''}
+    </div>` : '';
   overlayC(dlg('Fim da temporada!', `<div class="cl-res">
     <div class="cl-res-score">${escC(champ)} é campeão</div>
     <div class="cl-res-verd">Você terminou em ${myPos}º na ${escC(divisionLabel())}${qualMsg?'<br>'+escC(qualMsg):''}</div>
+    ${prizeBlock}
     <div class="cl-seasontbl-wrap" style="max-height:340px;overflow-y:auto;margin-top:10px">
       <div class="cl-cls2-head ${hasQual?'hasqual':''}"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-pts">P</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-x">GP</span><span class="cl-cls2-x">GC</span>${hasQual?'<span></span>':''}</div>
       ${rows}

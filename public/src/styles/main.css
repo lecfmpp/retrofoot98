@@ -1191,3 +1191,14 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-wiz-inlineaction .cl-wiz-cta:disabled{background:#9db89d;border-color:#c9dcc9 #7f957f #7f957f #c9dcc9;color:#e8f0e8}
 .cl-wiz-inlineaction .cl-wiz-cta:disabled .cl-btn-ic{color:#e8f0e8;opacity:1}
 @media (max-width:760px){ .cl-wiz-inlineaction .cl-btn{width:100%} }
+
+/* ---- Premiação de fim de temporada (modal de celebração) ---- */
+.cl-prizes{margin:10px 0 4px;background:#fffbe6;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);padding:8px 10px 10px}
+.cl-prizes-h{font-weight:900;font-size:13px;color:#7a5c00;text-align:center;margin-bottom:6px;letter-spacing:.3px}
+.cl-prize-row{display:grid;grid-template-columns:20px 1fr auto auto;gap:6px;align-items:center;font-size:12px;color:#222;padding:2px 0;border-bottom:1px dotted #e0cf8a}
+.cl-prize-ic{text-align:center}
+.cl-prize-c{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-prize-p{color:#555;font-size:11px;white-space:nowrap}
+.cl-prize-v{font-weight:900;color:#1a7a1a;text-align:right;white-space:nowrap}
+.cl-prize-total{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:5px;border-top:2px solid var(--gold);font-weight:900;font-size:13px;color:#7a5c00}
+.cl-prize-art{margin-top:7px;padding:6px 8px;background:#eafbe6;border:1px solid #9bd68a;border-radius:3px;font-size:11.5px;color:#1a5c1a;text-align:center}

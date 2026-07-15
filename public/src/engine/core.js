@@ -2452,6 +2452,57 @@ function cupResultForClub(key, clubId){
   if(lastRound==null) return bracketOnly ? 'Eliminado na 1ª fase' : 'Fase de grupos';
   return cupEliminationPhrase(lastRound, b.roundsTotal);
 }
+/* PREMIAÇÕES da temporada: credita o caixa do USUÁRIO por posição na liga + fase alcançada
+   em cada copa + prêmio de artilheiro, valoriza o artilheiro (se materializado) e guarda o
+   resumo em S._seasonPrizes pro modal de celebração (seasonEndDialog). Idempotente por
+   temporada. Ver escalas/racional em prizes.js. */
+function awardSeasonPrizes(tbl, myCups){
+  if(typeof PRIZES==='undefined' || !tbl) return;
+  if(S._seasonPrizes && S._seasonPrizes.season===S.season) return; // já creditado nesta temporada
+  const div=S.division, n=tbl.length, pos=tbl.findIndex(t=>t.id===S.clubId)+1;
+  const divLbl=(typeof divisionLabel==='function')?divisionLabel():('Série '+div);
+  const lines=[]; let total=0;
+  // Liga (posição final)
+  if(pos>0){
+    const amt=PRIZES.leaguePrize(div, pos, n);
+    if(amt>0){ lines.push({icon:pos===1?'🏆':'📊', comp:divLbl, place:pos===1?'Campeão!':(pos+'º lugar'), amount:amt}); total+=amt; }
+  }
+  // Copas (fase alcançada / título)
+  allCupKeys().forEach(k=>{
+    const outcome=PRIZES.cupResultOutcome(myCups && myCups[k]);
+    if(!outcome) return;
+    const amt=PRIZES.cupPrize(k, outcome);
+    if(amt<=0) return;
+    lines.push({icon:outcome==='campeao'?'🏆':'🎖️', comp:(COMP_DEFS[k]&&COMP_DEFS[k].short)||k, place:myCups[k], amount:amt});
+    total+=amt;
+  });
+  // Artilheiro da divisão: valoriza o jogador (qualquer clube) + caixa se for do usuário
+  let art=null;
+  const arty=topScorers(1)[0];
+  if(arty && arty[0]){
+    const name=arty[0], goals=arty[1];
+    let owner=null, pObj=null;
+    Object.keys(S.squads||{}).forEach(cid=>{ const p=S.squads[cid].find(x=>x.n===name); if(p){owner=cid;pObj=p;} });
+    if(pObj){
+      const before=pObj.mv||((typeof REBAL!=='undefined')?REBAL.value(pObj.f,pObj.age):0);
+      pObj.mvBoost=Math.min(PRIZES.ART_VALUE_CAP, (pObj.mvBoost||1)*PRIZES.ART_VALUE_MULT);
+      pObj.career=pObj.career||{titles:0,seasonsTopDiv:0,bestFinish:99};
+      pObj.career.topScorer=(pObj.career.topScorer||0)+1;
+      pObj.mv=Math.round(((typeof REBAL!=='undefined')?REBAL.value(pObj.f,pObj.age):before)*pObj.mvBoost);
+      art={name, goals, valFrom:before, valTo:pObj.mv, mine:owner===S.clubId, cash:0};
+      if(owner===S.clubId){
+        const cash=PRIZES.artilheiroCash(div); art.cash=cash; total+=cash;
+        lines.push({icon:'👟', comp:'Artilheiro — '+divLbl, place:`${name} (${goals} gols)`, amount:cash});
+      }
+    }
+  }
+  if(total>0){
+    S.budget=(S.budget||0)+total;
+    S.seasonTotals=S.seasonTotals||{income:0,salaries:0,bonuses:0,playerSales:0,playerPurchases:0,stadium:0};
+    S.seasonTotals.income+=total;
+  }
+  S._seasonPrizes={ lines, total, art, season:S.season };
+}
 function endSeason(){
   const tbl=sortedTable();
   const champ=clubOf(tbl[0].id).short;
@@ -2465,6 +2516,8 @@ function endSeason(){
   // usar de verdade pra montar as copas) — alimenta o histórico de clube/treinador.
   const myCups={};
   allCupKeys().forEach(k=>{ myCups[k]=cupResultForClub(k,S.clubId); });
+  // PREMIAÇÕES: credita caixa do usuário + valoriza artilheiro + guarda resumo pro modal
+  try{ awardSeasonPrizes(tbl, myCups); }catch(e){ console.warn('premiação falhou:', e); }
   const qual=(S.division==='A')?computeQualification(tbl):null;
   const qualifiedFor=[];
   if(qual){
