@@ -1400,7 +1400,7 @@ function scMain(){
   const uf=userFixture(); const oppId=uf?(uf[0]===CL.clubId?uf[1]:uf[0]):null; const home=uf?uf[0]===CL.clubId:true;
   const menuNames=['RetroFoot98','Seleccionar','Equipa','Jogador','Campeonatos','Treinador']; if(CL.online) menuNames.push('Modo Resenha');
   const hamburger=`<div class="cl-hamburger" onclick="clToggleMobMenu(event)"><span>☰ Menu</span><span>${CL.mobMenuOpen?'▲':'▼'}</span></div>`;
-  const offerCoin=(S.incomingOffers&&S.incomingOffers.length)?' 🟡':''; // propostas de compra pendentes
+  const offerCoin=(S.incomingOffers&&S.incomingOffers.length)?' 💰':''; // propostas de compra pendentes
   const menu=`<div class="cl-menu ${CL.mobMenuOpen?'mob-open':''}" id="cl-menubar">
     ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${mm==='Jogador'?offerCoin:''}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
   </div>`;
@@ -1459,7 +1459,7 @@ function rosterHTML(){
       const onclickFn=escala?`clEscalaPick('${escC(p.n)}')`:`clSelPlayer('${escC(p.n)}')`;
       return `<div class="cl-rrow ${selc?'sel':''} ${marked?'swap-out':''} ${unavail?'unavail':''}" style="${selc?'':`color:${th.txt}`}" onclick="${onclickFn}">
         <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
-        <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}${(S.incomingOffers||[]).some(o=>o.playerName===p.n)?' <span title="Proposta de compra recebida">🟡</span>':''}</span>
+        <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}${(S.incomingOffers||[]).some(o=>o.playerName===p.n)?' <span title="Proposta de compra recebida">💰</span>':''}</span>
         <span class="cl-rf">${p.f}</span><span class="cl-rv">${grp(Math.round(curConv(p.mv)*0.00006)*10)}</span></div>`;}).join('')+`</div>`;
   });
   return html;
