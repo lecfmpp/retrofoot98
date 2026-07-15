@@ -1822,12 +1822,12 @@ function clubsForDivision(division){
     return clubs.slice(0, size);
   }
   if(division==='A') return DATA.clubsSerieA || DATA.clubs;
-  const real=REAL_DIVISION_CACHE[division];
-  if(real && real.length) return real.slice(0, DIVISION_SIZE[division]);
-  // Séries B/C/D reais empacotadas (Transfermarkt): substituem os procedurais quando existem
-  // (DIVISION_SIZE da divisão é ajustado ao nº de clubes reais disponíveis — ver UNI_CONFIGS.brasil).
+  // Séries B/C/D REAIS empacotadas (B=Transfermarkt; C/D=escalações reais) — PRIORIDADE sobre
+  // Supabase/procedural, pra nunca cair em jogador inventado nas divisões inferiores.
   const bundled=(typeof window!=='undefined'&&window.BRASIL_LOWER&&window.BRASIL_LOWER[division])||null;
   if(bundled && bundled.length) return bundled.slice(0, DIVISION_SIZE[division]);
+  const real=REAL_DIVISION_CACHE[division];
+  if(real && real.length) return real.slice(0, DIVISION_SIZE[division]);
   return proceduralDivisionClubs(division, DIVISION_SIZE[division]);
 }
 /* ================= REGISTRO PERSISTENTE DE CLUBES POR DIVISÃO =================
