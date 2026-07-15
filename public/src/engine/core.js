@@ -781,8 +781,8 @@ const COMP_HAS_GROUP={copaBrasil:false, libertadores:true, sulamericana:true, ch
 /* copas do universo ativo. Brasil: Copa do Brasil + Libertadores + Sul-Americana.
    Internacional: Champions League + Europa League (só as continentais de grupos+mata-mata).
    groupCupKeys = as que têm fase de grupos; allCupKeys = todas (inclui mata-mata puro). */
-function groupCupKeys(){ return isIntlUniverse() ? ['championsLeague','europaLeague'] : ['libertadores','sulamericana']; }
-function allCupKeys(){ return isIntlUniverse() ? ['championsLeague','europaLeague'] : ['copaBrasil','libertadores','sulamericana']; }
+function groupCupKeys(){ return (isIntlUniverse()&&!isConmebolUniverse()) ? ['championsLeague','europaLeague'] : ['libertadores','sulamericana']; }
+function allCupKeys(){ if(isConmebolUniverse()) return ['libertadores','sulamericana']; return isIntlUniverse() ? ['championsLeague','europaLeague'] : ['copaBrasil','libertadores','sulamericana']; }
 function makeGroupStage(groupsMap, advancePerGroup){
   const groups={};
   Object.entries(groupsMap).forEach(([label,ids])=>{
@@ -1026,6 +1026,48 @@ function initIntlCups(){
   S.qualification={...qual};
   S.cups={ championsLeague:{group:clGroups, bracket:null}, europaLeague:{group:elGroups, bracket:null} };
 }
+/* ============ COPAS CONTINENTAIS CONMEBOL (Libertadores/Sul-Americana) ============
+   Espelha initIntlCups, sourced dos 9 países de window.CONMEBOL_LEAGUES. Vagas por país
+   (Argentina/Colômbia levam mais), 32 clubes por copa; o clube do usuário entra pela
+   classificação doméstica (1º-2º -> Libertadores; 3º-6º -> Sul-Americana). */
+function conmebolTopDivisionClubs(){
+  const src=(typeof window!=='undefined'&&window.CONMEBOL_LEAGUES)||{};
+  const out=[]; Object.keys(src).forEach(co=>src[co].forEach(c=>out.push(c)));
+  return out;
+}
+function conmebolContinentalQualification(userFinish){
+  const LIB_SLOTS={Argentina:5,'Colômbia':4,Chile:3,Uruguai:3,Peru:3,Equador:3,Paraguai:3,Venezuela:3,'Bolívia':3};
+  const src=(typeof window!=='undefined'&&window.CONMEBOL_LEAGUES)||{};
+  let lib=[], sul=[];
+  Object.keys(LIB_SLOTS).forEach(co=>{ const clubs=(src[co]||[]); const n=LIB_SLOTS[co]; // já ordenados por força desc
+    lib.push(...clubs.slice(0,n).map(c=>c.id)); sul.push(...clubs.slice(n,n+n).map(c=>c.id)); });
+  const uid=S.clubId;
+  if(uid){
+    const already=lib.indexOf(uid)>=0?'lib':(sul.indexOf(uid)>=0?'sul':null);
+    lib=lib.filter(id=>id!==uid); sul=sul.filter(id=>id!==uid);
+    if(userFinish>=1&&userFinish<=2) lib.unshift(uid);
+    else if(userFinish>=3&&userFinish<=6) sul.unshift(uid);
+    else if(already==='lib') lib.unshift(uid);
+    else if(already==='sul') sul.unshift(uid);
+  }
+  return { libertadores:lib.slice(0,32), sulamericana:sul.slice(0,32) };
+}
+function ensureConmebolCupClubs(ids){
+  S.clubPool=S.clubPool||{}; S.squads=S.squads||{};
+  const byId={}; conmebolTopDivisionClubs().forEach(c=>byId[c.id]=c);
+  ids.forEach(id=>{
+    if(!S.clubPool[id] && byId[id]) S.clubPool[id]=byId[id];
+    if(!S.squads[id]){ const c=S.clubPool[id]||byId[id]; if(c) S.squads[id]=c.squad.map(p=>attachAttrs(initStats({...p}),'A')); }
+  });
+}
+function initConmebolCups(){
+  const qual=conmebolContinentalQualification(S._intlUserFinish||0);
+  ensureConmebolCupClubs(qual.libertadores.concat(qual.sulamericana));
+  const libGroups=makeGroupStage(splitIntoGroups(qual.libertadores, hashSeed(S.seed,'libgroups',S.season)), 2);
+  const sulGroups=makeGroupStage(splitIntoGroups(qual.sulamericana, hashSeed(S.seed,'sulgroups',S.season)), 2);
+  S.qualification={...qual};
+  S.cups={ libertadores:{group:libGroups, bracket:null}, sulamericana:{group:sulGroups, bracket:null} };
+}
 /* ================= LIGAS DE BACKGROUND (outros países selecionados) =================
    Cada país selecionado que NÃO é o jogável roda a sua liga sozinho: resultados simulados
    por rodada (quick-sim por overall do clube), tabela, artilheiros e artilheiros de sempre,
@@ -1036,8 +1078,9 @@ let INTL_CLUB_INDEX=null;
 function intlClubIndex(){
   if(INTL_CLUB_INDEX) return INTL_CLUB_INDEX;
   INTL_CLUB_INDEX={};
-  const src=(typeof window!=='undefined'&&window.INTL_LEAGUES)||{};
-  Object.keys(src).forEach(country=>src[country].forEach(c=>{ INTL_CLUB_INDEX[c.id]=c; }));
+  [(typeof window!=='undefined'&&window.INTL_LEAGUES)||{}, (typeof window!=='undefined'&&window.CONMEBOL_LEAGUES)||{}].forEach(src=>{
+    Object.keys(src).forEach(country=>src[country].forEach(c=>{ INTL_CLUB_INDEX[c.id]=c; }));
+  });
   return INTL_CLUB_INDEX;
 }
 function intlClubById(id){ return intlClubIndex()[id]||null; }
@@ -1052,7 +1095,7 @@ function bgClubsForDivision(country, divKey){
     if(divKey===cfg.order[0]) return (DATA.clubsSerieA||DATA.clubs||[]).slice(0, cfg.size[divKey]||20);
     return proceduralDivisionClubs(divKey, cfg.size[divKey]||20);
   }
-  const all=(typeof window!=='undefined'&&window.INTL_LEAGUES&&window.INTL_LEAGUES[cfg.country])||[];
+  const all=uniLeagueClubs(cfg);
   const lgCode=cfg.lg&&cfg.lg[divKey];
   const clubs=lgCode?all.filter(c=>c.lg===lgCode):all.slice();
   return clubs.slice(0, cfg.size[divKey]||clubs.length);
@@ -1169,6 +1212,10 @@ function rollBgLeaguesSeason(){
   });
 }
 function initSeasonCups(qual, compToggle){
+  if(isConmebolUniverse()){ initConmebolCups(); // universo sul-americano: Libertadores + Sul-Americana
+    if(S.cups&&S.cups.libertadores) queueDrawShow('libertadores','group');
+    if(S.cups&&S.cups.sulamericana) queueDrawShow('sulamericana','group');
+    return; }
   if(isIntlUniverse()){ initIntlCups(); // universo europeu: Champions + Europa
     // cerimônia do sorteio da FASE DE GRUPOS (estilo Copa do Brasil, time -> grupo), no
     // início da temporada — os jogos de grupo vêm depois, como na vida real.
@@ -1306,9 +1353,30 @@ const UNI_CONFIGS={
   Portugal:  { order:['PT','PT2'], size:{PT:18,PT2:18}, promo:{PT:0,PT2:3}, releg:{PT:3,PT2:0},
                label:{PT:'Primeira Liga',PT2:'Liga Portugal 2'}, lg:{PT:'POR-1',PT2:'POR-2'}, country:'Portugal',
                nat:['Portugal'], foreignMax:18 },
+  /* CONMEBOL: divisão ÚNICA (só 1ª divisão real, sem pirâmide -> sem acesso/rebaixamento);
+     clubes reais em window.CONMEBOL_LEAGUES (src:'conmebol'). Classificam pra Libertadores/
+     Sul-Americana. size = nº real de clubes raspados (Argentina cortada em 20 p/ temporada padrão). */
+  Argentina: { order:['ARG'], size:{ARG:20}, promo:{ARG:0}, releg:{ARG:0}, label:{ARG:'Liga Profesional'}, lg:{ARG:'ARG-1'}, country:'Argentina', nat:['Argentina'], foreignMax:6, src:'conmebol' },
+  Uruguai:   { order:['URU'], size:{URU:16}, promo:{URU:0}, releg:{URU:0}, label:{URU:'Primera División'}, lg:{URU:'URU-1'}, country:'Uruguai', nat:['Uruguay'], foreignMax:6, src:'conmebol' },
+  'Colômbia':{ order:['COL'], size:{COL:20}, promo:{COL:0}, releg:{COL:0}, label:{COL:'Categoría Primera A'}, lg:{COL:'COL-1'}, country:'Colômbia', nat:['Colombia'], foreignMax:5, src:'conmebol' },
+  Chile:     { order:['CHI'], size:{CHI:16}, promo:{CHI:0}, releg:{CHI:0}, label:{CHI:'Primera División'}, lg:{CHI:'CHI-1'}, country:'Chile', nat:['Chile'], foreignMax:6, src:'conmebol' },
+  Peru:      { order:['PER'], size:{PER:18}, promo:{PER:0}, releg:{PER:0}, label:{PER:'Liga 1'}, lg:{PER:'PER-1'}, country:'Peru', nat:['Peru'], foreignMax:5, src:'conmebol' },
+  Equador:   { order:['ECU'], size:{ECU:16}, promo:{ECU:0}, releg:{ECU:0}, label:{ECU:'LigaPro Serie A'}, lg:{ECU:'ECU-1'}, country:'Equador', nat:['Ecuador'], foreignMax:5, src:'conmebol' },
+  Paraguai:  { order:['PAR'], size:{PAR:9},  promo:{PAR:0}, releg:{PAR:0}, label:{PAR:'División Profesional'}, lg:{PAR:'PAR-1'}, country:'Paraguai', nat:['Paraguay'], foreignMax:6, src:'conmebol' },
+  Venezuela: { order:['VEN'], size:{VEN:13}, promo:{VEN:0}, releg:{VEN:0}, label:{VEN:'Liga FUTVE'}, lg:{VEN:'VEN-1'}, country:'Venezuela', nat:['Venezuela'], foreignMax:6, src:'conmebol' },
+  'Bolívia': { order:['BOL'], size:{BOL:15}, promo:{BOL:0}, releg:{BOL:0}, label:{BOL:'División Profesional'}, lg:{BOL:'BOL-1'}, country:'Bolívia', nat:['Bolivia'], foreignMax:6, src:'conmebol' },
 };
 /* código ISO da bandeira de cada universo (UNI_CONFIGS só guarda o nome do país) */
-const UNI_COUNTRY_FLAG={brasil:'br',Inglaterra:'gb-eng',Espanha:'es','Itália':'it',Alemanha:'de',Portugal:'pt'};
+const UNI_COUNTRY_FLAG={brasil:'br',Inglaterra:'gb-eng',Espanha:'es','Itália':'it',Alemanha:'de',Portugal:'pt',
+  Argentina:'ar',Uruguai:'uy','Colômbia':'co',Chile:'cl',Peru:'pe',Equador:'ec',Paraguai:'py',Venezuela:'ve','Bolívia':'bo'};
+/* fonte de clubes de um universo: CONMEBOL (src:'conmebol') ou europeu (INTL_LEAGUES). Ambos
+   são keyed por nome de país (cfg.country). */
+function uniLeagueClubs(cfg){
+  if(!cfg) return [];
+  const src=(cfg.src==='conmebol') ? (typeof window!=='undefined'&&window.CONMEBOL_LEAGUES) : (typeof window!=='undefined'&&window.INTL_LEAGUES);
+  return (src && src[cfg.country]) || [];
+}
+function isConmebolUniverse(){ const cfg=UNI_CONFIGS[ACTIVE_UNI]; return !!(cfg && cfg.src==='conmebol'); }
 /* mapa reverso código-de-liga -> {universo, divisão}. Ex.: 'GER-1' -> {uni:'Alemanha',div:'DE'};
    'ENG-2' -> {uni:'Inglaterra',div:'CH'}. Construído sob demanda (memoizado) a partir de UNI_CONFIGS.lg. */
 let _LG_TO_UNIDIV=null;
@@ -1734,7 +1802,7 @@ function clubsForDivision(division){
   // filtrados pelo código de liga da divisão (ex.: PL->ENG-1, CH->ENG-2).
   if(isIntlUniverse()){
     const cfg=activeUniCfg();
-    const all=(typeof window!=='undefined' && window.INTL_LEAGUES && window.INTL_LEAGUES[cfg.country]) || [];
+    const all=uniLeagueClubs(cfg); // INTL_LEAGUES (Europa) ou CONMEBOL_LEAGUES (América do Sul)
     const lgCode=cfg.lg && cfg.lg[division];
     const size = DIVISION_SIZE[division] || 20;
     // FONTE ÚNICA: Supabase (division_clubs) tem prioridade se já foi carregado nesta sessão;

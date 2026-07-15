@@ -658,21 +658,20 @@ function intlTeams(country){
   const cfg=(typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[uniKey];
   const total = (cfg&&cfg.size&&cfg.order) ? cfg.order.reduce((s,d)=>s+(cfg.size[d]||0),0) : 0;
   if(country==='Brasil') return total||80;
-  const l=(typeof window!=='undefined'&&window.INTL_LEAGUES||{})[country];
+  const l=((typeof window!=='undefined'&&window.INTL_LEAGUES||{})[country]) || ((typeof window!=='undefined'&&window.CONMEBOL_LEAGUES||{})[country]);
   if(!l || !l.length) return 0; // sem dados reais carregados -> país não jogável
   return total || l.length;
 }
 /* lista de países da tela — Brasil sempre jogável; europeus ficam clicáveis quando têm
    clubes reais carregados. Função (não const) pra refletir os dados carregados. */
-function COUNTRY_LIST(){ return [
+function COUNTRY_LIST(){ const row=n=>({f:flagImg(n),n,teams:intlTeams(n),on:intlTeams(n)>0}); return [
   {f:flagImg('Brasil'),n:'Brasil',teams:intlTeams('Brasil'),on:true},
-  {f:flagImg('Argentina'),n:'Argentina',teams:intlTeams('Argentina'),on:intlTeams('Argentina')>0},
-  {f:flagImg('Alemanha'),n:'Alemanha',teams:intlTeams('Alemanha'),on:intlTeams('Alemanha')>0},
-  {f:flagImg('Espanha'),n:'Espanha',teams:intlTeams('Espanha'),on:intlTeams('Espanha')>0},
-  {f:flagImg('França'),n:'França',teams:intlTeams('França'),on:intlTeams('França')>0},
-  {f:flagImg('Itália'),n:'Itália',teams:intlTeams('Itália'),on:intlTeams('Itália')>0},
-  {f:flagImg('Portugal'),n:'Portugal',teams:intlTeams('Portugal'),on:intlTeams('Portugal')>0},
-  {f:flagImg('Inglaterra'),n:'Inglaterra',teams:intlTeams('Inglaterra'),on:intlTeams('Inglaterra')>0},
+  // CONMEBOL (América do Sul) — ligas reais jogáveis
+  row('Argentina'), row('Uruguai'), row('Colômbia'), row('Chile'), row('Peru'),
+  row('Equador'), row('Paraguai'), row('Venezuela'), row('Bolívia'),
+  // Europa
+  row('Alemanha'), row('Espanha'), {f:flagImg('França'),n:'França',teams:intlTeams('França'),on:intlTeams('França')>0},
+  row('Itália'), row('Portugal'), row('Inglaterra'),
 ]; }
 function scPaises(){
   const rows=COUNTRY_LIST().map(c=>{const sel=CL.countries.has(c.n);
@@ -680,7 +679,7 @@ function scPaises(){
       <span class="cl-flag">${c.f}</span><span class="cl-ctry-n">${c.n}</span>
       <span class="cl-ctry-t">${c.teams} ${c.teams===1?'clube':'clubes'}</span></div>`;}).join('');
   const teamsSel=[...CL.countries].reduce((s,n)=>{const c=COUNTRY_LIST().find(x=>x.n===n);return s+(c?c.teams:0);},0);
-  const okDis=teamsSel<20;
+  const okDis=teamsSel<8; // uma liga viável (a menor CONMEBOL, Paraguai, tem 9 clubes)
   const totalTeams=COUNTRY_LIST().reduce((s,c)=>s+c.teams,0);
   // uma seção de competições por país SELECIONADO (ligas + copas), no estilo do Brasil
   const selCountries = COUNTRY_LIST().filter(c=>CL.countries.has(c.n)).map(c=>c.n);
@@ -700,7 +699,7 @@ function scPaises(){
       <div class="cl-wiz-chips">
         <span class="cl-wiz-chip on"><span>Clubes</span><b>${teamsSel}</b><span class="cl-wiz-chip-tot">de ${totalTeams}</span></span>
         <span class="cl-wiz-chip on"><span>Países</span><b>${CL.countries.size}</b><span class="cl-wiz-chip-tot">de ${COUNTRY_LIST().length}</span></span>
-        <span class="cl-wiz-chips-note">Totalize pelo menos 20 clubes.</span>
+        <span class="cl-wiz-chips-note">Totalize pelo menos 8 clubes.</span>
       </div>
       <div class="cl-wiz-paisescols">
         <div class="cl-wiz-col cl-wiz-col-paises">
@@ -738,7 +737,9 @@ function countryCompSection(country){
   const cupBadge=(label,tk)=>`<div class="cl-comp-toggle on" style="cursor:default">${(tk&&trophyImg(tk,26))||'<span class="cl-divopt-ic">🏆</span>'}<b>${escC(label)}</b><span class="cl-comp-check">✔</span></div>`;
   const cupBadges = isBr
     ? cupBadge('Libertadores','libertadores')+cupBadge('Sul-Americana','sulamericana')+cupBadge('Copa do Brasil','copaBrasil')
-    : cupBadge('Champions League')+cupBadge('Europa League');
+    : cfg.src==='conmebol'
+      ? cupBadge('Libertadores','libertadores')+cupBadge('Sul-Americana','sulamericana')
+      : cupBadge('Champions League')+cupBadge('Europa League');
   return `<div class="cl-paises-divisao">
     <div class="cl-paises-sec-title cl-acc-hd" onclick="clToggleAcc('${openKey}')">
       <span class="cl-comp-country">${flagImg(country)} ${escC(country)}</span>
@@ -790,7 +791,7 @@ function clPaisesOk(){
   cdraw();
 }
 /* ================= 03b · PAÍS JOGÁVEL (só quando 2+ países selecionados) ================= */
-const COUNTRY_FLAG={Brasil:flagImg('Brasil'),Argentina:flagImg('Argentina'),Alemanha:flagImg('Alemanha'),Espanha:flagImg('Espanha'),'França':flagImg('França'),'Itália':flagImg('Itália'),Portugal:flagImg('Portugal'),Inglaterra:flagImg('Inglaterra')};
+const COUNTRY_FLAG={Brasil:flagImg('Brasil'),Argentina:flagImg('Argentina'),Uruguai:flagImg('Uruguai'),'Colômbia':flagImg('Colômbia'),Chile:flagImg('Chile'),Peru:flagImg('Peru'),Equador:flagImg('Equador'),Paraguai:flagImg('Paraguai'),Venezuela:flagImg('Venezuela'),'Bolívia':flagImg('Bolívia'),Alemanha:flagImg('Alemanha'),Espanha:flagImg('Espanha'),'França':flagImg('França'),'Itália':flagImg('Itália'),Portugal:flagImg('Portugal'),Inglaterra:flagImg('Inglaterra')};
 function scPaisJogavel(){
   const playable=selectedPlayableCountries();
   const rows=playable.map(c=>{
