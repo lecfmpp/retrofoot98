@@ -387,6 +387,8 @@ function generateIncomingOffers(R){
     buyerCountry:buyer.country, playerName:p.n, playerForce:p.f, fee, maxFee, negRound:0, lastMsg:null, expiresRound:S.round+3 });
   S.roundNews=S.roundNews||[];
   S.roundNews.push(`📩 ${buyer.name}${buyer.country?' ('+buyer.country+')':''} ofereceu ${fmt(fee)} por ${p.n}. Veja em Jogador → Propostas recebidas.`);
+  // fila de toasts de proposta (mostrados ao voltar pra tela principal — ver liveDone)
+  S._offerToasts=S._offerToasts||[]; S._offerToasts.push(`💰 ${buyer.name} fez uma oferta por ${p.n}`);
 }
 function acceptIncomingOffer(id){
   const o=(S.incomingOffers||[]).find(x=>x.id===id); if(!o) return {ok:false,msg:'Proposta não existe mais.'};

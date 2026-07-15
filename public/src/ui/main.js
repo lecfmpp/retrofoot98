@@ -1400,12 +1400,13 @@ function scMain(){
   const uf=userFixture(); const oppId=uf?(uf[0]===CL.clubId?uf[1]:uf[0]):null; const home=uf?uf[0]===CL.clubId:true;
   const menuNames=['RetroFoot98','Seleccionar','Equipa','Jogador','Campeonatos','Treinador']; if(CL.online) menuNames.push('Modo Resenha');
   const hamburger=`<div class="cl-hamburger" onclick="clToggleMobMenu(event)"><span>☰ Menu</span><span>${CL.mobMenuOpen?'▲':'▼'}</span></div>`;
+  const offerCoin=(S.incomingOffers&&S.incomingOffers.length)?' 🟡':''; // propostas de compra pendentes
   const menu=`<div class="cl-menu ${CL.mobMenuOpen?'mob-open':''}" id="cl-menubar">
-    ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
+    ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${mm==='Jogador'?offerCoin:''}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
   </div>`;
   const tabs=['jogo','jogador','financas','seleccao','adversario'];
   const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',adversario:'Adversário'};
-  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')">${tabLbl[t]}</span>`).join('')}</div>`;
+  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')">${tabLbl[t]}${t==='jogador'?offerCoin:''}</span>`).join('')}</div>`;
   let panel='';
   if(CL.tab==='jogo') panel=panJogo(oppId,home,uf);
   else if(CL.tab==='jogador') panel=panJogador();
@@ -1458,7 +1459,7 @@ function rosterHTML(){
       const onclickFn=escala?`clEscalaPick('${escC(p.n)}')`:`clSelPlayer('${escC(p.n)}')`;
       return `<div class="cl-rrow ${selc?'sel':''} ${marked?'swap-out':''} ${unavail?'unavail':''}" style="${selc?'':`color:${th.txt}`}" onclick="${onclickFn}">
         <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
-        <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
+        <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}${(S.incomingOffers||[]).some(o=>o.playerName===p.n)?' <span title="Proposta de compra recebida">🟡</span>':''}</span>
         <span class="cl-rf">${p.f}</span><span class="cl-rv">${grp(Math.round(curConv(p.mv)*0.00006)*10)}</span></div>`;}).join('')+`</div>`;
   });
   return html;
@@ -2800,6 +2801,8 @@ function scClassif(){
 }
 function liveDone(){ if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classifTimer){clearTimeout(CL._classifTimer);CL._classifTimer=null;} CL.live=null; CL.subsUsed=0; CL._liveBusy=false; CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||CL.selPlayer; cdraw();
   if(CL.lastGate) toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0;
+  // notificação de propostas de compra recebidas nesta rodada (toast no topo, ~3s cada)
+  if(S._offerToasts && S._offerToasts.length){ S._offerToasts.forEach((m,i)=>setTimeout(()=>toastC(m), 500+i*400)); S._offerToasts=[]; }
   // cronômetro soberano: QUALQUER cliente reabre a rodada seguinte (não só o host) — ver reopen_ready
   if(CL.online && typeof NET!=='undefined' && NET.gameId && !S.finished){
     if(NET.reopenReady) NET.reopenReady(); else if(NET.isHost) NET.start(); // fallback: transporte local
