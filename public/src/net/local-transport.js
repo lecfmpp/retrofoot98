@@ -338,19 +338,23 @@ function routeAfterJoin(){
 function scMidJoin(){
   const room=NET.room; if(!room) return wizShell({ title:'Sala', back:'clLobbyExit()', backLabel:'Sair', contentCls:'cl-wiz-center', body:`<div class="cl-wiz-sub">A ligar à sala…</div>` });
   const midSeason=room.phase!=='lobby';
-  const rows=freeClubIds().map(c=>`<div class="cl-midjoin-club" onclick="clPickMidJoinClub('${c.id}')" style="${clubEdge(c)}">
-      <span class="cl-midjoin-name">${escC(c.short)}</span>
-      <span class="cl-midjoin-ov">força ${c.overall}</span>
-      <span class="cl-midjoin-cpu">🤖 CPU</span>
-    </div>`).join('') || '<div class="cl-midjoin-empty">Não há mais clubes livres nesta sala no momento.</div>';
+  const free=freeClubIds();
   const msg=midSeason
-    ? `🏁 A Resenha <b>${escC(room.name)}</b> já começou (${room.round||1}ª rodada).<br>Escolha um clube disponível — hoje controlado pela CPU — pra assumir o comando:`
-    : `👋 Você foi convidado pra Resenha <b>${escC(room.name)}</b>!<br>Escolha o clube que você quer assumir:`;
+    ? `🏁 A Resenha <b>${escC(room.name)}</b> já começou (${room.round||1}ª rodada).<br>Um clube livre (hoje da CPU) é <b>sorteado</b> pra você assumir o comando:`
+    : `👋 Você foi convidado pra Resenha <b>${escC(room.name)}</b>!<br>Um clube livre é <b>sorteado</b> pra você.`;
+  const cta = free.length
+    ? btn('🎲 Entrar com time sorteado','clMidJoinRandom()',{cls:'cl-wiz-cta'})
+    : '<div class="cl-midjoin-empty">Não há mais clubes livres nesta sala no momento.</div>';
   const body=`<div class="cl-wiz-authcard" style="max-width:600px">
       <div class="cl-midjoin-msg">${msg}</div>
-      <div class="cl-midjoin-list">${rows}</div>
+      <div class="cl-midjoin-list" style="text-align:center;padding:14px 0">${cta}</div>
     </div>`;
   return wizShell({ title:'Sala · '+escC(room.name||''), back:'clLobbyExit()', backLabel:'Sair', contentCls:'cl-wiz-top', body });
+}
+/* sorteio obrigatório: o convidado entra com um clube livre SORTEADO (não escolhe) */
+function clMidJoinRandom(){
+  const free=freeClubIds(); if(!free.length){ toastC('Não há clubes livres nesta sala.'); return; }
+  clPickMidJoinClub(free[Math.floor(Math.random()*free.length)].id);
 }
 function clPickMidJoinClub(clubId){
   toastC('Entrando...');

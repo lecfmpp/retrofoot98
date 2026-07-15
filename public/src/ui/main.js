@@ -3444,8 +3444,7 @@ function clInviteResenha(){ CL.menu=null; if(!CL.online){ toastC('Modo Resenha r
       </div>
     </div>
     <div class="cl-invres-item">
-      <div class="cl-invres-club">Qual time quer oferecer?</div>
-      <select class="cl-invres-sel" id="cl-invres-club">${DATA.clubs.map(c=>{const h=CL.humans&&CL.humans[c.id]; return `<option value="${c.id}" ${h?'disabled':''} style="${h?'color:#999':''}">${escC(clubOf(c.id).short)}${h?' ('+escC(h)+')':''}</option>`; }).join('')}</select>
+      <div class="cl-invres-club">🎲 Um time livre é <b>sorteado</b> para o convidado ao entrar.</div>
     </div>
     <div class="cl-invite2col">
       <div class="cl-invres-opt">
@@ -3473,12 +3472,12 @@ function clCopyResenhaLink(){
   if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(link).then(done).catch(fallback); }
   else fallback();
 }
-function clSendResenhaInvite(){ const clubId=document.querySelector('#cl-invres-club')?.value||''; const phone=(document.querySelector('#cl-invres-phone')?.value||'').replace(/\D/g,'');
-  if(!clubId || phone.length<10){ toastC('Selecione um time e informe um telefone válido.'); return; }
-  const club=clubOf(clubId); const link=(typeof NET!=='undefined')?NET.inviteLink():''; const wa='https://wa.me/55'+phone+'?text='+encodeURIComponent('Vem ser '+escC(club.short)+' na minha Resenha do RetroFoot98! '+link);
+function clSendResenhaInvite(){ const phone=(document.querySelector('#cl-invres-phone')?.value||'').replace(/\D/g,'');
+  if(phone.length<10){ toastC('Informe um telefone válido.'); return; }
+  const link=(typeof NET!=='undefined')?NET.inviteLink():''; const wa='https://wa.me/55'+phone+'?text='+encodeURIComponent('Vem pra minha Resenha do RetroFoot98! Um time é sorteado pra você. '+link);
   try{ window.open(wa,'_blank'); }catch(e){} toastC('Abrindo WhatsApp…'); }
-function clSendResenhaEmailInvite(){ const clubId=document.querySelector('#cl-invres-club')?.value||''; const email=(document.querySelector('#cl-invres-email')?.value||'').trim();
-  if(!clubId || !email || !email.includes('@')){ toastC('Selecione um time e informe um e-mail válido.'); return; }
+function clSendResenhaEmailInvite(){ const email=(document.querySelector('#cl-invres-email')?.value||'').trim();
+  if(!email || !email.includes('@')){ toastC('Informe um e-mail válido.'); return; }
   if(typeof NET==='undefined' || !NET.sendEmailInvite){ toastC('Convite por e-mail requer jogo online.'); return; }
   toastC('Enviando convite por e-mail…');
   (async ()=>{ try { await NET.sendEmailInvite(email); toastC('✓ Convite enviado por e-mail!'); const inp=document.querySelector('#cl-invres-email'); if(inp) inp.value=''; }
