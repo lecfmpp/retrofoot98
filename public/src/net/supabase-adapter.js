@@ -388,23 +388,45 @@ async function netAssignClub(pid, clubId){
 async function netDrawClubs(reshuffle){
   if(!NET.isHost) return;
   try {
-    // PRESERVA nome/e-mail de cada humano ANTES de liberar os assentos: a reatribuição pegava o nome
-    // da visão do host (presence, instável) e gravava null -> treinador virava "(sem nome)". O assento
-    // atual tem o nome que o próprio jogador gravou ao sentar — guardo por user_id e reuso no assign.
-    try{ const { data: pre } = await sb.from('game_seats').select('user_id,name,email').eq('game_id', NET.gameId).not('user_id','is',null);
-      NET._seatInfo=NET._seatInfo||{}; (pre||[]).forEach(s=>{ if(s.user_id && (s.name||s.email)) NET._seatInfo[s.user_id]={name:s.name, email:s.email}; }); }catch(e){}
-    if(reshuffle){
-      // devolve todos os assentos humanos à CPU de uma vez, depois reatribui do zero
-      await sb.from('game_seats').update({ user_id:null, is_cpu:true, is_ready:false, name:null, email:null })
-        .eq('game_id', NET.gameId).not('user_id','is',null);
-      (NET.room.participants||[]).forEach(p=>{ if(NET._claimed) delete NET._claimed[p.id]; p.clubId=null; });
+    const { data: seats0 } = await sb.from('game_seats').select('*').eq('game_id', NET.gameId);
+    // LISTA CONFIÁVEL de humanos = assentos com user_id (do banco) UNIÃO participantes presentes.
+    // Não confio só em NET.room.participants (presence instável) nem só nos assentos (auto-seat pode
+    // estar em corrida) — a união garante que TODO mundo presente entra no sorteio.
+    const humansMap={};
+    (seats0||[]).forEach(s=>{ if(s.user_id) humansMap[s.user_id]={ user_id:s.user_id, name:s.name, email:s.email }; });
+    (NET.room.participants||[]).forEach(p=>{ if(p.id && !SB_KICKED[p.id] && !humansMap[p.id]) humansMap[p.id]={ user_id:p.id, name:(p.name&&p.name!=='(sem nome)')?p.name:null, email:p.email }; });
+    const humans=Object.values(humansMap);
+    // preserva nome/e-mail conhecidos (o assento vira null na liberação; reuso aqui)
+    NET._seatInfo=NET._seatInfo||{}; humans.forEach(h=>{ if(h.name||h.email) NET._seatInfo[h.user_id]={ name:h.name, email:h.email }; });
+
+    // libera TODOS os assentos humanos (recomeça o sorteio do zero — determinístico o suficiente:
+    // o host escreve, todos leem os mesmos assentos)
+    await sb.from('game_seats').update({ user_id:null, is_cpu:true, is_ready:false, name:null, email:null })
+      .eq('game_id', NET.gameId).not('user_id','is',null);
+
+    // pool de clubes = TODOS os clubes da sala, embaralhado
+    const pool=(seats0||[]).map(s=>s.club_id);
+    for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+
+    // atribui UM clube DISTINTO por humano via host_assign_seat (uniforme p/ host e convidados — evita
+    // o erro "já está numa vaga" do claim_seat). RESILIENTE: um erro num jogador NÃO trava os outros.
+    NET._claimed={};
+    let idx=0, ok=0;
+    for(const h of humans){
+      if(idx>=pool.length) break;
+      const club=pool[idx++];
+      try{
+        const { error } = await sb.rpc('host_assign_seat', { p_game: NET.gameId, p_club: club, p_target_user: h.user_id });
+        if(error) throw error;
+        const info=NET._seatInfo[h.user_id]||{};
+        const nm=info.name||h.name||null, em=info.email||h.email||null;
+        await sb.from('game_seats').update({ name:nm, email:em }).eq('game_id', NET.gameId).eq('club_id', club);
+        NET._claimed[h.user_id]={ clubId:club, ready:false, name:nm, email:em };
+        ok++;
+      }catch(e){ console.error('drawClubs assign', h.user_id, e&&e.message); }
     }
-    const { data: seats } = await sb.from('game_seats').select('*').eq('game_id', NET.gameId);
-    const free = (seats||[]).filter(s=>s.is_cpu && !s.user_id).map(s=>s.club_id);
-    for(let i=free.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [free[i],free[j]]=[free[j],free[i]]; }
-    let idx=0;
-    for(const p of NET.room.participants){ if(!p.clubId && idx<free.length){ await netAssignClub(p.id, free[idx++]); } }
-    netMergeParticipants();
+    console.log('✓ Sorteio: '+ok+'/'+humans.length+' treinadores receberam clube distinto.');
+    if(NET.refreshRoom) await NET.refreshRoom(); else netMergeParticipants();
   } catch(e) { console.error('drawClubs erro:', e); }
 }
 

@@ -853,14 +853,23 @@ function resenhaSeed32(raw){
   h=h>>>0; return h||1; // nunca 0 (0 cairia no Math.random do newGame)
 }
 function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=room.participants.find(p=>p.id===NET.self.id);
-  // SEGURANÇA: convidado sem clube ainda? re-lê os assentos uma vez e tenta de novo (o sorteio do
-  // host pode não ter chegado). Evita começar com o clube de outro (participants[0]).
-  if(CL.online && !NET.isHost && (!me || !me.clubId) && typeof NET!=='undefined' && NET.refreshRoom && !onlineBeginSeason._retry){
-    onlineBeginSeason._retry=1;
-    (async ()=>{ try{ await NET.refreshRoom(); }catch(e){} onlineBeginSeason(); })();
+  // SEGURANÇA: convidado sem clube ainda? re-lê os assentos e tenta de novo (o sorteio do host pode
+  // não ter chegado). NUNCA pega o clube de outro — dois usuários com o MESMO time era exatamente
+  // o bug. Tenta até 6x (~6s); se ainda não tiver assento, aborta com aviso (não rouba clube).
+  if(CL.online && !NET.isHost && (!me || !me.clubId)){
+    onlineBeginSeason._retry=(onlineBeginSeason._retry||0)+1;
+    if(onlineBeginSeason._retry<=6 && typeof NET!=='undefined' && NET.refreshRoom){
+      (async ()=>{ try{ await NET.refreshRoom(); }catch(e){} setTimeout(onlineBeginSeason, 1000); })();
+      return;
+    }
+    onlineBeginSeason._retry=0;
+    if(typeof toastC==='function') toastC('⚠ Seu clube ainda não foi sorteado. Peça ao anfitrião pra reabrir a sala.');
+    CL.net=CL.net||{}; CL.net.step='lobby'; CL.screen='online'; cdraw();
     return;
   }
   onlineBeginSeason._retry=0;
+  // GUARDA FINAL: sem clube próprio, não começa (jamais assume participants[0] — evita clone de time)
+  if(!me || !me.clubId){ if(typeof toastC==='function') toastC('⚠ Não foi possível confirmar seu clube. Tente sincronizar.'); return; }
   // A Resenha começa SEMPRE na ÚLTIMA divisão do Brasil (Série D) — a graça é o desafio de subir da
   // base até a Série A e ganhar títulos. Se este jogador vinha de um solo (universo intl, outra
   // divisão, transferência ao exterior), DATA.clubs/universo ficaram alterados e newGame(clubId)
@@ -870,7 +879,7 @@ function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=ro
   const startClubs = (typeof resenhaStartClubs==='function' && resenhaStartClubs().length) ? resenhaStartClubs() : ((DATA.clubsSerieA||DATA.clubs)||[]);
   DATA.clubs = startClubs.slice();
   CL.intlUniverse=false; CL.bgCountries=[]; CL.playCountry='Brasil';
-  CL.clubId=(me&&me.clubId)||room.participants[0].clubId; CL.mgr=me?me.name:CL.mgr;
+  CL.clubId=me.clubId; CL.mgr=me.name||CL.mgr; // clube SEMPRE do próprio assento (guardado acima)
   // SEED: games.seed é um bigint enorme; passar direto pra newGame trunca de formas diferentes por
   // cliente (e >>>0 podia dar 0, caindo no Math.random -> competições paralelas). Derivo um seed
   // 32-bit ESTÁVEL e NÃO-ZERO da string do games.seed (FNV-1a) — igual em todos os clientes.
