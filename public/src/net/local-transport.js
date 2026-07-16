@@ -217,6 +217,8 @@ function onlineReconcileIfBehind(room){
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       toastC('🔄 Sincronizado com a sala (rodada '+((S.round||0)+1)+').');
       cdraw();
+      // espelhei o estado novo do anfitrião: se a fase já é 'running', jogo a rodada agora
+      if(typeof onlineRecoverRunRound==='function') onlineRecoverRunRound();
     }
   }catch(e){ console.warn('reconcile:', e && e.message); } finally { ONLINE_RECONCILE_BUSY=false; } })();
 }
@@ -941,11 +943,10 @@ function clSetSpeed(mult){ CL.speedMult=mult; if(CL.online && typeof NET!=='unde
 let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null, ONLINE_ADV_T=0, ONLINE_BUSY_T=0, ONLINE_BUSY_ACTIVE=false;
 function onlineTimerLoop(){
   const room=(typeof NET!=='undefined')?NET.room:null;
-  // SAVE ÚNICO: se terminei minha partida e espero os outros, tenta fechar a rodada quando todos
-  // publicarem (barreira). Re-renderiza a tela de espera pra atualizar quem já terminou.
-  if(CL.online && CL._onlineRoundCommit && typeof onlineTryCommitRound==='function'){
-    onlineTryCommitRound();
-    if(CL._onlineRoundCommit && CL.screen==='awaitround') cdraw();
+  // SAVE ÚNICO: o ANFITRIÃO fecha a rodada quando ninguém está mais em partida (não-bloqueante,
+  // teto de 90s do busy). Convidados voltam livres e só ESPELHAM (onlineReconcileIfBehind).
+  if(CL.online && CL._hostPendingCommit && typeof onlineHostCloseRound==='function'){
+    onlineHostCloseRound();
   }
   // BARREIRA DE SINCRONIZAÇÃO: enquanto EU estou numa partida ao vivo (liga/copa/espectador),
   // bato um heartbeat "ocupado" — o servidor não avança a rodada sem mim (ver advance_phase_if_expired).
@@ -990,7 +991,12 @@ function onlineTimerLoop(){
   const intv=Math.max(100, 300/(CL.speedMult||1));
   ONLINE_TIMER=setTimeout(onlineTimerLoop, intv);
 }
-function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return; if(!CL.online || !S) return; CL._liveBusy=true; startLiveRound(); }
+function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return; if(!CL.online || !S) return;
+  // SAVE ÚNICO: não jogo uma rodada ANTES de espelhar o estado autoritativo do anfitrião. Se o host
+  // já fechou a rodada (games.round à frente da minha), primeiro sincronizo (mundo/tabela novos) e só
+  // então jogo — senão jogaria a rodada seguinte sobre um mundo velho.
+  if(typeof NET!=='undefined' && NET.room && (NET.room.round||0) > (S.round||0)){ onlineReconcileIfBehind(NET.room); return; }
+  CL._liveBusy=true; startLiveRound(); }
 
 /* Recupera a rodada de LIGA quando a fase virou 'running' enquanto o cliente estava numa
    tela AO VIVO de copa/espectador. Nesse caso a borda que dispara onlineRunRound no onState
