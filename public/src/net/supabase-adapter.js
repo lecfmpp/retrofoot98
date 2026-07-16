@@ -218,8 +218,11 @@ async function netCreateRoom(name, host){
   NET.code = code; NET.gameId = code; NET.isHost = true;
   NET.self = { id: SB_AUTH_USER.id, name: host.name, email: host.email };
   NET._claimed = {};
+  // LÊ o seed real gerado por create_game — sem isso o host ficava com seed:0 e montava uma
+  // competição DIFERENTE da do convidado (que lê games.seed no join) -> "dois jogos em paralelo".
+  let createdSeed=0; try{ const { data: g } = await sb.from('games').select('seed').eq('id', code).single(); createdSeed = g && g.seed; }catch(e){}
   NET.room = { code, gameId: code, name, hostId: SB_AUTH_USER.id, mode: CL.net.mode||'sorteio', phase:'lobby',
-    participants: [], seed:0, round:0, deadline:0, paused:false, speedMult:1, chat:[] };
+    participants: [], seed:createdSeed, round:0, deadline:0, paused:false, speedMult:1, chat:[] };
   netSetupRealtime(); netTrackPresence(); netMergeParticipants();
   return code;
 }
@@ -254,7 +257,7 @@ async function netRefreshRoom(){
     const { data: g } = await sb.from('games').select('*').eq('id', NET.gameId).single();
     if(!g) return null;
     Object.assign(NET.room, {
-      name: g.name, mode: g.mode, phase: g.phase, round: g.round||0,
+      name: g.name, mode: g.mode, phase: g.phase, round: g.round||0, seed: g.seed,
       deadline: g.ready_deadline?new Date(g.ready_deadline).getTime():0,
       paused: g.paused, paused_remaining_ms: g.paused_remaining_ms, speedMult: parseFloat(g.speed_mult)||1
     });

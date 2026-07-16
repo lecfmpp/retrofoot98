@@ -841,6 +841,17 @@ function scResenhaDraw(){
     action
   });
 }
+/* seed 32-bit estável e não-zero a partir do games.seed (bigint/string) — FNV-1a sobre a string.
+   Igual em todos os clientes; evita a truncagem inconsistente / o 0-falsy do newGame. */
+function resenhaSeed32(raw){
+  // COAGE pra Number primeiro: o host lê games.seed como number e o convidado como string; ambos
+  // convergem pro MESMO double (mesma precisão), então String(Number(x)) é idêntico nos dois. Sem
+  // isso, String("2566...456") != String(Number(...)=...520) -> seeds diferentes -> jogos paralelos.
+  const n=Number(raw); const s=String(Number.isFinite(n)?n:0);
+  let h=2166136261>>>0;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); }
+  h=h>>>0; return h||1; // nunca 0 (0 cairia no Math.random do newGame)
+}
 function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=room.participants.find(p=>p.id===NET.self.id);
   // SEGURANÇA: convidado sem clube ainda? re-lê os assentos uma vez e tenta de novo (o sorteio do
   // host pode não ter chegado). Evita começar com o clube de outro (participants[0]).
@@ -860,9 +871,14 @@ function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=ro
   DATA.clubs = startClubs.slice();
   CL.intlUniverse=false; CL.bgCountries=[]; CL.playCountry='Brasil';
   CL.clubId=(me&&me.clubId)||room.participants[0].clubId; CL.mgr=me?me.name:CL.mgr;
-  newGame(CL.clubId, startDiv, undefined, room.seed); if(!S.stadium) S.stadium={capacity:STAND_START}; // seed compartilhada -> mesma competição p/ todos
+  // SEED: games.seed é um bigint enorme; passar direto pra newGame trunca de formas diferentes por
+  // cliente (e >>>0 podia dar 0, caindo no Math.random -> competições paralelas). Derivo um seed
+  // 32-bit ESTÁVEL e NÃO-ZERO da string do games.seed (FNV-1a) — igual em todos os clientes.
+  const seed32=resenhaSeed32(room.seed);
+  newGame(CL.clubId, startDiv, undefined, seed32); if(!S.stadium) S.stadium={capacity:STAND_START}; // seed compartilhada -> mesma competição p/ todos
   CL.humans={}; room.participants.forEach(p=>{ if(p.clubId) CL.humans[p.clubId]=p.name; });
-  CL.online=true; CL.formation=null; CL.tacticChosen=false; S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
+  CL.online=true; CL._playedRound=null; CL._hostPendingCommit=null; CL._hostCloseSince=0; // zera controle de rodada do save novo
+  CL.formation=null; CL.tacticChosen=false; S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
   CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||null;
   cdraw(); // ao entrar na Resenha, vai SEMPRE direto pra TELA PRINCIPAL do time
 
@@ -987,19 +1003,22 @@ function onlineTimerLoop(){
       }
     }
   } else if(CL.online && room && room.phase==='running' && CL.screen!=='live' && !CL.live && !CL._liveBusy && !ONLINE_BUSY_ACTIVE){
-    // LOCKSTEP: já terminei minha rodada e estou de volta na tela do time — peço a reabertura da
-    // próxima 'ready'. O servidor só reabre quando TODOS terminaram (ninguém mais ocupado), então
-    // fico "aguardando os outros" até o último terminar. Retry contínuo (throttled) fecha a corrida.
+    // SAVE ÚNICO: quem reabre a próxima 'ready' é SÓ o ANFITRIÃO, e SÓ depois de já ter fechado a
+    // rodada (sem commit pendente). Se um convidado reabrisse antes, a fase ciclava e a rodada
+    // travava/loopava. O reopen só efetiva quando ninguém está busy (barreira do servidor).
     ONLINE_LASTSEC=null;
-    if(NET.reopenReady){ if(Date.now()-ONLINE_ADV_T>1200){ ONLINE_ADV_T=Date.now(); NET.reopenReady(); } }
+    if(NET.isHost && !CL._hostPendingCommit && NET.reopenReady){ if(Date.now()-ONLINE_ADV_T>1200){ ONLINE_ADV_T=Date.now(); NET.reopenReady(); } }
   } else { ONLINE_LASTSEC=null; }
   const intv=Math.max(100, 300/(CL.speedMult||1));
   ONLINE_TIMER=setTimeout(onlineTimerLoop, intv);
 }
 function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return; if(!CL.online || !S) return;
+  // JÁ JOGUEI ESTA RODADA: fico LIVRE aguardando o fechamento (anfitrião) — NÃO re-simulo a mesma
+  // rodada. Sem isso, o cliente ficava em loop jogando a rodada 1 pra sempre (a fase volta pra
+  // 'running' antes do host fechar, e o cliente jogava de novo).
+  if(CL._playedRound===S.round) return;
   // SAVE ÚNICO: não jogo uma rodada ANTES de espelhar o estado autoritativo do anfitrião. Se o host
-  // já fechou a rodada (games.round à frente da minha), primeiro sincronizo (mundo/tabela novos) e só
-  // então jogo — senão jogaria a rodada seguinte sobre um mundo velho.
+  // já fechou a rodada (games.round à frente da minha), primeiro sincronizo (mundo/tabela novos).
   if(typeof NET!=='undefined' && NET.room && (NET.room.round||0) > (S.round||0)){ onlineReconcileIfBehind(NET.room); return; }
   CL._liveBusy=true; startLiveRound(); }
 

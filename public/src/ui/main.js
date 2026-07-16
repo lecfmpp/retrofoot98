@@ -3053,11 +3053,12 @@ function nowMs(){ try{ return Date.now(); }catch(e){ return 0; } }
    avanço/reabertura segue soberano pelo cronômetro (reopen_ready quando ninguém está busy). */
 function onlineReturnFreeAfterMatch(){
   if(CL._liveTimer) clearTimeout(CL._liveTimer);
+  CL._playedRound=S.round; // marca que JÁ joguei esta rodada — não re-simulo (evita loop na mesma rodada)
   CL.live=null; CL.subsUsed=0; CL._liveBusy=false;
   CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||CL.selPlayer; cdraw();
   if(CL.lastGate){ toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0; }
-  // cronômetro soberano: peço a reabertura da próxima 'ready' (só reabre quando NINGUÉM está busy)
-  if(typeof NET!=='undefined' && NET.gameId){ if(NET.reopenReady) NET.reopenReady(); else if(NET.isHost && NET.start) NET.start(); }
+  // NÃO reabro a próxima rodada aqui: quem fecha e reabre a rodada é o ANFITRIÃO, DEPOIS de resolver
+  // (onlineHostCloseRound). Reabrir antes do commit fazia a fase ciclar e travava/loopava a rodada.
 }
 /* ANFITRIÃO fecha a rodada online: quando NENHUM humano está mais em partida (busy limpo — teto de
    90s no servidor, então não trava), resolve a rodada UMA vez com os resultados publicados por todos
@@ -3083,6 +3084,9 @@ function onlineHostCloseRound(){
   const userResultAuth = (myKey && map[myKey]) ? map[myKey] : pc.userResult; // mandante-autoritativo
   const allEvents = Object.values(map).flatMap(r=>r.events||[]);
   _commitLeagueRound(pc.RL, userResultAuth, map, allEvents, pc.audit); // resolve + persiste (host)
+  // reabre a próxima 'ready' pra TODOS logo após resolver+persistir (games.round já avançou, então os
+  // convidados espelham antes de jogar a próxima). Sem isso a rodada não avançava (host-autoritativo).
+  if(typeof NET!=='undefined' && NET.reopenReady) NET.reopenReady();
 }
 /* commit de uma rodada de liga — extraído do fim de finishLiveRound pra ser reusado depois
    da fila de partidas hotseat (FASE 2). humanResults = {fxKey:{hg,ag,scorers,perf,events}}. */
