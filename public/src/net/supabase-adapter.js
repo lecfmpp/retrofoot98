@@ -183,10 +183,25 @@ function netMergeParticipants(){
     if(seen[uid] || SB_KICKED[uid]) return; const c=claimed[uid];
     list.push({ id:uid, name:c.name||'(sem nome)', email:c.email||'', confirmed:true, clubId:c.clubId||null, ready:c.ready||false, host: uid===NET.room.hostId, online:false, busy:false });
   });
+  // membros APROVADOS sem assento (host): aparecem no lobby mesmo sem presença ao vivo
+  const appr = NET._approvedMembers || {};
+  Object.keys(appr).forEach(uid=>{
+    if(seen[uid] || SB_KICKED[uid]) return; seen[uid]=1;
+    list.push({ id:uid, name:appr[uid]||'(sem nome)', email:'', confirmed:true, clubId:null, ready:false, host: uid===NET.room.hostId, online: !!(SB_ONLINE&&SB_ONLINE[uid]), busy:false });
+  });
   if(!seen[SB_AUTH_USER.id] && !claimed[SB_AUTH_USER.id]){
     list.push({ id:SB_AUTH_USER.id, name:NET.self.name, email:NET.self.email, confirmed:true, clubId:null, ready:false, host:NET.isHost, online:true, busy:false });
   }
   NET.room.participants = list;
+  // PONTE de escalação: joga a última escalação/tática sincronizada de cada OUTRO humano em
+  // S.clubXI[clube]/S.clubTactic[clube] — é o que availableXI/tacticForClub leem pra simular o clube
+  // dele com a escalação REAL dele (não autoXI) quando ele está ausente/não joga ao vivo. Pulamos o
+  // MEU clube (mando localmente a minha escalação; o synced pode estar defasado do que acabei de mudar).
+  if(typeof S!=='undefined' && S && S.squads){
+    S.clubXI=S.clubXI||{}; S.clubTactic=S.clubTactic||{};
+    Object.keys(claimed).forEach(uid=>{ if(uid===SB_AUTH_USER.id) return; const c=claimed[uid];
+      if(c && c.clubId){ if(c.last_xi && c.last_xi.length) S.clubXI[c.clubId]=c.last_xi.slice(); if(c.last_tactic) S.clubTactic[c.clubId]=c.last_tactic; } });
+  }
   if(NET.onState) NET.onState(NET.room);
 }
 
@@ -220,7 +235,7 @@ async function netJoinRoom(code, me){
   const { data: seatsData } = await sb.from('game_seats').select('*').eq('game_id', gameData.id);
   const { data: msgs } = await sb.from('messages').select('*').eq('game_id', gameData.id).order('created_at').limit(100);
   NET._claimed = {};
-  (seatsData||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until }; });
+  (seatsData||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic }; });
   NET.room = {
     code: gameData.id, gameId: gameData.id, name: gameData.name, hostId: gameData.host_id, mode: gameData.mode, phase: gameData.phase,
     participants: [], seed: gameData.seed, round: gameData.round||0, deadline: gameData.ready_deadline?new Date(gameData.ready_deadline).getTime():0,
@@ -246,7 +261,7 @@ async function netRefreshRoom(){
     });
     const { data: seats } = await sb.from('game_seats').select('*').eq('game_id', NET.gameId);
     NET._claimed = NET._claimed || {};
-    (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until }; });
+    (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic }; });
     netMergeParticipants(); // -> NET.onState (transição lobby->jogo + reconcile de rodada)
     return NET.room;
   }catch(e){ console.warn('refreshRoom:', e&&e.message); return null; }
@@ -264,6 +279,14 @@ async function netHeartbeatBusy(){
 async function netClearBusy(){
   if(!sb || !NET.gameId || !SB_AUTH_USER) return;
   try{ await sb.from('game_seats').update({ busy_until: null }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id); }catch(e){}
+}
+/* PUBLICA a última escalação/tática do MEU clube no meu assento — os outros clientes leem isso
+   (via game_seats -> _claimed -> S.clubXI) pra simular o MEU clube com a MINHA escalação real quando
+   eu estou ausente/não jogo ao vivo. Sem isso, cada cliente simulava com autoXI e os resultados
+   divergiam. jsonb aceita o array de nomes de S.xi. */
+async function netPublishLineup(xi, tactic){
+  if(!sb || !NET.gameId || !SB_AUTH_USER) return;
+  try{ await sb.from('game_seats').update({ last_xi:(xi&&xi.length)?xi:null, last_tactic:tactic||null }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id); }catch(e){}
 }
 
 /* ---- reivindicar clube ---- */
@@ -587,7 +610,7 @@ function netSetupRealtime(){
 
   SB_CH.on('postgres_changes', { event:'UPDATE', schema:SB_SCHEMA, table:'game_seats', filter:'game_id=eq.'+NET.gameId }, (p)=>{
     if(!p.new) return;
-    if(p.new.user_id){ NET._claimed[p.new.user_id] = { clubId:p.new.club_id, ready:p.new.is_ready, name:p.new.name, email:p.new.email, busy_until:p.new.busy_until }; }
+    if(p.new.user_id){ NET._claimed[p.new.user_id] = { clubId:p.new.club_id, ready:p.new.is_ready, name:p.new.name, email:p.new.email, busy_until:p.new.busy_until, last_xi:p.new.last_xi, last_tactic:p.new.last_tactic }; }
     netMergeParticipants();
   });
 
@@ -701,6 +724,16 @@ async function netCountPendingJoins(){
     return count||0;
   }catch(e){ return 0; }
 }
+/* membros já APROVADOS (host lê todos os pedidos aprovados da sala dele). Sem o auto-sorteio na
+   entrada, o convidado não tem assento no lobby — então garantimos que ele apareça na lista de
+   participantes por aqui (além da presença), pra o host conseguir sortear/começar de forma confiável. */
+async function netListApprovedMembers(){
+  if(!sb || !NET.gameId) return [];
+  try{
+    const { data } = await sb.from('join_requests').select('user_id,name').eq('game_id', NET.gameId).eq('status','approved');
+    return data||[];
+  }catch(e){ return []; }
+}
 async function netDecideJoin(userId, status){
   if(!sb || !NET.isHost || !NET.gameId || !userId) return false;
   try{
@@ -747,6 +780,7 @@ NET.joinRoom = netJoinRoom;
 NET.refreshRoom = netRefreshRoom;
 NET.heartbeatBusy = netHeartbeatBusy;
 NET.clearBusy = netClearBusy;
+NET.publishLineup = netPublishLineup;
 NET.setMode = netSetMode;
 NET.assignClub = netAssignClub;
 NET.drawClubs = netDrawClubs;
@@ -780,6 +814,8 @@ NET.joinRequestStatus = netJoinRequestStatus;
 NET.cancelJoinRequest = netCancelJoinRequest;
 NET.clearJoinPoll = netClearJoinPoll;
 NET.listJoinRequests = netListJoinRequests;
+NET.listApprovedMembers = netListApprovedMembers;
+NET.mergeParticipants = netMergeParticipants;
 NET.countPendingJoins = netCountPendingJoins;
 NET.approveJoin = netApproveJoin;
 NET.rejectJoin = netRejectJoin;

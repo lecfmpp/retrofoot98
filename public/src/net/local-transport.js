@@ -151,7 +151,9 @@ function wireNet(){ NET.onState=(room)=>{ if(room && room.speedMult && !NET.isHo
     // CONVIDADO NO LOBBY: quando o anfitrião COMEÇA (a fase sai de 'lobby'), o convidado entra no
     // jogo JUNTO — antes ele ficava preso no "à espera do anfitrião" enquanto o host já jogava.
     if(room && room.phase && room.phase!=='lobby' && !CL.online && CL.screen==='online' && CL.net && CL.net.step==='lobby'){
-      onlineBeginSeason(); return;
+      // re-lê os assentos ANTES de montar o jogo: o clube sorteado pra mim (pelo host) pode chegar
+      // logo depois do evento de fase — sem isso, onlineBeginSeason pegaria um clube errado.
+      (async ()=>{ try{ if(NET.refreshRoom) await NET.refreshRoom(); }catch(e){} onlineBeginSeason(); })(); return;
     }
     onlineReconcileIfBehind(room); // itens 1 e 3: mantém todos na MESMA rodada (recarrega se ficou pra trás)
     if(CL.screen==='online'){ renderOnlineInto(); } else { renderChatBoxes(); const rb=document.querySelector('.cl-statusbar'); if(rb && room) rb.outerHTML=onlineStatusSidebar(); }
@@ -399,20 +401,12 @@ function routeAfterJoin(){
     return;
   }
   if(room.phase==='lobby'){
-    // SORTEIO OBRIGATÓRIO JÁ NA ENTRADA (item #33): o convidado aprovado assume um clube livre
-    // agora — assim passa a aparecer pra todos via game_seats (Realtime confiável, não depende de
-    // Presence) e o anfitrião consegue chegar a 2 jogadores pra começar. Antes ele entrava sem
-    // assento e só apareceria via presença (frágil) -> ficava invisível na lista de participantes.
-    const free=freeClubIds();
-    if(free.length){
-      const pick=free[Math.floor(Math.random()*free.length)].id;
-      toastC('Sorteando seu time...');
-      (async ()=>{ try{ await NET.assignClub(NET.self.id, pick); }catch(e){ console.warn('auto-seat lobby:', e&&e.message); }
-        CL.net.step='lobby'; cdraw(); })();
-    } else { CL.net.step='lobby'; cdraw(); }
-    return;
+    // SEM auto-sorteio na entrada: o sorteio acontece SÓ no lobby (o anfitrião clica "Sortear times"
+    // e/ou "Começar"). O convidado entra sem clube e aparece na lista via Presence + pedidos aprovados
+    // (ver netListApprovedMembers). Todos só avançam pra tela do time quando TODOS forem sorteados.
+    CL.net.step='lobby'; cdraw(); return;
   }
-  // temporada já rolando, sem clube -> tela de sorteio de entrada (midjoin)
+  // temporada já rolando, sem clube -> tela de sorteio de entrada (midjoin, sempre aleatório)
   CL.net.step='midjoin'; cdraw();
 }
 
@@ -622,9 +616,6 @@ function freeClubIds(){ const room=NET.room; if(!room) return [];
   const taken=new Set((room.participants||[]).map(p=>p.clubId).filter(Boolean));
   return pool.filter(c=>!taken.has(c.id));
 }
-function freeClubOptions(){ const free=freeClubIds();
-  return '<option value="">Escolher time...</option>'+free.map(c=>`<option value="${c.id}">${escC(c.short)} (${c.overall})</option>`).join('');
-}
 function clWaInvite(){ const ph=(CL.net.phone||'').replace(/\D/g,''); if(ph.length<10){ toastC('Informe DDD + número (ex.: 11912345678).'); return; }
   try{ window.open(NET.waLink(ph),'_blank'); }catch(e){} toastC('Abrindo WhatsApp…'); }
 function clEmailInvite(){ const em=(CL.net.inviteEmail||'').trim(); if(!em || !em.includes('@')){ toastC('Informe um e-mail válido.'); return; }
@@ -667,6 +658,11 @@ function clStartHostReqPoll(){
       const reqs=await NET.listJoinRequests();
       const prev=(CL.pendingJoins||[]).length;
       CL.pendingJoins=reqs;
+      // membros aprovados -> mapa que o netMergeParticipants usa pra mostrar o convidado no lobby
+      // mesmo sem assento (sem depender só da presença). Só relevante no lobby.
+      if(CL.screen==='online' && CL.net && CL.net.step==='lobby' && NET.listApprovedMembers){
+        try{ const appr=await NET.listApprovedMembers(); const m={}; appr.forEach(a=>{ m[a.user_id]=a.name; }); const before=Object.keys(NET._approvedMembers||{}).length; NET._approvedMembers=m; if(Object.keys(m).length!==before && NET.mergeParticipants) NET.mergeParticipants(); }catch(_){}
+      }
       if(reqs.length>prev && CL.screen==='main'){ toastC('🔔 Novo pedido de entrada na Resenha — menu "Modo Resenha".'); }
       if(CL.screen==='online' && CL.net && CL.net.step==='lobby' && reqs.length!==prev) renderOnlineInto();
       if(CL._reqPanelOpen) clRenderReqPanel();
@@ -675,7 +671,7 @@ function clStartHostReqPoll(){
   tick();
   HOST_REQ_POLL=setInterval(tick, 5000);
 }
-function clStopHostReqPoll(){ if(HOST_REQ_POLL){ clearInterval(HOST_REQ_POLL); HOST_REQ_POLL=null; } CL.pendingJoins=[]; }
+function clStopHostReqPoll(){ if(HOST_REQ_POLL){ clearInterval(HOST_REQ_POLL); HOST_REQ_POLL=null; } CL.pendingJoins=[]; if(typeof NET!=='undefined') NET._approvedMembers={}; }
 /* linhas de pedidos (reusadas no painel do lobby e no modal em jogo) */
 function clReqRowsHTML(){
   const reqs=CL.pendingJoins||[];
@@ -735,7 +731,15 @@ function clLobbyStart(){ const room=NET.room;
     onlineBeginSeason(); // cria o jogo compartilhado (mesma seed p/ todos) e entra no hub online
   })();
 }
-function onlineBeginSeason(){ const room=NET.room; const me=room.participants.find(p=>p.id===NET.self.id);
+function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=room.participants.find(p=>p.id===NET.self.id);
+  // SEGURANÇA: convidado sem clube ainda? re-lê os assentos uma vez e tenta de novo (o sorteio do
+  // host pode não ter chegado). Evita começar com o clube de outro (participants[0]).
+  if(CL.online && !NET.isHost && (!me || !me.clubId) && typeof NET!=='undefined' && NET.refreshRoom && !onlineBeginSeason._retry){
+    onlineBeginSeason._retry=1;
+    (async ()=>{ try{ await NET.refreshRoom(); }catch(e){} onlineBeginSeason(); })();
+    return;
+  }
+  onlineBeginSeason._retry=0;
   // A Resenha começa SEMPRE na ÚLTIMA divisão do Brasil (Série D) — a graça é o desafio de subir da
   // base até a Série A e ganhar títulos. Se este jogador vinha de um solo (universo intl, outra
   // divisão, transferência ao exterior), DATA.clubs/universo ficaram alterados e newGame(clubId)
@@ -882,6 +886,9 @@ function onlineRecoverRunRound(){
 
 /* quando o usuário clica Jogar no modo online, marca "pronto" em vez de rodar sozinho */
 function onlineMarkReady(){ NET.setReady(true, CL.clubId); toastC('Pronto! À espera dos outros treinadores.'); cdraw();
+  // publica minha escalação/tática atual pros outros clientes — se eu ficar ausente, meu clube é
+  // simulado com ELA (não com autoXI). availableXI/tacticForClub leem via S.clubXI (ver a ponte).
+  if(typeof NET!=='undefined' && NET.publishLineup && typeof S!=='undefined' && S){ if(!CL.humans||CL.humans[CL.clubId]) NET.publishLineup((S.xi||[]).slice(), S.tactic||'equilibrado'); }
   onlineRecoverRunRound(); // a fase já virou 'running' (cronômetro expirou enquanto eu jogava a copa)? destrava a rodada de liga
 }
 
