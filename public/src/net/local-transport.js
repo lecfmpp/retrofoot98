@@ -574,6 +574,7 @@ function scLobby(){ const room=NET.room;
   const nParts=room.participants.length;
   const canStart=host && nParts>=2;
   if(host) clStartHostReqPoll();
+  else clStartLobbyPoll(); // CONVIDADO: poll de segurança pra não ficar preso se o realtime falhar
 
   // ---- lista de treinadores na sala (o time NÃO é revelado aqui — só na tela de sorteio) ----
   const parts=room.participants.map(p=>{ const isSelf=p.id===NET.self.id;
@@ -766,7 +767,20 @@ function clRenderReqPanel(){
 }
 function clCloseReqPanel(){ CL._reqPanelOpen=false; clCloseOverlay(); }
 
-function clLobbyExit(){ clStopHostReqPoll(); CL.screen='modo'; cdraw(); }
+/* CONVIDADO no lobby: poll de segurança. Se o realtime não entregar a saída de 'lobby' (o anfitrião
+   apertou Começar), este poll re-lê o estado a cada 2.5s e o refreshRoom->onState dispara a transição
+   pra tela de sorteio. Sem isso o convidado ficava preso no lobby esperando pra sempre. */
+let LOBBY_POLL=null;
+function clStartLobbyPoll(){
+  if(LOBBY_POLL || (typeof NET!=='undefined' && NET.isHost)) return;
+  LOBBY_POLL=setInterval(async ()=>{
+    if(!(CL.screen==='online' && CL.net && CL.net.step==='lobby' && !CL.online)){ clStopLobbyPoll(); return; }
+    try{ if(NET.refreshRoom) await NET.refreshRoom(); }catch(e){} // -> onState trata lobby->sorteio
+    if(NET.room && NET.room.phase && NET.room.phase!=='lobby') clStopLobbyPoll();
+  }, 2500);
+}
+function clStopLobbyPoll(){ if(LOBBY_POLL){ clearInterval(LOBBY_POLL); LOBBY_POLL=null; } }
+function clLobbyExit(){ clStopHostReqPoll(); clStopLobbyPoll(); CL.screen='modo'; cdraw(); }
 /* "Começar" (anfitrião): sorteia TODOS os assentos dos treinadores PRESENTES a partir dos clubes
    disponíveis do save (grava em game_seats), depois abre a temporada (NET.start → fase sai de
    'lobby'). A saída de 'lobby' dispara a TELA DE REVEAL em todos os clientes (host + convidados)
@@ -787,6 +801,7 @@ function clLobbyStart(){ if(!NET.isHost) return;
    (~2s, estilo sorteio de copa) e, ao terminar, chama onlineBeginSeason() — que usa a seed
    compartilhada (mesma competição p/ todos) e restaura o clube local. Botão "Pular" acelera. */
 function startResenhaDraw(){
+  if(typeof clStopLobbyPoll==='function') clStopLobbyPoll(); // saí do lobby: para o poll de segurança
   const room=NET.room;
   if(!room){ onlineBeginSeason(); return; }
   const poolById={}; (typeof resenhaStartClubs==='function'?resenhaStartClubs():[]).forEach(c=>{ poolById[c.id]=c; });
