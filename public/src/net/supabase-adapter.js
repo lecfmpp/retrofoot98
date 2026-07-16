@@ -321,17 +321,28 @@ async function netStart(){
   catch(e) { console.error('start erro:', e); }
 }
 
-/* CRONÔMETRO SOBERANO: QUALQUER cliente reabre a janela 'ready' da próxima rodada ao terminar
-   sua partida — via RPC reopen_ready (idempotente no servidor: só o 1º que chega, quando a fase
-   é 'running', reabre; os outros no-op). Antes isso era exclusivo do anfitrião (NET.start), então
-   se o host sumia depois da partida, ninguém reabria a rodada e todos travavam. */
+/* CRONÔMETRO SOBERANO + LOCKSTEP: QUALQUER cliente pede pra reabrir a 'ready' da próxima rodada ao
+   terminar sua partida. O servidor (reopen_ready) SÓ reabre quando NINGUÉM está mais ocupado — ou
+   seja, quando TODOS terminaram a rodada (inclusive copa) e estão na tela do time. Assim ninguém
+   avança de rodada antes dos outros. A reabertura deixa o timer DESARMADO (deadline null); ele só
+   arma via arm_ready_timer, também quando todos estão livres — então o cronômetro começa junto. */
 async function netReopenReady(){
   if(!sb || !NET.gameId || !NET.room || NET.room.phase!=='running') return;
   try{
     const { data, error } = await sb.rpc('reopen_ready', { p_game: NET.gameId });
     if(error) throw error;
-    if(data==='ready' && NET.room){ NET.room.phase='ready'; NET.room.deadline=Date.now()+60000; NET.room.paused=false; if(NET.onState) NET.onState(NET.room); }
+    if(data==='ready' && NET.room){ NET.room.phase='ready'; NET.room.deadline=0; NET.room.paused=false; if(NET.onState) NET.onState(NET.room); }
   }catch(e){ console.warn('reopenReady:', e && e.message); }
+}
+/* arma os 60s da 'ready' — o servidor só arma quando ninguém está ocupado (todos na tela do time).
+   Qualquer cliente chama enquanto está na 'ready' com o timer ainda desarmado. */
+async function netArmReadyTimer(){
+  if(!sb || !NET.gameId || !NET.room || NET.room.phase!=='ready') return;
+  try{
+    const { data, error } = await sb.rpc('arm_ready_timer', { p_game: NET.gameId });
+    if(error) throw error;
+    if(data==='armed' && NET.room && !NET.room.deadline){ NET.room.deadline=Date.now()+60000; if(NET.onState) NET.onState(NET.room); }
+  }catch(e){ console.warn('armReadyTimer:', e && e.message); }
 }
 
 async function netPause(){
@@ -733,6 +744,7 @@ NET.setSpeed = netSetSpeed;
 NET.toRunning = netToRunning;
 NET.advancePhaseExpired = netAdvancePhaseExpired;
 NET.reopenReady = netReopenReady;
+NET.armReadyTimer = netArmReadyTimer;
 NET.toLobby = netToLobby;
 NET.kick = netKick;
 NET.sendChat = netSendChat;

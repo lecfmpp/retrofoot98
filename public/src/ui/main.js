@@ -2250,7 +2250,9 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
   if(pendingInjury){ openInjuryModal(pendingInjury.m, pendingInjury.e); return; }
   if(RL.minute>=45 && !RL.halftimeDone){ RL.halftimeDone=true;
     const ui=RL.matches.findIndex(m=>m.user);
-    if(ui>=0 && (!CL.options || CL.options.subsIntervalo!=='Não')){ RL.paused=true; RL.sel=ui; cdraw(); return; } }
+    if(ui>=0 && (!CL.options || CL.options.subsIntervalo!=='Não')){ RL.paused=true; RL.sel=ui;
+      if(CL.online) startHalftimeCountdown(); // Resenha: intervalo dura no máximo 10s (mantém todos sincronizados)
+      cdraw(); return; } }
   if(RL.minute>=RL.maxMin){
     // mata-mata empatado, jogado ao vivo pelo próprio usuário: prorrogação e pênaltis
     // acontecem AO VIVO na tela dele (não são resolvidos instantaneamente por trás) —
@@ -2475,9 +2477,25 @@ function closePenaltyModal(){
 function liveRowClick(i){ CL.live.sel=i; CL.subOut=CL.subIn=null; CL.subPanelOpen=false; cdraw(); }
 function liveContinue(){ const RL=CL.live; if(!RL) return;
   CL.subPanelOpen=false;
-  if(RL.paused){ RL.paused=false; RL.sel=RL.cup?0:null; cdraw(); CL._liveTimer=setTimeout(liveTick,320); return; }
+  if(RL.paused){ clearHalftimeCountdown(); RL.paused=false; RL.halftimeLeft=null; RL.sel=RL.cup?0:null; cdraw(); CL._liveTimer=setTimeout(liveTick,320); return; }
   if(RL.cup) return; // partida avulsa de copa: só tem essa partida, não tem lista pra "voltar"
   RL.sel=null; cdraw(); }
+/* INTERVALO na Resenha: no máximo 10s para fazer a substituição — se o usuário não apertar
+   Continuar, avança sozinho ao fim do tempo (mantém todos os treinadores sincronizados no tempo). */
+let HALFTIME_TIMER=null;
+function startHalftimeCountdown(){
+  clearHalftimeCountdown();
+  const RL=CL.live; if(!RL) return;
+  RL.halftimeLeft=10;
+  HALFTIME_TIMER=setInterval(()=>{
+    const rl=CL.live;
+    if(!rl || !rl.paused){ clearHalftimeCountdown(); return; }
+    rl.halftimeLeft=(rl.halftimeLeft!=null?rl.halftimeLeft:10)-1;
+    const el=document.querySelector('.cl-ht-count'); if(el) el.textContent=Math.max(0,rl.halftimeLeft)+'s';
+    if(rl.halftimeLeft<=0){ clearHalftimeCountdown(); liveContinue(); }
+  }, 1000);
+}
+function clearHalftimeCountdown(){ if(HALFTIME_TIMER){ clearInterval(HALFTIME_TIMER); HALFTIME_TIMER=null; } }
 /* ---- LESÃO: jogador do usuário se machuca em campo — pausa e pede pra escolher quem
    entra no lugar, filtrando pela MESMA posição do lesionado (com reserva de emergência
    se não sobrar ninguém daquela posição no banco). Modal clássico: barra de título com
@@ -2661,7 +2679,7 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
   const actionsHTML=(penalty||injury||shooting)?'':`<div class="cl-lm-cont" style="grid-template-columns:${m.user && !halftime ? 'repeat(3,1fr)' : '1fr 1fr'}">
         ${(m.user && !halftime)?btn(showSubs?'Fechar substituições':`Substituições (${subsLeft})`,'clToggleSubPanel()',{icon:'⇄',cls:'cl-btn-ok',dis:subsLeft<=0&&!showSubs}):''}
         ${m.user?btn('Compartilhar','clShareResult()',{icon:'📤',cls:'cl-btn-cancel cl-noshot'}):''}
-        ${btn('Continuar','liveContinue()',{icon:'✔',cls:'cl-btn-ok'})}
+        ${btn((halftime && CL.online)?`Continuar <span class="cl-ht-count">${Math.max(0,RL.halftimeLeft!=null?RL.halftimeLeft:10)}s</span>`:'Continuar','liveContinue()',{icon:'✔',cls:'cl-btn-ok'})}
       </div>`;
   return `<div class="cl-lm-title">${escC(hc.short)}, ${m.hg} - ${escC(ac.short)}, ${m.ag}</div>
     <div class="cl-lm-top">

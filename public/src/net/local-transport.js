@@ -768,15 +768,17 @@ function onlineBeginSeason(){ const room=NET.room; const me=room.participants.fi
 /* ---- durante a rodada online: painel "à espera dos treinadores" + timer ---- */
 function onlineReadyBar(){ const room=NET.room; if(!CL.online||!room||room.phase==='lobby') return '';
   const ready=room.participants.filter(p=>p.ready).length, total=room.participants.length;
-  // cronômetro SOBERANO/IMUTÁVEL: sempre conta pelo deadline (sem pausa do anfitrião)
-  const secs=Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
+  // TIMER DESARMADO (deadline 0): ainda tem gente terminando a rodada/copa — o cronômetro só começa
+  // quando TODOS estão na tela do time. Enquanto isso, mostra "aguardando" em vez de contar.
+  const armed=(room.deadline||0)>0;
+  const secs=armed ? Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000)) : null;
   const list=room.participants.map(p=>{ const self=NET.self&&p.id===NET.self.id;
     const k=(NET.isHost && !self)?`<button class="cl-rb-kick" title="Remover da Resenha" onclick="clKick('${p.id}','${p.clubId||''}')">✖</button>`:'';
     return `<span class="cl-rb-p ${p.ready?'rdy':''}">${p.ready?'✓':'⏳'} ${escC((p.name||'').split(' ')[0])}${k}</span>`; }).join('');
-  return `<div class="cl-readybar ${secs<=10?'urgent':''}">
-    <span class="cl-rb-t">À espera dos treinadores ${ready}/${total}</span>
+  return `<div class="cl-readybar ${armed&&secs<=10?'urgent':''}">
+    <span class="cl-rb-t">${armed?'À espera dos treinadores':'Aguardando todos terminarem a rodada'} ${ready}/${total}</span>
     <span class="cl-rb-list">${list}</span>
-    <span class="cl-rb-clock">${secs+'s'}</span>
+    <span class="cl-rb-clock">${armed?secs+'s':'⏳'}</span>
   </div>`; }
 /* anfitrião remove um jogador da Resenha (lobby ou durante a partida): confirma, dispara o kick
    (broadcast + libera assento -> clube vira CPU) e re-renderiza. O expulso recebe o sinal e volta ao menu. */
@@ -812,20 +814,35 @@ function onlineTimerLoop(){
     ONLINE_BUSY_ACTIVE=false; ONLINE_BUSY_T=0; if(typeof NET!=='undefined' && NET.clearBusy) NET.clearBusy();
   }
   if(CL.online && room && room.phase==='ready'){  // sem !room.paused: cronômetro imutável
-    const secs=Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
-    if(secs!==ONLINE_LASTSEC){ ONLINE_LASTSEC=secs;
-      if(secs<=10 && secs>0){ netBeep(secs<=3?1100:820); }
-      if(secs<=0){ netBeep(1400); }
-      const bar=document.querySelector('.cl-rb-clock'); if(bar) bar.textContent=secs+'s';
-      const wrap=document.querySelector('.cl-readybar'); if(wrap){ wrap.classList.toggle('urgent', secs<=10); }
+    const armed = (room.deadline||0) > 0;
+    if(!armed){
+      // TIMER DESARMADO: ainda tem gente terminando a rodada (copa/partida). NÃO conta o cronômetro
+      // — só tenta armar (o servidor arma quando NINGUÉM está ocupado, ou seja, todos na tela do time).
+      ONLINE_LASTSEC=null;
+      const bar=document.querySelector('.cl-rb-clock'); if(bar) bar.textContent='—';
+      if(NET.armReadyTimer && !ONLINE_BUSY_ACTIVE){ if(Date.now()-ONLINE_ADV_T>1200){ ONLINE_ADV_T=Date.now(); NET.armReadyTimer(); } }
+    } else {
+      const secs=Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
+      if(secs!==ONLINE_LASTSEC){ ONLINE_LASTSEC=secs;
+        if(secs<=10 && secs>0){ netBeep(secs<=3?1100:820); }
+        if(secs<=0){ netBeep(1400); }
+        const bar=document.querySelector('.cl-rb-clock'); if(bar) bar.textContent=secs+'s';
+        const wrap=document.querySelector('.cl-readybar'); if(wrap){ wrap.classList.toggle('urgent', secs<=10); }
+      }
+      const all=room.participants.length>0 && room.participants.every(p=>p.ready);
+      if(secs<=0 || all){
+        // início da rodada: QUALQUER cliente pede ao servidor pra avançar (validado pelo deadline/
+        // prontidão + barreira busy) — não depende do anfitrião estar com a aba ativa.
+        if(NET.advancePhaseExpired){ if(Date.now()-ONLINE_ADV_T>900){ ONLINE_ADV_T=Date.now(); NET.advancePhaseExpired(); } }
+        else if(NET.isHost){ room.participants.forEach(p=>{ if(!p.ready) p.ready=true; }); NET.toRunning(); }
+      }
     }
-    const all=room.participants.length>0 && room.participants.every(p=>p.ready);
-    if(secs<=0 || all){
-      // início da rodada: QUALQUER cliente pede ao servidor pra avançar (validado pelo deadline/
-      // prontidão) — não depende mais do anfitrião estar com a aba ativa. Fallback local: só o host.
-      if(NET.advancePhaseExpired){ if(Date.now()-ONLINE_ADV_T>900){ ONLINE_ADV_T=Date.now(); NET.advancePhaseExpired(); } }
-      else if(NET.isHost){ room.participants.forEach(p=>{ if(!p.ready) p.ready=true; }); NET.toRunning(); }
-    }
+  } else if(CL.online && room && room.phase==='running' && CL.screen!=='live' && !CL.live && !CL._liveBusy && !ONLINE_BUSY_ACTIVE){
+    // LOCKSTEP: já terminei minha rodada e estou de volta na tela do time — peço a reabertura da
+    // próxima 'ready'. O servidor só reabre quando TODOS terminaram (ninguém mais ocupado), então
+    // fico "aguardando os outros" até o último terminar. Retry contínuo (throttled) fecha a corrida.
+    ONLINE_LASTSEC=null;
+    if(NET.reopenReady){ if(Date.now()-ONLINE_ADV_T>1200){ ONLINE_ADV_T=Date.now(); NET.reopenReady(); } }
   } else { ONLINE_LASTSEC=null; }
   const intv=Math.max(100, 300/(CL.speedMult||1));
   ONLINE_TIMER=setTimeout(onlineTimerLoop, intv);
