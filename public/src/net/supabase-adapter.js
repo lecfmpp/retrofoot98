@@ -611,6 +611,11 @@ function netSetupRealtime(){
   SB_CH.on('postgres_changes', { event:'UPDATE', schema:SB_SCHEMA, table:'game_seats', filter:'game_id=eq.'+NET.gameId }, (p)=>{
     if(!p.new) return;
     if(p.new.user_id){ NET._claimed[p.new.user_id] = { clubId:p.new.club_id, ready:p.new.is_ready, name:p.new.name, email:p.new.email, busy_until:p.new.busy_until, last_xi:p.new.last_xi, last_tactic:p.new.last_tactic }; }
+    else { // assento LIBERADO (ex.: expulsão): remove o dono anterior do cache — senão o clube fica
+           // "fantasma-ocupado" pros outros clientes (freeClubIds não oferece de volta) e o ex-dono
+           // continua listado como participante.
+      Object.keys(NET._claimed||{}).forEach(uid=>{ if(NET._claimed[uid] && NET._claimed[uid].clubId===p.new.club_id) delete NET._claimed[uid]; });
+    }
     netMergeParticipants();
   });
 
@@ -753,11 +758,13 @@ async function netKick(uid, clubId){
   SB_KICKED[uid]=1;
   try{ if(SB_CH) await SB_CH.send({ type:'broadcast', event:'kick', payload:{ uid, clubId: clubId||null } }); }
   catch(e){ console.warn('kick broadcast:', e && e.message); }
-  // libera o assento -> clube controlado pela CPU (o host tem permissão de update na sua sala)
-  try{ await sb.from('game_seats').update({ user_id:null, is_ready:false, is_cpu:true }).eq('game_id', NET.gameId).eq('user_id', uid); }
+  // libera o assento -> clube controlado pela CPU (o host tem permissão de update na sua sala).
+  // Limpa também a escalação/ocupado do assento liberado (não é mais de ninguém).
+  try{ await sb.from('game_seats').update({ user_id:null, is_ready:false, is_cpu:true, last_xi:null, last_tactic:null, busy_until:null }).eq('game_id', NET.gameId).eq('user_id', uid); }
   catch(e){ console.warn('kick seat:', e && e.message); }
-  // remove convite pendente pra não reentrar sozinho
+  // remove convite/aprovação pra o expulso NÃO reentrar sozinho — pra voltar, precisa ser aprovado de novo
   try{ await sb.from('room_invites').delete().eq('game_id', NET.gameId).eq('user_id', uid); }catch(e){}
+  try{ await sb.from('join_requests').delete().eq('game_id', NET.gameId).eq('user_id', uid); }catch(e){}
   // limpeza local imediata (host)
   if(NET._claimed) delete NET._claimed[uid];
   if(typeof CL!=='undefined' && CL.humans && clubId) delete CL.humans[clubId];

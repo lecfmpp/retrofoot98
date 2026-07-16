@@ -210,7 +210,11 @@ function onlineReconcileIfBehind(room){
     const saved = await NET.loadGame();
     const sState = saved && saved.S;
     if(sState && (sState.round||0) > (S.round||0)){
-      Object.assign(S, sState); if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
+      Object.assign(S, sState);
+      // o save é do HOST — restaura o MEU clube (senão eu assumo o clube do host no motor)
+      S.clubId = CL.clubId;
+      S.xi = (S.clubXI && S.clubXI[CL.clubId] && S.clubXI[CL.clubId].length) ? S.clubXI[CL.clubId].slice() : (typeof autoXI==='function' ? autoXI(CL.clubId) : S.xi);
+      if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       toastC('🔄 Sincronizado com a sala (rodada '+((S.round||0)+1)+').');
       cdraw();
     }
@@ -780,7 +784,14 @@ function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=ro
     (async ()=>{
       try {
         const savedState = await NET.loadGame();
-        if(savedState && savedState.S){ Object.assign(S, savedState.S); syncDataClubsFromState(); console.log('✓ Jogo carregado (rodada', savedState.round, ')'); }
+        if(savedState && savedState.S){ Object.assign(S, savedState.S);
+          // O save é do HOST — S.clubId/S.xi dele. RESTAURA o MEU clube: sem isso, quem reconecta/volta
+          // (ex.: depois de ser expulso) assume o CLUBE DO HOST no motor -> "dois usuários com o mesmo
+          // time". CL.clubId é o clube (livre) que EU acabei de assumir; o motor tem que usar ELE.
+          S.clubId = CL.clubId;
+          S.xi = (S.clubXI && S.clubXI[CL.clubId] && S.clubXI[CL.clubId].length) ? S.clubXI[CL.clubId].slice() : (typeof autoXI==='function' ? autoXI(CL.clubId) : S.xi);
+          CL.selPlayer = (squad(CL.clubId)[0]||{}).n || CL.selPlayer;
+          syncDataClubsFromState(); console.log('✓ Jogo carregado (rodada', savedState.round, ') — clube:', CL.clubId); }
       } catch(e) { console.warn('Load Supabase:', e); }
       cdraw();
     })();
