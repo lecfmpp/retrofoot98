@@ -364,6 +364,9 @@ function newGame(clubId, division, compToggle, seedOverride){
   // item 4: overall de cada clube = média do elenco REMAPEADO (fonte única, escala nova);
   // marca _rbOv, então clubOf não remapeia o overall curado de novo (evita divergir após transferências)
   DATA.clubs.forEach(c=>{ if(typeof recomputeClubOverall==='function') recomputeClubOverall(c.id); });
+  // overall de cada clube guardado no estado — a edge function (resolve-round) usa pro mando de campo
+  // (proxy de estádio) sem precisar do DATA.clubs; e o cliente online usa o MESMO valor -> paridade.
+  S.clubOverall={}; S.clubShort={}; DATA.clubs.forEach(c=>{ S.clubOverall[c.id]=(c.overall!=null?c.overall:70); S.clubShort[c.id]=c.short||c.id; });
   registerClubs(division, DATA.clubs); // fixa a composição inicial da divisão do usuário
   advanceAuctions();
   buildOtherDivisions();

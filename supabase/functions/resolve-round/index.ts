@@ -1,3 +1,17 @@
+
+/* ==================================================================
+   resolve-round — resolvedor de rodada de LIGA server-authoritative (Fase 1).
+   Único produtor de games.shared_state pra rodada da divisão dos jogadores.
+   Usa o MESMO motor de partida do cliente (MATCH_ENGINE, colado acima) ->
+   paridade por construção. Partidas humanas = resultado submetido (game_seats.
+   last_result, mandante-autoritativo); CPU = motor. Idempotente por state_version.
+   CONGELADO nesta fase (não mexe): copas, mercado, evolução, outras divisões,
+   finanças, virada de temporada. Entram nas próximas fases.
+   ================================================================== */
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+/* ===== MOTOR DE PARTIDA COMPARTILHADO (colado de public/src/engine/match-engine.js — fonte única) ===== */
 /* ===================================================================
    MOTOR DE PARTIDA PURO — fonte ÚNICA compartilhada cliente ⇄ servidor.
    Espelha simulate.js (simulateMatch), mas SEM globais: recebe os inputs
@@ -215,3 +229,131 @@
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
   root.MATCH_ENGINE=API;
 })(typeof globalThis!=='undefined'?globalThis:this);
+
+
+const ME = (globalThis as any).MATCH_ENGINE;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
+function json(body: unknown, status = 200) { return new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } }); }
+function clampN(v: number, a: number, b: number) { return Math.max(a, Math.min(b, v)); }
+
+/* ---- porte fiel das funções de rodada do core.js (operando no S do estado) ---- */
+function applyResultT(T: any, h: string, a: string, hg: number, ag: number) {
+  T[h].P++; T[a].P++; T[h].GF += hg; T[h].GA += ag; T[a].GF += ag; T[a].GA += hg;
+  if (hg > ag) { T[h].W++; T[a].L++; T[h].Pts += 3; }
+  else if (hg < ag) { T[a].W++; T[h].L++; T[a].Pts += 3; }
+  else { T[h].D++; T[a].D++; T[h].Pts++; T[a].Pts++; }
+}
+function recordScorers(S: any, scorers: any[]) { (scorers || []).forEach((s: any) => { S.scorers[s.name] = (S.scorers[s.name] || 0) + 1; }); }
+function findPlayerByName(S: any, clubId: string, name: string) { const sq = S.squads[clubId]; return sq && sq.find((p: any) => p.n === name); }
+function advancePlayerAvailability(S: any) {
+  Object.values(S.squads).forEach((sq: any) => sq.forEach((p: any) => { if (p.suspended > 0) p.suspended--; if (p.injuredMatches > 0) p.injuredMatches--; }));
+}
+function applyMatchIncidents(S: any, events: any[]) {
+  S._roundIncidents = S._roundIncidents || {};
+  (events || []).forEach((e: any) => {
+    if (e.type === "cartao") {
+      const p = findPlayerByName(S, e.team, e.player); if (!p) return;
+      p.stats = p.stats || { r3: [], g3: [], apps: 0, goals: 0, cs: 0 };
+      if (e.cardType === "vermelho") { p.suspended = 1; p.stats.reds = (p.stats.reds || 0) + 1; if (e.reason === "segundo amarelo") p.stats.yellows = (p.stats.yellows || 0) + 1; p.moral = clampN(p.moral - 8, 0, 100); S._roundIncidents[p.n] = { cardType: "vermelho" }; }
+      else { p.stats.yellows = (p.stats.yellows || 0) + 1; S._roundIncidents[p.n] = { cardType: "amarelo" }; }
+    } else if (e.type === "lesao") {
+      const p = findPlayerByName(S, e.team, e.player); if (!p) return;
+      p.stats = p.stats || { r3: [], g3: [], apps: 0, goals: 0, cs: 0 };
+      p.injuredMatches = Math.max(p.injuredMatches || 0, e.outMatches || 0);
+      p.stats.injuries = (p.stats.injuries || 0) + 1; p.moral = clampN(p.moral - 5, 0, 100);
+      const cur = S._roundIncidents[p.n] || {}; cur.injured = true; S._roundIncidents[p.n] = cur;
+    }
+  });
+}
+/* inputs de um clube pro motor (humano usa XI/tática submetida; CPU melhores 11 / equilibrado) */
+function sideInputs(S: any, id: string, isHuman: boolean, humanXI: any, humanTactic: any) {
+  const xiNames = isHuman ? (humanXI[id] || ME.autoXINames(S.squads[id])) : null;
+  return {
+    rat: ME.computeRatings(S.squads[id], xiNames),
+    xi: ME.resolveXI(S.squads[id], xiNames),
+    tactic: isHuman ? (humanTactic[id] || "equilibrado") : "equilibrado",
+    cap: ME.capFromOverall((S.clubOverall || {})[id] || 70),
+    short: (S.clubShort || {})[id] || id,
+  };
+}
+
+/* resolve UMA rodada da liga no estado S (mutando-o). humanResultByFx: {"h-a":{hg,ag,scorers,events}} */
+function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any) {
+  const seed = S.seed, round = S.round;
+  const fixtures = (S.sched[round] || []);
+  advancePlayerAvailability(S);                                   // 1) cumpre suspensões/lesões
+  const humanEvents: any[] = [];
+  fixtures.forEach((fx: any) => { const k = fx[0] + "-" + fx[1]; const r = humanResultByFx[k]; if (r) humanEvents.push(...(r.events || [])); });
+  applyMatchIncidents(S, humanEvents);                            // 2) incidentes NOVOS (só partidas humanas jogadas ao vivo)
+  fixtures.forEach((fx: any) => {                                 // 3) resultados: humano=submetido, CPU=motor
+    const h = fx[0], a = fx[1]; if (h == null || a == null) return; const k = h + "-" + a;
+    let hg: number, ag: number, scorers: any[];
+    const sub = humanResultByFx[k];
+    if (sub) { hg = sub.hg; ag = sub.ag; scorers = sub.scorers || []; }
+    else {
+      const mseed = ME.hashSeed(seed, round, h, a);
+      const res = ME.simMatchPure(h, a, sideInputs(S, h, humanClubs.has(h), humanXI, humanTactic), sideInputs(S, a, humanClubs.has(a), humanXI, humanTactic), mseed, {});
+      hg = res.hg; ag = res.ag; scorers = res.scorers || [];
+    }
+    applyResultT(S.table, h, a, hg, ag); recordScorers(S, scorers);
+    S.results.push({ round: round, h: h, a: a, hg: hg, ag: ag, scorers: scorers });
+  });
+  const Rr = ME.makeRng(ME.hashSeed(seed, round, "post"));        // 4) energia/moral
+  for (const cid in S.squads) for (const p of S.squads[cid]) { p.energy = clampN((p.energy || 100) + Rr.rnd(6, 16), 0, 100); p.moral = clampN((p.moral || 70) + (70 - (p.moral || 70)) * 0.08, 0, 100); }
+  humanClubs.forEach((cid) => { const xi = ME.resolveXI(S.squads[cid], humanXI[cid] || ME.autoXINames(S.squads[cid])); for (const p of xi) p.energy = clampN(p.energy - Rr.rnd(12, 22), 20, 100); });
+  S.round++; S.week = (S.week || 1) + 1; S.day = (S.day || 1) + 7; // 5) avança a rodada
+  S._roundIncidents = {};
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method !== "POST") return json({ error: "método não permitido" }, 405);
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return json({ error: "não autenticado" }, 401);
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, { db: { schema: "elifoot_v3" }, global: { headers: { Authorization: authHeader } } });
+    const { data: { user }, error: authErr } = await userClient.auth.getUser();
+    if (authErr || !user) return json({ error: "sessão inválida" }, 401);
+
+    const body = await req.json();
+    const gameId = body?.gameId; const expectedRound = body?.round;
+    if (!gameId) return json({ error: "gameId ausente" }, 400);
+
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { db: { schema: "elifoot_v3" } });
+    // só membro da sala (tem assento OU é host) pode disparar
+    const { data: seat } = await admin.from("game_seats").select("user_id").eq("game_id", gameId).eq("user_id", user.id).maybeSingle();
+    const { data: gameHost } = await admin.from("games").select("host_id, shared_state, state_version, round").eq("id", gameId).maybeSingle();
+    if (!gameHost) return json({ error: "sala não encontrada" }, 404);
+    if (!seat && gameHost.host_id !== user.id) return json({ error: "não é membro da sala" }, 403);
+
+    const stateObj = gameHost.shared_state;
+    if (!stateObj || !stateObj.S) return json({ error: "sem estado salvo ainda" }, 409);
+    const S = stateObj.S; const curVer = gameHost.state_version || 0;
+    // idempotência: se a rodada esperada não é a atual, alguém já resolveu -> devolve o estado atual
+    if (expectedRound != null && S.round !== expectedRound) return json({ ok: true, already: true, round: S.round, version: curVer });
+
+    const round = S.round;
+    const { data: seats } = await admin.from("game_seats").select("user_id, club_id, last_xi, last_tactic, last_result, last_result_round").eq("game_id", gameId);
+    const humanClubs = new Set<string>(); const humanXI: any = {}; const humanTactic: any = {}; const humanResultByFx: any = {};
+    (seats || []).forEach((s: any) => {
+      if (!s.user_id || !s.club_id) return; humanClubs.add(s.club_id);
+      if (s.last_xi) humanXI[s.club_id] = s.last_xi; if (s.last_tactic) humanTactic[s.club_id] = s.last_tactic;
+      const r = s.last_result;
+      if (r && s.last_result_round === round && r.h && r.a) { const k = r.h + "-" + r.a; if (!humanResultByFx[k] || s.club_id === r.h) humanResultByFx[k] = { hg: r.hg, ag: r.ag, scorers: r.scorers || [], events: r.events || [] }; }
+    });
+
+    resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic);
+    stateObj.round = S.round;
+
+    const { data: upd, error: upErr } = await admin.from("games").update({ shared_state: stateObj, state_version: curVer + 1, round: S.round }).eq("id", gameId).eq("state_version", curVer).select("state_version");
+    if (upErr) throw upErr;
+    if (!upd || !upd.length) { // outro resolvedor ganhou a corrida — devolve o estado atual
+      const { data: g2 } = await admin.from("games").select("state_version, round").eq("id", gameId).maybeSingle();
+      return json({ ok: true, raced: true, round: g2?.round, version: g2?.state_version });
+    }
+    return json({ ok: true, round: S.round, version: curVer + 1 });
+  } catch (e) { return json({ error: e instanceof Error ? e.message : String(e) }, 500); }
+});
