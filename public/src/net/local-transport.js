@@ -569,7 +569,10 @@ function scLobby(){ const room=NET.room;
     contentCls:'cl-wiz-center', body:`<div class="cl-wiz-sub">A ligar à sala…</div>` });
   const host=NET.isHost;
   const confirmedN=room.participants.filter(p=>p.confirmed).length;
-  const parts=room.participants.map(p=>{ const c=p.clubId?clubOf(p.clubId):null;
+  // no lobby, DATA.clubs pode NÃO ser a Série D (o host podia estar noutro universo), então clubOf
+  // não acha o clube do assento. Resolve pelo pool da Série D (mesma fonte dos assentos).
+  const poolById={}; (typeof resenhaStartClubs==='function'?resenhaStartClubs():[]).forEach(c=>{ poolById[c.id]=c; });
+  const parts=room.participants.map(p=>{ const c=p.clubId?(clubOf(p.clubId)||poolById[p.clubId]):null;
     const isSelf=p.id===NET.self.id;
     return `<div class="cl-part">
       <span class="cl-part-dot ${p.confirmed?'ok':''}"></span>
