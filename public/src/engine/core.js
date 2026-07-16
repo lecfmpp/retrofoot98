@@ -441,50 +441,110 @@ function counterIncomingOffer(id, askFee){
   o.fee=Math.min(o.maxFee, Math.round((o.fee+askFee)/2)); o.lastMsg=`${o.buyerName} subiu pra ${fmt(o.fee)}. Aceite ou peça mais.`;
   save(); return {ok:false, countered:true, msg:o.lastMsg};
 }
-/* ---- pool de leilão: uma seleção rotativa de jogadores de OUTROS clubes,
-   compra direta (sem regatear) — "Leilão de jogadores" pedido pelo sócio ---- */
-function refreshAuctionPool(R){
-  if(!inTransferWindow()){ S.auctionPool={round:S.round,picks:[]}; return; } // sem leilão fora da janela
-  const profile=(S.config&&S.config.profile)||{}; const mode=profile.auctionMode||'todos';
-  if(mode==='nenhum'){ S.auctionPool={round:S.round,picks:[]}; return; } // preferência do treinador: não comprar em leilão
-  R=R||makeRng(hashSeed(S.seed,S.round,'auction'));
-  const cpuClubs=DATA.clubs.filter(c=>c.id!==S.clubId);
-  const mySquad=S.squads[S.clubId]||[];
-  const myAvgForce=mySquad.length? mySquad.reduce((s,p)=>s+p.f,0)/mySquad.length : 65;
-  const picks=[];
-  const tries=Math.min(8, cpuClubs.length);
-  for(let i=0;i<tries;i++){
-    const club=cpuClubs[Math.floor(R.random()*cpuClubs.length)];
-    const sq=S.squads[club.id]; if(!sq || sq.length<=16) continue;
-    const p=sq[Math.floor(R.random()*sq.length)];
-    if(picks.some(x=>x.player===p.n)) continue;
-    // "não quero fazer ofertas aos jogadores mais fracos": pula quem está bem abaixo da força média do seu elenco
-    if(mode==='sem_fracos' && p.f < myAvgForce*0.85) continue;
-    picks.push({ sellerId:club.id, player:p.n, price:Math.round((p.mv||1e6)*(0.85+R.random()*0.5)) });
-  }
-  S.auctionPool={ round:S.round, picks };
+/* ============ LEILÃO COMPETITIVO (disputa contra clubes da CPU) ============
+   Cada jogador em leilão tem 2..20 clubes da CPU interessados (mais cobiçado = mais clubes e
+   TETO de preço maior). O lote fica ABERTO por até 3 rodadas; a cada rodada a CPU COBRE o lance
+   do usuário rumo ao teto. Pra LEVAR, o usuário precisa dar um lance ACIMA do teto (senão é
+   coberto na rodada seguinte). Tudo DETERMINÍSTICO por seed -> lotes/comportamento da CPU são
+   idênticos em todos os clientes da Resenha; o lance do usuário é local (como as transferências
+   de hoje — humano-vs-humano fica pra um passo futuro). */
+const AUCTION_ROUNDS=3, AUCTION_TARGET_LOTS=8;
+function auctionEligible(){ return ((S.config&&S.config.profile&&S.config.profile.auctionMode)||'todos')!=='nenhum'; }
+function auctionDesirability(p){
+  const f=p.f||60;
+  const forceScore=Math.max(0, Math.min(1, (f-45)/45));              // f45->0, f90->1
+  const ageScore=p.age? Math.max(0, Math.min(1, (32-p.age)/16)) : 0.5; // mais novo = mais cobiçado
+  return Math.max(0, Math.min(1, forceScore*0.75 + ageScore*0.25));
 }
-function buyFromAuction(sellerId, playerName){
-  if(!inTransferWindow()) return {ok:false,msg:'A janela de transferências está fechada.'};
-  if(((S.config&&S.config.profile&&S.config.profile.auctionMode)||'todos')==='nenhum')
-    return {ok:false,msg:'Você desligou compras em leilão no seu Perfil (Treinador > Perfil).'};
-  const pool=(S.auctionPool&&S.auctionPool.picks)||[];
-  const pick=pool.find(x=>x.sellerId===sellerId && x.player===playerName);
-  if(!pick) return {ok:false,msg:'Esse jogador não está mais disponível no leilão.'};
-  const p=findP(playerName, sellerId); if(!p) return {ok:false,msg:'Jogador não encontrado.'};
-  const fq=checkForeignQuota(p); if(!fq.ok) return {ok:false,msg:fq.msg}; // cota de estrangeiros da liga
-  if(pick.price>S.budget) return {ok:false,msg:'Caixa insuficiente.'};
-  S.budget-=pick.price;
-  S.squads[sellerId]=S.squads[sellerId].filter(x=>x.n!==p.n);
+function auctionInterest(p, R){ // 2..20 clubes disputando, crescendo com a desirabilidade
+  const n=Math.round(2 + auctionDesirability(p)*18 + (R.random()-0.5)*3);
+  return Math.max(2, Math.min(20, n));
+}
+function auctionCeiling(p, interest, R){ // teto que a CPU paga: mais concorrência = maior
+  const base=Math.max(1, p.mv||1e6);
+  return Math.round(base*(1 + (interest/20)*1.4 + R.random()*0.25)); // 2 clubes ~1.15x, 20 ~2.6x
+}
+function makeAuctionLot(club, p, R){
+  const interest=auctionInterest(p, R);
+  return { id:club.id+'|'+p.n, sellerId:club.id, player:p.n, base:p.mv||1e6,
+    interest, ceiling:auctionCeiling(p, interest, R),
+    bid:Math.round((p.mv||1e6)*(0.6+R.random()*0.15)), leader:'cpu', myBid:0,
+    roundsLeft:AUCTION_ROUNDS, status:'open' };
+}
+function openAuctionLots(R, want){
+  if(want<=0 || !auctionEligible() || !inTransferWindow()) return;
+  S.auctions=S.auctions||{round:S.round, lots:[]};
+  const mode=(S.config&&S.config.profile&&S.config.profile.auctionMode)||'todos';
+  const mySquad=S.squads[S.clubId]||[]; const myAvg=mySquad.length? mySquad.reduce((s,p)=>s+p.f,0)/mySquad.length : 65;
+  const have=new Set(S.auctions.lots.map(l=>l.id));
+  const cpuClubs=DATA.clubs.filter(c=>c.id!==S.clubId); if(!cpuClubs.length) return;
+  let tries=0, added=0;
+  while(added<want && tries<want*8){
+    tries++;
+    const club=cpuClubs[Math.floor(R.random()*cpuClubs.length)];
+    const sq=club&&S.squads[club.id]; if(!sq || sq.length<=16) continue;
+    const p=sq[Math.floor(R.random()*sq.length)]; const id=club.id+'|'+p.n;
+    if(have.has(id)) continue;
+    if(mode==='sem_fracos' && p.f < myAvg*0.85) continue; // preferência do Perfil
+    S.auctions.lots.push(makeAuctionLot(club, p, R)); have.add(id); added++;
+  }
+}
+/* chamado no fim de cada rodada (playRound): CPU dá lances, resolve lotes vencidos, repõe o pool */
+function advanceAuctions(R){
+  R=R||makeRng(hashSeed(S.seed,S.round,'auction'));
+  if(!inTransferWindow() || !auctionEligible()){ S.auctions={round:S.round, lots:[]}; return; }
+  S.auctions=S.auctions||{round:S.round, lots:[]};
+  const still=[];
+  S.auctions.lots.forEach(l=>{
+    if(l.status!=='open') return;
+    if(l.leader==='me'){
+      if((l.myBid||0) < l.ceiling){ // usuário na frente mas abaixo do teto -> CPU cobre
+        const incr=Math.max(50000, Math.round(l.ceiling*0.06));
+        l.bid=Math.min(l.ceiling, (l.myBid||l.bid)+incr); l.leader='cpu';
+      } // senão: bateu acima do teto -> segue firme na frente
+    } else { // CPU liderando -> sobe rumo ao teto
+      const incr=Math.max(50000, Math.round(l.ceiling*0.08));
+      l.bid=Math.min(l.ceiling, l.bid+incr);
+    }
+    l.roundsLeft--;
+    if(l.roundsLeft<=0) resolveAuctionLot(l); else still.push(l);
+  });
+  S.auctions.lots=still;
+  openAuctionLots(R, AUCTION_TARGET_LOTS - S.auctions.lots.length);
+  S.auctions.round=S.round;
+}
+function resolveAuctionLot(l){
+  if(l.leader!=='me'){ l.status='lost'; return; } // um clube da CPU levou
+  const p=findP(l.player, l.sellerId); if(!p){ l.status='lost'; return; }
+  const price=l.myBid||l.bid;
+  S.roundNews=S.roundNews||[];
+  if(price>S.budget){ l.status='lost'; S.roundNews.push(`❌ ${l.player}: caixa insuficiente pra pagar o lance vencedor no leilão.`); return; }
+  const fq=checkForeignQuota(p); if(!fq.ok){ l.status='lost'; S.roundNews.push(`❌ ${l.player}: ${fq.msg}`); return; }
+  S.budget-=price;
+  S.squads[l.sellerId]=(S.squads[l.sellerId]||[]).filter(x=>x.n!==p.n);
   p.contract={ salary:REBAL.wage(p.f), role:'Rotação', gotMatchesBonus:false, benchStreak:0, releaseClause:null };
   p.moral=75;
-  MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division)); // gatilho de vitrine (spec §4)
+  if(typeof MARKET!=='undefined' && MARKET.revalueOnTransfer) MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division));
   S.squads[S.clubId].push(p);
-  S.auctionPool.picks=S.auctionPool.picks.filter(x=>x!==pick);
-  S.roundNews=S.roundNews||[]; S.roundNews.push(`🔨 ${p.n} arrematado no leilão por ${fmt(pick.price)}.`);
-  pushFinanceEntry({playerPurchases:pick.price, log:[`🔨 ${p.n} arrematado no leilão por ${fmt(pick.price)}.`]});
-  save();
-  return {ok:true,msg:`${p.n} comprado no leilão!`};
+  l.status='won';
+  S.roundNews.push(`🔨 ${p.n} arrematado no leilão por ${fmt(price)} — você cobriu a concorrência!`);
+  pushFinanceEntry({playerPurchases:price, log:[`🔨 ${p.n} arrematado no leilão por ${fmt(price)}.`]});
+}
+/* usuário dá/aumenta o lance num lote (durante a gestão). Só valida — NÃO debita (o débito é na
+   resolução). Pra garantir a compra é preciso superar o teto (senão a CPU cobre na próxima rodada). */
+function placeAuctionBid(lotId, amount){
+  if(!inTransferWindow()) return {ok:false,msg:'A janela de transferências está fechada.'};
+  if(!auctionEligible()) return {ok:false,msg:'Você desligou compras em leilão no seu Perfil (Treinador > Perfil).'};
+  const lot=((S.auctions&&S.auctions.lots)||[]).find(l=>l.id===lotId && l.status==='open');
+  if(!lot) return {ok:false,msg:'Esse lote não está mais disponível.'};
+  amount=Math.round(amount||0);
+  if(amount<=lot.bid) return {ok:false,msg:`O lance precisa ser maior que ${fmt(lot.bid)}.`};
+  if(amount>S.budget) return {ok:false,msg:'Caixa insuficiente pra esse lance.'};
+  const p=findP(lot.player, lot.sellerId); if(!p) return {ok:false,msg:'Jogador não encontrado.'};
+  const fq=checkForeignQuota(p); if(!fq.ok) return {ok:false,msg:fq.msg};
+  lot.myBid=amount; lot.bid=amount; lot.leader='me';
+  const covered = amount < lot.ceiling; // não revela o teto — só sinaliza risco
+  return {ok:true, covered, msg: covered ? `Lance de ${fmt(amount)} registrado — mas a concorrência ainda pode cobrir.` : `Lance de ${fmt(amount)} — você está firme na frente!` };
 }
 
 
@@ -2175,14 +2235,14 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
   S.coachSalary=Math.round(100000 + clubOverallVal*5000); // salário base + bonus por força do clube
   S.roundsSinceFired=null; // resetar contador de rodadas desde demissão
   S.pendingJobOffers=[]; // limpar ofertas anteriores
-  S.negos=[]; S.auctionPool={round:S.round,picks:[]};
+  S.negos=[]; S.auctions={round:S.round,lots:[]};
   // novo clube, novas contas — sem isso a aba Finanças ia misturar salário/receita do
   // clube antigo com o novo (mesmo bug de sincronização, outro gatilho: troca de clube
   // no meio da temporada por demissão/proposta, não só virada de temporada).
   S.finances=[]; S.seasonTotals={income:0,salaries:0,bonuses:0,playerSales:0,playerPurchases:0,stadium:0};
   S.jobSecurity=60;
   CL.tacticChosen=false; CL.formation=null; CL.selPlayer=squad(newClubId)[0]?.n||null;
-  refreshAuctionPool();
+  advanceAuctions();
 }
 let DIV_LABEL_FULL={A:'Série A',B:'Série B',C:'Série C',D:'Série D'}; // reatribuído por setUniverse()
 function showFiredModal(options){
@@ -2473,7 +2533,7 @@ function playRound(userResult, humanResults){
   cpuBackgroundTransfers(Rr); // mercado entre CPUs — dá vida ao jogo mesmo sem o usuário negociar
   bgCpuTransfers(Rr); // clubes das ligas de background negociam entre si (compra/venda)
   generateIncomingOffers(Rr); // clubes fazem propostas de compra pelos jogadores do usuário
-  if(S.round%2===0) refreshAuctionPool(Rr); // leilão gira a cada 2 rodadas
+  advanceAuctions(Rr); // leilão competitivo: CPU dá lances, resolve lotes vencidos e repõe o pool
   rollStory(Rr);
   advancePendingCups(); // cada copa avança na sua própria rodada — ver CUP_TICK_OFFSET
   advanceBgLeagues(humanResults, bgRoundIdx); // ligas dos outros países selecionados rodam junto, no background (humanos hotseat entram aqui) — mesmo índice de rodada do primário
@@ -2853,7 +2913,7 @@ function toast(msg){const box=$('#toast');const t=el('div','toast',msg);box.appe
 window.GAME={newGame,playRound,save,loadRaw,wipe,newSeasonReset,S:()=>S,setS:s=>S=s,
   COMP_DEFS,computeQualification,makeBracket,advanceCupBracket,advancePendingCups,cupTeamAlive,cupIsFinished,
   pendingDivisionChange,loadRealDivisionClubs,DIV_ORDER,
-  startNego,clubRespond,agentRespond,finalizeTransfer,playerAsk,cpuBackgroundTransfers,refreshAuctionPool,buyFromAuction,
+  startNego,clubRespond,agentRespond,finalizeTransfer,playerAsk,cpuBackgroundTransfers,advanceAuctions,placeAuctionBid,
   inTransferWindow,transferWindowStatus,nextWindowRound,TRANSFER_WINDOWS,
   pickPenaltyTaker,penaltyConvChance,initSeasonCups,computeQualification,buildOtherDivisions,autoManageSalaries,
   assignBehavior,BEHAVIOR_CARD_MULT,BEHAVIOR_INJURY_MULT,BEHAVIOR_MV_MULT,BEHAVIOR_DIST,attachAttrs};

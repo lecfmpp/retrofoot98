@@ -1855,31 +1855,50 @@ function clMarketFinalize(){ const M=CL.market;
 function clAuctionScreen(){ CL.menu=null;
   const st=transferWindowStatus();
   if(!st.open){ toastC(windowClosedMsg()); return; }
-  const picks=(S.auctionPool&&S.auctionPool.picks)||[];
-  const rows=picks.map(x=>{ const p=findP(x.player,x.sellerId); if(!p) return ''; const c=clubOf(x.sellerId);
-    return `<div class="cl-auc-row">
-      <span class="cl-auc-club" style="${clubStripe(c)}">${clubLink(x.sellerId,c.short)}</span>
-      <span class="cl-auc-p-pos">${posLetter(p.s)}</span><span class="cl-auc-p-n">${escC(p.n)}</span>
-      <span class="cl-auc-p-f">${p.f}</span><span class="cl-auc-price">${moneyDisp(x.price)}</span>
-      ${btn('Comprar',`clAuctionConfirm('${x.sellerId}','${escC(p.n)}')`,{cls:'cl-btn-mini'})}
-    </div>`; }).join('') || '<div class="cl-mkt-counter">Sem jogadores em leilão nesta rodada — volta em breve.</div>';
-  overlayC(dlg('Leilão de jogadores', `<div class="cl-auc">${rows}</div>
+  const lots=((S.auctions&&S.auctions.lots)||[]).filter(l=>l.status==='open');
+  const rows=lots.map(l=>{ const p=findP(l.player,l.sellerId); if(!p) return ''; const c=clubOf(l.sellerId);
+    const mine=l.leader==='me';
+    return `<div class="cl-auc-row ${mine?'me':''}">
+      <div class="cl-auc-r1">
+        <span class="cl-auc-club" style="${clubStripe(c)}">${clubLink(l.sellerId,c.short)}</span>
+        <span class="cl-auc-p-pos">${posLetter(p.s)}</span><span class="cl-auc-p-n">${escC(p.n)}</span>
+        <span class="cl-auc-p-f">${p.f}</span>
+        <span class="cl-auc-price">${moneyDisp(l.bid)}</span>
+      </div>
+      <div class="cl-auc-r2">
+        <span class="cl-auc-lead ${mine?'me':'cpu'}">${mine?'✅ Você na frente':'🔨 CPU na frente'}</span>
+        <span class="cl-auc-disp" title="clubes disputando">👥 ${l.interest}</span>
+        <span class="cl-auc-rounds" title="rodadas restantes">⏳ ${l.roundsLeft}</span>
+        ${btn(mine?'Aumentar lance':'Cobrir',`clAuctionBidPrompt('${l.sellerId}','${escC(l.player)}')`,{cls:'cl-btn-mini'})}
+      </div>
+    </div>`; }).join('') || '<div class="cl-mkt-counter">Sem jogadores em leilão agora — volta em breve.</div>';
+  overlayC(dlg('Leilão de jogadores', `<div class="cl-auc-head">Cada jogador tem vários clubes disputando. Para levar, <b>cubra a maior oferta</b> antes das rodadas acabarem — se seu lance ficar abaixo do que a concorrência topa pagar, ela cobre na rodada seguinte.</div><div class="cl-auc">${rows}</div>
     <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
-    {w:640,bodyClass:'cl-body-gray',min:true}));
+    {w:700,bodyClass:'cl-body-gray',min:true}));
 }
-/* pede confirmação antes de arrematar — a compra em leilão é imediata e definitiva
-   (sem negociação), então um clique sem querer custava caro sem chance de desistir */
-function clAuctionConfirm(sellerId,player){
-  const pick=((S.auctionPool&&S.auctionPool.picks)||[]).find(x=>x.sellerId===sellerId && x.player===player);
-  const p=findP(player,sellerId); if(!pick||!p){ toastC('Esse jogador não está mais disponível no leilão.'); return; }
+/* dá/aumenta o lance num lote — abre um input de valor (precisa superar o maior lance atual) */
+function clAuctionBidPrompt(sellerId,player){
+  const id=sellerId+'|'+player;
+  const lot=((S.auctions&&S.auctions.lots)||[]).find(l=>l.id===id && l.status==='open');
+  const p=findP(player,sellerId); if(!lot||!p){ toastC('Esse lote não está mais disponível.'); return; }
   const c=clubOf(sellerId);
-  overlayC(dlg('Confirmar compra', `<div class="cl-jobmodal">
-    <div class="cl-jobmodal-msg">Arrematar <b>${escC(p.n)}</b> (${posLetter(p.s)}, força ${p.f}) do <b style="${clubStripe(c)};padding:2px 6px;border-radius:3px">${escC(c.short)}</b> por <b>${curSym()} ${moneyDisp(pick.price)}</b>?<br><br>A compra em leilão é imediata e não pode ser desfeita.</div>
-    <div class="cl-jog-actions">${btn('Confirmar','clAuctionBuy(\''+sellerId+'\',\''+escC(p.n)+'\')',{icon:'✔',cls:'cl-btn-ok'})}${btn('Cancelar','clAuctionScreen()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
+  const suggest=Math.round(lot.bid + Math.max(50000, lot.bid*0.08));
+  overlayC(dlg('Dar lance', `<div class="cl-jobmodal">
+    <div class="cl-jobmodal-msg">Lance por <b>${escC(p.n)}</b> (${posLetter(p.s)}, força ${p.f}) do <b style="${clubStripe(c)};padding:2px 6px;border-radius:3px">${escC(c.short)}</b>.<br>
+      Maior lance atual: <b>${curSym()} ${moneyDisp(lot.bid)}</b> ${lot.leader==='me'?'(seu)':'(concorrência)'} · 👥 ${lot.interest} clubes · ⏳ ${lot.roundsLeft} rodada(s)<br>
+      Seu caixa: <b>${curSym()} ${moneyDisp(S.budget)}</b></div>
+    <div class="cl-auc-bidrow"><span class="cl-auc-cur">${curSym()}</span><input id="cl-auc-bid-in" class="cl-input cl-auc-bid-in" inputmode="numeric" value="${suggest}" onkeydown="if(event.key==='Enter')clAuctionBidGo('${sellerId}','${escC(player)}')"></div>
+    <div class="cl-auc-bidhint">Precisa ser maior que ${moneyDisp(lot.bid)}. Para <b>garantir</b>, ofereça acima do que a concorrência topa pagar.</div>
+    <div class="cl-jog-actions">${btn('Confirmar lance',`clAuctionBidGo('${sellerId}','${escC(player)}')`,{icon:'🔨',cls:'cl-btn-ok'})}${btn('Cancelar','clAuctionScreen()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
   </div>`, {w:480,bodyClass:'cl-body-gray',min:true}));
 }
-function clAuctionBuy(sellerId,player){ const r=buyFromAuction(sellerId,player); toastC(r.msg);
-  if(r.ok){ saveV3(); clAuctionScreen(); cdraw(); } else { clAuctionScreen(); } }
+function clAuctionBidGo(sellerId,player){
+  const el=document.querySelector('#cl-auc-bid-in');
+  const amount=el? parseInt((el.value||'').replace(/\D/g,''),10)||0 : 0;
+  const r=placeAuctionBid(sellerId+'|'+player, amount);
+  toastC(r.msg);
+  if(r.ok){ saveV3(); clAuctionScreen(); } // volta pra lista já com o lance atualizado
+}
 
 
 function panFinancas(){
@@ -3358,7 +3377,7 @@ function renderPerfilTreinador(){
     <div class="cl-oside">${btn('OK','clPerfilOk()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Cancelar','clPerfilCancel()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
   </div>`,{w:740,bodyClass:'cl-body-gray',min:true}));
 }
-function clPerfilOk(){ saveV3(); clCloseOverlay(); toastC('Preferências do treinador guardadas.'); refreshAuctionPool(); }
+function clPerfilOk(){ saveV3(); clCloseOverlay(); toastC('Preferências do treinador guardadas.'); advanceAuctions(); }
 function clPerfilCancel(){ S.config.profile=CL._profileSnapshot; clCloseOverlay(); }
 
 /* ---- Treinador > História / Ranking ---- */

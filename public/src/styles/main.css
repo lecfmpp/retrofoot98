@@ -679,13 +679,26 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-mkt-offer-row input,.cl-mkt-sel{font-family:var(--sans);font-size:13px;padding:4px 8px;width:140px}
 .cl-mkt-counter{background:#fff3b0;border-radius:4px;padding:8px 10px;margin:10px 0;font-size:12px;color:#5a4a00}
 /* leilão */
-.cl-auc{display:flex;flex-direction:column;gap:5px;min-width:520px;max-height:60vh;overflow-y:auto}
-.cl-auc-row{display:grid;grid-template-columns:70px 22px 1fr 40px 90px auto;align-items:center;gap:8px;background:#eee;border-radius:3px;padding:6px 10px;color:#000;font-size:13px}
-.cl-auc-club{font-weight:800;font-size:11px;padding:3px 6px;border-radius:3px;text-align:center}
-.cl-auc-p-pos{font-weight:900;color:#555;text-align:center}
-.cl-auc-p-n{font-weight:700}
-.cl-auc-p-f{font-weight:800;text-align:center}
-.cl-auc-price{color:#1a6b1a;font-weight:800;text-align:right}
+.cl-auc{display:flex;flex-direction:column;gap:7px;min-width:min(560px,84vw);max-height:58vh;overflow-y:auto}
+.cl-auc-head{font-size:13px;color:#3a2f00;background:#fff6cf;border:1px solid #e2d284;border-radius:5px;padding:8px 11px;margin-bottom:9px;line-height:1.45}
+.cl-auc-row{background:#eee;border-radius:5px;padding:8px 10px;color:#000;border-left:4px solid #bbb}
+.cl-auc-row.me{border-left-color:#2a9d2a;background:#eefaee}
+.cl-auc-r1{display:flex;align-items:center;gap:8px;font-size:13px}
+.cl-auc-r2{display:flex;align-items:center;gap:10px;margin-top:7px;font-size:12px;flex-wrap:wrap}
+.cl-auc-club{font-weight:800;font-size:11px;padding:3px 6px;border-radius:3px;text-align:center;flex:none}
+.cl-auc-p-pos{font-weight:900;color:#555;flex:none}
+.cl-auc-p-n{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl-auc-p-f{font-weight:800;flex:none}
+.cl-auc-price{color:#1a6b1a;font-weight:800;text-align:right;flex:none;font-size:14px}
+.cl-auc-lead{font-weight:800;padding:2px 8px;border-radius:10px;font-size:11px}
+.cl-auc-lead.me{background:#d6f2d6;color:#176b17}
+.cl-auc-lead.cpu{background:#eadada;color:#8a3b3b}
+.cl-auc-disp,.cl-auc-rounds{color:#555;font-weight:700}
+.cl-auc-r2 .cl-btn-mini{margin-left:auto}
+.cl-auc-bidrow{display:flex;align-items:center;gap:8px;margin:12px 0 4px}
+.cl-auc-cur{font-weight:800;color:#333}
+.cl-auc-bid-in{flex:1;font-size:16px;padding:8px 10px}
+.cl-auc-bidhint{font-size:12px;color:#666;margin-bottom:6px;line-height:1.4}
 .cl-winbadge{font-size:10px;font-weight:800;padding:2px 6px;border-radius:3px;margin-left:6px}
 .cl-winbadge.open{background:#1a6b1a;color:#fff}
 .cl-winbadge.closed{background:#888;color:#fff}
@@ -1010,8 +1023,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-rrow{grid-template-columns:14px 20px 1fr 44px 54px;column-gap:4px;font-size:12.5px;padding:4px 6px}
   .cl-rmark.t,.cl-rmark.r{width:14px;height:14px;font-size:9px;border-radius:3px}
   .cl-mkt-p,.cl-auc-row,.cl-cls-row{font-size:12px}
-  .cl-auc-row{grid-template-columns:56px 18px 1fr 32px 70px auto;gap:5px}
-  /* leilão/mercado: empilha melhor em telas estreitas */
+  /* leilão em cartão (2 linhas) empilha sozinho; só garante largura total no mobile */
   .cl-mkt-clublist,.cl-mkt-squad,.cl-auc{min-width:0;width:100%}
   .cl-mkt-offer{min-width:0;width:100%}
   /* tela "Jogadores" (sorteio): larguras fixas em px não cabem no mobile —

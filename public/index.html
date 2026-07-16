@@ -339,7 +339,7 @@ function newGame(clubId, division, compToggle){
     scorers:{},           // ticker/name -> goals
     xi:null,
     negos:[],             // active transfer negotiations
-    auctionPool:{round:0,picks:[]}, // leilão de jogadores de outros clubes
+    auctions:{round:0,lots:[]}, // leilão competitivo: lotes com disputa contra clubes da CPU
     story:[],             // story log
     finances:[],          // últimas transações (capado — só pro log "recentes" da aba Finanças)
     seasonTotals:{income:0,salaries:0,bonuses:0,playerSales:0,playerPurchases:0,stadium:0}, // acumulado da temporada INTEIRA, sem cap (ver pushFinanceEntry) — é o que a aba Finanças soma pros totais
@@ -363,7 +363,7 @@ function newGame(clubId, division, compToggle){
   // marca _rbOv, então clubOf não remapeia o overall curado de novo (evita divergir após transferências)
   DATA.clubs.forEach(c=>{ if(typeof recomputeClubOverall==='function') recomputeClubOverall(c.id); });
   registerClubs(division, DATA.clubs); // fixa a composição inicial da divisão do usuário
-  refreshAuctionPool();
+  advanceAuctions();
   buildOtherDivisions();
   // primeira temporada (2026): usa a classificação REAL de Libertadores/Sul-Americana
   // (Brasileirão 2025 + Copa do Brasil 2025 de verdade), não um proxy por força — assim o
