@@ -1440,7 +1440,7 @@ function scMain(){
   return `<div class="cl-main" style="border-color:${th.col}">
     <div class="cl-main-top">${escC(cl.short)}</div>
     <div class="cl-mobmenu-wrap">${hamburger}${menu}</div>
-    ${CL.online?onlineReadyBar():''}
+    ${CL.online?onlineStatusSidebar():''}
     <div class="cl-main-body">
       <div class="cl-main-left" style="background:${th.bg}">
         <div class="cl-hdr">

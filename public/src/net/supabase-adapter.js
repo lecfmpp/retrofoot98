@@ -172,18 +172,19 @@ function netMergeParticipants(){
   const claimed = NET._claimed || {};
   const seen = {};
   const list = [];
+  const isBusy=(c)=> !!(c && c.busy_until && new Date(c.busy_until).getTime() > Date.now()); // em partida ao vivo
   Object.keys(SB_ONLINE||{}).forEach(uid=>{
     if(SB_KICKED[uid]) return; // expulso: não conta mais como participante (mesmo se a presença ainda não caiu)
     const meta = (SB_ONLINE[uid]||[])[0]; if(!meta) return;
     seen[uid]=1; const c = claimed[uid]||{};
-    list.push({ id:uid, name:meta.name||'(sem nome)', email:c.email||'', confirmed:true, clubId:c.clubId||null, ready:c.ready||false, host: uid===NET.room.hostId });
+    list.push({ id:uid, name:meta.name||'(sem nome)', email:c.email||'', confirmed:true, clubId:c.clubId||null, ready:c.ready||false, host: uid===NET.room.hostId, online:true, busy:isBusy(c) });
   });
   Object.keys(claimed).forEach(uid=>{
     if(seen[uid] || SB_KICKED[uid]) return; const c=claimed[uid];
-    list.push({ id:uid, name:c.name||'(sem nome)', email:c.email||'', confirmed:true, clubId:c.clubId||null, ready:c.ready||false, host: uid===NET.room.hostId });
+    list.push({ id:uid, name:c.name||'(sem nome)', email:c.email||'', confirmed:true, clubId:c.clubId||null, ready:c.ready||false, host: uid===NET.room.hostId, online:false, busy:false });
   });
   if(!seen[SB_AUTH_USER.id] && !claimed[SB_AUTH_USER.id]){
-    list.push({ id:SB_AUTH_USER.id, name:NET.self.name, email:NET.self.email, confirmed:true, clubId:null, ready:false, host:NET.isHost });
+    list.push({ id:SB_AUTH_USER.id, name:NET.self.name, email:NET.self.email, confirmed:true, clubId:null, ready:false, host:NET.isHost, online:true, busy:false });
   }
   NET.room.participants = list;
   if(NET.onState) NET.onState(NET.room);
@@ -219,7 +220,7 @@ async function netJoinRoom(code, me){
   const { data: seatsData } = await sb.from('game_seats').select('*').eq('game_id', gameData.id);
   const { data: msgs } = await sb.from('messages').select('*').eq('game_id', gameData.id).order('created_at').limit(100);
   NET._claimed = {};
-  (seatsData||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email }; });
+  (seatsData||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until }; });
   NET.room = {
     code: gameData.id, gameId: gameData.id, name: gameData.name, hostId: gameData.host_id, mode: gameData.mode, phase: gameData.phase,
     participants: [], seed: gameData.seed, round: gameData.round||0, deadline: gameData.ready_deadline?new Date(gameData.ready_deadline).getTime():0,
@@ -245,7 +246,7 @@ async function netRefreshRoom(){
     });
     const { data: seats } = await sb.from('game_seats').select('*').eq('game_id', NET.gameId);
     NET._claimed = NET._claimed || {};
-    (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email }; });
+    (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until }; });
     netMergeParticipants(); // -> NET.onState (transição lobby->jogo + reconcile de rodada)
     return NET.room;
   }catch(e){ console.warn('refreshRoom:', e&&e.message); return null; }
@@ -574,7 +575,7 @@ function netSetupRealtime(){
 
   SB_CH.on('postgres_changes', { event:'UPDATE', schema:SB_SCHEMA, table:'game_seats', filter:'game_id=eq.'+NET.gameId }, (p)=>{
     if(!p.new) return;
-    if(p.new.user_id){ NET._claimed[p.new.user_id] = { clubId:p.new.club_id, ready:p.new.is_ready, name:p.new.name, email:p.new.email }; }
+    if(p.new.user_id){ NET._claimed[p.new.user_id] = { clubId:p.new.club_id, ready:p.new.is_ready, name:p.new.name, email:p.new.email, busy_until:p.new.busy_until }; }
     netMergeParticipants();
   });
 

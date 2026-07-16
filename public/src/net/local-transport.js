@@ -154,7 +154,7 @@ function wireNet(){ NET.onState=(room)=>{ if(room && room.speedMult && !NET.isHo
       onlineBeginSeason(); return;
     }
     onlineReconcileIfBehind(room); // itens 1 e 3: mantém todos na MESMA rodada (recarrega se ficou pra trás)
-    if(CL.screen==='online'){ renderOnlineInto(); } else { renderChatBoxes(); const rb=document.querySelector('.cl-readybar'); if(rb && room) rb.outerHTML=onlineReadyBar(); }
+    if(CL.screen==='online'){ renderOnlineInto(); } else { renderChatBoxes(); const rb=document.querySelector('.cl-statusbar'); if(rb && room) rb.outerHTML=onlineStatusSidebar(); }
     if(CL.online && room && room.phase==='running' && CL.screen!=='live'){ onlineRunRound(); } };
   NET.onChat=(msg)=>{
     const mine = !!(msg && NET.self && msg.id===NET.self.id);
@@ -766,19 +766,30 @@ function onlineBeginSeason(){ const room=NET.room; const me=room.participants.fi
 }
 
 /* ---- durante a rodada online: painel "à espera dos treinadores" + timer ---- */
-function onlineReadyBar(){ const room=NET.room; if(!CL.online||!room||room.phase==='lobby') return '';
-  const ready=room.participants.filter(p=>p.ready).length, total=room.participants.length;
-  // TIMER DESARMADO (deadline 0): ainda tem gente terminando a rodada/copa — o cronômetro só começa
-  // quando TODOS estão na tela do time. Enquanto isso, mostra "aguardando" em vez de contar.
+/* BARRA LATERAL DE STATUS (direita): mostra cada treinador com um símbolo — verde=Pronto,
+   amarelo=em partida/escalando, vermelho=offline — além do cronômetro. Substitui a antiga barra
+   do topo (evita duplicar a mesma info). TIMER DESARMADO (deadline 0): mostra "aguardando" em vez
+   de contar, pois o cronômetro só começa quando TODOS terminam a rodada. */
+function onlineStatusSidebar(){ const room=NET.room; if(!CL.online||!room||room.phase==='lobby') return '';
   const armed=(room.deadline||0)>0;
   const secs=armed ? Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000)) : null;
-  const list=room.participants.map(p=>{ const self=NET.self&&p.id===NET.self.id;
-    const k=(NET.isHost && !self)?`<button class="cl-rb-kick" title="Remover da Resenha" onclick="clKick('${p.id}','${p.clubId||''}')">✖</button>`:'';
-    return `<span class="cl-rb-p ${p.ready?'rdy':''}">${p.ready?'✓':'⏳'} ${escC((p.name||'').split(' ')[0])}${k}</span>`; }).join('');
-  return `<div class="cl-readybar ${armed&&secs<=10?'urgent':''}">
-    <span class="cl-rb-t">${armed?'À espera dos treinadores':'Aguardando todos terminarem a rodada'} ${ready}/${total}</span>
-    <span class="cl-rb-list">${list}</span>
-    <span class="cl-rb-clock">${armed?secs+'s':'⏳'}</span>
+  const readyN=room.participants.filter(p=>p.ready).length, total=room.participants.length;
+  const rows=room.participants.map(p=>{ const self=NET.self&&p.id===NET.self.id;
+    let cls, lbl;
+    if(!p.online){ cls='off'; lbl='Offline'; }
+    else if(p.ready){ cls='rdy'; lbl='Pronto'; }
+    else if(p.busy){ cls='play'; lbl='Em partida'; }
+    else { cls='play'; lbl='Escalando'; }
+    const k=(NET.isHost && !self)?`<button class="cl-st-kick" title="Remover da Resenha" onclick="clKick('${p.id}','${p.clubId||''}')">✖</button>`:'';
+    return `<div class="cl-st-row">
+      <span class="cl-st-dot ${cls}"></span>
+      <span class="cl-st-name">${escC((p.name||'—').split(' ')[0])}${p.host?' <i>(anf)</i>':''}${self?' <b>(você)</b>':''}</span>
+      <span class="cl-st-lbl ${cls}">${lbl}</span>${k}
+    </div>`; }).join('');
+  return `<div class="cl-statusbar ${armed&&secs<=10?'urgent':''}" id="cl-statusbar">
+    <div class="cl-statusbar-h"><span class="cl-statusbar-title">Treinadores ${readyN}/${total}</span><span class="cl-statusbar-clock">${armed?secs+'s':'⏳'}</span></div>
+    <div class="cl-statusbar-sub">${armed?'Rodada começa quando zerar':'Aguardando todos terminarem'}</div>
+    <div class="cl-statusbar-list">${rows}</div>
   </div>`; }
 /* anfitrião remove um jogador da Resenha (lobby ou durante a partida): confirma, dispara o kick
    (broadcast + libera assento -> clube vira CPU) e re-renderiza. O expulso recebe o sinal e volta ao menu. */
@@ -819,15 +830,15 @@ function onlineTimerLoop(){
       // TIMER DESARMADO: ainda tem gente terminando a rodada (copa/partida). NÃO conta o cronômetro
       // — só tenta armar (o servidor arma quando NINGUÉM está ocupado, ou seja, todos na tela do time).
       ONLINE_LASTSEC=null;
-      const bar=document.querySelector('.cl-rb-clock'); if(bar) bar.textContent='—';
+      const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent='⏳';
       if(NET.armReadyTimer && !ONLINE_BUSY_ACTIVE){ if(Date.now()-ONLINE_ADV_T>1200){ ONLINE_ADV_T=Date.now(); NET.armReadyTimer(); } }
     } else {
       const secs=Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
       if(secs!==ONLINE_LASTSEC){ ONLINE_LASTSEC=secs;
         if(secs<=10 && secs>0){ netBeep(secs<=3?1100:820); }
         if(secs<=0){ netBeep(1400); }
-        const bar=document.querySelector('.cl-rb-clock'); if(bar) bar.textContent=secs+'s';
-        const wrap=document.querySelector('.cl-readybar'); if(wrap){ wrap.classList.toggle('urgent', secs<=10); }
+        const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent=secs+'s';
+        const wrap=document.querySelector('.cl-statusbar'); if(wrap){ wrap.classList.toggle('urgent', secs<=10); }
       }
       const all=room.participants.length>0 && room.participants.every(p=>p.ready);
       if(secs<=0 || all){
