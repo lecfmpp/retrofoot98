@@ -418,13 +418,30 @@ function routeAfterJoin(){
     return;
   }
   if(room.phase==='lobby'){
-    // SEM auto-sorteio na entrada: o sorteio acontece SÓ no lobby (o anfitrião clica "Sortear times"
-    // e/ou "Começar"). O convidado entra sem clube e aparece na lista via Presence + pedidos aprovados
-    // (ver netListApprovedMembers). Todos só avançam pra tela do time quando TODOS forem sorteados.
-    CL.net.step='lobby'; cdraw(); return;
+    // SORTEIO NO LOBBY: assume um clube livre AGORA (aleatório, nunca escolha). Dois motivos:
+    // (1) o TIME já aparece na tela da sala; (2) o convidado passa a ser visível pra TODOS via
+    // game_seats (Realtime confiável) — a presença sozinha não chegava ao anfitrião. O anfitrião
+    // pode re-sortear todos com "Sortear times". Todos avançam juntos quando o host clica "Começar".
+    toastC('Sorteando seu time...');
+    (async ()=>{ await clAutoSeatLobby(); CL.net.step='lobby'; cdraw(); })();
+    return;
   }
   // temporada já rolando, sem clube -> tela de sorteio de entrada (midjoin, sempre aleatório)
   CL.net.step='midjoin'; cdraw();
+}
+/* sorteia um clube LIVRE pro jogador local no lobby, com retry contra corrida (dois entrando ao
+   mesmo tempo podem escolher o mesmo — claim_seat rejeita o 2º; tentamos outro). Retorna se sentou. */
+async function clAutoSeatLobby(){
+  const uid=NET.self.id;
+  for(let i=0;i<5;i++){
+    if(NET._claimed && NET._claimed[uid] && NET._claimed[uid].clubId) return true; // já sentado
+    const free=freeClubIds(); if(!free.length) return false;
+    const pick=free[Math.floor(Math.random()*free.length)].id;
+    await NET.assignClub(uid, pick);
+    if(NET._claimed && NET._claimed[uid] && NET._claimed[uid].clubId) return true;
+    try{ if(NET.refreshRoom) await NET.refreshRoom(); }catch(_){}
+  }
+  return false;
 }
 
 /* ---- escolher o próprio clube: aceitar convite (pré-temporada) ou entrar
@@ -536,7 +553,9 @@ function clOpenRoom(){ if(!CL.net.roomName)return;
     await netInitSupabase();
     const host={name:CL.net.name,email:CL.net.email};
     await NET.createRoom(CL.net.roomName, host);
-    CL.net.step='lobby'; wireNet(); cdraw();
+    wireNet(); // liga onState antes do sorteio pra a lista atualizar
+    await clAutoSeatLobby(); // sorteia o time do PRÓPRIO anfitrião já no lobby (aparece na sala)
+    CL.net.step='lobby'; cdraw();
   } catch(e) { toastC('⚠ Erro ao abrir: '+e.message); } })();
 }
 
