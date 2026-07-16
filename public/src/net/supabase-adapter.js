@@ -251,6 +251,20 @@ async function netRefreshRoom(){
   }catch(e){ console.warn('refreshRoom:', e&&e.message); return null; }
 }
 
+/* ---- HEARTBEAT DE ATIVIDADE (barreira de sincronização) ----
+   Enquanto EU estou numa partida ao vivo (liga ou copa), marco meu assento como "ocupado"
+   (busy_until no futuro). O RPC advance_phase_if_expired NÃO avança a rodada enquanto houver
+   qualquer humano ocupado — assim ninguém pula a rodada enquanto o outro joga liga/copa. Se eu
+   cair no meio (parar de bater o heartbeat), o busy_until expira em ~90s e a rodada segue. ---- */
+async function netHeartbeatBusy(){
+  if(!sb || !NET.gameId || !SB_AUTH_USER) return;
+  try{ await sb.from('game_seats').update({ busy_until: new Date(Date.now()+90000).toISOString() }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id); }catch(e){}
+}
+async function netClearBusy(){
+  if(!sb || !NET.gameId || !SB_AUTH_USER) return;
+  try{ await sb.from('game_seats').update({ busy_until: null }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id); }catch(e){}
+}
+
 /* ---- reivindicar clube ---- */
 async function netAssignClub(pid, clubId){
   let nm, em;
@@ -707,6 +721,8 @@ function netHandleKicked(){
 NET.createRoom = netCreateRoom;
 NET.joinRoom = netJoinRoom;
 NET.refreshRoom = netRefreshRoom;
+NET.heartbeatBusy = netHeartbeatBusy;
+NET.clearBusy = netClearBusy;
 NET.setMode = netSetMode;
 NET.assignClub = netAssignClub;
 NET.drawClubs = netDrawClubs;

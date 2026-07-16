@@ -779,9 +779,18 @@ function clKickGo(uid, clubId){
 }
 function clOnlinePause(){ /* pausa removida: cronômetro da Resenha é soberano e imutável */ }
 function clSetSpeed(mult){ CL.speedMult=mult; if(CL.online && typeof NET!=='undefined' && NET.setSpeed) NET.setSpeed(mult).catch(()=>{}); cdraw(); }
-let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null, ONLINE_ADV_T=0;
+let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null, ONLINE_ADV_T=0, ONLINE_BUSY_T=0, ONLINE_BUSY_ACTIVE=false;
 function onlineTimerLoop(){
   const room=(typeof NET!=='undefined')?NET.room:null;
+  // BARREIRA DE SINCRONIZAÇÃO: enquanto EU estou numa partida ao vivo (liga/copa/espectador),
+  // bato um heartbeat "ocupado" — o servidor não avança a rodada sem mim (ver advance_phase_if_expired).
+  // Ao sair da tela ao vivo, limpo o "ocupado" uma vez (fim normal = libera; queda = expira em ~90s).
+  if(CL.online && CL.screen==='live' && typeof NET!=='undefined' && NET.gameId){
+    ONLINE_BUSY_ACTIVE=true;
+    if(Date.now()-ONLINE_BUSY_T>15000){ ONLINE_BUSY_T=Date.now(); if(NET.heartbeatBusy) NET.heartbeatBusy(); }
+  } else if(ONLINE_BUSY_ACTIVE){
+    ONLINE_BUSY_ACTIVE=false; ONLINE_BUSY_T=0; if(typeof NET!=='undefined' && NET.clearBusy) NET.clearBusy();
+  }
   if(CL.online && room && room.phase==='ready'){  // sem !room.paused: cronômetro imutável
     const secs=Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
     if(secs!==ONLINE_LASTSEC){ ONLINE_LASTSEC=secs;
