@@ -173,15 +173,20 @@ function netMergeParticipants(){
   const seen = {};
   const list = [];
   const isBusy=(c)=> !!(c && c.busy_until && new Date(c.busy_until).getTime() > Date.now()); // em partida ao vivo
+  // ONLINE confiável = heartbeat no banco (last_seen nos últimos 40s) OU presença do realtime OU sou EU.
+  // O presence sozinho é instável (mostrava todos Offline mesmo na sala) — o last_seen resolve.
+  const SEEN_WINDOW=40000;
+  const isSeen=(uid,c)=> uid===SB_AUTH_USER.id || !!(SB_ONLINE && SB_ONLINE[uid] && (SB_ONLINE[uid][0]))
+    || !!(c && c.last_seen && (Date.now()-new Date(c.last_seen).getTime()) < SEEN_WINDOW);
   Object.keys(SB_ONLINE||{}).forEach(uid=>{
     if(SB_KICKED[uid]) return; // expulso: não conta mais como participante (mesmo se a presença ainda não caiu)
     const meta = (SB_ONLINE[uid]||[])[0]; if(!meta) return;
     seen[uid]=1; const c = claimed[uid]||{};
-    list.push({ id:uid, name:meta.name||'(sem nome)', email:c.email||'', confirmed:true, clubId:c.clubId||null, ready:c.ready||false, host: uid===NET.room.hostId, online:true, busy:isBusy(c) });
+    list.push({ id:uid, name:meta.name||c.name||'(sem nome)', email:c.email||'', confirmed:true, clubId:c.clubId||null, ready:c.ready||false, host: uid===NET.room.hostId, online:true, busy:isBusy(c) });
   });
   Object.keys(claimed).forEach(uid=>{
     if(seen[uid] || SB_KICKED[uid]) return; const c=claimed[uid];
-    list.push({ id:uid, name:c.name||'(sem nome)', email:c.email||'', confirmed:true, clubId:c.clubId||null, ready:c.ready||false, host: uid===NET.room.hostId, online:false, busy:false });
+    list.push({ id:uid, name:c.name||'(sem nome)', email:c.email||'', confirmed:true, clubId:c.clubId||null, ready:c.ready||false, host: uid===NET.room.hostId, online:isSeen(uid,c), busy:isBusy(c) });
   });
   if(!seen[SB_AUTH_USER.id] && !claimed[SB_AUTH_USER.id]){
     list.push({ id:SB_AUTH_USER.id, name:NET.self.name, email:NET.self.email, confirmed:true, clubId:null, ready:false, host:NET.isHost, online:true, busy:false });
@@ -229,7 +234,7 @@ async function netJoinRoom(code, me){
   const { data: seatsData } = await sb.from('game_seats').select('*').eq('game_id', gameData.id);
   const { data: msgs } = await sb.from('messages').select('*').eq('game_id', gameData.id).order('created_at').limit(100);
   NET._claimed = {};
-  (seatsData||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round }; });
+  (seatsData||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round, last_seen:s.last_seen }; });
   NET.room = {
     code: gameData.id, gameId: gameData.id, name: gameData.name, hostId: gameData.host_id, mode: gameData.mode, phase: gameData.phase,
     participants: [], seed: gameData.seed, round: gameData.round||0, deadline: gameData.ready_deadline?new Date(gameData.ready_deadline).getTime():0,
@@ -255,7 +260,7 @@ async function netRefreshRoom(){
     });
     const { data: seats } = await sb.from('game_seats').select('*').eq('game_id', NET.gameId);
     NET._claimed = NET._claimed || {};
-    (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round }; });
+    (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round, last_seen:s.last_seen }; });
     netMergeParticipants(); // -> NET.onState (transição lobby->jogo + reconcile de rodada)
     return NET.room;
   }catch(e){ console.warn('refreshRoom:', e&&e.message); return null; }
@@ -273,6 +278,15 @@ async function netHeartbeatBusy(){
 async function netClearBusy(){
   if(!sb || !NET.gameId || !SB_AUTH_USER) return;
   try{ await sb.from('game_seats').update({ busy_until: null }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id); }catch(e){}
+}
+/* HEARTBEAT DE PRESENÇA (confiável, no banco): enquanto estou na Resenha, carimbo last_seen no meu
+   assento a cada ~15s. O "online" da barra de status vem daqui (visto nos últimos ~40s), não do
+   presence do realtime — que é instável e mostrava todo mundo Offline mesmo estando na sala. */
+async function netHeartbeatSeen(){
+  if(!sb || !NET.gameId || !SB_AUTH_USER) return;
+  const now=new Date().toISOString();
+  if(NET._claimed && NET._claimed[SB_AUTH_USER.id]) NET._claimed[SB_AUTH_USER.id].last_seen=now; // reflete já localmente
+  try{ await sb.from('game_seats').update({ last_seen: now }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id); }catch(e){}
 }
 /* PUBLICA a última escalação/tática do MEU clube no meu assento — os outros clientes leem isso
    (via game_seats -> _claimed -> S.clubXI) pra simular o MEU clube com a MINHA escalação real quando
@@ -650,7 +664,7 @@ function netSetupRealtime(){
 
   SB_CH.on('postgres_changes', { event:'UPDATE', schema:SB_SCHEMA, table:'game_seats', filter:'game_id=eq.'+NET.gameId }, (p)=>{
     if(!p.new) return;
-    if(p.new.user_id){ NET._claimed[p.new.user_id] = { clubId:p.new.club_id, ready:p.new.is_ready, name:p.new.name, email:p.new.email, busy_until:p.new.busy_until, last_xi:p.new.last_xi, last_tactic:p.new.last_tactic, last_result:p.new.last_result, last_result_round:p.new.last_result_round }; }
+    if(p.new.user_id){ NET._claimed[p.new.user_id] = { clubId:p.new.club_id, ready:p.new.is_ready, name:p.new.name, email:p.new.email, busy_until:p.new.busy_until, last_xi:p.new.last_xi, last_tactic:p.new.last_tactic, last_result:p.new.last_result, last_result_round:p.new.last_result_round, last_seen:p.new.last_seen }; }
     else { // assento LIBERADO (ex.: expulsão): remove o dono anterior do cache — senão o clube fica
            // "fantasma-ocupado" pros outros clientes (freeClubIds não oferece de volta) e o ex-dono
            // continua listado como participante.
@@ -827,6 +841,7 @@ NET.joinRoom = netJoinRoom;
 NET.refreshRoom = netRefreshRoom;
 NET.heartbeatBusy = netHeartbeatBusy;
 NET.clearBusy = netClearBusy;
+NET.heartbeatSeen = netHeartbeatSeen;
 NET.publishLineup = netPublishLineup;
 NET.publishResult = netPublishResult;
 NET.humanClubIds = netHumanClubIds;

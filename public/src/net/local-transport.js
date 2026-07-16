@@ -940,13 +940,18 @@ function clKickGo(uid, clubId){
 }
 function clOnlinePause(){ /* pausa removida: cronômetro da Resenha é soberano e imutável */ }
 function clSetSpeed(mult){ CL.speedMult=mult; if(CL.online && typeof NET!=='undefined' && NET.setSpeed) NET.setSpeed(mult).catch(()=>{}); cdraw(); }
-let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null, ONLINE_ADV_T=0, ONLINE_BUSY_T=0, ONLINE_BUSY_ACTIVE=false;
+let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null, ONLINE_ADV_T=0, ONLINE_BUSY_T=0, ONLINE_BUSY_ACTIVE=false, ONLINE_SEEN_T=0;
 function onlineTimerLoop(){
   const room=(typeof NET!=='undefined')?NET.room:null;
   // SAVE ÚNICO: o ANFITRIÃO fecha a rodada quando ninguém está mais em partida (não-bloqueante,
   // teto de 90s do busy). Convidados voltam livres e só ESPELHAM (onlineReconcileIfBehind).
   if(CL.online && CL._hostPendingCommit && typeof onlineHostCloseRound==='function'){
     onlineHostCloseRound();
+  }
+  // HEARTBEAT DE PRESENÇA: carimba last_seen a cada ~15s enquanto estou na Resenha, pra a barra de
+  // status mostrar "online" de verdade (o presence do realtime era instável e dava todo mundo Offline).
+  if(CL.online && typeof NET!=='undefined' && NET.gameId && NET.heartbeatSeen){
+    if(Date.now()-ONLINE_SEEN_T>15000){ ONLINE_SEEN_T=Date.now(); NET.heartbeatSeen(); }
   }
   // BARREIRA DE SINCRONIZAÇÃO: enquanto EU estou numa partida ao vivo (liga/copa/espectador),
   // bato um heartbeat "ocupado" — o servidor não avança a rodada sem mim (ver advance_phase_if_expired).
