@@ -365,8 +365,26 @@ function clContaJoin(){ const st=NET.authStatus(); if(!st.loggedIn || !CL.net.na
 function routeAfterJoin(){
   const room=NET.room; if(!room){ cdraw(); return; }
   const me=room.participants.find(p=>p.id===NET.self.id);
-  if(room.phase==='lobby'){ CL.net.step='lobby'; cdraw(); return; }
-  if(me && me.clubId){ onlineBeginSeason(); return; }
+  if(me && me.clubId){
+    // já assumi um clube nesta sala (reconexão) — segue o fluxo normal
+    if(room.phase==='lobby'){ CL.net.step='lobby'; cdraw(); } else { onlineBeginSeason(); }
+    return;
+  }
+  if(room.phase==='lobby'){
+    // SORTEIO OBRIGATÓRIO JÁ NA ENTRADA (item #33): o convidado aprovado assume um clube livre
+    // agora — assim passa a aparecer pra todos via game_seats (Realtime confiável, não depende de
+    // Presence) e o anfitrião consegue chegar a 2 jogadores pra começar. Antes ele entrava sem
+    // assento e só apareceria via presença (frágil) -> ficava invisível na lista de participantes.
+    const free=freeClubIds();
+    if(free.length){
+      const pick=free[Math.floor(Math.random()*free.length)].id;
+      toastC('Sorteando seu time...');
+      (async ()=>{ try{ await NET.assignClub(NET.self.id, pick); }catch(e){ console.warn('auto-seat lobby:', e&&e.message); }
+        CL.net.step='lobby'; cdraw(); })();
+    } else { CL.net.step='lobby'; cdraw(); }
+    return;
+  }
+  // temporada já rolando, sem clube -> tela de sorteio de entrada (midjoin)
   CL.net.step='midjoin'; cdraw();
 }
 

@@ -553,9 +553,19 @@ function netSetupRealtime(){
 
   SB_CH.on('presence', { event:'sync' }, ()=>{ SB_ONLINE = SB_CH.presenceState(); netMergeParticipants(); });
 
-  SB_CH.subscribe(async (st)=>{ if(st==='SUBSCRIBED') console.log('✓ Realtime conectado (elifoot_v3)'); });
+  SB_CH.subscribe(async (st)=>{
+    if(st==='SUBSCRIBED'){
+      console.log('✓ Realtime conectado (elifoot_v3)');
+      // track SÓ depois de SUBSCRIBED — track antes do join pode se perder; garante que este cliente
+      // vira presença visível pros demais assim que o canal conecta (e re-afirma em reconexões).
+      try{ await SB_CH.track({ name: NET.self.name, club: null }); }catch(e){ console.warn('presence track:', e&&e.message); }
+      netMergeParticipants();
+    }
+  });
 }
-function netTrackPresence(){ if(SB_CH) SB_CH.track({ name: NET.self.name, club: null }); }
+/* o track principal ocorre no callback SUBSCRIBED (netSetupRealtime); aqui só re-afirma se o canal
+   já estiver conectado (chamada precoce logo após subscribe vira no-op, sem perder a presença). */
+function netTrackPresence(){ try{ if(SB_CH && SB_CH.state==='joined') SB_CH.track({ name: NET.self.name, club: null }); }catch(e){} }
 function netIsOnline(uid){ return !!(SB_ONLINE && SB_ONLINE[uid] && SB_ONLINE[uid].length); }
 
 /* ============ APROVAÇÃO DE ENTRADA (pendente -> aprovado) ============
