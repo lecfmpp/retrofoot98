@@ -1035,8 +1035,16 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
     align-items:stretch;box-shadow:0 -6px 18px rgba(0,0,0,.45);border-radius:6px;overflow:hidden}
   .cl-sel-jogar .cl-btn{width:100%}
   .cl-sel{padding-bottom:76px} /* espaço reservado pra não esconder conteúdo atrás do botão fixo */
-  /* dock de chat (modo Resenha online): encolhe e sobe um pouco pra não bater no botão Jogar fixo */
-  .cl-chatdock{width:min(280px,calc(100vw - 20px));right:10px;bottom:74px}
+  /* dock de chat (modo Resenha online) no MOBILE: recolhida = pílula compacta no canto (não cobre o
+     jogo); aberta = ocupa quase a largura toda (mais fácil de ler/digitar) com altura limitada, sem
+     tomar a tela inteira. Sobe um pouco (bottom:74px) pra não bater no botão Jogar fixo. */
+  .cl-chatdock{right:10px;bottom:74px}
+  .cl-chatdock:not(.open){width:auto;max-width:calc(100vw - 20px)}
+  .cl-chatdock.open{left:10px;right:10px;width:auto}
+  .cl-chatdock.open .cl-chat-msgs{max-height:38vh}
+  .cl-chatdock-bar{font-size:14px;padding:10px 14px}
+  .cl-chatdock-badge{min-width:20px;height:20px;font-size:12px}
+  .cl-chatdock .cl-chat-input{font-size:16px} /* evita zoom automático do iOS ao focar o input */
   /* jogos ao vivo: vertical e compacto — mandante · placar · visitante numa linha;
      público e ticker de gol saem (ficam no modal ao tocar na partida) */
   .cl-live-div{margin:10px 8px 0;padding:8px 10px}
