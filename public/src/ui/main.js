@@ -2491,7 +2491,7 @@ function startHalftimeCountdown(){
     const rl=CL.live;
     if(!rl || !rl.paused){ clearHalftimeCountdown(); return; }
     rl.halftimeLeft=(rl.halftimeLeft!=null?rl.halftimeLeft:10)-1;
-    const el=document.querySelector('.cl-ht-count'); if(el) el.textContent=Math.max(0,rl.halftimeLeft)+'s';
+    const el=document.querySelector('.cl-ht-count'); if(el) el.textContent=Math.max(0,rl.halftimeLeft);
     if(rl.halftimeLeft<=0){ clearHalftimeCountdown(); liveContinue(); }
   }, 1000);
 }
@@ -2679,14 +2679,18 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
   const actionsHTML=(penalty||injury||shooting)?'':`<div class="cl-lm-cont" style="grid-template-columns:${m.user && !halftime ? 'repeat(3,1fr)' : '1fr 1fr'}">
         ${(m.user && !halftime)?btn(showSubs?'Fechar substituições':`Substituições (${subsLeft})`,'clToggleSubPanel()',{icon:'⇄',cls:'cl-btn-ok',dis:subsLeft<=0&&!showSubs}):''}
         ${m.user?btn('Compartilhar','clShareResult()',{icon:'📤',cls:'cl-btn-cancel cl-noshot'}):''}
-        ${btn((halftime && CL.online)?`Continuar <span class="cl-ht-count">${Math.max(0,RL.halftimeLeft!=null?RL.halftimeLeft:10)}s</span>`:'Continuar','liveContinue()',{icon:'✔',cls:'cl-btn-ok'})}
+        ${btn('Continuar','liveContinue()',{icon:'✔',cls:'cl-btn-ok'})}
       </div>`;
+  // contador do intervalo (Resenha): linha própria, FORA do botão — btn() escapa o label, então
+  // HTML no rótulo apareceria como texto quebrado. Atualizado a cada segundo por startHalftimeCountdown.
+  const halftimeTimerHTML=(halftime && CL.online)?`<div class="cl-ht-timer">⏱ Avança sozinho em <span class="cl-ht-count">${Math.max(0,RL.halftimeLeft!=null?RL.halftimeLeft:10)}</span>s se você não substituir</div>`:'';
   return `<div class="cl-lm-title">${escC(hc.short)}, ${m.hg} - ${escC(ac.short)}, ${m.ag}</div>
     <div class="cl-lm-top">
       <div class="cl-lm-events">${incHTML}</div>
       <fieldset class="cl-lm-ref"><legend>Árbitro</legend><b>${escC(m.ref)}</b></fieldset>
     </div>
     ${m.user?matchStatsHTML(m):''}
+    ${halftimeTimerHTML}
     ${actionsHTML}
     ${showSubs?subPanelHTML(m):''}
     ${penalty?penaltyPickerHTML():''}${injury?injurySubHTML(m,RL.injEvent):''}${shooting?shootoutPickerHTML():''}`;

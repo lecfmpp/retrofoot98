@@ -877,6 +877,9 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-st-kick{border:none;background:transparent;color:#ff8a8a;cursor:pointer;font-size:11px;padding:0 0 0 2px;opacity:.7;flex:none}
 .cl-st-kick:hover{opacity:1;color:#ff5c5c}
 @keyframes clpulse{50%{background:#a11}}
+/* contador do intervalo na Resenha (linha própria acima do botão Continuar) */
+.cl-ht-timer{text-align:center;font-size:12px;font-weight:700;color:#ffe08a;background:rgba(0,0,0,.22);border-radius:5px;padding:5px 8px;margin:6px 0}
+.cl-ht-timer .cl-ht-count{font-family:var(--mono);font-weight:800;font-size:14px;color:#fff}
 .cl-btn-mini{padding:3px 10px !important;font-size:12px !important;flex-direction:row !important;min-height:0 !important;min-width:0 !important}
 /* escolha Solo / Galera */
 .cl-modochoice{min-height:220px}
