@@ -742,14 +742,15 @@ function clRefreshReqSurfaces(){
   else if(CL.screen==='main') cdraw();
 }
 function clApproveJoin(uid){
-  (async ()=>{ const ok=await NET.approveJoin(uid);
-    if(ok){ toastC('✓ Entrada aprovada.'); CL.pendingJoins=(CL.pendingJoins||[]).filter(r=>r.user_id!==uid); clRefreshReqSurfaces(); }
-    else toastC('⚠ Não foi possível aprovar.'); })();
+  toastC('Aprovando...');
+  (async ()=>{ try{ await NET.approveJoin(uid);
+    toastC('✓ Entrada aprovada.'); CL.pendingJoins=(CL.pendingJoins||[]).filter(r=>r.user_id!==uid); clRefreshReqSurfaces();
+  }catch(e){ toastC('⚠ Não foi possível aprovar: '+(e&&e.message||'erro')); } })();
 }
 function clRejectJoin(uid){
-  (async ()=>{ const ok=await NET.rejectJoin(uid);
-    if(ok){ toastC('Pedido recusado.'); CL.pendingJoins=(CL.pendingJoins||[]).filter(r=>r.user_id!==uid); clRefreshReqSurfaces(); }
-    else toastC('⚠ Não foi possível recusar.'); })();
+  (async ()=>{ try{ await NET.rejectJoin(uid);
+    toastC('Pedido recusado.'); CL.pendingJoins=(CL.pendingJoins||[]).filter(r=>r.user_id!==uid); clRefreshReqSurfaces();
+  }catch(e){ toastC('⚠ Não foi possível recusar: '+(e&&e.message||'erro')); } })();
 }
 /* modal compacto dentro do jogo (item "Aprovar entradas..." do menu Modo Resenha) */
 function clJoinRequestsPanel(){

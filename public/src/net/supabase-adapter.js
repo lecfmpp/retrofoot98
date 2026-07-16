@@ -835,12 +835,21 @@ async function netListApprovedMembers(){
   }catch(e){ return []; }
 }
 async function netDecideJoin(userId, status){
-  if(!sb || !NET.isHost || !NET.gameId || !userId) return false;
-  try{
-    const { error } = await sb.from('join_requests').update({ status, decided_at: new Date().toISOString() }).eq('game_id', NET.gameId).eq('user_id', userId);
-    if(error) throw error;
-    return true;
-  }catch(e){ console.error('decideJoin erro:', e); return false; }
+  if(!sb) throw new Error('sem conexão');
+  if(!NET.isHost) throw new Error('só o anfitrião aprova');
+  if(!NET.gameId || !userId) throw new Error('sala/usuário inválido');
+  // tenta 2x (falha transitória de rede/token não pode deixar o pedido preso)
+  let lastErr=null;
+  for(let i=0;i<2;i++){
+    try{
+      const { data, error } = await sb.from('join_requests').update({ status, decided_at: new Date().toISOString() })
+        .eq('game_id', NET.gameId).eq('user_id', userId).select('user_id');
+      if(error) throw error;
+      if(!data || !data.length) throw new Error('pedido não encontrado (RLS/host?)'); // update não pegou nenhuma linha
+      return true;
+    }catch(e){ lastErr=e; console.error('decideJoin tentativa '+(i+1)+':', e&&e.message); }
+  }
+  throw lastErr || new Error('falha ao decidir');
 }
 function netApproveJoin(userId){ return netDecideJoin(userId, 'approved'); }
 function netRejectJoin(userId){ return netDecideJoin(userId, 'rejected'); }
