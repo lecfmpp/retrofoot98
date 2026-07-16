@@ -871,7 +871,13 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-chat-in{display:flex;gap:6px}
 .cl-chat-input{flex:1;font-size:13px;padding:5px 8px}
 .cl-chatdock{position:fixed;right:18px;bottom:18px;width:280px;z-index:35;box-shadow:0 10px 30px -6px rgba(0,0,0,.6);font-family:var(--sans)}
-.cl-chatdock-bar{background:var(--navy);color:#fff;font-weight:800;font-size:13px;padding:8px 12px;cursor:pointer;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL)}
+.cl-chatdock:not(.open){width:auto}
+.cl-chatdock-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--navy);color:#fff;font-weight:800;font-size:13px;padding:8px 12px;cursor:pointer;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);user-select:none}
+.cl-chatdock-lbl{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.cl-chatdock-caret{opacity:.8}
+.cl-chatdock-badge{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 6px;border-radius:10px;background:#e23b3b;color:#fff;font-size:11px;font-weight:800;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.45)}
+.cl-chatdock.has-unread .cl-chatdock-bar{animation:cl-chat-pulse 1.5s ease-in-out infinite}
+@keyframes cl-chat-pulse{0%,100%{box-shadow:0 0 0 0 rgba(226,59,59,0)}50%{box-shadow:0 0 0 4px rgba(226,59,59,.45)}}
 .cl-chatdock-body{background:var(--chrome);border:2px solid;border-top:none;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);padding:8px}
 .cl-chatdock .cl-chat-msgs{max-height:220px;color:#000}
 .cl-chatdock .cl-chat-txt{color:#111}

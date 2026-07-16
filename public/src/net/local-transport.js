@@ -85,10 +85,12 @@ function chatLobbyHTML(){ return `<fieldset class="cl-chatbox"><legend>💬 Chat
   <div class="cl-chat-msgs" id="cl-chat-msgs-lobby">${chatMsgsHTML()}</div>
   <div class="cl-chat-in"><input id="cl-chat-input-lobby" class="cl-input cl-chat-input" placeholder="Escreva uma mensagem..." onkeydown="clChatKey(event,'cl-chat-input-lobby')">${btn('Enviar',"clChatSend('cl-chat-input-lobby')",{cls:'cl-btn-mini'})}</div>
 </fieldset>`; }
-function clChatToggle(){ CL.chatOpen=!CL.chatOpen; cdraw(); }
+function clChatToggle(){ CL.chatOpen=!CL.chatOpen; if(CL.chatOpen) CL.chatUnread=0; cdraw(); }
 function chatDockHTML(){ if(!CL.online) return '';
-  return `<div class="cl-chatdock ${CL.chatOpen?'open':''}">
-    <div class="cl-chatdock-bar" onclick="clChatToggle()">💬 Chat da Liga ${CL.chatOpen?'▾':'▴'}</div>
+  const unread=CL.chatUnread||0;
+  const badge=(!CL.chatOpen && unread>0) ? `<span class="cl-chatdock-badge" title="${unread} nova(s) mensagem(ns)">${unread>99?'99+':unread}</span>` : '';
+  return `<div class="cl-chatdock ${CL.chatOpen?'open':''} ${(!CL.chatOpen&&unread>0)?'has-unread':''}">
+    <div class="cl-chatdock-bar" onclick="clChatToggle()"><span class="cl-chatdock-lbl">💬 Chat da Liga${badge}</span><span class="cl-chatdock-caret">${CL.chatOpen?'▾':'▴'}</span></div>
     ${CL.chatOpen?`<div class="cl-chatdock-body">
       <div class="cl-chat-msgs" id="cl-chat-msgs-dock">${chatMsgsHTML()}</div>
       <div class="cl-chat-in"><input id="cl-chat-input-dock" class="cl-input cl-chat-input" placeholder="Escreva uma mensagem..." onkeydown="clChatKey(event,'cl-chat-input-dock')">${btn('➤',"clChatSend('cl-chat-input-dock')",{cls:'cl-btn-mini'})}</div>
@@ -154,7 +156,20 @@ function wireNet(){ NET.onState=(room)=>{ if(room && room.speedMult && !NET.isHo
     onlineReconcileIfBehind(room); // itens 1 e 3: mantém todos na MESMA rodada (recarrega se ficou pra trás)
     if(CL.screen==='online'){ renderOnlineInto(); } else { renderChatBoxes(); const rb=document.querySelector('.cl-readybar'); if(rb && room) rb.outerHTML=onlineReadyBar(); }
     if(CL.online && room && room.phase==='running' && CL.screen!=='live'){ onlineRunRound(); } };
-  NET.onChat=()=>{ if(CL.screen==='online') renderOnlineInto(); else renderChatBoxes(); }; }
+  NET.onChat=(msg)=>{
+    const mine = !!(msg && NET.self && msg.id===NET.self.id);
+    if(CL.screen==='online'){ renderOnlineInto(); return; } // lobby: chat sempre visível, sem badge
+    if(CL.chatOpen){ renderChatBoxes(); return; }           // doca aberta: só atualiza as mensagens (preserva o input)
+    // doca fechada: conta como não-lida (menos as minhas), notifica e atualiza o badge da doca
+    if(msg && !mine){
+      CL.chatUnread=(CL.chatUnread||0)+1;
+      if(typeof toastC==='function' && msg.text){ const who=(msg.name||'').split(' ')[0]; toastC('💬 '+who+': '+(msg.text.length>60?msg.text.slice(0,60)+'…':msg.text)); }
+    }
+    refreshChatDock();
+  }; }
+/* re-renderiza SÓ a doca do chat (bar + badge) sem redesenhar a tela toda — usado quando chega
+   mensagem com a doca fechada (não há input pra preservar). */
+function refreshChatDock(){ const d=document.querySelector('.cl-chatdock'); if(d) d.outerHTML=chatDockHTML(); }
 /* SINCRONIZAR (botão): força um refetch do estado da sala e reaplica — leva o convidado do lobby
    pro jogo se o anfitrião já começou, e recarrega a rodada se ficou pra trás. Rede de segurança
    caso um evento de Realtime não chegue. */
