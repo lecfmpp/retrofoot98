@@ -1168,12 +1168,46 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-wiz-actbtns{display:flex;gap:10px;align-items:center}
 .cl-wiz-sairbtn{flex-direction:row}
 .cl-wiz-lobbyL .cl-parts{display:flex;flex-direction:column;gap:6px}
+
+/* ===== Lobby coluna única — passo a passo (redesign) ===== */
+.cl-wiz-lobbycol{display:flex;flex-direction:column;gap:14px;width:100%;max-width:640px;margin:0 auto;flex:1;min-height:0;overflow:auto}
+.cl-step{background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.14)}
+.cl-step-alert{border-color:var(--yellow);box-shadow:0 0 0 1px var(--yellow) inset}
+.cl-step-h{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.1)}
+.cl-step-h-btn{cursor:pointer;user-select:none;border-bottom:none}
+.cl-step-num{flex:0 0 auto;width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:var(--yellow);color:#1a1a1a;font-weight:800;font-size:13px;border-radius:50%}
+.cl-step-t{font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;display:flex;align-items:center;gap:8px}
+.cl-step-badge{background:var(--danger,#c0392b);color:#fff;font-size:11px;font-weight:800;padding:1px 7px;border-radius:9px;letter-spacing:0}
+.cl-step-caret{margin-left:auto;color:var(--yellow);font-size:13px}
+.cl-step-b{padding:13px 14px;display:flex;flex-direction:column;gap:9px}
+.cl-step-b .cl-parts{display:flex;flex-direction:column;gap:6px}
+.cl-step-chat .cl-wiz-chatmsgs{min-height:80px;max-height:200px;overflow:auto}
+.cl-part-team.wait{color:var(--ontext-lite2);font-weight:600;font-size:11.5px;background:none;text-shadow:none;padding:3px 8px;white-space:nowrap}
+.cl-part-st.ok{color:var(--success-lite,#8fe08f)}
+
+/* ===== Tela de sorteio com reveal ===== */
+.cl-rdraw{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;max-width:560px;margin:0 auto}
+.cl-rdraw-sub{font-size:14px;font-weight:700;color:var(--yellow);text-align:center;min-height:20px}
+.cl-rdraw-list{display:flex;flex-direction:column;gap:8px;width:100%}
+.cl-rdraw-row{display:grid;grid-template-columns:30px 1fr 22px 130px;align-items:center;gap:10px;padding:9px 12px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.12)}
+.cl-rdraw-row.pending{opacity:.5}
+.cl-rdraw-num{width:26px;height:26px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.14);color:#fff;font-weight:800;font-size:12px;border-radius:50%}
+.cl-rdraw-name{font-weight:700;color:#fff;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl-rdraw-name.muted{color:var(--ontext-lite2);font-weight:600}
+.cl-rdraw-arrow{color:var(--ontext-lite2);text-align:center;font-weight:800}
+.cl-rdraw-team{padding:4px 8px;font-weight:800;text-align:center;text-shadow:0 1px 1px rgba(0,0,0,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-rdraw-team.q{background:rgba(255,255,255,.1);color:#fff;text-shadow:none}
+.cl-rdraw-row.revealed.pop{animation:clRdrawPop .5s ease}
+@keyframes clRdrawPop{0%{transform:scale(.82);opacity:0}55%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+
 @media (max-width:760px){
   .cl-wiz-lobbycols{flex-direction:column}
   .cl-wiz-lobbyR{min-width:0}
   .cl-wiz-invitegrid{grid-template-columns:1fr}
   .cl-wiz-actionbar{flex-wrap:wrap}
   .cl-wiz-authcard{width:100%}
+  .cl-rdraw-row{grid-template-columns:26px 1fr 16px 96px;gap:7px;padding:8px 9px}
+  .cl-rdraw-team{padding:4px 6px;font-size:12px}
 }
 
 /* ===== Setup do Jogo (redesign handoff_setup_jogo) — reusa wizShell ===== */

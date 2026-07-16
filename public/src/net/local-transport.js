@@ -164,9 +164,9 @@ function wireNet(){ NET.onState=(room)=>{ if(room && room.speedMult && !NET.isHo
     // CONVIDADO NO LOBBY: quando o anfitrião COMEÇA (a fase sai de 'lobby'), o convidado entra no
     // jogo JUNTO — antes ele ficava preso no "à espera do anfitrião" enquanto o host já jogava.
     if(room && room.phase && room.phase!=='lobby' && !CL.online && CL.screen==='online' && CL.net && CL.net.step==='lobby'){
-      // re-lê os assentos ANTES de montar o jogo: o clube sorteado pra mim (pelo host) pode chegar
-      // logo depois do evento de fase — sem isso, onlineBeginSeason pegaria um clube errado.
-      (async ()=>{ try{ if(NET.refreshRoom) await NET.refreshRoom(); }catch(e){} onlineBeginSeason(); })(); return;
+      // host COMEÇOU: re-lê os assentos (clubes sorteados) e vai pra TELA DE SORTEIO (reveal) antes
+      // do jogo. O reveal chama onlineBeginSeason ao terminar.
+      (async ()=>{ try{ if(NET.refreshRoom) await NET.refreshRoom(); }catch(e){} startResenhaDraw(); })(); return;
     }
     onlineReconcileIfBehind(room); // itens 1 e 3: mantém todos na MESMA rodada (recarrega se ficou pra trás)
     if(CL.screen==='online'){ renderOnlineInto(); } else { renderChatBoxes(); const rb=document.querySelector('.cl-statusbar'); if(rb && room) rb.outerHTML=onlineStatusSidebar(); }
@@ -231,6 +231,7 @@ function renderOnline(){ const n=CL.net||{};
   if(n.step==='midjoin') return scMidJoin();
   if(n.step==='waitapproval') return scWaitApproval();
   if(n.step==='lobby')  return scLobby();
+  if(n.step==='reveal') return scResenhaDraw();
   return scConta();
 }
 /* ---- Modo Resenha (logado): escolher entre CRIAR sala nova (anfitrião) ou ENTRAR por código ---- */
@@ -568,79 +569,93 @@ function scLobby(){ const room=NET.room;
   if(!room) return wizShell({ title:'Sala', back:'clLobbyExit()', backLabel:'Sair da sala',
     contentCls:'cl-wiz-center', body:`<div class="cl-wiz-sub">A ligar à sala…</div>` });
   const host=NET.isHost;
-  const confirmedN=room.participants.filter(p=>p.confirmed).length;
-  // no lobby, DATA.clubs pode NÃO ser a Série D (o host podia estar noutro universo), então clubOf
-  // não acha o clube do assento. Resolve pelo pool da Série D (mesma fonte dos assentos).
-  const poolById={}; (typeof resenhaStartClubs==='function'?resenhaStartClubs():[]).forEach(c=>{ poolById[c.id]=c; });
-  const parts=room.participants.map(p=>{ const c=p.clubId?(clubOf(p.clubId)||poolById[p.clubId]):null;
-    const isSelf=p.id===NET.self.id;
+  const nParts=room.participants.length;
+  const canStart=host && nParts>=2;
+  if(host) clStartHostReqPoll();
+
+  // ---- lista de treinadores na sala (o time NÃO é revelado aqui — só na tela de sorteio) ----
+  const parts=room.participants.map(p=>{ const isSelf=p.id===NET.self.id;
+    const status=p.confirmed?'<span class="cl-part-st ok">● na sala</span>':'<span class="cl-part-st">○ a entrar…</span>';
     return `<div class="cl-part">
       <span class="cl-part-dot ${p.confirmed?'ok':''}"></span>
-      <span class="cl-part-n">${escC(p.name||'—')}${p.host?' <i>(anfitrião)</i>':''}</span>
-      <span class="cl-part-st">${p.confirmed?'Confirmado':'Não confirmado'}</span>
-      <span class="cl-part-team" style="${c?clubStripe(c):''}">${c?escC(c.short):'🎲 sorteado no início'}</span>
+      <span class="cl-part-n">${escC(p.name||'—')}${p.host?' <i>(anfitrião)</i>':''}${isSelf&&!p.host?' <i>(você)</i>':''}</span>
+      ${status}
+      <span class="cl-part-team wait">🎲 aguardando sorteio</span>
       ${host && !isSelf ? `<button class="cl-part-kick" title="Remover da sala" onclick="clKick('${p.id}','${p.clubId||''}')">✖</button>` : ''}
     </div>`; }).join('');
-  const canStart=host && room.participants.length>=2;
 
-  // ---- coluna esquerda: convites + participantes ----
-  const invitePanel = host ? `<div class="cl-wiz-panel">
-      <div class="cl-wiz-secttitle">Convidar treinadores</div>
-      <div class="cl-wiz-invitegrid">
-        <div>
-          <div class="cl-wiz-invlbl">🟢 Por WhatsApp</div>
-          <div class="cl-wiz-invrow"><span class="cl-ddi">+55</span><input class="cl-phone" inputmode="numeric" placeholder="DDD + número" value="${escC(CL.net.phone||'')}" oninput="CL.net.phone=this.value.replace(/\\D/g,'');this.value=CL.net.phone">${btn('Enviar','clWaInvite()',{cls:'cl-btn-sm'})}</div>
-        </div>
-        <div>
-          <div class="cl-wiz-invlbl">✉ Por e-mail</div>
-          <div class="cl-wiz-invrow"><input class="cl-emailinv" type="email" placeholder="email@exemplo.com" value="${escC(CL.net.inviteEmail||'')}" oninput="CL.net.inviteEmail=this.value">${btn('Enviar','clEmailInvite()',{cls:'cl-btn-sm'})}</div>
-        </div>
-      </div>
-      <div class="cl-wiz-invhint">Link da sala: <a class="cl-wiz-invlink" href="${escC(NET.inviteLink())}" target="_blank">${escC(NET.inviteLink())}</a></div>
-    </div>
-    <div class="cl-wiz-panel">
-      <div class="cl-wiz-secttitle">🔍 Convidar quem já tem conta</div>
-      <input id="cl-usersearch-input" class="cl-wiz-searchin" placeholder="Buscar por nome ou e-mail (mín. 3 letras)" oninput="clUserSearch(this.value)">
-      <div id="cl-usersearch-results" class="cl-usersearch-results"></div>
-    </div>` : '';
-  if(host) clStartHostReqPoll();
   const nReq=(CL.pendingJoins&&CL.pendingJoins.length)||0;
-  const reqPanel = host ? `<div class="cl-wiz-panel">
-      <div class="cl-wiz-secttitle">🚪 Pedidos de entrada${nReq?' ('+nReq+')':''}</div>
-      <div class="cl-req-list">${clReqRowsHTML()}</div>
-    </div>` : '';
-  const leftCol=`<div class="cl-wiz-lobbyL">
-      ${invitePanel}
-      ${reqPanel}
-      <div>
-        <div class="cl-wiz-secttitle">Participantes (${confirmedN})</div>
-        <div class="cl-parts">${parts}</div>
+
+  // ======= VISÃO DO ANFITRIÃO: passo a passo em coluna única =======
+  let steps='';
+  if(host){
+    // Passo 1 — convidar
+    steps += `<section class="cl-step">
+      <div class="cl-step-h"><span class="cl-step-num">1</span><span class="cl-step-t">Convide os treinadores</span></div>
+      <div class="cl-step-b">
+        <div class="cl-wiz-invitegrid">
+          <div>
+            <div class="cl-wiz-invlbl">🟢 Por WhatsApp</div>
+            <div class="cl-wiz-invrow"><span class="cl-ddi">+55</span><input class="cl-phone" inputmode="numeric" placeholder="DDD + número" value="${escC(CL.net.phone||'')}" oninput="CL.net.phone=this.value.replace(/\\D/g,'');this.value=CL.net.phone">${btn('Enviar','clWaInvite()',{cls:'cl-btn-sm'})}</div>
+          </div>
+          <div>
+            <div class="cl-wiz-invlbl">✉ Por e-mail</div>
+            <div class="cl-wiz-invrow"><input class="cl-emailinv" type="email" placeholder="email@exemplo.com" value="${escC(CL.net.inviteEmail||'')}" oninput="CL.net.inviteEmail=this.value">${btn('Enviar','clEmailInvite()',{cls:'cl-btn-sm'})}</div>
+          </div>
+        </div>
+        <div class="cl-wiz-invlbl" style="margin-top:10px">🔍 Quem já tem conta</div>
+        <input id="cl-usersearch-input" class="cl-wiz-searchin" placeholder="Buscar por nome ou e-mail (mín. 3 letras)" oninput="clUserSearch(this.value)">
+        <div id="cl-usersearch-results" class="cl-usersearch-results"></div>
+        <div class="cl-wiz-invhint">Ou compartilhe o link: <a class="cl-wiz-invlink" href="${escC(NET.inviteLink())}" target="_blank">${escC(NET.inviteLink())}</a></div>
       </div>
-    </div>`;
+    </section>`;
+    // Passo 2 — aprovar entradas (só aparece quando há pedidos)
+    if(nReq>0){
+      steps += `<section class="cl-step cl-step-alert">
+        <div class="cl-step-h"><span class="cl-step-num">2</span><span class="cl-step-t">Aprove os pedidos de entrada <span class="cl-step-badge">${nReq}</span></span></div>
+        <div class="cl-step-b"><div class="cl-req-list">${clReqRowsHTML()}</div></div>
+      </section>`;
+    }
+    // Passo 3 — treinadores na sala
+    steps += `<section class="cl-step">
+      <div class="cl-step-h"><span class="cl-step-num">${nReq>0?3:2}</span><span class="cl-step-t">Treinadores na sala (${nParts})</span></div>
+      <div class="cl-step-b"><div class="cl-parts">${parts}</div>
+        <div class="cl-wiz-invhint">Quando começar, cada treinador recebe um clube por sorteio — ninguém escolhe.</div>
+      </div>
+    </section>`;
+  } else {
+    // ======= VISÃO DO CONVIDADO: simples =======
+    steps += `<section class="cl-step">
+      <div class="cl-step-h"><span class="cl-step-t">Treinadores na sala (${nParts})</span></div>
+      <div class="cl-step-b"><div class="cl-parts">${parts}</div>
+        <div class="cl-wiz-invhint">Aguarde o anfitrião começar. Os clubes são sorteados na próxima tela.</div>
+      </div>
+    </section>`;
+  }
 
-  // ---- coluna direita: partida (sortear) + chat ----
-  const partidaPanel = (host && room.phase==='lobby') ? `<div class="cl-wiz-panel">
-      <div class="cl-wiz-secttitle">Partida</div>
-      <button class="cl-btn cl-wiz-drawbtn" onclick="clLobbyDraw()">🎲 Sortear times</button>
-    </div>` : '';
-  const chatPanel=`<div class="cl-wiz-panel cl-wiz-chatpanel">
-      <div class="cl-wiz-secttitle">💬 Chat da sala</div>
-      <div class="cl-chat-msgs cl-wiz-chatmsgs" id="cl-chat-msgs-lobby">${chatMsgsHTML()||'<div class="cl-wiz-chatempty">Nenhuma mensagem ainda. Diga oi! 👋</div>'}</div>
-      <div class="cl-wiz-invrow"><input id="cl-chat-input-lobby" class="cl-chat-input" placeholder="Escreva uma mensagem…" onkeydown="clChatKey(event,'cl-chat-input-lobby')">${btn('Enviar',"clChatSend('cl-chat-input-lobby')",{cls:'cl-btn-sm'})}</div>
-    </div>`;
-  const rightCol=`<div class="cl-wiz-lobbyR">${partidaPanel}${chatPanel}</div>`;
+  // Chat — recolhível (todos)
+  const chatOpen=CL.net.lobbyChatOpen!==false;
+  steps += `<section class="cl-step cl-step-chat">
+      <div class="cl-step-h cl-step-h-btn" onclick="CL.net.lobbyChatOpen=${chatOpen?'false':'true'};renderOnlineInto()">
+        <span class="cl-step-t">💬 Chat da sala</span><span class="cl-step-caret">${chatOpen?'▾':'▸'}</span>
+      </div>
+      ${chatOpen?`<div class="cl-step-b">
+        <div class="cl-chat-msgs cl-wiz-chatmsgs" id="cl-chat-msgs-lobby">${chatMsgsHTML()||'<div class="cl-wiz-chatempty">Nenhuma mensagem ainda. Diga oi! 👋</div>'}</div>
+        <div class="cl-wiz-invrow"><input id="cl-chat-input-lobby" class="cl-chat-input" placeholder="Escreva uma mensagem…" onkeydown="clChatKey(event,'cl-chat-input-lobby')">${btn('Enviar',"clChatSend('cl-chat-input-lobby')",{cls:'cl-btn-sm'})}</div>
+      </div>`:''}
+    </section>`;
 
-  const action=`<span class="cl-wiz-hint">${host?'Mínimo de 2 treinadores pra começar.':'À espera do anfitrião… toque em Sincronizar se ele já começou.'}</span>
+  const action=`<span class="cl-wiz-hint">${host?(canStart?'O sorteio dos clubes acontece na próxima tela.':'Convide pelo menos mais 1 treinador pra começar.'):'À espera do anfitrião… toque em Sincronizar se ele já começou.'}</span>
     <div class="cl-wiz-actbtns">
       ${btn('Sair','clLobbyExit()',{icon:'✖',cls:'cl-wiz-sairbtn'})}
-      ${host?btn('Começar','clLobbyStart()',{icon:'✔',cls:'cl-wiz-cta',dis:!canStart})
+      ${host?btn('Começar (sortear times)','clLobbyStart()',{icon:'🎲',cls:'cl-wiz-cta',dis:!canStart})
             :btn('Sincronizar','clSyncResenha()',{icon:'🔄',cls:'cl-wiz-cta'})}
     </div>`;
   return wizShell({
     title:'Sala · '+escC(room.name||''), back:'clLobbyExit()', backLabel:'Sair da sala',
     pill:'Código '+escC(room.code||''),
     contentCls:'cl-wiz-lobbycontent',
-    body:`<div class="cl-wiz-lobbycols">${leftCol}${rightCol}</div>`,
+    body:`<div class="cl-wiz-lobbycol">${steps}</div>`,
     action
   });
 }
@@ -749,21 +764,80 @@ function clRenderReqPanel(){
 }
 function clCloseReqPanel(){ CL._reqPanelOpen=false; clCloseOverlay(); }
 
-function clLobbyDraw(){
-  toastC('Sorteando times...');
-  (async ()=>{ try{ await NET.drawClubs(true); toastC('🎲 Times sorteados!'); }
-    catch(e){ toastC('⚠ Não foi possível sortear. Tente de novo.'); }
-    if(typeof cdraw==='function') cdraw(); })();
-}
 function clLobbyExit(){ clStopHostReqPoll(); CL.screen='modo'; cdraw(); }
-function clLobbyStart(){ const room=NET.room;
-  // AGUARDA o sorteio terminar antes de começar: com os convidados já sentados na entrada, quem
-  // ainda não tem clube aqui é o próprio anfitrião — se não esperarmos, onlineBeginSeason pegaria
-  // participants[0].clubId (de um convidado) como time do host.
+/* "Começar" (anfitrião): sorteia TODOS os assentos dos treinadores PRESENTES a partir dos clubes
+   disponíveis do save (grava em game_seats), depois abre a temporada (NET.start → fase sai de
+   'lobby'). A saída de 'lobby' dispara a TELA DE REVEAL em todos os clientes (host + convidados)
+   via wireNet.onState; ao fim do reveal cada um chama onlineBeginSeason (mesma seed → mesma
+   competição). O sorteio NÃO acontece mais no lobby — só aqui, garantindo uma única competição. */
+function clLobbyStart(){ if(!NET.isHost) return;
+  const room=NET.room; if(!room || (room.participants||[]).length<2){ toastC('Mínimo de 2 treinadores.'); return; }
+  toastC('Sorteando os clubes…');
   (async ()=>{
-    if(!room.participants.every(p=>p.clubId)) await NET.drawClubs(); // só preenche quem não tem clube (ex.: o anfitrião)
-    onlineBeginSeason(); // cria o jogo compartilhado (mesma seed p/ todos) e entra no hub online
+    try{ await NET.drawClubs(true); }                 // re-sorteia todos os assentos presentes
+    catch(e){ toastC('⚠ Não foi possível sortear. Tente de novo.'); return; }
+    try{ if(NET.refreshRoom) await NET.refreshRoom(); }catch(e){}  // lê os assentos finais
+    NET.start();   // fase 'lobby'→'ready': o onState dispara startResenhaDraw() (host + convidados)
   })();
+}
+/* ---------- Tela de sorteio com reveal (dedicada, após "Começar") ----------
+   Todos os clientes caem aqui quando a fase sai de 'lobby'. Revela um treinador→clube por vez
+   (~2s, estilo sorteio de copa) e, ao terminar, chama onlineBeginSeason() — que usa a seed
+   compartilhada (mesma competição p/ todos) e restaura o clube local. Botão "Pular" acelera. */
+function startResenhaDraw(){
+  const room=NET.room;
+  if(!room){ onlineBeginSeason(); return; }
+  const poolById={}; (typeof resenhaStartClubs==='function'?resenhaStartClubs():[]).forEach(c=>{ poolById[c.id]=c; });
+  // só treinadores COM assento sorteado; ordem DETERMINÍSTICA por clubId → todos veem a mesma sequência
+  const list=(room.participants||[]).filter(p=>p.clubId).slice()
+    .sort((a,b)=> String(a.clubId).localeCompare(String(b.clubId)));
+  if(!list.length){ onlineBeginSeason(); return; }
+  if(CL._resDrawTimer){ clearTimeout(CL._resDrawTimer); CL._resDrawTimer=null; }
+  CL.net.draw={ list, idx:0, done:false, fast:false, poolById };
+  CL.net.step='reveal'; CL.screen='online';
+  cdraw();
+  CL._resDrawTimer=setTimeout(resenhaDrawTick, 700); // pequena pausa antes do 1º
+}
+function resenhaDrawTick(){
+  const d=CL.net&&CL.net.draw; if(!d) return;
+  if(d.idx>=d.list.length){
+    d.done=true; renderOnlineInto();
+    CL._resDrawTimer=setTimeout(()=>{ if(CL.net) CL.net.draw=null; onlineBeginSeason(); }, d.fast?500:1600);
+    return;
+  }
+  d.idx++;
+  renderOnlineInto();
+  CL._resDrawTimer=setTimeout(resenhaDrawTick, d.fast?250:2000);
+}
+function clResenhaDrawSkip(){ const d=CL.net&&CL.net.draw; if(!d||d.done) return; d.fast=true;
+  if(CL._resDrawTimer){ clearTimeout(CL._resDrawTimer); CL._resDrawTimer=null; }
+  resenhaDrawTick();
+}
+function scResenhaDraw(){
+  const d=(CL.net&&CL.net.draw)||{list:[],idx:0};
+  const poolById=d.poolById||{};
+  const rows=(d.list||[]).map((p,i)=>{
+    const revealed=i<d.idx;
+    if(!revealed) return `<div class="cl-rdraw-row pending"><span class="cl-rdraw-num">${i+1}</span><span class="cl-rdraw-name muted">${escC(p.name||'Treinador')}</span><span class="cl-rdraw-arrow">→</span><span class="cl-rdraw-team q">🎲</span></div>`;
+    const c=clubOf(p.clubId)||poolById[p.clubId];
+    const isLast=(i===d.idx-1)&&!d.done;
+    return `<div class="cl-rdraw-row revealed${isLast?' pop':''}">
+      <span class="cl-rdraw-num">${i+1}</span>
+      <span class="cl-rdraw-name">${escC(p.name||'Treinador')}</span>
+      <span class="cl-rdraw-arrow">→</span>
+      <span class="cl-rdraw-team" style="${c?clubStripe(c):''}">${c?escC(c.short||c.name):'—'}</span>
+    </div>`;
+  }).join('');
+  const sub=d.done?'Sorteio concluído! Entrando na Resenha… ⚽':'Sorteando os clubes… boa sorte a todos!';
+  const action=d.done
+    ? `<span class="cl-wiz-hint">Preparando a temporada…</span>`
+    : `<div class="cl-wiz-actbtns">${btn('Pular','clResenhaDrawSkip()',{icon:'⏩',cls:'cl-wiz-cta'})}</div>`;
+  return wizShell({
+    title:'Sorteio dos clubes',
+    contentCls:'cl-wiz-center',
+    body:`<div class="cl-rdraw"><div class="cl-rdraw-sub">${sub}</div><div class="cl-rdraw-list">${rows}</div></div>`,
+    action
+  });
 }
 function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=room.participants.find(p=>p.id===NET.self.id);
   // SEGURANÇA: convidado sem clube ainda? re-lê os assentos uma vez e tenta de novo (o sorteio do
@@ -790,7 +864,9 @@ function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=ro
   CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||null;
   cdraw(); // ao entrar na Resenha, vai SEMPRE direto pra TELA PRINCIPAL do time
 
-  if(NET.isHost) NET.start();   // abre janela de 60s
+  // A janela de 60s (NET.start) já foi aberta pelo anfitrião em clLobbyStart, ANTES do reveal —
+  // não reabrir aqui (dobraria o cronômetro). Reconexões a jogo em andamento caem aqui com a fase
+  // já fora de 'lobby', então também não precisam reabrir.
   if(NET.isHost) clStartHostReqPoll();   // acompanha pedidos de entrada durante a temporada
 
   // Carrega o estado salvo (se houver). NÃO mostramos sorteio de copa na ENTRADA — nem na 1ª vez:
