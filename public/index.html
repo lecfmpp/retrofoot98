@@ -314,7 +314,7 @@ function makeSchedule(ids){
 }
 
 /* ====================== NEW GAME ====================== */
-function newGame(clubId, division, compToggle){
+function newGame(clubId, division, compToggle, seedOverride){
   division = division || 'A';
   compToggle = compToggle || {libertadores:true, copaBrasil:true, sulamericana:true};
   PROC_USED_NAMES=new Set(); // novo save -> zera o controle de nomes procedurais únicos
@@ -326,7 +326,9 @@ function newGame(clubId, division, compToggle){
   const squads={};
   DATA.clubs.forEach(c=>squads[c.id]=c.squad.map(p=>attachAttrs(initStats({...p}), division)));
   squads[clubId].forEach(p=>p.contract=defaultContract(p));
-  const seed=(Math.random()*0x7fffffff)>>>0;
+  // seedOverride (Resenha): usa a MESMA seed em todos os clientes -> copas/leilão/outras divisões
+  // saem IDÊNTICOS (mesma competição). Sem override (solo), sorteia aleatório como sempre.
+  const seed=(seedOverride!=null) ? (seedOverride>>>0) : ((Math.random()*0x7fffffff)>>>0);
   const budget=REBAL.budget(division, makeRng(hashSeed(seed,'budget',clubId))); // caixa inicial por divisão (item 4)
   S={
     clubId, season:2026, round:0, day:1, week:1, seed,

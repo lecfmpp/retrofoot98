@@ -784,7 +784,7 @@ function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=ro
   DATA.clubs = startClubs.slice();
   CL.intlUniverse=false; CL.bgCountries=[]; CL.playCountry='Brasil';
   CL.clubId=(me&&me.clubId)||room.participants[0].clubId; CL.mgr=me?me.name:CL.mgr;
-  newGame(CL.clubId, startDiv); if(!S.stadium) S.stadium={capacity:STAND_START}; S.seed=room.seed;
+  newGame(CL.clubId, startDiv, undefined, room.seed); if(!S.stadium) S.stadium={capacity:STAND_START}; // seed compartilhada -> mesma competição p/ todos
   CL.humans={}; room.participants.forEach(p=>{ if(p.clubId) CL.humans[p.clubId]=p.name; });
   CL.online=true; CL.formation=null; CL.tacticChosen=false; S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
   CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||null;
