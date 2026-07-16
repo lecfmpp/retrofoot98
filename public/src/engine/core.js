@@ -1853,6 +1853,16 @@ function clubsForDivision(division){
   if(real && real.length) return real.slice(0, DIVISION_SIZE[division]);
   return proceduralDivisionClubs(division, DIVISION_SIZE[division]);
 }
+/* Resenha (multiplayer): SEMPRE começa na ÚLTIMA divisão do Brasil (Série D) — a graça do jogo é
+   o desafio de subir da base até a Série A e ganhar títulos. Fonte: bundle real BRASIL_LOWER['D']
+   (independe do universo em que o host esteja no momento). */
+const RESENHA_START_DIV = 'D';
+function resenhaStartClubs(){
+  const d=RESENHA_START_DIV;
+  const bundled=(typeof window!=='undefined'&&window.BRASIL_LOWER&&window.BRASIL_LOWER[d])||null;
+  if(bundled && bundled.length) return bundled.slice(0, (typeof DIVISION_SIZE!=='undefined'&&DIVISION_SIZE[d])||20);
+  return (typeof DATA!=='undefined'&&(DATA.clubsSerieA||DATA.clubs))||[];
+}
 /* ================= REGISTRO PERSISTENTE DE CLUBES POR DIVISÃO =================
    Antes, as 3 divisões que o usuário não joga eram regeneradas do zero (mesma seed)
    a cada troca de temporada — por isso a promoção/rebaixamento delas nunca "pegava"

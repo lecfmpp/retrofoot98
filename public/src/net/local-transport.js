@@ -599,9 +599,11 @@ function scLobby(){ const room=NET.room;
 /* clubes ainda controlados pela CPU nesta sala — o próprio jogador escolhe entre eles
    (mesma lista que scMidJoin usa pra convite/entrada com a liga já rolando). */
 function freeClubIds(){ const room=NET.room; if(!room) return [];
-  // Resenha é sempre Brasil Série A — o pool de sorteio precisa ser a Série A (não o DATA.clubs
-  // local do convidado, que pode estar noutro universo/divisão e não bater com os assentos).
-  const pool = (typeof DATA!=='undefined' && DATA.clubsSerieA && DATA.clubsSerieA.length) ? DATA.clubsSerieA : DATA.clubs;
+  // Resenha começa na Série D do Brasil — o pool de sorteio precisa ser exatamente os clubes da
+  // Série D (que são os assentos criados na sala), não o DATA.clubs local do convidado (que pode
+  // estar noutro universo/divisão e não bater com os assentos).
+  const pool = (typeof resenhaStartClubs==='function' && resenhaStartClubs().length) ? resenhaStartClubs()
+    : ((typeof DATA!=='undefined' && DATA.clubsSerieA && DATA.clubsSerieA.length) ? DATA.clubsSerieA : DATA.clubs);
   const taken=new Set((room.participants||[]).map(p=>p.clubId).filter(Boolean));
   return pool.filter(c=>!taken.has(c.id));
 }
@@ -705,21 +707,26 @@ function clCloseReqPanel(){ CL._reqPanelOpen=false; clCloseOverlay(); }
 function clLobbyDraw(){ NET.drawClubs(DATA.clubs.map(c=>c.id)); toastC('Times sorteados!'); }
 function clLobbyExit(){ clStopHostReqPoll(); CL.screen='modo'; cdraw(); }
 function clLobbyStart(){ const room=NET.room;
-  // preenche com sorteio quem ainda não escolheu o próprio time até aqui
-  if(!room.participants.every(p=>p.clubId)) NET.drawClubs(DATA.clubs.map(c=>c.id));
-  // cria o jogo compartilhado (mesma seed p/ todos) e entra no hub online
-  onlineBeginSeason();
+  // AGUARDA o sorteio terminar antes de começar: com os convidados já sentados na entrada, quem
+  // ainda não tem clube aqui é o próprio anfitrião — se não esperarmos, onlineBeginSeason pegaria
+  // participants[0].clubId (de um convidado) como time do host.
+  (async ()=>{
+    if(!room.participants.every(p=>p.clubId)) await NET.drawClubs(DATA.clubs.map(c=>c.id));
+    onlineBeginSeason(); // cria o jogo compartilhado (mesma seed p/ todos) e entra no hub online
+  })();
 }
 function onlineBeginSeason(){ const room=NET.room; const me=room.participants.find(p=>p.id===NET.self.id);
-  // A Resenha é sempre Brasil Série A. Se este jogador vinha de um solo (universo intl,
-  // divisão baixa, transferência ao exterior), DATA.clubs/universo ficaram alterados e
-  // newGame(clubId) teria squads[clubId] === undefined -> crash "reading 'forEach'".
-  // Restaura o contexto do Brasil (Série A) antes de montar o jogo online.
+  // A Resenha começa SEMPRE na ÚLTIMA divisão do Brasil (Série D) — a graça é o desafio de subir da
+  // base até a Série A e ganhar títulos. Se este jogador vinha de um solo (universo intl, outra
+  // divisão, transferência ao exterior), DATA.clubs/universo ficaram alterados e newGame(clubId)
+  // teria squads[clubId] === undefined -> crash. Restaura o Brasil na divisão inicial antes de montar.
   if(typeof setUniverse==='function') setUniverse('brasil');
-  if(DATA.clubsSerieA) DATA.clubs = DATA.clubsSerieA.slice();
+  const startDiv = (typeof RESENHA_START_DIV!=='undefined') ? RESENHA_START_DIV : 'D';
+  const startClubs = (typeof resenhaStartClubs==='function' && resenhaStartClubs().length) ? resenhaStartClubs() : ((DATA.clubsSerieA||DATA.clubs)||[]);
+  DATA.clubs = startClubs.slice();
   CL.intlUniverse=false; CL.bgCountries=[]; CL.playCountry='Brasil';
   CL.clubId=(me&&me.clubId)||room.participants[0].clubId; CL.mgr=me?me.name:CL.mgr;
-  newGame(CL.clubId); if(!S.stadium) S.stadium={capacity:STAND_START}; S.seed=room.seed;
+  newGame(CL.clubId, startDiv); if(!S.stadium) S.stadium={capacity:STAND_START}; S.seed=room.seed;
   CL.humans={}; room.participants.forEach(p=>{ if(p.clubId) CL.humans[p.clubId]=p.name; });
   CL.online=true; CL.formation=null; CL.tacticChosen=false; S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
   CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||null;
@@ -757,8 +764,17 @@ function clKick(uid, clubId){
   if(!uid || typeof NET==='undefined' || !NET.isHost) return;
   const p=(NET.room && NET.room.participants || []).find(x=>x.id===uid);
   const nm=(p&&p.name)||'este jogador';
-  if(!confirm('Remover '+nm+' da Resenha?\n\nO time dele passa a ser controlado pela CPU e ele volta ao menu.')) return;
-  if(NET.kick) NET.kick(uid, clubId||(p&&p.clubId));
+  const cid=clubId||(p&&p.clubId)||'';
+  overlayC(dlg('Remover da Resenha?', `<div class="cl-res">
+    <div class="cl-res-verd" style="text-align:center">Remover <b>${escC(nm)}</b> da Resenha?<br>O time dele passa a ser controlado pela CPU e ele volta ao menu.</div>
+    <div class="cl-cal-ok" style="display:flex;gap:10px;justify-content:center;margin-top:14px">
+      ${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}
+      ${btn('Remover',`clKickGo('${escC(uid)}','${escC(cid)}')`,{icon:'✖',cls:'cl-btn-ok'})}
+    </div></div>`,{w:440}));
+}
+function clKickGo(uid, clubId){
+  clCloseOverlay();
+  if(NET.kick) NET.kick(uid, clubId||undefined);
   if(typeof cdraw==='function') cdraw();
 }
 function clOnlinePause(){ /* pausa removida: cronômetro da Resenha é soberano e imutável */ }
