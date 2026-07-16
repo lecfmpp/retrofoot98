@@ -229,7 +229,7 @@ async function netJoinRoom(code, me){
   const { data: seatsData } = await sb.from('game_seats').select('*').eq('game_id', gameData.id);
   const { data: msgs } = await sb.from('messages').select('*').eq('game_id', gameData.id).order('created_at').limit(100);
   NET._claimed = {};
-  (seatsData||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic }; });
+  (seatsData||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round }; });
   NET.room = {
     code: gameData.id, gameId: gameData.id, name: gameData.name, hostId: gameData.host_id, mode: gameData.mode, phase: gameData.phase,
     participants: [], seed: gameData.seed, round: gameData.round||0, deadline: gameData.ready_deadline?new Date(gameData.ready_deadline).getTime():0,
@@ -255,7 +255,7 @@ async function netRefreshRoom(){
     });
     const { data: seats } = await sb.from('game_seats').select('*').eq('game_id', NET.gameId);
     NET._claimed = NET._claimed || {};
-    (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic }; });
+    (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round }; });
     netMergeParticipants(); // -> NET.onState (transição lobby->jogo + reconcile de rodada)
     return NET.room;
   }catch(e){ console.warn('refreshRoom:', e&&e.message); return null; }
@@ -281,6 +281,52 @@ async function netClearBusy(){
 async function netPublishLineup(xi, tactic){
   if(!sb || !NET.gameId || !SB_AUTH_USER) return;
   try{ await sb.from('game_seats').update({ last_xi:(xi&&xi.length)?xi:null, last_tactic:tactic||null }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id); }catch(e){}
+}
+
+/* ---- SAVE ÚNICO (Fase A): publica o RESULTADO REAL da MINHA partida desta rodada ----
+   Cada humano joga a sua partida ao vivo no próprio aparelho e publica {round,h,a,hg,ag,scorers,
+   perf,events} no seu assento. Todos os clientes leem os resultados de TODOS e rodam
+   _commitLeagueRound uma única vez com esses resultados (humanResults) -> S idêntico pra todos,
+   sem re-simular a partida do vizinho (que divergia). Espelha last_result no _claimed local na hora
+   (o realtime confirma). */
+async function netPublishResult(round, result){
+  if(!sb || !NET.gameId || !SB_AUTH_USER || !result) return;
+  const payload = { round, h:result.h, a:result.a, hg:result.hg, ag:result.ag,
+    scorers:result.scorers||[], perf:result.perf||null, events:result.events||[] };
+  try{
+    if(NET._claimed && NET._claimed[SB_AUTH_USER.id]){ NET._claimed[SB_AUTH_USER.id].last_result=payload; NET._claimed[SB_AUTH_USER.id].last_result_round=round; }
+    await sb.from('game_seats').update({ last_result:payload, last_result_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);
+  }catch(e){ console.warn('publishResult:', e&&e.message); }
+}
+/* clubes humanos desta sala (assentos ocupados por gente) */
+function netHumanClubIds(){
+  const out=[]; const cl=NET._claimed||{};
+  Object.keys(cl).forEach(uid=>{ const c=cl[uid]; if(c && c.clubId) out.push(String(c.clubId)); });
+  return out;
+}
+/* TRUE quando TODO clube humano já publicou o resultado desta rodada — barreira antes do commit */
+function netAllHumanResultsIn(round){
+  const cl=NET._claimed||{}; let any=false;
+  for(const uid in cl){ const c=cl[uid]; if(!(c&&c.clubId)) continue; any=true;
+    // basta ter publicado ALGO desta rodada (resultado real OU marcador de folga/bye)
+    if(!(c.last_result && c.last_result_round===round)) return false; }
+  return any;
+}
+/* monta humanResults {"h-a":{hg,ag,scorers,perf,events}} desta rodada a partir dos assentos.
+   Dedup humano×humano: o resultado do MANDANTE (home) é o autoritativo pra uma partida entre dois
+   humanos (os dois jogam ao vivo, mas a tabela usa o do mandante — regra determinística e igual
+   pra todos). `exceptClubId` deixa de fora o clube que o chamador aplica como userResult. */
+function netCollectHumanResults(round, exceptClubId){
+  const cl=NET._claimed||{}; const byFx={};
+  for(const uid in cl){ const c=cl[uid]; const r=c&&c.last_result;
+    if(!(r && c.last_result_round===round && r.h && r.a)) continue;
+    if(exceptClubId!=null && String(c.clubId)===String(exceptClubId)) continue;
+    const k=r.h+'-'+r.a;
+    // mandante ganha: se já temos um resultado pra essa partida vindo do visitante, o do dono do
+    // clube mandante substitui (determinístico).
+    if(!byFx[k] || String(c.clubId)===String(r.h)) byFx[k]={hg:r.hg,ag:r.ag,scorers:r.scorers||[],perf:r.perf||null,events:r.events||[]};
+  }
+  return byFx;
 }
 
 /* ---- reivindicar clube ---- */
@@ -604,7 +650,7 @@ function netSetupRealtime(){
 
   SB_CH.on('postgres_changes', { event:'UPDATE', schema:SB_SCHEMA, table:'game_seats', filter:'game_id=eq.'+NET.gameId }, (p)=>{
     if(!p.new) return;
-    if(p.new.user_id){ NET._claimed[p.new.user_id] = { clubId:p.new.club_id, ready:p.new.is_ready, name:p.new.name, email:p.new.email, busy_until:p.new.busy_until, last_xi:p.new.last_xi, last_tactic:p.new.last_tactic }; }
+    if(p.new.user_id){ NET._claimed[p.new.user_id] = { clubId:p.new.club_id, ready:p.new.is_ready, name:p.new.name, email:p.new.email, busy_until:p.new.busy_until, last_xi:p.new.last_xi, last_tactic:p.new.last_tactic, last_result:p.new.last_result, last_result_round:p.new.last_result_round }; }
     else { // assento LIBERADO (ex.: expulsão): remove o dono anterior do cache — senão o clube fica
            // "fantasma-ocupado" pros outros clientes (freeClubIds não oferece de volta) e o ex-dono
            // continua listado como participante.
@@ -782,6 +828,10 @@ NET.refreshRoom = netRefreshRoom;
 NET.heartbeatBusy = netHeartbeatBusy;
 NET.clearBusy = netClearBusy;
 NET.publishLineup = netPublishLineup;
+NET.publishResult = netPublishResult;
+NET.humanClubIds = netHumanClubIds;
+NET.allHumanResultsIn = netAllHumanResultsIn;
+NET.collectHumanResults = netCollectHumanResults;
 NET.setMode = netSetMode;
 NET.assignClub = netAssignClub;
 NET.drawClubs = netDrawClubs;

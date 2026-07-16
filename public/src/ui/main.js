@@ -207,6 +207,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'classif':   html=scClassif(); break;
     case 'cupclassif':html=scCupClassif(); break;
     case 'cupdraw':   html=scCupDraw(); break;
+    case 'awaitround':html=titleBarTop('RetroFoot98')+deskWrap(scAwaitRound()); break;
     case 'online':    html=renderOnline(); break;
   }
   r.innerHTML=html;
@@ -3031,7 +3032,92 @@ function finishLiveRound(){
     startNextHotseatMatch();
     return;
   }
+  // ===== SAVE ÚNICO (online): não commita a rodada aqui. Publica o MEU resultado real e ESPERA
+  // todos os humanos publicarem (barreira); então TODO cliente roda _commitLeagueRound com os
+  // MESMOS resultados publicados -> tabela idêntica. Ver onlineTryCommitRound(). =====
+  if(CL.online && typeof NET!=='undefined' && NET.publishResult){
+    const um = uf ? RL.matches.find(m=>m.h===uf[0]&&m.a===uf[1]) : null;
+    const myResult = (uf && userResult) ? { h:uf[0], a:uf[1], hg:userResult.hg, ag:userResult.ag,
+      scorers:userResult.scorers||[], perf:userResult.perf||null, events:(um&&um.events)||[] } : null;
+    // publica meu resultado (ou um marcador de FOLGA, se não tenho jogo) pra barreira não travar
+    NET.publishResult(S.round, myResult || { h:null, a:null, bye:true });
+    CL._onlineRoundCommit = { RL, userResult, audit:_auditPayload, round:S.round, uf };
+    CL._onlineRoundWaitStart = nowMs();
+    CL._liveBusy=false; CL.screen='awaitround'; cdraw();
+    onlineTryCommitRound(); // caso eu seja o único humano ou todos já tenham publicado
+    return;
+  }
   _commitLeagueRound(RL, userResult, {}, RL.matches.flatMap(m=>m.events||[]), _auditPayload);
+}
+/* pequeno helper de relógio (Date.now indireto pra não quebrar harness/replay determinístico) */
+function nowMs(){ try{ return Date.now(); }catch(e){ return 0; } }
+/* SAVE ÚNICO — barreira + commit único da rodada online.
+   Roda no onlineTimerLoop enquanto CL._onlineRoundCommit está pendente. Commita quando TODOS os
+   humanos publicaram o resultado desta rodada (ou, fallback, quando o servidor já avançou / após
+   um timeout longo, deixando o ausente ser simulado deterministicamente dentro do playRound). */
+function onlineTryCommitRound(){
+  const pc=CL._onlineRoundCommit; if(!pc) return;
+  if(pc.round!==S.round){ CL._onlineRoundCommit=null; return; } // já reconciliado por outro caminho
+  const round=pc.round;
+  const isHost = (typeof NET!=='undefined' && NET.isHost);
+  if(isHost){
+    // ANFITRIÃO = ÚNICO COMPUTADOR AUTORITATIVO: espera todos publicarem o resultado, resolve a
+    // rodada UMA vez (com os resultados reais de todos) e PERSISTE (NET.saveGame). Como só ELE
+    // simula, mercado/copas/evolução (que dependem de S.clubId) não divergem — todos espelham.
+    const allIn = (typeof NET!=='undefined' && NET.allHumanResultsIn) ? NET.allHumanResultsIn(round) : true;
+    const waitedTooLong = (nowMs() - (CL._onlineRoundWaitStart||0)) > 90000; // > timeout de "busy"
+    if(!allIn && !waitedTooLong) return; // segue esperando os treinadores
+    CL._onlineRoundCommit=null;
+    const map = (typeof NET!=='undefined' && NET.collectHumanResults) ? NET.collectHumanResults(round, null) : {};
+    const uf=pc.uf; const myKey = uf ? uf[0]+'-'+uf[1] : null;
+    const userResultAuth = (myKey && map[myKey]) ? map[myKey] : pc.userResult; // mandante-autoritativo
+    const allEvents = Object.values(map).flatMap(r=>r.events||[]);
+    _commitLeagueRound(pc.RL, userResultAuth, map, allEvents, pc.audit);
+  } else {
+    // CONVIDADO: NÃO simula. Publica seu resultado (já feito) e ESPERA o anfitrião publicar o estado
+    // da rodada (games.round avança) — então ESPELHA esse S (restaurando o próprio clube). Save único.
+    const hostAdvanced = (typeof NET!=='undefined' && NET.room && (NET.room.round||0) > round);
+    if(!hostAdvanced) return;
+    CL._onlineRoundCommit=null;
+    onlineMirrorHostRound();
+  }
+}
+/* CONVIDADO: carrega o S autoritativo do anfitrião (mesma competição/tabela), restaura o MEU clube
+   e segue pro pós-rodada normal (classificação -> reabre a próxima 'ready'). */
+function onlineMirrorHostRound(){
+  (async ()=>{
+    try{
+      const saved = (typeof NET!=='undefined' && NET.loadGame) ? await NET.loadGame() : null;
+      const sState = saved && saved.S;
+      if(sState){
+        Object.assign(S, sState);
+        S.clubId = CL.clubId; // o save é do anfitrião — volto pro MEU clube no motor/UI
+        S.xi = (S.clubXI && S.clubXI[CL.clubId] && S.clubXI[CL.clubId].length) ? S.clubXI[CL.clubId].slice()
+             : (typeof autoXI==='function' ? autoXI(CL.clubId) : S.xi);
+        if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
+        if(typeof NET!=='undefined') NET._appliedVersion = NET._loadedVersion || NET._appliedVersion || 0;
+      }
+    }catch(e){ console.warn('mirror host round:', e && e.message); }
+    CL.live=null; CL._liveBusy=false;
+    if(typeof showLiveClassif==='function') showLiveClassif(); // pós-rodada: minha classificação -> Continuar reabre a rodada
+    else { CL.screen='main'; cdraw(); }
+  })();
+}
+/* tela de espera: joguei minha partida, aguardo os outros treinadores terminarem a rodada */
+function scAwaitRound(){
+  const done=[]; const pend=[];
+  const cl=(typeof NET!=='undefined'&&NET._claimed)||{}; const round=(CL._onlineRoundCommit&&CL._onlineRoundCommit.round);
+  Object.keys(cl).forEach(uid=>{ const c=cl[uid]; if(!(c&&c.clubId)) return;
+    const cc=clubOf(c.clubId)||{short:String(c.clubId)};
+    const ok = c.last_result && c.last_result_round===round;
+    (ok?done:pend).push(`<div class="cl-await-row ${ok?'ok':''}"><span class="cl-await-dot"></span><span class="cl-await-n">${escC(c.name||cc.short)}</span><span class="cl-await-st">${ok?'✓ terminou':'⏳ jogando…'}</span></div>`);
+  });
+  return `<div class="cl-await">
+    <div class="cl-await-title">Aguardando os outros treinadores</div>
+    <div class="cl-await-sub">Sua partida terminou. A rodada fecha quando todos jogarem — assim a tabela é a mesma pra todos.</div>
+    <div class="cl-await-list">${done.concat(pend).join('')||'<div class="cl-await-sub">—</div>'}</div>
+    <div class="cl-await-spin">● ● ●</div>
+  </div>`;
 }
 /* commit de uma rodada de liga — extraído do fim de finishLiveRound pra ser reusado depois
    da fila de partidas hotseat (FASE 2). humanResults = {fxKey:{hg,ag,scorers,perf,events}}. */

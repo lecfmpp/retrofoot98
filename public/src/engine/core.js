@@ -283,10 +283,19 @@ function finalizeTransfer(negoIdx){
 }
 /* ---- transferências entre CPUs, 100% em segundo plano — dão vida ao mercado
    mesmo se o usuário nunca comprar/vender nada (essencial no modo solo). ---- */
+/* clube "intocável" pelo mercado CPU (não pode ser comprado/vendido/leiloado pela máquina):
+   o clube do próprio usuário SEMPRE; e no ONLINE (Resenha), o clube de TODO humano da sala — cada
+   um gerencia o seu, a CPU não mexe. Sem isso, o anfitrião (único que simula) trataria os clubes
+   dos convidados como CPU e negociaria os jogadores deles. */
+function isCpuMarketProtected(cid){
+  if(cid===S.clubId) return true;
+  if(typeof CL!=='undefined' && CL.online && CL.humans && CL.humans[cid]) return true;
+  return false;
+}
 function cpuBackgroundTransfers(R){
   if(!inTransferWindow()) return; // CPUs também só negociam dentro da janela — mercado realista
   R=R||makeRng(hashSeed(S.seed,S.round,'cpumkt'));
-  const cpuClubs=DATA.clubs.filter(c=>c.id!==S.clubId);
+  const cpuClubs=DATA.clubs.filter(c=>!isCpuMarketProtected(c.id));
   if(cpuClubs.length<2) return;
   const nTransfers=2+Math.floor(R.rnd(0,3)); // 2-4 por rodada — liga do usuário é o mercado mais ativo/real
   for(let i=0;i<nTransfers;i++){
@@ -477,7 +486,7 @@ function openAuctionLots(R, want){
   const mode=(S.config&&S.config.profile&&S.config.profile.auctionMode)||'todos';
   const mySquad=S.squads[S.clubId]||[]; const myAvg=mySquad.length? mySquad.reduce((s,p)=>s+p.f,0)/mySquad.length : 65;
   const have=new Set(S.auctions.lots.map(l=>l.id));
-  const cpuClubs=DATA.clubs.filter(c=>c.id!==S.clubId); if(!cpuClubs.length) return;
+  const cpuClubs=DATA.clubs.filter(c=>!isCpuMarketProtected(c.id)); if(!cpuClubs.length) return;
   let tries=0, added=0;
   while(added<want && tries<want*8){
     tries++;

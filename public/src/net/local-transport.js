@@ -941,6 +941,12 @@ function clSetSpeed(mult){ CL.speedMult=mult; if(CL.online && typeof NET!=='unde
 let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null, ONLINE_ADV_T=0, ONLINE_BUSY_T=0, ONLINE_BUSY_ACTIVE=false;
 function onlineTimerLoop(){
   const room=(typeof NET!=='undefined')?NET.room:null;
+  // SAVE ÚNICO: se terminei minha partida e espero os outros, tenta fechar a rodada quando todos
+  // publicarem (barreira). Re-renderiza a tela de espera pra atualizar quem já terminou.
+  if(CL.online && CL._onlineRoundCommit && typeof onlineTryCommitRound==='function'){
+    onlineTryCommitRound();
+    if(CL._onlineRoundCommit && CL.screen==='awaitround') cdraw();
+  }
   // BARREIRA DE SINCRONIZAÇÃO: enquanto EU estou numa partida ao vivo (liga/copa/espectador),
   // bato um heartbeat "ocupado" — o servidor não avança a rodada sem mim (ver advance_phase_if_expired).
   // Ao sair da tela ao vivo, limpo o "ocupado" uma vez (fim normal = libera; queda = expira em ~90s).
