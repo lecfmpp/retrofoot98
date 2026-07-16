@@ -730,26 +730,24 @@ function onlineBeginSeason(){ const room=NET.room; const me=room.participants.fi
   CL.humans={}; room.participants.forEach(p=>{ if(p.clubId) CL.humans[p.clubId]=p.name; });
   CL.online=true; CL.formation=null; CL.tacticChosen=false; S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
   CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||null;
-  cdraw(); // mostra a TELA PRINCIPAL do time IMEDIATAMENTE ao entrar
+  cdraw(); // ao entrar na Resenha, vai SEMPRE direto pra TELA PRINCIPAL do time
 
   if(NET.isHost) NET.start();   // abre janela de 60s
   if(NET.isHost) clStartHostReqPoll();   // acompanha pedidos de entrada durante a temporada
 
-  // Carrega o estado salvo (se houver) e SÓ ENTÃO checa sorteios de copa pendentes. O newGame acima
-  // recria o sorteio INICIAL da Copa do Brasil (queueDrawShow -> _pendingDrawShows) a cada entrada;
-  // se checássemos antes do loadGame, a tela de sorteio apareceria TODA vez que o usuário entra.
-  // Depois de aplicar o estado salvo, _pendingDrawShows reflete o progresso REAL (vazio se já foi
-  // sorteado), então o sorteio só aparece quando há um de fato pendente. 1ª vez (sem save): o inicial.
-  const finishEntry=()=>{ cdraw(); checkPendingCupDraws(()=>{}); };
+  // Carrega o estado salvo (se houver). NÃO mostramos sorteio de copa na ENTRADA — nem na 1ª vez:
+  // os sorteios pendentes (Copa do Brasil, grupos) ficam em S._pendingDrawShows e rolam na DATA
+  // NORMAL, nas transições de rodada (ver checkPendingCupDraws em _commitLeagueRound / main.js:3026,
+  // e o gate por data real em advancePendingCups). Assim todos caem direto na tela do time deles.
   if(typeof NET!=='undefined' && NET.loadGame){
     (async ()=>{
       try {
         const savedState = await NET.loadGame();
         if(savedState && savedState.S){ Object.assign(S, savedState.S); syncDataClubsFromState(); console.log('✓ Jogo carregado (rodada', savedState.round, ')'); }
       } catch(e) { console.warn('Load Supabase:', e); }
-      finishEntry();
+      cdraw();
     })();
-  } else { finishEntry(); }
+  }
 }
 
 /* ---- durante a rodada online: painel "à espera dos treinadores" + timer ---- */
