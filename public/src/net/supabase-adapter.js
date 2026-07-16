@@ -216,7 +216,7 @@ async function netCreateRoom(name, host){
   const { data: code, error } = await sb.rpc('create_game', { p_name:name, p_club_ids:clubIds, p_mode: CL.net.mode||'sorteio' });
   if(error) throw error;
   NET.code = code; NET.gameId = code; NET.isHost = true;
-  NET.self = { id: SB_AUTH_USER.id, name: host.name, email: host.email };
+  NET.self = { id: SB_AUTH_USER.id, name: (host&&host.name) || netAuthStatus().name, email: (host&&host.email)||SB_AUTH_USER.email };
   NET._claimed = {};
   // LÊ o seed real gerado por create_game — sem isso o host ficava com seed:0 e montava uma
   // competição DIFERENTE da do convidado (que lê games.seed no join) -> "dois jogos em paralelo".
@@ -233,7 +233,7 @@ async function netJoinRoom(code, me){
   const { data: gameData, error: e2 } = await sb.from('games').select('*').eq('id', upcode).single();
   if(e2) throw new Error('Sala não encontrada');
   NET.code = gameData.id; NET.gameId = gameData.id; NET.isHost = (gameData.host_id === SB_AUTH_USER.id);
-  NET.self = { id: SB_AUTH_USER.id, name: me.name, email: me.email };
+  NET.self = { id: SB_AUTH_USER.id, name: (me&&me.name) || netAuthStatus().name, email: (me&&me.email)||SB_AUTH_USER.email };
   const { data: seatsData } = await sb.from('game_seats').select('*').eq('game_id', gameData.id);
   const { data: msgs } = await sb.from('messages').select('*').eq('game_id', gameData.id).order('created_at').limit(100);
   NET._claimed = {};
@@ -288,8 +288,14 @@ async function netClearBusy(){
 async function netHeartbeatSeen(){
   if(!sb || !NET.gameId || !SB_AUTH_USER) return;
   const now=new Date().toISOString();
-  if(NET._claimed && NET._claimed[SB_AUTH_USER.id]) NET._claimed[SB_AUTH_USER.id].last_seen=now; // reflete já localmente
-  try{ await sb.from('game_seats').update({ last_seen: now }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id); }catch(e){}
+  const upd={ last_seen: now };
+  // AUTO-CURA do nome: se o MEU assento ficou sem nome (ex.: reatribuição no sorteio), re-carimbo o
+  // meu nome de conta aqui — cada um conhece o próprio nome com segurança.
+  const myName=(NET.self&&NET.self.name)||netAuthStatus().name;
+  const cur=NET._claimed && NET._claimed[SB_AUTH_USER.id];
+  if(myName && (!cur || !cur.name || cur.name==='(sem nome)')){ upd.name=myName; upd.email=(NET.self&&NET.self.email)||SB_AUTH_USER.email; if(cur){ cur.name=myName; cur.email=upd.email; } }
+  if(cur) cur.last_seen=now; // reflete já localmente
+  try{ await sb.from('game_seats').update(upd).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id); }catch(e){}
 }
 /* PUBLICA a última escalação/tática do MEU clube no meu assento — os outros clientes leem isso
    (via game_seats -> _claimed -> S.clubXI) pra simular o MEU clube com a MINHA escalação real quando
@@ -361,7 +367,12 @@ async function netAssignClub(pid, clubId){
       const { error } = await sb.rpc('host_assign_seat', { p_game: NET.gameId, p_club: clubId, p_target_user: pid });
       if(error) throw error;
       const target = NET.room.participants.find(p=>p.id===pid);
-      nm = target?.name; em = target?.email;
+      const saved = (NET._seatInfo && NET._seatInfo[pid]) || {};
+      // prioriza o nome REAL preservado do assento anterior; só usa a visão de participante se ela
+      // tiver um nome de verdade (não "(sem nome)"), senão cai no preservado.
+      const partName = (target && target.name && target.name!=='(sem nome)') ? target.name : null;
+      nm = partName || saved.name || (target&&target.name) || null;
+      em = (target && target.email) || saved.email || null;
       await sb.from('game_seats').update({ name: nm, email: em }).eq('game_id', NET.gameId).eq('club_id', clubId);
     } else { return; }
     NET._claimed[pid] = { clubId, ready:false, name:nm, email:em };
@@ -377,6 +388,11 @@ async function netAssignClub(pid, clubId){
 async function netDrawClubs(reshuffle){
   if(!NET.isHost) return;
   try {
+    // PRESERVA nome/e-mail de cada humano ANTES de liberar os assentos: a reatribuição pegava o nome
+    // da visão do host (presence, instável) e gravava null -> treinador virava "(sem nome)". O assento
+    // atual tem o nome que o próprio jogador gravou ao sentar — guardo por user_id e reuso no assign.
+    try{ const { data: pre } = await sb.from('game_seats').select('user_id,name,email').eq('game_id', NET.gameId).not('user_id','is',null);
+      NET._seatInfo=NET._seatInfo||{}; (pre||[]).forEach(s=>{ if(s.user_id && (s.name||s.email)) NET._seatInfo[s.user_id]={name:s.name, email:s.email}; }); }catch(e){}
     if(reshuffle){
       // devolve todos os assentos humanos à CPU de uma vez, depois reatribui do zero
       await sb.from('game_seats').update({ user_id:null, is_cpu:true, is_ready:false, name:null, email:null })
