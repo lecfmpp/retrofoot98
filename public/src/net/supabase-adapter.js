@@ -229,6 +229,27 @@ async function netJoinRoom(code, me){
   return true;
 }
 
+/* ---- SINCRONIZAR: re-lê o estado da sala (games + assentos) do banco e reaplica, sem recriar o
+   canal. Dispara netMergeParticipants -> NET.onState, que trata a transição lobby->jogo do convidado
+   e a reconciliação de rodada. Serve tanto pro botão manual quanto como rede de segurança. ---- */
+async function netRefreshRoom(){
+  if(!sb || !NET.gameId || !NET.room) return null;
+  try{
+    const { data: g } = await sb.from('games').select('*').eq('id', NET.gameId).single();
+    if(!g) return null;
+    Object.assign(NET.room, {
+      name: g.name, mode: g.mode, phase: g.phase, round: g.round||0,
+      deadline: g.ready_deadline?new Date(g.ready_deadline).getTime():0,
+      paused: g.paused, paused_remaining_ms: g.paused_remaining_ms, speedMult: parseFloat(g.speed_mult)||1
+    });
+    const { data: seats } = await sb.from('game_seats').select('*').eq('game_id', NET.gameId);
+    NET._claimed = NET._claimed || {};
+    (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email }; });
+    netMergeParticipants(); // -> NET.onState (transição lobby->jogo + reconcile de rodada)
+    return NET.room;
+  }catch(e){ console.warn('refreshRoom:', e&&e.message); return null; }
+}
+
 /* ---- reivindicar clube ---- */
 async function netAssignClub(pid, clubId){
   let nm, em;
@@ -684,6 +705,7 @@ function netHandleKicked(){
 /* ---- expõe no NET (mesma API já usada pela UI clássica) ---- */
 NET.createRoom = netCreateRoom;
 NET.joinRoom = netJoinRoom;
+NET.refreshRoom = netRefreshRoom;
 NET.setMode = netSetMode;
 NET.assignClub = netAssignClub;
 NET.drawClubs = netDrawClubs;

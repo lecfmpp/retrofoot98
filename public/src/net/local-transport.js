@@ -146,10 +146,23 @@ function clOnlineJoin(code){ CL.screen='online'; CL.net={step:'conta',intent:'jo
   (async ()=>{ await netInitSupabase(); const st=NET.authStatus(); if(st.loggedIn){ CL.net.email=st.email; CL.net.name=st.name; } cdraw(); })(); cdraw(); }
 function netUid(){ return 'u'+Math.random().toString(36).slice(2,9); }
 function wireNet(){ NET.onState=(room)=>{ if(room && room.speedMult && !NET.isHost) CL.speedMult=room.speedMult;
+    // CONVIDADO NO LOBBY: quando o anfitrião COMEÇA (a fase sai de 'lobby'), o convidado entra no
+    // jogo JUNTO — antes ele ficava preso no "à espera do anfitrião" enquanto o host já jogava.
+    if(room && room.phase && room.phase!=='lobby' && !CL.online && CL.screen==='online' && CL.net && CL.net.step==='lobby'){
+      onlineBeginSeason(); return;
+    }
     onlineReconcileIfBehind(room); // itens 1 e 3: mantém todos na MESMA rodada (recarrega se ficou pra trás)
     if(CL.screen==='online'){ renderOnlineInto(); } else { renderChatBoxes(); const rb=document.querySelector('.cl-readybar'); if(rb && room) rb.outerHTML=onlineReadyBar(); }
     if(CL.online && room && room.phase==='running' && CL.screen!=='live'){ onlineRunRound(); } };
   NET.onChat=()=>{ if(CL.screen==='online') renderOnlineInto(); else renderChatBoxes(); }; }
+/* SINCRONIZAR (botão): força um refetch do estado da sala e reaplica — leva o convidado do lobby
+   pro jogo se o anfitrião já começou, e recarrega a rodada se ficou pra trás. Rede de segurança
+   caso um evento de Realtime não chegue. */
+function clSyncResenha(){ CL.menu=null;
+  if(typeof NET==='undefined' || !NET.refreshRoom){ toastC('Sincronização indisponível.'); return; }
+  toastC('🔄 Sincronizando com a sala...');
+  (async ()=>{ try{ await NET.refreshRoom(); if(CL.screen==='online') cdraw(); }catch(e){ toastC('⚠ '+(e.message||'erro ao sincronizar')); } })();
+}
 /* SINCRONIZAÇÃO (itens 1 e 3): se este cliente (não-anfitrião) ficou PRA TRÁS da rodada
    autoritativa da sala (ex.: perdeu uma rodada por desconexão), recarrega o estado da sala pra
    voltar pra mesma rodada de todos — em TODAS as competições (liga + copas avançam por S.round).
@@ -569,10 +582,11 @@ function scLobby(){ const room=NET.room;
     </div>`;
   const rightCol=`<div class="cl-wiz-lobbyR">${partidaPanel}${chatPanel}</div>`;
 
-  const action=`<span class="cl-wiz-hint">${host?'Mínimo de 2 treinadores pra começar.':'À espera do anfitrião…'}</span>
+  const action=`<span class="cl-wiz-hint">${host?'Mínimo de 2 treinadores pra começar.':'À espera do anfitrião… toque em Sincronizar se ele já começou.'}</span>
     <div class="cl-wiz-actbtns">
       ${btn('Sair','clLobbyExit()',{icon:'✖',cls:'cl-wiz-sairbtn'})}
-      ${host?btn('Começar','clLobbyStart()',{icon:'✔',cls:'cl-wiz-cta',dis:!canStart}):''}
+      ${host?btn('Começar','clLobbyStart()',{icon:'✔',cls:'cl-wiz-cta',dis:!canStart})
+            :btn('Sincronizar','clSyncResenha()',{icon:'🔄',cls:'cl-wiz-cta'})}
     </div>`;
   return wizShell({
     title:'Sala · '+escC(room.name||''), back:'clLobbyExit()', backLabel:'Sair da sala',

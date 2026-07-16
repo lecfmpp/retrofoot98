@@ -3285,6 +3285,7 @@ function menuDropdown(name){ name=name||CL.menu;
   if(CL.online){
     const rItems=[];
     if(typeof NET!=='undefined' && NET.isHost){ const nr=(CL.pendingJoins&&CL.pendingJoins.length)||0; rItems.push(['Aprovar entradas'+(nr?' ('+nr+')':'')+'...','clJoinRequestsPanel()']); }
+    rItems.push(['Sincronizar com a sala','clSyncResenha()']);
     rItems.push(['Chamar pra Resenha...','clInviteResenha()']);
     items['Modo Resenha']=rItems;
   }
