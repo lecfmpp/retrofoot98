@@ -1437,7 +1437,7 @@ function scMain(){
   else panel=panAdversario(oppId);
   const jornada=(S.round||0)+1;
   const th=clubTheme(CL.clubId);
-  return `<div class="cl-main" style="border-color:${th.col}">
+  return `<div class="cl-main ${CL.online?'cl-main-online':''}" style="border-color:${th.col}">
     <div class="cl-main-top">${escC(cl.short)}</div>
     <div class="cl-mobmenu-wrap">${hamburger}${menu}</div>
     ${CL.online?onlineStatusSidebar():''}

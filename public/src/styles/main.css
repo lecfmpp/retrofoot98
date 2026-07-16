@@ -1063,14 +1063,18 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
     align-items:stretch;box-shadow:0 -6px 18px rgba(0,0,0,.45);border-radius:6px;overflow:hidden}
   .cl-sel-jogar .cl-btn{width:100%}
   .cl-sel{padding-bottom:76px} /* espaço reservado pra não esconder conteúdo atrás do botão fixo */
-  /* barra de status no MOBILE: vira uma faixa horizontal rolável no topo (não cobre o time);
-     só ponto + nome (sem o rótulo), pra caber. */
-  .cl-statusbar{position:fixed;top:44px;left:6px;right:6px;width:auto}
+  /* barra de status no MOBILE: faixa horizontal FIXA NA BASE (antes ficava no topo, cobrindo o
+     menu). Só ponto + nome (sem o rótulo), rolável na horizontal. */
+  .cl-statusbar{position:fixed;top:auto;bottom:0;left:0;right:0;width:auto;border-radius:0;z-index:36}
   .cl-statusbar-h{padding:5px 8px}
   .cl-statusbar-sub{display:none}
   .cl-statusbar-list{flex-direction:row;max-height:none;overflow-x:auto;overflow-y:hidden}
   .cl-st-row{border-top:none;border-left:1px solid rgba(255,255,255,.1);flex:none;padding:5px 9px}
   .cl-st-lbl{display:none}
+  /* com a barra de status na base (só online), sobe o botão Jogar, o chat e reserva espaço embaixo */
+  .cl-main-online .cl-sel-jogar{bottom:64px}
+  .cl-main-online .cl-chatdock{bottom:120px}
+  .cl-main-online .cl-main-body{padding-bottom:64px}
   /* dock de chat (modo Resenha online) no MOBILE: recolhida = pílula compacta no canto (não cobre o
      jogo); aberta = ocupa quase a largura toda (mais fácil de ler/digitar) com altura limitada, sem
      tomar a tela inteira. Sobe um pouco (bottom:74px) pra não bater no botão Jogar fixo. */
