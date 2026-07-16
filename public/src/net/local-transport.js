@@ -719,14 +719,19 @@ function clRenderReqPanel(){
 }
 function clCloseReqPanel(){ CL._reqPanelOpen=false; clCloseOverlay(); }
 
-function clLobbyDraw(){ NET.drawClubs(DATA.clubs.map(c=>c.id)); toastC('Times sorteados!'); }
+function clLobbyDraw(){
+  toastC('Sorteando times...');
+  (async ()=>{ try{ await NET.drawClubs(true); toastC('🎲 Times sorteados!'); }
+    catch(e){ toastC('⚠ Não foi possível sortear. Tente de novo.'); }
+    if(typeof cdraw==='function') cdraw(); })();
+}
 function clLobbyExit(){ clStopHostReqPoll(); CL.screen='modo'; cdraw(); }
 function clLobbyStart(){ const room=NET.room;
   // AGUARDA o sorteio terminar antes de começar: com os convidados já sentados na entrada, quem
   // ainda não tem clube aqui é o próprio anfitrião — se não esperarmos, onlineBeginSeason pegaria
   // participants[0].clubId (de um convidado) como time do host.
   (async ()=>{
-    if(!room.participants.every(p=>p.clubId)) await NET.drawClubs(DATA.clubs.map(c=>c.id));
+    if(!room.participants.every(p=>p.clubId)) await NET.drawClubs(); // só preenche quem não tem clube (ex.: o anfitrião)
     onlineBeginSeason(); // cria o jogo compartilhado (mesma seed p/ todos) e entra no hub online
   })();
 }

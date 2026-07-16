@@ -289,14 +289,26 @@ async function netAssignClub(pid, clubId){
   } catch(e) { console.error('assignClub erro:', e); if(typeof toastC==='function') toastC('⚠ Não foi possível escolher esse clube (já ocupado?).'); }
 }
 
-async function netDrawClubs(clubIds){
+/* Sorteia clubes para os participantes.
+   - reshuffle=false (padrão, usado no "Começar"): só PREENCHE quem ainda não tem clube (ex.: o
+     anfitrião), sem mexer em quem já escolheu/entrou com time.
+   - reshuffle=true ("Sortear times" no lobby): LIBERA todos os assentos humanos e re-atribui um
+     clube aleatório distinto pra cada participante (embaralha os times de todo mundo). */
+async function netDrawClubs(reshuffle){
   if(!NET.isHost) return;
   try {
+    if(reshuffle){
+      // devolve todos os assentos humanos à CPU de uma vez, depois reatribui do zero
+      await sb.from('game_seats').update({ user_id:null, is_cpu:true, is_ready:false, name:null, email:null })
+        .eq('game_id', NET.gameId).not('user_id','is',null);
+      (NET.room.participants||[]).forEach(p=>{ if(NET._claimed) delete NET._claimed[p.id]; p.clubId=null; });
+    }
     const { data: seats } = await sb.from('game_seats').select('*').eq('game_id', NET.gameId);
     const free = (seats||[]).filter(s=>s.is_cpu && !s.user_id).map(s=>s.club_id);
     for(let i=free.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [free[i],free[j]]=[free[j],free[i]]; }
     let idx=0;
     for(const p of NET.room.participants){ if(!p.clubId && idx<free.length){ await netAssignClub(p.id, free[idx++]); } }
+    netMergeParticipants();
   } catch(e) { console.error('drawClubs erro:', e); }
 }
 
