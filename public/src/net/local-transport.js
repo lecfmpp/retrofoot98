@@ -85,7 +85,20 @@ function chatLobbyHTML(){ return `<fieldset class="cl-chatbox"><legend>💬 Chat
   <div class="cl-chat-msgs" id="cl-chat-msgs-lobby">${chatMsgsHTML()}</div>
   <div class="cl-chat-in"><input id="cl-chat-input-lobby" class="cl-input cl-chat-input" placeholder="Escreva uma mensagem..." onkeydown="clChatKey(event,'cl-chat-input-lobby')">${btn('Enviar',"clChatSend('cl-chat-input-lobby')",{cls:'cl-btn-mini'})}</div>
 </fieldset>`; }
-function clChatToggle(){ CL.chatOpen=!CL.chatOpen; if(CL.chatOpen) CL.chatUnread=0; cdraw(); }
+function clChatToggle(){ CL.chatOpen=!CL.chatOpen; if(CL.chatOpen) CL.chatUnread=0; if(typeof renderChatDock==='function') renderChatDock(); else cdraw(); }
+/* HOST GLOBAL do chat: a doca vive num container fixo em <body>, re-renderizado a CADA cdraw —
+   assim o chat aparece em TODAS as telas do jogo online (principal, ao vivo, classificação,
+   sorteio de copa...), não só na tela principal. No lobby (CL.screen==='online') o chat já está
+   embutido na própria tela, então lá o host fica vazio. */
+function renderChatDock(){
+  if(typeof document==='undefined') return;
+  let host=document.getElementById('cl-chatdock-host');
+  const show = CL.online && CL.screen!=='online';
+  if(!show){ if(host){ host.innerHTML=''; host.className=''; } return; }
+  if(!host){ host=document.createElement('div'); host.id='cl-chatdock-host'; document.body.appendChild(host); }
+  host.className = (CL.screen==='main') ? 'onmain' : ''; // no mobile, na tela principal sobe pra não bater na barra de status/Jogar
+  host.innerHTML = chatDockHTML();
+}
 function chatDockHTML(){ if(!CL.online) return '';
   const unread=CL.chatUnread||0;
   const badge=(!CL.chatOpen && unread>0) ? `<span class="cl-chatdock-badge" title="${unread} nova(s) mensagem(ns)">${unread>99?'99+':unread}</span>` : '';

@@ -210,6 +210,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'online':    html=renderOnline(); break;
   }
   r.innerHTML=html;
+  if(typeof renderChatDock==='function') renderChatDock(); // doca do chat em TODAS as telas online (inclusive ao vivo)
   if(CL.screen==='loading') runLoading();
   const f=$c('#cl-focus'); if(f) f.focus();
 }
@@ -1463,7 +1464,6 @@ function scMain(){
         ${tabBar}
       </div>
     </div>
-    ${CL.online?chatDockHTML():''}
   </div>`;
 }
 function rosterHTML(){

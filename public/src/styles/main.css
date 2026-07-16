@@ -1071,10 +1071,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-statusbar-list{flex-direction:row;max-height:none;overflow-x:auto;overflow-y:hidden}
   .cl-st-row{border-top:none;border-left:1px solid rgba(255,255,255,.1);flex:none;padding:5px 9px}
   .cl-st-lbl{display:none}
-  /* com a barra de status na base (só online), sobe o botão Jogar, o chat e reserva espaço embaixo */
+  /* com a barra de status na base (só online), sobe o botão Jogar e reserva espaço embaixo */
   .cl-main-online .cl-sel-jogar{bottom:64px}
-  .cl-main-online .cl-chatdock{bottom:120px}
   .cl-main-online .cl-main-body{padding-bottom:64px}
+  /* chat: doca global (#cl-chatdock-host). Na TELA PRINCIPAL sobe pra não bater na barra de status
+     + botão Jogar; nas outras telas (ao vivo etc.) fica na posição padrão. */
+  #cl-chatdock-host.onmain .cl-chatdock{bottom:120px}
   /* dock de chat (modo Resenha online) no MOBILE: recolhida = pílula compacta no canto (não cobre o
      jogo); aberta = ocupa quase a largura toda (mais fácil de ler/digitar) com altura limitada, sem
      tomar a tela inteira. Sobe um pouco (bottom:74px) pra não bater no botão Jogar fixo. */
