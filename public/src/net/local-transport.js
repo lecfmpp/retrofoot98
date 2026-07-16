@@ -675,11 +675,6 @@ function clStartHostReqPoll(){
       const reqs=await NET.listJoinRequests();
       const prev=(CL.pendingJoins||[]).length;
       CL.pendingJoins=reqs;
-      // membros aprovados -> mapa que o netMergeParticipants usa pra mostrar o convidado no lobby
-      // mesmo sem assento (sem depender só da presença). Só relevante no lobby.
-      if(CL.screen==='online' && CL.net && CL.net.step==='lobby' && NET.listApprovedMembers){
-        try{ const appr=await NET.listApprovedMembers(); const m={}; appr.forEach(a=>{ m[a.user_id]=a.name; }); const before=Object.keys(NET._approvedMembers||{}).length; NET._approvedMembers=m; if(Object.keys(m).length!==before && NET.mergeParticipants) NET.mergeParticipants(); }catch(_){}
-      }
       if(reqs.length>prev && CL.screen==='main'){ toastC('🔔 Novo pedido de entrada na Resenha — menu "Modo Resenha".'); }
       if(CL.screen==='online' && CL.net && CL.net.step==='lobby' && reqs.length!==prev) renderOnlineInto();
       if(CL._reqPanelOpen) clRenderReqPanel();

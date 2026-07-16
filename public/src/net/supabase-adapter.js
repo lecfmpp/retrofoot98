@@ -183,12 +183,6 @@ function netMergeParticipants(){
     if(seen[uid] || SB_KICKED[uid]) return; const c=claimed[uid];
     list.push({ id:uid, name:c.name||'(sem nome)', email:c.email||'', confirmed:true, clubId:c.clubId||null, ready:c.ready||false, host: uid===NET.room.hostId, online:false, busy:false });
   });
-  // membros APROVADOS sem assento (host): aparecem no lobby mesmo sem presença ao vivo
-  const appr = NET._approvedMembers || {};
-  Object.keys(appr).forEach(uid=>{
-    if(seen[uid] || SB_KICKED[uid]) return; seen[uid]=1;
-    list.push({ id:uid, name:appr[uid]||'(sem nome)', email:'', confirmed:true, clubId:null, ready:false, host: uid===NET.room.hostId, online: !!(SB_ONLINE&&SB_ONLINE[uid]), busy:false });
-  });
   if(!seen[SB_AUTH_USER.id] && !claimed[SB_AUTH_USER.id]){
     list.push({ id:SB_AUTH_USER.id, name:NET.self.name, email:NET.self.email, confirmed:true, clubId:null, ready:false, host:NET.isHost, online:true, busy:false });
   }
