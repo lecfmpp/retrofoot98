@@ -2187,6 +2187,13 @@ function buildLiveMatchObject(h,a,seed,opts){
     user:opts.user!==undefined?opts.user:(h===CL.clubId||a===CL.clubId), div:opts.div };
 }
 function startLiveRound(){
+  // segurança (online): rodada além do fim do calendário -> a virada de temporada não completou;
+  // NÃO joga uma rodada fantasma (apareceria como "Rodada 39"). Completa a virada pelo servidor.
+  if(CL.online && Array.isArray(S.sched) && (S.round||0) >= S.sched.length){
+    CL._liveBusy=false;
+    if(typeof onlineCompleteSeasonTurnover==='function') onlineCompleteSeasonTurnover();
+    return;
+  }
   fixUserXIAvailability(); // segunda camada de proteção: nunca deixa suspenso/lesionado marcado como titular
   // Resenha (online): guarda a escalação que EU de fato uso nesta rodada pro meu clube —
   // é o que outros clientes vão enxergar como "última escalação conhecida" desse clube

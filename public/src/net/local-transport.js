@@ -227,13 +227,18 @@ function onlineReconcileIfBehind(room){
   if(!CL.online || (typeof NET!=='undefined' && NET.isHost) || !room || !S) return;
   if(CL.screen==='live' || CL.live || CL._liveBusy || CL._hotseat || CL.screen==='cupdraw' || CL.screen==='classif' || CL.screen==='seatclassif') return;
   const authRound = room.round||0;
-  if(authRound <= (S.round||0)) return;            // já em dia (ou à frente) — nada a fazer
+  // Reconcilia sempre que a rodada da sala DIFERE da minha — à frente (rodada normal) OU "pra trás"
+  // (nova temporada: a virada leva a rodada de 38 -> 0). Antes só cobria `>`, então na virada o
+  // cliente ficava preso na última rodada da temporada velha ("Rodada 39") e nunca adotava a nova
+  // divisão. A comparação REAL de "quem está mais novo" é por (temporada, rodada), feita abaixo.
+  if(authRound === (S.round||0)) return;           // exatamente a mesma rodada — nada a fazer
   if(ONLINE_RECONCILE_BUSY || typeof NET==='undefined' || !NET.loadGame) return;
   ONLINE_RECONCILE_BUSY=true;
   (async ()=>{ try{
     const saved = await NET.loadGame();
     const sState = saved && saved.S;
-    if(sState && (sState.round||0) > (S.round||0)){
+    const newer = sState && ( (sState.season||0) > (S.season||0) || ((sState.season||0)===(S.season||0) && (sState.round||0) > (S.round||0)) );
+    if(newer){
       Object.assign(S, sState);
       // o save é do HOST — restaura o MEU clube (senão eu assumo o clube do host no motor)
       S.clubId = CL.clubId;
@@ -1073,9 +1078,35 @@ function onlineTimerLoop(){
   const intv=Math.max(100, 300/(CL.speedMult||1));
   ONLINE_TIMER=setTimeout(onlineTimerLoop, intv);
 }
+let ONLINE_TURNOVER_BUSY=false;
+/* FIM DE TEMPORADA travado: a rodada passou do fim do calendário (a virada não completou — ex.: um
+   fallback antigo salvou o estado na última rodada sem virar). Em vez de jogar uma rodada FANTASMA
+   (que aparece como "Rodada 39"), pede ao servidor completar a virada (rodada vazia além do
+   calendário -> round++ -> vira a temporada) e adota o estado novo. Idempotente/concorrência-segura
+   (o servidor resolve por state_version; vários clientes chamando -> um vira, os outros só adotam). */
+function onlineCompleteSeasonTurnover(){
+  if(ONLINE_TURNOVER_BUSY || typeof NET==='undefined' || !NET.resolveRound) return;
+  ONLINE_TURNOVER_BUSY=true;
+  (async ()=>{ try{
+    const res = await NET.resolveRound(S.round);
+    if(res && !res.error){
+      const saved = await NET.loadGame();
+      if(saved && saved.S){
+        Object.assign(S, saved.S); S.clubId=CL.clubId;
+        if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
+        S.xi = (S.clubXI && S.clubXI[CL.clubId] && S.clubXI[CL.clubId].length) ? S.clubXI[CL.clubId].slice() : (typeof autoXI==='function'?autoXI(CL.clubId):S.xi);
+        if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
+        CL._playedRound=-1;
+        if(CL.screen==='online' || CL.screen==='main') cdraw();
+      }
+    }
+  }catch(e){ console.warn('completar virada online:', e && e.message); } finally { ONLINE_TURNOVER_BUSY=false; } })();
+}
 function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return; if(!CL.online || !S) return;
   // não interrompe as telas de sorteio/classificação pós-rodada (o convidado está vendo o ranking)
   if(CL.screen==='classif'||CL.screen==='cupdraw'||CL.screen==='seatclassif') return;
+  // rodada além do calendário -> a virada não completou: completa via servidor (não joga fantasma)
+  if(Array.isArray(S.sched) && (S.round||0) >= S.sched.length){ onlineCompleteSeasonTurnover(); return; }
   // JÁ JOGUEI ESTA RODADA: fico LIVRE aguardando o fechamento (anfitrião) — NÃO re-simulo a mesma
   // rodada. Sem isso, o cliente ficava em loop jogando a rodada 1 pra sempre (a fase volta pra
   // 'running' antes do host fechar, e o cliente jogava de novo).
