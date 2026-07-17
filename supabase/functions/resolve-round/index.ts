@@ -1,12 +1,15 @@
 
 /* ==================================================================
-   resolve-round — resolvedor de rodada de LIGA server-authoritative (Fase 1).
+   resolve-round — resolvedor de rodada server-authoritative.
    Único produtor de games.shared_state pra rodada da divisão dos jogadores.
    Usa o MESMO motor de partida do cliente (MATCH_ENGINE, colado acima) ->
    paridade por construção. Partidas humanas = resultado submetido (game_seats.
    last_result, mandante-autoritativo); CPU = motor. Idempotente por state_version.
-   CONGELADO nesta fase (não mexe): copas, mercado, evolução, outras divisões,
-   finanças, virada de temporada. Entram nas próximas fases.
+   COBERTO: liga (divisão dos jogadores) + outras divisões + energia/moral +
+   evolução/desenvolvimento + Copa do Brasil (mata-mata; humano submete via
+   last_cup_result, CPU = motor). Provado byte-idêntico ao cliente (SIM_SYNC=true).
+   AINDA CONGELADO (fases futuras): mercado de CPU, finanças, virada de temporada,
+   e copas de grupo (Libertadores/Sul-Americana — só Série A).
    ================================================================== */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -351,8 +354,71 @@ function advanceOtherDivs(S: any) {
     });
   }
 }
+/* ===== COPAS — Copa do Brasil (mata-mata puro; espelho de advanceCupBracket + resolveDrawnKnockoutTie).
+   Grupo (Libertadores/Sul-Americana) é só Série A -> fase futura. cupResultByFx = resultados de copa
+   submetidos pelos humanos (mandante-autoritativo), aplicados na chave antes de simular o resto. ===== */
+const CUP_TICK_OFFSET: any = { copaBrasil: 0, libertadores: 1, sulamericana: 2, championsLeague: 1, europaLeague: 2 };
+function cupTickMatchesRound(key: string, round: number) { return round % 3 === CUP_TICK_OFFSET[key]; }
+function cupIsFinished(b: any) { return !!b.champion; }
+function cupSide(S: any, id: string) { return { rat: ME.computeRatings(S.squads[id], null), xi: ME.resolveXI(S.squads[id], null), tactic: 'equilibrado', cap: ME.capFromOverall((S.clubOverall || {})[id] || 70), short: (S.clubShort || {})[id] || id }; }
+function resolveDrawnKnockoutTie(S: any, homeId: string, awayId: string, seed: number, hg: number, ag: number) {
+  if (hg !== ag) return { hg, ag, winner: hg > ag ? homeId : awayId, pens: null };
+  const R = ME.makeRng(ME.hashSeed(seed, 'extra'));
+  const H = ME.computeRatings(S.squads[homeId], null), A = ME.computeRatings(S.squads[awayId], null);
+  const bias = (H.OS + H.MS - H.DS * 0.3) - (A.OS + A.MS - A.DS * 0.3);
+  const pHome = clampN(0.5 + bias / 500, 0.18, 0.55), pAway = clampN(0.5 - bias / 500, 0.18, 0.55);
+  const ehg = R.random() < pHome ? 1 : 0, eag = R.random() < pAway ? 1 : 0;
+  if (ehg !== eag) return { hg: hg + ehg, ag: ag + eag, winner: ehg > eag ? homeId : awayId, pens: null };
+  const hxi = ME.resolveXI(S.squads[homeId], null), axi = ME.resolveXI(S.squads[awayId], null);
+  const hp = hxi.filter((p: any) => p.s !== 'GK'), ap = axi.filter((p: any) => p.s !== 'GK');
+  const gkH = hxi.find((p: any) => p.s === 'GK') || null, gkA = axi.find((p: any) => p.s === 'GK') || null;
+  const kick = (taker: any, gk: any) => taker && R.random() < ME.penaltyConvChance(taker, gk);
+  let pH = 0, pA = 0;
+  for (let i = 0; i < 5; i++) { if (kick(hp.length ? hp[i % hp.length] : null, gkA)) pH++; if (kick(ap.length ? ap[i % ap.length] : null, gkH)) pA++; }
+  let rr = 5;
+  while (pH === pA && rr < 20) { if (kick(hp.length ? hp[rr % hp.length] : null, gkA)) pH++; if (kick(ap.length ? ap[rr % ap.length] : null, gkH)) pA++; rr++; }
+  const winner = pH !== pA ? (pH > pA ? homeId : awayId) : (R.random() < 0.5 ? homeId : awayId);
+  return { hg, ag, winner, pens: { h: pH, a: pA } };
+}
+function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: any) {
+  if (!b || cupIsFinished(b)) return;
+  const winners: string[] = [];
+  b.ties.forEach((t: any) => {
+    if (t.winner) { winners.push(t.winner); return; }
+    const k = t.h + '-' + t.a; const sub = cupResultByFx && cupResultByFx[k];
+    if (sub && sub.winner) { // resultado submetido por um humano (mandante-autoritativo)
+      t.hg = sub.hg; t.ag = sub.ag; t.events = sub.events || []; t.winner = sub.winner; t.pens = sub.pens || null;
+      applyMatchIncidents(S, sub.events || []); const loser = sub.winner === t.h ? t.a : t.h; b.eliminated[loser] = true; winners.push(sub.winner); return;
+    }
+    const seed = ME.hashSeed(S.seed, 'cup', roundLabel, t.h, t.a);
+    const r = ME.simMatchPure(t.h, t.a, cupSide(S, t.h), cupSide(S, t.a), seed, {});
+    t.hg = r.hg; t.ag = r.ag; t.events = r.events;
+    applyMatchIncidents(S, r.events);
+    const res = resolveDrawnKnockoutTie(S, t.h, t.a, seed, r.hg, r.ag);
+    t.winner = res.winner; t.pens = res.pens || null; winners.push(res.winner);
+    const loser = res.winner === t.h ? t.a : t.h; b.eliminated[loser] = true;
+  });
+  const advancing = winners.concat(b.pendingByes || []);
+  b.history.push({ round: b.round, ties: b.ties.slice(), advanced: advancing.slice() });
+  if (advancing.length <= 1) { b.champion = advancing[0] || null; b.ties = []; b.pendingByes = []; return; }
+  b.round++;
+  let size = 1; while (size < advancing.length) size *= 2;
+  const nByes = size - advancing.length;
+  const ranked = advancing.slice().sort((x: string, y: string) => ((S.clubOverall || {})[y] || 70) - ((S.clubOverall || {})[x] || 70));
+  b.pendingByes = ranked.slice(0, nByes);
+  const rest = ranked.slice(nByes);
+  b.ties = []; for (let i = 0; i < rest.length; i += 2) b.ties.push({ h: rest[i], a: rest[i + 1], hg: null, ag: null, winner: null, events: [] });
+}
+function advancePendingCups(S: any, cupResultByFx: any) {
+  if (!S.cups) return;
+  if (cupTickMatchesRound('copaBrasil', S.round)) {
+    const cb = S.cups.copaBrasil;
+    if (cb && !cupIsFinished(cb) && cb.ties && cb.ties.length) advanceCupBracket(S, cb, 'copaBrasil-r' + cb.round, cupResultByFx);
+  }
+  // Libertadores/Sul-Americana (fase de grupos) são só Série A — portadas numa fase futura.
+}
 /* resolve UMA rodada da liga no estado S (mutando-o). humanResultByFx: {"h-a":{hg,ag,scorers,events}} */
-function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any) {
+function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any) {
   const seed = S.seed, round = S.round;
   const fixtures = (S.sched[round] || []);
   advancePlayerAvailability(S);                                   // 1) cumpre suspensões/lesões
@@ -378,6 +444,7 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   advanceDevelopment(S, humanClubs, humanXI);                    // 4b) evolução/declínio dos jogadores
   advanceOtherDivs(S);                                            // 4c) outras divisões (CPU determinístico)
   S.round++; S.week = (S.week || 1) + 1; S.day = (S.day || 1) + 7; // 5) avança a rodada
+  advancePendingCups(S, cupResultByFx || {});                     // 6) copas (Copa do Brasil) — usa a rodada NOVA
   S._roundIncidents = {};
 }
 
@@ -409,16 +476,19 @@ Deno.serve(async (req: Request) => {
     if (expectedRound != null && S.round !== expectedRound) return json({ ok: true, already: true, round: S.round, version: curVer });
 
     const round = S.round;
-    const { data: seats } = await admin.from("game_seats").select("user_id, club_id, last_xi, last_tactic, last_result, last_result_round").eq("game_id", gameId);
-    const humanClubs = new Set<string>(); const humanXI: any = {}; const humanTactic: any = {}; const humanResultByFx: any = {};
+    const { data: seats } = await admin.from("game_seats").select("user_id, club_id, last_xi, last_tactic, last_result, last_result_round, last_cup_result, last_cup_round").eq("game_id", gameId);
+    const humanClubs = new Set<string>(); const humanXI: any = {}; const humanTactic: any = {}; const humanResultByFx: any = {}; const cupResultByFx: any = {};
     (seats || []).forEach((s: any) => {
       if (!s.user_id || !s.club_id) return; humanClubs.add(s.club_id);
       if (s.last_xi) humanXI[s.club_id] = s.last_xi; if (s.last_tactic) humanTactic[s.club_id] = s.last_tactic;
       const r = s.last_result;
       if (r && s.last_result_round === round && r.h && r.a) { const k = r.h + "-" + r.a; if (!humanResultByFx[k] || s.club_id === r.h) humanResultByFx[k] = { hg: r.hg, ag: r.ag, scorers: r.scorers || [], events: r.events || [] }; }
+      // resultado de COPA submetido pra ESTA rodada (aplicado na chave; mandante-autoritativo)
+      const cr = s.last_cup_result;
+      if (cr && s.last_cup_round === round && cr.h && cr.a && cr.winner) { const ck = cr.h + "-" + cr.a; if (!cupResultByFx[ck] || s.club_id === cr.h) cupResultByFx[ck] = { hg: cr.hg, ag: cr.ag, winner: cr.winner, pens: cr.pens || null, events: cr.events || [] }; }
     });
 
-    resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic);
+    resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic, cupResultByFx);
     stateObj.round = S.round;
 
     const { data: upd, error: upErr } = await admin.from("games").update({ shared_state: stateObj, state_version: curVer + 1, round: S.round }).eq("id", gameId).eq("state_version", curVer).select("state_version");

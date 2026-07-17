@@ -321,6 +321,19 @@ async function netPublishResult(round, result){
     await sb.from('game_seats').update({ last_result:payload, last_result_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);
   }catch(e){ console.warn('publishResult:', e&&e.message); }
 }
+/* publica o resultado de uma partida de COPA (mata-mata) jogada ao vivo pelo humano —
+   análogo a netPublishResult, mas grava em last_cup_result/last_cup_round. O servidor
+   (resolve-round) aplica esse resultado na chave (mandante-autoritativo) antes de simular
+   o resto do bracket. Só copas de mata-mata (Copa do Brasil); grupos são Série A -> futuro. */
+async function netPublishCupResult(round, cupResult){
+  if(!sb || !NET.gameId || !SB_AUTH_USER || !cupResult || !cupResult.h || !cupResult.a || !cupResult.winner) return;
+  const payload = { h:cupResult.h, a:cupResult.a, hg:cupResult.hg, ag:cupResult.ag,
+    winner:cupResult.winner, pens:cupResult.pens||null, events:cupResult.events||[] };
+  try{
+    if(NET._claimed && NET._claimed[SB_AUTH_USER.id]){ NET._claimed[SB_AUTH_USER.id].last_cup_result=payload; NET._claimed[SB_AUTH_USER.id].last_cup_round=round; }
+    await sb.from('game_seats').update({ last_cup_result:payload, last_cup_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);
+  }catch(e){ console.warn('publishCupResult:', e&&e.message); }
+}
 /* clubes humanos desta sala (assentos ocupados por gente) */
 function netHumanClubIds(){
   const out=[]; const cl=NET._claimed||{};
@@ -894,6 +907,7 @@ NET.clearBusy = netClearBusy;
 NET.heartbeatSeen = netHeartbeatSeen;
 NET.publishLineup = netPublishLineup;
 NET.publishResult = netPublishResult;
+NET.publishCupResult = netPublishCupResult;
 NET.humanClubIds = netHumanClubIds;
 NET.allHumanResultsIn = netAllHumanResultsIn;
 NET.collectHumanResults = netCollectHumanResults;

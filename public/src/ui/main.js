@@ -3161,6 +3161,13 @@ function finishCupLiveMatch(){
     }
     t.winner=winner; t.pens=pens;
     const loser=winner===t.h?t.a:t.h; pending.bracket.eliminated[loser]=true;
+    // Resenha (online): publica o resultado da MINHA partida de copa (mandante-autoritativo) —
+    // o servidor (resolve-round) aplica na chave antes de simular o resto do bracket. Aditivo:
+    // no fluxo atual (host-autoritativo via NET.saveGame) nada lê essa coluna ainda; entra em
+    // vigor no cutover pro servidor. Só copas de mata-mata (grupos são Série A -> futuro).
+    if(CL.online && typeof NET!=='undefined' && NET.publishCupResult){
+      NET.publishCupResult(S.round, { h:t.h, a:t.a, hg:m.hg, ag:m.ag, winner, pens, events:m.events });
+    }
     const userWon=(winner===CL.clubId);
     if(wentToPens){
       const userIsHome=(t.h===CL.clubId);
