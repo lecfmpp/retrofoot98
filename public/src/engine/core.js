@@ -2551,8 +2551,10 @@ function playRound(userResult, humanResults){
   S._roundIncidents={};
   save();
 }
-/* pay wages, goal/CS bonuses, 50%-matches bonus; collect matchday income */
-function processFinances(userResult,uf,startedNames){
+/* pay wages, goal/CS bonuses, 50%-matches bonus; collect matchday income.
+   gateOverride (F3.3): bilheteria já capturada (quando CL.live não existe mais, ex.: aplicar as
+   finanças ao ADOTAR a rodada resolvida pelo servidor). Se null, lê de CL.live como antes. */
+function processFinances(userResult,uf,startedNames,gateOverride){
   const cl=clubOf(S.clubId);
   let gf=0,ga=0,won=false,draw=false;
   if(uf&&userResult){ const home=uf[0]===S.clubId; gf=home?userResult.hg:userResult.ag; ga=home?userResult.ag:userResult.hg; won=gf>ga; draw=gf===ga; }
@@ -2564,7 +2566,8 @@ function processFinances(userResult,uf,startedNames){
   // do ledger de Finanças) — resultado: expandir o estádio não aparecia na aba Finanças, e a
   // renda mostrada lá nunca batia com o total real de caixa.
   let gate=null;
-  if(uf && uf[0]===S.clubId && CL.live && CL.live.matches){
+  if(gateOverride!=null) gate=gateOverride;                        // F3.3: bilheteria já capturada (fluxo server-adopt)
+  else if(uf && uf[0]===S.clubId && CL.live && CL.live.matches){
     const um=CL.live.matches.find(m=>m.h===uf[0]&&m.a===uf[1]);
     if(um) gate=um.att*um.price;
   }

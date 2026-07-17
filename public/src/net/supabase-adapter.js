@@ -346,6 +346,17 @@ async function netPublishCupResult(round, cupResult){
     await sb.from('game_seats').update({ last_cup_result:payload, last_cup_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);
   }catch(e){ console.warn('publishCupResult:', e&&e.message); }
 }
+/* F3.3: publica o caixa do PRÓPRIO clube no assento -> o servidor (resolve-round) lê pra montar
+   S.budgets do mundo, e os reconciles voltam o valor certo (senão o caixa do humano resetava pro
+   valor inicial do shared_state a cada rodada). Chamado após aplicar as finanças da rodada / mercado. */
+async function netPublishBudget(budget){
+  if(!sb || !NET.gameId || !SB_AUTH_USER || budget==null || !isFinite(budget)) return;
+  const b=Math.round(budget);
+  try{
+    if(NET._claimed && NET._claimed[SB_AUTH_USER.id]) NET._claimed[SB_AUTH_USER.id].budget=b;
+    await sb.from('game_seats').update({ budget:b }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);
+  }catch(e){ console.warn('publishBudget:', e&&e.message); }
+}
 /* clubes humanos desta sala (assentos ocupados por gente) */
 function netHumanClubIds(){
   const out=[]; const cl=NET._claimed||{};
@@ -940,6 +951,7 @@ NET.heartbeatSeen = netHeartbeatSeen;
 NET.publishLineup = netPublishLineup;
 NET.publishResult = netPublishResult;
 NET.resolveRound = netResolveRound;
+NET.publishBudget = netPublishBudget;
 NET.publishCupResult = netPublishCupResult;
 NET.humanClubIds = netHumanClubIds;
 NET.allHumanResultsIn = netAllHumanResultsIn;

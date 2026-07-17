@@ -3041,6 +3041,10 @@ function finishLiveRound(){
       scorers:userResult.scorers||[], perf:userResult.perf||null, events:(um&&um.events)||[] } : null;
     NET.publishResult(S.round, myResult || { h:null, a:null, bye:true }); // marcador de folga não trava nada
     if(NET.isHost){ CL._hostPendingCommit = { RL, userResult, audit:_auditPayload, round:S.round, uf }; }
+    // F3.3: guarda os inputs de finança do MEU clube pra aplicar ao ADOTAR a rodada do servidor
+    // (o servidor não computa finanças; cada humano aplica as suas). gate = bilheteria já capturada.
+    const startedNames = ((S.clubXI && S.clubXI[CL.clubId]) || S.xi || []).slice();
+    CL._pendingRoundFin = { userResult, uf, gate:CL.lastGate||0, startedNames, round:S.round };
     onlineReturnFreeAfterMatch(); // volta LIVRE pra tela principal (não bloqueia)
     return;
   }
@@ -3091,6 +3095,7 @@ function onlineHostCloseRound(){
       let res=null; try{ res=await NET.resolveRound(round); }catch(e){ res={error:(e&&e.message)||'erro'}; }
       if(!res || res.error){
         console.warn('resolveRound -> fallback local:', res&&res.error);
+        CL._pendingRoundFin=null; // fallback: _commitLeagueRound->playRound já aplica as finanças (evita aplicar em dobro)
         _commitLeagueRound(pc.RL, userResultAuth, map, allEvents, pc.audit);
       } else {
         await onlineAdoptServerRound(pc.RL); // adota o estado resolvido pelo servidor + UI pós-rodada
@@ -3107,6 +3112,19 @@ function onlineHostCloseRound(){
    _commitLeagueRound, mas SEM recalcular a rodada (o servidor já fez tudo — inclusive outras divisões,
    copas e a virada de temporada). Job security/eventos de treinador são carreira do cliente, então
    seguem aqui. applyViewerDivision põe a divisão do próprio clube como âncora (temporada 2+). */
+/* F3.3: aplica as finanças da rodada do PRÓPRIO clube (salários + receita base + bilheteria + bônus),
+   uma vez por rodada, usando os inputs capturados no finishLiveRound (gate = bilheteria já lida do
+   CL.live). O servidor NÃO computa finanças — cada humano aplica as suas e publica o caixa no assento
+   (senão o reconcile voltaria o valor inicial do shared_state). Chamado por host (adopt) e convidado
+   (reconcile), pra os dois lados aplicarem a própria rodada. */
+function applyOwnPendingFinances(){
+  const f=CL._pendingRoundFin; if(!f) return; CL._pendingRoundFin=null;
+  try{
+    if(typeof processFinances==='function') processFinances(f.userResult, f.uf, new Set(f.startedNames||[]), f.gate||0);
+    if(S.budgets && S.clubId) S.budgets[S.clubId]=S.budget;                 // write-back no mundo local
+    if(CL.online && typeof NET!=='undefined' && NET.publishBudget) NET.publishBudget(S.budget); // persiste no assento
+  }catch(e){ console.warn('finanças da rodada:', e); }
+}
 async function onlineAdoptServerRound(RL){
   try{
     const saved = await NET.loadGame();
@@ -3118,6 +3136,7 @@ async function onlineAdoptServerRound(RL){
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
     }
   }catch(e){ console.warn('adotar estado do servidor:', e); }
+  applyOwnPendingFinances(); // F3.3: aplica as finanças da MINHA rodada (o servidor não computa finanças)
   if(typeof fixUserXIAvailability==='function') fixUserXIAvailability();
   if(!S.finished && typeof tickJobSecurity==='function'){ tickJobSecurity(); const je=checkManagerJobEvent(); if(je) CL._pendingManagerEvent=je; }
   checkPendingCupDraws(()=>{
