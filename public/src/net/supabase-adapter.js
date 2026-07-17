@@ -728,13 +728,20 @@ function netSetupRealtime(){
     if(NET.onState) NET.onState(NET.room);
   });
 
-  SB_CH.on('postgres_changes', { event:'UPDATE', schema:SB_SCHEMA, table:'game_seats', filter:'game_id=eq.'+NET.gameId }, (p)=>{
-    if(!p.new) return;
-    if(p.new.user_id){ NET._claimed[p.new.user_id] = { clubId:p.new.club_id, ready:p.new.is_ready, name:p.new.name, email:p.new.email, busy_until:p.new.busy_until, last_xi:p.new.last_xi, last_tactic:p.new.last_tactic, last_result:p.new.last_result, last_result_round:p.new.last_result_round, last_seen:p.new.last_seen }; }
-    else { // assento LIBERADO (ex.: expulsão): remove o dono anterior do cache — senão o clube fica
-           // "fantasma-ocupado" pros outros clientes (freeClubIds não oferece de volta) e o ex-dono
-           // continua listado como participante.
-      Object.keys(NET._claimed||{}).forEach(uid=>{ if(NET._claimed[uid] && NET._claimed[uid].clubId===p.new.club_id) delete NET._claimed[uid]; });
+  // '*' = INSERT + UPDATE + DELETE. INSERT é ESSENCIAL: quando um convidado aprovado entra no lobby
+  // ele cria um assento NOVO (INSERT) — antes o listener só ouvia UPDATE, então a lista de treinadores
+  // não atualizava até dar refresh. DELETE (assento removido) também some da lista na hora.
+  SB_CH.on('postgres_changes', { event:'*', schema:SB_SCHEMA, table:'game_seats', filter:'game_id=eq.'+NET.gameId }, (p)=>{
+    const row = p.new && Object.keys(p.new).length ? p.new : null;
+    if(row){
+      if(row.user_id){ NET._claimed[row.user_id] = { clubId:row.club_id, ready:row.is_ready, name:row.name, email:row.email, busy_until:row.busy_until, last_xi:row.last_xi, last_tactic:row.last_tactic, last_result:row.last_result, last_result_round:row.last_result_round, last_seen:row.last_seen }; }
+      else { // assento LIBERADO (ex.: expulsão): remove o dono anterior do cache — senão o clube fica
+             // "fantasma-ocupado" pros outros clientes (freeClubIds não oferece de volta) e o ex-dono
+             // continua listado como participante.
+        Object.keys(NET._claimed||{}).forEach(uid=>{ if(NET._claimed[uid] && NET._claimed[uid].clubId===row.club_id) delete NET._claimed[uid]; });
+      }
+    } else if(p.old && p.old.user_id){ // assento DELETADO -> tira o dono do cache
+      delete NET._claimed[p.old.user_id];
     }
     netMergeParticipants();
   });
