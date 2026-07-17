@@ -198,6 +198,26 @@ function clSyncResenha(){ CL.menu=null;
    voltar pra mesma rodada de todos — em TODAS as competições (liga + copas avançam por S.round).
    Só reconcilia em tela segura (nunca no meio de uma partida/sorteio) e só quando ATRÁS, então
    clientes em dia (e o anfitrião) nunca são afetados, e ninguém perde uma partida em andamento. */
+/* RENDER POR-DIVISÃO (F3.5): o mundo compartilhado tem uma divisão "âncora" (S.table/S.sched/
+   S.division) + as outras em S.otherDivs. A partir da temporada 2, cada humano pode estar numa
+   divisão diferente. Este overlay LOCAL põe a divisão do PRÓPRIO clube como âncora, pra toda a UI
+   (tabela, calendário, partida ao vivo) mostrar/jogar a divisão certa. É um transform de visão,
+   re-derivado a cada carga do estado (não altera o shared_state do servidor). Idempotente: se o
+   clube já está na âncora, não faz nada. */
+function applyViewerDivision(clubId){
+  if(!S || !clubId) return;
+  if(S.table && S.table[clubId]) return;                 // já sou a âncora
+  const od=S.otherDivs||{};
+  for(const d in od){
+    if(od[d] && od[d].table && od[d].table[clubId]){
+      const oldAnchor=S.division, oldTable=S.table, oldSched=S.sched;
+      S.otherDivs[oldAnchor]={ clubs:Object.keys(oldTable||{}).map(id=>({id})), sched:oldSched, table:oldTable };
+      S.division=d; S.table=od[d].table; S.sched=od[d].sched;
+      delete S.otherDivs[d];
+      return;
+    }
+  }
+}
 let ONLINE_RECONCILE_BUSY=false;
 function onlineReconcileIfBehind(room){
   if(!CL.online || (typeof NET!=='undefined' && NET.isHost) || !room || !S) return;
@@ -213,6 +233,7 @@ function onlineReconcileIfBehind(room){
       Object.assign(S, sState);
       // o save é do HOST — restaura o MEU clube (senão eu assumo o clube do host no motor)
       S.clubId = CL.clubId;
+      applyViewerDivision(CL.clubId);                    // F3.5: renderiza a divisão do PRÓPRIO clube (temporada 2+)
       S.xi = (S.clubXI && S.clubXI[CL.clubId] && S.clubXI[CL.clubId].length) ? S.clubXI[CL.clubId].slice() : (typeof autoXI==='function' ? autoXI(CL.clubId) : S.xi);
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       toastC('🔄 Sincronizado com a sala (rodada '+((S.round||0)+1)+').');
@@ -930,6 +951,7 @@ function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=ro
           // (ex.: depois de ser expulso) assume o CLUBE DO HOST no motor -> "dois usuários com o mesmo
           // time". CL.clubId é o clube (livre) que EU acabei de assumir; o motor tem que usar ELE.
           S.clubId = CL.clubId;
+          applyViewerDivision(CL.clubId);                // F3.5: renderiza a divisão do PRÓPRIO clube (temporada 2+)
           S.xi = (S.clubXI && S.clubXI[CL.clubId] && S.clubXI[CL.clubId].length) ? S.clubXI[CL.clubId].slice() : (typeof autoXI==='function' ? autoXI(CL.clubId) : S.xi);
           CL.selPlayer = (squad(CL.clubId)[0]||{}).n || CL.selPlayer;
           syncDataClubsFromState(); console.log('✓ Jogo carregado (rodada', savedState.round, ') — clube:', CL.clubId); }

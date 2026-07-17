@@ -321,6 +321,18 @@ async function netPublishResult(round, result){
     await sb.from('game_seats').update({ last_result:payload, last_result_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);
   }catch(e){ console.warn('publishResult:', e&&e.message); }
 }
+/* F3.5 CUTOVER: pede ao servidor pra RESOLVER a rodada (edge function resolve-round) — o servidor
+   é o único produtor do shared_state (liga + outras divisões + copas + virada de temporada). Idempotente
+   por state_version: se outro já resolveu, devolve {already:true}. Retorna {ok, round, version} ou {error}.
+   `round` = a rodada que ESPERO resolver (S.round atual), pra o servidor não resolver a errada. */
+async function netResolveRound(round){
+  if(!sb || !NET.gameId) return { error:'sem sala' };
+  try{
+    const { data, error } = await sb.functions.invoke('resolve-round', { body:{ gameId:NET.gameId, round } });
+    if(error) return { error: (error&&error.message)||'erro na edge function' };
+    return data||{};
+  }catch(e){ return { error: (e&&e.message)||'falha ao chamar resolve-round' }; }
+}
 /* publica o resultado de uma partida de COPA (mata-mata) jogada ao vivo pelo humano —
    análogo a netPublishResult, mas grava em last_cup_result/last_cup_round. O servidor
    (resolve-round) aplica esse resultado na chave (mandante-autoritativo) antes de simular
@@ -907,6 +919,7 @@ NET.clearBusy = netClearBusy;
 NET.heartbeatSeen = netHeartbeatSeen;
 NET.publishLineup = netPublishLineup;
 NET.publishResult = netPublishResult;
+NET.resolveRound = netResolveRound;
 NET.publishCupResult = netPublishCupResult;
 NET.humanClubIds = netHumanClubIds;
 NET.allHumanResultsIn = netAllHumanResultsIn;
