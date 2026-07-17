@@ -3083,10 +3083,48 @@ function onlineHostCloseRound(){
   const uf=pc.uf; const myKey = uf ? uf[0]+'-'+uf[1] : null;
   const userResultAuth = (myKey && map[myKey]) ? map[myKey] : pc.userResult; // mandante-autoritativo
   const allEvents = Object.values(map).flatMap(r=>r.events||[]);
-  _commitLeagueRound(pc.RL, userResultAuth, map, allEvents, pc.audit); // resolve + persiste (host)
-  // reabre a próxima 'ready' pra TODOS logo após resolver+persistir (games.round já avançou, então os
-  // convidados espelham antes de jogar a próxima). Sem isso a rodada não avançava (host-autoritativo).
+  // CUTOVER (F3.5): o SERVIDOR resolve a rodada (edge function resolve-round) — autoridade única
+  // (liga + outras divisões + copas + virada de temporada). Fallback pro caminho local se a função
+  // falhar. Os convidados espelham o estado do servidor pelo onlineReconcileIfBehind, como sempre.
+  if(typeof NET!=='undefined' && NET.resolveRound){
+    (async ()=>{
+      let res=null; try{ res=await NET.resolveRound(round); }catch(e){ res={error:(e&&e.message)||'erro'}; }
+      if(!res || res.error){
+        console.warn('resolveRound -> fallback local:', res&&res.error);
+        _commitLeagueRound(pc.RL, userResultAuth, map, allEvents, pc.audit);
+      } else {
+        await onlineAdoptServerRound(pc.RL); // adota o estado resolvido pelo servidor + UI pós-rodada
+      }
+      if(typeof NET!=='undefined' && NET.reopenReady) NET.reopenReady();
+    })();
+    return;
+  }
+  _commitLeagueRound(pc.RL, userResultAuth, map, allEvents, pc.audit); // (sem edge function) resolve + persiste local
   if(typeof NET!=='undefined' && NET.reopenReady) NET.reopenReady();
+}
+/* F3.5: adota no cliente o estado que o SERVIDOR acabou de resolver (games.shared_state) e mostra a
+   UI pós-rodada (classificação, sorteio de copa, eventos de treinador). Espelha a cauda de
+   _commitLeagueRound, mas SEM recalcular a rodada (o servidor já fez tudo — inclusive outras divisões,
+   copas e a virada de temporada). Job security/eventos de treinador são carreira do cliente, então
+   seguem aqui. applyViewerDivision põe a divisão do próprio clube como âncora (temporada 2+). */
+async function onlineAdoptServerRound(RL){
+  try{
+    const saved = await NET.loadGame();
+    if(saved && saved.S){
+      Object.assign(S, saved.S);
+      S.clubId = CL.clubId;
+      if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
+      S.xi = (S.clubXI && S.clubXI[CL.clubId] && S.clubXI[CL.clubId].length) ? S.clubXI[CL.clubId].slice() : (typeof autoXI==='function' ? autoXI(CL.clubId) : S.xi);
+      if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
+    }
+  }catch(e){ console.warn('adotar estado do servidor:', e); }
+  if(typeof fixUserXIAvailability==='function') fixUserXIAvailability();
+  if(!S.finished && typeof tickJobSecurity==='function'){ tickJobSecurity(); const je=checkManagerJobEvent(); if(je) CL._pendingManagerEvent=je; }
+  checkPendingCupDraws(()=>{
+    const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
+    if(seats.length) startPostRoundClassifs(seats); else showLiveClassif();
+    checkPendingManagerEvents();
+  });
 }
 /* commit de uma rodada de liga — extraído do fim de finishLiveRound pra ser reusado depois
    da fila de partidas hotseat (FASE 2). humanResults = {fxKey:{hg,ag,scorers,perf,events}}. */

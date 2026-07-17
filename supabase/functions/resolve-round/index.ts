@@ -5,11 +5,11 @@
    Usa o MESMO motor de partida do cliente (MATCH_ENGINE, colado acima) ->
    paridade por construção. Partidas humanas = resultado submetido (game_seats.
    last_result, mandante-autoritativo); CPU = motor. Idempotente por state_version.
-   COBERTO: liga (divisão dos jogadores) + outras divisões + energia/moral +
-   evolução/desenvolvimento + Copa do Brasil (mata-mata; humano submete via
-   last_cup_result, CPU = motor). Provado byte-idêntico ao cliente (SIM_SYNC=true).
-   AINDA CONGELADO (fases futuras): mercado de CPU, finanças, virada de temporada,
-   e copas de grupo (Libertadores/Sul-Americana — só Série A).
+   COBERTO: liga + outras divisões (com override humano em qualquer divisão) +
+   energia/moral + evolução + Copa do Brasil + VIRADA DE TEMPORADA (promoção/
+   rebaixamento + envelhecimento/regen + reconstrução, quando a liga termina).
+   AINDA CONGELADO: mercado de CPU, finanças/prêmios por-humano, copas de grupo
+   (Libertadores/Sul-Americana — só Série A).
    ================================================================== */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
