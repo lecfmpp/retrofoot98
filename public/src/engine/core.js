@@ -862,7 +862,7 @@ function makeGroupStage(groupsMap, advancePerGroup){
   return { groups, round:0, roundsTotal, finished:false, advancePerGroup: advancePerGroup||2 };
 }
 function groupTableStandings(g){
-  return Object.values(g.table).sort((a,b)=>b.Pts-a.Pts||(b.GF-b.GA)-(a.GF-a.GA)||b.GF-a.GF);
+  return Object.values(g.table).sort((a,b)=>b.Pts-a.Pts||(b.GF-b.GA)-(a.GF-a.GA)||b.GF-a.GF||String(a.id).localeCompare(String(b.id)));
 }
 /* atalho pra UI/compat: standings do grupo único quando só existe um (Sul-Americana) */
 function groupStageStandings(mg){
@@ -1267,7 +1267,7 @@ function advanceBgLeagues(humanResults, roundIdx){
 /* standings ordenados de uma divisão de background */
 function bgStandings(country, divKey){
   const L=S.bgLeagues&&S.bgLeagues[country]; if(!L||!L.divs[divKey]) return [];
-  return Object.values(L.divs[divKey].table).sort((a,b)=>b.Pts-a.Pts||(b.GF-b.GA)-(a.GF-a.GA)||b.GF-a.GF);
+  return Object.values(L.divs[divKey].table).sort((a,b)=>b.Pts-a.Pts||(b.GF-b.GA)-(a.GF-a.GA)||b.GF-a.GF||String(a.id).localeCompare(String(b.id)));
 }
 /* fim de temporada das ligas de background: registra campeão/histórico, promove-rebaixa entre
    divisões (mesma regra do universo daquele país) e zera as tabelas/artilheiros da temporada. */
@@ -2309,7 +2309,7 @@ function checkPendingManagerEvents(){
 }
 
 function sortedTable(){
-  return Object.values(S.table).sort((a,b)=> b.Pts-a.Pts || (b.GF-b.GA)-(a.GF-a.GA) || b.GF-a.GF );
+  return Object.values(S.table).sort((a,b)=> b.Pts-a.Pts || (b.GF-b.GA)-(a.GF-a.GA) || b.GF-a.GF || String(a.id).localeCompare(String(b.id)) );
 }
 function tablePos(id){return sortedTable().findIndex(t=>t.id===id)+1;}
 function applyResult(h,a,hg,ag){
@@ -2454,7 +2454,7 @@ function resolveRoundMP(state, subs){
   state.round=round+1;
   return {state, roundResults};
 }
-function mpSortTable(state){return Object.values(state.table).sort((a,b)=>b.Pts-a.Pts||(b.GF-b.GA)-(a.GF-a.GA)||b.GF-a.GF);}
+function mpSortTable(state){return Object.values(state.table).sort((a,b)=>b.Pts-a.Pts||(b.GF-b.GA)-(a.GF-a.GA)||b.GF-a.GF||String(a.id).localeCompare(String(b.id)));}
 
 /* ====================== ROUND ADVANCE ====================== */
 function currentFixtures(){return S.sched[S.round]||[];}

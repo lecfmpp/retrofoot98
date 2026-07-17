@@ -2828,7 +2828,7 @@ function armClassifTimer(){
 }
 /* tabela genérica pra qualquer divisão (a do usuário OU uma das 3 que rodam em segundo plano) */
 function sortedTableOf(table){
-  return Object.values(table||{}).sort((a,b)=> b.Pts-a.Pts || (b.GF-b.GA)-(a.GF-a.GA) || b.GF-a.GF );
+  return Object.values(table||{}).sort((a,b)=> b.Pts-a.Pts || (b.GF-b.GA)-(a.GF-a.GA) || b.GF-a.GF || String(a.id).localeCompare(String(b.id)) );
 }
 /* nome da divisão pra classificação/ao-vivo — universo-consciente: Brasil usa "1ª..4ª Divisão";
    universos intl (Alemanha, Itália...) usam o rótulo real (Bundesliga, Serie A...). Antes o

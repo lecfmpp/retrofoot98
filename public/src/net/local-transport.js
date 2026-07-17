@@ -217,8 +217,12 @@ function onlineReconcileIfBehind(room){
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       toastC('🔄 Sincronizado com a sala (rodada '+((S.round||0)+1)+').');
       cdraw();
-      // espelhei o estado novo do anfitrião: se a fase já é 'running', jogo a rodada agora
-      if(typeof onlineRecoverRunRound==='function') onlineRecoverRunRound();
+      // SORTEIO DE COPA: o host persiste o estado COM S._pendingDrawShows intacto (antes de consumir),
+      // então o convidado também mostra a cerimônia (Copa do Brasil etc.) ao espelhar — antes era só
+      // no host. Ao terminar o sorteio, segue pro jogo da rodada (recover).
+      const _cont=()=>{ if(typeof onlineRecoverRunRound==='function') onlineRecoverRunRound(); };
+      if(typeof checkPendingCupDraws==='function' && S._pendingDrawShows && S._pendingDrawShows.length){ checkPendingCupDraws(_cont); }
+      else _cont();
     }
   }catch(e){ console.warn('reconcile:', e && e.message); } finally { ONLINE_RECONCILE_BUSY=false; } })();
 }
