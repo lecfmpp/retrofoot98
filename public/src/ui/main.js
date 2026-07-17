@@ -2201,7 +2201,14 @@ function startLiveRound(){
   if(CL.online && CL.humans && CL.humans[CL.clubId]){ S.clubXI=S.clubXI||{}; S.clubXI[CL.clubId]=(S.xi||[]).slice(); S.clubTactic=S.clubTactic||{}; S.clubTactic[CL.clubId]=S.tactic||"equilibrado";
     if(typeof NET!=='undefined' && NET.publishLineup) NET.publishLineup(S.clubXI[CL.clubId], S.clubTactic[CL.clubId]); } // publica minha escalação pros outros clientes (sim. de ausente)
   CL.subPanelOpen=false; CL.subsUsed=0; CL.liveDivOpen=null; // accordion reabre na divisão do usuário a cada rodada
-  const fx=(S.sched[S.round])||[]; const seedBase=hashC('rnd'+S.season+'-'+S.round);
+  const fxRaw=(S.sched[S.round])||[]; const seedBase=hashC('rnd'+S.season+'-'+S.round);
+  // a partida do PRÓPRIO clube vem PRIMEIRO (RL.matches[0]) — várias partes da tela ao vivo usam
+  // RL.matches[0] como "a minha partida" (pausa, substituição, pênalti). Sem isso, quem não estava
+  // no primeiro confronto do calendário via a partida de OUTRO clube na linha principal (bug do
+  // anfitrião: só via a própria se o clube dele calhasse de ser o 1º do sorteio da rodada).
+  const mine=fxRaw.filter(([h,a])=>h===CL.clubId||a===CL.clubId);
+  const rest=fxRaw.filter(([h,a])=>!(h===CL.clubId||a===CL.clubId));
+  const fx=mine.concat(rest);
   const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[] };
   fx.forEach(([h,a],i)=>{ const seed=(seedBase+hashC(h)+hashC(a))>>>0;
     RL.matches.push(buildLiveMatchObject(h,a,matchSeed(h,a),{div:S.division})); });
@@ -3133,9 +3140,12 @@ function applyOwnPendingFinances(){
   }catch(e){ console.warn('finanças da rodada:', e); }
 }
 async function onlineAdoptServerRound(RL){
+  let isTurnover=false;
   try{
     const saved = await NET.loadGame();
     if(saved && saved.S){
+      const oldSeason = S.season||0;
+      isTurnover = (saved.S.season||0) > oldSeason; // VIRADA de temporada (rodada volta a 0)
       Object.assign(S, saved.S);
       S.clubId = CL.clubId;
       if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
@@ -3146,6 +3156,15 @@ async function onlineAdoptServerRound(RL){
   applyOwnPendingFinances(); // F3.3: aplica as finanças da MINHA rodada (o servidor não computa finanças)
   if(typeof fixUserXIAvailability==='function') fixUserXIAvailability();
   if(!S.finished && typeof tickJobSecurity==='function'){ tickJobSecurity(); const je=checkManagerJobEvent(); if(je) CL._pendingManagerEvent=je; }
+  if(isTurnover){
+    // VIRADA: NÃO mostra a classificação pós-rodada (tabela nova zerada + o cliente ficava preso nela,
+    // travando o outro em "esperando"). Vai direto pro main, pronto pra jogar a rodada 1 da temporada nova.
+    CL._postRoundSeats=null; CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
+    const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division);
+    if(typeof toastC==='function') toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.');
+    cdraw();
+    return;
+  }
   checkPendingCupDraws(()=>{
     const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
     if(seats.length) startPostRoundClassifs(seats); else showLiveClassif();

@@ -237,8 +237,10 @@ function onlineReconcileIfBehind(room){
   (async ()=>{ try{
     const saved = await NET.loadGame();
     const sState = saved && saved.S;
-    const newer = sState && ( (sState.season||0) > (S.season||0) || ((sState.season||0)===(S.season||0) && (sState.round||0) > (S.round||0)) );
+    const oldSeason = S.season||0;
+    const newer = sState && ( (sState.season||0) > oldSeason || ((sState.season||0)===oldSeason && (sState.round||0) > (S.round||0)) );
     if(newer){
+      const isTurnover = (sState.season||0) > oldSeason; // VIRADA de temporada (rodada volta a 0)
       Object.assign(S, sState);
       // o save é do HOST — restaura o MEU clube (senão eu assumo o clube do host no motor)
       S.clubId = CL.clubId;
@@ -246,15 +248,23 @@ function onlineReconcileIfBehind(room){
       S.xi = (S.clubXI && S.clubXI[CL.clubId] && S.clubXI[CL.clubId].length) ? S.clubXI[CL.clubId].slice() : (typeof autoXI==='function' ? autoXI(CL.clubId) : S.xi);
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       if(typeof applyOwnPendingFinances==='function') applyOwnPendingFinances(); // F3.3: finanças da MINHA rodada (convidado)
-      toastC('🔄 Sincronizado com a sala (rodada '+((S.round||0)+1)+').');
-      cdraw();
-      // Ao espelhar a rodada, o CONVIDADO vê o MESMO que o host: (1) sorteio de copa pendente
-      // (S._pendingDrawShows, persistido intacto antes do host consumir) e depois (2) a CLASSIFICAÇÃO
-      // pós-rodada. Antes só o host via essas telas. Ao terminar a classificação (Continuar/10s), o
-      // loop dispara a próxima partida quando a fase for 'running'.
-      const _showClassif=()=>{ if(typeof showLiveClassif==='function') showLiveClassif(); };
-      if(typeof checkPendingCupDraws==='function' && S._pendingDrawShows && S._pendingDrawShows.length){ checkPendingCupDraws(_showClassif); }
-      else _showClassif();
+      if(isTurnover){
+        // VIRADA: NÃO mostra a classificação pós-rodada (a tabela nova está zerada e o cliente ficava
+        // preso nessa tela sem voltar pro "jogar" -> o outro travava em "esperando"). Vai direto pro
+        // main, pronto pra jogar a rodada 1 da temporada nova, na divisão do próprio clube.
+        CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
+        const _divLbl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division);
+        toastC('🏆 Nova temporada '+ (S.season||'') +'! Você está na '+_divLbl+'.');
+        cdraw();
+      } else {
+        toastC('🔄 Sincronizado com a sala (rodada '+((S.round||0)+1)+').');
+        cdraw();
+        // Ao espelhar a rodada, o CONVIDADO vê o MESMO que o host: (1) sorteio de copa pendente e
+        // depois (2) a CLASSIFICAÇÃO pós-rodada. Ao terminar (Continuar/10s), o loop dispara a próxima.
+        const _showClassif=()=>{ if(typeof showLiveClassif==='function') showLiveClassif(); };
+        if(typeof checkPendingCupDraws==='function' && S._pendingDrawShows && S._pendingDrawShows.length){ checkPendingCupDraws(_showClassif); }
+        else _showClassif();
+      }
     }
   }catch(e){ console.warn('reconcile:', e && e.message); } finally { ONLINE_RECONCILE_BUSY=false; } })();
 }
@@ -1096,8 +1106,13 @@ function onlineCompleteSeasonTurnover(){
         if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
         S.xi = (S.clubXI && S.clubXI[CL.clubId] && S.clubXI[CL.clubId].length) ? S.clubXI[CL.clubId].slice() : (typeof autoXI==='function'?autoXI(CL.clubId):S.xi);
         if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
-        CL._playedRound=-1;
-        if(CL.screen==='online' || CL.screen==='main') cdraw();
+        if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
+        CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
+        const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division);
+        toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.');
+        cdraw();
+        // reabre a fase 'ready' pra próxima rodada (senão os dois ficam presos sem conseguir jogar)
+        if(NET.isHost && typeof NET.reopenReady==='function') NET.reopenReady();
       }
     }
   }catch(e){ console.warn('completar virada online:', e && e.message); } finally { ONLINE_TURNOVER_BUSY=false; } })();
