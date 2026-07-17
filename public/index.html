@@ -366,7 +366,6 @@ function newGame(clubId, division, compToggle, seedOverride){
   DATA.clubs.forEach(c=>{ if(typeof recomputeClubOverall==='function') recomputeClubOverall(c.id); });
   // overall de cada clube guardado no estado — a edge function (resolve-round) usa pro mando de campo
   // (proxy de estádio) sem precisar do DATA.clubs; e o cliente online usa o MESMO valor -> paridade.
-  S.clubOverall={}; S.clubShort={}; DATA.clubs.forEach(c=>{ S.clubOverall[c.id]=(c.overall!=null?c.overall:70); S.clubShort[c.id]=c.short||c.id; });
   registerClubs(division, DATA.clubs); // fixa a composição inicial da divisão do usuário
   advanceAuctions();
   buildOtherDivisions();
@@ -377,6 +376,11 @@ function newGame(clubId, division, compToggle, seedOverride){
   // continuam só pra quem está na Série A, já que só ela classifica pras copas continentais.
   const initQual = (division==='A') ? real2026Qualification() : {libertadores:[],sulamericana:[]};
   initSeasonCups(initQual, compToggle);
+  // overall/apelido de TODOS os clubes (divisão do usuário + outras divisões + copas) guardado no
+  // estado — a edge function usa pro mando de campo e a derby, sem depender de DATA.clubs; o cliente
+  // online usa os MESMOS valores -> paridade. Populado DEPOIS de montar tudo (otherDivs/cups).
+  S.clubOverall={}; S.clubShort={};
+  Object.keys(S.squads||{}).forEach(id=>{ const c=(typeof clubOf==='function')?clubOf(id):null; S.clubOverall[id]=(c&&c.overall!=null)?c.overall:70; S.clubShort[id]=(c&&c.short)||id; });
   save();
 }
 

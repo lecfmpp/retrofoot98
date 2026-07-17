@@ -280,6 +280,25 @@ function sideInputs(S: any, id: string, isHuman: boolean, humanXI: any, humanTac
   };
 }
 
+/* hash do cliente (main.js hashC) — usado no seed das OUTRAS divisões */
+function hashC(s: any) { s = String(s); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
+/* avança as OUTRAS divisões (Séries A/B/C) — CPU determinístico, mesmo seed/lógica do cliente
+   (startLiveRound + applyOtherDivResults). Só tabela (sem incidentes), igual ao cliente. */
+function advanceOtherDivs(S: any) {
+  if (!S.otherDivs) return; const round = S.round, season = S.season;
+  for (const d in S.otherDivs) {
+    const od = S.otherDivs[d]; if (!od.sched || !od.sched.length) continue;
+    const oFx = od.sched[round % od.sched.length] || []; const base = hashC("rnd" + season + "-" + round + "-" + d);
+    oFx.forEach((fx: any) => {
+      const h = fx[0], a = fx[1]; if (h == null || a == null || !od.table[h] || !od.table[a]) return;
+      const seed = (base + hashC(h) + hashC(a)) >>> 0;
+      const r = ME.simMatchPure(h, a, sideInputs(S, h, false, {}, {}), sideInputs(S, a, false, {}, {}), seed, {});
+      const th = od.table[h], ta = od.table[a];
+      th.P++; ta.P++; th.GF += r.hg; th.GA += r.ag; ta.GF += r.ag; ta.GA += r.hg;
+      if (r.hg > r.ag) { th.W++; th.Pts += 3; ta.L++; } else if (r.hg < r.ag) { ta.W++; ta.Pts += 3; th.L++; } else { th.D++; ta.D++; th.Pts++; ta.Pts++; }
+    });
+  }
+}
 /* resolve UMA rodada da liga no estado S (mutando-o). humanResultByFx: {"h-a":{hg,ag,scorers,events}} */
 function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any) {
   const seed = S.seed, round = S.round;
@@ -304,6 +323,7 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   const Rr = ME.makeRng(ME.hashSeed(seed, round, "post"));        // 4) energia/moral
   for (const cid in S.squads) for (const p of S.squads[cid]) { p.energy = clampN((p.energy || 100) + Rr.rnd(6, 16), 0, 100); p.moral = clampN((p.moral || 70) + (70 - (p.moral || 70)) * 0.08, 0, 100); }
   humanClubs.forEach((cid) => { const xi = ME.resolveXI(S.squads[cid], humanXI[cid] || ME.autoXINames(S.squads[cid])); for (const p of xi) p.energy = clampN(p.energy - Rr.rnd(12, 22), 20, 100); });
+  advanceOtherDivs(S);                                            // 4b) outras divisões (CPU determinístico)
   S.round++; S.week = (S.week || 1) + 1; S.day = (S.day || 1) + 7; // 5) avança a rodada
   S._roundIncidents = {};
 }
