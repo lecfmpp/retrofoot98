@@ -217,12 +217,13 @@ function onlineReconcileIfBehind(room){
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       toastC('🔄 Sincronizado com a sala (rodada '+((S.round||0)+1)+').');
       cdraw();
-      // SORTEIO DE COPA: o host persiste o estado COM S._pendingDrawShows intacto (antes de consumir),
-      // então o convidado também mostra a cerimônia (Copa do Brasil etc.) ao espelhar — antes era só
-      // no host. Ao terminar o sorteio, segue pro jogo da rodada (recover).
-      const _cont=()=>{ if(typeof onlineRecoverRunRound==='function') onlineRecoverRunRound(); };
-      if(typeof checkPendingCupDraws==='function' && S._pendingDrawShows && S._pendingDrawShows.length){ checkPendingCupDraws(_cont); }
-      else _cont();
+      // Ao espelhar a rodada, o CONVIDADO vê o MESMO que o host: (1) sorteio de copa pendente
+      // (S._pendingDrawShows, persistido intacto antes do host consumir) e depois (2) a CLASSIFICAÇÃO
+      // pós-rodada. Antes só o host via essas telas. Ao terminar a classificação (Continuar/10s), o
+      // loop dispara a próxima partida quando a fase for 'running'.
+      const _showClassif=()=>{ if(typeof showLiveClassif==='function') showLiveClassif(); };
+      if(typeof checkPendingCupDraws==='function' && S._pendingDrawShows && S._pendingDrawShows.length){ checkPendingCupDraws(_showClassif); }
+      else _showClassif();
     }
   }catch(e){ console.warn('reconcile:', e && e.message); } finally { ONLINE_RECONCILE_BUSY=false; } })();
 }
@@ -1037,11 +1038,17 @@ function onlineTimerLoop(){
     // travava/loopava. O reopen só efetiva quando ninguém está busy (barreira do servidor).
     ONLINE_LASTSEC=null;
     if(NET.isHost && !CL._hostPendingCommit && NET.reopenReady){ if(Date.now()-ONLINE_ADV_T>1200){ ONLINE_ADV_T=Date.now(); NET.reopenReady(); } }
+    // CONVIDADO: se a fase é 'running' e ainda não joguei ESTA rodada, jogo agora (rede de segurança
+    // caso o gatilho do onState tenha sido perdido enquanto eu via o sorteio/classificação). onlineRunRound
+    // se auto-protege (não re-simula rodada já jogada, não interrompe telas de sorteio/classificação).
+    if(CL.screen==='main' && CL._playedRound!==S.round && typeof onlineRunRound==='function'){ onlineRunRound(); }
   } else { ONLINE_LASTSEC=null; }
   const intv=Math.max(100, 300/(CL.speedMult||1));
   ONLINE_TIMER=setTimeout(onlineTimerLoop, intv);
 }
 function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return; if(!CL.online || !S) return;
+  // não interrompe as telas de sorteio/classificação pós-rodada (o convidado está vendo o ranking)
+  if(CL.screen==='classif'||CL.screen==='cupdraw'||CL.screen==='seatclassif') return;
   // JÁ JOGUEI ESTA RODADA: fico LIVRE aguardando o fechamento (anfitrião) — NÃO re-simulo a mesma
   // rodada. Sem isso, o cliente ficava em loop jogando a rodada 1 pra sempre (a fase volta pra
   // 'running' antes do host fechar, e o cliente jogava de novo).
