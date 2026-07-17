@@ -717,7 +717,11 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-pen-list{border:2px solid var(--pen-fg,#888);background:rgba(0,0,0,.4);max-height:280px;overflow-y:auto;text-align:left}
 .cl-pen-row{display:grid;grid-template-columns:22px 1fr 30px;gap:8px;padding:5px 10px;color:var(--pen-fg,#e21c1c);font-weight:700;font-size:14px;cursor:pointer}
 .cl-pen-row:hover{background:#1a0000}
-.cl-pen-row.sel{background:var(--pen-fg,#e21c1c);color:var(--pen-bg,#fff)}
+/* SELECIONADO: par de ALTO CONTRASTE fixo (amarelo + texto escuro), NÃO derivado das cores do clube
+   — antes usava color:var(--pen-bg), que é um GRADIENTE (inválido como cor de texto) e o texto sumia.
+   Vale pra pênalti, lesão e substituição; força também os filhos (nome/posição/nota/badge). */
+.cl-pen-row.sel{background:#ffd400;color:#141414;box-shadow:inset 0 0 0 2px #141414}
+.cl-pen-row.sel *{color:#141414 !important}
 .cl-pen-row.dis{opacity:.4;cursor:default}
 .cl-pen-row.dis:hover{background:transparent}
 .cl-pen-taken{font-size:10px;font-weight:800;opacity:.85;margin-left:6px;letter-spacing:.3px}
@@ -732,7 +736,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-inj-msg{color:var(--inj-fg,#fff);font-weight:700;font-size:15px;line-height:1.5;margin-bottom:16px}
 .cl-inj-body .cl-pen-list{background:rgba(0,0,0,.35);border-color:var(--inj-fg,#fff)}
 .cl-inj-body .cl-pen-row{color:var(--inj-fg,#fff)}
-.cl-inj-body .cl-pen-row.sel{background:var(--inj-fg,#fff);color:var(--inj-bg,#5a0a0a)}
+.cl-inj-body .cl-pen-row.sel{background:#ffd400;color:#141414;box-shadow:inset 0 0 0 2px #141414}
+.cl-inj-body .cl-pen-row.sel *{color:#141414 !important}
 .cl-inj-body .cl-pen-row:hover{background:rgba(0,0,0,.25)}
 .cl-inj-suggest{font-size:10px;font-weight:800;opacity:.75;margin-left:6px;letter-spacing:.3px}
 .cl-sub{background:#000;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);margin:0;padding:8px 12px 12px}
@@ -741,7 +746,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-sub-c{display:flex;flex-direction:column}
 .cl-sub-row{display:grid;grid-template-columns:20px 1fr 30px;align-items:center;color:#fff;font-weight:700;font-size:13px;padding:1px 4px;cursor:pointer}
 .cl-sub-row:hover{background:#222}
-.cl-sub-row.sel{background:#fff;color:#000}
+.cl-sub-row.sel{background:#ffd400;color:#141414}
+.cl-sub-row.sel *{color:#141414 !important}
 .cl-sub-btn{display:flex;justify-content:flex-end;margin-top:6px}
 /* alterar escalação: troca de titular direto na lista de elenco */
 .cl-sel-escala{margin:10px 0;padding:8px;background:rgba(255,255,255,.06);border-radius:6px}
