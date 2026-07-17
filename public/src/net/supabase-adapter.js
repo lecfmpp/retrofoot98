@@ -747,6 +747,12 @@ function netSetupRealtime(){
     if(NET.onState) NET.onState(NET.room);
   });
 
+  // pedidos de entrada (join_requests): o anfitrião (membro, tem o canal) vê o painel de aprovação
+  // ATUALIZAR SOZINHO quando chega um pedido novo ou muda uma decisão — sem depender de refresh manual.
+  SB_CH.on('postgres_changes', { event:'*', schema:SB_SCHEMA, table:'join_requests', filter:'game_id=eq.'+NET.gameId }, ()=>{
+    if(typeof NET.onJoinReq==='function') NET.onJoinReq(); // re-busca pendentes + re-renderiza o painel na hora
+  });
+
   // expulsão pelo anfitrião: sinal em tempo real pra TODOS (inclusive o expulso), independente de DB/RLS
   SB_CH.on('broadcast', { event:'kick' }, ({ payload })=>{
     if(!payload || !payload.uid) return;
@@ -781,8 +787,8 @@ function netIsOnline(uid){ return !!(SB_ONLINE && SB_ONLINE[uid] && SB_ONLINE[ui
    aprovar. São PRÉ-APROVADOS (entram direto) quem: é o host, já tem assento (reconexão), foi
    convidado internamente (room_invites) ou já tem pedido 'approved'. A guarda no RPC claim_seat
    reforça isso no servidor (não dá pra reivindicar assento sem aprovação). */
-let SB_JOINPOLL = null;
-function netClearJoinPoll(){ if(SB_JOINPOLL){ clearInterval(SB_JOINPOLL); SB_JOINPOLL=null; } }
+let SB_JOINPOLL = null, SB_JOINCH = null;
+function netClearJoinPoll(){ if(SB_JOINPOLL){ clearInterval(SB_JOINPOLL); SB_JOINPOLL=null; } if(SB_JOINCH){ try{ sb.removeChannel(SB_JOINCH); }catch(e){} SB_JOINCH=null; } }
 
 /* pede pra entrar: decide entre entrar direto (pré-aprovado) ou criar pedido pendente.
    onDecision(status, roomName) é chamado pelo poll quando o host aprova/recusa. */
@@ -812,12 +818,19 @@ async function netRequestJoin(code, me, onDecision){
   }
   NET.pendingCode = upcode; NET.pendingRoomName = gameData.name;
   netClearJoinPoll();
+  const decide=(st)=>{ if(st==='approved'){ netClearJoinPoll(); if(onDecision) onDecision('approved', gameData.name); }
+    else if(st==='rejected'){ netClearJoinPoll(); if(onDecision) onDecision('rejected', gameData.name); } };
+  // REALTIME: escuta a PRÓPRIA linha de join_request -> aprovação/recusa INSTANTÂNEA (sem esperar o poll).
+  try{
+    SB_JOINCH = sb.channel('joinreq:'+upcode+':'+uid)
+      .on('postgres_changes', { event:'UPDATE', schema:SB_SCHEMA, table:'join_requests', filter:'game_id=eq.'+upcode }, (p)=>{
+        if(p && p.new && p.new.user_id===uid && p.new.status) decide(p.new.status);
+      })
+      .subscribe();
+  }catch(e){ console.warn('join realtime:', e&&e.message); }
+  // poll de 3s como REDE DE SEGURANÇA (se o realtime não entregar)
   SB_JOINPOLL = setInterval(async ()=>{
-    try{
-      const st = await netJoinRequestStatus(upcode);
-      if(st==='approved'){ netClearJoinPoll(); if(onDecision) onDecision('approved', gameData.name); }
-      else if(st==='rejected'){ netClearJoinPoll(); if(onDecision) onDecision('rejected', gameData.name); }
-    }catch(_){/* mantém tentando */}
+    try{ const st = await netJoinRequestStatus(upcode); if(st==='approved'||st==='rejected') decide(st); }catch(_){/* mantém tentando */}
   }, 3000);
   return { entered:false, name:gameData.name };
 }

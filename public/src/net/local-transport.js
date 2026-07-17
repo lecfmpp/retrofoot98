@@ -171,6 +171,9 @@ function wireNet(){ NET.onState=(room)=>{ if(room && room.speedMult && !NET.isHo
     onlineReconcileIfBehind(room); // itens 1 e 3: mantém todos na MESMA rodada (recarrega se ficou pra trás)
     if(CL.screen==='online'){ renderOnlineInto(); } else { renderChatBoxes(); const rb=document.querySelector('.cl-statusbar'); if(rb && room) rb.outerHTML=onlineStatusSidebar(); }
     if(CL.online && room && room.phase==='running' && CL.screen!=='live'){ onlineRunRound(); } };
+  // pedido de entrada mudou (realtime): o anfitrião rebusca os pendentes e re-renderiza o painel na hora
+  NET.onJoinReq=()=>{ if(typeof NET==='undefined' || !NET.isHost) return;
+    (async ()=>{ try{ CL.pendingJoins=await NET.listJoinRequests(); }catch(e){} clRefreshReqSurfaces(); })(); };
   NET.onChat=(msg)=>{
     const mine = !!(msg && NET.self && msg.id===NET.self.id);
     if(CL.screen==='online'){ renderOnlineInto(); return; } // lobby: chat sempre visível, sem badge
