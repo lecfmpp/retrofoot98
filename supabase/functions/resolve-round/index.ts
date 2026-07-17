@@ -428,6 +428,89 @@ function advancePendingCups(S: any, cupResultByFx: any) {
   }
   // Libertadores/Sul-Americana (fase de grupos) são só Série A — portadas numa fase futura.
 }
+/* ===== VIRADA DE TEMPORADA (F3.2) — promoção/rebaixamento + envelhecimento/regen + reconstrução.
+   Viewer-independente (não depende de S.clubId): opera no MUNDO. Todas as 4 divisões já são
+   materializadas em S.squads, então a troca só remaneja quais clubes ficam em cada divisão
+   (computeDivisionSwap, provado byte-idêntico ao cliente). Servidor = autoridade: os detalhes
+   cosméticos do regen (atributos) são gerados de forma simples e determinística, sem precisar
+   bater com o genAttrs do cliente. Config brasileira (Resenha = sempre Brasil). ===== */
+const DIV_ORDER = ['A', 'B', 'C', 'D'];
+const DIVISION_SIZE: any = { A: 20, B: 20, C: 20, D: 20 };
+const DIVISION_PROMO: any = { A: 0, B: 4, C: 4, D: 4 };
+const DIVISION_RELEG: any = { A: 4, B: 4, C: 4, D: 0 };
+const DIVISION_FORCE_RANGE: any = { A: [58, 88], B: [58, 80], C: [52, 74], D: [48, 68] };
+const DIV_FORCE_CAP: any = { B: 37, C: 24, D: 12 };
+const RETIRE_CHANCE_BY_AGE: any = { 32: 0.11, 33: 0.24, 34: 0.40, 35: 0.56, 36: 0.71, 37: 0.83, 38: 0.92, 39: 0.97 };
+const BR_FIRST = ['Gabriel', 'Lucas', 'Matheus', 'Rafael', 'Bruno', 'Léo', 'Vitor', 'João', 'Pedro', 'Gustavo', 'Felipe', 'Diego', 'Rodrigo', 'Thiago', 'Wesley', 'Éverton', 'Caio', 'Igor', 'Vinícius', 'Douglas', 'Renato', 'Marcos', 'André', 'Fábio', 'Danilo', 'Kaio', 'Yuri', 'Alan', 'Juninho', 'Guilherme', 'Paulinho', 'Rennan', 'Éder', 'Wellington', 'Luan', 'Nathan', 'Richard', 'Kevin', 'Wanderson', 'Jonathan', 'Ronaldo', 'Ricardo', 'Fernando', 'Cristian', 'Emerson', 'Robson', 'Adriano', 'Cléber', 'Maicon', 'Otávio'];
+const BR_LAST = ['Silva', 'Santos', 'Oliveira', 'Souza', 'Pereira', 'Lima', 'Costa', 'Ferreira', 'Almeida', 'Ribeiro', 'Rodrigues', 'Gomes', 'Martins', 'Barbosa', 'Rocha', 'Dias', 'Nascimento', 'Araújo', 'Cardoso', 'Teixeira', 'Moreira', 'Carvalho', 'Cavalcante', 'Mendes', 'Freitas', 'Vieira', 'Monteiro', 'Nunes', 'Correia', 'Machado', 'Fernandes', 'Ramos', 'Azevedo', 'Campos', 'Pinto', 'Cunha', 'Moraes', 'Farias', 'Batista', 'Andrade'];
+const REGEN_ATTR_KEYS = ['fin', 'dri', 'vel', 'com', 'pos', 'pas', 'cab', 'agi', 'fis', 'res', 'vis', 'des', 'cru', 'ref', 'mao'];
+function sortTblT(t: any) { return Object.values(t || {}).sort((a: any, b: any) => b.Pts - a.Pts || (b.GF - b.GA) - (a.GF - a.GA) || b.GF - a.GF || String(a.id).localeCompare(String(b.id))); }
+function makeScheduleT(ids: string[]) {
+  const teams: any[] = ids.slice(); if (teams.length % 2) teams.push(null);
+  const n = teams.length, rounds: any[] = []; let arr = teams.slice();
+  for (let r = 0; r < n - 1; r++) { const rr: any[] = []; for (let i = 0; i < n / 2; i++) { const a = arr[i], b = arr[n - 1 - i]; if (a && b) rr.push(r % 2 ? [b, a] : [a, b]); } rounds.push(rr); arr.splice(1, 0, arr.pop()); }
+  return rounds.concat(rounds.map((rr: any) => rr.map(([a, b]: any) => [b, a])));
+}
+function computeDivisionSwap(S: any) {
+  const finalIds: any = {};
+  DIV_ORDER.forEach((d) => { const t = (d === S.division) ? S.table : ((S.otherDivs[d] || {}).table || {}); finalIds[d] = sortTblT(t).map((x: any) => x.id); });
+  const promoted: any = {}, relegated: any = {}, stayed: any = {};
+  DIV_ORDER.forEach((d) => { const ids = finalIds[d] || [], rN = DIVISION_RELEG[d] || 0, pN = DIVISION_PROMO[d] || 0; promoted[d] = pN > 0 ? ids.slice(0, pN) : []; relegated[d] = rN > 0 ? ids.slice(Math.max(0, ids.length - rN)) : []; stayed[d] = ids.slice(pN, Math.max(pN, ids.length - rN)); });
+  const nd: any = {};
+  DIV_ORDER.forEach((d, i) => { const ab = DIV_ORDER[i - 1], be = DIV_ORDER[i + 1]; let l = stayed[d].slice(); if (ab) l = l.concat(relegated[ab]); if (be) l = l.concat(promoted[be]); nd[d] = l; });
+  const seen = new Set<string>();
+  DIV_ORDER.forEach((d) => { nd[d] = (nd[d] || []).filter((id: string) => { if (seen.has(id)) return false; seen.add(id); return true; }); });
+  const un = Object.keys(S.clubPool || {}).filter((id) => !seen.has(id));
+  DIV_ORDER.forEach((d) => { const need = DIVISION_SIZE[d] - nd[d].length; if (need > 0) { const f = un.splice(0, need); nd[d] = nd[d].concat(f); f.forEach((id: string) => seen.add(id)); } else if (need < 0) nd[d] = nd[d].slice(0, DIVISION_SIZE[d]); });
+  return nd;
+}
+function ageForceFraction(a: number) { return a <= 22 ? 0.30 : a <= 29 ? 0.65 : a <= 32 ? 0.50 : 0.35; }
+function rollAgedForce(R: any, range: number[], age: number) { const t = Math.max(0, Math.min(1, ageForceFraction(age) + (R.random() * 2 - 1) * 0.28)); return Math.round(range[0] + t * (range[1] - range[0])); }
+function pickProcName(R: any, used: Set<string>) { let nm = '', tr = 0; do { const fn = BR_FIRST[Math.floor(R.random() * BR_FIRST.length)], ln = BR_LAST[Math.floor(R.random() * BR_LAST.length)]; nm = fn + ' ' + ln + (tr < 1 ? '' : ' ' + BR_LAST[Math.floor(R.random() * BR_LAST.length)]); tr++; } while (used.has(nm) && tr < 400); used.add(nm); return nm; }
+function makeRegen(S: any, pos: string, div: string, seedExtra: string, used: Set<string>) {
+  const range = DIVISION_FORCE_RANGE[div] || DIVISION_FORCE_RANGE.D; const R = ME.makeRng(ME.hashSeed('retire-repl', (S.seed || 1), S.season, div, pos, seedExtra));
+  const age = Math.round(18 + R.random() * 4); const rawF = rollAgedForce(R, range, age); const f = Math.min(rbForce(rawF, div), DIV_FORCE_CAP[div] || 99);
+  const L = Math.max(1, Math.min(20, Math.round(6 + (rawF - 45) * 13 / 46))); const attr: any = {}; REGEN_ATTR_KEYS.forEach((k) => attr[k] = L);
+  const mv = rbValue(f, age);
+  return { n: pickProcName(R, used), p: pos, s: pos, f, rawF, _rb: 1, _div: div, age, lg: 'BRA-' + div, mv, ft: R.random() < 0.8 ? 'R' : 'L', num: String(Math.floor(R.random() * 40) + 1), nat: 'Brasil', ag: '—', moral: 70, energy: 100, attr, f0: rawF, mv0: mv, stats: { r3: [], g3: [], apps: 0, goals: 0, cs: 0 } };
+}
+function ageAndRetire(S: any, divOfClub: any, used: Set<string>) {
+  let regens = 0;
+  Object.keys(S.squads).forEach((cid) => {
+    const sq = S.squads[cid];
+    for (let i = sq.length - 1; i >= 0; i--) {
+      const p = sq[i]; p.age = (p.age || 26) + 1; p.f0 = p.f; p.mv0 = (p.mv || 1e6); p.benchStreak = 0; if (p.contract) p.contract.benchStreak = 0;
+      const R = ME.makeRng(ME.hashSeed('retire-roll', (S.seed || 1), S.season, cid, i, p.n));
+      const ch = p.age < 32 ? 0 : p.age >= 40 ? 1 : (RETIRE_CHANCE_BY_AGE[p.age] ?? 0.11);
+      if (R.random() < ch) { sq[i] = makeRegen(S, p.s, divOfClub[cid] || S.division, cid + '_' + i, used); regens++; }
+    }
+    S.clubOverall[cid] = Math.round(sq.reduce((s: number, p: any) => s + p.f, 0) / (sq.length || 1));
+  });
+  return regens;
+}
+function makeBracketT(ids: string[], seedNum: number, clubOverall: any) {
+  const R = ME.makeRng(seedNum >>> 0); const ranked = ids.slice().sort((a, b) => ((clubOverall[b] || 70) - (clubOverall[a] || 70)));
+  let size = 1; while (size < ranked.length) size *= 2; const nB = size - ranked.length; const byeTeams = ranked.slice(0, nB); const play = ranked.slice(nB);
+  for (let i = play.length - 1; i > 0; i--) { const j = Math.floor(R.random() * (i + 1)); const tmp = play[i]; play[i] = play[j]; play[j] = tmp; }
+  const ties: any[] = []; for (let i = 0; i < play.length; i += 2) ties.push({ h: play[i], a: play[i + 1], hg: null, ag: null, winner: null, events: [] });
+  return { round: 1, roundsTotal: Math.log2(size), byeTeams: byeTeams.slice(), ties, pendingByes: byeTeams.slice(), champion: null, eliminated: {}, history: [] };
+}
+function resolveSeasonTurnover(S: any) {
+  const newDiv = computeDivisionSwap(S);                          // 1) promoção/rebaixamento (provado)
+  const divOfClub: any = {}; DIV_ORDER.forEach((d) => newDiv[d].forEach((id: string) => divOfClub[id] = d));
+  S.season = (S.season || 1) + 1;                                 // 2) nova temporada (regen usa o novo season no seed)
+  const used = new Set<string>(); Object.keys(S.squads).forEach((cid) => S.squads[cid].forEach((p: any) => used.add(p.n)));
+  ageAndRetire(S, divOfClub, used);                              // 3) envelhece + aposenta + regen + recomputa overall
+  DIV_ORDER.forEach((d) => newDiv[d].forEach((id: string) => (S.squads[id] || []).forEach((p: any) => p._div = d))); // _div nova (progressão)
+  const anchor = S.division;                                     // 4) reconstrói tabelas + calendários (âncora mantida)
+  const mkTable = (ids: string[]) => { const t: any = {}; ids.forEach((id) => t[id] = { id, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, Pts: 0 }); return t; };
+  S.table = mkTable(newDiv[anchor]); S.sched = makeScheduleT(newDiv[anchor]);
+  S.otherDivs = {}; DIV_ORDER.forEach((d) => { if (d === anchor) return; S.otherDivs[d] = { clubs: newDiv[d].map((id: string) => ({ id })), sched: makeScheduleT(newDiv[d]), table: mkTable(newDiv[d]) }; });
+  S.cups = S.cups || {}; S.cups.copaBrasil = makeBracketT(Object.keys(S.squads), ME.hashSeed(S.seed, 'copaBrasil', S.season), S.clubOverall); // 5) copa nova
+  S.round = 0; S.week = 1; S.day = 1; S.results = []; S.scorers = {}; S.negos = []; S.finished = false; // 6) reset de temporada
+  Object.keys(S.squads).forEach((cid) => S.squads[cid].forEach((p: any) => { p.moral = 70; p.energy = 100; p.suspended = 0; p.injuredMatches = 0; p.stats = { r3: [], g3: [], apps: 0, goals: 0, cs: 0 }; }));
+  S._roundIncidents = {};
+}
 /* resolve UMA rodada da liga no estado S (mutando-o). humanResultByFx: {"h-a":{hg,ag,scorers,events}} */
 function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any) {
   const seed = S.seed, round = S.round;
@@ -457,6 +540,8 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   S.round++; S.week = (S.week || 1) + 1; S.day = (S.day || 1) + 7; // 5) avança a rodada
   advancePendingCups(S, cupResultByFx || {});                     // 6) copas (Copa do Brasil) — usa a rodada NOVA
   S._roundIncidents = {};
+  // 7) fim de temporada? liga terminou -> virada (promoção/rebaixamento + regen + nova temporada)
+  if (Array.isArray(S.sched) && S.round >= S.sched.length) resolveSeasonTurnover(S);
 }
 
 Deno.serve(async (req: Request) => {
