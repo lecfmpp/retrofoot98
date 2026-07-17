@@ -334,7 +334,8 @@ function newGame(clubId, division, compToggle, seedOverride){
     clubId, season:2026, round:0, day:1, week:1, seed,
     division,               // divisão escolhida na tela de países (A/B/C/D)
     compToggle:{...compToggle}, // quais copas internacionais estão ligadas neste save
-    budget,
+    budget,                 // caixa do VIEWER (= S.budgets[S.clubId]); mantido pra as ~23 refs de caixa
+    budgets:{},             // F3.3: caixa POR-CLUBE (mundo). Na Resenha cada humano tem o seu; sem isso todos herdavam o mesmo budget do shared_state
     tactic:'equilibrado',
     sched, table, squads,
     results:[],           // per round: [{h,a,hg,ag,scorers:[]}]
@@ -360,6 +361,9 @@ function newGame(clubId, division, compToggle, seedOverride){
     finished:false,
   };
   S.xi = autoXI(clubId);
+  // F3.3: caixa por-clube pra divisão do usuário (as outras entram em buildOtherDivisions).
+  // Determinístico pela seed -> igual em todos os clientes da Resenha.
+  DATA.clubs.forEach(c=>{ S.budgets[c.id]=REBAL.budget(division, makeRng(hashSeed(seed,'budget',c.id))); });
   S.universe = (typeof ACTIVE_UNI!=='undefined') ? ACTIVE_UNI : 'brasil'; // brasil | Inglaterra | Espanha...
   // item 4: overall de cada clube = média do elenco REMAPEADO (fonte única, escala nova);
   // marca _rbOv, então clubOf não remapeia o overall curado de novo (evita divergir após transferências)

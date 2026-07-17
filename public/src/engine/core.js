@@ -2052,6 +2052,7 @@ function buildOtherDivisions(){
     clubs.forEach(c=>{
       table[c.id] = {id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0};
       if(!S.squads[c.id]) S.squads[c.id] = c.squad.map(p=>attachAttrs(initStats({...p})));
+      if(S.budgets && S.budgets[c.id]==null) S.budgets[c.id] = REBAL.budget(d, makeRng(hashSeed(S.seed,'budget',c.id))); // F3.3: caixa por-clube
     });
     S.otherDivs[d] = { clubs, sched: makeSchedule(clubs.map(c=>c.id)), table };
   });

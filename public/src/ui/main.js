@@ -3111,6 +3111,7 @@ function _commitLeagueRound(RL, userResult, humanResults, allEvents, _auditPaylo
   saveV3();
   // salva em Supabase se online
   if(CL.online && typeof NET!=='undefined' && NET.saveGame){
+    if(S.budgets && S.clubId && S.budget!=null) S.budgets[S.clubId]=S.budget; // F3.3: write-back do caixa do próprio clube no mundo
     (async ()=>{ await NET.saveGame({ S, round: S.round }); })().catch(e=>console.warn('Save Supabase:', e));
     // Fase 2 Etapa A: auditoria server-side em paralelo — só registra, nunca bloqueia
     // nem afeta a experiência do jogador (silenciosa mesmo se falhar/timeout).

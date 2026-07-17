@@ -206,7 +206,8 @@ function clSyncResenha(){ CL.menu=null;
    clube já está na âncora, não faz nada. */
 function applyViewerDivision(clubId){
   if(!S || !clubId) return;
-  if(S.table && S.table[clubId]) return;                 // já sou a âncora
+  if(S.budgets && S.budgets[clubId]!=null) S.budget = S.budgets[clubId]; // F3.3: caixa do PRÓPRIO clube (sempre, mesmo já sendo âncora)
+  if(S.table && S.table[clubId]) return;                 // já sou a âncora (divisão)
   const od=S.otherDivs||{};
   for(const d in od){
     if(od[d] && od[d].table && od[d].table[clubId]){
