@@ -498,6 +498,12 @@ function makeBracketT(ids: string[], seedNum: number, clubOverall: any) {
 function resolveSeasonTurnover(S: any) {
   const newDiv = computeDivisionSwap(S);                          // 1) promoção/rebaixamento (provado)
   const divOfClub: any = {}; DIV_ORDER.forEach((d) => newDiv[d].forEach((id: string) => divOfClub[id] = d));
+  // RESUMO DA TEMPORADA QUE ACABOU (pré-reset): tabelas finais por divisão + artilharia + copa.
+  // O servidor NÃO credita caixa/prêmio (igual finanças) — cada humano monta a SUA premiação no
+  // cliente a partir daqui (acha a própria divisão/posição por clubId). Ver computeMyPrevSeasonPrizes.
+  const _prevTables: any = {};
+  DIV_ORDER.forEach((d) => { const t = (d === S.division) ? S.table : ((S.otherDivs[d] || {}).table || {}); _prevTables[d] = sortTblT(t).map((x: any) => ({ id: x.id, P: x.P, W: x.W, D: x.D, L: x.L, GF: x.GF, GA: x.GA, Pts: x.Pts })); });
+  S._prevSeason = { season: (S.season || 1), tables: _prevTables, scorers: S.scorers || {}, copaBrasil: (S.cups && S.cups.copaBrasil) || null };
   S.season = (S.season || 1) + 1;                                 // 2) nova temporada (regen usa o novo season no seed)
   const used = new Set<string>(); Object.keys(S.squads).forEach((cid) => S.squads[cid].forEach((p: any) => used.add(p.n)));
   ageAndRetire(S, divOfClub, used);                              // 3) envelhece + aposenta + regen + recomputa overall

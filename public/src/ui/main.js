@@ -2994,6 +2994,47 @@ function clAdvanceSeason(){
     try{ CL.screen='main'; CL.tab='jogo'; cdraw(); }catch(e2){ console.error('Falha também ao recuperar:', e2); }
   });
 }
+/* ---- FIM DE TEMPORADA no ONLINE (server-authoritative) ----
+   Cerimônia de premiação do PRÓPRIO clube: posição na divisão DELE + prêmios que ELE recebeu,
+   lidos de S._prevSeason via computeMyPrevSeasonPrizes (cada humano vê o SEU resumo — não o do
+   anfitrião, que era o bug). Diferente do seasonEndDialog (solo, lê o S ao vivo), aqui a virada
+   já aconteceu no SERVIDOR e o estado ao vivo já é a temporada nova; este modal é só comemoração
+   pós-fato — "Nova temporada" apenas fecha e fica na tela principal da temporada nova (não chama
+   newSeasonReset, que travaria/divergiria no multi-divisão). Chamado nos ramos de virada. */
+function onlineSeasonEndDialog(sum){
+  const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division);
+  if(!sum){ toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.'); return; } // save antigo sem snapshot
+  const tbl=sum.myTable, champ=(sum.champId&&clubOf(sum.champId)&&clubOf(sum.champId).short)||'—';
+  const hasQual = sum.myDiv==='A';
+  const rows=tbl.map((t,i)=>{ const c=clubOf(t.id); const me=t.id===CL.clubId;
+    const zone=hasQual?qualificationZone('A',i+1):null;
+    const zoneCell = hasQual ? `<span class="cl-cls2-zone ${zone?'zone-'+zone:''}" title="${zone==='lib'?'Libertadores':zone==='sul'?'Sul-Americana':''}">${zone==='lib'?'Lib':zone==='sul'?'Sul':''}</span>` : '';
+    return `<div class="cl-cls2-row ${me?'me':''} ${hasQual?'hasqual':''}" style="${clubStripe(c)}">
+      <span class="cl-cls2-pos">${i+1}</span><span class="cl-cls2-n">${escC(c.short)}</span>
+      <span class="cl-cls2-pts">${t.Pts}</span><span class="cl-cls2-x">${t.W}</span><span class="cl-cls2-x">${t.D}</span><span class="cl-cls2-x">${t.L}</span>
+      <span class="cl-cls2-x">${t.GF}</span><span class="cl-cls2-x">${t.GA}</span>${zoneCell}</div>`; }).join('');
+  const prizeBlock = (sum.total>0) ? `<div class="cl-prizes">
+      <div class="cl-prizes-h">💰 Premiação da temporada</div>
+      ${sum.lines.map(l=>`<div class="cl-prize-row"><span class="cl-prize-ic">${l.icon}</span><span class="cl-prize-c">${escC(l.comp)}</span><span class="cl-prize-p">${escC(l.place)}</span><span class="cl-prize-v">+${fmt(l.amount)}</span></div>`).join('')}
+      <div class="cl-prize-total"><span>Total recebido</span><span>+${fmt(sum.total)}</span></div>
+    </div>` : '';
+  overlayC(dlg('Fim da temporada!', `<div class="cl-res">
+    <div class="cl-res-score">${escC(champ)} é campeão</div>
+    <div class="cl-res-verd">Você terminou em ${sum.myPos}º na ${escC(sum.divLbl)}</div>
+    ${prizeBlock}
+    <div class="cl-seasontbl-wrap" style="max-height:340px;overflow-y:auto;margin-top:10px">
+      <div class="cl-cls2-head ${hasQual?'hasqual':''}"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-pts">P</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-x">GP</span><span class="cl-cls2-x">GC</span>${hasQual?'<span></span>':''}</div>
+      ${rows}
+    </div>
+    <div class="cl-cal-ok">${btn('Nova temporada','clOnlineSeasonContinue()',{icon:'✔',cls:'cl-btn-ok'})}</div>
+  </div>`,{w:620,bodyClass:'cl-body-green'}));
+}
+function clOnlineSeasonContinue(){
+  clCloseOverlay();
+  const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division);
+  toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.');
+  CL.screen='main'; CL.tab='jogo'; cdraw();
+}
 /* ---- corrige a escalação do usuário se algum titular ficou suspenso/lesionado ----
    Chamada após cada rodada E de novo, defensivamente, antes de iniciar a próxima
    partida ao vivo (startLiveRound) — garante que suspenso/lesionado NUNCA fique
@@ -3195,9 +3236,11 @@ async function onlineAdoptServerRound(RL){
     // VIRADA: NÃO mostra a classificação pós-rodada (tabela nova zerada + o cliente ficava preso nela,
     // travando o outro em "esperando"). Vai direto pro main, pronto pra jogar a rodada 1 da temporada nova.
     CL._postRoundSeats=null; CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
-    const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division);
-    if(typeof toastC==='function') toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.');
     cdraw();
+    // premiação do PRÓPRIO clube (posição + prêmios que EU recebi) — cada humano vê o SEU resumo,
+    // lido de S._prevSeason. Credita meu caixa uma vez (o servidor não credita, igual finanças).
+    const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null;
+    onlineSeasonEndDialog(_sum);
     return;
   }
   checkPendingCupDraws(()=>{

@@ -253,9 +253,11 @@ function onlineReconcileIfBehind(room){
         // preso nessa tela sem voltar pro "jogar" -> o outro travava em "esperando"). Vai direto pro
         // main, pronto pra jogar a rodada 1 da temporada nova, na divisão do próprio clube.
         CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
-        const _divLbl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division);
-        toastC('🏆 Nova temporada '+ (S.season||'') +'! Você está na '+_divLbl+'.');
         cdraw();
+        // premiação do PRÓPRIO clube (convidado): cada humano vê o SEU resumo, lido de S._prevSeason.
+        const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null;
+        if(typeof onlineSeasonEndDialog==='function') onlineSeasonEndDialog(_sum);
+        else { const _divLbl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division); toastC('🏆 Nova temporada '+ (S.season||'') +'! Você está na '+_divLbl+'.'); }
       } else {
         toastC('🔄 Sincronizado com a sala (rodada '+((S.round||0)+1)+').');
         cdraw();
@@ -1108,9 +1110,10 @@ function onlineCompleteSeasonTurnover(){
         if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
         if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
         CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
-        const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division);
-        toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.');
         cdraw();
+        const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null;
+        if(typeof onlineSeasonEndDialog==='function') onlineSeasonEndDialog(_sum);
+        else { const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division); toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.'); }
         // reabre a fase 'ready' pra próxima rodada (senão os dois ficam presos sem conseguir jogar)
         if(NET.isHost && typeof NET.reopenReady==='function') NET.reopenReady();
       }

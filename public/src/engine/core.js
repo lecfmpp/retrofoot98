@@ -2735,6 +2735,62 @@ function awardSeasonPrizes(tbl, myCups){
   }
   S._seasonPrizes={ lines, total, art, season:S.season };
 }
+/* fase alcançada por um clube num BRACKET de mata-mata já resolvido (recebe o bracket direto,
+   ao contrário de cupResultForClub que lê S.cups ao vivo) — usado pela premiação online, que lê
+   o bracket da Copa do Brasil capturado em S._prevSeason. Devolve a MESMA família de strings. */
+function cupBracketResultForClub(b, clubId){
+  if(!b) return null;
+  if(b.champion===clubId) return 'Campeão';
+  let lastRound=null;
+  (b.history||[]).forEach(h=>{ if((h.ties||[]).some(t=>t.h===clubId||t.a===clubId)) lastRound=h.round; });
+  if((b.ties||[]).some(t=>t.h===clubId||t.a===clubId)) lastRound=b.round;
+  if(lastRound==null) return null; // o clube nem disputou essa copa nesta temporada
+  return cupEliminationPhrase(lastRound, b.roundsTotal);
+}
+/* RESENHA (online, server-authoritative): premiação da temporada que ACABOU, do PRÓPRIO clube.
+   Lê S._prevSeason (tabelas finais por divisão + artilharia + Copa do Brasil, capturado pelo
+   SERVIDOR na virada ANTES de zerar tudo — ver resolve-round/resolveSeasonTurnover). Acha a
+   divisão/posição final do MEU clube por clubId e calcula prêmio de liga + copa. Diferente de
+   awardSeasonPrizes (que lê o S ao vivo e serve o solo), aqui o estado ao vivo já é a temporada
+   NOVA, então cada humano lê o snapshot e vê o SEU resumo (não o do anfitrião). Não credita nada
+   — ver applyMyPrevSeasonPrizes. */
+function computeMyPrevSeasonPrizes(){
+  const pv=S._prevSeason; if(!pv || typeof PRIZES==='undefined' || !CL.clubId) return null;
+  const cfg=(typeof UNI_CONFIGS!=='undefined' && UNI_CONFIGS[ACTIVE_UNI]) || (typeof UNI_CONFIGS!=='undefined'&&UNI_CONFIGS.brasil) || {order:['A','B','C','D'],label:{A:'Série A',B:'Série B',C:'Série C',D:'Série D'}};
+  const order=cfg.order||['A','B','C','D'];
+  let myDiv=null, myPos=0, myTable=null;
+  order.forEach(d=>{ const rows=pv.tables&&pv.tables[d]; if(!rows) return; const i=rows.findIndex(r=>r.id===CL.clubId); if(i>=0){ myDiv=d; myPos=i+1; myTable=rows; } });
+  if(!myDiv || !myTable) return null;
+  const n=myTable.length, divLbl=(cfg.label&&cfg.label[myDiv])||('Série '+myDiv);
+  const lines=[]; let total=0;
+  const lamt=PRIZES.leaguePrize(myDiv, myPos, n);
+  if(lamt>0){ lines.push({icon:myPos===1?'🏆':'📊', comp:divLbl, place:myPos===1?'Campeão!':(myPos+'º lugar'), amount:lamt}); total+=lamt; }
+  if(pv.copaBrasil){
+    const res=cupBracketResultForClub(pv.copaBrasil, CL.clubId);
+    const outcome=PRIZES.cupResultOutcome(res);
+    if(outcome){ const camt=PRIZES.cupPrize('copaBrasil', outcome);
+      if(camt>0){ lines.push({icon:outcome==='campeao'?'🏆':'🎖️', comp:(COMP_DEFS.copaBrasil&&COMP_DEFS.copaBrasil.short)||'Copa do Brasil', place:res, amount:camt}); total+=camt; } }
+  }
+  const champId=(myTable[0]&&myTable[0].id)||null;
+  return { season:pv.season, myDiv, myPos, myTable, divLbl, lines, total, champId };
+}
+/* credita (UMA vez por temporada) o caixa da premiação anterior no meu clube — igual às finanças
+   por-humano: o servidor não credita, cada humano soma o seu e publica no assento. Só é chamado
+   no evento de virada (isTurnover), então recarregar a página no meio da temporada nova não
+   re-credita (isTurnover=false). Devolve o resumo pro modal (mesmo quando total=0). */
+function applyMyPrevSeasonPrizes(){
+  const pv=S._prevSeason; if(!pv) return null;
+  const sum=computeMyPrevSeasonPrizes(); if(!sum) return null;
+  if(S._prevPrizesCreditedSeason!==pv.season){
+    S._prevPrizesCreditedSeason=pv.season;
+    if(sum.total>0){
+      S.budget=(S.budget||0)+sum.total;
+      if(S.budgets && CL.clubId) S.budgets[CL.clubId]=S.budget;
+      if(CL.online && typeof NET!=='undefined' && NET.publishBudget) NET.publishBudget(S.budget);
+    }
+  }
+  return sum;
+}
 function endSeason(){
   const tbl=sortedTable();
   const champ=clubOf(tbl[0].id).short;
