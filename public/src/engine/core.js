@@ -1390,13 +1390,15 @@ function pendingUserCupMatches(){
    no mata-mata). Puramente de exibição — não escreve nada no estado, então é seguro
    mesmo no modo online (cada cliente só assiste, quem resolve de verdade continua
    sendo o avanço em segundo plano de sempre). */
-function cupSpectateCandidates(){
+/* rodadas de copa desta leva em que o clube do usuário NÃO tem partida jogável (não
+   participa, foi eliminado, ou pegou bye) — base pra dois comportamentos:
+   - SOLO: oferecer o modo espectador (cupSpectateCandidates -> askSpectate).
+   - RESENHA (online): mostrar uma mensagem amigável "hoje é dia de copa, mas você não
+     participa" (showCupIdleMessage) em vez de espectar — o resultado da copa é
+     autoritativo do servidor (last_cup_result -> bracket no resolve-round); assistir a
+     versão determinística local mostraria um placar prematuro/errado pra quem não é o dono. */
+function cupRoundsUserSitsOut(){
   if(!S.cups || !CL.clubId) return [];
-  // RESENHA (online): NÃO espectar copa localmente. A partida de copa de um humano é jogada AO VIVO
-  // pelo DONO (com substituições/pênaltis) e é autoritativa via servidor (last_cup_result -> bracket
-  // no resolve-round). Assistir a versão determinística mostraria um resultado premature/errado pra
-  // quem não é o dono. O cliente adota o bracket resolvido do servidor (não precisa espectar).
-  if(typeof CL!=='undefined' && CL.online) return [];
   const out=[];
   const cb=S.cups.copaBrasil;
   if(cupTickMatchesRound('copaBrasil',S.round+1) && cb && !cupIsFinished(cb) && cb.ties.length && !cb.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId))){
@@ -1415,6 +1417,12 @@ function cupSpectateCandidates(){
     }
   });
   return out;
+}
+/* candidatas ao MODO ESPECTADOR (solo apenas). No online devolve [] — lá a mesma
+   situação vira mensagem amigável (ver clJogar/showCupIdleMessage), não espectáculo. */
+function cupSpectateCandidates(){
+  if(typeof CL!=='undefined' && CL.online) return [];
+  return cupRoundsUserSitsOut();
 }
 
 /* ====================== SISTEMA DE DIVISÕES (Série A/B/C/D) ======================

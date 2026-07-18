@@ -2077,7 +2077,16 @@ function clJogar(){
   const spectateQueue=cupSpectateCandidates().filter(c=>!(CL._spectatedKeysThisRound||[]).includes(c.key));
   if(spectateQueue.length){ CL._pendingSpectateQueue=spectateQueue.slice(1); askSpectate(spectateQueue[0]); return; }
   CL._spectatedKeysThisRound=null;
-  if(CL.online){ onlineMarkReady(); return; }
+  if(CL.online){
+    // Resenha: não se assiste copa de fora (resultado é autoritativo do servidor). Se é dia de
+    // copa de uma competição da qual o usuário NÃO participa nesta rodada, mostra uma mensagem
+    // amigável (uma por competição nesta leva) antes de liberar a rodada de liga — assim ele
+    // entende por que não tem partida de copa hoje, em vez de simplesmente não ver nada.
+    const idle=cupRoundsUserSitsOut().filter(c=>!(CL._cupIdleShownThisRound||[]).includes(c.key));
+    if(idle.length){ CL._pendingCupIdleQueue=idle.slice(1); showCupIdleMessage(idle[0]); return; }
+    CL._cupIdleShownThisRound=null;
+    onlineMarkReady(); return;
+  }
   startLiveRound();
 }
 /* ---- MODO ESPECTADOR: assistir a uma rodada de copa de fora, sem participar —
@@ -2124,6 +2133,32 @@ function advanceSpectateQueue(){
   if(q.length){ CL._pendingSpectateQueue=q.slice(1); askSpectate(q[0]); return; }
   CL._pendingSpectateQueue=null;
   CL.screen='main'; cdraw();
+}
+/* ---- RESENHA: dia de copa em que o usuário NÃO participa desta rodada ----
+   Em vez do modo espectador (desligado no online — ver cupSpectateCandidates), mostra
+   uma mensagem amigável explicando que é dia de copa mas o clube dele não joga essa
+   rodada, e convida a preparar o time pro próximo jogo. Uma competição de cada vez;
+   igual ao espectador, sempre volta pra tela principal e exige um novo "Jogar" antes
+   de seguir (CL._cupIdleShownThisRound lembra o que já foi mostrado nesta leva). */
+function showCupIdleMessage(cand){
+  CL._cupIdleCand=cand;
+  const nome=(COMP_DEFS[cand.key]&&COMP_DEFS[cand.key].name)||'copa';
+  overlayC(dlg(nome, `
+    <div class="cl-res"><div class="cl-live-cup-top" style="margin:-4px -4px 14px">${trophyImg(cand.key,48)}
+      <div class="cl-live-cup-name">${escC(nome)}</div></div>
+    <div class="cl-res-verd">Hoje é dia de ${escC(nome)}, mas você não participa dessa rodada.<br>
+      Aproveite para preparar o seu time para o seu próximo jogo.</div>
+    <div class="cl-cal-ok">${btn('Entendi','clCupIdleOk()',{icon:'✔',cls:'cl-btn-ok'})}</div></div>`,
+    {w:480,bodyClass:'cl-body-green'}));
+}
+function clCupIdleOk(){
+  clCloseOverlay();
+  const cand=CL._cupIdleCand; CL._cupIdleCand=null;
+  if(cand){ CL._cupIdleShownThisRound=CL._cupIdleShownThisRound||[]; if(!CL._cupIdleShownThisRound.includes(cand.key)) CL._cupIdleShownThisRound.push(cand.key); }
+  const q=CL._pendingCupIdleQueue||[];
+  if(q.length){ CL._pendingCupIdleQueue=q.slice(1); showCupIdleMessage(q[0]); return; }
+  CL._pendingCupIdleQueue=null;
+  CL.screen='main'; cdraw(); // volta pra tela principal; o próximo "Jogar" libera a rodada de liga
 }
 /* monta a(s) partida(s) da rodada ATUAL da competição indicada, todas com user:false
    (motor roda sozinho, sem pausar pra modal nenhum) — usa a MESMA fórmula de seed que
