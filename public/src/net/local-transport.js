@@ -207,10 +207,23 @@ function clSyncResenha(){ CL.menu=null;
    (tabela, calendário, partida ao vivo) mostrar/jogar a divisão certa. É um transform de visão,
    re-derivado a cada carga do estado (não altera o shared_state do servidor). Idempotente: se o
    clube já está na âncora, não faz nada. */
+/* mantém S.divisionClubs (registro divisão -> ids) alinhado com o mundo que o SERVIDOR acabou de
+   mandar: a virada de temporada server-side reconstrói S.table/S.otherDivs mas NÃO reescreve
+   divisionClubs, que ficaria com a composição da temporada PASSADA e desalinharia DATA.clubs
+   (ver syncDataClubsFromState) e tudo que resolve a divisão de um clube por id. Só sobrescreve
+   divisão cuja tabela veio de fato preenchida — nunca apaga registro por tabela vazia. */
+function syncDivisionClubsFromTables(){
+  if(!S) return;
+  S.divisionClubs=S.divisionClubs||{};
+  const put=(d,tbl)=>{ if(!d||!tbl) return; const ids=Object.keys(tbl); if(ids.length) S.divisionClubs[d]=ids; };
+  put(S.division, S.table);
+  const od=S.otherDivs||{};
+  for(const d in od){ if(od[d]) put(d, od[d].table); }
+}
 function applyViewerDivision(clubId){
   if(!S || !clubId) return;
   if(S.budgets && S.budgets[clubId]!=null) S.budget = S.budgets[clubId]; // F3.3: caixa do PRÓPRIO clube (sempre, mesmo já sendo âncora)
-  if(S.table && S.table[clubId]) return;                 // já sou a âncora (divisão)
+  if(S.table && S.table[clubId]){ syncDivisionClubsFromTables(); return; } // já sou a âncora (divisão)
   const od=S.otherDivs||{};
   for(const d in od){
     if(od[d] && od[d].table && od[d].table[clubId]){
@@ -218,9 +231,11 @@ function applyViewerDivision(clubId){
       S.otherDivs[oldAnchor]={ clubs:Object.keys(oldTable||{}).map(id=>({id})), sched:oldSched, table:oldTable };
       S.division=d; S.table=od[d].table; S.sched=od[d].sched;
       delete S.otherDivs[d];
+      syncDivisionClubsFromTables();
       return;
     }
   }
+  syncDivisionClubsFromTables();
 }
 let ONLINE_RECONCILE_BUSY=false;
 function onlineReconcileIfBehind(room){

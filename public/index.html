@@ -390,7 +390,12 @@ function newGame(clubId, division, compToggle, seedOverride){
 
 function clubOf(id){
   let c=DATA.clubs.find(x=>x.id===id);
-  if(!c && S && S.otherDivs){ for(const d in S.otherDivs){ c=S.otherDivs[d].clubs.find(x=>x.id===id); if(c) break; } }
+  if(!c && S && S.otherDivs){ for(const d in S.otherDivs){ c=(S.otherDivs[d].clubs||[]).find(x=>x.id===id); if(c) break; } }
+  // otherDivs pode guardar STUBS {id} — sem nome/cores: a virada de temporada no SERVIDOR
+  // (resolveSeasonTurnover) e o applyViewerDivision registram só os ids das outras divisões.
+  // Um stub NÃO pode encurtar a busca, senão c.short fica undefined e a classificação das
+  // Séries A/B/C renderiza em branco. Nesse caso cai pro registro completo (S.clubPool).
+  if(c && c.short==null && S && S.clubPool && S.clubPool[id]) c=S.clubPool[id];
   if(!c && S && S.intlClubs && S.intlClubs[id]) c=S.intlClubs[id];
   if(!c && S && S.clubPool && S.clubPool[id]) c=S.clubPool[id]; // adversários de copa (Champions/Europa) de outras ligas
   // item 4: normaliza o overall (agregado de forças) pra escala NOVA uma única vez, sob demanda.
