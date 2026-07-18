@@ -253,9 +253,10 @@ function onlineReconcileIfBehind(room){
         // preso nessa tela sem voltar pro "jogar" -> o outro travava em "esperando"). Vai direto pro
         // main, pronto pra jogar a rodada 1 da temporada nova, na divisão do próprio clube.
         CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
-        cdraw();
         // premiação do PRÓPRIO clube (convidado): cada humano vê o SEU resumo, lido de S._prevSeason.
+        // Credita ANTES do cdraw pra não perder o dinheiro se o desenho falhar.
         const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null;
+        cdraw();
         if(typeof onlineSeasonEndDialog==='function') onlineSeasonEndDialog(_sum);
         else { const _divLbl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division); toastC('🏆 Nova temporada '+ (S.season||'') +'! Você está na '+_divLbl+'.'); }
       } else {
@@ -1110,8 +1111,9 @@ function onlineCompleteSeasonTurnover(){
         if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
         if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
         CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
-        cdraw();
+        // credita a premiação ANTES do cdraw: se o desenho falhar, o dinheiro não se perde.
         const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null;
+        cdraw();
         if(typeof onlineSeasonEndDialog==='function') onlineSeasonEndDialog(_sum);
         else { const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division); toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.'); }
         // reabre a fase 'ready' pra próxima rodada (senão os dois ficam presos sem conseguir jogar)

@@ -3236,10 +3236,11 @@ async function onlineAdoptServerRound(RL){
     // VIRADA: NÃO mostra a classificação pós-rodada (tabela nova zerada + o cliente ficava preso nela,
     // travando o outro em "esperando"). Vai direto pro main, pronto pra jogar a rodada 1 da temporada nova.
     CL._postRoundSeats=null; CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
-    cdraw();
     // premiação do PRÓPRIO clube (posição + prêmios que EU recebi) — cada humano vê o SEU resumo,
-    // lido de S._prevSeason. Credita meu caixa uma vez (o servidor não credita, igual finanças).
+    // lido de S._prevSeason. Credita meu caixa ANTES do cdraw (não perde o dinheiro se o desenho
+    // falhar); o servidor não credita prêmio, igual às finanças por-humano.
     const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null;
+    cdraw();
     onlineSeasonEndDialog(_sum);
     return;
   }
