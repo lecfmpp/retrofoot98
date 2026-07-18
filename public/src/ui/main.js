@@ -2553,8 +2553,27 @@ function clearHalftimeCountdown(){ if(HALFTIME_TIMER){ clearInterval(HALFTIME_TI
    o nome do clube, fundo vinho, lista de opções, botão OK. ---- */
 function openInjuryModal(m,e){ const RL=CL.live;
   RL.paused=true; RL.injMatch=m; RL.injEvent=e; RL.sel=RL.matches.indexOf(m);
-  CL.injSel=null; sfx('lesao'); cdraw();
+  // PRÉ-SELEÇÃO + AUTO-AVANÇO (10s), igual ao modal de pênalti: este modal PAUSA a partida, e na
+  // Resenha isso segurava todo mundo esperando um clique. Já vem com o 1º sugerido (mesma posição
+  // do lesionado, topo da lista) marcado, então se o treinador não decidir a troca acontece sozinha
+  // com uma escolha sensata em vez de travar o jogo. Sem reservas -> segue com 10 (resolveInjuryNoSub).
+  const opts=injurySubOptions(e);
+  CL.injSel = opts.length ? opts[0].n : null;
+  CL.injDeadline = Date.now()+10000;
+  sfx('lesao'); cdraw();
+  if(CL._injTimer) clearInterval(CL._injTimer);
+  CL._injTimer=setInterval(injuryTick, 200);
 }
+function injuryTick(){ const RL=CL.live;
+  if(!RL || !RL.injEvent){ if(CL._injTimer){ clearInterval(CL._injTimer); CL._injTimer=null; } return; }
+  const left=Math.max(0, (CL.injDeadline||0)-Date.now());
+  const cd=$c('#cl-inj-count'); if(cd) cd.textContent=Math.ceil(left/1000)+'s';
+  if(left<=0){
+    clearInterval(CL._injTimer); CL._injTimer=null;
+    if(CL.injSel) resolveInjurySub(CL.injSel); else resolveInjuryNoSub();
+  }
+}
+function clearInjuryTimer(){ if(CL._injTimer){ clearInterval(CL._injTimer); CL._injTimer=null; } }
 /* sempre lista TODOS os reservas disponíveis, de qualquer posição — antes só mostrava os
    da mesma posição do lesionado quando havia algum, então se um zagueiro se lesionasse o
    goleiro reserva desaparecia da lista (só reaparecia numa lesão futura sem zagueiro
@@ -2576,6 +2595,7 @@ function injuryClubStyle(){
 }
 function injurySubHTML(m,e){
   const posName={GK:'Goleiro',DEF:'Zagueiro',MID:'Meia',ATT:'Atacante'}[e.pos]||'Jogador';
+  const secsLeft=Math.max(0, Math.ceil(((CL.injDeadline||0)-Date.now())/1000)); // auto-avanço (ver injuryTick)
   const opts=injurySubOptions(e);
   const noOpts = !opts.length;
   const rows=noOpts ? '<div class="cl-pen-row" style="cursor:default">Sem reservas disponíveis.</div>' : opts.map(p=>{
@@ -2592,7 +2612,7 @@ function injurySubHTML(m,e){
   return `<div class="cl-pen-overlay"><div class="cl-inj-modal" ${injuryClubStyle()}>
     <div class="cl-inj-title"><span class="cl-inj-min">–</span><span>${escC(clubOf(CL.clubId).short)}</span></div>
     <div class="cl-inj-body">
-      <div class="cl-inj-msg">${escC(e.player)} (${posName}) lesionou-se${noOpts?', mas não há reservas disponíveis':' e tem de ser substituído'}.<br>${noOpts?'O time seguirá com um jogador a menos.':'Escolha o jogador a entrar.'}</div>
+      <div class="cl-inj-msg">${escC(e.player)} (${posName}) lesionou-se${noOpts?', mas não há reservas disponíveis':' e tem de ser substituído'}.<br>${noOpts?'O time seguirá com um jogador a menos.':'Escolha o jogador a entrar.'} <span id="cl-inj-count" class="cl-pen-count">${secsLeft}s</span></div>
       <div class="cl-pen-list">${rows}</div>
       <div class="cl-pen-btn">${actionBtn}</div>
     </div>
@@ -2601,6 +2621,7 @@ function injurySubHTML(m,e){
 function injurySelect(name){ CL.injSel=name; cdraw(); }
 function resolveInjurySub(replacementName){
   const RL=CL.live; if(!RL || !RL.injEvent || !replacementName) return;
+  clearInjuryTimer();
   const e=RL.injEvent; const rep=findP(replacementName,CL.clubId); if(!rep) return;
   const idx=(S.xi||[]).indexOf(e.player);
   if(idx>=0) S.xi[idx]=rep.n;
@@ -2612,6 +2633,7 @@ function resolveInjurySub(replacementName){
 }
 function resolveInjuryNoSub(){
   const RL=CL.live; if(!RL || !RL.injEvent) return;
+  clearInjuryTimer();
   const e=RL.injEvent; e._resolved=true;
   toastC(`✚ ${e.player} lesionou-se — sem reservas, o time seguiu com um jogador a menos.`);
   RL.paused=false; RL.injMatch=null; RL.injEvent=null; CL.injSel=null;
@@ -2922,7 +2944,7 @@ function scClassif(){
     <div class="cl-clsacc-wrap">${divOrderUserFirst().map(panelHTML).join('')}</div>
   </div>`;
 }
-function liveDone(){ if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classifTimer){clearTimeout(CL._classifTimer);CL._classifTimer=null;} CL.live=null; CL.subsUsed=0; CL._liveBusy=false; CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||CL.selPlayer; cdraw();
+function liveDone(){ if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classifTimer){clearTimeout(CL._classifTimer);CL._classifTimer=null;} clearInjuryTimer(); CL.live=null; CL.subsUsed=0; CL._liveBusy=false; CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||CL.selPlayer; cdraw();
   if(CL.lastGate) toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0;
   // notificação de propostas de compra recebidas nesta rodada (toast no topo, ~3s cada)
   if(S._offerToasts && S._offerToasts.length){ S._offerToasts.forEach((m,i)=>setTimeout(()=>toastC(m), 500+i*400)); S._offerToasts=[]; }
