@@ -1392,6 +1392,11 @@ function pendingUserCupMatches(){
    sendo o avanço em segundo plano de sempre). */
 function cupSpectateCandidates(){
   if(!S.cups || !CL.clubId) return [];
+  // RESENHA (online): NÃO espectar copa localmente. A partida de copa de um humano é jogada AO VIVO
+  // pelo DONO (com substituições/pênaltis) e é autoritativa via servidor (last_cup_result -> bracket
+  // no resolve-round). Assistir a versão determinística mostraria um resultado premature/errado pra
+  // quem não é o dono. O cliente adota o bracket resolvido do servidor (não precisa espectar).
+  if(typeof CL!=='undefined' && CL.online) return [];
   const out=[];
   const cb=S.cups.copaBrasil;
   if(cupTickMatchesRound('copaBrasil',S.round+1) && cb && !cupIsFinished(cb) && cb.ties.length && !cb.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId))){
