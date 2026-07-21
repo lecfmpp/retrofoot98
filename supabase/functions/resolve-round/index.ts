@@ -474,7 +474,24 @@ function makeRegen(S: any, pos: string, div: string, seedExtra: string, used: Se
   const mv = rbValue(f, age);
   return { n: pickProcName(R, used), p: pos, s: pos, f, rawF, _rb: 1, _div: div, age, lg: 'BRA-' + div, mv, ft: R.random() < 0.8 ? 'R' : 'L', num: String(Math.floor(R.random() * 40) + 1), nat: 'Brasil', ag: '—', moral: 70, energy: 100, attr, f0: rawF, mv0: mv, stats: { r3: [], g3: [], apps: 0, goals: 0, cs: 0 } };
 }
-function ageAndRetire(S: any, divOfClub: any, used: Set<string>) {
+/* motivos de aposentadoria (item 5) — sabor. Cada aposentadoria escolhe um motivo determinístico
+   (mesma seed do sorteio de aposentar), com peso por idade/valor: velho tende à idade; craque rico
+   tende ao "já ganhou dinheiro"; carismático vira comentarista; os demais, lesão/família/negócios. */
+const RETIRE_REASONS = {
+  idade: 'pendurou as chuteiras — a idade pesou',
+  rico: 'aposentou milionário, não precisava mais jogar',
+  tv: 'largou os gramados pra virar comentarista esportivo na TV',
+  lesao: 'parou por causa das lesões e foi curtir a família',
+  negocios: 'saiu do futebol pra cuidar dos negócios fora dos gramados',
+};
+function pickRetireReason(R: any, p: any) {
+  const age = p.age || 35, mv = p.mv || 0, r = R.random();
+  if (age >= 39) return r < 0.7 ? RETIRE_REASONS.idade : RETIRE_REASONS.tv;
+  if (mv >= 20e6) return r < 0.55 ? RETIRE_REASONS.rico : (r < 0.8 ? RETIRE_REASONS.tv : RETIRE_REASONS.idade);
+  const pool = [RETIRE_REASONS.idade, RETIRE_REASONS.lesao, RETIRE_REASONS.negocios, RETIRE_REASONS.tv, RETIRE_REASONS.rico];
+  return pool[Math.floor(r * pool.length)];
+}
+function ageAndRetire(S: any, divOfClub: any, used: Set<string>, retirements?: any[]) {
   let regens = 0;
   Object.keys(S.squads).forEach((cid) => {
     const sq = S.squads[cid];
@@ -482,7 +499,10 @@ function ageAndRetire(S: any, divOfClub: any, used: Set<string>) {
       const p = sq[i]; p.age = (p.age || 26) + 1; p.f0 = p.f; p.mv0 = (p.mv || 1e6); p.benchStreak = 0; if (p.contract) p.contract.benchStreak = 0;
       const R = ME.makeRng(ME.hashSeed('retire-roll', (S.seed || 1), S.season, cid, i, p.n));
       const ch = p.age < 32 ? 0 : p.age >= 40 ? 1 : (RETIRE_CHANCE_BY_AGE[p.age] ?? 0.11);
-      if (R.random() < ch) { sq[i] = makeRegen(S, p.s, divOfClub[cid] || S.division, cid + '_' + i, used); regens++; }
+      if (R.random() < ch) {
+        if (retirements) retirements.push({ name: p.n, club: cid, clubShort: (S.clubShort || {})[cid] || cid, age: p.age, pos: p.s, f: p.f, reason: pickRetireReason(R, p) });
+        sq[i] = makeRegen(S, p.s, divOfClub[cid] || S.division, cid + '_' + i, used); regens++;
+      }
     }
     S.clubOverall[cid] = Math.round(sq.reduce((s: number, p: any) => s + p.f, 0) / (sq.length || 1));
   });
@@ -506,13 +526,19 @@ function resolveSeasonTurnover(S: any) {
   S._prevSeason = { season: (S.season || 1), tables: _prevTables, scorers: S.scorers || {}, copaBrasil: (S.cups && S.cups.copaBrasil) || null };
   S.season = (S.season || 1) + 1;                                 // 2) nova temporada (regen usa o novo season no seed)
   const used = new Set<string>(); Object.keys(S.squads).forEach((cid) => S.squads[cid].forEach((p: any) => used.add(p.n)));
-  ageAndRetire(S, divOfClub, used);                              // 3) envelhece + aposenta + regen + recomputa overall
+  const retirements: any[] = [];
+  ageAndRetire(S, divOfClub, used, retirements);                 // 3) envelhece + aposenta (com motivo) + regen + recomputa overall
+  S._prevSeason.retirements = retirements;                       // sabor (item 5): quem se aposentou e por quê
   DIV_ORDER.forEach((d) => newDiv[d].forEach((id: string) => (S.squads[id] || []).forEach((p: any) => p._div = d))); // _div nova (progressão)
   const anchor = S.division;                                     // 4) reconstrói tabelas + calendários (âncora mantida)
   const mkTable = (ids: string[]) => { const t: any = {}; ids.forEach((id) => t[id] = { id, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, Pts: 0 }); return t; };
   S.table = mkTable(newDiv[anchor]); S.sched = makeScheduleT(newDiv[anchor]);
   S.otherDivs = {}; DIV_ORDER.forEach((d) => { if (d === anchor) return; S.otherDivs[d] = { clubs: newDiv[d].map((id: string) => ({ id })), sched: makeScheduleT(newDiv[d]), table: mkTable(newDiv[d]) }; });
-  S.cups = S.cups || {}; S.cups.copaBrasil = makeBracketT(Object.keys(S.squads), ME.hashSeed(S.seed, 'copaBrasil', S.season), S.clubOverall); // 5) copa nova
+  // Copa do Brasil = SÓ as 4 divisões brasileiras (newDiv), NÃO Object.keys(S.squads) — este último
+  // acumula clubes continentais/de background materializados ao longo das temporadas (Libertadores/
+  // Sul-Americana, mercado), que não disputam a Copa do Brasil e poluíam a chave.
+  const cbClubs = DIV_ORDER.reduce((acc: string[], d) => acc.concat(newDiv[d]), [] as string[]);
+  S.cups = S.cups || {}; S.cups.copaBrasil = makeBracketT(cbClubs, ME.hashSeed(S.seed, 'copaBrasil', S.season), S.clubOverall); // 5) copa nova
   S.round = 0; S.week = 1; S.day = 1; S.results = []; S.scorers = {}; S.negos = []; S.finished = false; // 6) reset de temporada
   Object.keys(S.squads).forEach((cid) => S.squads[cid].forEach((p: any) => { p.moral = 70; p.energy = 100; p.suspended = 0; p.injuredMatches = 0; p.stats = { r3: [], g3: [], apps: 0, goals: 0, cs: 0 }; }));
   S._roundIncidents = {};

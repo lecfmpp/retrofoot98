@@ -3044,10 +3044,17 @@ function onlineSeasonEndDialog(sum){
       ${sum.lines.map(l=>`<div class="cl-prize-row"><span class="cl-prize-ic">${l.icon}</span><span class="cl-prize-c">${escC(l.comp)}</span><span class="cl-prize-p">${escC(l.place)}</span><span class="cl-prize-v">+${fmt(l.amount)}</span></div>`).join('')}
       <div class="cl-prize-total"><span>Total recebido</span><span>+${fmt(sum.total)}</span></div>
     </div>` : '';
+  // aposentadorias do próprio clube (item 5 — sabor): quem pendurou as chuteiras e por quê
+  const rets=(sum.retirements||[]);
+  const retireBlock = rets.length ? `<div class="cl-prizes" style="margin-top:8px">
+      <div class="cl-prizes-h">👋 Aposentadorias no elenco</div>
+      ${rets.map(r=>`<div class="cl-prize-row"><span class="cl-prize-ic">🎽</span><span class="cl-prize-c">${escC(r.name)} <span style="opacity:.7">(${r.age||'?'} anos)</span></span><span class="cl-prize-p" style="flex:2;text-align:left;opacity:.85">${escC(r.reason||'')}</span></div>`).join('')}
+    </div>` : '';
   overlayC(dlg('Fim da temporada!', `<div class="cl-res">
     <div class="cl-res-score">${escC(champ)} é campeão</div>
     <div class="cl-res-verd">Você terminou em ${sum.myPos}º na ${escC(sum.divLbl)}</div>
     ${prizeBlock}
+    ${retireBlock}
     <div class="cl-seasontbl-wrap" style="max-height:340px;overflow-y:auto;margin-top:10px">
       <div class="cl-cls2-head ${hasQual?'hasqual':''}"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-pts">P</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-x">GP</span><span class="cl-cls2-x">GC</span>${hasQual?'<span></span>':''}</div>
       ${rows}

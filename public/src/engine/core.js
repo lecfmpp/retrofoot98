@@ -2772,7 +2772,9 @@ function computeMyPrevSeasonPrizes(){
       if(camt>0){ lines.push({icon:outcome==='campeao'?'🏆':'🎖️', comp:(COMP_DEFS.copaBrasil&&COMP_DEFS.copaBrasil.short)||'Copa do Brasil', place:res, amount:camt}); total+=camt; } }
   }
   const champId=(myTable[0]&&myTable[0].id)||null;
-  return { season:pv.season, myDiv, myPos, myTable, divLbl, lines, total, champId };
+  // aposentadorias do MEU clube nesta virada (item 5 — sabor). Servidor tagueia motivo em _prevSeason.
+  const retirements=(pv.retirements||[]).filter(r=>r && r.club===CL.clubId);
+  return { season:pv.season, myDiv, myPos, myTable, divLbl, lines, total, champId, retirements };
 }
 /* credita (UMA vez por temporada) o caixa da premiação anterior no meu clube — igual às finanças
    por-humano: o servidor não credita, cada humano soma o seu e publica no assento. Só é chamado
