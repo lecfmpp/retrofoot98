@@ -1756,7 +1756,11 @@ function clMarketDivision(division,country){
     clubs=(L&&L.divs[division]?L.divs[division].clubIds:[]).map(id=>bgClubById(id)).filter(Boolean);
   } else {
     const isOwn=division===S.division;
-    clubs=isOwn ? DATA.clubs.filter(c=>c.id!==CL.clubId) : ((S.otherDivs&&S.otherDivs[division])?S.otherDivs[division].clubs:[]);
+    // outras divisões: S.otherDivs[d].clubs pode ser STUB {id} (a virada server-side grava só o id;
+    // metadados ficam em S.clubPool) — resolve cada um pelo registro completo, senão a lista aparece
+    // "vazia"/sem nome. Mesmo motivo do clubOf. clubOf cai pro S.clubPool quando o clube é stub.
+    clubs=isOwn ? DATA.clubs.filter(c=>c.id!==CL.clubId)
+      : ((S.otherDivs&&S.otherDivs[division]) ? (S.otherDivs[division].clubs||[]).map(c=>clubOf(c.id)||c).filter(Boolean) : []);
   }
   const cq=country?`,'${country}'`:'';
   const rows=clubs.map(c=>`<div class="cl-mkt-club" onclick="clMarketSquad('${c.id}'${cq})" style="${clubEdge(c)}">
@@ -2944,7 +2948,7 @@ function scClassif(){
     <div class="cl-clsacc-wrap">${divOrderUserFirst().map(panelHTML).join('')}</div>
   </div>`;
 }
-function liveDone(){ if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classifTimer){clearTimeout(CL._classifTimer);CL._classifTimer=null;} clearInjuryTimer(); CL.live=null; CL.subsUsed=0; CL._liveBusy=false; CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||CL.selPlayer; cdraw();
+function liveDone(){ if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classifTimer){clearTimeout(CL._classifTimer);CL._classifTimer=null;} clearInjuryTimer(); clearCupFlowTimer(); CL.live=null; CL.subsUsed=0; CL._liveBusy=false; CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||CL.selPlayer; cdraw();
   if(CL.lastGate) toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0;
   // notificação de propostas de compra recebidas nesta rodada (toast no topo, ~3s cada)
   if(S._offerToasts && S._offerToasts.length){ S._offerToasts.forEach((m,i)=>setTimeout(()=>toastC(m), 500+i*400)); S._offerToasts=[]; }
@@ -3049,9 +3053,24 @@ function onlineSeasonEndDialog(sum){
       ${rows}
     </div>
     <div class="cl-cal-ok">${btn('Nova temporada','clOnlineSeasonContinue()',{icon:'✔',cls:'cl-btn-ok'})}</div>
+    <div class="cl-classif-autohint">avança sozinho em <span id="cl-season-count">15</span>s...</div>
   </div>`,{w:620,bodyClass:'cl-body-green'}));
+  armSeasonEndTimer(); // auto-avança pra não segurar o outro jogador / a próxima rodada
+}
+/* contador regressivo do modal de fim de temporada (online): 15s e auto-avança pra tela
+   principal da temporada nova — mantém o fluxo mesmo se um jogador sair da frente do PC.
+   A virada já aconteceu no servidor, então isto é só a cerimônia; auto-avançar é seguro. */
+function armSeasonEndTimer(){
+  if(CL._seasonEndTimer){ clearInterval(CL._seasonEndTimer); CL._seasonEndTimer=null; }
+  CL._seasonEndLeft=15;
+  CL._seasonEndTimer=setInterval(()=>{
+    CL._seasonEndLeft=(CL._seasonEndLeft!=null?CL._seasonEndLeft:15)-1;
+    const el=document.querySelector('#cl-season-count'); if(el) el.textContent=Math.max(0,CL._seasonEndLeft);
+    if(CL._seasonEndLeft<=0) clOnlineSeasonContinue();
+  }, 1000);
 }
 function clOnlineSeasonContinue(){
+  if(CL._seasonEndTimer){ clearInterval(CL._seasonEndTimer); CL._seasonEndTimer=null; }
   clCloseOverlay();
   const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division);
   toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.');
@@ -3395,12 +3414,25 @@ function finishCupLiveMatch(){
   CL._cupResultKeysThisRound = CL._cupResultKeysThisRound || [];
   if(!CL._cupResultKeysThisRound.includes(pending.key)) CL._cupResultKeysThisRound.push(pending.key);
   CL.screen='main';
+  const _cupAutohint = CL.online ? '<div class="cl-classif-autohint">avança sozinho em alguns segundos...</div>' : '';
   overlayC(dlg(compShort, `<div class="cl-res"><div class="cl-res-score">${escC(m.hg+'×'+m.ag)}</div>
-    <div class="cl-res-verd">${escC(resultMsg)}</div><div class="cl-cal-ok">${btn('Continuar','clCupResultContinue()',{icon:'✔',cls:'cl-btn-ok'})}</div></div>`,
+    <div class="cl-res-verd">${escC(resultMsg)}</div><div class="cl-cal-ok">${btn('Continuar','clCupResultContinue()',{icon:'✔',cls:'cl-btn-ok'})}</div>${_cupAutohint}</div>`,
     {w:520,bodyClass:'cl-body-green'}));
+  armCupFlowTimer(clCupResultContinue); // online: auto-avança se o usuário estiver ausente (não trava a rodada dos outros)
   cdraw();
 }
+/* auto-avanço do fluxo de resultado de copa no ONLINE (modal de resultado -> classificação da
+   copa -> onlineMarkReady). Sem isto, se a rede de segurança (onlineRunRound) puxar um usuário
+   AUSENTE pra jogar a copa, o fluxo travaria numa dessas telas esperando "Continuar" e seguraria
+   o outro jogador. 10s, igual à classificação de liga. No solo não arma (jogador decide no tempo dele). */
+function armCupFlowTimer(fn){
+  if(CL._cupFlowTimer){ clearTimeout(CL._cupFlowTimer); CL._cupFlowTimer=null; }
+  if(!CL.online) return;
+  CL._cupFlowTimer=setTimeout(()=>{ CL._cupFlowTimer=null; try{ fn(); }catch(e){ console.warn('cup flow auto:', e&&e.message); } }, 10000);
+}
+function clearCupFlowTimer(){ if(CL._cupFlowTimer){ clearTimeout(CL._cupFlowTimer); CL._cupFlowTimer=null; } }
 function clCupResultContinue(){
+  clearCupFlowTimer();
   clCloseOverlay(); CL.live=null;
   // nunca encadeia direto pra próxima partida de copa aqui, mesmo que já tenha outra
   // pendente (ex: Copa do Brasil + Libertadores na mesma semana) — cada partida tem que
@@ -3423,7 +3455,7 @@ function finishCupResultFlow(){
 /* ---- classificação/chaveamento da copa, mostrada automaticamente depois de uma
    partida de copa ao vivo — reaproveita cupGroupHTML/cupBracketHTML (mesma visualização
    de "Minhas competições"), com o troféu em destaque no topo. ---- */
-function showCupClassif(key){ CL.screen='cupclassif'; CL._cupClassifKey=key; cdraw(); }
+function showCupClassif(key){ CL.screen='cupclassif'; CL._cupClassifKey=key; cdraw(); armCupFlowTimer(cupClassifContinue); }
 function scCupClassif(){
   const key=CL._cupClassifKey, c=S.cups&&S.cups[key];
   if(!c) return '';
@@ -3434,6 +3466,7 @@ function scCupClassif(){
   const stageLabel = inGroupStage ? 'Fase de grupos' : (b ? cupPhaseLabel(b.round,b.roundsTotal) : 'Fase eliminatória');
   return `<div class="cl-live cl-classif">
     <div class="cl-classif-buttons">${btn('Continuar','cupClassifContinue()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})}</div>
+    ${CL.online?'<div class="cl-classif-autohint">avança sozinho em alguns segundos...</div>':''}
     <div class="cl-live-cup-top">${trophyImg(key,64)}
       <div class="cl-live-cup-name">${escC(COMP_DEFS[key].name)}</div>
       <div class="cl-live-cup-stage">${escC(stageLabel)}</div>
@@ -3442,6 +3475,7 @@ function scCupClassif(){
   </div>`;
 }
 function cupClassifContinue(){
+  clearCupFlowTimer();
   const queue=CL._cupClassifQueue||[];
   if(queue.length){ showCupClassif(queue.shift()); return; }
   CL._cupClassifQueue=null;

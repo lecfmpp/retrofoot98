@@ -1149,6 +1149,15 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // SAVE ÚNICO: não jogo uma rodada ANTES de espelhar o estado autoritativo do anfitrião. Se o host
   // já fechou a rodada (games.round à frente da minha), primeiro sincronizo (mundo/tabela novos).
   if(typeof NET!=='undefined' && NET.room && (NET.room.round||0) > (S.round||0)){ onlineReconcileIfBehind(NET.room); return; }
+  // PARTIDA DE COPA PENDENTE primeiro — MESMA ordem do clJogar. Sem isto, quando a fase avança pro
+  // 'running' (cronômetro/outro jogador) ANTES de eu clicar em Jogar, esta rede de segurança jogava
+  // a LIGA direto e PULAVA a Copa do Brasil -> o servidor auto-simulava a minha chave (bug "não
+  // joguei a copa"). Agora joga a copa ao vivo; ao terminar (cupQueue vazio), a liga entra na
+  // próxima passada. O fluxo de resultado da copa auto-avança no online (ver clCupResultContinue).
+  if(typeof pendingUserCupMatches==='function'){
+    const cupQueue=pendingUserCupMatches();
+    if(cupQueue.length && typeof startCupLiveMatch==='function'){ startCupLiveMatch(cupQueue[0]); return; }
+  }
   CL._liveBusy=true; startLiveRound(); }
 
 /* Recupera a rodada de LIGA quando a fase virou 'running' enquanto o cliente estava numa
