@@ -1343,3 +1343,31 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-wait-dots span:nth-child(3){animation-delay:.4s}
 @keyframes cl-wait-pulse{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.12);opacity:1}}
 @keyframes cl-wait-bounce{0%,100%{opacity:.35;transform:translateY(0)}50%{opacity:1;transform:translateY(-5px)}}
+
+/* ================= ÁREAS DE ANÚNCIO (AdSense) =================
+   Blocos FIXOS e previsíveis, deliberadamente FORA do caminho do jogo: nada de anúncio
+   na partida ao vivo, no mercado (risco de clique errado no meio de uma negociação),
+   na premiação ou na espera entre rodadas. Ficam só na landing (abaixo da dobra) e nas
+   páginas institucionais — que são conteúdo de verdade e redesenham só por clique.
+   MOTIVO TÉCNICO: cdraw() troca o innerHTML da tela inteira; um <ins> dentro do loop de
+   jogo seria recriado a cada redraw e pediria anúncio novo sem parar.
+   Visual usa os tokens do resto do app (bevel + chrome) pra não parecer corpo estranho,
+   com respiro real em volta e ALTURA MÍNIMA reservada — evita o salto de layout quando
+   o anúncio carrega (e o buraco feio quando não carrega). */
+/* max-width com calc garante respiro LATERAL em qualquer largura (sem auto-margin não
+   sobra folga quando o bloco ocupa 100% — encostava na borda no mobile) */
+.cl-ad{box-sizing:border-box;width:100%;max-width:min(728px, calc(100% - 2 * var(--sp-5)));
+  margin:var(--sp-6) auto var(--sp-7);padding:var(--sp-3);
+  background:var(--chrome);border:var(--bw-bevel) solid;border-color:var(--bevel-in);
+  display:flex;flex-direction:column;align-items:stretch;gap:var(--sp-2)}
+.cl-ad-lbl{font-family:var(--sans);font-size:var(--fs-min);font-weight:var(--fw-bold);letter-spacing:.12em;
+  text-transform:uppercase;color:var(--gray-666);line-height:1}
+.cl-ad-box{display:block;width:100%;min-height:100px;background:var(--paper);
+  border:var(--bw-hair) solid var(--bevD);overflow:hidden}
+/* placeholder só em pré-visualização (CL._adPreview) — em produção, sem id de bloco não renderiza nada */
+.cl-ad-ph{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:var(--fs-sm);
+  color:var(--gray-888);background:repeating-linear-gradient(45deg,#f4f4f4 0 10px,#e9e9e9 10px 20px)}
+@media (max-width:760px){
+  .cl-ad{margin:var(--sp-5) auto var(--sp-6);padding:var(--sp-2);max-width:calc(100% - 2 * var(--sp-4))}
+  .cl-ad-box{min-height:90px}
+}

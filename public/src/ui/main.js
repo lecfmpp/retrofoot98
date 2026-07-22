@@ -211,6 +211,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'online':    html=renderOnline(); break;
   }
   r.innerHTML=html;
+  if(typeof adsRefresh==='function') adsRefresh(); // inicializa blocos de anúncio recém-desenhados (landing/institucionais)
   if(typeof renderChatDock==='function') renderChatDock(); // doca do chat em TODAS as telas online (inclusive ao vivo)
   if(CL.screen==='loading') runLoading();
   const f=$c('#cl-focus'); if(f) f.focus();
@@ -244,6 +245,43 @@ function homeNavbar(navItems, rightHTML){
   </div>`;
 }
 function clToggleNavMenu(e){ if(e&&e.stopPropagation) e.stopPropagation(); CL.navMenuOpen=!CL.navMenuOpen; cdraw(); }
+/* ================= ÁREAS DE ANÚNCIO (AdSense) =================
+   Blocos NOSSOS, em posições fixas — não confundir com Auto Ads (que o Google injeta
+   onde quiser, inclusive por cima do jogo; recomendado desligar no painel).
+   REGRA: anúncio só onde NÃO atrapalha e onde o redraw é disparado por clique —
+   landing (abaixo da dobra) e páginas institucionais. NUNCA na partida ao vivo, no
+   mercado, na premiação ou entre rodadas (cdraw troca o innerHTML inteiro, então um
+   <ins> ali seria recriado a cada redraw e pediria anúncio novo sem parar).
+   Preencha AD_SLOTS com os ids dos blocos criados no painel do AdSense. Sem id não
+   renderiza NADA em produção (melhor espaço vazio que caixa quebrada); pra conferir o
+   layout, ligue CL._adPreview=true no console. */
+const ADS_CLIENT='ca-pub-8683510933527854';
+const AD_SLOTS={ landing:'', artigo:'' };   // <- ids do painel (data-ad-slot)
+function adSlot(key, opts){
+  opts=opts||{};
+  const slot=AD_SLOTS[key];
+  const lbl='<div class="cl-ad-lbl">Publicidade</div>';
+  if(!slot){
+    return CL._adPreview
+      ? `<div class="cl-ad">${lbl}<div class="cl-ad-box cl-ad-ph">espaço reservado — ${escC(key)}</div></div>`
+      : '';
+  }
+  // in-article = formato fluido, combina com página de texto; auto = responsivo padrão
+  const fmt = opts.inArticle
+    ? 'data-ad-format="fluid" data-ad-layout="in-article"'
+    : 'data-ad-format="auto" data-full-width-responsive="true"';
+  return `<div class="cl-ad">${lbl}<ins class="adsbygoogle cl-ad-box" style="display:block"
+    data-ad-client="${ADS_CLIENT}" data-ad-slot="${escC(slot)}" ${fmt}></ins></div>`;
+}
+/* inicializa os blocos recém-desenhados. Como cdraw() recria o DOM, só empurra os <ins>
+   que ainda não foram inicializados (o AdSense marca com data-adsbygoogle-status) —
+   empurrar duas vezes o mesmo bloco dá erro. */
+function adsRefresh(){
+  if(typeof window==='undefined' || !window.adsbygoogle) return;
+  document.querySelectorAll('ins.adsbygoogle:not([data-adsbygoogle-status])').forEach(()=>{
+    try{ (window.adsbygoogle=window.adsbygoogle||[]).push({}); }catch(e){}
+  });
+}
 function scAbertura(){
   const v=CL.landingView||'home';
   const navHTML=LANDING_NAV.map(([view,label])=>`<button class="cl-home-nav ${v===view?'on':''}" onclick="clLandingGo('${view}')">${escC(label)}</button>`).join('');
@@ -258,7 +296,7 @@ function scAbertura(){
     ${homeNavbar(LANDING_NAV.map(([view,label])=>[label,`clLandingGo('${view}')`,v===view]),
       `<span class="cl-home-online"><span class="cl-home-online-dot"></span>100% Online</span>
        <button class="cl-home-entrar" onclick="clGoModo()"><span>🔑</span>Entrar</button>`)}
-    <div class="cl-home-body">${body}</div>
+    <div class="cl-home-body">${body}${v==='home'?adSlot('landing'):adSlot('artigo',{inArticle:true})}</div>
     <div class="cl-home-footer">
       <div class="cl-home-foot-l"><span class="cl-home-ver">v2026.01</span><span>© 2026 RetroFoot98</span></div>
       <div class="cl-home-foot-r">${footHTML}</div>
