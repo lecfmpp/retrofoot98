@@ -36,7 +36,7 @@ export default defineConfig({
         cpSync(resolve(__dirname, 'public/audio'), resolve(__dirname, 'dist/audio'), { recursive: true });
         cpSync(resolve(__dirname, 'public/src'), resolve(__dirname, 'dist/src'), { recursive: true });
         // SEO / descoberta por IA: arquivos estáticos servidos na raiz (publicDir=false não os copia sozinho)
-        for(const f of ['robots.txt', 'sitemap.xml', 'llms.txt']){
+        for(const f of ['robots.txt', 'sitemap.xml', 'llms.txt', 'ads.txt']){
           cpSync(resolve(__dirname, 'public/'+f), resolve(__dirname, 'dist/'+f));
         }
       },

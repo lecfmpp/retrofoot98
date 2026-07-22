@@ -1,0 +1,10 @@
+# ads.txt — RetroFoot98 / Elifoot 2026
+# Declara quem está autorizado a vender o inventário de anúncios deste domínio (IAB Tech Lab).
+# O AdSense procura este arquivo na RAIZ do site; sem ele a conta fica com o aviso
+# "Earnings at risk — you need to fix ads.txt file issues" e a verificação pode não concluir.
+# Até existir, /ads.txt caía no rewrite "**" -> /index.html do firebase.json e devolvia HTML
+# com status 200, o que para o robô é o mesmo que arquivo inválido.
+#
+# Formato: <domínio do sistema de anúncios>, <id do publisher>, <DIRECT|RESELLER>, <id da autoridade certificadora>
+# f08c47fec0942fa0 é o TAG-ID do Google, fixo e igual para todos os publishers.
+google.com, pub-8683510933527854, DIRECT, f08c47fec0942fa0
