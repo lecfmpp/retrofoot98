@@ -1,0 +1,83 @@
+# Deploy da edge function resolve-round no Supabase.
+#
+# POR QUE existe: a CLI local está autenticada numa conta que NÃO é dona deste projeto
+# (o keychain guarda um token só, e aqui há contas diferentes por projeto), então
+# `supabase functions deploy` dá 403 na máquina. O caminho que sobrava era o MCP com o
+# arquivo inline — ~57KB retransmitidos a cada deploy, caro e com risco de erro de
+# transcrição num resolvedor de produção. Aqui o token vive nos secrets do repositório,
+# o deploy é por arquivo, e a conta certa é usada sempre.
+#
+# SETUP (uma vez): crie um Personal Access Token em
+#   https://supabase.com/dashboard/account/tokens
+# LOGADO NA CONTA DONA da organização "Investbola" (a que enxerga o projeto
+# alxwgqvjmetjbbqtjkhx) e guarde em
+#   github.com/lecfmpp/retrofoot98 -> Settings -> Secrets and variables -> Actions
+#   -> New repository secret -> nome: SUPABASE_ACCESS_TOKEN
+name: Deploy edge functions
+
+on:
+  push:
+    branches: [main]
+    # só roda quando a função muda de verdade — commit de cliente (public/) não
+    # redeploya o servidor à toa
+    paths: ['supabase/functions/**', '.github/workflows/deploy-edge-functions.yml']
+  workflow_dispatch:        # permite disparar na mão pela aba Actions
+
+concurrency:
+  # dois pushes seguidos não podem deployar em paralelo: o último a terminar venceria,
+  # e não necessariamente é o commit mais novo
+  group: deploy-edge-functions
+  cancel-in-progress: false
+
+env:
+  PROJECT_REF: alxwgqvjmetjbbqtjkhx      # público (está na URL da API), não é segredo
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # PORTÃO: um erro de sintaxe aqui derruba a resolução de rodada de todas as salas
+      # em andamento. `deno check` não serve (quebra resolvendo tipos de uma dependência
+      # alheia, npm:openai do edge-runtime.d.ts); o esbuild que já vem com o vite faz o
+      # parse completo do TS, que é o que interessa.
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Validar sintaxe da função
+        run: npx esbuild supabase/functions/resolve-round/index.ts --outfile=/dev/null --platform=neutral --format=esm
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Deploy NOMEADO, não "todas": as outras funções do projeto (send-invite-email,
+      # fetch-division-data, send-password-reset, verify-round-result) não estão neste
+      # repositório, e send-password-reset roda com verify_jwt=false. Um deploy genérico
+      # poderia reescrever essa configuração.
+      # Sem --no-verify-jwt de propósito: resolve-round exige JWT (o padrão da CLI).
+      - name: Deploy resolve-round
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase functions deploy resolve-round --project-ref "$PROJECT_REF"
+
+      # A função tem que SUBIR, não só compilar. Sem Authorization o gateway responde 401 —
+      # é o sinal de que o worker bootou. 5xx aqui significa erro em tempo de boot.
+      - name: Verificar que a função sobe
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o /tmp/r.txt -w '%{http_code}' -X POST \
+              "https://${PROJECT_REF}.supabase.co/functions/v1/resolve-round" \
+              -H 'Content-Type: application/json' -d '{"gameId":"smoke"}')
+            echo "tentativa $i -> HTTP $code : $(head -c 160 /tmp/r.txt)"
+            if [ "$code" = "401" ]; then echo "OK: função no ar"; exit 0; fi
+            sleep 5
+          done
+          echo "FALHOU: esperava 401 (função no ar), veio $code"
+          exit 1
