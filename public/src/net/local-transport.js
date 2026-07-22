@@ -262,6 +262,7 @@ function onlineReconcileIfBehind(room){
       applyViewerDivision(CL.clubId);                    // F3.5: renderiza a divisão do PRÓPRIO clube (temporada 2+)
       S.xi = (S.clubXI && S.clubXI[CL.clubId] && S.clubXI[CL.clubId].length) ? S.clubXI[CL.clubId].slice() : (typeof autoXI==='function' ? autoXI(CL.clubId) : S.xi);
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
+      if(typeof pruneAppliedNetTransfers==='function') pruneAppliedNetTransfers(); // solta as transferências já aplicadas pelo servidor
       if(typeof applyOwnPendingFinances==='function') applyOwnPendingFinances(); // F3.3: finanças da MINHA rodada (convidado)
       if(isTurnover){
         // VIRADA: NÃO mostra a classificação pós-rodada (a tabela nova está zerada e o cliente ficava

@@ -314,8 +314,13 @@ async function netPublishLineup(xi, tactic){
    (o realtime confirma). */
 async function netPublishResult(round, result){
   if(!sb || !NET.gameId || !SB_AUTH_USER || !result) return;
+  // transfers: trocas de elenco feitas por MIM nesta rodada (compra/venda). Viajam junto do
+  // resultado porque é o único canal por-assento que o convidado já escreve toda rodada — o
+  // servidor aplica no mundo antes de jogar (applyHumanTransfers) e é idempotente, então
+  // reenviar até confirmar é seguro. Ver recordNetTransfer/pruneAppliedNetTransfers no core.
+  const _tr = (typeof S!=='undefined' && S && Array.isArray(S._netTransfers)) ? S._netTransfers : [];
   const payload = { round, h:result.h, a:result.a, hg:result.hg, ag:result.ag,
-    scorers:result.scorers||[], perf:result.perf||null, events:result.events||[] };
+    scorers:result.scorers||[], perf:result.perf||null, events:result.events||[], transfers:_tr };
   try{
     if(NET._claimed && NET._claimed[SB_AUTH_USER.id]){ NET._claimed[SB_AUTH_USER.id].last_result=payload; NET._claimed[SB_AUTH_USER.id].last_result_round=round; }
     await sb.from('game_seats').update({ last_result:payload, last_result_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);

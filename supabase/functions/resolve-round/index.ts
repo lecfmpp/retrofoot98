@@ -544,8 +544,27 @@ function resolveSeasonTurnover(S: any) {
   S._roundIncidents = {};
 }
 /* resolve UMA rodada da liga no estado S (mutando-o). humanResultByFx: {"h-a":{hg,ag,scorers,events}} */
-function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any) {
+/* TRANSFERÊNCIAS dos humanos (compra/venda). Chegam junto do resultado da rodada
+   (last_result.transfers) porque é o único canal por-assento que o convidado escreve toda rodada.
+   Sem isto, o servidor — único produtor do shared_state — desfazia a contratação na rodada
+   seguinte (o jogador voltava pro clube vendedor). IDEMPOTENTE: se o jogador já está no destino,
+   ignora — o cliente reenvia até confirmar, então aplicar duas vezes não duplica ninguém. */
+function applyHumanTransfers(S: any, transfers: any[]) {
+  (transfers || []).forEach((t: any) => {
+    if (!t || !t.p || !t.from || !t.to || t.from === t.to) return;
+    const src = S.squads[t.from], dst = S.squads[t.to];
+    if (!Array.isArray(src) || !Array.isArray(dst)) return;
+    if (dst.some((x: any) => x.n === t.p)) return;                // já aplicada
+    const i = src.findIndex((x: any) => x.n === t.p); if (i < 0) return; // não está mais no vendedor
+    const p = src.splice(i, 1)[0];
+    if (t.contract) p.contract = t.contract; else delete p.contract;
+    dst.push(p);
+    [t.from, t.to].forEach((cid: string) => { const sq = S.squads[cid]; if (sq && sq.length) S.clubOverall[cid] = Math.round(sq.reduce((s: number, x: any) => s + x.f, 0) / sq.length); });
+  });
+}
+function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any, humanTransfers?: any[]) {
   const seed = S.seed, round = S.round;
+  applyHumanTransfers(S, humanTransfers || []);                   // 0) contratações/vendas do humano ANTES de escalar/jogar
   const fixtures = (S.sched[round] || []);
   advancePlayerAvailability(S);                                   // 1) cumpre suspensões/lesões
   const humanEvents: any[] = [];                                  // F3.1: incidentes de TODAS as partidas humanas (qualquer divisão), não só a principal
@@ -605,19 +624,21 @@ Deno.serve(async (req: Request) => {
 
     const round = S.round;
     const { data: seats } = await admin.from("game_seats").select("user_id, club_id, last_xi, last_tactic, last_result, last_result_round, last_cup_result, last_cup_round, budget").eq("game_id", gameId);
-    const humanClubs = new Set<string>(); const humanXI: any = {}; const humanTactic: any = {}; const humanResultByFx: any = {}; const cupResultByFx: any = {};
+    const humanClubs = new Set<string>(); const humanXI: any = {}; const humanTactic: any = {}; const humanResultByFx: any = {}; const cupResultByFx: any = {}; const humanTransfers: any[] = [];
     (seats || []).forEach((s: any) => {
       if (!s.user_id || !s.club_id) return; humanClubs.add(s.club_id);
       if (s.last_xi) humanXI[s.club_id] = s.last_xi; if (s.last_tactic) humanTactic[s.club_id] = s.last_tactic;
       if (s.budget != null) { S.budgets = S.budgets || {}; S.budgets[s.club_id] = Number(s.budget); } // F3.3: caixa por-humano no mundo
       const r = s.last_result;
       if (r && s.last_result_round === round && r.h && r.a) { const k = r.h + "-" + r.a; if (!humanResultByFx[k] || s.club_id === r.h) humanResultByFx[k] = { hg: r.hg, ag: r.ag, scorers: r.scorers || [], events: r.events || [] }; }
+      // trocas de elenco publicadas por este humano (compra/venda) — aplicadas no mundo antes da rodada
+      if (r && s.last_result_round === round && Array.isArray(r.transfers) && r.transfers.length) humanTransfers.push(...r.transfers);
       // resultado de COPA submetido pra ESTA rodada (aplicado na chave; mandante-autoritativo)
       const cr = s.last_cup_result;
       if (cr && s.last_cup_round === round && cr.h && cr.a && cr.winner) { const ck = cr.h + "-" + cr.a; if (!cupResultByFx[ck] || s.club_id === cr.h) cupResultByFx[ck] = { hg: cr.hg, ag: cr.ag, winner: cr.winner, pens: cr.pens || null, events: cr.events || [] }; }
     });
 
-    resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic, cupResultByFx);
+    resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic, cupResultByFx, humanTransfers);
     stateObj.round = S.round;
 
     const { data: upd, error: upErr } = await admin.from("games").update({ shared_state: stateObj, state_version: curVer + 1, round: S.round }).eq("id", gameId).eq("state_version", curVer).select("state_version");

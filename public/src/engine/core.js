@@ -229,6 +229,7 @@ function executePendingTransfers(){
       p.contract=t.contract; p.moral=75;
       MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division)); // gatilho de vitrine na chegada
       S.squads[S.clubId]=S.squads[S.clubId]||[]; S.squads[S.clubId].push(p);
+      recordNetTransfer(t.sellerId, S.clubId, t.playerName, t.contract); // online: avisa o servidor
       S.roundNews.push(`✍️ ${t.playerName} se apresentou ao ${clubOf(S.clubId).short} (transferência acordada, agora com a janela aberta).`);
     } else if(t.kind==='sell'){
       const p=(S.squads[S.clubId]||[]).find(x=>x.n===t.playerName);
@@ -238,6 +239,7 @@ function executePendingTransfers(){
       if(t.buyerCountry) ensureBgClubMaterialized(t.buyerId);
       delete p.contract; delete p._pendingSale;
       if(S.squads[t.buyerId]) S.squads[t.buyerId].push(p);
+      recordNetTransfer(S.clubId, t.buyerId, t.playerName, null); // online: avisa o servidor (venda)
       S.roundNews.push(`💰 ${t.playerName} deixou o clube rumo ao ${t.buyerName} por ${fmt(t.fee)} (transferência acordada).`);
       pushFinanceEntry({playerSales:t.fee, log:[`💰 ${t.playerName} vendido ao ${t.buyerName} por ${fmt(t.fee)}.`]});
     }
@@ -248,6 +250,29 @@ function executePendingTransfers(){
 
 /* ---- Dia 3 (verdict): fecha a negociação de verdade — move o jogador,
    desconta o caixa, cria o contrato. Chamado pela UI quando o usuário aceita. ---- */
+/* ===== RESENHA (online): transferências precisam chegar ao SERVIDOR =====
+   O resolve-round é o único produtor do games.shared_state. Qualquer troca de elenco feita só no
+   cliente (compra/venda) é DESFEITA na rodada seguinte, quando o cliente adota o estado do servidor
+   — era exatamente por isso que o jogador comprado sumia do plantel depois da tela de pós-rodada.
+   Aqui só REGISTRO a transferência; ela viaja junto do resultado da rodada (netPublishResult ->
+   last_result.transfers) e o servidor aplica no mundo (applyHumanTransfers, idempotente lá).
+   Fica no buffer até o servidor confirmar (ver pruneAppliedNetTransfers) — se um envio se perder,
+   o próximo reenvia. No solo é no-op: lá o próprio cliente é a autoridade. */
+function recordNetTransfer(fromId, toId, playerName, contract){
+  if(typeof CL==='undefined' || !CL.online) return;
+  if(!fromId || !toId || !playerName) return;
+  S._netTransfers = S._netTransfers || [];
+  S._netTransfers.push({ p:playerName, from:fromId, to:toId, contract:contract||null });
+}
+/* descarta do buffer as transferências que o servidor JÁ aplicou (jogador está no destino no
+   estado autoritativo). Chamado depois de adotar a rodada — o que sobrar é reenviado. */
+function pruneAppliedNetTransfers(){
+  if(!S || !S._netTransfers || !S._netTransfers.length) return;
+  S._netTransfers = S._netTransfers.filter(t=>{
+    const dst=(S.squads && S.squads[t.to]) || [];
+    return !dst.some(x=>x.n===t.p);
+  });
+}
 function finalizeTransfer(negoIdx){
   const preOpen=inPreWindow();
   if(!inTransferWindow() && !preOpen) return {ok:false,msg:'A janela de transferências está fechada.'};
@@ -267,6 +292,7 @@ function finalizeTransfer(negoIdx){
     p.contract=contract; p.moral=75;
     MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division)); // gatilho de vitrine
     S.squads[S.clubId]=S.squads[S.clubId]||[]; S.squads[S.clubId].push(p);
+    recordNetTransfer(n.sellerId, S.clubId, p.n, contract); // online: avisa o servidor (senão a contratação é desfeita)
     S.roundNews.push(`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`);
     pushFinanceEntry({playerPurchases:totalCost, log:[`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`]});
     save();
@@ -421,6 +447,7 @@ function acceptIncomingOffer(id){
   S.budget+=o.fee;
   if(o.buyerCountry) ensureBgClubMaterialized(o.buyerId);
   if(S.squads[o.buyerId]){ delete p.contract; S.squads[o.buyerId].push(p); } // vai pro clube comprador
+  recordNetTransfer(S.clubId, o.buyerId, o.playerName, null); // online: avisa o servidor (venda)
   S.roundNews.push(`💰 ${o.playerName} vendido ao ${o.buyerName} por ${fmt(o.fee)}.`);
   pushFinanceEntry({playerSales:o.fee, log:[`💰 ${o.playerName} vendido ao ${o.buyerName} por ${fmt(o.fee)}.`]});
   save();

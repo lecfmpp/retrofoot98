@@ -3275,6 +3275,7 @@ async function onlineAdoptServerRound(RL){
       if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
       S.xi = (S.clubXI && S.clubXI[CL.clubId] && S.clubXI[CL.clubId].length) ? S.clubXI[CL.clubId].slice() : (typeof autoXI==='function' ? autoXI(CL.clubId) : S.xi);
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
+      if(typeof pruneAppliedNetTransfers==='function') pruneAppliedNetTransfers(); // solta as transferências que o servidor já aplicou
     }
   }catch(e){ console.warn('adotar estado do servidor:', e); }
   applyOwnPendingFinances(); // F3.3: aplica as finanças da MINHA rodada (o servidor não computa finanças)
