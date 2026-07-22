@@ -273,7 +273,7 @@ function onlineReconcileIfBehind(room){
         // Credita ANTES do cdraw pra não perder o dinheiro se o desenho falhar.
         const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null;
         cdraw();
-        if(typeof onlineSeasonEndDialog==='function') onlineSeasonEndDialog(_sum);
+        if(typeof openPressRoom==='function') openPressRoom(_sum);
         else { const _divLbl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division); toastC('🏆 Nova temporada '+ (S.season||'') +'! Você está na '+_divLbl+'.'); }
       } else {
         toastC('🔄 Sincronizado com a sala (rodada '+((S.round||0)+1)+').');
@@ -1130,7 +1130,7 @@ function onlineCompleteSeasonTurnover(){
         // credita a premiação ANTES do cdraw: se o desenho falhar, o dinheiro não se perde.
         const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null;
         cdraw();
-        if(typeof onlineSeasonEndDialog==='function') onlineSeasonEndDialog(_sum);
+        if(typeof openPressRoom==='function') openPressRoom(_sum);
         else { const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division); toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.'); }
         // reabre a fase 'ready' pra próxima rodada (senão os dois ficam presos sem conseguir jogar)
         if(NET.isHost && typeof NET.reopenReady==='function') NET.reopenReady();

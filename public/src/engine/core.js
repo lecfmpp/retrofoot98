@@ -267,7 +267,11 @@ function recordNetTransfer(fromId, toId, playerName, contract){
 /* descarta do buffer as transferências que o servidor JÁ aplicou (jogador está no destino no
    estado autoritativo). Chamado depois de adotar a rodada — o que sobrar é reenviado. */
 function pruneAppliedNetTransfers(){
-  if(!S || !S._netTransfers || !S._netTransfers.length) return;
+  if(!S) return;
+  // moral da coletiva: o servidor aplica UMA vez, na rodada em que ela chega. Como já
+  // adotamos essa rodada, zera o pendente — senão somaria de novo a cada rodada seguinte.
+  if(S._netMorale) S._netMorale=0;
+  if(!S._netTransfers || !S._netTransfers.length) return;
   S._netTransfers = S._netTransfers.filter(t=>{
     const dst=(S.squads && S.squads[t.to]) || [];
     return !dst.some(x=>x.n===t.p);
@@ -2803,6 +2807,78 @@ function computeMyPrevSeasonPrizes(){
   const retirements=(pv.retirements||[]).filter(r=>r && r.club===CL.clubId);
   return { season:pv.season, myDiv, myPos, myTable, divLbl, lines, total, champId, retirements };
 }
+/* ================= SALA DE IMPRENSA (fim de temporada) =================
+   Monta o "briefing" da coletiva a partir do S._prevSeason que o SERVIDOR gravou na virada
+   (tabelas finais das 4 divisões + artilharia + Copa do Brasil + aposentadorias com motivo).
+   Tudo derivado do snapshot autoritativo — nada é recalculado no cliente, então os dois
+   jogadores veem os mesmos fatos. Devolve null se não houver snapshot (saves antigos). */
+function buildPressBriefing(){
+  const pv=S._prevSeason; if(!pv || !pv.tables) return null;
+  const shortOf=id=>{ const c=(typeof clubOf==='function')?clubOf(id):null; return (c&&c.short)||id; };
+  const order=(typeof DIV_ORDER!=='undefined'&&DIV_ORDER.length)?DIV_ORDER:['A','B','C','D'];
+  const lbl=d=>(typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[d])||('Série '+d);
+  const divs=[];
+  order.forEach(d=>{
+    const rows=pv.tables[d]; if(!rows||!rows.length) return;
+    let promoN=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[d])||0;
+    let relegN=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[d])||0;
+    // guarda: numa divisão com menos clubes que sobem+descem (só acontece em dado
+    // incompleto/teste), os dois cortes se sobrepõem e o MESMO clube apareceria subindo
+    // e caindo. Encolhe as faixas pra nunca se cruzarem.
+    if(promoN+relegN > rows.length){ const sobra=Math.max(0,rows.length-promoN); relegN=Math.min(relegN,sobra); promoN=Math.min(promoN,rows.length); }
+    divs.push({
+      div:d, label:lbl(d),
+      campeao: shortOf(rows[0].id), campeaoPts: rows[0].Pts,
+      promovidos: promoN? rows.slice(0,promoN).map(r=>shortOf(r.id)) : [],
+      rebaixados: relegN? rows.slice(-relegN).map(r=>shortOf(r.id)) : [],
+    });
+  });
+  // artilheiro da temporada (S.scorers do snapshot: {nome: gols})
+  let art=null;
+  const sc=Object.entries(pv.scorers||{}).sort((a,b)=>b[1]-a[1])[0];
+  if(sc && sc[1]>0) art={ nome:sc[0], gols:sc[1] };
+  // campeão da Copa do Brasil
+  const copa = (pv.copaBrasil && pv.copaBrasil.champion) ? shortOf(pv.copaBrasil.champion) : null;
+  // ranking dos TREINADORES humanos da sala: divisão (tier) primeiro, depois posição
+  const humanos=[];
+  const humans=(typeof CL!=='undefined'&&CL.humans)?CL.humans:{};
+  Object.keys(humans).forEach(cid=>{
+    order.forEach((d,tier)=>{
+      const rows=pv.tables[d]; if(!rows) return;
+      const i=rows.findIndex(r=>r.id===cid);
+      if(i>=0) humanos.push({ clubId:cid, nome:humans[cid], clube:shortOf(cid), div:d, divLabel:lbl(d), tier, pos:i+1, pts:rows[i].Pts });
+    });
+  });
+  humanos.sort((a,b)=> a.tier-b.tier || a.pos-b.pos);
+  return { season:pv.season, divs, art, copa, humanos,
+           retirements:(pv.retirements||[]).filter(r=>r&&r.club===CL.clubId) };
+}
+/* Perguntas da coletiva. 5 fixas, 3 respostas cada + "não responder" (sempre permitido).
+   Cada resposta mexe na MORAL do elenco de forma SUTIL (±2 a 5; teto de ~±15 na soma) —
+   elogio público motiva, cobrança pública desmotiva, promessa alta empolga mas pressiona.
+   `m` = delta de moral; `h` = manchete que o jornal publica. */
+const PRESS_QUESTIONS=[
+  { q:'Sobre a campanha da temporada passada, qual a sua avaliação?', opts:[
+    { t:'O mérito é dos jogadores. Time entregou o que podia.', m:+4, h:'Técnico exalta elenco: "o mérito é deles"' },
+    { t:'Faltou entrega de alguns. Vou cobrar internamente.',     m:-4, h:'Cobrança pública: técnico critica postura do elenco' },
+    { t:'A responsabilidade é minha, não dos atletas.',           m:+2, h:'Treinador assume a culpa e protege o grupo' } ] },
+  { q:'Qual a meta do clube para esta temporada?', opts:[
+    { t:'Vamos brigar pelo título, sem rodeios.',                 m:+3, h:'Promessa ousada: "vamos brigar pelo título"' },
+    { t:'Uma partida de cada vez. Sem promessa vazia.',           m:+1, h:'Discurso pé no chão na apresentação' },
+    { t:'Sendo realista, o objetivo é não cair.',                 m:-3, h:'Meta modesta esfria o ambiente no vestiário' } ] },
+  { q:'O elenco atual é suficiente ou precisa de reforços?', opts:[
+    { t:'Confio plenamente em quem está aqui.',                   m:+4, h:'Voto de confiança: "confio em quem está aqui"' },
+    { t:'Do jeito que está, não dá. Preciso de reforços.',        m:-3, h:'Técnico expõe elenco e pede reforços urgentes' },
+    { t:'Vamos avaliar com calma, sem atropelo.',                 m: 0, h:'Diretoria e comissão avaliam o elenco' } ] },
+  { q:'Um recado para a torcida?', opts:[
+    { t:'A torcida é o nosso décimo segundo jogador.',            m:+3, h:'Aceno à arquibancada: "vocês são o 12º jogador"' },
+    { t:'A cobrança excessiva às vezes atrapalha o time.',        m:-4, h:'Polêmica: técnico reclama da cobrança da torcida' },
+    { t:'Peço paciência. O trabalho vai dar resultado.',          m:+1, h:'Treinador pede paciência à torcida' } ] },
+  { q:'Como vê os adversários na disputa?', opts:[
+    { t:'Respeitamos todos, mas não tememos ninguém.',            m:+3, h:'Postura firme: "não tememos ninguém"' },
+    { t:'Somos azarões. Os favoritos são os outros.',             m:-2, h:'Técnico coloca o time na condição de azarão' },
+    { t:'Não comento adversário. Foco no nosso trabalho.',        m: 0, h:'Treinador desconversa sobre rivais' } ] },
+];
 /* credita (UMA vez por temporada) o caixa da premiação anterior no meu clube — igual às finanças
    por-humano: o servidor não credita, cada humano soma o seu e publica no assento. Só é chamado
    no evento de virada (isTurnover), então recarregar a página no meio da temporada nova não

@@ -1371,3 +1371,37 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-ad{margin:var(--sp-5) auto var(--sp-6);padding:var(--sp-2);max-width:calc(100% - 2 * var(--sp-4))}
   .cl-ad-box{min-height:90px}
 }
+
+/* ================= SALA DE IMPRENSA (fim de temporada) =================
+   Estética de jornal dentro da moldura retrô: bloco claro sobre o feltro, kicker em
+   caixa alta, manchete serifada. Usa os tokens de espaçamento pra respirar e rola
+   sozinho quando a temporada teve muita notícia. */
+/* padding-bottom generoso: a doca do "Chat da Liga" flutua no canto e cobria o último card */
+.cl-press{width:100%;max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:var(--sp-4);
+  max-height:calc(100vh - 90px);overflow-y:auto;padding-bottom:64px}
+.cl-press-head{text-align:center}
+.cl-press-kicker{font-family:var(--sans);font-size:var(--fs-min);font-weight:var(--fw-bold);letter-spacing:.14em;
+  text-transform:uppercase;color:var(--yellow);opacity:.9}
+.cl-press-h1{font-family:var(--serif);font-style:italic;font-weight:var(--fw-bold);font-size:var(--fs-title);
+  color:#fff;line-height:1.2;margin-top:var(--sp-1);text-shadow:0 2px 4px rgba(0,0,0,.35)}
+.cl-press-cards{display:flex;flex-direction:column;gap:var(--sp-2)}
+.cl-press-card{display:flex;gap:var(--sp-3);align-items:flex-start;background:var(--paper);
+  border:var(--bw-bevel) solid;border-color:var(--bevel-in);padding:var(--sp-3)}
+.cl-press-ic{font-size:var(--fs-lg);line-height:1.1;flex:none}
+.cl-press-t{font-family:var(--sans);font-weight:var(--fw-bold);font-size:var(--fs-body);color:var(--ink)}
+.cl-press-d{font-family:var(--sans);font-size:var(--fs-sm);color:var(--gray-666);margin-top:2px;line-height:1.45}
+.cl-press-opts{display:flex;flex-direction:column;gap:var(--sp-2)}
+.cl-press-opt{width:100%;text-align:left;font-family:var(--sans);font-size:var(--fs-body);color:var(--ink);
+  background:var(--chrome);border:var(--bw-bevel) solid;border-color:var(--bevel-out);
+  padding:var(--sp-3) var(--sp-4);min-height:var(--btn-min-h);cursor:pointer;line-height:1.35}
+.cl-press-opt:hover{background:var(--bevL2)}
+.cl-press-opt:active{border-color:var(--bevel-in)}
+.cl-press-moral{text-align:center;font-family:var(--sans);font-size:var(--fs-body);color:#fff;
+  background:rgba(0,0,0,.22);border:var(--bw-hair) solid rgba(255,255,255,.25);padding:var(--sp-3)}
+.cl-press-moral.up{background:rgba(11,122,47,.35);border-color:var(--success-lite)}
+.cl-press-moral.down{background:rgba(204,0,0,.28);border-color:var(--danger-alt)}
+@media (max-width:760px){
+  .cl-press{max-height:calc(100vh - 70px)}
+  .cl-press-h1{font-size:var(--fs-lg)}
+  .cl-press-opt{padding:var(--sp-2) var(--sp-3)}
+}

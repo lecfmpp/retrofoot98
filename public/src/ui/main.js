@@ -200,6 +200,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'sorteio':   html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scSorteio(),{logo:true}); break;
     case 'main':      html=titleBarTop('RetroFoot98')+deskWrap(scMain()); break;
     case 'waitround': html=titleBarTop('RetroFoot98')+deskWrap(scWaitRound()); break;
+    case 'imprensa':  html=titleBarTop('RetroFoot98')+deskWrap(scImprensa()); break;
     case 'teamview':  html=titleBarTop('RetroFoot98')+deskWrap(scTeamView()); break;
     case 'handoff':   html=titleBarTop('RetroFoot98')+deskWrap(scHandoff()); break;
     case 'seatturn':  html=titleBarTop('RetroFoot98')+deskWrap(scSeatTurn()); break;
@@ -3115,6 +3116,132 @@ function armSeasonEndTimer(){
     if(CL._seasonEndLeft<=0) clOnlineSeasonContinue();
   }, 1000);
 }
+/* ================= SALA DE IMPRENSA (fim de temporada) =================
+   Substitui o antigo modal de premiação. Fluxo: NOTÍCIAS (fatos da temporada que acabou,
+   todos vindos do snapshot autoritativo do servidor) -> COLETIVA (5 perguntas, sempre com
+   a opção de não responder) -> FECHAMENTO (manchetes geradas + efeito na moral).
+   A virada JÁ aconteceu no servidor, então esta tela não segura o outro jogador — mesmo
+   assim cada passo tem contagem regressiva generosa, pra ninguém ficar preso aqui se sair
+   da frente do PC. O delta de moral é publicado pro servidor (ver S._netMorale): aplicar
+   só no cliente seria desfeito na rodada seguinte, igual acontecia com as transferências. */
+function openPressRoom(sum){
+  const b=(typeof buildPressBriefing==='function')?buildPressBriefing():null;
+  if(!b){ // save antigo sem snapshot: cai no comportamento anterior
+    onlineSeasonEndDialog(sum); return;
+  }
+  CL._press={ step:'news', qIdx:0, answers:[], morale:0, b, sum:sum||null };
+  CL.screen='imprensa'; cdraw(); armPressTimer();
+}
+function armPressTimer(){
+  if(CL._pressTimer){ clearInterval(CL._pressTimer); CL._pressTimer=null; }
+  CL._pressLeft=25;
+  CL._pressTimer=setInterval(()=>{
+    if(CL.screen!=='imprensa'){ clearInterval(CL._pressTimer); CL._pressTimer=null; return; }
+    CL._pressLeft=(CL._pressLeft!=null?CL._pressLeft:25)-1;
+    const el=document.querySelector('#cl-press-count'); if(el) el.textContent=Math.max(0,CL._pressLeft);
+    if(CL._pressLeft<=0){ pressAdvanceAuto(); }
+  },1000);
+}
+function clearPressTimer(){ if(CL._pressTimer){ clearInterval(CL._pressTimer); CL._pressTimer=null; } }
+/* estouro do relógio: notícias -> coletiva; pergunta -> "não responder"; fim -> começa a temporada */
+function pressAdvanceAuto(){
+  const P=CL._press; if(!P) return;
+  if(P.step==='news') return pressGoQA();
+  if(P.step==='qa')   return pressAnswer(-1);
+  return pressFinish();
+}
+function pressGoQA(){ const P=CL._press; if(!P) return; P.step='qa'; P.qIdx=0; cdraw(); armPressTimer(); }
+function pressAnswer(optIdx){
+  const P=CL._press; if(!P || P.step!=='qa') return;
+  const q=PRESS_QUESTIONS[P.qIdx];
+  if(optIdx>=0 && q && q.opts[optIdx]){
+    const o=q.opts[optIdx];
+    P.answers.push({ q:q.q, t:o.t, h:o.h, m:o.m }); P.morale+=o.m;
+  } else {
+    P.answers.push({ q:(q&&q.q)||'', t:'(não quis responder)', h:null, m:0 });
+  }
+  P.qIdx++;
+  if(P.qIdx>=PRESS_QUESTIONS.length){ P.step='fim'; }
+  cdraw(); armPressTimer();
+}
+/* aplica a moral no MEU elenco e deixa pendente pro servidor (senão a rodada seguinte desfaz) */
+function pressFinish(){
+  clearPressTimer();
+  const P=CL._press; CL._press=null;
+  const d=P?Math.max(-15,Math.min(15,P.morale)):0;  // teto de segurança
+  if(d && S.squads && S.squads[CL.clubId]){
+    S.squads[CL.clubId].forEach(p=>{ p.moral=Math.max(0,Math.min(100,(p.moral!=null?p.moral:70)+d)); });
+    if(CL.online) S._netMorale=(S._netMorale||0)+d;   // publicado junto do resultado da rodada
+  }
+  const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division);
+  toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.');
+  CL.screen='main'; CL.tab='jogo'; cdraw();
+}
+function scImprensa(){
+  const P=CL._press; if(!P) return '';
+  const b=P.b, cnt=`<span id="cl-press-count">${Math.max(0,CL._pressLeft!=null?CL._pressLeft:25)}</span>`;
+  const hint=`<div class="cl-classif-autohint">avança sozinho em ${cnt}s</div>`;
+  if(P.step==='news')  return pressNewsHTML(b,hint);
+  if(P.step==='qa')    return pressQAHTML(P,hint);
+  return pressEndHTML(P,hint);
+}
+function pressNewsHTML(b,hint){
+  const card=(ic,t,d)=>`<div class="cl-press-card"><span class="cl-press-ic">${ic}</span>
+    <div><div class="cl-press-t">${t}</div><div class="cl-press-d">${d}</div></div></div>`;
+  const my=b.divs.find(d=>d.div===S.division)||b.divs[0];
+  let cards='';
+  if(my) cards+=card('🏆',escC(my.campeao)+' é campeão da '+escC(my.label), my.campeaoPts+' pontos na temporada '+b.season+'.');
+  if(b.copa) cards+=card('🥇','Copa do Brasil: '+escC(b.copa), 'Levantou a taça nacional.');
+  if(b.art)  cards+=card('👟','Artilheiro: '+escC(b.art.nome), b.art.gols+' gols na temporada.');
+  b.divs.forEach(d=>{
+    if(!d.promovidos.length && !d.rebaixados.length) return;
+    const sobe=d.promovidos.length?('<b>Sobem:</b> '+d.promovidos.map(escC).join(', ')):'';
+    const cai=d.rebaixados.length?('<b>Caem:</b> '+d.rebaixados.map(escC).join(', ')):'';
+    cards+=card('🔀', escC(d.label), [sobe,cai].filter(Boolean).join(' · '));
+  });
+  if(b.retirements.length){
+    cards+=card('👋','Aposentadorias no seu elenco',
+      b.retirements.map(r=>escC(r.name)+' <span style="opacity:.75">('+escC(r.reason||'')+')</span>').join('<br>'));
+  }
+  if(b.humanos.length>1){
+    const rk=b.humanos.map((h,i)=>`${i+1}º ${escC(h.nome)} <span style="opacity:.75">(${escC(h.clube)} · ${escC(h.divLabel)}, ${h.pos}º)</span>`).join('<br>');
+    cards+=card('📋','Classificação dos treinadores', rk);
+  }
+  return `<div class="cl-press">
+    <div class="cl-press-head"><div class="cl-press-kicker">Resenha Esportiva · Temporada ${b.season}</div>
+      <div class="cl-press-h1">O que rolou na temporada</div></div>
+    <div class="cl-press-cards">${cards}</div>
+    <div class="cl-cal-ok">${btn('Ir para a coletiva','pressGoQA()',{icon:'🎤',cls:'cl-btn-ok'})}</div>
+    ${hint}</div>`;
+}
+function pressQAHTML(P,hint){
+  const q=PRESS_QUESTIONS[P.qIdx];
+  const opts=q.opts.map((o,i)=>`<button class="cl-press-opt" onclick="pressAnswer(${i})">${escC(o.t)}</button>`).join('');
+  return `<div class="cl-press">
+    <div class="cl-press-head"><div class="cl-press-kicker">Coletiva de imprensa · pergunta ${P.qIdx+1} de ${PRESS_QUESTIONS.length}</div>
+      <div class="cl-press-h1">${escC(q.q)}</div></div>
+    <div class="cl-press-opts">${opts}</div>
+    <div class="cl-cal-ok">${btn('Não responder','pressAnswer(-1)',{icon:'🚫',cls:'cl-btn-cancel'})}</div>
+    ${hint}</div>`;
+}
+function pressEndHTML(P,hint){
+  const hs=P.answers.filter(a=>a.h).map(a=>`<div class="cl-press-card"><span class="cl-press-ic">📰</span>
+    <div><div class="cl-press-t">${escC(a.h)}</div><div class="cl-press-d">${escC(a.t)}</div></div></div>`).join('')
+    || `<div class="cl-press-card"><span class="cl-press-ic">🤐</span><div><div class="cl-press-t">Sem declarações</div>
+        <div class="cl-press-d">Você preferiu não falar com a imprensa.</div></div></div>`;
+  const d=Math.max(-15,Math.min(15,P.morale));
+  const tone = d>0?'sobe':d<0?'cai':'estável';
+  const cls  = d>0?'up':d<0?'down':'';
+  const moralTxt = d===0 ? 'A moral do elenco segue estável.'
+    : `A moral do elenco <b>${tone}</b> ${d>0?'+':''}${d} ponto${Math.abs(d)===1?'':'s'} para o início da temporada.`;
+  return `<div class="cl-press">
+    <div class="cl-press-head"><div class="cl-press-kicker">O que saiu nos jornais</div>
+      <div class="cl-press-h1">Repercussão da coletiva</div></div>
+    <div class="cl-press-cards">${hs}</div>
+    <div class="cl-press-moral ${cls}">${moralTxt}</div>
+    <div class="cl-cal-ok">${btn('Começar a temporada','pressFinish()',{icon:'✔',cls:'cl-btn-ok'})}</div>
+    ${hint}</div>`;
+}
 function clOnlineSeasonContinue(){
   if(CL._seasonEndTimer){ clearInterval(CL._seasonEndTimer); CL._seasonEndTimer=null; }
   clCloseOverlay();
@@ -3347,7 +3474,7 @@ async function onlineAdoptServerRound(RL){
     // falhar); o servidor não credita prêmio, igual às finanças por-humano.
     const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null;
     cdraw();
-    onlineSeasonEndDialog(_sum);
+    openPressRoom(_sum);
     return;
   }
   checkPendingCupDraws(()=>{

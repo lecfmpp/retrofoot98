@@ -319,8 +319,11 @@ async function netPublishResult(round, result){
   // servidor aplica no mundo antes de jogar (applyHumanTransfers) e é idempotente, então
   // reenviar até confirmar é seguro. Ver recordNetTransfer/pruneAppliedNetTransfers no core.
   const _tr = (typeof S!=='undefined' && S && Array.isArray(S._netTransfers)) ? S._netTransfers : [];
+  // morale: efeito da coletiva de imprensa no MEU elenco (sala de imprensa de fim de temporada).
+  // Mesmo motivo das transferências: aplicar só no cliente seria desfeito pelo servidor.
+  const _mo = (typeof S!=='undefined' && S && S._netMorale) ? S._netMorale : 0;
   const payload = { round, h:result.h, a:result.a, hg:result.hg, ag:result.ag,
-    scorers:result.scorers||[], perf:result.perf||null, events:result.events||[], transfers:_tr };
+    scorers:result.scorers||[], perf:result.perf||null, events:result.events||[], transfers:_tr, morale:_mo };
   try{
     if(NET._claimed && NET._claimed[SB_AUTH_USER.id]){ NET._claimed[SB_AUTH_USER.id].last_result=payload; NET._claimed[SB_AUTH_USER.id].last_result_round=round; }
     await sb.from('game_seats').update({ last_result:payload, last_result_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);
