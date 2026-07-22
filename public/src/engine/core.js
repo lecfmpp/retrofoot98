@@ -229,17 +229,17 @@ function executePendingTransfers(){
       p.contract=t.contract; p.moral=75;
       MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division)); // gatilho de vitrine na chegada
       S.squads[S.clubId]=S.squads[S.clubId]||[]; S.squads[S.clubId].push(p);
-      recordNetTransfer(t.sellerId, S.clubId, t.playerName, t.contract); // online: avisa o servidor
+      recordNetTransfer(t.sellerId, S.clubId, t.playerName, t.contract, t.fee); // online: avisa o servidor
       S.roundNews.push(`✍️ ${t.playerName} se apresentou ao ${clubOf(S.clubId).short} (transferência acordada, agora com a janela aberta).`);
     } else if(t.kind==='sell'){
       const p=(S.squads[S.clubId]||[]).find(x=>x.n===t.playerName);
       if(!p){ return; } // já saiu por outro caminho
       S.squads[S.clubId]=S.squads[S.clubId].filter(x=>x.n!==t.playerName);
-      S.budget+=t.fee;
+      S.budget+=t.fee; commitBudget();                 // publica: senão o crédito é revertido na próxima rodada
       if(t.buyerCountry) ensureBgClubMaterialized(t.buyerId);
       delete p.contract; delete p._pendingSale;
       if(S.squads[t.buyerId]) S.squads[t.buyerId].push(p);
-      recordNetTransfer(S.clubId, t.buyerId, t.playerName, null); // online: avisa o servidor (venda)
+      recordNetTransfer(S.clubId, t.buyerId, t.playerName, null, t.fee); // online: avisa o servidor (venda)
       S.roundNews.push(`💰 ${t.playerName} deixou o clube rumo ao ${t.buyerName} por ${fmt(t.fee)} (transferência acordada).`);
       pushFinanceEntry({playerSales:t.fee, log:[`💰 ${t.playerName} vendido ao ${t.buyerName} por ${fmt(t.fee)}.`]});
     }
@@ -257,12 +257,35 @@ function executePendingTransfers(){
    Aqui só REGISTRO a transferência; ela viaja junto do resultado da rodada (netPublishResult ->
    last_result.transfers) e o servidor aplica no mundo (applyHumanTransfers, idempotente lá).
    Fica no buffer até o servidor confirmar (ver pruneAppliedNetTransfers) — se um envio se perder,
-   o próximo reenvia. No solo é no-op: lá o próprio cliente é a autoridade. */
-function recordNetTransfer(fromId, toId, playerName, contract){
+   o próximo reenvia. No solo é no-op: lá o próprio cliente é a autoridade.
+   toId nulo = o jogador SAI do mundo (multa rescisória paga por clube europeu que não existe
+   como clube jogável) — o servidor só o remove do elenco de origem.
+   fee = a taxa da transação. Ela existe aqui porque o dinheiro precisa andar JUNTO do jogador:
+   o servidor move o caixa do lado NÃO-humano (ver applyHumanTransfers). O lado humano continua
+   vindo de game_seats.budget — mexer nos dois seria contar duas vezes. */
+function recordNetTransfer(fromId, toId, playerName, contract, fee){
   if(typeof CL==='undefined' || !CL.online) return;
-  if(!fromId || !toId || !playerName) return;
+  if(!fromId || !playerName) return;
   S._netTransfers = S._netTransfers || [];
-  S._netTransfers.push({ p:playerName, from:fromId, to:toId, contract:contract||null });
+  S._netTransfers.push({ p:playerName, from:fromId, to:toId||null, contract:contract||null, fee:Math.round(fee||0) });
+}
+/* ===== CAIXA: toda mudança fora do fechamento de rodada TEM que ser publicada =====
+   S.budget é só a cópia local. A autoridade do caixa de um humano é game_seats.budget: o
+   resolve-round lê essa coluna e a escreve no mundo (S.budgets[clube]), e ao adotar a rodada o
+   cliente faz S.budget = S.budgets[meuClube] (applyViewerDivision).
+   Consequência: um débito/crédito que não passe por aqui é SILENCIOSAMENTE REVERTIDO na rodada
+   seguinte — o assento ainda tem o valor pré-transação, e é ele que vence. Foi exatamente esse o
+   bug do "comprei o jogador, ele ficou, mas o dinheiro voltou pro meu caixa": o jogador viajava
+   por _netTransfers e persistia, o dinheiro não viajava por lugar nenhum.
+   Publica SEMPRE, sem tentar economizar escrita comparando com o último valor enviado: o caixa
+   pode voltar a um número já publicado depois de uma adoção do servidor, e aí um cache diria
+   "não mudou" enquanto o assento está defasado. É um upsert de uma coluna — correção vale mais. */
+function commitBudget(){
+  if(!S) return;
+  const id=(typeof CL!=='undefined' && CL.clubId) || S.clubId;
+  if(S.budgets && id) S.budgets[id]=S.budget;
+  if(typeof CL==='undefined' || !CL.online) return;
+  if(typeof NET!=='undefined' && NET.publishBudget) NET.publishBudget(S.budget);
 }
 /* descarta do buffer as transferências que o servidor JÁ aplicou (jogador está no destino no
    estado autoritativo). Chamado depois de adotar a rodada — o que sobrar é reenviado. */
@@ -273,6 +296,9 @@ function pruneAppliedNetTransfers(){
   if(S._netMorale) S._netMorale=0;
   if(!S._netTransfers || !S._netTransfers.length) return;
   S._netTransfers = S._netTransfers.filter(t=>{
+    // destino nulo (saída do mundo por multa rescisória): aplicada quando o jogador não está
+    // MAIS na origem. Sem este ramo a saída ficava presa no buffer e era reenviada pra sempre.
+    if(!t.to){ const src=(S.squads && S.squads[t.from]) || []; return src.some(x=>x.n===t.p); }
     const dst=(S.squads && S.squads[t.to]) || [];
     return !dst.some(x=>x.n===t.p);
   });
@@ -285,7 +311,7 @@ function finalizeTransfer(negoIdx){
   const fq=checkForeignQuota(p); if(!fq.ok) return {ok:false,msg:fq.msg}; // cota de estrangeiros da liga
   const totalCost=n.offerFee;
   if(totalCost>S.budget) return {ok:false,msg:'Caixa insuficiente pra fechar a taxa combinada.'};
-  S.budget-=totalCost;
+  S.budget-=totalCost; commitBudget();                 // publica: senão o débito é revertido e o jogador sai de graça
   const contract={ salary:n.salary, role:n.role, gotMatchesBonus:false, benchStreak:0,
     releaseClause: n.clauses.europa? n.clauses.europaValue : null };
   n.status='fechada'; n.stage='done';
@@ -296,7 +322,7 @@ function finalizeTransfer(negoIdx){
     p.contract=contract; p.moral=75;
     MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division)); // gatilho de vitrine
     S.squads[S.clubId]=S.squads[S.clubId]||[]; S.squads[S.clubId].push(p);
-    recordNetTransfer(n.sellerId, S.clubId, p.n, contract); // online: avisa o servidor (senão a contratação é desfeita)
+    recordNetTransfer(n.sellerId, S.clubId, p.n, contract, totalCost); // online: avisa o servidor (senão a contratação é desfeita)
     S.roundNews.push(`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`);
     pushFinanceEntry({playerPurchases:totalCost, log:[`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`]});
     save();
@@ -448,10 +474,10 @@ function acceptIncomingOffer(id){
   }
   // janela aberta: sai agora
   S.squads[S.clubId]=S.squads[S.clubId].filter(x=>x.n!==o.playerName);
-  S.budget+=o.fee;
+  S.budget+=o.fee; commitBudget();                     // publica: senão o crédito é revertido na próxima rodada
   if(o.buyerCountry) ensureBgClubMaterialized(o.buyerId);
   if(S.squads[o.buyerId]){ delete p.contract; S.squads[o.buyerId].push(p); } // vai pro clube comprador
-  recordNetTransfer(S.clubId, o.buyerId, o.playerName, null); // online: avisa o servidor (venda)
+  recordNetTransfer(S.clubId, o.buyerId, o.playerName, null, o.fee); // online: avisa o servidor (venda)
   S.roundNews.push(`💰 ${o.playerName} vendido ao ${o.buyerName} por ${fmt(o.fee)}.`);
   pushFinanceEntry({playerSales:o.fee, log:[`💰 ${o.playerName} vendido ao ${o.buyerName} por ${fmt(o.fee)}.`]});
   save();
@@ -560,12 +586,13 @@ function resolveAuctionLot(l){
   S.roundNews=S.roundNews||[];
   if(price>S.budget){ l.status='lost'; S.roundNews.push(`❌ ${l.player}: caixa insuficiente pra pagar o lance vencedor no leilão.`); return; }
   const fq=checkForeignQuota(p); if(!fq.ok){ l.status='lost'; S.roundNews.push(`❌ ${l.player}: ${fq.msg}`); return; }
-  S.budget-=price;
+  S.budget-=price; commitBudget();                     // publica: senão o débito do leilão é revertido
   S.squads[l.sellerId]=(S.squads[l.sellerId]||[]).filter(x=>x.n!==p.n);
   p.contract={ salary:REBAL.wage(p.f), role:'Rotação', gotMatchesBonus:false, benchStreak:0, releaseClause:null };
   p.moral=75;
   if(typeof MARKET!=='undefined' && MARKET.revalueOnTransfer) MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division));
   S.squads[S.clubId].push(p);
+  recordNetTransfer(l.sellerId, S.clubId, p.n, p.contract, price); // online: sem isto o arremate é desfeito
   l.status='won';
   S.roundNews.push(`🔨 ${p.n} arrematado no leilão por ${fmt(price)} — você cobriu a concorrência!`);
   pushFinanceEntry({playerPurchases:price, log:[`🔨 ${p.n} arrematado no leilão por ${fmt(price)}.`]});
@@ -2688,8 +2715,11 @@ function europeRaids(R){
   squad(S.clubId).slice().forEach(p=>{
     if(!p.contract||!p.contract.releaseClause)return;
     if(((p.age<=23)||isHot(p)) && R.random()<0.012){
-      const clause=p.contract.releaseClause; S.budget+=clause;
+      const clause=p.contract.releaseClause; S.budget+=clause; commitBudget(); // publica: senão a multa some
       S.squads[S.clubId]=S.squads[S.clubId].filter(x=>x.n!==p.n);
+      // destino nulo: o clube europeu não existe como clube jogável, então o jogador sai do mundo.
+      // Sem avisar o servidor, ele reaparecia no elenco na rodada seguinte (e a multa era paga de novo).
+      recordNetTransfer(S.clubId, null, p.n, null, 0);
       S.negos=S.negos.filter(n=>n.player!==p.n);
       S.xi=S.xi.filter(x=>x!==p.n);
       S.roundNews.push(`🌍 Um clube europeu acionou a multa de ${fmt(clause)} por ${p.n}. Você recebeu o valor, mas perdeu o atleta.`);
@@ -2905,8 +2935,7 @@ function applyMyPrevSeasonPrizes(){
     S._prevPrizesCreditedSeason=pv.season;
     if(sum.total>0){
       S.budget=(S.budget||0)+sum.total;
-      if(S.budgets && CL.clubId) S.budgets[CL.clubId]=S.budget;
-      if(CL.online && typeof NET!=='undefined' && NET.publishBudget) NET.publishBudget(S.budget);
+      commitBudget();                  // write-back no mundo local + persiste no assento (caminho único)
     }
   }
   return sum;

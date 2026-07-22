@@ -3412,8 +3412,7 @@ function applyOwnPendingFinances(){
   const f=CL._pendingRoundFin; if(!f) return; CL._pendingRoundFin=null;
   try{
     if(typeof processFinances==='function') processFinances(f.userResult, f.uf, new Set(f.startedNames||[]), f.gate||0);
-    if(S.budgets && S.clubId) S.budgets[S.clubId]=S.budget;                 // write-back no mundo local
-    if(CL.online && typeof NET!=='undefined' && NET.publishBudget) NET.publishBudget(S.budget); // persiste no assento
+    commitBudget();                    // write-back no mundo local + persiste no assento (caminho único)
   }catch(e){ console.warn('finanças da rodada:', e); }
 }
 async function onlineAdoptServerRound(RL){
@@ -3475,7 +3474,8 @@ function _commitLeagueRound(RL, userResult, humanResults, allEvents, _auditPaylo
   saveV3();
   // salva em Supabase se online
   if(CL.online && typeof NET!=='undefined' && NET.saveGame){
-    if(S.budgets && S.clubId && S.budget!=null) S.budgets[S.clubId]=S.budget; // F3.3: write-back do caixa do próprio clube no mundo
+    commitBudget();   // write-back no mundo + publica no assento (só o write-back não bastava: o
+                      // assento defasado voltava a vencer na adoção da rodada seguinte)
     (async ()=>{ await NET.saveGame({ S, round: S.round }); })().catch(e=>console.warn('Save Supabase:', e));
     // Fase 2 Etapa A: auditoria server-side em paralelo — só registra, nunca bloqueia
     // nem afeta a experiência do jogador (silenciosa mesmo se falhar/timeout).
@@ -4340,7 +4340,8 @@ function clBuildStand(){
   if(cap+STAND_SEATS>stadiumMaxCapacity()){ toastC('⚠ Estádio no teto para o porte do clube — cresça o clube (título/elenco) pra poder ampliar mais.'); renderStadium(false); return; }
   if(((S.stadium.builtThisSeason||0)+STAND_SEATS)>SEASON_BUILD_LIMIT){ toastC('⚠ Obra é lenta: só '+grp(SEASON_BUILD_LIMIT)+' lugares por temporada. Continue na próxima.'); renderStadium(false); return; }
   if((S.budget||0)<cost){ toastC('Caixa insuficiente para construir ('+fmt(cost)+').'); return; }
-  S.budget-=cost; S.stadium.capacity+=STAND_SEATS; S.stadium.builtThisSeason=(S.stadium.builtThisSeason||0)+STAND_SEATS;
+  S.budget-=cost; commitBudget();                      // publica: senão o custo da obra é revertido na próxima rodada
+  S.stadium.capacity+=STAND_SEATS; S.stadium.builtThisSeason=(S.stadium.builtThisSeason||0)+STAND_SEATS;
   pushFinanceEntry({stadium:cost, log:[`🏟️ Bancada construída: +${grp(STAND_SEATS)} lugares (${fmt(cost)})`]});
   saveV3(); renderStadium(true); }
 

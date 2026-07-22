@@ -605,17 +605,45 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
    (last_result.transfers) porque é o único canal por-assento que o convidado escreve toda rodada.
    Sem isto, o servidor — único produtor do shared_state — desfazia a contratação na rodada
    seguinte (o jogador voltava pro clube vendedor). IDEMPOTENTE: se o jogador já está no destino,
-   ignora — o cliente reenvia até confirmar, então aplicar duas vezes não duplica ninguém. */
-function applyHumanTransfers(S: any, transfers: any[]) {
+   ignora — o cliente reenvia até confirmar, então aplicar duas vezes não duplica ninguém.
+
+   t.to nulo = o jogador SAI do mundo (multa rescisória acionada por clube europeu, que não existe
+   como clube jogável aqui) — só remove do elenco de origem.
+
+   DINHEIRO (t.fee): move o caixa APENAS do lado NÃO-humano. O caixa de um humano é autoritativo em
+   game_seats.budget, já copiado pro mundo antes desta função rodar; debitar/creditar aqui também
+   contaria a transação duas vezes. Então numa negociação humano↔humano nada acontece aqui (cada
+   cliente publica o próprio caixa), e numa humano↔CPU só o lado da CPU se mexe. Sem isto o dinheiro
+   pago a um clube da CPU simplesmente evaporava do jogo — o que passou a importar de verdade agora
+   que a CPU acumula caixa (ver cpuSeasonFinances). Fica dentro do mesmo guard de idempotência: se a
+   transferência já foi aplicada, o dinheiro não anda de novo. */
+function applyHumanTransfers(S: any, transfers: any[], humans?: Set<string>) {
+  const isHuman = (id: string) => !!(humans && humans.has(id));
   (transfers || []).forEach((t: any) => {
-    if (!t || !t.p || !t.from || !t.to || t.from === t.to) return;
-    const src = S.squads[t.from], dst = S.squads[t.to];
-    if (!Array.isArray(src) || !Array.isArray(dst)) return;
+    if (!t || !t.p || !t.from || t.from === t.to) return;
+    const src = S.squads[t.from];
+    if (!Array.isArray(src)) return;
+    const fee = Math.round(Number(t.fee) || 0);
+
+    if (!t.to) {                                                  // saída do mundo (multa rescisória)
+      const j = src.findIndex((x: any) => x.n === t.p); if (j < 0) return; // já saiu -> idempotente
+      src.splice(j, 1);
+      if (src.length) S.clubOverall[t.from] = Math.round(src.reduce((s: number, x: any) => s + x.f, 0) / src.length);
+      return;
+    }
+
+    const dst = S.squads[t.to];
+    if (!Array.isArray(dst)) return;
     if (dst.some((x: any) => x.n === t.p)) return;                // já aplicada
     const i = src.findIndex((x: any) => x.n === t.p); if (i < 0) return; // não está mais no vendedor
     const p = src.splice(i, 1)[0];
     if (t.contract) p.contract = t.contract; else delete p.contract;
     dst.push(p);
+    if (fee > 0) {
+      S.budgets = S.budgets || {};
+      if (!isHuman(t.from)) S.budgets[t.from] = Math.round((S.budgets[t.from] || 0) + fee); // vendedor CPU recebe
+      if (!isHuman(t.to))   S.budgets[t.to]   = Math.round((S.budgets[t.to]   || 0) - fee); // comprador CPU paga
+    }
     [t.from, t.to].forEach((cid: string) => { const sq = S.squads[cid]; if (sq && sq.length) S.clubOverall[cid] = Math.round(sq.reduce((s: number, x: any) => s + x.f, 0) / sq.length); });
   });
 }
@@ -631,7 +659,7 @@ function applyHumanMorale(S: any, moraleByClub: any) {
 }
 function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any, humanTransfers?: any[], moraleByClub?: any) {
   const seed = S.seed, round = S.round;
-  applyHumanTransfers(S, humanTransfers || []);                   // 0) contratações/vendas do humano ANTES de escalar/jogar
+  applyHumanTransfers(S, humanTransfers || [], humanClubs);       // 0) contratações/vendas do humano ANTES de escalar/jogar
   applyHumanMorale(S, moraleByClub || {});                        // 0b) efeito da coletiva na moral do elenco
   const fixtures = (S.sched[round] || []);
   advancePlayerAvailability(S);                                   // 1) cumpre suspensões/lesões
