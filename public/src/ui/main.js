@@ -199,6 +199,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'escolhaclubes': html=scEscolhaClubes(); break;
     case 'sorteio':   html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scSorteio(),{logo:true}); break;
     case 'main':      html=titleBarTop('RetroFoot98')+deskWrap(scMain()); break;
+    case 'waitround': html=titleBarTop('RetroFoot98')+deskWrap(scWaitRound()); break;
     case 'teamview':  html=titleBarTop('RetroFoot98')+deskWrap(scTeamView()); break;
     case 'handoff':   html=titleBarTop('RetroFoot98')+deskWrap(scHandoff()); break;
     case 'seatturn':  html=titleBarTop('RetroFoot98')+deskWrap(scSeatTurn()); break;
@@ -3193,11 +3194,29 @@ function nowMs(){ try{ return Date.now(); }catch(e){ return 0; } }
 /* volta LIVRE pra tela principal depois da minha partida (online, save único). Sem tela de espera:
    fico livre pra gerenciar. O fechamento da rodada é do anfitrião (onlineHostCloseRound) e o
    avanço/reabertura segue soberano pelo cronômetro (reopen_ready quando ninguém está busy). */
+/* TELA DE ESPERA pós-partida (online). Antes caía direto no 'main', que ainda mostrava a rodada
+   ANTIGA (a rodada só avança quando o servidor fecha) — e só DEPOIS vinha a classificação, deixando
+   a ordem das telas errada: time(rodada 3) -> ranking -> time(rodada 4). Agora fica aqui até a
+   rodada resolver; o adopt/reconcile leva pra classificação e daí pro time já na rodada nova.
+   NÃO pode ser a tela 'live': o heartbeat de "ocupado" liga com CL.screen==='live' e o servidor
+   não fecha a rodada enquanto alguém está ocupado — ficaria em deadlock. Tem escape manual
+   (clWaitRoundSkip) pra ninguém ficar preso se algo travar do outro lado. */
+function scWaitRound(){
+  const r=(S.round||0)+1;
+  return `<div class="cl-res" style="text-align:center;padding:18px">
+    <div class="cl-res-score">Rodada ${r} encerrada</div>
+    <div class="cl-res-verd">Aguardando os outros treinadores terminarem…<br>
+      <span style="opacity:.8">A classificação aparece assim que a rodada fechar.</span></div>
+    <div class="cl-classif-autohint">segue sozinho quando todos terminarem</div>
+    <div class="cl-cal-ok">${btn('Ir para o time','clWaitRoundSkip()',{icon:'⌂',cls:'cl-btn-cancel'})}</div>
+  </div>`;
+}
+function clWaitRoundSkip(){ CL.screen='main'; CL.tab='jogo'; cdraw(); }
 function onlineReturnFreeAfterMatch(){
   if(CL._liveTimer) clearTimeout(CL._liveTimer);
   CL._playedRound=S.round; // marca que JÁ joguei esta rodada — não re-simulo (evita loop na mesma rodada)
   CL.live=null; CL.subsUsed=0; CL._liveBusy=false;
-  CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||CL.selPlayer; cdraw();
+  CL.screen='waitround'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||CL.selPlayer; cdraw();
   if(CL.lastGate){ toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0; }
   // NÃO reabro a próxima rodada aqui: quem fecha e reabre a rodada é o ANFITRIÃO, DEPOIS de resolver
   // (onlineHostCloseRound). Reabrir antes do commit fazia a fase ciclar e travava/loopava a rodada.
