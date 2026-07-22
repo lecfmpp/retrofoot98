@@ -303,6 +303,61 @@ function rbForce(rawF: number, division: string) { const rf = (typeof rawF === '
 const V_ANCHORS = [[5,80e3],[10,200e3],[15,450e3],[20,700e3],[25,1e6],[30,1.6e6],[35,2.5e6],[40,4e6],[45,6e6],[50,9e6],[60,18e6],[70,35e6],[80,70e6],[90,150e6],[99,260e6]];
 function ageFactor(age: number) { const a = age || 26; if (a <= 21) return 1.35; if (a <= 27) return 1.00; if (a <= 31) return 0.80; if (a <= 35) return 0.50; return 0.25; }
 function rbValue(f: number, age: number) { return Math.max(30000, Math.round(interp(V_ANCHORS as any, f) * ageFactor(age))); }
+/* ===== ECONOMIA (porte fiel de REBAL.income/wage/stadiumCap + PRIZES.leaguePrize do cliente) =====
+   Usado só pelas finanças de fim de temporada dos clubes da CPU (ver cpuSeasonFinances). Estas
+   quatro tabelas são calibradas UMA contra a outra no cliente (rebalance.js) — qualquer mexida
+   lá precisa ser refletida aqui, senão o caixa da CPU diverge do do humano. */
+const S_ANCHORS = [[5,1e3],[10,3e3],[15,6e3],[20,10e3],[25,15e3],[30,22e3],[35,31e3],[40,43e3],[45,58e3],[50,78e3],[60,130e3],[70,220e3],[80,420e3],[90,800e3],[99,1.3e6]];
+const INCOME_ANCHORS = [[3,25e3],[8,60e3],[11,100e3],[15,150e3],[21,240e3],[25,480e3],[30,860e3],[34,1.09e6],[40,1.25e6],[45,1.75e6],[48,2.05e6],[52,2.60e6],[58,3.90e6],[70,7.2e6]];
+const CAP_ANCHORS = [[3,10000],[8,10000],[19,25000],[31,50000],[44,75000],[55,82000],[70,88000]];
+const WIN_BONUS = 0.12, DRAW_BONUS = 0.04, OPEX = 0.08;
+function rbWage(f: number) { return Math.max(500, Math.round(interp(S_ANCHORS as any, (typeof f === 'number' && isFinite(f)) ? f : 40))); }
+function rbIncome(ov: number) { return Math.max(20000, Math.round(interp(INCOME_ANCHORS as any, (typeof ov === 'number' && isFinite(ov)) ? ov : 30))); }
+function rbStadiumCap(ov: number) { return Math.round(Math.max(10000, Math.min(90000, interp(CAP_ANCHORS as any, (typeof ov === 'number' && isFinite(ov)) ? ov : 30))) / 1000) * 1000; }
+const LEAGUE_PRIZE: any = {
+  A:{champ:20e6,vice:14e6,top4:10e6,upper:6e6,mid:3.5e6,lower:2e6},
+  B:{champ:9e6,vice:6e6,top4:4e6,upper:2.5e6,mid:1.5e6,lower:0.9e6},
+  C:{champ:4e6,vice:2.7e6,top4:1.8e6,upper:1.1e6,mid:0.7e6,lower:0.4e6},
+  D:{champ:2e6,vice:1.3e6,top4:0.9e6,upper:0.55e6,mid:0.35e6,lower:0.2e6},
+};
+function leaguePrizeT(div: string, pos: number, n: number) {
+  const t = LEAGUE_PRIZE[BAND_BY_DIV[div] || 'A'] || LEAGUE_PRIZE.A; n = n || 20;
+  if (pos === 1) return t.champ; if (pos === 2) return t.vice; if (pos <= 4) return t.top4;
+  if (pos <= Math.ceil(n * 0.35)) return t.upper;
+  if (pos <= Math.ceil(n * 0.70)) return t.mid;
+  return t.lower;
+}
+/* FINANÇAS DE FIM DE TEMPORADA DOS CLUBES DA CPU — espelho de applyCpuSeasonFinances (core.js).
+   O servidor é o único produtor do shared_state, então S.budgets dos clubes NÃO-humanos só pode
+   crescer aqui: qualquer atualização que um cliente fizesse seria desfeita no próximo adopt.
+   Os humanos ficam de fora — o caixa deles é autoritativo em game_seats.budget (ver linha ~642).
+   Sem isto os rivais congelavam no caixa inicial e o humano dominava o mercado em 2-3 temporadas. */
+function cpuSeasonFinances(S: any, humans: Set<string>) {
+  if (!S || !S.budgets) return;
+  const meta: any = {};
+  const reg = (div: string, tbl: any) => {
+    sortTblT(tbl || {}).forEach((r: any, i: number) => { meta[r.id] = { div, pos: i + 1, n: Object.keys(tbl || {}).length, row: r }; });
+  };
+  reg(S.division, S.table);
+  DIV_ORDER.forEach((d) => { const od = S.otherDivs && S.otherDivs[d]; if (od && od.table) reg(d, od.table); });
+  Object.keys(S.budgets).forEach((id) => {
+    if (humans.has(id)) return;
+    const ov = (S.clubOverall && S.clubOverall[id]) || 30;
+    const base = rbIncome(ov);
+    let payroll = 0;
+    (S.squads[id] || []).forEach((p: any) => { payroll += (p.contract && p.contract.salary) || rbWage(p.f); });
+    const m = meta[id];
+    const rounds = (m && m.row && m.row.P) ? m.row.P : 38;
+    const w = (m && m.row) ? m.row.W : Math.round(rounds * 0.35), d = (m && m.row) ? m.row.D : Math.round(rounds * 0.27);
+    const bonus = Math.round(base * (w * WIN_BONUS + d * DRAW_BONUS));
+    const price = Math.round(Math.max(6, Math.min(16, 6 + Math.max(0, (ov || 30) - 20) * 0.32)));
+    const gate = Math.round(rbStadiumCap(ov) * 0.55) * price * (Math.round(rounds / 2) || 19);
+    const prize = m ? (leaguePrizeT(m.div, m.pos, m.n) || 0) : 0;
+    const revenue = base * rounds + gate + bonus + prize;
+    const costs = payroll * rounds + Math.round(base * OPEX) * rounds;
+    S.budgets[id] = Math.max(-base * 4, Math.round((S.budgets[id] || 0) + revenue - costs));
+  });
+}
 function evolvePlayer(p: any, R: any, played: boolean, sDivision: string) {
   if (!p.attr) return; // sem atributos não há como evoluir (saves válidos já têm p.attr)
   const a = p.attr, age = p.age || 26;
@@ -515,7 +570,9 @@ function makeBracketT(ids: string[], seedNum: number, clubOverall: any) {
   const ties: any[] = []; for (let i = 0; i < play.length; i += 2) ties.push({ h: play[i], a: play[i + 1], hg: null, ag: null, winner: null, events: [] });
   return { round: 1, roundsTotal: Math.log2(size), byeTeams: byeTeams.slice(), ties, pendingByes: byeTeams.slice(), champion: null, eliminated: {}, history: [] };
 }
-function resolveSeasonTurnover(S: any) {
+function resolveSeasonTurnover(S: any, humans?: Set<string>) {
+  // 0) caixa dos clubes da CPU — ANTES do swap de divisões, com as tabelas/elencos do ano que fechou
+  cpuSeasonFinances(S, humans || new Set<string>());
   const newDiv = computeDivisionSwap(S);                          // 1) promoção/rebaixamento (provado)
   const divOfClub: any = {}; DIV_ORDER.forEach((d) => newDiv[d].forEach((id: string) => divOfClub[id] = d));
   // RESUMO DA TEMPORADA QUE ACABOU (pré-reset): tabelas finais por divisão + artilharia + copa.
@@ -603,7 +660,7 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   advancePendingCups(S, cupResultByFx || {});                     // 6) copas (Copa do Brasil) — usa a rodada NOVA
   S._roundIncidents = {};
   // 7) fim de temporada? liga terminou -> virada (promoção/rebaixamento + regen + nova temporada)
-  if (Array.isArray(S.sched) && S.round >= S.sched.length) resolveSeasonTurnover(S);
+  if (Array.isArray(S.sched) && S.round >= S.sched.length) resolveSeasonTurnover(S, new Set(humanClubs));
 }
 
 Deno.serve(async (req: Request) => {

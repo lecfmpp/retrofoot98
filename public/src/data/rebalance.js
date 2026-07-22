@@ -112,6 +112,35 @@
     return salary(f);
   }
 
+  /* ---- 3b. RECEITA-BASE por rodada (TV/patrocínio) por overall NOVO ----
+     Antes era uma fórmula solta do porte do clube: ov*36000 + kicker quadrático acima de ov42.
+     O termo linear valia o MESMO em qualquer divisão, mas a folha desaba muito mais rápido que
+     ele quando se desce de série — resultado medido nos dados reais: a folha consumia 67% da
+     receita na A, 50% na B, 19% na C e só 10% na D. Times da Série C lucravam MAIS que 14 dos 20
+     da Série A, e um clube da D multiplicava o caixa por 58 em cinco temporadas.
+
+     Agora a receita é uma TABELA ancorada no overall, calibrada de trás pra frente a partir da
+     folha real de cada um dos 80 clubes brasileiros, com uma meta de folha/receita que CRESCE com
+     o porte (60% na D → 79% na elite). Isso é o que acontece no futebol de verdade: clube grande
+     disputa talento e gasta proporcionalmente mais do que fatura; clube pequeno roda enxuto. O
+     efeito é que a margem some no topo sem sufocar quem está embaixo, e subir de divisão vale
+     muito (2,4x a 3,5x de receita por promoção). Ver harness de calibração. */
+  const INCOME_ANCHORS=[
+    [3,25e3],[8,60e3],[11,100e3],[15,150e3],[21,240e3],[25,480e3],[30,860e3],
+    [34,1.09e6],[40,1.25e6],[45,1.75e6],[48,2.05e6],[52,2.60e6],[58,3.90e6],[70,7.2e6]
+  ];
+  function income(overall){
+    const ov=(typeof overall==='number' && isFinite(overall))?overall:30;
+    return Math.max(20000, Math.round(interp(INCOME_ANCHORS, ov)));
+  }
+  /* Bônus de vitória/empate como FRAÇÃO da receita-base, não valor fixo. O antigo R$500k fixo
+     valia 9% da receita de um clube da Série A e 40% da de um da Série D — uma vitória na D
+     pagava 8x a folha semanal inteira. */
+  const WIN_BONUS=0.12, DRAW_BONUS=0.04;
+  /* Custo operacional por rodada (estrutura, logística, manutenção) — o jogo só tinha salário
+     como despesa, então tudo que entrava virava caixa. */
+  const OPEX=0.08;
+
   /* ---- 4. CAIXA INICIAL por divisão ---- */
   const BUDGET={ A:[10e6,20e6], B:[6.5e6,9.5e6], C:[3e6,5e6], D:[1e6,2.5e6] };
   function budget(division, rng){
@@ -133,5 +162,6 @@
   const DIV_CAP={ A:75000, B:50000, C:25000, D:10000 };
   function stadiumCapForDivision(division){ return DIV_CAP[bandKey(division)] || 25000; }
 
-  window.REBAL={ force, engForce, value, valueBase, salary, wage, budget, stadiumCap, stadiumCapForDivision, BUDGET, BANDS };
+  window.REBAL={ force, engForce, value, valueBase, salary, wage, budget, income, stadiumCap, stadiumCapForDivision,
+                 BUDGET, BANDS, WIN_BONUS, DRAW_BONUS, OPEX };
 })();

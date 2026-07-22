@@ -2293,7 +2293,7 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
   // novo clube, novas contas — sem isso a aba Finanças ia misturar salário/receita do
   // clube antigo com o novo (mesmo bug de sincronização, outro gatilho: troca de clube
   // no meio da temporada por demissão/proposta, não só virada de temporada).
-  S.finances=[]; S.seasonTotals={income:0,salaries:0,bonuses:0,playerSales:0,playerPurchases:0,stadium:0};
+  S.finances=[]; S.seasonTotals={income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
   S.jobSecurity=60;
   CL.tacticChosen=false; CL.formation=null; CL.selPlayer=squad(newClubId)[0]?.n||null;
   advanceAuctions();
@@ -2450,12 +2450,13 @@ function mpRate(xi,gf,ga,scorers,cid,R,myPerf,oppPerf){
 }
 function mpFinances(state,cid,xi,gf,ga,scorers){
   const cl=DATA.clubs.find(c=>c.id===cid);const won=gf>ga,draw=gf===ga;
-  const income=Math.round(baseIncome(cl.overall)+(won?500000:draw?150000:0));
+  const base=Math.round(baseIncome(cl.overall));
+  const income=base+Math.round(base*(won?REBAL.WIN_BONUS:draw?REBAL.DRAW_BONUS:0)); // mesmas constantes de processFinances
   let salaries=0,bonuses=0;const started=new Set(xi.map(p=>p.n));
   state.squads[cid].forEach(p=>{
     if(!p.contract)return;const c=p.contract;salaries+=c.salary;
     if(c.bonusGoal){const g=scorers.filter(s=>s.id===cid&&s.name===p.n).length;
-      const csb=(ga===0&&(p.s==='GK'||p.s==='DEF')&&started.has(p.n))?1:0;bonuses+=(g+csb)*50000;}
+      const csb=(ga===0&&(p.s==='GK'||p.s==='DEF')&&started.has(p.n))?1:0;bonuses+=(g+csb)*Math.max(1000,Math.round(c.salary));}
     if(!c.gotMatchesBonus&&p.stats&&p.stats.apps>=Math.ceil(state.sched.length*0.5)){const mb=c.salary*4;bonuses+=mb;c.gotMatchesBonus=true;}
   });
   state.budgets[cid]=(state.budgets[cid]||0)+income-salaries-bonuses;
@@ -2602,7 +2603,12 @@ function processFinances(userResult,uf,startedNames,gateOverride){
   const cl=clubOf(S.clubId);
   let gf=0,ga=0,won=false,draw=false;
   if(uf&&userResult){ const home=uf[0]===S.clubId; gf=home?userResult.hg:userResult.ag; ga=home?userResult.ag:userResult.hg; won=gf>ga; draw=gf===ga; }
-  const winBonus=won?500000:draw?150000:0;
+  // bônus de vitória PROPORCIONAL à receita-base do clube. Era R$500k fixo pra todo mundo, o que
+  // significava 9% da receita de um clube da Série A e 40% da de um da Série D — uma vitória na D
+  // pagava 8x a folha semanal inteira, e era esse o combustível do caixa infinito nas divisões
+  // de baixo (ver REBAL.income).
+  const base=Math.round(baseIncome(cl.overall));
+  const winBonus=Math.round(base*(won?REBAL.WIN_BONUS:draw?REBAL.DRAW_BONUS:0));
   // bilheteria: quando o usuário joga em casa nesta rodada, a renda de bilheteria de VERDADE
   // (público × preço, calculada em attendanceFor/buildLiveMatchObject — sensível à capacidade
   // do estádio expandido) é a receita da rodada, em vez da fórmula-base por força do elenco.
@@ -2618,22 +2624,29 @@ function processFinances(userResult,uf,startedNames,gateOverride){
   // item 4: receita = base (TV/patrocínio, por overall, SEMPRE) + bilheteria REAL quando joga em
   // casa + bônus de vitória. Antes a bilheteria SUBSTITUÍA a base em casa, o que deixava as rodadas
   // em casa mais pobres que as de fora (bilheteria << base) e inviabilizava os clubes grandes.
-  const income=Math.round(baseIncome(cl.overall)) + (gate!=null?gate:0) + winBonus;
+  const income=base + (gate!=null?gate:0) + winBonus;
   let salaries=0,bonuses=0,log=[];
   squad(S.clubId).forEach(p=>{
     if(!p.contract)return; const c=p.contract; salaries+=c.salary;
     if(c.bonusGoal){
+      // bônus de gol/clean sheet = 1 semana de salário do jogador. Antes era R$50k fixo — outra
+      // constante cega à divisão: na Série D, um gol pagava quase a folha inteira do clube.
+      const unit=Math.max(1000, Math.round(c.salary));
       const g=userResult?userResult.scorers.filter(s=>s.id===S.clubId&&s.name===p.n).length:0;
       const cs=(userResult&&ga===0&&(p.s==='GK'||p.s==='DEF')&&startedNames.has(p.n))?1:0;
-      if(g){bonuses+=g*50000;log.push(`⚽ Bônus gol ${p.n}: ${fmt(g*50000)}`);}
-      if(cs){bonuses+=50000;log.push(`🧤 Clean sheet ${p.n}: ${fmt(50000)}`);}
+      if(g){bonuses+=g*unit;log.push(`⚽ Bônus gol ${p.n}: ${fmt(g*unit)}`);}
+      if(cs){bonuses+=unit;log.push(`🧤 Clean sheet ${p.n}: ${fmt(unit)}`);}
     }
     if(!c.gotMatchesBonus && p.stats && p.stats.apps>=Math.ceil(S.sched.length*0.5)){
       const mb=c.salary*2; bonuses+=mb; c.gotMatchesBonus=true; log.push(`🎯 Meta 50% jogos ${p.n}: ${fmt(mb)}`);
     }
   });
-  const net=income-salaries-bonuses; S.budget+=net;
-  pushFinanceEntry({income,salaries,bonuses,log});
+  // custo operacional (estrutura, logística, manutenção). Até aqui o salário era a ÚNICA despesa
+  // do jogo, então cada centavo que entrava virava caixa — parte de por que o lucro crescia sem
+  // limite. Escala com a receita-base, então acompanha o porte do clube.
+  const opex=Math.round(base*REBAL.OPEX);
+  const net=income-salaries-bonuses-opex; S.budget+=net;
+  pushFinanceEntry({income,salaries,bonuses,opex,log});
   if(S.budget<0) S.roundNews.push(`⚠️ Caixa negativo (${fmt(S.budget)}). Folha salarial pressionando as contas.`);
 }
 /* registra QUALQUER movimentação financeira — tanto o fechamento de cada rodada (bilheteria/
@@ -2645,14 +2658,16 @@ function processFinances(userResult,uf,startedNames,gateOverride){
       as rodadas mais antigas silenciosamente saíam da conta (salário/bônus "sumindo"). */
 function pushFinanceEntry(patch){
   S.finances=S.finances||[];
-  S.seasonTotals=S.seasonTotals||{income:0,salaries:0,bonuses:0,playerSales:0,playerPurchases:0,stadium:0};
-  const entry=Object.assign({round:S.round+1,income:0,salaries:0,bonuses:0,playerSales:0,playerPurchases:0,stadium:0,net:0,log:[]},patch);
-  entry.net=(entry.income||0)+(entry.playerSales||0)-(entry.salaries||0)-(entry.bonuses||0)-(entry.playerPurchases||0)-(entry.stadium||0);
+  S.seasonTotals=S.seasonTotals||{income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
+  if(S.seasonTotals.opex==null) S.seasonTotals.opex=0;                 // saves antigos, salvos antes do custo operacional existir
+  const entry=Object.assign({round:S.round+1,income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0,net:0,log:[]},patch);
+  entry.net=(entry.income||0)+(entry.playerSales||0)-(entry.salaries||0)-(entry.bonuses||0)-(entry.opex||0)-(entry.playerPurchases||0)-(entry.stadium||0);
   S.finances.unshift(entry);
   if(S.finances.length>12) S.finances.pop();
   S.seasonTotals.income+=entry.income||0;
   S.seasonTotals.salaries+=entry.salaries||0;
   S.seasonTotals.bonuses+=entry.bonuses||0;
+  S.seasonTotals.opex+=entry.opex||0;
   S.seasonTotals.playerSales+=entry.playerSales||0;
   S.seasonTotals.playerPurchases+=entry.playerPurchases||0;
   S.seasonTotals.stadium+=entry.stadium||0;
@@ -2761,7 +2776,7 @@ function awardSeasonPrizes(tbl, myCups){
   }
   if(total>0){
     S.budget=(S.budget||0)+total;
-    S.seasonTotals=S.seasonTotals||{income:0,salaries:0,bonuses:0,playerSales:0,playerPurchases:0,stadium:0};
+    S.seasonTotals=S.seasonTotals||{income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
     S.seasonTotals.income+=total;
   }
   S._seasonPrizes={ lines, total, art, season:S.season };
@@ -2928,9 +2943,9 @@ function endSeason(){
   // ver o histórico resumido de um clube que já comandou, mesmo depois de assumir outro
   // (ver panFinancas). Precisa capturar ANTES de newSeasonReset() zerar S.seasonTotals.
   S.financeHistory=S.financeHistory||{};
-  const st=S.seasonTotals||{income:0,salaries:0,bonuses:0,playerSales:0,playerPurchases:0,stadium:0};
+  const st=S.seasonTotals||{income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
   (S.financeHistory[S.clubId]=S.financeHistory[S.clubId]||[]).push({season:S.season, ...st,
-    net:(st.income+st.playerSales)-(st.salaries+st.bonuses+st.playerPurchases+st.stadium)});
+    net:(st.income+st.playerSales)-(st.salaries+st.bonuses+(st.opex||0)+st.playerPurchases+st.stadium)});
   // acumula artilharia histórica (nunca é apagada entre temporadas do mesmo save)
   S.allTimeScorers=S.allTimeScorers||{};
   Object.entries(S.scorers||{}).forEach(([n,g])=>{ S.allTimeScorers[n]=(S.allTimeScorers[n]||0)+g; });
@@ -3032,7 +3047,65 @@ function applySeasonAgingAndRetirement(){
 function pendingDivisionChange(){
   return decidePromotionRelegation(tablePos(S.clubId), DATA.clubs.length);
 }
+/* ---- FINANÇAS DOS CLUBES DA CPU (uma vez por temporada, no fechamento) ----
+   Até aqui SÓ o clube do usuário tinha vida financeira: processFinances rodava a cada rodada
+   pra ele, e os 79 outros recebiam um caixa inicial em createSave/buildOtherDivisions e nunca
+   mais mudavam. O efeito medido era pior que o do caixa inflacionado: o humano saía de R$1,8M
+   pra R$105M em cinco temporadas enquanto TODO rival ficava parado no valor inicial — depois
+   de duas ou três temporadas ninguém mais conseguia disputar uma contratação com ele.
+
+   Agora cada clube da CPU fecha o ano com o mesmo modelo do usuário (receita-base × 38 rodadas
+   + bilheteria dos 19 jogos em casa + bônus por aproveitamento real na tabela − folha − custo
+   operacional + premiação da posição final). É uma passada só, ~80 clubes de aritmética, em vez
+   de simular finanças rodada a rodada pra todo mundo.
+
+   Chamada no INÍCIO de newSeasonReset, antes de computeDivisionSwap trocar a composição das
+   divisões — as tabelas e os elencos aqui ainda são os da temporada que acabou. */
+function applyCpuSeasonFinances(){
+  if(!S || !S.budgets) return;
+  const humans=new Set();
+  if(S.clubId) humans.add(S.clubId);
+  if(typeof CL!=='undefined' && CL.humans) Object.keys(CL.humans).forEach(id=>humans.add(id));
+
+  // posição final + divisão de cada clube, pras premiações (a divisão do usuário e as outras 3)
+  const meta={};
+  const reg=(div,tbl)=>{
+    const rows=Object.values(tbl||{}).sort((a,b)=> b.Pts-a.Pts || (b.GF-b.GA)-(a.GF-a.GA) || b.GF-a.GF || String(a.id).localeCompare(String(b.id)));
+    rows.forEach((r,i)=>{ meta[r.id]={div,pos:i+1,n:rows.length,row:r}; });
+  };
+  reg(S.division, S.table);
+  DIV_ORDER.forEach(d=>{ const od=S.otherDivs&&S.otherDivs[d]; if(od&&od.table) reg(d,od.table); });
+
+  const ROUNDS=38, HOME=19;
+  Object.keys(S.budgets).forEach(id=>{
+    if(humans.has(id)) return;                                   // humano já paga/recebe por rodada
+    const c=clubOf(id); if(!c) return;
+    const ov=c.overall, base=baseIncome(ov);
+    let payroll=0;
+    (S.squads[id]||[]).forEach(p=>{ payroll += (p.contract && p.contract.salary) || REBAL.wage(p.f); });
+
+    const m=meta[id];
+    const rounds=(m&&m.row&&m.row.P)?m.row.P:ROUNDS;             // jogos de verdade, quando a tabela existe
+    // aproveitamento real vira bônus: quem ganhou mais, arrecadou mais (mesma regra do usuário)
+    const w=(m&&m.row)?m.row.W:Math.round(rounds*0.35), d=(m&&m.row)?m.row.D:Math.round(rounds*0.27);
+    const bonus=Math.round(base*(w*REBAL.WIN_BONUS + d*REBAL.DRAW_BONUS));
+    const cap=(typeof REBAL.stadiumCap==='function')?REBAL.stadiumCap(ov):20000;
+    const price=Math.round(Math.max(6,Math.min(16,6+Math.max(0,(ov||30)-20)*0.32)));
+    const homeGames=Math.round(rounds/2) || HOME;
+    const gate=Math.round(cap*0.55)*price*homeGames;             // ocupação média ~55%, igual à calibração
+
+    let prize=0;
+    if(m && typeof PRIZES!=='undefined'){ try{ prize=PRIZES.leaguePrize(m.div,m.pos,m.n)||0; }catch(e){} }
+
+    const revenue=base*rounds + gate + bonus + prize;
+    const costs=payroll*rounds + Math.round(base*REBAL.OPEX)*rounds;
+    // piso: um clube da CPU não some do mercado por dívida — fica raspando o caixa, como no
+    // save do usuário, que também só recebe um aviso quando fica negativo.
+    S.budgets[id]=Math.max(-base*4, Math.round((S.budgets[id]||0) + revenue - costs));
+  });
+}
 function newSeasonReset(){
+  applyCpuSeasonFinances();          // ANTES do swap de divisões: tabelas/elencos ainda são os do ano que fechou
   const finalTable=sortedTable();
   const finalPos=tablePos(S.clubId);
   S._intlUserFinish=finalPos; // classificação doméstica -> vaga na Champions/Europa da próxima temporada
@@ -3068,7 +3141,7 @@ function newSeasonReset(){
   S.week=1; S.day=1; S.season++;
   S.results=[]; S.scorers={}; S.negos=[]; S.finished=false; S.pendingEvent=null;
   S.finances=[]; S.roundNews=[];
-  S.seasonTotals={income:0,salaries:0,bonuses:0,playerSales:0,playerPurchases:0,stadium:0}; // zera pra temporada nova
+  S.seasonTotals={income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0}; // zera pra temporada nova
   if(S.stadium) S.stadium.builtThisSeason=0; // libera a cota de obras da nova temporada (crescimento lento)
   // renovação automática do salário do treinador a cada temporada (se não foi demitido)
   if(S.coachSalary && S.roundsSinceFired===null){

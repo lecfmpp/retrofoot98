@@ -1954,14 +1954,14 @@ function panFinancas(){
   // pushFinanceEntry). Importante: NÃO somar isso a partir de S.finances, que é só um log
   // das últimas 12 transações pro histórico recente — somar por ali fazia o total "esquecer"
   // salário/bônus/receita de qualquer rodada mais antiga que a 12ª mais recente.
-  const st=S.seasonTotals||{income:0,salaries:0,bonuses:0,playerSales:0,playerPurchases:0,stadium:0};
-  const totalGate=st.income, totalSalaries=st.salaries, totalBonuses=st.bonuses,
+  const st=S.seasonTotals||{income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
+  const totalGate=st.income, totalSalaries=st.salaries, totalBonuses=st.bonuses, totalOpex=st.opex||0,
         totalPlayerSales=st.playerSales, totalPlayerPurchases=st.playerPurchases, totalStadium=st.stadium||0;
   const financesLog = [];
   (S.finances||[]).forEach(f=>{ if(f.log) financesLog.push(...f.log); });
 
   const totalIncome = totalGate + totalPlayerSales;
-  const totalExpenses = totalSalaries + totalBonuses + totalPlayerPurchases + totalStadium;
+  const totalExpenses = totalSalaries + totalBonuses + totalOpex + totalPlayerPurchases + totalStadium;
   const currentBalance = totalIncome - totalExpenses;
 
   const R=(l,v)=>`<div class="cl-fin-row"><span>${l}</span><b>${grp(v)}</b></div>`;
@@ -1974,7 +1974,7 @@ function panFinancas(){
     <div class="cl-fin-sec">Receitas (até agora)</div>
     ${R('Bilhetes',totalGate)}${R('Jogadores vendidos',totalPlayerSales)}${R('Prémios',0)}
     <div class="cl-fin-sec">Despesas (até agora)</div>
-    ${R('Salários',totalSalaries)}${R('Bônus jogadores',totalBonuses)}${R('Jogadores comprados',totalPlayerPurchases)}${R('Bancadas',totalStadium)}${R('Juros',0)}
+    ${R('Salários',totalSalaries)}${R('Bônus jogadores',totalBonuses)}${R('Custo operacional',totalOpex)}${R('Jogadores comprados',totalPlayerPurchases)}${R('Bancadas',totalStadium)}${R('Juros',0)}
     <div class="cl-fin-tot">${R('Total de receitas',totalIncome)}${R('Total de despesas',totalExpenses)}${R('Saldo até agora',currentBalance)}</div>
     <div class="cl-fin-foot">
       <div class="cl-fin-row big"><span>Salários (por semana)</span><b>${grp(totalSalaryPerWeek)}</b></div>
@@ -2001,7 +2001,7 @@ function clFinanceHistory(clubId){
   const head=`<div class="cl-seasonhist-row cl-seasonhist-head" style="grid-template-columns:48px 1fr 1fr 1fr 1fr">
     <span>Ano</span><span>Receita</span><span>Despesa</span><span>Lucro</span><span></span></div>`;
   const rows=entries.map(f=>{
-    const income=f.income+f.playerSales, expense=f.salaries+f.bonuses+f.playerPurchases+(f.stadium||0);
+    const income=f.income+f.playerSales, expense=f.salaries+f.bonuses+(f.opex||0)+f.playerPurchases+(f.stadium||0);
     return `<div class="cl-seasonhist-row" style="grid-template-columns:48px 1fr 1fr 1fr 1fr">
       <span class="cl-seasonhist-season">${f.season}</span>
       <span>${moneyDisp(income)}</span><span>${moneyDisp(expense)}</span>
