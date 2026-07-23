@@ -4531,7 +4531,11 @@ function startCupDrawReplay(key, stage, onDone){
 function cupDrawTick(){
   const st=CL.cupDraw; if(!st || CL.screen!=='cupdraw') return;
   if(st.idx>=st.reveal.length){
-    CL._cupDrawTimer=setTimeout(()=>{ const done=st.onDone; CL.cupDraw=null; CL.screen='main'; cdraw(); if(done) done(); }, st.fast?400:1800);
+    // ao terminar o sorteio: se há uma próxima tela (done — tipicamente a CLASSIFICAÇÃO pós-rodada),
+    // deixa ELA definir o screen. Antes fazia screen='main'+cdraw() ANTES de done(), o que piscava a
+    // tela inicial no meio: sorteio -> tela-inicial(flash) -> classificação -> tela-inicial (item 3).
+    CL._cupDrawTimer=setTimeout(()=>{ const done=st.onDone; CL.cupDraw=null;
+      if(done){ done(); } else { CL.screen='main'; cdraw(); } }, st.fast?400:1800);
     cdraw(); return;
   }
   const item=st.reveal[st.idx++];
