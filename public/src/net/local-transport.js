@@ -260,7 +260,7 @@ function onlineReconcileIfBehind(room){
       // o save é do HOST — restaura o MEU clube (senão eu assumo o clube do host no motor)
       S.clubId = CL.clubId;
       applyViewerDivision(CL.clubId);                    // F3.5: renderiza a divisão do PRÓPRIO clube (temporada 2+)
-      S.xi = (S.clubXI && S.clubXI[CL.clubId] && S.clubXI[CL.clubId].length) ? S.clubXI[CL.clubId].slice() : (typeof autoXI==='function' ? autoXI(CL.clubId) : S.xi);
+      S.xi = resolveClubXI(CL.clubId);
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       if(typeof pruneAppliedNetTransfers==='function') pruneAppliedNetTransfers(); // solta as transferências já aplicadas pelo servidor
       if(typeof applyOwnPendingFinances==='function') applyOwnPendingFinances(); // F3.3: finanças da MINHA rodada (convidado)
@@ -991,7 +991,7 @@ function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=ro
           // time". CL.clubId é o clube (livre) que EU acabei de assumir; o motor tem que usar ELE.
           S.clubId = CL.clubId;
           applyViewerDivision(CL.clubId);                // F3.5: renderiza a divisão do PRÓPRIO clube (temporada 2+)
-          S.xi = (S.clubXI && S.clubXI[CL.clubId] && S.clubXI[CL.clubId].length) ? S.clubXI[CL.clubId].slice() : (typeof autoXI==='function' ? autoXI(CL.clubId) : S.xi);
+          S.xi = resolveClubXI(CL.clubId);
           CL.selPlayer = (squad(CL.clubId)[0]||{}).n || CL.selPlayer;
           syncDataClubsFromState(); console.log('✓ Jogo carregado (rodada', savedState.round, ') — clube:', CL.clubId); }
       } catch(e) { console.warn('Load Supabase:', e); }
@@ -1123,7 +1123,7 @@ function onlineCompleteSeasonTurnover(){
       if(saved && saved.S){
         Object.assign(S, saved.S); S.clubId=CL.clubId;
         if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
-        S.xi = (S.clubXI && S.clubXI[CL.clubId] && S.clubXI[CL.clubId].length) ? S.clubXI[CL.clubId].slice() : (typeof autoXI==='function'?autoXI(CL.clubId):S.xi);
+        S.xi = resolveClubXI(CL.clubId);
         if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
         if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
         CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';

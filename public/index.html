@@ -430,6 +430,35 @@ function autoXI(id){
    seletor de pênalti mesmo só um deles estando de fato escalado. */
 function xiPlayers(id){const names=new Set(S.xi);const seen=new Set();
   return squad(id).filter(p=>{ if(!names.has(p.n)||seen.has(p.n)) return false; seen.add(p.n); return true; });}
+/* ---- XI CONSISTENTE com o elenco ATUAL (correção do "botão Jogar cinza" no online) ----
+   No online, S.xi é recomputado a partir de S.clubXI[clubId] toda vez que o cliente adota o
+   estado do servidor (Object.assign(S, ...)). Se esses nomes guardados NÃO existem mais no
+   S.squads[clubId] recém-carregado (save antigo, clubXI publicado pra outro elenco, virada de
+   temporada), xiPlayers casa por nome e devolve <11 -> o portão `xi.length>=11` trava e o botão
+   fica cinza pra sempre (tacticChosen continua true, então não se recupera sozinho). O host é o
+   mais afetado: ele não passa pelo reconcile que recuparia o XI a cada rodada.
+   Aqui só confiamos no XI guardado se ele REALMENTE resolve pra 11 jogadores do elenco atual;
+   senão, remontamos com autoXI (11 nomes sempre válidos). */
+function resolveClubXI(id){
+  const sq=(S.squads&&S.squads[id])||[];
+  const auto=()=> (typeof autoXI==='function' && sq.length) ? autoXI(id) : [];
+  const stored=(S.clubXI&&S.clubXI[id])||null;
+  if(!stored || !stored.length) return auto();
+  const names=new Set(sq.map(p=>p.n));
+  const present=stored.filter(n=>names.has(n));
+  return present.length>=11 ? stored.slice() : auto();   // guardado inconsistente -> remonta
+}
+/* rede de segurança final: se por qualquer motivo S.xi não resolver pra 11 jogadores do meu
+   elenco (e o elenco COMPORTA 11), remonta na hora. Chamada antes de avaliar o portão do botão
+   Jogar — garante que ele NUNCA fica cinza permanentemente quando dá pra escalar. Não entra em
+   loop: autoXI devolve 11 nomes válidos, aí present>=11 e não remonta de novo. */
+function ensureMyXIResolves(){
+  if(!S || !S.clubId) return;
+  const sq=(S.squads&&S.squads[S.clubId])||[]; if(sq.length<11) return;
+  const names=new Set(sq.map(p=>p.n));
+  const present=(S.xi||[]).filter(n=>names.has(n));
+  if(present.length<11 && typeof autoXI==='function') S.xi=autoXI(S.clubId);
+}
 
 /* team sector ratings from CURRENT best XI + morale/energy */
 function ratings(id, useXI){

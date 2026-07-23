@@ -2000,6 +2000,7 @@ function panFinancasLog(){
 
 /* ---- painel: SELECÇÃO (+ Jogar) ---- */
 function panSeleccao(){
+  if(typeof ensureMyXIResolves==='function') ensureMyXIResolves(); // nunca deixa o botão Jogar cinza por S.xi dessincronizado (online)
   const xi=xiPlayers(CL.clubId); const ok=xi.length>=11 && CL.tacticChosen;
   const escala=CL.escalacaoMode;
   const escalaBlock = !CL.tacticChosen ? '' : escala
@@ -3425,7 +3426,7 @@ async function onlineAdoptServerRound(RL){
       Object.assign(S, saved.S);
       S.clubId = CL.clubId;
       if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
-      S.xi = (S.clubXI && S.clubXI[CL.clubId] && S.clubXI[CL.clubId].length) ? S.clubXI[CL.clubId].slice() : (typeof autoXI==='function' ? autoXI(CL.clubId) : S.xi);
+      S.xi = resolveClubXI(CL.clubId);
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       if(typeof pruneAppliedNetTransfers==='function') pruneAppliedNetTransfers(); // solta as transferências que o servidor já aplicou
     }
