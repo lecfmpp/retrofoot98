@@ -772,7 +772,7 @@ function makeIntlClub(name, countryCode){
   const country=CONMEBOL_COUNTRIES[countryCode]||CONMEBOL_COUNTRIES.ARG;
   const overall=Math.round(64+R.random()*20); // 64-84: nível competitivo de fase de grupos
   const squad=[];
-  const posPlan=[['GK',2],['DEF',6],['MID',6],['ATT',4]];
+  const posPlan=[['GK',MIN_POS.GK],['DEF',MIN_POS.DEF],['MID',MIN_POS.MID],['ATT',MIN_POS.ATT]]; // mínimos por posição
   posPlan.forEach(([pos,cnt])=>{ for(let k=0;k<cnt;k++){
     const rawF=Math.max(45,Math.min(92,Math.round(overall-8+R.random()*16)));
     const f=REBAL.force(rawF,'A'); // item 4: rival de copa CONMEBOL ~ nível de 1ª divisão
@@ -1755,35 +1755,40 @@ function rollAgedForce(R,range,age){
   const t=Math.max(0,Math.min(1, ageForceFraction(age)+(R.random()*2-1)*0.28));
   return Math.round(range[0]+t*(range[1]-range[0]));
 }
-/* ---- MÍNIMO DE GOLEIROS (item 1) ----
-   Os dados reais das Séries C/D vêm com pouquíssimos goleiros (D tem média 1,5; vários clubes
-   com 1 só). Se esse único GK se machuca, o time joga SEM goleiro (autoXI/pickXIByFormation
-   nunca colocam um 2º GK na linha, e não há reposição por lesão — só por aposentadoria). Aqui
-   garantimos 3 GK em TODO clube, completando com jovens da base quando faltar.
-   Opera nos DADOS BRUTOS do clube (club.squad), UMA vez por clube (flag _gkTopped), ANTES da
+/* ---- MÍNIMO DE JOGADORES POR POSIÇÃO ----
+   Os dados reais das Séries C/D vêm curtos (D tem média 1,5 goleiro; vários clubes com 1 só;
+   e o elenco todo é pequeno). Se falta jogador numa posição, o time joga desfalcado — no gol
+   é o pior caso (autoXI/pickXIByFormation nunca põem um 2º GK na linha e só a aposentadoria
+   repõe, não a lesão). Aqui garantimos um mínimo POR POSIÇÃO em TODO clube (decisão do usuário:
+   3 GK · 6 DEF · 6 MID · 4 ATT = 19), completando com jovens da base quando faltar.
+   Opera nos DADOS BRUTOS do clube (club.squad), UMA vez por clube (flag _posTopped), ANTES da
    materialização — como todos os ~10 pontos que montam S.squads leem club.squad do mesmo objeto,
-   todos herdam o reforço, e o regen de aposentadoria já preserva a contagem por posição (então
-   3 GK permanece 3 nas próximas temporadas). Não mexe em DEF/MID/ATT (decisão do usuário). */
-const MIN_GK=3;
-function makeRawGK(division, clubKey, idx){
-  const R=makeRng(hashSeed('gk-topup', String(clubKey||'x'), idx));
+   todos herdam o reforço, e o regen de aposentadoria repõe a MESMA posição 1-por-1 (então os
+   mínimos se mantêm nas temporadas seguintes). */
+const MIN_POS={ GK:3, DEF:6, MID:6, ATT:4 };
+const POS_LABEL={ GK:'GOL', DEF:'ZAG', MID:'MEI', ATT:'ATA' };
+function makeRawPlayer(division, pos, clubKey, idx){
+  const R=makeRng(hashSeed('pos-topup', String(clubKey||'x'), pos, idx));
   const range=DIVISION_FORCE_RANGE[division]||DIVISION_FORCE_RANGE.D;
-  const age=Math.round(20+R.random()*4);                         // reserva jovem, 20-24
+  const age=Math.round(19+R.random()*5);                         // reserva jovem, 19-24
   const rawF=rollAgedForce(R,range,age); const f=Math.min(REBAL.force(rawF,division), DIV_FORCE_CAP[division]||99);
   const lg=(typeof MARKET!=='undefined' && MARKET.divisionToLeague)?MARKET.divisionToLeague(division):('BRA-'+division);
-  return { n:pickProcPlayerName(R), p:'GOL', s:'GK', f, rawF, _rb:1, _div:division, age, lg,
+  return { n:pickProcPlayerName(R), p:POS_LABEL[pos]||pos, s:pos, f, rawF, _rb:1, _div:division, age, lg,
     mv:REBAL.value(f,age), ft:R.random()<0.5?'R':'L', num:String(30+idx), nat:'Brasil', ag:'—', moral:70, energy:100 };
 }
-function ensureClubGKs(club){
-  if(!club || club._gkTopped) return;
-  club._gkTopped=true;
+function ensureClubPositions(club){
+  if(!club || club._posTopped) return;
+  club._posTopped=true;
   const sq=club.squad||(club.squad=[]);
   const div=(sq.find(p=>p&&p._div)||{})._div || 'D';           // infere a divisão pelos jogadores reais do clube
-  let gk=sq.filter(p=>p&&p.s==='GK').length, i=0;
-  while(gk<MIN_GK){ sq.push(makeRawGK(div, club.id||club.short, i++)); gk++; }
+  let idx=0;
+  ['GK','DEF','MID','ATT'].forEach(pos=>{
+    let n=sq.filter(p=>p&&p.s===pos).length;
+    while(n<MIN_POS[pos]){ sq.push(makeRawPlayer(div, pos, club.id||club.short, idx++)); n++; }
+  });
 }
-/* usado no lugar de `club.squad` nos pontos de materialização — garante o mínimo de GK antes de mapear */
-function gkSquad(club){ ensureClubGKs(club); return club.squad; }
+/* usado no lugar de `club.squad` nos pontos de materialização — garante os mínimos por posição antes de mapear */
+function gkSquad(club){ ensureClubPositions(club); return club.squad; }
 function proceduralDivisionClubs(division, n){
   const range=DIVISION_FORCE_RANGE[division]||[55,75];
   const R=makeRng(hashSeed('procdiv',division,(S&&S.seed)||1));
@@ -1797,7 +1802,7 @@ function proceduralDivisionClubs(division, n){
       const suf=PROC_SUFFIX[Math.floor(R.random()*PROC_SUFFIX.length)]; name=city+' '+suf; }
     const id='proc_'+division+'_'+i;
     const squad=[];
-    const posPlan=[['GK',MIN_GK],['DEF',6],['MID',6],['ATT',4]]; // item 1: 3 GK (era 2) — nunca ficar sem goleiro
+    const posPlan=[['GK',MIN_POS.GK],['DEF',MIN_POS.DEF],['MID',MIN_POS.MID],['ATT',MIN_POS.ATT]]; // mínimos por posição
     posPlan.forEach(([pos,cnt])=>{ for(let k=0;k<cnt;k++){
       const age=Math.round(18+R.random()*17);
       const rawF=rollAgedForce(R,range,age); const f=Math.min(REBAL.force(rawF,division), DIV_FORCE_CAP[division]||99); // item 4 + trava de cap por divisão
