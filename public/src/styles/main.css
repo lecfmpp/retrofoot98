@@ -767,6 +767,10 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    ordem visualmente. */
 .cl-seasontbl-wrap{display:flex;flex-direction:column}
 .cl-clsacc{border:1px solid var(--navy);background:rgba(0,0,0,.15)}
+/* divisão do PRÓPRIO time: destaque pela borda verde fluorescente da marca (não mais posta no
+   topo — a tabela segue a ordem natural A/B/C/D e o usuário localiza a sua pelo brilho verde). */
+.cl-clsacc.mine{border:2px solid var(--success-lite);box-shadow:0 0 0 1px var(--success-lite),0 0 10px rgba(63,207,106,.5)}
+.cl-clsacc.mine>.cl-clsacc-h{background:var(--success-lite);color:#062d13}
 .cl-clsacc-h{display:flex;align-items:center;justify-content:space-between;gap:6px;background:var(--navy);color:var(--yellow);font-weight:800;font-size:15px;padding:8px 12px;user-select:none}
 .cl-clsacc-h-title{display:flex;align-items:center;gap:6px}
 /* desktop: sem colapso, sem seta (tudo expandido) */

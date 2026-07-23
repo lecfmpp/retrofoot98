@@ -1272,7 +1272,7 @@ function scSeatClassif(){
   const isBg=!!(S.bgLeagues&&S.bgLeagues[country]);
   const seatDiv=seatDivOfClub(seat);
   const divs=isBg?Object.keys(S.bgLeagues[country].divs):(cfg.order||[S.division]);
-  const ordered=[seatDiv,...divs.filter(d=>d!==seatDiv)];
+  const ordered=divs;   // ordem natural (A/B/C/D); a divisão do assento é destacada pela borda verde, não posta no topo
   const rowsFor=(d)=>{
     const tbl=isBg?bgStandings(country,d):sortedTableOf(d===S.division?S.table:((S.otherDivs&&S.otherDivs[d]&&S.otherDivs[d].table)||{}));
     return (tbl||[]).map((t,i)=>{ const c=clubOf(t.id)||bgClubById(t.id)||{short:String(t.id)}; const me=t.id===seat.clubId;
@@ -1282,7 +1282,7 @@ function scSeatClassif(){
         <span class="cl-cls2-x">${t.GF}</span><span class="cl-cls2-x">${t.GA}</span></div>`; }).join('');
   };
   const panelHTML=(d)=>{ const open=(CL.clsDivOpen&&CL.clsDivOpen[d]!=null)?CL.clsDivOpen[d]:(d===seatDiv); const mine=d===seatDiv;
-    return `<div class="cl-clsacc ${open?'open':'collapsed'}">
+    return `<div class="cl-clsacc ${open?'open':'collapsed'} ${mine?'mine':''}">
       <div class="cl-clsacc-h" onclick="event.stopPropagation();clToggleDivAcc('clsDivOpen','${d}')">
         <span class="cl-clsacc-h-title">🏆 ${escC(classifDivName(d, country))}${mine?' <span class="cl-acc-you">'+escC(seat.name)+'</span>':''}</span>
         <span class="cl-acc-arrow ${open?'':'closed'}">▾</span></div>
@@ -1429,7 +1429,7 @@ function divisionLabel(){ return (typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL
 function scMain(){
   const cl=clubOf(CL.clubId);
   const uf=userFixture(); const oppId=uf?(uf[0]===CL.clubId?uf[1]:uf[0]):null; const home=uf?uf[0]===CL.clubId:true;
-  const menuNames=['RetroFoot98','Seleccionar','Equipa','Jogador','Campeonatos','Treinador']; if(CL.online) menuNames.push('Modo Resenha');
+  const menuNames=['RetroFoot98','Formação','Equipa','Jogador','Campeonatos','Treinador']; if(CL.online) menuNames.push('Modo Resenha');
   const hamburger=`<div class="cl-hamburger" onclick="clToggleMobMenu(event)"><span>☰ Menu</span><span>${CL.mobMenuOpen?'▲':'▼'}</span></div>`;
   const offerCoin=(S.incomingOffers&&S.incomingOffers.length)?' 💰':''; // propostas de compra pendentes
   const resenhaBadge=(CL.online && typeof NET!=='undefined' && NET.isHost && CL.pendingJoins && CL.pendingJoins.length)?' 🔔':''; // pedidos de entrada pendentes
@@ -2010,17 +2010,23 @@ function panSeleccao(){
       </div>`
     : '';
 
-  // formações disponíveis com atalhos — estilo vintage RetroFoot98
+  // formações disponíveis com atalhos — estilo vintage RetroFoot98. Além das 6 formações,
+  // inclui os modos rápidos "Automático" e "Melhores" no mesmo grid (4 colunas, quadrados
+  // menores pra alinhar 8 opções em 2 linhas).
   const formKeys = Object.keys(FORMATIONS);
+  const formOpts = formKeys.map(f=>({sel:CL.formation===f, on:`clSelFormation('${f}');cdraw()`, main:f, sub:FKEY[f], title:'Tecla '+FKEY[f]}))
+    .concat([
+      {sel:CL.formation==='Automático', on:"clSelFormation('auto');cdraw()", main:'Auto', sub:'A', title:'Escalação automática'},
+      {sel:CL.formation==='Melhores',   on:"clSelFormation('best');cdraw()", main:'11+',  sub:'Melhores', title:'Os 11 melhores'},
+    ]);
   const formationsBlock = `<div class="cl-sel-formations">
     <div style="color:#aaa;font-size:12px;margin-bottom:10px">Formações:</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:340px">
-      ${formKeys.map((f,i)=>{
-        const isSelected = CL.formation===f;
-        const btnStyle = isSelected
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:340px">
+      ${formOpts.map(o=>{
+        const btnStyle = o.sel
           ? 'border:2px solid;border-color:#fff #111 #111 #fff;background:#2f8f2f;color:#fff;font-weight:700'
           : 'border:2px solid;border-color:#999 #333 #333 #999;background:#ccc;color:#000;font-weight:700';
-        return `<button style="padding:8px 6px;text-align:center;font-size:13px;cursor:pointer;${btnStyle}" onclick="clSelFormation('${f}');cdraw()" title="Tecla ${FKEY[f]}">${escC(f)}<br><small style="font-size:10px;opacity:.7">${FKEY[f]}</small></button>`;
+        return `<button style="padding:7px 4px;text-align:center;font-size:12px;cursor:pointer;${btnStyle}" onclick="${o.on}" title="${escC(o.title)}">${escC(o.main)}<br><small style="font-size:9px;opacity:.7">${escC(o.sub)}</small></button>`;
       }).join('')}
     </div>
   </div>`;
@@ -2075,7 +2081,7 @@ function clEscalaDoSwap(){
 function clEscalaCancel(){ CL.preSubOut=null; CL.preSubIn=null; clCloseOverlay(); cdraw(); }
 function clJogar(){
   if(CL._seatContext){ clSeatPlay(); return; } // hotseat: "Jogar" na tela do assento inicia a partida dele
-  if(!CL.tacticChosen){ toastC('Escolha a tática no menu Seleccionar primeiro.'); CL.tab='seleccao'; cdraw(); return; }
+  if(!CL.tacticChosen){ toastC('Escolha a tática no menu Formação primeiro.'); CL.tab='seleccao'; cdraw(); return; }
   // semana de avanço de copa com partida do clube pendente: joga a copa primeiro, só
   // depois libera a rodada — ver pendingUserCupMatches/clCupResultContinue. Se houver
   // mais de uma competição pendente na mesma semana (ex: Copa do Brasil + Libertadores),
@@ -2957,7 +2963,7 @@ function scClassif(){
         <span class="cl-cls2-pts">${t.Pts}</span><span class="cl-cls2-x">${t.W}</span><span class="cl-cls2-x">${t.D}</span><span class="cl-cls2-x">${t.L}</span>
         <span class="cl-cls2-x">${t.GF}</span><span class="cl-cls2-x">${t.GA}</span>${zoneCell}</div>`; }).join('')
       : '<div class="cl-cls2-empty">—</div>';
-    return `<div class="cl-clsacc ${open?'open':'collapsed'}">
+    return `<div class="cl-clsacc ${open?'open':'collapsed'} ${isMine?'mine':''}">
       <div class="cl-clsacc-h" onclick="event.stopPropagation();clToggleDivAcc('clsDivOpen','${d}')">
         <span class="cl-clsacc-h-title">${divisionTrophyImg(d,18)||'🏆'} ${escC(classifDivName(d))}${isMine?' <span class="cl-acc-you">você</span>':''}</span>
         <span class="cl-acc-arrow ${open?'':'closed'}">▾</span></div>
@@ -2972,7 +2978,7 @@ function scClassif(){
     </div>
     <div class="cl-classif-autohint">avança sozinho em alguns segundos...</div>
     <div class="cl-live-top">Classificação - ${S.round}ª jornada</div>
-    <div class="cl-clsacc-wrap">${divOrderUserFirst().map(panelHTML).join('')}</div>
+    <div class="cl-clsacc-wrap">${DIV_ORDER.map(panelHTML).join('')}</div>
   </div>`;
 }
 function liveDone(){ if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classifTimer){clearTimeout(CL._classifTimer);CL._classifTimer=null;} clearInjuryTimer(); clearCupFlowTimer(); CL.live=null; CL.subsUsed=0; CL._liveBusy=false; CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||CL.selPlayer; cdraw();
@@ -3782,7 +3788,7 @@ function menuDropdown(name){ name=name||CL.menu;
   const F=Object.keys(FORMATIONS);
   const items={
     'RetroFoot98':[['Opções...','clOptions()'],['—'],['Gravar jogo','clSaveMenu()'],['Sair para o menu','clExit()']],
-    'Seleccionar':[...F.map((f,i)=>[`${f}`,`clSelFormation('${f}')`,(i+1)+'/'+FKEY[f]]),['—'],['Automático','clSelFormation(\'auto\')'],['Melhores','clSelFormation(\'best\')']],
+    'Formação':[...F.map((f,i)=>[`${f}`,`clSelFormation('${f}')`,(i+1)+'/'+FKEY[f]]),['—'],['Automático','clSelFormation(\'auto\')'],['Melhores','clSelFormation(\'best\')']],
     'Equipa':[['Estádio...','clStadium()'],['Historial...','clClubHistory()']],
     'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],[`Propostas recebidas${(S.incomingOffers&&S.incomingOffers.length)?' ('+S.incomingOffers.length+')':''}...`,'clIncomingOffers()'],['Leilão de jogadores...','clAuctionScreen()'],['Últimas transferências...','clStub(\'Últimas transferências\')']],
     'Campeonatos':[['Minhas competições...','clCompList()','C'],['—'],['Melhores marcadores...','clScorers()'],['Calendário...','clCalendar()'],['—'],['Últimos vencedores...','clUltimosVencedores()'],['Melhores marcadores de sempre...','clScorersAllTime()']].concat((S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)?[['—'],['Ligas internacionais...','clBgLeaguesMenu()']]:[]),
@@ -4119,9 +4125,12 @@ function clCompList(){ CL.menu=null;
     // (não existe nada pra mostrar). Fora isso, qualquer um pode acompanhar tabela e
     // chaveamento, mesmo sem disputar.
     if(disabled){ statusTxt='Desligada neste save'; statusCls='off'; }
+    // Libertadores/Sul-Americana são exclusivas da Série A: fora dela, elas nem existem nesta
+    // temporada (na Resenha todos começam na Série D). Sem este ramo ANTES do "!c", apareciam como
+    // "Aguardando sorteio" — como se um sorteio fosse rolar, o que nunca acontece nesta divisão.
+    else if(restrictToSerieA && !inSerieA){ statusTxt='Só na Série A (suba de divisão)'; statusCls='out'; clickable=!!c; }
     else if(!c){ statusTxt='Aguardando sorteio'; statusCls='off'; }
     else if(cupCompetitionChampion(c)===cid){ statusTxt='🏆 CAMPEÃO'; statusCls='ok'; clickable=true; }
-    else if(restrictToSerieA && !inSerieA){ statusTxt='Só clubes da Série A · acompanhar'; statusCls='out'; clickable=true; }
     else if(!qualified){ statusTxt='Não classificado · acompanhar'; statusCls='out'; clickable=true; }
     else if(!cupCompetitionTeamAlive(c,cid)){ statusTxt='Eliminado · acompanhar'; statusCls='out'; clickable=true; }
     else { statusTxt=cupCompetitionRoundLabel(c,x.key); statusCls='ok'; clickable=true; }
