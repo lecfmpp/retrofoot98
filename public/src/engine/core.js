@@ -1456,11 +1456,19 @@ function pendingUserCupMatches(){
      participa" (showCupIdleMessage) em vez de espectar — o resultado da copa é
      autoritativo do servidor (last_cup_result -> bracket no resolve-round); assistir a
      versão determinística local mostraria um placar prematuro/errado pra quem não é o dono. */
+/* algum treinador HUMANO ainda está vivo nesta competição? Se NÃO, a copa virou CPU x CPU e
+   não interessa mais a ninguém — some a mensagem "dia de copa" (item 7 do playtest). Em solo,
+   só o próprio usuário conta. */
+function anyHumanAliveInCup(cupOrBracket){
+  if(!cupOrBracket) return false;
+  const ids = (typeof CL!=='undefined' && CL.online && CL.humans) ? Object.keys(CL.humans) : (CL&&CL.clubId?[CL.clubId]:[]);
+  return ids.some(id=> (typeof cupCompetitionTeamAlive==='function') ? cupCompetitionTeamAlive(cupOrBracket, id) : false);
+}
 function cupRoundsUserSitsOut(){
   if(!S.cups || !CL.clubId) return [];
   const out=[];
   const cb=S.cups.copaBrasil;
-  if(cupTickMatchesRound('copaBrasil',S.round+1) && cb && !cupIsFinished(cb) && cb.ties.length && !cb.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId))){
+  if(cupTickMatchesRound('copaBrasil',S.round+1) && cb && !cupIsFinished(cb) && cb.ties.length && !cb.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId)) && anyHumanAliveInCup(cb)){
     out.push({key:'copaBrasil', stage:'bracket'});
   }
   groupCupKeys().forEach(key=>{
@@ -1470,9 +1478,9 @@ function cupRoundsUserSitsOut(){
       const mg=c.group;
       const userHasFixtureNow=Object.values(mg.groups).some(g=>(g.sched[mg.round]||[]).some(([h,a])=>h===CL.clubId||a===CL.clubId));
       const roundHasFixtures=Object.values(mg.groups).some(g=>(g.sched[mg.round]||[]).some(([h,a])=>h!=null&&a!=null));
-      if(!userHasFixtureNow && roundHasFixtures) out.push({key, stage:'group'});
+      if(!userHasFixtureNow && roundHasFixtures && anyHumanAliveInCup(c)) out.push({key, stage:'group'});
     } else if(c.bracket && !cupIsFinished(c.bracket) && c.bracket.ties.length){
-      if(!c.bracket.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId))) out.push({key, stage:'bracket'});
+      if(!c.bracket.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId)) && anyHumanAliveInCup(c.bracket)) out.push({key, stage:'bracket'});
     }
   });
   return out;

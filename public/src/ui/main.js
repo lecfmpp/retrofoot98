@@ -3464,7 +3464,7 @@ async function onlineAdoptServerRound(RL){
     // premiação do PRÓPRIO clube (posição + prêmios que EU recebi) — cada humano vê o SEU resumo,
     // lido de S._prevSeason. Credita meu caixa ANTES do cdraw (não perde o dinheiro se o desenho
     // falhar); o servidor não credita prêmio, igual às finanças por-humano.
-    const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null;
+    const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null; if(typeof accrueCareerStats==='function') accrueCareerStats();
     queueSeasonCupDrawsIfNew(); // virada: enfileira o sorteio da copa NOVA (mostra na 1ª rodada da temporada nova)
     cdraw();
     openPressRoom(_sum);
@@ -3931,11 +3931,33 @@ function clClubHistory(clubId){ CL.menu=null;
   const hint = '<div class="cl-cup-hint">Mostra só as temporadas em que você comandou este clube neste save.</div>';
   overlayC(dlg('Historial — '+(c?c.short:'clube'), `<div class="cl-seasonhist-wrap">${table}</div>${hint}
     <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:660,bodyClass:'cl-body-gray',min:true})); }
+/* CARREIRA (ranking de treinador): acumula, por clube, os PONTOS SOMADOS de todas as temporadas
+   encerradas + a contagem de TÍTULOS (campeão da própria divisão). Lê as tabelas finais de
+   S._prevSeason (que o servidor fornece na virada) e soma UMA vez por temporada (guarda por
+   marcador). Client-local (CL.careerStats) — cada cliente mantém a sua visão da sessão. */
+function accrueCareerStats(){
+  const pv=S && S._prevSeason; if(!pv || !pv.tables) return;
+  CL.careerStats = CL.careerStats || {};
+  if(CL._careerAccruedSeason===pv.season) return;   // já contei esta temporada
+  CL._careerAccruedSeason=pv.season;
+  Object.keys(pv.tables).forEach(div=>{
+    (pv.tables[div]||[]).forEach((row,i)=>{
+      const s=CL.careerStats[row.id]||(CL.careerStats[row.id]={pts:0,titles:0});
+      s.pts += (row.Pts||0);
+      if(i===0) s.titles += 1;                       // campeão da divisão
+    });
+  });
+}
 function clCoachRanking(){ CL.menu=null;
-  const rows=DATA.clubs.map((c,i)=>{const t=S.table[c.id]||{W:0,D:0,Pts:0}; return {name:coachName(c.id,i),club:clubOf(c.id).short,W:t.W,D:t.D,Pts:t.Pts,human:!!(CL.humans&&CL.humans[c.id])};})
-    .sort((a,b)=>b.Pts-a.Pts||b.W-a.W);
-  const list=rows.map((r,i)=>`<div class="cl-rank-row ${r.human?'me':''}"><span class="cl-rank-p">${i+1}</span><span class="cl-rank-c">${escC(r.name)}</span><span class="cl-rank-t">${escC(r.club)}</span><span class="cl-rank-n">${r.W} +</span><span class="cl-rank-n">${r.D} =</span><span class="cl-rank-n b">${r.Pts}</span></div>`).join('');
-  overlayC(dlg('Ranking de Treinadores', `<div class="cl-rank">${list}</div>
+  const TITLE_BONUS=50; // um título vale ~50 pts no critério de desempate (só pesa quando tem título)
+  const rows=DATA.clubs.map((c,i)=>{
+    const t=S.table[c.id]||{Pts:0};
+    const career=(CL.careerStats&&CL.careerStats[c.id])||{pts:0,titles:0};
+    const totalPts=career.pts + (t.Pts||0);          // pontos somados totais (temporadas anteriores + atual)
+    return {name:coachName(c.id,i),club:clubOf(c.id).short,pts:totalPts,titles:career.titles,human:!!(CL.humans&&CL.humans[c.id])};
+  }).sort((a,b)=> (b.pts + b.titles*TITLE_BONUS) - (a.pts + a.titles*TITLE_BONUS) || b.pts-a.pts);
+  const list=rows.map((r,i)=>`<div class="cl-rank-row ${r.human?'me':''}"><span class="cl-rank-p">${i+1}</span><span class="cl-rank-c">${escC(r.name)}</span><span class="cl-rank-t">${escC(r.club)}</span><span class="cl-rank-n">${r.titles?('🏆 '+r.titles):'—'}</span><span class="cl-rank-n b">${r.pts} pts</span></div>`).join('');
+  overlayC(dlg('Ranking de Treinadores', `<div class="cl-rank-head" style="font-size:12px;color:#666;padding:2px 10px 6px">Por pontos somados (todas as temporadas) — títulos desempatam.</div><div class="cl-rank">${list}</div>
     <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:780,bodyClass:'cl-body-gray',min:true})); }
 
 /* ---- Treinador > Ofertas ---- */

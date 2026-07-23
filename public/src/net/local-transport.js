@@ -271,7 +271,7 @@ function onlineReconcileIfBehind(room){
         CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
         // premiação do PRÓPRIO clube (convidado): cada humano vê o SEU resumo, lido de S._prevSeason.
         // Credita ANTES do cdraw pra não perder o dinheiro se o desenho falhar.
-        const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null;
+        const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null; if(typeof accrueCareerStats==='function') accrueCareerStats();
         cdraw();
         if(typeof openPressRoom==='function') openPressRoom(_sum);
         else { const _divLbl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division); toastC('🏆 Nova temporada '+ (S.season||'') +'! Você está na '+_divLbl+'.'); }
@@ -1022,10 +1022,15 @@ function onlineStatusSidebar(){ const room=NET.room; if(!CL.online||!room||room.
       <span class="cl-st-name">${escC((p.name||'—').split(' ')[0])}${p.host?' <i>(anf)</i>':''}${self?' <b>(você)</b>':''}</span>
       <span class="cl-st-lbl ${cls}">${lbl}</span>${k}
     </div>`; }).join('');
-  return `<div class="cl-statusbar ${armed&&secs<=10?'urgent':''}" id="cl-statusbar">
-    <div class="cl-statusbar-h"><span class="cl-statusbar-title">Treinadores ${readyN}/${total}</span><span class="cl-statusbar-clock">${armed?secs+'s':'⏳'}</span></div>
-    <div class="cl-statusbar-sub">${armed?'Rodada começa quando zerar':'Aguardando todos terminarem'}</div>
+  // ANFITRIÃO: botão pausar/retomar o cronômetro (só na fase de contagem 'ready')
+  const pauseBtn=(NET.isHost && room.phase==='ready')
+    ? `<button class="cl-st-pause" onclick="clOnlinePause()">${room.paused?'▶ Retomar':'⏸ Pausar'}</button>` : '';
+  const clockTxt = room.paused ? '⏸' : (armed?secs+'s':'⏳');
+  return `<div class="cl-statusbar ${!room.paused&&armed&&secs<=10?'urgent':''}" id="cl-statusbar">
+    <div class="cl-statusbar-h"><span class="cl-statusbar-title">Treinadores ${readyN}/${total}</span><span class="cl-statusbar-clock">${clockTxt}</span></div>
+    <div class="cl-statusbar-sub">${room.paused?'Pausado pelo anfitrião':(armed?'Rodada começa quando zerar':'Aguardando todos terminarem')}</div>
     <div class="cl-statusbar-list">${rows}</div>
+    ${pauseBtn}
   </div>`; }
 /* anfitrião remove um jogador da Resenha (lobby ou durante a partida): confirma, dispara o kick
    (broadcast + libera assento -> clube vira CPU) e re-renderiza. O expulso recebe o sinal e volta ao menu. */
@@ -1046,7 +1051,10 @@ function clKickGo(uid, clubId){
   if(NET.kick) NET.kick(uid, clubId||undefined);
   if(typeof cdraw==='function') cdraw();
 }
-function clOnlinePause(){ /* pausa removida: cronômetro da Resenha é soberano e imutável */ }
+/* anfitrião pausa/retoma o cronômetro da rodada (item 2 do playtest). Só o host; o estado
+   (games.paused + paused_remaining_ms) sincroniza pra todos via onState, e o cronômetro respeita
+   isso no onlineTimerLoop. */
+function clOnlinePause(){ if(typeof NET!=='undefined' && NET.isHost && NET.pause){ NET.pause().catch(()=>{}); cdraw(); } }
 function clSetSpeed(mult){ CL.speedMult=mult; if(CL.online && typeof NET!=='undefined' && NET.setSpeed) NET.setSpeed(mult).catch(()=>{}); cdraw(); }
 let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null, ONLINE_ADV_T=0, ONLINE_BUSY_T=0, ONLINE_BUSY_ACTIVE=false, ONLINE_SEEN_T=0;
 function onlineTimerLoop(){
@@ -1072,7 +1080,12 @@ function onlineTimerLoop(){
   } else if(ONLINE_BUSY_ACTIVE){
     ONLINE_BUSY_ACTIVE=false; ONLINE_BUSY_T=0; if(typeof NET!=='undefined' && NET.clearBusy) NET.clearBusy();
   }
-  if(CL.online && room && room.phase==='ready'){  // sem !room.paused: cronômetro imutável
+  if(CL.online && room && room.phase==='ready' && room.paused){
+    // PAUSADO pelo anfitrião: congela o cronômetro (não conta nem avança a rodada). O deadline
+    // foi guardado em paused_remaining_ms (ver netPause); ao retomar, o servidor rearma.
+    ONLINE_LASTSEC=null;
+    const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent='⏸';
+  } else if(CL.online && room && room.phase==='ready'){
     const armed = (room.deadline||0) > 0;
     if(!armed){
       // TIMER DESARMADO: ainda tem gente terminando a rodada (copa/partida). NÃO conta o cronômetro
@@ -1131,7 +1144,7 @@ function onlineCompleteSeasonTurnover(){
         if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
         CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
         // credita a premiação ANTES do cdraw: se o desenho falhar, o dinheiro não se perde.
-        const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null;
+        const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null; if(typeof accrueCareerStats==='function') accrueCareerStats();
         cdraw();
         if(typeof openPressRoom==='function') openPressRoom(_sum);
         else { const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division); toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.'); }
