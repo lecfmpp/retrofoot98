@@ -624,6 +624,15 @@ function applyHumanTransfers(S: any, transfers: any[], humans?: Set<string>) {
   const match = (x: any, t: any) => t.pid ? x.pid === t.pid : x.n === t.p;   // pid (identidade); nome = fallback
   (transfers || []).forEach((t: any) => {
     if (!t || !t.p || !t.from || t.from === t.to) return;
+    // JOGADOR DA BASE (item 5): from 'BASE' + player embutido -> ADICIONA o jovem ao clube destino
+    // (jogador NOVO, não existe em nenhum elenco). Idempotente por pid. O caixa não muda (sem taxa).
+    if (t.from === 'BASE') {
+      const dstB = S.squads[t.to]; if (!Array.isArray(dstB) || !t.player) return;
+      if (dstB.some((x: any) => x.pid === t.player.pid || x.n === t.player.n)) return; // já adicionado
+      dstB.push(t.player);
+      if (dstB.length) S.clubOverall[t.to] = Math.round(dstB.reduce((s: number, x: any) => s + x.f, 0) / dstB.length);
+      return;
+    }
     const src = S.squads[t.from];
     if (!Array.isArray(src)) return;
     const fee = Math.round(Number(t.fee) || 0);
@@ -636,7 +645,15 @@ function applyHumanTransfers(S: any, transfers: any[], humans?: Set<string>) {
     }
 
     const dst = S.squads[t.to];
-    if (!Array.isArray(dst)) return;
+    if (!Array.isArray(dst)) {
+      // clube comprador NÃO existe no mundo (background/CONMEBOL não materializado): trata como
+      // SAÍDA DO MUNDO — remove do vendedor de vez, senão o jogador voltava e dava pra revender
+      // infinitamente (o caixa já andou no cliente via game_seats.budget). Ver #1 do playtest.
+      const j = src.findIndex((x: any) => match(x, t)); if (j < 0) return;
+      src.splice(j, 1);
+      if (src.length) S.clubOverall[t.from] = Math.round(src.reduce((s: number, x: any) => s + x.f, 0) / src.length);
+      return;
+    }
     if (dst.some((x: any) => match(x, t))) return;                // já aplicada
     const i = src.findIndex((x: any) => match(x, t)); if (i < 0) return; // não está mais no vendedor
     const p = src.splice(i, 1)[0];

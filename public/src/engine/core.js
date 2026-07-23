@@ -207,7 +207,14 @@ function inPreWindow(){
 /* negociação liberada? (janela aberta OU pré-janela) */
 function canNegotiate(){ return inTransferWindow() || !!inPreWindow(); }
 function transferWindowStatus(){
-  if(inTransferWindow()){ const w=TRANSFER_WINDOWS.find(([lo,hi])=>S.round>=lo&&S.round<=hi); return {open:true, closesIn:w[1]-S.round}; }
+  if(inTransferWindow()){
+    const w=TRANSFER_WINDOWS.find(([lo,hi])=>S.round>=lo&&S.round<=hi);
+    // a última janela vai até 9999 (= "até o fim da temporada"); o "fecha em" tem que ser as
+    // rodadas REAIS que faltam pro fim do calendário, não 9999-round (que mostrava "fecha em 9977").
+    const lastRound=(Array.isArray(S.sched)?S.sched.length:38)-1;
+    const hi=Math.min(w[1], lastRound);
+    return {open:true, closesIn:Math.max(0, hi-S.round)};
+  }
   const nxt=nextWindowRound();
   const pre=inPreWindow();
   return {open:false, pre:!!pre, opensIn: nxt!=null ? nxt-S.round : null};
@@ -238,7 +245,10 @@ function executePendingTransfers(){
       if(t.buyerCountry) ensureBgClubMaterialized(t.buyerId);
       delete p.contract; delete p._pendingSale;
       if(S.squads[t.buyerId]) S.squads[t.buyerId].push(p);
-      recordNetTransfer(S.clubId, t.buyerId, t.playerName, null, t.fee, p&&p.pid); // online: avisa o servidor (venda)
+      // comprador estrangeiro (background/CONMEBOL) NÃO existe no mundo do servidor -> registra como
+      // SAÍDA DO MUNDO (to:null): o servidor remove o jogador do vendedor de vez (senão a venda era
+      // rejeitada, o jogador voltava e dava pra revender infinitamente). O dinheiro já foi via commitBudget.
+      recordNetTransfer(S.clubId, t.buyerCountry?null:t.buyerId, t.playerName, null, t.fee, p&&p.pid); // online: avisa o servidor (venda)
       S.roundNews.push(`💰 ${t.playerName} deixou o clube rumo ao ${t.buyerName} por ${fmt(t.fee)} (transferência acordada).`);
       pushFinanceEntry({playerSales:t.fee, log:[`💰 ${t.playerName} vendido ao ${t.buyerName} por ${fmt(t.fee)}.`]});
     }
@@ -268,6 +278,43 @@ function recordNetTransfer(fromId, toId, playerName, contract, fee, pid){
   S._netTransfers = S._netTransfers || [];
   // pid = identidade por ID (move o homônimo CERTO no servidor); nome fica como fallback
   S._netTransfers.push({ p:playerName, pid:pid||null, from:fromId, to:toId||null, contract:contract||null, fee:Math.round(fee||0) });
+}
+/* ===== SUBIR JOGADOR DA BASE (item 5) — uma vez por TURNO do campeonato =====
+   Gera um jovem das categorias de base (16-19 anos) no nível da divisão do time, na posição mais
+   CARENTE do elenco, e o adiciona. A força é aleatória dentro da faixa da divisão (≈ média do time).
+   No ONLINE, viaja pro servidor como uma "transferência" de origem BASE (carrega o jogador inteiro);
+   o servidor ADICIONA o jogador ao clube (senão a mutação local seria desfeita no adopt). */
+function currentTurno(){ const half=Math.floor((Array.isArray(S.sched)?S.sched.length:38)/2); return (S.round||0) < half ? 1 : 2; }
+function youthAvailable(){
+  if(!S || !S.clubId) return false;
+  const key=S.season+'-'+currentTurno();
+  return !(S._youthUsed && S._youthUsed[key]) && (squad(S.clubId)||[]).length<40;
+}
+function promoteYouth(){
+  if(!youthAvailable()){
+    const cheio=(squad(S.clubId)||[]).length>=40;
+    return {ok:false, msg: cheio?'Elenco cheio (40 jogadores).':'Você já subiu um jogador da base neste turno. Espere o próximo turno.'};
+  }
+  const div=S.division, sq=squad(S.clubId);
+  const cnt={GK:0,DEF:0,MID:0,ATT:0}; sq.forEach(p=>{ if(cnt[p.s]!=null) cnt[p.s]++; });
+  // reforça a posição de LINHA mais carente. Goleiro fica de fora: já há 3 garantidos e só 1 joga,
+  // então um 4º GK seria desperdício — só entra se por algum motivo faltar goleiro.
+  const pos = cnt.GK<3 ? 'GK' : ['DEF','MID','ATT'].sort((a,b)=>cnt[a]-cnt[b])[0];
+  const idx=(S._youthCounter=(S._youthCounter||0)+1);
+  const raw=makeRawPlayer(div, pos, 'youth_'+S.clubId+'_'+S.season, idx); // força na faixa da divisão (≈ nível do time)
+  const R=makeRng(hashSeed(S.seed,S.season,'youthage',idx,S.clubId));
+  raw.age=16+Math.floor(R.random()*4); raw.ag='Base'; raw.moral=75; raw.mv=REBAL.value(raw.f, raw.age);
+  const youth=attachAttrs(initStats(raw), div);   // ganha pid + atributos + comportamento
+  youth.contract=defaultContract(youth);
+  sq.push(youth);
+  S._youthUsed=S._youthUsed||{}; S._youthUsed[S.season+'-'+currentTurno()]=true;
+  if(typeof CL!=='undefined' && CL.online){ // manda o jogador NOVO pro servidor adicionar (from BASE)
+    S._netTransfers=S._netTransfers||[]; S._netTransfers.push({ from:'BASE', to:S.clubId, p:youth.n, pid:youth.pid, player:youth, fee:0 });
+  }
+  const posNome={GK:'Goleiro',DEF:'Defensor',MID:'Meia',ATT:'Atacante'}[pos]||pos;
+  S.roundNews=S.roundNews||[]; S.roundNews.push(`🌱 ${youth.n} (${posNome}, ${youth.age} anos, força ${youth.f}) subiu das categorias de base.`);
+  saveV3();
+  return {ok:true, youth, posNome};
 }
 /* ===== CAIXA: toda mudança fora do fechamento de rodada TEM que ser publicada =====
    S.budget é só a cópia local. A autoridade do caixa de um humano é game_seats.budget: o
@@ -478,7 +525,9 @@ function acceptIncomingOffer(id){
   S.budget+=o.fee; commitBudget();                     // publica: senão o crédito é revertido na próxima rodada
   if(o.buyerCountry) ensureBgClubMaterialized(o.buyerId);
   if(S.squads[o.buyerId]){ delete p.contract; S.squads[o.buyerId].push(p); } // vai pro clube comprador
-  recordNetTransfer(S.clubId, o.buyerId, o.playerName, null, o.fee, p&&p.pid); // online: avisa o servidor (venda)
+  // comprador estrangeiro não existe no mundo do servidor -> saída do mundo (to:null), senão o
+  // jogador era rejeitado e voltava pro vendedor (revenda infinita). Ver acceptIncomingOffer/#1.
+  recordNetTransfer(S.clubId, o.buyerCountry?null:o.buyerId, o.playerName, null, o.fee, p&&p.pid); // online: avisa o servidor (venda)
   S.roundNews.push(`💰 ${o.playerName} vendido ao ${o.buyerName} por ${fmt(o.fee)}.`);
   pushFinanceEntry({playerSales:o.fee, log:[`💰 ${o.playerName} vendido ao ${o.buyerName} por ${fmt(o.fee)}.`]});
   save();

@@ -3797,7 +3797,7 @@ function menuDropdown(name){ name=name||CL.menu;
     'RetroFoot98':[['Opções...','clOptions()'],['—'],['Gravar jogo','clSaveMenu()'],['Sair para o menu','clExit()']],
     'Formação':[...F.map((f,i)=>[`${f}`,`clSelFormation('${f}')`,(i+1)+'/'+FKEY[f]]),['—'],['Automático','clSelFormation(\'auto\')'],['Melhores','clSelFormation(\'best\')']],
     'Equipa':[['Estádio...','clStadium()'],['Historial...','clClubHistory()']],
-    'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],[`Propostas recebidas${(S.incomingOffers&&S.incomingOffers.length)?' ('+S.incomingOffers.length+')':''}...`,'clIncomingOffers()'],['Leilão de jogadores...','clAuctionScreen()'],['Últimas transferências...','clStub(\'Últimas transferências\')']],
+    'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],[`Propostas recebidas${(S.incomingOffers&&S.incomingOffers.length)?' ('+S.incomingOffers.length+')':''}...`,'clIncomingOffers()'],['Leilão de jogadores...','clAuctionScreen()'],[(typeof youthAvailable==='function'&&youthAvailable())?'🌱 Subir jogador da base':'Base (indisponível neste turno)','clPromoteYouth()'],['Últimas transferências...','clStub(\'Últimas transferências\')']],
     'Campeonatos':[['Minhas competições...','clCompList()','C'],['—'],['Melhores marcadores...','clScorers()'],['Calendário...','clCalendar()'],['—'],['Últimos vencedores...','clUltimosVencedores()'],['Melhores marcadores de sempre...','clScorersAllTime()']].concat((S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)?[['—'],['Ligas internacionais...','clBgLeaguesMenu()']]:[]),
     'Treinador':[['História...','clCoachHistory()'],['Ranking...','clCoachRanking()'],['Ofertas...','clJobOffers()'],['Perfil...','clPerfilTreinador()']]
   };
@@ -4134,12 +4134,16 @@ function qualificationZoneBadge(zone){
   return '';
 }
 function clClassif(){ CL.menu=null;
-  const rows=sortedTable().map((t,i)=>{const me=t.id===CL.clubId; const zone=qualificationZone(S.division,i+1);
-    return `<div class="cl-cls-row ${me?'me':''} ${zone?'zone-'+zone:''}"><span class="cl-cls-p">${i+1}</span><span class="cl-cls-n">${clubLink(t.id)}</span>
+  // a coluna de ZONA (Libertadores/Sul-Americana) só existe na Série A; nas séries B/C/D ela
+  // ficava reservada (120px vazios à direita), desalinhando a tabela. Agora é condicional.
+  const hasQual = S.division==='A';
+  const qcls = hasQual ? '' : ' noqual';
+  const rows=sortedTable().map((t,i)=>{const me=t.id===CL.clubId; const zone=hasQual?qualificationZone(S.division,i+1):null;
+    return `<div class="cl-cls-row${qcls} ${me?'me':''} ${zone?'zone-'+zone:''}"><span class="cl-cls-p">${i+1}</span><span class="cl-cls-n">${clubLink(t.id)}</span>
       <span class="cl-cls-num b">${t.Pts}</span><span class="cl-cls-num">${t.W}</span><span class="cl-cls-num">${t.D}</span><span class="cl-cls-num">${t.L}</span>
-      <span class="cl-cls-num">${t.GF}</span><span class="cl-cls-num">${t.GA}</span>${qualificationZoneBadge(zone)}</div>`;}).join('');
-  overlayC(dlg('Classificação', `<div class="cl-cls-head"><span class="cl-cls-p">#</span><span class="cl-cls-n">Equipa</span>
-    <span class="cl-cls-num">P</span><span class="cl-cls-num">V</span><span class="cl-cls-num">E</span><span class="cl-cls-num">D</span><span class="cl-cls-num">GP</span><span class="cl-cls-num">GC</span><span></span></div>
+      <span class="cl-cls-num">${t.GF}</span><span class="cl-cls-num">${t.GA}</span>${hasQual?qualificationZoneBadge(zone):''}</div>`;}).join('');
+  overlayC(dlg('Classificação — '+escC(divisionLabel()), `<div class="cl-cls-head${qcls}"><span class="cl-cls-p">#</span><span class="cl-cls-n">Equipa</span>
+    <span class="cl-cls-num">P</span><span class="cl-cls-num">V</span><span class="cl-cls-num">E</span><span class="cl-cls-num">D</span><span class="cl-cls-num">GP</span><span class="cl-cls-num">GC</span>${hasQual?'<span></span>':''}</div>
     <div class="cl-cls">${rows}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
     {w:680,bodyClass:'cl-body-gray',min:true})); }
 
@@ -4465,6 +4469,21 @@ function clSellPriceInput(input){
   const askedEl=$c('#cl-sellprice-asked'); if(askedEl) askedEl.textContent=askingPrice>0?moneyDisp(askingPrice):'-';
   const diffEl=$c('#cl-sellprice-diff'); if(diffEl) diffEl.textContent=diffLabel;
   const warnEl=$c('#cl-sellprice-warn'); if(warnEl) warnEl.style.display=(askingPrice>0 && askingPrice<sellMinPrice(mv))?'block':'none';
+}
+/* Jogador > Subir jogador da base (item 5): uma vez por turno, gera um jovem no nível do time
+   na posição mais carente e mostra nome/posição/força num modal. */
+function clPromoteYouth(){ CL.menu=null;
+  if(typeof promoteYouth!=='function'){ return; }
+  const r=promoteYouth();
+  if(!r.ok){ toastC(r.msg); return; }
+  const y=r.youth;
+  overlayC(dlg('🌱 Jogador da base promovido', `<div class="cl-res" style="text-align:center;padding:14px">
+    <div class="cl-res-score" style="font-size:20px">${escC(y.n)}</div>
+    <div class="cl-res-verd" style="margin-top:8px">${escC(r.posNome)} · ${y.age} anos<br>
+      Força <b style="font-size:22px;color:#2e9e46">${y.f}</b></div>
+    <div style="font-size:12px;color:#777;margin-top:8px">Entrou no elenco. Volte no próximo turno para subir outro.</div>
+    <div class="cl-cal-ok" style="margin-top:14px">${btn('Boa!','clCloseOverlay();cdraw()',{icon:'✔',cls:'cl-btn-ok'})}</div>
+  </div>`,{w:440,bodyClass:'cl-body-green'}));
 }
 function clSell(){ CL.menu=null;
   if(!canNegotiate()){ toastC(windowClosedMsg()); return; }

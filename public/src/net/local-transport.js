@@ -277,7 +277,9 @@ function onlineReconcileIfBehind(room){
         else { const _divLbl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division); toastC('🏆 Nova temporada '+ (S.season||'') +'! Você está na '+_divLbl+'.'); }
       } else {
         toastC('🔄 Sincronizado com a sala (rodada '+((S.round||0)+1)+').');
-        cdraw();
+        // NÃO faz cdraw() aqui: renderizar a tela atual (que pode ser a PRINCIPAL, se o convidado
+        // foi ver o time enquanto esperava) fazia a sequência virar tela-inicial -> classificação
+        // -> tela-inicial. Vai DIRETO pra classificação (que já desenha a própria tela).
         // Ao espelhar a rodada, o CONVIDADO vê o MESMO que o host: (1) sorteio de copa pendente e
         // depois (2) a CLASSIFICAÇÃO pós-rodada. Ao terminar (Continuar/10s), o loop dispara a próxima.
         const _showClassif=()=>{ if(typeof showLiveClassif==='function') showLiveClassif(); };

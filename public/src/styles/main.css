@@ -463,6 +463,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-cal-ok{display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:14px}
 .cl-cls{width:600px}
 .cl-cls-head,.cl-cls-row{display:grid;grid-template-columns:32px 1fr 40px 34px 34px 34px 40px 40px 120px;padding:3px 8px;font-size:13px;align-items:center}
+/* séries B/C/D: sem coluna de zona (Lib/Sul) — grid preenche a largura, sem vão à direita */
+.cl-cls-head.noqual,.cl-cls-row.noqual{grid-template-columns:36px 1fr 48px 40px 40px 40px 48px 48px}
 .cl-cls-head{font-weight:700;background:#e0e0e0;position:sticky;top:0}
 .cl-cls-row.me{background:#fff7cc}
 .cl-cls-num{text-align:center}.cl-cls-num.b{font-weight:700}
