@@ -4711,6 +4711,10 @@ function clSellConfirm(){
   }
   S.budget=(S.budget||0)+fee; S.squads[CL.clubId]=S.squads[CL.clubId].filter(x=>x.n!==p.n);
   if(S.xi) S.xi=S.xi.filter(x=>x!==p.pid);
+  commitBudget();                                              // publica o caixa: senão o crédito é revertido no adopt do servidor
+  // AVISA O SERVIDOR (saída do mundo): sem isto, o servidor não sabe da venda e RETRAZ o jogador ao
+  // adotar a rodada (o time volta ao estado do shared_state). Era o bug do "vendido volta pro elenco".
+  if(typeof recordNetTransfer==='function') recordNetTransfer(CL.clubId, null, p.n, null, fee, p.pid);
   pushFinanceEntry({playerSales:fee, log:[`💰 ${p.n} vendido ao ${clubOf(buyer.id).short} por ${fmt(fee)}.`]});
   S.roundNews=S.roundNews||[]; S.roundNews.push(`💰 ${p.n} vendido ao ${clubOf(buyer.id).short} por ${fmt(fee)}.`);
   saveV3(); auctionDialog(p,buyer,feeK); }
