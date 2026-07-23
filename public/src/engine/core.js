@@ -2193,7 +2193,10 @@ function decidePromotionRelegation(finalPos, totalClubs){
 function tickJobSecurity(){
   if(S.jobSecurity==null) S.jobSecurity=60;
   const pos=tablePos(S.clubId), total=DATA.clubs.length;
-  const target = total>1 ? 100-((pos-1)/(total-1))*100 : 60;
+  const posScore = total>1 ? 100-((pos-1)/(total-1))*100 : 60;          // 1º=100, lanterna=0 (RESULTADOS)
+  const sq=squad(S.clubId)||[];
+  const moraleScore = sq.length ? clamp(sq.reduce((s,p)=>s+(p.moral||70),0)/sq.length, 0, 100) : 70; // MORAL do elenco
+  const target = 0.7*posScore + 0.3*moraleScore;                        // 70% resultados + 30% moral (decisão do usuário)
   S.jobSecurity = clamp(Math.round(S.jobSecurity + (target-S.jobSecurity)*0.18), 0, 100);
 }
 function clubOverall(id){ const c=clubOf(id); return c?(c.overall||55):55; }

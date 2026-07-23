@@ -3912,10 +3912,24 @@ function seasonHistoryTableHTML(entries){
     </div>`).join('');
   return head+rows;
 }
+/* barra de SEGURANÇA NO CARGO — reflete a régua jobSecurity (70% posição na tabela + 30% moral
+   do elenco). Verde = tranquilo, amarelo = atenção, vermelho = cargo em risco. */
+function jobSecurityBarHTML(){
+  const js=Math.round(S.jobSecurity!=null?S.jobSecurity:60);
+  const col = js>=55?'#2e9e46' : js>=25?'#e0a52a' : '#c0392b';
+  const lbl = js>=70?'Prestígio alto' : js>=40?'Estável' : js>=16?'Sob pressão' : 'Cargo em risco!';
+  return `<div style="margin:2px 0 12px;font-family:var(--sans)">
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:3px">
+      <span>Segurança no cargo <span style="color:#999">(resultados + moral)</span></span><b style="color:${col}">${js}% · ${lbl}</b></div>
+    <div style="height:10px;background:#ddd;border:1px solid #bbb;border-radius:5px;overflow:hidden">
+      <div style="height:100%;width:${js}%;background:${col};transition:width .3s"></div></div>
+  </div>`;
+}
 function clCoachHistory(){ CL.menu=null;
   const lines=(S.coachHistory&&S.coachHistory.length)?S.coachHistory:[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
   const seasonTable=seasonHistoryTableHTML(S.history||[]);
   overlayC(dlg(CL.mgr||'Treinador', `
+    ${jobSecurityBarHTML()}
     <div class="cl-seasonhist-wrap">${seasonTable}</div>
     <div class="cl-chist" style="margin-top:12px">${lines.map(coachHistRowHTML).join('')}</div>
     <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:660,bodyClass:'cl-body-gray',min:true})); }
