@@ -392,6 +392,33 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-tab{padding:3px 12px;font-size:14px;color:#ccc;cursor:pointer;border:1px solid transparent}
 .cl-tab.on{color:#fff;font-weight:700;border-color:#888 #888 #000 #888;background:#111;border-bottom:2px solid var(--yellow)}
 .cl-tab:hover{color:#fff}
+/* ===== CAIXA DE ENTRADA (E-MAIL) ===== */
+.cl-tab{position:relative}
+.cl-mail-badge{position:absolute;top:-4px;right:-2px;min-width:16px;height:16px;padding:0 4px;background:#e21c1c;color:#fff;font-size:10px;font-weight:800;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 1.5px #111}
+.cl-mail{font-family:var(--sans);color:#eee}
+.cl-mail-empty{text-align:center;color:#bbb;padding:32px 16px;font-size:15px}
+.cl-mail-empty span{font-size:12px;color:#888}
+.cl-mail-list{display:flex;flex-direction:column;max-height:60vh;overflow-y:auto}
+.cl-mail-row{display:grid;grid-template-columns:14px 22px 1fr 34px;align-items:center;gap:8px;padding:9px 8px;border-bottom:1px solid #2a2a2a;cursor:pointer}
+.cl-mail-row:hover{background:rgba(255,255,255,.05)}
+.cl-mail-row.unread{background:rgba(226,28,28,.07)}
+.cl-mail-dot{color:#e21c1c;font-size:11px}
+.cl-mail-ic{font-size:16px;text-align:center}
+.cl-mail-txt{min-width:0;font-size:13px;line-height:1.3;overflow:hidden}
+.cl-mail-row.unread .cl-mail-txt b{color:#fff}
+.cl-mail-txt b{color:#cfcfcf;font-weight:700}
+.cl-mail-prev{color:#888;font-size:11px}
+.cl-mail-when2{color:#888;font-size:11px;text-align:right}
+.cl-mail-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 0 10px;border-bottom:1px solid #2a2a2a}
+.cl-mail-when{color:#999;font-size:12px}
+.cl-mail-del{border:none;background:transparent;color:#c88;cursor:pointer;font-size:14px}
+.cl-mail-del:hover{color:#e21c1c}
+.cl-mail-open{padding:12px 4px}
+.cl-mail-subj{font-size:17px;font-weight:800;color:#fff;margin-bottom:12px}
+.cl-mail-body{font-size:14px;line-height:1.55;color:#e6e6e6;background:rgba(255,255,255,.04);border-left:3px solid var(--yellow);padding:12px 14px;border-radius:4px}
+.cl-mail-sign{margin-top:14px;font-size:13px;color:#cfcfcf;font-style:italic}
+.cl-mail-role{color:#8a8a8a;font-size:11px;font-style:normal}
+.cl-mail-actions{margin-top:18px}
 /* painel jogo */
 .cl-jogo{font-size:15px}
 .cl-jogo-empty{color:#888;font-size:13px;padding:12px 0}

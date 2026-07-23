@@ -1436,14 +1436,18 @@ function scMain(){
   const menu=`<div class="cl-menu ${CL.mobMenuOpen?'mob-open':''}" id="cl-menubar">
     ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${mm==='Jogador'?offerCoin:''}${mm==='Modo Resenha'?resenhaBadge:''}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
   </div>`;
-  const tabs=['jogo','jogador','financas','seleccao','adversario'];
-  const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',adversario:'Adversário'};
-  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')">${tabLbl[t]}${t==='jogador'?offerCoin:''}</span>`).join('')}</div>`;
+  if(typeof syncInbox==='function') syncInbox();           // atualiza a caixa antes de desenhar o badge
+  const unread=(typeof inboxUnread==='function')?inboxUnread():0;
+  const mailBadge=unread>0?`<span class="cl-mail-badge">${unread>9?'9+':unread}</span>`:'';
+  const tabs=['jogo','jogador','financas','seleccao','correio','adversario'];
+  const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'✉ Correio',adversario:'Adversário'};
+  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')">${tabLbl[t]}${t==='jogador'?offerCoin:''}${t==='correio'?mailBadge:''}</span>`).join('')}</div>`;
   let panel='';
   if(CL.tab==='jogo') panel=panJogo(oppId,home,uf);
   else if(CL.tab==='jogador') panel=panJogador();
   else if(CL.tab==='financas') panel=panFinancas();
   else if(CL.tab==='seleccao') panel=panSeleccao();
+  else if(CL.tab==='correio') panel=panCorreio();
   else panel=panAdversario(oppId);
   const jornada=(S.round||0)+1;
   const th=clubTheme(CL.clubId);
@@ -1500,7 +1504,105 @@ function clSelPlayer(n){ CL.selPlayer=n;
   // Escalação" continua acessível até ele clicar em Jogar. Nas outras abas, abre o Jogador.
   if(CL.tab!=='jogador' && CL.tab!=='seleccao') CL.tab='jogador';
   cdraw(); }
-function clTab(t){ CL.tab=t; cdraw(); }
+function clTab(t){ CL.tab=t; if(t==='correio'){ CL.inboxOpen=null; markInboxSeen(); } cdraw(); }
+
+/* ================= CAIXA DE ENTRADA (E-MAIL DO TREINADOR) =================
+   Comunicados chegam aqui: propostas por jogadores, convites de outros clubes, avisos da
+   diretoria sobre o cargo, premiações. Client-local (CL.inbox) e DERIVADO do estado (S) —
+   assim sobrevive aos adopts do servidor no online. Cada e-mail tem uma chave única; syncInbox
+   só ADICIONA os novos (não duplica) e preserva o lido/não-lido. Mensagens curtas, sempre
+   assinadas por alguém coerente, e com um botão de ação quando há algo a fazer. */
+function inboxSigner(role, clubId){ // nome determinístico por clube+cargo (dá cara de pessoa)
+  const R=makeRng(hashSeed('signer', String(clubId||'x'), role||''));
+  return BR_FIRST[Math.floor(R.random()*BR_FIRST.length)]+' '+BR_LAST[Math.floor(R.random()*BR_LAST.length)];
+}
+function addInboxEmail(e){
+  CL.inbox=CL.inbox||[];
+  if(CL.inbox.some(x=>x.key===e.key)) return;           // já existe -> não duplica
+  CL.inbox.unshift(Object.assign({read:false, round:S.round, season:S.season}, e));
+  if(CL.inbox.length>60) CL.inbox.length=60;            // teto: guarda as 60 mais recentes
+}
+function syncInbox(){
+  if(!S || !S.clubId) return;
+  const myShort=(clubOf(S.clubId)||{}).short||'clube';
+  // 1) PROPOSTAS por jogadores meus
+  (S.incomingOffers||[]).forEach(o=>{
+    addInboxEmail({ key:'offer-'+o.id, kind:'offer', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
+      subject:'Proposta por '+o.playerName,
+      body:`O ${escC((clubOf(o.buyerId)||bgClubById?.(o.buyerId)||{short:o.buyerName||'um clube'}).short||o.buyerName||'um clube')} ofereceu ${fmt(o.fee)} pelo ${escC(o.playerName)}. Quer avaliar?`,
+      action:{label:'Ver proposta', go:'CL.tab="jogo";clCloseOverlay();clIncomingOffers()'} });
+  });
+  // 2) CONVITES pra treinar outro clube (solo)
+  (S.pendingJobOffers||[]).forEach(o=>{
+    const c=clubOf(o.clubId)||bgClubById?.(o.clubId)||{short:'um clube'};
+    addInboxEmail({ key:'job-'+o.clubId+'-'+(o.roundOfferred||0), kind:'job', from:inboxSigner('pres',o.clubId), role:'Presidente · '+(c.short||''),
+      subject:'Convite para treinar o '+(c.short||'clube'),
+      body:`Gostaríamos de você no comando do ${escC(c.short||'clube')}${o.foreign?' ('+escC(o.country||'')+')':''}. Salário: ${fmt(o.salary||0)}/sem.`,
+      action:{label:'Ver oferta', go:'clCloseOverlay();clJobOffers()'} });
+  });
+  // 3) CONVITE da Resenha (Fase 2) — clube livre da CPU
+  if(CL.online && CL._pendingResenhaOffer){ const o=CL._pendingResenhaOffer; const c=clubOf(o.clubId)||{short:'um clube'};
+    addInboxEmail({ key:'rjob-'+o.clubId+'-'+(S.season||0), kind:'job', from:inboxSigner('pres',o.clubId), role:'Presidente · '+(c.short||''),
+      subject:'Proposta para assumir o '+(c.short||'clube'),
+      body:`Estamos sem treinador e queremos você. Topa assumir o ${escC(c.short||'clube')}?`,
+      action:{label:'Ver proposta', go:'clCloseOverlay();showResenhaOffer(CL._pendingResenhaOffer)'} });
+  }
+  // 4) AVISO DA DIRETORIA sobre o cargo (uma vez por episódio de risco na temporada)
+  const js=S.jobSecurity!=null?S.jobSecurity:60;
+  if(js<30 && !CL.unemployed){
+    addInboxEmail({ key:'warn-'+(S.season||0), kind:'warn', from:inboxSigner('pres',S.clubId), role:'Presidente · '+myShort,
+      subject:'Conversa séria sobre o seu trabalho',
+      body:`Os resultados e o clima do elenco preocupam a diretoria. Precisamos de uma reação nas próximas rodadas para você seguir no ${escC(myShort)}.`,
+      action:{label:'Ver classificação', go:'clCloseOverlay();clClassif()'} });
+  }
+  // 5) PREMIAÇÃO da temporada anterior (fim de temporada)
+  const pv=S._prevSeason;
+  if(pv && !(CL.inbox||[]).some(e=>e.key==='prize-'+pv.season) && typeof computeMyPrevSeasonPrizes==='function'){ const sum=computeMyPrevSeasonPrizes();
+    if(sum && sum.total>0){
+      addInboxEmail({ key:'prize-'+pv.season, kind:'prize', from:'CBF', role:'Confederação Brasileira de Futebol',
+        subject:'Premiação da temporada '+pv.season,
+        body:`Parabéns! O ${escC(myShort)} recebeu ${fmt(sum.total)} em prêmios da temporada ${pv.season}.`,
+        action:null });
+    }
+  }
+}
+function inboxUnread(){ return (CL.inbox||[]).filter(e=>!e.read).length; }
+function markInboxSeen(){ /* abrir a aba NÃO marca tudo como lido — só ao abrir cada e-mail */ }
+function clOpenEmail(key){ const e=(CL.inbox||[]).find(x=>x.key===key); if(e){ e.read=true; CL.inboxOpen=key; } cdraw(); }
+function clInboxBack(){ CL.inboxOpen=null; cdraw(); }
+function clInboxAction(){ const e=(CL.inbox||[]).find(x=>x.key===CL.inboxOpen); if(e&&e.action&&e.action.go){ try{ (new Function(e.action.go))(); }catch(err){ console.warn('ação do e-mail:', err); } } }
+function clInboxDelete(key){ CL.inbox=(CL.inbox||[]).filter(x=>x.key!==key); CL.inboxOpen=null; cdraw(); }
+function inboxIcon(kind){ return {offer:'💰', job:'🤝', warn:'⚠️', prize:'🏆'}[kind]||'✉️'; }
+function panCorreio(){
+  syncInbox();
+  const box=CL.inbox||[];
+  // LEITURA de um e-mail específico
+  if(CL.inboxOpen){ const e=box.find(x=>x.key===CL.inboxOpen);
+    if(!e){ CL.inboxOpen=null; return panCorreio(); }
+    return `<div class="cl-mail">
+      <div class="cl-mail-toolbar">
+        ${btn('‹ Voltar','clInboxBack()',{cls:'cl-btn-mini'})}
+        <span class="cl-mail-when">Rodada ${(e.round||0)+1}${e.season?(' · '+e.season):''}</span>
+        <button class="cl-mail-del" onclick="clInboxDelete('${escC(e.key)}')" title="Apagar">🗑</button>
+      </div>
+      <div class="cl-mail-open">
+        <div class="cl-mail-subj">${inboxIcon(e.kind)} ${escC(e.subject)}</div>
+        <div class="cl-mail-body">${e.body}</div>
+        <div class="cl-mail-sign">— ${escC(e.from)}${e.role?('<br><span class="cl-mail-role">'+escC(e.role)+'</span>'):''}</div>
+        ${e.action?`<div class="cl-mail-actions">${btn(e.action.label,'clInboxAction()',{icon:'➡',cls:'cl-btn-ok'})}</div>`:''}
+      </div>
+    </div>`;
+  }
+  // LISTA
+  if(!box.length) return `<div class="cl-mail"><div class="cl-mail-empty">📭 Nenhuma mensagem por enquanto.<br><span>Propostas, convites e avisos da diretoria chegam aqui.</span></div></div>`;
+  const rows=box.map(e=>`<div class="cl-mail-row ${e.read?'':'unread'}" onclick="clOpenEmail('${escC(e.key)}')">
+    <span class="cl-mail-dot">${e.read?'':'●'}</span>
+    <span class="cl-mail-ic">${inboxIcon(e.kind)}</span>
+    <span class="cl-mail-txt"><b>${escC(e.subject)}</b><br><span class="cl-mail-prev">${escC(e.from)}</span></span>
+    <span class="cl-mail-when2">${(e.round||0)+1}ª</span>
+  </div>`).join('');
+  return `<div class="cl-mail"><div class="cl-mail-list">${rows}</div></div>`;
+}
 
 /* ================= VISUALIZAR TIME (view-only) =================
    Usado quando o usuário clica no nome de um clube que NÃO é o dele (ex: na
