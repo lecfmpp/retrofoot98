@@ -388,13 +388,16 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-adv-loc{color:#e2e9f6;font-size:15px}
 .cl-panel{flex:1}
 /* tabs */
-.cl-tabs{display:flex;gap:0;border-top:1px solid #666;padding-top:6px;margin-top:8px;justify-content:flex-start}
-.cl-tab{padding:3px 12px;font-size:14px;color:#ccc;cursor:pointer;border:1px solid transparent}
+.cl-tabs{display:flex;gap:0;border-top:1px solid #666;padding-top:6px;margin-top:8px;justify-content:flex-start;flex-wrap:nowrap}
+/* aba = flex em linha, verticalmente centrada: rótulo + ícone/badge nunca quebram em 2 linhas e
+   ficam alinhados com o texto (white-space:nowrap trava a quebra do próprio rótulo). */
+.cl-tab{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;padding:3px 12px;font-size:14px;color:#ccc;cursor:pointer;border:1px solid transparent}
 .cl-tab.on{color:#fff;font-weight:700;border-color:#888 #888 #000 #888;background:#111;border-bottom:2px solid var(--yellow)}
 .cl-tab:hover{color:#fff}
+.cl-tab-ico{display:inline-flex;align-items:center;font-size:12px;line-height:1} /* emoji alinhado ao texto */
 /* ===== CAIXA DE ENTRADA (E-MAIL) ===== */
-.cl-tab{position:relative}
-.cl-mail-badge{position:absolute;top:-4px;right:-2px;min-width:16px;height:16px;padding:0 4px;background:#e21c1c;color:#fff;font-size:10px;font-weight:800;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 1.5px #111}
+/* badge de notificação INLINE (era absoluto, flutuava acima do texto): fica na mesma linha, centrado. */
+.cl-mail-badge{min-width:16px;height:16px;padding:0 4px;background:#e21c1c;color:#fff;font-size:10px;font-weight:800;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 1.5px #111}
 .cl-mail{font-family:var(--sans);color:#eee}
 .cl-mail-empty{text-align:center;color:#bbb;padding:32px 16px;font-size:15px}
 .cl-mail-empty span{font-size:12px;color:#888}
