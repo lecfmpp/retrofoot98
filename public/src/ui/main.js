@@ -3398,7 +3398,9 @@ function fixUserXIAvailability(){
     if(sub) fixedXi[idx]=sub.pid;
   });
   S.xi=fixedXi;
-  const names=out.map(n=>n.split(' ').slice(-1)[0]).join(', ');
+  // out são PIDS (S.xi = pids), não nomes. Mapeia cada pid pro jogador e usa o sobrenome —
+  // antes fazia pid.split(' ') e mostrava o ID cru no aviso de suspensão/lesão.
+  const names=out.map(pid=>{ const p=sq.find(x=>x.pid===pid); return p ? p.n.split(' ').slice(-1)[0] : null; }).filter(Boolean).join(', ');
   toastC('⚠ '+names+' fora do próximo jogo — escalação ajustada automaticamente.');
 }
 /* atualiza a tabela das outras 3 divisões (que rodam em paralelo, só pra ambientação)
