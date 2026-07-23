@@ -3060,7 +3060,13 @@ function subPanelHTML(m){ const id=CL.clubId; const xiSet=new Set(S.xi||[]); con
     <div class="cl-sub-btn">${btn('Substituir','liveDoSub()',{icon:'⇄',cls:'cl-btn-ico'})}</div>
   </fieldset>`;
 }
-function showLiveClassif(){ CL.screen='classif';
+/* log opt-in do fluxo pós-rodada — ative com `EF_DEBUG=1` no console pra ver a sequência EXATA de
+   telas (waitround/classif/main) e qual caminho fechou a rodada (servidor vs fallback local). */
+function _prLog(tag){ try{ if(typeof window!=='undefined' && window.EF_DEBUG){
+  console.log('%c[postround]','color:#e2a41c;font-weight:bold', tag,
+    '| round='+(typeof S!=='undefined'&&S?S.round:'?'), 'screen='+CL.screen,
+    'host='+(typeof NET!=='undefined'&&NET.isHost), 'played='+CL._playedRound); } }catch(e){} }
+function showLiveClassif(){ _prLog('showLiveClassif -> classif'); CL.screen='classif';
   // reseta o accordion pra sempre abrir na divisão do usuário ao mostrar o ranking
   CL.clsDivOpen=null;
   armClassifTimer();
@@ -3120,7 +3126,7 @@ function scClassif(){
     <div class="cl-clsacc-wrap">${DIV_ORDER.map(panelHTML).join('')}</div>
   </div>`;
 }
-function liveDone(){ if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classifTimer){clearTimeout(CL._classifTimer);CL._classifTimer=null;} clearInjuryTimer(); clearCupFlowTimer(); CL.live=null; CL.subsUsed=0; CL._liveBusy=false; CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||CL.selPlayer; cdraw();
+function liveDone(){ _prLog('liveDone -> main'); if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classifTimer){clearTimeout(CL._classifTimer);CL._classifTimer=null;} clearInjuryTimer(); clearCupFlowTimer(); CL.live=null; CL.subsUsed=0; CL._liveBusy=false; CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||CL.selPlayer; cdraw();
   if(CL.lastGate) toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0;
   // notificação de propostas de compra recebidas nesta rodada (toast no topo, ~3s cada)
   if(S._offerToasts && S._offerToasts.length){ S._offerToasts.forEach((m,i)=>setTimeout(()=>toastC(m), 500+i*400)); S._offerToasts=[]; }
@@ -3515,6 +3521,7 @@ function onlineReturnFreeAfterMatch(){
   if(CL._liveTimer) clearTimeout(CL._liveTimer);
   CL._playedRound=S.round; // marca que JÁ joguei esta rodada — não re-simulo (evita loop na mesma rodada)
   CL.live=null; CL.subsUsed=0; CL._liveBusy=false;
+  _prLog('onlineReturnFreeAfterMatch -> waitround');
   CL.screen='waitround'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||CL.selPlayer; cdraw();
   if(CL.lastGate){ toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0; }
   // NÃO reabro a próxima rodada aqui: quem fecha e reabre a rodada é o ANFITRIÃO, DEPOIS de resolver
@@ -3551,9 +3558,11 @@ function onlineHostCloseRound(){
       let res=null; try{ res=await NET.resolveRound(round); }catch(e){ res={error:(e&&e.message)||'erro'}; }
       if(!res || res.error){
         console.warn('resolveRound -> fallback local:', res&&res.error);
+        _prLog('HOST closeRound: FALLBACK LOCAL (_commitLeagueRound)');
         CL._pendingRoundFin=null; // fallback: _commitLeagueRound->playRound já aplica as finanças (evita aplicar em dobro)
         _commitLeagueRound(pc.RL, userResultAuth, map, allEvents, pc.audit);
       } else {
+        _prLog('HOST closeRound: servidor OK -> onlineAdoptServerRound');
         await onlineAdoptServerRound(pc.RL); // adota o estado resolvido pelo servidor + UI pós-rodada
       }
       if(typeof NET!=='undefined' && NET.reopenReady) NET.reopenReady();
@@ -3581,6 +3590,7 @@ function applyOwnPendingFinances(){
   }catch(e){ console.warn('finanças da rodada:', e); }
 }
 async function onlineAdoptServerRound(RL){
+  _prLog('onlineAdoptServerRound: entrou (vai sobrescrever S com o shared_state)');
   let isTurnover=false;
   try{
     const saved = await NET.loadGame();

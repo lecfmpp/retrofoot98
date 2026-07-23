@@ -254,6 +254,7 @@ function onlineReconcileIfBehind(room){
     const sState = saved && saved.S;
     const oldSeason = S.season||0;
     const newer = sState && ( (sState.season||0) > oldSeason || ((sState.season||0)===oldSeason && (sState.round||0) > (S.round||0)) );
+    if(typeof _prLog==='function') _prLog('GUEST reconcile: authRound='+(room.round||0)+' myRound='+(S.round||0)+' newer='+!!newer);
     if(newer){
       const isTurnover = (sState.season||0) > oldSeason; // VIRADA de temporada (rodada volta a 0)
       Object.assign(S, sState);
