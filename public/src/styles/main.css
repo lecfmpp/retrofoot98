@@ -394,10 +394,10 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-tab{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;padding:3px 12px;font-size:14px;color:#ccc;cursor:pointer;border:1px solid transparent}
 .cl-tab.on{color:#fff;font-weight:700;border-color:#888 #888 #000 #888;background:#111;border-bottom:2px solid var(--yellow)}
 .cl-tab:hover{color:#fff}
-.cl-tab-ico{display:inline-flex;align-items:center;font-size:12px;line-height:1} /* emoji alinhado ao texto */
-/* ===== CAIXA DE ENTRADA (E-MAIL) ===== */
-/* badge de notificação INLINE (era absoluto, flutuava acima do texto): fica na mesma linha, centrado. */
-.cl-mail-badge{min-width:16px;height:16px;padding:0 4px;background:#e21c1c;color:#fff;font-size:10px;font-weight:800;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 1.5px #111}
+/* ===== BADGE NUMÉRICO DE NOTIFICAÇÃO (ofertas, e-mails, pedidos de entrada) — sem emoji ===== */
+/* INLINE (era absoluto, flutuava acima do texto): fica na mesma linha, centrado com o texto. */
+.cl-count-badge{min-width:16px;height:16px;padding:0 4px;background:#e21c1c;color:#fff;font-size:10px;font-weight:800;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 1.5px #111;vertical-align:middle}
+.cl-menu-i .cl-count-badge{margin-left:5px} /* no menu do topo (não-flex) precisa do respiro manual */
 .cl-mail{font-family:var(--sans);color:#eee}
 .cl-mail-empty{text-align:center;color:#bbb;padding:32px 16px;font-size:15px}
 .cl-mail-empty span{font-size:12px;color:#888}

@@ -1431,20 +1431,23 @@ function scMain(){
   const uf=userFixture(); const oppId=uf?(uf[0]===CL.clubId?uf[1]:uf[0]):null; const home=uf?uf[0]===CL.clubId:true;
   const menuNames=['RetroFoot98','Formação','Equipa','Jogador','Campeonatos','Treinador']; if(CL.online) menuNames.push('Modo Resenha');
   const hamburger=`<div class="cl-hamburger" onclick="clToggleMobMenu(event)"><span>☰ Menu</span><span>${CL.mobMenuOpen?'▲':'▼'}</span></div>`;
-  const resenhaBadge=(CL.online && typeof NET!=='undefined' && NET.isHost && CL.pendingJoins && CL.pendingJoins.length)?' 🔔':''; // pedidos de entrada pendentes
-  // o 💰 de proposta pendente fica SÓ na aba "Jogador" da tela principal — no menu do topo era repetido.
+  // badge numérico ÚNICO pra todas as notificações da UI (ofertas, e-mails, pedidos de entrada):
+  // nada de emoji, só o número (9+ acima de 9). Mesmo padrão em aba e menu.
+  const numBadge=n=>(n>0)?`<span class="cl-count-badge">${n>9?'9+':n}</span>`:'';
+  const resenhaBadge=(CL.online && typeof NET!=='undefined' && NET.isHost && CL.pendingJoins)?numBadge(CL.pendingJoins.length):''; // pedidos de entrada pendentes
+  // o badge de proposta fica SÓ na aba "Jogador" da tela principal — no menu do topo era repetido.
   const menu=`<div class="cl-menu ${CL.mobMenuOpen?'mob-open':''}" id="cl-menubar">
     ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${mm==='Modo Resenha'?resenhaBadge:''}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
   </div>`;
   if(typeof syncInbox==='function') syncInbox();           // atualiza a caixa antes de desenhar o badge
   const unread=(typeof inboxUnread==='function')?inboxUnread():0;
-  const mailBadge=unread>0?`<span class="cl-mail-badge">${unread>9?'9+':unread}</span>`:'';
+  const mailBadge=numBadge(unread);
+  const offerBadge=numBadge((S.incomingOffers&&S.incomingOffers.length)||0); // nº de propostas recebidas
   const tabs=['jogo','jogador','financas','seleccao','correio','adversario'];
   const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
-  const coinIco=(S.incomingOffers&&S.incomingOffers.length)?'<span class="cl-tab-ico">💰</span>':''; // ícone alinhado (não texto inline)
   // rótulo e ícone/badge são filhos flex do .cl-tab (align-items:center) — sempre em UMA linha e
   // verticalmente alinhados; o badge deixou de ser absoluto (flutuava acima do texto).
-  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')"><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='jogador'?coinIco:''}${t==='correio'?mailBadge:''}</span>`).join('')}</div>`;
+  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')"><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='jogador'?offerBadge:''}${t==='correio'?mailBadge:''}</span>`).join('')}</div>`;
   let panel='';
   if(CL.tab==='jogo') panel=panJogo(oppId,home,uf);
   else if(CL.tab==='jogador') panel=panJogador();
