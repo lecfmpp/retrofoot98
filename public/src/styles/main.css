@@ -455,7 +455,10 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-cal-row{display:grid;grid-template-columns:44px 1fr 40px;padding:3px 10px;font-weight:700;font-size:15px;color:var(--navy)}
 .cl-cal-row:nth-child(odd){background:var(--navy);color:#fff}
 .cl-cal-n{}.cl-cal-cf{text-align:center}
-.cl-cal-cup{background:var(--yellow)!important;color:#1a1a00!important}
+/* linha de COPA no calendário: cor distinta (amarelo) + barra verde da marca à esquerda e
+   negrito, pra o usuário localizar de relance EM QUE jornada cai a rodada da Copa do Brasil. */
+.cl-cal-cup{background:var(--yellow)!important;color:#1a1a00!important;font-weight:800;border-left:5px solid var(--success-lite)}
+.cl-cal-cup .cl-cal-n{color:#1a5a2a}
 .cl-cal-draw{background:#3a3aa0!important;color:#fff!important;font-style:italic}
 .cl-cal-ok{display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:14px}
 .cl-cls{width:600px}

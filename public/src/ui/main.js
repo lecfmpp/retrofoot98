@@ -3723,9 +3723,16 @@ function userCupCalendarRows(){
   if(!S.cups || !CL.clubId) return [];
   const out=[];
   const cb=S.cups.copaBrasil;
-  if(cb && !cupIsFinished(cb)){
+  // mostra a Copa do Brasil sempre que o clube estiver CLASSIFICADO (cupCompetitionTeamAlive),
+  // não só quando o confronto da fase atual já existe em cb.ties. Entre fases (o clube avançou
+  // mas o próximo chaveamento ainda não foi montado, ou passou por um bye) ele fica "vivo" pelo
+  // histórico sem estar num tie — antes isso fazia a copa SUMIR do calendário mesmo classificado.
+  if(cb && !cupIsFinished(cb) && typeof cupCompetitionTeamAlive==='function' && cupCompetitionTeamAlive(cb, CL.clubId)){
     const tie=(cb.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
-    if(tie) out.push({key:'copaBrasil', n:nextCupJornada('copaBrasil',0), opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
+    const phase=(typeof cupPhaseLabel==='function')?cupPhaseLabel(cb.round, cb.roundsTotal):null;
+    out.push({key:'copaBrasil', n:nextCupJornada('copaBrasil',0), phase,
+      opp: tie ? (tie.h===CL.clubId?tie.a:tie.h) : null,          // sem confronto ainda -> "a definir"
+      home: tie ? (tie.h===CL.clubId) : null});
   }
   groupCupKeys().forEach(key=>{
     const c=S.cups[key]; if(!c) return;
@@ -3765,7 +3772,7 @@ function clCalendar(){
   // liga); sorteios entram como um marco à parte, sem confronto associado.
   const cupRows=userCupCalendarRows().map(pc=>({n:pc.n, ord:0, html:
     `<div class="cl-cal-row cl-cal-cup"><span class="cl-cal-n">${pc.n}ª</span>
-      <span class="cl-cal-t">🏆 ${COMP_DEFS[pc.key].short} · ${clubLink(pc.opp)}</span><span class="cl-cal-cf">${pc.home?'C':'F'}</span></div>`}));
+      <span class="cl-cal-t">🏆 ${COMP_DEFS[pc.key].short}${pc.phase?' · '+escC(pc.phase):''} · ${pc.opp?clubLink(pc.opp):'<i>adversário a definir</i>'}</span><span class="cl-cal-cf">${pc.home==null?'':pc.home?'C':'F'}</span></div>`}));
   const drawRows=userCupDrawRows().map(dr=>({n:dr.n, ord:0, html:
     `<div class="cl-cal-row cl-cal-draw"><span class="cl-cal-n">${dr.n}ª</span>
       <span class="cl-cal-t">🎲 Sorteio das oitavas — ${COMP_DEFS[dr.key].short} (${fmtRealDate(dr.date)})</span><span class="cl-cal-cf"></span></div>`}));
