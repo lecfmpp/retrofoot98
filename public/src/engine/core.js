@@ -285,25 +285,30 @@ function recordNetTransfer(fromId, toId, playerName, contract, fee, pid){
    No ONLINE, viaja pro servidor como uma "transferência" de origem BASE (carrega o jogador inteiro);
    o servidor ADICIONA o jogador ao clube (senão a mutação local seria desfeita no adopt). */
 function currentTurno(){ const half=Math.floor((Array.isArray(S.sched)?S.sched.length:38)/2); return (S.round||0) < half ? 1 : 2; }
-const YOUTH_PER_SEASON=6; // teto de jogadores subidos da base por temporada
-/* quantos jovens ESTE clube já subiu NESTA temporada — DERIVADO do próprio elenco (cada jovem
-   carrega _youthSeason). É autoritativo: o jogador viaja pro servidor (from:'BASE') e volta no
-   shared_state, então a contagem sobrevive aos adopts do online e é naturalmente por-clube — sem
-   contador separado que vazaria entre humanos ou resetaria pro convidado. */
-function youthCountThisSeason(){ return (squad(S.clubId)||[]).filter(p=>p&&p._youthSeason===S.season).length; }
-/* base só pode subir DENTRO da janela de transferências aberta. A 2ª janela ([20, fim]) vai até o
-   fim do calendário, então "ao final de cada temporada" já está coberto por inTransferWindow(). */
-function youthWindowOpen(){ return (typeof inTransferWindow==='function') ? inTransferWindow() : true; }
+/* índice da janela de transferências ATUAL (0 = pré-temporada [0,9], 1 = [20,fim]); -1 fora dela.
+   A base sobe no MÁXIMO 1 jogador POR JANELA (2 por temporada, uma em cada janela). */
+function currentWindowIndex(){
+  if(typeof TRANSFER_WINDOWS==='undefined') return 0;
+  for(let i=0;i<TRANSFER_WINDOWS.length;i++){ const w=TRANSFER_WINDOWS[i]; if((S.round||0)>=w[0] && (S.round||0)<=w[1]) return i; }
+  return -1;
+}
+/* quantos jovens ESTE clube já subiu NESTA janela desta temporada — DERIVADO do próprio elenco
+   (cada jovem carrega _youthSeason + _youthWindow). É autoritativo: o jogador viaja pro servidor
+   (from:'BASE') e volta no shared_state, então a contagem sobrevive aos adopts do online e é
+   naturalmente por-clube — sem contador solto em S que vazaria entre humanos ou resetaria pro convidado. */
+function youthCountThisWindow(){ const w=currentWindowIndex();
+  return (squad(S.clubId)||[]).filter(p=>p&&p._youthSeason===S.season&&p._youthWindow===w).length; }
+function youthWindowOpen(){ return currentWindowIndex()>=0; }
 function youthAvailable(){
   if(!S || !S.clubId) return false;
-  return youthWindowOpen() && youthCountThisSeason()<YOUTH_PER_SEASON && (squad(S.clubId)||[]).length<40;
+  return youthWindowOpen() && youthCountThisWindow()<1 && (squad(S.clubId)||[]).length<40;
 }
 function promoteYouth(){
   if(!youthAvailable()){
     const cheio=(squad(S.clubId)||[]).length>=40;
-    const limite=youthCountThisSeason()>=YOUTH_PER_SEASON;
+    const limite=youthWindowOpen() && youthCountThisWindow()>=1;
     return {ok:false, msg: cheio?'Elenco cheio (40 jogadores).'
-      : limite?('Você já subiu '+YOUTH_PER_SEASON+' jogadores da base nesta temporada.')
+      : limite?('Você já subiu um jogador da base nesta janela. Espere a próxima janela de transferências.')
       : 'A base só sobe jogador com a janela de transferências aberta (ou no fim da temporada).'};
   }
   const div=S.division, sq=squad(S.clubId);
@@ -317,7 +322,7 @@ function promoteYouth(){
   raw.age=16+Math.floor(R.random()*4); raw.ag='Base'; raw.moral=75; raw.mv=REBAL.value(raw.f, raw.age);
   const youth=attachAttrs(initStats(raw), div);   // ganha pid + atributos + comportamento
   youth.contract=defaultContract(youth);
-  youth._youthSeason=S.season;                    // marca a temporada em que subiu (base do teto de 6/temporada)
+  youth._youthSeason=S.season; youth._youthWindow=currentWindowIndex(); // temporada+janela (base do teto de 1/janela)
   sq.push(youth);
   if(typeof CL!=='undefined' && CL.online){ // manda o jogador NOVO pro servidor adicionar (from BASE)
     S._netTransfers=S._netTransfers||[]; S._netTransfers.push({ from:'BASE', to:S.clubId, p:youth.n, pid:youth.pid, player:youth, fee:0 });

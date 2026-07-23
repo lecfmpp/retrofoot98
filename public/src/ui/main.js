@@ -4328,9 +4328,11 @@ function clClassif(){ CL.menu=null;
     return `<div class="cl-cls-row${qcls} ${me?'me':''} ${zone?'zone-'+zone:''}"><span class="cl-cls-p">${i+1}</span><span class="cl-cls-n">${clubLink(t.id)}</span>
       <span class="cl-cls-num b">${t.Pts}</span><span class="cl-cls-num">${t.W}</span><span class="cl-cls-num">${t.D}</span><span class="cl-cls-num">${t.L}</span>
       <span class="cl-cls-num">${t.GF}</span><span class="cl-cls-num">${t.GA}</span>${hasQual?qualificationZoneBadge(zone):''}</div>`;}).join('');
-  overlayC(dlg('Classificação — '+escC(divisionLabel()), `<div class="cl-cls-head${qcls}"><span class="cl-cls-p">#</span><span class="cl-cls-n">Equipa</span>
-    <span class="cl-cls-num">P</span><span class="cl-cls-num">V</span><span class="cl-cls-num">E</span><span class="cl-cls-num">D</span><span class="cl-cls-num">GP</span><span class="cl-cls-num">GC</span>${hasQual?'<span></span>':''}</div>
-    <div class="cl-cls">${rows}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
+  // cabeçalho DENTRO do mesmo container de rolagem (.cl-cls) das linhas: assim os dois compartilham
+  // a MESMA largura (e a mesma redução quando aparece a barra de rolagem), então as colunas 1fr
+  // batem exatamente. Antes o head ficava fora, tomava a largura do diálogo e desalinhava/vazava.
+  overlayC(dlg('Classificação — '+escC(divisionLabel()), `<div class="cl-cls"><div class="cl-cls-head${qcls}"><span class="cl-cls-p">#</span><span class="cl-cls-n">Equipa</span>
+    <span class="cl-cls-num">P</span><span class="cl-cls-num">V</span><span class="cl-cls-num">E</span><span class="cl-cls-num">D</span><span class="cl-cls-num">GP</span><span class="cl-cls-num">GC</span>${hasQual?'<span></span>':''}</div>${rows}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
     {w:680,bodyClass:'cl-body-gray',min:true})); }
 
 
@@ -4660,17 +4662,14 @@ function clSellPriceInput(input){
   const diffEl=$c('#cl-sellprice-diff'); if(diffEl) diffEl.textContent=diffLabel;
   const warnEl=$c('#cl-sellprice-warn'); if(warnEl) warnEl.style.display=(askingPrice>0 && askingPrice<sellMinPrice(mv))?'block':'none';
 }
-/* Jogador > Subir jogador da base (item 5): até 6 por temporada, só com a janela aberta (ou no fim
-   da temporada). Gera um jovem no nível do time na posição mais carente e mostra nome/posição/força. */
+/* Jogador > Subir jogador da base (item 5): 1 por janela de transferências (2 por temporada, uma em
+   cada janela). Gera um jovem no nível do time na posição mais carente e mostra nome/posição/força. */
 function clPromoteYouth(){ CL.menu=null;
   if(typeof promoteYouth!=='function'){ return; }
   const r=promoteYouth();
   if(!r.ok){ toastC(r.msg); return; }
   const y=r.youth;
-  const restam=(typeof YOUTH_PER_SEASON!=='undefined' && typeof youthCountThisSeason==='function')
-    ? Math.max(0, YOUTH_PER_SEASON - youthCountThisSeason()) : null;
-  const restamTxt = restam==null ? 'Entrou no elenco.'
-    : (restam>0 ? `Entrou no elenco. Ainda pode subir <b>${restam}</b> nesta temporada.` : 'Entrou no elenco. Você atingiu o limite de 6 nesta temporada.');
+  const restamTxt='Entrou no elenco. Você poderá subir outro na próxima janela de transferências.';
   overlayC(dlg('🌱 Jogador da base promovido', `<div class="cl-res" style="text-align:center;padding:14px">
     <div class="cl-res-score" style="font-size:20px">${escC(y.n)}</div>
     <div class="cl-res-verd" style="margin-top:8px">${escC(r.posNome)} · ${y.age} anos<br>
