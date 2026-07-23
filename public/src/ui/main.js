@@ -2047,6 +2047,12 @@ function clEscalaPick(pid){   // pid do jogador clicado (identidade por ID, não
   const outP=pById(CL.preSubOut,CL.clubId), inP=pById(pid,CL.clubId);
   if(!outP||!inP) return;
   if(inP.suspended>0||inP.injuredMatches>0){ toastC('Esse jogador não está disponível.'); return; }
+  // GOLEIRO: o XI tem exatamente 1. Não deixa entrar um 2º goleiro (trocar linha por GK) nem
+  // tirar o único goleiro (trocar GK por linha) — só GK↔GK ou linha↔linha.
+  if((inP.s==='GK')!==(outP.s==='GK')){
+    toastC(inP.s==='GK' ? 'O time já tem um goleiro escalado — troque goleiro por goleiro.' : 'Você precisa de um goleiro no gol — só troque o goleiro por outro goleiro.');
+    return;
+  }
   CL.preSubIn=pid;
   // troca livre entre qualquer posição (ex: colocar um meia no lugar de um zagueiro
   // machucado) — antes travava com "só mesma posição", forçando o time a jogar com um a
@@ -2597,7 +2603,12 @@ function clearInjuryTimer(){ if(CL._injTimer){ clearInterval(CL._injTimer); CL._
    ordena os da mesma posição primeiro, pra sugerir a troca mais natural sem obrigar nada. */
 function injurySubOptions(e){
   const xiSet=new Set(S.xi||[]);   // pids
-  const bench=squad(CL.clubId).filter(p=>!xiSet.has(p.pid) && !(p.suspended>0) && !(p.injuredMatches>0)).sort(bySquadOrder);
+  let bench=squad(CL.clubId).filter(p=>!xiSet.has(p.pid) && !(p.suspended>0) && !(p.injuredMatches>0)).sort(bySquadOrder);
+  // regra de 1 goleiro: se o lesionado é GOLEIRO, só oferece goleiros do banco (a menos que não
+  // haja nenhum — aí libera pra não deixar o gol vazio). Se o lesionado é de LINHA, nunca oferece
+  // goleiro (senão o time ficaria com 2 goleiros em campo).
+  if(e.pos==='GK'){ const gks=bench.filter(p=>p.s==='GK'); if(gks.length) bench=gks; }
+  else bench=bench.filter(p=>p.s!=='GK');
   const samePos=bench.filter(p=>p.s===e.pos), rest=bench.filter(p=>p.s!==e.pos);
   return [...samePos, ...rest];
 }
@@ -2661,6 +2672,8 @@ function liveSubPick(side,pid){ if(side==='out')CL.subOut=pid; else CL.subIn=pid
 function liveDoSub(){ if(!CL.subOut||!CL.subIn){ toastC('Escolha um titular e um reserva.'); return; }
   if((CL.subsUsed||0)>=3){ toastC('Máximo de 3 substituições.'); return; }
   const outP=pById(CL.subOut,CL.clubId), inP=pById(CL.subIn,CL.clubId);   // subOut/subIn = pids
+  if(outP&&inP&&(inP.s==='GK')!==(outP.s==='GK')){ // mantém exatamente 1 goleiro em campo
+    toastC(inP.s==='GK'?'Já tem um goleiro em campo — troque goleiro por goleiro.':'Só troque o goleiro por outro goleiro.'); return; }
   S.xi=(S.xi||[]).map(x=>x===CL.subOut?CL.subIn:x); CL.subsUsed=(CL.subsUsed||0)+1;
   if(outP&&inP) toastC(inP.n.split(' ').slice(-1)[0]+' entrou no lugar de '+outP.n.split(' ').slice(-1)[0]); CL.subOut=CL.subIn=null; updateLive(); }
 function txtOn(hex){ return lumin(hex)>0.58?'#111':'#fff'; }
@@ -3446,10 +3459,12 @@ async function onlineAdoptServerRound(RL){
     // lido de S._prevSeason. Credita meu caixa ANTES do cdraw (não perde o dinheiro se o desenho
     // falhar); o servidor não credita prêmio, igual às finanças por-humano.
     const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null;
+    queueSeasonCupDrawsIfNew(); // virada: enfileira o sorteio da copa NOVA (mostra na 1ª rodada da temporada nova)
     cdraw();
     openPressRoom(_sum);
     return;
   }
+  queueSeasonCupDrawsIfNew(); // todo cliente enfileira o sorteio da copa recém-sorteada (não só o host)
   checkPendingCupDraws(()=>{
     const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
     if(seats.length) startPostRoundClassifs(seats); else showLiveClassif();
@@ -3491,6 +3506,7 @@ function _commitLeagueRound(RL, userResult, humanResults, allEvents, _auditPaylo
   // se a rodada acabou de decidir um sorteio de copa (Libertadores/Sul-Americana oitavas),
   // mostra a cerimônia ANTES da classificação — igual ao clássico "Sorteio dos jogos da taça".
   // Depois da classificação, se houver demissão/proposta pendente desta rodada, mostra o modal.
+  queueSeasonCupDrawsIfNew(); // host (caminho local sem edge function): idem
   checkPendingCupDraws(()=>{
     const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
     if(seats.length) startPostRoundClassifs(seats); // cada humano vê a SUA classificação, em rotação
@@ -4221,6 +4237,29 @@ function cupBracketHTML(c,key){
    time -> grupo) ou 'bracket' (mata-mata, pares/isento). */
 function queueDrawShow(key, stage){ S._pendingDrawShows=S._pendingDrawShows||[]; stage=stage||'bracket';
   if(!S._pendingDrawShows.some(x=>(x&&x.key)===key && (x&&x.stage||'bracket')===stage)) S._pendingDrawShows.push({key, stage}); }
+/* ONLINE: cada cliente enfileira o sorteio da copa NOVA da temporada por conta própria.
+   Antes o sorteio dependia de S._pendingDrawShows, uma fila de UI que vivia no cliente que
+   CRIOU a copa (o host, no newGame da 1ª temporada) — na virada o servidor cria a chave mas não
+   enfileira nada, e na 1ª temporada havia corrida (o host mostrava e limpava antes do convidado
+   adotar). Resultado: só o anfitrião via o sorteio. Aqui, ao adotar o estado, TODO cliente detecta
+   a chave recém-sorteada (round 1, sem campeão, com confrontos / fase de grupos) e enfileira o
+   sorteio se ainda não mostrou nesta temporada (marcador LOCAL por cliente, key+season). Assim
+   todos veem, e a barreira 'busy' do cupdraw (ver onlineTimerLoop) segura a rodada até todos
+   terminarem de assistir. */
+function queueSeasonCupDrawsIfNew(){
+  if(typeof CL==='undefined' || !CL.online || !S || !S.cups) return;
+  CL._drawShownSeason = CL._drawShownSeason || {};
+  const season = S.season||1;
+  const defs=[['copaBrasil','bracket'],['libertadores','group'],['sulamericana','group'],['championsLeague','group'],['europaLeague','group']];
+  defs.forEach(([key,stage])=>{
+    const c=S.cups[key]; if(!c) return;
+    const fresh = (key==='copaBrasil')
+      ? (c.round===1 && !c.champion && ((c.ties&&c.ties.length) || (c.pendingByes&&c.pendingByes.length)))
+      : !!(c.group && !c.bracket); // continental: fase de grupos ainda não virou mata-mata
+    const mark = key+':'+season;
+    if(fresh && CL._drawShownSeason[mark]!==true){ CL._drawShownSeason[mark]=true; queueDrawShow(key, stage); }
+  });
+}
 /* dispara o próximo sorteio pendente, se houver; encadeia até esvaziar a fila e só então
    chama onDone (ex: mostrar a classificação da rodada, ou o aviso de acesso/queda) */
 function checkPendingCupDraws(onDone){

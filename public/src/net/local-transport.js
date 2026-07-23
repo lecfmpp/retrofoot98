@@ -281,6 +281,7 @@ function onlineReconcileIfBehind(room){
         // Ao espelhar a rodada, o CONVIDADO vê o MESMO que o host: (1) sorteio de copa pendente e
         // depois (2) a CLASSIFICAÇÃO pós-rodada. Ao terminar (Continuar/10s), o loop dispara a próxima.
         const _showClassif=()=>{ if(typeof showLiveClassif==='function') showLiveClassif(); };
+        if(typeof queueSeasonCupDrawsIfNew==='function') queueSeasonCupDrawsIfNew(); // convidado enfileira o sorteio novo por conta própria
         if(typeof checkPendingCupDraws==='function' && S._pendingDrawShows && S._pendingDrawShows.length){ checkPendingCupDraws(_showClassif); }
         else _showClassif();
       }
@@ -1060,10 +1061,12 @@ function onlineTimerLoop(){
   if(CL.online && typeof NET!=='undefined' && NET.gameId && NET.heartbeatSeen){
     if(Date.now()-ONLINE_SEEN_T>15000){ ONLINE_SEEN_T=Date.now(); NET.heartbeatSeen(); }
   }
-  // BARREIRA DE SINCRONIZAÇÃO: enquanto EU estou numa partida ao vivo (liga/copa/espectador),
-  // bato um heartbeat "ocupado" — o servidor não avança a rodada sem mim (ver advance_phase_if_expired).
-  // Ao sair da tela ao vivo, limpo o "ocupado" uma vez (fim normal = libera; queda = expira em ~90s).
-  if(CL.online && CL.screen==='live' && typeof NET!=='undefined' && NET.gameId){
+  // BARREIRA DE SINCRONIZAÇÃO: enquanto EU estou numa partida ao vivo (liga/copa/espectador)
+  // OU assistindo ao SORTEIO da copa (cupdraw), bato um heartbeat "ocupado" — o servidor não
+  // avança a rodada sem mim (ver advance_phase_if_expired). Incluir 'cupdraw' faz o sorteio
+  // esperar todos: a rodada não fecha enquanto alguém ainda está vendo o sorteio.
+  // Ao sair da tela, limpo o "ocupado" uma vez (fim normal = libera; queda = expira em ~90s).
+  if(CL.online && (CL.screen==='live'||CL.screen==='cupdraw') && typeof NET!=='undefined' && NET.gameId){
     ONLINE_BUSY_ACTIVE=true;
     if(Date.now()-ONLINE_BUSY_T>15000){ ONLINE_BUSY_T=Date.now(); if(NET.heartbeatBusy) NET.heartbeatBusy(); }
   } else if(ONLINE_BUSY_ACTIVE){
