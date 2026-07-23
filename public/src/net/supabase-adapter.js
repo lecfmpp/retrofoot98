@@ -921,6 +921,13 @@ function netRejectJoin(userId){ return netDecideJoin(userId, 'rejected'); }
 /* ---- EXPULSÃO (anfitrião remove um jogador da Resenha, no lobby ou durante a partida) ----
    Sinal em tempo real via broadcast (chega em todos, inclusive o expulso, sem depender de RLS),
    MAIS liberação do assento no banco (clube volta a CPU; persiste e impede reentrada). */
+/* Fase 2 (demissão/carreira): troca o clube do PRÓPRIO assento — clubId nulo = fico
+   desempregado (clube antigo vira CPU); um id = assumo um clube livre. Chama a RPC
+   set_my_seat_club (ver scripts/sql/set_my_seat_club.sql; aplicar no Supabase antes de usar). */
+async function netSetMyClub(clubId){
+  try{ const { error } = await sb.rpc('set_my_seat_club', { p_game: NET.gameId, p_club: clubId||null }); if(error) throw error; return {ok:true}; }
+  catch(e){ return {ok:false, error:(e&&e.message)||String(e)}; }
+}
 async function netKick(uid, clubId){
   if(!NET.isHost || !uid || uid===(SB_AUTH_USER&&SB_AUTH_USER.id)) return;
   SB_KICKED[uid]=1;
@@ -966,6 +973,7 @@ NET.allHumanResultsIn = netAllHumanResultsIn;
 NET.collectHumanResults = netCollectHumanResults;
 NET.setMode = netSetMode;
 NET.assignClub = netAssignClub;
+NET.setMyClub = netSetMyClub;
 NET.drawClubs = netDrawClubs;
 NET.setReady = netSetReady;
 NET.start = netStart;
