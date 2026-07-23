@@ -3934,7 +3934,7 @@ function menuDropdown(name){ name=name||CL.menu;
     'RetroFoot98':[['Opções...','clOptions()'],['—'],['Gravar jogo','clSaveMenu()'],['Sair para o menu','clExit()']],
     'Formação':[...F.map((f,i)=>[`${f}`,`clSelFormation('${f}')`,(i+1)+'/'+FKEY[f]]),['—'],['Automático','clSelFormation(\'auto\')'],['Melhores','clSelFormation(\'best\')']],
     'Equipa':[['Estádio...','clStadium()'],['Historial...','clClubHistory()']],
-    'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],[`Propostas recebidas${(S.incomingOffers&&S.incomingOffers.length)?' ('+S.incomingOffers.length+')':''}...`,'clIncomingOffers()'],['Leilão de jogadores...','clAuctionScreen()'],[(typeof youthAvailable==='function'&&youthAvailable())?'🌱 Subir jogador da base':'Base (indisponível neste turno)','clPromoteYouth()'],['Últimas transferências...','clStub(\'Últimas transferências\')']],
+    'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],[`Propostas recebidas${(S.incomingOffers&&S.incomingOffers.length)?' ('+S.incomingOffers.length+')':''}...`,'clIncomingOffers()'],['Leilão de jogadores...','clAuctionScreen()'],[(typeof youthAvailable==='function'&&youthAvailable())?'🌱 Subir jogador da base':'Base (indisponível agora)','clPromoteYouth()'],['Últimas transferências...','clStub(\'Últimas transferências\')']],
     'Campeonatos':[['Minhas competições...','clCompList()','C'],['—'],['Melhores marcadores...','clScorers()'],['Calendário...','clCalendar()'],['—'],['Últimos vencedores...','clUltimosVencedores()'],['Melhores marcadores de sempre...','clScorersAllTime()']].concat((S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)?[['—'],['Ligas internacionais...','clBgLeaguesMenu()']]:[]),
     'Treinador':[['História...','clCoachHistory()'],['Ranking...','clCoachRanking()'],['Ofertas...','clJobOffers()'],['Perfil...','clPerfilTreinador()']]
   };
@@ -4660,18 +4660,22 @@ function clSellPriceInput(input){
   const diffEl=$c('#cl-sellprice-diff'); if(diffEl) diffEl.textContent=diffLabel;
   const warnEl=$c('#cl-sellprice-warn'); if(warnEl) warnEl.style.display=(askingPrice>0 && askingPrice<sellMinPrice(mv))?'block':'none';
 }
-/* Jogador > Subir jogador da base (item 5): uma vez por turno, gera um jovem no nível do time
-   na posição mais carente e mostra nome/posição/força num modal. */
+/* Jogador > Subir jogador da base (item 5): até 6 por temporada, só com a janela aberta (ou no fim
+   da temporada). Gera um jovem no nível do time na posição mais carente e mostra nome/posição/força. */
 function clPromoteYouth(){ CL.menu=null;
   if(typeof promoteYouth!=='function'){ return; }
   const r=promoteYouth();
   if(!r.ok){ toastC(r.msg); return; }
   const y=r.youth;
+  const restam=(typeof YOUTH_PER_SEASON!=='undefined' && typeof youthCountThisSeason==='function')
+    ? Math.max(0, YOUTH_PER_SEASON - youthCountThisSeason()) : null;
+  const restamTxt = restam==null ? 'Entrou no elenco.'
+    : (restam>0 ? `Entrou no elenco. Ainda pode subir <b>${restam}</b> nesta temporada.` : 'Entrou no elenco. Você atingiu o limite de 6 nesta temporada.');
   overlayC(dlg('🌱 Jogador da base promovido', `<div class="cl-res" style="text-align:center;padding:14px">
     <div class="cl-res-score" style="font-size:20px">${escC(y.n)}</div>
     <div class="cl-res-verd" style="margin-top:8px">${escC(r.posNome)} · ${y.age} anos<br>
       Força <b style="font-size:22px;color:#2e9e46">${y.f}</b></div>
-    <div style="font-size:12px;color:#777;margin-top:8px">Entrou no elenco. Volte no próximo turno para subir outro.</div>
+    <div style="font-size:12px;color:#777;margin-top:8px">${restamTxt}</div>
     <div class="cl-cal-ok" style="margin-top:14px">${btn('Boa!','clCloseOverlay();cdraw()',{icon:'✔',cls:'cl-btn-ok'})}</div>
   </div>`,{w:440,bodyClass:'cl-body-green'}));
 }
