@@ -4673,7 +4673,7 @@ function clPromoteYouth(){ CL.menu=null;
   overlayC(dlg('🌱 Jogador da base promovido', `<div class="cl-res" style="text-align:center;padding:14px">
     <div class="cl-res-score" style="font-size:20px">${escC(y.n)}</div>
     <div class="cl-res-verd" style="margin-top:8px">${escC(r.posNome)} · ${y.age} anos<br>
-      Força <b style="font-size:22px;color:#2e9e46">${y.f}</b></div>
+      Força <b style="font-size:22px;color:#fff">${y.f}</b></div>
     <div style="font-size:12px;color:#777;margin-top:8px">${restamTxt}</div>
     <div class="cl-cal-ok" style="margin-top:14px">${btn('Boa!','clCloseOverlay();cdraw()',{icon:'✔',cls:'cl-btn-ok'})}</div>
   </div>`,{w:440,bodyClass:'cl-body-green'}));
