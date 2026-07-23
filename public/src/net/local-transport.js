@@ -1159,6 +1159,9 @@ function onlineCompleteSeasonTurnover(){
 function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return; if(!CL.online || !S) return;
   // não interrompe as telas de sorteio/classificação pós-rodada (o convidado está vendo o ranking)
   if(CL.screen==='classif'||CL.screen==='cupdraw'||CL.screen==='seatclassif') return;
+  // DESEMPREGADO (Fase 2): não jogo — só assisto. Marco a rodada como "vista" pra não tentar simular
+  // um clube que não é mais meu (o servidor já resolve o clube antigo como CPU, sem humano no assento).
+  if(CL.unemployed){ CL._playedRound=S.round; return; }
   // rodada além do calendário -> a virada não completou: completa via servidor (não joga fantasma)
   if(Array.isArray(S.sched) && (S.round||0) >= S.sched.length){ onlineCompleteSeasonTurnover(); return; }
   // JÁ JOGUEI ESTA RODADA: fico LIVRE aguardando o fechamento (anfitrião) — NÃO re-simulo a mesma

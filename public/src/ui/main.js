@@ -3475,6 +3475,7 @@ async function onlineAdoptServerRound(RL){
     const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
     if(seats.length) startPostRoundClassifs(seats); else showLiveClassif();
     checkPendingManagerEvents();
+    if(typeof handleResenhaCareer==="function") handleResenhaCareer(); // Fase 2: demissão/convite na Resenha
   });
 }
 /* commit de uma rodada de liga — extraído do fim de finishLiveRound pra ser reusado depois
@@ -3518,6 +3519,7 @@ function _commitLeagueRound(RL, userResult, humanResults, allEvents, _auditPaylo
     if(seats.length) startPostRoundClassifs(seats); // cada humano vê a SUA classificação, em rotação
     else showLiveClassif();                          // solo de 1 humano: como sempre
     checkPendingManagerEvents();
+    if(typeof handleResenhaCareer==="function") handleResenhaCareer(); // Fase 2: demissão/convite na Resenha
   });
 }
 /* fecha uma partida de COPA jogada ao vivo — de propósito NÃO passa por finishLiveRound()/
@@ -3914,6 +3916,55 @@ function seasonHistoryTableHTML(entries){
 }
 /* barra de SEGURANÇA NO CARGO — reflete a régua jobSecurity (70% posição na tabela + 30% moral
    do elenco). Verde = tranquilo, amarelo = atenção, vermelho = cargo em risco. */
+/* ===== CARREIRA NA RESENHA (Fase 2): demissão -> desempregado -> convite -> assume =====
+   O motor (tickResenhaCareer, core.js) decide; aqui é a UI + a troca de assento no servidor. */
+function handleResenhaCareer(){
+  if(typeof tickResenhaCareer!=='function') return;
+  const ev=tickResenhaCareer(); if(!ev) return;
+  if(ev.kind==='fired') enterResenhaUnemployment();
+  else if(ev.kind==='offer') showResenhaOffer(ev.offer);
+}
+function enterResenhaUnemployment(){
+  if(!CL.online) return;
+  CL._firedFrom=CL.clubId; CL.unemployed=true; CL._unempRounds=0; CL._pendingResenhaOffer=null;
+  // libera o clube no servidor (vira CPU); se falhar, desfaz o estado local pra não travar o jogador
+  if(typeof NET!=='undefined' && NET.setMyClub){
+    NET.setMyClub(null).then(r=>{ if(!r||!r.ok){ console.warn('setMyClub(null):', r&&r.error); CL.unemployed=false; } });
+  }
+  overlayC(dlg('Você foi demitido', `<div class="cl-res" style="text-align:center;padding:16px">
+    <div class="cl-res-score" style="color:#c0392b">Demitido do ${escC((clubOf(CL._firedFrom)||{}).short||'clube')}</div>
+    <div class="cl-res-verd" style="margin-top:8px">Os resultados e o clima do vestiário não seguraram o seu cargo.<br>
+      Você fica <b>sem clube</b>, acompanhando as rodadas. Em algumas rodadas um clube livre pode te chamar.</div>
+    <div class="cl-cal-ok" style="margin-top:14px">${btn('Entendi','clCloseOverlay();CL.screen=\'main\';CL.tab=\'jogo\';cdraw()',{icon:'✔',cls:'cl-btn-ok'})}</div>
+  </div>`,{w:470,bodyClass:'cl-body-gray'}));
+}
+function showResenhaOffer(offer){
+  const c=clubOf(offer.clubId)||{};
+  overlayC(dlg('🤝 Proposta de emprego', `<div class="cl-res" style="text-align:center;padding:16px">
+    <div class="cl-res-score">${escC(c.short||offer.clubId)}</div>
+    <div class="cl-res-verd" style="margin-top:6px">${escC((typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[offer.division])||('Série '+offer.division))} · quer você como treinador.</div>
+    <div class="cl-cal-ok" style="display:flex;gap:10px;justify-content:center;margin-top:14px">
+      ${btn('Recusar','clDeclineResenhaOffer()',{icon:'✖',cls:'cl-btn-cancel'})}
+      ${btn('Aceitar','clAcceptResenhaOffer()',{icon:'✔',cls:'cl-btn-ok'})}
+    </div></div>`,{w:470,bodyClass:'cl-body-green'}));
+}
+function clDeclineResenhaOffer(){ clCloseOverlay(); CL._pendingResenhaOffer=null; CL._unempRounds=0; cdraw(); } // recusou -> espera surgir outro
+function clAcceptResenhaOffer(){
+  const offer=CL._pendingResenhaOffer; if(!offer){ clCloseOverlay(); return; }
+  if(typeof NET==='undefined' || !NET.setMyClub){ toastC('Recurso indisponível.'); return; }
+  toastC('Assumindo o clube...');
+  NET.setMyClub(offer.clubId).then(r=>{
+    if(!r||!r.ok){ toastC('Não deu pra assumir'+((r&&r.error)?' ('+r.error+')':'')+'.'); return; }
+    CL.unemployed=false; CL._unempRounds=0; CL._pendingResenhaOffer=null;
+    CL.clubId=offer.clubId; S.clubId=offer.clubId;
+    if(CL.humans){ delete CL.humans[CL._firedFrom]; CL.humans[offer.clubId]=CL.mgr; }
+    if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
+    S.xi=(typeof resolveClubXI==='function')?resolveClubXI(CL.clubId):(typeof autoXI==='function'?autoXI(CL.clubId):S.xi);
+    CL.tacticChosen=false; CL.formation=null; CL.selPlayer=squad(CL.clubId)[0]?.pid||null; S.jobSecurity=55;
+    clCloseOverlay(); CL.screen='main'; CL.tab='jogo'; cdraw();
+    toastC('Você é o novo treinador do '+((clubOf(offer.clubId)||{}).short||''));
+  });
+}
 function jobSecurityBarHTML(){
   const js=Math.round(S.jobSecurity!=null?S.jobSecurity:60);
   const col = js>=55?'#2e9e46' : js>=25?'#e0a52a' : '#c0392b';

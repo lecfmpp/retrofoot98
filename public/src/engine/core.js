@@ -2368,6 +2368,48 @@ function checkManagerJobEvent(){
   }
   return null;
 }
+/* ===== CARREIRA NA RESENHA (Fase 2): demissão -> desempregado -> convite -> assume =====
+   Diferente do solo (que oferece clubes na hora): na Resenha o treinador é DEMITIDO, fica
+   assistindo as rodadas sem interagir e só depois recebe convite de um clube LIVRE da CPU.
+   A troca de assento acontece no servidor (NET.setMyClub). Orquestrado por tickResenhaCareer,
+   chamado a cada rodada adotada. */
+/* clubes SEM humano (livres/CPU) na divisão do usuário e ABAIXO — nunca acima (demitido não sobe) */
+function resenhaFreeClubs(){
+  const humans=new Set(Object.keys((typeof CL!=='undefined'&&CL.humans)||{}));
+  if(S.clubId) humans.add(S.clubId);
+  const myIdx=DIV_ORDER.indexOf(S.division), out=[];
+  DIV_ORDER.forEach((d,i)=>{
+    if(i<myIdx) return; // só divisão atual ou abaixo
+    const clubs = d===S.division ? DATA.clubs : ((S.otherDivs&&S.otherDivs[d]&&S.otherDivs[d].clubs)||[]);
+    (clubs||[]).forEach(c=>{ if(c&&c.id && !humans.has(c.id)) out.push({clubId:c.id, division:d}); });
+  });
+  return out;
+}
+function tickResenhaCareer(){
+  if(typeof CL==='undefined' || !CL.online || !S) return null;
+  if((S.round||0)<5 && !CL.unemployed) return null;   // dá um tempo antes de qualquer demissão
+  if(CL.unemployed){
+    CL._unempRounds=(CL._unempRounds||0)+1;            // conta rodadas assistindo
+    if(CL._unempRounds>=3 && !CL._pendingResenhaOffer){ // convite após ~3 rodadas
+      const free=resenhaFreeClubs(); if(!free.length) return null;
+      const R=makeRng(hashSeed(S.seed,S.season,S.round,'resenha-offer'));
+      // demitido recebe convite de clube MODESTO (por overall) — não de gigante
+      const ranked=free.map(f=>({ ...f, ov:clubOverall(f.clubId) })).sort((a,b)=>a.ov-b.ov);
+      const pool=ranked.slice(0, Math.max(3, Math.ceil(ranked.length*0.4)));
+      const pick=pool[Math.floor(R.random()*pool.length)];
+      CL._pendingResenhaOffer=pick;
+      return {kind:'offer', offer:pick};
+    }
+    return null;
+  }
+  // EMPREGADO: risco real de demissão quando a régua (resultados+moral) está muito baixa
+  if((S.jobSecurity||60)<=12){
+    const R=makeRng(hashSeed(S.seed,S.season,S.round,'resenha-fire',S.clubId));
+    const chance=(12-(S.jobSecurity||0))/12*0.30;     // até 30%/rodada com a régua em 0
+    if(R.random()<chance) return {kind:'fired'};
+  }
+  return null;
+}
 /* aplica a troca de clube do treinador (demissão aceita ou proposta aceita) — o clube antigo
    segue existindo normalmente, agora controlado só pela própria simulação (como qualquer CPU) */
 function applyManagerJobChange(newClubId, newDivision, newCountry){
