@@ -129,12 +129,12 @@ function coherentFormation(id,preferred){
   return best || preferred;
 }
 function pickXIByFormation(id,f){ const need=FORMATIONS[f]||FORMATIONS['4-3-3']; const secs=['GK','DEF','MID','ATT'];
-  const sq=squad(id).slice().sort((a,b)=>b.f-a.f); const xi=[];
-  secs.forEach((sec,i)=>{ sq.filter(p=>p.s===sec).slice(0,need[i]).forEach(p=>xi.push(p.n)); });
+  const sq=squad(id).slice().sort((a,b)=>b.f-a.f); const xi=[];   // xi = lista de PIDs
+  secs.forEach((sec,i)=>{ sq.filter(p=>p.s===sec).slice(0,need[i]).forEach(p=>xi.push(p.pid)); });
   if(xi.length<11){ const have=new Set(xi); // completa sem colocar 2º goleiro na linha
-    const add=n=>{ if(xi.length<11 && !have.has(n)){ xi.push(n); have.add(n); } };
-    for(const p of sq){ if(p.s!=='GK') add(p.n); }  // jogadores de linha primeiro
-    for(const p of sq){ add(p.n); }                  // último recurso: evita XI < 11
+    const add=pid=>{ if(xi.length<11 && !have.has(pid)){ xi.push(pid); have.add(pid); } };
+    for(const p of sq){ if(p.s!=='GK') add(p.pid); }  // jogadores de linha primeiro
+    for(const p of sq){ add(p.pid); }                  // último recurso: evita XI < 11
   }
   return xi.slice(0,11); }
 /* simula uma partida completa capturando eventos (determinístico; usa SIM_SYNC do motor) */
@@ -998,7 +998,7 @@ function clEntrar(){
   CL.online=false;
   if(typeof NET!=='undefined'){ NET.isHost=false; NET.gameId=null; NET.onState=null; }
   CL.humans={}; CL.draw.forEach(d=>CL.humans[d.clubId]=d.name);
-  CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||null;
+  CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
   saveV3();
   cdraw();
   checkPendingCupDraws(()=>{}); // mostra o sorteio da Copa do Brasil já no início do save, se houver
@@ -1201,7 +1201,7 @@ function enterSeatContext(seat, fx){
   if(st){ S.xi=(st.xi||[]).slice(); CL.formation=st.formation; S.tactic=st.tactic||'equilibrado'; CL.tacticChosen=true; }
   else { S.xi=autoXI(seat.clubId); CL.formation=null; S.tactic='equilibrado'; CL.tacticChosen=false; }
   fixUserXIAvailability();
-  CL.selPlayer=squad(seat.clubId)[0]?.n||null; CL.escalacaoMode=false; CL.tab='seleccao';
+  CL.selPlayer=squad(seat.clubId)[0]?.pid||null; CL.escalacaoMode=false; CL.tab='seleccao';
   CL.subPanelOpen=false; CL.subsUsed=0; CL.liveDivOpen=null;
 }
 function exitSeatContext(){
@@ -1415,7 +1415,7 @@ function clLoadSave(name){
     setUniverse(S.intlUniverse||'brasil'); // restaura a config de divisões do universo do save (Brasil/Inglaterra/...)
     CL.intlUniverse = S.intlUniverse||false;
     syncDataClubsFromState(); // realinha DATA.clubs com a divisão real do save carregado
-    CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||null; cdraw();
+    CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null; cdraw();
     // sorteio de copa pode ter ficado pendente de uma sessão anterior (fila em
     // S._pendingDrawShows, ver initSeasonCups/advancePendingCups) — sem isso aqui, o
     // usuário só via o sorteio depois de terminar a PRÓXIMA rodada ao vivo (via
@@ -1482,12 +1482,12 @@ function rosterHTML(){
   const escala=CL.escalacaoMode;
   let html='';
   groups.forEach(([sec])=>{ const list=sq.filter(p=>p.s===sec);
-    html+=`<div class="cl-rgroup">`+list.map(p=>{const starter=xiSet.has(p.n);
-      const marked=escala && CL.preSubOut===p.n;
-      const selc=!escala && CL.selPlayer===p.n;
+    html+=`<div class="cl-rgroup">`+list.map(p=>{const starter=xiSet.has(p.pid);   // identidade por pid, não nome
+      const marked=escala && CL.preSubOut===p.pid;
+      const selc=!escala && CL.selPlayer===p.pid;
       const unavail=p.suspended>0||p.injuredMatches>0;
       const badge=p.suspended>0?'🟥':(p.injuredMatches>0?'✚'+p.injuredMatches:'');
-      const onclickFn=escala?`clEscalaPick('${escC(p.n)}')`:`clSelPlayer('${escC(p.n)}')`;
+      const onclickFn=escala?`clEscalaPick('${escC(p.pid)}')`:`clSelPlayer('${escC(p.pid)}')`;
       return `<div class="cl-rrow ${selc?'sel':''} ${marked?'swap-out':''} ${unavail?'unavail':''}" style="${selc?'':`color:${th.txt}`}" onclick="${onclickFn}">
         <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}${(S.incomingOffers||[]).some(o=>o.playerName===p.n)?' <span title="Proposta de compra recebida">💰</span>':''}</span>
@@ -1562,10 +1562,10 @@ function viewRosterHTML(clubId){
   const sq=squad(clubId)||[];
   let html='';
   groups.forEach(([sec])=>{ const list=sq.filter(p=>p.s===sec);
-    html+=`<div class="cl-rgroup">`+list.map(p=>{const selc=CL.viewSelPlayer===p.n;
+    html+=`<div class="cl-rgroup">`+list.map(p=>{const selc=CL.viewSelPlayer===p.pid;
       const unavail=p.suspended>0||p.injuredMatches>0;
       const badge=p.suspended>0?'🟥':(p.injuredMatches>0?'✚'+p.injuredMatches:'');
-      return `<div class="cl-rrow ${selc?'sel':''} ${unavail?'unavail':''}" onclick="clViewSelPlayer('${escC(p.n)}')">
+      return `<div class="cl-rrow ${selc?'sel':''} ${unavail?'unavail':''}" onclick="clViewSelPlayer('${escC(p.pid)}')">
         <span class="cl-rmark"></span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rf">${p.f}</span><span class="cl-rv">${grp(Math.round(curConv(p.mv)*0.00006)*10)}</span></div>`;}).join('')+`</div>`;
@@ -1589,7 +1589,7 @@ function panViewJogo(vid,oppId,uf){
 }
 function panViewJogador(vid){
   const sq=squad(vid)||[];
-  const p=sq.find(x=>x.n===CL.viewSelPlayer)||sq[0]; if(!p) return '<div class="cl-jgd">Sem jogadores.</div>';
+  const p=sq.find(x=>x.pid===CL.viewSelPlayer)||sq[0]; if(!p) return '<div class="cl-jgd">Sem jogadores.</div>';
   const st=p.stats||{};
   const statusBar = p.suspended>0 ? `<div class="cl-jgd-status susp">🟥 Suspenso — falta o próximo jogo</div>`
     : p.injuredMatches>0 ? `<div class="cl-jgd-status hurt">✚ Lesionado — fora por ${p.injuredMatches} jogo${p.injuredMatches>1?'s':''}</div>` : '';
@@ -1648,7 +1648,7 @@ function hashC(s){ s=String(s); let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.c
    e nunca muda; afeta cartão, lesão e valor de mercado de verdade (ver app.js). */
 function playerBehaviorLabel(p){ return p.behavior || 'Exemplar'; }
 function panJogador(){
-  const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer)||squad(CL.clubId)[0]; if(!p) return '';
+  const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer)||squad(CL.clubId)[0]; if(!p) return '';
   if(CL.rightMode==='renovar') return renewPanel(p);
   if(CL.rightMode==='vender') return venderPanel(p);
   const st=p.stats||{};
@@ -2040,14 +2040,14 @@ function panSeleccao(){
    partida): aqui é livre. Fluxo: toca no titular (marca), toca num reserva da
    mesma posição (pede confirmação num popup), confirma. ---- */
 function clToggleEscalacao(){ CL.escalacaoMode=!CL.escalacaoMode; CL.preSubOut=null; CL.preSubIn=null; cdraw(); }
-function clEscalaPick(name){
+function clEscalaPick(pid){   // pid do jogador clicado (identidade por ID, não nome)
   const xiSet=new Set(S.xi||[]);
-  if(xiSet.has(name)){ CL.preSubOut=(CL.preSubOut===name?null:name); CL.preSubIn=null; cdraw(); return; }
+  if(xiSet.has(pid)){ CL.preSubOut=(CL.preSubOut===pid?null:pid); CL.preSubIn=null; cdraw(); return; }
   if(!CL.preSubOut){ toastC('Toque primeiro num titular (T) pra substituir.'); return; }
-  const outP=findP(CL.preSubOut,CL.clubId), inP=findP(name,CL.clubId);
+  const outP=pById(CL.preSubOut,CL.clubId), inP=pById(pid,CL.clubId);
   if(!outP||!inP) return;
   if(inP.suspended>0||inP.injuredMatches>0){ toastC('Esse jogador não está disponível.'); return; }
-  CL.preSubIn=name;
+  CL.preSubIn=pid;
   // troca livre entre qualquer posição (ex: colocar um meia no lugar de um zagueiro
   // machucado) — antes travava com "só mesma posição", forçando o time a jogar com um a
   // menos mesmo tendo reservas disponíveis noutra posição. Só avisa quando é fora de
@@ -2060,8 +2060,9 @@ function clEscalaPick(name){
 }
 function clEscalaDoSwap(){
   if(!CL.preSubOut || !CL.preSubIn){ clCloseOverlay(); return; }
-  S.xi=(S.xi||[]).map(n=>n===CL.preSubOut?CL.preSubIn:n);
-  toastC(CL.preSubIn.split(' ').slice(-1)[0]+' entrou no lugar de '+CL.preSubOut.split(' ').slice(-1)[0]+' na escalação.');
+  const outP=pById(CL.preSubOut,CL.clubId), inP=pById(CL.preSubIn,CL.clubId);
+  S.xi=(S.xi||[]).map(pid=>pid===CL.preSubOut?CL.preSubIn:pid);
+  if(outP&&inP) toastC(inP.n.split(' ').slice(-1)[0]+' entrou no lugar de '+outP.n.split(' ').slice(-1)[0]+' na escalação.');
   CL.preSubOut=null; CL.preSubIn=null;
   saveV3(); clCloseOverlay(); cdraw();
 }
@@ -2572,7 +2573,7 @@ function openInjuryModal(m,e){ const RL=CL.live;
   // do lesionado, topo da lista) marcado, então se o treinador não decidir a troca acontece sozinha
   // com uma escolha sensata em vez de travar o jogo. Sem reservas -> segue com 10 (resolveInjuryNoSub).
   const opts=injurySubOptions(e);
-  CL.injSel = opts.length ? opts[0].n : null;
+  CL.injSel = opts.length ? opts[0].pid : null;
   CL.injDeadline = Date.now()+10000;
   sfx('lesao'); cdraw();
   if(CL._injTimer) clearInterval(CL._injTimer);
@@ -2595,8 +2596,8 @@ function clearInjuryTimer(){ if(CL._injTimer){ clearInterval(CL._injTimer); CL._
    querer escalar qualquer reserva (ex: sacrificar um atacante pra fechar a defesa); só
    ordena os da mesma posição primeiro, pra sugerir a troca mais natural sem obrigar nada. */
 function injurySubOptions(e){
-  const xiSet=new Set(S.xi||[]);
-  const bench=squad(CL.clubId).filter(p=>!xiSet.has(p.n) && !(p.suspended>0) && !(p.injuredMatches>0)).sort(bySquadOrder);
+  const xiSet=new Set(S.xi||[]);   // pids
+  const bench=squad(CL.clubId).filter(p=>!xiSet.has(p.pid) && !(p.suspended>0) && !(p.injuredMatches>0)).sort(bySquadOrder);
   const samePos=bench.filter(p=>p.s===e.pos), rest=bench.filter(p=>p.s!==e.pos);
   return [...samePos, ...rest];
 }
@@ -2614,7 +2615,7 @@ function injurySubHTML(m,e){
   const noOpts = !opts.length;
   const rows=noOpts ? '<div class="cl-pen-row" style="cursor:default">Sem reservas disponíveis.</div>' : opts.map(p=>{
     const samePos=p.s===e.pos;
-    return `<div class="cl-pen-row ${CL.injSel===p.n?'sel':''}" onclick="injurySelect('${escC(p.n)}')">
+    return `<div class="cl-pen-row ${CL.injSel===p.pid?'sel':''}" onclick="injurySelect('${escC(p.pid)}')">
       <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}${samePos?' <span class="cl-inj-suggest">★ sugerido</span>':''}</span><span class="cl-pen-r">${p.f}</span>
     </div>`;
   }).join('');
@@ -2632,13 +2633,15 @@ function injurySubHTML(m,e){
     </div>
   </div></div>`;
 }
-function injurySelect(name){ CL.injSel=name; cdraw(); }
-function resolveInjurySub(replacementName){
-  const RL=CL.live; if(!RL || !RL.injEvent || !replacementName) return;
+function injurySelect(pid){ CL.injSel=pid; cdraw(); }
+function resolveInjurySub(replacementPid){
+  const RL=CL.live; if(!RL || !RL.injEvent || !replacementPid) return;
   clearInjuryTimer();
-  const e=RL.injEvent; const rep=findP(replacementName,CL.clubId); if(!rep) return;
-  const idx=(S.xi||[]).indexOf(e.player);
-  if(idx>=0) S.xi[idx]=rep.n;
+  const e=RL.injEvent; const rep=pById(replacementPid,CL.clubId); if(!rep) return;
+  // o lesionado é identificado pelo pid do evento (e.pid); fallback pro nome em saves/eventos antigos
+  const outPid = e.pid || ((squad(CL.clubId).find(x=>x.n===e.player)||{}).pid);
+  const idx=(S.xi||[]).indexOf(outPid);
+  if(idx>=0) S.xi[idx]=rep.pid;
   e._resolved=true;
   toastC(`✚→✔ ${rep.n} entrou no lugar de ${e.player}.`);
   RL.paused=false; RL.injMatch=null; RL.injEvent=null; CL.injSel=null;
@@ -2654,11 +2657,12 @@ function resolveInjuryNoSub(){
   cdraw();
   CL._liveTimer=setTimeout(liveTick,420);
 }
-function liveSubPick(side,n){ if(side==='out')CL.subOut=n; else CL.subIn=n; updateLive(); }
+function liveSubPick(side,pid){ if(side==='out')CL.subOut=pid; else CL.subIn=pid; updateLive(); }
 function liveDoSub(){ if(!CL.subOut||!CL.subIn){ toastC('Escolha um titular e um reserva.'); return; }
   if((CL.subsUsed||0)>=3){ toastC('Máximo de 3 substituições.'); return; }
+  const outP=pById(CL.subOut,CL.clubId), inP=pById(CL.subIn,CL.clubId);   // subOut/subIn = pids
   S.xi=(S.xi||[]).map(x=>x===CL.subOut?CL.subIn:x); CL.subsUsed=(CL.subsUsed||0)+1;
-  toastC(CL.subIn.split(' ').slice(-1)[0]+' entrou no lugar de '+CL.subOut.split(' ').slice(-1)[0]); CL.subOut=CL.subIn=null; updateLive(); }
+  if(outP&&inP) toastC(inP.n.split(' ').slice(-1)[0]+' entrou no lugar de '+outP.n.split(' ').slice(-1)[0]); CL.subOut=CL.subIn=null; updateLive(); }
 function txtOn(hex){ return lumin(hex)>0.58?'#111':'#fff'; }
 function liveScoreCells(m){ return `<b>${m.hg}</b><b>${m.ag}</b>`; }
 /* ---- accordion por divisão (ranking + jogos ao vivo): a divisão do usuário
@@ -2891,8 +2895,8 @@ function incidentLines(m){
   if(!rows.length) return '<div class="cl-lm-noinc">Sem incidentes ainda…</div>';
   return rows.map(r=>`<div>${r.html}</div>`).join('');
 }
-function subPanelHTML(m){ const id=CL.clubId; const xiSet=new Set(S.xi||[]); const xi=squad(id).filter(p=>xiSet.has(p.n)).sort(bySquadOrder); const bench=squad(id).filter(p=>!xiSet.has(p.n)).sort(bySquadOrder);
-  const rowP=(p,side)=>`<div class="cl-sub-row ${((side==='out')?CL.subOut:CL.subIn)===p.n?'sel':''}" onclick="liveSubPick('${side}','${escC(p.n)}')"><span class="cl-sub-p">${posLetter(p.s)}</span><span class="cl-sub-n">${escC(p.n)}</span><b>${p.f}</b></div>`;
+function subPanelHTML(m){ const id=CL.clubId; const xiSet=new Set(S.xi||[]); const xi=squad(id).filter(p=>xiSet.has(p.pid)).sort(bySquadOrder); const bench=squad(id).filter(p=>!xiSet.has(p.pid)).sort(bySquadOrder);
+  const rowP=(p,side)=>`<div class="cl-sub-row ${((side==='out')?CL.subOut:CL.subIn)===p.pid?'sel':''}" onclick="liveSubPick('${side}','${escC(p.pid)}')"><span class="cl-sub-p">${posLetter(p.s)}</span><span class="cl-sub-n">${escC(p.n)}</span><b>${p.f}</b></div>`;
   return `<fieldset class="cl-sub"><legend>${escC(clubOf(id).short)}</legend>
     <div class="cl-sub-cols"><div class="cl-sub-c">${xi.map(p=>rowP(p,'out')).join('')}</div><div class="cl-sub-c">${bench.map(p=>rowP(p,'in')).join('')}</div></div>
     <div class="cl-sub-btn">${btn('Substituir','liveDoSub()',{icon:'⇄',cls:'cl-btn-ico'})}</div>
@@ -2958,7 +2962,7 @@ function scClassif(){
     <div class="cl-clsacc-wrap">${divOrderUserFirst().map(panelHTML).join('')}</div>
   </div>`;
 }
-function liveDone(){ if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classifTimer){clearTimeout(CL._classifTimer);CL._classifTimer=null;} clearInjuryTimer(); clearCupFlowTimer(); CL.live=null; CL.subsUsed=0; CL._liveBusy=false; CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||CL.selPlayer; cdraw();
+function liveDone(){ if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classifTimer){clearTimeout(CL._classifTimer);CL._classifTimer=null;} clearInjuryTimer(); clearCupFlowTimer(); CL.live=null; CL.subsUsed=0; CL._liveBusy=false; CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||CL.selPlayer; cdraw();
   if(CL.lastGate) toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0;
   // notificação de propostas de compra recebidas nesta rodada (toast no topo, ~3s cada)
   if(S._offerToasts && S._offerToasts.length){ S._offerToasts.forEach((m,i)=>setTimeout(()=>toastC(m), 500+i*400)); S._offerToasts=[]; }
@@ -3227,19 +3231,19 @@ function clOnlineSeasonContinue(){
    outra posição se não sobrar ninguém disponível daquela posição no banco. */
 function fixUserXIAvailability(){
   if(!S.xi || !S.xi.length) return;
-  const sq=squad(CL.clubId);
-  const out=S.xi.filter(n=>{ const p=sq.find(x=>x.n===n); return p && (p.suspended>0 || p.injuredMatches>0); });
+  const sq=squad(CL.clubId);                                    // S.xi = pids
+  const out=S.xi.filter(pid=>{ const p=sq.find(x=>x.pid===pid); return p && (p.suspended>0 || p.injuredMatches>0); });
   if(!out.length) return;
   const avail=sq.filter(p=>!(p.suspended>0)&&!(p.injuredMatches>0));
   const inXi=new Set(S.xi);
-  const bench=avail.filter(p=>!inXi.has(p.n)).sort((a,b)=>b.f-a.f);
+  const bench=avail.filter(p=>!inXi.has(p.pid)).sort((a,b)=>b.f-a.f);
   const fixedXi=S.xi.slice();
-  out.forEach(n=>{
-    const p=sq.find(x=>x.n===n); const idx=fixedXi.indexOf(n); if(idx<0) return;
+  out.forEach(pid=>{
+    const p=sq.find(x=>x.pid===pid); const idx=fixedXi.indexOf(pid); if(idx<0) return;
     let subIdx=bench.findIndex(b=>b.s===(p&&p.s));
     if(subIdx<0) subIdx=0; // sem reserva da mesma posição -> qualquer reserva disponível (emergência)
     const sub=bench.splice(subIdx,1)[0];
-    if(sub) fixedXi[idx]=sub.n;
+    if(sub) fixedXi[idx]=sub.pid;
   });
   S.xi=fixedXi;
   const names=out.map(n=>n.split(' ').slice(-1)[0]).join(', ');
@@ -3351,7 +3355,7 @@ function onlineReturnFreeAfterMatch(){
   if(CL._liveTimer) clearTimeout(CL._liveTimer);
   CL._playedRound=S.round; // marca que JÁ joguei esta rodada — não re-simulo (evita loop na mesma rodada)
   CL.live=null; CL.subsUsed=0; CL._liveBusy=false;
-  CL.screen='waitround'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.n||CL.selPlayer; cdraw();
+  CL.screen='waitround'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||CL.selPlayer; cdraw();
   if(CL.lastGate){ toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0; }
   // NÃO reabro a próxima rodada aqui: quem fecha e reabre a rodada é o ANFITRIÃO, DEPOIS de resolver
   // (onlineHostCloseRound). Reabrir antes do commit fazia a fase ciclar e travava/loopava a rodada.
@@ -3958,7 +3962,7 @@ function clDeclinePendingOffer(idx){
 function clViewOfferSquad(idx){
   const o=S.pendingJobOffers[idx]; if(!o) return;
   const sq = squad(o.clubId) || [];
-  const rows=sq.map(p=>`<div class="cl-prow ${p.n===CL.selPlayer?'sel':''}" style="padding:4px 8px;border-bottom:1px solid #eee">
+  const rows=sq.map(p=>`<div class="cl-prow ${p.pid===CL.selPlayer?'sel':''}" style="padding:4px 8px;border-bottom:1px solid #eee">
     <span style="font-weight:bold">${escC(p.n)}</span> <span style="color:#666">${p.pos}</span> <span style="float:right">${p.ov||55}</span>
   </div>`).join('');
   overlayC(dlg('Elenco '+escC(clubOf(o.clubId).short), `<div style="max-height:400px;overflow-y:auto">${rows}</div>
@@ -4306,7 +4310,7 @@ function scCupDraw(){
 /* ---- Seleccionar (tática/formação) ---- */
 function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
   if(f==='auto'){ S.xi=autoXI(CL.clubId); CL.formation='Automático'; S.tactic='equilibrado'; }
-  else if(f==='best'){ S.xi=squad(CL.clubId).slice().sort((a,b)=>b.f-a.f).slice(0,11).map(p=>p.n); CL.formation='Melhores'; S.tactic='equilibrado'; }
+  else if(f==='best'){ S.xi=squad(CL.clubId).slice().sort((a,b)=>b.f-a.f).slice(0,11).map(p=>p.pid); CL.formation='Melhores'; S.tactic='equilibrado'; }
   else { const real=coherentFormation(CL.clubId,f); if(real!==f) adjustedFrom=f;
     S.xi=pickXIByFormation(CL.clubId,real); CL.formation=real; S.tactic=tacticPosture(real); }
   CL.tacticChosen=true; CL.tab='seleccao'; CL.preSubOut=null; CL.preSubIn=null; CL.escalacaoMode=false; saveV3(); cdraw();
@@ -4361,7 +4365,7 @@ function clSellPriceInput(input){
   const typed=parseInt(input.value.replace(/[^0-9]/g,''))||0;   // valor na moeda exibida
   CL.sellPrice=String(curParse(typed));                          // guarda sempre em R$ interno
   input.value=typed?grp(typed):'';                               // mantém o que ele digitou (moeda)
-  const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer); if(!p) return;
+  const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer); if(!p) return;
   const askingPrice=CL.sellPrice?parseInt(CL.sellPrice):0;       // R$
   const mv=p.mv||0;
   const diff=askingPrice-mv;
@@ -4373,12 +4377,12 @@ function clSellPriceInput(input){
 }
 function clSell(){ CL.menu=null;
   if(!canNegotiate()){ toastC(windowClosedMsg()); return; }
-  const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer);
+  const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer);
   if(!p){ toastC('Selecciona um jogador na lista primeiro.'); cdraw(); return; }
   CL.tab='jogador'; CL.rightMode='vender'; CL.sellPrice=''; cdraw(); }
 function clSellConfirm(){
   if(!canNegotiate()){ toastC(windowClosedMsg()); CL.rightMode=null; cdraw(); return; }
-  const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer); if(!p){ CL.rightMode=null; cdraw(); return; }
+  const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer); if(!p){ CL.rightMode=null; cdraw(); return; }
   const seed=(hashC(p.n)+ (S.round||0)*7)>>>0; const rnd=rngFrom(seed);
   const buyers=DATA.clubs.filter(c=>c.id!==CL.clubId); const buyer=buyers[Math.floor(rnd()*buyers.length)];
   const base=Math.round(p.mv/1000); const ask=Math.round((parseInt(CL.sellPrice,10)||0)/1000); // sellPrice em reais -> milhares
@@ -4397,7 +4401,7 @@ function clSellConfirm(){
     return;
   }
   S.budget=(S.budget||0)+fee; S.squads[CL.clubId]=S.squads[CL.clubId].filter(x=>x.n!==p.n);
-  if(S.xi) S.xi=S.xi.filter(n=>n!==p.n);
+  if(S.xi) S.xi=S.xi.filter(x=>x!==p.pid);
   pushFinanceEntry({playerSales:fee, log:[`💰 ${p.n} vendido ao ${clubOf(buyer.id).short} por ${fmt(fee)}.`]});
   S.roundNews=S.roundNews||[]; S.roundNews.push(`💰 ${p.n} vendido ao ${clubOf(buyer.id).short} por ${fmt(fee)}.`);
   saveV3(); auctionDialog(p,buyer,feeK); }
@@ -4429,15 +4433,15 @@ function auctionDialog(p,buyer,feeK){
     <div class="cl-lei-sold">Vendido ao ${escC(buyer.short.toUpperCase())} por ${spellMoney(feeK*1000)}</div>
     <div class="cl-lei-ok">${btn('OK','clCloseAuction()',{icon:'✔',cls:'cl-btn-ok'})}</div>
   </div>`,{w:760,bodyClass:'cl-body-yellow',min:true})); }
-function clCloseAuction(){ clCloseOverlay(); CL.rightMode=null; CL.selPlayer=squad(CL.clubId)[0]?.n||null; cdraw(); toastC('Jogador vendido.'); }
+function clCloseAuction(){ clCloseOverlay(); CL.rightMode=null; CL.selPlayer=squad(CL.clubId)[0]?.pid||null; cdraw(); toastC('Jogador vendido.'); }
 
 /* ---- Jogador (aba) > Renovar contrato (painel) ---- */
-function clRenew(){ const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer); if(!p){ toastC('Selecciona um jogador.'); return; }
+function clRenew(){ const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer); if(!p){ toastC('Selecciona um jogador.'); return; }
   CL.tab='jogador'; CL.rightMode='renovar'; CL.newSalary=Math.round(p.mv*0.0006); cdraw(); }
-function clSalaryStep(d){ const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer); const base=Math.round((p?p.mv:1e6)*0.0006);
+function clSalaryStep(d){ const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer); const base=Math.round((p?p.mv:1e6)*0.0006);
   CL.newSalary=Math.max(Math.round(base*0.4), (CL.newSalary||base)+d*Math.max(100,Math.round(base*0.1))); const n=document.querySelector('#cl-sal'); if(n)n.textContent=grp(CL.newSalary); }
 function clRenewPropose(){
-  const p=squad(CL.clubId).find(x=>x.n===CL.selPlayer);
+  const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer);
   if(!p) return;
 
   const oldSalary = (p.contract && p.contract.salary) || 0;

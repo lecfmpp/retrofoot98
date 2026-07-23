@@ -175,7 +175,7 @@
   function computeRatings(players, xiNames){
     const avail=(players||[]).filter(isAvail);
     let used;
-    if(xiNames && xiNames.length){ const set=new Set(xiNames); const xiAvail=avail.filter(function(p){return set.has(p.n);});
+    if(xiNames && xiNames.length){ const set=new Set(xiNames); const xiAvail=avail.filter(function(p){return set.has(p.pid)||set.has(p.n);});
       used = xiAvail.length ? xiAvail : best11(avail); }
     else { used = best11(avail); }
     const bySec=function(s){return used.filter(function(p){return p.s===s;});};
@@ -189,9 +189,9 @@
   function resolveXI(players, xiNames){
     const avail=(players||[]).filter(isAvail);
     let chosen=[];
-    if(xiNames && xiNames.length){ const set=new Set(xiNames); chosen=avail.filter(function(p){return set.has(p.n);}); }
-    if(chosen.length<11){ const have=new Set(chosen.map(function(p){return p.n;}));
-      const extra=avail.filter(function(p){return !have.has(p.n);}).sort(function(a,b){return b.f-a.f;});
+    if(xiNames && xiNames.length){ const set=new Set(xiNames); chosen=avail.filter(function(p){return set.has(p.pid)||set.has(p.n);}); }
+    if(chosen.length<11){ const have=new Set(chosen.map(function(p){return p.pid;}));
+      const extra=avail.filter(function(p){return !have.has(p.pid);}).sort(function(a,b){return b.f-a.f;});
       chosen=chosen.concat(extra); }
     return chosen.slice(0,11);
   }
@@ -200,10 +200,10 @@
     const sq=(players||[]).filter(isAvail).sort(function(a,b){return b.f-a.f;});
     const pick=function(sec,n){return sq.filter(function(p){return p.s===sec;}).slice(0,n);};
     let xi=pick('GK',1).concat(pick('DEF',4)).concat(pick('MID',3)).concat(pick('ATT',3));
-    if(xi.length<11){ const have=new Set(xi.map(function(p){return p.n;}));
-      const add=function(p){ if(xi.length<11 && !have.has(p.n)){ xi.push(p); have.add(p.n); } };
+    if(xi.length<11){ const have=new Set(xi.map(function(p){return p.pid;}));
+      const add=function(p){ if(xi.length<11 && !have.has(p.pid)){ xi.push(p); have.add(p.pid); } };
       for(const p of sq){ if(p.s!=='GK') add(p); } for(const p of sq){ add(p); } }
-    return xi.slice(0,11).map(function(p){return p.n;});
+    return xi.slice(0,11).map(function(p){return p.pid;});
   }
   /* capacidade de estádio pelo overall do clube (proxy) — usada pro mando no ONLINE (consistente em
      todos os clientes; sem depender do S.stadium de um usuário só). Espelha o ramo "proxy" de homeAdvantage. */

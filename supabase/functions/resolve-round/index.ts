@@ -192,7 +192,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
   function computeRatings(players, xiNames){
     const avail=(players||[]).filter(isAvail);
     let used;
-    if(xiNames && xiNames.length){ const set=new Set(xiNames); const xiAvail=avail.filter(function(p){return set.has(p.n);});
+    if(xiNames && xiNames.length){ const set=new Set(xiNames); const xiAvail=avail.filter(function(p){return set.has(p.pid)||set.has(p.n);}); // pid (nome = fallback)
       used = xiAvail.length ? xiAvail : best11(avail); }
     else { used = best11(avail); }
     const bySec=function(s){return used.filter(function(p){return p.s===s;});};
@@ -206,21 +206,22 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
   function resolveXI(players, xiNames){
     const avail=(players||[]).filter(isAvail);
     let chosen=[];
-    if(xiNames && xiNames.length){ const set=new Set(xiNames); chosen=avail.filter(function(p){return set.has(p.n);}); }
-    if(chosen.length<11){ const have=new Set(chosen.map(function(p){return p.n;}));
-      const extra=avail.filter(function(p){return !have.has(p.n);}).sort(function(a,b){return b.f-a.f;});
+    if(xiNames && xiNames.length){ const set=new Set(xiNames); chosen=avail.filter(function(p){return set.has(p.pid)||set.has(p.n);}); } // pid (nome=fallback)
+    if(chosen.length<11){ const have=new Set(chosen.map(function(p){return p.pid;}));
+      const extra=avail.filter(function(p){return !have.has(p.pid);}).sort(function(a,b){return b.f-a.f;});
       chosen=chosen.concat(extra); }
     return chosen.slice(0,11);
   }
-  /* autoXI (nomes) — fallback pra clube humano sem escalação submetida. Espelha autoXI() do cliente. */
+  /* autoXI (PIDs) — fallback pra clube humano sem escalação submetida. Espelha autoXI() do cliente
+     (agora identidade por pid, não nome). */
   function autoXINames(players){
     const sq=(players||[]).filter(isAvail).sort(function(a,b){return b.f-a.f;});
     const pick=function(sec,n){return sq.filter(function(p){return p.s===sec;}).slice(0,n);};
     let xi=pick('GK',1).concat(pick('DEF',4)).concat(pick('MID',3)).concat(pick('ATT',3));
-    if(xi.length<11){ const have=new Set(xi.map(function(p){return p.n;}));
-      const add=function(p){ if(xi.length<11 && !have.has(p.n)){ xi.push(p); have.add(p.n); } };
+    if(xi.length<11){ const have=new Set(xi.map(function(p){return p.pid;}));
+      const add=function(p){ if(xi.length<11 && !have.has(p.pid)){ xi.push(p); have.add(p.pid); } };
       for(const p of sq){ if(p.s!=='GK') add(p); } for(const p of sq){ add(p); } }
-    return xi.slice(0,11).map(function(p){return p.n;});
+    return xi.slice(0,11).map(function(p){return p.pid;});
   }
   /* capacidade de estádio pelo overall do clube (proxy) — usada pro mando no ONLINE (consistente em
      todos os clientes; sem depender do S.stadium de um usuário só). Espelha o ramo "proxy" de homeAdvantage. */
@@ -527,7 +528,8 @@ function makeRegen(S: any, pos: string, div: string, seedExtra: string, used: Se
   const age = Math.round(18 + R.random() * 4); const rawF = rollAgedForce(R, range, age); const f = Math.min(rbForce(rawF, div), DIV_FORCE_CAP[div] || 99);
   const L = Math.max(1, Math.min(20, Math.round(6 + (rawF - 45) * 13 / 46))); const attr: any = {}; REGEN_ATTR_KEYS.forEach((k) => attr[k] = L);
   const mv = rbValue(f, age);
-  return { n: pickProcName(R, used), p: pos, s: pos, f, rawF, _rb: 1, _div: div, age, lg: 'BRA-' + div, mv, ft: R.random() < 0.8 ? 'R' : 'L', num: String(Math.floor(R.random() * 40) + 1), nat: 'Brasil', ag: '—', moral: 70, energy: 100, attr, f0: rawF, mv0: mv, stats: { r3: [], g3: [], apps: 0, goals: 0, cs: 0 } };
+  S._pidSeq = (S._pidSeq || 0) + 1;   // pid único (identidade por ID): continua a sequência do save
+  return { n: pickProcName(R, used), pid: 'p' + S._pidSeq, p: pos, s: pos, f, rawF, _rb: 1, _div: div, age, lg: 'BRA-' + div, mv, ft: R.random() < 0.8 ? 'R' : 'L', num: String(Math.floor(R.random() * 40) + 1), nat: 'Brasil', ag: '—', moral: 70, energy: 100, attr, f0: rawF, mv0: mv, stats: { r3: [], g3: [], apps: 0, goals: 0, cs: 0 } };
 }
 /* motivos de aposentadoria (item 5) — sabor. Cada aposentadoria escolhe um motivo determinístico
    (mesma seed do sorteio de aposentar), com peso por idade/valor: velho tende à idade; craque rico
@@ -619,6 +621,7 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
    transferência já foi aplicada, o dinheiro não anda de novo. */
 function applyHumanTransfers(S: any, transfers: any[], humans?: Set<string>) {
   const isHuman = (id: string) => !!(humans && humans.has(id));
+  const match = (x: any, t: any) => t.pid ? x.pid === t.pid : x.n === t.p;   // pid (identidade); nome = fallback
   (transfers || []).forEach((t: any) => {
     if (!t || !t.p || !t.from || t.from === t.to) return;
     const src = S.squads[t.from];
@@ -626,7 +629,7 @@ function applyHumanTransfers(S: any, transfers: any[], humans?: Set<string>) {
     const fee = Math.round(Number(t.fee) || 0);
 
     if (!t.to) {                                                  // saída do mundo (multa rescisória)
-      const j = src.findIndex((x: any) => x.n === t.p); if (j < 0) return; // já saiu -> idempotente
+      const j = src.findIndex((x: any) => match(x, t)); if (j < 0) return; // já saiu -> idempotente
       src.splice(j, 1);
       if (src.length) S.clubOverall[t.from] = Math.round(src.reduce((s: number, x: any) => s + x.f, 0) / src.length);
       return;
@@ -634,8 +637,8 @@ function applyHumanTransfers(S: any, transfers: any[], humans?: Set<string>) {
 
     const dst = S.squads[t.to];
     if (!Array.isArray(dst)) return;
-    if (dst.some((x: any) => x.n === t.p)) return;                // já aplicada
-    const i = src.findIndex((x: any) => x.n === t.p); if (i < 0) return; // não está mais no vendedor
+    if (dst.some((x: any) => match(x, t))) return;                // já aplicada
+    const i = src.findIndex((x: any) => match(x, t)); if (i < 0) return; // não está mais no vendedor
     const p = src.splice(i, 1)[0];
     if (t.contract) p.contract = t.contract; else delete p.contract;
     dst.push(p);

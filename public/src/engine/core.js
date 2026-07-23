@@ -228,7 +228,7 @@ function executePendingTransfers(){
       p.contract=t.contract; p.moral=75;
       MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division)); // gatilho de vitrine na chegada
       S.squads[S.clubId]=S.squads[S.clubId]||[]; S.squads[S.clubId].push(p);
-      recordNetTransfer(t.sellerId, S.clubId, t.playerName, t.contract, t.fee); // online: avisa o servidor
+      recordNetTransfer(t.sellerId, S.clubId, t.playerName, t.contract, t.fee, p&&p.pid); // online: avisa o servidor
       S.roundNews.push(`✍️ ${t.playerName} se apresentou ao ${clubOf(S.clubId).short} (transferência acordada, agora com a janela aberta).`);
     } else if(t.kind==='sell'){
       const p=(S.squads[S.clubId]||[]).find(x=>x.n===t.playerName);
@@ -238,7 +238,7 @@ function executePendingTransfers(){
       if(t.buyerCountry) ensureBgClubMaterialized(t.buyerId);
       delete p.contract; delete p._pendingSale;
       if(S.squads[t.buyerId]) S.squads[t.buyerId].push(p);
-      recordNetTransfer(S.clubId, t.buyerId, t.playerName, null, t.fee); // online: avisa o servidor (venda)
+      recordNetTransfer(S.clubId, t.buyerId, t.playerName, null, t.fee, p&&p.pid); // online: avisa o servidor (venda)
       S.roundNews.push(`💰 ${t.playerName} deixou o clube rumo ao ${t.buyerName} por ${fmt(t.fee)} (transferência acordada).`);
       pushFinanceEntry({playerSales:t.fee, log:[`💰 ${t.playerName} vendido ao ${t.buyerName} por ${fmt(t.fee)}.`]});
     }
@@ -262,11 +262,12 @@ function executePendingTransfers(){
    fee = a taxa da transação. Ela existe aqui porque o dinheiro precisa andar JUNTO do jogador:
    o servidor move o caixa do lado NÃO-humano (ver applyHumanTransfers). O lado humano continua
    vindo de game_seats.budget — mexer nos dois seria contar duas vezes. */
-function recordNetTransfer(fromId, toId, playerName, contract, fee){
+function recordNetTransfer(fromId, toId, playerName, contract, fee, pid){
   if(typeof CL==='undefined' || !CL.online) return;
   if(!fromId || !playerName) return;
   S._netTransfers = S._netTransfers || [];
-  S._netTransfers.push({ p:playerName, from:fromId, to:toId||null, contract:contract||null, fee:Math.round(fee||0) });
+  // pid = identidade por ID (move o homônimo CERTO no servidor); nome fica como fallback
+  S._netTransfers.push({ p:playerName, pid:pid||null, from:fromId, to:toId||null, contract:contract||null, fee:Math.round(fee||0) });
 }
 /* ===== CAIXA: toda mudança fora do fechamento de rodada TEM que ser publicada =====
    S.budget é só a cópia local. A autoridade do caixa de um humano é game_seats.budget: o
@@ -294,12 +295,13 @@ function pruneAppliedNetTransfers(){
   // adotamos essa rodada, zera o pendente — senão somaria de novo a cada rodada seguinte.
   if(S._netMorale) S._netMorale=0;
   if(!S._netTransfers || !S._netTransfers.length) return;
+  const match=(x,t)=> t.pid ? x.pid===t.pid : x.n===t.p;   // pid (identidade); nome = fallback
   S._netTransfers = S._netTransfers.filter(t=>{
     // destino nulo (saída do mundo por multa rescisória): aplicada quando o jogador não está
     // MAIS na origem. Sem este ramo a saída ficava presa no buffer e era reenviada pra sempre.
-    if(!t.to){ const src=(S.squads && S.squads[t.from]) || []; return src.some(x=>x.n===t.p); }
+    if(!t.to){ const src=(S.squads && S.squads[t.from]) || []; return src.some(x=>match(x,t)); }
     const dst=(S.squads && S.squads[t.to]) || [];
-    return !dst.some(x=>x.n===t.p);
+    return !dst.some(x=>match(x,t));
   });
 }
 function finalizeTransfer(negoIdx){
@@ -321,7 +323,7 @@ function finalizeTransfer(negoIdx){
     p.contract=contract; p.moral=75;
     MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division)); // gatilho de vitrine
     S.squads[S.clubId]=S.squads[S.clubId]||[]; S.squads[S.clubId].push(p);
-    recordNetTransfer(n.sellerId, S.clubId, p.n, contract, totalCost); // online: avisa o servidor (senão a contratação é desfeita)
+    recordNetTransfer(n.sellerId, S.clubId, p.n, contract, totalCost, p.pid); // online: avisa o servidor (senão a contratação é desfeita)
     S.roundNews.push(`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`);
     pushFinanceEntry({playerPurchases:totalCost, log:[`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`]});
     save();
@@ -476,7 +478,7 @@ function acceptIncomingOffer(id){
   S.budget+=o.fee; commitBudget();                     // publica: senão o crédito é revertido na próxima rodada
   if(o.buyerCountry) ensureBgClubMaterialized(o.buyerId);
   if(S.squads[o.buyerId]){ delete p.contract; S.squads[o.buyerId].push(p); } // vai pro clube comprador
-  recordNetTransfer(S.clubId, o.buyerId, o.playerName, null, o.fee); // online: avisa o servidor (venda)
+  recordNetTransfer(S.clubId, o.buyerId, o.playerName, null, o.fee, p&&p.pid); // online: avisa o servidor (venda)
   S.roundNews.push(`💰 ${o.playerName} vendido ao ${o.buyerName} por ${fmt(o.fee)}.`);
   pushFinanceEntry({playerSales:o.fee, log:[`💰 ${o.playerName} vendido ao ${o.buyerName} por ${fmt(o.fee)}.`]});
   save();
@@ -591,7 +593,7 @@ function resolveAuctionLot(l){
   p.moral=75;
   if(typeof MARKET!=='undefined' && MARKET.revalueOnTransfer) MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division));
   S.squads[S.clubId].push(p);
-  recordNetTransfer(l.sellerId, S.clubId, p.n, p.contract, price); // online: sem isto o arremate é desfeito
+  recordNetTransfer(l.sellerId, S.clubId, p.n, p.contract, price, p.pid); // online: sem isto o arremate é desfeito
   l.status='won';
   S.roundNews.push(`🔨 ${p.n} arrematado no leilão por ${fmt(price)} — você cobriu a concorrência!`);
   pushFinanceEntry({playerPurchases:price, log:[`🔨 ${p.n} arrematado no leilão por ${fmt(price)}.`]});
@@ -2507,11 +2509,11 @@ function mpFinances(state,cid,xi,gf,ga,scorers){
   const cl=DATA.clubs.find(c=>c.id===cid);const won=gf>ga,draw=gf===ga;
   const base=Math.round(baseIncome(cl.overall));
   const income=base+Math.round(base*(won?REBAL.WIN_BONUS:draw?REBAL.DRAW_BONUS:0)); // mesmas constantes de processFinances
-  let salaries=0,bonuses=0;const started=new Set(xi.map(p=>p.n));
+  let salaries=0,bonuses=0;const started=new Set(xi.map(p=>p.pid));
   state.squads[cid].forEach(p=>{
     if(!p.contract)return;const c=p.contract;salaries+=c.salary;
     if(c.bonusGoal){const g=scorers.filter(s=>s.id===cid&&s.name===p.n).length;
-      const csb=(ga===0&&(p.s==='GK'||p.s==='DEF')&&started.has(p.n))?1:0;bonuses+=(g+csb)*Math.max(1000,Math.round(c.salary));}
+      const csb=(ga===0&&(p.s==='GK'||p.s==='DEF')&&started.has(p.pid))?1:0;bonuses+=(g+csb)*Math.max(1000,Math.round(c.salary));}
     if(!c.gotMatchesBonus&&p.stats&&p.stats.apps>=Math.ceil(state.sched.length*0.5)){const mb=c.salary*4;bonuses+=mb;c.gotMatchesBonus=true;}
   });
   state.budgets[cid]=(state.budgets[cid]||0)+income-salaries-bonuses;
@@ -2605,7 +2607,7 @@ function playRound(userResult, humanResults){
   S.roundNews=[];
   const Rr=makeRng(hashSeed(S.seed,S.round,'post')); // deterministic post-match stream
   // capture who started THIS round before energy changes (for finances/enforcement)
-  const startedNames = new Set(playedXI(S.clubId).map(p=>p.n));
+  const startedNames = new Set(playedXI(S.clubId).map(p=>p.pid)); // pids
   if(uf&&userResult){ const [h,a]=uf; const uev=(typeof simEvents==='function')?simEvents(h,a,matchSeed(h,a)).events:undefined; applyResult(h,a,userResult.hg,userResult.ag); recordScorers(userResult.scorers);
     const Rm=makeRng(hashSeed(matchSeed(h,a),'rate'));
     ratePlayers(h,userResult.hg,userResult.ag,userResult.scorers,Rm,userResult.perf&&userResult.perf.H,userResult.perf&&userResult.perf.A); ratePlayers(a,userResult.ag,userResult.hg,userResult.scorers,Rm,userResult.perf&&userResult.perf.A,userResult.perf&&userResult.perf.H);
@@ -2688,7 +2690,7 @@ function processFinances(userResult,uf,startedNames,gateOverride){
       // constante cega à divisão: na Série D, um gol pagava quase a folha inteira do clube.
       const unit=Math.max(1000, Math.round(c.salary));
       const g=userResult?userResult.scorers.filter(s=>s.id===S.clubId&&s.name===p.n).length:0;
-      const cs=(userResult&&ga===0&&(p.s==='GK'||p.s==='DEF')&&startedNames.has(p.n))?1:0;
+      const cs=(userResult&&ga===0&&(p.s==='GK'||p.s==='DEF')&&startedNames.has(p.pid))?1:0;
       if(g){bonuses+=g*unit;log.push(`⚽ Bônus gol ${p.n}: ${fmt(g*unit)}`);}
       if(cs){bonuses+=unit;log.push(`🧤 Clean sheet ${p.n}: ${fmt(unit)}`);}
     }
@@ -2731,9 +2733,9 @@ function pushFinanceEntry(patch){
 function enforceRoles(startedNames){
   squad(S.clubId).forEach(p=>{
     if(!p.contract)return; const c=p.contract;
-    if(c.role==='Jogador Chave' && !startedNames.has(p.n)){ p.moral=clamp(p.moral-8,0,100); c.benchStreak=(c.benchStreak||0)+1;
+    if(c.role==='Jogador Chave' && !startedNames.has(p.pid)){ p.moral=clamp(p.moral-8,0,100); c.benchStreak=(c.benchStreak||0)+1;
       S.roundNews.push(`⭐ ${p.n} (Jogador Chave) ficou fora e está insatisfeito (moral ${Math.round(p.moral)}).`); }
-    else if(c.role==='Titular Regular' && !startedNames.has(p.n)){ p.moral=clamp(p.moral-4,0,100); c.benchStreak=(c.benchStreak||0)+1; }
+    else if(c.role==='Titular Regular' && !startedNames.has(p.pid)){ p.moral=clamp(p.moral-4,0,100); c.benchStreak=(c.benchStreak||0)+1; }
     else c.benchStreak=0;
   });
 }
@@ -2747,9 +2749,9 @@ function europeRaids(R){
       S.squads[S.clubId]=S.squads[S.clubId].filter(x=>x.n!==p.n);
       // destino nulo: o clube europeu não existe como clube jogável, então o jogador sai do mundo.
       // Sem avisar o servidor, ele reaparecia no elenco na rodada seguinte (e a multa era paga de novo).
-      recordNetTransfer(S.clubId, null, p.n, null, 0);
+      recordNetTransfer(S.clubId, null, p.n, null, 0, p.pid);
       S.negos=S.negos.filter(n=>n.player!==p.n);
-      S.xi=S.xi.filter(x=>x!==p.n);
+      S.xi=S.xi.filter(x=>x!==p.pid);   // S.xi = pids
       S.roundNews.push(`🌍 Um clube europeu acionou a multa de ${fmt(clause)} por ${p.n}. Você recebeu o valor, mas perdeu o atleta.`);
     }
   });

@@ -209,6 +209,24 @@ function genAttrs(p){
   for(const k in prof) a[k]=Math.max(1,Math.min(20,Math.round(a[k]+shift)));
   return a;
 }
+/* ===== IDENTIDADE POR ID (não por nome) =====
+   O jogo identificava jogador por NOME (p.n): clicar num jogador selecionava TODOS os
+   homônimos, e a marcação de titular casava por nome. Agora todo jogador tem p.pid único e
+   estável, e a seleção/escalação/motor usam pid. Contador em S._pidSeq (persiste no save e
+   viaja pro servidor, que continua a sequência ao gerar regens). O host cria o mundo e
+   atribui os pids; os convidados os herdam ao adotar o shared_state. */
+function nextPid(){
+  if(typeof S!=='undefined' && S){ S._pidSeq=(S._pidSeq||0)+1; return 'p'+S._pidSeq; }
+  PID_SEQ_BOOT+=1; return 'p0_'+PID_SEQ_BOOT;   // antes de S existir (materialização no newGame) — reconciliado abaixo
+}
+var PID_SEQ_BOOT=0;
+/* acha um jogador pelo pid dentro de um clube (ou em qualquer elenco se clubId omitido) */
+function pById(pid, clubId){
+  if(pid==null) return null;
+  if(clubId!=null){ const sq=S.squads&&S.squads[clubId]; return sq?sq.find(p=>p.pid===pid)||null:null; }
+  for(const cid in (S.squads||{})){ const p=S.squads[cid].find(x=>x.pid===pid); if(p) return p; }
+  return null;
+}
 function attachAttrs(p, division){ normalizePlayerFields(p);
   if(p.rawF==null) p.rawF=p.f;                                    // força na escala de ATRIBUTOS (antiga), preservada
   const dv = division || p._div || ((typeof S!=='undefined'&&S&&S.division)||'A'); // faixa por divisão
@@ -216,6 +234,7 @@ function attachAttrs(p, division){ normalizePlayerFields(p);
   if(!p._rb){ p.f=REBAL.force(p.rawF, dv); p.mv=REBAL.value(p.f,p.age); p._rb=1; } // f na escala NOVA (motor/valor) + valor tabelado
   if(!p.attr){ p.attr=genAttrs(p); p.f0=p.rawF; p.mv0=(p.mv||1e6); }
   if(!p.behavior){ p.behavior=assignBehavior(p); p.mv=Math.round((p.mv||1e6)*(BEHAVIOR_MV_MULT[p.behavior]||1)); }
+  if(p.pid==null) p.pid=nextPid();                                // ID único e estável (identidade, não o nome)
   return p; }
 
 /* ================= COMPORTAMENTO DO JOGADOR =================
@@ -415,21 +434,17 @@ function autoXI(id){
   const gk=pick('GK',1), df=pick('DEF',4), md=pick('MID',3), at=pick('ATT',3);
   let xi=[...gk,...df,...md,...at];
   if(xi.length<11){ // completa com os melhores restantes — NUNCA um 2º goleiro na linha
-    const have=new Set(xi.map(p=>p.n));
-    const add=p=>{ if(xi.length<11 && !have.has(p.n)){ xi.push(p); have.add(p.n); } };
+    const have=new Set(xi.map(p=>p.pid));
+    const add=p=>{ if(xi.length<11 && !have.has(p.pid)){ xi.push(p); have.add(p.pid); } };
     for(const p of sq){ if(p.s!=='GK') add(p); }   // jogadores de linha primeiro
     for(const p of sq){ add(p); }                   // último recurso (elenco minúsculo): evita XI < 11
   }
-  return xi.slice(0,11).map(p=>p.n);
+  return xi.slice(0,11).map(p=>p.pid);   // S.xi guarda PIDs (identidade por ID, não por nome)
 }
-/* defensivo: se por acaso dois jogadores do mesmo elenco tiverem o nome idêntico (não
-   deveria mais acontecer — dados de jogadores já foram deduplicados —, mas o motor
-   identifica escalação por nome, não por ID, então uma futura duplicata acidental num
-   elenco gerado proceduralmente voltaria a causar isso), só pega a PRIMEIRA ocorrência
-   de cada nome — sem isso, dois jogadores homônimos apareciam marcados ao mesmo tempo no
-   seletor de pênalti mesmo só um deles estando de fato escalado. */
-function xiPlayers(id){const names=new Set(S.xi);const seen=new Set();
-  return squad(id).filter(p=>{ if(!names.has(p.n)||seen.has(p.n)) return false; seen.add(p.n); return true; });}
+/* jogadores da escalação atual (S.xi = lista de PIDs). Como pid é único, não há mais o problema
+   de homônimos — cada pid casa exatamente um jogador. */
+function xiPlayers(id){const ids=new Set(S.xi);
+  return squad(id).filter(p=>ids.has(p.pid));}
 /* ---- XI CONSISTENTE com o elenco ATUAL (correção do "botão Jogar cinza" no online) ----
    No online, S.xi é recomputado a partir de S.clubXI[clubId] toda vez que o cliente adota o
    estado do servidor (Object.assign(S, ...)). Se esses nomes guardados NÃO existem mais no
@@ -444,9 +459,9 @@ function resolveClubXI(id){
   const auto=()=> (typeof autoXI==='function' && sq.length) ? autoXI(id) : [];
   const stored=(S.clubXI&&S.clubXI[id])||null;
   if(!stored || !stored.length) return auto();
-  const names=new Set(sq.map(p=>p.n));
-  const present=stored.filter(n=>names.has(n));
-  return present.length>=11 ? stored.slice() : auto();   // guardado inconsistente -> remonta
+  const ids=new Set(sq.map(p=>p.pid));
+  const present=stored.filter(pid=>ids.has(pid));
+  return present.length>=11 ? stored.slice() : auto();   // guardado inconsistente (pids somem) -> remonta
 }
 /* rede de segurança final: se por qualquer motivo S.xi não resolver pra 11 jogadores do meu
    elenco (e o elenco COMPORTA 11), remonta na hora. Chamada antes de avaliar o portão do botão
@@ -455,8 +470,8 @@ function resolveClubXI(id){
 function ensureMyXIResolves(){
   if(!S || !S.clubId) return;
   const sq=(S.squads&&S.squads[S.clubId])||[]; if(sq.length<11) return;
-  const names=new Set(sq.map(p=>p.n));
-  const present=(S.xi||[]).filter(n=>names.has(n));
+  const ids=new Set(sq.map(p=>p.pid));
+  const present=(S.xi||[]).filter(pid=>ids.has(pid));
   if(present.length<11 && typeof autoXI==='function') S.xi=autoXI(S.clubId);
 }
 

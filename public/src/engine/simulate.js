@@ -185,8 +185,8 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
         const pConv=penaltyConvChance(taker,gk);
         const scored=R.random()<pConv;
         perf[hSide].big++;
-        if(scored){ if(home){hg++;} else {ag++;} perf[hSide].goals++; scorers.push({id:atkId,name:taker.n,min:minute}); pos=home?-0.15:0.15; }
-        ev={type:'penalti',side:hSide,min:minute,team:atkId,scorer:taker?taker.n:null,gk:gk?gk.n:null,scored,stoppage};
+        if(scored){ if(home){hg++;} else {ag++;} perf[hSide].goals++; scorers.push({id:atkId,name:taker.n,pid:taker.pid,min:minute}); pos=home?-0.15:0.15; }
+        ev={type:'penalti',side:hSide,min:minute,team:atkId,scorer:taker?taker.n:null,scorerPid:taker?taker.pid:null,gk:gk?gk.n:null,scored,stoppage};
       } else {
       const sc=scorerFrom(atkId, atkPool);
       // conversão via índices ataque/defesa (com meio-campo) + moral do finalizador
@@ -194,11 +194,11 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
       if(conv>=0.5) perf[hSide].big++; // grande chance
       if(R.random()<conv){
         if(home){hg++;} else {ag++;} perf[hSide].goals++;
-        scorers.push({id:atkId,name:sc.n,min:minute}); pos=home?-0.15:0.15;
-        ev={type:'gol',side:hSide,min:minute,scorer:sc.n,team:atkId,stoppage};
+        scorers.push({id:atkId,name:sc.n,pid:sc.pid,min:minute}); pos=home?-0.15:0.15;
+        ev={type:'gol',side:hSide,min:minute,scorer:sc.n,scorerPid:sc.pid,team:atkId,stoppage};
       } else {
         perf[hSide].chances++;
-        ev={type:'chance',side:hSide,min:minute,scorer:sc.n,team:atkId,pos};
+        ev={type:'chance',side:hSide,min:minute,scorer:sc.n,scorerPid:sc.pid,team:atkId,pos};
       }
       }
     } else if(R.random()<0.026){
@@ -208,14 +208,14 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
       if(p){
         if(R.random()<0.10){ // ~10% dos cartões são vermelho direto
           offField[foulSide].add(p.n); menOnField[foulSide]=Math.max(6,menOnField[foulSide]-1);
-          ev={type:'cartao',side:foulSide,min:minute,team:foulTeam,player:p.n,pos:p.s,cardType:'vermelho',reason:'direto'};
+          ev={type:'cartao',side:foulSide,min:minute,team:foulTeam,player:p.n,pid:p.pid,pos:p.s,cardType:'vermelho',reason:'direto'};
         } else if(cardState[foulSide].get(p.n)==='amarelo'){ // segundo amarelo = vermelho
           cardState[foulSide].set(p.n,'vermelho');
           offField[foulSide].add(p.n); menOnField[foulSide]=Math.max(6,menOnField[foulSide]-1);
-          ev={type:'cartao',side:foulSide,min:minute,team:foulTeam,player:p.n,pos:p.s,cardType:'vermelho',reason:'segundo amarelo'};
+          ev={type:'cartao',side:foulSide,min:minute,team:foulTeam,player:p.n,pid:p.pid,pos:p.s,cardType:'vermelho',reason:'segundo amarelo'};
         } else {
           cardState[foulSide].set(p.n,'amarelo');
-          ev={type:'cartao',side:foulSide,min:minute,team:foulTeam,player:p.n,pos:p.s,cardType:'amarelo',reason:null};
+          ev={type:'cartao',side:foulSide,min:minute,team:foulTeam,player:p.n,pid:p.pid,pos:p.s,cardType:'amarelo',reason:null};
         }
       }
     } else if(R.random()<0.011){
@@ -229,7 +229,7 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
         const grave=R.random()<0.30;
         const outMatches=grave?Math.floor(R.rnd(2,5)):(R.random()<0.5?1:0);
         offField[side].add(p.n); menOnField[side]=Math.max(6,menOnField[side]-1);
-        ev={type:'lesao',side,min:minute,team,player:p.n,pos:p.s,severity:grave?'grave':'leve',outMatches};
+        ev={type:'lesao',side,min:minute,team,player:p.n,pid:p.pid,pos:p.s,severity:grave?'grave':'leve',outMatches};
       }
     }
     return ev;
@@ -269,14 +269,14 @@ function availableXI(id){
   const avail=squad(id).filter(p=>!(p.suspended>0)&&!(p.injuredMatches>0));
   let chosen=[];
   if(id===S.clubId){
-    const names=new Set(S.xi||[]); chosen=avail.filter(p=>names.has(p.n));
+    const ids=new Set(S.xi||[]); chosen=avail.filter(p=>ids.has(p.pid));   // S.xi = pids
   } else if(CL.online && CL.humans && CL.humans[id]){
     const stored=(S.clubXI&&S.clubXI[id])||null;
-    const names=new Set((stored&&stored.length)?stored:autoXI(id));
-    chosen=avail.filter(p=>names.has(p.n));
+    const ids=new Set((stored&&stored.length)?stored:autoXI(id));
+    chosen=avail.filter(p=>ids.has(p.pid));
   }
-  if(chosen.length<11){ const have=new Set(chosen.map(p=>p.n));
-    const extra=avail.filter(p=>!have.has(p.n)).sort((a,b)=>b.f-a.f);
+  if(chosen.length<11){ const have=new Set(chosen.map(p=>p.pid));
+    const extra=avail.filter(p=>!have.has(p.pid)).sort((a,b)=>b.f-a.f);
     chosen=chosen.concat(extra); }
   return chosen.slice(0,11);
 }
