@@ -621,7 +621,11 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
    transferência já foi aplicada, o dinheiro não anda de novo. */
 function applyHumanTransfers(S: any, transfers: any[], humans?: Set<string>) {
   const isHuman = (id: string) => !!(humans && humans.has(id));
-  const match = (x: any, t: any) => t.pid ? x.pid === t.pid : x.n === t.p;   // pid (identidade); nome = fallback
+  // casa por pid (identidade) OU nome. NÃO pode ser "pid quando existe, SENÃO nome": se o pid do
+  // cliente divergir do pid no elenco autoritativo (re-materialização, pid nulo/colidido), o match
+  // exclusivo por pid falhava pra sempre — a venda nunca aplicava, o jogador voltava e dava pra
+  // revender (o caixa do humano é por-assento, então o dinheiro ficava). pid OU nome, escopo de 1 clube.
+  const match = (x: any, t: any) => (t.pid != null && x.pid === t.pid) || x.n === t.p;
   (transfers || []).forEach((t: any) => {
     if (!t || !t.p || !t.from || t.from === t.to) return;
     // JOGADOR DA BASE (item 5): from 'BASE' + player embutido -> ADICIONA o jovem ao clube destino

@@ -342,7 +342,11 @@ function pruneAppliedNetTransfers(){
   // adotamos essa rodada, zera o pendente — senão somaria de novo a cada rodada seguinte.
   if(S._netMorale) S._netMorale=0;
   if(!S._netTransfers || !S._netTransfers.length) return;
-  const match=(x,t)=> t.pid ? x.pid===t.pid : x.n===t.p;   // pid (identidade); nome = fallback
+  // casa por pid (identidade) OU nome. NÃO pode ser "pid quando existe, SENÃO nome": se o pid
+  // divergir entre cliente e servidor (re-materialização de elenco, pid nulo/colidido), o match
+  // exclusivo por pid falhava pra sempre — a venda nunca era considerada aplicada, ficava presa no
+  // buffer e o jogador voltava rodada após rodada (dava pra vender o mesmo jogador várias vezes).
+  const match=(x,t)=> (t.pid!=null && x.pid===t.pid) || x.n===t.p;
   S._netTransfers = S._netTransfers.filter(t=>{
     // destino nulo (saída do mundo por multa rescisória): aplicada quando o jogador não está
     // MAIS na origem. Sem este ramo a saída ficava presa no buffer e era reenviada pra sempre.
