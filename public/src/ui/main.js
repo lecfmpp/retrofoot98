@@ -2826,8 +2826,8 @@ function penaltyPickerHTML(){
   const list=xiPlayers(CL.clubId).filter(p=>p.s!=='GK');
   const takers=(list.length?list:squad(CL.clubId).filter(p=>p.s!=='GK'));
   const secsLeft=Math.max(0,Math.ceil((CL.penDeadline-Date.now())/1000));
-  const rows=takers.map(p=>`<div class="cl-pen-row ${CL.penSel===p.n?'sel':''}" style="grid-template-columns:22px 1fr" onclick="penaltySelect('${escC(p.n)}')">
-      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span>
+  const rows=takers.map(p=>`<div class="cl-pen-row ${CL.penSel===p.n?'sel':''}" onclick="penaltySelect('${escC(p.n)}')">
+      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span><span class="cl-pen-r">${p.f}</span>
     </div>`).join('');
   return `<div class="cl-pen-overlay"><div class="cl-pen-modal" ${penaltyClubStyle()}>
     <div class="cl-pen-title">PENALTI</div>
