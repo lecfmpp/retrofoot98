@@ -188,11 +188,13 @@ function agentRespond(n){ // Dia 2 -> Dia 3
 }
 
 /* ====================== JANELA DE TRANSFERÊNCIAS ======================
-   Janelas LONGAS pra facilitar as negociações (decisão do usuário, não datas
-   reais da CBF): ABERTA nas 10 primeiras rodadas, FECHADA por 10 rodadas,
-   ABERTA de novo da rodada 20 até o fim da temporada. O teto 9999 significa
-   "até a última rodada", qualquer que seja o tamanho do calendário (38 hoje). */
-const TRANSFER_WINDOWS=[[0,9],[20,9999]]; // [rodada inicial, rodada final], inclusive
+   Decisão do usuário (não datas reais da CBF): duas janelas de 10 rodadas cada, com 10 fechadas
+   no meio e 10 fechadas no fim:
+     0-9   ABERTA
+     10-19 FECHADA
+     20-29 ABERTA
+     30-38 FECHADA (reta final da temporada). */
+const TRANSFER_WINDOWS=[[0,9],[20,29]]; // [rodada inicial, rodada final], inclusive
 const PRE_WINDOW_ROUNDS=3; // quantas rodadas ANTES da janela já dá pra pré-acordar (nunca muito longe)
 function inTransferWindow(){ return TRANSFER_WINDOWS.some(([lo,hi])=>S.round>=lo && S.round<=hi); }
 function nextWindowRound(){ for(const [lo] of TRANSFER_WINDOWS){ if(S.round<lo) return lo; } return null; }
@@ -209,8 +211,7 @@ function canNegotiate(){ return inTransferWindow() || !!inPreWindow(); }
 function transferWindowStatus(){
   if(inTransferWindow()){
     const w=TRANSFER_WINDOWS.find(([lo,hi])=>S.round>=lo&&S.round<=hi);
-    // a última janela vai até 9999 (= "até o fim da temporada"); o "fecha em" tem que ser as
-    // rodadas REAIS que faltam pro fim do calendário, não 9999-round (que mostrava "fecha em 9977").
+    // "fecha em" = rodadas que faltam pro fim DESTA janela (limitado ao fim do calendário por segurança).
     const lastRound=(Array.isArray(S.sched)?S.sched.length:38)-1;
     const hi=Math.min(w[1], lastRound);
     return {open:true, closesIn:Math.max(0, hi-S.round)};
@@ -285,7 +286,7 @@ function recordNetTransfer(fromId, toId, playerName, contract, fee, pid){
    No ONLINE, viaja pro servidor como uma "transferência" de origem BASE (carrega o jogador inteiro);
    o servidor ADICIONA o jogador ao clube (senão a mutação local seria desfeita no adopt). */
 function currentTurno(){ const half=Math.floor((Array.isArray(S.sched)?S.sched.length:38)/2); return (S.round||0) < half ? 1 : 2; }
-/* índice da janela de transferências ATUAL (0 = pré-temporada [0,9], 1 = [20,fim]); -1 fora dela.
+/* índice da janela de transferências ATUAL (0 = [0,9], 1 = [20,29]); -1 fora dela (10-19 e 30-38).
    A base sobe no MÁXIMO 1 jogador POR JANELA (2 por temporada, uma em cada janela). */
 function currentWindowIndex(){
   if(typeof TRANSFER_WINDOWS==='undefined') return 0;
@@ -309,7 +310,7 @@ function promoteYouth(){
     const limite=youthWindowOpen() && youthCountThisWindow()>=1;
     return {ok:false, msg: cheio?'Elenco cheio (40 jogadores).'
       : limite?('Você já subiu um jogador da base nesta janela. Espere a próxima janela de transferências.')
-      : 'A base só sobe jogador com a janela de transferências aberta (ou no fim da temporada).'};
+      : 'A base só sobe jogador com a janela de transferências aberta.'};
   }
   const div=S.division, sq=squad(S.clubId);
   const cnt={GK:0,DEF:0,MID:0,ATT:0}; sq.forEach(p=>{ if(cnt[p.s]!=null) cnt[p.s]++; });
