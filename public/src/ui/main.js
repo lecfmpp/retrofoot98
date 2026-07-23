@@ -1517,13 +1517,44 @@ function inboxSigner(role, clubId){ // nome determinístico por clube+cargo (dá
   return BR_FIRST[Math.floor(R.random()*BR_FIRST.length)]+' '+BR_LAST[Math.floor(R.random()*BR_LAST.length)];
 }
 function addInboxEmail(e){
-  CL.inbox=CL.inbox||[];
+  CL.inbox=CL.inbox||[]; CL.inboxDeleted=CL.inboxDeleted||{};
+  if(CL.inboxDeleted[e.key]) return;                    // usuário apagou -> não ressuscita
   if(CL.inbox.some(x=>x.key===e.key)) return;           // já existe -> não duplica
   CL.inbox.unshift(Object.assign({read:false, round:S.round, season:S.season}, e));
   if(CL.inbox.length>60) CL.inbox.length=60;            // teto: guarda as 60 mais recentes
+  saveInbox();
+}
+/* ---- PERSISTÊNCIA do inbox: localStorage SEMPRE (solo + reload) + game_seats no online
+   (durável/cross-device). Chave por save/sala + clube. ---- */
+function inboxKey(){
+  const g = (CL.online && typeof NET!=='undefined' && NET.gameId) ? NET.gameId : ('solo_'+((S&&S.seed)||'x'));
+  return 'ef_inbox_'+g+'_'+(CL.clubId||'');
+}
+function saveInbox(){
+  const payload={ inbox:CL.inbox||[], deleted:CL.inboxDeleted||{} };
+  try{ localStorage.setItem(inboxKey(), JSON.stringify(payload)); }catch(e){}
+  if(CL.online && typeof NET!=='undefined' && NET.saveInbox){   // debounce: escrita no assento
+    clearTimeout(CL._inboxSaveT); CL._inboxSaveT=setTimeout(()=>{ NET.saveInbox(payload); }, 900);
+  }
+}
+function mergeInbox(other){
+  if(!other) return;
+  CL.inbox=CL.inbox||[]; CL.inboxDeleted=Object.assign({}, other.deleted||{}, CL.inboxDeleted||{});
+  const byKey={}; CL.inbox.forEach(x=>byKey[x.key]=x);
+  (other.inbox||[]).forEach(e=>{ if(!byKey[e.key]){ CL.inbox.push(e); byKey[e.key]=e; } else if(e.read){ byKey[e.key].read=true; } });
+  CL.inbox=CL.inbox.filter(x=>!CL.inboxDeleted[x.key]);        // some com os apagados
+}
+function loadInbox(){
+  CL.inbox=CL.inbox||[]; CL.inboxDeleted=CL.inboxDeleted||{};
+  try{ const raw=localStorage.getItem(inboxKey()); if(raw){ const s=JSON.parse(raw); CL.inbox=s.inbox||[]; CL.inboxDeleted=s.deleted||{}; } }catch(e){}
+  if(CL.online && typeof NET!=='undefined' && NET.loadInbox){   // mescla com o assento (cross-device)
+    NET.loadInbox().then(db=>{ if(db){ mergeInbox(db); if(typeof cdraw==='function') cdraw(); } }).catch(()=>{});
+  }
 }
 function syncInbox(){
   if(!S || !S.clubId) return;
+  const k=inboxKey();
+  if(CL._inboxLoadedKey!==k){ CL._inboxLoadedKey=k; loadInbox(); } // carrega do storage/assento 1x por jogo+clube
   const myShort=(clubOf(S.clubId)||{}).short||'clube';
   // 1) PROPOSTAS por jogadores meus
   (S.incomingOffers||[]).forEach(o=>{
@@ -1568,10 +1599,10 @@ function syncInbox(){
 }
 function inboxUnread(){ return (CL.inbox||[]).filter(e=>!e.read).length; }
 function markInboxSeen(){ /* abrir a aba NÃO marca tudo como lido — só ao abrir cada e-mail */ }
-function clOpenEmail(key){ const e=(CL.inbox||[]).find(x=>x.key===key); if(e){ e.read=true; CL.inboxOpen=key; } cdraw(); }
+function clOpenEmail(key){ const e=(CL.inbox||[]).find(x=>x.key===key); if(e){ e.read=true; CL.inboxOpen=key; saveInbox(); } cdraw(); }
 function clInboxBack(){ CL.inboxOpen=null; cdraw(); }
 function clInboxAction(){ const e=(CL.inbox||[]).find(x=>x.key===CL.inboxOpen); if(e&&e.action&&e.action.go){ try{ (new Function(e.action.go))(); }catch(err){ console.warn('ação do e-mail:', err); } } }
-function clInboxDelete(key){ CL.inbox=(CL.inbox||[]).filter(x=>x.key!==key); CL.inboxOpen=null; cdraw(); }
+function clInboxDelete(key){ CL.inboxDeleted=CL.inboxDeleted||{}; CL.inboxDeleted[key]=true; CL.inbox=(CL.inbox||[]).filter(x=>x.key!==key); CL.inboxOpen=null; saveInbox(); cdraw(); }
 function inboxIcon(kind){ return {offer:'💰', job:'🤝', warn:'⚠️', prize:'🏆'}[kind]||'✉️'; }
 function panCorreio(){
   syncInbox();

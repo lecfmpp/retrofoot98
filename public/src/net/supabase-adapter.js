@@ -928,6 +928,17 @@ async function netSetMyClub(clubId){
   try{ const { error } = await sb.rpc('set_my_seat_club', { p_game: NET.gameId, p_club: clubId||null }); if(error) throw error; return {ok:true}; }
   catch(e){ return {ok:false, error:(e&&e.message)||String(e)}; }
 }
+/* CAIXA DE ENTRADA (e-mail): grava/lê o inbox no PRÓPRIO assento (coluna game_seats.inbox —
+   ver scripts/sql/game_seats_inbox.sql). Falha silenciosa: se a coluna não existe ainda, o
+   cliente segue só com localStorage. */
+async function netSaveInbox(data){
+  if(!NET.gameId || !SB_AUTH_USER) return;
+  try{ await sb.from('game_seats').update({ inbox:data }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id); }catch(e){}
+}
+async function netLoadInbox(){
+  if(!NET.gameId || !SB_AUTH_USER) return null;
+  try{ const { data } = await sb.from('game_seats').select('inbox').eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id).maybeSingle(); return (data&&data.inbox)||null; }catch(e){ return null; }
+}
 async function netKick(uid, clubId){
   if(!NET.isHost || !uid || uid===(SB_AUTH_USER&&SB_AUTH_USER.id)) return;
   SB_KICKED[uid]=1;
@@ -974,6 +985,8 @@ NET.collectHumanResults = netCollectHumanResults;
 NET.setMode = netSetMode;
 NET.assignClub = netAssignClub;
 NET.setMyClub = netSetMyClub;
+NET.saveInbox = netSaveInbox;
+NET.loadInbox = netLoadInbox;
 NET.drawClubs = netDrawClubs;
 NET.setReady = netSetReady;
 NET.start = netStart;
