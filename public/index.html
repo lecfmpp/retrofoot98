@@ -327,7 +327,7 @@ function newGame(clubId, division, compToggle, seedOverride){
   DATA.clubs.forEach(c=>table[c.id]={id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
   // deep clone squads so morale/energy mutate independently
   const squads={};
-  DATA.clubs.forEach(c=>squads[c.id]=c.squad.map(p=>attachAttrs(initStats({...p}), division)));
+  DATA.clubs.forEach(c=>squads[c.id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}), division)));
   squads[clubId].forEach(p=>p.contract=defaultContract(p));
   // seedOverride (Resenha): usa a MESMA seed em todos os clientes -> copas/leilão/outras divisões
   // saem IDÊNTICOS (mesma competição). Sem override (solo), sorteia aleatório como sempre.

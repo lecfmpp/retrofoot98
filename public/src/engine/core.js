@@ -188,12 +188,11 @@ function agentRespond(n){ // Dia 2 -> Dia 3
 }
 
 /* ====================== JANELA DE TRANSFERÊNCIAS ======================
-   Datas reais da CBF pra 2026: 1ª janela 05/jan–27/mar (temporada começa
-   28/jan), 2ª janela 20/jul–11/set. Mapeado pra número de rodada: nosso
-   campeonato tem 38 rodadas (20 clubes, turno e returno) cobrindo
-   28/jan a 02/dez — usamos a posição proporcional de cada janela real
-   dentro desse intervalo pra calcular em que rodada ela abre/fecha.  */
-const TRANSFER_WINDOWS=[[0,3],[19,24]]; // [rodada inicial, rodada final], inclusive — pré-temporada e meio de ano
+   Janelas LONGAS pra facilitar as negociações (decisão do usuário, não datas
+   reais da CBF): ABERTA nas 10 primeiras rodadas, FECHADA por 10 rodadas,
+   ABERTA de novo da rodada 20 até o fim da temporada. O teto 9999 significa
+   "até a última rodada", qualquer que seja o tamanho do calendário (38 hoje). */
+const TRANSFER_WINDOWS=[[0,9],[20,9999]]; // [rodada inicial, rodada final], inclusive
 const PRE_WINDOW_ROUNDS=3; // quantas rodadas ANTES da janela já dá pra pré-acordar (nunca muito longe)
 function inTransferWindow(){ return TRANSFER_WINDOWS.some(([lo,hi])=>S.round>=lo && S.round<=hi); }
 function nextWindowRound(){ for(const [lo] of TRANSFER_WINDOWS){ if(S.round<lo) return lo; } return null; }
@@ -791,7 +790,7 @@ function ensureIntlClub(name, countryCode){
   if(!S.intlClubs[id]){
     const c=makeIntlClub(name, countryCode);
     S.intlClubs[id]=c;
-    S.squads[id]=c.squad.map(p=>attachAttrs(initStats({...p})));
+    S.squads[id]=gkSquad(c).map(p=>attachAttrs(initStats({...p})));
   }
   return id;
 }
@@ -1112,7 +1111,7 @@ function ensureCupClubsMaterialized(ids){
   const byId={}; intlTopDivisionClubs().forEach(c=>byId[c.id]=c);
   ids.forEach(id=>{
     if(!S.clubPool[id] && byId[id]) S.clubPool[id]=byId[id];
-    if(!S.squads[id]){ const c=S.clubPool[id]||byId[id]; if(c) S.squads[id]=c.squad.map(p=>attachAttrs(initStats({...p}))); }
+    if(!S.squads[id]){ const c=S.clubPool[id]||byId[id]; if(c) S.squads[id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}))); }
   });
 }
 /* qualificação continental: 32 pra Champions + 32 pra Europa (melhores clubes reais das 5
@@ -1202,7 +1201,7 @@ function ensureContinentalCupClubs(ids){
     // rotula o clube brasileiro como Brasil (senão clubCountry cai no universo ativo, ex.: Argentina)
     if(brById[id] && !c.country) c.country=CONMEBOL_COUNTRIES.BRA;
     if(!S.clubPool[id]) S.clubPool[id]=c;
-    if(!S.squads[id]) S.squads[id]=c.squad.map(p=>attachAttrs(initStats({...p}),'A'));
+    if(!S.squads[id]) S.squads[id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}),'A'));
   });
 }
 function initConmebolCups(){
@@ -1595,7 +1594,7 @@ function ensureBgClubMaterialized(clubId){
   // divisão do clube na liga de background -> remapeia a força na faixa certa (item 4)
   let dv=null; const bg=S.bgLeagues||{};
   for(const co in bg){ for(const d in bg[co].divs){ if((bg[co].divs[d].clubIds||[]).indexOf(clubId)>=0){ dv=d; break; } } if(dv) break; }
-  S.squads[clubId]=club.squad.map(p=>attachAttrs(initStats({...p}), dv||undefined));
+  S.squads[clubId]=gkSquad(club).map(p=>attachAttrs(initStats({...p}), dv||undefined));
   return true;
 }
 /* config do universo ativo — reatribuída por setUniverse(); os bindings abaixo são 'let'
@@ -1746,6 +1745,35 @@ function rollAgedForce(R,range,age){
   const t=Math.max(0,Math.min(1, ageForceFraction(age)+(R.random()*2-1)*0.28));
   return Math.round(range[0]+t*(range[1]-range[0]));
 }
+/* ---- MÍNIMO DE GOLEIROS (item 1) ----
+   Os dados reais das Séries C/D vêm com pouquíssimos goleiros (D tem média 1,5; vários clubes
+   com 1 só). Se esse único GK se machuca, o time joga SEM goleiro (autoXI/pickXIByFormation
+   nunca colocam um 2º GK na linha, e não há reposição por lesão — só por aposentadoria). Aqui
+   garantimos 3 GK em TODO clube, completando com jovens da base quando faltar.
+   Opera nos DADOS BRUTOS do clube (club.squad), UMA vez por clube (flag _gkTopped), ANTES da
+   materialização — como todos os ~10 pontos que montam S.squads leem club.squad do mesmo objeto,
+   todos herdam o reforço, e o regen de aposentadoria já preserva a contagem por posição (então
+   3 GK permanece 3 nas próximas temporadas). Não mexe em DEF/MID/ATT (decisão do usuário). */
+const MIN_GK=3;
+function makeRawGK(division, clubKey, idx){
+  const R=makeRng(hashSeed('gk-topup', String(clubKey||'x'), idx));
+  const range=DIVISION_FORCE_RANGE[division]||DIVISION_FORCE_RANGE.D;
+  const age=Math.round(20+R.random()*4);                         // reserva jovem, 20-24
+  const rawF=rollAgedForce(R,range,age); const f=Math.min(REBAL.force(rawF,division), DIV_FORCE_CAP[division]||99);
+  const lg=(typeof MARKET!=='undefined' && MARKET.divisionToLeague)?MARKET.divisionToLeague(division):('BRA-'+division);
+  return { n:pickProcPlayerName(R), p:'GOL', s:'GK', f, rawF, _rb:1, _div:division, age, lg,
+    mv:REBAL.value(f,age), ft:R.random()<0.5?'R':'L', num:String(30+idx), nat:'Brasil', ag:'—', moral:70, energy:100 };
+}
+function ensureClubGKs(club){
+  if(!club || club._gkTopped) return;
+  club._gkTopped=true;
+  const sq=club.squad||(club.squad=[]);
+  const div=(sq.find(p=>p&&p._div)||{})._div || 'D';           // infere a divisão pelos jogadores reais do clube
+  let gk=sq.filter(p=>p&&p.s==='GK').length, i=0;
+  while(gk<MIN_GK){ sq.push(makeRawGK(div, club.id||club.short, i++)); gk++; }
+}
+/* usado no lugar de `club.squad` nos pontos de materialização — garante o mínimo de GK antes de mapear */
+function gkSquad(club){ ensureClubGKs(club); return club.squad; }
 function proceduralDivisionClubs(division, n){
   const range=DIVISION_FORCE_RANGE[division]||[55,75];
   const R=makeRng(hashSeed('procdiv',division,(S&&S.seed)||1));
@@ -1759,7 +1787,7 @@ function proceduralDivisionClubs(division, n){
       const suf=PROC_SUFFIX[Math.floor(R.random()*PROC_SUFFIX.length)]; name=city+' '+suf; }
     const id='proc_'+division+'_'+i;
     const squad=[];
-    const posPlan=[['GK',2],['DEF',6],['MID',6],['ATT',4]];
+    const posPlan=[['GK',MIN_GK],['DEF',6],['MID',6],['ATT',4]]; // item 1: 3 GK (era 2) — nunca ficar sem goleiro
     posPlan.forEach(([pos,cnt])=>{ for(let k=0;k<cnt;k++){
       const age=Math.round(18+R.random()*17);
       const rawF=rollAgedForce(R,range,age); const f=Math.min(REBAL.force(rawF,division), DIV_FORCE_CAP[division]||99); // item 4 + trava de cap por divisão
@@ -2100,7 +2128,7 @@ function switchToDivision(newDivision, promotedOrRelegated){
   // mantém a identidade do clube do usuário (nome/cor/escudo reais), só troca o elenco de adversários
   DATA.clubs = [myClub, ...newClubs];
   S.division = newDivision;
-  const squads={}; DATA.clubs.forEach(c=>{ squads[c.id] = c.id===S.clubId ? myPlayers : (S.squads[c.id] || c.squad.map(p=>attachAttrs(initStats({...p})))); });
+  const squads={}; DATA.clubs.forEach(c=>{ squads[c.id] = c.id===S.clubId ? myPlayers : (S.squads[c.id] || gkSquad(c).map(p=>attachAttrs(initStats({...p})))); });
   S.squads = squads;
   const ids = DATA.clubs.map(c=>c.id);
   S.sched = makeSchedule(ids);
@@ -2122,7 +2150,7 @@ function buildOtherDivisions(){
     const table = {};
     clubs.forEach(c=>{
       table[c.id] = {id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0};
-      if(!S.squads[c.id]) S.squads[c.id] = c.squad.map(p=>attachAttrs(initStats({...p})));
+      if(!S.squads[c.id]) S.squads[c.id] = gkSquad(c).map(p=>attachAttrs(initStats({...p})));
       if(S.budgets && S.budgets[c.id]==null) S.budgets[c.id] = REBAL.budget(d, makeRng(hashSeed(S.seed,'budget',c.id))); // F3.3: caixa por-clube
     });
     S.otherDivs[d] = { clubs, sched: makeSchedule(clubs.map(c=>c.id)), table };
@@ -2288,7 +2316,7 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
     S.intlUniverse = uniKeyOf(newCountry)==='brasil' ? false : newCountry;
     const nc = clubOf(newClubId) || bgClubById(newClubId);
     if(nc){ S.clubPool=S.clubPool||{}; S.clubPool[newClubId]=nc;
-      if(!S.squads[newClubId]) S.squads[newClubId]=nc.squad.map(p=>attachAttrs(initStats({...p}))); }
+      if(!S.squads[newClubId]) S.squads[newClubId]=gkSquad(nc).map(p=>attachAttrs(initStats({...p}))); }
     const set=new Set((S.bgCountries||[]).filter(c=>c!==newCountry)); set.add(oldCountry);
     S.bgCountries=[...set];
   }
@@ -2299,7 +2327,7 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
     const allClubs=ensureDivisionClubs(newDivision);
     const others=allClubs.filter(c=>c.id!==newClubId).slice(0,DIVISION_SIZE[newDivision]-1);
     DATA.clubs=[clubOf(newClubId)||bgClubById(newClubId), ...others].filter(Boolean);
-    DATA.clubs.forEach(c=>{ if(!S.squads[c.id]) S.squads[c.id]=c.squad.map(p=>attachAttrs(initStats({...p}))); });
+    DATA.clubs.forEach(c=>{ if(!S.squads[c.id]) S.squads[c.id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}))); });
     const ids=DATA.clubs.map(c=>c.id);
     S.sched=makeSchedule(ids); S.round=0;
     S.table={}; DATA.clubs.forEach(c=>S.table[c.id]={id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
@@ -2403,7 +2431,7 @@ function mpBuildInitialState(clubs, seed){
   const table={},squads={},budgets={},finances={};
   clubs.forEach(c=>{
     table[c.id]={id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0};
-    const sq=c.squad.map(p=>attachAttrs({...p,moral:70,energy:100,stats:{r3:[],g3:[],apps:0,goals:0,cs:0},contract:defaultContract(p)}));
+    const sq=gkSquad(c).map(p=>attachAttrs({...p,moral:70,energy:100,stats:{r3:[],g3:[],apps:0,goals:0,cs:0},contract:defaultContract(p)}));
     squads[c.id]=sq;
     const sv=sq.reduce((s,p)=>s+(p.mv||1e6),0);
     // orçamento = valor do elenco × ~0.20 (spec §3.B), com leve variação por clube
@@ -3160,7 +3188,7 @@ function newSeasonReset(){
     const myClub = DATA.clubs.find(c=>c.id===S.clubId);
     const newClubs = ensureDivisionClubs(S.division).filter(c=>c.id!==S.clubId).slice(0, DIVISION_SIZE[S.division]-1);
     DATA.clubs = [myClub, ...newClubs];
-    DATA.clubs.forEach(c=>{ if(!S.squads[c.id]) S.squads[c.id]=c.squad.map(p=>attachAttrs(initStats({...p}))); });
+    DATA.clubs.forEach(c=>{ if(!S.squads[c.id]) S.squads[c.id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}))); });
     const ids=DATA.clubs.map(c=>c.id);
     S.sched=makeSchedule(ids); S.round=0;
     S.table={}; DATA.clubs.forEach(c=>S.table[c.id]={id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
