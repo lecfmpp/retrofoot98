@@ -1122,6 +1122,19 @@ function onlineTimerLoop(){
     // se auto-protege (não re-simula rodada já jogada, não interrompe telas de sorteio/classificação).
     if(CL.screen==='main' && CL._playedRound!==S.round && typeof onlineRunRound==='function'){ onlineRunRound(); }
   } else { ONLINE_LASTSEC=null; }
+  // REDE DE SEGURANÇA DO SORTEIO/RECONCILE (convidado): NÃO depender só do realtime (throttle de 5
+  // eventos/s, e o evento de UPDATE de `games` pode atrasar/se perder) nem de uma interação do
+  // usuário. Se estou ATRÁS da rodada da sala e numa tela passiva (não em partida/sorteio/
+  // classificação), reconcilio a cada tick (~300ms) — o onlineReconcileIfBehind já é barato quando
+  // já estou em dia (early-return) e mostra o sorteio da copa como parte do fluxo. Sem isto, um
+  // convidado parado no 'waitround'/'main' via o sorteio muitos segundos depois do anfitrião (ou só
+  // ao clicar num menu) — privilégio de informação entre jogadores.
+  if(CL.online && typeof NET!=='undefined' && !NET.isHost && room && typeof S!=='undefined' && S &&
+     CL.screen!=='live' && !CL.live && !CL._liveBusy && !CL._hotseat &&
+     CL.screen!=='cupdraw' && CL.screen!=='classif' && CL.screen!=='seatclassif' &&
+     (room.round||0)!==(S.round||0) && typeof onlineReconcileIfBehind==='function'){
+    onlineReconcileIfBehind(room);
+  }
   const intv=Math.max(100, 300/(CL.speedMult||1));
   ONLINE_TIMER=setTimeout(onlineTimerLoop, intv);
 }
