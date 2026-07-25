@@ -91,4 +91,18 @@ mesma alma e resolve as amarras da tecnologia daquele tempo.</p>
     description: 'Elifoot ou Brasfoot? Comparamos os dois clássicos do futebol manager — e a opção online e grátis pra jogar hoje.',
     h1: 'Elifoot vs Brasfoot: qual escolher?',
     keywords: 'elifoot vs brasfoot, elifoot ou brasfoot' },
+
+  // Documentação / Guia do jogo — entende a dinâmica e dá dicas SEM entregar as fórmulas do back-end.
+  // Mostra que o jogo foi pensado/equilibrado (credibilidade) e captura o cluster "como ganhar/dicas/táticas".
+  // Pode virar um HUB com sub-páginas (/guia/formacoes, /guia/dinheiro, /guia/estadio, /guia/subir-de-divisao).
+  { slug: 'guia', ready: false, priority: 0.8,
+    title: 'Guia do RetroFoot98: Como Jogar, Melhores Táticas e Dicas para Vencer',
+    description: 'Domine o RetroFoot98: melhores formações por divisão e situação, como ganhar dinheiro comprando e vendendo jogadores, ampliar o estádio e subir de divisão.',
+    h1: 'Guia do técnico: como jogar e vencer no RetroFoot98',
+    keywords: 'como jogar, elifoot como ganhar, melhores taticas, melhores formações, dicas, como subir de divisão, como fazer dinheiro, ampliar estadio',
+    // Escopo (a escrever): dinâmica geral (sem fórmulas) · filosofia de equilíbrio · dicas de sucesso ·
+    // formações por divisão/situação (placar, mando, vantagem/desvantagem) · economia (comprar/vender,
+    // valorização, folha) · estádio (quando ampliar) · como subir de divisão. Tom: transparente = jogo
+    // pensado, estudado, em evolução constante.
+  },
 ];

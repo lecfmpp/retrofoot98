@@ -16,7 +16,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const DIST = resolve(ROOT, 'dist');
 // Canonical de produção. IMPORTANTE: deve ser o domínio real do site.
-const SITE = process.env.SEO_SITE || 'https://elifoot-d368d.web.app';
+const SITE = process.env.SEO_SITE || 'https://retrofoot98.com.br';
 const GA_ID = 'G-YE7PT01DGY';
 const LOGO = SITE + '/img/logo.webp';
 

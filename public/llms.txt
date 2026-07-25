@@ -12,5 +12,5 @@ RetroFoot98 é uma aplicação single-page (HTML/JS) hospedada no Firebase Hosti
 - Finanças do clube (folha salarial, bilheteria, expansão de estádio) e carreira do treinador
 
 ## Links
-- [Jogar agora](https://elifoot-d368d.web.app/)
-- [Mapa do site (sitemap)](https://elifoot-d368d.web.app/sitemap.xml)
+- [Jogar agora](https://retrofoot98.com.br/)
+- [Mapa do site (sitemap)](https://retrofoot98.com.br/sitemap.xml)

@@ -1,5 +1,5 @@
 # robots.txt — RetroFoot98 / Elifoot 2026
-# Site: https://elifoot-d368d.web.app
+# Site: https://retrofoot98.com.br
 # Política: jogo público e gratuito — queremos descoberta por buscadores E por IA.
 
 User-agent: *
@@ -70,4 +70,4 @@ Allow: /
 User-agent: Meta-ExternalAgent
 Allow: /
 
-Sitemap: https://elifoot-d368d.web.app/sitemap.xml
+Sitemap: https://retrofoot98.com.br/sitemap.xml
