@@ -4555,7 +4555,11 @@ function cupDrawTick(){
     // deixa ELA definir o screen. Antes fazia screen='main'+cdraw() ANTES de done(), o que piscava a
     // tela inicial no meio: sorteio -> tela-inicial(flash) -> classificação -> tela-inicial (item 3).
     CL._cupDrawTimer=setTimeout(()=>{ const done=st.onDone; CL.cupDraw=null;
-      if(done){ done(); } else { CL.screen='main'; cdraw(); } }, st.fast?400:1800);
+      if(done) done();
+      // se done() NÃO navegou (ex.: início do jogo passa onDone=()=>{}), a tela continua em 'cupdraw'
+      // -> volta pro time. Se done() foi pra classificação (pós-rodada), screen já mudou e não piscamos
+      // a tela inicial (era o item 3). Cobre os dois casos sem regressão.
+      if(CL.screen==='cupdraw'){ CL.screen='main'; CL.tab='jogo'; cdraw(); } }, st.fast?400:1800);
     cdraw(); return;
   }
   const item=st.reveal[st.idx++];
