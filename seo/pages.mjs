@@ -14,7 +14,7 @@
 export const pages = [
   {
     slug: 'elifoot-online',
-    ready: true,
+    ready: false, // volta a true quando a copy estiver revisada (não publicar rascunho ainda)
     priority: 0.9,
     lastmod: '2026-07-25',
     title: 'Elifoot Online Grátis — Jogue no Navegador (2026)',
