@@ -22,6 +22,18 @@ const LOGO = SITE + '/img/logo.webp';
 
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
+// Remove <figure> cuja imagem real ainda NÃO existe em public/img/seo/. Assim nunca sai imagem
+// quebrada nem screenshot errado no ar: as figuras aparecem sozinhas quando o .webp real for
+// adicionado com o nome certo. (Regra: usar SÓ screenshots reais e atuais do RetroFoot98.)
+function stripMissingFigures(html){
+  return html.replace(/<figure>[\s\S]*?<\/figure>/g, block => {
+    const m = block.match(/src="\/img\/seo\/([^"]+)"/);
+    if(!m) return block;
+    const file = resolve(ROOT, 'public', 'img', 'seo', m[1]);
+    return existsSync(file) ? block : '';
+  });
+}
+
 function pageHtml(p){
   const url = SITE + '/' + p.slug + '/';
   const img = p.image ? (SITE + p.image) : LOGO;
@@ -80,7 +92,12 @@ main a{color:#1668c1}
 table{width:100%;border-collapse:collapse;margin:14px 0;font-size:15px}
 th,td{border:1px solid #cdd6cd;padding:8px 10px;text-align:left;vertical-align:top}
 th{background:#e7efe7}
-img{max-width:100%;height:auto;border-radius:8px}
+img{max-width:100%;height:auto;border-radius:8px;display:block}
+figure{margin:20px 0}
+figure img{border:1px solid #cdd6cd;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+figcaption{font-size:13px;color:#5a6b58;text-align:center;margin-top:6px}
+.lead{font-size:18px;color:#33422f}
+ul,ol{margin:.6em 0;padding-left:1.3em}li{margin:.3em 0}
 .playbar{text-align:center;margin:26px 0}
 .playbar .cta{padding:13px 26px;font-size:17px}
 footer{max-width:760px;margin:20px auto 0;padding:20px;border-top:1px solid #d7ddd5;font-size:14px}
@@ -95,7 +112,7 @@ footer a{color:var(--navy)}
 </header>
 <main>
   <h1>${esc(p.h1)}</h1>
-  ${p.body||''}
+  ${stripMissingFigures(p.body||'')}
   <div class="playbar"><a class="cta" href="/">▶ Jogar de graça no navegador</a></div>
 </main>
 <footer>
