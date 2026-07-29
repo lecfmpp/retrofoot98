@@ -86,6 +86,13 @@
     if(typeof f!=='number' || !isFinite(f)) return 40;
     return f<=49 ? f : 49 + (f-49)*0.33; // f60->52.6, f70->55.9, f82->59.9, f90->62.5, f99->65.5
   }
+  /* GOLEIRO: compressão mais leve — só 1 em campo, então o motivo de comprimir (evitar time
+     empilhado de craques imbatível) não se aplica; um goleiro Craque Mundial deve pesar de
+     verdade no DS. f60->55.6, f70->61.5, f82->68.5, f90->73.2, f99->78.5 (era 52.6/55.9/59.9/62.5/65.5). */
+  function engForceGK(f){
+    if(typeof f!=='number' || !isFinite(f)) return 40;
+    return f<=49 ? f : 49 + (f-49)*0.59;
+  }
 
   /* ---- 2. VALOR DE MERCADO por força NOVA (R$), × fator idade ---- */
   const V_ANCHORS=[
@@ -162,6 +169,6 @@
   const DIV_CAP={ A:75000, B:50000, C:25000, D:10000 };
   function stadiumCapForDivision(division){ return DIV_CAP[bandKey(division)] || 25000; }
 
-  window.REBAL={ force, engForce, value, valueBase, salary, wage, budget, income, stadiumCap, stadiumCapForDivision,
+  window.REBAL={ force, engForce, engForceGK, value, valueBase, salary, wage, budget, income, stadiumCap, stadiumCapForDivision,
                  BUDGET, BANDS, WIN_BONUS, DRAW_BONUS, OPEX };
 })();

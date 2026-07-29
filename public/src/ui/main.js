@@ -24,11 +24,22 @@ function grp(n){ return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g
 /* número de dinheiro agrupado JÁ convertido pra moeda de exibição (curConv/curSym vêm do
    index.html). O motor guarda tudo em R$; isto só apresenta na moeda escolhida. */
 function moneyDisp(n){ return grp(Math.round(curConv(n))); }
-function spellMoney(n){ n=Math.round(curConv(n)); const mi=Math.floor(n/1e6), mil=Math.floor((n%1e6)/1e3); const p=[];
+function spellMoney(n){ n=Math.round(curConv(n));
+  // opera no valor ABSOLUTO e prefixa o sinal uma única vez no final — Math.floor arredonda pra
+  // -Infinity em número negativo, então fazer as contas direto em `n` negativo dava magnitude
+  // errada (ex.: -1 milhão virava "-1 milhões", e valores não-redondos saíam com milhões/mil
+  // completamente errados, não só o sinal).
+  // Também inclui o RESTO abaixo de mil: antes ele era descartado (Math.floor jogava fora
+  // qualquer coisa que não fosse milhão/milhar), então "Dinheiro em caixa" na tela principal
+  // (spellMoney) e o valor exato em Finanças (moneyDisp) pareciam dois números DIFERENTES pro
+  // mesmo caixa — eram o mesmo valor, só que um arredondado pra baixo silenciosamente.
+  const neg=n<0, abs=Math.abs(n);
+  const mi=Math.floor(abs/1e6), mil=Math.floor((abs%1e6)/1e3), rest=Math.round(abs%1e3); const p=[];
   if(mi) p.push(mi+(mi===1?' milhão':' milhões')); if(mil) p.push(mil+' mil');
-  if(!p.length) p.push(String(n));
+  if(rest || !p.length) p.push(String(rest));
   const word={BRL:'reais',USD:'dólares',EUR:'euros'}[curInfo().iso]||'reais';
-  return p.join(' e ')+' '+word; }
+  const joined = p.length>1 ? p.slice(0,-1).join(', ')+' e '+p[p.length-1] : p[0];
+  return (neg?'-':'')+joined+' '+word; }
 function mvShort(mv){ mv=curConv(mv||0); return mv>=1e6? (mv/1e6).toFixed(mv>=1e7?0:1).replace('.',',')+'M' : Math.round(mv/1e3)+'k'; }
 function posLetter(s){ return ({GK:'G',DEF:'D',MID:'M',ATT:'A'})[s]||'M'; }
 /* ordena por posição (G, D, M, A) e depois por força — usado em listas de escalação/troca
@@ -183,6 +194,24 @@ function dlg(title,body,opts){ opts=opts||{}; const w=opts.w||620;
 function btn(label,onclick,opts){ opts=opts||{}; return `<button class="cl-btn ${opts.cls||''}" ${opts.dis?'disabled':''} onclick="${onclick}">${opts.icon?`<span class="cl-btn-ic">${opts.icon}</span>`:''}<span>${escC(label)}</span></button>`; }
 
 /* ================= RENDER RAIZ ================= */
+/* overlay de carregamento full-screen pra virada de rodada online — evita mostrar uma tela
+   principal DESATUALIZADA (rodada anterior) por uma fração de segundo antes da classificação
+   aparecer. Sem isso: rodada termina -> tela principal (ainda com dados velhos) -> classificação
+   -> tela principal (agora atualizada) — o usuário via a mesma tela duas vezes, a primeira errada.
+   Com isso: rodada termina -> loading -> classificação (uma vez) -> tela principal (uma vez, já
+   atualizada). Não usa overlayC() de propósito (aquele é clicável/fechável — este não pode ser
+   dispensado no meio da sincronização). */
+function showSyncLoading(msg){
+  let el=$c('#c-syncload');
+  if(!el){ el=document.createElement('div'); el.id='c-syncload'; document.body.appendChild(el); }
+  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700;font-family:Tahoma,Verdana,Arial,sans-serif';
+  el.textContent=msg||'⏳ Sincronizando rodada...';
+  // rede de segurança: nunca deixa o usuário PRESO atrás do overlay se algo no meio do
+  // adopt/reconcile falhar silenciosamente antes de chamar hideSyncLoading().
+  if(CL._syncLoadingTimer) clearTimeout(CL._syncLoadingTimer);
+  CL._syncLoadingTimer=setTimeout(hideSyncLoading, 8000);
+}
+function hideSyncLoading(){ if(CL._syncLoadingTimer){ clearTimeout(CL._syncLoadingTimer); CL._syncLoadingTimer=null; } const el=$c('#c-syncload'); if(el) el.remove(); }
 function cdraw(){ const r=$c('#c-root'); if(!r)return;
   let html='';
   switch(CL.screen){
@@ -1442,7 +1471,7 @@ function scMain(){
   if(typeof syncInbox==='function') syncInbox();           // atualiza a caixa antes de desenhar o badge
   const unread=(typeof inboxUnread==='function')?inboxUnread():0;
   const mailBadge=numBadge(unread);
-  const offerBadge=numBadge((S.incomingOffers&&S.incomingOffers.length)||0); // nº de propostas recebidas
+  const offerBadge=numBadge(myIncomingOffers().length); // nº de propostas recebidas (só as do MEU clube)
   const tabs=['jogo','jogador','financas','seleccao','correio','adversario'];
   const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
   // rótulo e ícone/badge são filhos flex do .cl-tab (align-items:center) — sempre em UMA linha e
@@ -1501,7 +1530,8 @@ function rosterHTML(){
       return `<div class="cl-rrow ${selc?'sel':''} ${marked?'swap-out':''} ${unavail?'unavail':''}" style="${selc?'':`color:${th.txt}`}" onclick="${onclickFn}">
         <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
-        <span class="cl-rf">${p.f}</span><span class="cl-rv">${grp(Math.round(curConv(p.mv)*0.00006)*10)}</span></div>`;}).join('')+`</div>`;
+        <span class="cl-rage">${p.age||'-'}</span>
+        <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}</span><span class="cl-rv">${grp(Math.round(curConv(p.mv)*0.00006)*10)}</span></div>`;}).join('')+`</div>`;
   });
   return html;
 }
@@ -1563,7 +1593,7 @@ function syncInbox(){
   if(CL._inboxLoadedKey!==k){ CL._inboxLoadedKey=k; loadInbox(); } // carrega do storage/assento 1x por jogo+clube
   const myShort=(clubOf(S.clubId)||{}).short||'clube';
   // 1) PROPOSTAS por jogadores meus
-  (S.incomingOffers||[]).forEach(o=>{
+  myIncomingOffers().forEach(o=>{
     addInboxEmail({ key:'offer-'+o.id, kind:'offer', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
       subject:'Proposta por '+o.playerName,
       body:`O ${escC((clubOf(o.buyerId)||bgClubById?.(o.buyerId)||{short:o.buyerName||'um clube'}).short||o.buyerName||'um clube')} ofereceu ${fmt(o.fee)} pelo ${escC(o.playerName)}. Quer avaliar?`,
@@ -1729,7 +1759,7 @@ function panViewJogo(vid,oppId,uf){
 function panViewJogador(vid){
   const sq=squad(vid)||[];
   const p=sq.find(x=>x.pid===CL.viewSelPlayer)||sq[0]; if(!p) return '<div class="cl-jgd">Sem jogadores.</div>';
-  const st=p.stats||{};
+  const hist=careerHistTotals(p);
   const statusBar = p.suspended>0 ? `<div class="cl-jgd-status susp">🟥 Suspenso — falta o próximo jogo</div>`
     : p.injuredMatches>0 ? `<div class="cl-jgd-status hurt">✚ Lesionado — fora por ${p.injuredMatches} jogo${p.injuredMatches>1?'s':''}</div>` : '';
   const ctry=clubCountry(clubOf(vid));
@@ -1740,14 +1770,15 @@ function panViewJogador(vid){
     <div class="cl-jgd-row"><span>Posição</span><b>${posLetter(p.s)}</b></div>
     <div class="cl-jgd-row"><span>Força</span><b>${p.f}</b></div>
     <div class="cl-jgd-row"><span>Valor de mercado</span><b>${curSym()} ${moneyDisp(p.mv)}</b></div>
+    <div class="cl-jgd-row"><span>Idade</span><b>${p.age||'-'} anos</b></div>
     <div class="cl-jgd-row"><span>Comportamento</span><b>${playerBehaviorLabel(p)}</b></div>
     <div class="cl-jgd-row"><span>Gols nesta temporada</span><b>${(S.scorers&&S.scorers[p.n])||0}</b></div>
-    <fieldset class="cl-hist"><legend>Historial</legend>
-      <div class="cl-hist-row"><span>Jogos</span><b>${st.apps||0}</b></div>
-      <div class="cl-hist-row"><span>Gols</span><b>${st.goals||0}</b></div>
-      <div class="cl-hist-row"><span>Cartões amarelos</span><b>${st.yellows||0}</b></div>
-      <div class="cl-hist-row"><span>Cartões vermelhos</span><b>${st.reds||0}</b></div>
-      <div class="cl-hist-row"><span>Lesões</span><b>${st.injuries||0}</b></div>
+    <fieldset class="cl-hist"><legend>Historial (carreira)</legend>
+      <div class="cl-hist-row"><span>Jogos</span><b>${hist.apps}</b></div>
+      <div class="cl-hist-row"><span>Gols</span><b>${hist.goals}</b></div>
+      <div class="cl-hist-row"><span>Cartões amarelos</span><b>${hist.yellows}</b></div>
+      <div class="cl-hist-row"><span>Cartões vermelhos</span><b>${hist.reds}</b></div>
+      <div class="cl-hist-row"><span>Lesões</span><b>${hist.injuries}</b></div>
     </fieldset>
   </div>`;
 }
@@ -1776,7 +1807,8 @@ function panJogo(oppId,home,uf){
     ${oppId?line(oppId,op,true):''}
     <div class="cl-blk"><div class="cl-blk-l">Árbitro</div><div class="cl-blk-v cl-strong">${escC(ref)}</div></div>
     <div class="cl-blk"><div class="cl-blk-l">Dinheiro em caixa</div><div class="cl-blk-v">${spellMoney(S.budget)}</div></div>
-    <div class="cl-blk"><div class="cl-blk-l">Moral</div><div class="cl-bar cl-bar-moral" style="--val:${moral}"><div class="cl-bar-fill" style="width:${moral}%"></div></div></div>
+    <div class="cl-blk"><div class="cl-blk-l">Moral${moral<40?' <span class="cl-risk-flag">⚠️ baixa</span>':''}</div><div class="cl-bar cl-bar-moral" style="--val:${moral}"><div class="cl-bar-fill" style="width:${moral}%"></div></div></div>
+    <div class="cl-blk">${jobSecurityBarHTML()}</div>
   </div>`;
 }
 function hashC(s){ s=String(s); let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return h; }
@@ -1786,25 +1818,41 @@ function hashC(s){ s=String(s); let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.c
    Discreto, Manso, Exemplar) — sorteado uma vez na criação
    e nunca muda; afeta cartão, lesão e valor de mercado de verdade (ver app.js). */
 function playerBehaviorLabel(p){ return p.behavior || 'Exemplar'; }
+/* Historial (carreira) — soma o que já foi acumulado em temporadas passadas (p.careerStats,
+   ver endSeason() em core.js) com a temporada em curso (p.stats), pra sobreviver a
+   newSeasonReset() sem perder dado nenhum de uma temporada pra outra. Gols usa a MESMA fonte
+   da Artilharia (S.allTimeScorers + S.scorers, ambas por nome) em vez de um contador próprio —
+   garante que o Historial NUNCA diverge de "Melhores marcadores de sempre"/"da temporada". */
+function careerHistTotals(p){
+  const cs=p.careerStats||{}, st=p.stats||{};
+  return {
+    apps:(cs.apps||0)+(st.apps||0),
+    goals:((S.allTimeScorers&&S.allTimeScorers[p.n])||0)+((S.scorers&&S.scorers[p.n])||0),
+    yellows:(cs.yellows||0)+(st.yellows||0),
+    reds:(cs.reds||0)+(st.reds||0),
+    injuries:(cs.injuries||0)+(st.injuries||0)
+  };
+}
 function panJogador(){
   const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer)||squad(CL.clubId)[0]; if(!p) return '';
   if(CL.rightMode==='renovar') return renewPanel(p);
   if(CL.rightMode==='vender') return venderPanel(p);
-  const st=p.stats||{};
+  const hist=careerHistTotals(p);
   const statusBar = p.suspended>0 ? `<div class="cl-jgd-status susp">🟥 Suspenso — falta o próximo jogo</div>`
     : p.injuredMatches>0 ? `<div class="cl-jgd-status hurt">✚ Lesionado — fora por ${p.injuredMatches} jogo${p.injuredMatches>1?'s':''}</div>` : '';
   return `<div class="cl-jgd">
     <div class="cl-jgd-name">${escC(p.n)}</div>
     <div class="cl-jgd-nat"><span class="cl-flag2">${flagImg(p.nat||'Brasil')}</span> ${escC(p.nat||'Brasil')}</div>
     ${statusBar}
+    <div class="cl-jgd-row"><span>Idade</span><b>${p.age||'-'} anos</b></div>
     <div class="cl-jgd-row"><span>Comportamento</span><b>${playerBehaviorLabel(p)}</b></div>
     <div class="cl-jgd-row"><span>Gols nesta temporada</span><b>${(S.scorers&&S.scorers[p.n])||0}</b></div>
-    <fieldset class="cl-hist"><legend>Historial</legend>
-      <div class="cl-hist-row"><span>Jogos</span><b>${st.apps||0}</b></div>
-      <div class="cl-hist-row"><span>Gols</span><b>${st.goals||0}</b></div>
-      <div class="cl-hist-row"><span>Cartões amarelos</span><b>${st.yellows||0}</b></div>
-      <div class="cl-hist-row"><span>Cartões vermelhos</span><b>${st.reds||0}</b></div>
-      <div class="cl-hist-row"><span>Lesões</span><b>${st.injuries||0}</b></div>
+    <fieldset class="cl-hist"><legend>Historial (carreira)</legend>
+      <div class="cl-hist-row"><span>Jogos</span><b>${hist.apps}</b></div>
+      <div class="cl-hist-row"><span>Gols</span><b>${hist.goals}</b></div>
+      <div class="cl-hist-row"><span>Cartões amarelos</span><b>${hist.yellows}</b></div>
+      <div class="cl-hist-row"><span>Cartões vermelhos</span><b>${hist.reds}</b></div>
+      <div class="cl-hist-row"><span>Lesões</span><b>${hist.injuries}</b></div>
     </fieldset>
     <div class="cl-jgd-act">${btn('Renovar contrato...','clRenew()',{icon:'🔄',cls:'cl-btn-ok'})}${btn('Vender','clSell()',{icon:'💰',cls:'cl-btn-cancel'})}</div>
   </div>`;
@@ -1813,23 +1861,24 @@ function renewPanel(p){
   const currentSalary = (p.contract && p.contract.salary) || 0;
   const currentYears = (p.contract && p.contract.years) || 0;
   const newYears = 3;
-  const totalCost = CL.newSalary * newYears * 52; // 52 semanas
+  const weeksPerYear = S.sched.length||38; // 1 rodada = 1 semana de débito real (ver processFinances) — a temporada
+  const totalCost = CL.newSalary * newYears * weeksPerYear; // tem 38 rodadas, não 52 semanas fixas
   const currentBudget = S.budget;
   const budgetAfterRenew = currentBudget - totalCost;
   const budgetWarning = budgetAfterRenew < 0 ? ' ⚠️' : '';
   return `<div class="cl-renew">
   <div class="cl-renew-title">Renovar contrato</div>
   <div style="color:#fff;font-size:13px;margin-bottom:24px;padding:12px;background:#1a3a1a;border-radius:4px">
-    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Salário atual:</span><b>${grp(currentSalary)}/sem</b></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Salário atual <span style="opacity:.7">(semanal)</span>:</span><b>${fmt(currentSalary)}/sem</b></div>
     <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Tempo restante:</span><b>${currentYears} ano(s)</b></div>
-    <div style="display:flex;justify-content:space-between;border-top:1px solid #2a4a2a;padding-top:8px;margin-top:8px"><span>Novo salário:</span><b>${grp(CL.newSalary)}/sem</b></div>
+    <div style="display:flex;justify-content:space-between;border-top:1px solid #2a4a2a;padding-top:8px;margin-top:8px"><span>Novo salário <span style="opacity:.7">(semanal)</span>:</span><b>${fmt(CL.newSalary)}/sem</b></div>
   </div>
-  <div class="cl-renew-row"><span>Novo salário:</span>
+  <div class="cl-renew-row"><span>Novo salário (semanal):</span>
     <span class="cl-spin"><span id="cl-sal" class="cl-spin-v">${grp(CL.newSalary)}</span>
       <span class="cl-spin-btns"><button onclick="clSalaryStep(1)">▲</button><button onclick="clSalaryStep(-1)">▼</button></span></span></div>
   <div style="color:#fff;font-size:13px;margin-bottom:20px;padding:12px;background:#2a3a2a;border-radius:4px">
-    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Duração do contrato:</span><b>${newYears} ano(s)</b></div>
-    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Custo total:</span><b>${grp(totalCost)}</b></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Duração do contrato:</span><b>${newYears} ano(s) · ${weeksPerYear} rodadas/ano</b></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Custo total do contrato:</span><b>${fmt(totalCost)}</b></div>
     <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Caixa atual:</span><b>${curSym()} ${moneyDisp(currentBudget)}</b></div>
     <div style="display:flex;justify-content:space-between;border-top:1px solid #3a4a3a;padding-top:8px;margin-top:8px"><span>Caixa após renovação:</span><b>${curSym()} ${moneyDisp(budgetAfterRenew)}${budgetWarning}</b></div>
   </div>
@@ -1937,12 +1986,39 @@ function clMarketSquad(clubId,country){
 /* ---- detalhe do jogador + início da proposta (Dia 1: taxa) ---- */
 function clMarketPlayer(clubId,name){
   const p=findP(name,clubId); if(!p) return;
+  if(typeof isTradeLocked==='function' && isTradeLocked(p)){ toastC(`${p.n} foi negociado nesta temporada e ainda não pode ser negociado de novo.`); return; }
   const ask=playerAsk(p,clubId);
   CL.market={step:'offer',clubId,player:name,offer:Math.round(ask/1000)*1000,negoIdx:null};
   renderMarketOffer();
 }
+/* clube humano: nada de negociação algorítmica (fee/terms/verdict é feito pra responder à CPU) —
+   manda uma PROPOSTA REAL, que o outro treinador aceita/recusa/negocia no e-mail dele (ver
+   sendHumanOffer/acceptIncomingOffer/counterHumanOffer em core.js). */
+function renderMarketOfferHuman(){
+  const M=CL.market; const p=findP(M.player,M.clubId); if(!p){ clCloseOverlay(); return; }
+  const humanName=(CL.humans&&CL.humans[M.clubId])||'';
+  const body=`<div class="cl-mkt-offer">
+    <div class="cl-mkt-offer-hd">${escC(p.n)} <span>(${escC(clubOf(M.clubId).short)}${humanName?' · '+escC(humanName):''})</span></div>
+    <div class="cl-mkt-offer-row"><span>Força</span><b>${p.f}</b></div>
+    <div class="cl-mkt-offer-row"><span>Valor de mercado</span><b>${curSym()} ${moneyDisp(p.mv)}</b></div>
+    <div class="cl-mkt-counter">Este jogador é de outro treinador humano. Sua proposta vai direto pro e-mail dele — ele decide aceitar, recusar ou negociar.</div>
+    <div class="cl-mkt-offer-row"><span>Sua proposta</span>
+      <span class="cl-money-field"><span class="cl-money-cur">${curSym()}</span>
+        <input class="cl-money-in" id="cl-mkt-fee" inputmode="numeric" placeholder="0" value="${M.offer?moneyDisp(M.offer):''}" oninput="var t=parseInt(this.value.replace(/\\D/g,''))||0;CL.market.offer=curParse(t);this.value=t?grp(t):''"></span></div>
+    ${btn('Enviar proposta','clMarketSendHumanOffer()',{cls:'cl-btn-mini'})}
+  </div>`;
+  overlayC(dlg('Fazer proposta', body+`<div class="cl-cal-ok">${btn('Voltar','clMarketSquad(\''+M.clubId+'\')',{icon:'↩',cls:'cl-btn-cancel'})}</div>`,
+    {w:560,bodyClass:'cl-body-gray',min:true}));
+}
+function clMarketSendHumanOffer(){
+  const M=CL.market;
+  const r=sendHumanOffer(M.clubId, M.player, M.offer);
+  toastC(r.msg);
+  if(r.ok){ saveV3(); clCloseOverlay(); cdraw(); } else renderMarketOfferHuman();
+}
 function renderMarketOffer(){
   const M=CL.market; const p=findP(M.player,M.clubId); if(!p){ clCloseOverlay(); return; }
+  if(CL.online && CL.humans && CL.humans[M.clubId]){ renderMarketOfferHuman(); return; }
   const nego = M.negoIdx!=null ? S.negos[M.negoIdx] : null;
   let body;
   if(!nego || nego.stage==='fee' || nego.stage==='counterFee'){
@@ -2007,9 +2083,12 @@ function clMarketFinalize(){ const M=CL.market;
 function clAuctionScreen(){ CL.menu=null;
   const st=transferWindowStatus();
   if(!st.open){ toastC(windowClosedMsg()); return; }
+  if(typeof mergeAuctionBidsFromSeats==='function') mergeAuctionBidsFromSeats(); // traz os lances mais recentes dos outros humanos da sala antes de desenhar
   const lots=((S.auctions&&S.auctions.lots)||[]).filter(l=>l.status==='open');
   const rows=lots.map(l=>{ const p=findP(l.player,l.sellerId); if(!p) return ''; const c=clubOf(l.sellerId);
-    const mine=l.leader==='me';
+    const mine=l.leader===S.clubId;
+    const otherHuman=!mine && l.leader && l.leader!=='cpu';
+    const leadLabel = mine?'✅ Você na frente' : otherHuman?`🧑 ${escC((CL.humans&&CL.humans[l.leader])||'outro treinador')} na frente` : '🔨 CPU na frente';
     return `<div class="cl-auc-row ${mine?'me':''}">
       <div class="cl-auc-r1">
         <span class="cl-auc-club" style="${clubStripe(c)}">${clubLink(l.sellerId,c.short)}</span>
@@ -2018,7 +2097,7 @@ function clAuctionScreen(){ CL.menu=null;
         <span class="cl-auc-price">${moneyDisp(l.bid)}</span>
       </div>
       <div class="cl-auc-r2">
-        <span class="cl-auc-lead ${mine?'me':'cpu'}">${mine?'✅ Você na frente':'🔨 CPU na frente'}</span>
+        <span class="cl-auc-lead ${mine?'me':otherHuman?'human':'cpu'}">${leadLabel}</span>
         <span class="cl-auc-disp" title="clubes disputando">👥 ${l.interest}</span>
         <span class="cl-auc-rounds" title="rodadas restantes">⏳ ${l.roundsLeft}</span>
         ${btn(mine?'Aumentar lance':'Cobrir',`clAuctionBidPrompt('${l.sellerId}','${escC(l.player)}')`,{cls:'cl-btn-mini'})}
@@ -2030,6 +2109,7 @@ function clAuctionScreen(){ CL.menu=null;
 }
 /* dá/aumenta o lance num lote — abre um input de valor (precisa superar o maior lance atual) */
 function clAuctionBidPrompt(sellerId,player){
+  if(typeof mergeAuctionBidsFromSeats==='function') mergeAuctionBidsFromSeats(); // lance sugerido/validação com o valor mais recente conhecido
   const id=sellerId+'|'+player;
   const lot=((S.auctions&&S.auctions.lots)||[]).find(l=>l.id===id && l.status==='open');
   const p=findP(player,sellerId); if(!lot||!p){ toastC('Esse lote não está mais disponível.'); return; }
@@ -2037,7 +2117,7 @@ function clAuctionBidPrompt(sellerId,player){
   const suggest=Math.round(lot.bid + Math.max(50000, lot.bid*0.08));
   overlayC(dlg('Dar lance', `<div class="cl-jobmodal">
     <div class="cl-jobmodal-msg">Lance por <b>${escC(p.n)}</b> (${posLetter(p.s)}, força ${p.f}) do <b style="${clubStripe(c)};padding:2px 6px;border-radius:3px">${escC(c.short)}</b>.<br>
-      Maior lance atual: <b>${curSym()} ${moneyDisp(lot.bid)}</b> ${lot.leader==='me'?'(seu)':'(concorrência)'} · 👥 ${lot.interest} clubes · ⏳ ${lot.roundsLeft} rodada(s)<br>
+      Maior lance atual: <b>${curSym()} ${moneyDisp(lot.bid)}</b> ${lot.leader===S.clubId?'(seu)':(lot.leader&&lot.leader!=='cpu')?'(de '+escC((CL.humans&&CL.humans[lot.leader])||'outro treinador')+')':'(concorrência)'} · 👥 ${lot.interest} clubes · ⏳ ${lot.roundsLeft} rodada(s)<br>
       Seu caixa: <b>${curSym()} ${moneyDisp(S.budget)}</b></div>
     <div class="cl-auc-bidrow"><span class="cl-auc-cur">${curSym()}</span><input id="cl-auc-bid-in" class="cl-input cl-auc-bid-in" inputmode="numeric" value="${suggest}" onkeydown="if(event.key==='Enter')clAuctionBidGo('${sellerId}','${escC(player)}')"></div>
     <div class="cl-auc-bidhint">Precisa ser maior que ${moneyDisp(lot.bid)}. Para <b>garantir</b>, ofereça acima do que a concorrência topa pagar.</div>
@@ -2052,11 +2132,51 @@ function clAuctionBidGo(sellerId,player){
   if(r.ok){ saveV3(); clAuctionScreen(); } // volta pra lista já com o lance atualizado
 }
 
+/* ---- Jogador > Treino especial: até 3 jogadores em treino ao mesmo tempo, ganhando chance
+   extra de evolução por rodada (ver evolvePlayer/hasEstrelinha). Feature nova — não existia
+   nada disso antes (grep por "treino"/"estrelinha" só batia em textos sem relação). ---- */
+function clTrainingScreen(){ CL.menu=null;
+  const training=new Set(myTrainingList());
+  const sq=squad(CL.clubId).slice().sort((a,b)=>b.f-a.f);
+  const rows=sq.map(p=>{
+    const inTraining=training.has(p.pid);
+    const star=(typeof hasEstrelinha==='function')&&hasEstrelinha(p);
+    return `<div class="cl-mkt-p" style="cursor:default">
+      <span class="cl-mkt-p-pos">${posLetter(p.s)}</span><span class="cl-mkt-p-n">${escC(p.n)}${star?' ⭐':''}</span>
+      <span class="cl-mkt-p-f">${p.f}</span>
+      ${btn(inTraining?'Tirar do treino':'Treinar', (inTraining?'clStopTraining':'clStartTraining')+"('"+p.pid+"')", {cls:'cl-btn-mini'})}
+    </div>`;
+  }).join('');
+  overlayC(dlg('Treino especial', `<div class="cl-mkt-counter">Até ${TRAINING_MAX_SLOTS} jogadores em treino ao mesmo tempo (${training.size}/${TRAINING_MAX_SLOTS}). Quem está em treino ganha chance extra de evolução a cada rodada — jogadores com ⭐ (destaque) evoluem mais rápido.</div>
+    <div class="cl-mkt-squad">${rows}</div>
+    <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:640,bodyClass:'cl-body-gray',min:true}));
+}
+function clStartTraining(pid){ const r=startTraining(pid); toastC(r.msg); clTrainingScreen(); }
+function clStopTraining(pid){ stopTraining(pid); clTrainingScreen(); }
+
+/* ---- Jogador > Últimas transferências: histórico real por jogador (p.transferHistory), não
+   mais um stub "em breve". Lista os jogadores do MEU elenco que já trocaram de clube alguma vez,
+   mais recente primeiro — cobre todas as trocas de cada um, não só a primeira (ver
+   recordTransferHistory em core.js). Jogadores que já SAÍRAM do meu elenco não aparecem aqui
+   (o histórico deles viaja junto do jogador pro elenco novo, não fica registrado no meu). ---- */
+function clTransferHistory(){ CL.menu=null;
+  const shortOf=id=>{ if(!id) return 'fora do mundo'; const c=clubOf(id)||(typeof bgClubById==='function'&&bgClubById(id))||(typeof intlClubById==='function'&&intlClubById(id)); return (c&&c.short)||id; };
+  const entries=[];
+  squad(CL.clubId).forEach(p=>{ (p.transferHistory||[]).forEach(h=>entries.push({p, h})); });
+  entries.sort((a,b)=> (b.h.season-a.h.season) || (b.h.round-a.h.round));
+  const rows=entries.length?entries.map(({p,h})=>`<div style="padding:8px 12px;border-bottom:1px solid rgba(0,0,0,.1);display:flex;justify-content:space-between;gap:10px;align-items:center">
+      <span style="flex:1;min-width:0"><b>${escC(p.n)}</b><br><small style="color:#888">${escC(shortOf(h.from))} → ${escC(shortOf(h.to))} · temporada ${h.season}, rodada ${h.round+1}</small></span>
+      <span style="white-space:nowrap;font-weight:700">${fmt(h.fee)}</span>
+    </div>`).join('') : '<div style="padding:16px;text-align:center;color:#888">Nenhuma transferência registrada no seu elenco ainda.</div>';
+  overlayC(dlg('Últimas transferências', `<div class="cl-cal">${rows}</div><div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:560,bodyClass:'cl-body-gray',min:true}));
+}
+
 
 function panFinancas(){
   const sq=squad(CL.clubId);
   const totalSalaryPerWeek = sq.reduce((s,p)=>s+(p.contract?.salary||0),0);
-  const totalSalaryPerSeason = totalSalaryPerWeek * 52; // 52 semanas na temporada
+  const seasonWeeks = S.sched.length||38; // 1 rodada = 1 semana de débito real — a temporada tem 38 rodadas, não 52 semanas fixas
+  const totalSalaryPerSeason = totalSalaryPerWeek * seasonWeeks;
 
   // totais da temporada "até agora" vêm de S.seasonTotals — um acumulador SEM cap (ver
   // pushFinanceEntry). Importante: NÃO somar isso a partir de S.finances, que é só um log
@@ -2085,8 +2205,8 @@ function panFinancas(){
     ${R('Salários',totalSalaries)}${R('Bônus jogadores',totalBonuses)}${R('Custo operacional',totalOpex)}${R('Jogadores comprados',totalPlayerPurchases)}${R('Bancadas',totalStadium)}${R('Juros',0)}
     <div class="cl-fin-tot">${R('Total de receitas',totalIncome)}${R('Total de despesas',totalExpenses)}${R('Saldo até agora',currentBalance)}</div>
     <div class="cl-fin-foot">
-      <div class="cl-fin-row big"><span>Salários (por semana)</span><b>${grp(totalSalaryPerWeek)}</b></div>
-      <div class="cl-fin-row big"><span>Salários (temporada)</span><b>${grp(totalSalaryPerSeason)}</b></div>
+      <div class="cl-fin-row big"><span>Salários <span style="opacity:.7">(por semana)</span></span><b>${fmt(totalSalaryPerWeek)}/sem</b></div>
+      <div class="cl-fin-row big"><span>Salários <span style="opacity:.7">(temporada, ${seasonWeeks} rodadas)</span></span><b>${fmt(totalSalaryPerSeason)}</b></div>
       <div class="cl-fin-row big2"><span>Dinheiro em caixa</span><b>${curSym()} ${moneyDisp(S.budget)}</b></div>
       <div class="cl-fin-row"><span>Preço dos bilhetes</span><b>${CL.ticket} reais</b></div>
       ${recentLogs ? `<div style="margin-top:20px;border-top:1px solid #2a4a2a;padding-top:12px"><div style="font-size:13px;color:#aaa;margin-bottom:8px">Transações recentes:</div>${recentLogs}</div>` : ''}
@@ -2138,9 +2258,17 @@ function panFinancasLog(){
 }
 
 /* ---- painel: SELECÇÃO (+ Jogar) ---- */
+/* exige exatamente 1 goleiro titular — antes só era mantido por convenção (pickXIByFormation/
+   autoXI/clEscalaPick sempre preservavam isso), sem checagem explícita no botão Jogar: se o
+   elenco ficasse sem nenhum goleiro de verdade (raro, mas possível), o jogo escalava 11 de linha
+   silenciosamente em vez de avisar. */
+function xiGKCount(xi){ return xi.filter(p=>p.s==='GK').length; }
 function panSeleccao(){
   if(typeof ensureMyXIResolves==='function') ensureMyXIResolves(); // nunca deixa o botão Jogar cinza por S.xi dessincronizado (online)
-  const xi=xiPlayers(CL.clubId); const ok=xi.length>=11 && CL.tacticChosen;
+  const xi=xiPlayers(CL.clubId); const gkCount=xiGKCount(xi);
+  const ok=xi.length>=11 && CL.tacticChosen && gkCount===1;
+  const gkWarn = (CL.tacticChosen && xi.length>=11 && gkCount!==1)
+    ? `<div class="cl-sel-note" style="color:#b00">⚠ ${gkCount===0?'Nenhum goleiro escalado.':'Mais de um goleiro escalado ('+gkCount+').'} Ajuste em "Alterar Escalação" pra liberar o Jogar.</div>` : '';
   const escala=CL.escalacaoMode;
   const escalaBlock = !CL.tacticChosen ? '' : escala
     ? `<div class="cl-sel-escala">
@@ -2172,6 +2300,7 @@ function panSeleccao(){
 
   return `<div class="cl-sel">
     <div class="cl-sel-note">${CL.tacticChosen?`Tática <b>${escC(CL.formation)}</b> · onze <b>${xi.length}/11</b>.<br>Titulares marcados com <b class="cl-rmark t" style="display:inline-flex">T</b> na lista.`:'Escolha a tática para liberar o <b>Jogar</b>.'}</div>
+    ${gkWarn}
     ${formationsBlock}
     ${escalaBlock}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px;max-width:320px">
@@ -2221,6 +2350,8 @@ function clEscalaCancel(){ CL.preSubOut=null; CL.preSubIn=null; clCloseOverlay()
 function clJogar(){
   if(CL._seatContext){ clSeatPlay(); return; } // hotseat: "Jogar" na tela do assento inicia a partida dele
   if(!CL.tacticChosen){ toastC('Escolha a tática no menu Formação primeiro.'); CL.tab='seleccao'; cdraw(); return; }
+  { const gkc=xiGKCount(xiPlayers(CL.clubId));
+    if(gkc!==1){ toastC(gkc===0?'Escale um goleiro antes de jogar.':'Só pode ter 1 goleiro escalado.'); CL.tab='seleccao'; cdraw(); return; } }
   // semana de avanço de copa com partida do clube pendente: joga a copa primeiro, só
   // depois libera a rodada — ver pendingUserCupMatches/clCupResultContinue. Se houver
   // mais de uma competição pendente na mesma semana (ex: Copa do Brasil + Libertadores),
@@ -2379,13 +2510,33 @@ function attendanceFor(homeId,rnd){
 /* monta um objeto de partida pra RL.matches — extraído de dentro de startLiveRound() pra
    poder ser reusado por uma partida avulsa de copa (ver startCupLiveMatch), sem duplicar
    a lógica de gerar eventos/público/árbitro. */
+/* [h,a] é mesmo o confronto de LIGA desta rodada (minha divisão ou alguma das outras 3 rodando em
+   paralelo)? netPublishResult/last_result_round só cobrem rodada de liga — copas usam
+   last_cup_result/last_cup_round à parte — então sem essa checagem uma partida de copa entre os
+   dois mesmos clubes (raro, mas possível) poderia colidir e "herdar" o placar errado por engano. */
+function isLeagueFixtureNow(h,a){
+  if(Array.isArray(S.sched) && (S.sched[S.round]||[]).some(([fh,fa])=>fh===h&&fa===a)) return true;
+  if(S.otherDivs){ for(const d in S.otherDivs){ const od=S.otherDivs[d]; const fx=od.sched[S.round % od.sched.length]||[];
+    if(fx.some(([fh,fa])=>fh===h&&fa===a)) return true; } }
+  return false;
+}
 function buildLiveMatchObject(h,a,seed,opts){
   opts=opts||{};
   const rnd=rngFrom(seed);
-  const ev=simEventsC(h,a,seed); const gate=attendanceFor(h,rnd);
+  // se o adversário humano JÁ publicou o resultado real desta partida+rodada, REPRODUZ os mesmos
+  // eventos em vez de simular de novo — sem isso, os dois lados de um confronto humano×humano
+  // podiam assistir partidas diferentes (mesmo seed, mas ratings calculados com escalação ainda
+  // não sincronizada). Ver netHumanResultFor. Todo evento entra "resolvido": é replay do que já
+  // aconteceu, não uma decisão minha — senão eu poderia escolher um batedor de pênalti diferente
+  // do que já decidiu o placar oficial.
+  const pub=(CL.online && typeof NET!=='undefined' && NET.humanResultFor && isLeagueFixtureNow(h,a)) ? NET.humanResultFor(h,a,S.round) : null;
+  const ev = pub
+    ? { events:(pub.events||[]).map(e=>({...e,_resolved:true})), hg:pub.hg, ag:pub.ag, perf:pub.perf||null }
+    : simEventsC(h,a,seed);
+  const gate=attendanceFor(h,rnd);
   return { h,a,hg:0,ag:0,idx:0,events:ev.events,att:gate.att,price:gate.price,cap:gate.cap,
     ref:REFS_C[Math.floor(rnd()*REFS_C.length)], goals:[], incidents:[], fhg:ev.hg, fag:ev.ag, perf:ev.perf,
-    user:opts.user!==undefined?opts.user:(h===CL.clubId||a===CL.clubId), div:opts.div };
+    user:opts.user!==undefined?opts.user:(h===CL.clubId||a===CL.clubId), div:opts.div, replay:!!pub };
 }
 function startLiveRound(){
   // segurança (online): rodada além do fim do calendário -> a virada de temporada não completou;
@@ -2488,7 +2639,9 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
     }
     RL.done=true; if(RL.cup&&RL.cup.spectate) finishCupSpectate(); else if(RL.cup) finishCupLiveMatch(); else if(RL.humanSeat) finishHotseatMatch(); else finishLiveRound(); return;
   }
-  const spd=({Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37})[(CL.options&&CL.options.tempo)||'Usain Bolt']||37;
+  // Online: o ritmo é o do ANFITRIÃO (games.speed_mult, sincronizado — ver clSetTempo/wireNet),
+  // não a preferência local de cada convidado. Solo: cada um usa a própria opção "Tempo de jogo".
+  const spd = CL.online ? TEMPO_MS['Usain Bolt'] : (TEMPO_MS[(CL.options&&CL.options.tempo)||'Usain Bolt']||37);
   const actualSpd=Math.max(12, spd / (CL.speedMult||1));
   CL._liveTimer=setTimeout(liveTick, actualSpd);
 }
@@ -2917,7 +3070,9 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
   const halftime=(RL.paused && m.user && !RL.penEvent && !RL.injEvent && !RL.pens);
   const penalty=(RL.penEvent && RL.penMatch===m);
   const injury=(RL.injEvent && RL.injMatch===m);
-  const showSubs = m.user && !penalty && !injury && !shooting && (halftime || CL.subPanelOpen);
+  // replay (ver buildLiveMatchObject): o resultado já é oficial, publicado pelo adversário humano —
+  // substituições aqui não mudariam nada (os eventos futuros já estão fixados), então nem mostra o painel.
+  const showSubs = m.user && !m.replay && !penalty && !injury && !shooting && (halftime || CL.subPanelOpen);
   const incHTML=incidentLines(m);
   const subsLeft=Math.max(0,3-(CL.subsUsed||0));
   // botões de ação ficam FORA de .cl-lm-top de propósito: esse é um flex row com os
@@ -3128,8 +3283,9 @@ function scClassif(){
 }
 function liveDone(){ _prLog('liveDone -> main'); if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classifTimer){clearTimeout(CL._classifTimer);CL._classifTimer=null;} clearInjuryTimer(); clearCupFlowTimer(); CL.live=null; CL.subsUsed=0; CL._liveBusy=false; CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||CL.selPlayer; cdraw();
   if(CL.lastGate) toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0;
-  // notificação de propostas de compra recebidas nesta rodada (toast no topo, ~3s cada)
-  if(S._offerToasts && S._offerToasts.length){ S._offerToasts.forEach((m,i)=>setTimeout(()=>toastC(m), 500+i*400)); S._offerToasts=[]; }
+  // notificação de propostas de compra recebidas nesta rodada (toast no topo, ~3s cada) — só as do MEU clube
+  const myToasts=(S._offerToastsByClub&&S._offerToastsByClub[S.clubId])||[];
+  if(myToasts.length){ myToasts.forEach((m,i)=>setTimeout(()=>toastC(m), 500+i*400)); if(S._offerToastsByClub) S._offerToastsByClub[S.clubId]=[]; }
   // cronômetro soberano: QUALQUER cliente reabre a rodada seguinte (não só o host) — ver reopen_ready
   if(CL.online && typeof NET!=='undefined' && NET.gameId && !S.finished){
     if(NET.reopenReady) NET.reopenReady(); else if(NET.isHost) NET.start(); // fallback: transporte local
@@ -3313,7 +3469,10 @@ function pressFinish(){
   }
   const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division);
   toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.');
-  CL.screen='main'; CL.tab='jogo'; cdraw();
+  // vai direto pra "Formação" (não "Jogo") — nunca mostramos outra tela antes de uma rodada
+  // começar além da de escalação, pro jogador conferir/escolher a tática da temporada nova
+  // antes do 1º "Jogar" (ver panSeleccao/clJogar).
+  CL.screen='main'; CL.tab='seleccao'; cdraw();
 }
 function scImprensa(){
   const P=CL._press; if(!P) return '';
@@ -3385,7 +3544,7 @@ function clOnlineSeasonContinue(){
   clCloseOverlay();
   const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division);
   toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.');
-  CL.screen='main'; CL.tab='jogo'; cdraw();
+  CL.screen='main'; CL.tab='seleccao'; cdraw();
 }
 /* ---- corrige a escalação do usuário se algum titular ficou suspenso/lesionado ----
    Chamada após cada rodada E de novo, defensivamente, antes de iniciar a próxima
@@ -3488,7 +3647,13 @@ function finishLiveRound(){
     // F3.3: guarda os inputs de finança do MEU clube pra aplicar ao ADOTAR a rodada do servidor
     // (o servidor não computa finanças; cada humano aplica as suas). gate = bilheteria já capturada.
     const startedNames = ((S.clubXI && S.clubXI[CL.clubId]) || S.xi || []).slice();
-    CL._pendingRoundFin = { userResult, uf, gate:CL.lastGate||0, startedNames, round:S.round };
+    // guardado em S (não CL) e salvo AGORA: CL é só memória — se a aba fechar/recarregar entre o
+    // fim da MINHA partida e o reconcile (que só acontece quando a rodada fecha, podendo levar um
+    // tempo), o pendente se perdia pra sempre e a rodada nunca creditava salário/receita nem
+    // debitava a folha, sem aviso nenhum. Em S sobrevive a um recarregamento (Object.assign do
+    // reconcile não apaga chave que não existe no estado do servidor — é um campo só meu).
+    S._pendingRoundFin = { userResult, uf, gate:CL.lastGate||0, startedNames, round:S.round };
+    save();
     onlineReturnFreeAfterMatch(); // volta LIVRE pra tela principal (não bloqueia)
     return;
   }
@@ -3559,7 +3724,7 @@ function onlineHostCloseRound(){
       if(!res || res.error){
         console.warn('resolveRound -> fallback local:', res&&res.error);
         _prLog('HOST closeRound: FALLBACK LOCAL (_commitLeagueRound)');
-        CL._pendingRoundFin=null; // fallback: _commitLeagueRound->playRound já aplica as finanças (evita aplicar em dobro)
+        S._pendingRoundFin=null; // fallback: _commitLeagueRound->playRound já aplica as finanças (evita aplicar em dobro)
         _commitLeagueRound(pc.RL, userResultAuth, map, allEvents, pc.audit);
       } else {
         _prLog('HOST closeRound: servidor OK -> onlineAdoptServerRound');
@@ -3583,7 +3748,7 @@ function onlineHostCloseRound(){
    (senão o reconcile voltaria o valor inicial do shared_state). Chamado por host (adopt) e convidado
    (reconcile), pra os dois lados aplicarem a própria rodada. */
 function applyOwnPendingFinances(){
-  const f=CL._pendingRoundFin; if(!f) return; CL._pendingRoundFin=null;
+  const f=S._pendingRoundFin; if(!f) return; S._pendingRoundFin=null;
   try{
     if(typeof processFinances==='function') processFinances(f.userResult, f.uf, new Set(f.startedNames||[]), f.gate||0);
     commitBudget();                    // write-back no mundo local + persiste no assento (caminho único)
@@ -3591,6 +3756,7 @@ function applyOwnPendingFinances(){
 }
 async function onlineAdoptServerRound(RL){
   _prLog('onlineAdoptServerRound: entrou (vai sobrescrever S com o shared_state)');
+  showSyncLoading(); // ver definição: evita a tela principal "velha" piscar antes da classificação
   let isTurnover=false;
   try{
     const saved = await NET.loadGame();
@@ -3603,6 +3769,7 @@ async function onlineAdoptServerRound(RL){
       S.xi = resolveClubXI(CL.clubId);
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       if(typeof pruneAppliedNetTransfers==='function') pruneAppliedNetTransfers(); // solta as transferências que o servidor já aplicou
+      if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
     }
   }catch(e){ console.warn('adotar estado do servidor:', e); }
   applyOwnPendingFinances(); // F3.3: aplica as finanças da MINHA rodada (o servidor não computa finanças)
@@ -3617,12 +3784,14 @@ async function onlineAdoptServerRound(RL){
     // falhar); o servidor não credita prêmio, igual às finanças por-humano.
     const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null; if(typeof accrueCareerStats==='function') accrueCareerStats();
     queueSeasonCupDrawsIfNew(); // virada: enfileira o sorteio da copa NOVA (mostra na 1ª rodada da temporada nova)
+    hideSyncLoading();
     cdraw();
     openPressRoom(_sum);
     return;
   }
   queueSeasonCupDrawsIfNew(); // todo cliente enfileira o sorteio da copa recém-sorteada (não só o host)
   checkPendingCupDraws(()=>{
+    hideSyncLoading();
     const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
     if(seats.length) startPostRoundClassifs(seats); else showLiveClassif();
     checkPendingManagerEvents();
@@ -3685,6 +3854,7 @@ function finishCupLiveMatch(){
   applyMatchIncidents(m.events);
   const scorers=m.events.filter(e=>e.type==='gol'||(e.type==='penalti'&&e.scored)).map(e=>({name:e.scorer,id:e.team}));
   const Rm=makeRng(hashSeed(S.seed,'cuprate',pending.key,S.round,m.h,m.a));
+  if(typeof recordScorers==='function') recordScorers(scorers); // gol na PRÓPRIA partida de copa ao vivo também tem que contar em S.scorers (ver core.js)
   ratePlayers(m.h,m.hg,m.ag,scorers,Rm,m.perf&&m.perf.H,m.perf&&m.perf.A); ratePlayers(m.a,m.ag,m.hg,scorers,Rm,m.perf&&m.perf.A,m.perf&&m.perf.H);
   if(m.h===CL.clubId) S.budget=(S.budget||0)+(m.att*m.price); // bilheteria do mando de campo, igual à liga
   const compShort=COMP_DEFS[pending.key].short;
@@ -3790,7 +3960,15 @@ function clCupResultContinue(){
 /* cauda do fluxo pós-copa: igual ao que já existia antes das telas de classificação —
    online marca pronto e espera os outros; solo volta pra tela principal. */
 function finishCupResultFlow(){
-  if(CL.online){ onlineMarkReady(); return; }
+  // BUG: isto chamava onlineMarkReady() (sinaliza "pronto" pro fechamento da RODADA DE LIGA)
+  // toda vez que UMA partida de copa terminava — mesmo quando ainda sobrava outra partida de
+  // copa pendente na mesma semana, OU a própria rodada de liga nem tinha sido jogada ainda.
+  // Resultado: o anfitrião podia fechar a rodada de liga (simulando o usuário como "ausente")
+  // ANTES dele sequer escalar/jogar o próprio jogo — daí a classificação/rodada nova "atravessava"
+  // a tela logo depois de uma partida de copa, e só ao voltar pro time é que aparecia atualizado.
+  // Só marca pronto quando NÃO sobra mais nada pendente nesta rodada (nem copa, nem a liga).
+  const stillPending = CL.online && (pendingUserCupMatches().length>0 || CL._playedRound!==S.round);
+  if(CL.online && !stillPending){ onlineMarkReady(); return; }
   CL.screen='main'; cdraw();
 }
 /* ---- classificação/chaveamento da copa, mostrada automaticamente depois de uma
@@ -3853,7 +4031,12 @@ function panAdversario(oppId){
 
 /* ---- 13 · CALENDÁRIO (modal) ---- */
 function userCalendar(){ const out=[]; (S.sched||[]).forEach((rd,i)=>{ const m=rd.find(([h,a])=>h===CL.clubId||a===CL.clubId);
-  if(m){ const home=m[0]===CL.clubId; const opp=home?m[1]:m[0]; out.push({n:i+1,opp,home}); } }); return out; }
+  if(m){ const home=m[0]===CL.clubId; const opp=home?m[1]:m[0];
+    // resultado já jogado (ver S.results, alimentado em playRound/resolve-round) — antes o
+    // Calendário só mostrava o CONFRONTO (fixture), nunca o placar de rodadas já disputadas.
+    const res=(S.results||[]).find(r=>r.round===i && r.h===m[0] && r.a===m[1]);
+    const myG=res?(home?res.hg:res.ag):null, oppG=res?(home?res.ag:res.hg):null;
+    out.push({n:i+1,opp,home,myG,oppG}); } }); return out; }
 /* cada copa avança numa rodada de liga PRÓPRIA (ver CUP_TICK_OFFSET/cupTickMatchesRound
    em core.js — Copa do Brasil, Libertadores e Sul-Americana ficam defasadas por 1 rodada
    cada, 7 dias no calendário do jogo, bem acima do mínimo de 2 dias pra não parecer que
@@ -3929,9 +4112,18 @@ function clCalendar(){
   const drawRows=userCupDrawRows().map(dr=>({n:dr.n, ord:0, html:
     `<div class="cl-cal-row cl-cal-draw"><span class="cl-cal-n">${dr.n}ª</span>
       <span class="cl-cal-t">🎲 Sorteio das oitavas — ${COMP_DEFS[dr.key].short} (${fmtRealDate(dr.date)})</span><span class="cl-cal-cf"></span></div>`}));
-  const ligaRows=userCalendar().map(r=>({n:r.n, ord:1, html:
+  const ligaRows=userCalendar().map(r=>{
+    const played=r.myG!=null;
+    // chip V/D/E ao lado do placar — só depois de jogado, para o usuário ver de cara como foi
+    // sem precisar decorar os números (fundo verde/vermelho/cinza, letra branca).
+    const chipCls = !played ? '' : r.myG>r.oppG?'win' : r.myG<r.oppG?'loss' : 'draw';
+    const chipTxt = !played ? '' : r.myG>r.oppG?'V' : r.myG<r.oppG?'D' : 'E';
+    const chip = played?` <span class="cl-res-chip ${chipCls}">${chipTxt}</span>`:'';
+    const score=played?` <b>${r.myG}-${r.oppG}</b>`:'';
+    return {n:r.n, ord:1, html:
     `<div class="cl-cal-row"><span class="cl-cal-n">${r.n}ª</span>
-    <span class="cl-cal-t">${clubLink(r.opp)}</span><span class="cl-cal-cf">${r.home?'C':'F'}</span></div>`}));
+    <span class="cl-cal-t">${clubLink(r.opp)}${chip}${score}</span><span class="cl-cal-cf">${r.home?'C':'F'}</span></div>`};
+  });
   const rows=cupRows.concat(drawRows).concat(ligaRows).sort((a,b)=>a.n-b.n || a.ord-b.ord).map(r=>r.html).join('');
   overlayC(dlg('Calendário', `<div class="cl-cal">${rows}</div>
     <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
@@ -3950,7 +4142,7 @@ function menuDropdown(name){ name=name||CL.menu;
     'RetroFoot98':[['Opções...','clOptions()'],['—'],['Gravar jogo','clSaveMenu()'],['Sair para o menu','clExit()']],
     'Formação':[...F.map((f,i)=>[`${f}`,`clSelFormation('${f}')`,(i+1)+'/'+FKEY[f]]),['—'],['Automático','clSelFormation(\'auto\')'],['Melhores','clSelFormation(\'best\')']],
     'Equipa':[['Estádio...','clStadium()'],['Historial...','clClubHistory()']],
-    'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],[`Propostas recebidas${(S.incomingOffers&&S.incomingOffers.length)?' ('+S.incomingOffers.length+')':''}...`,'clIncomingOffers()'],['Leilão de jogadores...','clAuctionScreen()'],[(typeof youthAvailable==='function'&&youthAvailable())?'🌱 Subir jogador da base':'Base (indisponível agora)','clPromoteYouth()'],['Últimas transferências...','clStub(\'Últimas transferências\')']],
+    'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],[`Propostas recebidas${myIncomingOffers().length?' ('+myIncomingOffers().length+')':''}...`,'clIncomingOffers()'],['Leilão de jogadores...','clAuctionScreen()'],[(typeof youthAvailable==='function'&&youthAvailable())?'🌱 Subir jogador da base':'Base (indisponível agora)','clPromoteYouth()'],[`Treino especial (${myTrainingList().length}/${TRAINING_MAX_SLOTS})...`,'clTrainingScreen()'],['Últimas transferências...','clTransferHistory()']],
     'Campeonatos':[['Minhas competições...','clCompList()','C'],['—'],['Melhores marcadores...','clScorers()'],['Calendário...','clCalendar()'],['—'],['Últimos vencedores...','clUltimosVencedores()'],['Melhores marcadores de sempre...','clScorersAllTime()']].concat((S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)?[['—'],['Ligas internacionais...','clBgLeaguesMenu()']]:[]),
     'Treinador':[['História...','clCoachHistory()'],['Ranking...','clCoachRanking()'],['Ofertas...','clJobOffers()'],['Perfil...','clPerfilTreinador()']]
   };
@@ -3968,6 +4160,20 @@ function menuDropdown(name){ name=name||CL.menu;
 }
 function clStub(t){ CL.menu=null; toastC(t+' — em breve.'); cdraw(); }
 /* ---- RetroFoot98 > Opções... ---- */
+/* "Tempo de jogo" (ritmo do liveTick) é a única opção com efeito compartilhado no Modo Resenha:
+   controla também o intervalo de polling (onlineTimerLoop). Por isso, online, só o Anfitrião pode
+   mudar — os convidados ficam travados no valor que ele escolheu (games.speed_mult, já
+   sincronizado/restrito por RLS ao host — ver netSetSpeed). Baseline 'Usain Bolt'=1x preserva o
+   comportamento padrão de hoje pra quem nunca mexeu na opção (games.speed_mult nasce em 1). */
+const TEMPO_MS={Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37};
+const TEMPO_MULT={}; Object.keys(TEMPO_MS).forEach(k=>TEMPO_MULT[k]=TEMPO_MS['Usain Bolt']/TEMPO_MS[k]);
+function tempoLabelFromMult(mult){ const m=mult||1; let best='Usain Bolt',bd=Infinity;
+  Object.keys(TEMPO_MULT).forEach(k=>{ const d=Math.abs(TEMPO_MULT[k]-m); if(d<bd){bd=d;best=k;} }); return best; }
+function clSetTempo(label){
+  CL.options.tempo=label;
+  if(CL.online && typeof NET!=='undefined' && NET.isHost && typeof clSetSpeed==='function') clSetSpeed(TEMPO_MULT[label]||1);
+  renderOptions();
+}
 function clOptions(){ CL.menu=null; CL.optTab='geral';
   if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',gravar:'De 3 em 3 jornadas',som:'Sim',
     subsIntervalo:'Sim',penaltisCPU:'Sim',tempo:'Usain Bolt'};
@@ -3978,9 +4184,13 @@ function renderOptions(){ const o=CL.options; const tab=CL.optTab||'geral';
     <div class="cl-orow"><span>Ver sorteio da taça</span>${sel('sorteio',['Nunca','Quando houver humanos','Sempre'],o.sorteio)}</div>
     <div class="cl-orow"><span>Gravar o jogo</span>${sel('gravar',['Nunca','De 3 em 3 jornadas','Sempre'],o.gravar)}</div>
     <div class="cl-orow"><span>Habilitar som</span>${sel('som',['Sim','Não'],o.som)}</div>`;
+  const amHost=typeof NET!=='undefined' && NET.isHost;
+  const tempoRow = (CL.online && !amHost)
+    ? `<div class="cl-orow"><span>Tempo de jogo</span><span class="cl-oval-locked">🔒 ${escC(tempoLabelFromMult(CL.speedMult))} <i>(definido pelo Anfitrião)</i></span></div>`
+    : `<div class="cl-orow"><span>Tempo de jogo${CL.online?' <i>(vale pra todos)</i>':''}</span><select class="cl-osel" onchange="clSetTempo(this.value)">${['Curto','Médio','Longo','Ultrassônico','Usain Bolt'].map(x=>`<option ${x===o.tempo?'selected':''}>${escC(x)}</option>`).join('')}</select></div>`;
   const jogo=`<div class="cl-orow"><span>Substituições ao intervalo</span>${sel('subsIntervalo',['Sim','Não'],o.subsIntervalo)}</div>
     <div class="cl-orow"><span>Ver os desempates por penalties<br>nos jogos sem treinadores humanos</span>${sel('penaltisCPU',['Sim','Não'],o.penaltisCPU)}</div>
-    <div class="cl-orow"><span>Tempo de jogo</span>${sel('tempo',['Curto','Médio','Longo','Ultrassônico','Usain Bolt'],o.tempo)}</div>`;
+    ${tempoRow}`;
   overlayC(dlg('Opções', `<div class="cl-opt">
     <div class="cl-otabs"><span class="cl-otab ${tab==='geral'?'on':''}" onclick="CL.optTab='geral';renderOptions()">Geral</span><span class="cl-otab ${tab==='jogo'?'on':''}" onclick="CL.optTab='jogo';renderOptions()">Jogo</span></div>
     <div class="cl-opanel">${tab==='geral'?geral:jogo}</div>
@@ -4122,7 +4332,7 @@ function jobSecurityBarHTML(){
   const lbl = js>=70?'Prestígio alto' : js>=40?'Estável' : js>=16?'Sob pressão' : 'Cargo em risco!';
   return `<div style="margin:2px 0 12px;font-family:var(--sans)">
     <div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:3px">
-      <span>Segurança no cargo <span style="color:#999">(resultados + moral)</span></span><b style="color:${col}">${js}% · ${lbl}</b></div>
+      <span>${js<25?'⚠️ ':''}Segurança no cargo <span style="color:#999">(resultados + moral)</span></span><b style="color:${col}">${js}% · ${lbl}</b></div>
     <div style="height:10px;background:#ddd;border:1px solid #bbb;border-radius:5px;overflow:hidden">
       <div style="height:100%;width:${js}%;background:${col};transition:width .3s"></div></div>
   </div>`;
@@ -4689,14 +4899,34 @@ function clPromoteYouth(){ CL.menu=null;
   const r=promoteYouth();
   if(!r.ok){ toastC(r.msg); return; }
   const y=r.youth;
-  const restamTxt='Entrou no elenco. Você poderá subir outro na próxima janela de transferências.';
-  overlayC(dlg('🌱 Jogador da base promovido', `<div class="cl-res" style="text-align:center;padding:14px">
+  const restamTxt='Você só pode subir 1 jogador da base por janela de transferências.';
+  overlayC(dlg('🌱 Jogador da base disponível', `<div class="cl-res" style="text-align:center;padding:14px">
     <div class="cl-res-score" style="font-size:20px">${escC(y.n)}</div>
     <div class="cl-res-verd" style="margin-top:8px">${escC(r.posNome)} · ${y.age} anos<br>
       Força <b style="font-size:22px;color:#fff">${y.f}</b></div>
-    <div style="font-size:12px;color:#777;margin-top:8px">${restamTxt}</div>
-    <div class="cl-cal-ok" style="margin-top:14px">${btn('Boa!','clCloseOverlay();cdraw()',{icon:'✔',cls:'cl-btn-ok'})}</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.78);margin-top:8px">${restamTxt}</div>
+    <div class="cl-cal-ok" style="margin-top:14px;gap:10px">
+      ${btn('Esperar Próximo','clPromoteYouthUndo(\''+y.pid+'\')',{icon:'↩',cls:'cl-btn'})}
+      ${btn('Promover','clCloseOverlay();cdraw()',{icon:'✔',cls:'cl-btn-ok'})}
+    </div>
   </div>`,{w:440,bodyClass:'cl-body-green'}));
+}
+/* "Esperar Próximo" — desfaz a promoção recém-gerada (o jogador já tinha entrado de fato no
+   elenco, ver promoteYouth()). A vaga da janela é DERIVADA do elenco (youthCountThisWindow()),
+   então basta remover o jovem do elenco pra liberar a vaga de novo, sem contador solto pra
+   desfazer. Também remove a transferência pendente (from:'BASE') e a notícia de rodada gerados
+   pela promoção, senão ficariam anunciando um jogador que o usuário recusou. */
+function clPromoteYouthUndo(pid){
+  const sq=squad(S.clubId)||[];
+  const idx=sq.findIndex(p=>p.pid===pid);
+  if(idx>=0){ const y=sq[idx]; sq.splice(idx,1);
+    if(S._netTransfers) S._netTransfers=S._netTransfers.filter(t=>t.pid!==pid);
+    if(S.roundNews&&S.roundNews.length){ const last=S.roundNews[S.roundNews.length-1];
+      if(last&&last.includes(y.n)&&last.includes('subiu das categorias de base')) S.roundNews.pop(); }
+    saveV3();
+  }
+  toastC('Ok, vamos aguardar a próxima janela.');
+  clCloseOverlay(); cdraw();
 }
 function clSell(){ CL.menu=null;
   if(!canNegotiate()){ toastC(windowClosedMsg()); return; }
@@ -4706,8 +4936,14 @@ function clSell(){ CL.menu=null;
 function clSellConfirm(){
   if(!canNegotiate()){ toastC(windowClosedMsg()); CL.rightMode=null; cdraw(); return; }
   const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer); if(!p){ CL.rightMode=null; cdraw(); return; }
+  if(typeof isTradeLocked==='function' && isTradeLocked(p)){ toastC(`${p.n} foi comprado nesta temporada e ainda não pode ser vendido.`); CL.rightMode=null; cdraw(); return; }
   const seed=(hashC(p.n)+ (S.round||0)*7)>>>0; const rnd=rngFrom(seed);
-  const buyers=DATA.clubs.filter(c=>c.id!==CL.clubId); const buyer=buyers[Math.floor(rnd()*buyers.length)];
+  // exclui clubes de OUTROS humanos do sorteio de comprador — "Vender" é uma venda instantânea ao
+  // mercado (CPU), sem consentimento; sem este filtro, o sorteio podia "empurrar" seu jogador pro
+  // elenco de outro treinador humano sem ele nunca ter feito proposta nenhuma. Pra vender pra um
+  // humano de verdade, o comprador manda uma proposta (ver sendHumanOffer) que você aceita/recusa.
+  const buyers=DATA.clubs.filter(c=>c.id!==CL.clubId && !(CL.online && CL.humans && CL.humans[c.id]));
+  const buyer=buyers[Math.floor(rnd()*buyers.length)];
   const base=Math.round(p.mv/1000); const ask=Math.round((parseInt(CL.sellPrice,10)||0)/1000); // sellPrice em reais -> milhares
   let feeK=Math.max(1,Math.round(base*(0.7+rnd()*0.7)));           // proposta do mercado em milhares
   if(ask>0 && ask<=feeK*1.2) feeK=Math.max(ask,Math.round(feeK*0.9)); else if(ask>feeK*1.2) feeK=Math.round(feeK*0.85);
@@ -4717,7 +4953,7 @@ function clSellConfirm(){
     // PRÉ-ACORDO: fecha o negócio, mas o jogador só sai na abertura da janela (segue jogando até lá)
     p._pendingSale=true;
     S.pendingTransfers=S.pendingTransfers||[];
-    S.pendingTransfers.push({ kind:'sell', playerName:p.n, buyerId:buyer.id, buyerName:clubOf(buyer.id).short, buyerCountry:null, fee, executeRound:preOpen });
+    S.pendingTransfers.push({ kind:'sell', sellerId:CL.clubId, playerName:p.n, buyerId:buyer.id, buyerName:clubOf(buyer.id).short, buyerCountry:null, fee, executeRound:preOpen });
     S.roundNews=S.roundNews||[]; S.roundNews.push(`🤝 Acordo fechado: ${p.n} vai pro ${clubOf(buyer.id).short} na abertura da janela (rodada ${preOpen+1}) por ${fmt(fee)}.`);
     saveV3(); CL.rightMode=null;
     resultDialog('🤝 Acordo fechado', `${p.n} vai pro ${clubOf(buyer.id).short} por ${fmt(fee)}, com a mudança de clube na abertura da janela (rodada ${preOpen+1}). Ele segue jogando por você até lá.`);
@@ -4773,7 +5009,7 @@ function clRenewPropose(){
 
   const oldSalary = (p.contract && p.contract.salary) || 0;
   const newYears = 3;
-  const weeksPerYear = 52;
+  const weeksPerYear = S.sched.length||38; // idem renewPanel() — 38 rodadas reais, não 52 semanas fixas
   const totalCost = CL.newSalary * newYears * weeksPerYear;
   const oldAnnualCost = oldSalary * weeksPerYear;
   const extraCost = totalCost - (oldAnnualCost * newYears);
@@ -4887,14 +5123,19 @@ function renderBgLeagues(){
 
 /* ---- Jogador > Propostas recebidas: ofertas de compra pelos jogadores do usuário ---- */
 function clIncomingOffers(){ CL.menu=null;
-  const offers=(S.incomingOffers||[]).filter(o=>o.expiresRound>S.round);
+  const offers=myIncomingOffers().filter(o=>o.expiresRound>S.round);
   const rows=offers.length?offers.map(o=>{
     const roundsLeft=Math.max(0,o.expiresRound-S.round);
-    const counterUI = o.state!=='final' ? `<span class="cl-money-field" style="margin:0"><span class="cl-money-cur">${curSym()}</span><input class="cl-money-in" style="width:96px" id="cl-ask-${o.id}" inputmode="numeric" placeholder="pedir mais" oninput="this.value=this.value.replace(/\\D/g,'')?grp(this.value.replace(/\\D/g,'')):''"></span>${btn('Contrapropor','clCounterOffer('+o.id+')',{cls:'cl-btn-mini'})}` : '';
+    // propostas de HUMANO não têm resposta algorítmica da CPU (sem maxFee/state) — "negociar"
+    // aqui é recusar sinalizando um valor (counterHumanOffer), não a contraproposta automática.
+    const counterUI = o.buyerIsHuman
+      ? `<span class="cl-money-field" style="margin:0"><span class="cl-money-cur">${curSym()}</span><input class="cl-money-in" style="width:96px" id="cl-ask-${o.id}" inputmode="numeric" placeholder="eu toparia" oninput="this.value=this.value.replace(/\\D/g,'')?grp(this.value.replace(/\\D/g,'')):''"></span>${btn('Negociar','clCounterHumanOffer('+o.id+')',{cls:'cl-btn-mini'})}`
+      : (o.state!=='final' ? `<span class="cl-money-field" style="margin:0"><span class="cl-money-cur">${curSym()}</span><input class="cl-money-in" style="width:96px" id="cl-ask-${o.id}" inputmode="numeric" placeholder="pedir mais" oninput="this.value=this.value.replace(/\\D/g,'')?grp(this.value.replace(/\\D/g,'')):''"></span>${btn('Contrapropor','clCounterOffer('+o.id+')',{cls:'cl-btn-mini'})}` : '');
+    const fromLabel = o.buyerIsHuman ? `🧑 ${escC(o.buyerHumanName||'treinador humano')} (${escC(o.buyerName)})` : `${escC(o.buyerName)}${o.buyerCountry?' · '+escC(o.buyerCountry):''}`;
     return `<div style="padding:10px 12px;border-bottom:1px solid rgba(0,0,0,.12)">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
         <div style="flex:1;min-width:0"><b>${escC(o.playerName)}</b> <small style="color:#888">(força ${o.playerForce})</small><br>
-          <small style="color:#888">${escC(o.buyerName)}${o.buyerCountry?' · '+escC(o.buyerCountry):''} · expira em ${roundsLeft} rodada(s)</small></div>
+          <small style="color:#888">${fromLabel} · expira em ${roundsLeft} rodada(s)</small></div>
         <div style="text-align:right;white-space:nowrap;font-weight:700">${fmt(o.fee)}</div>
       </div>
       ${o.lastMsg?`<div style="margin-top:6px;font-size:12px;color:#555;background:#f3efe0;padding:5px 8px;border-radius:4px">💬 ${escC(o.lastMsg)}</div>`:''}
@@ -4917,6 +5158,13 @@ function clCounterOffer(id){
   if(typed<=0){ toastC('Digite quanto você quer pedir.'); return; }
   counterIncomingOffer(id, curParse(typed)); // valor digitado (moeda exibida) -> R$
   clIncomingOffers(); // re-renderiza já com a resposta do clube
+}
+function clCounterHumanOffer(id){
+  const el=$c('#cl-ask-'+id); const typed=el?(parseInt((el.value||'').replace(/\D/g,''))||0):0;
+  if(typed<=0){ toastC('Digite quanto você toparia.'); return; }
+  const r=counterHumanOffer(id, curParse(typed));
+  toastC(r.msg);
+  clIncomingOffers();
 }
 
 /* ---- overlays / toasts ---- */

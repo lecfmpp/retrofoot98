@@ -329,13 +329,20 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-jog-actions{display:flex;justify-content:center;margin-top:26px}
 /* MAIN */
 .cl-main{width:min(1000px,96vw);background:#000;border:var(--bw-frame) solid var(--navy);box-shadow:var(--shadow-main)}
+/* Resenha: reserva espaço à direita pra .cl-statusbar (fixed, 186px+12px de offset) nunca
+   sobrepor o conteúdo de .cl-main-right em larguras de desktop comuns (1280/1366px) — abaixo
+   de 761px a barra de status vira faixa horizontal na base (ver media query mobile) e este
+   espaço não é mais necessário. */
+@media (min-width:761px){
+  .cl-main.cl-main-online{margin-right:max(0px, calc(1396px - 100vw))}
+}
 .cl-main-top{background:var(--navy);color:#fff;font-weight:700;text-align:center;padding:5px;font-size:15px;letter-spacing:.5px}
 .cl-view-tag{font-weight:700;font-size:11px;color:var(--yellow);margin-left:8px;letter-spacing:.5px}
 .cl-menu{background:#fff;display:flex;gap:0;border-bottom:1px solid #000}
 .cl-menu-i{padding:5px 14px;font-weight:700;font-size:14px;cursor:pointer;color:#000;position:relative}
 .cl-menu-i:hover,.cl-menu-i.open{background:var(--navy);color:#fff}
 /* dropdown do menu topo — abre reto pra baixo, alinhado ao item */
-.cl-menu-dd{position:absolute;top:100%;left:0;min-width:210px;background:#fff;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);z-index:30;box-shadow:3px 3px 8px rgba(0,0,0,.4);text-align:left;cursor:default}
+.cl-menu-dd{position:absolute;top:100%;left:0;min-width:210px;background:#fff;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);z-index:36;box-shadow:3px 3px 8px rgba(0,0,0,.4);text-align:left;cursor:default}
 .cl-menu-dd-i{display:flex;justify-content:space-between;gap:24px;padding:5px 14px;font-size:15px;font-weight:700;color:#000;cursor:pointer}
 .cl-menu-dd-i:hover{background:var(--navy);color:#fff}
 .cl-menu-dd-i b{font-weight:700;color:inherit}
@@ -367,7 +374,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-roster-hd{background:#e8e8e8;color:#000;font-weight:800;font-size:13px;padding:5px 10px;border:1px solid #000;border-bottom:none;display:flex;justify-content:space-between;cursor:pointer}
 .cl-rgroup{border-bottom:1px solid #000}
 .cl-rgroup:last-child{border-bottom:none}
-.cl-rrow{display:grid;grid-template-columns:16px 22px 1fr 54px 66px;column-gap:6px;align-items:center;padding:2px 8px;font-weight:700;font-size:14px;cursor:pointer}
+.cl-rrow{display:grid;grid-template-columns:16px 22px 1fr 30px 54px 66px;column-gap:6px;align-items:center;padding:2px 8px;font-weight:700;font-size:14px;cursor:pointer}
 .cl-rmark{text-align:center;font-weight:800}
 .cl-rmark.t,.cl-rmark.r{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;font-size:10px;font-weight:800;line-height:1}
 .cl-rmark.t{background:var(--success-alt);color:#fff}
@@ -376,8 +383,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-rrow.sel{background:#000;color:#fff}
 .cl-rpos{}
 .cl-rname{}
+.cl-rage{text-align:center;font-weight:400;opacity:.75;font-size:12px}
 .cl-rf{text-align:left}
 .cl-rv{text-align:left}
+.cl-rtrend{font-size:10px;margin-left:3px}
+.cl-rtrend.up{color:var(--success-alt)}
+.cl-rtrend.down{color:var(--danger-alt)}
 .cl-main-right{flex:1;background:#000;color:#fff;padding:12px 16px;display:flex;flex-direction:column;position:relative}
 .cl-right-hdr{position:relative;min-height:56px;margin-bottom:8px}
 .cl-adv-lbl{color:#fff;font-size:15px}
@@ -432,6 +443,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-gnums b{font-weight:400;min-width:12px;text-align:center}
 .cl-blk{margin-top:20px}
 .cl-blk-l{color:#fff;font-size:15px}
+.cl-risk-flag{color:#ff5252;font-weight:800;font-size:12px}
 .cl-blk-v{font-size:15px;margin-top:2px}
 .cl-strong{font-weight:700}
 .cl-bar{height:22px;background:#c0c0c0;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);margin-top:6px;max-width:360px}
@@ -571,6 +583,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-pfield legend{font-size:13px;color:#000;padding:0 6px}
 .cl-pradio{display:flex;align-items:center;gap:8px;font-size:14px;margin:10px 0;cursor:pointer}
 .cl-osel{font-family:var(--sans);font-size:14px;padding:4px 6px;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);background:#fff;min-width:220px}
+.cl-oval-locked{font-size:14px;color:#555;min-width:220px;text-align:right}
+.cl-oval-locked i{font-style:italic;opacity:.8}
 .cl-oside{position:absolute;right:16px;top:44px;display:flex;flex-direction:column;align-items:center;gap:6px}
 /* PARTIDA AO VIVO (placar por divisões) */
 .cl-live{min-height:100vh;background:var(--felt);padding:0 0 40px;position:relative}
@@ -730,6 +744,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-auc-lead{font-weight:800;padding:2px 8px;border-radius:10px;font-size:11px}
 .cl-auc-lead.me{background:#d6f2d6;color:#176b17}
 .cl-auc-lead.cpu{background:#eadada;color:#8a3b3b}
+.cl-auc-lead.human{background:#fff2cc;color:#8a6d1a}
 .cl-auc-disp,.cl-auc-rounds{color:#555;font-weight:700}
 .cl-auc-r2 .cl-btn-mini{margin-left:auto}
 .cl-auc-bidrow{display:flex;align-items:center;gap:8px;margin:12px 0 4px}
@@ -739,6 +754,10 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-winbadge{font-size:10px;font-weight:800;padding:2px 6px;border-radius:3px;margin-left:6px}
 .cl-winbadge.open{background:#1a6b1a;color:#fff}
 .cl-winbadge.closed{background:#888;color:#fff}
+.cl-res-chip{font-size:10px;font-weight:800;padding:2px 6px;border-radius:3px;margin-right:4px}
+.cl-res-chip.win{background:var(--success-alt);color:#fff}
+.cl-res-chip.loss{background:var(--danger-alt);color:#fff}
+.cl-res-chip.draw{background:#888;color:#fff}
 .cl-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px}
 .cl-link:hover{color:#0645ad;text-decoration-style:solid}
 /* modal de pênalti — estilo clássico RetroFoot98: fundo preto, texto vermelho */
@@ -904,7 +923,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-wait{color:#eaffea;font-size:13px;text-align:center;max-width:120px}
 /* barra "à espera dos treinadores" no hub */
 /* ---- Barra lateral de STATUS dos treinadores (Resenha) — fixa à direita ---- */
-.cl-statusbar{position:fixed;top:96px;right:12px;width:186px;z-index:34;background:var(--navy);color:#fff;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);border-radius:6px;box-shadow:0 8px 24px -6px rgba(0,0,0,.55);font-family:var(--sans);overflow:hidden}
+.cl-statusbar{position:fixed;top:96px;right:12px;width:186px;z-index:34;background:var(--navy);color:#fff;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);box-shadow:3px 3px 8px rgba(0,0,0,.4);font-family:var(--sans);overflow:hidden}
 .cl-statusbar.urgent{border-color:#e23b3b;animation:cl-chat-pulse 1.2s ease-in-out infinite}
 .cl-statusbar-h{display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(0,0,0,.28);padding:7px 10px}
 .cl-statusbar-title{font-weight:800;font-size:12px;letter-spacing:.3px}
@@ -948,7 +967,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-chat-txt{color:#eee}
 .cl-chat-in{display:flex;gap:6px}
 .cl-chat-input{flex:1;font-size:13px;padding:5px 8px}
-.cl-chatdock{position:fixed;right:18px;bottom:18px;width:280px;z-index:35;box-shadow:0 10px 30px -6px rgba(0,0,0,.6);font-family:var(--sans)}
+.cl-chatdock{position:fixed;right:18px;bottom:18px;width:280px;z-index:35;box-shadow:3px 3px 8px rgba(0,0,0,.4);font-family:var(--sans)}
 .cl-chatdock:not(.open){width:auto}
 .cl-chatdock-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--navy);color:#fff;font-weight:800;font-size:13px;padding:8px 12px;cursor:pointer;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);user-select:none}
 .cl-chatdock-lbl{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
@@ -1085,7 +1104,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
   .cl-tab{flex:0 0 auto;white-space:nowrap}
   /* linhas em grid ficam apertadas -> reduz fonte e gap */
-  .cl-rrow{grid-template-columns:14px 20px 1fr 44px 54px;column-gap:4px;font-size:12.5px;padding:4px 6px}
+  .cl-rrow{grid-template-columns:14px 20px 1fr 24px 44px 54px;column-gap:4px;font-size:12.5px;padding:4px 6px}
   .cl-rmark.t,.cl-rmark.r{width:14px;height:14px;font-size:9px;border-radius:3px}
   .cl-mkt-p,.cl-auc-row,.cl-cls-row{font-size:12px}
   /* leilão em cartão (2 linhas) empilha sozinho; só garante largura total no mobile */

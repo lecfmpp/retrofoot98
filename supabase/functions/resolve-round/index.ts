@@ -35,7 +35,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
       int:(n)=>Math.floor(r()*n), pick:(arr)=>arr[Math.floor(r()*arr.length)] }; }
 
   const TACTIC_BETA={retranca:-0.09, equilibrado:0, ofensivo:0.10};
-  const ENG={rev:0.82, sd:0.33, danger:0.58, shot:0.28, conv:0.52, penaltyChance:0.055};
+  const ENG={rev:0.82, sd:0.33, danger:0.58, shot:0.28, conv:0.52, penaltyChance:0.025}; // era 0.055
   const ENG2={ alphaAtk:0.08, alphaMid:0.05, alphaMidCount:0.018, convDiff:0.004 };
   const BEHAVIOR_CARD_MULT={ 'Casca-Grossa':3.2, 'Brigão':2.4, 'Encrenqueiro':1.7, 'Discreto':1.0, 'Manso':0.75, 'Exemplar':0.4 };
   const BEHAVIOR_INJURY_MULT={ 'Discreto':1.6, 'Manso':0.55, 'Exemplar':0.85, 'Encrenqueiro':1.0, 'Brigão':1.05, 'Casca-Grossa':1.1 };
@@ -148,18 +148,18 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
             ev={type:'gol',side:hSide,min:minute,scorer:sc.n,team:atkId,stoppage:stoppage};
           } else { perf[hSide].chances++; ev={type:'chance',side:hSide,min:minute,scorer:sc.n,team:atkId,pos:pos}; }
         }
-      } else if(R.random()<0.026){
+      } else if(R.random()<0.022){ // calibrado pra ~2-3 cartões/partida (era 0.026)
         const foulSide=home2?'A':'H'; const foulTeam=foulSide==='H'?homeId:awayId;
         const p=pickFoulPlayer(foulSide);
         if(p){
-          if(R.random()<0.10){ offField[foulSide].add(p.n); menOnField[foulSide]=Math.max(6,menOnField[foulSide]-1);
+          if(R.random()<0.035){ offField[foulSide].add(p.n); menOnField[foulSide]=Math.max(6,menOnField[foulSide]-1); // era 10% -> expulsão bem mais rara
             ev={type:'cartao',side:foulSide,min:minute,team:foulTeam,player:p.n,pos:p.s,cardType:'vermelho',reason:'direto'}; }
           else if(cardState[foulSide].get(p.n)==='amarelo'){ cardState[foulSide].set(p.n,'vermelho');
             offField[foulSide].add(p.n); menOnField[foulSide]=Math.max(6,menOnField[foulSide]-1);
             ev={type:'cartao',side:foulSide,min:minute,team:foulTeam,player:p.n,pos:p.s,cardType:'vermelho',reason:'segundo amarelo'}; }
           else { cardState[foulSide].set(p.n,'amarelo'); ev={type:'cartao',side:foulSide,min:minute,team:foulTeam,player:p.n,pos:p.s,cardType:'amarelo',reason:null}; }
         }
-      } else if(R.random()<0.011){
+      } else if(R.random()<0.0026){ // calibrado pra ~1 lesão a cada 4-5 partidas (era 0.011)
         const side=R.random()<0.5?'H':'A'; const team=side==='H'?homeId:awayId;
         const pool=activePool(side);
         if(pool.length){
@@ -359,9 +359,13 @@ function cpuSeasonFinances(S: any, humans: Set<string>) {
     S.budgets[id] = Math.max(-base * 4, Math.round((S.budgets[id] || 0) + revenue - costs));
   });
 }
+/* porte fiel de hasEstrelinha() do cliente (core.js) — precisa do mesmo hash determinístico
+   pro treino especial valorizar "estrelinhas" igual nos dois lados. */
+function hasEstrelinha(p: any) { if (!p) return false; return (ME.hashSeed(p.pid != null ? p.pid : 0, p.n || '', 'estrelinha') >>> 0) % 100 < 15; }
 function evolvePlayer(p: any, R: any, played: boolean, sDivision: string) {
   if (!p.attr) return; // sem atributos não há como evoluir (saves válidos já têm p.attr)
   const a = p.attr, age = p.age || 26;
+  const fBefore = p.f;
   const form = (p.stats && p.stats.r3 && p.stats.r3.length) ? p.stats.r3.reduce((x: number, y: number) => x + y, 0) / p.stats.r3.length : 6.5;
   const goals3 = (p.stats && p.stats.g3) ? p.stats.g3.reduce((x: number, y: number) => x + y, 0) : 0;
   const growth = age <= 20 ? 1.0 : age <= 23 ? 0.7 : age <= 27 ? 0.35 : age <= 30 ? 0.10 : 0;
@@ -376,9 +380,32 @@ function evolvePlayer(p: any, R: any, played: boolean, sDivision: string) {
     const chance = growth * ((form - 6.8) / 2.2 + golBonus) * careerBonus;
     for (let i = 0; i < 2; i++) { const k = keys[R.int(keys.length)]; if (a[k] < 20 && R.random() < chance) { a[k]++; changed = true; } }
   }
-  if (decline > 0) { for (const k of ['vel', 'agi', 'res']) { if (a[k] > 1 && R.random() < decline * 0.22) { a[k]--; changed = true; } } }
-  if (benchStreak >= 4) { const chance = Math.min(0.25, (benchStreak - 3) * 0.05); const k = keys[R.int(keys.length)]; if (a[k] > 1 && R.random() < chance) { a[k]--; changed = true; } }
+  // TREINO ESPECIAL — porte fiel do cliente (index.html evolvePlayer): faltava aqui, então
+  // jogadores em treino especial no host nunca ganhavam o bônus na Resenha.
+  if (p._training) {
+    const star = hasEstrelinha(p);
+    const trainChance = 0.05 * (star ? 1.8 : 1);
+    const k = keys[R.int(keys.length)]; if (a[k] < 20 && R.random() < trainChance) { a[k]++; changed = true; }
+  }
+  // JOVEM (<=20) descansando cresce devagar mesmo sem jogar — porte fiel do cliente, faltava aqui.
+  if (!played && age <= 20 && growth > 0) {
+    const chance = growth * 0.12;
+    const k = keys[R.int(keys.length)]; if (a[k] < 20 && R.random() < chance) { a[k]++; changed = true; }
+  }
+  if (decline > 0) {
+    // boa performance recente atenua (não zera) a queda de veteranos — mesmo formMult do cliente.
+    const formMult = Math.max(0.62, 1 - Math.max(0, form - 6.5) * 0.15);
+    for (const k of ['vel', 'agi', 'res']) { if (a[k] > 1 && R.random() < decline * 0.22 * formMult) { a[k]--; changed = true; } }
+  }
+  // 4+ rodadas fora do XI: só decai atributo FÍSICO (vel/agi/res), igual ao cliente — antes
+  // sorteava de TODO o perfil da posição (técnico+mental+físico), divergindo do cliente.
+  if (benchStreak >= 4 && !(age <= 20) && !p._training) {
+    const chance = Math.min(0.25, (benchStreak - 3) * 0.05);
+    const physKeys = ['vel', 'agi', 'res'].filter((k) => a[k] != null);
+    if (physKeys.length) { const k = physKeys[R.int(physKeys.length)]; if (a[k] > 1 && R.random() < chance) { a[k]--; changed = true; } }
+  }
   if (changed) { p.rawF = levelToForce(attrLevel(a, p.s)); p.f = rbForce(p.rawF, p._div || sDivision || 'A'); p.mv = Math.round(rbValue(p.f, p.age) * (p.mvBoost || 1)); }
+  p._trend = !changed ? null : p.f > fBefore ? 'up' : p.f < fBefore ? 'down' : null;
 }
 /* evolução da rodada — humano usa a escalação submetida; CPU os 11 mais fortes (mesma regra do cliente) */
 function advanceDevelopment(S: any, humanClubs: Set<string>, humanXI: any) {
@@ -583,6 +610,34 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   const _prevTables: any = {};
   DIV_ORDER.forEach((d) => { const t = (d === S.division) ? S.table : ((S.otherDivs[d] || {}).table || {}); _prevTables[d] = sortTblT(t).map((x: any) => ({ id: x.id, P: x.P, W: x.W, D: x.D, L: x.L, GF: x.GF, GA: x.GA, Pts: x.Pts })); });
   S._prevSeason = { season: (S.season || 1), tables: _prevTables, scorers: S.scorers || {}, copaBrasil: (S.cups && S.cups.copaBrasil) || null };
+  // acumula artilharia histórica + Historial de carreira ANTES do reset — porte fiel do
+  // mesmo trecho em endSeason() (core.js). Sem isto, "melhores marcadores de sempre" e o
+  // Historial (jogos/cartões/lesões) do jogador perdiam TUDO a cada virada de temporada na
+  // Resenha (o servidor é quem faz a virada aqui; o endSeason() do cliente nunca roda pra isso).
+  S.allTimeScorers = S.allTimeScorers || {};
+  Object.entries(S.scorers || {}).forEach(([n, g]: [string, any]) => { S.allTimeScorers[n] = (S.allTimeScorers[n] || 0) + g; });
+  // p.career (títulos/temporadas na elite/melhor posição) — porte fiel do mesmo trecho em
+  // endSeason() (core.js). Sem isto, o bônus de crescimento de "jogador consagrado"
+  // (evolvePlayer -> careerBonus) nunca se aplicava na Resenha: p.career ficava congelado no
+  // valor inicial pra sempre, já que só quem faz a virada de temporada aqui é o servidor.
+  // wonCup só cobre a Copa do Brasil (única copa materializada com bracket no servidor —
+  // Libertadores/Sul-Americana são só overall agregado em background, sem chave própria aqui).
+  const tblDiv = _prevTables[S.division] || [];
+  const wonCup = (cid: string) => !!(S.cups && S.cups.copaBrasil && S.cups.copaBrasil.champion === cid);
+  Object.keys(S.squads).forEach((cid) => {
+    const pos = tblDiv.findIndex((t: any) => t.id === cid) + 1; // 1-based; 0 se o clube não estava nesta tabela
+    const wonDivision = tblDiv[0] && tblDiv[0].id === cid;
+    (S.squads[cid] || []).forEach((p: any) => {
+      p.careerStats = p.careerStats || { apps: 0, cs: 0, yellows: 0, reds: 0, injuries: 0 };
+      const st = p.stats || {};
+      p.careerStats.apps += st.apps || 0; p.careerStats.cs += st.cs || 0;
+      p.careerStats.yellows += st.yellows || 0; p.careerStats.reds += st.reds || 0; p.careerStats.injuries += st.injuries || 0;
+      p.career = p.career || { titles: 0, seasonsTopDiv: 0, bestFinish: 99 };
+      if (wonDivision || wonCup(cid)) p.career.titles++;
+      if (S.division === 'A') p.career.seasonsTopDiv++;
+      if (pos > 0) p.career.bestFinish = Math.min(p.career.bestFinish, pos);
+    });
+  });
   S.season = (S.season || 1) + 1;                                 // 2) nova temporada (regen usa o novo season no seed)
   const used = new Set<string>(); Object.keys(S.squads).forEach((cid) => S.squads[cid].forEach((p: any) => used.add(p.n)));
   const retirements: any[] = [];
@@ -599,7 +654,7 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   const cbClubs = DIV_ORDER.reduce((acc: string[], d) => acc.concat(newDiv[d]), [] as string[]);
   S.cups = S.cups || {}; S.cups.copaBrasil = makeBracketT(cbClubs, ME.hashSeed(S.seed, 'copaBrasil', S.season), S.clubOverall); // 5) copa nova
   S.round = 0; S.week = 1; S.day = 1; S.results = []; S.scorers = {}; S.negos = []; S.finished = false; // 6) reset de temporada
-  Object.keys(S.squads).forEach((cid) => S.squads[cid].forEach((p: any) => { p.moral = 70; p.energy = 100; p.suspended = 0; p.injuredMatches = 0; p.stats = { r3: [], g3: [], apps: 0, goals: 0, cs: 0 }; }));
+  Object.keys(S.squads).forEach((cid) => S.squads[cid].forEach((p: any) => { p.moral = 70; p.energy = 100; p.suspended = 0; p.injuredMatches = 0; p.stats = { r3: [], g3: [], apps: 0, goals: 0, cs: 0, yellows: 0, reds: 0, injuries: 0 }; }));
   S._roundIncidents = {};
 }
 /* resolve UMA rodada da liga no estado S (mutando-o). humanResultByFx: {"h-a":{hg,ag,scorers,events}} */

@@ -143,12 +143,61 @@ function playerAsk(p, sellerId){
   return Math.round(ask);
 }
 
+/* ---- TRAVA DE NEGOCIAÇÃO: jogador comprado fica bloqueado pro resto da TEMPORADA em que a
+   compra aconteceu — sem isso dava pra comprar e revender (pra CPU, leilão, oferta recebida etc.)
+   na sequência, num ciclo sem sentido de "flipar" jogadores. Guarda só a temporada (não a rodada):
+   expira sozinho na virada de temporada, sem precisar de limpeza explícita em newSeasonReset(). */
+function applyTradeLock(p){ if(p) p._tradeLockSeason=S.season; }
+function isTradeLocked(p){ return !!(p && p._tradeLockSeason===S.season); }
+/* ================= TREINO ESPECIAL =================
+   Feature nova (não existia nenhum rastro no código: "treino"/"treinar" só apareciam em textos
+   sem relação, tipo "onde vai treinar" = escolher clube). Limite de 3 jogadores em treino ao
+   mesmo tempo por clube (S.trainingByClub, escopado como toda lista compartilhada — ver #1.1);
+   quem está em treino ganha uma chance EXTRA de evolução por rodada (evolvePlayer, index.html),
+   somada ao que já ganhava jogando/descansando jovem. "Estrelinha" (destaque/potencial) acelera
+   ainda mais — como não existia esse conceito, é derivado de forma estável (determinística) do
+   próprio jogador via hasEstrelinha(), sem precisar mexer em todo canto que cria jogador. */
+const TRAINING_MAX_SLOTS=3;
+function hasEstrelinha(p){ if(!p) return false; return (hashSeed(p.pid!=null?p.pid:0, p.n||'','estrelinha')>>>0)%100 < 15; }
+function myTrainingList(){ return (S.trainingByClub && S.trainingByClub[S.clubId])||[]; }
+function startTraining(pid){
+  S.trainingByClub=S.trainingByClub||{};
+  const mine=S.trainingByClub[S.clubId]=S.trainingByClub[S.clubId]||[];
+  if(mine.includes(pid)) return {ok:false,msg:'Esse jogador já está em treino.'};
+  if(mine.length>=TRAINING_MAX_SLOTS) return {ok:false,msg:`Máximo de ${TRAINING_MAX_SLOTS} jogadores em treino ao mesmo tempo.`};
+  const p=(S.squads[S.clubId]||[]).find(x=>x.pid===pid); if(!p) return {ok:false,msg:'Jogador não encontrado.'};
+  mine.push(pid); p._training=true; save();
+  return {ok:true,msg:`${p.n} entrou em treino especial.`};
+}
+function stopTraining(pid){
+  S.trainingByClub=S.trainingByClub||{};
+  S.trainingByClub[S.clubId]=(S.trainingByClub[S.clubId]||[]).filter(x=>x!==pid);
+  const p=(S.squads[S.clubId]||[]).find(x=>x.pid===pid); if(p) delete p._training;
+  save();
+  return {ok:true};
+}
+/* ---- HISTÓRICO DE TRANSFERÊNCIAS por jogador — antes só existia um log rolante (máx. 50) pras
+   ligas de fundo (S.bgLeagues[...].transferLog), nada persistente pro usuário: o jogo só
+   "lembrava" a primeira troca de clube porque nada gravava as seguintes. p.transferHistory vive
+   no PRÓPRIO objeto do jogador (como p.career/p.careerStats) — sobrevive a newSeasonReset() até
+   ele se aposentar. ATENÇÃO: isso NÃO vale pra p.stats — esse newSeasonReset() zera por
+   completo a cada temporada (é o "placar" da temporada em curso); quem acumula pro Historial
+   entre temporadas é p.careerStats (ver endSeason(), alimentado ANTES do reset). Chamado em
+   TODO ponto que move um jogador entre clubes de verdade (compra/venda/leilão/proposta humana). */
+function recordTransferHistory(p, fromId, toId, fee){
+  if(!p) return;
+  p.transferHistory=p.transferHistory||[];
+  p.transferHistory.push({ season:S.season, round:S.round, from:fromId||null, to:toId||null, fee:Math.round(fee||0) });
+  if(p.transferHistory.length>30) p.transferHistory.shift(); // teto de sanidade (carreira de 30 trocas já é MUITO)
+}
 /* ---- rigorous 3-day negotiation cycle ----
    Dia 1 (fee): clube decide a taxa. Dia 2 (terms): empresário avalia salário.
    Dia 3 (verdict): jogador aceita/recusa a contraproposta.                 */
 function startNego(sellerId,playerName,offerFee){
   if(!canNegotiate()) return -1; // fora da janela E da pré-janela: nem inicia negociação
+  if(typeof CL!=='undefined' && CL.online && CL.humans && CL.humans[sellerId]) return -1; // clube de humano: usa sendHumanOffer (proposta de verdade), não a negociação algorítmica (CPU)
   const p=findP(playerName,sellerId);
+  if(isTradeLocked(p)) return -1; // comprado nesta temporada — travado pra não ser revendido em seguida
   S.negos.push({ sellerId, player:playerName, stage:'fee', status:'aberta',
     offerFee, clubCounter:null, feeAgreed:false,
     salary:REBAL.wage(p.f), role:'Titular Regular',
@@ -228,30 +277,49 @@ function executePendingTransfers(){
     if(S.round < t.executeRound){ stay.push(t); return; } // ainda não abriu a janela
     S.roundNews=S.roundNews||[];
     if(t.kind==='buy'){
-      // tira do vendedor (se ainda estiver lá), senão usa o snapshot guardado no acordo
-      let p=(S.squads[t.sellerId]||[]).find(x=>x.n===t.playerName);
-      if(p){ S.squads[t.sellerId]=S.squads[t.sellerId].filter(x=>x.n!==t.playerName); }
-      else { p=t.snapshot; }
-      if(!p) return;
-      p.contract=t.contract; p.moral=75;
+      // buyerId: o clube que FECHOU o acordo (gravado em finalizeTransfer) — NÃO pode ser
+      // S.clubId aqui, porque quem roda isto é sempre quem executa playRound() (no Resenha, o
+      // ANFITRIÃO no fallback), que pode ser um clube diferente do que realmente comprou.
+      const buyerId=t.buyerId!=null ? t.buyerId : S.clubId; // fallback pra saves antigos sem o campo
+      const p=(S.squads[t.sellerId]||[]).find(x=>x.n===t.playerName);
+      if(!p){
+        // o jogador já não está mais no vendedor — foi negociado por outro caminho (CPU, outro
+        // humano) enquanto o pré-acordo esperava a janela abrir. CANCELA e REEMBOLSA quem
+        // comprou (o valor já tinha sido debitado na hora do acordo, em finalizeTransfer) — antes
+        // disso, o "snapshot" antigo do jogador era empurrado pro comprador mesmo já pertencendo a
+        // outro clube, duplicando o jogador em dois elencos ao mesmo tempo.
+        if(buyerId===S.clubId){
+          S.budget+=t.fee; commitBudget();
+          S.roundNews.push(`↩️ Acordo por ${t.playerName} cancelado — ele já tinha sido negociado antes da janela abrir. ${fmt(t.fee)} devolvidos.`);
+        }
+        return;
+      }
+      S.squads[t.sellerId]=S.squads[t.sellerId].filter(x=>x.n!==t.playerName);
+      p.contract=t.contract; p.moral=75; applyTradeLock(p); recordTransferHistory(p, t.sellerId, buyerId, t.fee);
       MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division)); // gatilho de vitrine na chegada
-      S.squads[S.clubId]=S.squads[S.clubId]||[]; S.squads[S.clubId].push(p);
-      recordNetTransfer(t.sellerId, S.clubId, t.playerName, t.contract, t.fee, p&&p.pid); // online: avisa o servidor
-      S.roundNews.push(`✍️ ${t.playerName} se apresentou ao ${clubOf(S.clubId).short} (transferência acordada, agora com a janela aberta).`);
+      S.squads[buyerId]=S.squads[buyerId]||[]; S.squads[buyerId].push(p);
+      recordNetTransfer(t.sellerId, buyerId, t.playerName, t.contract, t.fee, p&&p.pid); // online: avisa o servidor
+      if(buyerId===S.clubId) S.roundNews.push(`✍️ ${t.playerName} se apresentou ao ${clubOf(buyerId).short} (transferência acordada, agora com a janela aberta).`);
     } else if(t.kind==='sell'){
-      const p=(S.squads[S.clubId]||[]).find(x=>x.n===t.playerName);
+      // sellerId: o clube que fechou a venda (gravado em clSellConfirm/acceptIncomingOffer) —
+      // mesma razão do buyerId acima: S.clubId na hora da EXECUÇÃO pode não ser quem vendeu.
+      const sellerId=t.sellerId!=null ? t.sellerId : S.clubId; // fallback pra saves antigos
+      const p=(S.squads[sellerId]||[]).find(x=>x.n===t.playerName);
       if(!p){ return; } // já saiu por outro caminho
-      S.squads[S.clubId]=S.squads[S.clubId].filter(x=>x.n!==t.playerName);
-      S.budget+=t.fee; commitBudget();                 // publica: senão o crédito é revertido na próxima rodada
+      S.squads[sellerId]=S.squads[sellerId].filter(x=>x.n!==t.playerName);
+      if(sellerId===S.clubId){ S.budget+=t.fee; commitBudget(); } // publica: senão o crédito é revertido na próxima rodada
       if(t.buyerCountry) ensureBgClubMaterialized(t.buyerId);
       delete p.contract; delete p._pendingSale;
+      recordTransferHistory(p, sellerId, t.buyerCountry?null:t.buyerId, t.fee);
       if(S.squads[t.buyerId]) S.squads[t.buyerId].push(p);
       // comprador estrangeiro (background/CONMEBOL) NÃO existe no mundo do servidor -> registra como
       // SAÍDA DO MUNDO (to:null): o servidor remove o jogador do vendedor de vez (senão a venda era
       // rejeitada, o jogador voltava e dava pra revender infinitamente). O dinheiro já foi via commitBudget.
-      recordNetTransfer(S.clubId, t.buyerCountry?null:t.buyerId, t.playerName, null, t.fee, p&&p.pid); // online: avisa o servidor (venda)
-      S.roundNews.push(`💰 ${t.playerName} deixou o clube rumo ao ${t.buyerName} por ${fmt(t.fee)} (transferência acordada).`);
-      pushFinanceEntry({playerSales:t.fee, log:[`💰 ${t.playerName} vendido ao ${t.buyerName} por ${fmt(t.fee)}.`]});
+      recordNetTransfer(sellerId, t.buyerCountry?null:t.buyerId, t.playerName, null, t.fee, p&&p.pid); // online: avisa o servidor (venda)
+      if(sellerId===S.clubId){
+        S.roundNews.push(`💰 ${t.playerName} deixou o clube rumo ao ${t.buyerName} por ${fmt(t.fee)} (transferência acordada).`);
+        pushFinanceEntry({playerSales:t.fee, log:[`💰 ${t.playerName} vendido ao ${t.buyerName} por ${fmt(t.fee)}.`]});
+      }
     }
   });
   S.pendingTransfers=stay;
@@ -323,6 +391,9 @@ function promoteYouth(){
   raw.age=16+Math.floor(R.random()*4); raw.ag='Base'; raw.moral=75; raw.mv=REBAL.value(raw.f, raw.age);
   const youth=attachAttrs(initStats(raw), div);   // ganha pid + atributos + comportamento
   youth.contract=defaultContract(youth);
+  // jovem recém-promovido é muito inexperiente pra cobrar salário de mercado — 40% do valor
+  // que defaultContract() daria pra um jogador comum com essa força (piso de 1000, igual defaultContract).
+  youth.contract.salary=Math.max(1000, Math.round(youth.contract.salary*0.4));
   youth._youthSeason=S.season; youth._youthWindow=currentWindowIndex(); // temporada+janela (base do teto de 1/janela)
   sq.push(youth);
   if(typeof CL!=='undefined' && CL.online){ // manda o jogador NOVO pro servidor adicionar (from BASE)
@@ -388,7 +459,7 @@ function finalizeTransfer(negoIdx){
   if(inTransferWindow()){
     // janela aberta: o jogador troca de clube AGORA
     S.squads[n.sellerId]=S.squads[n.sellerId].filter(x=>x.n!==p.n);
-    p.contract=contract; p.moral=75;
+    p.contract=contract; p.moral=75; applyTradeLock(p); recordTransferHistory(p, n.sellerId, S.clubId, totalCost);
     MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division)); // gatilho de vitrine
     S.squads[S.clubId]=S.squads[S.clubId]||[]; S.squads[S.clubId].push(p);
     recordNetTransfer(n.sellerId, S.clubId, p.n, contract, totalCost, p.pid); // online: avisa o servidor (senão a contratação é desfeita)
@@ -399,7 +470,7 @@ function finalizeTransfer(negoIdx){
   }
   // PRÉ-ACORDO (pré-janela): fecha o negócio agora, mas o jogador só chega na abertura da janela.
   S.pendingTransfers=S.pendingTransfers||[];
-  S.pendingTransfers.push({ kind:'buy', sellerId:n.sellerId, playerName:p.n, snapshot:p,
+  S.pendingTransfers.push({ kind:'buy', sellerId:n.sellerId, buyerId:S.clubId, playerName:p.n,
     contract, fee:totalCost, executeRound:preOpen });
   S.roundNews.push(`🤝 Acordo fechado: ${p.n} chega do ${clubOf(n.sellerId).short} na abertura da janela (rodada ${preOpen+1}). Pago ${fmt(totalCost)}.`);
   pushFinanceEntry({playerPurchases:totalCost, log:[`🤝 ${p.n} pré-contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`]});
@@ -487,55 +558,75 @@ function bgCpuTransfers(R){
    inclusive de outros países) fazem ofertas em dinheiro pelos jogadores do usuário, que pode
    aceitar (vende) ou recusar. Dá o outro lado do mercado — não só o usuário compra/vende, o
    mundo também vem atrás das suas estrelas. Gerado nas janelas de transferência. ---- */
-function pruneIncomingOffers(){ S.incomingOffers=(S.incomingOffers||[]).filter(o=>o.expiresRound>S.round); }
+/* Propostas são escopadas por clube (S.incomingOffersByClub[clubId]) — S é um blob único
+   compartilhado com TODOS os treinadores da sala (ver netSaveGame/onlineAdoptServerRound), então
+   um array plano aqui vazava a proposta recebida por um clube pra tela de "Propostas recebidas"
+   de todo mundo. myIncomingOffers() é a fatia da PRÓPRIA perspectiva (S.clubId). */
+function myIncomingOffers(){ return (S.incomingOffersByClub&&S.incomingOffersByClub[S.clubId])||[]; }
+function pruneIncomingOffers(){
+  S.incomingOffersByClub=S.incomingOffersByClub||{};
+  Object.keys(S.incomingOffersByClub).forEach(cid=>{ S.incomingOffersByClub[cid]=(S.incomingOffersByClub[cid]||[]).filter(o=>o.expiresRound>S.round); });
+}
 function generateIncomingOffers(R){
   pruneIncomingOffers();
   if(!canNegotiate()) return; // propostas chegam na janela E na pré-janela
   R=R||makeRng(hashSeed(S.seed,S.round,'incoming'));
-  if((S.incomingOffers||[]).length>=4) return;   // no máximo 4 propostas pendentes
-  if(R.random()>0.5) return;                       // nem toda rodada de janela gera proposta
-  const mySquad=S.squads[S.clubId]||[]; if(mySquad.length<=16) return;
-  const pending=new Set((S.incomingOffers||[]).map(o=>o.playerName));
-  // clubes miram preferencialmente os melhores do elenco (que ainda não têm proposta)
-  const targets=mySquad.filter(p=>!pending.has(p.n)&&!p._pendingSale).sort((a,b)=>b.f-a.f).slice(0, Math.max(3,Math.ceil(mySquad.length*0.4)));
-  if(!targets.length) return;
-  const p=targets[Math.floor(R.random()*targets.length)];
-  // candidatos a comprador: liga do usuário + ligas de background (entre países)
-  const cand=[];
-  DATA.clubs.filter(c=>c.id!==S.clubId).forEach(c=>cand.push({id:c.id,name:c.short,country:null,overall:c.overall||70}));
-  Object.keys(S.bgLeagues||{}).forEach(country=>Object.keys(S.bgLeagues[country].divs).forEach(d=>
-    (S.bgLeagues[country].divs[d].clubIds||[]).forEach(id=>{ const c=intlClubById(id); if(c) cand.push({id,name:c.short,country,overall:c.overall||70}); })));
-  if(!cand.length) return;
-  // só clubes de nível compatível miram o jogador (overall de elenco ~80 no topo vs força
-  // individual até ~92, então usamos uma folga maior). Sem clube compatível => sem proposta
-  // (realista: ninguém "fraco" oferece pela sua estrela).
-  const eligible=cand.filter(c=>c.overall>=p.f-12);
-  if(!eligible.length) return;
-  const buyer=eligible[Math.floor(R.random()*eligible.length)];
-  const fee=Math.round((p.mv||1e6)*(1.0+R.random()*0.7)); // 1.0-1.7x (proposta cheia, às vezes acima)
-  // teto do comprador pra regatear: acima da 1ª oferta, maior se o jogador está em fase
-  // (mais valorizado) — é até onde ele topa subir numa contraproposta sua.
-  const maxFee=Math.round(fee*(1.15 + (isHot(p)?0.2:0) + R.random()*0.15));
-  S.incomingOffers=S.incomingOffers||[];
-  S.incomingOffers.push({ id:(hashSeed(S.seed,S.round,p.n,buyer.id)>>>0), buyerId:buyer.id, buyerName:buyer.name,
-    buyerCountry:buyer.country, playerName:p.n, playerForce:p.f, fee, maxFee, negRound:0, lastMsg:null, expiresRound:S.round+3 });
-  S.roundNews=S.roundNews||[];
-  S.roundNews.push(`📩 ${buyer.name}${buyer.country?' ('+buyer.country+')':''} ofereceu ${fmt(fee)} por ${p.n}. Veja em Jogador → Propostas recebidas.`);
-  // fila de toasts de proposta (mostrados ao voltar pra tela principal — ver liveDone)
-  S._offerToasts=S._offerToasts||[]; S._offerToasts.push(`💰 ${buyer.name} fez uma oferta por ${p.n}`);
+  S.incomingOffersByClub=S.incomingOffersByClub||{};
+  S._offerToastsByClub=S._offerToastsByClub||{};
+  // No Modo Resenha, esta função roda no aparelho do anfitrião (fallback local — ver
+  // _commitLeagueRound); CL.humans lista TODOS os clubes humanos da sala, não só o do anfitrião.
+  const targetClubIds=(typeof CL!=='undefined' && CL.online && CL.humans) ? Object.keys(CL.humans) : [S.clubId];
+  targetClubIds.forEach(myClubId=>{
+    const myOffers=S.incomingOffersByClub[myClubId]=S.incomingOffersByClub[myClubId]||[];
+    if(myOffers.length>=4) return;   // no máximo 4 propostas pendentes
+    if(R.random()>0.5) return;                       // nem toda rodada de janela gera proposta
+    const mySquad=S.squads[myClubId]||[]; if(mySquad.length<=16) return;
+    const pending=new Set(myOffers.map(o=>o.playerName));
+    // clubes miram preferencialmente os melhores do elenco (que ainda não têm proposta)
+    const targets=mySquad.filter(p=>!pending.has(p.n)&&!p._pendingSale).sort((a,b)=>b.f-a.f).slice(0, Math.max(3,Math.ceil(mySquad.length*0.4)));
+    if(!targets.length) return;
+    const p=targets[Math.floor(R.random()*targets.length)];
+    // candidatos a comprador: liga do usuário + ligas de background (entre países)
+    const cand=[];
+    DATA.clubs.filter(c=>c.id!==myClubId).forEach(c=>cand.push({id:c.id,name:c.short,country:null,overall:c.overall||70}));
+    Object.keys(S.bgLeagues||{}).forEach(country=>Object.keys(S.bgLeagues[country].divs).forEach(d=>
+      (S.bgLeagues[country].divs[d].clubIds||[]).forEach(id=>{ const c=intlClubById(id); if(c) cand.push({id,name:c.short,country,overall:c.overall||70}); })));
+    if(!cand.length) return;
+    // só clubes de nível compatível miram o jogador (overall de elenco ~80 no topo vs força
+    // individual até ~92, então usamos uma folga maior). Sem clube compatível => sem proposta
+    // (realista: ninguém "fraco" oferece pela sua estrela).
+    const eligible=cand.filter(c=>c.overall>=p.f-12);
+    if(!eligible.length) return;
+    const buyer=eligible[Math.floor(R.random()*eligible.length)];
+    const fee=Math.round((p.mv||1e6)*(1.0+R.random()*0.7)); // 1.0-1.7x (proposta cheia, às vezes acima)
+    // teto do comprador pra regatear: acima da 1ª oferta, maior se o jogador está em fase
+    // (mais valorizado) — é até onde ele topa subir numa contraproposta sua.
+    const maxFee=Math.round(fee*(1.15 + (isHot(p)?0.2:0) + R.random()*0.15));
+    myOffers.push({ id:(hashSeed(S.seed,S.round,p.n,buyer.id,myClubId)>>>0), buyerId:buyer.id, buyerName:buyer.name,
+      buyerCountry:buyer.country, playerName:p.n, playerForce:p.f, fee, maxFee, negRound:0, lastMsg:null, expiresRound:S.round+3 });
+    if(myClubId===S.clubId){
+      S.roundNews=S.roundNews||[];
+      S.roundNews.push(`📩 ${buyer.name}${buyer.country?' ('+buyer.country+')':''} ofereceu ${fmt(fee)} por ${p.n}. Veja em Jogador → Propostas recebidas.`);
+    }
+    // fila de toasts de proposta (mostrados ao voltar pra tela principal — ver liveDone), também
+    // escopada por clube: senão o anfitrião via toast de proposta de OUTRO treinador.
+    S._offerToastsByClub[myClubId]=S._offerToastsByClub[myClubId]||[];
+    S._offerToastsByClub[myClubId].push(`💰 ${buyer.name} fez uma oferta por ${p.n}`);
+  });
 }
 function acceptIncomingOffer(id){
-  const o=(S.incomingOffers||[]).find(x=>x.id===id); if(!o) return {ok:false,msg:'Proposta não existe mais.'};
+  const o=myIncomingOffers().find(x=>x.id===id); if(!o) return {ok:false,msg:'Proposta não existe mais.'};
   const p=(S.squads[S.clubId]||[]).find(x=>x.n===o.playerName); if(!p) return {ok:false,msg:'Jogador não está mais no elenco.'};
   if((S.squads[S.clubId]||[]).length<=15) return {ok:false,msg:'Elenco pequeno demais pra vender.'};
+  if(isTradeLocked(p)) return {ok:false,msg:`${p.n} foi comprado nesta temporada e ainda não pode ser negociado de novo.`};
   const preOpen=inPreWindow();
-  S.incomingOffers=(S.incomingOffers||[]).filter(x=>x.id!==id);
+  S.incomingOffersByClub[S.clubId]=myIncomingOffers().filter(x=>x.id!==id);
   S.roundNews=S.roundNews||[];
   if(!inTransferWindow() && preOpen){
     // PRÉ-ACORDO: aceita agora, mas o jogador só sai na abertura da janela (segue jogando até lá)
     p._pendingSale=true;
     S.pendingTransfers=S.pendingTransfers||[];
-    S.pendingTransfers.push({ kind:'sell', playerName:o.playerName, buyerId:o.buyerId, buyerName:o.buyerName,
+    S.pendingTransfers.push({ kind:'sell', sellerId:S.clubId, playerName:o.playerName, buyerId:o.buyerId, buyerName:o.buyerName,
       buyerCountry:o.buyerCountry, fee:o.fee, executeRound:preOpen });
     S.roundNews.push(`🤝 Acordo fechado: ${o.playerName} vai pro ${o.buyerName} na abertura da janela (rodada ${preOpen+1}) por ${fmt(o.fee)}.`);
     save();
@@ -545,7 +636,12 @@ function acceptIncomingOffer(id){
   S.squads[S.clubId]=S.squads[S.clubId].filter(x=>x.n!==o.playerName);
   S.budget+=o.fee; commitBudget();                     // publica: senão o crédito é revertido na próxima rodada
   if(o.buyerCountry) ensureBgClubMaterialized(o.buyerId);
-  if(S.squads[o.buyerId]){ delete p.contract; S.squads[o.buyerId].push(p); } // vai pro clube comprador
+  recordTransferHistory(p, S.clubId, o.buyerCountry?null:o.buyerId, o.fee);
+  if(S.squads[o.buyerId]){
+    if(o.buyerIsHuman){ p.contract={ salary:REBAL.wage(p.f), role:'Rotação', gotMatchesBonus:false, benchStreak:0, releaseClause:null }; applyTradeLock(p); }
+    else delete p.contract;
+    S.squads[o.buyerId].push(p);
+  } // vai pro clube comprador
   // comprador estrangeiro não existe no mundo do servidor -> saída do mundo (to:null), senão o
   // jogador era rejeitado e voltava pro vendedor (revenda infinita). Ver acceptIncomingOffer/#1.
   recordNetTransfer(S.clubId, o.buyerCountry?null:o.buyerId, o.playerName, null, o.fee, p&&p.pid); // online: avisa o servidor (venda)
@@ -554,7 +650,72 @@ function acceptIncomingOffer(id){
   save();
   return {ok:true, msg:`${o.playerName} vendido por ${fmt(o.fee)}!`};
 }
-function rejectIncomingOffer(id){ S.incomingOffers=(S.incomingOffers||[]).filter(x=>x.id!==id); save(); return {ok:true}; }
+function rejectIncomingOffer(id){ S.incomingOffersByClub=S.incomingOffersByClub||{}; S.incomingOffersByClub[S.clubId]=myIncomingOffers().filter(x=>x.id!==id); save(); return {ok:true}; }
+/* ================= NEGOCIAÇÃO ENTRE HUMANOS =================
+   Antes, transferência humano<->humano era instantânea e algorítmica (sem chance de recusa pro
+   vendedor). Agora: EU (comprador) mando uma proposta que entra na MESMA fila de "propostas
+   recebidas" do vendedor (S.incomingOffersByClub — já escopada por clube, ver #1.1), só marcada
+   buyerIsHuman:true. syncInbox() já lê myIncomingOffers() genericamente, então a proposta aparece
+   sozinha no e-mail do vendedor. Ele decide: aceitar (acceptIncomingOffer já trata buyerIsHuman
+   dando contrato e travando o jogador — ver ali), recusar, ou negociar (counterHumanOffer). */
+function sendHumanOffer(targetSellerId, playerName, fee){
+  if(!CL.online || !CL.humans || !CL.humans[targetSellerId]) return {ok:false,msg:'Esse clube não é de um treinador humano.'};
+  if(String(targetSellerId)===String(S.clubId)) return {ok:false,msg:'Você não pode propor pelo seu próprio jogador.'};
+  if(!canNegotiate()) return {ok:false,msg:'A janela de transferências está fechada.'};
+  const p=findP(playerName,targetSellerId); if(!p) return {ok:false,msg:'Jogador não encontrado.'};
+  if(isTradeLocked(p)) return {ok:false,msg:`${p.n} foi negociado recentemente e ainda não pode ser negociado de novo.`};
+  fee=Math.round(fee||0); if(fee<=0) return {ok:false,msg:'Informe um valor de proposta.'};
+  if(fee>S.budget) return {ok:false,msg:'Caixa insuficiente pra essa proposta.'};
+  S.incomingOffersByClub=S.incomingOffersByClub||{};
+  const sellerOffers=S.incomingOffersByClub[targetSellerId]=S.incomingOffersByClub[targetSellerId]||[];
+  if(sellerOffers.some(o=>o.playerName===p.n && String(o.buyerId)===String(S.clubId))) return {ok:false,msg:'Você já tem uma proposta pendente por esse jogador.'};
+  const myHumanName=(CL.humans&&CL.humans[S.clubId])||'Um treinador';
+  const id=(hashSeed(S.seed,S.round,p.n,S.clubId,targetSellerId,nowMs())>>>0);
+  sellerOffers.push({ id, buyerId:S.clubId, buyerName:(clubOf(S.clubId)||{}).short||S.clubId, buyerHumanName:myHumanName,
+    buyerIsHuman:true, playerName:p.n, playerForce:p.f, fee, negRound:0, lastMsg:null, expiresRound:S.round+6 });
+  S.outgoingOffersByClub=S.outgoingOffersByClub||{};
+  (S.outgoingOffersByClub[S.clubId]=S.outgoingOffersByClub[S.clubId]||[]).push({ id, sellerId:targetSellerId, playerName:p.n, fee, expiresRound:S.round+6 });
+  save();
+  return {ok:true, msg:`Proposta de ${fmt(fee)} enviada por ${p.n}. O outro treinador vai ver no e-mail dele.`};
+}
+/* recusa uma proposta humana sinalizando um valor que você aceitaria — não é uma contraproposta
+   "de verdade" (não volta sozinha pro comprador decidir, como as da CPU): o comprador precisa
+   mandar uma NOVA proposta (sendHumanOffer) nesse valor se topar. Simples e honesto: dois humanos
+   numa Resenha já têm chat/voz pra combinar o valor; isto só formaliza a recusa + o número. */
+function counterHumanOffer(id, askFee){
+  const o=myIncomingOffers().find(x=>x.id===id); if(!o) return {ok:false,msg:'Proposta não existe mais.'};
+  if(!o.buyerIsHuman) return {ok:false,msg:'Essa proposta não é de um treinador humano.'};
+  askFee=Math.round(askFee)||0; if(askFee<=0) return {ok:false,msg:'Informe um valor válido.'};
+  S.incomingOffersByClub[S.clubId]=myIncomingOffers().filter(x=>x.id!==id);
+  S.roundNews=S.roundNews||[];
+  S.roundNews.push(`✋ Você recusou a proposta por ${o.playerName}, mas sinalizou que aceitaria ${fmt(askFee)}.`);
+  save();
+  return {ok:true, msg:`Proposta recusada — você sinalizou que toparia ${fmt(askFee)}. Se ${o.buyerHumanName||o.buyerName} topar, é só mandar uma nova proposta nesse valor.`};
+}
+/* roda a cada reconcile/adopt (ver onlineAdoptServerRound/onlineReconcileIfBehind): confere se
+   alguma proposta MINHA (S.outgoingOffersByClub) já foi aceita — sinal: o jogador já está no MEU
+   elenco (o vendedor moveu-o ao aceitar, via recordNetTransfer -> aplicado no mundo por todos).
+   Só ENTÃO debito o MEU caixa: na regra humano<->humano ninguém mais mexe no meu caixa por mim
+   (mesmo princípio de commitBudget/applyOwnPendingFinances) — o vendedor já creditou o dele ao
+   aceitar (acceptIncomingOffer). Se expirou sem o jogador chegar, foi recusada/ignorada: só some
+   da lista, sem debitar nada. */
+function settleMyOutgoingOffers(){
+  const mine=(S.outgoingOffersByClub && S.outgoingOffersByClub[S.clubId])||[];
+  if(!mine.length) return;
+  const stay=[];
+  mine.forEach(o=>{
+    const arrived=(S.squads[S.clubId]||[]).some(p=>p.n===o.playerName);
+    if(arrived){
+      S.budget-=o.fee; commitBudget();
+      S.roundNews=S.roundNews||[]; S.roundNews.push(`✍️ Proposta aceita: ${o.playerName} chegou por ${fmt(o.fee)}.`);
+      return;
+    }
+    if(S.round>o.expiresRound) return; // recusada/ignorada -> só sai da lista
+    stay.push(o);
+  });
+  S.outgoingOffersByClub=S.outgoingOffersByClub||{};
+  S.outgoingOffersByClub[S.clubId]=stay;
+}
 /* CONTRAPROPOSTA numa proposta recebida: você pede um valor maior; o comprador responde
    conforme o teto que ele topa pagar (maxFee — que já pesa valor de mercado + fase do jogador).
    - pedido <= oferta atual: aceita na hora (você abriu mão) -> o.state 'agreed'
@@ -562,7 +723,7 @@ function rejectIncomingOffer(id){ S.incomingOffers=(S.incomingOffers||[]).filter
    - pedido acima do teto: sobe um meio-termo (até o teto) e devolve; após 3 rodadas ou
      ganância grande (>1.3x teto), dá a palavra final (não passa do teto). */
 function counterIncomingOffer(id, askFee){
-  const o=(S.incomingOffers||[]).find(x=>x.id===id); if(!o) return {ok:false,msg:'Proposta não existe mais.'};
+  const o=myIncomingOffers().find(x=>x.id===id); if(!o) return {ok:false,msg:'Proposta não existe mais.'};
   if(o.state==='final'){ return {ok:false, msg:`${o.buyerName} já deu a palavra final: ${fmt(o.fee)}. Aceite ou recuse.`, final:true}; }
   askFee=Math.round(askFee)||0;
   o.negRound=(o.negRound||0)+1;
@@ -626,18 +787,55 @@ function openAuctionLots(R, want){
     S.auctions.lots.push(makeAuctionLot(club, p, R)); have.add(id); added++;
   }
 }
+/* SINCRONIZAÇÃO DE LANCES (Modo Resenha): lot.leader passou de binário 'me'/'cpu' pra 'cpu' OU o
+   clubId do humano que está na frente — sem isso, cada treinador via A SI MESMO como líder
+   (leader:'me' era relativo a quem estava olhando) e a resolução (que só roda no fallback local do
+   ANFITRIÃO — ver _commitLeagueRound) sempre creditava o jogador pro clube do anfitrião, nunca pro
+   humano que realmente venceu. lot.bids{clubId:{amount,ts}} guarda o histórico de lances humanos
+   conhecidos (o meu + os publicados pelos outros via game_seats.last_bids/NET._claimed) só pra
+   podermos atribuir corretamente quem venceu; lot.bid continua sendo o valor único "a bater" —
+   agora podendo vir de qualquer um dos dois lados. */
+function mergeAuctionBidsFromSeats(){
+  if(typeof CL==='undefined' || !CL.online || typeof NET==='undefined' || !NET._claimed || !S.auctions) return;
+  const lotsById={}; (S.auctions.lots||[]).forEach(l=>{ lotsById[l.id]=l; });
+  Object.keys(NET._claimed).forEach(uid=>{
+    const c=NET._claimed[uid]; if(!c || !c.clubId || !c.last_bids) return;
+    Object.keys(c.last_bids).forEach(lotId=>{
+      const lot=lotsById[lotId]; const b=c.last_bids[lotId];
+      if(!lot || lot.status!=='open' || !b || b.amount==null) return;
+      lot.bids=lot.bids||{};
+      const prev=lot.bids[c.clubId];
+      if(!prev || (b.ts||0)>=(prev.ts||0)) lot.bids[c.clubId]={amount:b.amount, ts:b.ts||0}; // guarda o lance MAIS RECENTE desse clube
+    });
+  });
+  (S.auctions.lots||[]).forEach(l=>{ if(l.status==='open') applyAuctionLead(l); });
+}
+/* recalcula lot.bid/lot.leader vendo todos os lances humanos conhecidos (lot.bids) contra o valor
+   atual — o maior manda; empate exato desempata por quem lançou primeiro (timestamp menor). Se
+   ninguém supera o valor atual, leader/bid ficam como estavam (podem já ser 'cpu' de uma cobertura). */
+function applyAuctionLead(lot){
+  const bids=lot.bids||{};
+  let bestClub=null, bestAmt=lot.bid, bestTs=Infinity;
+  Object.keys(bids).forEach(cid=>{
+    const b=bids[cid]; if(!b || b.amount==null) return;
+    if(b.amount>bestAmt || (b.amount===bestAmt && (b.ts||0)<bestTs)){ bestClub=cid; bestAmt=b.amount; bestTs=(b.ts||0); }
+  });
+  if(bestClub!=null){ lot.bid=bestAmt; lot.leader=bestClub; }
+}
 /* chamado no fim de cada rodada (playRound): CPU dá lances, resolve lotes vencidos, repõe o pool */
 function advanceAuctions(R){
   R=R||makeRng(hashSeed(S.seed,S.round,'auction'));
   if(!inTransferWindow() || !auctionEligible()){ S.auctions={round:S.round, lots:[]}; return; }
   S.auctions=S.auctions||{round:S.round, lots:[]};
+  mergeAuctionBidsFromSeats(); // traz os lances de TODOS os humanos da sala antes de decidir a cobertura
   const still=[];
   S.auctions.lots.forEach(l=>{
     if(l.status!=='open') return;
-    if(l.leader==='me'){
-      if((l.myBid||0) < l.ceiling){ // usuário na frente mas abaixo do teto -> CPU cobre
+    if(l.leader && l.leader!=='cpu'){
+      const leadAmt=(l.bids&&l.bids[l.leader]&&l.bids[l.leader].amount)||l.bid;
+      if(leadAmt < l.ceiling){ // humano líder mas abaixo do teto -> CPU cobre
         const incr=Math.max(50000, Math.round(l.ceiling*0.06));
-        l.bid=Math.min(l.ceiling, (l.myBid||l.bid)+incr); l.leader='cpu';
+        l.bid=Math.min(l.ceiling, leadAmt+incr); l.leader='cpu';
       } // senão: bateu acima do teto -> segue firme na frente
     } else { // CPU liderando -> sobe rumo ao teto
       const incr=Math.max(50000, Math.round(l.ceiling*0.08));
@@ -651,28 +849,38 @@ function advanceAuctions(R){
   S.auctions.round=S.round;
 }
 function resolveAuctionLot(l){
-  if(l.leader!=='me'){ l.status='lost'; return; } // um clube da CPU levou
+  if(!l.leader || l.leader==='cpu'){ l.status='lost'; return; } // um clube da CPU levou
+  const winnerClubId=l.leader; // clubId do humano vencedor — pode não ser S.clubId (quem resolve é sempre o ANFITRIÃO no fallback)
   const p=findP(l.player, l.sellerId); if(!p){ l.status='lost'; return; }
-  const price=l.myBid||l.bid;
+  const price=(l.bids&&l.bids[winnerClubId]&&l.bids[winnerClubId].amount)||l.bid;
+  const isMe=String(winnerClubId)===String(S.clubId);
   S.roundNews=S.roundNews||[];
-  if(price>S.budget){ l.status='lost'; S.roundNews.push(`❌ ${l.player}: caixa insuficiente pra pagar o lance vencedor no leilão.`); return; }
-  const fq=checkForeignQuota(p); if(!fq.ok){ l.status='lost'; S.roundNews.push(`❌ ${l.player}: ${fq.msg}`); return; }
-  S.budget-=price; commitBudget();                     // publica: senão o débito do leilão é revertido
+  // caixa/cota só são MINHA autoridade (S.budget, cota da MINHA divisão) — pra outro humano vencer,
+  // o crédito do jogador acontece igual (elenco é estado do mundo), mas o caixa dele é autoritativo
+  // no PRÓPRIO assento (commitBudget) e reconcilia sozinho quando ele adotar este resultado.
+  if(isMe){
+    if(price>S.budget){ l.status='lost'; S.roundNews.push(`❌ ${l.player}: caixa insuficiente pra pagar o lance vencedor no leilão.`); return; }
+    const fq=checkForeignQuota(p); if(!fq.ok){ l.status='lost'; S.roundNews.push(`❌ ${l.player}: ${fq.msg}`); return; }
+  }
+  if(isMe){ S.budget-=price; commitBudget(); }                // publica: senão o débito do leilão é revertido
   S.squads[l.sellerId]=(S.squads[l.sellerId]||[]).filter(x=>x.n!==p.n);
   p.contract={ salary:REBAL.wage(p.f), role:'Rotação', gotMatchesBonus:false, benchStreak:0, releaseClause:null };
-  p.moral=75;
+  p.moral=75; applyTradeLock(p); recordTransferHistory(p, l.sellerId, winnerClubId, price);
   if(typeof MARKET!=='undefined' && MARKET.revalueOnTransfer) MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division));
-  S.squads[S.clubId].push(p);
-  recordNetTransfer(l.sellerId, S.clubId, p.n, p.contract, price, p.pid); // online: sem isto o arremate é desfeito
+  S.squads[winnerClubId]=S.squads[winnerClubId]||[]; S.squads[winnerClubId].push(p);
+  recordNetTransfer(l.sellerId, winnerClubId, p.n, p.contract, price, p.pid); // online: sem isto o arremate é desfeito
   l.status='won';
-  S.roundNews.push(`🔨 ${p.n} arrematado no leilão por ${fmt(price)} — você cobriu a concorrência!`);
-  pushFinanceEntry({playerPurchases:price, log:[`🔨 ${p.n} arrematado no leilão por ${fmt(price)}.`]});
+  if(isMe){
+    S.roundNews.push(`🔨 ${p.n} arrematado no leilão por ${fmt(price)} — você cobriu a concorrência!`);
+    pushFinanceEntry({playerPurchases:price, log:[`🔨 ${p.n} arrematado no leilão por ${fmt(price)}.`]});
+  }
 }
 /* usuário dá/aumenta o lance num lote (durante a gestão). Só valida — NÃO debita (o débito é na
    resolução). Pra garantir a compra é preciso superar o teto (senão a CPU cobre na próxima rodada). */
 function placeAuctionBid(lotId, amount){
   if(!inTransferWindow()) return {ok:false,msg:'A janela de transferências está fechada.'};
   if(!auctionEligible()) return {ok:false,msg:'Você desligou compras em leilão no seu Perfil (Treinador > Perfil).'};
+  mergeAuctionBidsFromSeats(); // valida contra o lance mais recente conhecido, mesmo de outro humano
   const lot=((S.auctions&&S.auctions.lots)||[]).find(l=>l.id===lotId && l.status==='open');
   if(!lot) return {ok:false,msg:'Esse lote não está mais disponível.'};
   amount=Math.round(amount||0);
@@ -680,7 +888,10 @@ function placeAuctionBid(lotId, amount){
   if(amount>S.budget) return {ok:false,msg:'Caixa insuficiente pra esse lance.'};
   const p=findP(lot.player, lot.sellerId); if(!p) return {ok:false,msg:'Jogador não encontrado.'};
   const fq=checkForeignQuota(p); if(!fq.ok) return {ok:false,msg:fq.msg};
-  lot.myBid=amount; lot.bid=amount; lot.leader='me';
+  const ts=(typeof nowMs==='function')?nowMs():0;
+  lot.bids=lot.bids||{}; lot.bids[S.clubId]={amount, ts};
+  lot.bid=amount; lot.leader=S.clubId;
+  if(typeof NET!=='undefined' && NET.publishBids) NET.publishBids(lotId, amount, ts);
   const covered = amount < lot.ceiling; // não revela o teto — só sinaliza risco
   return {ok:true, covered, msg: covered ? `Lance de ${fmt(amount)} registrado — mas a concorrência ainda pode cobrir.` : `Lance de ${fmt(amount)} — você está firme na frente!` };
 }
@@ -945,6 +1156,7 @@ function advanceCupBracket(b, roundLabel){
     applyResult1off(t.h,t.a,fin.hg,fin.ag);
     const Rm=makeRng(hashSeed(seed,'rate'));
     applyMatchIncidents(evs);
+    recordScorers(fin.scorers); // sem isso, gol de copa não entrava em S.scorers -> "Gols nesta temporada" (só liga) ficava dessincronizado do Historial (soma liga+copa via ratePlayers)
     ratePlayers(t.h,fin.hg,fin.ag,fin.scorers,Rm,fin.perf&&fin.perf.H,fin.perf&&fin.perf.A); ratePlayers(t.a,fin.ag,fin.hg,fin.scorers,Rm,fin.perf&&fin.perf.A,fin.perf&&fin.perf.H);
     // empate no tempo normal: prorrogação + pênaltis de verdade (ver resolveDrawnKnockoutTie
     // em simulate.js) — nada de sorteio 50/50, e a MESMA seed de sempre garante que bate com
@@ -1013,6 +1225,7 @@ function advanceGroupStageRound(mg, roundLabel){
       let steps=0; while(!fin&&steps++<600) sim.step();
       applyMatchIncidents(evs);
       const Rm=makeRng(hashSeed(seed,'rate'));
+      recordScorers(fin.scorers); // idem ao bracket de mata-mata: gol de copa (aqui, fase de grupos) tem que contar em S.scorers
       ratePlayers(h,fin.hg,fin.ag,fin.scorers,Rm,fin.perf&&fin.perf.H,fin.perf&&fin.perf.A); ratePlayers(a,fin.ag,fin.hg,fin.scorers,Rm,fin.perf&&fin.perf.A,fin.perf&&fin.perf.H);
       const T=g.table;
       T[h].P++; T[a].P++; T[h].GF+=fin.hg; T[h].GA+=fin.ag; T[a].GF+=fin.ag; T[a].GA+=fin.hg;
@@ -3098,8 +3311,21 @@ function applyMyPrevSeasonPrizes(){
   }
   return sum;
 }
+/* CAMINHO LOCAL (solo, ou fallback do anfitrião quando resolve-round falha — ver
+   onlineHostCloseRound/_commitLeagueRound): monta o MESMO snapshot que o servidor grava em
+   S._prevSeason (resolveSeasonTurnover, resolve-round/index.ts), com as tabelas finais AINDA
+   intactas (antes de newSeasonReset() zerá-las). Sem isso, S._prevSeason só existia quando o
+   servidor resolvia a virada; se o fallback local rodasse (edge function fora do ar), o convidado
+   nunca via S._prevSeason, computeMyPrevSeasonPrizes() retornava null pra sempre, e a premiação
+   da temporada se perdia silenciosamente pra ele — mesmo a tabela de posições estando correta.
+   Retirements ficam vazios aqui (só o servidor computa isso na mesma passada; é só "sabor" no
+   press-room, não afeta a premiação). */
 function endSeason(){
   const tbl=sortedTable();
+  const _prevTables={};
+  DIV_ORDER.forEach(d=>{ const t=(d===S.division) ? S.table : ((S.otherDivs&&S.otherDivs[d])||{}).table;
+    _prevTables[d]= t ? mpSortTable({table:t}).map(x=>({id:x.id,P:x.P,W:x.W,D:x.D,L:x.L,GF:x.GF,GA:x.GA,Pts:x.Pts})) : []; });
+  S._prevSeason={ season:S.season||1, tables:_prevTables, scorers:S.scorers||{}, copaBrasil:(S.cups&&S.cups.copaBrasil)||null, retirements:[] };
   const champ=clubOf(tbl[0].id).short;
   const arty=topScorers(1)[0];
   const cups={};
@@ -3160,6 +3386,15 @@ function endSeason(){
       if(wonDivision||wonCup) p.career.titles++;
       if(S.division==='A') p.career.seasonsTopDiv++;
       if(pos>0) p.career.bestFinish=Math.min(p.career.bestFinish,pos);
+      // acumula o Historial (jogos/cartões/lesões) pra sobreviver a newSeasonReset(), que
+      // zera p.stats por completo pra começar a próxima temporada do zero — igual ao p.career
+      // acima e ao S.allTimeScorers (gols já é sincronizado com a artilharia por outro caminho,
+      // ver panJogador: soma S.allTimeScorers+S.scorers em vez de duplicar aqui). SEM isso o
+      // card "Historial" só mostrava os números da temporada atual, perdendo tudo a cada virada.
+      p.careerStats=p.careerStats||{apps:0,cs:0,yellows:0,reds:0,injuries:0};
+      const st=p.stats||{};
+      p.careerStats.apps+=st.apps||0; p.careerStats.cs+=st.cs||0;
+      p.careerStats.yellows+=st.yellows||0; p.careerStats.reds+=st.reds||0; p.careerStats.injuries+=st.injuries||0;
     });
   });
   // purge detailed cache -> new season

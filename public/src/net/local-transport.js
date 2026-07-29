@@ -249,12 +249,18 @@ function onlineReconcileIfBehind(room){
   if(authRound === (S.round||0)) return;           // exatamente a mesma rodada — nada a fazer
   if(ONLINE_RECONCILE_BUSY || typeof NET==='undefined' || !NET.loadGame) return;
   ONLINE_RECONCILE_BUSY=true;
+  // mostra o loading JÁ AQUI, antes do await da rede — cobre exatamente a janela onde o
+  // convidado ficava vendo a tela ATUAL (podia ser a principal, com dados da rodada VELHA, se
+  // ele tivesse ido ver o time enquanto esperava) até o fetch do estado novo terminar. Some só
+  // quando a tela de destino (classificação ou principal já atualizada) estiver pronta.
+  if(typeof showSyncLoading==='function') showSyncLoading();
   (async ()=>{ try{
     const saved = await NET.loadGame();
     const sState = saved && saved.S;
     const oldSeason = S.season||0;
     const newer = sState && ( (sState.season||0) > oldSeason || ((sState.season||0)===oldSeason && (sState.round||0) > (S.round||0)) );
     if(typeof _prLog==='function') _prLog('GUEST reconcile: authRound='+(room.round||0)+' myRound='+(S.round||0)+' newer='+!!newer);
+    if(!newer && typeof hideSyncLoading==='function') hideSyncLoading(); // nada pra adotar afinal -> não trava o loading
     if(newer){
       const isTurnover = (sState.season||0) > oldSeason; // VIRADA de temporada (rodada volta a 0)
       Object.assign(S, sState);
@@ -264,7 +270,14 @@ function onlineReconcileIfBehind(room){
       S.xi = resolveClubXI(CL.clubId);
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       if(typeof pruneAppliedNetTransfers==='function') pruneAppliedNetTransfers(); // solta as transferências já aplicadas pelo servidor
+      if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
       if(typeof applyOwnPendingFinances==='function') applyOwnPendingFinances(); // F3.3: finanças da MINHA rodada (convidado)
+      // ESTABILIDADE DO CARGO (convidado): faltava aqui — só rodava no adopt do ANFITRIÃO
+      // (onlineAdoptServerRound) e no caminho solo/fallback (_commitLeagueRound). Sem isto,
+      // S.jobSecurity do convidado nunca atualizava (ficava travado no valor inicial) e ele
+      // nunca podia ser demitido nem receber convite de outro clube durante a Resenha — a
+      // mecânica "funcionava normal no solo" mas não existia pra quem não era o anfitrião.
+      if(!S.finished && typeof tickJobSecurity==='function'){ tickJobSecurity(); const je=checkManagerJobEvent(); if(je) CL._pendingManagerEvent=je; }
       if(isTurnover){
         // VIRADA: NÃO mostra a classificação pós-rodada (a tabela nova está zerada e o cliente ficava
         // preso nessa tela sem voltar pro "jogar" -> o outro travava em "esperando"). Vai direto pro
@@ -273,6 +286,7 @@ function onlineReconcileIfBehind(room){
         // premiação do PRÓPRIO clube (convidado): cada humano vê o SEU resumo, lido de S._prevSeason.
         // Credita ANTES do cdraw pra não perder o dinheiro se o desenho falhar.
         const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null; if(typeof accrueCareerStats==='function') accrueCareerStats();
+        if(typeof hideSyncLoading==='function') hideSyncLoading();
         cdraw();
         if(typeof openPressRoom==='function') openPressRoom(_sum);
         else { const _divLbl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division); toastC('🏆 Nova temporada '+ (S.season||'') +'! Você está na '+_divLbl+'.'); }
@@ -283,13 +297,18 @@ function onlineReconcileIfBehind(room){
         // -> tela-inicial. Vai DIRETO pra classificação (que já desenha a própria tela).
         // Ao espelhar a rodada, o CONVIDADO vê o MESMO que o host: (1) sorteio de copa pendente e
         // depois (2) a CLASSIFICAÇÃO pós-rodada. Ao terminar (Continuar/10s), o loop dispara a próxima.
-        const _showClassif=()=>{ if(typeof showLiveClassif==='function') showLiveClassif(); };
+        const _showClassif=()=>{
+          if(typeof hideSyncLoading==='function') hideSyncLoading();
+          if(typeof showLiveClassif==='function') showLiveClassif();
+          if(typeof checkPendingManagerEvents==='function') checkPendingManagerEvents();
+          if(typeof handleResenhaCareer==='function') handleResenhaCareer(); // demissão/convite na Resenha — idem host
+        };
         if(typeof queueSeasonCupDrawsIfNew==='function') queueSeasonCupDrawsIfNew(); // convidado enfileira o sorteio novo por conta própria
         if(typeof checkPendingCupDraws==='function' && S._pendingDrawShows && S._pendingDrawShows.length){ checkPendingCupDraws(_showClassif); }
         else _showClassif();
       }
     }
-  }catch(e){ console.warn('reconcile:', e && e.message); } finally { ONLINE_RECONCILE_BUSY=false; } })();
+  }catch(e){ console.warn('reconcile:', e && e.message); if(typeof hideSyncLoading==='function') hideSyncLoading(); } finally { ONLINE_RECONCILE_BUSY=false; } })();
 }
 
 /* cada tela do fluxo Resenha já retorna o shell completo (wizShell) — sem deskWrap/titleBar */

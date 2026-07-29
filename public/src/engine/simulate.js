@@ -23,7 +23,7 @@ function matchSeed(homeId,awayId){ return hashSeed(S.seed, S.round, homeId, away
 /* ====================== MATCH ENGINE (Random Walk) ====================== */
 /* S_t in [-1,1]; +1 => home goal, -1 => away goal                         */
 const TACTIC_BETA={retranca:-0.09, equilibrado:0, ofensivo:0.10};
-const ENG={rev:0.82, sd:0.33, danger:0.58, shot:0.28, conv:0.52, penaltyChance:0.055};
+const ENG={rev:0.82, sd:0.33, danger:0.58, shot:0.28, conv:0.52, penaltyChance:0.025}; // era 0.055 -> muito mais pênaltis por partida do que o futebol de verdade
 /* ===== MOTOR 2.0: meio-campo central + índices ofensivo/defensivo + contexto =====
    Toda a matemática que decide o jogo mora aqui (helpers compartilhados), pra os DOIS
    motores (simulateMatch solo/ao-vivo e mpSim multiplayer) rodarem idêntico e determinístico.
@@ -201,12 +201,12 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
         ev={type:'chance',side:hSide,min:minute,scorer:sc.n,scorerPid:sc.pid,team:atkId,pos};
       }
       }
-    } else if(R.random()<0.026){
+    } else if(R.random()<0.022){ // calibrado pra ~2-3 cartões/partida (era 0.026 — muitos jogos tinham 2-3 EXPULSÕES, não só cartões)
       // cartão: o time SEM a posse comete a falta
       const foulSide=home?'A':'H'; const foulTeam=foulSide==='H'?homeId:awayId;
       const p=pickFoulPlayer(foulSide);
       if(p){
-        if(R.random()<0.10){ // ~10% dos cartões são vermelho direto
+        if(R.random()<0.035){ // ~3.5% dos cartões viram vermelho direto (era 10% — expulsão deve ser rara, não quase todo jogo)
           offField[foulSide].add(p.n); menOnField[foulSide]=Math.max(6,menOnField[foulSide]-1);
           ev={type:'cartao',side:foulSide,min:minute,team:foulTeam,player:p.n,pid:p.pid,pos:p.s,cardType:'vermelho',reason:'direto'};
         } else if(cardState[foulSide].get(p.n)==='amarelo'){ // segundo amarelo = vermelho
@@ -218,7 +218,7 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
           ev={type:'cartao',side:foulSide,min:minute,team:foulTeam,player:p.n,pid:p.pid,pos:p.s,cardType:'amarelo',reason:null};
         }
       }
-    } else if(R.random()<0.011){
+    } else if(R.random()<0.0026){ // calibrado pra ~1 lesão a cada 4-5 partidas (era 0.011 -> ~1 lesão POR partida, demais)
       // lesão: qualquer jogador em campo, de qualquer time — pondera por propensão real (Cavalheiro se machuca mais)
       const side=R.random()<0.5?'H':'A'; const team=side==='H'?homeId:awayId;
       const pool=activePool(side);
