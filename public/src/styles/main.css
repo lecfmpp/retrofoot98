@@ -338,12 +338,16 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 }
 .cl-main-top{background:var(--navy);color:#fff;font-weight:700;text-align:center;padding:5px;font-size:15px;letter-spacing:.5px}
 .cl-view-tag{font-weight:700;font-size:11px;color:var(--yellow);margin-left:8px;letter-spacing:.5px}
-.cl-menu{background:#fff;display:flex;gap:0;border-bottom:1px solid #000}
-.cl-menu-i{padding:5px 14px;font-weight:700;font-size:14px;cursor:pointer;color:#000;position:relative}
+/* barra de menu do topo (tela principal). --menu-fs é a ÚNICA fonte do tamanho: item do topo e
+   sub-item do dropdown têm que casar, senão o sub-item (que era 15px contra 12.5px do topo) fica
+   mais largo que o item que o abriu — rótulo longo encostando no atalho da direita e dropdown
+   estourando a largura do item. Um só valor mantém os dois em sincronia, aqui e no mobile. */
+.cl-menu{--menu-fs:12.5px;background:#fff;display:flex;gap:0;border-bottom:1px solid #000}
+.cl-menu-i{padding:5px 10px;font-weight:700;font-size:var(--menu-fs);cursor:pointer;color:#000;position:relative;white-space:nowrap}
 .cl-menu-i:hover,.cl-menu-i.open{background:var(--navy);color:#fff}
 /* dropdown do menu topo — abre reto pra baixo, alinhado ao item */
 .cl-menu-dd{position:absolute;top:100%;left:0;min-width:210px;background:#fff;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);z-index:36;box-shadow:3px 3px 8px rgba(0,0,0,.4);text-align:left;cursor:default}
-.cl-menu-dd-i{display:flex;justify-content:space-between;gap:24px;padding:5px 14px;font-size:15px;font-weight:700;color:#000;cursor:pointer}
+.cl-menu-dd-i{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:6px 14px;font-size:var(--menu-fs);font-weight:700;color:#000;cursor:pointer;white-space:nowrap}
 .cl-menu-dd-i:hover{background:var(--navy);color:#fff}
 .cl-menu-dd-i b{font-weight:700;color:inherit}
 .cl-menu-sep{height:0;border-top:1px solid #808080;margin:3px 6px}
@@ -374,7 +378,15 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-roster-hd{background:#e8e8e8;color:#000;font-weight:800;font-size:13px;padding:5px 10px;border:1px solid #000;border-bottom:none;display:flex;justify-content:space-between;cursor:pointer}
 .cl-rgroup{border-bottom:1px solid #000}
 .cl-rgroup:last-child{border-bottom:none}
-.cl-rrow{display:grid;grid-template-columns:16px 22px 1fr 30px 54px 66px;column-gap:6px;align-items:center;padding:2px 8px;font-weight:700;font-size:14px;cursor:pointer}
+.cl-rrow{display:grid;grid-template-columns:16px 22px 1fr 30px 54px 96px;column-gap:6px;align-items:center;padding:2px 8px;font-weight:700;font-size:14px;cursor:pointer}
+/* cabeçalho das colunas do elenco. Fica DENTRO de .cl-roster, que tem fundo BRANCO — por isso
+   texto escuro sobre a mesma faixa cinza do .cl-roster-hd (contraste ~10:1). Antes era branco
+   com 60% de opacidade (herdado das listas de fundo escuro) e sumia por completo no branco.
+   sticky: a lista rola (max-height + overflow:auto), então o cabeçalho acompanha em vez de sair
+   de cena na primeira rolagem. As colunas usam as MESMAS classes das linhas de jogador
+   (.cl-rmark/.cl-rpos/.cl-rname/.cl-rage/.cl-rf/.cl-rv) — o alinhamento vem do mesmo grid. */
+.cl-rrow.head{cursor:default;position:sticky;top:0;z-index:2;background:#e8e8e8;color:#333;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;padding-top:4px;padding-bottom:4px;border-bottom:1px solid #000}
+.cl-rrow.head:hover{background:#e8e8e8}
 .cl-rmark{text-align:center;font-weight:800}
 .cl-rmark.t,.cl-rmark.r{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;font-size:10px;font-weight:800;line-height:1}
 .cl-rmark.t{background:var(--success-alt);color:#fff}
@@ -455,6 +467,14 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    a ponta da barra preenchida sempre exibe a cor certa pro nível de moral atual. */
 .cl-bar-moral{position:relative;overflow:hidden;background:linear-gradient(90deg,#c0392b 0%,#e67e22 25%,#f1c40f 50%,#8bc34a 75%,#2ecc71 100%)}
 .cl-bar-moral .cl-bar-fill{position:absolute;top:0;right:0;left:auto;height:100%;background:#c0c0c0;width:calc(100% - var(--val,0)*1%) !important}
+/* segurança no cargo: MESMA técnica de máscara da barra de Moral acima (só a parte preenchida
+   mostra a cor certa do gradiente), mas com um gradiente diferente pra dar pra distinguir as
+   duas métricas de relance mesmo lado a lado. */
+.cl-bar-jobsec{position:relative;overflow:hidden;background:linear-gradient(90deg,#7b241c 0%,#b9770e 30%,#d4ac0d 55%,#1e8449 80%,#145a32 100%)}
+.cl-bar-jobsec .cl-bar-fill{position:absolute;top:0;right:0;left:auto;height:100%;background:#c0c0c0;width:calc(100% - var(--val,0)*1%) !important}
+/* rótulo com tooltip nativo (title=) — sublinhado pontilhado sinaliza que dá pra passar o
+   mouse por cima pra ver a explicação, mesma linguagem visual do .cl-link já usado no jogo. */
+.cl-tip-label{cursor:help;border-bottom:1px dotted rgba(255,255,255,.45)}
 /* painel jogador */
 .cl-jgd{font-size:15px}
 .cl-jgd-name{font-family:var(--serif);font-size:30px;color:#fff}
@@ -465,6 +485,16 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-hist-row{display:flex;justify-content:space-between;margin:4px 0}
 .cl-jgd-act{margin-top:20px;display:flex;gap:12px;flex-direction:column}
 .cl-jgd-act .cl-btn{flex:1;flex-direction:row;justify-content:center;padding:12px 16px;font-weight:600}
+/* modal de promoção da base (3 candidatos lado a lado) */
+.cl-youth-note{color:rgba(255,255,255,.78);font-size:12px;margin-bottom:14px}
+.cl-youth-grid{display:flex;gap:14px;flex-wrap:wrap}
+.cl-youth-card{flex:1 1 200px;min-width:200px;border:1px solid #888;border-radius:4px;padding:10px 12px 12px;background:rgba(0,0,0,.18);display:flex;flex-direction:column}
+.cl-youth-card-hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.2)}
+.cl-youth-name{font-family:var(--serif);font-size:17px;color:#fff;font-weight:700}
+.cl-youth-pos{font-size:11px;color:var(--yellow);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.cl-youth-card .cl-jgd-row{max-width:none;font-size:13px;margin:4px 0}
+.cl-youth-card .cl-btn{margin-top:10px;width:100%}
+.cl-youth-actions{display:flex;gap:14px;justify-content:center;margin-top:20px}
 /* finanças */
 .cl-fin{font-size:15px;line-height:1.35}
 .cl-fin-row{display:flex;justify-content:space-between;max-width:380px}
@@ -501,6 +531,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    negrito, pra o usuário localizar de relance EM QUE jornada cai a rodada da Copa do Brasil. */
 .cl-cal-cup{background:var(--yellow)!important;color:#1a1a00!important;font-weight:800;border-left:5px solid var(--success-lite)}
 .cl-cal-cup .cl-cal-n{color:#1a5a2a}
+.cl-cal-pens{font-size:11px;font-weight:700;opacity:.8} /* placar dos pênaltis ao lado do resultado do confronto */
 .cl-cal-draw{background:#3a3aa0!important;color:#fff!important;font-style:italic}
 .cl-cal-ok{display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:14px}
 .cl-cls{width:600px}
@@ -717,6 +748,10 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-mkt-club:hover{background:#dcdcdc}
 .cl-mkt-club-ov{color:#555;font-weight:600;font-size:12px}
 .cl-mkt-squad{display:flex;flex-direction:column;gap:4px;min-width:420px;max-height:60vh;overflow-y:auto}
+/* elenco de OUTRO clube: é a mesma tabela do meu elenco (.cl-roster + .cl-rrow), só com a
+   largura/altura do modal. Sem regra própria de layout — as colunas têm que continuar vindo
+   do mesmo grid, senão as duas telas divergem de novo. */
+.cl-mkt-roster{min-width:420px;max-height:60vh}
 .cl-mkt-p{display:grid;grid-template-columns:24px 1fr 40px 70px;align-items:center;gap:8px;background:#eee;border-radius:3px;padding:6px 10px;cursor:pointer;color:#000;font-size:13px}
 .cl-mkt-p:hover{background:#ddd}
 .cl-mkt-p-pos{font-weight:900;color:#555}
@@ -1074,8 +1109,9 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   /* qualquer grupo de botões horizontal vira uma coluna, 1 ação por linha */
   .cl-vender-btns,.cl-est-btns,.cl-jog-actions,.cl-cal-ok,.cl-pen-btn,
   .cl-lm-cont,.cl-sub-btn,.cl-live-actions,.cl-invite-btns,.cl-auth-btns,
-  .cl-invres-linkrow{
+  .cl-invres-linkrow,.cl-youth-actions{
     display:flex;flex-direction:column;width:100%}
+  .cl-youth-grid{flex-direction:column}
   .cl-invres-link{width:100%;box-sizing:border-box}
   .cl-btn{width:100%;box-sizing:border-box}
   .cl-btn-wide{width:100%}
@@ -1104,11 +1140,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
   .cl-tab{flex:0 0 auto;white-space:nowrap}
   /* linhas em grid ficam apertadas -> reduz fonte e gap */
-  .cl-rrow{grid-template-columns:14px 20px 1fr 24px 44px 54px;column-gap:4px;font-size:12.5px;padding:4px 6px}
+  .cl-rrow{grid-template-columns:14px 20px 1fr 24px 40px 76px;column-gap:4px;font-size:12.5px;padding:4px 6px}
+  .cl-rrow.head{font-size:9.5px}
   .cl-rmark.t,.cl-rmark.r{width:14px;height:14px;font-size:9px;border-radius:3px}
   .cl-mkt-p,.cl-auc-row,.cl-cls-row{font-size:12px}
   /* leilão em cartão (2 linhas) empilha sozinho; só garante largura total no mobile */
-  .cl-mkt-clublist,.cl-mkt-squad,.cl-auc{min-width:0;width:100%}
+  .cl-mkt-clublist,.cl-mkt-squad,.cl-mkt-roster,.cl-auc{min-width:0;width:100%}
   .cl-mkt-offer{min-width:0;width:100%}
   /* tela "Jogadores" (sorteio): larguras fixas em px não cabem no mobile —
      empilha cada jogador num cartão, com o time sorteado em destaque total */

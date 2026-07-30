@@ -272,6 +272,7 @@ function onlineReconcileIfBehind(room){
       if(typeof pruneAppliedNetTransfers==='function') pruneAppliedNetTransfers(); // solta as transferências já aplicadas pelo servidor
       if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
       if(typeof applyOwnPendingFinances==='function') applyOwnPendingFinances(); // F3.3: finanças da MINHA rodada (convidado)
+      if(typeof applyMyCupPrizes==='function') applyMyCupPrizes(); // cota de fase da Copa do Brasil resolvida pelo servidor
       // ESTABILIDADE DO CARGO (convidado): faltava aqui — só rodava no adopt do ANFITRIÃO
       // (onlineAdoptServerRound) e no caminho solo/fallback (_commitLeagueRound). Sem isto,
       // S.jobSecurity do convidado nunca atualizava (ficava travado no valor inicial) e ele

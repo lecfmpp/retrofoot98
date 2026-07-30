@@ -21,6 +21,30 @@ function divisionTrophyImg(division,size){
 
 /* ---- helpers de dinheiro / texto ---- */
 function grp(n){ return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' '); }
+/* reformata um <input> de dinheiro EM TEMPO REAL (agrupado por milhar, ver grp) preservando a
+   posição do cursor — sem isto, reatribuir input.value a cada tecla (única forma de manter o
+   agrupamento enquanto digita) sempre jogava o cursor pro FINAL do campo, então apagar um dígito
+   no MEIO do número (ou selecionar tudo e apagar) ficava difícil/errático. Conta quantos dígitos
+   existiam ANTES do cursor no valor antigo e recoloca o cursor depois da mesma quantidade de
+   dígitos no valor novo formatado. Retorna o número digitado (na moeda de EXIBIÇÃO — quem chama
+   converte pra R$ interno com curParse se precisar). */
+function clMoneyInputReformat(input){
+  const raw=input.value;
+  const caret=input.selectionStart==null?raw.length:input.selectionStart;
+  const digitsBeforeCaret=raw.slice(0,caret).replace(/\D/g,'').length;
+  const t=parseInt(raw.replace(/\D/g,''))||0;
+  const formatted=t?grp(t):'';
+  input.value=formatted;
+  if(t){
+    let pos=formatted.length;
+    if(digitsBeforeCaret<=0){ pos=0; }
+    else{ let count=0;
+      for(let i=0;i<formatted.length;i++){ if(/[0-9]/.test(formatted[i])){ count++; if(count===digitsBeforeCaret){ pos=i+1; break; } } }
+    }
+    try{ input.setSelectionRange(pos,pos); }catch(e){}
+  }
+  return t;
+}
 /* número de dinheiro agrupado JÁ convertido pra moeda de exibição (curConv/curSym vêm do
    index.html). O motor guarda tudo em R$; isto só apresenta na moeda escolhida. */
 function moneyDisp(n){ return grp(Math.round(curConv(n))); }
@@ -1454,7 +1478,8 @@ function clLoadSave(name){
 }
 
 /* ================= 08-13 · TELA PRINCIPAL ================= */
-function divisionLabel(){ return (typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[S.division]) || ({A:'Série A',B:'Série B',C:'Série C',D:'Série D'})[S.division] || 'Série A'; }
+function divisionLabelOf(d){ return (typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[d]) || ({A:'Série A',B:'Série B',C:'Série C',D:'Série D'})[d] || 'Série A'; }
+function divisionLabel(){ return divisionLabelOf(S.division); }
 function scMain(){
   const cl=clubOf(CL.clubId);
   const uf=userFixture(); const oppId=uf?(uf[0]===CL.clubId?uf[1]:uf[0]):null; const home=uf?uf[0]===CL.clubId:true;
@@ -1514,12 +1539,52 @@ function scMain(){
     </div>
   </div>`;
 }
+/* cabeçalho fixo das colunas do elenco — precisa ficar em sincronia com o grid-template-columns
+   de .cl-rrow (main.css): T/R · Pos · Nome · Idade · Força · Salário. Sem isto o usuário via 6
+   colunas de números/letras sem saber o que cada uma significava, principalmente depois que
+   Idade virou coluna própria. */
+function rosterHeadHTML(){
+  return `<div class="cl-rrow head">
+    <span class="cl-rmark"></span><span class="cl-rpos">Pos</span><span class="cl-rname">Nome</span>
+    <span class="cl-rage">Id.</span><span class="cl-rf">Força</span><span class="cl-rv">Salário</span></div>`;
+}
+/* salário SEMANAL exibido de um jogador, de qualquer clube. Sem contrato explícito cai no mesmo
+   salário-tabela por força que o motor já usa pra folha dos clubes de CPU (ver cpuSeasonFinances),
+   em vez de mostrar "0k" — que era o que aparecia no elenco de quem não tinha contract. */
+function playerSalary(p){ return (p&&p.contract&&p.contract.salary) || (p?REBAL.wage(p.f):0); }
+/* MESMA tabela de elenco pra QUALQUER clube (o meu e o dos outros, humano ou CPU): mesmo grid
+   (.cl-rrow), mesmo cabeçalho, mesmas colunas e os mesmos valores. Antes cada tela tinha a sua
+   lista: a de "Ver elenco" desenhava só 5 células num grid de SEIS colunas (sem idade), então a
+   força caía na coluna da idade e o valor na da força; e a de "Comprar jogador..." era outra
+   lista à parte, sem cabeçalho nenhum. Uma função só evita as três divergirem de novo.
+   opts.onclick(p) -> string de handler; opts.selPid -> pid destacado. */
+function squadTableHTML(clubId, opts){
+  opts=opts||{};
+  const sq=(squad(clubId)||[]).slice();
+  if(!sq.length) return '<div class="cl-savempty">— sem elenco —</div>';
+  let html=rosterHeadHTML();
+  ['GK','DEF','MID','ATT'].forEach(sec=>{ const list=sq.filter(p=>p.s===sec).sort((a,b)=>b.f-a.f);
+    if(!list.length) return;
+    html+=`<div class="cl-rgroup">`+list.map(p=>{
+      const onclick=opts.onclick?` onclick="${opts.onclick(p)}"`:'';
+      const selc=opts.selPid && opts.selPid===p.pid;
+      const unavail=p.suspended>0||p.injuredMatches>0;
+      const badge=p.suspended>0?'🟥':(p.injuredMatches>0?'✚'+p.injuredMatches:'');
+      return `<div class="cl-rrow ${selc?'sel':''} ${unavail?'unavail':''}"${onclick}>
+        <span class="cl-rmark"></span>
+        <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
+        <span class="cl-rage">${p.age||'-'}</span>
+        <span class="cl-rf">${p.f}</span><span class="cl-rv">${fmt(playerSalary(p))}/sem</span></div>`;
+    }).join('')+`</div>`;
+  });
+  return html;
+}
 function rosterHTML(){
   const groups=[['GK','G'],['DEF','D'],['MID','M'],['ATT','A']];
   const sq=squad(CL.clubId); const th=clubTheme(CL.clubId);
   const showMarks=(CL.tab==='seleccao'||CL.escalacaoMode); const xiSet=new Set(S.xi||[]);
   const escala=CL.escalacaoMode;
-  let html='';
+  let html=rosterHeadHTML();
   groups.forEach(([sec])=>{ const list=sq.filter(p=>p.s===sec);
     html+=`<div class="cl-rgroup">`+list.map(p=>{const starter=xiSet.has(p.pid);   // identidade por pid, não nome
       const marked=escala && CL.preSubOut===p.pid;
@@ -1527,11 +1592,15 @@ function rosterHTML(){
       const unavail=p.suspended>0||p.injuredMatches>0;
       const badge=p.suspended>0?'🟥':(p.injuredMatches>0?'✚'+p.injuredMatches:'');
       const onclickFn=escala?`clEscalaPick('${escC(p.pid)}')`:`clSelPlayer('${escC(p.pid)}')`;
+      // salário real do contrato (não mais uma estimativa a partir do valor de mercado) — com
+      // moeda abreviada (fmt: k/M) e periodicidade explícita, pro usuário nunca confundir
+      // "10 mil" com "10 milhões" nem esquecer que o débito é SEMANAL.
+      const salary=playerSalary(p);
       return `<div class="cl-rrow ${selc?'sel':''} ${marked?'swap-out':''} ${unavail?'unavail':''}" style="${selc?'':`color:${th.txt}`}" onclick="${onclickFn}">
         <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
-        <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}</span><span class="cl-rv">${grp(Math.round(curConv(p.mv)*0.00006)*10)}</span></div>`;}).join('')+`</div>`;
+        <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}</span><span class="cl-rv">${fmt(salary)}/sem</span></div>`;}).join('')+`</div>`;
   });
   return html;
 }
@@ -1706,7 +1775,11 @@ function scTeamView(){
       <div class="cl-main-left" style="background:${th.bg}">
         <div class="cl-hdr">
           <div class="cl-mgr">${escC(c.name)}</div>
-          <div class="cl-hdr-sub"><span class="cl-flag2">${clubCountry(c).flag}</span> ${escC(clubCountry(c).name)} ${(function(){ const lg=clubLeagueLabel(c); if(lg) return `<span class="cl-div">${escC(lg)}</span>`; return !c.country?`<span class="cl-div">${divisionTrophyImg(S.division,16)||''} ${divisionLabel()}</span>`:''; })()}</div>
+          <div class="cl-hdr-sub"><span class="cl-flag2">${clubCountry(c).flag}</span> ${escC(clubCountry(c).name)} ${(function(){ const lg=clubLeagueLabel(c); if(lg) return `<span class="cl-div">${escC(lg)}</span>`;
+            // divisão DESTE clube (clubDivisionOf), não a de quem está jogando — antes um save na
+            // Série D rotulava qualquer clube visitado como "Série D", inclusive um da Série A.
+            const d=(typeof clubDivisionOf==='function'&&clubDivisionOf(vid))||null;
+            return (!c.country&&d)?`<span class="cl-div">${divisionTrophyImg(d,16)||''} ${divisionLabelOf(d)}</span>`:''; })()}</div>
         </div>
         <div class="cl-roster-hd cl-acc-hd" onclick="clToggleRoster()">
           <span>Elenco</span><span class="cl-acc-arrow ${CL.rosterOpen===false?'closed':''}">▾</span>
@@ -1727,19 +1800,7 @@ function scTeamView(){
   </div>`;
 }
 function viewRosterHTML(clubId){
-  const groups=[['GK','G'],['DEF','D'],['MID','M'],['ATT','A']];
-  const sq=squad(clubId)||[];
-  let html='';
-  groups.forEach(([sec])=>{ const list=sq.filter(p=>p.s===sec);
-    html+=`<div class="cl-rgroup">`+list.map(p=>{const selc=CL.viewSelPlayer===p.pid;
-      const unavail=p.suspended>0||p.injuredMatches>0;
-      const badge=p.suspended>0?'🟥':(p.injuredMatches>0?'✚'+p.injuredMatches:'');
-      return `<div class="cl-rrow ${selc?'sel':''} ${unavail?'unavail':''}" onclick="clViewSelPlayer('${escC(p.pid)}')">
-        <span class="cl-rmark"></span>
-        <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
-        <span class="cl-rf">${p.f}</span><span class="cl-rv">${grp(Math.round(curConv(p.mv)*0.00006)*10)}</span></div>`;}).join('')+`</div>`;
-  });
-  return html || '<div class="cl-savempty">— sem elenco —</div>';
+  return squadTableHTML(clubId, {selPid:CL.viewSelPlayer, onclick:p=>`clViewSelPlayer('${escC(p.pid)}')`});
 }
 function panViewJogo(vid,oppId,uf){
   const me=tableRow(vid), op=oppId?tableRow(oppId):null;
@@ -1769,10 +1830,11 @@ function panViewJogador(vid){
     ${statusBar}
     <div class="cl-jgd-row"><span>Posição</span><b>${posLetter(p.s)}</b></div>
     <div class="cl-jgd-row"><span>Força</span><b>${p.f}</b></div>
-    <div class="cl-jgd-row"><span>Valor de mercado</span><b>${curSym()} ${moneyDisp(p.mv)}</b></div>
     <div class="cl-jgd-row"><span>Idade</span><b>${p.age||'-'} anos</b></div>
     <div class="cl-jgd-row"><span>Comportamento</span><b>${playerBehaviorLabel(p)}</b></div>
     <div class="cl-jgd-row"><span>Gols nesta temporada</span><b>${(S.scorers&&S.scorers[p.n])||0}</b></div>
+    <div class="cl-jgd-row"><span>Salário</span><b>${fmt(playerSalary(p))}/sem</b></div>
+    <div class="cl-jgd-row"><span>Valor de mercado</span><b>${curSym()} ${moneyDisp(p.mv)}</b></div>
     <fieldset class="cl-hist"><legend>Historial (carreira)</legend>
       <div class="cl-hist-row"><span>Jogos</span><b>${hist.apps}</b></div>
       <div class="cl-hist-row"><span>Gols</span><b>${hist.goals}</b></div>
@@ -1807,10 +1869,11 @@ function panJogo(oppId,home,uf){
     ${oppId?line(oppId,op,true):''}
     <div class="cl-blk"><div class="cl-blk-l">Árbitro</div><div class="cl-blk-v cl-strong">${escC(ref)}</div></div>
     <div class="cl-blk"><div class="cl-blk-l">Dinheiro em caixa</div><div class="cl-blk-v">${spellMoney(S.budget)}</div></div>
-    <div class="cl-blk"><div class="cl-blk-l">Moral${moral<40?' <span class="cl-risk-flag">⚠️ baixa</span>':''}</div><div class="cl-bar cl-bar-moral" style="--val:${moral}"><div class="cl-bar-fill" style="width:${moral}%"></div></div></div>
-    <div class="cl-blk">${jobSecurityBarHTML()}</div>
+    <div class="cl-blk"><div class="cl-blk-l"><span class="cl-tip-label" title="${escC(moralTipText())}">Moral do Time</span>${moral<40?' <span class="cl-risk-flag">⚠️ baixa</span>':''}</div><div class="cl-bar cl-bar-moral" style="--val:${moral}"><div class="cl-bar-fill" style="width:${moral}%"></div></div></div>
+    <div class="cl-blk">${jobSecurityBarHTML({dark:true})}</div>
   </div>`;
 }
+function moralTipText(){ return 'Moral baixa (elenco abaixo de 50 em média) reduz o desempenho do time em até 15% nas partidas, e também pesa negativamente na Segurança no cargo.'; }
 function hashC(s){ s=String(s); let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return h; }
 
 /* ---- painel: JOGADOR ---- */
@@ -1847,6 +1910,8 @@ function panJogador(){
     <div class="cl-jgd-row"><span>Idade</span><b>${p.age||'-'} anos</b></div>
     <div class="cl-jgd-row"><span>Comportamento</span><b>${playerBehaviorLabel(p)}</b></div>
     <div class="cl-jgd-row"><span>Gols nesta temporada</span><b>${(S.scorers&&S.scorers[p.n])||0}</b></div>
+    <div class="cl-jgd-row"><span>Salário</span><b>${fmt(playerSalary(p))}/sem</b></div>
+    <div class="cl-jgd-row"><span>Valor de mercado</span><b>${curSym()} ${moneyDisp(p.mv)}</b></div>
     <fieldset class="cl-hist"><legend>Historial (carreira)</legend>
       <div class="cl-hist-row"><span>Jogos</span><b>${hist.apps}</b></div>
       <div class="cl-hist-row"><span>Gols</span><b>${hist.goals}</b></div>
@@ -1973,13 +2038,12 @@ function clMarketSquad(clubId,country){
   const division=(CL.market&&CL.market.division)||S.division;
   if(country) ensureBgClubMaterialized(clubId); // materializa o elenco real do clube de background
   CL.market={step:'squad',clubId,division,country};
-  const sq=squad(clubId).slice().sort((a,b)=>b.f-a.f);
-  const rows=sq.map(p=>`<div class="cl-mkt-p" onclick="clMarketPlayer('${clubId}','${escC(p.n)}')">
-      <span class="cl-mkt-p-pos">${posLetter(p.s)}</span><span class="cl-mkt-p-n">${escC(p.n)}${p.age<=20?'*':''}</span>
-      <span class="cl-mkt-p-f">${p.f}</span><span class="cl-mkt-p-v">${grp(Math.round(curConv(p.mv)*0.001))} mil</span>
-    </div>`).join('');
+  // MESMA tabela do meu elenco (squadTableHTML): cabeçalho visível e as mesmas colunas/valores,
+  // em vez da lista própria que existia aqui. O valor de mercado do jogador aparece ao clicar
+  // nele (tela da proposta), que é onde ele importa pra negociação.
+  const rows=squadTableHTML(clubId, {onclick:p=>`clMarketPlayer('${clubId}','${escC(p.n)}')`});
   const backArg=country?`'${division}','${country}'`:`'${division}'`;
-  overlayC(dlg('Elenco — '+clubOf(clubId).short, `<div class="cl-mkt-squad">${rows}</div>
+  overlayC(dlg('Elenco — '+clubOf(clubId).short, `<div class="cl-roster cl-mkt-roster">${rows}</div>
     <div class="cl-cal-ok">${btn('Voltar','clMarketDivision('+backArg+')',{icon:'↩',cls:'cl-btn-cancel'})}</div>`,
     {w:640,bodyClass:'cl-body-gray',min:true}));
 }
@@ -2004,7 +2068,7 @@ function renderMarketOfferHuman(){
     <div class="cl-mkt-counter">Este jogador é de outro treinador humano. Sua proposta vai direto pro e-mail dele — ele decide aceitar, recusar ou negociar.</div>
     <div class="cl-mkt-offer-row"><span>Sua proposta</span>
       <span class="cl-money-field"><span class="cl-money-cur">${curSym()}</span>
-        <input class="cl-money-in" id="cl-mkt-fee" inputmode="numeric" placeholder="0" value="${M.offer?moneyDisp(M.offer):''}" oninput="var t=parseInt(this.value.replace(/\\D/g,''))||0;CL.market.offer=curParse(t);this.value=t?grp(t):''"></span></div>
+        <input class="cl-money-in" id="cl-mkt-fee" inputmode="numeric" placeholder="0" value="${M.offer?moneyDisp(M.offer):''}" oninput="CL.market.offer=curParse(clMoneyInputReformat(this))"></span></div>
     ${btn('Enviar proposta','clMarketSendHumanOffer()',{cls:'cl-btn-mini'})}
   </div>`;
   overlayC(dlg('Fazer proposta', body+`<div class="cl-cal-ok">${btn('Voltar','clMarketSquad(\''+M.clubId+'\')',{icon:'↩',cls:'cl-btn-cancel'})}</div>`,
@@ -2030,7 +2094,7 @@ function renderMarketOffer(){
       ${hint}
       <div class="cl-mkt-offer-row"><span>Sua proposta (taxa)</span>
         <span class="cl-money-field"><span class="cl-money-cur">${curSym()}</span>
-          <input class="cl-money-in" id="cl-mkt-fee" inputmode="numeric" placeholder="0" value="${M.offer?moneyDisp(M.offer):''}" oninput="var t=parseInt(this.value.replace(/\\D/g,''))||0;CL.market.offer=curParse(t);this.value=t?grp(t):''"></span></div>
+          <input class="cl-money-in" id="cl-mkt-fee" inputmode="numeric" placeholder="0" value="${M.offer?moneyDisp(M.offer):''}" oninput="CL.market.offer=curParse(clMoneyInputReformat(this))"></span></div>
       ${btn('Propor','clMarketProposeFee()',{cls:'cl-btn-mini'})}
     </div>`;
   } else if(nego.stage==='terms'){
@@ -2038,7 +2102,7 @@ function renderMarketOffer(){
       <div class="cl-mkt-offer-hd">${escC(p.n)} — taxa acertada em ${fmt(nego.offerFee)}</div>
       <div class="cl-mkt-offer-row"><span>Salário semanal oferecido</span>
         <span class="cl-money-field"><span class="cl-money-cur">${curSym()}</span>
-          <input class="cl-money-in" id="cl-mkt-sal" inputmode="numeric" placeholder="0" value="${nego.salary?moneyDisp(nego.salary):''}" oninput="var t=parseInt(this.value.replace(/\\D/g,''))||0;S.negos[${M.negoIdx}].salary=curParse(t);this.value=t?grp(t):''"></span></div>
+          <input class="cl-money-in" id="cl-mkt-sal" inputmode="numeric" placeholder="0" value="${nego.salary?moneyDisp(nego.salary):''}" oninput="S.negos[${M.negoIdx}].salary=curParse(clMoneyInputReformat(this))"></span></div>
       <div class="cl-mkt-offer-row"><span>Papel no elenco</span>
         <select class="cl-mkt-sel" onchange="S.negos[${M.negoIdx}].role=this.value">
           ${['Jogador Chave','Titular Regular','Rotação','Jovem da Base'].map(r=>`<option ${nego.role===r?'selected':''}>${r}</option>`).join('')}
@@ -2119,7 +2183,7 @@ function clAuctionBidPrompt(sellerId,player){
     <div class="cl-jobmodal-msg">Lance por <b>${escC(p.n)}</b> (${posLetter(p.s)}, força ${p.f}) do <b style="${clubStripe(c)};padding:2px 6px;border-radius:3px">${escC(c.short)}</b>.<br>
       Maior lance atual: <b>${curSym()} ${moneyDisp(lot.bid)}</b> ${lot.leader===S.clubId?'(seu)':(lot.leader&&lot.leader!=='cpu')?'(de '+escC((CL.humans&&CL.humans[lot.leader])||'outro treinador')+')':'(concorrência)'} · 👥 ${lot.interest} clubes · ⏳ ${lot.roundsLeft} rodada(s)<br>
       Seu caixa: <b>${curSym()} ${moneyDisp(S.budget)}</b></div>
-    <div class="cl-auc-bidrow"><span class="cl-auc-cur">${curSym()}</span><input id="cl-auc-bid-in" class="cl-input cl-auc-bid-in" inputmode="numeric" value="${suggest}" onkeydown="if(event.key==='Enter')clAuctionBidGo('${sellerId}','${escC(player)}')"></div>
+    <div class="cl-auc-bidrow"><span class="cl-auc-cur">${curSym()}</span><input id="cl-auc-bid-in" class="cl-input cl-auc-bid-in" inputmode="numeric" value="${grp(suggest)}" oninput="clMoneyInputReformat(this)" onkeydown="if(event.key==='Enter')clAuctionBidGo('${sellerId}','${escC(player)}')"></div>
     <div class="cl-auc-bidhint">Precisa ser maior que ${moneyDisp(lot.bid)}. Para <b>garantir</b>, ofereça acima do que a concorrência topa pagar.</div>
     <div class="cl-jog-actions">${btn('Confirmar lance',`clAuctionBidGo('${sellerId}','${escC(player)}')`,{icon:'🔨',cls:'cl-btn-ok'})}${btn('Cancelar','clAuctionScreen()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
   </div>`, {w:480,bodyClass:'cl-body-gray',min:true}));
@@ -3747,6 +3811,30 @@ function onlineHostCloseRound(){
    CL.live). O servidor NÃO computa finanças — cada humano aplica as suas e publica o caixa no assento
    (senão o reconcile voltaria o valor inicial do shared_state). Chamado por host (adopt) e convidado
    (reconcile), pra os dois lados aplicarem a própria rodada. */
+/* ONLINE: cota de fase da Copa do Brasil quando foi o SERVIDOR quem decidiu o meu confronto
+   (eu ausente — o resolve-round simula a partida). O servidor carimba t.prize mas NÃO mexe no
+   caixa de humano, porque a autoridade desse caixa é o assento (game_seats.budget), escrito só
+   pelo meu cliente. Então o crédito sai daqui, ao adotar a rodada. Dois freios contra pagar duas
+   vezes: (1) só confronto carimbado com a jornada que acabou de ser resolvida, e (2) um registro
+   em memória no CL — que é por-cliente e nunca viaja no shared_state (um contador dentro de S
+   vazaria do anfitrião pros convidados no adopt). Quando EU jogo a partida ao vivo, quem paga é
+   finishCupLiveMatch e este caminho não acha nada pendente. */
+function applyMyCupPrizes(){
+  if(!S || !S.cups || !CL.clubId) return;
+  const cb=S.cups.copaBrasil; if(!cb) return;
+  CL._cupPrizesPaid=CL._cupPrizesPaid||{};
+  const ties=[].concat(cb.ties||[], (cb.history||[]).flatMap(h=>h.ties||[]));
+  ties.forEach(t=>{
+    if(!t || !t.prize || t.jornada!==S.round) return;             // só a rodada recém-adotada
+    const meu=(t.prize.pagos||[]).find(x=>x && x.id===CL.clubId); if(!meu || !meu.amt) return;
+    const chave=(t.h||'')+'|'+(t.a||'')+'|'+(t.prize.round!=null?t.prize.round:'?');
+    if(CL._cupPrizesPaid[chave]) return;
+    CL._cupPrizesPaid[chave]=true;
+    S.budget=(S.budget||0)+meu.amt; commitBudget();
+    if(typeof pushFinanceEntry==='function') pushFinanceEntry({income:meu.amt, log:['🏆 Copa do Brasil — cota de fase: +'+fmt(meu.amt)]});
+    toastC('🏆 Cota da Copa do Brasil: +'+fmt(meu.amt));
+  });
+}
 function applyOwnPendingFinances(){
   const f=S._pendingRoundFin; if(!f) return; S._pendingRoundFin=null;
   try{
@@ -3773,6 +3861,7 @@ async function onlineAdoptServerRound(RL){
     }
   }catch(e){ console.warn('adotar estado do servidor:', e); }
   applyOwnPendingFinances(); // F3.3: aplica as finanças da MINHA rodada (o servidor não computa finanças)
+  applyMyCupPrizes();        // cota de fase da Copa do Brasil decidida pelo servidor (ver applyMyCupPrizes)
   if(typeof fixUserXIAvailability==='function') fixUserXIAvailability();
   if(!S.finished && typeof tickJobSecurity==='function'){ tickJobSecurity(); const je=checkManagerJobEvent(); if(je) CL._pendingManagerEvent=je; }
   if(isTurnover){
@@ -3875,6 +3964,10 @@ function finishCupLiveMatch(){
       winner = m.hg>m.ag ? t.h : t.a; // liveTick garante m.hg!==m.ag antes de chegar aqui
     }
     t.winner=winner; t.pens=pens;
+    t.jornada=S.round; // mesmo carimbo do avanço em segundo plano (advanceCupBracket) — Calendário
+    // cota da fase: a MINHA partida de copa é decidida aqui, não no advanceCupBracket (que pula
+    // confronto já resolvido), então o pagamento também precisa sair daqui. Idempotente por t.prize.
+    if(typeof awardCupPhasePrize==='function') awardCupPhasePrize(pending.key, pending.bracket, t);
     const loser=winner===t.h?t.a:t.h; pending.bracket.eliminated[loser]=true;
     // Resenha (online): publica o resultado da MINHA partida de copa (mandante-autoritativo) —
     // o servidor (resolve-round) aplica na chave antes de simular o resto do bracket. Aditivo:
@@ -3902,6 +3995,7 @@ function finishCupLiveMatch(){
   } else {
     const mg=pending.group, g=Object.values(mg.groups).find(gr=>gr.label===pending.groupLabel);
     const T=g.table, h=m.h, a=m.a;
+    g.results=g.results||[]; g.results.push({r:mg.round, h, a, hg:m.hg, ag:m.ag, jornada:S.round}); // idem advanceGroupStageRound
     T[h].P++; T[a].P++; T[h].GF+=m.hg; T[h].GA+=m.ag; T[a].GF+=m.ag; T[a].GA+=m.hg;
     if(m.hg>m.ag){ T[h].W++; T[a].L++; T[h].Pts+=3; }
     else if(m.hg<m.ag){ T[a].W++; T[h].L++; T[a].Pts+=3; }
@@ -4049,6 +4143,53 @@ function nextCupJornada(key, stepsAhead){
   let j=S.round+1; while(!cupTickMatchesRound(key,j)) j++;
   return j + stepsAhead*3;
 }
+/* jornada em que a r-ésima rodada de uma copa foi/será jogada (r começa em 1). Serve de
+   fallback pros confrontos JÁ jogados de saves antigos, que não têm o carimbo t.jornada
+   (ver advanceCupBracket): a competição bate a cada 3 jornadas, na jornada ≡ CUP_TICK_OFFSET
+   (mod 3), e a primeira batida acontece na primeira jornada >= 1 com esse resto. */
+function cupJornadaOfRound(key, r){
+  const off=CUP_TICK_OFFSET[key]||0;
+  const first=off>=1?off:3;              // offset 0 -> só bate na jornada 3 (jornada 0 não existe)
+  return first + (Math.max(1,r)-1)*3;
+}
+/* TODOS os confrontos de copa JÁ JOGADOS do clube do usuário, com placar — em qualquer
+   competição (Copa do Brasil, Libertadores, Sul-Americana / Champions, Europa), tanto no
+   mata-mata quanto na fase de grupos. Sem isto o Calendário só mostrava resultado de LIGA:
+   as linhas de copa listavam apenas os jogos futuros e sumiam depois de jogados. */
+function userCupPlayedRows(){
+  if(!S.cups || !CL.clubId) return [];
+  const out=[];
+  const meuLado=t=>t && (t.h===CL.clubId||t.a===CL.clubId);
+  const addTie=(key,t,r,roundsTotal)=>{
+    if(!meuLado(t) || t.hg==null || t.ag==null) return;
+    const home=t.h===CL.clubId;
+    out.push({key, n:(t.jornada!=null?t.jornada:cupJornadaOfRound(key,r)), played:true,
+      opp:home?t.a:t.h, home, myG:home?t.hg:t.ag, oppG:home?t.ag:t.hg,
+      phase:(typeof cupPhaseLabel==='function')?cupPhaseLabel(r,roundsTotal):null,
+      pens:t.pens?(home?t.pens.h+'×'+t.pens.a:t.pens.a+'×'+t.pens.h):null,
+      venceu:t.winner?(t.winner===CL.clubId):null});
+  };
+  const varreBracket=(key,b)=>{
+    if(!b) return;
+    (b.history||[]).forEach(h=>(h.ties||[]).forEach(t=>addTie(key,t,h.round,b.roundsTotal)));
+    // confronto da rodada CORRENTE já decidido mas ainda não arquivado no history
+    (b.ties||[]).forEach(t=>{ if(t.winner) addTie(key,t,b.round,b.roundsTotal); });
+  };
+  allCupKeys().forEach(key=>{
+    const c=S.cups[key]; if(!c) return;
+    varreBracket(key, key==='copaBrasil' ? c : c.bracket);   // Copa do Brasil é o bracket em si
+    const mg=c.group; if(!mg) return;
+    Object.values(mg.groups||{}).forEach(g=>{
+      (g.results||[]).forEach(m=>{
+        if(m.h!==CL.clubId && m.a!==CL.clubId) return;
+        const home=m.h===CL.clubId;
+        out.push({key, n:(m.jornada!=null?m.jornada:cupJornadaOfRound(key,(m.r||0)+1)), played:true,
+          opp:home?m.a:m.h, home, myG:home?m.hg:m.ag, oppG:home?m.ag:m.hg, phase:'Fase de grupos'});
+      });
+    });
+  });
+  return out;
+}
 /* TODOS os confrontos de copa ainda pendentes do clube do usuário, pro Calendário —
    diferente de pendingUserCupMatches() (que só libera perto do avanço em segundo plano,
    pra saber quando dá pra JOGAR ao vivo), esta função existe só pra EXIBIÇÃO e não tem
@@ -4106,9 +4247,19 @@ function clCalendar(){
   // na mesma jornada, a(s) partida(s) de copa vêm antes da de liga, igual à ordem real de
   // jogo (clJogar() enfileira as partidas de copa pendentes antes de liberar a rodada de
   // liga); sorteios entram como um marco à parte, sem confronto associado.
-  const cupRows=userCupCalendarRows().map(pc=>({n:pc.n, ord:0, html:
+  // jogado (com placar) + pendente, na MESMA linha visual da liga — chip V/D/E e o placar,
+  // pra copa e liga contarem a temporada do mesmo jeito.
+  const cupRows=userCupPlayedRows().concat(userCupCalendarRows()).map(pc=>{
+    let extra='';
+    if(pc.played){
+      const cls = pc.venceu===true?'win' : pc.venceu===false?'loss' : pc.myG>pc.oppG?'win' : pc.myG<pc.oppG?'loss' : 'draw';
+      const txt = pc.venceu===true?'V' : pc.venceu===false?'D' : pc.myG>pc.oppG?'V' : pc.myG<pc.oppG?'D' : 'E';
+      extra=` <span class="cl-res-chip ${cls}">${txt}</span> <b>${pc.myG}-${pc.oppG}</b>${pc.pens?` <span class="cl-cal-pens">(pên. ${escC(pc.pens)})</span>`:''}`;
+    }
+    return {n:pc.n, ord:0, html:
     `<div class="cl-cal-row cl-cal-cup"><span class="cl-cal-n">${pc.n}ª</span>
-      <span class="cl-cal-t">🏆 ${COMP_DEFS[pc.key].short}${pc.phase?' · '+escC(pc.phase):''} · ${pc.opp?clubLink(pc.opp):'<i>adversário a definir</i>'}</span><span class="cl-cal-cf">${pc.home==null?'':pc.home?'C':'F'}</span></div>`}));
+      <span class="cl-cal-t">🏆 ${COMP_DEFS[pc.key].short}${pc.phase?' · '+escC(pc.phase):''} · ${pc.opp?clubLink(pc.opp):'<i>adversário a definir</i>'}${extra}</span><span class="cl-cal-cf">${pc.home==null?'':pc.home?'C':'F'}</span></div>`};
+  });
   const drawRows=userCupDrawRows().map(dr=>({n:dr.n, ord:0, html:
     `<div class="cl-cal-row cl-cal-draw"><span class="cl-cal-n">${dr.n}ª</span>
       <span class="cl-cal-t">🎲 Sorteio das oitavas — ${COMP_DEFS[dr.key].short} (${fmtRealDate(dr.date)})</span><span class="cl-cal-cf"></span></div>`}));
@@ -4326,15 +4477,24 @@ function clAcceptResenhaOffer(){
     toastC('Você é o novo treinador do '+((clubOf(offer.clubId)||{}).short||''));
   });
 }
-function jobSecurityBarHTML(){
+function jobSecurityTipText(js,lbl){
+  return `Segurança atual: ${js}% (${lbl}). Abaixo de 15%, risco de demissão a cada rodada. Acima de 80%, chance de receber convite de outro clube. Calculado com 70% da posição na tabela + 30% da moral do elenco.`;
+}
+/* dark=true: variante usada em panJogo() (tela principal, fundo escuro) — mesma estrutura de
+   .cl-blk-l/.cl-bar da barra de Moral (ver panJogo), só com um gradiente diferente pra
+   distinguir visualmente as duas métricas. dark=false (padrão): variante usada em
+   clCoachHistory() (modal de fundo claro) — mesma barra, rótulo com cor legível nesse fundo. */
+function jobSecurityBarHTML(opts){
+  const dark=opts&&opts.dark;
   const js=Math.round(S.jobSecurity!=null?S.jobSecurity:60);
-  const col = js>=55?'#2e9e46' : js>=25?'#e0a52a' : '#c0392b';
   const lbl = js>=70?'Prestígio alto' : js>=40?'Estável' : js>=16?'Sob pressão' : 'Cargo em risco!';
+  const tip=jobSecurityTipText(js,lbl);
+  const flag = js<25?' <span class="cl-risk-flag">⚠️ risco</span>':'';
+  const bar=`<div class="cl-bar cl-bar-jobsec" style="--val:${js}"><div class="cl-bar-fill" style="width:${js}%"></div></div>`;
+  if(dark) return `<div class="cl-blk-l"><span class="cl-tip-label" title="${escC(tip)}">Segurança no cargo</span>${flag}</div>${bar}`;
   return `<div style="margin:2px 0 12px;font-family:var(--sans)">
-    <div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:3px">
-      <span>${js<25?'⚠️ ':''}Segurança no cargo <span style="color:#999">(resultados + moral)</span></span><b style="color:${col}">${js}% · ${lbl}</b></div>
-    <div style="height:10px;background:#ddd;border:1px solid #bbb;border-radius:5px;overflow:hidden">
-      <div style="height:100%;width:${js}%;background:${col};transition:width .3s"></div></div>
+    <div style="font-size:13px;color:#333;margin-bottom:4px"><span class="cl-tip-label" style="border-bottom-color:rgba(0,0,0,.35)" title="${escC(tip)}">Segurança no cargo</span>${flag}</div>
+    ${bar}
   </div>`;
 }
 function clCoachHistory(){ CL.menu=null;
@@ -4879,9 +5039,8 @@ function windowBadge(){ const st=transferWindowStatus();
    <input>, derrubando o foco a cada tecla — tinha que clicar de novo pra continuar digitando).
    Só mexe no texto/valor dos elementos afetados, mantendo o cursor no lugar. */
 function clSellPriceInput(input){
-  const typed=parseInt(input.value.replace(/[^0-9]/g,''))||0;   // valor na moeda exibida
+  const typed=clMoneyInputReformat(input);                       // valor na moeda exibida (já reformatado, cursor preservado)
   CL.sellPrice=String(curParse(typed));                          // guarda sempre em R$ interno
-  input.value=typed?grp(typed):'';                               // mantém o que ele digitou (moeda)
   const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer); if(!p) return;
   const askingPrice=CL.sellPrice?parseInt(CL.sellPrice):0;       // R$
   const mv=p.mv||0;
@@ -4893,40 +5052,44 @@ function clSellPriceInput(input){
   const warnEl=$c('#cl-sellprice-warn'); if(warnEl) warnEl.style.display=(askingPrice>0 && askingPrice<sellMinPrice(mv))?'block':'none';
 }
 /* Jogador > Subir jogador da base (item 5): 1 por janela de transferências (2 por temporada, uma em
-   cada janela). Gera um jovem no nível do time na posição mais carente e mostra nome/posição/força. */
+   cada janela). Mostra 3 candidatos ao mesmo tempo (gerados na posição mais carente do elenco).
+   Como as 3 opções já aparecem juntas, não tem "escolher outro" — seria um reroll de graça. O
+   lote fica FIXO (guardado em S._youthCandidates/_youthCandidatesRound) até a rodada avançar de
+   verdade; se o usuário fechar sem promover, reabrir o menu mostra o MESMO lote nesta rodada e só
+   sorteia um novo na próxima. Nada é adicionado ao elenco até "Promover". */
 function clPromoteYouth(){ CL.menu=null;
-  if(typeof promoteYouth!=='function'){ return; }
-  const r=promoteYouth();
-  if(!r.ok){ toastC(r.msg); return; }
-  const y=r.youth;
-  const restamTxt='Você só pode subir 1 jogador da base por janela de transferências.';
-  overlayC(dlg('🌱 Jogador da base disponível', `<div class="cl-res" style="text-align:center;padding:14px">
-    <div class="cl-res-score" style="font-size:20px">${escC(y.n)}</div>
-    <div class="cl-res-verd" style="margin-top:8px">${escC(r.posNome)} · ${y.age} anos<br>
-      Força <b style="font-size:22px;color:#fff">${y.f}</b></div>
-    <div style="font-size:12px;color:rgba(255,255,255,.78);margin-top:8px">${restamTxt}</div>
-    <div class="cl-cal-ok" style="margin-top:14px;gap:10px">
-      ${btn('Esperar Próximo','clPromoteYouthUndo(\''+y.pid+'\')',{icon:'↩',cls:'cl-btn'})}
-      ${btn('Promover','clCloseOverlay();cdraw()',{icon:'✔',cls:'cl-btn-ok'})}
-    </div>
-  </div>`,{w:440,bodyClass:'cl-body-green'}));
-}
-/* "Esperar Próximo" — desfaz a promoção recém-gerada (o jogador já tinha entrado de fato no
-   elenco, ver promoteYouth()). A vaga da janela é DERIVADA do elenco (youthCountThisWindow()),
-   então basta remover o jovem do elenco pra liberar a vaga de novo, sem contador solto pra
-   desfazer. Também remove a transferência pendente (from:'BASE') e a notícia de rodada gerados
-   pela promoção, senão ficariam anunciando um jogador que o usuário recusou. */
-function clPromoteYouthUndo(pid){
-  const sq=squad(S.clubId)||[];
-  const idx=sq.findIndex(p=>p.pid===pid);
-  if(idx>=0){ const y=sq[idx]; sq.splice(idx,1);
-    if(S._netTransfers) S._netTransfers=S._netTransfers.filter(t=>t.pid!==pid);
-    if(S.roundNews&&S.roundNews.length){ const last=S.roundNews[S.roundNews.length-1];
-      if(last&&last.includes(y.n)&&last.includes('subiu das categorias de base')) S.roundNews.pop(); }
-    saveV3();
+  if(typeof youthAvailable!=='function' || !youthAvailable()){
+    toastC(typeof youthUnavailableMsg==='function'?youthUnavailableMsg():'Indisponível agora.');
+    return;
   }
-  toastC('Ok, vamos aguardar a próxima janela.');
-  clCloseOverlay(); cdraw();
+  const temLoteDaRodada = S._youthCandidates && S._youthCandidates.length && S._youthCandidatesRound===S.round;
+  if(!temLoteDaRodada) rollYouthCandidatesForRound();
+  renderYouthPromoteModal();
+}
+function renderYouthPromoteModal(){
+  const cands=S._youthCandidates||[];
+  const card=(c,i)=>{ const y=c.youth;
+    return `<div class="cl-youth-card">
+      <div class="cl-youth-card-hd"><span class="cl-youth-name">${escC(y.n)}</span><span class="cl-youth-pos">${escC(c.posNome)}</span></div>
+      <div class="cl-jgd-row"><span>Idade</span><b>${y.age} anos</b></div>
+      <div class="cl-jgd-row"><span>Força</span><b>${y.f}</b></div>
+      <div class="cl-jgd-row"><span>Comportamento</span><b>${playerBehaviorLabel(y)}</b></div>
+      <div class="cl-jgd-row"><span>Salário inicial</span><b>${fmt(c.contract.salary)}/sem</b></div>
+      ${btn('Promover','clConfirmYouth('+i+')',{icon:'✔',cls:'cl-btn-ok'})}
+    </div>`;
+  };
+  overlayC(dlg('🌱 Categoria de base — escolha um jogador', `
+    <div class="cl-youth-note">Você só pode subir 1 jogador da base por janela de transferências. Se fechar sem promover, estas mesmas opções continuam valendo até a próxima rodada.</div>
+    <div class="cl-youth-grid">${cands.map(card).join('')}</div>
+    <div class="cl-youth-actions">${btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
+  `,{w:720,bodyClass:'cl-body-green'}));
+}
+function clConfirmYouth(i){
+  const cands=S._youthCandidates||[]; const c=cands[i]; if(!c) return;
+  confirmYouthPromotion(c);
+  clCloseOverlay();
+  toastC(`🌱 ${c.youth.n} promovido para o elenco!`);
+  cdraw();
 }
 function clSell(){ CL.menu=null;
   if(!canNegotiate()){ toastC(windowClosedMsg()); return; }
@@ -5129,8 +5292,8 @@ function clIncomingOffers(){ CL.menu=null;
     // propostas de HUMANO não têm resposta algorítmica da CPU (sem maxFee/state) — "negociar"
     // aqui é recusar sinalizando um valor (counterHumanOffer), não a contraproposta automática.
     const counterUI = o.buyerIsHuman
-      ? `<span class="cl-money-field" style="margin:0"><span class="cl-money-cur">${curSym()}</span><input class="cl-money-in" style="width:96px" id="cl-ask-${o.id}" inputmode="numeric" placeholder="eu toparia" oninput="this.value=this.value.replace(/\\D/g,'')?grp(this.value.replace(/\\D/g,'')):''"></span>${btn('Negociar','clCounterHumanOffer('+o.id+')',{cls:'cl-btn-mini'})}`
-      : (o.state!=='final' ? `<span class="cl-money-field" style="margin:0"><span class="cl-money-cur">${curSym()}</span><input class="cl-money-in" style="width:96px" id="cl-ask-${o.id}" inputmode="numeric" placeholder="pedir mais" oninput="this.value=this.value.replace(/\\D/g,'')?grp(this.value.replace(/\\D/g,'')):''"></span>${btn('Contrapropor','clCounterOffer('+o.id+')',{cls:'cl-btn-mini'})}` : '');
+      ? `<span class="cl-money-field" style="margin:0"><span class="cl-money-cur">${curSym()}</span><input class="cl-money-in" style="width:96px" id="cl-ask-${o.id}" inputmode="numeric" placeholder="eu toparia" oninput="clMoneyInputReformat(this)"></span>${btn('Negociar','clCounterHumanOffer('+o.id+')',{cls:'cl-btn-mini'})}`
+      : (o.state!=='final' ? `<span class="cl-money-field" style="margin:0"><span class="cl-money-cur">${curSym()}</span><input class="cl-money-in" style="width:96px" id="cl-ask-${o.id}" inputmode="numeric" placeholder="pedir mais" oninput="clMoneyInputReformat(this)"></span>${btn('Contrapropor','clCounterOffer('+o.id+')',{cls:'cl-btn-mini'})}` : '');
     const fromLabel = o.buyerIsHuman ? `🧑 ${escC(o.buyerHumanName||'treinador humano')} (${escC(o.buyerName)})` : `${escC(o.buyerName)}${o.buyerCountry?' · '+escC(o.buyerCountry):''}`;
     return `<div style="padding:10px 12px;border-bottom:1px solid rgba(0,0,0,.12)">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">

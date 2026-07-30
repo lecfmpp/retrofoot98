@@ -474,7 +474,36 @@ function resolveDrawnKnockoutTie(S: any, homeId: string, awayId: string, seed: n
   const winner = pH !== pA ? (pH > pA ? homeId : awayId) : (R.random() < 0.5 ? homeId : awayId);
   return { hg, ag, winner, pens: { h: pH, a: pA } };
 }
-function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: any) {
+/* COTA POR FASE DA COPA DO BRASIL — espelho de PRIZES.copaBrasilPhaseCash + awardCupPhasePrize
+   (public/src/data/prizes.js e core.js). Os dois lados TÊM que usar a mesma tabela: o servidor é o
+   dono do caixa dos clubes NÃO-humanos (S.budgets), enquanto o caixa de um humano vive no assento
+   (game_seats.budget) e é o cliente dele quem credita — por isso aqui só pagamos a quem não é
+   humano, e o carimbo t.prize (que viaja no shared_state) evita pagamento duplo dos dois lados. */
+const CB_PHASE: any = { final: 28e6, vice: 14e6, semi: 9e6, quartas: 4e6, oitavas: 2e6, dezesseis: 1.5e6, f2: 0.8e6, f1: 0.4e6 };
+function copaBrasilPhaseCash(round: number, roundsTotal: number, isChampion?: boolean) {
+  const dist = (roundsTotal || 0) - (round || 0);
+  if (dist <= 0) return isChampion === false ? CB_PHASE.vice : CB_PHASE.final;
+  if (dist === 1) return CB_PHASE.semi;
+  if (dist === 2) return CB_PHASE.quartas;
+  if (dist === 3) return CB_PHASE.oitavas;
+  if (dist === 4) return CB_PHASE.dezesseis;
+  return round <= 1 ? CB_PHASE.f1 : CB_PHASE.f2;
+}
+function awardCupPhasePrize(S: any, key: string, b: any, t: any, humans?: Set<string>) {
+  if (key !== 'copaBrasil' || !t || !t.winner || t.prize) return;
+  const loser = t.winner === t.h ? t.a : t.h;
+  const isFinal = (b.roundsTotal - b.round) <= 0;
+  const pagar: any[] = [[t.winner, copaBrasilPhaseCash(b.round, b.roundsTotal, true)]];
+  if (isFinal) pagar.push([loser, copaBrasilPhaseCash(b.round, b.roundsTotal, false)]);
+  t.prize = { round: b.round, pagos: pagar.map(([id, amt]: any) => ({ id, amt })) };
+  S.budgets = S.budgets || {};
+  pagar.forEach(([id, amt]: any) => {
+    if (!id || !amt) return;
+    if (humans && humans.has(id)) return; // caixa de humano é do assento — o cliente dele credita
+    S.budgets[id] = Math.round((S.budgets[id] || 0) + amt);
+  });
+}
+function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: any, humans?: Set<string>) {
   if (!b || cupIsFinished(b)) return;
   const winners: string[] = [];
   b.ties.forEach((t: any) => {
@@ -482,7 +511,8 @@ function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: an
     const k = t.h + '-' + t.a; const sub = cupResultByFx && cupResultByFx[k];
     if (sub && sub.winner) { // resultado submetido por um humano (mandante-autoritativo)
       t.hg = sub.hg; t.ag = sub.ag; t.events = sub.events || []; t.winner = sub.winner; t.pens = sub.pens || null;
-      applyMatchIncidents(S, sub.events || []); const loser = sub.winner === t.h ? t.a : t.h; b.eliminated[loser] = true; winners.push(sub.winner); return;
+      applyMatchIncidents(S, sub.events || []); const loser = sub.winner === t.h ? t.a : t.h; b.eliminated[loser] = true; winners.push(sub.winner);
+      t.jornada = S.round; awardCupPhasePrize(S, roundLabel.split('-')[0], b, t, humans); return;
     }
     const seed = ME.hashSeed(S.seed, 'cup', roundLabel, t.h, t.a);
     const r = ME.simMatchPure(t.h, t.a, cupSide(S, t.h), cupSide(S, t.a), seed, {});
@@ -490,6 +520,8 @@ function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: an
     applyMatchIncidents(S, r.events);
     const res = resolveDrawnKnockoutTie(S, t.h, t.a, seed, r.hg, r.ag);
     t.winner = res.winner; t.pens = res.pens || null; winners.push(res.winner);
+    t.jornada = S.round;                                   // Calendário do cliente lê este carimbo
+    awardCupPhasePrize(S, roundLabel.split('-')[0], b, t, humans);
     const loser = res.winner === t.h ? t.a : t.h; b.eliminated[loser] = true;
   });
   const advancing = winners.concat(b.pendingByes || []);
@@ -503,11 +535,11 @@ function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: an
   const rest = ranked.slice(nByes);
   b.ties = []; for (let i = 0; i < rest.length; i += 2) b.ties.push({ h: rest[i], a: rest[i + 1], hg: null, ag: null, winner: null, events: [] });
 }
-function advancePendingCups(S: any, cupResultByFx: any) {
+function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>) {
   if (!S.cups) return;
   if (cupTickMatchesRound('copaBrasil', S.round)) {
     const cb = S.cups.copaBrasil;
-    if (cb && !cupIsFinished(cb) && cb.ties && cb.ties.length) advanceCupBracket(S, cb, 'copaBrasil-r' + cb.round, cupResultByFx);
+    if (cb && !cupIsFinished(cb) && cb.ties && cb.ties.length) advanceCupBracket(S, cb, 'copaBrasil-r' + cb.round, cupResultByFx, humans);
   }
   // Libertadores/Sul-Americana (fase de grupos) são só Série A — portadas numa fase futura.
 }
@@ -764,7 +796,7 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   advanceDevelopment(S, humanClubs, humanXI);                    // 4b) evolução/declínio dos jogadores
   advanceOtherDivs(S, humanResultByFx, humanClubs, humanXI, humanTactic); // 4c) outras divisões (CPU + override humano onde houver)
   S.round++; S.week = (S.week || 1) + 1; S.day = (S.day || 1) + 7; // 5) avança a rodada
-  advancePendingCups(S, cupResultByFx || {});                     // 6) copas (Copa do Brasil) — usa a rodada NOVA
+  advancePendingCups(S, cupResultByFx || {}, humanClubs);         // 6) copas (Copa do Brasil) — usa a rodada NOVA; humanClubs: cota de fase de humano é creditada pelo cliente dele
   S._roundIncidents = {};
   // 7) fim de temporada? liga terminou -> virada (promoção/rebaixamento + regen + nova temporada)
   if (Array.isArray(S.sched) && S.round >= S.sched.length) resolveSeasonTurnover(S, new Set(humanClubs));

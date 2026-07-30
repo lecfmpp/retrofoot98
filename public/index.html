@@ -235,6 +235,12 @@ function attachAttrs(p, division){ normalizePlayerFields(p);
   if(!p.attr){ p.attr=genAttrs(p); p.f0=p.rawF; p.mv0=(p.mv||1e6); }
   if(!p.behavior){ p.behavior=assignBehavior(p); p.mv=Math.round((p.mv||1e6)*(BEHAVIOR_MV_MULT[p.behavior]||1)); }
   if(p.pid==null) p.pid=nextPid();                                // ID único e estável (identidade, não o nome)
+  // CONTRATO PADRÃO PRA TODO MUNDO. Antes só o clube do jogador humano ganhava contrato (ver
+  // newGame), então na Resenha o elenco de QUALQUER outro humano vinha sem contract nenhum: a
+  // tela do time mostrava "0k/sem" em todos os jogadores e a folha salarial dele nunca era
+  // cobrada. Aqui é o funil único de criação de jogador (todo elenco passa por attachAttrs),
+  // e roda DEPOIS do rebalanceamento de p.f — o salário sai coerente com a força final.
+  if(!p.contract) p.contract=defaultContract(p);
   return p; }
 
 /* ================= COMPORTAMENTO DO JOGADOR =================
@@ -378,7 +384,9 @@ function newGame(clubId, division, compToggle, seedOverride){
   // deep clone squads so morale/energy mutate independently
   const squads={};
   DATA.clubs.forEach(c=>squads[c.id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}), division)));
-  squads[clubId].forEach(p=>p.contract=defaultContract(p));
+  // contrato: attachAttrs já dá o padrão a TODO jogador (de qualquer clube) — este passo é só a
+  // rede de segurança pra elenco que tenha vindo por algum caminho que não passe por lá.
+  Object.values(squads).forEach(sq=>sq.forEach(p=>{ if(!p.contract) p.contract=defaultContract(p); }));
   // seedOverride (Resenha): usa a MESMA seed em todos os clientes -> copas/leilão/outras divisões
   // saem IDÊNTICOS (mesma competição). Sem override (solo), sorteia aleatório como sempre.
   const seed=(seedOverride!=null) ? (seedOverride>>>0) : ((Math.random()*0x7fffffff)>>>0);

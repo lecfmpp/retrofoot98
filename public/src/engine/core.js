@@ -362,26 +362,61 @@ function currentWindowIndex(){
   return -1;
 }
 /* quantos jovens ESTE clube já subiu NESTA janela desta temporada — DERIVADO do próprio elenco
-   (cada jovem carrega _youthSeason + _youthWindow). É autoritativo: o jogador viaja pro servidor
-   (from:'BASE') e volta no shared_state, então a contagem sobrevive aos adopts do online e é
-   naturalmente por-clube — sem contador solto em S que vazaria entre humanos ou resetaria pro convidado. */
+   (cada jovem carrega _youthSeason + _youthWindow) MAIS o buffer de transferências pendentes.
+   É autoritativo: o jogador viaja pro servidor (from:'BASE') e volta no shared_state, então a
+   contagem sobrevive aos adopts do online e é naturalmente por-clube — sem contador solto em S
+   que vazaria entre humanos ou resetaria pro convidado.
+   O buffer TEM que entrar na conta (ONLINE): as transferências viajam de carona no resultado da
+   partida (netPublishResult), então uma promoção feita DEPOIS de jogar a rodada — justamente
+   quando o jogador volta pra tela do time enquanto espera os outros — só é enviada na rodada
+   seguinte. Ao adotar o estado do servidor, S.squads é substituído inteiro e o jovem ainda-não-
+   aplicado SOME do elenco local: contando só o elenco, a vaga da janela "voltava" a cada rodada
+   e dava pra subir um jovem por rodada — todos aplicados de uma vez quando o buffer enfim subia.
+   Dedupe por pid porque, na rodada em que o servidor aplica, o mesmo jovem está nos dois lugares
+   (elenco adotado + buffer, que só é limpo no pruneAppliedNetTransfers seguinte). */
 function youthCountThisWindow(){ const w=currentWindowIndex();
-  return (squad(S.clubId)||[]).filter(p=>p&&p._youthSeason===S.season&&p._youthWindow===w).length; }
+  const daJanela=p=>!!p && p._youthSeason===S.season && p._youthWindow===w;
+  const noElenco=(squad(S.clubId)||[]).filter(daJanela);
+  const jaContados=new Set(noElenco.map(p=>p.pid));
+  const pendentes=(S._netTransfers||[]).filter(t=>t && t.from==='BASE' && t.to===S.clubId
+    && daJanela(t.player) && !jaContados.has(t.player.pid));
+  return noElenco.length+pendentes.length; }
 function youthWindowOpen(){ return currentWindowIndex()>=0; }
 function youthAvailable(){
   if(!S || !S.clubId) return false;
   return youthWindowOpen() && youthCountThisWindow()<1 && (squad(S.clubId)||[]).length<40;
 }
-function promoteYouth(){
-  if(!youthAvailable()){
-    const cheio=(squad(S.clubId)||[]).length>=40;
-    const limite=youthWindowOpen() && youthCountThisWindow()>=1;
-    return {ok:false, msg: cheio?'Elenco cheio (40 jogadores).'
-      : limite?('Você já subiu um jogador da base nesta janela. Espere a próxima janela de transferências.')
-      : 'A base só sobe jogador com a janela de transferências aberta.'};
-  }
+function youthUnavailableMsg(){
+  const cheio=(squad(S.clubId)||[]).length>=40;
+  const limite=youthWindowOpen() && youthCountThisWindow()>=1;
+  return cheio?'Elenco cheio (40 jogadores).'
+    : limite?('Você já subiu um jogador da base nesta janela. Espere a próxima janela de transferências.')
+    : 'A base só sobe jogador com a janela de transferências aberta.';
+}
+/* sorteia um NOVO lote de 3 candidatos e guarda em S._youthCandidates/_youthCandidatesRound —
+   como as 3 opções já aparecem juntas no modal, não existe "escolher outro" (seria redundante);
+   em vez disso o lote fica FIXO até a rodada avançar de verdade (jogar a rodada), pra não virar
+   um reroll de graça só reabrindo o menu. Guardado em S (não em CL) pra sobreviver a um reload
+   e ficar coerente entre solo/Resenha. */
+function rollYouthCandidatesForRound(){
+  const usedPos=[], cands=[];
+  for(let i=0;i<3;i++){ const c=generateYouthCandidate(usedPos); if(!c) break; usedPos.push(c.youth.s); cands.push(c); }
+  S._youthCandidates=cands; S._youthCandidatesRound=S.round;
+  return cands;
+}
+/* gera UM candidato completo (nome/atributos/comportamento/idade/força/contrato-prévia) SEM
+   adicionar ao elenco nem consumir a vaga da janela — puramente pra preview no modal de
+   promoção (ver rollYouthCandidatesForRound acima). O comportamento (Brigão, Calmo...) já sai
+   definitivo aqui via attachAttrs->assignBehavior; confirmYouthPromotion() reaproveita este
+   MESMO objeto (não regenera nada), então o que o usuário vê no card é exatamente o que o
+   jogador promovido vai ter — sem risco de divergência entre preview e resultado real. */
+function generateYouthCandidate(usedPositionsThisBatch){
+  if(!youthAvailable()) return null;
   const div=S.division, sq=squad(S.clubId);
   const cnt={GK:0,DEF:0,MID:0,ATT:0}; sq.forEach(p=>{ if(cnt[p.s]!=null) cnt[p.s]++; });
+  // penaliza (sem proibir) repetir a mesma posição dentro do MESMO lote de 3 candidatos — as 3
+  // opções do modal de promoção ficam mais úteis/variadas em vez de sempre a mesma posição.
+  (usedPositionsThisBatch||[]).forEach(p=>{ if(cnt[p]!=null) cnt[p]+=2; });
   // reforça a posição de LINHA mais carente. Goleiro fica de fora: já há 3 garantidos e só 1 joga,
   // então um 4º GK seria desperdício — só entra se por algum motivo faltar goleiro.
   const pos = cnt.GK<3 ? 'GK' : ['DEF','MID','ATT'].sort((a,b)=>cnt[a]-cnt[b])[0];
@@ -390,19 +425,28 @@ function promoteYouth(){
   const R=makeRng(hashSeed(S.seed,S.season,'youthage',idx,S.clubId));
   raw.age=16+Math.floor(R.random()*4); raw.ag='Base'; raw.moral=75; raw.mv=REBAL.value(raw.f, raw.age);
   const youth=attachAttrs(initStats(raw), div);   // ganha pid + atributos + comportamento
-  youth.contract=defaultContract(youth);
   // jovem recém-promovido é muito inexperiente pra cobrar salário de mercado — 40% do valor
   // que defaultContract() daria pra um jogador comum com essa força (piso de 1000, igual defaultContract).
-  youth.contract.salary=Math.max(1000, Math.round(youth.contract.salary*0.4));
+  const contract=defaultContract(youth);
+  contract.salary=Math.max(1000, Math.round(contract.salary*0.4));
+  const posNome={GK:'Goleiro',DEF:'Defensor',MID:'Meia',ATT:'Atacante'}[pos]||pos;
+  return {youth, posNome, contract};
+}
+/* efetiva a promoção do candidato ESCOLHIDO (ver generateYouthCandidate) — só aqui o jogador
+   entra de fato no elenco e consome a vaga da janela. Os outros candidatos do lote são
+   simplesmente descartados (nunca foram registrados em lugar nenhum). */
+function confirmYouthPromotion(candidate){
+  const {youth, posNome, contract}=candidate;
+  const sq=squad(S.clubId);
+  youth.contract=contract;
   youth._youthSeason=S.season; youth._youthWindow=currentWindowIndex(); // temporada+janela (base do teto de 1/janela)
   sq.push(youth);
   if(typeof CL!=='undefined' && CL.online){ // manda o jogador NOVO pro servidor adicionar (from BASE)
     S._netTransfers=S._netTransfers||[]; S._netTransfers.push({ from:'BASE', to:S.clubId, p:youth.n, pid:youth.pid, player:youth, fee:0 });
   }
-  const posNome={GK:'Goleiro',DEF:'Defensor',MID:'Meia',ATT:'Atacante'}[pos]||pos;
   S.roundNews=S.roundNews||[]; S.roundNews.push(`🌱 ${youth.n} (${posNome}, ${youth.age} anos, força ${youth.f}) subiu das categorias de base.`);
+  S._youthCandidates=null; S._youthCandidatesRound=null; // vaga da janela consumida -> lote atual não faz mais sentido
   saveV3();
-  return {ok:true, youth, posNome};
 }
 /* ===== CAIXA: toda mudança fora do fechamento de rodada TEM que ser publicada =====
    S.budget é só a cópia local. A autoridade do caixa de um humano é game_seats.budget: o
@@ -424,6 +468,18 @@ function commitBudget(){
 }
 /* descarta do buffer as transferências que o servidor JÁ aplicou (jogador está no destino no
    estado autoritativo). Chamado depois de adotar a rodada — o que sobrar é reenviado. */
+/* garante contrato em TODO jogador de TODO clube do mundo atual. attachAttrs já faz isso na
+   criação, mas salas/saves criados ANTES disso têm elencos sem contract nenhum — na Resenha,
+   só o clube do anfitrião ganhava contrato em newGame, então o time de qualquer outro humano
+   aparecia com "0k/sem" em todos os jogadores e a folha salarial dele nunca era descontada.
+   defaultContract é função pura de força/idade, então o preenchimento é determinístico: todo
+   cliente chega ao MESMO salário pro mesmo jogador, mesmo sendo uma correção local aplicada
+   depois de adotar o estado do servidor (que não carrega contrato de clube de CPU). */
+function ensureSquadContracts(){
+  if(!S || !S.squads) return;
+  for(const id in S.squads){ const sq=S.squads[id]; if(!Array.isArray(sq)) continue;
+    sq.forEach(p=>{ if(p && !p.contract) p.contract=defaultContract(p); }); }
+}
 function pruneAppliedNetTransfers(){
   if(!S) return;
   // moral da coletiva: o servidor aplica UMA vez, na rodada em que ela chega. Como já
@@ -1073,7 +1129,7 @@ function ensureIntlClub(name, countryCode){
   if(!S.intlClubs[id]){
     const c=makeIntlClub(name, countryCode);
     S.intlClubs[id]=c;
-    S.squads[id]=gkSquad(c).map(p=>attachAttrs(initStats({...p})));
+    S.squads[id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}),'A')); // 1a divisão estrangeira -> banda A, não a divisão do usuário
   }
   return id;
 }
@@ -1163,6 +1219,8 @@ function advanceCupBracket(b, roundLabel){
     // o que a partida ao vivo/espectador já mostrou, se for o caso.
     const res=resolveDrawnKnockoutTie(t.h,t.a,seed,fin.hg,fin.ag);
     t.winner=res.winner; t.pens=res.pens||null; winners.push(res.winner);
+    t.jornada=S.round; // jornada de liga em que este confronto foi jogado — o Calendário precisa dela pra listar o resultado (ver userCupCalendarRows)
+    awardCupPhasePrize(_cupKeyOf(roundLabel), b, t); // cota da fase (Copa do Brasil), no caixa de quem venceu
     const loser=res.winner===t.h?t.a:t.h; b.eliminated[loser]=true;
   });
   const advancing=winners.concat(b.pendingByes||[]);
@@ -1228,6 +1286,10 @@ function advanceGroupStageRound(mg, roundLabel){
       recordScorers(fin.scorers); // idem ao bracket de mata-mata: gol de copa (aqui, fase de grupos) tem que contar em S.scorers
       ratePlayers(h,fin.hg,fin.ag,fin.scorers,Rm,fin.perf&&fin.perf.H,fin.perf&&fin.perf.A); ratePlayers(a,fin.ag,fin.hg,fin.scorers,Rm,fin.perf&&fin.perf.A,fin.perf&&fin.perf.H);
       const T=g.table;
+      // placar da partida: a tabela só acumula o agregado, então sem isto o resultado de uma
+      // partida de grupo era impossível de recuperar depois (Calendário ficava só com os jogos
+      // FUTUROS da competição, enquanto a liga mostrava todos os resultados).
+      g.results=g.results||[]; g.results.push({r:mg.round, h, a, hg:fin.hg, ag:fin.ag, jornada:S.round});
       T[h].P++; T[a].P++; T[h].GF+=fin.hg; T[h].GA+=fin.ag; T[a].GF+=fin.ag; T[a].GA+=fin.hg;
       if(fin.hg>fin.ag){ T[h].W++; T[a].L++; T[h].Pts+=3; }
       else if(fin.hg<fin.ag){ T[a].W++; T[h].L++; T[a].Pts+=3; }
@@ -1268,6 +1330,35 @@ function cupPhaseLabel(round, roundsTotal){
   if(dist===3) return 'Oitavas de final';
   if(dist===4) return '16 avos de final';
   return `${round}ª fase`; // rodadas bem no início de chaveamentos grandes, sem nome padrão
+}
+/* ===== COTA POR FASE DA COPA DO BRASIL =====
+   Paga na hora em que o confronto é decidido, ao VENCEDOR da fase (e ao vice, na final),
+   pra TODOS os clubes — não só o do usuário. Ver PRIZES.copaBrasilPhaseCash pros valores.
+   Idempotência: o pagamento fica carimbado no próprio confronto (t.prize), que mora no estado
+   compartilhado — se a mesma chave for varrida de novo (adopt do online, re-render), ninguém
+   recebe duas vezes.
+   Caixa: clube do PRÓPRIO usuário entra por S.budget + commitBudget() (a autoridade do caixa
+   humano é o assento, ver commitBudget) e vira linha na aba Finanças; qualquer outro clube
+   entra em S.budgets, que é o caixa por-clube do mundo. */
+function _cupKeyOf(roundLabel){ return String(roundLabel||'').split('-')[0]; }
+function awardCupPhasePrize(key, b, t){
+  if(key!=='copaBrasil' || !t || !t.winner || t.prize) return;
+  if(typeof PRIZES==='undefined' || !PRIZES.copaBrasilPhaseCash) return;
+  const loser=t.winner===t.h?t.a:t.h;
+  const isFinal=(b.roundsTotal-b.round)<=0;
+  const pagar=[[t.winner, PRIZES.copaBrasilPhaseCash(b.round, b.roundsTotal, true), isFinal?'Campeão':cupPhaseLabel(b.round,b.roundsTotal)]];
+  if(isFinal) pagar.push([loser, PRIZES.copaBrasilPhaseCash(b.round, b.roundsTotal, false), 'Vice-campeão']);
+  t.prize={ round:b.round, pagos:pagar.map(([id,amt])=>({id,amt})) }; // carimbo (idempotência)
+  pagar.forEach(([id,amt,fase])=>{
+    if(!id || !amt) return;
+    if(id===S.clubId){
+      S.budget=(S.budget||0)+amt; commitBudget();
+      pushFinanceEntry({income:amt, log:['🏆 Copa do Brasil — '+fase+': +'+(typeof fmt==='function'?fmt(amt):amt)]});
+      S.roundNews=S.roundNews||[]; S.roundNews.push(`🏆 Cota da Copa do Brasil (${fase}): +${typeof fmt==='function'?fmt(amt):amt} no caixa.`);
+    } else {
+      S.budgets=S.budgets||{}; S.budgets[id]=Math.round((S.budgets[id]||0)+amt);
+    }
+  });
 }
 function cupEliminationPhrase(round, roundsTotal){
   const label=cupPhaseLabel(round, roundsTotal);
@@ -1396,7 +1487,7 @@ function ensureCupClubsMaterialized(ids){
   const byId={}; intlTopDivisionClubs().forEach(c=>byId[c.id]=c);
   ids.forEach(id=>{
     if(!S.clubPool[id] && byId[id]) S.clubPool[id]=byId[id];
-    if(!S.squads[id]){ const c=S.clubPool[id]||byId[id]; if(c) S.squads[id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}))); }
+    if(!S.squads[id]){ const c=S.clubPool[id]||byId[id]; if(c) S.squads[id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}),'A')); } // clubes de topo (intlTopDivisionClubs) -> banda A
   });
 }
 /* qualificação continental: 32 pra Champions + 32 pra Europa (melhores clubes reais das 5
@@ -1859,6 +1950,15 @@ function universeCountryInfo(key){
 function clubLeagueLabel(c){
   const m=(c&&c.lg)?lgToUniDiv(c.lg):null;
   return m?((UNI_CONFIGS[m.uni].label||{})[m.div]||''):'';
+}
+/* divisão REAL de um clube, pelo registro persistente (S.divisionClubs), não a de quem está
+   jogando. Sem isto a tela de outro clube rotulava tudo com a divisão do usuário — um save na
+   Série D mostrava "Corinthians · Série D". Devolve null quando o clube não está em nenhuma
+   divisão do universo ativo (clube estrangeiro de copa, liga de fundo). */
+function clubDivisionOf(clubId){
+  if(!clubId || !S || !S.divisionClubs) return null;
+  for(const d in S.divisionClubs){ if((S.divisionClubs[d]||[]).indexOf(clubId)>=0) return d; }
+  return null;
 }
 /* jogador é estrangeiro no universo de um país? (nat doméstico definido em UNI_CONFIGS) */
 function playerIsForeign(p, uniKey){
@@ -2359,6 +2459,11 @@ function ensureDivisionClubs(division){
    com a divisão de verdade do save carregado — os CPUs seguem as mesmíssimas regras
    dos clubes humanos, então precisam sempre estar presentes e corretos. */
 function syncDataClubsFromState(){
+  // roda em TODOS os pontos onde um estado é adotado (load do save solo, load da sala, reconcile
+  // do convidado, virada de temporada online) — é o gancho natural pra normalizar o que veio de
+  // fora. Fica ANTES dos early-returns abaixo: elenco sem contrato precisa ser corrigido mesmo
+  // num estado que não tenha divisionClubs. Ver ensureSquadContracts.
+  ensureSquadContracts();
   if(!S || !S.division || !S.divisionClubs) return;
   const ids=S.divisionClubs[S.division]; if(!ids || !ids.length) return;
   const pool=S.clubPool||{};
@@ -2426,7 +2531,7 @@ function switchToDivision(newDivision, promotedOrRelegated){
   // mantém a identidade do clube do usuário (nome/cor/escudo reais), só troca o elenco de adversários
   DATA.clubs = [myClub, ...newClubs];
   S.division = newDivision;
-  const squads={}; DATA.clubs.forEach(c=>{ squads[c.id] = c.id===S.clubId ? myPlayers : (S.squads[c.id] || gkSquad(c).map(p=>attachAttrs(initStats({...p})))); });
+  const squads={}; DATA.clubs.forEach(c=>{ squads[c.id] = c.id===S.clubId ? myPlayers : (S.squads[c.id] || gkSquad(c).map(p=>attachAttrs(initStats({...p}), newDivision))); }); // banda = divisão nova (ver buildOtherDivisions)
   S.squads = squads;
   const ids = DATA.clubs.map(c=>c.id);
   S.sched = makeSchedule(ids);
@@ -2448,7 +2553,12 @@ function buildOtherDivisions(){
     const table = {};
     clubs.forEach(c=>{
       table[c.id] = {id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0};
-      if(!S.squads[c.id]) S.squads[c.id] = gkSquad(c).map(p=>attachAttrs(initStats({...p})));
+      // banda de força da divisão DELE (o `d` do laço), não a do usuário: attachAttrs cai em
+      // S.division quando não recebe divisão, então os clubes de dados REAIS (Série A, que não
+      // trazem _div/_rb prontos como os procedurais) eram remapeados com a faixa de quem está
+      // jogando — num save da Série D o elenco do Corinthians saía com reserva em força 5 e
+      // craque em 81 (a curva da D extrapolada), em vez dos 26-77 da faixa A.
+      if(!S.squads[c.id]) S.squads[c.id] = gkSquad(c).map(p=>attachAttrs(initStats({...p}), d));
       if(S.budgets && S.budgets[c.id]==null) S.budgets[c.id] = REBAL.budget(d, makeRng(hashSeed(S.seed,'budget',c.id))); // F3.3: caixa por-clube
     });
     S.otherDivs[d] = { clubs, sched: makeSchedule(clubs.map(c=>c.id)), table };

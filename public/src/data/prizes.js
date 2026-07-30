@@ -60,6 +60,9 @@
   }
   function cupPrize(cupKey, outcome){
     if(!outcome) return 0;
+    // Copa do Brasil paga POR FASE, durante a temporada (ver copaBrasilPhaseCash) — pagar de
+    // novo aqui, no fechamento, seria dobrar a mesma premiação.
+    if(cupKey==='copaBrasil') return 0;
     const t=CUP[cupCategory(cupKey)]||CUP.nat;
     return t[outcome]||0;
   }
@@ -71,6 +74,25 @@
   function artilheiroCash(div){ return ART_CASH[tierOf(div)] || 1e6; }
   const ART_VALUE_MULT=1.20, ART_VALUE_CAP=1.60;
 
+  /* ---- COPA DO BRASIL: cota POR FASE VENCIDA, paga na hora (não no fim da temporada).
+     Diferente de cupPrize() acima, que paga uma vez só, no fechamento, pela fase ALCANÇADA:
+     aqui cada vitória de fase pinga o dinheiro no caixa do clube durante a temporada, como
+     acontece de verdade — e vale pra TODOS os clubes, não só o do usuário. Valores definidos
+     pelo dono do jogo (ver copaBrasilPhaseCash). Quem perde a final leva a cota de vice.
+     Como esta cota substitui a premiação de fim de temporada da Copa do Brasil, cupPrize()
+     devolve 0 pra ela (senão o clube receberia duas vezes pelo mesmo caminho). ---- */
+  const CB_PHASE={ final:28e6, vice:14e6, semi:9e6, quartas:4e6, oitavas:2e6, dezesseis:1.5e6, f2:0.8e6, f1:0.4e6 };
+  /* mesma conta de cupPhaseLabel (core.js): dist = rodadas até a final. round é 1-based. */
+  function copaBrasilPhaseCash(round, roundsTotal, isChampion){
+    const dist=(roundsTotal||0)-(round||0);
+    if(dist<=0) return isChampion===false ? CB_PHASE.vice : CB_PHASE.final;
+    if(dist===1) return CB_PHASE.semi;
+    if(dist===2) return CB_PHASE.quartas;
+    if(dist===3) return CB_PHASE.oitavas;
+    if(dist===4) return CB_PHASE.dezesseis;
+    return round<=1 ? CB_PHASE.f1 : CB_PHASE.f2;   // fases iniciais de chaveamento grande
+  }
   window.PRIZES={ tierOf, leaguePrize, cupCategory, cupResultOutcome, cupPrize,
+                  copaBrasilPhaseCash, CB_PHASE,
                   artilheiroCash, ART_VALUE_MULT, ART_VALUE_CAP, LEAGUE, CUP };
 })();
