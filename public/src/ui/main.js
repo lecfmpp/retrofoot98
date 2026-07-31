@@ -1632,8 +1632,11 @@ function addInboxEmail(e){
 }
 /* ---- PERSISTÊNCIA do inbox: localStorage SEMPRE (solo + reload) + game_seats no online
    (durável/cross-device). Chave por save/sala + clube. ---- */
+/* a chave TEM que identificar o save/sala + o clube. No solo entram nome do save E seed: dois
+   saves diferentes podem nascer com o mesmo nome (o usuário reaproveita) ou, em tese, com a
+   mesma seed — juntos os dois não colidem. */
 function inboxKey(){
-  const g = (CL.online && typeof NET!=='undefined' && NET.gameId) ? NET.gameId : ('solo_'+((S&&S.seed)||'x'));
+  const g = (CL.online && typeof NET!=='undefined' && NET.gameId) ? NET.gameId : ('solo_'+(CL.save||'')+'_'+((S&&S.seed)||'x'));
   return 'ef_inbox_'+g+'_'+(CL.clubId||'');
 }
 function saveInbox(){
@@ -1651,7 +1654,10 @@ function mergeInbox(other){
   CL.inbox=CL.inbox.filter(x=>!CL.inboxDeleted[x.key]);        // some com os apagados
 }
 function loadInbox(){
-  CL.inbox=CL.inbox||[]; CL.inboxDeleted=CL.inboxDeleted||{};
+  // ZERA antes de ler: CL.inbox é memória do cliente e sobrevive à troca de save. Sem isto, abrir
+  // um save cuja caixa ainda não existe no storage mantinha em tela os e-mails do save ANTERIOR
+  // (o `CL.inbox=CL.inbox||[]` de antes preservava o array velho quando não havia nada gravado).
+  CL.inbox=[]; CL.inboxDeleted={}; CL.inboxOpen=null;
   try{ const raw=localStorage.getItem(inboxKey()); if(raw){ const s=JSON.parse(raw); CL.inbox=s.inbox||[]; CL.inboxDeleted=s.deleted||{}; } }catch(e){}
   if(CL.online && typeof NET!=='undefined' && NET.loadInbox){   // mescla com o assento (cross-device)
     NET.loadInbox().then(db=>{ if(db){ mergeInbox(db); if(typeof cdraw==='function') cdraw(); } }).catch(()=>{});
@@ -2111,7 +2117,12 @@ function renderMarketOffer(){
   const nego = M.negoIdx!=null ? S.negos[M.negoIdx] : null;
   let body;
   if(!nego || nego.stage==='fee' || nego.stage==='counterFee'){
-    const hint = nego && nego.stage==='counterFee' ? `<div class="cl-mkt-counter">O clube pediu um valor a partir de ${curSym()} ${moneyDisp(nego.clubCounter)}. Ofereça esse valor (ou mais) ou desista.</div>` : '';
+    // "Igualar pedido": um clique põe o valor pedido pelo clube no campo E propõe. Sem isto o
+    // usuário tinha que ler o número, apagar o campo e redigitar a mesma quantia pra seguir a
+    // negociação — o caminho de longe mais comum depois de uma contraproposta.
+    const hint = nego && nego.stage==='counterFee' ? `<div class="cl-mkt-counter">O clube pediu um valor a partir de ${curSym()} ${moneyDisp(nego.clubCounter)}. Ofereça esse valor (ou mais) ou desista.
+        <div class="cl-mkt-match">${btn('Igualar pedido ('+fmt(nego.clubCounter)+')','clMarketMatchCounter()',{icon:'=',cls:'cl-btn-ok cl-btn-mini'})}</div>
+      </div>` : '';
     body = `<div class="cl-mkt-offer">
       <div class="cl-mkt-offer-hd">${escC(p.n)} <span>(${escC(clubOf(M.clubId).short)})</span></div>
       <div class="cl-mkt-offer-row"><span>Força</span><b>${p.f}</b></div>
@@ -2149,6 +2160,15 @@ function renderMarketOffer(){
   }
   overlayC(dlg('Fazer proposta', body+`<div class="cl-cal-ok">${btn('Voltar','clMarketSquad(\''+M.clubId+'\')',{icon:'↩',cls:'cl-btn-cancel'})}</div>`,
     {w:560,bodyClass:'cl-body-gray',min:true}));
+}
+/* iguala a contraproposta do clube e já propõe (ver o hint de counterFee em renderMarketOffer).
+   Passa pelo MESMO clMarketProposeFee, então a resposta do clube segue a regra normal. */
+function clMarketMatchCounter(){
+  const M=CL.market; const nego = M.negoIdx!=null ? S.negos[M.negoIdx] : null;
+  if(!nego || !nego.clubCounter){ toastC('Nada pra igualar aqui.'); return; }
+  if(nego.clubCounter>S.budget){ toastC('Caixa insuficiente pra igualar esse pedido.'); return; }
+  M.offer=nego.clubCounter;
+  clMarketProposeFee();
 }
 function clMarketProposeFee(){ const M=CL.market;
   if(M.negoIdx==null) M.negoIdx=startNego(M.clubId,M.player,M.offer);
@@ -3882,6 +3902,7 @@ async function onlineAdoptServerRound(RL){
       S.xi = resolveClubXI(CL.clubId);
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       if(typeof pruneAppliedNetTransfers==='function') pruneAppliedNetTransfers(); // solta as transferências que o servidor já aplicou
+      if(typeof pruneAppliedNetOffers==='function') pruneAppliedNetOffers();       // idem pras propostas mandadas a outro humano
       if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
     }
   }catch(e){ console.warn('adotar estado do servidor:', e); }

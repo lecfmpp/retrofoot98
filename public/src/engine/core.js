@@ -480,6 +480,17 @@ function ensureSquadContracts(){
   for(const id in S.squads){ const sq=S.squads[id]; if(!Array.isArray(sq)) continue;
     sq.forEach(p=>{ if(p && !p.contract) p.contract=defaultContract(p); }); }
 }
+/* descarta do buffer as propostas que o servidor JÁ aplicou (já estão na fila do vendedor no
+   estado autoritativo) ou que expiraram. Espelha pruneAppliedNetTransfers; chamado nos mesmos
+   pontos, depois de adotar a rodada. */
+function pruneAppliedNetOffers(){
+  if(!S || !S._netOffers || !S._netOffers.length) return;
+  S._netOffers=S._netOffers.filter(o=>{
+    if(!o || o.expiresRound<=S.round) return false;                       // expirou -> não reenvia
+    const fila=(S.incomingOffersByClub && S.incomingOffersByClub[o.to])||[];
+    return !fila.some(x=>x && x.id===o.id);                               // já aplicada -> solta
+  });
+}
 function pruneAppliedNetTransfers(){
   if(!S) return;
   // moral da coletiva: o servidor aplica UMA vez, na rodada em que ela chega. Como já
@@ -731,6 +742,14 @@ function sendHumanOffer(targetSellerId, playerName, fee){
     buyerIsHuman:true, playerName:p.n, playerForce:p.f, fee, negRound:0, lastMsg:null, expiresRound:S.round+6 });
   S.outgoingOffersByClub=S.outgoingOffersByClub||{};
   (S.outgoingOffersByClub[S.clubId]=S.outgoingOffersByClub[S.clubId]||[]).push({ id, sellerId:targetSellerId, playerName:p.n, fee, expiresRound:S.round+6 });
+  // ONLINE: a linha acima é só a cópia LOCAL — o vendedor está em outro aparelho e S vem do
+  // servidor a cada rodada, então uma proposta escrita só aqui era apagada no adopt seguinte e
+  // NUNCA chegava a ele. Vai pelo mesmo canal por-assento das transferências (last_result.offers,
+  // ver netPublishResult/applyHumanOffers), com buffer reenviado até o servidor aplicar.
+  if(typeof CL!=='undefined' && CL.online){
+    S._netOffers=S._netOffers||[];
+    S._netOffers.push(Object.assign({ to:targetSellerId }, sellerOffers[sellerOffers.length-1]));
+  }
   save();
   return {ok:true, msg:`Proposta de ${fmt(fee)} enviada por ${p.n}. O outro treinador vai ver no e-mail dele.`};
 }

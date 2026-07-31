@@ -322,8 +322,11 @@ async function netPublishResult(round, result){
   // morale: efeito da coletiva de imprensa no MEU elenco (sala de imprensa de fim de temporada).
   // Mesmo motivo das transferências: aplicar só no cliente seria desfeito pelo servidor.
   const _mo = (typeof S!=='undefined' && S && S._netMorale) ? S._netMorale : 0;
+  // offers: propostas que EU mandei pro clube de outro humano. Mesmo motivo das transferências —
+  // escrever só no meu S não faz a proposta chegar em ninguém (ver sendHumanOffer/pruneAppliedNetOffers).
+  const _of = (typeof S!=='undefined' && S && Array.isArray(S._netOffers)) ? S._netOffers : [];
   const payload = { round, h:result.h, a:result.a, hg:result.hg, ag:result.ag,
-    scorers:result.scorers||[], perf:result.perf||null, events:result.events||[], transfers:_tr, morale:_mo };
+    scorers:result.scorers||[], perf:result.perf||null, events:result.events||[], transfers:_tr, morale:_mo, offers:_of };
   try{
     if(NET._claimed && NET._claimed[SB_AUTH_USER.id]){ NET._claimed[SB_AUTH_USER.id].last_result=payload; NET._claimed[SB_AUTH_USER.id].last_result_round=round; }
     await sb.from('game_seats').update({ last_result:payload, last_result_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);

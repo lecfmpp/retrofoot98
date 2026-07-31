@@ -758,6 +758,70 @@ function applyHumanTransfers(S: any, transfers: any[], humans?: Set<string>) {
     [t.from, t.to].forEach((cid: string) => { const sq = S.squads[cid]; if (sq && sq.length) S.clubOverall[cid] = Math.round(sq.reduce((s: number, x: any) => s + x.f, 0) / sq.length); });
   });
 }
+/* ===== PROPOSTAS RECEBIDAS (S.incomingOffersByClub) =====
+   Espelho de generateIncomingOffers/pruneIncomingOffers/sendHumanOffer (core.js). PRECISA morar
+   aqui: o servidor é o único produtor do shared_state, então proposta criada no cliente era
+   apagada no adopt seguinte. Consequência no ar: na Resenha NENHUM humano recebia proposta da
+   CPU (o e-mail simplesmente não chegava), e proposta de um humano pro clube de outro nunca
+   saía do aparelho de quem mandou. ===== */
+const TRANSFER_WINDOWS = [[0, 9], [20, 29]];
+const PRE_WINDOW_ROUNDS = 3;
+function inTransferWindowR(round: number) { return TRANSFER_WINDOWS.some(([lo, hi]) => round >= lo && round <= hi); }
+function canNegotiateR(round: number) {
+  if (inTransferWindowR(round)) return true;
+  for (const [lo] of TRANSFER_WINDOWS) if (round < lo) return (lo - round) <= PRE_WINDOW_ROUNDS; // pré-janela
+  return false;
+}
+function pruneIncomingOffers(S: any) {
+  S.incomingOffersByClub = S.incomingOffersByClub || {};
+  Object.keys(S.incomingOffersByClub).forEach((cid) => {
+    S.incomingOffersByClub[cid] = (S.incomingOffersByClub[cid] || []).filter((o: any) => o && o.expiresRound > S.round);
+  });
+}
+/* propostas que um humano mandou pro clube de OUTRO humano, publicadas em last_result.offers.
+   Idempotente por id — o cliente reenvia até ver a proposta no estado autoritativo. */
+function applyHumanOffers(S: any, offers: any[]) {
+  if (!offers || !offers.length) return;
+  S.incomingOffersByClub = S.incomingOffersByClub || {};
+  offers.forEach((o: any) => {
+    if (!o || !o.to || !o.id) return;
+    const fila = S.incomingOffersByClub[o.to] = S.incomingOffersByClub[o.to] || [];
+    if (fila.some((x: any) => x && x.id === o.id)) return;
+    const { to, ...oferta } = o;
+    fila.push(oferta);
+  });
+}
+function isHotP(p: any) { const st = p && p.stats; if (!st || !st.r3 || st.r3.length < 3) return false;
+  return (st.g3 || []).reduce((a: number, b: number) => a + b, 0) >= 1 || st.r3.every((x: number) => x > 8); }
+/* CPU faz proposta pelos jogadores dos clubes HUMANOS (mesma regra do core.js: no máx. 4
+   pendentes, ~50% de chance por rodada de janela, mira os melhores do elenco, comprador de
+   nível compatível, taxa 1.0-1.7x o valor de mercado). */
+function generateIncomingOffers(S: any, humanClubs: Set<string>) {
+  pruneIncomingOffers(S);
+  if (!canNegotiateR(S.round)) return;
+  const R = ME.makeRng(ME.hashSeed(S.seed, S.round, 'incoming'));
+  S.incomingOffersByClub = S.incomingOffersByClub || {};
+  const todosClubes = Object.keys(S.squads || {});
+  humanClubs.forEach((myClubId) => {
+    const myOffers = S.incomingOffersByClub[myClubId] = S.incomingOffersByClub[myClubId] || [];
+    if (myOffers.length >= 4) return;
+    if (R.random() > 0.5) return;
+    const mySquad = S.squads[myClubId] || []; if (mySquad.length <= 16) return;
+    const pending = new Set(myOffers.map((o: any) => o.playerName));
+    const targets = mySquad.filter((p: any) => !pending.has(p.n) && !p._pendingSale)
+      .sort((a: any, b: any) => b.f - a.f).slice(0, Math.max(3, Math.ceil(mySquad.length * 0.4)));
+    if (!targets.length) return;
+    const p = targets[Math.floor(R.random() * targets.length)];
+    const eligible = todosClubes.filter((id) => id !== myClubId && ((S.clubOverall || {})[id] || 70) >= p.f - 12);
+    if (!eligible.length) return;
+    const buyerId = eligible[Math.floor(R.random() * eligible.length)];
+    const fee = Math.round((p.mv || 1e6) * (1.0 + R.random() * 0.7));
+    const maxFee = Math.round(fee * (1.15 + (isHotP(p) ? 0.2 : 0) + R.random() * 0.15));
+    myOffers.push({ id: (ME.hashSeed(S.seed, S.round, p.n, buyerId, myClubId) >>> 0),
+      buyerId, buyerName: (S.clubShort || {})[buyerId] || buyerId, buyerCountry: null,
+      playerName: p.n, playerForce: p.f, fee, maxFee, negRound: 0, lastMsg: null, expiresRound: S.round + 3 });
+  });
+}
 /* MORAL da coletiva de imprensa (sala de imprensa de fim de temporada): delta por clube
    humano, publicado em last_result.morale. Aplicado UMA vez, na rodada em que chega —
    depois o cliente zera o pendente. Limitado a ±15 por segurança. */
@@ -768,9 +832,10 @@ function applyHumanMorale(S: any, moraleByClub: any) {
     sq.forEach((p: any) => { p.moral = clampN((p.moral != null ? p.moral : 70) + d, 0, 100); });
   });
 }
-function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any, humanTransfers?: any[], moraleByClub?: any) {
+function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any, humanTransfers?: any[], moraleByClub?: any, humanOffers?: any[]) {
   const seed = S.seed, round = S.round;
   applyHumanTransfers(S, humanTransfers || [], humanClubs);       // 0) contratações/vendas do humano ANTES de escalar/jogar
+  applyHumanOffers(S, humanOffers || []);                         // 0c) propostas humano->humano publicadas nos assentos
   applyHumanMorale(S, moraleByClub || {});                        // 0b) efeito da coletiva na moral do elenco
   const fixtures = (S.sched[round] || []);
   advancePlayerAvailability(S);                                   // 1) cumpre suspensões/lesões
@@ -797,6 +862,7 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   advanceOtherDivs(S, humanResultByFx, humanClubs, humanXI, humanTactic); // 4c) outras divisões (CPU + override humano onde houver)
   S.round++; S.week = (S.week || 1) + 1; S.day = (S.day || 1) + 7; // 5) avança a rodada
   advancePendingCups(S, cupResultByFx || {}, humanClubs);         // 6) copas (Copa do Brasil) — usa a rodada NOVA; humanClubs: cota de fase de humano é creditada pelo cliente dele
+  generateIncomingOffers(S, humanClubs);                          // 6b) CPU faz propostas pelos jogadores dos humanos (chega como e-mail no cliente)
   S._roundIncidents = {};
   // 7) fim de temporada? liga terminou -> virada (promoção/rebaixamento + regen + nova temporada)
   if (Array.isArray(S.sched) && S.round >= S.sched.length) resolveSeasonTurnover(S, new Set(humanClubs));
@@ -831,7 +897,7 @@ Deno.serve(async (req: Request) => {
 
     const round = S.round;
     const { data: seats } = await admin.from("game_seats").select("user_id, club_id, last_xi, last_tactic, last_result, last_result_round, last_cup_result, last_cup_round, budget").eq("game_id", gameId);
-    const humanClubs = new Set<string>(); const humanXI: any = {}; const humanTactic: any = {}; const humanResultByFx: any = {}; const cupResultByFx: any = {}; const humanTransfers: any[] = []; const moraleByClub: any = {};
+    const humanClubs = new Set<string>(); const humanXI: any = {}; const humanTactic: any = {}; const humanResultByFx: any = {}; const cupResultByFx: any = {}; const humanTransfers: any[] = []; const moraleByClub: any = {}; const humanOffers: any[] = [];
     (seats || []).forEach((s: any) => {
       if (!s.user_id || !s.club_id) return; humanClubs.add(s.club_id);
       if (s.last_xi) humanXI[s.club_id] = s.last_xi; if (s.last_tactic) humanTactic[s.club_id] = s.last_tactic;
@@ -840,13 +906,15 @@ Deno.serve(async (req: Request) => {
       if (r && s.last_result_round === round && r.h && r.a) { const k = r.h + "-" + r.a; if (!humanResultByFx[k] || s.club_id === r.h) humanResultByFx[k] = { hg: r.hg, ag: r.ag, scorers: r.scorers || [], events: r.events || [] }; }
       // trocas de elenco publicadas por este humano (compra/venda) — aplicadas no mundo antes da rodada
       if (r && s.last_result_round === round && Array.isArray(r.transfers) && r.transfers.length) humanTransfers.push(...r.transfers);
+      // propostas que este humano mandou pro clube de outro humano (ver sendHumanOffer no cliente)
+      if (r && s.last_result_round === round && Array.isArray(r.offers) && r.offers.length) humanOffers.push(...r.offers);
       if (r && s.last_result_round === round && r.morale) moraleByClub[s.club_id] = Number(r.morale) || 0;
       // resultado de COPA submetido pra ESTA rodada (aplicado na chave; mandante-autoritativo)
       const cr = s.last_cup_result;
       if (cr && s.last_cup_round === round && cr.h && cr.a && cr.winner) { const ck = cr.h + "-" + cr.a; if (!cupResultByFx[ck] || s.club_id === cr.h) cupResultByFx[ck] = { hg: cr.hg, ag: cr.ag, winner: cr.winner, pens: cr.pens || null, events: cr.events || [] }; }
     });
 
-    resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic, cupResultByFx, humanTransfers, moraleByClub);
+    resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic, cupResultByFx, humanTransfers, moraleByClub, humanOffers);
     stateObj.round = S.round;
 
     const { data: upd, error: upErr } = await admin.from("games").update({ shared_state: stateObj, state_version: curVer + 1, round: S.round }).eq("id", gameId).eq("state_version", curVer).select("state_version");
