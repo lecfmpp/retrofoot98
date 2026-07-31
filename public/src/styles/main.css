@@ -930,6 +930,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* espera pós-rodada / overlay de sync: bola girando + frase de zoeira rotativa (ver SYNC_FUN) */
 .cl-waitfun-spin{font-size:44px;margin:8px 0;display:inline-block;animation:cl-ballspin 2.4s linear infinite}
 @keyframes cl-ballspin{to{transform:rotate(360deg)}}
+/* GIF sorteado na espera (ver SYNC_GIF_CANDIDATES/syncGifHTML) */
+.cl-waitfun-gif{display:block;margin:8px auto;max-width:min(340px,84vw);max-height:230px;border-radius:8px;border:2px solid rgba(255,255,255,.28);box-shadow:0 4px 14px rgba(0,0,0,.35)}
 .cl-waitfun-msg{margin:8px auto 12px;max-width:540px;background:rgba(255,255,255,.12);border-radius:8px;padding:10px 14px;font-size:14px;font-weight:700;line-height:1.4;min-height:20px}
 .cl-syncfun-ic{margin-right:5px}
 .cl-classif-autohint{text-align:center;font-size:11px;color:rgba(255,255,255,.55);margin:-8px 0 4px}

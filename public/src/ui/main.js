@@ -244,6 +244,24 @@ const SYNC_FUN=[
 ];
 function syncFunHTML(){ const f=SYNC_FUN[Math.floor(Math.random()*SYNC_FUN.length)];
   return `<span class="cl-syncfun-ic">${f[0]}</span> ${escC(f[1])}`; }
+/* GIFs de zoeira na espera: qualquer arquivo img/sync/sync1.gif..sync12.gif que EXISTIR entra
+   no sorteio (sondagem por Image() na carga — não precisa de manifesto nem rebuild pra adicionar
+   ou tirar um GIF, é só subir o arquivo com o nome na sequência). Sem nenhum, cai na bola ⚽. */
+const SYNC_GIF_CANDIDATES=Array.from({length:12},(_,i)=>'img/sync/sync'+(i+1)+'.gif');
+function probeSyncGifs(){
+  if(CL._syncGifs) return; CL._syncGifs=[];
+  SYNC_GIF_CANDIDATES.forEach(src=>{ const im=new Image();
+    im.onload=()=>{ CL._syncGifs.push(src); }; im.src=src; });
+}
+function syncGifHTML(){
+  const gs=CL._syncGifs||[];
+  let g=gs.length?gs[Math.floor(Math.random()*gs.length)]:null;
+  if(g && gs.length>1 && g===CL._lastSyncGif) g=gs[(gs.indexOf(g)+1)%gs.length]; // não repete o mesmo em seguida
+  CL._lastSyncGif=g;
+  return g?`<img class="cl-waitfun-gif" src="${g}" alt="" onerror="this.outerHTML='<div class=cl-waitfun-spin>⚽</div>'">`
+          :`<div class="cl-waitfun-spin">⚽</div>`;
+}
+try{ probeSyncGifs(); }catch(e){}
 /* um ticker só pros dois lugares (overlay + waitround): troca a frase a cada ~2,6s e morre
    sozinho quando nenhum dos alvos está mais na tela. */
 function ensureSyncFunTicker(){
@@ -252,6 +270,11 @@ function ensureSyncFunTicker(){
     const a=$c('#c-syncload-msg'), b=$c('#cl-waitfun-msg');
     if(!a && !b){ clearInterval(CL._syncFunT); CL._syncFunT=null; return; }
     const h=syncFunHTML(); if(a) a.innerHTML=h; if(b) b.innerHTML=h;
+    CL._syncFunN=(CL._syncFunN||0)+1;
+    if(CL._syncFunN%3===0 && (CL._syncGifs||[]).length){   // GIF novo a cada ~8s (3 frases)
+      const gh=syncGifHTML(), ga=$c('#c-syncload-gif'), gb=$c('#cl-waitfun-gif');
+      if(ga) ga.innerHTML=gh; if(gb) gb.innerHTML=gh;
+    }
     // o escape "Ir para o time" (anti-travamento) só aparece se a espera passar de 30s —
     // é ele que levava o usuário pra tela principal desatualizada sem necessidade.
     const skip=$c('#cl-waitfun-skip');
@@ -263,7 +286,7 @@ function showSyncLoading(msg){
   if(!el){ el=document.createElement('div'); el.id='c-syncload'; document.body.appendChild(el); }
   el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:99999;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Tahoma,Verdana,Arial,sans-serif';
   el.innerHTML=`<div style="text-align:center;max-width:540px;padding:20px">
-    <div class="cl-waitfun-spin">⚽</div>
+    <div id="c-syncload-gif">${syncGifHTML()}</div>
     <div style="font-size:16px;font-weight:800;margin:6px 0 10px">${escC(msg||'Sincronizando a rodada...')}</div>
     <div id="c-syncload-msg" class="cl-waitfun-msg">${syncFunHTML()}</div>
   </div>`;
@@ -3967,7 +3990,7 @@ function scWaitRound(){
   // um escape anti-travamento, escondido nos primeiros 30s (o ticker o revela se a espera passar disso).
   return `<div class="cl-res" style="text-align:center;padding:18px">
     <div class="cl-res-score">Rodada ${r} encerrada</div>
-    <div class="cl-waitfun-spin">⚽</div>
+    <div id="cl-waitfun-gif">${syncGifHTML()}</div>
     <div id="cl-waitfun-msg" class="cl-waitfun-msg">${syncFunHTML()}</div>
     <div class="cl-res-verd"><span style="opacity:.85">Sincronizando com a Resenha — a classificação aparece assim que todos os treinadores terminarem.</span></div>
     <div class="cl-classif-autohint">segue sozinho quando a rodada fechar</div>
