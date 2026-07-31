@@ -271,6 +271,7 @@ function onlineReconcileIfBehind(room){
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       if(typeof pruneAppliedNetTransfers==='function') pruneAppliedNetTransfers(); // solta as transferências já aplicadas pelo servidor
       if(typeof pruneAppliedNetOffers==='function') pruneAppliedNetOffers();       // idem pras propostas mandadas a outro humano
+      if(typeof restoreMyFinances==='function') restoreMyFinances();               // finanças são individuais (ver restoreMyFinances)
       if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
       if(typeof applyOwnPendingFinances==='function') applyOwnPendingFinances(); // F3.3: finanças da MINHA rodada (convidado)
       if(typeof applyMyCupPrizes==='function') applyMyCupPrizes(); // cota de fase da Copa do Brasil resolvida pelo servidor

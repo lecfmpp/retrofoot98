@@ -1649,6 +1649,38 @@ function addInboxEmail(e){
   if(CL.inbox.length>60) CL.inbox.length=60;            // teto: guarda as 60 mais recentes
   saveInbox();
 }
+/* ================= FINANÇAS SÃO INDIVIDUAIS =================
+   S.finances (log de transações) e S.seasonTotals (acumulado do ano) moram no S — que na Resenha
+   é o estado COMPARTILHADO, produzido pelo anfitrião. Resultado no ar: o convidado adotava a
+   rodada e passava a ver as transações e os totais DO ANFITRIÃO em "transações recentes",
+   perdendo os próprios. Dinheiro é por-clube: cada humano guarda o SEU log no próprio cliente
+   (mesma ideia da caixa de entrada) e o reimpõe sobre o que veio do servidor, a cada adoção.
+   O caixa em si já era individual (game_seats.budget, ver commitBudget) — o que faltava era o
+   histórico. _prevPrizesCreditedSeason entra junto: é o carimbo de "já recebi a premiação da
+   temporada X"; vindo do anfitrião, fazia o convidado achar que já tinha recebido a dele. */
+function myFinKey(){
+  const g = (CL.online && typeof NET!=='undefined' && NET.gameId) ? NET.gameId : ('solo_'+(CL.save||'')+'_'+((S&&S.seed)||'x'));
+  return 'ef_fin_'+g+'_'+(CL.clubId||'');
+}
+function saveMyFinances(){
+  if(!CL.online || !S) return;                       // solo: o log já é meu e vai junto no save
+  CL._myFin={ finances:S.finances||[], seasonTotals:S.seasonTotals||null, prizeSeason:S._prevPrizesCreditedSeason||null };
+  try{ localStorage.setItem(myFinKey(), JSON.stringify(CL._myFin)); }catch(e){}
+}
+function restoreMyFinances(){
+  if(!CL.online || !S) return;
+  if(!CL._myFin || CL._myFinKey!==myFinKey()){       // troquei de sala/clube -> lê do storage
+    CL._myFinKey=myFinKey(); CL._myFin=null;
+    try{ const raw=localStorage.getItem(myFinKey()); if(raw) CL._myFin=JSON.parse(raw); }catch(e){}
+  }
+  if(!CL._myFin){                                    // primeira rodada da sala: começo limpo,
+    S.finances=[]; S.seasonTotals=null;              // sem herdar o histórico do anfitrião
+    S._prevPrizesCreditedSeason=null; saveMyFinances(); return;
+  }
+  S.finances=CL._myFin.finances||[];
+  if(CL._myFin.seasonTotals) S.seasonTotals=CL._myFin.seasonTotals;
+  S._prevPrizesCreditedSeason=CL._myFin.prizeSeason||null;
+}
 /* ---- PERSISTÊNCIA do inbox: localStorage SEMPRE (solo + reload) + game_seats no online
    (durável/cross-device). Chave por save/sala + clube. ---- */
 /* a chave TEM que identificar o save/sala + o clube. No solo entram nome do save E seed: dois
@@ -1762,11 +1794,17 @@ function syncInbox(){
   // são o registro durável por rodada do MEU clube — cada compra/venda vira um e-mail com o
   // mesmo texto que aparece na aba Finanças.
   (S.finances||[]).forEach(f=>{
-    if(!f || (!f.playerSales && !f.playerPurchases)) return;
+    if(!f) return;
+    const compra=(f.playerPurchases||0)>0, venda=(f.playerSales||0)>0;
+    if(!compra && !venda) return;                     // entrada de rodada (receita/salários) não vira e-mail
+    // O QUE define compra/venda são os CAMPOS da entrada, não o texto: cada negócio grava a sua
+    // própria entrada (ver pushFinanceEntry nas chamadas de finalizeTransfer/leilão/venda), e
+    // filtrar por palavra deixava de fora o que não usasse o verbo esperado — era o caso do
+    // leilão ("arrematado"), que passava batido e nunca virava e-mail.
     (f.log||[]).forEach((linha,i)=>{
-      if(!/vendido|contratado|comprad/i.test(linha)) return;
+      if(!linha) return;
       addInboxEmail({ key:'mov-'+(f.round||0)+'-'+i+'-'+hashC(linha), kind:'money', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
-        subject:f.playerSales?'Venda concluída':'Contratação concluída',
+        subject:(compra&&venda)?'Movimentação no elenco':(compra?'Contratação concluída':'Venda concluída'),
         body:escC(linha)+`<br><br>Caixa depois do negócio: <b>${fmt(S.budget||0)}</b>.`,
         action:{label:'Ver finanças', go:'clCloseOverlay();CL.tab="financas";cdraw()'} });
     });
@@ -3968,6 +4006,7 @@ async function onlineAdoptServerRound(RL){
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       if(typeof pruneAppliedNetTransfers==='function') pruneAppliedNetTransfers(); // solta as transferências que o servidor já aplicou
       if(typeof pruneAppliedNetOffers==='function') pruneAppliedNetOffers();       // idem pras propostas mandadas a outro humano
+      if(typeof restoreMyFinances==='function') restoreMyFinances();               // meu log de finanças por cima do que veio do anfitrião
       if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
     }
   }catch(e){ console.warn('adotar estado do servidor:', e); }

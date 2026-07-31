@@ -3214,6 +3214,7 @@ function pushFinanceEntry(patch){
   S.seasonTotals.playerSales+=entry.playerSales||0;
   S.seasonTotals.playerPurchases+=entry.playerPurchases||0;
   S.seasonTotals.stadium+=entry.stadium||0;
+  if(typeof saveMyFinances==='function') saveMyFinances(); // online: o log é meu, não do anfitrião
 }
 /* promised-status enforcement: benched key players lose morale */
 function enforceRoles(startedNames){
@@ -3452,7 +3453,10 @@ function applyMyPrevSeasonPrizes(){
     if(sum.total>0){
       S.budget=(S.budget||0)+sum.total;
       commitBudget();                  // write-back no mundo local + persiste no assento (caminho único)
+      // vira linha nas Finanças: é dinheiro do MEU clube e antes não deixava rastro nenhum lá.
+      pushFinanceEntry({income:sum.total, log:['🏆 Premiação da temporada '+(pv.season||'')+': +'+fmt(sum.total)]});
     }
+    if(typeof saveMyFinances==='function') saveMyFinances(); // carimba "já recebi" no MEU cliente
   }
   return sum;
 }
