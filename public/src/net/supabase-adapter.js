@@ -40,7 +40,15 @@ async function netInitSupabase(){
       if(event==='PASSWORD_RECOVERY'){
         SB_AUTH_USER = session && session.user;
         CL.screen='resetpassword'; cdraw();
+        return;
       }
+      // SB_AUTH_USER era gravado só no init e no login, e nunca mais mudava. Duas contas na MESMA
+      // janela compartilham o localStorage: o segundo login sobrescreve a sessão do primeiro e o
+      // servidor destrói a sessão antiga — mas a aba antiga continuava se achando logada, mandando
+      // um token de sessão inexistente ("Session not found") em toda chamada. Manter em sincronia é
+      // o que permite detectar isso (ver netInvokeFn) em vez de degradar calado.
+      if(event==='SIGNED_OUT'){ SB_AUTH_USER = null; return; }
+      if(session && session.user) SB_AUTH_USER = session.user;
     });
     const { data:{ session } } = await sb.auth.getSession();
     if(session && session.user && session.user.is_anonymous){
@@ -80,11 +88,24 @@ async function netRefreshAuth(){
   return false;
 }
 async function netInvokeFn(name, body){
+  // sem sessão o supabase-js manda a chave publishable no lugar do JWT, e a function responde
+  // 401 "sessão inválida" — chamada perdida e 4 erros vermelhos no console por rodada. Nem tenta.
+  if(!(await netRefreshAuth())){ netWarnDeadSession(); return { data:null, error:{ message:'sem sessão' } }; }
   let res = await sb.functions.invoke(name, { body });
-  if(res.error && netIsAuthError(res.error) && await netRefreshAuth()){
-    res = await sb.functions.invoke(name, { body });
+  if(res.error && netIsAuthError(res.error)){
+    res = await sb.functions.invoke(name, { body }); // token pode ter acabado de ser renovado
+    if(res.error && netIsAuthError(res.error)) netWarnDeadSession();
   }
   return res;
+}
+/* Sessão morta não é um detalhe silencioso: sem ela a rodada da Resenha perde o stream
+   determinístico do servidor e cada cliente simula por conta própria — os jogadores da sala
+   começam a ver partidas diferentes. Avisa UMA vez (não a cada rodada) pra não virar spam. */
+function netWarnDeadSession(){
+  if(CL._deadSessionWarned) return;
+  CL._deadSessionWarned = true;
+  console.warn('Sessão do Supabase inválida — a rodada vai ser simulada localmente. Entre de novo pra voltar a sincronizar.');
+  if(typeof toastC==='function') toastC('⚠ Sua sessão expirou — entre de novo pra sincronizar a Resenha');
 }
 
 /* retorna {loggedIn, email, name} pra UI decidir se mostra login/cadastro ou "continuar como X" */
