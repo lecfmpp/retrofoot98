@@ -5084,11 +5084,9 @@ function clBuildStand(){
 
 /* ---- Jogador > Vender (painel na aba + leilão) ---- */
 function windowClosedMsg(){ const st=transferWindowStatus();
-  if(st.pre) return `🟡 Pré-janela: dá pra pré-acordar transferências agora — o jogador só troca de clube quando a janela abrir (em ${st.opensIn} rodada${st.opensIn===1?'':'s'}).`;
   return st.opensIn!=null ? `⛔ Janela de transferências fechada. Abre em ${st.opensIn} rodada${st.opensIn===1?'':'s'}.` : '⛔ Janela de transferências fechada — não há mais janelas nesta temporada.'; }
 function windowBadge(){ const st=transferWindowStatus();
   if(st.open) return `<span class="cl-winbadge open">🟢 Janela aberta (fecha em ${st.closesIn})</span>`;
-  if(st.pre) return `<span class="cl-winbadge closed" style="background:#b8860b">🟡 Pré-janela (abre em ${st.opensIn}) — pré-acordos liberados</span>`;
   return `<span class="cl-winbadge closed">🔒 Janela fechada${st.opensIn!=null?' (abre em '+st.opensIn+')':''}</span>`; }
 /* atualiza o preço de venda pedido SEM re-renderizar a tela inteira (cdraw() recriava o
    <input>, derrubando o foco a cada tecla — tinha que clicar de novo pra continuar digitando).
@@ -5360,7 +5358,7 @@ function clIncomingOffers(){ CL.menu=null;
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
         ${btn('Aceitar','clAcceptOffer('+o.id+')',{cls:'cl-btn-mini'})}${counterUI}${btn('Recusar','clRejectOffer('+o.id+')',{cls:'cl-btn-cancel'})}
       </div></div>`;
-  }).join(''):'<div style="padding:16px;text-align:center;color:#888">Nenhuma proposta no momento.<br><small>Clubes fazem propostas pelos seus destaques durante as janelas (e na pré-janela).</small></div>';
+  }).join(''):'<div style="padding:16px;text-align:center;color:#888">Nenhuma proposta no momento.<br><small>Clubes fazem propostas pelos seus destaques enquanto a janela está aberta.</small></div>';
   // pré-acordos pendentes (entram em vigor na abertura da janela)
   const pend=(S.pendingTransfers||[]);
   const pendHtml=pend.length?`<div style="padding:8px 12px;background:#eee7cf;font-weight:700;font-size:13px">🤝 Pré-acordos (entram em vigor na abertura da janela)</div>`+

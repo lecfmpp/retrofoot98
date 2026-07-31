@@ -765,17 +765,18 @@ function applyHumanTransfers(S: any, transfers: any[], humans?: Set<string>) {
    CPU (o e-mail simplesmente não chegava), e proposta de um humano pro clube de outro nunca
    saía do aparelho de quem mandou. ===== */
 const TRANSFER_WINDOWS = [[0, 9], [20, 29]];
-const PRE_WINDOW_ROUNDS = 3;
-function inTransferWindowR(round: number) { return TRANSFER_WINDOWS.some(([lo, hi]) => round >= lo && round <= hi); }
-function canNegotiateR(round: number) {
-  if (inTransferWindowR(round)) return true;
-  for (const [lo] of TRANSFER_WINDOWS) if (round < lo) return (lo - round) <= PRE_WINDOW_ROUNDS; // pré-janela
-  return false;
-}
+/* pré-janela DESLIGADA no cliente (ver inPreWindow/canNegotiate em core.js) — aqui tem que
+   valer a mesma regra, senão o servidor geraria proposta numa rodada em que o usuário não
+   consegue negociar nada. */
+function canNegotiateR(round: number) { return TRANSFER_WINDOWS.some(([lo, hi]) => round >= lo && round <= hi); }
 function pruneIncomingOffers(S: any) {
   S.incomingOffersByClub = S.incomingOffersByClub || {};
   Object.keys(S.incomingOffersByClub).forEach((cid) => {
-    S.incomingOffersByClub[cid] = (S.incomingOffersByClub[cid] || []).filter((o: any) => o && o.expiresRound > S.round);
+    const sq = (S.squads && S.squads[cid]) || [];
+    // validade + FONTE ÚNICA (o elenco): proposta por jogador que já saiu do clube não sobrevive
+    // no estado autoritativo — senão voltava pro cliente a cada adopt (ver offersForClub no core).
+    S.incomingOffersByClub[cid] = (S.incomingOffersByClub[cid] || [])
+      .filter((o: any) => o && o.expiresRound > S.round && sq.some((p: any) => p && p.n === o.playerName));
   });
 }
 /* propostas que um humano mandou pro clube de OUTRO humano, publicadas em last_result.offers.
@@ -862,7 +863,8 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   advanceOtherDivs(S, humanResultByFx, humanClubs, humanXI, humanTactic); // 4c) outras divisões (CPU + override humano onde houver)
   S.round++; S.week = (S.week || 1) + 1; S.day = (S.day || 1) + 7; // 5) avança a rodada
   advancePendingCups(S, cupResultByFx || {}, humanClubs);         // 6) copas (Copa do Brasil) — usa a rodada NOVA; humanClubs: cota de fase de humano é creditada pelo cliente dele
-  generateIncomingOffers(S, humanClubs);                          // 6b) CPU faz propostas pelos jogadores dos humanos (chega como e-mail no cliente)
+  pruneIncomingOffers(S);                                         // 6b) limpa proposta vencida ou por jogador que já saiu (vale FORA da janela também)
+  generateIncomingOffers(S, humanClubs);                          // 6c) CPU faz propostas pelos jogadores dos humanos (chega como e-mail no cliente)
   S._roundIncidents = {};
   // 7) fim de temporada? liga terminou -> virada (promoção/rebaixamento + regen + nova temporada)
   if (Array.isArray(S.sched) && S.round >= S.sched.length) resolveSeasonTurnover(S, new Set(humanClubs));

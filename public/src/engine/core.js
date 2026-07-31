@@ -194,7 +194,7 @@ function recordTransferHistory(p, fromId, toId, fee){
    Dia 1 (fee): clube decide a taxa. Dia 2 (terms): empresário avalia salário.
    Dia 3 (verdict): jogador aceita/recusa a contraproposta.                 */
 function startNego(sellerId,playerName,offerFee){
-  if(!canNegotiate()) return -1; // fora da janela E da pré-janela: nem inicia negociação
+  if(!canNegotiate()) return -1; // janela fechada: nem inicia negociação
   if(typeof CL!=='undefined' && CL.online && CL.humans && CL.humans[sellerId]) return -1; // clube de humano: usa sendHumanOffer (proposta de verdade), não a negociação algorítmica (CPU)
   const p=findP(playerName,sellerId);
   if(isTradeLocked(p)) return -1; // comprado nesta temporada — travado pra não ser revendido em seguida
@@ -244,19 +244,19 @@ function agentRespond(n){ // Dia 2 -> Dia 3
      20-29 ABERTA
      30-38 FECHADA (reta final da temporada). */
 const TRANSFER_WINDOWS=[[0,9],[20,29]]; // [rodada inicial, rodada final], inclusive
-const PRE_WINDOW_ROUNDS=3; // quantas rodadas ANTES da janela já dá pra pré-acordar (nunca muito longe)
+const PRE_WINDOW_ROUNDS=0; // pré-janela desligada — ver inPreWindow()
 function inTransferWindow(){ return TRANSFER_WINDOWS.some(([lo,hi])=>S.round>=lo && S.round<=hi); }
 function nextWindowRound(){ for(const [lo] of TRANSFER_WINDOWS){ if(S.round<lo) return lo; } return null; }
-/* pré-janela: dá pra NEGOCIAR (pré-acordar) até PRE_WINDOW_ROUNDS rodadas antes da abertura,
-   mas o jogador só troca de clube quando a janela abre de fato. Retorna a rodada de abertura
-   da próxima janela (o "executeRound" do pré-acordo) se estivermos na pré-janela; senão null. */
-function inPreWindow(){
-  if(inTransferWindow()) return null;
-  const nw=nextWindowRound();
-  return (nw!=null && nw-S.round>0 && nw-S.round<=PRE_WINDOW_ROUNDS) ? nw : null;
-}
-/* negociação liberada? (janela aberta OU pré-janela) */
-function canNegotiate(){ return inTransferWindow() || !!inPreWindow(); }
+/* PRÉ-JANELA DESLIGADA (decisão do dono do jogo): negociar antes da janela abrir, com o jogador
+   só trocando de clube depois, deixava a regra confusa (duas datas por transferência, elenco com
+   jogador "já vendido" em campo, proposta que expira antes de executar) sem ganho real. A regra
+   agora é uma só: transferência SÓ com a janela aberta.
+   inPreWindow() fica devolvendo null de propósito, em vez de sumir: os ramos de pré-acordo
+   (finalizeTransfer/acceptIncomingOffer/executePendingTransfers) continuam no código pra
+   executar/limpar pré-acordos que já existam em saves antigos — só não nascem mais. */
+function inPreWindow(){ return null; }
+/* negociação liberada? (só com a janela ABERTA) */
+function canNegotiate(){ return inTransferWindow(); }
 function transferWindowStatus(){
   if(inTransferWindow()){
     const w=TRANSFER_WINDOWS.find(([lo,hi])=>S.round>=lo&&S.round<=hi);
@@ -629,14 +629,30 @@ function bgCpuTransfers(R){
    compartilhado com TODOS os treinadores da sala (ver netSaveGame/onlineAdoptServerRound), então
    um array plano aqui vazava a proposta recebida por um clube pra tela de "Propostas recebidas"
    de todo mundo. myIncomingOffers() é a fatia da PRÓPRIA perspectiva (S.clubId). */
-function myIncomingOffers(){ return (S.incomingOffersByClub&&S.incomingOffersByClub[S.clubId])||[]; }
+/* FONTE ÚNICA: o elenco. Uma proposta só vale enquanto o jogador ESTÁ no clube — sem esta
+   checagem continuavam chegando propostas por jogador já vendido (a lista guarda o nome e só
+   era limpa por validade, então o vendido seguia rendendo proposta por até 3 rodadas, aparecia
+   no menu, no e-mail, e só dava erro na hora de aceitar). Filtra na LEITURA, não só no prune de
+   rodada, pra sumir na hora em que a venda acontece — inclusive na Resenha, onde a lista vem
+   pronta do servidor e a rodada pode demorar a virar. */
+function offersForClub(clubId){
+  const list=(S.incomingOffersByClub&&S.incomingOffersByClub[clubId])||[];
+  const sq=(S.squads&&S.squads[clubId])||[];
+  if(!list.length) return list;
+  return list.filter(o=>o && sq.some(p=>p && p.n===o.playerName));
+}
+function myIncomingOffers(){ return offersForClub(S.clubId); }
 function pruneIncomingOffers(){
   S.incomingOffersByClub=S.incomingOffersByClub||{};
-  Object.keys(S.incomingOffersByClub).forEach(cid=>{ S.incomingOffersByClub[cid]=(S.incomingOffersByClub[cid]||[]).filter(o=>o.expiresRound>S.round); });
+  Object.keys(S.incomingOffersByClub).forEach(cid=>{
+    const sq=(S.squads&&S.squads[cid])||[];
+    S.incomingOffersByClub[cid]=(S.incomingOffersByClub[cid]||[])
+      .filter(o=>o && o.expiresRound>S.round && sq.some(p=>p && p.n===o.playerName)); // validade + jogador ainda no elenco
+  });
 }
 function generateIncomingOffers(R){
   pruneIncomingOffers();
-  if(!canNegotiate()) return; // propostas chegam na janela E na pré-janela
+  if(!canNegotiate()) return; // proposta só chega com a janela aberta (pré-janela desligada)
   R=R||makeRng(hashSeed(S.seed,S.round,'incoming'));
   S.incomingOffersByClub=S.incomingOffersByClub||{};
   S._offerToastsByClub=S._offerToastsByClub||{};
