@@ -1021,7 +1021,12 @@ function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=ro
           applyViewerDivision(CL.clubId);                // F3.5: renderiza a divisão do PRÓPRIO clube (temporada 2+)
           S.xi = resolveClubXI(CL.clubId);
           CL.selPlayer = (squad(CL.clubId)[0]||{}).n || CL.selPlayer;
-          syncDataClubsFromState(); console.log('✓ Jogo carregado (rodada', savedState.round, ') — clube:', CL.clubId); }
+          syncDataClubsFromState();
+          // o estado carregado é o do ANFITRIÃO: extrato, totais e carimbo de premiação dele vêm
+          // junto. Restaura os MEUS por cima — sem isto, toda vez que o convidado entrava na sala
+          // ele voltava a ver as transações do anfitrião e as próprias sumiam (ver restoreMyFinances).
+          if(typeof restoreMyFinances==='function') restoreMyFinances();
+          console.log('✓ Jogo carregado (rodada', savedState.round, ') — clube:', CL.clubId); }
       } catch(e) { console.warn('Load Supabase:', e); }
       cdraw();
     })();
@@ -1181,6 +1186,7 @@ function onlineCompleteSeasonTurnover(){
         if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
         S.xi = resolveClubXI(CL.clubId);
         if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
+        if(typeof restoreMyFinances==='function') restoreMyFinances(); // ANTES da premiação: o carimbo de "já recebi" é meu, não do anfitrião
         if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
         CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
         // credita a premiação ANTES do cdraw: se o desenho falhar, o dinheiro não se perde.

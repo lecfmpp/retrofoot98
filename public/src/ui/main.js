@@ -1668,6 +1668,7 @@ function saveMyFinances(){
   CL._myFin.finances=S.finances||[]; CL._myFin.seasonTotals=S.seasonTotals||null;
   CL._myFin.prizeSeason=S._prevPrizesCreditedSeason||null;
   CL._myFin.settled=CL._myFin.settled||{};
+  CL._myFinKey=myFinKey();                           // marca de qual sala+clube é o store em memória
   try{ localStorage.setItem(myFinKey(), JSON.stringify(CL._myFin)); }catch(e){}
 }
 /* PROPOSTA MINHA JÁ LIQUIDADA (o jogador chegou e eu paguei). O registro é do CLIENTE, não do S:
