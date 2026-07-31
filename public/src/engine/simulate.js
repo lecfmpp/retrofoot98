@@ -383,9 +383,15 @@ function liveMatchSession(homeId, awayId, seed, opts){
   let pos=0, hg=0, ag=0, extraBase=null, regularEnd=null;
   const scorers=[], events=[], decisions=[];
   const perf={H:{poss:0,shots:0,chances:0,big:0,goals:0}, A:{poss:0,shots:0,chances:0,big:0,goals:0}};
-  const session={ minute:0, done:false, pending:null, totalMinutes:null, events, decisions, result:null,
+  // perf é exposto POR REFERÊNCIA (o objeto é mutado a cada minuto): a tela do Modo Camarote
+  // lê posse/finalizações AO VIVO daqui, sem esperar o fim da partida.
+  const session={ minute:0, done:false, pending:null, totalMinutes:null, events, decisions, result:null, perf,
     subsLeft:(side)=>Math.max(0,3-subsUsed[side||userSide||'H']),
     onField:(side)=>cur[side].slice(), userSide };
+  // minuto de RELÓGIO (o mesmo que vai nos eventos): na prorrogação, 90+x em vez do contador
+  // cru. É o que o Modo Camarote mostra no placar — sem isso o relógio da tela discordaria
+  // dos minutos das próprias linhas de narração.
+  session.dispMin=function(){ return dispMin(); };
   function teamPenalty(side){ const n=menOnField[side]; return n>=11?1:n===10?0.90:n===9?0.78:0.65; }
   function effRat(side){ const b=rat[side]; const tp=teamPenalty(side); return {OS:b.OS*tp, MS:b.MS*tp, DS:b.DS*tp}; }
   function currentMu(){ return matchMu(effRat('H'), effRat('A'), betaH, betaA, {nMidH:nMid.H, nMidA:nMid.A, homeAdv}); }
@@ -571,7 +577,10 @@ function liveMatchSession(homeId, awayId, seed, opts){
         ev:{min:session.pending.ev.min, type:session.pending.ev.type, side:session.pending.ev.side,
             player:session.pending.ev.player||null, pid:session.pending.ev.pid||null,
             pos:session.pending.ev.pos||null, reason:session.pending.ev.reason||null, team:session.pending.ev.team} } : null,
-      events: events.map(e=>({...e})), result: session.result };
+      events: events.map(e=>({...e})), result: session.result,
+      // posse/finalizações parciais: o visitante (Fase 3B) só assiste ao stream, então sem isso
+      // o Modo Camarote dele não teria estatística ao vivo nenhuma.
+      perf: {H:{...perf.H}, A:{...perf.A}} };
   };
   return session;
 }

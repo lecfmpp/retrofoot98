@@ -1040,6 +1040,16 @@ function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=ro
           // ele voltava a ver as transações do anfitrião e as próprias sumiam (ver restoreMyFinances).
           if(typeof restoreMyFinances==='function') restoreMyFinances();
           console.log('✓ Jogo carregado (rodada', savedState.round, ') — clube:', CL.clubId); }
+        // SEMENTE DO ESTADO COMPARTILHADO: sala nova, mundo recém-montado e NADA salvo ainda.
+        // Sem isto, a 1ª rodada chamava resolve-round com games.shared_state vazio, a função devolvia
+        // 409 "sem estado salvo ainda" e o cliente caía no FALLBACK LOCAL — justamente a rodada em que
+        // o servidor deveria ser a autoridade única. Quem semeia é só o ANFITRIÃO (o convidado monta o
+        // mesmo mundo a partir da mesma seed, mas a autoridade é do host), e só quando não há save —
+        // reconexão a jogo em andamento cai no ramo de cima e não sobrescreve nada.
+        else if(NET.isHost && NET.saveGame){
+          try{ await NET.saveGame({ S, round: S.round }); console.log('✓ Estado inicial semeado (rodada', S.round, ')'); }
+          catch(e){ console.warn('Semente do estado inicial:', e && e.message); }
+        }
       } catch(e) { console.warn('Load Supabase:', e); }
       cdraw();
     })();
@@ -1119,7 +1129,14 @@ function onlineTimerLoop(){
   // avança a rodada sem mim (ver advance_phase_if_expired). Incluir 'cupdraw' faz o sorteio
   // esperar todos: a rodada não fecha enquanto alguém ainda está vendo o sorteio.
   // Ao sair da tela, limpo o "ocupado" uma vez (fim normal = libera; queda = expira em ~90s).
-  if(CL.online && (CL.screen==='live'||CL.screen==='cupdraw') && typeof NET!=='undefined' && NET.gameId){
+  //
+  // A OBRIGAÇÃO DE COPA conta como ocupado do MESMO jeito, mesmo com o cliente parado na tela do
+  // time: entre o fim da partida de copa e o próximo "Jogar" (tela de resultado, escalação, pausa
+  // técnica) o cara está em 'main' e, sem isto, o cronômetro da liga armava, contava e apitava por
+  // cima dele — a rodada começava sem quem ainda devia a copa da semana, e ele voltava pra tela
+  // principal sem ver o próprio jogo. Com a obrigação dentro da barreira, a rodada de liga só
+  // ARMA quando todo mundo zerou a copa, que é a regra pedida: quem não joga a copa espera quem joga.
+  if(CL.online && (CL.screen==='live'||CL.screen==='cupdraw'||onlineCupObligationPending()) && typeof NET!=='undefined' && NET.gameId){
     ONLINE_BUSY_ACTIVE=true;
     if(Date.now()-ONLINE_BUSY_T>15000){ ONLINE_BUSY_T=Date.now(); if(NET.heartbeatBusy) NET.heartbeatBusy(); }
   } else if(ONLINE_BUSY_ACTIVE){
@@ -1150,7 +1167,10 @@ function onlineTimerLoop(){
       if(secs<=0 || all){
         // início da rodada: QUALQUER cliente pede ao servidor pra avançar (validado pelo deadline/
         // prontidão + barreira busy) — não depende do anfitrião estar com a aba ativa.
-        if(NET.advancePhaseExpired){ if(Date.now()-ONLINE_ADV_T>900){ ONLINE_ADV_T=Date.now(); NET.advancePhaseExpired(); } }
+        // não peço pra avançar enquanto EU mesmo estou ocupado (partida ao vivo, sorteio, copa
+        // pendente) — o servidor recusaria pela barreira, mas pedir daqui era pedir pra começar
+        // uma rodada sem mim.
+        if(NET.advancePhaseExpired && !ONLINE_BUSY_ACTIVE){ if(Date.now()-ONLINE_ADV_T>900){ ONLINE_ADV_T=Date.now(); NET.advancePhaseExpired(); } }
         else if(NET.isHost){ room.participants.forEach(p=>{ if(!p.ready) p.ready=true; }); NET.toRunning(); }
       }
     }
@@ -1178,7 +1198,9 @@ function onlineTimerLoop(){
      (room.round||0)!==(S.round||0) && typeof onlineReconcileIfBehind==='function'){
     onlineReconcileIfBehind(room);
   }
-  const intv=Math.max(100, 300/(CL.speedMult||1));
+  // TETO de 1s: o intervalo acompanha o ritmo, mas nos tempos lentos a conta explodia (em 'Longo'
+  // dava ~6,6s entre sondagens — reconcile, cronômetro e barreira todos com essa latência).
+  const intv=Math.max(100, Math.min(1000, 300/((typeof roundSpeedMult==='function'?roundSpeedMult():CL.speedMult)||1)));
   ONLINE_TIMER=setTimeout(onlineTimerLoop, intv);
 }
 let ONLINE_TURNOVER_BUSY=false;
@@ -1285,6 +1307,36 @@ function onlineRecoverRunRound(){
     onlineRunRound(); return true;
   }
   return false;
+}
+
+/* ---- OBRIGAÇÃO DE COPA DA SEMANA ----
+   Verdadeiro enquanto EU ainda devo uma partida de copa nesta leva. Entra na barreira de
+   sincronização (ver onlineTimerLoop) pra que o cronômetro da rodada de LIGA nem arme antes de
+   todo mundo ter zerado a copa — é a regra pedida: quem não joga a copa espera quem joga.
+
+   Só conta partida que EU tenho pra JOGAR (pendingUserCupMatches). A mensagem de "hoje é dia de
+   copa e você não participa" NÃO entra: ela é informativa e é justamente o caso de quem está
+   esperando — se ela segurasse a barreira, todos ficariam esperando todos.
+
+   TETO DE SEGURANÇA: se por qualquer motivo a obrigação não se resolver (confronto humano×humano
+   fechado pelo servidor sem o meu `tie.winner` local, cliente que travou numa tela), solto a
+   barreira depois de CUP_HOLD_MAX_MS. Sem esse teto, um cliente nesse estado prenderia a sala
+   inteira pra sempre — o busy_until nunca expiraria porque eu continuaria carimbando. */
+const CUP_HOLD_MAX_MS=240000; // 4 min: folga larga pra copa + prorrogação + pênaltis
+function onlineCupObligationPending(){
+  if(!CL.online || !S || typeof pendingUserCupMatches!=='function') return false;
+  if(CL.unemployed) return false;
+  let pend=false;
+  try{ pend = pendingUserCupMatches().length>0; }catch(e){ return false; }
+  const key=(S.season||1)+'-'+(S.round||0);
+  if(!pend){ CL._cupHoldKey=null; CL._cupHoldSince=0; return false; }
+  if(CL._cupHoldKey!==key){ CL._cupHoldKey=key; CL._cupHoldSince=Date.now(); }
+  if(Date.now()-(CL._cupHoldSince||0) > CUP_HOLD_MAX_MS){
+    if(!CL._cupHoldWarned){ CL._cupHoldWarned=key;
+      console.warn('barreira de copa solta pelo teto de '+(CUP_HOLD_MAX_MS/1000)+'s — a rodada segue sem esperar mais'); }
+    return false;
+  }
+  return true;
 }
 
 /* quando o usuário clica Jogar no modo online, marca "pronto" em vez de rodar sozinho */

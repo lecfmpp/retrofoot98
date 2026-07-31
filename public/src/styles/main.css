@@ -1599,3 +1599,158 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-press-h1{font-size:var(--fs-lg)}
   .cl-press-opt{padding:var(--sp-2) var(--sp-3)}
 }
+
+/* ===================================================================
+   MODO CAMAROTE — assistir só ao SEU jogo, em tela cheia, enquanto a
+   rodada inteira segue rolando ao fundo. Interruptor no topo direito.
+   Paleta e relevos são os mesmos do resto do jogo (tokens do :root).
+   =================================================================== */
+.cl-live-top{position:relative}
+.cl-live-cup-top{position:relative}
+.cl-live.rf-cam-open .cl-live-clock{display:none}   /* o Camarote tem relógio próprio */
+
+/* ---- interruptor ---- */
+.rf-cam-sw{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:9px;
+  background:var(--chrome);color:#000;font-family:var(--sans);font-weight:var(--fw-black);font-size:12px;
+  padding:5px 9px;cursor:pointer;border:var(--bw-bevel) solid;border-color:var(--bevel-out);line-height:1}
+.rf-cam-sw:active{border-color:var(--bevel-in)}
+.rf-cam-sw-lbl{white-space:nowrap}
+.rf-cam-sw-track{width:42px;height:18px;display:block;position:relative;border:var(--bw-bevel) solid;
+  border-color:var(--bevel-field);background:var(--bevD)}
+.rf-cam-sw.on .rf-cam-sw-track{background:var(--navy)}
+.rf-cam-sw-knob{position:absolute;top:0;bottom:0;width:18px;left:0;background:var(--chrome);
+  border:var(--bw-bevel) solid;border-color:var(--bevel-out);transition:left .15s}
+.rf-cam-sw.on .rf-cam-sw-knob{left:20px}
+.rf-cam-sw-state{font-family:var(--mono);font-weight:var(--fw-bold);color:var(--navy);min-width:30px;text-align:left}
+/* TRANCADO pela velocidade (Usain Bolt): apagado, sem relevo de clique, com o motivo ao lado.
+   Não usa [disabled] de propósito — o clique precisa continuar chegando pra explicar no toast. */
+.rf-cam-sw.dis{opacity:.5;cursor:not-allowed}
+.rf-cam-sw.dis:active{border-color:var(--bevel-out)}
+.rf-cam-sw.dis .rf-cam-sw-track{background:var(--bevD)}
+.rf-cam-sw-warn{font-size:10px;font-weight:var(--fw-bold);color:var(--danger);white-space:nowrap}
+
+/* ---- janela ---- */
+.rf-cam-ov{position:fixed;inset:0;z-index:30;background:rgba(6,45,10,.62);
+  backdrop-filter:blur(7px) saturate(.85);-webkit-backdrop-filter:blur(7px) saturate(.85);
+  display:flex;align-items:flex-start;justify-content:center;padding:18px;overflow:auto}
+.rf-cam-win{width:100%;max-width:1180px;margin:auto;background:var(--navy);
+  border:var(--bw-bevel) solid;border-color:var(--bevel-out);box-shadow:0 10px 30px rgba(0,0,0,.55)}
+.rf-cam-title{display:flex;align-items:center;gap:10px;color:#fff;padding:5px 6px 5px 10px;font-weight:var(--fw-black);font-size:14px}
+.rf-cam-title-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rf-cam-sp{flex:1}
+.rf-cam-onair{font-family:var(--mono);color:#ff6b6b;font-size:11px;font-weight:var(--fw-black);animation:rf-cam-pulse 1.4s steps(2,end) infinite}
+@keyframes rf-cam-pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.rf-cam-x{background:var(--chrome);color:#000;font-family:var(--sans);font-weight:var(--fw-black);font-size:12px;
+  width:24px;height:22px;cursor:pointer;border:var(--bw-bevel) solid;border-color:var(--bevel-out)}
+.rf-cam-x:active{border-color:var(--bevel-in)}
+
+/* ---- placar ---- */
+.rf-cam-board{display:grid;grid-template-columns:1fr 118px 1fr;align-items:center;gap:10px;padding:12px;
+  background:#000060;border-top:1px solid #4040a0}
+.rf-cam-side{display:flex;align-items:center;gap:12px}
+.rf-cam-side.home{justify-content:flex-end}
+.rf-cam-where{color:var(--yellow);font-size:12px;font-weight:var(--fw-bold);white-space:nowrap}
+.rf-cam-club{display:block;font-weight:var(--fw-black);font-size:20px;padding:8px 16px;
+  border:1px solid rgba(255,255,255,.25);text-shadow:0 1px 1px rgba(0,0,0,.4);max-width:240px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rf-cam-g{font-family:var(--mono);font-size:34px;font-weight:var(--fw-black);color:#fff}
+.rf-cam-clock{text-align:center}
+.rf-cam-min{font-family:var(--mono);font-size:26px;font-weight:var(--fw-black);color:var(--yellow)}
+.rf-cam-period{font-size:11px;color:var(--ontext-lite2);font-weight:var(--fw-bold);letter-spacing:.5px}
+
+/* ---- barra de pressão ---- */
+.rf-cam-pres{display:flex;align-items:center;gap:10px;padding:7px 12px;background:#000050;border-top:1px solid #4040a0}
+.rf-cam-pres-lbl{font-size:10px;font-weight:var(--fw-black);color:var(--yellow);letter-spacing:.6px}
+.rf-cam-pres-bar{flex:1;display:flex;height:12px;position:relative;border:var(--bw-bevel) solid;border-color:var(--bevel-field);background:#2a2a5a;overflow:hidden}
+.rf-cam-pres-h,.rf-cam-pres-a{display:block;height:100%;transition:width .45s ease}
+.rf-cam-pres-mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.55)}
+.rf-cam-pres-tag{font-family:var(--mono);font-size:11px;font-weight:var(--fw-black);color:#fff;min-width:170px;text-align:right;white-space:nowrap}
+
+/* ---- abas ---- */
+.rf-cam-tabs{display:flex;gap:3px;padding:6px 10px 0;background:var(--chrome)}
+.rf-cam-tab{background:var(--chrome);color:#000;font-family:var(--sans);font-weight:var(--fw-black);font-size:12px;
+  padding:6px 14px;cursor:pointer;border:var(--bw-bevel) solid;border-color:var(--bevel-out)}
+.rf-cam-tab.on{background:var(--navy);color:var(--yellow)}
+.rf-cam-play{background:var(--success);color:var(--ontext-lite);font-family:var(--sans);font-weight:var(--fw-black);
+  font-size:12px;padding:6px 16px;cursor:pointer;border:var(--bw-bevel) solid;
+  border-color:var(--success-lite) var(--success-deep) var(--success-deep) var(--success-lite)}
+.rf-cam-play:disabled{opacity:.55;cursor:default}
+.rf-cam-sync{font-size:11px;font-weight:var(--fw-bold);color:#444;align-self:center;padding:0 6px}
+
+/* ---- corpo: narração + estatística ---- */
+.rf-cam-body{display:grid;gap:12px;padding:12px;background:var(--chrome)}
+.rf-cam-feed{background:var(--paper);border:var(--bw-bevel) solid;border-color:var(--bevel-field);
+  padding:8px 10px;height:352px;overflow:auto}
+.rf-cam-feed-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  border-bottom:1px solid var(--chrome);padding-bottom:5px;margin-bottom:6px}
+.rf-cam-feed-hd b{font-size:13px;color:var(--navy)}
+.rf-cam-feed-hd span{font-size:11px;color:var(--gray-666);font-weight:var(--fw-bold)}
+.rf-cam-line{display:grid;grid-template-columns:40px 22px 1fr;gap:6px;align-items:start;padding:5px 4px;
+  border-bottom:1px solid #ececec;animation:rf-cam-in .2s ease}
+@keyframes rf-cam-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.rf-cam-lmin{font-family:var(--mono);font-size:13px;font-weight:var(--fw-bold);color:var(--navy);text-align:right}
+.rf-cam-lic{font-size:13px;text-align:center}
+.rf-cam-ltx{font-size:14px;color:#333;line-height:var(--lh-body)}
+.rf-cam-line.k-gol{background:#e8ffe8}
+.rf-cam-line.k-gol .rf-cam-ltx{color:var(--success);font-weight:var(--fw-black)}
+.rf-cam-line.k-defesa .rf-cam-ltx,.rf-cam-line.k-chance .rf-cam-ltx{color:var(--ink)}
+.rf-cam-line.k-cartao .rf-cam-ltx{color:#8a6d00}
+.rf-cam-line.k-lesao .rf-cam-ltx{color:var(--danger-deep)}
+.rf-cam-line.k-sub .rf-cam-ltx{color:var(--navy)}
+.rf-cam-empty{color:var(--gray-888);font-style:italic;font-size:13px;padding:10px 4px}
+
+.rf-cam-stats{display:flex;flex-direction:column;gap:10px}
+.rf-cam-fs{border:var(--bw-bevel) solid;border-color:var(--bevel-field);padding:8px 10px 10px;margin:0;background:#d4d4d4}
+.rf-cam-fs>legend{font-size:12px;font-weight:var(--fw-black);color:var(--navy);padding:0 6px}
+.rf-cam-st-hd{display:flex;justify-content:space-between;font-size:11px;font-weight:var(--fw-black);color:#333;margin-bottom:6px;gap:8px}
+.rf-cam-st{margin-bottom:8px}
+.rf-cam-st-top{display:grid;grid-template-columns:52px 1fr 52px;align-items:center;font-size:12px;font-weight:var(--fw-bold);color:#000;font-family:var(--mono)}
+.rf-cam-st-top span:last-child{text-align:right}
+.rf-cam-st-lbl{text-align:center;color:#333;font-family:var(--sans)}
+.rf-cam-st-bars{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:3px}
+.rf-cam-st-b{height:7px;background:var(--gray-aaa);border:1px solid #8a8a8a;display:flex}
+.rf-cam-st-b.l{justify-content:flex-end}
+.rf-cam-st-b i{display:block;height:100%}
+.rf-cam-ficha{font-size:12px;color:#000;line-height:1.7}
+.rf-mono{font-family:var(--mono)}
+
+/* ---- faixa de patrocínio ---- */
+.rf-cam-ads{background:var(--chrome);padding:0 12px 12px}
+.rf-cam-ads-box{border:var(--bw-bevel) solid;border-color:var(--bevel-out);background:var(--paper);
+  padding:8px 14px;display:flex;align-items:center;justify-content:center;gap:30px;flex-wrap:wrap}
+.rf-cam-ads-lbl{font-size:9px;font-weight:var(--fw-black);color:var(--navy);letter-spacing:.4px;line-height:1}
+.rf-cam-ad{object-fit:contain;height:18px;filter:grayscale(1);opacity:.45;transition:height .3s,opacity .3s}
+.rf-cam-ad.on{height:32px;filter:none;opacity:1}
+/* botão da marca em destaque: cores vêm inline de AD_SPONSORS (ver camCtaStyle) */
+.rf-cam-cta{font-family:var(--sans);font-weight:var(--fw-black);font-size:12px;padding:8px 14px;
+  cursor:pointer;white-space:nowrap;border:var(--bw-bevel) solid}
+.rf-cam-cta:active{filter:brightness(.9)}
+
+.rf-cam-foot{background:var(--navy);color:var(--ontext-lite2);font-size:11px;font-weight:var(--fw-bold);
+  padding:5px 12px;display:flex;gap:18px}
+
+@media (max-width:760px){
+  .rf-cam-sw{right:6px;gap:6px;padding:4px 6px;font-size:11px}
+  .rf-cam-sw-lbl{font-size:0}                       /* só o 🎥 no celular */
+  .rf-cam-sw-lbl::first-letter{font-size:14px}
+  .rf-cam-sw-state{display:none}
+  .rf-cam-sw-warn{font-size:0}                       /* no celular sobra só o 🔒 + o title */
+  .rf-cam-sw-warn::first-letter{font-size:12px}
+  .rf-cam-ov{padding:0}
+  .rf-cam-win{border-width:0}
+  .rf-cam-board{grid-template-columns:1fr 76px 1fr;gap:4px;padding:8px 6px}
+  .rf-cam-where{display:none}
+  .rf-cam-club{font-size:14px;padding:6px 8px;max-width:110px}
+  .rf-cam-g{font-size:26px}
+  .rf-cam-min{font-size:20px}
+  .rf-cam-pres-tag{min-width:0;font-size:10px}
+  .rf-cam-pres-lbl{display:none}
+  .rf-cam-tabs{flex-wrap:wrap;gap:2px}
+  .rf-cam-tab{padding:6px 9px;font-size:11px}
+  .rf-cam-body{grid-template-columns:1fr !important;padding:8px}
+  .rf-cam-feed{height:44vh}
+  .rf-cam-ltx{font-size:13px}
+  .rf-cam-ads-box{gap:10px}
+  .rf-cam-cta{font-size:11px;padding:7px 10px;white-space:normal;text-align:center;flex:1 0 100%;order:9}
+  .rf-cam-foot{font-size:10px;gap:8px}
+}

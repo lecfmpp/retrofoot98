@@ -222,8 +222,16 @@ async function netCreateRoom(name, host){
   // competição DIFERENTE da do convidado (que lê games.seed no join) -> "dois jogos em paralelo".
   let createdSeed=0; try{ const { data: g } = await sb.from('games').select('seed').eq('id', code).single(); createdSeed = g && g.seed; }catch(e){}
   NET.room = { code, gameId: code, name, hostId: SB_AUTH_USER.id, mode: CL.net.mode||'sorteio', phase:'lobby',
-    participants: [], seed:createdSeed, round:0, deadline:0, paused:false, speedMult:1, chat:[],
+    participants: [], seed:createdSeed, round:0, deadline:0, paused:false,
+    speedMult:(typeof TEMPO_MULT!=='undefined' && TEMPO_MULT[TEMPO_DEFAULT]) || 1, chat:[],
     kickoffAt:0, kickoffLineups:null };
+  // PADRÃO DA SALA: grava o ritmo no banco já na criação. games.speed_mult nasce em 1 (= 'Usain
+  // Bolt', ~3,5s de rodada) e o convidado lê o banco — sem gravar aqui, cada sala nova nasceria
+  // rápida demais e com o Modo Camarote trancado. O anfitrião troca quando quiser em Opções.
+  if(NET.room.speedMult !== 1){
+    try{ await sb.from('games').update({ speed_mult: NET.room.speedMult }).eq('id', code); }
+    catch(e){ console.warn('padrão de ritmo da sala:', e && e.message); }
+  }
   netSetupRealtime(); netTrackPresence(); netMergeParticipants();
   return code;
 }

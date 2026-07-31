@@ -254,13 +254,36 @@ const PAUSA_JOKES=[
   'O meio-campo era pelado. Ninguém reclamava: era tática.',
   'Contratação saía no jornal de domingo. Chegava na quarta.',
 ];
-const AD_LOGOS=['img/sponsors/betano.png','img/sponsors/cazetv.webp','img/sponsors/ifood.svg'];
+/* ---- PATROCINADORES ----
+   Fonte ÚNICA: logo, chamada e cores do botão de cada marca. A faixa do Modo Camarote destaca uma
+   marca por vez e mostra O BOTÃO DELA ao lado (é o clique que vale pro patrocinador — ver
+   camAdClick); o marquee da pausa usa só os logos.
+
+   `url` está VAZIO de propósito: não invento link de patrocinador. Preencha aqui com a URL real
+   (ou de afiliado) de cada marca e o botão passa a abrir sozinho — enquanto estiver vazio ele
+   avisa no toast em vez de abrir uma página quebrada. */
+const AD_SPONSORS=[
+  { nome:'Betano', src:'img/sponsors/betano.png', url:'',
+    cta:'Faça a sua primeira aposta e ganhe R$ 30 de volta',
+    bg:'#cc0000', fg:'#ffffff', bevel:'#ff6b6b #6a0000 #6a0000 #ff6b6b' },
+  { nome:'CazéTV', src:'img/sponsors/cazetv.webp', url:'',
+    cta:'Assista à Premier League de graça',
+    bg:'#000080', fg:'#ffff00', bevel:'#4040c0 #000030 #000030 #4040c0' },
+  { nome:'iFood', src:'img/sponsors/ifood.svg', url:'',
+    cta:'Pegue o cupom RetroFoot98 de 30%',
+    bg:'#0b7a2f', fg:'#eaffea', bevel:'#3fcf6a #063d18 #063d18 #3fcf6a' },
+];
+const AD_LOGOS=AD_SPONSORS.map(s=>s.src);
 const AD_MIN_MS=10000;                     // a pausa segura NO MÍNIMO 10s (janela do anúncio)
 function pausaGif(){ return PAUSA_GIFS[(CL._pausaI||0)%PAUSA_GIFS.length]; }
 function pausaJoke(){ return PAUSA_JOKES[(CL._pausaI||0)%PAUSA_JOKES.length]; }
 /* quanto falta da janela de 10s, em segundos e em % (é o que o relógio e a barra mostram:
    progresso REAL da pausa, não um número decorativo). */
 function pausaLeft(){ return Math.max(0, Math.ceil((AD_MIN_MS-(nowMs()-(CL._waitSince||nowMs())))/1000)); }
+/* a pausa passou MUITO do previsto (a janela normal é de 10s) -> algo travou no fechamento da
+   rodada; libera a saída de emergência da tela (ver scWaitRound). */
+const WAIT_ESCAPE_MS=30000;
+function pausaStuck(){ return (nowMs()-(CL._waitSince||nowMs())) >= WAIT_ESCAPE_MS; }
 function pausaPct(){ return Math.max(0, Math.min(100, Math.round(((nowMs()-(CL._waitSince||nowMs()))/AD_MIN_MS)*100))); }
 /* checklist: os dois primeiros itens já estão prontos quando a partida acaba; os dois últimos
    dependem do fechamento da rodada no servidor (é o que o gate espera — ver adGate). */
@@ -317,6 +340,7 @@ function ensureSyncFunTicker(){
     if(pct) pct.textContent=p+'%'; if(fill) fill.style.width=p+'%';
     if(chk) chk.innerHTML=pausaChecklist();
     const sk=$c('#cl-ad-skip'); if(sk && CL._adCont) sk.style.display='';   // sobrevive a um cdraw
+    const esc=$c('#cl-wait-escape'); if(esc && pausaStuck()) esc.style.display=''; // destrava quem ficou preso
   }, 1000);
 }
 function showSyncLoading(msg){
@@ -3027,7 +3051,9 @@ function startLiveRound(){
   // própria. Nunca pula além do minuto 44 (ninguém perde o próprio 2º tempo); eventos até o minuto
   // alinhado entram na primeira batida do liveTick (pênalti/lesão do usuário ainda pausam no modal).
   if(CL.online && typeof NET!=='undefined' && NET.room && NET.room.kickoffAt){
-    const msPerMin=Math.max(12,ONLINE_TEMPO_MS/(CL.speedMult||1));
+    // MESMA fórmula do liveTick (ritmo do anfitrião + piso de transmissão) — se divergir, o pulo
+    // de alinhamento ao apito erra o minuto e o cliente entra fora de sincronia com os outros.
+    const msPerMin=Math.max(onlineTickFloorMs(RL), TEMPO_MS['Usain Bolt']/roundSpeedMult());
     const lagMs=nowMs()-NET.room.kickoffAt;
     if(lagMs>0 && lagMs<=8000) RL.minute=Math.min(Math.floor(lagMs/msPerMin),44);
   }
@@ -3079,6 +3105,7 @@ function onNetMatchLive(p){
   const RL=CL.live; if(!RL) return;
   const m=RL.matches.find(x=>x.streamRemote && x.streamKey===p.k); if(!m) return;
   (p.events||[]).slice(m.events.length).forEach(e=>m.events.push({...e,_resolved:true})); // cumulativo: só o que falta
+  if(p.perf) m.livePerf=p.perf; // posse/finalizações parciais pro Modo Camarote de quem só assiste
   if(p.done){ m.streamDone=true; m.fhg=p.hg; m.fag=p.ag; m.perf=(p.result&&p.result.perf)||null; m.streamResult=p.result||null; }
   if(m.spectate) return; // FASE 3C: partida de terceiros — eu só assisto, nenhum lado é meu pra decidir
   const mySide=m.h===CL.clubId?'H':'A';
@@ -3129,7 +3156,7 @@ function closeRemoteDecision(m,p){
   if(RL.injEvent){ clearInjuryTimer(); RL.paused=false; RL.injMatch=null; RL.injEvent=null; CL.injSel=null; cdraw(); CL._liveTimer=setTimeout(liveTick,320); }
   if(RL.redEvent){ clearRedTimer(); RL.paused=false; RL.redMatch=null; RL.redEvent=null; CL.redIn=null; CL.redOut=null; cdraw(); CL._liveTimer=setTimeout(liveTick,320); }
 }
-function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
+function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused) return;
   RL.minute+=1;
   // FASE 3A: sessão interativa gera os eventos AO VIVO, minuto a minuto — avança até o minuto do
   // relógio (ou até uma decisão pendente travar). Enquanto a sessão não termina, o relógio da
@@ -3178,6 +3205,10 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
       }
     }
   } });
+  // MODO CAMAROTE: as falas de marco (apito inicial, intervalo, recomeço, acréscimos) entram
+  // ANTES dos eventos do minuto — senão "Times de volta pro segundo tempo" apareceria depois
+  // do primeiro lance do 2º tempo. O apito FINAL fica pra depois do laço (camEndCheck).
+  { const um=RL.matches.find(m=>m.user); if(um) camMinuteTick(um,RL); }
   let pendingPenalty=null, pendingInjury=null, pendingRed=null;
   RL.matches.forEach(m=>{ while(m.idx<m.events.length && m.events[m.idx].min<=RL.minute){ const e=m.events[m.idx];
     const isUserSide = m.user && ((e.side==='H'&&m.h===CL.clubId)||(e.side==='A'&&m.a===CL.clubId));
@@ -3195,7 +3226,11 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
     else if(e.type==='cartao'){ m.incidents.push({min:e.min,type:'cartao',side:e.side,player:e.player,cardType:e.cardType,reason:e.reason}); }
     else if(e.type==='lesao'){ m.incidents.push({min:e.min,type:'lesao',side:e.side,player:e.player,severity:e.severity}); }
     else if(e.type==='sub'){ m.incidents.push({min:e.min,type:'sub',side:e.side,player:e.player,out:e.out}); }
+    // MODO CAMAROTE: o MESMO evento que acabou de mexer no placar/súmula vira linha de narração,
+    // estatística e empurrão na barra de pressão (ver camOnEvent). Só pra partida do usuário.
+    if(m.user) camOnEvent(m,e);
   } });
+  { const um=RL.matches.find(m=>m.user); if(um) camEndCheck(um,RL); }
   updateLive();
   if(pendingPenalty){ openPenaltyModal(pendingPenalty.m, pendingPenalty.e); return; }
   if(pendingInjury){ openInjuryModal(pendingInjury.m, pendingInjury.e); return; }
@@ -3221,13 +3256,41 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
         if(RL.pens && RL.pens.finalH==null) return;
       }
     }
+    { const um=RL.matches.find(m=>m.user); if(um) camFinal(um); } // apito final na narração do Camarote
     RL.done=true; if(RL.cup&&RL.cup.spectate) finishCupSpectate(); else if(RL.cup) finishCupLiveMatch(); else if(RL.humanSeat) finishHotseatMatch(); else finishLiveRound(); return;
   }
   // Online: o ritmo é o do ANFITRIÃO (games.speed_mult, sincronizado — ver clSetTempo/wireNet),
   // não a preferência local de cada convidado. Solo: cada um usa a própria opção "Tempo de jogo".
-  const spd = CL.online ? ONLINE_TEMPO_MS : (TEMPO_MS[(CL.options&&CL.options.tempo)||'Usain Bolt']||37);
-  const actualSpd=Math.max(12, spd / (CL.speedMult||1));
+  const spd = CL.online ? TEMPO_MS['Usain Bolt'] : (TEMPO_MS[(CL.options&&CL.options.tempo)||TEMPO_DEFAULT]||TEMPO_MS[TEMPO_DEFAULT]);
+  const actualSpd=Math.max(onlineTickFloorMs(RL), spd / roundSpeedMult());
   CL._liveTimer=setTimeout(liveTick, actualSpd);
+}
+/* ---- multiplicador de ritmo VÁLIDO agora ----
+   Online a fonte da verdade é a SALA (NET.room.speedMult, escolhido pelo anfitrião). CL.speedMult
+   é só um espelho local, e no CONVIDADO ele só é atualizado quando chega um onState trazendo
+   speedMult (ver wireNet) — até lá fica no 1 do boot. Ler o espelho fazia o convidado calcular um
+   ritmo diferente do anfitrião; e como o Modo Camarote é travado por velocidade, ele aparecia
+   liberado só pra quem tinha o valor certo — na prática, só pro anfitrião. */
+function roundSpeedMult(){
+  if(CL.online && typeof NET!=='undefined' && NET.room && NET.room.speedMult) return NET.room.speedMult;
+  return CL.speedMult||1;
+}
+/* ---- PISO DE RITMO ----
+   O tempo NÃO tem nenhum papel na sincronia: o resultado sai do snapshot congelado do apito
+   (kickoff_lineups), dos streams pré-computados (round_events) e do resolve-round — todo mundo
+   vê o mesmo placar em qualquer velocidade. O único lugar em que o ritmo importa de verdade é a
+   TRANSMISSÃO AO VIVO entre humanos (Fases 3B/3C): o autoritativo emite um snapshot no mínimo a
+   cada ~900ms (ver maybeBroadcastMatch), então numa partida rápida demais quem assiste recebe o
+   jogo aos saltos — ou só o placar final. Por isso o piso entra SÓ quando existe transmissão
+   humano×humano viva nesta rodada; nas demais o anfitrião manda no ritmo sem freio nenhum. */
+const STREAM_MIN_MS=300;   // ~3 minutos de jogo por batida de heartbeat (900ms) — assistível
+function onlineTickFloorMs(RL){
+  if(!CL.online || !RL) return 12;
+  const ms=RL.matches||[];
+  const assistindo = ms.some(m=>(m.streamRemote||m.spectate) && !m.streamDone && !m.streamDead);
+  const meAssistem = ms.some(m=>m.user && m.streamCast && m.sim && !m.sim.done
+    && CL.humans && CL.humans[m.h===CL.clubId?m.a:m.h]);   // meu confronto é contra outro humano
+  return (assistindo||meAssistem) ? STREAM_MIN_MS : 12;
 }
 /* ---- PRORROGAÇÃO AO VIVO: mesma partida, mais 30min (2 tempos de 15) gerados com o
    mesmo motor (gols/cartões/lesões/pênaltis podem acontecer igual ao tempo normal — um
@@ -3761,23 +3824,389 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
     : RL.cup ? (RL.cup.stage==='group' ? 'Fase de grupos'
         : (RL.cup.bracket ? cupPhaseLabel(RL.cup.bracket.round, RL.cup.bracket.roundsTotal) : 'Fase eliminatória'))
       : null;
-  const cupTop = RL.cup ? `<div class="cl-live-cup-top">${trophyImg(RL.cup.key,64)}
+  // MODO CAMAROTE: interruptor no topo direito — só faz sentido quando existe partida DO USUÁRIO
+  // nesta rodada (no modo espectador de copa não há jogo dele pra assistir de camarote).
+  const userMatch = RL.matches.find(m=>m.user);
+  const camSw = userMatch ? camSwitchHTML() : '';
+  const cupTop = RL.cup ? `<div class="cl-live-cup-top">${camSw}${trophyImg(RL.cup.key,64)}
       <div class="cl-live-cup-name">${escC(COMP_DEFS[RL.cup.key].name)}</div>
       <div class="cl-live-cup-stage">${escC(stageLabel)}</div>
     </div>` : '';
   // cabeçalho da partida de assento (hotseat): nome do treinador + clube + país
   const hsTop = RL.humanSeat ? (function(){ const st=RL.humanSeat.seat; const c=clubOf(st.clubId)||{}; const fl=(typeof flagImg==='function')?flagImg(st.country):'';
-    return `<div class="cl-live-cup-top"><div class="cl-live-cup-name">${escC(st.name)} · ${escC(c.short||c.name||'')}</div>
+    return `<div class="cl-live-cup-top">${camSw}<div class="cl-live-cup-name">${escC(st.name)} · ${escC(c.short||c.name||'')}</div>
       <div class="cl-live-cup-stage">${fl} ${escC(st.country)} · ${RL.jornada}ª Jornada</div></div>`; })() : '';
   const topLabel = `${RL.jornada}ª Jornada - ${S.season}`;
   const shootoutBoard = RL.pens ? shootoutScoreboardHTML(RL) : '';
-  return `<div class="cl-live">${cupTop}${hsTop}${single?'':`<div class="cl-live-top">${divisionTrophyImg(S.division,20)} ${topLabel}</div>`}
+  const camAberto = !!(userMatch && camOn());
+  return `<div class="cl-live${camAberto?' rf-cam-open':''}">${cupTop}${hsTop}${single?'':`<div class="cl-live-top">${divisionTrophyImg(S.division,20)} ${topLabel}${camSw}</div>`}
     ${RL.pens ? '' : `<div class="cl-live-clock" id="cl-liveclock" style="--pct:${liveClockPct(RL)}">${RL.extraStartMinute!=null?'<span class="cl-live-clock-lbl">PRORR.</span>':''}</div>`}
     ${shootoutBoard}
     ${groups}
+    ${camAberto?camaroteHTML(userMatch):''}
     ${RL.sel!=null?`<div class="cl-live-overlay"><div class="cl-live-modal" id="cl-livemodal">${liveModalHTML(RL.matches[RL.sel])}</div></div>`:''}
   </div>`;
 }
+/* ===================================================================
+   MODO CAMAROTE — a rodada inteira continua rolando ao fundo, mas o
+   usuário assiste SÓ à partida dele, em tela cheia, com narração ao vivo,
+   barra de pressão e estatística do jogo. É uma VISUALIZAÇÃO: não muda o
+   motor, não muda o resultado — lê os mesmos eventos que alimentam o
+   placar e a súmula (ver commentary.js). O interruptor no topo direito
+   alterna entre a visão de tabela (todos os jogos da rodada) e o Camarote,
+   e a escolha fica guardada pras próximas rodadas.
+   =================================================================== */
+const CAM_TATICA={retranca:'Retranca',equilibrado:'Equilibrado',ofensivo:'Ofensivo'};
+/* ---- LIMITE DE VELOCIDADE ----
+   O Camarote é feito pra ACOMPANHAR o jogo: narração linha a linha, barra de pressão reagindo,
+   placar mudando. No 'Usain Bolt' (37ms/minuto) a partida inteira acaba em ~3,5s — não dá tempo
+   de ler uma linha sequer, e a barra de pressão vira um borrão. Então o modo só fica disponível
+   até 'Ultrassônico' (110ms/minuto, ~10s de partida), que é o piso do que ainda é assistível.
+   Vale pros dois modos: no solo lê a opção local, na Resenha lê o ritmo do anfitrião. */
+function camTempoMs(){
+  if(CL.online) return TEMPO_MS['Usain Bolt']/roundSpeedMult();
+  return TEMPO_MS[(CL.options&&CL.options.tempo)||TEMPO_DEFAULT]||TEMPO_MS[TEMPO_DEFAULT];
+}
+// tolerância de 1ms: o ritmo online vem de uma divisão (37/mult) e pode cair em 109.9999
+function camSpeedOk(){ return camTempoMs() >= (TEMPO_MS['Ultrassônico']-1); }
+/* preferência do usuário (guardada) E velocidade compatível. A preferência NÃO é apagada quando
+   a velocidade bloqueia — quem jogava de camarote volta a ele sozinho ao baixar o ritmo. */
+function camOn(){ if(CL.camarote==null){ try{ CL.camarote=(localStorage.getItem('rf98_camarote')==='1'); }catch(e){ CL.camarote=false; } }
+  return !!CL.camarote && camSpeedOk(); }
+function camMatch(){ const RL=CL.live; return RL ? (RL.matches||[]).find(m=>m.user) : null; }
+function camToggle(){ if(!camSpeedOk()){ toastC(camSpeedHint()); return; }   // trancado pela velocidade
+  CL.camarote=!camOn(); try{ localStorage.setItem('rf98_camarote',CL.camarote?'1':'0'); }catch(e){} cdraw(); }
+function camSpeedHint(){
+  return CL.online
+    ? '🎥 Camarote indisponível: o anfitrião está no Usain Bolt. Disponível até Ultrassônico.'
+    : '🎥 Camarote indisponível no Usain Bolt — mude em Opções › Tempo de jogo (até Ultrassônico).';
+}
+function camTab(t){ CL.camTab=t; cdraw(); }
+function camBackdrop(e){ if(e && e.target===e.currentTarget) camToggle(); }
+/* pausa do Camarote: SÓ no solo. No Resenha (online) o ritmo da rodada é o do anfitrião e
+   todos avançam juntos — pausar localmente dessincronizaria a sala. */
+function camTogglePlay(){ const RL=CL.live; if(!RL||RL.done||CL.online) return;
+  { const m=camMatch(); if(m && camMatchOver(m)) return; }
+  if(RL.userPaused){ RL.userPaused=false; cdraw(); CL._liveTimer=setTimeout(liveTick,200); }
+  else { RL.userPaused=true; clearTimeout(CL._liveTimer); cdraw(); } }
+
+function camEnsure(m){
+  if(m._camInit) return m;
+  m._camInit=1; m.narr=[]; m.pres=0; m.presBias=0; m.domH=0; m.domA=0; m._camMarks={}; m._camLastLine=0;
+  m.camStats={H:{shots:0,goals:0,onTarget:0,saves:0,yellow:0,red:0,subs:0},
+              A:{shots:0,goals:0,onTarget:0,saves:0,yellow:0,red:0,subs:0}};
+  return m;
+}
+function camSeed(m){ return (m.seed!=null?m.seed:hashC(String(m.h)+'-'+String(m.a)))>>>0; }
+function camCtx(m,mn){
+  const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
+  if(!m._camGk){ const gkOf=id=>{ try{ const g=(availableXI(id)||[]).find(p=>p.s==='GK'); return g?g.n:'o goleiro'; }catch(e){ return 'o goleiro'; } };
+    m._camGk={H:gkOf(m.h), A:gkOf(m.a)}; }
+  return { seed:camSeed(m), hShort:hc.short||hc.name||'Casa', aShort:ac.short||ac.name||'Fora',
+    gk:m._camGk, hg:m.hg, ag:m.ag, att:grp(m.att||0),
+    minute:(mn!=null?mn:camMinuteNow(m,CL.live)) };
+}
+/* ===== relógio do Camarote =====
+   O relógio da RODADA (RL.minute) não serve: RL.maxMin se estende enquanto houver
+   transmissão de humano aberta, então RL.minute continua correndo DEPOIS do apito final da
+   partida do usuário — o Camarote marcaria 100', 110'… com o jogo dele já encerrado. Cada
+   caminho tem a sua própria fonte de verdade:
+     · sessão local (m.sim)      -> o relógio da própria sessão (congela sozinho no fim)
+     · transmissão (streamRemote)-> o minuto do último snapshot recebido
+     · replay/pré-resolvida      -> segue o da rodada e CONGELA no apito final dela
+   (partida de espectador — spectate:true, user:false, sim:null — nunca chega aqui: o
+   Camarote é só do jogo do usuário, ver camMatch.) */
+function camSnap(m){ const s=(CL._liveStreams && m.streamKey) ? CL._liveStreams[m.streamKey] : null; return (s&&s.snap)||null; }
+/* fim natural de uma partida sem relógio próprio: 90' + acréscimos já embutidos nos eventos */
+function camReplayEnd(m){ const evs=m.events||[]; const last=evs.length?evs[evs.length-1].min:0; return Math.max(94,last); }
+function camMatchOver(m){
+  if(m.sim) return !!m.sim.done;
+  if(m.streamRemote){ const st=camSnap(m); return !!(m.streamDone || m.streamDead || (st&&st.done)); }
+  const RL=CL.live; if(!RL) return false;
+  if(RL.done) return true;
+  return (m.idx>=(m.events||[]).length) && RL.minute>=camReplayEnd(m);
+}
+function camMinuteNow(m,RL){
+  if(m.sim) return m.sim.dispMin ? m.sim.dispMin() : m.sim.minute;
+  if(m.streamRemote){ const st=camSnap(m); if(st && st.minute!=null) return st.minute; }
+  if(m._camEndMin!=null) return m._camEndMin;         // replay já encerrada: relógio parado
+  return RL ? RL.minute : 0;
+}
+/* quanto do jogo é do MANDANTE agora, em % (0..100) — é o que a barra de pressão desenha.
+   Sai da pressão acumulada (eventos recentes, com decaimento) + o viés permanente de expulsão. */
+function camShare(m){ const p=Math.max(-100,Math.min(100,(m.pres||0)+(m.presBias||0)));
+  return Math.max(5,Math.min(95,Math.round(50+p/2))); }
+/* um evento do motor vira: linha de narração + estatística + empurrão na barra de pressão */
+function camOnEvent(m,e){
+  if(typeof RF_NARRA==='undefined') return;
+  camEnsure(m); const ctx=camCtx(m);
+  const A=e.side==='H'?m.camStats.H:m.camStats.A, D=e.side==='H'?m.camStats.A:m.camStats.H;
+  let out=null;
+  if(e.type==='gol'){ A.shots++; A.goals++; A.onTarget++; }
+  else if(e.type==='penalti'){ A.shots++;
+    if(e.scored){ A.goals++; A.onTarget++; }
+    else { out=RF_NARRA.chanceOutcome(e,ctx.seed); if(out==='defesa'){ A.onTarget++; D.saves++; } } }
+  else if(e.type==='chance'){ A.shots++; out=RF_NARRA.chanceOutcome(e,ctx.seed);
+    if(out==='defesa'){ A.onTarget++; D.saves++; } }
+  else if(e.type==='cartao'){ if(e.cardType==='vermelho'){ A.red++; m.presBias+=(e.side==='H'?-8:8); } else A.yellow++; }
+  else if(e.type==='sub'){ A.subs++; }
+  const l=RF_NARRA.narrate(e,{...ctx,out});
+  if(l){ m.narr.push({min:e.min,icon:l.icon,text:l.text,kind:l.kind}); m._camLastLine=e.min; }
+  m.pres=Math.max(-100,Math.min(100,(m.pres||0)+RF_NARRA.pressureOf(e,out)));
+}
+function camPush(m,kind,extra,mn){
+  if(typeof RF_NARRA==='undefined') return;
+  if(mn==null) mn=camMinuteNow(m,CL.live);
+  const l=RF_NARRA.ambient(kind,{...camCtx(m,mn),...(extra||{})});
+  if(l){ m.narr.push({min:mn,icon:l.icon,text:l.text,kind:l.kind}); m._camLastLine=mn; }
+}
+/* batida de minuto: a pressão decai (o jogo esfria sozinho quando nada acontece), o domínio
+   acumula, e as falas de ambiente entram nos marcos (apito, intervalo, acréscimos) e nas
+   fases mornas — sempre lendo o estado REAL (pressão do momento + placar).
+   O compasso é o MINUTO DA PARTIDA (camMinuteNow), não o da rodada: num stream o relógio
+   dela anda em ritmo próprio, e depois do apito final dela a rodada ainda pode correr um
+   bom tempo esperando as transmissões dos outros humanos fecharem. */
+function camMinuteTick(m,RL){
+  camEnsure(m);
+  const over=camMatchOver(m);
+  const mn=camMinuteNow(m,RL);
+  if(over && m._camEndMin==null) m._camEndMin=mn;   // congela o relógio no apito final DELA
+  const prev=(m._camTickedMin||0);
+  if(mn>prev){
+    // um passo de decaimento por minuto de jogo (limitado, caso um snapshot chegue com atraso)
+    const steps=Math.min(8, mn-prev);
+    for(let i=0;i<steps;i++){
+      m.pres=(m.pres||0)*0.87;
+      const p=(m.pres||0)+(m.presBias||0);
+      if(p>0) m.domH++; else if(p<0) m.domA++; else { m.domH+=0.5; m.domA+=0.5; }
+    }
+    if(Math.abs(m.pres)<0.5) m.pres=0;
+    m._camTickedMin=mn;
+  }
+  const mark=(k,fn)=>{ if(!m._camMarks[k]){ m._camMarks[k]=1; fn(); } };
+  if(mn>=1)  mark('ini',()=>camPush(m,'inicio',null,mn));
+  if(mn>=45) mark('ht', ()=>camPush(m,'intervalo',null,mn));
+  if(mn>=46) mark('h2', ()=>camPush(m,'recomeco',null,mn));
+  if(mn>=91 && RL.extraStartMinute==null) mark('acr',()=>camPush(m,'acrescimos',null,mn));
+  if(over) return; // apito final é responsabilidade do camEndCheck (depois dos eventos do minuto)
+  // fase morna: nenhuma linha há 7 minutos -> comenta o momento do jogo (pressão/placar).
+  // `avoid` é a ÚLTIMA fala de ambiente (não a última linha qualquer): com um lance no meio,
+  // comparar só com a linha anterior deixava a mesma frase de ambiente voltar logo em seguida.
+  if(mn-(m._camLastLine||0)>=7){
+    camPush(m,'momento',{share:camShare(m), avoid:m._camLastMomento||null},mn);
+    m._camLastMomento=m.narr.length?m.narr[m.narr.length-1].text:null;
+  }
+}
+/* apito final — roda DEPOIS de consumir os eventos do minuto, pra "Fim de jogo" nunca aparecer
+   antes do último lance (um gol nos acréscimos, por exemplo). */
+function camEndCheck(m,RL){
+  camEnsure(m);
+  if(!camMatchOver(m)) return;
+  if(m._camEndMin==null) m._camEndMin=camMinuteNow(m,RL);
+  // stream que MORREU no meio não teve apito final — não anuncia "fim de jogo" com um placar
+  // que ainda não é o oficial (ver liveTick: o oficial sai na classificação).
+  if(m.streamRemote && m.streamDead && !m.streamDone){
+    if(!m._camMarks.fim){ m._camMarks.fim=1; camPush(m,'corte',null,m._camEndMin); }
+    return;
+  }
+  camFinal(m,m._camEndMin);
+}
+function camFinal(m,mn){ camEnsure(m); if(m._camMarks.fim) return; m._camMarks.fim=1;
+  if(m._camEndMin==null) m._camEndMin=(mn!=null?mn:camMinuteNow(m,CL.live));
+  camPush(m,'fim',null,m._camEndMin); }
+
+/* ---- interruptor 🎥 MODO CAMAROTE (topo direito, igual ao design) ---- */
+function camSwitchHTML(){
+  // TRANCADO pela velocidade: o interruptor continua na tela (pra ficar claro que o modo existe e
+  // POR QUE não dá pra ligar agora), só que apagado e sem alternar. Clicar explica no toast.
+  if(!camSpeedOk()){
+    return `<button class="rf-cam-sw dis" onclick="camToggle()" title="${escC(camSpeedHint())}">
+      <span class="rf-cam-sw-lbl">🎥 MODO CAMAROTE</span>
+      <span class="rf-cam-sw-track"><span class="rf-cam-sw-knob"></span></span>
+      <span class="rf-cam-sw-warn">🔒 só até Ultrassônico</span>
+    </button>`;
+  }
+  const on=camOn();
+  return `<button class="rf-cam-sw ${on?'on':''}" onclick="camToggle()" title="Ver só o seu jogo, em tela cheia">
+    <span class="rf-cam-sw-lbl">🎥 MODO CAMAROTE</span>
+    <span class="rf-cam-sw-track"><span class="rf-cam-sw-knob"></span></span>
+    <span class="rf-cam-sw-state">${on?'ON':'OFF'}</span>
+  </button>`;
+}
+/* ---- a janela do Camarote ---- */
+function camaroteHTML(m){
+  const RL=CL.live; const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
+  camEnsure(m);
+  return `<div class="rf-cam-ov" onclick="camBackdrop(event)"><div class="rf-cam-win">
+    <div class="rf-cam-title">
+      <span class="rf-cam-title-t">🎥 Camarote — ${escC(hc.short||'')} × ${escC(ac.short||'')}</span>
+      <span class="rf-cam-onair" id="rf-cam-onair" ${camMatchOver(m)?'hidden':''}>● AO VIVO</span>
+      <span class="rf-cam-sp"></span>
+      <button class="rf-cam-x" onclick="camToggle()" title="Voltar à rodada (Esc)">✖</button>
+    </div>
+    <div id="rf-cam-dyn">${camDynHTML(m)}</div>
+    <div class="rf-cam-ads"><div class="rf-cam-ads-box">
+      <span class="rf-cam-ads-lbl">CAMAROTE APRESENTADO POR</span>
+      ${AD_SPONSORS.map((s,i)=>`<img class="rf-cam-ad ${i===camAdIdx()?'on':''}" src="${s.src}" alt="${escC(s.nome)}">`).join('')}
+      <button class="rf-cam-cta" id="rf-cam-cta" style="${camCtaStyle()}" onclick="camAdClick()">${escC(AD_SPONSORS[camAdIdx()].cta)}</button>
+    </div></div>
+    <div class="rf-cam-foot"><span>Esc ou ✖ pra voltar à rodada</span><span class="rf-cam-sp"></span><span>Os outros jogos seguem rolando ao fundo</span></div>
+  </div></div>`;
+}
+function camAdIdx(){ const RL=CL.live; return Math.floor(((RL&&RL.minute)||0)/8)%AD_SPONSORS.length; }
+/* o botão veste as cores da marca em destaque (o relevo 98 vem do bevel de cada uma) */
+function camCtaStyle(i){ const s=AD_SPONSORS[i!=null?i:camAdIdx()]; if(!s) return '';
+  return `background:${s.bg};color:${s.fg};border-color:${s.bevel}`; }
+/* clique no botão da marca em destaque — é o que converte pro patrocinador. Abre em aba nova
+   (noopener: a página do anunciante nunca ganha handle da janela do jogo) e registra o evento no
+   gtag já presente na página, pra dar número de cliques por marca. */
+function camAdClick(){
+  const s=AD_SPONSORS[camAdIdx()]; if(!s) return;
+  try{ if(typeof gtag==='function') gtag('event','sponsor_click',{sponsor:s.nome, placement:'camarote'}); }catch(e){}
+  if(!s.url){ toastC('Link do patrocinador ainda não configurado ('+s.nome+').'); return; }
+  window.open(s.url,'_blank','noopener,noreferrer');
+}
+/* tudo que muda a cada minuto vive aqui dentro (um innerHTML só em updateLive) */
+function camDynHTML(m){
+  const RL=CL.live, hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
+  const tab=CL.camTab||'panorama';
+  const mn=camMinuteNow(m,RL), over=camMatchOver(m);
+  const period = RL.pens ? 'PÊNALTIS'
+    : RL.extraStartMinute!=null ? 'PRORROGAÇÃO'
+    : over ? (m.streamRemote && m.streamDead && !m.streamDone ? 'SEM SINAL' : 'ENCERRADO')
+    : mn<=45 ? '1º TEMPO' : mn<=90 ? '2º TEMPO' : 'ACRÉSCIMOS';
+  const showNarr = tab!=='estatisticas', showStats = tab!=='comentarios';
+  const tabBtn=(k,lbl)=>`<button class="rf-cam-tab ${tab===k?'on':''}" onclick="camTab('${k}')">${lbl}</button>`;
+  // "Fim" já quando a partida DELE acaba, mesmo que a rodada siga esperando as transmissões
+  // dos outros humanos (RL.done ainda false).
+  const playBtn = CL.online
+    ? `<span class="rf-cam-sync" title="No Resenha o ritmo é o do anfitrião">⏱ ritmo da sala</span>`
+    : `<button class="rf-cam-play" onclick="camTogglePlay()" ${over?'disabled':''}>${over?'Fim':(RL.userPaused?'▶ Jogar':'⏸ Pausar')}</button>`;
+  return `<div class="rf-cam-board">
+      <div class="rf-cam-side home">
+        <span class="rf-cam-where">EM CASA</span>
+        <span class="rf-cam-club" style="${clubStripe(hc)}">${escC(hc.short||'')}</span>
+        <span class="rf-cam-g">${m.hg}</span>
+      </div>
+      <div class="rf-cam-clock"><div class="rf-cam-min">${mn}'</div><div class="rf-cam-period">${period}</div></div>
+      <div class="rf-cam-side away">
+        <span class="rf-cam-g">${m.ag}</span>
+        <span class="rf-cam-club" style="${clubStripe(ac)}">${escC(ac.short||'')}</span>
+        <span class="rf-cam-where">VISITANTE</span>
+      </div>
+    </div>
+    ${camPressureHTML(m)}
+    <div class="rf-cam-tabs">${tabBtn('panorama','Panorama do Jogo')}${tabBtn('comentarios','Comentários')}${tabBtn('estatisticas','Estatísticas')}<span class="rf-cam-sp"></span>${playBtn}</div>
+    <div class="rf-cam-body" style="grid-template-columns:${showNarr&&showStats?'1fr 320px':'1fr'}">
+      ${showNarr?camFeedHTML(m):''}
+      ${showStats?camStatsHTML(m):''}
+    </div>`;
+}
+/* cores das barras (pressão e estatística): dois clubes de cor parecida — CSA × Nacional,
+   dois azuis — deixavam as duas metades da barra indistinguíveis, e aí ela não informa nada.
+   Quando as cores colidem, o visitante cai pra segunda cor dele e, se ainda assim colar,
+   pra um contraste fixo contra o fundo navy da janela. */
+function camHexRgb(h){ h=String(h||'').replace('#',''); if(h.length===3) h=h.split('').map(c=>c+c).join('');
+  const n=parseInt(h||'000000',16)||0; return [(n>>16)&255,(n>>8)&255,n&255]; }
+function camColorDist(a,b){ const x=camHexRgb(a), y=camHexRgb(b);
+  return Math.sqrt(Math.pow(x[0]-y[0],2)+Math.pow(x[1]-y[1],2)+Math.pow(x[2]-y[2],2)); }
+function camBarColors(hc,ac){
+  const H=clubColors(hc)||{}, A=clubColors(ac)||{};
+  const colH=H.col||'#cc9a1a';
+  let colA=A.col||'#1a5bb8';
+  if(camColorDist(colH,colA)<110){
+    if(A.col2 && camColorDist(colH,A.col2)>=110) colA=A.col2;
+    else colA = camColorDist(colH,'#f0f0f0')>=110 ? '#f0f0f0' : '#1a1a1a';
+  }
+  return {colH,colA};
+}
+/* ---- BARRA DE PRESSÃO: quem manda no jogo AGORA, pelos fatos da partida ---- */
+function camPressureHTML(m){
+  const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
+  const sh=camShare(m);
+  const {colH,colA}=camBarColors(hc,ac);
+  const tag = sh>=64 ? escC(hc.short||'')+' PRESSIONA' : sh<=36 ? escC(ac.short||'')+' PRESSIONA' : 'JOGO EQUILIBRADO';
+  return `<div class="rf-cam-pres">
+    <span class="rf-cam-pres-lbl">PRESSÃO</span>
+    <span class="rf-cam-pres-bar">
+      <span class="rf-cam-pres-h" style="width:${sh}%;background:${colH}"></span>
+      <span class="rf-cam-pres-a" style="width:${100-sh}%;background:${colA}"></span>
+      <span class="rf-cam-pres-mid"></span>
+    </span>
+    <span class="rf-cam-pres-tag">${tag}</span>
+  </div>`;
+}
+/* ---- NARRAÇÃO AO VIVO (mais recente no topo) ---- */
+function camFeedHTML(m){
+  const rows=m.narr.slice().reverse().map(l=>`<div class="rf-cam-line k-${l.kind}">
+      <span class="rf-cam-lmin">${l.min}'</span><span class="rf-cam-lic">${l.icon}</span><span class="rf-cam-ltx">${escC(l.text)}</span>
+    </div>`).join('');
+  const hc=clubOf(m.h)||{};
+  return `<div class="rf-cam-feed" id="rf-cam-feed">
+    <div class="rf-cam-feed-hd"><b>NARRAÇÃO AO VIVO</b><span>Casa do ${escC(hc.short||'')} · ${grp(m.att||0)} pagantes</span></div>
+    ${rows||'<div class="rf-cam-empty">O árbitro já vai apitar…</div>'}
+  </div>`;
+}
+/* ---- ESTATÍSTICAS: tudo derivado dos eventos que de fato aconteceram ----
+   Posse vem do motor quando a partida roda/transmite aqui (sessão interativa ou stream);
+   no replay de um resultado já publicado pelo adversário, o motor não manda posse minuto a
+   minuto — aí a linha vira "Domínio em campo", medido pela própria barra de pressão. */
+function camStatsHTML(m){
+  const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
+  const {colH,colA}=camBarColors(hc,ac);
+  const live=(m.sim&&m.sim.perf)||m.livePerf||null;
+  let possLbl='Domínio em campo', ph, pa;
+  if(live && ((live.H.poss+live.A.poss)>0)){ possLbl='Posse de bola';
+    const t=live.H.poss+live.A.poss; ph=Math.round(100*live.H.poss/t); pa=100-ph; }
+  else { const t=(m.domH+m.domA)||1; ph=Math.round(100*m.domH/t); pa=100-ph; }
+  const H=m.camStats.H, A=m.camStats.A;
+  const row=(lbl,a,b,va,vb)=>{ const mx=Math.max(va,vb,1);
+    return `<div class="rf-cam-st">
+      <div class="rf-cam-st-top"><span>${a}</span><span class="rf-cam-st-lbl">${lbl}</span><span>${b}</span></div>
+      <div class="rf-cam-st-bars">
+        <span class="rf-cam-st-b l"><i style="width:${Math.round(100*va/mx)}%;background:${colH}"></i></span>
+        <span class="rf-cam-st-b r"><i style="width:${Math.round(100*vb/mx)}%;background:${colA}"></i></span>
+      </div></div>`; };
+  const cards=s=>(s.yellow+s.red);
+  const cardTxt=s=>`${s.yellow}🟨${s.red?' '+s.red+'🟥':''}`;
+  const subsLeft=Math.max(0,3-(CL.subsUsed||0));
+  return `<div class="rf-cam-stats">
+    <fieldset class="rf-cam-fs"><legend>Estatísticas</legend>
+      <div class="rf-cam-st-hd"><span>${escC(hc.short||'')}</span><span>${escC(ac.short||'')}</span></div>
+      ${row(possLbl,ph+'%',pa+'%',ph,pa)}
+      ${row('Finalizações',H.shots,A.shots,H.shots,A.shots)}
+      ${row('No alvo',H.onTarget,A.onTarget,H.onTarget,A.onTarget)}
+      ${row('Defesas',H.saves,A.saves,H.saves,A.saves)}
+      ${row('Cartões',cardTxt(H),cardTxt(A),cards(H),cards(A))}
+      ${row('Substituições',H.subs,A.subs,H.subs,A.subs)}
+    </fieldset>
+    <fieldset class="rf-cam-fs"><legend>Ficha</legend>
+      <div class="rf-cam-ficha">
+        Árbitro: <b>${escC(m.ref||'—')}</b><br>
+        Público: <b class="rf-mono">${grp(m.att||0)}</b>${m.price?` · Ingresso: <b class="rf-mono">${grp(m.price)}</b>`:''}<br>
+        Sua tática: <b>${escC(CAM_TATICA[S.tactic]||S.tactic||'—')}</b><br>
+        Substituições: <b>${(CL.subsUsed||0)} de 3</b> · restam <b>${subsLeft}</b>
+      </div>
+    </fieldset>
+  </div>`;
+}
+/* redesenha só a parte viva da janela (e mantém onde o usuário estava lendo a narração) */
+function camUpdate(){
+  if(!camOn()) return; const m=camMatch(); if(!m) return;
+  const host=document.querySelector('#rf-cam-dyn'); if(!host) return;
+  const old=host.querySelector('#rf-cam-feed'); const sc=old?old.scrollTop:0;
+  host.innerHTML=camDynHTML(m);
+  const nw=host.querySelector('#rf-cam-feed'); if(nw) nw.scrollTop=sc;
+  const ads=document.querySelectorAll('.rf-cam-ad'); const i=camAdIdx();
+  ads.forEach((el,k)=>el.classList.toggle('on',k===i));
+  // o botão do patrocinador gira junto com o logo em destaque (texto + cores da marca)
+  const cta=document.querySelector('#rf-cam-cta');
+  if(cta && AD_SPONSORS[i]){ cta.textContent=AD_SPONSORS[i].cta; cta.setAttribute('style',camCtaStyle(i)); }
+  // o selo "AO VIVO" mora na barra de título (fora do bloco redesenhado): apaga na mão
+  // quando a partida DELE acaba — a rodada pode seguir rolando bem depois disso.
+  const onair=document.querySelector('#rf-cam-onair'); if(onair) onair.hidden=camMatchOver(m);
+}
+
 /* % do relógio circular — a prorrogação usa uma escala PRÓPRIA (34min: 30 + acréscimos),
    proporcional ao tempo real dela, em vez da escala de 94min do tempo normal. */
 function liveClockPct(RL){
@@ -4472,6 +4901,12 @@ function scWaitRound(){
       </div>
       <div class="rf-progtrack"><div class="rf-progfill" id="rf-fill" style="width:${pausaPct()}%"></div></div>
       <div id="cl-ad-skip" class="rf-skiprow" style="display:${CL._adCont?'':'none'}">${btn('Pular publicidade','clAdSkip()',{icon:'⏭',cls:'cl-btn'})}</div>
+      <!-- SAÍDA DE EMERGÊNCIA: o botão acima só aparece quando a rodada JÁ sincronizou (CL._adCont).
+           Se o fechamento da rodada trava (anfitrião offline, resolve-round falhando), não havia
+           NENHUM caminho de volta — o jogador ficava preso aqui até recarregar o navegador. Este
+           botão surge sozinho depois de WAIT_ESCAPE_MS e só devolve a tela do time: não pula nem
+           altera a rodada (o fechamento segue pelo reconcile/onlineRunRound quando destravar). -->
+      <div id="cl-wait-escape" class="rf-skiprow" style="display:${pausaStuck()?'':'none'}">${btn('Voltar ao meu time','clWaitRoundSkip()',{icon:'↩',cls:'cl-btn-cancel'})}</div>
     </div>
     <div class="rf-sponsor">
       <div class="rf-sponlabel"><b>Patrocínio oficial</b><span>Quem banca a resenha</span></div>
@@ -4849,6 +5284,7 @@ function updateLive(){ const RL=CL.live; if(!RL) return;
   RL.matches.forEach((m,i)=>{ const sc=document.querySelector('#cl-lm-'+i); if(sc) sc.innerHTML=liveScoreCells(m);
     const lg=document.querySelector('#cl-lg-'+i); if(lg){ const inc=(m.incidents||[])[m.incidents.length-1]; lg.textContent=inc?lastIncidentTxt(inc):''; } });
   if(RL.sel!=null){ const box=document.querySelector('#cl-livemodal'); if(box) box.innerHTML=liveModalHTML(RL.matches[RL.sel]); }
+  camUpdate(); // Modo Camarote: relógio, placar, barra de pressão, narração e estatística
 }
 function lastIncidentTxt(inc){
   if(inc.type==='gol') return `⚽ ${escC(inc.player)} ${inc.min}'`;
@@ -5067,11 +5503,18 @@ function clStub(t){ CL.menu=null; toastC(t+' — em breve.'); cdraw(); }
    sincronizado/restrito por RLS ao host — ver netSetSpeed). Baseline 'Usain Bolt'=1x preserva o
    comportamento padrão de hoje pra quem nunca mexeu na opção (games.speed_mult nasce em 1). */
 const TEMPO_MS={Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37};
-/* FASE 3B: ritmo da RESENHA (online) — 360ms/minuto (~40s de jogo + intervalo + pausas de decisão).
-   Antes era 'Usain Bolt' (37ms — rodada em ~14s), rápido demais pra transmissão ao vivo entre
-   clientes ser assistível e pras decisões remotas caberem no fluxo. As janelas de espera criadas
-   (decisão do adversário, sincronização) são os espaços de publicidade dinâmica planejados. */
-const ONLINE_TEMPO_MS=360;
+/* PADRÃO (solo e sala nova): Ultrassônico. 'Usain Bolt' (37ms) resolve a rodada em ~3,5s — rápido
+   demais pra acompanhar qualquer coisa e, na prática, deixaria o Modo Camarote TRANCADO por padrão
+   (ver camSpeedOk), escondendo o modo de quem nunca abriu as Opções. Ultrassônico (110ms, ~10s de
+   partida) é o ponto em que ainda dá pra assistir sem ficar lento. Quem quiser o extremo continua
+   escolhendo Usain Bolt na mão — só perde o Camarote enquanto estiver nele. */
+const TEMPO_DEFAULT='Ultrassônico';
+/* A Resenha usa a MESMA escala do solo: o rótulo escolhido pelo ANFITRIÃO vale ms por ms pra todo
+   mundo (viaja em games.speed_mult = TEMPO_MS['Usain Bolt']/TEMPO_MS[rótulo], então
+   TEMPO_MS['Usain Bolt']/speed_mult devolve exatamente o ms dele). A Fase 3B tinha ancorado o
+   online num fixo de 360ms pra transmissão ao vivo caber; isso jogou fora a opção do anfitrião —
+   'Ultrassônico' virava 1070ms/min. Agora o freio é cirúrgico: só um PISO, e só nas rodadas com
+   transmissão humano×humano viva (ver onlineTickFloorMs). */
 const TEMPO_MULT={}; Object.keys(TEMPO_MS).forEach(k=>TEMPO_MULT[k]=TEMPO_MS['Usain Bolt']/TEMPO_MS[k]);
 function tempoLabelFromMult(mult){ const m=mult||1; let best='Usain Bolt',bd=Infinity;
   Object.keys(TEMPO_MULT).forEach(k=>{ const d=Math.abs(TEMPO_MULT[k]-m); if(d<bd){bd=d;best=k;} }); return best; }
@@ -5082,7 +5525,7 @@ function clSetTempo(label){
 }
 function clOptions(){ CL.menu=null; CL.optTab='geral';
   if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',gravar:'De 3 em 3 jornadas',som:'Sim',
-    subsIntervalo:'Sim',penaltisCPU:'Sim',tempo:'Usain Bolt'};
+    subsIntervalo:'Sim',penaltisCPU:'Sim',tempo:TEMPO_DEFAULT};
   renderOptions(); }
 function renderOptions(){ const o=CL.options; const tab=CL.optTab||'geral';
   const sel=(id,opts,val)=>`<select class="cl-osel" onchange="CL.options['${id}']=this.value">${opts.map(x=>`<option ${x===val?'selected':''}>${escC(x)}</option>`).join('')}</select>`;
@@ -6152,6 +6595,8 @@ function handleTacticShortcut(key){
 document.addEventListener('keydown', (e)=>{
   const tag=(e.target&&e.target.tagName)||'';
   if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return; // não atrapalha quem tá digitando
+  // Esc fecha o Modo Camarote e devolve a visão de tabela (todos os jogos da rodada)
+  if(e.key==='Escape' && CL.screen==='live' && camOn() && camMatch()){ camToggle(); e.preventDefault(); return; }
   if(FKEY_INV[e.key] && handleTacticShortcut(e.key)) e.preventDefault(); // evita F1=ajuda do navegador, F5=recarregar, etc.
 });
 
