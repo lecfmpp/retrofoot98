@@ -250,8 +250,15 @@ function syncFunHTML(){ const f=SYNC_FUN[Math.floor(Math.random()*SYNC_FUN.lengt
 const SYNC_GIF_CANDIDATES=Array.from({length:12},(_,i)=>'img/sync/sync'+(i+1)+'.gif');
 function probeSyncGifs(){
   if(CL._syncGifs) return; CL._syncGifs=[];
-  SYNC_GIF_CANDIDATES.forEach(src=>{ const im=new Image();
-    im.onload=()=>{ CL._syncGifs.push(src); }; im.src=src; });
+  // sondagem por HEAD, não por Image(): carregar os GIFs inteiros na sondagem baixava vários MB
+  // em TODA abertura do jogo (o maior tem ~5MB). O download real só acontece quando a tela de
+  // espera mostra o <img>. Checa o content-type porque o hosting é SPA: arquivo inexistente
+  // volta 200 com o index.html (text/html), não 404.
+  SYNC_GIF_CANDIDATES.forEach(src=>{
+    fetch(src,{method:'HEAD'}).then(r=>{
+      if(r.ok && /image/i.test(r.headers.get('content-type')||'')) CL._syncGifs.push(src);
+    }).catch(()=>{});
+  });
 }
 function syncGifHTML(){
   const gs=CL._syncGifs||[];
