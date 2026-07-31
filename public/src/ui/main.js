@@ -4086,11 +4086,11 @@ function camDynHTML(m){
       <div class="rf-cam-side home">
         <span class="rf-cam-where">EM CASA</span>
         <span class="rf-cam-club" style="${clubStripe(hc)}">${escC(hc.short||'')}</span>
-        <span class="rf-cam-g">${m.hg}</span>
+        <span class="rf-cam-g" id="rf-cam-hg">${m.hg}</span>
       </div>
-      <div class="rf-cam-clock"><div class="rf-cam-min">${mn}'</div><div class="rf-cam-period">${period}</div></div>
+      <div class="rf-cam-clock"><div class="rf-cam-min" id="rf-cam-min">${mn}'</div><div class="rf-cam-period" id="rf-cam-period">${period}</div></div>
       <div class="rf-cam-side away">
-        <span class="rf-cam-g">${m.ag}</span>
+        <span class="rf-cam-g" id="rf-cam-ag">${m.ag}</span>
         <span class="rf-cam-club" style="${clubStripe(ac)}">${escC(ac.short||'')}</span>
         <span class="rf-cam-where">VISITANTE</span>
       </div>
@@ -4129,22 +4129,28 @@ function camPressureHTML(m){
   return `<div class="rf-cam-pres">
     <span class="rf-cam-pres-lbl">PRESSÃO</span>
     <span class="rf-cam-pres-bar">
-      <span class="rf-cam-pres-h" style="width:${sh}%;background:${colH}"></span>
-      <span class="rf-cam-pres-a" style="width:${100-sh}%;background:${colA}"></span>
+      <span class="rf-cam-pres-h" id="rf-cam-presh" style="width:${sh}%;background:${colH}"></span>
+      <span class="rf-cam-pres-a" id="rf-cam-presa" style="width:${100-sh}%;background:${colA}"></span>
       <span class="rf-cam-pres-mid"></span>
     </span>
-    <span class="rf-cam-pres-tag">${tag}</span>
+    <span class="rf-cam-pres-tag" id="rf-cam-prestag">${tag}</span>
   </div>`;
 }
-/* ---- NARRAÇÃO AO VIVO (mais recente no topo) ---- */
-function camFeedHTML(m){
-  const rows=m.narr.slice().reverse().map(l=>`<div class="rf-cam-line k-${l.kind}">
+/* ---- NARRAÇÃO AO VIVO (mais recente no topo) ----
+   As linhas vivem num container PRÓPRIO (#rf-cam-lines) porque o camUpdate só ACRESCENTA as
+   novas, nunca redesenha as antigas: a animação de entrada é por linha, e redesenhar o feed
+   inteiro a cada minuto fazia TODAS re-animarem juntas — o texto piscava sem parar. */
+function camLineHTML(l){
+  return `<div class="rf-cam-line k-${l.kind}">
       <span class="rf-cam-lmin">${l.min}'</span><span class="rf-cam-lic">${l.icon}</span><span class="rf-cam-ltx">${escC(l.text)}</span>
-    </div>`).join('');
+    </div>`;
+}
+function camFeedHTML(m){
   const hc=clubOf(m.h)||{};
+  const rows=m.narr.slice().reverse().map(camLineHTML).join('');
   return `<div class="rf-cam-feed" id="rf-cam-feed">
     <div class="rf-cam-feed-hd"><b>NARRAÇÃO AO VIVO</b><span>Casa do ${escC(hc.short||'')} · ${grp(m.att||0)} pagantes</span></div>
-    ${rows||'<div class="rf-cam-empty">O árbitro já vai apitar…</div>'}
+    <div id="rf-cam-lines" data-n="${m.narr.length}">${rows||'<div class="rf-cam-empty">O árbitro já vai apitar…</div>'}</div>
   </div>`;
 }
 /* ---- ESTATÍSTICAS: tudo derivado dos eventos que de fato aconteceram ----
@@ -4190,13 +4196,25 @@ function camStatsHTML(m){
     </fieldset>
   </div>`;
 }
-/* redesenha só a parte viva da janela (e mantém onde o usuário estava lendo a narração) */
+/* ---- atualização da janela: NO LUGAR, não redesenhando ----
+   Antes isto fazia `host.innerHTML=camDynHTML(m)` a cada minuto. Recriar os nós zera as animações
+   e transições: TODAS as linhas de narração re-animavam juntas (o texto piscava sem parar) e a
+   barra de pressão pulava em vez de deslizar. Agora só os valores mudam, e a única coisa que
+   entra no DOM é a linha NOVA — quando de fato acontece alguma coisa. Redesenho completo fica
+   pra troca de aba, que é o único caso em que a estrutura muda de verdade. */
 function camUpdate(){
   if(!camOn()) return; const m=camMatch(); if(!m) return;
   const host=document.querySelector('#rf-cam-dyn'); if(!host) return;
-  const old=host.querySelector('#rf-cam-feed'); const sc=old?old.scrollTop:0;
-  host.innerHTML=camDynHTML(m);
-  const nw=host.querySelector('#rf-cam-feed'); if(nw) nw.scrollTop=sc;
+  const tab=CL.camTab||'panorama';
+  if(host.dataset.tab!==tab || !host.querySelector('#rf-cam-lines')){
+    const old=host.querySelector('#rf-cam-feed'); const sc=old?old.scrollTop:0;
+    host.innerHTML=camDynHTML(m); host.dataset.tab=tab;
+    const nw=host.querySelector('#rf-cam-feed'); if(nw) nw.scrollTop=sc;
+  } else {
+    camPatchBoard(m); camPatchFeed(m);
+    const st=host.querySelector('.rf-cam-stats'); // sem animação: redesenho aqui não pisca
+    if(st) st.outerHTML=camStatsHTML(m);
+  }
   const ads=document.querySelectorAll('.rf-cam-ad'); const i=camAdIdx();
   ads.forEach((el,k)=>el.classList.toggle('on',k===i));
   // o botão do patrocinador gira junto com o logo em destaque (texto + cores da marca)
@@ -4205,6 +4223,36 @@ function camUpdate(){
   // o selo "AO VIVO" mora na barra de título (fora do bloco redesenhado): apaga na mão
   // quando a partida DELE acaba — a rodada pode seguir rolando bem depois disso.
   const onair=document.querySelector('#rf-cam-onair'); if(onair) onair.hidden=camMatchOver(m);
+}
+/* placar, relógio, período, botão e barra de pressão — só os VALORES */
+function camPatchBoard(m){
+  const RL=CL.live; const set=(id,v)=>{ const el=document.querySelector(id); if(el && el.textContent!==v) el.textContent=v; };
+  const mn=camMinuteNow(m,RL), over=camMatchOver(m);
+  set('#rf-cam-hg', String(m.hg)); set('#rf-cam-ag', String(m.ag)); set('#rf-cam-min', mn+"'");
+  set('#rf-cam-period', RL.pens ? 'PÊNALTIS'
+    : RL.extraStartMinute!=null ? 'PRORROGAÇÃO'
+    : over ? (m.streamRemote && m.streamDead && !m.streamDone ? 'SEM SINAL' : 'ENCERRADO')
+    : mn<=45 ? '1º TEMPO' : mn<=90 ? '2º TEMPO' : 'ACRÉSCIMOS');
+  const sh=camShare(m);
+  const h=document.querySelector('#rf-cam-presh'), a=document.querySelector('#rf-cam-presa');
+  if(h) h.style.width=sh+'%';            // width muda -> a transição CSS desliza em vez de pular
+  if(a) a.style.width=(100-sh)+'%';
+  const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
+  set('#rf-cam-prestag', sh>=64 ? (hc.short||'')+' PRESSIONA' : sh<=36 ? (ac.short||'')+' PRESSIONA' : 'JOGO EQUILIBRADO');
+  const play=document.querySelector('.rf-cam-play');
+  if(play){ const lbl=over?'Fim':(RL.userPaused?'▶ Jogar':'⏸ Pausar');
+    if(play.textContent!==lbl) play.textContent=lbl; play.disabled=!!over; }
+}
+/* só as linhas NOVAS entram (no topo, que é onde a mais recente fica) */
+function camPatchFeed(m){
+  const box=document.querySelector('#rf-cam-lines'); if(!box) return;
+  const antes=parseInt(box.dataset.n||'0',10), agora=m.narr.length;
+  if(agora===antes) return;
+  if(agora<antes){ box.innerHTML=m.narr.slice().reverse().map(camLineHTML).join(''); box.dataset.n=String(agora); return; }
+  const vazio=box.querySelector('.rf-cam-empty'); if(vazio) vazio.remove();
+  // insere de trás pra frente pra manter a ordem (mais recente sempre no topo)
+  m.narr.slice(antes).forEach(l=>box.insertAdjacentHTML('afterbegin', camLineHTML(l)));
+  box.dataset.n=String(agora);
 }
 
 /* % do relógio circular — a prorrogação usa uma escala PRÓPRIA (34min: 30 + acréscimos),

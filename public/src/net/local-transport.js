@@ -1124,11 +1124,16 @@ function onlineTimerLoop(){
   if(CL.online && typeof NET!=='undefined' && NET.gameId && NET.heartbeatSeen){
     if(Date.now()-ONLINE_SEEN_T>15000){ ONLINE_SEEN_T=Date.now(); NET.heartbeatSeen(); }
   }
-  // BARREIRA DE SINCRONIZAÇÃO: enquanto EU estou numa partida ao vivo (liga/copa/espectador)
-  // OU assistindo ao SORTEIO da copa (cupdraw), bato um heartbeat "ocupado" — o servidor não
-  // avança a rodada sem mim (ver advance_phase_if_expired). Incluir 'cupdraw' faz o sorteio
-  // esperar todos: a rodada não fecha enquanto alguém ainda está vendo o sorteio.
-  // Ao sair da tela, limpo o "ocupado" uma vez (fim normal = libera; queda = expira em ~90s).
+  // BARREIRA DE SINCRONIZAÇÃO: enquanto EU ainda estou fechando a rodada anterior, bato um
+  // heartbeat "ocupado" — o servidor não arma o cronômetro nem avança a fase sem mim (ver
+  // arm_ready_timer / advance_phase_if_expired).
+  // Ao sair da sequência, limpo o "ocupado" uma vez (fim normal = libera; queda = expira em ~90s).
+  //
+  // A sequência inteira conta, não só a tela ao vivo: partida -> CLASSIFICAÇÃO -> SORTEIO da copa
+  // -> tela do time. Cobrir só 'live'/'cupdraw' deixava o cronômetro armar durante a
+  // classificação, e aí o sorteio da Copa do Brasil abria com o relógio JÁ correndo ao fundo
+  // (apitando durante um evento que é à parte). Agora o cronômetro só arma quando TODOS
+  // terminaram o sorteio e voltaram pra tela do time — que é a regra que o jogo promete.
   //
   // A OBRIGAÇÃO DE COPA conta como ocupado do MESMO jeito, mesmo com o cliente parado na tela do
   // time: entre o fim da partida de copa e o próximo "Jogar" (tela de resultado, escalação, pausa
@@ -1136,7 +1141,7 @@ function onlineTimerLoop(){
   // cima dele — a rodada começava sem quem ainda devia a copa da semana, e ele voltava pra tela
   // principal sem ver o próprio jogo. Com a obrigação dentro da barreira, a rodada de liga só
   // ARMA quando todo mundo zerou a copa, que é a regra pedida: quem não joga a copa espera quem joga.
-  if(CL.online && (CL.screen==='live'||CL.screen==='cupdraw'||onlineCupObligationPending()) && typeof NET!=='undefined' && NET.gameId){
+  if(CL.online && onlineClosingRound() && typeof NET!=='undefined' && NET.gameId){
     ONLINE_BUSY_ACTIVE=true;
     if(Date.now()-ONLINE_BUSY_T>15000){ ONLINE_BUSY_T=Date.now(); if(NET.heartbeatBusy) NET.heartbeatBusy(); }
   } else if(ONLINE_BUSY_ACTIVE){
@@ -1157,7 +1162,14 @@ function onlineTimerLoop(){
       if(NET.armReadyTimer && !ONLINE_BUSY_ACTIVE){ if(Date.now()-ONLINE_ADV_T>1200){ ONLINE_ADV_T=Date.now(); NET.armReadyTimer(); } }
     } else {
       const secs=Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
-      if(secs!==ONLINE_LASTSEC){ ONLINE_LASTSEC=secs;
+      if(ONLINE_BUSY_ACTIVE){
+        // Corrida: o cronômetro armou (todos na tela do time) e SÓ DEPOIS eu caí numa tela de
+        // fechamento — ex.: cheguei atrasado na classificação/sorteio. Não apita nem conta por
+        // cima de mim: a fase não avança enquanto eu estiver ocupado (barreira do servidor),
+        // então mostrar a contagem seria mentira. Volta a contar quando eu voltar pro clube.
+        ONLINE_LASTSEC=null;
+        const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent='⏳';
+      } else if(secs!==ONLINE_LASTSEC){ ONLINE_LASTSEC=secs;
         if(secs<=10 && secs>0){ netBeep(secs<=3?1100:820); }
         if(secs<=0){ netBeep(1400); }
         const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent=secs+'s';
@@ -1322,6 +1334,21 @@ function onlineRecoverRunRound(){
    fechado pelo servidor sem o meu `tie.winner` local, cliente que travou numa tela), solto a
    barreira depois de CUP_HOLD_MAX_MS. Sem esse teto, um cliente nesse estado prenderia a sala
    inteira pra sempre — o busy_until nunca expiraria porque eu continuaria carimbando. */
+/* ---- TELAS DE FECHAMENTO DE RODADA ----
+   Sequência que o jogador NÃO escolhe e não pode pular: partida ao vivo -> classificação ->
+   sorteio da copa -> tela do time. Enquanto está em qualquer uma delas, ele ainda não voltou pro
+   clube e o cronômetro da próxima rodada não pode nem armar.
+
+   Telas VOLUNTÁRIAS (tela do time, elenco, mercado, chat do lobby) ficam de fora de propósito:
+   se contassem como ocupado, quem parasse pra ler o elenco ou conversar prenderia a sala inteira. */
+const CLOSING_SCREENS=['live','cupdraw','classif','seatclassif','sorteio','loading'];
+function onlineClosingRound(){
+  if(CLOSING_SCREENS.indexOf(CL.screen)>=0) return true;
+  // sorteio JÁ ENFILEIRADO mas ainda não aberto: a janela entre o fim da classificação e o
+  // startCupDrawReplay. Era exatamente aqui que o cronômetro escapava e armava.
+  if(typeof S!=='undefined' && S && S._pendingDrawShows && S._pendingDrawShows.length) return true;
+  return onlineCupObligationPending();
+}
 const CUP_HOLD_MAX_MS=240000; // 4 min: folga larga pra copa + prorrogação + pênaltis
 function onlineCupObligationPending(){
   if(!CL.online || !S || typeof pendingUserCupMatches!=='function') return false;
