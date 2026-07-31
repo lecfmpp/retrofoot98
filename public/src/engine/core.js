@@ -651,7 +651,7 @@ function pruneIncomingOffers(){
   });
 }
 function generateIncomingOffers(R){
-  pruneIncomingOffers();
+  pruneIncomingOffers(); pruneCounterOffers();
   if(!canNegotiate()) return; // proposta só chega com a janela aberta (pré-janela desligada)
   R=R||makeRng(hashSeed(S.seed,S.round,'incoming'));
   S.incomingOffersByClub=S.incomingOffersByClub||{};
@@ -777,11 +777,68 @@ function counterHumanOffer(id, askFee){
   const o=myIncomingOffers().find(x=>x.id===id); if(!o) return {ok:false,msg:'Proposta não existe mais.'};
   if(!o.buyerIsHuman) return {ok:false,msg:'Essa proposta não é de um treinador humano.'};
   askFee=Math.round(askFee)||0; if(askFee<=0) return {ok:false,msg:'Informe um valor válido.'};
-  S.incomingOffersByClub[S.clubId]=myIncomingOffers().filter(x=>x.id!==id);
+  S.incomingOffersByClub[S.clubId]=myIncomingOffers().filter(x=>x.id!==id); // recusada NAQUELE valor
+  // A contraproposta agora VIAJA: vira um pedido registrado na fila do comprador, que recebe
+  // e-mail e decide (aceitar cria a proposta nova no valor pedido, ver acceptCounterOffer).
+  // Antes isto só recusava e escrevia um aviso na MINHA tela — do outro lado não chegava nada,
+  // então pro comprador a negociação simplesmente morria sem explicação.
+  const cid=(hashSeed(S.seed,S.round,o.playerName,S.clubId,o.buyerId,'counter',nowMs())>>>0);
+  const counter={ id:cid, sellerId:S.clubId, sellerName:(clubOf(S.clubId)||{}).short||S.clubId,
+    sellerHumanName:(typeof CL!=='undefined'&&CL.humans&&CL.humans[S.clubId])||'O treinador',
+    playerName:o.playerName, playerForce:o.playerForce, offeredFee:o.fee, askFee, expiresRound:S.round+6 };
+  S.counterOffersByClub=S.counterOffersByClub||{};
+  (S.counterOffersByClub[o.buyerId]=S.counterOffersByClub[o.buyerId]||[]).push(counter);
+  if(typeof CL!=='undefined' && CL.online){ S._netCounters=S._netCounters||[]; S._netCounters.push(Object.assign({to:o.buyerId}, counter)); }
   S.roundNews=S.roundNews||[];
-  S.roundNews.push(`✋ Você recusou a proposta por ${o.playerName}, mas sinalizou que aceitaria ${fmt(askFee)}.`);
+  S.roundNews.push(`✋ Você recusou a proposta por ${o.playerName} e pediu ${fmt(askFee)}.`);
   save();
-  return {ok:true, msg:`Proposta recusada — você sinalizou que toparia ${fmt(askFee)}. Se ${o.buyerHumanName||o.buyerName} topar, é só mandar uma nova proposta nesse valor.`};
+  return {ok:true, msg:`Contraproposta enviada: você pediu ${fmt(askFee)} por ${o.playerName}. ${o.buyerHumanName||o.buyerName} vai receber no e-mail dele.`};
+}
+/* ===== CONTRAPROPOSTAS RECEBIDAS (eu comprador) =====
+   Mesma fonte única das propostas: só vale enquanto o jogador ainda está no elenco de QUEM
+   pediu (se ele vendeu pra outro no meio tempo, não há mais o que negociar) e dentro da validade. */
+function myCounterOffers(){
+  const list=(S.counterOffersByClub&&S.counterOffersByClub[S.clubId])||[];
+  if(!list.length) return list;
+  return list.filter(c=>{
+    if(!c || c.expiresRound<=S.round) return false;
+    const sq=(S.squads&&S.squads[c.sellerId])||[];
+    return sq.some(p=>p && p.n===c.playerName);
+  });
+}
+function pruneCounterOffers(){
+  S.counterOffersByClub=S.counterOffersByClub||{};
+  Object.keys(S.counterOffersByClub).forEach(cid=>{
+    S.counterOffersByClub[cid]=(S.counterOffersByClub[cid]||[]).filter(c=>{
+      if(!c || c.expiresRound<=S.round) return false;
+      const sq=(S.squads&&S.squads[c.sellerId])||[];
+      return sq.some(p=>p && p.n===c.playerName);
+    });
+  });
+}
+/* aceitar = mandar uma proposta NOVA no valor pedido (sendHumanOffer faz as validações de
+   janela/caixa/cota e já usa o canal que chega no vendedor) — sem caminho paralelo de compra. */
+function acceptCounterOffer(id){
+  const c=myCounterOffers().find(x=>x.id===id); if(!c) return {ok:false,msg:'Contraproposta não existe mais.'};
+  const r=sendHumanOffer(c.sellerId, c.playerName, c.askFee);
+  if(r.ok) dropCounterOffer(id);
+  return r;
+}
+function rejectCounterOffer(id){ dropCounterOffer(id); return {ok:true,msg:'Contraproposta recusada.'}; }
+function dropCounterOffer(id){
+  S.counterOffersByClub=S.counterOffersByClub||{};
+  S.counterOffersByClub[S.clubId]=((S.counterOffersByClub[S.clubId])||[]).filter(x=>x.id!==id);
+  if(S._netCounters) S._netCounters=S._netCounters.filter(x=>x.id!==id);
+  save();
+}
+/* espelho de pruneAppliedNetOffers pro buffer de contrapropostas */
+function pruneAppliedNetCounters(){
+  if(!S || !S._netCounters || !S._netCounters.length) return;
+  S._netCounters=S._netCounters.filter(c=>{
+    if(!c || c.expiresRound<=S.round) return false;
+    const fila=(S.counterOffersByClub && S.counterOffersByClub[c.to])||[];
+    return !fila.some(x=>x && x.id===c.id);
+  });
 }
 /* roda a cada reconcile/adopt (ver onlineAdoptServerRound/onlineReconcileIfBehind): confere se
    alguma proposta MINHA (S.outgoingOffersByClub) já foi aceita — sinal: o jogador já está no MEU

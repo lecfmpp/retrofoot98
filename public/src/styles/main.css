@@ -424,7 +424,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    (cabe a pilha, não a palavra), e rótulo maior que a coluna encosta na coluna vizinha. */
 .cl-rrow.head .cl-rbatt{white-space:nowrap;display:block;text-align:center;font-weight:inherit}
 .cl-lbl-sm{display:none} .cl-lbl-lg{font-weight:inherit}
-.cl-rtrain{font-size:9.5px;margin-left:3px;line-height:1;display:inline-block;vertical-align:middle} /* 🏋 = em treino especial (ver trainingIcon); line-height fixo pra não engordar a linha */
+.cl-rtrain{font-size:9.5px;margin-left:3px;line-height:1;display:inline-block;vertical-align:middle} /* 🔺 cone = em treino especial (ver trainingIcon); line-height fixo pra não engordar a linha */
 .cl-rtrend.up{color:var(--success-alt)}
 .cl-rtrend.down{color:var(--danger-alt)}
 .cl-main-right{flex:1;background:#000;color:#fff;padding:12px 16px;display:flex;flex-direction:column;position:relative}

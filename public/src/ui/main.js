@@ -1558,7 +1558,7 @@ function playerSalary(p){ return (p&&p.contract&&p.contract.salary) || (p?REBAL.
    solto no jogador, que não sobrevive a um adopt do estado do servidor. */
 function isInTraining(clubId, pid){ return ((S.trainingByClub && S.trainingByClub[clubId])||[]).indexOf(pid)>=0; }
 /* ícone ao lado da força de quem está treinando — dá pra acompanhar a evolução direto na lista,
-   sem abrir o menu de treino. ⭐ já significa outra coisa aqui (evolui mais rápido), por isso 🏋. */
+   sem abrir o menu de treino. ⭐ já significa outra coisa aqui (evolui mais rápido), por isso o cone. */
 /* PILHA DE ENERGIA: energia entra no motor de partida como `força × (0,6 + 0,4 × energia)`
    (ver computeRatings no match-engine) — ou seja, um titular esgotado vale até 40% menos em
    campo. Merecia estar visível na lista, não só escondida no perfil. A cor sai do próprio nível
@@ -1570,7 +1570,7 @@ function energyCell(p){
     +`<i style="width:${e}%;background:linear-gradient(90deg,hsl(${Math.max(0,hue-25)},75%,42%),hsl(${hue},72%,45%))"></i></span>`;
 }
 function trainingIcon(clubId, p){
-  return isInTraining(clubId, p&&p.pid) ? `<span class="cl-rtrain" title="Em treino especial — ganha chance extra de evolução a cada rodada">🏋</span>` : '';
+  return isInTraining(clubId, p&&p.pid) ? `<span class="cl-rtrain" title="Em treino especial — ganha chance extra de evolução a cada rodada">🔺</span>` : '';
 }
 /* MESMA tabela de elenco pra QUALQUER clube (o meu e o dos outros, humano ou CPU): mesmo grid
    (.cl-rrow), mesmo cabeçalho, mesmas colunas e os mesmos valores. Antes cada tela tinha a sua
@@ -1732,10 +1732,11 @@ function syncInbox(){
   // existe mais. Como cada humano roda isto no próprio cliente, sobre a PRÓPRIA fatia
   // (myIncomingOffers = S.incomingOffersByClub[meu clube]), vale pra todo mundo na Resenha.
   const vivos=new Set(myIncomingOffers().map(o=>'offer-'+o.id));
+  if(typeof myCounterOffers==='function') myCounterOffers().forEach(c=>vivos.add('counter-'+c.id));
   (S.pendingJobOffers||[]).forEach(o=>vivos.add('job-'+o.clubId+'-'+(o.roundOfferred||0)));
   if(CL.online && CL._pendingResenhaOffer) vivos.add('rjob-'+CL._pendingResenhaOffer.clubId+'-'+(S.season||0));
   const antes=(CL.inbox||[]).length;
-  CL.inbox=(CL.inbox||[]).filter(e=>(e.kind!=='offer' && e.kind!=='job') || vivos.has(e.key));
+  CL.inbox=(CL.inbox||[]).filter(e=>(e.kind!=='offer' && e.kind!=='job' && e.kind!=='counter') || vivos.has(e.key));
   if(CL.inbox.length!==antes){
     if(CL.inboxOpen && !CL.inbox.some(e=>e.key===CL.inboxOpen)) CL.inboxOpen=null; // estava lendo o que sumiu
     saveInbox();
@@ -1746,6 +1747,17 @@ function syncInbox(){
       subject:'Proposta por '+o.playerName,
       body:`O ${escC((clubOf(o.buyerId)||bgClubById?.(o.buyerId)||{short:o.buyerName||'um clube'}).short||o.buyerName||'um clube')} ofereceu ${fmt(o.fee)} pelo ${escC(o.playerName)}. Quer avaliar?`,
       action:{label:'Ver proposta', go:'CL.tab="jogo";clCloseOverlay();clIncomingOffers()'} });
+  });
+  // 1b) CONTRAPROPOSTAS que EU recebi (sou o comprador): o vendedor humano recusou meu valor e
+  // pediu outro. Antes isso não saía do aparelho dele — a negociação morria em silêncio do meu lado.
+  if(typeof myCounterOffers==='function') myCounterOffers().forEach(c=>{
+    addInboxEmail({ key:'counter-'+c.id, kind:'counter', from:inboxSigner('dir',c.sellerId),
+      role:'Diretor de Futebol · '+escC(c.sellerName||''),
+      subject:'Contraproposta por '+c.playerName,
+      body:`Recusamos sua proposta de <b>${fmt(c.offeredFee)}</b> por <b>${escC(c.playerName)}</b>.`
+        +` Liberamos a negociação por <b>${fmt(c.askFee)}</b>.`
+        +`<br><br><span style="opacity:.8">— ${escC(c.sellerHumanName||'o treinador')} (${escC(c.sellerName||'')})</span>`,
+      action:{label:'Responder', go:'clCloseOverlay();clCounterOffers()'} });
   });
   // 2) CONVITES pra treinar outro clube (solo)
   (S.pendingJobOffers||[]).forEach(o=>{
@@ -1846,7 +1858,7 @@ function clInboxClearAll(){
   (CL.inbox||[]).forEach(e=>{ CL.inboxDeleted[e.key]=true; });
   CL.inbox=[]; CL.inboxOpen=null; saveInbox(); cdraw();
 }
-function inboxIcon(kind){ return {offer:'💰', job:'🤝', warn:'⚠️', prize:'🏆', retire:'👋', money:'💵'}[kind]||'✉️'; }
+function inboxIcon(kind){ return {offer:'💰', job:'🤝', warn:'⚠️', prize:'🏆', retire:'👋', money:'💵', counter:'↩️'}[kind]||'✉️'; }
 function panCorreio(){
   syncInbox();
   const box=CL.inbox||[];
@@ -2362,7 +2374,7 @@ function clTrainingScreen(){ CL.menu=null;
     const star=(typeof hasEstrelinha==='function')&&hasEstrelinha(p);
     return `<div class="cl-mkt-p" style="cursor:default">
       <span class="cl-mkt-p-pos">${posLetter(p.s)}</span><span class="cl-mkt-p-n">${escC(p.n)}${star?' ⭐':''}</span>
-      <span class="cl-mkt-p-f">${p.f}${inTraining?' 🏋':''}</span>
+      <span class="cl-mkt-p-f">${p.f}${inTraining?' 🔺':''}</span>
       ${btn(inTraining?'Tirar do treino':'Treinar', (inTraining?'clStopTraining':'clStartTraining')+"('"+p.pid+"')", {cls:'cl-btn-mini'})}
     </div>`;
   }).join('');
@@ -4013,6 +4025,7 @@ async function onlineAdoptServerRound(RL){
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       if(typeof pruneAppliedNetTransfers==='function') pruneAppliedNetTransfers(); // solta as transferências que o servidor já aplicou
       if(typeof pruneAppliedNetOffers==='function') pruneAppliedNetOffers();       // idem pras propostas mandadas a outro humano
+      if(typeof pruneAppliedNetCounters==='function') pruneAppliedNetCounters(); // idem pras contrapropostas
       if(typeof restoreMyFinances==='function') restoreMyFinances();               // meu log de finanças por cima do que veio do anfitrião
       if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
     }
@@ -4450,7 +4463,7 @@ function menuDropdown(name){ name=name||CL.menu;
     'RetroFoot98':[['Opções...','clOptions()'],['—'],['Gravar jogo','clSaveMenu()'],['Sair para o menu','clExit()']],
     'Formação':[...F.map((f,i)=>[`${f}`,`clSelFormation('${f}')`,(i+1)+'/'+FKEY[f]]),['—'],['Automático','clSelFormation(\'auto\')'],['Melhores','clSelFormation(\'best\')']],
     'Equipa':[['Estádio...','clStadium()'],['Historial...','clClubHistory()']],
-    'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],[`Propostas recebidas${myIncomingOffers().length?' ('+myIncomingOffers().length+')':''}...`,'clIncomingOffers()'],['Leilão de jogadores...','clAuctionScreen()'],[(typeof youthAvailable==='function'&&youthAvailable())?'🌱 Subir jogador da base':'Base (indisponível agora)','clPromoteYouth()'],[`Treino especial (${myTrainingList().length}/${TRAINING_MAX_SLOTS})...`,'clTrainingScreen()'],['Últimas transferências...','clTransferHistory()']],
+    'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],[`Propostas recebidas${myIncomingOffers().length?' ('+myIncomingOffers().length+')':''}...`,'clIncomingOffers()'],[`Contrapropostas${(typeof myCounterOffers==='function'&&myCounterOffers().length)?' ('+myCounterOffers().length+')':''}...`,'clCounterOffers()'],['Leilão de jogadores...','clAuctionScreen()'],[(typeof youthAvailable==='function'&&youthAvailable())?'🌱 Subir jogador da base':'Base (indisponível agora)','clPromoteYouth()'],[`Treino especial (${myTrainingList().length}/${TRAINING_MAX_SLOTS})...`,'clTrainingScreen()'],['Últimas transferências...','clTransferHistory()']],
     'Campeonatos':[['Minhas competições...','clCompList()','C'],['—'],['Melhores marcadores...','clScorers()'],['Calendário...','clCalendar()'],['—'],['Últimos vencedores...','clUltimosVencedores()'],['Melhores marcadores de sempre...','clScorersAllTime()']].concat((S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)?[['—'],['Ligas internacionais...','clBgLeaguesMenu()']]:[]),
     'Treinador':[['História...','clCoachHistory()'],['Ranking...','clCoachRanking()'],['Ofertas...','clJobOffers()'],['Perfil...','clPerfilTreinador()']]
   };
@@ -5440,6 +5453,24 @@ function renderBgLeagues(){
 }
 
 /* ---- Jogador > Propostas recebidas: ofertas de compra pelos jogadores do usuário ---- */
+/* Contrapropostas recebidas (eu comprador): aceitar manda uma proposta NOVA no valor pedido
+   (acceptCounterOffer -> sendHumanOffer), que segue o caminho normal até o vendedor. */
+function clCounterOffers(){ CL.menu=null;
+  const list=(typeof myCounterOffers==='function')?myCounterOffers():[];
+  const rows=list.length?list.map(c=>`<div style="padding:10px 12px;border-bottom:1px solid rgba(0,0,0,.12)">
+      <div><b>${escC(c.playerName)}</b> <small style="color:#888">(força ${c.playerForce})</small></div>
+      <div style="font-size:12px;color:#555;margin:4px 0">🧑 ${escC(c.sellerHumanName||'treinador')} (${escC(c.sellerName||'')}) recusou ${fmt(c.offeredFee)} e pede <b>${fmt(c.askFee)}</b>.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        ${btn('Aceitar e propor '+fmt(c.askFee),'clAcceptCounter('+c.id+')',{icon:'✔',cls:'cl-btn-ok cl-btn-mini'})}
+        ${btn('Recusar','clRejectCounter('+c.id+')',{cls:'cl-btn-cancel cl-btn-mini'})}
+      </div></div>`).join('')
+    :'<div style="padding:16px;text-align:center;color:#888">Nenhuma contraproposta no momento.</div>';
+  overlayC(dlg('Contrapropostas recebidas', `<div class="cl-mkt-squad" style="min-width:420px">${rows}</div>
+    <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
+    {w:560,bodyClass:'cl-body-gray',min:true}));
+}
+function clAcceptCounter(id){ const r=acceptCounterOffer(id); toastC(r.msg); saveV3(); clCounterOffers(); cdraw(); }
+function clRejectCounter(id){ const r=rejectCounterOffer(id); toastC(r.msg); saveV3(); clCounterOffers(); cdraw(); }
 function clIncomingOffers(){ CL.menu=null;
   const offers=myIncomingOffers().filter(o=>o.expiresRound>S.round);
   const rows=offers.length?offers.map(o=>{
@@ -5482,6 +5513,7 @@ function clCounterHumanOffer(id){
   if(typed<=0){ toastC('Digite quanto você toparia.'); return; }
   const r=counterHumanOffer(id, curParse(typed));
   toastC(r.msg);
+  if(r.ok) saveV3();
   clIncomingOffers();
 }
 
