@@ -1218,6 +1218,26 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // SAVE ÚNICO: não jogo uma rodada ANTES de espelhar o estado autoritativo do anfitrião. Se o host
   // já fechou a rodada (games.round à frente da minha), primeiro sincronizo (mundo/tabela novos).
   if(typeof NET!=='undefined' && NET.room && (NET.room.round||0) > (S.round||0)){ onlineReconcileIfBehind(NET.room); return; }
+  // TRAVA DE KICKOFF (Fase 1): antes de simular QUALQUER partida da rodada (copa ou liga), garante
+  // que o snapshot congelado do apito (games.kickoff_lineups, carimbado pelo servidor na virada pra
+  // 'running') está carregado — todos os clientes simulam com exatamente os mesmos inputs de
+  // escalação/tática, então os placares exibidos são idênticos em todas as telas. O snapshot
+  // normalmente já chega junto do evento de fase (realtime manda a linha inteira); esta busca só
+  // roda quando a fase virou por um caminho sem a linha (RPC otimista). Se mesmo com retry não
+  // vier (sala criada antes da migração / falha), segue com a ponte de assentos (comportamento antigo).
+  if(typeof NET!=='undefined' && NET.fetchKickoff && NET.room && !NET.room.kickoffLineups && CL._kickoffFetched!==S.round){
+    if(CL._kickoffFetching) return;
+    CL._kickoffFetching=true;
+    (async ()=>{
+      try{
+        await NET.fetchKickoff();
+        if(!NET.room.kickoffLineups){ await new Promise(r=>setTimeout(r,700)); await NET.fetchKickoff(); } // retry: o carimbo pode estar a caminho
+      }catch(e){}
+      CL._kickoffFetching=false; CL._kickoffFetched=S.round;
+      onlineRunRound(); // re-entra com o snapshot (ou segue sem, marcado como tentado nesta rodada)
+    })();
+    return;
+  }
   // PARTIDA DE COPA PENDENTE primeiro — MESMA ordem do clJogar. Sem isto, quando a fase avança pro
   // 'running' (cronômetro/outro jogador) ANTES de eu clicar em Jogar, esta rede de segurança jogava
   // a LIGA direto e PULAVA a Copa do Brasil -> o servidor auto-simulava a minha chave (bug "não

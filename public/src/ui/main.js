@@ -2869,8 +2869,28 @@ function isLeagueFixtureNow(h,a){
     if(fx.some(([fh,fa])=>fh===h&&fa===a)) return true; } }
   return false;
 }
+/* FASE 1 (Resenha determinística): aplica o snapshot congelado do APITO (games.kickoff_lineups,
+   carimbado pelo servidor na virada ready->running) em S.clubXI/S.clubTactic dos OUTROS clubes
+   humanos. É a foto oficial dos inputs da rodada: todo cliente simula as mesmas partidas com as
+   mesmas escalações/táticas -> mesmos eventos, mesmos placares em todas as telas (a ponte assíncrona
+   via game_seats/_claimed vira só fallback). O MEU clube fica de fora: a minha partida usa o meu
+   S.xi local (autoritativa — eu publico o resultado real no fim). Idempotente e barato: chamada a
+   cada buildLiveMatchObject cobre liga, outras divisões, copa ao vivo e modo espectador. */
+function applyKickoffSnapshot(){
+  if(!CL.online || typeof NET==='undefined' || !NET.room || !NET.room.kickoffLineups) return;
+  if(typeof S==='undefined' || !S) return;
+  const snap=NET.room.kickoffLineups;
+  S.clubXI=S.clubXI||{}; S.clubTactic=S.clubTactic||{};
+  Object.keys(snap).forEach(cid=>{
+    if(String(cid)===String(CL.clubId)) return;
+    const e=snap[cid]||{};
+    if(Array.isArray(e.xi)&&e.xi.length) S.clubXI[cid]=e.xi.slice();
+    if(e.tactic) S.clubTactic[cid]=e.tactic;
+  });
+}
 function buildLiveMatchObject(h,a,seed,opts){
   opts=opts||{};
+  applyKickoffSnapshot(); // Fase 1: inputs congelados do apito antes de simular (ver acima)
   const rnd=rngFrom(seed);
   // se o adversário humano JÁ publicou o resultado real desta partida+rodada, REPRODUZ os mesmos
   // eventos em vez de simular de novo — sem isso, os dois lados de um confronto humano×humano
@@ -2922,6 +2942,17 @@ function startLiveRound(){
     oFx.forEach(([h,a])=>{ const seed=(oSeedBase+hashC(h)+hashC(a))>>>0;
       RL.matches.push(buildLiveMatchObject(h,a,seed,{user:false,div:d})); }); }); }
   RL.maxMin=Math.max(94,...RL.matches.map(m=>m.events.length?m.events[m.events.length-1].min:90));
+  // FASE 1: alinha o INÍCIO da transmissão ao apito oficial do servidor (kickoff_at) — quem recebe
+  // o evento de fase com um pouco de latência entra já no minuto em que os outros estão, em vez de
+  // assistir do zero uma rodada que os demais estão terminando. Só pra atrasos pequenos (até 8s):
+  // atraso grande = motivo legítimo (jogou copa antes / reconectou) e mantém a linha do tempo
+  // própria. Nunca pula além do minuto 44 (ninguém perde o próprio 2º tempo); eventos até o minuto
+  // alinhado entram na primeira batida do liveTick (pênalti/lesão do usuário ainda pausam no modal).
+  if(CL.online && typeof NET!=='undefined' && NET.room && NET.room.kickoffAt){
+    const msPerMin=Math.max(12,(TEMPO_MS['Usain Bolt']||37)/(CL.speedMult||1));
+    const lagMs=nowMs()-NET.room.kickoffAt;
+    if(lagMs>0 && lagMs<=8000) RL.minute=Math.min(Math.floor(lagMs/msPerMin),44);
+  }
   CL.live=RL; CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
 }
 /* ---- PARTIDA DE COPA AO VIVO — mesma maquinaria de startLiveRound/liveTick/scLive/

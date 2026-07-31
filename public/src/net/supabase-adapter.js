@@ -222,7 +222,8 @@ async function netCreateRoom(name, host){
   // competição DIFERENTE da do convidado (que lê games.seed no join) -> "dois jogos em paralelo".
   let createdSeed=0; try{ const { data: g } = await sb.from('games').select('seed').eq('id', code).single(); createdSeed = g && g.seed; }catch(e){}
   NET.room = { code, gameId: code, name, hostId: SB_AUTH_USER.id, mode: CL.net.mode||'sorteio', phase:'lobby',
-    participants: [], seed:createdSeed, round:0, deadline:0, paused:false, speedMult:1, chat:[] };
+    participants: [], seed:createdSeed, round:0, deadline:0, paused:false, speedMult:1, chat:[],
+    kickoffAt:0, kickoffLineups:null };
   netSetupRealtime(); netTrackPresence(); netMergeParticipants();
   return code;
 }
@@ -242,6 +243,7 @@ async function netJoinRoom(code, me){
     code: gameData.id, gameId: gameData.id, name: gameData.name, hostId: gameData.host_id, mode: gameData.mode, phase: gameData.phase,
     participants: [], seed: gameData.seed, round: gameData.round||0, deadline: gameData.ready_deadline?new Date(gameData.ready_deadline).getTime():0,
     paused: gameData.paused, speedMult: parseFloat(gameData.speed_mult)||1,
+    kickoffAt: gameData.kickoff_at?new Date(gameData.kickoff_at).getTime():0, kickoffLineups: gameData.kickoff_lineups||null,
     chat: (msgs||[]).map(m=>({ id:m.user_id, name:m.user_name||'?', clubId:m.club_id, text:m.body, ts:new Date(m.created_at).getTime() }))
   };
   netSetupRealtime(); netTrackPresence(); netMergeParticipants();
@@ -259,7 +261,8 @@ async function netRefreshRoom(){
     Object.assign(NET.room, {
       name: g.name, mode: g.mode, phase: g.phase, round: g.round||0, seed: g.seed,
       deadline: g.ready_deadline?new Date(g.ready_deadline).getTime():0,
-      paused: g.paused, paused_remaining_ms: g.paused_remaining_ms, speedMult: parseFloat(g.speed_mult)||1
+      paused: g.paused, paused_remaining_ms: g.paused_remaining_ms, speedMult: parseFloat(g.speed_mult)||1,
+      kickoffAt: g.kickoff_at?new Date(g.kickoff_at).getTime():0, kickoffLineups: g.kickoff_lineups||null
     });
     const { data: seats } = await sb.from('game_seats').select('*').eq('game_id', NET.gameId);
     NET._claimed = NET._claimed || {};
@@ -575,15 +578,22 @@ async function netSetSpeed(mult){
   catch(e) { console.error('setSpeed erro:', e); }
 }
 
-/* transição pra 'running' é otimista: aplicamos localmente na hora (não
-   esperamos o round-trip do Realtime) pra garantir que o cronômetro chegando
-   a zero SEMPRE dispare a rodada ao vivo imediatamente, sem depender de latência. */
+/* transição pra 'running' via RPC start_running: o SERVIDOR carimba o apito (kickoff_at) e congela
+   o snapshot de escalações/táticas (kickoff_lineups) no MESMO update — é o que garante que todos os
+   clientes simulem a rodada com inputs idênticos (Fase 1). Aguardamos o RPC (rápido) e aplicamos a
+   fase localmente na volta; se o RPC falhar, cai no UPDATE cru antigo (sem snapshot, mas não trava). */
 async function netToRunning(){
   if(!NET.isHost) return;
   if(NET.room.phase==='running') return; // evita disparo duplicado
-  NET.room.phase='running';
-  if(NET.onState) NET.onState(NET.room);
-  try { await sb.from('games').update({ phase:'running' }).eq('id', NET.gameId); } catch(e) { console.error('toRunning erro:', e); }
+  try {
+    const { data, error } = await sb.rpc('start_running', { p_game: NET.gameId });
+    if(error) throw error;
+    if(data==='running' || data==='ready'){ /* ok (ou outro cliente virou antes) */ }
+  } catch(e) {
+    console.error('toRunning erro:', e);
+    try { await sb.from('games').update({ phase:'running' }).eq('id', NET.gameId); } catch(e2){}
+  }
+  if(NET.room.phase!=='running'){ NET.room.phase='running'; if(NET.onState) NET.onState(NET.room); }
 }
 /* QUALQUER jogador pode pedir ao servidor pra iniciar a rodada quando o tempo zerou (ou todos
    prontos) — o servidor valida o deadline, então não depende do anfitrião estar com a aba ativa.
@@ -595,6 +605,21 @@ async function netAdvancePhaseExpired(){
     if(error) throw error;
     if(data==='running' && NET.room && NET.room.phase!=='running'){ NET.room.phase='running'; if(NET.onState) NET.onState(NET.room); }
   } catch(e){ console.warn('advancePhaseExpired:', e && e.message); }
+}
+
+/* FASE 1: (re)carrega o carimbo do apito + snapshot congelado de escalações da rodada corrente.
+   Usado como trava antes de simular (onlineRunRound): se a fase virou 'running' por um caminho que
+   não trouxe o snapshot junto (ex.: retorno otimista de advance_phase_if_expired), busca do banco. */
+async function netFetchKickoff(){
+  if(!sb || !NET.gameId || !NET.room) return null;
+  try{
+    const { data: g } = await sb.from('games').select('kickoff_at,kickoff_lineups').eq('id', NET.gameId).single();
+    if(g){
+      NET.room.kickoffAt = g.kickoff_at ? new Date(g.kickoff_at).getTime() : 0;
+      NET.room.kickoffLineups = g.kickoff_lineups || null;
+    }
+    return NET.room.kickoffLineups;
+  }catch(e){ console.warn('fetchKickoff:', e&&e.message); return null; }
 }
 
 async function netToLobby(){
@@ -778,7 +803,8 @@ function netSetupRealtime(){
     Object.assign(NET.room, {
       mode: p.new.mode, phase: p.new.phase, round: p.new.round,
       deadline: p.new.ready_deadline?new Date(p.new.ready_deadline).getTime():0,
-      paused: p.new.paused, paused_remaining_ms: p.new.paused_remaining_ms, speedMult: parseFloat(p.new.speed_mult)||1
+      paused: p.new.paused, paused_remaining_ms: p.new.paused_remaining_ms, speedMult: parseFloat(p.new.speed_mult)||1,
+      kickoffAt: p.new.kickoff_at?new Date(p.new.kickoff_at).getTime():0, kickoffLineups: p.new.kickoff_lineups||null
     });
     if(NET.onState) NET.onState(NET.room);
   });
@@ -1031,6 +1057,7 @@ NET.start = netStart;
 NET.pause = netPause;
 NET.setSpeed = netSetSpeed;
 NET.toRunning = netToRunning;
+NET.fetchKickoff = netFetchKickoff;
 NET.advancePhaseExpired = netAdvancePhaseExpired;
 NET.reopenReady = netReopenReady;
 NET.armReadyTimer = netArmReadyTimer;

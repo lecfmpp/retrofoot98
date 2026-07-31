@@ -925,7 +925,7 @@ Deno.serve(async (req: Request) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { db: { schema: "elifoot_v3" } });
     // só membro da sala (tem assento OU é host) pode disparar
     const { data: seat } = await admin.from("game_seats").select("user_id").eq("game_id", gameId).eq("user_id", user.id).maybeSingle();
-    const { data: gameHost } = await admin.from("games").select("host_id, shared_state, state_version, round").eq("id", gameId).maybeSingle();
+    const { data: gameHost } = await admin.from("games").select("host_id, shared_state, state_version, round, kickoff_lineups").eq("id", gameId).maybeSingle();
     if (!gameHost) return json({ error: "sala não encontrada" }, 404);
     if (!seat && gameHost.host_id !== user.id) return json({ error: "não é membro da sala" }, 403);
 
@@ -954,6 +954,18 @@ Deno.serve(async (req: Request) => {
       // resultado de COPA submetido pra ESTA rodada (aplicado na chave; mandante-autoritativo)
       const cr = s.last_cup_result;
       if (cr && s.last_cup_round === round && cr.h && cr.a && cr.winner) { const ck = cr.h + "-" + cr.a; if (!cupResultByFx[ck] || s.club_id === cr.h) cupResultByFx[ck] = { hg: cr.hg, ag: cr.ag, winner: cr.winner, pens: cr.pens || null, events: cr.events || [] }; }
+    });
+
+    // FASE 1: snapshot do APITO (games.kickoff_lineups, carimbado na virada ready->running) tem
+    // prioridade sobre o last_xi/last_tactic atual dos assentos — o servidor simula clube humano
+    // ausente com EXATAMENTE os mesmos inputs que todos os clientes usaram na tela ao vivo
+    // (o assento pode ter sido atualizado DEPOIS do apito; o snapshot é a foto oficial da rodada).
+    const kickSnap = (gameHost as any).kickoff_lineups || null;
+    if (kickSnap) Object.keys(kickSnap).forEach((cid: string) => {
+      const e = kickSnap[cid] || {};
+      if (!humanClubs.has(cid)) return;
+      if (Array.isArray(e.xi) && e.xi.length) humanXI[cid] = e.xi;
+      if (e.tactic) humanTactic[cid] = e.tactic;
     });
 
     resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic, cupResultByFx, humanTransfers, moraleByClub, humanOffers, humanCounters, humanOfferDrops);
