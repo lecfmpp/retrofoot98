@@ -1496,12 +1496,13 @@ function scMain(){
   if(typeof syncInbox==='function') syncInbox();           // atualiza a caixa antes de desenhar o badge
   const unread=(typeof inboxUnread==='function')?inboxUnread():0;
   const mailBadge=numBadge(unread);
-  const offerBadge=numBadge(myIncomingOffers().length); // nº de propostas recebidas (só as do MEU clube)
+  // aba "Jogador" NÃO tem mais badge de propostas: a proposta chega como e-mail e o badge da aba
+  // E-mail já avisa — dois contadores pra mesma coisa só poluíam a barra de abas.
   const tabs=['jogo','jogador','financas','seleccao','correio','adversario'];
   const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
   // rótulo e ícone/badge são filhos flex do .cl-tab (align-items:center) — sempre em UMA linha e
   // verticalmente alinhados; o badge deixou de ser absoluto (flutuava acima do texto).
-  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')"><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='jogador'?offerBadge:''}${t==='correio'?mailBadge:''}</span>`).join('')}</div>`;
+  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')"><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')}</div>`;
   let panel='';
   if(CL.tab==='jogo') panel=panJogo(oppId,home,uf);
   else if(CL.tab==='jogador') panel=panJogador();
@@ -1661,6 +1662,20 @@ function syncInbox(){
   const k=inboxKey();
   if(CL._inboxLoadedKey!==k){ CL._inboxLoadedKey=k; loadInbox(); } // carrega do storage/assento 1x por jogo+clube
   const myShort=(clubOf(S.clubId)||{}).short||'clube';
+  // 0) FAXINA: e-mail de proposta/convite só faz sentido enquanto a proposta existe. Quando a
+  // transferência é FECHADA (aceita), recusada, expirada ou o convite some, o objeto de origem
+  // sai de S — e o e-mail ficava pra sempre na caixa, apontando pra uma negociação que não
+  // existe mais. Como cada humano roda isto no próprio cliente, sobre a PRÓPRIA fatia
+  // (myIncomingOffers = S.incomingOffersByClub[meu clube]), vale pra todo mundo na Resenha.
+  const vivos=new Set(myIncomingOffers().map(o=>'offer-'+o.id));
+  (S.pendingJobOffers||[]).forEach(o=>vivos.add('job-'+o.clubId+'-'+(o.roundOfferred||0)));
+  if(CL.online && CL._pendingResenhaOffer) vivos.add('rjob-'+CL._pendingResenhaOffer.clubId+'-'+(S.season||0));
+  const antes=(CL.inbox||[]).length;
+  CL.inbox=(CL.inbox||[]).filter(e=>(e.kind!=='offer' && e.kind!=='job') || vivos.has(e.key));
+  if(CL.inbox.length!==antes){
+    if(CL.inboxOpen && !CL.inbox.some(e=>e.key===CL.inboxOpen)) CL.inboxOpen=null; // estava lendo o que sumiu
+    saveInbox();
+  }
   // 1) PROPOSTAS por jogadores meus
   myIncomingOffers().forEach(o=>{
     addInboxEmail({ key:'offer-'+o.id, kind:'offer', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
@@ -1708,6 +1723,13 @@ function clOpenEmail(key){ const e=(CL.inbox||[]).find(x=>x.key===key); if(e){ e
 function clInboxBack(){ CL.inboxOpen=null; cdraw(); }
 function clInboxAction(){ const e=(CL.inbox||[]).find(x=>x.key===CL.inboxOpen); if(e&&e.action&&e.action.go){ try{ (new Function(e.action.go))(); }catch(err){ console.warn('ação do e-mail:', err); } } }
 function clInboxDelete(key){ CL.inboxDeleted=CL.inboxDeleted||{}; CL.inboxDeleted[key]=true; CL.inbox=(CL.inbox||[]).filter(x=>x.key!==key); CL.inboxOpen=null; saveInbox(); cdraw(); }
+/* esvazia a caixa de uma vez. Marca cada uma em CL.inboxDeleted (mesmo caminho da lixeira
+   individual) — senão syncInbox() recriaria na hora as que ainda têm proposta viva por trás. */
+function clInboxClearAll(){
+  CL.inboxDeleted=CL.inboxDeleted||{};
+  (CL.inbox||[]).forEach(e=>{ CL.inboxDeleted[e.key]=true; });
+  CL.inbox=[]; CL.inboxOpen=null; saveInbox(); cdraw();
+}
 function inboxIcon(kind){ return {offer:'💰', job:'🤝', warn:'⚠️', prize:'🏆'}[kind]||'✉️'; }
 function panCorreio(){
   syncInbox();
@@ -1731,13 +1753,16 @@ function panCorreio(){
   }
   // LISTA
   if(!box.length) return `<div class="cl-mail"><div class="cl-mail-empty">📭 Nenhuma mensagem por enquanto.<br><span>Propostas, convites e avisos da diretoria chegam aqui.</span></div></div>`;
+  // a lixeira fica DENTRO da linha (stopPropagation): apagar sem precisar abrir a mensagem.
   const rows=box.map(e=>`<div class="cl-mail-row ${e.read?'':'unread'}" onclick="clOpenEmail('${escC(e.key)}')">
     <span class="cl-mail-dot">${e.read?'':'●'}</span>
     <span class="cl-mail-ic">${inboxIcon(e.kind)}</span>
     <span class="cl-mail-txt"><b>${escC(e.subject)}</b><br><span class="cl-mail-prev">${escC(e.from)}</span></span>
     <span class="cl-mail-when2">${(e.round||0)+1}ª</span>
+    <button class="cl-mail-del" title="Apagar" onclick="event.stopPropagation();clInboxDelete('${escC(e.key)}')">🗑</button>
   </div>`).join('');
-  return `<div class="cl-mail"><div class="cl-mail-list">${rows}</div></div>`;
+  const limparTudo=box.length>1?btn('Limpar tudo','clInboxClearAll()',{icon:'🗑',cls:'cl-btn-cancel cl-btn-mini'}):'';
+  return `<div class="cl-mail"><div class="cl-mail-list">${rows}</div>${limparTudo?`<div class="cl-mail-foot">${limparTudo}</div>`:''}</div>`;
 }
 
 /* ================= VISUALIZAR TIME (view-only) =================
