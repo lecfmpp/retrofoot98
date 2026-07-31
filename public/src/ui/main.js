@@ -266,8 +266,38 @@ function syncGifHTML(){
           :`<div class="cl-waitfun-spin">⚽</div>`;
 }
 try{ probeSyncGifs(); }catch(e){}
-/* um ticker só pros dois lugares (overlay + waitround): troca a frase a cada ~2,6s e morre
-   sozinho quando nenhum dos alvos está mais na tela. */
+/* ===== PATROCINADORES na tela de espera =====
+   Slider no TOPO do quadro de GIFs: 6 posições em loop (por enquanto as 3 marcas repetidas),
+   uma logo por vez com barra de progresso de 5s — a mesma cadência do GIF/legenda, então tudo
+   troca junto. As logos moram em img/sponsors/ e são servidas pelo hosting (nuvem), igual aos GIFs. */
+const AD_LOGOS=['img/sponsors/ifood.svg','img/sponsors/cazetv.webp','img/sponsors/betano.png'];
+const AD_SLOTS=[0,1,2,0,1,2];              // 6 posições do slider (3 marcas, repetidas 2x por enquanto)
+const AD_MIN_MS=10000;                     // a tela de espera segura NO MÍNIMO 10s (janela do anúncio)
+function adLogoHTML(){
+  const i=AD_SLOTS[(CL._adIdx||0)%AD_SLOTS.length];
+  return `<div class="cl-ad-card"><img class="cl-ad-img" src="${AD_LOGOS[i]}" alt="patrocinador">
+    <div class="cl-ad-bar"><i></i></div></div>`;
+}
+/* GATE DE PUBLICIDADE: quando a rodada sincroniza, a continuação (classificação -> time novo)
+   NÃO roda na hora — fica presa aqui até (a) completar os 10s da tela, que aí segue sozinha, ou
+   (b) o usuário clicar em "Pular publicidade", botão que SÓ aparece quando a sincronia de fato
+   terminou (antes disso não há pra onde pular). Fora da tela de espera, passa direto. */
+function adGate(fn){
+  if(CL.screen!=='waitround'){ fn(); return; }
+  const elapsed=nowMs()-(CL._waitSince||0);
+  if(elapsed>=AD_MIN_MS){ fn(); return; }
+  CL._adCont=fn;
+  const sk=$c('#cl-ad-skip'); if(sk) sk.style.display='';
+  if(CL._adT) clearTimeout(CL._adT);
+  CL._adT=setTimeout(clAdSkip, AD_MIN_MS-elapsed);
+}
+function clAdSkip(){
+  if(CL._adT){ clearTimeout(CL._adT); CL._adT=null; }
+  const fn=CL._adCont; CL._adCont=null;
+  if(fn){ try{ fn(); }catch(e){ console.warn('ad gate:', e); } }
+}
+/* um ticker só pros dois lugares (overlay + waitround): troca GIF/legenda/anúncio a cada 5s e
+   morre sozinho quando nenhum dos alvos está mais na tela. */
 function ensureSyncFunTicker(){
   if(CL._syncFunT) return;
   CL._syncFunT=setInterval(()=>{
@@ -278,10 +308,13 @@ function ensureSyncFunTicker(){
       const gh=syncGifHTML(), ga=$c('#c-syncload-gif'), gb=$c('#cl-waitfun-gif');
       if(ga) ga.innerHTML=gh; if(gb) gb.innerHTML=gh;
     }
-    // o escape "Ir para o time" (anti-travamento) só aparece se a espera passar de 30s —
-    // é ele que levava o usuário pra tela principal desatualizada sem necessidade.
+    const ad=$c('#cl-ad-logo');                             // slider de patrocinador (loop de 6)
+    if(ad){ CL._adIdx=((CL._adIdx||0)+1)%AD_SLOTS.length; ad.innerHTML=adLogoHTML(); }
+    const sk=$c('#cl-ad-skip'); if(sk && CL._adCont) sk.style.display=''; // sobrevive a um cdraw no meio
+    // o escape "Ir para o time" (anti-travamento) só aparece se a espera passar de 30s SEM a
+    // sincronia terminar — com ela pronta, o botão da vez é "Pular publicidade".
     const skip=$c('#cl-waitfun-skip');
-    if(skip && (nowMs()-(CL._waitSince||nowMs()))>30000) skip.style.display='';
+    if(skip && !CL._adCont && (nowMs()-(CL._waitSince||nowMs()))>30000) skip.style.display='';
   }, 5000);
 }
 function showSyncLoading(msg){
@@ -3991,20 +4024,25 @@ function scWaitRound(){
   // "Ir para o time" levava direto pra tela principal DESATUALIZADA (rodada antiga) — agora é só
   // um escape anti-travamento, escondido nos primeiros 30s (o ticker o revela se a espera passar disso).
   return `<div class="cl-res" style="text-align:center;padding:18px">
+    <div class="cl-ad-slot"><div class="cl-ad-label">publicidade</div><div id="cl-ad-logo">${adLogoHTML()}</div></div>
     <div class="cl-res-score">Rodada ${r} encerrada</div>
     <div id="cl-waitfun-gif">${syncGifHTML()}</div>
     <div id="cl-waitfun-msg" class="cl-waitfun-msg">${syncFunHTML()}</div>
+    <div id="cl-ad-skip" class="cl-cal-ok" style="display:${CL._adCont?'':'none'}">${btn('Pular publicidade','clAdSkip()',{icon:'⏭',cls:'cl-btn'})}</div>
     <div class="cl-classif-autohint">a classificação aparece quando a rodada fechar</div>
     <div id="cl-waitfun-skip" class="cl-cal-ok" style="display:none">${btn('Ir para o time','clWaitRoundSkip()',{icon:'⌂',cls:'cl-btn-cancel'})}</div>
   </div>`;
 }
-function clWaitRoundSkip(){ CL.screen='main'; CL.tab='jogo'; cdraw(); }
+function clWaitRoundSkip(){ if(CL._adCont){ clAdSkip(); return; } CL.screen='main'; CL.tab='jogo'; cdraw(); }
 function onlineReturnFreeAfterMatch(){
   if(CL._liveTimer) clearTimeout(CL._liveTimer);
   CL._playedRound=S.round; // marca que JÁ joguei esta rodada — não re-simulo (evita loop na mesma rodada)
   CL.live=null; CL.subsUsed=0; CL._liveBusy=false;
   _prLog('onlineReturnFreeAfterMatch -> waitround');
-  CL._waitSince=nowMs();                     // base do escape de 30s da tela de espera
+  CL._waitSince=nowMs();                     // base dos 10s de anúncio e do escape de 30s
+  CL._adCont=null; if(CL._adT){ clearTimeout(CL._adT); CL._adT=null; }
+  CL._adIdx=Math.floor(Math.random()*AD_SLOTS.length);           // slider começa em marca aleatória
+  if(CL._syncFunT){ clearInterval(CL._syncFunT); CL._syncFunT=null; } // realinha o ciclo de 5s com a entrada
   CL.screen='waitround'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||CL.selPlayer; cdraw();
   if(CL.lastGate){ toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0; }
   // NÃO reabro a próxima rodada aqui: quem fecha e reabre a rodada é o ANFITRIÃO, DEPOIS de resolver
@@ -4139,10 +4177,12 @@ async function onlineAdoptServerRound(RL){
   queueSeasonCupDrawsIfNew(); // todo cliente enfileira o sorteio da copa recém-sorteada (não só o host)
   checkPendingCupDraws(()=>{
     hideSyncLoading();
-    const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
-    if(seats.length) startPostRoundClassifs(seats); else showLiveClassif();
-    checkPendingManagerEvents();
-    if(typeof handleResenhaCareer==="function") handleResenhaCareer(); // Fase 2: demissão/convite na Resenha
+    adGate(()=>{                                   // janela de publicidade: segura a classificação (ver adGate)
+      const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
+      if(seats.length) startPostRoundClassifs(seats); else showLiveClassif();
+      checkPendingManagerEvents();
+      if(typeof handleResenhaCareer==="function") handleResenhaCareer(); // Fase 2: demissão/convite na Resenha
+    });
   });
 }
 /* commit de uma rodada de liga — extraído do fim de finishLiveRound pra ser reusado depois

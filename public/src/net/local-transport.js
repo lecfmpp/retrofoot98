@@ -304,9 +304,12 @@ function onlineReconcileIfBehind(room){
         // depois (2) a CLASSIFICAÇÃO pós-rodada. Ao terminar (Continuar/10s), o loop dispara a próxima.
         const _showClassif=()=>{
           if(typeof hideSyncLoading==='function') hideSyncLoading();
-          if(typeof showLiveClassif==='function') showLiveClassif();
-          if(typeof checkPendingManagerEvents==='function') checkPendingManagerEvents();
-          if(typeof handleResenhaCareer==='function') handleResenhaCareer(); // demissão/convite na Resenha — idem host
+          const go=()=>{
+            if(typeof showLiveClassif==='function') showLiveClassif();
+            if(typeof checkPendingManagerEvents==='function') checkPendingManagerEvents();
+            if(typeof handleResenhaCareer==='function') handleResenhaCareer(); // demissão/convite na Resenha — idem host
+          };
+          if(typeof adGate==='function') adGate(go); else go(); // janela de publicidade (ver adGate em main.js)
         };
         if(typeof queueSeasonCupDrawsIfNew==='function') queueSeasonCupDrawsIfNew(); // convidado enfileira o sorteio novo por conta própria
         if(typeof checkPendingCupDraws==='function' && S._pendingDrawShows && S._pendingDrawShows.length){ checkPendingCupDraws(_showClassif); }
