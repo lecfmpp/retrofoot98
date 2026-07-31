@@ -1218,23 +1218,33 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // SAVE ÚNICO: não jogo uma rodada ANTES de espelhar o estado autoritativo do anfitrião. Se o host
   // já fechou a rodada (games.round à frente da minha), primeiro sincronizo (mundo/tabela novos).
   if(typeof NET!=='undefined' && NET.room && (NET.room.round||0) > (S.round||0)){ onlineReconcileIfBehind(NET.room); return; }
-  // TRAVA DE KICKOFF (Fase 1): antes de simular QUALQUER partida da rodada (copa ou liga), garante
-  // que o snapshot congelado do apito (games.kickoff_lineups, carimbado pelo servidor na virada pra
-  // 'running') está carregado — todos os clientes simulam com exatamente os mesmos inputs de
-  // escalação/tática, então os placares exibidos são idênticos em todas as telas. O snapshot
-  // normalmente já chega junto do evento de fase (realtime manda a linha inteira); esta busca só
-  // roda quando a fase virou por um caminho sem a linha (RPC otimista). Se mesmo com retry não
-  // vier (sala criada antes da migração / falha), segue com a ponte de assentos (comportamento antigo).
-  if(typeof NET!=='undefined' && NET.fetchKickoff && NET.room && !NET.room.kickoffLineups && CL._kickoffFetched!==S.round){
+  // TRAVA DE KICKOFF (Fases 1 e 2): antes de simular QUALQUER partida da rodada (copa ou liga),
+  // garante que estão carregados (a) o snapshot congelado do apito (games.kickoff_lineups, Fase 1 —
+  // inputs de escalação/tática idênticos em todos os clientes) e (b) os streams PRÉ-COMPUTADOS da
+  // rodada (kickoff-round -> round_events, Fase 2 — todos REPRODUZEM as mesmas partidas de liga em
+  // vez de simular cada um a sua; ver buildLiveMatchObject). Marcadores por temporada+rodada (o nº
+  // da rodada repete a cada temporada). Falha mesmo com retry -> segue sem (fallback = simulação
+  // local com a ponte de assentos, comportamento antigo — nada trava).
+  const _rk=(S.season||1)+'-'+(S.round||0);
+  const needSnap = typeof NET!=='undefined' && NET.fetchKickoff && NET.room && !NET.room.kickoffLineups && CL._kickoffFetched!==_rk;
+  const needStreams = typeof NET!=='undefined' && NET.fetchRoundStreams && !(CL._roundStreams && CL._roundStreams.key===_rk) && CL._streamsFetched!==_rk;
+  if(needSnap || needStreams){
     if(CL._kickoffFetching) return;
     CL._kickoffFetching=true;
     (async ()=>{
       try{
-        await NET.fetchKickoff();
-        if(!NET.room.kickoffLineups){ await new Promise(r=>setTimeout(r,700)); await NET.fetchKickoff(); } // retry: o carimbo pode estar a caminho
+        if(needSnap){
+          await NET.fetchKickoff();
+          if(!NET.room.kickoffLineups){ await new Promise(r=>setTimeout(r,700)); await NET.fetchKickoff(); } // retry: o carimbo pode estar a caminho
+        }
+        if(needStreams){
+          let m=await NET.fetchRoundStreams(S.round);
+          if(!m){ await new Promise(r=>setTimeout(r,700)); m=await NET.fetchRoundStreams(S.round); } // retry: o estado/apito pode estar a caminho
+          if(m) CL._roundStreams={ key:_rk, matches:m };
+        }
       }catch(e){}
-      CL._kickoffFetching=false; CL._kickoffFetched=S.round;
-      onlineRunRound(); // re-entra com o snapshot (ou segue sem, marcado como tentado nesta rodada)
+      CL._kickoffFetching=false; CL._kickoffFetched=_rk; CL._streamsFetched=_rk;
+      onlineRunRound(); // re-entra com snapshot+streams (ou segue sem, marcado como tentado nesta rodada)
     })();
     return;
   }

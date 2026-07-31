@@ -2898,14 +2898,24 @@ function buildLiveMatchObject(h,a,seed,opts){
   // não sincronizada). Ver netHumanResultFor. Todo evento entra "resolvido": é replay do que já
   // aconteceu, não uma decisão minha — senão eu poderia escolher um batedor de pênalti diferente
   // do que já decidiu o placar oficial.
-  const pub=(CL.online && typeof NET!=='undefined' && NET.humanResultFor && isLeagueFixtureNow(h,a)) ? NET.humanResultFor(h,a,S.round) : null;
-  const ev = pub
-    ? { events:(pub.events||[]).map(e=>({...e,_resolved:true})), hg:pub.hg, ag:pub.ag, perf:pub.perf||null }
+  const isLeague=CL.online && isLeagueFixtureNow(h,a);
+  const pub=(isLeague && typeof NET!=='undefined' && NET.humanResultFor) ? NET.humanResultFor(h,a,S.round) : null;
+  // FASE 2: stream PRÉ-COMPUTADO pelo servidor no apito (kickoff-round -> CL._roundStreams).
+  // Precedência: resultado real publicado (pub) > stream do servidor (pre) > simulação local.
+  // A MINHA partida fica de fora do pre (jogo ao vivo, interativa — pênalti/substituição); todas
+  // as outras partidas de liga viram REPLAY do mesmo filme que os demais clientes assistem —
+  // nenhuma simulação local, nenhuma chance de divergência de inputs ou de fórmula de seed.
+  const mine=(h===CL.clubId||a===CL.clubId);
+  const rkey=(S.season||1)+'-'+(S.round||0);
+  const pre=(!pub && !mine && isLeague && CL._roundStreams && CL._roundStreams.key===rkey) ? (CL._roundStreams.matches[h+'-'+a]||null) : null;
+  const src=pub||pre;
+  const ev = src
+    ? { events:(src.events||[]).map(e=>({...e,_resolved:true})), hg:src.hg, ag:src.ag, perf:src.perf||null }
     : simEventsC(h,a,seed);
   const gate=attendanceFor(h,rnd);
   return { h,a,hg:0,ag:0,idx:0,events:ev.events,att:gate.att,price:gate.price,cap:gate.cap,
     ref:REFS_C[Math.floor(rnd()*REFS_C.length)], goals:[], incidents:[], fhg:ev.hg, fag:ev.ag, perf:ev.perf,
-    user:opts.user!==undefined?opts.user:(h===CL.clubId||a===CL.clubId), div:opts.div, replay:!!pub };
+    user:opts.user!==undefined?opts.user:(h===CL.clubId||a===CL.clubId), div:opts.div, replay:!!src };
 }
 function startLiveRound(){
   // segurança (online): rodada além do fim do calendário -> a virada de temporada não completou;

@@ -50,8 +50,10 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
-      - name: Validar sintaxe da função
-        run: npx esbuild supabase/functions/resolve-round/index.ts --outfile=/dev/null --platform=neutral --format=esm
+      - name: Validar sintaxe das funções
+        run: |
+          npx esbuild supabase/functions/resolve-round/index.ts --outfile=/dev/null --platform=neutral --format=esm
+          npx esbuild supabase/functions/kickoff-round/index.ts --outfile=/dev/null --platform=neutral --format=esm
 
       - uses: supabase/setup-cli@v1
         with:
@@ -62,22 +64,26 @@ jobs:
       # repositório, e send-password-reset roda com verify_jwt=false. Um deploy genérico
       # poderia reescrever essa configuração.
       # Sem --no-verify-jwt de propósito: resolve-round exige JWT (o padrão da CLI).
-      - name: Deploy resolve-round
+      - name: Deploy resolve-round e kickoff-round
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: supabase functions deploy resolve-round --project-ref "$PROJECT_REF"
-
-      # A função tem que SUBIR, não só compilar. Sem Authorization o gateway responde 401 —
-      # é o sinal de que o worker bootou. 5xx aqui significa erro em tempo de boot.
-      - name: Verificar que a função sobe
         run: |
-          for i in 1 2 3; do
-            code=$(curl -s -o /tmp/r.txt -w '%{http_code}' -X POST \
-              "https://${PROJECT_REF}.supabase.co/functions/v1/resolve-round" \
-              -H 'Content-Type: application/json' -d '{"gameId":"smoke"}')
-            echo "tentativa $i -> HTTP $code : $(head -c 160 /tmp/r.txt)"
-            if [ "$code" = "401" ]; then echo "OK: função no ar"; exit 0; fi
-            sleep 5
+          supabase functions deploy resolve-round --project-ref "$PROJECT_REF"
+          supabase functions deploy kickoff-round --project-ref "$PROJECT_REF"
+
+      # As funções têm que SUBIR, não só compilar. Sem Authorization o gateway responde 401 —
+      # é o sinal de que o worker bootou. 5xx aqui significa erro em tempo de boot.
+      - name: Verificar que as funções sobem
+        run: |
+          for fn in resolve-round kickoff-round; do
+            ok=0
+            for i in 1 2 3; do
+              code=$(curl -s -o /tmp/r.txt -w '%{http_code}' -X POST \
+                "https://${PROJECT_REF}.supabase.co/functions/v1/${fn}" \
+                -H 'Content-Type: application/json' -d '{"gameId":"smoke"}')
+              echo "$fn tentativa $i -> HTTP $code : $(head -c 160 /tmp/r.txt)"
+              if [ "$code" = "401" ]; then echo "OK: $fn no ar"; ok=1; break; fi
+              sleep 5
+            done
+            if [ "$ok" != "1" ]; then echo "FALHOU: esperava 401 ($fn no ar), veio $code"; exit 1; fi
           done
-          echo "FALHOU: esperava 401 (função no ar), veio $code"
-          exit 1

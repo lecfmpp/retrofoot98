@@ -426,7 +426,7 @@ function hashC(s: any) { s = String(s); let h = 0; for (let i = 0; i < s.length;
    mesma regra mandante-autoritativa da divisão principal. Partida do humano = resultado submetido;
    as outras = motor. Os incidentes (cartão/lesão) do humano já foram aplicados globalmente no
    resolveLeagueRound (a partir de humanResultByFx), então aqui só o placar/tabela. */
-function advanceOtherDivs(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any) {
+function advanceOtherDivs(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, preMatches?: any) {
   if (!S.otherDivs) return; const round = S.round, season = S.season;
   humanResultByFx = humanResultByFx || {};
   for (const d in S.otherDivs) {
@@ -436,7 +436,9 @@ function advanceOtherDivs(S: any, humanResultByFx: any, humanClubs: Set<string>,
       const h = fx[0], a = fx[1]; if (h == null || a == null || !od.table[h] || !od.table[a]) return;
       let hg: number, ag: number;
       const sub = humanResultByFx[h + "-" + a];
+      const pc = (!sub && preMatches) ? preMatches[h + "-" + a] : null; // FASE 2: stream do apito (mesma precedência da divisão principal)
       if (sub) { hg = sub.hg; ag = sub.ag; }                       // humano nesta divisão -> resultado submetido
+      else if (pc) { hg = pc.hg; ag = pc.ag; }
       else {
         const seed = (base + hashC(h) + hashC(a)) >>> 0;
         const r = ME.simMatchPure(h, a, sideInputs(S, h, humanClubs.has(h), humanXI, humanTactic), sideInputs(S, a, humanClubs.has(a), humanXI, humanTactic), seed, {});
@@ -869,7 +871,7 @@ function applyHumanMorale(S: any, moraleByClub: any) {
     sq.forEach((p: any) => { p.moral = clampN((p.moral != null ? p.moral : 70) + d, 0, 100); });
   });
 }
-function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any, humanTransfers?: any[], moraleByClub?: any, humanOffers?: any[], humanCounters?: any[], humanOfferDrops?: any[]) {
+function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any, humanTransfers?: any[], moraleByClub?: any, humanOffers?: any[], humanCounters?: any[], humanOfferDrops?: any[], preMatches?: any) {
   const seed = S.seed, round = S.round;
   applyHumanTransfers(S, humanTransfers || [], humanClubs);       // 0) contratações/vendas do humano ANTES de escalar/jogar
   applyHumanOffers(S, humanOffers || []);                         // 0c) propostas humano->humano publicadas nos assentos
@@ -885,7 +887,13 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
     const h = fx[0], a = fx[1]; if (h == null || a == null) return; const k = h + "-" + a;
     let hg: number, ag: number, scorers: any[];
     const sub = humanResultByFx[k];
+    // FASE 2: precedência resultado submetido (humano jogou ao vivo) > stream pré-computado do
+    // apito (round_events — o que TODOS assistiram na tela ao vivo) > simular agora (fallback).
+    // Consumir o pré-computado importa porque transferências/moral de humanos são aplicadas ACIMA,
+    // mutando elencos DEPOIS do apito — re-simular aqui gravaria um placar diferente do assistido.
+    const pc = (!sub && preMatches) ? preMatches[k] : null;
     if (sub) { hg = sub.hg; ag = sub.ag; scorers = sub.scorers || []; }
+    else if (pc) { hg = pc.hg; ag = pc.ag; scorers = pc.scorers || []; }
     else {
       const mseed = ME.hashSeed(seed, round, h, a);
       const res = ME.simMatchPure(h, a, sideInputs(S, h, humanClubs.has(h), humanXI, humanTactic), sideInputs(S, a, humanClubs.has(a), humanXI, humanTactic), mseed, {});
@@ -898,7 +906,7 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   for (const cid in S.squads) for (const p of S.squads[cid]) { p.energy = clampN((p.energy || 100) + Rr.rnd(6, 16), 0, 100); p.moral = clampN((p.moral || 70) + (70 - (p.moral || 70)) * 0.08, 0, 100); }
   humanClubs.forEach((cid) => { const xi = ME.resolveXI(S.squads[cid], humanXI[cid] || ME.autoXINames(S.squads[cid])); for (const p of xi) p.energy = clampN(p.energy - Rr.rnd(12, 22), 20, 100); });
   advanceDevelopment(S, humanClubs, humanXI);                    // 4b) evolução/declínio dos jogadores
-  advanceOtherDivs(S, humanResultByFx, humanClubs, humanXI, humanTactic); // 4c) outras divisões (CPU + override humano onde houver)
+  advanceOtherDivs(S, humanResultByFx, humanClubs, humanXI, humanTactic, preMatches); // 4c) outras divisões (CPU + override humano onde houver)
   S.round++; S.week = (S.week || 1) + 1; S.day = (S.day || 1) + 7; // 5) avança a rodada
   advancePendingCups(S, cupResultByFx || {}, humanClubs);         // 6) copas (Copa do Brasil) — usa a rodada NOVA; humanClubs: cota de fase de humano é creditada pelo cliente dele
   pruneIncomingOffers(S); pruneCounterOffers(S);                  // 6b) limpa proposta/contraproposta vencida ou por jogador que já saiu
@@ -968,7 +976,13 @@ Deno.serve(async (req: Request) => {
       if (e.tactic) humanTactic[cid] = e.tactic;
     });
 
-    resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic, cupResultByFx, humanTransfers, moraleByClub, humanOffers, humanCounters, humanOfferDrops);
+    // FASE 2: streams pré-computados do apito (kickoff-round -> round_events). É o que todos os
+    // clientes assistiram; consumir aqui garante que o resultado GRAVADO é o assistido (sem isso,
+    // as transferências/moral aplicadas acima mudariam a re-simulação). Ausente -> simula (fallback).
+    const { data: preRow } = await admin.from("round_events").select("payload").eq("game_id", gameId).eq("round", round).maybeSingle();
+    const preMatches = (preRow && preRow.payload && preRow.payload.matches) || null;
+
+    resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic, cupResultByFx, humanTransfers, moraleByClub, humanOffers, humanCounters, humanOfferDrops, preMatches);
     stateObj.round = S.round;
 
     const { data: upd, error: upErr } = await admin.from("games").update({ shared_state: stateObj, state_version: curVer + 1, round: S.round }).eq("id", gameId).eq("state_version", curVer).select("state_version");
@@ -977,6 +991,9 @@ Deno.serve(async (req: Request) => {
       const { data: g2 } = await admin.from("games").select("state_version, round").eq("id", gameId).maybeSingle();
       return json({ ok: true, raced: true, round: g2?.round, version: g2?.state_version });
     }
+    // higiene: streams de rodadas ANTERIORES à recém-resolvida já não servem pra ninguém
+    // (a atual fica até a próxima resolução, pra retardatários ainda em replay)
+    try { await admin.from("round_events").delete().eq("game_id", gameId).lt("round", round); } catch (_e) { /* best-effort */ }
     return json({ ok: true, round: S.round, version: curVer + 1 });
   } catch (e) { return json({ error: e instanceof Error ? e.message : String(e) }, 500); }
 });

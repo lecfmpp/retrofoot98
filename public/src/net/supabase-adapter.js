@@ -622,6 +622,20 @@ async function netFetchKickoff(){
   }catch(e){ console.warn('fetchKickoff:', e&&e.message); return null; }
 }
 
+/* FASE 2: pede ao servidor os streams PRÉ-COMPUTADOS de todas as partidas de liga da rodada
+   (edge function kickoff-round — o primeiro cliente a chamar dispara o cômputo, os demais recebem
+   o payload já gravado em round_events). Retorna {"h-a":{hg,ag,scorers,events,perf,div}} ou null
+   (sala sem estado ainda / rodada defasada / falha) — null = cliente simula localmente (fallback). */
+async function netFetchRoundStreams(round){
+  if(!sb || !NET.gameId) return null;
+  try{
+    const { data, error } = await sb.functions.invoke('kickoff-round', { body:{ gameId:NET.gameId, round } });
+    if(error || !data || data.error || !data.ok || !data.matches) return null;
+    if(data.round!==round) return null;
+    return data.matches;
+  }catch(e){ console.warn('fetchRoundStreams:', e&&e.message); return null; }
+}
+
 async function netToLobby(){
   if(!NET.isHost) return;
   try {
@@ -1058,6 +1072,7 @@ NET.pause = netPause;
 NET.setSpeed = netSetSpeed;
 NET.toRunning = netToRunning;
 NET.fetchKickoff = netFetchKickoff;
+NET.fetchRoundStreams = netFetchRoundStreams;
 NET.advancePhaseExpired = netAdvancePhaseExpired;
 NET.reopenReady = netReopenReady;
 NET.armReadyTimer = netArmReadyTimer;
