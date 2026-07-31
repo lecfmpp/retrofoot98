@@ -703,7 +703,7 @@ function acceptIncomingOffer(id){
   if((S.squads[S.clubId]||[]).length<=15) return {ok:false,msg:'Elenco pequeno demais pra vender.'};
   if(isTradeLocked(p)) return {ok:false,msg:`${p.n} foi comprado nesta temporada e ainda não pode ser negociado de novo.`};
   const preOpen=inPreWindow();
-  S.incomingOffersByClub[S.clubId]=myIncomingOffers().filter(x=>x.id!==id);
+  dropIncomingOffer(S.clubId, id);                       // baixa que também viaja pro servidor
   S.roundNews=S.roundNews||[];
   if(!inTransferWindow() && preOpen){
     // PRÉ-ACORDO: aceita agora, mas o jogador só sai na abertura da janela (segue jogando até lá)
@@ -733,7 +733,29 @@ function acceptIncomingOffer(id){
   save();
   return {ok:true, msg:`${o.playerName} vendido por ${fmt(o.fee)}!`};
 }
-function rejectIncomingOffer(id){ S.incomingOffersByClub=S.incomingOffersByClub||{}; S.incomingOffersByClub[S.clubId]=myIncomingOffers().filter(x=>x.id!==id); save(); return {ok:true}; }
+/* dá BAIXA numa proposta da fila de um clube. Em Resenha isto TEM que viajar: aceitar, recusar
+   ou contrapropor só apagava a proposta no S local, e o estado autoritativo (do servidor) seguia
+   com ela — no adopt seguinte a proposta voltava. Era isso que fazia o aceite da contraproposta
+   esbarrar em "você já tem uma proposta pendente por esse jogador": a original, já recusada,
+   continuava viva no servidor. Buffer reenviado até o servidor aplicar (ver applyHumanOfferDrops). */
+function dropIncomingOffer(clubId, id){
+  S.incomingOffersByClub=S.incomingOffersByClub||{};
+  S.incomingOffersByClub[clubId]=((S.incomingOffersByClub[clubId])||[]).filter(x=>x && x.id!==id);
+  if(typeof CL!=='undefined' && CL.online){
+    S._netOfferDrops=S._netOfferDrops||[];
+    if(!S._netOfferDrops.some(d=>d && d.id===id)) S._netOfferDrops.push({club:clubId, id, expiresRound:S.round+8});
+  }
+  if(S._netOffers) S._netOffers=S._netOffers.filter(o=>o && o.id!==id); // nem adianta reenviar o que foi dado baixa
+}
+function pruneAppliedNetOfferDrops(){
+  if(!S || !S._netOfferDrops || !S._netOfferDrops.length) return;
+  S._netOfferDrops=S._netOfferDrops.filter(d=>{
+    if(!d || d.expiresRound<=S.round) return false;                       // teto de segurança
+    const fila=(S.incomingOffersByClub && S.incomingOffersByClub[d.club])||[];
+    return fila.some(x=>x && x.id===d.id);                                // ainda lá -> reenvia
+  });
+}
+function rejectIncomingOffer(id){ dropIncomingOffer(S.clubId, id); save(); return {ok:true}; }
 /* ================= NEGOCIAÇÃO ENTRE HUMANOS =================
    Antes, transferência humano<->humano era instantânea e algorítmica (sem chance de recusa pro
    vendedor). Agora: EU (comprador) mando uma proposta que entra na MESMA fila de "propostas
@@ -777,7 +799,7 @@ function counterHumanOffer(id, askFee){
   const o=myIncomingOffers().find(x=>x.id===id); if(!o) return {ok:false,msg:'Proposta não existe mais.'};
   if(!o.buyerIsHuman) return {ok:false,msg:'Essa proposta não é de um treinador humano.'};
   askFee=Math.round(askFee)||0; if(askFee<=0) return {ok:false,msg:'Informe um valor válido.'};
-  S.incomingOffersByClub[S.clubId]=myIncomingOffers().filter(x=>x.id!==id); // recusada NAQUELE valor
+  dropIncomingOffer(S.clubId, id);                       // recusada NAQUELE valor (baixa viaja)
   // A contraproposta agora VIAJA: vira um pedido registrado na fila do comprador, que recebe
   // e-mail e decide (aceitar cria a proposta nova no valor pedido, ver acceptCounterOffer).
   // Antes isto só recusava e escrevia um aviso na MINHA tela — do outro lado não chegava nada,
@@ -820,6 +842,12 @@ function pruneCounterOffers(){
    janela/caixa/cota e já usa o canal que chega no vendedor) — sem caminho paralelo de compra. */
 function acceptCounterOffer(id){
   const c=myCounterOffers().find(x=>x.id===id); if(!c) return {ok:false,msg:'Contraproposta não existe mais.'};
+  // a proposta ANTIGA (a que foi recusada) pode ainda estar na fila do vendedor no estado
+  // autoritativo — sem tirar ela daqui, sendHumanOffer recusaria a nova por "já existe uma
+  // proposta pendente por esse jogador", travando justamente o aceite da contraproposta.
+  ((S.incomingOffersByClub&&S.incomingOffersByClub[c.sellerId])||[])
+    .filter(o=>o && o.playerName===c.playerName && String(o.buyerId)===String(S.clubId))
+    .forEach(o=>dropIncomingOffer(c.sellerId, o.id));
   const r=sendHumanOffer(c.sellerId, c.playerName, c.askFee);
   if(r.ok) dropCounterOffer(id);
   return r;

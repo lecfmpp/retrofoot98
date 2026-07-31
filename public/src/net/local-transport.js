@@ -272,6 +272,7 @@ function onlineReconcileIfBehind(room){
       if(typeof pruneAppliedNetTransfers==='function') pruneAppliedNetTransfers(); // solta as transferências já aplicadas pelo servidor
       if(typeof pruneAppliedNetOffers==='function') pruneAppliedNetOffers();       // idem pras propostas mandadas a outro humano
       if(typeof pruneAppliedNetCounters==='function') pruneAppliedNetCounters(); // idem pras contrapropostas
+      if(typeof pruneAppliedNetOfferDrops==='function') pruneAppliedNetOfferDrops(); // idem pras baixas de proposta
       if(typeof restoreMyFinances==='function') restoreMyFinances();               // finanças são individuais (ver restoreMyFinances)
       if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
       if(typeof applyOwnPendingFinances==='function') applyOwnPendingFinances(); // F3.3: finanças da MINHA rodada (convidado)

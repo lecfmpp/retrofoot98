@@ -326,8 +326,9 @@ async function netPublishResult(round, result){
   // escrever só no meu S não faz a proposta chegar em ninguém (ver sendHumanOffer/pruneAppliedNetOffers).
   const _of = (typeof S!=='undefined' && S && Array.isArray(S._netOffers)) ? S._netOffers : [];
   const _ct = (typeof S!=='undefined' && S && Array.isArray(S._netCounters)) ? S._netCounters : []; // contrapropostas (vendedor -> comprador)
+  const _dr = (typeof S!=='undefined' && S && Array.isArray(S._netOfferDrops)) ? S._netOfferDrops : []; // baixas (aceita/recusada/contraposta)
   const payload = { round, h:result.h, a:result.a, hg:result.hg, ag:result.ag,
-    scorers:result.scorers||[], perf:result.perf||null, events:result.events||[], transfers:_tr, morale:_mo, offers:_of, counters:_ct };
+    scorers:result.scorers||[], perf:result.perf||null, events:result.events||[], transfers:_tr, morale:_mo, offers:_of, counters:_ct, offerDrops:_dr };
   try{
     if(NET._claimed && NET._claimed[SB_AUTH_USER.id]){ NET._claimed[SB_AUTH_USER.id].last_result=payload; NET._claimed[SB_AUTH_USER.id].last_result_round=round; }
     await sb.from('game_seats').update({ last_result:payload, last_result_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);

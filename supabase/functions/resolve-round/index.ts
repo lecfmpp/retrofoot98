@@ -806,6 +806,18 @@ function applyHumanCounters(S: any, counters: any[]) {
     fila.push(contra);
   });
 }
+/* BAIXAS de proposta (aceita/recusada/contraposta no cliente de quem recebeu). Sem isto o
+   estado autoritativo seguia com a proposta e ela voltava pro cliente no adopt seguinte —
+   inclusive travando o aceite de uma contraproposta ("já existe proposta pendente"). */
+function applyHumanOfferDrops(S: any, drops: any[]) {
+  if (!drops || !drops.length) return;
+  S.incomingOffersByClub = S.incomingOffersByClub || {};
+  drops.forEach((d: any) => {
+    if (!d || !d.club || d.id == null) return;
+    const fila = S.incomingOffersByClub[d.club]; if (!Array.isArray(fila)) return;
+    S.incomingOffersByClub[d.club] = fila.filter((o: any) => !o || o.id !== d.id);
+  });
+}
 function pruneCounterOffers(S: any) {
   S.counterOffersByClub = S.counterOffersByClub || {};
   Object.keys(S.counterOffersByClub).forEach((cid) => {
@@ -857,11 +869,12 @@ function applyHumanMorale(S: any, moraleByClub: any) {
     sq.forEach((p: any) => { p.moral = clampN((p.moral != null ? p.moral : 70) + d, 0, 100); });
   });
 }
-function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any, humanTransfers?: any[], moraleByClub?: any, humanOffers?: any[], humanCounters?: any[]) {
+function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any, humanTransfers?: any[], moraleByClub?: any, humanOffers?: any[], humanCounters?: any[], humanOfferDrops?: any[]) {
   const seed = S.seed, round = S.round;
   applyHumanTransfers(S, humanTransfers || [], humanClubs);       // 0) contratações/vendas do humano ANTES de escalar/jogar
   applyHumanOffers(S, humanOffers || []);                         // 0c) propostas humano->humano publicadas nos assentos
   applyHumanCounters(S, humanCounters || []);                     // 0d) contrapropostas (vendedor -> comprador)
+  applyHumanOfferDrops(S, humanOfferDrops || []);                 // 0e) baixas: proposta aceita/recusada/contraposta some do mundo
   applyHumanMorale(S, moraleByClub || {});                        // 0b) efeito da coletiva na moral do elenco
   const fixtures = (S.sched[round] || []);
   advancePlayerAvailability(S);                                   // 1) cumpre suspensões/lesões
@@ -924,7 +937,7 @@ Deno.serve(async (req: Request) => {
 
     const round = S.round;
     const { data: seats } = await admin.from("game_seats").select("user_id, club_id, last_xi, last_tactic, last_result, last_result_round, last_cup_result, last_cup_round, budget").eq("game_id", gameId);
-    const humanClubs = new Set<string>(); const humanXI: any = {}; const humanTactic: any = {}; const humanResultByFx: any = {}; const cupResultByFx: any = {}; const humanTransfers: any[] = []; const moraleByClub: any = {}; const humanOffers: any[] = []; const humanCounters: any[] = [];
+    const humanClubs = new Set<string>(); const humanXI: any = {}; const humanTactic: any = {}; const humanResultByFx: any = {}; const cupResultByFx: any = {}; const humanTransfers: any[] = []; const moraleByClub: any = {}; const humanOffers: any[] = []; const humanCounters: any[] = []; const humanOfferDrops: any[] = [];
     (seats || []).forEach((s: any) => {
       if (!s.user_id || !s.club_id) return; humanClubs.add(s.club_id);
       if (s.last_xi) humanXI[s.club_id] = s.last_xi; if (s.last_tactic) humanTactic[s.club_id] = s.last_tactic;
@@ -936,13 +949,14 @@ Deno.serve(async (req: Request) => {
       // propostas que este humano mandou pro clube de outro humano (ver sendHumanOffer no cliente)
       if (r && s.last_result_round === round && Array.isArray(r.offers) && r.offers.length) humanOffers.push(...r.offers);
       if (r && s.last_result_round === round && Array.isArray(r.counters) && r.counters.length) humanCounters.push(...r.counters);
+      if (r && s.last_result_round === round && Array.isArray(r.offerDrops) && r.offerDrops.length) humanOfferDrops.push(...r.offerDrops);
       if (r && s.last_result_round === round && r.morale) moraleByClub[s.club_id] = Number(r.morale) || 0;
       // resultado de COPA submetido pra ESTA rodada (aplicado na chave; mandante-autoritativo)
       const cr = s.last_cup_result;
       if (cr && s.last_cup_round === round && cr.h && cr.a && cr.winner) { const ck = cr.h + "-" + cr.a; if (!cupResultByFx[ck] || s.club_id === cr.h) cupResultByFx[ck] = { hg: cr.hg, ag: cr.ag, winner: cr.winner, pens: cr.pens || null, events: cr.events || [] }; }
     });
 
-    resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic, cupResultByFx, humanTransfers, moraleByClub, humanOffers, humanCounters);
+    resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic, cupResultByFx, humanTransfers, moraleByClub, humanOffers, humanCounters, humanOfferDrops);
     stateObj.round = S.round;
 
     const { data: upd, error: upErr } = await admin.from("games").update({ shared_state: stateObj, state_version: curVer + 1, round: S.round }).eq("id", gameId).eq("state_version", curVer).select("state_version");

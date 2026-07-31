@@ -4026,6 +4026,7 @@ async function onlineAdoptServerRound(RL){
       if(typeof pruneAppliedNetTransfers==='function') pruneAppliedNetTransfers(); // solta as transferências que o servidor já aplicou
       if(typeof pruneAppliedNetOffers==='function') pruneAppliedNetOffers();       // idem pras propostas mandadas a outro humano
       if(typeof pruneAppliedNetCounters==='function') pruneAppliedNetCounters(); // idem pras contrapropostas
+      if(typeof pruneAppliedNetOfferDrops==='function') pruneAppliedNetOfferDrops(); // idem pras baixas de proposta
       if(typeof restoreMyFinances==='function') restoreMyFinances();               // meu log de finanças por cima do que veio do anfitrião
       if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
     }
