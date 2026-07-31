@@ -1664,8 +1664,26 @@ function myFinKey(){
 }
 function saveMyFinances(){
   if(!CL.online || !S) return;                       // solo: o log já é meu e vai junto no save
-  CL._myFin={ finances:S.finances||[], seasonTotals:S.seasonTotals||null, prizeSeason:S._prevPrizesCreditedSeason||null };
+  CL._myFin=CL._myFin||{};
+  CL._myFin.finances=S.finances||[]; CL._myFin.seasonTotals=S.seasonTotals||null;
+  CL._myFin.prizeSeason=S._prevPrizesCreditedSeason||null;
+  CL._myFin.settled=CL._myFin.settled||{};
   try{ localStorage.setItem(myFinKey(), JSON.stringify(CL._myFin)); }catch(e){}
+}
+/* PROPOSTA MINHA JÁ LIQUIDADA (o jogador chegou e eu paguei). O registro é do CLIENTE, não do S:
+   S.outgoingOffersByClub mora no estado compartilhado, então tirar a proposta de lá é uma
+   mutação local que o adopt seguinte desfaz — e settleMyOutgoingOffers, que roda a cada adopt,
+   pagava DE NOVO pelo mesmo jogador (com débito e e-mail repetidos a cada rodada). Aqui o
+   carimbo sobrevive ao adopt e ao reload (vai junto no store de finanças, por sala+clube). */
+function offerAlreadySettled(id){
+  if(!CL.online) return false;
+  if(!CL._myFin || CL._myFinKey!==myFinKey()) restoreMyFinances();
+  return !!(CL._myFin && CL._myFin.settled && CL._myFin.settled[id]);
+}
+function markOfferSettled(id){
+  if(!CL.online) return;
+  CL._myFin=CL._myFin||{}; CL._myFin.settled=CL._myFin.settled||{};
+  CL._myFin.settled[id]=true; saveMyFinances();
 }
 function restoreMyFinances(){
   if(!CL.online || !S) return;
@@ -1687,6 +1705,7 @@ function restoreMyFinances(){
   S.finances=CL._myFin.finances||[];
   if(CL._myFin.seasonTotals) S.seasonTotals=CL._myFin.seasonTotals;
   S._prevPrizesCreditedSeason=CL._myFin.prizeSeason||null;
+  CL._myFin.settled=CL._myFin.settled||{};
 }
 /* ---- PERSISTÊNCIA do inbox: localStorage SEMPRE (solo + reload) + game_seats no online
    (durável/cross-device). Chave por save/sala + clube. ---- */

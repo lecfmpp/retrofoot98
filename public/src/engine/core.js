@@ -882,6 +882,12 @@ function settleMyOutgoingOffers(){
   mine.forEach(o=>{
     const arrived=(S.squads[S.clubId]||[]).some(p=>p.n===o.playerName);
     if(arrived){
+      // JÁ PAGUEI por esta proposta? A lista de propostas enviadas mora no S (compartilhado),
+      // então o adopt a traz de volta e esta função — que roda a cada adopt — debitava outra vez,
+      // com e-mail e lançamento repetidos rodada após rodada. O carimbo é por-cliente (ver
+      // offerAlreadySettled/markOfferSettled), único jeito de sobreviver ao adopt.
+      if(typeof offerAlreadySettled==='function' && offerAlreadySettled(o.id)) return;
+      if(typeof markOfferSettled==='function') markOfferSettled(o.id);
       S.budget-=o.fee; commitBudget();
       S.roundNews=S.roundNews||[]; S.roundNews.push(`✍️ Proposta aceita: ${o.playerName} chegou por ${fmt(o.fee)}.`);
       // LANÇA nas finanças. Contratação vinda de OUTRO HUMANO é fechada no cliente do vendedor
