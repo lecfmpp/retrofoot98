@@ -1553,6 +1553,15 @@ function rosterHeadHTML(){
    salário-tabela por força que o motor já usa pra folha dos clubes de CPU (ver cpuSeasonFinances),
    em vez de mostrar "0k" — que era o que aparecia no elenco de quem não tinha contract. */
 function playerSalary(p){ return (p&&p.contract&&p.contract.salary) || (p?REBAL.wage(p.f):0); }
+/* jogador em treino especial (Jogador > Treino especial). Lê a MESMA fonte do menu
+   (S.trainingByClub[clube] — ver startTraining/myTrainingList no core), não o flag _training
+   solto no jogador, que não sobrevive a um adopt do estado do servidor. */
+function isInTraining(clubId, pid){ return ((S.trainingByClub && S.trainingByClub[clubId])||[]).indexOf(pid)>=0; }
+/* ícone ao lado da força de quem está treinando — dá pra acompanhar a evolução direto na lista,
+   sem abrir o menu de treino. ⭐ já significa outra coisa aqui (evolui mais rápido), por isso 🏋. */
+function trainingIcon(clubId, p){
+  return isInTraining(clubId, p&&p.pid) ? `<span class="cl-rtrain" title="Em treino especial — ganha chance extra de evolução a cada rodada">🏋</span>` : '';
+}
 /* MESMA tabela de elenco pra QUALQUER clube (o meu e o dos outros, humano ou CPU): mesmo grid
    (.cl-rrow), mesmo cabeçalho, mesmas colunas e os mesmos valores. Antes cada tela tinha a sua
    lista: a de "Ver elenco" desenhava só 5 células num grid de SEIS colunas (sem idade), então a
@@ -1575,7 +1584,7 @@ function squadTableHTML(clubId, opts){
         <span class="cl-rmark"></span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
-        <span class="cl-rf">${p.f}</span><span class="cl-rv">${fmt(playerSalary(p))}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;
+        <span class="cl-rf">${p.f}${trainingIcon(clubId,p)}</span><span class="cl-rv">${fmt(playerSalary(p))}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;
     }).join('')+`</div>`;
   });
   return html;
@@ -1601,7 +1610,7 @@ function rosterHTML(){
         <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
-        <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}</span><span class="cl-rv">${fmt(salary)}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;}).join('')+`</div>`;
+        <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}${trainingIcon(CL.clubId,p)}</span><span class="cl-rv">${fmt(salary)}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;}).join('')+`</div>`;
   });
   return html;
 }
@@ -2252,7 +2261,7 @@ function clTrainingScreen(){ CL.menu=null;
     const star=(typeof hasEstrelinha==='function')&&hasEstrelinha(p);
     return `<div class="cl-mkt-p" style="cursor:default">
       <span class="cl-mkt-p-pos">${posLetter(p.s)}</span><span class="cl-mkt-p-n">${escC(p.n)}${star?' ⭐':''}</span>
-      <span class="cl-mkt-p-f">${p.f}</span>
+      <span class="cl-mkt-p-f">${p.f}${inTraining?' 🏋':''}</span>
       ${btn(inTraining?'Tirar do treino':'Treinar', (inTraining?'clStopTraining':'clStartTraining')+"('"+p.pid+"')", {cls:'cl-btn-mini'})}
     </div>`;
   }).join('');
