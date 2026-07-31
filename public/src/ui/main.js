@@ -1673,9 +1673,16 @@ function restoreMyFinances(){
     CL._myFinKey=myFinKey(); CL._myFin=null;
     try{ const raw=localStorage.getItem(myFinKey()); if(raw) CL._myFin=JSON.parse(raw); }catch(e){}
   }
-  if(!CL._myFin){                                    // primeira rodada da sala: começo limpo,
-    S.finances=[]; S.seasonTotals=null;              // sem herdar o histórico do anfitrião
-    S._prevPrizesCreditedSeason=null; saveMyFinances(); return;
+  if(!CL._myFin){
+    // NADA guardado ainda (sala que já estava rolando quando isto entrou, ou primeiro acesso).
+    // Quem é ANFITRIÃO tem no S o próprio histórico — é dele mesmo, então vira a base do store.
+    // Quem é CONVIDADO tem no S o histórico do anfitrião — esse não é dele: começa limpo, e o
+    // extrato passa a contar a partir daqui (o que havia antes nem era dele pra perder).
+    if(!(typeof NET!=='undefined' && NET.isHost)){
+      S.finances=[]; S.seasonTotals={income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
+      S._prevPrizesCreditedSeason=null;
+    }
+    saveMyFinances(); return;
   }
   S.finances=CL._myFin.finances||[];
   if(CL._myFin.seasonTotals) S.seasonTotals=CL._myFin.seasonTotals;
