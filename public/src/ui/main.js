@@ -3950,11 +3950,15 @@ function camTempoMs(){
 function camSpeedOk(){ return camTempoMs() >= (TEMPO_MS['Ultrassônico']-1); }
 /* preferência do usuário (guardada) E velocidade compatível. A preferência NÃO é apagada quando
    a velocidade bloqueia — quem jogava de camarote volta a ele sozinho ao baixar o ritmo. */
-function camOn(){ if(CL.camarote==null){ try{ CL.camarote=(localStorage.getItem('rf98_camarote')==='1'); }catch(e){ CL.camarote=false; } }
-  return !!CL.camarote && camSpeedOk(); }
+/* O estado vive na PRÓPRIA rodada (RL.camarote), não em CL nem no localStorage: o Camarote não é
+   uma preferência que gruda — toda rodada começa na visão de tabela, e quem quiser assistir só ao
+   próprio jogo liga no interruptor de novo. Como cada rodada monta um RL novo, o padrão "desligado"
+   sai de graça, sem precisar zerar nada em startLiveRound/startCupLiveMatch/clSeatPlay. */
+function camOn(){ const RL=CL.live; return !!(RL && RL.camarote) && camSpeedOk(); }
 function camMatch(){ const RL=CL.live; return RL ? (RL.matches||[]).find(m=>m.user) : null; }
 function camToggle(){ if(!camSpeedOk()){ toastC(camSpeedHint()); return; }   // trancado pela velocidade
-  CL.camarote=!camOn(); try{ localStorage.setItem('rf98_camarote',CL.camarote?'1':'0'); }catch(e){} cdraw(); }
+  const RL=CL.live; if(!RL) return;
+  RL.camarote=!camOn(); cdraw(); }
 function camSpeedHint(){
   return CL.online
     ? '🎥 Camarote indisponível: o anfitrião está no Usain Bolt. Disponível até Ultrassônico.'
