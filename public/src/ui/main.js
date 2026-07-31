@@ -294,19 +294,17 @@ function clAdSkip(){
 function ensureSyncFunTicker(){
   if(CL._syncFunT) return;
   CL._syncFunT=setInterval(()=>{
-    const stage=$c('#rf-gif'), over=$c('#c-syncload-msg');
-    if(!stage && !over){ clearInterval(CL._syncFunT); CL._syncFunT=null; return; }
+    const stage=$c('#rf-gif');
+    if(!stage){ clearInterval(CL._syncFunT); CL._syncFunT=null; return; }
     CL._pausaTick=(CL._pausaTick||0)+1;
     if(CL._pausaTick%5===0){                                  // 5s: próximo GIF + próxima piada
       CL._pausaI=((CL._pausaI||0)+1)%Math.max(PAUSA_GIFS.length,PAUSA_JOKES.length);
       const g=pausaGif();
-      if(stage){ stage.src=g.src;
-        const cap=$c('#rf-gifcap'), num=$c('#rf-gifnum'), jk=$c('#rf-joke');
-        if(cap) cap.textContent=g.cap;
-        if(num) num.textContent=((CL._pausaI%PAUSA_GIFS.length)+1)+'/'+PAUSA_GIFS.length;
-        if(jk) jk.textContent=pausaJoke();
-      }
-      if(over) over.innerHTML=`<img class="cl-syncover-gif" src="${g.src}" alt="">`;
+      stage.src=g.src;
+      const cap=$c('#rf-gifcap'), num=$c('#rf-gifnum'), jk=$c('#rf-joke');
+      if(cap) cap.textContent=g.cap;
+      if(num) num.textContent=((CL._pausaI%PAUSA_GIFS.length)+1)+'/'+PAUSA_GIFS.length;
+      if(jk) jk.textContent=pausaJoke();
     }
     const clk=$c('#rf-clock'), pct=$c('#rf-pct'), fill=$c('#rf-fill'), chk=$c('#rf-check');
     if(clk) clk.textContent='00:'+String(pausaLeft()).padStart(2,'0');
@@ -317,15 +315,19 @@ function ensureSyncFunTicker(){
   }, 1000);
 }
 function showSyncLoading(msg){
+  // Na tela de Pausa Patrocinada NÃO mostra nada: ela já é a tela de sincronização, e o overlay
+  // por cima era o resquício do modelo anterior (um GIF solto num quadro, duplicando o que a TV
+  // já toca). Aqui o overlay serve só pra quem está em OUTRA tela (ex.: convidado mexendo no
+  // time quando a rodada fecha) — faixa discreta, sem GIF, na identidade da pausa.
+  if(CL.screen==='waitround'){ if(CL._syncLoadingTimer) clearTimeout(CL._syncLoadingTimer); return; }
   let el=$c('#c-syncload');
   if(!el){ el=document.createElement('div'); el.id='c-syncload'; document.body.appendChild(el); }
   el.className='cl-syncover';
   el.innerHTML=`<div class="cl-syncover-box">
     <div class="cl-syncover-tt">⏸ ${escC(msg||'Pausa técnica')}</div>
-    <div id="c-syncload-msg"><img class="cl-syncover-gif" src="${pausaGif().src}" alt=""></div>
     <div class="cl-syncover-sub">Sincronizando a rodada com todos os treinadores</div>
+    <div class="cl-syncover-bar"><i></i></div>
   </div>`;
-  ensureSyncFunTicker();
   // rede de segurança: nunca deixa o usuário PRESO atrás do overlay se algo no meio do
   // adopt/reconcile falhar silenciosamente antes de chamar hideSyncLoading().
   if(CL._syncLoadingTimer) clearTimeout(CL._syncLoadingTimer);
