@@ -55,6 +55,38 @@ async function netInitSupabase(){
   } catch(e) { console.warn('⚠ Supabase init erro:', e.message); return false; }
 }
 
+/* ---- CHAMADA DE EDGE FUNCTION COM RETENTATIVA DE AUTENTICAÇÃO ----
+   As functions de rodada (resolve-round/kickoff-round) sobem com verify_jwt, então o gateway
+   exige um JWT válido. O token de acesso do usuário expira no meio de uma sala longa: o
+   supabase-js renova sozinho, mas a chamada disparada no instante em que o token vence sai com
+   o token velho e leva 401. Visto em produção (31/jul/2026): dois 401 em kickoff-round seguidos
+   de um 200 no mesmo segundo — token vencido, renovação a caminho.
+   Sem esta retentativa netFetchRoundStreams devolvia null e o cliente caía na simulação local,
+   perdendo justamente o stream determinístico que a Fase 2 existe pra garantir. */
+function netIsAuthError(error){
+  const st = error && error.context && error.context.status;
+  if(st===401 || st===403) return true;
+  return /jwt|unauthor|not authorized|401/i.test((error && error.message) || '');
+}
+/* getSession() já renova o token vencido (e desduplica entre abas); refreshSession() é o plano B
+   pra sessão ausente. Refresh token revogado => false, e aí o 401 é legítimo (precisa relogar). */
+async function netRefreshAuth(){
+  try{
+    const { data } = await sb.auth.getSession();
+    if(data && data.session){ SB_AUTH_USER = data.session.user; return true; }
+    const { data:r } = await sb.auth.refreshSession();
+    if(r && r.session){ SB_AUTH_USER = r.session.user; return true; }
+  }catch(e){ console.warn('refreshAuth:', e&&e.message); }
+  return false;
+}
+async function netInvokeFn(name, body){
+  let res = await sb.functions.invoke(name, { body });
+  if(res.error && netIsAuthError(res.error) && await netRefreshAuth()){
+    res = await sb.functions.invoke(name, { body });
+  }
+  return res;
+}
+
 /* retorna {loggedIn, email, name} pra UI decidir se mostra login/cadastro ou "continuar como X" */
 function netAuthStatus(){
   if(!SB_AUTH_USER) return { loggedIn:false };
@@ -354,7 +386,7 @@ async function netPublishResult(round, result){
 async function netResolveRound(round){
   if(!sb || !NET.gameId) return { error:'sem sala' };
   try{
-    const { data, error } = await sb.functions.invoke('resolve-round', { body:{ gameId:NET.gameId, round } });
+    const { data, error } = await netInvokeFn('resolve-round', { gameId:NET.gameId, round });
     if(error) return { error: (error&&error.message)||'erro na edge function' };
     return data||{};
   }catch(e){ return { error: (e&&e.message)||'falha ao chamar resolve-round' }; }
@@ -653,7 +685,7 @@ async function netFetchKickoff(){
 async function netFetchRoundStreams(round){
   if(!sb || !NET.gameId) return null;
   try{
-    const { data, error } = await sb.functions.invoke('kickoff-round', { body:{ gameId:NET.gameId, round } });
+    const { data, error } = await netInvokeFn('kickoff-round', { gameId:NET.gameId, round });
     if(error || !data || data.error || !data.ok || !data.matches) return null;
     if(data.round!==round) return null;
     return data.matches;
