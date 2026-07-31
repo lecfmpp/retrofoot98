@@ -225,23 +225,20 @@ function btn(label,onclick,opts){ opts=opts||{}; return `<button class="cl-btn $
    Com isso: rodada termina -> loading -> classificação (uma vez) -> tela principal (uma vez, já
    atualizada). Não usa overlayC() de propósito (aquele é clicável/fechável — este não pode ser
    dispensado no meio da sincronização). */
-/* zoeira de espera — homenagens ao futebol brasileiro, sorteadas enquanto a rodada sincroniza.
-   Aparecem no overlay de sync E na tela de espera pós-partida (waitround), pra ninguém ficar
-   olhando uma tela principal DESATUALIZADA (a rodada só avança quando o servidor fecha). */
+/* espera de sincronização: o protagonista é o GIF (img/sync/, sorteado e trocado a cada ~5s);
+   embaixo, só uma legenda curta sobre a pausa. Aparece no overlay de sync E na tela de espera
+   pós-partida (waitround), pra ninguém ver a tela principal DESATUALIZADA (a rodada só avança
+   quando o servidor fecha). */
 const SYNC_FUN=[
-  ['🎙️','Galvão Bueno aquecendo o "Haja coração!"...'],
-  ['🎙️','"Bem, amigos!" — Galvão já está com os placares na mão...'],
-  ['⚽','Romário esperando na pequena área o servidor cruzar a bola...'],
-  ['🐐','Romário jura que esse gol foi de calcanhar...'],
-  ['😈','Edmundo Animal reclamando com o quarto árbitro do lag...'],
-  ['🕺','Edílson Capetinha fazendo embaixadinha pro tempo passar...'],
-  ['💤','Vampeta tirando um cochilo no vestiário enquanto a rodada fecha...'],
-  ['💰','Vampeta conferindo se o primeiro salário caiu na conta...'],
-  ['📺','Cazé abrindo a live pra anunciar os resultados...'],
-  ['🗣️','Cazé gritando "OLHA O QUE ELE FEZ!" em algum lugar do Brasil...'],
-  ['🧉','Intervalo pro cafezinho na beira do gramado...'],
-  ['📻','O radinho de pilha já sabe o placar antes de todo mundo...'],
-];
+  ['⏳','Sincronizando rodada...'],
+  ['🧮','Somando os placares...'],
+  ['🖥️','VAR conferindo os lances...'],
+  ['📋','Súmula a caminho da CBF...'],
+  ['⚽','Recolhendo as bolas do treino...'],
+  ['🌱','Molhando o gramado...'],
+  ['🚿','Elenco no banho pós-jogo...'],
+  ['🥤','Pausa pro isotônico...'],
+]
 function syncFunHTML(){ const f=SYNC_FUN[Math.floor(Math.random()*SYNC_FUN.length)];
   return `<span class="cl-syncfun-ic">${f[0]}</span> ${escC(f[1])}`; }
 /* GIFs de zoeira na espera: qualquer arquivo img/sync/sync1.gif..sync12.gif que EXISTIR entra
@@ -277,8 +274,7 @@ function ensureSyncFunTicker(){
     const a=$c('#c-syncload-msg'), b=$c('#cl-waitfun-msg');
     if(!a && !b){ clearInterval(CL._syncFunT); CL._syncFunT=null; return; }
     const h=syncFunHTML(); if(a) a.innerHTML=h; if(b) b.innerHTML=h;
-    CL._syncFunN=(CL._syncFunN||0)+1;
-    if(CL._syncFunN%3===0 && (CL._syncGifs||[]).length){   // GIF novo a cada ~8s (3 frases)
+    if((CL._syncGifs||[]).length){                          // GIF novo junto com a legenda
       const gh=syncGifHTML(), ga=$c('#c-syncload-gif'), gb=$c('#cl-waitfun-gif');
       if(ga) ga.innerHTML=gh; if(gb) gb.innerHTML=gh;
     }
@@ -286,15 +282,14 @@ function ensureSyncFunTicker(){
     // é ele que levava o usuário pra tela principal desatualizada sem necessidade.
     const skip=$c('#cl-waitfun-skip');
     if(skip && (nowMs()-(CL._waitSince||nowMs()))>30000) skip.style.display='';
-  }, 2600);
+  }, 5000);
 }
 function showSyncLoading(msg){
   let el=$c('#c-syncload');
   if(!el){ el=document.createElement('div'); el.id='c-syncload'; document.body.appendChild(el); }
   el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:99999;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Tahoma,Verdana,Arial,sans-serif';
-  el.innerHTML=`<div style="text-align:center;max-width:540px;padding:20px">
+  el.innerHTML=`<div style="text-align:center;max-width:560px;padding:20px">
     <div id="c-syncload-gif">${syncGifHTML()}</div>
-    <div style="font-size:16px;font-weight:800;margin:6px 0 10px">${escC(msg||'Sincronizando a rodada...')}</div>
     <div id="c-syncload-msg" class="cl-waitfun-msg">${syncFunHTML()}</div>
   </div>`;
   ensureSyncFunTicker();
@@ -3999,8 +3994,7 @@ function scWaitRound(){
     <div class="cl-res-score">Rodada ${r} encerrada</div>
     <div id="cl-waitfun-gif">${syncGifHTML()}</div>
     <div id="cl-waitfun-msg" class="cl-waitfun-msg">${syncFunHTML()}</div>
-    <div class="cl-res-verd"><span style="opacity:.85">Sincronizando com a Resenha — a classificação aparece assim que todos os treinadores terminarem.</span></div>
-    <div class="cl-classif-autohint">segue sozinho quando a rodada fechar</div>
+    <div class="cl-classif-autohint">a classificação aparece quando a rodada fechar</div>
     <div id="cl-waitfun-skip" class="cl-cal-ok" style="display:none">${btn('Ir para o time','clWaitRoundSkip()',{icon:'⌂',cls:'cl-btn-cancel'})}</div>
   </div>`;
 }
