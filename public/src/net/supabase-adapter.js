@@ -331,7 +331,9 @@ async function netPublishResult(round, result){
   const _ct = (typeof S!=='undefined' && S && Array.isArray(S._netCounters)) ? S._netCounters : []; // contrapropostas (vendedor -> comprador)
   const _dr = (typeof S!=='undefined' && S && Array.isArray(S._netOfferDrops)) ? S._netOfferDrops : []; // baixas (aceita/recusada/contraposta)
   const payload = { round, h:result.h, a:result.a, hg:result.hg, ag:result.ag,
-    scorers:result.scorers||[], perf:result.perf||null, events:result.events||[], transfers:_tr, morale:_mo, offers:_of, counters:_ct, offerDrops:_dr };
+    scorers:result.scorers||[], perf:result.perf||null, events:result.events||[],
+    decisions:result.decisions||[], // Fase 3A: log de decisões da partida (pênalti/lesão/expulsão/substituição)
+    transfers:_tr, morale:_mo, offers:_of, counters:_ct, offerDrops:_dr };
   try{
     if(NET._claimed && NET._claimed[SB_AUTH_USER.id]){ NET._claimed[SB_AUTH_USER.id].last_result=payload; NET._claimed[SB_AUTH_USER.id].last_result_round=round; }
     await sb.from('game_seats').update({ last_result:payload, last_result_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);
@@ -356,7 +358,8 @@ async function netResolveRound(round){
 async function netPublishCupResult(round, cupResult){
   if(!sb || !NET.gameId || !SB_AUTH_USER || !cupResult || !cupResult.h || !cupResult.a || !cupResult.winner) return;
   const payload = { h:cupResult.h, a:cupResult.a, hg:cupResult.hg, ag:cupResult.ag,
-    winner:cupResult.winner, pens:cupResult.pens||null, events:cupResult.events||[] };
+    winner:cupResult.winner, pens:cupResult.pens||null, events:cupResult.events||[],
+    decisions:cupResult.decisions||[] }; // Fase 3A: log de decisões
   try{
     if(NET._claimed && NET._claimed[SB_AUTH_USER.id]){ NET._claimed[SB_AUTH_USER.id].last_cup_result=payload; NET._claimed[SB_AUTH_USER.id].last_cup_round=round; }
     await sb.from('game_seats').update({ last_cup_result:payload, last_cup_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);

@@ -2909,10 +2909,21 @@ function buildLiveMatchObject(h,a,seed,opts){
   const rkey=(S.season||1)+'-'+(S.round||0);
   const pre=(!pub && !mine && isLeague && CL._roundStreams && CL._roundStreams.key===rkey) ? (CL._roundStreams.matches[h+'-'+a]||null) : null;
   const src=pub||pre;
+  // FASE 3A: a partida do PRÓPRIO usuário roda numa SESSÃO INTERATIVA (liveMatchSession) — minuto
+  // a minuto, com as decisões (pênalti, lesão, expulsão, substituição) alterando o motor de
+  // verdade. Sem resultado pré-sorteado: fhg/fag só existem quando a sessão termina. Partidas de
+  // fundo/replay seguem como antes. (Se um resultado já foi PUBLICADO pelo adversário — pub — o
+  // replay dele vence, igual sempre: a partida já é oficial.)
+  const gate=attendanceFor(h,rnd);
+  if(!src && mine && opts.user!==false && typeof liveMatchSession==='function'){
+    const sim=liveMatchSession(h,a,seed,{importance:opts.importance});
+    return { h,a,hg:0,ag:0,idx:0,events:sim.events,att:gate.att,price:gate.price,cap:gate.cap,
+      ref:REFS_C[Math.floor(rnd()*REFS_C.length)], goals:[], incidents:[], fhg:null, fag:null, perf:null,
+      user:opts.user!==undefined?opts.user:true, div:opts.div, replay:false, sim };
+  }
   const ev = src
     ? { events:(src.events||[]).map(e=>({...e,_resolved:true})), hg:src.hg, ag:src.ag, perf:src.perf||null }
     : simEventsC(h,a,seed);
-  const gate=attendanceFor(h,rnd);
   return { h,a,hg:0,ag:0,idx:0,events:ev.events,att:gate.att,price:gate.price,cap:gate.cap,
     ref:REFS_C[Math.floor(rnd()*REFS_C.length)], goals:[], incidents:[], fhg:ev.hg, fag:ev.ag, perf:ev.perf,
     user:opts.user!==undefined?opts.user:(h===CL.clubId||a===CL.clubId), div:opts.div, replay:!!src };
@@ -2990,11 +3001,21 @@ function startCupLiveMatch(pending){
 }
 function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
   RL.minute+=1;
-  let pendingPenalty=null, pendingInjury=null;
+  // FASE 3A: sessão interativa gera os eventos AO VIVO, minuto a minuto — avança até o minuto do
+  // relógio (ou até uma decisão pendente travar). Enquanto a sessão não termina, o relógio da
+  // rodada se estende junto (o acréscimo só é sorteado aos 90'). Eventos entram em m.events
+  // (mesma referência) e são consumidos pelo laço normal abaixo — modais pausam igual sempre.
+  RL.matches.forEach(m=>{ if(m.sim && !m.sim.done){
+    while(!m.sim.pending && !m.sim.done && m.sim.minute<RL.minute){ m.sim.step(); }
+    if(!m.sim.done) RL.maxMin=Math.max(RL.maxMin, m.sim.totalMinutes || (RL.minute+2));
+    if(m.sim.done && m.sim.result){ m.fhg=m.sim.result.hg; m.fag=m.sim.result.ag; m.perf=m.sim.result.perf; }
+  } });
+  let pendingPenalty=null, pendingInjury=null, pendingRed=null;
   RL.matches.forEach(m=>{ while(m.idx<m.events.length && m.events[m.idx].min<=RL.minute){ const e=m.events[m.idx];
     const isUserSide = m.user && ((e.side==='H'&&m.h===CL.clubId)||(e.side==='A'&&m.a===CL.clubId));
     if(e.type==='penalti' && isUserSide && !e._resolved){ pendingPenalty={m,e}; break; } // não consome ainda — pausa antes, resolve pelo modal
     if(e.type==='lesao' && isUserSide && !e._resolved){ pendingInjury={m,e}; break; } // idem — precisa escolher quem entra
+    if(e.type==='cartao' && e.cardType==='vermelho' && isUserSide && !e._resolved && m.sim){ pendingRed={m,e}; break; } // expulsão do usuário: modal de reorganização (Fase 3A)
     m.idx++;
     if(e.type==='gol'){ if(e.side==='H')m.hg++; else m.ag++; m.goals.push({min:e.min,side:e.side,scorer:e.scorer,team:e.team});
       m.incidents.push({min:e.min,type:'gol',side:e.side,player:e.scorer}); }
@@ -3002,10 +3023,12 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
       m.incidents.push({min:e.min,type:'penalti',side:e.side,player:e.scorer,scored:e.scored}); }
     else if(e.type==='cartao'){ m.incidents.push({min:e.min,type:'cartao',side:e.side,player:e.player,cardType:e.cardType,reason:e.reason}); }
     else if(e.type==='lesao'){ m.incidents.push({min:e.min,type:'lesao',side:e.side,player:e.player,severity:e.severity}); }
+    else if(e.type==='sub'){ m.incidents.push({min:e.min,type:'sub',side:e.side,player:e.player,out:e.out}); }
   } });
   updateLive();
   if(pendingPenalty){ openPenaltyModal(pendingPenalty.m, pendingPenalty.e); return; }
   if(pendingInjury){ openInjuryModal(pendingInjury.m, pendingInjury.e); return; }
+  if(pendingRed){ openRedCardModal(pendingRed.m, pendingRed.e); return; }
   if(RL.minute>=45 && !RL.halftimeDone){ RL.halftimeDone=true;
     const ui=RL.matches.findIndex(m=>m.user);
     if(ui>=0 && (!CL.options || CL.options.subsIntervalo!=='Não')){ RL.paused=true; RL.sel=ui;
@@ -3043,6 +3066,18 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
 function startExtraTime(m){
   const RL=CL.live;
   RL.cup.wentExtra=true;
+  // FASE 3A: sessão interativa continua na MESMA partida — mantém quem está em campo, cartões e
+  // substituições usadas (as decisões seguem valendo na prorrogação; o relógio se estende sozinho
+  // pela regra de sessão-viva no liveTick).
+  if(m.sim){
+    m.sim.beginExtraTime();
+    RL.extraStartMinute=RL.minute;
+    RL.maxMin=RL.minute+34;
+    toastC('⏱️ Empate! Vamos pra prorrogação.');
+    cdraw();
+    CL._liveTimer=setTimeout(liveTick,900);
+    return;
+  }
   const roundLabel = RL.cup.key==='copaBrasil' ? ('copaBrasil-r'+RL.cup.bracket.round) : (RL.cup.key+'-r'+RL.cup.bracket.round);
   const seed=hashSeed(S.seed,'cup',roundLabel,RL.cup.tie.h,RL.cup.tie.a,'extra');
   const ev=simEventsC(m.h,m.a,seed,{extraTime:true});
@@ -3207,13 +3242,21 @@ function penaltySelect(name){ CL.penSel=name; cdraw(); }
 function resolvePenalty(takerName){
   const RL=CL.live; if(!RL || !RL.penEvent) return;
   if(CL._penTimer){ clearInterval(CL._penTimer); CL._penTimer=null; }
-  const e=RL.penEvent; const taker=findP(takerName,CL.clubId);
-  const oppId = RL.penMatch.h===CL.clubId ? RL.penMatch.a : RL.penMatch.h;
-  const gk=squad(oppId).find(p=>p.s==='GK')||null;
-  const R=makeRng(hashSeed(S.seed,S.round,'pen',e.min,takerName));
-  const pConv=penaltyConvChance(taker,gk);
-  const scored=R.random()<pConv;
-  e.scored=scored; e.scorer=taker?taker.n:e.scorer; e._resolved=true;
+  const e=RL.penEvent;
+  let scored;
+  if(RL.penMatch && RL.penMatch.sim){
+    // FASE 3A: a SESSÃO decide (mesma RNG determinística de sempre) e já aplica placar/artilheiro/log
+    scored=RL.penMatch.sim.applyDecision({tipo:'penalti', batedor:takerName});
+    e._resolved=true;
+  } else {
+    const taker=findP(takerName,CL.clubId);
+    const oppId = RL.penMatch.h===CL.clubId ? RL.penMatch.a : RL.penMatch.h;
+    const gk=squad(oppId).find(p=>p.s==='GK')||null;
+    const R=makeRng(hashSeed(S.seed,S.round,'pen',e.min,takerName));
+    const pConv=penaltyConvChance(taker,gk);
+    scored=R.random()<pConv;
+    e.scored=scored; e.scorer=taker?taker.n:e.scorer; e._resolved=true;
+  }
   CL.penPhase='suspense'; CL.penResultScorer=e.scorer; CL.penResultScored=scored;
   cdraw();
   CL._penRevealTimer=setTimeout(()=>penaltyReveal(scored,e.scorer), 1400);
@@ -3290,6 +3333,7 @@ function clearInjuryTimer(){ if(CL._injTimer){ clearInterval(CL._injTimer); CL._
    querer escalar qualquer reserva (ex: sacrificar um atacante pra fechar a defesa); só
    ordena os da mesma posição primeiro, pra sugerir a troca mais natural sem obrigar nada. */
 function injurySubOptions(e){
+  if((CL.subsUsed||0)>=3) return []; // Fase 3A: lesão gasta uma substituição — esgotadas, segue com 10
   const xiSet=new Set(S.xi||[]);   // pids
   let bench=squad(CL.clubId).filter(p=>!xiSet.has(p.pid) && !(p.suspended>0) && !(p.injuredMatches>0)).sort(bySquadOrder);
   // regra de 1 goleiro: se o lesionado é GOLEIRO, só oferece goleiros do banco (a menos que não
@@ -3337,6 +3381,9 @@ function resolveInjurySub(replacementPid){
   const RL=CL.live; if(!RL || !RL.injEvent || !replacementPid) return;
   clearInjuryTimer();
   const e=RL.injEvent; const rep=pById(replacementPid,CL.clubId); if(!rep) return;
+  // FASE 3A: a troca entra NO MOTOR — o time volta a ter 11 e a força recalcula com quem entrou
+  // (gasta uma substituição, como no futebol de verdade). O placar dali em diante sente a decisão.
+  if(RL.injMatch && RL.injMatch.sim){ RL.injMatch.sim.applyDecision({tipo:'lesao-sub', entraPid:replacementPid}); CL.subsUsed=(CL.subsUsed||0)+1; }
   // o lesionado é identificado pelo pid do evento (e.pid); fallback pro nome em saves/eventos antigos
   const outPid = e.pid || ((squad(CL.clubId).find(x=>x.n===e.player)||{}).pid);
   const idx=(S.xi||[]).indexOf(outPid);
@@ -3351,10 +3398,90 @@ function resolveInjuryNoSub(){
   const RL=CL.live; if(!RL || !RL.injEvent) return;
   clearInjuryTimer();
   const e=RL.injEvent; e._resolved=true;
-  toastC(`✚ ${e.player} lesionou-se — sem reservas, o time seguiu com um jogador a menos.`);
+  if(RL.injMatch && RL.injMatch.sim) RL.injMatch.sim.applyDecision({tipo:'lesao-sem-sub'}); // segue com 10 (motor já removeu o lesionado)
+  toastC(`✚ ${e.player} lesionou-se — o time seguiu com um jogador a menos.`);
   RL.paused=false; RL.injMatch=null; RL.injEvent=null; CL.injSel=null;
   cdraw();
   CL._liveTimer=setTimeout(liveTick,420);
+}
+/* ---- EXPULSÃO (Fase 3A): jogador do usuário recebe vermelho — o time JÁ perdeu ele no motor
+   (segue com 10, força recalculada). O modal deixa REORGANIZAR: sacrificar um jogador em campo
+   pra entrar um do banco (gasta uma substituição) — útil pra repor goleiro expulso ou fechar o
+   setor exposto. 12s pra decidir; padrão = seguir com 10 sem mexer. ---- */
+function openRedCardModal(m,e){ const RL=CL.live;
+  RL.paused=true; RL.redMatch=m; RL.redEvent=e; RL.sel=RL.matches.indexOf(m);
+  CL.redIn=null; CL.redOut=null;
+  CL.redDeadline=Date.now()+12000;
+  sfx('lesao'); cdraw();
+  if(CL._redTimer) clearInterval(CL._redTimer);
+  CL._redTimer=setInterval(redCardTick,200);
+}
+function redCardTick(){ const RL=CL.live;
+  if(!RL || !RL.redEvent){ clearRedTimer(); return; }
+  const left=Math.max(0,(CL.redDeadline||0)-Date.now());
+  const cd=$c('#cl-red-count'); if(cd) cd.textContent=Math.ceil(left/1000)+'s';
+  if(left<=0){ clearRedTimer(); resolveRedSkip(); }
+}
+function clearRedTimer(){ if(CL._redTimer){ clearInterval(CL._redTimer); CL._redTimer=null; } }
+function redSelect(kind,pid){ if(kind==='in')CL.redIn=pid; else CL.redOut=pid; cdraw(); }
+/* opções de quem ENTRA: goleiro expulso -> só goleiros do banco (se houver); linha -> banco de linha */
+function redCardBench(m,e){
+  if((CL.subsUsed||0)>=3 || !m.sim) return [];
+  const side=m.sim.userSide; if(!side) return [];
+  let bench=m.sim.benchOf(side).sort(bySquadOrder);
+  if(e.pos==='GK'){ const gks=bench.filter(p=>p.s==='GK'); if(gks.length) bench=gks; }
+  else bench=bench.filter(p=>p.s!=='GK');
+  return bench;
+}
+function redCardOnField(m,e){
+  if(!m.sim) return [];
+  const entra=CL.redIn?pById(CL.redIn,CL.clubId):null;
+  // quem SAI: se entra um goleiro (repondo GK expulso), sai um jogador de linha; senão nunca o goleiro
+  return m.sim.onField(m.sim.userSide).filter(p=> (entra&&entra.s==='GK') ? p.s!=='GK' : p.s!=='GK');
+}
+function resolveRedSkip(){
+  const RL=CL.live; if(!RL || !RL.redEvent) return;
+  clearRedTimer();
+  const e=RL.redEvent;
+  if(RL.redMatch && RL.redMatch.sim) RL.redMatch.sim.applyDecision({tipo:'expulsao-segue'});
+  e._resolved=true;
+  toastC(`🟥 ${e.player} expulso — o time segue com um jogador a menos.`);
+  RL.paused=false; RL.redMatch=null; RL.redEvent=null; CL.redIn=null; CL.redOut=null;
+  cdraw(); CL._liveTimer=setTimeout(liveTick,420);
+}
+function resolveRedConfirm(){
+  const RL=CL.live; if(!RL || !RL.redEvent || !CL.redIn || !CL.redOut) return;
+  clearRedTimer();
+  const e=RL.redEvent;
+  const entra=pById(CL.redIn,CL.clubId), sai=pById(CL.redOut,CL.clubId);
+  if(RL.redMatch && RL.redMatch.sim) RL.redMatch.sim.applyDecision({tipo:'expulsao-reorg', saiPid:CL.redOut, entraPid:CL.redIn});
+  CL.subsUsed=(CL.subsUsed||0)+1;
+  const idx=(S.xi||[]).indexOf(CL.redOut); if(idx>=0) S.xi[idx]=CL.redIn; // registro da escalação acompanha
+  e._resolved=true;
+  toastC(`🟥 ${e.player} expulso. ⇄ ${entra?entra.n:''} entrou no lugar de ${sai?sai.n:''} pra reorganizar.`);
+  RL.paused=false; RL.redMatch=null; RL.redEvent=null; CL.redIn=null; CL.redOut=null;
+  cdraw(); CL._liveTimer=setTimeout(liveTick,420);
+}
+function redCardHTML(m,e){
+  const secsLeft=Math.max(0, Math.ceil(((CL.redDeadline||0)-Date.now())/1000));
+  const bench=redCardBench(m,e);
+  const canReorg=bench.length>0;
+  const row=(p,kind,sel)=>`<div class="cl-pen-row ${sel?'sel':''}" onclick="redSelect('${kind}','${escC(p.pid)}')">
+      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span><span class="cl-pen-r">${p.f}</span></div>`;
+  const inRows=bench.map(p=>row(p,'in',CL.redIn===p.pid)).join('');
+  const outRows=canReorg?redCardOnField(m,e).map(p=>row(p,'out',CL.redOut===p.pid)).join(''):'';
+  return `<div class="cl-pen-overlay"><div class="cl-inj-modal" ${injuryClubStyle()}>
+    <div class="cl-inj-title"><span class="cl-inj-min">🟥</span><span>${escC(clubOf(CL.clubId).short)}</span></div>
+    <div class="cl-inj-body">
+      <div class="cl-inj-msg">${escC(e.player)} foi EXPULSO (${escC(e.reason||'')}) — o time segue com um a menos.<br>
+      ${canReorg?'Quer reorganizar? Escolha quem entra e quem sai (gasta uma substituição).':'Sem opções de reorganização.'}
+      <span id="cl-red-count" class="cl-pen-count">${secsLeft}s</span></div>
+      ${canReorg?`<div class="cl-inj-msg" style="margin-top:6px"><b>Entra:</b></div><div class="cl-pen-list">${inRows}</div>
+      <div class="cl-inj-msg" style="margin-top:6px"><b>Sai:</b></div><div class="cl-pen-list">${outRows}</div>`:''}
+      <div class="cl-pen-btn">${canReorg?btn('Reorganizar','resolveRedConfirm()',{icon:'⇄',cls:'cl-btn-ok',dis:!(CL.redIn&&CL.redOut)}):''}
+      ${btn('Seguir com 10','resolveRedSkip()',{icon:'➡',cls:'cl-btn-cancel'})}</div>
+    </div>
+  </div></div>`;
 }
 function liveSubPick(side,pid){ if(side==='out')CL.subOut=pid; else CL.subIn=pid; updateLive(); }
 function liveDoSub(){ if(!CL.subOut||!CL.subIn){ toastC('Escolha um titular e um reserva.'); return; }
@@ -3362,6 +3489,10 @@ function liveDoSub(){ if(!CL.subOut||!CL.subIn){ toastC('Escolha um titular e um
   const outP=pById(CL.subOut,CL.clubId), inP=pById(CL.subIn,CL.clubId);   // subOut/subIn = pids
   if(outP&&inP&&(inP.s==='GK')!==(outP.s==='GK')){ // mantém exatamente 1 goleiro em campo
     toastC(inP.s==='GK'?'Já tem um goleiro em campo — troque goleiro por goleiro.':'Só troque o goleiro por outro goleiro.'); return; }
+  // FASE 3A: a substituição entra NO MOTOR — quem entra joga com a energia/força dele já no
+  // próximo minuto (antes só mudava o registro S.xi; o placar não sentia a troca).
+  const _um=(CL.live&&CL.live.matches||[]).find(x=>x.user&&x.sim);
+  if(_um) _um.sim.applyDecision({tipo:'sub', saiPid:CL.subOut, entraPid:CL.subIn});
   S.xi=(S.xi||[]).map(x=>x===CL.subOut?CL.subIn:x); CL.subsUsed=(CL.subsUsed||0)+1;
   if(outP&&inP) toastC(inP.n.split(' ').slice(-1)[0]+' entrou no lugar de '+outP.n.split(' ').slice(-1)[0]); CL.subOut=CL.subIn=null; updateLive(); }
 function txtOn(hex){ return lumin(hex)>0.58?'#111':'#fff'; }
@@ -3457,12 +3588,13 @@ function matchStatsHTML(m){
 }
 function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a);
   const shooting=!!RL.pensPicking;
-  const halftime=(RL.paused && m.user && !RL.penEvent && !RL.injEvent && !RL.pens);
+  const halftime=(RL.paused && m.user && !RL.penEvent && !RL.injEvent && !RL.redEvent && !RL.pens);
   const penalty=(RL.penEvent && RL.penMatch===m);
   const injury=(RL.injEvent && RL.injMatch===m);
+  const red=(RL.redEvent && RL.redMatch===m);
   // replay (ver buildLiveMatchObject): o resultado já é oficial, publicado pelo adversário humano —
   // substituições aqui não mudariam nada (os eventos futuros já estão fixados), então nem mostra o painel.
-  const showSubs = m.user && !m.replay && !penalty && !injury && !shooting && (halftime || CL.subPanelOpen);
+  const showSubs = m.user && !m.replay && !penalty && !injury && !red && !shooting && (halftime || CL.subPanelOpen);
   const incHTML=incidentLines(m);
   const subsLeft=Math.max(0,3-(CL.subsUsed||0));
   // botões de ação ficam FORA de .cl-lm-top de propósito: esse é um flex row com os
@@ -3470,7 +3602,7 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
   // (align-items:stretch) — com muitos incidentes na partida, isso inflava os botões
   // junto (mesmo com o teto de altura em .cl-lm-events). Como bloco separado abaixo,
   // os botões mantêm sempre o próprio tamanho natural, disputa alguma seja a duração do jogo.
-  const actionsHTML=(penalty||injury||shooting)?'':`<div class="cl-lm-cont" style="grid-template-columns:${m.user && !halftime ? 'repeat(3,1fr)' : '1fr 1fr'}">
+  const actionsHTML=(penalty||injury||red||shooting)?'':`<div class="cl-lm-cont" style="grid-template-columns:${m.user && !halftime ? 'repeat(3,1fr)' : '1fr 1fr'}">
         ${(m.user && !halftime)?btn(showSubs?'Fechar substituições':`Substituições (${subsLeft})`,'clToggleSubPanel()',{icon:'⇄',cls:'cl-btn-ok',dis:subsLeft<=0&&!showSubs}):''}
         ${m.user?btn('Compartilhar','clShareResult()',{icon:'📤',cls:'cl-btn-cancel cl-noshot'}):''}
         ${btn('Continuar','liveContinue()',{icon:'✔',cls:'cl-btn-ok'})}
@@ -3487,7 +3619,7 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
     ${halftimeTimerHTML}
     ${actionsHTML}
     ${showSubs?subPanelHTML(m):''}
-    ${penalty?penaltyPickerHTML():''}${injury?injurySubHTML(m,RL.injEvent):''}${shooting?shootoutPickerHTML():''}`;
+    ${penalty?penaltyPickerHTML():''}${injury?injurySubHTML(m,RL.injEvent):''}${red?redCardHTML(m,RL.redEvent):''}${shooting?shootoutPickerHTML():''}`;
 }
 function clToggleSubPanel(){ CL.subPanelOpen=!CL.subPanelOpen; CL.subOut=CL.subIn=null; cdraw(); }
 /* ---- modal clássico de pênalti: escolhe o batedor, com contagem regressiva de 10s ---- */
@@ -3590,6 +3722,8 @@ function incidentLines(m){
       const ic=inc.cardType==='vermelho'?'🟥':'🟨';
       const suf=inc.reason==='segundo amarelo'?' (2º amarelo)':'';
       return {min:inc.min,html:`${ic} ${escC(inc.player)}${suf} ${inc.min}'`}; }
+    if(inc.type==='sub'){
+      return {min:inc.min,html:`⇄ ${escC(inc.player)} entrou${inc.out?` (${escC(inc.out)} saiu)`:''} ${inc.min}'`}; }
     if(inc.type==='lesao'){
       const suf=inc.severity==='grave'?' (grave)':'';
       return {min:inc.min,html:`✚ ${escC(inc.player)}${suf} ${inc.min}'`}; }
@@ -4031,7 +4165,8 @@ function finishLiveRound(){
   if(CL.online && typeof NET!=='undefined' && NET.publishResult){
     const um = uf ? RL.matches.find(m=>m.h===uf[0]&&m.a===uf[1]) : null;
     const myResult = (uf && userResult) ? { h:uf[0], a:uf[1], hg:userResult.hg, ag:userResult.ag,
-      scorers:userResult.scorers||[], perf:userResult.perf||null, events:(um&&um.events)||[] } : null;
+      scorers:userResult.scorers||[], perf:userResult.perf||null, events:(um&&um.events)||[],
+      decisions:(um&&um.sim&&um.sim.decisions)||[] } : null; // Fase 3A: log de decisões viaja junto (replay/auditoria na 3B)
     NET.publishResult(S.round, myResult || { h:null, a:null, bye:true }); // marcador de folga não trava nada
     if(NET.isHost){ CL._hostPendingCommit = { RL, userResult, audit:_auditPayload, round:S.round, uf }; }
     // F3.3: guarda os inputs de finança do MEU clube pra aplicar ao ADOTAR a rodada do servidor
@@ -4348,7 +4483,7 @@ function finishCupLiveMatch(){
     // no fluxo atual (host-autoritativo via NET.saveGame) nada lê essa coluna ainda; entra em
     // vigor no cutover pro servidor. Só copas de mata-mata (grupos são Série A -> futuro).
     if(CL.online && typeof NET!=='undefined' && NET.publishCupResult){
-      NET.publishCupResult(S.round, { h:t.h, a:t.a, hg:m.hg, ag:m.ag, winner, pens, events:m.events });
+      NET.publishCupResult(S.round, { h:t.h, a:t.a, hg:m.hg, ag:m.ag, winner, pens, events:m.events, decisions:(m.sim&&m.sim.decisions)||[] });
     }
     const userWon=(winner===CL.clubId);
     if(wentToPens){

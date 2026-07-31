@@ -322,6 +322,226 @@ function resolveDrawnKnockoutTie(homeId,awayId,seed,hg,ag){
   return {hg,ag,winner,wentToExtra:true,wentToPens:true,pens:{h:pH,a:pA}};
 }
 
+/* ===================================================================
+   SESSÃO INTERATIVA (Fase 3A) — a partida do PRÓPRIO usuário simulada
+   minuto a minuto AO VIVO, com decisões que alteram o jogo DE VERDADE:
+   - lesão -> substituto devolve o 11º em campo e recalcula a força do time;
+   - expulsão -> segue com 10, mas dá pra reorganizar (troca um jogador de
+     linha por um do banco, gastando uma substituição) e a força recalcula;
+   - substituição tática -> ratings recalculados com a energia de quem entra;
+   - pênalti -> como sempre (batedor escolhido decide o resultado, RNG
+     determinística hashSeed(seed, rodada, 'pen', min, batedor)).
+   O placar/os eventos dos minutos seguintes derivam do estado ATUAL do time
+   (efeito borboleta desejado). Tudo fica registrado em `decisions` (log
+   pequeno, publicado junto do resultado — base da Fase 3B pra replay/
+   auditoria). Log vazio ≈ motor clássico: o stream pré-computado da Fase 2
+   segue sendo o fallback correto pra partida NÃO jogada.
+   Partidas em segundo plano continuam com simulateMatch/simEventsC — esta
+   sessão só roda pra partida que o usuário joga (é autoritativa: o resultado
+   publicado dela vence no servidor, então não precisa de paridade com nada).
+   =================================================================== */
+/* ratings a partir dos jogadores EM CAMPO — espelha ratings() (index.html):
+   engForce comprimido + energia + moral baixa derruba o time todo. */
+function sessionRatingsFromPlayers(players){
+  const eF=(typeof REBAL!=='undefined'&&REBAL.engForce)?REBAL.engForce:(f=>f);
+  const eFG=(typeof REBAL!=='undefined'&&REBAL.engForceGK)?REBAL.engForceGK:eF;
+  const bySec=s=>players.filter(p=>p.s===s);
+  const avg=a=>a.length?a.reduce((s,p)=>s+eF(p.f)*(0.6+0.4*(p.energy!=null?p.energy:100)/100),0)/a.length:28;
+  const avgGK=a=>a.length?a.reduce((s,p)=>s+eFG(p.f)*(0.6+0.4*(p.energy!=null?p.energy:100)/100),0)/a.length:28;
+  let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avgGK(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
+  const mor=players.length?players.reduce((s,p)=>s+(p.moral!=null?p.moral:70),0)/players.length:70;
+  if(mor<50){OS*=0.85;MS*=0.85;DS*=0.85;}
+  return {OS,MS,DS,mor};
+}
+function liveMatchSession(homeId, awayId, seed, opts){
+  opts=opts||{};
+  let R=makeRng((seed!=null?seed:matchSeed(homeId,awayId))>>>0);
+  const userClubId=opts.userClubId||S.clubId;
+  const userSide = homeId===userClubId?'H' : awayId===userClubId?'A' : null;
+  // quem está EM CAMPO agora (mutável — substituições mexem aqui de verdade)
+  const cur={H:availableXI(homeId).slice(), A:availableXI(awayId).slice()};
+  const clubIdOf={H:homeId, A:awayId};
+  const betaH=TACTIC_BETA[tacticForClub(homeId)], betaA=TACTIC_BETA[tacticForClub(awayId)];
+  const homeAdv=homeAdvantage(homeId);
+  const derby=(typeof clubOf==='function') && isDerby((clubOf(homeId)||{}).short,(clubOf(awayId)||{}).short);
+  const sd=ENG.sd*(derby?1.18:1)*(opts.importance?1.12:1);
+  // ratings BASE recalculados a cada mudança de elenco em campo (aqui as decisões "entram" no motor)
+  const rat={H:null,A:null}, nMid={H:0,A:0};
+  function recompute(side){
+    const em=formationEmphasis(cur[side]);
+    const r0=sessionRatingsFromPlayers(cur[side]);
+    rat[side]={OS:r0.OS*em.OS, MS:r0.MS*em.MS, DS:r0.DS*em.DS, mor:r0.mor};
+    nMid[side]=em.nMID;
+  }
+  recompute('H'); recompute('A');
+  const cardState={H:new Map(),A:new Map()}, menOnField={H:11,A:11};
+  const subsUsed={H:0,A:0};
+  let pos=0, hg=0, ag=0, extraBase=null, regularEnd=null;
+  const scorers=[], events=[], decisions=[];
+  const perf={H:{poss:0,shots:0,chances:0,big:0,goals:0}, A:{poss:0,shots:0,chances:0,big:0,goals:0}};
+  const session={ minute:0, done:false, pending:null, totalMinutes:null, events, decisions, result:null,
+    subsLeft:(side)=>Math.max(0,3-subsUsed[side||userSide||'H']),
+    onField:(side)=>cur[side].slice(), userSide };
+  function teamPenalty(side){ const n=menOnField[side]; return n>=11?1:n===10?0.90:n===9?0.78:0.65; }
+  function effRat(side){ const b=rat[side]; const tp=teamPenalty(side); return {OS:b.OS*tp, MS:b.MS*tp, DS:b.DS*tp}; }
+  function currentMu(){ return matchMu(effRat('H'), effRat('A'), betaH, betaA, {nMidH:nMid.H, nMidA:nMid.A, homeAdv}); }
+  function dispMin(){ return extraBase!=null ? 90+(session.minute-extraBase) : session.minute; }
+  function scorerFrom(id,players){ const atk=players.filter(p=>p.s==='ATT'||p.s==='MID');
+    const pool=atk.length?atk:players; let tot=pool.reduce((s,p)=>s+p.f,0), r=R.random()*tot;
+    for(const p of pool){r-=p.f;if(r<=0)return p;} return pool[0]; }
+  function pickFoulPlayer(side){ const pool=cur[side].filter(p=>p.s!=='GK');
+    const list=pool.length?pool:cur[side]; if(!list.length) return null;
+    const w=p=>(110-p.f)*(BEHAVIOR_CARD_MULT[p.behavior]||1);
+    let tot=list.reduce((s,p)=>s+w(p),0), r=R.random()*tot;
+    for(const p of list){ r-=w(p); if(r<=0) return p; } return list[list.length-1]; }
+  function removeFromField(side,p){ const i=cur[side].findIndex(x=>x.pid===p.pid||x.n===p.n); if(i>=0) cur[side].splice(i,1); }
+  function benchOf(side){ // elenco disponível que ainda não entrou em campo nesta partida
+    const usedIds=new Set(events.filter(e=>e._enteredPid).map(e=>e._enteredPid));
+    const onIds=new Set(cur[side].map(p=>p.pid));
+    return squad(clubIdOf[side]).filter(p=>!onIds.has(p.pid) && !usedIds.has(p.pid) && !(p.suspended>0) && !(p.injuredMatches>0) && !events.some(e=>(e.type==='lesao'||e.cardType==='vermelho') && e.pid===p.pid));
+  }
+  session.benchOf=benchOf;
+  function pushEv(ev){ ev._resolved = ev._resolved!==false; events.push(ev); return ev; }
+  function tickMinute(stoppage){
+    session.minute++;
+    const mu=currentMu();
+    pos=clamp(pos*ENG.rev + R.gauss(mu,sd), -1.15, 1.15);
+    perf[pos>0?'H':'A'].poss++;
+    let ev=null;
+    const home=pos>0; const hSide=home?'H':'A';
+    if(Math.abs(pos)>=ENG.danger && R.random() < ENG.shot*((Math.abs(pos)-ENG.danger)/(1.15-ENG.danger)+0.15)){
+      const atkId=home?homeId:awayId;
+      const eA=effRat(hSide), eD=effRat(home?'A':'H');
+      const atkIdx=atkIndex(eA.OS,eA.MS), defIdx=defIndex(eD.DS,eD.MS);
+      const atkPool=cur[hSide];
+      perf[hSide].shots++;
+      if(R.random()<ENG.penaltyChance){
+        perf[hSide].big++;
+        const defSide=home?'A':'H'; const gk=cur[defSide].find(p=>p.s==='GK')||null;
+        if(hSide===userSide){
+          // PÊNALTI DO USUÁRIO: fica PENDENTE — o batedor escolhido no modal decide o resultado
+          // (applyDecision). A sessão não avança até a decisão chegar.
+          ev=pushEv({type:'penalti',side:hSide,min:dispMin(),team:atkId,scorer:null,gk:gk?gk.n:null,scored:null,stoppage,_resolved:false});
+          session.pending={kind:'penalti',ev,gk};
+        } else {
+          const taker=pickPenaltyTaker(atkPool,R);
+          const pConv=penaltyConvChance(taker,gk);
+          const scored=R.random()<pConv;
+          if(scored){ if(home){hg++;}else{ag++;} perf[hSide].goals++; scorers.push({id:atkId,name:taker.n,pid:taker.pid,min:dispMin()}); pos=home?-0.15:0.15; }
+          ev=pushEv({type:'penalti',side:hSide,min:dispMin(),team:atkId,scorer:taker?taker.n:null,scorerPid:taker?taker.pid:null,gk:gk?gk.n:null,scored,stoppage});
+        }
+      } else {
+        const sc=scorerFrom(atkId, atkPool);
+        const conv=shotConv(atkIdx,defIdx,sc.moral);
+        if(conv>=0.5) perf[hSide].big++;
+        if(R.random()<conv){
+          if(home){hg++;}else{ag++;} perf[hSide].goals++;
+          scorers.push({id:atkId,name:sc.n,pid:sc.pid,min:dispMin()}); pos=home?-0.15:0.15;
+          ev=pushEv({type:'gol',side:hSide,min:dispMin(),scorer:sc.n,scorerPid:sc.pid,team:atkId,stoppage});
+        } else { perf[hSide].chances++; ev=pushEv({type:'chance',side:hSide,min:dispMin(),scorer:sc.n,scorerPid:sc.pid,team:atkId,pos}); }
+      }
+    } else if(R.random()<0.022){
+      const foulSide=home?'A':'H'; const foulTeam=foulSide==='H'?homeId:awayId;
+      const p=pickFoulPlayer(foulSide);
+      if(p){
+        const direct=R.random()<0.035;
+        const second=!direct && cardState[foulSide].get(p.n)==='amarelo';
+        if(direct||second){
+          // EXPULSÃO: o jogador SAI DE CAMPO DE VERDADE (o time recalcula sem ele e joga com 10).
+          // Se for do usuário, pausa pro modal de reorganização (applyDecision decide).
+          if(second) cardState[foulSide].set(p.n,'vermelho');
+          removeFromField(foulSide,p); menOnField[foulSide]=Math.max(6,menOnField[foulSide]-1); recompute(foulSide);
+          const isUser=foulSide===userSide;
+          ev=pushEv({type:'cartao',side:foulSide,min:dispMin(),team:foulTeam,player:p.n,pid:p.pid,pos:p.s,cardType:'vermelho',reason:direct?'direto':'segundo amarelo',_resolved:!isUser});
+          if(isUser) session.pending={kind:'vermelho',ev,player:p};
+        } else {
+          cardState[foulSide].set(p.n,'amarelo');
+          ev=pushEv({type:'cartao',side:foulSide,min:dispMin(),team:foulTeam,player:p.n,pid:p.pid,pos:p.s,cardType:'amarelo',reason:null});
+        }
+      }
+    } else if(R.random()<0.0026){
+      const side=R.random()<0.5?'H':'A'; const team=side==='H'?homeId:awayId;
+      const pool=cur[side];
+      if(pool.length){
+        const wInj=p=>BEHAVIOR_INJURY_MULT[p.behavior]||1;
+        let tot=pool.reduce((s,p)=>s+wInj(p),0), r=R.random()*tot, p=pool[pool.length-1];
+        for(const cand of pool){ r-=wInj(cand); if(r<=0){ p=cand; break; } }
+        const grave=R.random()<0.30;
+        const outMatches=grave?Math.floor(R.rnd(2,5)):(R.random()<0.5?1:0);
+        // LESÃO: sai de campo de verdade; usuário escolhe quem entra (devolve o 11º + recalcula).
+        removeFromField(side,p); menOnField[side]=Math.max(6,menOnField[side]-1); recompute(side);
+        const isUser=side===userSide;
+        ev=pushEv({type:'lesao',side,min:dispMin(),team,player:p.n,pid:p.pid,pos:p.s,severity:grave?'grave':'leve',outMatches,_resolved:!isUser});
+        if(isUser) session.pending={kind:'lesao',ev,player:p};
+      }
+    }
+    return ev;
+  }
+  session.step=function(){
+    if(session.done || session.pending) return null;
+    const regular = extraBase!=null ? extraBase+30 : 90;
+    const stoppage = regularEnd!=null;
+    const ev=tickMinute(stoppage);
+    if(regularEnd==null && session.minute>=regular){
+      const add=Math.floor(R.rnd(1, extraBase!=null?4:5));
+      regularEnd=regular; session.totalMinutes=regular+add;
+    }
+    if(session.totalMinutes!=null && session.minute>=session.totalMinutes && !session.pending){
+      session.done=true;
+      session.result={hg,ag,scorers,perf,events,decisions};
+    }
+    return ev;
+  };
+  /* prorrogação AO VIVO na MESMA sessão: mantém elenco em campo, cartões e substituições usadas
+     (mais correto que o modelo antigo, que re-escalava do zero). RNG nova ('extra') pra manter a
+     mesma família de seeds do desempate em segundo plano. */
+  session.beginExtraTime=function(){
+    R=makeRng(hashSeed(seed,'extra'));
+    extraBase=session.minute; regularEnd=null; session.totalMinutes=null;
+    session.done=false; session.result=null;
+  };
+  /* DECISÕES DO USUÁRIO — cada uma entra no log e muda o estado do motor dali em diante */
+  session.applyDecision=function(d){
+    d=d||{};
+    const side=userSide||'H';
+    const findBench=pid=>squad(clubIdOf[side]).find(p=>p.pid===pid)||null;
+    let out=null;
+    if(d.tipo==='penalti'){
+      const p=session.pending; if(!p||p.kind!=='penalti') return null;
+      const taker=cur[side].find(x=>x.n===d.batedor)||squad(clubIdOf[side]).find(x=>x.n===d.batedor)||null;
+      const R2=makeRng(hashSeed(S.seed,S.round,'pen',p.ev.min,d.batedor));
+      const scored=R2.random()<penaltyConvChance(taker,p.gk);
+      p.ev.scored=scored; p.ev.scorer=taker?taker.n:d.batedor; p.ev.scorerPid=taker?taker.pid:null;
+      if(scored){ if(side==='H'){hg++;}else{ag++;} perf[side].goals++; scorers.push({id:clubIdOf[side],name:p.ev.scorer,pid:p.ev.scorerPid,min:p.ev.min}); pos=side==='H'?-0.15:0.15; }
+      out=scored;
+    } else if(d.tipo==='lesao-sub'){
+      const p=session.pending; if(!p||p.kind!=='lesao') return null;
+      const rep=findBench(d.entraPid);
+      if(rep){ cur[side].push(rep); menOnField[side]=Math.min(11,menOnField[side]+1); subsUsed[side]++; recompute(side);
+        p.ev._enteredPid=rep.pid; out=true; }
+    } else if(d.tipo==='expulsao-reorg'){
+      const p=session.pending; if(!p||p.kind!=='vermelho') return null;
+      const sai=cur[side].find(x=>x.pid===d.saiPid), entra=findBench(d.entraPid);
+      if(sai&&entra){ removeFromField(side,sai); cur[side].push(entra); subsUsed[side]++; recompute(side);
+        p.ev._enteredPid=entra.pid; out=true; }
+    } else if(d.tipo==='sub'){
+      // substituição tática (a qualquer momento / intervalo): energia e setor de quem entra
+      // passam a valer JÁ no próximo minuto
+      const sai=cur[side].find(x=>x.pid===d.saiPid), entra=findBench(d.entraPid);
+      if(!sai||!entra||session.subsLeft(side)<=0) return null;
+      removeFromField(side,sai); cur[side].push(entra); subsUsed[side]++; recompute(side);
+      pushEv({type:'sub',side,min:dispMin(),team:clubIdOf[side],player:entra.n,pid:entra.pid,out:sai.n,_enteredPid:entra.pid});
+      out=true;
+    } else if(d.tipo==='lesao-sem-sub'||d.tipo==='expulsao-segue'){ out=true; }
+    // 'lesao-sem-sub' e 'expulsao-segue': só destravam (o time segue com um a menos)
+    decisions.push({min:(session.pending&&session.pending.ev)?session.pending.ev.min:dispMin(), tipo:d.tipo,
+      batedor:d.batedor||null, saiPid:d.saiPid||null, entraPid:d.entraPid||null, scored:(d.tipo==='penalti')?out:null});
+    if(session.pending && d.tipo!=='sub'){ session.pending.ev._resolved=true; session.pending=null; }
+    return out;
+  };
+  return session;
+}
+
 /* simulate a full CPU match instantly */
 function quickSim(homeId,awayId,seed){
   let res=null;
