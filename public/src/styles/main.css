@@ -951,11 +951,18 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .rf-tv{position:relative;height:100%;aspect-ratio:640/437;max-width:100%;margin-top:48px;z-index:2;filter:drop-shadow(0 10px 22px rgba(0,0,0,.5))}
 .rf-tvimg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;z-index:2;pointer-events:none}
 .rf-tvscreen{position:absolute;left:16.4%;top:22.9%;width:53.3%;height:56.1%;overflow:hidden;background:#000;border-radius:11%/15%;z-index:3}
-/* ENCAIXA o GIF inteiro na tela da TV (contain, não cover): os clipes têm proporções bem
-   diferentes — de 220x124 deitado a 430x498 em pé — e recortar pra preencher cortava a jogada
-   (no 430x498 sumia ~40% da altura). O fundo preto do tubo faz as sobras parecerem a tarja
-   natural de um CRT, então nada fica "faltando" na cena. */
-.rf-gif{width:100%;height:100%;object-fit:contain;object-position:center;display:block;background:#000}
+/* TELA PREENCHIDA, CLIPE INTEIRO.
+   O clipe segue em `contain` porque as proporções variam demais — de 220x124 deitado a 430x498
+   em pé, contra uma tela de ~1.39. Recortar pra preencher (cover) tirava ~38% da altura dos
+   verticais e decapitava a cena. Mas o preto morto nas laterais denunciava a moldura.
+   Solução: uma CÓPIA do mesmo GIF ao fundo, em cover, desfocada e escurecida — o tubo fica
+   cheio de ponta a ponta (parece TV de verdade) e nada do clipe é cortado. É o mesmo truque
+   que player de vídeo usa pra letterbox. */
+.rf-gifbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;
+  display:block;z-index:0;pointer-events:none;
+  filter:blur(14px) saturate(1.3) brightness(.62);
+  transform:scale(1.18)}          /* escala pra o blur não deixar borda transparente */
+.rf-gif{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;object-position:center;display:block}
 .rf-tvglass{position:absolute;inset:0;z-index:3;pointer-events:none;border-radius:11%/15%;
   background:linear-gradient(128deg,rgba(255,255,255,.20) 0%,rgba(255,255,255,.06) 26%,rgba(255,255,255,0) 46%),
     radial-gradient(120% 95% at 50% 50%,rgba(0,0,0,0) 55%,rgba(0,0,0,.45) 100%),

@@ -329,6 +329,7 @@ function ensureSyncFunTicker(){
       CL._pausaI=((CL._pausaI||0)+1)%Math.max(PAUSA_GIFS.length,PAUSA_JOKES.length);
       const g=pausaGif();
       stage.src=g.src;
+      const bg=$c('#rf-gifbg'); if(bg) bg.src=g.src;   // fundo desfocado acompanha o clipe
       const cap=$c('#rf-gifcap'), num=$c('#rf-gifnum'), jk=$c('#rf-joke');
       if(cap) cap.textContent=g.cap;
       if(num) num.textContent=((CL._pausaI%PAUSA_GIFS.length)+1)+'/'+PAUSA_GIFS.length;
@@ -5001,6 +5002,7 @@ function scWaitRound(){
           <span class="rf-room"></span><span class="rf-roomtint"></span>
           <div class="rf-tv">
             <div class="rf-tvscreen">
+              <img class="rf-gifbg" id="rf-gifbg" src="${g.src}" alt="" aria-hidden="true">
               <img class="rf-gif" id="rf-gif" src="${g.src}" alt="">
               <span class="rf-tvglass"></span>
             </div>
