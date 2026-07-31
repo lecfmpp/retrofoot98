@@ -799,6 +799,12 @@ function settleMyOutgoingOffers(){
     if(arrived){
       S.budget-=o.fee; commitBudget();
       S.roundNews=S.roundNews||[]; S.roundNews.push(`✍️ Proposta aceita: ${o.playerName} chegou por ${fmt(o.fee)}.`);
+      // LANÇA nas finanças. Contratação vinda de OUTRO HUMANO é fechada no cliente do vendedor
+      // (acceptIncomingOffer), e do lado do comprador só o caixa era debitado aqui — a compra não
+      // aparecia em "transações recentes" nem virava e-mail, ao contrário de toda outra compra
+      // (negociação com CPU, leilão), que grava a sua entrada.
+      const vendedor=(clubOf(o.sellerId)||{}).short||'outro clube';
+      pushFinanceEntry({playerPurchases:o.fee, log:[`✍️ ${o.playerName} contratado do ${vendedor} por ${fmt(o.fee)}.`]});
       return;
     }
     if(S.round>o.expiresRound) return; // recusada/ignorada -> só sai da lista
