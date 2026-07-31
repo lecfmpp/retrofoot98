@@ -47,7 +47,14 @@ async function netInitSupabase(){
       // servidor destrói a sessão antiga — mas a aba antiga continuava se achando logada, mandando
       // um token de sessão inexistente ("Session not found") em toda chamada. Manter em sincronia é
       // o que permite detectar isso (ver netInvokeFn) em vez de degradar calado.
-      if(event==='SIGNED_OUT'){ SB_AUTH_USER = null; return; }
+      if(event==='SIGNED_OUT'){
+        SB_AUTH_USER = null;
+        // dispara também quando OUTRA aba faz logout (ou troca de conta) e quando o refresh token
+        // é revogado. Na Resenha isso é fim de jogo pro sincronismo: volta pro login. O guard de
+        // CL.online dentro de netHandleSessionLost protege o signOut de sessão anônima do init.
+        netHandleSessionLost();
+        return;
+      }
       if(session && session.user) SB_AUTH_USER = session.user;
     });
     const { data:{ session } } = await sb.auth.getSession();
@@ -100,8 +107,13 @@ async function netInvokeFn(name, body){
 }
 /* Sessão morta não é um detalhe silencioso: sem ela a rodada da Resenha perde o stream
    determinístico do servidor e cada cliente simula por conta própria — os jogadores da sala
-   começam a ver partidas diferentes. Avisa UMA vez (não a cada rodada) pra não virar spam. */
+   começam a ver partidas diferentes.
+   Na RESENHA isso derruba pro login (netHandleSessionLost): não há como seguir sincronizado.
+   Fora dela (Solo) basta o aviso — a sessão não faz falta durante a partida. Nem sempre chega um
+   SIGNED_OUT: quando o token aponta pra uma sessão destruída por outra aba, o supabase-js segue
+   se achando logado e só o 401 da function denuncia. Por isso a detecção mora nos DOIS lugares. */
 function netWarnDeadSession(){
+  if(typeof CL!=='undefined' && CL.online){ netHandleSessionLost(); return; }
   if(CL._deadSessionWarned) return;
   CL._deadSessionWarned = true;
   console.warn('Sessão do Supabase inválida — a rodada vai ser simulada localmente. Entre de novo pra voltar a sincronizar.');
@@ -1153,6 +1165,31 @@ function netHandleKicked(){
   if(typeof CL!=='undefined'){ CL.online=false; CL.humans={}; }
   if(typeof toastC==='function') toastC('⚠ Você foi removido da sala pelo anfitrião.');
   if(typeof CL!=='undefined') CL.screen='abertura';
+  if(typeof cdraw==='function') cdraw();
+}
+/* ---- SESSÃO PERDIDA NO MEIO DA RESENHA ----
+   Mesma desmontagem do expulso (netHandleKicked), mas o destino é o LOGIN. Sem sessão válida
+   nada mais do sincronismo funciona: não dá pra salvar o estado, publicar o resultado da partida
+   nem pedir a rodada ao servidor — o RLS recusa tudo. Continuar na sala só produziria uma partida
+   que nenhum outro jogador enxerga, e o silêncio disso é pior que a interrupção.
+   Só age na RESENHA: no Solo a sessão não participa de nada durante o jogo, então derrubar o
+   usuário ali seria perder a partida dele à toa. */
+function netHandleSessionLost(){
+  if(typeof CL==='undefined' || !CL.online) return;
+  if(CL._sessionLostHandled) return;   // um aviso por sessão perdida, não um por chamada que falha
+  CL._sessionLostHandled = true;
+  try{ if(SB_CH){ if(SB_CH.untrack) SB_CH.untrack(); sb.removeChannel(SB_CH); } }catch(e){}
+  SB_CH=null; SB_ONLINE={}; SB_AUTH_USER=null;
+  NET.room=null; NET.gameId=null; NET.isHost=false; NET.onState=null; NET.onChat=null;
+  // para os relógios da partida ao vivo: liveTick sai sozinho sem CL.live, mas os timers de
+  // lesão/pênalti/classificação ficariam batendo numa tela que não existe mais.
+  CL.online=false; CL.humans={}; CL.live=null;
+  ['_liveTimer','_classifTimer','_cupFlowTimer','_cupDrawTimer','_injTimer','_penTimer'].forEach(k=>{
+    if(CL[k]){ clearTimeout(CL[k]); clearInterval(CL[k]); CL[k]=null; }
+  });
+  if(typeof toastC==='function') toastC('⚠ Sua sessão expirou — entre de novo pra voltar à Resenha');
+  CL.auth={ mode:'login', name:CL.mgr||'', email:'', password:'' };
+  CL.screen='login';
   if(typeof cdraw==='function') cdraw();
 }
 
