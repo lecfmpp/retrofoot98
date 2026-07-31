@@ -236,6 +236,9 @@ const PAUSA_GIFS=[
   { src:'img/sync/sync2.gif', cap:'ROMÁRIO — O BAIXINHO PEDINDO A BOLA NA ÁREA' },
   { src:'img/sync/sync3.gif', cap:'EDMUNDO — O ANIMAL COMEMORANDO NA GERAL' },
   { src:'img/sync/sync4.gif', cap:'CAMISA 10 DO VASCO — CLÁSSICO DE SÃO JANUÁRIO' },
+  { src:'img/sync/sync5.gif', cap:'EDÍLSON CAPETINHA — EMBAIXADINHA NO CLÁSSICO' },
+  { src:'img/sync/sync6.gif', cap:'VAMPETA E RONALDO — RESENHA NA SELEÇÃO' },
+  { src:'img/sync/sync7.gif', cap:'RENATO GAÚCHO — O GOL DE BARRIGA' },
 ];
 /* máx. ~72 caracteres por frase — cabe em 2 linhas sem apertar (regra do handoff) */
 const PAUSA_JOKES=[
