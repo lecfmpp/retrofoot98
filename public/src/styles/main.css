@@ -381,7 +381,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* 7 colunas: T/R · Pos · Nome · Idade · Força · Salário · Valor de mercado. Qualquer mudança
    aqui tem que casar com rosterHeadHTML/rosterHTML/squadTableHTML (main.js) — as três desenham
    a MESMA linha. O nome é a única coluna elástica (1fr), então é ela que absorve o aperto. */
-.cl-rrow{display:grid;grid-template-columns:16px 26px 1fr 30px 58px 96px 74px;column-gap:6px;align-items:center;padding:2px 8px;font-weight:700;font-size:14px;cursor:pointer}
+.cl-rrow{display:grid;grid-template-columns:16px 26px 1fr 30px 58px 54px 68px 64px;column-gap:6px;align-items:center;padding:2px 8px;font-weight:700;font-size:14px;cursor:pointer}
 /* cabeçalho das colunas do elenco. Fica DENTRO de .cl-roster, que tem fundo BRANCO — por isso
    texto escuro sobre a mesma faixa cinza do .cl-roster-hd (contraste ~10:1). Antes era branco
    com 60% de opacidade (herdado das listas de fundo escuro) e sumia por completo no branco.
@@ -403,12 +403,27 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* dinheiro NÃO pode quebrar linha: numa coluna apertada "R$ 104k/sem" virava duas linhas e
    engordava a altura da linha inteira (era o que acontecia no mobile com 7 colunas). */
 .cl-rv{text-align:left;white-space:nowrap}
+/* "/sem" sai das linhas: repetido em cada uma custava ~28px numa tabela de 8 colunas, espremendo
+   o nome. A periodicidade é a mesma pra todo mundo — fica no title do cabeçalho ("Salário"). */
+.cl-rrow .cl-rv-per{display:none}
 /* valor de mercado: coluna mais discreta que o salário (é referência, não compromisso do caixa) */
 .cl-rmv{text-align:right;font-weight:700;opacity:.72;font-size:12.5px;white-space:nowrap}
 /* com 7 colunas o nome é quem cede espaço — corta com reticências em vez de invadir a coluna
    seguinte (o grid não recorta sozinho: sem isto o texto vazava por cima da idade). */
 .cl-rname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .cl-rtrend{font-size:10px;margin-left:3px}
+/* PILHA DE ENERGIA (ver energyCell em main.js): corpo + polo (::after), preenchida pelo valor.
+   A cor vem do próprio nível (verde -> vermelho), então dá pra ler a lista inteira de relance. */
+.cl-rbatt{display:flex;align-items:center;justify-content:center}
+.cl-batt{position:relative;display:inline-block;width:26px;height:11px;border:1.5px solid currentColor;border-radius:2px;opacity:.9;overflow:hidden;box-sizing:border-box}
+.cl-batt>i{display:block;height:100%;border-radius:1px}
+.cl-batt:after{content:'';position:absolute;right:-3.5px;top:3px;width:2.5px;height:5px;background:currentColor;border-radius:0 1px 1px 0}
+.cl-batt.low{animation:cl-batt-pulse 1.6s ease-in-out infinite}  /* abaixo de 25% pisca discreto */
+@keyframes cl-batt-pulse{0%,100%{opacity:.9}50%{opacity:.45}}
+/* rótulo da coluna de energia: "Energia" no desktop, "En." no mobile — a coluna é estreita
+   (cabe a pilha, não a palavra), e rótulo maior que a coluna encosta na coluna vizinha. */
+.cl-rrow.head .cl-rbatt{white-space:nowrap;display:block;text-align:center;font-weight:inherit}
+.cl-lbl-sm{display:none} .cl-lbl-lg{font-weight:inherit}
 .cl-rtrain{font-size:9.5px;margin-left:3px;line-height:1;display:inline-block;vertical-align:middle} /* 🏋 = em treino especial (ver trainingIcon); line-height fixo pra não engordar a linha */
 .cl-rtrend.up{color:var(--success-alt)}
 .cl-rtrend.down{color:var(--danger-alt)}
@@ -1156,8 +1171,11 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
   .cl-tab{flex:0 0 auto;white-space:nowrap}
   /* linhas em grid ficam apertadas -> reduz fonte e gap */
-  .cl-rrow{grid-template-columns:12px 20px 1fr 20px 44px 58px 54px;column-gap:3px;font-size:12px;padding:4px 5px}
+  .cl-rrow{grid-template-columns:12px 20px 1fr 20px 38px 30px 52px 46px;column-gap:3px;font-size:12px;padding:4px 5px}
   .cl-rmv{font-size:10.5px}
+  .cl-lbl-lg{display:none} .cl-lbl-sm{display:inline}
+  .cl-batt{width:20px;height:9px}
+  .cl-batt:after{right:-3px;top:2.5px;height:4px}
   .cl-rrow.head{font-size:9px;letter-spacing:0}  /* rótulo tem que caber na coluna dele, sem encostar no vizinho */
   .cl-rv-per{display:none}   /* "/sem" sai da linha E do cabeçalho: a 11px o rótulo "Salário/sem"
                                 pedia 80px numa coluna de 58 e encostava na coluna de valor */

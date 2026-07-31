@@ -1547,7 +1547,7 @@ function scMain(){
 function rosterHeadHTML(){
   return `<div class="cl-rrow head">
     <span class="cl-rmark"></span><span class="cl-rpos">Pos</span><span class="cl-rname">Nome</span>
-    <span class="cl-rage">Id.</span><span class="cl-rf">Força</span><span class="cl-rv">Salário<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">Valor</span></div>`;
+    <span class="cl-rage">Id.</span><span class="cl-rf">Força</span><span class="cl-rbatt"><b class="cl-lbl-lg">Energia</b><b class="cl-lbl-sm">En.</b></span><span class="cl-rv" title="Salário semanal">Salário</span><span class="cl-rmv">Valor</span></div>`;
 }
 /* salário SEMANAL exibido de um jogador, de qualquer clube. Sem contrato explícito cai no mesmo
    salário-tabela por força que o motor já usa pra folha dos clubes de CPU (ver cpuSeasonFinances),
@@ -1559,6 +1559,16 @@ function playerSalary(p){ return (p&&p.contract&&p.contract.salary) || (p?REBAL.
 function isInTraining(clubId, pid){ return ((S.trainingByClub && S.trainingByClub[clubId])||[]).indexOf(pid)>=0; }
 /* ícone ao lado da força de quem está treinando — dá pra acompanhar a evolução direto na lista,
    sem abrir o menu de treino. ⭐ já significa outra coisa aqui (evolui mais rápido), por isso 🏋. */
+/* PILHA DE ENERGIA: energia entra no motor de partida como `força × (0,6 + 0,4 × energia)`
+   (ver computeRatings no match-engine) — ou seja, um titular esgotado vale até 40% menos em
+   campo. Merecia estar visível na lista, não só escondida no perfil. A cor sai do próprio nível
+   (hsl 0=vermelho -> 120=verde), e o desenho de pilha vem do ::after (o polo) no CSS. */
+function energyCell(p){
+  const e=Math.max(0, Math.min(100, Math.round((p&&p.energy!=null)?p.energy:100)));
+  const hue=Math.round(e*1.2);
+  return `<span class="cl-batt ${e<=25?'low':''}" title="Energia ${e}% — jogador cansado rende menos em campo">`
+    +`<i style="width:${e}%;background:linear-gradient(90deg,hsl(${Math.max(0,hue-25)},75%,42%),hsl(${hue},72%,45%))"></i></span>`;
+}
 function trainingIcon(clubId, p){
   return isInTraining(clubId, p&&p.pid) ? `<span class="cl-rtrain" title="Em treino especial — ganha chance extra de evolução a cada rodada">🏋</span>` : '';
 }
@@ -1582,9 +1592,9 @@ function squadTableHTML(clubId, opts){
       const badge=p.suspended>0?'🟥':(p.injuredMatches>0?'✚'+p.injuredMatches:'');
       return `<div class="cl-rrow ${selc?'sel':''} ${unavail?'unavail':''}"${onclick}>
         <span class="cl-rmark"></span>
-        <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
+        <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname" title="${escC(p.n)}">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
-        <span class="cl-rf">${p.f}${trainingIcon(clubId,p)}</span><span class="cl-rv">${fmt(playerSalary(p))}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;
+        <span class="cl-rf">${p.f}${trainingIcon(clubId,p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(playerSalary(p))}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;
     }).join('')+`</div>`;
   });
   return html;
@@ -1608,9 +1618,9 @@ function rosterHTML(){
       const salary=playerSalary(p);
       return `<div class="cl-rrow ${selc?'sel':''} ${marked?'swap-out':''} ${unavail?'unavail':''}" style="${selc?'':`color:${th.txt}`}" onclick="${onclickFn}">
         <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
-        <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
+        <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname" title="${escC(p.n)}">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
-        <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}${trainingIcon(CL.clubId,p)}</span><span class="cl-rv">${fmt(salary)}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;}).join('')+`</div>`;
+        <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}${trainingIcon(CL.clubId,p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(salary)}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;}).join('')+`</div>`;
   });
   return html;
 }
@@ -1721,7 +1731,53 @@ function syncInbox(){
       body:`Os resultados e o clima do elenco preocupam a diretoria. Precisamos de uma reação nas próximas rodadas para você seguir no ${escC(myShort)}.`,
       action:{label:'Ver classificação', go:'clCloseOverlay();clClassif()'} });
   }
-  // 5) PREMIAÇÃO da temporada anterior (fim de temporada)
+  // 5) APOSENTADORIAS do MEU elenco na virada de temporada (S._prevSeason.retirements — o mesmo
+  // registro que a sala de imprensa usa). Fato relevante que antes só passava como uma linha de
+  // notícia da rodada e sumia.
+  const pvR=S._prevSeason;
+  if(pvR && Array.isArray(pvR.retirements)){
+    const meus=pvR.retirements.filter(r=>r && r.club===S.clubId);
+    if(meus.length){
+      addInboxEmail({ key:'retire-'+(pvR.season||0), kind:'retire', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
+        subject:meus.length===1?('Fim de carreira: '+meus[0].name):(meus.length+' jogadores penduraram as chuteiras'),
+        body:meus.map(r=>`<b>${escC(r.name)}</b> (${r.age} anos, ${posLetter(r.pos)}) ${escC(r.reason||'encerrou a carreira')}.`
+          +(r.replacement?` No lugar dele subiu <b>${escC(r.replacement)}</b>${r.replacementAge?' ('+r.replacementAge+' anos)':''}.`:'')).join('<br><br>'),
+        action:{label:'Ver elenco', go:'clCloseOverlay();CL.tab="jogador";cdraw()'} });
+    }
+  }
+  // 6) AVISO ANTECIPADO: quem corre risco real de se aposentar no fim DESTA temporada. Chega uma
+  // vez por temporada, pra dar tempo de vender ou buscar substituto com a janela ainda aberta.
+  if(typeof retirementRisk==='function'){
+    const risco=retirementRisk(S.clubId);
+    if(risco.length){
+      addInboxEmail({ key:'risco-'+(S.season||0), kind:'retire', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
+        subject:'Elenco envelhecendo — '+risco.length+' jogador'+(risco.length>1?'es':'')+' perto da aposentadoria',
+        body:`Estes jogadores podem pendurar as chuteiras na virada da temporada. Vale avaliar uma venda enquanto ainda valem alguma coisa, ou já buscar substituto:<br><br>`
+          +risco.slice(0,6).map(x=>`<b>${escC(x.p.n)}</b> — ${x.p.age} anos, ${posLetter(x.p.s)}, força ${x.p.f} · risco <b>${Math.round(x.chance*100)}%</b> · vale ${fmt(x.p.mv||0)}`).join('<br>')
+          +(risco.length>6?`<br><span style="opacity:.7">…e mais ${risco.length-6}.</span>`:''),
+        action:{label:'Ver elenco', go:'clCloseOverlay();CL.tab="jogador";cdraw()'} });
+    }
+  }
+  // 7) DINHEIRO: transferências fechadas e alerta de caixa. As entradas de finanças (S.finances)
+  // são o registro durável por rodada do MEU clube — cada compra/venda vira um e-mail com o
+  // mesmo texto que aparece na aba Finanças.
+  (S.finances||[]).forEach(f=>{
+    if(!f || (!f.playerSales && !f.playerPurchases)) return;
+    (f.log||[]).forEach((linha,i)=>{
+      if(!/vendido|contratado|comprad/i.test(linha)) return;
+      addInboxEmail({ key:'mov-'+(f.round||0)+'-'+i+'-'+hashC(linha), kind:'money', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
+        subject:f.playerSales?'Venda concluída':'Contratação concluída',
+        body:escC(linha)+`<br><br>Caixa depois do negócio: <b>${fmt(S.budget||0)}</b>.`,
+        action:{label:'Ver finanças', go:'clCloseOverlay();CL.tab="financas";cdraw()'} });
+    });
+  });
+  if((S.budget||0)<0){
+    addInboxEmail({ key:'caixa-'+(S.season||0), kind:'money', from:inboxSigner('pres',S.clubId), role:'Presidente · '+myShort,
+      subject:'Caixa no vermelho',
+      body:`O clube fechou a rodada com <b>${fmt(S.budget||0)}</b> em caixa. Precisamos cortar folha ou vender alguém antes que isso vire problema com a diretoria.`,
+      action:{label:'Ver finanças', go:'clCloseOverlay();CL.tab="financas";cdraw()'} });
+  }
+  // 8) PREMIAÇÃO da temporada anterior (fim de temporada)
   const pv=S._prevSeason;
   if(pv && !(CL.inbox||[]).some(e=>e.key==='prize-'+pv.season) && typeof computeMyPrevSeasonPrizes==='function'){ const sum=computeMyPrevSeasonPrizes();
     if(sum && sum.total>0){
@@ -1745,7 +1801,7 @@ function clInboxClearAll(){
   (CL.inbox||[]).forEach(e=>{ CL.inboxDeleted[e.key]=true; });
   CL.inbox=[]; CL.inboxOpen=null; saveInbox(); cdraw();
 }
-function inboxIcon(kind){ return {offer:'💰', job:'🤝', warn:'⚠️', prize:'🏆'}[kind]||'✉️'; }
+function inboxIcon(kind){ return {offer:'💰', job:'🤝', warn:'⚠️', prize:'🏆', retire:'👋', money:'💵'}[kind]||'✉️'; }
 function panCorreio(){
   syncInbox();
   const box=CL.inbox||[];
