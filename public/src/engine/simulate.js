@@ -358,6 +358,10 @@ function liveMatchSession(homeId, awayId, seed, opts){
   let R=makeRng((seed!=null?seed:matchSeed(homeId,awayId))>>>0);
   const userClubId=opts.userClubId||S.clubId;
   const userSide = homeId===userClubId?'H' : awayId===userClubId?'A' : null;
+  // FASE 3B: quais lados PAUSAM pra decisão. Padrão: só o do usuário. Numa partida humano×humano
+  // transmitida, o cliente do MANDANTE roda a sessão com AMBOS os lados interativos — as decisões
+  // do visitante chegam pela rede (applyDecision com d.side) e as dele pelo modal local.
+  const interactive={}; (opts.interactiveSides || (userSide?[userSide]:[])).forEach(s=>{interactive[s]=true;});
   // quem está EM CAMPO agora (mutável — substituições mexem aqui de verdade)
   const cur={H:availableXI(homeId).slice(), A:availableXI(awayId).slice()};
   const clubIdOf={H:homeId, A:awayId};
@@ -418,9 +422,10 @@ function liveMatchSession(homeId, awayId, seed, opts){
       if(R.random()<ENG.penaltyChance){
         perf[hSide].big++;
         const defSide=home?'A':'H'; const gk=cur[defSide].find(p=>p.s==='GK')||null;
-        if(hSide===userSide){
-          // PÊNALTI DO USUÁRIO: fica PENDENTE — o batedor escolhido no modal decide o resultado
-          // (applyDecision). A sessão não avança até a decisão chegar.
+        if(interactive[hSide]){
+          // PÊNALTI DE LADO INTERATIVO: fica PENDENTE — o batedor escolhido (modal local ou decisão
+          // remota do visitante, Fase 3B) decide o resultado (applyDecision). A sessão não avança
+          // até a decisão chegar (ou o timeout do lado autoritativo aplicar a padrão).
           ev=pushEv({type:'penalti',side:hSide,min:dispMin(),team:atkId,scorer:null,gk:gk?gk.n:null,scored:null,stoppage,_resolved:false});
           session.pending={kind:'penalti',ev,gk};
         } else {
@@ -451,7 +456,7 @@ function liveMatchSession(homeId, awayId, seed, opts){
           // Se for do usuário, pausa pro modal de reorganização (applyDecision decide).
           if(second) cardState[foulSide].set(p.n,'vermelho');
           removeFromField(foulSide,p); menOnField[foulSide]=Math.max(6,menOnField[foulSide]-1); recompute(foulSide);
-          const isUser=foulSide===userSide;
+          const isUser=!!interactive[foulSide];
           ev=pushEv({type:'cartao',side:foulSide,min:dispMin(),team:foulTeam,player:p.n,pid:p.pid,pos:p.s,cardType:'vermelho',reason:direct?'direto':'segundo amarelo',_resolved:!isUser});
           if(isUser) session.pending={kind:'vermelho',ev,player:p};
         } else {
@@ -470,7 +475,7 @@ function liveMatchSession(homeId, awayId, seed, opts){
         const outMatches=grave?Math.floor(R.rnd(2,5)):(R.random()<0.5?1:0);
         // LESÃO: sai de campo de verdade; usuário escolhe quem entra (devolve o 11º + recalcula).
         removeFromField(side,p); menOnField[side]=Math.max(6,menOnField[side]-1); recompute(side);
-        const isUser=side===userSide;
+        const isUser=!!interactive[side];
         ev=pushEv({type:'lesao',side,min:dispMin(),team,player:p.n,pid:p.pid,pos:p.s,severity:grave?'grave':'leve',outMatches,_resolved:!isUser});
         if(isUser) session.pending={kind:'lesao',ev,player:p};
       }
@@ -500,10 +505,11 @@ function liveMatchSession(homeId, awayId, seed, opts){
     extraBase=session.minute; regularEnd=null; session.totalMinutes=null;
     session.done=false; session.result=null;
   };
-  /* DECISÕES DO USUÁRIO — cada uma entra no log e muda o estado do motor dali em diante */
+  /* DECISÕES — cada uma entra no log e muda o estado do motor dali em diante. d.side permite a
+     decisão REMOTA do visitante (Fase 3B) na sessão do mandante; sem d.side, é o lado do usuário. */
   session.applyDecision=function(d){
     d=d||{};
-    const side=userSide||'H';
+    const side=d.side||(session.pending&&session.pending.ev&&session.pending.ev.side)||userSide||'H';
     const findBench=pid=>squad(clubIdOf[side]).find(p=>p.pid===pid)||null;
     let out=null;
     if(d.tipo==='penalti'){
@@ -534,10 +540,38 @@ function liveMatchSession(homeId, awayId, seed, opts){
       out=true;
     } else if(d.tipo==='lesao-sem-sub'||d.tipo==='expulsao-segue'){ out=true; }
     // 'lesao-sem-sub' e 'expulsao-segue': só destravam (o time segue com um a menos)
-    decisions.push({min:(session.pending&&session.pending.ev)?session.pending.ev.min:dispMin(), tipo:d.tipo,
+    decisions.push({min:(session.pending&&session.pending.ev)?session.pending.ev.min:dispMin(), tipo:d.tipo, side,
       batedor:d.batedor||null, saiPid:d.saiPid||null, entraPid:d.entraPid||null, scored:(d.tipo==='penalti')?out:null});
     if(session.pending && d.tipo!=='sub'){ session.pending.ev._resolved=true; session.pending=null; }
     return out;
+  };
+  /* decisão PADRÃO pra pendência atual — usada no timeout do lado remoto (Fase 3B): o autoritativo
+     nunca fica travado esperando um visitante que caiu. Mesmos padrões dos modais locais. */
+  session.defaultDecision=function(){
+    const p=session.pending; if(!p) return null;
+    const side=p.ev.side;
+    if(p.kind==='penalti'){
+      const pool=cur[side].filter(x=>x.s!=='GK'); const best=(pool.length?pool:cur[side]).slice().sort((a,b)=>b.f-a.f)[0];
+      return {tipo:'penalti', side, batedor:best?best.n:''};
+    }
+    if(p.kind==='lesao'){
+      if(session.subsLeft(side)<=0) return {tipo:'lesao-sem-sub', side};
+      let b=benchOf(side);
+      if(p.ev.pos==='GK'){ const g=b.filter(x=>x.s==='GK'); if(g.length) b=g; } else b=b.filter(x=>x.s!=='GK');
+      const same=b.filter(x=>x.s===p.ev.pos); const pick=same[0]||b[0];
+      return pick ? {tipo:'lesao-sub', side, entraPid:pick.pid} : {tipo:'lesao-sem-sub', side};
+    }
+    return {tipo:'expulsao-segue', side};
+  };
+  /* foto serializável da partida pra TRANSMISSÃO (Fase 3B): eventos cumulativos + pendência atual.
+     Idempotente e auto-suficiente — quem recebe reconstrói a partida inteira a partir da última. */
+  session.snapshot=function(){
+    return { minute:session.minute, hg, ag, done:session.done, totalMinutes:session.totalMinutes,
+      pending: session.pending ? { kind:session.pending.kind, side:session.pending.ev.side,
+        ev:{min:session.pending.ev.min, type:session.pending.ev.type, side:session.pending.ev.side,
+            player:session.pending.ev.player||null, pid:session.pending.ev.pid||null,
+            pos:session.pending.ev.pos||null, reason:session.pending.ev.reason||null, team:session.pending.ev.team} } : null,
+      events: events.map(e=>({...e})), result: session.result };
   };
   return session;
 }

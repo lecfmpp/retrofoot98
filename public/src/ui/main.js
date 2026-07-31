@@ -2916,10 +2916,28 @@ function buildLiveMatchObject(h,a,seed,opts){
   // replay dele vence, igual sempre: a partida já é oficial.)
   const gate=attendanceFor(h,rnd);
   if(!src && mine && opts.user!==false && typeof liveMatchSession==='function'){
-    const sim=liveMatchSession(h,a,seed,{importance:opts.importance});
+    // FASE 3B (humano×humano na liga): UMA partida só, transmitida. O cliente do MANDANTE roda a
+    // sessão autoritativa com os DOIS lados interativos (as decisões do visitante chegam via
+    // broadcast 'mdec'); o VISITANTE não simula — assiste ao stream ('mlive') e decide nos modais
+    // dele remotamente. Se o mandante humano não está presente, o visitante volta a ser o
+    // autoritativo (comportamento 3A). Fallback de silêncio total: liveTick converte pra sessão
+    // local depois de ~10s sem stream.
+    const oppId = h===CL.clubId ? a : h;
+    const iAmHome = h===CL.clubId;
+    const hxh = CL.online && isLeague && CL.humans && CL.humans[oppId];
+    const oppOnline = hxh && typeof NET!=='undefined' && NET.clubOnline && NET.clubOnline(oppId);
+    const streamKey = 'lg:'+h+'-'+a;
+    if(hxh && oppOnline && !iAmHome){
+      return { h,a,hg:0,ag:0,idx:0,events:[],att:gate.att,price:gate.price,cap:gate.cap,
+        ref:REFS_C[Math.floor(rnd()*REFS_C.length)], goals:[], incidents:[], fhg:null, fag:null, perf:null,
+        user:true, div:opts.div, replay:false, sim:null, streamRemote:true, streamKey, seed, _builtAt:nowMs() };
+    }
+    const sim=liveMatchSession(h,a,seed,{importance:opts.importance,
+      interactiveSides:(hxh && oppOnline && iAmHome)?['H','A']:undefined});
     return { h,a,hg:0,ag:0,idx:0,events:sim.events,att:gate.att,price:gate.price,cap:gate.cap,
       ref:REFS_C[Math.floor(rnd()*REFS_C.length)], goals:[], incidents:[], fhg:null, fag:null, perf:null,
-      user:opts.user!==undefined?opts.user:true, div:opts.div, replay:false, sim };
+      user:opts.user!==undefined?opts.user:true, div:opts.div, replay:false, sim,
+      streamKey, streamCast:(CL.online && isLeague) };
   }
   const ev = src
     ? { events:(src.events||[]).map(e=>({...e,_resolved:true})), hg:src.hg, ag:src.ag, perf:src.perf||null }
@@ -2970,7 +2988,7 @@ function startLiveRound(){
   // própria. Nunca pula além do minuto 44 (ninguém perde o próprio 2º tempo); eventos até o minuto
   // alinhado entram na primeira batida do liveTick (pênalti/lesão do usuário ainda pausam no modal).
   if(CL.online && typeof NET!=='undefined' && NET.room && NET.room.kickoffAt){
-    const msPerMin=Math.max(12,(TEMPO_MS['Usain Bolt']||37)/(CL.speedMult||1));
+    const msPerMin=Math.max(12,ONLINE_TEMPO_MS/(CL.speedMult||1));
     const lagMs=nowMs()-NET.room.kickoffAt;
     if(lagMs>0 && lagMs<=8000) RL.minute=Math.min(Math.floor(lagMs/msPerMin),44);
   }
@@ -2999,6 +3017,78 @@ function startCupLiveMatch(pending){
   RL.maxMin=Math.max(94, m.events.length?m.events[m.events.length-1].min:90);
   CL.live=RL; CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
 }
+/* ===== FASE 3B: transmissão ao vivo da partida autoritativa =====
+   O cliente que RODA a sessão (mandante no humano×humano; qualquer humano vs CPU) emite snapshots
+   cumulativos ('mlive') pro canal da sala: heartbeat ~900ms + envio imediato quando muda algo
+   importante (evento novo, pendência abre/fecha, fim). O visitante reconstrói a partida a partir
+   deles e responde decisões ('mdec'). Espectadores recebem os mesmos snapshots (upgrade futuro). */
+function maybeBroadcastMatch(m,force){
+  if(!m || !m.sim || !m.streamCast || !CL.online || typeof NET==='undefined' || !NET.broadcastMatch) return;
+  const now=nowMs();
+  m._cast=m._cast||{ts:0,n:-1,p:false,d:null};
+  const pend=!!m.sim.pending, evN=m.sim.events.length, done=m.sim.done;
+  const changed = evN!==m._cast.n || pend!==m._cast.p || done!==m._cast.d;
+  if(!force && !changed && (now-m._cast.ts)<900) return;
+  m._cast={ts:now,n:evN,p:pend,d:done};
+  NET.broadcastMatch({ k:m.streamKey, ...m.sim.snapshot() });
+}
+/* snapshot recebido: atualiza o cache e, se for a MINHA partida assistida (visitante), anexa os
+   eventos novos e abre/fecha o modal de decisão remota conforme a pendência. */
+function onNetMatchLive(p){
+  CL._liveStreams=CL._liveStreams||{};
+  CL._liveStreams[p.k]={ts:nowMs(),snap:p};
+  const RL=CL.live; if(!RL) return;
+  const m=RL.matches.find(x=>x.streamRemote && x.streamKey===p.k); if(!m) return;
+  (p.events||[]).slice(m.events.length).forEach(e=>m.events.push({...e,_resolved:true})); // cumulativo: só o que falta
+  if(p.done){ m.streamDone=true; m.fhg=p.hg; m.fag=p.ag; m.perf=(p.result&&p.result.perf)||null; m.streamResult=p.result||null; }
+  const mySide=m.h===CL.clubId?'H':'A';
+  if(p.pending && p.pending.side===mySide){
+    if(!CL._remoteDecision && !RL.penEvent && !RL.injEvent && !RL.redEvent) openRemoteDecision(m, p.pending);
+  } else if(CL._remoteDecision && CL._remoteDecision.k===p.k){
+    closeRemoteDecision(m, p); // pendência resolvida do outro lado (minha decisão chegou, ou o timeout do mandante aplicou a padrão)
+  }
+}
+/* decisão remota recebida (lado autoritativo): valida clube×lado e aplica na sessão */
+function onNetMatchDecision(p){
+  const RL=CL.live; if(!RL || !p || !p.decision) return;
+  const m=RL.matches.find(x=>x.sim && x.streamKey===p.k); if(!m) return;
+  const sideClub = p.side==='H' ? m.h : m.a;
+  if(String(sideClub)!==String(p.clubId)) return; // decisão de quem não é dono daquele lado: ignora
+  const d=p.decision;
+  if(d.tipo==='sub'){
+    if(!m.sim.pending) m.sim.applyDecision({tipo:'sub', side:p.side, saiPid:d.saiPid, entraPid:d.entraPid});
+  } else {
+    if(!m.sim.pending || m.sim.pending.ev.side!==p.side) return; // já resolvida (timeout) ou não é dele
+    m.sim.applyDecision({...d, side:p.side});
+    m.sim._remoteDeadline=null;
+  }
+  maybeBroadcastMatch(m,true);
+}
+/* abre o modal de decisão pro VISITANTE a partir da pendência transmitida — reusa os modais
+   normais com um evento marcado _remote (os resolvedores mandam 'mdec' em vez de aplicar local). */
+function openRemoteDecision(m,pending){
+  const RL=CL.live; if(!RL) return;
+  const ev={...(pending.ev||{}), _remote:true, _resolved:false};
+  CL._remoteDecision={k:m.streamKey, kind:pending.kind, min:ev.min};
+  if(pending.kind==='penalti') openPenaltyModal(m,ev);
+  else if(pending.kind==='lesao') openInjuryModal(m,ev);
+  else openRedCardModal(m,ev);
+}
+/* fecha o modal remoto quando o stream confirma a resolução (revela o pênalti com o drama de sempre) */
+function closeRemoteDecision(m,p){
+  const rd=CL._remoteDecision; if(!rd) return;
+  CL._remoteDecision=null;
+  const RL=CL.live; if(!RL) return;
+  if(rd.kind==='penalti' && RL.penEvent){
+    const ev=(p.events||[]).filter(e=>e.type==='penalti'&&e.min===rd.min).pop();
+    if(CL._penRevealTimer){ clearTimeout(CL._penRevealTimer); CL._penRevealTimer=null; }
+    CL.penResultScored=!!(ev&&ev.scored); CL.penResultScorer=(ev&&ev.scorer)||CL.penResultScorer;
+    penaltyReveal(CL.penResultScored, CL.penResultScorer);
+    return;
+  }
+  if(RL.injEvent){ clearInjuryTimer(); RL.paused=false; RL.injMatch=null; RL.injEvent=null; CL.injSel=null; cdraw(); CL._liveTimer=setTimeout(liveTick,320); }
+  if(RL.redEvent){ clearRedTimer(); RL.paused=false; RL.redMatch=null; RL.redEvent=null; CL.redIn=null; CL.redOut=null; cdraw(); CL._liveTimer=setTimeout(liveTick,320); }
+}
 function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
   RL.minute+=1;
   // FASE 3A: sessão interativa gera os eventos AO VIVO, minuto a minuto — avança até o minuto do
@@ -3009,6 +3099,31 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
     while(!m.sim.pending && !m.sim.done && m.sim.minute<RL.minute){ m.sim.step(); }
     if(!m.sim.done) RL.maxMin=Math.max(RL.maxMin, m.sim.totalMinutes || (RL.minute+2));
     if(m.sim.done && m.sim.result){ m.fhg=m.sim.result.hg; m.fag=m.sim.result.ag; m.perf=m.sim.result.perf; }
+    // FASE 3B: pendência do lado REMOTO (visitante humano) — espera a decisão dele via 'mdec'
+    // por até 15s; sem resposta, aplica a padrão (o autoritativo nunca trava esperando quem caiu).
+    if(m.sim.pending){
+      const myS=m.h===CL.clubId?'H':'A';
+      if(m.sim.pending.ev.side!==myS){
+        if(!m.sim._remoteDeadline) m.sim._remoteDeadline=nowMs()+15000;
+        if(nowMs()>m.sim._remoteDeadline){ const d=m.sim.defaultDecision(); if(d) m.sim.applyDecision(d); m.sim._remoteDeadline=null; }
+      }
+    } else m.sim._remoteDeadline=null;
+    maybeBroadcastMatch(m); // transmite o snapshot pra sala (visitante + espectadores futuros)
+  } else if(m.streamRemote){
+    // FASE 3B (visitante): assisto ao stream do mandante — o relógio da rodada espera o fim dele.
+    const st=CL._liveStreams && CL._liveStreams[m.streamKey];
+    if(!m.streamDone && !m.streamDead){
+      RL.maxMin=Math.max(RL.maxMin, RL.minute+2);
+      if(!st && m.events.length===0 && nowMs()-(m._builtAt||0)>10000 && typeof liveMatchSession==='function'){
+        // silêncio TOTAL desde o apito: mandante deve ter caído antes de transmitir — assumo a
+        // partida localmente (3A) e passo a transmitir eu (vira o autoritativo de fato).
+        m.streamRemote=false; m.sim=liveMatchSession(m.h,m.a,m.seed,{}); m.events=m.sim.events; m.streamCast=true;
+        toastC('⚠ Transmissão do mandante não chegou — assumindo a partida localmente.');
+      } else if(st && nowMs()-st.ts>20000){
+        m.streamDead=true; // stream morreu no meio: solta o relógio (saio com marcador de folga; o servidor resolve com o stream do apito)
+        toastC('⚠ Transmissão interrompida — o resultado oficial sai na classificação.');
+      }
+    }
   } });
   let pendingPenalty=null, pendingInjury=null, pendingRed=null;
   RL.matches.forEach(m=>{ while(m.idx<m.events.length && m.events[m.idx].min<=RL.minute){ const e=m.events[m.idx];
@@ -3016,6 +3131,9 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
     if(e.type==='penalti' && isUserSide && !e._resolved){ pendingPenalty={m,e}; break; } // não consome ainda — pausa antes, resolve pelo modal
     if(e.type==='lesao' && isUserSide && !e._resolved){ pendingInjury={m,e}; break; } // idem — precisa escolher quem entra
     if(e.type==='cartao' && e.cardType==='vermelho' && isUserSide && !e._resolved && m.sim){ pendingRed={m,e}; break; } // expulsão do usuário: modal de reorganização (Fase 3A)
+    // FASE 3B: evento de decisão do lado REMOTO ainda não resolvido (sessão autoritativa esperando
+    // o 'mdec' do visitante) — NÃO consome (o placar dele depende da decisão); overlay avisa.
+    if(m.sim && !e._resolved && (e.type==='penalti'||e.type==='lesao'||(e.type==='cartao'&&e.cardType==='vermelho'))){ break; }
     m.idx++;
     if(e.type==='gol'){ if(e.side==='H')m.hg++; else m.ag++; m.goals.push({min:e.min,side:e.side,scorer:e.scorer,team:e.team});
       m.incidents.push({min:e.min,type:'gol',side:e.side,player:e.scorer}); }
@@ -3054,7 +3172,7 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
   }
   // Online: o ritmo é o do ANFITRIÃO (games.speed_mult, sincronizado — ver clSetTempo/wireNet),
   // não a preferência local de cada convidado. Solo: cada um usa a própria opção "Tempo de jogo".
-  const spd = CL.online ? TEMPO_MS['Usain Bolt'] : (TEMPO_MS[(CL.options&&CL.options.tempo)||'Usain Bolt']||37);
+  const spd = CL.online ? ONLINE_TEMPO_MS : (TEMPO_MS[(CL.options&&CL.options.tempo)||'Usain Bolt']||37);
   const actualSpd=Math.max(12, spd / (CL.speedMult||1));
   CL._liveTimer=setTimeout(liveTick, actualSpd);
 }
@@ -3243,6 +3361,16 @@ function resolvePenalty(takerName){
   const RL=CL.live; if(!RL || !RL.penEvent) return;
   if(CL._penTimer){ clearInterval(CL._penTimer); CL._penTimer=null; }
   const e=RL.penEvent;
+  if(e._remote){
+    // FASE 3B (visitante): mando a escolha do batedor pro mandante e fico no suspense — a
+    // revelação chega pelo stream (closeRemoteDecision). Timer de segurança fecha se nada vier.
+    if(typeof NET!=='undefined' && NET.broadcastDecision && CL._remoteDecision)
+      NET.broadcastDecision({ k:CL._remoteDecision.k, side:(RL.penMatch.h===CL.clubId?'H':'A'), decision:{tipo:'penalti', batedor:takerName} });
+    CL.penPhase='suspense'; CL.penResultScorer=takerName; CL.penResultScored=null;
+    cdraw();
+    CL._penRevealTimer=setTimeout(()=>{ if(CL.penPhase==='suspense'){ CL._remoteDecision=null; closePenaltyModal(); } }, 9000);
+    return;
+  }
   let scored;
   if(RL.penMatch && RL.penMatch.sim){
     // FASE 3A: a SESSÃO decide (mesma RNG determinística de sempre) e já aplica placar/artilheiro/log
@@ -3381,6 +3509,19 @@ function resolveInjurySub(replacementPid){
   const RL=CL.live; if(!RL || !RL.injEvent || !replacementPid) return;
   clearInjuryTimer();
   const e=RL.injEvent; const rep=pById(replacementPid,CL.clubId); if(!rep) return;
+  if(e._remote){
+    // FASE 3B (visitante): decisão viaja pro mandante; o efeito aparece no stream
+    if(typeof NET!=='undefined' && NET.broadcastDecision && CL._remoteDecision)
+      NET.broadcastDecision({ k:CL._remoteDecision.k, side:(RL.injMatch.h===CL.clubId?'H':'A'), decision:{tipo:'lesao-sub', entraPid:replacementPid} });
+    CL.subsUsed=(CL.subsUsed||0)+1;
+    const outPidR = e.pid || ((squad(CL.clubId).find(x=>x.n===e.player)||{}).pid);
+    const idxR=(S.xi||[]).indexOf(outPidR); if(idxR>=0) S.xi[idxR]=rep.pid;
+    clearInjuryTimer(); CL._remoteDecision=null;
+    toastC(`✚→✔ ${rep.n} entrou no lugar de ${e.player}.`);
+    RL.paused=false; RL.injMatch=null; RL.injEvent=null; CL.injSel=null;
+    cdraw(); CL._liveTimer=setTimeout(liveTick,420);
+    return;
+  }
   // FASE 3A: a troca entra NO MOTOR — o time volta a ter 11 e a força recalcula com quem entrou
   // (gasta uma substituição, como no futebol de verdade). O placar dali em diante sente a decisão.
   if(RL.injMatch && RL.injMatch.sim){ RL.injMatch.sim.applyDecision({tipo:'lesao-sub', entraPid:replacementPid}); CL.subsUsed=(CL.subsUsed||0)+1; }
@@ -3398,6 +3539,14 @@ function resolveInjuryNoSub(){
   const RL=CL.live; if(!RL || !RL.injEvent) return;
   clearInjuryTimer();
   const e=RL.injEvent; e._resolved=true;
+  if(e._remote){
+    if(typeof NET!=='undefined' && NET.broadcastDecision && CL._remoteDecision)
+      NET.broadcastDecision({ k:CL._remoteDecision.k, side:(RL.injMatch.h===CL.clubId?'H':'A'), decision:{tipo:'lesao-sem-sub'} });
+    CL._remoteDecision=null;
+    RL.paused=false; RL.injMatch=null; RL.injEvent=null; CL.injSel=null;
+    cdraw(); CL._liveTimer=setTimeout(liveTick,420);
+    return;
+  }
   if(RL.injMatch && RL.injMatch.sim) RL.injMatch.sim.applyDecision({tipo:'lesao-sem-sub'}); // segue com 10 (motor já removeu o lesionado)
   toastC(`✚ ${e.player} lesionou-se — o time seguiu com um jogador a menos.`);
   RL.paused=false; RL.injMatch=null; RL.injEvent=null; CL.injSel=null;
@@ -3426,23 +3575,35 @@ function clearRedTimer(){ if(CL._redTimer){ clearInterval(CL._redTimer); CL._red
 function redSelect(kind,pid){ if(kind==='in')CL.redIn=pid; else CL.redOut=pid; cdraw(); }
 /* opções de quem ENTRA: goleiro expulso -> só goleiros do banco (se houver); linha -> banco de linha */
 function redCardBench(m,e){
-  if((CL.subsUsed||0)>=3 || !m.sim) return [];
-  const side=m.sim.userSide; if(!side) return [];
-  let bench=m.sim.benchOf(side).sort(bySquadOrder);
+  if((CL.subsUsed||0)>=3) return [];
+  let bench;
+  if(m.sim){ const side=m.sim.userSide; if(!side) return []; bench=m.sim.benchOf(side).sort(bySquadOrder); }
+  else { // FASE 3B (visitante remoto): banco derivado do elenco/escala local — mesma visão do mandante
+    const xiSet=new Set(S.xi||[]);
+    bench=squad(CL.clubId).filter(p=>!xiSet.has(p.pid)&&!(p.suspended>0)&&!(p.injuredMatches>0)).sort(bySquadOrder);
+  }
   if(e.pos==='GK'){ const gks=bench.filter(p=>p.s==='GK'); if(gks.length) bench=gks; }
   else bench=bench.filter(p=>p.s!=='GK');
   return bench;
 }
 function redCardOnField(m,e){
-  if(!m.sim) return [];
-  const entra=CL.redIn?pById(CL.redIn,CL.clubId):null;
-  // quem SAI: se entra um goleiro (repondo GK expulso), sai um jogador de linha; senão nunca o goleiro
-  return m.sim.onField(m.sim.userSide).filter(p=> (entra&&entra.s==='GK') ? p.s!=='GK' : p.s!=='GK');
+  // quem SAI: nunca o goleiro (se entra goleiro repondo GK expulso, sai jogador de linha)
+  const list=m.sim ? m.sim.onField(m.sim.userSide) : xiPlayers(CL.clubId).filter(p=>p.pid!==e.pid);
+  return list.filter(p=>p.s!=='GK');
 }
 function resolveRedSkip(){
   const RL=CL.live; if(!RL || !RL.redEvent) return;
   clearRedTimer();
   const e=RL.redEvent;
+  if(e._remote){
+    if(typeof NET!=='undefined' && NET.broadcastDecision && CL._remoteDecision)
+      NET.broadcastDecision({ k:CL._remoteDecision.k, side:(RL.redMatch.h===CL.clubId?'H':'A'), decision:{tipo:'expulsao-segue'} });
+    CL._remoteDecision=null;
+    toastC(`🟥 ${e.player} expulso — o time segue com um jogador a menos.`);
+    RL.paused=false; RL.redMatch=null; RL.redEvent=null; CL.redIn=null; CL.redOut=null;
+    cdraw(); CL._liveTimer=setTimeout(liveTick,420);
+    return;
+  }
   if(RL.redMatch && RL.redMatch.sim) RL.redMatch.sim.applyDecision({tipo:'expulsao-segue'});
   e._resolved=true;
   toastC(`🟥 ${e.player} expulso — o time segue com um jogador a menos.`);
@@ -3454,6 +3615,17 @@ function resolveRedConfirm(){
   clearRedTimer();
   const e=RL.redEvent;
   const entra=pById(CL.redIn,CL.clubId), sai=pById(CL.redOut,CL.clubId);
+  if(e._remote){
+    if(typeof NET!=='undefined' && NET.broadcastDecision && CL._remoteDecision)
+      NET.broadcastDecision({ k:CL._remoteDecision.k, side:(RL.redMatch.h===CL.clubId?'H':'A'), decision:{tipo:'expulsao-reorg', saiPid:CL.redOut, entraPid:CL.redIn} });
+    CL.subsUsed=(CL.subsUsed||0)+1;
+    const idxR=(S.xi||[]).indexOf(CL.redOut); if(idxR>=0) S.xi[idxR]=CL.redIn;
+    CL._remoteDecision=null;
+    toastC(`🟥 ${e.player} expulso. ⇄ ${entra?entra.n:''} entrou no lugar de ${sai?sai.n:''} pra reorganizar.`);
+    RL.paused=false; RL.redMatch=null; RL.redEvent=null; CL.redIn=null; CL.redOut=null;
+    cdraw(); CL._liveTimer=setTimeout(liveTick,420);
+    return;
+  }
   if(RL.redMatch && RL.redMatch.sim) RL.redMatch.sim.applyDecision({tipo:'expulsao-reorg', saiPid:CL.redOut, entraPid:CL.redIn});
   CL.subsUsed=(CL.subsUsed||0)+1;
   const idx=(S.xi||[]).indexOf(CL.redOut); if(idx>=0) S.xi[idx]=CL.redIn; // registro da escalação acompanha
@@ -3490,9 +3662,11 @@ function liveDoSub(){ if(!CL.subOut||!CL.subIn){ toastC('Escolha um titular e um
   if(outP&&inP&&(inP.s==='GK')!==(outP.s==='GK')){ // mantém exatamente 1 goleiro em campo
     toastC(inP.s==='GK'?'Já tem um goleiro em campo — troque goleiro por goleiro.':'Só troque o goleiro por outro goleiro.'); return; }
   // FASE 3A: a substituição entra NO MOTOR — quem entra joga com a energia/força dele já no
-  // próximo minuto (antes só mudava o registro S.xi; o placar não sentia a troca).
-  const _um=(CL.live&&CL.live.matches||[]).find(x=>x.user&&x.sim);
-  if(_um) _um.sim.applyDecision({tipo:'sub', saiPid:CL.subOut, entraPid:CL.subIn});
+  // próximo minuto. FASE 3B (visitante): a decisão viaja pro mandante e o efeito volta pelo stream.
+  const _um=(CL.live&&CL.live.matches||[]).find(x=>x.user&&(x.sim||x.streamRemote));
+  if(_um&&_um.sim) _um.sim.applyDecision({tipo:'sub', saiPid:CL.subOut, entraPid:CL.subIn});
+  else if(_um&&_um.streamRemote&&typeof NET!=='undefined'&&NET.broadcastDecision)
+    NET.broadcastDecision({ k:_um.streamKey, side:(_um.h===CL.clubId?'H':'A'), decision:{tipo:'sub', saiPid:CL.subOut, entraPid:CL.subIn} });
   S.xi=(S.xi||[]).map(x=>x===CL.subOut?CL.subIn:x); CL.subsUsed=(CL.subsUsed||0)+1;
   if(outP&&inP) toastC(inP.n.split(' ').slice(-1)[0]+' entrou no lugar de '+outP.n.split(' ').slice(-1)[0]); CL.subOut=CL.subIn=null; updateLive(); }
 function txtOn(hex){ return lumin(hex)>0.58?'#111':'#fff'; }
@@ -3610,13 +3784,17 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
   // contador do intervalo (Resenha): linha própria, FORA do botão — btn() escapa o label, então
   // HTML no rótulo apareceria como texto quebrado. Atualizado a cada segundo por startHalftimeCountdown.
   const halftimeTimerHTML=(halftime && CL.online)?`<div class="cl-ht-timer">⏱ Avança sozinho em <span class="cl-ht-count">${Math.max(0,RL.halftimeLeft!=null?RL.halftimeLeft:10)}</span>s se você não substituir</div>`:'';
+  // FASE 3B (mandante): a sessão está pausada esperando a decisão do VISITANTE (pênalti/lesão/
+  // expulsão dele) — aviso com o teto de 15s (depois a decisão padrão é aplicada sozinha).
+  const remoteWaitHTML=(m.sim && m.sim.pending && m.sim.pending.ev && m.sim.pending.ev.side!==(m.h===CL.clubId?'H':'A'))
+    ? `<div class="cl-ht-timer">📡 Aguardando a decisão do adversário… (automática em até 15s)</div>` : '';
   return `<div class="cl-lm-title">${escC(hc.short)}, ${m.hg} - ${escC(ac.short)}, ${m.ag}</div>
     <div class="cl-lm-top">
       <div class="cl-lm-events">${incHTML}</div>
       <fieldset class="cl-lm-ref"><legend>Árbitro</legend><b>${escC(m.ref)}</b></fieldset>
     </div>
     ${m.user?matchStatsHTML(m):''}
-    ${halftimeTimerHTML}
+    ${halftimeTimerHTML}${remoteWaitHTML}
     ${actionsHTML}
     ${showSubs?subPanelHTML(m):''}
     ${penalty?penaltyPickerHTML():''}${injury?injurySubHTML(m,RL.injEvent):''}${red?redCardHTML(m,RL.redEvent):''}${shooting?shootoutPickerHTML():''}`;
@@ -4164,9 +4342,13 @@ function finishLiveRound(){
   // (resultados reais de todos; ausentes simulados) e persiste. Os convidados só ESPELHAM (reconcile).
   if(CL.online && typeof NET!=='undefined' && NET.publishResult){
     const um = uf ? RL.matches.find(m=>m.h===uf[0]&&m.a===uf[1]) : null;
-    const myResult = (uf && userResult) ? { h:uf[0], a:uf[1], hg:userResult.hg, ag:userResult.ag,
+    // FASE 3B: visitante de partida transmitida SÓ publica se o stream terminou (o resultado que
+    // assisti é o oficial do mandante — publicá-lo é o backup caso o mandante caia antes de
+    // publicar). Stream incompleto -> marcador de folga (o servidor resolve com o stream do apito).
+    const streamIncomplete = um && um.streamRemote && !um.streamDone;
+    const myResult = (uf && userResult && !streamIncomplete) ? { h:uf[0], a:uf[1], hg:userResult.hg, ag:userResult.ag,
       scorers:userResult.scorers||[], perf:userResult.perf||null, events:(um&&um.events)||[],
-      decisions:(um&&um.sim&&um.sim.decisions)||[] } : null; // Fase 3A: log de decisões viaja junto (replay/auditoria na 3B)
+      decisions:(um&&um.sim&&um.sim.decisions)||((um&&um.streamResult&&um.streamResult.decisions))||[] } : null; // Fase 3A/3B: log de decisões viaja junto
     NET.publishResult(S.round, myResult || { h:null, a:null, bye:true }); // marcador de folga não trava nada
     if(NET.isHost){ CL._hostPendingCommit = { RL, userResult, audit:_auditPayload, round:S.round, uf }; }
     // F3.3: guarda os inputs de finança do MEU clube pra aplicar ao ADOTAR a rodada do servidor
@@ -4826,6 +5008,11 @@ function clStub(t){ CL.menu=null; toastC(t+' — em breve.'); cdraw(); }
    sincronizado/restrito por RLS ao host — ver netSetSpeed). Baseline 'Usain Bolt'=1x preserva o
    comportamento padrão de hoje pra quem nunca mexeu na opção (games.speed_mult nasce em 1). */
 const TEMPO_MS={Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37};
+/* FASE 3B: ritmo da RESENHA (online) — 360ms/minuto (~40s de jogo + intervalo + pausas de decisão).
+   Antes era 'Usain Bolt' (37ms — rodada em ~14s), rápido demais pra transmissão ao vivo entre
+   clientes ser assistível e pras decisões remotas caberem no fluxo. As janelas de espera criadas
+   (decisão do adversário, sincronização) são os espaços de publicidade dinâmica planejados. */
+const ONLINE_TEMPO_MS=360;
 const TEMPO_MULT={}; Object.keys(TEMPO_MS).forEach(k=>TEMPO_MULT[k]=TEMPO_MS['Usain Bolt']/TEMPO_MS[k]);
 function tempoLabelFromMult(mult){ const m=mult||1; let best='Usain Bolt',bd=Infinity;
   Object.keys(TEMPO_MULT).forEach(k=>{ const d=Math.abs(TEMPO_MULT[k]-m); if(d<bd){bd=d;best=k;} }); return best; }

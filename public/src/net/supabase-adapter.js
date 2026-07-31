@@ -858,6 +858,24 @@ function netSetupRealtime(){
     if(typeof NET.onJoinReq==='function') NET.onJoinReq(); // re-busca pendentes + re-renderiza o painel na hora
   });
 
+  /* ===== FASE 3B: transmissão AO VIVO da partida autoritativa =====
+     'mlive' = snapshot cumulativo da partida (eventos + pendência) emitido pelo cliente que roda a
+     sessão (mandante no humano×humano). 'mdec' = decisão remota do visitante (pênalti/lesão/
+     expulsão/substituição) de volta pro autoritativo. Hooks implementados na UI (main.js). */
+  SB_CH.on('broadcast', { event:'mlive' }, ({ payload })=>{
+    if(!payload || !payload.k) return;
+    if(payload.from===(SB_AUTH_USER&&SB_AUTH_USER.id)) return; // meu próprio eco: ignora
+    if(typeof onNetMatchLive==='function'){ try{ onNetMatchLive(payload); }catch(e){ console.warn('mlive:', e&&e.message); } }
+  });
+  SB_CH.on('broadcast', { event:'mdec' }, ({ payload })=>{
+    if(!payload || !payload.k) return;
+    if(payload.from===(SB_AUTH_USER&&SB_AUTH_USER.id)) return;
+    // segurança: só aceita decisão de quem é DONO do clube daquele lado (assento confere)
+    const c=NET._claimed && NET._claimed[payload.from];
+    if(!c || !c.clubId || String(c.clubId)!==String(payload.clubId)) return;
+    if(typeof onNetMatchDecision==='function'){ try{ onNetMatchDecision(payload); }catch(e){ console.warn('mdec:', e&&e.message); } }
+  });
+
   // expulsão pelo anfitrião: sinal em tempo real pra TODOS (inclusive o expulso), independente de DB/RLS
   SB_CH.on('broadcast', { event:'kick' }, ({ payload })=>{
     if(!payload || !payload.uid) return;
@@ -886,6 +904,24 @@ function netSetupRealtime(){
    já estiver conectado (chamada precoce logo após subscribe vira no-op, sem perder a presença). */
 function netTrackPresence(){ try{ if(SB_CH && SB_CH.state==='joined') SB_CH.track({ name: NET.self.name, club: null }); }catch(e){} }
 function netIsOnline(uid){ return !!(SB_ONLINE && SB_ONLINE[uid] && SB_ONLINE[uid].length); }
+/* FASE 3B: o dono humano deste clube está PRESENTE agora? (usa o merge de participantes, que
+   combina presença realtime + last_seen no banco). Decide quem transmite e quem assiste. */
+function netClubOnline(clubId){
+  const ps=(NET.room&&NET.room.participants)||[];
+  const p=ps.find(x=>String(x.clubId)===String(clubId));
+  return !!(p && p.online);
+}
+/* FASE 3B: emite o snapshot da MINHA partida autoritativa (mandante) pro canal da sala */
+function netBroadcastMatch(payload){
+  if(!SB_CH || !SB_AUTH_USER || !payload) return;
+  try{ SB_CH.send({ type:'broadcast', event:'mlive', payload:{ ...payload, from:SB_AUTH_USER.id } }); }catch(e){}
+}
+/* FASE 3B: manda a MINHA decisão remota (visitante) pro cliente autoritativo. clubId viaja junto
+   pro receptor validar que a decisão vem do dono real daquele lado. */
+function netBroadcastDecision(payload){
+  if(!SB_CH || !SB_AUTH_USER || !payload) return;
+  try{ SB_CH.send({ type:'broadcast', event:'mdec', payload:{ ...payload, from:SB_AUTH_USER.id, clubId:(typeof CL!=='undefined'&&CL.clubId)||null } }); }catch(e){}
+}
 
 /* ============ APROVAÇÃO DE ENTRADA (pendente -> aprovado) ============
    Quem entra por CÓDIGO/LINK NÃO entra direto: cria um pedido 'pending' e espera o anfitrião
@@ -1076,6 +1112,9 @@ NET.setSpeed = netSetSpeed;
 NET.toRunning = netToRunning;
 NET.fetchKickoff = netFetchKickoff;
 NET.fetchRoundStreams = netFetchRoundStreams;
+NET.clubOnline = netClubOnline;
+NET.broadcastMatch = netBroadcastMatch;
+NET.broadcastDecision = netBroadcastDecision;
 NET.advancePhaseExpired = netAdvancePhaseExpired;
 NET.reopenReady = netReopenReady;
 NET.armReadyTimer = netArmReadyTimer;
