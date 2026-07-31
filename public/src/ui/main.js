@@ -225,11 +225,49 @@ function btn(label,onclick,opts){ opts=opts||{}; return `<button class="cl-btn $
    Com isso: rodada termina -> loading -> classificação (uma vez) -> tela principal (uma vez, já
    atualizada). Não usa overlayC() de propósito (aquele é clicável/fechável — este não pode ser
    dispensado no meio da sincronização). */
+/* zoeira de espera — homenagens ao futebol brasileiro, sorteadas enquanto a rodada sincroniza.
+   Aparecem no overlay de sync E na tela de espera pós-partida (waitround), pra ninguém ficar
+   olhando uma tela principal DESATUALIZADA (a rodada só avança quando o servidor fecha). */
+const SYNC_FUN=[
+  ['🎙️','Galvão Bueno aquecendo o "Haja coração!"...'],
+  ['🎙️','"Bem, amigos!" — Galvão já está com os placares na mão...'],
+  ['⚽','Romário esperando na pequena área o servidor cruzar a bola...'],
+  ['🐐','Romário jura que esse gol foi de calcanhar...'],
+  ['😈','Edmundo Animal reclamando com o quarto árbitro do lag...'],
+  ['🕺','Edílson Capetinha fazendo embaixadinha pro tempo passar...'],
+  ['💤','Vampeta tirando um cochilo no vestiário enquanto a rodada fecha...'],
+  ['💰','Vampeta conferindo se o primeiro salário caiu na conta...'],
+  ['📺','Cazé abrindo a live pra anunciar os resultados...'],
+  ['🗣️','Cazé gritando "OLHA O QUE ELE FEZ!" em algum lugar do Brasil...'],
+  ['🧉','Intervalo pro cafezinho na beira do gramado...'],
+  ['📻','O radinho de pilha já sabe o placar antes de todo mundo...'],
+];
+function syncFunHTML(){ const f=SYNC_FUN[Math.floor(Math.random()*SYNC_FUN.length)];
+  return `<span class="cl-syncfun-ic">${f[0]}</span> ${escC(f[1])}`; }
+/* um ticker só pros dois lugares (overlay + waitround): troca a frase a cada ~2,6s e morre
+   sozinho quando nenhum dos alvos está mais na tela. */
+function ensureSyncFunTicker(){
+  if(CL._syncFunT) return;
+  CL._syncFunT=setInterval(()=>{
+    const a=$c('#c-syncload-msg'), b=$c('#cl-waitfun-msg');
+    if(!a && !b){ clearInterval(CL._syncFunT); CL._syncFunT=null; return; }
+    const h=syncFunHTML(); if(a) a.innerHTML=h; if(b) b.innerHTML=h;
+    // o escape "Ir para o time" (anti-travamento) só aparece se a espera passar de 30s —
+    // é ele que levava o usuário pra tela principal desatualizada sem necessidade.
+    const skip=$c('#cl-waitfun-skip');
+    if(skip && (nowMs()-(CL._waitSince||nowMs()))>30000) skip.style.display='';
+  }, 2600);
+}
 function showSyncLoading(msg){
   let el=$c('#c-syncload');
   if(!el){ el=document.createElement('div'); el.id='c-syncload'; document.body.appendChild(el); }
-  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700;font-family:Tahoma,Verdana,Arial,sans-serif';
-  el.textContent=msg||'⏳ Sincronizando rodada...';
+  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:99999;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Tahoma,Verdana,Arial,sans-serif';
+  el.innerHTML=`<div style="text-align:center;max-width:540px;padding:20px">
+    <div class="cl-waitfun-spin">⚽</div>
+    <div style="font-size:16px;font-weight:800;margin:6px 0 10px">${escC(msg||'Sincronizando a rodada...')}</div>
+    <div id="c-syncload-msg" class="cl-waitfun-msg">${syncFunHTML()}</div>
+  </div>`;
+  ensureSyncFunTicker();
   // rede de segurança: nunca deixa o usuário PRESO atrás do overlay se algo no meio do
   // adopt/reconcile falhar silenciosamente antes de chamar hideSyncLoading().
   if(CL._syncLoadingTimer) clearTimeout(CL._syncLoadingTimer);
@@ -3924,12 +3962,16 @@ function nowMs(){ try{ return Date.now(); }catch(e){ return 0; } }
    (clWaitRoundSkip) pra ninguém ficar preso se algo travar do outro lado. */
 function scWaitRound(){
   const r=(S.round||0)+1;
+  ensureSyncFunTicker();
+  // "Ir para o time" levava direto pra tela principal DESATUALIZADA (rodada antiga) — agora é só
+  // um escape anti-travamento, escondido nos primeiros 30s (o ticker o revela se a espera passar disso).
   return `<div class="cl-res" style="text-align:center;padding:18px">
     <div class="cl-res-score">Rodada ${r} encerrada</div>
-    <div class="cl-res-verd">Aguardando os outros treinadores terminarem…<br>
-      <span style="opacity:.8">A classificação aparece assim que a rodada fechar.</span></div>
-    <div class="cl-classif-autohint">segue sozinho quando todos terminarem</div>
-    <div class="cl-cal-ok">${btn('Ir para o time','clWaitRoundSkip()',{icon:'⌂',cls:'cl-btn-cancel'})}</div>
+    <div class="cl-waitfun-spin">⚽</div>
+    <div id="cl-waitfun-msg" class="cl-waitfun-msg">${syncFunHTML()}</div>
+    <div class="cl-res-verd"><span style="opacity:.85">Sincronizando com a Resenha — a classificação aparece assim que todos os treinadores terminarem.</span></div>
+    <div class="cl-classif-autohint">segue sozinho quando a rodada fechar</div>
+    <div id="cl-waitfun-skip" class="cl-cal-ok" style="display:none">${btn('Ir para o time','clWaitRoundSkip()',{icon:'⌂',cls:'cl-btn-cancel'})}</div>
   </div>`;
 }
 function clWaitRoundSkip(){ CL.screen='main'; CL.tab='jogo'; cdraw(); }
@@ -3938,6 +3980,7 @@ function onlineReturnFreeAfterMatch(){
   CL._playedRound=S.round; // marca que JÁ joguei esta rodada — não re-simulo (evita loop na mesma rodada)
   CL.live=null; CL.subsUsed=0; CL._liveBusy=false;
   _prLog('onlineReturnFreeAfterMatch -> waitround');
+  CL._waitSince=nowMs();                     // base do escape de 30s da tela de espera
   CL.screen='waitround'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||CL.selPlayer; cdraw();
   if(CL.lastGate){ toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0; }
   // NÃO reabro a próxima rodada aqui: quem fecha e reabre a rodada é o ANFITRIÃO, DEPOIS de resolver

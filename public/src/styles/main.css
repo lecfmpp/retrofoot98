@@ -927,6 +927,11 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-classif-ok{max-width:640px;margin:10px auto;padding:0 10px;display:flex;flex-direction:column;gap:8px}
 .cl-classif-ok .cl-btn{width:100%;justify-content:center}
 .cl-classif-buttons{display:flex;justify-content:flex-end;gap:10px;max-width:920px;margin:0 auto;padding:12px 16px}
+/* espera pós-rodada / overlay de sync: bola girando + frase de zoeira rotativa (ver SYNC_FUN) */
+.cl-waitfun-spin{font-size:44px;margin:8px 0;display:inline-block;animation:cl-ballspin 2.4s linear infinite}
+@keyframes cl-ballspin{to{transform:rotate(360deg)}}
+.cl-waitfun-msg{margin:8px auto 12px;max-width:540px;background:rgba(255,255,255,.12);border-radius:8px;padding:10px 14px;font-size:14px;font-weight:700;line-height:1.4;min-height:20px}
+.cl-syncfun-ic{margin-right:5px}
 .cl-classif-autohint{text-align:center;font-size:11px;color:rgba(255,255,255,.55);margin:-8px 0 4px}
 /* ONLINE — conta / sala / lobby */
 .cl-online-cta{margin-top:16px;text-align:center}
