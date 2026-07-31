@@ -88,9 +88,14 @@ function playerLink(playerName, clubId, label){
     : `clMarketPlayer('${clubId}','${escC(playerName)}')`;
   return `<span class="cl-link" onclick="event.stopPropagation();${action}">${escC(txt)}</span>`;
 }
-/* leva o usuário direto pro elenco do PRÓPRIO clube na aba Jogo, opcionalmente já selecionando um jogador */
-function clGoSquad(playerName){ CL.menu=null; CL.rightMode=null; CL.tab='jogo'; CL.screen='main';
-  if(playerName) CL.selPlayer=playerName; clCloseOverlay(); cdraw(); }
+/* leva o usuário direto pro PRÓPRIO clube, opcionalmente já com um jogador selecionado.
+   Com jogador: abre a aba JOGADOR (a ficha dele), que é o que o clique num nome promete —
+   antes caía na aba Jogo e, pior, gravava o NOME em CL.selPlayer, enquanto todo o resto
+   compara CL.selPlayer com p.pid: a seleção nunca casava e a ficha mostrava o 1º do elenco. */
+function clGoSquad(playerName){ CL.menu=null; CL.rightMode=null; CL.screen='main';
+  const p = playerName ? squad(CL.clubId).find(x=>x.n===playerName) : null;
+  if(p){ CL.selPlayer=p.pid; CL.tab='jogador'; } else CL.tab='jogo';
+  clCloseOverlay(); cdraw(); }
 function shade(hex,amt){ hex=(hex||'#12224a').replace('#',''); if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');
   let r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16);
   const f=amt<0?0:255, t=Math.abs(amt); r=Math.round(r+(f-r)*t); g=Math.round(g+(f-g)*t); b=Math.round(b+(f-b)*t);
@@ -2888,6 +2893,27 @@ function applyKickoffSnapshot(){
     if(e.tactic) S.clubTactic[cid]=e.tactic;
   });
 }
+/* FASE 3C: quem é o cliente AUTORITATIVO de um confronto — o que roda a sessão interativa e
+   transmite ('mlive'). Mesma regra de precedência da Fase 3B: mandante humano presente manda;
+   se ele está ausente, o visitante humano assume; sem humano presente dos dois lados, ninguém
+   transmite (a partida é do motor, e o stream do apito já é a verdade). */
+function liveBroadcasterOf(h,a){
+  if(!CL.online || !CL.humans) return null;
+  const on=id=>!!(CL.humans[id] && typeof NET!=='undefined' && NET.clubOnline && NET.clubOnline(id));
+  if(on(h)) return h;
+  if(on(a)) return a;
+  return null;
+}
+/* FASE 3C: espectador cai de volta pro stream PRÉ-COMPUTADO do apito (o mesmo fallback que o
+   servidor usa quando o humano não publica). Só vale enquanto nada foi transmitido ainda —
+   misturar meio stream com meio replay daria um placar que não existe em lugar nenhum. */
+function fallbackSpectateToPre(m){
+  m.streamRemote=false; m.spectate=false; m.replay=true;
+  const pre=m._pre;
+  if(pre){ m.events=(pre.events||[]).map(e=>({...e,_resolved:true})); m.fhg=pre.hg; m.fag=pre.ag; m.perf=pre.perf||null; }
+  else { const ev=simEventsC(m.h,m.a,m.seed); m.events=ev.events; m.fhg=ev.hg; m.fag=ev.ag; m.perf=ev.perf; }
+  m.idx=0; m.hg=0; m.ag=0; m.goals=[]; m.incidents=[];
+}
 function buildLiveMatchObject(h,a,seed,opts){
   opts=opts||{};
   applyKickoffSnapshot(); // Fase 1: inputs congelados do apito antes de simular (ver acima)
@@ -2915,6 +2941,19 @@ function buildLiveMatchObject(h,a,seed,opts){
   // fundo/replay seguem como antes. (Se um resultado já foi PUBLICADO pelo adversário — pub — o
   // replay dele vence, igual sempre: a partida já é oficial.)
   const gate=attendanceFor(h,rnd);
+  // FASE 3C: partida de OUTRO humano que está PRESENTE -> assisto à TRANSMISSÃO dele ('mlive'),
+  // não ao stream do apito. O stream do apito é uma simulação de reserva; quem joga ao vivo decide
+  // pênalti/substituição/expulsão e publica um resultado DIFERENTE — e é o publicado que o servidor
+  // grava (humanResultByFx vence preMatches no resolve-round). Reproduzir o apito fazia a tela ao
+  // vivo mostrar um placar que nunca existiu: eram exatamente as partidas de humanos que não batiam
+  // com a classificação depois. _pre fica de reserva (ver fallbackSpectateToPre): silêncio total =
+  // o dono não está jogando de verdade, e aí o apito volta a ser a verdade — igual ao servidor.
+  if(!pub && !mine && isLeague && liveBroadcasterOf(h,a)){
+    return { h,a,hg:0,ag:0,idx:0,events:[],att:gate.att,price:gate.price,cap:gate.cap,
+      ref:REFS_C[Math.floor(rnd()*REFS_C.length)], goals:[], incidents:[], fhg:null, fag:null, perf:null,
+      user:false, div:opts.div, replay:false, sim:null,
+      streamRemote:true, spectate:true, streamKey:'lg:'+h+'-'+a, _pre:pre, seed, _builtAt:nowMs() };
+  }
   if(!src && mine && opts.user!==false && typeof liveMatchSession==='function'){
     // FASE 3B (humano×humano na liga): UMA partida só, transmitida. O cliente do MANDANTE roda a
     // sessão autoritativa com os DOIS lados interativos (as decisões do visitante chegam via
@@ -3041,6 +3080,7 @@ function onNetMatchLive(p){
   const m=RL.matches.find(x=>x.streamRemote && x.streamKey===p.k); if(!m) return;
   (p.events||[]).slice(m.events.length).forEach(e=>m.events.push({...e,_resolved:true})); // cumulativo: só o que falta
   if(p.done){ m.streamDone=true; m.fhg=p.hg; m.fag=p.ag; m.perf=(p.result&&p.result.perf)||null; m.streamResult=p.result||null; }
+  if(m.spectate) return; // FASE 3C: partida de terceiros — eu só assisto, nenhum lado é meu pra decidir
   const mySide=m.h===CL.clubId?'H':'A';
   if(p.pending && p.pending.side===mySide){
     if(!CL._remoteDecision && !RL.penEvent && !RL.injEvent && !RL.redEvent) openRemoteDecision(m, p.pending);
@@ -3108,20 +3148,33 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused) return;
         if(nowMs()>m.sim._remoteDeadline){ const d=m.sim.defaultDecision(); if(d) m.sim.applyDecision(d); m.sim._remoteDeadline=null; }
       }
     } else m.sim._remoteDeadline=null;
-    maybeBroadcastMatch(m); // transmite o snapshot pra sala (visitante + espectadores futuros)
+    maybeBroadcastMatch(m); // transmite o snapshot pra sala (visitante + espectadores)
+  } else if(m.sim && m.sim.done){
+    // FASE 3C: continua batendo o snapshot FINAL enquanto a rodada não fecha. Sem isso o apito
+    // final ia num único envio — se ele se perdesse, quem assiste ficava esperando os 20s do
+    // detector de stream morto e a partida terminava sem placar na tela dele.
+    maybeBroadcastMatch(m);
   } else if(m.streamRemote){
-    // FASE 3B (visitante): assisto ao stream do mandante — o relógio da rodada espera o fim dele.
+    // FASE 3B (visitante) / 3C (espectador): assisto ao stream do autoritativo — o relógio da
+    // rodada espera o fim dele.
     const st=CL._liveStreams && CL._liveStreams[m.streamKey];
     if(!m.streamDone && !m.streamDead){
       RL.maxMin=Math.max(RL.maxMin, RL.minute+2);
-      if(!st && m.events.length===0 && nowMs()-(m._builtAt||0)>10000 && typeof liveMatchSession==='function'){
-        // silêncio TOTAL desde o apito: mandante deve ter caído antes de transmitir — assumo a
-        // partida localmente (3A) e passo a transmitir eu (vira o autoritativo de fato).
-        m.streamRemote=false; m.sim=liveMatchSession(m.h,m.a,m.seed,{}); m.events=m.sim.events; m.streamCast=true;
-        toastC('⚠ Transmissão do mandante não chegou — assumindo a partida localmente.');
+      if(!st && m.events.length===0 && nowMs()-(m._builtAt||0)>10000){
+        if(m.spectate){
+          // silêncio TOTAL numa partida de terceiros: o dono não está jogando ao vivo de verdade.
+          // Volto pro stream do apito — que é exatamente o que o servidor vai gravar nesse caso.
+          fallbackSpectateToPre(m);
+        } else if(typeof liveMatchSession==='function'){
+          // silêncio TOTAL desde o apito: mandante deve ter caído antes de transmitir — assumo a
+          // partida localmente (3A) e passo a transmitir eu (vira o autoritativo de fato).
+          m.streamRemote=false; m.sim=liveMatchSession(m.h,m.a,m.seed,{}); m.events=m.sim.events; m.streamCast=true;
+          toastC('⚠ Transmissão do mandante não chegou — assumindo a partida localmente.');
+        }
       } else if(st && nowMs()-st.ts>20000){
-        m.streamDead=true; // stream morreu no meio: solta o relógio (saio com marcador de folga; o servidor resolve com o stream do apito)
-        toastC('⚠ Transmissão interrompida — o resultado oficial sai na classificação.');
+        m.streamDead=true; // stream morreu no meio: solta o relógio (o resultado oficial sai na classificação)
+        if(m.spectate){ if(!m.events.length) fallbackSpectateToPre(m); } // partida de terceiros: sem toast (não é o jogo dele)
+        else toastC('⚠ Transmissão interrompida — o resultado oficial sai na classificação.');
       }
     }
   } });
@@ -4536,7 +4589,9 @@ async function onlineAdoptServerRound(RL){
     if(saved && saved.S){
       const oldSeason = S.season||0;
       isTurnover = (saved.S.season||0) > oldSeason; // VIRADA de temporada (rodada volta a 0)
+      const _career=(typeof snapshotCareer==='function')?snapshotCareer():null; // carreira é minha, não do anfitrião (ver CAREER_KEYS)
       Object.assign(S, saved.S);
+      if(typeof restoreCareer==='function') restoreCareer(_career);
       S.clubId = CL.clubId;
       if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
       S.xi = resolveClubXI(CL.clubId);
@@ -4665,7 +4720,11 @@ function finishCupLiveMatch(){
     // no fluxo atual (host-autoritativo via NET.saveGame) nada lê essa coluna ainda; entra em
     // vigor no cutover pro servidor. Só copas de mata-mata (grupos são Série A -> futuro).
     if(CL.online && typeof NET!=='undefined' && NET.publishCupResult){
-      NET.publishCupResult(S.round, { h:t.h, a:t.a, hg:m.hg, ag:m.ag, winner, pens, events:m.events, decisions:(m.sim&&m.sim.decisions)||[] });
+      // scorers/perf viajam junto: o servidor precisa deles pra creditar o gol na artilharia e o
+      // JOGO no Historial (ver cupSumula no resolve-round) — o recordScorers/ratePlayers local
+      // acima é sobrescrito pelo adopt da rodada seguinte.
+      NET.publishCupResult(S.round, { h:t.h, a:t.a, hg:m.hg, ag:m.ag, winner, pens, events:m.events,
+        scorers, perf:m.perf||null, decisions:(m.sim&&m.sim.decisions)||[] });
     }
     const userWon=(winner===CL.clubId);
     if(wentToPens){
@@ -5135,6 +5194,8 @@ function handleResenhaCareer(){
 function enterResenhaUnemployment(){
   if(!CL.online) return;
   CL._firedFrom=CL.clubId; CL.unemployed=true; CL._unempRounds=0; CL._pendingResenhaOffer=null;
+  S.coachHistory=S.coachHistory||[];
+  S.coachHistory.push({season:S.season, type:'demissao', text:`Demitido pelo ${String((clubOf(CL._firedFrom)||{}).short||'clube').toUpperCase()}`});
   // libera o clube no servidor (vira CPU); se falhar, desfaz o estado local pra não travar o jogador
   if(typeof NET!=='undefined' && NET.setMyClub){
     NET.setMyClub(null).then(r=>{ if(!r||!r.ok){ console.warn('setMyClub(null):', r&&r.error); CL.unemployed=false; } });
@@ -5146,29 +5207,43 @@ function enterResenhaUnemployment(){
     <div class="cl-cal-ok" style="margin-top:14px">${btn('Entendi','clCloseOverlay();CL.screen=\'main\';CL.tab=\'jogo\';cdraw()',{icon:'✔',cls:'cl-btn-ok'})}</div>
   </div>`,{w:470,bodyClass:'cl-body-gray'}));
 }
+/* mesmo modal serve pros dois casos: convite pra quem está DESEMPREGADO (depois da demissão) e
+   sondagem pra quem está EMPREGADO e indo muito bem. No segundo caso o convite custa alguma coisa
+   — sair do clube atual — então o texto diz isso e avisa do intervalo de duas temporadas. */
 function showResenhaOffer(offer){
   const c=clubOf(offer.clubId)||{};
+  const atual = !CL.unemployed ? (clubOf(CL.clubId)||{}).short : null;
+  const divLbl=(typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[offer.division])||('Série '+offer.division);
+  const corpo = atual
+    ? `${escC(divLbl)} · quer você como treinador.<br><span style="font-size:12px">Aceitar significa deixar o <b>${escC(atual)}</b> agora. A próxima troca de clube só depois de duas temporadas.</span>`
+    : `${escC(divLbl)} · quer você como treinador.`;
   overlayC(dlg('🤝 Proposta de emprego', `<div class="cl-res" style="text-align:center;padding:16px">
     <div class="cl-res-score">${escC(c.short||offer.clubId)}</div>
-    <div class="cl-res-verd" style="margin-top:6px">${escC((typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[offer.division])||('Série '+offer.division))} · quer você como treinador.</div>
+    <div class="cl-res-verd" style="margin-top:6px">${corpo}</div>
     <div class="cl-cal-ok" style="display:flex;gap:10px;justify-content:center;margin-top:14px">
       ${btn('Recusar','clDeclineResenhaOffer()',{icon:'✖',cls:'cl-btn-cancel'})}
       ${btn('Aceitar','clAcceptResenhaOffer()',{icon:'✔',cls:'cl-btn-ok'})}
     </div></div>`,{w:470,bodyClass:'cl-body-green'}));
 }
-function clDeclineResenhaOffer(){ clCloseOverlay(); CL._pendingResenhaOffer=null; CL._unempRounds=0; cdraw(); } // recusou -> espera surgir outro
+function clDeclineResenhaOffer(){ clCloseOverlay(); CL._pendingResenhaOffer=null;
+  if(CL.unemployed) CL._unempRounds=0; // desempregado: recusou -> volta a esperar outro convite
+  cdraw(); }
 function clAcceptResenhaOffer(){
   const offer=CL._pendingResenhaOffer; if(!offer){ clCloseOverlay(); return; }
   if(typeof NET==='undefined' || !NET.setMyClub){ toastC('Recurso indisponível.'); return; }
+  const from = CL.unemployed ? CL._firedFrom : CL.clubId; // sondagem aceita por quem está empregado: o clube que fica pra trás é o ATUAL
   toastC('Assumindo o clube...');
   NET.setMyClub(offer.clubId).then(r=>{
     if(!r||!r.ok){ toastC('Não deu pra assumir'+((r&&r.error)?' ('+r.error+')':'')+'.'); return; }
     CL.unemployed=false; CL._unempRounds=0; CL._pendingResenhaOffer=null;
     CL.clubId=offer.clubId; S.clubId=offer.clubId;
-    if(CL.humans){ delete CL.humans[CL._firedFrom]; CL.humans[offer.clubId]=CL.mgr; }
+    if(CL.humans){ if(from!=null) delete CL.humans[from]; CL.humans[offer.clubId]=CL.mgr; }
     if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
     S.xi=(typeof resolveClubXI==='function')?resolveClubXI(CL.clubId):(typeof autoXI==='function'?autoXI(CL.clubId):S.xi);
     CL.tacticChosen=false; CL.formation=null; CL.selPlayer=squad(CL.clubId)[0]?.pid||null; S.jobSecurity=55;
+    S.lastClubChangeSeason=S.season;                 // trava a próxima troca por duas temporadas (ver resenhaCanMoveClub)
+    S.coachHistory=S.coachHistory||[];
+    S.coachHistory.push({season:S.season, type:'contratado', text:`Contratado pelo ${String((clubOf(offer.clubId)||{}).short||offer.clubId).toUpperCase()}`});
     clCloseOverlay(); CL.screen='main'; CL.tab='jogo'; cdraw();
     toastC('Você é o novo treinador do '+((clubOf(offer.clubId)||{}).short||''));
   });

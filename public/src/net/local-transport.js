@@ -263,7 +263,9 @@ function onlineReconcileIfBehind(room){
     if(!newer && typeof hideSyncLoading==='function') hideSyncLoading(); // nada pra adotar afinal -> não trava o loading
     if(newer){
       const isTurnover = (sState.season||0) > oldSeason; // VIRADA de temporada (rodada volta a 0)
+      const _career=(typeof snapshotCareer==='function')?snapshotCareer():null; // carreira é minha, não do anfitrião (ver CAREER_KEYS)
       Object.assign(S, sState);
+      if(typeof restoreCareer==='function') restoreCareer(_career);
       // o save é do HOST — restaura o MEU clube (senão eu assumo o clube do host no motor)
       S.clubId = CL.clubId;
       applyViewerDivision(CL.clubId);                    // F3.5: renderiza a divisão do PRÓPRIO clube (temporada 2+)
@@ -1016,14 +1018,22 @@ function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=ro
     (async ()=>{
       try {
         const savedState = await NET.loadGame();
-        if(savedState && savedState.S){ Object.assign(S, savedState.S);
+        if(savedState && savedState.S){
+          const _career=(typeof snapshotCareer==='function')?snapshotCareer():null; // carreira é minha, não do anfitrião (ver CAREER_KEYS)
+          Object.assign(S, savedState.S);
+          if(typeof restoreCareer==='function') restoreCareer(_career);
+          // convidado ENTRANDO sem carreira própria: começa a régua do zero em vez de herdar a
+          // Segurança no cargo / o histórico do anfitrião, que vêm juntos no save da sala.
+          if(!NET.isHost && (!_career || _career.jobSecurity==null)){
+            S.jobSecurity=60; S.roundsSinceFired=null; S.pendingJobOffers=[]; S.coachHistory=[]; S.lastClubChangeSeason=null;
+          }
           // O save é do HOST — S.clubId/S.xi dele. RESTAURA o MEU clube: sem isso, quem reconecta/volta
           // (ex.: depois de ser expulso) assume o CLUBE DO HOST no motor -> "dois usuários com o mesmo
           // time". CL.clubId é o clube (livre) que EU acabei de assumir; o motor tem que usar ELE.
           S.clubId = CL.clubId;
           applyViewerDivision(CL.clubId);                // F3.5: renderiza a divisão do PRÓPRIO clube (temporada 2+)
           S.xi = resolveClubXI(CL.clubId);
-          CL.selPlayer = (squad(CL.clubId)[0]||{}).n || CL.selPlayer;
+          CL.selPlayer = (squad(CL.clubId)[0]||{}).pid || CL.selPlayer; // pid: CL.selPlayer é comparado com p.pid
           syncDataClubsFromState();
           // o estado carregado é o do ANFITRIÃO: extrato, totais e carimbo de premiação dele vêm
           // junto. Restaura os MEUS por cima — sem isto, toda vez que o convidado entrava na sala
@@ -1185,7 +1195,10 @@ function onlineCompleteSeasonTurnover(){
     if(res && !res.error){
       const saved = await NET.loadGame();
       if(saved && saved.S){
-        Object.assign(S, saved.S); S.clubId=CL.clubId;
+        const _career=(typeof snapshotCareer==='function')?snapshotCareer():null; // carreira é minha, não do anfitrião (ver CAREER_KEYS)
+        Object.assign(S, saved.S);
+        if(typeof restoreCareer==='function') restoreCareer(_career);
+        S.clubId=CL.clubId;
         if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
         S.xi = resolveClubXI(CL.clubId);
         if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();

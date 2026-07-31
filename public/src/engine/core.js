@@ -1937,14 +1937,12 @@ function pendingUserCupMatches(){
       if(tie) out.push({key, stage:'bracket', bracket:c.bracket, tie, h:tie.h, a:tie.a});
     }
   });
-  // Resenha (online): confronto contra outro clube humano da MESMA sala fica de fora —
-  // cada cliente calcula a rodada localmente, e deixar os dois lados abrirem a partida
-  // ao vivo cada um por conta própria arriscaria pênaltis/eventos re-sorteados diferentes
-  // pros dois (ver pesquisa de arquitetura online). Continua resolvendo em segundo plano,
-  // igual hoje — só o confronto humano x CPU (a imensa maioria) fica jogável ao vivo.
-  if(CL.online && CL.humans){
-    return out.filter(pc=>{ const opp=pc.h===CL.clubId?pc.a:pc.h; return !CL.humans[opp]; });
-  }
+  // Resenha (online) — FASE 3C: confronto de copa contra outro humano agora É jogável ao vivo,
+  // com a mesma mecânica de transmissão da liga (Fase 3B): o MANDANTE roda a única simulação e
+  // transmite; o VISITANTE assiste ao mesmo jogo e decide os lances dele remotamente (pênalti,
+  // lesão, expulsão, substituição e cobranças da disputa de pênaltis). A escolha de papel é do
+  // buildLiveMatchObject (mandante presente -> visitante em streamRemote; ausente -> visitante
+  // vira o autoritativo). Antes esses confrontos eram excluídos e resolvidos em segundo plano.
   return out;
 }
 /* rodadas de copa acontecendo nesta mesma leva (mesma véspera de advancePendingCups)
@@ -2721,6 +2719,7 @@ function decidePromotionRelegation(finalPos, totalClubs){
    Só roda no modo solo (Resenha é sessão compartilhada; trocar de clube no meio quebraria o
    fluxo dos outros jogadores humanos). */
 function tickJobSecurity(){
+  if(typeof CL!=='undefined' && CL.unemployed) return; // sem clube: a régua fica parada até assumir outro
   if(S.jobSecurity==null) S.jobSecurity=60;
   const pos=tablePos(S.clubId), total=DATA.clubs.length;
   const posScore = total>1 ? 100-((pos-1)/(total-1))*100 : 60;          // 1º=100, lanterna=0 (RESULTADOS)
@@ -2844,6 +2843,19 @@ function checkManagerJobEvent(){
   }
   return null;
 }
+/* ===== A CARREIRA É DO CLIENTE, NÃO DO MUNDO =====
+   Na Resenha S é o estado COMPARTILHADO: adopt/reconcile fazem Object.assign(S, estadoDoServidor),
+   e esse estado carrega os campos de carreira de QUEM o gravou (o anfitrião). Sem proteger, a cada
+   rodada o convidado herdava a Segurança no cargo, o salário e o histórico do anfitrião — o
+   tickJobSecurity então só puxava 18% por rodada na direção certa, PARTINDO do número do outro.
+   Era isso que deixava a barra "Segurança no cargo" sem relação nenhuma com a campanha do próprio
+   clube (e travava demissão/convite, que dependem dela). Estes campos são de cada treinador:
+   sobrevivem ao Object.assign e nunca vêm do servidor. */
+const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason'];
+function snapshotCareer(){ if(typeof S==='undefined'||!S) return null;
+  const o={}; CAREER_KEYS.forEach(k=>{ if(S[k]!==undefined) o[k]=S[k]; }); return o; }
+function restoreCareer(snap){ if(!snap||typeof S==='undefined'||!S) return;
+  CAREER_KEYS.forEach(k=>{ if(snap[k]!==undefined) S[k]=snap[k]; }); }
 /* ===== CARREIRA NA RESENHA (Fase 2): demissão -> desempregado -> convite -> assume =====
    Diferente do solo (que oferece clubes na hora): na Resenha o treinador é DEMITIDO, fica
    assistindo as rodadas sem interagir e só depois recebe convite de um clube LIVRE da CPU.
@@ -2860,6 +2872,34 @@ function resenhaFreeClubs(){
     (clubs||[]).forEach(c=>{ if(c&&c.id && !humans.has(c.id)) out.push({clubId:c.id, division:d}); });
   });
   return out;
+}
+/* overall de um clube que pode estar fora de DATA.clubs (outra divisão) */
+function anyClubOverall(id, fallbackObj){
+  const c=clubOf(id)||fallbackObj; return (c&&c.overall)||55;
+}
+/* clubes SEM humano que podem SONDAR um treinador EMPREGADO que vai bem — espelho do
+   generateJobOffer do solo, adaptado à Resenha (só clube livre/CPU, porque o assento de outro
+   humano não está disponível). Sempre um degrau realista: um clube um pouco mais forte na MESMA
+   divisão ou, mais raro, um dos mais fracos da divisão IMEDIATAMENTE acima. Nunca dois degraus —
+   é o que impede a subida relâmpago até a primeira divisão. */
+function resenhaOfferClubs(){
+  const humans=new Set(Object.keys((typeof CL!=='undefined'&&CL.humans)||{}));
+  if(S.clubId) humans.add(S.clubId);
+  const myIdx=DIV_ORDER.indexOf(S.division), cur=anyClubOverall(S.clubId);
+  const livres=(clubs,d)=>(clubs||[]).filter(c=>c&&c.id&&!humans.has(c.id))
+    .map(c=>({clubId:c.id, division:d, ov:anyClubOverall(c.id,c)}));
+  const same=livres(DATA.clubs, S.division).filter(c=>c.ov>cur+2 && c.ov<=cur+14);
+  const upDiv = myIdx>0 ? DIV_ORDER[myIdx-1] : null;
+  const up = upDiv ? livres((S.otherDivs&&S.otherDivs[upDiv]&&S.otherDivs[upDiv].clubs)||[], upDiv)
+    .sort((a,b)=>a.ov-b.ov).slice(0,6) : [];
+  return {same, up};
+}
+/* UMA troca de clube a cada DUAS temporadas: o treinador de sucesso muda de ares, mas não escala
+   quatro divisões em quatro temporadas. Vale só pra mudança VOLUNTÁRIA (sondagem aceita) — quem
+   foi DEMITIDO precisa poder assumir o convite seguinte, senão ficaria duas temporadas sem clube. */
+function resenhaCanMoveClub(){
+  if(S.lastClubChangeSeason==null) return true;
+  return ((S.season||1) - S.lastClubChangeSeason) >= 2;
 }
 function tickResenhaCareer(){
   if(typeof CL==='undefined' || !CL.online || !S) return null;
@@ -2883,6 +2923,26 @@ function tickResenhaCareer(){
     const R=makeRng(hashSeed(S.seed,S.season,S.round,'resenha-fire',S.clubId));
     const chance=(12-(S.jobSecurity||0))/12*0.30;     // até 30%/rodada com a régua em 0
     if(R.random()<chance) return {kind:'fired'};
+  }
+  // EMPREGADO indo MUITO bem: sondagem de outro clube — mesma régua do solo (jobSecurity>=80,
+  // 6%/rodada, +2% acima de 90), só que limitada a clube LIVRE e ao cooldown de 2 temporadas.
+  if((S.jobSecurity||60)>=80 && !CL._pendingResenhaOffer && resenhaCanMoveClub()){
+    const R=makeRng(hashSeed(S.seed,S.season,S.round,'resenha-joboffer',S.clubId));
+    const extra=(S.jobSecurity>=90)?0.02:0;
+    if(R.random()<(0.06+extra)){
+      const {same,up}=resenhaOfferClubs();
+      // 25% das vezes a sondagem vem da divisão de cima (quando existe); se não há ninguém
+      // elegível na mesma divisão, o convite de cima é o único caminho.
+      const pool = (up.length && (R.random()<0.25 || !same.length)) ? up : same;
+      if(pool.length){
+        const pick=pool[Math.floor(R.random()*pool.length)];
+        const offer={clubId:pick.clubId, division:pick.division};
+        CL._pendingResenhaOffer=offer;
+        S.roundNews=S.roundNews||[];
+        S.roundNews.push(`🤝 Sondagem do ${(clubOf(pick.clubId)||{short:'outro clube'}).short}: eles querem você como treinador.`);
+        return {kind:'offer', offer};
+      }
+    }
   }
   return null;
 }
@@ -2935,7 +2995,7 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
   // no meio da temporada por demissão/proposta, não só virada de temporada).
   S.finances=[]; S.seasonTotals={income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
   S.jobSecurity=60;
-  CL.tacticChosen=false; CL.formation=null; CL.selPlayer=squad(newClubId)[0]?.n||null;
+  CL.tacticChosen=false; CL.formation=null; CL.selPlayer=squad(newClubId)[0]?.pid||null; // pid (não nome): CL.selPlayer é comparado com p.pid em todo lugar
   advanceAuctions();
 }
 let DIV_LABEL_FULL={A:'Série A',B:'Série B',C:'Série C',D:'Série D'}; // reatribuído por setUniverse()

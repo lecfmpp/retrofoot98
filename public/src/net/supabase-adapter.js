@@ -359,6 +359,7 @@ async function netPublishCupResult(round, cupResult){
   if(!sb || !NET.gameId || !SB_AUTH_USER || !cupResult || !cupResult.h || !cupResult.a || !cupResult.winner) return;
   const payload = { h:cupResult.h, a:cupResult.a, hg:cupResult.hg, ag:cupResult.ag,
     winner:cupResult.winner, pens:cupResult.pens||null, events:cupResult.events||[],
+    scorers:cupResult.scorers||[], perf:cupResult.perf||null, // artilharia + Historial no servidor (cupSumula)
     decisions:cupResult.decisions||[] }; // Fase 3A: log de decisões
   try{
     if(NET._claimed && NET._claimed[SB_AUTH_USER.id]){ NET._claimed[SB_AUTH_USER.id].last_cup_result=payload; NET._claimed[SB_AUTH_USER.id].last_cup_round=round; }
@@ -420,6 +421,18 @@ function netHumanResultFor(h, a, round){
     if(String(c.clubId)===String(h)) homeR=r; else if(String(c.clubId)===String(a)) awayR=r;
   }
   return homeR||awayR||null; // mandante-autoritativo, igual ao dedup de netCollectHumanResults
+}
+/* FASE 3C: resultado de COPA já publicado por um humano pra este confronto+rodada (mandante-
+   autoritativo, igual netHumanResultFor da liga) — usado antes de abrir uma partida de copa ao
+   vivo: se o outro lado JÁ jogou e publicou (ex.: eu estava ausente e cliquei depois), reproduzo
+   o jogo oficial em vez de esperar um stream que não vai mais chegar. */
+function netHumanCupResultFor(h, a, round){
+  const cl=NET._claimed||{}; let homeR=null, awayR=null;
+  for(const uid in cl){ const c=cl[uid]; const r=c&&c.last_cup_result;
+    if(!(r && c.last_cup_round===round && String(r.h)===String(h) && String(r.a)===String(a))) continue;
+    if(String(c.clubId)===String(h)) homeR=r; else if(String(c.clubId)===String(a)) awayR=r;
+  }
+  return homeR||awayR||null;
 }
 /* monta humanResults {"h-a":{hg,ag,scorers,perf,events}} desta rodada a partir dos assentos.
    Dedup humano×humano: o resultado do MANDANTE (home) é o autoritativo pra uma partida entre dois
@@ -1099,6 +1112,7 @@ NET.humanClubIds = netHumanClubIds;
 NET.allHumanResultsIn = netAllHumanResultsIn;
 NET.collectHumanResults = netCollectHumanResults;
 NET.humanResultFor = netHumanResultFor;
+NET.humanCupResultFor = netHumanCupResultFor;
 NET.setMode = netSetMode;
 NET.assignClub = netAssignClub;
 NET.setMyClub = netSetMyClub;
