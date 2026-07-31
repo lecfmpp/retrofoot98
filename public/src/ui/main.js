@@ -1546,7 +1546,7 @@ function scMain(){
 function rosterHeadHTML(){
   return `<div class="cl-rrow head">
     <span class="cl-rmark"></span><span class="cl-rpos">Pos</span><span class="cl-rname">Nome</span>
-    <span class="cl-rage">Id.</span><span class="cl-rf">Força</span><span class="cl-rv">Salário</span></div>`;
+    <span class="cl-rage">Id.</span><span class="cl-rf">Força</span><span class="cl-rv">Salário<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">Valor</span></div>`;
 }
 /* salário SEMANAL exibido de um jogador, de qualquer clube. Sem contrato explícito cai no mesmo
    salário-tabela por força que o motor já usa pra folha dos clubes de CPU (ver cpuSeasonFinances),
@@ -1574,7 +1574,7 @@ function squadTableHTML(clubId, opts){
         <span class="cl-rmark"></span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
-        <span class="cl-rf">${p.f}</span><span class="cl-rv">${fmt(playerSalary(p))}/sem</span></div>`;
+        <span class="cl-rf">${p.f}</span><span class="cl-rv">${fmt(playerSalary(p))}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;
     }).join('')+`</div>`;
   });
   return html;
@@ -1600,7 +1600,7 @@ function rosterHTML(){
         <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
-        <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}</span><span class="cl-rv">${fmt(salary)}/sem</span></div>`;}).join('')+`</div>`;
+        <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}</span><span class="cl-rv">${fmt(salary)}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;}).join('')+`</div>`;
   });
   return html;
 }

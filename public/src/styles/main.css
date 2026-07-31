@@ -378,7 +378,10 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-roster-hd{background:#e8e8e8;color:#000;font-weight:800;font-size:13px;padding:5px 10px;border:1px solid #000;border-bottom:none;display:flex;justify-content:space-between;cursor:pointer}
 .cl-rgroup{border-bottom:1px solid #000}
 .cl-rgroup:last-child{border-bottom:none}
-.cl-rrow{display:grid;grid-template-columns:16px 22px 1fr 30px 54px 96px;column-gap:6px;align-items:center;padding:2px 8px;font-weight:700;font-size:14px;cursor:pointer}
+/* 7 colunas: T/R · Pos · Nome · Idade · Força · Salário · Valor de mercado. Qualquer mudança
+   aqui tem que casar com rosterHeadHTML/rosterHTML/squadTableHTML (main.js) — as três desenham
+   a MESMA linha. O nome é a única coluna elástica (1fr), então é ela que absorve o aperto. */
+.cl-rrow{display:grid;grid-template-columns:16px 26px 1fr 30px 50px 96px 74px;column-gap:6px;align-items:center;padding:2px 8px;font-weight:700;font-size:14px;cursor:pointer}
 /* cabeçalho das colunas do elenco. Fica DENTRO de .cl-roster, que tem fundo BRANCO — por isso
    texto escuro sobre a mesma faixa cinza do .cl-roster-hd (contraste ~10:1). Antes era branco
    com 60% de opacidade (herdado das listas de fundo escuro) e sumia por completo no branco.
@@ -397,7 +400,14 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-rname{}
 .cl-rage{text-align:center;font-weight:400;opacity:.75;font-size:12px}
 .cl-rf{text-align:left}
-.cl-rv{text-align:left}
+/* dinheiro NÃO pode quebrar linha: numa coluna apertada "R$ 104k/sem" virava duas linhas e
+   engordava a altura da linha inteira (era o que acontecia no mobile com 7 colunas). */
+.cl-rv{text-align:left;white-space:nowrap}
+/* valor de mercado: coluna mais discreta que o salário (é referência, não compromisso do caixa) */
+.cl-rmv{text-align:right;font-weight:700;opacity:.72;font-size:12.5px;white-space:nowrap}
+/* com 7 colunas o nome é quem cede espaço — corta com reticências em vez de invadir a coluna
+   seguinte (o grid não recorta sozinho: sem isto o texto vazava por cima da idade). */
+.cl-rname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .cl-rtrend{font-size:10px;margin-left:3px}
 .cl-rtrend.up{color:var(--success-alt)}
 .cl-rtrend.down{color:var(--danger-alt)}
@@ -1140,7 +1150,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
   .cl-tab{flex:0 0 auto;white-space:nowrap}
   /* linhas em grid ficam apertadas -> reduz fonte e gap */
-  .cl-rrow{grid-template-columns:14px 20px 1fr 24px 40px 76px;column-gap:4px;font-size:12.5px;padding:4px 6px}
+  .cl-rrow{grid-template-columns:12px 20px 1fr 20px 36px 58px 54px;column-gap:3px;font-size:12px;padding:4px 5px}
+  .cl-rmv{font-size:10.5px}
+  .cl-rrow.head{font-size:9px;letter-spacing:0}  /* rótulo tem que caber na coluna dele, sem encostar no vizinho */
+  .cl-rv-per{display:none}   /* "/sem" sai da linha E do cabeçalho: a 11px o rótulo "Salário/sem"
+                                pedia 80px numa coluna de 58 e encostava na coluna de valor */
+  .cl-rv{font-size:11px}
   .cl-rrow.head{font-size:9.5px}
   .cl-rmark.t,.cl-rmark.r{width:14px;height:14px;font-size:9px;border-radius:3px}
   .cl-mkt-p,.cl-auc-row,.cl-cls-row{font-size:12px}
