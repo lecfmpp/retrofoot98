@@ -225,63 +225,53 @@ function btn(label,onclick,opts){ opts=opts||{}; return `<button class="cl-btn $
    Com isso: rodada termina -> loading -> classificação (uma vez) -> tela principal (uma vez, já
    atualizada). Não usa overlayC() de propósito (aquele é clicável/fechável — este não pode ser
    dispensado no meio da sincronização). */
-/* espera de sincronização: o protagonista é o GIF (img/sync/, sorteado e trocado a cada ~5s);
-   embaixo, só uma legenda curta sobre a pausa. Aparece no overlay de sync E na tela de espera
-   pós-partida (waitround), pra ninguém ver a tela principal DESATUALIZADA (a rodada só avança
-   quando o servidor fecha). */
-const SYNC_FUN=[
-  ['⏳','Sincronizando rodada...'],
-  ['🧮','Somando os placares...'],
-  ['🖥️','VAR conferindo os lances...'],
-  ['📋','Súmula a caminho da CBF...'],
-  ['⚽','Recolhendo as bolas do treino...'],
-  ['🌱','Molhando o gramado...'],
-  ['🚿','Elenco no banho pós-jogo...'],
-  ['🥤','Pausa pro isotônico...'],
-]
-function syncFunHTML(){ const f=SYNC_FUN[Math.floor(Math.random()*SYNC_FUN.length)];
-  return `<span class="cl-syncfun-ic">${f[0]}</span> ${escC(f[1])}`; }
-/* GIFs de zoeira na espera: qualquer arquivo img/sync/sync1.gif..sync12.gif que EXISTIR entra
-   no sorteio (sondagem por Image() na carga — não precisa de manifesto nem rebuild pra adicionar
-   ou tirar um GIF, é só subir o arquivo com o nome na sequência). Sem nenhum, cai na bola ⚽. */
-const SYNC_GIF_CANDIDATES=Array.from({length:12},(_,i)=>'img/sync/sync'+(i+1)+'.gif');
-function probeSyncGifs(){
-  if(CL._syncGifs) return; CL._syncGifs=[];
-  // sondagem por HEAD, não por Image(): carregar os GIFs inteiros na sondagem baixava vários MB
-  // em TODA abertura do jogo (o maior tem ~5MB). O download real só acontece quando a tela de
-  // espera mostra o <img>. Checa o content-type porque o hosting é SPA: arquivo inexistente
-  // volta 200 com o index.html (text/html), não 404.
-  SYNC_GIF_CANDIDATES.forEach(src=>{
-    fetch(src,{method:'HEAD'}).then(r=>{
-      if(r.ok && /image/i.test(r.headers.get('content-type')||'')) CL._syncGifs.push(src);
-    }).catch(()=>{});
-  });
+/* ===== PAUSA PATROCINADA (handoff "Pausa Patrocinada.dc.html") =====
+   Tela que cobre o intervalo entre o fim da rodada e a classificação, no lugar de mostrar a tela
+   principal DESATUALIZADA (a rodada só avança quando o servidor fecha). Layout do handoff:
+   cabeçalho de etapa com relógio, palco com a TV de tubo tocando o GIF, coluna de piadas +
+   checklist do que está sincronizando, barra de progresso e faixa de patrocinadores em marquee.
+   Os assets (GIFs, TV, sala, logos) são servidos pelo hosting — todo jogador baixa da nuvem. */
+const PAUSA_GIFS=[
+  { src:'img/sync/sync1.gif', cap:'ROMÁRIO — O ELÁSTICO QUE PAROU O MARACANÃ' },
+  { src:'img/sync/sync2.gif', cap:'ROMÁRIO — O BAIXINHO PEDINDO A BOLA NA ÁREA' },
+  { src:'img/sync/sync3.gif', cap:'EDMUNDO — O ANIMAL COMEMORANDO NA GERAL' },
+  { src:'img/sync/sync4.gif', cap:'CAMISA 10 DO VASCO — CLÁSSICO DE SÃO JANUÁRIO' },
+];
+/* máx. ~72 caracteres por frase — cabe em 2 linhas sem apertar (regra do handoff) */
+const PAUSA_JOKES=[
+  'Nos anos 90, o VAR era o bandeirinha com dor nas costas.',
+  'Camisa 10 daquela época não corria. Decidia andando.',
+  'Pênalti só era pênalti se o juiz visse. E ele nunca via.',
+  'Travou? Alguém subia no telhado pra mexer na antena.',
+  'O meio-campo era pelado. Ninguém reclamava: era tática.',
+  'Contratação saía no jornal de domingo. Chegava na quarta.',
+];
+const AD_LOGOS=['img/sponsors/betano.png','img/sponsors/cazetv.webp','img/sponsors/ifood.svg'];
+const AD_MIN_MS=10000;                     // a pausa segura NO MÍNIMO 10s (janela do anúncio)
+function pausaGif(){ return PAUSA_GIFS[(CL._pausaI||0)%PAUSA_GIFS.length]; }
+function pausaJoke(){ return PAUSA_JOKES[(CL._pausaI||0)%PAUSA_JOKES.length]; }
+/* quanto falta da janela de 10s, em segundos e em % (é o que o relógio e a barra mostram:
+   progresso REAL da pausa, não um número decorativo). */
+function pausaLeft(){ return Math.max(0, Math.ceil((AD_MIN_MS-(nowMs()-(CL._waitSince||nowMs())))/1000)); }
+function pausaPct(){ return Math.max(0, Math.min(100, Math.round(((nowMs()-(CL._waitSince||nowMs()))/AD_MIN_MS)*100))); }
+/* checklist: os dois primeiros itens já estão prontos quando a partida acaba; os dois últimos
+   dependem do fechamento da rodada no servidor (é o que o gate espera — ver adGate). */
+function pausaChecklist(){
+  const sincronizou=!!CL._adCont;
+  const it=(st,txt)=>`<div class="rf-srow"><span class="${st==='ok'?'rf-sdone':st==='wait'?'rf-swait':'rf-sdim'}">${st==='ok'?'✓':st==='wait'?'⏳':'·'}</span><span class="${st==='dim'?'rf-sdim':''}">${txt}</span></div>`;
+  return it('ok','Resultados da rodada')
+    +it('ok','Tabela de classificação')
+    +it(sincronizou?'ok':'wait','Finanças dos clubes')
+    +it(sincronizou?'ok':'dim','Propostas de transferência');
 }
-function syncGifHTML(){
-  const gs=CL._syncGifs||[];
-  let g=gs.length?gs[Math.floor(Math.random()*gs.length)]:null;
-  if(g && gs.length>1 && g===CL._lastSyncGif) g=gs[(gs.indexOf(g)+1)%gs.length]; // não repete o mesmo em seguida
-  CL._lastSyncGif=g;
-  return g?`<img class="cl-waitfun-gif" src="${g}" alt="" onerror="this.outerHTML='<div class=cl-waitfun-spin>⚽</div>'">`
-          :`<div class="cl-waitfun-spin">⚽</div>`;
-}
-try{ probeSyncGifs(); }catch(e){}
-/* ===== PATROCINADORES na tela de espera =====
-   Slider no TOPO do quadro de GIFs: 6 posições em loop (por enquanto as 3 marcas repetidas),
-   uma logo por vez com barra de progresso de 5s — a mesma cadência do GIF/legenda, então tudo
-   troca junto. As logos moram em img/sponsors/ e são servidas pelo hosting (nuvem), igual aos GIFs. */
-const AD_LOGOS=['img/sponsors/ifood.svg','img/sponsors/cazetv.webp','img/sponsors/betano.png'];
-const AD_SLOTS=[0,1,2,0,1,2];              // 6 posições do slider (3 marcas, repetidas 2x por enquanto)
-const AD_MIN_MS=10000;                     // a tela de espera segura NO MÍNIMO 10s (janela do anúncio)
-function adLogoHTML(){
-  const i=AD_SLOTS[(CL._adIdx||0)%AD_SLOTS.length];
-  return `<div class="cl-ad-card"><img class="cl-ad-img" src="${AD_LOGOS[i]}" alt="patrocinador">
-    <div class="cl-ad-bar"><i></i></div></div>`;
+function adTilesHTML(){        // 6 ladrilhos (3 marcas repetidas) — marquee do handoff
+  const seq=[0,1,2,0,1,2];
+  return seq.map(i=>`<span class="rf-tile"><img src="${AD_LOGOS[i]}" alt="patrocinador"></span>`).join('');
 }
 /* GATE DE PUBLICIDADE: quando a rodada sincroniza, a continuação (classificação -> time novo)
-   NÃO roda na hora — fica presa aqui até (a) completar os 10s da tela, que aí segue sozinha, ou
+   NÃO roda na hora — fica presa aqui até (a) completar os 10s da pausa, que aí segue sozinha, ou
    (b) o usuário clicar em "Pular publicidade", botão que SÓ aparece quando a sincronia de fato
-   terminou (antes disso não há pra onde pular). Fora da tela de espera, passa direto. */
+   terminou (antes disso não há pra onde pular). Fora da pausa, passa direto. */
 function adGate(fn){
   if(CL.screen!=='waitround'){ fn(); return; }
   const elapsed=nowMs()-(CL._waitSince||0);
@@ -296,34 +286,41 @@ function clAdSkip(){
   const fn=CL._adCont; CL._adCont=null;
   if(fn){ try{ fn(); }catch(e){ console.warn('ad gate:', e); } }
 }
-/* um ticker só pros dois lugares (overlay + waitround): troca GIF/legenda/anúncio a cada 5s e
-   morre sozinho quando nenhum dos alvos está mais na tela. */
+/* ticker único da pausa: gira GIF+piada a cada 5s e atualiza relógio/barra/checklist a cada
+   segundo. Morre sozinho quando a tela sai de cena. */
 function ensureSyncFunTicker(){
   if(CL._syncFunT) return;
   CL._syncFunT=setInterval(()=>{
-    const a=$c('#c-syncload-msg'), b=$c('#cl-waitfun-msg');
-    if(!a && !b){ clearInterval(CL._syncFunT); CL._syncFunT=null; return; }
-    const h=syncFunHTML(); if(a) a.innerHTML=h; if(b) b.innerHTML=h;
-    if((CL._syncGifs||[]).length){                          // GIF novo junto com a legenda
-      const gh=syncGifHTML(), ga=$c('#c-syncload-gif'), gb=$c('#cl-waitfun-gif');
-      if(ga) ga.innerHTML=gh; if(gb) gb.innerHTML=gh;
+    const stage=$c('#rf-gif'), over=$c('#c-syncload-msg');
+    if(!stage && !over){ clearInterval(CL._syncFunT); CL._syncFunT=null; return; }
+    CL._pausaTick=(CL._pausaTick||0)+1;
+    if(CL._pausaTick%5===0){                                  // 5s: próximo GIF + próxima piada
+      CL._pausaI=((CL._pausaI||0)+1)%Math.max(PAUSA_GIFS.length,PAUSA_JOKES.length);
+      const g=pausaGif();
+      if(stage){ stage.src=g.src;
+        const cap=$c('#rf-gifcap'), num=$c('#rf-gifnum'), jk=$c('#rf-joke');
+        if(cap) cap.textContent=g.cap;
+        if(num) num.textContent=((CL._pausaI%PAUSA_GIFS.length)+1)+'/'+PAUSA_GIFS.length;
+        if(jk) jk.textContent=pausaJoke();
+      }
+      if(over) over.innerHTML=`<img class="cl-syncover-gif" src="${g.src}" alt="">`;
     }
-    const ad=$c('#cl-ad-logo');                             // slider de patrocinador (loop de 6)
-    if(ad){ CL._adIdx=((CL._adIdx||0)+1)%AD_SLOTS.length; ad.innerHTML=adLogoHTML(); }
-    const sk=$c('#cl-ad-skip'); if(sk && CL._adCont) sk.style.display=''; // sobrevive a um cdraw no meio
-    // o escape "Ir para o time" (anti-travamento) só aparece se a espera passar de 30s SEM a
-    // sincronia terminar — com ela pronta, o botão da vez é "Pular publicidade".
-    const skip=$c('#cl-waitfun-skip');
-    if(skip && !CL._adCont && (nowMs()-(CL._waitSince||nowMs()))>30000) skip.style.display='';
-  }, 5000);
+    const clk=$c('#rf-clock'), pct=$c('#rf-pct'), fill=$c('#rf-fill'), chk=$c('#rf-check');
+    if(clk) clk.textContent='00:'+String(pausaLeft()).padStart(2,'0');
+    const p=pausaPct();
+    if(pct) pct.textContent=p+'%'; if(fill) fill.style.width=p+'%';
+    if(chk) chk.innerHTML=pausaChecklist();
+    const sk=$c('#cl-ad-skip'); if(sk && CL._adCont) sk.style.display='';   // sobrevive a um cdraw
+  }, 1000);
 }
 function showSyncLoading(msg){
   let el=$c('#c-syncload');
   if(!el){ el=document.createElement('div'); el.id='c-syncload'; document.body.appendChild(el); }
-  el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:99999;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Tahoma,Verdana,Arial,sans-serif';
-  el.innerHTML=`<div style="text-align:center;max-width:560px;padding:20px">
-    <div id="c-syncload-gif">${syncGifHTML()}</div>
-    <div id="c-syncload-msg" class="cl-waitfun-msg">${syncFunHTML()}</div>
+  el.className='cl-syncover';
+  el.innerHTML=`<div class="cl-syncover-box">
+    <div class="cl-syncover-tt">⏸ ${escC(msg||'Pausa técnica')}</div>
+    <div id="c-syncload-msg"><img class="cl-syncover-gif" src="${pausaGif().src}" alt=""></div>
+    <div class="cl-syncover-sub">Sincronizando a rodada com todos os treinadores</div>
   </div>`;
   ensureSyncFunTicker();
   // rede de segurança: nunca deixa o usuário PRESO atrás do overlay se algo no meio do
@@ -4019,18 +4016,51 @@ function nowMs(){ try{ return Date.now(); }catch(e){ return 0; } }
    não fecha a rodada enquanto alguém está ocupado — ficaria em deadlock. Tem escape manual
    (clWaitRoundSkip) pra ninguém ficar preso se algo travar do outro lado. */
 function scWaitRound(){
-  const r=(S.round||0)+1;
   ensureSyncFunTicker();
-  // "Ir para o time" levava direto pra tela principal DESATUALIZADA (rodada antiga) — agora é só
-  // um escape anti-travamento, escondido nos primeiros 30s (o ticker o revela se a espera passar disso).
-  return `<div class="cl-res" style="text-align:center;padding:18px">
-    <div class="cl-ad-slot"><div class="cl-ad-label">publicidade</div><div id="cl-ad-logo">${adLogoHTML()}</div></div>
-    <div class="cl-res-score">Rodada ${r} encerrada</div>
-    <div id="cl-waitfun-gif">${syncGifHTML()}</div>
-    <div id="cl-waitfun-msg" class="cl-waitfun-msg">${syncFunHTML()}</div>
-    <div id="cl-ad-skip" class="cl-cal-ok" style="display:${CL._adCont?'':'none'}">${btn('Pular publicidade','clAdSkip()',{icon:'⏭',cls:'cl-btn'})}</div>
-    <div class="cl-classif-autohint">a classificação aparece quando a rodada fechar</div>
-    <div id="cl-waitfun-skip" class="cl-cal-ok" style="display:none">${btn('Ir para o time','clWaitRoundSkip()',{icon:'⌂',cls:'cl-btn-cancel'})}</div>
+  const g=pausaGif(), n=(CL._pausaI||0)%PAUSA_GIFS.length;
+  return `<div class="rf-view">
+    <div class="rf-stephead">
+      <span class="rf-steptitle">⏸ Pausa técnica</span>
+      <span class="rf-stepmid">Sincronizando a rodada com todos os treinadores</span>
+      <span class="rf-steppill" id="rf-clock">00:${String(pausaLeft()).padStart(2,'0')}</span>
+    </div>
+    <div class="rf-content">
+      <div class="rf-stage">
+        <div class="rf-gifbox">
+          <span class="rf-room"></span><span class="rf-roomtint"></span>
+          <div class="rf-tv">
+            <div class="rf-tvscreen">
+              <img class="rf-gif" id="rf-gif" src="${g.src}" alt="">
+              <span class="rf-tvglass"></span>
+            </div>
+            <img class="rf-tvimg" src="img/sync/tv.webp" alt="">
+          </div>
+        </div>
+        <div class="rf-gifcap"><span class="rf-gifnum" id="rf-gifnum">${n+1}/${PAUSA_GIFS.length}</span><span id="rf-gifcap">${escC(g.cap)}</span></div>
+      </div>
+      <div class="rf-rail">
+        <div class="rf-panel rf-panel-joke">
+          <div class="rf-ptitle">💬 Resenha dos anos 90</div>
+          <p class="rf-joke" id="rf-joke">${escC(pausaJoke())}</p>
+        </div>
+        <div class="rf-panel">
+          <div class="rf-ptitle">🔄 O que está sendo atualizado</div>
+          <div id="rf-check">${pausaChecklist()}</div>
+        </div>
+      </div>
+    </div>
+    <div class="rf-progstrip">
+      <div class="rf-proghead">
+        <span class="rf-proglabel">Todos os treinadores voltam a jogar ao mesmo tempo. Segura aí…</span>
+        <span class="rf-progpct" id="rf-pct">${pausaPct()}%</span>
+      </div>
+      <div class="rf-progtrack"><div class="rf-progfill" id="rf-fill" style="width:${pausaPct()}%"></div></div>
+      <div id="cl-ad-skip" class="rf-skiprow" style="display:${CL._adCont?'':'none'}">${btn('Pular publicidade','clAdSkip()',{icon:'⏭',cls:'cl-btn'})}</div>
+    </div>
+    <div class="rf-sponsor">
+      <div class="rf-sponlabel"><b>Patrocínio oficial</b><span>Quem banca a resenha</span></div>
+      <div class="rf-spontrack"><div class="rf-sponrun">${adTilesHTML()}${adTilesHTML()}</div></div>
+    </div>
   </div>`;
 }
 function clWaitRoundSkip(){ if(CL._adCont){ clAdSkip(); return; } CL.screen='main'; CL.tab='jogo'; cdraw(); }
@@ -4039,10 +4069,10 @@ function onlineReturnFreeAfterMatch(){
   CL._playedRound=S.round; // marca que JÁ joguei esta rodada — não re-simulo (evita loop na mesma rodada)
   CL.live=null; CL.subsUsed=0; CL._liveBusy=false;
   _prLog('onlineReturnFreeAfterMatch -> waitround');
-  CL._waitSince=nowMs();                     // base dos 10s de anúncio e do escape de 30s
+  CL._waitSince=nowMs();                     // base dos 10s da pausa (relógio + barra + gate)
   CL._adCont=null; if(CL._adT){ clearTimeout(CL._adT); CL._adT=null; }
-  CL._adIdx=Math.floor(Math.random()*AD_SLOTS.length);           // slider começa em marca aleatória
-  if(CL._syncFunT){ clearInterval(CL._syncFunT); CL._syncFunT=null; } // realinha o ciclo de 5s com a entrada
+  CL._pausaI=Math.floor(Math.random()*PAUSA_GIFS.length); CL._pausaTick=0;   // começa num GIF aleatório
+  if(CL._syncFunT){ clearInterval(CL._syncFunT); CL._syncFunT=null; }        // realinha o ciclo com a entrada
   CL.screen='waitround'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||CL.selPlayer; cdraw();
   if(CL.lastGate){ toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0; }
   // NÃO reabro a próxima rodada aqui: quem fecha e reabre a rodada é o ANFITRIÃO, DEPOIS de resolver
