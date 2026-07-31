@@ -2851,7 +2851,44 @@ function checkManagerJobEvent(){
    Era isso que deixava a barra "Segurança no cargo" sem relação nenhuma com a campanha do próprio
    clube (e travava demissão/convite, que dependem dela). Estes campos são de cada treinador:
    sobrevivem ao Object.assign e nunca vêm do servidor. */
-const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason'];
+/* playerGrowth/_growthKey entram aqui porque a evolução que EU acompanho é a do MEU elenco: na
+   Resenha o S vem do save do ANFITRIÃO (Object.assign em onlineReconcileIfBehind), e sem estar
+   nesta lista o histórico do convidado seria substituído pelo do host a cada rodada. */
+const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey'];
+/* ---- EVOLUÇÃO DO ELENCO (o que o treino de fato fez) ----
+   O ícone 🔺 dizia "está em treino", mas não dizia se rendeu alguma coisa. Aqui fica o histórico
+   de FORÇA do meu elenco: uma entrada por MUDANÇA (não por rodada), então uma temporada inteira
+   cabe em pouquíssimos números.
+
+   O registro é feito por OBSERVAÇÃO, não dentro do evolvePlayer, de propósito: a força pode mudar
+   por caminhos diferentes (evolução local no solo, resolve-round no servidor, espelhamento do save
+   do anfitrião). Comparar o que eu via antes com o que vejo agora funciona em todos eles, sem
+   precisar instrumentar cada caminho — e sem inchar o estado dos 430 clubes, já que só o MEU
+   elenco é acompanhado. */
+const GROWTH_MAX=14;
+function trackMyForces(){
+  if(typeof S==='undefined' || !S || !S.squads) return;
+  const cid=(typeof CL!=='undefined' && CL.clubId) || S.clubId; if(!cid) return;
+  const key=(S.season||1)+'-'+(S.round||0)+'-'+cid;   // inclui o clube: trocar de time recomeça a régua
+  if(S._growthKey===key) return;
+  S._growthKey=key;
+  S.playerGrowth=S.playerGrowth||{};
+  (S.squads[cid]||[]).forEach(p=>{
+    if(!p || p.pid==null || typeof p.f!=='number') return;
+    const h=S.playerGrowth[p.pid]||(S.playerGrowth[p.pid]=[]);
+    const last=h[h.length-1];
+    if(!last || last.f!==p.f){ h.push({r:S.round||0, f:p.f}); if(h.length>GROWTH_MAX) h.shift(); }
+  });
+}
+/* histórico do jogador: {atual, anterior, delta, desdeR} — anterior é a força ANTES da última
+   mudança; sem mudança nenhuma ainda, anterior === atual e delta 0. */
+function growthOf(p){
+  const h=(S && S.playerGrowth && p && S.playerGrowth[p.pid]) || [];
+  const atual=(p&&p.f)||0;
+  if(h.length<2) return {atual, anterior:atual, delta:0, desdeR:h.length?h[0].r:null, hist:h};
+  const prev=h[h.length-2];
+  return {atual, anterior:prev.f, delta:atual-prev.f, desdeR:h[h.length-1].r, hist:h};
+}
 function snapshotCareer(){ if(typeof S==='undefined'||!S) return null;
   const o={}; CAREER_KEYS.forEach(k=>{ if(S[k]!==undefined) o[k]=S[k]; }); return o; }
 function restoreCareer(snap){ if(!snap||typeof S==='undefined'||!S) return;

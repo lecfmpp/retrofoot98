@@ -364,6 +364,8 @@ function showSyncLoading(msg){
 }
 function hideSyncLoading(){ if(CL._syncLoadingTimer){ clearTimeout(CL._syncLoadingTimer); CL._syncLoadingTimer=null; } const el=$c('#c-syncload'); if(el) el.remove(); }
 function cdraw(){ const r=$c('#c-root'); if(!r)return;
+  // registra a força do meu elenco uma vez por rodada (no-op se nada mudou) — ver trackMyForces
+  if(typeof trackMyForces==='function'){ try{ trackMyForces(); }catch(e){} }
   let html='';
   switch(CL.screen){
     case 'abertura':  html=scAbertura(); break;
@@ -1697,7 +1699,17 @@ function energyCell(p){
     +`<i style="width:${e}%;background:linear-gradient(90deg,hsl(${Math.max(0,hue-25)},75%,42%),hsl(${hue},72%,45%))"></i></span>`;
 }
 function trainingIcon(clubId, p){
-  return isInTraining(clubId, p&&p.pid) ? `<span class="cl-rtrain" title="Em treino especial — ganha chance extra de evolução a cada rodada">🔺</span>` : '';
+  if(!isInTraining(clubId, p&&p.pid)) return '';
+  // o ícone dizia só "está em treino"; agora diz o que RENDEU (e o clique no nome abre o detalhe
+  // completo na aba Jogador — ver forcaBlocoHTML).
+  let extra='';
+  if(clubId===CL.clubId && typeof growthOf==='function'){
+    const g=growthOf(p);
+    extra = g.hist && g.hist.length>1
+      ? ` · desde que entrei em treino: ${g.hist[0].f} → ${g.atual}${g.atual>g.hist[0].f?' ▲':g.atual<g.hist[0].f?' ▼':' (estável)'}`
+      : ' · ainda sem variação registrada';
+  }
+  return `<span class="cl-rtrain" title="Em treino especial — chance extra de evolução a cada rodada${extra}">🔺</span>`;
 }
 /* MESMA tabela de elenco pra QUALQUER clube (o meu e o dos outros, humano ou CPU): mesmo grid
    (.cl-rrow), mesmo cabeçalho, mesmas colunas e os mesmos valores. Antes cada tela tinha a sua
@@ -2196,6 +2208,71 @@ function careerHistTotals(p){
     injuries:(cs.injuries||0)+(st.injuries||0)
   };
 }
+/* ---- O QUE A FORÇA FAZ NA PARTIDA (texto do tooltip) ----
+   Números REAIS do motor, não uma explicação genérica: a escala de exibição é comprimida por
+   engForce antes de entrar na conta (senão time forte viraria goleada), a energia multiplica por
+   0.6+0.4*energia/100 (ver sessionRatingsFromPlayers), e o resultado alimenta o setor da posição.
+   O goleiro tem curva própria (engForceGK, bem menos comprimida). */
+const SETOR_FORCA={GK:'Defesa (com a zaga)', DEF:'Defesa', MID:'Meio-campo', ATT:'Ataque'};
+function forcaImpactoTexto(p){
+  if(!p || typeof p.f!=='number') return '';
+  const R=(typeof REBAL!=='undefined')?REBAL:null;
+  const eF=(p.s==='GK') ? (R&&R.engForceGK) : (R&&R.engForce);
+  if(!eF) return '';
+  const base=eF(p.f), en=(p.energy!=null?p.energy:100);
+  const comEnergia=base*(0.6+0.4*en/100);
+  const n=x=>String(Math.round(x*10)/10).replace('.',',');
+  const setor=SETOR_FORCA[p.s]||'time';
+  // a compressão só existe acima de 49 — mencioná-la num jogador de Série D (força ~10) seria ruído
+  const comprime = p.f>49
+    ? ` (a escala comprime acima de 49 pra time forte não virar goleada${p.s==='GK'?'; goleiro comprime menos':''})`
+    : '';
+  return `Força ${p.f} vale ${n(base)} no motor${comprime}.`
+    + ` Com ${Math.round(en)}% de energia, entra como ${n(comEnergia)} na média do ${setor}.`
+    + ` É a média do setor — não a força de um jogador — que decide quem cria mais chance na partida.`;
+}
+/* ---- FORÇA: atual, de onde veio, e o que o treino rendeu ----
+   O 🔺 do elenco só dizia "está em treino". Aqui dá pra ver se rendeu: a força de agora, a de
+   antes da última mudança, e a variação desde que o acompanhamento começou. */
+function forcaBlocoHTML(p){
+  const g=(typeof growthOf==='function')?growthOf(p):{atual:p.f,anterior:p.f,delta:0,hist:[]};
+  const treino=(typeof isInTraining==='function') && isInTraining(CL.clubId,p.pid);
+  const seta=g.delta>0?'<span class="cl-rtrend up">▲</span>':g.delta<0?'<span class="cl-rtrend down">▼</span>':'';
+  const dl = g.delta>0?`+${g.delta}`:g.delta<0?String(g.delta):'—';
+  const desde = g.hist.length ? g.hist[0].f : g.atual;          // força na 1ª leitura registrada
+  const total = g.atual-desde;
+  const totalTxt = total>0?`+${total}`:total<0?String(total):'estável';
+  const linhaMudanca = g.delta!==0
+    ? `<div class="cl-forca-sub">Antes <b>${g.anterior}</b> → agora <b>${g.atual}</b> ${seta} <i>(mudou na ${(g.desdeR!=null?g.desdeR+1:'?')}ª jornada)</i></div>`
+    : `<div class="cl-forca-sub">Sem mudança desde a última leitura.</div>`;
+  const linhaTotal = g.hist.length>1
+    ? `<div class="cl-forca-sub">Desde que passei a acompanhar: <b>${desde}</b> → <b>${g.atual}</b> (<b>${totalTxt}</b>)</div>`
+    : `<div class="cl-forca-sub"><i>Acompanhamento começa agora — a próxima rodada já mostra a variação.</i></div>`;
+  const linhaTreino = treino
+    ? `<div class="cl-forca-treino">🔺 Em treino especial — chance extra de evolução a cada rodada</div>` : '';
+  return `<div class="cl-forca" title="${escC(forcaImpactoTexto(p))}">
+    <div class="cl-forca-top"><span>Força</span><b class="cl-forca-n">${p.f}</b><span class="cl-forca-d ${g.delta>0?'up':g.delta<0?'down':''}">${dl}</span></div>
+    ${linhaMudanca}${linhaTotal}${linhaTreino}
+    ${growthSparkHTML(g)}
+  </div>`;
+}
+/* mini-gráfico das mudanças — barras em ordem CRONOLÓGICA (esquerda = mais antiga). Os rótulos
+   das pontas são a primeira e a força atual, não mín/máx: com mín/máx eles sugeriam um eixo
+   crescente da esquerda pra direita, que não é o que as barras mostram. */
+function growthSparkHTML(g){
+  const h=g.hist||[]; if(h.length<2) return '';
+  const vals=h.map(x=>x.f), min=Math.min(...vals), max=Math.max(...vals), span=(max-min)||1;
+  const barras=h.map((x,i)=>{
+    const pct=8+Math.round(92*(x.f-min)/span);
+    const quando=(x.r!=null?(x.r+1)+'ª jornada':'início');
+    return `<span class="cl-spark-b ${i===h.length-1?'now':''}" title="${quando} · força ${x.f}"><i style="height:${pct}%"></i></span>`;
+  }).join('');
+  return `<div class="cl-spark">
+    <span class="cl-spark-lbl">${h[0].f}</span>
+    <span class="cl-spark-bars">${barras}</span>
+    <span class="cl-spark-lbl now">${h[h.length-1].f}</span>
+  </div>`;
+}
 function panJogador(){
   const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer)||squad(CL.clubId)[0]; if(!p) return '';
   if(CL.rightMode==='renovar') return renewPanel(p);
@@ -2207,6 +2284,7 @@ function panJogador(){
     <div class="cl-jgd-name">${escC(p.n)}</div>
     <div class="cl-jgd-nat"><span class="cl-flag2">${flagImg(p.nat||'Brasil')}</span> ${escC(p.nat||'Brasil')}</div>
     ${statusBar}
+    ${forcaBlocoHTML(p)}
     <div class="cl-jgd-row"><span>Idade</span><b>${p.age||'-'} anos</b></div>
     <div class="cl-jgd-row"><span>Comportamento</span><b>${playerBehaviorLabel(p)}</b></div>
     <div class="cl-jgd-row"><span>Gols nesta temporada</span><b>${(S.scorers&&S.scorers[p.n])||0}</b></div>

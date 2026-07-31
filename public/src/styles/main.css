@@ -1754,3 +1754,24 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .rf-cam-cta{font-size:11px;padding:7px 10px;white-space:normal;text-align:center;flex:1 0 100%;order:9}
   .rf-cam-foot{font-size:10px;gap:8px}
 }
+
+/* ===== FORÇA / EVOLUÇÃO NA ABA JOGADOR =====
+   O ícone de treino no elenco não dizia se o jogador cresceu. Este bloco mostra a força atual,
+   de onde ela veio e o saldo do acompanhamento; o title do bloco explica o efeito no motor. */
+.cl-forca{background:#1a3a1a;border:1px solid #2a4a2a;padding:8px 10px;margin:6px 0 10px;cursor:help}
+.cl-forca-top{display:flex;align-items:baseline;gap:8px;color:#fff;font-size:13px}
+.cl-forca-top>span:first-child{flex:0 0 auto;opacity:.85}
+.cl-forca-n{font-family:var(--mono);font-size:22px;font-weight:var(--fw-black);color:var(--yellow);line-height:1}
+.cl-forca-d{font-family:var(--mono);font-size:13px;font-weight:var(--fw-bold);color:var(--gray-aaa);margin-left:auto}
+.cl-forca-d.up{color:var(--success-lite)} .cl-forca-d.down{color:#ff8a8a}
+.cl-forca-sub{font-size:12px;color:var(--ontext-lite2);margin-top:4px;line-height:1.45}
+.cl-forca-sub b{color:#fff} .cl-forca-sub i{opacity:.75}
+.cl-forca-treino{font-size:12px;color:var(--yellow);margin-top:5px;font-weight:var(--fw-bold)}
+/* mini-gráfico das mudanças de força */
+.cl-spark{display:flex;align-items:flex-end;gap:6px;margin-top:8px}
+.cl-spark-lbl{font-family:var(--mono);font-size:10px;color:var(--gray-999)}
+.cl-spark-bars{flex:1;display:flex;align-items:flex-end;gap:2px;height:26px}
+.cl-spark-b{flex:1;height:100%;display:flex;align-items:flex-end;background:#12280f;cursor:help}
+.cl-spark-b>i{display:block;width:100%;background:var(--success-lite);min-height:2px}
+.cl-spark-lbl.now{color:var(--yellow);font-weight:var(--fw-bold)}
+.cl-spark-b.now>i{background:var(--yellow)}
