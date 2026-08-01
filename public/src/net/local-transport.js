@@ -1425,6 +1425,15 @@ const CUP_HOLD_MAX_MS=240000; // 4 min: folga larga pra copa + prorrogação + p
 function onlineCupObligationPending(){
   if(!CL.online || !S || typeof pendingUserCupMatches!=='function') return false;
   if(CL.unemployed) return false;
+  // RODADA AINDA FECHANDO (já joguei a liga, esperando o fechamento na pausa técnica): a obrigação
+  // de copa NÃO pode contar como ocupado aqui. pendingUserCupMatches olha o tick SEGUINTE
+  // (S.round+1), então logo após jogar a rodada N todo mundo já "deve" a copa da rodada N+1 — mas
+  // essa copa só é jogável DEPOIS que a rodada N fechar. Contar como ocupado bloqueava o próprio
+  // fechamento: a sala inteira parava na pausa até o teto de 4min soltar (terceira variação do
+  // mesmo padrão — sorteio enfileirado e fila adotada já tinham feito o mesmo). O propósito real
+  // desta barreira é segurar o CRONÔMETRO da fase 'ready' (ninguém arma a liga devendo copa), e
+  // isso continua valendo: fora da 'running'-com-rodada-jogada ela segura normalmente.
+  if(typeof NET!=='undefined' && NET.room && NET.room.phase==='running' && CL._playedRound===S.round) return false;
   let pend=false;
   try{ pend = pendingUserCupMatches().length>0; }catch(e){ return false; }
   const key=(S.season||1)+'-'+(S.round||0);
