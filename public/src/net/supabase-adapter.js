@@ -48,16 +48,15 @@ async function netInitSupabase(){
       // um token de sessão inexistente ("Session not found") em toda chamada. Manter em sincronia é
       // o que permite detectar isso (ver netInvokeFn) em vez de degradar calado.
       if(event==='SIGNED_OUT'){
-        SB_AUTH_USER = null;
         // SIGNED_OUT também dispara EM FALSO: com duas abas no mesmo domínio, a rotação do refresh
         // token faz a aba "perdedora" receber "Refresh Token Not Found" e emitir SIGNED_OUT — mesmo
-        // com a sessão nova, válida, já gravada no localStorage pela aba irmã. Derrubar direto aqui
-        // foi o que travou salas inteiras na pausa técnica (31/jul): o ANFITRIÃO era jogado pro
-        // login, o fechamento da rodada (que era só dele) nunca rodava e ninguém saía da pausa.
-        // Então: espera um instante e CONFERE. Sessão de pé (o caso da rotação) -> segue o jogo;
-        // sem sessão de verdade (logout real, conta trocada) -> aí sim desmonta e volta pro login.
+        // com a sessão nova, válida, já gravada no localStorage pela aba irmã. E anular SB_AUTH_USER
+        // aqui mesmo que por 1,5s derrubava o cliente inteiro: todo callback do realtime que lia a
+        // identidade explodia (01/ago). Então NÃO anula nada agora — espera e CONFERE; sessão de pé
+        // (rotação) -> segue o jogo; morta de verdade -> netHandleSessionLost desmonta e anula.
         setTimeout(async ()=>{
           if(await netRefreshAuth()) return;         // sessão válida no storage — era alarme falso
+          SB_AUTH_USER = null;
           netHandleSessionLost();                     // morta de verdade (guard de CL.online lá dentro)
         }, 1500);
         return;
@@ -105,11 +104,24 @@ function netRefreshAuth(){ return netWithTimeout(netRefreshAuthInner(), 3000, fa
 async function netRefreshAuthInner(){
   try{
     const { data } = await sb.auth.getSession();
-    if(data && data.session){ SB_AUTH_USER = data.session.user; return true; }
+    if(data && data.session) return netAdoptSession(data.session);
     const { data:r } = await sb.auth.refreshSession();
-    if(r && r.session){ SB_AUTH_USER = r.session.user; return true; }
+    if(r && r.session) return netAdoptSession(r.session);
   }catch(e){ console.warn('refreshAuth:', e&&e.message); }
   return false;
+}
+/* sessão recuperada do storage: se veio de OUTRA conta (login trocado em outra aba), esta aba
+   NÃO pode seguir jogando com a identidade antiga — os assentos são por usuário, e escrever com
+   o token da conta nova em nome da antiga corrompe a sala. Aí é sessão perdida de verdade. */
+function netAdoptSession(session){
+  if(typeof NET!=='undefined' && NET.uid && session.user && session.user.id!==NET.uid && typeof CL!=='undefined' && CL.online){
+    console.warn('sessão no storage é de OUTRA conta ('+(session.user.email||session.user.id)+') — saindo da sala');
+    SB_AUTH_USER = null;
+    netHandleSessionLost();
+    return false;
+  }
+  SB_AUTH_USER = session.user;
+  return true;
 }
 /* Chama primeiro e só mexe em autenticação se o servidor RECUSAR. O caminho feliz — a esmagadora
    maioria — não paga nenhuma espera extra, e nada de auth entra na frente do fechamento da rodada. */
@@ -246,6 +258,18 @@ async function netUpdatePassword(newPassword){
   return SB_AUTH_USER;
 }
 
+/* ---- IDENTIDADE ESTÁVEL NA SALA ----
+   SB_AUTH_USER é o objeto VIVO da sessão e fica null em qualquer soluço de auth (SIGNED_OUT
+   espúrio de outra aba, rotação de refresh token, verificação em andamento). Amarrar a
+   identidade do jogo nele derrubava tudo em cascata (31/jul-01/ago): setReady falhava com
+   "Cannot read properties of null", o merge de participantes explodia DENTRO do callback do
+   realtime (matando o processamento dos eventos seguintes) e o jogador ficava fora da rodada.
+   NET.uid é congelado no create/join: é QUEM EU SOU nesta sala, independente do humor da
+   sessão. SB_UID() prefere a sessão viva (cobre o caso raro de nunca ter entrado em sala) e
+   cai pro congelado. Escrita com sessão morta ainda falha no servidor (RLS) — mas falha
+   GRACIOSAMENTE, capturada, sem quebrar o cliente; a autocura do timer loop reidrata a sessão
+   e a próxima tentativa passa. */
+function SB_UID(){ return (SB_AUTH_USER && SB_UID()) || (typeof NET!=='undefined' && NET.uid) || null; }
 /* participantes = união de presença ao vivo (Realtime Presence) + assentos já reivindicados (game_seats) */
 function netMergeParticipants(){
   if(!NET.room) return;
@@ -256,7 +280,7 @@ function netMergeParticipants(){
   // ONLINE confiável = heartbeat no banco (last_seen nos últimos 40s) OU presença do realtime OU sou EU.
   // O presence sozinho é instável (mostrava todos Offline mesmo na sala) — o last_seen resolve.
   const SEEN_WINDOW=40000;
-  const isSeen=(uid,c)=> uid===SB_AUTH_USER.id || !!(SB_ONLINE && SB_ONLINE[uid] && (SB_ONLINE[uid][0]))
+  const isSeen=(uid,c)=> uid===SB_UID() || !!(SB_ONLINE && SB_ONLINE[uid] && (SB_ONLINE[uid][0]))
     || !!(c && c.last_seen && (Date.now()-new Date(c.last_seen).getTime()) < SEEN_WINDOW);
   Object.keys(SB_ONLINE||{}).forEach(uid=>{
     if(SB_KICKED[uid]) return; // expulso: não conta mais como participante (mesmo se a presença ainda não caiu)
@@ -268,8 +292,8 @@ function netMergeParticipants(){
     if(seen[uid] || SB_KICKED[uid]) return; const c=claimed[uid];
     list.push({ id:uid, name:c.name||'(sem nome)', email:c.email||'', confirmed:true, clubId:c.clubId||null, ready:c.ready||false, host: uid===NET.room.hostId, online:isSeen(uid,c), busy:isBusy(c) });
   });
-  if(!seen[SB_AUTH_USER.id] && !claimed[SB_AUTH_USER.id]){
-    list.push({ id:SB_AUTH_USER.id, name:NET.self.name, email:NET.self.email, confirmed:true, clubId:null, ready:false, host:NET.isHost, online:true, busy:false });
+  if(!seen[SB_UID()] && !claimed[SB_UID()]){
+    list.push({ id:SB_UID(), name:NET.self.name, email:NET.self.email, confirmed:true, clubId:null, ready:false, host:NET.isHost, online:true, busy:false });
   }
   NET.room.participants = list;
   // PONTE de escalação: joga a última escalação/tática sincronizada de cada OUTRO humano em
@@ -278,7 +302,7 @@ function netMergeParticipants(){
   // MEU clube (mando localmente a minha escalação; o synced pode estar defasado do que acabei de mudar).
   if(typeof S!=='undefined' && S && S.squads){
     S.clubXI=S.clubXI||{}; S.clubTactic=S.clubTactic||{};
-    Object.keys(claimed).forEach(uid=>{ if(uid===SB_AUTH_USER.id) return; const c=claimed[uid];
+    Object.keys(claimed).forEach(uid=>{ if(uid===SB_UID()) return; const c=claimed[uid];
       if(c && c.clubId){ if(c.last_xi && c.last_xi.length) S.clubXI[c.clubId]=c.last_xi.slice(); if(c.last_tactic) S.clubTactic[c.clubId]=c.last_tactic; } });
   }
   if(NET.onState) NET.onState(NET.room);
@@ -296,12 +320,13 @@ async function netCreateRoom(name, host){
   const { data: code, error } = await sb.rpc('create_game', { p_name:name, p_club_ids:clubIds, p_mode: CL.net.mode||'sorteio' });
   if(error) throw error;
   NET.code = code; NET.gameId = code; NET.isHost = true;
-  NET.self = { id: SB_AUTH_USER.id, name: (host&&host.name) || netAuthStatus().name, email: (host&&host.email)||SB_AUTH_USER.email };
+  NET.uid = SB_AUTH_USER.id; // identidade congelada da sala (ver SB_UID)
+  NET.self = { id: NET.uid, name: (host&&host.name) || netAuthStatus().name, email: (host&&host.email)||SB_AUTH_USER.email };
   NET._claimed = {};
   // LÊ o seed real gerado por create_game — sem isso o host ficava com seed:0 e montava uma
   // competição DIFERENTE da do convidado (que lê games.seed no join) -> "dois jogos em paralelo".
   let createdSeed=0; try{ const { data: g } = await sb.from('games').select('seed').eq('id', code).single(); createdSeed = g && g.seed; }catch(e){}
-  NET.room = { code, gameId: code, name, hostId: SB_AUTH_USER.id, mode: CL.net.mode||'sorteio', phase:'lobby',
+  NET.room = { code, gameId: code, name, hostId: SB_UID(), mode: CL.net.mode||'sorteio', phase:'lobby',
     participants: [], seed:createdSeed, round:0, deadline:0, paused:false,
     speedMult:(typeof TEMPO_MULT!=='undefined' && TEMPO_MULT[TEMPO_DEFAULT]) || 1, chat:[],
     kickoffAt:0, kickoffLineups:null };
@@ -321,8 +346,9 @@ async function netJoinRoom(code, me){
   const upcode = String(code||'').toUpperCase();
   const { data: gameData, error: e2 } = await sb.from('games').select('*').eq('id', upcode).single();
   if(e2) throw new Error('Sala não encontrada');
-  NET.code = gameData.id; NET.gameId = gameData.id; NET.isHost = (gameData.host_id === SB_AUTH_USER.id);
-  NET.self = { id: SB_AUTH_USER.id, name: (me&&me.name) || netAuthStatus().name, email: (me&&me.email)||SB_AUTH_USER.email };
+  NET.uid = SB_AUTH_USER.id; // identidade congelada da sala (ver SB_UID)
+  NET.code = gameData.id; NET.gameId = gameData.id; NET.isHost = (gameData.host_id === NET.uid);
+  NET.self = { id: NET.uid, name: (me&&me.name) || netAuthStatus().name, email: (me&&me.email)||SB_AUTH_USER.email };
   const { data: seatsData } = await sb.from('game_seats').select('*').eq('game_id', gameData.id);
   const { data: msgs } = await sb.from('messages').select('*').eq('game_id', gameData.id).order('created_at').limit(100);
   NET._claimed = {};
@@ -367,11 +393,11 @@ async function netRefreshRoom(){
    cair no meio (parar de bater o heartbeat), o busy_until expira em ~90s e a rodada segue. ---- */
 async function netHeartbeatBusy(){
   if(!sb || !NET.gameId || !SB_AUTH_USER) return;
-  try{ await sb.from('game_seats').update({ busy_until: new Date(Date.now()+90000).toISOString() }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id); }catch(e){}
+  try{ await sb.from('game_seats').update({ busy_until: new Date(Date.now()+90000).toISOString() }).eq('game_id', NET.gameId).eq('user_id', SB_UID()); }catch(e){}
 }
 async function netClearBusy(){
   if(!sb || !NET.gameId || !SB_AUTH_USER) return;
-  try{ await sb.from('game_seats').update({ busy_until: null }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id); }catch(e){}
+  try{ await sb.from('game_seats').update({ busy_until: null }).eq('game_id', NET.gameId).eq('user_id', SB_UID()); }catch(e){}
 }
 /* HEARTBEAT DE PRESENÇA (confiável, no banco): enquanto estou na Resenha, carimbo last_seen no meu
    assento a cada ~15s. O "online" da barra de status vem daqui (visto nos últimos ~40s), não do
@@ -383,10 +409,10 @@ async function netHeartbeatSeen(){
   // AUTO-CURA do nome: se o MEU assento ficou sem nome (ex.: reatribuição no sorteio), re-carimbo o
   // meu nome de conta aqui — cada um conhece o próprio nome com segurança.
   const myName=(NET.self&&NET.self.name)||netAuthStatus().name;
-  const cur=NET._claimed && NET._claimed[SB_AUTH_USER.id];
+  const cur=NET._claimed && NET._claimed[SB_UID()];
   if(myName && (!cur || !cur.name || cur.name==='(sem nome)')){ upd.name=myName; upd.email=(NET.self&&NET.self.email)||SB_AUTH_USER.email; if(cur){ cur.name=myName; cur.email=upd.email; } }
   if(cur) cur.last_seen=now; // reflete já localmente
-  try{ await sb.from('game_seats').update(upd).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id); }catch(e){}
+  try{ await sb.from('game_seats').update(upd).eq('game_id', NET.gameId).eq('user_id', SB_UID()); }catch(e){}
 }
 /* PUBLICA a última escalação/tática do MEU clube no meu assento — os outros clientes leem isso
    (via game_seats -> _claimed -> S.clubXI) pra simular o MEU clube com a MINHA escalação real quando
@@ -394,7 +420,7 @@ async function netHeartbeatSeen(){
    divergiam. jsonb aceita o array de nomes de S.xi. */
 async function netPublishLineup(xi, tactic){
   if(!sb || !NET.gameId || !SB_AUTH_USER) return;
-  try{ await sb.from('game_seats').update({ last_xi:(xi&&xi.length)?xi:null, last_tactic:tactic||null }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id); }catch(e){}
+  try{ await sb.from('game_seats').update({ last_xi:(xi&&xi.length)?xi:null, last_tactic:tactic||null }).eq('game_id', NET.gameId).eq('user_id', SB_UID()); }catch(e){}
 }
 
 /* ---- SAVE ÚNICO (Fase A): publica o RESULTADO REAL da MINHA partida desta rodada ----
@@ -423,8 +449,8 @@ async function netPublishResult(round, result){
     decisions:result.decisions||[], // Fase 3A: log de decisões da partida (pênalti/lesão/expulsão/substituição)
     transfers:_tr, morale:_mo, offers:_of, counters:_ct, offerDrops:_dr };
   try{
-    if(NET._claimed && NET._claimed[SB_AUTH_USER.id]){ NET._claimed[SB_AUTH_USER.id].last_result=payload; NET._claimed[SB_AUTH_USER.id].last_result_round=round; }
-    await sb.from('game_seats').update({ last_result:payload, last_result_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);
+    if(NET._claimed && NET._claimed[SB_UID()]){ NET._claimed[SB_UID()].last_result=payload; NET._claimed[SB_UID()].last_result_round=round; }
+    await sb.from('game_seats').update({ last_result:payload, last_result_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_UID());
   }catch(e){ console.warn('publishResult:', e&&e.message); }
 }
 /* F3.5 CUTOVER: pede ao servidor pra RESOLVER a rodada (edge function resolve-round) — o servidor
@@ -450,8 +476,8 @@ async function netPublishCupResult(round, cupResult){
     scorers:cupResult.scorers||[], perf:cupResult.perf||null, // artilharia + Historial no servidor (cupSumula)
     decisions:cupResult.decisions||[] }; // Fase 3A: log de decisões
   try{
-    if(NET._claimed && NET._claimed[SB_AUTH_USER.id]){ NET._claimed[SB_AUTH_USER.id].last_cup_result=payload; NET._claimed[SB_AUTH_USER.id].last_cup_round=round; }
-    await sb.from('game_seats').update({ last_cup_result:payload, last_cup_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);
+    if(NET._claimed && NET._claimed[SB_UID()]){ NET._claimed[SB_UID()].last_cup_result=payload; NET._claimed[SB_UID()].last_cup_round=round; }
+    await sb.from('game_seats').update({ last_cup_result:payload, last_cup_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_UID());
   }catch(e){ console.warn('publishCupResult:', e&&e.message); }
 }
 /* F3.3: publica o caixa do PRÓPRIO clube no assento -> o servidor (resolve-round) lê pra montar
@@ -461,8 +487,8 @@ async function netPublishBudget(budget){
   if(!sb || !NET.gameId || !SB_AUTH_USER || budget==null || !isFinite(budget)) return;
   const b=Math.round(budget);
   try{
-    if(NET._claimed && NET._claimed[SB_AUTH_USER.id]) NET._claimed[SB_AUTH_USER.id].budget=b;
-    await sb.from('game_seats').update({ budget:b }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);
+    if(NET._claimed && NET._claimed[SB_UID()]) NET._claimed[SB_UID()].budget=b;
+    await sb.from('game_seats').update({ budget:b }).eq('game_id', NET.gameId).eq('user_id', SB_UID());
   }catch(e){ console.warn('publishBudget:', e&&e.message); }
 }
 /* publica o MEU lance atual num lote de leilão (game_seats.last_bids: {lotId:{amount,ts}, ...}) —
@@ -474,11 +500,11 @@ async function netPublishBudget(budget){
 async function netPublishBids(lotId, amount, ts){
   if(!sb || !NET.gameId || !SB_AUTH_USER || !lotId) return;
   try{
-    const mine=(NET._claimed && NET._claimed[SB_AUTH_USER.id]) || null;
+    const mine=(NET._claimed && NET._claimed[SB_UID()]) || null;
     const bids=(mine && mine.last_bids) ? {...mine.last_bids} : {};
     bids[lotId]={amount, ts};
     if(mine) mine.last_bids=bids;
-    await sb.from('game_seats').update({ last_bids:bids }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);
+    await sb.from('game_seats').update({ last_bids:bids }).eq('game_id', NET.gameId).eq('user_id', SB_UID());
   }catch(e){ console.warn('publishBids:', e&&e.message); }
 }
 /* clubes humanos desta sala (assentos ocupados por gente) */
@@ -553,13 +579,13 @@ function netCollectHumanResults(round, exceptClubId){
 async function netAssignClub(pid, clubId){
   let nm, em;
   try {
-    if(pid === SB_AUTH_USER.id){
+    if(pid === SB_UID()){
       const { error } = await sb.rpc('claim_seat', { p_game: NET.gameId, p_club: clubId });
       if(error) throw error;
       nm = NET.self.name; em = NET.self.email;
       await sb.from('game_seats').update({ name: nm, email: em }).eq('game_id', NET.gameId).eq('club_id', clubId);
       // limpa convite pendente, se houver (aceito ao escolher o clube)
-      sb.from('room_invites').delete().eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id).then(()=>{});
+      sb.from('room_invites').delete().eq('game_id', NET.gameId).eq('user_id', SB_UID()).then(()=>{});
     } else if(NET.isHost) {
       const { error } = await sb.rpc('host_assign_seat', { p_game: NET.gameId, p_club: clubId, p_target_user: pid });
       if(error) throw error;
@@ -634,8 +660,8 @@ async function netSetMode(mode){
 
 async function netSetReady(ready, clubId){
   try {
-    await sb.from('game_seats').update({ is_ready: ready }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id);
-    if(NET._claimed[SB_AUTH_USER.id]) NET._claimed[SB_AUTH_USER.id].ready = ready;
+    await sb.from('game_seats').update({ is_ready: ready }).eq('game_id', NET.gameId).eq('user_id', SB_UID());
+    if(NET._claimed[SB_UID()]) NET._claimed[SB_UID()].ready = ready;
     netMergeParticipants();
   } catch(e) { console.error('setReady erro:', e); }
 }
@@ -760,7 +786,7 @@ async function netToLobby(){
 }
 
 async function netSendChat(text, clubId){
-  const { error } = await sb.from('messages').insert({ game_id: NET.gameId, user_id: SB_AUTH_USER.id, user_name: NET.self.name, club_id: clubId, body: text });
+  const { error } = await sb.from('messages').insert({ game_id: NET.gameId, user_id: SB_UID(), user_name: NET.self.name, club_id: clubId, body: text });
   if(error) { console.error('sendChat erro:', error); throw error; }
 }
 
@@ -772,16 +798,16 @@ async function netListMyRooms(){
     // (anfitrião) — aparecem MESMO sem eu ter reivindicado clube ainda, pois create_game só cria
     // assentos CPU e o host não tem assento até escolher/sortear o time, (3) CONVITES pendentes.
     const [{ data: seatData, error: e1 }, { data: inviteData, error: e2 }, { data: hostData, error: e3 }] = await Promise.all([
-      sb.from('game_seats').select('game_id, club_id, is_ready, games(name, phase, round, host_id)').eq('user_id', SB_AUTH_USER.id),
-      sb.from('room_invites').select('game_id, games(name, phase, round, host_id)').eq('user_id', SB_AUTH_USER.id),
-      sb.from('games').select('id, name, phase, round, host_id').eq('host_id', SB_AUTH_USER.id)
+      sb.from('game_seats').select('game_id, club_id, is_ready, games(name, phase, round, host_id)').eq('user_id', SB_UID()),
+      sb.from('room_invites').select('game_id, games(name, phase, round, host_id)').eq('user_id', SB_UID()),
+      sb.from('games').select('id, name, phase, round, host_id').eq('host_id', SB_UID())
     ]);
     if(e1) throw e1;
     const byCode = new Map();
     // (1) assento reivindicado — tem prioridade (traz o clubId escolhido)
     (seatData||[]).filter(r=>r.games && r.games.phase!=='deleted').forEach(r=>{
       byCode.set(r.game_id, { code:r.game_id, name:r.games.name, phase:r.games.phase, round:r.games.round,
-        isHost:r.games.host_id===SB_AUTH_USER.id, clubId:r.club_id, pending:false });
+        isHost:r.games.host_id===SB_UID(), clubId:r.club_id, pending:false });
     });
     // (2) salas que eu criei (mesmo sem assento) — não sobrescreve um assento já mapeado
     (e3?[]:(hostData||[])).filter(g=>g.phase!=='deleted').forEach(g=>{
@@ -808,7 +834,7 @@ async function netDeleteRoom(code, isHost){
       if(error) throw error;
     } else {
       const { error } = await sb.from('game_seats').update({ user_id:null, is_cpu:true, is_ready:false })
-        .eq('game_id', code).eq('user_id', SB_AUTH_USER.id);
+        .eq('game_id', code).eq('user_id', SB_UID());
       if(error) throw error;
     }
     return true;
@@ -839,7 +865,7 @@ async function netSearchUsers(query){
   try {
     const { data, error } = await sb.rpc('search_users', { p_query: query.trim() });
     if(error) throw error;
-    return (data||[]).filter(u=>u.id!==SB_AUTH_USER.id);
+    return (data||[]).filter(u=>u.id!==SB_UID());
   } catch(e) { console.error('searchUsers erro:', e); return []; }
 }
 
@@ -853,7 +879,7 @@ async function netInviteInternal(targetUserId, targetName){
   // (v3_invites_read_own: user_id = auth.uid()) impede o host de "enxergar" a linha do convidado.
   // Como reconvidar é idempotente, tratamos a violação de unicidade (23505) como "já convidado" (no-op).
   const { error } = await sb.from('room_invites').insert(
-    { game_id: NET.gameId, user_id: targetUserId, invited_by: SB_AUTH_USER.id }
+    { game_id: NET.gameId, user_id: targetUserId, invited_by: SB_UID() }
   );
   if(error && error.code !== '23505') { console.error('inviteInternal erro:', error); throw error; }
 }
@@ -909,7 +935,7 @@ async function netSaveSoloGame(name, state){
   if(!sb) await netInitSupabase();
   if(!sb || !SB_AUTH_USER) throw new Error('Não conectado.');
   const { error } = await sb.from('solo_saves').upsert(
-    { user_id: SB_AUTH_USER.id, save_name: name, state, updated_at: new Date().toISOString() },
+    { user_id: SB_UID(), save_name: name, state, updated_at: new Date().toISOString() },
     { onConflict: 'user_id,save_name' });
   if(error) throw error;
   return true;
@@ -924,7 +950,7 @@ async function netDeleteSoloSave(name){
 /* ---- REALTIME: postgres_changes + presence ---- */
 function netSetupRealtime(){
   if(!sb || SB_CH) return;
-  SB_CH = sb.channel('game:'+NET.gameId, { config:{ presence:{ key: SB_AUTH_USER.id } } });
+  SB_CH = sb.channel('game:'+NET.gameId, { config:{ presence:{ key: SB_UID() } } });
 
   SB_CH.on('postgres_changes', { event:'UPDATE', schema:SB_SCHEMA, table:'games', filter:'id=eq.'+NET.gameId }, (p)=>{
     if(!p.new) return;
@@ -975,12 +1001,12 @@ function netSetupRealtime(){
      expulsão/substituição) de volta pro autoritativo. Hooks implementados na UI (main.js). */
   SB_CH.on('broadcast', { event:'mlive' }, ({ payload })=>{
     if(!payload || !payload.k) return;
-    if(payload.from===(SB_AUTH_USER&&SB_AUTH_USER.id)) return; // meu próprio eco: ignora
+    if(payload.from===SB_UID()) return; // meu próprio eco: ignora
     if(typeof onNetMatchLive==='function'){ try{ onNetMatchLive(payload); }catch(e){ console.warn('mlive:', e&&e.message); } }
   });
   SB_CH.on('broadcast', { event:'mdec' }, ({ payload })=>{
     if(!payload || !payload.k) return;
-    if(payload.from===(SB_AUTH_USER&&SB_AUTH_USER.id)) return;
+    if(payload.from===SB_UID()) return;
     // segurança: só aceita decisão de quem é DONO do clube daquele lado (assento confere)
     const c=NET._claimed && NET._claimed[payload.from];
     if(!c || !c.clubId || String(c.clubId)!==String(payload.clubId)) return;
@@ -992,7 +1018,7 @@ function netSetupRealtime(){
     if(!payload || !payload.uid) return;
     const uid=payload.uid, clubId=payload.clubId;
     SB_KICKED[uid]=1;
-    if(uid===(SB_AUTH_USER&&SB_AUTH_USER.id)){ netHandleKicked(); return; } // fui eu -> sair pro menu
+    if(uid===SB_UID()){ netHandleKicked(); return; } // fui eu -> sair pro menu
     if(NET._claimed) delete NET._claimed[uid];
     if(typeof CL!=='undefined' && CL.humans && clubId) delete CL.humans[clubId]; // clube do expulso -> CPU
     netMergeParticipants();
@@ -1025,13 +1051,13 @@ function netClubOnline(clubId){
 /* FASE 3B: emite o snapshot da MINHA partida autoritativa (mandante) pro canal da sala */
 function netBroadcastMatch(payload){
   if(!SB_CH || !SB_AUTH_USER || !payload) return;
-  try{ SB_CH.send({ type:'broadcast', event:'mlive', payload:{ ...payload, from:SB_AUTH_USER.id } }); }catch(e){}
+  try{ SB_CH.send({ type:'broadcast', event:'mlive', payload:{ ...payload, from:SB_UID() } }); }catch(e){}
 }
 /* FASE 3B: manda a MINHA decisão remota (visitante) pro cliente autoritativo. clubId viaja junto
    pro receptor validar que a decisão vem do dono real daquele lado. */
 function netBroadcastDecision(payload){
   if(!SB_CH || !SB_AUTH_USER || !payload) return;
-  try{ SB_CH.send({ type:'broadcast', event:'mdec', payload:{ ...payload, from:SB_AUTH_USER.id, clubId:(typeof CL!=='undefined'&&CL.clubId)||null } }); }catch(e){}
+  try{ SB_CH.send({ type:'broadcast', event:'mdec', payload:{ ...payload, from:SB_UID(), clubId:(typeof CL!=='undefined'&&CL.clubId)||null } }); }catch(e){}
 }
 
 /* ============ APROVAÇÃO DE ENTRADA (pendente -> aprovado) ============
@@ -1050,7 +1076,7 @@ async function netRequestJoin(code, me, onDecision){
   const { data: gameData, error: e2 } = await sb.from('games').select('id,name,host_id,phase').eq('id', upcode).single();
   if(e2 || !gameData) throw new Error('Sala não encontrada');
   if(gameData.phase==='deleted') throw new Error('Esta sala foi encerrada.');
-  const uid = SB_AUTH_USER.id;
+  const uid = SB_UID();
   let preApproved = (gameData.host_id === uid);
   if(!preApproved){ const { data:seat } = await sb.from('game_seats').select('game_id').eq('game_id',upcode).eq('user_id',uid).maybeSingle(); if(seat) preApproved=true; }
   if(!preApproved){ const { data:inv } = await sb.from('room_invites').select('game_id').eq('game_id',upcode).eq('user_id',uid).maybeSingle(); if(inv) preApproved=true; }
@@ -1088,7 +1114,7 @@ async function netRequestJoin(code, me, onDecision){
 }
 async function netJoinRequestStatus(code){
   if(!sb || !SB_AUTH_USER) return null;
-  const { data } = await sb.from('join_requests').select('status').eq('game_id', String(code||'').toUpperCase()).eq('user_id', SB_AUTH_USER.id).maybeSingle();
+  const { data } = await sb.from('join_requests').select('status').eq('game_id', String(code||'').toUpperCase()).eq('user_id', SB_UID()).maybeSingle();
   return data ? data.status : null;
 }
 async function netCancelJoinRequest(code){
@@ -1096,7 +1122,7 @@ async function netCancelJoinRequest(code){
   const c = String(code||NET.pendingCode||'').toUpperCase();
   NET.pendingCode=null; NET.pendingRoomName=null;
   if(!c || !sb || !SB_AUTH_USER) return;
-  try{ await sb.from('join_requests').delete().eq('game_id', c).eq('user_id', SB_AUTH_USER.id); }catch(e){}
+  try{ await sb.from('join_requests').delete().eq('game_id', c).eq('user_id', SB_UID()); }catch(e){}
 }
 /* ---- lado do anfitrião: listar / aprovar / recusar pedidos pendentes ---- */
 async function netListJoinRequests(){
@@ -1159,14 +1185,14 @@ async function netSetMyClub(clubId){
    cliente segue só com localStorage. */
 async function netSaveInbox(data){
   if(!NET.gameId || !SB_AUTH_USER) return;
-  try{ await sb.from('game_seats').update({ inbox:data }).eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id); }catch(e){}
+  try{ await sb.from('game_seats').update({ inbox:data }).eq('game_id', NET.gameId).eq('user_id', SB_UID()); }catch(e){}
 }
 async function netLoadInbox(){
   if(!NET.gameId || !SB_AUTH_USER) return null;
-  try{ const { data } = await sb.from('game_seats').select('inbox').eq('game_id', NET.gameId).eq('user_id', SB_AUTH_USER.id).maybeSingle(); return (data&&data.inbox)||null; }catch(e){ return null; }
+  try{ const { data } = await sb.from('game_seats').select('inbox').eq('game_id', NET.gameId).eq('user_id', SB_UID()).maybeSingle(); return (data&&data.inbox)||null; }catch(e){ return null; }
 }
 async function netKick(uid, clubId){
-  if(!NET.isHost || !uid || uid===(SB_AUTH_USER&&SB_AUTH_USER.id)) return;
+  if(!NET.isHost || !uid || uid===SB_UID()) return;
   SB_KICKED[uid]=1;
   try{ if(SB_CH) await SB_CH.send({ type:'broadcast', event:'kick', payload:{ uid, clubId: clubId||null } }); }
   catch(e){ console.warn('kick broadcast:', e && e.message); }

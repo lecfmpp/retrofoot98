@@ -1127,7 +1127,12 @@ function onlineTimerLoop(){
   // HEARTBEAT DE PRESENÇA: carimba last_seen a cada ~15s enquanto estou na Resenha, pra a barra de
   // status mostrar "online" de verdade (o presence do realtime era instável e dava todo mundo Offline).
   if(CL.online && typeof NET!=='undefined' && NET.gameId && NET.heartbeatSeen){
-    if(Date.now()-ONLINE_SEEN_T>15000){ ONLINE_SEEN_T=Date.now(); NET.heartbeatSeen(); }
+    if(Date.now()-ONLINE_SEEN_T>15000){ ONLINE_SEEN_T=Date.now(); NET.heartbeatSeen();
+      // AUTOCURA DA SESSÃO: se ela sumiu no meio do jogo (soluço de auth), reidrata do storage —
+      // NET.uid (identidade congelada) mantém o cliente funcional enquanto isso, mas as ESCRITAS
+      // precisam do JWT vivo; sem esta reidratação o jogador ficava com a sessão morta até o F5.
+      if(typeof SB_AUTH_USER!=='undefined' && !SB_AUTH_USER && typeof netRefreshAuth==='function'){ netRefreshAuth(); }
+    }
   }
   // BARREIRA DE SINCRONIZAÇÃO: enquanto EU ainda estou fechando a rodada anterior, bato um
   // heartbeat "ocupado" — o servidor não arma o cronômetro nem avança a fase sem mim (ver
