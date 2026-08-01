@@ -301,18 +301,37 @@ function pausaPct(){
 }
 /* a janela de 10s estourou e a rodada AINDA não sincronizou: o relógio e a barra não podem
    fingir que acabou (00:00 + 100% parado lia como "travou") — viram estado de espera explícito */
-function pausaOvertime(){ return !CL._adCont && (nowMs()-(CL._waitSince||nowMs()))>=AD_MIN_MS; }
+function pausaOvertime(){ return !CL._roundSyncedAt && (nowMs()-(CL._waitSince||nowMs()))>=AD_MIN_MS; }
 /* checklist honesto: só o MEU resultado está garantido quando eu caio aqui — a tabela, as
    finanças e as propostas dependem do fechamento da rodada no servidor (todos os resultados),
    que é exatamente o que esta tela espera (ver adGate). ✓ antes disso era mentira: o item
    "Tabela" aparecia pronto com a rodada ainda aberta, e o usuário lia o resto como travado. */
+/* rótulo da barra: enquanto a janela corre, a mensagem de sempre; estourada, diz o que de fato
+   falta — gente publicando ou o servidor fechando. Era um texto fixo culpando "os outros
+   treinadores" mesmo quando todos já tinham publicado e a espera era do servidor. */
+function pausaWaitLabel(){
+  if(!pausaOvertime()) return 'Todos os treinadores voltam a jogar ao mesmo tempo. Segura aí…';
+  let outros=true;
+  if(CL.online && typeof NET!=='undefined' && NET.allHumanResultsIn && typeof S!=='undefined' && S){
+    try{ outros=!!NET.allHumanResultsIn(S.round); }catch(e){ outros=true; }
+  }
+  return outros ? 'Ainda sincronizando — o servidor está fechando a rodada…'
+                : 'Ainda sincronizando — esperando os resultados dos outros treinadores…';
+}
 function pausaChecklist(){
-  const sincronizou=!!CL._adCont;
   const it=(st,txt)=>`<div class="rf-srow"><span class="${st==='ok'?'rf-sdone':st==='wait'?'rf-swait':'rf-sdim'}">${st==='ok'?'✓':st==='wait'?'⏳':'·'}</span><span class="${st==='dim'?'rf-sdim':''}">${txt}</span></div>`;
-  return it('ok','Resultados da rodada')
-    +it(sincronizou?'ok':'wait','Tabela de classificação')
-    +it(sincronizou?'ok':'wait','Finanças dos clubes')
-    +it(sincronizou?'ok':'dim','Propostas de transferência');
+  // sincronizado = o servidor fechou a rodada E este cliente já adotou o estado novo (ver adGate)
+  const sincronizou=!!CL._roundSyncedAt;
+  // faltam resultados de outros treinadores? Estado REAL, lido dos assentos da sala — é o que
+  // distingue "esperando gente" de "esperando o servidor", as duas únicas causas de espera aqui.
+  let outros=true;
+  if(CL.online && typeof NET!=='undefined' && NET.allHumanResultsIn && typeof S!=='undefined' && S){
+    try{ outros=!!NET.allHumanResultsIn(S.round); }catch(e){ outros=true; }
+  }
+  return it('ok','Sua partida')
+    +it((sincronizou||outros)?'ok':'wait','Resultados dos outros treinadores')
+    +it(sincronizou?'ok':'wait','Fechamento da rodada no servidor')
+    +it(sincronizou?'ok':'dim','Tabela, finanças e propostas');
 }
 function adTilesHTML(){        // 6 ladrilhos (3 marcas repetidas) — marquee do handoff
   const seq=[0,1,2,0,1,2];
@@ -323,6 +342,12 @@ function adTilesHTML(){        // 6 ladrilhos (3 marcas repetidas) — marquee d
    (b) o usuário clicar em "Pular publicidade", botão que SÓ aparece quando a sincronia de fato
    terminou (antes disso não há pra onde pular). Fora da pausa, passa direto. */
 function adGate(fn){
+  // MARCA A SINCRONIA ANTES DE QUALQUER SAÍDA: chegar aqui significa que o servidor fechou a
+  // rodada e o cliente adotou o estado — é o sinal de backend que o checklist mostra. Ficava
+  // pendurado no _adCont, que só existe quando a rodada fecha DENTRO da janela de 10s; fechando
+  // depois (justamente o caso lento que o jogador fica olhando), os ✓ nunca apareciam mesmo com
+  // o trabalho pronto. E o _adCont volta a null assim que o portão libera, apagando os ✓.
+  CL._roundSyncedAt=nowMs();
   if(CL.screen!=='waitround'){ fn(); return; }
   const elapsed=nowMs()-(CL._waitSince||0);
   if(elapsed>=AD_MIN_MS){ fn(); return; }
@@ -360,9 +385,7 @@ function ensureSyncFunTicker(){
     const p=pausaPct();
     if(pct) pct.textContent = over ? '⏳' : p+'%';
     if(fill) fill.style.width=p+'%';
-    if(lbl) lbl.textContent = over
-      ? 'Ainda sincronizando — esperando os resultados dos outros treinadores…'
-      : 'Todos os treinadores voltam a jogar ao mesmo tempo. Segura aí…';
+    if(lbl) lbl.textContent = pausaWaitLabel();
     if(chk) chk.innerHTML=pausaChecklist();
     const sk=$c('#cl-ad-skip'); if(sk && CL._adCont) sk.style.display='';   // sobrevive a um cdraw
     const esc=$c('#cl-wait-escape'); if(esc && pausaStuck()) esc.style.display=''; // destrava quem ficou preso
@@ -5127,7 +5150,7 @@ function scWaitRound(){
     </div>
     <div class="rf-progstrip">
       <div class="rf-proghead">
-        <span class="rf-proglabel" id="rf-proglabel">${pausaOvertime()?'Ainda sincronizando — esperando os resultados dos outros treinadores…':'Todos os treinadores voltam a jogar ao mesmo tempo. Segura aí…'}</span>
+        <span class="rf-proglabel" id="rf-proglabel">${escC(pausaWaitLabel())}</span>
         <span class="rf-progpct" id="rf-pct">${pausaOvertime()?'⏳':pausaPct()+'%'}</span>
       </div>
       <div class="rf-progtrack"><div class="rf-progfill" id="rf-fill" style="width:${pausaPct()}%"></div></div>
@@ -5152,7 +5175,7 @@ function onlineReturnFreeAfterMatch(){
   CL.live=null; CL.subsUsed=0; CL._liveBusy=false;
   _prLog('onlineReturnFreeAfterMatch -> waitround');
   CL._waitSince=nowMs();                     // base dos 10s da pausa (relógio + barra + gate)
-  CL._adCont=null; if(CL._adT){ clearTimeout(CL._adT); CL._adT=null; }
+  CL._adCont=null; CL._roundSyncedAt=0; if(CL._adT){ clearTimeout(CL._adT); CL._adT=null; }
   CL._pausaI=Math.floor(Math.random()*PAUSA_GIFS.length); CL._pausaTick=0;   // começa num GIF aleatório
   if(CL._syncFunT){ clearInterval(CL._syncFunT); CL._syncFunT=null; }        // realinha o ciclo com a entrada
   CL.screen='waitround'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||CL.selPlayer; cdraw();
