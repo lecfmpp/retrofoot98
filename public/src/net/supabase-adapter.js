@@ -269,7 +269,7 @@ async function netUpdatePassword(newPassword){
    cai pro congelado. Escrita com sessão morta ainda falha no servidor (RLS) — mas falha
    GRACIOSAMENTE, capturada, sem quebrar o cliente; a autocura do timer loop reidrata a sessão
    e a próxima tentativa passa. */
-function SB_UID(){ return (SB_AUTH_USER && SB_UID()) || (typeof NET!=='undefined' && NET.uid) || null; }
+function SB_UID(){ return (SB_AUTH_USER && SB_AUTH_USER.id) || (typeof NET!=='undefined' && NET.uid) || null; }
 /* participantes = união de presença ao vivo (Realtime Presence) + assentos já reivindicados (game_seats) */
 function netMergeParticipants(){
   if(!NET.room) return;
