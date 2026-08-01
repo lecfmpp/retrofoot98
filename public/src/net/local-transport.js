@@ -1391,11 +1391,25 @@ function onlineOrphanCloseCheck(){
   })();
 }
 const CLOSING_SCREENS=['live','cupdraw','classif','seatclassif','sorteio','loading'];
+let DRAW_HOLD_SINCE=0;
 function onlineClosingRound(){
-  if(CLOSING_SCREENS.indexOf(CL.screen)>=0) return true;
+  if(CLOSING_SCREENS.indexOf(CL.screen)>=0){ DRAW_HOLD_SINCE=0; return true; }
   // sorteio JÁ ENFILEIRADO mas ainda não aberto: a janela entre o fim da classificação e o
   // startCupDrawReplay. Era exatamente aqui que o cronômetro escapava e armava.
-  if(typeof S!=='undefined' && S && S._pendingDrawShows && S._pendingDrawShows.length) return true;
+  // DUAS RÉDEAS OBRIGATÓRIAS nesta condição (deadlock de produção, 31/jul — salas inteiras
+  // presas na pausa técnica com _pendingDrawShows:[copaBrasil] no estado compartilhado):
+  // 1. NUNCA vale na pausa técnica: ali a rodada ainda NÃO fechou, e o sorteio só abre no fluxo
+  //    PÓS-fechamento — segurar o fechamento esperando o sorteio é esperar algo que depende do
+  //    próprio fechamento. A fila vinha no shared_state (o host salva antes de consumi-la) e
+  //    re-envenenava todo cliente a cada adoção, então todos batiam "ocupado" pra sempre.
+  // 2. Teto de 20s nas demais telas: a janela real entre classificação e sorteio é de instantes;
+  //    fila parada além disso é fila velha, não sorteio prestes a abrir.
+  if(typeof S!=='undefined' && S && S._pendingDrawShows && S._pendingDrawShows.length && CL.screen!=='waitround'){
+    if(!DRAW_HOLD_SINCE) DRAW_HOLD_SINCE=Date.now();
+    if(Date.now()-DRAW_HOLD_SINCE<20000) return true;
+    if(DRAW_HOLD_SINCE!==-1){ DRAW_HOLD_SINCE=-1; console.warn('fila de sorteio parada há 20s sem abrir — barreira solta pra rodada não travar'); }
+  } else if(CL.screen==='waitround'){ DRAW_HOLD_SINCE=0; }
+  else DRAW_HOLD_SINCE=0;
   return onlineCupObligationPending();
 }
 const CUP_HOLD_MAX_MS=240000; // 4 min: folga larga pra copa + prorrogação + pênaltis
