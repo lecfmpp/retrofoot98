@@ -49,10 +49,17 @@ async function netInitSupabase(){
       // o que permite detectar isso (ver netInvokeFn) em vez de degradar calado.
       if(event==='SIGNED_OUT'){
         SB_AUTH_USER = null;
-        // dispara também quando OUTRA aba faz logout (ou troca de conta) e quando o refresh token
-        // é revogado. Na Resenha isso é fim de jogo pro sincronismo: volta pro login. O guard de
-        // CL.online dentro de netHandleSessionLost protege o signOut de sessão anônima do init.
-        netHandleSessionLost();
+        // SIGNED_OUT também dispara EM FALSO: com duas abas no mesmo domínio, a rotação do refresh
+        // token faz a aba "perdedora" receber "Refresh Token Not Found" e emitir SIGNED_OUT — mesmo
+        // com a sessão nova, válida, já gravada no localStorage pela aba irmã. Derrubar direto aqui
+        // foi o que travou salas inteiras na pausa técnica (31/jul): o ANFITRIÃO era jogado pro
+        // login, o fechamento da rodada (que era só dele) nunca rodava e ninguém saía da pausa.
+        // Então: espera um instante e CONFERE. Sessão de pé (o caso da rotação) -> segue o jogo;
+        // sem sessão de verdade (logout real, conta trocada) -> aí sim desmonta e volta pro login.
+        setTimeout(async ()=>{
+          if(await netRefreshAuth()) return;         // sessão válida no storage — era alarme falso
+          netHandleSessionLost();                     // morta de verdade (guard de CL.online lá dentro)
+        }, 1500);
         return;
       }
       if(session && session.user) SB_AUTH_USER = session.user;

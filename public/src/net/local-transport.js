@@ -1119,6 +1119,11 @@ function onlineTimerLoop(){
   if(CL.online && CL._hostPendingCommit && typeof onlineHostCloseRound==='function'){
     onlineHostCloseRound();
   }
+  // FAILOVER DO FECHAMENTO: se o anfitrião sumiu (fechou a aba, caiu, foi deslogado), ninguém
+  // chamava resolve-round e a sala INTEIRA ficava presa na pausa técnica pra sempre — o fechamento
+  // era ponto único de falha. A edge function aceita qualquer membro da sala e é idempotente,
+  // então qualquer cliente pode fechar a rodada órfã (ver onlineOrphanCloseCheck).
+  onlineOrphanCloseCheck();
   // HEARTBEAT DE PRESENÇA: carimba last_seen a cada ~15s enquanto estou na Resenha, pra a barra de
   // status mostrar "online" de verdade (o presence do realtime era instável e dava todo mundo Offline).
   if(CL.online && typeof NET!=='undefined' && NET.gameId && NET.heartbeatSeen){
@@ -1341,6 +1346,50 @@ function onlineRecoverRunRound(){
 
    Telas VOLUNTÁRIAS (tela do time, elenco, mercado, chat do lobby) ficam de fora de propósito:
    se contassem como ocupado, quem parasse pra ler o elenco ou conversar prenderia a sala inteira. */
+/* ---- FECHAMENTO ÓRFÃO: qualquer cliente resolve a rodada se o anfitrião não resolver ----
+   O caminho normal é o anfitrião (onlineHostCloseRound -> resolve-round). Mas se a aba dele fechou,
+   caiu ou a sessão dele morreu no meio, esse caminho simplesmente não existe mais — e TODOS os
+   outros ficavam presos na pausa técnica, sem erro (visto em produção 31/jul: salas com todos
+   prontos, resultados publicados, busy zerado, e nenhuma chamada a resolve-round por horas).
+   O servidor não precisa do anfitrião: resolve-round aceita qualquer MEMBRO da sala, é idempotente
+   (state_version + expectedRound) e simula ausentes com os resultados publicados. Este check roda
+   em todo cliente; a carência de 20s dá folga pro caminho normal do anfitrião agir primeiro, então
+   com anfitrião saudável isto nunca dispara. */
+let ORPHAN_SINCE=0, ORPHAN_LAST_TRY=0, ORPHAN_INFLIGHT=false;
+function onlineOrphanCloseCheck(){
+  if(!CL.online || typeof NET==='undefined' || !NET.gameId || !NET.room || typeof S==='undefined' || !S){ ORPHAN_SINCE=0; return; }
+  if(NET.room.phase!=='running'){ ORPHAN_SINCE=0; return; }
+  if(CL._hostPendingCommit){ ORPHAN_SINCE=0; return; }          // anfitrião com o commit em mãos: caminho normal
+  if(CL.screen==='live' || CL.live || CL._liveBusy){ ORPHAN_SINCE=0; return; }
+  if(CL._playedRound!==S.round){ ORPHAN_SINCE=0; return; }      // eu nem joguei ainda — não é rodada órfã
+  if((NET.room.round||0)!==(S.round||0)){ ORPHAN_SINCE=0; return; } // servidor já avançou: o reconcile me puxa
+  if(typeof onlineClosingRound==='function' && onlineClosingRound()){ ORPHAN_SINCE=0; return; } // eu mesmo ocupado
+  // alguém ainda em partida? Lê o busy_until FRESCO dos assentos (não o espelho de participants,
+  // que pode ficar velho se um evento do realtime se perder) — expirado (teto de 90s) não conta.
+  const cl=NET._claimed||{}, now=Date.now();
+  for(const uid in cl){ const c=cl[uid];
+    if(c && c.busy_until && new Date(c.busy_until).getTime()>now){ ORPHAN_SINCE=0; return; } }
+  if(!ORPHAN_SINCE){ ORPHAN_SINCE=now; return; }
+  const held=now-ORPHAN_SINCE;
+  // 20s de carência com todos os resultados publicados; 60s mesmo sem (um cliente que caiu antes
+  // de publicar nunca vai publicar — o servidor simula o clube dele, como sempre fez com ausentes).
+  const allIn = (typeof NET.allHumanResultsIn==='function') ? NET.allHumanResultsIn(S.round) : true;
+  if(held < (allIn?20000:60000)) return;
+  if(ORPHAN_INFLIGHT || now-ORPHAN_LAST_TRY<12000) return;      // uma tentativa por vez, com respiro
+  ORPHAN_LAST_TRY=now; ORPHAN_INFLIGHT=true;
+  const round=S.round;
+  console.warn('rodada órfã (sem anfitrião fechando há '+Math.round(held/1000)+'s) — resolvendo pelo servidor');
+  (async ()=>{
+    try{
+      const res=await NET.resolveRound(round);
+      // resolvida (por mim ou por outro — already:true também serve): reabre a próxima 'ready'.
+      // A adoção do estado novo é o fluxo de sempre: o realtime atualiza room.round e o
+      // onlineReconcileIfBehind puxa este cliente (e os outros) pra rodada nova.
+      if(res && res.ok && NET.reopenReady) await NET.reopenReady();
+    }catch(e){ console.warn('orphan close:', e&&e.message); }
+    finally{ ORPHAN_INFLIGHT=false; }
+  })();
+}
 const CLOSING_SCREENS=['live','cupdraw','classif','seatclassif','sorteio','loading'];
 function onlineClosingRound(){
   if(CLOSING_SCREENS.indexOf(CL.screen)>=0) return true;
