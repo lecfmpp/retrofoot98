@@ -5100,11 +5100,16 @@ function onlineHostCloseRound(){
   const round=pc.round;
   const anyBusy=(room.participants||[]).some(p=>p.busy); // algum treinador ainda em partida?
   if(anyBusy){ CL._hostCloseSince=0; return; } // espera todos saírem da partida (teto de 90s do busy)
-  // todos saíram da partida: dá uma CARÊNCIA curta pros resultados publicados propagarem (o publish
-  // é async), mas NÃO trava — se algum não chegar em 3s, fecha assim mesmo (ausente é simulado).
+  // todos saíram da partida mas falta resultado de alguém. Dois casos MUITO diferentes:
+  // - o jogador CAIU (aba fechada): 3s de carência e fecha, simulado como ausente — como sempre.
+  // - o jogador está PRESENTE (heartbeat de presença fresco) e só ainda não jogou — típico de
+  //   semana de copa: ele navegava nas telas pós-copa quando a rodada de liga começou. Fechar em
+  //   3s fazia a rodada dele rodar em segundo plano SEM ele assistir (bug de produção, 31/jul).
+  //   Presente ganha até 120s pra partida dele começar/terminar (o busy segura o resto do tempo).
   if(typeof NET!=='undefined' && NET.allHumanResultsIn && !NET.allHumanResultsIn(round)){
     if(!CL._hostCloseSince) CL._hostCloseSince=nowMs();
-    if(nowMs()-CL._hostCloseSince < 3000) return;
+    const presente = NET.anyMissingResultOnline && NET.anyMissingResultOnline(round);
+    if(nowMs()-CL._hostCloseSince < (presente?120000:3000)) return;
   }
   CL._hostCloseSince=0;
   CL._hostPendingCommit=null;
@@ -6696,6 +6701,13 @@ function checkPendingCupDraws(onDone){
   if(!S._pendingDrawShows || !S._pendingDrawShows.length){ if(onDone) onDone(); return false; }
   const item=S._pendingDrawShows.shift();
   const key=(item&&item.key)||item, stage=(item&&item.stage)||'bracket'; // retrocompat com saves que guardaram só a string
+  // JÁ MOSTREI este sorteio nesta sessão (marcador em startCupDrawReplay): pula. A fila mora no
+  // shared_state e o host salva ANTES de consumi-la, então toda adoção de estado no online
+  // re-enfileirava um sorteio já assistido — o usuário via a MESMA cerimônia duas vezes seguidas.
+  // O marcador vive em CL (não persiste): após recarregar a página, um sorteio pendente de verdade
+  // ainda aparece normalmente.
+  const mark=key+':'+stage+':'+(S.season||1);
+  if((CL._drawPlayedSeason||{})[mark]) return checkPendingCupDraws(onDone);
   startCupDrawReplay(key, stage, ()=>checkPendingCupDraws(onDone));
   return true;
 }
@@ -6717,6 +6729,8 @@ function startCupDrawReplay(key, stage, onDone){
     b.ties.forEach(t=>reveal.push({type:'tie',h:t.h,a:t.a})); b.byeTeams.forEach(id=>reveal.push({type:'bye',id}));
     remaining=[...b.byeTeams,...b.ties.flatMap(t=>[t.h,t.a])].sort((x,y)=>clubOf(x).name.localeCompare(clubOf(y).name));
   }
+  CL._drawPlayedSeason=CL._drawPlayedSeason||{};
+  CL._drawPlayedSeason[key+':'+stage+':'+(S.season||1)]=true; // ver checkPendingCupDraws (sorteio duplicado)
   CL.cupDraw={ key, stage, reveal, idx:0, drawn:[], remaining, fast:false, onDone };
   CL.screen='cupdraw'; cdraw();
   cupDrawTick();

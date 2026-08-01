@@ -1200,7 +1200,9 @@ function onlineTimerLoop(){
     // CONVIDADO: se a fase é 'running' e ainda não joguei ESTA rodada, jogo agora (rede de segurança
     // caso o gatilho do onState tenha sido perdido enquanto eu via o sorteio/classificação). onlineRunRound
     // se auto-protege (não re-simula rodada já jogada, não interrompe telas de sorteio/classificação).
-    if(CL.screen==='main' && CL._playedRound!==S.round && typeof onlineRunRound==='function'){ onlineRunRound(); }
+    // 'cupview' incluído: as novas telas de copa (chave/grupos) convidam a navegar depois da
+    // partida de copa — quem estava lá quando a rodada de liga começou ficava de fora dela.
+    if((CL.screen==='main'||CL.screen==='cupview') && CL._playedRound!==S.round && typeof onlineRunRound==='function'){ onlineRunRound(); }
   } else { ONLINE_LASTSEC=null; }
   // REDE DE SEGURANÇA DO SORTEIO/RECONCILE (convidado): NÃO depender só do realtime (throttle de 5
   // eventos/s, e o evento de UPDATE de `games` pode atrasar/se perder) nem de uma interação do
@@ -1257,7 +1259,7 @@ function onlineCompleteSeasonTurnover(){
 }
 function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return; if(!CL.online || !S) return;
   // não interrompe as telas de sorteio/classificação pós-rodada (o convidado está vendo o ranking)
-  if(CL.screen==='classif'||CL.screen==='cupdraw'||CL.screen==='seatclassif') return;
+  if(CL.screen==='classif'||CL.screen==='cupdraw'||CL.screen==='seatclassif'||CL.screen==='cupclassif') return;
   // DESEMPREGADO (Fase 2): não jogo — só assisto. Marco a rodada como "vista" pra não tentar simular
   // um clube que não é mais meu (o servidor já resolve o clube antigo como CPU, sem humano no assento).
   if(CL.unemployed){ CL._playedRound=S.round; return; }
@@ -1374,7 +1376,10 @@ function onlineOrphanCloseCheck(){
   // 20s de carência com todos os resultados publicados; 60s mesmo sem (um cliente que caiu antes
   // de publicar nunca vai publicar — o servidor simula o clube dele, como sempre fez com ausentes).
   const allIn = (typeof NET.allHumanResultsIn==='function') ? NET.allHumanResultsIn(S.round) : true;
-  if(held < (allIn?20000:60000)) return;
+  // presença conta aqui também: quem está online e só não jogou ainda ganha folga maior do que
+  // quem caiu — o failover é a rede de segurança, não pode ser mais apressado que o anfitrião.
+  const presenteSemResultado = !allIn && typeof NET.anyMissingResultOnline==='function' && NET.anyMissingResultOnline(S.round);
+  if(held < (allIn?20000:(presenteSemResultado?150000:60000))) return;
   if(ORPHAN_INFLIGHT || now-ORPHAN_LAST_TRY<12000) return;      // uma tentativa por vez, com respiro
   ORPHAN_LAST_TRY=now; ORPHAN_INFLIGHT=true;
   const round=S.round;
@@ -1390,7 +1395,11 @@ function onlineOrphanCloseCheck(){
     finally{ ORPHAN_INFLIGHT=false; }
   })();
 }
-const CLOSING_SCREENS=['live','cupdraw','classif','seatclassif','sorteio','loading'];
+// 'cupclassif' (chave/classificação logo após a MINHA partida de copa) é transiente e auto-avança
+// em 10s no online — conta como fechamento pra o cronômetro da liga não armar por cima de quem
+// ainda está saindo da copa. 'cupview' (navegação livre) NÃO entra: seria segurar a sala inteira
+// enquanto alguém passeia pela chave.
+const CLOSING_SCREENS=['live','cupdraw','classif','seatclassif','cupclassif','sorteio','loading'];
 let DRAW_HOLD_SINCE=0;
 function onlineClosingRound(){
   if(CLOSING_SCREENS.indexOf(CL.screen)>=0){ DRAW_HOLD_SINCE=0; return true; }

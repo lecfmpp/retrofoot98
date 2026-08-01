@@ -495,6 +495,16 @@ function netAllHumanResultsIn(round){
     if(!(c.last_result && c.last_result_round===round)) return false; }
   return any;
 }
+/* algum assento SEM resultado desta rodada pertence a alguém PRESENTE (heartbeat de presença
+   fresco)? Distingue "caiu" (simula como ausente, 3s) de "está aqui, só não jogou ainda" —
+   caso das telas pós-copa — que ganha carência de verdade (ver onlineHostCloseRound). */
+function netAnyMissingResultOnline(round){
+  const cl=NET._claimed||{}; const now=Date.now();
+  for(const uid in cl){ const c=cl[uid]; if(!(c&&c.clubId)) continue;
+    if(c.last_result && c.last_result_round===round) continue;
+    if(c.last_seen && (now-new Date(c.last_seen).getTime())<45000) return true; }
+  return false;
+}
 /* já publicado por um humano (autoritativo mandante) pra este confronto+rodada específico — usado
    ANTES de simular localmente uma partida ao vivo (ver buildLiveMatchObject/main.js). Sem isso, os
    dois lados humanos de um confronto podiam assistir e registrar partidas DIFERENTES: mesmo seed,
@@ -1223,6 +1233,7 @@ NET.publishBids = netPublishBids;
 NET.publishCupResult = netPublishCupResult;
 NET.humanClubIds = netHumanClubIds;
 NET.allHumanResultsIn = netAllHumanResultsIn;
+NET.anyMissingResultOnline = netAnyMissingResultOnline;
 NET.collectHumanResults = netCollectHumanResults;
 NET.humanResultFor = netHumanResultFor;
 NET.humanCupResultFor = netHumanCupResultFor;
