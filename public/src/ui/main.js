@@ -285,13 +285,18 @@ function pausaLeft(){ return Math.max(0, Math.ceil((AD_MIN_MS-(nowMs()-(CL._wait
 const WAIT_ESCAPE_MS=30000;
 function pausaStuck(){ return (nowMs()-(CL._waitSince||nowMs())) >= WAIT_ESCAPE_MS; }
 function pausaPct(){ return Math.max(0, Math.min(100, Math.round(((nowMs()-(CL._waitSince||nowMs()))/AD_MIN_MS)*100))); }
-/* checklist: os dois primeiros itens já estão prontos quando a partida acaba; os dois últimos
-   dependem do fechamento da rodada no servidor (é o que o gate espera — ver adGate). */
+/* a janela de 10s estourou e a rodada AINDA não sincronizou: o relógio e a barra não podem
+   fingir que acabou (00:00 + 100% parado lia como "travou") — viram estado de espera explícito */
+function pausaOvertime(){ return !CL._adCont && (nowMs()-(CL._waitSince||nowMs()))>=AD_MIN_MS; }
+/* checklist honesto: só o MEU resultado está garantido quando eu caio aqui — a tabela, as
+   finanças e as propostas dependem do fechamento da rodada no servidor (todos os resultados),
+   que é exatamente o que esta tela espera (ver adGate). ✓ antes disso era mentira: o item
+   "Tabela" aparecia pronto com a rodada ainda aberta, e o usuário lia o resto como travado. */
 function pausaChecklist(){
   const sincronizou=!!CL._adCont;
   const it=(st,txt)=>`<div class="rf-srow"><span class="${st==='ok'?'rf-sdone':st==='wait'?'rf-swait':'rf-sdim'}">${st==='ok'?'✓':st==='wait'?'⏳':'·'}</span><span class="${st==='dim'?'rf-sdim':''}">${txt}</span></div>`;
   return it('ok','Resultados da rodada')
-    +it('ok','Tabela de classificação')
+    +it(sincronizou?'ok':'wait','Tabela de classificação')
     +it(sincronizou?'ok':'wait','Finanças dos clubes')
     +it(sincronizou?'ok':'dim','Propostas de transferência');
 }
@@ -335,10 +340,15 @@ function ensureSyncFunTicker(){
       if(num) num.textContent=((CL._pausaI%PAUSA_GIFS.length)+1)+'/'+PAUSA_GIFS.length;
       if(jk) jk.textContent=pausaJoke();
     }
-    const clk=$c('#rf-clock'), pct=$c('#rf-pct'), fill=$c('#rf-fill'), chk=$c('#rf-check');
-    if(clk) clk.textContent='00:'+String(pausaLeft()).padStart(2,'0');
+    const clk=$c('#rf-clock'), pct=$c('#rf-pct'), fill=$c('#rf-fill'), chk=$c('#rf-check'), lbl=$c('#rf-proglabel');
+    const over=pausaOvertime();
+    if(clk) clk.textContent = over ? '⏳' : '00:'+String(pausaLeft()).padStart(2,'0');
     const p=pausaPct();
-    if(pct) pct.textContent=p+'%'; if(fill) fill.style.width=p+'%';
+    if(pct) pct.textContent = over ? '⏳' : p+'%';
+    if(fill) fill.style.width=p+'%';
+    if(lbl) lbl.textContent = over
+      ? 'Ainda sincronizando — esperando os resultados dos outros treinadores…'
+      : 'Todos os treinadores voltam a jogar ao mesmo tempo. Segura aí…';
     if(chk) chk.innerHTML=pausaChecklist();
     const sk=$c('#cl-ad-skip'); if(sk && CL._adCont) sk.style.display='';   // sobrevive a um cdraw
     const esc=$c('#cl-wait-escape'); if(esc && pausaStuck()) esc.style.display=''; // destrava quem ficou preso
@@ -5016,7 +5026,7 @@ function scWaitRound(){
     <div class="rf-stephead">
       <span class="rf-steptitle">⏸ Pausa técnica</span>
       <span class="rf-stepmid">Sincronizando a rodada com todos os treinadores</span>
-      <span class="rf-steppill" id="rf-clock">00:${String(pausaLeft()).padStart(2,'0')}</span>
+      <span class="rf-steppill" id="rf-clock">${pausaOvertime()?'⏳':'00:'+String(pausaLeft()).padStart(2,'0')}</span>
     </div>
     <div class="rf-content">
       <div class="rf-stage">
@@ -5046,8 +5056,8 @@ function scWaitRound(){
     </div>
     <div class="rf-progstrip">
       <div class="rf-proghead">
-        <span class="rf-proglabel">Todos os treinadores voltam a jogar ao mesmo tempo. Segura aí…</span>
-        <span class="rf-progpct" id="rf-pct">${pausaPct()}%</span>
+        <span class="rf-proglabel" id="rf-proglabel">${pausaOvertime()?'Ainda sincronizando — esperando os resultados dos outros treinadores…':'Todos os treinadores voltam a jogar ao mesmo tempo. Segura aí…'}</span>
+        <span class="rf-progpct" id="rf-pct">${pausaOvertime()?'⏳':pausaPct()+'%'}</span>
       </div>
       <div class="rf-progtrack"><div class="rf-progfill" id="rf-fill" style="width:${pausaPct()}%"></div></div>
       <div id="cl-ad-skip" class="rf-skiprow" style="display:${CL._adCont?'':'none'}">${btn('Pular publicidade','clAdSkip()',{icon:'⏭',cls:'cl-btn'})}</div>
