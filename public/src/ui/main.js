@@ -650,16 +650,30 @@ function scResetPassword(){
   const body=`<div class="cl-wiz-authcard">
     <div class="cl-wiz-authsub">Escolha uma senha nova pra sua conta.</div>
     <div class="cl-authform">
-      <div class="cl-authfield"><label>Nova senha</label><input ${idP} type="password" autocomplete="new-password" minlength="6" placeholder="••••••••" value="${escC(st.password)}" onfocus="CL.resetPw.focus='password'" oninput="CL.resetPw.password=this.value;cdraw()"></div>
-      <div class="cl-authfield"><label>Confirmar senha</label><input ${idC} type="password" autocomplete="new-password" placeholder="••••••••" value="${escC(st.confirm)}" onfocus="CL.resetPw.focus='confirm'" oninput="CL.resetPw.confirm=this.value;cdraw()" onkeydown="if(event.key==='Enter')clDoUpdatePassword()"></div>
-      ${mismatch?'<div class="cl-authwarn">As senhas não coincidem.</div>':''}
+      <div class="cl-authfield"><label>Nova senha</label><input ${idP} type="password" autocomplete="new-password" minlength="6" placeholder="••••••••" value="${escC(st.password)}" onfocus="CL.resetPw.focus='password'" oninput="clResetPwInput(this,'password')"></div>
+      <div class="cl-authfield"><label>Confirmar senha</label><input ${idC} type="password" autocomplete="new-password" placeholder="••••••••" value="${escC(st.confirm)}" onfocus="CL.resetPw.focus='confirm'" oninput="clResetPwInput(this,'confirm')" onkeydown="if(event.key==='Enter')clDoUpdatePassword()"></div>
+      <div class="cl-authwarn" id="cl-pwwarn" style="display:${mismatch?'':'none'}">As senhas não coincidem.</div>
     </div>
   </div>`;
   return wizShell({
     public:true, title:'Nova senha', back:'clGoAbertura()', backLabel:'Voltar ao início',
     contentCls:'cl-wiz-authcenter', body, actionCls:'cl-wiz-action-e',
-    action: btn('Salvar senha','clDoUpdatePassword()',{icon:'✔',cls:'cl-wiz-cta',dis:!ok})
+    action: `<span id="cl-pwsave">${btn('Salvar senha','clDoUpdatePassword()',{icon:'✔',cls:'cl-wiz-cta',dis:!ok})}</span>`
   });
+}
+/* SENHA SAINDO DE TRÁS PRA FRENTE: o oninput chamava cdraw(), que reescreve o innerHTML da tela
+   inteira e RECRIA o <input>; o refoco por #cl-focus devolvia o cursor pra posição 0, então cada
+   tecla nova entrava na FRENTE da anterior ("1234" virava "4321"). Digitar senha assim é quase
+   impossível — e num campo `type="password"` o usuário nem enxerga o que está acontecendo.
+   Agora a tecla só atualiza o estado; o aviso de divergência e o botão (as duas únicas coisas que
+   dependiam do valor) são mexidos no lugar, sem recriar nada. */
+function clResetPwInput(el, field){
+  const st=CL.resetPw||(CL.resetPw={password:'',confirm:'',focus:'password'});
+  st[field]=el.value;
+  const ok=st.password.length>=6 && st.password===st.confirm;
+  const mismatch=st.confirm.length>0 && st.password!==st.confirm;
+  const w=$c('#cl-pwwarn'); if(w) w.style.display = mismatch ? '' : 'none';
+  const b=$c('#cl-pwsave button'); if(b) b.disabled = !ok;
 }
 function clDoUpdatePassword(){
   const st=CL.resetPw; if(!st||st.password.length<6||st.password!==st.confirm) return;
