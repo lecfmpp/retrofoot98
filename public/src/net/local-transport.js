@@ -1179,7 +1179,7 @@ function onlineTimerLoop(){
       // — só tenta armar (o servidor arma quando NINGUÉM está ocupado, ou seja, todos na tela do time).
       ONLINE_LASTSEC=null;
       const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent='⏳';
-      if(NET.armReadyTimer && !ONLINE_BUSY_ACTIVE){ if(Date.now()-ONLINE_ADV_T>1200){ ONLINE_ADV_T=Date.now(); NET.armReadyTimer(); } }
+      if(NET.armReadyTimer && !ONLINE_BUSY_ACTIVE){ if(Date.now()-ONLINE_ADV_T>400){ ONLINE_ADV_T=Date.now(); NET.armReadyTimer(); } }
     } else {
       const secs=Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
       if(ONLINE_BUSY_ACTIVE){
@@ -1202,7 +1202,7 @@ function onlineTimerLoop(){
         // não peço pra avançar enquanto EU mesmo estou ocupado (partida ao vivo, sorteio, copa
         // pendente) — o servidor recusaria pela barreira, mas pedir daqui era pedir pra começar
         // uma rodada sem mim.
-        if(NET.advancePhaseExpired && !ONLINE_BUSY_ACTIVE){ if(Date.now()-ONLINE_ADV_T>900){ ONLINE_ADV_T=Date.now(); NET.advancePhaseExpired(); } }
+        if(NET.advancePhaseExpired && !ONLINE_BUSY_ACTIVE){ if(Date.now()-ONLINE_ADV_T>400){ ONLINE_ADV_T=Date.now(); NET.advancePhaseExpired(); } }
         else if(NET.isHost){ room.participants.forEach(p=>{ if(!p.ready) p.ready=true; }); NET.toRunning(); }
       }
     }
@@ -1211,7 +1211,7 @@ function onlineTimerLoop(){
     // rodada (sem commit pendente). Se um convidado reabrisse antes, a fase ciclava e a rodada
     // travava/loopava. O reopen só efetiva quando ninguém está busy (barreira do servidor).
     ONLINE_LASTSEC=null;
-    if(NET.isHost && !CL._hostPendingCommit && NET.reopenReady){ if(Date.now()-ONLINE_ADV_T>1200){ ONLINE_ADV_T=Date.now(); NET.reopenReady(); } }
+    if(NET.isHost && !CL._hostPendingCommit && NET.reopenReady){ if(Date.now()-ONLINE_ADV_T>400){ ONLINE_ADV_T=Date.now(); NET.reopenReady(); } }
     // CONVIDADO: se a fase é 'running' e ainda não joguei ESTA rodada, jogo agora (rede de segurança
     // caso o gatilho do onState tenha sido perdido enquanto eu via o sorteio/classificação). onlineRunRound
     // se auto-protege (não re-simula rodada já jogada, não interrompe telas de sorteio/classificação).
@@ -1420,12 +1420,14 @@ function onlineOrphanCloseCheck(){
   // alguém em partida: 120s (o busy_until do servidor expira em 90s, então isto nunca atropela
   // quem está jogando de verdade). Todos com resultado: 25s. Faltando alguém: 90s — quem caiu
   // antes de publicar é simulado pelo servidor, como sempre foi.
-  // Sem ninguém em partida não há o que esperar: 20s. A faixa de 90s pra "falta resultado de
-  // alguém" era espera cega — quem não publicou e não está ocupado não vai publicar, e o servidor
-  // simula ausente. Com alguém em partida, 100s (o busy do servidor expira em 90s).
-  const espera = anyBusy ? 100000 : 20000;
+  // Sem ninguém em partida, a rodada devia ter fechado no ato: 6s é só a folga pro caminho normal
+  // do anfitrião (que leva ~2-4s, incluindo a ida ao servidor) agir antes. resolve-round é
+  // idempotente, então se os dois caminhos correrem juntos o segundo recebe already:true — o custo
+  // de disparar cedo é uma chamada a mais; o de disparar tarde é o jogo parado.
+  // Com alguém DE FATO em partida, 100s (o busy do servidor expira em 90s) — aí a espera é real.
+  const espera = anyBusy ? 100000 : 6000;
   if(now-ORPHAN_SINCE < espera) return;
-  if(ORPHAN_INFLIGHT || now-ORPHAN_LAST_TRY<15000) return;
+  if(ORPHAN_INFLIGHT || now-ORPHAN_LAST_TRY<6000) return;
   ORPHAN_LAST_TRY=now; ORPHAN_INFLIGHT=true;
   const round=S.round;
   console.warn('cão de guarda: rodada '+round+' aberta há '+Math.round((now-ORPHAN_SINCE)/1000)+'s sem fechar — resolvendo pelo servidor');

@@ -274,7 +274,11 @@ const AD_SPONSORS=[
     bg:'#0b7a2f', fg:'#eaffea', bevel:'#3fcf6a #063d18 #063d18 #3fcf6a' },
 ];
 const AD_LOGOS=AD_SPONSORS.map(s=>s.src);
-const AD_MIN_MS=10000;                     // a pausa segura NO MÍNIMO 10s (janela do anúncio)
+/* Piso da pausa técnica — é a ÚNICA espera que sobrou por opção, não por proteção: é a janela em
+   que o patrocinador aparece (ver .rf-sponsor em scWaitRound). Baixado de 10s pra 4s: continua
+   dando o tempo do anúncio ser visto, mas a rodada seguinte entra quase no ato. Para tirar a
+   janela por completo, basta 0 aqui — a sincronia não depende dela em nada. */
+const AD_MIN_MS=4000;
 function pausaGif(){ return PAUSA_GIFS[(CL._pausaI||0)%PAUSA_GIFS.length]; }
 function pausaJoke(){ return PAUSA_JOKES[(CL._pausaI||0)%PAUSA_JOKES.length]; }
 /* quanto falta da janela de 10s, em segundos e em % (é o que o relógio e a barra mostram:
@@ -282,7 +286,9 @@ function pausaJoke(){ return PAUSA_JOKES[(CL._pausaI||0)%PAUSA_JOKES.length]; }
 function pausaLeft(){ return Math.max(0, Math.ceil((AD_MIN_MS-(nowMs()-(CL._waitSince||nowMs())))/1000)); }
 /* a pausa passou MUITO do previsto (a janela normal é de 10s) -> algo travou no fechamento da
    rodada; libera a saída de emergência da tela (ver scWaitRound). */
-const WAIT_ESCAPE_MS=30000;
+// 12s: com a pausa normal em ~4s, passar de 12s já é sintoma. Eram 30s — tempo em que o jogador
+// já tinha desistido e recarregado a página antes de ver que havia uma saída.
+const WAIT_ESCAPE_MS=12000;
 function pausaStuck(){ return (nowMs()-(CL._waitSince||nowMs())) >= WAIT_ESCAPE_MS; }
 function pausaPct(){ return Math.max(0, Math.min(100, Math.round(((nowMs()-(CL._waitSince||nowMs()))/AD_MIN_MS)*100))); }
 /* a janela de 10s estourou e a rodada AINDA não sincronizou: o relógio e a barra não podem
@@ -5173,10 +5179,10 @@ function onlineHostCloseRound(){
   if(typeof NET!=='undefined' && NET.allHumanResultsIn && !NET.allHumanResultsIn(round)){
     if(!CL._hostCloseSince) CL._hostCloseSince=nowMs();
     const presente = NET.anyMissingResultOnline && NET.anyMissingResultOnline(round);
-    // 12s (era 120s — e 120s de espera cega era boa parte dos "minutos" na pausa). O publish é
-    // assíncrono e leva ~1-2s; quem está DE FATO jogando é coberto pelo anyBusy acima, não por
-    // esta carência. Passou disso, fecha: o servidor simula quem não publicou, como sempre fez.
-    if(nowMs()-CL._hostCloseSince < (presente?12000:3000)) return;
+    // Carência SÓ pro publish assíncrono aterrissar (~1-2s): 4s presente, 2s ausente. Quem está de
+    // fato jogando é coberto pelo anyBusy acima — esta carência nunca foi proteção de partida, era
+    // só margem de rede, e como espera cega ela virou boa parte do tempo parado na pausa.
+    if(nowMs()-CL._hostCloseSince < (presente?4000:2000)) return;
   }
   CL._hostCloseSince=0;
   CL._hostPendingCommit=null;
