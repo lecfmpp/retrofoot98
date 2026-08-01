@@ -1372,48 +1372,51 @@ function onlineRecoverRunRound(){
    (state_version + expectedRound) e simula ausentes com os resultados publicados. Este check roda
    em todo cliente; a carência de 20s dá folga pro caminho normal do anfitrião agir primeiro, então
    com anfitrião saudável isto nunca dispara. */
-let ORPHAN_SINCE=0, ORPHAN_LAST_TRY=0, ORPHAN_INFLIGHT=false;
+let ORPHAN_ROUND=null, ORPHAN_SINCE=0, ORPHAN_LAST_TRY=0, ORPHAN_INFLIGHT=false;
+/* CÃO DE GUARDA DO FECHAMENTO — a versão definitiva.
+   Histórico: a rodada travou 5 vezes seguidas, sempre pelo mesmo motivo estrutural — alguma
+   condição LOCAL do cliente (tela de sorteio, fila adotada do shared_state, obrigação de copa,
+   espelho de "ocupado" congelado) dizia "ainda não" e ninguém chamava resolve-round. A cada
+   variação corrigida aparecia a seguinte.
+   A lição: um cão de guarda NÃO pode consultar estado local frágil, e seu relógio NÃO pode ser
+   reiniciado por condição que pisca — era o defeito da versão anterior (qualquer guard que
+   oscilasse zerava o contador e ele nunca chegava aos 20s).
+   Agora o relógio é ancorado na RODADA: começa quando vejo a sala em 'running' nesta rodada e só
+   zera quando a rodada de fato muda. As únicas condições são as confiáveis: a fase, a rodada e se
+   EU estou jogando. resolve-round aceita qualquer membro e é idempotente, então concorrência entre
+   os clientes é inofensiva (o 2º recebe already:true). */
 function onlineOrphanCloseCheck(){
-  if(!CL.online || typeof NET==='undefined' || !NET.gameId || !NET.room || typeof S==='undefined' || !S){ ORPHAN_SINCE=0; return; }
-  if(NET.room.phase!=='running'){ ORPHAN_SINCE=0; return; }
-  if(CL._hostPendingCommit){ ORPHAN_SINCE=0; return; }          // anfitrião com o commit em mãos: caminho normal
-  if(CL.screen==='live' || CL.live || CL._liveBusy){ ORPHAN_SINCE=0; return; }
-  if(CL._playedRound!==S.round){ ORPHAN_SINCE=0; return; }      // eu nem joguei ainda — não é rodada órfã
-  if((NET.room.round||0)!==(S.round||0)){ ORPHAN_SINCE=0; return; } // servidor já avançou: o reconcile me puxa
-  if(typeof onlineClosingRound==='function' && onlineClosingRound()){ ORPHAN_SINCE=0; return; } // eu mesmo ocupado
-  // alguém ainda em partida? Lê o busy_until FRESCO dos assentos (não o espelho de participants,
-  // que pode ficar velho se um evento do realtime se perder) — expirado (teto de 90s) não conta.
-  const cl=NET._claimed||{}, now=Date.now();
+  if(!CL.online || typeof NET==='undefined' || !NET.gameId || !NET.room || typeof S==='undefined' || !S){ ORPHAN_ROUND=null; return; }
+  if(NET.room.phase!=='running'){ ORPHAN_ROUND=null; return; }
+  if((NET.room.round||0)!==(S.round||0)){ ORPHAN_ROUND=null; return; }  // servidor já avançou: o reconcile me puxa
+  if(CL.screen==='live' || CL.live){ ORPHAN_ROUND=null; return; }        // estou jogando: ninguém fecha por cima de mim
+  const now=Date.now();
+  // âncora na rodada — nenhuma condição intermediária reinicia esta contagem
+  if(ORPHAN_ROUND!==S.round){ ORPHAN_ROUND=S.round; ORPHAN_SINCE=now; return; }
+  // "ocupado" lido FRESCO dos assentos (o espelho room.participants congela o busy no instante do
+  // último merge e pode nunca mais ser recalculado se um evento do realtime se perder)
+  let anyBusy=false; const cl=NET._claimed||{};
   for(const uid in cl){ const c=cl[uid];
-    if(c && c.busy_until && new Date(c.busy_until).getTime()>now){ ORPHAN_SINCE=0; return; } }
-  if(!ORPHAN_SINCE){ ORPHAN_SINCE=now; return; }
-  const held=now-ORPHAN_SINCE;
-  // 20s de carência com todos os resultados publicados; 60s mesmo sem (um cliente que caiu antes
-  // de publicar nunca vai publicar — o servidor simula o clube dele, como sempre fez com ausentes).
+    if(c && c.busy_until && new Date(c.busy_until).getTime()>now){ anyBusy=true; break; } }
   const allIn = (typeof NET.allHumanResultsIn==='function') ? NET.allHumanResultsIn(S.round) : true;
-  // presença conta aqui também: quem está online e só não jogou ainda ganha folga maior do que
-  // quem caiu — o failover é a rede de segurança, não pode ser mais apressado que o anfitrião.
-  const presenteSemResultado = !allIn && typeof NET.anyMissingResultOnline==='function' && NET.anyMissingResultOnline(S.round);
-  if(held < (allIn?20000:(presenteSemResultado?150000:60000))) return;
-  if(ORPHAN_INFLIGHT || now-ORPHAN_LAST_TRY<12000) return;      // uma tentativa por vez, com respiro
+  // alguém em partida: 120s (o busy_until do servidor expira em 90s, então isto nunca atropela
+  // quem está jogando de verdade). Todos com resultado: 25s. Faltando alguém: 90s — quem caiu
+  // antes de publicar é simulado pelo servidor, como sempre foi.
+  const espera = anyBusy ? 120000 : (allIn ? 25000 : 90000);
+  if(now-ORPHAN_SINCE < espera) return;
+  if(ORPHAN_INFLIGHT || now-ORPHAN_LAST_TRY<15000) return;
   ORPHAN_LAST_TRY=now; ORPHAN_INFLIGHT=true;
   const round=S.round;
-  console.warn('rodada órfã (sem anfitrião fechando há '+Math.round(held/1000)+'s) — resolvendo pelo servidor');
+  console.warn('cão de guarda: rodada '+round+' aberta há '+Math.round((now-ORPHAN_SINCE)/1000)+'s sem fechar — resolvendo pelo servidor');
   (async ()=>{
     try{
       const res=await NET.resolveRound(round);
-      // resolvida (por mim ou por outro — already:true também serve): reabre a próxima 'ready'.
-      // A adoção do estado novo é o fluxo de sempre: o realtime atualiza room.round e o
-      // onlineReconcileIfBehind puxa este cliente (e os outros) pra rodada nova.
       if(res && res.ok && NET.reopenReady) await NET.reopenReady();
-    }catch(e){ console.warn('orphan close:', e&&e.message); }
+      else if(res && res.error) console.warn('cão de guarda: resolve-round recusou —', res.error);
+    }catch(e){ console.warn('cão de guarda:', e&&e.message); }
     finally{ ORPHAN_INFLIGHT=false; }
   })();
 }
-// 'cupclassif' (chave/classificação logo após a MINHA partida de copa) é transiente e auto-avança
-// em 10s no online — conta como fechamento pra o cronômetro da liga não armar por cima de quem
-// ainda está saindo da copa. 'cupview' (navegação livre) NÃO entra: seria segurar a sala inteira
-// enquanto alguém passeia pela chave.
 const CLOSING_SCREENS=['live','cupdraw','classif','seatclassif','cupclassif','sorteio','loading'];
 let DRAW_HOLD_SINCE=0;
 function onlineClosingRound(){

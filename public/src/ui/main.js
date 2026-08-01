@@ -5098,7 +5098,14 @@ function onlineHostCloseRound(){
   if(pc.round!==S.round){ CL._hostPendingCommit=null; return; } // já resolvida por outro caminho
   const room=NET.room; if(!room) return;
   const round=pc.round;
-  const anyBusy=(room.participants||[]).some(p=>p.busy); // algum treinador ainda em partida?
+  // busy lido FRESCO dos assentos: room.participants congela o busy no instante do último merge
+  // (netMergeParticipants) e, se nenhum evento do realtime chegar depois, um "true" velho ficava
+  // pra sempre — o anfitrião esperava um jogador que já tinha saído da partida e a sala inteira
+  // parava na pausa técnica. O busy_until é timestamp: comparado agora, expira sozinho.
+  const _now=nowMs(), _cl=(typeof NET!=='undefined' && NET._claimed)||{};
+  let anyBusy=false;
+  for(const uid in _cl){ const c=_cl[uid];
+    if(c && c.busy_until && new Date(c.busy_until).getTime()>_now){ anyBusy=true; break; } }
   if(anyBusy){ CL._hostCloseSince=0; return; } // espera todos saírem da partida (teto de 90s do busy)
   // todos saíram da partida mas falta resultado de alguém. Dois casos MUITO diferentes:
   // - o jogador CAIU (aba fechada): 3s de carência e fecha, simulado como ausente — como sempre.
