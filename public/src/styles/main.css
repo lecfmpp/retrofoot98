@@ -1168,7 +1168,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .rf-proglabel{color:#fff;font-weight:700;font-size:13px}
 .rf-progpct{font-family:var(--mono);font-weight:800;font-size:15px;color:var(--yellow)}
 .rf-progtrack{background:#000;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);padding:3px;height:22px;box-sizing:content-box}
-.rf-progfill{height:100%;background:linear-gradient(180deg,#4fd07d,#1a8f3c);transition:width .18s linear}
+/* degrau seco de 10%: a transição suave borrava justamente o passo que a barra existe pra mostrar */
+.rf-progfill{height:100%;background:linear-gradient(180deg,#4fd07d,#1a8f3c)}
 .rf-skiprow{display:flex;justify-content:flex-end;margin-top:10px}
 /* faixa de patrocinadores (marquee com a lista duplicada -> laço sem emenda) */
 .rf-sponsor{flex:none;display:flex;align-items:stretch;background:var(--chrome);border-top:2px solid var(--bevL);height:70px}

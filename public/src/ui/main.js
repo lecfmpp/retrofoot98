@@ -274,11 +274,12 @@ const AD_SPONSORS=[
     bg:'#0b7a2f', fg:'#eaffea', bevel:'#3fcf6a #063d18 #063d18 #3fcf6a' },
 ];
 const AD_LOGOS=AD_SPONSORS.map(s=>s.src);
-/* Piso da pausa técnica — é a ÚNICA espera que sobrou por opção, não por proteção: é a janela em
-   que o patrocinador aparece (ver .rf-sponsor em scWaitRound). Baixado de 10s pra 4s: continua
-   dando o tempo do anúncio ser visto, mas a rodada seguinte entra quase no ato. Para tirar a
-   janela por completo, basta 0 aqui — a sincronia não depende dela em nada. */
-const AD_MIN_MS=4000;
+/* Piso da pausa técnica — a ÚNICA espera que sobrou por opção, não por proteção: é a janela em
+   que o patrocinador aparece (ver .rf-sponsor em scWaitRound) e em que o clipe/piada giram (a
+   cada 5s, ou seja, uma troca por pausa). Tudo o mais no fechamento da rodada foi cortado pro
+   mínimo; este número é decisão de produto. Para tirar a janela por completo, basta 0 aqui — a
+   sincronia não depende dela em nada. */
+const AD_MIN_MS=10000;
 function pausaGif(){ return PAUSA_GIFS[(CL._pausaI||0)%PAUSA_GIFS.length]; }
 function pausaJoke(){ return PAUSA_JOKES[(CL._pausaI||0)%PAUSA_JOKES.length]; }
 /* quanto falta da janela de 10s, em segundos e em % (é o que o relógio e a barra mostram:
@@ -286,11 +287,18 @@ function pausaJoke(){ return PAUSA_JOKES[(CL._pausaI||0)%PAUSA_JOKES.length]; }
 function pausaLeft(){ return Math.max(0, Math.ceil((AD_MIN_MS-(nowMs()-(CL._waitSince||nowMs())))/1000)); }
 /* a pausa passou MUITO do previsto (a janela normal é de 10s) -> algo travou no fechamento da
    rodada; libera a saída de emergência da tela (ver scWaitRound). */
-// 12s: com a pausa normal em ~4s, passar de 12s já é sintoma. Eram 30s — tempo em que o jogador
-// já tinha desistido e recarregado a página antes de ver que havia uma saída.
-const WAIT_ESCAPE_MS=12000;
+// 18s: a pausa normal são 10s, então 18s é claramente fora do padrão — dá 8s do aviso "ainda
+// sincronizando" antes de oferecer a saída. Eram 30s, tempo em que o jogador já tinha recarregado
+// a página antes de descobrir que havia um botão.
+const WAIT_ESCAPE_MS=18000;
 function pausaStuck(){ return (nowMs()-(CL._waitSince||nowMs())) >= WAIT_ESCAPE_MS; }
-function pausaPct(){ return Math.max(0, Math.min(100, Math.round(((nowMs()-(CL._waitSince||nowMs()))/AD_MIN_MS)*100))); }
+/* barra em DEGRAUS de 10%: com a janela de 10s e o tique de 1s, cada segundo é exatamente um
+   degrau — o jogador lê o avanço em vez de ver um número arbitrário (a conta contínua mostrava
+   16%, 41%... conforme o instante do desenho). Math.floor pra nunca marcar 100% antes da hora. */
+function pausaPct(){
+  const frac=(nowMs()-(CL._waitSince||nowMs()))/AD_MIN_MS;
+  return Math.max(0, Math.min(100, Math.floor(frac*10)*10));
+}
 /* a janela de 10s estourou e a rodada AINDA não sincronizou: o relógio e a barra não podem
    fingir que acabou (00:00 + 100% parado lia como "travou") — viram estado de espera explícito */
 function pausaOvertime(){ return !CL._adCont && (nowMs()-(CL._waitSince||nowMs()))>=AD_MIN_MS; }
