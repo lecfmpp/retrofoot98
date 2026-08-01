@@ -5173,7 +5173,10 @@ function onlineHostCloseRound(){
   if(typeof NET!=='undefined' && NET.allHumanResultsIn && !NET.allHumanResultsIn(round)){
     if(!CL._hostCloseSince) CL._hostCloseSince=nowMs();
     const presente = NET.anyMissingResultOnline && NET.anyMissingResultOnline(round);
-    if(nowMs()-CL._hostCloseSince < (presente?120000:3000)) return;
+    // 12s (era 120s — e 120s de espera cega era boa parte dos "minutos" na pausa). O publish é
+    // assíncrono e leva ~1-2s; quem está DE FATO jogando é coberto pelo anyBusy acima, não por
+    // esta carência. Passou disso, fecha: o servidor simula quem não publicou, como sempre fez.
+    if(nowMs()-CL._hostCloseSince < (presente?12000:3000)) return;
   }
   CL._hostCloseSince=0;
   CL._hostPendingCommit=null;

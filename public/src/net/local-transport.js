@@ -1232,6 +1232,24 @@ function onlineTimerLoop(){
      (room.round||0)!==(S.round||0) && typeof onlineReconcileIfBehind==='function'){
     onlineReconcileIfBehind(room);
   }
+  // DIAGNÓSTICO DA PAUSA: passou de 12s parado aqui, o console diz exatamente o que falta — fase,
+  // rodada minha vs. da sala, quem está em partida e quem não publicou. Cada travada desta semana
+  // custou uma ida ao banco pra descobrir isso; agora o relatório vem junto do problema.
+  if(CL.online && CL.screen==='waitround' && room && typeof S!=='undefined' && S){
+    const dt=Date.now()-(CL._waitSince||Date.now());
+    if(dt>12000 && Date.now()-(CL._waitDiagT||0)>10000){
+      CL._waitDiagT=Date.now();
+      const cl=NET._claimed||{}, ag=Date.now(); const ocupados=[], semResultado=[];
+      for(const uid in cl){ const c=cl[uid]; if(!(c&&c.clubId)) continue;
+        if(c.busy_until && new Date(c.busy_until).getTime()>ag) ocupados.push(c.clubId);
+        if(!(c.last_result && c.last_result_round===S.round)) semResultado.push(c.clubId); }
+      console.warn('pausa há '+Math.round(dt/1000)+'s | fase='+room.phase+
+        ' rodada: eu='+(S.round||0)+' sala='+(room.round||0)+
+        ' | cronômetro='+((room.deadline||0)>0?'armado':'desarmado')+
+        ' | eu-ocupado='+ONLINE_BUSY_ACTIVE+
+        ' | em partida=['+ocupados.join(',')+'] sem resultado=['+semResultado.join(',')+']');
+    }
+  }
   // TETO de 1s: o intervalo acompanha o ritmo, mas nos tempos lentos a conta explodia (em 'Longo'
   // dava ~6,6s entre sondagens — reconcile, cronômetro e barreira todos com essa latência).
   const intv=Math.max(100, Math.min(1000, 300/((typeof roundSpeedMult==='function'?roundSpeedMult():CL.speedMult)||1)));
@@ -1402,7 +1420,10 @@ function onlineOrphanCloseCheck(){
   // alguém em partida: 120s (o busy_until do servidor expira em 90s, então isto nunca atropela
   // quem está jogando de verdade). Todos com resultado: 25s. Faltando alguém: 90s — quem caiu
   // antes de publicar é simulado pelo servidor, como sempre foi.
-  const espera = anyBusy ? 120000 : (allIn ? 25000 : 90000);
+  // Sem ninguém em partida não há o que esperar: 20s. A faixa de 90s pra "falta resultado de
+  // alguém" era espera cega — quem não publicou e não está ocupado não vai publicar, e o servidor
+  // simula ausente. Com alguém em partida, 100s (o busy do servidor expira em 90s).
+  const espera = anyBusy ? 100000 : 20000;
   if(now-ORPHAN_SINCE < espera) return;
   if(ORPHAN_INFLIGHT || now-ORPHAN_LAST_TRY<15000) return;
   ORPHAN_LAST_TRY=now; ORPHAN_INFLIGHT=true;
@@ -1420,6 +1441,15 @@ function onlineOrphanCloseCheck(){
 const CLOSING_SCREENS=['live','cupdraw','classif','seatclassif','cupclassif','sorteio','loading'];
 let DRAW_HOLD_SINCE=0;
 function onlineClosingRound(){
+  // PAUSA TÉCNICA NUNCA CONTA COMO OCUPADO — regra geral, não mais remendo por sintoma.
+  // Estar aqui significa "já fiz a minha parte e estou ESPERANDO", que é o oposto de ocupado.
+  // Toda travada desta semana teve a mesma forma: uma pendência que só pode ser resolvida DEPOIS
+  // que a rodada avança (sorteio por abrir, fila adotada, partida de copa da rodada seguinte)
+  // marcava o jogador como ocupado JUSTAMENTE na tela onde ele não pode fazer nada — e o servidor,
+  // que não arma o cronômetro com alguém ocupado, esperava por quem esperava por ele.
+  // Medido na sala 6FNKB: rodada fechada, ninguém em partida, os dois online — e 448s parados,
+  // porque a obrigação de copa da rodada SEGUINTE segurava a fase 'ready' na tela de pausa.
+  if(CL.screen==='waitround'){ DRAW_HOLD_SINCE=0; return false; }
   if(CLOSING_SCREENS.indexOf(CL.screen)>=0){ DRAW_HOLD_SINCE=0; return true; }
   // sorteio JÁ ENFILEIRADO mas ainda não aberto: a janela entre o fim da classificação e o
   // startCupDrawReplay. Era exatamente aqui que o cronômetro escapava e armava.
@@ -1439,7 +1469,11 @@ function onlineClosingRound(){
   else DRAW_HOLD_SINCE=0;
   return onlineCupObligationPending();
 }
-const CUP_HOLD_MAX_MS=240000; // 4 min: folga larga pra copa + prorrogação + pênaltis
+// 60s: teto de SEGURANÇA, não de espera normal. Eram 240s — e como a barreira ficou presa na
+// pausa, esses 4 minutos viraram o tempo real que a sala passava travada antes de destravar
+// sozinha. Quem está de fato jogando a copa é coberto pelo busy_until (90s, renovado a cada 15s),
+// não por este teto.
+const CUP_HOLD_MAX_MS=60000;
 function onlineCupObligationPending(){
   if(!CL.online || !S || typeof pendingUserCupMatches!=='function') return false;
   if(CL.unemployed) return false;
