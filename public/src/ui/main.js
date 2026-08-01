@@ -2864,8 +2864,21 @@ function clJogar(){
     // copa de uma competição da qual o usuário NÃO participa nesta rodada, mostra uma mensagem
     // amigável (uma por competição nesta leva) antes de liberar a rodada de liga — assim ele
     // entende por que não tem partida de copa hoje, em vez de simplesmente não ver nada.
+    // COPA COLETIVA: quem não tem jogo nesta rodada ASSISTE junto, em vez de receber um aviso e
+    // ficar parado. É o que torna a semana de copa simétrica — todos entram e saem da copa no
+    // mesmo momento, em vez de cada um cumprir a sua obrigação numa hora diferente (a origem das
+    // travadas de pausa técnica). Agora é seguro assistir: a partida de copa de outro humano vem
+    // do resultado publicado ou da transmissão ao vivo dele, não de uma simulação local que
+    // mostraria um placar que nunca existiu (ver buildLiveMatchObject/isCup).
     const idle=cupRoundsUserSitsOut().filter(c=>!(CL._cupIdleShownThisRound||[]).includes(c.key));
-    if(idle.length){ CL._pendingCupIdleQueue=idle.slice(1); showCupIdleMessage(idle[0]); return; }
+    if(idle.length){
+      const cand=idle[0];
+      CL._cupIdleShownThisRound=CL._cupIdleShownThisRound||[];
+      if(!CL._cupIdleShownThisRound.includes(cand.key)) CL._cupIdleShownThisRound.push(cand.key);
+      CL._pendingCupIdleQueue=idle.slice(1);
+      if(startCupRound(cand.key, cand.stage, null)) return;
+      showCupIdleMessage(cand); return;   // sem confrontos pra mostrar: mantém o aviso antigo
+    }
     CL._cupIdleShownThisRound=null;
     onlineMarkReady(); return;
   }
@@ -2947,15 +2960,18 @@ function clCupIdleOk(){
    advanceCupBracket/advanceGroupStageRound vão usar pra resolver de verdade essa
    mesma rodada em segundo plano (ver advancePendingCups), pro placar assistido bater
    exatamente com o que fica gravado. */
-function startCupSpectate(cand){
-  const key=cand.key, c=S.cups[key];
-  const fixtures=[];
-  if(cand.stage==='bracket'){
-    const b = key==='copaBrasil' ? c : c.bracket;
+/* confrontos de uma rodada de copa, com as seeds AUTORITATIVAS — as MESMAS que o servidor usa
+   (advanceCupBracket / advanceGroupStageRound), pra o que se assiste bater com o que fica gravado */
+function cupRoundFixtures(key, stage){
+  const c=S.cups[key]; const fixtures=[];
+  if(!c) return fixtures;
+  if(stage==='bracket'){
+    const b = key==='copaBrasil' ? c : c.bracket; if(!b) return fixtures;
     const roundLabel = key==='copaBrasil' ? ('copaBrasil-r'+b.round) : (key+'-r'+b.round);
     (b.ties||[]).forEach(t=>{ fixtures.push({h:t.h,a:t.a,seed:hashSeed(S.seed,'cup',roundLabel,t.h,t.a)}); });
   } else {
-    const mg=c.group, roundLabel=key+'-grupo-r'+mg.round;
+    const mg=c.group; if(!mg) return fixtures;
+    const roundLabel=key+'-grupo-r'+mg.round;
     Object.values(mg.groups).forEach(g=>{
       (g.sched[mg.round]||[]).forEach(([h,a])=>{
         if(h==null||a==null) return;
@@ -2963,18 +2979,47 @@ function startCupSpectate(cand){
       });
     });
   }
-  if(!fixtures.length){ markSpectateHandled(key); advanceSpectateQueue(); return; } // nada pra assistir agora (raro)
-  const matches=fixtures.map(f=>buildLiveMatchObject(f.h,f.a,f.seed,{user:false,div:key}));
-  const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:matches.length===1?0:null, subOpen:false,
-    matches, cup:{key, stage:cand.stage, spectate:true} };
+  return fixtures;
+}
+/* ---- RODADA DE COPA COLETIVA: todo mundo assiste a TODOS os jogos, igual à rodada de liga ----
+   Antes cada jogador via só a PRÓPRIA partida de copa, e quem não jogava recebia um aviso e ficava
+   parado. Isso serializava a semana de copa (cada um cumpria a sua obrigação num momento diferente)
+   e foi a origem de todas as travadas de pausa técnica: a barreira esperava jogador por jogador.
+   Agora a copa é uma rodada como a da liga — a minha partida é a interativa (matches[0]) e as
+   demais rolam junto na mesma tela. `pending` nulo = não tenho jogo nesta rodada: assisto tudo. */
+function startCupRound(key, stage, pending){
+  const fixtures=cupRoundFixtures(key, stage);
+  if(!fixtures.length){ if(!pending){ markSpectateHandled(key); advanceSpectateQueue(); } return false; }
+  // a MINHA partida vem primeiro: finishCupLiveMatch, prorrogação e pênaltis leem RL.matches[0]
+  const isMine=f=>pending && f.h===pending.h && f.a===pending.a;
+  const ordered = pending ? fixtures.filter(isMine).concat(fixtures.filter(f=>!isMine(f))) : fixtures;
+  const matches=ordered.map((f,i)=>buildLiveMatchObject(f.h,f.a,f.seed,
+    { user:(pending && i===0) ? true : false, div:key, cupKey:key }));
+  const RL={ jornada:S.round+1, minute:0, half:1, done:false,
+    sel:(matches.length===1?0:null), subOpen:false, matches,
+    cup: pending ? pending : {key, stage, spectate:true} };
   RL.maxMin=Math.max(94,...matches.map(m=>m.events.length?m.events[m.events.length-1].min:90));
   CL.live=RL; CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
+  return true;
 }
+function startCupSpectate(cand){ startCupRound(cand.key, cand.stage, null); }
 function finishCupSpectate(){
   const RL=CL.live;
   toastC('Rodada da '+COMP_DEFS[RL.cup.key].short+' assistida!');
   markSpectateHandled(RL.cup.key);
   CL.live=null; CL.screen='main'; cdraw();
+  // ONLINE: a fila de copas assistidas é a _pendingCupIdleQueue (ver clJogar) — encadeia a
+  // próxima competição da semana; esvaziada, o próximo "Jogar" libera a rodada de liga.
+  if(CL.online){
+    const q=CL._pendingCupIdleQueue||[];
+    if(q.length){ const nx=q[0]; CL._pendingCupIdleQueue=q.slice(1);
+      CL._cupIdleShownThisRound=CL._cupIdleShownThisRound||[];
+      if(!CL._cupIdleShownThisRound.includes(nx.key)) CL._cupIdleShownThisRound.push(nx.key);
+      if(startCupRound(nx.key, nx.stage, null)) return; }
+    CL._pendingCupIdleQueue=null;
+    if(typeof onlineRecoverRunRound==='function') onlineRecoverRunRound();
+    return;
+  }
   advanceSpectateQueue();
   // se a fase virou 'running' enquanto eu assistia (borda perdida pelo guard CL.screen==='live'),
   // destrava a rodada de liga ao terminar de assistir — só age se não houver outra copa na fila.
@@ -3056,7 +3101,18 @@ function buildLiveMatchObject(h,a,seed,opts){
   // aconteceu, não uma decisão minha — senão eu poderia escolher um batedor de pênalti diferente
   // do que já decidiu o placar oficial.
   const isLeague=CL.online && isLeagueFixtureNow(h,a);
-  const pub=(isLeague && typeof NET!=='undefined' && NET.humanResultFor) ? NET.humanResultFor(h,a,S.round) : null;
+  // COPA COLETIVA: a partida de copa agora entra na MESMA máquina de rede da liga. Sem isto, cada
+  // cliente simulava localmente a copa dos outros — e num confronto humano×humano o dono joga
+  // interativo e publica um placar DIFERENTE, então os espectadores viam um jogo que nunca
+  // existiu. Com isto, copa segue a mesma precedência da liga: publicado > transmissão > simulação
+  // (a simulação local usa a seed AUTORITATIVA, a mesma do advanceCupBracket no servidor).
+  const isCup=CL.online && !isLeague && !!opts.cupKey;
+  const netLive=isLeague||isCup;
+  const skPrefix=isCup?'cp:':'lg:';
+  const pub=(netLive && typeof NET!=='undefined')
+    ? (isCup ? (NET.humanCupResultFor?NET.humanCupResultFor(h,a,S.round):null)
+             : (NET.humanResultFor?NET.humanResultFor(h,a,S.round):null))
+    : null;
   // FASE 2: stream PRÉ-COMPUTADO pelo servidor no apito (kickoff-round -> CL._roundStreams).
   // Precedência: resultado real publicado (pub) > stream do servidor (pre) > simulação local.
   // A MINHA partida fica de fora do pre (jogo ao vivo, interativa — pênalti/substituição); todas
@@ -3079,11 +3135,11 @@ function buildLiveMatchObject(h,a,seed,opts){
   // vivo mostrar um placar que nunca existiu: eram exatamente as partidas de humanos que não batiam
   // com a classificação depois. _pre fica de reserva (ver fallbackSpectateToPre): silêncio total =
   // o dono não está jogando de verdade, e aí o apito volta a ser a verdade — igual ao servidor.
-  if(!pub && !mine && isLeague && liveBroadcasterOf(h,a)){
+  if(!pub && !mine && netLive && liveBroadcasterOf(h,a)){
     return { h,a,hg:0,ag:0,idx:0,events:[],att:gate.att,price:gate.price,cap:gate.cap,
       ref:REFS_C[Math.floor(rnd()*REFS_C.length)], goals:[], incidents:[], fhg:null, fag:null, perf:null,
       user:false, div:opts.div, replay:false, sim:null,
-      streamRemote:true, spectate:true, streamKey:'lg:'+h+'-'+a, _pre:pre, seed, _builtAt:nowMs() };
+      streamRemote:true, spectate:true, streamKey:skPrefix+h+'-'+a, _pre:pre, seed, _builtAt:nowMs() };
   }
   if(!src && mine && opts.user!==false && typeof liveMatchSession==='function'){
     // FASE 3B (humano×humano na liga): UMA partida só, transmitida. O cliente do MANDANTE roda a
@@ -3094,9 +3150,9 @@ function buildLiveMatchObject(h,a,seed,opts){
     // local depois de ~10s sem stream.
     const oppId = h===CL.clubId ? a : h;
     const iAmHome = h===CL.clubId;
-    const hxh = CL.online && isLeague && CL.humans && CL.humans[oppId];
+    const hxh = CL.online && netLive && CL.humans && CL.humans[oppId];
     const oppOnline = hxh && typeof NET!=='undefined' && NET.clubOnline && NET.clubOnline(oppId);
-    const streamKey = 'lg:'+h+'-'+a;
+    const streamKey = skPrefix+h+'-'+a;
     if(hxh && oppOnline && !iAmHome){
       return { h,a,hg:0,ag:0,idx:0,events:[],att:gate.att,price:gate.price,cap:gate.cap,
         ref:REFS_C[Math.floor(rnd()*REFS_C.length)], goals:[], incidents:[], fhg:null, fag:null, perf:null,
@@ -3107,7 +3163,7 @@ function buildLiveMatchObject(h,a,seed,opts){
     return { h,a,hg:0,ag:0,idx:0,events:sim.events,att:gate.att,price:gate.price,cap:gate.cap,
       ref:REFS_C[Math.floor(rnd()*REFS_C.length)], goals:[], incidents:[], fhg:null, fag:null, perf:null,
       user:opts.user!==undefined?opts.user:true, div:opts.div, replay:false, sim,
-      streamKey, streamCast:(CL.online && isLeague) };
+      streamKey, streamCast:(CL.online && netLive) };
   }
   const ev = src
     ? { events:(src.events||[]).map(e=>({...e,_resolved:true})), hg:src.hg, ag:src.ag, perf:src.perf||null }
@@ -3178,13 +3234,14 @@ function startCupLiveMatch(pending){
   // enxergar como "última escalação conhecida" (ver availableXI) se meu clube precisar
   // ser simulado em segundo plano antes de eu jogar a próxima partida de liga.
   if(CL.online && CL.humans && CL.humans[CL.clubId]){ S.clubXI=S.clubXI||{}; S.clubXI[CL.clubId]=(S.xi||[]).slice(); S.clubTactic=S.clubTactic||{}; S.clubTactic[CL.clubId]=S.tactic||"equilibrado";
-    if(typeof NET!=='undefined' && NET.publishLineup) NET.publishLineup(S.clubXI[CL.clubId], S.clubTactic[CL.clubId]); } // publica minha escalação pros outros clientes (sim. de ausente)
+    if(typeof NET!=='undefined' && NET.publishLineup) NET.publishLineup(S.clubXI[CL.clubId], S.clubTactic[CL.clubId]); }
   CL.subPanelOpen=false; CL.subsUsed=0;
+  // rodada de copa INTEIRA (a minha partida + as dos outros), igual à rodada de liga — ver
+  // startCupRound. Se por algum motivo o confronto não estiver na lista da rodada (estado
+  // inconsistente), cai no modo antigo de partida avulsa pra não deixar o jogador sem jogo.
+  if(startCupRound(pending.key, pending.stage, pending)) return;
   const seed=hashSeed(S.seed,'cupmatch',pending.key,pending.stage,S.round,pending.h,pending.a);
-  const m=buildLiveMatchObject(pending.h,pending.a,seed,{user:true,div:pending.key});
-  // sel:null (não 0): começa mostrando o CONFRONTO (placar + estágio da copa), sem o modal de
-  // acontecimentos já aberto por cima escondendo o jogo. O modal abre sozinho no intervalo e nos
-  // pênaltis (momentos decisivos), e o usuário pode tocar no confronto pra ver os lances — igual à liga.
+  const m=buildLiveMatchObject(pending.h,pending.a,seed,{user:true,div:pending.key,cupKey:pending.key});
   const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], cup:pending };
   RL.maxMin=Math.max(94, m.events.length?m.events[m.events.length-1].min:90);
   CL.live=RL; CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
