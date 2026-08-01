@@ -5382,10 +5382,17 @@ function finishCupLiveMatch(){
    copa -> onlineMarkReady). Sem isto, se a rede de segurança (onlineRunRound) puxar um usuário
    AUSENTE pra jogar a copa, o fluxo travaria numa dessas telas esperando "Continuar" e seguraria
    o outro jogador. 10s, igual à classificação de liga. No solo não arma (jogador decide no tempo dele). */
+const CUP_FLOW_SCREENS=['cupclassif','cupdraw','cupview'];
 function armCupFlowTimer(fn){
   if(CL._cupFlowTimer){ clearTimeout(CL._cupFlowTimer); CL._cupFlowTimer=null; }
   if(!CL.online) return;
-  CL._cupFlowTimer=setTimeout(()=>{ CL._cupFlowTimer=null; try{ fn(); }catch(e){ console.warn('cup flow auto:', e&&e.message); } }, 10000);
+  CL._cupFlowTimer=setTimeout(()=>{ CL._cupFlowTimer=null;
+    // GUARDA DE TELA (o armClassifTimer sempre teve, este não): em 10s o jogador pode já ter
+    // saído da copa e estar NA PARTIDA DE LIGA. Sem a guarda, este timer velho disparava
+    // finishCupResultFlow no meio do jogo dele — a tela piscava e voltava pra principal, e a
+    // rodada seguia rodando invisível (bug do "não assisti a 3ª rodada", 01/ago).
+    if(CUP_FLOW_SCREENS.indexOf(CL.screen)<0) return;
+    try{ fn(); }catch(e){ console.warn('cup flow auto:', e&&e.message); } }, 10000);
 }
 function clearCupFlowTimer(){ if(CL._cupFlowTimer){ clearTimeout(CL._cupFlowTimer); CL._cupFlowTimer=null; } }
 function clCupResultContinue(){
@@ -5415,6 +5422,11 @@ function finishCupResultFlow(){
   // Só marca pronto quando NÃO sobra mais nada pendente nesta rodada (nem copa, nem a liga).
   const stillPending = CL.online && (pendingUserCupMatches().length>0 || CL._playedRound!==S.round);
   if(CL.online && !stillPending){ onlineMarkReady(); return; }
+  // PARTIDA EM ANDAMENTO tem precedência absoluta sobre a cauda do fluxo da copa: mandar pra
+  // 'main' aqui trocava a tela mas NÃO parava o CL.live — o jogo seguia correndo invisível, o
+  // resultado era publicado sem ninguém ver, e onlineRunRound ficava bloqueado por CL.live pra
+  // sempre. Se estou jogando, a copa já acabou o que tinha pra fazer: não mexe na tela.
+  if(CL.live && !CL.live.done){ return; }
   CL.screen='main'; cdraw();
 }
 /* ---- a chave/classificação da copa logo depois da partida, NA MESMA TELA ----

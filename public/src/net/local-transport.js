@@ -240,7 +240,10 @@ function applyViewerDivision(clubId){
 let ONLINE_RECONCILE_BUSY=false;
 function onlineReconcileIfBehind(room){
   if(!CL.online || (typeof NET!=='undefined' && NET.isHost) || !room || !S) return;
-  if(CL.screen==='live' || CL.live || CL._liveBusy || CL._hotseat || CL.screen==='cupdraw' || CL.screen==='classif' || CL.screen==='seatclassif') return;
+  // 'cupclassif' entrou junto de 'classif'/'seatclassif': o reconcile navegava por cima da tela
+  // da copa e deixava o timer de 10s dela órfão — ele disparava depois, já dentro da partida de
+  // liga, e derrubava o jogador (bug do "não assisti a 3ª rodada", 01/ago).
+  if(CL.screen==='live' || CL.live || CL._liveBusy || CL._hotseat || CL.screen==='cupdraw' || CL.screen==='classif' || CL.screen==='seatclassif' || CL.screen==='cupclassif') return;
   const authRound = room.round||0;
   // Reconcilia sempre que a rodada da sala DIFERE da minha — à frente (rodada normal) OU "pra trás"
   // (nova temporada: a virada leva a rodada de 38 -> 0). Antes só cobria `>`, então na virada o
@@ -1118,6 +1121,13 @@ function onlineTimerLoop(){
   // teto de 90s do busy). Convidados voltam livres e só ESPELHAM (onlineReconcileIfBehind).
   if(CL.online && CL._hostPendingCommit && typeof onlineHostCloseRound==='function'){
     onlineHostCloseRound();
+  }
+  // PARTIDA ÓRFÃ NA TELA: CL.live vivo mas a tela é outra = alguma navegação tardia passou por
+  // cima do jogo (o caso clássico era o timer da copa; qualquer outro futuro cai aqui também).
+  // Sem isto o jogo roda invisível até o fim e o jogador simplesmente não vê a rodada dele.
+  if(CL.online && CL.live && !CL.live.done && CL.screen==='main' && !CL._hotseat){
+    console.warn('partida em andamento fora da tela — devolvendo o jogador pro jogo');
+    CL.screen='live'; if(typeof cdraw==='function') cdraw();
   }
   // FAILOVER DO FECHAMENTO: se o anfitrião sumiu (fechou a aba, caiu, foi deslogado), ninguém
   // chamava resolve-round e a sala INTEIRA ficava presa na pausa técnica pra sempre — o fechamento
