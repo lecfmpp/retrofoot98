@@ -83,9 +83,19 @@ function netIsAuthError(error){
   if(st===401 || st===403) return true;
   return /jwt|unauthor|not authorized|401/i.test((error && error.message) || '');
 }
-/* getSession() já renova o token vencido (e desduplica entre abas); refreshSession() é o plano B
-   pra sessão ausente. Refresh token revogado => false, e aí o 401 é legítimo (precisa relogar). */
-async function netRefreshAuth(){
+/* getSession() já renova o token vencido; refreshSession() é o plano B pra sessão ausente.
+   TETO DE TEMPO obrigatório: o supabase-js serializa o acesso à sessão num lock compartilhado
+   entre as abas do mesmo domínio, e com duas abas abertas essa espera pode não voltar. Isso roda
+   no caminho crítico do fechamento da rodada (onlineHostCloseRound -> await NET.resolveRound):
+   um await que nunca resolve deixa a sala inteira parada na pausa técnica, sem erro nenhum —
+   foi exatamente o que aconteceu quando esta espera era feita ANTES de toda chamada. */
+function netWithTimeout(p, ms, fallback){
+  return Promise.race([ p, new Promise(r=>setTimeout(()=>r(fallback), ms)) ]);
+}
+/* teto na tentativa INTEIRA, não por etapa: getSession + refreshSession em série com um teto cada
+   somariam o dobro em cima do fechamento da rodada. Aqui o orçamento é um só. */
+function netRefreshAuth(){ return netWithTimeout(netRefreshAuthInner(), 3000, false); }
+async function netRefreshAuthInner(){
   try{
     const { data } = await sb.auth.getSession();
     if(data && data.session){ SB_AUTH_USER = data.session.user; return true; }
@@ -94,26 +104,24 @@ async function netRefreshAuth(){
   }catch(e){ console.warn('refreshAuth:', e&&e.message); }
   return false;
 }
+/* Chama primeiro e só mexe em autenticação se o servidor RECUSAR. O caminho feliz — a esmagadora
+   maioria — não paga nenhuma espera extra, e nada de auth entra na frente do fechamento da rodada. */
 async function netInvokeFn(name, body){
-  // sem sessão o supabase-js manda a chave publishable no lugar do JWT, e a function responde
-  // 401 "sessão inválida" — chamada perdida e 4 erros vermelhos no console por rodada. Nem tenta.
-  if(!(await netRefreshAuth())){ netWarnDeadSession(); return { data:null, error:{ message:'sem sessão' } }; }
   let res = await sb.functions.invoke(name, { body });
-  if(res.error && netIsAuthError(res.error)){
-    res = await sb.functions.invoke(name, { body }); // token pode ter acabado de ser renovado
-    if(res.error && netIsAuthError(res.error)) netWarnDeadSession();
+  if(res.error && netIsAuthError(res.error) && await netRefreshAuth()){
+    res = await sb.functions.invoke(name, { body });
   }
+  if(res.error && netIsAuthError(res.error)) netWarnDeadSession();
   return res;
 }
 /* Sessão morta não é um detalhe silencioso: sem ela a rodada da Resenha perde o stream
    determinístico do servidor e cada cliente simula por conta própria — os jogadores da sala
-   começam a ver partidas diferentes.
-   Na RESENHA isso derruba pro login (netHandleSessionLost): não há como seguir sincronizado.
-   Fora dela (Solo) basta o aviso — a sessão não faz falta durante a partida. Nem sempre chega um
-   SIGNED_OUT: quando o token aponta pra uma sessão destruída por outra aba, o supabase-js segue
-   se achando logado e só o 401 da function denuncia. Por isso a detecção mora nos DOIS lugares. */
+   começam a ver partidas diferentes. Avisa UMA vez (não a cada rodada) pra não virar spam.
+   Aqui só AVISA, nunca desmonta a sala: um 401 isolado pode ser uma recusa passageira, e derrubar
+   a sala por causa dele é muito pior que a degradação que o aviso denuncia — se for o ANFITRIÃO,
+   a rodada nunca fecha e todo mundo fica parado na pausa técnica. Quem desmonta é o SIGNED_OUT
+   (ver onAuthStateChange), que é sinal definitivo de que a sessão acabou. */
 function netWarnDeadSession(){
-  if(typeof CL!=='undefined' && CL.online){ netHandleSessionLost(); return; }
   if(CL._deadSessionWarned) return;
   CL._deadSessionWarned = true;
   console.warn('Sessão do Supabase inválida — a rodada vai ser simulada localmente. Entre de novo pra voltar a sincronizar.');
