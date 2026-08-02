@@ -3297,9 +3297,10 @@ function startLiveRound(){
 }
 /* ---- PARTIDA DE COPA AO VIVO — mesma maquinaria de startLiveRound/liveTick/scLive/
    liveModalHTML (pênalti, lesão, substituições), só que pra UMA partida avulsa, fora do
-   calendário de liga. RL.sel=0 já abre o modal da partida direto (só tem 1 jogo na lista,
-   então a lista agrupada por divisão fica vazia — inofensivo). Ver finishCupLiveMatch pro
-   fechamento, que NÃO passa por finishLiveRound/playRound (aquilo é só pra liga). ---- */
+   calendário de liga. Começa com sel:null (modal fechado) — a tela ao vivo já mostra a
+   única linha do jogo + relógio sem precisar do modal aberto; toca na linha (liveRowClick)
+   pra abrir. Ver finishCupLiveMatch pro fechamento, que NÃO passa por finishLiveRound/
+   playRound (aquilo é só pra liga). ---- */
 function startCupLiveMatch(pending){
   fixUserXIAvailability();
   // Resenha (online): grava a escalação que EU de fato uso nesta partida pro meu clube,
@@ -3759,10 +3760,14 @@ function closePenaltyModal(){
 }
 
 function liveRowClick(i){ CL.live.sel=i; CL.subOut=CL.subIn=null; CL.subPanelOpen=false; cdraw(); }
+// Fechar o modal (RL.sel=null) SEMPRE revela algo útil por baixo — mesmo em partida avulsa de
+// copa/assento, a tela ao vivo já desenha a própria linha do jogo + relógio (ver scLive, single =
+// RL.cup||RL.humanSeat, começa com sel:null em startCupLiveMatch). Antes, pra copa, o intervalo
+// deixava RL.sel=0 (modal continuava aberto, sem jeito de fechar) e fora do intervalo o botão virava
+// um no-op — o "Continuar" clicava e nada acontecia. clique no card (liveRowClick) reabre quando quiser.
 function liveContinue(){ const RL=CL.live; if(!RL) return;
   CL.subPanelOpen=false;
-  if(RL.paused){ clearHalftimeCountdown(); RL.paused=false; RL.halftimeLeft=null; RL.sel=RL.cup?0:null; cdraw(); CL._liveTimer=setTimeout(liveTick,320); return; }
-  if(RL.cup) return; // partida avulsa de copa: só tem essa partida, não tem lista pra "voltar"
+  if(RL.paused){ clearHalftimeCountdown(); RL.paused=false; RL.halftimeLeft=null; RL.sel=null; cdraw(); CL._liveTimer=setTimeout(liveTick,320); return; }
   RL.sel=null; cdraw(); }
 /* INTERVALO na Resenha: no máximo 10s para fazer a substituição — se o usuário não apertar
    Continuar, avança sozinho ao fim do tempo (mantém todos os treinadores sincronizados no tempo). */
