@@ -613,8 +613,11 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-est-svg{display:block;margin:6px auto 4px;width:280px;height:auto}
 /* foto real do estádio (stadiumPhotoFor) — bem maior que o desenho genérico (largura quase
    toda do modal), proporção fixa 16:9 pra não pular de tamanho entre clubes com fotos de
-   dimensões um pouco diferentes; object-fit:cover corta o excesso sem esticar/distorcer. */
-.cl-est-photo{display:block;margin:6px auto 4px;width:100%;max-width:600px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;border:2px solid #1a1a1a;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+   dimensões um pouco diferentes. Imagem já vem SEM fundo (recorte com canal alfa) — por isso
+   sem moldura/borda/caixa branca; object-fit:contain mostra o estádio inteiro (não corta) e
+   drop-shadow (não box-shadow) segue o contorno recortado, não o retângulo, pra sombra ficar
+   no chão do estádio e não numa caixa invisível ao redor dele. */
+.cl-est-photo{display:block;margin:6px auto 4px;width:100%;max-width:600px;aspect-ratio:16/9;object-fit:contain;filter:drop-shadow(0 10px 12px rgba(0,0,0,.32))}
 .cl-est-cap{font-size:26px;font-weight:800;color:#000;margin:14px 0 8px}
 .cl-est-price{font-size:15px;color:#000;line-height:1.4}
 .cl-est-maxcap{font-size:13px;color:#333;margin-top:8px}
