@@ -137,6 +137,15 @@ function realStadiumCapacity(overall){
   // item 4: capacidade por divisão (overall na escala NOVA) — A 75k · B 50k · C 25k · D 10k
   return (typeof REBAL!=='undefined') ? REBAL.stadiumCap(overall) : Math.round(clamp(6000 + Math.max(0,(overall||30)-50)*1350, 10000, 68000)/1000)*1000;
 }
+/* capacidade REAL de estádio (Transfermarkt) pros 352 clubes estrangeiros, quando existe — ver
+   public/src/data/stadiums-intl.js (window.STADIUM_CAP, id do clube -> lugares) e
+   scripts/build-stadiums.mjs. Clube sem dado real (raspagem não achou, clube novo, doméstico
+   brasileiro) retorna null e quem chamar cai no fallback sintético de sempre — nenhum caso
+   especial extra em lugar nenhum. */
+function realCapFor(club){
+  const v=(typeof STADIUM_CAP!=='undefined' && club) ? STADIUM_CAP[club.id] : null;
+  return (typeof v==='number') ? v : null;
+}
 /* TETO de expansão por porte do clube: maior que a inicial, mas realista — um clube pequeno
    nunca constrói um estádio gigante. Nunca abaixo da capacidade atual (não "encolhe"). */
 function stadiumMaxCapacity(){
@@ -1246,8 +1255,10 @@ function clEntrar(){
   S.intlUniverse = CL.intlUniverse; // false | país (ex.: 'Inglaterra')
   S.bgCountries = (CL.bgCountries||[]).slice(); // outros países selecionados: ligas de background
   initBgLeagues(); // materializa as ligas de background pra simular/visualizar/negociar
-  if(!S.stadium){ const ov=(clubOf(CL.clubId)||{}).overall||70;
-    const cap=(typeof REBAL!=='undefined' && REBAL.stadiumCapForDivision) ? REBAL.stadiumCapForDivision(S.division) : realStadiumCapacity(ov);
+  if(!S.stadium){ const ownClub=clubOf(CL.clubId); const ov=(ownClub||{}).overall||70;
+    // clube estrangeiro com capacidade real (Transfermarkt) começa com o estádio de verdade dele,
+    // em vez da faixa fixa por divisão — só faz sentido pra quem começa/muda pra um clube real.
+    const cap=realCapFor(ownClub) || ((typeof REBAL!=='undefined' && REBAL.stadiumCapForDivision) ? REBAL.stadiumCapForDivision(S.division) : realStadiumCapacity(ov));
     S.stadium={capacity:cap, builtThisSeason:0}; CL.ticket=levelTicketPrice(ov); }
   CL.formation=null; CL.tacticChosen=false;   // precisa escolher tática no menu p/ liberar "Jogar"
   S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
@@ -3101,8 +3112,10 @@ function finishCupSpectate(){
 /* ---------- PARTIDA AO VIVO (estilo RetroFoot98: placar por divisões) ---------- */
 function attendanceFor(homeId,rnd){
   const homeClub=(typeof clubOf==='function')?clubOf(homeId):null; const homeOv=(homeClub&&homeClub.overall)||70;
-  // CPU: capacidade e ingresso proporcionais ao porte do clube (não mais aleatório puro)
-  const cap=(homeId===CL.clubId && S.stadium)?S.stadium.capacity:realStadiumCapacity(homeOv);
+  // CPU: capacidade e ingresso proporcionais ao porte do clube (não mais aleatório puro).
+  // Clube estrangeiro com dado real do Transfermarkt (realCapFor) usa o estádio de verdade dele
+  // em vez da curva sintética por overall — ver stadiums-intl.js.
+  const cap=(homeId===CL.clubId && S.stadium)?S.stadium.capacity:(realCapFor(homeClub)||realStadiumCapacity(homeOv));
   const price=(homeId===CL.clubId)?(CL.ticket||levelTicketPrice(homeOv)):levelTicketPrice(homeOv);
   const tbl=S.table[homeId]||{Pts:0,P:0}; const form=(tbl.P?tbl.Pts/(tbl.P*3):0.5);       // momento do time (0..1)
   const priceFactor=Math.max(0.28, Math.min(1, 1.25 - price/22));                            // ingresso alto => menos gente

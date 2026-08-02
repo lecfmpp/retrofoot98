@@ -3908,7 +3908,9 @@ function applyCpuSeasonFinances(){
     // aproveitamento real vira bônus: quem ganhou mais, arrecadou mais (mesma regra do usuário)
     const w=(m&&m.row)?m.row.W:Math.round(rounds*0.35), d=(m&&m.row)?m.row.D:Math.round(rounds*0.27);
     const bonus=Math.round(base*(w*REBAL.WIN_BONUS + d*REBAL.DRAW_BONUS));
-    const cap=(typeof REBAL.stadiumCap==='function')?REBAL.stadiumCap(ov):20000;
+    // clube estrangeiro com capacidade real (Transfermarkt, ver stadiums-intl.js) usa o estádio
+    // de verdade dele na bilheteria de fim de temporada, em vez da curva sintética por overall.
+    const cap=(typeof realCapFor==='function' && realCapFor(c)) || ((typeof REBAL.stadiumCap==='function')?REBAL.stadiumCap(ov):20000);
     const price=Math.round(Math.max(6,Math.min(16,6+Math.max(0,(ov||30)-20)*0.32)));
     const homeGames=Math.round(rounds/2) || HOME;
     const gate=Math.round(cap*0.55)*price*homeGames;             // ocupação média ~55%, igual à calibração
