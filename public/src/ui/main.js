@@ -4002,14 +4002,19 @@ function redCardHTML(m,e){
       <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span><span class="cl-pen-r">${p.f}</span></div>`;
   const inRows=bench.map(p=>row(p,'in',CL.redIn===p.pid)).join('');
   const outRows=canReorg?redCardOnField(m,e).map(p=>row(p,'out',CL.redOut===p.pid)).join(''):'';
-  return `<div class="cl-pen-overlay"><div class="cl-inj-modal" ${injuryClubStyle()}>
+  // Entra/Sai lado a lado (mesmo padrão de duas colunas do subPanelHTML/cl-sub-cols), não mais
+  // duas listas cheias empilhadas — aquilo fugia do padrão compacto dos outros modais de decisão
+  // ao vivo (injurySubHTML/penaltyHTML, sempre uma cl-pen-list só) e tomava a tela toda.
+  return `<div class="cl-pen-overlay"><div class="cl-inj-modal cl-inj-modal-wide" ${injuryClubStyle()}>
     <div class="cl-inj-title"><span class="cl-inj-min">🟥</span><span>${escC(clubOf(CL.clubId).short)}</span></div>
     <div class="cl-inj-body">
       <div class="cl-inj-msg">${escC(e.player)} foi EXPULSO (${escC(e.reason||'')}) — o time segue com um a menos.<br>
-      ${canReorg?'Quer reorganizar? Escolha quem entra e quem sai (gasta uma substituição).':'Sem opções de reorganização.'}
+      ${canReorg?'Quer reorganizar? Escolha quem sai e quem entra (gasta uma substituição).':'Sem opções de reorganização.'}
       <span id="cl-red-count" class="cl-pen-count">${secsLeft}s</span></div>
-      ${canReorg?`<div class="cl-inj-msg" style="margin-top:6px"><b>Entra:</b></div><div class="cl-pen-list">${inRows}</div>
-      <div class="cl-inj-msg" style="margin-top:6px"><b>Sai:</b></div><div class="cl-pen-list">${outRows}</div>`:''}
+      ${canReorg?`<div class="cl-pen-cols">
+        <div class="cl-pen-col"><div class="cl-pen-col-lbl">Sai</div><div class="cl-pen-list">${outRows}</div></div>
+        <div class="cl-pen-col"><div class="cl-pen-col-lbl">Entra</div><div class="cl-pen-list">${inRows}</div></div>
+      </div>`:''}
       <div class="cl-pen-btn">${canReorg?btn('Reorganizar','resolveRedConfirm()',{icon:'⇄',cls:'cl-btn-ok',dis:!(CL.redIn&&CL.redOut)}):''}
       ${btn('Seguir com 10','resolveRedSkip()',{icon:'➡',cls:'cl-btn-cancel'})}</div>
     </div>
