@@ -1341,7 +1341,7 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // joguei a copa"). Agora joga a copa ao vivo; ao terminar (cupQueue vazio), a liga entra na
   // próxima passada. O fluxo de resultado da copa auto-avança no online (ver clCupResultContinue).
   if(typeof pendingUserCupMatches==='function'){
-    const cupQueue=pendingUserCupMatches();
+    const cupQueue=pendingUserCupMatches().filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key));
     if(cupQueue.length && typeof startCupLiveMatch==='function'){ startCupLiveMatch(cupQueue[0]); return; }
   }
   CL._liveBusy=true; startLiveRound(); }
@@ -1489,7 +1489,7 @@ function onlineCupObligationPending(){
   // isso continua valendo: fora da 'running'-com-rodada-jogada ela segura normalmente.
   if(typeof NET!=='undefined' && NET.room && NET.room.phase==='running' && CL._playedRound===S.round) return false;
   let pend=false;
-  try{ pend = pendingUserCupMatches().length>0; }catch(e){ return false; }
+  try{ pend = pendingUserCupMatches().filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key)).length>0; }catch(e){ return false; }
   const key=(S.season||1)+'-'+(S.round||0);
   if(!pend){ CL._cupHoldKey=null; CL._cupHoldSince=0; return false; }
   if(CL._cupHoldKey!==key){ CL._cupHoldKey=key; CL._cupHoldSince=Date.now(); }

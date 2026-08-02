@@ -2884,18 +2884,17 @@ function clJogar(){
   // partidas ao vivo direto uma atrás da outra. Vale pros dois modos: online já vem
   // filtrado (pendingUserCupMatches exclui confronto humano x humano da mesma sala,
   // resolvido em segundo plano igual sempre foi).
-  const cupQueue=pendingUserCupMatches();
+  const cupQueue=pendingUserCupMatches().filter(c=>!cupWasSeen(c.key));
   if(cupQueue.length){ startCupLiveMatch(cupQueue[0]); return; }
   // nenhuma partida de copa pra JOGAR nesta rodada — mas pode ter rodada de copa
   // rolando de competições das quais o usuário não participa (ou já foi eliminado);
   // oferece assistir, uma competição de cada vez, antes de liberar a rodada de liga.
   // cupSpectateCandidates() não marca nada como "resolvido" (assistir é só visual, ver
   // startCupSpectate) — sem esse filtro, a mesma competição seria oferecida de novo pra
-  // sempre depois de "Jogar" voltar pra tela principal; CL._spectatedKeysThisRound lembra
-  // o que já foi mostrado (assistido ou pulado) nesta leva, até a rodada de liga rolar.
-  const spectateQueue=cupSpectateCandidates().filter(c=>!(CL._spectatedKeysThisRound||[]).includes(c.key));
+  // sempre depois de "Jogar" voltar pra tela principal; cupWasSeen/cupMarkSeen lembram
+  // o que já foi mostrado (assistido ou pulado) NESTA rodada — ver cupRoundKeyNow.
+  const spectateQueue=cupSpectateCandidates().filter(c=>!cupWasSeen(c.key));
   if(spectateQueue.length){ CL._pendingSpectateQueue=spectateQueue.slice(1); askSpectate(spectateQueue[0]); return; }
-  CL._spectatedKeysThisRound=null;
   if(CL.online){
     // Resenha: não se assiste copa de fora (resultado é autoritativo do servidor). Se é dia de
     // copa de uma competição da qual o usuário NÃO participa nesta rodada, mostra uma mensagem
@@ -2907,19 +2906,34 @@ function clJogar(){
     // travadas de pausa técnica). Agora é seguro assistir: a partida de copa de outro humano vem
     // do resultado publicado ou da transmissão ao vivo dele, não de uma simulação local que
     // mostraria um placar que nunca existiu (ver buildLiveMatchObject/isCup).
-    const idle=cupRoundsUserSitsOut().filter(c=>!(CL._cupIdleShownThisRound||[]).includes(c.key));
+    const idle=cupRoundsUserSitsOut().filter(c=>!cupWasSeen(c.key));
     if(idle.length){
       const cand=idle[0];
-      CL._cupIdleShownThisRound=CL._cupIdleShownThisRound||[];
-      if(!CL._cupIdleShownThisRound.includes(cand.key)) CL._cupIdleShownThisRound.push(cand.key);
+      cupMarkSeen(cand.key);
       CL._pendingCupIdleQueue=idle.slice(1);
       if(startCupRound(cand.key, cand.stage, null)) return;
       showCupIdleMessage(cand); return;   // sem confrontos pra mostrar: mantém o aviso antigo
     }
-    CL._cupIdleShownThisRound=null;
     onlineMarkReady(); return;
   }
   startLiveRound();
+}
+/* ---- MARCADOR DE COPA JÁ VISTA NESTA RODADA ----
+   Antes eram dois arrays (_spectatedKeysThisRound no solo, _cupIdleShownThisRound na Resenha)
+   zerados assim que a fila esvaziava — ou seja, no clJogar SEGUINTE. Só que a rodada de copa
+   continua "acontecendo" até a rodada de LIGA avançar: com o marcador já apagado, qualquer novo
+   clique em Jogar reexibia a MESMA rodada de copa, do zero. Era a reprise (a mesma rodada várias
+   vezes na temporada). Agora o marcador é amarrado a (temporada, rodada): não se apaga por fluxo,
+   só deixa de valer quando a rodada de fato muda. */
+function cupRoundKeyNow(){ return (S.season||1)+'-'+(S.round||0); }
+function cupMarkSeen(key){
+  const rk=cupRoundKeyNow();
+  if(!CL._cupSeen || CL._cupSeen.rk!==rk) CL._cupSeen={ rk, keys:[] };
+  if(!CL._cupSeen.keys.includes(key)) CL._cupSeen.keys.push(key);
+}
+function cupWasSeen(key){
+  const rk=cupRoundKeyNow();
+  return !!(CL._cupSeen && CL._cupSeen.rk===rk && CL._cupSeen.keys.includes(key));
 }
 /* ---- MODO ESPECTADOR: assistir a uma rodada de copa de fora, sem participar —
    pergunta antes (Sim/Pular), e se aceitar mostra a partida (ou partidas, se for
@@ -2953,8 +2967,7 @@ function askSpectate(cand){
 function clSpectateYes(){ clCloseOverlay(); const cand=CL._spectateCand; CL._spectateCand=null; startCupSpectate(cand); }
 function clSpectateNo(){ clCloseOverlay(); const cand=CL._spectateCand; CL._spectateCand=null; markSpectateHandled(cand.key); advanceSpectateQueue(); }
 function markSpectateHandled(key){
-  CL._spectatedKeysThisRound=CL._spectatedKeysThisRound||[];
-  if(!CL._spectatedKeysThisRound.includes(key)) CL._spectatedKeysThisRound.push(key);
+  cupMarkSeen(key);
 }
 /* nunca encadeia direto pra rodada de liga daqui — mesmo princípio do mata-mata de copa
    (ver clCupResultContinue): depois de assistir (ou pular) uma competição, sempre volta
@@ -2971,7 +2984,7 @@ function advanceSpectateQueue(){
    uma mensagem amigável explicando que é dia de copa mas o clube dele não joga essa
    rodada, e convida a preparar o time pro próximo jogo. Uma competição de cada vez;
    igual ao espectador, sempre volta pra tela principal e exige um novo "Jogar" antes
-   de seguir (CL._cupIdleShownThisRound lembra o que já foi mostrado nesta leva). */
+   de seguir (cupWasSeen lembra o que já foi mostrado nesta rodada). */
 function showCupIdleMessage(cand){
   CL._cupIdleCand=cand;
   const nome=(COMP_DEFS[cand.key]&&COMP_DEFS[cand.key].name)||'copa';
@@ -2986,7 +2999,7 @@ function showCupIdleMessage(cand){
 function clCupIdleOk(){
   clCloseOverlay();
   const cand=CL._cupIdleCand; CL._cupIdleCand=null;
-  if(cand){ CL._cupIdleShownThisRound=CL._cupIdleShownThisRound||[]; if(!CL._cupIdleShownThisRound.includes(cand.key)) CL._cupIdleShownThisRound.push(cand.key); }
+  if(cand) cupMarkSeen(cand.key);
   const q=CL._pendingCupIdleQueue||[];
   if(q.length){ CL._pendingCupIdleQueue=q.slice(1); showCupIdleMessage(q[0]); return; }
   CL._pendingCupIdleQueue=null;
@@ -3050,8 +3063,7 @@ function finishCupSpectate(){
   if(CL.online){
     const q=CL._pendingCupIdleQueue||[];
     if(q.length){ const nx=q[0]; CL._pendingCupIdleQueue=q.slice(1);
-      CL._cupIdleShownThisRound=CL._cupIdleShownThisRound||[];
-      if(!CL._cupIdleShownThisRound.includes(nx.key)) CL._cupIdleShownThisRound.push(nx.key);
+      cupMarkSeen(nx.key);
       if(startCupRound(nx.key, nx.stage, null)) return; }
     CL._pendingCupIdleQueue=null;
     if(typeof onlineRecoverRunRound==='function') onlineRecoverRunRound();
@@ -5470,6 +5482,7 @@ function finishCupLiveMatch(){
   // marca esta competição pra mostrar a classificação/chaveamento assim que todas as
   // partidas de copa da rodada (pode haver mais de uma — Copa do Brasil + Libertadores
   // na mesma semana, por exemplo) tiverem sido jogadas — ver clCupResultContinue().
+  cupMarkSeen(pending.key); // esta copa está cumprida NESTA rodada — nunca reabrir (ver cupWasSeen)
   CL._cupResultKeysThisRound = CL._cupResultKeysThisRound || [];
   if(!CL._cupResultKeysThisRound.includes(pending.key)) CL._cupResultKeysThisRound.push(pending.key);
   // o placar viaja com a competição pra ser mostrado como FAIXA no topo da tela da copa —
