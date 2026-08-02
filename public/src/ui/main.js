@@ -1572,7 +1572,7 @@ function scSeatTurn(){
         <div class="cl-hdr"><div class="cl-mgr">${escC(seat.name)}</div>
           <div class="cl-hdr-sub"><span class="cl-flag2">${flag}</span> ${escC(seat.country)} <span class="cl-div">${escC(seatDivLabel(seat,fx))}</span></div></div>
         <div class="cl-roster-hd cl-acc-hd"><span>Elenco</span></div>
-        <div class="cl-roster cl-acc-body">${rosterHTML()}</div>
+        <div class="cl-roster cl-acc-body ${CL.escalacaoMode?'cl-roster-escala':''}">${rosterHTML()}</div>
       </div>
       <div class="cl-main-right" style="background:${th.bg}">
         <div class="cl-right-hdr"><div class="cl-adv-lbl">Adversário</div>
@@ -1732,7 +1732,7 @@ function scMain(){
         <div class="cl-roster-hd cl-acc-hd" onclick="clToggleRoster()">
           <span>Elenco</span><span class="cl-acc-arrow ${CL.rosterOpen===false?'closed':''}">▾</span>
         </div>
-        <div class="cl-roster cl-acc-body ${CL.rosterOpen===false?'closed':''}">${rosterHTML()}</div>
+        <div class="cl-roster cl-acc-body ${CL.rosterOpen===false?'closed':''} ${CL.escalacaoMode?'cl-roster-escala':''}">${rosterHTML()}</div>
       </div>
       <div class="cl-main-right" style="background:${th.bg}">
         <div class="cl-right-hdr">
@@ -1755,6 +1755,21 @@ function rosterHeadHTML(){
   return `<div class="cl-rrow head">
     <span class="cl-rmark"></span><span class="cl-rpos">Pos</span><span class="cl-rname">Nome</span>
     <span class="cl-rage">Id.</span><span class="cl-rf">Força</span><span class="cl-rbatt"><b class="cl-lbl-lg">Energia</b><b class="cl-lbl-sm">En.</b></span><span class="cl-rv" title="Salário semanal">Salário</span><span class="cl-rmv">Valor</span></div>`;
+}
+/* barra fixa que SUBSTITUI o cabeçalho de colunas enquanto o modo de escalação está ligado —
+   fica grudada no topo da lista (mesma posição sticky do cabeçalho normal) e diz sempre quem
+   está marcado, mesmo depois de rolar a lista pra achar o reserva no fim da posição. Sem isso,
+   no celular (onde o elenco é uma lista curta e rolável, .cl-roster) o usuário marcava um
+   titular lá em cima, rolava pra baixo atrás do reserva e perdia de vista quem tinha marcado. */
+function escalaBarHTML(){
+  const m=CL.escalaMark?pById(CL.escalaMark,CL.clubId):null;
+  if(m) return `<div class="cl-rrow head cl-esc-bar marked">
+    <span class="cl-esc-bar-txt">🔁 Trocando <b>${escC(m.n)}</b> (${posLetter(m.s)}) — toque em outro ${posLetter(m.s)}</span>
+    <span class="cl-esc-bar-x" onclick="event.stopPropagation();clEscalaMarkClear()">✕</span>
+  </div>`;
+  return `<div class="cl-rrow head cl-esc-bar">
+    <span class="cl-esc-bar-txt">👆 Toque no T ou R de um jogador pra marcar</span>
+  </div>`;
 }
 /* salário SEMANAL exibido de um jogador, de qualquer clube. Sem contrato explícito cai no mesmo
    salário-tabela por força que o motor já usa pra folha dos clubes de CPU (ver cpuSeasonFinances),
@@ -1821,10 +1836,10 @@ function rosterHTML(){
   const sq=squad(CL.clubId); const th=clubTheme(CL.clubId);
   const showMarks=(CL.tab==='seleccao'||CL.escalacaoMode); const xiSet=new Set(S.xi||[]);
   const escala=CL.escalacaoMode;
-  let html=rosterHeadHTML();
+  let html=escala?escalaBarHTML():rosterHeadHTML();
   groups.forEach(([sec])=>{ const list=sq.filter(p=>p.s===sec);
     html+=`<div class="cl-rgroup">`+list.map(p=>{const starter=xiSet.has(p.pid);   // identidade por pid, não nome
-      const marked=escala && CL.preSubOut===p.pid;
+      const marked=escala && CL.escalaMark===p.pid;
       const selc=!escala && CL.selPlayer===p.pid;
       const unavail=p.suspended>0||p.injuredMatches>0;
       const badge=p.suspended>0?'🟥':(p.injuredMatches>0?'✚'+p.injuredMatches:'');
@@ -1833,8 +1848,12 @@ function rosterHTML(){
       // moeda abreviada (fmt: k/M) e periodicidade explícita, pro usuário nunca confundir
       // "10 mil" com "10 milhões" nem esquecer que o débito é SEMANAL.
       const salary=playerSalary(p);
+      // em modo de escalação o T/R vira o alvo principal do toque: área bem maior que o
+      // resto da linha (.cl-rmark-hit, ver main.css) — continua chamando a mesma função que
+      // a linha toda (onclick já borbulha), só existe pra dar um "botão" óbvio pro dedo, sem
+      // precisar acertar o texto pequeno.
       return `<div class="cl-rrow ${selc?'sel':''} ${marked?'swap-out':''} ${unavail?'unavail':''}" style="${selc?'':`color:${th.txt}`}" onclick="${onclickFn}">
-        <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
+        <span class="cl-rmark ${escala?'cl-rmark-hit':''} ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname" title="${escC(p.n)}">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
         <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}${trainingIcon(CL.clubId,p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(salary)}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;}).join('')+`</div>`;
@@ -2813,7 +2832,7 @@ function panSeleccao(){
   const escala=CL.escalacaoMode;
   const escalaBlock = !CL.tacticChosen ? '' : escala
     ? `<div class="cl-sel-escala">
-        <div class="cl-sel-escala-note">Toque num titular (T) no elenco à esquerda pra marcar, depois num reserva da mesma posição pra trocar.</div>
+        <div class="cl-sel-escala-note">Toque no T ou R de um jogador no elenco à esquerda pra marcar, depois toque em outro da mesma posição pra trocar na hora.</div>
         ${btn('Concluído','clToggleEscalacao()',{icon:'✔',cls:'cl-btn-mini'})}
       </div>`
     : '';
@@ -2853,42 +2872,31 @@ function panSeleccao(){
 }
 /* ---- troca de titular ANTES da partida, direto na lista de elenco (à esquerda) —
    diferente da troca AO VIVO (liveSubPick/liveDoSub, limitada a 3 e só durante a
-   partida): aqui é livre. Fluxo: toca no titular (marca), toca num reserva da
-   mesma posição (pede confirmação num popup), confirma. ---- */
-function clToggleEscalacao(){ CL.escalacaoMode=!CL.escalacaoMode; CL.preSubOut=null; CL.preSubIn=null; cdraw(); }
+   partida): aqui é livre. Fluxo simplificado: toca no T ou R de um jogador (marca,
+   não importa se é titular ou reserva), toca em outro DA MESMA POSIÇÃO e troca na
+   hora — sem popup de confirmação no meio, um toque a menos que antes. Restringir a
+   mesma posição (em vez de aceitar qualquer troca com aviso, como era antes) também
+   garante de graça o invariante de 1 goleiro só: GK só troca com GK. ---- */
+function clToggleEscalacao(){ CL.escalacaoMode=!CL.escalacaoMode; CL.escalaMark=null; cdraw(); }
 function clEscalaPick(pid){   // pid do jogador clicado (identidade por ID, não nome)
-  const xiSet=new Set(S.xi||[]);
-  if(xiSet.has(pid)){ CL.preSubOut=(CL.preSubOut===pid?null:pid); CL.preSubIn=null; cdraw(); return; }
-  if(!CL.preSubOut){ toastC('Toque primeiro num titular (T) pra substituir.'); return; }
-  const outP=pById(CL.preSubOut,CL.clubId), inP=pById(pid,CL.clubId);
-  if(!outP||!inP) return;
-  if(inP.suspended>0||inP.injuredMatches>0){ toastC('Esse jogador não está disponível.'); return; }
-  // GOLEIRO: o XI tem exatamente 1. Não deixa entrar um 2º goleiro (trocar linha por GK) nem
-  // tirar o único goleiro (trocar GK por linha) — só GK↔GK ou linha↔linha.
-  if((inP.s==='GK')!==(outP.s==='GK')){
-    toastC(inP.s==='GK' ? 'O time já tem um goleiro escalado — troque goleiro por goleiro.' : 'Você precisa de um goleiro no gol — só troque o goleiro por outro goleiro.');
-    return;
+  const p=pById(pid,CL.clubId); if(!p) return;
+  if(!CL.escalaMark){    // nada marcado ainda -> este vira a marca, seja T ou R
+    if(p.suspended>0||p.injuredMatches>0){ toastC('Esse jogador não está disponível.'); return; }
+    CL.escalaMark=pid; cdraw(); return;
   }
-  CL.preSubIn=pid;
-  // troca livre entre qualquer posição (ex: colocar um meia no lugar de um zagueiro
-  // machucado) — antes travava com "só mesma posição", forçando o time a jogar com um a
-  // menos mesmo tendo reservas disponíveis noutra posição. Só avisa quando é fora de
-  // posição, não impede mais.
-  const offPos=outP.s!==inP.s;
-  overlayC(dlg('Trocar titular', `<div class="cl-escala-confirm">Você quer trocar <b>${escC(outP.n)}</b> por <b>${escC(inP.n)}</b>?
-    ${offPos?`<div class="cl-escala-warn">⚠ ${escC(inP.n)} joga de ${posLetter(inP.s)} — fora da posição de ${posLetter(outP.s)}</div>`:''}</div>
-    <div class="cl-jog-actions">${btn('Sim','clEscalaDoSwap()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Desistir','clEscalaCancel()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
-    {w:420,bodyClass:'cl-body-gray',min:true}));
+  if(CL.escalaMark===pid){ CL.escalaMark=null; cdraw(); return; }   // toca de novo -> desmarca
+  const a=pById(CL.escalaMark,CL.clubId); if(!a){ CL.escalaMark=pid; cdraw(); return; }
+  if(a.s!==p.s){ toastC('Só dá pra trocar jogadores da mesma posição ('+posLetter(a.s)+').'); return; }
+  const xiSet=new Set(S.xi||[]);
+  const aStarter=xiSet.has(a.pid), bStarter=xiSet.has(p.pid);
+  if(aStarter===bStarter){ CL.escalaMark=pid; cdraw(); return; }   // os dois T ou os dois R -> só troca a marca
+  if(p.suspended>0||p.injuredMatches>0){ toastC('Esse jogador não está disponível.'); return; }
+  const outP=aStarter?a:p, inP=aStarter?p:a;
+  S.xi=(S.xi||[]).map(x=>x===outP.pid?inP.pid:x);
+  toastC(inP.n.split(' ').slice(-1)[0]+' entrou no lugar de '+outP.n.split(' ').slice(-1)[0]+' na escalação.');
+  CL.escalaMark=null; saveV3(); cdraw();
 }
-function clEscalaDoSwap(){
-  if(!CL.preSubOut || !CL.preSubIn){ clCloseOverlay(); return; }
-  const outP=pById(CL.preSubOut,CL.clubId), inP=pById(CL.preSubIn,CL.clubId);
-  S.xi=(S.xi||[]).map(pid=>pid===CL.preSubOut?CL.preSubIn:pid);
-  if(outP&&inP) toastC(inP.n.split(' ').slice(-1)[0]+' entrou no lugar de '+outP.n.split(' ').slice(-1)[0]+' na escalação.');
-  CL.preSubOut=null; CL.preSubIn=null;
-  saveV3(); clCloseOverlay(); cdraw();
-}
-function clEscalaCancel(){ CL.preSubOut=null; CL.preSubIn=null; clCloseOverlay(); cdraw(); }
+function clEscalaMarkClear(){ CL.escalaMark=null; cdraw(); }   // botão ✕ da barra fixa (escalaBarHTML)
 function clJogar(){
   if(CL._seatContext){ clSeatPlay(); return; } // hotseat: "Jogar" na tela do assento inicia a partida dele
   if(!CL.tacticChosen){ toastC('Escolha a tática no menu Formação primeiro.'); CL.tab='seleccao'; cdraw(); return; }
@@ -6924,7 +6932,7 @@ function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
   else if(f==='best'){ S.xi=squad(CL.clubId).slice().sort((a,b)=>b.f-a.f).slice(0,11).map(p=>p.pid); CL.formation='Melhores'; S.tactic='equilibrado'; }
   else { const real=coherentFormation(CL.clubId,f); if(real!==f) adjustedFrom=f;
     S.xi=pickXIByFormation(CL.clubId,real); CL.formation=real; S.tactic=tacticPosture(real); }
-  CL.tacticChosen=true; CL.tab='seleccao'; CL.preSubOut=null; CL.preSubIn=null; CL.escalacaoMode=false; saveV3(); cdraw();
+  CL.tacticChosen=true; CL.tab='seleccao'; CL.escalaMark=null; CL.escalacaoMode=false; saveV3(); cdraw();
   toastC(adjustedFrom ? `Sem jogadores pro ${adjustedFrom} — ajustado pra ${CL.formation}.` : 'Tática '+CL.formation+' seleccionada.'); }
 /* "Selecionar descansados": reaplica a formação já escolhida trocando o critério de escala
    de força (p.f) por energia (menos cansados primeiro), respeitando os setores da formação.
@@ -6932,7 +6940,7 @@ function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
    solo, resenha e hotseat porque só mexe em S.xi/CL.formation, igual clSelFormation. */
 function clSelectRested(){ if(!CL.tacticChosen) return;
   const f=(FORMATIONS[CL.formation])?CL.formation:'4-3-3';
-  S.xi=pickXIByFormationRested(CL.clubId,f); CL.preSubOut=null; CL.preSubIn=null; CL.escalacaoMode=false; saveV3(); cdraw();
+  S.xi=pickXIByFormationRested(CL.clubId,f); CL.escalaMark=null; CL.escalacaoMode=false; saveV3(); cdraw();
   toastC('🔋 Onze mais descansado seleccionado.'); }
 
 /* ---- Estádio (Equipa > Estádio...) ---- */
