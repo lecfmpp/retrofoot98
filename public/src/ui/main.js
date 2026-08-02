@@ -147,16 +147,23 @@ function realCapFor(club){
   return (typeof v==='number') ? v : null;
 }
 /* TETO de expansão por porte do clube: maior que a inicial, mas realista — um clube pequeno
-   nunca constrói um estádio gigante. Nunca abaixo da capacidade atual (não "encolhe"). */
-function stadiumMaxCapacity(){
-  const c=(typeof clubOf==='function')?clubOf(S.clubId):null; const ov=(c&&c.overall)||30;
+   nunca constrói um estádio gigante. Nunca abaixo da capacidade atual (não "encolhe").
+   Versão parametrizada (overall/capacidade por fora) pra dar pra usar tanto pro estádio do
+   usuário (S.stadium/S.clubId) quanto pro crescimento automático da CPU (applyCpuStadiumGrowth,
+   core.js) sem duplicar a fórmula — stadiumMaxCapacity() abaixo é só um wrapper fino em cima. */
+function stadiumMaxCapacityFor(overall, currentCap){
   // teto de expansão = capacidade inicial da divisão + folga (item 4, escala nova de overall)
-  const byLevel = realStadiumCapacity(ov) + 15000;
-  const cur=(S.stadium&&S.stadium.capacity)||STAND_START;
-  return Math.round(clamp(byLevel, cur, 90000)/1000)*1000;
+  const byLevel = realStadiumCapacity(overall||30) + 15000;
+  return Math.round(clamp(byLevel, currentCap||STAND_START, 90000)/1000)*1000;
 }
-/* custo de UMA bancada — escala com o tamanho atual (estádio grande é mais caro de expandir) */
-function standCost(){ const cap=(S.stadium&&S.stadium.capacity)||STAND_START; return Math.round(STAND_PRICE*(0.7+cap/50000)); }
+function stadiumMaxCapacity(){
+  const c=(typeof clubOf==='function')?clubOf(S.clubId):null;
+  return stadiumMaxCapacityFor((c&&c.overall)||30, (S.stadium&&S.stadium.capacity)||STAND_START);
+}
+/* custo de UMA bancada — escala com o tamanho atual (estádio grande é mais caro de expandir).
+   Mesma ideia: standCostFor(cap) parametrizada, standCost() é o wrapper do usuário. */
+function standCostFor(cap){ return Math.round(STAND_PRICE*(0.7+(cap||STAND_START)/50000)); }
+function standCost(){ return standCostFor((S.stadium&&S.stadium.capacity)||STAND_START); }
 /* preço de ingresso "natural" por porte do clube — proporcional, sem exagero (faixa 6–16) */
 function levelTicketPrice(overall){ return Math.round(clamp(6 + Math.max(0,(overall||30)-20)*0.32, 6, 16)); } // item 4: rebase p/ overall escala nova (A~44→~14, D~8→6)
 function tacticPosture(f){ const a=(FORMATIONS[f]||[1,4,3,3])[3]; return a>=4?'ofensivo':a<=1?'retranca':'equilibrado'; }
@@ -3154,9 +3161,12 @@ function finishCupSpectate(){
 function attendanceFor(homeId,rnd){
   const homeClub=(typeof clubOf==='function')?clubOf(homeId):null; const homeOv=(homeClub&&homeClub.overall)||70;
   // CPU: capacidade e ingresso proporcionais ao porte do clube (não mais aleatório puro).
-  // Clube estrangeiro com dado real do Transfermarkt (realCapFor) usa o estádio de verdade dele
-  // em vez da curva sintética por overall — ver stadiums-intl.js.
-  const cap=(homeId===CL.clubId && S.stadium)?S.stadium.capacity:(realCapFor(homeClub)||realStadiumCapacity(homeOv));
+  // Prioridade: capacidade persistida do clube (S.clubStadiumCap — já reflete crescimento de
+  // temporadas anteriores, ver applyCpuStadiumGrowth em core.js) > dado real do Transfermarkt
+  // (realCapFor, clube ainda não semeado nesse save, ex. liga de fundo) > curva sintética.
+  const cap=(homeId===CL.clubId && S.stadium)?S.stadium.capacity
+    :(S.clubStadiumCap && S.clubStadiumCap[homeId])?S.clubStadiumCap[homeId].capacity
+    :(realCapFor(homeClub)||realStadiumCapacity(homeOv));
   const price=(homeId===CL.clubId)?(CL.ticket||levelTicketPrice(homeOv)):levelTicketPrice(homeOv);
   const tbl=S.table[homeId]||{Pts:0,P:0}; const form=(tbl.P?tbl.Pts/(tbl.P*3):0.5);       // momento do time (0..1)
   const priceFactor=Math.max(0.28, Math.min(1, 1.25 - price/22));                            // ingresso alto => menos gente

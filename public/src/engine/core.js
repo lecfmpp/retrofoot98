@@ -2690,6 +2690,9 @@ function buildOtherDivisions(){
       // craque em 81 (a curva da D extrapolada), em vez dos 26-77 da faixa A.
       if(!S.squads[c.id]) S.squads[c.id] = gkSquad(c).map(p=>attachAttrs(initStats({...p}), d));
       if(S.budgets && S.budgets[c.id]==null) S.budgets[c.id] = REBAL.budget(d, makeRng(hashSeed(S.seed,'budget',c.id))); // F3.3: caixa por-clube
+      if(S.clubStadiumCap && S.clubStadiumCap[c.id]==null) S.clubStadiumCap[c.id] = {
+        capacity:(typeof realCapFor==='function'&&realCapFor(c))||(typeof REBAL!=='undefined'&&REBAL.stadiumCap?REBAL.stadiumCap(c.overall):20000),
+        builtThisSeason:0 }; // mesma semente de newGame() (index.html), primeira vez que o clube aparece
     });
     S.otherDivs[d] = { clubs, sched: makeSchedule(clubs.map(c=>c.id)), table };
   });
@@ -3908,9 +3911,12 @@ function applyCpuSeasonFinances(){
     // aproveitamento real vira bônus: quem ganhou mais, arrecadou mais (mesma regra do usuário)
     const w=(m&&m.row)?m.row.W:Math.round(rounds*0.35), d=(m&&m.row)?m.row.D:Math.round(rounds*0.27);
     const bonus=Math.round(base*(w*REBAL.WIN_BONUS + d*REBAL.DRAW_BONUS));
-    // clube estrangeiro com capacidade real (Transfermarkt, ver stadiums-intl.js) usa o estádio
-    // de verdade dele na bilheteria de fim de temporada, em vez da curva sintética por overall.
-    const cap=(typeof realCapFor==='function' && realCapFor(c)) || ((typeof REBAL.stadiumCap==='function')?REBAL.stadiumCap(ov):20000);
+    // capacidade persistida do clube (S.clubStadiumCap — já reflete crescimento de temporadas
+    // anteriores, ver applyCpuStadiumGrowth logo abaixo) tem prioridade; sem isso o crescimento
+    // ficaria guardado mas nunca apareceria na bilheteria. Clube estrangeiro com dado real do
+    // Transfermarkt (realCapFor) só entra se ainda não foi semeado nesse save; senão, sintética.
+    const cap=(S.clubStadiumCap && S.clubStadiumCap[id]) ? S.clubStadiumCap[id].capacity
+      : ((typeof realCapFor==='function' && realCapFor(c)) || ((typeof REBAL.stadiumCap==='function')?REBAL.stadiumCap(ov):20000));
     const price=Math.round(Math.max(6,Math.min(16,6+Math.max(0,(ov||30)-20)*0.32)));
     const homeGames=Math.round(rounds/2) || HOME;
     const gate=Math.round(cap*0.55)*price*homeGames;             // ocupação média ~55%, igual à calibração
@@ -3925,8 +3931,45 @@ function applyCpuSeasonFinances(){
     S.budgets[id]=Math.max(-base*4, Math.round((S.budgets[id]||0) + revenue - costs));
   });
 }
+/* crescimento AUTOMÁTICO do estádio dos clubes da CPU — mesma decisão que o usuário toma na mão
+   via clBuildStand() (main.js), só que rodando uma vez por virada de temporada pra cada clube:
+   constrói bancada de STAND_SEATS enquanto tiver caixa (S.budgets, já atualizado por
+   applyCpuSeasonFinances logo acima) e respeitar o teto de porte + a cota da temporada — os
+   MESMOS 3 limites que o usuário já enfrenta, sem sorteio nem heurística nova. Só solo/offline:
+   na Resenha o cálculo autoritativo é do servidor (resolve-round), que ainda não tem essa lógica
+   — sem essa trava cada cliente calcularia um crescimento diferente e os estádios divergiriam
+   entre os jogadores da sala (etapa futura, fora desta entrega). */
+function applyCpuStadiumGrowth(){
+  if(!S || !S.budgets || !S.clubStadiumCap) return;
+  if(typeof CL!=='undefined' && CL.online) return;
+  const humans=new Set();
+  if(S.clubId) humans.add(S.clubId);
+  if(typeof CL!=='undefined' && CL.humans) Object.keys(CL.humans).forEach(id=>humans.add(id));
+
+  Object.keys(S.budgets).forEach(id=>{
+    if(humans.has(id)) return;
+    const c=clubOf(id); if(!c) return;
+    if(!S.clubStadiumCap[id]) S.clubStadiumCap[id]={
+      capacity:(typeof realCapFor==='function'&&realCapFor(c))||((typeof REBAL.stadiumCap==='function')?REBAL.stadiumCap(c.overall):20000),
+      builtThisSeason:0 };
+    const st=S.clubStadiumCap[id];
+    st.builtThisSeason=0;   // roda 1x por virada — reset local, não precisa de outro passo em newSeasonReset
+    if(typeof standCostFor!=='function' || typeof stadiumMaxCapacityFor!=='function') return;
+    let guard=0;
+    while(guard++<10){      // teto defensivo; SEASON_BUILD_LIMIT/STAND_SEATS já limita a 2 na prática
+      const cost=standCostFor(st.capacity);
+      if(st.capacity+STAND_SEATS > stadiumMaxCapacityFor(c.overall, st.capacity)) break;   // teto de porte
+      if((st.builtThisSeason+STAND_SEATS) > SEASON_BUILD_LIMIT) break;                     // cota da temporada
+      if((S.budgets[id]||0) < cost) break;                                                 // caixa insuficiente
+      S.budgets[id] -= cost;
+      st.capacity += STAND_SEATS;
+      st.builtThisSeason += STAND_SEATS;
+    }
+  });
+}
 function newSeasonReset(){
   applyCpuSeasonFinances();          // ANTES do swap de divisões: tabelas/elencos ainda são os do ano que fechou
+  applyCpuStadiumGrowth();           // idem — usa o caixa (S.budgets) já atualizado pelo passo acima
   const finalTable=sortedTable();
   const finalPos=tablePos(S.clubId);
   S._intlUserFinish=finalPos; // classificação doméstica -> vaga na Champions/Europa da próxima temporada
