@@ -2824,7 +2824,7 @@ function panSeleccao(){
   const xi=xiPlayers(CL.clubId); const gkCount=xiGKCount(xi);
   const ok=xi.length>=11 && CL.tacticChosen && gkCount===1;
   const gkWarn = (CL.tacticChosen && xi.length>=11 && gkCount!==1)
-    ? `<div class="cl-sel-note" style="color:#b00">⚠ ${gkCount===0?'Nenhum goleiro escalado.':'Mais de um goleiro escalado ('+gkCount+').'} Ajuste em "Alterar Escalação" pra liberar o Jogar.</div>` : '';
+    ? `<div class="cl-sel-note" style="color:#b00">⚠ ${gkCount===0?'Nenhum goleiro escalado.':'Mais de um goleiro escalado ('+gkCount+').'} Ajuste em "Substituir" pra liberar o Jogar.</div>` : '';
   // "Selecionar descansados": só aparece depois que uma formação foi escolhida (mesmo gate
   // usado pelos outros controles pós-formação, ver escalaBlock/botões abaixo). Reescala os
   // mesmos setores da formação atual, mas priorizando energia (menos cansados) em vez de força.
@@ -2868,7 +2868,7 @@ function panSeleccao(){
     ${restedBlock}
     ${escalaBlock}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px;max-width:320px">
-      ${btn('Alterar Escalação','clToggleEscalacao()',{icon:'⇄',cls:'cl-btn-ok',dis:!CL.tacticChosen})}
+      ${btn('Substituir','clToggleEscalacao()',{icon:'⇄',cls:'cl-btn-ok',dis:!CL.tacticChosen})}
       ${btn('Jogar','clJogar()',{icon:'⚽',cls:'cl-btn-ok',dis:!ok})}
     </div>
   </div>`;

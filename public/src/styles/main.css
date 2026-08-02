@@ -382,8 +382,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    a MESMA linha. O nome é a única coluna elástica (1fr), então é ela que absorve o aperto. */
 .cl-rrow{display:grid;grid-template-columns:16px 26px 1fr 30px 58px 54px 68px 64px;column-gap:6px;align-items:center;padding:2px 8px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 /* modo "Alterar Escalação": linhas mais altas — o dedo erra vizinho fácil numa lista compacta
-   pensada pra mouse; só cresce durante a troca pra não desperdiçar espaço o resto do tempo. */
-.cl-roster-escala .cl-rrow{padding-top:8px;padding-bottom:8px}
+   pensada pra mouse; só cresce durante a troca pra não desperdiçar espaço o resto do tempo.
+   A 1ª coluna (T/R) também cresce pra caber o selo maior (.cl-rmark-hit) SEM invadir a coluna
+   de posição vizinha — antes o selo só crescia por cima via overflow, e num grid de 16px/12px
+   ele acabava desenhado em cima da letra G/D/M/A ao lado. A coluna de nome (1fr) absorve a
+   diferença sozinha, sem precisar mexer nas outras colunas fixas. */
+.cl-roster-escala .cl-rrow{padding-top:8px;padding-bottom:8px;grid-template-columns:30px 26px 1fr 30px 58px 54px 68px 64px}
 /* cabeçalho das colunas do elenco. Fica DENTRO de .cl-roster, que tem fundo BRANCO — por isso
    texto escuro sobre a mesma faixa cinza do .cl-roster-hd (contraste ~10:1). Antes era branco
    com 60% de opacidade (herdado das listas de fundo escuro) e sumia por completo no branco.
@@ -399,8 +403,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* modo "Alterar Escalação": o T/R vira o botão principal de troca, então cresce bem além
    da coluna (overflow visível de propósito) pra ser um alvo de toque óbvio, com um anel
    destacando que é clicável — sem isso o usuário tinha que acertar um quadradinho de 16px. */
-.cl-rmark.cl-rmark-hit{position:relative;z-index:1;touch-action:manipulation}
-.cl-rmark-hit.t,.cl-rmark-hit.r{width:26px;height:26px;border-radius:7px;font-size:13px;box-shadow:0 0 0 2px rgba(255,255,255,.35) inset,0 1px 3px rgba(0,0,0,.4)}
+.cl-rmark.cl-rmark-hit{touch-action:manipulation}
+.cl-rmark-hit.t,.cl-rmark-hit.r{width:24px;height:24px;border-radius:6px;font-size:12px;box-shadow:0 0 0 2px rgba(255,255,255,.35) inset,0 1px 3px rgba(0,0,0,.4)}
 .cl-rrow.swap-out .cl-rmark-hit{box-shadow:0 0 0 2px #000 inset,0 0 0 4px var(--yellow)}
 /* :hover fica só pra quem tem mouse de verdade — em touch, :hover "gruda" depois do toque até o
    usuário tocar em outra coisa, o que junto com o alto contraste do modo escalação (sel/swap-out)
@@ -1488,7 +1492,11 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-rv{font-size:11px}
   .cl-rrow.head{font-size:9.5px}
   .cl-rmark.t,.cl-rmark.r{width:14px;height:14px;font-size:9px;border-radius:3px}
-  .cl-rmark-hit.t,.cl-rmark-hit.r{width:30px;height:30px;font-size:12px;border-radius:7px}
+  .cl-rmark-hit.t,.cl-rmark-hit.r{width:26px;height:26px;font-size:11px;border-radius:6px}
+  /* mesma correção de largura da coluna que o desktop (ver .cl-roster-escala .cl-rrow acima),
+     só que com os valores mobile do .cl-rrow — sem isso o selo maior ficava por cima da
+     letra de posição (G/D/M/A) ao lado, que é justamente o bug reportado. */
+  .cl-roster-escala .cl-rrow{grid-template-columns:26px 20px 1fr 20px 38px 30px 52px 46px}
   .cl-rrow.head.cl-esc-bar{font-size:11px}
   .cl-mkt-p,.cl-auc-row,.cl-cls-row{font-size:12px}
   /* leilão em cartão (2 linhas) empilha sozinho; só garante largura total no mobile */
