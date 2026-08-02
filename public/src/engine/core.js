@@ -2751,6 +2751,10 @@ function generateFiringOptions(){
 /* FASE 4: sondagem de clube de OUTRO país (liga de fundo). Mais rara que a doméstica e exige
    estar muito bem no cargo. O treinador de sucesso pode ser levado pra o exterior. */
 function maybeForeignJobOffer(){
+  // só treinador da 1ª divisão do Brasil recebe sondagem do exterior — quem está nas séries
+  // B/C/D não tem "currículo" pra ser cobiçado fora do país ainda, e S.intlUniverse!=false
+  // significa que o treinador já está no exterior (não é mais "convite pro exterior" nesse caso).
+  if(S.intlUniverse || S.division!=='A') return null;
   const bg=(S.bgCountries||[]).filter(c=>UNI_CONFIGS[uniKeyOf(c)]); if(!bg.length) return null;
   const R=makeRng(hashSeed(S.seed,S.season,S.round,'foreignjob'));
   if((S.jobSecurity||0)<85 || R.random()>=0.40) return null; // só quando MUITO bem, e não toda vez
