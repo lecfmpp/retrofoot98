@@ -1834,7 +1834,10 @@ function squadTableHTML(clubId, opts){
 function rosterHTML(){
   const groups=[['GK','G'],['DEF','D'],['MID','M'],['ATT','A']];
   const sq=squad(CL.clubId); const th=clubTheme(CL.clubId);
-  const showMarks=(CL.tab==='seleccao'||CL.escalacaoMode); const xiSet=new Set(S.xi||[]);
+  // T/R sempre visível no elenco, não só na aba Formação: S.xi já vem preenchido (autoXI) desde
+  // o início de jogo, então a marca é sempre válida — e saber quem está escalado é útil em
+  // qualquer aba (Jogo, Jogador etc.), não só na hora de mexer na escalação.
+  const xiSet=new Set(S.xi||[]); const showMarks=xiSet.size>0;
   const escala=CL.escalacaoMode;
   let html=escala?escalaBarHTML():rosterHeadHTML();
   groups.forEach(([sec])=>{ const list=sq.filter(p=>p.s===sec);
