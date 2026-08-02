@@ -1569,15 +1569,40 @@ function scSeatClassif(){
 }
 /* TELA DO TIME do assento (hotseat): mesma pegada da tela principal — elenco à esquerda,
    tática + classificação + Jogar à direita. Reusa rosterHTML()/panSeleccao() com o contexto
-   já trocado pro assento (clJogar detecta o contexto e chama clSeatPlay). */
+   já trocado pro assento (clJogar detecta o contexto e chama clSeatPlay).
+   MESMO menu (☰) e MESMAS abas de scMain() — antes só dava pra escalar e jogar aqui; qualquer
+   outra função (mercado, finanças, e-mail, estádio, copas etc.) ficava travada pro manager 1,
+   que é o único que passa por scMain(). Todo assento tem os mesmos direitos durante a própria
+   vez — enterSeatContext() já troca S.clubId/CL.clubId pro clube do assento, então os mesmos
+   painéis/menus de scMain() funcionam aqui sem mudança nenhuma neles. */
 function scSeatTurn(){
   const c=CL._seatContext; if(!c) return deskWrap('');
   const seat=c.seat, fx=c.fx; const cl=clubOf(seat.clubId)||bgClubById(seat.clubId)||{};
   const oppId=fx.home===seat.clubId?fx.away:fx.home; const opp=clubOf(oppId)||bgClubById(oppId)||{};
   const home=fx.home===seat.clubId; const flag=(typeof flagImg==='function')?flagImg(seat.country):'';
   const th=clubTheme(seat.clubId);
+  const menuNames=['RetroFoot98','Formação','Equipa','Jogador','Campeonatos','Treinador'];
+  const hamburger=`<div class="cl-hamburger" onclick="clToggleMobMenu(event)"><span>☰ Menu</span><span>${CL.mobMenuOpen?'▲':'▼'}</span></div>`;
+  const menu=`<div class="cl-menu ${CL.mobMenuOpen?'mob-open':''}" id="cl-menubar">
+    ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
+  </div>`;
+  if(typeof syncInbox==='function') syncInbox();
+  const unread=(typeof inboxUnread==='function')?inboxUnread():0;
+  const mailBadge=unread>0?`<span class="cl-count-badge">${unread>9?'9+':unread}</span>`:'';
+  const tabs=['jogo','jogador','financas','seleccao','correio','adversario'];
+  const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
+  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')"><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')}</div>`;
+  const ufArr=[fx.home,fx.away];   // panJogo espera [homeId,awayId], igual ao formato de userFixture()
+  let panel='';
+  if(CL.tab==='jogo') panel=panJogo(oppId,home,ufArr);
+  else if(CL.tab==='jogador') panel=panJogador();
+  else if(CL.tab==='financas') panel=panFinancas();
+  else if(CL.tab==='seleccao') panel=panSeleccao();
+  else if(CL.tab==='correio') panel=panCorreio();
+  else panel=panAdversario(oppId);
   return `<div class="cl-main" style="border-color:${th.col}">
     <div class="cl-main-top">${flag} ${escC(seat.name)} · ${escC(cl.short||'')}</div>
+    <div class="cl-mobmenu-wrap">${hamburger}${menu}</div>
     <div class="cl-main-body">
       <div class="cl-main-left" style="background:${th.bg}">
         <div class="cl-hdr"><div class="cl-mgr">${escC(seat.name)}</div>
@@ -1589,7 +1614,8 @@ function scSeatTurn(){
         <div class="cl-right-hdr"><div class="cl-adv-lbl">Adversário</div>
           <div class="cl-adv-name" style="background:${th.bg2};padding:3px 8px">${escC(opp.short||'')}</div>
           <div class="cl-adv-loc">${home?'CASA':'FORA'} · ${(S.round||0)+1}ª Jornada</div></div>
-        <div class="cl-panel">${panSeleccao()}</div>
+        <div class="cl-panel">${panel}</div>
+        ${tabBar}
       </div>
     </div>
   </div>`;
@@ -2174,7 +2200,9 @@ function clViewTeam(clubId){
   CL.viewClubId=clubId; CL.viewTab='jogo'; CL.viewSelPlayer=null;
   CL.screen='teamview'; cdraw();
 }
-function clViewTeamBack(){ clCloseOverlay(); CL.viewClubId=null; CL.screen='main'; cdraw(); }
+// hotseat: "voltar" durante a vez de um assento tem que devolver pra scSeatTurn, não pra
+// scMain do manager 1 (senão o clique arrancava o assento no meio da própria vez).
+function clViewTeamBack(){ clCloseOverlay(); CL.viewClubId=null; CL.screen=CL._seatContext?'seatturn':'main'; cdraw(); }
 function clViewTab(t){ CL.viewTab=t; cdraw(); }
 function clViewSelPlayer(n){ CL.viewSelPlayer=n; CL.viewTab='jogador'; cdraw(); }
 function fixtureFor(clubId){ return currentFixtures().find(([h,a])=>h===clubId||a===clubId); }
@@ -6246,6 +6274,11 @@ function exitModalHTML(online){
 async function clExitConfirm(shouldSave){
   clCloseOverlay();
   if(typeof clStopHostReqPoll==='function') clStopHostReqPoll(); // encerra o acompanhamento de pedidos
+  // hotseat: saindo no meio da vez de um assento (não do manager 1) — devolve o contexto pro
+  // clube/estado do manager 1 ANTES de gravar/sair, senão saveV3() grava com o clube errado
+  // como primário (ela mesma se recusa a gravar com CL._seatContext ainda setado) e a fila de
+  // assentos pendente (CL._hotseat) fica pendurada, quebrando a próxima partida que carregar.
+  if(CL._seatContext){ exitSeatContext(); CL._hotseat=null; }
   if(shouldSave) await saveV3(true); // já mostra a barra de gravação e um toast de sucesso/erro
   CL.screen='abertura'; cdraw();
 }
@@ -6793,7 +6826,7 @@ function scCupView(){
   const key=CL._cupKey; if(!key || !(S.cups&&S.cups[key])) { CL.screen='main'; return scMain(); }
   return cupScreenHTML(key, {actions:btn('Voltar','clCupViewBack()',{icon:'◀',cls:'cl-btn-cancel cl-btn-sm'})});
 }
-function clCupViewBack(){ CL.screen='main'; CL._cupTie=null; cdraw(); clCompList(); }
+function clCupViewBack(){ CL.screen=CL._seatContext?'seatturn':'main'; CL._cupTie=null; cdraw(); clCompList(); }
 /* ---- leitura do estado da cerimônia (CL.cupDraw) pelos componentes da tela ---- */
 function cupDrawLast(dr){ return dr && dr.drawn.length ? dr.drawn[dr.drawn.length-1] : null; }
 function cupDrawHasTie(dr, t){ return !!(dr && dr.drawn.some(p=>!p.bye && p.group==null && p.h===t.h && p.a===t.a)); }
