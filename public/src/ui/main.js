@@ -2826,19 +2826,13 @@ function panSeleccao(){
   const gkWarn = (CL.tacticChosen && xi.length>=11 && gkCount!==1)
     ? `<div class="cl-sel-note" style="color:#b00">⚠ ${gkCount===0?'Nenhum goleiro escalado.':'Mais de um goleiro escalado ('+gkCount+').'} Ajuste em "Substituir" pra liberar o Jogar.</div>` : '';
   // "Selecionar descansados": só aparece depois que uma formação foi escolhida (mesmo gate
-  // usado pelos outros controles pós-formação, ver escalaBlock/botões abaixo). Reescala os
-  // mesmos setores da formação atual, mas priorizando energia (menos cansados) em vez de força.
+  // usado pelo botão Substituir logo abaixo). Reescala os mesmos setores da formação atual,
+  // mas priorizando energia (menos cansados) em vez de força.
   const restedBlock = !CL.tacticChosen ? '' : `<div class="cl-sel-rested" style="margin-top:10px" title="Reescala o onze priorizando quem está com mais energia, dentro da mesma formação">
     ${btn('Selecionar descansados','clSelectRested()',{icon:'🔋',cls:'cl-btn-mini'})}
   </div>`;
 
   const escala=CL.escalacaoMode;
-  const escalaBlock = !CL.tacticChosen ? '' : escala
-    ? `<div class="cl-sel-escala">
-        <div class="cl-sel-escala-note">Toque no T ou R de um jogador no elenco à esquerda pra marcar, depois toque em outro da mesma posição pra trocar na hora.</div>
-        ${btn('Concluído','clToggleEscalacao()',{icon:'✔',cls:'cl-btn-mini'})}
-      </div>`
-    : '';
 
   // formações disponíveis com atalhos — estilo vintage RetroFoot98. Além das 6 formações,
   // inclui os modos rápidos "Automático" e "Melhores" no mesmo grid (4 colunas, quadrados
@@ -2866,9 +2860,8 @@ function panSeleccao(){
     ${gkWarn}
     ${formationsBlock}
     ${restedBlock}
-    ${escalaBlock}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px;max-width:320px">
-      ${btn('Substituir','clToggleEscalacao()',{icon:'⇄',cls:'cl-btn-ok',dis:!CL.tacticChosen})}
+      ${btn('Substituir','clToggleEscalacao()',{icon:'⇄',cls:'cl-btn-ok'+(escala?' cl-btn-on':''),dis:!CL.tacticChosen})}
       ${btn('Jogar','clJogar()',{icon:'⚽',cls:'cl-btn-ok',dis:!ok})}
     </div>
   </div>`;

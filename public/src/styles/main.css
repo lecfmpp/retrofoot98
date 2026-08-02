@@ -234,6 +234,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-btn-ic{font-size:20px;line-height:1}
 .cl-btn-ok .cl-btn-ic{color:#0a0}
 .cl-btn-cancel .cl-btn-ic{color:#c00}
+/* botão "Substituir": o próprio botão vira o gatilho de liga/desliga do modo de troca (ver
+   clToggleEscalacao) — sem caixa de aviso + "Concluído" separados. Visual "afundado"
+   (bevel invertido, igual :active só que persistente) com fundo verde deixa óbvio que está
+   ativo; clicar de novo desliga, sem precisar de outro controle. */
+.cl-btn.cl-btn-on{border-color:var(--bevel-in);background:var(--success-alt);color:#fff}
+.cl-btn.cl-btn-on .cl-btn-ic{color:#fff}
 .cl-btn-big{padding:14px 18px;min-width:90px;min-height:56px}
 .cl-btn-big .cl-btn-ic{font-size:26px}
 .cl-btn-wide{padding:18px 34px;font-weight:700;font-size:15px;min-height:56px}
@@ -559,8 +565,6 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-sel{font-size:15px;position:relative;min-height:400px;padding-bottom:120px}
 .cl-sel-note{margin-bottom:16px;color:#aaa}
 .cl-sel-formations{margin-bottom:20px;padding:0}
-.cl-sel-escala{display:flex;gap:12px;margin-bottom:16px;align-items:center}
-.cl-sel-escala-note{font-size:13px;color:#aaa;margin-bottom:12px}
 .cl-sel-xi{display:flex;flex-direction:column;gap:3px;max-height:300px;overflow:auto}
 .cl-sel-p{color:#fff;font-size:14px}
 .cl-sel-p i{display:inline-block;width:18px;color:var(--yellow);font-style:normal;font-weight:700}
@@ -1081,12 +1085,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-sub-row.sel{background:#ffd400;color:#141414}
 .cl-sub-row.sel *{color:#141414 !important}
 .cl-sub-btn{display:flex;justify-content:flex-end;margin-top:6px}
-/* alterar escalação: troca de titular direto na lista de elenco */
-.cl-sel-escala{margin:10px 0;padding:8px;background:rgba(255,255,255,.06);border-radius:6px}
-.cl-sel-escala-note{color:#ccc;font-size:12px;line-height:1.4;margin-bottom:8px}
 .cl-rrow.swap-out{background:var(--yellow);color:#000;font-weight:800}
-.cl-escala-confirm{padding:10px 4px;font-size:15px;text-align:center}
-.cl-escala-warn{margin-top:8px;font-size:12px;font-weight:700;color:#a15c00}
 /* Classificação (fim de rodada) */
 /* ranking pós-rodada: DESKTOP mostra as 4 divisões expandidas em grade 2x2 (há espaço);
    MOBILE vira accordion vertical (divisão do usuário aberta, outras colapsadas). */
