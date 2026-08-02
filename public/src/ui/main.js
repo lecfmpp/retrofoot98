@@ -177,6 +177,18 @@ function pickXIByFormation(id,f){ const need=FORMATIONS[f]||FORMATIONS['4-3-3'];
     for(const p of sq){ add(p.pid); }                  // último recurso: evita XI < 11
   }
   return xi.slice(0,11); }
+/* mesma lógica de pickXIByFormation, mas ordenando por energia (menos cansados primeiro)
+   em vez de força — usada pelo botão "Selecionar descansados" */
+function pickXIByFormationRested(id,f){ const need=FORMATIONS[f]||FORMATIONS['4-3-3']; const secs=['GK','DEF','MID','ATT'];
+  const nrg=p=>(p&&p.energy!=null)?p.energy:100;
+  const sq=squad(id).slice().sort((a,b)=>nrg(b)-nrg(a)||b.f-a.f); const xi=[];   // xi = lista de PIDs
+  secs.forEach((sec,i)=>{ sq.filter(p=>p.s===sec).slice(0,need[i]).forEach(p=>xi.push(p.pid)); });
+  if(xi.length<11){ const have=new Set(xi); // completa sem colocar 2º goleiro na linha
+    const add=pid=>{ if(xi.length<11 && !have.has(pid)){ xi.push(pid); have.add(pid); } };
+    for(const p of sq){ if(p.s!=='GK') add(p.pid); }  // jogadores de linha primeiro
+    for(const p of sq){ add(p.pid); }                  // último recurso: evita XI < 11
+  }
+  return xi.slice(0,11); }
 /* simula uma partida completa capturando eventos (determinístico; usa SIM_SYNC do motor) */
 function simEventsC(h,a,seed,opts){ const evs=[]; let fin=null; const isU=(h===S.clubId||a===S.clubId);
   const prev=(typeof SIM_SYNC!=='undefined')?SIM_SYNC:false; if(typeof SIM_SYNC!=='undefined')SIM_SYNC=true;
@@ -2791,6 +2803,13 @@ function panSeleccao(){
   const ok=xi.length>=11 && CL.tacticChosen && gkCount===1;
   const gkWarn = (CL.tacticChosen && xi.length>=11 && gkCount!==1)
     ? `<div class="cl-sel-note" style="color:#b00">⚠ ${gkCount===0?'Nenhum goleiro escalado.':'Mais de um goleiro escalado ('+gkCount+').'} Ajuste em "Alterar Escalação" pra liberar o Jogar.</div>` : '';
+  // "Selecionar descansados": só aparece depois que uma formação foi escolhida (mesmo gate
+  // usado pelos outros controles pós-formação, ver escalaBlock/botões abaixo). Reescala os
+  // mesmos setores da formação atual, mas priorizando energia (menos cansados) em vez de força.
+  const restedBlock = !CL.tacticChosen ? '' : `<div class="cl-sel-rested" style="margin-top:10px" title="Reescala o onze priorizando quem está com mais energia, dentro da mesma formação">
+    ${btn('Selecionar descansados','clSelectRested()',{icon:'🔋',cls:'cl-btn-mini'})}
+  </div>`;
+
   const escala=CL.escalacaoMode;
   const escalaBlock = !CL.tacticChosen ? '' : escala
     ? `<div class="cl-sel-escala">
@@ -2824,6 +2843,7 @@ function panSeleccao(){
     <div class="cl-sel-note">${CL.tacticChosen?`Tática <b>${escC(CL.formation)}</b> · onze <b>${xi.length}/11</b>.<br>Titulares marcados com <b class="cl-rmark t" style="display:inline-flex">T</b> na lista.`:'Escolha a tática para liberar o <b>Jogar</b>.'}</div>
     ${gkWarn}
     ${formationsBlock}
+    ${restedBlock}
     ${escalaBlock}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px;max-width:320px">
       ${btn('Alterar Escalação','clToggleEscalacao()',{icon:'⇄',cls:'cl-btn-ok',dis:!CL.tacticChosen})}
@@ -6906,6 +6926,14 @@ function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
     S.xi=pickXIByFormation(CL.clubId,real); CL.formation=real; S.tactic=tacticPosture(real); }
   CL.tacticChosen=true; CL.tab='seleccao'; CL.preSubOut=null; CL.preSubIn=null; CL.escalacaoMode=false; saveV3(); cdraw();
   toastC(adjustedFrom ? `Sem jogadores pro ${adjustedFrom} — ajustado pra ${CL.formation}.` : 'Tática '+CL.formation+' seleccionada.'); }
+/* "Selecionar descansados": reaplica a formação já escolhida trocando o critério de escala
+   de força (p.f) por energia (menos cansados primeiro), respeitando os setores da formação.
+   Disponível só depois que uma formação foi escolhida (CL.tacticChosen) — funciona igual em
+   solo, resenha e hotseat porque só mexe em S.xi/CL.formation, igual clSelFormation. */
+function clSelectRested(){ if(!CL.tacticChosen) return;
+  const f=(FORMATIONS[CL.formation])?CL.formation:'4-3-3';
+  S.xi=pickXIByFormationRested(CL.clubId,f); CL.preSubOut=null; CL.preSubIn=null; CL.escalacaoMode=false; saveV3(); cdraw();
+  toastC('🔋 Onze mais descansado seleccionado.'); }
 
 /* ---- Estádio (Equipa > Estádio...) ---- */
 function clStadium(){ CL.menu=null; renderStadium(false); }
