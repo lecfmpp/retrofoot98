@@ -174,6 +174,16 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-wiz-field{width:100%;box-sizing:border-box;font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111;background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);padding:12px 14px;outline:none}
 .cl-wiz-field:focus{box-shadow:0 0 0 2px var(--yellow)}
 .cl-wiz-note{color:var(--ontext-lite2);font-size:11.5px;margin-top:8px}
+/* banner "quer jogar com amigos? isso é o Modo Resenha" — mesma linguagem visual dos cartões
+   de escolha de modo (.cl-mc-card), só compacto e horizontal por caber dentro de um passo
+   do assistente em vez de ser a tela toda. */
+.cl-resenha-banner{display:flex;align-items:center;gap:12px;margin-top:20px;padding:12px 16px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.3);border-radius:10px;cursor:pointer;transition:background .15s,border-color .15s}
+.cl-resenha-banner:hover{background:rgba(255,255,255,.16);border-color:var(--yellow)}
+.cl-resenha-banner-ic{font-size:26px;flex:none}
+.cl-resenha-banner-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cl-resenha-banner-txt b{color:var(--yellow);font-size:14px}
+.cl-resenha-banner-txt span{color:#eaffea;font-size:12px;line-height:1.35}
+.cl-resenha-banner-go{flex:none;color:var(--yellow);font-weight:800;font-size:12.5px;white-space:nowrap}
 .cl-wiz-paises{align-items:stretch;justify-content:flex-start;padding:14px 18px;gap:12px}
 .cl-wiz-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;width:100%}
 .cl-wiz-chip{display:inline-flex;align-items:center;gap:7px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:5px 12px;color:#fff;font-size:12px;font-weight:600;white-space:nowrap}

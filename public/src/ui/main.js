@@ -1151,16 +1151,29 @@ function runLoading(){ let p=0; const t=setInterval(()=>{ p+=Math.floor(8+Math.r
   },350); } }, 180); }
 
 /* ---- 2/4 · JOGADORES (nomes) ---- */
+/* Multiplayer local (hotseat — vários treinadores humanos passando o mesmo aparelho, um save só)
+   desabilitado da UI por enquanto: esta tela chegou a aceitar até 6 nomes (Jogador 1..6), e
+   qualquer slot além do 0 preenchido já ligava o hotseat sozinho (CL.humans com >1 entrada em
+   clEntrar(), ver scSeatTurn/enterSeatContext/CL._hotseat). A MÁQUINA continua toda no lugar —
+   só a entrada pela UI foi removida — pra não perder o trabalho se decidirmos religar depois.
+   Quem quer jogar com mais gente é direcionado pro Modo Resenha (online) em vez disso. */
 function scJogadores(){
-  const rows=[0,1,2,3,4,5].map(i=>`<div class="cl-prow">
-      <span class="cl-plabel">Jogador ${i+1}</span>
-      <input class="cl-pinput ${i===0?'cur':''}" ${i===0?'id="cl-focus"':''} maxlength="12" placeholder="${i===0?'LEANDRO':''}" value="${escC(CL.names[i])}" oninput="CL.names[${i}]=this.value.toUpperCase();this.value=CL.names[${i}]">
-      <span class="cl-pteam">${i===0?'(você)':''}</span>
-    </div>`).join('');
   const body=`<div class="cl-wiz-form-wide">
     <div class="cl-prow cl-prow-head"><span></span><span class="cl-wiz-collabel">Nome</span><span class="cl-wiz-collabel">Equipa</span></div>
-    ${rows}
-    <div class="cl-wiz-note">Preencha o nome de cada treinador. Os vazios ficam com a CPU.</div>
+    <div class="cl-prow">
+      <span class="cl-plabel">Jogador 1</span>
+      <input class="cl-pinput cur" id="cl-focus" maxlength="12" placeholder="LEANDRO" value="${escC(CL.names[0])}" oninput="CL.names[0]=this.value.toUpperCase();this.value=CL.names[0]">
+      <span class="cl-pteam">(você)</span>
+    </div>
+    <div class="cl-wiz-note">Time vazio fica com a CPU.</div>
+    <div class="cl-resenha-banner" onclick="clPickResenha()">
+      <span class="cl-resenha-banner-ic">👥</span>
+      <div class="cl-resenha-banner-txt">
+        <b>Quer jogar com amigos?</b>
+        <span>Isso é o Modo Resenha — cada um assume um clube, online, com chat da liga.</span>
+      </div>
+      <span class="cl-resenha-banner-go">Ir pro Modo Resenha ›</span>
+    </div>
   </div>`;
   return wizShell({ step:2, title:'Jogadores', back:'clGoMoeda()', backLabel:'Voltar',
     contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
