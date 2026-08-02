@@ -6971,13 +6971,20 @@ function standSVG(cap){ const tiers=Math.min(6,Math.max(1,Math.round((cap-STAND_
     <rect x="68" y="96" width="64" height="44" fill="none" stroke="#fff" stroke-width="1.4"/>
     <line x1="100" y1="96" x2="100" y2="140" stroke="#fff" stroke-width="1.4"/>
     <circle cx="100" cy="118" r="8" fill="none" stroke="#fff" stroke-width="1.4"/></svg>`; }
+/* foto real do estádio (ver public/src/data/stadium-images.js), quando o clube tem uma —
+   por enquanto só a Série D do Brasil. Sem foto, cai no desenho genérico de sempre (standSVG). */
+function stadiumPhotoFor(clubId){
+  const p=(typeof STADIUM_IMG!=='undefined' && clubId) ? STADIUM_IMG[clubId] : null;
+  return p || null;
+}
 function renderStadium(built){ const cap=(S.stadium&&S.stadium.capacity)||STAND_START;
   const maxCap=stadiumMaxCapacity(); const atMax=cap>=maxCap;
   const builtSeason=(S.stadium&&S.stadium.builtThisSeason)||0; const seasonLeft=Math.max(0,SEASON_BUILD_LIMIT-builtSeason);
   const cost=standCost(); const seasonFull=seasonLeft<STAND_SEATS;
   const dis=atMax||seasonFull;
+  const photo=stadiumPhotoFor(S.clubId);
   overlayC(dlg('Estádio', `<div class="cl-est">
-    ${standSVG(cap)}
+    ${photo?`<img class="cl-est-photo" src="${escC(photo)}" alt="Estádio">`:standSVG(cap)}
     <div class="cl-est-cap">${grp(cap)} lugares</div>
     <div class="cl-est-price">Preço de uma bancada com<br>${grp(STAND_SEATS)} lugares: ${fmt(cost)}</div>
     <div class="cl-est-maxcap">Teto do estádio para o porte do clube: ${grp(maxCap)} lugares<br>Obras liberadas nesta temporada: ${grp(seasonLeft)} lugares</div>
