@@ -3005,17 +3005,38 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
   const sameDivision = !crossCountry && newDivision===S.division;
   S.clubId=newClubId; CL.clubId=newClubId;
   if(!sameDivision){
-    S.division=newDivision;
-    const allClubs=ensureDivisionClubs(newDivision);
-    const others=allClubs.filter(c=>c.id!==newClubId).slice(0,DIVISION_SIZE[newDivision]-1);
-    DATA.clubs=[clubOf(newClubId)||bgClubById(newClubId), ...others].filter(Boolean);
-    DATA.clubs.forEach(c=>{ if(!S.squads[c.id]) S.squads[c.id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}))); });
-    const ids=DATA.clubs.map(c=>c.id);
-    S.sched=makeSchedule(ids); S.round=0;
-    S.table={}; DATA.clubs.forEach(c=>S.table[c.id]={id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
-    S._promoRelegNews=null;
-    buildOtherDivisions();
-    if(crossCountry) initBgLeagues(); // recria as ligas de fundo (país antigo entra, novo sai)
+    // A divisão de destino JÁ EXISTE e está em andamento — S.otherDivs a simula em segundo plano
+    // com tabela e calendário próprios. Adotá-la preserva a rodada e a classificação.
+    // Antes este caminho recriava calendário e tabela do zero e fazia S.round=0: trocar de clube
+    // no MEIO da temporada zerava o campeonato inteiro na tela do jogador (a "temporada zerando").
+    // Mesma troca que o applyViewerDivision faz no online; só a troca de PAÍS continua recriando
+    // o universo, porque ali as divisões são realmente outras.
+    const od=(S.otherDivs||{})[newDivision];
+    const podeAdotar = !crossCountry && od && od.table && od.table[newClubId] && od.sched && od.sched.length;
+    if(podeAdotar){
+      S.otherDivs[S.division]={ clubs:Object.keys(S.table||{}).map(id=>({id})), sched:S.sched, table:S.table };
+      S.division=newDivision;
+      const allClubs=ensureDivisionClubs(newDivision);
+      const ids=Object.keys(od.table);
+      DATA.clubs=ids.map(id=>(allClubs||[]).find(c=>c.id===id)||clubOf(id)||bgClubById(id)).filter(Boolean);
+      DATA.clubs.forEach(c=>{ if(!S.squads[c.id]) S.squads[c.id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}))); });
+      S.table=od.table; S.sched=od.sched;      // campeonato em andamento, intacto (S.round preservado)
+      delete S.otherDivs[newDivision];
+      S._promoRelegNews=null;
+      if(typeof syncDivisionClubsFromTables==='function') syncDivisionClubsFromTables();
+    } else {
+      S.division=newDivision;
+      const allClubs=ensureDivisionClubs(newDivision);
+      const others=allClubs.filter(c=>c.id!==newClubId).slice(0,DIVISION_SIZE[newDivision]-1);
+      DATA.clubs=[clubOf(newClubId)||bgClubById(newClubId), ...others].filter(Boolean);
+      DATA.clubs.forEach(c=>{ if(!S.squads[c.id]) S.squads[c.id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}))); });
+      const ids=DATA.clubs.map(c=>c.id);
+      S.sched=makeSchedule(ids); S.round=0;
+      S.table={}; DATA.clubs.forEach(c=>S.table[c.id]={id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
+      S._promoRelegNews=null;
+      buildOtherDivisions();
+      if(crossCountry) initBgLeagues(); // recria as ligas de fundo (país antigo entra, novo sai)
+    }
   }
   squad(newClubId).forEach(p=>{ if(!p.contract) p.contract=defaultContract(p); });
   S.xi=autoXI(newClubId);
