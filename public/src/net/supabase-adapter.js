@@ -491,6 +491,16 @@ async function netPublishBudget(budget){
     await sb.from('game_seats').update({ budget:b }).eq('game_id', NET.gameId).eq('user_id', SB_UID());
   }catch(e){ console.warn('publishBudget:', e&&e.message); }
 }
+/* cópia fiel de netPublishBudget acima, pro estádio do PRÓPRIO clube (game_seats.stadium) — o
+   servidor (resolve-round) lê pra montar S.clubStadiumCap do mundo, exatamente como já faz com
+   budget. Chamado de commitStadium() (core.js) após clBuildStand() gravar localmente. */
+async function netPublishStadium(stadium){
+  if(!sb || !NET.gameId || !SB_AUTH_USER || !stadium) return;
+  try{
+    if(NET._claimed && NET._claimed[SB_UID()]) NET._claimed[SB_UID()].stadium=stadium;
+    await sb.from('game_seats').update({ stadium }).eq('game_id', NET.gameId).eq('user_id', SB_UID());
+  }catch(e){ console.warn('publishStadium:', e&&e.message); }
+}
 /* publica o MEU lance atual num lote de leilão (game_seats.last_bids: {lotId:{amount,ts}, ...}) —
    os outros clientes leem via NET._claimed (já chega perto de tempo real pelo canal Realtime que
    assina game_seats). Sem isso, o leilão competitivo entre humanos era só local: cada um via a si
@@ -1255,6 +1265,7 @@ NET.publishLineup = netPublishLineup;
 NET.publishResult = netPublishResult;
 NET.resolveRound = netResolveRound;
 NET.publishBudget = netPublishBudget;
+NET.publishStadium = netPublishStadium;
 NET.publishBids = netPublishBids;
 NET.publishCupResult = netPublishCupResult;
 NET.humanClubIds = netHumanClubIds;

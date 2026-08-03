@@ -174,6 +174,16 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-wiz-field{width:100%;box-sizing:border-box;font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111;background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);padding:12px 14px;outline:none}
 .cl-wiz-field:focus{box-shadow:0 0 0 2px var(--yellow)}
 .cl-wiz-note{color:var(--ontext-lite2);font-size:11.5px;margin-top:8px}
+/* banner "quer jogar com amigos? isso é o Modo Resenha" — mesma linguagem visual dos cartões
+   de escolha de modo (.cl-mc-card), só compacto e horizontal por caber dentro de um passo
+   do assistente em vez de ser a tela toda. */
+.cl-resenha-banner{display:flex;align-items:center;gap:12px;margin-top:20px;padding:12px 16px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.3);border-radius:10px;cursor:pointer;transition:background .15s,border-color .15s}
+.cl-resenha-banner:hover{background:rgba(255,255,255,.16);border-color:var(--yellow)}
+.cl-resenha-banner-ic{font-size:26px;flex:none}
+.cl-resenha-banner-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cl-resenha-banner-txt b{color:var(--yellow);font-size:14px}
+.cl-resenha-banner-txt span{color:#eaffea;font-size:12px;line-height:1.35}
+.cl-resenha-banner-go{flex:none;color:var(--yellow);font-weight:800;font-size:12.5px;white-space:nowrap}
 .cl-wiz-paises{align-items:stretch;justify-content:flex-start;padding:14px 18px;gap:12px}
 .cl-wiz-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;width:100%}
 .cl-wiz-chip{display:inline-flex;align-items:center;gap:7px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:5px 12px;color:#fff;font-size:12px;font-weight:600;white-space:nowrap}
@@ -234,6 +244,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-btn-ic{font-size:20px;line-height:1}
 .cl-btn-ok .cl-btn-ic{color:#0a0}
 .cl-btn-cancel .cl-btn-ic{color:#c00}
+/* botão "Substituir": o próprio botão vira o gatilho de liga/desliga do modo de troca (ver
+   clToggleEscalacao) — sem caixa de aviso + "Concluído" separados. Visual "afundado"
+   (bevel invertido, igual :active só que persistente) com fundo verde deixa óbvio que está
+   ativo; clicar de novo desliga, sem precisar de outro controle. */
+.cl-btn.cl-btn-on{border-color:var(--bevel-in);background:var(--success-alt);color:#fff}
+.cl-btn.cl-btn-on .cl-btn-ic{color:#fff}
 .cl-btn-big{padding:14px 18px;min-width:90px;min-height:56px}
 .cl-btn-big .cl-btn-ic{font-size:26px}
 .cl-btn-wide{padding:18px 34px;font-weight:700;font-size:15px;min-height:56px}
@@ -380,7 +396,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* 7 colunas: T/R · Pos · Nome · Idade · Força · Salário · Valor de mercado. Qualquer mudança
    aqui tem que casar com rosterHeadHTML/rosterHTML/squadTableHTML (main.js) — as três desenham
    a MESMA linha. O nome é a única coluna elástica (1fr), então é ela que absorve o aperto. */
-.cl-rrow{display:grid;grid-template-columns:16px 26px 1fr 30px 58px 54px 68px 64px;column-gap:6px;align-items:center;padding:2px 8px;font-weight:700;font-size:14px;cursor:pointer}
+.cl-rrow{display:grid;grid-template-columns:16px 26px 1fr 30px 58px 54px 68px 64px;column-gap:6px;align-items:center;padding:2px 8px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 /* cabeçalho das colunas do elenco. Fica DENTRO de .cl-roster, que tem fundo BRANCO — por isso
    texto escuro sobre a mesma faixa cinza do .cl-roster-hd (contraste ~10:1). Antes era branco
    com 60% de opacidade (herdado das listas de fundo escuro) e sumia por completo no branco.
@@ -393,8 +409,28 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-rmark.t,.cl-rmark.r{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;font-size:10px;font-weight:800;line-height:1}
 .cl-rmark.t{background:var(--success-alt);color:#fff}
 .cl-rmark.r{background:#9a9a9a;color:#000}
-.cl-rrow:hover{background:#e8e8e8}
+/* modo "Substituir": o T/R ganha um anel de destaque (via box-shadow, que NÃO ocupa espaço de
+   layout) pra ficar óbvio que é clicável — MESMO tamanho de sempre (16px/14px), senão a linha
+   toda cresce pra caber um selo maior e a lista de elenco passa a rolar sem necessidade (era
+   assim antes, com width/height maiores, e foi revertido por causa disso). O alvo de toque
+   real continua sendo a linha inteira (onclick no .cl-rrow), não só o selo. */
+.cl-rmark-hit.t,.cl-rmark-hit.r{box-shadow:0 0 0 2px rgba(255,255,255,.35) inset,0 1px 3px rgba(0,0,0,.4)}
+.cl-rrow.swap-out .cl-rmark-hit{box-shadow:0 0 0 2px #000 inset,0 0 0 4px var(--yellow)}
+/* :hover fica só pra quem tem mouse de verdade — em touch, :hover "gruda" depois do toque até o
+   usuário tocar em outra coisa, o que junto com o alto contraste do modo escalação (sel/swap-out)
+   dava uma sensação de UI emperrada. :active substitui como feedback IMEDIATO do toque, e esse
+   funciona igual em touch e mouse. */
+@media (hover:hover){ .cl-rrow:hover{background:#e8e8e8} }
+.cl-rrow:active{filter:brightness(.85)}
 .cl-rrow.sel{background:#000;color:#fff}
+/* barra fixa do modo escalação (ver escalaBarHTML em main.js) — troca de lugar com o cabeçalho
+   normal de colunas (mesmo sticky), então precisa vencer .cl-rrow.head em qualquer breakpoint;
+   por isso specificity de 3 classes em vez de depender da ordem no arquivo. */
+.cl-rrow.head.cl-esc-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;text-transform:none;letter-spacing:0;font-size:12.5px;background:#2a2a2a;color:#ffd54a;cursor:default}
+.cl-rrow.head.cl-esc-bar.marked{background:var(--yellow);color:#000}
+.cl-esc-bar-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl-esc-bar-x{flex:none;cursor:pointer;font-weight:800;padding:3px 10px;border-radius:5px;background:rgba(0,0,0,.18);touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.cl-esc-bar-x:active{background:rgba(0,0,0,.35)}
 .cl-rpos{}
 .cl-rname{}
 .cl-rage{text-align:center;font-weight:400;opacity:.75;font-size:12px}
@@ -539,8 +575,6 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-sel{font-size:15px;position:relative;min-height:400px;padding-bottom:120px}
 .cl-sel-note{margin-bottom:16px;color:#aaa}
 .cl-sel-formations{margin-bottom:20px;padding:0}
-.cl-sel-escala{display:flex;gap:12px;margin-bottom:16px;align-items:center}
-.cl-sel-escala-note{font-size:13px;color:#aaa;margin-bottom:12px}
 .cl-sel-xi{display:flex;flex-direction:column;gap:3px;max-height:300px;overflow:auto}
 .cl-sel-p{color:#fff;font-size:14px}
 .cl-sel-p i{display:inline-block;width:18px;color:var(--yellow);font-style:normal;font-weight:700}
@@ -587,6 +621,13 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-body-estadio{background:#9be89b}
 .cl-est{min-height:360px;padding-bottom:10px}
 .cl-est-svg{display:block;margin:6px auto 4px;width:280px;height:auto}
+/* foto real do estádio (stadiumPhotoFor) — bem maior que o desenho genérico (largura quase
+   toda do modal), proporção fixa 16:9 pra não pular de tamanho entre clubes com fotos de
+   dimensões um pouco diferentes. Imagem já vem SEM fundo (recorte com canal alfa) — por isso
+   sem moldura/borda/caixa branca; object-fit:contain mostra o estádio inteiro (não corta) e
+   drop-shadow (não box-shadow) segue o contorno recortado, não o retângulo, pra sombra ficar
+   no chão do estádio e não numa caixa invisível ao redor dele. */
+.cl-est-photo{display:block;margin:6px auto 4px;width:100%;max-width:600px;aspect-ratio:16/9;object-fit:contain;filter:drop-shadow(0 10px 12px rgba(0,0,0,.32))}
 .cl-est-cap{font-size:26px;font-weight:800;color:#000;margin:14px 0 8px}
 .cl-est-price{font-size:15px;color:#000;line-height:1.4}
 .cl-est-maxcap{font-size:13px;color:#333;margin-top:8px}
@@ -1030,10 +1071,18 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-pen-row.dis:hover{background:transparent}
 .cl-pen-taken{font-size:10px;font-weight:800;opacity:.85;margin-left:6px;letter-spacing:.3px}
 .cl-pen-r{text-align:right}
+.cl-pen-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .cl-pen-btn{margin-top:14px}
+/* Sai/Entra lado a lado (expulsão com reorganização, ver redCardHTML) — mesma ideia de duas
+   colunas do cl-sub-cols (substituição normal ao vivo), pra não empilhar duas cl-pen-list
+   inteiras uma embaixo da outra e estourar a altura do modal. */
+.cl-pen-cols{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-bottom:16px}
+.cl-pen-col-lbl{color:var(--inj-fg,#fff);font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.3px;opacity:.85;margin-bottom:4px}
+.cl-pen-cols .cl-pen-list{max-height:220px}
 /* modal de lesão — janela clássica: barra de título + corpo, na cor do clube do jogador
    lesionado (mesma lógica do modal de pênalti, --inj-bg/--inj-fg via injuryClubStyle()) */
 .cl-inj-modal{background:var(--inj-bg,#7a0e0e);border:3px solid #1e3a8a;box-shadow:0 0 0 2px #4a6fd4,0 8px 30px rgba(0,0,0,.7);min-width:460px;max-width:92vw}
+.cl-inj-modal-wide{min-width:520px}
 .cl-inj-title{background:rgba(0,0,0,.35);color:var(--inj-fg,#fff);font-weight:800;font-size:16px;padding:6px 12px;display:flex;align-items:center;gap:10px}
 .cl-inj-min{background:#c8c8c8;color:#000;border:1px solid #888;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;line-height:1;border-radius:1px}
 .cl-inj-body{padding:18px 20px}
@@ -1053,12 +1102,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-sub-row.sel{background:#ffd400;color:#141414}
 .cl-sub-row.sel *{color:#141414 !important}
 .cl-sub-btn{display:flex;justify-content:flex-end;margin-top:6px}
-/* alterar escalação: troca de titular direto na lista de elenco */
-.cl-sel-escala{margin:10px 0;padding:8px;background:rgba(255,255,255,.06);border-radius:6px}
-.cl-sel-escala-note{color:#ccc;font-size:12px;line-height:1.4;margin-bottom:8px}
 .cl-rrow.swap-out{background:var(--yellow);color:#000;font-weight:800}
-.cl-escala-confirm{padding:10px 4px;font-size:15px;text-align:center}
-.cl-escala-warn{margin-top:8px;font-size:12px;font-weight:700;color:#a15c00}
 /* Classificação (fim de rodada) */
 /* ranking pós-rodada: DESKTOP mostra as 4 divisões expandidas em grade 2x2 (há espaço);
    MOBILE vira accordion vertical (divisão do usuário aberta, outras colapsadas). */
@@ -1458,6 +1502,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-rv{font-size:11px}
   .cl-rrow.head{font-size:9.5px}
   .cl-rmark.t,.cl-rmark.r{width:14px;height:14px;font-size:9px;border-radius:3px}
+  .cl-rrow.head.cl-esc-bar{font-size:11px}
   .cl-mkt-p,.cl-auc-row,.cl-cls-row{font-size:12px}
   /* leilão em cartão (2 linhas) empilha sozinho; só garante largura total no mobile */
   .cl-mkt-clublist,.cl-mkt-squad,.cl-mkt-roster,.cl-auc{min-width:0;width:100%}
@@ -1474,6 +1519,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   /* modal de pênalti cabe na tela */
   .cl-pen-modal{min-width:0;width:92vw;padding:14px}
   .cl-pen-title{font-size:32px;letter-spacing:6px}
+  /* modal de lesão/expulsão (cl-inj-modal) tinha o mesmo problema do de pênalti — min-width
+     fixo maior que telas estreitas, empurrando conteúdo pra fora. cl-inj-modal-wide (Sai/Entra
+     lado a lado) tem ainda mais motivo de estourar, então zera o min-width extra dela também. */
+  .cl-inj-modal,.cl-inj-modal-wide{min-width:0;width:92vw}
+  .cl-pen-cols{gap:6px 8px}
+  .cl-pen-col-lbl{font-size:11px}
   /* financeiro / classificação / calendário: já são listas verticais, só ajusta padding */
   .cl-fin-row{font-size:13px}
   .cl-complist-row,.cl-cal-row{font-size:13px;padding:8px 10px}

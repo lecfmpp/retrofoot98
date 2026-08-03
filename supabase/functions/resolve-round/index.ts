@@ -324,6 +324,13 @@ function postMatchMoraleS(S: any, id: string, xi: any[], gf: number, ga: number,
     const p = findPlayerByName(S, id, s.name); if (p) p.moral = clampN((p.moral != null ? p.moral : 70) + 6, 0, 100);
   });
 }
+/* capacidade do estádio pro mando de campo: prefere a persistida por-clube (S.clubStadiumCap —
+   reconciliada do assento de cada humano, ver merge no SELECT de game_seats abaixo; CPU vem
+   semeada do cliente em S), cai pra curva sintética por força quando ainda não existe. */
+function capFor(S: any, id: string) {
+  const st = (S.clubStadiumCap || {})[id];
+  return (st && st.capacity) ? st.capacity : ME.capFromOverall((S.clubOverall || {})[id] || 70);
+}
 /* inputs de um clube pro motor (humano usa XI/tática submetida; CPU melhores 11 / equilibrado) */
 function sideInputs(S: any, id: string, isHuman: boolean, humanXI: any, humanTactic: any) {
   const xiNames = isHuman ? (humanXI[id] || ME.autoXINames(S.squads[id])) : null;
@@ -331,7 +338,7 @@ function sideInputs(S: any, id: string, isHuman: boolean, humanXI: any, humanTac
     rat: ME.computeRatings(S.squads[id], xiNames),
     xi: ME.resolveXI(S.squads[id], xiNames),
     tactic: isHuman ? (humanTactic[id] || "equilibrado") : "equilibrado",
-    cap: ME.capFromOverall((S.clubOverall || {})[id] || 70),
+    cap: capFor(S, id),
     short: (S.clubShort || {})[id] || id,
   };
 }
@@ -520,7 +527,7 @@ function advanceOtherDivs(S: any, humanResultByFx: any, humanClubs: Set<string>,
 const CUP_TICK_OFFSET: any = { copaBrasil: 0, libertadores: 1, sulamericana: 2, championsLeague: 1, europaLeague: 2 };
 function cupTickMatchesRound(key: string, round: number) { return round % 3 === CUP_TICK_OFFSET[key]; }
 function cupIsFinished(b: any) { return !!b.champion; }
-function cupSide(S: any, id: string) { return { rat: ME.computeRatings(S.squads[id], null), xi: ME.resolveXI(S.squads[id], null), tactic: 'equilibrado', cap: ME.capFromOverall((S.clubOverall || {})[id] || 70), short: (S.clubShort || {})[id] || id }; }
+function cupSide(S: any, id: string) { return { rat: ME.computeRatings(S.squads[id], null), xi: ME.resolveXI(S.squads[id], null), tactic: 'equilibrado', cap: capFor(S, id), short: (S.clubShort || {})[id] || id }; }
 function resolveDrawnKnockoutTie(S: any, homeId: string, awayId: string, seed: number, hg: number, ag: number) {
   if (hg !== ag) return { hg, ag, winner: hg > ag ? homeId : awayId, pens: null };
   const R = ME.makeRng(ME.hashSeed(seed, 'extra'));
@@ -1032,12 +1039,13 @@ Deno.serve(async (req: Request) => {
     if (expectedRound != null && S.round !== expectedRound) return json({ ok: true, already: true, round: S.round, version: curVer });
 
     const round = S.round;
-    const { data: seats } = await admin.from("game_seats").select("user_id, club_id, last_xi, last_tactic, last_result, last_result_round, last_cup_result, last_cup_round, budget").eq("game_id", gameId);
+    const { data: seats } = await admin.from("game_seats").select("user_id, club_id, last_xi, last_tactic, last_result, last_result_round, last_cup_result, last_cup_round, budget, stadium").eq("game_id", gameId);
     const humanClubs = new Set<string>(); const humanXI: any = {}; const humanTactic: any = {}; const humanResultByFx: any = {}; const cupResultByFx: any = {}; const humanTransfers: any[] = []; const moraleByClub: any = {}; const humanOffers: any[] = []; const humanCounters: any[] = []; const humanOfferDrops: any[] = [];
     (seats || []).forEach((s: any) => {
       if (!s.user_id || !s.club_id) return; humanClubs.add(s.club_id);
       if (s.last_xi) humanXI[s.club_id] = s.last_xi; if (s.last_tactic) humanTactic[s.club_id] = s.last_tactic;
       if (s.budget != null) { S.budgets = S.budgets || {}; S.budgets[s.club_id] = Number(s.budget); } // F3.3: caixa por-humano no mundo
+      if (s.stadium) { S.clubStadiumCap = S.clubStadiumCap || {}; S.clubStadiumCap[s.club_id] = s.stadium; } // estádio por-humano no mundo (mesmo mecanismo do caixa acima)
       const r = s.last_result;
       if (r && s.last_result_round === round && r.h && r.a) { const k = r.h + "-" + r.a; if (!humanResultByFx[k] || s.club_id === r.h) humanResultByFx[k] = { hg: r.hg, ag: r.ag, scorers: r.scorers || [], events: r.events || [], perf: r.perf || null }; }
       // trocas de elenco publicadas por este humano (compra/venda) — aplicadas no mundo antes da rodada

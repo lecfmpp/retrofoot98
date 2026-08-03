@@ -247,6 +247,12 @@ function json(body: unknown, status = 200) { return new Response(JSON.stringify(
 /* hash do cliente (main.js hashC) — usado no seed das OUTRAS divisões (mesma fórmula do
    advanceOtherDivs do resolve-round; a divisão âncora usa ME.hashSeed(seed, round, h, a)). */
 function hashC(s: any) { s = String(s); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
+/* capacidade do estádio — CÓPIA FIEL de capFor do resolve-round. Qualquer mudança lá precisa
+   refletir aqui. */
+function capFor(S: any, id: string) {
+  const st = (S.clubStadiumCap || {})[id];
+  return (st && st.capacity) ? st.capacity : ME.capFromOverall((S.clubOverall || {})[id] || 70);
+}
 /* inputs de um clube pro motor — CÓPIA FIEL de sideInputs do resolve-round (humano usa XI/tática
    submetida; CPU melhores 11 / equilibrado). Qualquer mudança lá precisa refletir aqui. */
 function sideInputs(S: any, id: string, isHuman: boolean, humanXI: any, humanTactic: any) {
@@ -255,7 +261,7 @@ function sideInputs(S: any, id: string, isHuman: boolean, humanXI: any, humanTac
     rat: ME.computeRatings(S.squads[id], xiNames),
     xi: ME.resolveXI(S.squads[id], xiNames),
     tactic: isHuman ? (humanTactic[id] || "equilibrado") : "equilibrado",
-    cap: ME.capFromOverall((S.clubOverall || {})[id] || 70),
+    cap: capFor(S, id),
     short: (S.clubShort || {})[id] || id,
   };
 }

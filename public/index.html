@@ -74,6 +74,8 @@
 <script src="src/data/prizes.js"></script>
 <script src="src/data/leagues-intl.js"></script>
 <script src="src/data/leagues-conmebol.js"></script>
+<script src="src/data/stadiums-intl.js"></script>
+<script src="src/data/stadium-images.js"></script>
 <script src="src/data/leagues-brasil-lower.js"></script>
 <script src="src/data/flags.js"></script>
 <script>
@@ -397,6 +399,7 @@ function newGame(clubId, division, compToggle, seedOverride){
     compToggle:{...compToggle}, // quais copas internacionais estão ligadas neste save
     budget,                 // caixa do VIEWER (= S.budgets[S.clubId]); mantido pra as ~23 refs de caixa
     budgets:{},             // F3.3: caixa POR-CLUBE (mundo). Na Resenha cada humano tem o seu; sem isso todos herdavam o mesmo budget do shared_state
+    clubStadiumCap:{},      // capacidade de estádio POR-CLUBE da CPU (mundo) — cresce sozinha por temporada, ver applyCpuStadiumGrowth (core.js)
     tactic:'equilibrado',
     sched, table, squads,
     results:[],           // per round: [{h,a,hg,ag,scorers:[]}]
@@ -429,6 +432,13 @@ function newGame(clubId, division, compToggle, seedOverride){
   // item 4: overall de cada clube = média do elenco REMAPEADO (fonte única, escala nova);
   // marca _rbOv, então clubOf não remapeia o overall curado de novo (evita divergir após transferências)
   DATA.clubs.forEach(c=>{ if(typeof recomputeClubOverall==='function') recomputeClubOverall(c.id); });
+  // capacidade de estádio inicial dos clubes da CPU da divisão do usuário (as outras entram em
+  // buildOtherDivisions, igual o caixa acima) — semeada DEPOIS do recomputeClubOverall, senão usa
+  // o overall ainda não remapeado. Real (Transfermarkt) quando existe, senão a curva sintética —
+  // mesmo fallback que applyCpuSeasonFinances já usa, pra nunca discordarem sobre o valor inicial.
+  DATA.clubs.forEach(c=>{ S.clubStadiumCap[c.id]={
+    capacity:(typeof realCapFor==='function'&&realCapFor(c))||(typeof REBAL!=='undefined'&&REBAL.stadiumCap?REBAL.stadiumCap(c.overall):20000),
+    builtThisSeason:0 }; });
   // overall de cada clube guardado no estado — a edge function (resolve-round) usa pro mando de campo
   // (proxy de estádio) sem precisar do DATA.clubs; e o cliente online usa o MESMO valor -> paridade.
   registerClubs(division, DATA.clubs); // fixa a composição inicial da divisão do usuário

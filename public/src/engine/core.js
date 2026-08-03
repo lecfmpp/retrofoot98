@@ -466,6 +466,15 @@ function commitBudget(){
   if(typeof CL==='undefined' || !CL.online) return;
   if(typeof NET!=='undefined' && NET.publishBudget) NET.publishBudget(S.budget);
 }
+/* mesma ideia do commitBudget acima, mas pro estádio do usuário (S.clubStadiumCap[id]) — sem
+   isso, uma bancada construída na Resenha some na rodada seguinte (Object.assign(S, saved.S)
+   substitui o mapa inteiro pelo estado do servidor, que nunca soube da obra). */
+function commitStadium(){
+  if(!S) return;
+  const id=(typeof CL!=='undefined' && CL.clubId) || S.clubId;
+  if(typeof CL==='undefined' || !CL.online) return;
+  if(S.clubStadiumCap && id && typeof NET!=='undefined' && NET.publishStadium) NET.publishStadium(S.clubStadiumCap[id]);
+}
 /* descarta do buffer as transferências que o servidor JÁ aplicou (jogador está no destino no
    estado autoritativo). Chamado depois de adotar a rodada — o que sobrar é reenviado. */
 /* garante contrato em TODO jogador de TODO clube do mundo atual. attachAttrs já faz isso na
@@ -1692,8 +1701,16 @@ function unifiedContinentalQualification(userFinish){
   if(uid){
     const already=lib.indexOf(uid)>=0?'lib':(sul.indexOf(uid)>=0?'sul':null);
     lib=lib.filter(id=>id!==uid); sul=sul.filter(id=>id!==uid);
-    if(userFinish>=1&&userFinish<=2) lib.unshift(uid);
-    else if(userFinish>=3&&userFinish<=6) sul.unshift(uid);
+    // vaga do PRÓPRIO clube usa a MESMA contagem de vagas por país que já vale pro resto do
+    // pool (LIB_SLOTS_UNI/SUL_SLOTS_UNI, linhas acima) — antes era um corte fixo "1º-2º
+    // Libertadores, 3º-6º Sul-Americana" copiado do padrão europeu Champions/Europa (4+2), que
+    // pro Brasil (6 vagas de Libertadores) jogava o 3º-6º colocado pra Sul-Americana mesmo com
+    // o troféu da tabela mostrando "Libertadores" pra eles (ver qualificationZone, main.js) —
+    // exatamente a troca de competição que foi reportada.
+    const country=(typeof primaryCountry==='function')?primaryCountry():'Brasil';
+    const nl=LIB_SLOTS_UNI[country]||6, ns=SUL_SLOTS_UNI[country]||6;
+    if(userFinish>=1 && userFinish<=nl) lib.unshift(uid);
+    else if(userFinish>nl && userFinish<=nl+ns) sul.unshift(uid);
     else if(already==='lib') lib.unshift(uid);
     else if(already==='sul') sul.unshift(uid);
   }
@@ -2690,6 +2707,9 @@ function buildOtherDivisions(){
       // craque em 81 (a curva da D extrapolada), em vez dos 26-77 da faixa A.
       if(!S.squads[c.id]) S.squads[c.id] = gkSquad(c).map(p=>attachAttrs(initStats({...p}), d));
       if(S.budgets && S.budgets[c.id]==null) S.budgets[c.id] = REBAL.budget(d, makeRng(hashSeed(S.seed,'budget',c.id))); // F3.3: caixa por-clube
+      if(S.clubStadiumCap && S.clubStadiumCap[c.id]==null) S.clubStadiumCap[c.id] = {
+        capacity:(typeof realCapFor==='function'&&realCapFor(c))||(typeof REBAL!=='undefined'&&REBAL.stadiumCap?REBAL.stadiumCap(c.overall):20000),
+        builtThisSeason:0 }; // mesma semente de newGame() (index.html), primeira vez que o clube aparece
     });
     S.otherDivs[d] = { clubs, sched: makeSchedule(clubs.map(c=>c.id)), table };
   });
@@ -2751,6 +2771,10 @@ function generateFiringOptions(){
 /* FASE 4: sondagem de clube de OUTRO país (liga de fundo). Mais rara que a doméstica e exige
    estar muito bem no cargo. O treinador de sucesso pode ser levado pra o exterior. */
 function maybeForeignJobOffer(){
+  // só treinador da 1ª divisão do Brasil recebe sondagem do exterior — quem está nas séries
+  // B/C/D não tem "currículo" pra ser cobiçado fora do país ainda, e S.intlUniverse!=false
+  // significa que o treinador já está no exterior (não é mais "convite pro exterior" nesse caso).
+  if(S.intlUniverse || S.division!=='A') return null;
   const bg=(S.bgCountries||[]).filter(c=>UNI_CONFIGS[uniKeyOf(c)]); if(!bg.length) return null;
   const R=makeRng(hashSeed(S.seed,S.season,S.round,'foreignjob'));
   if((S.jobSecurity||0)<85 || R.random()>=0.40) return null; // só quando MUITO bem, e não toda vez
@@ -3904,8 +3928,14 @@ function applyCpuSeasonFinances(){
     // aproveitamento real vira bônus: quem ganhou mais, arrecadou mais (mesma regra do usuário)
     const w=(m&&m.row)?m.row.W:Math.round(rounds*0.35), d=(m&&m.row)?m.row.D:Math.round(rounds*0.27);
     const bonus=Math.round(base*(w*REBAL.WIN_BONUS + d*REBAL.DRAW_BONUS));
-    const cap=(typeof REBAL.stadiumCap==='function')?REBAL.stadiumCap(ov):20000;
-    const price=Math.round(Math.max(6,Math.min(16,6+Math.max(0,(ov||30)-20)*0.32)));
+    // capacidade persistida do clube (S.clubStadiumCap — já reflete crescimento de temporadas
+    // anteriores, ver applyCpuStadiumGrowth logo abaixo) tem prioridade; sem isso o crescimento
+    // ficaria guardado mas nunca apareceria na bilheteria. Clube estrangeiro com dado real do
+    // Transfermarkt (realCapFor) só entra se ainda não foi semeado nesse save; senão, sintética.
+    const cap=(S.clubStadiumCap && S.clubStadiumCap[id]) ? S.clubStadiumCap[id].capacity
+      : ((typeof realCapFor==='function' && realCapFor(c)) || ((typeof REBAL.stadiumCap==='function')?REBAL.stadiumCap(ov):20000));
+    // preço fixo por divisão (ticketPriceForDivision, main.js) — mesma tabela que o usuário usa.
+    const price=(typeof ticketPriceForDivision==='function')?ticketPriceForDivision((m&&m.div)||S.division):10;
     const homeGames=Math.round(rounds/2) || HOME;
     const gate=Math.round(cap*0.55)*price*homeGames;             // ocupação média ~55%, igual à calibração
 
@@ -3919,8 +3949,45 @@ function applyCpuSeasonFinances(){
     S.budgets[id]=Math.max(-base*4, Math.round((S.budgets[id]||0) + revenue - costs));
   });
 }
+/* crescimento AUTOMÁTICO do estádio dos clubes da CPU — mesma decisão que o usuário toma na mão
+   via clBuildStand() (main.js), só que rodando uma vez por virada de temporada pra cada clube:
+   constrói bancada de STAND_SEATS enquanto tiver caixa (S.budgets, já atualizado por
+   applyCpuSeasonFinances logo acima) e respeitar o teto de porte + a cota da temporada — os
+   MESMOS 3 limites que o usuário já enfrenta, sem sorteio nem heurística nova. Só solo/offline:
+   na Resenha o cálculo autoritativo é do servidor (resolve-round), que ainda não tem essa lógica
+   — sem essa trava cada cliente calcularia um crescimento diferente e os estádios divergiriam
+   entre os jogadores da sala (etapa futura, fora desta entrega). */
+function applyCpuStadiumGrowth(){
+  if(!S || !S.budgets || !S.clubStadiumCap) return;
+  if(typeof CL!=='undefined' && CL.online) return;
+  const humans=new Set();
+  if(S.clubId) humans.add(S.clubId);
+  if(typeof CL!=='undefined' && CL.humans) Object.keys(CL.humans).forEach(id=>humans.add(id));
+
+  Object.keys(S.budgets).forEach(id=>{
+    if(humans.has(id)) return;
+    const c=clubOf(id); if(!c) return;
+    if(!S.clubStadiumCap[id]) S.clubStadiumCap[id]={
+      capacity:(typeof realCapFor==='function'&&realCapFor(c))||((typeof REBAL.stadiumCap==='function')?REBAL.stadiumCap(c.overall):20000),
+      builtThisSeason:0 };
+    const st=S.clubStadiumCap[id];
+    st.builtThisSeason=0;   // roda 1x por virada — reset local, não precisa de outro passo em newSeasonReset
+    if(typeof standCostFor!=='function' || typeof stadiumMaxCapacityFor!=='function') return;
+    let guard=0;
+    while(guard++<10){      // teto defensivo; SEASON_BUILD_LIMIT/STAND_SEATS já limita a 2 na prática
+      const cost=standCostFor(st.capacity);
+      if(st.capacity+STAND_SEATS > stadiumMaxCapacityFor(c.overall, st.capacity)) break;   // teto de porte
+      if((st.builtThisSeason+STAND_SEATS) > SEASON_BUILD_LIMIT) break;                     // cota da temporada
+      if((S.budgets[id]||0) < cost) break;                                                 // caixa insuficiente
+      S.budgets[id] -= cost;
+      st.capacity += STAND_SEATS;
+      st.builtThisSeason += STAND_SEATS;
+    }
+  });
+}
 function newSeasonReset(){
   applyCpuSeasonFinances();          // ANTES do swap de divisões: tabelas/elencos ainda são os do ano que fechou
+  applyCpuStadiumGrowth();           // idem — usa o caixa (S.budgets) já atualizado pelo passo acima
   const finalTable=sortedTable();
   const finalPos=tablePos(S.clubId);
   S._intlUserFinish=finalPos; // classificação doméstica -> vaga na Champions/Europa da próxima temporada
@@ -3957,7 +4024,10 @@ function newSeasonReset(){
   S.results=[]; S.scorers={}; S.negos=[]; S.finished=false; S.pendingEvent=null;
   S.finances=[]; S.roundNews=[];
   S.seasonTotals={income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0}; // zera pra temporada nova
-  if(S.stadium) S.stadium.builtThisSeason=0; // libera a cota de obras da nova temporada (crescimento lento)
+  // libera a cota de obras da nova temporada pro estádio do usuário (crescimento lento) — CPU já
+  // reseta a dela em applyCpuStadiumGrowth, mas essa função pula humanos de propósito (ver acima).
+  { const myId=(typeof CL!=='undefined' && CL.clubId) || S.clubId;
+    if(S.clubStadiumCap && myId && S.clubStadiumCap[myId]) S.clubStadiumCap[myId].builtThisSeason=0; }
   // renovação automática do salário do treinador a cada temporada (se não foi demitido)
   if(S.coachSalary && S.roundsSinceFired===null){
     S.coachSalary = Math.round(S.coachSalary * 1.05); // aumento de 5% ao ano

@@ -137,19 +137,46 @@ function realStadiumCapacity(overall){
   // item 4: capacidade por divisão (overall na escala NOVA) — A 75k · B 50k · C 25k · D 10k
   return (typeof REBAL!=='undefined') ? REBAL.stadiumCap(overall) : Math.round(clamp(6000 + Math.max(0,(overall||30)-50)*1350, 10000, 68000)/1000)*1000;
 }
-/* TETO de expansão por porte do clube: maior que a inicial, mas realista — um clube pequeno
-   nunca constrói um estádio gigante. Nunca abaixo da capacidade atual (não "encolhe"). */
-function stadiumMaxCapacity(){
-  const c=(typeof clubOf==='function')?clubOf(S.clubId):null; const ov=(c&&c.overall)||30;
-  // teto de expansão = capacidade inicial da divisão + folga (item 4, escala nova de overall)
-  const byLevel = realStadiumCapacity(ov) + 15000;
-  const cur=(S.stadium&&S.stadium.capacity)||STAND_START;
-  return Math.round(clamp(byLevel, cur, 90000)/1000)*1000;
+/* capacidade REAL de estádio (Transfermarkt) pros 352 clubes estrangeiros, quando existe — ver
+   public/src/data/stadiums-intl.js (window.STADIUM_CAP, id do clube -> lugares) e
+   scripts/build-stadiums.mjs. Clube sem dado real (raspagem não achou, clube novo, doméstico
+   brasileiro) retorna null e quem chamar cai no fallback sintético de sempre — nenhum caso
+   especial extra em lugar nenhum. */
+function realCapFor(club){
+  const v=(typeof STADIUM_CAP!=='undefined' && club) ? STADIUM_CAP[club.id] : null;
+  return (typeof v==='number') ? v : null;
 }
-/* custo de UMA bancada — escala com o tamanho atual (estádio grande é mais caro de expandir) */
-function standCost(){ const cap=(S.stadium&&S.stadium.capacity)||STAND_START; return Math.round(STAND_PRICE*(0.7+cap/50000)); }
-/* preço de ingresso "natural" por porte do clube — proporcional, sem exagero (faixa 6–16) */
-function levelTicketPrice(overall){ return Math.round(clamp(6 + Math.max(0,(overall||30)-20)*0.32, 6, 16)); } // item 4: rebase p/ overall escala nova (A~44→~14, D~8→6)
+/* TETO de expansão por porte do clube: maior que a inicial, mas realista — um clube pequeno
+   nunca constrói um estádio gigante. Nunca abaixo da capacidade atual (não "encolhe").
+   Versão parametrizada (overall/capacidade por fora) pra dar pra usar tanto pro estádio do
+   usuário quanto pro crescimento automático da CPU (applyCpuStadiumGrowth, core.js) sem
+   duplicar a fórmula — stadiumMaxCapacity() abaixo é só um wrapper fino em cima. */
+function stadiumMaxCapacityFor(overall, currentCap){
+  // teto de expansão = capacidade inicial da divisão + folga (item 4, escala nova de overall)
+  const byLevel = realStadiumCapacity(overall||30) + 15000;
+  return Math.round(clamp(byLevel, currentCap||STAND_START, 90000)/1000)*1000;
+}
+/* estádio do PRÓPRIO usuário: S.clubStadiumCap[CL.clubId], o MESMO mapa por clube que a CPU usa
+   (ver core.js) — não um campo à parte (S.stadium foi aposentado; era um campo único, sem dono,
+   que não fazia sentido na Resenha com vários humanos dividindo o mesmo S — ver commitStadium). */
+function myStadium(){ return (S.clubStadiumCap && S.clubStadiumCap[CL.clubId]) || null; }
+function stadiumMaxCapacity(){
+  const c=(typeof clubOf==='function')?clubOf(S.clubId):null; const st=myStadium();
+  return stadiumMaxCapacityFor((c&&c.overall)||30, (st&&st.capacity)||STAND_START);
+}
+/* custo de UMA bancada — escala com o tamanho atual (estádio grande é mais caro de expandir).
+   Mesma ideia: standCostFor(cap) parametrizada, standCost() é o wrapper do usuário. */
+function standCostFor(cap){ return Math.round(STAND_PRICE*(0.7+(cap||STAND_START)/50000)); }
+function standCost(){ const st=myStadium(); return standCostFor((st&&st.capacity)||STAND_START); }
+/* preço de ingresso FIXO por divisão (valores reais informados) — A 25 / B 20 / C 15 / D 10.
+   PRIZES.tierOf já mapeia QUALQUER divisão (Brasil A-D, ligas estrangeiras PL/CH/ES/ES2/etc.)
+   pra uma dessas 4 faixas — mesmo mapa que os prêmios de liga já usam, sem inventar outro.
+   Substitui levelTicketPrice(overall), que dava um número contínuo (6-16) por força do elenco. */
+const TICKET_PRICE_BY_TIER={A:25, B:20, C:15, D:10};
+function ticketPriceForDivision(div){
+  const tier=(typeof PRIZES!=='undefined' && PRIZES.tierOf) ? PRIZES.tierOf(div) : 'A';
+  return TICKET_PRICE_BY_TIER[tier] || TICKET_PRICE_BY_TIER.D;
+}
 function tacticPosture(f){ const a=(FORMATIONS[f]||[1,4,3,3])[3]; return a>=4?'ofensivo':a<=1?'retranca':'equilibrado'; }
 /* quando o elenco não tem jogadores suficientes numa posição pra formação escolhida
    (ex: 4-5-1 sem 5 meio-campos), pickXIByFormation preenche com quem sobrar de outra
@@ -170,6 +197,18 @@ function coherentFormation(id,preferred){
 }
 function pickXIByFormation(id,f){ const need=FORMATIONS[f]||FORMATIONS['4-3-3']; const secs=['GK','DEF','MID','ATT'];
   const sq=squad(id).slice().sort((a,b)=>b.f-a.f); const xi=[];   // xi = lista de PIDs
+  secs.forEach((sec,i)=>{ sq.filter(p=>p.s===sec).slice(0,need[i]).forEach(p=>xi.push(p.pid)); });
+  if(xi.length<11){ const have=new Set(xi); // completa sem colocar 2º goleiro na linha
+    const add=pid=>{ if(xi.length<11 && !have.has(pid)){ xi.push(pid); have.add(pid); } };
+    for(const p of sq){ if(p.s!=='GK') add(p.pid); }  // jogadores de linha primeiro
+    for(const p of sq){ add(p.pid); }                  // último recurso: evita XI < 11
+  }
+  return xi.slice(0,11); }
+/* mesma lógica de pickXIByFormation, mas ordenando por energia (menos cansados primeiro)
+   em vez de força — usada pelo botão "Selecionar descansados" */
+function pickXIByFormationRested(id,f){ const need=FORMATIONS[f]||FORMATIONS['4-3-3']; const secs=['GK','DEF','MID','ATT'];
+  const nrg=p=>(p&&p.energy!=null)?p.energy:100;
+  const sq=squad(id).slice().sort((a,b)=>nrg(b)-nrg(a)||b.f-a.f); const xi=[];   // xi = lista de PIDs
   secs.forEach((sec,i)=>{ sq.filter(p=>p.s===sec).slice(0,need[i]).forEach(p=>xi.push(p.pid)); });
   if(xi.length<11){ const have=new Set(xi); // completa sem colocar 2º goleiro na linha
     const add=pid=>{ if(xi.length<11 && !have.has(pid)){ xi.push(pid); have.add(pid); } };
@@ -1130,16 +1169,29 @@ function runLoading(){ let p=0; const t=setInterval(()=>{ p+=Math.floor(8+Math.r
   },350); } }, 180); }
 
 /* ---- 2/4 · JOGADORES (nomes) ---- */
+/* Multiplayer local (hotseat — vários treinadores humanos passando o mesmo aparelho, um save só)
+   desabilitado da UI por enquanto: esta tela chegou a aceitar até 6 nomes (Jogador 1..6), e
+   qualquer slot além do 0 preenchido já ligava o hotseat sozinho (CL.humans com >1 entrada em
+   clEntrar(), ver scSeatTurn/enterSeatContext/CL._hotseat). A MÁQUINA continua toda no lugar —
+   só a entrada pela UI foi removida — pra não perder o trabalho se decidirmos religar depois.
+   Quem quer jogar com mais gente é direcionado pro Modo Resenha (online) em vez disso. */
 function scJogadores(){
-  const rows=[0,1,2,3,4,5].map(i=>`<div class="cl-prow">
-      <span class="cl-plabel">Jogador ${i+1}</span>
-      <input class="cl-pinput ${i===0?'cur':''}" ${i===0?'id="cl-focus"':''} maxlength="12" placeholder="${i===0?'LEANDRO':''}" value="${escC(CL.names[i])}" oninput="CL.names[${i}]=this.value.toUpperCase();this.value=CL.names[${i}]">
-      <span class="cl-pteam">${i===0?'(você)':''}</span>
-    </div>`).join('');
   const body=`<div class="cl-wiz-form-wide">
     <div class="cl-prow cl-prow-head"><span></span><span class="cl-wiz-collabel">Nome</span><span class="cl-wiz-collabel">Equipa</span></div>
-    ${rows}
-    <div class="cl-wiz-note">Preencha o nome de cada treinador. Os vazios ficam com a CPU.</div>
+    <div class="cl-prow">
+      <span class="cl-plabel">Jogador 1</span>
+      <input class="cl-pinput cur" id="cl-focus" maxlength="12" placeholder="LEANDRO" value="${escC(CL.names[0])}" oninput="CL.names[0]=this.value.toUpperCase();this.value=CL.names[0]">
+      <span class="cl-pteam">(você)</span>
+    </div>
+    <div class="cl-wiz-note">Time vazio fica com a CPU.</div>
+    <div class="cl-resenha-banner" onclick="clPickResenha()">
+      <span class="cl-resenha-banner-ic">👥</span>
+      <div class="cl-resenha-banner-txt">
+        <b>Quer jogar com amigos?</b>
+        <span>Isso é o Modo Resenha — cada um assume um clube, online, com chat da liga.</span>
+      </div>
+      <span class="cl-resenha-banner-go">Ir pro Modo Resenha ›</span>
+    </div>
   </div>`;
   return wizShell({ step:2, title:'Jogadores', back:'clGoMoeda()', backLabel:'Voltar',
     contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
@@ -1234,9 +1286,12 @@ function clEntrar(){
   S.intlUniverse = CL.intlUniverse; // false | país (ex.: 'Inglaterra')
   S.bgCountries = (CL.bgCountries||[]).slice(); // outros países selecionados: ligas de background
   initBgLeagues(); // materializa as ligas de background pra simular/visualizar/negociar
-  if(!S.stadium){ const ov=(clubOf(CL.clubId)||{}).overall||70;
-    const cap=(typeof REBAL!=='undefined' && REBAL.stadiumCapForDivision) ? REBAL.stadiumCapForDivision(S.division) : realStadiumCapacity(ov);
-    S.stadium={capacity:cap, builtThisSeason:0}; CL.ticket=levelTicketPrice(ov); }
+  // estádio do próprio usuário: newGame() já semeou S.clubStadiumCap[CL.clubId] junto com o
+  // resto do elenco de DATA.clubs (mesmo mapa por clube que a CPU usa — ver core.js) — não
+  // precisa de semente separada aqui. S.stadium (campo único, um só por save) foi aposentado:
+  // não fazia sentido na Resenha, onde vários humanos dividem o mesmo S (ver ticketPriceForDivision
+  // logo abaixo pro preço do ingresso, que substitui levelTicketPrice).
+  CL.ticket=ticketPriceForDivision(S.division);
   CL.formation=null; CL.tacticChosen=false;   // precisa escolher tática no menu p/ liberar "Jogar"
   S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
   CL.speedMult=1;  // 1.0x, 1.5x, 2x, 3x (só anfitrião no modo Resenha pode mudar)
@@ -1546,27 +1601,53 @@ function scSeatClassif(){
 }
 /* TELA DO TIME do assento (hotseat): mesma pegada da tela principal — elenco à esquerda,
    tática + classificação + Jogar à direita. Reusa rosterHTML()/panSeleccao() com o contexto
-   já trocado pro assento (clJogar detecta o contexto e chama clSeatPlay). */
+   já trocado pro assento (clJogar detecta o contexto e chama clSeatPlay).
+   MESMO menu (☰) e MESMAS abas de scMain() — antes só dava pra escalar e jogar aqui; qualquer
+   outra função (mercado, finanças, e-mail, estádio, copas etc.) ficava travada pro manager 1,
+   que é o único que passa por scMain(). Todo assento tem os mesmos direitos durante a própria
+   vez — enterSeatContext() já troca S.clubId/CL.clubId pro clube do assento, então os mesmos
+   painéis/menus de scMain() funcionam aqui sem mudança nenhuma neles. */
 function scSeatTurn(){
   const c=CL._seatContext; if(!c) return deskWrap('');
   const seat=c.seat, fx=c.fx; const cl=clubOf(seat.clubId)||bgClubById(seat.clubId)||{};
   const oppId=fx.home===seat.clubId?fx.away:fx.home; const opp=clubOf(oppId)||bgClubById(oppId)||{};
   const home=fx.home===seat.clubId; const flag=(typeof flagImg==='function')?flagImg(seat.country):'';
   const th=clubTheme(seat.clubId);
+  const menuNames=['RetroFoot98','Formação','Equipa','Jogador','Campeonatos','Treinador'];
+  const hamburger=`<div class="cl-hamburger" onclick="clToggleMobMenu(event)"><span>☰ Menu</span><span>${CL.mobMenuOpen?'▲':'▼'}</span></div>`;
+  const menu=`<div class="cl-menu ${CL.mobMenuOpen?'mob-open':''}" id="cl-menubar">
+    ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
+  </div>`;
+  if(typeof syncInbox==='function') syncInbox();
+  const unread=(typeof inboxUnread==='function')?inboxUnread():0;
+  const mailBadge=unread>0?`<span class="cl-count-badge">${unread>9?'9+':unread}</span>`:'';
+  const tabs=['jogo','jogador','financas','seleccao','correio','adversario'];
+  const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
+  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')"><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')}</div>`;
+  const ufArr=[fx.home,fx.away];   // panJogo espera [homeId,awayId], igual ao formato de userFixture()
+  let panel='';
+  if(CL.tab==='jogo') panel=panJogo(oppId,home,ufArr);
+  else if(CL.tab==='jogador') panel=panJogador();
+  else if(CL.tab==='financas') panel=panFinancas();
+  else if(CL.tab==='seleccao') panel=panSeleccao();
+  else if(CL.tab==='correio') panel=panCorreio();
+  else panel=panAdversario(oppId);
   return `<div class="cl-main" style="border-color:${th.col}">
     <div class="cl-main-top">${flag} ${escC(seat.name)} · ${escC(cl.short||'')}</div>
+    <div class="cl-mobmenu-wrap">${hamburger}${menu}</div>
     <div class="cl-main-body">
       <div class="cl-main-left" style="background:${th.bg}">
         <div class="cl-hdr"><div class="cl-mgr">${escC(seat.name)}</div>
           <div class="cl-hdr-sub"><span class="cl-flag2">${flag}</span> ${escC(seat.country)} <span class="cl-div">${escC(seatDivLabel(seat,fx))}</span></div></div>
         <div class="cl-roster-hd cl-acc-hd"><span>Elenco</span></div>
-        <div class="cl-roster cl-acc-body">${rosterHTML()}</div>
+        <div class="cl-roster cl-acc-body ${CL.escalacaoMode?'cl-roster-escala':''}">${rosterHTML()}</div>
       </div>
       <div class="cl-main-right" style="background:${th.bg}">
         <div class="cl-right-hdr"><div class="cl-adv-lbl">Adversário</div>
           <div class="cl-adv-name" style="background:${th.bg2};padding:3px 8px">${escC(opp.short||'')}</div>
           <div class="cl-adv-loc">${home?'CASA':'FORA'} · ${(S.round||0)+1}ª Jornada</div></div>
-        <div class="cl-panel">${panSeleccao()}</div>
+        <div class="cl-panel">${panel}</div>
+        ${tabBar}
       </div>
     </div>
   </div>`;
@@ -1659,6 +1740,14 @@ function clLoadSave(name){
     if(!g){ toastC('⚠ Save não encontrado.'); return; }
     S=g.S; CL.clubId=g.clubId; CL.mgr=g.mgr; CL.currency=g.currency||'Reais'; CL.ticket=g.ticket||8; CL.humans=g.humans||{};
     CL.save=name; CL.online=false; // jogo solo — nunca herda estado de sala online
+    // save de antes da unificação do estádio: migra o valor único S.stadium (aposentado) pro
+    // mapa por clube S.clubStadiumCap[clubId] uma única vez, sem perder o progresso de quem já
+    // construiu bancadas. Depois desta migração, S.stadium não é mais lido em lugar nenhum.
+    if(S.stadium && !(S.clubStadiumCap && S.clubStadiumCap[CL.clubId])){
+      S.clubStadiumCap = S.clubStadiumCap || {};
+      S.clubStadiumCap[CL.clubId] = {capacity:S.stadium.capacity||STAND_START, builtThisSeason:S.stadium.builtThisSeason||0};
+    }
+    CL.ticket = ticketPriceForDivision(S.division);
     if(typeof NET!=='undefined'){ NET.isHost=false; NET.gameId=null; NET.onState=null; }
     setUniverse(S.intlUniverse||'brasil'); // restaura a config de divisões do universo do save (Brasil/Inglaterra/...)
     CL.intlUniverse = S.intlUniverse||false;
@@ -1720,7 +1809,7 @@ function scMain(){
         <div class="cl-roster-hd cl-acc-hd" onclick="clToggleRoster()">
           <span>Elenco</span><span class="cl-acc-arrow ${CL.rosterOpen===false?'closed':''}">▾</span>
         </div>
-        <div class="cl-roster cl-acc-body ${CL.rosterOpen===false?'closed':''}">${rosterHTML()}</div>
+        <div class="cl-roster cl-acc-body ${CL.rosterOpen===false?'closed':''} ${CL.escalacaoMode?'cl-roster-escala':''}">${rosterHTML()}</div>
       </div>
       <div class="cl-main-right" style="background:${th.bg}">
         <div class="cl-right-hdr">
@@ -1743,6 +1832,21 @@ function rosterHeadHTML(){
   return `<div class="cl-rrow head">
     <span class="cl-rmark"></span><span class="cl-rpos">Pos</span><span class="cl-rname">Nome</span>
     <span class="cl-rage">Id.</span><span class="cl-rf">Força</span><span class="cl-rbatt"><b class="cl-lbl-lg">Energia</b><b class="cl-lbl-sm">En.</b></span><span class="cl-rv" title="Salário semanal">Salário</span><span class="cl-rmv">Valor</span></div>`;
+}
+/* barra fixa que SUBSTITUI o cabeçalho de colunas enquanto o modo de escalação está ligado —
+   fica grudada no topo da lista (mesma posição sticky do cabeçalho normal) e diz sempre quem
+   está marcado, mesmo depois de rolar a lista pra achar o reserva no fim da posição. Sem isso,
+   no celular (onde o elenco é uma lista curta e rolável, .cl-roster) o usuário marcava um
+   titular lá em cima, rolava pra baixo atrás do reserva e perdia de vista quem tinha marcado. */
+function escalaBarHTML(){
+  const m=CL.escalaMark?pById(CL.escalaMark,CL.clubId):null;
+  if(m) return `<div class="cl-rrow head cl-esc-bar marked">
+    <span class="cl-esc-bar-txt">🔁 Trocando <b>${escC(m.n)}</b> (${posLetter(m.s)}) — toque em outro ${posLetter(m.s)}</span>
+    <span class="cl-esc-bar-x" onclick="event.stopPropagation();clEscalaMarkClear()">✕</span>
+  </div>`;
+  return `<div class="cl-rrow head cl-esc-bar">
+    <span class="cl-esc-bar-txt">👆 Toque no T ou R de um jogador pra marcar</span>
+  </div>`;
 }
 /* salário SEMANAL exibido de um jogador, de qualquer clube. Sem contrato explícito cai no mesmo
    salário-tabela por força que o motor já usa pra folha dos clubes de CPU (ver cpuSeasonFinances),
@@ -1807,12 +1911,15 @@ function squadTableHTML(clubId, opts){
 function rosterHTML(){
   const groups=[['GK','G'],['DEF','D'],['MID','M'],['ATT','A']];
   const sq=squad(CL.clubId); const th=clubTheme(CL.clubId);
-  const showMarks=(CL.tab==='seleccao'||CL.escalacaoMode); const xiSet=new Set(S.xi||[]);
+  // T/R sempre visível no elenco, não só na aba Formação: S.xi já vem preenchido (autoXI) desde
+  // o início de jogo, então a marca é sempre válida — e saber quem está escalado é útil em
+  // qualquer aba (Jogo, Jogador etc.), não só na hora de mexer na escalação.
+  const xiSet=new Set(S.xi||[]); const showMarks=xiSet.size>0;
   const escala=CL.escalacaoMode;
-  let html=rosterHeadHTML();
+  let html=escala?escalaBarHTML():rosterHeadHTML();
   groups.forEach(([sec])=>{ const list=sq.filter(p=>p.s===sec);
     html+=`<div class="cl-rgroup">`+list.map(p=>{const starter=xiSet.has(p.pid);   // identidade por pid, não nome
-      const marked=escala && CL.preSubOut===p.pid;
+      const marked=escala && CL.escalaMark===p.pid;
       const selc=!escala && CL.selPlayer===p.pid;
       const unavail=p.suspended>0||p.injuredMatches>0;
       const badge=p.suspended>0?'🟥':(p.injuredMatches>0?'✚'+p.injuredMatches:'');
@@ -1821,8 +1928,12 @@ function rosterHTML(){
       // moeda abreviada (fmt: k/M) e periodicidade explícita, pro usuário nunca confundir
       // "10 mil" com "10 milhões" nem esquecer que o débito é SEMANAL.
       const salary=playerSalary(p);
+      // em modo de escalação o T/R vira o alvo principal do toque: área bem maior que o
+      // resto da linha (.cl-rmark-hit, ver main.css) — continua chamando a mesma função que
+      // a linha toda (onclick já borbulha), só existe pra dar um "botão" óbvio pro dedo, sem
+      // precisar acertar o texto pequeno.
       return `<div class="cl-rrow ${selc?'sel':''} ${marked?'swap-out':''} ${unavail?'unavail':''}" style="${selc?'':`color:${th.txt}`}" onclick="${onclickFn}">
-        <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
+        <span class="cl-rmark ${escala?'cl-rmark-hit':''} ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname" title="${escC(p.n)}">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
         <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}${trainingIcon(CL.clubId,p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(salary)}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;}).join('')+`</div>`;
@@ -2129,7 +2240,9 @@ function clViewTeam(clubId){
   CL.viewClubId=clubId; CL.viewTab='jogo'; CL.viewSelPlayer=null;
   CL.screen='teamview'; cdraw();
 }
-function clViewTeamBack(){ clCloseOverlay(); CL.viewClubId=null; CL.screen='main'; cdraw(); }
+// hotseat: "voltar" durante a vez de um assento tem que devolver pra scSeatTurn, não pra
+// scMain do manager 1 (senão o clique arrancava o assento no meio da própria vez).
+function clViewTeamBack(){ clCloseOverlay(); CL.viewClubId=null; CL.screen=CL._seatContext?'seatturn':'main'; cdraw(); }
 function clViewTab(t){ CL.viewTab=t; cdraw(); }
 function clViewSelPlayer(n){ CL.viewSelPlayer=n; CL.viewTab='jogador'; cdraw(); }
 function fixtureFor(clubId){ return currentFixtures().find(([h,a])=>h===clubId||a===clubId); }
@@ -2790,14 +2903,15 @@ function panSeleccao(){
   const xi=xiPlayers(CL.clubId); const gkCount=xiGKCount(xi);
   const ok=xi.length>=11 && CL.tacticChosen && gkCount===1;
   const gkWarn = (CL.tacticChosen && xi.length>=11 && gkCount!==1)
-    ? `<div class="cl-sel-note" style="color:#b00">⚠ ${gkCount===0?'Nenhum goleiro escalado.':'Mais de um goleiro escalado ('+gkCount+').'} Ajuste em "Alterar Escalação" pra liberar o Jogar.</div>` : '';
+    ? `<div class="cl-sel-note" style="color:#b00">⚠ ${gkCount===0?'Nenhum goleiro escalado.':'Mais de um goleiro escalado ('+gkCount+').'} Ajuste em "Substituir" pra liberar o Jogar.</div>` : '';
+  // "Selecionar descansados": só aparece depois que uma formação foi escolhida (mesmo gate
+  // usado pelo botão Substituir logo abaixo). Reescala os mesmos setores da formação atual,
+  // mas priorizando energia (menos cansados) em vez de força.
+  const restedBlock = !CL.tacticChosen ? '' : `<div class="cl-sel-rested" style="margin-top:10px" title="Reescala o onze priorizando quem está com mais energia, dentro da mesma formação">
+    ${btn('Selecionar descansados','clSelectRested()',{icon:'🔋',cls:'cl-btn-mini'})}
+  </div>`;
+
   const escala=CL.escalacaoMode;
-  const escalaBlock = !CL.tacticChosen ? '' : escala
-    ? `<div class="cl-sel-escala">
-        <div class="cl-sel-escala-note">Toque num titular (T) no elenco à esquerda pra marcar, depois num reserva da mesma posição pra trocar.</div>
-        ${btn('Concluído','clToggleEscalacao()',{icon:'✔',cls:'cl-btn-mini'})}
-      </div>`
-    : '';
 
   // formações disponíveis com atalhos — estilo vintage RetroFoot98. Além das 6 formações,
   // inclui os modos rápidos "Automático" e "Melhores" no mesmo grid (4 colunas, quadrados
@@ -2824,51 +2938,40 @@ function panSeleccao(){
     <div class="cl-sel-note">${CL.tacticChosen?`Tática <b>${escC(CL.formation)}</b> · onze <b>${xi.length}/11</b>.<br>Titulares marcados com <b class="cl-rmark t" style="display:inline-flex">T</b> na lista.`:'Escolha a tática para liberar o <b>Jogar</b>.'}</div>
     ${gkWarn}
     ${formationsBlock}
-    ${escalaBlock}
+    ${restedBlock}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px;max-width:320px">
-      ${btn('Alterar Escalação','clToggleEscalacao()',{icon:'⇄',cls:'cl-btn-ok',dis:!CL.tacticChosen})}
+      ${btn('Substituir','clToggleEscalacao()',{icon:'⇄',cls:'cl-btn-ok'+(escala?' cl-btn-on':''),dis:!CL.tacticChosen})}
       ${btn('Jogar','clJogar()',{icon:'⚽',cls:'cl-btn-ok',dis:!ok})}
     </div>
   </div>`;
 }
 /* ---- troca de titular ANTES da partida, direto na lista de elenco (à esquerda) —
    diferente da troca AO VIVO (liveSubPick/liveDoSub, limitada a 3 e só durante a
-   partida): aqui é livre. Fluxo: toca no titular (marca), toca num reserva da
-   mesma posição (pede confirmação num popup), confirma. ---- */
-function clToggleEscalacao(){ CL.escalacaoMode=!CL.escalacaoMode; CL.preSubOut=null; CL.preSubIn=null; cdraw(); }
+   partida): aqui é livre. Fluxo simplificado: toca no T ou R de um jogador (marca,
+   não importa se é titular ou reserva), toca em outro DA MESMA POSIÇÃO e troca na
+   hora — sem popup de confirmação no meio, um toque a menos que antes. Restringir a
+   mesma posição (em vez de aceitar qualquer troca com aviso, como era antes) também
+   garante de graça o invariante de 1 goleiro só: GK só troca com GK. ---- */
+function clToggleEscalacao(){ CL.escalacaoMode=!CL.escalacaoMode; CL.escalaMark=null; cdraw(); }
 function clEscalaPick(pid){   // pid do jogador clicado (identidade por ID, não nome)
-  const xiSet=new Set(S.xi||[]);
-  if(xiSet.has(pid)){ CL.preSubOut=(CL.preSubOut===pid?null:pid); CL.preSubIn=null; cdraw(); return; }
-  if(!CL.preSubOut){ toastC('Toque primeiro num titular (T) pra substituir.'); return; }
-  const outP=pById(CL.preSubOut,CL.clubId), inP=pById(pid,CL.clubId);
-  if(!outP||!inP) return;
-  if(inP.suspended>0||inP.injuredMatches>0){ toastC('Esse jogador não está disponível.'); return; }
-  // GOLEIRO: o XI tem exatamente 1. Não deixa entrar um 2º goleiro (trocar linha por GK) nem
-  // tirar o único goleiro (trocar GK por linha) — só GK↔GK ou linha↔linha.
-  if((inP.s==='GK')!==(outP.s==='GK')){
-    toastC(inP.s==='GK' ? 'O time já tem um goleiro escalado — troque goleiro por goleiro.' : 'Você precisa de um goleiro no gol — só troque o goleiro por outro goleiro.');
-    return;
+  const p=pById(pid,CL.clubId); if(!p) return;
+  if(!CL.escalaMark){    // nada marcado ainda -> este vira a marca, seja T ou R
+    if(p.suspended>0||p.injuredMatches>0){ toastC('Esse jogador não está disponível.'); return; }
+    CL.escalaMark=pid; cdraw(); return;
   }
-  CL.preSubIn=pid;
-  // troca livre entre qualquer posição (ex: colocar um meia no lugar de um zagueiro
-  // machucado) — antes travava com "só mesma posição", forçando o time a jogar com um a
-  // menos mesmo tendo reservas disponíveis noutra posição. Só avisa quando é fora de
-  // posição, não impede mais.
-  const offPos=outP.s!==inP.s;
-  overlayC(dlg('Trocar titular', `<div class="cl-escala-confirm">Você quer trocar <b>${escC(outP.n)}</b> por <b>${escC(inP.n)}</b>?
-    ${offPos?`<div class="cl-escala-warn">⚠ ${escC(inP.n)} joga de ${posLetter(inP.s)} — fora da posição de ${posLetter(outP.s)}</div>`:''}</div>
-    <div class="cl-jog-actions">${btn('Sim','clEscalaDoSwap()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Desistir','clEscalaCancel()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
-    {w:420,bodyClass:'cl-body-gray',min:true}));
+  if(CL.escalaMark===pid){ CL.escalaMark=null; cdraw(); return; }   // toca de novo -> desmarca
+  const a=pById(CL.escalaMark,CL.clubId); if(!a){ CL.escalaMark=pid; cdraw(); return; }
+  if(a.s!==p.s){ toastC('Só dá pra trocar jogadores da mesma posição ('+posLetter(a.s)+').'); return; }
+  const xiSet=new Set(S.xi||[]);
+  const aStarter=xiSet.has(a.pid), bStarter=xiSet.has(p.pid);
+  if(aStarter===bStarter){ CL.escalaMark=pid; cdraw(); return; }   // os dois T ou os dois R -> só troca a marca
+  if(p.suspended>0||p.injuredMatches>0){ toastC('Esse jogador não está disponível.'); return; }
+  const outP=aStarter?a:p, inP=aStarter?p:a;
+  S.xi=(S.xi||[]).map(x=>x===outP.pid?inP.pid:x);
+  toastC(inP.n.split(' ').slice(-1)[0]+' entrou no lugar de '+outP.n.split(' ').slice(-1)[0]+' na escalação.');
+  CL.escalaMark=null; saveV3(); cdraw();
 }
-function clEscalaDoSwap(){
-  if(!CL.preSubOut || !CL.preSubIn){ clCloseOverlay(); return; }
-  const outP=pById(CL.preSubOut,CL.clubId), inP=pById(CL.preSubIn,CL.clubId);
-  S.xi=(S.xi||[]).map(pid=>pid===CL.preSubOut?CL.preSubIn:pid);
-  if(outP&&inP) toastC(inP.n.split(' ').slice(-1)[0]+' entrou no lugar de '+outP.n.split(' ').slice(-1)[0]+' na escalação.');
-  CL.preSubOut=null; CL.preSubIn=null;
-  saveV3(); clCloseOverlay(); cdraw();
-}
-function clEscalaCancel(){ CL.preSubOut=null; CL.preSubIn=null; clCloseOverlay(); cdraw(); }
+function clEscalaMarkClear(){ CL.escalaMark=null; cdraw(); }   // botão ✕ da barra fixa (escalaBarHTML)
 function clJogar(){
   if(CL._seatContext){ clSeatPlay(); return; } // hotseat: "Jogar" na tela do assento inicia a partida dele
   if(!CL.tacticChosen){ toastC('Escolha a tática no menu Formação primeiro.'); CL.tab='seleccao'; cdraw(); return; }
@@ -3077,9 +3180,15 @@ function finishCupSpectate(){
 /* ---------- PARTIDA AO VIVO (estilo RetroFoot98: placar por divisões) ---------- */
 function attendanceFor(homeId,rnd){
   const homeClub=(typeof clubOf==='function')?clubOf(homeId):null; const homeOv=(homeClub&&homeClub.overall)||70;
-  // CPU: capacidade e ingresso proporcionais ao porte do clube (não mais aleatório puro)
-  const cap=(homeId===CL.clubId && S.stadium)?S.stadium.capacity:realStadiumCapacity(homeOv);
-  const price=(homeId===CL.clubId)?(CL.ticket||levelTicketPrice(homeOv)):levelTicketPrice(homeOv);
+  // Capacidade: MESMO caminho pra qualquer clube, meu ou de outro humano ou da CPU — prioridade
+  // é a capacidade persistida (S.clubStadiumCap, por clube — cresce por decisão do dono, humano
+  // ou CPU, ver clBuildStand/applyCpuStadiumGrowth) > dado real do Transfermarkt (clube ainda
+  // não semeado nesse save, ex. liga de fundo) > curva sintética.
+  const cap=(S.clubStadiumCap && S.clubStadiumCap[homeId]) ? S.clubStadiumCap[homeId].capacity
+    : (realCapFor(homeClub)||realStadiumCapacity(homeOv));
+  // Preço: fixo por divisão (ticketPriceForDivision) — mesmo pra qualquer clube da mesma série.
+  const homeDiv=(typeof clubDivisionOf==='function' ? clubDivisionOf(homeId) : null) || (homeClub&&homeClub.lg) || S.division;
+  const price=ticketPriceForDivision(homeDiv);
   const tbl=S.table[homeId]||{Pts:0,P:0}; const form=(tbl.P?tbl.Pts/(tbl.P*3):0.5);       // momento do time (0..1)
   const priceFactor=Math.max(0.28, Math.min(1, 1.25 - price/22));                            // ingresso alto => menos gente
   const momFactor=0.6+form*0.7;                                                              // time em alta => mais gente
@@ -3273,9 +3382,10 @@ function startLiveRound(){
 }
 /* ---- PARTIDA DE COPA AO VIVO — mesma maquinaria de startLiveRound/liveTick/scLive/
    liveModalHTML (pênalti, lesão, substituições), só que pra UMA partida avulsa, fora do
-   calendário de liga. RL.sel=0 já abre o modal da partida direto (só tem 1 jogo na lista,
-   então a lista agrupada por divisão fica vazia — inofensivo). Ver finishCupLiveMatch pro
-   fechamento, que NÃO passa por finishLiveRound/playRound (aquilo é só pra liga). ---- */
+   calendário de liga. Começa com sel:null (modal fechado) — a tela ao vivo já mostra a
+   única linha do jogo + relógio sem precisar do modal aberto; toca na linha (liveRowClick)
+   pra abrir. Ver finishCupLiveMatch pro fechamento, que NÃO passa por finishLiveRound/
+   playRound (aquilo é só pra liga). ---- */
 function startCupLiveMatch(pending){
   fixUserXIAvailability();
   // Resenha (online): grava a escalação que EU de fato uso nesta partida pro meu clube,
@@ -3735,10 +3845,14 @@ function closePenaltyModal(){
 }
 
 function liveRowClick(i){ CL.live.sel=i; CL.subOut=CL.subIn=null; CL.subPanelOpen=false; cdraw(); }
+// Fechar o modal (RL.sel=null) SEMPRE revela algo útil por baixo — mesmo em partida avulsa de
+// copa/assento, a tela ao vivo já desenha a própria linha do jogo + relógio (ver scLive, single =
+// RL.cup||RL.humanSeat, começa com sel:null em startCupLiveMatch). Antes, pra copa, o intervalo
+// deixava RL.sel=0 (modal continuava aberto, sem jeito de fechar) e fora do intervalo o botão virava
+// um no-op — o "Continuar" clicava e nada acontecia. clique no card (liveRowClick) reabre quando quiser.
 function liveContinue(){ const RL=CL.live; if(!RL) return;
   CL.subPanelOpen=false;
-  if(RL.paused){ clearHalftimeCountdown(); RL.paused=false; RL.halftimeLeft=null; RL.sel=RL.cup?0:null; cdraw(); CL._liveTimer=setTimeout(liveTick,320); return; }
-  if(RL.cup) return; // partida avulsa de copa: só tem essa partida, não tem lista pra "voltar"
+  if(RL.paused){ clearHalftimeCountdown(); RL.paused=false; RL.halftimeLeft=null; RL.sel=null; cdraw(); CL._liveTimer=setTimeout(liveTick,320); return; }
   RL.sel=null; cdraw(); }
 /* INTERVALO na Resenha: no máximo 10s para fazer a substituição — se o usuário não apertar
    Continuar, avança sozinho ao fim do tempo (mantém todos os treinadores sincronizados no tempo). */
@@ -3971,14 +4085,19 @@ function redCardHTML(m,e){
       <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span><span class="cl-pen-r">${p.f}</span></div>`;
   const inRows=bench.map(p=>row(p,'in',CL.redIn===p.pid)).join('');
   const outRows=canReorg?redCardOnField(m,e).map(p=>row(p,'out',CL.redOut===p.pid)).join(''):'';
-  return `<div class="cl-pen-overlay"><div class="cl-inj-modal" ${injuryClubStyle()}>
+  // Entra/Sai lado a lado (mesmo padrão de duas colunas do subPanelHTML/cl-sub-cols), não mais
+  // duas listas cheias empilhadas — aquilo fugia do padrão compacto dos outros modais de decisão
+  // ao vivo (injurySubHTML/penaltyHTML, sempre uma cl-pen-list só) e tomava a tela toda.
+  return `<div class="cl-pen-overlay"><div class="cl-inj-modal cl-inj-modal-wide" ${injuryClubStyle()}>
     <div class="cl-inj-title"><span class="cl-inj-min">🟥</span><span>${escC(clubOf(CL.clubId).short)}</span></div>
     <div class="cl-inj-body">
       <div class="cl-inj-msg">${escC(e.player)} foi EXPULSO (${escC(e.reason||'')}) — o time segue com um a menos.<br>
-      ${canReorg?'Quer reorganizar? Escolha quem entra e quem sai (gasta uma substituição).':'Sem opções de reorganização.'}
+      ${canReorg?'Quer reorganizar? Escolha quem sai e quem entra (gasta uma substituição).':'Sem opções de reorganização.'}
       <span id="cl-red-count" class="cl-pen-count">${secsLeft}s</span></div>
-      ${canReorg?`<div class="cl-inj-msg" style="margin-top:6px"><b>Entra:</b></div><div class="cl-pen-list">${inRows}</div>
-      <div class="cl-inj-msg" style="margin-top:6px"><b>Sai:</b></div><div class="cl-pen-list">${outRows}</div>`:''}
+      ${canReorg?`<div class="cl-pen-cols">
+        <div class="cl-pen-col"><div class="cl-pen-col-lbl">Sai</div><div class="cl-pen-list">${outRows}</div></div>
+        <div class="cl-pen-col"><div class="cl-pen-col-lbl">Entra</div><div class="cl-pen-list">${inRows}</div></div>
+      </div>`:''}
       <div class="cl-pen-btn">${canReorg?btn('Reorganizar','resolveRedConfirm()',{icon:'⇄',cls:'cl-btn-ok',dis:!(CL.redIn&&CL.redOut)}):''}
       ${btn('Seguir com 10','resolveRedSkip()',{icon:'➡',cls:'cl-btn-cancel'})}</div>
     </div>
@@ -6199,6 +6318,11 @@ function exitModalHTML(online){
 async function clExitConfirm(shouldSave){
   clCloseOverlay();
   if(typeof clStopHostReqPoll==='function') clStopHostReqPoll(); // encerra o acompanhamento de pedidos
+  // hotseat: saindo no meio da vez de um assento (não do manager 1) — devolve o contexto pro
+  // clube/estado do manager 1 ANTES de gravar/sair, senão saveV3() grava com o clube errado
+  // como primário (ela mesma se recusa a gravar com CL._seatContext ainda setado) e a fila de
+  // assentos pendente (CL._hotseat) fica pendurada, quebrando a próxima partida que carregar.
+  if(CL._seatContext){ exitSeatContext(); CL._hotseat=null; }
   if(shouldSave) await saveV3(true); // já mostra a barra de gravação e um toast de sucesso/erro
   CL.screen='abertura'; cdraw();
 }
@@ -6746,7 +6870,7 @@ function scCupView(){
   const key=CL._cupKey; if(!key || !(S.cups&&S.cups[key])) { CL.screen='main'; return scMain(); }
   return cupScreenHTML(key, {actions:btn('Voltar','clCupViewBack()',{icon:'◀',cls:'cl-btn-cancel cl-btn-sm'})});
 }
-function clCupViewBack(){ CL.screen='main'; CL._cupTie=null; cdraw(); clCompList(); }
+function clCupViewBack(){ CL.screen=CL._seatContext?'seatturn':'main'; CL._cupTie=null; cdraw(); clCompList(); }
 /* ---- leitura do estado da cerimônia (CL.cupDraw) pelos componentes da tela ---- */
 function cupDrawLast(dr){ return dr && dr.drawn.length ? dr.drawn[dr.drawn.length-1] : null; }
 function cupDrawHasTie(dr, t){ return !!(dr && dr.drawn.some(p=>!p.bye && p.group==null && p.h===t.h && p.a===t.a)); }
@@ -6904,8 +7028,16 @@ function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
   else if(f==='best'){ S.xi=squad(CL.clubId).slice().sort((a,b)=>b.f-a.f).slice(0,11).map(p=>p.pid); CL.formation='Melhores'; S.tactic='equilibrado'; }
   else { const real=coherentFormation(CL.clubId,f); if(real!==f) adjustedFrom=f;
     S.xi=pickXIByFormation(CL.clubId,real); CL.formation=real; S.tactic=tacticPosture(real); }
-  CL.tacticChosen=true; CL.tab='seleccao'; CL.preSubOut=null; CL.preSubIn=null; CL.escalacaoMode=false; saveV3(); cdraw();
+  CL.tacticChosen=true; CL.tab='seleccao'; CL.escalaMark=null; CL.escalacaoMode=false; saveV3(); cdraw();
   toastC(adjustedFrom ? `Sem jogadores pro ${adjustedFrom} — ajustado pra ${CL.formation}.` : 'Tática '+CL.formation+' seleccionada.'); }
+/* "Selecionar descansados": reaplica a formação já escolhida trocando o critério de escala
+   de força (p.f) por energia (menos cansados primeiro), respeitando os setores da formação.
+   Disponível só depois que uma formação foi escolhida (CL.tacticChosen) — funciona igual em
+   solo, resenha e hotseat porque só mexe em S.xi/CL.formation, igual clSelFormation. */
+function clSelectRested(){ if(!CL.tacticChosen) return;
+  const f=(FORMATIONS[CL.formation])?CL.formation:'4-3-3';
+  S.xi=pickXIByFormationRested(CL.clubId,f); CL.escalaMark=null; CL.escalacaoMode=false; saveV3(); cdraw();
+  toastC('🔋 Onze mais descansado seleccionado.'); }
 
 /* ---- Estádio (Equipa > Estádio...) ---- */
 function clStadium(){ CL.menu=null; renderStadium(false); }
@@ -6916,13 +7048,20 @@ function standSVG(cap){ const tiers=Math.min(6,Math.max(1,Math.round((cap-STAND_
     <rect x="68" y="96" width="64" height="44" fill="none" stroke="#fff" stroke-width="1.4"/>
     <line x1="100" y1="96" x2="100" y2="140" stroke="#fff" stroke-width="1.4"/>
     <circle cx="100" cy="118" r="8" fill="none" stroke="#fff" stroke-width="1.4"/></svg>`; }
-function renderStadium(built){ const cap=(S.stadium&&S.stadium.capacity)||STAND_START;
+/* foto real do estádio (ver public/src/data/stadium-images.js), quando o clube tem uma —
+   por enquanto só a Série D do Brasil. Sem foto, cai no desenho genérico de sempre (standSVG). */
+function stadiumPhotoFor(clubId){
+  const p=(typeof STADIUM_IMG!=='undefined' && clubId) ? STADIUM_IMG[clubId] : null;
+  return p || null;
+}
+function renderStadium(built){ const st0=myStadium(); const cap=(st0&&st0.capacity)||STAND_START;
   const maxCap=stadiumMaxCapacity(); const atMax=cap>=maxCap;
-  const builtSeason=(S.stadium&&S.stadium.builtThisSeason)||0; const seasonLeft=Math.max(0,SEASON_BUILD_LIMIT-builtSeason);
+  const builtSeason=(st0&&st0.builtThisSeason)||0; const seasonLeft=Math.max(0,SEASON_BUILD_LIMIT-builtSeason);
   const cost=standCost(); const seasonFull=seasonLeft<STAND_SEATS;
   const dis=atMax||seasonFull;
+  const photo=stadiumPhotoFor(S.clubId);
   overlayC(dlg('Estádio', `<div class="cl-est">
-    ${standSVG(cap)}
+    ${photo?`<img class="cl-est-photo" src="${escC(photo)}" alt="Estádio">`:standSVG(cap)}
     <div class="cl-est-cap">${grp(cap)} lugares</div>
     <div class="cl-est-price">Preço de uma bancada com<br>${grp(STAND_SEATS)} lugares: ${fmt(cost)}</div>
     <div class="cl-est-maxcap">Teto do estádio para o porte do clube: ${grp(maxCap)} lugares<br>Obras liberadas nesta temporada: ${grp(seasonLeft)} lugares</div>
@@ -6931,13 +7070,15 @@ function renderStadium(built){ const cap=(S.stadium&&S.stadium.capacity)||STAND_
     ${atMax?`<div class="cl-est-note">⚠ Estádio no teto para o porte atual do clube. Cresça o clube pra ampliar mais.</div>`:seasonFull?`<div class="cl-est-note">⚠ Limite de obras da temporada atingido — o resto só na próxima temporada (obra é lenta).</div>`:''}
   </div>`,{w:660,bodyClass:'cl-body-estadio',min:true})); }
 function clBuildStand(){
-  if(!S.stadium)S.stadium={capacity:STAND_START,builtThisSeason:0};
-  const cap=S.stadium.capacity||STAND_START; const cost=standCost();
+  S.clubStadiumCap=S.clubStadiumCap||{};
+  if(!S.clubStadiumCap[CL.clubId])S.clubStadiumCap[CL.clubId]={capacity:STAND_START,builtThisSeason:0};
+  const st=S.clubStadiumCap[CL.clubId]; const cap=st.capacity||STAND_START; const cost=standCost();
   if(cap+STAND_SEATS>stadiumMaxCapacity()){ toastC('⚠ Estádio no teto para o porte do clube — cresça o clube (título/elenco) pra poder ampliar mais.'); renderStadium(false); return; }
-  if(((S.stadium.builtThisSeason||0)+STAND_SEATS)>SEASON_BUILD_LIMIT){ toastC('⚠ Obra é lenta: só '+grp(SEASON_BUILD_LIMIT)+' lugares por temporada. Continue na próxima.'); renderStadium(false); return; }
+  if(((st.builtThisSeason||0)+STAND_SEATS)>SEASON_BUILD_LIMIT){ toastC('⚠ Obra é lenta: só '+grp(SEASON_BUILD_LIMIT)+' lugares por temporada. Continue na próxima.'); renderStadium(false); return; }
   if((S.budget||0)<cost){ toastC('Caixa insuficiente para construir ('+fmt(cost)+').'); return; }
   S.budget-=cost; commitBudget();                      // publica: senão o custo da obra é revertido na próxima rodada
-  S.stadium.capacity+=STAND_SEATS; S.stadium.builtThisSeason=(S.stadium.builtThisSeason||0)+STAND_SEATS;
+  st.capacity+=STAND_SEATS; st.builtThisSeason=(st.builtThisSeason||0)+STAND_SEATS;
+  commitStadium();                                      // publica: senão a bancada some na próxima rodada (Resenha)
   pushFinanceEntry({stadium:cost, log:[`🏟️ Bancada construída: +${grp(STAND_SEATS)} lugares (${fmt(cost)})`]});
   saveV3(); renderStadium(true); }
 
