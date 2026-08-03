@@ -149,23 +149,34 @@ function realCapFor(club){
 /* TETO de expansão por porte do clube: maior que a inicial, mas realista — um clube pequeno
    nunca constrói um estádio gigante. Nunca abaixo da capacidade atual (não "encolhe").
    Versão parametrizada (overall/capacidade por fora) pra dar pra usar tanto pro estádio do
-   usuário (S.stadium/S.clubId) quanto pro crescimento automático da CPU (applyCpuStadiumGrowth,
-   core.js) sem duplicar a fórmula — stadiumMaxCapacity() abaixo é só um wrapper fino em cima. */
+   usuário quanto pro crescimento automático da CPU (applyCpuStadiumGrowth, core.js) sem
+   duplicar a fórmula — stadiumMaxCapacity() abaixo é só um wrapper fino em cima. */
 function stadiumMaxCapacityFor(overall, currentCap){
   // teto de expansão = capacidade inicial da divisão + folga (item 4, escala nova de overall)
   const byLevel = realStadiumCapacity(overall||30) + 15000;
   return Math.round(clamp(byLevel, currentCap||STAND_START, 90000)/1000)*1000;
 }
+/* estádio do PRÓPRIO usuário: S.clubStadiumCap[CL.clubId], o MESMO mapa por clube que a CPU usa
+   (ver core.js) — não um campo à parte (S.stadium foi aposentado; era um campo único, sem dono,
+   que não fazia sentido na Resenha com vários humanos dividindo o mesmo S — ver commitStadium). */
+function myStadium(){ return (S.clubStadiumCap && S.clubStadiumCap[CL.clubId]) || null; }
 function stadiumMaxCapacity(){
-  const c=(typeof clubOf==='function')?clubOf(S.clubId):null;
-  return stadiumMaxCapacityFor((c&&c.overall)||30, (S.stadium&&S.stadium.capacity)||STAND_START);
+  const c=(typeof clubOf==='function')?clubOf(S.clubId):null; const st=myStadium();
+  return stadiumMaxCapacityFor((c&&c.overall)||30, (st&&st.capacity)||STAND_START);
 }
 /* custo de UMA bancada — escala com o tamanho atual (estádio grande é mais caro de expandir).
    Mesma ideia: standCostFor(cap) parametrizada, standCost() é o wrapper do usuário. */
 function standCostFor(cap){ return Math.round(STAND_PRICE*(0.7+(cap||STAND_START)/50000)); }
-function standCost(){ return standCostFor((S.stadium&&S.stadium.capacity)||STAND_START); }
-/* preço de ingresso "natural" por porte do clube — proporcional, sem exagero (faixa 6–16) */
-function levelTicketPrice(overall){ return Math.round(clamp(6 + Math.max(0,(overall||30)-20)*0.32, 6, 16)); } // item 4: rebase p/ overall escala nova (A~44→~14, D~8→6)
+function standCost(){ const st=myStadium(); return standCostFor((st&&st.capacity)||STAND_START); }
+/* preço de ingresso FIXO por divisão (valores reais informados) — A 25 / B 20 / C 15 / D 10.
+   PRIZES.tierOf já mapeia QUALQUER divisão (Brasil A-D, ligas estrangeiras PL/CH/ES/ES2/etc.)
+   pra uma dessas 4 faixas — mesmo mapa que os prêmios de liga já usam, sem inventar outro.
+   Substitui levelTicketPrice(overall), que dava um número contínuo (6-16) por força do elenco. */
+const TICKET_PRICE_BY_TIER={A:25, B:20, C:15, D:10};
+function ticketPriceForDivision(div){
+  const tier=(typeof PRIZES!=='undefined' && PRIZES.tierOf) ? PRIZES.tierOf(div) : 'A';
+  return TICKET_PRICE_BY_TIER[tier] || TICKET_PRICE_BY_TIER.D;
+}
 function tacticPosture(f){ const a=(FORMATIONS[f]||[1,4,3,3])[3]; return a>=4?'ofensivo':a<=1?'retranca':'equilibrado'; }
 /* quando o elenco não tem jogadores suficientes numa posição pra formação escolhida
    (ex: 4-5-1 sem 5 meio-campos), pickXIByFormation preenche com quem sobrar de outra
@@ -1275,11 +1286,12 @@ function clEntrar(){
   S.intlUniverse = CL.intlUniverse; // false | país (ex.: 'Inglaterra')
   S.bgCountries = (CL.bgCountries||[]).slice(); // outros países selecionados: ligas de background
   initBgLeagues(); // materializa as ligas de background pra simular/visualizar/negociar
-  if(!S.stadium){ const ownClub=clubOf(CL.clubId); const ov=(ownClub||{}).overall||70;
-    // clube estrangeiro com capacidade real (Transfermarkt) começa com o estádio de verdade dele,
-    // em vez da faixa fixa por divisão — só faz sentido pra quem começa/muda pra um clube real.
-    const cap=realCapFor(ownClub) || ((typeof REBAL!=='undefined' && REBAL.stadiumCapForDivision) ? REBAL.stadiumCapForDivision(S.division) : realStadiumCapacity(ov));
-    S.stadium={capacity:cap, builtThisSeason:0}; CL.ticket=levelTicketPrice(ov); }
+  // estádio do próprio usuário: newGame() já semeou S.clubStadiumCap[CL.clubId] junto com o
+  // resto do elenco de DATA.clubs (mesmo mapa por clube que a CPU usa — ver core.js) — não
+  // precisa de semente separada aqui. S.stadium (campo único, um só por save) foi aposentado:
+  // não fazia sentido na Resenha, onde vários humanos dividem o mesmo S (ver ticketPriceForDivision
+  // logo abaixo pro preço do ingresso, que substitui levelTicketPrice).
+  CL.ticket=ticketPriceForDivision(S.division);
   CL.formation=null; CL.tacticChosen=false;   // precisa escolher tática no menu p/ liberar "Jogar"
   S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
   CL.speedMult=1;  // 1.0x, 1.5x, 2x, 3x (só anfitrião no modo Resenha pode mudar)
@@ -1728,6 +1740,14 @@ function clLoadSave(name){
     if(!g){ toastC('⚠ Save não encontrado.'); return; }
     S=g.S; CL.clubId=g.clubId; CL.mgr=g.mgr; CL.currency=g.currency||'Reais'; CL.ticket=g.ticket||8; CL.humans=g.humans||{};
     CL.save=name; CL.online=false; // jogo solo — nunca herda estado de sala online
+    // save de antes da unificação do estádio: migra o valor único S.stadium (aposentado) pro
+    // mapa por clube S.clubStadiumCap[clubId] uma única vez, sem perder o progresso de quem já
+    // construiu bancadas. Depois desta migração, S.stadium não é mais lido em lugar nenhum.
+    if(S.stadium && !(S.clubStadiumCap && S.clubStadiumCap[CL.clubId])){
+      S.clubStadiumCap = S.clubStadiumCap || {};
+      S.clubStadiumCap[CL.clubId] = {capacity:S.stadium.capacity||STAND_START, builtThisSeason:S.stadium.builtThisSeason||0};
+    }
+    CL.ticket = ticketPriceForDivision(S.division);
     if(typeof NET!=='undefined'){ NET.isHost=false; NET.gameId=null; NET.onState=null; }
     setUniverse(S.intlUniverse||'brasil'); // restaura a config de divisões do universo do save (Brasil/Inglaterra/...)
     CL.intlUniverse = S.intlUniverse||false;
@@ -3160,14 +3180,15 @@ function finishCupSpectate(){
 /* ---------- PARTIDA AO VIVO (estilo RetroFoot98: placar por divisões) ---------- */
 function attendanceFor(homeId,rnd){
   const homeClub=(typeof clubOf==='function')?clubOf(homeId):null; const homeOv=(homeClub&&homeClub.overall)||70;
-  // CPU: capacidade e ingresso proporcionais ao porte do clube (não mais aleatório puro).
-  // Prioridade: capacidade persistida do clube (S.clubStadiumCap — já reflete crescimento de
-  // temporadas anteriores, ver applyCpuStadiumGrowth em core.js) > dado real do Transfermarkt
-  // (realCapFor, clube ainda não semeado nesse save, ex. liga de fundo) > curva sintética.
-  const cap=(homeId===CL.clubId && S.stadium)?S.stadium.capacity
-    :(S.clubStadiumCap && S.clubStadiumCap[homeId])?S.clubStadiumCap[homeId].capacity
-    :(realCapFor(homeClub)||realStadiumCapacity(homeOv));
-  const price=(homeId===CL.clubId)?(CL.ticket||levelTicketPrice(homeOv)):levelTicketPrice(homeOv);
+  // Capacidade: MESMO caminho pra qualquer clube, meu ou de outro humano ou da CPU — prioridade
+  // é a capacidade persistida (S.clubStadiumCap, por clube — cresce por decisão do dono, humano
+  // ou CPU, ver clBuildStand/applyCpuStadiumGrowth) > dado real do Transfermarkt (clube ainda
+  // não semeado nesse save, ex. liga de fundo) > curva sintética.
+  const cap=(S.clubStadiumCap && S.clubStadiumCap[homeId]) ? S.clubStadiumCap[homeId].capacity
+    : (realCapFor(homeClub)||realStadiumCapacity(homeOv));
+  // Preço: fixo por divisão (ticketPriceForDivision) — mesmo pra qualquer clube da mesma série.
+  const homeDiv=(typeof clubDivisionOf==='function' ? clubDivisionOf(homeId) : null) || (homeClub&&homeClub.lg) || S.division;
+  const price=ticketPriceForDivision(homeDiv);
   const tbl=S.table[homeId]||{Pts:0,P:0}; const form=(tbl.P?tbl.Pts/(tbl.P*3):0.5);       // momento do time (0..1)
   const priceFactor=Math.max(0.28, Math.min(1, 1.25 - price/22));                            // ingresso alto => menos gente
   const momFactor=0.6+form*0.7;                                                              // time em alta => mais gente
@@ -7033,9 +7054,9 @@ function stadiumPhotoFor(clubId){
   const p=(typeof STADIUM_IMG!=='undefined' && clubId) ? STADIUM_IMG[clubId] : null;
   return p || null;
 }
-function renderStadium(built){ const cap=(S.stadium&&S.stadium.capacity)||STAND_START;
+function renderStadium(built){ const st0=myStadium(); const cap=(st0&&st0.capacity)||STAND_START;
   const maxCap=stadiumMaxCapacity(); const atMax=cap>=maxCap;
-  const builtSeason=(S.stadium&&S.stadium.builtThisSeason)||0; const seasonLeft=Math.max(0,SEASON_BUILD_LIMIT-builtSeason);
+  const builtSeason=(st0&&st0.builtThisSeason)||0; const seasonLeft=Math.max(0,SEASON_BUILD_LIMIT-builtSeason);
   const cost=standCost(); const seasonFull=seasonLeft<STAND_SEATS;
   const dis=atMax||seasonFull;
   const photo=stadiumPhotoFor(S.clubId);
@@ -7049,13 +7070,15 @@ function renderStadium(built){ const cap=(S.stadium&&S.stadium.capacity)||STAND_
     ${atMax?`<div class="cl-est-note">⚠ Estádio no teto para o porte atual do clube. Cresça o clube pra ampliar mais.</div>`:seasonFull?`<div class="cl-est-note">⚠ Limite de obras da temporada atingido — o resto só na próxima temporada (obra é lenta).</div>`:''}
   </div>`,{w:660,bodyClass:'cl-body-estadio',min:true})); }
 function clBuildStand(){
-  if(!S.stadium)S.stadium={capacity:STAND_START,builtThisSeason:0};
-  const cap=S.stadium.capacity||STAND_START; const cost=standCost();
+  S.clubStadiumCap=S.clubStadiumCap||{};
+  if(!S.clubStadiumCap[CL.clubId])S.clubStadiumCap[CL.clubId]={capacity:STAND_START,builtThisSeason:0};
+  const st=S.clubStadiumCap[CL.clubId]; const cap=st.capacity||STAND_START; const cost=standCost();
   if(cap+STAND_SEATS>stadiumMaxCapacity()){ toastC('⚠ Estádio no teto para o porte do clube — cresça o clube (título/elenco) pra poder ampliar mais.'); renderStadium(false); return; }
-  if(((S.stadium.builtThisSeason||0)+STAND_SEATS)>SEASON_BUILD_LIMIT){ toastC('⚠ Obra é lenta: só '+grp(SEASON_BUILD_LIMIT)+' lugares por temporada. Continue na próxima.'); renderStadium(false); return; }
+  if(((st.builtThisSeason||0)+STAND_SEATS)>SEASON_BUILD_LIMIT){ toastC('⚠ Obra é lenta: só '+grp(SEASON_BUILD_LIMIT)+' lugares por temporada. Continue na próxima.'); renderStadium(false); return; }
   if((S.budget||0)<cost){ toastC('Caixa insuficiente para construir ('+fmt(cost)+').'); return; }
   S.budget-=cost; commitBudget();                      // publica: senão o custo da obra é revertido na próxima rodada
-  S.stadium.capacity+=STAND_SEATS; S.stadium.builtThisSeason=(S.stadium.builtThisSeason||0)+STAND_SEATS;
+  st.capacity+=STAND_SEATS; st.builtThisSeason=(st.builtThisSeason||0)+STAND_SEATS;
+  commitStadium();                                      // publica: senão a bancada some na próxima rodada (Resenha)
   pushFinanceEntry({stadium:cost, log:[`🏟️ Bancada construída: +${grp(STAND_SEATS)} lugares (${fmt(cost)})`]});
   saveV3(); renderStadium(true); }
 

@@ -466,6 +466,15 @@ function commitBudget(){
   if(typeof CL==='undefined' || !CL.online) return;
   if(typeof NET!=='undefined' && NET.publishBudget) NET.publishBudget(S.budget);
 }
+/* mesma ideia do commitBudget acima, mas pro estádio do usuário (S.clubStadiumCap[id]) — sem
+   isso, uma bancada construída na Resenha some na rodada seguinte (Object.assign(S, saved.S)
+   substitui o mapa inteiro pelo estado do servidor, que nunca soube da obra). */
+function commitStadium(){
+  if(!S) return;
+  const id=(typeof CL!=='undefined' && CL.clubId) || S.clubId;
+  if(typeof CL==='undefined' || !CL.online) return;
+  if(S.clubStadiumCap && id && typeof NET!=='undefined' && NET.publishStadium) NET.publishStadium(S.clubStadiumCap[id]);
+}
 /* descarta do buffer as transferências que o servidor JÁ aplicou (jogador está no destino no
    estado autoritativo). Chamado depois de adotar a rodada — o que sobrar é reenviado. */
 /* garante contrato em TODO jogador de TODO clube do mundo atual. attachAttrs já faz isso na
@@ -3925,7 +3934,8 @@ function applyCpuSeasonFinances(){
     // Transfermarkt (realCapFor) só entra se ainda não foi semeado nesse save; senão, sintética.
     const cap=(S.clubStadiumCap && S.clubStadiumCap[id]) ? S.clubStadiumCap[id].capacity
       : ((typeof realCapFor==='function' && realCapFor(c)) || ((typeof REBAL.stadiumCap==='function')?REBAL.stadiumCap(ov):20000));
-    const price=Math.round(Math.max(6,Math.min(16,6+Math.max(0,(ov||30)-20)*0.32)));
+    // preço fixo por divisão (ticketPriceForDivision, main.js) — mesma tabela que o usuário usa.
+    const price=(typeof ticketPriceForDivision==='function')?ticketPriceForDivision((m&&m.div)||S.division):10;
     const homeGames=Math.round(rounds/2) || HOME;
     const gate=Math.round(cap*0.55)*price*homeGames;             // ocupação média ~55%, igual à calibração
 
@@ -4014,7 +4024,10 @@ function newSeasonReset(){
   S.results=[]; S.scorers={}; S.negos=[]; S.finished=false; S.pendingEvent=null;
   S.finances=[]; S.roundNews=[];
   S.seasonTotals={income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0}; // zera pra temporada nova
-  if(S.stadium) S.stadium.builtThisSeason=0; // libera a cota de obras da nova temporada (crescimento lento)
+  // libera a cota de obras da nova temporada pro estádio do usuário (crescimento lento) — CPU já
+  // reseta a dela em applyCpuStadiumGrowth, mas essa função pula humanos de propósito (ver acima).
+  { const myId=(typeof CL!=='undefined' && CL.clubId) || S.clubId;
+    if(S.clubStadiumCap && myId && S.clubStadiumCap[myId]) S.clubStadiumCap[myId].builtThisSeason=0; }
   // renovação automática do salário do treinador a cada temporada (se não foi demitido)
   if(S.coachSalary && S.roundsSinceFired===null){
     S.coachSalary = Math.round(S.coachSalary * 1.05); // aumento de 5% ao ano
