@@ -467,6 +467,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'jogadores': html=scJogadores(); break;
     case 'escolhaclubes': html=scEscolhaClubes(); break;
     case 'sorteio':   html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scSorteio(),{logo:true}); break;
+    case 'boasvindas':html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scBoasVindas(),{logo:true}); break;
     case 'main':      html=titleBarTop('RetroFoot98')+deskWrap(scMain()); break;
     case 'waitround': html=titleBarTop('RetroFoot98')+deskWrap(scWaitRound()); break;
     case 'imprensa':  html=titleBarTop('RetroFoot98')+deskWrap(scImprensa()); break;
@@ -1301,10 +1302,119 @@ function clEntrar(){
   CL.online=false;
   if(typeof NET!=='undefined'){ NET.isHost=false; NET.gameId=null; NET.onState=null; }
   CL.humans={}; CL.draw.forEach(d=>CL.humans[d.clubId]=d.name);
-  CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
+  CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
   saveV3();
+  // mostra a Boas-vindas ao Clube antes da tela principal; só ao "continuar" dali é que
+  // checa o sorteio pendente da Copa do Brasil (mesmo timing de antes, só adiado)
+  showBoasVindas(()=>checkPendingCupDraws(()=>{}));
+}
+
+/* ================= BOAS-VINDAS AO CLUBE (pós-sorteio, Solo e Resenha) =================
+   Tela intermediária mostrada uma vez, logo depois do sorteio do clube e ANTES da tela
+   principal — tanto no Modo Solo (clEntrar acima) quanto no Modo Resenha online
+   (onlineBeginSeason, net/local-transport.js, que chama showBoasVindas do mesmo jeito).
+   Roda DEPOIS de newGame(): S/CL.clubId já existem, então usa dado real do save (orçamento,
+   estádio, divisão) em vez de reconstruir tudo na mão. `onContinue` é o que cada chamador
+   quer rodar ao entrar de fato (Solo: checa sorteio pendente de copa; Resenha: nada, ela
+   trata isso nas transições de rodada). */
+function showBoasVindas(onContinue){
+  CL._welcomeThen = onContinue || null;
+  CL.screen='boasvindas';
   cdraw();
-  checkPendingCupDraws(()=>{}); // mostra o sorteio da Copa do Brasil já no início do save, se houver
+}
+function clBoasVindasContinuar(tab){
+  CL.tab = tab || CL.tab || 'jogo';
+  const then=CL._welcomeThen; CL._welcomeThen=null;
+  CL.screen='main';
+  cdraw();
+  if(then) then();
+}
+/* escudo do clube: real (Transfermarkt) quando existe — via club.crest (Série A e clubes
+   estrangeiros/CONMEBOL) ou, pros clubes reais das Séries B/C/D do Brasil (que não vêm com
+   crest no bundle original), via CLUB_CREST_BRASIL_LOWER (id do jogo -> URL do escudo,
+   capturado do Transfermarkt por scripts/build-crests-brasil-lower.mjs). Sem nenhum dos dois
+   (raríssimo — só clube sem match confiável na captura), cai num badge circular nas duas cores
+   oficiais do clube com as iniciais — mesma identidade visual que clubStripe já usa em todo o
+   resto do jogo. onerror também cai pro badge (link quebrado do Transfermarkt não deixa o
+   escudo em branco). */
+function clubCrestUrl(club){
+  if(club.crest) return club.crest;
+  return (typeof CLUB_CREST_BRASIL_LOWER!=='undefined' && CLUB_CREST_BRASIL_LOWER[club.id]) || null;
+}
+function clubCrestHTML(club){
+  const {col,col2}=clubColors(club);
+  const txt=barTextColor(col,col2);
+  const initials=escC((club.short||club.name||'?').replace(/[^\p{L}\p{N}]/gu,'').slice(0,3).toUpperCase());
+  const fallback=`<span class="cl-welc-crest-fallback" style="background:${col};color:${txt}">${initials}</span>`;
+  const crest=clubCrestUrl(club);
+  if(!crest) return fallback;
+  return `<span style="position:relative;display:inline-block;width:34px;height:41px">
+    <img class="cl-welc-crest" src="${escC(crest)}" alt="Escudo do ${escC(club.short||'')}"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <span class="cl-welc-crest-fallback" style="display:none;position:absolute;inset:0;background:${col};color:${txt}">${initials}</span>
+  </span>`;
+}
+function scBoasVindas(){
+  const club=clubOf(CL.clubId); if(!club) return dlg('Início de temporada','',{w:900});
+  const st=myStadium(); const cap=(st&&st.capacity)||STAND_START;
+  const photo=stadiumPhotoFor(CL.clubId);
+  const country=S.intlUniverse||'Brasil';
+  const divLabel=classifDivName(S.division, S.intlUniverse);
+  const video=(typeof clubWelcomeVideo==='function')?clubWelcomeVideo(CL.clubId):(window.WELCOME_VIDEO_DEFAULT||'');
+  return dlg(`Início de temporada — ${club.short}`, `
+    <div class="cl-welc">
+      <div class="cl-welc-hd">
+        <div>
+          <div class="cl-welc-h1">Bem-vindo ao ${escC(club.short)}, treinador.</div>
+          <div class="cl-welc-sub">A temporada <span style="font-family:var(--mono);font-weight:700">${S.season||2026}</span> começa agora. O comando é seu.</div>
+        </div>
+        <div class="cl-welc-badge">
+          ${clubCrestHTML(club)}
+          <span class="cl-welc-stripe" style="${clubStripe(club)}">${escC(club.short)}</span>
+        </div>
+      </div>
+
+      <div class="cl-welc-media">
+        <div>
+          <div class="cl-welc-frame">
+            <video src="${escC(video)}" autoplay muted loop playsinline></video>
+          </div>
+          <div class="cl-welc-cap">O presidente entrega a camisa ao novo treinador do ${escC(club.short)}.</div>
+        </div>
+        <div>
+          <div class="cl-welc-frame cl-welc-stadium">
+            ${photo?`<img src="${escC(photo)}" alt="Estádio do ${escC(club.short)}">`:standSVG(cap)}
+          </div>
+          <div class="cl-welc-cap">Estádio do <strong style="color:#fff">${escC(club.short)}</strong> — ${grp(cap)} lugares.</div>
+        </div>
+      </div>
+
+      <fieldset class="cl-welc-facts"><legend>Ficha do clube</legend>
+        <div class="cl-welc-facts-grid">
+          <div>País: <b>${escC(country)}</b></div>
+          <div>Divisão: <b>${escC(divLabel)}</b></div>
+          <div>Caixa disponível: <b>${fmt(S.budget||0)}</b></div>
+          <div>Estádio: <b>${grp(cap)} lugares</b></div>
+        </div>
+      </fieldset>
+
+      <div class="cl-welc-quotes">
+        <div class="cl-welc-quote">
+          <div class="cl-welc-quote-lbl">💬 O PRESIDENTE</div>
+          <div class="cl-welc-quote-txt">"Essa camisa é sua agora, treinador. Monte o time do seu jeito, cuide do caixa e devolva ao ${escC(club.short)} os títulos que a torcida merece."</div>
+        </div>
+        <div class="cl-welc-quote">
+          <div class="cl-welc-quote-lbl">📣 A TORCIDA</div>
+          <div class="cl-welc-quote-txt">"Chuva ou sol, a gente tá com o ${escC(club.short)}. Bem-vindo, treinador — só pedimos raça, o resto a gente empurra."</div>
+        </div>
+      </div>
+
+      <div class="cl-welc-actions">
+        <div class="cl-welc-hint">Escolha a tática no menu <strong style="color:#fff">Formação</strong> antes do primeiro jogo.</div>
+        ${btn('Ver a formação…','clBoasVindasContinuar(\'seleccao\')',{icon:'👥'})}
+        ${btn('Assumir o comando','clBoasVindasContinuar(\'jogo\')',{icon:'✔',cls:'cl-btn-ok'})}
+      </div>
+    </div>`, {w:900, bodyClass:'cl-body-green', min:true});
 }
 
 /* ================= FASE 1 · ESCOLHA DE CLUBES POR MANAGER (multi-país) =================

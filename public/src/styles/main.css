@@ -342,6 +342,45 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-jname{font-weight:700;font-size:15px;background:var(--yellowlite);padding:5px 8px;width:200px;border:1px solid #999}
 .cl-jteam{font-weight:700;font-size:15px;color:#fff;padding:5px 10px;width:210px;text-shadow:0 1px 2px rgba(0,0,0,.6)}
 .cl-jog-actions{display:flex;justify-content:center;margin-top:26px}
+/* boas-vindas ao clube: tela pós-sorteio (Solo e Resenha), antes de entrar no jogo (scBoasVindas) */
+.cl-welc{width:min(860px,100%);box-sizing:border-box}
+.cl-welc-hd{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.cl-welc-h1{font-family:var(--serif);font-style:italic;font-weight:700;font-size:24px;color:var(--yellow);line-height:1.15}
+.cl-welc-sub{font-size:13px;color:var(--ontext-lite);margin-top:4px}
+.cl-welc-badge{display:flex;gap:8px;align-items:center}
+.cl-welc-crest{display:block;width:34px;height:41px;object-fit:contain;flex:none}
+.cl-welc-crest-fallback{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;font-weight:800;font-size:13px;flex:none;box-shadow:0 0 0 2px rgba(255,255,255,.5) inset}
+.cl-welc-stripe{font-weight:800;font-size:13px;padding:5px 10px;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.cl-welc-media{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.cl-welc-frame{border:2px solid;border-color:var(--bevel-field);background:#fff;padding:6px;height:220px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;overflow:hidden}
+.cl-welc-frame video{display:block;width:100%;height:100%;object-fit:cover}
+.cl-welc-stadium{background:#0d5a0d;position:relative}
+.cl-welc-stadium img{max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 8px 10px rgba(0,0,0,.35))}
+.cl-welc-stadium .cl-est-svg{width:200px}
+.cl-welc-cap{font-size:12px;color:var(--ontext-lite2);margin-top:6px;line-height:1.35}
+.cl-welc-facts{margin-top:14px;border:1px solid var(--ontext-lite3);padding:6px 14px 12px;border-radius:2px}
+.cl-welc-facts>legend{color:var(--yellow);font-weight:800;font-size:13px;padding:0 6px}
+.cl-welc-facts-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:13px;line-height:1.4;color:var(--ontext-lite)}
+.cl-welc-facts-grid b{color:#fff}
+.cl-welc-quotes{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.cl-welc-quote{background:var(--body-yellow);color:#000;border:2px solid;border-color:var(--bevel-out);padding:11px 13px}
+.cl-welc-quote-lbl{font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--navy);margin-bottom:5px}
+.cl-welc-quote-txt{font-family:var(--serif);font-style:italic;font-size:13px;line-height:1.5}
+.cl-welc-actions{display:flex;gap:10px;justify-content:flex-end;align-items:center;flex-wrap:wrap;margin-top:16px}
+.cl-welc-hint{flex:1;min-width:180px;font-size:12px;color:var(--ontext-lite3)}
+@media (max-width:640px){
+  .cl-welc-media,.cl-welc-quotes,.cl-welc-facts-grid{grid-template-columns:1fr}
+  .cl-welc-frame{height:180px}
+  /* botões fixos numa barra na base da tela — mesma ideia do botão Jogar em .cl-sel-jogar:
+     sem isso o usuário precisava rolar até o fim (vídeo + estádio + ficha + citações) só
+     pra achar "Assumir o comando". Esconde a dica de tática (não cabe/não é essencial) e
+     reserva espaço embaixo do conteúdo pra nada ficar escondido atrás da barra. */
+  .cl-welc{padding-bottom:76px}
+  .cl-welc-actions{position:fixed;left:10px;right:10px;bottom:10px;z-index:60;
+    margin-top:0;gap:8px;flex-wrap:nowrap;box-shadow:0 -6px 18px rgba(0,0,0,.45);border-radius:6px;overflow:hidden}
+  .cl-welc-hint{display:none}
+  .cl-welc-actions .cl-btn{width:100%;flex:1}
+}
 /* MAIN */
 .cl-main{width:min(1000px,96vw);background:#000;border:var(--bw-frame) solid var(--navy);box-shadow:var(--shadow-main)}
 /* Resenha: reserva espaço à direita pra .cl-statusbar (fixed, 186px+12px de offset) nunca

@@ -575,7 +575,9 @@ function clPickMidJoinClub(clubId){
   toastC('Entrando...');
   (async ()=>{ try {
     await NET.assignClub(NET.self.id, clubId);
-    if(NET.room.phase==='lobby'){ CL.net.step='lobby'; cdraw(); } else { onlineBeginSeason(); }
+    // entrada NOVA nesta sala (escolheu o clube agora, temporada já rolando) — primeira vez que
+    // ESTE jogador vê o clube dele, então mostra a Boas-vindas como no sorteio normal.
+    if(NET.room.phase==='lobby'){ CL.net.step='lobby'; cdraw(); } else { onlineBeginSeason(true); }
   } catch(e) { toastC('⚠ '+e.message); } })();
 }
 
@@ -905,12 +907,12 @@ function clLobbyStart(){ if(!NET.isHost) return;
 function startResenhaDraw(){
   if(typeof clStopLobbyPoll==='function') clStopLobbyPoll(); // saí do lobby: para o poll de segurança
   const room=NET.room;
-  if(!room){ onlineBeginSeason(); return; }
+  if(!room){ onlineBeginSeason(true); return; }
   const poolById={}; (typeof resenhaStartClubs==='function'?resenhaStartClubs():[]).forEach(c=>{ poolById[c.id]=c; });
   // só treinadores COM assento sorteado; ordem DETERMINÍSTICA por clubId → todos veem a mesma sequência
   const list=(room.participants||[]).filter(p=>p.clubId).slice()
     .sort((a,b)=> String(a.clubId).localeCompare(String(b.clubId)));
-  if(!list.length){ onlineBeginSeason(); return; }
+  if(!list.length){ onlineBeginSeason(true); return; }
   if(CL._resDrawTimer){ clearTimeout(CL._resDrawTimer); CL._resDrawTimer=null; }
   CL.net.draw={ list, idx:0, done:false, fast:false, poolById };
   CL.net.step='reveal'; CL.screen='online';
@@ -921,7 +923,7 @@ function resenhaDrawTick(){
   const d=CL.net&&CL.net.draw; if(!d) return;
   if(d.idx>=d.list.length){
     d.done=true; renderOnlineInto();
-    CL._resDrawTimer=setTimeout(()=>{ if(CL.net) CL.net.draw=null; onlineBeginSeason(); }, d.fast?500:1600);
+    CL._resDrawTimer=setTimeout(()=>{ if(CL.net) CL.net.draw=null; onlineBeginSeason(true); }, d.fast?500:1600);
     return;
   }
   d.idx++;
@@ -969,14 +971,19 @@ function resenhaSeed32(raw){
   for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); }
   h=h>>>0; return h||1; // nunca 0 (0 cairia no Math.random do newGame)
 }
-function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=room.participants.find(p=>p.id===NET.self.id);
+/* `fresh`=true só na saída do reveal do sorteio (startResenhaDraw/resenhaDrawTick) e na entrada
+   nova de um clube livre (clPickMidJoinClub) — únicos momentos em que faz sentido mostrar a
+   Boas-vindas ao Clube (ver showBoasVindas, ui/main.js). Reconexão a jogo em andamento
+   (routeAfterJoin, acima neste arquivo) chama sem argumento e cai direto na tela principal,
+   como sempre foi. */
+function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const me=room.participants.find(p=>p.id===NET.self.id);
   // SEGURANÇA: convidado sem clube ainda? re-lê os assentos e tenta de novo (o sorteio do host pode
   // não ter chegado). NUNCA pega o clube de outro — dois usuários com o MESMO time era exatamente
   // o bug. Tenta até 6x (~6s); se ainda não tiver assento, aborta com aviso (não rouba clube).
   if(CL.online && !NET.isHost && (!me || !me.clubId)){
     onlineBeginSeason._retry=(onlineBeginSeason._retry||0)+1;
     if(onlineBeginSeason._retry<=6 && typeof NET!=='undefined' && NET.refreshRoom){
-      (async ()=>{ try{ await NET.refreshRoom(); }catch(e){} setTimeout(onlineBeginSeason, 1000); })();
+      (async ()=>{ try{ await NET.refreshRoom(); }catch(e){} setTimeout(()=>onlineBeginSeason(fresh), 1000); })();
       return;
     }
     onlineBeginSeason._retry=0;
@@ -1005,8 +1012,11 @@ function onlineBeginSeason(){ const room=NET.room; if(!room) return; const me=ro
   CL.humans={}; room.participants.forEach(p=>{ if(p.clubId) CL.humans[p.clubId]=p.name; });
   CL.online=true; CL._playedRound=null; CL._hostPendingCommit=null; CL._hostCloseSince=0; // zera controle de rodada do save novo
   CL.formation=null; CL.tacticChosen=false; S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
-  CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
-  cdraw(); // ao entrar na Resenha, vai SEMPRE direto pra TELA PRINCIPAL do time
+  CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
+  // entrada fresca (logo após o sorteio): mostra a Boas-vindas ao Clube antes da tela principal.
+  // reconexão a jogo em andamento vai direto pra TELA PRINCIPAL do time, como sempre foi.
+  if(fresh && typeof showBoasVindas==='function') showBoasVindas();
+  else { CL.screen='main'; cdraw(); }
 
   // A janela de 60s (NET.start) já foi aberta pelo anfitrião em clLobbyStart, ANTES do reveal —
   // não reabrir aqui (dobraria o cronômetro). Reconexões a jogo em andamento caem aqui com a fase
