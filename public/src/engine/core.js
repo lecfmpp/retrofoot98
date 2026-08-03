@@ -1692,8 +1692,16 @@ function unifiedContinentalQualification(userFinish){
   if(uid){
     const already=lib.indexOf(uid)>=0?'lib':(sul.indexOf(uid)>=0?'sul':null);
     lib=lib.filter(id=>id!==uid); sul=sul.filter(id=>id!==uid);
-    if(userFinish>=1&&userFinish<=2) lib.unshift(uid);
-    else if(userFinish>=3&&userFinish<=6) sul.unshift(uid);
+    // vaga do PRÓPRIO clube usa a MESMA contagem de vagas por país que já vale pro resto do
+    // pool (LIB_SLOTS_UNI/SUL_SLOTS_UNI, linhas acima) — antes era um corte fixo "1º-2º
+    // Libertadores, 3º-6º Sul-Americana" copiado do padrão europeu Champions/Europa (4+2), que
+    // pro Brasil (6 vagas de Libertadores) jogava o 3º-6º colocado pra Sul-Americana mesmo com
+    // o troféu da tabela mostrando "Libertadores" pra eles (ver qualificationZone, main.js) —
+    // exatamente a troca de competição que foi reportada.
+    const country=(typeof primaryCountry==='function')?primaryCountry():'Brasil';
+    const nl=LIB_SLOTS_UNI[country]||6, ns=SUL_SLOTS_UNI[country]||6;
+    if(userFinish>=1 && userFinish<=nl) lib.unshift(uid);
+    else if(userFinish>nl && userFinish<=nl+ns) sul.unshift(uid);
     else if(already==='lib') lib.unshift(uid);
     else if(already==='sul') sul.unshift(uid);
   }

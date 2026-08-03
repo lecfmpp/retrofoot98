@@ -37,14 +37,18 @@
     return t.lower;
   }
 
-  /* ---- COPAS: prêmio por fase alcançada. Três categorias: copa nacional, continental
-     principal (Libertadores/Champions) e continental secundária (Sul-Americana/Europa). ---- */
-  const CUP_CAT={ copaBrasil:'nat', libertadores:'cont1', sulamericana:'cont2',
+  /* ---- COPAS: prêmio por fase alcançada. Libertadores e Sul-Americana têm tabela PRÓPRIA
+     (valores oficiais informados pelo dono do jogo — ver histórico do commit); Champions/Europa
+     continuam nas tabelas genéricas cont1/cont2 de antes, sem mudança. Copa do Brasil paga por
+     fase durante a temporada (ver copaBrasilPhaseCash), não aqui. */
+  const CUP_CAT={ copaBrasil:'nat', libertadores:'libertadores', sulamericana:'sulamericana',
                   championsLeague:'cont1', europaLeague:'cont2' };
   const CUP={
     nat:  {campeao:15e6, vice:8e6,  semi:4e6, quartas:2.5e6, oitavas:1.5e6, part:0.8e6},
     cont1:{campeao:22e6, vice:13e6, semi:8e6, quartas:5e6,   oitavas:3e6,   part:2e6},
     cont2:{campeao:12e6, vice:7e6,  semi:4e6, quartas:2.5e6, oitavas:1.5e6, part:1e6},
+    libertadores:{campeao:24e6, vice:12e6, semi:7e6, quartas:5e6, oitavas:3e6,   part:1.5e6},
+    sulamericana:{campeao:12e6, vice:6e6,  semi:3.5e6,quartas:2.5e6,oitavas:1.5e6,part:0.7e6},
   };
   function cupCategory(cupKey){ return CUP_CAT[cupKey] || 'nat'; }
   /* mapeia a STRING que cupResultForClub() devolve pra uma chave de prêmio */
