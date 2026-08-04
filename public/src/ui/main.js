@@ -1989,7 +1989,9 @@ function playerSalary(p){ return (p&&p.contract&&p.contract.salary) || (p?REBAL.
    solto no jogador, que não sobrevive a um adopt do estado do servidor. */
 function isInTraining(clubId, pid){ return ((S.trainingByClub && S.trainingByClub[clubId])||[]).indexOf(pid)>=0; }
 /* ícone ao lado da força de quem está treinando — dá pra acompanhar a evolução direto na lista,
-   sem abrir o menu de treino. ⭐ já significa outra coisa aqui (evolui mais rápido), por isso o cone. */
+   sem abrir o menu de treino. ⭐ já significa outra coisa aqui (evolui mais rápido), por isso o
+   cone (não existe emoji nativo de cone de trânsito — usa a imagem). */
+function trainingConeImg(px){ px=px||12; return `<img class="cl-cone-ic" src="img/treino-especial-cone.webp" width="${px}" height="${px}" alt="Em treino especial">`; }
 /* PILHA DE ENERGIA: energia entra no motor de partida como `força × (0,6 + 0,4 × energia)`
    (ver computeRatings no match-engine) — ou seja, um titular esgotado vale até 40% menos em
    campo. Merecia estar visível na lista, não só escondida no perfil. A cor sai do próprio nível
@@ -2011,7 +2013,7 @@ function trainingIcon(clubId, p){
       ? ` · desde que entrei em treino: ${g.hist[0].f} → ${g.atual}${g.atual>g.hist[0].f?' ▲':g.atual<g.hist[0].f?' ▼':' (estável)'}`
       : ' · ainda sem variação registrada';
   }
-  return `<span class="cl-rtrain" title="Em treino especial — chance extra de evolução a cada rodada${extra}">🔺</span>`;
+  return `<span class="cl-rtrain" title="Em treino especial — chance extra de evolução a cada rodada${extra}">${trainingConeImg(11)}</span>`;
 }
 /* MESMA tabela de elenco pra QUALQUER clube (o meu e o dos outros, humano ou CPU): mesmo grid
    (.cl-rrow), mesmo cabeçalho, mesmas colunas e os mesmos valores. Antes cada tela tinha a sua
@@ -2543,7 +2545,7 @@ function forcaImpactoTexto(p){
     + ` É a média do setor — não a força de um jogador — que decide quem cria mais chance na partida.`;
 }
 /* ---- FORÇA: atual, de onde veio, e o que o treino rendeu ----
-   O 🔺 do elenco só dizia "está em treino". Aqui dá pra ver se rendeu: a força de agora, a de
+   O cone do elenco só dizia "está em treino". Aqui dá pra ver se rendeu: a força de agora, a de
    antes da última mudança, e a variação desde que o acompanhamento começou. */
 function forcaBlocoHTML(p){
   const g=(typeof growthOf==='function')?growthOf(p):{atual:p.f,anterior:p.f,delta:0,hist:[]};
@@ -2560,7 +2562,7 @@ function forcaBlocoHTML(p){
     ? `<div class="cl-forca-sub">Desde que passei a acompanhar: <b>${desde}</b> → <b>${g.atual}</b> (<b>${totalTxt}</b>)</div>`
     : `<div class="cl-forca-sub"><i>Acompanhamento começa agora — a próxima rodada já mostra a variação.</i></div>`;
   const linhaTreino = treino
-    ? `<div class="cl-forca-treino">🔺 Em treino especial — chance extra de evolução a cada rodada</div>` : '';
+    ? `<div class="cl-forca-treino">${trainingConeImg(13)} Em treino especial — chance extra de evolução a cada rodada</div>` : '';
   return `<div class="cl-forca" title="${escC(forcaImpactoTexto(p))}">
     <div class="cl-forca-top"><span>Força</span><b class="cl-forca-n">${p.f}</b><span class="cl-forca-d ${g.delta>0?'up':g.delta<0?'down':''}">${dl}</span></div>
     ${linhaMudanca}${linhaTotal}${linhaTreino}
@@ -2910,7 +2912,7 @@ function clTrainingScreen(){ CL.menu=null;
     const star=(typeof hasEstrelinha==='function')&&hasEstrelinha(p);
     return `<div class="cl-mkt-p" style="cursor:default">
       <span class="cl-mkt-p-pos">${posLetter(p.s)}</span><span class="cl-mkt-p-n">${escC(p.n)}${star?' ⭐':''}</span>
-      <span class="cl-mkt-p-f">${p.f}${inTraining?' 🔺':''}</span>
+      <span class="cl-mkt-p-f">${p.f}${inTraining?' '+trainingConeImg(12):''}</span>
       ${btn(inTraining?'Tirar do treino':'Treinar', (inTraining?'clStopTraining':'clStartTraining')+"('"+p.pid+"')", {cls:'cl-btn-mini'})}
     </div>`;
   }).join('');
