@@ -5,10 +5,10 @@
    Fonte das imagens: Estadios/Brasil/<divisão>/webP (fora do build, não versionado por si só —
    recortadas pra public/img/estadios/ por scripts/build-stadium-cutouts.mjs, que tira o fundo
    chapado — o desenho é servido direto sobre o verde, sem moldura).
-   Exceção conhecida: Ponte Preta (br_B_1134) não tem foto no acervo — as pastas refletem as
-   divisões REAIS de 2026 e ali a vaga é do Santa Cruz, que no jogo está na Série C. */
+   Séries B, C e D estão COMPLETAS: 60 de 60 clubes com foto real. */
 window.STADIUM_IMG = {
   // --- Série B ---
+  br_B_1134: 'img/estadios/brasil-b/Estadio-Ponte-Preta.webp',
   br_B_10492: 'img/estadios/brasil-b/Estadio-Juventude.webp',
   br_B_10870: 'img/estadios/brasil-b/Estadio-Fortaleza.webp',
   br_B_11449: 'img/estadios/brasil-b/Estadio-CRB.webp',
