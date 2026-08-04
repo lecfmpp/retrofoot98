@@ -623,13 +623,90 @@ function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: an
   const rest = ranked.slice(nByes);
   b.ties = []; for (let i = 0; i < rest.length; i += 2) b.ties.push({ h: rest[i], a: rest[i + 1], hg: null, ag: null, winner: null, events: [] });
 }
+/* ===== COPAS DE GRUPO (Libertadores / Sul-Americana) =====
+   Porte fiel de advanceGroupStageRound + a transição grupo->mata-mata de advancePendingCups
+   (public/src/engine/core.js). ANTES o servidor só avançava a Copa do Brasil e deixava as
+   continentais PARADAS ("portadas numa fase futura") — e como o cliente adota o estado do
+   servidor a cada rodada (Object.assign(S, sState) no reconcile), o índice da rodada de grupo
+   voltava atrás toda vez: o jogador reencontrava o MESMO adversário em toda semana de copa e a
+   tabela do grupo ficava travada em zero. Agora o grupo avança aqui, que é o único lugar cujo
+   resultado sobrevive ao adopt. ===== */
+const SEASON_EPOCH_2026 = [2026, 0, 18];   // 18/jan/2026 — mesma âncora do cliente (seasonEpoch)
+function realDateForDayS(day: number) {
+  const d = new Date(SEASON_EPOCH_2026[0], SEASON_EPOCH_2026[1], SEASON_EPOCH_2026[2]);
+  d.setDate(d.getDate() + ((day || 1) - 1));
+  return d;
+}
+// CONMEBOL sorteou as oitavas em 29/mai/2026 — até lá a fase de grupos encerrada fica
+// "aguardando sorteio", igual à vida real (mesma tabela do cliente).
+const COMP_R16_DRAW_2026: any = { libertadores: new Date(2026, 4, 29), sulamericana: new Date(2026, 4, 29) };
+const GROUP_CUP_KEYS = ['libertadores', 'sulamericana'];   // Resenha é sempre Brasil (ver onlineBeginSeason)
+function groupTableStandingsS(g: any) {
+  return Object.values(g.table || {}).sort((a: any, b: any) =>
+    b.Pts - a.Pts || (b.GF - b.GA) - (a.GF - a.GA) || b.GF - a.GF || String(a.id).localeCompare(String(b.id)));
+}
+function groupStageAdvancersS(mg: any) {
+  const out: string[] = [];
+  Object.values(mg.groups || {}).forEach((g: any) => {
+    groupTableStandingsS(g).slice(0, mg.advancePerGroup || 2).forEach((t: any) => out.push(t.id));
+  });
+  return out;
+}
+function advanceGroupStageRoundS(S: any, mg: any, roundLabel: string, cupResultByFx: any) {
+  if (!mg || mg.finished) return;
+  Object.values(mg.groups || {}).forEach((g: any) => {
+    const fx = (g.sched || [])[mg.round] || [];
+    fx.forEach((pair: any) => {
+      const h = pair && pair[0], a = pair && pair[1];
+      if (h == null || a == null) return;               // bye (grupo com número ímpar de times)
+      if (!S.squads || !S.squads[h] || !S.squads[a]) return;  // clube não materializado neste save
+      const T = g.table; if (!T || !T[h] || !T[a]) return;
+      let hg: number, ag: number, scorers: any[], perf: any;
+      // partida jogada AO VIVO por um humano: usa o resultado que ELE viu, em vez de re-simular
+      // (senão o placar da tela dele seria sobrescrito por outro no adopt seguinte).
+      const sub = cupResultByFx && cupResultByFx[h + '-' + a];
+      if (sub && sub.stage === 'group') {
+        hg = sub.hg; ag = sub.ag; scorers = sub.scorers || []; perf = sub.perf || null;
+        applyMatchIncidents(S, sub.events || []);
+      } else {
+        const seed = ME.hashSeed(S.seed, roundLabel, g.label, h, a);
+        const r = ME.simMatchPure(h, a, cupSide(S, h), cupSide(S, a), seed, {});
+        hg = r.hg; ag = r.ag; scorers = r.scorers || []; perf = r.perf || null;
+        applyMatchIncidents(S, r.events);
+      }
+      cupSumula(S, h, a, hg, ag, scorers, perf, roundLabel);   // artilharia + Historial dos dois elencos
+      g.results = g.results || [];
+      g.results.push({ r: mg.round, h, a, hg, ag, jornada: S.round });   // Calendário do cliente lê isto
+      T[h].P++; T[a].P++; T[h].GF += hg; T[h].GA += ag; T[a].GF += ag; T[a].GA += hg;
+      if (hg > ag) { T[h].W++; T[a].L++; T[h].Pts += 3; }
+      else if (hg < ag) { T[a].W++; T[h].L++; T[a].Pts += 3; }
+      else { T[h].D++; T[a].D++; T[h].Pts++; T[a].Pts++; }
+    });
+  });
+  mg.round++;
+  if (mg.round >= mg.roundsTotal) mg.finished = true;
+}
 function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>) {
   if (!S.cups) return;
   if (cupTickMatchesRound('copaBrasil', S.round)) {
     const cb = S.cups.copaBrasil;
     if (cb && !cupIsFinished(cb) && cb.ties && cb.ties.length) advanceCupBracket(S, cb, 'copaBrasil-r' + cb.round, cupResultByFx, humans);
   }
-  // Libertadores/Sul-Americana (fase de grupos) são só Série A — portadas numa fase futura.
+  GROUP_CUP_KEYS.forEach((key) => {
+    if (!cupTickMatchesRound(key, S.round)) return;
+    const c = S.cups[key]; if (!c) return;
+    if (c.group && !c.bracket) {
+      if (!c.group.finished) advanceGroupStageRoundS(S, c.group, key + '-grupo-r' + c.group.round, cupResultByFx);
+      if (c.group.finished) {
+        const drawDate = (S.season === 2026) ? COMP_R16_DRAW_2026[key] : null;
+        if (!drawDate || realDateForDayS(S.day) >= drawDate) {
+          c.bracket = makeBracketT(groupStageAdvancersS(c.group), ME.hashSeed(S.seed, key, 'mata-mata', S.season), S.clubOverall || {});
+        }
+      }
+    } else if (c.bracket && !cupIsFinished(c.bracket) && c.bracket.ties && c.bracket.ties.length) {
+      advanceCupBracket(S, c.bracket, key + '-r' + c.bracket.round, cupResultByFx, humans);
+    }
+  });
 }
 /* ===== VIRADA DE TEMPORADA (F3.2) — promoção/rebaixamento + envelhecimento/regen + reconstrução.
    Viewer-independente (não depende de S.clubId): opera no MUNDO. Todas as 4 divisões já são
@@ -1057,7 +1134,10 @@ Deno.serve(async (req: Request) => {
       if (r && s.last_result_round === round && r.morale) moraleByClub[s.club_id] = Number(r.morale) || 0;
       // resultado de COPA submetido pra ESTA rodada (aplicado na chave; mandante-autoritativo)
       const cr = s.last_cup_result;
-      if (cr && s.last_cup_round === round && cr.h && cr.a && cr.winner) { const ck = cr.h + "-" + cr.a; if (!cupResultByFx[ck] || s.club_id === cr.h) cupResultByFx[ck] = { hg: cr.hg, ag: cr.ag, winner: cr.winner, pens: cr.pens || null, events: cr.events || [], scorers: cr.scorers || [], perf: cr.perf || null }; }
+      // `winner` só existe no mata-mata; confronto de FASE DE GRUPOS (stage:'group') não tem —
+      // sem esta exceção o resultado de grupo do humano era descartado e advanceGroupStageRoundS
+      // re-simulava a partida que ele acabou de jogar ao vivo, trocando o placar que ele viu.
+      if (cr && s.last_cup_round === round && cr.h && cr.a && (cr.winner || cr.stage === 'group')) { const ck = cr.h + "-" + cr.a; if (!cupResultByFx[ck] || s.club_id === cr.h) cupResultByFx[ck] = { stage: cr.stage || 'bracket', hg: cr.hg, ag: cr.ag, winner: cr.winner || null, pens: cr.pens || null, events: cr.events || [], scorers: cr.scorers || [], perf: cr.perf || null }; }
     });
 
     // FASE 1: snapshot do APITO (games.kickoff_lineups, carimbado na virada ready->running) tem

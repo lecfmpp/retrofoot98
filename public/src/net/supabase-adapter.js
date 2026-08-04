@@ -473,9 +473,13 @@ async function netResolveRound(round){
    (resolve-round) aplica esse resultado na chave (mandante-autoritativo) antes de simular
    o resto do bracket. Só copas de mata-mata (Copa do Brasil); grupos são Série A -> futuro. */
 async function netPublishCupResult(round, cupResult){
-  if(!sb || !NET.gameId || !SB_AUTH_USER || !cupResult || !cupResult.h || !cupResult.a || !cupResult.winner) return;
-  const payload = { h:cupResult.h, a:cupResult.a, hg:cupResult.hg, ag:cupResult.ag,
-    winner:cupResult.winner, pens:cupResult.pens||null, events:cupResult.events||[],
+  // `winner` só existe no mata-mata; confronto de FASE DE GRUPOS (stage:'group') não tem — sem
+  // esta exceção o resultado de grupo era descartado aqui e o servidor re-simulava a partida que
+  // o humano acabou de jogar ao vivo.
+  if(!sb || !NET.gameId || !SB_AUTH_USER || !cupResult || !cupResult.h || !cupResult.a) return;
+  if(!cupResult.winner && cupResult.stage!=='group') return;
+  const payload = { stage:cupResult.stage||'bracket', h:cupResult.h, a:cupResult.a, hg:cupResult.hg, ag:cupResult.ag,
+    winner:cupResult.winner||null, pens:cupResult.pens||null, events:cupResult.events||[],
     scorers:cupResult.scorers||[], perf:cupResult.perf||null, // artilharia + Historial no servidor (cupSumula)
     decisions:cupResult.decisions||[] }; // Fase 3A: log de decisões
   try{

@@ -5772,6 +5772,15 @@ function finishCupLiveMatch(){
     else if(m.hg<m.ag){ T[a].W++; T[h].L++; T[a].Pts+=3; }
     else { T[h].D++; T[a].D++; T[h].Pts++; T[a].Pts++; }
     mg._userRoundDone=mg.round; // avanço em segundo plano desta rodada pula só a partida do usuário
+    // Resenha (online): publica também o resultado de FASE DE GRUPOS. Antes só o mata-mata era
+    // publicado, então o servidor re-simulava a partida que o humano tinha acabado de jogar ao
+    // vivo e o adopt seguinte sobrescrevia o placar que ele viu na tela (ver
+    // advanceGroupStageRoundS em supabase/functions/resolve-round). `stage:'group'` é o que
+    // distingue os dois lá — confronto de grupo não tem vencedor.
+    if(CL.online && typeof NET!=='undefined' && NET.publishCupResult){
+      NET.publishCupResult(S.round, { stage:'group', h, a, hg:m.hg, ag:m.ag, events:m.events,
+        scorers, perf:m.perf||null, decisions:(m.sim&&m.sim.decisions)||[] });
+    }
     const userIsHome=(h===CL.clubId);
     const userGF=userIsHome?m.hg:m.ag, userGA=userIsHome?m.ag:m.hg;
     const outcome=userGF>userGA?'Vitória':userGF<userGA?'Derrota':'Empate';
