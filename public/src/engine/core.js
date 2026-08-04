@@ -4051,7 +4051,6 @@ function applyCpuStadiumGrowth(){
 function newSeasonReset(){
   applyCpuSeasonFinances();          // ANTES do swap de divisões: tabelas/elencos ainda são os do ano que fechou
   applyCpuStadiumGrowth();           // idem — usa o caixa (S.budgets) já atualizado pelo passo acima
-  const finalTable=sortedTable();
   const finalPos=tablePos(S.clubId);
   const totalClubs=DATA.clubs.length;
   const prevDivision=S.division;
@@ -4117,17 +4116,15 @@ function newSeasonReset(){
   applySeasonAgingAndRetirement(); // envelhece, aposenta quem for a hora, reancora f0/mv0, resincroniza overall
   autoManageSalaries();
   S.xi=autoXI(S.clubId);
-  // copas continentais só existem pra quem está na Série A (só ela classifica pra elas);
-  // Copa do Brasil roda pra QUALQUER divisão do usuário, com clubes das 4 divisões (ver
-  // copaBrasilQualification). Se o usuário estava na Série A na temporada anterior, a tabela
-  // final dela vale pra classificação real das copas continentais; se ele acabou de ser
-  // promovido (vinha de B/C/D), não existe uma "tabela da Série A anterior" pros clubes
-  // novos — usa força (overall) como proxy, igual à 1ª temporada.
-  const qualTable = (S.division==='A') ? ((prevDivision==='A') ? finalTable : DATA.clubs.slice().sort((a,b)=>b.overall-a.overall).map(c=>({id:c.id}))) : null;
-  // temporadas 2+: classificação continental UNIFICADA (Brasil + 9 CONMEBOL), não só o Brasil
-  // playTopDivision: ver acima — recém-promovido entra com 0 (sem vaga pela posição doméstica),
+  // As continentais existem no MUNDO, não só quando o usuário está na Série A: quem as disputa
+  // são os clubes classificados pela tabela final da Série A (S._topFinalStandings, ver
+  // unifiedContinentalPool) — humanos ou CPU, com o usuário jogando a divisão que for. Antes isto
+  // era condicionado à divisão DELE, então num save de Série B/C/D a Libertadores simplesmente
+  // deixava de existir no mundo, e ao subir pra elite ele chegava sem competição montada.
+  // Copa do Brasil segue rodando pra qualquer divisão, com clubes de A/B/C/D (copaBrasilQualification).
+  // playedTopDivision: ver acima — recém-promovido entra com 0 (sem vaga pela posição doméstica),
   // senão a colocação dele na Série B valeria como se fosse colocação na Série A.
-  initSeasonCups(qualTable ? unifiedContinentalQualification(playedTopDivision ? finalPos : 0) : {libertadores:[],sulamericana:[]});
+  initSeasonCups(unifiedContinentalQualification(playedTopDivision ? finalPos : 0));
   rollBgLeaguesSeason(); // vira a temporada das ligas de background (campeão/histórico/promoção)
   save();
 }

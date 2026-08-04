@@ -447,12 +447,18 @@ function newGame(clubId, division, compToggle, seedOverride){
   advanceAuctions();
   buildOtherDivisions();
   // primeira temporada (2026): usa a classificação REAL de Libertadores/Sul-Americana
-  // (Brasileirão 2025 + Copa do Brasil 2025 de verdade), não um proxy por força — assim o
-  // calendário 2026 já nasce igual à vida real (ver real2026Qualification). Copa do Brasil
-  // roda pra QUALQUER divisão (reúne clubes de A/B/C/D); Libertadores/Sul-Americana
-  // continuam só pra quem está na Série A, já que só ela classifica pras copas continentais.
-  const initQual = (division==='A') ? real2026Qualification() : {libertadores:[],sulamericana:[]};
-  initSeasonCups(initQual, compToggle);
+  // (grupos oficiais do sorteio da CONMEBOL), não um proxy por força — assim o calendário 2026
+  // já nasce igual à vida real (ver real2026Qualification).
+  // As continentais existem no MUNDO, independentemente da divisão em que o usuário está: quem
+  // as disputa são os clubes classificados de verdade, humanos ou CPU. Antes elas só eram criadas
+  // num save que COMEÇAVA na Série A — então um save de Série D (o padrão da Resenha) nunca tinha
+  // Libertadores, e ao subir até a elite continuava sem, porque não havia edição anterior de onde
+  // herdar os participantes sul-americanos (ver rebuildContinentalCups no resolve-round).
+  // Segurança de elenco: os brasileiros dos grupos são da Série A e já foram materializados por
+  // buildOtherDivisions() logo acima; os sul-americanos são criados com elenco por
+  // ensureIntlClub() dentro de real2026Qualification(). Nenhum participante fica sem squad —
+  // é o que evita a exceção que congelaria o avanço da fase de grupos.
+  initSeasonCups(real2026Qualification(), compToggle);
   // overall/apelido de TODOS os clubes (divisão do usuário + outras divisões + copas) guardado no
   // estado — a edge function usa pro mando de campo e a derby, sem depender de DATA.clubs; o cliente
   // online usa os MESMOS valores -> paridade. Populado DEPOIS de montar tudo (otherDivs/cups).
