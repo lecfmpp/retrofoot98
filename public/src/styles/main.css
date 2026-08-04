@@ -385,6 +385,47 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-welc-hint{display:none}
   .cl-welc-actions .cl-btn{width:100%;flex:1}
 }
+/* convite de outro clube: etapas 1 (jantar) e 2 (proposta no restaurante) — ver showJobInvite.
+   Reaproveita as peças da tela de boas-vindas (.cl-welc-*): mesma moldura de vídeo, mesmos
+   fieldsets e a mesma barra de ações, pra as três etapas parecerem a mesma sequência. */
+.cl-jobinv{width:min(860px,100%);box-sizing:border-box}
+.cl-jobinv-hd{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.cl-jobinv-h1{font-family:var(--serif);font-style:italic;font-weight:700;font-size:22px;color:var(--yellow);line-height:1.15}
+.cl-jobinv-media{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.cl-jobinv-video{background:#000;height:230px;position:relative;overflow:hidden}
+/* legenda sobre o vídeo do convite: o gradiente existe pra o texto ler sobre qualquer quadro */
+.cl-jobinv-vshade{position:absolute;inset:6px;background:linear-gradient(to top,rgba(0,0,0,.6) 0%,rgba(0,0,0,0) 55%);pointer-events:none}
+.cl-jobinv-vcap{position:absolute;left:16px;bottom:14px;right:16px;color:#fff;font-size:12px;text-shadow:1px 1px 0 #000;pointer-events:none}
+.cl-jobinv-tabela{margin-top:0}
+.cl-jobinv-grid{display:flex;flex-direction:column}
+.cl-jobinv-head,.cl-jobinv-row{display:grid;grid-template-columns:26px 1fr 34px 34px;gap:8px;align-items:center}
+.cl-jobinv-head{padding:4px 6px;color:var(--ontext-lite3);font-weight:700;font-size:11px;letter-spacing:.04em}
+.cl-jobinv-head span:nth-child(3),.cl-jobinv-head span:nth-child(4){text-align:right}
+.cl-jobinv-row{padding:5px 6px;font-size:12px;color:var(--ontext-lite);border-left:4px solid transparent}
+.cl-jobinv-row:nth-child(odd){background:rgba(255,255,255,.05)}
+.cl-jobinv-row.me{background:var(--navy);color:#fff;font-weight:800;border-left-color:var(--yellow)}
+.cl-jobinv-row.me .cl-jobinv-n:first-of-type{color:var(--yellow)}
+.cl-jobinv-pos,.cl-jobinv-n{font-family:var(--mono)}
+.cl-jobinv-n{text-align:right}
+.cl-jobinv-note{margin-top:8px;font-size:11px;color:var(--ontext-lite3);line-height:1.4}
+.cl-jobinv-recado{display:flex;flex-direction:column;gap:9px;font-size:13px;line-height:1.5;color:var(--ontext-lite);text-wrap:pretty}
+/* etapa 2: linhas de termo do contrato */
+.cl-jobterm{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 2px;border-bottom:1px solid rgba(255,255,255,.15);font-size:13px;color:var(--ontext-lite)}
+.cl-jobterm:last-of-type{border-bottom:none}
+.cl-jobterm b{font-family:var(--mono);font-weight:700;font-size:15px;color:#fff}
+.cl-jobterm b.cl-jobterm-hl{color:var(--yellow)}
+.cl-jobobj{margin-top:10px;background:var(--body-yellow);color:#000;border:2px solid;border-color:var(--bevel-out);padding:10px 12px}
+.cl-jobobj-lbl{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--navy);margin-bottom:4px}
+.cl-jobobj-txt{font-size:14px;font-weight:700;line-height:1.4}
+@media (max-width:640px){
+  .cl-jobinv-media{grid-template-columns:1fr}
+  .cl-jobinv-video{height:180px}
+  /* o modal do convite é overlay, não tela cheia: aqui a barra de ações NÃO pode ser fixa
+     (a regra de .cl-welc-actions no mobile fixa ela na base pra tela de boas-vindas). */
+  .cl-jobinv .cl-welc-actions{position:static;box-shadow:none;flex-wrap:wrap;padding:0}
+  .cl-jobinv .cl-welc-hint{display:block;flex:1 0 100%;min-width:0;margin-bottom:8px}
+  .cl-jobinv .cl-btn{flex:1;width:auto}
+}
 /* MAIN */
 .cl-main{width:min(1000px,96vw);background:#000;border:var(--bw-frame) solid var(--navy);box-shadow:var(--shadow-main)}
 /* Resenha: reserva espaço à direita pra .cl-statusbar (fixed, 186px+12px de offset) nunca

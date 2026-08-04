@@ -2882,8 +2882,15 @@ function generateJobOffer(){
   // calcular salário proposto: baseado no salário atual + bonus para clube melhor
   const clubOffer = clubOf(pick.id);
   const clubOfferOverall = clubOffer?clubOffer.overall:55;
-  const salaryBump = Math.round(S.coachSalary * (0.1 + (clubOfferOverall-curOverall)*0.02)); // 10% base + 2% por ponto de overall
-  const proposedSalary = S.coachSalary + salaryBump;
+  // Salário de referência: quem ainda está no PRIMEIRO clube nunca negociou salário — o save
+  // nasce com coachSalary 0 (index.html) e só applyManagerJobChange define um valor. Sem esta
+  // base a conta abaixo virava 0*algo = 0 e TODA primeira proposta da carreira vinha com salário
+  // R$ 0. Passava despercebido porque o modal antigo só mostrava o salário se ele fosse != 0;
+  // a tela nova de proposta põe o número em destaque (ver showJobProposal). Mesma fórmula de
+  // base que applyManagerJobChange usa — é o que ele ganharia hoje no clube atual.
+  const salarioAtual = S.coachSalary || Math.round(100000 + curOverall*5000);
+  const salaryBump = Math.round(salarioAtual * (0.1 + (clubOfferOverall-curOverall)*0.02)); // 10% base + 2% por ponto de overall
+  const proposedSalary = salarioAtual + salaryBump;
 
   return { clubId:pick.id, division: fromUp?DIV_ORDER[divIdx-1]:S.division, salary:proposedSalary };
 }
@@ -3163,33 +3170,14 @@ function clAcceptJob(idx){
   CL._jobOptions=null;
   clCloseOverlay(); saveV3(); cdraw();
 }
+/* O convite de outro clube virou um fluxo de 3 etapas (jantar -> proposta -> boas-vindas), que
+   mora na UI junto da tela de boas-vindas que ele reaproveita — ver showJobInvite em
+   ui/main.js. Aqui fica só a porta de entrada, pra não duplicar o caminho: quem chamava este
+   modal (checkPendingManagerEvents, abaixo) continua chamando a mesma função. */
 function showJobOfferModal(offer){
-  const c=clubOf(offer.clubId)||bgClubById(offer.clubId)||{short:'?'};
-  CL._jobOffer=offer;
-  // FASE 4: oferta estrangeira mostra o país (bandeira) e o rótulo da liga do NOVO país
-  const divLabel = offer.foreign
-    ? ((UNI_CONFIGS[uniKeyOf(offer.country)]||{}).label||{})[offer.division] || offer.division
-    : DIV_LABEL_FULL[offer.division];
-  const flag = offer.foreign && typeof flagImg==='function' ? flagImg(offer.country)+' ' : '';
-  const abroad = offer.foreign ? `<div class="cl-jobmodal-msg" style="margin-top:6px">✈️ É um convite pra dirigir <b>fora do país</b>, na ${flag}<b>${escC(offer.country)}</b>. Sua liga atual passa a rodar em segundo plano.</div>` : '';
-  const salaryInfo = offer.salary ? `<div class="cl-jobopt-info"><span>Salário proposto:</span><b>${fmt(offer.salary)}/sem</b></div>` : '';
-  overlayC(dlg(offer.foreign?'Proposta do exterior':'Proposta de outro clube', `<div class="cl-jobmodal">
-    <div class="cl-jobmodal-msg">O <b style="${clubStripe(c)};padding:2px 6px;border-radius:3px">${escC(c.short)}</b> (${flag}${divLabel}) gostou do seu trabalho e quer te contratar.</div>
-    ${abroad}
-    ${salaryInfo}
-    <div class="cl-jog-actions">${btn('Aceitar','clAcceptJobOffer()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Recusar','clDeclineJobOffer()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
-  </div>`, {w:520,bodyClass:'cl-body-green'}));
+  if(typeof showJobInvite==='function') return showJobInvite(offer);
+  CL._jobOffer=offer; // rede de segurança: se a UI não carregou, ao menos não perde a oferta
 }
-function clAcceptJobOffer(){
-  const o=CL._jobOffer; if(!o) return;
-  const clubName=(clubOf(o.clubId)||bgClubById(o.clubId)||{short:'?'}).short;
-  S.coachHistory=S.coachHistory||[];
-  S.coachHistory.push({season:S.season, type:'contratado', text:`Contratado pelo ${String(clubName).toUpperCase()}${o.foreign?' ('+o.country+')':''}`});
-  applyManagerJobChange(o.clubId,o.division,o.country); // country presente => troca de universo (FASE 4)
-  if(o.salary) S.coachSalary=o.salary; // atualizar salário se houver proposta
-  CL._jobOffer=null; clCloseOverlay(); saveV3(); cdraw();
-}
-function clDeclineJobOffer(){ CL._jobOffer=null; clCloseOverlay(); }
 function checkPendingManagerEvents(){
   if(CL._pendingManagerEvent){
     const ev=CL._pendingManagerEvent; CL._pendingManagerEvent=null;

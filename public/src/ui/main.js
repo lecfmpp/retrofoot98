@@ -1340,14 +1340,19 @@ function clEntrar(){
    estádio, divisão) em vez de reconstruir tudo na mão. `onContinue` é o que cada chamador
    quer rodar ao entrar de fato (Solo: checa sorteio pendente de copa; Resenha: nada, ela
    trata isso nas transições de rodada). */
-function showBoasVindas(onContinue){
+/* `opts.midSeason` = cheguei a este clube TROCANDO de time no meio da temporada (aceitei o
+   convite de outro clube — ver showJobInvite). Muda só o texto: em vez de "a temporada começa
+   agora", a tela reconhece que o campeonato já está rolando e que o treinador assume a partir da
+   próxima rodada. `opts.fromClub` = de onde ele veio, pra citar na despedida. */
+function showBoasVindas(onContinue, opts){
   CL._welcomeThen = onContinue || null;
+  CL._welcomeOpts = opts || null;
   CL.screen='boasvindas';
   cdraw();
 }
 function clBoasVindasContinuar(tab){
   CL.tab = tab || CL.tab || 'jogo';
-  const then=CL._welcomeThen; CL._welcomeThen=null;
+  const then=CL._welcomeThen; CL._welcomeThen=null; CL._welcomeOpts=null;
   CL.screen='main';
   cdraw();
   if(then) then();
@@ -1384,12 +1389,22 @@ function scBoasVindas(){
   const country=S.intlUniverse||'Brasil';
   const divLabel=classifDivName(S.division, S.intlUniverse);
   const video=(typeof clubWelcomeVideo==='function')?clubWelcomeVideo(CL.clubId):(window.WELCOME_VIDEO_DEFAULT||'');
-  return dlg(`Início de temporada — ${club.short}`, `
+  // troca de clube no meio da temporada (aceitei convite de outro clube): o campeonato já está
+  // rolando, então "a temporada começa agora" seria mentira — o texto reconhece a rodada em que
+  // ele assume e de onde veio.
+  const mid=CL._welcomeOpts&&CL._welcomeOpts.midSeason ? CL._welcomeOpts : null;
+  const titulo = mid ? `Novo desafio — ${club.short}` : `Início de temporada — ${club.short}`;
+  const h1 = mid ? `Contrato assinado. Bem-vindo ao ${escC(club.short)}.`
+                 : `Bem-vindo ao ${escC(club.short)}, treinador.`;
+  const sub = mid
+    ? `A temporada já está em andamento. Você assume o comando a partir da <span style="font-family:var(--mono);font-weight:700">${(S.round||0)+1}ª</span> rodada${mid.fromClub?`, deixando o ${escC(mid.fromClub)} para trás`:''}.`
+    : `A temporada <span style="font-family:var(--mono);font-weight:700">${S.season||2026}</span> começa agora. O comando é seu.`;
+  return dlg(titulo, `
     <div class="cl-welc">
       <div class="cl-welc-hd">
         <div>
-          <div class="cl-welc-h1">Bem-vindo ao ${escC(club.short)}, treinador.</div>
-          <div class="cl-welc-sub">A temporada <span style="font-family:var(--mono);font-weight:700">${S.season||2026}</span> começa agora. O comando é seu.</div>
+          <div class="cl-welc-h1">${h1}</div>
+          <div class="cl-welc-sub">${sub}</div>
         </div>
         <div class="cl-welc-badge">
           ${clubCrestHTML(club)}
@@ -1424,19 +1439,191 @@ function scBoasVindas(){
       <div class="cl-welc-quotes">
         <div class="cl-welc-quote">
           <div class="cl-welc-quote-lbl">💬 O PRESIDENTE</div>
-          <div class="cl-welc-quote-txt">"Essa camisa é sua agora, treinador. Monte o time do seu jeito, cuide do caixa e devolva ao ${escC(club.short)} os títulos que a torcida merece."</div>
+          <div class="cl-welc-quote-txt">${mid
+            ? `"Cumprimos o que foi combinado no jantar: verba, tempo e liberdade. Agora é com você — pegue o ${escC(club.short)} onde ele está e leve mais longe."`
+            : `"Essa camisa é sua agora, treinador. Monte o time do seu jeito, cuide do caixa e devolva ao ${escC(club.short)} os títulos que a torcida merece."`}</div>
         </div>
         <div class="cl-welc-quote">
           <div class="cl-welc-quote-lbl">📣 A TORCIDA</div>
-          <div class="cl-welc-quote-txt">"Chuva ou sol, a gente tá com o ${escC(club.short)}. Bem-vindo, treinador — só pedimos raça, o resto a gente empurra."</div>
+          <div class="cl-welc-quote-txt">${mid
+            ? `"Você chegou no meio do caminho, treinador. A gente enche o estádio do mesmo jeito. Só não deixe o ${escC(club.short)} baixar a cabeça."`
+            : `"Chuva ou sol, a gente tá com o ${escC(club.short)}. Bem-vindo, treinador — só pedimos raça, o resto a gente empurra."`}</div>
         </div>
       </div>
 
       <div class="cl-welc-actions">
-        <div class="cl-welc-hint">Escolha a tática no menu <strong style="color:#fff">Formação</strong> antes do primeiro jogo.</div>
-        ${btn('Iniciar temporada','clBoasVindasContinuar(\'jogo\')',{icon:'✔',cls:'cl-btn-ok'})}
+        <div class="cl-welc-hint">${mid?'Reveja a tática no menu':'Escolha a tática no menu'} <strong style="color:#fff">Formação</strong> antes ${mid?'da próxima rodada':'do primeiro jogo'}.</div>
+        ${btn(mid?'Assumir o comando':'Iniciar temporada','clBoasVindasContinuar(\'jogo\')',{icon:'✔',cls:'cl-btn-ok'})}
       </div>
     </div>`, {w:900, bodyClass:'cl-body-green', min:true});
+}
+
+/* ================= CONVITE DE OUTRO CLUBE (3 etapas) =================
+   Substitui o antigo modal único de "proposta de outro clube" (um Aceitar/Recusar seco, ver
+   showJobOfferModal no core.js, que agora só delega pra cá). A troca de clube no meio da
+   temporada é a decisão mais pesada da carreira, e passava numa caixinha de dois botões.
+   Agora são três telas encadeadas:
+     1) CONVITE  — o empresário avisa do convite pra jantar. Mostra a tabela em volta da sua
+        posição, que é o que chamou a atenção do outro clube. Aceitar aqui NÃO é aceitar o
+        emprego: é só um jantar, e é o gatilho pra próxima etapa.
+     2) PROPOSTA — a conversa vira contrato na mesa do restaurante. É AQUI que ele decide de
+        verdade: os termos (salário, verba, objetivo) ficam à vista antes do sim.
+     3) BOAS-VINDAS — a mesma tela de boas-vindas do clube, na variante de meio de temporada
+        (ver showBoasVindas/midSeason), já com o clube novo aplicado.
+   Recusar em qualquer etapa cai numa confirmação curta e volta pro jogo, sem mexer em nada. */
+function jobOfferClub(o){ return clubOf(o.clubId) || (typeof bgClubById==='function'&&bgClubById(o.clubId)) || {short:'?'}; }
+function jobOfferDivLabel(o){
+  return o.foreign
+    ? (((typeof UNI_CONFIGS!=='undefined'&&UNI_CONFIGS[uniKeyOf(o.country)])||{}).label||{})[o.division] || o.division
+    : (typeof DIV_LABEL_FULL!=='undefined' ? DIV_LABEL_FULL[o.division] : o.division);
+}
+/* O objetivo do contrato sai da REGRA REAL da divisão que ele vai disputar, não de um texto
+   fixo: na divisão de topo o alvo é vaga continental (mesmas 6 vagas de qualificationZone);
+   nas de baixo, o acesso (DIVISION_PROMO). Assim a promessa do presidente é a mesma coisa que
+   o jogo vai cobrar depois. */
+function jobOfferObjective(o){
+  const topDiv=(typeof DIV_ORDER!=='undefined'&&DIV_ORDER.length)?DIV_ORDER[0]:'A';
+  if(o.division===topDiv) return 'Terminar entre os seis primeiros e garantir vaga na Libertadores.';
+  const promo=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[o.division])||4;
+  return `Terminar entre os ${promo} primeiros e conquistar o acesso.`;
+}
+/* recorte da tabela em volta da posição do usuário — é a campanha DELE que motivou o convite,
+   então a tela mostra exatamente isso, com as mesmas faixas de zona do ranking. */
+function jobInviteTableHTML(){
+  const tbl=sortedTable(); const myPos=tablePos(CL.clubId);
+  if(!tbl.length || !myPos) return '';
+  const ini=Math.max(0, Math.min(myPos-4, tbl.length-6));
+  const linhas=tbl.slice(ini, ini+6).map((t,i)=>{
+    const pos=ini+i+1, c=clubOf(t.id)||{short:t.id}, eu=t.id===CL.clubId;
+    const zona=(typeof qualificationZone==='function')?qualificationZone(S.division,pos):null;
+    const borda = zona==='lib' ? '#0e7a3c' : zona==='sul' ? '#b8860b' : 'transparent';
+    return `<div class="cl-jobinv-row ${eu?'me':''}" style="border-left-color:${borda}">
+      <span class="cl-jobinv-pos">${pos}</span><span class="cl-jobinv-club">${escC(c.short)}</span>
+      <span class="cl-jobinv-n">${t.Pts}</span><span class="cl-jobinv-n">${t.P}</span></div>`;
+  }).join('');
+  return `<div class="cl-jobinv-head"><span>#</span><span>CLUBE</span><span>P</span><span>J</span></div>${linhas}`;
+}
+function showJobInvite(offer){
+  CL._jobOffer=offer;
+  const c=jobOfferClub(offer), me=clubOf(CL.clubId)||{short:'?'};
+  const flag=offer.foreign && typeof flagImg==='function' ? flagImg(offer.country)+' ' : '';
+  const myPos=tablePos(CL.clubId);
+  const exterior = offer.foreign
+    ? `<div style="margin-top:8px">✈️ É um convite pra dirigir <strong style="color:#fff">fora do país</strong>, na ${flag}<strong style="color:#fff">${escC(offer.country)}</strong>. Sua liga atual passa a rodar em segundo plano.</div>` : '';
+  overlayC(dlg(`Convite — ${c.short}`, `
+    <div class="cl-jobinv">
+      <div class="cl-jobinv-hd">
+        <span class="cl-welc-stripe" style="${clubStripe(c)}">${escC(c.short)}</span>
+        <div class="cl-jobinv-h1">Um convite para jantar.</div>
+      </div>
+
+      <div class="cl-jobinv-media">
+        <div>
+          <div class="cl-welc-frame cl-jobinv-video">
+            <video src="video/convite-jantar.mp4" autoplay muted loop playsinline></video>
+            <div class="cl-jobinv-vshade"></div>
+            <div class="cl-jobinv-vcap">Mesa reservada para as <span style="font-family:var(--mono);font-weight:700">20h30</span> — sexta-feira.</div>
+          </div>
+          <div class="cl-welc-cap">O presidente do ${escC(c.short)} espera você para conversar.</div>
+        </div>
+        <fieldset class="cl-welc-facts cl-jobinv-tabela"><legend>${escC(classifDivName(S.division,S.intlUniverse))} — ${(S.round||0)}ª rodada</legend>
+          <div class="cl-jobinv-grid">${jobInviteTableHTML()}</div>
+          <div class="cl-jobinv-note">${myPos?`Você é <strong style="color:var(--yellow)">${myPos}º</strong> — é essa campanha que chamou a atenção do ${escC(c.short)}.`:''}</div>
+        </fieldset>
+      </div>
+
+      <fieldset class="cl-welc-facts"><legend>Recado do seu empresário</legend>
+        <div class="cl-jobinv-recado">
+          <div>O presidente do <strong style="color:#fff">${escC(c.name||c.short)}</strong> (${flag}${escC(jobOfferDivLabel(offer))}) pediu para falar com você pessoalmente. Ele acompanha o seu trabalho no ${escC(me.short)} e quer conversar num jantar, sem compromisso.</div>
+          <div>Não há proposta na mesa — por enquanto é só uma conversa. Aceitar o convite não obriga você a nada.</div>
+          ${exterior}
+        </div>
+      </fieldset>
+
+      <div class="cl-welc-actions">
+        <div class="cl-welc-hint">Você segue como treinador do ${escC(me.short)} até decidir.</div>
+        ${btn('Recusar convite','clJobInviteDecline()',{icon:'✖',cls:'cl-btn-cancel'})}
+        ${btn('Aceitar o jantar','clJobInviteAccept()',{icon:'🍽',cls:'cl-btn-ok'})}
+      </div>
+    </div>`, {w:900, bodyClass:'cl-body-green'}));
+}
+function clJobInviteAccept(){ clCloseOverlay(); showJobProposal(); }
+function clJobInviteDecline(){ showJobDeclined('Você agradeceu o convite e seguiu em frente.'); }
+function showJobProposal(){
+  const o=CL._jobOffer; if(!o) return;
+  const c=jobOfferClub(o), me=clubOf(CL.clubId)||{short:'?'};
+  // Termos REAIS do save onde existem: o salário é o que a oferta carrega e o que passa a valer
+  // ao aceitar (S.coachSalary), e a verba é o caixa de verdade do clube que está contratando
+  // (S.budgets). Sem inventar número que o jogo não vá honrar depois.
+  const verba=(S.budgets&&S.budgets[o.clubId])||0;
+  const premio=Math.round((o.salary||0)*6);   // prêmio por objetivo ~ 6 semanas de salário
+  overlayC(dlg(`Jantar com a diretoria — ${c.short}`, `
+    <div class="cl-jobinv">
+      <div class="cl-welc-hd">
+        <div>
+          <div class="cl-welc-h1">A conversa virou proposta.</div>
+          <div class="cl-welc-sub">Entre a cerveja e a sobremesa, o contrato apareceu na mesa.</div>
+        </div>
+        <div class="cl-welc-badge">${clubCrestHTML(c)}<span class="cl-welc-stripe" style="${clubStripe(c)}">${escC(c.short)}</span></div>
+      </div>
+
+      <div class="cl-jobinv-media">
+        <div>
+          <div class="cl-welc-frame cl-jobinv-video">
+            <video src="video/convite-assinatura.mp4" autoplay muted loop playsinline></video>
+          </div>
+          <div class="cl-welc-cap">Presidente e treinador lendo o contrato no restaurante.</div>
+        </div>
+        <fieldset class="cl-welc-facts"><legend>Os termos</legend>
+          <div class="cl-jobterm"><span>Salário</span><b class="cl-jobterm-hl">${fmt(o.salary||0)}/sem</b></div>
+          ${S.coachSalary ? `<div class="cl-jobterm"><span>Hoje você ganha</span><b>${fmt(S.coachSalary)}/sem</b></div>` : ''}
+          <div class="cl-jobterm"><span>Prêmio por objetivo</span><b class="cl-jobterm-hl">${fmt(premio)}</b></div>
+          <div class="cl-jobterm"><span>Caixa do clube</span><b>${fmt(verba)}</b></div>
+          <div class="cl-jobterm"><span>Divisão</span><b>${escC(jobOfferDivLabel(o))}</b></div>
+          <div class="cl-jobobj">
+            <div class="cl-jobobj-lbl">🎯 OBJETIVO PRINCIPAL</div>
+            <div class="cl-jobobj-txt">${escC(jobOfferObjective(o))}</div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="cl-welc-quote">
+        <div class="cl-welc-quote-lbl">💬 O PRESIDENTE DO ${escC(String(c.short).toUpperCase())}</div>
+        <div class="cl-welc-quote-txt">"Vi o que você fez no ${escC(me.short)} com o elenco que tinha. Aqui você tem estrutura, torcida e uma diretoria que não muda de treinador a cada três jogos. Leia com calma, mas responda hoje."</div>
+      </div>
+
+      <div class="cl-welc-actions">
+        <div class="cl-welc-hint">Recusar encerra a conversa. O ${escC(me.short)} continua com você.</div>
+        ${btn('Recusar oferta','clJobProposalDecline()',{icon:'✖',cls:'cl-btn-cancel'})}
+        ${btn('Aceitar oferta','clJobProposalAccept()',{icon:'✔',cls:'cl-btn-ok'})}
+      </div>
+    </div>`, {w:900, bodyClass:'cl-body-green'}));
+}
+function clJobProposalDecline(){ showJobDeclined('Você agradeceu, recusou a proposta e voltou para o vestiário.'); }
+function showJobDeclined(msg){
+  const o=CL._jobOffer; const c=o?jobOfferClub(o):{short:'o clube'};
+  const me=clubOf(CL.clubId)||{short:'seu clube'};
+  CL._jobOffer=null;
+  overlayC(dlg('Convite recusado', `<div class="cl-res">
+    <div class="cl-res-verd" style="text-align:left">✓ ${escC(msg)} O ${escC(c.short)} foi informado e você continua no comando do ${escC(me.short)}.</div>
+    <div class="cl-cal-ok">${btn('Voltar ao jogo','clCloseOverlay()',{icon:'↩',cls:'cl-btn-ok'})}</div>
+  </div>`, {w:460, bodyClass:'cl-body-gray'}));
+}
+/* aceitou de verdade: troca o clube e cai na tela de boas-vindas em variante de meio de
+   temporada. Mesmo efeito do antigo clAcceptJobOffer — o que muda é só o caminho até aqui. */
+function clJobProposalAccept(){
+  const o=CL._jobOffer; if(!o) return;
+  const c=jobOfferClub(o), deOnde=(clubOf(CL.clubId)||{short:''}).short;
+  S.coachHistory=S.coachHistory||[];
+  S.coachHistory.push({season:S.season, type:'contratado',
+    text:`Contratado pelo ${String(c.short).toUpperCase()}${o.foreign?' ('+o.country+')':''}`});
+  applyManagerJobChange(o.clubId, o.division, o.country); // country presente => troca de universo
+  if(o.salary) S.coachSalary=o.salary;
+  // some da caixa de ofertas pendentes: aceitar por aqui resolve a mesma oferta que está lá
+  if(Array.isArray(S.pendingJobOffers)) S.pendingJobOffers=S.pendingJobOffers.filter(x=>x.clubId!==o.clubId);
+  CL._jobOffer=null;
+  clCloseOverlay(); saveV3();
+  showBoasVindas(null, { midSeason:true, fromClub:deOnde });
 }
 
 /* ================= FASE 1 · ESCOLHA DE CLUBES POR MANAGER (multi-país) =================
@@ -6423,14 +6610,14 @@ function clJobOffers(){ CL.menu=null;
     </div>
     <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:700,bodyClass:'cl-body-gray'}));
 }
+/* Aceitar pela caixa de ofertas entra no MESMO fluxo de 3 etapas do convite que chega sozinho
+   (jantar -> proposta -> boas-vindas, ver showJobInvite). Antes este caminho trocava de clube na
+   hora, então a mesma decisão tinha duas experiências diferentes dependendo de por onde o
+   jogador chegasse — e por aqui ele nem via os termos antes de confirmar. */
 function clAcceptPendingOffer(idx){
   const o=S.pendingJobOffers[idx]; if(!o) return;
-  S.coachHistory=S.coachHistory||[];
-  S.coachHistory.push({season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(o.clubId).short.toUpperCase()}`});
-  applyManagerJobChange(o.clubId,o.division);
-  if(o.salary) S.coachSalary=o.salary;
-  S.pendingJobOffers.splice(idx,1);
-  clCloseOverlay(); saveV3(); cdraw();
+  clCloseOverlay();
+  showJobInvite(o);
 }
 function clDeclinePendingOffer(idx){
   S.pendingJobOffers.splice(idx,1);
