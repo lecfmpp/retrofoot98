@@ -708,6 +708,58 @@ function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>) {
     }
   });
 }
+/* ===== COPAS CONTINENTAIS NA VIRADA DE TEMPORADA =====
+   O cliente monta Libertadores/Sul-Americana em newSeasonReset (initSeasonCups), mas na Resenha a
+   virada é 100% do servidor e o cliente só adota o resultado — então sem isto as continentais da
+   temporada NOVA nunca eram criadas: o estado seguia carregando a edição do ano anterior, já
+   encerrada, e ninguém tinha Libertadores na temporada 2+.
+   As 6+6 vagas brasileiras saem da CLASSIFICAÇÃO FINAL da Série A — mesma regra do cliente e das
+   tags "Lib"/"Sul" do ranking. Os representantes CONMEBOL são os mesmos da edição anterior: o
+   servidor não simula as ligas sul-americanas, então não existe campanha nova pra respeitar, e
+   reaproveitar quem já está no estado (com elenco materializado) mantém o formato de 32 clubes
+   sem inventar resultado que ninguém jogou. ===== */
+const LIB_SLOTS_BR = 6, SUL_SLOTS_BR = 6;
+function prevCupTeamIds(S: any, key: string) {
+  const c = S.cups && S.cups[key]; const out: string[] = [];
+  if (c && c.group && c.group.groups) Object.keys(c.group.groups).forEach((k) => ((c.group.groups[k] || {}).teams || []).forEach((id: string) => out.push(id)));
+  if (c && c.bracket) {   // fase de grupos já virou mata-mata: os participantes vivem na chave
+    (c.bracket.ties || []).forEach((t: any) => { if (t.h) out.push(t.h); if (t.a) out.push(t.a); });
+    (c.bracket.pendingByes || []).forEach((id: string) => out.push(id));
+    (c.bracket.history || []).forEach((h: any) => (h.ties || []).forEach((t: any) => { if (t.h) out.push(t.h); if (t.a) out.push(t.a); }));
+  }
+  return Array.from(new Set(out));
+}
+function splitIntoGroupsT(ids: string[], seedNum: number) {
+  const R = ME.makeRng(seedNum >>> 0); const sh = ids.slice();
+  for (let i = sh.length - 1; i > 0; i--) { const j = Math.floor(R.random() * (i + 1)); const t = sh[i]; sh[i] = sh[j]; sh[j] = t; }
+  const groups: any = {}; const letters = 'ABCDEFGH';
+  for (let i = 0; i < sh.length; i += 4) { const label = letters[Math.floor(i / 4)] || String(Math.floor(i / 4) + 1); groups[label] = sh.slice(i, i + 4); }
+  return groups;
+}
+function makeGroupStageT(groupsMap: any, advancePerGroup: number) {
+  const groups: any = {};
+  Object.keys(groupsMap).forEach((label) => {
+    const ids: string[] = groupsMap[label];
+    const table: any = {}; ids.forEach((id) => table[id] = { id, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, Pts: 0 });
+    groups[label] = { label, teams: ids.slice(), table, sched: makeScheduleT(ids.slice()) };
+  });
+  const lens = Object.keys(groups).map((k) => groups[k].sched.length);
+  return { groups, round: 0, roundsTotal: Math.max(1, ...lens), finished: false, advancePerGroup: advancePerGroup || 2 };
+}
+function rebuildContinentalCups(S: any, topStandings: string[]) {
+  if (!topStandings || !topStandings.length) return;
+  const prevLib = prevCupTeamIds(S, 'libertadores'), prevSul = prevCupTeamIds(S, 'sulamericana');
+  if (!prevLib.length && !prevSul.length) return;   // save nunca teve continental (ex.: começou na D) — nada a remontar
+  const brSet = new Set(topStandings);              // todo id da Série A é brasileiro; o resto é CONMEBOL
+  const build = (key: string, br: string[], foreign: string[]) => {
+    const ids = br.concat(foreign).filter((id) => S.squads && S.squads[id]);   // sem elenco no save, não entra
+    const uniq = Array.from(new Set(ids)).slice(0, 32);
+    if (uniq.length < 4) return;
+    S.cups[key] = { group: makeGroupStageT(splitIntoGroupsT(uniq, ME.hashSeed(S.seed, key + 'groups', S.season)), 2), bracket: null };
+  };
+  build('libertadores', topStandings.slice(0, LIB_SLOTS_BR), prevLib.filter((id) => !brSet.has(id)));
+  build('sulamericana', topStandings.slice(LIB_SLOTS_BR, LIB_SLOTS_BR + SUL_SLOTS_BR), prevSul.filter((id) => !brSet.has(id)));
+}
 /* ===== VIRADA DE TEMPORADA (F3.2) — promoção/rebaixamento + envelhecimento/regen + reconstrução.
    Viewer-independente (não depende de S.clubId): opera no MUNDO. Todas as 4 divisões já são
    materializadas em S.squads, então a troca só remaneja quais clubes ficam em cada divisão
@@ -850,6 +902,9 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   // Sul-Americana, mercado), que não disputam a Copa do Brasil e poluíam a chave.
   const cbClubs = DIV_ORDER.reduce((acc: string[], d) => acc.concat(newDiv[d]), [] as string[]);
   S.cups = S.cups || {}; S.cups.copaBrasil = makeBracketT(cbClubs, ME.hashSeed(S.seed, 'copaBrasil', S.season), S.clubOverall); // 5) copa nova
+  // continentais da temporada nova: vagas brasileiras pela CLASSIFICAÇÃO FINAL da Série A que
+  // acabou (_prevTables, capturado acima antes do reset das tabelas) — ver rebuildContinentalCups.
+  rebuildContinentalCups(S, (_prevTables[DIV_ORDER[0]] || []).map((x: any) => x.id));
   S.round = 0; S.week = 1; S.day = 1; S.results = []; S.scorers = {}; S.negos = []; S.finished = false; // 6) reset de temporada
   Object.keys(S.squads).forEach((cid) => S.squads[cid].forEach((p: any) => { p.moral = 70; p.energy = 100; p.suspended = 0; p.injuredMatches = 0; p.stats = { r3: [], g3: [], apps: 0, goals: 0, cs: 0, yellows: 0, reds: 0, injuries: 0 }; }));
   S._roundIncidents = {};
