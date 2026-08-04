@@ -1389,6 +1389,10 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // próxima passada. O fluxo de resultado da copa auto-avança no online (ver clCupResultContinue).
   if(typeof pendingUserCupMatches==='function'){
     const cupQueue=pendingUserCupMatches().filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key));
+    // apresentação da rodada de copa também aqui (ver showCupIntro) — mas com auto-avanço, porque
+    // este caminho roda com o cronômetro de 60s da sala já correndo: uma tela que espera clique
+    // seguraria a rodada dos outros jogadores.
+    if(cupQueue.length && typeof showCupIntro==='function'){ showCupIntro(cupQueue[0], true); return; }
     if(cupQueue.length && typeof startCupLiveMatch==='function'){ startCupLiveMatch(cupQueue[0]); return; }
   }
   CL._liveBusy=true; startLiveRound(); }

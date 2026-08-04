@@ -740,6 +740,15 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-live-cup-top{background:var(--navy);color:#fff;text-align:center;padding:14px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:6px}
 .cl-live-cup-top .cl-trophy-img{width:64px;height:64px}
 .cl-live-cup-name{font-weight:900;font-size:19px;letter-spacing:.3px;text-shadow:0 2px 2px rgba(0,0,0,.4)}
+/* apresentação da rodada de copa, antes de entrar em campo (ver showCupIntro) — diz qual
+   competição/fase e contra quem, pra ninguém mais cair de paraquedas numa partida de copa */
+.cl-cupintro{text-align:center}
+.cl-cupintro-phase{font-size:13px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--yellow);margin-bottom:14px}
+.cl-cupintro-match{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.cl-cupintro-team{font-weight:800;font-size:15px;padding:7px 14px;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.cl-cupintro-x{color:var(--yellow);font-weight:900;font-size:17px}
+.cl-cupintro-loc{font-size:13px;color:var(--ontext-lite2);margin-bottom:4px}
+.cl-cupintro-loc strong{color:#fff}
 .cl-live-cup-stage{font-weight:700;font-size:13px;color:var(--yellow);text-transform:uppercase;letter-spacing:.5px}
 .cl-live-clock{position:fixed;right:36px;top:38px;z-index:80;width:56px;height:56px;border-radius:50%;background:conic-gradient(var(--navy) calc(var(--pct,0)*1%), #fff 0);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
 .cl-live-clock-lbl{font-size:8px;font-weight:900;color:var(--navy);background:#fff;border-radius:3px;padding:1px 3px;line-height:1}

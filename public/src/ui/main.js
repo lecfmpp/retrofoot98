@@ -3122,7 +3122,7 @@ function clJogar(){
   // filtrado (pendingUserCupMatches exclui confronto humano x humano da mesma sala,
   // resolvido em segundo plano igual sempre foi).
   const cupQueue=pendingUserCupMatches().filter(c=>!cupWasSeen(c.key));
-  if(cupQueue.length){ startCupLiveMatch(cupQueue[0]); return; }
+  if(cupQueue.length){ showCupIntro(cupQueue[0]); return; }
   // nenhuma partida de copa pra JOGAR nesta rodada — mas pode ter rodada de copa
   // rolando de competições das quais o usuário não participa (ou já foi eliminado);
   // oferece assistir, uma competição de cada vez, antes de liberar a rodada de liga.
@@ -3171,6 +3171,58 @@ function cupMarkSeen(key){
 function cupWasSeen(key){
   const rk=cupRoundKeyNow();
   return !!(CL._cupSeen && CL._cupSeen.rk===rk && CL._cupSeen.keys.includes(key));
+}
+/* ---- APRESENTAÇÃO DA RODADA DE COPA (antes de entrar em campo) ----
+   Sem isto, clicar em "Jogar" numa semana de copa jogava o usuário DIRETO na tela ao vivo, com
+   16 partidas de uma competição que ele não esperava — ele levava um susto e não entendia por
+   que não era a rodada do Brasileirão. Agora toda partida de copa passa por esta tela primeiro:
+   qual competição, qual fase, contra quem e onde. Vale pras duas modalidades (a rodada de liga
+   continua entrando direto — o usuário sempre sabe que é a rodada da liga que ele pediu). */
+function cupPhaseLabelFor(pending){
+  if(pending.stage==='group'){
+    const mg=pending.group;
+    const tot=(mg&&mg.roundsTotal)||6;
+    return `Fase de grupos · ${(mg?mg.round:0)+1}ª rodada de ${tot}`;
+  }
+  const b=pending.bracket;
+  return b ? cupPhaseLabel(b.round, b.roundsTotal) : 'Mata-mata';
+}
+/* `auto`: entra em campo sozinho depois de alguns segundos. Só usado na rede de segurança da
+   Resenha (onlineRunRound, net/local-transport.js), que puxa o jogador pra copa porque a fase da
+   rodada já virou 'running' — lá o cronômetro de 60s da sala está correndo e uma tela que espera
+   clique travaria a rodada dos outros. No fluxo normal (clique em "Jogar") não tem timer: o
+   jogador entra quando quiser. */
+function showCupIntro(pending, auto){
+  CL._cupIntro=pending;
+  clearCupIntroTimer();
+  const key=pending.key, def=COMP_DEFS[key]||{name:key,short:key};
+  const meHome=pending.h===CL.clubId;
+  const oppId=meHome?pending.a:pending.h;
+  const me=clubOf(CL.clubId)||{short:'?'}, opp=clubOf(oppId)||(typeof bgClubById==='function'&&bgClubById(oppId))||{short:String(oppId)};
+  const local=meHome?'em casa':'fora de casa';
+  const grupo=(pending.stage==='group'&&pending.groupLabel)?` · Grupo ${escC(pending.groupLabel)}`:'';
+  overlayC(dlg(def.name, `
+    <div class="cl-cupintro">
+      <div class="cl-live-cup-top" style="margin:-4px -4px 12px">${trophyImg(key,52)}
+        <div class="cl-live-cup-name">${escC(def.name)}</div></div>
+      <div class="cl-cupintro-phase">${escC(cupPhaseLabelFor(pending))}${grupo}</div>
+      <div class="cl-cupintro-match">
+        <span class="cl-cupintro-team" style="${clubStripe(me)}">${escC(me.short)}</span>
+        <span class="cl-cupintro-x">×</span>
+        <span class="cl-cupintro-team" style="${clubStripe(opp)}">${escC(opp.short)}</span>
+      </div>
+      <div class="cl-cupintro-loc">Você joga <strong>${local}</strong>.</div>
+      <div class="cl-cal-ok">${btn('Entrar em campo','clCupIntroGo()',{icon:'▶',cls:'cl-btn-ok cl-btn-wide'})}</div>
+      ${auto?'<div class="cl-cupscr-auto">a partida começa sozinha em alguns segundos...</div>':''}
+    </div>`, {w:520,bodyClass:'cl-body-green'}));
+  if(auto) CL._cupIntroTimer=setTimeout(()=>{ CL._cupIntroTimer=null; if(CL._cupIntro) clCupIntroGo(); }, 6000);
+}
+function clearCupIntroTimer(){ if(CL._cupIntroTimer){ clearTimeout(CL._cupIntroTimer); CL._cupIntroTimer=null; } }
+function clCupIntroGo(){
+  clearCupIntroTimer();
+  clCloseOverlay();
+  const p=CL._cupIntro; CL._cupIntro=null;
+  if(p) startCupLiveMatch(p);
 }
 /* ---- MODO ESPECTADOR: assistir a uma rodada de copa de fora, sem participar —
    pergunta antes (Sim/Pular), e se aceitar mostra a partida (ou partidas, se for
