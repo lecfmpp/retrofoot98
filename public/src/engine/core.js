@@ -2062,6 +2062,29 @@ const UNI_CONFIGS={
 /* código ISO da bandeira de cada universo (UNI_CONFIGS só guarda o nome do país) */
 const UNI_COUNTRY_FLAG={brasil:'br',Inglaterra:'gb-eng',Espanha:'es','Itália':'it',Alemanha:'de',Portugal:'pt',
   Argentina:'ar',Uruguai:'uy','Colômbia':'co',Chile:'cl',Peru:'pe',Equador:'ec',Paraguai:'py',Venezuela:'ve','Bolívia':'bo'};
+/* CONMEBOL (Argentina, Uruguai, Colômbia, Chile, Peru, Equador, Paraguai, Venezuela, Bolívia): o
+   bundle só traz o elenco real de cada clube, sem overall/OS/MS/DS — diferente do INTL_LEAGUES
+   (Europa), que já vem com isso pronto. Sem essa conta, todo consumidor que lê `c.overall` direto
+   (bgClubById, uniLeagueClubs, conmebolTopDivisionClubs, unifiedContinentalPool) via undefined,
+   e o mercado de transferências mostrava "força 0" pro clube inteiro mesmo com o elenco real
+   completo (jogadores com `.f` de verdade). Deriva do elenco — mesma fórmula de
+   recomputeClubOverall — UMA VEZ, direto nos objetos do bundle (window.CONMEBOL_LEAGUES), aqui no
+   topo do módulo: roda antes de qualquer código de jogo, então não importa qual função toca o
+   clube primeiro, o valor já está certo (mesma referência de objeto em todo lugar). */
+(function ensureConmebolClubOverall(){
+  const src=(typeof window!=='undefined'&&window.CONMEBOL_LEAGUES)||{};
+  Object.keys(src).forEach(country=>{
+    (src[country]||[]).forEach(c=>{
+      if(typeof c.overall==='number' || !c.squad || !c.squad.length) return;
+      const sq=c.squad;
+      const bySec=s=>sq.filter(p=>p.s===s);
+      const avg=a=>a.length?a.reduce((s,p)=>s+(p.f||0),0)/a.length:55;
+      c.OS=avg(bySec('ATT')); c.MS=avg(bySec('MID'));
+      c.DS=avg(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65;
+      c.overall=Math.round(sq.reduce((s,p)=>s+(p.f||0),0)/sq.length);
+    });
+  });
+})();
 /* fonte de clubes de um universo: CONMEBOL (src:'conmebol') ou europeu (INTL_LEAGUES). Ambos
    são keyed por nome de país (cfg.country). */
 function uniLeagueClubs(cfg){
