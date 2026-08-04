@@ -1685,11 +1685,35 @@ function conmebolTopDivisionClubs(){
    Clubes brasileiros vêm de DATA.clubsSerieA (real), os demais de window.CONMEBOL_LEAGUES. */
 const LIB_SLOTS_UNI={ 'Brasil':6,'Argentina':6,'Colômbia':4,'Chile':3,'Uruguai':3,'Peru':3,'Equador':2,'Paraguai':2,'Venezuela':2,'Bolívia':1 };
 const SUL_SLOTS_UNI={ 'Brasil':6,'Argentina':5,'Colômbia':4,'Chile':3,'Uruguai':3,'Peru':3,'Equador':2,'Paraguai':2,'Venezuela':2,'Bolívia':2 };
+/* Pool de classificados por país: quem ocupa as vagas continentais da próxima temporada.
+   ANTES o Brasil saía de DATA.clubsSerieA ORDENADO POR FORÇA (overall) — uma lista congelada no
+   boot (public/index.html) que nunca acompanha acesso/rebaixamento. Consequência: as vagas eram
+   decididas por elenco, não por campanha. Um clube que o usuário rebaixou continuava ocupando
+   vaga de Libertadores; o campeão da temporada, se tivesse overall baixo, ficava de fora — e as
+   tags "Lib"/"Sul" do ranking (qualificationZone, main.js) viravam ficção pros outros 19 clubes.
+   Agora vale a CLASSIFICAÇÃO REAL da divisão de topo da temporada que fechou
+   (S._topFinalStandings, carimbada em newSeasonReset antes do swap de divisões).
+   O fallback por overall só sobra pra 1ª temporada, quando ainda não existe tabela nenhuma. */
+function topDivisionStandingsIds(){
+  const ids=(S && S._topFinalStandings) || [];
+  return ids.length ? ids.slice() : null;
+}
 function unifiedContinentalPool(){
   const pool={};
-  pool['Brasil']=((typeof DATA!=='undefined'&&DATA.clubsSerieA)||[]).slice().sort((a,b)=>(b.overall||0)-(a.overall||0));
+  const realStandings=topDivisionStandingsIds();
+  pool['Brasil'] = realStandings
+    ? realStandings.map(id=>({id}))
+    : ((typeof DATA!=='undefined'&&DATA.clubsSerieA)||[]).slice().sort((a,b)=>(b.overall||0)-(a.overall||0));
   const CLG=(typeof window!=='undefined'&&window.CONMEBOL_LEAGUES)||{};
-  ['Argentina','Colômbia','Chile','Uruguai','Peru','Equador','Paraguai','Venezuela','Bolívia'].forEach(co=>{ pool[co]=(CLG[co]||[]).slice(); });
+  ['Argentina','Colômbia','Chile','Uruguai','Peru','Equador','Paraguai','Venezuela','Bolívia'].forEach(co=>{
+    // país rodando como liga de fundo (o usuário o selecionou): a campanha dele existe de verdade,
+    // então a vaga sai da tabela dele também. Sem liga de fundo não há campanha pra respeitar —
+    // segue a ordem do bundle (dado real do Transfermarkt), como sempre foi.
+    const cfg=(typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[co];
+    const topDiv=cfg && cfg.order && cfg.order[0];
+    const bg = topDiv && (typeof bgStandings==='function') ? bgStandings(co, topDiv) : [];
+    pool[co] = (bg && bg.length) ? bg.map(t=>({id:t.id})) : (CLG[co]||[]).slice();
+  });
   return pool;
 }
 function unifiedContinentalQualification(userFinish){
@@ -3173,9 +3197,10 @@ function checkPendingManagerEvents(){
   }
 }
 
-function sortedTable(){
-  return Object.values(S.table).sort((a,b)=> b.Pts-a.Pts || (b.GF-b.GA)-(a.GF-a.GA) || b.GF-a.GF || String(a.id).localeCompare(String(b.id)) );
+function sortTableRows(table){
+  return Object.values(table||{}).sort((a,b)=> b.Pts-a.Pts || (b.GF-b.GA)-(a.GF-a.GA) || b.GF-a.GF || String(a.id).localeCompare(String(b.id)) );
 }
+function sortedTable(){ return sortTableRows(S.table); }
 function tablePos(id){return sortedTable().findIndex(t=>t.id===id)+1;}
 function applyResult(h,a,hg,ag){
   const T=S.table; T[h].P++;T[a].P++;T[h].GF+=hg;T[h].GA+=ag;T[a].GF+=ag;T[a].GA+=hg;
@@ -4038,6 +4063,14 @@ function newSeasonReset(){
   const topDivision=(typeof DIV_ORDER!=='undefined' && DIV_ORDER.length) ? DIV_ORDER[0] : 'A';
   const playedTopDivision = prevDivision===topDivision;
   S._intlUserFinish = playedTopDivision ? finalPos : 0; // -> vaga na Champions/Europa/Libertadores da próxima temporada
+  // CLASSIFICAÇÃO FINAL DA DIVISÃO DE TOPO — é ELA que dá as vagas continentais da próxima
+  // temporada (ver unifiedContinentalPool). Capturada AQUI, antes de computeDivisionSwap/
+  // switchToDivision zerarem as tabelas logo abaixo. Quando o usuário disputa a própria divisão
+  // de topo é S.table; quando ele está numa divisão inferior, a de topo roda em segundo plano
+  // (S.otherDivs) e a tabela dela vale igual.
+  S._topFinalStandings = (playedTopDivision ? sortedTable()
+    : sortTableRows((S.otherDivs && S.otherDivs[topDivision] && S.otherDivs[topDivision].table) || {})
+  ).map(t=>t.id);
   const newDivision=decidePromotionRelegation(finalPos, totalClubs);
   const changingDivision = newDivision!==prevDivision;
   const outcome = !changingDivision ? null : (DIV_ORDER.indexOf(newDivision)<DIV_ORDER.indexOf(prevDivision) ? 'promoted' : 'relegated');
