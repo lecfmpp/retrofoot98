@@ -555,6 +555,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    tela do time). Sombra + borda garantem legibilidade em qualquer tema de clube (chip bg2). */
 .cl-adv-name{color:#fff;font-weight:800;font-size:16px;text-shadow:0 1px 2px rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.28);border-radius:3px}
 .cl-adv-loc{color:#e2e9f6;font-size:15px}
+/* competição do PRÓXIMO jogo no cabeçalho do adversário (ver nextUserMatch): a rodada de liga
+   mostra a jornada; a semana de copa mostra a fase, com o troféu e em amarelo, pra ninguém mais
+   escalar o time achando que vai jogar o campeonato. */
+.cl-adv-comp{font-size:12px;color:#c9d6ea;display:flex;align-items:center;justify-content:center;gap:5px;margin-top:2px}
+.cl-adv-comp.cup{color:var(--yellow);font-weight:800}
+.cl-adv-comp .cl-trophy-img{width:14px;height:14px;display:block}
 .cl-panel{flex:1}
 /* tabs */
 .cl-tabs{display:flex;gap:0;border-top:1px solid #666;padding-top:6px;margin-top:8px;justify-content:flex-start;flex-wrap:nowrap}
@@ -598,6 +604,15 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* painel jogo */
 .cl-jogo{font-size:15px}
 .cl-jogo-empty{color:#888;font-size:13px;padding:12px 0}
+/* cartão do confronto de COPA no painel Jogo: substitui as linhas de tabela da liga, que numa
+   semana de copa sairiam zeradas (o adversário pode ser de outra divisão ou de outro país). */
+.cl-jogo-cup{background:rgba(0,0,0,.28);border:2px solid;border-color:var(--yellow);border-radius:4px;padding:9px 10px;margin-bottom:8px;text-align:center}
+.cl-jogo-cup-comp{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--yellow);font-weight:800;font-size:14px}
+.cl-jogo-cup-comp .cl-trophy-img{width:20px;height:20px;display:block}
+.cl-jogo-cup-fase{font-size:11px;color:#e2e9f6;margin-top:2px;text-transform:uppercase;letter-spacing:.04em}
+.cl-jogo-cup-vs{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px;color:#fff;font-weight:800;font-size:14px;flex-wrap:wrap}
+.cl-jogo-cup-vs i{color:var(--yellow);font-style:normal}
+.cl-jogo-cup-loc{font-size:11px;color:#c9d6ea;margin-top:3px}
 .cl-grow{display:flex;justify-content:space-between;align-items:center;color:#fff;margin:2px 0}
 .cl-grow.blue{color:var(--bluetxt)}
 .cl-gname{font-weight:700}

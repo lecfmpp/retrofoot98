@@ -2083,9 +2083,42 @@ function clLoadSave(name){
 /* ================= 08-13 · TELA PRINCIPAL ================= */
 function divisionLabelOf(d){ return (typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[d]) || ({A:'Série A',B:'Série B',C:'Série C',D:'Série D'})[d] || 'Série A'; }
 function divisionLabel(){ return divisionLabelOf(S.division); }
+/* resolve um clube por id venha de onde vier: divisão do usuário, outra divisão, liga de fundo
+   ou clube continental criado sob demanda (adversário de copa pode ser qualquer um destes). */
+function anyClubOf(id){
+  if(id==null) return null;
+  return clubOf(id)
+    || (typeof bgClubById==='function' && bgClubById(id))
+    || (S.intlClubs && S.intlClubs[id])
+    || (S.clubPool && S.clubPool[id])
+    || null;
+}
+/* ---- QUAL É O MEU PRÓXIMO JOGO (fonte ÚNICA) ----
+   A tela principal lia só userFixture() — a rodada de LIGA — enquanto clJogar dá prioridade à
+   partida de COPA pendente. Numa semana de copa o jogador escalava o time olhando o adversário
+   do campeonato e o botão Jogar abria outro jogo, contra outro clube, em outra competição.
+   Agora a tela e o botão perguntam à MESMA função, então não têm como discordar. */
+function nextUserMatch(){
+  if(typeof pendingUserCupMatches==='function'){
+    const fila=pendingUserCupMatches().filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key));
+    if(fila.length){
+      const p=fila[0], home=p.h===CL.clubId;
+      const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[p.key])||{short:p.key};
+      return { kind:'cup', h:p.h, a:p.a, oppId:home?p.a:p.h, home, cupKey:p.key,
+        comp:def.short, fase:(typeof cupPhaseLabelFor==='function')?cupPhaseLabelFor(p):'', pending:p };
+    }
+  }
+  const uf=(typeof userFixture==='function')?userFixture():null;
+  if(!uf) return null;
+  const home=uf[0]===CL.clubId;
+  return { kind:'league', h:uf[0], a:uf[1], oppId:home?uf[1]:uf[0], home, uf,
+    comp:(typeof divisionLabel==='function')?divisionLabel():'', fase:`${(S.round||0)+1}ª Jornada` };
+}
 function scMain(){
   const cl=clubOf(CL.clubId);
-  const uf=userFixture(); const oppId=uf?(uf[0]===CL.clubId?uf[1]:uf[0]):null; const home=uf?uf[0]===CL.clubId:true;
+  const nm=nextUserMatch();
+  const uf=(nm&&nm.kind==='league')?nm.uf:null;
+  const oppId=nm?nm.oppId:null; const home=nm?nm.home:true;
   const menuNames=['RetroFoot98','Formação','Equipa','Jogador','Campeonatos','Treinador']; if(CL.online) menuNames.push('Modo Resenha');
   const hamburger=`<div class="cl-hamburger" onclick="clToggleMobMenu(event)"><span>☰ Menu</span><span>${CL.mobMenuOpen?'▲':'▼'}</span></div>`;
   // badge numérico ÚNICO pra todas as notificações da UI (ofertas, e-mails, pedidos de entrada):
@@ -2107,7 +2140,7 @@ function scMain(){
   // verticalmente alinhados; o badge deixou de ser absoluto (flutuava acima do texto).
   const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')"><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')}</div>`;
   let panel='';
-  if(CL.tab==='jogo') panel=panJogo(oppId,home,uf);
+  if(CL.tab==='jogo') panel=panJogo(oppId,home,uf,nm);
   else if(CL.tab==='jogador') panel=panJogador();
   else if(CL.tab==='financas') panel=panFinancas();
   else if(CL.tab==='seleccao') panel=panSeleccao();
@@ -2134,8 +2167,9 @@ function scMain(){
         <div class="cl-right-hdr">
           <div class="cl-adv-lbl">Adversário</div>
           <div class="cl-year">${S.season}</div>
-          <div class="cl-adv-name" style="background:${th.bg2};padding:3px 8px">${oppId?escC(clubOf(oppId).short):'—'}</div>
-          <div class="cl-adv-loc">${home?'CASA':'FORA'} ${jornada}ª Jornada</div>
+          <div class="cl-adv-name" style="background:${th.bg2};padding:3px 8px">${oppId?escC((anyClubOf(oppId)||{short:'—'}).short):'—'}</div>
+          <div class="cl-adv-loc">${nm?`${nm.home?'CASA':'FORA'} · ${escC(nm.comp)}`:'—'}</div>
+          ${nm?`<div class="cl-adv-comp ${nm.kind==='cup'?'cup':''}">${nm.kind==='cup'?`${trophyImg(nm.cupKey,14)||'🏆'} ${escC(nm.fase)}`:escC(nm.fase)}</div>`:''}
         </div>
         <div class="cl-panel">${panel}</div>
         ${tabBar}
@@ -2669,16 +2703,26 @@ function panViewAdversario(oppId){
 
 /* ---- painel: JOGO ---- */
 function tableRow(id){ const t=(S.table&&S.table[id])||{P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0}; return t; }
-function panJogo(oppId,home,uf){
+function panJogo(oppId,home,uf,nm){
   const me=tableRow(CL.clubId), op=oppId?tableRow(oppId):null;
-  const rnd=rngFrom(uf?(hashC(uf[0])+hashC(uf[1])):12345);
+  const rnd=rngFrom(uf?(hashC(uf[0])+hashC(uf[1])):(nm?hashC(nm.h)+hashC(nm.a):12345));
   const ref=REFS_C[Math.floor(rnd()*REFS_C.length)];
   const moral=Math.round(squad(CL.clubId).reduce((s,p)=>s+(p.moral||70),0)/Math.max(1,squad(CL.clubId).length));
-  const line=(id,t,blue)=>`<div class="cl-grow ${blue?'blue':''}"><span class="cl-gname">${escC(clubOf(id).short)}</span>
+  const line=(id,t,blue)=>`<div class="cl-grow ${blue?'blue':''}"><span class="cl-gname">${escC((anyClubOf(id)||{short:String(id)}).short)}</span>
      <span class="cl-gnums"><b>${t.P}</b><b>${t.W}</b><b>${t.D}</b><b>${t.GF}:${t.GA}</b><b>${t.Pts}</b></span></div>`;
+  // Numa semana de COPA a linha de tabela da liga não diz nada sobre o confronto (o adversário
+  // pode nem estar na tabela do usuário — é de outra divisão ou de outro país, e sairia tudo
+  // zerado). Nesse caso o painel abre com o confronto e a fase da competição.
+  const cupHead = (nm && nm.kind==='cup') ? `<div class="cl-jogo-cup">
+      <div class="cl-jogo-cup-comp">${trophyImg(nm.cupKey,20)||'🏆'} ${escC(nm.comp)}</div>
+      <div class="cl-jogo-cup-fase">${escC(nm.fase)}</div>
+      <div class="cl-jogo-cup-vs"><span>${escC((anyClubOf(nm.h)||{short:''}).short)}</span><i>×</i><span>${escC((anyClubOf(nm.a)||{short:''}).short)}</span></div>
+      <div class="cl-jogo-cup-loc">Você joga ${nm.home?'em casa':'fora de casa'}</div>
+    </div>` : '';
   return `<div class="cl-jogo">
+    ${cupHead}
     ${uf?line(CL.clubId,me,false):''}
-    ${oppId?line(oppId,op,true):''}
+    ${uf&&oppId?line(oppId,op,true):''}
     <div class="cl-blk"><div class="cl-blk-l">Árbitro</div><div class="cl-blk-v cl-strong">${escC(ref)}</div></div>
     <div class="cl-blk"><div class="cl-blk-l">Dinheiro em caixa</div><div class="cl-blk-v">${spellMoney(S.budget)}</div></div>
     <div class="cl-blk"><div class="cl-blk-l"><span class="cl-tip-label" title="${escC(moralTipText())}">Moral do Time</span>${moral<40?' <span class="cl-risk-flag">⚠️ baixa</span>':''}</div><div class="cl-bar cl-bar-moral" style="--val:${moral}"><div class="cl-bar-fill" style="width:${moral}%"></div></div></div>
@@ -3308,8 +3352,10 @@ function clJogar(){
   // partidas ao vivo direto uma atrás da outra. Vale pros dois modos: online já vem
   // filtrado (pendingUserCupMatches exclui confronto humano x humano da mesma sala,
   // resolvido em segundo plano igual sempre foi).
-  const cupQueue=pendingUserCupMatches().filter(c=>!cupWasSeen(c.key));
-  if(cupQueue.length){ showCupIntro(cupQueue[0]); return; }
+  // MESMA fonte que a tela principal usa pra anunciar o próximo jogo (nextUserMatch) — é o que
+  // garante que o confronto escalado é o confronto jogado.
+  const prox=nextUserMatch();
+  if(prox && prox.kind==='cup'){ showCupIntro(prox.pending); return; }
   // nenhuma partida de copa pra JOGAR nesta rodada — mas pode ter rodada de copa
   // rolando de competições das quais o usuário não participa (ou já foi eliminado);
   // oferece assistir, uma competição de cada vez, antes de liberar a rodada de liga.
