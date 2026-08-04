@@ -3873,6 +3873,26 @@ function shootoutEligibleTakers(pool, takenNames){
   const fresh=pool.filter(p=>!takenNames.has(p.n));
   return fresh.length ? fresh : pool;
 }
+/* ---- QUEM PODE BATER UM PÊNALTI AGORA: só quem está EM CAMPO ----
+   Antes todos os seletores de batedor (pênalti em campo e disputa de pênaltis, tanto do usuário
+   quanto da CPU) liam o ONZE INICIAL (xiPlayers/availableXI). Isso ignora tudo o que aconteceu
+   durante a partida: um jogador EXPULSO continuava na lista e podia ser escolhido pra bater —
+   foi exatamente o que apareceu no playtest. Substituído idem (aparecia mesmo tendo saído), e
+   quem entrou do banco não aparecia.
+   A verdade é a sessão da partida: m.sim.onField(side), que o motor mantém removendo de campo
+   expulsos, lesionados e substituídos (removeFromField em simulate.js). Fallbacks, em ordem:
+   onze inicial (partida remota/transmitida, sem sessão local) e elenco (rede de segurança). */
+function penaltyTakerPool(m, clubId){
+  let pool=null;
+  if(m && m.sim && typeof m.sim.onField==='function'){
+    const side = m.h===clubId ? 'H' : (m.a===clubId ? 'A' : null);
+    if(side) pool=m.sim.onField(side);
+  }
+  if(!pool || !pool.length) pool=xiPlayers(clubId);
+  if(!pool || !pool.length) pool=squad(clubId);
+  const line=pool.filter(p=>p.s!=='GK');
+  return line.length ? line : pool;   // só sobrou goleiro em campo: ele bate (emergência)
+}
 function shootoutNextKick(){
   const RL=CL.live; if(!RL || !RL.pens) return;
   // teto de segurança (mesmo usado em resolveDrawnKnockoutTie pro caso não-interativo):
@@ -3887,9 +3907,9 @@ function shootoutNextKick(){
   else {
     const oppId=side==='H'?m.a:m.h;
     const gk=squad(oppId).find(p=>p.s==='GK')||null;
-    const pool=availableXI(teamId).filter(p=>p.s!=='GK');
+    const pool=penaltyTakerPool(m, teamId);   // só quem terminou a partida EM CAMPO (sem expulso)
     const takenNames=new Set((side==='H'?RL.pens.h:RL.pens.a).map(k=>k.name));
-    const eligible=shootoutEligibleTakers(pool.length?pool:availableXI(teamId), takenNames);
+    const eligible=shootoutEligibleTakers(pool, takenNames);
     const R=makeRng(hashSeed(S.seed,S.round,'pens',m.h,m.a,side,RL.pens.h.length+RL.pens.a.length));
     const taker=pickPenaltyTaker(eligible,R);
     const scored=R.random()<penaltyConvChance(taker,gk);
@@ -3898,8 +3918,7 @@ function shootoutNextKick(){
 }
 function openShootoutPickerModal(){
   const RL=CL.live;
-  const list=xiPlayers(CL.clubId).filter(p=>p.s!=='GK');
-  const pool=list.length?list:squad(CL.clubId).filter(p=>p.s!=='GK');
+  const pool=penaltyTakerPool(RL.matches[0], CL.clubId);
   const takenNames=new Set((RL.pens.turn==='H'?RL.pens.h:RL.pens.a).map(k=>k.name));
   const takers=shootoutEligibleTakers(pool, takenNames);
   const best=takers.slice().sort((a,b)=>b.f-a.f)[0];
@@ -3963,8 +3982,7 @@ function finishPenaltyShootout(){
    Se não decidir em 10s, bate automaticamente com o jogador pré-selecionado (o de maior força). ---- */
 function openPenaltyModal(m,e){ const RL=CL.live;
   RL.paused=true; RL.penMatch=m; RL.penEvent=e; RL.sel=RL.matches.indexOf(m);
-  const list=xiPlayers(CL.clubId).filter(p=>p.s!=='GK');
-  const takers=list.length?list:squad(CL.clubId).filter(p=>p.s!=='GK');
+  const takers=penaltyTakerPool(m, CL.clubId);   // sem expulso/substituído (ver penaltyTakerPool)
   const best=takers.slice().sort((a,b)=>b.f-a.f)[0];
   CL.penSel = best ? best.n : (takers[0]&&takers[0].n) || null;
   CL.penDeadline = Date.now()+10000;
@@ -4869,8 +4887,7 @@ function penaltyClubStyle(){
 function penaltyPickerHTML(){
   if(CL.penPhase==='suspense') return penaltySuspenseHTML();
   if(CL.penPhase==='result') return penaltyResultHTML();
-  const list=xiPlayers(CL.clubId).filter(p=>p.s!=='GK');
-  const takers=(list.length?list:squad(CL.clubId).filter(p=>p.s!=='GK'));
+  const takers=penaltyTakerPool((CL.live&&CL.live.penMatch)||null, CL.clubId);
   const secsLeft=Math.max(0,Math.ceil((CL.penDeadline-Date.now())/1000));
   const rows=takers.map(p=>`<div class="cl-pen-row ${CL.penSel===p.n?'sel':''}" onclick="penaltySelect('${escC(p.n)}')">
       <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span><span class="cl-pen-r">${p.f}</span>
@@ -4896,8 +4913,7 @@ function shootoutPickerHTML(){
   const board=shootoutScoreboardHTML(RL);
   if(CL.penPhase==='suspense') return penaltySuspenseHTML(board);
   if(CL.penPhase==='result') return penaltyResultHTML(board);
-  const list=xiPlayers(CL.clubId).filter(p=>p.s!=='GK');
-  const pool=(list.length?list:squad(CL.clubId).filter(p=>p.s!=='GK'));
+  const pool=penaltyTakerPool(RL.matches[0], CL.clubId);
   // quem já bateu NESTA disputa fica desabilitado na lista (regra oficial: só pode bater
   // de novo depois que todo mundo elegível já bateu uma vez) — mas continua visível, só
   // sem poder ser escolhido, pro treinador entender por que sumiu da seleção normal.

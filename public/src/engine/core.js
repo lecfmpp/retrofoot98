@@ -4028,9 +4028,16 @@ function newSeasonReset(){
   applyCpuStadiumGrowth();           // idem — usa o caixa (S.budgets) já atualizado pelo passo acima
   const finalTable=sortedTable();
   const finalPos=tablePos(S.clubId);
-  S._intlUserFinish=finalPos; // classificação doméstica -> vaga na Champions/Europa da próxima temporada
   const totalClubs=DATA.clubs.length;
   const prevDivision=S.division;
+  // A posição doméstica só vale como classificação continental se o usuário DISPUTOU a divisão de
+  // topo. Quem acabou de subir não jogou a Série A no ano anterior, então não tem posição nela —
+  // e como promoção é sempre 1º-4º, essa posição caía dentro das 6 vagas de Libertadores
+  // (unifiedContinentalQualification, acima) e TODO promovido entrava direto na Libertadores.
+  // 0 = "sem posição na divisão de topo": lá o clube só mantém vaga se já tinha uma.
+  const topDivision=(typeof DIV_ORDER!=='undefined' && DIV_ORDER.length) ? DIV_ORDER[0] : 'A';
+  const playedTopDivision = prevDivision===topDivision;
+  S._intlUserFinish = playedTopDivision ? finalPos : 0; // -> vaga na Champions/Europa/Libertadores da próxima temporada
   const newDivision=decidePromotionRelegation(finalPos, totalClubs);
   const changingDivision = newDivision!==prevDivision;
   const outcome = !changingDivision ? null : (DIV_ORDER.indexOf(newDivision)<DIV_ORDER.indexOf(prevDivision) ? 'promoted' : 'relegated');
@@ -4085,7 +4092,9 @@ function newSeasonReset(){
   // novos — usa força (overall) como proxy, igual à 1ª temporada.
   const qualTable = (S.division==='A') ? ((prevDivision==='A') ? finalTable : DATA.clubs.slice().sort((a,b)=>b.overall-a.overall).map(c=>({id:c.id}))) : null;
   // temporadas 2+: classificação continental UNIFICADA (Brasil + 9 CONMEBOL), não só o Brasil
-  initSeasonCups(qualTable ? unifiedContinentalQualification(finalPos) : {libertadores:[],sulamericana:[]});
+  // playTopDivision: ver acima — recém-promovido entra com 0 (sem vaga pela posição doméstica),
+  // senão a colocação dele na Série B valeria como se fosse colocação na Série A.
+  initSeasonCups(qualTable ? unifiedContinentalQualification(playedTopDivision ? finalPos : 0) : {libertadores:[],sulamericana:[]});
   rollBgLeaguesSeason(); // vira a temporada das ligas de background (campeão/histórico/promoção)
   save();
 }

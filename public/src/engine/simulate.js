@@ -520,7 +520,13 @@ function liveMatchSession(homeId, awayId, seed, opts){
     let out=null;
     if(d.tipo==='penalti'){
       const p=session.pending; if(!p||p.kind!=='penalti') return null;
-      const taker=cur[side].find(x=>x.n===d.batedor)||squad(clubIdOf[side]).find(x=>x.n===d.batedor)||null;
+      // GUARDA: só quem está EM CAMPO pode bater. O fallback antigo procurava o nome no ELENCO
+      // inteiro, então um batedor expulso/substituído (escolha de um cliente desatualizado, ou
+      // decisão remota da Resenha chegando depois da expulsão) ainda cobrava. Agora, nome que não
+      // está em campo cai no melhor jogador de linha que sobrou.
+      const taker=cur[side].find(x=>x.n===d.batedor)
+        || cur[side].filter(x=>x.s!=='GK').slice().sort((a,b)=>b.f-a.f)[0]
+        || cur[side][0] || null;
       const R2=makeRng(hashSeed(S.seed,S.round,'pen',p.ev.min,d.batedor));
       const scored=R2.random()<penaltyConvChance(taker,p.gk);
       p.ev.scored=scored; p.ev.scorer=taker?taker.n:d.batedor; p.ev.scorerPid=taker?taker.pid:null;
