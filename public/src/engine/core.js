@@ -2591,13 +2591,28 @@ function clubsForDivision(division){
 }
 /* Resenha (multiplayer): SEMPRE começa na ÚLTIMA divisão do Brasil (Série D) — a graça do jogo é
    o desafio de subir da base até a Série A e ganhar títulos. Fonte: bundle real BRASIL_LOWER['D']
-   (independe do universo em que o host esteja no momento). */
+   (independe do universo em que o host esteja no momento).
+   `div` (opcional) sobrescreve a divisão — só usado pelo MODO TESTE (TESTING_FREE_DIVISION_PICK,
+   ui/main.js): o anfitrião escolhe a divisão inicial da sala em scSalaHost antes de abrir. Sem
+   override, o comportamento é idêntico ao de sempre (RESENHA_START_DIV, sempre 'D'). */
 const RESENHA_START_DIV = 'D';
-function resenhaStartClubs(){
-  const d=RESENHA_START_DIV;
+function resenhaStartClubs(div){
+  const d=div||RESENHA_START_DIV;
+  if(d==='A') return (typeof DATA!=='undefined'&&(DATA.clubsSerieA||DATA.clubs))||[];
   const bundled=(typeof window!=='undefined'&&window.BRASIL_LOWER&&window.BRASIL_LOWER[d])||null;
   if(bundled && bundled.length) return bundled.slice(0, (typeof DIVISION_SIZE!=='undefined'&&DIVISION_SIZE[d])||20);
   return (typeof DATA!=='undefined'&&(DATA.clubsSerieA||DATA.clubs))||[];
+}
+/* MODO TESTE (ver acima): descobre em qual divisão do Brasil um clube da Resenha está, a partir
+   só do id — sem precisar guardar a divisão escolhida em lugar nenhum do banco/sala. Usado pra
+   todo cliente (anfitrião OU convidado) abrir newGame() na divisão CERTA mesmo quando o anfitrião
+   escolheu uma diferente da D (ver resolveRoomDivision, net/local-transport.js). */
+function divisionOfResenhaClub(clubId){
+  if((typeof DATA!=='undefined') && DATA.clubsSerieA && DATA.clubsSerieA.some(c=>c.id===clubId)) return 'A';
+  if(typeof BRASIL_LOWER!=='undefined'){
+    for(const d of ['B','C','D']){ if((BRASIL_LOWER[d]||[]).some(c=>c.id===clubId)) return d; }
+  }
+  return RESENHA_START_DIV;
 }
 /* ================= REGISTRO PERSISTENTE DE CLUBES POR DIVISÃO =================
    Antes, as 3 divisões que o usuário não joga eram regeneradas do zero (mesma seed)

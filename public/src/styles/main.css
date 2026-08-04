@@ -319,6 +319,10 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-comp-check{margin-left:auto;color:#7fdc7f;font-weight:900}
 .cl-comp-toggle.start{border-color:var(--yellow);box-shadow:0 0 0 1px var(--yellow) inset}
 .cl-comp-start-tag{background:var(--yellow);color:#000;font-size:9px;font-weight:900;padding:1px 5px;border-radius:3px;text-transform:uppercase;margin-left:4px}
+/* MODO TESTE (temporário — TESTING_FREE_DIVISION_PICK, ui/main.js): aviso de que dá pra clicar
+   numa divisão pra escolher onde o save começa. Cor de alerta pra não passar despercebido nem
+   parecer definitivo. */
+.cl-comp-testhint{font-size:11px;font-weight:700;color:#ffcf5c;margin:4px 0 8px}
 /* troféu nas telas de competição/partida ao vivo */
 /* 04 moeda */
 .cl-moeda{min-height:120px;padding-right:110px;display:flex;flex-direction:column;justify-content:center}

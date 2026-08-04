@@ -7,7 +7,20 @@
 const $c = s => document.querySelector(s);
 const CL = { screen:'abertura', landingView:'home', save:'', currency:'Reais', countries:new Set(), names:['','','','','',''],
              draw:[], clubId:null, tab:'jogo', selPlayer:null, menu:null, ticket:8, mgr:'', mobMenuOpen:false,
-             divisionToggle:{A:true,B:true,C:true,D:true}, compToggle:{libertadores:true, copaBrasil:true, sulamericana:true} };
+             divisionToggle:{A:true,B:true,C:true,D:true}, compToggle:{libertadores:true, copaBrasil:true, sulamericana:true},
+             testStartDiv:{} };
+/* MODO TESTE (temporário, a pedido do usuário em 2026-08-03): libera escolher a divisão inicial
+   do Brasil no Modo Solo (countryCompSection) e no Modo Resenha (scSalaHost, net/local-transport.js),
+   pra dar pra testar tudo (Série A, copas continentais, promoção/rebaixamento...) antes do
+   lançamento sem precisar subir manualmente da Série D. Depois do lançamento, voltar esta flag
+   pra false — computeStartDivision() e o seletor da Resenha voltam a ignorar CL.testStartDiv e
+   sempre começar na Série D, a regra de sempre (todo mundo começa embaixo e sobe). */
+const TESTING_FREE_DIVISION_PICK = true;
+function clSetTestStartDiv(uniKey, d){
+  CL.testStartDiv = CL.testStartDiv || {};
+  CL.testStartDiv[uniKey] = d;
+  cdraw();
+}
 /* ---- troféu (imagem) das competições — usado na seleção de país e em qualquer
    tela que mostre o nome de uma competição, pra dar mais identidade visual ---- */
 function trophyImg(key,size){ const src=(typeof TROPHIES!=='undefined')&&TROPHIES[key];
@@ -1040,15 +1053,22 @@ function countryCompSection(country){
   const cfg = (typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[uniKey];
   if(!cfg || !cfg.order) return '';
   const isBr = country==='Brasil';
-  const order = cfg.order, startDiv = order[order.length-1];
+  const order = cfg.order, lowestDiv = order[order.length-1];
+  // MODO TESTE (ver TESTING_FREE_DIVISION_PICK, topo do arquivo): só no Brasil por enquanto —
+  // deixa escolher em qual divisão o save começa, clicando no badge dela. Fora do modo teste
+  // (ou fora do Brasil), 'início' fica sempre na mais baixa, a regra de sempre.
+  const testPickable = TESTING_FREE_DIVISION_PICK && isBr;
+  const startDiv = (testPickable && CL.testStartDiv && CL.testStartDiv[uniKey]) || lowestDiv;
   const openKey = 'compOpen_'+uniKey.replace(/[^a-z0-9]/gi,'');
   const open = CL[openKey]!==false;
   const divBadges = order.map(d=>{
     const label=(cfg.label&&cfg.label[d])||d;
     const ic = (isBr && divisionTrophyImg(d,26)) || '<span class="cl-divopt-ic">🏆</span>';
     const start = d===startDiv;
-    return `<div class="cl-comp-toggle on ${start?'start':''}" style="cursor:default">${ic}<b>${escC(label)}</b>${start?'<span class="cl-comp-start-tag">início</span>':''}</div>`;
+    const clickAttr = (testPickable && !start) ? `onclick="clSetTestStartDiv('${uniKey}','${d}')" style="cursor:pointer"` : 'style="cursor:default"';
+    return `<div class="cl-comp-toggle on ${start?'start':''}" ${clickAttr}>${ic}<b>${escC(label)}</b>${start?'<span class="cl-comp-start-tag">início</span>':''}</div>`;
   }).join('');
+  const testHint = testPickable ? `<div class="cl-comp-testhint">🧪 Modo teste: clique numa divisão pra começar nela.</div>` : '';
   // toda competição do país entra sempre no save — badges informativos (✔), sem liga/desliga
   const cupBadge=(label,tk)=>`<div class="cl-comp-toggle on" style="cursor:default">${(tk&&trophyImg(tk,26))||'<span class="cl-divopt-ic">🏆</span>'}<b>${escC(label)}</b><span class="cl-comp-check">✔</span></div>`;
   const cupBadges = isBr
@@ -1063,6 +1083,7 @@ function countryCompSection(country){
     <div class="cl-acc-body ${open?'':'closed'}">
       <div class="cl-comp-grouplbl">Ligas</div>
       <div class="cl-divopt-row">${divBadges}</div>
+      ${testHint}
       <div class="cl-comp-grouplbl">Copas e continentais</div>
       <div class="cl-divopt-row">${cupBadges}</div>
     </div>
@@ -1078,6 +1099,8 @@ function clToggleDivision(d){
 /* divisão em que o save realmente começa: a mais alta marcada (A > B > C > D) */
 function computeStartDivision(){
   // no clássico, todo mundo começa na Série D e vai subindo — não é mais escolha do usuário
+  // MODO TESTE (ver TESTING_FREE_DIVISION_PICK acima): libera escolher via CL.testStartDiv.brasil
+  if(TESTING_FREE_DIVISION_PICK && CL.testStartDiv && CL.testStartDiv.brasil) return CL.testStartDiv.brasil;
   return 'D';
 }
 function divisionShortLabel(d){ return (typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[d]) || ({A:'Série A',B:'Série B',C:'Série C',D:'Série D'})[d] || 'Série A'; }

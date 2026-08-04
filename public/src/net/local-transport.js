@@ -639,11 +639,27 @@ function clJoinMyRoom(code, pending){
    naquela sala) assim que entra — o anfitrião não atribui mais times a outros
    jogadores manualmente. "Sortear times" continua existindo como atalho opcional
    pro anfitrião preencher de uma vez as vagas que ninguém escolheu ainda. */
+/* MODO TESTE (TESTING_FREE_DIVISION_PICK, ui/main.js): escolher a divisão inicial da Resenha
+   precisa acontecer AQUI, antes de "Abrir" — o pool de clubes da sala (game_seats) é fixado na
+   criação (netCreateRoom, net/supabase-adapter.js), não dá pra trocar depois no lobby. Some
+   inteiro fora do modo teste (volta a ser sempre Série D, sem escolha nenhuma). */
+function salaTestDivRow(){
+  if(typeof TESTING_FREE_DIVISION_PICK==='undefined' || !TESTING_FREE_DIVISION_PICK) return '';
+  const cfg=(typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS.brasil; if(!cfg) return '';
+  const chosen=(CL.testStartDiv && CL.testStartDiv.brasil) || cfg.order[cfg.order.length-1];
+  const opts=cfg.order.map(d=>{
+    const label=(cfg.label&&cfg.label[d])||d, on=d===chosen;
+    return `<div class="cl-comp-toggle on ${on?'start':''}" onclick="clSetTestStartDiv('brasil','${d}')" style="cursor:pointer">${(typeof divisionTrophyImg==='function'&&divisionTrophyImg(d,22))||'<span class="cl-divopt-ic">🏆</span>'}<b>${escC(label)}</b>${on?'<span class="cl-comp-start-tag">início</span>':''}</div>`;
+  }).join('');
+  return `<div class="cl-authfield"><label>🧪 Modo teste — divisão inicial da sala</label>
+    <div class="cl-divopt-row">${opts}</div></div>`;
+}
 function scSalaHost(){ const n=CL.net;
   const body=`<div class="cl-wiz-authcard">
       <div class="cl-authfield"><label>Nome da sala</label>
         <input id="cl-focus" maxlength="18" placeholder="Ex: Resenha da firma" value="${escC(n.roomName||'')}" oninput="CL.net.roomName=this.value;netSalaSync()" onkeydown="if(event.key==='Enter')clOpenRoom()"></div>
       <div class="cl-authhint">Cada jogador escolhe o próprio time ao entrar, entre os clubes ainda controlados pela CPU.</div>
+      ${salaTestDivRow()}
     </div>`;
   return wizShell({
     title:'Abrir sala', back:'clBackConta()', backLabel:'Voltar',
@@ -765,13 +781,31 @@ function scLobby(){ const room=NET.room;
     action
   });
 }
+/* MODO TESTE (TESTING_FREE_DIVISION_PICK, ui/main.js): qual divisão do Brasil ESTA sala usa —
+   normalmente sempre D, mas o anfitrião pode ter escolhido outra em scSalaHost (netCreateRoom já
+   criou os assentos nela). Fonte de verdade, em ordem: (1) o clube de QUALQUER participante já
+   sentado (funciona pra qualquer cliente, incluindo convidados que nunca escolheram nada
+   localmente — divisionOfResenhaClub deriva do id, sem precisar guardar a divisão na sala/banco);
+   (2) sala vazia ainda (acabou de ser criada) — só o próprio anfitrião sabe, no CL.testStartDiv
+   local dele; (3) RESENHA_START_DIV ('D'), a regra de sempre. */
+function resolveRoomDivision(){
+  const room=NET.room;
+  if(room){
+    for(const p of (room.participants||[])){
+      if(p.clubId && typeof divisionOfResenhaClub==='function'){ const d=divisionOfResenhaClub(p.clubId); if(d) return d; }
+    }
+  }
+  if(typeof TESTING_FREE_DIVISION_PICK!=='undefined' && TESTING_FREE_DIVISION_PICK && CL.testStartDiv && CL.testStartDiv.brasil) return CL.testStartDiv.brasil;
+  return (typeof RESENHA_START_DIV!=='undefined') ? RESENHA_START_DIV : 'D';
+}
 /* clubes ainda controlados pela CPU nesta sala — o próprio jogador escolhe entre eles
    (mesma lista que scMidJoin usa pra convite/entrada com a liga já rolando). */
 function freeClubIds(){ const room=NET.room; if(!room) return [];
-  // Resenha começa na Série D do Brasil — o pool de sorteio precisa ser exatamente os clubes da
-  // Série D (que são os assentos criados na sala), não o DATA.clubs local do convidado (que pode
-  // estar noutro universo/divisão e não bater com os assentos).
-  const pool = (typeof resenhaStartClubs==='function' && resenhaStartClubs().length) ? resenhaStartClubs()
+  // o pool de sorteio precisa ser exatamente os clubes da divisão desta sala (resolveRoomDivision
+  // — normalmente D, ver ali), não o DATA.clubs local do convidado (que pode estar noutro
+  // universo/divisão e não bater com os assentos).
+  const div=resolveRoomDivision();
+  const pool = (typeof resenhaStartClubs==='function' && resenhaStartClubs(div).length) ? resenhaStartClubs(div)
     : ((typeof DATA!=='undefined' && DATA.clubsSerieA && DATA.clubsSerieA.length) ? DATA.clubsSerieA : DATA.clubs);
   const taken=new Set((room.participants||[]).map(p=>p.clubId).filter(Boolean));
   return pool.filter(c=>!taken.has(c.id));
@@ -908,7 +942,7 @@ function startResenhaDraw(){
   if(typeof clStopLobbyPoll==='function') clStopLobbyPoll(); // saí do lobby: para o poll de segurança
   const room=NET.room;
   if(!room){ onlineBeginSeason(true); return; }
-  const poolById={}; (typeof resenhaStartClubs==='function'?resenhaStartClubs():[]).forEach(c=>{ poolById[c.id]=c; });
+  const poolById={}; (typeof resenhaStartClubs==='function'?resenhaStartClubs(resolveRoomDivision()):[]).forEach(c=>{ poolById[c.id]=c; });
   // só treinadores COM assento sorteado; ordem DETERMINÍSTICA por clubId → todos veem a mesma sequência
   const list=(room.participants||[]).filter(p=>p.clubId).slice()
     .sort((a,b)=> String(a.clubId).localeCompare(String(b.clubId)));
@@ -998,9 +1032,12 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
   // base até a Série A e ganhar títulos. Se este jogador vinha de um solo (universo intl, outra
   // divisão, transferência ao exterior), DATA.clubs/universo ficaram alterados e newGame(clubId)
   // teria squads[clubId] === undefined -> crash. Restaura o Brasil na divisão inicial antes de montar.
+  // MODO TESTE (TESTING_FREE_DIVISION_PICK, ui/main.js): a divisão real desta sala pode não ser D
+  // (anfitrião escolheu outra em scSalaHost) — divisionOfResenhaClub deriva do PRÓPRIO clube já
+  // confirmado (me.clubId), então funciona igual pro anfitrião e pra qualquer convidado.
   if(typeof setUniverse==='function') setUniverse('brasil');
-  const startDiv = (typeof RESENHA_START_DIV!=='undefined') ? RESENHA_START_DIV : 'D';
-  const startClubs = (typeof resenhaStartClubs==='function' && resenhaStartClubs().length) ? resenhaStartClubs() : ((DATA.clubsSerieA||DATA.clubs)||[]);
+  const startDiv = (typeof divisionOfResenhaClub==='function') ? divisionOfResenhaClub(me.clubId) : ((typeof RESENHA_START_DIV!=='undefined') ? RESENHA_START_DIV : 'D');
+  const startClubs = (typeof resenhaStartClubs==='function' && resenhaStartClubs(startDiv).length) ? resenhaStartClubs(startDiv) : ((DATA.clubsSerieA||DATA.clubs)||[]);
   DATA.clubs = startClubs.slice();
   CL.intlUniverse=false; CL.bgCountries=[]; CL.playCountry='Brasil';
   CL.clubId=me.clubId; CL.mgr=me.name||CL.mgr; // clube SEMPRE do próprio assento (guardado acima)

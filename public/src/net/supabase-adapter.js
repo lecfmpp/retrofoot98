@@ -314,7 +314,10 @@ async function netCreateRoom(name, host){
   // A Resenha começa SEMPRE na última divisão do Brasil (Série D) — ver onlineBeginSeason. O pool de
   // clubes NÃO pode depender do universo/divisão em que o host estava (ex.: explorando Argentina/
   // Europa) — senão os assentos ficam com clubes de outro país e o convidado não consegue reivindicar.
-  const poolClubs = (typeof resenhaStartClubs==='function' && resenhaStartClubs().length) ? resenhaStartClubs()
+  // MODO TESTE (TESTING_FREE_DIVISION_PICK, ui/main.js): CL.testStartDiv.brasil, quando escolhido
+  // em scSalaHost, sobrescreve a divisão inicial só desta sala — sem escolha, cai no 'D' de sempre.
+  const testDiv = (typeof TESTING_FREE_DIVISION_PICK!=='undefined' && TESTING_FREE_DIVISION_PICK && CL.testStartDiv && CL.testStartDiv.brasil) || undefined;
+  const poolClubs = (typeof resenhaStartClubs==='function' && resenhaStartClubs(testDiv).length) ? resenhaStartClubs(testDiv)
     : ((typeof DATA!=='undefined' && DATA.clubsSerieA && DATA.clubsSerieA.length) ? DATA.clubsSerieA : DATA.clubs);
   const clubIds = poolClubs.map(c=>c.id);
   const { data: code, error } = await sb.rpc('create_game', { p_name:name, p_club_ids:clubIds, p_mode: CL.net.mode||'sorteio' });
