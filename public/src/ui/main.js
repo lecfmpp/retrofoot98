@@ -1434,8 +1434,7 @@ function scBoasVindas(){
 
       <div class="cl-welc-actions">
         <div class="cl-welc-hint">Escolha a tática no menu <strong style="color:#fff">Formação</strong> antes do primeiro jogo.</div>
-        ${btn('Ver a formação…','clBoasVindasContinuar(\'seleccao\')',{icon:'👥'})}
-        ${btn('Assumir o comando','clBoasVindasContinuar(\'jogo\')',{icon:'✔',cls:'cl-btn-ok'})}
+        ${btn('Iniciar temporada','clBoasVindasContinuar(\'jogo\')',{icon:'✔',cls:'cl-btn-ok'})}
       </div>
     </div>`, {w:900, bodyClass:'cl-body-green', min:true});
 }
