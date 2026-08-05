@@ -3516,8 +3516,11 @@ function cupPhaseLabelFor(pending){
    o Calendário exibe (jornada em que esta rodada de copa acontece, ver S.cupCalendar). */
 function cupIntroDateHTML(pending){
   if(typeof realDateForDay!=='function' || typeof fmtRealDate!=='function') return '';
-  const j=(S.round||0)+1;                       // a rodada de copa é a do tique SEGUINTE (ver pendingUserCupMatches)
-  try{ return ` <span class="cl-cupintro-date">· ${escC(fmtRealDate(realDateForDay(1+j*7)))}</span>`; }
+  // MODELO DE DIAS (validado numa temporada inteira, 131 clubes, zero choques): dentro da semana
+  // corrente a copa é o jogo de MEIO DE SEMANA e a liga é o de fim de semana. A partida de copa
+  // jogada nesta sessão pertence à semana de S.round — não à semana do tique, que é a seguinte.
+  const dia=1+(S.round||0)*7+3;                 // quarta-feira da semana atual
+  try{ return ` <span class="cl-cupintro-date">· ${escC(fmtRealDate(realDateForDay(dia)))}</span>`; }
   catch(e){ return ''; }
 }
 function showCupIntro(pending, auto){
@@ -6353,6 +6356,14 @@ function nextCupJornada(key, stepsAhead){
    fallback pros confrontos JÁ jogados de saves antigos, que não têm o carimbo t.jornada
    (ver advanceCupBracket): a competição bate a cada 3 jornadas, na jornada ≡ CUP_TICK_OFFSET
    (mod 3), e a primeira batida acontece na primeira jornada >= 1 com esse resto. */
+/* SEMANA EM QUE A RODADA DE COPA É DE FATO JOGADA.
+   Os "tiques" de copa são numerados pela jornada em que a competição AVANÇA (advancePendingCups
+   roda depois do S.round++), mas o usuário joga essa partida uma sessão ANTES: pendingUserCupMatches
+   olha S.round+1. Ou seja, o tique 3 da Copa do Brasil é jogado na sessão da jornada 2, junto com a
+   rodada 2 da liga — e o Calendário mostrava esse jogo uma jornada à frente de onde ele acontece.
+   Com o modelo de dias validado (copa na quarta, liga no fim de semana da MESMA semana), a semana
+   correta é sempre tique-1. Só a EXIBIÇÃO usa isto; a mecânica continua falando em tiques. */
+function cupWeekOfTick(tick){ return Math.max(0, (tick||0)-1); }
 function cupJornadaOfRound(key, r){
   const cal=(S.cupCalendar&&S.cupCalendar[key])||null;
   if(cal && cal.length) return cal[Math.min(Math.max(1,r)-1, cal.length-1)];
@@ -6371,7 +6382,7 @@ function userCupPlayedRows(){
   const addTie=(key,t,r,roundsTotal)=>{
     if(!meuLado(t) || t.hg==null || t.ag==null) return;
     const home=t.h===CL.clubId;
-    out.push({key, n:(t.jornada!=null?t.jornada:cupJornadaOfRound(key,r)), played:true,
+    out.push({key, n:cupWeekOfTick(t.jornada!=null?t.jornada:cupJornadaOfRound(key,r)), played:true,
       opp:home?t.a:t.h, home, myG:home?t.hg:t.ag, oppG:home?t.ag:t.hg,
       phase:(typeof cupPhaseLabel==='function')?cupPhaseLabel(r,roundsTotal):null,
       pens:t.pens?(home?t.pens.h+'×'+t.pens.a:t.pens.a+'×'+t.pens.h):null,
@@ -6391,7 +6402,7 @@ function userCupPlayedRows(){
       (g.results||[]).forEach(m=>{
         if(m.h!==CL.clubId && m.a!==CL.clubId) return;
         const home=m.h===CL.clubId;
-        out.push({key, n:(m.jornada!=null?m.jornada:cupJornadaOfRound(key,(m.r||0)+1)), played:true,
+        out.push({key, n:cupWeekOfTick(m.jornada!=null?m.jornada:cupJornadaOfRound(key,(m.r||0)+1)), played:true,
           opp:home?m.a:m.h, home, myG:home?m.hg:m.ag, oppG:home?m.ag:m.hg, phase:'Fase de grupos'});
       });
     });
@@ -6415,7 +6426,7 @@ function userCupCalendarRows(){
   if(cb && !cupIsFinished(cb) && typeof cupCompetitionTeamAlive==='function' && cupCompetitionTeamAlive(cb, CL.clubId)){
     const tie=(cb.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
     const phase=(typeof cupPhaseLabel==='function')?cupPhaseLabel(cb.round, cb.roundsTotal):null;
-    out.push({key:'copaBrasil', n:nextCupJornada('copaBrasil',0), phase,
+    out.push({key:'copaBrasil', n:cupWeekOfTick(nextCupJornada('copaBrasil',0)), phase,
       opp: tie ? (tie.h===CL.clubId?tie.a:tie.h) : null,          // sem confronto ainda -> "a definir"
       home: tie ? (tie.h===CL.clubId) : null});
   }
@@ -6427,12 +6438,12 @@ function userCupCalendarRows(){
         if(!g.teams.includes(CL.clubId)) return;
         for(let r=mg.round;r<mg.roundsTotal;r++){
           const fx=(g.sched[r]||[]).find(([h,a])=>h===CL.clubId||a===CL.clubId);
-          if(fx) out.push({key, n:nextCupJornada(key,r-mg.round), opp:fx[0]===CL.clubId?fx[1]:fx[0], home:fx[0]===CL.clubId});
+          if(fx) out.push({key, n:cupWeekOfTick(nextCupJornada(key,r-mg.round)), opp:fx[0]===CL.clubId?fx[1]:fx[0], home:fx[0]===CL.clubId});
         }
       });
     } else if(c.bracket && !cupIsFinished(c.bracket)){
       const tie=(c.bracket.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
-      if(tie) out.push({key, n:nextCupJornada(key,0), opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
+      if(tie) out.push({key, n:cupWeekOfTick(nextCupJornada(key,0)), opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
     }
   });
   return out;
