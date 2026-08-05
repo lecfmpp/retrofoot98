@@ -395,7 +395,18 @@ function onlineReconcileIfBehind(room){
   // (nova temporada: a virada leva a rodada de 38 -> 0). Antes só cobria `>`, então na virada o
   // cliente ficava preso na última rodada da temporada velha ("Rodada 39") e nunca adotava a nova
   // divisão. A comparação REAL de "quem está mais novo" é por (temporada, rodada), feita abaixo.
-  if(authRound === (S.round||0)) return;           // exatamente a mesma rodada — nada a fazer
+  // SINCRONIA DE FUNDO A CADA RODADA. Antes a reconciliação só olhava o NÚMERO da rodada: mesma
+  // rodada = nada a fazer. Só que dois clientes podem estar na mesma rodada com mundos DIFERENTES
+  // — publicação perdida, adoção parcial, um fallback antigo que rodou só de um lado. Era assim
+  // que a sala ia se afastando em silêncio até alguém notar o estrago rodadas depois.
+  // games.state_version é incrementado por TODA resolução do servidor, então ele é o sinal honesto
+  // de "meu mundo está velho". Se a versão que eu adotei ficou pra trás, reconcilio mesmo com a
+  // rodada igual. O usuário não sente: o adopt já roda atrás da tela de sincronização
+  // (showSyncLoading) e, entre rodadas, da própria pausa técnica.
+  const authVer = room.stateVersion||0;
+  const meuVer = CL._adoptedVer||0;
+  const versaoVelha = authVer>0 && meuVer>0 && authVer>meuVer;
+  if(authRound === (S.round||0) && !versaoVelha) return;   // mesma rodada E mesma versão — nada a fazer
   if(ONLINE_RECONCILE_BUSY || typeof NET==='undefined' || !NET.loadGame) return;
   ONLINE_RECONCILE_BUSY=true;
   // mostra o loading JÁ AQUI, antes do await da rede — cobre exatamente a janela onde o
@@ -405,6 +416,7 @@ function onlineReconcileIfBehind(room){
   if(typeof showSyncLoading==='function') showSyncLoading();
   (async ()=>{ try{
     const saved = await NET.loadGame();
+    CL._adoptedVer=(typeof NET!=='undefined' && NET._loadedVersion)||CL._adoptedVer||0; // versão do estado que acabei de adotar
     const sState = saved && saved.S;
     const oldSeason = S.season||0;
     const newer = sState && ( (sState.season||0) > oldSeason || ((sState.season||0)===oldSeason && (sState.round||0) > (S.round||0)) );
@@ -1215,6 +1227,7 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
     (async ()=>{
       try {
         const savedState = await NET.loadGame();
+        CL._adoptedVer=(typeof NET!=='undefined' && NET._loadedVersion)||CL._adoptedVer||0; // versão do estado que acabei de adotar
         if(savedState && savedState.S){
           const _career=(typeof snapshotCareer==='function')?snapshotCareer():null; // carreira é minha, não do anfitrião (ver CAREER_KEYS)
           Object.assign(S, savedState.S);
@@ -1472,6 +1485,7 @@ function onlineCompleteSeasonTurnover(){
     const res = await NET.resolveRound(S.round);
     if(res && !res.error){
       const saved = await NET.loadGame();
+      CL._adoptedVer=(typeof NET!=='undefined' && NET._loadedVersion)||CL._adoptedVer||0; // versão do estado que acabei de adotar
       if(saved && saved.S){
         const _career=(typeof snapshotCareer==='function')?snapshotCareer():null; // carreira é minha, não do anfitrião (ver CAREER_KEYS)
         Object.assign(S, saved.S);

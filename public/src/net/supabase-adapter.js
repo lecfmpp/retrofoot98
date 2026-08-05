@@ -379,7 +379,12 @@ async function netRefreshRoom(){
       name: g.name, mode: g.mode, phase: g.phase, round: g.round||0, seed: g.seed,
       deadline: g.ready_deadline?new Date(g.ready_deadline).getTime():0,
       paused: g.paused, paused_remaining_ms: g.paused_remaining_ms, speedMult: parseFloat(g.speed_mult)||1,
-      kickoffAt: g.kickoff_at?new Date(g.kickoff_at).getTime():0, kickoffLineups: g.kickoff_lineups||null
+      kickoffAt: g.kickoff_at?new Date(g.kickoff_at).getTime():0, kickoffLineups: g.kickoff_lineups||null,
+      // VERSÃO DO ESTADO COMPARTILHADO. É o único sinal honesto de "meu mundo está velho": a rodada
+      // pode coincidir e o conteúdo divergir (publicação perdida, adoção parcial, fallback antigo).
+      // Toda resolução do servidor incrementa isto, então comparar com a versão que EU adotei
+      // detecta a defasagem que a comparação por rodada não vê. Ver onlineReconcileIfBehind.
+      stateVersion: g.state_version||0
     });
     const { data: seats } = await sb.from('game_seats').select('*').eq('game_id', NET.gameId);
     NET._claimed = NET._claimed || {};
@@ -935,6 +940,7 @@ async function netLoadGame(){
   try {
     const { data, error } = await sb.from('games').select('shared_state,state_version').eq('id', NET.gameId).single();
     if(error) return null;
+    NET._loadedVersion = data?.state_version || 0;   // versão do que acabei de baixar (ver CL._adoptedVer)
     return data?.shared_state || null;
   } catch(e) { console.error('loadGame erro:', e); return null; }
 }

@@ -6123,6 +6123,7 @@ async function onlineAdoptServerRound(RL){
   let isTurnover=false;
   try{
     const saved = await NET.loadGame();
+    CL._adoptedVer=(typeof NET!=='undefined' && NET._loadedVersion)||CL._adoptedVer||0; // versão do estado que acabei de adotar
     if(saved && saved.S){
       const oldSeason = S.season||0;
       isTurnover = (saved.S.season||0) > oldSeason; // VIRADA de temporada (rodada volta a 0)
@@ -6578,6 +6579,19 @@ function userCupDrawRows(){
   });
   return out;
 }
+/* DATA REAL DE CADA LINHA DO CALENDÁRIO — é o que torna o "calendário por dia" visível.
+   O Calendário listava só o número da jornada ("3ª"), então copa e liga da mesma semana apareciam
+   com o MESMO rótulo e nada dizia que uma era no meio da semana e a outra no fim. Era exatamente a
+   confusão entre competições: duas linhas iguais, dias diferentes.
+   O modelo de dias (validado numa temporada inteira, 131 clubes, zero choques): dentro da semana N
+   a copa é quarta (dia 1+N*7+3) e a liga é sábado (dia 1+N*7+6). */
+function calRowDate(n, isCup){
+  if(typeof realDateForDay!=='function') return '';
+  const dia = 1 + (n||0)*7 + (isCup?3:6);
+  const d=realDateForDay(dia);
+  const SEM=['dom','seg','ter','qua','qui','sex','sáb'];
+  return SEM[d.getDay()]+' '+fmtRealDate(d);
+}
 function clCalendar(){
   // intercala copa, sorteio e liga por jornada (ver nextCupJornada/jornadaForRealDate) —
   // na mesma jornada, a(s) partida(s) de copa vêm antes da de liga, igual à ordem real de
@@ -6593,7 +6607,7 @@ function clCalendar(){
       extra=` <span class="cl-res-chip ${cls}">${txt}</span> <b>${pc.myG}-${pc.oppG}</b>${pc.pens?` <span class="cl-cal-pens">(pên. ${escC(pc.pens)})</span>`:''}`;
     }
     return {n:pc.n, ord:0, html:
-    `<div class="cl-cal-row cl-cal-cup"><span class="cl-cal-n">${pc.n}ª</span>
+    `<div class="cl-cal-row cl-cal-cup"><span class="cl-cal-n">${pc.n}ª<i class="cl-cal-d">${calRowDate(pc.n,true)}</i></span>
       <span class="cl-cal-t">🏆 ${COMP_DEFS[pc.key].short}${pc.phase?' · '+escC(pc.phase):''} · ${pc.opp?clubLink(pc.opp):'<i>adversário a definir</i>'}${extra}</span><span class="cl-cal-cf">${pc.home==null?'':pc.home?'C':'F'}</span></div>`};
   });
   const drawRows=userCupDrawRows().map(dr=>({n:dr.n, ord:0, html:
@@ -6608,7 +6622,7 @@ function clCalendar(){
     const chip = played?` <span class="cl-res-chip ${chipCls}">${chipTxt}</span>`:'';
     const score=played?` <b>${r.myG}-${r.oppG}</b>`:'';
     return {n:r.n, ord:1, html:
-    `<div class="cl-cal-row"><span class="cl-cal-n">${r.n}ª</span>
+    `<div class="cl-cal-row"><span class="cl-cal-n">${r.n}ª<i class="cl-cal-d">${calRowDate(r.n,false)}</i></span>
     <span class="cl-cal-t">${clubLink(r.opp)}${chip}${score}</span><span class="cl-cal-cf">${r.home?'C':'F'}</span></div>`};
   });
   const rows=cupRows.concat(drawRows).concat(ligaRows).sort((a,b)=>a.n-b.n || a.ord-b.ord).map(r=>r.html).join('');
@@ -7123,6 +7137,10 @@ function clCompList(){ CL.menu=null;
     else if(cupCompetitionChampion(c)===cid){ statusTxt='🏆 CAMPEÃO'; statusCls='ok'; clickable=true; }
     else if(!qualified){ statusTxt='Não classificado · acompanhar'; statusCls='out'; clickable=true; }
     else if(!cupCompetitionTeamAlive(c,cid)){ statusTxt='Eliminado · acompanhar'; statusCls='out'; clickable=true; }
+    // classificado, mas o mata-mata ainda não foi sorteado (data real do sorteio, ver
+    // cupAwaitingKnockoutDraw) — dizer a fase aqui seria mentira, e "Eliminado" era pior ainda.
+    else if(typeof cupAwaitingKnockoutDraw==='function' && cupAwaitingKnockoutDraw(c,cid)){
+      statusTxt='Classificado · aguardando sorteio'; statusCls='ok'; clickable=true; }
     else { statusTxt=cupCompetitionRoundLabel(c,x.key); statusCls='ok'; clickable=true; }
     const icon=trophyImg(trophyFor[x.key],24) || (x.key==='copaBrasil'?flagImg('Brasil'):'🌎');
     rows.push(`<div class="cl-complist-row ${clickable?'':'disabled'}" ${clickable?`onclick="clCupView('${x.key}')"`:''}>

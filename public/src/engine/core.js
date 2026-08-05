@@ -1590,7 +1590,21 @@ function cupCompetitionChampion(c){ if(!c) return null;
 function cupCompetitionTeamAlive(c,id){ if(!c) return false;
   if(c.champion!==undefined) return cupTeamAlive(c,id);
   if(c.group && !c.group.finished) return Object.values(c.group.groups).some(g=>g.teams.includes(id));
+  // JANELA ENTRE O FIM DOS GRUPOS E O SORTEIO DAS OITAVAS. O mata-mata só é criado quando a data
+  // real do sorteio chega (COMP_R16_DRAW_2026: 29/mai nas continentais, ver advancePendingCups), e
+  // até lá c.bracket é null. A conta antiga caía direto no `return c.bracket ? ... : false` e
+  // respondia FALSE pra todo mundo — inclusive pro líder do grupo. Na tela isso virava
+  // "Eliminado" para clubes que tinham acabado de se classificar em primeiro, por semanas.
+  // Nesta janela quem está vivo é quem CLASSIFICOU; quem não classificou está de fato eliminado.
+  if(c.group && c.group.finished && !c.bracket){
+    return (typeof groupStageAdvancers==='function') && groupStageAdvancers(c.group).indexOf(id)>=0;
+  }
   return c.bracket ? cupTeamAlive(c.bracket,id) : false; }
+/* está classificado e só esperando o sorteio do mata-mata? (a UI mostra isso em vez de uma fase) */
+function cupAwaitingKnockoutDraw(c,id){
+  return !!(c && c.group && c.group.finished && !c.bracket && typeof groupStageAdvancers==='function'
+            && groupStageAdvancers(c.group).indexOf(id)>=0);
+}
 /* nome da fase do mata-mata a partir da distância até a final — dá pro usuário a real
    sensação de progresso ("oitavas", "quartas"...) em vez de um número de rodada cru.
    roundsTotal varia por competição/temporada (Copa do Brasil parte de ~80 clubes, um
