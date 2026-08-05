@@ -2798,6 +2798,31 @@ function forcaBlocoHTML(p){
     <div class="cl-forca-top"><span>Força</span><b class="cl-forca-n">${p.f}</b><span class="cl-forca-d ${g.delta>0?'up':g.delta<0?'down':''}">${dl}</span></div>
     ${linhaMudanca}${linhaTotal}${linhaTreino}
     ${growthSparkHTML(g)}
+    ${ritmoBlocoHTML(p)}
+  </div>`;
+}
+/* ---- RITMO DE EVOLUÇÃO: o "porquê" ao lado do "quanto" ----
+   O histórico acima diz que a força mudou; este bloco diz por quê e a que velocidade, com os
+   mesmos números que o motor usa (growthProfileOf no core = leitura de evolvePlayer). Sem isso o
+   usuário só via o resultado — inclusive o salto de 2-3 pontos de uma vez, que vem da curva da
+   divisão e não de nada que ele fez. */
+function ritmoBlocoHTML(p){
+  const g=(typeof growthProfileOf==='function')?growthProfileOf(p):null; if(!g) return '';
+  const r=ritmoLabel(g.forcaPorTemporada);
+  const linhas=g.fontes.map(f=>
+    `<div class="cl-ritmo-l ${f.sinal>0?'up':'down'}"><span>${f.sinal>0?'▲':'▼'} ${escC(f.label)}</span><b>${ritmoPct(f.chance)}/rodada</b></div>`).join('');
+  const vazio=`<div class="cl-ritmo-l flat"><span>${p.age>=31?'Fora da faixa de crescimento pela idade':'Precisa jogar bem (nota ≥ 6,8) ou entrar em treino especial'}</span></div>`;
+  // quanto vale 1 ponto de atributo em força AQUI — é o número que explica o "salto"
+  // ≥0,9 = um único ponto de atributo já mexe a Força inteira: é aí que o crescimento deixa de ser
+  // suave e vira degrau (na Série D isso começa em força bruta 58 — ver BANDS em rebalance.js).
+  const salto=Math.round(g.porPonto*10)/10;
+  const notaSalto=salto>=0.9
+    ? `<div class="cl-ritmo-nota">Nesta faixa da escala, cada ponto de atributo vale ~<b>${String(salto).replace('.',',')}</b> de Força — por isso ele sobe em saltos, não de 1 em 1.</div>`
+    : '';
+  return `<div class="cl-ritmo">
+    <div class="cl-ritmo-top">Ritmo de evolução <b class="cl-ritmo-${r.cls}">${r.txt}</b>
+      <i>${ritmoNum(g.forcaPorTemporada)} de força / temporada no ritmo de agora</i></div>
+    ${linhas||vazio}${notaSalto}
   </div>`;
 }
 /* mini-gráfico das mudanças — barras em ordem CRONOLÓGICA (esquerda = mais antiga). Os rótulos
@@ -2882,6 +2907,14 @@ function venderPanel(p){
   const diffPct = mv > 0 ? Math.round((diff / mv) * 100) : 0;
   const diffLabel = diff > 0 ? `+${moneyDisp(diff)} (+${diffPct}%)` : diff < 0 ? `${moneyDisp(diff)} (${diffPct}%)` : 'Preço igual';
   const belowMin = askingPrice > 0 && askingPrice < minPrice;
+  // PISO DE ELENCO: o clube não pode ficar sem goleiro (ver canReleaseFromSquad no core). Avisa
+  // ANTES, aqui na tela, em vez de deixar o usuário digitar o preço e só então recusar.
+  const floor=(typeof canReleaseFromSquad==='function')?canReleaseFromSquad(CL.clubId,p):{ok:true};
+  if(!floor.ok) return `<div class="cl-vender">
+  <div class="cl-vender-title">Vender</div>
+  <div class="cl-sell-warn" style="margin-bottom:16px">🧤 ${escC(floor.msg)}</div>
+  <div class="cl-vender-btns">${btn('Voltar','clCancelRight()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
+</div>`;
   return `<div class="cl-vender">
   <div class="cl-vender-title">Vender</div>
   <div style="color:#fff;font-size:13px;margin-bottom:20px;padding:12px;background:#3a2a2a;border-radius:4px">
@@ -3133,23 +3166,73 @@ function clAuctionBidGo(sellerId,player){
 }
 
 /* ---- Jogador > Treino especial: até 3 jogadores em treino ao mesmo tempo, ganhando chance
-   extra de evolução por rodada (ver evolvePlayer/hasEstrelinha). Feature nova — não existia
-   nada disso antes (grep por "treino"/"estrelinha" só batia em textos sem relação). ---- */
+   extra de evolução por rodada (ver evolvePlayer/hasEstrelinha).
+
+   A tela antiga era uma lista de nomes com um botão "Treinar" e uma frase genérica ("chance extra
+   de evolução"). Não dava pra responder as perguntas óbvias: quanto meu jogador cresce por
+   temporada? por que aquele cresce mais que este? o treino está fazendo alguma diferença? Agora
+   cada linha mostra o RITMO real (o mesmo cálculo de evolvePlayer, lido por growthProfileOf) e o
+   porquê — e o cabeçalho explica de onde vem o "salto" de força que confundia. ---- */
+const RITMO_FAIXAS=[
+  [12, 'muito rápido', 'vfast'], [6, 'rápido', 'fast'], [2, 'moderado', 'ok'], [0.4, 'lento', 'slow'],
+];
+function ritmoLabel(porTemporada){
+  if(porTemporada < -0.4) return {txt:'em queda', cls:'down'};
+  for(const [lim,txt,cls] of RITMO_FAIXAS) if(porTemporada>=lim) return {txt, cls};
+  return {txt:'estagnado', cls:'flat'};
+}
+function ritmoPct(x){ return Math.round(x*100)+'%'; }
+function ritmoNum(x){ const n=Math.round(x*10)/10; return (n>0?'+':'')+String(n).replace('.',','); }
+/* uma linha do jogador na tela de treino: ritmo + as fontes reais de ganho/perda */
+function trainingRowHTML(p, inTraining, cheio){
+  const g=(typeof growthProfileOf==='function')?growthProfileOf(p):null;
+  const star=(typeof hasEstrelinha==='function')&&hasEstrelinha(p);
+  const r=g?ritmoLabel(g.forcaPorTemporada):{txt:'—',cls:'flat'};
+  const porTemp=g?ritmoNum(g.forcaPorTemporada):'—';
+  const motivos=(g&&g.fontes.length)
+    ? g.fontes.map(f=>`<span class="cl-trn-chip ${f.sinal>0?'up':'down'}">${f.sinal>0?'▲':'▼'} ${escC(f.label)} <i>${ritmoPct(f.chance)}/rodada</i></span>`).join('')
+    : `<span class="cl-trn-chip flat">Sem ganho nem perda agora — ${p.age>=31?'idade fora da faixa de crescimento':'precisa jogar bem (nota ≥ 6,8) ou entrar em treino'}</span>`;
+  const acao = inTraining
+    ? btn('Tirar do treino', "clStopTraining('"+p.pid+"')", {cls:'cl-btn-mini'})
+    : (cheio ? `<span class="cl-trn-full">lotado</span>` : btn('Treinar', "clStartTraining('"+p.pid+"')", {cls:'cl-btn-mini'}));
+  return `<div class="cl-trn-row">
+    <div class="cl-trn-head">
+      <span class="cl-mkt-p-pos">${posLetter(p.s)}</span>
+      <span class="cl-trn-n">${escC(p.n)}${star?' <span title="Destaque: evolui mais rápido no treino">⭐</span>':''}<i class="cl-trn-age">${p.age} anos</i></span>
+      <span class="cl-trn-f">${p.f}${inTraining?' '+trainingConeImg(12):''}</span>
+      <span class="cl-trn-ritmo ${r.cls}"><b>${r.txt}</b><i>${porTemp} de força / temporada</i></span>
+      ${acao}
+    </div>
+    <div class="cl-trn-why">${motivos}</div>
+  </div>`;
+}
 function clTrainingScreen(){ CL.menu=null;
   const training=new Set(myTrainingList());
-  const sq=squad(CL.clubId).slice().sort((a,b)=>b.f-a.f);
-  const rows=sq.map(p=>{
-    const inTraining=training.has(p.pid);
-    const star=(typeof hasEstrelinha==='function')&&hasEstrelinha(p);
-    return `<div class="cl-mkt-p" style="cursor:default">
-      <span class="cl-mkt-p-pos">${posLetter(p.s)}</span><span class="cl-mkt-p-n">${escC(p.n)}${star?' ⭐':''}</span>
-      <span class="cl-mkt-p-f">${p.f}${inTraining?' '+trainingConeImg(12):''}</span>
-      ${btn(inTraining?'Tirar do treino':'Treinar', (inTraining?'clStopTraining':'clStartTraining')+"('"+p.pid+"')", {cls:'cl-btn-mini'})}
-    </div>`;
-  }).join('');
-  overlayC(dlg('Treino especial', `<div class="cl-mkt-counter">Até ${TRAINING_MAX_SLOTS} jogadores em treino ao mesmo tempo (${training.size}/${TRAINING_MAX_SLOTS}). Quem está em treino ganha chance extra de evolução a cada rodada — jogadores com ⭐ (destaque) evoluem mais rápido.</div>
-    <div class="cl-mkt-squad">${rows}</div>
-    <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:640,bodyClass:'cl-body-gray',min:true}));
+  const cheio=training.size>=TRAINING_MAX_SLOTS;
+  const sq=squad(CL.clubId).slice().sort((a,b)=>{
+    const ga=(typeof growthProfileOf==='function')?growthProfileOf(a):null, gb=(typeof growthProfileOf==='function')?growthProfileOf(b):null;
+    return ((gb&&gb.forcaPorTemporada)||0)-((ga&&ga.forcaPorTemporada)||0); // quem mais cresce primeiro
+  });
+  const rows=sq.map(p=>trainingRowHTML(p, training.has(p.pid), cheio)).join('');
+  overlayC(dlg('Treino especial', `
+    <div class="cl-trn-intro">
+      <div class="cl-trn-intro-h">Como o jogador evolui</div>
+      <p>Ninguém ganha "força" direto. A cada rodada o jogador pode ganhar um <b>ponto de atributo</b>
+      (finalização, passe, reflexos…), e a <b>Força</b> é a média desses atributos convertida pela escala da
+      sua divisão. Por isso ele às vezes joga bem e a Força não mexe — e às vezes <b>salta 2 ou 3 de uma vez</b>:
+      nas divisões de baixo a escala é bem mais íngreme, então o mesmo ponto ganho vale muito mais Força.</p>
+      <p>O que decide a velocidade, em ordem de peso:
+      <b>1) jogar bem</b> (nota ≥ 6,8; acima disso quanto maior a nota, mais rápido — é de longe o maior fator),
+      <b>2) idade</b> (até 20 anos cresce no talo, 24-27 já cai pra um terço, dos 29 em diante começa a perder físico),
+      <b>3) posição</b> (goleiro concentra o peso em 2 atributos e por isso sobe mais rápido que meia),
+      <b>4) treino especial</b> (+5% por rodada, 9% com ⭐) e
+      <b>5) currículo</b> (títulos e temporadas na elite dão até +50%).</p>
+      <p class="cl-trn-intro-tip">💡 O treino rende pouco em quem já é titular e vai bem — o ganho grande é no
+      <b>reserva</b>: fora do time ele <i>perde</i> físico a partir de 4 rodadas no banco, e o treino cancela essa perda.</p>
+    </div>
+    <div class="cl-mkt-counter">${training.size}/${TRAINING_MAX_SLOTS} em treino${cheio?' — tire alguém pra abrir vaga':''}. Ordenado por quem mais cresce agora.</div>
+    <div class="cl-trn-list">${rows}</div>
+    <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:780,bodyClass:'cl-body-gray',min:true}));
 }
 function clStartTraining(pid){ const r=startTraining(pid); toastC(r.msg); clTrainingScreen(); }
 function clStopTraining(pid){ stopTraining(pid); clTrainingScreen(); }
@@ -7597,6 +7680,10 @@ function clSellConfirm(){
   if(!canNegotiate()){ toastC(windowClosedMsg()); CL.rightMode=null; cdraw(); return; }
   const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer); if(!p){ CL.rightMode=null; cdraw(); return; }
   if(typeof isTradeLocked==='function' && isTradeLocked(p)){ toastC(`${p.n} foi comprado nesta temporada e ainda não pode ser vendido.`); CL.rightMode=null; cdraw(); return; }
+  // piso de elenco (goleiro): última barreira — a tela já avisa, mas a venda instantânea era o
+  // caminho mais curto pra deixar o time sem goleiro nenhum e travar o botão Jogar.
+  if(typeof canReleaseFromSquad==='function'){ const fl=canReleaseFromSquad(CL.clubId,p);
+    if(!fl.ok){ toastC(fl.msg); CL.rightMode=null; cdraw(); return; } }
   const seed=(hashC(p.n)+ (S.round||0)*7)>>>0; const rnd=rngFrom(seed);
   // exclui clubes de OUTROS humanos do sorteio de comprador — "Vender" é uma venda instantânea ao
   // mercado (CPU), sem consentimento; sem este filtro, o sorteio podia "empurrar" seu jogador pro

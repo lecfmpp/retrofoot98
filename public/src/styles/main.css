@@ -2114,3 +2114,61 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-spark-b>i{display:block;width:100%;background:var(--success-lite);min-height:2px}
 .cl-spark-lbl.now{color:var(--yellow);font-weight:var(--fw-bold)}
 .cl-spark-b.now>i{background:var(--yellow)}
+
+/* ===== RITMO DE EVOLUÇÃO (aba Jogador) =====
+   Mostra POR QUE o jogador cresce e a que velocidade, com as chances reais por rodada. Fica logo
+   abaixo do histórico de força: o de cima diz "mudou", este diz "por quê e quão rápido". */
+.cl-ritmo{margin-top:9px;border-top:1px solid #2a4a2a;padding-top:7px}
+.cl-ritmo-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;font-size:12px;color:var(--ontext-lite2)}
+.cl-ritmo-top>i{flex:1 0 100%;font-size:11px;opacity:.75;font-family:var(--mono)}
+.cl-ritmo-vfast,.cl-ritmo-fast{color:var(--success-lite);font-weight:var(--fw-bold)}
+.cl-ritmo-ok{color:var(--yellow);font-weight:var(--fw-bold)}
+.cl-ritmo-slow,.cl-ritmo-flat{color:var(--gray-aaa);font-weight:var(--fw-bold)}
+.cl-ritmo-down{color:#ff8a8a;font-weight:var(--fw-bold)}
+.cl-ritmo-l{display:flex;gap:8px;justify-content:space-between;font-size:11.5px;margin-top:4px;line-height:1.35}
+.cl-ritmo-l.up{color:var(--success-lite)} .cl-ritmo-l.down{color:#ff8a8a} .cl-ritmo-l.flat{color:var(--gray-999)}
+.cl-ritmo-l>b{font-family:var(--mono);white-space:nowrap;opacity:.9}
+.cl-ritmo-nota{font-size:11px;color:var(--gray-aaa);margin-top:6px;line-height:1.4}
+.cl-ritmo-nota b{color:var(--yellow);font-family:var(--mono)}
+
+/* ===== TELA DE TREINO ESPECIAL =====
+   Antes era só uma lista de nomes com botão "Treinar" e uma frase genérica. Agora explica a
+   mecânica (inclusive o salto de força pela escala da divisão) e mostra o ritmo real de cada um. */
+.cl-trn-intro{background:#141414;border:1px solid #333;padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--ontext-lite2);line-height:1.55}
+.cl-trn-intro-h{color:var(--yellow);font-weight:var(--fw-bold);font-size:13px;margin-bottom:5px}
+.cl-trn-intro p{margin:0 0 6px} .cl-trn-intro p:last-child{margin-bottom:0}
+.cl-trn-intro b{color:#fff}
+.cl-trn-intro-tip{background:#1d1d12;border-left:3px solid var(--yellow);padding:6px 8px}
+.cl-trn-list{max-height:46vh;overflow-y:auto}
+.cl-trn-row{border-bottom:1px solid #2a2a2a;padding:7px 4px}
+.cl-trn-head{display:flex;align-items:center;gap:8px}
+.cl-trn-n{flex:1;min-width:0;color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-trn-age{font-style:normal;font-size:11px;color:var(--gray-999);margin-left:6px}
+.cl-trn-f{font-family:var(--mono);font-size:15px;font-weight:var(--fw-bold);color:var(--yellow);min-width:40px;text-align:right}
+.cl-trn-ritmo{display:flex;flex-direction:column;align-items:flex-end;min-width:132px;font-size:11px;line-height:1.25}
+.cl-trn-ritmo>b{font-size:12px}
+.cl-trn-ritmo>i{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--gray-999)}
+.cl-trn-ritmo.vfast>b,.cl-trn-ritmo.fast>b{color:var(--success-lite)}
+.cl-trn-ritmo.ok>b{color:var(--yellow)}
+.cl-trn-ritmo.slow>b,.cl-trn-ritmo.flat>b{color:var(--gray-aaa)}
+.cl-trn-ritmo.down>b{color:#ff8a8a}
+.cl-trn-full{font-size:11px;color:var(--gray-999);min-width:62px;text-align:center}
+.cl-trn-why{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;padding-left:26px}
+.cl-trn-chip{font-size:10.5px;padding:2px 6px;border:1px solid #333;background:#191919;color:var(--gray-aaa);line-height:1.3}
+.cl-trn-chip>i{font-style:normal;font-family:var(--mono);opacity:.7;margin-left:3px}
+.cl-trn-chip.up{border-color:#2a4a2a;color:var(--success-lite)}
+.cl-trn-chip.down{border-color:#4a2a2a;color:#ff8a8a}
+@media(max-width:640px){
+  /* no celular a linha vira grade de 2 faixas: (posição · nome · força) em cima,
+     (ritmo · botão) embaixo — senão o botão ocupava a largura toda e cada jogador
+     comia três linhas, empurrando a lista pra fora da tela. */
+  .cl-trn-head{display:grid;grid-template-columns:auto 1fr auto;
+    grid-template-areas:"pos nome forca" "ritmo ritmo acao";gap:4px 8px;align-items:center}
+  .cl-trn-head>.cl-mkt-p-pos{grid-area:pos} .cl-trn-n{grid-area:nome}
+  .cl-trn-f{grid-area:forca} .cl-trn-ritmo{grid-area:ritmo}
+  .cl-trn-head>.cl-btn,.cl-trn-full{grid-area:acao;width:auto;margin:0}
+  .cl-trn-ritmo{min-width:0;flex-direction:row;align-items:baseline;gap:6px}
+  .cl-trn-why{padding-left:0}
+  .cl-trn-intro{font-size:11.5px;line-height:1.45;padding:8px 10px}
+  .cl-trn-list{max-height:none}
+}

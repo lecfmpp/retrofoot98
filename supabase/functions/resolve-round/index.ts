@@ -466,6 +466,19 @@ function evolvePlayer(p: any, R: any, played: boolean, sDivision: string) {
   if (changed) { p.rawF = levelToForce(attrLevel(a, p.s)); p.f = rbForce(p.rawF, p._div || sDivision || 'A'); p.mv = Math.round(rbValue(p.f, p.age) * (p.mvBoost || 1)); }
   p._trend = !changed ? null : p.f > fBefore ? 'up' : p.f < fBefore ? 'down' : null;
 }
+/* TREINO ESPECIAL na Resenha: o flag p._training vive no objeto do jogador, dentro de S.squads —
+   que é exatamente o que o cliente perde a cada adopt (o estado autoritativo vem do servidor). O
+   cliente publica a LISTA de pids em treino no assento dele toda rodada (netPublishResult) e aqui
+   ela é reaplicada ao elenco antes de evoluir. Sobrescreve (não acumula): tirar do treino no
+   cliente tem que apagar o flag aqui também, senão o jogador treinaria pra sempre.
+   Só mexe nos clubes que publicaram lista — clube de CPU nunca tem treino especial. */
+function applyTrainingFlags(S: any, trainingByClub: any) {
+  Object.keys(trainingByClub || {}).forEach((cid: string) => {
+    const sq = S.squads && S.squads[cid]; if (!Array.isArray(sq)) return;
+    const emTreino = new Set((trainingByClub[cid] || []).map(String));
+    sq.forEach((p: any) => { if (emTreino.has(String(p.pid))) p._training = true; else delete p._training; });
+  });
+}
 /* evolução da rodada — humano usa a escalação submetida; CPU os 11 mais fortes (mesma regra do cliente) */
 function advanceDevelopment(S: any, humanClubs: Set<string>, humanXI: any) {
   const Rd = ME.makeRng(ME.hashSeed(S.seed, S.round, 'dev'));
@@ -1050,6 +1063,27 @@ function pruneCounterOffers(S: any) {
 }
 function isHotP(p: any) { const st = p && p.stats; if (!st || !st.r3 || st.r3.length < 3) return false;
   return (st.g3 || []).reduce((a: number, b: number) => a + b, 0) >= 1 || st.r3.every((x: number) => x > 8); }
+/* QUEM PODE COMPRAR ESTE JOGADOR — espelho de clubWouldSign (core.js). O gate antigo era só
+   `overall do clube >= força do jogador - 12`, e como o sorteio do comprador aqui varre TODOS os
+   clubes de S.squads (as 4 divisões inteiras + adversários de copa), qualquer clube da Série A
+   passava no teste pra qualquer jogador de Série D — daí o usuário da Série D receber proposta de
+   clube da elite quase toda janela. Agora vale a faixa nos dois sentidos (~1 divisão pra cada
+   lado), preservando o caso legítimo: o craque da Série D (força bem acima da média da divisão)
+   continua sendo cobiçado por clube grande. */
+const SIGN_BELOW = 10, SIGN_ABOVE = 12;
+function clubWouldSign(clubOverall: number, playerF: number) {
+  const ov = (typeof clubOverall === 'number' && isFinite(clubOverall)) ? clubOverall : 70;
+  const f = (typeof playerF === 'number' && isFinite(playerF)) ? playerF : 40;
+  return f >= ov - SIGN_BELOW && ov >= f - SIGN_ABOVE;
+}
+/* PISO DE ELENCO (goleiro) — espelho de canReleaseFromSquad (core.js): não gera proposta por um
+   jogador cuja saída deixaria o clube abaixo do mínimo da posição, porque o cliente vai recusar
+   a venda de qualquer jeito. */
+const SQUAD_FLOOR_R: any = { GK: 2 };
+function canReleaseFromSquadR(sq: any[], p: any) {
+  const min = SQUAD_FLOOR_R[(p && p.s) || '']; if (!min) return true;
+  return (sq || []).filter((x: any) => x && x.s === p.s).length > min;
+}
 /* CPU faz proposta pelos jogadores dos clubes HUMANOS (mesma regra do core.js: no máx. 4
    pendentes, ~50% de chance por rodada de janela, mira os melhores do elenco, comprador de
    nível compatível, taxa 1.0-1.7x o valor de mercado). */
@@ -1065,11 +1099,11 @@ function generateIncomingOffers(S: any, humanClubs: Set<string>) {
     if (R.random() > 0.5) return;
     const mySquad = S.squads[myClubId] || []; if (mySquad.length <= 16) return;
     const pending = new Set(myOffers.map((o: any) => o.playerName));
-    const targets = mySquad.filter((p: any) => !pending.has(p.n) && !p._pendingSale)
+    const targets = mySquad.filter((p: any) => !pending.has(p.n) && !p._pendingSale && canReleaseFromSquadR(mySquad, p))
       .sort((a: any, b: any) => b.f - a.f).slice(0, Math.max(3, Math.ceil(mySquad.length * 0.4)));
     if (!targets.length) return;
     const p = targets[Math.floor(R.random() * targets.length)];
-    const eligible = todosClubes.filter((id) => id !== myClubId && ((S.clubOverall || {})[id] || 70) >= p.f - 12);
+    const eligible = todosClubes.filter((id) => id !== myClubId && clubWouldSign((S.clubOverall || {})[id] || 70, p.f));
     if (!eligible.length) return;
     const buyerId = eligible[Math.floor(R.random() * eligible.length)];
     const fee = Math.round((p.mv || 1e6) * (1.0 + R.random() * 0.7));
@@ -1172,7 +1206,7 @@ Deno.serve(async (req: Request) => {
 
     const round = S.round;
     const { data: seats } = await admin.from("game_seats").select("user_id, club_id, last_xi, last_tactic, last_result, last_result_round, last_cup_result, last_cup_round, budget, stadium").eq("game_id", gameId);
-    const humanClubs = new Set<string>(); const humanXI: any = {}; const humanTactic: any = {}; const humanResultByFx: any = {}; const cupResultByFx: any = {}; const humanTransfers: any[] = []; const moraleByClub: any = {}; const humanOffers: any[] = []; const humanCounters: any[] = []; const humanOfferDrops: any[] = [];
+    const humanClubs = new Set<string>(); const humanXI: any = {}; const humanTactic: any = {}; const humanResultByFx: any = {}; const cupResultByFx: any = {}; const humanTransfers: any[] = []; const moraleByClub: any = {}; const humanOffers: any[] = []; const humanCounters: any[] = []; const humanOfferDrops: any[] = []; const trainingByClub: any = {};
     (seats || []).forEach((s: any) => {
       if (!s.user_id || !s.club_id) return; humanClubs.add(s.club_id);
       if (s.last_xi) humanXI[s.club_id] = s.last_xi; if (s.last_tactic) humanTactic[s.club_id] = s.last_tactic;
@@ -1187,6 +1221,9 @@ Deno.serve(async (req: Request) => {
       if (r && s.last_result_round === round && Array.isArray(r.counters) && r.counters.length) humanCounters.push(...r.counters);
       if (r && s.last_result_round === round && Array.isArray(r.offerDrops) && r.offerDrops.length) humanOfferDrops.push(...r.offerDrops);
       if (r && s.last_result_round === round && r.morale) moraleByClub[s.club_id] = Number(r.morale) || 0;
+      // TREINO ESPECIAL: pids que este humano pôs em treino (ver netPublishResult). Chega toda
+      // rodada — é estado corrente, não evento, então sobrescreve em vez de acumular.
+      if (r && s.last_result_round === round && Array.isArray(r.training)) trainingByClub[s.club_id] = r.training;
       // resultado de COPA submetido pra ESTA rodada (aplicado na chave; mandante-autoritativo)
       const cr = s.last_cup_result;
       // `winner` só existe no mata-mata; confronto de FASE DE GRUPOS (stage:'group') não tem —
@@ -1213,6 +1250,7 @@ Deno.serve(async (req: Request) => {
     const { data: preRow } = await admin.from("round_events").select("payload").eq("game_id", gameId).eq("round", round).maybeSingle();
     const preMatches = (preRow && preRow.payload && preRow.payload.matches) || null;
 
+    applyTrainingFlags(S, trainingByClub);   // treino especial dos humanos -> p._training (ver evolvePlayer)
     resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic, cupResultByFx, humanTransfers, moraleByClub, humanOffers, humanCounters, humanOfferDrops, preMatches);
     stateObj.round = S.round;
 

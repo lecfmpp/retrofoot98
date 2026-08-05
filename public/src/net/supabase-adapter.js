@@ -447,10 +447,18 @@ async function netPublishResult(round, result){
   const _of = (typeof S!=='undefined' && S && Array.isArray(S._netOffers)) ? S._netOffers : [];
   const _ct = (typeof S!=='undefined' && S && Array.isArray(S._netCounters)) ? S._netCounters : []; // contrapropostas (vendedor -> comprador)
   const _dr = (typeof S!=='undefined' && S && Array.isArray(S._netOfferDrops)) ? S._netOfferDrops : []; // baixas (aceita/recusada/contraposta)
+  // training: quem EU pus em treino especial. Na Resenha quem evolui os jogadores é o servidor
+  // (advanceDevelopment no resolve-round), e ele lê p._training — um flag que vive no OBJETO do
+  // jogador, dentro de S.squads, que é justamente o que o adopt substitui pelo estado autoritativo.
+  // Resultado: o cone aparecia no elenco e o treino não fazia absolutamente nada na Resenha. A
+  // lista de pids viaja por aqui (mesmo canal das transferências) e o servidor remarca o flag
+  // antes de evoluir. Fonte única: S.trainingByClub (o que o menu de Treino especial escreve).
+  const _trn = (typeof S!=='undefined' && S && S.trainingByClub && S.clubId!=null)
+    ? (S.trainingByClub[S.clubId]||[]) : [];
   const payload = { round, h:result.h, a:result.a, hg:result.hg, ag:result.ag,
     scorers:result.scorers||[], perf:result.perf||null, events:result.events||[],
     decisions:result.decisions||[], // Fase 3A: log de decisões da partida (pênalti/lesão/expulsão/substituição)
-    transfers:_tr, morale:_mo, offers:_of, counters:_ct, offerDrops:_dr };
+    transfers:_tr, morale:_mo, offers:_of, counters:_ct, offerDrops:_dr, training:_trn };
   try{
     if(NET._claimed && NET._claimed[SB_UID()]){ NET._claimed[SB_UID()].last_result=payload; NET._claimed[SB_UID()].last_result_round=round; }
     await sb.from('game_seats').update({ last_result:payload, last_result_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_UID());

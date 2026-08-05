@@ -149,6 +149,27 @@ function playerAsk(p, sellerId){
    expira sozinho na virada de temporada, sem precisar de limpeza explícita em newSeasonReset(). */
 function applyTradeLock(p){ if(p) p._tradeLockSeason=S.season; }
 function isTradeLocked(p){ return !!(p && p._tradeLockSeason===S.season); }
+/* ================= PISO DE ELENCO POR POSIÇÃO (goleiro) =================
+   O jogo deixava um clube ficar SEM goleiro nenhum: nenhum dos caminhos de saída de jogador
+   (Vender, aceitar proposta recebida, multa rescisória europeia, mercado da CPU, leilão)
+   olhava a POSIÇÃO — só o tamanho do elenco, e nem sempre. Um elenco sem goleiro trava o
+   próprio jogo: xiGKCount()===0 bloqueia o botão Jogar (ver clSelecao), e não havia como
+   voltar atrás no meio da temporada fora da janela.
+   Agora vale um piso: todo clube mantém no mínimo 2 goleiros. Não é só uma trava na hora de
+   aceitar — os geradores (proposta da CPU, leilão, mercado de fundo) já nem MIRAM o jogador
+   que quebraria o piso, pra não oferecer o que não dá pra vender.
+   Aposentadoria não passa por aqui de propósito: ela substitui o jogador na mesma posição
+   (makeRegen(p.s) no resolve-round / endSeason), então nunca some um goleiro por ali. */
+const SQUAD_FLOOR={ GK:2 };
+const POS_NOME={GK:'goleiro', DEF:'zagueiro', MID:'meia', ATT:'atacante'};
+function countPos(clubId, pos){ return ((S.squads&&S.squads[clubId])||[]).filter(x=>x&&x.s===pos).length; }
+/* trava única: pode tirar este jogador deste clube? Usada por TODOS os caminhos de saída. */
+function canReleaseFromSquad(clubId, p){
+  const min=SQUAD_FLOOR[(p&&p.s)||'']; if(!min) return {ok:true};
+  if(countPos(clubId, p.s) > min) return {ok:true};
+  const nome=POS_NOME[p.s]||'jogador';
+  return {ok:false, msg:`O elenco precisa de pelo menos ${min} ${nome}${min>1?'s':''}. Contrate outro ${nome} antes de liberar ${p.n||'este jogador'}.`};
+}
 /* ================= TREINO ESPECIAL =================
    Feature nova (não existia nenhum rastro no código: "treino"/"treinar" só apareciam em textos
    sem relação, tipo "onde vai treinar" = escolher clube). Limite de 3 jogadores em treino ao
@@ -175,6 +196,96 @@ function stopTraining(pid){
   const p=(S.squads[S.clubId]||[]).find(x=>x.pid===pid); if(p) delete p._training;
   save();
   return {ok:true};
+}
+/* FONTE ÚNICA do treino = S.trainingByClub. O flag p._training (que evolvePlayer lê) mora no
+   OBJETO do jogador, dentro de S.squads — e S.squads é justamente o que é substituído inteiro
+   quando um estado é adotado (carregar save, adotar a rodada do servidor na Resenha). Sem esta
+   reconciliação o cone continuava aparecendo no elenco (o menu lê trainingByClub) enquanto o
+   bônus de evolução tinha sumido junto com o flag. Chamado em todo ponto de adoção de estado. */
+function syncTrainingFlags(){
+  if(typeof S==='undefined' || !S || !S.squads) return;
+  const map=S.trainingByClub||{};
+  Object.keys(S.squads).forEach(cid=>{
+    const lista=map[cid]; const sq=S.squads[cid]; if(!Array.isArray(sq)) return;
+    if(!lista || !lista.length){ sq.forEach(p=>{ if(p && p._training) delete p._training; }); return; }
+    const set=new Set(lista.map(String));
+    sq.forEach(p=>{ if(!p) return; if(set.has(String(p.pid))) p._training=true; else delete p._training; });
+  });
+}
+/* ================= RAIO-X DA EVOLUÇÃO (o "porquê" que a tela mostra) =================
+   O usuário via o jogador subir de força sem entender a velocidade nem por que um cresce mais que
+   o outro. Isto NÃO é uma nova mecânica: é o MESMO cálculo de evolvePlayer (index.html /
+   resolve-round), lido de fora, pra a tela poder dizer em números o que já acontece.
+
+   Como a evolução funciona, em uma frase: o jogador não ganha "força" direto — ele ganha PONTO DE
+   ATRIBUTO (finalização, passe, reflexos...), e a Força é a média ponderada dos atributos do perfil
+   da posição, remapeada pela curva da divisão. Daí os dois efeitos que confundem:
+     • às vezes ele joga bem e a Força não muda (o ponto ganho não foi suficiente pra virar 1 na
+       escala exibida);
+     • às vezes ele "dá um salto" de 2-4 de uma vez (a curva por divisão é bem mais íngreme na
+       faixa alta — ver BANDS em rebalance.js: na Série D, 1 ponto de força bruta chega a valer
+       +3 de Força exibida, contra +0,6 na Série A).
+
+   Fontes de ganho e perda POR RODADA (idênticas a evolvePlayer):
+     JOGAR BEM  2 sorteios, chance = potencial(idade) × ((nota−6,8)/2,2 + bônus de gol) × currículo
+     TREINO     1 sorteio de 5% (9% com ⭐)
+     JOVEM ≤20  1 sorteio de potencial×12% mesmo sem jogar
+     IDADE ≥29  3 sorteios de queda nos atributos físicos (atenuados por boa fase)
+     BANCO 4+   1 sorteio de queda física (isento: jovem ≤20 e quem está em treino)            */
+const GROWTH_BY_AGE=[[20,1.0],[23,0.7],[27,0.35],[30,0.10]];
+function growthFactor(age){ for(const [lim,v] of GROWTH_BY_AGE) if(age<=lim) return v; return 0; }
+function declineFactor(age){ return age>=33?0.55 : age>=31?0.32 : age>=29?0.12 : 0; }
+/* quanto 1 ponto de atributo vale em FORÇA pra este jogador, aqui e agora. O sorteio escolhe um
+   atributo qualquer do perfil da posição, então o ganho médio de nível é 1/(nº de atributos do
+   perfil) — por isso goleiro (6 atributos, sendo reflexos+mãos 64% do peso) evolui bem mais rápido
+   que meia (11 atributos). Depois o nível vira força bruta e a força bruta passa pela curva da
+   divisão, cuja inclinação é medida aqui no ponto em que o jogador está. */
+function forcePerAttrPoint(p){
+  const prof=(typeof POS_PROFILE!=='undefined'&&(POS_PROFILE[p.s]||POS_PROFILE.MID))||null; if(!prof) return 0;
+  const nKeys=Object.keys(prof).length; if(!nKeys) return 0;
+  const rawF=(p.rawF!=null?p.rawF:p.f)||60, div=p._div||(S&&S.division)||'A';
+  const dRaw=(1/nKeys)*(46/13);                                   // 1 ponto de atributo -> força BRUTA
+  const inclinacao=(REBAL.force(rawF+3,div)-REBAL.force(rawF-3,div))/6; // força EXIBIDA por ponto bruto, na faixa atual
+  return dRaw*inclinacao;
+}
+/* devolve o raio-x completo: cada fonte com a chance real por rodada, o saldo em pontos de
+   atributo e a tradução pra Força/temporada. `played` é opcional (default: está no XI atual). */
+function growthProfileOf(p, played){
+  if(!p) return null;
+  const age=p.age||26, growth=growthFactor(age), decline=declineFactor(age);
+  const st=p.stats||{};
+  const form=(st.r3&&st.r3.length)?st.r3.reduce((x,y)=>x+y,0)/st.r3.length:6.5;
+  const goals3=(st.g3&&st.g3.length)?st.g3.reduce((x,y)=>x+y,0):0;
+  const titular=(played!=null)?played:((S.xi||[]).indexOf(p.pid)>=0);
+  const treino=!!p._training;
+  const star=(typeof hasEstrelinha==='function')&&hasEstrelinha(p);
+  const benchStreak=(p.contract?p.contract.benchStreak:p.benchStreak)||0;
+  const fontes=[];
+  if(titular && form>=6.8 && growth>0){
+    const careerBonus=1+Math.min(0.5,((p.career&&p.career.titles)||0)*0.08+((p.career&&p.career.seasonsTopDiv)||0)*0.02);
+    const golBonus=Math.min(0.08, goals3*0.03);
+    const chance=Math.min(1, growth*((form-6.8)/2.2+golBonus)*careerBonus);
+    fontes.push({ tipo:'jogar', sinal:+1, pontos:2*chance, chance,
+      label:'Jogando bem (nota '+(Math.round(form*10)/10).toString().replace('.',',')+')' });
+  }
+  if(treino) fontes.push({ tipo:'treino', sinal:+1, pontos:0.05*(star?1.8:1), chance:0.05*(star?1.8:1),
+    label:'Treino especial'+(star?' + ⭐ destaque':'') });
+  if(!titular && age<=20 && growth>0) fontes.push({ tipo:'jovem', sinal:+1, pontos:growth*0.12, chance:growth*0.12,
+    label:'Formação (≤20 anos, mesmo sem jogar)' });
+  if(decline>0){
+    const formMult=Math.max(0.62, 1-Math.max(0,form-6.5)*0.15);
+    fontes.push({ tipo:'idade', sinal:-1, pontos:3*decline*0.22*formMult, chance:decline*0.22*formMult,
+      label:'Desgaste da idade ('+age+' anos)' });
+  }
+  if(benchStreak>=4 && age>20 && !treino){
+    const chance=Math.min(0.25,(benchStreak-3)*0.05);
+    fontes.push({ tipo:'banco', sinal:-1, pontos:chance, chance, label:'Perda de ritmo ('+benchStreak+' rodadas fora do time)' });
+  }
+  const saldoPontos=fontes.reduce((s,f)=>s+f.sinal*f.pontos,0);
+  const porPonto=forcePerAttrPoint(p);
+  const forcaPorRodada=saldoPontos*porPonto;
+  return { age, growth, decline, form, goals3, titular, treino, star, benchStreak, fontes,
+           saldoPontos, forcaPorRodada, forcaPorTemporada:forcaPorRodada*38, porPonto };
 }
 /* ---- HISTÓRICO DE TRANSFERÊNCIAS por jogador — antes só existia um log rolante (máx. 50) pras
    ligas de fundo (S.bgLeagues[...].transferLog), nada persistente pro usuário: o jogo só
@@ -575,7 +686,9 @@ function cpuBackgroundTransfers(R){
     const sellerSquad=S.squads[seller.id]; if(!sellerSquad || sellerSquad.length<=16) continue; // não deixa o elenco vazio
     // vende preferencialmente banco (não titular óbvio): pega entre os 40% mais fracos do elenco
     const sorted=sellerSquad.slice().sort((a,b)=>b.f-a.f);
-    const pool=sorted.slice(Math.ceil(sorted.length*0.5));
+    // piso de elenco também vale pra CPU: sem isso, ao longo de várias temporadas um clube da CPU
+    // ia vendendo o 2º/3º goleiro (que caem sempre na metade mais fraca) até ficar sem nenhum.
+    const pool=sorted.slice(Math.ceil(sorted.length*0.5)).filter(x=>canReleaseFromSquad(seller.id,x).ok);
     if(!pool.length) continue;
     const p=pool[Math.floor(R.random()*pool.length)];
     const buyers=cpuClubs.filter(c=>c.id!==seller.id);
@@ -609,7 +722,8 @@ function bgCpuTransfers(R){
       if(!ensureBgClubMaterialized(sellerId)) continue;
       const sq=S.squads[sellerId]; if(!sq || sq.length<=18) continue; // não esvazia o elenco
       const sorted=sq.slice().sort((a,b)=>b.f-a.f);
-      const pool=sorted.slice(Math.ceil(sorted.length*0.5)); if(!pool.length) continue; // vende metade mais fraca
+      const pool=sorted.slice(Math.ceil(sorted.length*0.5)).filter(x=>canReleaseFromSquad(sellerId,x).ok); // metade mais fraca, respeitando o piso de elenco
+      if(!pool.length) continue;
       const p=pool[Math.floor(R.random()*pool.length)];
       // comprador: às vezes de OUTRO país (transferência entre países), como na vida real
       let buyerCountry=country, buyerLog=S.bgLeagues[country];
@@ -659,6 +773,24 @@ function pruneIncomingOffers(){
       .filter(o=>o && o.expiresRound>S.round && sq.some(p=>p && p.n===o.playerName)); // validade + jogador ainda no elenco
   });
 }
+/* ---- QUEM PODE COMPRAR ESTE JOGADOR (regra única, espelhada no resolve-round) ----
+   A regra antiga era só `overall do clube >= força do jogador - 12`. Como o overall do clube e a
+   força do jogador estão na MESMA escala nova (ambos já remapeados por divisão — ver REBAL.force
+   e recomputeClubOverall), essa comparação só barrava clube MAIS FRACO que o jogador: um clube da
+   Série A (overall ~45) passava no teste pra qualquer jogador de Série D (força ~10). Na Resenha,
+   onde o sorteio do comprador varre S.squads (os 80 clubes das 4 divisões), o resultado prático era
+   o usuário da Série D receber proposta do Flamengo pelo lateral reserva quase toda janela.
+   Agora o teto também existe: um clube só sonda quem se aproxima do nível do PRÓPRIO elenco. Fica
+   uma faixa de ~1 divisão pra cada lado, que é o passo realista — e o craque da Série D (força bem
+   acima da média da divisão) continua sendo cobiçado por clube grande, que é o caso que a mecânica
+   quer preservar. */
+const SIGN_BELOW=10;  // clube não compra quem está muito ABAIXO do nível do elenco dele
+const SIGN_ABOVE=12;  // clube não compra quem está muito ACIMA (não teria como pagar/atrair)
+function clubWouldSign(clubOverall, playerF){
+  const ov=(typeof clubOverall==='number'&&isFinite(clubOverall))?clubOverall:70;
+  const f=(typeof playerF==='number'&&isFinite(playerF))?playerF:40;
+  return f>=ov-SIGN_BELOW && ov>=f-SIGN_ABOVE;
+}
 function generateIncomingOffers(R){
   pruneIncomingOffers(); pruneCounterOffers();
   if(!canNegotiate()) return; // proposta só chega com a janela aberta (pré-janela desligada)
@@ -674,8 +806,11 @@ function generateIncomingOffers(R){
     if(R.random()>0.5) return;                       // nem toda rodada de janela gera proposta
     const mySquad=S.squads[myClubId]||[]; if(mySquad.length<=16) return;
     const pending=new Set(myOffers.map(o=>o.playerName));
-    // clubes miram preferencialmente os melhores do elenco (que ainda não têm proposta)
-    const targets=mySquad.filter(p=>!pending.has(p.n)&&!p._pendingSale).sort((a,b)=>b.f-a.f).slice(0, Math.max(3,Math.ceil(mySquad.length*0.4)));
+    // clubes miram preferencialmente os melhores do elenco (que ainda não têm proposta).
+    // canReleaseFromSquad: não adianta oferecer pelo 2º goleiro de um elenco com 2 — a venda
+    // seria recusada na hora de aceitar (piso de elenco), então a proposta nem nasce.
+    const targets=mySquad.filter(p=>!pending.has(p.n)&&!p._pendingSale&&canReleaseFromSquad(myClubId,p).ok)
+      .sort((a,b)=>b.f-a.f).slice(0, Math.max(3,Math.ceil(mySquad.length*0.4)));
     if(!targets.length) return;
     const p=targets[Math.floor(R.random()*targets.length)];
     // candidatos a comprador: liga do usuário + ligas de background (entre países)
@@ -684,10 +819,7 @@ function generateIncomingOffers(R){
     Object.keys(S.bgLeagues||{}).forEach(country=>Object.keys(S.bgLeagues[country].divs).forEach(d=>
       (S.bgLeagues[country].divs[d].clubIds||[]).forEach(id=>{ const c=intlClubById(id); if(c) cand.push({id,name:c.short,country,overall:c.overall||70}); })));
     if(!cand.length) return;
-    // só clubes de nível compatível miram o jogador (overall de elenco ~80 no topo vs força
-    // individual até ~92, então usamos uma folga maior). Sem clube compatível => sem proposta
-    // (realista: ninguém "fraco" oferece pela sua estrela).
-    const eligible=cand.filter(c=>c.overall>=p.f-12);
+    const eligible=cand.filter(c=>clubWouldSign(c.overall, p.f));
     if(!eligible.length) return;
     const buyer=eligible[Math.floor(R.random()*eligible.length)];
     const fee=Math.round((p.mv||1e6)*(1.0+R.random()*0.7)); // 1.0-1.7x (proposta cheia, às vezes acima)
@@ -710,6 +842,7 @@ function acceptIncomingOffer(id){
   const o=myIncomingOffers().find(x=>x.id===id); if(!o) return {ok:false,msg:'Proposta não existe mais.'};
   const p=(S.squads[S.clubId]||[]).find(x=>x.n===o.playerName); if(!p) return {ok:false,msg:'Jogador não está mais no elenco.'};
   if((S.squads[S.clubId]||[]).length<=15) return {ok:false,msg:'Elenco pequeno demais pra vender.'};
+  const floor=canReleaseFromSquad(S.clubId,p); if(!floor.ok) return {ok:false,msg:floor.msg};
   if(isTradeLocked(p)) return {ok:false,msg:`${p.n} foi comprado nesta temporada e ainda não pode ser negociado de novo.`};
   const preOpen=inPreWindow();
   dropIncomingOffer(S.clubId, id);                       // baixa que também viaja pro servidor
@@ -980,6 +1113,7 @@ function openAuctionLots(R, want){
     const sq=club&&S.squads[club.id]; if(!sq || sq.length<=16) continue;
     const p=sq[Math.floor(R.random()*sq.length)]; const id=club.id+'|'+p.n;
     if(have.has(id)) continue;
+    if(!canReleaseFromSquad(club.id,p).ok) continue; // piso de elenco: o clube não leiloa o último goleiro
     if(mode==='sem_fracos' && p.f < myAvg*0.85) continue; // preferência do Perfil
     S.auctions.lots.push(makeAuctionLot(club, p, R)); have.add(id); added++;
   }
@@ -2673,6 +2807,7 @@ function syncDataClubsFromState(){
   // fora. Fica ANTES dos early-returns abaixo: elenco sem contrato precisa ser corrigido mesmo
   // num estado que não tenha divisionClubs. Ver ensureSquadContracts.
   ensureSquadContracts();
+  syncTrainingFlags();   // p._training vem de S.trainingByClub (o elenco adotado veio sem o flag)
   if(!S || !S.division || !S.divisionClubs) return;
   const ids=S.divisionClubs[S.division]; if(!ids || !ids.length) return;
   const pool=S.clubPool||{};
@@ -2947,7 +3082,10 @@ function checkManagerJobEvent(){
 /* playerGrowth/_growthKey entram aqui porque a evolução que EU acompanho é a do MEU elenco: na
    Resenha o S vem do save do ANFITRIÃO (Object.assign em onlineReconcileIfBehind), e sem estar
    nesta lista o histórico do convidado seria substituído pelo do host a cada rodada. */
-const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey'];
+/* trainingByClub entra aqui pelo mesmo motivo do playerGrowth: é um mapa por clubId que vive no S
+   COMPARTILHADO. Na Resenha o Object.assign do adopt troca o mapa INTEIRO pelo do anfitrião — que
+   não tem a chave do convidado — e o convidado perdia a lista de quem pôs em treino a cada rodada. */
+const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub'];
 /* ---- EVOLUÇÃO DO ELENCO (o que o treino de fato fez) ----
    O ícone 🔺 dizia "está em treino", mas não dizia se rendeu alguma coisa. Aqui fica o histórico
    de FORÇA do meu elenco: uma entrada por MUDANÇA (não por rodada), então uma temporada inteira
@@ -3521,6 +3659,7 @@ function europeRaids(R){
   R=R||makeRng(hashSeed(S.seed,S.round,'europe'));
   squad(S.clubId).slice().forEach(p=>{
     if(!p.contract||!p.contract.releaseClause)return;
+    if(!canReleaseFromSquad(S.clubId,p).ok) return; // piso de elenco: nem a multa leva o último goleiro
     if(((p.age<=23)||isHot(p)) && R.random()<0.012){
       const clause=p.contract.releaseClause; S.budget+=clause; commitBudget(); // publica: senão a multa some
       S.squads[S.clubId]=S.squads[S.clubId].filter(x=>x.n!==p.n);
