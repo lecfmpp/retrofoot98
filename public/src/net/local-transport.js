@@ -1338,6 +1338,14 @@ function onlineCompleteSeasonTurnover(){
   }catch(e){ console.warn('completar virada online:', e && e.message); } finally { ONLINE_TURNOVER_BUSY=false; } })();
 }
 function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return; if(!CL.online || !S) return;
+  // APRESENTAÇÃO JÁ NA TELA: as telas de "entrar em campo" (copa e liga) são OVERLAY, não trocam
+  // CL.screen — continua valendo 'main'. Sem esta guarda, o loop do cronômetro (~300ms) reentra
+  // aqui, reabre a mesma apresentação e RE-ARMA o auto-avanço de 6s a cada volta: a tela nunca
+  // avançava sozinha e quem estivesse longe do teclado segurava a sala até o busy expirar.
+  // A guarda é o TIMER, não o flag da tela: o overlay fecha ao clicar fora, e um flag preso ali
+  // travaria esta rede de segurança pra sempre. O timer só existe enquanto o auto-avanço está
+  // armado, e ele SEMPRE dispara (clique fora não o cancela) — então a espera é no máximo 6s.
+  if(CL._cupIntroTimer || CL._leagueIntroTimer) return;
   // não interrompe as telas de sorteio/classificação pós-rodada (o convidado está vendo o ranking)
   if(CL.screen==='classif'||CL.screen==='cupdraw'||CL.screen==='seatclassif'||CL.screen==='cupclassif') return;
   // DESEMPREGADO (Fase 2): não jogo — só assisto. Marco a rodada como "vista" pra não tentar simular
@@ -1395,6 +1403,31 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
     if(cupQueue.length && typeof showCupIntro==='function'){ showCupIntro(cupQueue[0], true); return; }
     if(cupQueue.length && typeof startCupLiveMatch==='function'){ startCupLiveMatch(cupQueue[0]); return; }
   }
+  // RODADA DE COPA QUE EU NÃO JOGO: assisto junto, igual ao clJogar. Esta rede de segurança
+  // conhecia só a copa em que EU tenho confronto (pendingUserCupMatches) e ignorava a lista de
+  // quem fica de fora (cupRoundsUserSitsOut) — então, quando a fase virava 'running' antes do meu
+  // clique em "Jogar", eu ia direto pra liga e a rodada de copa dos outros passava sem eu ver
+  // nada. Era o caso relatado: numa rodada de Libertadores, quem não estava na competição pulou a
+  // copa inteira e foi jogar o Brasileirão. Assistir é o que mantém a semana de copa simétrica —
+  // todos entram e saem da copa no mesmo momento.
+  if(typeof cupRoundsUserSitsOut==='function' && typeof startCupRound==='function'){
+    const idle=cupRoundsUserSitsOut().filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key));
+    if(idle.length){
+      const cand=idle[0];
+      if(typeof cupMarkSeen==='function') cupMarkSeen(cand.key);
+      CL._pendingCupIdleQueue=idle.slice(1);
+      if(startCupRound(cand.key, cand.stage, null)) return;
+    }
+  }
+  // RODADA DE LIGA: nunca mais cai em campo sem avisar. Antes esta linha chamava startLiveRound()
+  // direto — e como o loop do cronômetro reentra aqui assim que o cliente pousa em 'main' (ver
+  // onlineTimerLoop), o efeito era a rodada do Brasileirão COMEÇAR SOZINHA no segundo seguinte ao
+  // fim de uma partida de copa, sem passar pela tela do clube. O jogador não revia escalação nem
+  // entendia que aquilo já era outra competição. Agora a rodada de liga tem a mesma apresentação
+  // que a copa sempre teve (showCupIntro): um modal dizendo o que vem, com auto-avanço — o
+  // auto-avanço é obrigatório aqui, porque este caminho roda com o cronômetro da sala correndo e
+  // uma tela que espera clique pra sempre seguraria a rodada dos outros.
+  if(typeof showLeagueIntro==='function'){ showLeagueIntro(true); return; }
   CL._liveBusy=true; startLiveRound(); }
 
 /* Recupera a rodada de LIGA quando a fase virou 'running' enquanto o cliente estava numa

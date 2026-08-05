@@ -1542,8 +1542,8 @@ function showJobInvite(offer){
 
       <div class="cl-welc-actions">
         <div class="cl-welc-hint">Você segue como treinador do ${escC(me.short)} até decidir.</div>
-        ${btn('Recusar convite','clJobInviteDecline()',{icon:'✖',cls:'cl-btn-cancel'})}
         ${btn('Aceitar o jantar','clJobInviteAccept()',{icon:'🍽',cls:'cl-btn-ok'})}
+        ${btn('Recusar convite','clJobInviteDecline()',{icon:'✖',cls:'cl-btn-cancel'})}
       </div>
     </div>`, {w:900, bodyClass:'cl-body-green'}));
 }
@@ -1594,8 +1594,8 @@ function showJobProposal(){
 
       <div class="cl-welc-actions">
         <div class="cl-welc-hint">Recusar encerra a conversa. O ${escC(me.short)} continua com você.</div>
-        ${btn('Recusar oferta','clJobProposalDecline()',{icon:'✖',cls:'cl-btn-cancel'})}
         ${btn('Aceitar oferta','clJobProposalAccept()',{icon:'✔',cls:'cl-btn-ok'})}
+        ${btn('Recusar oferta','clJobProposalDecline()',{icon:'✖',cls:'cl-btn-cancel'})}
       </div>
     </div>`, {w:900, bodyClass:'cl-body-green'}));
 }
@@ -3534,6 +3534,45 @@ function showCupIntro(pending, auto){
   if(auto) CL._cupIntroTimer=setTimeout(()=>{ CL._cupIntroTimer=null; if(CL._cupIntro) clCupIntroGo(); }, 6000);
 }
 function clearCupIntroTimer(){ if(CL._cupIntroTimer){ clearTimeout(CL._cupIntroTimer); CL._cupIntroTimer=null; } }
+/* ---- APRESENTAÇÃO DA RODADA DE LIGA (só na Resenha, e só quando ela começa SEM eu ter clicado) ----
+   A rodada de liga sempre entrou direto, e no fluxo normal isso está certo: quem clicou em "Jogar"
+   na tela do clube sabe o que pediu. O problema é a rede de segurança (onlineRunRound): ela dispara
+   assim que o cliente pousa em 'main' com a fase da sala já em 'running' — inclusive no instante
+   seguinte ao fim de uma partida de copa. Aí a rodada do Brasileirão começava sozinha por cima do
+   jogador, que acabava de sair da Copa do Brasil e não passou pela tela do clube nenhuma vez.
+   Esta tela é o mesmo contrato da showCupIntro: diz que competição é, contra quem e onde, e entra
+   em campo sozinha em alguns segundos (o auto-avanço não é opcional aqui — o cronômetro da sala
+   está correndo e uma tela parada seguraria a rodada dos outros). */
+function showLeagueIntro(auto){
+  if(CL._leagueIntro) return;   // já está na tela — não reabre nem re-arma o auto-avanço
+  const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
+  if(!nm || nm.kind!=='league'){ CL._liveBusy=true; startLiveRound(); return; }  // sem confronto de liga: nada a apresentar
+  clearLeagueIntroTimer();
+  CL._leagueIntro=true;
+  const me=clubOf(CL.clubId)||{short:'?'}, opp=clubOf(nm.oppId)||{short:String(nm.oppId)};
+  const local=nm.home?'em casa':'fora de casa';
+  overlayC(dlg(nm.comp||'Campeonato', `
+    <div class="cl-cupintro">
+      <div class="cl-cupintro-phase">${escC(nm.comp||'')} · ${escC(nm.fase||'')}</div>
+      <div class="cl-cupintro-match">
+        <span class="cl-cupintro-team" style="${clubStripe(me)}">${escC(me.short)}</span>
+        <span class="cl-cupintro-x">×</span>
+        <span class="cl-cupintro-team" style="${clubStripe(opp)}">${escC(opp.short)}</span>
+      </div>
+      <div class="cl-cupintro-loc">Você joga <strong>${local}</strong>.</div>
+      <div class="cl-cal-ok">${btn('Entrar em campo','clLeagueIntroGo()',{icon:'▶',cls:'cl-btn-ok cl-btn-wide'})}</div>
+      ${auto?'<div class="cl-cupscr-auto">a rodada começa sozinha em alguns segundos...</div>':''}
+    </div>`, {w:520,bodyClass:'cl-body-green'}));
+  if(auto) CL._leagueIntroTimer=setTimeout(()=>{ CL._leagueIntroTimer=null; if(CL._leagueIntro) clLeagueIntroGo(); }, 6000);
+}
+function clearLeagueIntroTimer(){ if(CL._leagueIntroTimer){ clearTimeout(CL._leagueIntroTimer); CL._leagueIntroTimer=null; } }
+function clLeagueIntroGo(){
+  clearLeagueIntroTimer();
+  clCloseOverlay();
+  if(!CL._leagueIntro) return;
+  CL._leagueIntro=false;
+  CL._liveBusy=true; startLiveRound();
+}
 function clCupIntroGo(){
   clearCupIntroTimer();
   clCloseOverlay();
@@ -4158,6 +4197,15 @@ function startPenaltyShootout(m){
   const RL=CL.live;
   RL.cup.wentPens=true; RL.paused=true;
   RL.pens={ h:[], a:[], turn:'H' };
+  // TRAZ A MINHA PARTIDA PRA TELA. A rodada de copa mostra TODOS os confrontos da fase (ver
+  // startCupRound), e nesse caso RL.sel nasce null — nenhum confronto selecionado. Só que o modal
+  // (placar da disputa, escolha do batedor, suspense) é renderizado DENTRO do confronto
+  // selecionado: RL.sel!=null é a condição em scLive. Sem esta linha a disputa inteira acontecia
+  // INVISÍVEL — o usuário não via o placar nem podia escolher quem bate, e cada cobrança dele só
+  // saía quando o relógio de 10s estourava e o batedor automático entrava. Uma disputa de 5+5
+  // cobranças levava mais de um minuto de tela parada, e quem estava na sala achava que travou.
+  // openPenaltyModal (pênalti dentro da partida) sempre fez isso; a disputa é que não fazia.
+  const mi=RL.matches.indexOf(m); if(mi>=0) RL.sel=mi;
   toastC('🥅 Segue empatado — vai pra disputa de pênaltis!');
   cdraw();
   setTimeout(shootoutNextKick,1000);
@@ -4234,6 +4282,10 @@ function shootoutNextKick(){
 }
 function openShootoutPickerModal(){
   const RL=CL.live;
+  // rede de segurança do mesmo problema de startPenaltyShootout: se por qualquer caminho a
+  // seleção se perder no meio da disputa, o modal de escolha do batedor sumiria e a cobrança
+  // seria decidida sozinha pelo relógio, sem o usuário ver nada.
+  if(RL.sel==null) RL.sel=0;   // a MINHA partida é sempre matches[0] numa rodada de copa
   const pool=penaltyTakerPool(RL.matches[0], CL.clubId);
   const takenNames=new Set((RL.pens.turn==='H'?RL.pens.h:RL.pens.a).map(k=>k.name));
   const takers=shootoutEligibleTakers(pool, takenNames);
@@ -6606,8 +6658,8 @@ function showResenhaOffer(offer){
     <div class="cl-res-score">${escC(c.short||offer.clubId)}</div>
     <div class="cl-res-verd" style="margin-top:6px">${corpo}</div>
     <div class="cl-cal-ok" style="display:flex;gap:10px;justify-content:center;margin-top:14px">
-      ${btn('Recusar','clDeclineResenhaOffer()',{icon:'✖',cls:'cl-btn-cancel'})}
       ${btn('Aceitar','clAcceptResenhaOffer()',{icon:'✔',cls:'cl-btn-ok'})}
+      ${btn('Recusar','clDeclineResenhaOffer()',{icon:'✖',cls:'cl-btn-cancel'})}
     </div></div>`,{w:470,bodyClass:'cl-body-green'}));
 }
 function clDeclineResenhaOffer(){ clCloseOverlay(); CL._pendingResenhaOffer=null;
