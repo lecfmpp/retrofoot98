@@ -2218,3 +2218,40 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-cal-d{display:block;max-width:74px;font-style:normal;font-size:9.5px;font-family:var(--mono);color:var(--gray-999);line-height:1.1;margin-top:1px;white-space:nowrap}
 /* dia do próximo jogo no cartão do adversário (ver nextMatchDayLabel) */
 .cl-adv-day{font-family:var(--mono);font-size:10.5px;color:var(--yellow);margin-top:2px;letter-spacing:.2px}
+
+/* ===== MOMENTOS DA TEMPORADA (8 modais de marco — ver abrirMomento em ui/main.js) =====
+   Estrutura idêntica nos oito: vídeo com kicker/manchete por cima, faixa do clube, três cartões
+   de número e rodapé com duas ações. O tom do corpo (amarelo/verde/cinza) vem do dlg(); aqui só
+   ficam as peças internas. Regra de contraste: em corpo amarelo/cinza o texto é escuro; a classe
+   .claro é aplicada só no corpo verde. */
+.cl-mom{display:flex;flex-direction:column;gap:14px}
+.cl-mom-video{border:2px solid;border-color:var(--bevel-field,#0a3d1f);background:#000;padding:6px;height:330px;position:relative;overflow:hidden;box-sizing:border-box}
+.cl-mom-vid{position:absolute;inset:6px;width:calc(100% - 12px);height:calc(100% - 12px);object-fit:cover}
+.cl-mom-shade{position:absolute;inset:6px;background:linear-gradient(to top,rgba(0,0,0,.72) 0%,rgba(0,0,0,0) 52%);pointer-events:none}
+.cl-mom-over{position:absolute;left:18px;right:18px;bottom:16px;display:flex;align-items:flex-end;justify-content:space-between;gap:14px;pointer-events:none}
+.cl-mom-kicker{font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--yellow);text-shadow:1px 1px 0 #000}
+.cl-mom-manchete{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:700;font-size:30px;color:#fff;line-height:1.1;text-shadow:2px 2px 0 #000;margin-top:2px}
+/* placa do troféu: as artes têm fundo preto opaco, então a moldura é necessária pra elas não
+   parecerem um buraco no vídeo */
+.cl-mom-trofeu{flex:0 0 auto;height:84px;width:84px;display:flex;align-items:center;justify-content:center;
+  background:#000;border:2px solid;border-color:var(--bevel-out,#fff #555 #555 #fff);box-shadow:2px 2px 0 rgba(0,0,0,.5)}
+.cl-mom-trofeu img{max-width:100%;max-height:100%;object-fit:contain}
+.cl-mom-clube{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cl-mom-linha{flex:1;min-width:140px;font-size:13px;color:#000;line-height:1.45}
+.cl-mom-linha.claro{color:var(--ontext-lite2)}
+.cl-mom-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.cl-mom-card{background:var(--body-yellow,#e8d94a);color:#000;border:2px solid;border-color:var(--bevel-out,#fff #555 #555 #fff);padding:9px 11px}
+.cl-mom-card-k{font-size:10px;font-weight:800;letter-spacing:.06em;color:var(--navy)}
+.cl-mom-card-v{font-family:var(--mono);font-weight:700;font-size:19px;line-height:1.2;margin-top:3px}
+.cl-mom-foot{display:flex;gap:10px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+.cl-mom-nota{flex:1;min-width:150px;font-size:12px;color:#666}
+.cl-mom-nota.claro{color:var(--ontext-lite3)}
+@media(max-width:760px){
+  .cl-mom-video{height:210px}
+  .cl-mom-manchete{font-size:21px}
+  .cl-mom-trofeu{height:60px;width:60px}
+  .cl-mom-cards{grid-template-columns:1fr}
+  .cl-mom-foot{flex-direction:column;align-items:stretch}
+  .cl-mom-foot .cl-btn{width:100%}
+  .cl-mom-nota{min-width:0;text-align:center;margin-bottom:4px}
+}

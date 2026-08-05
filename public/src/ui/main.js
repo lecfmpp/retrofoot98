@@ -3168,6 +3168,217 @@ function clAuctionBidGo(sellerId,player){
   if(r.ok){ saveV3(); clAuctionScreen(); } // volta pra lista já com o lance atualizado
 }
 
+/* ============================ MOMENTOS DA TEMPORADA ============================
+   Oito modais de marco (título, acesso, queda, artilharia, abertura e final de copa), todos com a
+   MESMA estrutura: vídeo com kicker/manchete por cima, faixa do clube, três cartões de número e
+   rodapé com duas ações. Um mecanismo só — abrirMomento(id, dados) — em vez de oito marcações
+   repetidas; o que muda por momento fica em MOMENTO_DEFS e nos dados que vêm do estado do jogo.
+
+   VÍDEO: o caminho de cada momento fica no mapa abaixo, fácil de trocar quando os arquivos
+   chegarem. Arquivo ausente NÃO quebra nada: a área fica preta e o modal abre igual (o <video> só
+   é inserido quando há caminho, então não há request falhando nem erro no console).
+
+   FILA: dois marcos podem cair no mesmo instante (campeão + artilheiro; acesso + artilheiro).
+   Empilhar modal sobre modal esconde o de baixo, então eles entram numa fila e saem um por vez —
+   ver enfileirarMomento/momentoSeguinte. */
+/* COMO LIGAR O VÍDEO DE CADA MOMENTO: ponha o arquivo em public/video/ e troque o null pelo
+   caminho ao lado. É a única mudança necessária — o modal já está pronto pra recebê-lo.
+   Está null (e não com o caminho) de propósito: um caminho apontando pra arquivo inexistente faz
+   o navegador pedir e falhar, sujando o console com 404 a cada abertura. Com null, o <video> nem
+   é inserido: a área fica preta, que é exatamente o estado "sem vídeo ainda" pedido. */
+const VIDEOS_MOMENTO = {
+  'campeao-liga'  : null,   // video/momento-campeao-liga.mp4
+  'campeao-copa'  : null,   // video/momento-campeao-copa.mp4
+  'marcador-liga' : null,   // video/momento-marcador-liga.mp4
+  'marcador-copa' : null,   // video/momento-marcador-copa.mp4
+  'promovido'     : null,   // video/momento-promovido.mp4
+  'rebaixado'     : null,   // video/momento-rebaixado.mp4
+  'abertura-copa' : null,   // video/momento-abertura-copa.mp4
+  'final-copa'    : null,   // video/momento-final-copa.mp4
+};
+/* corpo: tom da janela (yellow/green/gray). A regra de contraste da referência vem junto: em
+   amarelo e cinza a linha de contexto é preta e o rodapé cinza-escuro; só no verde valem os tons
+   claros do jogo. */
+const MOMENTO_DEFS = {
+  'campeao-liga' : { corpo:'yellow', kicker:'CAMPEÃO BRASILEIRO',        btnPri:'Comemorar',        btnSec:'Ver a tabela…',      acao:'clClassif' },
+  'campeao-copa' : { corpo:'yellow', kicker:'CAMPEÃO DA COPA DO BRASIL', btnPri:'Comemorar',        btnSec:'Ver o caminho…',     acao:'cup' },
+  'marcador-liga': { corpo:'green',  kicker:'ARTILHEIRO DA LIGA',        btnPri:'Fechado',          btnSec:'Ver o jogador…',     acao:'jogador' },
+  'marcador-copa': { corpo:'green',  kicker:'ARTILHEIRO DA COPA',        btnPri:'Fechado',          btnSec:'Ver o jogador…',     acao:'jogador' },
+  'promovido'    : { corpo:'yellow', kicker:'ACESSO CONQUISTADO',        btnPri:'Comemorar',        btnSec:'Ver o elenco…',      acao:'elenco' },
+  'rebaixado'    : { corpo:'gray',   kicker:'REBAIXAMENTO',              btnPri:'Seguir em frente', btnSec:'Ver a tabela…',      acao:'clClassif' },
+  'abertura-copa': { corpo:'green',  kicker:'A COPA COMEÇA HOJE',        btnPri:'Preparar o time',  btnSec:'Ver a escalação…',   acao:'seleccao' },
+  'final-copa'   : { corpo:'yellow', kicker:'FINAL DA COPA',             btnPri:'Entrar em campo',  btnSec:'Ver a escalação…',   acao:'seleccao' },
+};
+let MOMENTO_FILA=[];
+function enfileirarMomento(id, dados){ if(!MOMENTO_DEFS[id]) return; MOMENTO_FILA.push({id,dados:dados||{}}); }
+/* mostra o próximo da fila; nada na fila -> executa o `depois` (o fluxo que estava esperando) */
+function momentoSeguinte(depois){
+  const it=MOMENTO_FILA.shift();
+  if(!it){ if(typeof depois==='function') depois(); return false; }
+  abrirMomento(it.id, it.dados, ()=>momentoSeguinte(depois));
+  return true;
+}
+function momentoAcao(acao){
+  try{
+    if(acao==='clClassif' && typeof clClassif==='function') return clClassif();
+    if(acao==='cup' && typeof clCupView==='function') return clCupView('copaBrasil');
+    if(acao==='jogador'){ CL.tab='jogador'; CL.screen='main'; return cdraw(); }
+    if(acao==='elenco'){ CL.tab='equipa'; CL.screen='main'; return cdraw(); }
+    if(acao==='seleccao'){ CL.tab='seleccao'; CL.screen='main'; return cdraw(); }
+  }catch(e){ console.warn('ação do momento:', e&&e.message); }
+}
+/* ABRE UM MOMENTO. `dados` traz o que varia: manchete, linha de contexto, os três cartões
+   ({k,v}), a nota do rodapé, a chave do troféu e o clube da faixa. Tudo opcional — o que faltar
+   simplesmente não é desenhado, em vez de aparecer vazio. */
+function abrirMomento(id, dados, aoFechar){
+  const def=MOMENTO_DEFS[id]; if(!def) return;
+  dados=dados||{};
+  CL._momentoAtual={id, aoFechar:aoFechar||null};
+  const clube=clubOf(dados.clubId!=null?dados.clubId:CL.clubId)||{short:'—'};
+  const claro = def.corpo==='green';
+  const vid=VIDEOS_MOMENTO[id];
+  // o troféu pode ser de COMPETIÇÃO (copaBrasil, libertadores…) ou de DIVISÃO (A, B, C, D) — são
+  // dois catálogos diferentes no jogo. Resolve nos dois, na ordem, e some se não houver arte.
+  let trof='';
+  if(dados.trofeu){
+    trof=(typeof trophyImg==='function' && trophyImg(dados.trofeu,72))||'';
+    if(!trof && typeof divisionTrophyImg==='function') trof=divisionTrophyImg(dados.trofeu,72)||'';
+  }
+  const cards=(dados.stats||[]).slice(0,3).map(s=>
+    `<div class="cl-mom-card"><div class="cl-mom-card-k">${escC(s.k)}</div><div class="cl-mom-card-v">${escC(s.v)}</div></div>`).join('');
+  const html=`<div class="cl-mom">
+    <div class="cl-mom-video">
+      ${vid?`<video src="${escC(vid)}" autoplay muted loop playsinline class="cl-mom-vid" onerror="this.style.display='none'"></video>`:''}
+      <div class="cl-mom-shade"></div>
+      <div class="cl-mom-over">
+        <div class="cl-mom-txt">
+          <div class="cl-mom-kicker">${escC(dados.kicker||def.kicker)}</div>
+          <div class="cl-mom-manchete">${escC(dados.manchete||'')}</div>
+        </div>
+        ${trof?`<div class="cl-mom-trofeu">${trof}</div>`:''}
+      </div>
+    </div>
+    <div class="cl-mom-clube">
+      ${clubCrestHTML(clube)}
+      <span class="cl-welc-stripe" style="${clubStripe(clube)}">${escC(clube.short)}</span>
+      <div class="cl-mom-linha ${claro?'claro':''}">${escC(dados.linha||'')}</div>
+    </div>
+    ${cards?`<div class="cl-mom-cards">${cards}</div>`:''}
+    <div class="cl-mom-foot">
+      <div class="cl-mom-nota ${claro?'claro':''}">${escC(dados.rodape||'')}</div>
+      ${btn(def.btnSec,`clMomentoSec('${escC(def.acao)}')`,{icon:'⏩',cls:'cl-btn-cancel'})}
+      ${btn(def.btnPri,'clMomentoOk()',{icon:'✔',cls:'cl-btn-ok'})}
+    </div>
+  </div>`;
+  overlayC(dlg(dados.titulo||'', html, {w:720, bodyClass:'cl-body-'+(def.corpo==='yellow'?'yellow':def.corpo==='gray'?'gray':'green')}));
+  // ÁUDIO SEMPRE DESLIGADO: o atributo `muted` é ignorado por alguns navegadores quando o <video>
+  // é reinjetado no DOM (que é o caso aqui — o modal é montado por innerHTML).
+  try{ const v=document.querySelector('#c-overlay .cl-mom-vid'); if(v){ v.muted=true; v.volume=0; const p=v.play(); if(p&&p.catch) p.catch(()=>{}); } }catch(e){}
+}
+function clMomentoOk(){
+  const at=CL._momentoAtual; CL._momentoAtual=null;
+  clCloseOverlay();
+  if(at && typeof at.aoFechar==='function') at.aoFechar();
+}
+function clMomentoSec(acao){
+  const at=CL._momentoAtual; CL._momentoAtual=null;
+  clCloseOverlay();
+  momentoAcao(acao);
+  if(at && typeof at.aoFechar==='function') at.aoFechar();
+}
+
+/* ---- CONSTRUTORES DE DADOS: tudo sai do estado do jogo, nada é fixo ----
+   Cada um devolve os dados de um momento ou null quando ele não se aplica (não fui campeão, o
+   artilheiro não é meu, etc). É o que garante que o modal só aparece quando é verdade. */
+function momentoClassif(){ return (typeof sortedTable==='function')?sortedTable():[]; }
+function momentoCampanha(t){ return t?`${t.W}V ${t.D}E ${t.L}D`:''; }
+function dadosCampeaoLiga(){
+  const tb=momentoClassif(); const t=tb[0]; if(!t || String(t.id)!==String(CL.clubId)) return null;
+  const nome=(clubOf(CL.clubId)||{}).short||'O clube';
+  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(S.division,S.intlUniverse):'Liga'),
+    manchete:`${nome} é campeão.`, trofeu:S.division,
+    linha:`Título conquistado na ${S.sched?S.sched.length:38}ª rodada da competição.`,
+    stats:[{k:'PONTOS',v:String(t.Pts)},{k:'CAMPANHA',v:momentoCampanha(t)},{k:'SALDO',v:String((t.GF||0)-(t.GA||0))}],
+    rodape:'A vaga continental está garantida.' };
+}
+function dadosPromovido(){
+  const pos=(typeof tablePos==='function')?tablePos(CL.clubId):0; const t=momentoClassif()[pos-1];
+  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(S.division,S.intlUniverse):'Liga'),
+    manchete:'Subimos de divisão.', trofeu:S.division,
+    linha:`${pos}º lugar. Ano que vem o clube joga a divisão de cima.`,
+    stats:[{k:'POSIÇÃO',v:pos+'º'},{k:'PONTOS',v:t?String(t.Pts):'—'},{k:'CAMPANHA',v:momentoCampanha(t)}],
+    rodape:'A verba de reforços foi reajustada.' };
+}
+function dadosRebaixado(){
+  const pos=(typeof tablePos==='function')?tablePos(CL.clubId):0; const t=momentoClassif()[pos-1];
+  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(S.division,S.intlUniverse):'Liga'),
+    manchete:'A queda foi confirmada.', trofeu:null,
+    linha:`${pos}º lugar. O clube disputa a divisão de baixo na próxima temporada.`,
+    stats:[{k:'POSIÇÃO',v:pos+'º'},{k:'PONTOS',v:t?String(t.Pts):'—'},{k:'CAMPANHA',v:momentoCampanha(t)}],
+    rodape:'A diretoria quer conversar sobre o seu contrato.' };
+}
+/* ARTILHEIRO: só vira modal se for jogador DO USUÁRIO — é o que o pedido especifica. */
+function dadosArtilheiro(escopo){
+  const sc=S.scorers||{}; const nomes=Object.keys(sc); if(!nomes.length) return null;
+  const top=nomes.sort((a,b)=>sc[b]-sc[a])[0]; const gols=sc[top];
+  const p=(squad(CL.clubId)||[]).find(x=>x.n===top); if(!p) return null;   // não é meu: sem modal
+  const jogos=(p.stats&&p.stats.apps)||0;
+  const media=jogos?(gols/jogos).toFixed(2).replace('.',','):'—';
+  const liga=escopo!=='copa';
+  return { titulo:'Artilharia — '+(liga?((typeof classifDivName==='function')?classifDivName(S.division,S.intlUniverse):'Liga'):'Copa'),
+    manchete:'Ele bateu todo mundo.', trofeu:null,
+    linha:`${p.n}, ${p.age} anos, ${({GK:'goleiro',DEF:'zagueiro',MID:'meia',ATT:'atacante'})[p.s]||'jogador'} — artilheiro da competição.`,
+    stats:[{k:'GOLS',v:String(gols)},{k:'JOGOS',v:String(jogos)},{k:'MÉDIA',v:media}],
+    rodape:'Renove o contrato antes que apareça proposta.' };
+}
+function dadosCampeaoCopa(key){
+  const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[key])||{name:'Copa',short:'Copa'};
+  const c=S.cups&&S.cups[key]; const b=(c&&c.champion!==undefined)?c:(c&&c.bracket);
+  if(!b || String(b.champion)!==String(CL.clubId)) return null;
+  const fin=(b.ties||[]).find(t=>t.winner!=null) || null;
+  const placar=fin&&fin.hg!=null?`${fin.hg} × ${fin.ag}`:'—';
+  return { titulo:'Final — '+def.name, manchete:'A taça é nossa.', trofeu:key,
+    linha:`Título da ${def.short} conquistado na decisão.`,
+    stats:[{k:'FINAL',v:placar},{k:'FASES',v:String(b.roundsTotal||'—')},{k:'TEMPORADA',v:String(S.season)}],
+    rodape:'O clube entra na competição continental do ano que vem.' };
+}
+function dadosCopaJogo(pending, ehFinal){
+  const key=pending.key, def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[key])||{name:'Copa',short:'Copa'};
+  const meHome=pending.h===CL.clubId, oppId=meHome?pending.a:pending.h;
+  const opp=(clubOf(oppId)||(typeof bgClubById==='function'&&bgClubById(oppId))||{short:'?'});
+  const fase=(typeof cupPhaseLabelFor==='function')?cupPhaseLabelFor(pending):'';
+  const dia=(typeof nextMatchDayLabel==='function')?nextMatchDayLabel({kind:'cup'}):'';
+  return { titulo:def.name+' — '+fase, trofeu:key,
+    kicker: ehFinal?('FINAL DA '+String(def.short).toUpperCase()):undefined,
+    manchete: ehFinal?'Noventa minutos por uma taça.':'Bola sorteada, jogo marcado.',
+    linha:`${(clubOf(CL.clubId)||{}).short||''} × ${opp.short}, ${meHome?'em casa':'fora de casa'}${dia?', '+dia:''}.`,
+    stats:[{k:'FASE',v:fase||'—'},{k:'MANDO',v:meHome?'Casa':'Fora'},{k:'DIA',v:dia||'—'}],
+    rodape: ehFinal?'Empate no tempo normal leva a decisão aos pênaltis.':'Escolha a tática no menu Selecção antes do jogo.' };
+}
+/* ---- GATILHOS ----
+   Fim de temporada: campeão da liga -> artilheiro -> acesso/queda, um após o outro (fila).
+   Chamado de endSeason (solo) e da virada online. */
+function enfileirarMomentosFimDeTemporada(){
+  try{
+    const camp=dadosCampeaoLiga(); if(camp) enfileirarMomento('campeao-liga', camp);
+    const art=dadosArtilheiro('liga'); if(art) enfileirarMomento('marcador-liga', art);
+    const pr=S._promoRelegNews;
+    if(pr==='promoted') enfileirarMomento('promovido', dadosPromovido());
+    else if(pr==='relegated') enfileirarMomento('rebaixado', dadosRebaixado());
+  }catch(e){ console.warn('momentos de fim de temporada:', e&&e.message); }
+}
+/* Copa decidida: campeão -> artilheiro da copa. Uma vez por competição/temporada. */
+function enfileirarMomentosCopa(key){
+  try{
+    CL._momCopaVista=CL._momCopaVista||{};
+    const marca=key+':'+(S.season||1); if(CL._momCopaVista[marca]) return; 
+    const d=dadosCampeaoCopa(key); if(!d) return;
+    CL._momCopaVista[marca]=true;
+    enfileirarMomento('campeao-copa', d);
+    const art=dadosArtilheiro('copa'); if(art) enfileirarMomento('marcador-copa', art);
+  }catch(e){ console.warn('momentos de copa:', e&&e.message); }
+}
+
 /* ---- Jogador > Treino especial: até 3 jogadores em treino ao mesmo tempo, ganhando chance
    extra de evolução por rodada (ver evolvePlayer/hasEstrelinha).
 
@@ -3526,6 +3737,22 @@ function cupIntroDateHTML(pending){
   catch(e){ return ''; }
 }
 function showCupIntro(pending, auto){
+  // MOMENTO ANTES DA PARTIDA DE COPA: abertura de fase eliminatória, ou o modal de FINAL quando o
+  // confronto é a decisão. Aparece uma vez por confronto (marca por competição+fase+temporada) e
+  // encadeia na apresentação normal ao fechar — nunca os dois modais ao mesmo tempo.
+  if(!CL._momPreCopa){
+    const b=pending.bracket, ehFinal=!!(b && (b.roundsTotal-b.round)<=0);
+    const marca=pending.key+':'+(b?b.round:pending.stage)+':'+(S.season||1);
+    CL._momCupVista=CL._momCupVista||{};
+    const vale = ehFinal || pending.stage==='bracket';   // grupos não têm "abertura de fase"
+    if(vale && !CL._momCupVista[marca] && typeof abrirMomento==='function'){
+      CL._momCupVista[marca]=true; CL._momPreCopa=true;
+      abrirMomento(ehFinal?'final-copa':'abertura-copa', dadosCopaJogo(pending, ehFinal),
+        ()=>{ CL._momPreCopa=false; showCupIntro(pending, auto); });
+      return;
+    }
+  }
+  CL._momPreCopa=false;
   CL._cupIntro=pending;
   clearCupIntroTimer();
   const key=pending.key, def=COMP_DEFS[key]||{name:key,short:key};
@@ -5549,7 +5776,18 @@ function liveDone(){ _prLog('liveDone -> main'); if(CL._liveTimer)clearTimeout(C
   if(S.finished) setTimeout(()=>seasonEndDialog(),300); }
 /* ---- fim de temporada: mostra campeão + posição final, botão avança a temporada
    (com promoção/rebaixamento de verdade, pré-carregando dados reais da nova divisão) ---- */
+/* o marcador é por TEMPORADA: sem zerar, o fim da temporada seguinte não mostraria nada. */
+function momentosFimReset(){ CL._momFimVisto=false; }
 function seasonEndDialog(){
+  if(CL._momFimSeason!==(S.season||0)){ CL._momFimSeason=(S.season||0); CL._momFimVisto=false; }
+  // MOMENTOS DE FIM DE TEMPORADA (solo): título / artilheiro / acesso ou queda vêm ANTES do resumo
+  // da temporada, um de cada vez. Só entram na primeira passada — quando a fila esvazia, o próprio
+  // seasonEndDialog é chamado de novo e segue direto pro resumo.
+  if(!CL._momFimVisto){
+    CL._momFimVisto=true;
+    if(typeof enfileirarMomentosFimDeTemporada==='function') enfileirarMomentosFimDeTemporada();
+    if(MOMENTO_FILA.length){ momentoSeguinte(()=>seasonEndDialog()); return; }
+  }
   const tbl=sortedTable();
   const champ=clubOf(tbl[0].id).short;
   const myPos=tablePos(S.clubId);
@@ -6166,7 +6404,10 @@ async function onlineAdoptServerRound(RL){
     queueSeasonCupDrawsIfNew(); // virada: enfileira o sorteio da copa NOVA (mostra na 1ª rodada da temporada nova)
     hideSyncLoading();
     cdraw();
-    openPressRoom(_sum);
+    // MOMENTOS DE FIM DE TEMPORADA (título / artilheiro / acesso ou queda) vêm ANTES da sala de
+    // imprensa e um de cada vez; a coletiva entra quando a fila esvazia.
+    if(typeof enfileirarMomentosFimDeTemporada==='function') enfileirarMomentosFimDeTemporada();
+    momentoSeguinte(()=>openPressRoom(_sum));
     return;
   }
   queueSeasonCupDrawsIfNew(); // todo cliente enfileira o sorteio da copa recém-sorteada (não só o host)
@@ -6367,6 +6608,14 @@ function clearCupFlowTimer(){ if(CL._cupFlowTimer){ clearTimeout(CL._cupFlowTime
 function clCupResultContinue(){
   clearCupFlowTimer();
   clCloseOverlay(); CL.live=null;
+  // MOMENTO DEPOIS DA FINAL: se a competição acabou de ser decidida e o campeão sou eu, entram o
+  // modal de título e, na sequência, o de artilheiro (fila — nunca os dois ao mesmo tempo).
+  // Enfileirado aqui e consumido logo abaixo, antes de seguir pra chave/classificação.
+  try{
+    const _k=(CL._cupResultKeysThisRound||[]).slice();
+    _k.forEach(k=>{ if(typeof enfileirarMomentosCopa==='function') enfileirarMomentosCopa(k); });
+  }catch(e){}
+  if(MOMENTO_FILA.length){ momentoSeguinte(()=>clCupResultContinue()); return; }
   // nunca encadeia direto pra próxima partida de copa aqui, mesmo que já tenha outra
   // pendente (ex: Copa do Brasil + Libertadores na mesma semana) — cada partida tem que
   // passar pela tela principal antes da próxima, pro jogador rever/confirmar a escalação
