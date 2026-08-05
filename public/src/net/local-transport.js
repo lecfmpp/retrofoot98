@@ -193,8 +193,154 @@ function refreshChatDock(){ const d=document.querySelector('.cl-chatdock'); if(d
    caso um evento de Realtime não chegue. */
 function clSyncResenha(){ CL.menu=null;
   if(typeof NET==='undefined' || !NET.refreshRoom){ toastC('Sincronização indisponível.'); return; }
+  // NO LOBBY o problema é só metadado (o anfitrião já começou e eu não vi): refreshRoom resolve.
+  // DENTRO DO JOGO, refreshRoom relê participantes/fase/rodada e NÃO readota o estado
+  // compartilhado — era por isso que este item de menu não consertava dessincronia nenhuma.
+  // Ali o caminho certo é a retomada completa (ver clResenhaSync).
+  if(CL.online && S){ clResenhaSync(); return; }
   toastC('🔄 Sincronizando com a sala...');
   (async ()=>{ try{ await NET.refreshRoom(); if(CL.screen==='online') cdraw(); }catch(e){ toastC('⚠ '+(e.message||'erro ao sincronizar')); } })();
+}
+
+/* ============================ SINCRONIZAR A RESENHA ============================
+   Quando um cliente sai de sincronia, o estado local pode estar errado de formas que nenhum
+   remendo pontual cobre: rodada atrasada, sim, mas também flag presa (CL._liveBusy), partida
+   órfã em CL.live, timer de apresentação/pênalti pendurado, evento de realtime perdido. Cada
+   travada desta semana foi uma variação disso, e a lista de "o que limpar" envelhece a cada
+   feature nova.
+
+   Então aqui a saída é RECARREGAR A PÁGINA de verdade — o único jeito de garantir heap limpo —
+   e voltar direto pra tela do clube, sem passar por login nem por lobby. Isso já era possível e
+   faltava pouco pra ficar de pé:
+     • a sessão do Supabase é persistida (persistSession:true), então o F5 não desloga;
+     • clRequestOrJoin -> routeAfterJoin -> onlineBeginSeason(false) já é o caminho de RECONEXÃO,
+       e ele termina em CL.screen='main' com o shared_state autoritativo já adotado, preservando
+       carreira/finanças/clube próprios (ver CAREER_KEYS e restoreMyFinances).
+   O que faltava era o boot saber que aquele reload era uma retomada — daí a marca em
+   sessionStorage (RESYNC_KEY), lida em index.html.
+
+   REGRA DE OURO (pedido do dono do jogo): a sincronia NUNCA pode custar o resultado da partida
+   de alguém. Por isso nada acontece sem passar por resenhaSyncCheck() — partida em andamento
+   é bloqueio absoluto, e resultado ainda não confirmado pelo servidor exige um "sim" explícito
+   na tela, nunca um reload silencioso. */
+const RESYNC_KEY='rf98:resync';
+/* mantém ?sala=CODE na barra de endereço durante a Resenha: assim até um F5 na unha (sem passar
+   pelo modal) reentra na sala certa em vez de cair na tela de abertura. O anfitrião nunca tinha
+   esse parâmetro — ele só existia no link de convite. */
+function resenhaRememberRoomInUrl(){
+  try{
+    const code=(NET&&NET.room&&NET.room.code)||null; if(!code) return;
+    const u=new URL(window.location.href);
+    if(u.searchParams.get('sala')===code) return;
+    u.searchParams.set('sala', code);
+    history.replaceState(null,'',u.pathname+u.search);
+  }catch(e){}
+}
+/* TRAVAS. Devolve {bloqueio, avisos[]}:
+   • bloqueio  -> não dá pra sincronizar agora de jeito nenhum (perderia partida em andamento);
+   • avisos[]  -> dá, mas tem coisa em risco; a tela pede confirmação explícita. */
+async function resenhaSyncCheck(){
+  const out={ bloqueio:null, avisos:[] };
+  if(typeof CL==='undefined' || !CL.online || typeof S==='undefined' || !S){
+    out.bloqueio='Você não está numa Resenha.'; return out;
+  }
+  // 1) PARTIDA EM ANDAMENTO: bloqueio absoluto. Recarregar aqui apaga a partida que está
+  //    rolando na tela e o resultado dela nunca chega no servidor.
+  if(CL.live && !CL.live.done){
+    out.bloqueio='Você está no meio de uma partida. Termine o jogo primeiro — sincronizar agora apagaria o resultado dela.';
+    return out;
+  }
+  // 2) RESULTADO DA RODADA AINDA NÃO CONFIRMADO. Só pergunto ao servidor se eu de fato joguei
+  //    esta rodada; quem ainda não jogou não tem resultado nenhum a perder.
+  if(CL._playedRound===S.round && typeof NET!=='undefined' && NET.mySeat){
+    const seat=await NET.mySeat();
+    if(!seat) out.avisos.push('Não deu pra confirmar com o servidor se o resultado da sua partida chegou (conexão instável). Se ele não tiver chegado, esta rodada será resolvida sem o seu placar.');
+    else if(seat.last_result_round!==S.round) out.avisos.push('O resultado da sua partida desta rodada ainda não consta no servidor. Se você sincronizar agora, a rodada pode ser resolvida sem ele.');
+  }
+  // 3) NEGOCIAÇÕES AINDA NÃO ENVIADAS: viajam junto do resultado da rodada, então uma rodada
+  //    travada as segura. Não bloqueiam (senão a sincronia seria impossível justamente quando é
+  //    necessária), mas o usuário precisa saber o que está pondo em risco.
+  const pend=[];
+  if(Array.isArray(S._netTransfers) && S._netTransfers.length) pend.push('contratações/vendas');
+  if(Array.isArray(S._netOffers) && S._netOffers.length) pend.push('propostas enviadas');
+  if(Array.isArray(S._netCounters) && S._netCounters.length) pend.push('contrapropostas');
+  if(Array.isArray(S._netOfferDrops) && S._netOfferDrops.length) pend.push('respostas a propostas');
+  if(pend.length) out.avisos.push('Você tem '+pend.join(', ')+' que ainda não foram confirmadas pelo servidor. Elas viajam junto com o resultado da rodada e podem se perder.');
+  // 4) ANFITRIÃO NO MEIO DO FECHAMENTO: existe rede (qualquer membro fecha rodada órfã, ver
+  //    onlineOrphanCloseCheck), mas recarregar bem agora atrasa a sala.
+  if(NET && NET.isHost && CL._hostPendingCommit) out.avisos.push('Você é o anfitrião e está fechando a rodada agora. A sala se vira sozinha se você sair, mas pode demorar um pouco mais.');
+  return out;
+}
+/* modal principal */
+function clResenhaSync(){
+  CL.menu=null; CL._syncOffered=(S&&S.round!=null)?S.round:0;   // não reoferecer sozinho nesta rodada
+  overlayC(dlg('Sincronizar a Resenha', `<div class="cl-resync">
+    <div class="cl-resync-h">Deu aquela piscada e perdeu o bonde?</div>
+    <p class="cl-resync-p">Parece que essa Resenha perdeu a sincronia. É hora de juntar geral de novo.
+    Clique no botão abaixo para sincronizar com os outros treinadores da Resenha.</p>
+    <div class="cl-resync-how">
+      <div class="cl-resync-how-t">O que vai acontecer</div>
+      <ul>
+        <li>A página recarrega e o jogo <b>volta direto pra tela do seu clube</b> — sem login, sem lobby.</li>
+        <li>Seu time, seu elenco, seu caixa e sua carreira vêm do servidor, <b>na mesma rodada dos outros</b>.</li>
+        <li>Nada é apagado: o que já está salvo na sala continua lá.</li>
+      </ul>
+    </div>
+    <div id="cl-resync-check" class="cl-resync-check">Conferindo se é seguro sincronizar agora…</div>
+    <div id="cl-resync-actions" class="cl-cal-ok"></div>
+  </div>`,{w:560,bodyClass:'cl-body-green'}));
+  (async ()=>{
+    let r; try{ r=await resenhaSyncCheck(); }catch(e){ r={bloqueio:'Não foi possível conferir o estado da sala.',avisos:[]}; }
+    const box=document.querySelector('#cl-resync-check'), act=document.querySelector('#cl-resync-actions');
+    if(!box||!act) return;   // o usuário fechou a tela enquanto a checagem rodava
+    if(r.bloqueio){
+      box.className='cl-resync-check block';
+      box.innerHTML='<b>🛑 Agora não dá.</b><br>'+escC(r.bloqueio);
+      act.innerHTML=btn('Entendi','clCloseOverlay()',{icon:'✔',cls:'cl-btn-cancel'});
+      return;
+    }
+    if(r.avisos.length){
+      box.className='cl-resync-check warn';
+      box.innerHTML='<b>⚠ Antes de sincronizar, veja isto:</b><ul>'+r.avisos.map(a=>'<li>'+escC(a)+'</li>').join('')+'</ul>'
+        +'<label class="cl-resync-ok"><input type="checkbox" id="cl-resync-agree" onchange="clResenhaSyncAgree(this.checked)"> Entendi o risco e quero sincronizar mesmo assim</label>';
+      act.innerHTML=btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})
+        +btn('Sincronizar agora','clResenhaSyncGo()',{icon:'🔄',cls:'cl-btn-ok',dis:true});
+      return;
+    }
+    box.className='cl-resync-check ok';
+    box.innerHTML='<b>✓ Tudo certo.</b><br>Nenhuma partida em andamento e nada seu pendente no servidor.';
+    act.innerHTML=btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})
+      +btn('Sincronizar agora','clResenhaSyncGo()',{icon:'🔄',cls:'cl-btn-ok'});
+  })();
+}
+/* o botão de sincronizar só liga depois do "entendi o risco" (caminho com avisos) */
+function clResenhaSyncAgree(on){
+  const act=document.querySelector('#cl-resync-actions'); if(!act) return;
+  const b=act.querySelectorAll('button')[1]; if(b) b.disabled=!on;
+}
+function clResenhaSyncGo(){
+  const code=(typeof NET!=='undefined' && NET.room && NET.room.code)||null;
+  if(!code){ toastC('⚠ Sala não identificada — não dá pra sincronizar.'); return; }
+  // re-checa o bloqueio duro na hora do clique: a checagem inicial pode ter ficado alguns
+  // segundos na tela, e nesse meio-tempo uma partida pode ter começado (rede de segurança).
+  if(CL.live && !CL.live.done){ toastC('⚠ Partida em andamento — não dá pra sincronizar agora.'); return; }
+  try{ sessionStorage.setItem(RESYNC_KEY, code); }catch(e){}
+  toastC('🔄 Sincronizando com a sala…');
+  try{ if(typeof NET!=='undefined' && NET.clearBusy) NET.clearBusy(); }catch(e){}   // libera a barreira antes de sair
+  setTimeout(()=>{ try{ location.reload(); }catch(e){} }, 250);
+}
+/* RETOMADA (chamada pelo boot, em index.html, quando existe a marca do reload). Entra pelo mesmo
+   caminho da reconexão normal — clRequestOrJoin -> routeAfterJoin -> onlineBeginSeason(false) —
+   que termina na tela do clube com o estado do servidor já adotado. */
+function clResenhaResume(code){
+  CL.screen='online';
+  CL.net={step:'conta',intent:'join',authMode:'login',code:code,name:'',email:'',password:'',phone:''};
+  wireNet();
+  const st=(typeof NET!=='undefined' && NET.authStatus)?NET.authStatus():{};
+  CL.net.email=st.email||''; CL.net.name=st.name||'';
+  CL.mgr=CL.mgr||st.name||'';
+  cdraw();
+  clRequestOrJoin(code);
 }
 /* SINCRONIZAÇÃO (itens 1 e 3): se este cliente (não-anfitrião) ficou PRA TRÁS da rodada
    autoritativa da sala (ex.: perdeu uma rodada por desconexão), recarrega o estado da sala pra
@@ -1052,6 +1198,7 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
   CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
   // entrada fresca (logo após o sorteio): mostra a Boas-vindas ao Clube antes da tela principal.
   // reconexão a jogo em andamento vai direto pra TELA PRINCIPAL do time, como sempre foi.
+  resenhaRememberRoomInUrl();   // ?sala=CODE na barra de endereço: um F5 na unha reentra na sala
   if(fresh && typeof showBoasVindas==='function') showBoasVindas();
   else { CL.screen='main'; cdraw(); }
 
@@ -1284,6 +1431,16 @@ function onlineTimerLoop(){
   // custou uma ida ao banco pra descobrir isso; agora o relatório vem junto do problema.
   if(CL.online && CL.screen==='waitround' && room && typeof S!=='undefined' && S){
     const dt=Date.now()-(CL._waitSince||Date.now());
+    // OFERTA AUTOMÁTICA DA SINCRONIA. O diagnóstico logo abaixo sempre soube que a sala estava
+    // parada, mas só contava isso pro console — o jogador ficava olhando a pausa técnica sem
+    // saber que existia saída. Passando de WAIT_ESCAPE_MS, o modal se oferece sozinho. Fica FORA
+    // do intervalo de 10s do diagnóstico de propósito: dentro dele, a primeira reavaliação só
+    // viria aos 22s. Uma vez por rodada (CL._syncOffered) e nunca por cima de partida ou de tela
+    // de decisão com contagem regressiva.
+    if(dt>WAIT_ESCAPE_MS && CL._syncOffered!==S.round && !CL.live
+       && !CL._cupIntroTimer && !CL._leagueIntroTimer && typeof clResenhaSync==='function'){
+      clResenhaSync();
+    }
     if(dt>12000 && Date.now()-(CL._waitDiagT||0)>10000){
       CL._waitDiagT=Date.now();
       const cl=NET._claimed||{}, ag=Date.now(); const ocupados=[], semResultado=[];

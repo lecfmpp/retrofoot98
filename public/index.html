@@ -568,6 +568,9 @@ function teamMorale(id,players){
 /* init online ao carregar */
 document.addEventListener('DOMContentLoaded',async ()=>{
   let sala=null; try{ sala=new URLSearchParams(location.search).get('sala'); }catch(e){}
+  // marca deixada pelo "Sincronizar a Resenha" (ver clResenhaSyncGo). Consumida na hora: um
+  // reload seguinte, feito pelo usuário, não deve reentrar por este caminho.
+  let resync=null; try{ resync=sessionStorage.getItem('rf98:resync'); if(resync) sessionStorage.removeItem('rf98:resync'); }catch(e){}
   // link de recuperação de senha (#access_token=...&type=recovery no hash, ou ?code=...&type=recovery
   // se PKCE) — precisa criar o client Supabase JÁ, na carga da página, pra ele detectar o hash/código
   // e disparar o evento PASSWORD_RECOVERY (ver netInitSupabase); senão o app ia direto pra splash
@@ -576,6 +579,20 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   if(isRecovery){
     try{ await netInitSupabase(); }catch(e){ console.warn('Supabase init (recovery) erro:', e); }
     if(CL.screen!=='resetpassword') cdraw(); // fallback se o evento não disparar a tempo
+  }
+  /* RETOMADA DA RESENHA (botão "Sincronizar a Resenha" -> reload). A marca é escrita em
+     sessionStorage por clResenhaSyncGo() logo antes do location.reload(). Diferente do ?sala=
+     do link de convite — que cai na tela de conta/lobby —, aqui a gente já tem sessão (o
+     Supabase persiste o login) e entra pelo caminho de RECONEXÃO, que termina direto na tela do
+     clube com o estado do servidor adotado. Se a sessão tiver caído no meio, cai no fluxo normal
+     de entrada em vez de travar. sessionStorage (e não localStorage) de propósito: a marca vale
+     pra ESTA aba e some sozinha se o usuário fechar tudo. */
+  else if(resync){
+    try{ await netInitSupabase(); NET.useSupabase=true; }catch(e){ console.warn('Supabase (retomada):', e); }
+    const st=(typeof NET!=='undefined' && NET.authStatus)?NET.authStatus():{loggedIn:false};
+    if(st.loggedIn && typeof clResenhaResume==='function') clResenhaResume(resync);
+    else if(typeof clOnlineJoin==='function') clOnlineJoin(resync);   // sessão expirou: entra pelo login
+    else cdraw();
   }
   else if(sala && typeof clOnlineJoin==='function'){
     clOnlineJoin(sala.toUpperCase());

@@ -1216,6 +1216,22 @@ async function netLoadInbox(){
   if(!NET.gameId || !SB_AUTH_USER) return null;
   try{ const { data } = await sb.from('game_seats').select('inbox').eq('game_id', NET.gameId).eq('user_id', SB_UID()).maybeSingle(); return (data&&data.inbox)||null; }catch(e){ return null; }
 }
+/* LEITURA FRESCA DO MEU ASSENTO (direto do servidor, sem passar pelo cache _claimed).
+   Existe pra UMA pergunta que só o servidor responde com honestidade: "o resultado da minha
+   partida desta rodada já chegou?". O NET._claimed local não serve — netPublishResult carimba
+   last_result_round nele ANTES do await, de forma otimista, então ele diz "publicado" mesmo
+   quando o update falhou. Quem decide se é seguro recarregar a página é esta função
+   (ver resenhaSyncCheck no local-transport). Devolve null se não deu pra ler. */
+async function netMySeat(){
+  if(!sb || !NET.gameId || !SB_AUTH_USER) return null;
+  try{
+    const { data, error } = await sb.from('game_seats')
+      .select('club_id,last_result_round,last_cup_round,is_ready,busy_until')
+      .eq('game_id', NET.gameId).eq('user_id', SB_UID()).maybeSingle();
+    if(error) return null;
+    return data||null;
+  }catch(e){ return null; }
+}
 async function netKick(uid, clubId){
   if(!NET.isHost || !uid || uid===SB_UID()) return;
   SB_KICKED[uid]=1;
@@ -1294,6 +1310,7 @@ NET.assignClub = netAssignClub;
 NET.setMyClub = netSetMyClub;
 NET.saveInbox = netSaveInbox;
 NET.loadInbox = netLoadInbox;
+NET.mySeat = netMySeat;
 NET.drawClubs = netDrawClubs;
 NET.setReady = netSetReady;
 NET.start = netStart;

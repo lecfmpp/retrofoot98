@@ -2080,7 +2080,31 @@ function initSeasonCups(qual, compToggle){
     libertadores: libGroup ? {group:libGroup, bracket:null} : null,
     sulamericana: sulGroup ? {group:sulGroup, bracket:null} : null
   };
-  if(S.cups.copaBrasil) queueDrawShow('copaBrasil');
+  // SORTEIO ANTES DA PRIMEIRA PARTIDA, NA ORDEM DO CALENDÁRIO.
+  // Antes só a Copa do Brasil era enfileirada aqui — e ela é justamente a ÚLTIMA a entrar em campo
+  // (1ª partida na rodada 2, ver cupTickMatchesRound). Libertadores (rodada 0) e Sul-Americana
+  // (rodada 1) jogavam primeiro e não tinham cerimônia nenhuma no início da temporada: no solo o
+  // sorteio delas simplesmente nunca aparecia, e na Resenha ele só era enfileirado depois, por
+  // queueSeasonCupDrawsIfNew (ui/main.js), na primeira adoção de estado — ou seja, DEPOIS de a
+  // fase de grupos já ter começado. Era isso que produzia o absurdo de sortear uma competição
+  // cuja rodada já tinha acontecido.
+  // Os universos CONMEBOL e europeu (acima) sempre fizeram isso certo; só o brasileiro não fazia.
+  cupDrawOrder().forEach(([key,stage])=>{ if(S.cups[key]) queueDrawShow(key, stage); });
+}
+/* ORDEM DAS CERIMÔNIAS = ordem em que as competições ENTRAM EM CAMPO.
+   As copas se revezam a cada 3 rodadas (CUP_TICK_OFFSET) e pendingUserCupMatches olha a rodada
+   SEGUINTE, então a primeira partida de cada uma cai numa rodada diferente. Ordenar por ela faz a
+   sequência de sorteios seguir o calendário — quem joga antes, sorteia antes — em vez de uma ordem
+   fixa escrita à mão que não tinha relação com o calendário. */
+function cupFirstPlayRound(key){
+  const off=CUP_TICK_OFFSET[key]; if(off==null) return 99;
+  for(let r=0;r<3;r++) if((r+1)%3===off) return r;
+  return 99;
+}
+function cupDrawOrder(){
+  return [['copaBrasil','bracket'],['libertadores','group'],['sulamericana','group'],
+          ['championsLeague','group'],['europaLeague','group']]
+    .sort((a,b)=>cupFirstPlayRound(a[0])-cupFirstPlayRound(b[0]));
 }
 /* partidas de copa do clube do usuário pendentes de jogar AO VIVO — só dispara na véspera
    do avanço em segundo plano (mesma cadência de advancePendingCups/playRound, ver linha

@@ -2172,3 +2172,31 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-trn-intro{font-size:11.5px;line-height:1.45;padding:8px 10px}
   .cl-trn-list{max-height:none}
 }
+
+/* ===== MODAL "SINCRONIZAR A RESENHA" =====
+   Aberto pelo botão da pausa técnica, pelo menu do Modo Resenha ou sozinho quando a sala fica
+   parada além de WAIT_ESCAPE_MS. Três estados no bloco de checagem: conferindo (neutro),
+   bloqueado (vermelho — partida em andamento), com aviso (amarelo — exige o "entendi o risco")
+   e liberado (verde). Ver clResenhaSync no local-transport.js. */
+.cl-resync{max-width:100%}
+.cl-resync-h{font-size:19px;font-weight:var(--fw-black);color:var(--yellow);line-height:1.25;margin-bottom:8px}
+.cl-resync-p{font-size:13.5px;color:var(--ontext-lite2);line-height:1.55;margin:0 0 14px}
+.cl-resync-how{background:rgba(0,0,0,.22);border-left:3px solid var(--yellow);padding:9px 12px;margin-bottom:14px}
+.cl-resync-how-t{font-size:12px;font-weight:var(--fw-bold);color:var(--yellow);margin-bottom:5px}
+.cl-resync-how ul{margin:0;padding-left:18px}
+.cl-resync-how li{font-size:12.5px;color:var(--ontext-lite2);line-height:1.5;margin-bottom:3px}
+.cl-resync-how b{color:#fff}
+.cl-resync-check{font-size:12.5px;line-height:1.5;padding:9px 12px;margin-bottom:14px;
+  background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.14);color:var(--ontext-lite2)}
+.cl-resync-check ul{margin:6px 0 0;padding-left:18px}
+.cl-resync-check li{margin-bottom:4px}
+.cl-resync-check.ok{border-color:#2a6a2a;color:var(--success-lite)}
+.cl-resync-check.warn{border-color:#7a6a1e;color:#ffd98a}
+.cl-resync-check.block{border-color:#7a2a2a;color:#ff9a9a}
+.cl-resync-ok{display:flex;align-items:flex-start;gap:7px;margin-top:9px;padding-top:8px;
+  border-top:1px solid rgba(255,255,255,.14);color:#fff;font-size:12.5px;cursor:pointer}
+.cl-resync-ok input{margin-top:2px;flex:0 0 auto}
+@media(max-width:640px){
+  .cl-resync-h{font-size:17px}
+  .cl-resync-p,.cl-resync-check{font-size:12px}
+}

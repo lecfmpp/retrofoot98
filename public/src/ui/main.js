@@ -339,10 +339,12 @@ function pausaJoke(){ return PAUSA_JOKES[(CL._pausaI||0)%PAUSA_JOKES.length]; }
 function pausaLeft(){ return Math.max(0, Math.ceil((AD_MIN_MS-(nowMs()-(CL._waitSince||nowMs())))/1000)); }
 /* a pausa passou MUITO do previsto (a janela normal é de 10s) -> algo travou no fechamento da
    rodada; libera a saída de emergência da tela (ver scWaitRound). */
-// 18s: a pausa normal são 10s, então 18s é claramente fora do padrão — dá 8s do aviso "ainda
-// sincronizando" antes de oferecer a saída. Eram 30s, tempo em que o jogador já tinha recarregado
-// a página antes de descobrir que havia um botão.
-const WAIT_ESCAPE_MS=18000;
+// 15s: a pausa normal são 10s, então 15s já é claramente fora do padrão — dá 5s do aviso "ainda
+// sincronizando" antes de oferecer a sincronia. Foi 30s e depois 18s; 30s era tempo demais parado
+// olhando pra uma tela que não explica nada (o jogador recarregava a página antes de descobrir
+// que havia saída). É o MESMO limite do modal automático (ver onlineTimerLoop): o botão na barra
+// e a oferta automática aparecem juntos, não em momentos diferentes.
+const WAIT_ESCAPE_MS=15000;
 function pausaStuck(){ return (nowMs()-(CL._waitSince||nowMs())) >= WAIT_ESCAPE_MS; }
 /* barra em DEGRAUS de 10%: com a janela de 10s e o tique de 1s, cada segundo é exatamente um
    degrau — o jogador lê o avanço em vez de ver um número arbitrário (a conta contínua mostrava
@@ -5857,11 +5859,12 @@ function scWaitRound(){
       <div class="rf-progtrack"><div class="rf-progfill" id="rf-fill" style="width:${pausaPct()}%"></div></div>
       <div id="cl-ad-skip" class="rf-skiprow" style="display:${CL._adCont?'':'none'}">${btn('Pular publicidade','clAdSkip()',{icon:'⏭',cls:'cl-btn'})}</div>
       <!-- SAÍDA DE EMERGÊNCIA: o botão acima só aparece quando a rodada JÁ sincronizou (CL._adCont).
-           Se o fechamento da rodada trava (anfitrião offline, resolve-round falhando), não havia
-           NENHUM caminho de volta — o jogador ficava preso aqui até recarregar o navegador. Este
-           botão surge sozinho depois de WAIT_ESCAPE_MS e só devolve a tela do time: não pula nem
-           altera a rodada (o fechamento segue pelo reconcile/onlineRunRound quando destravar). -->
-      <div id="cl-wait-escape" class="rf-skiprow" style="display:${pausaStuck()?'':'none'}">${btn('Voltar ao meu time','clWaitRoundSkip()',{icon:'↩',cls:'cl-btn-cancel'})}</div>
+           Se o fechamento da rodada trava (anfitrião offline, resolve-round falhando), o jogador
+           fica preso aqui. Antes este botão era "Voltar ao meu time", e ele MENTIA: devolvia a tela
+           do clube ainda na rodada VELHA (a rodada só avança quando o servidor fecha), então o
+           jogador saía da pausa pra uma tela desatualizada e continuava dessincronizado, agora sem
+           nem saber disso. Agora o caminho é o certo: sincronizar de verdade com a sala. -->
+      <div id="cl-wait-escape" class="rf-skiprow" style="display:${pausaStuck()?'':'none'}">${btn('Sincronizar a Resenha','clResenhaSync()',{icon:'🔄',cls:'cl-btn-ok'})}</div>
     </div>
     <div class="rf-sponsor">
       <div class="rf-sponlabel"><b>Patrocínio oficial</b><span>Quem banca a resenha</span></div>
@@ -5869,7 +5872,9 @@ function scWaitRound(){
     </div>
   </div>`;
 }
-function clWaitRoundSkip(){ if(CL._adCont){ clAdSkip(); return; } CL.screen='main'; CL.tab='jogo'; cdraw(); }
+/* clWaitRoundSkip saiu junto com o botão "Voltar ao meu time" (ver scWaitRound): a única coisa
+   que ele fazia era trocar pra 'main' com a rodada ainda velha. Quem quer pular a publicidade
+   usa clAdSkip direto, que é o outro botão desta mesma barra. */
 function onlineReturnFreeAfterMatch(){
   if(CL._liveTimer) clearTimeout(CL._liveTimer);
   CL._playedRound=S.round; // marca que JÁ joguei esta rodada — não re-simulo (evita loop na mesma rodada)
@@ -7517,7 +7522,12 @@ function queueSeasonCupDrawsIfNew(){
   if(typeof CL==='undefined' || !CL.online || !S || !S.cups) return;
   CL._drawShownSeason = CL._drawShownSeason || {};
   const season = S.season||1;
-  const defs=[['copaBrasil','bracket'],['libertadores','group'],['sulamericana','group'],['championsLeague','group'],['europaLeague','group']];
+  // MESMA ordem de calendário do início da temporada (ver cupDrawOrder no core): quem joga antes,
+  // sorteia antes. Antes era uma lista fixa começando pela Copa do Brasil, que é a última a entrar
+  // em campo — então, quando mais de um sorteio caía na mesma transição, a cerimônia saía fora de
+  // ordem em relação às partidas que vinham a seguir.
+  const defs=(typeof cupDrawOrder==='function') ? cupDrawOrder()
+    : [['copaBrasil','bracket'],['libertadores','group'],['sulamericana','group'],['championsLeague','group'],['europaLeague','group']];
   defs.forEach(([key,stage])=>{
     const c=S.cups[key]; if(!c) return;
     const fresh = (key==='copaBrasil')
