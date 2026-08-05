@@ -2216,3 +2216,5 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 @media(max-width:640px){ .cl-kickwait{font-size:12px} }
 /* data real por linha do Calendário (ver calRowDate): copa na quarta, liga no fim de semana */
 .cl-cal-d{display:block;max-width:74px;font-style:normal;font-size:9.5px;font-family:var(--mono);color:var(--gray-999);line-height:1.1;margin-top:1px;white-space:nowrap}
+/* dia do próximo jogo no cartão do adversário (ver nextMatchDayLabel) */
+.cl-adv-day{font-family:var(--mono);font-size:10.5px;color:var(--yellow);margin-top:2px;letter-spacing:.2px}

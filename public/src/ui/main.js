@@ -2171,6 +2171,7 @@ function scMain(){
           <div class="cl-year">${S.season}</div>
           <div class="cl-adv-name" style="background:${th.bg2};padding:3px 8px">${oppId?escC((anyClubOf(oppId)||{short:'—'}).short):'—'}</div>
           <div class="cl-adv-loc">${nm?`${nm.home?'CASA':'FORA'} · ${escC(nm.comp)}`:'—'}</div>
+          ${nm&&nextMatchDayLabel(nm)?`<div class="cl-adv-day">📅 ${escC(nextMatchDayLabel(nm))}</div>`:''}
           ${nm?`<div class="cl-adv-comp ${nm.kind==='cup'?'cup':''}">${nm.kind==='cup'?`${trophyImg(nm.cupKey,14)||'🏆'} ${escC(nm.fase)}`:escC(nm.fase)}</div>`:''}
         </div>
         <div class="cl-panel">${panel}</div>
@@ -2719,7 +2720,7 @@ function panJogo(oppId,home,uf,nm){
       <div class="cl-jogo-cup-comp">${trophyImg(nm.cupKey,20)||'🏆'} ${escC(nm.comp)}</div>
       <div class="cl-jogo-cup-fase">${escC(nm.fase)}</div>
       <div class="cl-jogo-cup-vs"><span>${escC((anyClubOf(nm.h)||{short:''}).short)}</span><i>×</i><span>${escC((anyClubOf(nm.a)||{short:''}).short)}</span></div>
-      <div class="cl-jogo-cup-loc">Você joga ${nm.home?'em casa':'fora de casa'}</div>
+      <div class="cl-jogo-cup-loc">Você joga ${nm.home?'em casa':'fora de casa'}${nextMatchDayLabel(nm)?` · <b>${escC(nextMatchDayLabel(nm))}</b>`:''}</div>
     </div>` : '';
   return `<div class="cl-jogo">
     ${cupHead}
@@ -3569,7 +3570,7 @@ function showLeagueIntro(auto){
   const local=nm.home?'em casa':'fora de casa';
   overlayC(dlg(nm.comp||'Campeonato', `
     <div class="cl-cupintro">
-      <div class="cl-cupintro-phase">${escC(nm.comp||'')} · ${escC(nm.fase||'')}</div>
+      <div class="cl-cupintro-phase">${escC(nm.comp||'')} · ${escC(nm.fase||'')}${nextMatchDayLabel(nm)?` <span class="cl-cupintro-date">· ${escC(nextMatchDayLabel(nm))}</span>`:''}</div>
       <div class="cl-cupintro-match">
         <span class="cl-cupintro-team" style="${clubStripe(me)}">${escC(me.short)}</span>
         <span class="cl-cupintro-x">×</span>
@@ -4854,7 +4855,10 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
   const hsTop = RL.humanSeat ? (function(){ const st=RL.humanSeat.seat; const c=clubOf(st.clubId)||{}; const fl=(typeof flagImg==='function')?flagImg(st.country):'';
     return `<div class="cl-live-cup-top">${camSw}<div class="cl-live-cup-name">${escC(st.name)} · ${escC(c.short||c.name||'')}</div>
       <div class="cl-live-cup-stage">${fl} ${escC(st.country)} · ${RL.jornada}ª Jornada</div></div>`; })() : '';
-  const topLabel = `${RL.jornada}ª Jornada - ${S.season}`;
+  // o dia entra junto da jornada: na partida ao vivo o jogador vê que aquele jogo é de um DIA
+  // (quarta de copa ou fim de semana de liga), não de um bloco de semana indistinto.
+  const _liveDay = (typeof calRowDate==='function') ? calRowDate(Math.max(0,(RL.jornada||1)-1), !!RL.cup) : '';
+  const topLabel = `${RL.jornada}ª Jornada - ${S.season}${_liveDay?' · '+_liveDay:''}`;
   const shootoutBoard = RL.pens ? shootoutScoreboardHTML(RL) : '';
   const camAberto = !!(userMatch && camOn());
   return `<div class="cl-live${camAberto?' rf-cam-open':''}">${kickoffWaitHTML(RL)}${cupTop}${hsTop}${single?'':`<div class="cl-live-top">${divisionTrophyImg(S.division,20)} ${topLabel}${camSw}</div>`}
@@ -6460,7 +6464,7 @@ function userCalendar(){ const out=[]; (S.sched||[]).forEach((rd,i)=>{ const m=r
     // Calendário só mostrava o CONFRONTO (fixture), nunca o placar de rodadas já disputadas.
     const res=(S.results||[]).find(r=>r.round===i && r.h===m[0] && r.a===m[1]);
     const myG=res?(home?res.hg:res.ag):null, oppG=res?(home?res.ag:res.hg):null;
-    out.push({n:i+1,opp,home,myG,oppG}); } }); return out; }
+    out.push({n:i+1,w:i,opp,home,myG,oppG}); } }); return out; }   // n = rótulo (1-based); w = semana real (0-based, base da data)
 /* cada copa avança numa rodada de liga PRÓPRIA (ver CUP_TICK_OFFSET/cupTickMatchesRound
    em core.js — Copa do Brasil, Libertadores e Sul-Americana ficam defasadas por 1 rodada
    cada, 7 dias no calendário do jogo, bem acima do mínimo de 2 dias pra não parecer que
@@ -6499,6 +6503,12 @@ function nextCupJornada(key, stepsAhead){
    A função fica como ponto único de tradução: se a relação voltar a mudar, muda só aqui, e não nos
    cinco lugares que exibem jornada de copa. */
 function cupWeekOfTick(tick){ return Math.max(0, tick||0); }
+/* O Calendário rotula jornada de liga a partir de 1 (userCalendar: n=i+1) e a semana interna é
+   0-based. As linhas de copa carregavam a semana crua como rótulo, então copa e liga da MESMA
+   semana apareciam com números diferentes — e, pior, a data que eu derivava do rótulo saía uma
+   semana adiantada nas linhas de liga. Agora cada linha leva as duas coisas: `n` é o rótulo
+   humano (1-based, usado pra ordenar e exibir) e `w` é a semana real (0-based, base da data). */
+function cupRowWeek(tick){ return cupWeekOfTick(tick); }
 function cupJornadaOfRound(key, r){
   const cal=(S.cupCalendar&&S.cupCalendar[key])||null;
   if(cal && cal.length) return cal[Math.min(Math.max(1,r)-1, cal.length-1)];
@@ -6517,7 +6527,7 @@ function userCupPlayedRows(){
   const addTie=(key,t,r,roundsTotal)=>{
     if(!meuLado(t) || t.hg==null || t.ag==null) return;
     const home=t.h===CL.clubId;
-    out.push({key, n:cupWeekOfTick(t.jornada!=null?t.jornada:cupJornadaOfRound(key,r)), played:true,
+    out.push({key, w:cupRowWeek(t.jornada!=null?t.jornada:cupJornadaOfRound(key,r)), n:cupRowWeek(t.jornada!=null?t.jornada:cupJornadaOfRound(key,r))+1, played:true,
       opp:home?t.a:t.h, home, myG:home?t.hg:t.ag, oppG:home?t.ag:t.hg,
       phase:(typeof cupPhaseLabel==='function')?cupPhaseLabel(r,roundsTotal):null,
       pens:t.pens?(home?t.pens.h+'×'+t.pens.a:t.pens.a+'×'+t.pens.h):null,
@@ -6537,7 +6547,7 @@ function userCupPlayedRows(){
       (g.results||[]).forEach(m=>{
         if(m.h!==CL.clubId && m.a!==CL.clubId) return;
         const home=m.h===CL.clubId;
-        out.push({key, n:cupWeekOfTick(m.jornada!=null?m.jornada:cupJornadaOfRound(key,(m.r||0)+1)), played:true,
+        out.push({key, w:cupRowWeek(m.jornada!=null?m.jornada:cupJornadaOfRound(key,(m.r||0)+1)), n:cupRowWeek(m.jornada!=null?m.jornada:cupJornadaOfRound(key,(m.r||0)+1))+1, played:true,
           opp:home?m.a:m.h, home, myG:home?m.hg:m.ag, oppG:home?m.ag:m.hg, phase:'Fase de grupos'});
       });
     });
@@ -6561,7 +6571,7 @@ function userCupCalendarRows(){
   if(cb && !cupIsFinished(cb) && typeof cupCompetitionTeamAlive==='function' && cupCompetitionTeamAlive(cb, CL.clubId)){
     const tie=(cb.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
     const phase=(typeof cupPhaseLabel==='function')?cupPhaseLabel(cb.round, cb.roundsTotal):null;
-    out.push({key:'copaBrasil', n:cupWeekOfTick(nextCupJornada('copaBrasil',0)), phase,
+    out.push({key:'copaBrasil', w:cupRowWeek(nextCupJornada('copaBrasil',0)), n:cupRowWeek(nextCupJornada('copaBrasil',0))+1, phase,
       opp: tie ? (tie.h===CL.clubId?tie.a:tie.h) : null,          // sem confronto ainda -> "a definir"
       home: tie ? (tie.h===CL.clubId) : null});
   }
@@ -6573,12 +6583,12 @@ function userCupCalendarRows(){
         if(!g.teams.includes(CL.clubId)) return;
         for(let r=mg.round;r<mg.roundsTotal;r++){
           const fx=(g.sched[r]||[]).find(([h,a])=>h===CL.clubId||a===CL.clubId);
-          if(fx) out.push({key, n:cupWeekOfTick(nextCupJornada(key,r-mg.round)), opp:fx[0]===CL.clubId?fx[1]:fx[0], home:fx[0]===CL.clubId});
+          if(fx) out.push({key, w:cupRowWeek(nextCupJornada(key,r-mg.round)), n:cupRowWeek(nextCupJornada(key,r-mg.round))+1, opp:fx[0]===CL.clubId?fx[1]:fx[0], home:fx[0]===CL.clubId});
         }
       });
     } else if(c.bracket && !cupIsFinished(c.bracket)){
       const tie=(c.bracket.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
-      if(tie) out.push({key, n:cupWeekOfTick(nextCupJornada(key,0)), opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
+      if(tie) out.push({key, w:cupRowWeek(nextCupJornada(key,0)), n:cupRowWeek(nextCupJornada(key,0))+1, opp:tie.h===CL.clubId?tie.a:tie.h, home:tie.h===CL.clubId});
     }
   });
   return out;
@@ -6602,6 +6612,15 @@ function userCupDrawRows(){
    confusão entre competições: duas linhas iguais, dias diferentes.
    O modelo de dias (validado numa temporada inteira, 131 clubes, zero choques): dentro da semana N
    a copa é quarta (dia 1+N*7+3) e a liga é sábado (dia 1+N*7+6). */
+/* DIA DO PRÓXIMO JOGO — o mesmo modelo do Calendário, para o fluxo que o usuário percorre a cada
+   rodada. O jogo passou a acontecer POR DIA (copa na quarta, liga no fim de semana da mesma
+   semana), mas isso só aparecia na lista do Calendário: na tela do clube, na entrada em campo e na
+   partida ao vivo continuava tudo em "jornada", como se a semana fosse um bloco só. Aqui o dia
+   acompanha o jogador em todas essas telas, que é o que faz a mecânica nova ficar entendível. */
+function nextMatchDayLabel(nm){
+  if(!nm || typeof calRowDate!=='function') return '';
+  try{ return calRowDate((S.round||0), nm.kind==='cup'); }catch(e){ return ''; }
+}
 function calRowDate(n, isCup){
   if(typeof realDateForDay!=='function') return '';
   const dia = 1 + (n||0)*7 + (isCup?3:6);
@@ -6624,7 +6643,7 @@ function clCalendar(){
       extra=` <span class="cl-res-chip ${cls}">${txt}</span> <b>${pc.myG}-${pc.oppG}</b>${pc.pens?` <span class="cl-cal-pens">(pên. ${escC(pc.pens)})</span>`:''}`;
     }
     return {n:pc.n, ord:0, html:
-    `<div class="cl-cal-row cl-cal-cup"><span class="cl-cal-n">${pc.n}ª<i class="cl-cal-d">${calRowDate(pc.n,true)}</i></span>
+    `<div class="cl-cal-row cl-cal-cup"><span class="cl-cal-n">${pc.n}ª<i class="cl-cal-d">${calRowDate(pc.w,true)}</i></span>
       <span class="cl-cal-t">🏆 ${COMP_DEFS[pc.key].short}${pc.phase?' · '+escC(pc.phase):''} · ${pc.opp?clubLink(pc.opp):'<i>adversário a definir</i>'}${extra}</span><span class="cl-cal-cf">${pc.home==null?'':pc.home?'C':'F'}</span></div>`};
   });
   const drawRows=userCupDrawRows().map(dr=>({n:dr.n, ord:0, html:
@@ -6639,7 +6658,7 @@ function clCalendar(){
     const chip = played?` <span class="cl-res-chip ${chipCls}">${chipTxt}</span>`:'';
     const score=played?` <b>${r.myG}-${r.oppG}</b>`:'';
     return {n:r.n, ord:1, html:
-    `<div class="cl-cal-row"><span class="cl-cal-n">${r.n}ª<i class="cl-cal-d">${calRowDate(r.n,false)}</i></span>
+    `<div class="cl-cal-row"><span class="cl-cal-n">${r.n}ª<i class="cl-cal-d">${calRowDate(r.w,false)}</i></span>
     <span class="cl-cal-t">${clubLink(r.opp)}${chip}${score}</span><span class="cl-cal-cf">${r.home?'C':'F'}</span></div>`};
   });
   const rows=cupRows.concat(drawRows).concat(ligaRows).sort((a,b)=>a.n-b.n || a.ord-b.ord).map(r=>r.html).join('');
