@@ -1590,6 +1590,23 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
       if(startCupRound(cand.key, cand.stage, null)) return;
     }
   }
+  // BARREIRA DO DIA DE COPA: a rodada de liga da semana N só começa quando TODOS os humanos que
+  // tinham partida de copa nesta semana já a cumpriram. É o "dia" da Fase 3 na prática — quarta
+  // inteira antes de sábado inteiro — sem trocar a unidade de sincronia do servidor.
+  // Sem isto, quem não tinha jogo de copa (ou terminava antes) entrava na liga enquanto o vizinho
+  // ainda estava na quarta-feira: os dois viviam dias diferentes da mesma semana, que é a origem
+  // da "confusão de calendário". Escape: o cronômetro da sala, o mesmo que força a entrada de
+  // todos — ninguém fica preso se alguém travar na copa.
+  if(typeof onlineCupDayPending==='function'){
+    const faltam=onlineCupDayPending();
+    if(faltam.length && !cupDayWaitExpired()){
+      if(!CL._cupDayWarned || CL._cupDayWarned!==S.round){
+        CL._cupDayWarned=S.round;
+        console.log('dia de copa: esperando '+faltam.length+' treinador(es) terminarem a copa da semana antes de liberar a liga');
+      }
+      return;
+    }
+  }
   // RODADA DE LIGA: nunca mais cai em campo sem avisar. Antes esta linha chamava startLiveRound()
   // direto — e como o loop do cronômetro reentra aqui assim que o cliente pousa em 'main' (ver
   // onlineTimerLoop), o efeito era a rodada do Brasileirão COMEÇAR SOZINHA no segundo seguinte ao
@@ -1601,6 +1618,37 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   if(typeof showLeagueIntro==='function'){ showLeagueIntro(true); return; }
   CL._liveBusy=true; startLiveRound(); }
 
+/* quem, entre os HUMANOS da sala, ainda deve a partida de copa desta semana. "Deve" = o clube dele
+   tem confronto numa competição que bate nesta semana E o assento dele ainda não publicou o
+   resultado de copa da rodada (game_seats.last_cup_round). Quem não tem jogo de copa nesta semana
+   simplesmente não aparece — não há o que esperar dele. */
+function onlineCupDayPending(){
+  if(!CL.online || !S || typeof clubOwesCupThisWeek!=='function') return [];
+  const claimed=(typeof NET!=='undefined' && NET._claimed)||{};
+  const out=[];
+  Object.keys(claimed).forEach(uid=>{
+    const c=claimed[uid]; if(!c || !c.clubId) return;
+    if(String(c.clubId)===String(CL.clubId)) return;      // eu já cumpri a minha (cheguei até aqui)
+    if(!clubOwesCupThisWeek(c.clubId)) return;            // não tem jogo de copa nesta semana
+    if(c.last_cup_round===S.round) return;                // já publicou o resultado da copa
+    out.push(c.clubId);
+  });
+  return out;
+}
+/* A espera do dia de copa acabou? Solta quando o cronômetro da sala zera (quando existe um armado)
+   ou quando o teto próprio estoura. O teto precisa existir: durante a fase 'running' NÃO há
+   contagem armada — o cronômetro governa a largada da rodada, não o meio dela —, então sem ele a
+   barreira ou nunca seguraria (se eu lesse "sem deadline = pode ir") ou seguraria pra sempre (se
+   eu lesse o contrário). 90s cobre com folga uma partida de copa inteira, inclusive prorrogação e
+   pênaltis, que foi o caso que travou a sala no playtest. */
+const CUP_DAY_MAX_WAIT_MS=90000;
+function cupDayWaitExpired(){
+  const room=(typeof NET!=='undefined')?NET.room:null;
+  const dl=(room && room.deadline)||0;
+  if(dl>0 && Date.now()>=dl) return true;
+  if(!CL._cupDaySince || CL._cupDayRound!==S.round){ CL._cupDayRound=S.round; CL._cupDaySince=Date.now(); return false; }
+  return Date.now()-CL._cupDaySince > CUP_DAY_MAX_WAIT_MS;
+}
 /* Recupera a rodada de LIGA quando a fase virou 'running' enquanto o cliente estava numa
    tela AO VIVO de copa/espectador. Nesse caso a borda que dispara onlineRunRound no onState
    (wireNet) foi SUPRIMIDA pelo guard CL.screen==='live' e se perdeu (é edge-triggered de

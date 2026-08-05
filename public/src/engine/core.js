@@ -2196,6 +2196,33 @@ function cupDrawOrder(){
    novo guard em advanceGroupStageRound). Pode haver mais de uma no mesmo momento (ex: Copa
    do Brasil + Libertadores na mesma semana de avanço) — clJogar() enfileira todas antes de
    liberar o jogo de liga da rodada. */
+/* MESMA PERGUNTA, PARA QUALQUER CLUBE: ele ainda deve uma partida de copa nesta semana?
+   pendingUserCupMatches só sabia responder sobre o clube do próprio usuário (CL.clubId). A
+   barreira do dia de copa (ver onlineCupDayPending, local-transport) precisa da resposta sobre os
+   OUTROS humanos da sala — é o que permite segurar a rodada de liga até todo mundo ter cumprido a
+   copa da semana, em vez de cada um entrar na liga na hora que terminar a sua. */
+function clubOwesCupThisWeek(clubId){
+  if(!S.cups || !clubId) return false;
+  const cb=S.cups.copaBrasil;
+  if(cupTickMatchesRound('copaBrasil',S.round) && cb && !cupIsFinished(cb)
+     && (cb.ties||[]).some(t=>!t.winner && (t.h===clubId||t.a===clubId))) return true;
+  let deve=false;
+  groupCupKeys().forEach(key=>{
+    if(deve || !cupTickMatchesRound(key,S.round)) return;
+    const c=S.cups[key]; if(!c) return;
+    if(c.group && !c.bracket && !c.group.finished){
+      const mg=c.group;
+      if(mg._userRoundDone===mg.round) return;   // esta rodada de grupo já foi cumprida
+      Object.values(mg.groups).forEach(g=>{
+        if(deve || !g.teams.includes(clubId)) return;
+        if((g.sched[mg.round]||[]).some(([h,a])=>h===clubId||a===clubId)) deve=true;
+      });
+    } else if(c.bracket && !cupIsFinished(c.bracket)){
+      if((c.bracket.ties||[]).some(t=>!t.winner && (t.h===clubId||t.a===clubId))) deve=true;
+    }
+  });
+  return deve;
+}
 function pendingUserCupMatches(){
   if(!S.cups || !CL.clubId) return [];
   const out=[];
