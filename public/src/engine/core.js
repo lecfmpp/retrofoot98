@@ -2200,12 +2200,12 @@ function pendingUserCupMatches(){
   if(!S.cups || !CL.clubId) return [];
   const out=[];
   const cb=S.cups.copaBrasil;
-  if(cupTickMatchesRound('copaBrasil',S.round+1) && cb && !cupIsFinished(cb)){
+  if(cupTickMatchesRound('copaBrasil',S.round) && cb && !cupIsFinished(cb)){
     const tie=(cb.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
     if(tie) out.push({key:'copaBrasil', stage:'bracket', bracket:cb, tie, h:tie.h, a:tie.a});
   }
   groupCupKeys().forEach(key=>{
-    if(!cupTickMatchesRound(key,S.round+1)) return;
+    if(!cupTickMatchesRound(key,S.round)) return;
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket && !c.group.finished){
       const mg=c.group;
@@ -2254,11 +2254,11 @@ function cupRoundsUserSitsOut(){
   if(!S.cups || !CL.clubId) return [];
   const out=[];
   const cb=S.cups.copaBrasil;
-  if(cupTickMatchesRound('copaBrasil',S.round+1) && cb && !cupIsFinished(cb) && cb.ties.length && !cb.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId)) && anyHumanAliveInCup(cb)){
+  if(cupTickMatchesRound('copaBrasil',S.round) && cb && !cupIsFinished(cb) && cb.ties.length && !cb.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId)) && anyHumanAliveInCup(cb)){
     out.push({key:'copaBrasil', stage:'bracket'});
   }
   groupCupKeys().forEach(key=>{
-    if(!cupTickMatchesRound(key,S.round+1)) return;
+    if(!cupTickMatchesRound(key,S.round)) return;
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket && !c.group.finished){
       const mg=c.group;
@@ -3628,6 +3628,17 @@ function playRound(userResult, humanResults){
   humanResults=humanResults||{}; // FASE 2: {fxKey: {hg,ag,scorers,perf,events}} — partidas jogadas ao vivo por OUTROS humanos (hotseat), aplicadas em vez de simuladas
   const bgRoundIdx=S.round; // FASE 2: índice da rodada SENDO jogada (antes do S.round++) — as ligas de fundo têm que usar o MESMO índice que buildHumanQueue usou, senão o resultado do humano não bate com a partida
   if(S.seed==null) S.seed=(Math.random()*0x7fffffff)>>>0; // legacy-save guard
+  // COPA ANTES DA LIGA, NA MESMA SEMANA. Isto rodava LÁ EMBAIXO, depois do S.round++ — ou seja, a
+  // copa da semana N era resolvida como efeito colateral da rodada de liga da semana N-1, e o
+  // tique ficava numerado uma semana à frente de onde o jogador de fato jogava a partida
+  // (pendingUserCupMatches olhava S.round+1 pra compensar). Era essa defasagem que fazia o
+  // Calendário anunciar a copa numa jornada e ela acontecer noutra — e é ela que impedia o dia de
+  // virar unidade de sincronia: não dava pra datar os dois jogos da semana sem inverter a ordem.
+  // Agora a semana tem ordem própria (quarta = copa, fim de semana = liga): o avanço da copa da
+  // semana N acontece aqui, no começo da rodada N, ANTES da partida de liga — que é a ordem em que
+  // o jogador já joga (clJogar enfileira a copa antes de liberar a liga). A partida que ele jogou
+  // ao vivo já está gravada no confronto e é PULADA aqui (ver advanceCupBracket).
+  advancePendingCups();
   const uf=userFixture();
   S.roundNews=[];
   const Rr=makeRng(hashSeed(S.seed,S.round,'post')); // deterministic post-match stream
@@ -3672,7 +3683,6 @@ function playRound(userResult, humanResults){
   generateIncomingOffers(Rr); // clubes fazem propostas de compra pelos jogadores do usuário
   advanceAuctions(Rr); // leilão competitivo: CPU dá lances, resolve lotes vencidos e repõe o pool
   rollStory(Rr);
-  advancePendingCups(); // cada copa avança na sua própria rodada — ver CUP_TICK_OFFSET
   advanceBgLeagues(humanResults, bgRoundIdx); // ligas dos outros países selecionados rodam junto, no background (humanos hotseat entram aqui) — mesmo índice de rodada do primário
   if(S.round>=S.sched.length){ endSeason(); }
   S._roundIncidents={};

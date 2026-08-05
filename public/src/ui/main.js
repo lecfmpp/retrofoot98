@@ -3518,7 +3518,8 @@ function cupIntroDateHTML(pending){
   if(typeof realDateForDay!=='function' || typeof fmtRealDate!=='function') return '';
   // MODELO DE DIAS (validado numa temporada inteira, 131 clubes, zero choques): dentro da semana
   // corrente a copa é o jogo de MEIO DE SEMANA e a liga é o de fim de semana. A partida de copa
-  // jogada nesta sessão pertence à semana de S.round — não à semana do tique, que é a seguinte.
+  // jogada nesta sessão é a da semana de S.round — tique e semana coincidem desde que o avanço de
+  // copa passou pro começo da rodada (ver playRound no core).
   const dia=1+(S.round||0)*7+3;                 // quarta-feira da semana atual
   try{ return ` <span class="cl-cupintro-date">· ${escC(fmtRealDate(realDateForDay(dia)))}</span>`; }
   catch(e){ return ''; }
@@ -6345,7 +6346,9 @@ function userCalendar(){ const out=[]; (S.sched||[]).forEach((rd,i)=>{ const m=r
 function nextCupJornada(key, stepsAhead){
   const cal=(S.cupCalendar&&S.cupCalendar[key])||null;
   if(cal && cal.length){
-    const futuras=cal.filter(j=>j>=S.round+1);
+    // >= S.round (e não S.round+1): a copa da semana CORRENTE é a que o jogador está prestes a
+    // jogar nesta sessão — ela tem que aparecer no Calendário como o próximo jogo, não sumir.
+    const futuras=cal.filter(j=>j>=S.round);
     if(futuras.length) return futuras[Math.min(stepsAhead||0, futuras.length-1)];
     return cal[cal.length-1];
   }
@@ -6357,13 +6360,14 @@ function nextCupJornada(key, stepsAhead){
    (ver advanceCupBracket): a competição bate a cada 3 jornadas, na jornada ≡ CUP_TICK_OFFSET
    (mod 3), e a primeira batida acontece na primeira jornada >= 1 com esse resto. */
 /* SEMANA EM QUE A RODADA DE COPA É DE FATO JOGADA.
-   Os "tiques" de copa são numerados pela jornada em que a competição AVANÇA (advancePendingCups
-   roda depois do S.round++), mas o usuário joga essa partida uma sessão ANTES: pendingUserCupMatches
-   olha S.round+1. Ou seja, o tique 3 da Copa do Brasil é jogado na sessão da jornada 2, junto com a
-   rodada 2 da liga — e o Calendário mostrava esse jogo uma jornada à frente de onde ele acontece.
-   Com o modelo de dias validado (copa na quarta, liga no fim de semana da MESMA semana), a semana
-   correta é sempre tique-1. Só a EXIBIÇÃO usa isto; a mecânica continua falando em tiques. */
-function cupWeekOfTick(tick){ return Math.max(0, (tick||0)-1); }
+   Existiu por causa de uma defasagem: os tiques eram numerados pela jornada em que a competição
+   AVANÇA (advancePendingCups rodava depois do S.round++) enquanto o jogador jogava a partida uma
+   sessão ANTES, então a semana certa era tique-1 e o Calendário mostrava tudo uma jornada à frente.
+   A defasagem foi desfeita na raiz: o avanço de copa passou pro COMEÇO da rodada (ver playRound no
+   core) e pendingUserCupMatches olha a semana corrente — tique e semana são a mesma coisa agora.
+   A função fica como ponto único de tradução: se a relação voltar a mudar, muda só aqui, e não nos
+   cinco lugares que exibem jornada de copa. */
+function cupWeekOfTick(tick){ return Math.max(0, tick||0); }
 function cupJornadaOfRound(key, r){
   const cal=(S.cupCalendar&&S.cupCalendar[key])||null;
   if(cal && cal.length) return cal[Math.min(Math.max(1,r)-1, cal.length-1)];

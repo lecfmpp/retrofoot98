@@ -1178,6 +1178,12 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   applyHumanOffers(S, humanOffers || []);                         // 0c) propostas humano->humano publicadas nos assentos
   applyHumanCounters(S, humanCounters || []);                     // 0d) contrapropostas (vendedor -> comprador)
   applyHumanOfferDrops(S, humanOfferDrops || []);                 // 0e) baixas: proposta aceita/recusada/contraposta some do mundo
+  // 0f) COPA ANTES DA LIGA, NA MESMA SEMANA — porte fiel do core.js (ver playRound). Isto rodava
+  //     depois do S.round++, então a copa da semana N era resolvida junto da rodada de liga da
+  //     semana N-1 e o tique ficava numerado uma semana à frente de onde a partida era jogada.
+  //     Agora avança aqui, com a semana CORRENTE, antes das partidas de liga. Cliente e servidor
+  //     precisam concordar nesta ordem: é ela que decide qual rodada de copa pertence a qual semana.
+  advancePendingCups(S, cupResultByFx || {}, humanClubs);
   applyHumanMorale(S, moraleByClub || {});                        // 0b) efeito da coletiva na moral do elenco
   const fixtures = (S.sched[round] || []);
   advancePlayerAvailability(S);                                   // 1) cumpre suspensões/lesões
@@ -1218,7 +1224,6 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   advanceDevelopment(S, humanClubs, humanXI);                    // 4b) evolução/declínio dos jogadores
   advanceOtherDivs(S, humanResultByFx, humanClubs, humanXI, humanTactic, preMatches); // 4c) outras divisões (CPU + override humano onde houver)
   S.round++; S.week = (S.week || 1) + 1; S.day = (S.day || 1) + 7; // 5) avança a rodada
-  advancePendingCups(S, cupResultByFx || {}, humanClubs);         // 6) copas (Copa do Brasil) — usa a rodada NOVA; humanClubs: cota de fase de humano é creditada pelo cliente dele
   pruneIncomingOffers(S); pruneCounterOffers(S);                  // 6b) limpa proposta/contraproposta vencida ou por jogador que já saiu
   generateIncomingOffers(S, humanClubs);                          // 6c) CPU faz propostas pelos jogadores dos humanos (chega como e-mail no cliente)
   S._roundIncidents = {};
