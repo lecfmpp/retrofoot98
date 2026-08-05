@@ -4036,7 +4036,71 @@ function closeRemoteDecision(m,p){
   if(RL.injEvent){ clearInjuryTimer(); RL.paused=false; RL.injMatch=null; RL.injEvent=null; CL.injSel=null; cdraw(); CL._liveTimer=setTimeout(liveTick,320); }
   if(RL.redEvent){ clearRedTimer(); RL.paused=false; RL.redMatch=null; RL.redEvent=null; CL.redIn=null; CL.redOut=null; cdraw(); CL._liveTimer=setTimeout(liveTick,320); }
 }
+/* ================= BARREIRA DE ENTRADA EM CAMPO (humano × humano) =================
+   O PROBLEMA MEDIDO EM PRODUÇÃO: num confronto entre dois humanos, quem clicava "Jogar" primeiro
+   esperava 10s em silêncio, concluía que o adversário tinha caído, jogava a partida INTEIRA
+   sozinho e publicava o resultado. Quando o outro entrava, buildLiveMatchObject via esse
+   resultado já publicado (`pub`) e montava um REPLAY: eventos todos marcados _resolved, sim:null,
+   painel de substituição escondido. Ou seja — quem entrasse depois assistia a um filme, e nada do
+   que fizesse (substituição, pênalti, tática) mudava o placar. Era exatamente o relato: "não
+   importa o que o humano faça, o resultado é o mesmo".
+   A máquina de decisão remota (mlive/mdec) sempre existiu e funciona; o que faltava era garantir
+   que os dois estivessem em campo AO MESMO TEMPO.
+   A REGRA AGORA: quem chega primeiro espera, com aviso na tela, e o relógio da partida só começa
+   quando o adversário entra — ou quando o cronômetro da sala zera, que é o que força todo mundo
+   pra dentro da rodada (a mesma contagem que já governa o início da rodada, sem inventar outra). */
+function kickoffPartnerOf(m){
+  if(!CL.online || !m || !CL.humans) return null;
+  const opp = m.h===CL.clubId ? m.a : (m.a===CL.clubId ? m.h : null);
+  if(!opp || !CL.humans[opp]) return null;                      // adversário não é humano: sem barreira
+  if(typeof NET==='undefined' || !NET.clubOnline || !NET.clubOnline(opp)) return null; // offline: não espera
+  return opp;
+}
+/* recebe o "entrei em campo" do adversário (broadcast 'mready') */
+function onNetMatchReady(p){
+  CL._kickReady=CL._kickReady||{};
+  CL._kickReady[p.k]=nowMs();
+  const RL=CL.live; if(RL && (RL.matches||[]).some(m=>m.streamKey===p.k)) cdraw();
+}
+/* o cronômetro da sala já zerou? é ele que força a entrada de todos. Sem cronômetro armado
+   (deadline 0), a barreira usa um teto próprio pra nunca prender ninguém pra sempre. */
+const KICKOFF_MAX_WAIT_MS=45000;
+function kickoffDeadlinePassed(RL){
+  const room=(typeof NET!=='undefined')?NET.room:null;
+  const dl=(room && room.deadline)||0;
+  if(dl>0) return Date.now()>=dl;
+  return nowMs()-(RL._kickSince||nowMs()) > KICKOFF_MAX_WAIT_MS;
+}
+/* devolve o confronto que está segurando o apito, ou null se pode começar */
+function kickoffWaitingMatch(RL){
+  if(!CL.online || !RL || RL._kickDone) return null;
+  const m=(RL.matches||[])[0]; if(!m || !m.user) return null;
+  if(!m.sim || !m.streamCast) return null;            // só o lado AUTORITATIVO segura o relógio
+  if(!kickoffPartnerOf(m)) return null;
+  const pronto=(CL._kickReady||{})[m.streamKey];
+  if(pronto) return null;
+  return m;
+}
 function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused) return;
+  // BARREIRA: seguro o minuto 0 até o adversário humano entrar em campo (ou o cronômetro zerar).
+  {
+    const esperando=kickoffWaitingMatch(RL);
+    if(esperando){
+      if(!RL._kickSince) RL._kickSince=nowMs();
+      // reanuncio a cada tique: broadcast não tem histórico, então quem entrar depois de mim
+      // precisa receber o aviso mesmo tendo perdido o primeiro envio.
+      if(typeof NET!=='undefined' && NET.broadcastKickoff) NET.broadcastKickoff(esperando.streamKey);
+      if(!kickoffDeadlinePassed(RL)){
+        cdraw();
+        CL._liveTimer=setTimeout(liveTick, 600);
+        return;
+      }
+      RL._kickDone=true;   // cronômetro zerou: entra em campo de qualquer jeito
+    } else if(RL.minute===0 && typeof NET!=='undefined' && NET.broadcastKickoff){
+      // não estou segurando nada, mas anuncio que entrei — é o que destrava o outro lado.
+      const m0=(RL.matches||[])[0]; if(m0 && m0.streamKey) NET.broadcastKickoff(m0.streamKey);
+    }
+  }
   RL.minute+=1;
   // FASE 3A: sessão interativa gera os eventos AO VIVO, minuto a minuto — avança até o minuto do
   // relógio (ou até uma decisão pendente travar). Enquanto a sessão não termina, o relógio da
@@ -4067,7 +4131,18 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
     const st=CL._liveStreams && CL._liveStreams[m.streamKey];
     if(!m.streamDone && !m.streamDead){
       RL.maxMin=Math.max(RL.maxMin, RL.minute+2);
-      if(!st && m.events.length===0 && nowMs()-(m._builtAt||0)>10000){
+      // ANUNCIO QUE ESTOU EM CAMPO enquanto espero: é isto que destrava o mandante, que está
+      // segurando o apito à minha espera (ver kickoffWaitingMatch).
+      if(!m.spectate && typeof NET!=='undefined' && NET.broadcastKickoff) NET.broadcastKickoff(m.streamKey);
+      if(!m.spectate && !RL._kickSince) RL._kickSince=nowMs();   // base do teto de espera (ver kickoffDeadlinePassed)
+      // ASSUMIR A PARTIDA SOZINHO é o último recurso, não o primeiro. Eram 10s de silêncio — tempo
+      // que o adversário leva só pra olhar a escalação. Quem assumia jogava tudo sozinho e
+      // publicava o resultado; o outro, ao entrar, recebia um replay e não conseguia mais
+      // influenciar nada (era a origem do "minhas substituições não mudam o jogo"). Agora a espera
+      // é governada pelo CRONÔMETRO DA SALA — a mesma contagem que força a entrada de todos — e só
+      // quando ela zera é que eu assumo.
+      const desistir = m.spectate ? (nowMs()-(m._builtAt||0)>10000) : kickoffDeadlinePassed(RL);
+      if(!st && m.events.length===0 && desistir){
         if(m.spectate){
           // silêncio TOTAL numa partida de terceiros: o dono não está jogando ao vivo de verdade.
           // Volto pro stream do apito — que é exatamente o que o servidor vai gravar nesse caso.
@@ -4714,6 +4789,29 @@ function clToggleDivAcc(key,d){ if(!CL[key]){ CL[key]={}; DIV_ORDER.forEach(x=>C
   if(CL.screen==='classif') armClassifTimer();
   cdraw(); }
 function divOrderUserFirst(){ return [S.division, ...DIV_ORDER.filter(d=>d!==S.division)]; }
+/* AVISO DE ESPERA NO APITO. Sem ele o jogador clicava "Entrar em campo" e ficava olhando uma tela
+   parada, sem saber por quê — e era justamente aí que ele concluía que o jogo tinha travado. Agora
+   diz o que está acontecendo e mostra o cronômetro da sala, que é o que força a entrada de todos
+   quando zera. Vale pros dois lados: quem segura o apito (mandante) e quem espera a transmissão. */
+function kickoffWaitHTML(RL){
+  if(!CL.online || !RL || RL.done) return '';
+  const m=(RL.matches||[])[0]; if(!m || !m.user) return '';
+  const segurando=!!kickoffWaitingMatch(RL);
+  const esperandoStream=!!(m.streamRemote && !m.streamDone && !m.streamDead && !(m.events||[]).length);
+  if(!segurando && !esperandoStream) return '';
+  const opp=kickoffPartnerOf(m); if(!opp) return '';
+  const room=(typeof NET!=='undefined')?NET.room:null;
+  const dl=(room && room.deadline)||0;
+  const secs = dl>0 ? Math.max(0, Math.ceil((dl-Date.now())/1000))
+                    : Math.max(0, Math.ceil((KICKOFF_MAX_WAIT_MS-(nowMs()-(RL._kickSince||nowMs())))/1000));
+  const nome=(CL.humans&&CL.humans[opp])||((clubOf(opp)||{}).short)||'o adversário';
+  return `<div class="cl-kickwait">
+    <span class="cl-kickwait-spin">⏳</span>
+    <span class="cl-kickwait-t">Aguardando <b>${escC(nome)}</b> entrar em campo…</span>
+    <span class="cl-kickwait-c">${secs}s</span>
+    <span class="cl-kickwait-sub">Quando o cronômetro zerar, a partida começa de qualquer forma.</span>
+  </div>`;
+}
 function scLive(){ const RL=CL.live; if(!RL) return '';
   const rowHTML=(m,i)=>{const hc=clubOf(m.h),ac=clubOf(m.a);
     return `<div class="cl-lrow" onclick="liveRowClick(${i})">
@@ -4759,7 +4857,7 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
   const topLabel = `${RL.jornada}ª Jornada - ${S.season}`;
   const shootoutBoard = RL.pens ? shootoutScoreboardHTML(RL) : '';
   const camAberto = !!(userMatch && camOn());
-  return `<div class="cl-live${camAberto?' rf-cam-open':''}">${cupTop}${hsTop}${single?'':`<div class="cl-live-top">${divisionTrophyImg(S.division,20)} ${topLabel}${camSw}</div>`}
+  return `<div class="cl-live${camAberto?' rf-cam-open':''}">${kickoffWaitHTML(RL)}${cupTop}${hsTop}${single?'':`<div class="cl-live-top">${divisionTrophyImg(S.division,20)} ${topLabel}${camSw}</div>`}
     ${RL.pens ? '' : `<div class="cl-live-clock" id="cl-liveclock" style="--pct:${liveClockPct(RL)}">${RL.extraStartMinute!=null?'<span class="cl-live-clock-lbl">PRORR.</span>':''}</div>`}
     ${shootoutBoard}
     ${groups}
@@ -5948,11 +6046,26 @@ function onlineHostCloseRound(){
     (async ()=>{
       let res=null; try{ res=await NET.resolveRound(round); }catch(e){ res={error:(e&&e.message)||'erro'}; }
       if(!res || res.error){
-        console.warn('resolveRound -> fallback local:', res&&res.error);
-        _prLog('HOST closeRound: FALLBACK LOCAL (_commitLeagueRound)');
-        S._pendingRoundFin=null; // fallback: _commitLeagueRound->playRound já aplica as finanças (evita aplicar em dobro)
-        _commitLeagueRound(pc.RL, userResultAuth, map, allEvents, pc.audit);
+        // NUNCA MAIS COMITAR LOCALMENTE. Aqui havia um fallback que chamava _commitLeagueRound —
+        // ou seja, playRound() na MINHA máquina — quando o resolve-round falhava. O efeito medido
+        // em produção: eu avançava sozinho pra rodada seguinte enquanto o servidor e todos os
+        // outros ficavam na anterior (dois humanos na 8ª, um na 9ª). E não havia volta:
+        // onlineReconcileIfBehind só puxa quem está ATRÁS da sala, então quem passou à frente do
+        // estado autoritativo ficava divergente pra sempre.
+        // O servidor é autoridade única desde o cutover F3.5; falha dele é pra ser REPETIDA, não
+        // contornada. Tenta de novo no próximo tique (o fechamento é idempotente por state_version)
+        // e, se insistir, oferece a sincronia — que é o caminho de volta que existe hoje.
+        CL._closeFails=(CL._closeFails||0)+1;
+        console.warn('resolveRound falhou ('+CL._closeFails+'x):', res&&res.error, '— a rodada continua aberta, sem comitar local');
+        _prLog('HOST closeRound: servidor falhou -> vai tentar de novo (sem commit local)');
+        CL._hostPendingCommit=pc;        // devolve a pendência: o laço tenta fechar de novo
+        CL._hostCloseSince=0;
+        if(CL._closeFails>=4 && typeof clResenhaSync==='function' && CL._syncOffered!==S.round){
+          toastC('⚠ O servidor não está fechando a rodada. Vamos sincronizar a sala.');
+          clResenhaSync();
+        }
       } else {
+        CL._closeFails=0;
         _prLog('HOST closeRound: servidor OK -> onlineAdoptServerRound');
         await onlineAdoptServerRound(pc.RL); // adota o estado resolvido pelo servidor + UI pós-rodada
       }
@@ -7556,6 +7669,18 @@ function queueDrawShow(key, stage){ S._pendingDrawShows=S._pendingDrawShows||[];
    sorteio se ainda não mostrou nesta temporada (marcador LOCAL por cliente, key+season). Assim
    todos veem, e a barreira 'busy' do cupdraw (ver onlineTimerLoop) segura a rodada até todos
    terminarem de assistir. */
+/* MARCADOR DE CERIMÔNIA JÁ ASSISTIDA, RESISTENTE A RELOAD.
+   CL._drawShownSeason e CL._drawPlayedSeason vivem só em memória: recarregar a página (o que o
+   botão "Sincronizar a Resenha" faz de propósito) apagava os dois e a cerimônia voltava do zero.
+   Aqui o mesmo marcador é gravado por SALA + temporada, então a sincronia devolve o jogador ao
+   ponto onde ele estava sem repetir sorteio nenhum. localStorage (e não sessionStorage) porque
+   vale entre sessões: quem fecha o navegador e volta no dia seguinte também não deve rever. */
+function drawSeenKey(){ const sala=(typeof NET!=='undefined'&&NET.room&&NET.room.code)||'solo'; return 'rf98:draws:'+sala; }
+function drawSeenSet(){ try{ return JSON.parse(localStorage.getItem(drawSeenKey())||'{}')||{}; }catch(e){ return {}; } }
+function drawAlreadySeen(mark){ return drawSeenSet()[mark]===true; }
+function rememberDrawSeen(mark){
+  try{ const m=drawSeenSet(); m[mark]=true; localStorage.setItem(drawSeenKey(), JSON.stringify(m)); }catch(e){}
+}
 function queueSeasonCupDrawsIfNew(){
   if(typeof CL==='undefined' || !CL.online || !S || !S.cups) return;
   CL._drawShownSeason = CL._drawShownSeason || {};
@@ -7568,11 +7693,23 @@ function queueSeasonCupDrawsIfNew(){
     : [['copaBrasil','bracket'],['libertadores','group'],['sulamericana','group'],['championsLeague','group'],['europaLeague','group']];
   defs.forEach(([key,stage])=>{
     const c=S.cups[key]; if(!c) return;
+    // "FRESCA" TEM QUE SIGNIFICAR "AINDA NÃO COMEÇOU", NÃO "ESTÁ EM ANDAMENTO".
+    // O teste das continentais era `c.group && !c.bracket`, verdadeiro durante a fase de grupos
+    // INTEIRA (6 rodadas). Como o marcador de "já mostrei" vive em CL e não sobrevive a um reload,
+    // qualquer recarga no meio da fase de grupos re-enfileirava a cerimônia — e o botão
+    // "Sincronizar a Resenha" recarrega a página de propósito, então ele passou a garantir um
+    // sorteio repetido da Libertadores com a competição já rolando. Foi o relatado.
+    // Agora fresca = nenhuma rodada disputada ainda: grupo na rodada 0, ou chave sem nenhum
+    // confronto decidido. Isso vale mesmo sem marcador nenhum, que é o que torna a correção
+    // resistente a reload.
     const fresh = (key==='copaBrasil')
-      ? (c.round===1 && !c.champion && ((c.ties&&c.ties.length) || (c.pendingByes&&c.pendingByes.length)))
-      : !!(c.group && !c.bracket); // continental: fase de grupos ainda não virou mata-mata
+      ? (c.round===1 && !c.champion && !((c.ties||[]).some(t=>t&&t.winner))
+         && ((c.ties&&c.ties.length) || (c.pendingByes&&c.pendingByes.length)))
+      : !!(c.group && !c.bracket && (c.group.round||0)===0 && !c.group.finished);
     const mark = key+':'+season;
-    if(fresh && CL._drawShownSeason[mark]!==true){ CL._drawShownSeason[mark]=true; queueDrawShow(key, stage); }
+    if(fresh && CL._drawShownSeason[mark]!==true && !drawAlreadySeen(mark)){
+      CL._drawShownSeason[mark]=true; rememberDrawSeen(mark); queueDrawShow(key, stage);
+    }
   });
 }
 /* dispara o próximo sorteio pendente, se houver; encadeia até esvaziar a fila e só então
@@ -7587,7 +7724,9 @@ function checkPendingCupDraws(onDone){
   // O marcador vive em CL (não persiste): após recarregar a página, um sorteio pendente de verdade
   // ainda aparece normalmente.
   const mark=key+':'+stage+':'+(S.season||1);
-  if((CL._drawPlayedSeason||{})[mark]) return checkPendingCupDraws(onDone);
+  // o marcador também é lido do armazenamento (ver drawAlreadySeen): sem isso, a fila que veio no
+  // shared_state re-exibia a cerimônia depois de um reload — inclusive o do botão de sincronizar.
+  if((CL._drawPlayedSeason||{})[mark] || drawAlreadySeen(mark)) return checkPendingCupDraws(onDone);
   startCupDrawReplay(key, stage, ()=>checkPendingCupDraws(onDone));
   return true;
 }
@@ -7611,6 +7750,8 @@ function startCupDrawReplay(key, stage, onDone){
   }
   CL._drawPlayedSeason=CL._drawPlayedSeason||{};
   CL._drawPlayedSeason[key+':'+stage+':'+(S.season||1)]=true; // ver checkPendingCupDraws (sorteio duplicado)
+  rememberDrawSeen(key+':'+stage+':'+(S.season||1));           // e grava, pra sobreviver ao reload da sincronia
+  rememberDrawSeen(key+':'+(S.season||1));                     // mesma marca usada por queueSeasonCupDrawsIfNew
   CL.cupDraw={ key, stage, reveal, idx:0, drawn:[], remaining, fast:false, onDone };
   CL.screen='cupdraw'; cdraw();
   cupDrawTick();

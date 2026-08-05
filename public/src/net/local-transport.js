@@ -1517,6 +1517,20 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // SAVE ÚNICO: não jogo uma rodada ANTES de espelhar o estado autoritativo do anfitrião. Se o host
   // já fechou a rodada (games.round à frente da minha), primeiro sincronizo (mundo/tabela novos).
   if(typeof NET!=='undefined' && NET.room && (NET.room.round||0) > (S.round||0)){ onlineReconcileIfBehind(NET.room); return; }
+  // ESTOU NA FRENTE DA SALA: espero, não jogo. Aconteceu em produção — dois humanos na 8ª rodada
+  // enquanto outro já jogava a 9ª. A causa está no fechamento (ver onlineHostCloseRound: quando o
+  // resolve-round falhava, quem fechava comitava a rodada LOCALMENTE e avançava sozinho, com o
+  // servidor e todos os outros parados na rodada anterior). A causa foi corrigida lá, mas a trava
+  // fica aqui também: qualquer caminho — atual ou futuro — que empurre um cliente à frente do
+  // estado autoritativo agora o faz ESPERAR na tela do clube em vez de jogar uma rodada que ninguém
+  // mais está jogando. Uma rodada jogada à frente não teria como ser reconciliada depois.
+  if(typeof NET!=='undefined' && NET.room && (S.round||0) > (NET.room.round||0)){
+    if(!CL._aheadWarned || CL._aheadWarned!==S.round){
+      CL._aheadWarned=S.round;
+      console.warn('à frente da sala: eu='+(S.round||0)+' sala='+(NET.room.round||0)+' — esperando o fechamento da rodada pra todos');
+    }
+    return;
+  }
   // TRAVA DE KICKOFF (Fases 1 e 2): antes de simular QUALQUER partida da rodada (copa ou liga),
   // garante que estão carregados (a) o snapshot congelado do apito (games.kickoff_lineups, Fase 1 —
   // inputs de escalação/tática idênticos em todos os clientes) e (b) os streams PRÉ-COMPUTADOS da

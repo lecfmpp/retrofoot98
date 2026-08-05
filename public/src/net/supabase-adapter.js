@@ -1029,6 +1029,16 @@ function netSetupRealtime(){
     if(payload.from===SB_UID()) return; // meu próprio eco: ignora
     if(typeof onNetMatchLive==='function'){ try{ onNetMatchLive(payload); }catch(e){ console.warn('mlive:', e&&e.message); } }
   });
+  /* 'mready' = "entrei em campo nesta partida". Existe pra o confronto humano×humano só COMEÇAR
+     quando os dois estão na tela. Sem isso, quem clicava Jogar primeiro esperava 10s em silêncio,
+     assumia que o adversário tinha caído, jogava a partida inteira sozinho e PUBLICAVA o
+     resultado — e quando o outro entrava, recebia esse resultado como replay, com as
+     substituições dele sem efeito nenhum. Ver kickoffReadyFor/liveTick na UI. */
+  SB_CH.on('broadcast', { event:'mready' }, ({ payload })=>{
+    if(!payload || !payload.k) return;
+    if(payload.from===SB_UID()) return;
+    if(typeof onNetMatchReady==='function'){ try{ onNetMatchReady(payload); }catch(e){ console.warn('mready:', e&&e.message); } }
+  });
   SB_CH.on('broadcast', { event:'mdec' }, ({ payload })=>{
     if(!payload || !payload.k) return;
     if(payload.from===SB_UID()) return;
@@ -1077,6 +1087,13 @@ function netClubOnline(clubId){
 function netBroadcastMatch(payload){
   if(!SB_CH || !SB_AUTH_USER || !payload) return;
   try{ SB_CH.send({ type:'broadcast', event:'mlive', payload:{ ...payload, from:SB_UID() } }); }catch(e){}
+}
+/* avisa a sala que EU já estou na tela desta partida (ver 'mready' acima). Reenviado a cada
+   poucos segundos enquanto espero: quem entrar depois precisa receber o aviso mesmo tendo perdido
+   o primeiro (broadcast não tem histórico). */
+function netBroadcastKickoff(streamKey){
+  if(!SB_CH || !SB_AUTH_USER || !streamKey) return;
+  try{ SB_CH.send({ type:'broadcast', event:'mready', payload:{ k:streamKey, from:SB_UID(), clubId:(typeof CL!=='undefined'&&CL.clubId)||null } }); }catch(e){}
 }
 /* FASE 3B: manda a MINHA decisão remota (visitante) pro cliente autoritativo. clubId viaja junto
    pro receptor validar que a decisão vem do dono real daquele lado. */
@@ -1322,6 +1339,7 @@ NET.fetchRoundStreams = netFetchRoundStreams;
 NET.clubOnline = netClubOnline;
 NET.broadcastMatch = netBroadcastMatch;
 NET.broadcastDecision = netBroadcastDecision;
+NET.broadcastKickoff = netBroadcastKickoff;
 NET.advancePhaseExpired = netAdvancePhaseExpired;
 NET.reopenReady = netReopenReady;
 NET.armReadyTimer = netArmReadyTimer;
