@@ -3510,6 +3510,16 @@ function cupPhaseLabelFor(pending){
    rodada já virou 'running' — lá o cronômetro de 60s da sala está correndo e uma tela que espera
    clique travaria a rodada dos outros. No fluxo normal (clique em "Jogar") não tem timer: o
    jogador entra quando quiser. */
+/* DATA DA RODADA DE COPA na tela de entrada. A copa era a única competição sem data na
+   apresentação — só "3ª fase" ou "Fase de grupos · 2ª rodada de 6" —, o que reforçava a sensação
+   de que ela acontecia "solta", fora do calendário. Agora mostra o dia real da rodada, o mesmo que
+   o Calendário exibe (jornada em que esta rodada de copa acontece, ver S.cupCalendar). */
+function cupIntroDateHTML(pending){
+  if(typeof realDateForDay!=='function' || typeof fmtRealDate!=='function') return '';
+  const j=(S.round||0)+1;                       // a rodada de copa é a do tique SEGUINTE (ver pendingUserCupMatches)
+  try{ return ` <span class="cl-cupintro-date">· ${escC(fmtRealDate(realDateForDay(1+j*7)))}</span>`; }
+  catch(e){ return ''; }
+}
 function showCupIntro(pending, auto){
   CL._cupIntro=pending;
   clearCupIntroTimer();
@@ -3523,7 +3533,7 @@ function showCupIntro(pending, auto){
     <div class="cl-cupintro">
       <div class="cl-live-cup-top" style="margin:-4px -4px 12px">${trophyImg(key,52)}
         <div class="cl-live-cup-name">${escC(def.name)}</div></div>
-      <div class="cl-cupintro-phase">${escC(cupPhaseLabelFor(pending))}${grupo}</div>
+      <div class="cl-cupintro-phase">${escC(cupPhaseLabelFor(pending))}${grupo}${cupIntroDateHTML(pending)}</div>
       <div class="cl-cupintro-match">
         <span class="cl-cupintro-team" style="${clubStripe(me)}">${escC(me.short)}</span>
         <span class="cl-cupintro-x">×</span>
@@ -6324,15 +6334,28 @@ function userCalendar(){ const out=[]; (S.sched||[]).forEach((rd,i)=>{ const m=r
    de liga cada confronto pendente vai rolar: a próxima jornada em que essa competição bate
    (cupTickMatchesRound), +3 pra cada avanço seguinte (2º confronto de grupo pendente, 3º,
    ...) — é isso que permite intercalar copa e liga no calendário na ordem certa. */
+/* próxima jornada em que esta copa entra em campo, e as seguintes. Antes a conta era "acha a
+   próxima jornada da faixa e soma 3 por rodada", que só valia enquanto o passo era fixo. Agora as
+   jornadas vêm da tabela do calendário (S.cupCalendar, ver ensureCupCalendar no core) — o passo
+   estica no mata-mata, então somar 3 daria a jornada errada. Sem tabela (save antigo), a conta
+   antiga continua valendo. */
 function nextCupJornada(key, stepsAhead){
+  const cal=(S.cupCalendar&&S.cupCalendar[key])||null;
+  if(cal && cal.length){
+    const futuras=cal.filter(j=>j>=S.round+1);
+    if(futuras.length) return futuras[Math.min(stepsAhead||0, futuras.length-1)];
+    return cal[cal.length-1];
+  }
   let j=S.round+1; while(!cupTickMatchesRound(key,j)) j++;
-  return j + stepsAhead*3;
+  return j + (stepsAhead||0)*3;
 }
 /* jornada em que a r-ésima rodada de uma copa foi/será jogada (r começa em 1). Serve de
    fallback pros confrontos JÁ jogados de saves antigos, que não têm o carimbo t.jornada
    (ver advanceCupBracket): a competição bate a cada 3 jornadas, na jornada ≡ CUP_TICK_OFFSET
    (mod 3), e a primeira batida acontece na primeira jornada >= 1 com esse resto. */
 function cupJornadaOfRound(key, r){
+  const cal=(S.cupCalendar&&S.cupCalendar[key])||null;
+  if(cal && cal.length) return cal[Math.min(Math.max(1,r)-1, cal.length-1)];
   const off=CUP_TICK_OFFSET[key]||0;
   const first=off>=1?off:3;              // offset 0 -> só bate na jornada 3 (jornada 0 não existe)
   return first + (Math.max(1,r)-1)*3;

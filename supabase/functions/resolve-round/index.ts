@@ -538,7 +538,55 @@ function advanceOtherDivs(S: any, humanResultByFx: any, humanClubs: Set<string>,
    Grupo (Libertadores/Sul-Americana) é só Série A -> fase futura. cupResultByFx = resultados de copa
    submetidos pelos humanos (mandante-autoritativo), aplicados na chave antes de simular o resto. ===== */
 const CUP_TICK_OFFSET: any = { copaBrasil: 0, libertadores: 1, sulamericana: 2, championsLeague: 1, europaLeague: 2 };
-function cupTickMatchesRound(key: string, round: number) { return round % 3 === CUP_TICK_OFFSET[key]; }
+/* CALENDÁRIO DE COPA — em que jornada de liga cada rodada de cada copa acontece.
+   A tabela é um DADO DO MUNDO (S.cupCalendar, viaja no shared_state), não uma regra recalculada
+   dos dois lados a cada consulta: no caminho normal o cliente a constrói uma vez por temporada
+   (ensureCupCalendar/core.js) e aqui só se LÊ. O construtor abaixo existe pelo único caminho em
+   que o servidor cria as copas sozinho — a virada de temporada (resolveSeasonTurnover) —, e é
+   porte fiel do core.js; se mexer em um, mexer no outro.
+   Sem a tabela (save de antes desta versão), cai no `% 3` de sempre. */
+function cupTickMatchesRound(S: any, key: string, round: number) {
+  const cal = (S && S.cupCalendar) ? S.cupCalendar[key] : null;
+  if (cal && cal.length) return cal.indexOf(round) >= 0;
+  return round % 3 === CUP_TICK_OFFSET[key];
+}
+const CUP_KO_SPREAD = 4, CUP_LEAGUE_TAIL = 2;
+function cupLaneSlotsS(key: string, lastLeagueRound: number) {
+  const o = CUP_TICK_OFFSET[key]; if (o == null) return [] as number[];
+  const out: number[] = []; for (let j = (o >= 1 ? o : 3); j <= lastLeagueRound; j += 3) out.push(j);
+  return out;
+}
+function cupTotalRoundsS(S: any, key: string) {
+  const c = S.cups && S.cups[key]; if (!c) return 0;
+  if (key === 'copaBrasil') return c.roundsTotal || 0;
+  if (c.group) {
+    const nG = Object.keys(c.group.groups || {}).length, adv = c.group.advancePerGroup || 2;
+    const ko = Math.max(1, Math.ceil(Math.log2(Math.max(2, nG * adv))));
+    return (c.group.roundsTotal || 0) + 1 + ko;   // +1 = tique de transição (grupo acaba, sorteio das oitavas) — ver core.js
+  }
+  return (c.bracket && c.bracket.roundsTotal) || 0;
+}
+function buildCupScheduleS(key: string, total: number, lastLeagueRound: number) {
+  if (!total || total < 1) return [] as number[];
+  const slots = cupLaneSlotsS(key, Math.max(0, lastLeagueRound - CUP_LEAGUE_TAIL));
+  if (!slots.length) return [] as number[];
+  const nDense = Math.max(0, total - CUP_KO_SPREAD);
+  const out = slots.slice(0, nDense);
+  const rest = slots.slice(nDense); if (!rest.length) return out;
+  const nSpread = Math.min(total - out.length, CUP_KO_SPREAD);
+  for (let i = 0; i < nSpread; i++) {
+    const pos = nSpread === 1 ? rest.length - 1 : Math.round(i * (rest.length - 1) / (nSpread - 1));
+    out.push(rest[pos]);
+  }
+  return out;
+}
+function buildCupCalendarS(S: any) {
+  if (!S || !S.cups) return;
+  const last = (Array.isArray(S.sched) && S.sched.length ? S.sched.length : 38) - 1;
+  const cal: any = { _season: S.season };
+  Object.keys(S.cups).forEach((key) => { if (S.cups[key]) cal[key] = buildCupScheduleS(key, cupTotalRoundsS(S, key), last); });
+  S.cupCalendar = cal;
+}
 function cupIsFinished(b: any) { return !!b.champion; }
 function cupSide(S: any, id: string) { return { rat: ME.computeRatings(S.squads[id], null), xi: ME.resolveXI(S.squads[id], null), tactic: 'equilibrado', cap: capFor(S, id), short: (S.clubShort || {})[id] || id }; }
 function resolveDrawnKnockoutTie(S: any, homeId: string, awayId: string, seed: number, hg: number, ag: number) {
@@ -701,12 +749,12 @@ function advanceGroupStageRoundS(S: any, mg: any, roundLabel: string, cupResultB
 }
 function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>) {
   if (!S.cups) return;
-  if (cupTickMatchesRound('copaBrasil', S.round)) {
+  if (cupTickMatchesRound(S, 'copaBrasil', S.round)) {
     const cb = S.cups.copaBrasil;
     if (cb && !cupIsFinished(cb) && cb.ties && cb.ties.length) advanceCupBracket(S, cb, 'copaBrasil-r' + cb.round, cupResultByFx, humans);
   }
   GROUP_CUP_KEYS.forEach((key) => {
-    if (!cupTickMatchesRound(key, S.round)) return;
+    if (!cupTickMatchesRound(S, key, S.round)) return;
     const c = S.cups[key]; if (!c) return;
     if (c.group && !c.bracket) {
       if (!c.group.finished) advanceGroupStageRoundS(S, c.group, key + '-grupo-r' + c.group.round, cupResultByFx);
@@ -919,6 +967,7 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   // acabou (_prevTables, capturado acima antes do reset das tabelas) — ver rebuildContinentalCups.
   rebuildContinentalCups(S, (_prevTables[DIV_ORDER[0]] || []).map((x: any) => x.id));
   S.round = 0; S.week = 1; S.day = 1; S.results = []; S.scorers = {}; S.negos = []; S.finished = false; // 6) reset de temporada
+  buildCupCalendarS(S);   // 6b) calendário de copa da temporada NOVA (as copas acima são outras)
   Object.keys(S.squads).forEach((cid) => S.squads[cid].forEach((p: any) => { p.moral = 70; p.energy = 100; p.suspended = 0; p.injuredMatches = 0; p.stats = { r3: [], g3: [], apps: 0, goals: 0, cs: 0, yellows: 0, reds: 0, injuries: 0 }; }));
   S._roundIncidents = {};
 }

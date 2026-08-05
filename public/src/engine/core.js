@@ -1692,7 +1692,87 @@ function jornadaForRealDate(d){
    sempre na MESMA rodada%3===0, o que fazia Copa do Brasil e Libertadores parecerem jogar
    no mesmo dia no Calendário, o que clubes de verdade nunca fazem. */
 const CUP_TICK_OFFSET={copaBrasil:0, libertadores:1, sulamericana:2, championsLeague:1, europaLeague:2};
-function cupTickMatchesRound(key, round){ return round%3===CUP_TICK_OFFSET[key]; }
+/* ==================== CALENDÁRIO DE COPA (S.cupCalendar) ====================
+   O PROBLEMA. A liga tem um relógio de DATAS (cada jornada avança 7 dias a partir de
+   SEASON_EPOCH_2026), e as copas tinham um relógio MODULAR: `round % 3 === offset`, que não sabe
+   que datas existem. Como cada copa batia a cada 3 jornadas e parava quando acabava, elas
+   terminavam todas no meio da temporada — medido: final da Copa do Brasil em 14/jun com 16
+   jornadas de liga ainda por jogar, Libertadores em 2/ago e Sul-Americana em 9/ago. O último
+   terço do campeonato ficava sem copa nenhuma, e as finais aconteciam meses antes do que
+   qualquer calendário real.
+
+   A REGRA NOVA. As "faixas" mod 3 continuam (é o que garante que duas copas nunca caem na mesma
+   jornada — um clube pode estar na Copa do Brasil e numa continental ao mesmo tempo), mas o passo
+   ESTICA: a fase de grupos / as fases iniciais mantêm o ritmo cheio de hoje, e as quatro últimas
+   rodadas (oitavas, quartas, semi, final) se espalham pelas jornadas que sobram da faixa, até um
+   teto que reserva o fim da temporada pra decisão da liga. Resultado medido: finais em 6/set,
+   13/set e 20/set, com 2 a 4 jornadas de liga ainda por jogar.
+
+   POR QUE FICA GRAVADO NO ESTADO. O servidor (resolve-round) também avança copas, então cliente e
+   servidor PRECISAM concordar sobre em que jornada cada rodada acontece. Em vez de manter o mesmo
+   algoritmo espelhado dos dois lados (e torcer pra não divergirem), o calendário é calculado uma
+   vez e guardado em S.cupCalendar — que viaja no shared_state. Os dois lados só LEEM. O cálculo é
+   determinístico (depende só do tamanho da competição e do tamanho do calendário), então mesmo
+   quando alguém precisa reconstruí-lo o resultado é idêntico.
+   Save antigo, sem S.cupCalendar: cai no `% 3` de sempre — nada quebra no meio de uma temporada. */
+const CUP_KO_SPREAD=4;     // as N últimas rodadas (oitavas, quartas, semi, final) são as que se espalham
+const CUP_LEAGUE_TAIL=2;   // jornadas finais reservadas pra decisão da liga (sem final de copa em cima)
+/* jornadas da FAIXA de uma copa: as que têm o resto certo na divisão por 3 */
+function cupLaneSlots(key, lastLeagueRound){
+  const o=CUP_TICK_OFFSET[key]; if(o==null) return [];
+  const out=[]; for(let j=(o>=1?o:3); j<=lastLeagueRound; j+=3) out.push(j);  // offset 0 começa na 3 (não existe jornada 0 de copa)
+  return out;
+}
+/* quantas rodadas esta competição vai ter na temporada inteira. Na Copa do Brasil é direto
+   (roundsTotal da chave). Nas continentais o mata-mata só é criado quando a fase de grupos acaba,
+   então o total é PREVISTO: rodadas de grupo + as rodadas que o mata-mata terá com os
+   classificados (nº de grupos × quantos avançam por grupo). */
+function cupTotalRounds(key){
+  const c=S.cups&&S.cups[key]; if(!c) return 0;
+  if(key==='copaBrasil') return c.roundsTotal||0;
+  if(c.group){
+    const nG=Object.keys(c.group.groups||{}).length, adv=c.group.advancePerGroup||2;
+    const ko=Math.max(1, Math.ceil(Math.log2(Math.max(2, nG*adv))));
+    // +1 pelo TIQUE DE TRANSIÇÃO. Quando a fase de grupos acaba mas a data real do sorteio das
+    // oitavas ainda não chegou (COMP_R16_DRAW_2026 — na Libertadores 2026 o grupo termina em
+    // 10/mai e o sorteio é 29/mai), advancePendingCups gasta um tique só pra criar o mata-mata,
+    // sem jogar rodada nenhuma. Sem essa vaga a mais o calendário terminava uma rodada curto e a
+    // FINAL simplesmente não acontecia — medido: a temporada fechava com as duas continentais
+    // paradas em "rodada 4/4" e sem campeão. Vaga sobrando é inofensiva (a competição só termina
+    // um tique antes); vaga faltando mata a final, então o erro é sempre para mais.
+    return (c.group.roundsTotal||0) + 1 + ko;
+  }
+  return (c.bracket&&c.bracket.roundsTotal)||0;
+}
+/* a lista de jornadas em que cada rodada desta copa acontece (índice 0 = 1ª rodada da copa) */
+function buildCupSchedule(key, total, lastLeagueRound){
+  if(!total || total<1) return [];
+  const slots=cupLaneSlots(key, Math.max(0, lastLeagueRound-CUP_LEAGUE_TAIL));
+  if(!slots.length) return [];
+  const nDense=Math.max(0, total-CUP_KO_SPREAD);          // fases iniciais: ritmo cheio, como sempre foi
+  const out=slots.slice(0, nDense);
+  const rest=slots.slice(nDense); if(!rest.length) return out;
+  const nSpread=Math.min(total-out.length, CUP_KO_SPREAD); // finais: espalhadas até o teto
+  for(let i=0;i<nSpread;i++){
+    const pos = nSpread===1 ? rest.length-1 : Math.round(i*(rest.length-1)/(nSpread-1));
+    out.push(rest[pos]);
+  }
+  return out;
+}
+/* (re)constrói S.cupCalendar. Idempotente: não recalcula o que já existe pra esta temporada. */
+function ensureCupCalendar(force){
+  if(typeof S==='undefined' || !S || !S.cups) return;
+  const last=(Array.isArray(S.sched)&&S.sched.length?S.sched.length:38)-1;
+  if(!force && S.cupCalendar && S.cupCalendar._season===S.season) return;
+  const cal={ _season:S.season };
+  Object.keys(S.cups).forEach(key=>{ if(S.cups[key]) cal[key]=buildCupSchedule(key, cupTotalRounds(key), last); });
+  S.cupCalendar=cal;
+}
+function cupTickMatchesRound(key, round){
+  const cal=(typeof S!=='undefined' && S && S.cupCalendar) ? S.cupCalendar[key] : null;
+  if(cal && cal.length) return cal.indexOf(round)>=0;
+  return round%3===CUP_TICK_OFFSET[key];   // save antigo (sem calendário gravado)
+}
 /* a cada 3 rodadas de liga, avança a rodada pendente de cada copa ativa (uma competição
    por rodada, ver CUP_TICK_OFFSET) — roda inteiramente em segundo plano (quick-sim), sem
    bloquear o usuário */
@@ -2040,10 +2120,12 @@ function rollBgLeaguesSeason(){
 }
 function initSeasonCups(qual, compToggle){
   if(isConmebolUniverse()){ initConmebolCups(); // universo sul-americano: Libertadores + Sul-Americana
+    ensureCupCalendar(true);
     if(S.cups&&S.cups.libertadores) queueDrawShow('libertadores','group');
     if(S.cups&&S.cups.sulamericana) queueDrawShow('sulamericana','group');
     return; }
   if(isIntlUniverse()){ initIntlCups(); // universo europeu: Champions + Europa
+    ensureCupCalendar(true);
     // cerimônia do sorteio da FASE DE GRUPOS (estilo Copa do Brasil, time -> grupo), no
     // início da temporada — os jogos de grupo vêm depois, como na vida real.
     if(S.cups&&S.cups.championsLeague) queueDrawShow('championsLeague','group');
@@ -2089,6 +2171,7 @@ function initSeasonCups(qual, compToggle){
   // fase de grupos já ter começado. Era isso que produzia o absurdo de sortear uma competição
   // cuja rodada já tinha acontecido.
   // Os universos CONMEBOL e europeu (acima) sempre fizeram isso certo; só o brasileiro não fazia.
+  ensureCupCalendar(true);   // calendário da temporada nova ANTES de enfileirar as cerimônias
   cupDrawOrder().forEach(([key,stage])=>{ if(S.cups[key]) queueDrawShow(key, stage); });
 }
 /* ORDEM DAS CERIMÔNIAS = ordem em que as competições ENTRAM EM CAMPO.
@@ -2832,6 +2915,10 @@ function syncDataClubsFromState(){
   // num estado que não tenha divisionClubs. Ver ensureSquadContracts.
   ensureSquadContracts();
   syncTrainingFlags();   // p._training vem de S.trainingByClub (o elenco adotado veio sem o flag)
+  // rede de segurança do calendário de copa: se o estado adotado não trouxer S.cupCalendar (save
+  // de antes desta versão, ou virada de temporada resolvida por um caminho que não passou pelo
+  // initSeasonCups), reconstrói. O cálculo é determinístico — todo cliente chega no mesmo array.
+  if(typeof ensureCupCalendar==='function') ensureCupCalendar();
   if(!S || !S.division || !S.divisionClubs) return;
   const ids=S.divisionClubs[S.division]; if(!ids || !ids.length) return;
   const pool=S.clubPool||{};

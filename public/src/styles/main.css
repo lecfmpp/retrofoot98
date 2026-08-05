@@ -2200,3 +2200,6 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-resync-h{font-size:17px}
   .cl-resync-p,.cl-resync-check{font-size:12px}
 }
+/* data da rodada de copa na tela de entrada (ver cupIntroDateHTML) — a copa era a única
+   competição que se apresentava sem data nenhuma. */
+.cl-cupintro-date{font-family:var(--mono);opacity:.8;font-weight:var(--fw-bold)}
