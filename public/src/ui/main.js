@@ -6044,7 +6044,11 @@ function onlineHostCloseRound(){
   // falhar. Os convidados espelham o estado do servidor pelo onlineReconcileIfBehind, como sempre.
   if(typeof NET!=='undefined' && NET.resolveRound){
     (async ()=>{
-      let res=null; try{ res=await NET.resolveRound(round); }catch(e){ res={error:(e&&e.message)||'erro'}; }
+      // ESTÁGIO: fechando a quarta-feira, o servidor resolve SÓ as copas e devolve a semana no
+      // estágio de sábado; fechando o sábado, resolve a rodada inteira como sempre. Estado sem
+      // roundStage (save antigo) cai no caminho de sempre — stage indefinido = 'league'.
+      const _stage=(typeof isCupStage==='function' && isCupStage())?'cup':undefined;
+      let res=null; try{ res=await NET.resolveRound(round, _stage); }catch(e){ res={error:(e&&e.message)||'erro'}; }
       if(!res || res.error){
         // NUNCA MAIS COMITAR LOCALMENTE. Aqui havia um fallback que chamava _commitLeagueRound —
         // ou seja, playRound() na MINHA máquina — quando o resolve-round falhava. O efeito medido
@@ -6121,6 +6125,7 @@ async function onlineAdoptServerRound(RL){
   _prLog('onlineAdoptServerRound: entrou (vai sobrescrever S com o shared_state)');
   showSyncLoading(); // ver definição: evita a tela principal "velha" piscar antes da classificação
   let isTurnover=false;
+  const _roundAntes=(S&&S.round)||0;
   try{
     const saved = await NET.loadGame();
     CL._adoptedVer=(typeof NET!=='undefined' && NET._loadedVersion)||CL._adoptedVer||0; // versão do estado que acabei de adotar
@@ -6161,6 +6166,18 @@ async function onlineAdoptServerRound(RL){
     return;
   }
   queueSeasonCupDrawsIfNew(); // todo cliente enfileira o sorteio da copa recém-sorteada (não só o host)
+  // FECHAMENTO DA QUARTA-FEIRA: só as copas foram resolvidas, a RODADA NÃO MUDOU. Mostrar a
+  // classificação da liga aqui seria mostrar a tabela da rodada que ainda nem foi jogada — e a
+  // pausa técnica pós-rodada também não cabe. Passa direto pra tela do clube, que é onde o jogador
+  // decide a escalação do jogo de sábado. Os sorteios de copa seguem valendo (a chave do mata-mata
+  // pode ter acabado de sair na quarta) — por isso eles ficam ANTES desta saída.
+  if((S.round||0)===_roundAntes){
+    checkPendingCupDraws(()=>{
+      hideSyncLoading();
+      CL._playedRound=-1; CL.screen='main'; CL.tab='jogo'; cdraw();
+    });
+    return;
+  }
   checkPendingCupDraws(()=>{
     hideSyncLoading();
     adGate(()=>{                                   // janela de publicidade: segura a classificação (ver adGate)

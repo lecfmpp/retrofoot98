@@ -580,6 +580,13 @@ function buildCupScheduleS(key: string, total: number, lastLeagueRound: number) 
   }
   return out;
 }
+/* a semana que começa tem partida de copa pra alguém? Se sim ela abre na QUARTA (estágio 'cup');
+   se não, vai direto pro sábado. Determinístico: sai da mesma tabela de calendário que o cliente lê. */
+function nextRoundStage(S: any) {
+  const keys = ['copaBrasil'].concat(GROUP_CUP_KEYS);
+  const temCopa = keys.some((k) => S.cups && S.cups[k] && cupTickMatchesRound(S, k, S.round));
+  return temCopa ? 'cup' : 'league';
+}
 function buildCupCalendarS(S: any) {
   if (!S || !S.cups) return;
   const last = (Array.isArray(S.sched) && S.sched.length ? S.sched.length : 38) - 1;
@@ -1183,7 +1190,13 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   //     semana N-1 e o tique ficava numerado uma semana à frente de onde a partida era jogada.
   //     Agora avança aqui, com a semana CORRENTE, antes das partidas de liga. Cliente e servidor
   //     precisam concordar nesta ordem: é ela que decide qual rodada de copa pertence a qual semana.
-  advancePendingCups(S, cupResultByFx || {}, humanClubs);
+  //     SEMANA EM DOIS ESTÁGIOS: a quarta tem resolução própria, então aqui as copas normalmente já
+  //     foram avançadas e este passo vira no-op. A condição é "a quarta NÃO rodou", não "não existe
+  //     estágio": roundStage==='cup' significa que a quarta ficou pendente (cliente antigo, valve de
+  //     segurança do cliente, host que caiu antes de fechá-la) — nesse caso a liga avança as copas
+  //     igual sempre, e a semana se resolve de qualquer jeito. É o que impede a divisão em dois
+  //     estágios de virar um caminho onde a copa simplesmente não acontece.
+  if (S.roundStage == null || S.roundStage === 'cup') advancePendingCups(S, cupResultByFx || {}, humanClubs);
   applyHumanMorale(S, moraleByClub || {});                        // 0b) efeito da coletiva na moral do elenco
   const fixtures = (S.sched[round] || []);
   advancePlayerAvailability(S);                                   // 1) cumpre suspensões/lesões
@@ -1243,6 +1256,10 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json();
     const gameId = body?.gameId; const expectedRound = body?.round;
+    // ESTÁGIO DA SEMANA. 'cup' resolve SÓ a quarta-feira (avança as copas e para); 'league'/ausente
+    // resolve o sábado, que é a rodada completa como sempre foi. Um estado sem S.roundStage (save
+    // de antes desta versão) é tratado como semana de um estágio só — nada muda pra ele.
+    const wantStage = (body?.stage === 'cup') ? 'cup' : 'league';
     if (!gameId) return json({ error: "gameId ausente" }, 400);
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { db: { schema: "elifoot_v3" } });
@@ -1257,6 +1274,12 @@ Deno.serve(async (req: Request) => {
     const S = stateObj.S; const curVer = gameHost.state_version || 0;
     // idempotência: se a rodada esperada não é a atual, alguém já resolveu -> devolve o estado atual
     if (expectedRound != null && S.round !== expectedRound) return json({ ok: true, already: true, round: S.round, version: curVer });
+    // IDEMPOTÊNCIA POR ESTÁGIO: se a quarta já foi resolvida (roundStage já virou 'league'), um
+    // segundo pedido de 'cup' não pode avançar as copas de novo. Vale o mesmo padrão do
+    // expectedRound: devolve o estado atual em vez de refazer.
+    if (wantStage === 'cup' && S.roundStage !== 'cup') {
+      return json({ ok: true, already: true, round: S.round, stage: S.roundStage || 'league', version: curVer });
+    }
 
     const round = S.round;
     const { data: seats } = await admin.from("game_seats").select("user_id, club_id, last_xi, last_tactic, last_result, last_result_round, last_cup_result, last_cup_round, budget, stadium").eq("game_id", gameId);
@@ -1305,7 +1328,17 @@ Deno.serve(async (req: Request) => {
     const preMatches = (preRow && preRow.payload && preRow.payload.matches) || null;
 
     applyTrainingFlags(S, trainingByClub);   // treino especial dos humanos -> p._training (ver evolvePlayer)
-    resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic, cupResultByFx, humanTransfers, moraleByClub, humanOffers, humanCounters, humanOfferDrops, preMatches);
+    if (wantStage === 'cup') {
+      // QUARTA-FEIRA: resolve SÓ as copas da semana e para. Não toca em rodada, tabela, energia,
+      // evolução, finanças nem virada de temporada — isso tudo é contabilidade do sábado. O
+      // resultado ao vivo de cada humano já está gravado no confronto (cupResultByFx) e é pulado
+      // aqui, igual sempre. Ao terminar, a semana passa pro estágio de liga.
+      advancePendingCups(S, cupResultByFx || {}, humanClubs);
+      S.roundStage = 'league';
+    } else {
+      resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic, cupResultByFx, humanTransfers, moraleByClub, humanOffers, humanCounters, humanOfferDrops, preMatches);
+      S.roundStage = nextRoundStage(S);   // a semana nova começa na quarta se tiver copa; senão, direto no sábado
+    }
     stateObj.round = S.round;
 
     const { data: upd, error: upErr } = await admin.from("games").update({ shared_state: stateObj, state_version: curVer + 1, round: S.round }).eq("id", gameId).eq("state_version", curVer).select("state_version");

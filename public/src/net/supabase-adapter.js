@@ -473,10 +473,12 @@ async function netPublishResult(round, result){
    é o único produtor do shared_state (liga + outras divisões + copas + virada de temporada). Idempotente
    por state_version: se outro já resolveu, devolve {already:true}. Retorna {ok, round, version} ou {error}.
    `round` = a rodada que ESPERO resolver (S.round atual), pra o servidor não resolver a errada. */
-async function netResolveRound(round){
+async function netResolveRound(round, stage){
   if(!sb || !NET.gameId) return { error:'sem sala' };
   try{
-    const { data, error } = await netInvokeFn('resolve-round', { gameId:NET.gameId, round });
+    // stage 'cup' fecha SÓ a quarta-feira (avança as copas da semana e para); sem stage, o servidor
+    // resolve o sábado — a rodada completa, como sempre foi. Ver resolve-round/index.ts.
+    const { data, error } = await netInvokeFn('resolve-round', { gameId:NET.gameId, round, stage:stage||undefined });
     if(error) return { error: (error&&error.message)||'erro na edge function' };
     return data||{};
   }catch(e){ return { error: (e&&e.message)||'falha ao chamar resolve-round' }; }

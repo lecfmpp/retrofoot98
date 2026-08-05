@@ -1621,6 +1621,35 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
       return;
     }
   }
+  // ESTÁGIO DE QUARTA-FEIRA: cumprida a copa, a semana ainda NÃO libera o jogo de liga — ela
+  // precisa fechar a quarta primeiro (o servidor resolve só as copas e devolve a semana no estágio
+  // de sábado). Marcar pronto aqui é o que dispara esse fechamento, exatamente como acontece no
+  // fim da rodada de liga. É isto que dá à quarta um momento próprio de sincronia: todos entram e
+  // saem dela juntos, em vez de a copa ser um apêndice da rodada de liga.
+  if(isCupStage()){
+    // VÁLVULA DE SEGURANÇA. O estágio de quarta é um passo de sincronia a mais, e um passo a mais é
+    // um lugar a mais pra travar (host que caiu antes de fechá-lo, resolve-round fora do ar). Se a
+    // quarta não fechar em CUP_STAGE_MAX_MS, o cliente segue pro sábado como se a semana fosse de
+    // um estágio só — e o servidor, ao resolver a liga, vê roundStage==='cup' e avança as copas
+    // junto, exatamente como fazia antes desta mudança. Ou seja: a falha degrada pro comportamento
+    // antigo em vez de parar a sala.
+    if(!CL._cupStageSince || CL._cupStageRound!==S.round){ CL._cupStageRound=S.round; CL._cupStageSince=Date.now(); }
+    if(Date.now()-CL._cupStageSince < CUP_STAGE_MAX_MS){
+      // ANFITRIÃO: arma o fechamento da QUARTA. Sem isto ninguém fecharia esse estágio —
+      // _hostPendingCommit só é armado no fim da partida de LIGA (ver finishLiveRound), que na
+      // quarta não existe. Era o deadlock que a divisão em estágios criaria.
+      if(typeof NET!=='undefined' && NET.isHost && !CL._hostPendingCommit){
+        CL._hostPendingCommit={ RL:null, userResult:null, audit:null, round:S.round, uf:null, stage:'cup' };
+      }
+      // UMA VEZ POR RODADA. onlineMarkReady termina chamando onlineRecoverRunRound, que reentra
+      // aqui — e sem esta guarda a dupla vira recursão infinita (medido: "Maximum call stack size
+      // exceeded", com a aba travando). Marcar pronto é idempotente do ponto de vista da sala, e
+      // uma vez basta: o que fecha a quarta é o anfitrião, não uma remarcação.
+      if(CL._cupStageReady!==S.round){ CL._cupStageReady=S.round; onlineMarkReady(); }
+      return;
+    }
+    console.warn('estágio de quarta não fechou em '+(CUP_STAGE_MAX_MS/1000)+'s — seguindo pro jogo de liga (a copa é resolvida junto pelo servidor)');
+  }
   // RODADA DE LIGA: nunca mais cai em campo sem avisar. Antes esta linha chamava startLiveRound()
   // direto — e como o loop do cronômetro reentra aqui assim que o cliente pousa em 'main' (ver
   // onlineTimerLoop), o efeito era a rodada do Brasileirão COMEÇAR SOZINHA no segundo seguinte ao
@@ -1632,6 +1661,11 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   if(typeof showLeagueIntro==='function'){ showLeagueIntro(true); return; }
   CL._liveBusy=true; startLiveRound(); }
 
+/* ESTÁGIO DA SEMANA (quarta ou sábado). Estado sem S.roundStage = save de antes desta versão:
+   trata como semana de um estágio só, exatamente o comportamento antigo. */
+const CUP_STAGE_MAX_MS=75000;   // teto da quarta-feira: acima disso a semana degrada pra um estágio só
+function roundStage(){ return (S && S.roundStage) || null; }
+function isCupStage(){ return roundStage()==='cup'; }
 /* quem, entre os HUMANOS da sala, ainda deve a partida de copa desta semana. "Deve" = o clube dele
    tem confronto numa competição que bate nesta semana E o assento dele ainda não publicou o
    resultado de copa da rodada (game_seats.last_cup_round). Quem não tem jogo de copa nesta semana
