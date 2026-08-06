@@ -3187,8 +3187,11 @@ function clAuctionBidGo(sellerId,player){
    o navegador pedir e falhar, sujando o console com 404 a cada abertura. Com null, o <video> nem
    é inserido: a área fica preta, que é exatamente o estado "sem vídeo ainda" pedido. */
 const VIDEOS_MOMENTO = {
-  'campeao-liga'  : null,   // video/momento-campeao-liga.mp4
-  'campeao-copa'  : null,   // video/momento-campeao-copa.mp4
+  // MESMO vídeo de taça pros dois títulos, e de propósito: a cerimônia de campeão é a mesma
+  // seja Série A, Série D ou uma copa continental de outro país. Os modais já se adaptam sozinhos
+  // ao contexto — o troféu vem da divisão ou da competição, e o título/manchete do estado do jogo.
+  'campeao-liga'  : 'video/momento-campeao.mp4',
+  'campeao-copa'  : 'video/momento-campeao.mp4',
   'marcador-liga' : null,   // video/momento-marcador-liga.mp4
   'marcador-copa' : null,   // video/momento-marcador-copa.mp4
   'promovido'     : null,   // video/momento-promovido.mp4
