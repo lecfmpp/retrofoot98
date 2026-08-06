@@ -3464,27 +3464,61 @@ function ritmoLabel(porTemporada){
 }
 function ritmoPct(x){ return Math.round(x*100)+'%'; }
 function ritmoNum(x){ const n=Math.round(x*10)/10; return (n>0?'+':'')+String(n).replace('.',','); }
-/* uma linha do jogador na tela de treino: ritmo + as fontes reais de ganho/perda */
+/* rótulo CURTO de cada fonte de evolução, pro chip caber numa coluna de tabela: "Jogando bem
+   (nota 7,2)" vira "7,2", "Treino especial + ⭐ destaque" vira "Treino", e assim por diante. O
+   texto inteiro continua acessível no title do chip. */
+function trnFonteCurta(f){
+  switch(f.tipo){
+    case 'jogar': { const m=/nota ([\d,]+)/.exec(f.label||''); return m?m[1]:'Jogando bem'; }
+    case 'treino': return 'Treino';
+    case 'jovem':  return 'Formação';
+    case 'idade':  return 'Idade';
+    case 'banco':  return 'Banco';
+    default: return (f.label||'').split(' (')[0];
+  }
+}
+/* A coluna Bônus tem ~90px: dois chips lado a lado sempre cortavam o segundo pela metade. Com
+   dois ou mais, mostra o primeiro e um "+N" — o texto completo de todos fica no title. */
+function trnBonus(fontes){
+  if(!fontes || !fontes.length) return '';
+  if(fontes.length===1) return trnChip(fontes[0]);
+  const resumo=fontes.map(f=>f.label+' ('+ritmoPct(f.chance)+'/rodada)').join(' · ');
+  const outros=fontes.length-1;
+  return trnChip(fontes[0])+`<span class="cl-trn-mais" title="${escC(resumo)}">+${outros}</span>`;
+}
+function trnChip(f){
+  if(!f) return '';
+  return `<span class="cl-trn-chip ${f.sinal>0?'up':'down'}" title="${escC(f.label)} — ${ritmoPct(f.chance)} por rodada">`
+    +`${f.sinal>0?'▲':'▼'} ${escC(trnFonteCurta(f))} <i>${ritmoPct(f.chance)}</i></span>`;
+}
+/* uma linha do jogador na tela de treino, no padrão de tabela do handoff: uma coluna por dado.
+   As fontes de evolução ocupam duas células — "Jogo" (a nota, que é de longe o maior fator) e
+   "Bônus" (treino, formação, ou o que estiver puxando pra baixo). A idade saiu da tabela. */
 function trainingRowHTML(p, inTraining, cheio){
   const g=(typeof growthProfileOf==='function')?growthProfileOf(p):null;
   const star=(typeof hasEstrelinha==='function')&&hasEstrelinha(p);
   const r=g?ritmoLabel(g.forcaPorTemporada):{txt:'—',cls:'flat'};
   const porTemp=g?ritmoNum(g.forcaPorTemporada):'—';
-  const motivos=(g&&g.fontes.length)
-    ? g.fontes.map(f=>`<span class="cl-trn-chip ${f.sinal>0?'up':'down'}">${f.sinal>0?'▲':'▼'} ${escC(f.label)} <i>${ritmoPct(f.chance)}/rodada</i></span>`).join('')
-    : `<span class="cl-trn-chip flat">Sem ganho nem perda agora — ${p.age>=31?'idade fora da faixa de crescimento':'precisa jogar bem (nota ≥ 6,8) ou entrar em treino'}</span>`;
+  const fontes=(g&&g.fontes)||[];
+  // coluna "Jogo" = só a nota (o maior fator de todos); tudo o mais — treino, formação, idade,
+  // banco — vai pra "Bônus", que é a coluna larga. Sem essa separação, "Formação (12%)" caía na
+  // célula de 78px e saía cortado.
+  const jogo=fontes.find(f=>f.tipo==='jogar')||null;
+  const resto=fontes.filter(f=>f!==jogo);
+  const semNada = !fontes.length
+    ? `<span class="cl-trn-chip" title="${escC(p.age>=31?'Idade fora da faixa de crescimento':'Precisa jogar bem (nota ≥ 6,8) ou entrar em treino')}">sem ganho</span>`
+    : '<span class="cl-trn-vazio">—</span>';
   const acao = inTraining
-    ? btn('Tirar do treino', "clStopTraining('"+p.pid+"')", {cls:'cl-btn-mini'})
-    : (cheio ? `<span class="cl-trn-full">lotado</span>` : btn('Treinar', "clStartTraining('"+p.pid+"')", {cls:'cl-btn-mini'}));
-  return `<div class="cl-trn-row">
-    <div class="cl-trn-head">
-      <span class="cl-mkt-p-pos">${posLetter(p.s)}</span>
-      <span class="cl-trn-n">${escC(p.n)}${star?' <span title="Destaque: evolui mais rápido no treino">⭐</span>':''}<i class="cl-trn-age">${p.age} anos</i></span>
-      <span class="cl-trn-f">${p.f}${inTraining?' '+trainingConeImg(12):''}</span>
-      <span class="cl-trn-ritmo ${r.cls}"><b>${r.txt}</b><i>${porTemp} de força / temporada</i></span>
-      ${acao}
-    </div>
-    <div class="cl-trn-why">${motivos}</div>
+    ? btn('Tirar', "clStopTraining('"+p.pid+"')", {cls:'cl-btn-mini cl-trn-btn'})
+    : (cheio ? `<span class="cl-trn-full">lotado</span>` : btn('Treinar', "clStartTraining('"+p.pid+"')", {cls:'cl-btn-mini cl-trn-btn'}));
+  return `<div class="cl-trn-row ${inTraining?'on':''}">
+    <span class="cl-trn-pos">${posLetter(p.s)}</span>
+    <span class="cl-trn-n">${escC(p.n)}${star?'<span class="cl-trn-star" title="Destaque: evolui mais rápido no treino"> ⭐</span>':''}</span>
+    <span class="cl-trn-fontes"><span class="cl-trn-jogo">${trnChip(jogo)||semNada}</span><span class="cl-trn-bonus">${trnBonus(resto)}</span></span>
+    <span class="cl-trn-f">${p.f}</span>
+    <span class="cl-trn-ritmo ${r.cls}">${r.txt}</span>
+    <span class="cl-trn-delta ${r.cls}">${porTemp}</span>
+    <span class="cl-trn-acao">${acao}</span>
   </div>`;
 }
 function clTrainingScreen(){ CL.menu=null;
@@ -3495,9 +3529,14 @@ function clTrainingScreen(){ CL.menu=null;
     return ((gb&&gb.forcaPorTemporada)||0)-((ga&&ga.forcaPorTemporada)||0); // quem mais cresce primeiro
   });
   const rows=sq.map(p=>trainingRowHTML(p, training.has(p.pid), cheio)).join('');
+  // o explicador vira <details> RECOLHIDO por padrão: ele ocupava quase metade da janela antes
+  // de qualquer dado. CL.trnHelpOpen guarda o estado pra não fechar sozinho a cada re-render
+  // (clStartTraining/clStopTraining redesenham a tela inteira).
+  const helpOpen=!!CL.trnHelpOpen;
   overlayC(dlg('Treino especial', `
-    <div class="cl-trn-intro">
-      <div class="cl-trn-intro-h">Como o jogador evolui</div>
+    <details class="cl-trn-intro" ${helpOpen?'open':''} ontoggle="CL.trnHelpOpen=this.open">
+      <summary class="cl-trn-intro-h"><span>Como o jogador evolui</span><i>${helpOpen?'fechar':'abrir'}</i></summary>
+      <div class="cl-trn-intro-b">
       <p>Ninguém ganha "força" direto. A cada rodada o jogador pode ganhar um <b>ponto de atributo</b>
       (finalização, passe, reflexos…), e a <b>Força</b> é a média desses atributos convertida pela escala da
       sua divisão. Por isso ele às vezes joga bem e a Força não mexe — e às vezes <b>salta 2 ou 3 de uma vez</b>:
@@ -3510,10 +3549,16 @@ function clTrainingScreen(){ CL.menu=null;
       <b>5) currículo</b> (títulos e temporadas na elite dão até +50%).</p>
       <p class="cl-trn-intro-tip">💡 O treino rende pouco em quem já é titular e vai bem — o ganho grande é no
       <b>reserva</b>: fora do time ele <i>perde</i> físico a partir de 4 rodadas no banco, e o treino cancela essa perda.</p>
-    </div>
-    <div class="cl-mkt-counter">${training.size}/${TRAINING_MAX_SLOTS} em treino${cheio?' — tire alguém pra abrir vaga':''}. Ordenado por quem mais cresce agora.</div>
-    <div class="cl-trn-list">${rows}</div>
-    <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:780,bodyClass:'cl-body-gray',min:true}));
+      </div>
+    </details>
+    <div class="cl-trn-vagas">${training.size}/${TRAINING_MAX_SLOTS} em treino${cheio?' — tire alguém pra abrir vaga':''}. Ordenado por quem mais cresce agora.</div>
+    <div class="cl-trn-list">
+      <div class="cl-trn-head"><span>Pos</span><span>Jogador</span>
+        <span class="cl-trn-fontes"><span>Jogo</span><span>Bônus</span></span>
+        <span class="r">Força</span><span class="r">Ritmo</span>
+        <span class="r" title="Ganho projetado de força por temporada">Δ/temp</span><span class="c">Treino</span></div>
+      ${rows}
+    </div>`,{std:true, footer:btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}));
 }
 function clStartTraining(pid){ const r=startTraining(pid); toastC(r.msg); clTrainingScreen(); }
 function clStopTraining(pid){ stopTraining(pid); clTrainingScreen(); }
