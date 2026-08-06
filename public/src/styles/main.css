@@ -248,8 +248,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   font-weight:900;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .cl-dlg-x:active{border-color:var(--bevel-in)}
 /* botão do rodapé: ícone AO LADO do texto (o .cl-btn padrão do jogo empilha ícone em cima) */
-.cl-dlg-foot .cl-btn{min-height:34px;min-width:104px;padding:7px 16px;font-size:13px;
-  flex-direction:row;gap:7px;align-items:center;justify-content:center}
+.cl-dlg-foot .cl-btn{min-height:34px;flex:0 0 148px;padding:7px 12px;font-size:13px;
+  flex-direction:row;gap:7px;align-items:center;justify-content:center}   /* medida igual pros dois, alinhados à direita */
 .cl-dlg-foot .cl-btn .cl-btn-ic{font-size:15px;line-height:1}
 /* botões win3.1 */
 .cl-btn{font-family:var(--sans);font-size:13px;background:var(--chrome);border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);padding:8px 14px;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#000;min-width:70px;min-height:46px;box-sizing:border-box;text-align:center}
@@ -360,7 +360,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-jinput:focus{background:var(--yellowlite)}
 .cl-jname{font-weight:700;font-size:15px;background:var(--yellowlite);padding:5px 8px;width:200px;border:1px solid #999}
 .cl-jteam{font-weight:700;font-size:15px;color:#fff;padding:5px 10px;width:210px;text-shadow:0 1px 2px rgba(0,0,0,.6)}
-.cl-jog-actions{display:flex;justify-content:center;margin-top:26px}
+.cl-jog-actions{display:flex;gap:12px;justify-content:center;margin:26px auto 0;width:min(100%,340px)}
 /* boas-vindas ao clube: tela pós-sorteio (Solo e Resenha), antes de entrar no jogo (scBoasVindas) */
 .cl-welc{width:min(860px,100%);box-sizing:border-box}
 .cl-welc-hd{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
@@ -597,14 +597,16 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-sala-pill b{font-family:var(--mono);font-weight:800;font-size:13px;color:#111}
 .cl-sala-pill i{font-style:normal;font-size:10px;color:#4a4a4a;font-weight:700}
 .cl-sala-empty{font-size:11px;color:#333}
-.cl-main-body{display:flex;min-height:520px}
-.cl-main-left{width:56%;background:#000;padding:10px 0 10px 14px}
+/* ALTURA FIXA NO DESKTOP: a janela crescia e encolhia conforme o conteúdo da aba, então trocar
+   de aba redimensionava a tela inteira. Agora ela tem uma medida só e quem rola é o painel. */
+.cl-main-body{display:flex;height:600px}
+.cl-main-left{width:56%;background:#000;padding:10px 0 10px 14px;display:flex;flex-direction:column;min-height:0}
 .cl-hdr{padding:6px 0 10px}
 .cl-mgr{font-family:var(--serif);font-weight:700;color:#fff;font-size:30px;line-height:1}
 .cl-hdr-sub{color:#fff;font-size:15px;margin-top:6px;display:flex;align-items:center;gap:8px}
 .cl-flag2{font-size:18px}
 .cl-div{margin-left:40px;color:#fff}
-.cl-roster{background:#fff;color:#000;border:1px solid #000;max-height:560px;overflow:auto}
+.cl-roster{background:#fff;color:#000;border:1px solid #000;flex:1;min-height:0;overflow:auto}
 .cl-roster.cl-acc-body{overflow-y:auto;overflow-x:hidden} /* a regra genérica do acordeão (overflow:hidden) cortava a lista sem deixar rolar */
 .cl-share-mini{display:inline-flex;align-items:center;justify-content:center;padding:3px 10px;margin-left:6px;border-radius:5px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;font-weight:700;cursor:pointer;vertical-align:middle;line-height:1.4}
 .cl-share-mini:hover{background:rgba(255,255,255,.3)}
@@ -682,20 +684,35 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-rtrend.up{color:var(--success-alt)}
 .cl-rtrend.down{color:var(--danger-alt)}
 .cl-main-right{flex:1;background:#000;color:#fff;padding:12px 16px;display:flex;flex-direction:column;position:relative}
-.cl-right-hdr{position:relative;min-height:56px;margin-bottom:8px}
-.cl-adv-lbl{color:#fff;font-size:15px}
-.cl-year{position:absolute;right:0;top:0;font-weight:700;font-size:18px;color:#fff}
+/* ===== CABEÇALHO DO ADVERSÁRIO (ver advHeaderHTML) =====
+   Bloco único com três faixas de ritmo constante e SÓ DUAS fontes — sans pro texto, mono pro
+   número e pra data, que é o sistema do resto do jogo. Antes eram seis tamanhos diferentes, um
+   deles posicionado em absoluto no canto, sem alinhamento entre as linhas. */
+.cl-right-hdr{display:flex;flex-direction:column;gap:5px;padding:9px 11px;margin-bottom:10px;
+  background:rgba(0,0,0,.26);border:1px solid rgba(255,255,255,.12)}
+.cl-advh-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.cl-advh-lbl{color:rgba(255,255,255,.72);font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.cl-advh-ano{font-family:var(--mono);font-size:12px;font-weight:700;color:rgba(255,255,255,.72)}
 /* infos do adversário: texto CLARO (antes era azul escuro --bluetxt, que sumia no fundo escuro da
    tela do time). Sombra + borda garantem legibilidade em qualquer tema de clube (chip bg2). */
-.cl-adv-name{color:#fff;font-weight:800;font-size:16px;text-shadow:0 1px 2px rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.28);border-radius:3px}
-.cl-adv-loc{color:#e2e9f6;font-size:15px}
+.cl-adv-name{align-self:flex-start;max-width:100%;padding:3px 9px;color:#fff;font-weight:800;font-size:18px;
+  line-height:1.15;text-shadow:0 1px 2px rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.28);border-radius:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-advh-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:12px;color:#dbe4f2}
+.cl-advh-meta>span{display:inline-flex;align-items:center;gap:4px}
+.cl-advh-meta>span+span::before{content:'·';margin-right:6px;opacity:.5}
+.cl-advh-mando{font-weight:800;letter-spacing:.6px}
+.cl-advh-mando.casa{color:var(--success-lite)} .cl-advh-mando.fora{color:#ffd97a}
+.cl-advh-fase.cup{color:var(--yellow);font-weight:800}
+.cl-advh-fase .cl-trophy-img{width:13px;height:13px;display:block}
 /* competição do PRÓXIMO jogo no cabeçalho do adversário (ver nextUserMatch): a rodada de liga
    mostra a jornada; a semana de copa mostra a fase, com o troféu e em amarelo, pra ninguém mais
    escalar o time achando que vai jogar o campeonato. */
-.cl-adv-comp{font-size:12px;color:#c9d6ea;display:flex;align-items:center;justify-content:center;gap:5px;margin-top:2px}
+/* .cl-adv-comp continua existindo pro cabeçalho do adversário de OUTRAS telas (ver panAdversario) */
+.cl-adv-comp{font-size:12px;color:#c9d6ea;display:flex;align-items:center;gap:5px;margin-top:2px}
 .cl-adv-comp.cup{color:var(--yellow);font-weight:800}
 .cl-adv-comp .cl-trophy-img{width:14px;height:14px;display:block}
-.cl-panel{flex:1}
+.cl-panel{flex:1;min-height:0;overflow-y:auto}
 /* tabs */
 .cl-tabs{display:flex;gap:0;border-top:1px solid #666;padding-top:6px;margin-top:8px;justify-content:flex-start;flex-wrap:nowrap}
 /* aba = flex em linha, verticalmente centrada: rótulo + ícone/badge nunca quebram em 2 linhas e
@@ -874,7 +891,14 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-cal-cup .cl-cal-n{color:#1a5a2a}
 .cl-cal-pens{font-size:11px;font-weight:700;opacity:.8} /* placar dos pênaltis ao lado do resultado do confronto */
 .cl-cal-draw{background:#3a3aa0!important;color:#fff!important;font-style:italic}
-.cl-cal-ok{display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:14px}
+/* ===== GRUPOS DE BOTÃO: todos ocupam a mesma largura =====
+   Cada .cl-btn tinha a largura do próprio texto, então uma pilha de ações saía desalinhada dos
+   dois lados ("OK" estreitinho em cima de "Voltar ao clube"). Agora o grupo é que manda: em
+   coluna os botões esticam até a largura dele (o de cima termina onde o de baixo termina) e em
+   linha dividem o espaço em partes iguais. O grupo é centralizado e tem teto de largura pra um
+   botão sozinho não virar uma faixa de ponta a ponta. */
+.cl-cal-ok{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin:14px auto 0;width:min(100%,340px)}
+.cl-cal-ok>.cl-btn,.cl-vender-btns>.cl-btn,.cl-jog-actions>.cl-btn,.cl-est-btns>.cl-btn{flex:1 1 0;min-width:0}
 /* ===== CALENDÁRIO PADRONIZADO — uma coluna por dado (handoff dos modais de menu) =====
    .cl-cal continua sendo o painel branco genérico (artilheiros, transferências, ligas de
    background usam as MESMAS .cl-cal-row de 3 colunas). A grade de 5 colunas vale só sob o
@@ -940,8 +964,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* antes eram position:absolute ancorados no rodapé do card — em telas onde o texto de
    capacidade máxima quebrava em 2 linhas (ou o modal ficava mais baixo), os botões
    ficavam sobrepostos ao texto e cobriam parte do conteúdo. Fluxo normal evita isso. */
-.cl-est-btns{display:flex;justify-content:flex-end;gap:12px;margin-top:20px}
-.cl-est-btns .cl-btn{min-width:96px}
+.cl-est-btns{display:flex;justify-content:flex-end;gap:12px;margin:20px auto 0;width:min(100%,340px)}
 .cl-est-note{color:#c00;font-weight:700;font-size:14px;text-align:center;margin-top:14px}
 /* vender */
 .cl-sell{padding:8px 6px}
@@ -965,7 +988,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-money-field{display:inline-flex;align-items:center;gap:6px;background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);padding:0 10px;width:220px;max-width:100%;box-sizing:border-box}
 .cl-money-cur{font-weight:800;color:#0a7a2f;font-size:15px;flex:0 0 auto}
 .cl-money-in{border:none;outline:none;background:transparent;flex:1;min-width:0;font-family:var(--mono);font-size:16px;font-weight:700;color:#000;text-align:right;padding:7px 0;font-variant-numeric:tabular-nums}
-.cl-vender-btns{display:flex;gap:14px;justify-content:center;margin-top:24px}
+.cl-vender-btns{display:flex;gap:12px;justify-content:center;margin:24px auto 0;width:min(100%,340px)}
 /* Leilão (modal amarelo) */
 .cl-leilao{min-height:360px;color:#000;position:relative}
 .cl-lei-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
@@ -1852,7 +1875,9 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
      No telefone ela começa no topo e só cresce pra baixo quando o conteúdo passa da altura. */
   .cl-desk{justify-content:flex-start;padding:10px 0 0}
   .cl-main{width:100%}
-  .cl-main-body{flex-direction:column;min-height:0}
+  .cl-main-body{flex-direction:column;height:auto;min-height:0}
+  .cl-panel{overflow:visible}
+  .cl-roster{flex:none;max-height:52vh}
   /* UMA ABA POR VEZ. A coluna da esquerda vira display:contents pra seus dois blocos virarem
      irmãos do painel: assim a BARRA DO TREINADOR (nome, país, campeonato, janela, compartilhar)
      fica fixa no topo em todas as abas, e o ELENCO só aparece na aba dele. Antes os dois viviam
@@ -2595,7 +2620,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* data real por linha do Calendário (ver calRowDate): copa na quarta, liga no fim de semana */
 .cl-cal-d{display:block;max-width:74px;font-style:normal;font-size:9.5px;font-family:var(--mono);color:var(--gray-999);line-height:1.1;margin-top:1px;white-space:nowrap}
 /* dia do próximo jogo no cartão do adversário (ver nextMatchDayLabel) */
-.cl-adv-day{font-family:var(--mono);font-size:10.5px;color:var(--yellow);margin-top:2px;letter-spacing:.2px}
+.cl-adv-day{font-family:var(--mono);font-size:11px;color:var(--yellow);letter-spacing:.2px;margin:0}
 
 /* ===== MOMENTOS DA TEMPORADA (8 modais de marco — ver abrirMomento em ui/main.js) =====
    Estrutura idêntica nos oito: vídeo com kicker/manchete por cima, faixa do clube, três cartões

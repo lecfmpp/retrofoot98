@@ -1987,9 +1987,7 @@ function scSeatTurn(){
         <div class="cl-roster cl-acc-body ${CL.escalacaoMode?'cl-roster-escala':''}">${rosterHTML()}</div>
       </div>
       <div class="cl-main-right ${ADV_HDR_TABS[CL.tab]?'':'sem-adv'}" style="background:${th.bg}">
-        <div class="cl-right-hdr"><div class="cl-adv-lbl">Adversário</div>
-          <div class="cl-adv-name" style="background:${th.bg2};padding:3px 8px">${escC(opp.short||'')}</div>
-          <div class="cl-adv-loc">${home?'CASA':'FORA'} · ${(S.round||0)+1}ª Jornada</div></div>
+        ${advHeaderHTML({nome:opp.short||'—', home, comp:divisionLabel(), fase:((S.round||0)+1)+'ª Jornada', season:S.season, chip:th.bg2})}
         <div class="cl-panel">${panel}</div>
         ${tabBar}
       </div>
@@ -2201,14 +2199,10 @@ function scMain(){
         <div class="cl-roster cl-acc-body ${CL.rosterOpen===false?'closed':''} ${CL.escalacaoMode?'cl-roster-escala':''}">${rosterHTML()}</div>
       </div>
       <div class="cl-main-right ${ADV_HDR_TABS[CL.tab]?'':'sem-adv'}" style="background:${th.bg}">
-        <div class="cl-right-hdr">
-          <div class="cl-adv-lbl">Adversário</div>
-          <div class="cl-year">${S.season}</div>
-          <div class="cl-adv-name" style="background:${th.bg2};padding:3px 8px">${oppId?escC((anyClubOf(oppId)||{short:'—'}).short):'—'}</div>
-          <div class="cl-adv-loc">${nm?`${nm.home?'CASA':'FORA'} · ${escC(nm.comp)}`:'—'}</div>
-          ${nm&&nextMatchDayLabel(nm)?`<div class="cl-adv-day">📅 ${escC(nextMatchDayLabel(nm))}</div>`:''}
-          ${nm?`<div class="cl-adv-comp ${nm.kind==='cup'?'cup':''}">${nm.kind==='cup'?`${trophyImg(nm.cupKey,14)||'🏆'} ${escC(nm.fase)}`:escC(nm.fase)}</div>`:''}
-        </div>
+        ${advHeaderHTML({nome:oppId?((anyClubOf(oppId)||{short:'—'}).short):'—', home:nm?nm.home:null,
+          comp:nm?nm.comp:'', fase:nm?nm.fase:'', cup:!!(nm&&nm.kind==='cup'),
+          trofeu:(nm&&nm.kind==='cup')?(trophyImg(nm.cupKey,13)||'🏆'):'',
+          dia:(nm&&nextMatchDayLabel(nm))||'', season:S.season, chip:th.bg2})}
         <div class="cl-panel">${panel}</div>
         ${tabBar}
       </div>
@@ -2332,6 +2326,27 @@ function rosterHTML(){
         <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}${trainingIcon(CL.clubId,p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(salary)}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;}).join('')+`</div>`;
   });
   return html;
+}
+/* ===== CABEÇALHO DO ADVERSÁRIO — bloco único, duas fontes =====
+   Eram seis elementos com seis tratamentos: rótulo 15px, ano 18px absoluto no canto, nome 16px,
+   local 15px, data em mono 10.5px amarelo e competição 12px — cada um num ponto diferente e sem
+   ritmo entre as linhas. Agora é um bloco com três faixas fixas (rótulo+temporada · nome ·
+   contexto+data) e só DUAS fontes, que é o sistema que o resto do jogo já usa: sans pra texto,
+   mono pra número e data. Os três lugares que mostram este cabeçalho passam por aqui. */
+function advHeaderHTML(o){
+  o=o||{};
+  const nome=o.nome||'—';
+  const mando=o.home==null?'':(o.home?'CASA':'FORA');
+  const meta=[];
+  if(mando) meta.push(`<span class="cl-advh-mando ${o.home?'casa':'fora'}">${mando}</span>`);
+  if(o.comp) meta.push(`<span>${escC(o.comp)}</span>`);
+  if(o.fase) meta.push(`<span class="cl-advh-fase ${o.cup?'cup':''}">${o.cup&&o.trofeu?o.trofeu+' ':''}${escC(o.fase)}</span>`);
+  return `<div class="cl-right-hdr">
+    <div class="cl-advh-top"><span class="cl-advh-lbl">Próximo jogo</span>${o.season?`<span class="cl-advh-ano">${o.season}</span>`:''}</div>
+    <div class="cl-adv-name" style="${o.chip?`background:${o.chip}`:''}">${escC(nome)}</div>
+    ${meta.length?`<div class="cl-advh-meta">${meta.join('')}</div>`:''}
+    ${o.dia?`<div class="cl-adv-day">📅 ${escC(o.dia)}</div>`:''}
+  </div>`;
 }
 function clSelPlayer(n){ CL.selPlayer=n;
   // na aba Selecção o clique NÃO tira o usuário da aba — assim o botão "Alterar
@@ -2701,12 +2716,8 @@ function scTeamView(){
         <div class="cl-roster cl-acc-body ${CL.rosterOpen===false?'closed':''}">${viewRosterHTML(vid)}</div>
       </div>
       <div class="cl-main-right ${ADV_HDR_TABS[CL.viewTab||'jogo']?'':'sem-adv'}" style="background:${th.bg}">
-        <div class="cl-right-hdr">
-          <div class="cl-adv-lbl">Adversário</div>
-          <div class="cl-year">${S.season}</div>
-          <div class="cl-adv-name" style="background:${th.bg2};padding:3px 8px">${oppId?escC(clubOf(oppId).short):'—'}</div>
-          <div class="cl-adv-loc">${uf?(home?'CASA':'FORA')+' '+jornada+'ª Jornada':'—'}</div>
-        </div>
+        ${advHeaderHTML({nome:oppId?clubOf(oppId).short:'—', home:uf?home:null,
+          fase:uf?(jornada+'ª Jornada'):'', season:S.season, chip:th.bg2})}
         <div class="cl-panel">${panel}</div>
         ${tabBar}
       </div>
