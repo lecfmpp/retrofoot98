@@ -1986,7 +1986,7 @@ function scSeatTurn(){
         <div class="cl-roster-hd cl-acc-hd"><span>Elenco</span></div>
         <div class="cl-roster cl-acc-body ${CL.escalacaoMode?'cl-roster-escala':''}">${rosterHTML()}</div>
       </div>
-      <div class="cl-main-right" style="background:${th.bg}">
+      <div class="cl-main-right ${ADV_HDR_TABS[CL.tab]?'':'sem-adv'}" style="background:${th.bg}">
         <div class="cl-right-hdr"><div class="cl-adv-lbl">Adversário</div>
           <div class="cl-adv-name" style="background:${th.bg2};padding:3px 8px">${escC(opp.short||'')}</div>
           <div class="cl-adv-loc">${home?'CASA':'FORA'} · ${(S.round||0)+1}ª Jornada</div></div>
@@ -2200,7 +2200,7 @@ function scMain(){
         </div>
         <div class="cl-roster cl-acc-body ${CL.rosterOpen===false?'closed':''} ${CL.escalacaoMode?'cl-roster-escala':''}">${rosterHTML()}</div>
       </div>
-      <div class="cl-main-right" style="background:${th.bg}">
+      <div class="cl-main-right ${ADV_HDR_TABS[CL.tab]?'':'sem-adv'}" style="background:${th.bg}">
         <div class="cl-right-hdr">
           <div class="cl-adv-lbl">Adversário</div>
           <div class="cl-year">${S.season}</div>
@@ -7134,6 +7134,11 @@ function clCalendar(){
 /* ---- menu dropdown (topo) ---- */
 /* rótulo de cada aba da tela principal — usado pelo hambúrguer pra dizer ONDE o jogador está
    (a barra de abas do rodapé mostra só ícones no telefone). */
+/* O cabeçalho "Adversário" (nome, mando, data, jornada) ocupa ~110px no telefone. Ele é contexto
+   pro PRÓXIMO JOGO, então vale nas abas onde isso está em questão — Jogo, Formação (escalar
+   contra alguém, dentro ou fora de casa, é a hora em que essa informação mais importa) e o
+   próprio Adversário. Em Jogador, Finanças e E-mail é só espaço gasto antes do conteúdo. */
+const ADV_HDR_TABS={jogo:true, seleccao:true, adversario:true};
 const TAB_LABELS={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
 function clMenu(m,e){ if(e)e.stopPropagation(); CL.menu=(CL.menu===m?null:m); cdraw(); }
 /* GAVETA LATERAL (telefone). cdraw() recria o DOM inteiro, então a transição de ABERTURA vem de

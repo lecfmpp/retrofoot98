@@ -1830,6 +1830,9 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-main{width:100%}
   .cl-main-body{flex-direction:column;min-height:0}
   .cl-main-right{order:-1}
+  /* cabeçalho do adversário só nas abas em que ele é contexto (ver ADV_HDR_TABS): em Jogador,
+     Finanças e E-mail eram ~110px de informação sem relação com o que está na tela */
+  .cl-main-right.sem-adv .cl-right-hdr{display:none}
   .cl-main-left,.cl-main-right{width:100% !important;padding:8px 10px}
   .cl-roster{max-height:52vh}
   .cl-div{margin-left:8px}
