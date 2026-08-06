@@ -1965,9 +1965,9 @@ function scSeatTurn(){
   const mailBadge=unread>0?`<span class="cl-count-badge">${unread>9?'9+':unread}</span>`:'';
   const tabs=['jogo','elenco','jogador','financas','seleccao','correio','adversario'];
   const tabLbl={jogo:'Jogo',elenco:'Elenco',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
-  const tabIco={jogo:'⚽',elenco:'👥',jogador:'👤',financas:'💰',seleccao:'📋',correio:'✉️',adversario:'🆚'};
+  const tabIco={jogo:'📅',elenco:'👥',jogador:'👤',financas:'💰',seleccao:'📋',correio:'✉️',adversario:'🆚'};
   const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab cl-tab-${t} ${CL.tab===t?'on':''}" onclick="clTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')
-    +`<span class="cl-tab cl-tab-play" onclick="clTabJogar()" title="Jogar" aria-label="Jogar"><span class="cl-tab-ico" aria-hidden="true">▶</span><span class="cl-tab-lbl">Jogar</span></span>`}</div>`;
+    +`<span class="cl-tab cl-tab-play" onclick="clTabJogar()" title="Jogar" aria-label="Jogar"><span class="cl-tab-ico" aria-hidden="true">⚽</span><span class="cl-tab-lbl">Jogar</span></span>`}</div>`;
   const ufArr=[fx.home,fx.away];   // panJogo espera [homeId,awayId], igual ao formato de userFixture()
   let panel='';
   if(CL.tab==='jogo') panel=panJogo(oppId,home,ufArr);
@@ -2169,11 +2169,11 @@ function scMain(){
      Antes ela ficava no fim de uma coluna empilhada — ou seja, fora da tela: pra trocar de aba
      era preciso rolar a página inteira ou abrir o menu. No desktop nada muda (o ícone fica
      oculto e o rótulo continua como sempre). */
-  const tabIco={jogo:'⚽',elenco:'👥',jogador:'👤',financas:'💰',seleccao:'📋',correio:'✉️',adversario:'🆚'};
+  const tabIco={jogo:'📅',elenco:'👥',jogador:'👤',financas:'💰',seleccao:'📋',correio:'✉️',adversario:'🆚'};
   // rótulo e ícone/badge são filhos flex do .cl-tab (align-items:center) — sempre em UMA linha e
   // verticalmente alinhados; o badge deixou de ser absoluto (flutuava acima do texto).
   const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab cl-tab-${t} ${CL.tab===t?'on':''}" onclick="clTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')
-    +`<span class="cl-tab cl-tab-play" onclick="clTabJogar()" title="Jogar" aria-label="Jogar"><span class="cl-tab-ico" aria-hidden="true">▶</span><span class="cl-tab-lbl">Jogar</span></span>`}</div>`;
+    +`<span class="cl-tab cl-tab-play" onclick="clTabJogar()" title="Jogar" aria-label="Jogar"><span class="cl-tab-ico" aria-hidden="true">⚽</span><span class="cl-tab-lbl">Jogar</span></span>`}</div>`;
   let panel='';
   if(CL.tab==='jogo'||CL.tab==='elenco') panel=panJogo(oppId,home,uf,nm);   // 'elenco' é aba só do telefone (lá o painel fica oculto); no desktop cai no Jogo
   else if(CL.tab==='jogador') panel=panJogador();
@@ -2190,8 +2190,8 @@ function scMain(){
     <div class="cl-main-body" style="background:${th.bg}">
       <div class="cl-main-left" style="background:${th.bg}">
         <div class="cl-hdr">
-          <div class="cl-mgr">${escC(CL.mgr||'TREINADOR')}</div>
-          <div class="cl-hdr-sub"><span class="cl-flag2">${universeFlag()}</span> ${escC(universeCountryName())} <span class="cl-div">${divisionTrophyImg(S.division,16)||''} ${divisionLabel()}</span> ${windowBadge()} <span class="cl-chip cl-share-mini cl-noshot" onclick="clShareTeam()" title="Compartilhar meu time">📤 Compartilhar</span></div>
+          <div class="cl-mgr">${escC(CL.mgr||'TREINADOR')}<span class="cl-share-wrap cl-noshot"><button class="cl-share-btn" onclick="clShareMenu(event)" title="Compartilhar meu time" aria-label="Compartilhar meu time">📤</button>${shareMenuHTML()}</span></div>
+          <div class="cl-hdr-sub"><span class="cl-flag2">${universeFlag()}</span> ${escC(universeCountryName())} <span class="cl-div">${divisionTrophyImg(S.division,16)||''} ${divisionLabel()}</span> ${windowBadge()}</div>
         </div>
         <div class="cl-roster-hd cl-acc-hd" onclick="clToggleRoster()">
           <span>Elenco</span><span class="cl-acc-arrow ${CL.rosterOpen===false?'closed':''}">▾</span>
@@ -2202,7 +2202,7 @@ function scMain(){
         ${advHeaderHTML({nome:oppId?((anyClubOf(oppId)||{short:'—'}).short):'—', home:nm?nm.home:null,
           comp:nm?nm.comp:'', fase:nm?nm.fase:'', cup:!!(nm&&nm.kind==='cup'),
           trofeu:(nm&&nm.kind==='cup')?(trophyImg(nm.cupKey,13)||'🏆'):'',
-          dia:(nm&&nextMatchDayLabel(nm))||'', season:S.season, chip:th.bg2})}
+          dia:(nm&&shortMatchDate(nm))||'', season:S.season, chip:th.bg2})}
         <div class="cl-panel">${panel}</div>
         ${tabBar}
       </div>
@@ -2214,9 +2214,11 @@ function scMain(){
    colunas de números/letras sem saber o que cada uma significava, principalmente depois que
    Idade virou coluna própria. */
 function rosterHeadHTML(){
+  // rótulos curtos no telefone (mesmo par cl-lbl-lg/cl-lbl-sm da Energia): com a coluna Nota a
+  // mais, "Força" e "Salário" não cabiam e invadiam a coluna vizinha
   return `<div class="cl-rrow head">
-    <span class="cl-rmark"></span><span class="cl-rpos">Pos</span><span class="cl-rname">Nome</span>
-    <span class="cl-rage">Id.</span><span class="cl-rf">Força</span><span class="cl-rnota" title="Nota do último jogo">Nota</span><span class="cl-rbatt"><b class="cl-lbl-lg">Energia</b><b class="cl-lbl-sm">En.</b></span><span class="cl-rv" title="Salário semanal">Salário</span><span class="cl-rmv">Valor</span></div>`;
+    <span class="cl-rmark"></span><span class="cl-rpos"><b class="cl-lbl-lg">Pos</b><b class="cl-lbl-sm">P</b></span><span class="cl-rname">Nome</span>
+    <span class="cl-rage">Id.</span><span class="cl-rf"><b class="cl-lbl-lg">Força</b><b class="cl-lbl-sm">Fç</b></span><span class="cl-rnota" title="Nota do último jogo"><b class="cl-lbl-lg">Nota</b><b class="cl-lbl-sm">Nt</b></span><span class="cl-rbatt"><b class="cl-lbl-lg">Energia</b><b class="cl-lbl-sm">En.</b></span><span class="cl-rv" title="Salário semanal"><b class="cl-lbl-lg">Salário</b><b class="cl-lbl-sm">Sal.</b></span><span class="cl-rmv"><b class="cl-lbl-lg">Valor</b><b class="cl-lbl-sm">Val.</b></span></div>`;
 }
 /* barra fixa que SUBSTITUI o cabeçalho de colunas enquanto o modo de escalação está ligado —
    fica grudada no topo da lista (mesma posição sticky do cabeçalho normal) e diz sempre quem
@@ -2346,6 +2348,15 @@ function rosterHTML(){
    ritmo entre as linhas. Agora é um bloco com três faixas fixas (rótulo+temporada · nome ·
    contexto+data) e só DUAS fontes, que é o sistema que o resto do jogo já usa: sans pra texto,
    mono pra número e data. Os três lugares que mostram este cabeçalho passam por aqui. */
+/* data curta pro cabeçalho: "24/jan" em vez de "sáb 24 de jan" — ela dividiu a linha com a
+   temporada, então precisa ser um carimbo, não uma frase */
+function shortMatchDate(nm){
+  if(!nm || typeof realDateForDay!=='function') return '';
+  try{ const dia=1+((S.round||0))*7+(nm.kind==='cup'?3:6);
+    const d=realDateForDay(dia);
+    return d.getDate()+'/'+PT_MONTHS_ABBR[d.getMonth()];
+  }catch(e){ return ''; }
+}
 function advHeaderHTML(o){
   o=o||{};
   const nome=o.nome||'—';
@@ -2355,10 +2366,10 @@ function advHeaderHTML(o){
   if(o.comp) meta.push(`<span>${escC(o.comp)}</span>`);
   if(o.fase) meta.push(`<span class="cl-advh-fase ${o.cup?'cup':''}">${o.cup&&o.trofeu?o.trofeu+' ':''}${escC(o.fase)}</span>`);
   return `<div class="cl-right-hdr">
-    <div class="cl-advh-top"><span class="cl-advh-lbl">Próximo jogo</span>${o.season?`<span class="cl-advh-ano">${o.season}</span>`:''}</div>
+    <div class="cl-advh-top"><span class="cl-advh-lbl">Próximo jogo</span>
+      <span class="cl-advh-quando">${o.dia?`<span class="cl-advh-data">${escC(o.dia)}</span>`:''}${o.season?`<span class="cl-advh-ano">${o.season}</span>`:''}</span></div>
     <div class="cl-adv-name" style="${o.chip?`background:${o.chip}`:''}">${escC(nome)}</div>
     ${meta.length?`<div class="cl-advh-meta">${meta.join('')}</div>`:''}
-    ${o.dia?`<div class="cl-adv-day">📅 ${escC(o.dia)}</div>`:''}
   </div>`;
 }
 function clSelPlayer(n){ CL.selPlayer=n;
@@ -2702,7 +2713,7 @@ function scTeamView(){
   const uf=fixtureFor(vid); const oppId=uf?(uf[0]===vid?uf[1]:uf[0]):null; const home=uf?uf[0]===vid:true;
   const tabs=['jogo','elenco','jogador','adversario'];
   const tabLbl={jogo:'Jogo',elenco:'Elenco',jogador:'Jogador',adversario:'Adversário'};
-  const tabIco={jogo:'⚽',elenco:'👥',jogador:'👤',adversario:'🆚'};
+  const tabIco={jogo:'📅',elenco:'👥',jogador:'👤',adversario:'🆚'};
   // sem ▶ Jogar aqui de propósito: no modo espectador não se entra em campo
   const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab cl-tab-${t} ${CL.viewTab===t?'on':''}" onclick="clViewTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span></span>`).join('')}</div>`;
   let panel='';
@@ -8683,6 +8694,63 @@ function windowClosedMsg(){ const st=transferWindowStatus();
 /* CHIP DA JANELA: mesma pintura do "Compartilhar" (cl-chip), ao lado dele na mesma linha.
    O texto diz só o que importa — quantas rodadas faltam pra virar — em vez de repetir o estado
    e o prazo ("Janela aberta (fecha em 9)"); o cadeado aberto/fechado já dá o estado. */
+/* ===== COMPARTILHAR =====
+   O botão virou só o ícone, ao lado do nome do treinador, e abre um menu com os quatro destinos.
+   O QUE DÁ PRA FAZER DE VERDADE numa página web: quando o aparelho tem compartilhamento nativo
+   com arquivo (navigator.share + files — praticamente todo celular hoje), a imagem e o texto vão
+   direto pra bandeja do sistema e o usuário toca no app escolhido; é assim que Instagram e TikTok
+   recebem a imagem, porque nenhum dos dois aceita publicação por URL. Sem esse suporte (desktop),
+   a imagem é baixada e, quando o destino tem compositor web (X e WhatsApp), ele abre já com a
+   mensagem pronta pro usuário anexar a imagem. */
+const SHARE_ALVOS=[
+  {id:'whatsapp', nome:'WhatsApp', ico:'💬'},
+  {id:'instagram',nome:'Instagram',ico:'📷'},
+  {id:'tiktok',   nome:'TikTok',   ico:'🎵'},
+  {id:'x',        nome:'X',        ico:'𝕏'},
+];
+function shareMenuHTML(){
+  if(!CL.shareOpen) return '';
+  return `<div class="cl-share-menu" onclick="event.stopPropagation()">
+    <div class="cl-share-menu-h">Compartilhar em</div>
+    ${SHARE_ALVOS.map(a=>`<button class="cl-share-opt" onclick="clShareTo('${a.id}')"><span>${a.ico}</span>${escC(a.nome)}</button>`).join('')}
+  </div>`;
+}
+function clShareMenu(e){ if(e)e.stopPropagation(); CL.shareOpen=!CL.shareOpen; cdraw(); }
+/* mensagem padrão: clube, divisão, posição e o convite — o mesmo texto em todos os destinos */
+function shareMessage(){
+  const c=(typeof clubOf==='function')&&clubOf(CL.clubId);
+  const pos=(typeof tablePos==='function')?tablePos(CL.clubId):null;
+  const div=(typeof divisionLabel==='function')?divisionLabel():'';
+  const partes=[];
+  partes.push(`Tô comandando o ${(c&&c.short)||'meu time'} no RetroFoot98`);
+  if(div) partes.push(`na ${div}`);
+  if(pos) partes.push(`— ${pos}º lugar`);
+  return partes.join(' ')+'. Monta o seu e joga comigo: https://retrofoot98.com.br';
+}
+async function clShareTo(alvo){
+  CL.shareOpen=false; cdraw();
+  const texto=shareMessage();
+  try{
+    toastC('Gerando imagem...');
+    const blob=await buildShareBlob();
+    const file=new File([blob],'retrofoot98.png',{type:'image/png'});
+    // caminho bom (celular): bandeja nativa com a imagem — é o único jeito de Instagram/TikTok
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], text:texto, title:'RetroFoot98'});
+      return;
+    }
+    // sem compartilhamento nativo: baixa a imagem e abre o compositor de quem tem
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='retrofoot98.png'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 20000);
+    if(alvo==='x'){ window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(texto),'_blank','noopener'); toastC('Imagem baixada — anexe no post.'); }
+    else if(alvo==='whatsapp'){ window.open('https://wa.me/?text='+encodeURIComponent(texto),'_blank','noopener'); toastC('Imagem baixada — anexe na conversa.'); }
+    else toastC('Imagem baixada — publique no '+(SHARE_ALVOS.find(x=>x.id===alvo)||{}).nome+'.');
+  }catch(e){
+    if(e && e.name==='AbortError') return;             // o usuário fechou a bandeja: não é erro
+    console.warn('compartilhar:', e); toastC('⚠ '+((e&&e.message)||'erro ao gerar imagem'));
+  }
+}
 function windowBadge(){ const st=transferWindowStatus();
   if(st.open) return `<span class="cl-chip cl-winbadge open" title="Janela de transferências aberta">🔓 Janela fecha em ${st.closesIn}</span>`;
   return `<span class="cl-chip cl-winbadge closed" title="Janela de transferências fechada">🔒 ${st.opensIn!=null?'Janela abre em '+st.opensIn:'Janela fechada'}</span>`; }
@@ -9031,6 +9099,7 @@ function toastC(msg){ let t=$c('#c-toast'); if(!t){ t=document.createElement('di
 
 /* fechar dropdown ao clicar fora */
 document.addEventListener('click',()=>{
+  if(CL.shareOpen){ CL.shareOpen=false; cdraw(); return; }
   if(CL.mobMenuOpen && isPhone()){ closeMobMenu(); return; }   // gaveta sai deslizando, não some
   if(CL.menu||CL.mobMenuOpen){ CL.menu=null; CL.mobMenuOpen=false; cdraw(); }
 });

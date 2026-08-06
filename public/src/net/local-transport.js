@@ -120,6 +120,28 @@ function roundRectPath(ctx,x,y,w,h,r){ r=Math.min(r,w/2,h/2); ctx.beginPath();
 function waitForLib(check,timeoutMs){ return new Promise(res=>{ if(check())return res(true);
   const t0=Date.now(); const iv=setInterval(()=>{ if(check()){clearInterval(iv);res(true);}
     else if(Date.now()-t0>timeoutMs){clearInterval(iv);res(false);} },80); }); }
+/* Gera o PNG do print da tela (mesma arte usada desde sempre: fundo verde da marca, cartão com
+   cantos arredondados e sombra) e devolve o Blob, em vez de abrir numa aba. Quem chama decide o
+   que fazer com ele — abrir, baixar ou entregar pro compartilhamento nativo. */
+async function buildShareBlob(){
+  if(!window.html2canvas) await waitForLib(()=>!!window.html2canvas, 6000);
+  if(!window.html2canvas) throw new Error('Não foi possível gerar a imagem (sem conexão?)');
+  const el = document.querySelector('.cl-main, .cl-live') || document.querySelector('#c-root');
+  const shot = await html2canvas(el, { backgroundColor:null, scale:2, useCORS:true, logging:false,
+    ignoreElements:(e)=> e.classList && e.classList.contains('cl-noshot') });
+  const W=1080, H=1350, pad=56, radius=42;
+  const out=document.createElement('canvas'); out.width=W; out.height=H; const ctx=out.getContext('2d');
+  ctx.fillStyle='#2f8f2f'; ctx.fillRect(0,0,W,H);
+  const availW=W-2*pad, availH=H-2*pad;
+  const sc=Math.min(availW/shot.width, availH/shot.height);
+  const dw=Math.round(shot.width*sc), dh=Math.round(shot.height*sc);
+  const dx=Math.round((W-dw)/2), dy=Math.round((H-dh)/2);
+  ctx.save(); ctx.shadowColor='rgba(0,0,0,.4)'; ctx.shadowBlur=34; ctx.shadowOffsetY=12;
+  roundRectPath(ctx,dx,dy,dw,dh,radius); ctx.fillStyle='#0b2a14'; ctx.fill(); ctx.restore();
+  ctx.save(); roundRectPath(ctx,dx,dy,dw,dh,radius); ctx.clip();
+  ctx.drawImage(shot,dx,dy,dw,dh); ctx.restore();
+  return await new Promise((res,rej)=>out.toBlob(b=>b?res(b):rej(new Error('Falha ao gerar imagem'))));
+}
 async function shareScreenshot(){
   try{
     toastC('Gerando imagem...');
