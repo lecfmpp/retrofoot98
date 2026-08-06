@@ -1952,9 +1952,12 @@ function scSeatTurn(){
   const menuNames=['RetroFoot98','Formação','Equipa','Jogador','Campeonatos','Treinador'];
   const hamburger=`<div class="cl-hamburger ${CL.mobMenuOpen?'open':''}" onclick="clToggleMobMenu(event)" role="button" aria-expanded="${CL.mobMenuOpen?'true':'false'}">
     <span class="cl-ham-ico" aria-hidden="true">${CL.mobMenuOpen?'✕':'☰'}</span>
-    <span class="cl-ham-t">${CL.mobMenuOpen?'Fechar':'Menu'}</span>
-    <span class="cl-ham-here">${escC(TAB_LABELS[CL.tab]||'')}</span></div>`;
-  const menu=`<div class="cl-menu ${CL.mobMenuOpen?'mob-open':''}" id="cl-menubar">
+    <span class="cl-ham-t">${CL.mobMenuOpen?'Fechar':'Menu'}</span></div>`;
+  // no telefone o menu é uma GAVETA que entra pela esquerda: o véu escurece o conteúdo (e fecha
+  // ao toque, via handler global) e o clique dentro da gaveta não borbulha, pra tocar em espaço
+  // vazio dela não fechar. No desktop nada disso aparece — segue a barra horizontal de sempre.
+  const menu=`${CL.mobMenuOpen?'<div class="cl-menu-scrim"></div>':''}<div class="cl-menu ${CL.mobMenuOpen?'mob-open':''}" id="cl-menubar" onclick="event.stopPropagation()">
+    <div class="cl-menu-hd"><span class="cl-menu-hd-t">Menu</span><button class="cl-menu-x" type="button" onclick="closeMobMenu()" aria-label="Fechar menu">✕</button></div>
     ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
   </div>`;
   if(typeof syncInbox==='function') syncInbox();
@@ -1963,7 +1966,8 @@ function scSeatTurn(){
   const tabs=['jogo','jogador','financas','seleccao','correio','adversario'];
   const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
   const tabIco={jogo:'⚽',jogador:'👤',financas:'💰',seleccao:'📋',correio:'✉️',adversario:'🆚'};
-  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')}</div>`;
+  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')
+    +`<span class="cl-tab cl-tab-play" onclick="clTabJogar()" title="Jogar" aria-label="Jogar"><span class="cl-tab-ico" aria-hidden="true">▶</span><span class="cl-tab-lbl">Jogar</span></span>`}</div>`;
   const ufArr=[fx.home,fx.away];   // panJogo espera [homeId,awayId], igual ao formato de userFixture()
   let panel='';
   if(CL.tab==='jogo') panel=panJogo(oppId,home,ufArr);
@@ -2143,14 +2147,17 @@ function scMain(){
   const menuNames=['RetroFoot98','Formação','Equipa','Jogador','Campeonatos','Treinador']; if(CL.online) menuNames.push('Modo Resenha');
   const hamburger=`<div class="cl-hamburger ${CL.mobMenuOpen?'open':''}" onclick="clToggleMobMenu(event)" role="button" aria-expanded="${CL.mobMenuOpen?'true':'false'}">
     <span class="cl-ham-ico" aria-hidden="true">${CL.mobMenuOpen?'✕':'☰'}</span>
-    <span class="cl-ham-t">${CL.mobMenuOpen?'Fechar':'Menu'}</span>
-    <span class="cl-ham-here">${escC(TAB_LABELS[CL.tab]||'')}</span></div>`;
+    <span class="cl-ham-t">${CL.mobMenuOpen?'Fechar':'Menu'}</span></div>`;
   // badge numérico ÚNICO pra todas as notificações da UI (ofertas, e-mails, pedidos de entrada):
   // nada de emoji, só o número (9+ acima de 9). Mesmo padrão em aba e menu.
   const numBadge=n=>(n>0)?`<span class="cl-count-badge">${n>9?'9+':n}</span>`:'';
   const resenhaBadge=(CL.online && typeof NET!=='undefined' && NET.isHost && CL.pendingJoins)?numBadge(CL.pendingJoins.length):''; // pedidos de entrada pendentes
   // o badge de proposta fica SÓ na aba "Jogador" da tela principal — no menu do topo era repetido.
-  const menu=`<div class="cl-menu ${CL.mobMenuOpen?'mob-open':''}" id="cl-menubar">
+  // no telefone o menu é uma GAVETA que entra pela esquerda: o véu escurece o conteúdo (e fecha
+  // ao toque, via handler global) e o clique dentro da gaveta não borbulha, pra tocar em espaço
+  // vazio dela não fechar. No desktop nada disso aparece — segue a barra horizontal de sempre.
+  const menu=`${CL.mobMenuOpen?'<div class="cl-menu-scrim"></div>':''}<div class="cl-menu ${CL.mobMenuOpen?'mob-open':''}" id="cl-menubar" onclick="event.stopPropagation()">
+    <div class="cl-menu-hd"><span class="cl-menu-hd-t">Menu</span><button class="cl-menu-x" type="button" onclick="closeMobMenu()" aria-label="Fechar menu">✕</button></div>
     ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${mm==='Modo Resenha'?resenhaBadge:''}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
   </div>`;
   if(typeof syncInbox==='function') syncInbox();           // atualiza a caixa antes de desenhar o badge
@@ -2167,7 +2174,8 @@ function scMain(){
   const tabIco={jogo:'⚽',jogador:'👤',financas:'💰',seleccao:'📋',correio:'✉️',adversario:'🆚'};
   // rótulo e ícone/badge são filhos flex do .cl-tab (align-items:center) — sempre em UMA linha e
   // verticalmente alinhados; o badge deixou de ser absoluto (flutuava acima do texto).
-  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')}</div>`;
+  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')
+    +`<span class="cl-tab cl-tab-play" onclick="clTabJogar()" title="Jogar" aria-label="Jogar"><span class="cl-tab-ico" aria-hidden="true">▶</span><span class="cl-tab-lbl">Jogar</span></span>`}</div>`;
   let panel='';
   if(CL.tab==='jogo') panel=panJogo(oppId,home,uf,nm);
   else if(CL.tab==='jogador') panel=panJogador();
@@ -2330,7 +2338,27 @@ function clSelPlayer(n){ CL.selPlayer=n;
   // Escalação" continua acessível até ele clicar em Jogar. Nas outras abas, abre o Jogador.
   if(CL.tab!=='jogador' && CL.tab!=='seleccao') CL.tab='jogador';
   cdraw(); }
-function clTab(t){ CL.tab=t; if(t==='correio'){ CL.inboxOpen=null; markInboxSeen(); } cdraw(); }
+function clTab(t){ CL.tab=t; if(t==='correio'){ CL.inboxOpen=null; markInboxSeen(); }
+  // TELEFONE: a barra de abas é fixa no rodapé, mas o conteúdo dela vinha DEPOIS do elenco
+  // aberto — clicar num ícone não mostrava nada sem rolar a página inteira. Aqui o acordeão do
+  // elenco fecha e a tela sobe até o painel, então a aba escolhida aparece na primeira dobra.
+  if(isPhone()){ CL.rosterOpen=false; CL.mobMenuOpen=false; CL.menu=null; }
+  cdraw();
+  if(isPhone()) scrollToPanel();
+}
+function isPhone(){ return typeof matchMedia==='function' && matchMedia('(max-width:760px)').matches; }
+/* leva o painel da aba pro topo da tela (descontando a barra de título do jogo, que é fixa) */
+function scrollToPanel(){
+  requestAnimationFrame(()=>{
+    const el=$c('.cl-main-right'); if(!el) return;
+    const topo=el.getBoundingClientRect().top + (window.scrollY||window.pageYOffset||0) - 6;
+    window.scrollTo({top:Math.max(0,topo), behavior:'smooth'});
+  });
+}
+/* ⚽ JOGAR da barra de abas: é a ação mais importante do jogo, então tem lugar próprio no rodapé.
+   Abre a aba Formação — onde estão as formações e o próprio botão Jogar — em vez de entrar em
+   campo direto: a escalação é a decisão que antecede a partida. */
+function clTabJogar(){ clTab('seleccao'); }
 
 /* ================= CAIXA DE ENTRADA (E-MAIL DO TREINADOR) =================
    Comunicados chegam aqui: propostas por jogadores, convites de outros clubes, avisos da
@@ -7108,7 +7136,22 @@ function clCalendar(){
    (a barra de abas do rodapé mostra só ícones no telefone). */
 const TAB_LABELS={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
 function clMenu(m,e){ if(e)e.stopPropagation(); CL.menu=(CL.menu===m?null:m); cdraw(); }
-function clToggleMobMenu(e){ if(e)e.stopPropagation(); CL.mobMenuOpen=!CL.mobMenuOpen; if(!CL.mobMenuOpen)CL.menu=null; cdraw(); }
+/* GAVETA LATERAL (telefone). cdraw() recria o DOM inteiro, então a transição de ABERTURA vem de
+   uma @keyframes no CSS (anima ao ser inserido). Pra FECHAR não dá pra fazer o mesmo — o
+   elemento sumiria antes de animar —, então marcamos .closing, esperamos a animação e só aí
+   trocamos o estado e redesenhamos. */
+function clToggleMobMenu(e){ if(e)e.stopPropagation();
+  if(CL.mobMenuOpen){ closeMobMenu(); return; }
+  CL.mobMenuOpen=true; cdraw();
+}
+function closeMobMenu(){
+  const g=$c('.cl-menu.mob-open');
+  const fim=()=>{ CL.mobMenuOpen=false; CL.menu=null; cdraw(); };
+  if(!g || !isPhone()){ fim(); return; }
+  g.classList.add('closing');
+  const scrim=$c('.cl-menu-scrim'); if(scrim) scrim.classList.add('closing');
+  setTimeout(fim, 240);   // igual à duração da animação em .cl-menu.closing
+}
 function clToggleRoster(){ CL.rosterOpen = CL.rosterOpen===false ? true : false; cdraw(); }
 /* toggle genérico de acordeão — usado em qualquer seção recolhível (país, financeiro, etc.) */
 function clToggleAcc(key){ CL[key] = CL[key]===false ? true : false; cdraw(); }
@@ -8898,7 +8941,10 @@ function toastC(msg){ let t=$c('#c-toast'); if(!t){ t=document.createElement('di
   const d=document.createElement('div'); d.className='cl-toast'; d.textContent=msg; t.appendChild(d); setTimeout(()=>d.remove(),2600); }
 
 /* fechar dropdown ao clicar fora */
-document.addEventListener('click',()=>{ if(CL.menu||CL.mobMenuOpen){ CL.menu=null; CL.mobMenuOpen=false; cdraw(); } });
+document.addEventListener('click',()=>{
+  if(CL.mobMenuOpen && isPhone()){ closeMobMenu(); return; }   // gaveta sai deslizando, não some
+  if(CL.menu||CL.mobMenuOpen){ CL.menu=null; CL.mobMenuOpen=false; cdraw(); }
+});
 /* o palco do chaveamento é escalado por JS (proporção fixa): reescala ao girar/redimensionar,
    senão a chave ficaria cortada ou pequena demais depois de mudar o tamanho da janela. */
 window.addEventListener('resize',()=>{ if(CL.screen==='cupclassif'||CL.screen==='cupview'||CL.screen==='cupdraw') cupFitStage(); });

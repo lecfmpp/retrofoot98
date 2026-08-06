@@ -704,6 +704,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-tab.on{color:#fff;font-weight:700;border-color:#888 #888 #000 #888;background:#111;border-bottom:2px solid var(--yellow)}
 .cl-tab:hover{color:#fff}
 .cl-tab-ico{display:none}   /* o ícone é da barra fixa do telefone; no desktop vale o rótulo */
+/* cabeçalho/véu/▶Jogar são exclusivos da gaveta e da barra do telefone */
+.cl-menu-hd,.cl-menu-scrim,.cl-tab-play{display:none}
 /* ===== BADGE NUMÉRICO DE NOTIFICAÇÃO (ofertas, e-mails, pedidos de entrada) — sem emoji ===== */
 /* INLINE (era absoluto, flutuava acima do texto): fica na mesma linha, centrado com o texto. */
 .cl-count-badge{min-width:16px;height:16px;padding:0 4px;background:#e21c1c;color:#fff;font-size:10px;font-weight:800;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 1.5px #111;vertical-align:middle}
@@ -1819,9 +1821,15 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-sala-res-nome{width:auto;flex:1;min-width:0}
   .cl-sala-res-clube{width:78px}
   .cl-sala-res-minis{display:none}
-  /* hub principal: colunas empilham, elenco vira acordeão retrátil */
+  /* hub principal: colunas empilham, elenco vira acordeão retrátil.
+     A COLUNA DA DIREITA VEM PRIMEIRO: é ela que tem o painel da aba, ou seja, o que o jogador
+     acabou de escolher no rodapé. Empilhada na ordem original, o painel só começava depois do
+     cabeçalho do treinador e do elenco inteiro — fora da primeira dobra, e nem rolando até o fim
+     dava pra trazer pro topo. Agora o conteúdo da aba abre na dobra e a ficha do clube + elenco
+     ficam logo abaixo, pra consulta. */
   .cl-main{width:100%}
   .cl-main-body{flex-direction:column;min-height:0}
+  .cl-main-right{order:-1}
   .cl-main-left,.cl-main-right{width:100% !important;padding:8px 10px}
   .cl-roster{max-height:52vh}
   .cl-div{margin-left:8px}
@@ -1830,10 +1838,29 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
      dizer onde o jogador estava nem onde ia dar. Agora: barra com ícone + rótulo + a ABA ATUAL
      à direita (contexto), e a folha que abre tem alvos de toque de 46px, seções destacadas e
      um fundo escurecido por trás pra separar do conteúdo. */
-  .cl-menu{display:none;flex-direction:column;position:absolute;top:100%;left:0;right:0;background:#fff;z-index:40;
-    max-height:70vh;overflow:auto;-webkit-overflow-scrolling:touch;
-    border:2px solid;border-color:var(--bevD2) var(--bevD2) var(--bevD2) var(--bevD2);box-shadow:0 14px 30px rgba(0,0,0,.55)}
-  .cl-menu.mob-open{display:flex}
+  /* GAVETA LATERAL: entra pela esquerda por cima do conteúdo, em vez de empurrar a tela toda
+     pra baixo. Como cdraw() recria o DOM, a abertura é @keyframes (roda ao inserir) e o
+     fechamento é a classe .closing aplicada antes de trocar o estado (ver closeMobMenu). */
+  .cl-menu{display:none;flex-direction:column;position:fixed;top:0;left:0;bottom:0;right:auto;
+    width:min(84vw,300px);background:#fff;z-index:60;max-height:none;overflow:auto;
+    -webkit-overflow-scrolling:touch;border:none;border-right:2px solid #000;
+    box-shadow:6px 0 26px rgba(0,0,0,.5);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .cl-menu.mob-open{display:flex;animation:cl-drawer-in .26s cubic-bezier(.22,.75,.3,1) both}
+  .cl-menu.mob-open.closing{animation:cl-drawer-out .24s cubic-bezier(.5,0,.75,.4) both}
+  @keyframes cl-drawer-in{from{transform:translateX(-100%)}to{transform:none}}
+  @keyframes cl-drawer-out{from{transform:none}to{transform:translateX(-100%)}}
+  .cl-menu-scrim{position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.5);
+    animation:cl-scrim-in .26s ease both}
+  .cl-menu-scrim.closing{animation:cl-scrim-out .24s ease both}
+  @keyframes cl-scrim-in{from{opacity:0}to{opacity:1}}
+  @keyframes cl-scrim-out{from{opacity:1}to{opacity:0}}
+  .cl-menu-scrim{display:block}
+  .cl-menu-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex:none;
+    position:sticky;top:0;z-index:2;background:var(--navy);color:#fff;padding:12px 10px 12px 14px}
+  .cl-menu-hd-t{font-size:15px;font-weight:800;letter-spacing:.5px}
+  .cl-menu-x{width:34px;height:30px;padding:0;background:var(--chrome);border:2px solid;
+    border-color:var(--bevel-out);color:#000;font-family:inherit;font-weight:900;font-size:13px;cursor:pointer}
+  .cl-menu-x:active{border-color:var(--bevel-in)}
   /* display:block (não flex): o submenu é filho do item, então em flex ele virava uma COLUNA ao
      lado do rótulo e vazava pra fora da tela. Em bloco, o rótulo fica na sua linha e o submenu
      abre em largura cheia logo abaixo, que é o comportamento esperado num menu de telefone. */
@@ -1873,6 +1900,11 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-tab.on{background:#2a2a2a;border:none;color:#fff}
   .cl-tab.on::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--yellow)}
   .cl-tab.on .cl-tab-ico{filter:none;transform:scale(1.08)}
+  /* ▶ JOGAR: ação principal do jogo, então ganha cor própria no rodapé em vez de ser mais um
+     ícone cinza igual aos outros */
+  .cl-tab-play{display:flex;background:#0b6b28;color:#fff}
+  .cl-tab-play .cl-tab-ico{filter:none;color:#fff;font-size:20px}
+  .cl-tab-play:active{background:#08511e}
   .cl-tab .cl-count-badge{position:absolute;top:7px;right:calc(50% - 20px)}
   /* o conteúdo não pode terminar embaixo da barra */
   .cl-main-right{padding-bottom:70px !important}
