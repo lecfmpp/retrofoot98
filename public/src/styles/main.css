@@ -1801,6 +1801,17 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-invres-link{width:100%;box-sizing:border-box}
   .cl-btn{width:100%;box-sizing:border-box}
   .cl-btn-wide{width:100%}
+  /* ===== NENHUM MODAL ROLA PRA LADO NO TELEFONE =====
+     Vários painéis internos foram escritos com largura/min-width fixa em 420px (a largura
+     confortável no desktop). Numa tela de 360 isso deixa o conteúdo mais largo que o próprio
+     modal: parte fica escondida e só aparece arrastando pro lado. Aqui todos viram fluidos.
+     A regra final é uma rede de segurança pros que ainda venham com medida fixa. */
+  .cl-dlg .cl-cal,.cl-dlg .cl-cls,.cl-dlg .cl-complist,.cl-dlg .cl-mkt-squad,
+  .cl-dlg .cl-mkt-roster,.cl-dlg .cl-mkt-offer,.cl-dlg .cl-mkt-clublist,
+  .cl-dlg .cl-pbody,.cl-dlg .cl-rank,.cl-dlg .cl-chist,.cl-dlg .cl-auc{
+    width:auto;min-width:0;max-width:100%;box-sizing:border-box}
+  .cl-dlg-body>*,.cl-dlg-content>*{max-width:100%;box-sizing:border-box}
+  .cl-dlg{overflow-x:hidden}
   /* país: lista + painel lateral empilham; lista de países ganha largura total */
   .cl-paises{flex-direction:column;gap:12px}
   .cl-ctry-list{width:100%;max-height:280px}
@@ -1829,7 +1840,19 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
      ficam logo abaixo, pra consulta. */
   .cl-main{width:100%}
   .cl-main-body{flex-direction:column;min-height:0}
+  /* UMA ABA POR VEZ. A coluna da esquerda vira display:contents pra seus dois blocos virarem
+     irmãos do painel: assim a BARRA DO TREINADOR (nome, país, campeonato, janela, compartilhar)
+     fica fixa no topo em todas as abas, e o ELENCO só aparece na aba dele. Antes os dois viviam
+     embaixo do painel em toda aba, o que fazia a tela ter sempre duas coisas concorrendo. */
+  .cl-main-left{display:contents}
+  .cl-hdr{order:-2;padding:8px 10px 6px}
   .cl-main-right{order:-1}
+  .cl-roster-hd{order:1}
+  .cl-roster{order:2;margin:0 10px 10px}
+  .cl-roster-hd,.cl-roster{display:none}
+  .cl-main.tab-elenco .cl-roster-hd{display:flex;margin:0 10px}
+  .cl-main.tab-elenco .cl-roster{display:block}
+  .cl-main.tab-elenco .cl-main-right{display:none}
   /* cabeçalho do adversário só nas abas em que ele é contexto (ver ADV_HDR_TABS): em Jogador,
      Finanças e E-mail eram ~110px de informação sem relação com o que está na tela */
   .cl-main-right.sem-adv .cl-right-hdr{display:none}

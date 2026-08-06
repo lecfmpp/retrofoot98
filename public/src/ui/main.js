@@ -1963,9 +1963,9 @@ function scSeatTurn(){
   if(typeof syncInbox==='function') syncInbox();
   const unread=(typeof inboxUnread==='function')?inboxUnread():0;
   const mailBadge=unread>0?`<span class="cl-count-badge">${unread>9?'9+':unread}</span>`:'';
-  const tabs=['jogo','jogador','financas','seleccao','correio','adversario'];
-  const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
-  const tabIco={jogo:'⚽',jogador:'👤',financas:'💰',seleccao:'📋',correio:'✉️',adversario:'🆚'};
+  const tabs=['jogo','elenco','jogador','financas','seleccao','correio','adversario'];
+  const tabLbl={jogo:'Jogo',elenco:'Elenco',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
+  const tabIco={jogo:'⚽',elenco:'👥',jogador:'👤',financas:'💰',seleccao:'📋',correio:'✉️',adversario:'🆚'};
   const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')
     +`<span class="cl-tab cl-tab-play" onclick="clTabJogar()" title="Jogar" aria-label="Jogar"><span class="cl-tab-ico" aria-hidden="true">▶</span><span class="cl-tab-lbl">Jogar</span></span>`}</div>`;
   const ufArr=[fx.home,fx.away];   // panJogo espera [homeId,awayId], igual ao formato de userFixture()
@@ -1979,7 +1979,7 @@ function scSeatTurn(){
   return `<div class="cl-main" style="border-color:${th.col}">
     <div class="cl-main-top">${flag} ${escC(seat.name)} · ${escC(cl.short||'')}</div>
     <div class="cl-mobmenu-wrap">${hamburger}${menu}</div>
-    <div class="cl-main-body">
+    <div class="cl-main-body" style="background:${th.bg}">
       <div class="cl-main-left" style="background:${th.bg}">
         <div class="cl-hdr"><div class="cl-mgr">${escC(seat.name)}</div>
           <div class="cl-hdr-sub"><span class="cl-flag2">${flag}</span> ${escC(seat.country)} <span class="cl-div">${escC(seatDivLabel(seat,fx))}</span></div></div>
@@ -2165,13 +2165,13 @@ function scMain(){
   const mailBadge=numBadge(unread);
   // aba "Jogador" NÃO tem mais badge de propostas: a proposta chega como e-mail e o badge da aba
   // E-mail já avisa — dois contadores pra mesma coisa só poluíam a barra de abas.
-  const tabs=['jogo','jogador','financas','seleccao','correio','adversario'];
-  const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
+  const tabs=['jogo','elenco','jogador','financas','seleccao','correio','adversario'];
+  const tabLbl={jogo:'Jogo',elenco:'Elenco',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
   /* ÍCONE POR ABA: no telefone esta barra vira uma barra de app FIXA no rodapé, só com ícones.
      Antes ela ficava no fim de uma coluna empilhada — ou seja, fora da tela: pra trocar de aba
      era preciso rolar a página inteira ou abrir o menu. No desktop nada muda (o ícone fica
      oculto e o rótulo continua como sempre). */
-  const tabIco={jogo:'⚽',jogador:'👤',financas:'💰',seleccao:'📋',correio:'✉️',adversario:'🆚'};
+  const tabIco={jogo:'⚽',elenco:'👥',jogador:'👤',financas:'💰',seleccao:'📋',correio:'✉️',adversario:'🆚'};
   // rótulo e ícone/badge são filhos flex do .cl-tab (align-items:center) — sempre em UMA linha e
   // verticalmente alinhados; o badge deixou de ser absoluto (flutuava acima do texto).
   const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')
@@ -2185,11 +2185,11 @@ function scMain(){
   else panel=panAdversario(oppId);
   const jornada=(S.round||0)+1;
   const th=clubTheme(CL.clubId);
-  return `<div class="cl-main ${CL.online?'cl-main-online':''}" style="border-color:${th.col}">
+  return `<div class="cl-main tab-${CL.tab} ${CL.online?'cl-main-online':''}" style="border-color:${th.col}">
     <div class="cl-main-top">${escC(cl.short)}</div>
     <div class="cl-mobmenu-wrap">${hamburger}${menu}</div>
     ${CL.online?onlineStatusSidebar():''}
-    <div class="cl-main-body">
+    <div class="cl-main-body" style="background:${th.bg}">
       <div class="cl-main-left" style="background:${th.bg}">
         <div class="cl-hdr">
           <div class="cl-mgr">${escC(CL.mgr||'TREINADOR')}</div>
@@ -2342,7 +2342,8 @@ function clTab(t){ CL.tab=t; if(t==='correio'){ CL.inboxOpen=null; markInboxSeen
   // TELEFONE: a barra de abas é fixa no rodapé, mas o conteúdo dela vinha DEPOIS do elenco
   // aberto — clicar num ícone não mostrava nada sem rolar a página inteira. Aqui o acordeão do
   // elenco fecha e a tela sobe até o painel, então a aba escolhida aparece na primeira dobra.
-  if(isPhone()){ CL.rosterOpen=false; CL.mobMenuOpen=false; CL.menu=null; }
+  if(t==='elenco') CL.rosterOpen=true;   // a aba É o elenco: nunca chega recolhida
+  if(isPhone()){ if(t!=='elenco') CL.rosterOpen=false; CL.mobMenuOpen=false; CL.menu=null; }
   cdraw();
   if(isPhone()) scrollToPanel();
 }
@@ -2675,7 +2676,7 @@ function scTeamView(){
   return `<div class="cl-main" style="border-color:${th.col}">
     <div class="cl-main-top">${escC(c.short)} <span class="cl-view-tag">👁 Visualização</span></div>
     <div class="cl-mobmenu-wrap">${btn('← Voltar','clViewTeamBack()',{cls:'cl-btn-mini'})}</div>
-    <div class="cl-main-body">
+    <div class="cl-main-body" style="background:${th.bg}">
       <div class="cl-main-left" style="background:${th.bg}">
         <div class="cl-hdr">
           <div class="cl-mgr">${escC(c.name)}</div>
@@ -3754,7 +3755,11 @@ function panSeleccao(){
    hora — sem popup de confirmação no meio, um toque a menos que antes. Restringir a
    mesma posição (em vez de aceitar qualquer troca com aviso, como era antes) também
    garante de graça o invariante de 1 goleiro só: GK só troca com GK. ---- */
-function clToggleEscalacao(){ CL.escalacaoMode=!CL.escalacaoMode; CL.escalaMark=null; cdraw(); }
+function clToggleEscalacao(){ CL.escalacaoMode=!CL.escalacaoMode; CL.escalaMark=null;
+  // no telefone só uma aba aparece por vez: trocar jogadores é tocar nas linhas do ELENCO,
+  // então entrar em modo de escalação leva pra aba dele (e sair volta pra Formação)
+  if(isPhone()){ clTab(CL.escalacaoMode?'elenco':'seleccao'); return; }
+  cdraw(); }
 function clEscalaPick(pid){   // pid do jogador clicado (identidade por ID, não nome)
   const p=pById(pid,CL.clubId); if(!p) return;
   if(!CL.escalaMark){    // nada marcado ainda -> este vira a marca, seja T ou R
@@ -7139,7 +7144,7 @@ function clCalendar(){
    contra alguém, dentro ou fora de casa, é a hora em que essa informação mais importa) e o
    próprio Adversário. Em Jogador, Finanças e E-mail é só espaço gasto antes do conteúdo. */
 const ADV_HDR_TABS={jogo:true, seleccao:true, adversario:true};
-const TAB_LABELS={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
+const TAB_LABELS={jogo:'Jogo',elenco:'Elenco',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
 function clMenu(m,e){ if(e)e.stopPropagation(); CL.menu=(CL.menu===m?null:m); cdraw(); }
 /* GAVETA LATERAL (telefone). cdraw() recria o DOM inteiro, então a transição de ABERTURA vem de
    uma @keyframes no CSS (anima ao ser inserido). Pra FECHAR não dá pra fazer o mesmo — o
@@ -8871,7 +8876,7 @@ function clCounterOffers(){ CL.menu=null;
         ${btn('Recusar','clRejectCounter('+c.id+')',{cls:'cl-btn-cancel cl-btn-mini'})}
       </div></div>`).join('')
     :'<div style="padding:16px;text-align:center;color:#888">Nenhuma contraproposta no momento.</div>';
-  overlayC(dlg('Contrapropostas recebidas', `<div class="cl-mkt-squad" style="min-width:420px">${rows}</div>
+  overlayC(dlg('Contrapropostas recebidas', `<div class="cl-mkt-squad">${rows}</div>
     <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
     {w:560,bodyClass:'cl-body-gray',min:true}));
 }
