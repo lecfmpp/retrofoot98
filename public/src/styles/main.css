@@ -603,9 +603,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-main-left{width:56%;background:#000;padding:10px 0 10px 14px;display:flex;flex-direction:column;min-height:0}
 .cl-hdr{padding:6px 0 10px}
 .cl-mgr{font-family:var(--serif);font-weight:700;color:#fff;font-size:30px;line-height:1}
-.cl-hdr-sub{color:#fff;font-size:15px;margin-top:6px;display:flex;align-items:center;gap:8px}
+.cl-hdr-sub{color:#fff;font-size:15px;margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .cl-flag2{font-size:18px}
-.cl-div{margin-left:40px;color:#fff}
+/* troféu + nome da divisão são UMA unidade: sem nowrap o rótulo quebrava ("Série" / "A") e no
+   desktop mudava de forma conforme a largura da janela */
+.cl-div{margin-left:40px;color:#fff;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;flex:none}
+.cl-div .cl-trophy-img{flex:none}
 .cl-roster{background:#fff;color:#000;border:1px solid #000;flex:1;min-height:0;overflow:auto}
 .cl-roster.cl-acc-body{overflow-y:auto;overflow-x:hidden} /* a regra genérica do acordeão (overflow:hidden) cortava a lista sem deixar rolar */
 .cl-share-mini{display:inline-flex;align-items:center;justify-content:center;padding:3px 10px;margin-left:6px;border-radius:5px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;font-weight:700;cursor:pointer;vertical-align:middle;line-height:1.4}
@@ -701,8 +704,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-advh-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:12px;color:#dbe4f2}
 .cl-advh-meta>span{display:inline-flex;align-items:center;gap:4px}
 .cl-advh-meta>span+span::before{content:'·';margin-right:6px;opacity:.5}
-.cl-advh-mando{font-weight:800;letter-spacing:.6px}
-.cl-advh-mando.casa{color:var(--success-lite)} .cl-advh-mando.fora{color:#ffd97a}
+.cl-advh-mando{font-weight:800;letter-spacing:.6px;color:#fff}
 .cl-advh-fase.cup{color:var(--yellow);font-weight:800}
 .cl-advh-fase .cl-trophy-img{width:13px;height:13px;display:block}
 /* competição do PRÓXIMO jogo no cabeçalho do adversário (ver nextUserMatch): a rodada de liga
@@ -768,7 +770,11 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-jogo-cup-vs i{color:var(--yellow);font-style:normal}
 .cl-jogo-cup-loc{font-size:11px;color:#c9d6ea;margin-top:3px}
 .cl-grow{display:flex;justify-content:space-between;align-items:center;color:#fff;margin:2px 0}
-.cl-grow.blue{color:var(--bluetxt)}
+/* linha do ADVERSÁRIO no placar: era --bluetxt (#3a3ad6), azul escuro que sumia na maioria dos
+   fundos — o tema vem da cor do clube, então o fundo muda a cada jogo. Âmbar claro tem contraste
+   alto tanto em fundo escuro quanto nos temas mais claros, e continua distinguindo do meu time
+   (branco) sem depender da cor do clube. */
+.cl-grow.blue{color:#ffd97a}
 .cl-gname{font-weight:700}
 .cl-gnums{display:flex;gap:14px}
 .cl-gnums b{font-weight:400;min-width:12px;text-align:center}
@@ -2620,7 +2626,9 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* data real por linha do Calendário (ver calRowDate): copa na quarta, liga no fim de semana */
 .cl-cal-d{display:block;max-width:74px;font-style:normal;font-size:9.5px;font-family:var(--mono);color:var(--gray-999);line-height:1.1;margin-top:1px;white-space:nowrap}
 /* dia do próximo jogo no cartão do adversário (ver nextMatchDayLabel) */
-.cl-adv-day{font-family:var(--mono);font-size:11px;color:var(--yellow);letter-spacing:.2px;margin:0}
+/* a data usa o MESMO estilo da linha de contexto (mando · competição · jornada): mesma fonte,
+   mesmo corpo, mesma cor. Antes era a única linha em mono amarelo, e destoava do bloco. */
+.cl-adv-day{font-size:12px;color:#dbe4f2;margin:0;display:flex;align-items:center;gap:5px;white-space:nowrap}
 
 /* ===== MOMENTOS DA TEMPORADA (8 modais de marco — ver abrirMomento em ui/main.js) =====
    Estrutura idêntica nos oito: vídeo com kicker/manchete por cima, faixa do clube, três cartões
