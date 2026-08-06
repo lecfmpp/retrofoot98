@@ -116,8 +116,26 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
       const w=function(p){return (110-p.f)*(BEHAVIOR_CARD_MULT[p.behavior]||1);};
       let tot=list.reduce(function(s,p){return s+w(p);},0), r=R.random()*tot;
       for(const p of list){ r-=w(p); if(r<=0) return p; } return list[list.length-1]; }
+    /* SÚMULA DE PARTICIPAÇÃO: quantos minutos cada jogador passou em campo. Contada minuto a
+       minuto sobre quem NÃO está em offField, então expulsão e lesão já entram sozinhas (aqui
+       não há substituição — a sessão ao vivo do cliente é que tem, e conta do mesmo jeito).
+       É o que permite a nota/energia/moral tratarem quem saiu no meio do jogo com fidelidade,
+       em vez de olharem só o onze do fim. Creditado no INÍCIO do minuto: quem é expulso aos 60'
+       jogou o minuto 60. */
+    const capMin={H:new Map(), A:new Map()};
+    function keyOf(p){ return p.pid!=null?p.pid:p.n; }
+    function creditMinute(){
+      ['H','A'].forEach(function(side){
+        const players=side==='H'?hp:ap, off=offField[side], m=capMin[side];
+        players.forEach(function(p){ if(!off.has(p.n)){ const k=keyOf(p); m.set(k,(m.get(k)||0)+1); } });
+      });
+    }
+    function capsFor(side){ const players=side==='H'?hp:ap, m=capMin[side];
+      return players.map(function(p){ return {pid:p.pid, n:p.n, mins:m.get(keyOf(p))||0}; })
+        .filter(function(c){ return c.mins>0; }); }
     function tickMinute(stoppage){
       minute++;
+      creditMinute();
       const mu=currentMu();
       pos = clamp(pos*ENG.rev + R.gauss(mu,sd), -1.15, 1.15);
       perf[pos>0?'H':'A'].poss++;
@@ -179,7 +197,60 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
     while(minute<regularMinutes){ tickMinute(false); }
     const add=opts.extraTime ? Math.floor(R.rnd(1,4)) : Math.floor(R.rnd(1,5));
     while(minute<regularMinutes+add){ tickMinute(true); }
-    return { hg:hg, ag:ag, scorers:scorers, events:events, perf:perf };
+    return { hg:hg, ag:ag, scorers:scorers, events:events, perf:perf,
+             caps:{H:capsFor('H'), A:capsFor('A')}, matchMinutes:minute };
+  }
+
+  /* ===== NOTA DA PARTIDA — fonte ÚNICA cliente ⇄ servidor =====
+     Antes existiam três cópias desta conta (simulate.js no solo, mpRate no fallback local do
+     online e ratePlayersS na edge function), e elas já tinham divergido: a do fallback não
+     descontava cartão nem lesão. Agora as três chamam ESTA função.
+
+     Duas regras separam o que é do JOGADOR do que é do TIME:
+     - individual (gol, cartão, lesão, força) conta INTEIRO — um gol aos 88' é um gol;
+     - coletivo (vitória/derrota, dominância, jogo sem sofrer gol) entra proporcional aos
+       MINUTOS em campo, porque quem entrou aos 85' não conduziu aquele resultado.
+     Assim todo mundo que pisou em campo recebe nota — inclusive quem saiu no intervalo, que
+     antes não recebia nada (a conta lia só o onze do fim da partida). */
+  function domAdjust(myPerf, oppPerf){
+    if(!myPerf||!oppPerf) return 0;
+    const mp=myPerf.poss||0, op=oppPerf.poss||0;
+    const possShare=(mp+op)? mp/(mp+op) : 0.5;
+    const chanceEdge=((myPerf.chances||0)+(myPerf.big||0)+(myPerf.goals||0))-((oppPerf.chances||0)+(oppPerf.big||0)+(oppPerf.goals||0));
+    return clamp((possShare-0.5)*1.4 + clamp(chanceEdge,-8,8)*0.05, -0.6, 0.6);
+  }
+  /* input: { players:[{pid,n,s,f,mins}], matchMinutes, gf, ga, clubId, scorers, incidents, R }
+     incidents = mapa nome -> {cardType,injured} da rodada (o mesmo S._roundIncidents).
+     devolve [{pid,n,mins,share,r,goals,cs}] — quem chama é que escreve em p.stats. */
+  function rateAppearances(input){
+    input=input||{};
+    const players=input.players||[], R=input.R;
+    const total=Math.max(1, input.matchMinutes||90);
+    const gf=input.gf||0, ga=input.ga||0;
+    const won=gf>ga, lost=gf<ga, cs=ga===0;
+    const dom=domAdjust(input.myPerf, input.oppPerf);
+    const inc=input.incidents||{};
+    const scorers=input.scorers||[];
+    return players.map(function(p){
+      const share=clamp((p.mins||0)/total, 0, 1);
+      const goals=scorers.filter(function(s){ return s.id===input.clubId && s.name===p.n; }).length;
+      const back=(p.s==='GK'||p.s==='DEF');
+      let r=6.0+((p.f||65)-65)*0.045+R.gauss(0,0.75);
+      if(won) r+=0.5*share; else if(lost) r-=0.5*share;
+      r+=dom*share;
+      r+=goals*1.3;
+      if(cs&&back) r+=0.6*share;
+      const myInc=inc[p.n];
+      if(myInc){
+        if(myInc.cardType==='vermelho') r-=1.4; else if(myInc.cardType==='amarelo') r-=0.15;
+        if(myInc.injured) r-=0.8;
+      }
+      // o CONTADOR de jogos sem sofrer gol (p.stats.cs) exige ter jogado a maior parte da
+      // partida — diferente do bônus na nota, que é contínuo. Goleiro que entrou aos 80' num
+      // 0x0 leva o bônus proporcional, mas não fica com a estatística inteira no Historial.
+      return { pid:p.pid, n:p.n, mins:p.mins||0, share:share, goals:goals,
+               cs:!!(cs&&back&&share>=0.5), r:+clamp(r,3,10).toFixed(1) };
+    });
   }
 
   /* ===== coleta de INPUTS pura (espelho de ratings()/availableXI()/autoXI()) =====
@@ -192,7 +263,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
   function computeRatings(players, xiNames){
     const avail=(players||[]).filter(isAvail);
     let used;
-    if(xiNames && xiNames.length){ const set=new Set(xiNames); const xiAvail=avail.filter(function(p){return set.has(p.pid)||set.has(p.n);}); // pid (nome = fallback)
+    if(xiNames && xiNames.length){ const set=new Set(xiNames); const xiAvail=avail.filter(function(p){return set.has(p.pid)||set.has(p.n);});
       used = xiAvail.length ? xiAvail : best11(avail); }
     else { used = best11(avail); }
     const bySec=function(s){return used.filter(function(p){return p.s===s;});};
@@ -206,14 +277,13 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
   function resolveXI(players, xiNames){
     const avail=(players||[]).filter(isAvail);
     let chosen=[];
-    if(xiNames && xiNames.length){ const set=new Set(xiNames); chosen=avail.filter(function(p){return set.has(p.pid)||set.has(p.n);}); } // pid (nome=fallback)
+    if(xiNames && xiNames.length){ const set=new Set(xiNames); chosen=avail.filter(function(p){return set.has(p.pid)||set.has(p.n);}); }
     if(chosen.length<11){ const have=new Set(chosen.map(function(p){return p.pid;}));
       const extra=avail.filter(function(p){return !have.has(p.pid);}).sort(function(a,b){return b.f-a.f;});
       chosen=chosen.concat(extra); }
     return chosen.slice(0,11);
   }
-  /* autoXI (PIDs) — fallback pra clube humano sem escalação submetida. Espelha autoXI() do cliente
-     (agora identidade por pid, não nome). */
+  /* autoXI (nomes) — fallback pra clube humano sem escalação submetida. Espelha autoXI() do cliente. */
   function autoXINames(players){
     const sq=(players||[]).filter(isAvail).sort(function(a,b){return b.f-a.f;});
     const pick=function(sec,n){return sq.filter(function(p){return p.s===sec;}).slice(0,n);};
@@ -228,6 +298,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
   function capFromOverall(overall){ const ov=overall||70; return 8000 + Math.max(0,ov-55)*2100; }
 
   const API={ simMatchPure:simMatchPure, penaltyConvChance:penaltyConvChance, pickPenaltyTaker:pickPenaltyTaker,
+    rateAppearances:rateAppearances, domAdjust:domAdjust,
     makeRng:makeRng, hashSeed:hashSeed, clamp:clamp,
     computeRatings:computeRatings, resolveXI:resolveXI, autoXINames:autoXINames, capFromOverall:capFromOverall, engForce:engForce };
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
@@ -277,38 +348,40 @@ function applyMatchIncidents(S: any, events: any[]) {
    sempre na Resenha, e o card "Historial (carreira)" mostrava "Jogos 0 / Gols 3". Como o
    cliente ADOTA o estado do servidor a cada rodada, contar do lado dele não adianta — quem
    joga a rodada é esta função, então é aqui que a súmula tem que ser escriturada. */
-function domAdjust(myPerf: any, oppPerf: any) {
-  if (!myPerf || !oppPerf) return 0;
-  const mp = myPerf.poss || 0, op = oppPerf.poss || 0;
-  const possShare = (mp + op) ? mp / (mp + op) : 0.5;
-  const chanceEdge = ((myPerf.chances || 0) + (myPerf.big || 0) + (myPerf.goals || 0)) - ((oppPerf.chances || 0) + (oppPerf.big || 0) + (oppPerf.goals || 0));
-  return clampN((possShare - 0.5) * 1.4 + clampN(chanceEdge, -8, 8) * 0.05, -0.6, 0.6);
+/* SÚMULA DE MINUTOS -> lista de jogadores. caps = [{pid,n,mins}] da partida (do motor, ou
+   submetida pelo cliente numa partida humana, que é quem tem as substituições). Sem caps, cai no
+   XI com o jogo inteiro — o comportamento anterior. */
+function capsListS(xi: any[], caps: any[], matchMinutes: number) {
+  const base = Array.isArray(xi) ? xi : [];
+  if (Array.isArray(caps) && caps.length) {
+    const out: any[] = [];
+    caps.forEach((c: any) => {
+      const p = base.find((x: any) => (c.pid != null && x.pid === c.pid) || x.n === c.n);
+      if (p) out.push({ p, mins: c.mins });
+    });
+    if (out.length) return out;
+  }
+  return base.map((p: any) => ({ p, mins: matchMinutes || 90 }));
 }
-/* xi = os 11 que entraram em campo (ME.resolveXI, mesma lista que o motor usou na partida) */
-function ratePlayersS(S: any, id: string, xi: any[], gf: number, ga: number, scorers: any[], R: any, myPerf: any, oppPerf: any) {
+/* A conta da nota mora no motor compartilhado (ME.rateAppearances) — a MESMA que o cliente usa
+   no solo e no fallback local. Aqui só montamos a entrada e escrevemos em p.stats. */
+function ratePlayersS(S: any, id: string, xi: any[], gf: number, ga: number, scorers: any[], R: any, myPerf: any, oppPerf: any, caps?: any[], matchMinutes?: number) {
   if (!Array.isArray(xi) || !xi.length) return;
-  const won = gf > ga, lost = gf < ga, cs = ga === 0;
-  const inc = S._roundIncidents || {};
-  const dom = domAdjust(myPerf, oppPerf);
-  xi.forEach((p: any) => {
-    let r = 6.0 + ((p.f || 65) - 65) * 0.045 + R.gauss(0, 0.75);
-    if (won) r += 0.5; else if (lost) r -= 0.5;
-    r += dom;
-    const myG = (scorers || []).filter((s: any) => s.id === id && s.name === p.n).length;
-    r += myG * 1.3;
-    if (cs && (p.s === "GK" || p.s === "DEF")) r += 0.6;
-    const myInc = inc[p.n];
-    if (myInc) {
-      if (myInc.cardType === "vermelho") r -= 1.4; else if (myInc.cardType === "amarelo") r -= 0.15;
-      if (myInc.injured) r -= 0.8;
-    }
-    r = clampN(r, 3, 10);
+  const total = matchMinutes || 90;
+  const lista = capsListS(xi, caps as any[], total);
+  const notas = ME.rateAppearances({
+    players: lista.map((x: any) => ({ pid: x.p.pid, n: x.p.n, s: x.p.s, f: x.p.f, mins: x.mins })),
+    matchMinutes: total, gf: gf, ga: ga, clubId: id, scorers: scorers || [],
+    incidents: S._roundIncidents || {}, myPerf: myPerf, oppPerf: oppPerf, R: R,
+  });
+  notas.forEach((nota: any, i: number) => {
+    const p = lista[i].p;
     const st = p.stats || (p.stats = { r3: [], g3: [], apps: 0, goals: 0, cs: 0 });
     st.r3 = st.r3 || []; st.g3 = st.g3 || [];
-    st.r3.push(+r.toFixed(1)); if (st.r3.length > 3) st.r3.shift();
-    st.g3.push(myG); if (st.g3.length > 3) st.g3.shift();
-    st.apps = (st.apps || 0) + 1; st.goals = (st.goals || 0) + myG;
-    if (cs && (p.s === "GK" || p.s === "DEF")) st.cs = (st.cs || 0) + 1;
+    st.r3.push(nota.r); if (st.r3.length > 3) st.r3.shift();
+    st.g3.push(nota.goals); if (st.g3.length > 3) st.g3.shift();
+    st.apps = (st.apps || 0) + 1; st.goals = (st.goals || 0) + nota.goals;
+    if (nota.cs) st.cs = (st.cs || 0) + 1;
   });
 }
 /* MORAL pós-jogo (porte de postMatchMorale do cliente): vitória +8, derrota -8, empate +1 pros
@@ -316,10 +389,14 @@ function ratePlayersS(S: any, id: string, xi: any[], gf: number, ga: number, sco
    (lá só o clube do usuário recebe). Sem isto a moral do elenco na Resenha só fazia drift pro 70
    a cada rodada, então a barra "Moral do Time" (e os 30% dela na Segurança no cargo) não tinha
    relação nenhuma com a campanha do clube. */
-function postMatchMoraleS(S: any, id: string, xi: any[], gf: number, ga: number, scorers: any[]) {
+function postMatchMoraleS(S: any, id: string, xi: any[], gf: number, ga: number, scorers: any[], caps?: any[], matchMinutes?: number) {
   if (!Array.isArray(xi) || !xi.length) return;
   const d = gf > ga ? 8 : gf < ga ? -8 : 1;
-  xi.forEach((p: any) => { p.moral = clampN((p.moral != null ? p.moral : 70) + d, 0, 100); });
+  // quem ENTROU EM CAMPO (não o onze do fim): o substituído no intervalo também sente o resultado.
+  // Não é proporcional aos minutos de propósito — moral é humor de vestiário, não desgaste.
+  capsListS(xi, caps as any[], matchMinutes || 90).forEach((x: any) => {
+    x.p.moral = clampN((x.p.moral != null ? x.p.moral : 70) + d, 0, 100);
+  });
   (scorers || []).filter((s: any) => s.id === id).forEach((s: any) => {
     const p = findPlayerByName(S, id, s.name); if (p) p.moral = clampN((p.moral != null ? p.moral : 70) + 6, 0, 100);
   });
@@ -480,12 +557,17 @@ function applyTrainingFlags(S: any, trainingByClub: any) {
   });
 }
 /* evolução da rodada — humano usa a escalação submetida; CPU os 11 mais fortes (mesma regra do cliente) */
-function advanceDevelopment(S: any, humanClubs: Set<string>, humanXI: any) {
+function advanceDevelopment(S: any, humanClubs: Set<string>, humanXI: any, capsByClub?: any) {
   const Rd = ME.makeRng(ME.hashSeed(S.seed, S.round, 'dev'));
   for (const cid in S.squads) {
     const sq = S.squads[cid];
     let playedNames: Set<string>;
-    if (humanClubs.has(cid)) { playedNames = new Set(ME.resolveXI(sq, humanXI[cid] || ME.autoXINames(sq)).map((p: any) => p.n)); }
+    // "jogou" = ENTROU EM CAMPO, pela súmula quando existe. Sem isto o titular substituído
+    // levava benchStreak++ (perda de ritmo por ficar no banco) numa rodada em que jogou 45
+    // minutos, e quem entrou do banco não abria o caminho de evolução por jogar.
+    const caps = capsByClub && capsByClub[cid];
+    if (caps && caps.length) { playedNames = new Set(caps.map((c: any) => c.n)); }
+    else if (humanClubs.has(cid)) { playedNames = new Set(ME.resolveXI(sq, humanXI[cid] || ME.autoXINames(sq)).map((p: any) => p.n)); }
     else { playedNames = new Set(sq.slice().sort((a: any, b: any) => b.f - a.f).slice(0, 11).map((p: any) => p.n)); }
     sq.forEach((p: any) => evolvePlayer(p, Rd, playedNames.has(p.n), S.division));
   }
@@ -509,24 +591,26 @@ function advanceOtherDivs(S: any, humanResultByFx: any, humanClubs: Set<string>,
       let hg: number, ag: number; let scorers: any[] = []; let perf: any = null;
       const sub = humanResultByFx[h + "-" + a];
       const pc = (!sub && preMatches) ? preMatches[h + "-" + a] : null; // FASE 2: stream do apito (mesma precedência da divisão principal)
-      if (sub) { hg = sub.hg; ag = sub.ag; scorers = sub.scorers || []; perf = sub.perf || null; } // humano nesta divisão -> resultado submetido
-      else if (pc) { hg = pc.hg; ag = pc.ag; scorers = pc.scorers || []; perf = pc.perf || null; }
+      let caps: any = null, matchMinutes = 90;                       // súmula de minutos (ver ratePlayersS)
+      if (sub) { hg = sub.hg; ag = sub.ag; scorers = sub.scorers || []; perf = sub.perf || null; caps = sub.caps || null; matchMinutes = sub.matchMinutes || 90; } // humano nesta divisão -> resultado submetido
+      else if (pc) { hg = pc.hg; ag = pc.ag; scorers = pc.scorers || []; perf = pc.perf || null; caps = pc.caps || null; matchMinutes = pc.matchMinutes || 90; }
       else {
         const seed = (base + hashC(h) + hashC(a)) >>> 0;
         const r = ME.simMatchPure(h, a, sideInputs(S, h, humanClubs.has(h), humanXI, humanTactic), sideInputs(S, a, humanClubs.has(a), humanXI, humanTactic), seed, {});
-        hg = r.hg; ag = r.ag; scorers = r.scorers || []; perf = r.perf || null;
+        hg = r.hg; ag = r.ag; scorers = r.scorers || []; perf = r.perf || null; caps = r.caps || null; matchMinutes = r.matchMinutes || 90;
       }
       // súmula/moral desta partida — as 4 divisões são materializadas em S.squads no servidor,
       // então JOGO/nota valem aqui igual à divisão âncora (é o que faz o Historial continuar
       // contando quando um treinador humano é rebaixado ou promovido de divisão)
       if (S.squads[h] || S.squads[a]) {
         const rr = ME.makeRng(ME.hashSeed(S.seed, round, d, h, a, "rate"));
-        const xiH = S.squads[h] ? ME.resolveXI(S.squads[h], humanClubs.has(h) ? (humanXI[h] || ME.autoXINames(S.squads[h])) : null) : null;
-        const xiA = S.squads[a] ? ME.resolveXI(S.squads[a], humanClubs.has(a) ? (humanXI[a] || ME.autoXINames(S.squads[a])) : null) : null;
-        ratePlayersS(S, h, xiH, hg, ag, scorers, rr, perf && perf.H, perf && perf.A);
-        ratePlayersS(S, a, xiA, ag, hg, scorers, rr, perf && perf.A, perf && perf.H);
-        if (humanClubs.has(h)) postMatchMoraleS(S, h, xiH, hg, ag, scorers);
-        if (humanClubs.has(a)) postMatchMoraleS(S, a, xiA, ag, hg, scorers);
+        const capsH = (caps && caps.H) || null, capsA = (caps && caps.A) || null;
+        const xiH = S.squads[h] ? (capsH ? S.squads[h] : ME.resolveXI(S.squads[h], humanClubs.has(h) ? (humanXI[h] || ME.autoXINames(S.squads[h])) : null)) : null;
+        const xiA = S.squads[a] ? (capsA ? S.squads[a] : ME.resolveXI(S.squads[a], humanClubs.has(a) ? (humanXI[a] || ME.autoXINames(S.squads[a])) : null)) : null;
+        ratePlayersS(S, h, xiH, hg, ag, scorers, rr, perf && perf.H, perf && perf.A, capsH, matchMinutes);
+        ratePlayersS(S, a, xiA, ag, hg, scorers, rr, perf && perf.A, perf && perf.H, capsA, matchMinutes);
+        if (humanClubs.has(h)) postMatchMoraleS(S, h, xiH, hg, ag, scorers, capsH, matchMinutes);
+        if (humanClubs.has(a)) postMatchMoraleS(S, a, xiA, ag, hg, scorers, capsA, matchMinutes);
       }
       const th = od.table[h], ta = od.table[a];
       th.P++; ta.P++; th.GF += hg; th.GA += ag; ta.GF += ag; ta.GA += hg;
@@ -648,13 +732,15 @@ function awardCupPhasePrize(S: any, key: string, b: any, t: any, humans?: Set<st
    O cliente já fazia isso localmente em finishCupLiveMatch(), mas o adopt da rodada seguinte
    sobrescreve o S local pelo do servidor — então o gol de copa sumia da artilharia e o jogo
    nunca entrava no Historial. Aqui é o único lugar que sobrevive. */
-function cupSumula(S: any, h: string, a: string, hg: number, ag: number, scorers: any[], perf: any, roundLabel: string) {
+function cupSumula(S: any, h: string, a: string, hg: number, ag: number, scorers: any[], perf: any, roundLabel: string, caps?: any, matchMinutes?: number) {
   recordScorers(S, scorers || []);
   const R = ME.makeRng(ME.hashSeed(S.seed, 'cuprate', roundLabel, S.round, h, a));
-  const xiH = S.squads[h] ? ME.resolveXI(S.squads[h], null) : null;
-  const xiA = S.squads[a] ? ME.resolveXI(S.squads[a], null) : null;
-  ratePlayersS(S, h, xiH, hg, ag, scorers || [], R, perf && perf.H, perf && perf.A);
-  ratePlayersS(S, a, xiA, ag, hg, scorers || [], R, perf && perf.A, perf && perf.H);
+  const capsH = (caps && caps.H) || null, capsA = (caps && caps.A) || null;
+  const mm = matchMinutes || 90;
+  const xiH = S.squads[h] ? (capsH ? S.squads[h] : ME.resolveXI(S.squads[h], null)) : null;
+  const xiA = S.squads[a] ? (capsA ? S.squads[a] : ME.resolveXI(S.squads[a], null)) : null;
+  ratePlayersS(S, h, xiH, hg, ag, scorers || [], R, perf && perf.H, perf && perf.A, capsH, mm);
+  ratePlayersS(S, a, xiA, ag, hg, scorers || [], R, perf && perf.A, perf && perf.H, capsA, mm);
 }
 function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: any, humans?: Set<string>) {
   if (!b || cupIsFinished(b)) return;
@@ -665,7 +751,7 @@ function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: an
     if (sub && sub.winner) { // resultado submetido por um humano (mandante-autoritativo)
       t.hg = sub.hg; t.ag = sub.ag; t.events = sub.events || []; t.winner = sub.winner; t.pens = sub.pens || null;
       applyMatchIncidents(S, sub.events || []);
-      cupSumula(S, t.h, t.a, sub.hg, sub.ag, sub.scorers || [], sub.perf || null, roundLabel);
+      cupSumula(S, t.h, t.a, sub.hg, sub.ag, sub.scorers || [], sub.perf || null, roundLabel, sub.caps || null, sub.matchMinutes || 90);
       const loser = sub.winner === t.h ? t.a : t.h; b.eliminated[loser] = true; winners.push(sub.winner);
       t.jornada = S.round; awardCupPhasePrize(S, roundLabel.split('-')[0], b, t, humans); return;
     }
@@ -673,7 +759,7 @@ function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: an
     const r = ME.simMatchPure(t.h, t.a, cupSide(S, t.h), cupSide(S, t.a), seed, {});
     t.hg = r.hg; t.ag = r.ag; t.events = r.events;
     applyMatchIncidents(S, r.events);
-    cupSumula(S, t.h, t.a, r.hg, r.ag, r.scorers || [], r.perf || null, roundLabel);
+    cupSumula(S, t.h, t.a, r.hg, r.ag, r.scorers || [], r.perf || null, roundLabel, r.caps || null, r.matchMinutes || 90);
     const res = resolveDrawnKnockoutTie(S, t.h, t.a, seed, r.hg, r.ag);
     t.winner = res.winner; t.pens = res.pens || null; winners.push(res.winner);
     t.jornada = S.round;                                   // Calendário do cliente lê este carimbo
@@ -730,19 +816,20 @@ function advanceGroupStageRoundS(S: any, mg: any, roundLabel: string, cupResultB
       if (!S.squads || !S.squads[h] || !S.squads[a]) return;  // clube não materializado neste save
       const T = g.table; if (!T || !T[h] || !T[a]) return;
       let hg: number, ag: number, scorers: any[], perf: any;
+      let gcaps: any = null, gmins = 90;                      // súmula de minutos (ver ratePlayersS)
       // partida jogada AO VIVO por um humano: usa o resultado que ELE viu, em vez de re-simular
       // (senão o placar da tela dele seria sobrescrito por outro no adopt seguinte).
       const sub = cupResultByFx && cupResultByFx[h + '-' + a];
       if (sub && sub.stage === 'group') {
-        hg = sub.hg; ag = sub.ag; scorers = sub.scorers || []; perf = sub.perf || null;
+        hg = sub.hg; ag = sub.ag; scorers = sub.scorers || []; perf = sub.perf || null; gcaps = sub.caps || null; gmins = sub.matchMinutes || 90;
         applyMatchIncidents(S, sub.events || []);
       } else {
         const seed = ME.hashSeed(S.seed, roundLabel, g.label, h, a);
         const r = ME.simMatchPure(h, a, cupSide(S, h), cupSide(S, a), seed, {});
-        hg = r.hg; ag = r.ag; scorers = r.scorers || []; perf = r.perf || null;
+        hg = r.hg; ag = r.ag; scorers = r.scorers || []; perf = r.perf || null; gcaps = r.caps || null; gmins = r.matchMinutes || 90;
         applyMatchIncidents(S, r.events);
       }
-      cupSumula(S, h, a, hg, ag, scorers, perf, roundLabel);   // artilharia + Historial dos dois elencos
+      cupSumula(S, h, a, hg, ag, scorers, perf, roundLabel, gcaps, gmins);   // artilharia + Historial dos dois elencos
       g.results = g.results || [];
       g.results.push({ r: mg.round, h, a, hg, ag, jornada: S.round });   // Calendário do cliente lê isto
       T[h].P++; T[a].P++; T[h].GF += hg; T[h].GA += ag; T[a].GF += ag; T[a].GA += hg;
@@ -1204,6 +1291,9 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   Object.keys(humanResultByFx).forEach((k: string) => { humanEvents.push(...((humanResultByFx[k] || {}).events || [])); });
   applyMatchIncidents(S, humanEvents);                            // 2) incidentes NOVOS (só partidas humanas jogadas ao vivo)
   const rateR = ME.makeRng(ME.hashSeed(seed, round, "rate"));     // RNG única das notas da rodada (determinística)
+  // súmula da rodada por clube: quem entrou em campo e por quantos minutos (uma partida por
+  // clube por rodada). Alimenta nota, moral, energia e o "jogou" da evolução.
+  const capsByClub: Record<string, any> = {}, minsByClub: Record<string, number> = {};
   fixtures.forEach((fx: any) => {                                 // 3) resultados: humano=submetido, CPU=motor
     const h = fx[0], a = fx[1]; if (h == null || a == null) return; const k = h + "-" + a;
     let hg: number, ag: number, scorers: any[]; let perf: any = null;
@@ -1213,28 +1303,45 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
     // Consumir o pré-computado importa porque transferências/moral de humanos são aplicadas ACIMA,
     // mutando elencos DEPOIS do apito — re-simular aqui gravaria um placar diferente do assistido.
     const pc = (!sub && preMatches) ? preMatches[k] : null;
-    if (sub) { hg = sub.hg; ag = sub.ag; scorers = sub.scorers || []; perf = sub.perf || null; }
-    else if (pc) { hg = pc.hg; ag = pc.ag; scorers = pc.scorers || []; perf = pc.perf || null; }
+    /* SÚMULA DE MINUTOS da partida. Numa partida humana quem tem essa informação é o CLIENTE
+       (é ele que roda a sessão ao vivo, com as substituições), então ela viaja no last_result;
+       nas de CPU, o próprio motor devolve (expulsão e lesão já entram). Sem ela, cai no XI
+       inteiro — que é o que o servidor fazia até 2026-08-06 pra todo mundo. */
+    let caps: any = null, matchMinutes = 90;
+    if (sub) { hg = sub.hg; ag = sub.ag; scorers = sub.scorers || []; perf = sub.perf || null; caps = sub.caps || null; matchMinutes = sub.matchMinutes || 90; }
+    else if (pc) { hg = pc.hg; ag = pc.ag; scorers = pc.scorers || []; perf = pc.perf || null; caps = pc.caps || null; matchMinutes = pc.matchMinutes || 90; }
     else {
       const mseed = ME.hashSeed(seed, round, h, a);
       const res = ME.simMatchPure(h, a, sideInputs(S, h, humanClubs.has(h), humanXI, humanTactic), sideInputs(S, a, humanClubs.has(a), humanXI, humanTactic), mseed, {});
-      hg = res.hg; ag = res.ag; scorers = res.scorers || []; perf = res.perf || null;
+      hg = res.hg; ag = res.ag; scorers = res.scorers || []; perf = res.perf || null; caps = res.caps || null; matchMinutes = res.matchMinutes || 90;
     }
+    capsByClub[h] = (caps && caps.H) || null; capsByClub[a] = (caps && caps.A) || null;
+    minsByClub[h] = matchMinutes; minsByClub[a] = matchMinutes;
     applyResultT(S.table, h, a, hg, ag); recordScorers(S, scorers);
     // 3b) súmula: nota + JOGO/gol/clean sheet de quem entrou em campo, dos dois lados (ver ratePlayersS)
     const xiH = S.squads[h] ? ME.resolveXI(S.squads[h], humanClubs.has(h) ? (humanXI[h] || ME.autoXINames(S.squads[h])) : null) : null;
     const xiA = S.squads[a] ? ME.resolveXI(S.squads[a], humanClubs.has(a) ? (humanXI[a] || ME.autoXINames(S.squads[a])) : null) : null;
-    ratePlayersS(S, h, xiH, hg, ag, scorers, rateR, perf && perf.H, perf && perf.A);
-    ratePlayersS(S, a, xiA, ag, hg, scorers, rateR, perf && perf.A, perf && perf.H);
+    // quem entrou do banco não está no XI resolvido — junta o elenco pra súmula achar todo mundo
+    const poolH = S.squads[h] || xiH, poolA = S.squads[a] || xiA;
+    ratePlayersS(S, h, capsByClub[h] ? poolH : xiH, hg, ag, scorers, rateR, perf && perf.H, perf && perf.A, capsByClub[h], matchMinutes);
+    ratePlayersS(S, a, capsByClub[a] ? poolA : xiA, ag, hg, scorers, rateR, perf && perf.A, perf && perf.H, capsByClub[a], matchMinutes);
     // 3c) moral pós-jogo — só clube humano (mesmo alcance do solo, ver postMatchMoraleS)
-    if (humanClubs.has(h)) postMatchMoraleS(S, h, xiH, hg, ag, scorers);
-    if (humanClubs.has(a)) postMatchMoraleS(S, a, xiA, ag, hg, scorers);
+    if (humanClubs.has(h)) postMatchMoraleS(S, h, capsByClub[h] ? poolH : xiH, hg, ag, scorers, capsByClub[h], matchMinutes);
+    if (humanClubs.has(a)) postMatchMoraleS(S, a, capsByClub[a] ? poolA : xiA, ag, hg, scorers, capsByClub[a], matchMinutes);
     S.results.push({ round: round, h: h, a: a, hg: hg, ag: ag, scorers: scorers });
   });
   const Rr = ME.makeRng(ME.hashSeed(seed, round, "post"));        // 4) energia/moral
   for (const cid in S.squads) for (const p of S.squads[cid]) { p.energy = clampN((p.energy || 100) + Rr.rnd(6, 16), 0, 100); p.moral = clampN((p.moral || 70) + (70 - (p.moral || 70)) * 0.08, 0, 100); }
-  humanClubs.forEach((cid) => { const xi = ME.resolveXI(S.squads[cid], humanXI[cid] || ME.autoXINames(S.squads[cid])); for (const p of xi) p.energy = clampN(p.energy - Rr.rnd(12, 22), 20, 100); });
-  advanceDevelopment(S, humanClubs, humanXI);                    // 4b) evolução/declínio dos jogadores
+  // CANSAÇO proporcional aos minutos em campo (quem saiu no intervalo gasta metade)
+  humanClubs.forEach((cid) => {
+    const base = capsByClub[cid] ? (S.squads[cid] || []) : ME.resolveXI(S.squads[cid], humanXI[cid] || ME.autoXINames(S.squads[cid]));
+    const total = minsByClub[cid] || 90;
+    capsListS(base, capsByClub[cid], total).forEach((x: any) => {
+      const share = clampN((x.mins || total) / total, 0, 1);
+      x.p.energy = clampN(x.p.energy - Rr.rnd(12, 22) * share, 20, 100);
+    });
+  });
+  advanceDevelopment(S, humanClubs, humanXI, capsByClub);        // 4b) evolução/declínio dos jogadores
   advanceOtherDivs(S, humanResultByFx, humanClubs, humanXI, humanTactic, preMatches); // 4c) outras divisões (CPU + override humano onde houver)
   S.round++; S.week = (S.week || 1) + 1; S.day = (S.day || 1) + 7; // 5) avança a rodada
   pruneIncomingOffers(S); pruneCounterOffers(S);                  // 6b) limpa proposta/contraproposta vencida ou por jogador que já saiu

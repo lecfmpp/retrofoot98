@@ -118,8 +118,26 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
       const w=function(p){return (110-p.f)*(BEHAVIOR_CARD_MULT[p.behavior]||1);};
       let tot=list.reduce(function(s,p){return s+w(p);},0), r=R.random()*tot;
       for(const p of list){ r-=w(p); if(r<=0) return p; } return list[list.length-1]; }
+    /* SÚMULA DE PARTICIPAÇÃO: quantos minutos cada jogador passou em campo. Contada minuto a
+       minuto sobre quem NÃO está em offField, então expulsão e lesão já entram sozinhas (aqui
+       não há substituição — a sessão ao vivo do cliente é que tem, e conta do mesmo jeito).
+       É o que permite a nota/energia/moral tratarem quem saiu no meio do jogo com fidelidade,
+       em vez de olharem só o onze do fim. Creditado no INÍCIO do minuto: quem é expulso aos 60'
+       jogou o minuto 60. */
+    const capMin={H:new Map(), A:new Map()};
+    function keyOf(p){ return p.pid!=null?p.pid:p.n; }
+    function creditMinute(){
+      ['H','A'].forEach(function(side){
+        const players=side==='H'?hp:ap, off=offField[side], m=capMin[side];
+        players.forEach(function(p){ if(!off.has(p.n)){ const k=keyOf(p); m.set(k,(m.get(k)||0)+1); } });
+      });
+    }
+    function capsFor(side){ const players=side==='H'?hp:ap, m=capMin[side];
+      return players.map(function(p){ return {pid:p.pid, n:p.n, mins:m.get(keyOf(p))||0}; })
+        .filter(function(c){ return c.mins>0; }); }
     function tickMinute(stoppage){
       minute++;
+      creditMinute();
       const mu=currentMu();
       pos = clamp(pos*ENG.rev + R.gauss(mu,sd), -1.15, 1.15);
       perf[pos>0?'H':'A'].poss++;
@@ -181,7 +199,60 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
     while(minute<regularMinutes){ tickMinute(false); }
     const add=opts.extraTime ? Math.floor(R.rnd(1,4)) : Math.floor(R.rnd(1,5));
     while(minute<regularMinutes+add){ tickMinute(true); }
-    return { hg:hg, ag:ag, scorers:scorers, events:events, perf:perf };
+    return { hg:hg, ag:ag, scorers:scorers, events:events, perf:perf,
+             caps:{H:capsFor('H'), A:capsFor('A')}, matchMinutes:minute };
+  }
+
+  /* ===== NOTA DA PARTIDA — fonte ÚNICA cliente ⇄ servidor =====
+     Antes existiam três cópias desta conta (simulate.js no solo, mpRate no fallback local do
+     online e ratePlayersS na edge function), e elas já tinham divergido: a do fallback não
+     descontava cartão nem lesão. Agora as três chamam ESTA função.
+
+     Duas regras separam o que é do JOGADOR do que é do TIME:
+     - individual (gol, cartão, lesão, força) conta INTEIRO — um gol aos 88' é um gol;
+     - coletivo (vitória/derrota, dominância, jogo sem sofrer gol) entra proporcional aos
+       MINUTOS em campo, porque quem entrou aos 85' não conduziu aquele resultado.
+     Assim todo mundo que pisou em campo recebe nota — inclusive quem saiu no intervalo, que
+     antes não recebia nada (a conta lia só o onze do fim da partida). */
+  function domAdjust(myPerf, oppPerf){
+    if(!myPerf||!oppPerf) return 0;
+    const mp=myPerf.poss||0, op=oppPerf.poss||0;
+    const possShare=(mp+op)? mp/(mp+op) : 0.5;
+    const chanceEdge=((myPerf.chances||0)+(myPerf.big||0)+(myPerf.goals||0))-((oppPerf.chances||0)+(oppPerf.big||0)+(oppPerf.goals||0));
+    return clamp((possShare-0.5)*1.4 + clamp(chanceEdge,-8,8)*0.05, -0.6, 0.6);
+  }
+  /* input: { players:[{pid,n,s,f,mins}], matchMinutes, gf, ga, clubId, scorers, incidents, R }
+     incidents = mapa nome -> {cardType,injured} da rodada (o mesmo S._roundIncidents).
+     devolve [{pid,n,mins,share,r,goals,cs}] — quem chama é que escreve em p.stats. */
+  function rateAppearances(input){
+    input=input||{};
+    const players=input.players||[], R=input.R;
+    const total=Math.max(1, input.matchMinutes||90);
+    const gf=input.gf||0, ga=input.ga||0;
+    const won=gf>ga, lost=gf<ga, cs=ga===0;
+    const dom=domAdjust(input.myPerf, input.oppPerf);
+    const inc=input.incidents||{};
+    const scorers=input.scorers||[];
+    return players.map(function(p){
+      const share=clamp((p.mins||0)/total, 0, 1);
+      const goals=scorers.filter(function(s){ return s.id===input.clubId && s.name===p.n; }).length;
+      const back=(p.s==='GK'||p.s==='DEF');
+      let r=6.0+((p.f||65)-65)*0.045+R.gauss(0,0.75);
+      if(won) r+=0.5*share; else if(lost) r-=0.5*share;
+      r+=dom*share;
+      r+=goals*1.3;
+      if(cs&&back) r+=0.6*share;
+      const myInc=inc[p.n];
+      if(myInc){
+        if(myInc.cardType==='vermelho') r-=1.4; else if(myInc.cardType==='amarelo') r-=0.15;
+        if(myInc.injured) r-=0.8;
+      }
+      // o CONTADOR de jogos sem sofrer gol (p.stats.cs) exige ter jogado a maior parte da
+      // partida — diferente do bônus na nota, que é contínuo. Goleiro que entrou aos 80' num
+      // 0x0 leva o bônus proporcional, mas não fica com a estatística inteira no Historial.
+      return { pid:p.pid, n:p.n, mins:p.mins||0, share:share, goals:goals,
+               cs:!!(cs&&back&&share>=0.5), r:+clamp(r,3,10).toFixed(1) };
+    });
   }
 
   /* ===== coleta de INPUTS pura (espelho de ratings()/availableXI()/autoXI()) =====
@@ -194,7 +265,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
   function computeRatings(players, xiNames){
     const avail=(players||[]).filter(isAvail);
     let used;
-    if(xiNames && xiNames.length){ const set=new Set(xiNames); const xiAvail=avail.filter(function(p){return set.has(p.pid)||set.has(p.n);}); // pid (nome = fallback)
+    if(xiNames && xiNames.length){ const set=new Set(xiNames); const xiAvail=avail.filter(function(p){return set.has(p.pid)||set.has(p.n);});
       used = xiAvail.length ? xiAvail : best11(avail); }
     else { used = best11(avail); }
     const bySec=function(s){return used.filter(function(p){return p.s===s;});};
@@ -208,14 +279,13 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
   function resolveXI(players, xiNames){
     const avail=(players||[]).filter(isAvail);
     let chosen=[];
-    if(xiNames && xiNames.length){ const set=new Set(xiNames); chosen=avail.filter(function(p){return set.has(p.pid)||set.has(p.n);}); } // pid (nome=fallback)
+    if(xiNames && xiNames.length){ const set=new Set(xiNames); chosen=avail.filter(function(p){return set.has(p.pid)||set.has(p.n);}); }
     if(chosen.length<11){ const have=new Set(chosen.map(function(p){return p.pid;}));
       const extra=avail.filter(function(p){return !have.has(p.pid);}).sort(function(a,b){return b.f-a.f;});
       chosen=chosen.concat(extra); }
     return chosen.slice(0,11);
   }
-  /* autoXI (PIDs) — fallback pra clube humano sem escalação submetida. Espelha autoXI() do cliente
-     (agora identidade por pid, não nome). */
+  /* autoXI (nomes) — fallback pra clube humano sem escalação submetida. Espelha autoXI() do cliente. */
   function autoXINames(players){
     const sq=(players||[]).filter(isAvail).sort(function(a,b){return b.f-a.f;});
     const pick=function(sec,n){return sq.filter(function(p){return p.s===sec;}).slice(0,n);};
@@ -230,6 +300,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
   function capFromOverall(overall){ const ov=overall||70; return 8000 + Math.max(0,ov-55)*2100; }
 
   const API={ simMatchPure:simMatchPure, penaltyConvChance:penaltyConvChance, pickPenaltyTaker:pickPenaltyTaker,
+    rateAppearances:rateAppearances, domAdjust:domAdjust,
     makeRng:makeRng, hashSeed:hashSeed, clamp:clamp,
     computeRatings:computeRatings, resolveXI:resolveXI, autoXINames:autoXINames, capFromOverall:capFromOverall, engForce:engForce };
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }

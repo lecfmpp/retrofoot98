@@ -160,9 +160,21 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
     for(const p of list){ r-=w(p); if(r<=0) return p; }
     return list[list.length-1];
   }
+  /* SÚMULA DE PARTICIPAÇÃO (minutos em campo por jogador) — ver rateAppearances no
+     match-engine.js. Contada minuto a minuto sobre quem não está em offField, então expulsão e
+     lesão entram sozinhas. Aqui não há substituição (isso é da sessão ao vivo, logo abaixo). */
+  const capMin={H:new Map(), A:new Map()};
+  const capKey=p=>(p.pid!=null?p.pid:p.n);
+  function creditMinute(){
+    ['H','A'].forEach(side=>{ const players=side==='H'?hp:ap, off=offField[side], m=capMin[side];
+      players.forEach(p=>{ if(!off.has(p.n)){ const k=capKey(p); m.set(k,(m.get(k)||0)+1); } }); });
+  }
+  function capsFor(side){ const players=side==='H'?hp:ap, m=capMin[side];
+    return players.map(p=>({pid:p.pid,n:p.n,mins:m.get(capKey(p))||0})).filter(c=>c.mins>0); }
   // one simulated minute -> returns event or null
   function tickMinute(stoppage){
     minute++;
+    creditMinute();
     const mu=currentMu();
     pos = clamp(pos*ENG.rev + R.gauss(mu,sd), -1.15, 1.15);
     perf[pos>0?'H':'A'].poss++; // minuto de controle territorial (posse aproximada)
@@ -248,7 +260,7 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
   function finish(){
     const add=opts.extraTime ? Math.floor(R.rnd(1,4)) : Math.floor(R.rnd(1,5));
     (function extra(){
-      if(minute>=regularMinutes+add){ if(onEnd)onEnd({hg,ag,scorers,perf}); return; }
+      if(minute>=regularMinutes+add){ if(onEnd)onEnd({hg,ag,scorers,perf,caps:{H:capsFor('H'),A:capsFor('A')},matchMinutes:minute}); return; }
       const ev=tickMinute(true);
       if(onTick)onTick({minute,pos,hg,ag,ev,mu:currentMu(),stoppage:true});
       if(!onTick)extra(); else if(typeof SIM_SYNC!=='undefined'&&SIM_SYNC)extra(); else setTimeout(extra, MATCH.speed);
@@ -405,6 +417,20 @@ function liveMatchSession(homeId, awayId, seed, opts){
     let tot=list.reduce((s,p)=>s+w(p),0), r=R.random()*tot;
     for(const p of list){ r-=w(p); if(r<=0) return p; } return list[list.length-1]; }
   function removeFromField(side,p){ const i=cur[side].findIndex(x=>x.pid===p.pid||x.n===p.n); if(i>=0) cur[side].splice(i,1); }
+  /* SÚMULA DE PARTICIPAÇÃO — aqui cur[side] muda de verdade (substituição, expulsão, lesão),
+     então contar minuto a minuto sobre quem está em campo cobre os três casos de uma vez, sem
+     instrumentar cada ponto de mutação. capInfo guarda quem JÁ passou por campo, pra súmula
+     não perder o jogador que saiu no intervalo (ele não está mais em cur, mas jogou 45). */
+  const capMin={H:new Map(), A:new Map()}, capInfo=new Map();
+  const capKey=p=>(p.pid!=null?p.pid:p.n);
+  function creditMinute(){
+    ['H','A'].forEach(side=>{ const m=capMin[side];
+      cur[side].forEach(p=>{ const k=capKey(p); capInfo.set(k,p); m.set(k,(m.get(k)||0)+1); }); });
+  }
+  function capsFor(side){ const out=[];
+    capMin[side].forEach((mins,k)=>{ const p=capInfo.get(k); if(p&&mins>0) out.push({pid:p.pid,n:p.n,mins}); });
+    return out; }
+  session.capsOf=capsFor;
   function benchOf(side){ // elenco disponível que ainda não entrou em campo nesta partida
     const usedIds=new Set(events.filter(e=>e._enteredPid).map(e=>e._enteredPid));
     const onIds=new Set(cur[side].map(p=>p.pid));
@@ -414,6 +440,7 @@ function liveMatchSession(homeId, awayId, seed, opts){
   function pushEv(ev){ ev._resolved = ev._resolved!==false; events.push(ev); return ev; }
   function tickMinute(stoppage){
     session.minute++;
+    creditMinute();
     const mu=currentMu();
     pos=clamp(pos*ENG.rev + R.gauss(mu,sd), -1.15, 1.15);
     perf[pos>0?'H':'A'].poss++;
@@ -499,7 +526,8 @@ function liveMatchSession(homeId, awayId, seed, opts){
     }
     if(session.totalMinutes!=null && session.minute>=session.totalMinutes && !session.pending){
       session.done=true;
-      session.result={hg,ag,scorers,perf,events,decisions};
+      session.result={hg,ag,scorers,perf,events,decisions,
+        caps:{H:capsFor('H'),A:capsFor('A')}, matchMinutes:session.minute};
     }
     return ev;
   };
@@ -601,39 +629,35 @@ function quickSim(homeId,awayId,seed){
 
 /* who actually played (user = chosen XI, CPU = best 11) */
 function playedXI(id){ return availableXI(id); }
-/* assign match ratings + roll form stats for the players who played */
-/* nota da partida: base por força + resultado + gols + clean sheet + cartões/lesões, MAIS um
-   ajuste por DESEMPENHO (dominância) separado do placar — quem dominou e não venceu leva nota
-   melhor; quem venceu sofrendo, um pouco menos. myPerf/oppPerf = {poss,shots,chances,big,goals}. */
-function domAdjust(myPerf, oppPerf){
-  if(!myPerf||!oppPerf) return 0;
-  const mp=myPerf.poss||0, op=oppPerf.poss||0;
-  const possShare=(mp+op)? mp/(mp+op) : 0.5;
-  const chanceEdge=((myPerf.chances||0)+(myPerf.big||0)+(myPerf.goals||0))-((oppPerf.chances||0)+(oppPerf.big||0)+(oppPerf.goals||0));
-  return clamp((possShare-0.5)*1.4 + clamp(chanceEdge,-8,8)*0.05, -0.6, 0.6);
+/* SÚMULA -> jogadores do elenco. caps = [{pid,n,mins}] vindo da partida. Sem caps (resultado
+   antigo, ou caminho que ainda não passa a súmula), cai no onze disponível com 90 minutos —
+   é exatamente o comportamento anterior, então nada quebra. */
+function capsPlayers(clubId, caps, matchMinutes){
+  const sq=squad(clubId)||[];
+  if(Array.isArray(caps) && caps.length){
+    const out=[];
+    caps.forEach(c=>{ const p=sq.find(x=>(c.pid!=null&&x.pid===c.pid)||x.n===c.n); if(p) out.push({p, mins:c.mins}); });
+    if(out.length) return out;
+  }
+  return playedXI(clubId).map(p=>({p, mins:matchMinutes||90}));
 }
-function ratePlayers(id, gf, ga, scorers, R, myPerf, oppPerf){
+/* Nota da partida de TODOS que entraram em campo. A conta em si mora no motor compartilhado
+   (ME.rateAppearances, match-engine.js) — a mesma que a edge function usa —, aqui só montamos a
+   entrada e escrevemos o resultado no elenco. Ver lá a regra de individual-inteiro /
+   coletivo-por-minuto. */
+function ratePlayers(id, gf, ga, scorers, R, myPerf, oppPerf, caps, matchMinutes){
   R=R||makeRng(hashSeed(S.seed,S.round,'rate',id));
-  const played=playedXI(id); const won=gf>ga, lost=gf<ga, cs=ga===0;
-  const inc=S._roundIncidents||{};
-  const dom=domAdjust(myPerf,oppPerf); // dominância coletiva (atuação, não resultado)
-  played.forEach(p=>{
-    let r=6.0+(p.f-65)*0.045+R.gauss(0,0.75);
-    if(won)r+=0.5; else if(lost)r-=0.5;
-    r+=dom;
-    const myG=scorers.filter(s=>s.id===id && s.name===p.n).length;
-    r+=myG*1.3;
-    if(cs&&(p.s==='GK'||p.s==='DEF'))r+=0.6;
-    const myInc=inc[p.n];
-    if(myInc){
-      if(myInc.cardType==='vermelho') r-=1.4;
-      else if(myInc.cardType==='amarelo') r-=0.15;
-      if(myInc.injured) r-=0.8;
-    }
-    r=clamp(r,3,10);
+  const ME=(typeof MATCH_ENGINE!=='undefined')?MATCH_ENGINE:null; if(!ME) return;
+  const lista=capsPlayers(id, caps, matchMinutes);
+  const notas=ME.rateAppearances({
+    players:lista.map(x=>({pid:x.p.pid, n:x.p.n, s:x.p.s, f:x.p.f, mins:x.mins})),
+    matchMinutes:matchMinutes||90, gf, ga, clubId:id, scorers:scorers||[],
+    incidents:S._roundIncidents||{}, myPerf, oppPerf, R });
+  notas.forEach((nota,i)=>{
+    const p=lista[i].p;
     const st=p.stats||(p.stats={r3:[],g3:[],apps:0,goals:0,cs:0});
-    st.r3.push(+r.toFixed(1)); if(st.r3.length>3)st.r3.shift();
-    st.g3.push(myG); if(st.g3.length>3)st.g3.shift();
-    st.apps++; st.goals+=myG; if(cs&&(p.s==='GK'||p.s==='DEF'))st.cs++;
+    st.r3.push(nota.r); if(st.r3.length>3)st.r3.shift();
+    st.g3.push(nota.goals); if(st.g3.length>3)st.g3.shift();
+    st.apps++; st.goals+=nota.goals; if(nota.cs)st.cs++;
   });
 }

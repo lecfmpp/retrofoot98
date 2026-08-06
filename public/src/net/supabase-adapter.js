@@ -463,6 +463,11 @@ async function netPublishResult(round, result){
   const payload = { round, h:result.h, a:result.a, hg:result.hg, ag:result.ag,
     scorers:result.scorers||[], perf:result.perf||null, events:result.events||[],
     decisions:result.decisions||[], // Fase 3A: log de decisões da partida (pênalti/lesão/expulsão/substituição)
+    // caps = súmula de minutos em campo dos dois lados. Só o CLIENTE sabe disso numa partida
+    // humana (é ele que roda a sessão ao vivo, com as substituições); sem mandar, o servidor
+    // recalcularia nota/energia/moral pelo onze submetido no apito e ignoraria quem entrou ou
+    // saiu no meio do jogo. Ver ratePlayersS/rateAppearances.
+    caps:result.caps||null, matchMinutes:result.matchMinutes||null,
     transfers:_tr, morale:_mo, offers:_of, counters:_ct, offerDrops:_dr, training:_trn };
   try{
     if(NET._claimed && NET._claimed[SB_UID()]){ NET._claimed[SB_UID()].last_result=payload; NET._claimed[SB_UID()].last_result_round=round; }
@@ -496,6 +501,7 @@ async function netPublishCupResult(round, cupResult){
   const payload = { stage:cupResult.stage||'bracket', h:cupResult.h, a:cupResult.a, hg:cupResult.hg, ag:cupResult.ag,
     winner:cupResult.winner||null, pens:cupResult.pens||null, events:cupResult.events||[],
     scorers:cupResult.scorers||[], perf:cupResult.perf||null, // artilharia + Historial no servidor (cupSumula)
+    caps:cupResult.caps||null, matchMinutes:cupResult.matchMinutes||null, // súmula de minutos em campo (ver liveCaps)
     decisions:cupResult.decisions||[] }; // Fase 3A: log de decisões
   try{
     if(NET._claimed && NET._claimed[SB_UID()]){ NET._claimed[SB_UID()].last_cup_result=payload; NET._claimed[SB_UID()].last_cup_round=round; }
