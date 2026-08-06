@@ -3195,6 +3195,7 @@ const VIDEOS_MOMENTO = {
   'rebaixado'     : null,   // video/momento-rebaixado.mp4
   'abertura-copa' : null,   // video/momento-abertura-copa.mp4
   'final-copa'    : null,   // video/momento-final-copa.mp4
+  'crise'         : 'video/momento-crise.mp4',
 };
 /* corpo: tom da janela (yellow/green/gray). A regra de contraste da referência vem junto: em
    amarelo e cinza a linha de contexto é preta e o rodapé cinza-escuro; só no verde valem os tons
@@ -3208,6 +3209,7 @@ const MOMENTO_DEFS = {
   'rebaixado'    : { corpo:'gray',   kicker:'REBAIXAMENTO',              btnPri:'Seguir em frente', btnSec:'Ver a tabela…',      acao:'clClassif' },
   'abertura-copa': { corpo:'green',  kicker:'A COPA COMEÇA HOJE',        btnPri:'Preparar o time',  btnSec:'Ver a escalação…',   acao:'seleccao' },
   'final-copa'   : { corpo:'yellow', kicker:'FINAL DA COPA',             btnPri:'Entrar em campo',  btnSec:'Ver a escalação…',   acao:'seleccao' },
+  'crise'        : { corpo:'gray',   kicker:'CLIMA PESADO NO CLUBE',     btnPri:'Assumir a responsa', btnSec:'Ver a tabela…',    acao:'clClassif' },
 };
 let MOMENTO_FILA=[];
 function enfileirarMomento(id, dados){ if(!MOMENTO_DEFS[id]) return; MOMENTO_FILA.push({id,dados:dados||{}}); }
@@ -3354,6 +3356,41 @@ function dadosCopaJogo(pending, ehFinal){
     linha:`${(clubOf(CL.clubId)||{}).short||''} × ${opp.short}, ${meHome?'em casa':'fora de casa'}${dia?', '+dia:''}.`,
     stats:[{k:'FASE',v:fase||'—'},{k:'MANDO',v:meHome?'Casa':'Fora'},{k:'DIA',v:dia||'—'}],
     rodape: ehFinal?'Empate no tempo normal leva a decisão aos pênaltis.':'Escolha a tática no menu Selecção antes do jogo.' };
+}
+/* CRISE NO CLUBE: a barra de Segurança no cargo caiu ao ponto em que a diretoria já está
+   preocupada. Reusa o MESMO limiar do e-mail "Conversa séria sobre o seu trabalho" (js<30) em vez
+   de inventar um terceiro número — a régua do jogo é uma só, e o modal e o e-mail passam a falar
+   da mesma coisa. Abaixo de 15 a demissão já é sorteada a cada rodada (ver checkManagerJobEvent),
+   então a faixa 15-30 é exatamente o aviso que ainda dá pra reagir.
+   UMA VEZ POR TEMPORADA E POR CLUBE: quem cai em crise fica nela por várias rodadas, e repetir a
+   cerimônia toda semana transformaria um momento dramático em ruído. A marca é por
+   clube+temporada, e vive nas chaves de CARREIRA (não vem do estado do anfitrião na Resenha). */
+const CRISE_LIMIAR=30;
+function dadosCrise(){
+  const js=(S.jobSecurity!=null)?S.jobSecurity:60;
+  const pos=(typeof tablePos==='function')?tablePos(CL.clubId):0;
+  const t=(typeof sortedTable==='function')?sortedTable()[pos-1]:null;
+  const sq=squad(CL.clubId)||[];
+  const moral=sq.length?Math.round(sq.reduce((a,p)=>a+(p.moral||70),0)/sq.length):70;
+  const nome=(clubOf(CL.clubId)||{}).short||'o clube';
+  return { titulo:'A diretoria quer falar com você',
+    manchete:'O clima azedou.', trofeu:null,
+    linha:`${pos}º lugar e vestiário em baixa. A diretoria do ${nome} está de olho nas próximas rodadas.`,
+    stats:[{k:'SEGURANÇA',v:js+'%'},{k:'POSIÇÃO',v:pos?pos+'º':'—'},{k:'MORAL DO ELENCO',v:moral+'%'}],
+    rodape:'Abaixo de 15% de segurança, a demissão entra em sorteio a cada rodada.' };
+}
+/* enfileira o momento de crise se ele se aplica AGORA e ainda não apareceu nesta temporada */
+function enfileirarMomentoCrise(){
+  try{
+    if(!CL.clubId || (typeof CL!=='undefined' && CL.unemployed)) return;
+    const js=(S.jobSecurity!=null)?S.jobSecurity:60;
+    if(js>=CRISE_LIMIAR) return;
+    S.criseVista=S.criseVista||{};
+    const marca=CL.clubId+':'+(S.season||1);
+    if(S.criseVista[marca]) return;
+    S.criseVista[marca]=true;
+    enfileirarMomento('crise', dadosCrise());
+  }catch(e){ console.warn('momento de crise:', e&&e.message); }
 }
 /* ---- GATILHOS ----
    Fim de temporada: campeão da liga -> artilheiro -> acesso/queda, um após o outro (fila).
@@ -8120,7 +8157,7 @@ function standSVG(cap){ const tiers=Math.min(6,Math.max(1,Math.round((cap-STAND_
     <line x1="100" y1="96" x2="100" y2="140" stroke="#fff" stroke-width="1.4"/>
     <circle cx="100" cy="118" r="8" fill="none" stroke="#fff" stroke-width="1.4"/></svg>`; }
 /* foto real do estádio (ver public/src/data/stadium-images.js), quando o clube tem uma —
-   por enquanto só a Série D do Brasil. Sem foto, cai no desenho genérico de sempre (standSVG). */
+   hoje as Séries A, B, C e D do Brasil. Sem foto, cai no desenho genérico de sempre (standSVG). */
 function stadiumPhotoFor(clubId){
   const p=(typeof STADIUM_IMG!=='undefined' && clubId) ? STADIUM_IMG[clubId] : null;
   return p || null;

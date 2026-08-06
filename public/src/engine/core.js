@@ -3237,7 +3237,7 @@ function checkManagerJobEvent(){
 /* trainingByClub entra aqui pelo mesmo motivo do playerGrowth: é um mapa por clubId que vive no S
    COMPARTILHADO. Na Resenha o Object.assign do adopt troca o mapa INTEIRO pelo do anfitrião — que
    não tem a chave do convidado — e o convidado perdia a lista de quem pôs em treino a cada rodada. */
-const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub'];
+const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub','criseVista'];
 /* ---- EVOLUÇÃO DO ELENCO (o que o treino de fato fez) ----
    O ícone 🔺 dizia "está em treino", mas não dizia se rendeu alguma coisa. Aqui fica o histórico
    de FORÇA do meu elenco: uma entrada por MUDANÇA (não por rodada), então uma temporada inteira
@@ -3472,6 +3472,13 @@ function checkPendingManagerEvents(){
   if(CL._pendingManagerEvent){
     const ev=CL._pendingManagerEvent; CL._pendingManagerEvent=null;
     if(ev.kind==='fired') showFiredModal(ev.options); else showJobOfferModal(ev.offer);
+    return;   // demitido ou sondado tem precedência: o aviso de crise não faz sentido por cima
+  }
+  // CLUBE EM CRISE: aviso quando a Segurança no cargo cai na faixa de risco. Entra pela mesma
+  // fila dos outros momentos, então nunca aparece por cima de outro modal.
+  if(typeof enfileirarMomentoCrise==='function'){
+    enfileirarMomentoCrise();
+    if(typeof momentoSeguinte==='function' && typeof MOMENTO_FILA!=='undefined' && MOMENTO_FILA.length) momentoSeguinte();
   }
 }
 
