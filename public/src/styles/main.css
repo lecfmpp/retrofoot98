@@ -1476,7 +1476,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-pen-sub{color:var(--pen-fg,#e21c1c);font-size:13px;font-weight:700;margin-bottom:14px}
 .cl-pen-count{display:inline-block;background:#e21c1c;color:#fff;border-radius:3px;padding:1px 7px;margin-left:6px;font-weight:900}
 .cl-pen-list{border:2px solid var(--pen-fg,#888);background:rgba(0,0,0,.4);max-height:280px;overflow-y:auto;text-align:left}
-.cl-pen-row{display:grid;grid-template-columns:22px 1fr 30px;gap:8px;padding:5px 10px;color:var(--pen-fg,#e21c1c);font-weight:700;font-size:14px;cursor:pointer}
+.cl-pen-row{display:grid;grid-template-columns:22px 1fr auto auto;gap:8px;padding:5px 10px;color:var(--pen-fg,#e21c1c);font-weight:700;font-size:14px;cursor:pointer}
 .cl-pen-row:hover{background:#1a0000}
 /* SELECIONADO: par de ALTO CONTRASTE fixo (amarelo + texto escuro), NÃO derivado das cores do clube
    — antes usava color:var(--pen-bg), que é um GRADIENTE (inválido como cor de texto) e o texto sumia.
@@ -1975,13 +1975,64 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
      "Continuar/Voltar" ficavam no fim de listas longas. #c-root exclui os modais de propósito —
      eles já têm rodapé próprio e rolagem própria (ver .cl-dlg-foot), e o overlay é irmão do
      #c-root no body. */
+  /* mesma barra fixa DURANTE a partida: os botões (Compartilhar/Continuar/Substituições) ficavam
+     no meio da tela, entre a súmula e a lista de jogadores, e o "Substituir" do painel de
+     substituição ainda mais abaixo. Os modais do jogo (pênalti, lesão, expulsão, disputa) usam
+     .cl-pen-btn e entram na mesma regra: a ação sempre no mesmo lugar, presa ao rodapé. */
+  /* A partida do usuário é um MODAL (.cl-live-overlay > .cl-live-modal), não conteúdo da
+     página: uma barra fixa na tela ficaria fora da moldura dele e ainda por cima do painel de
+     substituição. Aqui a ação gruda no rodapé DO MODAL, que passa a rolar por dentro. */
+  #c-root .cl-live-modal{display:flex;flex-direction:column;max-height:calc(100vh - 40px);overflow:hidden}
+  #c-root .cl-live-modal>*{flex:none}
+  /* a barra de ação vai pro FIM do modal (order) e fica presa lá; quem rola é o miolo — a súmula
+     e o painel de substituição. Assim Continuar/Compartilhar nunca saem da tela durante o jogo. */
+  /* display:grid explícito: a regra geral do telefone ("todo grupo de botão vira coluna")
+     transformava esta barra numa pilha de três, com 182px de altura */
+  #c-root .cl-lm-cont{order:99;position:sticky;bottom:0;z-index:5;margin:0;padding:10px 12px;
+    display:grid;gap:8px;box-shadow:0 -8px 20px rgba(0,0,0,.35)}
+  /* quem rola é a lista de jogadores; o botão Substituir fica sempre visível,
+     porque o placar redesenha a cada minuto e zeraria o scroll do painel */
+  /* o painel de substituição é um <fieldset>: a caixa interna anônima ignora a altura
+     imposta pelo flex, então quem limita a rolagem é a lista, medida pela viewport */
+  #c-root .cl-live-modal>.cl-sub{order:50;flex:0 1 auto;min-height:0}
+  #c-root .cl-live-modal>.cl-sub>.cl-sub-cols{max-height:calc(100vh - 348px);overflow-y:auto}
+  #c-root .cl-lm-events{max-height:26vh}
+  /* botões da barra em UMA linha (ícone ao lado do texto): empilhados eles faziam uma barra de
+     ~190px, quase um quarto da tela do telefone */
+  /* rótulo quebra em duas linhas em vez de virar reticências */
+  #c-root .cl-lm-cont>.cl-btn{flex-direction:row;gap:5px;min-height:44px;padding:6px 4px;font-size:10px;
+    line-height:1.15;white-space:normal;text-align:center}
+  #c-root .cl-lm-cont>.cl-btn .cl-btn-ic{font-size:14px;flex:none}
   #c-root .cl-classif-buttons,#c-root .cl-handoff-actions,#c-root .cl-cal-ok{
     position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;width:auto;max-width:none;
     display:flex;flex-direction:row;gap:10px;padding:10px 12px;
     background:#1d5c1d;border-top:2px solid rgba(255,255,255,.22);box-shadow:0 -8px 20px rgba(0,0,0,.4);
     padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}
+  #c-root .cl-lm-cont>.cl-btn,
   #c-root .cl-classif-buttons>.cl-btn,#c-root .cl-handoff-actions>.cl-btn,#c-root .cl-cal-ok>.cl-btn{
     flex:1 1 0;width:auto;min-width:0}
+  /* Só a barra da PARTIDA é fixa. O "Substituir" fica inline logo abaixo do seletor, onde o olho
+     já está — e duas barras fixas se sobreporiam no mesmo ponto do rodapé (foi o que aconteceu
+     na primeira tentativa). O caminho é: "Substituições" na barra fixa abre o painel, e a
+     confirmação acontece dentro dele. */
+  /* a barra fixa saiu do fluxo: o conteúdo da partida precisa de respiro embaixo pra não
+     terminar atrás dela (era o painel de substituição sumindo sob os botões) */
+  #c-root .cl-live{padding-bottom:104px}
+  #c-root .cl-sub-btn{justify-content:stretch;margin-bottom:0;flex:none}
+  #c-root .cl-sub-btn>.cl-btn{flex:1 1 0;width:auto}
+  /* modais da partida (pênalti, lesão, expulsão, disputa): a ação gruda no rodapé DO MODAL, não
+     da tela — solta no rodapé da tela ela apareceria descolada da moldura escura. */
+  .cl-pen-modal,.cl-inj-modal{display:flex;flex-direction:column;max-height:calc(100vh - 32px);overflow:hidden}
+  .cl-inj-modal>.cl-inj-body{flex:1;min-height:0;display:flex;flex-direction:column}
+  .cl-pen-modal>.cl-pen-list,.cl-inj-body>.cl-pen-list{flex:1;min-height:0;max-height:none;overflow:auto}
+  .cl-inj-body>.cl-pen-cols{flex:1;min-height:0;margin-bottom:8px}
+  .cl-pen-cols>.cl-pen-col{display:flex;flex-direction:column;min-height:0}
+  .cl-pen-cols .cl-pen-list{flex:1;min-height:0;max-height:none}
+  .cl-pen-btn{flex:none;display:flex;flex-direction:row;gap:10px;margin-top:12px}
+  /* Sai/Entra ficam apertados em 375px: linha menor pra caber o nome sem cortar */
+  .cl-pen-cols .cl-pen-row{font-size:12px;gap:5px;padding:5px 6px}
+  .cl-pen-cols .cl-pen-list{max-height:none}
+  .cl-pen-btn>.cl-btn{flex:1 1 0;width:auto;min-width:0}
   .cl-main-top{position:sticky;top:0;z-index:46}
   .cl-mobmenu-wrap{position:sticky;top:28px;z-index:45}   /* 28px = altura da barra do clube */
   /* A JANELA FICA ANCORADA NO TOPO. O .cl-desk centraliza verticalmente, então a janela subia e
