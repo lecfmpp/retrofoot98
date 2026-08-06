@@ -495,7 +495,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'loading':   html=scLoading(); break;
     case 'jogadores': html=scJogadores(); break;
     case 'escolhaclubes': html=scEscolhaClubes(); break;
-    case 'sorteio':   html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scSorteio(),{logo:true}); break;
+    case 'sorteio':   html=scSorteio(); break;   // cerimônia do sorteio (wizShell própria)
     case 'boasvindas':html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scBoasVindas(),{logo:true}); break;
     case 'main':      html=titleBarTop('RetroFoot98')+deskWrap(scMain()); break;
     case 'waitround': html=titleBarTop('RetroFoot98')+deskWrap(scWaitRound()); break;
@@ -1302,17 +1302,28 @@ function clSortear(){
 }
 
 /* ================= 07 · SORTEIO (nomes + clubes em cores) ================= */
+/* cerimônia do sorteio no solo — mesmo desenho da Resenha (ver scResenhaDraw) */
 function scSorteio(){
-  const rows=[0,1,2,3,4,5].map(i=>{const d=CL.draw[i]; const c=d?clubOf(d.clubId):null;
-    return `<div class="cl-jrow"><span class="cl-jlbl">Jogador ${i+1}</span>
-      <span class="cl-jname">${d?escC(d.name):''}</span>
-      <span class="cl-jteam" style="${c?clubStripe(c):''}">${c?escC(c.short):''}</span></div>`;}).join('');
-  return dlg('Jogadores', `
-    <div class="cl-jog">
-      <div class="cl-jog-head"><span class="cl-jh-n">Nome</span><span class="cl-jh-e2">Equipa</span></div>
-      ${rows}
-      <div class="cl-jog-actions">${btn('Fechar','clEntrar()',{cls:'cl-btn-wide'})}</div>
-    </div>`, {w:820,bodyClass:'cl-body-gray',min:true});
+  const d=CL.soloDraw||{list:[],idx:0};
+  const rows=(d.list||[]).map((p,i)=>{
+    const revelado=i<d.idx;
+    if(!revelado) return `<div class="cl-rdraw-row pending"><span class="cl-rdraw-num">${i+1}</span><span class="cl-rdraw-name muted">${escC(p.name||'Treinador')}</span><span class="cl-rdraw-arrow">→</span><span class="cl-rdraw-team q">🎲</span></div>`;
+    const c=clubOf(p.clubId)||(typeof anyClubOf==='function'?anyClubOf(p.clubId):null);
+    const ultimo=(i===d.idx-1)&&!d.done;
+    return `<div class="cl-rdraw-row revealed${ultimo?' pop':''}">
+      <span class="cl-rdraw-num">${i+1}</span>
+      <span class="cl-rdraw-name">${escC(p.name||'Treinador')}</span>
+      <span class="cl-rdraw-arrow">→</span>
+      <span class="cl-rdraw-team" style="${c?clubStripe(c):''}">${c?escC(c.short||c.name):'—'}</span>
+    </div>`;
+  }).join('');
+  const sub=d.done?'Sorteio concluído! Preparando a temporada… ⚽':'Sorteando os clubes… boa sorte!';
+  const action=d.done
+    ? `<span class="cl-wiz-hint">Preparando a temporada…</span>`
+    : btn('Pular','clSoloDrawSkip()',{icon:'⏩',cls:'cl-wiz-cta'});
+  return wizShell({ title:'Sorteio dos clubes', contentCls:'cl-wiz-center',
+    body:`<div class="cl-rdraw"><div class="cl-rdraw-sub">${sub}</div><div class="cl-rdraw-list">${rows}</div></div>`,
+    action });
 }
 function clEntrar(){
   CL.clubId=CL.draw[0].clubId; CL.mgr=CL.draw[0].name;
@@ -1724,8 +1735,35 @@ function _assignRandomClubs(){
 function clSortearPick(){ _assignRandomClubs(); cdraw(); }
 /* clubes -> loading (4/4) -> lança o jogo. Começar (1 jogador, clubes escolhidos) */
 function clStartGame(){ if(!(CL.pick||[]).every(p=>p.clubId)) return; CL._pendingLaunch=clConfirmarClubes; CL.screen='loading'; cdraw(); }
-/* multi-jogador: sorteia os times, passa pelo loading e começa */
-function clSortearStart(){ _assignRandomClubs(); CL._pendingLaunch=clConfirmarClubes; CL.screen='loading'; cdraw(); }
+/* multi-jogador: sorteia os times, MOSTRA o sorteio e só então começa */
+function clSortearStart(){ _assignRandomClubs(); startSoloDraw(); }
+/* ===== SORTEIO DOS CLUBES NO SOLO =====
+   O modo solo pulava direto do "Sortear e começar" pras boas-vindas: o clube simplesmente
+   aparecia, sem o momento de descobrir qual saiu. A Resenha já tinha essa cerimônia
+   (startResenhaDraw/scResenhaDraw em net/local-transport.js) e ela é metade da graça do sorteio.
+   Aqui é a mesma cerimônia, com o mesmo desenho e o mesmo ritmo, sobre o estado local (CL.pick).
+   No fim segue o caminho de sempre: loading -> clConfirmarClubes -> boas-vindas com vídeo. */
+function startSoloDraw(){
+  const list=(CL.pick||[]).filter(p=>p&&p.clubId).map(p=>({name:p.name||'Treinador', clubId:p.clubId}));
+  if(!list.length){ CL._pendingLaunch=clConfirmarClubes; CL.screen='loading'; cdraw(); return; }
+  if(CL._soloDrawTimer){ clearTimeout(CL._soloDrawTimer); CL._soloDrawTimer=null; }
+  CL.soloDraw={ list, idx:0, done:false, fast:false };
+  CL.screen='sorteio'; cdraw();
+  CL._soloDrawTimer=setTimeout(soloDrawTick, 700);   // respiro antes do primeiro nome
+}
+function soloDrawTick(){
+  const d=CL.soloDraw; if(!d) return;
+  if(d.idx>=d.list.length){
+    d.done=true; cdraw();
+    CL._soloDrawTimer=setTimeout(()=>{ CL.soloDraw=null; CL._pendingLaunch=clConfirmarClubes; CL.screen='loading'; cdraw(); }, d.fast?500:1600);
+    return;
+  }
+  d.idx++; cdraw();
+  CL._soloDrawTimer=setTimeout(soloDrawTick, d.fast?250:2000);
+}
+function clSoloDrawSkip(){ const d=CL.soloDraw; if(!d||d.done) return; d.fast=true;
+  if(CL._soloDrawTimer){ clearTimeout(CL._soloDrawTimer); CL._soloDrawTimer=null; }
+  soloDrawTick(); }
 function clPickCountry(i,c){ if(!CL.pick[i])return; CL.pick[i].country=c; CL.pick[i].clubId=null; cdraw(); }
 function clPickClub(i,id){ if(!CL.pick[i])return; CL.pick[i].clubId=id||null; cdraw(); }
 function clGoJogadores(){ CL.screen='jogadores'; cdraw(); }
