@@ -34,6 +34,7 @@ const OUT_ROOT = join(ROOT, 'public/img/estadios');
 // jogo serve .webp de qualquer jeito. As .webp vêm com o fundo CHAPADO (alfa todo opaco), então
 // o recorte abaixo é o que dá a transparência — não dá pra só copiar.
 const DIVS = [
+  { div: 'A', src: '1 Divisao/webP', out: 'brasil-a' },
   { div: 'B', src: '2 Divisao/webP', out: 'brasil-b' },
   { div: 'C', src: '3 Divisao/webP', out: 'brasil-c' },
 ];
