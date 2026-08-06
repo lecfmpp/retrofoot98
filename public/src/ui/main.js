@@ -261,10 +261,20 @@ async function clAuthLogout(){
   CL.screen='abertura'; CL.landingView='home'; cdraw();
   if(typeof toastC==='function') toastC('Sessão encerrada.');
 }
+/* opts.phoneHide: some no telefone. Só nas telas que têm a gaveta lateral (main/seatturn) —
+   lá o "Sair" da conta reaparece como último item do menu (ver menuSairHTML), então a faixa
+   cinza vira só ruído em cima da janela do clube. */
 function titleBarTop(t,opts){ opts=opts||{};
   const logoImg=`<img class="cl-topbar-logo" src="img/logo.webp" width="500" height="500" alt="">`;
   const logo=opts.logo?(opts.linkHome?`<a class="cl-logo-link" href="https://retrofoot98.com.br/" aria-label="RetroFoot98 — página inicial">${logoImg}</a>`:logoImg):'';
-  return `<div class="cl-topbar">${logo}${escC(t)}${topbarAuth()}</div>`; }
+  return `<div class="cl-topbar${opts.phoneHide?' cl-topbar-nophone':''}">${logo}${escC(t)}${topbarAuth()}</div>`; }
+/* "Sair" (da CONTA, mesmo clAuthLogout da barra cinza) como último item da gaveta no telefone.
+   Só aparece logado — deslogado a barra cinza também não mostrava nada. */
+function menuSairHTML(){
+  if(typeof NET==='undefined' || !NET.authStatus) return '';
+  const st=NET.authStatus(); if(!st.loggedIn) return '';
+  return `<span class="cl-menu-i cl-menu-sair" onclick="clMenuPick();clAuthLogout()">Sair da conta</span>`;
+}
 /* MODAL DE MENU PADRÃO (handoff "Padronização de modais do menu"): opts.std liga a anatomia
    única — 640px, corpo cinza, ✕ na barra de título, área de conteúdo que rola sozinha entre
    título e rodapé FIXOS, e o rodapé como slot (opts.footer) com os botões numa linha à direita.
@@ -278,7 +288,7 @@ function dlg(title,body,opts){ opts=opts||{}; const w=opts.w||(opts.std?640:620)
     <div class="cl-dlg-title"><span>${escC(title)}</span><button class="cl-dlg-x" type="button" title="Fechar" aria-label="Fechar" onclick="clCloseOverlay()">✕</button></div>
     <div class="cl-dlg-body ${opts.bodyClass||'cl-body-gray'}">
       <div class="cl-dlg-content">${body}</div>
-      ${opts.footer?`<div class="cl-dlg-foot">${opts.footer}</div>`:''}
+      ${opts.footer?`<div class="cl-dlg-foot ${opts.footerClass||''}">${opts.footer}</div>`:''}
     </div>
   </div>`;
   return `<div class="cl-dlg" style="width:${w}px">
@@ -497,12 +507,12 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'escolhaclubes': html=scEscolhaClubes(); break;
     case 'sorteio':   html=scSorteio(); break;   // cerimônia do sorteio (wizShell própria)
     case 'boasvindas':html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scBoasVindas(),{logo:true}); break;
-    case 'main':      html=titleBarTop('RetroFoot98')+deskWrap(scMain()); break;
+    case 'main':      html=titleBarTop('RetroFoot98',{phoneHide:true})+deskWrap(scMain()); break;
     case 'waitround': html=titleBarTop('RetroFoot98')+deskWrap(scWaitRound()); break;
     case 'imprensa':  html=titleBarTop('RetroFoot98')+deskWrap(scImprensa()); break;
     case 'teamview':  html=titleBarTop('RetroFoot98')+deskWrap(scTeamView()); break;
     case 'handoff':   html=titleBarTop('RetroFoot98')+deskWrap(scHandoff()); break;
-    case 'seatturn':  html=titleBarTop('RetroFoot98')+deskWrap(scSeatTurn()); break;
+    case 'seatturn':  html=titleBarTop('RetroFoot98',{phoneHide:true})+deskWrap(scSeatTurn()); break;
     case 'seatclassif': html=scSeatClassif(); break;
     case 'live':      html=scLive(); break;
     case 'classif':   html=scClassif(); break;
@@ -1996,6 +2006,7 @@ function scSeatTurn(){
   const menu=`${CL.mobMenuOpen?'<div class="cl-menu-scrim"></div>':''}<div class="cl-menu ${CL.mobMenuOpen?'mob-open':''}" id="cl-menubar" onclick="event.stopPropagation()">
     <div class="cl-menu-hd"><span class="cl-menu-hd-t">Menu</span><button class="cl-menu-x" type="button" onclick="closeMobMenu()" aria-label="Fechar menu">✕</button></div>
     ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
+    ${menuSairHTML()}
   </div>`;
   if(typeof syncInbox==='function') syncInbox();
   const unread=(typeof inboxUnread==='function')?inboxUnread():0;
@@ -2194,6 +2205,7 @@ function scMain(){
   const menu=`${CL.mobMenuOpen?'<div class="cl-menu-scrim"></div>':''}<div class="cl-menu ${CL.mobMenuOpen?'mob-open':''}" id="cl-menubar" onclick="event.stopPropagation()">
     <div class="cl-menu-hd"><span class="cl-menu-hd-t">Menu</span><button class="cl-menu-x" type="button" onclick="closeMobMenu()" aria-label="Fechar menu">✕</button></div>
     ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${mm==='Modo Resenha'?resenhaBadge:''}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
+    ${menuSairHTML()}
   </div>`;
   if(typeof syncInbox==='function') syncInbox();           // atualiza a caixa antes de desenhar o badge
   const unread=(typeof inboxUnread==='function')?inboxUnread():0;
@@ -7899,37 +7911,43 @@ function clSaveMenu(){ CL.menu=null; cdraw(); saveV3(true); }
    primeiro; em modo online a sala já fica sincronizada a cada rodada (NET.saveGame), então
    não faz sentido oferecer "gravar" ali, só confirmar a saída mesmo. */
 function clExit(){
-  CL.menu=null;
+  CL.menu=null; CL._exitSaving=false;
   overlayC(exitModalHTML(!!CL.online));
 }
-/* modal "Sair para o menu" (redesign handoff_sorteio_dialogo): barra navy com minimizar à
-   esquerda, texto centralizado, botões grandes (emoji acima do label) e Cancelar. Fecha no
-   backdrop (overlayC.onclick), no "_" ou no Cancelar. Online: só confirma a saída (sala segue). */
+/* modal "Sair para o menu" (handoff_sair_para_o_menu): anatomia padrão dos modais de menu —
+   640px, ✕ real na barra de título (o 🗕 decorativo saiu), pergunta no conteúdo e as três
+   saídas numa LINHA SÓ no rodapé, destrutiva → recomendada → Cancelar. Fecha no backdrop
+   (overlayC.onclick), no ✕, no Esc ou no Cancelar — todos equivalem a cancelar, sem gravar.
+   Online: a sala já sincroniza a cada rodada, então ali não se oferece gravar, só confirmar. */
 function exitModalHTML(online){
+  const saving=!!CL._exitSaving;
   const text = online
     ? 'Sair da partida agora? A sala continua ativa pros outros treinadores — você pode voltar depois.'
     : 'Quer gravar o jogo antes de sair? O progresso não gravado será perdido.';
-  const bigBtns = online
-    ? btn('Sair','clExitConfirm(false)',{icon:'✔',cls:'cl-btn-ok cl-btn-big'})
-    : `${btn('Gravar e sair','clExitConfirm(true)',{icon:'☁',cls:'cl-btn-ok cl-btn-big'})}${btn('Sair sem gravar','clExitConfirm(false)',{icon:'✖',cls:'cl-btn-cancel cl-btn-big'})}`;
-  return `<div class="cl-exitmodal">
-    <div class="cl-exitmodal-bar"><button class="cl-exitmodal-min" onclick="clCloseOverlay()" aria-label="Fechar">_</button>Sair para o menu</div>
-    <div class="cl-exitmodal-body">
-      <p class="cl-exitmodal-text">${text}</p>
-      <div class="cl-exitmodal-btns">${bigBtns}</div>
-      <div class="cl-exitmodal-cancel">${btn('Cancelar','clCloseOverlay()',{cls:'cl-btn-mini'})}</div>
-    </div>
-  </div>`;
+  const footer = online
+    ? `${btn('Sair','clExitConfirm(false)',{icon:'✔',cls:'cl-btn-ok'})}${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}`
+    : `${btn('Sair sem gravar','clExitConfirm(false)',{icon:'✖',cls:'cl-btn-cancel',dis:saving})}
+       ${btn(saving?'Gravando…':'Gravar e sair','clExitConfirm(true)',{icon:'✔',cls:'cl-btn-ok',dis:saving})}
+       ${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel',dis:saving})}`;
+  return dlg('Sair para o menu', `<div class="cl-exit-txt">${escC(text)}</div>`,
+    {std:true, footer, footerClass:'cl-exit-foot'});
 }
 async function clExitConfirm(shouldSave){
-  clCloseOverlay();
+  if(CL._exitSaving) return;                       // clique duplo em "Gravar e sair"
   if(typeof clStopHostReqPoll==='function') clStopHostReqPoll(); // encerra o acompanhamento de pedidos
   // hotseat: saindo no meio da vez de um assento (não do manager 1) — devolve o contexto pro
   // clube/estado do manager 1 ANTES de gravar/sair, senão saveV3() grava com o clube errado
   // como primário (ela mesma se recusa a gravar com CL._seatContext ainda setado) e a fila de
   // assentos pendente (CL._hotseat) fica pendurada, quebrando a próxima partida que carregar.
   if(CL._seatContext){ exitSeatContext(); CL._hotseat=null; }
-  if(shouldSave) await saveV3(true); // já mostra a barra de gravação e um toast de sucesso/erro
+  if(shouldSave){
+    // o modal FICA na tela enquanto grava, com o botão em "Gravando…" — antes ele sumia no
+    // primeiro clique e a gravação corria atrás de uma tela sem nenhum sinal do que acontecia
+    CL._exitSaving=true; overlayC(exitModalHTML(!!CL.online));
+    try{ await saveV3(true); }                    // já mostra a barra de gravação e um toast
+    finally{ CL._exitSaving=false; }
+  }
+  clCloseOverlay();
   CL.screen='abertura'; cdraw();
 }
 /* zona de classificação continental pra próxima temporada (só existe na Série A —
@@ -8432,7 +8450,7 @@ function cupScreenHTML(key, opts){
       <span class="cl-cupscr-nm">${escC(COMP_DEFS[key].name)}</span>
       <span class="cl-cupscr-se">${escC(String(S.season||''))}</span>
       <div class="cl-cupscr-sp"></div>
-      ${opts.actions||''}
+      ${opts.actions?`<div class="cl-cupscr-act">${opts.actions}</div>`:''}
     </div>
     ${opts.result||''}
     ${cupPhaseTabsHTML(key, hasGroup && (!dr || dr.stage==='group'), tab, status, !!dr)}

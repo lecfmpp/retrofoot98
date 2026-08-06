@@ -251,6 +251,11 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-dlg-foot .cl-btn{min-height:34px;flex:0 0 148px;padding:7px 12px;font-size:13px;
   flex-direction:row;gap:7px;align-items:center;justify-content:center}   /* medida igual pros dois, alinhados à direita */
 .cl-dlg-foot .cl-btn .cl-btn-ic{font-size:15px;line-height:1}
+/* "Sair para o menu" (handoff_sair_para_o_menu): três saídas numa linha só —
+   destrutiva → recomendada → Cancelar. O rótulo pode quebrar em duas linhas em vez de virar
+   reticências, que é o que salva os dois primeiros botões na largura do telefone. */
+.cl-exit-txt{font-size:13px;color:#111;line-height:1.5;text-wrap:pretty}
+.cl-exit-foot .cl-btn{white-space:normal;line-height:1.2;text-align:center}
 /* botões win3.1 */
 .cl-btn{font-family:var(--sans);font-size:13px;background:var(--chrome);border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);padding:8px 14px;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#000;min-width:70px;min-height:46px;box-sizing:border-box;text-align:center}
 .cl-btn:active{border-color:var(--bevD2) var(--bevL) var(--bevL) var(--bevD2)}
@@ -458,6 +463,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    estourando a largura do item. Um só valor mantém os dois em sincronia, aqui e no mobile. */
 .cl-menu{--menu-fs:12.5px;background:#fff;display:flex;gap:0;border-bottom:1px solid #000}
 .cl-menu-i{padding:5px 10px;font-weight:700;font-size:var(--menu-fs);cursor:pointer;color:#000;position:relative;white-space:nowrap}
+/* o "Sair da conta" mora na gaveta do telefone; no desktop ele continua na barra cinza */
+.cl-menu-sair{display:none}
 .cl-menu-i:hover,.cl-menu-i.open{background:var(--navy);color:#fff}
 /* dropdown do menu topo — abre reto pra baixo, alinhado ao item */
 .cl-menu-dd{position:absolute;top:100%;left:0;min-width:210px;background:#fff;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);z-index:36;box-shadow:3px 3px 8px rgba(0,0,0,.4);text-align:left;cursor:default}
@@ -1207,6 +1214,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-cupscr-nm{font-weight:900;font-size:17px;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cl-cupscr-se{font-family:var(--mono);font-weight:800;font-size:13px;color:var(--yellow);background:rgba(0,0,0,.28);padding:2px 8px}
 .cl-cupscr-sp{flex:1}
+.cl-cupscr-act{display:flex;align-items:center;gap:8px}
 .cl-cupscr-auto{font-size:11px;color:#cfe6cf;font-style:italic;margin-left:8px}
 /* faixa do resultado da partida que acabou de ser jogada (substitui o antigo diálogo de placar) */
 .cl-cupres{flex:none;display:flex;align-items:center;gap:12px;padding:7px 12px;margin-top:6px;color:#000;
@@ -1388,11 +1396,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    ele rola na horizontal em vez de encolher (desktop ≥1280px continua sem rolagem nenhuma) */
 @media(max-width:760px){
   .cl-cupscr{height:auto;min-height:100vh;padding:6px}
-  /* o nome da competição ganha a linha inteira; as ações caem pra linha de baixo */
+  /* o nome da competição ganha a linha inteira; as ações saem do cabeçalho e viram a
+     barra fixa do rodapé (ver .cl-cupscr-act no bloco de barras fixas mais abaixo) */
   .cl-cupscr-hdr{flex-wrap:wrap}
   .cl-cupscr-tr .cl-trophy-img{width:28px;height:28px}
   .cl-cupscr-sp{display:none}
-  .cl-cupscr-hdr>.cl-btn{flex:1 1 100%}
+  .cl-cupscr{padding-bottom:80px}
   .cl-cuptab{min-height:44px;padding:10px 12px}
   .cl-cuptab.active{padding-bottom:14px}
   .cl-cuptabs-st{display:none}
@@ -1886,6 +1895,10 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-dlg-content{padding:12px;max-height:calc(100vh - 150px)}
   .cl-dlg-foot{padding:10px 12px}
   .cl-dlg-foot .cl-btn{flex:1;min-width:0;min-height:44px;width:auto}
+  .cl-exit-foot{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:10px 12px}
+  .cl-exit-foot .cl-btn{font-size:11.5px;line-height:1.15;padding:6px 4px;gap:5px}
+  .cl-exit-foot .cl-btn .cl-btn-ic{font-size:13px}
+  .cl-exit-txt{font-size:12.5px}
   .cl-dlg-x{width:26px;height:22px;font-size:12px}
   /* Calendário: 4 colunas; rodada e data voltam a dividir a 1ª célula e o nome da competição
      sai do texto (fica só o 🏆, com o nome completo no title da linha) — sem reticências */
@@ -2003,14 +2016,17 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   #c-root .cl-lm-cont>.cl-btn{flex-direction:row;gap:5px;min-height:44px;padding:6px 4px;font-size:10px;
     line-height:1.15;white-space:normal;text-align:center}
   #c-root .cl-lm-cont>.cl-btn .cl-btn-ic{font-size:14px;flex:none}
-  #c-root .cl-classif-buttons,#c-root .cl-handoff-actions,#c-root .cl-cal-ok{
+  #c-root .cl-classif-buttons,#c-root .cl-handoff-actions,#c-root .cl-cal-ok,#c-root .cl-cupscr-act{
     position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;width:auto;max-width:none;
-    display:flex;flex-direction:row;gap:10px;padding:10px 12px;
+    display:flex;flex-direction:row;flex-wrap:wrap;gap:10px;padding:10px 12px;
     background:#1d5c1d;border-top:2px solid rgba(255,255,255,.22);box-shadow:0 -8px 20px rgba(0,0,0,.4);
     padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}
   #c-root .cl-lm-cont>.cl-btn,
-  #c-root .cl-classif-buttons>.cl-btn,#c-root .cl-handoff-actions>.cl-btn,#c-root .cl-cal-ok>.cl-btn{
+  #c-root .cl-classif-buttons>.cl-btn,#c-root .cl-handoff-actions>.cl-btn,#c-root .cl-cal-ok>.cl-btn,
+  #c-root .cl-cupscr-act>.cl-btn{
     flex:1 1 0;width:auto;min-width:0}
+  /* "avança sozinho em alguns segundos…" fica numa linha própria acima do botão, dentro da barra */
+  #c-root .cl-cupscr-act>.cl-cupscr-auto{flex:1 1 100%;order:-1;margin:0;text-align:center}
   /* Só a barra da PARTIDA é fixa. O "Substituir" fica inline logo abaixo do seletor, onde o olho
      já está — e duas barras fixas se sobreporiam no mesmo ponto do rodapé (foi o que aconteceu
      na primeira tentativa). O caminho é: "Substituições" na barra fixa abre o painel, e a
@@ -2034,7 +2050,9 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-pen-cols .cl-pen-list{max-height:none}
   .cl-pen-btn>.cl-btn{flex:1 1 0;width:auto;min-width:0}
   .cl-main-top{position:sticky;top:0;z-index:46}
-  .cl-mobmenu-wrap{position:sticky;top:28px;z-index:45}   /* 28px = altura da barra do clube */
+  /* ACIMA da barra do clube: a gaveta e o véu vivem DENTRO deste wrapper, então o z-index dele
+     é o teto de todos eles — com 45 a barra azul do clube (46) aparecia por cima da gaveta. */
+  .cl-mobmenu-wrap{position:sticky;top:28px;z-index:47}   /* 28px = altura da barra do clube */
   /* A JANELA FICA ANCORADA NO TOPO. O .cl-desk centraliza verticalmente, então a janela subia e
      descia conforme o tamanho do conteúdo da aba — trocar de aba parecia mover a tela inteira.
      No telefone ela começa no topo e só cresce pra baixo quando o conteúdo passa da altura. */
@@ -2101,9 +2119,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
      abre em largura cheia logo abaixo, que é o comportamento esperado num menu de telefone. */
   .cl-menu-i{display:block;width:100%;box-sizing:border-box;border-bottom:1px solid #ddd;
     font-size:14.5px;font-weight:700;padding:12px 30px 12px 12px;position:relative}
+  .cl-menu-sair{display:block;margin-top:auto;border-top:2px solid #ddd;border-bottom:none;color:#a11}
+  .cl-topbar-nophone{display:none}
   .cl-menu-i.open{background:var(--navy);color:#fff;padding-bottom:0}
   .cl-menu-i.open::after{content:'▾';position:absolute;right:12px;top:12px;font-size:12px}
   .cl-menu-i:not(.open)::after{content:'›';position:absolute;right:12px;top:10px;color:#888;font-size:18px;font-weight:400}
+  .cl-menu-i.cl-menu-sair::after{content:none}   /* ação direta, não abre submenu */
   .cl-menu-dd{position:static;width:auto;margin:12px -30px 0 -12px;box-shadow:none;border:none;background:#f4f4f4;
     font-weight:400;color:#000}
   .cl-menu-dd-i{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;
@@ -2385,22 +2406,14 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-crow-head,.cl-prow-head{display:none}
 }
 
-/* ===== Sorteio da Copa + modal "Sair para o menu" (redesign handoff_sorteio_dialogo) ===== */
+/* ===== Sorteio da Copa (redesign handoff_sorteio_dialogo) =====
+   O modal "Sair para o menu" morava aqui com moldura própria; migrou pro padrão dos modais de
+   menu (dlg opts.std + .cl-exit-foot, ver handoff_sair_para_o_menu). */
 .cl-wiz-seal{display:inline-flex;align-items:center;gap:8px}
 .cl-wiz-seal img{vertical-align:middle}
 .cl-wiz-fixedh{height:100vh;min-height:0;overflow:hidden}
-.cl-exitmodal{width:min(520px,92vw);background:var(--chrome);border:2px solid;border-color:#fff #707070 #707070 #fff;box-shadow:0 18px 50px rgba(0,0,0,.5)}
-.cl-exitmodal-bar{background:var(--navy);color:#fff;font-weight:800;font-size:14px;text-align:center;padding:9px;position:relative}
-.cl-exitmodal-min{position:absolute;left:6px;top:50%;transform:translateY(-50%);width:20px;height:18px;background:var(--chrome);border:1px solid;border-color:#fff #707070 #707070 #fff;color:#111;font-weight:800;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
-.cl-exitmodal-body{padding:22px 24px 20px}
-.cl-exitmodal-text{color:#111;font-size:15px;line-height:1.5;text-align:center;margin:0 0 20px}
-.cl-exitmodal-btns{display:flex;gap:14px;justify-content:center}
-.cl-exitmodal-btns .cl-btn{min-width:150px}
-.cl-exitmodal-cancel{display:flex;justify-content:center;margin-top:14px}
 @media (max-width:760px){
   .cl-wiz-fixedh{height:auto;min-height:100vh;overflow:visible}
-  .cl-exitmodal-btns{flex-direction:column}
-  .cl-exitmodal-btns .cl-btn{width:100%}
 }
 
 /* ===== Ação inline: botão principal logo abaixo do formulário (padronização) =====
