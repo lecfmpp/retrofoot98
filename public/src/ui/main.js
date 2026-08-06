@@ -639,7 +639,6 @@ function landingContatoHTML(){
     <p>Achou um bug, tem uma ideia ou quer chamar pra resenha? Fala com a gente:</p>
     <div class="cl-home-contact-list">
       <div class="cl-home-contact-row"><span>✉️</span><span class="cl-home-mono">contato@retrofoot98.com</span></div>
-      <div class="cl-home-contact-row"><span>💬</span><b>Discord da comunidade</b><span class="cl-home-muted">&nbsp;— resenha e suporte</span></div>
       <div class="cl-home-contact-row"><span>🐦</span><b>@retrofoot98</b><span class="cl-home-muted">&nbsp;— novidades e updates</span></div>
     </div>
     <button class="cl-home-mini cl-home-back" onclick="clLandingGo('home')">↩ Voltar ao início</button>
@@ -1157,14 +1156,14 @@ function scPaisJogavel(){
       <span class="cl-ctry-t">${sel?'✔ seu time':`${teams} equipas`}</span></div>`;
   }).join('');
   const others=playable.filter(c=>c!==CL.playCountry);
+  // modal padrão: as ações vão pro rodapé fixo em vez de ficarem soltas no meio do conteúdo
   return dlg('Onde você vai treinar?', `
     <div class="cl-paises">
       <div class="cl-ctry-list">${rows}</div>
       <div class="cl-paises-side">
-        <div class="cl-side-btns">${btn('OK','clPaisJogavelOk()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Voltar','clGoPaises()',{icon:'↩',cls:'cl-btn-cancel'})}</div>
         <div class="cl-instr">Escolha o país onde você vai comandar um clube. ${others.length?`As outras ligas (${others.map(escC).join(', ')}) rodam sozinhas no background — dá pra acompanhar tabelas, artilheiros e campeões no menu <b>Campeonatos</b>, e negociar jogadores com elas.`:''}</div>
       </div>
-    </div>`, {w:900,bodyClass:'cl-body-green'});
+    </div>`, {std:true, w:900, footer:btn('Voltar','clGoPaises()',{icon:'↩',cls:'cl-btn-cancel'})+btn('OK','clPaisJogavelOk()',{icon:'✔',cls:'cl-btn-ok'})});
 }
 function clGoPaises(){ CL.screen='paises'; cdraw(); }
 function clPaisJogavelOk(){ CL.screen='moeda'; cdraw(); }
@@ -3792,7 +3791,7 @@ function panSeleccao(){
   // "Selecionar descansados": só aparece depois que uma formação foi escolhida (mesmo gate
   // usado pelo botão Substituir logo abaixo). Reescala os mesmos setores da formação atual,
   // mas priorizando energia (menos cansados) em vez de força.
-  const restedBlock = !CL.tacticChosen ? '' : `<div class="cl-sel-rested" style="margin-top:10px" title="Reescala o onze priorizando quem está com mais energia, dentro da mesma formação">
+  const restedBlock = !CL.tacticChosen ? '' : `<div class="cl-sel-rested" title="Reescala o onze priorizando quem está com mais energia, dentro da mesma formação">
     ${btn('Selecionar descansados','clSelectRested()',{icon:'🔋',cls:'cl-btn-mini'})}
   </div>`;
 
@@ -3809,7 +3808,7 @@ function panSeleccao(){
     ]);
   const formationsBlock = `<div class="cl-sel-formations">
     <div style="color:#aaa;font-size:12px;margin-bottom:10px">Formações:</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:340px">
+    <div class="cl-formgrid">
       ${formOpts.map(o=>{
         const btnStyle = o.sel
           ? 'border:2px solid;border-color:#fff #111 #111 #fff;background:#2f8f2f;color:#fff;font-weight:700'
@@ -3824,7 +3823,7 @@ function panSeleccao(){
     ${gkWarn}
     ${formationsBlock}
     ${restedBlock}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px;max-width:320px">
+    <div class="cl-sel-acts">
       ${btn('Substituir','clToggleEscalacao()',{icon:'⇄',cls:'cl-btn-ok'+(escala?' cl-btn-on':''),dis:!CL.tacticChosen})}
       ${btn('Jogar','clJogar()',{icon:'⚽',cls:'cl-btn-ok',dis:!ok})}
     </div>

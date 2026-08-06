@@ -924,7 +924,18 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* selecção */
 .cl-sel{font-size:15px;position:relative;min-height:400px;padding-bottom:120px}
 .cl-sel-note{margin-bottom:16px;color:#aaa}
-.cl-sel-formations{margin-bottom:20px;padding:0}
+/* ===== PAINEL FORMAÇÃO: uma caixa só =====
+   Eram três larguras diferentes na mesma coluna — a grade de formações (340px), o "Selecionar
+   descansados" (largura cheia) e o par Substituir/Jogar (320px) —, então cada bloco começava e
+   terminava num ponto diferente. Agora os três dividem a MESMA medida e as mesmas bordas, e o
+   espaçamento entre eles é constante. */
+.cl-sel-formations,.cl-sel-rested,.cl-sel-acts{width:100%;max-width:340px}
+.cl-sel-formations{margin:0 0 16px;padding:0}
+.cl-formgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.cl-sel-rested{margin:0 0 16px}
+.cl-sel-rested .cl-btn{width:100%}
+.cl-sel-acts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0}
+.cl-sel-acts .cl-btn{width:100%;min-width:0}
 .cl-sel-xi{display:flex;flex-direction:column;gap:3px;max-height:300px;overflow:auto}
 .cl-sel-p{color:#fff;font-size:14px}
 .cl-sel-p i{display:inline-block;width:18px;color:var(--yellow);font-style:normal;font-weight:700}
@@ -1937,10 +1948,47 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
      cabeçalho do treinador e do elenco inteiro — fora da primeira dobra, e nem rolando até o fim
      dava pra trazer pro topo. Agora o conteúdo da aba abre na dobra e a ficha do clube + elenco
      ficam logo abaixo, pra consulta. */
+  /* TOPO FIXO: a barra do clube e o Menu ficam presos no alto enquanto o conteúdo rola. Só a
+     aba Jogador passa da altura da tela, e nela o cabeçalho ia embora junto com a rolagem — nas
+     outras nada rolava, então o topo "parecia" fixo e a diferença saltava. Com o rodapé já fixo,
+     as duas pontas agora se comportam igual em todas as abas. */
+  /* ===== BARRA DE AÇÃO FIXA NAS ETAPAS (pós-login) =====
+     Nas telas de configuração (países, competições, sala...) os botões ficavam no fim de uma
+     página longa: pra avançar era preciso rolar até o fim e adivinhar que havia algo lá. Agora a
+     barra gruda no rodapé enquanto a etapa está na tela, e os botões dividem a largura em partes
+     iguais — antes "Todas" ocupava a linha toda e "Cancelar/OK" vinham menores embaixo. */
+  /* fixed, não sticky: o rodapé do site vem depois da etapa, então o sticky parava ~50px acima
+     do fim da tela. Com fixed a barra encosta sempre, e o conteúdo ganha respiro embaixo
+     (.cl-desk) pra nada ficar escondido atrás dela. */
+  .cl-wiz-actionbar{position:fixed;left:0;right:0;bottom:0;z-index:40;flex-wrap:nowrap;gap:10px;padding:10px 12px;
+    background:#1d5c1d;border-top:2px solid rgba(255,255,255,.22);box-shadow:0 -8px 20px rgba(0,0,0,.4);
+    padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}
+  .cl-wiz-actionbar .cl-btn{flex:1 1 0;width:auto;min-width:0}
+  /* display:contents dissolve o agrupamento (secundário/primário) só no telefone: assim os
+     botões viram irmãos diretos da barra e TODOS ficam com a mesma largura, em vez de "Todas"
+     ocupar metade e os outros dois dividirem a outra metade */
+  /* só quando é AGRUPADOR DENTRO da barra. As mesmas classes também servem de modificador na
+     própria .cl-wiz-actionbar (alinhamento), e sem o `>` o display:contents dissolvia a barra
+     inteira nas telas que usam o modificador. */
+  .cl-wiz-actionbar>.cl-wiz-action-e,.cl-wiz-actionbar>.cl-wiz-action-r,.cl-wiz-actionbar>.cl-wiz-action-c{display:contents}
+  /* mesma barra fixa nas telas DO JOGO (classificação, resultado, passagem de aparelho): os
+     "Continuar/Voltar" ficavam no fim de listas longas. #c-root exclui os modais de propósito —
+     eles já têm rodapé próprio e rolagem própria (ver .cl-dlg-foot), e o overlay é irmão do
+     #c-root no body. */
+  #c-root .cl-classif-buttons,#c-root .cl-handoff-actions,#c-root .cl-cal-ok{
+    position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;width:auto;max-width:none;
+    display:flex;flex-direction:row;gap:10px;padding:10px 12px;
+    background:#1d5c1d;border-top:2px solid rgba(255,255,255,.22);box-shadow:0 -8px 20px rgba(0,0,0,.4);
+    padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}
+  #c-root .cl-classif-buttons>.cl-btn,#c-root .cl-handoff-actions>.cl-btn,#c-root .cl-cal-ok>.cl-btn{
+    flex:1 1 0;width:auto;min-width:0}
+  .cl-main-top{position:sticky;top:0;z-index:46}
+  .cl-mobmenu-wrap{position:sticky;top:28px;z-index:45}   /* 28px = altura da barra do clube */
   /* A JANELA FICA ANCORADA NO TOPO. O .cl-desk centraliza verticalmente, então a janela subia e
      descia conforme o tamanho do conteúdo da aba — trocar de aba parecia mover a tela inteira.
      No telefone ela começa no topo e só cresce pra baixo quando o conteúdo passa da altura. */
-  .cl-desk{justify-content:flex-start;padding:10px 0 0}
+  /* respiro embaixo pra barra de ação fixa não cobrir o fim do conteúdo */
+  .cl-desk{justify-content:flex-start;padding:10px 0 76px}
   .cl-main{width:100%}
   .cl-main-body{flex-direction:column;height:auto;min-height:0}
   .cl-panel{overflow:visible}
@@ -2019,7 +2067,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-ham-t{flex:0 0 auto}
   .cl-ham-here{margin-left:auto;font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.5px}
   .cl-hamburger.open .cl-ham-here{color:var(--yellowlite)}
-  .cl-mobmenu-wrap{position:relative}
+  /* a gaveta é fixed (não depende deste position), então aqui vale o sticky do topo — ver
+     .cl-mobmenu-wrap logo acima no mesmo bloco */
   /* ===== BARRA DE ABAS FIXA NO RODAPÉ (experiência de app) =====
      Só ícones, um por aba, sempre visível — o conteúdo rola por baixo. Antes a barra vivia no
      fim da coluna direita empilhada, ou seja: fora da tela na prática. */
@@ -2313,7 +2362,15 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-wiz-inlineaction .cl-wiz-cta .cl-btn-ic{color:#fff}
 .cl-wiz-inlineaction .cl-wiz-cta:disabled{background:#9db89d;border-color:#c9dcc9 #7f957f #7f957f #c9dcc9;color:#e8f0e8}
 .cl-wiz-inlineaction .cl-wiz-cta:disabled .cl-btn-ic{color:#e8f0e8;opacity:1}
-@media (max-width:760px){ .cl-wiz-inlineaction .cl-btn{width:100%} }
+/* No telefone a ação "inline" (que no desktop fica centralizada dentro do conteúdo) vira a MESMA
+   barra fixa do rodapé das outras etapas: era ela que produzia os botões soltos no meio da tela
+   nas telas de Dinheiro e Jogadores. */
+@media (max-width:760px){
+  .cl-wiz-inlineaction{position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;flex-wrap:nowrap;
+    gap:10px;padding:10px 12px;background:#1d5c1d;border-top:2px solid rgba(255,255,255,.22);
+    box-shadow:0 -8px 20px rgba(0,0,0,.4);padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}
+  .cl-wiz-inlineaction .cl-btn{flex:1 1 0;width:auto;min-width:0;padding:9px 12px}
+}
 
 /* ---- Premiação de fim de temporada (modal de celebração) ---- */
 .cl-prizes{margin:10px 0 4px;background:#fffbe6;border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);padding:8px 10px 10px}
