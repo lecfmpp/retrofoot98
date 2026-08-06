@@ -236,7 +236,7 @@ function simEventsC(h,a,seed,opts){ const evs=[]; let fin=null; const isU=(h===S
       player:t.ev.player,pos:t.ev.pos,cardType:t.ev.cardType,reason:t.ev.reason,severity:t.ev.severity,outMatches:t.ev.outMatches}); },(res)=>{fin=res;}, seed, opts);
     let g=0; while(!fin && g++<600){ s.step(); } }
   finally{ if(typeof SIM_SYNC!=='undefined')SIM_SYNC=prev; }
-  return {hg:fin.hg,ag:fin.ag,scorers:fin.scorers,events:evs,perf:fin.perf}; }
+  return {hg:fin.hg,ag:fin.ag,scorers:fin.scorers,events:evs,perf:fin.perf,caps:fin.caps,matchMinutes:fin.matchMinutes}; }
 function escC(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function rngFrom(seed){ let x=(seed>>>0)||1; return ()=>{ x^=x<<13; x^=x>>>17; x^=x<<5; return ((x>>>0)/0xffffffff); }; }
 const REFS_C=['Anderson Daronco','Wilton Sampaio','Raphael Claus','Bráulio da Silva','Ramon Abatti','Flávio Rodrigues','Ferreira Rodrigues'];
@@ -265,8 +265,22 @@ function titleBarTop(t,opts){ opts=opts||{};
   const logoImg=`<img class="cl-topbar-logo" src="img/logo.webp" width="500" height="500" alt="">`;
   const logo=opts.logo?(opts.linkHome?`<a class="cl-logo-link" href="https://retrofoot98.com.br/" aria-label="RetroFoot98 — página inicial">${logoImg}</a>`:logoImg):'';
   return `<div class="cl-topbar">${logo}${escC(t)}${topbarAuth()}</div>`; }
-function dlg(title,body,opts){ opts=opts||{}; const w=opts.w||620;
+/* MODAL DE MENU PADRÃO (handoff "Padronização de modais do menu"): opts.std liga a anatomia
+   única — 640px, corpo cinza, ✕ na barra de título, área de conteúdo que rola sozinha entre
+   título e rodapé FIXOS, e o rodapé como slot (opts.footer) com os botões numa linha à direita.
+   É OPT-IN de propósito: os modais narrativos (pênalti, lesão, sorteio, fim de temporada) têm
+   moldura e cor próprias por decisão do próprio handoff, e os demais só migram quando forem
+   convertidos um a um. Sem opts.std, dlg() se comporta exatamente como antes. */
+function dlg(title,body,opts){ opts=opts||{}; const w=opts.w||(opts.std?640:620);
   const badge = opts.badge ? `<div class="cl-dlg-badge">${opts.badge.icon||''}<span class="cl-dlg-badge-t">${escC(opts.badge.label||'')}</span></div>` : '';
+  if(opts.std) return `<div class="cl-dlg cl-dlg-std" style="width:${w}px">
+    ${badge}
+    <div class="cl-dlg-title"><span>${escC(title)}</span><button class="cl-dlg-x" type="button" title="Fechar" aria-label="Fechar" onclick="clCloseOverlay()">✕</button></div>
+    <div class="cl-dlg-body ${opts.bodyClass||'cl-body-gray'}">
+      <div class="cl-dlg-content">${body}</div>
+      ${opts.footer?`<div class="cl-dlg-foot">${opts.footer}</div>`:''}
+    </div>
+  </div>`;
   return `<div class="cl-dlg" style="width:${w}px">
     ${badge}
     <div class="cl-dlg-title"><span>${escC(title)}</span>${opts.min?'<span class="cl-min">–</span>':''}</div>
@@ -1850,7 +1864,8 @@ function clSeatPlay(){
 function finishHotseatMatch(){
   const RL=CL.live, m=RL.matches[0], H=CL._hotseat;
   const scorers=m.events.filter(e=>e.type==='gol'||(e.type==='penalti'&&e.scored)).map(e=>({name:e.scorer,id:e.team}));
-  if(H){ H.humanResults[m.h+'-'+m.a]={hg:m.hg,ag:m.ag,perf:m.perf,scorers,events:m.events};
+  if(H){ H.humanResults[m.h+'-'+m.a]={hg:m.hg,ag:m.ag,perf:m.perf,scorers,events:m.events,
+    caps:{H:liveCaps(m,'H'),A:liveCaps(m,'A')}, matchMinutes:liveMatchMinutes(m)};
     H.allEvents=(H.allEvents||[]).concat(m.events||[]); }
   CL.live=null; CL.subsUsed=0;
   exitSeatContext(); // restaura o manager 1 (persistindo a tática do assento)
@@ -3677,6 +3692,14 @@ function clEscalaMarkClear(){ CL.escalaMark=null; cdraw(); }   // botão ✕ da 
 function clJogar(){
   if(CL._seatContext){ clSeatPlay(); return; } // hotseat: "Jogar" na tela do assento inicia a partida dele
   if(!CL.tacticChosen){ toastC('Escolha a tática no menu Formação primeiro.'); CL.tab='seleccao'; cdraw(); return; }
+  /* SORTEIO ANTES DE ENTRAR EM CAMPO. Cada copa tem a sua data de sorteio (ver cupSeasonDrawDays
+     no core: dois dias antes da própria estreia, nunca no dia 1 e nunca a menos de 2 dias do
+     sorteio de outra). Aqui, no começo da rodada, entram na fila os sorteios cuja data já chegou —
+     e a cerimônia roda ANTES de qualquer partida, que é a garantia de "só há jogo depois do
+     sorteio daquela copa". Se enfileirou alguma coisa, mostra e volta pra cá quando terminar. */
+  if(typeof queueDueCupDraws==='function' && queueDueCupDraws() && typeof checkPendingCupDraws==='function'){
+    checkPendingCupDraws(()=>clJogar()); return;
+  }
   { const gkc=xiGKCount(xiPlayers(CL.clubId));
     if(gkc!==1){ toastC(gkc===0?'Escale um goleiro antes de jogar.':'Só pode ter 1 goleiro escalado.'); CL.tab='seleccao'; cdraw(); return; } }
   // semana de avanço de copa com partida do clube pendente: joga a copa primeiro, só
@@ -6135,7 +6158,10 @@ function finishLiveRound(){
     // gols de pênalti (type:'penalti', scored:true) contam no placar (hg/ag) desde sempre,
     // mas ficavam de fora daqui — o filtro só pegava type==='gol' — então o artilheiro
     // sumia da artilharia e das estatísticas dele mesmo tendo balançado a rede de verdade.
-    if(um) userResult={hg:um.hg,ag:um.ag,perf:um.perf,scorers:um.events.filter(e=>e.type==='gol'||(e.type==='penalti'&&e.scored)).map(e=>({name:e.scorer,id:e.team}))};
+    // caps/matchMinutes = súmula de minutos em campo (ver liveCaps): é o que faz nota, energia,
+    // moral e evolução enxergarem quem foi substituído e quem entrou do banco.
+    if(um) userResult={hg:um.hg,ag:um.ag,perf:um.perf,scorers:um.events.filter(e=>e.type==='gol'||(e.type==='penalti'&&e.scored)).map(e=>({name:e.scorer,id:e.team})),
+      caps:{H:liveCaps(um,'H'),A:liveCaps(um,'A')}, matchMinutes:liveMatchMinutes(um)};
     // payload de auditoria (Fase 2 Etapa A) — só online, e só se a partida do usuário
     // realmente rolou nesta rodada (uf). Capturado AGORA (elenco ainda intocado por
     // advancePlayerAvailability/playRound abaixo) pra bater com o que o motor usou.
@@ -6180,6 +6206,7 @@ function finishLiveRound(){
     const streamIncomplete = um && um.streamRemote && !um.streamDone;
     const myResult = (uf && userResult && !streamIncomplete) ? { h:uf[0], a:uf[1], hg:userResult.hg, ag:userResult.ag,
       scorers:userResult.scorers||[], perf:userResult.perf||null, events:(um&&um.events)||[],
+      caps:userResult.caps||null, matchMinutes:userResult.matchMinutes||null, // súmula de minutos (ver liveCaps)
       decisions:(um&&um.sim&&um.sim.decisions)||((um&&um.streamResult&&um.streamResult.decisions))||[] } : null; // Fase 3A/3B: log de decisões viaja junto
     NET.publishResult(S.round, myResult || { h:null, a:null, bye:true }); // marcador de folga não trava nada
     if(NET.isHost){ CL._hostPendingCommit = { RL, userResult, audit:_auditPayload, round:S.round, uf }; }
@@ -6524,13 +6551,42 @@ function _commitLeagueRound(RL, userResult, humanResults, allEvents, _auditPaylo
    lesão/nota) e grava o resultado na própria copa, do mesmo jeito que advanceCupBracket/
    advanceGroupStageRound já fazem em segundo plano (ver os guards que fazem o avanço
    automático da mesma rodada pular essa partida específica, já resolvida aqui). */
+/* SÚMULA DE MINUTOS de uma partida AO VIVO. Esta é a única partida do jogo com substituição, e
+   é justamente onde o onze do fim mentia mais: quem saiu no intervalo não recebia nota, energia
+   nem moral, e quem entrou aos 85' recebia tudo como se tivesse jogado os 90. A sessão do motor
+   conta os minutos de quem está em campo (session.capsOf). Partida só transmitida (streamRemote,
+   sem sessão local) não tem súmula — cai no comportamento antigo, que é o que dá pra saber dali. */
+function liveCaps(m,side){ return (m&&m.sim&&m.sim.capsOf)?m.sim.capsOf(side):null; }
+function liveMatchMinutes(m){ return (m&&m.sim&&(m.sim.totalMinutes||m.sim.minute))||90; }
+/* Resolve o RESTANTE da rodada de uma copa assim que o usuário termina a partida dele, pra
+   tabela/chave do pós-jogo já sair completa (era o relato: "só os meus pontos aparecem").
+   Marca a competição como resolvida NESTA rodada de liga, senão advancePendingCups avançaria
+   a copa uma segunda vez no mesmo sábado. Vale pra qualquer competição e qualquer país — o
+   caminho é o mesmo em todos (advanceGroupStageRound / advanceCupBracket). */
+function resolveCupRoundRest(key){
+  if(!key || !S || !S.cups) return;
+  const c=S.cups[key]; if(!c) return;
+  S._cupResolvedRound=S._cupResolvedRound||{};
+  if(S._cupResolvedRound[key]===S.round) return;   // já resolvida nesta rodada
+  try{
+    if(key==='copaBrasil'){
+      if(!cupIsFinished(c) && (c.ties||[]).length) advanceCupBracket(c,'copaBrasil-r'+c.round);
+    } else if(c.group && !c.bracket){
+      if(!c.group.finished) advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round);
+    } else if(c.bracket && !cupIsFinished(c.bracket) && (c.bracket.ties||[]).length){
+      advanceCupBracket(c.bracket, key+'-r'+c.bracket.round);
+    }
+    S._cupResolvedRound[key]=S.round;
+  }catch(e){ console.warn('resolveCupRoundRest('+key+'):', e && e.message); }
+}
 function finishCupLiveMatch(){
   const RL=CL.live, pending=RL.cup, m=RL.matches[0];
   applyMatchIncidents(m.events);
   const scorers=m.events.filter(e=>e.type==='gol'||(e.type==='penalti'&&e.scored)).map(e=>({name:e.scorer,id:e.team}));
   const Rm=makeRng(hashSeed(S.seed,'cuprate',pending.key,S.round,m.h,m.a));
   if(typeof recordScorers==='function') recordScorers(scorers); // gol na PRÓPRIA partida de copa ao vivo também tem que contar em S.scorers (ver core.js)
-  ratePlayers(m.h,m.hg,m.ag,scorers,Rm,m.perf&&m.perf.H,m.perf&&m.perf.A); ratePlayers(m.a,m.ag,m.hg,scorers,Rm,m.perf&&m.perf.A,m.perf&&m.perf.H);
+  const mm=liveMatchMinutes(m);
+  ratePlayers(m.h,m.hg,m.ag,scorers,Rm,m.perf&&m.perf.H,m.perf&&m.perf.A,liveCaps(m,'H'),mm); ratePlayers(m.a,m.ag,m.hg,scorers,Rm,m.perf&&m.perf.A,m.perf&&m.perf.H,liveCaps(m,'A'),mm);
   if(m.h===CL.clubId) S.budget=(S.budget||0)+(m.att*m.price); // bilheteria do mando de campo, igual à liga
   const compShort=COMP_DEFS[pending.key].short;
   let resultMsg;
@@ -6564,8 +6620,13 @@ function finishCupLiveMatch(){
       // JOGO no Historial (ver cupSumula no resolve-round) — o recordScorers/ratePlayers local
       // acima é sobrescrito pelo adopt da rodada seguinte.
       NET.publishCupResult(S.round, { h:t.h, a:t.a, hg:m.hg, ag:m.ag, winner, pens, events:m.events,
-        scorers, perf:m.perf||null, decisions:(m.sim&&m.sim.decisions)||[] });
+        scorers, perf:m.perf||null, caps:{H:liveCaps(m,'H'),A:liveCaps(m,'A')}, matchMinutes:liveMatchMinutes(m),
+        decisions:(m.sim&&m.sim.decisions)||[] });
     }
+    // idem à fase de grupos: os outros confrontos desta MESMA fase são resolvidos agora, pra
+    // chave mostrada no pós-jogo já vir completa (advanceCupBracket pula a do usuário, que
+    // acabou de receber t.winner acima).
+    resolveCupRoundRest(pending.key);
     const userWon=(winner===CL.clubId);
     if(wentToPens){
       const userIsHome=(t.h===CL.clubId);
@@ -6591,6 +6652,12 @@ function finishCupLiveMatch(){
     else if(m.hg<m.ag){ T[a].W++; T[h].L++; T[a].Pts+=3; }
     else { T[h].D++; T[a].D++; T[h].Pts++; T[a].Pts++; }
     mg._userRoundDone=mg.round; // avanço em segundo plano desta rodada pula só a partida do usuário
+    // AS OUTRAS PARTIDAS DA MESMA RODADA, AGORA. Sem isto a tabela mostrada logo depois do jogo
+    // tinha só os pontos do usuário: o resto da rodada da competição só era simulado quando a
+    // rodada de LIGA rodasse (sábado), então a classificação do pós-jogo de quarta ficava com
+    // uma partida disputada e as outras zeradas. advanceGroupStageRound pula a partida do
+    // usuário sozinho (guard _userRoundDone), então aqui só entram os confrontos que faltavam.
+    resolveCupRoundRest(pending.key);
     // Resenha (online): publica também o resultado de FASE DE GRUPOS. Antes só o mata-mata era
     // publicado, então o servidor re-simulava a partida que o humano tinha acabado de jogar ao
     // vivo e o adopt seguinte sobrescrevia o placar que ele viu na tela (ver
@@ -6598,7 +6665,8 @@ function finishCupLiveMatch(){
     // distingue os dois lá — confronto de grupo não tem vencedor.
     if(CL.online && typeof NET!=='undefined' && NET.publishCupResult){
       NET.publishCupResult(S.round, { stage:'group', h, a, hg:m.hg, ag:m.ag, events:m.events,
-        scorers, perf:m.perf||null, decisions:(m.sim&&m.sim.decisions)||[] });
+        scorers, perf:m.perf||null, caps:{H:liveCaps(m,'H'),A:liveCaps(m,'A')}, matchMinutes:liveMatchMinutes(m),
+        decisions:(m.sim&&m.sim.decisions)||[] });
     }
     const userIsHome=(h===CL.clubId);
     const userGF=userIsHome?m.hg:m.ag, userGA=userIsHome?m.ag:m.hg;
@@ -6886,9 +6954,20 @@ function userCupCalendarRows(){
    só existe data real conhecida pra 2026 (ver COMP_R16_DRAW_2026); temporadas seguintes
    não têm sorteio real, a virada é automática assim que a fase de grupos termina. */
 function userCupDrawRows(){
-  if(!S.cups || S.season!==2026) return [];
+  if(!S.cups) return [];
   const out=[];
-  groupCupKeys().forEach(key=>{
+  // 1) sorteio de ABERTURA de cada copa (ver cupSeasonDrawDays no core): aparece no calendário
+  //    enquanto não aconteceu, dois dias antes da estreia da competição
+  if(typeof cupSeasonDrawDays==='function'){
+    const dias=cupSeasonDrawDays(), feitos=S._cupDrawQueued||{}, season=S.season||1;
+    Object.keys(dias).forEach(key=>{
+      if(!S.cups[key] || feitos[key+':'+season]) return;
+      const dia=dias[key];
+      out.push({key, n:Math.max(1,Math.floor((dia-1)/7)+1), date:realDateForDay(dia), abertura:true});
+    });
+  }
+  // 2) sorteio das OITAVAS das continentais (só 2026 tem data real conhecida)
+  if(S.season===2026) groupCupKeys().forEach(key=>{
     const c=S.cups[key]; if(!c || !c.group || c.bracket) return; // só antes do sorteio acontecer
     const d=COMP_R16_DRAW_2026[key]; if(!d) return;
     out.push({key, n:Math.max(S.round+1, jornadaForRealDate(d)), date:d});
@@ -6931,29 +7010,40 @@ function clCalendar(){
       const txt = pc.venceu===true?'V' : pc.venceu===false?'D' : pc.myG>pc.oppG?'V' : pc.myG<pc.oppG?'D' : 'E';
       extra=` <span class="cl-res-chip ${cls}">${txt}</span> <b>${pc.myG}-${pc.oppG}</b>${pc.pens?` <span class="cl-cal-pens">(pên. ${escC(pc.pens)})</span>`:''}`;
     }
+    // uma coluna por dado: rodada · data · confronto · resultado · mando (ver .cl-cal-sched).
+    // O nome da competição sai do texto no mobile (fica só o 🏆) e vai pro title — sem reticências.
+    const comp=COMP_DEFS[pc.key].short;
+    const advTxt = pc.opp?clubLink(pc.opp):'<i>adversário a definir</i>';
+    const fase = pc.phase?' · '+escC(pc.phase):'';
     return {n:pc.n, ord:0, html:
-    `<div class="cl-cal-row cl-cal-cup"><span class="cl-cal-n">${pc.n}ª<i class="cl-cal-d">${calRowDate(pc.w,true)}</i></span>
-      <span class="cl-cal-t">🏆 ${COMP_DEFS[pc.key].short}${pc.phase?' · '+escC(pc.phase):''} · ${pc.opp?clubLink(pc.opp):'<i>adversário a definir</i>'}${extra}</span><span class="cl-cal-cf">${pc.home==null?'':pc.home?'C':'F'}</span></div>`};
+    `<div class="cl-cal-row cl-cal-cup" title="${escC(comp+(pc.phase?' · '+pc.phase:''))}">
+      <span class="cl-cal-n" data-d="${escC(calRowDate(pc.w,true))}">${pc.n}ª</span><span class="cl-cal-d">${calRowDate(pc.w,true)}</span>
+      <span class="cl-cal-t">🏆 <span class="cl-cal-comp">${escC(comp)}${fase} · </span>${advTxt}</span>
+      <span class="cl-cal-r">${extra}</span><span class="cl-cal-cf">${pc.home==null?'':pc.home?'C':'F'}</span></div>`};
   });
   const drawRows=userCupDrawRows().map(dr=>({n:dr.n, ord:0, html:
-    `<div class="cl-cal-row cl-cal-draw"><span class="cl-cal-n">${dr.n}ª</span>
-      <span class="cl-cal-t">🎲 Sorteio das oitavas — ${COMP_DEFS[dr.key].short} (${fmtRealDate(dr.date)})</span><span class="cl-cal-cf"></span></div>`}));
+    `<div class="cl-cal-row cl-cal-draw" title="${dr.abertura?'Sorteio':'Sorteio das oitavas'} — ${escC(COMP_DEFS[dr.key].short)}">
+      <span class="cl-cal-n" data-d="${escC(fmtRealDate(dr.date))}">${dr.n}ª</span><span class="cl-cal-d">${escC(fmtRealDate(dr.date))}</span>
+      <span class="cl-cal-t">🎲 ${dr.abertura?'Sorteio':'Sorteio das oitavas'} — ${escC(COMP_DEFS[dr.key].short)}</span>
+      <span class="cl-cal-r"></span><span class="cl-cal-cf"></span></div>`}));
   const ligaRows=userCalendar().map(r=>{
     const played=r.myG!=null;
     // chip V/D/E ao lado do placar — só depois de jogado, para o usuário ver de cara como foi
     // sem precisar decorar os números (fundo verde/vermelho/cinza, letra branca).
     const chipCls = !played ? '' : r.myG>r.oppG?'win' : r.myG<r.oppG?'loss' : 'draw';
     const chipTxt = !played ? '' : r.myG>r.oppG?'V' : r.myG<r.oppG?'D' : 'E';
-    const chip = played?` <span class="cl-res-chip ${chipCls}">${chipTxt}</span>`:'';
-    const score=played?` <b>${r.myG}-${r.oppG}</b>`:'';
+    const chip = played?`<span class="cl-res-chip ${chipCls}">${chipTxt}</span> `:'';
+    const score=played?`<b>${r.myG}-${r.oppG}</b>`:'';
     return {n:r.n, ord:1, html:
-    `<div class="cl-cal-row"><span class="cl-cal-n">${r.n}ª<i class="cl-cal-d">${calRowDate(r.w,false)}</i></span>
-    <span class="cl-cal-t">${clubLink(r.opp)}${chip}${score}</span><span class="cl-cal-cf">${r.home?'C':'F'}</span></div>`};
+    `<div class="cl-cal-row">
+      <span class="cl-cal-n" data-d="${escC(calRowDate(r.w,false))}">${r.n}ª</span><span class="cl-cal-d">${calRowDate(r.w,false)}</span>
+      <span class="cl-cal-t">${clubLink(r.opp)}</span>
+      <span class="cl-cal-r">${chip}${score}</span><span class="cl-cal-cf">${r.home?'C':'F'}</span></div>`};
   });
   const rows=cupRows.concat(drawRows).concat(ligaRows).sort((a,b)=>a.n-b.n || a.ord-b.ord).map(r=>r.html).join('');
-  overlayC(dlg('Calendário', `<div class="cl-cal">${rows}</div>
-    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
-    {w:640,bodyClass:'cl-body-gray',min:true}));
+  const head=`<div class="cl-cal-head"><span>Rod.</span><span>Data</span><span>Confronto</span><span class="r">Result.</span><span class="c">C/F</span></div>`;
+  overlayC(dlg('Calendário', `<div class="cl-cal cl-cal-sched">${head}${rows}</div>`,
+    {std:true, footer:btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}));
 }
 
 /* ---- menu dropdown (topo) ---- */
@@ -6970,7 +7060,7 @@ function menuDropdown(name){ name=name||CL.menu;
     'Equipa':[['Estádio...','clStadium()'],['Historial...','clClubHistory()']],
     'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],[`Propostas recebidas${myIncomingOffers().length?' ('+myIncomingOffers().length+')':''}...`,'clIncomingOffers()'],[`Contrapropostas${(typeof myCounterOffers==='function'&&myCounterOffers().length)?' ('+myCounterOffers().length+')':''}...`,'clCounterOffers()'],['Leilão de jogadores...','clAuctionScreen()'],[(typeof youthAvailable==='function'&&youthAvailable())?'Subir jogador da base':'Base (indisponível agora)','clPromoteYouth()'],[`Treino especial (${myTrainingList().length}/${TRAINING_MAX_SLOTS})...`,'clTrainingScreen()'],['Últimas transferências...','clTransferHistory()']],
     'Campeonatos':[['Minhas competições...','clCompList()','C'],['—'],['Melhores marcadores...','clScorers()'],['Calendário...','clCalendar()'],['—'],['Últimos vencedores...','clUltimosVencedores()'],['Melhores marcadores de sempre...','clScorersAllTime()']].concat((S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)?[['—'],['Ligas internacionais...','clBgLeaguesMenu()']]:[]),
-    'Treinador':[['História...','clCoachHistory()'],['Ranking...','clCoachRanking()'],['Ofertas...','clJobOffers()'],['Perfil...','clPerfilTreinador()']]
+    'Treinador':[['História...','clCoachHistory()'],['Sala de Troféus...','clTrophyRoom()'],['Ranking...','clCoachRanking()'],['Ofertas...','clJobOffers()'],['Perfil...','clPerfilTreinador()']]
   };
   if(CL.online){
     const rItems=[];
@@ -7236,6 +7326,211 @@ function accrueCareerStats(){
       if(i===0) s.titles += 1;                       // campeão da divisão
     });
   });
+}
+/* ================= SALA DE TROFÉUS (handoff "Sala de Troféus do Treinador") =================
+   Treinador > Sala de Troféus... — as taças da CARREIRA (não do clube), agrupadas por região,
+   com filtro por temporada e o painel CAMPANHA contando como cada título foi ganho.
+
+   FONTE DOS DADOS: S.coachHistory, entradas type:'campeao' — o mesmo registro que a tela de
+   História já usava. Desde 05/08/2026 cada título nasce com clube, pontos e o placar da decisão
+   (ver endSeason em core.js); títulos gravados ANTES disso aparecem normalmente na estante, só
+   sem o cartão de placar — por isso todo acesso a t.final/t.clubShort é defensivo.
+
+   O catálogo de taças (arte, região, dica) fica em src/data/trophy-room.js. Título de uma
+   competição fora do catálogo (as ligas dos outros universos, que não têm arte) vira um card
+   avulso com o 🏆 genérico, pra estante nunca esconder uma conquista.
+
+   Aba Resenha: ranking de treinadores pela mesma base do Ranking de Treinadores (os clubes da
+   divisão atual), com a fila de taças vinda de S.titlesByClub — títulos por clube e competição
+   acumulados no fim de cada temporada. As linhas dos rivais não são clicáveis: não guardamos a
+   campanha deles, só a contagem, então "abrir a sala do rival" mostraria uma tela vazia. */
+function salaRegionForUni(uni){
+  if(!uni || uni==='brasil') return 'BRASIL';
+  const cfg=(typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[uni];
+  if(cfg && cfg.src==='conmebol') return 'AMÉRICA DO SUL';
+  return 'EUROPA';
+}
+function salaTitles(){
+  return (S.coachHistory||[]).filter(e=>e && typeof e==='object' && e.type==='campeao');
+}
+/* id estável por competição, inclusive pros títulos antigos que não gravaram `comp` */
+function salaCompId(t){ return t.comp || ('outro:'+(t.label||t.text||'Título')); }
+/* catálogo (arte + dica) na ordem das prateleiras, mais os cards avulsos das competições
+   conquistadas que não estão no catálogo */
+function salaCatalog(){
+  const base=((typeof TROPHY_ROOM!=='undefined') && TROPHY_ROOM.comps) || [];
+  const out=base.slice(), seen=new Set(base.map(c=>c.id));
+  salaTitles().forEach(t=>{ const id=salaCompId(t); if(seen.has(id)) return; seen.add(id);
+    const nome=t.label || String(t.text||'Título').replace(/^Campeão d[ao] /,'').replace(/ pelo .*$/,'');
+    out.push({ id, nome, curto:nome, img:null, regiao:salaRegionForUni(t.uni), tipo:t.kind||'liga', dica:'' });
+  });
+  return out;
+}
+function salaWins(compId, season){
+  return salaTitles().filter(t=>salaCompId(t)===compId && (season==='Todos' || String(t.season)===season))
+    .sort((a,b)=>b.season-a.season);
+}
+/* faixa do clube: usa as cores reais quando o clube ainda existe neste save; senão, navy neutro
+   (títulos de um clube de outra divisão/universo continuam legíveis) */
+function salaStripe(t){
+  const c = t.clubId && (typeof clubOf==='function') ? clubOf(t.clubId) : null;
+  const st = c ? clubStripe(c) : 'background:var(--navy);color:#fff';
+  return `<span class="cl-sala-stripe" style="${st}">${escC((c&&c.short)||t.clubShort||'—')}</span>`;
+}
+function salaImgSrc(comp){ return comp.img ? ('img/trofeus/'+comp.img) : null; }
+function clTrophyRoom(){ CL.menu=null;
+  if(CL.salaTab==null) CL.salaTab='sala';
+  if(CL.salaSeason==null) CL.salaSeason='Todos';
+  renderTrophyRoom();
+}
+function salaSetTab(tab){ CL.salaTab=tab; renderTrophyRoom(); }
+function salaSetSeason(s){ CL.salaSeason=s; renderTrophyRoom(); }
+function salaSelect(id){ CL.salaSel=id; renderTrophyRoom(); }
+function renderTrophyRoom(){
+  const cat=salaCatalog(), titles=salaTitles(), season=CL.salaSeason||'Todos';
+  const seasons=[...new Set(titles.map(t=>t.season))].sort((a,b)=>b-a);
+  const shown=titles.filter(t=>season==='Todos' || String(t.season)===season);
+  // seleção inicial: a conquista mais recente da carreira; sem nenhuma, a primeira taça da estante
+  if(!CL.salaSel || !cat.some(c=>c.id===CL.salaSel)){
+    const ultimo=titles.slice().sort((a,b)=>b.season-a.season)[0];
+    CL.salaSel = (ultimo && salaCompId(ultimo)) || (cat[0]&&cat[0].id);
+  }
+  const sel=cat.find(c=>c.id===CL.salaSel)||cat[0];
+  const selWins=sel?salaWins(sel.id,season):[];
+
+  const tab=(t,lbl)=>`<button class="cl-sala-tab ${CL.salaTab===t?'on':''}" onclick="salaSetTab('${t}')">${lbl}</button>`;
+  const status = season==='Todos'
+    ? (seasons.length?`Carreira completa · ${seasons[seasons.length-1]}–${seasons[0]}`:'Carreira completa')
+    : `Temporada ${escC(season)}`;
+  const seasBtn=s=>`<button class="cl-sala-seas ${String(season)===String(s)?'on':''}" onclick="salaSetSeason('${s}')">${escC(s)}</button>`;
+
+  const shelves=((typeof TROPHY_ROOM!=='undefined'&&TROPHY_ROOM.regions)||['BRASIL']).map(reg=>{
+    const itens=cat.filter(c=>c.regiao===reg);
+    if(!itens.length) return '';
+    const cards=itens.map(c=>{
+      const wins=salaWins(c.id,season), ganho=wins.length>0, src=salaImgSrc(c);
+      const h=Math.round(78*(c.escala||1));
+      let stack='';
+      if(src){
+        // uma cópia por conquista extra, atrás e deslocada — a taça "empilha" conforme repete
+        const extras=wins.slice(1).map((w,i)=>`<img class="cl-sala-img extra" src="${src}" alt="" draggable="false"
+          style="height:${Math.round(h*0.85)}px;transform:translateX(calc(-50% + ${30*(i+1)}px));z-index:${3-i}">`).join('');
+        stack=extras+`<img class="cl-sala-img ${ganho?'won':'locked'}" src="${src}" alt="" draggable="false" style="height:${h}px">`;
+      } else {
+        stack=`<span class="cl-sala-noart ${ganho?'won':''}">🏆</span>`;
+      }
+      return `<div class="cl-sala-card ${c.id===sel.id?'on':''}" onclick="salaSelect('${escC(c.id)}')">
+        <div class="cl-sala-stack" style="height:${h+2}px">
+          ${stack}
+          ${wins.length>1?`<span class="cl-sala-xn">×${wins.length}</span>`:''}
+        </div>
+        <div class="cl-sala-cname ${ganho?'':'locked'}">${escC(c.curto||c.nome)}</div>
+      </div>`;
+    }).join('');
+    const n=itens.filter(c=>salaWins(c.id,season).length).length;
+    return `<div class="cl-sala-reg">
+      <div class="cl-sala-reg-hdr"><span>${escC(reg)}</span><span class="cl-sala-reg-n">${n}/${itens.length}</span></div>
+      <div class="cl-sala-shelf">${cards}</div>
+    </div>`;
+  }).join('');
+
+  const campanha=selWins.map(t=>{
+    const f=t.final;
+    const rotulo = sel.tipo==='copa' ? 'FINAL' : 'DECISÃO DO TÍTULO';
+    const placar = f ? `${f.hg} × ${f.ag}` : '';
+    const obs = t.kind==='liga'||sel.tipo==='liga'
+      ? (t.pts!=null?`Campeão com ${t.pts} pts.`:'')
+      : (f&&f.pens?`Decidido nos pênaltis (${escC(f.pens)}).`:'');
+    return `<div class="cl-sala-win">
+      <div class="cl-sala-win-top"><span class="cl-sala-win-ano">${t.season}</span>${salaStripe(t)}</div>
+      ${f?`<div class="cl-sala-win-rot">${rotulo}</div>
+        <div class="cl-sala-win-score">
+          <span class="cl-sala-win-team r">${escC(f.home)}</span>
+          <span class="cl-sala-win-pl">${escC(placar)}</span>
+          <span class="cl-sala-win-team">${escC(f.away)}</span>
+        </div>`:`<div class="cl-sala-win-rot">TÍTULO REGISTRADO</div>`}
+      ${obs?`<div class="cl-sala-win-obs">${escC(obs)}</div>`:(!f?`<div class="cl-sala-win-obs">Conquistado antes de o jogo começar a guardar o placar da decisão.</div>`:'')}
+    </div>`;
+  }).join('');
+  const selSrc=salaImgSrc(sel);
+  const painel=`<div class="cl-sala-pan">
+    <div class="cl-sala-pan-hdr"><span>CAMPANHA</span><span class="cl-sala-pan-reg">${escC(sel.regiao)}</span></div>
+    <div class="cl-sala-pan-top">
+      <div class="cl-sala-pan-frame">${selSrc?`<img class="cl-sala-pan-img ${selWins.length?'won':'locked'}" src="${selSrc}" alt="" draggable="false">`:`<span class="cl-sala-noart ${selWins.length?'won':''}">🏆</span>`}</div>
+      <div class="cl-sala-pan-id">
+        <div class="cl-sala-pan-name">${escC(sel.nome)}</div>
+        <div class="cl-sala-pan-sub">${selWins.length?(selWins.length>1?selWins.length+' conquistas':'1 conquista'):('Sem conquista'+(season==='Todos'?'':' em '+escC(season)))}</div>
+      </div>
+    </div>
+    <div class="cl-sala-pan-list">${campanha}
+      ${selWins.length?'':`<div class="cl-sala-lock">
+        <div class="cl-sala-lock-t">${sel.embreve?'Ainda não disputado.':'Ainda não conquistado.'}</div>
+        <div class="cl-sala-lock-d">${escC(sel.dica||'')}</div>
+      </div>`}
+    </div>
+  </div>`;
+
+  // --- por clube (rodapé) ---
+  const porClube={};
+  shown.forEach(t=>{ const k=t.clubId||t.clubShort||'—'; (porClube[k]=porClube[k]||{t,n:0}).n++; });
+  const pills=Object.values(porClube).sort((a,b)=>b.n-a.n).map(x=>`<span class="cl-sala-pill">
+      ${salaStripe(x.t)}<b>${x.n}</b><i>${x.n>1?'taças':'taça'}</i></span>`).join('');
+
+  const body = CL.salaTab==='resenha' ? salaResenhaHTML() : `<div class="cl-sala-shelves">${shelves}</div>${painel}`;
+  overlayC(dlg(`🏆 Sala de Troféus — ${CL.mgr||'Treinador'}`, `<div class="cl-sala ${CL.salaTab==='resenha'?'sem-filtro':''}">
+    <div class="cl-sala-tabs">
+      ${tab('sala','🏆 Minha sala')}${tab('resenha','👥 Resenha')}
+      <span class="cl-sala-status">${escC(status)}</span>
+    </div>
+    ${CL.salaTab==='resenha' ? '' : `<div class="cl-sala-filtro">
+      <span class="cl-sala-flabel">Temporada:</span>
+      <span class="cl-sala-seasons">${seasBtn('Todos')}${seasons.map(seasBtn).join('')}</span>
+      <span class="cl-sala-total"><span>TAÇAS NA ESTANTE</span><b>${shown.length}</b></span>
+    </div>`}
+    <div class="cl-sala-body">${body}</div>
+    <div class="cl-sala-foot">
+      <span class="cl-sala-byclub">
+        <span class="cl-sala-byclub-l">POR CLUBE:</span>
+        ${pills || '<span class="cl-sala-empty">Nenhum título ainda. As silhuetas mostram tudo o que dá pra ganhar.</span>'}
+      </span>
+      ${btn('Voltar ao clube','clCloseOverlay()',{icon:'↩',cls:'cl-btn-ico'})}
+      ${btn('Mostrar pra resenha','salaSetTab(\'resenha\')',{icon:'📤',cls:'cl-btn-ok cl-btn-ico'})}
+    </div>
+  </div>`,{w:1120,bodyClass:'cl-body-estante',min:true}));
+}
+/* Aba Resenha: quem tem mais taça na sala. Mesma base do Ranking de Treinadores (os clubes da
+   divisão atual); a fila de taças vem de S.titlesByClub, e a linha do próprio treinador usa a
+   carreira dele (S.coachHistory), que atravessa trocas de clube. */
+function salaResenhaHTML(){
+  const cat=salaCatalog();
+  const compById=id=>cat.find(c=>c.id===id);
+  const minis=counts=>{
+    const out=[];
+    // ordem do catálogo (não a de inserção), pra fila de taças ficar igual entre treinadores
+    cat.forEach(c=>{ for(let i=0;i<(counts[c.id]||0);i++) out.push(c.id); });
+    return out.slice(0,8).map(id=>{ const c=compById(id), src=c&&salaImgSrc(c);
+      return src?`<img class="cl-sala-mini" src="${src}" alt="${escC(c.curto||'')}" title="${escC(c.nome||'')}" draggable="false">`
+                :`<span class="cl-sala-mini-x" title="${escC((c&&c.nome)||id)}">🏆</span>`; }).join('');
+  };
+  const meCounts={}; salaTitles().forEach(t=>{ const id=salaCompId(t); meCounts[id]=(meCounts[id]||0)+1; });
+  const rows=DATA.clubs.map((c,i)=>{
+    const eu = c.id===CL.clubId;
+    const counts = eu ? meCounts : ((S.titlesByClub&&S.titlesByClub[c.id])||{});
+    const total = Object.values(counts).reduce((a,b)=>a+b,0);
+    return { nome: eu?(CL.mgr||'Você'):coachName(c.id,i), club:clubOf(c.id), total, counts, eu };
+  }).sort((a,b)=> b.total-a.total || a.nome.localeCompare(b.nome));
+  const list=rows.map((r,i)=>`<div class="cl-sala-res-row ${r.eu?'me':''}">
+    <span class="cl-sala-res-pos">${i+1}</span>
+    <span class="cl-sala-res-nome">${escC(r.nome)}</span>
+    <span class="cl-sala-stripe cl-sala-res-clube" style="${clubStripe(r.club)}">${escC(r.club.short)}</span>
+    <span class="cl-sala-res-minis">${minis(r.counts)}</span>
+    <span class="cl-sala-res-total">${r.total}</span><span class="cl-sala-res-lbl">${r.total===1?'taça':'taças'}</span>
+  </div>`).join('');
+  return `<div class="cl-sala-res">
+    <div class="cl-sala-res-hdr"><span>SALA DOS TREINADORES</span><span class="cl-sala-pan-reg">${rows.length} treinadores</span></div>
+    <div class="cl-sala-res-list">${list}</div>
+    <div class="cl-sala-res-foot">A sua linha fica sempre marcada em azul. Dos rivais o jogo guarda a contagem de taças, não a campanha.</div>
+  </div>`;
 }
 function clCoachRanking(){ CL.menu=null;
   const TITLE_BONUS=50; // um título vale ~50 pts no critério de desempate (só pesa quando tem título)
@@ -8232,21 +8527,24 @@ function clPromoteYouth(){ CL.menu=null;
 }
 function renderYouthPromoteModal(){
   const cands=S._youthCandidates||[];
+  // card em 3 faixas (cabeçalho / estatísticas / botão): com grid-template-rows o botão encosta
+  // na base dos três cards mesmo quando um nome ocupa duas linhas — antes desalinhava.
   const card=(c,i)=>{ const y=c.youth;
     return `<div class="cl-youth-card">
-      <div class="cl-youth-card-hd"><span class="cl-youth-name">${escC(y.n)}</span><span class="cl-youth-pos">${escC(c.posNome)}</span></div>
-      <div class="cl-jgd-row"><span>Idade</span><b>${y.age} anos</b></div>
-      <div class="cl-jgd-row"><span>Força</span><b>${y.f}</b></div>
-      <div class="cl-jgd-row"><span>Comportamento</span><b>${playerBehaviorLabel(y)}</b></div>
-      <div class="cl-jgd-row"><span>Salário inicial</span><b>${fmt(c.contract.salary)}/sem</b></div>
+      <div class="cl-youth-card-hd"><div class="cl-youth-name">${escC(y.n)}</div><div class="cl-youth-pos">${escC(c.posNome)}</div></div>
+      <div class="cl-youth-stats">
+        <span>Idade</span><b>${y.age} anos</b>
+        <span>Força</span><b>${y.f}</b>
+        <span>Comportamento</span><b>${escC(playerBehaviorLabel(y))}</b>
+        <span>Salário</span><b class="mono">${fmt(c.contract.salary)}/sem</b>
+      </div>
       ${btn('Promover','clConfirmYouth('+i+')',{icon:'✔',cls:'cl-btn-ok'})}
     </div>`;
   };
-  overlayC(dlg('🌱 Categoria de base — escolha um jogador', `
+  overlayC(dlg('Categoria de base', `
     <div class="cl-youth-note">Você só pode subir 1 jogador da base por janela de transferências. Se fechar sem promover, estas mesmas opções continuam valendo até a próxima rodada.</div>
     <div class="cl-youth-grid">${cands.map(card).join('')}</div>
-    <div class="cl-youth-actions">${btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
-  `,{w:720,bodyClass:'cl-body-green'}));
+  `,{std:true, footer:btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}));
 }
 function clConfirmYouth(i){
   const cands=S._youthCandidates||[]; const c=cands[i]; if(!c) return;
@@ -8477,28 +8775,32 @@ function clIncomingOffers(){ CL.menu=null;
     const roundsLeft=Math.max(0,o.expiresRound-S.round);
     // propostas de HUMANO não têm resposta algorítmica da CPU (sem maxFee/state) — "negociar"
     // aqui é recusar sinalizando um valor (counterHumanOffer), não a contraproposta automática.
+    // barra de ação numa LINHA SÓ: Aceitar · campo de valor (flex:1) · Contrapropor/Negociar ·
+    // Recusar. Antes era flex-wrap e quebrava em duas linhas assim que o nome do botão crescia.
+    const campo = `<span class="cl-money-field cl-off-field"><span class="cl-money-cur">${curSym()}</span><input class="cl-money-in" id="cl-ask-${o.id}" inputmode="numeric" placeholder="${o.buyerIsHuman?'eu toparia':'pedir mais'}" oninput="clMoneyInputReformat(this)"></span>`;
     const counterUI = o.buyerIsHuman
-      ? `<span class="cl-money-field" style="margin:0"><span class="cl-money-cur">${curSym()}</span><input class="cl-money-in" style="width:96px" id="cl-ask-${o.id}" inputmode="numeric" placeholder="eu toparia" oninput="clMoneyInputReformat(this)"></span>${btn('Negociar','clCounterHumanOffer('+o.id+')',{cls:'cl-btn-mini'})}`
-      : (o.state!=='final' ? `<span class="cl-money-field" style="margin:0"><span class="cl-money-cur">${curSym()}</span><input class="cl-money-in" style="width:96px" id="cl-ask-${o.id}" inputmode="numeric" placeholder="pedir mais" oninput="clMoneyInputReformat(this)"></span>${btn('Contrapropor','clCounterOffer('+o.id+')',{cls:'cl-btn-mini'})}` : '');
+      ? campo+btn('Negociar','clCounterHumanOffer('+o.id+')',{cls:'cl-btn-mini'})
+      : (o.state!=='final' ? campo+btn('Contrapropor','clCounterOffer('+o.id+')',{cls:'cl-btn-mini'}) : '');
     const fromLabel = o.buyerIsHuman ? `🧑 ${escC(o.buyerHumanName||'treinador humano')} (${escC(o.buyerName)})` : `${escC(o.buyerName)}${o.buyerCountry?' · '+escC(o.buyerCountry):''}`;
-    return `<div style="padding:10px 12px;border-bottom:1px solid rgba(0,0,0,.12)">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-        <div style="flex:1;min-width:0"><b>${escC(o.playerName)}</b> <small style="color:#888">(força ${o.playerForce})</small><br>
-          <small style="color:#888">${fromLabel} · expira em ${roundsLeft} rodada(s)</small></div>
-        <div style="text-align:right;white-space:nowrap;font-weight:700">${fmt(o.fee)}</div>
+    return `<div class="cl-off">
+      <div class="cl-off-hd">
+        <div class="cl-off-id"><b>${escC(o.playerName)}</b> <small>(força ${o.playerForce})</small>
+          <div class="cl-off-from">${fromLabel} · expira em ${roundsLeft} rodada(s)</div></div>
+        <div class="cl-off-fee">${fmt(o.fee)}</div>
       </div>
-      ${o.lastMsg?`<div style="margin-top:6px;font-size:12px;color:#555;background:#f3efe0;padding:5px 8px;border-radius:4px">💬 ${escC(o.lastMsg)}</div>`:''}
-      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
-        ${btn('Aceitar','clAcceptOffer('+o.id+')',{cls:'cl-btn-mini'})}${counterUI}${btn('Recusar','clRejectOffer('+o.id+')',{cls:'cl-btn-cancel'})}
+      ${o.lastMsg?`<div class="cl-off-msg">💬 ${escC(o.lastMsg)}</div>`:''}
+      <div class="cl-off-acts">
+        ${btn('Aceitar','clAcceptOffer('+o.id+')',{icon:'✔',cls:'cl-btn-mini cl-btn-ok'})}${counterUI}${btn('Recusar','clRejectOffer('+o.id+')',{icon:'✖',cls:'cl-btn-mini cl-btn-cancel'})}
       </div></div>`;
-  }).join(''):'<div style="padding:16px;text-align:center;color:#888">Nenhuma proposta no momento.<br><small>Clubes fazem propostas pelos seus destaques enquanto a janela está aberta.</small></div>';
+  }).join(''):'<div class="cl-off-empty">Nenhuma proposta no momento.<br><small>Clubes fazem propostas pelos seus destaques enquanto a janela está aberta.</small></div>';
   // pré-acordos pendentes (entram em vigor na abertura da janela)
   const pend=(S.pendingTransfers||[]);
-  const pendHtml=pend.length?`<div style="padding:8px 12px;background:#eee7cf;font-weight:700;font-size:13px">🤝 Pré-acordos (entram em vigor na abertura da janela)</div>`+
+  const pendHtml=pend.length?`<div class="cl-off-pre"><div class="cl-off-pre-h">🤝 Pré-acordos (entram em vigor na abertura da janela)</div>`+
     pend.map(t=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(0,0,0,.1)">
       <span style="flex:1;min-width:0"><b>${escC(t.playerName)}</b><br><small style="color:#888">${t.kind==='buy'?'chega de '+escC(clubOf(t.sellerId)?clubOf(t.sellerId).short:'?'):'sai pro '+escC(t.buyerName)} · rodada ${t.executeRound+1}</small></span>
-      <span style="white-space:nowrap;font-weight:700;font-size:12px">${t.kind==='buy'?'−':'+'}${fmt(t.fee)}</span></div>`).join(''):'';
-  overlayC(dlg('Propostas recebidas', `${pendHtml}<div class="cl-cal">${rows}</div><div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:560,bodyClass:'cl-body-gray',min:true}));
+      <span style="white-space:nowrap;font-weight:700;font-size:12px">${t.kind==='buy'?'−':'+'}${fmt(t.fee)}</span></div>`).join('')+'</div>':'';
+  overlayC(dlg('Propostas recebidas', `${pendHtml}<div class="cl-cal cl-off-list">${rows}</div>`,
+    {std:true, footer:btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}));
 }
 function clAcceptOffer(id){ const r=acceptIncomingOffer(id); toastC(r&&r.msg||''); if(r&&r.ok){ clCloseOverlay(); cdraw(); } else { clIncomingOffers(); } }
 function clRejectOffer(id){ rejectIncomingOffer(id); clIncomingOffers(); }
@@ -8521,6 +8823,15 @@ function clCounterHumanOffer(id){
 function overlayC(html){ let o=$c('#c-overlay'); if(!o){ o=document.createElement('div'); o.id='c-overlay'; o.className='cl-overlay'; o.onclick=clCloseOverlay; document.body.appendChild(o); }
   o.innerHTML=`<div class="cl-overlay-in" onclick="event.stopPropagation()">${html}</div>`; o.style.display='flex'; }
 function clCloseOverlay(){ const o=$c('#c-overlay'); if(o){ o.style.display='none'; o.innerHTML=''; } }
+/* Esc fecha o modal aberto — o terceiro caminho de fechamento do padrão de modais (os outros
+   dois, ✕ na barra e clique fora, já existem). Alcance idêntico ao do clique fora: só o
+   #c-overlay, que é sempre dispensável; o overlay de sincronização da rodada é outro elemento
+   e não é atingido. */
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape') return;
+  const o=$c('#c-overlay'); if(!o || o.style.display==='none' || !o.innerHTML) return;
+  clCloseOverlay();
+});
 function resultDialog(score,verd){ overlayC(dlg('RetroFoot98', `<div class="cl-res"><div class="cl-res-score">${escC(score)}</div>
   <div class="cl-res-verd">${escC(verd)}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div></div>`,{w:520,bodyClass:'cl-body-green'})); }
 function toastC(msg){ let t=$c('#c-toast'); if(!t){ t=document.createElement('div'); t.id='c-toast'; document.body.appendChild(t); }

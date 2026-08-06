@@ -1488,7 +1488,7 @@ function advanceCupBracket(b, roundLabel){
     const Rm=makeRng(hashSeed(seed,'rate'));
     applyMatchIncidents(evs);
     recordScorers(fin.scorers); // sem isso, gol de copa não entrava em S.scorers -> "Gols nesta temporada" (só liga) ficava dessincronizado do Historial (soma liga+copa via ratePlayers)
-    ratePlayers(t.h,fin.hg,fin.ag,fin.scorers,Rm,fin.perf&&fin.perf.H,fin.perf&&fin.perf.A); ratePlayers(t.a,fin.ag,fin.hg,fin.scorers,Rm,fin.perf&&fin.perf.A,fin.perf&&fin.perf.H);
+    ratePlayers(t.h,fin.hg,fin.ag,fin.scorers,Rm,fin.perf&&fin.perf.H,fin.perf&&fin.perf.A,fin.caps&&fin.caps.H,fin.matchMinutes); ratePlayers(t.a,fin.ag,fin.hg,fin.scorers,Rm,fin.perf&&fin.perf.A,fin.perf&&fin.perf.H,fin.caps&&fin.caps.A,fin.matchMinutes);
     // empate no tempo normal: prorrogação + pênaltis de verdade (ver resolveDrawnKnockoutTie
     // em simulate.js) — nada de sorteio 50/50, e a MESMA seed de sempre garante que bate com
     // o que a partida ao vivo/espectador já mostrou, se for o caso.
@@ -1559,7 +1559,7 @@ function advanceGroupStageRound(mg, roundLabel){
       applyMatchIncidents(evs);
       const Rm=makeRng(hashSeed(seed,'rate'));
       recordScorers(fin.scorers); // idem ao bracket de mata-mata: gol de copa (aqui, fase de grupos) tem que contar em S.scorers
-      ratePlayers(h,fin.hg,fin.ag,fin.scorers,Rm,fin.perf&&fin.perf.H,fin.perf&&fin.perf.A); ratePlayers(a,fin.ag,fin.hg,fin.scorers,Rm,fin.perf&&fin.perf.A,fin.perf&&fin.perf.H);
+      ratePlayers(h,fin.hg,fin.ag,fin.scorers,Rm,fin.perf&&fin.perf.H,fin.perf&&fin.perf.A,fin.caps&&fin.caps.H,fin.matchMinutes); ratePlayers(a,fin.ag,fin.hg,fin.scorers,Rm,fin.perf&&fin.perf.A,fin.perf&&fin.perf.H,fin.caps&&fin.caps.A,fin.matchMinutes);
       const T=g.table;
       // placar da partida: a tabela só acumula o agregado, então sem isto o resultado de uma
       // partida de grupo era impossível de recuperar depois (Calendário ficava só com os jogos
@@ -1782,6 +1782,63 @@ function ensureCupCalendar(force){
   Object.keys(S.cups).forEach(key=>{ if(S.cups[key]) cal[key]=buildCupSchedule(key, cupTotalRounds(key), last); });
   S.cupCalendar=cal;
 }
+/* ==================== DATA DO SORTEIO DE CADA COPA ====================
+   Antes TODAS as cerimônias eram enfileiradas de uma vez em initSeasonCups: o save abria já com
+   dois ou três sorteios em sequência, no mesmo dia, antes de o jogador ter feito qualquer coisa.
+   Agora cada copa tem a SUA data, derivada da própria estreia:
+     - dois dias antes da primeira partida daquela competição (a estreia é na quarta, então o
+       sorteio cai na segunda da mesma semana);
+     - nunca no dia 1, pra o save não começar com cerimônia;
+     - nunca a menos de 2 dias do sorteio de outra copa (se duas estreassem juntas, a segunda
+       recua) — e sempre ANTES da própria estreia, que é o que garante "jogo só depois do sorteio".
+   Com o calendário padrão do Brasil dá: Libertadores no dia 2, Sul-Americana no 9, Copa do
+   Brasil no 16 — uma cerimônia por semana, cada uma colada na estreia da sua competição. */
+function cupFirstPlayRoundReal(key){
+  const cal=(typeof S!=='undefined'&&S&&S.cupCalendar)?S.cupCalendar[key]:null;
+  if(cal && cal.length) return cal[0];
+  return cupFirstPlayRound(key);
+}
+function cupRoundMatchDay(round){ return 1+(round||0)*7+3; }   // copa joga na quarta da semana
+function cupSeasonDrawDays(){
+  if(typeof S==='undefined' || !S || !S.cups) return {};
+  const keys=Object.keys(S.cups).filter(k=>S.cups[k]);
+  const info=keys.map(k=>({k, r:cupFirstPlayRoundReal(k)})).filter(x=>x.r<99).sort((a,b)=>a.r-b.r);
+  const out={}; let anterior=-99;
+  info.forEach(x=>{
+    const estreia=cupRoundMatchDay(x.r);
+    let dia=estreia-2;
+    if(dia-anterior<2) dia=anterior+2;          // dois sorteios nunca no mesmo dia (nem colados)
+    if(dia>estreia-1) dia=estreia-1;            // mas sempre antes da estreia da competição
+    dia=Math.max(2,dia);                        // nunca no dia 1
+    out[x.k]=dia; anterior=dia;
+  });
+  return out;
+}
+/* a data do sorteio desta copa já chegou, considerando a semana que está sendo jogada agora? */
+function cupDrawReleased(key, round){
+  const dia=cupSeasonDrawDays()[key];
+  if(dia==null) return true;
+  return dia<=cupRoundMatchDay(round!=null?round:(S.round||0));
+}
+/* enfileira as cerimônias cuja data chegou (uma vez por temporada). Devolve quantas entraram —
+   quem chama usa isso pra mostrar o sorteio ANTES das partidas da rodada (ver clJogar). */
+function queueDueCupDraws(){
+  if(typeof S==='undefined' || !S || !S.cups) return 0;
+  if(typeof queueDrawShow!=='function') return 0;
+  S._cupDrawQueued=S._cupDrawQueued||{};
+  const season=S.season||1; let n=0;
+  Object.keys(cupSeasonDrawDays()).forEach(key=>{
+    if(!S.cups[key]) return;
+    if(!cupDrawReleased(key)) return;
+    const mark=key+':'+season; if(S._cupDrawQueued[mark]) return;
+    // só a cerimônia de ABERTURA da competição (grupo, ou chave na Copa do Brasil); o sorteio
+    // do mata-mata das continentais continua saindo em advancePendingCups, na data real dele.
+    const c=S.cups[key];
+    const stage=(c && c.group && !c.bracket)?'group':'bracket';
+    S._cupDrawQueued[mark]=true; queueDrawShow(key, stage); n++;
+  });
+  return n;
+}
 function cupTickMatchesRound(key, round){
   const cal=(typeof S!=='undefined' && S && S.cupCalendar) ? S.cupCalendar[key] : null;
   if(cal && cal.length) return cal.indexOf(round)>=0;
@@ -1792,12 +1849,17 @@ function cupTickMatchesRound(key, round){
    bloquear o usuário */
 function advancePendingCups(){
   if(!S.cups) return;
-  if(cupTickMatchesRound('copaBrasil',S.round)){
+  // a copa cuja rodada JÁ foi resolvida na quarta (o usuário jogou ao vivo e resolveCupRoundRest
+  // fechou o resto dos confrontos na hora) não avança de novo aqui no sábado
+  const jaResolvida=k=>((S._cupResolvedRound||{})[k]===S.round);
+  if(cupTickMatchesRound('copaBrasil',S.round) && cupDrawReleased('copaBrasil') && !jaResolvida('copaBrasil')){
     const cb=S.cups.copaBrasil;
     if(cb && !cupIsFinished(cb) && cb.ties.length) advanceCupBracket(cb, 'copaBrasil-r'+cb.round);
   }
   groupCupKeys().forEach(key=>{
     if(!cupTickMatchesRound(key,S.round)) return;
+    if(!cupDrawReleased(key)) return;   // nenhuma partida antes do sorteio daquela competição
+    if(jaResolvida(key)) return;
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket){
       if(!c.group.finished) advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round);
@@ -2134,16 +2196,10 @@ function rollBgLeaguesSeason(){
 }
 function initSeasonCups(qual, compToggle){
   if(isConmebolUniverse()){ initConmebolCups(); // universo sul-americano: Libertadores + Sul-Americana
-    ensureCupCalendar(true);
-    if(S.cups&&S.cups.libertadores) queueDrawShow('libertadores','group');
-    if(S.cups&&S.cups.sulamericana) queueDrawShow('sulamericana','group');
+    ensureCupCalendar(true);   // as cerimônias entram na fila na DATA de cada uma (ver queueDueCupDraws)
     return; }
   if(isIntlUniverse()){ initIntlCups(); // universo europeu: Champions + Europa
-    ensureCupCalendar(true);
-    // cerimônia do sorteio da FASE DE GRUPOS (estilo Copa do Brasil, time -> grupo), no
-    // início da temporada — os jogos de grupo vêm depois, como na vida real.
-    if(S.cups&&S.cups.championsLeague) queueDrawShow('championsLeague','group');
-    if(S.cups&&S.cups.europaLeague) queueDrawShow('europaLeague','group');
+    ensureCupCalendar(true);   // as cerimônias entram na fila na DATA de cada uma (ver queueDueCupDraws)
     return; }
   compToggle = compToggle || (S.compToggle) || {libertadores:true, copaBrasil:true, sulamericana:true};
   const cbQual=copaBrasilQualification(); // sempre as 4 divisões, independente da divisão do usuário
@@ -2185,8 +2241,12 @@ function initSeasonCups(qual, compToggle){
   // fase de grupos já ter começado. Era isso que produzia o absurdo de sortear uma competição
   // cuja rodada já tinha acontecido.
   // Os universos CONMEBOL e europeu (acima) sempre fizeram isso certo; só o brasileiro não fazia.
-  ensureCupCalendar(true);   // calendário da temporada nova ANTES de enfileirar as cerimônias
-  cupDrawOrder().forEach(([key,stage])=>{ if(S.cups[key]) queueDrawShow(key, stage); });
+  // calendário da temporada nova primeiro: é dele que sai a data de sorteio de cada copa.
+  // As cerimônias NÃO são mais enfileiradas todas aqui (era o que fazia o save abrir com dois
+  // ou três sorteios seguidos) — cada uma entra na fila quando a data dela chega, dois dias
+  // antes da estreia da competição. Ver cupSeasonDrawDays/queueDueCupDraws.
+  ensureCupCalendar(true);
+  S._cupDrawQueued={};
 }
 /* ORDEM DAS CERIMÔNIAS = ordem em que as competições ENTRAM EM CAMPO.
    As copas se revezam a cada 3 rodadas (CUP_TICK_OFFSET) e pendingUserCupMatches olha a rodada
@@ -2241,12 +2301,14 @@ function pendingUserCupMatches(){
   if(!S.cups || !CL.clubId) return [];
   const out=[];
   const cb=S.cups.copaBrasil;
-  if(cupTickMatchesRound('copaBrasil',S.round) && cb && !cupIsFinished(cb)){
+  // nenhuma partida antes do sorteio da própria competição (ver cupSeasonDrawDays)
+  if(cupTickMatchesRound('copaBrasil',S.round) && cupDrawReleased('copaBrasil') && cb && !cupIsFinished(cb)){
     const tie=(cb.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
     if(tie) out.push({key:'copaBrasil', stage:'bracket', bracket:cb, tie, h:tie.h, a:tie.a});
   }
   groupCupKeys().forEach(key=>{
     if(!cupTickMatchesRound(key,S.round)) return;
+    if(!cupDrawReleased(key)) return;
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket && !c.group.finished){
       const mg=c.group;
@@ -3563,19 +3625,28 @@ function mpSim(homeId,home,awayId,away,seed,log){
 }
 function mpApply(T,h,a,hg,ag){T[h].P++;T[a].P++;T[h].GF+=hg;T[h].GA+=ag;T[a].GF+=ag;T[a].GA+=hg;
   if(hg>ag){T[h].W++;T[a].L++;T[h].Pts+=3;}else if(hg<ag){T[a].W++;T[h].L++;T[a].Pts+=3;}else{T[h].D++;T[a].D++;T[h].Pts++;T[a].Pts++;}}
-function mpRate(xi,gf,ga,scorers,cid,R,myPerf,oppPerf){
-  const won=gf>ga,lost=gf<ga,cs=ga===0;
-  const dom=(typeof domAdjust==='function')?domAdjust(myPerf,oppPerf):0;
-  xi.forEach(p=>{
-    let r=6.0+(p.f-65)*0.045+R.gauss(0,0.75);
-    if(won)r+=0.5;else if(lost)r-=0.5;
-    r+=dom;
-    const myG=scorers.filter(s=>s.id===cid&&s.name===p.n).length;r+=myG*1.3;
-    if(cs&&(p.s==='GK'||p.s==='DEF'))r+=0.6;r=clamp(r,3,10);
+/* Nota no fallback local da rodada online (quando a edge function não responde). Até 2026-08-06
+   esta cópia tinha DIVERGIDO da do solo: não descontava cartão nem lesão, então a mesma partida
+   dava nota diferente conforme o servidor estivesse de pé ou não. Agora chama a mesma conta
+   compartilhada (ME.rateAppearances) que o solo e o servidor usam.
+   caps = súmula de minutos da partida; sem ela, o XI inteiro com o jogo cheio (comportamento
+   antigo, que aqui é o certo — este caminho não tem substituição em jogo). */
+function mpRate(xi,gf,ga,scorers,cid,R,myPerf,oppPerf,caps,matchMinutes){
+  const ME=(typeof MATCH_ENGINE!=='undefined')?MATCH_ENGINE:null; if(!ME) return;
+  const total=matchMinutes||90;
+  const byKey=new Map((caps||[]).map(c=>[(c.pid!=null?c.pid:c.n), c.mins]));
+  const lista=xi.map(p=>({p, mins: byKey.size ? (byKey.get(p.pid!=null?p.pid:p.n)||0) : total}))
+                .filter(x=>x.mins>0);
+  const notas=ME.rateAppearances({
+    players:lista.map(x=>({pid:x.p.pid, n:x.p.n, s:x.p.s, f:x.p.f, mins:x.mins})),
+    matchMinutes:total, gf, ga, clubId:cid, scorers:scorers||[],
+    incidents:(typeof S!=='undefined'&&S&&S._roundIncidents)||{}, myPerf, oppPerf, R });
+  notas.forEach((nota,i)=>{
+    const p=lista[i].p;
     const st=p.stats||(p.stats={r3:[],g3:[],apps:0,goals:0,cs:0});
-    st.r3.push(+r.toFixed(1));if(st.r3.length>3)st.r3.shift();
-    st.g3.push(myG);if(st.g3.length>3)st.g3.shift();
-    st.apps++;st.goals+=myG;if(cs&&(p.s==='GK'||p.s==='DEF'))st.cs++;
+    st.r3.push(nota.r);if(st.r3.length>3)st.r3.shift();
+    st.g3.push(nota.goals);if(st.g3.length>3)st.g3.shift();
+    st.apps++;st.goals+=nota.goals;if(nota.cs)st.cs++;
   });
 }
 function mpFinances(state,cid,xi,gf,ga,scorers){
@@ -3692,23 +3763,38 @@ function playRound(userResult, humanResults){
   const Rr=makeRng(hashSeed(S.seed,S.round,'post')); // deterministic post-match stream
   // capture who started THIS round before energy changes (for finances/enforcement)
   const startedNames = new Set(playedXI(S.clubId).map(p=>p.pid)); // pids
+  /* SÚMULA DA RODADA: clubId -> [{pid,n,mins}] de quem entrou em campo, e quantos minutos teve a
+     partida. Alimenta nota, energia, moral e o flag "jogou" da evolução — os quatro liam o onze
+     do FIM da partida e, com isso, ignoravam quem saiu no meio e davam crédito cheio a quem
+     entrou faltando pouco. Uma partida por clube por rodada, então o mapa não colide. */
+  const roundCaps={}, roundMins={};
+  const noteCaps=(h,a,r)=>{ const c=r&&r.caps; const t=(r&&r.matchMinutes)||90;
+    if(c){ if(c.H) roundCaps[h]=c.H; if(c.A) roundCaps[a]=c.A; }
+    roundMins[h]=t; roundMins[a]=t; };
+  const capsOf=cid=>roundCaps[cid]||null;
   if(uf&&userResult){ const [h,a]=uf; const uev=(typeof simEvents==='function')?simEvents(h,a,matchSeed(h,a)).events:undefined; applyResult(h,a,userResult.hg,userResult.ag); recordScorers(userResult.scorers);
+    noteCaps(h,a,userResult);
     const Rm=makeRng(hashSeed(matchSeed(h,a),'rate'));
-    ratePlayers(h,userResult.hg,userResult.ag,userResult.scorers,Rm,userResult.perf&&userResult.perf.H,userResult.perf&&userResult.perf.A); ratePlayers(a,userResult.ag,userResult.hg,userResult.scorers,Rm,userResult.perf&&userResult.perf.A,userResult.perf&&userResult.perf.H);
-    S.results.push({round:S.round,h,a,hg:userResult.hg,ag:userResult.ag,user:true,scorers:userResult.scorers||[],events:uev}); postMatchMorale(userResult,h,a); }
+    const mm=userResult.matchMinutes||90;
+    ratePlayers(h,userResult.hg,userResult.ag,userResult.scorers,Rm,userResult.perf&&userResult.perf.H,userResult.perf&&userResult.perf.A,capsOf(h),mm); ratePlayers(a,userResult.ag,userResult.hg,userResult.scorers,Rm,userResult.perf&&userResult.perf.A,userResult.perf&&userResult.perf.H,capsOf(a),mm);
+    S.results.push({round:S.round,h,a,hg:userResult.hg,ag:userResult.ag,user:true,scorers:userResult.scorers||[],events:uev}); postMatchMorale(userResult,h,a,capsOf(S.clubId)); }
   currentFixtures().forEach(([h,a])=>{
     if(uf&&(h===uf[0]&&a===uf[1]))return;
     // FASE 2: se OUTRO humano (hotseat) jogou esta partida ao vivo, aplica o resultado dele em vez de simular
     const hr=humanResults[h+'-'+a];
     if(hr){ applyResult(h,a,hr.hg,hr.ag); recordScorers(hr.scorers||[]);
+      noteCaps(h,a,hr);
       const Rmh=makeRng(hashSeed(matchSeed(h,a),'rate'));
-      ratePlayers(h,hr.hg,hr.ag,hr.scorers,Rmh,hr.perf&&hr.perf.H,hr.perf&&hr.perf.A); ratePlayers(a,hr.ag,hr.hg,hr.scorers,Rmh,hr.perf&&hr.perf.A,hr.perf&&hr.perf.H);
+      const mmh=hr.matchMinutes||90;
+      ratePlayers(h,hr.hg,hr.ag,hr.scorers,Rmh,hr.perf&&hr.perf.H,hr.perf&&hr.perf.A,capsOf(h),mmh); ratePlayers(a,hr.ag,hr.hg,hr.scorers,Rmh,hr.perf&&hr.perf.A,hr.perf&&hr.perf.H,capsOf(a),mmh);
       S.results.push({round:S.round,h,a,hg:hr.hg,ag:hr.ag,scorers:hr.scorers||[],events:hr.events,human:true});
       return; }
     const ms=matchSeed(h,a);
     const r=(typeof simEvents==='function')?simEvents(h,a,ms):quickSim(h,a,ms); applyResult(h,a,r.hg,r.ag); recordScorers(r.scorers);
+    noteCaps(h,a,r);
     const Rm=makeRng(hashSeed(ms,'rate'));
-    ratePlayers(h,r.hg,r.ag,r.scorers,Rm,r.perf&&r.perf.H,r.perf&&r.perf.A); ratePlayers(a,r.ag,r.hg,r.scorers,Rm,r.perf&&r.perf.A,r.perf&&r.perf.H);
+    const mm=r.matchMinutes||90;
+    ratePlayers(h,r.hg,r.ag,r.scorers,Rm,r.perf&&r.perf.H,r.perf&&r.perf.A,capsOf(h),mm); ratePlayers(a,r.ag,r.hg,r.scorers,Rm,r.perf&&r.perf.A,r.perf&&r.perf.H,capsOf(a),mm);
     S.results.push({round:S.round,h,a,hg:r.hg,ag:r.ag,scorers:r.scorers||[],events:r.events});
   });
   processFinances(userResult,uf,startedNames);
@@ -3716,11 +3802,21 @@ function playRound(userResult, humanResults){
   europeRaids(Rr);
   // recover energy, drift morale toward 70
   Object.values(S.squads).flat().forEach(p=>{p.energy=clamp(p.energy+Rr.rnd(6,16),0,100);p.moral=clamp(p.moral+(70-p.moral)*0.08,0,100);});
-  xiPlayers(S.clubId).forEach(p=>p.energy=clamp(p.energy-Rr.rnd(12,22),20,100));
+  /* CANSAÇO proporcional aos minutos: quem saiu no intervalo gasta metade do que gastaria em 90.
+     Antes isto lia xiPlayers(S.clubId) — o onze do FIM —, então o titular substituído não
+     cansava nada e o reserva que entrou aos 85' cansava como se tivesse jogado tudo. */
+  capsDrain(S.clubId, capsOf(S.clubId), roundMins[S.clubId]||90, Rr);
   // player development / decline (deterministic)
   const Rd=makeRng(hashSeed(S.seed,S.round,'dev'));
   Object.keys(S.squads).forEach(cid=>{
-    const played=new Set((cid===S.clubId?xiPlayers(cid):squad(cid).slice().sort((a,b)=>b.f-a.f).slice(0,11)).map(p=>p.n));
+    /* "jogou" pra evolução = entrou em campo, não "estava no onze do fim". Sem isto o titular
+       substituído no intervalo levava benchStreak++ (perda de ritmo por ficar no banco) numa
+       rodada em que jogou 45 minutos, e o reserva que entrou não ganhava o caminho de evolução
+       por jogar. Usa a súmula quando existe; senão, o fallback de sempre. */
+    const caps=capsOf(cid);
+    const played=new Set(caps && caps.length
+      ? caps.map(c=>c.n)
+      : (cid===S.clubId?xiPlayers(cid):squad(cid).slice().sort((a,b)=>b.f-a.f).slice(0,11)).map(p=>p.n));
     S.squads[cid].forEach(p=>evolvePlayer(p,Rd,played.has(p.n)));
   });
   S.round++; S.week++; S.day+=7;
@@ -3842,10 +3938,33 @@ function europeRaids(R){
   });
   if(S.xi.length<11) S.xi=autoXI(S.clubId);
 }
-function postMatchMorale(res,h,a){
+/* jogadores do elenco que entraram em campo, a partir da súmula de minutos (caps). Sem súmula,
+   cai no onze do fim — o comportamento antigo. Ver roundCaps em playRound. */
+function capsSquad(clubId, caps){
+  const sq=squad(clubId)||[];
+  if(Array.isArray(caps) && caps.length){
+    const out=[];
+    caps.forEach(c=>{ const p=sq.find(x=>(c.pid!=null&&x.pid===c.pid)||x.n===c.n); if(p) out.push({p, mins:c.mins}); });
+    if(out.length) return out;
+  }
+  return (clubId===S.clubId?xiPlayers(clubId):[]).map(p=>({p, mins:90}));
+}
+/* CANSAÇO da rodada, proporcional aos minutos jogados (mesma faixa de sempre pra quem fez 90). */
+function capsDrain(clubId, caps, matchMinutes, Rr){
+  const total=Math.max(1, matchMinutes||90);
+  capsSquad(clubId, caps).forEach(({p,mins})=>{
+    const share=clamp((mins||total)/total, 0, 1);
+    p.energy=clamp(p.energy-Rr.rnd(12,22)*share, 20, 100);
+  });
+}
+/* MORAL pós-jogo: quem entrou em campo sente o resultado. NÃO é proporcional aos minutos de
+   propósito — moral é humor de vestiário, não desgaste; quem entrou aos 80' na derrota sai
+   cabisbaixo igual. O que mudou é só QUEM recebe: antes era o onze do fim, agora é todo mundo
+   que jogou (o substituído no intervalo ficava de fora). */
+function postMatchMorale(res,h,a,caps){
   const meHome=h===S.clubId; const gf=meHome?res.hg:res.ag, ga=meHome?res.ag:res.hg;
   const d= gf>ga? +8 : gf<ga? -8 : +1;
-  xiPlayers(S.clubId).forEach(p=>p.moral=clamp(p.moral+d,0,100));
+  capsSquad(S.clubId, caps).forEach(({p})=>{ p.moral=clamp(p.moral+d,0,100); });
   res.scorers.filter(s=>s.id===S.clubId).forEach(s=>adjMoral(s.name,+6));
 }
 function advanceNegos(){
@@ -4067,6 +4186,56 @@ function applyMyPrevSeasonPrizes(){
    da temporada se perdia silenciosamente pra ele — mesmo a tabela de posições estando correta.
    Retirements ficam vazios aqui (só o servidor computa isso na mesma passada; é só "sabor" no
    press-room, não afeta a premiação). */
+/* ===== COMO O TÍTULO FOI GANHO (fonte do painel CAMPANHA da Sala de Troféus) =====
+   O jogo nunca guardou isso: S.cups e S.results são zerados a cada virada (newSeasonReset), então
+   depois do fim da temporada não há mais como reconstruir o placar da decisão. As funções abaixo
+   extraem o essencial DENTRO de endSeason(), enquanto o dado ainda existe, e o título já nasce
+   com a decisão dentro. Nada aqui altera o jogo — é só registro. */
+
+/* chave de competição do título de divisão. Brasil mantém as chaves de sempre (serieA/B/C/D, as
+   mesmas que trophyImg usa); Inglaterra/PL casa com a arte de Premier League que temos em
+   public/img/trofeus/. Qualquer outra liga (La Liga, Bundesliga, os países da CONMEBOL...) vira
+   'liga:<universo>:<divisão>': a Sala de Troféus monta um card avulso com o nome da liga e o 🏆
+   genérico, em vez de sumir com o título só porque não desenhamos aquela taça. */
+function divisionCompKeyFor(div){
+  if(!isIntlUniverse()) return ({A:'serieA',B:'serieB',C:'serieC',D:'serieD'})[div] || ('liga:brasil:'+div);
+  if(ACTIVE_UNI==='Inglaterra' && div==='PL') return 'premier';
+  return 'liga:'+ACTIVE_UNI+':'+div;
+}
+function divisionTitleCompKey(){ return divisionCompKeyFor(S.division); }
+/* Final da copa: o chaveamento guarda uma entrada de history por fase, e a ÚLTIMA é a decisão.
+   hg/ag são o tempo normal (é o que o resto da UI mostra); pênaltis vêm à parte, como no
+   Calendário. Devolve null se a copa não chegou ao fim — aí o card sai sem placar. */
+function cupTitleFinal(key){
+  const c=S.cups&&S.cups[key]; if(!c) return null;
+  const b=(c.champion!==undefined)?c:c.bracket; if(!b||!b.history||!b.history.length) return null;
+  const last=b.history[b.history.length-1];
+  const tie=(last.ties||[]).find(t=>t.h===S.clubId||t.a===S.clubId);
+  if(!tie || tie.hg==null) return null;
+  return { home:clubOf(tie.h).short, away:clubOf(tie.a).short, hg:tie.hg, ag:tie.ag,
+           pens: tie.pens ? (tie.pens.h+' × '+tie.pens.a) : null };
+}
+/* Liga não tem final: a "decisão do título" é o último jogo do campeão na temporada. */
+function leagueTitleDecider(){
+  const mine=(S.results||[]).filter(r=>r.h===S.clubId||r.a===S.clubId);
+  const m=mine[mine.length-1]; if(!m) return null;
+  return { home:clubOf(m.h).short, away:clubOf(m.a).short, hg:m.hg, ag:m.ag, round:m.round };
+}
+/* Títulos por CLUBE e por competição — de TODO MUNDO, não só do jogador. É o que a aba Resenha
+   da Sala de Troféus usa pra montar a fila de taças de cada treinador; antes só existia a
+   contagem agregada de CL.careerStats (pontos + nº de títulos), que não diz QUAL taça foi.
+   prevTables já vem com as quatro divisões ordenadas (o campeão de cada uma é a linha 0).
+   Guarda por temporada porque endSeason pode ser reexecutado na virada online (fallback local
+   quando a edge function não responde) e o acumulado não pode contar duas vezes. */
+function accrueTitlesByClub(prevTables){
+  if(S._titlesAccruedSeason===S.season) return;
+  S._titlesAccruedSeason=S.season;
+  S.titlesByClub=S.titlesByClub||{};
+  const add=(clubId,comp)=>{ if(!clubId||!comp) return;
+    const t=S.titlesByClub[clubId]=S.titlesByClub[clubId]||{}; t[comp]=(t[comp]||0)+1; };
+  DIV_ORDER.forEach(d=>{ const rows=prevTables&&prevTables[d]; if(rows&&rows.length) add(rows[0].id, divisionCompKeyFor(d)); });
+  if(S.cups) allCupKeys().forEach(k=>add(cupCompetitionChampion(S.cups[k]), k));
+}
 function endSeason(){
   const tbl=sortedTable();
   const _prevTables={};
@@ -4109,15 +4278,25 @@ function endSeason(){
   // acumula artilharia histórica (nunca é apagada entre temporadas do mesmo save)
   S.allTimeScorers=S.allTimeScorers||{};
   Object.entries(S.scorers||{}).forEach(([n,g])=>{ S.allTimeScorers[n]=(S.allTimeScorers[n]||0)+g; });
-  // registra títulos conquistados pelo treinador na carreira (persiste com o save)
+  // registra títulos conquistados pelo treinador na carreira (persiste com o save).
+  // Além do que já existia (temporada + competição + frase), cada título agora carrega o CLUBE e
+  // a DECISÃO (placar da final, nas copas; último jogo + pontos, nas ligas) — é o que a Sala de
+  // Troféus mostra no painel CAMPANHA. Títulos gravados antes desta mudança seguem válidos: a
+  // sala trata a ausência desses campos e mostra o título sem o cartão da decisão.
   S.coachHistory=S.coachHistory||[];
+  const myShort=clubOf(S.clubId).short;
   if(tbl[0].id===S.clubId){
-    const divTrophy={A:'serieA',B:'serieB',C:'serieC',D:'serieD'}[S.division];
-    S.coachHistory.push({season:S.season, type:'campeao', comp:divTrophy, text:`Campeão da Série ${S.division} pelo ${clubOf(S.clubId).short.toUpperCase()}`});
+    const divLbl=DIV_LABEL_FULL[S.division]||('Série '+S.division);
+    S.coachHistory.push({season:S.season, type:'campeao', comp:divisionTitleCompKey(), kind:'liga',
+      label:divLbl, uni:ACTIVE_UNI, div:S.division, clubId:S.clubId, clubShort:myShort,
+      pts:(tbl[0].Pts||0), final:leagueTitleDecider(), text:`Campeão da ${divLbl} pelo ${myShort.toUpperCase()}`});
   }
   if(S.cups){ allCupKeys().forEach(k=>{
-    if(cupCompetitionChampion(S.cups[k])===S.clubId) S.coachHistory.push({season:S.season, type:'campeao', comp:k, text:`Campeão da ${COMP_DEFS[k].short} pelo ${clubOf(S.clubId).short.toUpperCase()}`});
+    if(cupCompetitionChampion(S.cups[k])===S.clubId) S.coachHistory.push({season:S.season, type:'campeao', comp:k, kind:'copa',
+      label:COMP_DEFS[k].short, uni:ACTIVE_UNI, clubId:S.clubId, clubShort:myShort,
+      final:cupTitleFinal(k), text:`Campeão da ${COMP_DEFS[k].short} pelo ${myShort.toUpperCase()}`});
   }); }
+  accrueTitlesByClub(_prevTables);
   /* histórico de carreira POR JOGADOR (títulos, temporadas na elite, melhor posição) —
      diferente de S.coachHistory (só do treinador) e S.allTimeScorers (só artilharia).
      Só cobre S.squads: é a única estrutura com elenco individual materializado (as

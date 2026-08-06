@@ -236,6 +236,21 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-body-gray{background:var(--chrome);border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL)}
 .cl-hasside{padding-right:130px}
 .cl-dlg-side{position:absolute;right:16px;top:18px;display:flex;flex-direction:column;align-items:center;gap:4px}
+/* ===== MODAL DE MENU PADRÃO (handoff "Padronização de modais do menu") =====
+   Anatomia única: título com ✕ · conteúdo que rola sozinho (max-height 60vh) · rodapé FIXO com
+   os botões numa linha à direita. Ligado por dlg(...,{std:true}); quem não pede segue igual. */
+.cl-dlg-std .cl-dlg-body{padding:0;display:flex;flex-direction:column;min-height:0}
+.cl-dlg-content{padding:16px;overflow:auto;max-height:60vh;-webkit-overflow-scrolling:touch}
+.cl-dlg-foot{flex:none;padding:12px 16px;display:flex;gap:10px;justify-content:flex-end;align-items:center;
+  border-top:2px solid var(--bevD);box-shadow:inset 0 2px 0 var(--bevL)}
+.cl-dlg-x{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:20px;height:18px;padding:0;
+  background:var(--chrome);border:2px solid;border-color:var(--bevel-out);color:#000;font-family:inherit;
+  font-weight:900;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.cl-dlg-x:active{border-color:var(--bevel-in)}
+/* botão do rodapé: ícone AO LADO do texto (o .cl-btn padrão do jogo empilha ícone em cima) */
+.cl-dlg-foot .cl-btn{min-height:34px;min-width:104px;padding:7px 16px;font-size:13px;
+  flex-direction:row;gap:7px;align-items:center;justify-content:center}
+.cl-dlg-foot .cl-btn .cl-btn-ic{font-size:15px;line-height:1}
 /* botões win3.1 */
 .cl-btn{font-family:var(--sans);font-size:13px;background:var(--chrome);border:2px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);padding:8px 14px;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#000;min-width:70px;min-height:46px;box-sizing:border-box;text-align:center}
 .cl-btn:active{border-color:var(--bevD2) var(--bevL) var(--bevL) var(--bevD2)}
@@ -463,6 +478,125 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-rank-t{font-weight:700}
 .cl-rank-n{font-family:var(--mono);text-align:right}
 .cl-rank-n.b{font-weight:800}
+/* ===== Treinador > Sala de Troféus (handoff "Sala de Troféus do Treinador") =====
+   Medidas, bevels e cores vêm do handoff. O corpo da janela é o único diálogo do jogo sem
+   padding (as abas e a barra de filtro encostam na moldura, como no design), por isso a classe
+   de body própria em vez de cl-body-gray. */
+.cl-body-estante{background:var(--chrome);border:2px solid;border-color:var(--bevel-out);padding:0}
+.cl-sala{display:flex;flex-direction:column;font-family:var(--sans)}
+/* abas */
+.cl-sala-tabs{flex:none;display:flex;align-items:flex-end;gap:4px;padding:6px 8px 0;background:var(--chrome);position:relative;z-index:2}
+.cl-sala-tab{font-family:var(--sans);font-size:13px;line-height:1;white-space:nowrap;cursor:pointer;position:relative;
+  border:2px solid;border-bottom:none;padding:7px 14px 6px;top:3px;z-index:1;background:#cfcfcf;
+  border-color:var(--bevL) #909090 #909090 var(--bevL);color:#5a5a5a;font-weight:700}
+.cl-sala-tab.on{padding:7px 14px 12px;top:0;margin-bottom:-4px;z-index:3;background:var(--navy);
+  border-color:#4a4aa8 #00003a transparent #4a4aa8;color:#fff;font-weight:800;box-shadow:0 -2px 0 #ffd97a inset}
+.cl-sala-status{margin-left:auto;align-self:center;padding-bottom:5px;font-family:var(--mono);font-size:11px;font-weight:700;color:#4a4a4a}
+/* barra de filtro por temporada */
+.cl-sala-filtro{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 8px;background:var(--chrome);
+  border-top:4px solid var(--navy);border-bottom:2px solid #707070}
+.cl-sala-flabel{font-size:12px;font-weight:800;color:#111}
+.cl-sala-seasons{display:flex;gap:3px;flex-wrap:wrap}
+.cl-sala-seas{font-family:var(--mono);font-size:12px;font-weight:800;padding:3px 9px;cursor:pointer;border:2px solid;
+  border-color:var(--bevL) #707070 #707070 var(--bevL);background:var(--chrome);color:#111}
+.cl-sala-seas.on{border-color:#707070 var(--bevL) var(--bevL) #707070;background:var(--navy);color:var(--yellow)}
+.cl-sala-total{margin-left:auto;display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:var(--yellow);
+  font-weight:800;font-size:12px;padding:4px 10px;border:2px solid;border-color:var(--bevel-out)}
+.cl-sala-total b{font-family:var(--mono);font-size:14px;color:#fff}
+/* corpo: prateleiras + painel, sobre o felt */
+/* altura fixa de propósito: as quatro prateleiras dividem o espaço em partes iguais (flex:1 1 0),
+   e é isso que faz a estante caber inteira sem rolagem, como pede o handoff. flex:none é
+   obrigatório — com flex:1 o flex-basis:0% ignoraria a altura e as prateleiras achatariam. */
+.cl-sala-body{flex:none;display:flex;gap:8px;padding:8px;background:var(--felt);
+  height:min(846px,calc(100vh - 200px));overflow-y:auto}
+/* aba Resenha esconde o filtro por temporada (o ranking dos rivais não tem recorte por ano — o
+   jogo só guarda a contagem de taças deles), então a linha navy que ancora as abas passa a ser
+   desenhada pelo próprio corpo */
+.cl-sala.sem-filtro .cl-sala-body{border-top:4px solid var(--navy)}
+.cl-sala-shelves{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.cl-sala-reg{flex:1 1 0;min-height:150px;display:flex;flex-direction:column;overflow:hidden;background:#d6d6d6;
+  border:2px solid;border-color:var(--bevL) #707070 #707070 var(--bevL)}
+.cl-sala-reg-hdr{flex:none;display:flex;justify-content:space-between;align-items:center;white-space:nowrap;
+  background:var(--navy);color:#fff;font-weight:800;font-size:12px;letter-spacing:.8px;padding:3px 8px}
+.cl-sala-reg-n{font-family:var(--mono);font-size:11px;font-weight:800;color:#ffd97a}
+.cl-sala-shelf{flex:1;min-height:0;display:flex;align-items:center;justify-content:flex-start;gap:6px;padding:4px 10px 2px;overflow:hidden}
+/* card de taça */
+.cl-sala-card{flex:none;width:148px;cursor:pointer;padding:2px 2px 5px;display:flex;flex-direction:column;align-items:center;
+  gap:2px;text-align:center;border:2px solid transparent;background:transparent}
+.cl-sala-card.on{border-color:var(--navy);background:rgba(0,0,128,.10)}
+.cl-sala-stack{position:relative;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.cl-sala-img{flex:none;width:auto;max-width:100%;object-fit:contain;display:block;position:relative;z-index:4}
+.cl-sala-img.won{filter:drop-shadow(0 3px 4px rgba(0,0,0,.45))}
+.cl-sala-img.locked{filter:grayscale(1) brightness(.22) contrast(.85);opacity:.38}
+/* uma cópia por conquista extra, atrás e deslocada (o deslocamento vem inline, por índice) */
+.cl-sala-img.extra{position:absolute;bottom:0;left:50%;filter:brightness(.62) saturate(.7);pointer-events:none}
+.cl-sala-noart{flex:none;font-size:44px;line-height:1;filter:grayscale(1);opacity:.28}
+.cl-sala-noart.won{filter:none;opacity:1}
+.cl-sala-xn{position:absolute;bottom:-2px;right:6px;z-index:9;background:var(--gold);color:#111;font-family:var(--mono);
+  font-size:11px;font-weight:800;line-height:1;padding:3px 5px;border-radius:var(--radius-tag);border:1px solid rgba(0,0,0,.45)}
+.cl-sala-cname{font-size:11px;font-weight:800;line-height:13px;height:26px;overflow:hidden;margin-top:3px;color:#111}
+.cl-sala-cname.locked{color:#6a6a6a}
+/* faixa do clube (mesma pintura do clubStripe usado no resto do jogo) */
+.cl-sala-stripe{display:inline-block;font-weight:700;font-size:10px;padding:2px 6px;border:1px solid rgba(255,255,255,.25);
+  text-shadow:0 1px 1px rgba(0,0,0,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+/* painel CAMPANHA */
+.cl-sala-pan{width:300px;flex:none;display:flex;flex-direction:column;overflow:hidden;background:#1e6b1e;
+  border:2px solid;border-color:var(--bevel-out)}
+.cl-sala-pan-hdr{flex:none;display:flex;justify-content:space-between;background:var(--navy);color:#fff;font-weight:800;
+  font-size:12px;letter-spacing:.6px;padding:4px 8px}
+.cl-sala-pan-reg{font-family:var(--mono);color:#ffd97a}
+.cl-sala-pan-top{flex:none;display:flex;gap:10px;align-items:center;padding:10px 10px 8px;background:rgba(0,0,0,.22)}
+.cl-sala-pan-frame{width:74px;height:104px;flex:none;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.25);border:2px solid;border-color:#707070 var(--bevL) var(--bevL) #707070}
+.cl-sala-pan-img{max-height:96px;max-width:66px;object-fit:contain}
+.cl-sala-pan-img.won{filter:drop-shadow(0 3px 5px rgba(0,0,0,.5))}
+.cl-sala-pan-img.locked{filter:grayscale(1) brightness(.3);opacity:.5}
+.cl-sala-pan-id{min-width:0}
+.cl-sala-pan-name{color:var(--yellow);font-weight:800;font-size:15px;line-height:1.2}
+.cl-sala-pan-sub{color:var(--ontext-lite2);font-size:11px;margin-top:3px}
+.cl-sala-pan-list{flex:1;min-height:0;overflow:auto;padding:8px 10px 10px;display:flex;flex-direction:column;gap:6px}
+.cl-sala-win,.cl-sala-lock{background:rgba(0,0,0,.25);border:2px solid;border-color:#707070 var(--bevL) var(--bevL) #707070}
+.cl-sala-win{padding:6px 8px}
+.cl-sala-win-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.cl-sala-win-ano{font-family:var(--mono);font-weight:800;font-size:14px;color:#ffd97a}
+.cl-sala-win-rot{margin-top:5px;font-size:10px;font-weight:800;letter-spacing:.6px;color:var(--ontext-lite3)}
+.cl-sala-win-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:5px;margin-top:3px}
+.cl-sala-win-team{font-size:11px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl-sala-win-team.r{text-align:right}
+.cl-sala-win-pl{font-family:var(--mono);font-weight:800;font-size:14px;color:#fff;background:rgba(0,0,0,.35);padding:1px 6px}
+.cl-sala-win-obs{margin-top:5px;font-size:11px;color:var(--ontext-lite2)}
+.cl-sala-lock{padding:10px}
+.cl-sala-lock-t{font-size:12px;font-weight:800;color:#fff}
+.cl-sala-lock-d{font-size:11px;color:var(--ontext-lite2);margin-top:5px;line-height:1.45}
+/* aba Resenha */
+.cl-sala-res{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--chrome);border:2px solid;border-color:var(--bevel-out)}
+.cl-sala-res-hdr{flex:none;display:flex;justify-content:space-between;background:var(--navy);color:#fff;font-weight:800;
+  font-size:13px;letter-spacing:.5px;padding:4px 10px}
+.cl-sala-res-list{flex:1;min-height:0;overflow:auto}
+.cl-sala-res-row{display:flex;align-items:center;gap:8px;padding:4px 10px;border-bottom:1px solid rgba(0,0,0,.12)}
+.cl-sala-res-row:nth-child(even){background:rgba(0,0,0,.05)}
+.cl-sala-res-row.me{background:var(--navy);box-shadow:0 0 0 2px #ffd97a inset}
+.cl-sala-res-row.me .cl-sala-res-pos,.cl-sala-res-row.me .cl-sala-res-nome,
+.cl-sala-res-row.me .cl-sala-res-total,.cl-sala-res-row.me .cl-sala-res-lbl{color:#fff}
+.cl-sala-res-pos{width:26px;flex:none;text-align:center;font-family:var(--mono);font-weight:800;font-size:15px;color:#4a4a4a}
+.cl-sala-res-nome{width:160px;flex:none;font-size:14px;font-weight:800;color:#111;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.cl-sala-res-clube{width:110px;flex:none}
+.cl-sala-res-minis{flex:1;display:flex;align-items:flex-end;gap:2px;min-width:0;overflow:hidden;height:46px}
+.cl-sala-mini{height:40px;width:auto;object-fit:contain;display:block;flex:none}
+.cl-sala-mini-x{font-size:26px;line-height:1;flex:none;opacity:.7}
+.cl-sala-res-row:not(.me) .cl-sala-mini{filter:grayscale(.55)}
+.cl-sala-res-total{flex:none;font-family:var(--mono);font-weight:800;font-size:16px;color:#111;width:34px;text-align:right}
+.cl-sala-res-lbl{flex:none;font-size:11px;color:#4a4a4a;font-weight:700;width:44px}
+.cl-sala-res-foot{flex:none;padding:8px 10px;background:#d0d0d0;border-top:2px solid var(--bevL);font-size:11px;color:#333}
+/* rodapé: resumo por clube + ações */
+.cl-sala-foot{flex:none;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 8px;background:var(--chrome);border-top:2px solid var(--bevL)}
+.cl-sala-byclub{flex:1;display:flex;align-items:center;gap:10px;min-width:0;overflow:hidden}
+.cl-sala-byclub-l{font-size:11px;font-weight:800;color:#333;letter-spacing:.4px;flex:none}
+.cl-sala-pill{display:flex;align-items:center;gap:5px;flex:none;padding:2px 6px;background:#cfcfcf;border:2px solid;
+  border-color:#707070 var(--bevL) var(--bevL) #707070}
+.cl-sala-pill b{font-family:var(--mono);font-weight:800;font-size:13px;color:#111}
+.cl-sala-pill i{font-style:normal;font-size:10px;color:#4a4a4a;font-weight:700}
+.cl-sala-empty{font-size:11px;color:#333}
 .cl-main-body{display:flex;min-height:520px}
 .cl-main-left{width:56%;background:#000;padding:10px 0 10px 14px}
 .cl-hdr{padding:6px 0 10px}
@@ -651,15 +785,44 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-jgd-act{margin-top:20px;display:flex;gap:12px;flex-direction:column}
 .cl-jgd-act .cl-btn{flex:1;flex-direction:row;justify-content:center;padding:12px 16px;font-weight:600}
 /* modal de promoção da base (3 candidatos lado a lado) */
-.cl-youth-note{color:rgba(255,255,255,.78);font-size:12px;margin-bottom:14px}
-.cl-youth-grid{display:flex;gap:14px;flex-wrap:wrap}
-.cl-youth-card{flex:1 1 200px;min-width:200px;border:1px solid #888;border-radius:4px;padding:10px 12px 12px;background:rgba(0,0,0,.18);display:flex;flex-direction:column}
-.cl-youth-card-hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.2)}
-.cl-youth-name{font-family:var(--serif);font-size:17px;color:#fff;font-weight:700}
-.cl-youth-pos{font-size:11px;color:var(--yellow);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
-.cl-youth-card .cl-jgd-row{max-width:none;font-size:13px;margin:4px 0}
-.cl-youth-card .cl-btn{margin-top:10px;width:100%}
-.cl-youth-actions{display:flex;gap:14px;justify-content:center;margin-top:20px}
+/* ===== Categoria de base — corpo cinza do padrão de modais (era verde) =====
+   Os três cards dividem exatamente a largura do conteúdo (grid de 3 frações iguais), e cada um é
+   uma grade de 3 faixas: cabeçalho / estatísticas / botão. É o `1fr` do meio que empurra o
+   Promover pro rodapé do card, alinhando os três independentemente do tamanho do nome. */
+.cl-youth-note{color:#333;font-size:12.5px;line-height:1.45;text-wrap:pretty;margin-bottom:14px}
+.cl-youth-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.cl-youth-card{background:#fff;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);
+  padding:10px 12px 12px;display:grid;grid-template-rows:auto 1fr auto}
+.cl-youth-card-hd{padding-bottom:7px;margin-bottom:8px;border-bottom:1px solid #c8c8c8}
+.cl-youth-name{font-family:var(--serif);font-size:16px;font-weight:700;color:#111;line-height:1.15}
+.cl-youth-pos{font-size:10.5px;font-weight:800;letter-spacing:.5px;color:var(--navy);text-transform:uppercase;margin-top:3px}
+.cl-youth-stats{display:grid;grid-template-columns:1fr auto;gap:5px 6px;font-size:11.5px;color:#333;align-content:start}
+.cl-youth-stats b{color:#111}
+.cl-youth-stats b.mono{font-family:var(--mono);white-space:nowrap}
+.cl-youth-card .cl-btn{margin-top:12px;width:100%;min-height:34px;flex-direction:row;gap:7px}
+.cl-youth-card .cl-btn .cl-btn-ic{font-size:15px;line-height:1}
+/* ===== Propostas recebidas — ações numa linha só ===== */
+/* .cl-cal fixa 420px e é declarado depois: precisa dos dois seletores pra vencer */
+.cl-cal.cl-off-list{width:auto;max-height:none;overflow:visible}
+.cl-off{padding:12px 14px;border-bottom:1px solid rgba(0,0,0,.14)}
+.cl-off:last-child{border-bottom:none}
+.cl-off-hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.cl-off-id{flex:1;min-width:0}
+.cl-off-id b{font-size:15px;color:#111}
+.cl-off-id small{color:#888}
+.cl-off-from{font-size:12px;color:#888;margin-top:2px}
+.cl-off-fee{font-family:var(--mono);font-weight:800;font-size:17px;color:#111;white-space:nowrap}
+.cl-off-msg{margin-top:8px;font-size:12px;color:#555;background:#f3efe0;padding:6px 9px}
+.cl-off-acts{display:flex;gap:8px;margin-top:10px;align-items:stretch}
+.cl-off-acts .cl-btn{min-height:30px;min-width:0;padding:0 12px;font-size:12px;flex-direction:row;gap:6px;white-space:nowrap}
+.cl-off-acts .cl-btn .cl-btn-ic{font-size:13px;line-height:1}
+/* o campo cresce pra ocupar o vão entre os botões (o .cl-money-field padrão tem 220px fixos) */
+.cl-off-field{margin:0;flex:1;width:auto;min-width:0;padding:0 8px}
+.cl-off-field .cl-money-cur{font-size:14px}
+.cl-off-field .cl-money-in{font-size:14px;padding:5px 0}
+.cl-off-empty{padding:16px;text-align:center;color:#888}
+.cl-off-pre{background:#eee7cf;margin-bottom:12px}
+.cl-off-pre-h{padding:8px 12px;font-weight:700;font-size:13px}
 /* finanças */
 .cl-fin{font-size:15px;line-height:1.35}
 .cl-fin-row{display:flex;justify-content:space-between;max-width:380px}
@@ -701,6 +864,34 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-cal-pens{font-size:11px;font-weight:700;opacity:.8} /* placar dos pênaltis ao lado do resultado do confronto */
 .cl-cal-draw{background:#3a3aa0!important;color:#fff!important;font-style:italic}
 .cl-cal-ok{display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:14px}
+/* ===== CALENDÁRIO PADRONIZADO — uma coluna por dado (handoff dos modais de menu) =====
+   .cl-cal continua sendo o painel branco genérico (artilheiros, transferências, ligas de
+   background usam as MESMAS .cl-cal-row de 3 colunas). A grade de 5 colunas vale só sob o
+   modificador .cl-cal-sched, então nada mais na tela muda de forma. */
+/* sem rolagem própria: quem rola é .cl-dlg-content (regra do padrão), e é nele que o
+   cabeçalho sticky se prende */
+.cl-cal-sched{width:auto;max-height:none;overflow:visible}
+.cl-cal-comp{font-weight:800}
+.cl-cal-sched .cl-cal-row,.cl-cal-head{display:grid;grid-template-columns:38px 92px minmax(0,1fr) 74px 30px;gap:0 10px;align-items:center}
+.cl-cal-head{position:sticky;top:0;z-index:2;padding:5px 10px;background:#e0e0e0;border-bottom:1px solid #9a9a9a;
+  font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#555}
+.cl-cal-head .r{text-align:right}.cl-cal-head .c{text-align:center}
+.cl-cal-sched .cl-cal-row{padding:6px 10px;font-size:14px;font-weight:700}
+/* o cabeçalho é o 1º filho do painel, então as linhas de dados começam no 2º: a listra navy
+   das ímpares vira :nth-child(even) pra manter exatamente a alternância do design */
+.cl-cal-sched .cl-cal-row:nth-child(odd){background:none;color:var(--navy)}
+.cl-cal-sched .cl-cal-row:nth-child(even){background:var(--navy);color:#fff}
+.cl-cal-sched .cl-cal-n{font-family:var(--mono);font-size:13px;font-weight:800;line-height:1}
+.cl-cal-sched .cl-cal-d{display:block;max-width:none;margin:0;font-size:10.5px;color:var(--gray-999);white-space:nowrap}
+.cl-cal-sched .cl-cal-row:nth-child(even) .cl-cal-d{color:#b9b9d8}
+.cl-cal-sched .cl-cal-t{overflow-wrap:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-cal-r{text-align:right;white-space:nowrap;font-family:var(--mono);font-size:13px;font-weight:800}
+.cl-cal-r .cl-res-chip{font-family:var(--sans)}
+.cl-cal-sched .cl-cal-cf{font-size:12px;font-weight:800}
+/* copa e sorteio pintam por cima da alternância (mesma regra de sempre, agora com !important
+   já herdado das classes acima) */
+.cl-cal-sched .cl-cal-cup .cl-cal-n,.cl-cal-sched .cl-cal-cup .cl-cal-d{color:#1a5a2a}
+.cl-cal-sched .cl-cal-cup .cl-cal-t{font-size:12.5px;font-weight:800}
 .cl-cls{width:600px}
 .cl-cls-head,.cl-cls-row{display:grid;grid-template-columns:32px 1fr 40px 34px 34px 34px 40px 40px 120px;padding:3px 8px;font-size:13px;align-items:center}
 /* séries B/C/D: sem coluna de zona (Lib/Sul) — grid preenche a largura, sem vão à direita */
@@ -1575,7 +1766,35 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-lm-cont,.cl-sub-btn,.cl-live-actions,.cl-invite-btns,.cl-auth-btns,
   .cl-invres-linkrow,.cl-youth-actions{
     display:flex;flex-direction:column;width:100%}
-  .cl-youth-grid{flex-direction:column}
+  .cl-youth-grid{grid-template-columns:1fr}
+  /* ===== modais padronizados no telefone (handoff dos modais de menu) =====
+     Modal cheio de largura, conteúdo com padding 12, e os botões do rodapé continuam NUMA
+     LINHA (flex:1 cada, 44px) — a regra de empilhar acima não pode valer aqui. */
+  .cl-dlg-content{padding:12px;max-height:calc(100vh - 150px)}
+  .cl-dlg-foot{padding:10px 12px}
+  .cl-dlg-foot .cl-btn{flex:1;min-width:0;min-height:44px;width:auto}
+  .cl-dlg-x{width:26px;height:22px;font-size:12px}
+  /* Calendário: 4 colunas; rodada e data voltam a dividir a 1ª célula e o nome da competição
+     sai do texto (fica só o 🏆, com o nome completo no title da linha) — sem reticências */
+  .cl-cal-sched .cl-cal-row,.cl-cal-head{grid-template-columns:64px minmax(0,1fr) 46px 22px;gap:0 6px;padding:5px 8px}
+  .cl-cal-head{font-size:9px;letter-spacing:.5px}
+  .cl-cal-head span:nth-child(2){display:none}
+  .cl-cal-head span:first-child::after{content:'/Data'}
+  .cl-cal-sched .cl-cal-n{font-size:12px;line-height:1.15}
+  .cl-cal-sched .cl-cal-d{display:block;font-size:9px}
+  .cl-cal-sched .cl-cal-row>.cl-cal-d{display:none}
+  .cl-cal-sched .cl-cal-n::after{content:attr(data-d);display:block;font-size:9px;font-weight:400;color:var(--gray-999)}
+  .cl-cal-sched .cl-cal-row:nth-child(even) .cl-cal-n::after{color:#b9b9d8}
+  .cl-cal-sched .cl-cal-cup .cl-cal-n::after{color:#1a5a2a}
+  .cl-cal-comp{display:none}
+  .cl-cal-sched .cl-cal-t,.cl-cal-sched .cl-cal-cup .cl-cal-t{font-size:13px}
+  .cl-cal-sched .cl-cal-r{font-size:12px}
+  .cl-cal-sched .cl-cal-r .cl-res-chip{display:none}
+  /* Propostas: valor e nome empilham; as três ações viram um grid de 3, lado a lado */
+  .cl-off-hd{flex-direction:column;align-items:flex-start;gap:2px}
+  .cl-off-acts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .cl-off-acts .cl-btn{min-height:44px;width:auto}
+  .cl-off-field{grid-column:1/-1;order:-1}
   .cl-invres-link{width:100%;box-sizing:border-box}
   .cl-btn{width:100%;box-sizing:border-box}
   .cl-btn-wide{width:100%}
@@ -1585,6 +1804,20 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-paises-side{width:100%}
   .cl-divopt-row{flex-direction:column}
   .cl-divopt,.cl-comp-toggle{width:100%;min-width:0;box-sizing:border-box;flex-direction:row;justify-content:flex-start}
+  /* Sala de Troféus: painel CAMPANHA desce pra baixo das prateleiras, e cada prateleira passa a
+     rolar na horizontal (no desktop tudo cabe sem rolagem, como manda o handoff; no telefone,
+     largura de 148px por taça não cabe de jeito nenhum) */
+  .cl-body-estante{padding:0}
+  .cl-sala-body{flex-direction:column;height:auto;max-height:none;overflow-y:auto}
+  .cl-sala-shelves{flex:none}
+  .cl-sala-reg{flex:none}
+  .cl-sala-shelf{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .cl-sala-pan{width:100%;flex:none}
+  .cl-sala-pan-list{overflow:visible}
+  .cl-sala-foot .cl-btn{width:auto}
+  .cl-sala-res-nome{width:auto;flex:1;min-width:0}
+  .cl-sala-res-clube{width:78px}
+  .cl-sala-res-minis{display:none}
   /* hub principal: colunas empilham, elenco vira acordeão retrátil */
   .cl-main{width:100%}
   .cl-main-body{flex-direction:column;min-height:0}

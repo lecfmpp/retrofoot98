@@ -68,6 +68,7 @@
 <script async src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="src/data/match-config.js"></script>
 <script src="src/data/trophies.js"></script>
+<script src="src/data/trophy-room.js"></script>
 <script src="src/data/game-data.js"></script>
 <script src="src/data/market-engine.js"></script>
 <script src="src/data/rebalance.js"></script>
@@ -558,6 +559,11 @@ function teamMorale(id,players){
 }
 
 </script>
+<!-- motor puro compartilhado com as edge functions (window.MATCH_ENGINE). Até 2026-08-06 este
+     arquivo só era COLADO no resolve-round/kickoff-round e o cliente nunca o carregava, então a
+     "fonte única" valia só pro servidor. Agora o cliente também o usa (nota da partida:
+     ME.rateAppearances), e as duas pontas passam a rodar exatamente o mesmo código. -->
+<script src="src/engine/match-engine.js"></script>
 <script src="src/engine/commentary.js"></script>
 <script src="src/engine/simulate.js"></script>
 <script src="src/engine/core.js"></script>
