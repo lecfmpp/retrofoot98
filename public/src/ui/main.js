@@ -1966,7 +1966,7 @@ function scSeatTurn(){
   const tabs=['jogo','elenco','jogador','financas','seleccao','correio','adversario'];
   const tabLbl={jogo:'Jogo',elenco:'Elenco',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
   const tabIco={jogo:'⚽',elenco:'👥',jogador:'👤',financas:'💰',seleccao:'📋',correio:'✉️',adversario:'🆚'};
-  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')
+  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab cl-tab-${t} ${CL.tab===t?'on':''}" onclick="clTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')
     +`<span class="cl-tab cl-tab-play" onclick="clTabJogar()" title="Jogar" aria-label="Jogar"><span class="cl-tab-ico" aria-hidden="true">▶</span><span class="cl-tab-lbl">Jogar</span></span>`}</div>`;
   const ufArr=[fx.home,fx.away];   // panJogo espera [homeId,awayId], igual ao formato de userFixture()
   let panel='';
@@ -2174,10 +2174,10 @@ function scMain(){
   const tabIco={jogo:'⚽',elenco:'👥',jogador:'👤',financas:'💰',seleccao:'📋',correio:'✉️',adversario:'🆚'};
   // rótulo e ícone/badge são filhos flex do .cl-tab (align-items:center) — sempre em UMA linha e
   // verticalmente alinhados; o badge deixou de ser absoluto (flutuava acima do texto).
-  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')
+  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab cl-tab-${t} ${CL.tab===t?'on':''}" onclick="clTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')
     +`<span class="cl-tab cl-tab-play" onclick="clTabJogar()" title="Jogar" aria-label="Jogar"><span class="cl-tab-ico" aria-hidden="true">▶</span><span class="cl-tab-lbl">Jogar</span></span>`}</div>`;
   let panel='';
-  if(CL.tab==='jogo') panel=panJogo(oppId,home,uf,nm);
+  if(CL.tab==='jogo'||CL.tab==='elenco') panel=panJogo(oppId,home,uf,nm);   // 'elenco' é aba só do telefone (lá o painel fica oculto); no desktop cai no Jogo
   else if(CL.tab==='jogador') panel=panJogador();
   else if(CL.tab==='financas') panel=panFinancas();
   else if(CL.tab==='seleccao') panel=panSeleccao();
@@ -2657,7 +2657,14 @@ function clViewTeam(clubId){
 // hotseat: "voltar" durante a vez de um assento tem que devolver pra scSeatTurn, não pra
 // scMain do manager 1 (senão o clique arrancava o assento no meio da própria vez).
 function clViewTeamBack(){ clCloseOverlay(); CL.viewClubId=null; CL.screen=CL._seatContext?'seatturn':'main'; cdraw(); }
-function clViewTab(t){ CL.viewTab=t; cdraw(); }
+function clViewTab(t){ CL.viewTab=t;
+  // mesmo comportamento da tela do próprio clube (ver clTab): no telefone só a aba escolhida
+  // aparece, o elenco recolhe fora da aba dele e a tela sobe até o painel
+  if(t==='elenco') CL.rosterOpen=true;
+  if(isPhone()){ if(t!=='elenco') CL.rosterOpen=false; CL.mobMenuOpen=false; CL.menu=null; }
+  cdraw();
+  if(isPhone()) scrollToPanel();
+}
 function clViewSelPlayer(n){ CL.viewSelPlayer=n; CL.viewTab='jogador'; cdraw(); }
 function fixtureFor(clubId){ return currentFixtures().find(([h,a])=>h===clubId||a===clubId); }
 function scTeamView(){
@@ -2665,15 +2672,17 @@ function scTeamView(){
   if(!c){ CL.viewClubId=null; CL.screen='main'; return scMain(); }
   const th=clubTheme(vid);
   const uf=fixtureFor(vid); const oppId=uf?(uf[0]===vid?uf[1]:uf[0]):null; const home=uf?uf[0]===vid:true;
-  const tabs=['jogo','jogador','adversario'];
-  const tabLbl={jogo:'Jogo',jogador:'Jogador',adversario:'Adversário'};
-  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.viewTab===t?'on':''}" onclick="clViewTab('${t}')">${tabLbl[t]}</span>`).join('')}</div>`;
+  const tabs=['jogo','elenco','jogador','adversario'];
+  const tabLbl={jogo:'Jogo',elenco:'Elenco',jogador:'Jogador',adversario:'Adversário'};
+  const tabIco={jogo:'⚽',elenco:'👥',jogador:'👤',adversario:'🆚'};
+  // sem ▶ Jogar aqui de propósito: no modo espectador não se entra em campo
+  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab cl-tab-${t} ${CL.viewTab===t?'on':''}" onclick="clViewTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span></span>`).join('')}</div>`;
   let panel='';
   if(CL.viewTab==='jogador') panel=panViewJogador(vid);
   else if(CL.viewTab==='adversario') panel=panViewAdversario(oppId);
   else panel=panViewJogo(vid,oppId,uf);
   const jornada=(S.round||0)+1;
-  return `<div class="cl-main" style="border-color:${th.col}">
+  return `<div class="cl-main tab-${CL.viewTab||'jogo'}" style="border-color:${th.col}">
     <div class="cl-main-top">${escC(c.short)} <span class="cl-view-tag">👁 Visualização</span></div>
     <div class="cl-mobmenu-wrap">${btn('← Voltar','clViewTeamBack()',{cls:'cl-btn-mini'})}</div>
     <div class="cl-main-body" style="background:${th.bg}">
@@ -2691,7 +2700,7 @@ function scTeamView(){
         </div>
         <div class="cl-roster cl-acc-body ${CL.rosterOpen===false?'closed':''}">${viewRosterHTML(vid)}</div>
       </div>
-      <div class="cl-main-right" style="background:${th.bg}">
+      <div class="cl-main-right ${ADV_HDR_TABS[CL.viewTab||'jogo']?'':'sem-adv'}" style="background:${th.bg}">
         <div class="cl-right-hdr">
           <div class="cl-adv-lbl">Adversário</div>
           <div class="cl-year">${S.season}</div>

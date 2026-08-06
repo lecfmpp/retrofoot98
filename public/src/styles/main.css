@@ -705,7 +705,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-tab:hover{color:#fff}
 .cl-tab-ico{display:none}   /* o ícone é da barra fixa do telefone; no desktop vale o rótulo */
 /* cabeçalho/véu/▶Jogar são exclusivos da gaveta e da barra do telefone */
-.cl-menu-hd,.cl-menu-scrim,.cl-tab-play{display:none}
+.cl-menu-hd,.cl-menu-scrim,.cl-tab-play,.cl-tab-elenco{display:none}
 /* ===== BADGE NUMÉRICO DE NOTIFICAÇÃO (ofertas, e-mails, pedidos de entrada) — sem emoji ===== */
 /* INLINE (era absoluto, flutuava acima do texto): fica na mesma linha, centrado com o texto. */
 .cl-count-badge{min-width:16px;height:16px;padding:0 4px;background:#e21c1c;color:#fff;font-size:10px;font-weight:800;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 1.5px #111;vertical-align:middle}
@@ -1838,6 +1838,10 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
      cabeçalho do treinador e do elenco inteiro — fora da primeira dobra, e nem rolando até o fim
      dava pra trazer pro topo. Agora o conteúdo da aba abre na dobra e a ficha do clube + elenco
      ficam logo abaixo, pra consulta. */
+  /* A JANELA FICA ANCORADA NO TOPO. O .cl-desk centraliza verticalmente, então a janela subia e
+     descia conforme o tamanho do conteúdo da aba — trocar de aba parecia mover a tela inteira.
+     No telefone ela começa no topo e só cresce pra baixo quando o conteúdo passa da altura. */
+  .cl-desk{justify-content:flex-start;padding:10px 0 0}
   .cl-main{width:100%}
   .cl-main-body{flex-direction:column;min-height:0}
   /* UMA ABA POR VEZ. A coluna da esquerda vira display:contents pra seus dois blocos virarem
@@ -1928,6 +1932,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-tab.on .cl-tab-ico{filter:none;transform:scale(1.08)}
   /* ▶ JOGAR: ação principal do jogo, então ganha cor própria no rodapé em vez de ser mais um
      ícone cinza igual aos outros */
+  .cl-tab-elenco{display:flex}
   .cl-tab-play{display:flex;background:#0b6b28;color:#fff}
   .cl-tab-play .cl-tab-ico{filter:none;color:#fff;font-size:20px}
   .cl-tab-play:active{background:#08511e}
