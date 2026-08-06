@@ -1950,7 +1950,10 @@ function scSeatTurn(){
   const home=fx.home===seat.clubId; const flag=(typeof flagImg==='function')?flagImg(seat.country):'';
   const th=clubTheme(seat.clubId);
   const menuNames=['RetroFoot98','Formação','Equipa','Jogador','Campeonatos','Treinador'];
-  const hamburger=`<div class="cl-hamburger" onclick="clToggleMobMenu(event)"><span>☰ Menu</span><span>${CL.mobMenuOpen?'▲':'▼'}</span></div>`;
+  const hamburger=`<div class="cl-hamburger ${CL.mobMenuOpen?'open':''}" onclick="clToggleMobMenu(event)" role="button" aria-expanded="${CL.mobMenuOpen?'true':'false'}">
+    <span class="cl-ham-ico" aria-hidden="true">${CL.mobMenuOpen?'✕':'☰'}</span>
+    <span class="cl-ham-t">${CL.mobMenuOpen?'Fechar':'Menu'}</span>
+    <span class="cl-ham-here">${escC(TAB_LABELS[CL.tab]||'')}</span></div>`;
   const menu=`<div class="cl-menu ${CL.mobMenuOpen?'mob-open':''}" id="cl-menubar">
     ${menuNames.map(mm=>`<span class="cl-menu-i ${CL.menu===mm?'open':''}" onclick="clMenu('${mm}',event)">${mm}${CL.menu===mm?menuDropdown(mm):''}</span>`).join('')}
   </div>`;
@@ -1959,7 +1962,8 @@ function scSeatTurn(){
   const mailBadge=unread>0?`<span class="cl-count-badge">${unread>9?'9+':unread}</span>`:'';
   const tabs=['jogo','jogador','financas','seleccao','correio','adversario'];
   const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
-  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')"><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')}</div>`;
+  const tabIco={jogo:'⚽',jogador:'👤',financas:'💰',seleccao:'📋',correio:'✉️',adversario:'🆚'};
+  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')}</div>`;
   const ufArr=[fx.home,fx.away];   // panJogo espera [homeId,awayId], igual ao formato de userFixture()
   let panel='';
   if(CL.tab==='jogo') panel=panJogo(oppId,home,ufArr);
@@ -2137,7 +2141,10 @@ function scMain(){
   const uf=(nm&&nm.kind==='league')?nm.uf:null;
   const oppId=nm?nm.oppId:null; const home=nm?nm.home:true;
   const menuNames=['RetroFoot98','Formação','Equipa','Jogador','Campeonatos','Treinador']; if(CL.online) menuNames.push('Modo Resenha');
-  const hamburger=`<div class="cl-hamburger" onclick="clToggleMobMenu(event)"><span>☰ Menu</span><span>${CL.mobMenuOpen?'▲':'▼'}</span></div>`;
+  const hamburger=`<div class="cl-hamburger ${CL.mobMenuOpen?'open':''}" onclick="clToggleMobMenu(event)" role="button" aria-expanded="${CL.mobMenuOpen?'true':'false'}">
+    <span class="cl-ham-ico" aria-hidden="true">${CL.mobMenuOpen?'✕':'☰'}</span>
+    <span class="cl-ham-t">${CL.mobMenuOpen?'Fechar':'Menu'}</span>
+    <span class="cl-ham-here">${escC(TAB_LABELS[CL.tab]||'')}</span></div>`;
   // badge numérico ÚNICO pra todas as notificações da UI (ofertas, e-mails, pedidos de entrada):
   // nada de emoji, só o número (9+ acima de 9). Mesmo padrão em aba e menu.
   const numBadge=n=>(n>0)?`<span class="cl-count-badge">${n>9?'9+':n}</span>`:'';
@@ -2153,9 +2160,14 @@ function scMain(){
   // E-mail já avisa — dois contadores pra mesma coisa só poluíam a barra de abas.
   const tabs=['jogo','jogador','financas','seleccao','correio','adversario'];
   const tabLbl={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
+  /* ÍCONE POR ABA: no telefone esta barra vira uma barra de app FIXA no rodapé, só com ícones.
+     Antes ela ficava no fim de uma coluna empilhada — ou seja, fora da tela: pra trocar de aba
+     era preciso rolar a página inteira ou abrir o menu. No desktop nada muda (o ícone fica
+     oculto e o rótulo continua como sempre). */
+  const tabIco={jogo:'⚽',jogador:'👤',financas:'💰',seleccao:'📋',correio:'✉️',adversario:'🆚'};
   // rótulo e ícone/badge são filhos flex do .cl-tab (align-items:center) — sempre em UMA linha e
   // verticalmente alinhados; o badge deixou de ser absoluto (flutuava acima do texto).
-  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')"><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')}</div>`;
+  const tabBar=`<div class="cl-tabs">${tabs.map(t=>`<span class="cl-tab ${CL.tab===t?'on':''}" onclick="clTab('${t}')" title="${escC(tabLbl[t])}" aria-label="${escC(tabLbl[t])}"><span class="cl-tab-ico" aria-hidden="true">${tabIco[t]}</span><span class="cl-tab-lbl">${tabLbl[t]}</span>${t==='correio'?mailBadge:''}</span>`).join('')}</div>`;
   let panel='';
   if(CL.tab==='jogo') panel=panJogo(oppId,home,uf,nm);
   else if(CL.tab==='jogador') panel=panJogador();
@@ -7047,6 +7059,9 @@ function clCalendar(){
 }
 
 /* ---- menu dropdown (topo) ---- */
+/* rótulo de cada aba da tela principal — usado pelo hambúrguer pra dizer ONDE o jogador está
+   (a barra de abas do rodapé mostra só ícones no telefone). */
+const TAB_LABELS={jogo:'Jogo',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
 function clMenu(m,e){ if(e)e.stopPropagation(); CL.menu=(CL.menu===m?null:m); cdraw(); }
 function clToggleMobMenu(e){ if(e)e.stopPropagation(); CL.mobMenuOpen=!CL.mobMenuOpen; if(!CL.mobMenuOpen)CL.menu=null; cdraw(); }
 function clToggleRoster(){ CL.rosterOpen = CL.rosterOpen===false ? true : false; cdraw(); }

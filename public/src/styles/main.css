@@ -703,6 +703,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-tab{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;padding:3px 12px;font-size:14px;color:#ccc;cursor:pointer;border:1px solid transparent}
 .cl-tab.on{color:#fff;font-weight:700;border-color:#888 #888 #000 #888;background:#111;border-bottom:2px solid var(--yellow)}
 .cl-tab:hover{color:#fff}
+.cl-tab-ico{display:none}   /* o ícone é da barra fixa do telefone; no desktop vale o rótulo */
 /* ===== BADGE NUMÉRICO DE NOTIFICAÇÃO (ofertas, e-mails, pedidos de entrada) — sem emoji ===== */
 /* INLINE (era absoluto, flutuava acima do texto): fica na mesma linha, centrado com o texto. */
 .cl-count-badge{min-width:16px;height:16px;padding:0 4px;background:#e21c1c;color:#fff;font-size:10px;font-weight:800;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 1.5px #111;vertical-align:middle}
@@ -1824,18 +1825,57 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-main-left,.cl-main-right{width:100% !important;padding:8px 10px}
   .cl-roster{max-height:52vh}
   .cl-div{margin-left:8px}
-  /* menu superior: colapsa num botão hambúrguer; itens abertos empilham 1 por linha */
+  /* ===== MENU DO TOPO NO TELEFONE =====
+     Era "☰ Menu ▾" abrindo uma lista branca de itens do mesmo tamanho do texto do jogo, sem
+     dizer onde o jogador estava nem onde ia dar. Agora: barra com ícone + rótulo + a ABA ATUAL
+     à direita (contexto), e a folha que abre tem alvos de toque de 46px, seções destacadas e
+     um fundo escurecido por trás pra separar do conteúdo. */
   .cl-menu{display:none;flex-direction:column;position:absolute;top:100%;left:0;right:0;background:#fff;z-index:40;
-    border:2px solid;border-color:var(--bevD2) var(--bevD2) var(--bevD2) var(--bevD2);box-shadow:0 8px 20px rgba(0,0,0,.4)}
+    max-height:70vh;overflow:auto;-webkit-overflow-scrolling:touch;
+    border:2px solid;border-color:var(--bevD2) var(--bevD2) var(--bevD2) var(--bevD2);box-shadow:0 14px 30px rgba(0,0,0,.55)}
   .cl-menu.mob-open{display:flex}
-  .cl-menu-i{width:100%;box-sizing:border-box;border-bottom:1px solid #ddd}
-  .cl-menu-dd{position:static;width:100%;box-shadow:none;border:none;border-top:1px solid #ddd}
-  .cl-hamburger{display:flex;align-items:center;justify-content:space-between;background:#fff;color:#000;
-    font-weight:800;font-size:14px;padding:8px 12px;cursor:pointer;border-bottom:1px solid #000}
+  /* display:block (não flex): o submenu é filho do item, então em flex ele virava uma COLUNA ao
+     lado do rótulo e vazava pra fora da tela. Em bloco, o rótulo fica na sua linha e o submenu
+     abre em largura cheia logo abaixo, que é o comportamento esperado num menu de telefone. */
+  .cl-menu-i{display:block;width:100%;box-sizing:border-box;border-bottom:1px solid #ddd;
+    font-size:15px;font-weight:700;padding:13px 34px 13px 14px;position:relative}
+  .cl-menu-i.open{background:var(--navy);color:#fff;padding-bottom:0}
+  .cl-menu-i.open::after{content:'▾';position:absolute;right:14px;top:13px;font-size:12px}
+  .cl-menu-i:not(.open)::after{content:'›';position:absolute;right:14px;top:11px;color:#888;font-size:18px;font-weight:400}
+  .cl-menu-dd{position:static;width:auto;margin:13px -34px 0 -14px;box-shadow:none;border:none;background:#f4f4f4;
+    font-weight:400;color:#000}
+  .cl-menu-dd-i{min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:0 14px 0 26px;font-size:14px;font-weight:600;border-bottom:1px solid #e2e2e2}
+  .cl-menu-dd-i span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cl-menu-dd-i b{flex:none;color:#888;font-size:12px}
+  .cl-menu-sep{margin:0;height:1px;background:#d0d0d0}
+  .cl-hamburger{display:flex;align-items:center;gap:10px;background:#fff;color:#000;
+    font-weight:800;font-size:15px;padding:11px 14px;cursor:pointer;border-bottom:2px solid #000;user-select:none}
+  .cl-hamburger.open{background:var(--navy);color:#fff;border-bottom-color:var(--yellow)}
+  .cl-ham-ico{font-size:17px;line-height:1;width:20px;text-align:center}
+  .cl-ham-t{flex:0 0 auto}
+  .cl-ham-here{margin-left:auto;font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.5px}
+  .cl-hamburger.open .cl-ham-here{color:var(--yellowlite)}
   .cl-mobmenu-wrap{position:relative}
-  /* abas: rolagem horizontal em vez de espremer */
-  .cl-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
-  .cl-tab{flex:0 0 auto;white-space:nowrap}
+  /* ===== BARRA DE ABAS FIXA NO RODAPÉ (experiência de app) =====
+     Só ícones, um por aba, sempre visível — o conteúdo rola por baixo. Antes a barra vivia no
+     fim da coluna direita empilhada, ou seja: fora da tela na prática. */
+  .cl-tabs{position:fixed;left:0;right:0;bottom:0;z-index:45;display:flex;gap:0;margin:0;padding:0;
+    justify-content:space-between;flex-wrap:nowrap;overflow:visible;
+    background:#121212;border-top:1px solid #000;box-shadow:0 -6px 18px rgba(0,0,0,.45);
+    padding-bottom:env(safe-area-inset-bottom,0px)}
+  .cl-tab{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:0;padding:0;height:56px;border:none;position:relative;color:#9a9a9a;background:none}
+  .cl-tab .cl-tab-lbl{display:none}                 /* só ícone, como pedido */
+  .cl-tab-ico{display:block;font-size:23px;line-height:1;filter:grayscale(1) opacity(.6)}
+  /* aba ativa: traço amarelo em cima + fundo mais claro + ícone colorido — três sinais, porque
+     só a cor de fundo não se distinguia num rodapé escuro */
+  .cl-tab.on{background:#2a2a2a;border:none;color:#fff}
+  .cl-tab.on::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--yellow)}
+  .cl-tab.on .cl-tab-ico{filter:none;transform:scale(1.08)}
+  .cl-tab .cl-count-badge{position:absolute;top:7px;right:calc(50% - 20px)}
+  /* o conteúdo não pode terminar embaixo da barra */
+  .cl-main-right{padding-bottom:70px !important}
   /* linhas em grid ficam apertadas -> reduz fonte e gap */
   .cl-rrow{grid-template-columns:12px 20px 1fr 20px 38px 30px 52px 46px;column-gap:3px;font-size:12px;padding:4px 5px}
   .cl-rmv{font-size:10.5px}
