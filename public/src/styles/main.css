@@ -611,15 +611,25 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-div .cl-trophy-img{flex:none}
 .cl-roster{background:#fff;color:#000;border:1px solid #000;flex:1;min-height:0;overflow:auto}
 .cl-roster.cl-acc-body{overflow-y:auto;overflow-x:hidden} /* a regra genérica do acordeão (overflow:hidden) cortava a lista sem deixar rolar */
-.cl-share-mini{display:inline-flex;align-items:center;justify-content:center;padding:3px 10px;margin-left:6px;border-radius:5px;background:rgba(255,255,255,.15);color:#fff;font-size:12px;font-weight:700;cursor:pointer;vertical-align:middle;line-height:1.4}
+/* ===== CHIP: a mesma pastilha pro "Compartilhar" e pra janela de transferências, lado a lado.
+   Antes cada um tinha a sua pintura (um cinza translúcido, o outro verde/vermelho com bolinha)
+   e caíam em linhas diferentes. */
+.cl-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:5px;
+  background:rgba(255,255,255,.15);color:#fff;font-size:12px;font-weight:700;line-height:1.4;
+  white-space:nowrap;vertical-align:middle}
+.cl-share-mini{cursor:pointer}
 .cl-share-mini:hover{background:rgba(255,255,255,.3)}
+.cl-winbadge.open{background:rgba(63,207,106,.18);box-shadow:inset 0 0 0 1px rgba(63,207,106,.45)}
+.cl-winbadge.closed{background:rgba(255,138,138,.16);box-shadow:inset 0 0 0 1px rgba(255,138,138,.4)}
 .cl-roster-hd{background:#e8e8e8;color:#000;font-weight:800;font-size:13px;padding:5px 10px;border:1px solid #000;border-bottom:none;display:flex;justify-content:space-between;cursor:pointer}
 .cl-rgroup{border-bottom:1px solid #000}
 .cl-rgroup:last-child{border-bottom:none}
 /* 7 colunas: T/R · Pos · Nome · Idade · Força · Salário · Valor de mercado. Qualquer mudança
    aqui tem que casar com rosterHeadHTML/rosterHTML/squadTableHTML (main.js) — as três desenham
    a MESMA linha. O nome é a única coluna elástica (1fr), então é ela que absorve o aperto. */
-.cl-rrow{display:grid;grid-template-columns:16px 26px 1fr 30px 58px 54px 68px 64px;column-gap:6px;align-items:center;padding:2px 8px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+/* colunas: marca · pos · NOME (1fr) · idade · força · nota · energia · salário · valor.
+   As fixas foram apertadas ao entrar a Nota pro nome não perder espaço de leitura. */
+.cl-rrow{display:grid;grid-template-columns:16px 24px 1fr 24px 44px 40px 46px 60px 56px;column-gap:5px;align-items:center;padding:2px 8px;font-weight:700;font-size:14px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 /* cabeçalho das colunas do elenco. Fica DENTRO de .cl-roster, que tem fundo BRANCO — por isso
    texto escuro sobre a mesma faixa cinza do .cl-roster-hd (contraste ~10:1). Antes era branco
    com 60% de opacidade (herdado das listas de fundo escuro) e sumia por completo no branco.
@@ -658,6 +668,16 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-rname{}
 .cl-rage{text-align:center;font-weight:400;opacity:.75;font-size:12px}
 .cl-rf{text-align:left}
+/* ===== NOTA (ver playerNota): chip pequeno, cor por faixa. 6,8 é o portão da evolução, então
+   é ali que a cor muda de neutra pra positiva — o número passa a significar alguma coisa. */
+.cl-rnota{text-align:center}
+.cl-nota{display:inline-block;min-width:0;padding:1px 4px;border-radius:4px;font-family:var(--mono);
+  font-size:12px;font-weight:800;text-align:center;background:#e6e6e6;color:#555;line-height:1.35}
+.cl-nota.otima{background:#0a7a2f;color:#fff}
+.cl-nota.boa{background:#eaffea;color:#0a7a2f;box-shadow:inset 0 0 0 1px #b7dcb7}
+.cl-nota.ok{background:#f0f0f0;color:#555}
+.cl-nota.ruim{background:#ffeaea;color:#c00;box-shadow:inset 0 0 0 1px #e8b7b7}
+.cl-nota.na{background:transparent;color:#999;font-weight:400}
 /* dinheiro NÃO pode quebrar linha: numa coluna apertada "R$ 104k/sem" virava duas linhas e
    engordava a altura da linha inteira (era o que acontecia no mobile com 7 colunas). */
 .cl-rv{text-align:left;white-space:nowrap}
@@ -778,6 +798,26 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-gname{font-weight:700}
 .cl-gnums{display:flex;gap:14px}
 .cl-gnums b{font-weight:400;min-width:12px;text-align:center}
+/* ===== CARDS DE MÉTRICA (Força e Nota) =====
+   Os dois números que resumem o jogador, no mesmo peso e lado a lado. Cantos arredondados só
+   aqui e no chip — o resto do jogo é reto, e é isso que faz o par ler como um painel. */
+.cl-metricas{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.cl-metrica{background:rgba(0,0,0,.26);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:9px 11px 10px}
+.cl-metrica-lbl{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.7)}
+.cl-metrica-n{font-family:var(--mono);font-size:30px;font-weight:800;line-height:1.05;color:#fff;
+  margin-top:2px;display:flex;align-items:baseline;gap:7px}
+.cl-metrica-n.otima{color:var(--success-lite)} .cl-metrica-n.boa{color:var(--success-lite)}
+.cl-metrica-n.ok{color:#fff} .cl-metrica-n.ruim{color:#ff8a8a} .cl-metrica-n.na{color:#8f8f8f}
+.cl-metrica-sub{font-size:10.5px;color:#c9d6ea;line-height:1.35;margin-top:4px}
+.cl-metrica-sub b{color:#fff}
+/* o "porquê" da evolução vira gaveta fechada: ocupava a tela toda antes do resto da ficha */
+.cl-jgd-det{margin-top:2px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.12)}
+.cl-jgd-det-h{display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;
+  list-style:none;padding:7px 10px;font-size:12px;font-weight:800;color:var(--yellow)}
+.cl-jgd-det-h::-webkit-details-marker{display:none}
+.cl-jgd-det-h>i{font-style:normal;font-weight:400;font-size:11px;color:#9a9a9a}
+.cl-jgd-det-b{padding:0 10px 10px}
+.cl-hist-notas{display:inline-flex;gap:4px}
 .cl-blk{margin-top:20px}
 .cl-blk-l{color:#fff;font-size:15px}
 .cl-risk-flag{color:#ff5252;font-weight:800;font-size:12px}
@@ -1985,7 +2025,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   /* o conteúdo não pode terminar embaixo da barra */
   .cl-main-right{padding-bottom:70px !important}
   /* linhas em grid ficam apertadas -> reduz fonte e gap */
-  .cl-rrow{grid-template-columns:12px 20px 1fr 20px 38px 30px 52px 46px;column-gap:3px;font-size:12px;padding:4px 5px}
+  .cl-rrow{grid-template-columns:12px 16px 1fr 16px 28px 32px 24px 42px 36px;column-gap:3px;font-size:12px;padding:4px 5px}
   .cl-rmv{font-size:10.5px}
   .cl-lbl-lg{display:none} .cl-lbl-sm{display:inline}
   .cl-batt{width:20px;height:9px}

@@ -2191,7 +2191,7 @@ function scMain(){
       <div class="cl-main-left" style="background:${th.bg}">
         <div class="cl-hdr">
           <div class="cl-mgr">${escC(CL.mgr||'TREINADOR')}</div>
-          <div class="cl-hdr-sub"><span class="cl-flag2">${universeFlag()}</span> ${escC(universeCountryName())} <span class="cl-div">${divisionTrophyImg(S.division,16)||''} ${divisionLabel()}</span> ${windowBadge()} <span class="cl-share-mini cl-noshot" onclick="clShareTeam()" title="Compartilhar meu time">Compartilhar</span></div>
+          <div class="cl-hdr-sub"><span class="cl-flag2">${universeFlag()}</span> ${escC(universeCountryName())} <span class="cl-div">${divisionTrophyImg(S.division,16)||''} ${divisionLabel()}</span> ${windowBadge()} <span class="cl-chip cl-share-mini cl-noshot" onclick="clShareTeam()" title="Compartilhar meu time">📤 Compartilhar</span></div>
         </div>
         <div class="cl-roster-hd cl-acc-hd" onclick="clToggleRoster()">
           <span>Elenco</span><span class="cl-acc-arrow ${CL.rosterOpen===false?'closed':''}">▾</span>
@@ -2216,7 +2216,7 @@ function scMain(){
 function rosterHeadHTML(){
   return `<div class="cl-rrow head">
     <span class="cl-rmark"></span><span class="cl-rpos">Pos</span><span class="cl-rname">Nome</span>
-    <span class="cl-rage">Id.</span><span class="cl-rf">Força</span><span class="cl-rbatt"><b class="cl-lbl-lg">Energia</b><b class="cl-lbl-sm">En.</b></span><span class="cl-rv" title="Salário semanal">Salário</span><span class="cl-rmv">Valor</span></div>`;
+    <span class="cl-rage">Id.</span><span class="cl-rf">Força</span><span class="cl-rnota" title="Nota do último jogo">Nota</span><span class="cl-rbatt"><b class="cl-lbl-lg">Energia</b><b class="cl-lbl-sm">En.</b></span><span class="cl-rv" title="Salário semanal">Salário</span><span class="cl-rmv">Valor</span></div>`;
 }
 /* barra fixa que SUBSTITUI o cabeçalho de colunas enquanto o modo de escalação está ligado —
    fica grudada no topo da lista (mesma posição sticky do cabeçalho normal) e diz sempre quem
@@ -2274,6 +2274,19 @@ function trainingIcon(clubId, p){
    força caía na coluna da idade e o valor na da força; e a de "Comprar jogador..." era outra
    lista à parte, sem cabeçalho nenhum. Uma função só evita as três divergirem de novo.
    opts.onclick(p) -> string de handler; opts.selPid -> pid destacado. */
+/* ===== NOTA DO JOGADOR =====
+   O motor dá nota a cada partida (ver ratePlayers/rateAppearances) e guarda as três últimas em
+   p.stats.r3 — mas isso nunca aparecia na tela: o jogador jogava a temporada inteira sem saber
+   como cada um foi. "Nota" aqui é a MAIS RECENTE; a média das três é a FORMA, que é o que abre
+   a evolução (≥ 6,8) e por isso vai junto como contexto. */
+function playerNota(p){ const r=(p&&p.stats&&p.stats.r3)||[]; return r.length?r[r.length-1]:null; }
+function playerForma(p){ const r=(p&&p.stats&&p.stats.r3)||[]; return r.length?r.reduce((a,b)=>a+b,0)/r.length:null; }
+function notaTxt(n){ return n==null?'—':String(Math.round(n*10)/10).replace('.',','); }
+/* faixas: acima de 7,5 atuação de destaque; 6,8 é o portão da evolução; abaixo de 6 foi mal */
+function notaCls(n){ return n==null?'na':n>=7.5?'otima':n>=6.8?'boa':n>=6?'ok':'ruim'; }
+/* chip compacto — usado no elenco e nas listas de escolha durante a partida */
+function notaChip(p){ const n=playerNota(p);
+  return `<span class="cl-nota ${notaCls(n)}" title="${n==null?'Ainda não jogou nesta temporada':'Nota do último jogo'}">${notaTxt(n)}</span>`; }
 function squadTableHTML(clubId, opts){
   opts=opts||{};
   const sq=(squad(clubId)||[]).slice();
@@ -2290,7 +2303,7 @@ function squadTableHTML(clubId, opts){
         <span class="cl-rmark"></span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname" title="${escC(p.n)}">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
-        <span class="cl-rf">${p.f}${trainingIcon(clubId,p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(playerSalary(p))}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;
+        <span class="cl-rf">${p.f}${trainingIcon(clubId,p)}</span><span class="cl-rnota">${notaChip(p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(playerSalary(p))}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;
     }).join('')+`</div>`;
   });
   return html;
@@ -2323,7 +2336,7 @@ function rosterHTML(){
         <span class="cl-rmark ${escala?'cl-rmark-hit':''} ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname" title="${escC(p.n)}">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
-        <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}${trainingIcon(CL.clubId,p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(salary)}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;}).join('')+`</div>`;
+        <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}${trainingIcon(CL.clubId,p)}</span><span class="cl-rnota">${notaChip(p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(salary)}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;}).join('')+`</div>`;
   });
   return html;
 }
@@ -2766,6 +2779,10 @@ function panViewJogador(vid){
       <div class="cl-hist-row"><span>Cartões amarelos</span><b>${hist.yellows}</b></div>
       <div class="cl-hist-row"><span>Cartões vermelhos</span><b>${hist.reds}</b></div>
       <div class="cl-hist-row"><span>Lesões</span><b>${hist.injuries}</b></div>
+      <div class="cl-hist-row"><span>Notas recentes</span><b class="cl-hist-notas">${
+        ((p.stats&&p.stats.r3)||[]).length
+          ? (p.stats.r3.map(n=>`<span class="cl-nota ${notaCls(n)}">${notaTxt(n)}</span>`).join(''))
+          : '—'}</b></div>
     </fieldset>
   </div>`;
 }
@@ -2873,11 +2890,41 @@ function forcaBlocoHTML(p){
     : `<div class="cl-forca-sub"><i>Acompanhamento começa agora — a próxima rodada já mostra a variação.</i></div>`;
   const linhaTreino = treino
     ? `<div class="cl-forca-treino">${trainingConeImg(13)} Em treino especial — chance extra de evolução a cada rodada</div>` : '';
+  /* PAINEL DE MÉTRICAS: Força e Nota lado a lado, no mesmo peso — são os dois números que
+     resumem o jogador, e até aqui a nota não aparecia em lugar nenhum. Abaixo de cada um, em
+     letra pequena, o contexto: quando a força mudou pela última vez e a forma das últimas
+     partidas. Todo o "porquê" (histórico, gráfico e ritmo de evolução) desceu pra um <details>
+     FECHADO por padrão — ele ocupava a tela inteira antes de qualquer outro dado do jogador. */
+  const nota=playerNota(p), forma=playerForma(p);
+  const notaSub = nota==null
+    ? 'Ainda não entrou em campo nesta temporada'
+    : `Forma (últimas ${(p.stats.r3||[]).length}): <b>${notaTxt(forma)}</b>${forma>=6.8?' — evoluindo':''}`;
+  const forcaSub = g.delta!==0
+    ? `Mudou na ${(g.desdeR!=null?g.desdeR+1:'?')}ª jornada: <b>${g.anterior}</b> → <b>${g.atual}</b>`
+    : 'Sem mudança desde a última leitura';
+  const detalhesAbertos=!!CL.jgdDetOpen;
   return `<div class="cl-forca" title="${escC(forcaImpactoTexto(p))}">
-    <div class="cl-forca-top"><span>Força</span><b class="cl-forca-n">${p.f}</b><span class="cl-forca-d ${g.delta>0?'up':g.delta<0?'down':''}">${dl}</span></div>
-    ${linhaMudanca}${linhaTotal}${linhaTreino}
-    ${growthSparkHTML(g)}
-    ${ritmoBlocoHTML(p)}
+    <div class="cl-metricas">
+      <div class="cl-metrica">
+        <div class="cl-metrica-lbl">Força</div>
+        <div class="cl-metrica-n">${p.f}<span class="cl-forca-d ${g.delta>0?'up':g.delta<0?'down':''}">${dl}</span></div>
+        <div class="cl-metrica-sub">${forcaSub}</div>
+      </div>
+      <div class="cl-metrica">
+        <div class="cl-metrica-lbl">Nota</div>
+        <div class="cl-metrica-n ${notaCls(nota)}">${notaTxt(nota)}</div>
+        <div class="cl-metrica-sub">${notaSub}</div>
+      </div>
+    </div>
+    ${linhaTreino}
+    <details class="cl-jgd-det" ${detalhesAbertos?'open':''} ontoggle="CL.jgdDetOpen=this.open">
+      <summary class="cl-jgd-det-h"><span>Como a força evolui</span><i>${detalhesAbertos?'fechar':'abrir'}</i></summary>
+      <div class="cl-jgd-det-b">
+        ${linhaMudanca}${linhaTotal}
+        ${growthSparkHTML(g)}
+        ${ritmoBlocoHTML(p)}
+      </div>
+    </details>
   </div>`;
 }
 /* ---- RITMO DE EVOLUÇÃO: o "porquê" ao lado do "quanto" ----
@@ -2944,6 +2991,10 @@ function panJogador(){
       <div class="cl-hist-row"><span>Cartões amarelos</span><b>${hist.yellows}</b></div>
       <div class="cl-hist-row"><span>Cartões vermelhos</span><b>${hist.reds}</b></div>
       <div class="cl-hist-row"><span>Lesões</span><b>${hist.injuries}</b></div>
+      <div class="cl-hist-row"><span>Notas recentes</span><b class="cl-hist-notas">${
+        ((p.stats&&p.stats.r3)||[]).length
+          ? (p.stats.r3.map(n=>`<span class="cl-nota ${notaCls(n)}">${notaTxt(n)}</span>`).join(''))
+          : '—'}</b></div>
     </fieldset>
     <div class="cl-jgd-act">${btn('Renovar contrato','clRenew()',{icon:'🔄',cls:'cl-btn-ok'})}${btn('Vender','clSell()',{icon:'💰',cls:'cl-btn-cancel'})}</div>
   </div>`;
@@ -5146,7 +5197,7 @@ function redCardHTML(m,e){
   const bench=redCardBench(m,e);
   const canReorg=bench.length>0;
   const row=(p,kind,sel)=>`<div class="cl-pen-row ${sel?'sel':''}" onclick="redSelect('${kind}','${escC(p.pid)}')">
-      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span><span class="cl-pen-r">${p.f}</span></div>`;
+      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span>${notaChip(p)}<span class="cl-pen-r">${p.f}</span></div>`;
   const inRows=bench.map(p=>row(p,'in',CL.redIn===p.pid)).join('');
   const outRows=canReorg?redCardOnField(m,e).map(p=>row(p,'out',CL.redOut===p.pid)).join(''):'';
   // Entra/Sai lado a lado (mesmo padrão de duas colunas do subPanelHTML/cl-sub-cols), não mais
@@ -5776,7 +5827,7 @@ function penaltyPickerHTML(){
   const takers=penaltyTakerPool((CL.live&&CL.live.penMatch)||null, CL.clubId);
   const secsLeft=Math.max(0,Math.ceil((CL.penDeadline-Date.now())/1000));
   const rows=takers.map(p=>`<div class="cl-pen-row ${CL.penSel===p.n?'sel':''}" onclick="penaltySelect('${escC(p.n)}')">
-      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span><span class="cl-pen-r">${p.f}</span>
+      <span class="cl-pen-pos">${posLetter(p.s)}</span><span class="cl-pen-n">${escC(p.n)}</span>${notaChip(p)}<span class="cl-pen-r">${p.f}</span>
     </div>`).join('');
   return `<div class="cl-pen-overlay"><div class="cl-pen-modal" ${penaltyClubStyle()}>
     <div class="cl-pen-title">PENALTI</div>
@@ -8629,9 +8680,12 @@ function clBuildStand(){
 /* ---- Jogador > Vender (painel na aba + leilão) ---- */
 function windowClosedMsg(){ const st=transferWindowStatus();
   return st.opensIn!=null ? `⛔ Janela de transferências fechada. Abre em ${st.opensIn} rodada${st.opensIn===1?'':'s'}.` : '⛔ Janela de transferências fechada — não há mais janelas nesta temporada.'; }
+/* CHIP DA JANELA: mesma pintura do "Compartilhar" (cl-chip), ao lado dele na mesma linha.
+   O texto diz só o que importa — quantas rodadas faltam pra virar — em vez de repetir o estado
+   e o prazo ("Janela aberta (fecha em 9)"); o cadeado aberto/fechado já dá o estado. */
 function windowBadge(){ const st=transferWindowStatus();
-  if(st.open) return `<span class="cl-winbadge open">🟢 Janela aberta (fecha em ${st.closesIn})</span>`;
-  return `<span class="cl-winbadge closed">🔒 Janela fechada${st.opensIn!=null?' (abre em '+st.opensIn+')':''}</span>`; }
+  if(st.open) return `<span class="cl-chip cl-winbadge open" title="Janela de transferências aberta">🔓 Janela fecha em ${st.closesIn}</span>`;
+  return `<span class="cl-chip cl-winbadge closed" title="Janela de transferências fechada">🔒 ${st.opensIn!=null?'Janela abre em '+st.opensIn:'Janela fechada'}</span>`; }
 /* atualiza o preço de venda pedido SEM re-renderizar a tela inteira (cdraw() recriava o
    <input>, derrubando o foco a cada tecla — tinha que clicar de novo pra continuar digitando).
    Só mexe no texto/valor dos elementos afetados, mantendo o cursor no lugar. */
