@@ -2934,7 +2934,7 @@ function panJogador(){
       <div class="cl-hist-row"><span>Cartões vermelhos</span><b>${hist.reds}</b></div>
       <div class="cl-hist-row"><span>Lesões</span><b>${hist.injuries}</b></div>
     </fieldset>
-    <div class="cl-jgd-act">${btn('Renovar contrato...','clRenew()',{icon:'🔄',cls:'cl-btn-ok'})}${btn('Vender','clSell()',{icon:'💰',cls:'cl-btn-cancel'})}</div>
+    <div class="cl-jgd-act">${btn('Renovar contrato','clRenew()',{icon:'🔄',cls:'cl-btn-ok'})}${btn('Vender','clSell()',{icon:'💰',cls:'cl-btn-cancel'})}</div>
   </div>`;
 }
 function renewPanel(p){
@@ -7154,6 +7154,8 @@ function clCalendar(){
    próprio Adversário. Em Jogador, Finanças e E-mail é só espaço gasto antes do conteúdo. */
 const ADV_HDR_TABS={jogo:true, seleccao:true, adversario:true};
 const TAB_LABELS={jogo:'Jogo',elenco:'Elenco',jogador:'Jogador',financas:'Finanças',seleccao:'Formação',correio:'E-mail',adversario:'Adversário'};
+/* item de menu escolhido: fecha a gaveta/dropdown na mesma ação (ver menuDropdown) */
+function clMenuPick(){ CL.menu=null; CL.mobMenuOpen=false; cdraw(); }   // redesenha aqui: as ações que só abrem modal (overlayC) não redesenham a tela de trás
 function clMenu(m,e){ if(e)e.stopPropagation(); CL.menu=(CL.menu===m?null:m); cdraw(); }
 /* GAVETA LATERAL (telefone). cdraw() recria o DOM inteiro, então a transição de ABERTURA vem de
    uma @keyframes no CSS (anima ao ser inserido). Pra FECHAR não dá pra fazer o mesmo — o
@@ -7177,23 +7179,26 @@ function clToggleAcc(key){ CL[key] = CL[key]===false ? true : false; cdraw(); }
 function menuDropdown(name){ name=name||CL.menu;
   const F=Object.keys(FORMATIONS);
   const items={
-    'RetroFoot98':[['Opções...','clOptions()'],['—'],['Gravar jogo','clSaveMenu()'],['Sair para o menu','clExit()']],
+    'RetroFoot98':[['Opções','clOptions()'],['—'],['Gravar jogo','clSaveMenu()'],['Sair para o menu','clExit()']],
     'Formação':[...F.map((f,i)=>[`${f}`,`clSelFormation('${f}')`,(i+1)+'/'+FKEY[f]]),['—'],['Automático','clSelFormation(\'auto\')'],['Melhores','clSelFormation(\'best\')']],
-    'Equipa':[['Estádio...','clStadium()'],['Historial...','clClubHistory()']],
-    'Jogador':[['Vender','clSell()'],['Comprar jogador...','clMarketClubs()'],[`Propostas recebidas${myIncomingOffers().length?' ('+myIncomingOffers().length+')':''}...`,'clIncomingOffers()'],[`Contrapropostas${(typeof myCounterOffers==='function'&&myCounterOffers().length)?' ('+myCounterOffers().length+')':''}...`,'clCounterOffers()'],['Leilão de jogadores...','clAuctionScreen()'],[(typeof youthAvailable==='function'&&youthAvailable())?'Subir jogador da base':'Base (indisponível agora)','clPromoteYouth()'],[`Treino especial (${myTrainingList().length}/${TRAINING_MAX_SLOTS})...`,'clTrainingScreen()'],['Últimas transferências...','clTransferHistory()']],
-    'Campeonatos':[['Minhas competições...','clCompList()','C'],['—'],['Melhores marcadores...','clScorers()'],['Calendário...','clCalendar()'],['—'],['Últimos vencedores...','clUltimosVencedores()'],['Melhores marcadores de sempre...','clScorersAllTime()']].concat((S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)?[['—'],['Ligas internacionais...','clBgLeaguesMenu()']]:[]),
-    'Treinador':[['História...','clCoachHistory()'],['Sala de Troféus...','clTrophyRoom()'],['Ranking...','clCoachRanking()'],['Ofertas...','clJobOffers()'],['Perfil...','clPerfilTreinador()']]
+    'Equipa':[['Estádio','clStadium()'],['Historial','clClubHistory()']],
+    'Jogador':[['Vender','clSell()'],['Comprar jogador','clMarketClubs()'],[`Propostas recebidas${myIncomingOffers().length?' ('+myIncomingOffers().length+')':''}`,'clIncomingOffers()'],[`Contrapropostas${(typeof myCounterOffers==='function'&&myCounterOffers().length)?' ('+myCounterOffers().length+')':''}`,'clCounterOffers()'],['Leilão de jogadores','clAuctionScreen()'],[(typeof youthAvailable==='function'&&youthAvailable())?'Subir jogador da base':'Base (indisponível agora)','clPromoteYouth()'],[`Treino especial (${myTrainingList().length}/${TRAINING_MAX_SLOTS})`,'clTrainingScreen()'],['Últimas transferências','clTransferHistory()']],
+    'Campeonatos':[['Minhas competições','clCompList()','C'],['—'],['Melhores marcadores','clScorers()'],['Calendário','clCalendar()'],['—'],['Últimos vencedores','clUltimosVencedores()'],['Melhores marcadores de sempre','clScorersAllTime()']].concat((S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)?[['—'],['Ligas internacionais','clBgLeaguesMenu()']]:[]),
+    'Treinador':[['História','clCoachHistory()'],['Sala de Troféus','clTrophyRoom()'],['Ranking','clCoachRanking()'],['Ofertas','clJobOffers()'],['Perfil','clPerfilTreinador()']]
   };
   if(CL.online){
     const rItems=[];
-    if(typeof NET!=='undefined' && NET.isHost){ const nr=(CL.pendingJoins&&CL.pendingJoins.length)||0; rItems.push(['Aprovar entradas'+(nr?' ('+nr+')':'')+'...','clJoinRequestsPanel()']); }
+    if(typeof NET!=='undefined' && NET.isHost){ const nr=(CL.pendingJoins&&CL.pendingJoins.length)||0; rItems.push(['Aprovar entradas'+(nr?' ('+nr+')':''),'clJoinRequestsPanel()']); }
     rItems.push(['Sincronizar com a sala','clSyncResenha()']);
-    rItems.push(['Chamar pra Resenha...','clInviteResenha()']);
+    rItems.push(['Chamar pra Resenha','clInviteResenha()']);
     items['Modo Resenha']=rItems;
   }
   const list=items[name]||[]; if(!list.length) return '';
   const rows=list.map(it=>{ if(it[0]==='—') return '<div class="cl-menu-sep"></div>';
-    return `<div class="cl-menu-dd-i" onclick="${it[1]}"><span>${escC(it[0])}</span>${it[2]?`<b>${it[2]}</b>`:''}</div>`; }).join('');
+    // clMenuPick() zera a gaveta ANTES da ação: como a própria ação redesenha a tela (cdraw) ou
+    // abre um modal, o menu já sai do caminho no mesmo passo. Sem isso, no telefone, escolher
+    // uma formação (ou qualquer item) deixava a gaveta aberta por cima do conteúdo.
+    return `<div class="cl-menu-dd-i" onclick="clMenuPick();${it[1]}"><span>${escC(it[0])}</span>${it[2]?`<b>${it[2]}</b>`:''}</div>`; }).join('');
   return `<div class="cl-menu-dd" onclick="event.stopPropagation()">${rows}</div>`;
 }
 function clStub(t){ CL.menu=null; toastC(t+' — em breve.'); cdraw(); }

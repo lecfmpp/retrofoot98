@@ -1856,7 +1856,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-roster-hd,.cl-roster{display:none}
   .cl-main.tab-elenco .cl-roster-hd{display:flex;margin:0 10px}
   .cl-main.tab-elenco .cl-roster{display:block}
-  .cl-main.tab-elenco .cl-main-right{display:none}
+  /* na aba Elenco esconde só o CONTEÚDO da coluna da direita, não a coluna: a barra de abas
+     fixa do rodapé é filha dela, e um display:none no conjunto levava a barra junto — era o
+     que fazia o rodapé sumir justamente nessa aba */
+  .cl-main.tab-elenco .cl-main-right{padding:0 !important}
+  .cl-main.tab-elenco .cl-right-hdr,
+  .cl-main.tab-elenco .cl-panel{display:none}
   /* cabeçalho do adversário só nas abas em que ele é contexto (ver ADV_HDR_TABS): em Jogador,
      Finanças e E-mail eram ~110px de informação sem relação com o que está na tela */
   .cl-main-right.sem-adv .cl-right-hdr{display:none}
@@ -1872,7 +1877,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
      pra baixo. Como cdraw() recria o DOM, a abertura é @keyframes (roda ao inserir) e o
      fechamento é a classe .closing aplicada antes de trocar o estado (ver closeMobMenu). */
   .cl-menu{display:none;flex-direction:column;position:fixed;top:0;left:0;bottom:0;right:auto;
-    width:min(84vw,300px);background:#fff;z-index:60;max-height:none;overflow:auto;
+    width:min(76vw,252px);background:#fff;z-index:60;max-height:none;overflow:auto;
     -webkit-overflow-scrolling:touch;border:none;border-right:2px solid #000;
     box-shadow:6px 0 26px rgba(0,0,0,.5);padding-bottom:env(safe-area-inset-bottom,0px)}
   .cl-menu.mob-open{display:flex;animation:cl-drawer-in .26s cubic-bezier(.22,.75,.3,1) both}
@@ -1895,14 +1900,14 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
      lado do rótulo e vazava pra fora da tela. Em bloco, o rótulo fica na sua linha e o submenu
      abre em largura cheia logo abaixo, que é o comportamento esperado num menu de telefone. */
   .cl-menu-i{display:block;width:100%;box-sizing:border-box;border-bottom:1px solid #ddd;
-    font-size:15px;font-weight:700;padding:13px 34px 13px 14px;position:relative}
+    font-size:14.5px;font-weight:700;padding:12px 30px 12px 12px;position:relative}
   .cl-menu-i.open{background:var(--navy);color:#fff;padding-bottom:0}
-  .cl-menu-i.open::after{content:'▾';position:absolute;right:14px;top:13px;font-size:12px}
-  .cl-menu-i:not(.open)::after{content:'›';position:absolute;right:14px;top:11px;color:#888;font-size:18px;font-weight:400}
-  .cl-menu-dd{position:static;width:auto;margin:13px -34px 0 -14px;box-shadow:none;border:none;background:#f4f4f4;
+  .cl-menu-i.open::after{content:'▾';position:absolute;right:12px;top:12px;font-size:12px}
+  .cl-menu-i:not(.open)::after{content:'›';position:absolute;right:12px;top:10px;color:#888;font-size:18px;font-weight:400}
+  .cl-menu-dd{position:static;width:auto;margin:12px -30px 0 -12px;box-shadow:none;border:none;background:#f4f4f4;
     font-weight:400;color:#000}
-  .cl-menu-dd-i{min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:10px;
-    padding:0 14px 0 26px;font-size:14px;font-weight:600;border-bottom:1px solid #e2e2e2}
+  .cl-menu-dd-i{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:0 12px 0 22px;font-size:13.5px;font-weight:600;border-bottom:1px solid #e2e2e2}
   .cl-menu-dd-i span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .cl-menu-dd-i b{flex:none;color:#888;font-size:12px}
   .cl-menu-sep{margin:0;height:1px;background:#d0d0d0}
