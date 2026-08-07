@@ -3997,6 +3997,12 @@ function onlineJogarGate(){
 }
 function clJogar(){
   if(CL._seatContext){ clSeatPlay(); return; } // hotseat: "Jogar" na tela do assento inicia a partida dele
+  // CLASSIFICAÇÃO DE COPA PENDENTE: numa jornada com mais de uma competição, a fila para na tela
+  // do clube entre uma e outra (ver cupClassifContinue). O próximo "Jogar" retoma dela — antes de
+  // qualquer partida, porque ela é da jornada que acabou de ser resolvida.
+  if(CL._cupClassifQueue && CL._cupClassifQueue.length){
+    showCupClassif(CL._cupClassifQueue.shift(), CL._cupClassifRound); return;
+  }
   if(!CL.tacticChosen){ toastC('Escolha a tática no menu Formação primeiro.'); CL.tab='seleccao'; cdraw(); return; }
   /* SORTEIO ANTES DE ENTRAR EM CAMPO. Cada copa tem a sua data de sorteio (ver cupSeasonDrawDays
      no core: dois dias antes da própria estreia, nunca no dia 1 e nunca a menos de 2 dias do
@@ -7011,6 +7017,7 @@ function finishCupLiveMatch(){
    AUSENTE pra jogar a copa, o fluxo travaria numa dessas telas esperando "Continuar" e seguraria
    o outro jogador. 10s, igual à classificação de liga. No solo não arma (jogador decide no tempo dele). */
 const CUP_FLOW_SCREENS=['cupclassif','cupdraw','cupview'];
+const CUP_CLASSIF_AUTO_MS=10000;   // igual pra todos (ver showCupClassif)
 /* `ms`: a classificação COLETIVA do fim da rodada (queueRoundCupClassifs) entra depois de o
    jogador já ter assistido à rodada inteira, e vem ENCADEADA com a pausa técnica e com a
    classificação da liga. Somar mais 10s ali fazia a virada de rodada passar de meio minuto de
@@ -7047,10 +7054,15 @@ function clCupResultContinue(){
   // sobrar copa pendente, o próximo "Jogar" na tela principal pega ela (ver clJogar()).
   // mostra a classificação/chaveamento da competição que teve jogo agora, pro jogador se
   // situar (igual já fazemos com a tabela de Séries A/B/C/D depois da rodada de liga).
-  const classifQueue=(CL._cupResultKeysThisRound||[]).slice();
+  // A CLASSIFICAÇÃO NÃO É MAIS AQUI. Ela tinha DOIS gatilhos: quem jogava via logo depois do
+  // próprio apito, quem não jogava via só no fechamento da rodada — dois momentos diferentes para
+  // a mesma tela, separados pelo tempo que os outros levavam pra terminar. Agora existe um
+  // gatilho só, o fechamento (queueRoundCupClassifs), onde o estado já é o que o servidor
+  // resolveu e TODOS entram juntos: quem jogou com a faixa do próprio placar, quem não jogou com
+  // o painel de dicas. Daqui o jogador volta pra TELA DO CLUBE — nunca emenda direto na próxima
+  // competição (ver finishCupResultFlow).
   CL._cupResultKeysThisRound=null;
-  if(classifQueue.length){ CL._cupClassifRound=S.round; CL._cupClassifQueue=classifQueue.slice(1);
-    showCupClassif(classifQueue[0], S.round); return; }
+  CL._cupResultRound=S.round;   // a faixa de resultado espera o fechamento (ver cupResultForKey)
   finishCupResultFlow();
 }
 /* cauda do fluxo pós-copa: igual ao que já existia antes das telas de classificação —
@@ -7090,9 +7102,18 @@ function finishCupResultFlow(){
    fechá-lo, uma tela de chaveamento. Agora é uma tela só (cupScreenHTML): o resultado da
    partida entra como faixa no topo e a chave/grupos ocupa o resto — o usuário termina a
    rodada da copa e continua exatamente onde estava, sem fechar nada. ---- */
+/* A FAIXA DE RESULTADO SOBREVIVE ATÉ O FECHAMENTO, mas só da PRÓPRIA jornada: quem jogou a copa
+   guarda o placar em CL._cupResultByKey no fim da partida e só o vê na classificação coletiva,
+   que vem depois. Sem o carimbo de jornada, um placar da semana passada reapareceria na tela
+   desta semana. */
+function cupResultForKey(key){
+  if(!CL._cupResultByKey) return null;
+  if(CL._cupResultRound!=null && CL._cupResultRound!==(S.round||0)) return null;
+  return CL._cupResultByKey[key]||null;
+}
 function showCupClassif(key, round){ CL.screen='cupclassif'; CL._cupClassifKey=key; CL._cupTie=null;
   if(round!=null) CL._cupClassifRound=round;
-  const c=S.cups&&S.cups[key], r=(CL._cupResultByKey||{})[key];
+  const c=S.cups&&S.cups[key], r=cupResultForKey(key);
   // O MARCADOR DE "JÁ VI" É GRAVADO NA SAÍDA (cupClassifContinue), NÃO AQUI.
   // Ele persiste em disco, e marcar na ABERTURA queimava a tela sem o jogador ter visto nada: se
   // o fluxo fosse interrompido no meio — rodada repetindo, reload, sala travada —, a competição
@@ -7101,13 +7122,17 @@ function showCupClassif(key, round){ CL.screen='cupclassif'; CL._cupClassifKey=k
   // abre na aba da fase que ele acabou de jogar (sem fase de grupos, só existe o mata-mata)
   CL.cupTab = !cupHasGroupTab(key,c) ? 'chave' : (r ? (r.stage==='bracket'?'chave':'grupos') : (c.bracket?'chave':'grupos'));
   cdraw();
-  // sem faixa de resultado = classificação coletiva do fim da rodada: avança mais rápido (ver armCupFlowTimer)
-  armCupFlowTimer(cupClassifContinue, r?10000:5000);
+  // AUTO-AVANÇO UNIFORME. Era 10s pra quem tinha resultado e 5s pra quem não tinha — ou seja, os
+  // dois lados da MESMA tela saíam em momentos diferentes. Agora é o mesmo tempo pra todo mundo, e
+  // ele é só cortesia pra quem está longe do teclado: ninguém começa o dia seguinte antes de todos
+  // saírem daqui, porque 'cupclassif' conta como ocupado e o anfitrião não libera com gente
+  // ocupada (ver CLOSING_SCREENS/onlineHostTick).
+  armCupFlowTimer(cupClassifContinue, CUP_CLASSIF_AUTO_MS);
 }
 function scCupClassif(){
   const key=CL._cupClassifKey, c=S.cups&&S.cups[key];
   if(!c) return '';
-  const r=(CL._cupResultByKey||{})[key];
+  const r=cupResultForKey(key);
   // MESMA TELA PROS DOIS: quem jogou lê a faixa do próprio placar; quem não disputa a
   // competição lê, no mesmo lugar, o painel de dicas + patrocinador (ver cupIdlePanelHTML).
   const result = r ? `<div class="cl-cupres ${escC(r.tone)}">
@@ -7123,7 +7148,18 @@ function cupClassifContinue(){
   // auto-avanço). Só neste ponto a competição conta como vista nesta jornada — ver showCupClassif.
   if(CL._cupClassifKey) cupClassifMarkShown(CL._cupClassifKey, CL._cupClassifRound);
   const queue=CL._cupClassifQueue||[];
-  if(queue.length){ showCupClassif(queue.shift(), CL._cupClassifRound); return; }
+  // ENTRE UMA COMPETIÇÃO E OUTRA, PASSA PELA TELA DO ELENCO. Numa jornada com duas competições
+  // (Libertadores na quinta e Copa do Brasil na sexta, por exemplo) a fila emendava a
+  // classificação de uma na da outra, e o jogador saltava de competição pra competição sem nunca
+  // voltar ao time. Agora a fila para na tela do clube e o próximo "Jogar" pega a competição
+  // seguinte — a mesma regra que já valia entre as PARTIDAS de copa, agora também entre as
+  // classificações.
+  if(queue.length){
+    CL._cupClassifQueue=queue;                       // fica pendente: o próximo Jogar retoma
+    CL.screen='main'; CL.tab='jogo'; cdraw();
+    if(CL.online && typeof onlineMarkReady==='function') onlineMarkReady();
+    return;
+  }
   CL._cupClassifQueue=null; CL._cupResultByKey=null; CL._cupClassifRound=null;
   // fila montada por queueRoundCupClassifs (fim de rodada): a cauda é o que vem DEPOIS das
   // copas — a classificação da liga ou a tela do clube, conforme o caminho que chamou.
