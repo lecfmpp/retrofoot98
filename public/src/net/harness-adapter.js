@@ -282,6 +282,17 @@
       // cenário conta os dois: um sem o outro esconderia metade da verdade.
       diaVale:!!(typeof roomDay==='function' && roomDay()),
       diaHold:!!(typeof roomDay==='function' && (roomDay()||{}).hold),
+      /* TELA EFETIVA — o que o jogador está OLHANDO, não CL.screen.
+         As apresentações de copa e de liga são OVERLAY: não trocam CL.screen, que continua 'main'.
+         Medir só CL.screen+live fazia "um no modal da Copa do Brasil, outro no elenco" pontuar como
+         telas iguais — foi assim que eu dei verde num caso que o usuário pegou a olho na captura.
+         Item 1 é sobre o que está na tela; então é isto que tem que ser comparado. */
+      tela:(function(){
+        if(CL.live) return 'live:'+((CL.live.cup&&CL.live.cup.key)||'liga');
+        if(CL._cupIntro) return 'intro:'+(CL._cupIntro.key||CL._cupIntro);
+        if(CL._leagueIntro) return 'intro:liga';
+        return CL.screen;
+      })(),
       screen:CL.screen, round:(typeof S!=='undefined'&&S)?S.round:null,
       stage:(typeof S!=='undefined'&&S)?(S.roundStage||null):null,
       cupKey:(CL.live&&CL.live.cup)?CL.live.cup.key:null,

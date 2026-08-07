@@ -291,6 +291,27 @@ async function scenario3(){
     log('instantes ao vivo em competições diferentes: '+divergiu.length,'info');
     assert(divergiu.length===0,'nunca estiveram ao vivo em competições diferentes');
 
+    /* A ASSERÇÃO QUE FALTAVA — e a única que mede o item 1 como ele foi pedido.
+       As duas acima medem jornada e "ao vivo em copas diferentes". Nenhuma pega "um no modal da
+       Copa do Brasil, o outro na tela do elenco": ninguém está live, a jornada é a mesma, e as duas
+       dão verde. Foi exatamente esse caso que o usuário pegou a olho numa captura enquanto eu
+       anunciava que estava tudo certo. Item 1 é sobre a TELA, então mede-se a tela.
+       Tolerância: telas de passagem não trocam no mesmo milissegundo nos dois clientes, então o que
+       importa é quanto tempo elas ficam DIFERENTES, não se diferiram alguma vez. Acima de 15% do
+       tempo não é transição — é um vivendo um momento do jogo que o outro não está vivendo. */
+    let difTela=0, comparaveis=0;
+    hist.A.forEach((s,i)=>{ const b=hist.B[i];
+      if(!b || s.round==null || b.round==null) return;      // janela pré-temporada não conta
+      comparaveis++; if(s.tela!==b.tela) difTela++; });
+    const pct=comparaveis?Math.round(difTela*100/comparaveis):0;
+    log('tempo em telas diferentes: '+difTela+'/'+comparaveis+' ('+pct+'%)','info');
+    const amostras={}; hist.A.forEach((s,i)=>{ const b=hist.B[i];
+      if(b && s.round!=null && b.round!=null && s.tela!==b.tela){
+        const k=s.tela+' ‖ '+b.tela; amostras[k]=(amostras[k]||0)+1; } });
+    const piores=Object.keys(amostras).sort((x,y)=>amostras[y]-amostras[x]).slice(0,5);
+    if(piores.length) log('  pares mais frequentes: '+piores.map(k=>k+' ×'+amostras[k]).join(' | '),'info');
+    assert(pct<=15,'os dois passaram o tempo na MESMA tela ('+pct+'% de divergência)');
+
     // ---------- O PONTEIRO MANDA, E NÃO CORRE NA FRENTE ----------
     const adiante=hist.A.filter(s=>s.diaRound!=null && s.round!=null && s.diaRound>s.round);
     log('instantes com o ponteiro à frente da sala: '+adiante.length,'info');
@@ -323,6 +344,13 @@ async function scenario3(){
     log('entradas ao vivo A='+JSON.stringify(eA),'info'); log('entradas ao vivo B='+JSON.stringify(eB),'info');
     assert(Object.values(eA).every(n=>n===1),'A nunca reentrou numa etapa (anti-loop)');
     assert(Object.values(eB).every(n=>n===1),'B nunca reentrou numa etapa (anti-loop)');
+    /* NINGUÉM PULOU NADA. entryCounts só pegava REENTRADA (loop); ausência passava calada — e
+       "pulou a rodada e nem viu o próprio jogo" é ausência, não repetição. Os dois humanos vivem
+       as MESMAS etapas, então os conjuntos de entradas têm que ser idênticos: o que um viveu e o
+       outro não é exatamente uma etapa pulada. */
+    const soA=Object.keys(eA).filter(k=>!eB[k]), soB=Object.keys(eB).filter(k=>!eA[k]);
+    if(soA.length||soB.length) log('  etapas que só um viveu — A:'+JSON.stringify(soA)+' B:'+JSON.stringify(soB),'info');
+    assert(soA.length===0 && soB.length===0,'nenhum dos dois pulou uma etapa que o outro viveu');
     assert(stA().round===stB().round,'os dois na MESMA jornada ao fim: '+stA().round);
     log('=== CENÁRIO 365ZV: PASSOU ===','ok');
   }catch(e){ log(String(e&&e.message||e),'fail'); }
