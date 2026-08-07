@@ -386,6 +386,17 @@ async function netRefreshRoom(){
       // detecta a defasagem que a comparação por rodada não vê. Ver onlineReconcileIfBehind.
       stateVersion: g.state_version||0
     });
+    /* O DIA DA SALA, direto do servidor. Vem de graca no select('*') acima -- o plano nunca muda
+       depois de gravado, entao so o indice e o momento andam. E daqui que as telas passam a sair:
+       enquanto cada cliente deduzia a competicao do proprio estado local, dois humanos podiam
+       estar "certos" e ainda assim em competicoes diferentes. Agora a resposta e uma linha so. */
+    if(g.day_plan && !NET.room.dayPlan) NET.room.dayPlan = g.day_plan;
+    if(NET.room.dayPlan){
+      const e = NET.room.dayPlan[g.day_idx||0] || null;
+      NET.room.day = e ? { idx:g.day_idx||0, moment:g.day_moment||'escalando',
+                           round:e.r, comp:e.comp, cupIdx:e.idx, dia:e.dia,
+                           total:NET.room.dayPlan.length } : null;
+    }
     /* O DIA DA SALA, direto do servidor. Vem de graça no select('*') acima — o plano nunca muda
        depois de gravado, então só o índice e o momento andam. É daqui que as telas passam a sair:
        enquanto cada cliente deduzia a competição do próprio estado local, dois humanos podiam
