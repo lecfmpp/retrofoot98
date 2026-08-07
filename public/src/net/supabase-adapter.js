@@ -492,6 +492,13 @@ async function netResolveRound(round, stage){
    análogo a netPublishResult, mas grava em last_cup_result/last_cup_round. O servidor
    (resolve-round) aplica esse resultado na chave (mandante-autoritativo) antes de simular
    o resto do bracket. Só copas de mata-mata (Copa do Brasil); grupos são Série A -> futuro. */
+/* competições que EU já cumpri nesta jornada (acumula; zera quando a jornada muda) */
+function cupDoneList(round, addKey){
+  const me=(NET._claimed&&NET._claimed[SB_UID()])||{};
+  const prev=(me.last_cup_round===round && me.last_cup_result && Array.isArray(me.last_cup_result.done)) ? me.last_cup_result.done.slice() : [];
+  if(addKey && prev.indexOf(addKey)<0) prev.push(addKey);
+  return prev;
+}
 async function netPublishCupResult(round, cupResult){
   // `winner` só existe no mata-mata; confronto de FASE DE GRUPOS (stage:'group') não tem — sem
   // esta exceção o resultado de grupo era descartado aqui e o servidor re-simulava a partida que
@@ -503,6 +510,12 @@ async function netPublishCupResult(round, cupResult){
     scorers:cupResult.scorers||[], perf:cupResult.perf||null, // artilharia + Historial no servidor (cupSumula)
     caps:cupResult.caps||null, matchMinutes:cupResult.matchMinutes||null, // súmula de minutos em campo (ver liveCaps)
     decisions:cupResult.decisions||[] }; // Fase 3A: log de decisões
+  // LISTA DE COMPETIÇÕES CUMPRIDAS NESTA JORNADA. last_cup_round é UMA coluna por rodada e não diz
+  // QUAL competição foi paga — com o calendário oficial a 3ª jornada tem Libertadores,
+  // Sul-Americana e Copa do Brasil, então terminar a primeira marcava a jornada inteira como paga
+  // e a barreira soltava com o jogador ainda em campo na Copa do Brasil. O campo `done` (dentro do
+  // JSONB que já existe, aditivo — o servidor ignora chave que não conhece) carrega a lista.
+  payload.done = cupDoneList(round, cupResult.key||null);
   try{
     if(NET._claimed && NET._claimed[SB_UID()]){ NET._claimed[SB_UID()].last_cup_result=payload; NET._claimed[SB_UID()].last_cup_round=round; }
     await sb.from('game_seats').update({ last_cup_result:payload, last_cup_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_UID());
@@ -525,8 +538,9 @@ async function netMarkCupDone(round){
   const me = NET._claimed && NET._claimed[SB_UID()];
   if(me && me.last_cup_round===round) return;      // já publiquei o resultado desta jornada
   try{
-    if(me){ me.last_cup_round=round; me.last_cup_result=null; }
-    await sb.from('game_seats').update({ last_cup_round:round, last_cup_result:null })
+    const payload={ done: cupDoneList(round, null), settled:true };   // sem placar, só a quitação
+    if(me){ me.last_cup_round=round; me.last_cup_result=payload; }
+    await sb.from('game_seats').update({ last_cup_round:round, last_cup_result:payload })
       .eq('game_id', NET.gameId).eq('user_id', SB_UID());
   }catch(e){ console.warn('markCupDone:', e&&e.message); }
 }

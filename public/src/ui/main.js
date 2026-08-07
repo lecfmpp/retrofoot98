@@ -6933,7 +6933,7 @@ function finishCupLiveMatch(){
       // scorers/perf viajam junto: o servidor precisa deles pra creditar o gol na artilharia e o
       // JOGO no Historial (ver cupSumula no resolve-round) — o recordScorers/ratePlayers local
       // acima é sobrescrito pelo adopt da rodada seguinte.
-      NET.publishCupResult(S.round, { h:t.h, a:t.a, hg:m.hg, ag:m.ag, winner, pens, events:m.events,
+      NET.publishCupResult(S.round, { key:pending.key, h:t.h, a:t.a, hg:m.hg, ag:m.ag, winner, pens, events:m.events,
         scorers, perf:m.perf||null, caps:{H:liveCaps(m,'H'),A:liveCaps(m,'A')}, matchMinutes:liveMatchMinutes(m),
         decisions:(m.sim&&m.sim.decisions)||[] });
     }
@@ -6978,7 +6978,7 @@ function finishCupLiveMatch(){
     // advanceGroupStageRoundS em supabase/functions/resolve-round). `stage:'group'` é o que
     // distingue os dois lá — confronto de grupo não tem vencedor.
     if(CL.online && typeof NET!=='undefined' && NET.publishCupResult){
-      NET.publishCupResult(S.round, { stage:'group', h, a, hg:m.hg, ag:m.ag, events:m.events,
+      NET.publishCupResult(S.round, { key:pending.key, stage:'group', h, a, hg:m.hg, ag:m.ag, events:m.events,
         scorers, perf:m.perf||null, caps:{H:liveCaps(m,'H'),A:liveCaps(m,'A')}, matchMinutes:liveMatchMinutes(m),
         decisions:(m.sim&&m.sim.decisions)||[] });
     }

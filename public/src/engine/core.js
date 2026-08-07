@@ -2349,33 +2349,35 @@ function cupDrawOrder(){
    barreira do dia de copa (ver onlineCupDayPending, local-transport) precisa da resposta sobre os
    OUTROS humanos da sala — é o que permite segurar a rodada de liga até todo mundo ter cumprido a
    copa da semana, em vez de cada um entrar na liga na hora que terminar a sua. */
-function clubOwesCupThisWeek(clubId){
-  if(!S.cups || !clubId) return false;
+/* QUAIS competições este clube ainda deve nesta jornada — lista, não sim/não.
+   A jornada pode ter MAIS DE UMA competição (no calendário oficial a 3ª tem Libertadores,
+   Sul-Americana e Copa do Brasil), e a barreira do dia de copa precisa saber exatamente quais
+   faltam — senão terminar a primeira parecia terminar todas. */
+function cupsOwedThisWeek(clubId){
+  if(!S.cups || !clubId) return [];
+  const out=[];
   const cb=S.cups.copaBrasil;
   if(cupTickMatchesRound('copaBrasil',S.round) && cb && !cupIsFinished(cb)
-     && (cb.ties||[]).some(t=>!t.winner && (t.h===clubId||t.a===clubId))) return true;
-  let deve=false;
+     && (cb.ties||[]).some(t=>!t.winner && (t.h===clubId||t.a===clubId))) out.push('copaBrasil');
   groupCupKeys().forEach(key=>{
-    if(deve || !cupTickMatchesRound(key,S.round)) return;
+    if(!cupTickMatchesRound(key,S.round)) return;
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket && !c.group.finished){
       const mg=c.group;
       Object.values(mg.groups).forEach(g=>{
-        if(deve || !g.teams.includes(clubId)) return;
+        if(out.indexOf(key)>=0 || !g.teams.includes(clubId)) return;
         if(!(g.sched[mg.round]||[]).some(([h,a])=>h===clubId||a===clubId)) return;
-        // ESTE clube já jogou a rodada de grupo? A pergunta é sobre ELE, então a resposta tem que
-        // sair de um dado DELE: o resultado gravado no grupo. Antes lia mg._userRoundDone, que
-        // significa "EU já joguei" e viajava no estado compartilhado — bastava um humano jogar pra
-        // a barreira parar de cobrar todos os outros.
+        // este clube já jogou a rodada de grupo? a resposta sai de um dado DELE: o resultado gravado
         if((g.results||[]).some(r=>r && r.r===mg.round && (r.h===clubId||r.a===clubId))) return;
-        deve=true;
+        out.push(key);
       });
     } else if(c.bracket && !cupIsFinished(c.bracket)){
-      if((c.bracket.ties||[]).some(t=>!t.winner && (t.h===clubId||t.a===clubId))) deve=true;
+      if((c.bracket.ties||[]).some(t=>!t.winner && (t.h===clubId||t.a===clubId))) out.push(key);
     }
   });
-  return deve;
+  return out;
 }
+function clubOwesCupThisWeek(clubId){ return cupsOwedThisWeek(clubId).length>0; }
 function pendingUserCupMatches(){
   if(!S.cups || !CL.clubId) return [];
   const out=[];

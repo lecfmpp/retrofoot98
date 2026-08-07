@@ -1728,8 +1728,22 @@ function onlineCupDayPending(){
   Object.keys(claimed).forEach(uid=>{
     const c=claimed[uid]; if(!c || !c.clubId) return;
     if(String(c.clubId)===String(CL.clubId)) return;      // eu já cumpri a minha (cheguei até aqui)
-    if(!clubOwesCupThisWeek(c.clubId)) return;            // não tem jogo de copa nesta semana
-    if(c.last_cup_round===S.round) return;                // já publicou o resultado da copa
+    const devendo = (typeof cupsOwedThisWeek==='function') ? cupsOwedThisWeek(c.clubId) : [];
+    if(!devendo.length) return;                           // não deve NADA de copa nesta jornada
+    // JÁ CUMPRIU TODAS AS QUE DEVIA? A lista `done` (publicada pelo próprio assento) diz QUAIS
+    // competições ele fechou nesta jornada. Terminar a Libertadores não paga mais a Copa do Brasil.
+    // O ATALHO DO last_cup_round SAIU — ele mentia quando a jornada tem MAIS DE UMA competição.
+    // Essa coluna é UMA por rodada: ela guarda "publiquei um resultado de copa na jornada N", sem
+    // dizer QUAL competição. Com o calendário oficial, a jornada 3 tem Libertadores (01/04),
+    // Sul-Americana (02/04) E Copa do Brasil (04/04) — as três. Então bastava o jogador terminar a
+    // PRIMEIRA delas pra coluna marcar a jornada inteira como paga: os outros clientes liam "ele
+    // já publicou", soltavam a barreira e seguiam para a rodada de liga enquanto ele ainda estava
+    // na Copa do Brasil. Foi o travamento da 3ª rodada — um humano preso, o outro avançando.
+    // Quem sabe se ainda falta alguma é o MUNDO (clubOwesCupThisWeek olha confronto por confronto,
+    // competição por competição), e é só nele que a barreira se apoia agora. O teto de 90s
+    // (cupDayWaitExpired) segue como escape pra quem sumiu.
+    const done=(c.last_cup_round===S.round && c.last_cup_result && Array.isArray(c.last_cup_result.done)) ? c.last_cup_result.done : [];
+    if(devendo.every(k=>done.indexOf(k)>=0)) return;      // todas cumpridas
     out.push(c.clubId);
   });
   return out;
