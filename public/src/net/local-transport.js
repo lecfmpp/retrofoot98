@@ -1233,7 +1233,10 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
   // entrada fresca (logo após o sorteio): mostra a Boas-vindas ao Clube antes da tela principal.
   // reconexão a jogo em andamento vai direto pra TELA PRINCIPAL do time, como sempre foi.
   resenhaRememberRoomInUrl();   // ?sala=CODE na barra de endereço: um F5 na unha reentra na sala
-  if(fresh && typeof showBoasVindas==='function') showBoasVindas();
+  // igual ao solo: boas-vindas -> sorteios de abertura de TODAS as competições -> tela do clube.
+  // Antes a Resenha entrava direto no clube e as cerimônias apareciam semanas adentro, cada uma na
+  // véspera da estreia da sua competição (ver startSeasonOpeningDraws em ui/main.js).
+  if(fresh && typeof showBoasVindas==='function') showBoasVindas(()=>{ if(typeof startSeasonOpeningDraws==='function') startSeasonOpeningDraws(); });
   else { CL.screen='main'; cdraw(); }
 
   // A janela de 60s (NET.start) já foi aberta pelo anfitrião em clLobbyStart, ANTES do reveal —

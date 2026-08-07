@@ -976,6 +976,11 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-cal-cup .cl-cal-n{color:#1a5a2a}
 .cl-cal-pens{font-size:11px;font-weight:700;opacity:.8} /* placar dos pênaltis ao lado do resultado do confronto */
 .cl-cal-draw{background:#3a3aa0!important;color:#fff!important;font-style:italic}
+/* FOLGA: dia de rodada em que o clube não entra em campo (competição que ele não disputa, ou bye
+   na liga). Fica visível mas apagada — o dia existe, o jogo é que não. */
+.cl-cal-folga{background:#cfcfcf!important;color:#5a5a5a!important;font-weight:600;border-left:5px solid #9a9a9a}
+.cl-cal-folga .cl-cal-n,.cl-cal-folga .cl-cal-d{color:#5a5a5a}
+.cl-cal-folga .cl-cal-t i{font-style:italic;opacity:.85}
 /* ===== GRUPOS DE BOTÃO: todos ocupam a mesma largura =====
    Cada .cl-btn tinha a largura do próprio texto, então uma pilha de ações saía desalinhada dos
    dois lados ("OK" estreitinho em cima de "Voltar ao clube"). Agora o grupo é que manda: em

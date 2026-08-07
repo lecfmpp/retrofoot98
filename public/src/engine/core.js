@@ -1673,7 +1673,44 @@ const SEASON_EPOCH_INTL=[2026,7,15]; // Europa: ~15 de agosto de 2026 — abertu
 /* epoch (dia 1) do calendário conforme o universo: o Brasileirão roda jan-dez; as ligas
    europeias rodam ago-mai. Assim as datas reais de sorteio das copas (grupos ~ago, oitavas
    ~dez pra Champions/Europa; ~mai pra Libertadores/Sul-Americana) caem no lugar certo. */
-function seasonEpoch(){ return (typeof isIntlUniverse==='function' && isIntlUniverse()) ? SEASON_EPOCH_INTL : SEASON_EPOCH_2026; }
+/* O EPOCH SAI DO ESTADO COMPARTILHADO, não do universo ativo do cliente. ACTIVE_UNI é local: na
+   Resenha, um treinador que aceitou emprego noutro país (applyManagerJobChange -> setUniverse)
+   passava a ler o calendário inteiro a partir de 15/ago em vez de 18/jan — sete meses de
+   diferença nas MESMAS jornadas, e cada humano via o jogo dele num dia diferente. O calendário é
+   do mundo, então tem que sair do mundo (S.intlUniverse viaja no shared_state). Fora do jogo
+   (assistente/sorteio, S ainda null) vale o universo ativo, que ali é o único dado que existe. */
+function seasonEpoch(){
+  const uni = (typeof S!=='undefined' && S && S.intlUniverse!==undefined)
+    ? (S.intlUniverse && S.intlUniverse!=='brasil')
+    : (typeof isIntlUniverse==='function' && isIntlUniverse());
+  return uni ? SEASON_EPOCH_INTL : SEASON_EPOCH_2026;
+}
+/* ==================== DIA DA SEMANA DE CADA COMPETIÇÃO ====================
+   REGRA DO JOGO, igual pra humano e pra CPU, em qualquer país: cada competição tem o SEU dia da
+   semana, e é o mesmo dia pra todos os clubes que a disputam. Assim dois clubes da mesma
+   competição nunca jogam a mesma rodada em dias diferentes, e um clube nunca tem duas partidas
+   no mesmo dia (os dias são disjuntos).
+     liga .............. segunda / quarta / sábado (uma rodada por semana; o dia gira entre os três)
+     Sul-Americana ..... terça          | Champions (universo europeu) ..... terça
+     Libertadores ...... quinta         | Europa League (universo europeu) . quinta
+     Copa do Brasil .... sexta
+   O deslocamento é medido da DATA REAL, nunca assumido: o Brasil abre a temporada num domingo
+   (18/jan/2026) e a Europa num sábado (15/ago/2026), então "quarta-feira da semana N" não é o
+   mesmo offset nos dois universos. */
+const COMP_WEEKDAY={ sulamericana:2, championsLeague:2, libertadores:4, europaLeague:4, copaBrasil:5 };
+const LEAGUE_WEEKDAY_CYCLE=[6,3,1];   // sáb, qua, seg — gira por jornada, nunca bate com dia de copa
+function leagueWeekdayFor(round){ return LEAGUE_WEEKDAY_CYCLE[((round||0)%LEAGUE_WEEKDAY_CYCLE.length+LEAGUE_WEEKDAY_CYCLE.length)%LEAGUE_WEEKDAY_CYCLE.length]; }
+/* dia (1-based) da semana `week` que cai no dia-da-semana `weekday` (0=dom … 6=sáb) */
+function dayInWeek(week, weekday){
+  const base=1+Math.max(0,week||0)*7;
+  const wd0=realDateForDay(base).getDay();
+  return base + (((weekday-wd0)%7)+7)%7;
+}
+function leagueMatchDay(round){ return dayInWeek(round, leagueWeekdayFor(round)); }
+function cupMatchDay(key, jornada){
+  const wd=COMP_WEEKDAY[key];
+  return dayInWeek(jornada, wd==null?3:wd);
+}
 function realDateForDay(day){
   const e=seasonEpoch();
   const d=new Date(e[0],e[1],e[2]);
@@ -1695,6 +1732,14 @@ const COMP_GROUP_DRAW_2026={ championsLeague:new Date(2026,7,28), europaLeague:n
 /* inverso de realDateForDay: em qual jornada de liga (aproximada) cai uma data real —
    usado pra colocar a data de sorteio no lugar certo do Calendário, intercalada com o
    resto (ver userCupCalendarRows/clCalendar em main.js). */
+/* dia (1-based) do calendário do jogo correspondente a uma data real — inverso de realDateForDay.
+   É o que permite ordenar TODAS as linhas do Calendário (liga, copa, sorteio, folga) pelo dia de
+   verdade: com um dia da semana próprio por competição, "copa antes da liga" deixou de valer como
+   critério (a Libertadores é quinta, a liga da mesma semana pode ser segunda). */
+function dayForRealDate(d){
+  const e=seasonEpoch(); const epoch=new Date(e[0],e[1],e[2]);
+  return Math.round((d-epoch)/86400000)+1;
+}
 function jornadaForRealDate(d){
   const e=seasonEpoch(); const epoch=new Date(e[0],e[1],e[2]);
   const dayOffset=Math.round((d-epoch)/86400000)+1;
@@ -1731,12 +1776,6 @@ const CUP_TICK_OFFSET={copaBrasil:0, libertadores:1, sulamericana:2, championsLe
    Save antigo, sem S.cupCalendar: cai no `% 3` de sempre — nada quebra no meio de uma temporada. */
 const CUP_KO_SPREAD=4;     // as N últimas rodadas (oitavas, quartas, semi, final) são as que se espalham
 const CUP_LEAGUE_TAIL=2;   // jornadas finais reservadas pra decisão da liga (sem final de copa em cima)
-/* jornadas da FAIXA de uma copa: as que têm o resto certo na divisão por 3 */
-function cupLaneSlots(key, lastLeagueRound){
-  const o=CUP_TICK_OFFSET[key]; if(o==null) return [];
-  const out=[]; for(let j=(o>=1?o:3); j<=lastLeagueRound; j+=3) out.push(j);  // offset 0 começa na 3 (não existe jornada 0 de copa)
-  return out;
-}
 /* quantas rodadas esta competição vai ter na temporada inteira. Na Copa do Brasil é direto
    (roundsTotal da chave). Nas continentais o mata-mata só é criado quando a fase de grupos acaba,
    então o total é PREVISTO: rodadas de grupo + as rodadas que o mata-mata terá com os
@@ -1758,18 +1797,32 @@ function cupTotalRounds(key){
   }
   return (c.bracket&&c.bracket.roundsTotal)||0;
 }
-/* a lista de jornadas em que cada rodada desta copa acontece (índice 0 = 1ª rodada da copa) */
+/* a lista de jornadas em que cada rodada desta copa acontece (índice 0 = 1ª rodada da copa).
+   ESTRITAMENTE CRESCENTE — é a garantia de que a mesma competição nunca tem duas rodadas na
+   mesma jornada (dois jogos do mesmo clube no mesmo dia) e de que NENHUMA rodada é descartada
+   (competição que nunca chega à final). Os dois eram os modos de falha do gerador anterior, que
+   sorteava posições dentro de uma lista de vagas fixa: quando a competição tinha mais rodadas
+   que vagas na faixa, o arredondamento repetia posições (medido: Sul-Americana com 14 rodadas
+   em 12 vagas -> jornadas 32 e 35 duas vezes) e o excedente era cortado em silêncio.
+   Agora o passo é que se ajusta: começa em 3 jornadas (o ritmo de sempre) e aperta pra 2 ou 1 se
+   a competição não couber na temporada. Com dia da semana próprio por competição (COMP_WEEKDAY),
+   apertar o passo é seguro — duas copas na mesma jornada caem em dias diferentes. */
 function buildCupSchedule(key, total, lastLeagueRound){
   if(!total || total<1) return [];
-  const slots=cupLaneSlots(key, Math.max(0, lastLeagueRound-CUP_LEAGUE_TAIL));
-  if(!slots.length) return [];
-  const nDense=Math.max(0, total-CUP_KO_SPREAD);          // fases iniciais: ritmo cheio, como sempre foi
-  const out=slots.slice(0, nDense);
-  const rest=slots.slice(nDense); if(!rest.length) return out;
-  const nSpread=Math.min(total-out.length, CUP_KO_SPREAD); // finais: espalhadas até o teto
-  for(let i=0;i<nSpread;i++){
-    const pos = nSpread===1 ? rest.length-1 : Math.round(i*(rest.length-1)/(nSpread-1));
-    out.push(rest[pos]);
+  const first=(CUP_TICK_OFFSET[key]>=1)?CUP_TICK_OFFSET[key]:3;   // offset 0 estreia na jornada 3
+  const teto=Math.max(first+total-1, (lastLeagueRound||0)-CUP_LEAGUE_TAIL);
+  let step=3;
+  while(step>1 && first+(total-1)*step>teto) step--;
+  const out=[]; for(let i=0;i<total;i++) out.push(first+i*step);
+  // sobrou temporada depois da última rodada: empurra as fases finais (oitavas..final) pro fim,
+  // que é o que faz a decisão da copa cair perto da decisão da liga em vez de no meio do ano.
+  const folga=teto-out[out.length-1];
+  if(folga>0 && total>1){
+    const n=Math.min(CUP_KO_SPREAD, total-1);
+    for(let i=0;i<n;i++){
+      const idx=total-n+i;
+      out[idx]=Math.max(out[idx-1]+1, out[idx]+Math.round(folga*(i+1)/n));   // nunca repete a jornada anterior
+    }
   }
   return out;
 }
@@ -1783,42 +1836,35 @@ function ensureCupCalendar(force){
   S.cupCalendar=cal;
 }
 /* ==================== DATA DO SORTEIO DE CADA COPA ====================
-   Antes TODAS as cerimônias eram enfileiradas de uma vez em initSeasonCups: o save abria já com
-   dois ou três sorteios em sequência, no mesmo dia, antes de o jogador ter feito qualquer coisa.
-   Agora cada copa tem a SUA data, derivada da própria estreia:
-     - dois dias antes da primeira partida daquela competição (a estreia é na quarta, então o
-       sorteio cai na segunda da mesma semana);
-     - nunca no dia 1, pra o save não começar com cerimônia;
-     - nunca a menos de 2 dias do sorteio de outra copa (se duas estreassem juntas, a segunda
-       recua) — e sempre ANTES da própria estreia, que é o que garante "jogo só depois do sorteio".
-   Com o calendário padrão do Brasil dá: Libertadores no dia 2, Sul-Americana no 9, Copa do
-   Brasil no 16 — uma cerimônia por semana, cada uma colada na estreia da sua competição. */
+   TODOS OS SORTEIOS DE ABERTURA ACONTECEM NO COMEÇO DO JOGO, logo depois das boas-vindas ao
+   clube — e é a partir deles que o calendário da temporada é montado, pra todos os clubes do
+   save. Antes cada cerimônia tinha a sua data ao longo da temporada (dois dias antes da estreia
+   da competição), o que significava jogar semanas sem saber contra quem se ia jogar na copa e,
+   pior, um calendário que só ficava completo aos poucos.
+   O sorteio do MATA-MATA das continentais continua no meio da temporada, na data real dele
+   (COMP_R16_DRAW_2026): não há como sortear oitavas antes de saber quem se classificou. As
+   DATAS dessas rodadas, essas sim, já ficam reservadas no calendário desde o dia 1. */
 function cupFirstPlayRoundReal(key){
   const cal=(typeof S!=='undefined'&&S&&S.cupCalendar)?S.cupCalendar[key]:null;
   if(cal && cal.length) return cal[0];
   return cupFirstPlayRound(key);
 }
-function cupRoundMatchDay(round){ return 1+(round||0)*7+3; }   // copa joga na quarta da semana
+/* dia em que a rodada `round` desta copa é jogada — o dia da semana é fixo por competição
+   (ver COMP_WEEKDAY). Assinatura antiga (round só) mantida pros chamadores que não sabem a copa. */
+function cupRoundMatchDay(round, key){ return key ? cupMatchDay(key, round||0) : dayInWeek(round||0, 3); }
 function cupSeasonDrawDays(){
   if(typeof S==='undefined' || !S || !S.cups) return {};
-  const keys=Object.keys(S.cups).filter(k=>S.cups[k]);
-  const info=keys.map(k=>({k, r:cupFirstPlayRoundReal(k)})).filter(x=>x.r<99).sort((a,b)=>a.r-b.r);
-  const out={}; let anterior=-99;
-  info.forEach(x=>{
-    const estreia=cupRoundMatchDay(x.r);
-    let dia=estreia-2;
-    if(dia-anterior<2) dia=anterior+2;          // dois sorteios nunca no mesmo dia (nem colados)
-    if(dia>estreia-1) dia=estreia-1;            // mas sempre antes da estreia da competição
-    dia=Math.max(2,dia);                        // nunca no dia 1
-    out[x.k]=dia; anterior=dia;
-  });
+  const out={};
+  Object.keys(S.cups).forEach(k=>{ if(S.cups[k]) out[k]=1; });   // dia 1: antes da primeira rodada
   return out;
 }
-/* a data do sorteio desta copa já chegou, considerando a semana que está sendo jogada agora? */
+/* a data do sorteio desta copa já chegou? Com as cerimônias todas no dia 1, isto é verdade desde
+   o começo do save — a função fica porque o resto do fluxo pergunta ("não há jogo antes do
+   sorteio da competição") e porque save antigo, no meio de uma temporada, ainda tem data velha. */
 function cupDrawReleased(key, round){
   const dia=cupSeasonDrawDays()[key];
   if(dia==null) return true;
-  return dia<=cupRoundMatchDay(round!=null?round:(S.round||0));
+  return dia<=cupRoundMatchDay(round!=null?round:(S.round||0), key);
 }
 /* enfileira as cerimônias cuja data chegou (uma vez por temporada). Devolve quantas entraram —
    quem chama usa isso pra mostrar o sorteio ANTES das partidas da rodada (ver clJogar). */

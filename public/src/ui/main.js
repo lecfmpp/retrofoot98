@@ -1364,9 +1364,11 @@ function clEntrar(){
   CL.humans={}; CL.draw.forEach(d=>CL.humans[d.clubId]=d.name);
   CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
   saveV3();
-  // mostra a Boas-vindas ao Clube antes da tela principal; só ao "continuar" dali é que
-  // checa o sorteio pendente da Copa do Brasil (mesmo timing de antes, só adiado)
-  showBoasVindas(()=>checkPendingCupDraws(()=>{}));
+  // BOAS-VINDAS -> SORTEIOS -> TELA DO CLUBE. Todos os sorteios de abertura acontecem aqui, no
+  // começo do jogo, um depois do outro (ver cupSeasonDrawDays: todos no dia 1) — é a partir deles
+  // que o calendário da temporada inteira está montado, pra todos os clubes do save. Antes cada
+  // cerimônia aparecia semanas adentro, na véspera da estreia da própria competição.
+  showBoasVindas(()=>startSeasonOpeningDraws());
 }
 
 /* ================= BOAS-VINDAS AO CLUBE (pós-sorteio, Solo e Resenha) =================
@@ -1375,8 +1377,22 @@ function clEntrar(){
    (onlineBeginSeason, net/local-transport.js, que chama showBoasVindas do mesmo jeito).
    Roda DEPOIS de newGame(): S/CL.clubId já existem, então usa dado real do save (orçamento,
    estádio, divisão) em vez de reconstruir tudo na mão. `onContinue` é o que cada chamador
-   quer rodar ao entrar de fato (Solo: checa sorteio pendente de copa; Resenha: nada, ela
-   trata isso nas transições de rodada). */
+   quer rodar ao entrar de fato — nos dois modos, os SORTEIOS DE ABERTURA de todas as
+   competições (ver startSeasonOpeningDraws). */
+/* ---- SORTEIOS DE ABERTURA, TODOS NO COMEÇO DO JOGO ----
+   Uma cerimônia depois da outra, na ordem de estreia das competições (cupDrawOrder), logo depois
+   das boas-vindas ao clube. Só a ABERTURA: chave da Copa do Brasil e fase de grupos das
+   continentais. O sorteio do mata-mata continua no meio da temporada, na data real dele — não há
+   como sortear oitavas antes de saber quem se classificou —, mas as DATAS dessas rodadas já estão
+   reservadas no calendário desde agora (ver ensureCupCalendar/buildCupSchedule). */
+function startSeasonOpeningDraws(onDone){
+  try{
+    if(typeof queueDueCupDraws==='function') queueDueCupDraws();
+    if(typeof ensureCupCalendar==='function') ensureCupCalendar(true);   // calendário montado a partir do sorteio
+  }catch(e){ console.warn('sorteios de abertura:', e&&e.message); }
+  if(typeof checkPendingCupDraws==='function') checkPendingCupDraws(onDone||function(){});
+  else if(onDone) onDone();
+}
 /* `opts.midSeason` = cheguei a este clube TROCANDO de time no meio da temporada (aceitei o
    convite de outro clube — ver showJobInvite). Muda só o texto: em vez de "a temporada começa
    agora", a tela reconhece que o campeonato já está rolando e que o treinador assume a partir da
@@ -4027,11 +4043,11 @@ function cupPhaseLabelFor(pending){
    o Calendário exibe (jornada em que esta rodada de copa acontece, ver S.cupCalendar). */
 function cupIntroDateHTML(pending){
   if(typeof realDateForDay!=='function' || typeof fmtRealDate!=='function') return '';
-  // MODELO DE DIAS (validado numa temporada inteira, 131 clubes, zero choques): dentro da semana
-  // corrente a copa é o jogo de MEIO DE SEMANA e a liga é o de fim de semana. A partida de copa
-  // jogada nesta sessão é a da semana de S.round — tique e semana coincidem desde que o avanço de
-  // copa passou pro começo da rodada (ver playRound no core).
-  const dia=1+(S.round||0)*7+3;                 // quarta-feira da semana atual
+  // O dia sai da COMPETIÇÃO (COMP_WEEKDAY no core), não de um offset fixo de meio de semana:
+  // Sul-Americana joga terça, Libertadores quinta, Copa do Brasil sexta. A partida jogada nesta
+  // sessão é a da semana de S.round — tique e semana coincidem desde que o avanço de copa passou
+  // pro começo da rodada (ver playRound no core).
+  const dia=(typeof cupMatchDay==='function') ? cupMatchDay(pending&&pending.key, S.round||0) : 1+(S.round||0)*7+3;
   try{ return ` <span class="cl-cupintro-date">· ${escC(fmtRealDate(realDateForDay(dia)))}</span>`; }
   catch(e){ return ''; }
 }
@@ -5383,7 +5399,7 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
       <div class="cl-live-cup-stage">${fl} ${escC(st.country)} · ${RL.jornada}ª Jornada</div></div>`; })() : '';
   // o dia entra junto da jornada: na partida ao vivo o jogador vê que aquele jogo é de um DIA
   // (quarta de copa ou fim de semana de liga), não de um bloco de semana indistinto.
-  const _liveDay = (typeof calRowDate==='function') ? calRowDate(Math.max(0,(RL.jornada||1)-1), !!RL.cup) : '';
+  const _liveDay = (typeof calRowDate==='function') ? calRowDate(Math.max(0,(RL.jornada||1)-1), RL.cup?(RL.cup.key||true):null) : '';
   const topLabel = `${RL.jornada}ª Jornada - ${S.season}${_liveDay?' · '+_liveDay:''}`;
   const shootoutBoard = RL.pens ? shootoutScoreboardHTML(RL) : '';
   const camAberto = !!(userMatch && camOn());
@@ -7204,8 +7220,11 @@ function nextCupJornada(key, stepsAhead){
     // >= S.round (e não S.round+1): a copa da semana CORRENTE é a que o jogador está prestes a
     // jogar nesta sessão — ela tem que aparecer no Calendário como o próximo jogo, não sumir.
     const futuras=cal.filter(j=>j>=S.round);
-    if(futuras.length) return futuras[Math.min(stepsAhead||0, futuras.length-1)];
-    return cal[cal.length-1];
+    const n=stepsAhead||0;
+    // EXTRAPOLA em vez de grampear (mesmo motivo do cupJornadaOfRound): com o Math.min, todas as
+    // rodadas de grupo que sobravam além da tabela viravam linhas na MESMA data do Calendário.
+    if(futuras.length) return n<futuras.length ? futuras[n] : futuras[futuras.length-1]+(n-futuras.length+1)*3;
+    return cal[cal.length-1] + (n+1)*3;
   }
   let j=S.round+1; while(!cupTickMatchesRound(key,j)) j++;
   return j + (stepsAhead||0)*3;
@@ -7231,10 +7250,17 @@ function cupWeekOfTick(tick){ return Math.max(0, tick||0); }
 function cupRowWeek(tick){ return cupWeekOfTick(tick); }
 function cupJornadaOfRound(key, r){
   const cal=(S.cupCalendar&&S.cupCalendar[key])||null;
-  if(cal && cal.length) return cal[Math.min(Math.max(1,r)-1, cal.length-1)];
+  const i=Math.max(1,r)-1;
+  if(cal && cal.length){
+    if(i<cal.length) return cal[i];
+    // FORA DA TABELA: extrapola em vez de grampear no último slot. O Math.min de antes fazia
+    // TODAS as rodadas excedentes caírem na MESMA jornada — várias linhas da mesma competição
+    // no mesmo dia do Calendário, que é o "dois jogos de Sul-Americana no mesmo dia" relatado.
+    return cal[cal.length-1] + (i-(cal.length-1))*3;
+  }
   const off=CUP_TICK_OFFSET[key]||0;
   const first=off>=1?off:3;              // offset 0 -> só bate na jornada 3 (jornada 0 não existe)
-  return first + (Math.max(1,r)-1)*3;
+  return first + i*3;
 }
 /* TODOS os confrontos de copa JÁ JOGADOS do clube do usuário, com placar — em qualquer
    competição (Copa do Brasil, Libertadores, Sul-Americana / Champions, Europa), tanto no
@@ -7342,7 +7368,8 @@ function userCupDrawRows(){
    com o MESMO rótulo e nada dizia que uma era no meio da semana e a outra no fim. Era exatamente a
    confusão entre competições: duas linhas iguais, dias diferentes.
    O modelo de dias (validado numa temporada inteira, 131 clubes, zero choques): dentro da semana N
-   a copa é quarta (dia 1+N*7+3) e a liga é sábado (dia 1+N*7+6). */
+   cada competição tem o SEU dia da semana, fixo e igual pra todos os clubes que a disputam —
+   ver COMP_WEEKDAY/leagueMatchDay/cupMatchDay no core. */
 /* DIA DO PRÓXIMO JOGO — o mesmo modelo do Calendário, para o fluxo que o usuário percorre a cada
    rodada. O jogo passou a acontecer POR DIA (copa na quarta, liga no fim de semana da mesma
    semana), mas isso só aparecia na lista do Calendário: na tela do clube, na entrada em campo e na
@@ -7350,14 +7377,53 @@ function userCupDrawRows(){
    acompanha o jogador em todas essas telas, que é o que faz a mecânica nova ficar entendível. */
 function nextMatchDayLabel(nm){
   if(!nm || typeof calRowDate!=='function') return '';
-  try{ return calRowDate((S.round||0), nm.kind==='cup'); }catch(e){ return ''; }
+  try{ return calRowDate((S.round||0), nm.kind==='cup'?(nm.cupKey||true):null); }catch(e){ return ''; }
 }
-function calRowDate(n, isCup){
+/* `comp`: chave da competição de copa, ou nada/false pra rodada de liga. O dia da semana é FIXO
+   por competição (COMP_WEEKDAY/leagueMatchDay no core) — liga gira segunda/quarta/sábado,
+   Sul-Americana joga terça, Libertadores quinta, Copa do Brasil sexta. Como o dia sai só da
+   competição e da jornada, todos os clubes que disputam a mesma competição veem a MESMA data. */
+function calRowDay(n, comp){
+  return comp
+    ? (typeof cupMatchDay==='function' ? cupMatchDay(typeof comp==='string'?comp:null, n||0) : 1+(n||0)*7+3)
+    : (typeof leagueMatchDay==='function' ? leagueMatchDay(n||0) : 1+(n||0)*7+6);
+}
+function calRowDate(n, comp){
   if(typeof realDateForDay!=='function') return '';
-  const dia = 1 + (n||0)*7 + (isCup?3:6);
-  const d=realDateForDay(dia);
+  const d=realDateForDay(calRowDay(n, comp));
   const SEM=['dom','seg','ter','qua','qui','sex','sáb'];
   return SEM[d.getDay()]+' '+fmtRealDate(d);
+}
+/* ---- FOLGA: DIA DE RODADA EM QUE O MEU CLUBE NÃO ENTRA EM CAMPO ----
+   A rodada de cada competição é do mundo, não do clube: ela acontece no mesmo dia pra todo mundo,
+   dispute o clube ou não. Antes, o dia de uma competição que eu não jogo simplesmente NÃO EXISTIA
+   no meu Calendário — sumia da lista, e não havia como saber que havia rodada rolando naquela
+   data (nem por que os outros clubes tinham jogo e eu não). Agora o dia aparece igual, vazio e
+   marcado como Folga: vale pra copa que eu não disputo (ou de que fui eliminado) e pra jornada de
+   liga em que o meu clube pegou bye. */
+function calFolgaRows(cupRows, ligaRows){
+  const out=[];
+  const linha=(key,w,label)=>{
+    const data=calRowDate(w,key||false);
+    return {n:w+1, ord:key?0:1, dia:calRowDay(w,key||false), html:
+    `<div class="cl-cal-row cl-cal-folga" title="${escC(label)} — o seu clube não joga esta rodada">
+      <span class="cl-cal-n" data-d="${escC(data)}">${w+1}ª</span><span class="cl-cal-d">${escC(data)}</span>
+      <span class="cl-cal-t">${key?'🏆 ':'⚽ '}<span class="cl-cal-comp">${escC(label)} · </span><i>Folga</i></span>
+      <span class="cl-cal-r"></span><span class="cl-cal-cf"></span></div>`};
+  };
+  try{
+    const tem=new Set();
+    (cupRows||[]).forEach(r=>{ if(r.key!=null && r.w!=null) tem.add(r.key+':'+r.w); });
+    (ligaRows||[]).forEach(r=>{ if(r.w!=null) tem.add('_liga:'+r.w); });
+    const cal=S.cupCalendar||{};
+    Object.keys(cal).forEach(key=>{
+      if(key==='_season' || !Array.isArray(cal[key]) || !COMP_DEFS[key] || !(S.cups&&S.cups[key])) return;
+      cal[key].forEach(j=>{ if(!tem.has(key+':'+j)) out.push(linha(key, j, COMP_DEFS[key].short)); });
+    });
+    const nJorn=(Array.isArray(S.sched)&&S.sched.length)||0;
+    for(let i=0;i<nJorn;i++) if(!tem.has('_liga:'+i)) out.push(linha(null, i, divisionLabel()));
+  }catch(e){ console.warn('folgas do calendário:', e&&e.message); }
+  return out;
 }
 function clCalendar(){
   // intercala copa, sorteio e liga por jornada (ver nextCupJornada/jornadaForRealDate) —
@@ -7378,13 +7444,14 @@ function clCalendar(){
     const comp=COMP_DEFS[pc.key].short;
     const advTxt = pc.opp?clubLink(pc.opp):'<i>adversário a definir</i>';
     const fase = pc.phase?' · '+escC(pc.phase):'';
-    return {n:pc.n, ord:0, html:
+    return {n:pc.n, ord:0, key:pc.key, w:pc.w, dia:calRowDay(pc.w,pc.key), html:
     `<div class="cl-cal-row cl-cal-cup" title="${escC(comp+(pc.phase?' · '+pc.phase:''))}">
-      <span class="cl-cal-n" data-d="${escC(calRowDate(pc.w,true))}">${pc.n}ª</span><span class="cl-cal-d">${calRowDate(pc.w,true)}</span>
+      <span class="cl-cal-n" data-d="${escC(calRowDate(pc.w,pc.key))}">${pc.n}ª</span><span class="cl-cal-d">${calRowDate(pc.w,pc.key)}</span>
       <span class="cl-cal-t">🏆 <span class="cl-cal-comp">${escC(comp)}${fase} · </span>${advTxt}</span>
       <span class="cl-cal-r">${extra}</span><span class="cl-cal-cf">${pc.home==null?'':pc.home?'C':'F'}</span></div>`};
   });
-  const drawRows=userCupDrawRows().map(dr=>({n:dr.n, ord:0, html:
+  const drawRows=userCupDrawRows().map(dr=>({n:dr.n, ord:0,
+    dia:(typeof dayForRealDate==='function')?dayForRealDate(dr.date):null, html:
     `<div class="cl-cal-row cl-cal-draw" title="${dr.abertura?'Sorteio':'Sorteio das oitavas'} — ${escC(COMP_DEFS[dr.key].short)}">
       <span class="cl-cal-n" data-d="${escC(fmtRealDate(dr.date))}">${dr.n}ª</span><span class="cl-cal-d">${escC(fmtRealDate(dr.date))}</span>
       <span class="cl-cal-t">🎲 ${dr.abertura?'Sorteio':'Sorteio das oitavas'} — ${escC(COMP_DEFS[dr.key].short)}</span>
@@ -7397,13 +7464,18 @@ function clCalendar(){
     const chipTxt = !played ? '' : r.myG>r.oppG?'V' : r.myG<r.oppG?'D' : 'E';
     const chip = played?`<span class="cl-res-chip ${chipCls}">${chipTxt}</span> `:'';
     const score=played?`<b>${r.myG}-${r.oppG}</b>`:'';
-    return {n:r.n, ord:1, html:
+    return {n:r.n, ord:1, w:r.w, dia:calRowDay(r.w,false), html:
     `<div class="cl-cal-row">
       <span class="cl-cal-n" data-d="${escC(calRowDate(r.w,false))}">${r.n}ª</span><span class="cl-cal-d">${calRowDate(r.w,false)}</span>
       <span class="cl-cal-t">${clubLink(r.opp)}</span>
       <span class="cl-cal-r">${chip}${score}</span><span class="cl-cal-cf">${r.home?'C':'F'}</span></div>`};
   });
-  const rows=cupRows.concat(drawRows).concat(ligaRows).sort((a,b)=>a.n-b.n || a.ord-b.ord).map(r=>r.html).join('');
+  // ORDENA PELO DIA DE VERDADE. Com um dia da semana próprio por competição, "copa antes da liga
+  // na mesma jornada" deixou de ser a ordem real: a Libertadores é quinta e a liga da mesma
+  // semana pode cair na segunda. `ord` fica só como desempate de linhas do mesmo dia.
+  const rows=cupRows.concat(drawRows).concat(ligaRows).concat(calFolgaRows(cupRows, ligaRows))
+    .sort((a,b)=>(a.dia!=null&&b.dia!=null ? a.dia-b.dia : a.n-b.n) || a.n-b.n || a.ord-b.ord)
+    .map(r=>r.html).join('');
   const head=`<div class="cl-cal-head"><span>Rod.</span><span>Data</span><span>Confronto</span><span class="r">Result.</span><span class="c">C/F</span></div>`;
   overlayC(dlg('Calendário', `<div class="cl-cal cl-cal-sched">${head}${rows}</div>`,
     {std:true, footer:btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}));

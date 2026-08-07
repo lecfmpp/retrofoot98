@@ -635,11 +635,6 @@ function cupTickMatchesRound(S: any, key: string, round: number) {
   return round % 3 === CUP_TICK_OFFSET[key];
 }
 const CUP_KO_SPREAD = 4, CUP_LEAGUE_TAIL = 2;
-function cupLaneSlotsS(key: string, lastLeagueRound: number) {
-  const o = CUP_TICK_OFFSET[key]; if (o == null) return [] as number[];
-  const out: number[] = []; for (let j = (o >= 1 ? o : 3); j <= lastLeagueRound; j += 3) out.push(j);
-  return out;
-}
 function cupTotalRoundsS(S: any, key: string) {
   const c = S.cups && S.cups[key]; if (!c) return 0;
   if (key === 'copaBrasil') return c.roundsTotal || 0;
@@ -650,17 +645,23 @@ function cupTotalRoundsS(S: any, key: string) {
   }
   return (c.bracket && c.bracket.roundsTotal) || 0;
 }
+/* ESTRITAMENTE CRESCENTE: nunca duas rodadas da mesma competição na mesma jornada (dois jogos do
+   mesmo clube no mesmo dia) e nunca uma rodada descartada (competição sem final). Porte fiel do
+   buildCupSchedule do core.js — se mexer em um, mexer no outro. */
 function buildCupScheduleS(key: string, total: number, lastLeagueRound: number) {
   if (!total || total < 1) return [] as number[];
-  const slots = cupLaneSlotsS(key, Math.max(0, lastLeagueRound - CUP_LEAGUE_TAIL));
-  if (!slots.length) return [] as number[];
-  const nDense = Math.max(0, total - CUP_KO_SPREAD);
-  const out = slots.slice(0, nDense);
-  const rest = slots.slice(nDense); if (!rest.length) return out;
-  const nSpread = Math.min(total - out.length, CUP_KO_SPREAD);
-  for (let i = 0; i < nSpread; i++) {
-    const pos = nSpread === 1 ? rest.length - 1 : Math.round(i * (rest.length - 1) / (nSpread - 1));
-    out.push(rest[pos]);
+  const first = (CUP_TICK_OFFSET[key] >= 1) ? CUP_TICK_OFFSET[key] : 3;
+  const teto = Math.max(first + total - 1, (lastLeagueRound || 0) - CUP_LEAGUE_TAIL);
+  let step = 3;
+  while (step > 1 && first + (total - 1) * step > teto) step--;
+  const out: number[] = []; for (let i = 0; i < total; i++) out.push(first + i * step);
+  const folga = teto - out[out.length - 1];
+  if (folga > 0 && total > 1) {
+    const n = Math.min(CUP_KO_SPREAD, total - 1);
+    for (let i = 0; i < n; i++) {
+      const idx = total - n + i;
+      out[idx] = Math.max(out[idx - 1] + 1, out[idx] + Math.round(folga * (i + 1) / n));
+    }
   }
   return out;
 }
