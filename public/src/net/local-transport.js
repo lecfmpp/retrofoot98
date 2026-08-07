@@ -446,6 +446,7 @@ function onlineReconcileIfBehind(room){
     if(!newer && typeof hideSyncLoading==='function') hideSyncLoading(); // nada pra adotar afinal -> não trava o loading
     if(newer){
       const isTurnover = (sState.season||0) > oldSeason; // VIRADA de temporada (rodada volta a 0)
+      const _roundAntes = (S.round||0);                  // jornada que acabou de ser resolvida (ver queueRoundCupClassifs)
       const _career=(typeof snapshotCareer==='function')?snapshotCareer():null; // carreira é minha, não do anfitrião (ver CAREER_KEYS)
       Object.assign(S, sState);
       if(typeof restoreCareer==='function') restoreCareer(_career);
@@ -489,10 +490,19 @@ function onlineReconcileIfBehind(room){
         // depois (2) a CLASSIFICAÇÃO pós-rodada. Ao terminar (Continuar/10s), o loop dispara a próxima.
         const _showClassif=()=>{
           if(typeof hideSyncLoading==='function') hideSyncLoading();
-          const go=()=>{
+          const liga=()=>{
             if(typeof showLiveClassif==='function') showLiveClassif();
             if(typeof checkPendingManagerEvents==='function') checkPendingManagerEvents();
             if(typeof handleResenhaCareer==='function') handleResenhaCareer(); // demissão/convite na Resenha — idem host
+          };
+          // AS COPAS DA JORNADA VÊM ANTES DA TABELA DA LIGA — E ESTE É O CAMINHO DO CONVIDADO.
+          // Era AQUI que morria a regra "todo mundo vê a classificação de todas as competições":
+          // queueRoundCupClassifs existia só no onlineAdoptServerRound, que é o caminho de quem
+          // FECHA a rodada (o anfitrião). O convidado espelha o estado por este reconcile e ia
+          // direto pra tabela da liga — por isso só UM humano via a classificação da copa.
+          const go=()=>{
+            if(typeof queueRoundCupClassifs==='function') queueRoundCupClassifs(_roundAntes, liga);
+            else liga();
           };
           if(typeof adGate==='function') adGate(go); else go(); // janela de publicidade (ver adGate em main.js)
         };

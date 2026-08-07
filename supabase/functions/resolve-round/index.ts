@@ -861,17 +861,31 @@ function advanceGroupStageRoundS(S: any, mg: any, roundLabel: string, cupResultB
   mg.round++;
   if (mg.round >= mg.roundsTotal) mg.finished = true;
 }
+/* UMA RODADA POR COMPETIÇÃO POR JORNADA. O cliente já tinha esta trava (`jaResolvida` no
+   advancePendingCups do core.js): quando o humano joga a partida de copa ao vivo, o
+   resolveCupRoundRest resolve o RESTO daquela rodada na hora e carimba S._cupResolvedRound[key].
+   O servidor não olhava esse carimbo — então, ao fechar a quarta, ele avançava a competição DE
+   NOVO na mesma jornada. Resultado no Calendário do jogador: dois jogos da mesma competição no
+   mesmo dia (medido: duas rodadas de grupo da Libertadores em 04/mar, e Copa do Brasil com 2ª
+   fase e 16 avos juntas). O carimbo viaja no shared_state, então basta lê-lo — e escrevê-lo,
+   pra uma segunda chamada do próprio servidor também ser inócua. */
 function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>) {
   if (!S.cups) return;
-  if (cupTickMatchesRound(S, 'copaBrasil', S.round)) {
+  S._cupResolvedRound = S._cupResolvedRound || {};
+  const jaResolvida = (k: string) => S._cupResolvedRound[k] === S.round;
+  const marcar = (k: string) => { S._cupResolvedRound[k] = S.round; };
+  if (cupTickMatchesRound(S, 'copaBrasil', S.round) && !jaResolvida('copaBrasil')) {
     const cb = S.cups.copaBrasil;
-    if (cb && !cupIsFinished(cb) && cb.ties && cb.ties.length) advanceCupBracket(S, cb, 'copaBrasil-r' + cb.round, cupResultByFx, humans);
+    if (cb && !cupIsFinished(cb) && cb.ties && cb.ties.length) {
+      advanceCupBracket(S, cb, 'copaBrasil-r' + cb.round, cupResultByFx, humans); marcar('copaBrasil');
+    }
   }
   GROUP_CUP_KEYS.forEach((key) => {
     if (!cupTickMatchesRound(S, key, S.round)) return;
+    if (jaResolvida(key)) return;
     const c = S.cups[key]; if (!c) return;
     if (c.group && !c.bracket) {
-      if (!c.group.finished) advanceGroupStageRoundS(S, c.group, key + '-grupo-r' + c.group.round, cupResultByFx);
+      if (!c.group.finished) { advanceGroupStageRoundS(S, c.group, key + '-grupo-r' + c.group.round, cupResultByFx); marcar(key); }
       if (c.group.finished) {
         const drawDate = (S.season === 2026) ? COMP_R16_DRAW_2026[key] : null;
         if (!drawDate || realDateForDayS(S.day) >= drawDate) {
@@ -879,7 +893,7 @@ function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>) {
         }
       }
     } else if (c.bracket && !cupIsFinished(c.bracket) && c.bracket.ties && c.bracket.ties.length) {
-      advanceCupBracket(S, c.bracket, key + '-r' + c.bracket.round, cupResultByFx, humans);
+      advanceCupBracket(S, c.bracket, key + '-r' + c.bracket.round, cupResultByFx, humans); marcar(key);
     }
   });
 }
