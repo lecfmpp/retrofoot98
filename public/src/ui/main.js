@@ -7207,10 +7207,22 @@ function finishCupResultFlow(){
      A competição é a do PONTEIRO: é o dia que está sendo cumprido, não a minha lista. */
   const _dHoje=(typeof NET!=='undefined' && NET.room)?NET.room.day:null;
   if(_dHoje && _dHoje.comp!=='liga' && typeof cupDayMarkDone==='function') cupDayMarkDone(_dHoje.comp);
-  // e se a sala já está no momento da tabela, vou direto para ela — sem piscar a tela do clube no
-  // meio, que foi como o anfitrião viu a classificação "depois" em vez de junto.
-  if(typeof onlineMomentScreenTick==='function') onlineMomentScreenTick();
-  if(CL.screen==='cupclassif') return;
+  /* IR PARA A TABELA SÓ SE EU AINDA NÃO A VI — e esta condição não é detalhe, é a diferença entre
+     duas situações opostas que passam por esta mesma linha:
+       · acabei a minha partida e a tabela do dia ainda está por ver -> vou direto para ela, sem
+         piscar a tela do clube no meio (foi como o anfitrião a viu "depois" em vez de junto);
+       · acabei de SAIR da tabela (cupClassifContinue termina aqui) -> tenho que seguir para a tela
+         do clube.
+     Sem a condição, o segundo caso caía no `return` abaixo com a tela ainda em 'cupclassif': o
+     jogador ficava parado numa classificação já marcada como vista, sem cronômetro nenhum armado,
+     e o destravamento de 10s só o trazia de volta para cá — em círculo. Foi o convidado preso no
+     dia 5. */
+  const _tabelaPorVer = !!(_dHoje && _dHoje.comp!=='liga' && typeof cupClassifWasShown==='function'
+                           && !cupClassifWasShown(_dHoje.comp, S.round||0));
+  if(_tabelaPorVer){
+    if(typeof onlineMomentScreenTick==='function') onlineMomentScreenTick();
+    if(CL.screen==='cupclassif') return;
+  }
   const _cupStage = (typeof isCupStage==='function' && isCupStage());
   const stillPending = CL.online && (pendingUserCupMatches().length>0 || (!_cupStage && CL._playedRound!==S.round));
   if(CL.online && !stillPending){
@@ -9699,10 +9711,21 @@ function onlineMomentScreenTick(){
   const d=NET.room.day; if(!d || d.moment!=='classificacao' || d.comp==='liga') return;
   if(d.round!==(S.round||0)) return;
   if(CL.live || CL._liveBusy || CL._cupIntro || CL._leagueIntro) return;
+  const _vista=(typeof cupClassifWasShown==='function') && cupClassifWasShown(d.comp, S.round||0);
+  /* TELA DE CLASSIFICAÇÃO JÁ CUMPRIDA E SEM CRONÔMETRO ARMADO = TELA MORTA. Não há mais nada para
+     acontecer ali: a tabela já foi marcada como vista e nenhum relógio vai tirar o jogador dela.
+     Ficar é travar a sala inteira, porque 'cupclassif' conta como ocupado. Esta rede existe porque
+     esta classe de defeito já me pegou duas vezes — é barata e o custo de errar para o outro lado
+     (sair de uma tela que ainda tinha o que mostrar) é zero, já que a marca de "vista" só é
+     gravada na saída legítima. */
+  if(CL.screen==='cupclassif' && _vista && !CL._cupFlowTimer){
+    console.warn('classificação da '+d.comp+' já vista e sem cronômetro — voltando à tela do clube');
+    CL.screen='main'; CL.tab='jogo'; cdraw(); return;
+  }
   // não atravessa nenhuma tela que já é do fluxo (inclusive a própria)
   if(CL.screen==='cupclassif' || CL.screen==='cupdraw' || CL.screen==='classif'
      || CL.screen==='seatclassif' || CL.screen==='live') return;
-  if(typeof cupClassifWasShown==='function' && cupClassifWasShown(d.comp, S.round||0)) return;
+  if(_vista) return;
   if(typeof roomDayNadaACumprir==='function' && roomDayNadaACumprir(d.comp)) return;  // nada aconteceu hoje
   if(typeof showCupClassif!=='function') return;
   showCupClassif(d.comp, S.round||0);
