@@ -7387,10 +7387,29 @@ function userCupPlayedRows(){
    esse gate de "véspera da rodada". Na fase de grupos lista TODAS as rodadas restantes
    (não só a próxima); no mata-mata só dá pra saber o confronto da rodada atual — o
    próximo adversário só é conhecido depois que essa rodada terminar, igual na vida real. */
+/* NADA DE COPA APARECE ANTES DO SORTEIO DELA.
+   A chave e os grupos são criados no newGame (initSeasonCups) — a cerimônia é só a REVELAÇÃO
+   disso. Como o Calendário lê o estado direto, ele mostrava adversário e mando de Libertadores,
+   Sul-Americana e Copa do Brasil semanas antes do sorteio acontecer: o jogador via o próprio
+   chaveamento antes de ser sorteado. Agora cada competição só entra na lista depois da data do
+   seu sorteio (02/03, 11/03, 21/03 — ver cupSeasonDrawDays). Antes disso o que aparece é a linha
+   da própria cerimônia (userCupDrawRows), que é a informação honesta naquele momento. */
+/* "hoje" é o dia da jornada que estou jogando (leagueMatchDay), não o dia da própria copa —
+   cupDrawReleased compara com a data da COMPETIÇÃO, o que é certo pra liberar a partida e cedo
+   demais pra exibir no Calendário (a Libertadores sorteia 02/03 e estreia 04/03: no dia 01/03 o
+   confronto ainda não pode aparecer). */
+function cupRevelada(key){
+  try{
+    const dia=(typeof cupSeasonDrawDays==='function')?cupSeasonDrawDays()[key]:null;
+    if(dia==null) return true;
+    const hoje=(typeof leagueMatchDay==='function')?leagueMatchDay(S.round||0):(1+(S.round||0)*7);
+    return dia<=hoje;
+  }catch(e){ return true; }
+}
 function userCupCalendarRows(){
   if(!S.cups || !CL.clubId) return [];
   const out=[];
-  const cb=S.cups.copaBrasil;
+  const cb=cupRevelada('copaBrasil') ? S.cups.copaBrasil : null;
   // mostra a Copa do Brasil sempre que o clube estiver CLASSIFICADO (cupCompetitionTeamAlive),
   // não só quando o confronto da fase atual já existe em cb.ties. Entre fases (o clube avançou
   // mas o próximo chaveamento ainda não foi montado, ou passou por um bye) ele fica "vivo" pelo
@@ -7403,6 +7422,7 @@ function userCupCalendarRows(){
       home: tie ? (tie.h===CL.clubId) : null});
   }
   groupCupKeys().forEach(key=>{
+    if(!cupRevelada(key)) return;              // sorteio ainda não aconteceu: nada de confronto
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket && !c.group.finished){
       const mg=c.group;
@@ -7499,6 +7519,7 @@ function calFolgaRows(cupRows, ligaRows){
     const cal=S.cupCalendar||{};
     Object.keys(cal).forEach(key=>{
       if(key==='_season' || !Array.isArray(cal[key]) || !COMP_DEFS[key] || !(S.cups&&S.cups[key])) return;
+      if(!cupRevelada(key)) return;   // antes do sorteio nem "Folga" faz sentido: não se sabe se o clube joga
       cal[key].forEach(j=>{ if(!tem.has(key+':'+j)) out.push(linha(key, j, COMP_DEFS[key].short)); });
     });
     const nJorn=(Array.isArray(S.sched)&&S.sched.length)||0;
