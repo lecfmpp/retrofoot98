@@ -1315,10 +1315,11 @@ function clSortear(){
 /* cerimônia do sorteio no solo — mesmo desenho da Resenha (ver scResenhaDraw) */
 function scSorteio(){
   const d=CL.soloDraw||{list:[],idx:0};
+  const poolById=d.poolById||{};
   const rows=(d.list||[]).map((p,i)=>{
     const revelado=i<d.idx;
     if(!revelado) return `<div class="cl-rdraw-row pending"><span class="cl-rdraw-num">${i+1}</span><span class="cl-rdraw-name muted">${escC(p.name||'Treinador')}</span><span class="cl-rdraw-arrow">→</span><span class="cl-rdraw-team q">🎲</span></div>`;
-    const c=clubOf(p.clubId)||(typeof anyClubOf==='function'?anyClubOf(p.clubId):null);
+    const c=clubOf(p.clubId)||poolById[p.clubId];   // ver startSoloDraw: S/DATA.clubs ainda não valem aqui
     const ultimo=(i===d.idx-1)&&!d.done;
     return `<div class="cl-rdraw-row revealed${ultimo?' pop':''}">
       <span class="cl-rdraw-num">${i+1}</span>
@@ -1328,9 +1329,9 @@ function scSorteio(){
     </div>`;
   }).join('');
   const sub=d.done?'Sorteio concluído! Preparando a temporada… ⚽':'Sorteando os clubes… boa sorte!';
-  const action=d.done
-    ? `<span class="cl-wiz-hint">Preparando a temporada…</span>`
-    : btn('Pular','clSoloDrawSkip()',{icon:'⏩',cls:'cl-wiz-cta'});
+  // SEM "PULAR": não há o que pular aqui — o clube ainda está sendo sorteado, e o botão só
+  // convidava a sair da cerimônia antes de saber qual time saiu. A tela segue sozinha.
+  const action=`<span class="cl-wiz-hint">${d.done?'Preparando a temporada…':'Aguarde o sorteio…'}</span>`;
   return wizShell({ title:'Sorteio dos clubes', contentCls:'cl-wiz-center',
     body:`<div class="cl-rdraw"><div class="cl-rdraw-sub">${sub}</div><div class="cl-rdraw-list">${rows}</div></div>`,
     action });
@@ -1674,7 +1675,9 @@ function startClubsForCountry(country){
 }
 function buildPickPool(){
   const pool={};
-  selectedPlayableCountries().forEach(c=>{ pool[c]=startClubsForCountry(c).map(x=>({id:x.id,short:x.short,name:x.name})); });
+  // as cores viajam junto: a cerimônia do sorteio (scSorteio) pinta a faixa do clube revelado a
+  // partir DESTE pool — DATA.clubs ainda é o bundle da Série A quando o sorteio roda.
+  selectedPlayableCountries().forEach(c=>{ pool[c]=startClubsForCountry(c).map(x=>({id:x.id,short:x.short,name:x.name,color:x.color,color2:x.color2})); });
   setUniverse('brasil'); // reset — clConfirmarClubes/clEntrar seta o universo certo depois
   return pool;
 }
@@ -1757,23 +1760,33 @@ function startSoloDraw(){
   const list=(CL.pick||[]).filter(p=>p&&p.clubId).map(p=>({name:p.name||'Treinador', clubId:p.clubId}));
   if(!list.length){ CL._pendingLaunch=clConfirmarClubes; CL.screen='loading'; cdraw(); return; }
   if(CL._soloDrawTimer){ clearTimeout(CL._soloDrawTimer); CL._soloDrawTimer=null; }
-  CL.soloDraw={ list, idx:0, done:false, fast:false };
+  // DE ONDE SAI O CLUBE REVELADO. A cerimônia roda ANTES de newGame(): S ainda é null e
+  // DATA.clubs ainda é o bundle da Série A, então clubOf() não acha quem foi sorteado numa
+  // divisão de baixo ou noutro país. O pool do sorteio (CL._pickPool, montado por país em
+  // buildPickPool) é a fonte certa — mesma solução da cerimônia da Resenha, que já leva o
+  // poolById dela. Sem isto o desenho estourava na PRIMEIRA revelação e a cerimônia congelava
+  // em "Sorteando os clubes…" pra sempre.
+  const poolById={};
+  Object.values(CL._pickPool||{}).forEach(arr=>(arr||[]).forEach(c=>{ poolById[c.id]=c; }));
+  CL.soloDraw={ list, idx:0, done:false, poolById };
   CL.screen='sorteio'; cdraw();
   CL._soloDrawTimer=setTimeout(soloDrawTick, 700);   // respiro antes do primeiro nome
 }
 function soloDrawTick(){
   const d=CL.soloDraw; if(!d) return;
+  // O PRÓXIMO PASSO É ARMADO ANTES DO DESENHO: se a linha de um clube falhar ao renderizar, a
+  // cerimônia segue em frente em vez de congelar (era o que travava o sorteio do solo — o
+  // cdraw() estourava e levava junto o setTimeout que vinha depois dele).
   if(d.idx>=d.list.length){
-    d.done=true; cdraw();
-    CL._soloDrawTimer=setTimeout(()=>{ CL.soloDraw=null; CL._pendingLaunch=clConfirmarClubes; CL.screen='loading'; cdraw(); }, d.fast?500:1600);
+    d.done=true;
+    CL._soloDrawTimer=setTimeout(()=>{ CL.soloDraw=null; CL._pendingLaunch=clConfirmarClubes; CL.screen='loading'; cdraw(); }, 1600);
+    cdraw();
     return;
   }
-  d.idx++; cdraw();
-  CL._soloDrawTimer=setTimeout(soloDrawTick, d.fast?250:2000);
+  d.idx++;
+  CL._soloDrawTimer=setTimeout(soloDrawTick, 2000);
+  cdraw();
 }
-function clSoloDrawSkip(){ const d=CL.soloDraw; if(!d||d.done) return; d.fast=true;
-  if(CL._soloDrawTimer){ clearTimeout(CL._soloDrawTimer); CL._soloDrawTimer=null; }
-  soloDrawTick(); }
 function clPickCountry(i,c){ if(!CL.pick[i])return; CL.pick[i].country=c; CL.pick[i].clubId=null; cdraw(); }
 function clPickClub(i,id){ if(!CL.pick[i])return; CL.pick[i].clubId=id||null; cdraw(); }
 function clGoJogadores(){ CL.screen='jogadores'; cdraw(); }
@@ -2158,10 +2171,12 @@ function divisionLabel(){ return divisionLabelOf(S.division); }
    ou clube continental criado sob demanda (adversário de copa pode ser qualquer um destes). */
 function anyClubOf(id){
   if(id==null) return null;
+  // S é null nas telas ANTES do jogo começar (assistente do solo, cerimônia do sorteio) — sem
+  // esta guarda, qualquer tela de pré-jogo que caísse aqui estourava e parava o desenho no meio.
   return clubOf(id)
     || (typeof bgClubById==='function' && bgClubById(id))
-    || (S.intlClubs && S.intlClubs[id])
-    || (S.clubPool && S.clubPool[id])
+    || (S && S.intlClubs && S.intlClubs[id])
+    || (S && S.clubPool && S.clubPool[id])
     || null;
 }
 /* ---- QUAL É O MEU PRÓXIMO JOGO (fonte ÚNICA) ----
@@ -6707,23 +6722,35 @@ async function onlineAdoptServerRound(RL){
   if((S.round||0)===_roundAntes){
     checkPendingCupDraws(()=>{
       hideSyncLoading();
-      CL._playedRound=-1; CL.screen='main'; CL.tab='jogo'; cdraw();
+      CL._playedRound=-1;
+      // RODADA COLETIVA: fechada a quarta, a classificação de cada copa que entrou em campo
+      // aparece pra TODO MUNDO — e este é o momento em que ela é a mesma pra todos, porque o
+      // estado já é o que o servidor resolveu. Quem jogou a competição e já leu a chave logo
+      // depois do apito não repete a tela (ver cupClassifWasShown); quem não disputa vê aqui,
+      // com o painel de dicas + patrocinador no lugar da faixa de resultado.
+      queueRoundCupClassifs(S.round, ()=>{ CL.screen='main'; CL.tab='jogo'; cdraw(); });
     });
     return;
   }
   checkPendingCupDraws(()=>{
     hideSyncLoading();
     adGate(()=>{                                   // janela de publicidade: segura a classificação (ver adGate)
-      const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
-      if(seats.length) startPostRoundClassifs(seats); else showLiveClassif();
-      checkPendingManagerEvents();
-      if(typeof handleResenhaCareer==="function") handleResenhaCareer(); // Fase 2: demissão/convite na Resenha
+      // as copas da jornada vêm ANTES da tabela da liga — mesma ordem em que foram jogadas na
+      // semana (quarta antes de sábado). Na semana de dois estágios elas já foram vistas no
+      // fechamento da quarta e são puladas; aqui cobrem a semana que degradou pra um estágio só.
+      queueRoundCupClassifs(_roundAntes, ()=>{
+        const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
+        if(seats.length) startPostRoundClassifs(seats); else showLiveClassif();
+        checkPendingManagerEvents();
+        if(typeof handleResenhaCareer==="function") handleResenhaCareer(); // Fase 2: demissão/convite na Resenha
+      });
     });
   });
 }
 /* commit de uma rodada de liga — extraído do fim de finishLiveRound pra ser reusado depois
    da fila de partidas hotseat (FASE 2). humanResults = {fxKey:{hg,ag,scorers,perf,events}}. */
 function _commitLeagueRound(RL, userResult, humanResults, allEvents, _auditPayload){
+  const _roundJogado=S.round;   // playRound() adianta o S.round; a rodada das copas é esta (ver queueRoundCupClassifs)
   // disciplina/lesões: cumpre suspensões pendentes e aplica os incidentes NOVOS desta rodada
   // (precisa vir ANTES de playRound() pra ratePlayers() enxergar S._roundIncidents)
   advancePlayerAvailability();
@@ -6758,11 +6785,16 @@ function _commitLeagueRound(RL, userResult, humanResults, allEvents, _auditPaylo
   // Depois da classificação, se houver demissão/proposta pendente desta rodada, mostra o modal.
   queueSeasonCupDrawsIfNew(); // host (caminho local sem edge function): idem
   checkPendingCupDraws(()=>{
-    const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
-    if(seats.length) startPostRoundClassifs(seats); // cada humano vê a SUA classificação, em rotação
-    else showLiveClassif();                          // solo de 1 humano: como sempre
-    checkPendingManagerEvents();
-    if(typeof handleResenhaCareer==="function") handleResenhaCareer(); // Fase 2: demissão/convite na Resenha
+    // RODADA COLETIVA (solo e hotseat): as copas que entraram em campo nesta jornada mostram a
+    // classificação delas ANTES da tabela da liga, mesmo pra quem não disputa a competição —
+    // esse vê o painel de dicas + patrocinador. Ver queueRoundCupClassifs.
+    queueRoundCupClassifs(_roundJogado, ()=>{
+      const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
+      if(seats.length) startPostRoundClassifs(seats); // cada humano vê a SUA classificação, em rotação
+      else showLiveClassif();                          // solo de 1 humano: como sempre
+      checkPendingManagerEvents();
+      if(typeof handleResenhaCareer==="function") handleResenhaCareer(); // Fase 2: demissão/convite na Resenha
+    });
   });
 }
 /* fecha uma partida de COPA jogada ao vivo — de propósito NÃO passa por finishLiveRound()/
@@ -6954,7 +6986,8 @@ function clCupResultContinue(){
   // situar (igual já fazemos com a tabela de Séries A/B/C/D depois da rodada de liga).
   const classifQueue=(CL._cupResultKeysThisRound||[]).slice();
   CL._cupResultKeysThisRound=null;
-  if(classifQueue.length){ CL._cupClassifQueue=classifQueue.slice(1); showCupClassif(classifQueue[0]); return; }
+  if(classifQueue.length){ CL._cupClassifRound=S.round; CL._cupClassifQueue=classifQueue.slice(1);
+    showCupClassif(classifQueue[0], S.round); return; }
   finishCupResultFlow();
 }
 /* cauda do fluxo pós-copa: igual ao que já existia antes das telas de classificação —
@@ -6981,8 +7014,9 @@ function finishCupResultFlow(){
    fechá-lo, uma tela de chaveamento. Agora é uma tela só (cupScreenHTML): o resultado da
    partida entra como faixa no topo e a chave/grupos ocupa o resto — o usuário termina a
    rodada da copa e continua exatamente onde estava, sem fechar nada. ---- */
-function showCupClassif(key){ CL.screen='cupclassif'; CL._cupClassifKey=key; CL._cupTie=null;
+function showCupClassif(key, round){ CL.screen='cupclassif'; CL._cupClassifKey=key; CL._cupTie=null;
   const c=S.cups&&S.cups[key], r=(CL._cupResultByKey||{})[key];
+  cupClassifMarkShown(key, round);   // esta competição já cumpriu a tela dela nesta jornada
   // abre na aba da fase que ele acabou de jogar (sem fase de grupos, só existe o mata-mata)
   CL.cupTab = !cupHasGroupTab(key,c) ? 'chave' : (r ? (r.stage==='bracket'?'chave':'grupos') : (c.bracket?'chave':'grupos'));
   cdraw(); armCupFlowTimer(cupClassifContinue);
@@ -6991,9 +7025,11 @@ function scCupClassif(){
   const key=CL._cupClassifKey, c=S.cups&&S.cups[key];
   if(!c) return '';
   const r=(CL._cupResultByKey||{})[key];
+  // MESMA TELA PROS DOIS: quem jogou lê a faixa do próprio placar; quem não disputa a
+  // competição lê, no mesmo lugar, o painel de dicas + patrocinador (ver cupIdlePanelHTML).
   const result = r ? `<div class="cl-cupres ${escC(r.tone)}">
       <span class="cl-cupres-sc">${escC(r.score)}</span>
-      <span class="cl-cupres-msg">${escC(r.msg)}</span></div>` : '';
+      <span class="cl-cupres-msg">${escC(r.msg)}</span></div>` : cupIdlePanelHTML(key);
   const actions = btn('Continuar','cupClassifContinue()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})
     + (CL.online?'<span class="cl-cupscr-auto">avança sozinho em alguns segundos...</span>':'');
   return cupScreenHTML(key, {actions, result, live:true});
@@ -7001,9 +7037,115 @@ function scCupClassif(){
 function cupClassifContinue(){
   clearCupFlowTimer();
   const queue=CL._cupClassifQueue||[];
-  if(queue.length){ showCupClassif(queue.shift()); return; }
-  CL._cupClassifQueue=null; CL._cupResultByKey=null;
+  if(queue.length){ showCupClassif(queue.shift(), CL._cupClassifRound); return; }
+  CL._cupClassifQueue=null; CL._cupResultByKey=null; CL._cupClassifRound=null;
+  // fila montada por queueRoundCupClassifs (fim de rodada): a cauda é o que vem DEPOIS das
+  // copas — a classificação da liga ou a tela do clube, conforme o caminho que chamou.
+  const tail=CL._cupClassifTail; CL._cupClassifTail=null;
+  if(tail){ try{ tail(); }catch(e){ console.warn('pós-classificação de copa:', e&&e.message); } return; }
   finishCupResultFlow();
+}
+/* ================= A RODADA É DE TODO MUNDO (ligas E copas) =================
+   Antes, a tela de classificação/chaveamento de uma copa só aparecia pra quem tinha jogado a
+   partida daquela competição: quem não disputa a Libertadores terminava a quarta-feira sem ver
+   nada e caía direto na tela do clube, enquanto o vizinho ainda estava lendo a chave. Dois
+   jogadores em telas diferentes no mesmo instante é justamente a origem das dessincronias que o
+   calendário diário veio resolver.
+   A regra agora é uma só, pra qualquer país, liga ou copa: ao fim de uma rodada, TODO humano
+   passa pela tela de classificação de TODAS as competições que entraram em campo naquela
+   jornada — jogue ele ou não. Quem jogou vê a faixa do próprio resultado; quem não disputa vê,
+   no mesmo lugar, o painel de dicas + patrocinador. Ninguém vê a mesma competição duas vezes na
+   mesma jornada (o marcador abaixo lembra o que já foi mostrado), então quem acabou de jogar a
+   copa e já leu a chave logo depois do apito não repete a tela no fechamento. */
+const CUP_CLASSIF_ORDER=['copaBrasil','libertadores','sulamericana','championsLeague','europaLeague'];
+/* marcador por (temporada, jornada) — a jornada é sempre a da RODADA JOGADA, não a corrente:
+   no fechamento de sábado o S.round já avançou, e sem isso a copa que o jogador acabou de ver na
+   quarta apareceria de novo. */
+function cupClassifRoundKey(round){ return (S.season||1)+'-'+(round!=null?round:(S.round||0)); }
+function cupClassifMarkShown(key, round){
+  const rk=cupClassifRoundKey(round);
+  if(!CL._cupClsSeen || CL._cupClsSeen.rk!==rk) CL._cupClsSeen={ rk, keys:[] };
+  if(!CL._cupClsSeen.keys.includes(key)) CL._cupClsSeen.keys.push(key);
+}
+function cupClassifWasShown(key, round){
+  const rk=cupClassifRoundKey(round);
+  return !!(CL._cupClsSeen && CL._cupClsSeen.rk===rk && CL._cupClsSeen.keys.includes(key));
+}
+/* esta competição de fato entrou em campo NESTA jornada? Lê o carimbo `jornada` que cliente e
+   servidor gravam em todo confronto de mata-mata e em todo resultado de grupo — é o único sinal
+   que vale nos dois modos. Perguntar só "é a semana dela" (cupTickMatchesRound) traria também a
+   copa já encerrada, que bate o tique e não joga nada. */
+function cupPlayedInRound(key, round){
+  const c=S&&S.cups&&S.cups[key]; if(!c || round==null) return false;
+  const b = key==='copaBrasil' ? c : c.bracket;
+  if(b){
+    if((b.ties||[]).some(t=>t&&t.jornada===round)) return true;
+    if((b.history||[]).some(h=>(h.ties||[]).some(t=>t&&t.jornada===round))) return true;
+  }
+  const mg=c.group;
+  if(mg && mg.groups){
+    for(const gk in mg.groups){ if(((mg.groups[gk].results)||[]).some(r=>r&&r.jornada===round)) return true; }
+  }
+  return false;
+}
+function cupKeysPlayedInRound(round){
+  if(!S || !S.cups) return [];
+  return CUP_CLASSIF_ORDER.filter(k=>S.cups[k] && cupPlayedInRound(k, round));
+}
+/* mostra, uma depois da outra, a classificação de cada competição que teve rodada nesta jornada
+   e que este jogador ainda não viu — e só então chama `done` (a classificação da liga, ou a tela
+   do clube). Ponto ÚNICO da regra: os três caminhos de fim de rodada passam por aqui. */
+function queueRoundCupClassifs(round, done){
+  done=done||function(){};
+  let keys=[];
+  try{ keys=cupKeysPlayedInRound(round).filter(k=>!cupClassifWasShown(k, round)); }
+  catch(e){ console.warn('classificação de copa da rodada:', e&&e.message); keys=[]; }
+  if(!keys.length){ done(); return; }
+  CL._cupClassifRound=round;
+  CL._cupClassifQueue=keys.slice(1);
+  CL._cupClassifTail=done;
+  showCupClassif(keys[0], round);
+}
+/* ---- PAINEL DE QUEM NÃO DISPUTA A COMPETIÇÃO (dicas + patrocinador) ----
+   Ocupa exatamente o lugar da faixa de resultado na tela de classificação da copa. Em vez de
+   fingir um placar que não existe, usa o espaço pra ensinar o que o jogador pode fazer com a
+   semana livre — treino, rodízio, base, mercado, estádio — e pra dar uma inserção de marca. A
+   dica e a marca são escolhidas pela JORNADA, não por sorteio: assim todo mundo na sala vê a
+   mesma coisa ao mesmo tempo, que é o ponto da rodada coletiva (e vira assunto de resenha). */
+const CUP_IDLE_DICAS=[
+  { ic:'🏋', t:'Treino especial', d:'Em Jogador ▸ Treino especial dá pra pôr até 3 atletas ganhando chance extra de evolução a cada rodada. Jovem com ritmo rápido é onde o treino rende mais.' },
+  { ic:'🔁', t:'Rodízio do elenco', d:'Jogador cansado rende menos e se machuca mais. Poupe titulares na semana cheia — energia e moral entram direto na nota da partida.' },
+  { ic:'💰', t:'Boas transferências', d:'O Leilão de jogadores costuma sair mais barato que a compra direta. E vender quem vive no banco libera salário antes da janela apertar.' },
+  { ic:'🌱', t:'Jogador da base', d:'Jogador ▸ Subir jogador da base traz atleta jovem sem custo de transferência — e jovem é justamente quem mais cresce com o treino especial.' },
+  { ic:'🏟', t:'Estádio', d:'Em Equipa ▸ Estádio, cada arquibancada nova é bilheteria a mais em TODO jogo em casa, rodada após rodada. Investimento que se paga sozinho.' },
+  { ic:'📐', t:'Formação', d:'A formação escolhida persiste entre rodadas. Contra time forte fora de casa, um meio-campista a mais segura o jogo melhor que um atacante.' },
+];
+function cupIdleIdx(){ return ((S&&S.season||1)*7 + (S&&S.round||0)); }
+function cupIdleDica(){ return CUP_IDLE_DICAS[cupIdleIdx()%CUP_IDLE_DICAS.length]; }
+function cupIdleSponsorIdx(){ return cupIdleIdx()%AD_SPONSORS.length; }
+function cupIdlePanelHTML(key){
+  const nome=(COMP_DEFS[key]&&COMP_DEFS[key].name)||'competição';
+  const d=cupIdleDica(), si=cupIdleSponsorIdx(), s=AD_SPONSORS[si];
+  return `<div class="cl-cupidle">
+    <div class="cl-cupidle-tip">
+      <div class="cl-cupidle-hd">Hoje é dia de ${escC(nome)} — o seu clube não disputa esta rodada</div>
+      <div class="cl-cupidle-dica"><span class="cl-cupidle-ic">${d.ic}</span>
+        <span><b>${escC(d.t)}:</b> ${escC(d.d)}</span></div>
+    </div>
+    <div class="cl-cupidle-ad">
+      <span class="cl-cupidle-lbl">RODADA APRESENTADA POR</span>
+      <img class="cl-cupidle-logo" src="${s.src}" alt="${escC(s.nome)}">
+      <button class="cl-cupidle-cta" style="${camCtaStyle(si)}" onclick="cupIdleAdClick()">${escC(s.cta)}</button>
+    </div>
+  </div>`;
+}
+/* mesma mecânica do botão do Camarote (ver camAdClick): abre em aba nova, sem handle da janela
+   do jogo, e registra o clique por marca — aqui com o `placement` desta tela. */
+function cupIdleAdClick(){
+  const s=AD_SPONSORS[cupIdleSponsorIdx()]; if(!s) return;
+  try{ if(typeof gtag==='function') gtag('event','sponsor_click',{sponsor:s.nome, placement:'classificacao-copa'}); }catch(e){}
+  if(!s.url){ toastC('Link do patrocinador ainda não configurado ('+s.nome+').'); return; }
+  window.open(s.url,'_blank','noopener,noreferrer');
 }
 function updateLive(){ const RL=CL.live; if(!RL) return;
   const clk=document.querySelector('#cl-liveclock'); if(clk) clk.style.setProperty('--pct', liveClockPct(RL));

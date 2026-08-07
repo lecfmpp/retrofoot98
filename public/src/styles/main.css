@@ -1224,6 +1224,24 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-cupres.draw{background:#efe9d2;border-left:6px solid var(--gold)}
 .cl-cupres-sc{font-family:var(--mono);font-weight:900;font-size:22px;white-space:nowrap;line-height:1}
 .cl-cupres-msg{font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* MESMO LUGAR DA FAIXA DE RESULTADO, pra quem NÃO disputa a competição (ver cupIdlePanelHTML):
+   a rodada de copa é de todo mundo, então em vez de um placar que não existe o espaço vira dica
+   de gestão à esquerda + inserção do patrocinador à direita. */
+.cl-cupidle{flex:none;display:flex;align-items:stretch;margin-top:6px;color:#000;
+  border:2px solid;border-color:var(--bevel-out);background:#e6e6e6;border-left:6px solid var(--navy)}
+.cl-cupidle-tip{flex:1;min-width:0;padding:7px 12px;display:flex;flex-direction:column;gap:3px;justify-content:center}
+.cl-cupidle-hd{font-weight:800;font-size:12px;color:var(--navy);letter-spacing:.2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-cupidle-dica{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.35}
+.cl-cupidle-ic{font-size:18px;line-height:1.1;flex:none}
+.cl-cupidle-ad{flex:none;display:grid;grid-template-columns:auto auto;grid-template-areas:'lbl lbl' 'logo cta';
+  align-items:center;justify-items:center;gap:3px 10px;padding:5px 12px;background:#d2d2d2;border-left:2px solid var(--bevL)}
+.cl-cupidle-lbl{grid-area:lbl;font-family:var(--mono);font-size:9px;font-weight:800;color:#4a4a4a;letter-spacing:.6px}
+.cl-cupidle-logo{grid-area:logo;height:26px;width:auto;max-width:88px;object-fit:contain}
+.cl-cupidle-cta{grid-area:cta;font-family:var(--sans);font-size:11px;font-weight:800;line-height:1.15;
+  cursor:pointer;padding:6px 10px;max-width:180px;border:2px solid;border-color:var(--bevel-out)}
+.cl-cupidle-cta:active{transform:translate(1px,1px)}
+.cl-cupidle-cta:focus-visible{outline:2px solid var(--yellow);outline-offset:-4px}
 /* abas COLADAS ao painel: a ativa é navy preenchida com filete dourado no topo e avança 4px
    sobre a borda navy do painel; a inativa fica cinza, rebaixada e atrás da linha. */
 .cl-cuptabs{flex:none;display:flex;align-items:flex-end;gap:4px;padding:8px 4px 0;position:relative;z-index:2}
@@ -1410,6 +1428,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-cupstage-host{position:relative;inset:auto;width:100%;overflow-x:auto;overflow-y:hidden}
   .cl-cupgrid{grid-template-columns:1fr!important;grid-template-rows:none!important;height:auto;overflow-y:auto;max-height:70vh}
   .cl-cupres-msg{white-space:normal}
+  /* no telefone a faixa de quem não disputa empilha: dica em cima, patrocinador embaixo */
+  .cl-cupidle{flex-direction:column}
+  .cl-cupidle-hd{white-space:normal}
+  .cl-cupidle-ad{grid-template-areas:'lbl lbl' 'logo cta';border-left:none;border-top:2px solid var(--bevL);
+    justify-content:center;padding:7px 12px}
+  .cl-cupidle-cta{min-height:44px;max-width:none}
   /* cerimônia no mobile: taça e premiação em cima (faixa), grade/chave embaixo */
   .cl-cupdrawwrap{position:relative;inset:auto;flex-direction:column}
   .cl-cupdrawrail{width:auto;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:center;
