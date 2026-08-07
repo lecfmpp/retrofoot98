@@ -1878,14 +1878,22 @@ const CUP_HOLD_MAX_MS=60000;
 function onlineCupObligationPending(){
   if(!CL.online || !S || typeof pendingUserCupMatches!=='function') return false;
   if(CL.unemployed) return false;
-  // RODADA AINDA FECHANDO (já joguei a liga, esperando o fechamento na pausa técnica): a obrigação
-  // de copa NÃO pode contar como ocupado aqui. pendingUserCupMatches olha o tick SEGUINTE
-  // (S.round+1), então logo após jogar a rodada N todo mundo já "deve" a copa da rodada N+1 — mas
-  // essa copa só é jogável DEPOIS que a rodada N fechar. Contar como ocupado bloqueava o próprio
-  // fechamento: a sala inteira parava na pausa até o teto de 4min soltar (terceira variação do
-  // mesmo padrão — sorteio enfileirado e fila adotada já tinham feito o mesmo). O propósito real
-  // desta barreira é segurar o CRONÔMETRO da fase 'ready' (ninguém arma a liga devendo copa), e
-  // isso continua valendo: fora da 'running'-com-rodada-jogada ela segura normalmente.
+  // FASE 'ready' = ESTOU NO PORTÃO, E PORTÃO NÃO É OCUPADO.
+  // Esta barreira nasceu pra segurar o cronômetro da 'ready' — "ninguém arma a liga devendo copa"
+  // —, e isso valia enquanto a copa era jogada ANTES de marcar pronto. Desde que ela passou a
+  // entrar em campo pelo mesmo portão da liga (onlineJogarGate), a partida de copa que eu devo só
+  // acontece DEPOIS que a fase virar 'running'. Contar a obrigação como ocupado aqui trava o
+  // próprio portão: o servidor não arma nem avança a fase com alguém ocupado, e eu só deixo de
+  // dever a copa quando a fase avança — a pendência passou a bloquear a única coisa capaz de
+  // resolvê-la. Foi o travamento do "dia de copa: esperando 1 treinador(es) terminarem a copa"
+  // com a rodada aberta sem fechar. Quarta variação do mesmo padrão: uma pendência que só se
+  // resolve DEPOIS do avanço marcando o jogador como ocupado justamente antes do avanço.
+  // Na 'running' a barreira segue valendo: é ela que segura o FECHAMENTO da rodada até eu ter
+  // cumprido a minha partida de copa.
+  if(typeof NET!=='undefined' && NET.room && NET.room.phase==='ready') return false;
+  // RODADA AINDA FECHANDO (já joguei a liga, esperando o fechamento na pausa técnica): idem —
+  // pendingUserCupMatches já enxerga a copa da rodada seguinte, que só é jogável depois do
+  // fechamento desta.
   if(typeof NET!=='undefined' && NET.room && NET.room.phase==='running' && CL._playedRound===S.round) return false;
   let pend=false;
   try{ pend = pendingUserCupMatches().filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key)).length>0; }catch(e){ return false; }
