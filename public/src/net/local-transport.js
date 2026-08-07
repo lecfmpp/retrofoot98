@@ -1357,6 +1357,18 @@ function clKickGo(uid, clubId){
 function clOnlinePause(){ if(typeof NET!=='undefined' && NET.isHost && NET.pause){ NET.pause().catch(()=>{}); cdraw(); } }
 function clSetSpeed(mult){ CL.speedMult=mult; if(CL.online && typeof NET!=='undefined' && NET.setSpeed) NET.setSpeed(mult).catch(()=>{}); cdraw(); }
 let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null, ONLINE_ADV_T=0, ONLINE_BUSY_T=0, ONLINE_BUSY_ACTIVE=false, ONLINE_SEEN_T=0;
+/* AS DUAS TRAVAS CONTRA O NÓ QUE TRAVA A SALA (ver onlineTimerLoop). Cada regra do fluxo é
+   razoável sozinha; juntas elas se trancavam — cliente preso numa tela não era puxado pra rodada
+   certa, e por estar na tela contava como ocupado, e por contar como ocupado a sala não andava,
+   e por não andar ninguém saía da tela. */
+/* REPARO, NÃO PREVENÇÃO: puxar quem ficou pra trás faz ele PERDER os jogos que não assistiu, e
+   isso não pode ser rotina. A prevenção é a barreira segurar a sala (ver BUSY_MAX_MS, que
+   destrava no lugar em vez de soltar). Este número só existe pro save que JÁ quebrou — atrasado
+   tanto assim, os jogos daquelas rodadas não existem mais em lugar nenhum e ficar parado não
+   traz nenhum de volta. Por isso é alto: só dispara quando não há mais o que salvar. */
+const ROUND_LAG_MAX=3;
+const BUSY_MAX_MS=120000;   // 2min ocupado na MESMA etapa: algo me prendeu -> destravo NO LUGAR
+const CUP_FLOW_SCREENS_LOCAL=['cupclassif','cupdraw','cupview','classif','seatclassif'];
 function onlineTimerLoop(){
   const room=(typeof NET!=='undefined')?NET.room:null;
   // SAVE ÚNICO: o ANFITRIÃO fecha a rodada quando ninguém está mais em partida (não-bloqueante,
@@ -1404,7 +1416,40 @@ function onlineTimerLoop(){
   // principal sem ver o próprio jogo. Com a obrigação dentro da barreira, a rodada de liga só
   // ARMA quando todo mundo zerou a copa, que é a regra pedida: quem não joga a copa espera quem joga.
   onlineSettleCupDebt();   // ver definição: a dívida de copa se quita por qualquer caminho, não só jogando
-  if(CL.online && onlineClosingRound() && typeof NET!=='undefined' && NET.gameId){
+  // ===== "OCUPADO" TEM PRAZO DE VALIDADE =====
+  // O busy_until é renovado a cada 15s enquanto o cliente se considerar ocupado — e um cliente
+  // TRAVADO se considera ocupado para sempre, então ele renovava indefinidamente e a sala inteira
+  // ficava refém dele (medido na K8AJ6: 23 minutos parados com os dois assentos ocupados). O teto
+  // do servidor (90s no busy_until) nunca chegava a expirar justamente porque era renovado.
+  // Aqui o relógio é da ETAPA: se eu estou me declarando ocupado há mais de BUSY_MAX_MS na MESMA
+  // etapa, alguma coisa travou do meu lado — paro de segurar a sala e deixo o jogo andar.
+  const _etapaBusy = onlineStageKey();
+  if(CL._busyStage!==_etapaBusy){ CL._busyStage=_etapaBusy; CL._busySince=0; CL._busyUnstuck=0; }
+  let _euOcupado = CL.online && onlineClosingRound();
+  if(_euOcupado){
+    if(!CL._busySince) CL._busySince=Date.now();
+    // DESTRAVA NO LUGAR — NUNCA SOLTA A SALA PRA ME PULAR.
+    // A saída óbvia seria parar de me declarar ocupado, mas aí a rodada anda SEM mim e eu perco os
+    // meus jogos sem ter assistido — o que não faz sentido nenhum. Então, em vez de soltar a
+    // barreira, eu conserto o que me prendeu: limpo os cronômetros pendurados e as flags de tela e
+    // volto pra ação que eu DEVO nesta etapa (a partida/classificação pendente). A sala continua
+    // esperando por mim — só que agora eu consigo andar. Se nem isso resolver, ela espera mesmo:
+    // sala parada com aviso é muito melhor que jogador pulado em silêncio.
+    if(Date.now()-CL._busySince > BUSY_MAX_MS && Date.now()-(CL._busyUnstuck||0) > BUSY_MAX_MS){
+      CL._busyUnstuck=Date.now();
+      console.warn('ocupado há '+Math.round((Date.now()-CL._busySince)/1000)+'s na etapa '+_etapaBusy+
+        ' (tela "'+CL.screen+'") — destravando NO LUGAR (a sala continua esperando por mim)');
+      if(CL._liveTimer && (!CL.live || CL.live.done)){ clearTimeout(CL._liveTimer); CL._liveTimer=null; }
+      if(typeof clearCupFlowTimer==='function') clearCupFlowTimer();
+      if(typeof clearCupIntroTimer==='function') clearCupIntroTimer();
+      if(typeof clearLeagueIntroTimer==='function') clearLeagueIntroTimer();
+      if(!CL.live){ CL._liveBusy=false; CL._cupIntro=null; CL._leagueIntro=false; CL._leagueIntroRound=null;
+        if(CUP_FLOW_SCREENS_LOCAL.indexOf(CL.screen)>=0){ CL.screen='main'; CL.tab='jogo'; if(typeof cdraw==='function') cdraw(); }
+        if(typeof onlineRecoverRunRound==='function') onlineRecoverRunRound();   // volta pra MINHA ação pendente
+      }
+    }
+  } else { CL._busySince=0; CL._busyUnstuck=0; }
+  if(_euOcupado && typeof NET!=='undefined' && NET.gameId){
     ONLINE_BUSY_ACTIVE=true;
     if(Date.now()-ONLINE_BUSY_T>15000){ ONLINE_BUSY_T=Date.now(); if(NET.heartbeatBusy) NET.heartbeatBusy(); }
   } else if(ONLINE_BUSY_ACTIVE){
@@ -1474,6 +1519,35 @@ function onlineTimerLoop(){
      CL.screen!=='cupdraw' && CL.screen!=='classif' && CL.screen!=='seatclassif' &&
      (room.round||0)!==(S.round||0) && typeof onlineReconcileIfBehind==='function'){
     onlineReconcileIfBehind(room);
+  }
+  // ===== ÚLTIMO RECURSO: SAVE JÁ QUEBRADO =====
+  // As guardas acima ("não interrompe partida/sorteio/classificação") existem por bons motivos,
+  // mas juntas com o heartbeat de ocupado elas formam um nó que se aperta sozinho:
+  //   preso numa tela -> não sou puxado pra rodada certa -> continuo preso -> conto como ocupado
+  //   -> a sala não avança -> ninguém sai da tela.
+  // Medido na sala K8AJ6: dois humanos ONLINE, um na rodada 4 e outro na 7, com a sala na 9 e
+  // parada há 23 minutos.
+  // A PREVENÇÃO é a barreira segurar a sala e o cliente se destravar NO LUGAR (ver BUSY_MAX_MS).
+  // Isto aqui NÃO é prevenção: puxar pro estado da sala faz o jogador perder os jogos que ele não
+  // assistiu, e isso nunca pode ser o caminho normal. Só vale pro save que já quebrou — atrasado
+  // ROUND_LAG_MAX rodadas, aquelas partidas não existem mais em lugar nenhum e ficar parado não
+  // traz nenhuma de volta; a escolha passa a ser entre um save inutilizado e um save que continua.
+  if(CL.online && room && typeof S!=='undefined' && S && typeof onlineReconcileIfBehind==='function'
+     && (room.round||0) - (S.round||0) >= ROUND_LAG_MAX){
+    const k=(room.round||0)+':'+(S.round||0);
+    if(CL._lagForced!==k){
+      CL._lagForced=k;
+      console.warn('atrasado '+((room.round||0)-(S.round||0))+' rodada(s) (eu='+(S.round||0)+' sala='+(room.round||0)+
+        ') — puxando o estado da sala por cima da tela "'+CL.screen+'"');
+      // solta o que prende: partida órfã, flags de tela e o próprio "ocupado"
+      if(CL._liveTimer){ clearTimeout(CL._liveTimer); CL._liveTimer=null; }
+      CL.live=null; CL._liveBusy=false; CL._cupIntro=null; CL._leagueIntro=false;
+      if(typeof clearCupFlowTimer==='function') clearCupFlowTimer();
+      if(typeof NET.clearBusy==='function') NET.clearBusy();
+      ONLINE_BUSY_ACTIVE=false; ONLINE_BUSY_T=0;
+      CL.screen='main';
+      onlineReconcileIfBehind(room);
+    }
   }
   // DIAGNÓSTICO DA PAUSA: passou de 12s parado aqui, o console diz exatamente o que falta — fase,
   // rodada minha vs. da sala, quem está em partida e quem não publicou. Cada travada desta semana
