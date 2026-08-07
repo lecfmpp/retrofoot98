@@ -6881,8 +6881,7 @@ function liveMatchMinutes(m){ return (m&&m.sim&&(m.sim.totalMinutes||m.sim.minut
 function resolveCupRoundRest(key){
   if(!key || !S || !S.cups) return;
   const c=S.cups[key]; if(!c) return;
-  S._cupResolvedRound=S._cupResolvedRound||{};
-  if(S._cupResolvedRound[key]===S.round) return;   // já resolvida nesta rodada
+  if(WORLD_RULES.cupAlreadyResolved(S._cupResolvedRound, key, S.round)) return;   // folha única
   try{
     if(key==='copaBrasil'){
       if(!cupIsFinished(c) && (c.ties||[]).length) advanceCupBracket(c,'copaBrasil-r'+c.round);
@@ -6891,7 +6890,7 @@ function resolveCupRoundRest(key){
     } else if(c.bracket && !cupIsFinished(c.bracket) && (c.bracket.ties||[]).length){
       advanceCupBracket(c.bracket, key+'-r'+c.bracket.round);
     }
-    S._cupResolvedRound[key]=S.round;
+    S._cupResolvedRound=WORLD_RULES.markCupResolved(S._cupResolvedRound, key, S.round);
   }catch(e){ console.warn('resolveCupRoundRest('+key+'):', e && e.message); }
 }
 function finishCupLiveMatch(){

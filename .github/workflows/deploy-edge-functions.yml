@@ -50,6 +50,12 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
+      # PORTÃO DA FOLHA ÚNICA: falha o deploy se o bloco WORLD_RULES dentro do resolve-round não
+      # for idêntico a public/src/engine/world-rules.js. É o que impede cliente e servidor de
+      # voltarem a ter duas versões da mesma regra — a causa dos "dois jogos no mesmo dia".
+      - name: Regras de mundo em dia (cliente = servidor)
+        run: node scripts/sync-world-rules.mjs --check
+
       - name: Validar sintaxe das funções
         run: |
           npx esbuild supabase/functions/resolve-round/index.ts --outfile=/dev/null --platform=neutral --format=esm
