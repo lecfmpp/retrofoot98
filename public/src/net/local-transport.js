@@ -1635,17 +1635,31 @@ function onlineCompleteSeasonTurnover(){
    assume — desalinhamento degrada pro comportamento de antes, nunca em tela parada.
 
    E se o ponteiro ficar PRA TRÁS da jornada (fechamento por atalho, sala de save antigo), o
-   day_sync o puxa pra frente. Uma vez por jornada, senão viraria enxurrada de chamadas. */
+   day_sync o puxa pra frente. Uma vez por jornada, senão viraria enxurrada de chamadas.
+
+   DESACORDO SEGURA — NUNCA DEVOLVE A DECISÃO AO CLIENTE. A primeira versão desta função devolvia
+   null quando o ponteiro falava de outra jornada, e eu chamei isso de "degradar em vez de
+   congelar". Era uma porta de divergência disfarçada de rede de segurança: medido no harness
+   (cenário 3, sala 365ZV reproduzida), 12 instantes em que o cliente voltou a decidir sozinho —
+   o único vermelho da execução. Agora discordância devolve {hold}, e quem recebe hold ESPERA e
+   puxa os dois lados pra concordar:
+     · ponteiro ATRÁS da minha jornada -> day_sync empurra o ponteiro pra frente;
+     · ponteiro À FRENTE -> sou EU que estou velho: reconcilio meu mundo com o da sala.
+   Sala parada com os dois na mesma tela é melhor que dois humanos "certos" em telas diferentes. */
 function roomDay(){
   const d=(typeof NET!=='undefined' && NET.room) ? NET.room.day : null;
-  if(!d || !S) return null;
+  if(!d || !S) return null;                 // sala sem plano (save antigo): caminho de sempre
   const meu=S.round||0;
   if(d.round===meu) return d;
-  if(d.round<meu && typeof NET!=='undefined' && NET.daySync && CL._daySyncedFor!==meu){
-    CL._daySyncedFor=meu;
-    NET.daySync(meu).then(()=>{ if(typeof NET.refreshRoom==='function') NET.refreshRoom(); }).catch(()=>{});
+  if(d.round<meu){
+    if(typeof NET!=='undefined' && NET.daySync && CL._daySyncedFor!==meu){
+      CL._daySyncedFor=meu;
+      NET.daySync(meu).then(()=>{ if(typeof NET.refreshRoom==='function') NET.refreshRoom(); }).catch(()=>{});
+    }
+  } else if(typeof NET!=='undefined' && NET.room && typeof onlineReconcileIfBehind==='function'){
+    onlineReconcileIfBehind(NET.room);      // o ponteiro está adiante: quem tem que andar sou eu
   }
-  return null;   // ponteiro falando de outra jornada: não mando em nada
+  return { hold:true, round:d.round, comp:d.comp };
 }
 /* avisa o servidor que terminei o dia que estava vendo. Idempotente por construção: mando a visão
    que eu tinha, e quem chegar depois recebe "já virou" em vez de andar de novo.
@@ -1752,6 +1766,16 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // entra — nem pra quem não disputa aquela copa. Enquanto o dia é de liga, nenhuma copa entra.
   // É a trava que faltava: as duas ramificações abaixo consultavam só o meu estado.
   const dia=roomDay();
+  // SEGURAR É A RESPOSTA CERTA. Ponteiro e cliente discordando da jornada significa que um dos dois
+  // está velho — roomDay() já disparou a correção dos dois lados. Até eles concordarem eu não jogo
+  // nada: qualquer coisa que eu decidisse aqui seria pelo meu palpite local, que é exatamente a
+  // divergência que este ponteiro existe pra acabar.
+  if(dia && dia.hold){
+    if(CL._holdAviso!==dia.round){ CL._holdAviso=dia.round;
+      console.log('sala no dia da jornada '+dia.round+' ('+dia.comp+') e eu na '+(S.round||0) +
+                  ' — esperando os dois concordarem, sem decidir nada por conta própria'); }
+    return;
+  }
   if(typeof pendingUserCupMatches==='function' && (!dia || dia.comp!=='liga')){
     const cupQueue=pendingUserCupMatches()
       .filter(c=>!dia || c.key===dia.comp)

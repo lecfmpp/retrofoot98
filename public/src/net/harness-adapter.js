@@ -277,7 +277,11 @@
       // diaComp = o que o servidor manda; diaVale = se o cliente está obedecendo ou caiu no
       // palpite local (roomDay() devolvendo null é a porta de divergência que estamos caçando)
       diaIdx:d?d.idx:null, diaComp:d?d.comp:null, diaRound:d?d.round:null,
+      // diaVale = o cliente NÃO caiu no palpite local. diaHold = ele está segurando por desacordo
+      // (que é obedecer, não divergir) — mas hold que não passa nunca é sala congelada, então o
+      // cenário conta os dois: um sem o outro esconderia metade da verdade.
       diaVale:!!(typeof roomDay==='function' && roomDay()),
+      diaHold:!!(typeof roomDay==='function' && (roomDay()||{}).hold),
       screen:CL.screen, round:(typeof S!=='undefined'&&S)?S.round:null,
       stage:(typeof S!=='undefined'&&S)?(S.roundStage||null):null,
       cupKey:(CL.live&&CL.live.cup)?CL.live.cup.key:null,

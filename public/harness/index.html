@@ -296,10 +296,21 @@ async function scenario3(){
     log('instantes com o ponteiro à frente da sala: '+adiante.length,'info');
     assert(adiante.length===0,'o ponteiro nunca falou de uma jornada à frente da sala');
 
-    const ignorado=hist.A.filter(s=>s.diaComp!=null && !s.diaVale).length
-                 + hist.B.filter(s=>s.diaComp!=null && !s.diaVale).length;
+    // `s.round!=null` NÃO é folga na medição: antes da temporada existir (lobby e cerimônias) o
+    // cliente não tem jornada com que comparar, então roomDay() devolve null por falta de mundo,
+    // não por divergência. Sem este filtro a asserção acusava 12 instantes de "palpite local" que
+    // eram só a sala vazia — e um vermelho que sempre acende deixa de significar qualquer coisa.
+    const palpite=s=>s.diaComp!=null && s.round!=null && !s.diaVale;
+    const ignorado=hist.A.filter(palpite).length + hist.B.filter(palpite).length;
     log('instantes em que o cliente IGNOROU o ponteiro: '+ignorado,'info');
     assert(ignorado===0,'nenhum cliente caiu no palpite local (roomDay() nunca devolveu null)');
+
+    // segurar por desacordo é obedecer — mas segurar SEMPRE é sala congelada. Mede as duas coisas:
+    // sem este par, "ninguém divergiu" poderia significar só "ninguém jogou".
+    const holdA=hist.A.filter(s=>s.diaHold).length, holdB=hist.B.filter(s=>s.diaHold).length;
+    log('instantes segurando por desacordo: A='+holdA+'/'+hist.A.length+' B='+holdB+'/'+hist.B.length,'info');
+    assert(holdA < hist.A.length*0.5 && holdB < hist.B.length*0.5,
+      'a espera por desacordo é transitória, não o estado normal da sala');
 
     // ---------- ITEM 4: TODOS ASSISTEM TUDO ----------
     assert(saw('A',s=>s.live&&s.cupKey==='libertadores')&&saw('B',s=>s.live&&s.cupKey==='libertadores'),
