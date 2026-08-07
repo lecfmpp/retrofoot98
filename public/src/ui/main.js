@@ -1411,7 +1411,6 @@ function startSeasonOpeningDraws(onDone){
       // pelo queueDueCupDraws do clJogar, na rodada em que a data chega.
       if(typeof cupDrawReleased==='function' && !cupDrawReleased(key)) return;
       const st=(c.group && !c.bracket) ? 'group' : (stage||'bracket');
-      S._cupDrawQueued[key+':'+season]=true;
       const visto=key+':'+st+':'+season;
       if((CL._drawPlayedSeason||{})[visto] || (typeof drawAlreadySeen==='function' && drawAlreadySeen(visto))) return;
       fila.push({key, stage:st});
@@ -1421,12 +1420,24 @@ function startSeasonOpeningDraws(onDone){
   CL._openingDraws=fila;
   runNextOpeningDraw(onDone);
 }
+/* O CARIMBO "JÁ ENFILEIRADA NESTA TEMPORADA" É DO MUNDO — então ele só pode ser escrito quando a
+   cerimônia DE FATO começa. Ele era escrito ao montar a fila, antes de qualquer coisa rolar: se a
+   cerimônia não chegasse a acontecer naquele cliente (dados da chave ainda não montados, tela
+   trocada por cima, adoção de estado no meio), o mundo inteiro ficava marcado como "essa já foi" e
+   o queueDueCupDraws — que é quem a traria de volta para TODOS na data certa — nunca mais a
+   enfileirava. Um cliente perdia a cerimônia e, de quebra, tirava dela a única chance de voltar:
+   era o sorteio da Copa do Brasil aparecendo para o convidado e não para o anfitrião. */
 function runNextOpeningDraw(onDone){
   const fila=CL._openingDraws||[];
   if(!fila.length){ CL._openingDraws=null; if(onDone) onDone(); return; }
   const item=fila.shift();
   if(typeof startCupDrawReplay!=='function'){ CL._openingDraws=null; if(onDone) onDone(); return; }
-  startCupDrawReplay(item.key, item.stage, ()=>runNextOpeningDraw(onDone));
+  if(!startCupDrawReplay(item.key, item.stage, ()=>runNextOpeningDraw(onDone))){
+    console.warn('sorteio de abertura da '+item.key+' sem dados prontos — não marco no mundo, ele volta pelo queueDueCupDraws');
+    return runNextOpeningDraw(onDone);      // segue a fila; a cerimônia continua devendo, para todos
+  }
+  S._cupDrawQueued=S._cupDrawQueued||{};
+  S._cupDrawQueued[item.key+':'+((S&&S.season)||1)]=true;   // começou de verdade: agora sim
 }
 /* `opts.midSeason` = cheguei a este clube TROCANDO de time no meio da temporada (aceitei o
    convite de outro clube — ver showJobInvite). Muda só o texto: em vez de "a temporada começa
@@ -4026,8 +4037,21 @@ function clJogar(){
   // resolvido em segundo plano igual sempre foi).
   // MESMA fonte que a tela principal usa pra anunciar o próximo jogo (nextUserMatch) — é o que
   // garante que o confronto escalado é o confronto jogado.
+  /* ===== A COMPETIÇÃO DO DIA MANDA TAMBÉM AQUI, NO BOTÃO "JOGAR" =====
+     Esta era a última porta que ainda decidia sozinha. A rede de segurança automática
+     (onlineRunRound) já filtrava tudo pela competição do dia, mas o clique do jogador não: ele
+     pegava a PRIMEIRA partida pendente da SUA lista. Como cada humano tem confrontos diferentes, a
+     lista de cada um começava por uma competição diferente — o anfitrião entrava na Sul-Americana
+     enquanto o outro entrava na Copa do Brasil, cada um assistindo à do outro depois, fora de
+     ordem. Foi o relatado, e é a causa direta de "cada um numa tela".
+     Com o dia mandando, só existe uma pergunta: o que está em campo HOJE? Se eu tenho confronto
+     nessa competição, eu jogo; se não tenho, eu assisto; se o dia é de liga, nenhuma copa entra. */
+  const dia=(typeof roomDay==='function')?roomDay():null;
+  if(dia && dia.hold){ toastC('⏳ A sala está acertando a jornada — um instante.'); return; }
+  const copaDoDia=(dia && dia.comp!=='liga') ? dia.comp : null;   // null = dia de liga, ou sala sem ponteiro
+  const diaDeLiga=!!(dia && dia.comp==='liga');
   const prox=nextUserMatch();
-  if(prox && prox.kind==='cup'){
+  if(prox && prox.kind==='cup' && !diaDeLiga && (!copaDoDia || (prox.pending&&prox.pending.key)===copaDoDia)){
     // A COPA ENTRA EM CAMPO PELO MESMO PORTÃO DA LIGA (ver onlineJogarGate).
     if(onlineJogarGate()) return;
     showCupIntro(prox.pending); return;
@@ -4045,7 +4069,11 @@ function clJogar(){
   // — a origem das travadas de sincronia era justamente cada um cumprir a sua obrigação numa hora
   // diferente. Assistir é seguro: a partida de outro humano vem do resultado publicado ou da
   // transmissão ao vivo dele, não de uma simulação local (ver buildLiveMatchObject/isCup).
-  const idle=cupRoundsUserSitsOut().filter(c=>!cupWasSeen(c.key));
+  // ASSISTIR TAMBÉM SEGUE O DIA: a competição em campo é a do ponteiro, nunca a primeira da minha
+  // lista. Quem não tem confronto hoje assiste EXATAMENTE a mesma competição que quem tem.
+  const idle=cupRoundsUserSitsOut()
+    .filter(c=>!cupWasSeen(c.key))
+    .filter(c=>!diaDeLiga && (!copaDoDia || c.key===copaDoDia));
   if(idle.length){
     if(onlineJogarGate()) return;    // mesmo portão: quem assiste entra JUNTO com quem joga
     const cand=idle[0];
@@ -7261,11 +7289,23 @@ function cupKeysPlayedInRound(round){
 /* mostra, uma depois da outra, a classificação de cada competição que teve rodada nesta jornada
    e que este jogador ainda não viu — e só então chama `done` (a classificação da liga, ou a tela
    do clube). Ponto ÚNICO da regra: os três caminhos de fim de rodada passam por aqui. */
+/* A ORDEM DAS COMPETIÇÕES DE UMA JORNADA É A DO CALENDÁRIO DA SALA — o plano de dias, que mora no
+   servidor e por isso é igual em todo cliente. Cada cliente ordenava pela sua própria lista, e
+   assim os dois humanos viam as mesmas classificações em sequências diferentes. Sala sem plano
+   (save antigo) cai na ordem do calendário do mundo (cupDrawOrder), que também é comum a todos. */
+function cupOrderForRound(round){
+  const plan=(typeof NET!=='undefined' && NET.room && NET.room.dayPlan) || null;
+  if(plan && plan.length) return plan.filter(e=>e && e.r===round && e.comp!=='liga').map(e=>e.comp);
+  return (typeof cupDrawOrder==='function') ? cupDrawOrder().map(x=>x[0]) : [];
+}
 function queueRoundCupClassifs(round, done){
   done=done||function(){};
   let keys=[];
   try{ keys=cupKeysPlayedInRound(round).filter(k=>!cupClassifWasShown(k, round)); }
   catch(e){ console.warn('classificação de copa da rodada:', e&&e.message); keys=[]; }
+  try{ const ordem=cupOrderForRound(round);
+       const pos=k=>{ const i=ordem.indexOf(k); return i<0?999:i; };
+       keys.sort((a,b)=>pos(a)-pos(b)); }catch(e){}
   if(!keys.length){ done(); return; }
   CL._cupClassifRound=round;
   CL._cupClassifQueue=keys.slice(1);
@@ -8994,15 +9034,39 @@ function queueSeasonCupDrawsIfNew(){
          && ((c.ties&&c.ties.length) || (c.pendingByes&&c.pendingByes.length)))
       : !!(c.group && !c.bracket && (c.group.round||0)===0 && !c.group.finished);
     const mark = key+':'+season;
+    /* A MARCA DE "JÁ VI" É ESCRITA AO ASSISTIR, NÃO AO ENFILEIRAR.
+       Este rememberDrawSeen ficava aqui, no momento em que a cerimônia entrava na FILA — ou seja,
+       o cliente gravava em disco que tinha visto um sorteio que ainda não tinha começado. Bastava a
+       cerimônia não chegar a rolar (dados ainda não montados, tela trocada por cima, adoção no meio)
+       para ela ficar marcada como vista e nunca mais voltar NAQUELE cliente — enquanto o outro, com
+       um instante de diferença, assistia normalmente. Era assim que o mesmo sorteio aparecia para o
+       convidado e não para o anfitrião. O startCupDrawReplay grava exatamente esta marca quando a
+       cerimônia de fato começa; o CL._drawShownSeason (só em memória) continua evitando enfileirar
+       duas vezes na mesma sessão. */
     if(fresh && CL._drawShownSeason[mark]!==true && !drawAlreadySeen(mark)){
-      CL._drawShownSeason[mark]=true; rememberDrawSeen(mark); queueDrawShow(key, stage);
+      CL._drawShownSeason[mark]=true; queueDrawShow(key, stage);
     }
   });
 }
 /* dispara o próximo sorteio pendente, se houver; encadeia até esvaziar a fila e só então
    chama onDone (ex: mostrar a classificação da rodada, ou o aviso de acesso/queda) */
+/* A ORDEM DA FILA É DO MUNDO, NÃO DE QUEM ENFILEIROU PRIMEIRO.
+   As cerimônias entram por dois caminhos (queueDueCupDraws, pela data; queueSeasonCupDrawsIfNew,
+   ao detectar copa recém-sorteada) e o primeiro percorre Object.keys(S.cups), cuja ordem é
+   arbitrária. Dois clientes montavam a mesma fila em ordens diferentes e assistiam às mesmas
+   cerimônias em sequências diferentes — relatado: o convidado via a Copa do Brasil DEPOIS da
+   Sul-Americana. cupDrawOrder() é a ordem do calendário (quem joga antes, sorteia antes) e é igual
+   em todo cliente, porque sai do mundo. */
+function sortPendingDrawShows(){
+  if(!S._pendingDrawShows || S._pendingDrawShows.length<2) return;
+  if(typeof cupDrawOrder!=='function') return;
+  const ordem=cupDrawOrder().map(x=>x[0]);
+  const pos=k=>{ const i=ordem.indexOf(k); return i<0?999:i; };
+  S._pendingDrawShows.sort((a,b)=>pos((a&&a.key)||a)-pos((b&&b.key)||b));
+}
 function checkPendingCupDraws(onDone){
   if(!S._pendingDrawShows || !S._pendingDrawShows.length){ if(onDone) onDone(); return false; }
+  sortPendingDrawShows();
   const item=S._pendingDrawShows.shift();
   const key=(item&&item.key)||item, stage=(item&&item.stage)||'bracket'; // retrocompat com saves que guardaram só a string
   // JÁ MOSTREI este sorteio nesta sessão (marcador em startCupDrawReplay): pula. A fila mora no
@@ -9014,21 +9078,42 @@ function checkPendingCupDraws(onDone){
   // o marcador também é lido do armazenamento (ver drawAlreadySeen): sem isso, a fila que veio no
   // shared_state re-exibia a cerimônia depois de um reload — inclusive o do botão de sincronizar.
   if((CL._drawPlayedSeason||{})[mark] || drawAlreadySeen(mark)) return checkPendingCupDraws(onDone);
-  startCupDrawReplay(key, stage, ()=>checkPendingCupDraws(onDone));
+  /* CERIMÔNIA NUNCA SE PERDE EM SILÊNCIO. O startCupDrawReplay desiste quando os dados dela ainda
+     não existem (chave/grupos por montar) — e como a entrada JÁ tinha saído da fila, ela sumia para
+     sempre NAQUELE cliente, enquanto o outro, que chegou ali um instante depois, assistia normal.
+     É uma das formas de "o sorteio apareceu para um e não para o outro". Agora a entrada volta para
+     a fila e é tentada de novo; se depois de algumas voltas os dados continuarem sem existir, sai
+     do caminho com aviso no console, em vez de segurar a sala calada. */
+  if(!startCupDrawReplay(key, stage, ()=>checkPendingCupDraws(onDone))){
+    CL._drawRetry=CL._drawRetry||{};
+    CL._drawRetry[mark]=(CL._drawRetry[mark]||0)+1;
+    if(CL._drawRetry[mark]<=5){
+      S._pendingDrawShows.push(item);
+      console.warn('sorteio '+mark+' ainda sem dados (tentativa '+CL._drawRetry[mark]+') — devolvido à fila');
+    } else {
+      console.warn('sorteio '+mark+' descartado: os dados nunca ficaram prontos');
+    }
+    if(onDone) onDone();
+    return false;
+  }
   return true;
 }
+/* devolve TRUE se a cerimônia começou; FALSE se os dados dela ainda não existem — quem chamou
+   decide o que fazer com isso (ver checkPendingCupDraws: devolve a entrada à fila em vez de
+   perdê-la). Antes os dois casos saíam iguais e calados, e o sorteio sumia só para quem passou
+   por aqui cedo demais. */
 function startCupDrawReplay(key, stage, onDone){
   if(typeof stage==='function'){ onDone=stage; stage='bracket'; } // retrocompat
   const c=S.cups&&S.cups[key];
   let reveal=[], remaining=[];
   if(stage==='group'){
-    const g=c&&c.group; if(!g||!g.groups){ if(onDone) onDone(); return; }
+    const g=c&&c.group; if(!g||!g.groups) return false;
     Object.values(g.groups).forEach(grp=>{ (grp.teams||[]).forEach(id=>reveal.push({type:'group',id,group:grp.label})); });
     reveal.sort((a,b)=>clubOf(a.id).name.localeCompare(clubOf(b.id).name)); // sai em ordem alfabética
     remaining=reveal.map(r=>r.id);
   } else {
     const b = c&&c.champion!==undefined ? c : (c&&c.bracket);
-    if(!b){ if(onDone) onDone(); return; }
+    if(!b || !Array.isArray(b.ties) || !Array.isArray(b.byeTeams)) return false;
     // confrontos PRIMEIRO, isentos depois: agora que o sorteio acontece na própria chave, sair
     // pelos isentos deixaria a chave vazia por quase toda a cerimônia (na Copa do Brasil são 48
     // isentos pra 16 confrontos) — o jogador olharia 3/4 do sorteio pra caixas "a definir".
@@ -9042,6 +9127,7 @@ function startCupDrawReplay(key, stage, onDone){
   CL.cupDraw={ key, stage, reveal, idx:0, drawn:[], remaining, fast:false, onDone };
   CL.screen='cupdraw'; cdraw();
   cupDrawTick();
+  return true;
 }
 function cupDrawTick(){
   const st=CL.cupDraw; if(!st || CL.screen!=='cupdraw') return;
