@@ -20,6 +20,7 @@
   <button onclick="start()">2· Iniciar (host)</button>
   <button onclick="scenario()">▶ Cenário 1: lockstep (Série D)</button>
   <button onclick="scenario2()">▶ Cenário 2: COPAS (Série A, quarta/sábado)</button>
+  <button onclick="scenario3()">▶ Cenário 3: 365ZV (dois fora das copas, até a jornada 3)</button>
   <button onclick="hz.timerMs=8000">timer 8s</button>
   <span id="st" class="info"></span>
 </div>
@@ -95,6 +96,57 @@ window.__HSRV={
   saveShared(code, S, round){ const g=G(code); g.shared=S; g.sharedVersion++; g.round=round||S.round||0;
     log('SRV: shared_state salvo v'+g.sharedVersion+' (rodada '+g.round+')','info'); bcast(code); },
   loadShared(code){ const g=G(code); return g.shared?{S:g.shared, version:g.sharedVersion}:null; },
+
+  /* ============ PONTEIRO DE DIA ============
+     Porta as funções de elifoot_v3 com a MESMA semântica. As DUAS convivem de propósito:
+       · dayAdvanceIfAllDone = o que está em produção HOJE (libera quando ninguém está ocupado).
+         É o que reproduz o travamento da sala 365ZV dentro do harness.
+       · dayAck = a fundação nova (carimbo explícito por assento, jornada derivada do ponteiro).
+     Trocar o cliente de uma pra outra é a correção — e o mesmo cenário mede as duas. */
+  dayPlanSet(code, plan){ const g=G(code); if(!g || g.day_plan) return;     // nunca sobrescreve (igual à produção)
+    g.day_plan=plan; g.day_idx=0; g.day_moment='escalando';
+    log('SRV: plano de dias gravado ('+plan.length+' dias)','info'); bcast(code); },
+  dayCurrent(code){ const g=G(code); if(!g||!g.day_plan) return null;
+    const e=g.day_plan[g.day_idx]; if(!e) return null;
+    return { idx:g.day_idx, momento:g.day_moment, jornada:e.r, competicao:e.comp,
+             dia_da_temporada:e.dia, total_dias:g.day_plan.length }; },
+  dayStatus(code){ const g=G(code); if(!g||!g.day_plan) return null;
+    const cur=this.dayCurrent(code); if(!cur) return null;
+    const chave=g.day_idx+':'+g.day_moment;
+    const faltando=Object.keys(g.seats).filter(id=>g.seats[id].club_id!=null && g.seats[id].day_ack!==chave);
+    return Object.assign({}, cur, { faltam:faltando.length,
+      nomes_faltando:faltando.map(id=>(g.players[id]||{}).name||'?') }); },
+  /* SEMÂNTICA ATUAL DE PRODUÇÃO — o defeito, preservado de propósito. "Ninguém ocupado" é uma foto
+     do instante: entre uma tela e outra todo mundo está livre, e o dia vira sem nada ter sido
+     cumprido. Foi assim que o ponteiro chegou à jornada 4 com a sala na 3. */
+  dayAdvanceIfAllDone(code, idx, moment){ const g=G(code); if(!g||!g.day_plan) return null;
+    if(g.day_idx!==idx || g.day_moment!==moment) return this.dayCurrent(code);   // já virou
+    if(busyAny(g)) return this.dayCurrent(code);
+    if(g.day_moment==='escalando') g.day_moment='jogando';
+    else if(g.day_moment==='jogando') g.day_moment='classificacao';
+    else { if(g.day_idx+1>=g.day_plan.length) return this.dayCurrent(code);
+           g.day_idx++; g.day_moment='escalando'; }
+    bcast(code); return this.dayCurrent(code); },
+  /* SEMÂNTICA NOVA — carimbo explícito, e a JORNADA sai do ponteiro (games.round derivado). */
+  dayAck(code, uid, idx, moment, ignorarSeg){ const g=G(code); if(!g||!g.day_plan) return null;
+    const chave=g.day_idx+':'+g.day_moment;
+    if(idx===g.day_idx && moment===g.day_moment && g.seats[uid]) g.seats[uid].day_ack=chave;
+    const faltam=Object.keys(g.seats).filter(id=>{ const s=g.seats[id];
+      if(s.club_id==null || s.day_ack===chave) return false;
+      if(ignorarSeg && s.last_seen && Date.now()-s.last_seen > ignorarSeg*1000) return false;  // "começar sem eles"
+      return true; }).length;
+    if(faltam===0){
+      if(g.day_moment==='escalando') g.day_moment='jogando';
+      else if(g.day_moment==='jogando') g.day_moment='classificacao';
+      else if(g.day_idx+1<g.day_plan.length){ g.day_idx++; g.day_moment='escalando'; }
+      const e=g.day_plan[g.day_idx]; if(e && e.r!=null) g.round=e.r;     // a jornada É o ponteiro
+      Object.values(g.seats).forEach(s=>{ s.day_ack=null; });
+    }
+    bcast(code); return this.dayStatus(code); },
+  daySync(code, round){ const g=G(code); if(!g||!g.day_plan) return null;
+    const alvo=g.day_plan.findIndex(e=>e.r>=round);
+    if(alvo>=0 && alvo>g.day_idx){ g.day_idx=alvo; g.day_moment='escalando'; bcast(code); }  // só pra frente
+    return this.dayCurrent(code); },
 };
 
 /* ============ RUNNER ============ */
@@ -188,6 +240,80 @@ async function scenario2(){
     assert(Object.values(eB).every(n=>n===1),'B nunca reentrou numa etapa (anti-loop)');
     assert(stA().round===stB().round,'os dois na MESMA rodada ao fim: '+stA().round);
     log('=== CENÁRIO COPAS: PASSOU ===','ok');
+  }catch(e){ log(String(e&&e.message||e),'fail'); }
+  finally{ stopRecorder(); window.__HRIG=null; window.__HDIV=null; }
+}
+/* ---- CENÁRIO 3: O CASO REAL QUE TRAVOU (sala 365ZV, 07/08/2026) ----
+   Série A, os DOIS humanos FORA das continentais. Eles não jogam Libertadores nem Sul-Americana:
+   tudo que fazem nesses dias é ASSISTIR — e assistir junto é o que vinha falhando. Vai até a
+   jornada 3, que tem TRÊS copas no mesmo bloco (Lib + Sula + Copa do Brasil) antes do jogo de liga.
+
+   O que este cenário mede, e o cenário 2 não media:
+     · o ponteiro nunca pode falar de uma jornada à frente da sala (foi assim que ele chegou à
+       jornada 4 com a sala na 3, e o desacordo devolveu a decisão pro palpite local);
+     · os dois nunca podem estar ao vivo em competições diferentes ao mesmo tempo;
+     · a distância entre as jornadas dos dois nunca passa de 1 (na 365ZV chegou a 3). */
+async function scenario3(){
+  try{
+    hz.timerMs=8000; hz.games={}; CODE=null;
+    window.__HDIV='A'; window.__HRIG='sem-copas';
+    fA.src='/?harness=A&t='+Date.now(); fB.src='/?harness=B&t='+Date.now();
+    await sleep(1400);
+    await setup();
+    await sleep(200);
+    start(); startRecorder();
+    await waitFor(()=>stA().netStep==='reveal'&&stB().netStep==='reveal','reveal nos DOIS');
+    await fastUntil(['main'],'cerimônias até o clube — Série A, ninguém nas continentais',300000);
+    log('clubes: A='+stA().myClub+' · B='+stB().myClub+' (nenhum joga Lib/Sula)','info');
+    assert(!!hz.games[CODE].day_plan,'a sala gravou o calendário de dias');
+
+    // autopiloto: o runner só faz o papel dos DEDOS; tudo é validado pelo histórico depois
+    const t0=Date.now(); let poke=0;
+    while(hz.games[CODE].round<4 && Date.now()-t0<1500000){
+      const g=hz.games[CODE];
+      if(g.phase==='ready' && Date.now()-poke>3000){ poke=Date.now();
+        try{ if(stA().screen==='main'&&!stA().live) A().__h.jogar(); }catch(e){}
+        try{ if(stB().screen==='main'&&!stB().live) B().__h.jogar(); }catch(e){}
+      }
+      try{ A().__h.fast(); }catch(e){} try{ B().__h.fast(); }catch(e){}
+      await sleep(250);
+    }
+    await waitFor(()=>hz.games[CODE].round>=4,'mundo atravessou a jornada 3 (Lib+Sula+CdB+liga)',60000);
+    await fastUntil(['main'],'os dois de volta ao clube',240000);
+
+    // ---------- ITEM 1: MESMA TELA, SEMPRE ----------
+    const gap=Math.max(...hist.A.map((s,i)=>{ const b=hist.B[i]; return (b&&s.round!=null&&b.round!=null)?Math.abs(s.round-b.round):0; }));
+    log('maior distância de jornada entre os dois: '+gap,'info');
+    assert(gap<=1,'os dois nunca ficaram a mais de 1 jornada de distância (365ZV chegou a 3)');
+
+    const divergiu=hist.A.filter((s,i)=>{ const b=hist.B[i];
+      return b && s.live && b.live && (s.cupKey||'liga')!==(b.cupKey||'liga'); });
+    log('instantes ao vivo em competições diferentes: '+divergiu.length,'info');
+    assert(divergiu.length===0,'nunca estiveram ao vivo em competições diferentes');
+
+    // ---------- O PONTEIRO MANDA, E NÃO CORRE NA FRENTE ----------
+    const adiante=hist.A.filter(s=>s.diaRound!=null && s.round!=null && s.diaRound>s.round);
+    log('instantes com o ponteiro à frente da sala: '+adiante.length,'info');
+    assert(adiante.length===0,'o ponteiro nunca falou de uma jornada à frente da sala');
+
+    const ignorado=hist.A.filter(s=>s.diaComp!=null && !s.diaVale).length
+                 + hist.B.filter(s=>s.diaComp!=null && !s.diaVale).length;
+    log('instantes em que o cliente IGNOROU o ponteiro: '+ignorado,'info');
+    assert(ignorado===0,'nenhum cliente caiu no palpite local (roomDay() nunca devolveu null)');
+
+    // ---------- ITEM 4: TODOS ASSISTEM TUDO ----------
+    assert(saw('A',s=>s.live&&s.cupKey==='libertadores')&&saw('B',s=>s.live&&s.cupKey==='libertadores'),
+      'os DOIS assistiram a Libertadores mesmo sem disputá-la');
+    assert(saw('A',s=>s.live&&s.cupKey==='sulamericana')&&saw('B',s=>s.live&&s.cupKey==='sulamericana'),
+      'os DOIS assistiram a Sul-Americana mesmo sem disputá-la');
+
+    // ---------- ANTI-LOOP E CHEGADA JUNTOS ----------
+    const eA=entryCounts('A'), eB=entryCounts('B');
+    log('entradas ao vivo A='+JSON.stringify(eA),'info'); log('entradas ao vivo B='+JSON.stringify(eB),'info');
+    assert(Object.values(eA).every(n=>n===1),'A nunca reentrou numa etapa (anti-loop)');
+    assert(Object.values(eB).every(n=>n===1),'B nunca reentrou numa etapa (anti-loop)');
+    assert(stA().round===stB().round,'os dois na MESMA jornada ao fim: '+stA().round);
+    log('=== CENÁRIO 365ZV: PASSOU ===','ok');
   }catch(e){ log(String(e&&e.message||e),'fail'); }
   finally{ stopRecorder(); window.__HRIG=null; window.__HDIV=null; }
 }
