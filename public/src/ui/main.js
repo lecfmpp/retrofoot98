@@ -7061,7 +7061,6 @@ function finishCupLiveMatch(){
     // chave mostrada no pós-jogo já vir completa (advanceCupBracket pula a do usuário, que
     // acabou de receber t.winner acima).
     resolveCupRoundRest(pending.key);
-    cupDayMarkDone(pending.key);   // minha partida acabou: o dia de copa está cumprido por mim
     const userWon=(winner===CL.clubId);
     if(wentToPens){
       const userIsHome=(t.h===CL.clubId);
@@ -7093,7 +7092,6 @@ function finishCupLiveMatch(){
     // uma partida disputada e as outras zeradas. advanceGroupStageRound pula a partida do
     // usuário sozinho (guard pelo resultado já gravado no grupo), então aqui só entram os que faltavam.
     resolveCupRoundRest(pending.key);
-    cupDayMarkDone(pending.key);   // minha partida acabou: o dia de copa está cumprido por mim
     // Resenha (online): publica também o resultado de FASE DE GRUPOS. Antes só o mata-mata era
     // publicado, então o servidor re-simulava a partida que o humano tinha acabado de jogar ao
     // vivo e o adopt seguinte sobrescrevia o placar que ele viu na tela (ver
@@ -7199,6 +7197,20 @@ function finishCupResultFlow(){
   // NA QUARTA (semana de dois estágios) a etapa é SÓ a copa: "não joguei a liga" não pode segurar
   // o pronto — a liga pertence ao estágio de sábado, que ainda nem abriu. Era isto que deixava o
   // participante da copa sem marcar pronto depois de jogar, com a quarta esperando por ele.
+  /* AQUI TERMINA O QUE EU TINHA A FAZER NO DIA DE COPA — e é só aqui que ele pode ser carimbado.
+     O carimbo estava saindo no APITO (finishCupLiveMatch), antes da tela de resultado da minha
+     própria partida. Consequência medida em sala real: quem só assistia terminava e carimbava; eu,
+     que joguei, carimbava no apito e ainda tinha o meu resultado para ver — o momento virava para
+     'classificacao' com eu ainda no meu modal, e o outro humano abria a tabela sozinho. Eu só a via
+     depois, ao cair na tela do clube. "Cumpri o dia" tem que significar TERMINEI TUDO, senão o
+     ponteiro anda no meio do meu fluxo e a sala se parte exatamente onde ela deveria se juntar.
+     A competição é a do PONTEIRO: é o dia que está sendo cumprido, não a minha lista. */
+  const _dHoje=(typeof NET!=='undefined' && NET.room)?NET.room.day:null;
+  if(_dHoje && _dHoje.comp!=='liga' && typeof cupDayMarkDone==='function') cupDayMarkDone(_dHoje.comp);
+  // e se a sala já está no momento da tabela, vou direto para ela — sem piscar a tela do clube no
+  // meio, que foi como o anfitrião viu a classificação "depois" em vez de junto.
+  if(typeof onlineMomentScreenTick==='function') onlineMomentScreenTick();
+  if(CL.screen==='cupclassif') return;
   const _cupStage = (typeof isCupStage==='function' && isCupStage());
   const stillPending = CL.online && (pendingUserCupMatches().length>0 || (!_cupStage && CL._playedRound!==S.round));
   if(CL.online && !stillPending){
@@ -9714,9 +9726,19 @@ function onlineWaitingTick(){
   const d=NET.room.day, chave=d.idx+':'+d.moment;
   if(CL._waitKey!==chave){ CL._waitKey=chave; CL._waitSince=Date.now(); CL._waitInfo=null;
     if(CL._waitOpen){ CL._waitOpen=false; clCloseOverlay(); } }      // o dia andou: some sozinho
-  // só interessa a quem JÁ fez a sua parte: quem ainda deve não está esperando, está devendo.
-  if(CL._dayAckKey!==chave) return;
   if(Date.now()-(CL._waitSince||0) < WAIT_PANEL_AFTER_MS) return;
+  /* E QUANDO QUEM ESTÁ SEGURANDO A SALA SOU EU? Até agora este painel só aparecia para quem já
+     tinha feito a sua parte — ou seja, a única pessoa que podia destravar a sala era justamente a
+     única que não recebia aviso nenhum. Ela ficava na tela do clube achando que o jogo tinha
+     travado, e do outro lado a sala parada esperando por ela. Foi o relatado: "o convidado travou
+     na tela do treinador e não avançou".
+     Quem deve o carimbo vê o inverso: a sala está esperando por VOCÊ, e o que fazer. */
+  if(CL._dayAckKey!==chave){
+    if(CL.live || CL.screen==='live' || CL.screen==='cupdraw' || CL.screen==='classif'
+       || CL.screen==='seatclassif' || CL.screen==='cupclassif') return;   // estou no meio da minha parte
+    if(CL._waitMeShown!==chave){ CL._waitMeShown=chave; showResenhaWaitingMe(d); }
+    return;
+  }
   if(CL._waitSnoozeUntil && Date.now()<CL._waitSnoozeUntil) return;
   // nunca por cima de partida, cerimônia ou tela de decisão
   if(CL.live || CL.screen==='live' || CL.screen==='cupdraw' || CL.screen==='classif'
@@ -9780,6 +9802,46 @@ function showResenhaWaiting(st){
     + (ehHost ? btn('Começar sem eles','clWaitSkipAbsent()',{icon:'⏭',cls:'cl-btn-cancel'}) : '');
   CL._waitOpen=true;
   overlayC(dlg('Resenha — sala em espera', corpo, {w:560, std:true, footer:pe, bodyClass:'cl-body-green'}));
+}
+/* O AVISO PARA QUEM ESTÁ SEGURANDO A SALA. Mesma linguagem visual do painel de espera, mensagem
+   invertida — e com o botão que resolve, para o jogador não ter de adivinhar o que o jogo quer. */
+function showResenhaWaitingMe(d){
+  const ehLiga=(d.comp==='liga');
+  const comp = ehLiga ? 'Brasileirão'
+    : ((typeof COMP_DEFS!=='undefined' && COMP_DEFS[d.comp] && COMP_DEFS[d.comp].short) || 'Copa');
+  const trof = (!ehLiga && typeof trophyImg==='function') ? trophyImg(d.comp,64) : '';
+  const oQue = {
+    escalando:'Escale o time e diga que está pronto — a rodada só começa com todos.',
+    jogando:'Entre em campo: a rodada da sala está acontecendo agora.',
+    classificacao:'Veja a classificação para a sala seguir para o próximo dia.'
+  }[d.moment] || 'Continue para a sala seguir.';
+  const rotulo = { escalando:'Estou pronto', jogando:'Entrar em campo', classificacao:'Ver a classificação' }[d.moment] || 'Continuar';
+  const corpo=`
+    <div class="cl-esp">
+      <div class="cl-esp-top">
+        <div>
+          <div class="cl-mom-kicker">A SALA ESTÁ ESPERANDO</div>
+          <div class="cl-mom-manchete">Por você</div>
+          <div class="cl-esp-ctx">Jornada ${escC(String((d.round!=null?d.round:0)+1))} · ${escC(comp)}</div>
+        </div>
+        ${trof?`<div class="cl-esp-trofeu">${trof}</div>`:''}
+      </div>
+      <div class="cl-esp-quem">
+        <span class="cl-esp-av">!</span>
+        <span class="cl-esp-nome">${escC(oQue)}</span>
+      </div>
+      <div class="cl-esp-nota">Os outros treinadores estão parados no mesmo ponto, esperando por
+        você. Ninguém avança sozinho.</div>
+    </div>`;
+  const pe = btn(rotulo,'clWaitMeGo()',{icon:'▶',cls:'cl-btn-ok'});
+  overlayC(dlg('Resenha — a sala espera por você', corpo, {w:560, std:true, footer:pe, bodyClass:'cl-body-green'}));
+}
+/* faz o que o momento pede, para o jogador não precisar descobrir sozinho qual botão é o certo. */
+function clWaitMeGo(){
+  clCloseOverlay();
+  const d=(typeof NET!=='undefined' && NET.room)?NET.room.day:null; if(!d) return;
+  if(d.moment==='classificacao'){ if(typeof onlineMomentScreenTick==='function') onlineMomentScreenTick(); return; }
+  if(typeof clJogar==='function') clJogar();
 }
 function clWaitMore(){ CL._waitSnoozeUntil=Date.now()+10000; CL._waitOpen=false; clCloseOverlay(); }
 function clWaitSkipAbsent(){

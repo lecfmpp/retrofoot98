@@ -1847,9 +1847,18 @@ function roomDayTick(){
   const k=d.idx+':'+d.moment;
   if(CL._dayAckKey===k) return;
   CL._dayAckKey=k;
+  /* TODO CARIMBO É REGISTRADO. Sem isto, uma sala parada só conta que ninguém entrou em campo — e
+     não QUEM deixou de carimbar O QUÊ, que é a única pergunta que importa. Duas sessões inteiras
+     foram gastas adivinhando isso a partir de sintomas; uma linha por carimbo responde na hora, e
+     o que o servidor devolve (quantos ainda faltam) fecha a conta dos dois lados. */
   const p = NET.dayAck ? NET.dayAck(d.idx, d.moment, DAY_ACK_IGNORAR_AUSENTES_SEG)
                        : NET.dayDone(d.idx, d.moment);
-  Promise.resolve(p).then(()=>{ if(NET.refreshRoom) return NET.refreshRoom(); }).catch(()=>{});
+  Promise.resolve(p).then(r=>{
+    const faltam=(r && r.faltam!=null) ? r.faltam : '?';
+    console.log('carimbei dia'+d.idx+' ('+d.comp+'/'+d.moment+') — ainda faltam '+faltam+
+      (r && r.nomes_faltando && r.nomes_faltando.length ? ': '+r.nomes_faltando.join(', ') : ''));
+    if(NET.refreshRoom) return NET.refreshRoom();
+  }).catch(()=>{});
 }
 
 /* ==================== ITEM 3, PRIMEIRA METADE: LER A JORNADA DO PONTEIRO ====================
