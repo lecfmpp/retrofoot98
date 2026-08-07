@@ -748,10 +748,54 @@ async function netSetReady(ready, clubId){
    background". O timer agora só arma via arm_ready_timer — que o servidor só concede quando
    NINGUÉM está ocupado (cerimônias contam como ocupado, ver CLOSING_SCREENS) — então a contagem
    da rodada 1 só começa quando todos estão na tela do clube. */
+/* PONTEIRO DE DIA. A temporada inteira vira uma lista ordenada de dias — cada um com a competição
+   que entra em campo — e a sala guarda essa lista mais um índice e um momento. Quem decide qual
+   tela todos veem passa a ser esse ponteiro, não o palpite de cada cliente a partir do seu próprio
+   estado (foi assim que dois humanos acabaram em jornadas diferentes, cada um "certo" pela sua
+   conta). A lista é montada pela folha de regras, a mesma que o servidor roda: montar de novo no
+   banco seria uma terceira cópia das mesmas datas.
+   Só o anfitrião grava, e só uma vez: day_plan já preenchido nunca é sobrescrito, senão um
+   reinício jogaria a sala de volta pro primeiro dia. */
+async function netSeedDayPlan(){
+  try{
+    if(typeof WORLD_RULES==='undefined' || !WORLD_RULES.buildDayPlan) return;
+    const { data: g } = await sb.from('games').select('day_plan').eq('id', NET.gameId).single();
+    if(g && g.day_plan) return;                       // sala já tem o seu calendário
+    const tog = (typeof S!=='undefined' && S && S.compToggle) || {};
+    const cups = (typeof allCupKeys==='function' ? allCupKeys() : []).filter(k=>tog[k]!==false);
+    const epoch = (typeof seasonEpoch==='function') ? seasonEpoch() : null;
+    const plan = WORLD_RULES.buildDayPlan(cups, epoch);
+    if(!plan || !plan.length) return;
+    await sb.from('games').update({ day_plan: plan, day_idx: 0, day_moment: 'escalando' }).eq('id', NET.gameId);
+  }catch(e){ console.warn('seedDayPlan:', e && e.message); }
+}
+
+/* o dia que a sala está vivendo agora, direto do servidor: {idx, momento, jornada, competicao,
+   dia_da_temporada, total_dias}. null quando a sala ainda não tem plano (save antigo). */
+async function netDayPointer(){
+  if(!sb || !NET.gameId) return null;
+  try{
+    const { data, error } = await sb.rpc('day_current', { p_game: NET.gameId });
+    if(error) throw error;
+    return (data && data.length) ? data[0] : null;
+  }catch(e){ console.warn('dayPointer:', e && e.message); return null; }
+}
+/* faz a sala andar um passo: escalando → jogando → classificacao → próximo dia. Só anda pra
+   frente, e para no último dia — é o que impede a mesma rodada de acontecer duas vezes. */
+async function netDayAdvance(){
+  if(!sb || !NET.gameId) return null;
+  try{
+    const { data, error } = await sb.rpc('day_advance', { p_game: NET.gameId });
+    if(error) throw error;
+    return (data && data.length) ? data[0] : null;
+  }catch(e){ console.warn('dayAdvance:', e && e.message); return null; }
+}
+
 async function netStart(){
   if(!NET.isHost) return;
   NET.room.phase='ready'; NET.room.deadline=0; NET.room.paused=false;
   if(NET.onState) NET.onState(NET.room);
+  await netSeedDayPlan();
   try { await sb.from('games').update({ phase:'ready', ready_deadline: null, paused:false }).eq('id', NET.gameId); }
   catch(e) { console.error('start erro:', e); }
 }
@@ -1413,6 +1457,8 @@ NET.authSignIn = netAuthSignIn;
 NET.authSignOut = netAuthSignOut;
 NET.authResetPassword = netAuthResetPassword;
 NET.updatePassword = netUpdatePassword;
+NET.dayPointer = netDayPointer;
+NET.dayAdvance = netDayAdvance;
 NET.listMyRooms = netListMyRooms;
 NET.deleteRoom = netDeleteRoom;
 NET.sendEmailInvite = netSendEmailInvite;
