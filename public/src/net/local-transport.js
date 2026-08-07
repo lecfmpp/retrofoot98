@@ -1724,7 +1724,21 @@ function roomDayFact(d){
     // 3 tem Libertadores, Sul-Americana e Copa do Brasil, e as três dividem a mesma etapa 'cup' —
     // usar onlineStageDone() aqui faria terminar a primeira valer como carimbo das outras duas, que
     // é exatamente o atalho do last_cup_round que já nos custou uma sala travada.
-    if(d.comp!=='liga') return (typeof cupWasSeen==='function') ? cupWasSeen(d.comp) : false;
+    if(d.comp!=='liga'){
+      if(typeof cupWasSeen!=='function') return false;
+      if(cupWasSeen(d.comp)) return true;
+      /* NADA A CUMPRIR TAMBÉM É CUMPRIR — mas só quando o MUNDO diz isso, não o meu humor.
+         Agora que o botão Jogar só entra na competição do dia, um dia sem NENHUMA partida para mim
+         (não jogo e não há o que assistir naquela competição hoje) ficaria sem carimbo nenhum e a
+         sala inteira esperaria por um dia que não tem o que acontecer. As duas listas abaixo saem
+         do estado compartilhado, então quem não tem nada hoje não tem nada para todo mundo — isto
+         não é um cliente decidindo sozinho pular uma competição que existe. */
+      try{
+        const tenho=(typeof pendingUserCupMatches==='function') && pendingUserCupMatches().some(c=>c.key===d.comp);
+        const assisto=(typeof cupRoundsUserSitsOut==='function') && cupRoundsUserSitsOut().some(c=>c.key===d.comp);
+        return !tenho && !assisto;
+      }catch(e){ return false; }
+    }
     /* DIA DE LIGA: a pergunta é "eu joguei a PARTIDA DE LIGA desta jornada?", e ela tem que ser
        respondida por fatos da partida — nunca pela etapa da semana em que eu penso estar (ver
        onlineStageDoneFor: foi assim que a jornada 2 inteira sumiu). Três respostas honestas: joguei
