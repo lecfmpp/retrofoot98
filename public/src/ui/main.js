@@ -3971,6 +3971,25 @@ function clEscalaPick(pid){   // pid do jogador clicado (identidade por ID, não
   CL.escalaMark=null; saveV3(); cdraw();
 }
 function clEscalaMarkClear(){ CL.escalaMark=null; cdraw(); }   // botão ✕ da barra fixa (escalaBarHTML)
+/* ---- PORTÃO DE LARGADA DA RESENHA (o mesmo pra liga e pra copa) ----
+   A LIGA sempre teve largada coordenada: clicar em "Jogar" marca PRONTO e espera; o servidor vira
+   a fase pra 'running' quando todos estão prontos (ou o cronômetro zera) e, no mesmo update,
+   congela o snapshot de escalações (start_running/kickoff_lineups). Aí a rede de segurança
+   (onlineRunRound) põe todo mundo em campo no mesmo tique, simulando os mesmos jogos com os
+   mesmos inputs.
+   A COPA não passava por nada disso: o clique entrava direto na partida. Dois humanos da mesma
+   competição começavam com a diferença de tempo entre os cliques deles, e a partida de um chegava
+   ao outro como simulação local em vez de transmissão ao vivo — não se transmite um jogo que já
+   acabou. Era a origem de "as telas da Sul-Americana e da Libertadores não aparecem juntas".
+   Agora as duas competições passam pelo mesmo portão. Devolve true quando ainda não é hora de
+   entrar (marquei pronto e estou esperando); false quando pode entrar em campo agora — porque a
+   fase já é 'running' (retardatário se juntando à rodada que começou) ou porque é modo solo. */
+function onlineJogarGate(){
+  if(!CL.online) return false;
+  if(typeof onlinePhaseRunning==='function' && onlinePhaseRunning()) return false;
+  if(typeof onlineMarkReady==='function') onlineMarkReady();
+  return true;
+}
 function clJogar(){
   if(CL._seatContext){ clSeatPlay(); return; } // hotseat: "Jogar" na tela do assento inicia a partida dele
   if(!CL.tacticChosen){ toastC('Escolha a tática no menu Formação primeiro.'); CL.tab='seleccao'; cdraw(); return; }
@@ -3997,7 +4016,11 @@ function clJogar(){
   // MESMA fonte que a tela principal usa pra anunciar o próximo jogo (nextUserMatch) — é o que
   // garante que o confronto escalado é o confronto jogado.
   const prox=nextUserMatch();
-  if(prox && prox.kind==='cup'){ showCupIntro(prox.pending); return; }
+  if(prox && prox.kind==='cup'){
+    // A COPA ENTRA EM CAMPO PELO MESMO PORTÃO DA LIGA (ver onlineJogarGate).
+    if(onlineJogarGate()) return;
+    showCupIntro(prox.pending); return;
+  }
   // nenhuma partida de copa pra JOGAR nesta rodada — mas pode ter rodada de copa rolando de
   // competições das quais o usuário não participa (ou já foi eliminado, ou pegou bye). Ele passa
   // por ela do mesmo jeito, uma competição de cada vez, antes de liberar a rodada de liga.
@@ -4013,15 +4036,7 @@ function clJogar(){
   // transmissão ao vivo dele, não de uma simulação local (ver buildLiveMatchObject/isCup).
   const idle=cupRoundsUserSitsOut().filter(c=>!cupWasSeen(c.key));
   if(idle.length){
-    // NUNCA ANTES DE QUEM JOGA (ver cupSpectateHeldByOthers em local-transport): enquanto algum
-    // humano ainda dever a partida de copa da semana, eu não entro na rodada — senão eu veria o
-    // jogo do dono do time antes dele. Volto sozinho assim que a barreira soltar.
-    if(typeof cupSpectateHeldByOthers==='function' && cupSpectateHeldByOthers()){
-      toastC('Dia de copa — esperando os outros treinadores entrarem em campo…');
-      if(!CL._cupWaitTimer) CL._cupWaitTimer=setTimeout(()=>{ CL._cupWaitTimer=null;
-        if(CL.online && CL.screen==='main' && !CL.live) clJogar(); }, 2500);
-      return;
-    }
+    if(onlineJogarGate()) return;    // mesmo portão: quem assiste entra JUNTO com quem joga
     const cand=idle[0];
     cupMarkSeen(cand.key);
     CL._pendingCupIdleQueue=idle.slice(1);

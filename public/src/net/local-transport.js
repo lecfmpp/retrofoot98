@@ -1632,12 +1632,13 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // nada. Era o caso relatado: numa rodada de Libertadores, quem não estava na competição pulou a
   // copa inteira e foi jogar o Brasileirão. Assistir é o que mantém a semana de copa simétrica —
   // todos entram e saem da copa no mesmo momento.
-  // ...MAS NUNCA ANTES DE QUEM JOGA (ver cupSpectateHeldByOthers): este bloco ficava ACIMA da
-  // barreira do dia de copa, então quem não disputa a competição entrava na rodada enquanto o
-  // dono do time ainda nem tinha escalado — via o jogo dele antes dele, e com um placar que podia
-  // nem ser o que ia valer. Segurado aqui, cai na barreira logo abaixo e volta neste mesmo tique
-  // assim que todos tiverem cumprido a copa da semana.
-  if(typeof cupRoundsUserSitsOut==='function' && typeof startCupRound==='function' && !cupSpectateHeldByOthers()){
+  // Chegar aqui já significa fase 'running': a largada foi dada pra sala inteira no mesmo
+  // instante, então quem assiste entra JUNTO com quem joga — e é justamente por isso que a
+  // partida do outro humano chega como transmissão ao vivo dele, e não como simulação local (ver
+  // buildLiveMatchObject/isCup). Uma barreira extra aqui (a tentativa anterior de segurar o
+  // espectador até os participantes terminarem) serializava o que tem que ser simultâneo e
+  // matava a transmissão: não se transmite uma partida que já acabou.
+  if(typeof cupRoundsUserSitsOut==='function' && typeof startCupRound==='function'){
     const idle=cupRoundsUserSitsOut().filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key));
     if(idle.length){
       const cand=idle[0];
@@ -1732,18 +1733,11 @@ function onlineCupDayPending(){
    eu lesse o contrário). 90s cobre com folga uma partida de copa inteira, inclusive prorrogação e
    pênaltis, que foi o caso que travou a sala no playtest. */
 const CUP_DAY_MAX_WAIT_MS=90000;
-/* POSSO ENTRAR NA RODADA DE COPA QUE NÃO DISPUTO, AGORA? Só quando ninguém mais deve a partida de
-   copa desta semana. A rodada que eu assisto é simulada localmente a partir das seeds
-   autoritativas: entrar antes de o dono do time jogar a dele significa ver o jogo dele ANTES
-   dele — e ainda por cima um placar que pode não ser o que vai valer, porque a partida ao vivo
-   dele tem prorrogação, pênaltis e a escalação real. Escape: o mesmo teto do dia de copa
-   (cupDayWaitExpired), pra a espera nunca virar travamento. */
-function cupSpectateHeldByOthers(){
-  if(!CL.online || typeof S==='undefined' || !S) return false;
-  if(typeof onlineCupDayPending!=='function') return false;
-  try{ return onlineCupDayPending().length>0 && !cupDayWaitExpired(); }
-  catch(e){ return false; }
-}
+/* A RODADA JÁ COMEÇOU? É o portão de largada da sala: o servidor vira a fase pra 'running' quando
+   todos estão prontos (ou o cronômetro zera) e carimba no MESMO update o snapshot de escalações
+   (start_running/kickoff_lineups). Enquanto a fase for 'ready', ninguém entra em campo — é isso
+   que faz a rodada começar no mesmo instante pra todo mundo. */
+function onlinePhaseRunning(){ return !!(typeof NET!=='undefined' && NET.room && NET.room.phase==='running'); }
 function cupDayWaitExpired(){
   const room=(typeof NET!=='undefined')?NET.room:null;
   const dl=(room && room.deadline)||0;
