@@ -9741,25 +9741,45 @@ function onlineWaitingTick(){
     CL._waitInfo=st; showResenhaWaiting(st);
   }).catch(()=>{});
 }
+/* O QUE CADA MOMENTO SIGNIFICA PARA QUEM ESTÁ LENDO. "escalando" não quer dizer nada para o
+   jogador; "escolhendo o time" quer. */
+const ESPERA_MOMENTO={ escalando:'escolhendo o time', jogando:'em campo', classificacao:'vendo a classificação' };
 function showResenhaWaiting(st){
   const nomes=(st.nomes_faltando||[]).filter(Boolean);
-  const lista=nomes.length
-    ? nomes.map(n=>`<div class="cl-wait-name">👤 ${escC(n)}</div>`).join('')
-    : `<div class="cl-wait-name">👤 ${st.faltam} treinador(es)</div>`;
-  const oQue = st.competicao==='liga' ? 'a rodada do Brasileirão' : 'a rodada da copa';
+  const n=nomes.length||st.faltam||0;
+  const ehLiga=(st.competicao==='liga');
+  const comp = ehLiga ? 'Brasileirão'
+    : ((typeof COMP_DEFS!=='undefined' && COMP_DEFS[st.competicao] && COMP_DEFS[st.competicao].short) || 'Copa');
+  const trof = (!ehLiga && typeof trophyImg==='function') ? trophyImg(st.competicao,64) : '';
+  const oQue = ESPERA_MOMENTO[st.momento] || st.momento || '';
+  const manchete = n===1 ? 'Falta 1 treinador' : 'Faltam '+n+' treinadores';
+  const inicial = s => (String(s||'?').trim()[0]||'?').toUpperCase();
+  const lista = (nomes.length ? nomes : Array.from({length:n}, ()=>'Treinador')).map(nome=>`
+    <div class="cl-esp-quem">
+      <span class="cl-esp-av">${escC(inicial(nome))}</span>
+      <span class="cl-esp-nome">${escC(nome)}</span>
+      <span class="cl-esp-st">${escC(oQue)}<i class="cl-esp-dots"></i></span>
+    </div>`).join('');
   const ehHost=(typeof NET!=='undefined' && NET.isHost);
   const corpo=`
-    <div class="cl-wait">
-      <div class="cl-wait-t">A sala está esperando para seguir em ${escC(oQue)}:</div>
-      ${lista}
-      <div class="cl-wait-sub">Ninguém é pulado enquanto você espera — o jogo continua no mesmo
-        ponto para todos.</div>
+    <div class="cl-esp">
+      <div class="cl-esp-top">
+        <div>
+          <div class="cl-mom-kicker">SALA EM ESPERA</div>
+          <div class="cl-mom-manchete">${escC(manchete)}</div>
+          <div class="cl-esp-ctx">Jornada ${escC(String((st.jornada!=null?st.jornada:0)+1))} · ${escC(comp)}</div>
+        </div>
+        ${trof?`<div class="cl-esp-trofeu">${trof}</div>`:''}
+      </div>
+      <div class="cl-esp-lista">${lista}</div>
+      <div class="cl-esp-nota">A rodada não começa sem eles — e ninguém é pulado enquanto você
+        espera. Todos continuam exatamente no mesmo ponto do jogo.</div>
     </div>`;
-  const pe = btn('Aguardar mais 10s','clWaitMore()',{icon:'⏳',cls:'cl-btn-ok'})
-    + (ehHost ? btn('Começar sem eles','clWaitSkipAbsent()',{icon:'⏭',cls:'cl-btn-cancel'})
-              : `<span class="cl-wait-host">Só o anfitrião pode seguir sem eles.</span>`);
+  const pe = `<div class="cl-esp-foot-nota">${ehHost?'Você é o anfitrião da sala.':'Só o anfitrião pode seguir sem eles.'}</div>`
+    + btn('Aguardar','clWaitMore()',{icon:'⏳',cls:'cl-btn-ok'})
+    + (ehHost ? btn('Começar sem eles','clWaitSkipAbsent()',{icon:'⏭',cls:'cl-btn-cancel'}) : '');
   CL._waitOpen=true;
-  overlayC(dlg('Esperando os outros treinadores', corpo, {w:520, std:true, footer:pe}));
+  overlayC(dlg('Resenha — sala em espera', corpo, {w:560, std:true, footer:pe, bodyClass:'cl-body-green'}));
 }
 function clWaitMore(){ CL._waitSnoozeUntil=Date.now()+10000; CL._waitOpen=false; clCloseOverlay(); }
 function clWaitSkipAbsent(){

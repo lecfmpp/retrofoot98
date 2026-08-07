@@ -2882,12 +2882,32 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-mom-nota{min-width:0;text-align:center;margin-bottom:4px}
 }
 
-/* ===== "ESPERANDO OS OUTROS TREINADORES" (ver onlineWaitingTick em ui/main.js) =====
+/* ===== SALA EM ESPERA (ver showResenhaWaiting em ui/main.js) =====
    A espera pelo carimbo do último assento é o preço de todo mundo viver a mesma tela. Ela precisa
-   ter cara de sala esperando junto — não de erro nem de tela travada. */
-.cl-wait{padding:16px 18px;display:flex;flex-direction:column;gap:8px}
-.cl-wait-t{font-size:14px;line-height:1.45}
-.cl-wait-name{font-size:15px;font-weight:700;padding:6px 10px;border-radius:6px;
-  background:rgba(0,0,0,.06)}
-.cl-wait-sub{font-size:12px;opacity:.72;line-height:1.4;margin-top:2px}
-.cl-wait-host{font-size:12px;opacity:.7;margin-right:auto}
+   ter cara de momento do jogo — mesma família das telas de cerimônia (kicker amarelo, manchete
+   serifada, cartões com bevel) —, e não de erro de sistema. */
+.cl-esp{display:flex;flex-direction:column;gap:14px}
+.cl-esp-top{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
+.cl-esp-ctx{font-size:12px;font-weight:700;color:var(--ontext-lite2);margin-top:6px}
+.cl-esp-trofeu{flex:0 0 auto;width:64px;height:64px;display:flex;align-items:center;justify-content:center}
+.cl-esp-trofeu img{max-width:100%;max-height:100%;object-fit:contain}
+.cl-esp-lista{display:flex;flex-direction:column;gap:7px}
+.cl-esp-quem{display:flex;align-items:center;gap:10px;padding:9px 11px;
+  background:var(--body-yellow,#ffffcc);color:#000;
+  border:2px solid;border-color:var(--bevel-out,#fff #555 #555 #fff)}
+.cl-esp-av{flex:0 0 auto;width:28px;height:28px;background:var(--navy);color:#fff;
+  font-weight:900;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;
+  border:2px solid;border-color:var(--bevel-out,#fff #555 #555 #fff)}
+.cl-esp-nome{flex:1;min-width:0;font-weight:800;font-size:15px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl-esp-st{flex:0 0 auto;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--navy);opacity:.8}
+.cl-esp-dots::after{content:'...';display:inline-block;width:1.1em;text-align:left;
+  animation:cl-esp-dots 1.4s steps(4,end) infinite}
+@keyframes cl-esp-dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+.cl-esp-nota{font-size:12px;line-height:1.5;color:var(--ontext-lite2)}
+.cl-esp-foot-nota{flex:1;min-width:140px;font-size:11px;color:#555}
+@media (max-width:520px){
+  .cl-esp-top{align-items:flex-start}
+  .cl-esp-trofeu{width:44px;height:44px}
+  .cl-esp-foot-nota{min-width:0;text-align:center;margin-bottom:2px}
+}
