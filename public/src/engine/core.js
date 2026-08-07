@@ -1543,21 +1543,24 @@ function groupStageStandings(mg){
   const only=Object.values(mg.groups)[0];
   return only ? groupTableStandings(only) : [];
 }
-/* ---- "EU JÁ CUMPRI ESTA RODADA DE GRUPO" É FATO DO MEU ASSENTO, NÃO DO MUNDO ----
-   Morava em S.cups[key].group._userRoundDone — DENTRO do estado compartilhado. Quando um humano
-   jogava a partida dele e o anfitrião salvava, o marcador viajava pra todos, e clubOwesCupThisWeek
-   (que pergunta sobre os OUTROS clubes) passava a responder "não deve" pra TODOS os clubes daquela
-   competição: a barreira do dia de copa soltava antes de os outros terem entrado em campo. Mesma
-   doença da dívida de copa, sintoma invertido — um dado de assento guardado no mundo. Agora vive
-   no cliente, por (competição, temporada, rodada do grupo). */
-function _cupKeyOfGroupLabel(roundLabel){ return String(roundLabel||'').split('-grupo-r')[0]; }
-function myGroupRoundKey(key, mg){ return key+':'+((typeof S!=='undefined'&&S&&S.season)||1)+':'+((mg&&mg.round)||0); }
-function markMyGroupRoundDone(key, mg){
+/* ---- "EU JÁ CUMPRI A COPA DESTA JORNADA" — fato do MEU assento, chaveado pela JORNADA ----
+   Duas gerações de bug até chegar aqui:
+   1. mg._userRoundDone morava no ESTADO COMPARTILHADO: um humano jogava e o marcador viajava pra
+      todos (a barreira do dia de copa soltava pra quem nem tinha entrado em campo).
+   2. A troca por um marcador local POR RODADA DO GRUPO herdou o defeito de origem: quando
+      resolveCupRoundRest avança mg.round logo após a minha partida, a chave muda junto — e a
+      MESMA jornada volta a acusar pendência (a fixture da rodada seguinte do grupo, que pertence
+      a outra jornada!). Medido no harness: o participante ficava preso jogando rodadas de grupo
+      em cadeia, a quarta nunca fechava e o reopen ciclava — o "repete o mesmo jogo várias vezes".
+   A verdade que o jogo promete é por JORNADA: cumpri a competição X na jornada J -> nada mais de
+   X pende em J, avance o grupo o quanto for. */
+function myCupTurnKey(key){ return key+':'+((typeof S!=='undefined'&&S&&S.season)||1)+':'+((typeof S!=='undefined'&&S&&S.round)||0); }
+function markMyCupTurnDone(key){
   if(typeof CL==='undefined') return;
-  CL._myGroupDone=CL._myGroupDone||{}; CL._myGroupDone[myGroupRoundKey(key,mg)]=true;
+  CL._myCupTurn=CL._myCupTurn||{}; CL._myCupTurn[myCupTurnKey(key)]=true;
 }
-function myGroupRoundDone(key, mg){
-  return !!(typeof CL!=='undefined' && CL._myGroupDone && CL._myGroupDone[myGroupRoundKey(key,mg)]);
+function myCupTurnDone(key){
+  return !!(typeof CL!=='undefined' && CL._myCupTurn && CL._myCupTurn[myCupTurnKey(key)]);
 }
 function advanceGroupStageRound(mg, roundLabel){
   if(!mg || mg.finished) return;
@@ -1567,7 +1570,8 @@ function advanceGroupStageRound(mg, roundLabel){
       if(h==null||a==null) return; // bye (número ímpar de times no grupo)
       // partida do usuário já jogada ao vivo nesta rodada (ver finishCupLiveMatch) — pula
       // só ela, o resto do grupo simula normalmente.
-      if((h===CL.clubId||a===CL.clubId) && myGroupRoundDone(_cupKeyOfGroupLabel(roundLabel), mg)) return;
+      // resultado JÁ GRAVADO nesta rodada do grupo (partida ao vivo do usuário) — dado real, não marcador
+      if((h===CL.clubId||a===CL.clubId) && (g.results||[]).some(r=>r && r.r===mg.round && r.h===h && r.a===a)) return;
       const seed=hashSeed(S.seed,roundLabel,g.label,h,a);
       const evs=[]; let fin=null;
       const sim=simulateMatch(h,a,false,(tk)=>{ if(tk.ev) evs.push(tk.ev); },(r)=>fin=r,seed);
@@ -1684,7 +1688,45 @@ function cupCompetitionRoundLabel(c,key){ if(!c) return '';
    acontece a partir dessa data no jogo (mesmo que a fase de grupos simulada termine antes),
    pra seguir o calendário real. Só vale pra temporada 2026; temporadas seguintes não têm
    sorteio real conhecido, então a virada é imediata assim que a fase de grupos termina. */
-const SEASON_EPOCH_2026=[2026,0,18]; // Brasil: 18 de janeiro de 2026 — abertura real do Brasileirão
+/* ============ CALENDÁRIO OFICIAL DA TEMPORADA (DADO, não algoritmo) ============
+   A tabela abaixo É o calendário do jogo: cada data de cada competição, escrita à mão. Ela
+   substitui o gerador que existia aqui (faixas mod 3 + espalhamento das fases finais + dia da
+   semana fixo por competição) — três camadas de aritmética que erravam de formas diferentes
+   (jornadas repetidas, rodadas descartadas, duas competições no mesmo dia). Calendário é dado:
+   pra mudar uma data, edite a linha; não há regra pra reajustar.
+   Formato 'MM-DD'. A ORDEM de cada lista é a ordem das rodadas daquela competição. */
+const SEASON_START_2026=[2026,2,1];   // 1º de março — 1º jogo da liga
+const CAL_2026={
+  league:['03-01','03-07','03-30','04-10','04-16','05-06','05-11','05-15','06-01','06-07',
+          '06-11','06-22','07-05','07-11','07-22','07-25','08-05','08-18','08-23','08-30',
+          '09-14','09-20','09-24','09-28','10-01','10-05','10-10','10-18','10-21','10-24',
+          '10-27','10-30','11-03','11-07','11-11','11-18','12-01','12-03'],          // 38 jornadas
+  libertadores:['03-04','04-01','04-21','05-21','06-16','07-15',                     // 6 de grupo
+                '08-11','09-08','10-13','11-28'],                                    // oitavas, quartas, semi, final
+  sulamericana:['03-14','04-02','04-27','05-28','06-17','07-18',
+                '08-13','09-09','10-14','11-21'],
+  copaBrasil:['03-26','04-04','05-01','08-19','09-03','11-08','12-06'],               // 1ª, 2ª, 16avos, oitavas, quartas, semi, final
+  draws:{ libertadores:'03-02', sulamericana:'03-11', copaBrasil:'03-21' }
+};
+function seasonCal(){ return CAL_2026; }   // temporadas seguintes reaproveitam o mesmo desenho de datas
+/* 'MM-DD' -> dia (1-based) do calendário do jogo, contado do epoch da temporada */
+function calDay(mmdd){
+  if(!mmdd) return null;
+  const e=seasonEpoch(); const p=String(mmdd).split('-');
+  const alvo=new Date(e[0], Number(p[0])-1, Number(p[1]));
+  const epoch=new Date(e[0], e[1], e[2]);
+  return Math.round((alvo-epoch)/86400000)+1;
+}
+/* jornada de liga em que uma data de copa acontece: a PRIMEIRA jornada cuja data é >= a dela.
+   É o que mantém a ordem da semana (o dia de copa vem antes do jogo de liga daquele bloco) sem
+   precisar que copa e liga compartilhem a mesma unidade. Data depois do último jogo de liga
+   (a final da Copa do Brasil, 06/12) fica na última jornada. */
+function jornadaOfCalDate(mmdd){
+  const L=seasonCal().league, d=calDay(mmdd);
+  for(let i=0;i<L.length;i++){ if(calDay(L[i])>=d) return i; }
+  return L.length-1;
+}
+const SEASON_EPOCH_2026=SEASON_START_2026; // Brasil: 1º de março de 2026 — abertura da temporada
 const SEASON_EPOCH_INTL=[2026,7,15]; // Europa: ~15 de agosto de 2026 — abertura da temporada europeia 2026-27
 /* epoch (dia 1) do calendário conforme o universo: o Brasileirão roda jan-dez; as ligas
    europeias rodam ago-mai. Assim as datas reais de sorteio das copas (grupos ~ago, oitavas
@@ -1722,8 +1764,20 @@ function dayInWeek(week, weekday){
   const wd0=realDateForDay(base).getDay();
   return base + (((weekday-wd0)%7)+7)%7;
 }
-function leagueMatchDay(round){ return dayInWeek(round, leagueWeekdayFor(round)); }
+/* DIA DE CADA JOGO — sai do CALENDÁRIO, não de aritmética de semana. O dayInWeek continua como
+   rede pra estado fora da tabela (jornada além das 38, universo europeu). */
+function leagueMatchDay(round){
+  const L=seasonCal().league, i=Math.max(0,round||0);
+  if(L[i]!=null) return calDay(L[i]);
+  const ult=calDay(L[L.length-1]); return ult + (i-(L.length-1))*7;     // além do calendário: mantém o passo
+}
+/* a data da copa é a da RODADA dela, não da jornada — traduz jornada -> índice de rodada pela
+   tabela gravada em S.cupCalendar (ver ensureCupCalendar), que veio das mesmas datas. */
 function cupMatchDay(key, jornada){
+  const datas=seasonCal()[key];
+  const cal=(typeof S!=='undefined'&&S&&S.cupCalendar)?S.cupCalendar[key]:null;
+  if(datas && cal){ const i=cal.indexOf(jornada); if(i>=0 && datas[i]!=null) return calDay(datas[i]); }
+  if(datas && !cal && datas[jornada]!=null) return calDay(datas[jornada]);
   const wd=COMP_WEEKDAY[key];
   return dayInWeek(jornada, wd==null?3:wd);
 }
@@ -1829,22 +1883,23 @@ function cupTotalRounds(key){
    o tamanho e quebra a invariante 1, que é a pior das três. */
 function buildCupSchedule(key, total, lastLeagueRound){
   if(!total || total<1) return [];
-  const off=CUP_TICK_OFFSET[key]; if(off==null) return [];
-  const first=(off>=1)?off:3;                                   // offset 0 estreia na jornada 3
-  const teto=(lastLeagueRound||0)-CUP_LEAGUE_TAIL;              // fim reservado pra decisão da liga
-  const slots=[]; for(let j=first; j<=teto; j+=3) slots.push(j);
-  while(slots.length<total) slots.push((slots.length?slots[slots.length-1]:first-3)+3);
-  const nDense=Math.max(0, total-CUP_KO_SPREAD);                // fases iniciais: ritmo cheio
-  const out=slots.slice(0, nDense);
-  const rest=slots.slice(nDense);
-  const nSpread=total-out.length;                               // finais: espalhadas pelas vagas DA FAIXA
-  let prev=-1;
-  for(let i=0;i<nSpread;i++){
-    let pos = (nSpread===1) ? rest.length-1 : Math.round(i*(rest.length-1)/(nSpread-1));
-    if(pos<=prev) pos=prev+1;                                   // nunca repete a vaga anterior
-    if(pos>rest.length-1) pos=rest.length-1;
-    prev=pos; out.push(rest[pos]);
+  const datas=seasonCal()[key];
+  if(datas && datas.length){
+    // AS JORNADAS SAEM DAS DATAS. Estritamente crescente por construção (as datas são crescentes
+    // e jornadaOfCalDate é monotônica); duas rodadas que caem na mesma jornada empurram a
+    // seguinte, porque uma competição nunca joga duas rodadas no mesmo bloco de semana.
+    const out=[]; let prev=-1;
+    for(let i=0;i<total;i++){
+      let j = (datas[i]!=null) ? jornadaOfCalDate(datas[i])
+                               : (out.length?out[out.length-1]+3:0);   // rodada sem data na tabela
+      if(j<=prev) j=prev+1;
+      prev=j; out.push(j);
+    }
+    return out;
   }
+  const off=CUP_TICK_OFFSET[key]; if(off==null) return [];      // rede: competição fora da tabela
+  const first=(off>=1)?off:3;
+  const out=[]; for(let i=0;i<total;i++) out.push(first+i*3);
   return out;
 }
 /* (re)constrói S.cupCalendar. Idempotente: não recalcula o que já existe pra esta temporada. */
@@ -1873,10 +1928,13 @@ function cupFirstPlayRoundReal(key){
 /* dia em que a rodada `round` desta copa é jogada — o dia da semana é fixo por competição
    (ver COMP_WEEKDAY). Assinatura antiga (round só) mantida pros chamadores que não sabem a copa. */
 function cupRoundMatchDay(round, key){ return key ? cupMatchDay(key, round||0) : dayInWeek(round||0, 3); }
+/* A DATA DE CADA SORTEIO vem do calendário (02/03 Libertadores, 11/03 Sul-Americana, 21/03 Copa
+   do Brasil) — cada uma antes da estreia da própria competição. Competição fora da tabela sorteia
+   no dia 1, que é o comportamento seguro (nunca há jogo antes do sorteio). */
 function cupSeasonDrawDays(){
   if(typeof S==='undefined' || !S || !S.cups) return {};
-  const out={};
-  Object.keys(S.cups).forEach(k=>{ if(S.cups[k]) out[k]=1; });   // dia 1: antes da primeira rodada
+  const d=seasonCal().draws||{}; const out={};
+  Object.keys(S.cups).forEach(k=>{ if(S.cups[k]) out[k]= d[k]? calDay(d[k]) : 1; });
   return out;
 }
 /* a data do sorteio desta copa já chegou? Com as cerimônias todas no dia 1, isto é verdade desde
@@ -2373,21 +2431,26 @@ function pendingUserCupMatches(){
   if(!S.cups || !CL.clubId) return [];
   const out=[];
   const cb=S.cups.copaBrasil;
+  // UMA OBRIGAÇÃO POR COMPETIÇÃO POR JORNADA (myCupTurnDone): depois que eu jogo a minha partida,
+  // resolveCupRoundRest avança a rodada da competição na hora — e sem este filtro a fixture da
+  // RODADA SEGUINTE (que pertence a outra jornada) renascia como pendência da jornada atual. Era o
+  // participante preso jogando rodadas de grupo em cadeia, com a quarta que nunca fechava.
   // nenhuma partida antes do sorteio da própria competição (ver cupSeasonDrawDays)
-  if(cupTickMatchesRound('copaBrasil',S.round) && cupDrawReleased('copaBrasil') && cb && !cupIsFinished(cb)){
+  if(cupTickMatchesRound('copaBrasil',S.round) && cupDrawReleased('copaBrasil') && cb && !cupIsFinished(cb) && !myCupTurnDone('copaBrasil')){
     const tie=(cb.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
     if(tie) out.push({key:'copaBrasil', stage:'bracket', bracket:cb, tie, h:tie.h, a:tie.a});
   }
   groupCupKeys().forEach(key=>{
     if(!cupTickMatchesRound(key,S.round)) return;
     if(!cupDrawReleased(key)) return;
+    if(myCupTurnDone(key)) return;
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket && !c.group.finished){
       const mg=c.group;
       Object.values(mg.groups).forEach(g=>{
         if(!g.teams.includes(CL.clubId)) return;
         const fx=(g.sched[mg.round]||[]).find(([h,a])=>h===CL.clubId||a===CL.clubId);
-        if(fx && !myGroupRoundDone(key, mg)) out.push({key, stage:'group', group:mg, groupLabel:g.label, h:fx[0], a:fx[1]});
+        if(fx) out.push({key, stage:'group', group:mg, groupLabel:g.label, h:fx[0], a:fx[1]});
       });
     } else if(c.bracket && !cupIsFinished(c.bracket)){
       const tie=(c.bracket.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));
@@ -2414,11 +2477,12 @@ function cupRoundsUserSitsOut(){
   if(!S.cups || !CL.clubId) return [];
   const out=[];
   const cb=S.cups.copaBrasil;
-  if(cupTickMatchesRound('copaBrasil',S.round) && cb && !cupIsFinished(cb) && cb.ties.length && !cb.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId))){
+  if(cupTickMatchesRound('copaBrasil',S.round) && cb && !cupIsFinished(cb) && cb.ties.length && !cb.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId)) && !myCupTurnDone('copaBrasil')){
     out.push({key:'copaBrasil', stage:'bracket'});
   }
   groupCupKeys().forEach(key=>{
     if(!cupTickMatchesRound(key,S.round)) return;
+    if(myCupTurnDone(key)) return;   // já cumpri esta competição nesta jornada (joguei ou assisti)
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket && !c.group.finished){
       const mg=c.group;

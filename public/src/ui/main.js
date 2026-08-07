@@ -1405,6 +1405,11 @@ function startSeasonOpeningDraws(onDone){
     S._cupDrawQueued=S._cupDrawQueued||{};
     defs.forEach(([key,stage])=>{
       const c=S.cups&&S.cups[key]; if(!c) return;
+      // SÓ OS SORTEIOS CUJA DATA JÁ CHEGOU. O calendário oficial dá uma data a cada cerimônia
+      // (02/03 Libertadores, 11/03 Sul-Americana, 21/03 Copa do Brasil), sempre antes da estreia
+      // da própria competição — não é mais "todos no dia 1". Os que ainda não venceram entram
+      // pelo queueDueCupDraws do clJogar, na rodada em que a data chega.
+      if(typeof cupDrawReleased==='function' && !cupDrawReleased(key)) return;
       const st=(c.group && !c.bracket) ? 'group' : (stage||'bracket');
       S._cupDrawQueued[key+':'+season]=true;
       const visto=key+':'+st+':'+season;
@@ -6955,12 +6960,12 @@ function finishCupLiveMatch(){
     if(m.hg>m.ag){ T[h].W++; T[a].L++; T[h].Pts+=3; }
     else if(m.hg<m.ag){ T[a].W++; T[h].L++; T[a].Pts+=3; }
     else { T[h].D++; T[a].D++; T[h].Pts++; T[a].Pts++; }
-    markMyGroupRoundDone(pending.key, mg); // marcador do MEU cliente (ver myGroupRoundDone no core)
+    markMyCupTurnDone(pending.key); // cumpri esta competição NESTA jornada (ver myCupTurnDone no core)
     // AS OUTRAS PARTIDAS DA MESMA RODADA, AGORA. Sem isto a tabela mostrada logo depois do jogo
     // tinha só os pontos do usuário: o resto da rodada da competição só era simulado quando a
     // rodada de LIGA rodasse (sábado), então a classificação do pós-jogo de quarta ficava com
     // uma partida disputada e as outras zeradas. advanceGroupStageRound pula a partida do
-    // usuário sozinho (guard myGroupRoundDone), então aqui só entram os confrontos que faltavam.
+    // usuário sozinho (guard pelo resultado já gravado no grupo), então aqui só entram os que faltavam.
     resolveCupRoundRest(pending.key);
     // Resenha (online): publica também o resultado de FASE DE GRUPOS. Antes só o mata-mata era
     // publicado, então o servidor re-simulava a partida que o humano tinha acabado de jogar ao
@@ -6988,6 +6993,7 @@ function finishCupLiveMatch(){
   // partidas de copa da rodada (pode haver mais de uma — Copa do Brasil + Libertadores
   // na mesma semana, por exemplo) tiverem sido jogadas — ver clCupResultContinue().
   cupMarkSeen(pending.key); // esta copa está cumprida NESTA rodada — nunca reabrir (ver cupWasSeen)
+  if(typeof markMyCupTurnDone==='function') markMyCupTurnDone(pending.key); // vale pro mata-mata também (CdB/oitavas)
   CL._cupResultKeysThisRound = CL._cupResultKeysThisRound || [];
   if(!CL._cupResultKeysThisRound.includes(pending.key)) CL._cupResultKeysThisRound.push(pending.key);
   // o placar viaja com a competição pra ser mostrado como FAIXA no topo da tela da copa —
@@ -7057,8 +7063,21 @@ function finishCupResultFlow(){
   // ANTES dele sequer escalar/jogar o próprio jogo — daí a classificação/rodada nova "atravessava"
   // a tela logo depois de uma partida de copa, e só ao voltar pro time é que aparecia atualizado.
   // Só marca pronto quando NÃO sobra mais nada pendente nesta rodada (nem copa, nem a liga).
-  const stillPending = CL.online && (pendingUserCupMatches().length>0 || CL._playedRound!==S.round);
-  if(CL.online && !stillPending){ onlineMarkReady(); return; }
+  // NA QUARTA (semana de dois estágios) a etapa é SÓ a copa: "não joguei a liga" não pode segurar
+  // o pronto — a liga pertence ao estágio de sábado, que ainda nem abriu. Era isto que deixava o
+  // participante da copa sem marcar pronto depois de jogar, com a quarta esperando por ele.
+  const _cupStage = (typeof isCupStage==='function' && isCupStage());
+  const stillPending = CL.online && (pendingUserCupMatches().length>0 || (!_cupStage && CL._playedRound!==S.round));
+  if(CL.online && !stillPending){
+    // SAI DA TELA ANTES DE MARCAR PRONTO. Ficar na chave/classificação parecia inofensivo, mas o
+    // onlineRunRound tem (e precisa ter) a guarda "não interrompe telas de classificação" — com a
+    // tela parada em 'cupclassif', a rede de segurança retornava SEM FAZER NADA a cada tique: o
+    // host nunca armava o fechamento da quarta, o cronômetro expirava, a fase reabria e a mesma
+    // rodada de copa voltava. Medido no harness: era o loop do "repete o jogo da Libertadores".
+    // Igual à liga: pronto se espera na tela do clube.
+    CL.screen='main'; CL.tab='jogo'; cdraw();
+    onlineMarkReady(); return;
+  }
   // PARTIDA EM ANDAMENTO tem precedência absoluta sobre a cauda do fluxo da copa: mandar pra
   // 'main' aqui trocava a tela mas NÃO parava o CL.live — o jogo seguia correndo invisível, o
   // resultado era publicado sem ninguém ver, e onlineRunRound ficava bloqueado por CL.live pra

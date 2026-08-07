@@ -38,7 +38,8 @@
         busy:!!(seat.busy_until && seat.busy_until>Date.now()) }; });
     return { code:g.code, gameId:g.code, name:g.name, hostId:g.hostId, mode:'sorteio',
       phase:g.phase, participants:parts, seed:g.seed, round:g.round||0,
-      deadline:g.ready_deadline||0, paused:!!g.paused, chat:[], speedMult:1,
+      deadline:g.ready_deadline||0, paused:!!g.paused, chat:[],
+      speedMult:8,   // testes rodam acelerados; convidados herdam do room a cada push (wireNet)
       kickoffLineups:g.kickoff_lineups||null, kickoffAt:g.kickoff_at||null };
   }
   function refreshClaimed(g){
@@ -82,11 +83,25 @@
   NET.heartbeatSeen=function(){ SRV.seen(NET.gameId, uid); };
 
   /* sorteio dos assentos: o HOST monta o pool com o dado real do jogo (resenhaStartClubs)
-     e o servidor só grava — mesmo papel do host_assign_seat de produção */
+     e o servidor só grava — mesmo papel do host_assign_seat de produção.
+     RIG DE TESTE: o runner pode pedir divisão específica (__HDIV) e sorteio arranjado
+     (__HRIG='cups': assento 1 = clube brasileiro da Libertadores 2026, assento 2 = da
+     Sul-Americana), pra um cenário exercitar as rodadas de copa de verdade. */
   NET.drawClubs=async function(){
-    const div=(typeof resolveRoomDivision==='function')?resolveRoomDivision():'D';
+    const P=window.parent||{};
+    const div=P.__HDIV || ((typeof resolveRoomDivision==='function')?resolveRoomDivision():'D');
     const pool=((typeof resenhaStartClubs==='function')?resenhaStartClubs(div):[]).map(c=>c.id);
     for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+    if(P.__HRIG==='cups'){
+      const flat=obj=>Object.values(obj).flat().filter(x=>typeof x==='string');   // só ids brasileiros
+      const libs=(typeof LIBERTADORES_GROUPS_2026!=='undefined')?flat(LIBERTADORES_GROUPS_2026):[];
+      const sulas=(typeof SULAMERICANA_GROUPS_2026!=='undefined')?flat(SULAMERICANA_GROUPS_2026):[];
+      const lib=pool.find(id=>libs.includes(String(id)));
+      const sula=pool.find(id=>sulas.includes(String(id)) && id!==lib);
+      if(lib&&sula){ const rest=pool.filter(id=>id!==lib&&id!==sula); pool.length=0; pool.push(lib, sula, ...rest);
+        console.log('[harness] rig cups: assento1='+lib+' (Libertadores) assento2='+sula+' (Sul-Americana)'); }
+      else console.warn('[harness] rig cups: não achei clubes das copas no pool da divisão '+div);
+    }
     SRV.assignSeats(NET.gameId, pool);
   };
   NET.setMyClub=async function(clubId){ SRV.setClub(NET.gameId, uid, clubId); };
@@ -144,15 +159,86 @@
   NET.fetchRoundStreams=async function(){ return null; };
   NET.broadcastKickoff=function(){}; NET.broadcastMatch=function(){}; NET.broadcastDecision=function(){};
 
-  /* sem servidor de verdade, sem edge functions */
-  delete NET.resolveRound;
+  /* RESOLVEDOR DE DOIS ESTÁGIOS (v2) — porta a semântica do resolve-round de produção usando o
+     PRÓPRIO motor do jogo, no cliente HOST: fechar a quarta resolve só as copas da jornada e vira
+     o estágio pra 'league' (rodada NÃO muda); fechar o sábado roda a rodada completa (playRound)
+     e abre a semana seguinte na quarta se ela tiver copa. É o que faz o harness exercitar a
+     semana quarta/sábado real — onde moram os bugs de copa. */
+  NET.resolveRound=async function(round, stage){
+    if(!NET.isHost) return { error:'harness: só o host resolve' };
+    try{
+      if((S.round||0)!==round) return { ok:true, already:true, round:S.round };
+      const map=NET.collectHumanResults(round);
+      const keys=['copaBrasil'].concat((typeof groupCupKeys==='function')?groupCupKeys():[]);
+      if(stage==='cup'){
+        if(S.roundStage!=='cup') return { ok:true, already:true, round:S.round, stage:S.roundStage||'league' };
+        advancePendingCups();
+        S._cupResolvedRound=S._cupResolvedRound||{};
+        keys.forEach(k=>{ if(S.cups&&S.cups[k]&&cupTickMatchesRound(k,S.round)) S._cupResolvedRound[k]=S.round; });
+        S.roundStage='league';
+        await NET.saveGame({S, round:S.round});
+        return { ok:true, round:S.round, stage:'league' };
+      }
+      const uf=(typeof userFixture==='function')?userFixture():null;
+      const myKey=uf?uf[0]+'-'+uf[1]:null;
+      const userResult=(myKey&&map[myKey])?map[myKey]:null;
+      if(typeof advancePlayerAvailability==='function') advancePlayerAvailability();
+      playRound(userResult, map);
+      const temCopa=keys.some(k=>S.cups&&S.cups[k]&&cupTickMatchesRound(k,S.round));
+      S.roundStage=temCopa?'cup':'league';
+      await NET.saveGame({S, round:S.round});
+      return { ok:true, round:S.round, stage:S.roundStage };
+    }catch(e){ console.error('[harness] resolveRound:', e); return { error:String(e&&e.message||e) }; }
+  };
   NET.getDivisionClubs=null;                     // clubes reais indisponíveis -> fallback procedural
   NET.saveSoloGame=async()=>{}; NET.loadSoloSave=async()=>null; NET.listSoloSaves=async()=>[];
   NET.saveInbox=async()=>{}; NET.loadInbox=async()=>null; NET.deleteSoloSave=async()=>{};
 
+  /* ---- INSTRUMENTAÇÃO: espelha no runner cada passo relevante do fluxo de copa/fase ----
+     (só no harness; produção nunca carrega este arquivo) */
+  const HLOG=(m)=>{ try{ if(window.parent.__HLOG) window.parent.__HLOG(HUID, m); }catch(e){} };
+  function wrap(name, fn, comStack){
+    const orig=window[name];
+    if(typeof orig!=='function') return;
+    window[name]=function(){ try{
+        let extra=fn?(' '+fn.apply(this,arguments)):'';
+        if(comStack){ const st=(new Error().stack||'').split('\n').slice(2,4).map(s=>s.trim().replace(/@.*\/src\//,'@').replace(/https?:\S+/,'').trim()).join(' <- '); extra+=' ['+st+']'; }
+        HLOG(name+'('+Array.from(arguments).slice(0,3).map(a=>typeof a==='object'?'{…}':String(a)).join(',')+')'+extra); }catch(e){}
+      return orig.apply(this, arguments); };
+  }
+  setTimeout(()=>{ // depois de tudo carregado
+    // LOCALSTORAGE ISOLADO POR CLIENTE: os dois iframes dividem a mesma origem, então o balde de
+    // marcadores persistidos (drawSeenKey) era compartilhado — o A lia o "etapa cumprida" do B e
+    // pulava a própria rodada. Em produção cada jogador tem a sua máquina; aqui, prefixo por uid.
+    if(typeof window.drawSeenKey==='function'){
+      const _dsk=window.drawSeenKey;
+      window.drawSeenKey=function(){ return 'h:'+HUID+':'+_dsk(); };
+    }
+    wrap('cupMarkSeen');
+    wrap('startCupRound', null, true);
+    wrap('startCupSpectate');
+    wrap('finishCupSpectate');
+    wrap('finishCupLiveMatch');
+    wrap('liveDone', null, true);
+    wrap('showCupIdleMessage');
+    wrap('advanceGroupStageRound');
+    wrap('advancePendingCups', ()=>'@round='+(typeof S!=='undefined'&&S?S.round:'?'));
+    wrap('resolveCupRoundRest');
+    wrap('onlineMarkStageDone', ()=>'@key='+(typeof onlineStageKey==='function'?onlineStageKey():'?'));
+    wrap('onlineMarkReady');
+    wrap('playRound', ()=>'@round='+(typeof S!=='undefined'&&S?S.round:'?'));
+    wrap('showCupIntro', null, true);
+    wrap('startCupLiveMatch', null, true);
+    const _rr=NET.reopenReady; NET.reopenReady=async function(){ HLOG('NET.reopenReady()'); return _rr.apply(this,arguments); };
+    const _res=NET.resolveRound; NET.resolveRound=async function(r,st){ HLOG('NET.resolveRound('+r+','+st+')'); return _res.apply(this,arguments); };
+  }, 500);
+
   /* atalhos que o runner usa pra dirigir este cliente sem passar pelas telas de conta */
   window.__h={
     uid, state(){ return { screen:CL.screen, round:(typeof S!=='undefined'&&S)?S.round:null,
+      stage:(typeof S!=='undefined'&&S)?(S.roundStage||null):null,
+      cupKey:(CL.live&&CL.live.cup)?CL.live.cup.key:null,
+      myClub:CL.clubId||null,
       played:CL._playedRound, stageDone:CL._stageDone||{}, live:!!CL.live,
       netStep:CL.net&&CL.net.step||null, online:CL.online||false }; },
     /* espelha a entrada de produção: no lobby o cliente ainda NÃO está online (CL.online=false,
@@ -166,14 +252,25 @@
       return NET.joinRoom(code).then(()=>{ wireNet();
         CL.screen='online'; CL.net={ step:'lobby', name:myName }; cdraw(); return true; }); },
     lobbyStart(){ clLobbyStart(); },
-    fast(){ // acelera qualquer cerimônia em cena (sorteio da Resenha / cerimônias de copa)
+    fast(){ // acelera qualquer tela de passagem (cerimônias, apresentações, pausa, classificações)
+      if(CL.live) CL.speedMult=8;   // cobre as entradas automáticas (rede de segurança), onde ninguém chamou jogar()
+      // O Chrome estrangula timers de iframe (~1/s): a partida ao vivo levaria uma era. Puxa o
+      // relógio na mão — o mesmo liveTick de produção, só que mais vezes por empurrão do runner.
+      if(CL.live && CL.live.paused && typeof liveContinue==='function'){ try{ liveContinue(); }catch(e){} } // intervalo/pausas
+      if(CL.live && !CL.live.done && !CL.live.paused && typeof liveTick==='function'){
+        for(var i=0;i<20 && CL.live && !CL.live.done && !CL.live.paused;i++){ try{ liveTick(); }catch(e){ break; } }
+      }
       try{ if(CL.net&&CL.net.draw&&!CL.net.draw.done) clResenhaDrawSkip(); }catch(e){}
       try{ if(CL.screen==='cupdraw'&&typeof clCupDrawSkip==='function') clCupDrawSkip(); }catch(e){}
       try{ if(CL.screen==='boasvindas') clBoasVindasContinuar(); }catch(e){}
       try{ if(CL.screen==='classif'||CL.screen==='seatclassif') clClassifContinue(); }catch(e){}
       try{ if(CL.screen==='cupclassif') cupClassifContinue(); }catch(e){}
+      try{ if(CL._cupIntro&&typeof clCupIntroGo==='function') clCupIntroGo(); }catch(e){}
+      try{ if(CL._leagueIntro&&typeof clLeagueIntroGo==='function') clLeagueIntroGo(); }catch(e){}
+      try{ if(CL.screen==='waitround'&&CL._adCont&&typeof clAdSkip==='function') clAdSkip(); }catch(e){}
     },
     jogar(){ if(!CL.tacticChosen){ try{ clSelFormation('auto'); }catch(e){} CL.tacticChosen=true; }
+      CL.speedMult=8;   // o speedMult da sala só cobre convidados; o host jogaria a 1x e o teste levaria uma era
       try{ clJogar(); }catch(e){ console.warn('[harness] clJogar:', e&&e.message); } },
     speedUp(){ CL.speedMult=8; }
   };

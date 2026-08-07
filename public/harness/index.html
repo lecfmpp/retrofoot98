@@ -18,13 +18,17 @@
   <b>HARNESS</b>
   <button onclick="setup()">1· Criar sala + entrar</button>
   <button onclick="start()">2· Iniciar (host)</button>
-  <button onclick="scenario()">▶ Cenário lockstep completo</button>
+  <button onclick="scenario()">▶ Cenário 1: lockstep (Série D)</button>
+  <button onclick="scenario2()">▶ Cenário 2: COPAS (Série A, quarta/sábado)</button>
   <button onclick="hz.timerMs=8000">timer 8s</button>
   <span id="st" class="info"></span>
 </div>
 <div id="frames">
-  <iframe id="fA" src="/?harness=A"></iframe>
-  <iframe id="fB" src="/?harness=B"></iframe>
+  <!-- sandbox SEM allow-top-navigation: nenhum código dentro do jogo pode navegar o runner
+       (aconteceu na 1ª execução do cenário 2 — o top virou o jogo no meio do teste; com o
+       sandbox, a tentativa vira erro de console e aponta o culpado em vez de matar o teste) -->
+  <iframe id="fA" src="/?harness=A" sandbox="allow-scripts allow-same-origin allow-modals allow-popups"></iframe>
+  <iframe id="fB" src="/?harness=B" sandbox="allow-scripts allow-same-origin allow-modals allow-popups"></iframe>
 </div>
 <div id="log"></div>
 <script>
@@ -37,7 +41,11 @@
    - openSeason (netStart novo): 'ready' com timer DESARMADO.                              */
 const hz={ games:{}, timerMs:60000 };
 function bcast(code){
-  for(const f of [fA,fB]){ try{ f.contentWindow.__hOnServerUpdate && f.contentWindow.__hOnServerUpdate(code); }catch(e){} }
+  // ASSÍNCRONO de propósito: o realtime de produção nunca reentra na mesma pilha. O bcast
+  // síncrono fazia o onState rodar DENTRO de uma chamada do próprio cliente (ex.: no meio do
+  // startCupLiveMatch, antes de CL.live existir) e a rede de segurança reentrava na rodada —
+  // uma corrida que só existe no harness.
+  setTimeout(()=>{ for(const f of [fA,fB]){ try{ f.contentWindow.__hOnServerUpdate && f.contentWindow.__hOnServerUpdate(code); }catch(e){} } }, 0);
 }
 function G(code){ return hz.games[code]; }
 function busyAny(g){ const t=Date.now(); return Object.values(g.seats).some(s=>s.busy_until && s.busy_until>t); }
@@ -91,13 +99,23 @@ window.__HSRV={
 
 /* ============ RUNNER ============ */
 const $log=document.getElementById('log');
-function log(m,cls){ const d=document.createElement('div'); if(cls)d.className=cls; d.textContent=m; $log.appendChild(d); $log.scrollTop=1e9; }
+window.__HLOG=(uid,m)=>{ log('['+uid+'] '+m, uid==='A'?'info':''); };
+function log(m,cls){ const d=document.createElement('div'); if(cls)d.className=cls; d.textContent=m; $log.appendChild(d); $log.scrollTop=1e9;
+  // evidência sobrevive a navegação/reload do runner
+  try{ const a=JSON.parse(localStorage.getItem('hlog')||'[]'); a.push((cls||'')+ '|' +m); localStorage.setItem('hlog', JSON.stringify(a.slice(-400))); }catch(e){} }
+try{ const prev=JSON.parse(localStorage.getItem('hlog')||'[]');
+  if(prev.length){ const d=document.createElement('div'); d.style.opacity=.5; d.textContent='—— log da execução anterior ——\n'+prev.map(l=>l.split('|').slice(1).join('|')).join('\n')+'\n—— fim ——'; $log.appendChild(d); localStorage.removeItem('hlog'); } }catch(e){}
 function assert(cond,label){ log((cond?'✔ ':'✘ ')+label, cond?'ok':'fail'); if(!cond) throw new Error('ASSERT: '+label); }
 const A=()=>fA.contentWindow, B=()=>fB.contentWindow;
 const stA=()=>A().__h.state(), stB=()=>B().__h.state();
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function waitFor(fn,label,timeout){ const t0=Date.now();
-  while(Date.now()-t0<(timeout||30000)){ try{ if(fn()) { log('… '+label,'ok'); return; } }catch(e){} await sleep(200); }
+  while(Date.now()-t0<(timeout||30000)){
+    try{ if(fn()) { log('… '+label,'ok'); return; } }catch(e){}
+    // empurra telas de passagem nos dois lados (classificações, apresentações, pausa) — sem isto
+    // uma tela automática de 10s por cliente soma minutos ao teste e mascara o que é travamento real
+    try{ A().__h.fast(); }catch(e){} try{ B().__h.fast(); }catch(e){}
+    await sleep(200); }
   throw new Error('TIMEOUT: '+label+' | A='+JSON.stringify(stA())+' B='+JSON.stringify(stB())); }
 let CODE=null;
 async function setup(){
@@ -112,6 +130,67 @@ async function fastUntil(screenSet,label,timeout){
   await waitFor(()=>{ A().__h.fast(); B().__h.fast();
     return screenSet.includes(stA().screen) && screenSet.includes(stB().screen); },label,timeout);
 }
+/* ---- gravador de estados: base das asserções de simultaneidade e do detector de loop ---- */
+let REC=null, hist={A:[],B:[]};
+function startRecorder(){ hist={A:[],B:[]};
+  REC=setInterval(()=>{ try{ hist.A.push(stA()); }catch(e){} try{ hist.B.push(stB()); }catch(e){} },150); }
+function stopRecorder(){ if(REC){ clearInterval(REC); REC=null; } }
+function saw(c,pred){ return hist[c].some(pred); }
+/* quantas vezes cada cliente ENTROU ao vivo em cada (rodada, competição) — entrada dupla = loop */
+function entryCounts(c){ const out={}; let prevLive=false;
+  for(const s of hist[c]){ if(s.live&&!prevLive){ const k=s.round+':'+(s.cupKey||'liga'); out[k]=(out[k]||0)+1; } prevLive=s.live; }
+  return out; }
+
+/* ---- CENÁRIO 2: Série A com sorteio arranjado (assento 1 = clube da Libertadores 2026,
+   assento 2 = da Sul-Americana) e semanas de DOIS ESTÁGIOS (quarta de copa / sábado de liga,
+   via NET.resolveRound do harness). É o teste que o cenário 1 não cobria. ---- */
+async function scenario2(){
+  try{
+    hz.timerMs=8000; hz.games={}; CODE=null;
+    window.__HDIV='A'; window.__HRIG='cups';
+    fA.src='/?harness=A&t='+Date.now(); fB.src='/?harness=B&t='+Date.now();
+    await sleep(1400);
+    await setup();
+    await sleep(200);            // bcast agora é assíncrono (fiel ao realtime): deixa o join do B aterrissar no A
+    start(); startRecorder();
+    await waitFor(()=>stA().netStep==='reveal'&&stB().netStep==='reveal','reveal nos DOIS');
+    await fastUntil(['main'],'cerimônias (CdB+Lib+Sula) até o clube — Série A',300000);
+    log('clubes: A='+stA().myClub+' (Lib) · B='+stB().myClub+' (Sula)','info');
+    // ---------- AUTOPILOTO ATÉ A RODADA 3 ----------
+    // O fluxo real anda sozinho (cronômetro soberano + telas automáticas); janelas instantâneas
+    // são impossíveis de agarrar do lado de fora. O runner só faz o papel dos DEDOS (clicar Jogar
+    // quando a fase abre) e valida TUDO pelo histórico gravado, depois.
+    const t0=Date.now(); let lastReadyPoke=0;
+    while(hz.games[CODE].round<3 && Date.now()-t0<600000){
+      const g=hz.games[CODE];
+      if(g.phase==='ready' && Date.now()-lastReadyPoke>3000){
+        lastReadyPoke=Date.now();
+        try{ if(stA().screen==='main'&&!stA().live) A().__h.jogar(); }catch(e){}
+        try{ if(stB().screen==='main'&&!stB().live) B().__h.jogar(); }catch(e){}
+      }
+      try{ A().__h.fast(); }catch(e){} try{ B().__h.fast(); }catch(e){}
+      await sleep(250);
+    }
+    await waitFor(()=>hz.games[CODE].round>=3,'mundo chegou à rodada 3 (r0 liga + r1 lib+liga + r2 sula+liga)',60000);
+    await fastUntil(['main'],'os dois de volta ao clube',240000);
+    // ---------- VALIDAÇÃO POR HISTÓRICO ----------
+    assert(saw('A',s=>s.live&&s.cupKey==='libertadores'&&s.round===1),'A esteve AO VIVO na Libertadores (r1)');
+    assert(saw('B',s=>s.live&&s.cupKey==='libertadores'&&s.round===1),'B esteve AO VIVO na Libertadores (r1) mesmo sem disputar');
+    assert(saw('A',s=>s.live&&s.cupKey==='sulamericana'&&s.round===2),'A esteve AO VIVO na Sul-Americana (r2) mesmo sem disputar');
+    assert(saw('B',s=>s.live&&s.cupKey==='sulamericana'&&s.round===2),'B esteve AO VIVO na Sul-Americana (r2)');
+    assert(saw('A',s=>s.screen==='cupclassif'&&s.round===1)&&saw('B',s=>s.screen==='cupclassif'&&s.round===1),'classificação da Lib nos DOIS (r1)');
+    assert(saw('A',s=>s.screen==='cupclassif'&&s.round===2)&&saw('B',s=>s.screen==='cupclassif'&&s.round===2),'classificação da Sula nos DOIS (r2)');
+    assert(saw('A',s=>s.live&&!s.cupKey&&s.round===1)&&saw('B',s=>s.live&&!s.cupKey&&s.round===1),'liga da r1 nos DOIS (sábado depois da quarta)');
+    // ---------- DETECTOR DE LOOP ----------
+    const eA=entryCounts('A'), eB=entryCounts('B');
+    log('entradas ao vivo A='+JSON.stringify(eA),'info'); log('entradas ao vivo B='+JSON.stringify(eB),'info');
+    assert(Object.values(eA).every(n=>n===1),'A nunca reentrou numa etapa (anti-loop)');
+    assert(Object.values(eB).every(n=>n===1),'B nunca reentrou numa etapa (anti-loop)');
+    assert(stA().round===stB().round,'os dois na MESMA rodada ao fim: '+stA().round);
+    log('=== CENÁRIO COPAS: PASSOU ===','ok');
+  }catch(e){ log(String(e&&e.message||e),'fail'); }
+  finally{ stopRecorder(); window.__HRIG=null; window.__HDIV=null; }
+}
 async function scenario(){
   try{
     hz.timerMs=8000;
@@ -120,6 +199,7 @@ async function scenario(){
     fA.src='/?harness=A&t='+Date.now(); fB.src='/?harness=B&t='+Date.now();
     await sleep(1200);
     await setup();
+    await sleep(200);            // bcast assíncrono: join do B precisa aterrissar no A antes do start
     start();
     // 1) os DOIS veem o reveal do sorteio da Resenha
     await waitFor(()=>stA().netStep==='reveal'&&stB().netStep==='reveal','reveal do sorteio nos DOIS clientes');

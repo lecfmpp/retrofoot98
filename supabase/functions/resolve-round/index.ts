@@ -645,28 +645,43 @@ function cupTotalRoundsS(S: any, key: string) {
   }
   return (c.bracket && c.bracket.roundsTotal) || 0;
 }
-/* Toda jornada fica na FAIXA da competição (resto certo na divisão por 3), a lista é estritamente
-   crescente e nenhuma rodada é descartada. A faixa é o que garante que duas competições nunca
-   caem na mesma jornada. Porte fiel do buildCupSchedule do core.js — se mexer em um, mexer no
-   outro. */
-function buildCupScheduleS(key: string, total: number, lastLeagueRound: number) {
+/* CALENDÁRIO OFICIAL — porte fiel de CAL_2026/buildCupSchedule do core.js. As jornadas de cada
+   copa saem das DATAS, não de aritmética de faixa. Se mexer em um, mexer no outro. */
+const CAL_2026S: any = {
+  league: ['03-01','03-07','03-30','04-10','04-16','05-06','05-11','05-15','06-01','06-07',
+           '06-11','06-22','07-05','07-11','07-22','07-25','08-05','08-18','08-23','08-30',
+           '09-14','09-20','09-24','09-28','10-01','10-05','10-10','10-18','10-21','10-24',
+           '10-27','10-30','11-03','11-07','11-11','11-18','12-01','12-03'],
+  libertadores: ['03-04','04-01','04-21','05-21','06-16','07-15','08-11','09-08','10-13','11-28'],
+  sulamericana: ['03-14','04-02','04-27','05-28','06-17','07-18','08-13','09-09','10-14','11-21'],
+  copaBrasil: ['03-26','04-04','05-01','08-19','09-03','11-08','12-06'],
+};
+function calDayS(mmdd: string) {
+  const p = String(mmdd).split('-');
+  const alvo = new Date(SEASON_EPOCH_2026[0], Number(p[0]) - 1, Number(p[1]));
+  const epoch = new Date(SEASON_EPOCH_2026[0], SEASON_EPOCH_2026[1], SEASON_EPOCH_2026[2]);
+  return Math.round((alvo.getTime() - epoch.getTime()) / 86400000) + 1;
+}
+function jornadaOfCalDateS(mmdd: string) {
+  const L = CAL_2026S.league, d = calDayS(mmdd);
+  for (let i = 0; i < L.length; i++) { if (calDayS(L[i]) >= d) return i; }
+  return L.length - 1;
+}
+function buildCupScheduleS(key: string, total: number, _lastLeagueRound: number) {
   if (!total || total < 1) return [] as number[];
+  const datas = CAL_2026S[key];
+  if (datas && datas.length) {
+    const out: number[] = []; let prev = -1;
+    for (let i = 0; i < total; i++) {
+      let j = (datas[i] != null) ? jornadaOfCalDateS(datas[i]) : (out.length ? out[out.length - 1] + 3 : 0);
+      if (j <= prev) j = prev + 1;
+      prev = j; out.push(j);
+    }
+    return out;
+  }
   const off = CUP_TICK_OFFSET[key]; if (off == null) return [] as number[];
   const first = (off >= 1) ? off : 3;
-  const teto = (lastLeagueRound || 0) - CUP_LEAGUE_TAIL;
-  const slots: number[] = []; for (let j = first; j <= teto; j += 3) slots.push(j);
-  while (slots.length < total) slots.push((slots.length ? slots[slots.length - 1] : first - 3) + 3);
-  const nDense = Math.max(0, total - CUP_KO_SPREAD);
-  const out = slots.slice(0, nDense);
-  const rest = slots.slice(nDense);
-  const nSpread = total - out.length;
-  let prev = -1;
-  for (let i = 0; i < nSpread; i++) {
-    let pos = (nSpread === 1) ? rest.length - 1 : Math.round(i * (rest.length - 1) / (nSpread - 1));
-    if (pos <= prev) pos = prev + 1;
-    if (pos > rest.length - 1) pos = rest.length - 1;
-    prev = pos; out.push(rest[pos]);
-  }
+  const out: number[] = []; for (let i = 0; i < total; i++) out.push(first + i * 3);
   return out;
 }
 /* a semana que começa tem partida de copa pra alguém? Se sim ela abre na QUARTA (estágio 'cup');
@@ -790,7 +805,7 @@ function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: an
    voltava atrás toda vez: o jogador reencontrava o MESMO adversário em toda semana de copa e a
    tabela do grupo ficava travada em zero. Agora o grupo avança aqui, que é o único lugar cujo
    resultado sobrevive ao adopt. ===== */
-const SEASON_EPOCH_2026 = [2026, 0, 18];   // 18/jan/2026 — mesma âncora do cliente (seasonEpoch)
+const SEASON_EPOCH_2026 = [2026, 2, 1];   // 1º/mar/2026 — mesma âncora do cliente (SEASON_START_2026)
 function realDateForDayS(day: number) {
   const d = new Date(SEASON_EPOCH_2026[0], SEASON_EPOCH_2026[1], SEASON_EPOCH_2026[2]);
   d.setDate(d.getDate() + ((day || 1) - 1));

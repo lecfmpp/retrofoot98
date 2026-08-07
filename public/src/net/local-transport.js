@@ -1406,39 +1406,23 @@ function onlineTimerLoop(){
     ONLINE_LASTSEC=null;
     const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent='⏸';
   } else if(CL.online && room && room.phase==='ready'){
+    // ===================== A LARGADA TEM UM DONO SÓ: O ANFITRIÃO =====================
+    // Antes, QUALQUER cliente podia empurrar a fase (advance_phase_if_expired), armar o cronômetro
+    // (arm_ready_timer) ou, no limite, virar pra 'running' sozinho. Eram caminhos independentes de
+    // avanço, cada um nascido pra destravar um caso — e cada um uma porta pra um cliente sair de
+    // sincronia com o resto. Tapar porta com barreira só criava a porta seguinte (a sessão de
+    // 06-07/08 inteira foi isso: cada correção virava o bug seguinte).
+    // Agora o convidado NÃO AVANÇA NADA. Ele só marca pronto e desenha o relógio. Quem libera o
+    // dia é o anfitrião, por onlineHostRelease — um ponto único, auditável, que é onde a "mesa do
+    // anfitrião" (passo 2) vai pendurar o botão e o pular-ausente.
     const armed = (room.deadline||0) > 0;
     if(!armed){
-      // TIMER DESARMADO: ainda tem gente terminando a rodada (copa/partida). NÃO conta o cronômetro
-      // — só tenta armar (o servidor arma quando NINGUÉM está ocupado, ou seja, todos na tela do time).
       ONLINE_LASTSEC=null;
       const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent='⏳';
-      // TODOS PRONTOS COM O CRONÔMETRO AINDA DESARMADO -> COMEÇA AGORA. Era o buraco do "aparecem
-      // todos prontos e o jogo não anda, só sai quando o cronômetro zera": neste ramo o cliente
-      // apenas ARMAVA o cronômetro, e o pedido de avanço só existia no ramo de baixo (com o timer
-      // já armado). Ou seja, ninguém chegava a PERGUNTAR ao servidor se dava pra começar — e aí a
-      // sala cumpria os 60s inteiros com todo mundo escalado e à toa.
-      // Perguntar aqui não fura barreira nenhuma: advance_phase_if_expired decide sozinho e só
-      // avança com prazo vencido OU com todos os assentos ocupados marcados is_ready — a mesma
-      // verdade que a lista de participantes mostra. Faltando alguém, devolve a fase intacta.
-      // ...E SÓ SE EU MESMO PEDI. `p.ready` é o is_ready do assento no servidor, e ele NÃO volta a
-      // false sozinho em todo caminho de reabertura — advance_phase_if_expired, por exemplo,
-      // carimba is_ready=true em TODOS os assentos ao avançar. Um "todos prontos" herdado da etapa
-      // anterior faria a fase avançar sem ninguém ter escalado nem clicado, de novo e de novo.
-      // O marcador local diz que EU marquei pronto NESTA etapa (quarta ou sábado desta jornada);
-      // como todo cliente tem a mesma trava, se ninguém pediu de verdade, ninguém pede.
-      const todosProntos = room.participants.length>0 && room.participants.every(p=>p.ready);
-      const euPedi = CL._readyForStage===onlineStageKey();
-      if(todosProntos && euPedi && NET.advancePhaseExpired && !ONLINE_BUSY_ACTIVE){
-        if(Date.now()-ONLINE_ADV_T>400){ ONLINE_ADV_T=Date.now(); NET.advancePhaseExpired(); }
-      }
-      else if(NET.armReadyTimer && !ONLINE_BUSY_ACTIVE){ if(Date.now()-ONLINE_ADV_T>400){ ONLINE_ADV_T=Date.now(); NET.armReadyTimer(); } }
     } else {
       const secs=Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
       if(ONLINE_BUSY_ACTIVE){
-        // Corrida: o cronômetro armou (todos na tela do time) e SÓ DEPOIS eu caí numa tela de
-        // fechamento — ex.: cheguei atrasado na classificação/sorteio. Não apita nem conta por
-        // cima de mim: a fase não avança enquanto eu estiver ocupado (barreira do servidor),
-        // então mostrar a contagem seria mentira. Volta a contar quando eu voltar pro clube.
+        // eu cheguei atrasado numa tela de fechamento: não apita nem conta por cima de mim
         ONLINE_LASTSEC=null;
         const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent='⏳';
       } else if(secs!==ONLINE_LASTSEC){ ONLINE_LASTSEC=secs;
@@ -1447,30 +1431,20 @@ function onlineTimerLoop(){
         const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent=secs+'s';
         const wrap=document.querySelector('.cl-statusbar'); if(wrap){ wrap.classList.toggle('urgent', secs<=10); }
       }
-      const all=room.participants.length>0 && room.participants.every(p=>p.ready);
-      if(secs<=0 || all){
-        // início da rodada: QUALQUER cliente pede ao servidor pra avançar (validado pelo deadline/
-        // prontidão + barreira busy) — não depende do anfitrião estar com a aba ativa.
-        // não peço pra avançar enquanto EU mesmo estou ocupado (partida ao vivo, sorteio, copa
-        // pendente) — o servidor recusaria pela barreira, mas pedir daqui era pedir pra começar
-        // uma rodada sem mim.
-        if(NET.advancePhaseExpired && !ONLINE_BUSY_ACTIVE){ if(Date.now()-ONLINE_ADV_T>400){ ONLINE_ADV_T=Date.now(); NET.advancePhaseExpired(); } }
-        else if(NET.isHost){ room.participants.forEach(p=>{ if(!p.ready) p.ready=true; }); NET.toRunning(); }
-      }
     }
+    if(NET.isHost) onlineHostTick(room, armed);
   } else if(CL.online && room && room.phase==='running' && CL.screen!=='live' && !CL.live && !CL._liveBusy && !ONLINE_BUSY_ACTIVE){
     // SAVE ÚNICO: quem reabre a próxima 'ready' é SÓ o ANFITRIÃO, e SÓ depois de já ter fechado a
     // rodada (sem commit pendente). Se um convidado reabrisse antes, a fase ciclava e a rodada
     // travava/loopava. O reopen só efetiva quando ninguém está busy (barreira do servidor).
     ONLINE_LASTSEC=null;
-    // ...e SÓ depois de o host ter CUMPRIDO a etapa que está rodando. Pego pelo harness: na janela
-    // entre a largada e a entrada em campo ninguém bateu "ocupado" ainda (heartbeat é a cada 15s),
-    // e este fallback reabria a fase POR CIMA da rodada recém-começada. O caminho normal de
-    // reabertura nem passa por aqui (liveDone/_commitLeagueRound chamam NET.reopenReady direto);
-    // este é só a rede de segurança pro host que travou — e host travado ANTES de jogar não tem
-    // rodada nenhuma pra reabrir.
-    if(NET.isHost && !CL._hostPendingCommit && NET.reopenReady && (typeof onlineStageDone!=='function'||onlineStageDone()||CL._playedRound===S.round)){
-      if(Date.now()-ONLINE_ADV_T>400){ ONLINE_ADV_T=Date.now(); NET.reopenReady(); } }
+    // O FALLBACK DE REABERTURA DO HOST FOI REMOVIDO DE VEZ. Ele reabria a fase sem saber se a
+    // etapa corrente tinha FECHADO: bastava o host ter cumprido a etapa (stageDone persiste em
+    // disco e sobrevive ao reload da sincronia) com o fechamento ainda pendente pra ele reabrir a
+    // MESMA etapa em ciclo — ready -> cronômetro -> running -> nada -> reopen -> ... (medido no
+    // harness; é o loop pós-sincronia). Toda reabertura legítima já tem chamada explícita no fim
+    // do fechamento (onlineHostCloseRound, _commitLeagueRound, cão de guarda, virada) — e se o
+    // host cair depois de fechar sem reabrir, o cão de guarda de QUALQUER cliente reabre (1860).
     // CONVIDADO: se a fase é 'running' e ainda não joguei ESTA rodada, jogo agora (rede de segurança
     // caso o gatilho do onState tenha sido perdido enquanto eu via o sorteio/classificação). onlineRunRound
     // se auto-protege (não re-simula rodada já jogada, não interrompe telas de sorteio/classificação).
@@ -1724,7 +1698,13 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
 
 /* ESTÁGIO DA SEMANA (quarta ou sábado). Estado sem S.roundStage = save de antes desta versão:
    trata como semana de um estágio só, exatamente o comportamento antigo. */
-const CUP_STAGE_MAX_MS=75000;   // teto da quarta-feira: acima disso a semana degrada pra um estágio só
+/* Teto da quarta-feira: acima disso a semana degrada pra um estágio só. ERA 75s — e o relógio
+   começa no PRIMEIRO cliente que cumpre a copa, enquanto o fechamento precisa esperar o último
+   (a rodada de copa de quem assiste leva 60-90s, mais as classificações). Com dois humanos em
+   ritmos diferentes o estágio degradava quase sempre ("estágio de quarta não fechou em 75s" no
+   log da noite de 06/08), a liga rodava na MESMA fase e o loop da rodada nascia aí — reproduzido
+   no harness na primeira rodada de Libertadores. 240s dá folga real; o escape continua existindo. */
+const CUP_STAGE_MAX_MS=240000;
 function roundStage(){ return (S && S.roundStage) || null; }
 function isCupStage(){ return roundStage()==='cup'; }
 /* quem, entre os HUMANOS da sala, ainda deve a partida de copa desta semana. "Deve" = o clube dele
@@ -1941,8 +1921,18 @@ function onlineStageKey(){ return (typeof S!=='undefined'&&S?((S.season||1)+':'+
    a quarta e o sábado compartilham a jornada, e qualquer caminho que o zerasse reabria a rodada
    inteira ("repetiu o mesmo jogo da primeira rodada várias vezes"). O mapa é só-cresce e local:
    etapa cumprida é fato MEU, não do mundo. */
-function onlineMarkStageDone(){ CL._stageDone=CL._stageDone||{}; CL._stageDone[onlineStageKey()]=true; }
-function onlineStageDone(){ return !!(CL._stageDone && CL._stageDone[onlineStageKey()]); }
+/* PERSISTE: o "Sincronizar a Resenha" recarrega a página de propósito, e um mapa só em memória
+   voltava vazio — a etapa recém-jogada reabria DEPOIS da sincronia, que era justamente o socorro
+   do jogador travado ("forcei a sincronia e o loop continuou"). Usa o mesmo balde por sala do
+   drawSeenKey (ui/main). */
+function onlineMarkStageDone(){ const k=onlineStageKey();
+  CL._stageDone=CL._stageDone||{}; CL._stageDone[k]=true;
+  if(typeof rememberDrawSeen==='function') rememberDrawSeen('stage:'+k);
+}
+function onlineStageDone(){ const k=onlineStageKey();
+  if(CL._stageDone && CL._stageDone[k]) return true;
+  return (typeof drawAlreadySeen==='function') && drawAlreadySeen('stage:'+k);
+}
 /* QUITA A MINHA DÍVIDA DE COPA ASSIM QUE ELA DEIXA DE EXISTIR — seja qual for o motivo: joguei a
    partida, não tinha jogo nesta jornada, ou o confronto já foi resolvido por outro caminho (o
    servidor me simulou por ausência, ou o cliente de outro humano fechou o resto da rodada).
@@ -1961,6 +1951,44 @@ function onlineSettleCupDebt(){
   if(pend) return;
   CL._cupDebtSettled=etapa;
   NET.markCupDone(S.round);
+}
+/* ===================== MESA DO ANFITRIÃO — o motor da largada =====================
+   PASSO 1 do modelo novo: o dia tem UM DONO. O convidado marca pronto e espera; quem libera é o
+   anfitrião, sempre por aqui. Antes existiam quatro motores concorrentes (advance_phase_if_expired
+   chamado por qualquer cliente, arm_ready_timer idem, o toRunning de emergência e os cães de
+   guarda) — e cada um era uma porta pra um cliente entrar num dia diferente dos outros.
+   O botão "Liberar" e o "pular ausente" da mesa (passo 2) penduram exatamente aqui: hoje a
+   liberação é automática (todos prontos, ou prazo vencido com CL.autoRelease ligado), amanhã é
+   uma decisão explícita — sem tocar em mais nada. */
+function onlineHostSeats(){
+  const cl=(typeof NET!=='undefined' && NET._claimed)||{}; const agora=Date.now();
+  return Object.keys(cl).map(uid=>{ const c=cl[uid]||{};
+    const bu=c.busy_until; const busyMs = bu ? (typeof bu==='number'?bu:new Date(bu).getTime()) : 0;
+    return { uid, clubId:c.clubId, name:c.name, ready:!!c.ready, busy: busyMs>agora };
+  }).filter(s=>s.clubId);
+}
+function onlineHostTick(room, armed){
+  if(typeof NET==='undefined' || !NET.isHost || !room || room.phase!=='ready') return;
+  if(Date.now()-ONLINE_ADV_T<400) return;
+  const seats=onlineHostSeats();
+  const alguemOcupado = ONLINE_BUSY_ACTIVE || seats.some(s=>s.busy);
+  const todosProntos = seats.length>0 && seats.every(s=>s.ready);
+  // TODOS PRONTOS E NINGUÉM EM TELA DE PASSAGEM -> começa agora, sem esperar cronômetro nenhum
+  if(todosProntos && !alguemOcupado){ ONLINE_ADV_T=Date.now(); onlineHostRelease('todos prontos'); return; }
+  // cronômetro é só o teto pra quem sumiu; só arma quando ninguém está ocupado (senão conta por
+  // cima de quem ainda está numa cerimônia)
+  if(!armed){ if(!alguemOcupado && NET.armReadyTimer){ ONLINE_ADV_T=Date.now(); NET.armReadyTimer(); } return; }
+  if((room.deadline||0)>0 && Date.now()>=room.deadline && !alguemOcupado && CL.autoRelease!==false){
+    ONLINE_ADV_T=Date.now(); onlineHostRelease('prazo vencido');
+  }
+}
+/* ponto ÚNICO de largada da sala. start_running é RPC exclusiva do anfitrião e carimba o snapshot
+   de escalações no mesmo update — é o que garante que todo mundo simula os mesmos jogos. */
+function onlineHostRelease(motivo){
+  if(typeof NET==='undefined' || !NET.isHost || !NET.room || NET.room.phase!=='ready') return;
+  const seats=onlineHostSeats();
+  console.log('[mesa] liberando '+onlineStageKey()+' ('+motivo+') — '+seats.filter(s=>s.ready).length+'/'+seats.length+' prontos');
+  if(NET.toRunning) NET.toRunning();
 }
 function onlineMarkReady(){ CL._readyForStage=onlineStageKey();
   NET.setReady(true, CL.clubId); toastC('Pronto! À espera dos outros treinadores.'); cdraw();
