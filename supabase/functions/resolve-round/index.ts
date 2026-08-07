@@ -645,23 +645,27 @@ function cupTotalRoundsS(S: any, key: string) {
   }
   return (c.bracket && c.bracket.roundsTotal) || 0;
 }
-/* ESTRITAMENTE CRESCENTE: nunca duas rodadas da mesma competição na mesma jornada (dois jogos do
-   mesmo clube no mesmo dia) e nunca uma rodada descartada (competição sem final). Porte fiel do
-   buildCupSchedule do core.js — se mexer em um, mexer no outro. */
+/* Toda jornada fica na FAIXA da competição (resto certo na divisão por 3), a lista é estritamente
+   crescente e nenhuma rodada é descartada. A faixa é o que garante que duas competições nunca
+   caem na mesma jornada. Porte fiel do buildCupSchedule do core.js — se mexer em um, mexer no
+   outro. */
 function buildCupScheduleS(key: string, total: number, lastLeagueRound: number) {
   if (!total || total < 1) return [] as number[];
-  const first = (CUP_TICK_OFFSET[key] >= 1) ? CUP_TICK_OFFSET[key] : 3;
-  const teto = Math.max(first + total - 1, (lastLeagueRound || 0) - CUP_LEAGUE_TAIL);
-  let step = 3;
-  while (step > 1 && first + (total - 1) * step > teto) step--;
-  const out: number[] = []; for (let i = 0; i < total; i++) out.push(first + i * step);
-  const folga = teto - out[out.length - 1];
-  if (folga > 0 && total > 1) {
-    const n = Math.min(CUP_KO_SPREAD, total - 1);
-    for (let i = 0; i < n; i++) {
-      const idx = total - n + i;
-      out[idx] = Math.max(out[idx - 1] + 1, out[idx] + Math.round(folga * (i + 1) / n));
-    }
+  const off = CUP_TICK_OFFSET[key]; if (off == null) return [] as number[];
+  const first = (off >= 1) ? off : 3;
+  const teto = (lastLeagueRound || 0) - CUP_LEAGUE_TAIL;
+  const slots: number[] = []; for (let j = first; j <= teto; j += 3) slots.push(j);
+  while (slots.length < total) slots.push((slots.length ? slots[slots.length - 1] : first - 3) + 3);
+  const nDense = Math.max(0, total - CUP_KO_SPREAD);
+  const out = slots.slice(0, nDense);
+  const rest = slots.slice(nDense);
+  const nSpread = total - out.length;
+  let prev = -1;
+  for (let i = 0; i < nSpread; i++) {
+    let pos = (nSpread === 1) ? rest.length - 1 : Math.round(i * (rest.length - 1) / (nSpread - 1));
+    if (pos <= prev) pos = prev + 1;
+    if (pos > rest.length - 1) pos = rest.length - 1;
+    prev = pos; out.push(rest[pos]);
   }
   return out;
 }

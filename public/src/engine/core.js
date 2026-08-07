@@ -1798,31 +1798,36 @@ function cupTotalRounds(key){
   return (c.bracket&&c.bracket.roundsTotal)||0;
 }
 /* a lista de jornadas em que cada rodada desta copa acontece (índice 0 = 1ª rodada da copa).
-   ESTRITAMENTE CRESCENTE — é a garantia de que a mesma competição nunca tem duas rodadas na
-   mesma jornada (dois jogos do mesmo clube no mesmo dia) e de que NENHUMA rodada é descartada
-   (competição que nunca chega à final). Os dois eram os modos de falha do gerador anterior, que
-   sorteava posições dentro de uma lista de vagas fixa: quando a competição tinha mais rodadas
-   que vagas na faixa, o arredondamento repetia posições (medido: Sul-Americana com 14 rodadas
-   em 12 vagas -> jornadas 32 e 35 duas vezes) e o excedente era cortado em silêncio.
-   Agora o passo é que se ajusta: começa em 3 jornadas (o ritmo de sempre) e aperta pra 2 ou 1 se
-   a competição não couber na temporada. Com dia da semana próprio por competição (COMP_WEEKDAY),
-   apertar o passo é seguro — duas copas na mesma jornada caem em dias diferentes. */
+   TRÊS INVARIANTES, e as três já foram quebradas uma vez cada:
+   1. TODA jornada da lista está na FAIXA da competição (resto certo na divisão por 3, ver
+      CUP_TICK_OFFSET). É a faixa que garante que duas competições NUNCA caem na mesma jornada —
+      sem ela, Libertadores e Sul-Americana rodam na mesma jornada e dois humanos ficam em
+      competições diferentes ao mesmo tempo (medido: jornadas 16, 31 e 35 com duas ou três copas).
+   2. ESTRITAMENTE CRESCENTE: a mesma competição nunca tem duas rodadas na mesma jornada (era o
+      "dois jogos de Sul-Americana no mesmo dia" — o gerador antigo arredondava duas posições
+      para a mesma vaga).
+   3. NENHUMA rodada descartada: a lista tem sempre `total` jornadas. O gerador antigo cortava o
+      excedente em silêncio e a competição nunca chegava à final.
+   Quando a competição não cabe na temporada, a faixa é ESTENDIDA além do teto — a final atrasa,
+   mas ninguém sai da faixa nem perde rodada. Apertar o passo (o que eu tinha feito antes) resolve
+   o tamanho e quebra a invariante 1, que é a pior das três. */
 function buildCupSchedule(key, total, lastLeagueRound){
   if(!total || total<1) return [];
-  const first=(CUP_TICK_OFFSET[key]>=1)?CUP_TICK_OFFSET[key]:3;   // offset 0 estreia na jornada 3
-  const teto=Math.max(first+total-1, (lastLeagueRound||0)-CUP_LEAGUE_TAIL);
-  let step=3;
-  while(step>1 && first+(total-1)*step>teto) step--;
-  const out=[]; for(let i=0;i<total;i++) out.push(first+i*step);
-  // sobrou temporada depois da última rodada: empurra as fases finais (oitavas..final) pro fim,
-  // que é o que faz a decisão da copa cair perto da decisão da liga em vez de no meio do ano.
-  const folga=teto-out[out.length-1];
-  if(folga>0 && total>1){
-    const n=Math.min(CUP_KO_SPREAD, total-1);
-    for(let i=0;i<n;i++){
-      const idx=total-n+i;
-      out[idx]=Math.max(out[idx-1]+1, out[idx]+Math.round(folga*(i+1)/n));   // nunca repete a jornada anterior
-    }
+  const off=CUP_TICK_OFFSET[key]; if(off==null) return [];
+  const first=(off>=1)?off:3;                                   // offset 0 estreia na jornada 3
+  const teto=(lastLeagueRound||0)-CUP_LEAGUE_TAIL;              // fim reservado pra decisão da liga
+  const slots=[]; for(let j=first; j<=teto; j+=3) slots.push(j);
+  while(slots.length<total) slots.push((slots.length?slots[slots.length-1]:first-3)+3);
+  const nDense=Math.max(0, total-CUP_KO_SPREAD);                // fases iniciais: ritmo cheio
+  const out=slots.slice(0, nDense);
+  const rest=slots.slice(nDense);
+  const nSpread=total-out.length;                               // finais: espalhadas pelas vagas DA FAIXA
+  let prev=-1;
+  for(let i=0;i<nSpread;i++){
+    let pos = (nSpread===1) ? rest.length-1 : Math.round(i*(rest.length-1)/(nSpread-1));
+    if(pos<=prev) pos=prev+1;                                   // nunca repete a vaga anterior
+    if(pos>rest.length-1) pos=rest.length-1;
+    prev=pos; out.push(rest[pos]);
   }
   return out;
 }
