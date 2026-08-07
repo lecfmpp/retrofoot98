@@ -1592,6 +1592,7 @@ function onlineTimerLoop(){
   }
   roomDayRefresh();  // lê o dia do servidor de segundos em segundos (ver netRefreshDay)
   roomDayTick();     // item 3: carimba o momento do dia que EU já cumpri (ver roomDayTick)
+  if(typeof onlineMomentScreenTick==='function') onlineMomentScreenTick(); // o momento abre a tela dele
   if(typeof onlineWaitingTick==='function') onlineWaitingTick();   // "esperando por X" (ver main.js)
   dayRoundWatch();   // item 3: confere a jornada do ponteiro contra a local (ver dayRoundWatch)
   // TETO de 1s: o intervalo acompanha o ritmo, mas nos tempos lentos a conta explodia (em 'Longo'
@@ -1774,19 +1775,11 @@ function roomDayFact(d){
     // usar onlineStageDone() aqui faria terminar a primeira valer como carimbo das outras duas, que
     // é exatamente o atalho do last_cup_round que já nos custou uma sala travada.
     if(d.comp!=='liga'){
-      if(typeof cupWasSeen!=='function') return false;
-      if(cupWasSeen(d.comp)) return true;
-      /* NADA A CUMPRIR TAMBÉM É CUMPRIR — mas só quando o MUNDO diz isso, não o meu humor.
-         Agora que o botão Jogar só entra na competição do dia, um dia sem NENHUMA partida para mim
-         (não jogo e não há o que assistir naquela competição hoje) ficaria sem carimbo nenhum e a
-         sala inteira esperaria por um dia que não tem o que acontecer. As duas listas abaixo saem
-         do estado compartilhado, então quem não tem nada hoje não tem nada para todo mundo — isto
-         não é um cliente decidindo sozinho pular uma competição que existe. */
-      try{
-        const tenho=(typeof pendingUserCupMatches==='function') && pendingUserCupMatches().some(c=>c.key===d.comp);
-        const assisto=(typeof cupRoundsUserSitsOut==='function') && cupRoundsUserSitsOut().some(c=>c.key===d.comp);
-        return !tenho && !assisto;
-      }catch(e){ return false; }
+      // cupDayDone, NÃO cupWasSeen: o segundo marca no INÍCIO (para o próximo "Jogar" não
+      // reoferecer a competição), e o dia viraria com gente ainda em campo — acabaria no apito de
+      // quem começou primeiro. Ver cupDayMarkDone.
+      if(typeof cupDayDone!=='function') return false;
+      return cupDayDone(d.comp) || roomDayNadaACumprir(d.comp);
     }
     /* DIA DE LIGA: a pergunta é "eu joguei a PARTIDA DE LIGA desta jornada?", e ela tem que ser
        respondida por fatos da partida — nunca pela etapa da semana em que eu penso estar (ver
@@ -1798,9 +1791,36 @@ function roomDayFact(d){
     // chave que impede reentrar em campo. Uma pergunta só, respondida por uma coisa só.
     return CL._playedRound===(S.round||0) || onlineStageDone();
   }
-  // VI O QUE VEIO DEPOIS e voltei para a tela do clube — este é o carimbo que encerra o dia.
-  if(mom==='classificacao') return roomDayNaTelaDoClube();
+  if(mom==='classificacao'){
+    /* O TERCEIRO MOMENTO TAMBÉM É UMA TELA — E ERA O QUE FALTAVA.
+       Num dia de copa, o que encerra o dia é a CLASSIFICAÇÃO DAQUELA COPA. Antes ela estava
+       pendurada no fechamento da rodada, e o fechamento passou a esperar o ponteiro chegar ao dia
+       de liga: por isso a tabela da Libertadores não aparecia ao fim da Libertadores — ela só
+       apareceria depois da Sul-Americana e da Copa do Brasil, junto de todas as outras.
+       Agora cada dia termina com a sua própria tabela, e o carimbo exige tê-la VISTO. Sem essa
+       exigência o dia viraria antes de a tela aparecer: eu estaria na tela do clube, carimbaria na
+       hora, e a classificação nunca teria vez. */
+    if(d.comp!=='liga'){
+      if(roomDayNadaACumprir(d.comp)) return true;
+      return (typeof cupClassifWasShown==='function') ? cupClassifWasShown(d.comp, S.round||0)
+                                                      : roomDayNaTelaDoClube();
+    }
+    // DIA DE LIGA: a tabela vem do fechamento (precisa do mundo já resolvido pelo servidor), então
+    // o fato aqui continua sendo "vi o que veio depois e voltei para a tela do clube".
+    return roomDayNaTelaDoClube();
+  }
   return false;
+}
+/* ESTA COMPETIÇÃO NÃO TEM NADA PARA MIM HOJE — e isso é um fato do MUNDO, não do meu humor: as
+   duas listas saem do estado compartilhado. Sem isto, um dia de copa em que ninguém tem confronto
+   (chave vazia entre fases) ficaria sem carimbo e a sala esperaria por um dia que não tem o que
+   acontecer. Não é um cliente decidindo pular sozinho uma competição que existe. */
+function roomDayNadaACumprir(comp){
+  try{
+    const tenho=(typeof pendingUserCupMatches==='function') && pendingUserCupMatches().some(c=>c.key===comp);
+    const assisto=(typeof cupRoundsUserSitsOut==='function') && cupRoundsUserSitsOut().some(c=>c.key===comp);
+    return !tenho && !assisto;
+  }catch(e){ return false; }
 }
 function roomDayTick(){
   if(!CL.online || typeof NET==='undefined' || !NET.room) return;

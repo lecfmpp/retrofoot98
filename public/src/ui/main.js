@@ -4106,6 +4106,21 @@ function clJogar(){
    vezes na temporada). Agora o marcador é amarrado a (temporada, rodada): não se apaga por fluxo,
    só deixa de valer quando a rodada de fato muda. */
 function cupRoundKeyNow(){ return (S.season||1)+'-'+(S.round||0); }
+/* ===== "CUMPRI A COMPETIÇÃO DE HOJE" — MARCADO NO FIM, NUNCA NO COMEÇO =====
+   cupWasSeen/cupMarkSeen marcam no INÍCIO: eles existem para o próximo clique em "Jogar" não
+   reoferecer a mesma competição. Usar aquele marcador como carimbo do momento 'jogando' faria o
+   dia virar com gente ainda em campo — o dia acabaria no apito de quem começou primeiro.
+   Este aqui é o outro fato, e é o que o ponteiro precisa: eu terminei, seja jogando (a partida
+   acabou e o resultado foi publicado) ou assistindo (a rodada da competição acabou na minha tela). */
+function cupDayMarkDone(key){
+  const rk=cupRoundKeyNow();
+  if(!CL._cupDone || CL._cupDone.rk!==rk) CL._cupDone={ rk, keys:[] };
+  if(!CL._cupDone.keys.includes(key)) CL._cupDone.keys.push(key);
+}
+function cupDayDone(key){
+  const rk=cupRoundKeyNow();
+  return !!(CL._cupDone && CL._cupDone.rk===rk && CL._cupDone.keys.includes(key));
+}
 function cupMarkSeen(key){
   const rk=cupRoundKeyNow();
   if(!CL._cupSeen || CL._cupSeen.rk!==rk) CL._cupSeen={ rk, keys:[] };
@@ -4349,6 +4364,15 @@ function startCupSpectate(cand){ startCupRound(cand.key, cand.stage, null); }
 function finishCupSpectate(){
   const RL=CL.live;
   toastC('Rodada da '+COMP_DEFS[RL.cup.key].short+' assistida!');
+  /* QUEM ASSISTE TAMBÉM FECHA A CHAVE, no mesmo instante de quem joga. Isto só existia no
+     finishCupLiveMatch (quem tinha confronto): o espectador via as partidas ao vivo e ficava com a
+     chave da competição por resolver até o servidor mandar o mundo novo. Enquanto a classificação
+     vinha do fechamento da rodada, isso não aparecia; agora que cada dia de copa termina na sua
+     própria tabela, o espectador abriria uma tabela ainda por preencher. É determinístico (mesmas
+     sementes) e idempotente (S._cupResolvedRound), e o estado do servidor sobrescreve tudo no
+     fechamento — então os dois veem a mesma chave, na mesma hora. */
+  if(typeof resolveCupRoundRest==='function') resolveCupRoundRest(RL.cup.key);
+  cupDayMarkDone(RL.cup.key);          // terminei de assistir: é ISTO que o ponteiro espera
   markSpectateHandled(RL.cup.key);
   CL.live=null; CL.screen='main'; cdraw();
   const q=CL._pendingCupIdleQueue||[];
@@ -7030,6 +7054,7 @@ function finishCupLiveMatch(){
     // chave mostrada no pós-jogo já vir completa (advanceCupBracket pula a do usuário, que
     // acabou de receber t.winner acima).
     resolveCupRoundRest(pending.key);
+    cupDayMarkDone(pending.key);   // minha partida acabou: o dia de copa está cumprido por mim
     const userWon=(winner===CL.clubId);
     if(wentToPens){
       const userIsHome=(t.h===CL.clubId);
@@ -7061,6 +7086,7 @@ function finishCupLiveMatch(){
     // uma partida disputada e as outras zeradas. advanceGroupStageRound pula a partida do
     // usuário sozinho (guard pelo resultado já gravado no grupo), então aqui só entram os que faltavam.
     resolveCupRoundRest(pending.key);
+    cupDayMarkDone(pending.key);   // minha partida acabou: o dia de copa está cumprido por mim
     // Resenha (online): publica também o resultado de FASE DE GRUPOS. Antes só o mata-mata era
     // publicado, então o servidor re-simulava a partida que o humano tinha acabado de jogar ao
     // vivo e o adopt seguinte sobrescrevia o placar que ele viu na tela (ver
@@ -9641,6 +9667,27 @@ function clCounterHumanOffer(id){
   clIncomingOffers();
 }
 
+/* ===== O MOMENTO 'CLASSIFICACAO' ABRE A TELA DA COMPETIÇÃO DO DIA =====
+   Fecha o passo 1 no terceiro momento. A classificação de copa estava pendurada no FECHAMENTO da
+   rodada — e o fechamento passou a esperar o ponteiro chegar ao dia de liga, então a tabela da
+   Libertadores só apareceria depois da Sul-Americana e da Copa do Brasil, todas juntas no fim.
+   Agora cada dia termina com a sua própria tabela, e ela abre para todos no mesmo instante: o
+   momento só vira 'classificacao' quando o último assento terminou de jogar/assistir.
+   A tabela da LIGA continua vindo do fechamento, e tem que ser assim — ela depende do mundo já
+   resolvido pelo servidor (outras divisões, finanças, virada). */
+function onlineMomentScreenTick(){
+  if(!CL.online || typeof NET==='undefined' || !NET.room || typeof S==='undefined' || !S) return;
+  const d=NET.room.day; if(!d || d.moment!=='classificacao' || d.comp==='liga') return;
+  if(d.round!==(S.round||0)) return;
+  if(CL.live || CL._liveBusy || CL._cupIntro || CL._leagueIntro) return;
+  // não atravessa nenhuma tela que já é do fluxo (inclusive a própria)
+  if(CL.screen==='cupclassif' || CL.screen==='cupdraw' || CL.screen==='classif'
+     || CL.screen==='seatclassif' || CL.screen==='live') return;
+  if(typeof cupClassifWasShown==='function' && cupClassifWasShown(d.comp, S.round||0)) return;
+  if(typeof roomDayNadaACumprir==='function' && roomDayNadaACumprir(d.comp)) return;  // nada aconteceu hoje
+  if(typeof showCupClassif!=='function') return;
+  showCupClassif(d.comp, S.round||0);
+}
 /* ===================== "ESPERANDO POR X" — A MESA DO ANFITRIÃO =====================
    O ponteiro só vira o dia quando o ÚLTIMO assento carimba. Isso é o que mantém todo mundo na
    mesma tela — e é também a única forma de a sala parar por causa de uma pessoa. Até aqui essa
