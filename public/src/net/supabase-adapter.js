@@ -386,6 +386,17 @@ async function netRefreshRoom(){
       // detecta a defasagem que a comparação por rodada não vê. Ver onlineReconcileIfBehind.
       stateVersion: g.state_version||0
     });
+    /* O DIA DA SALA, direto do servidor. Vem de graça no select('*') acima — o plano nunca muda
+       depois de gravado, então só o índice e o momento andam. É daqui que as telas passam a sair:
+       enquanto cada cliente deduzia a competição do próprio estado local, dois humanos podiam
+       estar "certos" e ainda assim em competições diferentes. Agora a resposta é uma linha só. */
+    if(g.day_plan && !NET.room.dayPlan) NET.room.dayPlan = g.day_plan;
+    if(NET.room.dayPlan){
+      const e = NET.room.dayPlan[g.day_idx||0] || null;
+      NET.room.day = e ? { idx:g.day_idx||0, moment:g.day_moment||'escalando',
+                           round:e.r, comp:e.comp, cupIdx:e.idx, dia:e.dia,
+                           total:NET.room.dayPlan.length } : null;
+    }
     const { data: seats } = await sb.from('game_seats').select('*').eq('game_id', NET.gameId);
     NET._claimed = NET._claimed || {};
     (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round, last_bids:s.last_bids, last_seen:s.last_seen }; });
@@ -780,15 +791,29 @@ async function netDayPointer(){
     return (data && data.length) ? data[0] : null;
   }catch(e){ console.warn('dayPointer:', e && e.message); return null; }
 }
-/* faz a sala andar um passo: escalando → jogando → classificacao → próximo dia. Só anda pra
-   frente, e para no último dia — é o que impede a mesma rodada de acontecer duas vezes. */
-async function netDayAdvance(){
+/* EU TERMINEI O DIA QUE ESTAVA VENDO. Todo cliente chama — não só o anfitrião, porque o anfitrião
+   travar já parou salas inteiras e o ponteiro não pode herdar essa fragilidade. Manda a visão que
+   tinha (idx+momento): se o dia já virou, o servidor devolve o atual sem andar de novo, e se algum
+   assento ainda está ocupado ele não anda de jeito nenhum. N chamadas, um passo. */
+async function netDayDone(idx, moment){
   if(!sb || !NET.gameId) return null;
   try{
-    const { data, error } = await sb.rpc('day_advance', { p_game: NET.gameId });
+    const { data, error } = await sb.rpc('day_advance_if_all_done',
+      { p_game: NET.gameId, p_idx: idx, p_moment: moment });
     if(error) throw error;
     return (data && data.length) ? data[0] : null;
-  }catch(e){ console.warn('dayAdvance:', e && e.message); return null; }
+  }catch(e){ console.warn('dayDone:', e && e.message); return null; }
+}
+/* rede de segurança: a jornada andou pelo caminho antigo e o ponteiro ficou pra trás. Puxa pra
+   frente até o primeiro dia da jornada corrente — nunca pra trás. Sem isto, uma degradação
+   qualquer no fechamento deixaria a sala inteira esperando um dia que já passou. */
+async function netDaySync(round){
+  if(!sb || !NET.gameId) return null;
+  try{
+    const { data, error } = await sb.rpc('day_sync', { p_game: NET.gameId, p_round: round|0 });
+    if(error) throw error;
+    return (data && data.length) ? data[0] : null;
+  }catch(e){ console.warn('daySync:', e && e.message); return null; }
 }
 
 async function netStart(){
@@ -1458,7 +1483,8 @@ NET.authSignOut = netAuthSignOut;
 NET.authResetPassword = netAuthResetPassword;
 NET.updatePassword = netUpdatePassword;
 NET.dayPointer = netDayPointer;
-NET.dayAdvance = netDayAdvance;
+NET.dayDone = netDayDone;
+NET.daySync = netDaySync;
 NET.listMyRooms = netListMyRooms;
 NET.deleteRoom = netDeleteRoom;
 NET.sendEmailInvite = netSendEmailInvite;

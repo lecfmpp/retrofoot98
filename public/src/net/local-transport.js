@@ -1622,6 +1622,59 @@ function onlineCompleteSeasonTurnover(){
     }
   }catch(e){ console.warn('completar virada online:', e && e.message); } finally { ONLINE_TURNOVER_BUSY=false; } })();
 }
+/* ==================== O DIA DA SALA, VINDO DO SERVIDOR ====================
+   ITEM 1 DO CHECKLIST. Até aqui cada cliente OLHAVA O PRÓPRIO ESTADO pra decidir o que mostrar:
+   "tenho confronto de copa? então copa; senão, liga". Dois humanos podiam responder essa pergunta
+   de formas diferentes e os dois estarem certos pelas suas contas — foi assim que acabaram
+   jogando competições diferentes na mesma jornada. A pergunta agora tem uma resposta só, e ela
+   mora numa linha do banco: games.day_idx aponta pra uma entrada do calendário da sala.
+
+   O QUE O PONTEIRO DECIDE: qual COMPETIÇÃO está em campo. A jornada continua andando pelo caminho
+   de sempre (games.round + fechamento). São dois eixos, e eles se encontram aqui: o ponteiro só
+   manda quando fala da MESMA jornada que eu. Se falar de outra, devolvo null e o caminho antigo
+   assume — desalinhamento degrada pro comportamento de antes, nunca em tela parada.
+
+   E se o ponteiro ficar PRA TRÁS da jornada (fechamento por atalho, sala de save antigo), o
+   day_sync o puxa pra frente. Uma vez por jornada, senão viraria enxurrada de chamadas. */
+function roomDay(){
+  const d=(typeof NET!=='undefined' && NET.room) ? NET.room.day : null;
+  if(!d || !S) return null;
+  const meu=S.round||0;
+  if(d.round===meu) return d;
+  if(d.round<meu && typeof NET!=='undefined' && NET.daySync && CL._daySyncedFor!==meu){
+    CL._daySyncedFor=meu;
+    NET.daySync(meu).then(()=>{ if(typeof NET.refreshRoom==='function') NET.refreshRoom(); }).catch(()=>{});
+  }
+  return null;   // ponteiro falando de outra jornada: não mando em nada
+}
+/* avisa o servidor que terminei o dia que estava vendo. Idempotente por construção: mando a visão
+   que eu tinha, e quem chegar depois recebe "já virou" em vez de andar de novo.
+
+   Fecha os TRÊS momentos numa tacada. Os momentos (escalando/jogando/classificacao) ainda não
+   desenham tela nenhuma — quem desenha continua sendo o fluxo de sempre — então esperar um ciclo
+   de atualização entre cada um só somaria atraso entre uma competição e a próxima. Quando os
+   momentos passarem a mandar na tela, este laço vira um passo por momento.
+
+   Uma tentativa por dia (_dayDoneKey pelo índice): se o servidor não andou é porque alguém ainda
+   está ocupado, e martelar não muda isso — a próxima volta do loop tenta de novo com a visão nova. */
+function roomDayDone(d){
+  if(!d || typeof NET==='undefined' || !NET.dayDone) return;
+  if(CL._dayDoneKey===d.idx) return;
+  CL._dayDoneKey=d.idx;
+  (async ()=>{
+    let idx=d.idx, mom=d.moment;
+    for(let i=0;i<3;i++){
+      const p=await NET.dayDone(idx, mom);
+      if(!p) break;
+      if(p.idx!==idx){ break; }              // o dia virou: acabou
+      if(p.momento===mom){ break; }          // não andou (alguém ocupado): tento na próxima volta
+      mom=p.momento;
+    }
+    CL._dayDoneKey=null;                     // libera pra nova tentativa com a visão atualizada
+    if(NET.refreshRoom) NET.refreshRoom().catch(()=>{});
+  })();
+}
+
 function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return; if(!CL.online || !S) return;
   // APRESENTAÇÃO JÁ NA TELA: as telas de "entrar em campo" (copa e liga) são OVERLAY, não trocam
   // CL.screen — continua valendo 'main'. Sem esta guarda, o loop do cronômetro (~300ms) reentra
@@ -1695,8 +1748,14 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // a LIGA direto e PULAVA a Copa do Brasil -> o servidor auto-simulava a minha chave (bug "não
   // joguei a copa"). Agora joga a copa ao vivo; ao terminar (cupQueue vazio), a liga entra na
   // próxima passada. O fluxo de resultado da copa auto-avança no online (ver clCupResultContinue).
-  if(typeof pendingUserCupMatches==='function'){
-    const cupQueue=pendingUserCupMatches().filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key));
+  // A COMPETIÇÃO DO DIA VEM DO SERVIDOR (ver roomDay). Enquanto o dia é de uma copa, a liga não
+  // entra — nem pra quem não disputa aquela copa. Enquanto o dia é de liga, nenhuma copa entra.
+  // É a trava que faltava: as duas ramificações abaixo consultavam só o meu estado.
+  const dia=roomDay();
+  if(typeof pendingUserCupMatches==='function' && (!dia || dia.comp!=='liga')){
+    const cupQueue=pendingUserCupMatches()
+      .filter(c=>!dia || c.key===dia.comp)
+      .filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key));
     // apresentação da rodada de copa também aqui (ver showCupIntro) — mas com auto-avanço, porque
     // este caminho roda com o cronômetro de 60s da sala já correndo: uma tela que espera clique
     // seguraria a rodada dos outros jogadores.
@@ -1716,8 +1775,10 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // buildLiveMatchObject/isCup). Uma barreira extra aqui (a tentativa anterior de segurar o
   // espectador até os participantes terminarem) serializava o que tem que ser simultâneo e
   // matava a transmissão: não se transmite uma partida que já acabou.
-  if(typeof cupRoundsUserSitsOut==='function' && typeof startCupRound==='function'){
-    const idle=cupRoundsUserSitsOut().filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key));
+  if(typeof cupRoundsUserSitsOut==='function' && typeof startCupRound==='function' && (!dia || dia.comp!=='liga')){
+    const idle=cupRoundsUserSitsOut()
+      .filter(c=>!dia || c.key===dia.comp)
+      .filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key));
     if(idle.length){
       const cand=idle[0];
       if(typeof cupMarkSeen==='function') cupMarkSeen(cand.key);
@@ -1732,7 +1793,9 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // ainda estava na quarta-feira: os dois viviam dias diferentes da mesma semana, que é a origem
   // da "confusão de calendário". Escape: o cronômetro da sala, o mesmo que força a entrada de
   // todos — ninguém fica preso se alguém travar na copa.
-  if(typeof onlineCupDayPending==='function'){
+  // Dia de liga declarado pelo servidor: a barreira de copa abaixo já não tem o que segurar, e
+  // mantê-la ligada só criaria uma espera por um dia que a sala inteira já fechou.
+  if(typeof onlineCupDayPending==='function' && !(dia && dia.comp==='liga')){
     const faltam=onlineCupDayPending();
     if(faltam.length && !cupDayWaitExpired()){
       if(!CL._cupDayWarned || CL._cupDayWarned!==S.round){
@@ -1781,6 +1844,12 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // que a copa sempre teve (showCupIntro): um modal dizendo o que vem, com auto-avanço — o
   // auto-avanço é obrigatório aqui, porque este caminho roda com o cronômetro da sala correndo e
   // uma tela que espera clique pra sempre seguraria a rodada dos outros.
+  // ÚLTIMA PORTA ANTES DA LIGA. Chegar aqui com o servidor dizendo que o dia ainda é de copa
+  // significa que eu terminei a minha parte e alguém não terminou a dele. Espero na tela do
+  // clube e aviso que estou pronto — o dia só vira quando o último assento ficar livre.
+  // Esta guarda vem DEPOIS do fechamento do estágio de quarta de propósito: aquele bloco é o que
+  // faz a semana virar, e barrá-lo antes deixaria o ponteiro preso na copa pra sempre.
+  if(dia && dia.comp!=='liga'){ roomDayDone(dia); return; }
   if(typeof showLeagueIntro==='function'){ showLeagueIntro(true); return; }
   CL._liveBusy=true; startLiveRound(); }
 
