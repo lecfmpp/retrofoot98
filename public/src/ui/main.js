@@ -4343,7 +4343,14 @@ function startCupRound(key, stage, pending){
     return false;
   }
   const fixtures=cupRoundFixtures(key, stage);
-  if(!fixtures.length){ if(!pending) markSpectateHandled(key); return false; }   // quem chamou decide o que fazer (ver clJogar)
+  if(!fixtures.length){
+    // COMPETIÇÃO SEM NENHUM CONFRONTO HOJE (chave vazia entre fases): não há o que assistir, e isso
+    // vale para todo mundo. Marcar cumprido aqui é o que impede o dia de copa de ficar esperando
+    // por uma partida que não existe — a lista de "assisto" ainda inclui a competição, então o
+    // "nada a cumprir" sozinho não cobriria este caso e a sala congelaria.
+    if(!pending){ markSpectateHandled(key); cupDayMarkDone(key); }
+    return false;                                            // quem chamou decide o que fazer (ver clJogar)
+  }
   // a MINHA partida vem primeiro: finishCupLiveMatch, prorrogação e pênaltis leem RL.matches[0]
   const isMine=f=>pending && f.h===pending.h && f.a===pending.a;
   const ordered = pending ? fixtures.filter(isMine).concat(fixtures.filter(f=>!isMine(f))) : fixtures;
