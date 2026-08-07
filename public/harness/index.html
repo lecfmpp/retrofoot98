@@ -35,10 +35,11 @@
 <script>
 /* ============ SERVIDOR DE MENTIRA (__HSRV) ============
    Semântica fiel às RPCs de produção:
-   - arm_ready_timer: só arma com fase 'ready', timer desarmado e NINGUÉM ocupado.
-   - advance_phase_if_expired: fase 'ready' e (prazo vencido OU todos os assentos is_ready)
-     -> 'running', carimba is_ready=true em todos (igual à def real) e o snapshot de apito.
-   - reopen_ready: fase 'running' e ninguém ocupado -> 'ready', timer desarmado, is_ready=false.
+   - start_running: EXCLUSIVA do anfitrião — a largada, que carimba o snapshot de escalações.
+     O cronômetro (arm_ready_timer) e o avanço por prazo (advance_phase_if_expired) não existem
+     mais: quem diz que todos chegaram é o carimbo do dia (dayAck), e quem segue sem alguém é o
+     anfitrião, por botão.
+   - reopen_ready: fase 'running' -> 'ready', is_ready=false.
    - openSeason (netStart novo): 'ready' com timer DESARMADO.                              */
 const hz={ games:{}, timerMs:60000 };
 function bcast(code){
@@ -49,7 +50,6 @@ function bcast(code){
   setTimeout(()=>{ for(const f of [fA,fB]){ try{ f.contentWindow.__hOnServerUpdate && f.contentWindow.__hOnServerUpdate(code); }catch(e){} } }, 0);
 }
 function G(code){ return hz.games[code]; }
-function busyAny(g){ const t=Date.now(); return Object.values(g.seats).some(s=>s.busy_until && s.busy_until>t); }
 window.__HSRV={
   snapshot(code){ const g=G(code); return g?JSON.parse(JSON.stringify(g)):null; },
   createGame(name, uid, pname){ const code='HARN'+Math.floor(Math.random()*90+10);
@@ -69,26 +69,12 @@ window.__HSRV={
     Object.values(g.seats).forEach(s=>s.is_ready=false);
     log('SRV: temporada aberta — fase ready, timer DESARMADO','info'); bcast(code); },
   setReady(code, uid, v){ const g=G(code); if(!g.seats[uid]) return; g.seats[uid].is_ready=!!v; bcast(code); },
-  busy(code, uid, until){ const g=G(code); if(!g.seats[uid]) return; g.seats[uid].busy_until=until; bcast(code); },
   seen(){},
-  armReadyTimer(code){ const g=G(code);
-    if(g.phase!=='ready'||g.ready_deadline||busyAny(g)) return 'skip';
-    g.ready_deadline=Date.now()+hz.timerMs; log('SRV: timer ARMADO ('+hz.timerMs/1000+'s)','info'); bcast(code); return 'armed'; },
-  advanceIfExpired(code){ const g=G(code); if(g.phase!=='ready') return g.phase;
-    const all=Object.values(g.seats).filter(s=>s.club_id!=null).every(s=>!!s.is_ready);
-    const expired=g.ready_deadline && g.ready_deadline<=Date.now();
-    if(expired||all){ g.phase='running'; g.kickoff_at=Date.now();
-      g.kickoff_lineups={}; Object.values(g.seats).forEach(s=>{ if(s.club_id&&s.last_xi) g.kickoff_lineups[s.club_id]={xi:s.last_xi,tactic:s.last_tactic||'equilibrado'}; });
-      Object.values(g.seats).forEach(s=>s.is_ready=true);
-      log('SRV: fase RUNNING ('+(all?'todos prontos':'prazo vencido')+') — apito carimbado','info');
-      bcast(code); return 'running'; }
-    return 'ready'; },
   startRunning(code){ const g=G(code); if(g.phase==='running') return 'running';
     g.phase='running'; g.kickoff_at=Date.now();
     g.kickoff_lineups={}; Object.values(g.seats).forEach(s=>{ if(s.club_id&&s.last_xi) g.kickoff_lineups[s.club_id]={xi:s.last_xi,tactic:s.last_tactic||'equilibrado'}; });
     bcast(code); return 'running'; },
   reopenReady(code){ const g=G(code); if(g.phase!=='running') return g.phase;
-    if(busyAny(g)) return 'busy';
     g.phase='ready'; g.ready_deadline=0;
     Object.values(g.seats).forEach(s=>s.is_ready=false);
     log('SRV: rodada reaberta — fase ready, timer desarmado','info'); bcast(code); return 'ready'; },
@@ -369,16 +355,17 @@ async function scenario3(){
     log('divergências sustentadas ponteiro⇄jornada local: A='+driftA+' B='+driftB,'info');
     assert(driftA===0 && driftB===0,'a jornada do ponteiro nunca discordou da local por mais de 12s');
 
-    /* ---------- POR QUE A SALA PAROU: O "OCUPADO" TEM QUE TER CAUSA REAL ----------
-       Tela de partida/cerimônia é ocupado legítimo — é o jogador vivendo o jogo. Fila de sorteio
-       parada NÃO é: ninguém está fazendo nada, e a sala inteira espera. Foi exatamente esse o
-       travamento da jornada 1 (os dois na tela do clube, prontos, com ocupado='sorteio-na-fila').
-       Uma amostra ou outra é a janela normal entre enfileirar e abrir; dezenas são a trava. */
-    const motivos=c=>{ const m={}; hist[c].forEach(s=>{ if(s.ocupado) m[s.ocupado]=(m[s.ocupado]||0)+1; }); return m; };
-    const mA=motivos('A'), mB=motivos('B');
-    log('motivos de "ocupado" A='+JSON.stringify(mA)+' B='+JSON.stringify(mB),'info');
-    const fila=(mA['sorteio-na-fila']||0)+(mB['sorteio-na-fila']||0);
-    assert(fila<=20,'ninguém ficou preso em "sorteio-na-fila" ('+fila+' amostras)');
+    /* ---------- POR QUE A SALA PAROU: O MOMENTO E OS CARIMBOS ----------
+       Aqui se media o "ocupado" — a razão pela qual cada cliente segurava a sala. Esse conceito não
+       existe mais: nada avança sem carimbo, então não há o que proteger com ele, e as três piores
+       classes de travamento saíram junto. O que importa medir agora é o MOMENTO: a sala não pode
+       passar a vida inteira num só, porque isso é exatamente uma espera que não termina. */
+    const momentos=c=>{ const m={}; hist[c].forEach(s=>{ if(s.diaMom) m[s.diaMom]=(m[s.diaMom]||0)+1; }); return m; };
+    const mmA=momentos('A');
+    log('tempo em cada momento (A)='+JSON.stringify(mmA),'info');
+    const totalMom=Object.values(mmA).reduce((a,b)=>a+b,0);
+    const pior=Math.max(0,...Object.values(mmA));
+    assert(!totalMom || pior < totalMom*0.8,'a sala não passou a execução inteira num momento só');
 
     // ---------- ANTI-LOOP E CHEGADA JUNTOS ----------
     const eA=entryCounts('A'), eB=entryCounts('B');

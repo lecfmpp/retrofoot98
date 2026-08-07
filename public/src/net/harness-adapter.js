@@ -147,12 +147,8 @@
   NET.refreshDay=async function(){ pushState(SRV.snapshot(NET.gameId)); return NET.room&&NET.room.day; };
   NET.toRunning=async function(){ if(NET.isHost) SRV.startRunning(NET.gameId); };
   NET.reopenReady=async function(){ SRV.reopenReady(NET.gameId); };
-  NET.armReadyTimer=async function(){ SRV.armReadyTimer(NET.gameId); };
-  NET.advancePhaseExpired=async function(){ SRV.advanceIfExpired(NET.gameId); };
   NET.pause=async function(){}; NET.setSpeed=async function(){}; NET.setMode=function(){};
   NET.setReady=function(ready){ SRV.setReady(NET.gameId, uid, !!ready); };
-  NET.heartbeatBusy=function(){ SRV.busy(NET.gameId, uid, Date.now()+90000); };
-  NET.clearBusy=function(){ SRV.busy(NET.gameId, uid, null); };
 
   /* estado compartilhado (games.shared_state) */
   NET._loadedVersion=0;
@@ -299,10 +295,6 @@
       // item 3: quantas vezes a jornada do ponteiro discordou da local DE FORMA SUSTENTADA. É a
       // medição que autoriza (ou proíbe) cortar a escrita local do S.round — ver dayRoundWatch.
       drift:CL._dayDrift||0,
-      // POR QUE este cliente se declara ocupado (null = não se declara). O booleano sozinho já
-      // custou duas caças: a sala parava com todos os assentos "ocupados" e não dava pra saber
-      // qual condição estava acesa em cada um. Ver onlineBusyReason.
-      ocupado:(typeof onlineBusyReason==='function')?onlineBusyReason():null,
       screen:CL.screen, round:(typeof S!=='undefined'&&S)?S.round:null,
       stage:(typeof S!=='undefined'&&S)?(S.roundStage||null):null,
       cupKey:(CL.live&&CL.live.cup)?CL.live.cup.key:null,

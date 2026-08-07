@@ -410,14 +410,6 @@ async function netRefreshRoom(){
    (busy_until no futuro). O RPC advance_phase_if_expired NÃO avança a rodada enquanto houver
    qualquer humano ocupado — assim ninguém pula a rodada enquanto o outro joga liga/copa. Se eu
    cair no meio (parar de bater o heartbeat), o busy_until expira em ~90s e a rodada segue. ---- */
-async function netHeartbeatBusy(){
-  if(!sb || !NET.gameId || !SB_AUTH_USER) return;
-  try{ await sb.from('game_seats').update({ busy_until: new Date(Date.now()+90000).toISOString() }).eq('game_id', NET.gameId).eq('user_id', SB_UID()); }catch(e){}
-}
-async function netClearBusy(){
-  if(!sb || !NET.gameId || !SB_AUTH_USER) return;
-  try{ await sb.from('game_seats').update({ busy_until: null }).eq('game_id', NET.gameId).eq('user_id', SB_UID()); }catch(e){}
-}
 /* HEARTBEAT DE PRESENÇA (confiável, no banco): enquanto estou na Resenha, carimbo last_seen no meu
    assento a cada ~15s. O "online" da barra de status vem daqui (visto nos últimos ~40s), não do
    presence do realtime — que é instável e mostrava todo mundo Offline mesmo estando na sala. */
@@ -868,14 +860,6 @@ async function netReopenReady(){
 }
 /* arma os 60s da 'ready' — o servidor só arma quando ninguém está ocupado (todos na tela do time).
    Qualquer cliente chama enquanto está na 'ready' com o timer ainda desarmado. */
-async function netArmReadyTimer(){
-  if(!sb || !NET.gameId || !NET.room || NET.room.phase!=='ready') return;
-  try{
-    const { data, error } = await sb.rpc('arm_ready_timer', { p_game: NET.gameId });
-    if(error) throw error;
-    if(data==='armed' && NET.room && !NET.room.deadline){ NET.room.deadline=Date.now()+60000; if(NET.onState) NET.onState(NET.room); }
-  }catch(e){ console.warn('armReadyTimer:', e && e.message); }
-}
 
 async function netPause(){
   if(!NET.isHost) return;
@@ -916,14 +900,6 @@ async function netToRunning(){
 /* QUALQUER jogador pode pedir ao servidor pra iniciar a rodada quando o tempo zerou (ou todos
    prontos) — o servidor valida o deadline, então não depende do anfitrião estar com a aba ativa.
    Corrige o caso "cronômetro zerado mas a rodada não começa" quando o host está inativo. */
-async function netAdvancePhaseExpired(){
-  if(!sb || !NET.gameId || !NET.room || NET.room.phase!=='ready') return;
-  try {
-    const { data, error } = await sb.rpc('advance_phase_if_expired', { p_game: NET.gameId });
-    if(error) throw error;
-    if(data==='running' && NET.room && NET.room.phase!=='running'){ NET.room.phase='running'; if(NET.onState) NET.onState(NET.room); }
-  } catch(e){ console.warn('advancePhaseExpired:', e && e.message); }
-}
 
 /* FASE 1: (re)carrega o carimbo do apito + snapshot congelado de escalações da rodada corrente.
    Usado como trava antes de simular (onlineRunRound): se a fase virou 'running' por um caminho que
@@ -1470,8 +1446,6 @@ function netHandleSessionLost(){
 NET.createRoom = netCreateRoom;
 NET.joinRoom = netJoinRoom;
 NET.refreshRoom = netRefreshRoom;
-NET.heartbeatBusy = netHeartbeatBusy;
-NET.clearBusy = netClearBusy;
 NET.heartbeatSeen = netHeartbeatSeen;
 NET.publishLineup = netPublishLineup;
 NET.publishResult = netPublishResult;
@@ -1505,9 +1479,7 @@ NET.clubOnline = netClubOnline;
 NET.broadcastMatch = netBroadcastMatch;
 NET.broadcastDecision = netBroadcastDecision;
 NET.broadcastKickoff = netBroadcastKickoff;
-NET.advancePhaseExpired = netAdvancePhaseExpired;
 NET.reopenReady = netReopenReady;
-NET.armReadyTimer = netArmReadyTimer;
 NET.toLobby = netToLobby;
 NET.kick = netKick;
 NET.sendChat = netSendChat;

@@ -348,7 +348,6 @@ function clResenhaSyncGo(){
   if(CL.live && !CL.live.done){ toastC('⚠ Partida em andamento — não dá pra sincronizar agora.'); return; }
   try{ sessionStorage.setItem(RESYNC_KEY, code); }catch(e){}
   toastC('🔄 Sincronizando com a sala…');
-  try{ if(typeof NET!=='undefined' && NET.clearBusy) NET.clearBusy(); }catch(e){}   // libera a barreira antes de sair
   setTimeout(()=>{ try{ location.reload(); }catch(e){} }, 250);
 }
 /* RETOMADA (chamada pelo boot, em index.html, quando existe a marca do reload). Entra pelo mesmo
@@ -1356,7 +1355,7 @@ function clKickGo(uid, clubId){
    isso no onlineTimerLoop. */
 function clOnlinePause(){ if(typeof NET!=='undefined' && NET.isHost && NET.pause){ NET.pause().catch(()=>{}); cdraw(); } }
 function clSetSpeed(mult){ CL.speedMult=mult; if(CL.online && typeof NET!=='undefined' && NET.setSpeed) NET.setSpeed(mult).catch(()=>{}); cdraw(); }
-let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null, ONLINE_ADV_T=0, ONLINE_BUSY_T=0, ONLINE_BUSY_ACTIVE=false, ONLINE_SEEN_T=0;
+let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null, ONLINE_ADV_T=0, ONLINE_SEEN_T=0;
 /* AS DUAS TRAVAS CONTRA O NÓ QUE TRAVA A SALA (ver onlineTimerLoop). Cada regra do fluxo é
    razoável sozinha; juntas elas se trancavam — cliente preso numa tela não era puxado pra rodada
    certa, e por estar na tela contava como ocupado, e por contar como ocupado a sala não andava,
@@ -1371,23 +1370,6 @@ const ROUND_LAG_MAX=3;
    prendeu ESTE cliente e o devolve à ação que ele deve. Sendo inofensiva pros outros, não há
    motivo pra ser lenta: 2 minutos parados matam a dinâmica do jogo, e o cliente que travou
    costuma travar de cara. Quanto antes ele volta a andar, antes a sala anda. */
-const BUSY_MAX_MS=10000;
-const CUP_FLOW_SCREENS_LOCAL=['cupclassif','cupdraw','cupview','classif','seatclassif'];
-/* TELA COM RELÓGIO PRÓPRIO ANDANDO NÃO ESTÁ TRAVADA.
-   O destravamento dispara com 10s de "ocupado" — e 10s é MENOS do que várias telas legítimas
-   levam: o sorteio da Copa do Brasil tem 64 revelações (perto de um minuto), a classificação de
-   copa tem 10s de auto-avanço, a apresentação da rodada tem 6s. O resultado, medido em sala real,
-   era o pior possível: o destravamento matava justamente o relógio que ia fazer a tela avançar, e
-   o jogador ficava preso — o oposto do que ele existe para fazer.
-   Se existe um cronômetro armado, alguma coisa VAI acontecer. Isso não é travamento; é o jogo. */
-function onlineTelaAndando(){
-  if(CL.live && !CL.live.done) return true;                       // partida em andamento
-  if(CL.cupDraw) return true;                                     // cerimônia de sorteio rolando
-  if(CL._cupFlowTimer || CL._classifTimer) return true;           // classificação com auto-avanço armado
-  if(CL._cupIntroTimer || CL._leagueIntroTimer) return true;      // apresentação da rodada
-  if(CL._redTimer || CL._penTimer || CL._injTimer) return true;   // decisão de partida com prazo próprio
-  return false;
-}
 function onlineTimerLoop(){
   const room=(typeof NET!=='undefined')?NET.room:null;
   // SAVE ÚNICO: o ANFITRIÃO fecha a rodada quando ninguém está mais em partida (não-bloqueante,
@@ -1417,84 +1399,20 @@ function onlineTimerLoop(){
       if(typeof SB_AUTH_USER!=='undefined' && !SB_AUTH_USER && typeof netRefreshAuth==='function'){ netRefreshAuth(); }
     }
   }
-  // BARREIRA DE SINCRONIZAÇÃO: enquanto EU ainda estou fechando a rodada anterior, bato um
-  // heartbeat "ocupado" — o servidor não arma o cronômetro nem avança a fase sem mim (ver
-  // arm_ready_timer / advance_phase_if_expired).
-  // Ao sair da sequência, limpo o "ocupado" uma vez (fim normal = libera; queda = expira em ~90s).
-  //
-  // A sequência inteira conta, não só a tela ao vivo: partida -> CLASSIFICAÇÃO -> SORTEIO da copa
-  // -> tela do time. Cobrir só 'live'/'cupdraw' deixava o cronômetro armar durante a
-  // classificação, e aí o sorteio da Copa do Brasil abria com o relógio JÁ correndo ao fundo
-  // (apitando durante um evento que é à parte). Agora o cronômetro só arma quando TODOS
-  // terminaram o sorteio e voltaram pra tela do time — que é a regra que o jogo promete.
-  //
-  // A OBRIGAÇÃO DE COPA conta como ocupado do MESMO jeito, mesmo com o cliente parado na tela do
-  // time: entre o fim da partida de copa e o próximo "Jogar" (tela de resultado, escalação, pausa
-  // técnica) o cara está em 'main' e, sem isto, o cronômetro da liga armava, contava e apitava por
-  // cima dele — a rodada começava sem quem ainda devia a copa da semana, e ele voltava pra tela
-  // principal sem ver o próprio jogo. Com a obrigação dentro da barreira, a rodada de liga só
-  // ARMA quando todo mundo zerou a copa, que é a regra pedida: quem não joga a copa espera quem joga.
-  onlineSettleCupDebt();   // ver definição: a dívida de copa se quita por qualquer caminho, não só jogando
-  // ===== "OCUPADO" TEM PRAZO DE VALIDADE =====
-  // O busy_until é renovado a cada 15s enquanto o cliente se considerar ocupado — e um cliente
-  // TRAVADO se considera ocupado para sempre, então ele renovava indefinidamente e a sala inteira
-  // ficava refém dele (medido na K8AJ6: 23 minutos parados com os dois assentos ocupados). O teto
-  // do servidor (90s no busy_until) nunca chegava a expirar justamente porque era renovado.
-  // Aqui o relógio é da ETAPA: se eu estou me declarando ocupado há mais de BUSY_MAX_MS na MESMA
-  // etapa, alguma coisa travou do meu lado — paro de segurar a sala e deixo o jogo andar.
+  /* ===== O "OCUPADO" NÃO EXISTE MAIS =====
+     Aqui vivia a maior fonte de travamento da Resenha. Cada cliente se declarava "ocupado"
+     (partida, cerimônia, dívida de copa, fila de sorteio), o servidor não deixava a sala andar com
+     alguém ocupado, e um cliente preso numa tela segurava todo mundo — indefinidamente, porque ele
+     renovava o próprio "ocupado" a cada 15s. Em cima disso veio um destravamento automático que,
+     para salvar a sala, MATAVA os cronômetros da tela — e assim quebrava justamente as telas que
+     iam avançar sozinhas (o sorteio da Copa do Brasil, a classificação da copa). Foram os dois
+     últimos travamentos relatados, e eles eram o mesmo defeito.
+     Nada disso é necessário quando o avanço depende de CARIMBO: ninguém anda sem o carimbo de
+     todos, então não há o que proteger com "ocupado". Se um assento não carimba, a sala espera —
+     com o nome dele na tela e o botão do anfitrião — em vez de adivinhar se ele está ocupado ou
+     travado. Uma pergunta a menos, e três classes de bug junto com ela. */
   onlineForceExpiredDecision();   // ver definição: modal de decisão vencido não pode segurar a sala
-  onlineOpenQueuedDraw();         // ver definição: sorteio na fila se ABRE, não vira "ocupado" eterno
-  const _etapaBusy = onlineStageKey();
-  if(CL._busyStage!==_etapaBusy){ CL._busyStage=_etapaBusy; CL._busySince=0; CL._busyUnstuck=0; }
-  let _euOcupado = CL.online && onlineClosingRound();
-  if(_euOcupado){
-    /* PARTIDA EM ANDAMENTO NÃO É "TRAVADO". O relógio do destravamento é de 10s e a partida dura
-       minutos: no log de produção este aviso saía a cada 10s durante TODAS as partidas ("ocupado há
-       11s… 21s… 32s… na tela live"), afogando o console justamente onde a gente precisa enxergar.
-       Estar em campo é o motivo mais legítimo que existe para segurar a sala — enquanto a partida
-       corre, o relógio de "alguma coisa travou do meu lado" nem começa. Ele volta a contar assim
-       que ela termina, que é onde os travamentos de verdade moram. */
-    if(onlineTelaAndando()){ CL._busySince=0; CL._busyUnstuck=0; }
-    if(!CL._busySince) CL._busySince=Date.now();
-    // DESTRAVA NO LUGAR — NUNCA SOLTA A SALA PRA ME PULAR.
-    // A saída óbvia seria parar de me declarar ocupado, mas aí a rodada anda SEM mim e eu perco os
-    // meus jogos sem ter assistido — o que não faz sentido nenhum. Então, em vez de soltar a
-    // barreira, eu conserto o que me prendeu: limpo os cronômetros pendurados e as flags de tela e
-    // volto pra ação que eu DEVO nesta etapa (a partida/classificação pendente). A sala continua
-    // esperando por mim — só que agora eu consigo andar. Se nem isso resolver, ela espera mesmo:
-    // sala parada com aviso é muito melhor que jogador pulado em silêncio.
-    if(Date.now()-CL._busySince > BUSY_MAX_MS && Date.now()-(CL._busyUnstuck||0) > BUSY_MAX_MS){
-      CL._busyUnstuck=Date.now();
-      console.warn('ocupado há '+Math.round((Date.now()-CL._busySince)/1000)+'s na etapa '+_etapaBusy+
-        ' (tela "'+CL.screen+'") — destravando NO LUGAR (a sala continua esperando por mim)');
-      if(CL._liveTimer && (!CL.live || CL.live.done)){ clearTimeout(CL._liveTimer); CL._liveTimer=null; }
-      /* SAIR PELA PORTA, NÃO PELA JANELA. Este bloco matava os relógios da tela (clearCupFlowTimer)
-         e jogava o jogador direto para a tela do clube — sem passar pelo "continuar" daquela tela.
-         Numa classificação de copa isso é catastrófico: o marcador de "já vi" é gravado justamente
-         na SAÍDA, então a tela era destruída sem deixar registro, o carimbo do dia nunca saía, e a
-         tela reabria — 10s depois o mesmo destravamento a matava de novo. Foi o convidado preso em
-         'cupclassif' e o outro humano esperando por ele para sempre.
-         Cada tela tem a sua saída legítima; usá-la resolve o travamento E deixa o registro. */
-      if(CL.screen==='cupclassif' && typeof cupClassifContinue==='function'){ cupClassifContinue(); }
-      else if(CL.screen==='cupdraw' && CL.cupDraw && typeof clCupDrawSkip==='function'){ clCupDrawSkip(); }
-      else if((CL.screen==='classif'||CL.screen==='seatclassif') && typeof clClassifContinue==='function'){ clClassifContinue(); }
-      else {
-        if(typeof clearCupFlowTimer==='function') clearCupFlowTimer();
-        if(typeof clearCupIntroTimer==='function') clearCupIntroTimer();
-        if(typeof clearLeagueIntroTimer==='function') clearLeagueIntroTimer();
-        if(!CL.live){ CL._liveBusy=false; CL._cupIntro=null; CL._leagueIntro=false; CL._leagueIntroRound=null;
-          if(CUP_FLOW_SCREENS_LOCAL.indexOf(CL.screen)>=0){ CL.screen='main'; CL.tab='jogo'; if(typeof cdraw==='function') cdraw(); }
-          if(typeof onlineRecoverRunRound==='function') onlineRecoverRunRound();   // volta pra MINHA ação pendente
-        }
-      }
-    }
-  } else { CL._busySince=0; CL._busyUnstuck=0; }
-  if(_euOcupado && typeof NET!=='undefined' && NET.gameId){
-    ONLINE_BUSY_ACTIVE=true;
-    if(Date.now()-ONLINE_BUSY_T>15000){ ONLINE_BUSY_T=Date.now(); if(NET.heartbeatBusy) NET.heartbeatBusy(); }
-  } else if(ONLINE_BUSY_ACTIVE){
-    ONLINE_BUSY_ACTIVE=false; ONLINE_BUSY_T=0; if(typeof NET!=='undefined' && NET.clearBusy) NET.clearBusy();
-  }
+  onlineOpenQueuedDraw();         // ver definição: sorteio na fila se ABRE, não fica pendurado
   if(CL.online && room && room.phase==='ready' && room.paused){
     // PAUSADO pelo anfitrião: congela o cronômetro (não conta nem avança a rodada). O deadline
     // foi guardado em paused_remaining_ms (ver netPause); ao retomar, o servidor rearma.
@@ -1516,19 +1434,15 @@ function onlineTimerLoop(){
       const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent='⏳';
     } else {
       const secs=Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
-      if(ONLINE_BUSY_ACTIVE){
-        // eu cheguei atrasado numa tela de fechamento: não apita nem conta por cima de mim
-        ONLINE_LASTSEC=null;
-        const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent='⏳';
-      } else if(secs!==ONLINE_LASTSEC){ ONLINE_LASTSEC=secs;
+      if(secs!==ONLINE_LASTSEC){ ONLINE_LASTSEC=secs;
         if(secs<=10 && secs>0){ netBeep(secs<=3?1100:820); }
         if(secs<=0){ netBeep(1400); }
         const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent=secs+'s';
         const wrap=document.querySelector('.cl-statusbar'); if(wrap){ wrap.classList.toggle('urgent', secs<=10); }
       }
     }
-    if(NET.isHost) onlineHostTick(room, armed);
-  } else if(CL.online && room && room.phase==='running' && CL.screen!=='live' && !CL.live && !CL._liveBusy && !ONLINE_BUSY_ACTIVE){
+    if(NET.isHost) onlineHostTick(room);
+  } else if(CL.online && room && room.phase==='running' && CL.screen!=='live' && !CL.live && !CL._liveBusy){
     // SAVE ÚNICO: quem reabre a próxima 'ready' é SÓ o ANFITRIÃO, e SÓ depois de já ter fechado a
     // rodada (sem commit pendente). Se um convidado reabrisse antes, a fase ciclava e a rodada
     // travava/loopava. O reopen só efetiva quando ninguém está busy (barreira do servidor).
@@ -1583,8 +1497,6 @@ function onlineTimerLoop(){
       if(CL._liveTimer){ clearTimeout(CL._liveTimer); CL._liveTimer=null; }
       CL.live=null; CL._liveBusy=false; CL._cupIntro=null; CL._leagueIntro=false;
       if(typeof clearCupFlowTimer==='function') clearCupFlowTimer();
-      if(typeof NET.clearBusy==='function') NET.clearBusy();
-      ONLINE_BUSY_ACTIVE=false; ONLINE_BUSY_T=0;
       CL.screen='main';
       onlineReconcileIfBehind(room);
     }
@@ -1613,7 +1525,6 @@ function onlineTimerLoop(){
       console.warn('pausa há '+Math.round(dt/1000)+'s | fase='+room.phase+
         ' rodada: eu='+(S.round||0)+' sala='+(room.round||0)+
         ' | cronômetro='+((room.deadline||0)>0?'armado':'desarmado')+
-        ' | eu-ocupado='+ONLINE_BUSY_ACTIVE+
         ' | em partida=['+ocupados.join(',')+'] sem resultado=['+semResultado.join(',')+']');
     }
   }
@@ -2032,25 +1943,6 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
       if(startCupRound(cand.key, cand.stage, null)) return;
     }
   }
-  // BARREIRA DO DIA DE COPA: a rodada de liga da semana N só começa quando TODOS os humanos que
-  // tinham partida de copa nesta semana já a cumpriram. É o "dia" da Fase 3 na prática — quarta
-  // inteira antes de sábado inteiro — sem trocar a unidade de sincronia do servidor.
-  // Sem isto, quem não tinha jogo de copa (ou terminava antes) entrava na liga enquanto o vizinho
-  // ainda estava na quarta-feira: os dois viviam dias diferentes da mesma semana, que é a origem
-  // da "confusão de calendário". Escape: o cronômetro da sala, o mesmo que força a entrada de
-  // todos — ninguém fica preso se alguém travar na copa.
-  // Dia de liga declarado pelo servidor: a barreira de copa abaixo já não tem o que segurar, e
-  // mantê-la ligada só criaria uma espera por um dia que a sala inteira já fechou.
-  if(typeof onlineCupDayPending==='function' && !(dia && dia.comp==='liga')){
-    const faltam=onlineCupDayPending();
-    if(faltam.length && !cupDayWaitExpired()){
-      if(!CL._cupDayWarned || CL._cupDayWarned!==S.round){
-        CL._cupDayWarned=S.round;
-        console.log('dia de copa: esperando '+faltam.length+' treinador(es) terminarem a copa da semana antes de liberar a liga');
-      }
-      return;
-    }
-  }
   // ESTÁGIO DE QUARTA-FEIRA: cumprida a copa, a semana ainda NÃO libera o jogo de liga — ela
   // precisa fechar a quarta primeiro (o servidor resolve só as copas e devolve a semana no estágio
   // de sábado). Marcar pronto aqui é o que dispara esse fechamento, exatamente como acontece no
@@ -2112,56 +2004,11 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
 const CUP_STAGE_MAX_MS=240000;
 function roundStage(){ return (S && S.roundStage) || null; }
 function isCupStage(){ return roundStage()==='cup'; }
-/* quem, entre os HUMANOS da sala, ainda deve a partida de copa desta semana. "Deve" = o clube dele
-   tem confronto numa competição que bate nesta semana E o assento dele ainda não publicou o
-   resultado de copa da rodada (game_seats.last_cup_round). Quem não tem jogo de copa nesta semana
-   simplesmente não aparece — não há o que esperar dele. */
-function onlineCupDayPending(){
-  if(!CL.online || !S || typeof clubOwesCupThisWeek!=='function') return [];
-  const claimed=(typeof NET!=='undefined' && NET._claimed)||{};
-  const out=[];
-  Object.keys(claimed).forEach(uid=>{
-    const c=claimed[uid]; if(!c || !c.clubId) return;
-    if(String(c.clubId)===String(CL.clubId)) return;      // eu já cumpri a minha (cheguei até aqui)
-    const devendo = (typeof cupsOwedThisWeek==='function') ? cupsOwedThisWeek(c.clubId) : [];
-    if(!devendo.length) return;                           // não deve NADA de copa nesta jornada
-    // JÁ CUMPRIU TODAS AS QUE DEVIA? A lista `done` (publicada pelo próprio assento) diz QUAIS
-    // competições ele fechou nesta jornada. Terminar a Libertadores não paga mais a Copa do Brasil.
-    // O ATALHO DO last_cup_round SAIU — ele mentia quando a jornada tem MAIS DE UMA competição.
-    // Essa coluna é UMA por rodada: ela guarda "publiquei um resultado de copa na jornada N", sem
-    // dizer QUAL competição. Com o calendário oficial, a jornada 3 tem Libertadores (01/04),
-    // Sul-Americana (02/04) E Copa do Brasil (04/04) — as três. Então bastava o jogador terminar a
-    // PRIMEIRA delas pra coluna marcar a jornada inteira como paga: os outros clientes liam "ele
-    // já publicou", soltavam a barreira e seguiam para a rodada de liga enquanto ele ainda estava
-    // na Copa do Brasil. Foi o travamento da 3ª rodada — um humano preso, o outro avançando.
-    // Quem sabe se ainda falta alguma é o MUNDO (clubOwesCupThisWeek olha confronto por confronto,
-    // competição por competição), e é só nele que a barreira se apoia agora. O teto de 90s
-    // (cupDayWaitExpired) segue como escape pra quem sumiu.
-    const done=(c.last_cup_round===S.round && c.last_cup_result && Array.isArray(c.last_cup_result.done)) ? c.last_cup_result.done : [];
-    if(devendo.every(k=>done.indexOf(k)>=0)) return;      // todas cumpridas
-    out.push(c.clubId);
-  });
-  return out;
-}
-/* A espera do dia de copa acabou? Solta quando o cronômetro da sala zera (quando existe um armado)
-   ou quando o teto próprio estoura. O teto precisa existir: durante a fase 'running' NÃO há
-   contagem armada — o cronômetro governa a largada da rodada, não o meio dela —, então sem ele a
-   barreira ou nunca seguraria (se eu lesse "sem deadline = pode ir") ou seguraria pra sempre (se
-   eu lesse o contrário). 90s cobre com folga uma partida de copa inteira, inclusive prorrogação e
-   pênaltis, que foi o caso que travou a sala no playtest. */
-const CUP_DAY_MAX_WAIT_MS=90000;
 /* A RODADA JÁ COMEÇOU? É o portão de largada da sala: o servidor vira a fase pra 'running' quando
    todos estão prontos (ou o cronômetro zera) e carimba no MESMO update o snapshot de escalações
    (start_running/kickoff_lineups). Enquanto a fase for 'ready', ninguém entra em campo — é isso
    que faz a rodada começar no mesmo instante pra todo mundo. */
 function onlinePhaseRunning(){ return !!(typeof NET!=='undefined' && NET.room && NET.room.phase==='running'); }
-function cupDayWaitExpired(){
-  const room=(typeof NET!=='undefined')?NET.room:null;
-  const dl=(room && room.deadline)||0;
-  if(dl>0 && Date.now()>=dl) return true;
-  if(!CL._cupDaySince || CL._cupDayRound!==S.round){ CL._cupDayRound=S.round; CL._cupDaySince=Date.now(); return false; }
-  return Date.now()-CL._cupDaySince > CUP_DAY_MAX_WAIT_MS;
-}
 /* Recupera a rodada de LIGA quando a fase virou 'running' enquanto o cliente estava numa
    tela AO VIVO de copa/espectador. Nesse caso a borda que dispara onlineRunRound no onState
    (wireNet) foi SUPRIMIDA pelo guard CL.screen==='live' e se perdeu (é edge-triggered de
@@ -2242,21 +2089,10 @@ function onlineOrphanCloseCheck(){
   }
   // âncora na rodada — nenhuma condição intermediária reinicia esta contagem
   if(ORPHAN_ROUND!==S.round){ ORPHAN_ROUND=S.round; ORPHAN_SINCE=now; return; }
-  // "ocupado" lido FRESCO dos assentos (o espelho room.participants congela o busy no instante do
-  // último merge e pode nunca mais ser recalculado se um evento do realtime se perder)
-  let anyBusy=false; const cl=NET._claimed||{};
-  for(const uid in cl){ const c=cl[uid];
-    if(c && c.busy_until && new Date(c.busy_until).getTime()>now){ anyBusy=true; break; } }
-  const allIn = (typeof NET.allHumanResultsIn==='function') ? NET.allHumanResultsIn(S.round) : true;
-  // alguém em partida: 120s (o busy_until do servidor expira em 90s, então isto nunca atropela
-  // quem está jogando de verdade). Todos com resultado: 25s. Faltando alguém: 90s — quem caiu
-  // antes de publicar é simulado pelo servidor, como sempre foi.
-  // Sem ninguém em partida, a rodada devia ter fechado no ato: 6s é só a folga pro caminho normal
-  // do anfitrião (que leva ~2-4s, incluindo a ida ao servidor) agir antes. resolve-round é
-  // idempotente, então se os dois caminhos correrem juntos o segundo recebe already:true — o custo
-  // de disparar cedo é uma chamada a mais; o de disparar tarde é o jogo parado.
-  // Com alguém DE FATO em partida, 100s (o busy do servidor expira em 90s) — aí a espera é real.
-  const espera = anyBusy ? 100000 : 6000;
+  /* O CÃO DE GUARDA NÃO OLHA MAIS "OCUPADO" — ele não existe. A porta é o ponteiro (acima): só há
+     órfão depois que o servidor disse que o dia foi cumprido. Se o anfitrião estiver vivo, ele
+     fecha em seguida e isto nunca dispara; se tiver caído, alguém fecha em 15s. */
+  const espera = 15000;
   if(now-ORPHAN_SINCE < espera) return;
   if(ORPHAN_INFLIGHT || now-ORPHAN_LAST_TRY<6000) return;
   ORPHAN_LAST_TRY=now; ORPHAN_INFLIGHT=true;
@@ -2275,8 +2111,6 @@ function onlineOrphanCloseCheck(){
    'ready' não arma e a fase não avança. 'boasvindas' entra porque é a porta das cerimônias de
    abertura (sorteio da Resenha -> boas-vindas -> sorteios de copa): sem ela na lista, o timer
    armava e estourava POR BAIXO das cerimônias e a rodada 0 começava sem ninguém ver. */
-const CLOSING_SCREENS=['live','cupdraw','classif','seatclassif','cupclassif','sorteio','loading','boasvindas'];
-let DRAW_HOLD_SINCE=0;
 /* MODAL DE DECISÃO VENCIDO NÃO SEGURA A SALA. Expulsão, lesão, pênalti e disputa de pênaltis
    pausam a partida e se auto-resolvem por um setInterval de 200ms próprio. Esse intervalo é a
    ÚNICA coisa que faz o prazo valer — e o navegador estrangula timers de aba em segundo plano
@@ -2315,66 +2149,6 @@ function onlineOpenQueuedDraw(){
   try{ checkPendingCupDraws(()=>{ CL._drawOpening=false; }); }
   catch(e){ CL._drawOpening=false; console.warn('abrir sorteio da fila:', e && e.message); }
 }
-/* POR QUE eu me declaro ocupado — em uma palavra, ou null pra "não estou".
-   O booleano sozinho já custou duas sessões de caça: a sala parava com todos os assentos ocupados
-   e não havia como saber, de fora, QUAL das quatro condições estava acesa em cada cliente. Agora a
-   razão é o valor e o booleano é derivado dela; o harness grava a razão a cada 150ms, então uma
-   travada passa a vir com a causa escrita ao lado. */
-function onlineBusyReason(){
-  if(CL.screen==='waitround'){ DRAW_HOLD_SINCE=0; return null; }
-  if(CLOSING_SCREENS.indexOf(CL.screen)>=0){ DRAW_HOLD_SINCE=0; return 'tela:'+CL.screen; }
-  if(typeof S!=='undefined' && S && S._pendingDrawShows && S._pendingDrawShows.length){
-    if(!DRAW_HOLD_SINCE) DRAW_HOLD_SINCE=Date.now();
-    if(DRAW_HOLD_SINCE>0 && Date.now()-DRAW_HOLD_SINCE<20000) return 'sorteio-na-fila';
-    if(DRAW_HOLD_SINCE!==-1){ DRAW_HOLD_SINCE=-1; console.warn('fila de sorteio parada há 20s sem abrir — barreira solta pra rodada não travar'); }
-  } else DRAW_HOLD_SINCE=0;
-  return onlineCupObligationPending() ? 'copa-devendo' : null;
-}
-/* As quatro condições, na ordem em que valem (o histórico de cada uma está nos comentários que
-   sobreviveram dentro do onlineBusyReason e do onlineCupObligationPending):
-     · pausa técnica NUNCA é ocupado — ali eu já fiz a minha parte e estou esperando;
-     · tela de fechamento (partida, sorteio, classificação, cerimônia) é ocupado de verdade;
-     · sorteio enfileirado e ainda não aberto vale por 20s — fila parada além disso é fila velha;
-     · dívida de copa só conta na fase 'running' (ver onlineCupObligationPending). */
-function onlineClosingRound(){ return !!onlineBusyReason(); }
-// 60s: teto de SEGURANÇA, não de espera normal. Eram 240s — e como a barreira ficou presa na
-// pausa, esses 4 minutos viraram o tempo real que a sala passava travada antes de destravar
-// sozinha. Quem está de fato jogando a copa é coberto pelo busy_until (90s, renovado a cada 15s),
-// não por este teto.
-const CUP_HOLD_MAX_MS=60000;
-function onlineCupObligationPending(){
-  if(!CL.online || !S || typeof pendingUserCupMatches!=='function') return false;
-  if(CL.unemployed) return false;
-  // FASE 'ready' = ESTOU NO PORTÃO, E PORTÃO NÃO É OCUPADO.
-  // Esta barreira nasceu pra segurar o cronômetro da 'ready' — "ninguém arma a liga devendo copa"
-  // —, e isso valia enquanto a copa era jogada ANTES de marcar pronto. Desde que ela passou a
-  // entrar em campo pelo mesmo portão da liga (onlineJogarGate), a partida de copa que eu devo só
-  // acontece DEPOIS que a fase virar 'running'. Contar a obrigação como ocupado aqui trava o
-  // próprio portão: o servidor não arma nem avança a fase com alguém ocupado, e eu só deixo de
-  // dever a copa quando a fase avança — a pendência passou a bloquear a única coisa capaz de
-  // resolvê-la. Foi o travamento do "dia de copa: esperando 1 treinador(es) terminarem a copa"
-  // com a rodada aberta sem fechar. Quarta variação do mesmo padrão: uma pendência que só se
-  // resolve DEPOIS do avanço marcando o jogador como ocupado justamente antes do avanço.
-  // Na 'running' a barreira segue valendo: é ela que segura o FECHAMENTO da rodada até eu ter
-  // cumprido a minha partida de copa.
-  if(typeof NET!=='undefined' && NET.room && NET.room.phase==='ready') return false;
-  // RODADA AINDA FECHANDO (já joguei a liga, esperando o fechamento na pausa técnica): idem —
-  // pendingUserCupMatches já enxerga a copa da rodada seguinte, que só é jogável depois do
-  // fechamento desta.
-  if(typeof NET!=='undefined' && NET.room && NET.room.phase==='running' && CL._playedRound===S.round) return false;
-  let pend=false;
-  try{ pend = pendingUserCupMatches().filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key)).length>0; }catch(e){ return false; }
-  const key=(S.season||1)+'-'+(S.round||0);
-  if(!pend){ CL._cupHoldKey=null; CL._cupHoldSince=0; return false; }
-  if(CL._cupHoldKey!==key){ CL._cupHoldKey=key; CL._cupHoldSince=Date.now(); }
-  if(Date.now()-(CL._cupHoldSince||0) > CUP_HOLD_MAX_MS){
-    if(!CL._cupHoldWarned){ CL._cupHoldWarned=key;
-      console.warn('barreira de copa solta pelo teto de '+(CUP_HOLD_MAX_MS/1000)+'s — a rodada segue sem esperar mais'); }
-    return false;
-  }
-  return true;
-}
-
 /* quando o usuário clica Jogar no modo online, marca "pronto" em vez de rodar sozinho */
 /* etapa da semana que eu estou prestes a jogar: (jornada, quarta ou sábado). A quarta e o sábado
    têm a MESMA jornada, então a jornada sozinha não distingue "já pedi pra começar" entre as duas. */
@@ -2420,25 +2194,6 @@ function onlineStageDoneFor(stage){
   if(CL._stageDone && CL._stageDone[k]) return true;
   return (typeof drawAlreadySeen==='function') && drawAlreadySeen('stage:'+k);
 }
-/* QUITA A MINHA DÍVIDA DE COPA ASSIM QUE ELA DEIXA DE EXISTIR — seja qual for o motivo: joguei a
-   partida, não tinha jogo nesta jornada, ou o confronto já foi resolvido por outro caminho (o
-   servidor me simulou por ausência, ou o cliente de outro humano fechou o resto da rodada).
-   Quem sabe se eu ainda devo é o MEU cliente, que é quem roda pendingUserCupMatches — então é ele
-   que carimba. Antes a dívida só era quitada por "joguei ao vivo até o fim", e o resto dos
-   caminhos ficava esperando o teto de 90s da barreira. Uma vez por etapa da semana; o
-   markCupDone sai cedo se eu já tiver publicado um resultado nesta jornada. */
-function onlineSettleCupDebt(){
-  if(!CL.online || typeof S==='undefined' || !S) return;
-  if(typeof NET==='undefined' || !NET.markCupDone) return;
-  if(typeof pendingUserCupMatches!=='function') return;
-  const etapa=onlineStageKey();
-  if(CL._cupDebtSettled===etapa) return;
-  let pend=true;
-  try{ pend = pendingUserCupMatches().length>0; }catch(e){ return; }
-  if(pend) return;
-  CL._cupDebtSettled=etapa;
-  NET.markCupDone(S.round);
-}
 /* ===================== MESA DO ANFITRIÃO — o motor da largada =====================
    PASSO 1 do modelo novo: o dia tem UM DONO. O convidado marca pronto e espera; quem libera é o
    anfitrião, sempre por aqui. Antes existiam quatro motores concorrentes (advance_phase_if_expired
@@ -2448,26 +2203,32 @@ function onlineSettleCupDebt(){
    liberação é automática (todos prontos, ou prazo vencido com CL.autoRelease ligado), amanhã é
    uma decisão explícita — sem tocar em mais nada. */
 function onlineHostSeats(){
-  const cl=(typeof NET!=='undefined' && NET._claimed)||{}; const agora=Date.now();
+  const cl=(typeof NET!=='undefined' && NET._claimed)||{};
   return Object.keys(cl).map(uid=>{ const c=cl[uid]||{};
-    const bu=c.busy_until; const busyMs = bu ? (typeof bu==='number'?bu:new Date(bu).getTime()) : 0;
-    return { uid, clubId:c.clubId, name:c.name, ready:!!c.ready, busy: busyMs>agora };
+    return { uid, clubId:c.clubId, name:c.name, ready:!!c.ready };
   }).filter(s=>s.clubId);
 }
-function onlineHostTick(room, armed){
+/* A LARGADA SAI DO PONTEIRO — não de um cronômetro, nem de "todos prontos" lido no meu cliente.
+   O momento 'jogando' só existe depois que o ÚLTIMO assento carimbou o "estou pronto" (ver
+   roomDayFact). Ou seja: a pergunta que esta função fazia — "todos prontos e ninguém ocupado?" —
+   já foi respondida pelo SERVIDOR, com os carimbos na mesa, e a resposta é o próprio momento. Ao
+   anfitrião resta executar: abrir a partida para a sala inteira no mesmo instante (start_running,
+   que congela as escalações de todos no mesmo update).
+   O que saiu daqui: o cronômetro de 60s (arm_ready_timer) e o avanço por prazo vencido. Os dois
+   existiam para a sala não ficar refém de quem não clica — e os dois faziam isso PULANDO essa
+   pessoa, em silêncio. Hoje quem não carimba aparece no "esperando por X", e quem decide seguir
+   sem ele é o anfitrião, por um botão. */
+function onlineHostTick(room){
   if(typeof NET==='undefined' || !NET.isHost || !room || room.phase!=='ready') return;
   if(Date.now()-ONLINE_ADV_T<400) return;
-  const seats=onlineHostSeats();
-  const alguemOcupado = ONLINE_BUSY_ACTIVE || seats.some(s=>s.busy);
-  const todosProntos = seats.length>0 && seats.every(s=>s.ready);
-  // TODOS PRONTOS E NINGUÉM EM TELA DE PASSAGEM -> começa agora, sem esperar cronômetro nenhum
-  if(todosProntos && !alguemOcupado){ ONLINE_ADV_T=Date.now(); onlineHostRelease('todos prontos'); return; }
-  // cronômetro é só o teto pra quem sumiu; só arma quando ninguém está ocupado (senão conta por
-  // cima de quem ainda está numa cerimônia)
-  if(!armed){ if(!alguemOcupado && NET.armReadyTimer){ ONLINE_ADV_T=Date.now(); NET.armReadyTimer(); } return; }
-  if((room.deadline||0)>0 && Date.now()>=room.deadline && !alguemOcupado && CL.autoRelease!==false){
-    ONLINE_ADV_T=Date.now(); onlineHostRelease('prazo vencido');
+  const d=room.day;
+  if(d){
+    if(d.moment!=='jogando') return;                 // o servidor ainda não disse que todos chegaram
+    ONLINE_ADV_T=Date.now(); onlineHostRelease('o dia virou para jogando'); return;
   }
+  // SALA SEM PLANO DE DIAS (save antigo): comportamento de antes — todos prontos, começa.
+  const seats=onlineHostSeats();
+  if(seats.length>0 && seats.every(s=>s.ready)){ ONLINE_ADV_T=Date.now(); onlineHostRelease('todos prontos'); }
 }
 /* ponto ÚNICO de largada da sala. start_running é RPC exclusiva do anfitrião e carimba o snapshot
    de escalações no mesmo update — é o que garante que todo mundo simula os mesmos jogos. */
