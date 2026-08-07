@@ -6755,7 +6755,15 @@ async function onlineAdoptServerRound(RL){
   if((S.round||0)===_roundAntes){
     checkPendingCupDraws(()=>{
       hideSyncLoading();
-      CL._playedRound=-1;
+      // LIBERA A RODADA DE LIGA DESTA MESMA JORNADA — mas SÓ se eu ainda não a joguei.
+      // Este ramo é "a rodada voltou igual", e isso acontece em dois casos bem diferentes: o
+      // fechamento da quarta (copas resolvidas, a liga ainda por jogar) e um fechamento
+      // IDEMPOTENTE, quando o cão de guarda (onlineOrphanCloseCheck) reexecuta o resolve-round de
+      // uma rodada que já estava fechada. Zerar o marcador sem olhar quem eu sou fazia o segundo
+      // caso mandar de volta pra rodada que eu ACABEI de jogar: onlineRunRound via
+      // _playedRound!==S.round e re-simulava tudo, publicava de novo, o host fechava de novo — o
+      // jogo repetindo a mesma rodada várias vezes.
+      if(CL._playedRound!==S.round) CL._playedRound=-1;
       // RODADA COLETIVA: fechada a quarta, a classificação de cada copa que entrou em campo
       // aparece pra TODO MUNDO — e este é o momento em que ela é a mesma pra todos, porque o
       // estado já é o que o servidor resolveu. Quem jogou a competição e já leu a chave logo

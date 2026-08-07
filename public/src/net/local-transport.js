@@ -1419,8 +1419,15 @@ function onlineTimerLoop(){
       // Perguntar aqui não fura barreira nenhuma: advance_phase_if_expired decide sozinho e só
       // avança com prazo vencido OU com todos os assentos ocupados marcados is_ready — a mesma
       // verdade que a lista de participantes mostra. Faltando alguém, devolve a fase intacta.
+      // ...E SÓ SE EU MESMO PEDI. `p.ready` é o is_ready do assento no servidor, e ele NÃO volta a
+      // false sozinho em todo caminho de reabertura — advance_phase_if_expired, por exemplo,
+      // carimba is_ready=true em TODOS os assentos ao avançar. Um "todos prontos" herdado da etapa
+      // anterior faria a fase avançar sem ninguém ter escalado nem clicado, de novo e de novo.
+      // O marcador local diz que EU marquei pronto NESTA etapa (quarta ou sábado desta jornada);
+      // como todo cliente tem a mesma trava, se ninguém pediu de verdade, ninguém pede.
       const todosProntos = room.participants.length>0 && room.participants.every(p=>p.ready);
-      if(todosProntos && NET.advancePhaseExpired && !ONLINE_BUSY_ACTIVE){
+      const euPedi = CL._readyForStage===onlineStageKey();
+      if(todosProntos && euPedi && NET.advancePhaseExpired && !ONLINE_BUSY_ACTIVE){
         if(Date.now()-ONLINE_ADV_T>400){ ONLINE_ADV_T=Date.now(); NET.advancePhaseExpired(); }
       }
       else if(NET.armReadyTimer && !ONLINE_BUSY_ACTIVE){ if(Date.now()-ONLINE_ADV_T>400){ ONLINE_ADV_T=Date.now(); NET.armReadyTimer(); } }
@@ -1909,7 +1916,11 @@ function onlineCupObligationPending(){
 }
 
 /* quando o usuário clica Jogar no modo online, marca "pronto" em vez de rodar sozinho */
-function onlineMarkReady(){ NET.setReady(true, CL.clubId); toastC('Pronto! À espera dos outros treinadores.'); cdraw();
+/* etapa da semana que eu estou prestes a jogar: (jornada, quarta ou sábado). A quarta e o sábado
+   têm a MESMA jornada, então a jornada sozinha não distingue "já pedi pra começar" entre as duas. */
+function onlineStageKey(){ return (typeof S!=='undefined'&&S?(S.round||0):0)+':'+(roundStage()||'league'); }
+function onlineMarkReady(){ CL._readyForStage=onlineStageKey();
+  NET.setReady(true, CL.clubId); toastC('Pronto! À espera dos outros treinadores.'); cdraw();
   // publica minha escalação/tática atual pros outros clientes — se eu ficar ausente, meu clube é
   // simulado com ELA (não com autoXI). availableXI/tacticForClub leem via S.clubXI (ver a ponte).
   if(typeof NET!=='undefined' && NET.publishLineup && typeof S!=='undefined' && S){ if(!CL.humans||CL.humans[CL.clubId]) NET.publishLineup((S.xi||[]).slice(), S.tactic||'equilibrado'); }
