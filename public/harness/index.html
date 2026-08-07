@@ -94,7 +94,7 @@ window.__HSRV={
     log('SRV: rodada reaberta — fase ready, timer desarmado','info'); bcast(code); return 'ready'; },
   seatPatch(code, uid, patch){ const g=G(code); if(!g.seats[uid]) return; Object.assign(g.seats[uid], patch); bcast(code); },
   /* games.round TEM UM ESCRITOR SÓ: o ponteiro. Em sala com plano de dias o save do anfitrião
-     publica só o MUNDO — quem escreve a jornada é o dayAck/daySync, a partir do plano (item 3,
+     publica só o MUNDO — quem escreve a jornada é o dayAck, a partir do plano (item 3,
      mesma regra do netSaveGame de produção). */
   saveShared(code, S, round){ const g=G(code); g.shared=S; g.sharedVersion++;
     if(!g.day_plan) g.round=round||S.round||0;
@@ -102,11 +102,10 @@ window.__HSRV={
   loadShared(code){ const g=G(code); return g.shared?{S:g.shared, version:g.sharedVersion}:null; },
 
   /* ============ PONTEIRO DE DIA ============
-     Porta as funções de elifoot_v3 com a MESMA semântica. As DUAS convivem de propósito:
-       · dayAdvanceIfAllDone = o que está em produção HOJE (libera quando ninguém está ocupado).
-         É o que reproduz o travamento da sala 365ZV dentro do harness.
-       · dayAck = a fundação nova (carimbo explícito por assento, jornada derivada do ponteiro).
-     Trocar o cliente de uma pra outra é a correção — e o mesmo cenário mede as duas. */
+     Porta as funções de elifoot_v3 com a MESMA semântica. UMA função só move o ponteiro — o
+     dayAck. As outras duas que existiam aqui (dayAdvanceIfAllDone, daySync) foram apagadas junto
+     com as do banco: enquanto existiam, era por elas que o jogo andava, e o carimbo — que é o
+     modelo de verdade — ficava sem exercício nenhum. */
   dayPlanSet(code, plan){ const g=G(code); if(!g || g.day_plan) return;     // nunca sobrescreve (igual à produção)
     g.day_plan=plan; g.day_idx=0; g.day_moment='escalando';
     log('SRV: plano de dias gravado ('+plan.length+' dias)','info'); bcast(code); },
@@ -120,17 +119,6 @@ window.__HSRV={
     const faltando=Object.keys(g.seats).filter(id=>g.seats[id].club_id!=null && g.seats[id].day_ack!==chave);
     return Object.assign({}, cur, { faltam:faltando.length,
       nomes_faltando:faltando.map(id=>(g.players[id]||{}).name||'?') }); },
-  /* SEMÂNTICA ATUAL DE PRODUÇÃO — o defeito, preservado de propósito. "Ninguém ocupado" é uma foto
-     do instante: entre uma tela e outra todo mundo está livre, e o dia vira sem nada ter sido
-     cumprido. Foi assim que o ponteiro chegou à jornada 4 com a sala na 3. */
-  dayAdvanceIfAllDone(code, idx, moment){ const g=G(code); if(!g||!g.day_plan) return null;
-    if(g.day_idx!==idx || g.day_moment!==moment) return this.dayCurrent(code);   // já virou
-    if(busyAny(g)) return this.dayCurrent(code);
-    if(g.day_moment==='escalando') g.day_moment='jogando';
-    else if(g.day_moment==='jogando') g.day_moment='classificacao';
-    else { if(g.day_idx+1>=g.day_plan.length) return this.dayCurrent(code);
-           g.day_idx++; g.day_moment='escalando'; }
-    bcast(code); return this.dayCurrent(code); },
   /* SEMÂNTICA NOVA — carimbo explícito, e a JORNADA sai do ponteiro (games.round derivado). */
   dayAck(code, uid, idx, moment, ignorarSeg){ const g=G(code); if(!g||!g.day_plan) return null;
     const chave=g.day_idx+':'+g.day_moment;
@@ -150,13 +138,6 @@ window.__HSRV={
       Object.values(g.seats).forEach(s=>{ s.day_ack=null; });
     }
     bcast(code); return this.dayStatus(code); },
-  daySync(code, round){ const g=G(code); if(!g||!g.day_plan) return null;
-    const alvo=g.day_plan.findIndex(e=>e.r>=round);
-    if(alvo>=0 && alvo>g.day_idx){ g.day_idx=alvo; g.day_moment='escalando';                 // só pra frente
-      const e=g.day_plan[alvo]; if(e && e.r!=null) g.round=e.r;                              // a jornada É o ponteiro
-      Object.values(g.seats).forEach(s=>{ s.day_ack=null; });
-      bcast(code); }
-    return this.dayCurrent(code); },
 };
 
 /* ============ RUNNER ============ */

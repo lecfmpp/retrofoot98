@@ -791,19 +791,6 @@ async function netDayPointer(){
     return (data && data.length) ? data[0] : null;
   }catch(e){ console.warn('dayPointer:', e && e.message); return null; }
 }
-/* EU TERMINEI O DIA QUE ESTAVA VENDO. Todo cliente chama — não só o anfitrião, porque o anfitrião
-   travar já parou salas inteiras e o ponteiro não pode herdar essa fragilidade. Manda a visão que
-   tinha (idx+momento): se o dia já virou, o servidor devolve o atual sem andar de novo, e se algum
-   assento ainda está ocupado ele não anda de jeito nenhum. N chamadas, um passo. */
-async function netDayDone(idx, moment){
-  if(!sb || !NET.gameId) return null;
-  try{
-    const { data, error } = await sb.rpc('day_advance_if_all_done',
-      { p_game: NET.gameId, p_idx: idx, p_moment: moment });
-    if(error) throw error;
-    return (data && data.length) ? data[0] : null;
-  }catch(e){ console.warn('dayDone:', e && e.message); return null; }
-}
 /* O PONTEIRO TEM QUE SER LIDO, NÃO ESPERADO.
    `NET.room.day` só era atualizado quando um evento de realtime chegava — e realtime é justamente o
    que não dá garantia: tem limite de eventos por segundo, o evento pode se perder, a aba pode estar
@@ -855,17 +842,6 @@ async function netDayStatus(){
     if(error) throw error;
     return (data && data.length) ? data[0] : null;
   }catch(e){ console.warn('dayStatus:', e && e.message); return null; }
-}
-/* rede de segurança: a jornada andou pelo caminho antigo e o ponteiro ficou pra trás. Puxa pra
-   frente até o primeiro dia da jornada corrente — nunca pra trás. Sem isto, uma degradação
-   qualquer no fechamento deixaria a sala inteira esperando um dia que já passou. */
-async function netDaySync(round){
-  if(!sb || !NET.gameId) return null;
-  try{
-    const { data, error } = await sb.rpc('day_sync', { p_game: NET.gameId, p_round: round|0 });
-    if(error) throw error;
-    return (data && data.length) ? data[0] : null;
-  }catch(e){ console.warn('daySync:', e && e.message); return null; }
 }
 
 async function netStart(){
@@ -1545,11 +1521,9 @@ NET.authSignOut = netAuthSignOut;
 NET.authResetPassword = netAuthResetPassword;
 NET.updatePassword = netUpdatePassword;
 NET.dayPointer = netDayPointer;
-NET.dayDone = netDayDone;
 NET.dayAck = netDayAck;
 NET.dayStatus = netDayStatus;
 NET.refreshDay = netRefreshDay;
-NET.daySync = netDaySync;
 NET.listMyRooms = netListMyRooms;
 NET.deleteRoom = netDeleteRoom;
 NET.sendEmailInvite = netSendEmailInvite;

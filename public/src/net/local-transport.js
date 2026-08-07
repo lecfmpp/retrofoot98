@@ -1675,48 +1675,28 @@ function onlineCompleteSeasonTurnover(){
    manda quando fala da MESMA jornada que eu. Se falar de outra, devolvo null e o caminho antigo
    assume — desalinhamento degrada pro comportamento de antes, nunca em tela parada.
 
-   E se o ponteiro ficar PRA TRÁS da jornada (fechamento por atalho, sala de save antigo), o
-   day_sync o puxa pra frente. Uma vez por jornada, senão viraria enxurrada de chamadas.
-
    DESACORDO SEGURA — NUNCA DEVOLVE A DECISÃO AO CLIENTE. A primeira versão desta função devolvia
    null quando o ponteiro falava de outra jornada, e eu chamei isso de "degradar em vez de
    congelar". Era uma porta de divergência disfarçada de rede de segurança: medido no harness
    (cenário 3, sala 365ZV reproduzida), 12 instantes em que o cliente voltou a decidir sozinho —
-   o único vermelho da execução. Agora discordância devolve {hold}, e quem recebe hold ESPERA e
-   puxa os dois lados pra concordar:
-     · ponteiro ATRÁS da minha jornada -> day_sync empurra o ponteiro pra frente;
-     · ponteiro À FRENTE -> sou EU que estou velho: reconcilio meu mundo com o da sala.
-   Sala parada com os dois na mesma tela é melhor que dois humanos "certos" em telas diferentes. */
-/* carência antes de a rede de segurança do ponteiro entrar (ver o day_sync abaixo). A sequência
-   normal de fim de jornada — fechamento, classificação da liga, classificação das copas, janela de
-   publicidade e volta à tela do clube — leva dezenas de segundos, e é ela que vira o dia pelo
-   caminho certo (o carimbo do momento 'classificacao'). Curto demais aqui faz a rede de segurança
-   virar o caminho normal, que é justamente o que o item 3 está tirando de cena. */
-const DAY_SYNC_GRACE_MS=45000;
+   o único vermelho da execução. Agora discordância devolve {hold} e quem recebe hold ESPERA.
+
+   PONTEIRO ATRÁS: eu espero, e o CARIMBO resolve. Aqui havia o day_sync — uma segunda função
+   capaz de mover o ponteiro, e ela o movia a partir da jornada local de quem chamasse: justamente
+   o número que o ponteiro veio substituir. Medido em produção, era ele (e não os carimbos) que
+   movia o ponteiro em TODAS as jornadas, e foi ele que escondeu por dias o fato de que o carimbo
+   nunca funcionava. Não é mais preciso: um dia de jornada já passada pode ser carimbado
+   normalmente (ver roomDayFact), então o ponteiro anda pelo caminho normal. Se ele ficar mesmo
+   parado, é porque falta o carimbo de alguém — e isso hoje tem nome e botão ("esperando por X"),
+   em vez de um empurrão silencioso pelo palpite local.
+
+   PONTEIRO À FRENTE: sou EU que estou velho — reconcilio o meu mundo com o da sala. */
 function roomDay(){
   const d=(typeof NET!=='undefined' && NET.room) ? NET.room.day : null;
   if(!d || !S) return null;                 // sala sem plano (save antigo): caminho de sempre
   const meu=S.round||0;
-  if(d.round===meu){ CL._daySyncSince=0; return d; }
-  if(d.round<meu){
-    /* O day_sync VOLTOU A SER SÓ REDE DE SEGURANÇA. Ele empurra o ponteiro pela jornada LOCAL —
-       exatamente o número que o item 3 está tirando de cena — então dispará-lo à primeira
-       discordância atropelava o caminho normal: fechada a rodada N, o ponteiro fica legitimamente
-       no dia da jornada N até o último assento carimbar a classificação, e o day_sync o arrancaria
-       dali antes disso, decidindo pelo palpite local o que o carimbo ia decidir em seguida.
-       Com a carência, o caminho normal tem tempo de acontecer e o day_sync só entra quando ele
-       claramente não aconteceu (ponteiro preso, sala de save antigo, fechamento por atalho). */
-    if(!CL._daySyncSince) CL._daySyncSince=Date.now();
-    if(Date.now()-CL._daySyncSince > DAY_SYNC_GRACE_MS &&
-       typeof NET!=='undefined' && NET.daySync && CL._daySyncedFor!==meu){
-      CL._daySyncedFor=meu;
-      console.warn('ponteiro preso na jornada '+d.round+' há '+Math.round((Date.now()-CL._daySyncSince)/1000)+
-        's com a sala na '+meu+' — puxando pelo day_sync (rede de segurança, não caminho normal)');
-      NET.daySync(meu).then(()=>{ if(typeof NET.refreshRoom==='function') NET.refreshRoom(); }).catch(()=>{});
-    }
-  } else if(typeof NET!=='undefined' && NET.room && typeof onlineReconcileIfBehind==='function'){
-    onlineReconcileIfBehind(NET.room);      // o ponteiro está adiante: quem tem que andar sou eu
-  }
+  if(d.round===meu) return d;
+  if(d.round>meu && typeof onlineReconcileIfBehind==='function') onlineReconcileIfBehind(NET.room);
   return { hold:true, round:d.round, comp:d.comp };
 }
 /* avisa o servidor que terminei o dia que estava vendo. Idempotente por construção: mando a visão
@@ -1852,7 +1832,7 @@ function roomDayNadaACumprir(comp){
 function roomDayTick(){
   if(!CL.online || typeof NET==='undefined' || !NET.room) return;
   const d=NET.room.day; if(!d) return;                         // sala sem plano (save antigo)
-  if(!(NET.dayAck||NET.dayDone)) return;
+  if(!NET.dayAck) return;
   if(typeof S==='undefined' || !S) return;
   /* Que dias eu posso carimbar: o da MINHA jornada — e a CAUDA da que acabou de ser resolvida.
      A segunda parte não é folga: o momento 'classificacao' do dia de liga acontece, por
@@ -1878,8 +1858,7 @@ function roomDayTick(){
      não QUEM deixou de carimbar O QUÊ, que é a única pergunta que importa. Duas sessões inteiras
      foram gastas adivinhando isso a partir de sintomas; uma linha por carimbo responde na hora, e
      o que o servidor devolve (quantos ainda faltam) fecha a conta dos dois lados. */
-  const p = NET.dayAck ? NET.dayAck(d.idx, d.moment, DAY_ACK_IGNORAR_AUSENTES_SEG)
-                       : NET.dayDone(d.idx, d.moment);
+  const p = NET.dayAck(d.idx, d.moment, DAY_ACK_IGNORAR_AUSENTES_SEG);
   Promise.resolve(p).then(r=>{
     const faltam=(r && r.faltam!=null) ? r.faltam : '?';
     console.log('carimbei dia'+d.idx+' ('+d.comp+'/'+d.moment+') — ainda faltam '+faltam+
