@@ -1732,6 +1732,27 @@ function roomDayRefresh(){
   CL._dayRefreshT=Date.now();
   Promise.resolve(NET.refreshDay()).catch(()=>{});
 }
+/* ===================== PASSO 1: O MOMENTO MANDA NA TELA =====================
+   Até aqui os três momentos do dia (escalando / jogando / classificacao) eram um CONTADOR: eles
+   avançavam certinho no servidor e não desenhavam tela nenhuma. Quem decidia o que aparecia
+   continuava sendo o fluxo de cada cliente — e é por isso que "todos na mesma tela" nunca foi uma
+   garantia, só uma coincidência bem cuidada, que quebrava em toda variação nova.
+   Agora o momento É a tela, e ele significa uma coisa só:
+     · escalando    = todo mundo na tela do clube. NINGUÉM entra em campo. Clicar em "Jogar" aqui
+                      quer dizer "estou pronto", não "começa a partida".
+     · jogando      = a competição do dia está em campo, para todos ao mesmo tempo — jogando quem
+                      tem confronto, assistindo quem não tem.
+     · classificacao= a tabela daquela competição, para todos.
+   E a consequência que interessa: o momento só vira quando o ÚLTIMO assento carimba. Ou seja, a
+   partida não começa mais "quando o cronômetro deixa" — ela começa quando todos chegaram. Quem não
+   chega deixa de ser pulado em silêncio e passa a aparecer no "esperando por X". */
+function roomMoment(){
+  const d=(typeof NET!=='undefined' && NET.room) ? NET.room.day : null;
+  return d ? d.moment : null;
+}
+/* posso ter uma partida na tela agora? Sala sem ponteiro (save antigo) responde que sim sempre —
+   ela continua no comportamento de antes, sem travar. */
+function roomAllowsMatch(){ const m=roomMoment(); return !m || m==='jogando'; }
 function roomDayNaTelaDoClube(){
   return CL.screen==='main' && !CL.live && !CL._liveBusy && !CL._cupIntro && !CL._leagueIntro
          && !(typeof S!=='undefined' && S && S._pendingDrawShows && S._pendingDrawShows.length);
@@ -1741,8 +1762,12 @@ function roomDayFact(d){
   // DIA DE JORNADA JÁ PASSADA: cumprido, seja qual for o momento. Eu não tenho como "ainda dever"
   // um dia de uma jornada que já foi resolvida — segurar aqui é segurar a sala por nada.
   if(typeof S!=='undefined' && S && d.round<(S.round||0)) return true;
-  // CHEGUEI NESTE DIA: estou na tela do clube (ou já pedi para começar), sem nada aberto na frente.
-  if(mom==='escalando') return CL._readyForStage===onlineStageKey() || roomDayNaTelaDoClube();
+  /* ESCALANDO = EU DISSE QUE ESTOU PRONTO. Antes bastava eu estar na tela do clube, e isso
+     esvaziava o momento: o dia virava para 'jogando' com os jogadores ainda escolhendo o time, e a
+     partida começava por cima deles. "Pronto" é uma decisão do jogador (o botão Jogar) ou a
+     constatação de que este dia já foi cumprido por mim. Quem nunca fica pronto não é mais pulado
+     por um cronômetro — ele aparece no "esperando por X", com nome. */
+  if(mom==='escalando') return CL._readyForStage===onlineStageKey() || onlineStageDone();
   if(mom==='jogando'){
     // CUMPRI A COMPETIÇÃO DESTE DIA. Tem que ser por COMPETIÇÃO, não por etapa da semana: a jornada
     // 3 tem Libertadores, Sul-Americana e Copa do Brasil, e as três dividem a mesma etapa 'cup' —
@@ -1924,6 +1949,18 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
     if(CL._holdAviso!==dia.round){ CL._holdAviso=dia.round;
       console.log('sala no dia da jornada '+dia.round+' ('+dia.comp+') e eu na '+(S.round||0) +
                   ' — esperando os dois concordarem, sem decidir nada por conta própria'); }
+    return;
+  }
+  /* PASSO 1: NINGUÉM ENTRA EM CAMPO FORA DO MOMENTO 'JOGANDO'.
+     Esta rede de segurança entrava em campo assim que a FASE virava 'running' — e a fase é dada
+     pelo anfitrião ou pelo cronômetro, não pelo servidor do dia. Era por isso que um humano
+     começava a partida enquanto o outro ainda escolhia o time: duas autoridades para a mesma
+     largada. Agora a única pergunta é o momento do dia, que só vira quando o ÚLTIMO assento
+     carimba. Enquanto ele for 'escalando', a tela certa para todos é a do clube — e eu NÃO marco
+     pronto por conta própria aqui: "pronto" é uma decisão do jogador (ver clJogar). */
+  if(dia && dia.moment!=='jogando'){
+    if(CL._momAviso!==dia.idx+':'+dia.moment){ CL._momAviso=dia.idx+':'+dia.moment;
+      console.log('a sala está em "'+dia.moment+'" no dia da '+dia.comp+' — ninguém entra em campo antes de todos chegarem'); }
     return;
   }
   if(typeof pendingUserCupMatches==='function' && (!dia || dia.comp!=='liga')){

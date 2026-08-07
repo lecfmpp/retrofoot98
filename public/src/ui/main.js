@@ -4048,6 +4048,19 @@ function clJogar(){
      nessa competição, eu jogo; se não tenho, eu assisto; se o dia é de liga, nenhuma copa entra. */
   const dia=(typeof roomDay==='function')?roomDay():null;
   if(dia && dia.hold){ toastC('⏳ A sala está acertando a jornada — um instante.'); return; }
+  /* PASSO 1: O MOMENTO MANDA NA TELA. Enquanto a sala está em 'escalando', "Jogar" quer dizer
+     "ESTOU PRONTO" — e mais nada. A partida só entra em campo quando o servidor disser que o
+     último assento chegou (momento 'jogando'), e aí ela entra para todos ao mesmo tempo. Era
+     exatamente aqui que a sala se partia: quem clicava primeiro começava a jogar enquanto o outro
+     ainda escolhia o time, e a "mesma tela para todos" virava sorte. */
+  if(dia && dia.moment==='escalando'){
+    if(CL.online && typeof onlineMarkReady==='function'){
+      if(CL._readyForStage===onlineStageKey()) toastC('⏳ Pronto! Esperando os outros treinadores.');
+      else onlineMarkReady();
+    }
+    return;
+  }
+  if(dia && dia.moment==='classificacao'){ toastC('⏳ A rodada está fechando — um instante.'); return; }
   const copaDoDia=(dia && dia.comp!=='liga') ? dia.comp : null;   // null = dia de liga, ou sala sem ponteiro
   const diaDeLiga=!!(dia && dia.comp==='liga');
   const prox=nextUserMatch();
@@ -4309,6 +4322,11 @@ function cupRoundFixtures(key, stage){
    Agora a copa é uma rodada como a da liga — a minha partida é a interativa (matches[0]) e as
    demais rolam junto na mesma tela. `pending` nulo = não tenho jogo nesta rodada: assisto tudo. */
 function startCupRound(key, stage, pending){
+  // mesma porta física da liga (ver startLiveRound): fora do momento 'jogando', nada entra em campo
+  if(CL.online && typeof roomAllowsMatch==='function' && !roomAllowsMatch()){
+    console.log('entrada na '+key+' barrada: a sala está em "'+roomMoment()+'", não em "jogando"');
+    return false;
+  }
   const fixtures=cupRoundFixtures(key, stage);
   if(!fixtures.length){ if(!pending) markSpectateHandled(key); return false; }   // quem chamou decide o que fazer (ver clJogar)
   // a MINHA partida vem primeiro: finishCupLiveMatch, prorrogação e pênaltis leem RL.matches[0]
@@ -4496,6 +4514,15 @@ function buildLiveMatchObject(h,a,seed,opts){
     user:opts.user!==undefined?opts.user:(h===CL.clubId||a===CL.clubId), div:opts.div, replay:!!src };
 }
 function startLiveRound(){
+  /* A PORTA DE ENTRADA EM CAMPO, PARA QUALQUER CAMINHO. Os gates ficam espalhados (clJogar, a rede
+     de segurança, o cronômetro, a recuperação pós-sorteio) e basta UM deles esquecer a regra para
+     um humano começar a jogar sozinho. Aqui é a porta física: fora do momento 'jogando' da sala,
+     nenhuma partida entra na tela, tenha vindo de onde tiver vindo. */
+  if(CL.online && typeof roomAllowsMatch==='function' && !roomAllowsMatch()){
+    CL._liveBusy=false;
+    console.log('entrada em campo barrada: a sala está em "'+roomMoment()+'", não em "jogando"');
+    return;
+  }
   // segurança (online): rodada além do fim do calendário -> a virada de temporada não completou;
   // NÃO joga uma rodada fantasma (apareceria como "Rodada 39"). Completa a virada pelo servidor.
   if(CL.online && Array.isArray(S.sched) && (S.round||0) >= S.sched.length){
@@ -9640,6 +9667,19 @@ function onlineWaitingTick(){
   // nunca por cima de partida, cerimônia ou tela de decisão
   if(CL.live || CL.screen==='live' || CL.screen==='cupdraw' || CL.screen==='classif'
      || CL.screen==='seatclassif' || CL.screen==='cupclassif') return;
+  /* QUEM FECHOU A ABA NÃO PODE CONGELAR A SALA. Agora que ninguém entra em campo antes de o
+     último assento carimbar, um jogador que simplesmente sumiu pararia a sala para sempre — o
+     cronômetro, que antes o pulava, não pula mais ninguém (e é isso que a gente quer).
+     Passados 45s, o anfitrião dispensa automaticamente SÓ quem não dá sinal de vida há 45s. Quem
+     está com o jogo aberto continua sendo esperado, com nome, no painel abaixo: presença é
+     respeitada, ausência não trava. */
+  if(NET.isHost && NET.dayAck && Date.now()-(CL._waitSince||0) > 45000
+     && Date.now()-(CL._absentTryT||0) > 15000){
+    CL._absentTryT=Date.now();
+    Promise.resolve(NET.dayAck(d.idx, d.moment, 45)).then(r=>{
+      if(r && r.faltam===0) console.warn('assento sem sinal de vida há 45s dispensado — a sala segue');
+    }).catch(()=>{});
+  }
   if(Date.now()-(CL._waitPollT||0) < WAIT_PANEL_POLL_MS) return;
   CL._waitPollT=Date.now();
   Promise.resolve(NET.dayStatus()).then(st=>{
