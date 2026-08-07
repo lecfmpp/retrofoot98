@@ -1411,7 +1411,19 @@ function onlineTimerLoop(){
       // — só tenta armar (o servidor arma quando NINGUÉM está ocupado, ou seja, todos na tela do time).
       ONLINE_LASTSEC=null;
       const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent='⏳';
-      if(NET.armReadyTimer && !ONLINE_BUSY_ACTIVE){ if(Date.now()-ONLINE_ADV_T>400){ ONLINE_ADV_T=Date.now(); NET.armReadyTimer(); } }
+      // TODOS PRONTOS COM O CRONÔMETRO AINDA DESARMADO -> COMEÇA AGORA. Era o buraco do "aparecem
+      // todos prontos e o jogo não anda, só sai quando o cronômetro zera": neste ramo o cliente
+      // apenas ARMAVA o cronômetro, e o pedido de avanço só existia no ramo de baixo (com o timer
+      // já armado). Ou seja, ninguém chegava a PERGUNTAR ao servidor se dava pra começar — e aí a
+      // sala cumpria os 60s inteiros com todo mundo escalado e à toa.
+      // Perguntar aqui não fura barreira nenhuma: advance_phase_if_expired decide sozinho e só
+      // avança com prazo vencido OU com todos os assentos ocupados marcados is_ready — a mesma
+      // verdade que a lista de participantes mostra. Faltando alguém, devolve a fase intacta.
+      const todosProntos = room.participants.length>0 && room.participants.every(p=>p.ready);
+      if(todosProntos && NET.advancePhaseExpired && !ONLINE_BUSY_ACTIVE){
+        if(Date.now()-ONLINE_ADV_T>400){ ONLINE_ADV_T=Date.now(); NET.advancePhaseExpired(); }
+      }
+      else if(NET.armReadyTimer && !ONLINE_BUSY_ACTIVE){ if(Date.now()-ONLINE_ADV_T>400){ ONLINE_ADV_T=Date.now(); NET.armReadyTimer(); } }
     } else {
       const secs=Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
       if(ONLINE_BUSY_ACTIVE){
@@ -1620,7 +1632,12 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // nada. Era o caso relatado: numa rodada de Libertadores, quem não estava na competição pulou a
   // copa inteira e foi jogar o Brasileirão. Assistir é o que mantém a semana de copa simétrica —
   // todos entram e saem da copa no mesmo momento.
-  if(typeof cupRoundsUserSitsOut==='function' && typeof startCupRound==='function'){
+  // ...MAS NUNCA ANTES DE QUEM JOGA (ver cupSpectateHeldByOthers): este bloco ficava ACIMA da
+  // barreira do dia de copa, então quem não disputa a competição entrava na rodada enquanto o
+  // dono do time ainda nem tinha escalado — via o jogo dele antes dele, e com um placar que podia
+  // nem ser o que ia valer. Segurado aqui, cai na barreira logo abaixo e volta neste mesmo tique
+  // assim que todos tiverem cumprido a copa da semana.
+  if(typeof cupRoundsUserSitsOut==='function' && typeof startCupRound==='function' && !cupSpectateHeldByOthers()){
     const idle=cupRoundsUserSitsOut().filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key));
     if(idle.length){
       const cand=idle[0];
@@ -1715,6 +1732,18 @@ function onlineCupDayPending(){
    eu lesse o contrário). 90s cobre com folga uma partida de copa inteira, inclusive prorrogação e
    pênaltis, que foi o caso que travou a sala no playtest. */
 const CUP_DAY_MAX_WAIT_MS=90000;
+/* POSSO ENTRAR NA RODADA DE COPA QUE NÃO DISPUTO, AGORA? Só quando ninguém mais deve a partida de
+   copa desta semana. A rodada que eu assisto é simulada localmente a partir das seeds
+   autoritativas: entrar antes de o dono do time jogar a dele significa ver o jogo dele ANTES
+   dele — e ainda por cima um placar que pode não ser o que vai valer, porque a partida ao vivo
+   dele tem prorrogação, pênaltis e a escalação real. Escape: o mesmo teto do dia de copa
+   (cupDayWaitExpired), pra a espera nunca virar travamento. */
+function cupSpectateHeldByOthers(){
+  if(!CL.online || typeof S==='undefined' || !S) return false;
+  if(typeof onlineCupDayPending!=='function') return false;
+  try{ return onlineCupDayPending().length>0 && !cupDayWaitExpired(); }
+  catch(e){ return false; }
+}
 function cupDayWaitExpired(){
   const room=(typeof NET!=='undefined')?NET.room:null;
   const dl=(room && room.deadline)||0;

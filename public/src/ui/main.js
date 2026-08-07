@@ -1385,13 +1385,43 @@ function clEntrar(){
    continentais. O sorteio do mata-mata continua no meio da temporada, na data real dele — não há
    como sortear oitavas antes de saber quem se classificou —, mas as DATAS dessas rodadas já estão
    reservadas no calendário desde agora (ver ensureCupCalendar/buildCupSchedule). */
+/* A FILA DESTA CERIMÔNIA É LOCAL (CL), NUNCA S._pendingDrawShows. Motivo medido: aquela fila mora
+   no ESTADO COMPARTILHADO, e a barreira de fechamento de rodada (onlineClosingRound, ver
+   local-transport) trata "fila de sorteio por abrir" como jogador ocupado. Enfileirar os três
+   sorteios de abertura logo na entrada punha a sala inteira em ocupado na rodada 0 — e o
+   onlineBeginSeason ainda dá um `Object.assign(S, savedState.S)` assíncrono logo depois das
+   boas-vindas, que ressuscitava a fila já consumida. O resultado era exatamente o travamento
+   relatado: "fila de sorteio parada há 20s", "rodada 0 aberta há 6s sem fechar" e o estágio de
+   quarta estourando os 75s. A cerimônia é UI por cliente sobre uma chave que o estado já contém,
+   então não tem por que viajar no mundo. O que continua indo pro estado é só o marcador de
+   "já enfileirada nesta temporada", pra o queueDueCupDraws do clJogar não repetir a cerimônia. */
 function startSeasonOpeningDraws(onDone){
+  onDone=onDone||function(){};
+  let fila=[];
   try{
-    if(typeof queueDueCupDraws==='function') queueDueCupDraws();
+    const defs=(typeof cupDrawOrder==='function') ? cupDrawOrder()
+      : [['copaBrasil','bracket'],['libertadores','group'],['sulamericana','group'],['championsLeague','group'],['europaLeague','group']];
+    const season=(S&&S.season)||1;
+    S._cupDrawQueued=S._cupDrawQueued||{};
+    defs.forEach(([key,stage])=>{
+      const c=S.cups&&S.cups[key]; if(!c) return;
+      const st=(c.group && !c.bracket) ? 'group' : (stage||'bracket');
+      S._cupDrawQueued[key+':'+season]=true;
+      const visto=key+':'+st+':'+season;
+      if((CL._drawPlayedSeason||{})[visto] || (typeof drawAlreadySeen==='function' && drawAlreadySeen(visto))) return;
+      fila.push({key, stage:st});
+    });
     if(typeof ensureCupCalendar==='function') ensureCupCalendar(true);   // calendário montado a partir do sorteio
-  }catch(e){ console.warn('sorteios de abertura:', e&&e.message); }
-  if(typeof checkPendingCupDraws==='function') checkPendingCupDraws(onDone||function(){});
-  else if(onDone) onDone();
+  }catch(e){ console.warn('sorteios de abertura:', e&&e.message); fila=[]; }
+  CL._openingDraws=fila;
+  runNextOpeningDraw(onDone);
+}
+function runNextOpeningDraw(onDone){
+  const fila=CL._openingDraws||[];
+  if(!fila.length){ CL._openingDraws=null; if(onDone) onDone(); return; }
+  const item=fila.shift();
+  if(typeof startCupDrawReplay!=='function'){ CL._openingDraws=null; if(onDone) onDone(); return; }
+  startCupDrawReplay(item.key, item.stage, ()=>runNextOpeningDraw(onDone));
 }
 /* `opts.midSeason` = cheguei a este clube TROCANDO de time no meio da temporada (aceitei o
    convite de outro clube — ver showJobInvite). Muda só o texto: em vez de "a temporada começa
@@ -3968,36 +3998,37 @@ function clJogar(){
   // garante que o confronto escalado é o confronto jogado.
   const prox=nextUserMatch();
   if(prox && prox.kind==='cup'){ showCupIntro(prox.pending); return; }
-  // nenhuma partida de copa pra JOGAR nesta rodada — mas pode ter rodada de copa
-  // rolando de competições das quais o usuário não participa (ou já foi eliminado);
-  // oferece assistir, uma competição de cada vez, antes de liberar a rodada de liga.
-  // cupSpectateCandidates() não marca nada como "resolvido" (assistir é só visual, ver
-  // startCupSpectate) — sem esse filtro, a mesma competição seria oferecida de novo pra
-  // sempre depois de "Jogar" voltar pra tela principal; cupWasSeen/cupMarkSeen lembram
-  // o que já foi mostrado (assistido ou pulado) NESTA rodada — ver cupRoundKeyNow.
-  const spectateQueue=cupSpectateCandidates().filter(c=>!cupWasSeen(c.key));
-  if(spectateQueue.length){ CL._pendingSpectateQueue=spectateQueue.slice(1); askSpectate(spectateQueue[0]); return; }
-  if(CL.online){
-    // Resenha: não se assiste copa de fora (resultado é autoritativo do servidor). Se é dia de
-    // copa de uma competição da qual o usuário NÃO participa nesta rodada, mostra uma mensagem
-    // amigável (uma por competição nesta leva) antes de liberar a rodada de liga — assim ele
-    // entende por que não tem partida de copa hoje, em vez de simplesmente não ver nada.
-    // COPA COLETIVA: quem não tem jogo nesta rodada ASSISTE junto, em vez de receber um aviso e
-    // ficar parado. É o que torna a semana de copa simétrica — todos entram e saem da copa no
-    // mesmo momento, em vez de cada um cumprir a sua obrigação numa hora diferente (a origem das
-    // travadas de pausa técnica). Agora é seguro assistir: a partida de copa de outro humano vem
-    // do resultado publicado ou da transmissão ao vivo dele, não de uma simulação local que
-    // mostraria um placar que nunca existiu (ver buildLiveMatchObject/isCup).
-    const idle=cupRoundsUserSitsOut().filter(c=>!cupWasSeen(c.key));
-    if(idle.length){
-      const cand=idle[0];
-      cupMarkSeen(cand.key);
-      CL._pendingCupIdleQueue=idle.slice(1);
-      if(startCupRound(cand.key, cand.stage, null)) return;
-      showCupIdleMessage(cand); return;   // sem confrontos pra mostrar: mantém o aviso antigo
+  // nenhuma partida de copa pra JOGAR nesta rodada — mas pode ter rodada de copa rolando de
+  // competições das quais o usuário não participa (ou já foi eliminado, ou pegou bye). Ele passa
+  // por ela do mesmo jeito, uma competição de cada vez, antes de liberar a rodada de liga.
+  // Assistir não escreve nada no estado, então cupWasSeen/cupMarkSeen é que lembram o que já foi
+  // cumprido NESTA rodada — sem isso a mesma competição reapareceria a cada clique em "Jogar"
+  // (o marcador é por temporada+jornada, ver cupRoundKeyNow).
+  // RODADA COLETIVA — VALE PROS DOIS MODOS. Quem não disputa a competição (ou já foi eliminado,
+  // ou pegou bye) vê a MESMA rodada ao vivo que quem joga, e depois a mesma classificação. Não é
+  // mais uma oferta ("quer assistir?") nem um aviso de que hoje não tem jogo pra ele: é a tela da
+  // rodada, igual pra todo mundo. É isso que mantém a sala inteira na mesma tela no mesmo momento
+  // — a origem das travadas de sincronia era justamente cada um cumprir a sua obrigação numa hora
+  // diferente. Assistir é seguro: a partida de outro humano vem do resultado publicado ou da
+  // transmissão ao vivo dele, não de uma simulação local (ver buildLiveMatchObject/isCup).
+  const idle=cupRoundsUserSitsOut().filter(c=>!cupWasSeen(c.key));
+  if(idle.length){
+    // NUNCA ANTES DE QUEM JOGA (ver cupSpectateHeldByOthers em local-transport): enquanto algum
+    // humano ainda dever a partida de copa da semana, eu não entro na rodada — senão eu veria o
+    // jogo do dono do time antes dele. Volto sozinho assim que a barreira soltar.
+    if(typeof cupSpectateHeldByOthers==='function' && cupSpectateHeldByOthers()){
+      toastC('Dia de copa — esperando os outros treinadores entrarem em campo…');
+      if(!CL._cupWaitTimer) CL._cupWaitTimer=setTimeout(()=>{ CL._cupWaitTimer=null;
+        if(CL.online && CL.screen==='main' && !CL.live) clJogar(); }, 2500);
+      return;
     }
-    onlineMarkReady(); return;
+    const cand=idle[0];
+    cupMarkSeen(cand.key);
+    CL._pendingCupIdleQueue=idle.slice(1);
+    if(startCupRound(cand.key, cand.stage, null)) return;
+    showCupIdleMessage(cand); return;   // sem confrontos pra mostrar: mantém o aviso antigo
   }
+  if(CL.online){ onlineMarkReady(); return; }
   startLiveRound();
 }
 /* ---- MARCADOR DE COPA JÁ VISTA NESTA RODADA ----
@@ -4148,46 +4179,20 @@ function clCupIntroGo(){
    plano (advanceCupBracket/advanceGroupStageRound), que roda pouco depois; a seed
    usada aqui é EXATAMENTE a mesma que ele vai usar, então o placar assistido bate
    com o que fica gravado de verdade. */
-function askSpectate(cand){
-  CL._spectateCand=cand;
-  // Na RESENHA (item 1) assistir a rodada de copa é OBRIGATÓRIO — assim ninguém pula a rodada e
-  // fica adiantado; todos avançam juntos. O "Pular" só existe no solo (ou, no futuro, quando a
-  // rodada é de um jogador de OUTRO país com calendário diferente — cand.crossCalendar).
-  const mandatory = CL.online && !cand.crossCalendar;
-  const actions = mandatory
-    ? btn('Assistir','clSpectateYes()',{icon:'✔',cls:'cl-btn-ok'})
-    : `${btn('Assistir','clSpectateYes()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Pular','clSpectateNo()',{icon:'✖',cls:'cl-btn-cancel'})}`;
-  const prompt = mandatory
-    ? 'Tem uma rodada de copa rolando na Resenha — assista ao vivo pra todos seguirem na mesma rodada.'
-    : 'Tem uma rodada rolando agora — quer assistir ao vivo?';
-  overlayC(dlg(COMP_DEFS[cand.key].name, `
-    <div class="cl-res"><div class="cl-live-cup-top" style="margin:-4px -4px 14px">${trophyImg(cand.key,48)}
-      <div class="cl-live-cup-name">${escC(COMP_DEFS[cand.key].name)}</div></div>
-    <div class="cl-res-verd">${prompt}</div>
-    <div class="cl-cal-ok">${actions}</div></div>`,
-    {w:480,bodyClass:'cl-body-green'}));
-}
-function clSpectateYes(){ clCloseOverlay(); const cand=CL._spectateCand; CL._spectateCand=null; startCupSpectate(cand); }
-function clSpectateNo(){ clCloseOverlay(); const cand=CL._spectateCand; CL._spectateCand=null; markSpectateHandled(cand.key); advanceSpectateQueue(); }
+/* A OFERTA "QUER ASSISTIR?" DEIXOU DE EXISTIR. A rodada de uma competição é do mundo: acontece no
+   mesmo dia pra todo mundo e todo humano passa por ela, dispute ou não (e depois pela mesma
+   classificação — ver queueRoundCupClassifs). Perguntar abria a porta pra um jogador pular a
+   rodada e ficar numa tela diferente da dos outros, que é a origem das dessincronias. O clJogar
+   entra direto em startCupRound; o que sobrou aqui é só o marcador de "esta competição já foi
+   cumprida nesta rodada". */
 function markSpectateHandled(key){
   cupMarkSeen(key);
 }
-/* nunca encadeia direto pra rodada de liga daqui — mesmo princípio do mata-mata de copa
-   (ver clCupResultContinue): depois de assistir (ou pular) uma competição, sempre volta
-   pra tela principal e exige um novo clique em "Jogar" antes de continuar, mesmo que
-   ainda sobre outra competição pra assistir ou já esteja tudo resolvido. */
-function advanceSpectateQueue(){
-  const q=CL._pendingSpectateQueue||[];
-  if(q.length){ CL._pendingSpectateQueue=q.slice(1); askSpectate(q[0]); return; }
-  CL._pendingSpectateQueue=null;
-  CL.screen='main'; cdraw();
-}
-/* ---- RESENHA: dia de copa em que o usuário NÃO participa desta rodada ----
-   Em vez do modo espectador (desligado no online — ver cupSpectateCandidates), mostra
-   uma mensagem amigável explicando que é dia de copa mas o clube dele não joga essa
-   rodada, e convida a preparar o time pro próximo jogo. Uma competição de cada vez;
-   igual ao espectador, sempre volta pra tela principal e exige um novo "Jogar" antes
-   de seguir (cupWasSeen lembra o que já foi mostrado nesta rodada). */
+/* ---- ÚLTIMO RECURSO: dia de copa SEM NENHUM CONFRONTO pra mostrar ----
+   Só entra quando startCupRound não achou partida nenhuma naquela rodada da competição (raro:
+   chave vazia entre fases). No caminho normal quem não disputa a competição VÊ a rodada ao vivo,
+   como todo mundo — ver clJogar. Uma competição de cada vez; sempre volta pra tela principal e
+   exige um novo "Jogar" antes de seguir (cupWasSeen lembra o que já foi cumprido nesta rodada). */
 function showCupIdleMessage(cand){
   CL._cupIdleCand=cand;
   const nome=(COMP_DEFS[cand.key]&&COMP_DEFS[cand.key].name)||'copa';
@@ -4242,7 +4247,7 @@ function cupRoundFixtures(key, stage){
    demais rolam junto na mesma tela. `pending` nulo = não tenho jogo nesta rodada: assisto tudo. */
 function startCupRound(key, stage, pending){
   const fixtures=cupRoundFixtures(key, stage);
-  if(!fixtures.length){ if(!pending){ markSpectateHandled(key); advanceSpectateQueue(); } return false; }
+  if(!fixtures.length){ if(!pending) markSpectateHandled(key); return false; }   // quem chamou decide o que fazer (ver clJogar)
   // a MINHA partida vem primeiro: finishCupLiveMatch, prorrogação e pênaltis leem RL.matches[0]
   const isMine=f=>pending && f.h===pending.h && f.a===pending.a;
   const ordered = pending ? fixtures.filter(isMine).concat(fixtures.filter(f=>!isMine(f))) : fixtures;
@@ -4256,25 +4261,22 @@ function startCupRound(key, stage, pending){
   return true;
 }
 function startCupSpectate(cand){ startCupRound(cand.key, cand.stage, null); }
+/* fim da rodada de copa de quem NÃO disputa a competição. Mesmo encadeamento nos dois modos (a
+   fila é a _pendingCupIdleQueue, montada no clJogar): próxima competição da semana, e no fim de
+   volta pra tela do clube. A classificação da competição vem depois, no fechamento da rodada —
+   é o mesmo momento em que quem jogou também a vê (ver queueRoundCupClassifs). */
 function finishCupSpectate(){
   const RL=CL.live;
   toastC('Rodada da '+COMP_DEFS[RL.cup.key].short+' assistida!');
   markSpectateHandled(RL.cup.key);
   CL.live=null; CL.screen='main'; cdraw();
-  // ONLINE: a fila de copas assistidas é a _pendingCupIdleQueue (ver clJogar) — encadeia a
-  // próxima competição da semana; esvaziada, o próximo "Jogar" libera a rodada de liga.
-  if(CL.online){
-    const q=CL._pendingCupIdleQueue||[];
-    if(q.length){ const nx=q[0]; CL._pendingCupIdleQueue=q.slice(1);
-      cupMarkSeen(nx.key);
-      if(startCupRound(nx.key, nx.stage, null)) return; }
-    CL._pendingCupIdleQueue=null;
-    if(typeof onlineRecoverRunRound==='function') onlineRecoverRunRound();
-    return;
-  }
-  advanceSpectateQueue();
+  const q=CL._pendingCupIdleQueue||[];
+  if(q.length){ const nx=q[0]; CL._pendingCupIdleQueue=q.slice(1);
+    cupMarkSeen(nx.key);
+    if(startCupRound(nx.key, nx.stage, null)) return; }
+  CL._pendingCupIdleQueue=null;
   // se a fase virou 'running' enquanto eu assistia (borda perdida pelo guard CL.screen==='live'),
-  // destrava a rodada de liga ao terminar de assistir — só age se não houver outra copa na fila.
+  // destrava a rodada de liga ao terminar de assistir.
   if(CL.online && typeof onlineRecoverRunRound==='function') onlineRecoverRunRound();
 }
 /* ---------- PARTIDA AO VIVO (estilo RetroFoot98: placar por divisões) ---------- */
@@ -6970,7 +6972,13 @@ function finishCupLiveMatch(){
    AUSENTE pra jogar a copa, o fluxo travaria numa dessas telas esperando "Continuar" e seguraria
    o outro jogador. 10s, igual à classificação de liga. No solo não arma (jogador decide no tempo dele). */
 const CUP_FLOW_SCREENS=['cupclassif','cupdraw','cupview'];
-function armCupFlowTimer(fn){
+/* `ms`: a classificação COLETIVA do fim da rodada (queueRoundCupClassifs) entra depois de o
+   jogador já ter assistido à rodada inteira, e vem ENCADEADA com a pausa técnica e com a
+   classificação da liga. Somar mais 10s ali fazia a virada de rodada passar de meio minuto de
+   telas automáticas — foi o "está demorando muito pra avançar depois do jogo". Ela avança em 5s;
+   a tela de resultado da PRÓPRIA partida de copa segue com os 10s de sempre, que é onde o jogador
+   de fato tem o que ler. Em qualquer uma o "Continuar" passa na hora. */
+function armCupFlowTimer(fn, ms){
   if(CL._cupFlowTimer){ clearTimeout(CL._cupFlowTimer); CL._cupFlowTimer=null; }
   if(!CL.online) return;
   CL._cupFlowTimer=setTimeout(()=>{ CL._cupFlowTimer=null;
@@ -6979,7 +6987,7 @@ function armCupFlowTimer(fn){
     // finishCupResultFlow no meio do jogo dele — a tela piscava e voltava pra principal, e a
     // rodada seguia rodando invisível (bug do "não assisti a 3ª rodada", 01/ago).
     if(CUP_FLOW_SCREENS.indexOf(CL.screen)<0) return;
-    try{ fn(); }catch(e){ console.warn('cup flow auto:', e&&e.message); } }, 10000);
+    try{ fn(); }catch(e){ console.warn('cup flow auto:', e&&e.message); } }, ms||10000);
 }
 function clearCupFlowTimer(){ if(CL._cupFlowTimer){ clearTimeout(CL._cupFlowTimer); CL._cupFlowTimer=null; } }
 function clCupResultContinue(){
@@ -7035,7 +7043,9 @@ function showCupClassif(key, round){ CL.screen='cupclassif'; CL._cupClassifKey=k
   cupClassifMarkShown(key, round);   // esta competição já cumpriu a tela dela nesta jornada
   // abre na aba da fase que ele acabou de jogar (sem fase de grupos, só existe o mata-mata)
   CL.cupTab = !cupHasGroupTab(key,c) ? 'chave' : (r ? (r.stage==='bracket'?'chave':'grupos') : (c.bracket?'chave':'grupos'));
-  cdraw(); armCupFlowTimer(cupClassifContinue);
+  cdraw();
+  // sem faixa de resultado = classificação coletiva do fim da rodada: avança mais rápido (ver armCupFlowTimer)
+  armCupFlowTimer(cupClassifContinue, r?10000:5000);
 }
 function scCupClassif(){
   const key=CL._cupClassifKey, c=S.cups&&S.cups[key];
@@ -7078,14 +7088,22 @@ const CUP_CLASSIF_ORDER=['copaBrasil','libertadores','sulamericana','championsLe
    no fechamento de sábado o S.round já avançou, e sem isso a copa que o jogador acabou de ver na
    quarta apareceria de novo. */
 function cupClassifRoundKey(round){ return (S.season||1)+'-'+(round!=null?round:(S.round||0)); }
+/* O MARCADOR TAMBÉM PERSISTE (mesmo balde por save/sala do drawSeenKey). Só em memória ele não
+   sobrevivia a um reload — e o botão "Sincronizar a Resenha" recarrega a página de propósito —,
+   então a classificação da MESMA rodada reaparecia depois de sincronizar: a rodada parecia
+   acontecer duas vezes. Guardado por (temporada, jornada, competição), reabrir o jogo devolve o
+   jogador ao ponto onde estava sem repetir tela nenhuma. */
+function cupClassifSeenMark(key, round){ return 'cls:'+cupClassifRoundKey(round)+':'+key; }
 function cupClassifMarkShown(key, round){
   const rk=cupClassifRoundKey(round);
   if(!CL._cupClsSeen || CL._cupClsSeen.rk!==rk) CL._cupClsSeen={ rk, keys:[] };
   if(!CL._cupClsSeen.keys.includes(key)) CL._cupClsSeen.keys.push(key);
+  if(typeof rememberDrawSeen==='function') rememberDrawSeen(cupClassifSeenMark(key, round));
 }
 function cupClassifWasShown(key, round){
   const rk=cupClassifRoundKey(round);
-  return !!(CL._cupClsSeen && CL._cupClsSeen.rk===rk && CL._cupClsSeen.keys.includes(key));
+  if(CL._cupClsSeen && CL._cupClsSeen.rk===rk && CL._cupClsSeen.keys.includes(key)) return true;
+  return (typeof drawAlreadySeen==='function') && drawAlreadySeen(cupClassifSeenMark(key, round));
 }
 /* esta competição de fato entrou em campo NESTA jornada? Lê o carimbo `jornada` que cliente e
    servidor gravam em todo confronto de mata-mata e em todo resultado de grupo — é o único sinal
@@ -8782,7 +8800,16 @@ function queueDrawShow(key, stage){ S._pendingDrawShows=S._pendingDrawShows||[];
    Aqui o mesmo marcador é gravado por SALA + temporada, então a sincronia devolve o jogador ao
    ponto onde ele estava sem repetir sorteio nenhum. localStorage (e não sessionStorage) porque
    vale entre sessões: quem fecha o navegador e volta no dia seguinte também não deve rever. */
-function drawSeenKey(){ const sala=(typeof NET!=='undefined'&&NET.room&&NET.room.code)||'solo'; return 'rf98:draws:'+sala; }
+/* O MARCADOR É POR SAVE, não por modo. Era 'rf98:draws:solo' pra qualquer jogo solo — um balde
+   só, compartilhado por todos os saves da máquina. Com as cerimônias no começo do jogo isso
+   ficou gritante: bastava ter visto os sorteios uma vez pra que TODO save novo entrasse direto
+   na tela do clube, sem sorteio nenhum. Na Resenha a sala já identificava o jogo; no solo quem
+   identifica é o seed do save (único por partida, estável entre sessões). */
+function drawSeenKey(){
+  const sala=(typeof NET!=='undefined'&&NET.room&&NET.room.code)||null;
+  const save=(typeof S!=='undefined'&&S&&S.seed!=null)?('solo:'+S.seed):'solo';
+  return 'rf98:draws:'+(sala||save);
+}
 function drawSeenSet(){ try{ return JSON.parse(localStorage.getItem(drawSeenKey())||'{}')||{}; }catch(e){ return {}; } }
 function drawAlreadySeen(mark){ return drawSeenSet()[mark]===true; }
 function rememberDrawSeen(mark){

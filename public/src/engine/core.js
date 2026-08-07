@@ -2376,34 +2376,19 @@ function pendingUserCupMatches(){
   // vira o autoritativo). Antes esses confrontos eram excluídos e resolvidos em segundo plano.
   return out;
 }
-/* rodadas de copa acontecendo nesta mesma leva (mesma véspera de advancePendingCups)
-   em que o clube do usuário NÃO tem partida jogável — candidatas a "modo espectador"
-   (ver clSpectateYes/startCupSpectate em main.js): o jogador pode assistir de fora,
-   sem interagir, uma rodada de uma competição da qual não participa (ou já foi
-   eliminado, ou simplesmente não pegou jogo nesta rodada específica — ex: fez bye
-   no mata-mata). Puramente de exibição — não escreve nada no estado, então é seguro
-   mesmo no modo online (cada cliente só assiste, quem resolve de verdade continua
-   sendo o avanço em segundo plano de sempre). */
-/* rodadas de copa desta leva em que o clube do usuário NÃO tem partida jogável (não
-   participa, foi eliminado, ou pegou bye) — base pra dois comportamentos:
-   - SOLO: oferecer o modo espectador (cupSpectateCandidates -> askSpectate).
-   - RESENHA (online): mostrar uma mensagem amigável "hoje é dia de copa, mas você não
-     participa" (showCupIdleMessage) em vez de espectar — o resultado da copa é
-     autoritativo do servidor (last_cup_result -> bracket no resolve-round); assistir a
-     versão determinística local mostraria um placar prematuro/errado pra quem não é o dono. */
-/* algum treinador HUMANO ainda está vivo nesta competição? Se NÃO, a copa virou CPU x CPU e
-   não interessa mais a ninguém — some a mensagem "dia de copa" (item 7 do playtest). Em solo,
-   só o próprio usuário conta. */
-function anyHumanAliveInCup(cupOrBracket){
-  if(!cupOrBracket) return false;
-  const ids = (typeof CL!=='undefined' && CL.online && CL.humans) ? Object.keys(CL.humans) : (CL&&CL.clubId?[CL.clubId]:[]);
-  return ids.some(id=> (typeof cupCompetitionTeamAlive==='function') ? cupCompetitionTeamAlive(cupOrBracket, id) : false);
-}
+/* RODADAS DE COPA DESTA JORNADA EM QUE O CLUBE DO USUÁRIO NÃO ENTRA EM CAMPO — porque não
+   disputa a competição, porque já foi eliminado, ou porque pegou bye. O jogador passa por elas do
+   mesmo jeito: vê a rodada ao vivo e depois a classificação, igual a quem joga (ver clJogar e
+   queueRoundCupClassifs em main.js). Puramente de exibição — não escreve nada no estado, então
+   vale nos dois modos; quem resolve de verdade continua sendo o avanço em segundo plano.
+   NÃO HÁ MAIS FILTRO POR "TEM HUMANO VIVO NA COMPETIÇÃO". A regra é a rodada aparecer pra todo
+   mundo, e o filtro fazia o oposto: bastava o último humano ser eliminado da Libertadores pra que
+   a competição sumisse da tela de todos, cada um voltando a um fluxo diferente. */
 function cupRoundsUserSitsOut(){
   if(!S.cups || !CL.clubId) return [];
   const out=[];
   const cb=S.cups.copaBrasil;
-  if(cupTickMatchesRound('copaBrasil',S.round) && cb && !cupIsFinished(cb) && cb.ties.length && !cb.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId)) && anyHumanAliveInCup(cb)){
+  if(cupTickMatchesRound('copaBrasil',S.round) && cb && !cupIsFinished(cb) && cb.ties.length && !cb.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId))){
     out.push({key:'copaBrasil', stage:'bracket'});
   }
   groupCupKeys().forEach(key=>{
@@ -2413,18 +2398,12 @@ function cupRoundsUserSitsOut(){
       const mg=c.group;
       const userHasFixtureNow=Object.values(mg.groups).some(g=>(g.sched[mg.round]||[]).some(([h,a])=>h===CL.clubId||a===CL.clubId));
       const roundHasFixtures=Object.values(mg.groups).some(g=>(g.sched[mg.round]||[]).some(([h,a])=>h!=null&&a!=null));
-      if(!userHasFixtureNow && roundHasFixtures && anyHumanAliveInCup(c)) out.push({key, stage:'group'});
+      if(!userHasFixtureNow && roundHasFixtures) out.push({key, stage:'group'});
     } else if(c.bracket && !cupIsFinished(c.bracket) && c.bracket.ties.length){
-      if(!c.bracket.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId)) && anyHumanAliveInCup(c.bracket)) out.push({key, stage:'bracket'});
+      if(!c.bracket.ties.some(t=>!t.winner&&(t.h===CL.clubId||t.a===CL.clubId))) out.push({key, stage:'bracket'});
     }
   });
   return out;
-}
-/* candidatas ao MODO ESPECTADOR (solo apenas). No online devolve [] — lá a mesma
-   situação vira mensagem amigável (ver clJogar/showCupIdleMessage), não espectáculo. */
-function cupSpectateCandidates(){
-  if(typeof CL!=='undefined' && CL.online) return [];
-  return cupRoundsUserSitsOut();
 }
 
 /* ====================== SISTEMA DE DIVISÕES (Série A/B/C/D) ======================
