@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Harness — Resenha 2 clientes</title>
+<style>
+  body{margin:0;font:13px/1.4 -apple-system,system-ui,sans-serif;background:#12224a;color:#eee;display:flex;flex-direction:column;height:100vh}
+  #bar{flex:none;display:flex;gap:8px;align-items:center;padding:8px;background:#0a1330;flex-wrap:wrap}
+  #bar button{font:inherit;padding:6px 10px;cursor:pointer}
+  #frames{flex:1;display:flex;min-height:0}
+  #frames iframe{flex:1;border:0;border-right:2px solid #0a1330;background:#fff}
+  #log{flex:none;height:180px;overflow:auto;background:#000;color:#9fdf9f;font:11px/1.5 ui-monospace,monospace;padding:6px 10px;white-space:pre-wrap}
+  .ok{color:#7CFC00}.fail{color:#ff6b6b;font-weight:700}.info{color:#8ab4ff}
+</style>
+</head>
+<body>
+<div id="bar">
+  <b>HARNESS</b>
+  <button onclick="setup()">1· Criar sala + entrar</button>
+  <button onclick="start()">2· Iniciar (host)</button>
+  <button onclick="scenario()">▶ Cenário lockstep completo</button>
+  <button onclick="hz.timerMs=8000">timer 8s</button>
+  <span id="st" class="info"></span>
+</div>
+<div id="frames">
+  <iframe id="fA" src="/?harness=A"></iframe>
+  <iframe id="fB" src="/?harness=B"></iframe>
+</div>
+<div id="log"></div>
+<script>
+/* ============ SERVIDOR DE MENTIRA (__HSRV) ============
+   Semântica fiel às RPCs de produção:
+   - arm_ready_timer: só arma com fase 'ready', timer desarmado e NINGUÉM ocupado.
+   - advance_phase_if_expired: fase 'ready' e (prazo vencido OU todos os assentos is_ready)
+     -> 'running', carimba is_ready=true em todos (igual à def real) e o snapshot de apito.
+   - reopen_ready: fase 'running' e ninguém ocupado -> 'ready', timer desarmado, is_ready=false.
+   - openSeason (netStart novo): 'ready' com timer DESARMADO.                              */
+const hz={ games:{}, timerMs:60000 };
+function bcast(code){
+  for(const f of [fA,fB]){ try{ f.contentWindow.__hOnServerUpdate && f.contentWindow.__hOnServerUpdate(code); }catch(e){} }
+}
+function G(code){ return hz.games[code]; }
+function busyAny(g){ const t=Date.now(); return Object.values(g.seats).some(s=>s.busy_until && s.busy_until>t); }
+window.__HSRV={
+  snapshot(code){ const g=G(code); return g?JSON.parse(JSON.stringify(g)):null; },
+  createGame(name, uid, pname){ const code='HARN'+Math.floor(Math.random()*90+10);
+    hz.games[code]={ code, name, hostId:uid, phase:'lobby', round:0, ready_deadline:0, paused:false,
+      seed:(Math.random()*1e9)>>>0, players:{}, seats:{}, shared:null, sharedVersion:0,
+      kickoff_lineups:null, kickoff_at:null };
+    hz.games[code].players[uid]={name:pname}; hz.games[code].seats[uid]={};
+    log('SRV: sala '+code+' criada por '+uid,'info'); return code; },
+  join(code, uid, pname){ const g=G(code); if(!g) throw new Error('sala inexistente');
+    g.players[uid]={name:pname}; g.seats[uid]=g.seats[uid]||{}; bcast(code); },
+  rename(code, uid, name){ const g=G(code); if(g&&g.players[uid]){ g.players[uid].name=name; bcast(code); } },
+  assignSeats(code, pool){ const g=G(code); let i=0;
+    Object.keys(g.players).forEach(uid=>{ g.seats[uid]=g.seats[uid]||{}; g.seats[uid].club_id=pool[i++]; g.seats[uid].is_ready=false; });
+    bcast(code); },
+  setClub(code, uid, clubId){ const g=G(code); g.seats[uid]=g.seats[uid]||{}; g.seats[uid].club_id=clubId; bcast(code); },
+  openSeason(code){ const g=G(code); g.phase='ready'; g.ready_deadline=0; g.paused=false;
+    Object.values(g.seats).forEach(s=>s.is_ready=false);
+    log('SRV: temporada aberta — fase ready, timer DESARMADO','info'); bcast(code); },
+  setReady(code, uid, v){ const g=G(code); if(!g.seats[uid]) return; g.seats[uid].is_ready=!!v; bcast(code); },
+  busy(code, uid, until){ const g=G(code); if(!g.seats[uid]) return; g.seats[uid].busy_until=until; bcast(code); },
+  seen(){},
+  armReadyTimer(code){ const g=G(code);
+    if(g.phase!=='ready'||g.ready_deadline||busyAny(g)) return 'skip';
+    g.ready_deadline=Date.now()+hz.timerMs; log('SRV: timer ARMADO ('+hz.timerMs/1000+'s)','info'); bcast(code); return 'armed'; },
+  advanceIfExpired(code){ const g=G(code); if(g.phase!=='ready') return g.phase;
+    const all=Object.values(g.seats).filter(s=>s.club_id!=null).every(s=>!!s.is_ready);
+    const expired=g.ready_deadline && g.ready_deadline<=Date.now();
+    if(expired||all){ g.phase='running'; g.kickoff_at=Date.now();
+      g.kickoff_lineups={}; Object.values(g.seats).forEach(s=>{ if(s.club_id&&s.last_xi) g.kickoff_lineups[s.club_id]={xi:s.last_xi,tactic:s.last_tactic||'equilibrado'}; });
+      Object.values(g.seats).forEach(s=>s.is_ready=true);
+      log('SRV: fase RUNNING ('+(all?'todos prontos':'prazo vencido')+') — apito carimbado','info');
+      bcast(code); return 'running'; }
+    return 'ready'; },
+  startRunning(code){ const g=G(code); if(g.phase==='running') return 'running';
+    g.phase='running'; g.kickoff_at=Date.now();
+    g.kickoff_lineups={}; Object.values(g.seats).forEach(s=>{ if(s.club_id&&s.last_xi) g.kickoff_lineups[s.club_id]={xi:s.last_xi,tactic:s.last_tactic||'equilibrado'}; });
+    bcast(code); return 'running'; },
+  reopenReady(code){ const g=G(code); if(g.phase!=='running') return g.phase;
+    if(busyAny(g)) return 'busy';
+    g.phase='ready'; g.ready_deadline=0;
+    Object.values(g.seats).forEach(s=>s.is_ready=false);
+    log('SRV: rodada reaberta — fase ready, timer desarmado','info'); bcast(code); return 'ready'; },
+  seatPatch(code, uid, patch){ const g=G(code); if(!g.seats[uid]) return; Object.assign(g.seats[uid], patch); bcast(code); },
+  saveShared(code, S, round){ const g=G(code); g.shared=S; g.sharedVersion++; g.round=round||S.round||0;
+    log('SRV: shared_state salvo v'+g.sharedVersion+' (rodada '+g.round+')','info'); bcast(code); },
+  loadShared(code){ const g=G(code); return g.shared?{S:g.shared, version:g.sharedVersion}:null; },
+};
+
+/* ============ RUNNER ============ */
+const $log=document.getElementById('log');
+function log(m,cls){ const d=document.createElement('div'); if(cls)d.className=cls; d.textContent=m; $log.appendChild(d); $log.scrollTop=1e9; }
+function assert(cond,label){ log((cond?'✔ ':'✘ ')+label, cond?'ok':'fail'); if(!cond) throw new Error('ASSERT: '+label); }
+const A=()=>fA.contentWindow, B=()=>fB.contentWindow;
+const stA=()=>A().__h.state(), stB=()=>B().__h.state();
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function waitFor(fn,label,timeout){ const t0=Date.now();
+  while(Date.now()-t0<(timeout||30000)){ try{ if(fn()) { log('… '+label,'ok'); return; } }catch(e){} await sleep(200); }
+  throw new Error('TIMEOUT: '+label+' | A='+JSON.stringify(stA())+' B='+JSON.stringify(stB())); }
+let CODE=null;
+async function setup(){
+  await waitFor(()=>A().__h && B().__h,'clientes carregados');
+  CODE=await A().__h.hostCreate('SALA HARNESS');
+  await B().__h.join(CODE);
+  log('sala '+CODE+' com A(host)+B','info'); st.textContent='sala '+CODE;
+}
+function start(){ A().__h.lobbyStart(); }
+/* mantém as cerimônias andando (acelera nos dois lados) até os dois chegarem à tela alvo */
+async function fastUntil(screenSet,label,timeout){
+  await waitFor(()=>{ A().__h.fast(); B().__h.fast();
+    return screenSet.includes(stA().screen) && screenSet.includes(stB().screen); },label,timeout);
+}
+async function scenario(){
+  try{
+    hz.timerMs=8000;
+    // estado limpo a cada execução: recarrega os dois clientes e zera o servidor
+    hz.games={}; CODE=null;
+    fA.src='/?harness=A&t='+Date.now(); fB.src='/?harness=B&t='+Date.now();
+    await sleep(1200);
+    await setup();
+    start();
+    // 1) os DOIS veem o reveal do sorteio da Resenha
+    await waitFor(()=>stA().netStep==='reveal'&&stB().netStep==='reveal','reveal do sorteio nos DOIS clientes');
+    // 2) cerimônias: boas-vindas + sorteios de copa nos DOIS; o relógio NÃO pode armar
+    await fastUntil(['main'],'os dois atravessam boas-vindas + cerimônias até a tela do clube',90000);
+    const g=G(CODE);
+    assert(g.phase==='ready','fase continua ready após cerimônias');
+    // 3) A marca pronto; B ainda não -> fase NÃO avança
+    A().__h.jogar(); await sleep(1500);
+    assert(G(CODE).phase==='ready','A pronto sozinho não inicia a rodada');
+    assert(stB().live===false,'B não entrou em campo antes da largada');
+    // 4) B marca pronto -> largada pra TODOS (sem esperar o prazo)
+    B().__h.jogar();
+    await waitFor(()=>G(CODE).phase==='running','fase running com todos prontos (sem esperar o cronômetro)',15000);
+    await waitFor(()=>stA().live===true&&stB().live===true,'os DOIS em campo',20000);
+    A().__h.speedUp(); B().__h.speedUp();
+    // 5) fim da rodada: publica, host fecha localmente, shared_state avança
+    await waitFor(()=>G(CODE).round>=1,'rodada fechada e shared_state na rodada 1',240000);
+    // 6) telas pós-rodada nos DOIS + ninguém reentra na rodada 0
+    await fastUntil(['main'],'os dois atravessam classificações e voltam ao clube',120000);
+    const k0=Object.keys(stA().stageDone).length && Object.keys(stB().stageDone).length;
+    assert(k0,'etapa 0 marcada como cumprida nos dois (anti-replay)');
+    assert(stA().round===stB().round,'os dois na MESMA rodada ao fim: '+stA().round);
+    log('=== CENÁRIO LOCKSTEP: PASSOU ===','ok');
+  }catch(e){ log(String(e&&e.message||e),'fail'); }
+}
+</script>
+</body>
+</html>

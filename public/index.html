@@ -571,6 +571,12 @@ function teamMorale(id,players){
 <script src="src/net/local-transport.js"></script>
 <script src="src/net/supabase-adapter.js"></script>
 <script>
+/* HARNESS de dois clientes (testes): só entra rodando DENTRO do runner (public/harness/), que
+   expõe o servidor de mentira em window.parent.__HSRV — em produção este bloco é um no-op.
+   document.write mantém a ordem síncrona dos scripts clássicos (padrão deste arquivo). */
+if(location.search.indexOf('harness=')>=0){ document.write('<script src="src/net/harness-adapter.js"><\/script>'); }
+</script>
+<script>
 /* init online ao carregar */
 document.addEventListener('DOMContentLoaded',async ()=>{
   let sala=null; try{ sala=new URLSearchParams(location.search).get('sala'); }catch(e){}

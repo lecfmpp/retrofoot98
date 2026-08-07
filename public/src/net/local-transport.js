@@ -1463,7 +1463,14 @@ function onlineTimerLoop(){
     // rodada (sem commit pendente). Se um convidado reabrisse antes, a fase ciclava e a rodada
     // travava/loopava. O reopen só efetiva quando ninguém está busy (barreira do servidor).
     ONLINE_LASTSEC=null;
-    if(NET.isHost && !CL._hostPendingCommit && NET.reopenReady){ if(Date.now()-ONLINE_ADV_T>400){ ONLINE_ADV_T=Date.now(); NET.reopenReady(); } }
+    // ...e SÓ depois de o host ter CUMPRIDO a etapa que está rodando. Pego pelo harness: na janela
+    // entre a largada e a entrada em campo ninguém bateu "ocupado" ainda (heartbeat é a cada 15s),
+    // e este fallback reabria a fase POR CIMA da rodada recém-começada. O caminho normal de
+    // reabertura nem passa por aqui (liveDone/_commitLeagueRound chamam NET.reopenReady direto);
+    // este é só a rede de segurança pro host que travou — e host travado ANTES de jogar não tem
+    // rodada nenhuma pra reabrir.
+    if(NET.isHost && !CL._hostPendingCommit && NET.reopenReady && (typeof onlineStageDone!=='function'||onlineStageDone()||CL._playedRound===S.round)){
+      if(Date.now()-ONLINE_ADV_T>400){ ONLINE_ADV_T=Date.now(); NET.reopenReady(); } }
     // CONVIDADO: se a fase é 'running' e ainda não joguei ESTA rodada, jogo agora (rede de segurança
     // caso o gatilho do onState tenha sido perdido enquanto eu via o sorteio/classificação). onlineRunRound
     // se auto-protege (não re-simula rodada já jogada, não interrompe telas de sorteio/classificação).
