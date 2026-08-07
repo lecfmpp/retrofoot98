@@ -434,7 +434,41 @@ const ME = (globalThis as any).MATCH_ENGINE;
   function cupAlreadyResolved(resolvedMap, key, round){ return !!resolvedMap && resolvedMap[key]===round; }
   function markCupResolved(resolvedMap, key, round){ const m=resolvedMap||{}; m[key]=round; return m; }
 
+  /* ---------- A SEQUÊNCIA DE DIAS DA TEMPORADA ----------
+     É a espinha do PONTEIRO DE DIA: a temporada inteira como uma lista ordenada de dias, cada um
+     com a competição que entra em campo naquele dia. O servidor guarda esta lista e um índice;
+     o cliente só DESENHA o dia apontado, sem decidir nada.
+     Por que nasce aqui e não em SQL: o calendário mora nesta folha. Recalcular a ordem no banco
+     seria uma TERCEIRA cópia das mesmas datas — exatamente o que causou dois jogos no mesmo dia.
+     O banco guarda o resultado e anda com o índice; a regra continua num lugar só.
+     `cups` = competições que existem neste save (as continentais não existem em todo universo). */
+  function buildDayPlan(cups, epoch){
+    const ativas=(cups&&cups.length)?cups:['copaBrasil','libertadores','sulamericana'];
+    const L=CAL_2026.league, dias=[];
+    // total de rodadas de cada copa = quantas datas ela tem na tabela
+    const agenda={};
+    ativas.forEach(k=>{ const d=CAL_2026[k]; if(d&&d.length) agenda[k]=buildCupSchedule(k, d.length, epoch); });
+    for(let r=0;r<L.length;r++){
+      const doDia=[];
+      Object.keys(agenda).forEach(k=>{
+        const i=agenda[k].indexOf(r);
+        if(i>=0) doDia.push({ r:r, comp:k, idx:i, dia:cupMatchDayByRound(k,i,epoch) });
+      });
+      doDia.forEach(d=>dias.push(d));
+      dias.push({ r:r, comp:'liga', idx:r, dia:leagueMatchDay(r, epoch) });
+    }
+    // A ORDEM É A DAS DATAS, não a das jornadas. Agrupar por jornada e pôr as copas antes da liga
+    // funciona quase sempre e erra no fim: a final da Copa do Brasil é 06/12 e o último jogo da
+    // liga é 03/12 — pela jornada ela vinha antes, pelo calendário vem depois. O ponteiro anda no
+    // tempo, então quem manda é a data.
+    dias.sort((a,b)=>a.dia-b.dia);
+    return dias;
+  }
+  /* os três momentos de cada dia, na ordem em que o jogador os vive */
+  const DAY_MOMENTS=['escalando','jogando','classificacao'];
+
   const API={ calendar, seasonStart, calDay, jornadaOfCalDate, leagueMatchDay, cupMatchDayByRound,
+    buildDayPlan, DAY_MOMENTS,
     cupDrawDay, buildCupSchedule, cupTickMatchesRound, cupRoundIndexAt,
     cupAlreadyResolved, markCupResolved, CUP_FIRST_ROUND };
   root.WORLD_RULES=API;
