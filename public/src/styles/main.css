@@ -2881,3 +2881,13 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-mom-foot .cl-btn{width:100%}
   .cl-mom-nota{min-width:0;text-align:center;margin-bottom:4px}
 }
+
+/* ===== "ESPERANDO OS OUTROS TREINADORES" (ver onlineWaitingTick em ui/main.js) =====
+   A espera pelo carimbo do último assento é o preço de todo mundo viver a mesma tela. Ela precisa
+   ter cara de sala esperando junto — não de erro nem de tela travada. */
+.cl-wait{padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.cl-wait-t{font-size:14px;line-height:1.45}
+.cl-wait-name{font-size:15px;font-weight:700;padding:6px 10px;border-radius:6px;
+  background:rgba(0,0,0,.06)}
+.cl-wait-sub{font-size:12px;opacity:.72;line-height:1.4;margin-top:2px}
+.cl-wait-host{font-size:12px;opacity:.7;margin-right:auto}

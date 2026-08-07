@@ -9614,6 +9614,71 @@ function clCounterHumanOffer(id){
   clIncomingOffers();
 }
 
+/* ===================== "ESPERANDO POR X" — A MESA DO ANFITRIÃO =====================
+   O ponteiro só vira o dia quando o ÚLTIMO assento carimba. Isso é o que mantém todo mundo na
+   mesma tela — e é também a única forma de a sala parar por causa de uma pessoa. Até aqui essa
+   espera era invisível: quem terminou ficava olhando a tela do clube sem saber se o jogo tinha
+   travado, por quem estava esperando, nem o que fazer. A saída existia só como rede de segurança
+   automática (45s), que é o contrário do que a gente quer: uma decisão sem dono, tomada por um
+   relógio, atropelando quem talvez só tenha ido buscar um café.
+   Agora a espera tem NOME e tem DONO. Quem está esperando vê por quem; o anfitrião — o mesmo que
+   já dá a largada (ver onlineHostRelease) — decide entre esperar mais ou seguir sem quem falta.
+   "Começar sem eles" é uma liberação explícita no servidor (day_ack com segundos negativos), e
+   vale inclusive para quem está com o jogo aberto e parado, que é o caso que nenhum teto de
+   ausência resolvia. */
+const WAIT_PANEL_AFTER_MS=12000;   // antes disso é o ritmo normal da sala, não uma espera
+const WAIT_PANEL_POLL_MS=3000;
+function onlineWaitingTick(){
+  if(!CL.online || typeof NET==='undefined' || !NET.room || !NET.room.day || !NET.dayStatus) return;
+  const d=NET.room.day, chave=d.idx+':'+d.moment;
+  if(CL._waitKey!==chave){ CL._waitKey=chave; CL._waitSince=Date.now(); CL._waitInfo=null;
+    if(CL._waitOpen){ CL._waitOpen=false; clCloseOverlay(); } }      // o dia andou: some sozinho
+  // só interessa a quem JÁ fez a sua parte: quem ainda deve não está esperando, está devendo.
+  if(CL._dayAckKey!==chave) return;
+  if(Date.now()-(CL._waitSince||0) < WAIT_PANEL_AFTER_MS) return;
+  if(CL._waitSnoozeUntil && Date.now()<CL._waitSnoozeUntil) return;
+  // nunca por cima de partida, cerimônia ou tela de decisão
+  if(CL.live || CL.screen==='live' || CL.screen==='cupdraw' || CL.screen==='classif'
+     || CL.screen==='seatclassif' || CL.screen==='cupclassif') return;
+  if(Date.now()-(CL._waitPollT||0) < WAIT_PANEL_POLL_MS) return;
+  CL._waitPollT=Date.now();
+  Promise.resolve(NET.dayStatus()).then(st=>{
+    if(!st || !st.faltam){ if(CL._waitOpen){ CL._waitOpen=false; clCloseOverlay(); } return; }
+    CL._waitInfo=st; showResenhaWaiting(st);
+  }).catch(()=>{});
+}
+function showResenhaWaiting(st){
+  const nomes=(st.nomes_faltando||[]).filter(Boolean);
+  const lista=nomes.length
+    ? nomes.map(n=>`<div class="cl-wait-name">👤 ${escC(n)}</div>`).join('')
+    : `<div class="cl-wait-name">👤 ${st.faltam} treinador(es)</div>`;
+  const oQue = st.competicao==='liga' ? 'a rodada do Brasileirão' : 'a rodada da copa';
+  const ehHost=(typeof NET!=='undefined' && NET.isHost);
+  const corpo=`
+    <div class="cl-wait">
+      <div class="cl-wait-t">A sala está esperando para seguir em ${escC(oQue)}:</div>
+      ${lista}
+      <div class="cl-wait-sub">Ninguém é pulado enquanto você espera — o jogo continua no mesmo
+        ponto para todos.</div>
+    </div>`;
+  const pe = btn('Aguardar mais 10s','clWaitMore()',{icon:'⏳',cls:'cl-btn-ok'})
+    + (ehHost ? btn('Começar sem eles','clWaitSkipAbsent()',{icon:'⏭',cls:'cl-btn-cancel'})
+              : `<span class="cl-wait-host">Só o anfitrião pode seguir sem eles.</span>`);
+  CL._waitOpen=true;
+  overlayC(dlg('Esperando os outros treinadores', corpo, {w:520, std:true, footer:pe}));
+}
+function clWaitMore(){ CL._waitSnoozeUntil=Date.now()+10000; CL._waitOpen=false; clCloseOverlay(); }
+function clWaitSkipAbsent(){
+  const d=(typeof NET!=='undefined' && NET.room)?NET.room.day:null;
+  CL._waitOpen=false; clCloseOverlay();
+  if(!d || !NET.dayAck) return;
+  // segundos NEGATIVOS = liberação explícita (ver a migração do day_ack): segue sem quem falta,
+  // esteja ele ausente ou presente e parado. É uma decisão do anfitrião, não de um cronômetro.
+  toastC('⏭ Seguindo sem quem faltava.');
+  Promise.resolve(NET.dayAck(d.idx, d.moment, -1))
+    .then(()=>{ if(NET.refreshDay) return NET.refreshDay(); })
+    .catch(e=>console.warn('começar sem eles:', e && e.message));
+}
 /* ---- overlays / toasts ---- */
 function overlayC(html){ let o=$c('#c-overlay'); if(!o){ o=document.createElement('div'); o.id='c-overlay'; o.className='cl-overlay'; o.onclick=clCloseOverlay; document.body.appendChild(o); }
   o.innerHTML=`<div class="cl-overlay-in" onclick="event.stopPropagation()">${html}</div>`; o.style.display='flex'; }

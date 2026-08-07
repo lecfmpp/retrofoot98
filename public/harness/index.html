@@ -135,9 +135,12 @@ window.__HSRV={
   dayAck(code, uid, idx, moment, ignorarSeg){ const g=G(code); if(!g||!g.day_plan) return null;
     const chave=g.day_idx+':'+g.day_moment;
     if(idx===g.day_idx && moment===g.day_moment && g.seats[uid]) g.seats[uid].day_ack=chave;
-    const faltam=Object.keys(g.seats).filter(id=>{ const s=g.seats[id];
+    // NEGATIVO = liberação explícita do anfitrião ("começar sem eles"), vale inclusive para quem
+    // está presente e parado; positivo dispensa só quem sumiu; zero espera todos. Mesma semântica
+    // da RPC de produção.
+    const faltam=(ignorarSeg<0) ? 0 : Object.keys(g.seats).filter(id=>{ const s=g.seats[id];
       if(s.club_id==null || s.day_ack===chave) return false;
-      if(ignorarSeg && s.last_seen && Date.now()-s.last_seen > ignorarSeg*1000) return false;  // "começar sem eles"
+      if(ignorarSeg && s.last_seen && Date.now()-s.last_seen > ignorarSeg*1000) return false;  // sumiu
       return true; }).length;
     if(faltam===0){
       if(g.day_moment==='escalando') g.day_moment='jogando';

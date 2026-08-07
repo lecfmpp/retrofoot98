@@ -1433,6 +1433,13 @@ function onlineTimerLoop(){
   if(CL._busyStage!==_etapaBusy){ CL._busyStage=_etapaBusy; CL._busySince=0; CL._busyUnstuck=0; }
   let _euOcupado = CL.online && onlineClosingRound();
   if(_euOcupado){
+    /* PARTIDA EM ANDAMENTO NÃO É "TRAVADO". O relógio do destravamento é de 10s e a partida dura
+       minutos: no log de produção este aviso saía a cada 10s durante TODAS as partidas ("ocupado há
+       11s… 21s… 32s… na tela live"), afogando o console justamente onde a gente precisa enxergar.
+       Estar em campo é o motivo mais legítimo que existe para segurar a sala — enquanto a partida
+       corre, o relógio de "alguma coisa travou do meu lado" nem começa. Ele volta a contar assim
+       que ela termina, que é onde os travamentos de verdade moram. */
+    if(CL.live && !CL.live.done){ CL._busySince=0; CL._busyUnstuck=0; }
     if(!CL._busySince) CL._busySince=Date.now();
     // DESTRAVA NO LUGAR — NUNCA SOLTA A SALA PRA ME PULAR.
     // A saída óbvia seria parar de me declarar ocupado, mas aí a rodada anda SEM mim e eu perco os
@@ -1585,6 +1592,7 @@ function onlineTimerLoop(){
   }
   roomDayRefresh();  // lê o dia do servidor de segundos em segundos (ver netRefreshDay)
   roomDayTick();     // item 3: carimba o momento do dia que EU já cumpri (ver roomDayTick)
+  if(typeof onlineWaitingTick==='function') onlineWaitingTick();   // "esperando por X" (ver main.js)
   dayRoundWatch();   // item 3: confere a jornada do ponteiro contra a local (ver dayRoundWatch)
   // TETO de 1s: o intervalo acompanha o ritmo, mas nos tempos lentos a conta explodia (em 'Longo'
   // dava ~6,6s entre sondagens — reconcile, cronômetro e barreira todos com essa latência).
@@ -1730,6 +1738,9 @@ function roomDayNaTelaDoClube(){
 }
 function roomDayFact(d){
   const mom=d.moment;
+  // DIA DE JORNADA JÁ PASSADA: cumprido, seja qual for o momento. Eu não tenho como "ainda dever"
+  // um dia de uma jornada que já foi resolvida — segurar aqui é segurar a sala por nada.
+  if(typeof S!=='undefined' && S && d.round<(S.round||0)) return true;
   // CHEGUEI NESTE DIA: estou na tela do clube (ou já pedi para começar), sem nada aberto na frente.
   if(mom==='escalando') return CL._readyForStage===onlineStageKey() || roomDayNaTelaDoClube();
   if(mom==='jogando'){
@@ -1778,8 +1789,15 @@ function roomDayTick(){
      o ponteiro ficaria preso no dia da jornada velha e só a rede de segurança do day_sync o
      tiraria de lá — ou seja, o palpite local voltaria a decidir justamente o que o carimbo existe
      para decidir. */
+  /* Que dias eu posso carimbar: o da MINHA jornada e QUALQUER DIA JÁ PASSADO — nunca um futuro.
+     A primeira versão só liberava o momento 'classificacao' de um dia atrasado, e isso congelou o
+     ponteiro a temporada inteira: quando a rodada fechava por fora (o cão de guarda fechava em 6s),
+     o ponteiro ficava para trás num momento 'escalando' ou 'jogando' que ninguém tinha mais o
+     direito de carimbar — e só a rede de segurança de 45s o arrancava dali, jornada após jornada.
+     Um dia de uma jornada que eu já deixei para trás está, por definição, cumprido por mim: o
+     ponteiro tem que poder andar pelo carimbo, que é o caminho normal, em vez de pelo socorro. */
   const meu=S.round||0;
-  if(!(d.round===meu || (d.round<meu && d.moment==='classificacao'))) return;
+  if(d.round>meu) return;
   if(!roomDayFact(d)) return;                                  // ainda não cumpri este momento
   const k=d.idx+':'+d.moment;
   if(CL._dayAckKey===k) return;
@@ -2135,6 +2153,21 @@ function onlineOrphanCloseCheck(){
   if((NET.room.round||0)!==(S.round||0)){ ORPHAN_ROUND=null; return; }  // servidor já avançou: o reconcile me puxa
   if(CL.screen==='live' || CL.live){ ORPHAN_ROUND=null; return; }        // estou jogando: ninguém fecha por cima de mim
   const now=Date.now();
+  /* O CÃO DE GUARDA NÃO PODE DECIDIR O QUE O PONTEIRO DECIDE.
+     Ele nasceu para um caso só: o anfitrião sumiu e ninguém mais chama o resolve-round. Só que ele
+     fechava a rodada olhando "ninguém com o busy aceso" e um relógio de 6s — os mesmos palpites
+     locais que o ponteiro veio substituir. No log de produção ele foi quem fechou PRATICAMENTE
+     TODAS as rodadas ("rodada 2 aberta há 10s sem fechar", "rodada 5 há 15s"), inclusive com o
+     outro humano ainda em campo, e foi assim que a jornada 3 desapareceu entre a 2 e a 4.
+     Com ponteiro, a rodada só é "órfã" depois que o SERVIDOR disse que o dia foi cumprido — a
+     mesma porta do anfitrião. Antes disso não há órfão nenhum: há gente jogando.
+     E o relógio começa quando a porta abre, não antes: se o anfitrião estiver vivo ele fecha em
+     seguida e isto nunca dispara. Quem não carimba deixou de ser problema do cão de guarda e
+     passou a ser do "esperando por X" — uma decisão com nome e dono, não um atropelo silencioso. */
+  const _dia=(NET.room && NET.room.day)||null;
+  if(_dia && !(_dia.round===(S.round||0) && _dia.comp==='liga' && _dia.moment==='classificacao')){
+    ORPHAN_SINCE=now; ORPHAN_ROUND=S.round; return;
+  }
   // âncora na rodada — nenhuma condição intermediária reinicia esta contagem
   if(ORPHAN_ROUND!==S.round){ ORPHAN_ROUND=S.round; ORPHAN_SINCE=now; return; }
   // "ocupado" lido FRESCO dos assentos (o espelho room.participants congela o busy no instante do
