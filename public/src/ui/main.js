@@ -4149,11 +4149,17 @@ function clearCupIntroTimer(){ if(CL._cupIntroTimer){ clearTimeout(CL._cupIntroT
    em campo sozinha em alguns segundos (o auto-avanço não é opcional aqui — o cronômetro da sala
    está correndo e uma tela parada seguraria a rodada dos outros). */
 function showLeagueIntro(auto){
-  if(CL._leagueIntro) return;   // já está na tela — não reabre nem re-arma o auto-avanço
+  // A GUARDA É POR RODADA, E NUNCA PODE BLOQUEAR UMA RODADA NOVA.
+  // Era um booleano sem dono: bastava CL._leagueIntro ficar true sem timer armado — overlay
+  // fechado no clique fora, ou o timer limpo por outro caminho — pra toda chamada seguinte sair
+  // aqui. O cliente então NUNCA entrava em campo: a rodada era resolvida pelo servidor em segundo
+  // plano e o jogador não via o próprio jogo ("pulou a 2ª rodada da liga"). Agora só segura a
+  // MESMA rodada, e só enquanto o auto-avanço estiver de fato armado pra destravar sozinho.
+  if(CL._leagueIntroRound===(S.round||0) && CL._leagueIntroTimer) return;
   const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
   if(!nm || nm.kind!=='league'){ CL._liveBusy=true; startLiveRound(); return; }  // sem confronto de liga: nada a apresentar
   clearLeagueIntroTimer();
-  CL._leagueIntro=true;
+  CL._leagueIntro=true; CL._leagueIntroRound=(S.round||0);
   const me=clubOf(CL.clubId)||{short:'?'}, opp=clubOf(nm.oppId)||{short:String(nm.oppId)};
   const local=nm.home?'em casa':'fora de casa';
   overlayC(dlg(nm.comp||'Campeonato', `
@@ -4168,14 +4174,17 @@ function showLeagueIntro(auto){
       <div class="cl-cal-ok">${btn('Entrar em campo','clLeagueIntroGo()',{icon:'▶',cls:'cl-btn-ok cl-btn-wide'})}</div>
       ${auto?'<div class="cl-cupscr-auto">a rodada começa sozinha em alguns segundos...</div>':''}
     </div>`, {w:520,bodyClass:'cl-body-green'}));
-  if(auto) CL._leagueIntroTimer=setTimeout(()=>{ CL._leagueIntroTimer=null; if(CL._leagueIntro) clLeagueIntroGo(); }, 6000);
+  // NO ONLINE O AUTO-AVANÇO É OBRIGATÓRIO, não opcional: é ele que garante que esta tela nunca
+  // vira um beco sem saída — se o jogador fechar o overlay no clique fora, o timer entra em campo
+  // por ele em 6s. Sem isso, uma tela fechada sem "Entrar em campo" some com a rodada dele.
+  if(auto || CL.online) CL._leagueIntroTimer=setTimeout(()=>{ CL._leagueIntroTimer=null; if(CL._leagueIntro) clLeagueIntroGo(); }, 6000);
 }
 function clearLeagueIntroTimer(){ if(CL._leagueIntroTimer){ clearTimeout(CL._leagueIntroTimer); CL._leagueIntroTimer=null; } }
 function clLeagueIntroGo(){
   clearLeagueIntroTimer();
   clCloseOverlay();
   if(!CL._leagueIntro) return;
-  CL._leagueIntro=false;
+  CL._leagueIntro=false; CL._leagueIntroRound=null;
   CL._liveBusy=true; startLiveRound();
 }
 function clCupIntroGo(){
@@ -6945,12 +6954,12 @@ function finishCupLiveMatch(){
     if(m.hg>m.ag){ T[h].W++; T[a].L++; T[h].Pts+=3; }
     else if(m.hg<m.ag){ T[a].W++; T[h].L++; T[a].Pts+=3; }
     else { T[h].D++; T[a].D++; T[h].Pts++; T[a].Pts++; }
-    mg._userRoundDone=mg.round; // avanço em segundo plano desta rodada pula só a partida do usuário
+    markMyGroupRoundDone(pending.key, mg); // marcador do MEU cliente (ver myGroupRoundDone no core)
     // AS OUTRAS PARTIDAS DA MESMA RODADA, AGORA. Sem isto a tabela mostrada logo depois do jogo
     // tinha só os pontos do usuário: o resto da rodada da competição só era simulado quando a
     // rodada de LIGA rodasse (sábado), então a classificação do pós-jogo de quarta ficava com
     // uma partida disputada e as outras zeradas. advanceGroupStageRound pula a partida do
-    // usuário sozinho (guard _userRoundDone), então aqui só entram os confrontos que faltavam.
+    // usuário sozinho (guard myGroupRoundDone), então aqui só entram os confrontos que faltavam.
     resolveCupRoundRest(pending.key);
     // Resenha (online): publica também o resultado de FASE DE GRUPOS. Antes só o mata-mata era
     // publicado, então o servidor re-simulava a partida que o humano tinha acabado de jogar ao
@@ -7062,8 +7071,13 @@ function finishCupResultFlow(){
    partida entra como faixa no topo e a chave/grupos ocupa o resto — o usuário termina a
    rodada da copa e continua exatamente onde estava, sem fechar nada. ---- */
 function showCupClassif(key, round){ CL.screen='cupclassif'; CL._cupClassifKey=key; CL._cupTie=null;
+  if(round!=null) CL._cupClassifRound=round;
   const c=S.cups&&S.cups[key], r=(CL._cupResultByKey||{})[key];
-  cupClassifMarkShown(key, round);   // esta competição já cumpriu a tela dela nesta jornada
+  // O MARCADOR DE "JÁ VI" É GRAVADO NA SAÍDA (cupClassifContinue), NÃO AQUI.
+  // Ele persiste em disco, e marcar na ABERTURA queimava a tela sem o jogador ter visto nada: se
+  // o fluxo fosse interrompido no meio — rodada repetindo, reload, sala travada —, a competição
+  // ficava marcada como vista para sempre e a classificação nunca mais aparecia naquela jornada.
+  // Foi o que apagou as telas de classificação depois das sessões quebradas.
   // abre na aba da fase que ele acabou de jogar (sem fase de grupos, só existe o mata-mata)
   CL.cupTab = !cupHasGroupTab(key,c) ? 'chave' : (r ? (r.stage==='bracket'?'chave':'grupos') : (c.bracket?'chave':'grupos'));
   cdraw();
@@ -7085,6 +7099,9 @@ function scCupClassif(){
 }
 function cupClassifContinue(){
   clearCupFlowTimer();
+  // AGORA SIM: a tela foi de fato mostrada e o jogador está saindo dela (no botão ou no
+  // auto-avanço). Só neste ponto a competição conta como vista nesta jornada — ver showCupClassif.
+  if(CL._cupClassifKey) cupClassifMarkShown(CL._cupClassifKey, CL._cupClassifRound);
   const queue=CL._cupClassifQueue||[];
   if(queue.length){ showCupClassif(queue.shift(), CL._cupClassifRound); return; }
   CL._cupClassifQueue=null; CL._cupResultByKey=null; CL._cupClassifRound=null;
@@ -7116,7 +7133,10 @@ function cupClassifRoundKey(round){ return (S.season||1)+'-'+(round!=null?round:
    então a classificação da MESMA rodada reaparecia depois de sincronizar: a rodada parecia
    acontecer duas vezes. Guardado por (temporada, jornada, competição), reabrir o jogo devolve o
    jogador ao ponto onde estava sem repetir tela nenhuma. */
-function cupClassifSeenMark(key, round){ return 'cls:'+cupClassifRoundKey(round)+':'+key; }
+/* prefixo 'cls2': os marcadores gravados pela versão anterior foram escritos na ABERTURA da tela,
+   então há telas marcadas como vistas que ninguém viu (as sessões que travaram queimaram várias).
+   Trocar o prefixo aposenta aqueles registros de uma vez, sem precisar limpar nada na mão. */
+function cupClassifSeenMark(key, round){ return 'cls2:'+cupClassifRoundKey(round)+':'+key; }
 function cupClassifMarkShown(key, round){
   const rk=cupClassifRoundKey(round);
   if(!CL._cupClsSeen || CL._cupClsSeen.rk!==rk) CL._cupClsSeen={ rk, keys:[] };

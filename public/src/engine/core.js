@@ -1543,6 +1543,22 @@ function groupStageStandings(mg){
   const only=Object.values(mg.groups)[0];
   return only ? groupTableStandings(only) : [];
 }
+/* ---- "EU JÁ CUMPRI ESTA RODADA DE GRUPO" É FATO DO MEU ASSENTO, NÃO DO MUNDO ----
+   Morava em S.cups[key].group._userRoundDone — DENTRO do estado compartilhado. Quando um humano
+   jogava a partida dele e o anfitrião salvava, o marcador viajava pra todos, e clubOwesCupThisWeek
+   (que pergunta sobre os OUTROS clubes) passava a responder "não deve" pra TODOS os clubes daquela
+   competição: a barreira do dia de copa soltava antes de os outros terem entrado em campo. Mesma
+   doença da dívida de copa, sintoma invertido — um dado de assento guardado no mundo. Agora vive
+   no cliente, por (competição, temporada, rodada do grupo). */
+function _cupKeyOfGroupLabel(roundLabel){ return String(roundLabel||'').split('-grupo-r')[0]; }
+function myGroupRoundKey(key, mg){ return key+':'+((typeof S!=='undefined'&&S&&S.season)||1)+':'+((mg&&mg.round)||0); }
+function markMyGroupRoundDone(key, mg){
+  if(typeof CL==='undefined') return;
+  CL._myGroupDone=CL._myGroupDone||{}; CL._myGroupDone[myGroupRoundKey(key,mg)]=true;
+}
+function myGroupRoundDone(key, mg){
+  return !!(typeof CL!=='undefined' && CL._myGroupDone && CL._myGroupDone[myGroupRoundKey(key,mg)]);
+}
 function advanceGroupStageRound(mg, roundLabel){
   if(!mg || mg.finished) return;
   Object.values(mg.groups).forEach(g=>{
@@ -1551,7 +1567,7 @@ function advanceGroupStageRound(mg, roundLabel){
       if(h==null||a==null) return; // bye (número ímpar de times no grupo)
       // partida do usuário já jogada ao vivo nesta rodada (ver finishCupLiveMatch) — pula
       // só ela, o resto do grupo simula normalmente.
-      if((h===CL.clubId||a===CL.clubId) && mg._userRoundDone===mg.round) return;
+      if((h===CL.clubId||a===CL.clubId) && myGroupRoundDone(_cupKeyOfGroupLabel(roundLabel), mg)) return;
       const seed=hashSeed(S.seed,roundLabel,g.label,h,a);
       const evs=[]; let fin=null;
       const sim=simulateMatch(h,a,false,(tk)=>{ if(tk.ev) evs.push(tk.ev); },(r)=>fin=r,seed);
@@ -2337,10 +2353,15 @@ function clubOwesCupThisWeek(clubId){
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket && !c.group.finished){
       const mg=c.group;
-      if(mg._userRoundDone===mg.round) return;   // esta rodada de grupo já foi cumprida
       Object.values(mg.groups).forEach(g=>{
         if(deve || !g.teams.includes(clubId)) return;
-        if((g.sched[mg.round]||[]).some(([h,a])=>h===clubId||a===clubId)) deve=true;
+        if(!(g.sched[mg.round]||[]).some(([h,a])=>h===clubId||a===clubId)) return;
+        // ESTE clube já jogou a rodada de grupo? A pergunta é sobre ELE, então a resposta tem que
+        // sair de um dado DELE: o resultado gravado no grupo. Antes lia mg._userRoundDone, que
+        // significa "EU já joguei" e viajava no estado compartilhado — bastava um humano jogar pra
+        // a barreira parar de cobrar todos os outros.
+        if((g.results||[]).some(r=>r && r.r===mg.round && (r.h===clubId||r.a===clubId))) return;
+        deve=true;
       });
     } else if(c.bracket && !cupIsFinished(c.bracket)){
       if((c.bracket.ties||[]).some(t=>!t.winner && (t.h===clubId||t.a===clubId))) deve=true;
@@ -2366,7 +2387,7 @@ function pendingUserCupMatches(){
       Object.values(mg.groups).forEach(g=>{
         if(!g.teams.includes(CL.clubId)) return;
         const fx=(g.sched[mg.round]||[]).find(([h,a])=>h===CL.clubId||a===CL.clubId);
-        if(fx && mg._userRoundDone!==mg.round) out.push({key, stage:'group', group:mg, groupLabel:g.label, h:fx[0], a:fx[1]});
+        if(fx && !myGroupRoundDone(key, mg)) out.push({key, stage:'group', group:mg, groupLabel:g.label, h:fx[0], a:fx[1]});
       });
     } else if(c.bracket && !cupIsFinished(c.bracket)){
       const tie=(c.bracket.ties||[]).find(t=>!t.winner && (t.h===CL.clubId||t.a===CL.clubId));

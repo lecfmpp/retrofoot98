@@ -1393,6 +1393,7 @@ function onlineTimerLoop(){
   // cima dele — a rodada começava sem quem ainda devia a copa da semana, e ele voltava pra tela
   // principal sem ver o próprio jogo. Com a obrigação dentro da barreira, a rodada de liga só
   // ARMA quando todo mundo zerou a copa, que é a regra pedida: quem não joga a copa espera quem joga.
+  onlineSettleCupDebt();   // ver definição: a dívida de copa se quita por qualquer caminho, não só jogando
   if(CL.online && onlineClosingRound() && typeof NET!=='undefined' && NET.gameId){
     ONLINE_BUSY_ACTIVE=true;
     if(Date.now()-ONLINE_BUSY_T>15000){ ONLINE_BUSY_T=Date.now(); if(NET.heartbeatBusy) NET.heartbeatBusy(); }
@@ -1919,6 +1920,25 @@ function onlineCupObligationPending(){
 /* etapa da semana que eu estou prestes a jogar: (jornada, quarta ou sábado). A quarta e o sábado
    têm a MESMA jornada, então a jornada sozinha não distingue "já pedi pra começar" entre as duas. */
 function onlineStageKey(){ return (typeof S!=='undefined'&&S?(S.round||0):0)+':'+(roundStage()||'league'); }
+/* QUITA A MINHA DÍVIDA DE COPA ASSIM QUE ELA DEIXA DE EXISTIR — seja qual for o motivo: joguei a
+   partida, não tinha jogo nesta jornada, ou o confronto já foi resolvido por outro caminho (o
+   servidor me simulou por ausência, ou o cliente de outro humano fechou o resto da rodada).
+   Quem sabe se eu ainda devo é o MEU cliente, que é quem roda pendingUserCupMatches — então é ele
+   que carimba. Antes a dívida só era quitada por "joguei ao vivo até o fim", e o resto dos
+   caminhos ficava esperando o teto de 90s da barreira. Uma vez por etapa da semana; o
+   markCupDone sai cedo se eu já tiver publicado um resultado nesta jornada. */
+function onlineSettleCupDebt(){
+  if(!CL.online || typeof S==='undefined' || !S) return;
+  if(typeof NET==='undefined' || !NET.markCupDone) return;
+  if(typeof pendingUserCupMatches!=='function') return;
+  const etapa=onlineStageKey();
+  if(CL._cupDebtSettled===etapa) return;
+  let pend=true;
+  try{ pend = pendingUserCupMatches().length>0; }catch(e){ return; }
+  if(pend) return;
+  CL._cupDebtSettled=etapa;
+  NET.markCupDone(S.round);
+}
 function onlineMarkReady(){ CL._readyForStage=onlineStageKey();
   NET.setReady(true, CL.clubId); toastC('Pronto! À espera dos outros treinadores.'); cdraw();
   // publica minha escalação/tática atual pros outros clientes — se eu ficar ausente, meu clube é

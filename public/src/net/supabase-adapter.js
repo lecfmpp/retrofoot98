@@ -508,6 +508,28 @@ async function netPublishCupResult(round, cupResult){
     await sb.from('game_seats').update({ last_cup_result:payload, last_cup_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_UID());
   }catch(e){ console.warn('publishCupResult:', e&&e.message); }
 }
+/* QUITA A OBRIGAÇÃO DE COPA DA JORNADA SEM RESULTADO NENHUM.
+   A barreira do dia de copa (onlineCupDayPending) pergunta "este assento ainda deve a partida de
+   copa desta jornada?" e cruza duas fontes: (A) o mundo compartilhado diz que o clube tem
+   confronto sem vencedor, e (B) game_seats.last_cup_round diz se ele já publicou. Só que (B) era
+   escrito num lugar só — netPublishCupResult, no fim de uma partida jogada AO VIVO até o fim.
+   Todo caminho em que o confronto se resolve sem isso deixava a dívida pendurada até o teto de
+   90s: humano ausente simulado pelo servidor, confronto resolvido pelo cliente de outro humano
+   (resolveCupRoundRest), transmissão perdida, ou confronto sem vencedor (que faz o publish sair
+   antes de escrever). Agora o próprio devedor pode dizer "não devo mais", por qualquer motivo.
+   DUAS PROTEÇÕES: nunca sobrescreve um resultado já publicado nesta jornada (sai cedo), e zera
+   last_cup_result junto — sem isso o resolve-round veria last_cup_round==round com um resultado
+   VELHO no assento e aplicaria o placar da jornada passada nesta. */
+async function netMarkCupDone(round){
+  if(!sb || !NET.gameId || !SB_AUTH_USER) return;
+  const me = NET._claimed && NET._claimed[SB_UID()];
+  if(me && me.last_cup_round===round) return;      // já publiquei o resultado desta jornada
+  try{
+    if(me){ me.last_cup_round=round; me.last_cup_result=null; }
+    await sb.from('game_seats').update({ last_cup_round:round, last_cup_result:null })
+      .eq('game_id', NET.gameId).eq('user_id', SB_UID());
+  }catch(e){ console.warn('markCupDone:', e&&e.message); }
+}
 /* F3.3: publica o caixa do PRÓPRIO clube no assento -> o servidor (resolve-round) lê pra montar
    S.budgets do mundo, e os reconciles voltam o valor certo (senão o caixa do humano resetava pro
    valor inicial do shared_state a cada rodada). Chamado após aplicar as finanças da rodada / mercado. */
@@ -1330,6 +1352,7 @@ NET.publishBudget = netPublishBudget;
 NET.publishStadium = netPublishStadium;
 NET.publishBids = netPublishBids;
 NET.publishCupResult = netPublishCupResult;
+NET.markCupDone = netMarkCupDone;
 NET.humanClubIds = netHumanClubIds;
 NET.allHumanResultsIn = netAllHumanResultsIn;
 NET.anyMissingResultOnline = netAnyMissingResultOnline;
