@@ -9828,7 +9828,7 @@ function showResenhaWaitingMe(d){
       </div>
       <div class="cl-esp-quem">
         <span class="cl-esp-av">!</span>
-        <span class="cl-esp-nome">${escC(oQue)}</span>
+        <span class="cl-esp-msg">${escC(oQue)}</span>
       </div>
       <div class="cl-esp-nota">Os outros treinadores estão parados no mesmo ponto, esperando por
         você. Ninguém avança sozinho.</div>

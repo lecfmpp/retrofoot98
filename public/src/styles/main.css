@@ -2900,6 +2900,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   border:2px solid;border-color:var(--bevel-out,#fff #555 #555 #fff)}
 .cl-esp-nome{flex:1;min-width:0;font-weight:800;font-size:15px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl-esp-msg{flex:1;min-width:0;font-weight:700;font-size:14px;line-height:1.45}
 .cl-esp-st{flex:0 0 auto;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--navy);opacity:.8}
 .cl-esp-dots::after{content:'...';display:inline-block;width:1.1em;text-align:left;
   animation:cl-esp-dots 1.4s steps(4,end) infinite}
