@@ -1725,7 +1725,13 @@ function roomDayFact(d){
     // usar onlineStageDone() aqui faria terminar a primeira valer como carimbo das outras duas, que
     // é exatamente o atalho do last_cup_round que já nos custou uma sala travada.
     if(d.comp!=='liga') return (typeof cupWasSeen==='function') ? cupWasSeen(d.comp) : false;
-    return (typeof onlineStageDone==='function' && onlineStageDone()) || CL._playedRound===(S.round||0);
+    /* DIA DE LIGA: a pergunta é "eu joguei a PARTIDA DE LIGA desta jornada?", e ela tem que ser
+       respondida por fatos da partida — nunca pela etapa da semana em que eu penso estar (ver
+       onlineStageDoneFor: foi assim que a jornada 2 inteira sumiu). Três respostas honestas: joguei
+       (finishLiveRound), a etapa de LIGA desta jornada está marcada, ou eu não tenho partida
+       nenhuma porque estou desempregado. */
+    if(CL.unemployed) return true;
+    return CL._playedRound===(S.round||0) || onlineStageDoneFor('league');
   }
   // VI O QUE VEIO DEPOIS e voltei para a tela do clube — este é o carimbo que encerra o dia.
   if(mom==='classificacao') return roomDayNaTelaDoClube();
@@ -2254,7 +2260,17 @@ function onlineMarkStageDone(){ const k=onlineStageKey();
   CL._stageDone=CL._stageDone||{}; CL._stageDone[k]=true;
   if(typeof rememberDrawSeen==='function') rememberDrawSeen('stage:'+k);
 }
-function onlineStageDone(){ const k=onlineStageKey();
+function onlineStageDone(){ return onlineStageDoneFor(roundStage()||'league'); }
+/* A MESMA PERGUNTA, MAS PARA UMA ETAPA QUE EU NOMEIO — e não para "a etapa em que eu acho que
+   estou". A diferença derrubou a jornada 2 em produção: S.roundStage é uma noção LOCAL e atrasada
+   (só vira 'league' quando o anfitrião resolve a quarta e eu adoto o estado). Na janela entre o fim
+   do dia de copa e essa adoção, o cliente já está no dia de LIGA com o roundStage ainda em 'cup' —
+   e onlineStageDone() respondia pela etapa de copa, que estava cumprida. Resultado: o carimbo de
+   'jogando' do dia de liga saía sem ninguém ter jogado, o dia inteiro fechava em segundos e o
+   ponteiro pulava para a jornada seguinte, levando os DOIS humanos junto. Foi o "pulou a rodada 2,
+   sempre depois dos jogos da Libertadores/Sul-Americana". */
+function onlineStageDoneFor(stage){
+  const k=(typeof S!=='undefined'&&S?((S.season||1)+':'+(S.round||0)):'0')+':'+(stage||'league');
   if(CL._stageDone && CL._stageDone[k]) return true;
   return (typeof drawAlreadySeen==='function') && drawAlreadySeen('stage:'+k);
 }
