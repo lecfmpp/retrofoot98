@@ -1583,6 +1583,7 @@ function onlineTimerLoop(){
         ' | em partida=['+ocupados.join(',')+'] sem resultado=['+semResultado.join(',')+']');
     }
   }
+  roomDayTick();     // item 3: carimba o momento do dia que EU já cumpri (ver roomDayTick)
   dayRoundWatch();   // item 3: confere a jornada do ponteiro contra a local (ver dayRoundWatch)
   // TETO de 1s: o intervalo acompanha o ritmo, mas nos tempos lentos a conta explodia (em 'Longo'
   // dava ~6,6s entre sondagens — reconcile, cronômetro e barreira todos com essa latência).
@@ -1649,14 +1650,31 @@ function onlineCompleteSeasonTurnover(){
      · ponteiro ATRÁS da minha jornada -> day_sync empurra o ponteiro pra frente;
      · ponteiro À FRENTE -> sou EU que estou velho: reconcilio meu mundo com o da sala.
    Sala parada com os dois na mesma tela é melhor que dois humanos "certos" em telas diferentes. */
+/* carência antes de a rede de segurança do ponteiro entrar (ver o day_sync abaixo). A sequência
+   normal de fim de jornada — fechamento, classificação da liga, classificação das copas, janela de
+   publicidade e volta à tela do clube — leva dezenas de segundos, e é ela que vira o dia pelo
+   caminho certo (o carimbo do momento 'classificacao'). Curto demais aqui faz a rede de segurança
+   virar o caminho normal, que é justamente o que o item 3 está tirando de cena. */
+const DAY_SYNC_GRACE_MS=45000;
 function roomDay(){
   const d=(typeof NET!=='undefined' && NET.room) ? NET.room.day : null;
   if(!d || !S) return null;                 // sala sem plano (save antigo): caminho de sempre
   const meu=S.round||0;
-  if(d.round===meu) return d;
+  if(d.round===meu){ CL._daySyncSince=0; return d; }
   if(d.round<meu){
-    if(typeof NET!=='undefined' && NET.daySync && CL._daySyncedFor!==meu){
+    /* O day_sync VOLTOU A SER SÓ REDE DE SEGURANÇA. Ele empurra o ponteiro pela jornada LOCAL —
+       exatamente o número que o item 3 está tirando de cena — então dispará-lo à primeira
+       discordância atropelava o caminho normal: fechada a rodada N, o ponteiro fica legitimamente
+       no dia da jornada N até o último assento carimbar a classificação, e o day_sync o arrancaria
+       dali antes disso, decidindo pelo palpite local o que o carimbo ia decidir em seguida.
+       Com a carência, o caminho normal tem tempo de acontecer e o day_sync só entra quando ele
+       claramente não aconteceu (ponteiro preso, sala de save antigo, fechamento por atalho). */
+    if(!CL._daySyncSince) CL._daySyncSince=Date.now();
+    if(Date.now()-CL._daySyncSince > DAY_SYNC_GRACE_MS &&
+       typeof NET!=='undefined' && NET.daySync && CL._daySyncedFor!==meu){
       CL._daySyncedFor=meu;
+      console.warn('ponteiro preso na jornada '+d.round+' há '+Math.round((Date.now()-CL._daySyncSince)/1000)+
+        's com a sala na '+meu+' — puxando pelo day_sync (rede de segurança, não caminho normal)');
       NET.daySync(meu).then(()=>{ if(typeof NET.refreshRoom==='function') NET.refreshRoom(); }).catch(()=>{});
     }
   } else if(typeof NET!=='undefined' && NET.room && typeof onlineReconcileIfBehind==='function'){
@@ -1680,23 +1698,60 @@ function roomDay(){
    Agora cada assento CARIMBA o dia que viveu (day_ack) e o dia só vira quando o último carimbar.
    O caminho antigo fica como degradação pra servidor sem a função nova — nunca como preferência. */
 const DAY_ACK_IGNORAR_AUSENTES_SEG=0;   // "começar sem eles" entra no item 5, junto do modal do anfitrião
-function roomDayDone(d){
-  if(!d || typeof NET==='undefined' || !(NET.dayAck||NET.dayDone)) return;
-  if(CL._dayDoneKey===d.idx) return;
-  CL._dayDoneKey=d.idx;
-  (async ()=>{
-    let idx=d.idx, mom=d.moment;
-    for(let i=0;i<3;i++){
-      const p = NET.dayAck ? await NET.dayAck(idx, mom, DAY_ACK_IGNORAR_AUSENTES_SEG)
-                           : await NET.dayDone(idx, mom);
-      if(!p) break;
-      if(p.idx!==idx){ break; }              // o dia virou: acabou
-      if(p.momento===mom){ break; }          // não andou (alguém ocupado): tento na próxima volta
-      mom=p.momento;
-    }
-    CL._dayDoneKey=null;                     // libera pra nova tentativa com a visão atualizada
-    if(NET.refreshRoom) NET.refreshRoom().catch(()=>{});
-  })();
+/* OS TRÊS MOMENTOS VIRARAM FATOS, E CADA UM É CARIMBADO SOZINHO.
+   A primeira versão fechava os três de uma vez porque nenhum deles desenhava tela — eram só um
+   contador. Agora eles são a espinha do dia:
+     · escalando    = EU já disse que estou pronto para esta etapa;
+     · jogando      = EU já cumpri a minha partida desta etapa (e publiquei o resultado);
+     · classificacao= EU já voltei para a tela do clube, sem nada pendente na frente.
+   Cada carimbo é um fato do MEU assento, não uma leitura do relógio nem do "ocupado" de ninguém.
+   Quando o último assento carimba, o servidor — e só ele — vira o momento; virado o terceiro, vira
+   o DIA e escreve games.round a partir do plano. É por isso que o momento 'classificacao' aparecer
+   no ponteiro é o sinal de que a jornada foi cumprida por todos: é ele que o anfitrião espera para
+   fechar a rodada (ver onlineHostCloseRound).
+   Uma chamada por (dia:momento) — o carimbo é idempotente no servidor, mas martelar não adianta:
+   o que falta é o carimbo DO OUTRO. */
+function roomDayNaTelaDoClube(){
+  return CL.screen==='main' && !CL.live && !CL._liveBusy && !CL._cupIntro && !CL._leagueIntro
+         && !(typeof S!=='undefined' && S && S._pendingDrawShows && S._pendingDrawShows.length);
+}
+function roomDayFact(d){
+  const mom=d.moment;
+  // CHEGUEI NESTE DIA: estou na tela do clube (ou já pedi para começar), sem nada aberto na frente.
+  if(mom==='escalando') return CL._readyForStage===onlineStageKey() || roomDayNaTelaDoClube();
+  if(mom==='jogando'){
+    // CUMPRI A COMPETIÇÃO DESTE DIA. Tem que ser por COMPETIÇÃO, não por etapa da semana: a jornada
+    // 3 tem Libertadores, Sul-Americana e Copa do Brasil, e as três dividem a mesma etapa 'cup' —
+    // usar onlineStageDone() aqui faria terminar a primeira valer como carimbo das outras duas, que
+    // é exatamente o atalho do last_cup_round que já nos custou uma sala travada.
+    if(d.comp!=='liga') return (typeof cupWasSeen==='function') ? cupWasSeen(d.comp) : false;
+    return (typeof onlineStageDone==='function' && onlineStageDone()) || CL._playedRound===(S.round||0);
+  }
+  // VI O QUE VEIO DEPOIS e voltei para a tela do clube — este é o carimbo que encerra o dia.
+  if(mom==='classificacao') return roomDayNaTelaDoClube();
+  return false;
+}
+function roomDayTick(){
+  if(!CL.online || typeof NET==='undefined' || !NET.room) return;
+  const d=NET.room.day; if(!d) return;                         // sala sem plano (save antigo)
+  if(!(NET.dayAck||NET.dayDone)) return;
+  if(typeof S==='undefined' || !S) return;
+  /* Que dias eu posso carimbar: o da MINHA jornada — e a CAUDA da que acabou de ser resolvida.
+     A segunda parte não é folga: o momento 'classificacao' do dia de liga acontece, por
+     construção, DEPOIS de a rodada fechar (é a tabela que sai do fechamento), e nesse instante o
+     meu S.round já é o seguinte. Sem esta linha ninguém jamais carimbaria o último momento do dia,
+     o ponteiro ficaria preso no dia da jornada velha e só a rede de segurança do day_sync o
+     tiraria de lá — ou seja, o palpite local voltaria a decidir justamente o que o carimbo existe
+     para decidir. */
+  const meu=S.round||0;
+  if(!(d.round===meu || (d.round<meu && d.moment==='classificacao'))) return;
+  if(!roomDayFact(d)) return;                                  // ainda não cumpri este momento
+  const k=d.idx+':'+d.moment;
+  if(CL._dayAckKey===k) return;
+  CL._dayAckKey=k;
+  const p = NET.dayAck ? NET.dayAck(d.idx, d.moment, DAY_ACK_IGNORAR_AUSENTES_SEG)
+                       : NET.dayDone(d.idx, d.moment);
+  Promise.resolve(p).then(()=>{ if(NET.refreshRoom) return NET.refreshRoom(); }).catch(()=>{});
 }
 
 /* ==================== ITEM 3, PRIMEIRA METADE: LER A JORNADA DO PONTEIRO ====================
@@ -1915,7 +1970,9 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // clube e aviso que estou pronto — o dia só vira quando o último assento ficar livre.
   // Esta guarda vem DEPOIS do fechamento do estágio de quarta de propósito: aquele bloco é o que
   // faz a semana virar, e barrá-lo antes deixaria o ponteiro preso na copa pra sempre.
-  if(dia && dia.comp!=='liga'){ roomDayDone(dia); return; }
+  // (o carimbo do dia NÃO é dado aqui: ele é um fato do assento, carimbado pelo roomDayTick a cada
+  // volta do laço da sala. Passar por esta linha não é ter cumprido nada.)
+  if(dia && dia.comp!=='liga'){ return; }
   if(typeof showLeagueIntro==='function'){ showLeagueIntro(true); return; }
   CL._liveBusy=true; startLiveRound(); }
 

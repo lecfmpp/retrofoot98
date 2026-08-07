@@ -277,6 +277,10 @@
       // diaComp = o que o servidor manda; diaVale = se o cliente está obedecendo ou caiu no
       // palpite local (roomDay() devolvendo null é a porta de divergência que estamos caçando)
       diaIdx:d?d.idx:null, diaComp:d?d.comp:null, diaRound:d?d.round:null,
+      // o MOMENTO é o que o servidor decidiu com os carimbos, e 'classificacao' no dia de liga é o
+      // sinal que libera o fechamento da rodada (ver onlineHostCloseRound). Sem ele no histórico,
+      // não dá para distinguir "o servidor mandou" de "o anfitrião achou que podia".
+      diaMom:d?d.moment:null,
       // diaVale = o cliente NÃO caiu no palpite local. diaHold = ele está segurando por desacordo
       // (que é obedecer, não divergir) — mas hold que não passa nunca é sala congelada, então o
       // cenário conta os dois: um sem o outro esconderia metade da verdade.

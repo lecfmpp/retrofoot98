@@ -93,7 +93,11 @@ window.__HSRV={
     Object.values(g.seats).forEach(s=>s.is_ready=false);
     log('SRV: rodada reaberta — fase ready, timer desarmado','info'); bcast(code); return 'ready'; },
   seatPatch(code, uid, patch){ const g=G(code); if(!g.seats[uid]) return; Object.assign(g.seats[uid], patch); bcast(code); },
-  saveShared(code, S, round){ const g=G(code); g.shared=S; g.sharedVersion++; g.round=round||S.round||0;
+  /* games.round TEM UM ESCRITOR SÓ: o ponteiro. Em sala com plano de dias o save do anfitrião
+     publica só o MUNDO — quem escreve a jornada é o dayAck/daySync, a partir do plano (item 3,
+     mesma regra do netSaveGame de produção). */
+  saveShared(code, S, round){ const g=G(code); g.shared=S; g.sharedVersion++;
+    if(!g.day_plan) g.round=round||S.round||0;
     log('SRV: shared_state salvo v'+g.sharedVersion+' (rodada '+g.round+')','info'); bcast(code); },
   loadShared(code){ const g=G(code); return g.shared?{S:g.shared, version:g.sharedVersion}:null; },
 
@@ -145,7 +149,10 @@ window.__HSRV={
     bcast(code); return this.dayStatus(code); },
   daySync(code, round){ const g=G(code); if(!g||!g.day_plan) return null;
     const alvo=g.day_plan.findIndex(e=>e.r>=round);
-    if(alvo>=0 && alvo>g.day_idx){ g.day_idx=alvo; g.day_moment='escalando'; bcast(code); }  // só pra frente
+    if(alvo>=0 && alvo>g.day_idx){ g.day_idx=alvo; g.day_moment='escalando';                 // só pra frente
+      const e=g.day_plan[alvo]; if(e && e.r!=null) g.round=e.r;                              // a jornada É o ponteiro
+      Object.values(g.seats).forEach(s=>{ s.day_ack=null; });
+      bcast(code); }
     return this.dayCurrent(code); },
 };
 

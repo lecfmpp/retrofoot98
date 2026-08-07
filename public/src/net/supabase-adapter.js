@@ -386,17 +386,6 @@ async function netRefreshRoom(){
       // detecta a defasagem que a comparação por rodada não vê. Ver onlineReconcileIfBehind.
       stateVersion: g.state_version||0
     });
-    /* O DIA DA SALA, direto do servidor. Vem de graca no select('*') acima -- o plano nunca muda
-       depois de gravado, entao so o indice e o momento andam. E daqui que as telas passam a sair:
-       enquanto cada cliente deduzia a competicao do proprio estado local, dois humanos podiam
-       estar "certos" e ainda assim em competicoes diferentes. Agora a resposta e uma linha so. */
-    if(g.day_plan && !NET.room.dayPlan) NET.room.dayPlan = g.day_plan;
-    if(NET.room.dayPlan){
-      const e = NET.room.dayPlan[g.day_idx||0] || null;
-      NET.room.day = e ? { idx:g.day_idx||0, moment:g.day_moment||'escalando',
-                           round:e.r, comp:e.comp, cupIdx:e.idx, dia:e.dia,
-                           total:NET.room.dayPlan.length } : null;
-    }
     /* O DIA DA SALA, direto do servidor. Vem de graça no select('*') acima — o plano nunca muda
        depois de gravado, então só o índice e o momento andam. É daqui que as telas passam a sair:
        enquanto cada cliente deduzia a competição do próprio estado local, dois humanos podiam
@@ -1084,10 +1073,20 @@ async function netSaveGame(stateObj){
   try {
     const { data: cur } = await sb.from('games').select('state_version').eq('id', NET.gameId).single();
     const nextV = (cur?.state_version||0) + 1;
-    // publica a RODADA AUTORITATIVA junto (games.round) — é o que os outros clientes usam pra
-    // detectar que ficaram pra trás e recarregar o estado da sala (sincronização, itens 1 e 3).
+    /* ITEM 3 — games.round TEM UM ESCRITOR SÓ, E NÃO É O ANFITRIÃO.
+       Esta linha publicava a jornada a partir do estado LOCAL do host. Era a segunda fonte de
+       verdade do mesmo número: o ponteiro do dia derivava a jornada do plano (day_ack) e o save do
+       anfitrião a sobrescrevia com a conta dele. Dois escritores para um número é precisamente a
+       origem de "cada humano numa jornada". Agora, em sala com plano de dias, o host publica só o
+       MUNDO (shared_state) e quem escreve a jornada é o servidor, ao virar o dia.
+       Os convidados não perdem o gatilho de sincronia: o reconcile também dispara por
+       state_version, que este mesmo update incrementa (ver onlineReconcileIfBehind).
+       Sala sem plano (save antigo) continua publicando a jornada como sempre. */
+    const temPonteiro = !!(NET.room && NET.room.dayPlan);
     const authRound = (stateObj && stateObj.round!=null) ? stateObj.round : (stateObj && stateObj.S && stateObj.S.round);
-    const { error } = await sb.from('games').update({ shared_state: stateObj, state_version: nextV, round: authRound }).eq('id', NET.gameId).eq('state_version', cur?.state_version||0);
+    const patch = temPonteiro ? { shared_state: stateObj, state_version: nextV }
+                              : { shared_state: stateObj, state_version: nextV, round: authRound };
+    const { error } = await sb.from('games').update(patch).eq('id', NET.gameId).eq('state_version', cur?.state_version||0);
     if(error) throw error;
     console.log('✓ Jogo salvo (v'+nextV+', rodada '+(stateObj.round)+')');
   } catch(e) { console.error('saveGame erro:', e); }

@@ -6613,11 +6613,45 @@ function onlineHostCloseRound(){
   // (netMergeParticipants) e, se nenhum evento do realtime chegar depois, um "true" velho ficava
   // pra sempre — o anfitrião esperava um jogador que já tinha saído da partida e a sala inteira
   // parava na pausa técnica. O busy_until é timestamp: comparado agora, expira sozinho.
-  const _now=nowMs(), _cl=(typeof NET!=='undefined' && NET._claimed)||{};
-  let anyBusy=false;
-  for(const uid in _cl){ const c=_cl[uid];
-    if(c && c.busy_until && new Date(c.busy_until).getTime()>_now){ anyBusy=true; break; } }
-  if(anyBusy){ CL._hostCloseSince=0; return; } // espera todos saírem da partida (teto de 90s do busy)
+  /* ===== ITEM 3: QUEM DIZ QUE A JORNADA FOI CUMPRIDA É O SERVIDOR =====
+     Até aqui o anfitrião decidia sozinho a hora de fechar, por dois palpites LOCAIS: "ninguém está
+     com o busy aceso" e "os resultados que eu enxergo já chegaram". Os dois são fotos do instante —
+     e foi exatamente delas que nasceram as salas paradas e as jornadas descasadas: bastava um
+     cliente estar entre duas telas para o anfitrião ler "todo mundo livre" e fechar por cima de
+     quem ainda não tinha jogado.
+     Agora a decisão tem uma fonte só: o ponteiro do dia. Cada assento CARIMBA o momento que
+     cumpriu (ver roomDayTick); quando o último carimba 'jogando', o SERVIDOR — e mais ninguém —
+     vira o momento para 'classificacao'. Ver esse momento no ponteiro é o único sinal de que a
+     jornada foi de fato jogada por todos, e é ele que libera o fechamento aqui.
+     Sala sem plano de dias (save antigo) continua no caminho de antes: degrada, não trava. */
+  const _dia = (NET.room && NET.room.day) || null;
+  if(_dia){
+    /* DUAS PORTAS, PORQUE SÃO DOIS FECHAMENTOS DIFERENTES:
+       · QUARTA (pc.stage==='cup'): resolve as copas da jornada de uma vez. Só pode acontecer quando
+         o ponteiro já SAIU de todos os dias de copa desta jornada — ou seja, chegou ao dia de liga.
+         Fechar no primeiro dia de copa resolveria as chaves das competições dos dias seguintes
+         antes de alguém as ter assistido, e aqueles dias ficariam sem nada para cumprir.
+       · SÁBADO (rodada de liga): o dia de liga desta jornada com o momento já em 'classificacao',
+         que é o servidor dizendo que todos cumpriram a partida. */
+    const portaAberta = (pc.stage==='cup')
+      ? (_dia.round===round && _dia.comp==='liga')
+      : (_dia.round===round && _dia.comp==='liga' && _dia.moment==='classificacao');
+    if(!portaAberta){
+      if(!CL._hostCloseWaitLog || CL._hostCloseWaitLog!==_dia.idx+':'+_dia.moment){
+        CL._hostCloseWaitLog=_dia.idx+':'+_dia.moment;
+        _prLog('HOST closeRound: o ponteiro ainda está em '+_dia.comp+'/'+_dia.moment+
+               ' (jornada '+_dia.round+') — esperando o último carimbo, sem fechar por palpite');
+      }
+      return;                      // a pendência só é consumida lá embaixo: ela continua de pé
+    }
+  } else {
+    // CAMINHO ANTIGO (sala sem ponteiro): o busy dos assentos como barreira.
+    const _now=nowMs(), _cl=(typeof NET!=='undefined' && NET._claimed)||{};
+    let anyBusy=false;
+    for(const uid in _cl){ const c=_cl[uid];
+      if(c && c.busy_until && new Date(c.busy_until).getTime()>_now){ anyBusy=true; break; } }
+    if(anyBusy){ CL._hostCloseSince=0; return; } // espera todos saírem da partida (teto de 90s do busy)
+  }
   // todos saíram da partida mas falta resultado de alguém. Dois casos MUITO diferentes:
   // - o jogador CAIU (aba fechada): 3s de carência e fecha, simulado como ausente — como sempre.
   // - o jogador está PRESENTE (heartbeat de presença fresco) e só ainda não jogou — típico de
