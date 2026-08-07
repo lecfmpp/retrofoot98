@@ -310,7 +310,10 @@ async function scenario3(){
         const k=s.tela+' ‖ '+b.tela; amostras[k]=(amostras[k]||0)+1; } });
     const piores=Object.keys(amostras).sort((x,y)=>amostras[y]-amostras[x]).slice(0,5);
     if(piores.length) log('  pares mais frequentes: '+piores.map(k=>k+' ×'+amostras[k]).join(' | '),'info');
-    assert(pct<=15,'os dois passaram o tempo na MESMA tela ('+pct+'% de divergência)');
+    // (1) MESMA TELA AO MESMO TEMPO. 10%: telas de passagem não trocam no mesmo milissegundo nos
+    //     dois clientes, então alguma diferença é transição legítima. Acima disso não é atraso de
+    //     renderização — é um vivendo um momento do jogo que o outro não está vivendo.
+    assert(pct<=10,'(1) os dois passaram o tempo na MESMA tela ('+pct+'% de divergência)');
 
     // ---------- O PONTEIRO MANDA, E NÃO CORRE NA FRENTE ----------
     const adiante=hist.A.filter(s=>s.diaRound!=null && s.round!=null && s.diaRound>s.round);
@@ -333,11 +336,37 @@ async function scenario3(){
     assert(holdA < hist.A.length*0.5 && holdB < hist.B.length*0.5,
       'a espera por desacordo é transitória, não o estado normal da sala');
 
-    // ---------- ITEM 4: TODOS ASSISTEM TUDO ----------
-    assert(saw('A',s=>s.live&&s.cupKey==='libertadores')&&saw('B',s=>s.live&&s.cupKey==='libertadores'),
-      'os DOIS assistiram a Libertadores mesmo sem disputá-la');
-    assert(saw('A',s=>s.live&&s.cupKey==='sulamericana')&&saw('B',s=>s.live&&s.cupKey==='sulamericana'),
-      'os DOIS assistiram a Sul-Americana mesmo sem disputá-la');
+    /* ========== AS TRÊS PERGUNTAS QUE IMPORTAM ==========
+       A expectativa sai do PLANO DE DIAS DO SERVIDOR, não de uma lista escrita à mão aqui: o
+       servidor diz o que devia ter acontecido, o histórico diz o que aconteceu, e a diferença é o
+       defeito. Escrever a lista à mão me faria testar o que eu lembrei de testar — que é
+       exatamente como três buracos passaram batidos até o usuário achá-los a olho. */
+    const plano=hz.games[CODE].day_plan||[], rFim=hz.games[CODE].round;
+    const eA0=entryCounts('A'), eB0=entryCounts('B');
+
+    // (2) NINGUÉM PULA A LIGA — cada humano tem que ter ENTRADO no seu jogo do Brasileirão de
+    //     TODA jornada já fechada. É o "pulou a rodada e nem viu o seu jogo", medido direto.
+    const ligaFaltando=[];
+    for(let r=0;r<rFim;r++){ const k=r+':liga';
+      if(!eA0[k]) ligaFaltando.push('A@'+r); if(!eB0[k]) ligaFaltando.push('B@'+r); }
+    log('jogos de liga não vistos: '+(ligaFaltando.length?ligaFaltando.join(', '):'nenhum'),'info');
+    assert(ligaFaltando.length===0,'os dois viram o SEU jogo do Brasileirão em todas as '+rFim+' jornadas');
+
+    // (3) TODOS VEEM TUDO — pra cada dia de copa do plano já cumprido, ou os DOIS entraram ou
+    //     NENHUM entrou. Simetria em vez de lista fixa: um dia de copa pode não gerar confronto
+    //     (chave vazia naquela fase), e o que não pode é um assistir e o outro não.
+    const assimetria=[];
+    plano.filter(e=>e.comp!=='liga' && e.r<rFim).forEach(e=>{ const k=e.r+':'+e.comp;
+      if(!!eA0[k]!==!!eB0[k]) assimetria.push(k+' (A='+(eA0[k]||0)+' B='+(eB0[k]||0)+')'); });
+    log('dias de copa vistos por só um deles: '+(assimetria.length?assimetria.join(', '):'nenhum'),'info');
+    assert(assimetria.length===0,'todo dia de copa foi visto pelos DOIS ou por nenhum — nunca só por um');
+
+    // e as continentais têm que ter de fato acontecido, senão a simetria acima seria verde à toa
+    // (dois zeros são simétricos): sem isto, "ninguém divergiu" poderia ser "ninguém assistiu nada".
+    const cupsVistas=Object.keys(eA0).filter(k=>k.indexOf(':liga')<0);
+    log('dias de copa efetivamente assistidos: '+(cupsVistas.join(', ')||'NENHUM'),'info');
+    assert(cupsVistas.some(k=>k.indexOf('libertadores')>=0),'a Libertadores foi assistida por quem não a disputa');
+    assert(cupsVistas.some(k=>k.indexOf('sulamericana')>=0),'a Sul-Americana foi assistida por quem não a disputa');
 
     // ---------- ANTI-LOOP E CHEGADA JUNTOS ----------
     const eA=entryCounts('A'), eB=entryCounts('B');
