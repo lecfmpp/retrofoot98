@@ -6577,6 +6577,7 @@ function scWaitRound(){
 function onlineReturnFreeAfterMatch(){
   if(CL._liveTimer) clearTimeout(CL._liveTimer);
   CL._playedRound=S.round; // marca que JÁ joguei esta rodada — não re-simulo (evita loop na mesma rodada)
+  if(typeof onlineMarkStageDone==='function') onlineMarkStageDone(); // etapa cumprida em definitivo (ver onlineStageDone)
   CL.live=null; CL.subsUsed=0; CL._liveBusy=false;
   _prLog('onlineReturnFreeAfterMatch -> waitround');
   CL._waitSince=nowMs();                     // base dos 10s da pausa (relógio + barra + gate)

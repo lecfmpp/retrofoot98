@@ -1566,12 +1566,13 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   if(CL.screen==='classif'||CL.screen==='cupdraw'||CL.screen==='seatclassif'||CL.screen==='cupclassif') return;
   // DESEMPREGADO (Fase 2): não jogo — só assisto. Marco a rodada como "vista" pra não tentar simular
   // um clube que não é mais meu (o servidor já resolve o clube antigo como CPU, sem humano no assento).
-  if(CL.unemployed){ CL._playedRound=S.round; return; }
+  if(CL.unemployed){ CL._playedRound=S.round; onlineMarkStageDone(); return; }
   // rodada além do calendário -> a virada não completou: completa via servidor (não joga fantasma)
   if(Array.isArray(S.sched) && (S.round||0) >= S.sched.length){ onlineCompleteSeasonTurnover(); return; }
-  // JÁ JOGUEI ESTA RODADA: fico LIVRE aguardando o fechamento (anfitrião) — NÃO re-simulo a mesma
-  // rodada. Sem isso, o cliente ficava em loop jogando a rodada 1 pra sempre (a fase volta pra
-  // 'running' antes do host fechar, e o cliente jogava de novo).
+  // JÁ CUMPRI ESTA ETAPA: fico LIVRE aguardando o fechamento — NÃO re-simulo. A checagem
+  // definitiva é o mapa por (temporada, jornada, quarta|sábado), que nenhum caminho zera (ver
+  // onlineMarkStageDone); o _playedRound fica como segunda linha pros caminhos degradados.
+  if(onlineStageDone()) return;
   if(CL._playedRound===S.round) return;
   // SAVE ÚNICO: não jogo uma rodada ANTES de espelhar o estado autoritativo do anfitrião. Se o host
   // já fechou a rodada (games.round à frente da minha), primeiro sincronizo (mundo/tabela novos).
@@ -1696,7 +1697,9 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
       // aqui — e sem esta guarda a dupla vira recursão infinita (medido: "Maximum call stack size
       // exceeded", com a aba travando). Marcar pronto é idempotente do ponto de vista da sala, e
       // uma vez basta: o que fecha a quarta é o anfitrião, não uma remarcação.
-      if(CL._cupStageReady!==S.round){ CL._cupStageReady=S.round; onlineMarkReady(); }
+      if(CL._cupStageReady!==S.round){ CL._cupStageReady=S.round;
+        onlineMarkStageDone();   // a quarta desta jornada está cumprida pra mim — nunca reentrar (ver onlineStageDone)
+        onlineMarkReady(); }
       return;
     }
     console.warn('estágio de quarta não fechou em '+(CUP_STAGE_MAX_MS/1000)+'s — seguindo pro jogo de liga (a copa é resolvida junto pelo servidor)');
@@ -1847,7 +1850,11 @@ function onlineOrphanCloseCheck(){
     finally{ ORPHAN_INFLIGHT=false; }
   })();
 }
-const CLOSING_SCREENS=['live','cupdraw','classif','seatclassif','cupclassif','sorteio','loading'];
+/* Telas em que o jogador conta como OCUPADO pro servidor: com alguém nelas, o cronômetro da
+   'ready' não arma e a fase não avança. 'boasvindas' entra porque é a porta das cerimônias de
+   abertura (sorteio da Resenha -> boas-vindas -> sorteios de copa): sem ela na lista, o timer
+   armava e estourava POR BAIXO das cerimônias e a rodada 0 começava sem ninguém ver. */
+const CLOSING_SCREENS=['live','cupdraw','classif','seatclassif','cupclassif','sorteio','loading','boasvindas'];
 let DRAW_HOLD_SINCE=0;
 function onlineClosingRound(){
   // PAUSA TÉCNICA NUNCA CONTA COMO OCUPADO — regra geral, não mais remendo por sintoma.
@@ -1919,7 +1926,16 @@ function onlineCupObligationPending(){
 /* quando o usuário clica Jogar no modo online, marca "pronto" em vez de rodar sozinho */
 /* etapa da semana que eu estou prestes a jogar: (jornada, quarta ou sábado). A quarta e o sábado
    têm a MESMA jornada, então a jornada sozinha não distingue "já pedi pra começar" entre as duas. */
-function onlineStageKey(){ return (typeof S!=='undefined'&&S?(S.round||0):0)+':'+(roundStage()||'league'); }
+function onlineStageKey(){ return (typeof S!=='undefined'&&S?((S.season||1)+':'+(S.round||0)):'0')+':'+(roundStage()||'league'); }
+/* ---- ETAPA CUMPRIDA: O ANTI-REPETIÇÃO DEFINITIVO ----
+   Uma etapa (temporada, jornada, quarta|sábado) que este cliente JÁ cumpriu nunca é reentrada,
+   não importa por qual caminho a fase volte a 'running' — fechamento idempotente do cão de
+   guarda, adoção repetida, reconcile atrasado. O CL._playedRound (um inteiro só) não dava conta:
+   a quarta e o sábado compartilham a jornada, e qualquer caminho que o zerasse reabria a rodada
+   inteira ("repetiu o mesmo jogo da primeira rodada várias vezes"). O mapa é só-cresce e local:
+   etapa cumprida é fato MEU, não do mundo. */
+function onlineMarkStageDone(){ CL._stageDone=CL._stageDone||{}; CL._stageDone[onlineStageKey()]=true; }
+function onlineStageDone(){ return !!(CL._stageDone && CL._stageDone[onlineStageKey()]); }
 /* QUITA A MINHA DÍVIDA DE COPA ASSIM QUE ELA DEIXA DE EXISTIR — seja qual for o motivo: joguei a
    partida, não tinha jogo nesta jornada, ou o confronto já foi resolvido por outro caminho (o
    servidor me simulou por ausência, ou o cliente de outro humano fechou o resto da rodada).

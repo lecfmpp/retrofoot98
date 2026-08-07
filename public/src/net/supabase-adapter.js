@@ -726,12 +726,19 @@ async function netSetReady(ready, clubId){
   } catch(e) { console.error('setReady erro:', e); }
 }
 
+/* ABRE A TEMPORADA COM O CRONÔMETRO DESARMADO. Antes armava 60s aqui mesmo — e esses 60s corriam
+   POR BAIXO da cerimônia do sorteio da Resenha, das boas-vindas e dos sorteios de copa (que levam
+   minutos). Como advance_phase_if_expired só olha prazo/prontidão (não olha busy), a fase virava
+   'running' com todo mundo ainda nas cerimônias: a rodada 0 acontecia em segundo plano, cada
+   cliente entrava quando por acaso chegava à tela do clube, e os sorteios "aconteciam no
+   background". O timer agora só arma via arm_ready_timer — que o servidor só concede quando
+   NINGUÉM está ocupado (cerimônias contam como ocupado, ver CLOSING_SCREENS) — então a contagem
+   da rodada 1 só começa quando todos estão na tela do clube. */
 async function netStart(){
   if(!NET.isHost) return;
-  const deadline = new Date(Date.now()+60000).toISOString();
-  NET.room.phase='ready'; NET.room.deadline=Date.now()+60000; NET.room.paused=false;
+  NET.room.phase='ready'; NET.room.deadline=0; NET.room.paused=false;
   if(NET.onState) NET.onState(NET.room);
-  try { await sb.from('games').update({ phase:'ready', ready_deadline: deadline, paused:false }).eq('id', NET.gameId); }
+  try { await sb.from('games').update({ phase:'ready', ready_deadline: null, paused:false }).eq('id', NET.gameId); }
   catch(e) { console.error('start erro:', e); }
 }
 
