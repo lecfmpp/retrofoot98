@@ -1367,7 +1367,11 @@ let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null, ONLINE_ADV_T=0, 
    tanto assim, os jogos daquelas rodadas não existem mais em lugar nenhum e ficar parado não
    traz nenhum de volta. Por isso é alto: só dispara quando não há mais o que salvar. */
 const ROUND_LAG_MAX=3;
-const BUSY_MAX_MS=120000;   // 2min ocupado na MESMA etapa: algo me prendeu -> destravo NO LUGAR
+/* 10s, não 2min. A destrava NÃO pula ninguém e não solta a barreira — ela só conserta o que
+   prendeu ESTE cliente e o devolve à ação que ele deve. Sendo inofensiva pros outros, não há
+   motivo pra ser lenta: 2 minutos parados matam a dinâmica do jogo, e o cliente que travou
+   costuma travar de cara. Quanto antes ele volta a andar, antes a sala anda. */
+const BUSY_MAX_MS=10000;
 const CUP_FLOW_SCREENS_LOCAL=['cupclassif','cupdraw','cupview','classif','seatclassif'];
 function onlineTimerLoop(){
   const room=(typeof NET!=='undefined')?NET.room:null;
