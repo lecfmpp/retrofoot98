@@ -1373,6 +1373,21 @@ const ROUND_LAG_MAX=3;
    costuma travar de cara. Quanto antes ele volta a andar, antes a sala anda. */
 const BUSY_MAX_MS=10000;
 const CUP_FLOW_SCREENS_LOCAL=['cupclassif','cupdraw','cupview','classif','seatclassif'];
+/* TELA COM RELÓGIO PRÓPRIO ANDANDO NÃO ESTÁ TRAVADA.
+   O destravamento dispara com 10s de "ocupado" — e 10s é MENOS do que várias telas legítimas
+   levam: o sorteio da Copa do Brasil tem 64 revelações (perto de um minuto), a classificação de
+   copa tem 10s de auto-avanço, a apresentação da rodada tem 6s. O resultado, medido em sala real,
+   era o pior possível: o destravamento matava justamente o relógio que ia fazer a tela avançar, e
+   o jogador ficava preso — o oposto do que ele existe para fazer.
+   Se existe um cronômetro armado, alguma coisa VAI acontecer. Isso não é travamento; é o jogo. */
+function onlineTelaAndando(){
+  if(CL.live && !CL.live.done) return true;                       // partida em andamento
+  if(CL.cupDraw) return true;                                     // cerimônia de sorteio rolando
+  if(CL._cupFlowTimer || CL._classifTimer) return true;           // classificação com auto-avanço armado
+  if(CL._cupIntroTimer || CL._leagueIntroTimer) return true;      // apresentação da rodada
+  if(CL._redTimer || CL._penTimer || CL._injTimer) return true;   // decisão de partida com prazo próprio
+  return false;
+}
 function onlineTimerLoop(){
   const room=(typeof NET!=='undefined')?NET.room:null;
   // SAVE ÚNICO: o ANFITRIÃO fecha a rodada quando ninguém está mais em partida (não-bloqueante,
@@ -1439,7 +1454,7 @@ function onlineTimerLoop(){
        Estar em campo é o motivo mais legítimo que existe para segurar a sala — enquanto a partida
        corre, o relógio de "alguma coisa travou do meu lado" nem começa. Ele volta a contar assim
        que ela termina, que é onde os travamentos de verdade moram. */
-    if(CL.live && !CL.live.done){ CL._busySince=0; CL._busyUnstuck=0; }
+    if(onlineTelaAndando()){ CL._busySince=0; CL._busyUnstuck=0; }
     if(!CL._busySince) CL._busySince=Date.now();
     // DESTRAVA NO LUGAR — NUNCA SOLTA A SALA PRA ME PULAR.
     // A saída óbvia seria parar de me declarar ocupado, mas aí a rodada anda SEM mim e eu perco os
@@ -1453,12 +1468,24 @@ function onlineTimerLoop(){
       console.warn('ocupado há '+Math.round((Date.now()-CL._busySince)/1000)+'s na etapa '+_etapaBusy+
         ' (tela "'+CL.screen+'") — destravando NO LUGAR (a sala continua esperando por mim)');
       if(CL._liveTimer && (!CL.live || CL.live.done)){ clearTimeout(CL._liveTimer); CL._liveTimer=null; }
-      if(typeof clearCupFlowTimer==='function') clearCupFlowTimer();
-      if(typeof clearCupIntroTimer==='function') clearCupIntroTimer();
-      if(typeof clearLeagueIntroTimer==='function') clearLeagueIntroTimer();
-      if(!CL.live){ CL._liveBusy=false; CL._cupIntro=null; CL._leagueIntro=false; CL._leagueIntroRound=null;
-        if(CUP_FLOW_SCREENS_LOCAL.indexOf(CL.screen)>=0){ CL.screen='main'; CL.tab='jogo'; if(typeof cdraw==='function') cdraw(); }
-        if(typeof onlineRecoverRunRound==='function') onlineRecoverRunRound();   // volta pra MINHA ação pendente
+      /* SAIR PELA PORTA, NÃO PELA JANELA. Este bloco matava os relógios da tela (clearCupFlowTimer)
+         e jogava o jogador direto para a tela do clube — sem passar pelo "continuar" daquela tela.
+         Numa classificação de copa isso é catastrófico: o marcador de "já vi" é gravado justamente
+         na SAÍDA, então a tela era destruída sem deixar registro, o carimbo do dia nunca saía, e a
+         tela reabria — 10s depois o mesmo destravamento a matava de novo. Foi o convidado preso em
+         'cupclassif' e o outro humano esperando por ele para sempre.
+         Cada tela tem a sua saída legítima; usá-la resolve o travamento E deixa o registro. */
+      if(CL.screen==='cupclassif' && typeof cupClassifContinue==='function'){ cupClassifContinue(); }
+      else if(CL.screen==='cupdraw' && CL.cupDraw && typeof clCupDrawSkip==='function'){ clCupDrawSkip(); }
+      else if((CL.screen==='classif'||CL.screen==='seatclassif') && typeof clClassifContinue==='function'){ clClassifContinue(); }
+      else {
+        if(typeof clearCupFlowTimer==='function') clearCupFlowTimer();
+        if(typeof clearCupIntroTimer==='function') clearCupIntroTimer();
+        if(typeof clearLeagueIntroTimer==='function') clearLeagueIntroTimer();
+        if(!CL.live){ CL._liveBusy=false; CL._cupIntro=null; CL._leagueIntro=false; CL._leagueIntroRound=null;
+          if(CUP_FLOW_SCREENS_LOCAL.indexOf(CL.screen)>=0){ CL.screen='main'; CL.tab='jogo'; if(typeof cdraw==='function') cdraw(); }
+          if(typeof onlineRecoverRunRound==='function') onlineRecoverRunRound();   // volta pra MINHA ação pendente
+        }
       }
     }
   } else { CL._busySince=0; CL._busyUnstuck=0; }
