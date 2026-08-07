@@ -815,6 +815,32 @@ async function netDayDone(idx, moment){
     return (data && data.length) ? data[0] : null;
   }catch(e){ console.warn('dayDone:', e && e.message); return null; }
 }
+/* CARIMBO POR ASSENTO (item 2). Substitui o netDayDone acima, e a diferença é a que importa:
+   "ninguém está ocupado" é uma FOTO do instante — entre uma tela e outra todo mundo está livre, e o
+   dia virava sem nada ter sido cumprido (foi assim que o ponteiro chegou à jornada 4 com a sala na
+   3, sala 365ZV). Aqui cada assento assina o dia que viveu; o dia só vira quando o último assinar.
+   `ignorarSeg` é o "começar sem eles": quem não dá sinal de vida há tanto tempo deixa de ser
+   esperado — é o escape que impede um jogador que fechou a aba de congelar a sala.
+   O day_advance_if_all_done CONTINUA existindo no banco de propósito: cliente publicado antigo
+   ainda o chama, e removê-lo congelaria as salas em campo. */
+async function netDayAck(idx, moment, ignorarSeg){
+  if(!sb || !NET.gameId) return null;
+  try{
+    const { data, error } = await sb.rpc('day_ack',
+      { p_game: NET.gameId, p_idx: idx, p_moment: moment, p_ignorar_ausentes_seg: ignorarSeg|0 });
+    if(error) throw error;
+    return (data && data.length) ? data[0] : null;
+  }catch(e){ console.warn('dayAck:', e && e.message); return null; }
+}
+/* quem a sala ainda está esperando, com nome — alimenta o modal do anfitrião (item 5). */
+async function netDayStatus(){
+  if(!sb || !NET.gameId) return null;
+  try{
+    const { data, error } = await sb.rpc('day_status', { p_game: NET.gameId });
+    if(error) throw error;
+    return (data && data.length) ? data[0] : null;
+  }catch(e){ console.warn('dayStatus:', e && e.message); return null; }
+}
 /* rede de segurança: a jornada andou pelo caminho antigo e o ponteiro ficou pra trás. Puxa pra
    frente até o primeiro dia da jornada corrente — nunca pra trás. Sem isto, uma degradação
    qualquer no fechamento deixaria a sala inteira esperando um dia que já passou. */
@@ -1495,6 +1521,8 @@ NET.authResetPassword = netAuthResetPassword;
 NET.updatePassword = netUpdatePassword;
 NET.dayPointer = netDayPointer;
 NET.dayDone = netDayDone;
+NET.dayAck = netDayAck;
+NET.dayStatus = netDayStatus;
 NET.daySync = netDaySync;
 NET.listMyRooms = netListMyRooms;
 NET.deleteRoom = netDeleteRoom;

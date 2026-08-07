@@ -8,6 +8,12 @@
       "port": 5173
     },
     {
+      "name": "elifoot-harness",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5183"],
+      "port": 5183
+    },
+    {
       "name": "elifoot-dist",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["serve", "dist", "-l", "5174"],

@@ -1427,6 +1427,8 @@ function onlineTimerLoop(){
   // do servidor (90s no busy_until) nunca chegava a expirar justamente porque era renovado.
   // Aqui o relógio é da ETAPA: se eu estou me declarando ocupado há mais de BUSY_MAX_MS na MESMA
   // etapa, alguma coisa travou do meu lado — paro de segurar a sala e deixo o jogo andar.
+  onlineForceExpiredDecision();   // ver definição: modal de decisão vencido não pode segurar a sala
+  onlineOpenQueuedDraw();         // ver definição: sorteio na fila se ABRE, não vira "ocupado" eterno
   const _etapaBusy = onlineStageKey();
   if(CL._busyStage!==_etapaBusy){ CL._busyStage=_etapaBusy; CL._busySince=0; CL._busyUnstuck=0; }
   let _euOcupado = CL.online && onlineClosingRound();
@@ -1581,6 +1583,7 @@ function onlineTimerLoop(){
         ' | em partida=['+ocupados.join(',')+'] sem resultado=['+semResultado.join(',')+']');
     }
   }
+  dayRoundWatch();   // item 3: confere a jornada do ponteiro contra a local (ver dayRoundWatch)
   // TETO de 1s: o intervalo acompanha o ritmo, mas nos tempos lentos a conta explodia (em 'Longo'
   // dava ~6,6s entre sondagens — reconcile, cronômetro e barreira todos com essa latência).
   const intv=Math.max(100, Math.min(1000, 300/((typeof roundSpeedMult==='function'?roundSpeedMult():CL.speedMult)||1)));
@@ -1671,14 +1674,21 @@ function roomDay(){
 
    Uma tentativa por dia (_dayDoneKey pelo índice): se o servidor não andou é porque alguém ainda
    está ocupado, e martelar não muda isso — a próxima volta do loop tenta de novo com a visão nova. */
+/* ITEM 2 — "NINGUÉM OCUPADO" NÃO É "DIA CUMPRIDO". O caminho antigo (day_advance_if_all_done)
+   liberava o dia quando nenhum assento estava marcado como ocupado, e ocupado é uma FOTO: entre uma
+   tela e outra todo mundo está livre por um instante, e o dia virava sem ninguém ter cumprido nada.
+   Agora cada assento CARIMBA o dia que viveu (day_ack) e o dia só vira quando o último carimbar.
+   O caminho antigo fica como degradação pra servidor sem a função nova — nunca como preferência. */
+const DAY_ACK_IGNORAR_AUSENTES_SEG=0;   // "começar sem eles" entra no item 5, junto do modal do anfitrião
 function roomDayDone(d){
-  if(!d || typeof NET==='undefined' || !NET.dayDone) return;
+  if(!d || typeof NET==='undefined' || !(NET.dayAck||NET.dayDone)) return;
   if(CL._dayDoneKey===d.idx) return;
   CL._dayDoneKey=d.idx;
   (async ()=>{
     let idx=d.idx, mom=d.moment;
     for(let i=0;i<3;i++){
-      const p=await NET.dayDone(idx, mom);
+      const p = NET.dayAck ? await NET.dayAck(idx, mom, DAY_ACK_IGNORAR_AUSENTES_SEG)
+                           : await NET.dayDone(idx, mom);
       if(!p) break;
       if(p.idx!==idx){ break; }              // o dia virou: acabou
       if(p.momento===mom){ break; }          // não andou (alguém ocupado): tento na próxima volta
@@ -1687,6 +1697,38 @@ function roomDayDone(d){
     CL._dayDoneKey=null;                     // libera pra nova tentativa com a visão atualizada
     if(NET.refreshRoom) NET.refreshRoom().catch(()=>{});
   })();
+}
+
+/* ==================== ITEM 3, PRIMEIRA METADE: LER A JORNADA DO PONTEIRO ====================
+   HOJE quem manda na jornada é o motor local do anfitrião: playRound() incrementa S.round, o
+   saveGame publica, e games.round + o ponteiro SEGUEM esse número. O objetivo do item 3 é inverter
+   a causa — a jornada passa a sair do dia apontado (day_ack já escreve games.round a partir do
+   plano) e todo cliente, inclusive o anfitrião, adota o número do ponteiro.
+   Inverter isso de uma vez seria trocar o dono da jornada no escuro. Então esta metade LÊ o número
+   do ponteiro e o CONFERE contra o local, mantendo a escrita antiga: se os dois nunca discordarem
+   de forma sustentada, cortar a escrita local vira uma troca sem surpresa; se discordarem, o
+   cenário 3 acusa ANTES de o cliente publicado depender disso.
+   Divergência INSTANTÂNEA é normal e não conta: o ponteiro só larga o dia da jornada N quando o
+   último assento carimba, então logo depois do fechamento ele fica legitimamente um dia atrás por
+   alguns instantes. O que não pode existir é divergência que PERSISTE — essa é o ponteiro preso
+   (ninguém carimbou) ou a jornada andando por fora dele. */
+const DAY_ROUND_DRIFT_MS=12000;
+function dayPointerRound(){
+  const d=(typeof NET!=='undefined' && NET.room) ? NET.room.day : null;
+  return (d && d.round!=null) ? d.round : null;
+}
+function dayRoundWatch(){
+  if(!CL.online || typeof S==='undefined' || !S || S.round==null){ CL._dayDriftSince=0; return; }
+  const pt=dayPointerRound();
+  if(pt==null || pt===S.round){ CL._dayDriftSince=0; return; }   // sala sem plano ou de acordo
+  if(!CL._dayDriftSince){ CL._dayDriftSince=Date.now(); return; }
+  if(Date.now()-CL._dayDriftSince < DAY_ROUND_DRIFT_MS) return;
+  const k=pt+':'+S.round;
+  if(CL._dayDriftKey===k) return;                                // um aviso por par, não uma enxurrada
+  CL._dayDriftKey=k;
+  CL._dayDrift=(CL._dayDrift||0)+1;
+  console.warn('ponteiro e jornada local discordam há '+Math.round((Date.now()-CL._dayDriftSince)/1000)+
+    's: ponteiro='+pt+' eu='+(S.round||0)+' — o item 3 vai tirar essa segunda fonte de verdade');
 }
 
 function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return; if(!CL.online || !S) return;
@@ -2038,35 +2080,66 @@ function onlineOrphanCloseCheck(){
    armava e estourava POR BAIXO das cerimônias e a rodada 0 começava sem ninguém ver. */
 const CLOSING_SCREENS=['live','cupdraw','classif','seatclassif','cupclassif','sorteio','loading','boasvindas'];
 let DRAW_HOLD_SINCE=0;
-function onlineClosingRound(){
-  // PAUSA TÉCNICA NUNCA CONTA COMO OCUPADO — regra geral, não mais remendo por sintoma.
-  // Estar aqui significa "já fiz a minha parte e estou ESPERANDO", que é o oposto de ocupado.
-  // Toda travada desta semana teve a mesma forma: uma pendência que só pode ser resolvida DEPOIS
-  // que a rodada avança (sorteio por abrir, fila adotada, partida de copa da rodada seguinte)
-  // marcava o jogador como ocupado JUSTAMENTE na tela onde ele não pode fazer nada — e o servidor,
-  // que não arma o cronômetro com alguém ocupado, esperava por quem esperava por ele.
-  // Medido na sala 6FNKB: rodada fechada, ninguém em partida, os dois online — e 448s parados,
-  // porque a obrigação de copa da rodada SEGUINTE segurava a fase 'ready' na tela de pausa.
-  if(CL.screen==='waitround'){ DRAW_HOLD_SINCE=0; return false; }
-  if(CLOSING_SCREENS.indexOf(CL.screen)>=0){ DRAW_HOLD_SINCE=0; return true; }
-  // sorteio JÁ ENFILEIRADO mas ainda não aberto: a janela entre o fim da classificação e o
-  // startCupDrawReplay. Era exatamente aqui que o cronômetro escapava e armava.
-  // DUAS RÉDEAS OBRIGATÓRIAS nesta condição (deadlock de produção, 31/jul — salas inteiras
-  // presas na pausa técnica com _pendingDrawShows:[copaBrasil] no estado compartilhado):
-  // 1. NUNCA vale na pausa técnica: ali a rodada ainda NÃO fechou, e o sorteio só abre no fluxo
-  //    PÓS-fechamento — segurar o fechamento esperando o sorteio é esperar algo que depende do
-  //    próprio fechamento. A fila vinha no shared_state (o host salva antes de consumi-la) e
-  //    re-envenenava todo cliente a cada adoção, então todos batiam "ocupado" pra sempre.
-  // 2. Teto de 20s nas demais telas: a janela real entre classificação e sorteio é de instantes;
-  //    fila parada além disso é fila velha, não sorteio prestes a abrir.
-  if(typeof S!=='undefined' && S && S._pendingDrawShows && S._pendingDrawShows.length && CL.screen!=='waitround'){
-    if(!DRAW_HOLD_SINCE) DRAW_HOLD_SINCE=Date.now();
-    if(Date.now()-DRAW_HOLD_SINCE<20000) return true;
-    if(DRAW_HOLD_SINCE!==-1){ DRAW_HOLD_SINCE=-1; console.warn('fila de sorteio parada há 20s sem abrir — barreira solta pra rodada não travar'); }
-  } else if(CL.screen==='waitround'){ DRAW_HOLD_SINCE=0; }
-  else DRAW_HOLD_SINCE=0;
-  return onlineCupObligationPending();
+/* MODAL DE DECISÃO VENCIDO NÃO SEGURA A SALA. Expulsão, lesão, pênalti e disputa de pênaltis
+   pausam a partida e se auto-resolvem por um setInterval de 200ms próprio. Esse intervalo é a
+   ÚNICA coisa que faz o prazo valer — e o navegador estrangula timers de aba em segundo plano
+   (medido no harness: prazo de 12s vencido há 12s com o modal ainda aberto e o intervalo parado).
+   Quem troca de aba no meio da partida cai exatamente nisso, e tela de partida conta como ocupado:
+   o jogador congela e a sala congela atrás dele. Aqui o laço da sala confere os prazos e resolve
+   pelo PADRÃO — o mesmo que o prazo escolheria — com 2s de folga pro timer legítimo agir primeiro.
+   A decisão nunca é pulada: ela é tomada, só que pelo relógio da sala em vez do da aba. */
+function onlineForceExpiredDecision(){
+  const RL=CL.live; if(!RL || !RL.paused) return;
+  const venceu=(t)=>t && Date.now()-t>2000;
+  try{
+    if(RL.redEvent && venceu(CL.redDeadline) && typeof resolveRedSkip==='function') resolveRedSkip();
+    else if(RL.injEvent && venceu(CL.injDeadline) && typeof resolveInjuryNoSub==='function') resolveInjuryNoSub();
+    else if(RL.penEvent && venceu(CL.penDeadline) && typeof resolvePenalty==='function') resolvePenalty(CL.penSel);
+    else if(RL.pensPicking && venceu(CL.penDeadline) && typeof resolveShootoutKick==='function') resolveShootoutKick(CL.penSel);
+  }catch(e){ console.warn('decisão vencida:', e && e.message); }
 }
+/* SORTEIO NA FILA SE ABRE — NÃO VIRA "OCUPADO" ETERNO.
+   A fila de cerimônias (S._pendingDrawShows) mora no mundo compartilhado, mas quem a consome é o
+   fluxo PÓS-rodada de cada cliente (checkPendingCupDraws). Parado na tela do clube ninguém a
+   consome — e a barreira lia "tem sorteio pra abrir" e declarava o jogador ocupado. Medido no
+   cenário 3: os DOIS humanos na tela do clube, prontos, com ocupado='sorteio-na-fila', o anfitrião
+   sem liberar porque havia alguém "ocupado", e a sala parada na jornada 1 sem nada acontecendo.
+   É a quinta repetição do mesmo padrão — pendência que só se resolve depois do avanço marcando o
+   jogador como ocupado antes do avanço. A saída não é soltar a barreira (aí a cerimônia some pra
+   quem tinha direito a vê-la): é RESOLVER a pendência onde ela está. Aqui a fila é aberta na
+   própria tela do clube — quem já viu aquele sorteio (marcador local) só drena a entrada velha,
+   quem não viu assiste de verdade, e a barreira volta a significar o que promete. */
+function onlineOpenQueuedDraw(){
+  if(!CL.online || typeof S==='undefined' || !S) return;
+  if(!S._pendingDrawShows || !S._pendingDrawShows.length) return;
+  if(CL.screen!=='main' || CL.live || CL._liveBusy || CL._drawOpening) return;
+  if(typeof checkPendingCupDraws!=='function') return;
+  CL._drawOpening=true;
+  try{ checkPendingCupDraws(()=>{ CL._drawOpening=false; }); }
+  catch(e){ CL._drawOpening=false; console.warn('abrir sorteio da fila:', e && e.message); }
+}
+/* POR QUE eu me declaro ocupado — em uma palavra, ou null pra "não estou".
+   O booleano sozinho já custou duas sessões de caça: a sala parava com todos os assentos ocupados
+   e não havia como saber, de fora, QUAL das quatro condições estava acesa em cada cliente. Agora a
+   razão é o valor e o booleano é derivado dela; o harness grava a razão a cada 150ms, então uma
+   travada passa a vir com a causa escrita ao lado. */
+function onlineBusyReason(){
+  if(CL.screen==='waitround'){ DRAW_HOLD_SINCE=0; return null; }
+  if(CLOSING_SCREENS.indexOf(CL.screen)>=0){ DRAW_HOLD_SINCE=0; return 'tela:'+CL.screen; }
+  if(typeof S!=='undefined' && S && S._pendingDrawShows && S._pendingDrawShows.length){
+    if(!DRAW_HOLD_SINCE) DRAW_HOLD_SINCE=Date.now();
+    if(DRAW_HOLD_SINCE>0 && Date.now()-DRAW_HOLD_SINCE<20000) return 'sorteio-na-fila';
+    if(DRAW_HOLD_SINCE!==-1){ DRAW_HOLD_SINCE=-1; console.warn('fila de sorteio parada há 20s sem abrir — barreira solta pra rodada não travar'); }
+  } else DRAW_HOLD_SINCE=0;
+  return onlineCupObligationPending() ? 'copa-devendo' : null;
+}
+/* As quatro condições, na ordem em que valem (o histórico de cada uma está nos comentários que
+   sobreviveram dentro do onlineBusyReason e do onlineCupObligationPending):
+     · pausa técnica NUNCA é ocupado — ali eu já fiz a minha parte e estou esperando;
+     · tela de fechamento (partida, sorteio, classificação, cerimônia) é ocupado de verdade;
+     · sorteio enfileirado e ainda não aberto vale por 20s — fila parada além disso é fila velha;
+     · dívida de copa só conta na fase 'running' (ver onlineCupObligationPending). */
+function onlineClosingRound(){ return !!onlineBusyReason(); }
 // 60s: teto de SEGURANÇA, não de espera normal. Eram 240s — e como a barreira ficou presa na
 // pausa, esses 4 minutos viraram o tempo real que a sala passava travada antes de destravar
 // sozinha. Quem está de fato jogando a copa é coberto pelo busy_until (90s, renovado a cada 15s),

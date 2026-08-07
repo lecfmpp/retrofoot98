@@ -293,6 +293,13 @@
         if(CL._leagueIntro) return 'intro:liga';
         return CL.screen;
       })(),
+      // item 3: quantas vezes a jornada do ponteiro discordou da local DE FORMA SUSTENTADA. É a
+      // medição que autoriza (ou proíbe) cortar a escrita local do S.round — ver dayRoundWatch.
+      drift:CL._dayDrift||0,
+      // POR QUE este cliente se declara ocupado (null = não se declara). O booleano sozinho já
+      // custou duas caças: a sala parava com todos os assentos "ocupados" e não dava pra saber
+      // qual condição estava acesa em cada um. Ver onlineBusyReason.
+      ocupado:(typeof onlineBusyReason==='function')?onlineBusyReason():null,
       screen:CL.screen, round:(typeof S!=='undefined'&&S)?S.round:null,
       stage:(typeof S!=='undefined'&&S)?(S.roundStage||null):null,
       cupKey:(CL.live&&CL.live.cup)?CL.live.cup.key:null,
@@ -314,7 +321,20 @@
       if(CL.live) CL.speedMult=8;   // cobre as entradas automáticas (rede de segurança), onde ninguém chamou jogar()
       // O Chrome estrangula timers de iframe (~1/s): a partida ao vivo levaria uma era. Puxa o
       // relógio na mão — o mesmo liveTick de produção, só que mais vezes por empurrão do runner.
-      if(CL.live && CL.live.paused && typeof liveContinue==='function'){ try{ liveContinue(); }catch(e){} } // intervalo/pausas
+      /* MODAIS DE DECISÃO DA PARTIDA (vermelho, lesão, pênalti, disputa de pênaltis).
+         Eles PAUSAM a partida esperando um clique, e cada um se auto-resolve por um
+         setInterval de 200ms — que o Chrome estrangula em iframe de segundo plano. Medido: uma
+         expulsão aos 102' segurou o cliente A por MINUTOS com o prazo de 12s já vencido há muito
+         (redDeadline em -12s e o intervalo sem disparar), e a sala inteira parada atrás dele,
+         porque tela de partida conta como ocupado. O runner faz o papel dos DEDOS: escolhe o
+         padrão (o mesmo que o prazo escolheria), em vez de esperar um relógio que não anda.
+         Vem ANTES do liveContinue: durante estes modais a partida está paused, e liveContinue
+         despausaria por baixo do modal sem tomar a decisão. */
+      if(CL.live && CL.live.redEvent && typeof resolveRedSkip==='function'){ try{ resolveRedSkip(); }catch(e){} }
+      else if(CL.live && CL.live.injEvent && typeof resolveInjuryNoSub==='function'){ try{ resolveInjuryNoSub(); }catch(e){} }
+      else if(CL.live && CL.live.penEvent && typeof resolvePenalty==='function'){ try{ resolvePenalty(CL.penSel); }catch(e){} }
+      else if(CL.live && CL.live.pensPicking && typeof resolveShootoutKick==='function'){ try{ resolveShootoutKick(CL.penSel); }catch(e){} }
+      else if(CL.live && CL.live.paused && typeof liveContinue==='function'){ try{ liveContinue(); }catch(e){} } // intervalo/pausas
       // ERA 20 TICKS POR EMPURRÃO. Uma partida tem ~90 minutos de jogo; a 20 ticks a cada 250ms do
       // runner, cada partida levava minutos de relógio real — e um cenário que atravessa 4 jornadas
       // com copas (9 sequências ao vivo × 2 clientes) estourava o próprio orçamento antes de chegar
@@ -324,7 +344,19 @@
         for(var i=0;i<400 && CL.live && !CL.live.done && !CL.live.paused;i++){ try{ liveTick(); }catch(e){ break; } }
       }
       try{ if(CL.net&&CL.net.draw&&!CL.net.draw.done) clResenhaDrawSkip(); }catch(e){}
+      /* SORTEIO: puxa o relógio da cerimônia na mão, pelo mesmo motivo do liveTick. "Acelerar" só
+         encurta o intervalo pra 150ms — e o Chrome não honra menos de ~1s em iframe de segundo
+         plano, então a chave da Copa do Brasil (64 revelações) levava mais de um minuto de relógio
+         real, e a jornada 1 tem TRÊS sorteios. Limpa o timer pendente antes de cada passo: sem
+         isso cada chamada manual deixaria um setTimeout órfão e a cerimônia andaria duas casas por
+         tique. O último passo (o que fecha a tela) fica pro timer, que é curto. */
       try{ if(CL.screen==='cupdraw'&&typeof clCupDrawSkip==='function') clCupDrawSkip(); }catch(e){}
+      if(CL.cupDraw && CL.screen==='cupdraw' && typeof cupDrawTick==='function'){
+        for(var j=0;j<80 && CL.cupDraw && CL.screen==='cupdraw' && CL.cupDraw.idx<CL.cupDraw.reveal.length;j++){
+          if(CL._cupDrawTimer){ clearTimeout(CL._cupDrawTimer); CL._cupDrawTimer=null; }
+          try{ cupDrawTick(); }catch(e){ break; }
+        }
+      }
       try{ if(CL.screen==='boasvindas') clBoasVindasContinuar(); }catch(e){}
       try{ if(CL.screen==='classif'||CL.screen==='seatclassif') clClassifContinue(); }catch(e){}
       try{ if(CL.screen==='cupclassif') cupClassifContinue(); }catch(e){}

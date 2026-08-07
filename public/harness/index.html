@@ -368,6 +368,27 @@ async function scenario3(){
     assert(cupsVistas.some(k=>k.indexOf('libertadores')>=0),'a Libertadores foi assistida por quem não a disputa');
     assert(cupsVistas.some(k=>k.indexOf('sulamericana')>=0),'a Sul-Americana foi assistida por quem não a disputa');
 
+    /* ---------- ITEM 3: OS DOIS NÚMEROS DA JORNADA TÊM QUE COINCIDIR ----------
+       Enquanto o S.round for escrito pelo motor local E a jornada também sair do ponteiro, existem
+       DUAS fontes de verdade pro mesmo número. Cortar a local no escuro seria trocar o dono da
+       jornada sem saber se os dois já dizem a mesma coisa. Esta asserção é a licença pra corte:
+       divergência instantânea não conta (o ponteiro só larga o dia quando o último assento
+       carimba), divergência SUSTENTADA (>12s) conta — e tem que ser zero. */
+    const driftA=stA().drift||0, driftB=stB().drift||0;
+    log('divergências sustentadas ponteiro⇄jornada local: A='+driftA+' B='+driftB,'info');
+    assert(driftA===0 && driftB===0,'a jornada do ponteiro nunca discordou da local por mais de 12s');
+
+    /* ---------- POR QUE A SALA PAROU: O "OCUPADO" TEM QUE TER CAUSA REAL ----------
+       Tela de partida/cerimônia é ocupado legítimo — é o jogador vivendo o jogo. Fila de sorteio
+       parada NÃO é: ninguém está fazendo nada, e a sala inteira espera. Foi exatamente esse o
+       travamento da jornada 1 (os dois na tela do clube, prontos, com ocupado='sorteio-na-fila').
+       Uma amostra ou outra é a janela normal entre enfileirar e abrir; dezenas são a trava. */
+    const motivos=c=>{ const m={}; hist[c].forEach(s=>{ if(s.ocupado) m[s.ocupado]=(m[s.ocupado]||0)+1; }); return m; };
+    const mA=motivos('A'), mB=motivos('B');
+    log('motivos de "ocupado" A='+JSON.stringify(mA)+' B='+JSON.stringify(mB),'info');
+    const fila=(mA['sorteio-na-fila']||0)+(mB['sorteio-na-fila']||0);
+    assert(fila<=20,'ninguém ficou preso em "sorteio-na-fila" ('+fila+' amostras)');
+
     // ---------- ANTI-LOOP E CHEGADA JUNTOS ----------
     const eA=entryCounts('A'), eB=entryCounts('B');
     log('entradas ao vivo A='+JSON.stringify(eA),'info'); log('entradas ao vivo B='+JSON.stringify(eB),'info');
