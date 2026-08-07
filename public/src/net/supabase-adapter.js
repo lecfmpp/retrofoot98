@@ -804,6 +804,32 @@ async function netDayDone(idx, moment){
     return (data && data.length) ? data[0] : null;
   }catch(e){ console.warn('dayDone:', e && e.message); return null; }
 }
+/* O PONTEIRO TEM QUE SER LIDO, NÃO ESPERADO.
+   `NET.room.day` só era atualizado quando um evento de realtime chegava — e realtime é justamente o
+   que não dá garantia: tem limite de eventos por segundo, o evento pode se perder, a aba pode estar
+   em segundo plano. O efeito medido em sala real: o servidor com o dia CERTO e dois clientes
+   decidindo em cima de leituras diferentes dele — um foi assistir a Libertadores enquanto o outro
+   esperava para jogar a jornada. Não era o ponteiro que estava errado; era a cópia de cada um.
+   Esta leitura é uma linha só (day_current) e roda de segundos em segundos, ao lado do realtime:
+   ninguém mais entra em campo decidindo por uma foto velha do dia da sala. */
+async function netRefreshDay(){
+  if(!sb || !NET.gameId || !NET.room) return null;
+  try{
+    const { data, error } = await sb.rpc('day_current', { p_game: NET.gameId });
+    if(error) throw error;
+    const r=(data && data.length) ? data[0] : null;
+    if(!r) return null;
+    if(NET.room.dayPlan){
+      const e=NET.room.dayPlan[r.idx] || null;
+      NET.room.day = e ? { idx:r.idx, moment:r.momento, round:e.r, comp:e.comp,
+                           cupIdx:e.idx, dia:e.dia, total:NET.room.dayPlan.length } : null;
+    } else {
+      NET.room.day = { idx:r.idx, moment:r.momento, round:r.jornada, comp:r.competicao,
+                       dia:r.dia_da_temporada, total:r.total_dias };
+    }
+    return NET.room.day;
+  }catch(e){ return null; }
+}
 /* CARIMBO POR ASSENTO (item 2). Substitui o netDayDone acima, e a diferença é a que importa:
    "ninguém está ocupado" é uma FOTO do instante — entre uma tela e outra todo mundo está livre, e o
    dia virava sem nada ter sido cumprido (foi assim que o ponteiro chegou à jornada 4 com a sala na
@@ -1522,6 +1548,7 @@ NET.dayPointer = netDayPointer;
 NET.dayDone = netDayDone;
 NET.dayAck = netDayAck;
 NET.dayStatus = netDayStatus;
+NET.refreshDay = netRefreshDay;
 NET.daySync = netDaySync;
 NET.listMyRooms = netListMyRooms;
 NET.deleteRoom = netDeleteRoom;

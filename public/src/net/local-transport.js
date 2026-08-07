@@ -1583,6 +1583,7 @@ function onlineTimerLoop(){
         ' | em partida=['+ocupados.join(',')+'] sem resultado=['+semResultado.join(',')+']');
     }
   }
+  roomDayRefresh();  // lê o dia do servidor de segundos em segundos (ver netRefreshDay)
   roomDayTick();     // item 3: carimba o momento do dia que EU já cumpri (ver roomDayTick)
   dayRoundWatch();   // item 3: confere a jornada do ponteiro contra a local (ver dayRoundWatch)
   // TETO de 1s: o intervalo acompanha o ritmo, mas nos tempos lentos a conta explodia (em 'Longo'
@@ -1711,6 +1712,18 @@ const DAY_ACK_IGNORAR_AUSENTES_SEG=0;   // "começar sem eles" entra no item 5, 
    fechar a rodada (ver onlineHostCloseRound).
    Uma chamada por (dia:momento) — o carimbo é idempotente no servidor, mas martelar não adianta:
    o que falta é o carimbo DO OUTRO. */
+/* RELÊ O DIA DA SALA. Não é polling por preguiça: o dia é a única coisa que decide o que todo
+   mundo vê, e ele estava chegando só por realtime — que tem teto de eventos por segundo e some com
+   a aba em segundo plano. Um cliente com a cópia velha do dia decide certo pela informação errada,
+   que é como dois humanos acabam em telas diferentes com o servidor perfeitamente coerente.
+   2s é barato (uma linha) e é bem menor do que qualquer coisa que o jogador perceba. */
+const DAY_REFRESH_MS=2000;
+function roomDayRefresh(){
+  if(!CL.online || typeof NET==='undefined' || !NET.refreshDay || !NET.room) return;
+  if(Date.now()-(CL._dayRefreshT||0) < DAY_REFRESH_MS) return;
+  CL._dayRefreshT=Date.now();
+  Promise.resolve(NET.refreshDay()).catch(()=>{});
+}
 function roomDayNaTelaDoClube(){
   return CL.screen==='main' && !CL.live && !CL._liveBusy && !CL._cupIntro && !CL._leagueIntro
          && !(typeof S!=='undefined' && S && S._pendingDrawShows && S._pendingDrawShows.length);
@@ -1745,7 +1758,9 @@ function roomDayFact(d){
        (finishLiveRound), a etapa de LIGA desta jornada está marcada, ou eu não tenho partida
        nenhuma porque estou desempregado. */
     if(CL.unemployed) return true;
-    return CL._playedRound===(S.round||0) || onlineStageDoneFor('league');
+    // onlineStageDone() agora é "este DIA já foi cumprido por mim" (ver onlineStageKey) — a mesma
+    // chave que impede reentrar em campo. Uma pergunta só, respondida por uma coisa só.
+    return CL._playedRound===(S.round||0) || onlineStageDone();
   }
   // VI O QUE VEIO DEPOIS e voltei para a tela do clube — este é o carimbo que encerra o dia.
   if(mom==='classificacao') return roomDayNaTelaDoClube();
@@ -2258,7 +2273,19 @@ function onlineCupObligationPending(){
 /* quando o usuário clica Jogar no modo online, marca "pronto" em vez de rodar sozinho */
 /* etapa da semana que eu estou prestes a jogar: (jornada, quarta ou sábado). A quarta e o sábado
    têm a MESMA jornada, então a jornada sozinha não distingue "já pedi pra começar" entre as duas. */
-function onlineStageKey(){ return (typeof S!=='undefined'&&S?((S.season||1)+':'+(S.round||0)):'0')+':'+(roundStage()||'league'); }
+/* A ETAPA É O DIA. Enquanto existiram DUAS unidades para a mesma coisa — a "etapa da semana"
+   (quarta|sábado, deduzida do S.roundStage local) e o DIA do ponteiro (do servidor) — cada uma
+   respondia uma coisa e as duas se contradiziam na janela em que o roundStage ainda não tinha sido
+   adotado. Foi daí que saiu a jornada fechando sem partida, e é daí que sai a rodada jogada duas
+   vezes: o "já cumpri" ficava guardado numa chave e a decisão de entrar em campo era tomada por
+   outra. Com o dia como chave, a conta é uma só: um dia, uma coisa a cumprir, um carimbo.
+   Sala sem ponteiro (save antigo) mantém a chave antiga — nada muda para ela. */
+function onlineStageKey(){
+  const d=(typeof NET!=='undefined' && NET.room) ? NET.room.day : null;
+  const temporada=(typeof S!=='undefined'&&S)?(S.season||1):0;
+  if(d) return temporada+':dia'+d.idx;
+  return temporada+':'+((typeof S!=='undefined'&&S?(S.round||0):0))+':'+(roundStage()||'league');
+}
 /* ---- ETAPA CUMPRIDA: O ANTI-REPETIÇÃO DEFINITIVO ----
    Uma etapa (temporada, jornada, quarta|sábado) que este cliente JÁ cumpriu nunca é reentrada,
    não importa por qual caminho a fase volte a 'running' — fechamento idempotente do cão de

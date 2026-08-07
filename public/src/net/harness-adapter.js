@@ -145,6 +145,7 @@
   NET.dayDone=async function(idx, moment){ return SRV.dayAdvanceIfAllDone(NET.gameId, idx, moment); };
   NET.dayAck=async function(idx, moment, ignorarSeg){ return SRV.dayAck(NET.gameId, uid, idx, moment, ignorarSeg||0); };
   NET.dayStatus=async function(){ return SRV.dayStatus(NET.gameId); };
+  NET.refreshDay=async function(){ pushState(SRV.snapshot(NET.gameId)); return NET.room&&NET.room.day; };
   NET.daySync=async function(round){ return SRV.daySync(NET.gameId, round|0); };
   NET.toRunning=async function(){ if(NET.isHost) SRV.startRunning(NET.gameId); };
   NET.reopenReady=async function(){ SRV.reopenReady(NET.gameId); };
