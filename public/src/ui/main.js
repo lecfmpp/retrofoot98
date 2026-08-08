@@ -3952,7 +3952,7 @@ function panSeleccao(){
     ${restedBlock}
     <div class="cl-sel-acts">
       ${btn('Substituir','clToggleEscalacao()',{icon:'⇄',cls:'cl-btn-ok'+(escala?' cl-btn-on':''),dis:!CL.tacticChosen})}
-      ${btn('Jogar','clJogar()',{icon:'⚽',cls:'cl-btn-ok',dis:!ok})}
+      ${jogarBtnHTML(ok)}
     </div>
   </div>`;
 }
@@ -3984,7 +3984,7 @@ function clEscalaPick(pid){   // pid do jogador clicado (identidade por ID, não
   const outP=aStarter?a:p, inP=aStarter?p:a;
   S.xi=(S.xi||[]).map(x=>x===outP.pid?inP.pid:x);
   toastC(inP.n.split(' ').slice(-1)[0]+' entrou no lugar de '+outP.n.split(' ').slice(-1)[0]+' na escalação.');
-  CL.escalaMark=null; saveV3(); cdraw();
+  CL.escalaMark=null; saveV3(); republicarEscalacao(); cdraw();
 }
 function clEscalaMarkClear(){ CL.escalaMark=null; cdraw(); }   // botão ✕ da barra fixa (escalaBarHTML)
 /* ---- PORTÃO DE LARGADA DA RESENHA (o mesmo pra liga e pra copa) ----
@@ -9242,12 +9242,40 @@ function scCupDraw(){
 }
 
 /* ---- Seleccionar (tática/formação) ---- */
+/* O BOTÃO DIZ EM QUE PÉ EU ESTOU. Na Resenha, clicar em "Jogar" durante o momento 'escalando' não
+   começa a partida — ele diz "estou pronto", e a rodada só entra em campo quando o último treinador
+   disser o mesmo. Sem um sinal na tela, o jogador clicava e nada visível acontecia (só um toast que
+   some em 2s): ele não sabia se tinha clicado, e clicava de novo. Agora o próprio botão vira o
+   estado: verde, "Pronto", e sem ação — junto com a barra de status, que já diz por quem a sala
+   está esperando. Fora da Resenha (solo/hotseat) nada muda: lá "Jogar" começa a partida mesmo. */
+function estouPronto(){
+  return !!(CL.online && typeof onlineStageKey==='function' && CL._readyForStage===onlineStageKey());
+}
+/* A ESCALAÇÃO QUE VALE É A QUE ESTÁ NA TELA — inclusive depois de eu ficar pronto.
+   Ela é publicada no instante do "estou pronto" (é com ela que o servidor simula o meu clube se eu
+   sumir, e é ela que o apito congela para todos). Só que a espera pelo outro treinador pode durar
+   bastante agora — a sala aguarda sem pressa —, e nessa janela é natural mexer no time de novo. A
+   mudança ficava fora: o jogador via uma formação na tela e a rodada usava outra, sem aviso.
+   Republicar é barato e fecha essa porta. Antes do apito o servidor ainda não congelou nada, então
+   a última versão publicada é a que entra em campo. */
+function republicarEscalacao(){
+  if(!estouPronto()) return;
+  if(typeof NET==='undefined' || !NET.publishLineup || typeof S==='undefined' || !S) return;
+  if(CL.humans && !CL.humans[CL.clubId]) return;
+  NET.publishLineup((S.xi||[]).slice(), S.tactic||'equilibrado');
+}
+function jogarBtnHTML(ok){
+  if(estouPronto()) return btn('Pronto','',{icon:'✔',cls:'cl-btn-ok cl-btn-on',dis:true});
+  return btn('Jogar','clJogar()',{icon:'⚽',cls:'cl-btn-ok',dis:!ok});
+}
 function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
   if(f==='auto'){ S.xi=autoXI(CL.clubId); CL.formation='Automático'; S.tactic='equilibrado'; }
   else if(f==='best'){ S.xi=squad(CL.clubId).slice().sort((a,b)=>b.f-a.f).slice(0,11).map(p=>p.pid); CL.formation='Melhores'; S.tactic='equilibrado'; }
   else { const real=coherentFormation(CL.clubId,f); if(real!==f) adjustedFrom=f;
     S.xi=pickXIByFormation(CL.clubId,real); CL.formation=real; S.tactic=tacticPosture(real); }
-  CL.tacticChosen=true; CL.tab='seleccao'; CL.escalaMark=null; CL.escalacaoMode=false; saveV3(); cdraw();
+  CL.tacticChosen=true; CL.tab='seleccao'; CL.escalaMark=null; CL.escalacaoMode=false; saveV3();
+  republicarEscalacao();   // mudei o time depois de ficar pronto? o que vale é o que está na tela
+  cdraw();
   toastC(adjustedFrom ? `Sem jogadores pro ${adjustedFrom} — ajustado pra ${CL.formation}.` : 'Tática '+CL.formation+' seleccionada.'); }
 /* "Selecionar descansados": reaplica a formação já escolhida trocando o critério de escala
    de força (p.f) por energia (menos cansados primeiro), respeitando os setores da formação.
@@ -9255,7 +9283,8 @@ function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
    solo, resenha e hotseat porque só mexe em S.xi/CL.formation, igual clSelFormation. */
 function clSelectRested(){ if(!CL.tacticChosen) return;
   const f=(FORMATIONS[CL.formation])?CL.formation:'4-3-3';
-  S.xi=pickXIByFormationRested(CL.clubId,f); CL.escalaMark=null; CL.escalacaoMode=false; saveV3(); cdraw();
+  S.xi=pickXIByFormationRested(CL.clubId,f); CL.escalaMark=null; CL.escalacaoMode=false; saveV3();
+  republicarEscalacao(); cdraw();
   toastC('🔋 Onze mais descansado seleccionado.'); }
 
 /* ---- Estádio (Equipa > Estádio...) ---- */
@@ -9736,7 +9765,10 @@ function onlineMomentScreenTick(){
    "Começar sem eles" é uma liberação explícita no servidor (day_ack com segundos negativos), e
    vale inclusive para quem está com o jogo aberto e parado, que é o caso que nenhum teto de
    ausência resolvia. */
-const WAIT_PANEL_AFTER_MS=12000;   // antes disso é o ritmo normal da sala, não uma espera
+/* 25s: ler o elenco, trocar um titular e escolher a formação leva mais que 12s — com o limite
+   curto, o painel aparecia no meio do trabalho normal do jogador e parecia cobrança. Espera de
+   verdade é a que passa de meia dúzia de segundos DEPOIS de a pessoa não ter mais o que fazer. */
+const WAIT_PANEL_AFTER_MS=25000;
 const WAIT_PANEL_POLL_MS=3000;
 function onlineWaitingTick(){
   if(!CL.online || typeof NET==='undefined' || !NET.room || !NET.room.day || !NET.dayStatus) return;

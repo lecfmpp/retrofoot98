@@ -172,9 +172,6 @@ function clShareStandings(){ shareScreenshot(); }
 
 /* ---------- apito (WebAudio) ---------- */
 let NET_AC=null;
-function netBeep(freq){ try{ if(!NET_AC) NET_AC=new (window.AudioContext||window.webkitAudioContext)(); const o=NET_AC.createOscillator(),g=NET_AC.createGain();
-  o.type='square'; o.frequency.value=freq||880; g.gain.value=0.001; o.connect(g); g.connect(NET_AC.destination); const t=NET_AC.currentTime;
-  g.gain.exponentialRampToValueAtTime(0.28,t+0.01); g.gain.exponentialRampToValueAtTime(0.001,t+0.16); o.start(t); o.stop(t+0.17); }catch(e){} }
 
 /* ================= UI ONLINE (pele Clássica) ================= */
 function clOnlineStart(){ CL.screen='online'; CL.net={step:'conta',intent:'host',authMode:'login',name:CL.mgr||'',email:'',password:'',roomName:'',phone:''}; wireNet();
@@ -1306,14 +1303,23 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
    do topo (evita duplicar a mesma info). TIMER DESARMADO (deadline 0): mostra "aguardando" em vez
    de contar, pois o cronômetro só começa quando TODOS terminam a rodada. */
 function onlineStatusSidebar(){ const room=NET.room; if(!CL.online||!room||room.phase==='lobby') return '';
-  const armed=(room.deadline||0)>0;
-  const secs=armed ? Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000)) : null;
   const readyN=room.participants.filter(p=>p.ready).length, total=room.participants.length;
+  /* A BARRA DIZ O QUE A SALA ESTÁ ESPERANDO. Ela contava um cronômetro que não existe mais
+     ("Rodada começa quando zerar"), e o jogador que já tinha clicado em Jogar não tinha na tela
+     nenhum sinal disso — só um toast que some em 2s. Agora ela conta o MOMENTO do dia, que é o que
+     de fato governa: quem está escalando, quem está em campo, quem está vendo a classificação. */
+  const mom=(room.day&&room.day.moment)||null;
+  const subTxt = room.paused ? 'Pausado pelo anfitrião'
+    : mom==='escalando'     ? 'A rodada começa quando todos estiverem prontos'
+    : mom==='jogando'       ? 'Rodada em andamento'
+    : mom==='classificacao' ? 'Vendo a classificação'
+    : 'Aguardando todos terminarem';
   const rows=room.participants.map(p=>{ const self=NET.self&&p.id===NET.self.id;
     let cls, lbl;
     if(!p.online){ cls='off'; lbl='Offline'; }
     else if(p.ready){ cls='rdy'; lbl='Pronto'; }
-    else if(p.busy){ cls='play'; lbl='Em partida'; }
+    else if(mom==='jogando'){ cls='play'; lbl='Em campo'; }
+    else if(mom==='classificacao'){ cls='play'; lbl='Classificação'; }
     else { cls='play'; lbl='Escalando'; }
     const k=(NET.isHost && !self)?`<button class="cl-st-kick" title="Remover da Resenha" onclick="clKick('${p.id}','${p.clubId||''}')">✖</button>`:'';
     return `<div class="cl-st-row">
@@ -1324,10 +1330,10 @@ function onlineStatusSidebar(){ const room=NET.room; if(!CL.online||!room||room.
   // ANFITRIÃO: botão pausar/retomar o cronômetro (só na fase de contagem 'ready')
   const pauseBtn=(NET.isHost && room.phase==='ready')
     ? `<button class="cl-st-pause" onclick="clOnlinePause()">${room.paused?'▶ Retomar':'⏸ Pausar'}</button>` : '';
-  const clockTxt = room.paused ? '⏸' : (armed?secs+'s':'⏳');
-  return `<div class="cl-statusbar ${!room.paused&&armed&&secs<=10?'urgent':''}" id="cl-statusbar">
+  const clockTxt = room.paused ? '⏸' : '⏳';
+  return `<div class="cl-statusbar" id="cl-statusbar">
     <div class="cl-statusbar-h"><span class="cl-statusbar-title">Treinadores ${readyN}/${total}</span><span class="cl-statusbar-clock">${clockTxt}</span></div>
-    <div class="cl-statusbar-sub">${room.paused?'Pausado pelo anfitrião':(armed?'Rodada começa quando zerar':'Aguardando todos terminarem')}</div>
+    <div class="cl-statusbar-sub">${escC(subTxt)}</div>
     <div class="cl-statusbar-list">${rows}</div>
     ${pauseBtn}
   </div>`; }
@@ -1355,7 +1361,7 @@ function clKickGo(uid, clubId){
    isso no onlineTimerLoop. */
 function clOnlinePause(){ if(typeof NET!=='undefined' && NET.isHost && NET.pause){ NET.pause().catch(()=>{}); cdraw(); } }
 function clSetSpeed(mult){ CL.speedMult=mult; if(CL.online && typeof NET!=='undefined' && NET.setSpeed) NET.setSpeed(mult).catch(()=>{}); cdraw(); }
-let ONLINE_TIMER=null, ONLINE_LASTBEEP=-1, ONLINE_LASTSEC=null, ONLINE_ADV_T=0, ONLINE_SEEN_T=0;
+let ONLINE_TIMER=null, ONLINE_LASTSEC=null, ONLINE_ADV_T=0, ONLINE_SEEN_T=0;
 /* AS DUAS TRAVAS CONTRA O NÓ QUE TRAVA A SALA (ver onlineTimerLoop). Cada regra do fluxo é
    razoável sozinha; juntas elas se trancavam — cliente preso numa tela não era puxado pra rodada
    certa, e por estar na tela contava como ocupado, e por contar como ocupado a sala não andava,
@@ -1428,19 +1434,11 @@ function onlineTimerLoop(){
     // Agora o convidado NÃO AVANÇA NADA. Ele só marca pronto e desenha o relógio. Quem libera o
     // dia é o anfitrião, por onlineHostRelease — um ponto único, auditável, que é onde a "mesa do
     // anfitrião" (passo 2) vai pendurar o botão e o pular-ausente.
-    const armed = (room.deadline||0) > 0;
-    if(!armed){
-      ONLINE_LASTSEC=null;
-      const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent='⏳';
-    } else {
-      const secs=Math.max(0,Math.ceil(((room.deadline||0)-Date.now())/1000));
-      if(secs!==ONLINE_LASTSEC){ ONLINE_LASTSEC=secs;
-        if(secs<=10 && secs>0){ netBeep(secs<=3?1100:820); }
-        if(secs<=0){ netBeep(1400); }
-        const bar=document.querySelector('.cl-statusbar-clock'); if(bar) bar.textContent=secs+'s';
-        const wrap=document.querySelector('.cl-statusbar'); if(wrap){ wrap.classList.toggle('urgent', secs<=10); }
-      }
-    }
+    /* NÃO HÁ MAIS RELÓGIO PARA DESENHAR. O cronômetro de 60s existia para começar a rodada sem
+       quem não clicou — e fazia isso pulando essa pessoa. Ele foi removido; quem diz que todos
+       chegaram é o carimbo. A barra continua mostrando quem está pronto e o que a sala espera
+       (ver onlineStatusSidebar), sem contagem regressiva e sem apito por cima de ninguém. */
+    ONLINE_LASTSEC=null;
     if(NET.isHost) onlineHostTick(room);
   } else if(CL.online && room && room.phase==='running' && CL.screen!=='live' && !CL.live && !CL._liveBusy){
     // SAVE ÚNICO: quem reabre a próxima 'ready' é SÓ o ANFITRIÃO, e SÓ depois de já ter fechado a
