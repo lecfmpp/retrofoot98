@@ -9252,8 +9252,14 @@ function scCupDraw(){
    some em 2s): ele não sabia se tinha clicado, e clicava de novo. Agora o próprio botão vira o
    estado: verde, "Pronto", e sem ação — junto com a barra de status, que já diz por quem a sala
    está esperando. Fora da Resenha (solo/hotseat) nada muda: lá "Jogar" começa a partida mesmo. */
+/* "PRONTO" SÓ ENQUANTO ESTÁ SE ESCALANDO. A chave do pronto é o DIA, e o dia dura os três
+   momentos — então o botão continuava verde depois da partida e durante a classificação, dizendo
+   "Pronto" para uma coisa que já aconteceu. Pronto para quê? Só faz sentido enquanto a sala está
+   no momento de escalar; passado isso, o botão volta a ser o botão de sempre. */
 function estouPronto(){
-  return !!(CL.online && typeof onlineStageKey==='function' && CL._readyForStage===onlineStageKey());
+  if(!CL.online || typeof onlineStageKey!=='function') return false;
+  if(typeof roomMoment==='function' && roomMoment()!=='escalando') return false;
+  return CL._readyForStage===onlineStageKey();
 }
 /* A ESCALAÇÃO QUE VALE É A QUE ESTÁ NA TELA — inclusive depois de eu ficar pronto.
    Ela é publicada no instante do "estou pronto" (é com ela que o servidor simula o meu clube se eu
@@ -9869,12 +9875,13 @@ function showResenhaWaitingMe(d){
   const comp = ehLiga ? 'Brasileirão'
     : ((typeof COMP_DEFS!=='undefined' && COMP_DEFS[d.comp] && COMP_DEFS[d.comp].short) || 'Copa');
   const trof = (!ehLiga && typeof trophyImg==='function') ? trophyImg(d.comp,64) : '';
+  // diz onde está o botão, já que o aviso não age no lugar do jogador
   const oQue = {
-    escalando:'Escale o time e diga que está pronto — a rodada só começa com todos.',
-    jogando:'Entre em campo: a rodada da sala está acontecendo agora.',
-    classificacao:'Veja a classificação para a sala seguir para o próximo dia.'
-  }[d.moment] || 'Continue para a sala seguir.';
-  const rotulo = { escalando:'Estou pronto', jogando:'Entrar em campo', classificacao:'Ver a classificação' }[d.moment] || 'Continuar';
+    escalando:'Escale o time e clique em Jogar — a rodada só começa com todos prontos.',
+    jogando:'Clique em Jogar para entrar em campo: a rodada está acontecendo agora.',
+    classificacao:'Feche a classificação para a sala seguir para o próximo dia.'
+  }[d.moment] || 'Continue de onde você parou para a sala seguir.';
+
   const corpo=`
     <div class="cl-esp">
       <div class="cl-esp-top">
@@ -9892,15 +9899,13 @@ function showResenhaWaitingMe(d){
       <div class="cl-esp-nota">Os outros treinadores estão parados no mesmo ponto, esperando por
         você. Ninguém avança sozinho.</div>
     </div>`;
-  const pe = btn(rotulo,'clWaitMeGo()',{icon:'▶',cls:'cl-btn-ok'});
+  /* O AVISO NÃO AGE — ELE AVISA. Este modal tinha um botão que fazia a ação por você ("Estou
+     pronto", "Entrar em campo"). Era um SEGUNDO lugar para a mesma coisa, e um lugar ruim: dava
+     para ficar pronto por um atalho, sem sequer olhar o time, que é justamente o que a gente
+     passou a semana tirando do jogo. A ação vive num lugar só — o botão da tela do clube. Aqui
+     fica o aviso e o caminho: feche e faça. */
+  const pe = btn('Entendi','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'});
   overlayC(dlg('Resenha — a sala espera por você', corpo, {w:560, std:true, footer:pe, bodyClass:'cl-body-green'}));
-}
-/* faz o que o momento pede, para o jogador não precisar descobrir sozinho qual botão é o certo. */
-function clWaitMeGo(){
-  clCloseOverlay();
-  const d=(typeof NET!=='undefined' && NET.room)?NET.room.day:null; if(!d) return;
-  if(d.moment==='classificacao'){ if(typeof onlineMomentScreenTick==='function') onlineMomentScreenTick(); return; }
-  if(typeof clJogar==='function') clJogar();
 }
 function clWaitMore(){ CL._waitSnoozeUntil=Date.now()+10000; CL._waitOpen=false; CL._waitAssin=null; clCloseOverlay(); }
 function clWaitSkipAbsent(){
