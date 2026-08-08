@@ -94,7 +94,93 @@ problema de sincronia aparece como uma diferença entre eles.
 exatamente quem está segurando o jogo — e essa pessoa vê na tela dela o aviso **"A sala está
 esperando por você"**, com o botão do que fazer.
 
-### 4.3 Mensagens de espera legítima (não são erro)
+### 4.3 Como ler as mensagens: o que cada palavra quer dizer
+
+Duas linhas contam quase toda a história. Vale conhecê-las por dentro.
+
+#### `carimbei` — "eu terminei a minha parte deste momento"
+
+**Carimbar** é o jogo dizendo ao servidor: *"cumpri o que este momento pedia de mim"*. É como
+assinar uma lista de presença — o dia só vira quando todas as assinaturas estiverem lá. Cada
+jogador assina a sua; ninguém assina pelo outro.
+
+```
+carimbei dia7 (sulamericana/classificacao) — ainda faltam 1: LEANDRO
+         ─┬──  ─────┬─────  ──────┬──────       ────┬────  ───┬───
+          │         │             │                 │         └─ quem ainda não assinou
+          │         │             │                 └─ quantos faltam (0 = o dia vai virar agora)
+          │         │             └─ o momento
+          │         └─ a competição em campo hoje
+          └─ qual dia da temporada (0 a 64)
+```
+
+**A competição** é uma destas:
+
+| Aparece como | É |
+|---|---|
+| `liga` | rodada do Brasileirão |
+| `copaBrasil` | Copa do Brasil |
+| `libertadores` | Libertadores |
+| `sulamericana` | Sul-Americana |
+
+**O momento** é um destes três, sempre nesta ordem:
+
+| Aparece como | Quer dizer | Você carimba quando |
+|---|---|---|
+| `escalando` | todos na tela do clube | clica em **Jogar** ("estou pronto") |
+| `jogando` | a competição está em campo | sua partida acaba, ou você termina de assistir |
+| `classificacao` | a tabela/chave daquela competição | sai da tela de classificação |
+
+Então `sulamericana/classificacao` lê-se: *"o dia de hoje é o da Sul-Americana, e a sala está no
+momento de ver a classificação dela"*. E `copaBrasil/jogando`: *"é o dia da Copa do Brasil e as
+partidas estão em campo agora"*.
+
+#### `[mesa] liberando` — o anfitrião abrindo a partida
+
+```
+[mesa] liberando 2026:dia7 (o dia virou para jogando) — 2/2 prontos
+                 ──┬─ ─┬──  ──────────┬────────────     ─┬─
+                 ano  dia          o motivo           quantos prontos
+```
+
+Aparece **só no console do anfitrião**, e só uma vez por dia. "Mesa" é a mesa do anfitrião: o único
+lugar do jogo em que alguém abre a partida — e, note, ele abre **porque o servidor decidiu**, não
+porque achou que estava na hora. O motivo é sempre `o dia virou para jogando`.
+
+#### A sequência que você deve ver — um dia inteiro
+
+Num dia de Sul-Americana com dois jogadores, o console dos dois, somado, mostra exatamente isto:
+
+```
+(A) carimbei dia7 (sulamericana/escalando) — ainda faltam 1: LEANDRO   ← A ficou pronto, falta B
+(B) carimbei dia7 (sulamericana/escalando) — ainda faltam 0            ← B ficou pronto, o momento vira
+    [mesa] liberando 2026:dia7 (o dia virou para jogando) — 2/2 prontos ← só no anfitrião
+     … os dois em campo …
+(B) carimbei dia7 (sulamericana/jogando) — ainda faltam 1: CLAUDIO     ← B acabou primeiro
+(A) carimbei dia7 (sulamericana/jogando) — ainda faltam 0              ← A acabou, o momento vira
+     … a classificação da Sul-Americana abre para os dois …
+(A) carimbei dia7 (sulamericana/classificacao) — ainda faltam 1: LEANDRO
+(B) carimbei dia7 (sulamericana/classificacao) — ainda faltam 0        ← o DIA vira: vai para o dia8
+```
+
+Três carimbos por jogador, por dia. A ordem entre os dois jogadores muda (quem clicou antes, quem
+terminou antes) — o que **não** muda é a ordem dos momentos.
+
+#### As combinações que denunciam um defeito
+
+| O que você vê | O que está errado |
+|---|---|
+| um momento **pulado** (`escalando` → `classificacao`, sem `jogando`) | alguém carimbou uma coisa que não fez |
+| `.../jogando` carimbado **sem ninguém ter entrado em campo** | o carimbo está saindo cedo demais — é o defeito que fez a jornada 2 sumir |
+| o mesmo `diaN` aparecendo **duas vezes** com o mesmo momento | o dia voltou atrás, ou o carimbo foi contado duas vezes |
+| os dois consoles em **dias diferentes** (`dia7` e `dia8`) por mais de uns segundos | os clientes estão lendo ponteiros diferentes |
+| `ainda faltam 0` e **nada acontece depois** | o momento virou e ninguém reagiu — a tela seguinte não abriu |
+| `ainda faltam 1: FULANO` **parado por minutos** | a sala está esperando o Fulano; ele deve estar vendo "A sala está esperando por você" |
+| nenhum `carimbei` durante uma jornada inteira | o ponteiro não está sendo usado — a sala pode ser antiga, sem calendário de dias |
+| `[mesa] liberando` aparecendo **duas vezes** para o mesmo dia | a partida foi aberta duas vezes |
+| `[mesa] liberando` **no console do convidado** | quem não é anfitrião está abrindo partida |
+
+### 4.4 Mensagens de espera legítima (não são erro)
 
 | Mensagem | O que está acontecendo |
 |---|---|
@@ -103,7 +189,7 @@ esperando por você"**, com o botão do que fazer.
 | `assento sem sinal de vida há 45s dispensado — a sala segue` | alguém fechou a aba; o anfitrião seguiu sem essa pessoa |
 | `classificação da libertadores já vista e sem cronômetro — voltando à tela do clube` | uma rede de segurança tirou você de uma tela que já não tinha o que mostrar |
 
-### 4.4 Sinais de problema — **estes eu quero saber**
+### 4.5 Sinais de problema — **estes eu quero saber**
 
 | Mensagem | O que significa |
 |---|---|
@@ -115,9 +201,9 @@ esperando por você"**, com o botão do que fazer.
 | `sorteio X ainda sem dados (tentativa N) — devolvido à fila` | uma cerimônia não pôde abrir; ela volta para a fila em vez de se perder |
 
 Ao mandar um relato, o mais útil é: **a última linha `carimbei` de cada jogador** e qualquer
-mensagem da tabela 4.4.
+mensagem da tabela 4.5.
 
-### 4.5 Modo detalhado (opcional)
+### 4.6 Modo detalhado (opcional)
 
 No console, antes de jogar:
 
@@ -201,5 +287,5 @@ Nenhuma delas decide o avanço do jogo: elas só cobrem o caso em que alguém de
 2. Na tela dessa pessoa deve estar o aviso **"A sala está esperando por você"**, com o botão do que
    fazer. Se não estiver, isso já é o defeito.
 3. Se ela não puder continuar, o anfitrião usa **"Começar sem eles"**.
-4. Se nada disso resolver, copie as linhas da tabela 4.4 dos **dois** navegadores — elas dizem qual
+4. Se nada disso resolver, copie as linhas da tabela 4.5 dos **dois** navegadores — elas dizem qual
    dos dois lados andou sozinho.
