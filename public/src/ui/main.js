@@ -4177,24 +4177,17 @@ function cupPhaseLabelFor(pending){
    rodada já virou 'running' — lá o cronômetro de 60s da sala está correndo e uma tela que espera
    clique travaria a rodada dos outros. No fluxo normal (clique em "Jogar") não tem timer: o
    jogador entra quando quiser. */
-/* DATA DA RODADA DE COPA na tela de entrada. A copa era a única competição sem data na
-   apresentação — só "3ª fase" ou "Fase de grupos · 2ª rodada de 6" —, o que reforçava a sensação
-   de que ela acontecia "solta", fora do calendário. Agora mostra o dia real da rodada, o mesmo que
-   o Calendário exibe (jornada em que esta rodada de copa acontece, ver S.cupCalendar). */
-function cupIntroDateHTML(pending){
-  if(typeof realDateForDay!=='function' || typeof fmtRealDate!=='function') return '';
-  // O dia sai da COMPETIÇÃO (COMP_WEEKDAY no core), não de um offset fixo de meio de semana:
-  // Sul-Americana joga terça, Libertadores quinta, Copa do Brasil sexta. A partida jogada nesta
-  // sessão é a da semana de S.round — tique e semana coincidem desde que o avanço de copa passou
-  // pro começo da rodada (ver playRound no core).
-  const dia=(typeof cupMatchDay==='function') ? cupMatchDay(pending&&pending.key, S.round||0) : 1+(S.round||0)*7+3;
-  try{ return ` <span class="cl-cupintro-date">· ${escC(fmtRealDate(realDateForDay(dia)))}</span>`; }
-  catch(e){ return ''; }
-}
+/* ENTRAR EM CAMPO DEIXOU DE TER UM MODAL NO CAMINHO.
+   A apresentação existia por um motivo que acabou: quando a rodada podia começar SOZINHA (o
+   cronômetro de 60s), o jogador caía direto numa tela ao vivo de uma competição que não esperava e
+   levava um susto. Hoje ele não pode ser surpreendido — a partida só começa quando ele mesmo
+   clicou em "Jogar" e todos os outros também; a competição do dia está no ponteiro, na barra de
+   status e no próprio botão que ele apertou. O que sobrava era uma tela a mais e 6 segundos de
+   espera por dia, multiplicados por cada humano da sala.
+   O QUE NÃO SAIU: a cerimônia de abertura de fase eliminatória e a de FINAL de copa. Aquilo é
+   jogo, não sincronia — aparece uma vez por confronto e continua aparecendo, encadeando direto na
+   partida ao fechar. */
 function showCupIntro(pending, auto){
-  // MOMENTO ANTES DA PARTIDA DE COPA: abertura de fase eliminatória, ou o modal de FINAL quando o
-  // confronto é a decisão. Aparece uma vez por confronto (marca por competição+fase+temporada) e
-  // encadeia na apresentação normal ao fechar — nunca os dois modais ao mesmo tempo.
   if(!CL._momPreCopa){
     const b=pending.bracket, ehFinal=!!(b && (b.roundsTotal-b.round)<=0);
     const marca=pending.key+':'+(b?b.round:pending.stage)+':'+(S.season||1);
@@ -4208,85 +4201,10 @@ function showCupIntro(pending, auto){
     }
   }
   CL._momPreCopa=false;
-  CL._cupIntro=pending;
-  clearCupIntroTimer();
-  const key=pending.key, def=COMP_DEFS[key]||{name:key,short:key};
-  const meHome=pending.h===CL.clubId;
-  const oppId=meHome?pending.a:pending.h;
-  const me=clubOf(CL.clubId)||{short:'?'}, opp=clubOf(oppId)||(typeof bgClubById==='function'&&bgClubById(oppId))||{short:String(oppId)};
-  const local=meHome?'em casa':'fora de casa';
-  const grupo=(pending.stage==='group'&&pending.groupLabel)?` · Grupo ${escC(pending.groupLabel)}`:'';
-  overlayC(dlg(def.name, `
-    <div class="cl-cupintro">
-      <div class="cl-live-cup-top" style="margin:-4px -4px 12px">${trophyImg(key,52)}
-        <div class="cl-live-cup-name">${escC(def.name)}</div></div>
-      <div class="cl-cupintro-phase">${escC(cupPhaseLabelFor(pending))}${grupo}${cupIntroDateHTML(pending)}</div>
-      <div class="cl-cupintro-match">
-        <span class="cl-cupintro-team" style="${clubStripe(me)}">${escC(me.short)}</span>
-        <span class="cl-cupintro-x">×</span>
-        <span class="cl-cupintro-team" style="${clubStripe(opp)}">${escC(opp.short)}</span>
-      </div>
-      <div class="cl-cupintro-loc">Você joga <strong>${local}</strong>.</div>
-      <div class="cl-cal-ok">${btn('Entrar em campo','clCupIntroGo()',{icon:'▶',cls:'cl-btn-ok cl-btn-wide'})}</div>
-      ${auto?'<div class="cl-cupscr-auto">a partida começa sozinha em alguns segundos...</div>':''}
-    </div>`, {w:520,bodyClass:'cl-body-green'}));
-  if(auto) CL._cupIntroTimer=setTimeout(()=>{ CL._cupIntroTimer=null; if(CL._cupIntro) clCupIntroGo(); }, 6000);
+  startCupLiveMatch(pending);
 }
-function clearCupIntroTimer(){ if(CL._cupIntroTimer){ clearTimeout(CL._cupIntroTimer); CL._cupIntroTimer=null; } }
-/* ---- APRESENTAÇÃO DA RODADA DE LIGA (só na Resenha, e só quando ela começa SEM eu ter clicado) ----
-   A rodada de liga sempre entrou direto, e no fluxo normal isso está certo: quem clicou em "Jogar"
-   na tela do clube sabe o que pediu. O problema é a rede de segurança (onlineRunRound): ela dispara
-   assim que o cliente pousa em 'main' com a fase da sala já em 'running' — inclusive no instante
-   seguinte ao fim de uma partida de copa. Aí a rodada do Brasileirão começava sozinha por cima do
-   jogador, que acabava de sair da Copa do Brasil e não passou pela tela do clube nenhuma vez.
-   Esta tela é o mesmo contrato da showCupIntro: diz que competição é, contra quem e onde, e entra
-   em campo sozinha em alguns segundos (o auto-avanço não é opcional aqui — o cronômetro da sala
-   está correndo e uma tela parada seguraria a rodada dos outros). */
-function showLeagueIntro(auto){
-  // A GUARDA É POR RODADA, E NUNCA PODE BLOQUEAR UMA RODADA NOVA.
-  // Era um booleano sem dono: bastava CL._leagueIntro ficar true sem timer armado — overlay
-  // fechado no clique fora, ou o timer limpo por outro caminho — pra toda chamada seguinte sair
-  // aqui. O cliente então NUNCA entrava em campo: a rodada era resolvida pelo servidor em segundo
-  // plano e o jogador não via o próprio jogo ("pulou a 2ª rodada da liga"). Agora só segura a
-  // MESMA rodada, e só enquanto o auto-avanço estiver de fato armado pra destravar sozinho.
-  if(CL._leagueIntroRound===(S.round||0) && CL._leagueIntroTimer) return;
-  const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
-  if(!nm || nm.kind!=='league'){ CL._liveBusy=true; startLiveRound(); return; }  // sem confronto de liga: nada a apresentar
-  clearLeagueIntroTimer();
-  CL._leagueIntro=true; CL._leagueIntroRound=(S.round||0);
-  const me=clubOf(CL.clubId)||{short:'?'}, opp=clubOf(nm.oppId)||{short:String(nm.oppId)};
-  const local=nm.home?'em casa':'fora de casa';
-  overlayC(dlg(nm.comp||'Campeonato', `
-    <div class="cl-cupintro">
-      <div class="cl-cupintro-phase">${escC(nm.comp||'')} · ${escC(nm.fase||'')}${nextMatchDayLabel(nm)?` <span class="cl-cupintro-date">· ${escC(nextMatchDayLabel(nm))}</span>`:''}</div>
-      <div class="cl-cupintro-match">
-        <span class="cl-cupintro-team" style="${clubStripe(me)}">${escC(me.short)}</span>
-        <span class="cl-cupintro-x">×</span>
-        <span class="cl-cupintro-team" style="${clubStripe(opp)}">${escC(opp.short)}</span>
-      </div>
-      <div class="cl-cupintro-loc">Você joga <strong>${local}</strong>.</div>
-      <div class="cl-cal-ok">${btn('Entrar em campo','clLeagueIntroGo()',{icon:'▶',cls:'cl-btn-ok cl-btn-wide'})}</div>
-      ${auto?'<div class="cl-cupscr-auto">a rodada começa sozinha em alguns segundos...</div>':''}
-    </div>`, {w:520,bodyClass:'cl-body-green'}));
-  // NO ONLINE O AUTO-AVANÇO É OBRIGATÓRIO, não opcional: é ele que garante que esta tela nunca
-  // vira um beco sem saída — se o jogador fechar o overlay no clique fora, o timer entra em campo
-  // por ele em 6s. Sem isso, uma tela fechada sem "Entrar em campo" some com a rodada dele.
-  if(auto || CL.online) CL._leagueIntroTimer=setTimeout(()=>{ CL._leagueIntroTimer=null; if(CL._leagueIntro) clLeagueIntroGo(); }, 6000);
-}
-function clearLeagueIntroTimer(){ if(CL._leagueIntroTimer){ clearTimeout(CL._leagueIntroTimer); CL._leagueIntroTimer=null; } }
-function clLeagueIntroGo(){
-  clearLeagueIntroTimer();
-  clCloseOverlay();
-  if(!CL._leagueIntro) return;
-  CL._leagueIntro=false; CL._leagueIntroRound=null;
-  CL._liveBusy=true; startLiveRound();
-}
-function clCupIntroGo(){
-  clearCupIntroTimer();
-  clCloseOverlay();
-  const p=CL._cupIntro; CL._cupIntro=null;
-  if(p) startCupLiveMatch(p);
-}
+/* A rodada de liga também entra direto (ver showCupIntro). */
+function showLeagueIntro(){ CL._liveBusy=true; startLiveRound(); }
 /* ---- MODO ESPECTADOR: assistir a uma rodada de copa de fora, sem participar —
    pergunta antes (Sim/Pular), e se aceitar mostra a partida (ou partidas, se for
    fase de grupos com vários jogos na mesma rodada) exatamente como um participante
@@ -9787,7 +9705,7 @@ function onlineMomentScreenTick(){
   if(!CL.online || typeof NET==='undefined' || !NET.room || typeof S==='undefined' || !S) return;
   const d=NET.room.day; if(!d || d.moment!=='classificacao' || d.comp==='liga') return;
   if(d.round!==(S.round||0)) return;
-  if(CL.live || CL._liveBusy || CL._cupIntro || CL._leagueIntro) return;
+  if(CL.live || CL._liveBusy) return;
   const _vista=(typeof cupClassifWasShown==='function') && cupClassifWasShown(d.comp, S.round||0);
   /* TELA DE CLASSIFICAÇÃO JÁ CUMPRIDA E SEM CRONÔMETRO ARMADO = TELA MORTA. Não há mais nada para
      acontecer ali: a tabela já foi marcada como vista e nenhum relógio vai tirar o jogador dela.

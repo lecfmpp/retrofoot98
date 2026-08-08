@@ -1493,7 +1493,7 @@ function onlineTimerLoop(){
         ') — puxando o estado da sala por cima da tela "'+CL.screen+'"');
       // solta o que prende: partida órfã, flags de tela e o próprio "ocupado"
       if(CL._liveTimer){ clearTimeout(CL._liveTimer); CL._liveTimer=null; }
-      CL.live=null; CL._liveBusy=false; CL._cupIntro=null; CL._leagueIntro=false;
+      CL.live=null; CL._liveBusy=false;
       if(typeof clearCupFlowTimer==='function') clearCupFlowTimer();
       CL.screen='main';
       onlineReconcileIfBehind(room);
@@ -1520,7 +1520,7 @@ function onlineTimerLoop(){
     if(!_foraDoLugar) CL._foraSince=0;
     else if(!CL._foraSince) CL._foraSince=Date.now();
     if(_foraDoLugar && Date.now()-CL._foraSince>40000 && CL._syncOffered!==S.round && !CL.live
-       && !CL._cupIntroTimer && !CL._leagueIntroTimer && typeof clResenhaSync==='function'){
+       && typeof clResenhaSync==='function'){
       console.warn('minha jornada ('+(S.round||0)+') difere da sala ('+(room.round||0)+') há mais de 40s — oferecendo a sincronia');
       clResenhaSync();
     }
@@ -1686,7 +1686,7 @@ function roomMoment(){
    ela continua no comportamento de antes, sem travar. */
 function roomAllowsMatch(){ const m=roomMoment(); return !m || m==='jogando'; }
 function roomDayNaTelaDoClube(){
-  return CL.screen==='main' && !CL.live && !CL._liveBusy && !CL._cupIntro && !CL._leagueIntro
+  return CL.screen==='main' && !CL.live && !CL._liveBusy
          && !(typeof S!=='undefined' && S && S._pendingDrawShows && S._pendingDrawShows.length);
 }
 function roomDayFact(d){
@@ -1833,14 +1833,6 @@ function dayRoundWatch(){
 }
 
 function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return; if(!CL.online || !S) return;
-  // APRESENTAÇÃO JÁ NA TELA: as telas de "entrar em campo" (copa e liga) são OVERLAY, não trocam
-  // CL.screen — continua valendo 'main'. Sem esta guarda, o loop do cronômetro (~300ms) reentra
-  // aqui, reabre a mesma apresentação e RE-ARMA o auto-avanço de 6s a cada volta: a tela nunca
-  // avançava sozinha e quem estivesse longe do teclado segurava a sala até o busy expirar.
-  // A guarda é o TIMER, não o flag da tela: o overlay fecha ao clicar fora, e um flag preso ali
-  // travaria esta rede de segurança pra sempre. O timer só existe enquanto o auto-avanço está
-  // armado, e ele SEMPRE dispara (clique fora não o cancela) — então a espera é no máximo 6s.
-  if(CL._cupIntroTimer || CL._leagueIntroTimer) return;
   // não interrompe as telas de sorteio/classificação pós-rodada (o convidado está vendo o ranking)
   if(CL.screen==='classif'||CL.screen==='cupdraw'||CL.screen==='seatclassif'||CL.screen==='cupclassif') return;
   // DESEMPREGADO (Fase 2): não jogo — só assisto. Marco a rodada como "vista" pra não tentar simular
@@ -1935,9 +1927,8 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
     const cupQueue=pendingUserCupMatches()
       .filter(c=>!dia || c.key===dia.comp)
       .filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key));
-    // apresentação da rodada de copa também aqui (ver showCupIntro) — mas com auto-avanço, porque
-    // este caminho roda com o cronômetro de 60s da sala já correndo: uma tela que espera clique
-    // seguraria a rodada dos outros jogadores.
+    // showCupIntro hoje só encadeia a cerimônia de abertura de fase/final (quando houver) e entra
+    // em campo — a apresentação com "Entrar em campo" foi removida (ver a definição dela).
     if(cupQueue.length && typeof showCupIntro==='function'){ showCupIntro(cupQueue[0], true); return; }
     if(cupQueue.length && typeof startCupLiveMatch==='function'){ startCupLiveMatch(cupQueue[0]); return; }
   }
@@ -1965,7 +1956,8 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
       if(startCupRound(cand.key, cand.stage, null)) return;
     }
   }
-  // RODADA DE LIGA: nunca mais cai em campo sem avisar. Antes esta linha chamava startLiveRound()
+  // RODADA DE LIGA.
+  // (histórico) Esta linha já chamou startLiveRound()
   // direto — e como o loop do cronômetro reentra aqui assim que o cliente pousa em 'main' (ver
   // onlineTimerLoop), o efeito era a rodada do Brasileirão COMEÇAR SOZINHA no segundo seguinte ao
   // fim de uma partida de copa, sem passar pela tela do clube. O jogador não revia escalação nem

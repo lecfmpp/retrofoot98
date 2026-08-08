@@ -247,7 +247,6 @@
     wrap('onlineMarkStageDone', ()=>'@key='+(typeof onlineStageKey==='function'?onlineStageKey():'?'));
     wrap('onlineMarkReady');
     wrap('playRound', ()=>'@round='+(typeof S!=='undefined'&&S?S.round:'?'));
-    wrap('showCupIntro', null, true);
     wrap('startCupLiveMatch', null, true);
     const _rr=NET.reopenReady; NET.reopenReady=async function(){ HLOG('NET.reopenReady()'); return _rr.apply(this,arguments); };
     const _res=NET.resolveRound; NET.resolveRound=async function(r,st){ HLOG('NET.resolveRound('+r+','+st+')'); return _res.apply(this,arguments); };
@@ -276,8 +275,6 @@
          Item 1 é sobre o que está na tela; então é isto que tem que ser comparado. */
       tela:(function(){
         if(CL.live) return 'live:'+((CL.live.cup&&CL.live.cup.key)||'liga');
-        if(CL._cupIntro) return 'intro:'+(CL._cupIntro.key||CL._cupIntro);
-        if(CL._leagueIntro) return 'intro:liga';
         return CL.screen;
       })(),
       // item 3: quantas vezes a jornada do ponteiro discordou da local DE FORMA SUSTENTADA. É a
@@ -342,8 +339,6 @@
       try{ if(CL.screen==='boasvindas') clBoasVindasContinuar(); }catch(e){}
       try{ if(CL.screen==='classif'||CL.screen==='seatclassif') clClassifContinue(); }catch(e){}
       try{ if(CL.screen==='cupclassif') cupClassifContinue(); }catch(e){}
-      try{ if(CL._cupIntro&&typeof clCupIntroGo==='function') clCupIntroGo(); }catch(e){}
-      try{ if(CL._leagueIntro&&typeof clLeagueIntroGo==='function') clLeagueIntroGo(); }catch(e){}
       try{ if(CL.screen==='waitround'&&CL._adCont&&typeof clAdSkip==='function') clAdSkip(); }catch(e){}
     },
     jogar(){ if(!CL.tacticChosen){ try{ clSelFormation('auto'); }catch(e){} CL.tacticChosen=true; }
