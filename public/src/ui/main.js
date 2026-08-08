@@ -493,7 +493,29 @@ function showSyncLoading(msg){
   CL._syncLoadingTimer=setTimeout(hideSyncLoading, 8000);
 }
 function hideSyncLoading(){ if(CL._syncLoadingTimer){ clearTimeout(CL._syncLoadingTimer); CL._syncLoadingTimer=null; } const el=$c('#c-syncload'); if(el) el.remove(); }
+/* A LISTA NÃO VOLTA PARA O TOPO A CADA REDESENHO.
+   Toda ação da interface passa por cdraw(), que reescreve a tela inteira (innerHTML) — e um
+   elemento recriado nasce com a rolagem no zero. Nas telas curtas isso não aparece; no elenco, sim,
+   e de forma irritante: trocar um titular por um reserva mandava a lista para o topo, e o jogador
+   perdia de vista exatamente o que acabou de mexer. Guardar a rolagem antes e devolvê-la depois
+   resolve para todas as ações de uma vez, em vez de remendar caso a caso.
+   Só devolve se o número de listas for o mesmo antes e depois: se a tela mudou, a rolagem velha
+   não tem a que pertencer. */
+const CDRAW_ROLAGENS=['.cl-roster','.cl-mkt-squad'];
+function capturaRolagem(){
+  const m={};
+  try{ CDRAW_ROLAGENS.forEach(sel=>{ m[sel]=Array.from(document.querySelectorAll(sel)).map(el=>el.scrollTop); }); }catch(e){}
+  return m;
+}
+function devolveRolagem(m){
+  try{ CDRAW_ROLAGENS.forEach(sel=>{
+    const els=document.querySelectorAll(sel), vals=m[sel]||[];
+    if(!els.length || els.length!==vals.length) return;
+    els.forEach((el,i)=>{ if(vals[i]>0) el.scrollTop=vals[i]; });
+  }); }catch(e){}
+}
 function cdraw(){ const r=$c('#c-root'); if(!r)return;
+  const _rolagem=capturaRolagem();
   // registra a força do meu elenco uma vez por rodada (no-op se nada mudou) — ver trackMyForces
   if(typeof trackMyForces==='function'){ try{ trackMyForces(); }catch(e){} }
   let html='';
@@ -526,6 +548,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'online':    html=renderOnline(); break;
   }
   r.innerHTML=html;
+  devolveRolagem(_rolagem);   // ver capturaRolagem: a lista fica onde estava
   // o palco do chaveamento tem proporção fixa (1080×520) e é escalado pra caber no painel —
   // precisa medir DEPOIS do innerHTML, e de novo a cada resize (ver cupFitStage).
   if(CL.screen==='cupclassif'||CL.screen==='cupview'||CL.screen==='cupdraw') requestAnimationFrame(cupFitStage);
