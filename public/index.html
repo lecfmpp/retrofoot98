@@ -64,6 +64,26 @@
 <link rel="stylesheet" href="src/styles/main.css"></head>
 <body>
 <div id="c-root"></div>
+<!-- AS PÁGINAS DO SITE NO HTML CRU.
+     O rodapé do jogo é montado em JavaScript, então um robô que não executa JS não enxerga link
+     nenhum — e foi assim que dez páginas reais ficaram órfãs, alcançáveis só pelo sitemap. Estes
+     são os MESMOS links, com os mesmos rótulos, para quem lê o HTML direto. Ficam num <noscript>
+     porque para o jogador eles já existem no rodapé da tela inicial: mostrar duas vezes seria
+     ruído. -->
+<noscript>
+  <nav aria-label="Páginas do RetroFoot98">
+    <a href="/guia/">Guia do jogo</a> ·
+    <a href="/ranking/">Ranking</a> ·
+    <a href="/historia-do-elifoot/">História do Elifoot</a> ·
+    <a href="/elifoot-online/">Elifoot online</a> ·
+    <a href="/jogar-com-amigos/">Jogar com amigos</a> ·
+    <a href="/manager-futebol-brasileiro/">Futebol brasileiro</a> ·
+    <a href="/jogo-treinador-futebol-online/">Jogo de treinador</a> ·
+    <a href="/melhores-jogos-treinador-futebol/">Melhores jogos</a> ·
+    <a href="/jogos-parecidos-com-elifoot/">Jogos parecidos</a> ·
+    <a href="/elifoot-vs-brasfoot/">Elifoot vs Brasfoot</a>
+  </nav>
+</noscript>
 <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0"></script>
 <script async src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="src/data/match-config.js"></script>

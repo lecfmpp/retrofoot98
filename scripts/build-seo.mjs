@@ -8,7 +8,7 @@
 // Domínio: troque SEO_SITE por env var, ou edite SITE abaixo (canonical de produção).
 // ============================================================================
 import { pages } from '../seo/pages.mjs';
-import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -143,3 +143,22 @@ writeFileSync(resolve(DIST, 'sitemap.xml'), sitemapXml(ready));
 // mantém public/sitemap.xml em sincronia (fonte que o Vite copia em builds futuros)
 try{ writeFileSync(resolve(ROOT, 'public', 'sitemap.xml'), sitemapXml(ready)); }catch(e){}
 console.log(`SEO  sitemap.xml -> ${ready.length+1} URLs  |  domínio: ${SITE}`);
+
+/* PÁGINA SEM LINK INTERNO É PÁGINA ÓRFÃ.
+   As dez páginas ficaram meses no ar sem uma única porta do site levando a elas: só chegava quem
+   viesse do Google. Quem já estava no site nunca as encontrava, e o buscador via conteúdo sem
+   nenhum link apontando — um dos sinais mais fortes que existem, desperdiçado.
+   O rodapé (LANDING_PAGINAS, em public/src/ui/main.js) agora linka todas. Isto confere se as duas
+   listas continuam batendo: uma página nova em seo/pages.mjs que não entre no rodapé nasceria
+   órfã de novo, e o silêncio é exatamente como o problema durou tanto. Avisa, não quebra o build —
+   publicar a página sem o link ainda é melhor que não publicar. */
+try{
+  const ui = readFileSync(resolve(ROOT, 'public', 'src', 'ui', 'main.js'), 'utf8');
+  const semLink = ready.filter(p => !ui.includes(`'${p.slug}'`));
+  if(semLink.length){
+    console.warn('SEO  ⚠ sem link no rodapé (ficariam órfãs): ' + semLink.map(p=>'/'+p.slug+'/').join(', '));
+    console.warn('SEO    -> acrescente em LANDING_PAGINAS, public/src/ui/main.js');
+  } else {
+    console.log('SEO  ✓ todas as páginas estão linkadas no rodapé');
+  }
+}catch(e){ console.warn('SEO  ⚠ não deu pra conferir os links do rodapé:', e.message); }

@@ -572,6 +572,32 @@ const FEATURES=[
 ];
 const LANDING_NAV=[['home','Início'],['sobre','Sobre nós'],['ajuda','Como jogar'],['contato','Contato']];
 const LANDING_FOOT=[['sobre','Sobre nós'],['contato','Contato'],['termos','Termos'],['priv','Privacidade']];
+/* ===== AS PÁGINAS DE CONTEÚDO NO RODAPÉ =====
+   Existem dez páginas reais em produção (geradas por scripts/build-seo.mjs a partir de
+   seo/pages.mjs) — guia, ranking, história do Elifoot, comparativos. Elas respondem 200, têm HTML
+   indexável e linkam uma para a outra... e NENHUMA porta do jogo levava a elas. Eram páginas
+   órfãs: só chegava quem viesse do Google. Duas consequências, e a segunda é a pior — quem já está
+   no site nunca as encontra, e o buscador vê conteúdo sem nenhum link interno apontando, que é um
+   dos sinais mais fortes que existem.
+   Aqui elas entram como link DE VERDADE (<a href>), não como onclick: onclick não é link para
+   robô nenhum, não abre em nova aba e não aparece no "copiar endereço". Os rótulos são curtos de
+   propósito — o título de SEO é longo por natureza e não cabe num rodapé.
+   Se uma página nova entrar em seo/pages.mjs sem entrar aqui, o build avisa (ver build-seo.mjs). */
+const LANDING_PAGINAS=[
+  ['guia','Guia do jogo'],
+  ['ranking','Ranking'],
+  ['historia-do-elifoot','História do Elifoot'],
+  ['elifoot-online','Elifoot online'],
+  ['jogar-com-amigos','Jogar com amigos'],
+  ['manager-futebol-brasileiro','Futebol brasileiro'],
+  ['jogo-treinador-futebol-online','Jogo de treinador'],
+  ['melhores-jogos-treinador-futebol','Melhores jogos'],
+  ['jogos-parecidos-com-elifoot','Jogos parecidos'],
+  ['elifoot-vs-brasfoot','Elifoot vs Brasfoot'],
+];
+function rodapePaginasHTML(){
+  return LANDING_PAGINAS.map(([slug,label])=>`<a class="cl-home-foot" href="/${slug}/">${escC(label)}</a>`).join('');
+}
 /* navbar da Home/wizard: links à esquerda + ações à direita. No mobile os links colapsam
    num menu hambúrguer (☰) em vez de rolar horizontalmente. navItems = [[label,onclick,ativo]]. */
 function homeNavbar(navItems, rightHTML){
@@ -608,8 +634,11 @@ function scAbertura(){
        <button class="cl-home-entrar" onclick="clGoModo()"><span>🔑</span>Entrar</button>`)}
     <div class="cl-home-body">${body}</div>
     <div class="cl-home-footer">
-      <div class="cl-home-foot-l"><span class="cl-home-ver">v2026.01</span><span>© 2026 RetroFoot98</span></div>
-      <div class="cl-home-foot-r">${footHTML}</div>
+      <div class="cl-home-foot-paginas">${rodapePaginasHTML()}</div>
+      <div class="cl-home-foot-linha">
+        <div class="cl-home-foot-l"><span class="cl-home-ver">v2026.01</span><span>© 2026 RetroFoot98</span></div>
+        <div class="cl-home-foot-r">${footHTML}</div>
+      </div>
     </div>
   </div>`;
 }
@@ -883,12 +912,15 @@ function wizShell(o){
       ${(o.action!=null && !_wizInline(o))?`<div class="cl-wiz-actionbar ${o.actionCls||''}">${o.action}</div>`:''}
     </div>
     <div class="cl-home-footer">
-      <div class="cl-home-foot-l"><span class="cl-home-ver">v2026.01</span><span>© 2026 RetroFoot98</span></div>
-      <div class="cl-home-foot-r">
-        <a class="cl-home-foot" onclick="clWizHome('sobre')">Sobre nós</a>
-        <a class="cl-home-foot" onclick="clWizHome('contato')">Contato</a>
-        <a class="cl-home-foot" onclick="clWizHome('termos')">Termos</a>
-        <a class="cl-home-foot" onclick="clWizHome('priv')">Privacidade</a>
+      <div class="cl-home-foot-paginas">${rodapePaginasHTML()}</div>
+      <div class="cl-home-foot-linha">
+        <div class="cl-home-foot-l"><span class="cl-home-ver">v2026.01</span><span>© 2026 RetroFoot98</span></div>
+        <div class="cl-home-foot-r">
+          <a class="cl-home-foot" onclick="clWizHome('sobre')">Sobre nós</a>
+          <a class="cl-home-foot" onclick="clWizHome('contato')">Contato</a>
+          <a class="cl-home-foot" onclick="clWizHome('termos')">Termos</a>
+          <a class="cl-home-foot" onclick="clWizHome('priv')">Privacidade</a>
+        </div>
       </div>
     </div>
   </div>`;

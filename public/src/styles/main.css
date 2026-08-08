@@ -110,7 +110,14 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-home-contact-row span:first-child{font-size:17px}
 .cl-home-mono{font-family:var(--mono);font-weight:700}
 .cl-home-muted{color:var(--gray-666)}
-.cl-home-footer{flex:none;height:30px;background:var(--chrome);border-top:2px solid var(--bevL);display:flex;align-items:center;justify-content:space-between;padding:0 12px}
+/* RODAPÉ EM DUAS FAIXAS: as páginas de conteúdo em cima, o institucional embaixo. Era uma barra
+   de 30px com quatro links; as dez páginas do site não cabiam ali sem virar sopa de letrinhas. */
+.cl-home-footer{flex:none;background:var(--chrome);border-top:2px solid var(--bevL);
+  display:flex;flex-direction:column;gap:2px;padding:6px 12px}
+.cl-home-foot-paginas{display:flex;flex-wrap:wrap;gap:4px 14px;padding-bottom:5px;
+  border-bottom:1px solid var(--bevD2)}
+.cl-home-foot-linha{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  flex-wrap:wrap;min-height:22px}
 .cl-home-foot-l{display:flex;align-items:center;gap:10px;font-size:11px;color:#3a3a3a}
 .cl-home-ver{font-family:var(--mono);font-weight:700}
 .cl-home-foot-r{display:flex;align-items:center;gap:14px}
@@ -128,7 +135,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-home-hero-h{font-size:22px}
   .cl-home-featrow{flex-direction:column;align-items:center;gap:16px}
   .cl-home-feat{width:100%;max-width:320px}
-  .cl-home-footer{height:auto;flex-direction:column;gap:6px;padding:9px 12px}
+  .cl-home-footer{padding:9px 12px;gap:6px}
+  .cl-home-foot-linha{flex-direction:column;align-items:flex-start;gap:6px}
   .cl-home-cta{font-size:17px;padding:15px 26px;max-width:90%;white-space:nowrap;justify-content:center}
   .cl-home-page{padding:20px 14px}
 }
