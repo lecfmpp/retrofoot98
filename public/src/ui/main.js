@@ -368,7 +368,11 @@ function pausaLeft(){ return Math.max(0, Math.ceil((AD_MIN_MS-(nowMs()-(CL._wait
 // olhando pra uma tela que não explica nada (o jogador recarregava a página antes de descobrir
 // que havia saída). É o MESMO limite do modal automático (ver onlineTimerLoop): o botão na barra
 // e a oferta automática aparecem juntos, não em momentos diferentes.
-const WAIT_ESCAPE_MS=15000;
+/* Só governa o BOTÃO "Sincronizar a Resenha" dentro da tela de pausa — um botão discreto, que o
+   jogador usa se quiser. Era 15s, quando esperar significava travamento; hoje a sala espera de
+   propósito pelo carimbo de alguém, e 15s é menos do que outro humano leva para escalar. 45s deixa
+   a saída à mão sem sugerir que algo quebrou. A oferta AUTOMÁTICA saiu (ver onlineTimerLoop). */
+const WAIT_ESCAPE_MS=45000;
 function pausaStuck(){ return (nowMs()-(CL._waitSince||nowMs())) >= WAIT_ESCAPE_MS; }
 /* barra em DEGRAUS de 10%: com a janela de 10s e o tique de 1s, cada segundo é exatamente um
    degrau — o jogador lê o avanço em vez de ver um número arbitrário (a conta contínua mostrava

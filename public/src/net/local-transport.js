@@ -1504,14 +1504,24 @@ function onlineTimerLoop(){
   // custou uma ida ao banco pra descobrir isso; agora o relatório vem junto do problema.
   if(CL.online && CL.screen==='waitround' && room && typeof S!=='undefined' && S){
     const dt=Date.now()-(CL._waitSince||Date.now());
-    // OFERTA AUTOMÁTICA DA SINCRONIA. O diagnóstico logo abaixo sempre soube que a sala estava
-    // parada, mas só contava isso pro console — o jogador ficava olhando a pausa técnica sem
-    // saber que existia saída. Passando de WAIT_ESCAPE_MS, o modal se oferece sozinho. Fica FORA
-    // do intervalo de 10s do diagnóstico de propósito: dentro dele, a primeira reavaliação só
-    // viria aos 22s. Uma vez por rodada (CL._syncOffered) e nunca por cima de partida ou de tela
-    // de decisão com contagem regressiva.
-    if(dt>WAIT_ESCAPE_MS && CL._syncOffered!==S.round && !CL.live
+    /* A SINCRONIA NÃO SE OFERECE MAIS POR TEMPO DE ESPERA.
+       Ela nasceu quando sala parada era comum e ninguém sabia por quê: passados 15s de pausa, o
+       modal aparecia oferecendo recarregar a página. Isso deixou de fazer sentido por dois motivos.
+       Primeiro, esperar virou NORMAL: a sala segura de propósito enquanto falta o carimbo de
+       alguém, e 15s é menos do que outro humano leva para escalar, assistir ou ler uma tabela.
+       Segundo, e pior: o jogo se reconcilia sozinho na imensa maioria dos casos, então o modal
+       aparecia e sumia sem ter feito nada — o que ensina o jogador a desconfiar do jogo.
+       O convite automático agora depende de um sinal HONESTO de que este cliente está de fato
+       fora do lugar: a minha jornada diferente da jornada da sala, mantida por mais de 40s. Se as
+       duas coincidem, não há o que sincronizar — o que falta é o carimbo de alguém, e para isso
+       existe o painel "esperando por X" e o botão do anfitrião.
+       O botão manual continua onde sempre esteve: no menu e na própria tela de pausa. */
+    const _foraDoLugar = (room.round||0)!==(S.round||0);
+    if(!_foraDoLugar) CL._foraSince=0;
+    else if(!CL._foraSince) CL._foraSince=Date.now();
+    if(_foraDoLugar && Date.now()-CL._foraSince>40000 && CL._syncOffered!==S.round && !CL.live
        && !CL._cupIntroTimer && !CL._leagueIntroTimer && typeof clResenhaSync==='function'){
+      console.warn('minha jornada ('+(S.round||0)+') difere da sala ('+(room.round||0)+') há mais de 40s — oferecendo a sincronia');
       clResenhaSync();
     }
     if(dt>12000 && Date.now()-(CL._waitDiagT||0)>10000){
