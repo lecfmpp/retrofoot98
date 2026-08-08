@@ -143,6 +143,7 @@
   NET.dayPointer=async function(){ return SRV.dayCurrent(NET.gameId); };
   NET.dayAck=async function(idx, moment, ignorarSeg){ return SRV.dayAck(NET.gameId, uid, idx, moment, ignorarSeg||0); };
   NET.dayStatus=async function(){ return SRV.dayStatus(NET.gameId); };
+  NET.dayUnack=async function(idx, moment){ return SRV.dayUnack(NET.gameId, uid, idx, moment); };
   NET.refreshDay=async function(){ pushState(SRV.snapshot(NET.gameId)); return NET.room&&NET.room.day; };
   NET.toRunning=async function(){ if(NET.isHost) SRV.startRunning(NET.gameId); };
   NET.reopenReady=async function(){ SRV.reopenReady(NET.gameId); };

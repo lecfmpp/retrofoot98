@@ -826,6 +826,16 @@ async function netDayAck(idx, moment, ignorarSeg){
     return (data && data.length) ? data[0] : null;
   }catch(e){ console.warn('dayAck:', e && e.message); return null; }
 }
+/* DESFAZ O MEU CARIMBO — o "não estou mais pronto". Só limpa se o dia/momento ainda for o que eu
+   carimbei, e nunca move o ponteiro (ver a migração day_unack). */
+async function netDayUnack(idx, moment){
+  if(!sb || !NET.gameId) return null;
+  try{
+    const { data, error } = await sb.rpc('day_unack', { p_game: NET.gameId, p_idx: idx, p_moment: moment });
+    if(error) throw error;
+    return (data && data.length) ? data[0] : null;
+  }catch(e){ console.warn('dayUnack:', e && e.message); return null; }
+}
 /* quem a sala ainda está esperando, com nome — alimenta o modal do anfitrião (item 5). */
 async function netDayStatus(){
   if(!sb || !NET.gameId) return null;
@@ -1494,6 +1504,7 @@ NET.authResetPassword = netAuthResetPassword;
 NET.updatePassword = netUpdatePassword;
 NET.dayPointer = netDayPointer;
 NET.dayAck = netDayAck;
+NET.dayUnack = netDayUnack;
 NET.dayStatus = netDayStatus;
 NET.refreshDay = netRefreshDay;
 NET.listMyRooms = netListMyRooms;

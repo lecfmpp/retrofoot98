@@ -9298,8 +9298,29 @@ function republicarEscalacao(){
   NET.publishLineup((S.xi||[]).slice(), S.tactic||'equilibrado');
 }
 function jogarBtnHTML(ok){
-  if(estouPronto()) return btn('Pronto','',{icon:'✔',cls:'cl-btn-ok cl-btn-on',dis:true});
+  // PRONTO É UM INTERRUPTOR, NÃO UM CARIMBO SEM VOLTA. Ele nasceu desabilitado — o jogador que
+  // clicasse e mudasse de ideia ficava preso, com a sala andando por cima dele. Clicar de novo
+  // cancela: eu deixo de estar pronto e a sala volta a esperar por mim, que é o comportamento
+  // honesto de quem decide a própria escalação.
+  if(estouPronto()) return btn('Pronto','clCancelarPronto()',{icon:'✔',cls:'cl-btn-ok cl-btn-on'});
   return btn('Jogar','clJogar()',{icon:'⚽',cls:'cl-btn-ok',dis:!ok});
+}
+/* CANCELA O "ESTOU PRONTO". Tira o meu carimbo do servidor (day_unack) e volto a ser esperado.
+   Só vale enquanto a sala está em 'escalando': depois disso a rodada já começou para todos, e
+   desfazer seria voltar a sala no tempo — coisa que ninguém pode fazer sozinho. */
+function clCancelarPronto(){
+  if(!estouPronto()) return;
+  const d=(typeof NET!=='undefined' && NET.room)?NET.room.day:null;
+  CL._readyForStage=null;
+  CL._dayAckKey=null;                       // libera o carimbo pra sair de novo quando eu voltar
+  if(typeof NET!=='undefined' && NET.setReady) NET.setReady(false, CL.clubId);
+  if(d && typeof NET!=='undefined' && NET.dayUnack){
+    Promise.resolve(NET.dayUnack(d.idx, d.moment))
+      .then(()=>{ if(NET.refreshDay) return NET.refreshDay(); })
+      .catch(e=>console.warn('cancelar pronto:', e && e.message));
+  }
+  toastC('Você não está mais pronto — a sala espera por você.');
+  cdraw();
 }
 function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
   if(f==='auto'){ S.xi=autoXI(CL.clubId); CL.formation='Automático'; S.tactic='equilibrado'; }

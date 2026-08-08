@@ -1714,7 +1714,8 @@ function roomDayFact(d){
     }
     /* DIA DE LIGA: a pergunta é "eu joguei a PARTIDA DE LIGA desta jornada?", e ela tem que ser
        respondida por fatos da partida — nunca pela etapa da semana em que eu penso estar (ver
-       onlineStageDoneFor: foi assim que a jornada 2 inteira sumiu). Três respostas honestas: joguei
+       onlineStageDone, que hoje usa a chave do DIA: foi respondendo pela etapa da semana que a
+       jornada 2 inteira sumiu). Três respostas honestas: joguei
        (finishLiveRound), a etapa de LIGA desta jornada está marcada, ou eu não tenho partida
        nenhuma porque estou desempregado. */
     if(CL.unemployed) return true;
@@ -2160,15 +2161,15 @@ function onlineMarkStageDone(){ const k=onlineStageKey();
   CL._stageDone=CL._stageDone||{}; CL._stageDone[k]=true;
   if(typeof rememberDrawSeen==='function') rememberDrawSeen('stage:'+k);
 }
-function onlineStageDone(){ return onlineStageDoneFor('league'); }
-/* A MESMA PERGUNTA, MAS PARA UMA ETAPA QUE EU NOMEIO — nunca para "a etapa em que eu acho que
-   estou". Enquanto a etapa da semana existiu, ela era uma noção local e atrasada, e responder por
-   ela derrubou a jornada 2 em produção: o carimbo de 'jogando' do dia de liga saía sem ninguém ter
-   jogado, o dia fechava em segundos e o ponteiro pulava a jornada, levando os DOIS humanos junto.
-   A etapa acabou; a assinatura fica porque nomear o que se pergunta é o hábito que evita a volta
-   dessa classe de defeito. */
-function onlineStageDoneFor(stage){
-  const k=(typeof S!=='undefined'&&S?((S.season||1)+':'+(S.round||0)):'0')+':'+(stage||'league');
+/* PERGUNTA E RESPOSTA TÊM QUE USAR A MESMA CHAVE — e por um tempo não usaram.
+   Quando a etapa virou o DIA, onlineMarkStageDone passou a gravar em 'temporada:diaN', mas esta
+   função continuou perguntando por 'temporada:jornada:league' — a chave da etapa da semana, que
+   deixou de existir. Ou seja: ela respondia NÃO para tudo, sempre. O que ela protege é o
+   anti-repetição (um dia cumprido nunca é reentrado) e o carimbo do dia de liga, então a falha
+   silenciosa abria a porta para reentrar numa etapa já jogada. Defeito meu, da limpeza; agora as
+   duas leem onlineStageKey(), que é a única chave que existe. */
+function onlineStageDone(){
+  const k=onlineStageKey();
   if(CL._stageDone && CL._stageDone[k]) return true;
   return (typeof drawAlreadySeen==='function') && drawAlreadySeen('stage:'+k);
 }

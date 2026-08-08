@@ -99,6 +99,10 @@ window.__HSRV={
     const e=g.day_plan[g.day_idx]; if(!e) return null;
     return { idx:g.day_idx, momento:g.day_moment, jornada:e.r, competicao:e.comp,
              dia_da_temporada:e.dia, total_dias:g.day_plan.length }; },
+  /* desfaz o carimbo do próprio assento — mesma semântica da RPC day_unack (nunca move o dia) */
+  dayUnack(code, uid, idx, moment){ const g=G(code); if(!g||!g.day_plan) return null;
+    if(idx===g.day_idx && moment===g.day_moment && g.seats[uid]){ g.seats[uid].day_ack=null; g.seats[uid].is_ready=false; bcast(code); }
+    return this.dayStatus(code); },
   dayStatus(code){ const g=G(code); if(!g||!g.day_plan) return null;
     const cur=this.dayCurrent(code); if(!cur) return null;
     const chave=g.day_idx+':'+g.day_moment;
