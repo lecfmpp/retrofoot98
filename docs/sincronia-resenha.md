@@ -112,7 +112,6 @@ esperando por você"**, com o botão do que fazer.
 | `à frente da sala: eu=6 sala=5 — esperando o fechamento` | seu jogo passou à frente da sala |
 | `atrasado 3 rodada(s) — puxando o estado da sala por cima da tela` | seu save ficou tão para trás que foi preciso puxá-lo à força |
 | `pausa há 23s \| fase=running rodada: eu=4 sala=4 …` | a sala está parada há mais de 12s; a linha diz quem não publicou resultado |
-| `estágio de quarta não fechou em 240s` | resquício do sistema antigo de "quarta/sábado" (ver o item 6) |
 | `sorteio X ainda sem dados (tentativa N) — devolvido à fila` | uma cerimônia não pôde abrir; ela volta para a fila em vez de se perder |
 
 Ao mandar um relato, o mais útil é: **a última linha `carimbei` de cada jogador** e qualquer
@@ -167,19 +166,31 @@ Depois da limpeza, a lista inteira cabe numa tabela.
 
 ---
 
-## 6. O que ainda falta limpar
+## 6. A limpeza terminou
 
-Uma coisa só, e ela é real: o **estágio "quarta/sábado"** (`S.roundStage`, `CUP_STAGE_MAX_MS`). É
-uma segunda unidade de tempo, que vive dentro do estado do jogo e chega atrasada em relação ao
-ponteiro — foi ela que fez a jornada 2 fechar sem ninguém jogar. O dia do ponteiro já faz esse
-papel com mais precisão.
+O **estágio "quarta/sábado"** era a última unidade de tempo concorrente com o dia: uma "quarta de
+copa" e um "sábado de liga" que viviam dentro do estado do jogo e chegavam atrasados em relação ao
+ponteiro. Foi ele que fez a jornada 2 fechar sem ninguém jogar, e ele saiu.
 
-Não foi removida junto porque ela atravessa o `resolve-round`, que muda como o mundo é calculado e
-só sobe por outro caminho de publicação. É o próximo passo, e merece ser feito sozinho.
+O que isso muda na prática: **um fechamento por jornada**, em vez de dois. As copas da semana são
+resolvidas no mesmo fechamento da rodada de liga — como era antes da divisão em estágios — e quem
+separa as competições agora é o **dia** do ponteiro, que é mais preciso: cada copa tem o seu dia,
+com os seus três momentos, em vez de todas amontoadas numa "quarta".
 
-Fora isso, o que sobrou de "rede de segurança" é curto e cada uma tem uma justificativa que se
-sustenta: o cão de guarda (o anfitrião caiu), o `ROUND_LAG_MAX` (save já quebrado), o auto-resolver
-de decisão vencida (aba em segundo plano) e a dispensa de quem está sem sinal de vida há 45s.
+Isso foi feito **sem alterar o `resolve-round`**: quando o cliente não pede um estágio, a função
+já resolve as copas junto da liga (era o caminho de degradação que ela mesma previa). Uma mudança a
+menos onde ela seria mais cara.
+
+**As redes de segurança que ficaram** — quatro, cada uma com uma justificativa que se sustenta:
+
+| Rede | Existe para |
+|---|---|
+| cão de guarda | o anfitrião caiu e ninguém fecharia a rodada |
+| `ROUND_LAG_MAX` | save tão atrasado que já quebrou |
+| auto-resolver de decisão vencida | aba em segundo plano congela os prazos de expulsão/pênalti |
+| dispensa por 45s sem sinal de vida | quem fechou a aba não pode congelar a sala |
+
+Nenhuma delas decide o avanço do jogo: elas só cobrem o caso em que alguém desapareceu.
 
 ---
 

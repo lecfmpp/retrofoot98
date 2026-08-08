@@ -6712,16 +6712,11 @@ function onlineHostCloseRound(){
      Sala sem plano de dias (save antigo) continua no caminho de antes: degrada, não trava. */
   const _dia = (NET.room && NET.room.day) || null;
   if(_dia){
-    /* DUAS PORTAS, PORQUE SÃO DOIS FECHAMENTOS DIFERENTES:
-       · QUARTA (pc.stage==='cup'): resolve as copas da jornada de uma vez. Só pode acontecer quando
-         o ponteiro já SAIU de todos os dias de copa desta jornada — ou seja, chegou ao dia de liga.
-         Fechar no primeiro dia de copa resolveria as chaves das competições dos dias seguintes
-         antes de alguém as ter assistido, e aqueles dias ficariam sem nada para cumprir.
-       · SÁBADO (rodada de liga): o dia de liga desta jornada com o momento já em 'classificacao',
-         que é o servidor dizendo que todos cumpriram a partida. */
-    const portaAberta = (pc.stage==='cup')
-      ? (_dia.round===round && _dia.comp==='liga')
-      : (_dia.round===round && _dia.comp==='liga' && _dia.moment==='classificacao');
+    /* UMA PORTA SÓ: o dia de LIGA desta jornada com o momento já em 'classificacao' — o servidor
+       dizendo que todos cumpriram a partida. Havia duas, porque existia a "quarta de copa" como um
+       fechamento à parte; ela acabou (ver docs/sincronia-resenha.md). As copas da jornada são
+       resolvidas neste mesmo fechamento, como sempre foi antes da divisão em dois estágios. */
+    const portaAberta = (_dia.round===round && _dia.comp==='liga' && _dia.moment==='classificacao');
     if(!portaAberta){
       if(!CL._hostCloseWaitLog || CL._hostCloseWaitLog!==_dia.idx+':'+_dia.moment){
         CL._hostCloseWaitLog=_dia.idx+':'+_dia.moment;
@@ -6766,7 +6761,7 @@ function onlineHostCloseRound(){
       // ESTÁGIO: fechando a quarta-feira, o servidor resolve SÓ as copas e devolve a semana no
       // estágio de sábado; fechando o sábado, resolve a rodada inteira como sempre. Estado sem
       // roundStage (save antigo) cai no caminho de sempre — stage indefinido = 'league'.
-      const _stage=(typeof isCupStage==='function' && isCupStage())?'cup':undefined;
+      const _stage=undefined;   // não existe mais quarta/sábado: um fechamento por jornada (ver docs/sincronia-resenha.md)
       let res=null; try{ res=await NET.resolveRound(round, _stage); }catch(e){ res={error:(e&&e.message)||'erro'}; }
       if(!res || res.error){
         // NUNCA MAIS COMITAR LOCALMENTE. Aqui havia um fallback que chamava _commitLeagueRound —
@@ -7223,8 +7218,7 @@ function finishCupResultFlow(){
     if(typeof onlineMomentScreenTick==='function') onlineMomentScreenTick();
     if(CL.screen==='cupclassif') return;
   }
-  const _cupStage = (typeof isCupStage==='function' && isCupStage());
-  const stillPending = CL.online && (pendingUserCupMatches().length>0 || (!_cupStage && CL._playedRound!==S.round));
+  const stillPending = CL.online && (pendingUserCupMatches().length>0 || CL._playedRound!==S.round);
   if(CL.online && !stillPending){
     // SAI DA TELA ANTES DE MARCAR PRONTO. Ficar na chave/classificação parecia inofensivo, mas o
     // onlineRunRound tem (e precisa ter) a guarda "não interrompe telas de classificação" — com a

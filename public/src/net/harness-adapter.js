@@ -13,9 +13,8 @@
    fecha a rodada pelo caminho local completo (_commitLeagueRound) e
    os convidados adotam via loadGame — código de produção dos dois
    lados. Limite conhecido do v1: sem resolve-round não há semana de
-   dois estágios (S.roundStage nunca é criado) — o harness testa o
-   lockstep de entrada/saída, cerimônias, anti-replay e telas
-   pós-rodada; a quarta-feira dedicada fica pro v2.
+   dois estágios — o harness testa o lockstep de entrada/saída,
+   cerimônias, anti-replay e telas pós-rodada.
    ================================================================ */
 (function(){
   if(typeof window==='undefined') return;
@@ -191,37 +190,25 @@
   NET.fetchRoundStreams=async function(){ return null; };
   NET.broadcastKickoff=function(){}; NET.broadcastMatch=function(){}; NET.broadcastDecision=function(){};
 
-  /* RESOLVEDOR DE DOIS ESTÁGIOS (v2) — porta a semântica do resolve-round de produção usando o
-     PRÓPRIO motor do jogo, no cliente HOST: fechar a quarta resolve só as copas da jornada e vira
-     o estágio pra 'league' (rodada NÃO muda); fechar o sábado roda a rodada completa (playRound)
-     e abre a semana seguinte na quarta se ela tiver copa. É o que faz o harness exercitar a
-     semana quarta/sábado real — onde moram os bugs de copa. */
-  NET.resolveRound=async function(round, stage){
+  /* RESOLVEDOR DA JORNADA — porta a semântica do resolve-round de produção usando o PRÓPRIO motor
+     do jogo, no cliente HOST. Um fechamento por jornada: playRound resolve as copas da semana e a
+     rodada de liga na mesma passada. A divisão em "quarta de copa" e "sábado de liga" foi removida
+     do jogo — quem separa as competições agora é o DIA do ponteiro. */
+  NET.resolveRound=async function(round){
     if(!NET.isHost) return { error:'harness: só o host resolve' };
     try{
       if((S.round||0)!==round) return { ok:true, already:true, round:S.round };
       const map=NET.collectHumanResults(round);
-      const keys=['copaBrasil'].concat((typeof groupCupKeys==='function')?groupCupKeys():[]);
-      if(stage==='cup'){
-        if(S.roundStage!=='cup') return { ok:true, already:true, round:S.round, stage:S.roundStage||'league' };
-        advancePendingCups();
-        S._cupResolvedRound=S._cupResolvedRound||{};
-        keys.forEach(k=>{ if(S.cups&&S.cups[k]&&cupTickMatchesRound(k,S.round)) S._cupResolvedRound[k]=S.round; });
-        S.roundStage='league';
-        await NET.saveGame({S, round:S.round});
-        return { ok:true, round:S.round, stage:'league' };
-      }
       const uf=(typeof userFixture==='function')?userFixture():null;
       const myKey=uf?uf[0]+'-'+uf[1]:null;
       const userResult=(myKey&&map[myKey])?map[myKey]:null;
       if(typeof advancePlayerAvailability==='function') advancePlayerAvailability();
-      playRound(userResult, map);
-      const temCopa=keys.some(k=>S.cups&&S.cups[k]&&cupTickMatchesRound(k,S.round));
-      S.roundStage=temCopa?'cup':'league';
+      playRound(userResult, map);          // playRound já avança as copas da jornada (advancePendingCups)
       await NET.saveGame({S, round:S.round});
-      return { ok:true, round:S.round, stage:S.roundStage };
+      return { ok:true, round:S.round };
     }catch(e){ console.error('[harness] resolveRound:', e); return { error:String(e&&e.message||e) }; }
   };
+
   NET.getDivisionClubs=null;                     // clubes reais indisponíveis -> fallback procedural
   NET.saveSoloGame=async()=>{}; NET.loadSoloSave=async()=>null; NET.listSoloSaves=async()=>[];
   NET.saveInbox=async()=>{}; NET.loadInbox=async()=>null; NET.deleteSoloSave=async()=>{};
@@ -296,7 +283,6 @@
       // medição que autoriza (ou proíbe) cortar a escrita local do S.round — ver dayRoundWatch.
       drift:CL._dayDrift||0,
       screen:CL.screen, round:(typeof S!=='undefined'&&S)?S.round:null,
-      stage:(typeof S!=='undefined'&&S)?(S.roundStage||null):null,
       cupKey:(CL.live&&CL.live.cup)?CL.live.cup.key:null,
       myClub:CL.clubId||null,
       played:CL._playedRound, stageDone:CL._stageDone||{}, live:!!CL.live,

@@ -1943,37 +1943,6 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
       if(startCupRound(cand.key, cand.stage, null)) return;
     }
   }
-  // ESTÁGIO DE QUARTA-FEIRA: cumprida a copa, a semana ainda NÃO libera o jogo de liga — ela
-  // precisa fechar a quarta primeiro (o servidor resolve só as copas e devolve a semana no estágio
-  // de sábado). Marcar pronto aqui é o que dispara esse fechamento, exatamente como acontece no
-  // fim da rodada de liga. É isto que dá à quarta um momento próprio de sincronia: todos entram e
-  // saem dela juntos, em vez de a copa ser um apêndice da rodada de liga.
-  if(isCupStage()){
-    // VÁLVULA DE SEGURANÇA. O estágio de quarta é um passo de sincronia a mais, e um passo a mais é
-    // um lugar a mais pra travar (host que caiu antes de fechá-lo, resolve-round fora do ar). Se a
-    // quarta não fechar em CUP_STAGE_MAX_MS, o cliente segue pro sábado como se a semana fosse de
-    // um estágio só — e o servidor, ao resolver a liga, vê roundStage==='cup' e avança as copas
-    // junto, exatamente como fazia antes desta mudança. Ou seja: a falha degrada pro comportamento
-    // antigo em vez de parar a sala.
-    if(!CL._cupStageSince || CL._cupStageRound!==S.round){ CL._cupStageRound=S.round; CL._cupStageSince=Date.now(); }
-    if(Date.now()-CL._cupStageSince < CUP_STAGE_MAX_MS){
-      // ANFITRIÃO: arma o fechamento da QUARTA. Sem isto ninguém fecharia esse estágio —
-      // _hostPendingCommit só é armado no fim da partida de LIGA (ver finishLiveRound), que na
-      // quarta não existe. Era o deadlock que a divisão em estágios criaria.
-      if(typeof NET!=='undefined' && NET.isHost && !CL._hostPendingCommit){
-        CL._hostPendingCommit={ RL:null, userResult:null, audit:null, round:S.round, uf:null, stage:'cup' };
-      }
-      // UMA VEZ POR RODADA. onlineMarkReady termina chamando onlineRecoverRunRound, que reentra
-      // aqui — e sem esta guarda a dupla vira recursão infinita (medido: "Maximum call stack size
-      // exceeded", com a aba travando). Marcar pronto é idempotente do ponto de vista da sala, e
-      // uma vez basta: o que fecha a quarta é o anfitrião, não uma remarcação.
-      if(CL._cupStageReady!==S.round){ CL._cupStageReady=S.round;
-        onlineMarkStageDone();   // a quarta desta jornada está cumprida pra mim — nunca reentrar (ver onlineStageDone)
-        onlineMarkReady(); }
-      return;
-    }
-    console.warn('estágio de quarta não fechou em '+(CUP_STAGE_MAX_MS/1000)+'s — seguindo pro jogo de liga (a copa é resolvida junto pelo servidor)');
-  }
   // RODADA DE LIGA: nunca mais cai em campo sem avisar. Antes esta linha chamava startLiveRound()
   // direto — e como o loop do cronômetro reentra aqui assim que o cliente pousa em 'main' (ver
   // onlineTimerLoop), o efeito era a rodada do Brasileirão COMEÇAR SOZINHA no segundo seguinte ao
@@ -1995,15 +1964,6 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
 
 /* ESTÁGIO DA SEMANA (quarta ou sábado). Estado sem S.roundStage = save de antes desta versão:
    trata como semana de um estágio só, exatamente o comportamento antigo. */
-/* Teto da quarta-feira: acima disso a semana degrada pra um estágio só. ERA 75s — e o relógio
-   começa no PRIMEIRO cliente que cumpre a copa, enquanto o fechamento precisa esperar o último
-   (a rodada de copa de quem assiste leva 60-90s, mais as classificações). Com dois humanos em
-   ritmos diferentes o estágio degradava quase sempre ("estágio de quarta não fechou em 75s" no
-   log da noite de 06/08), a liga rodava na MESMA fase e o loop da rodada nascia aí — reproduzido
-   no harness na primeira rodada de Libertadores. 240s dá folga real; o escape continua existindo. */
-const CUP_STAGE_MAX_MS=240000;
-function roundStage(){ return (S && S.roundStage) || null; }
-function isCupStage(){ return roundStage()==='cup'; }
 /* A RODADA JÁ COMEÇOU? É o portão de largada da sala: o servidor vira a fase pra 'running' quando
    todos estão prontos (ou o cronômetro zera) e carimba no MESMO update o snapshot de escalações
    (start_running/kickoff_lineups). Enquanto a fase for 'ready', ninguém entra em campo — é isso
@@ -2150,20 +2110,19 @@ function onlineOpenQueuedDraw(){
   catch(e){ CL._drawOpening=false; console.warn('abrir sorteio da fila:', e && e.message); }
 }
 /* quando o usuário clica Jogar no modo online, marca "pronto" em vez de rodar sozinho */
-/* etapa da semana que eu estou prestes a jogar: (jornada, quarta ou sábado). A quarta e o sábado
-   têm a MESMA jornada, então a jornada sozinha não distingue "já pedi pra começar" entre as duas. */
-/* A ETAPA É O DIA. Enquanto existiram DUAS unidades para a mesma coisa — a "etapa da semana"
-   (quarta|sábado, deduzida do S.roundStage local) e o DIA do ponteiro (do servidor) — cada uma
-   respondia uma coisa e as duas se contradiziam na janela em que o roundStage ainda não tinha sido
-   adotado. Foi daí que saiu a jornada fechando sem partida, e é daí que sai a rodada jogada duas
-   vezes: o "já cumpri" ficava guardado numa chave e a decisão de entrar em campo era tomada por
-   outra. Com o dia como chave, a conta é uma só: um dia, uma coisa a cumprir, um carimbo.
+/* a unidade de "já pedi pra começar" e "já cumpri": o DIA do ponteiro. */
+/* A ETAPA É O DIA. Houve um tempo em que existiam DUAS unidades para a mesma coisa: a "etapa da
+   semana" (quarta de copa | sábado de liga, deduzida de um campo local e atrasado) e o DIA do
+   ponteiro, que vem do servidor. As duas se contradiziam na janela em que o campo local ainda não
+   tinha sido adotado — daí a jornada que fechava sem partida e a rodada jogada duas vezes: o "já
+   cumpri" ficava guardado numa chave e a decisão de entrar em campo era tomada por outra. A etapa
+   da semana foi removida do jogo; o dia é a única unidade. Um dia, uma coisa a cumprir, um carimbo.
    Sala sem ponteiro (save antigo) mantém a chave antiga — nada muda para ela. */
 function onlineStageKey(){
   const d=(typeof NET!=='undefined' && NET.room) ? NET.room.day : null;
   const temporada=(typeof S!=='undefined'&&S)?(S.season||1):0;
   if(d) return temporada+':dia'+d.idx;
-  return temporada+':'+((typeof S!=='undefined'&&S?(S.round||0):0))+':'+(roundStage()||'league');
+  return temporada+':'+((typeof S!=='undefined'&&S?(S.round||0):0))+':league';
 }
 /* ---- ETAPA CUMPRIDA: O ANTI-REPETIÇÃO DEFINITIVO ----
    Uma etapa (temporada, jornada, quarta|sábado) que este cliente JÁ cumpriu nunca é reentrada,
@@ -2180,15 +2139,13 @@ function onlineMarkStageDone(){ const k=onlineStageKey();
   CL._stageDone=CL._stageDone||{}; CL._stageDone[k]=true;
   if(typeof rememberDrawSeen==='function') rememberDrawSeen('stage:'+k);
 }
-function onlineStageDone(){ return onlineStageDoneFor(roundStage()||'league'); }
-/* A MESMA PERGUNTA, MAS PARA UMA ETAPA QUE EU NOMEIO — e não para "a etapa em que eu acho que
-   estou". A diferença derrubou a jornada 2 em produção: S.roundStage é uma noção LOCAL e atrasada
-   (só vira 'league' quando o anfitrião resolve a quarta e eu adoto o estado). Na janela entre o fim
-   do dia de copa e essa adoção, o cliente já está no dia de LIGA com o roundStage ainda em 'cup' —
-   e onlineStageDone() respondia pela etapa de copa, que estava cumprida. Resultado: o carimbo de
-   'jogando' do dia de liga saía sem ninguém ter jogado, o dia inteiro fechava em segundos e o
-   ponteiro pulava para a jornada seguinte, levando os DOIS humanos junto. Foi o "pulou a rodada 2,
-   sempre depois dos jogos da Libertadores/Sul-Americana". */
+function onlineStageDone(){ return onlineStageDoneFor('league'); }
+/* A MESMA PERGUNTA, MAS PARA UMA ETAPA QUE EU NOMEIO — nunca para "a etapa em que eu acho que
+   estou". Enquanto a etapa da semana existiu, ela era uma noção local e atrasada, e responder por
+   ela derrubou a jornada 2 em produção: o carimbo de 'jogando' do dia de liga saía sem ninguém ter
+   jogado, o dia fechava em segundos e o ponteiro pulava a jornada, levando os DOIS humanos junto.
+   A etapa acabou; a assinatura fica porque nomear o que se pergunta é o hábito que evita a volta
+   dessa classe de defeito. */
 function onlineStageDoneFor(stage){
   const k=(typeof S!=='undefined'&&S?((S.season||1)+':'+(S.round||0)):'0')+':'+(stage||'league');
   if(CL._stageDone && CL._stageDone[k]) return true;
