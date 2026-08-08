@@ -1516,14 +1516,19 @@ function onlineTimerLoop(){
     }
     if(dt>12000 && Date.now()-(CL._waitDiagT||0)>10000){
       CL._waitDiagT=Date.now();
-      const cl=NET._claimed||{}, ag=Date.now(); const ocupados=[], semResultado=[];
+      /* O DIAGNÓSTICO DA PAUSA FALA A LÍNGUA DO PONTEIRO. Ele reportava "em partida" a partir do
+         busy_until, que não é mais escrito por ninguém — a coluna só guarda lixo de salas antigas,
+         e a linha acusava os três jogadores como se estivessem todos em campo. E o cronômetro que
+         ela citava não existe mais. O que importa numa sala parada é: em que dia/momento o servidor
+         está, e quem ainda não publicou resultado. */
+      const cl=NET._claimed||{}; const semResultado=[];
       for(const uid in cl){ const c=cl[uid]; if(!(c&&c.clubId)) continue;
-        if(c.busy_until && new Date(c.busy_until).getTime()>ag) ocupados.push(c.clubId);
         if(!(c.last_result && c.last_result_round===S.round)) semResultado.push(c.clubId); }
+      const _d=room.day;
       console.warn('pausa há '+Math.round(dt/1000)+'s | fase='+room.phase+
-        ' rodada: eu='+(S.round||0)+' sala='+(room.round||0)+
-        ' | cronômetro='+((room.deadline||0)>0?'armado':'desarmado')+
-        ' | em partida=['+ocupados.join(',')+'] sem resultado=['+semResultado.join(',')+']');
+        ' | dia='+(_d?('dia'+_d.idx+' '+_d.comp+'/'+_d.moment):'sem ponteiro')+
+        ' | rodada: eu='+(S.round||0)+' sala='+(room.round||0)+
+        ' | sem resultado=['+semResultado.join(',')+']');
     }
   }
   roomDayRefresh();  // lê o dia do servidor de segundos em segundos (ver netRefreshDay)
@@ -1732,6 +1737,14 @@ function roomDayFact(d){
    (chave vazia entre fases) ficaria sem carimbo e a sala esperaria por um dia que não tem o que
    acontecer. Não é um cliente decidindo pular sozinho uma competição que existe. */
 function roomDayNadaACumprir(comp){
+  /* "NADA A CUMPRIR" É SOBRE QUEM NÃO TINHA NADA — NUNCA SOBRE QUEM JÁ FEZ.
+     As duas listas abaixo esvaziam por dois motivos opostos: eu não tinha jogo nesta competição
+     hoje, ou eu ACABEI DE JOGAR e o confronto saiu da lista. Sem distinguir os dois, quem jogou
+     virava "não tinha nada" — e era o defeito relatado: o anfitrião, o único que disputou a
+     Libertadores, não via a classificação dela. A tela de classificação é pulada por quem "não tem
+     nada hoje", e ele caía nessa porta justamente por ter jogado.
+     Se eu cumpri o dia (cupDayDone), tenho tudo a cumprir: falta ver a classificação. */
+  if(typeof cupDayDone==='function' && cupDayDone(comp)) return false;
   try{
     const tenho=(typeof pendingUserCupMatches==='function') && pendingUserCupMatches().some(c=>c.key===comp);
     const assisto=(typeof cupRoundsUserSitsOut==='function') && cupRoundsUserSitsOut().some(c=>c.key===comp);
@@ -2193,7 +2206,22 @@ function onlineHostRelease(motivo){
   console.log('[mesa] liberando '+onlineStageKey()+' ('+motivo+') — '+seats.filter(s=>s.ready).length+'/'+seats.length+' prontos');
   if(NET.toRunning) NET.toRunning();
 }
-function onlineMarkReady(){ CL._readyForStage=onlineStageKey();
+/* "PRONTO" SÓ EXISTE NO MOMENTO DE ESCALAR — e só o jogador o declara.
+   Esta função era chamada também no FIM do fluxo de copa (finishCupResultFlow, cupClassifContinue),
+   quando ela ainda significava "já fiz a minha parte desta etapa". Com o dia como unidade, isso
+   virou um problema sério: aquelas chamadas acontecem no instante em que o dia está virando, e
+   marcavam o jogador como pronto para o dia SEGUINTE, que ele nem tinha visto. Efeitos medidos:
+   o botão nascia verde ("Pronto" por padrão, sem ninguém ter clicado) e — pior — o carimbo de
+   'escalando' do dia novo saía sozinho, então a rodada começava com um treinador ainda escolhendo
+   o time. Ficar pronto é uma decisão, e decisão tem hora: o momento 'escalando'. */
+function onlineMarkReady(){
+  const _mom=(typeof roomMoment==='function')?roomMoment():null;
+  if(_mom && _mom!=='escalando'){
+    // fora do momento de escalar, só mantenho a minha escalação publicada — nada de "pronto"
+    if(typeof NET!=='undefined' && NET.publishLineup && typeof S!=='undefined' && S){ if(!CL.humans||CL.humans[CL.clubId]) NET.publishLineup((S.xi||[]).slice(), S.tactic||'equilibrado'); }
+    return;
+  }
+  CL._readyForStage=onlineStageKey();
   NET.setReady(true, CL.clubId); toastC('Pronto! À espera dos outros treinadores.'); cdraw();
   // publica minha escalação/tática atual pros outros clientes — se eu ficar ausente, meu clube é
   // simulado com ELA (não com autoXI). availableXI/tacticForClub leem via S.clubXI (ver a ponte).

@@ -9774,7 +9774,7 @@ function onlineWaitingTick(){
   if(!CL.online || typeof NET==='undefined' || !NET.room || !NET.room.day || !NET.dayStatus) return;
   const d=NET.room.day, chave=d.idx+':'+d.moment;
   if(CL._waitKey!==chave){ CL._waitKey=chave; CL._waitSince=Date.now(); CL._waitInfo=null;
-    if(CL._waitOpen){ CL._waitOpen=false; clCloseOverlay(); } }      // o dia andou: some sozinho
+    if(CL._waitOpen){ CL._waitOpen=false; CL._waitAssin=null; clCloseOverlay(); } }   // o dia andou: some sozinho
   if(Date.now()-(CL._waitSince||0) < WAIT_PANEL_AFTER_MS) return;
   /* E QUANDO QUEM ESTÁ SEGURANDO A SALA SOU EU? Até agora este painel só aparecia para quem já
      tinha feito a sua parte — ou seja, a única pessoa que podia destravar a sala era justamente a
@@ -9809,7 +9809,13 @@ function onlineWaitingTick(){
   CL._waitPollT=Date.now();
   Promise.resolve(NET.dayStatus()).then(st=>{
     if(!st || !st.faltam){ if(CL._waitOpen){ CL._waitOpen=false; clCloseOverlay(); } return; }
-    CL._waitInfo=st; showResenhaWaiting(st);
+    /* SÓ REDESENHA SE MUDOU. A consulta roda a cada 3s enquanto a espera dura, e o painel era
+       reconstruído a cada volta — o modal inteiro pisca na cara de quem está esperando, e um
+       clique pode cair no vazio entre um desenho e o outro. Redesenhar só quando muda quem falta
+       (ou quando o painel ainda não está aberto) deixa a tela parada, como ela deve ficar. */
+    const assinatura=(st.faltam||0)+'|'+((st.nomes_faltando||[]).join(','))+'|'+st.idx+':'+st.momento;
+    if(CL._waitOpen && CL._waitAssin===assinatura) return;
+    CL._waitAssin=assinatura; CL._waitInfo=st; showResenhaWaiting(st);
   }).catch(()=>{});
 }
 /* O QUE CADA MOMENTO SIGNIFICA PARA QUEM ESTÁ LENDO. "escalando" não quer dizer nada para o
@@ -9892,7 +9898,7 @@ function clWaitMeGo(){
   if(d.moment==='classificacao'){ if(typeof onlineMomentScreenTick==='function') onlineMomentScreenTick(); return; }
   if(typeof clJogar==='function') clJogar();
 }
-function clWaitMore(){ CL._waitSnoozeUntil=Date.now()+10000; CL._waitOpen=false; clCloseOverlay(); }
+function clWaitMore(){ CL._waitSnoozeUntil=Date.now()+10000; CL._waitOpen=false; CL._waitAssin=null; clCloseOverlay(); }
 function clWaitSkipAbsent(){
   const d=(typeof NET!=='undefined' && NET.room)?NET.room.day:null;
   CL._waitOpen=false; clCloseOverlay();
