@@ -63,34 +63,112 @@
 </script>
 <link rel="stylesheet" href="src/styles/main.css"></head>
 <body>
-<div id="c-root"></div>
-<!-- AS PÁGINAS DO SITE NO HTML CRU.
-     O rodapé do jogo é montado em JavaScript, então um robô que não executa JS não enxerga link
-     nenhum — e foi assim que dez páginas reais ficaram órfãs, alcançáveis só pelo sitemap. Estes
-     são os MESMOS links, com os mesmos rótulos, para quem lê o HTML direto. Ficam num <noscript>
-     porque para o jogador eles já existem no rodapé da tela inicial: mostrar duas vezes seria
-     ruído. -->
-<noscript>
-  <h1>RetroFoot98 — o clássico da sua infância, agora online e com os amigos</h1>
-  <p>Você é o técnico. Escale o time, negocie jogadores e leve o clube da Série D ao topo.
-  RetroFoot98 (Elifoot 2026) é um jogo de futebol manager retrô, grátis e 100% no navegador:
-  clubes e jogadores reais das quatro divisões brasileiras e das copas, liga com os amigos no
-  Modo Resenha e chat em tempo real enquanto os jogos rolam.</p>
-  <nav aria-label="Páginas do RetroFoot98">
-    <a href="/guia/">Guia do jogo</a> ·
-    <a href="/ranking/">Ranking</a> ·
-    <a href="/historia-do-elifoot/">História do Elifoot</a> ·
-    <a href="/elifoot-online/">Elifoot online</a> ·
-    <a href="/jogar-com-amigos/">Jogar com amigos</a> ·
-    <a href="/manager-futebol-brasileiro/">Futebol brasileiro</a> ·
-    <a href="/jogo-treinador-futebol-online/">Jogo de treinador</a> ·
-    <a href="/melhores-jogos-treinador-futebol/">Melhores jogos</a> ·
-    <a href="/jogos-parecidos-com-elifoot/">Jogos parecidos</a> ·
-    <a href="/elifoot-vs-brasfoot/">Elifoot vs Brasfoot</a>
-  </nav>
-</noscript>
+<div id="c-root">
+<!-- ===== A HOME EXISTE ANTES DO JOGO CARREGAR =====
+     Esta página inteira era desenhada por JavaScript: o visitante (e o robô do Google) só via
+     alguma coisa depois de baixar ~680 KB de scripts — engine, elencos das ligas, imagens dos
+     troféus em base64 — nada disso necessário para ler uma landing. O resultado era uma tela
+     branca na primeira visita e uma URL de maior prioridade do site sem conteúdo nenhum no HTML.
+     Agora a home é HTML de verdade, servida na primeira resposta: cabeçalho, chamada, as dez
+     páginas e rodapé. O jogo carrega em segundo plano (os scripts estão com `defer`) e assume
+     esta mesma área quando estiver pronto — o desenho é o mesmo, então a troca não pisca. -->
+<div class="cl-home">
+  <div class="cl-home-titlebar">
+    <div class="cl-home-tb-l"><img src="img/logo.webp" width="500" height="500" alt="">RetroFoot98</div>
+    <div class="cl-home-tb-r"><span>_</span><span>□</span><span>✕</span></div>
+  </div>
+  <div class="cl-home-navbar">
+    <div class="cl-home-navlinks">
+      <a class="cl-home-nav on" href="/">Início</a>
+      <a class="cl-home-nav" href="/guia/">Como jogar</a>
+      <a class="cl-home-nav" href="/ranking/">Ranking</a>
+      <a class="cl-home-nav" href="/historia-do-elifoot/">História</a>
+    </div>
+    <div class="cl-home-nav-r"><span class="cl-home-online"><span class="cl-home-online-dot"></span>100% Online</span></div>
+  </div>
+  <div class="cl-home-body">
+    <div class="cl-home-hero">
+      <img class="cl-home-hero-logo" src="img/logo.webp" width="500" height="500" alt="RetroFoot98">
+      <h1 class="cl-home-hero-h">O clássico da sua infância,<br>agora online e com os amigos.</h1>
+      <p class="cl-home-hero-sub">Você é o técnico. Escale o time, negocie jogadores e leve o clube da
+        Série D ao topo. Grátis, no navegador, sozinho ou com a sua turma no Modo Resenha.</p>
+    </div>
+    <section class="cl-pg-sec">
+      <h2 class="cl-pg-h">Conheça o RetroFoot98</h2>
+      <div class="cl-pg-grid">
+      <a class="cl-pg-card" href="/guia/">
+        <span class="cl-pg-t">Guia do jogo</span>
+        <span class="cl-pg-d">Formações por divisão, como fazer dinheiro no mercado e subir de série.</span>
+      </a>
+      <a class="cl-pg-card" href="/ranking/">
+        <span class="cl-pg-t">Ranking de treinadores</span>
+        <span class="cl-pg-d">Como funcionam os pontos de carreira e os troféus.</span>
+      </a>
+      <a class="cl-pg-card" href="/historia-do-elifoot/">
+        <span class="cl-pg-t">História do Elifoot</span>
+        <span class="cl-pg-d">Do disquete de 1994 à resenha online — a trajetória do clássico.</span>
+      </a>
+      <a class="cl-pg-card" href="/elifoot-online/">
+        <span class="cl-pg-t">Elifoot online</span>
+        <span class="cl-pg-d">Jogue no navegador, de graça, sem instalar nada.</span>
+      </a>
+      <a class="cl-pg-card" href="/jogar-com-amigos/">
+        <span class="cl-pg-t">Jogar com amigos</span>
+        <span class="cl-pg-d">O Modo Resenha: um campeonato com a sua turma, na mesma rodada.</span>
+      </a>
+      <a class="cl-pg-card" href="/manager-futebol-brasileiro/">
+        <span class="cl-pg-t">Futebol brasileiro</span>
+        <span class="cl-pg-d">Séries A, B, C e D, Copa do Brasil, Libertadores e Sul-Americana.</span>
+      </a>
+      <a class="cl-pg-card" href="/jogo-treinador-futebol-online/">
+        <span class="cl-pg-t">Jogo de treinador</span>
+        <span class="cl-pg-d">Elencos reais, tática, mercado e partida ao vivo.</span>
+      </a>
+      <a class="cl-pg-card" href="/melhores-jogos-treinador-futebol/">
+        <span class="cl-pg-t">Melhores jogos de treinador</span>
+        <span class="cl-pg-d">O que existe hoje, grátis e online, e onde cada um se sai melhor.</span>
+      </a>
+      <a class="cl-pg-card" href="/jogos-parecidos-com-elifoot/">
+        <span class="cl-pg-t">Jogos parecidos com o Elifoot</span>
+        <span class="cl-pg-d">Alternativas para quem procura aquela mesma pegada.</span>
+      </a>
+      <a class="cl-pg-card" href="/elifoot-vs-brasfoot/">
+        <span class="cl-pg-t">Elifoot vs Brasfoot</span>
+        <span class="cl-pg-d">Um comparativo honesto entre os dois clássicos.</span>
+      </a>
+      </div>
+    </section>
+  </div>
+  <div class="cl-home-footer">
+    <div class="cl-home-foot-paginas">
+      <a class="cl-home-foot" href="/guia/">Guia do jogo</a>
+      <a class="cl-home-foot" href="/ranking/">Ranking de treinadores</a>
+      <a class="cl-home-foot" href="/historia-do-elifoot/">História do Elifoot</a>
+      <a class="cl-home-foot" href="/elifoot-online/">Elifoot online</a>
+      <a class="cl-home-foot" href="/jogar-com-amigos/">Jogar com amigos</a>
+      <a class="cl-home-foot" href="/manager-futebol-brasileiro/">Futebol brasileiro</a>
+      <a class="cl-home-foot" href="/jogo-treinador-futebol-online/">Jogo de treinador</a>
+      <a class="cl-home-foot" href="/melhores-jogos-treinador-futebol/">Melhores jogos de treinador</a>
+      <a class="cl-home-foot" href="/jogos-parecidos-com-elifoot/">Jogos parecidos com o Elifoot</a>
+      <a class="cl-home-foot" href="/elifoot-vs-brasfoot/">Elifoot vs Brasfoot</a>
+    </div>
+    <div class="cl-home-foot-linha">
+      <div class="cl-home-foot-l"><span class="cl-home-ver">v2026.01</span><span>© 2026 RetroFoot98</span></div>
+    </div>
+  </div>
+</div>
+</div>
 <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0"></script>
 <script async src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<!-- POR QUE ESTES SCRIPTS NÃO PODEM LEVAR `defer` (tentado e revertido em 08/08/2026):
+     mais abaixo neste mesmo arquivo existe um <script> INLINE enorme (a partir da linha ~178) que
+     é parte do jogo — ele lê window.GAME_DATA e define globais que o core.js consome. Script
+     inline roda na hora em que o parser passa por ele; script com `defer` roda só depois de todo
+     o HTML. Marcar estes com defer inverte a ordem: o inline executa primeiro e quebra com
+     "Cannot read properties of undefined (reading 'clubs')" e "BEHAVIOR_CARD_MULT is not defined".
+     Para usar defer é preciso antes tirar aquele bloco inline para um arquivo — e aí ele entra na
+     mesma fila destes. Enquanto isso, o que faz a home aparecer rápido é ela estar em HTML acima
+     desta linha, e não a forma como o jogo carrega. -->
 <script src="src/data/match-config.js"></script>
 <script src="src/data/trophies.js"></script>
 <script src="src/data/trophy-room.js"></script>

@@ -2920,3 +2920,21 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-esp-trofeu{width:44px;height:44px}
   .cl-esp-foot-nota{min-width:0;text-align:center;margin-bottom:2px}
 }
+
+/* ===== AS PÁGINAS DO SITE NA HOME (ver o bloco estático em index.html) =====
+   Elas existiam e ninguém as via. Aqui viram um bloco de verdade na primeira dobra depois da
+   chamada: título, uma linha explicando, e o link. Mesma linguagem do resto — bevel, chrome. */
+.cl-pg-sec{width:100%;max-width:960px;box-sizing:border-box;margin:0 auto;padding:26px 16px 34px}
+.cl-pg-h{color:var(--yellow);font-size:13px;font-weight:800;letter-spacing:1.5px;margin:0 0 14px;
+  text-transform:uppercase}
+.cl-pg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.cl-pg-card{display:flex;flex-direction:column;gap:4px;padding:11px 13px;text-decoration:none;
+  background:var(--chrome);color:#000;border:2px solid;border-color:var(--bevel-out,#fff #555 #555 #fff)}
+.cl-pg-card:hover{background:#d8d8d8}
+.cl-pg-t{font-weight:800;font-size:14px;color:var(--navy)}
+.cl-pg-d{font-size:11.5px;line-height:1.45;color:#3a3a3a}
+@media (max-width:520px){ .cl-pg-sec{padding:18px 12px 24px} }
+
+/* o hero passou a usar <h1>/<p> de verdade (antes eram divs, e a home renderizada não tinha um
+   único título de nível 1). Zera a margem do navegador para o desenho não mudar. */
+h1.cl-home-hero-h,p.cl-home-hero-sub{margin:0}

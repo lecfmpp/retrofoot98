@@ -584,19 +584,34 @@ const LANDING_FOOT=[['sobre','Sobre nós'],['contato','Contato'],['termos','Term
    propósito — o título de SEO é longo por natureza e não cabe num rodapé.
    Se uma página nova entrar em seo/pages.mjs sem entrar aqui, o build avisa (ver build-seo.mjs). */
 const LANDING_PAGINAS=[
-  ['guia','Guia do jogo'],
-  ['ranking','Ranking'],
-  ['historia-do-elifoot','História do Elifoot'],
-  ['elifoot-online','Elifoot online'],
-  ['jogar-com-amigos','Jogar com amigos'],
-  ['manager-futebol-brasileiro','Futebol brasileiro'],
-  ['jogo-treinador-futebol-online','Jogo de treinador'],
-  ['melhores-jogos-treinador-futebol','Melhores jogos'],
-  ['jogos-parecidos-com-elifoot','Jogos parecidos'],
-  ['elifoot-vs-brasfoot','Elifoot vs Brasfoot'],
+  ['guia','Guia do jogo','Formações por divisão, como fazer dinheiro no mercado e subir de série.'],
+  ['ranking','Ranking de treinadores','Como funcionam os pontos de carreira e os troféus.'],
+  ['historia-do-elifoot','História do Elifoot','Do disquete de 1994 à resenha online — a trajetória do clássico.'],
+  ['elifoot-online','Elifoot online','Jogue no navegador, de graça, sem instalar nada.'],
+  ['jogar-com-amigos','Jogar com amigos','O Modo Resenha: um campeonato com a sua turma, na mesma rodada.'],
+  ['manager-futebol-brasileiro','Futebol brasileiro','Séries A, B, C e D, Copa do Brasil, Libertadores e Sul-Americana.'],
+  ['jogo-treinador-futebol-online','Jogo de treinador','Elencos reais, tática, mercado e partida ao vivo.'],
+  ['melhores-jogos-treinador-futebol','Melhores jogos de treinador','O que existe hoje, grátis e online, e onde cada um se sai melhor.'],
+  ['jogos-parecidos-com-elifoot','Jogos parecidos com o Elifoot','Alternativas para quem procura aquela mesma pegada.'],
+  ['elifoot-vs-brasfoot','Elifoot vs Brasfoot','Um comparativo honesto entre os dois clássicos.'],
 ];
 function rodapePaginasHTML(){
   return LANDING_PAGINAS.map(([slug,label])=>`<a class="cl-home-foot" href="/${slug}/">${escC(label)}</a>`).join('');
+}
+/* O MESMO BLOCO DA HOME ESTÁTICA (ver index.html), agora na home que o jogo desenha. Sem isto, as
+   dez páginas apareciam antes de o jogo carregar e SUMIAM quando ele assumia a tela — o visitante
+   via um site completo virar um site sem conteúdo. O mesmo texto nos dois lugares, de propósito:
+   a troca não pode ser perceptível. */
+function landingPaginasHTML(){
+  const cards=LANDING_PAGINAS.map(([slug,titulo,desc])=>`
+      <a class="cl-pg-card" href="/${slug}/">
+        <span class="cl-pg-t">${escC(titulo)}</span>
+        <span class="cl-pg-d">${escC(desc)}</span>
+      </a>`).join('');
+  return `<section class="cl-pg-sec">
+      <h2 class="cl-pg-h">Conheça o RetroFoot98</h2>
+      <div class="cl-pg-grid">${cards}</div>
+    </section>`;
 }
 /* navbar da Home/wizard: links à esquerda + ações à direita. No mobile os links colapsam
    num menu hambúrguer (☰) em vez de rolar horizontalmente. navItems = [[label,onclick,ativo]]. */
@@ -650,8 +665,8 @@ function landingHomeHTML(){
     </div>`).join('');
   return `<div class="cl-home-hero">
     <img class="cl-home-hero-logo" src="img/logo.webp" width="500" height="500" alt="RetroFoot98">
-    <div class="cl-home-hero-h">O clássico da sua infância,<br>agora online e com os amigos.</div>
-    <div class="cl-home-hero-sub">Você é o técnico. Escale o time, negocie jogadores e leve o clube da Série D ao topo.</div>
+    <h1 class="cl-home-hero-h">O clássico da sua infância,<br>agora online e com os amigos.</h1>
+    <p class="cl-home-hero-sub">Você é o técnico. Escale o time, negocie jogadores e leve o clube da Série D ao topo.</p>
     <div class="cl-home-hero-cta">
       <button class="cl-home-cta" onclick="clGoModo()"><span>⚽</span>Jogar agora</button>
       <div class="cl-home-hero-links">
@@ -664,6 +679,7 @@ function landingHomeHTML(){
       <div class="cl-home-features-lbl">POR QUE JOGAR</div>
       <div class="cl-home-featrow">${featHTML}</div>
     </div>
+    ${landingPaginasHTML()}
   </div>`;
 }
 function landingPageHTML(title, bodyHTML, opts){ opts=opts||{};
