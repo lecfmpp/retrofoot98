@@ -290,7 +290,7 @@ function menuSairHTML(){
    slot cai no anúncio-casa — que é a própria marca do jogo, não um cartaz inventado.
    `slot` é a chave do espaço no ad server: nunca repetir o mesmo id em telas diferentes. */
 function adSlotHTML(slot, opts){
-  opts=opts||{};
+  opts = typeof opts==='string' ? {cls:opts} : (opts||{});
   const i=Math.abs(hashC(String(slot||'')))%AD_SPONSORS.length;
   const s=AD_SPONSORS[i];
   return `<div class="cl-ad ${opts.cls||''}" data-ad-slot="${escC(slot||'')}">
@@ -3644,7 +3644,10 @@ function abrirMomento(id, dados, aoFechar){
       ${btn(def.btnPri,'clMomentoOk()',{icon:'✔',cls:'cl-btn-ok'})}
     </div>
   </div>`;
-  overlayC(dlg(dados.titulo||'', html, {w:720, bodyClass:'cl-body-'+(def.corpo==='yellow'?'yellow':def.corpo==='gray'?'gray':'green')}));
+  // slot da janela: a abertura/final de copa é o "pré-jogo" do inventário; os outros momentos
+  // (título, rebaixamento, virada de temporada) usam o id do próprio momento.
+  const adId = (id==='abertura-copa'||id==='final-copa') ? 'tela-copa-prejogo-728x90' : 'momento-'+id+'-728x90';
+  overlayC(dlg(dados.titulo||'', html, {ad:adId, w:720, bodyClass:'cl-body-'+(def.corpo==='yellow'?'yellow':def.corpo==='gray'?'gray':'green')}));
   // ÁUDIO SEMPRE DESLIGADO: o atributo `muted` é ignorado por alguns navegadores quando o <video>
   // é reinjetado no DOM (que é o caso aqui — o modal é montado por innerHTML).
   try{ const v=document.querySelector('#c-overlay .cl-mom-vid'); if(v){ v.muted=true; v.volume=0; const p=v.play(); if(p&&p.catch) p.catch(()=>{}); } }catch(e){}
@@ -8529,6 +8532,7 @@ function renderTrophyRoom(){
         <div class="cl-sala-lock-d">${escC(sel.dica||'')}</div>
       </div>`}
     </div>
+    ${adSlotHTML('tela-trofeus-300x250','cl-ad-rect')}
   </div>`;
 
   // --- por clube (rodapé) ---

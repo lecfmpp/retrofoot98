@@ -1573,6 +1573,14 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   padding:8px 12px;border:2px solid;border-color:var(--bevel-out)}
 .cl-ad-cta:active{border-color:var(--bevel-in);transform:translate(1px,1px)}
 .cl-ad-cta:focus-visible{outline:2px solid var(--yellow);outline-offset:-4px}
+/* Sala de Troféus: única exceção de formato do handoff — retângulo 300x250 na coluna da
+   direita, porque a tela não tem rodapé de corpo pra receber a faixa. */
+.cl-ad-rect{margin:8px 0 0}
+.cl-ad-rect .cl-ad-in{height:auto;min-height:104px;flex-direction:column;align-items:flex-start;
+  justify-content:center;gap:8px;padding:16px 14px 12px}
+.cl-ad-rect .cl-ad-logo{height:40px;max-width:150px}
+.cl-ad-rect .cl-ad-txt{-webkit-line-clamp:3;font-size:12.5px}
+.cl-ad-rect .cl-ad-cta{align-self:stretch;text-align:center}
 /* dentro do modal da partida ao vivo o slot fecha a janela: mesma moldura, coladinho na base */
 .cl-ad-live{margin:0;border-left:0;border-right:0;border-bottom:0}
 @media (max-width:760px){
@@ -1602,6 +1610,14 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   padding:8px 12px;border:2px solid;border-color:var(--bevel-out)}
 .cl-ad-cta:active{border-color:var(--bevel-in);transform:translate(1px,1px)}
 .cl-ad-cta:focus-visible{outline:2px solid var(--yellow);outline-offset:-4px}
+/* Sala de Troféus: única exceção de formato do handoff — retângulo 300x250 na coluna da
+   direita, porque a tela não tem rodapé de corpo pra receber a faixa. */
+.cl-ad-rect{margin:8px 0 0}
+.cl-ad-rect .cl-ad-in{height:auto;min-height:104px;flex-direction:column;align-items:flex-start;
+  justify-content:center;gap:8px;padding:16px 14px 12px}
+.cl-ad-rect .cl-ad-logo{height:40px;max-width:150px}
+.cl-ad-rect .cl-ad-txt{-webkit-line-clamp:3;font-size:12.5px}
+.cl-ad-rect .cl-ad-cta{align-self:stretch;text-align:center}
 /* dentro do modal da partida ao vivo o slot fecha a janela: mesma moldura, coladinho na base */
 .cl-ad-live{margin:0;border-left:0;border-right:0;border-bottom:0}
 @media (max-width:760px){
