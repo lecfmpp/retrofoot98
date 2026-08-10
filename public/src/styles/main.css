@@ -944,6 +944,83 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    descansados" (largura cheia) e o par Substituir/Jogar (320px) —, então cada bloco começava e
    terminava num ponto diferente. Agora os três dividem a MESMA medida e as mesmas bordas, e o
    espaçamento entre eles é constante. */
+/* ===== CAMPO DA ABA FORMAÇÃO (ver pitchHTML em main.js) =====
+   Três anéis concêntricos: as placas de publicidade em volta, o gramado no meio e os quatro
+   mastros de holofote nos cantos, por cima de tudo. O gramado é medido por aspect-ratio, então
+   os jogadores (posicionados em %) acompanham qualquer largura sem recalcular nada em JS. */
+/* o banco é absoluto na direita: assim a ALTURA do bloco é a do campo, e a lista de reservas
+   rola por dentro em vez de esticar o conjunto todo */
+.cl-pitch-block{position:relative;max-width:460px;margin:24px 0 14px;padding-right:80px}
+.cl-pitch-wrap{position:relative;width:100%;max-width:300px;
+  background:#0e1a10;border:2px solid;border-color:#111 #555 #555 #111;padding:6px;
+  box-shadow:inset 0 0 40px rgba(0,0,0,.55)}
+.cl-pitch-mid{display:flex;align-items:stretch;gap:4px}
+.cl-pitch{position:relative;flex:1;aspect-ratio:100/132;min-width:0;overflow:hidden;
+  border:1px solid rgba(0,0,0,.6)}
+.cl-pitch-lines{position:absolute;inset:0;width:100%;height:100%}
+/* placas: mesma peça nas quatro bordas, só muda a direção do texto */
+.cl-pitch-ads{display:flex;gap:4px}
+.cl-pitch-ads.top,.cl-pitch-ads.bottom{flex-direction:row}
+.cl-pitch-ads.top{margin-bottom:4px}
+.cl-pitch-ads.bottom{margin-top:4px}
+.cl-pitch-ads.left,.cl-pitch-ads.right{flex-direction:column;width:16px;flex:0 0 16px}
+.cl-pitch-ad{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;
+  border:1px solid rgba(0,0,0,.55);box-shadow:inset 0 -3px 6px rgba(0,0,0,.35);
+  font-size:10px;font-weight:700;letter-spacing:.06em;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.5)}
+.cl-pitch-ads.top .cl-pitch-ad,.cl-pitch-ads.bottom .cl-pitch-ad{height:18px}
+.cl-pitch-ads.left .cl-pitch-ad span,.cl-pitch-ads.right .cl-pitch-ad span{writing-mode:vertical-rl;font-size:9px}
+.cl-pitch-ads.left .cl-pitch-ad span{transform:rotate(180deg)}
+.cl-pitch-ad.laranja{background:linear-gradient(#e2701c,#b8530c)}
+.cl-pitch-ad.azul{background:linear-gradient(#20437e,#122a52)}
+.cl-pitch-ad.verde{background:linear-gradient(#2f7d34,#1c5320)}
+/* mastros: o desenho é um só, espelhado por canto */
+.cl-pitch-mast{position:absolute;width:34px;height:60px;pointer-events:none;z-index:3}
+.cl-pitch-mast svg{width:100%;height:100%;display:block}
+.cl-pitch-mast.tl{left:-7px;top:-26px}
+.cl-pitch-mast.tr{right:-7px;top:-26px;transform:scaleX(-1)}
+.cl-pitch-mast.bl{left:-7px;bottom:-18px;transform:scaleY(-1)}
+.cl-pitch-mast.br{right:-7px;bottom:-18px;transform:scale(-1,-1)}
+/* jogador no campo — mesma ação da linha do elenco, ver pitchHTML */
+.cl-pp{position:absolute;transform:translateX(-50%);width:24%;padding:0;margin:0;border:0;
+  background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;
+  line-height:1.15;font-family:inherit;z-index:2}
+.cl-pp-shirt{position:relative;display:block;width:66%;max-width:40px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+.cl-pp.dense{width:19%}
+.cl-pp.gk{flex-direction:column-reverse}
+.cl-pp-shirt svg{width:100%;height:auto;display:block}
+.cl-pp-num{position:absolute;left:0;right:0;top:44%;transform:translateY(-50%);
+  text-align:center;font-size:13px;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+.cl-pp-name{margin-top:2px;font-size:10px;font-weight:700;color:#fff;text-align:center;
+  text-shadow:0 1px 2px rgba(0,0,0,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.cl-pp-meta{font-size:9px;color:#d8ffd8;text-shadow:0 1px 2px rgba(0,0,0,.8)}
+/* ===== BANCO (coluna à direita do campo, ver benchHTML) =====
+   Mesma camisa do gramado a 60% do tamanho, empilhada e rolável: o banco inteiro fica à mão
+   sem empurrar o campo pra baixo. */
+.cl-bench{position:absolute;right:0;top:0;bottom:0;width:74px;display:flex;flex-direction:column;min-height:0;
+  background:#0e1a10;border:2px solid;border-color:#111 #555 #555 #111;padding:4px}
+.cl-bench-hd{font-size:8.5px;font-weight:700;letter-spacing:.08em;color:#9fb3a0;text-align:center;
+  padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:4px}
+.cl-bench-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:5px;
+  scrollbar-width:thin}
+.cl-bench-vazio{color:#6d7f6e;text-align:center;font-size:11px;padding:8px 0}
+.cl-bp{display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px 0;margin:0;border:0;
+  background:none;cursor:pointer;font-family:inherit;line-height:1.1;border-radius:3px}
+.cl-bp .cl-pp-shirt{width:60%;max-width:27px}
+.cl-bp .cl-pp-num{font-size:9px;top:45%}
+.cl-bp .cl-pp-name{font-size:9px;text-shadow:none}
+.cl-bp .cl-pp-meta{font-size:8px;color:#a9c4aa;text-shadow:none}
+.cl-bp:hover{background:rgba(255,255,255,.1)}
+.cl-bp.sel{background:rgba(255,255,255,.14)}
+.cl-bp.sel .cl-pp-name{color:var(--yellow)}
+.cl-bp.mark{background:rgba(255,255,255,.2)}
+.cl-bp.mark .cl-pp-shirt{filter:drop-shadow(0 0 5px #fff)}
+.cl-bp.unavail,.cl-bp.fora{opacity:.42}
+.cl-pp:hover .cl-pp-shirt{transform:translateY(-2px)}
+.cl-pp.sel .cl-pp-shirt{filter:drop-shadow(0 0 6px var(--yellow)) drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+.cl-pp.sel .cl-pp-name{color:var(--yellow)}
+.cl-pp.mark .cl-pp-shirt{filter:drop-shadow(0 0 7px #fff);animation:cl-pp-pulse .9s infinite alternate}
+.cl-pp.unavail{opacity:.55}
+@keyframes cl-pp-pulse{from{transform:scale(1)}to{transform:scale(1.12)}}
 .cl-sel-formations,.cl-sel-rested,.cl-sel-acts{width:100%;max-width:340px}
 .cl-sel-formations{margin:0 0 16px;padding:0}
 .cl-formgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
@@ -2251,6 +2328,15 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
     align-items:stretch;box-shadow:0 -6px 18px rgba(0,0,0,.45);border-radius:6px;overflow:hidden}
   .cl-sel-jogar .cl-btn{width:100%}
   .cl-sel{padding-bottom:76px} /* espaço reservado pra não esconder conteúdo atrás do botão fixo */
+  /* campo no telefone: as placas laterais afinam e a tipografia do jogador encolhe pra caber
+     onze camisas na largura da tela sem sobrepor nome com nome */
+  .cl-pitch-ads.left,.cl-pitch-ads.right{width:16px;flex:0 0 16px}
+  .cl-pitch-ad{font-size:9px}
+  .cl-pitch-ads.top .cl-pitch-ad,.cl-pitch-ads.bottom .cl-pitch-ad{height:17px}
+  .cl-pp-num{font-size:11px}
+  .cl-pp-name{font-size:9px}
+  .cl-pp-meta{font-size:8px}
+  .cl-pitch-mast{width:26px;height:46px}
   /* barra de status no MOBILE: faixa horizontal FIXA NA BASE (antes ficava no topo, cobrindo o
      menu). Só ponto + nome (sem o rótulo), rolável na horizontal. */
   .cl-statusbar{position:fixed;top:auto;bottom:0;left:0;right:0;width:auto;border-radius:0;z-index:36}

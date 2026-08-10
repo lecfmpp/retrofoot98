@@ -3984,6 +3984,213 @@ function panFinancasLog(){
    elenco ficasse sem nenhum goleiro de verdade (raro, mas possível), o jogo escalava 11 de linha
    silenciosamente em vez de avisar. */
 function xiGKCount(xi){ return xi.filter(p=>p.s==='GK').length; }
+
+/* ===== O CAMPO DA ABA FORMAÇÃO =====
+   A escalação só existia como texto: uma lista à esquerda com T/R e uma grade de formações à
+   direita. Quem escala olha pro DESENHO — quantos na frente, quem está aberto na ponta, quem
+   sobrou no meio —, e isso nenhuma lista entrega. O campo abaixo é a mesma escalação (S.xi),
+   só que vista de cima: quatro faixas (ataque, meio, defesa, goleiro) com a camisa, o número
+   e a energia de cada titular.
+   O clique no campo NÃO tem lógica própria: chama exatamente as mesmas funções da lista
+   (clSelPlayer fora do modo de escalação, clEscalaPick dentro dele). Assim tocar num jogador
+   no campo acende a linha dele no elenco, e a troca de titular funciona igual — campo e lista
+   são duas janelas pro mesmo estado, nunca dois caminhos que podem divergir. */
+/* placas de publicidade: o inventário fica aqui num lugar só. Trocar por patrocinador de
+   verdade depois é mexer só nesta lista (ver pasta patrocinadores/). */
+const PITCH_ADS=[
+  {t:'ANUNCIE AQUI', c:'laranja'},
+  {t:'SUA MARCA',    c:'azul'},
+  {t:'PATROCÍNIO',   c:'verde'},
+];
+function pitchAdsHTML(lado, n, off){
+  let out='';
+  for(let i=0;i<n;i++){ const a=PITCH_ADS[(i+(off||0))%PITCH_ADS.length];
+    out+=`<div class="cl-pitch-ad ${a.c}"><span>${escC(a.t)}</span></div>`; }
+  return `<div class="cl-pitch-ads ${lado}">${out}</div>`;
+}
+/* mastro de holofote — um por canto. O SVG é sempre o mesmo; os cantos da direita e de baixo
+   são o mesmo desenho espelhado por CSS (ver .cl-pitch-mast.tr/.bl/.br em main.css). */
+function pitchMastHTML(canto){
+  return `<div class="cl-pitch-mast ${canto}" aria-hidden="true">
+    <svg viewBox="0 0 40 74" preserveAspectRatio="xMidYMax meet">
+      <defs><radialGradient id="pm-glow-${canto}" cx="50%" cy="30%" r="60%">
+        <stop offset="0" stop-color="#fffbe0" stop-opacity=".55"/><stop offset="1" stop-color="#fffbe0" stop-opacity="0"/>
+      </radialGradient></defs>
+      <ellipse cx="20" cy="14" rx="19" ry="14" fill="url(#pm-glow-${canto})"/>
+      <path d="M18 22h4v50h-4z" fill="#7b8794"/>
+      <path d="M9 70h22l-1 4H10z" fill="#5b6672"/>
+      <path d="M20 24 9 34M20 24l11 10" stroke="#7b8794" stroke-width="1.6" fill="none"/>
+      <rect x="4" y="4" width="32" height="15" rx="2" fill="#4a5560" stroke="#2b333c" stroke-width="1"/>
+      ${[0,1,2,3].map(c=>[0,1].map(l=>
+        `<circle cx="${8.5+c*7.6}" cy="${9+l*6}" r="2.5" fill="#fff8d0"/>`).join('')).join('')}
+    </svg>
+  </div>`;
+}
+/* NÚMERO DA CAMISA — o gerador de elenco escreve p.num aleatório (1-40, com repetição) e nada
+   no jogo mostrava esse número, então ele nunca precisou fazer sentido. No campo ele aparece
+   grande, em onze camisas ao mesmo tempo: dois "17" em campo saltam aos olhos. Aqui o clube
+   inteiro recebe uma numeração clássica por setor (1 no gol, 2-6 na zaga, 5/8/10 no meio,
+   7/9/11 na frente), única e estável — depende só da ordem do elenco, não da escalação, então
+   o número de um jogador não muda quando ele sai do time. */
+const SHIRT_POOL={ GK:[1,12,22,31,32], DEF:[2,3,4,6,13,14,15,16,24,25,26],
+                   MID:[5,8,10,17,18,19,20,27,28], ATT:[7,9,11,21,23,29,30,33,34] };
+function clubShirtNumbers(clubId){
+  const map={}; const used=new Set(); let extra=35;
+  ['GK','DEF','MID','ATT'].forEach(sec=>{
+    const pool=SHIRT_POOL[sec]||[]; let k=0;
+    // por força dentro do setor: o melhor goleiro é o 1, o melhor zagueiro o 2 — como todo
+    // clube numera. A ordem crua do elenco daria o 1 pro terceiro goleiro.
+    // mesmo critério (e mesmo desempate, pela ordem do elenco) que o autoXI usa pra escolher
+    // os titulares: assim o 1 fica com o goleiro que realmente começa jogando
+    squad(clubId).filter(p=>p.s===sec).slice().sort((a,b)=>b.f-a.f).forEach(p=>{
+      let n=null;
+      while(k<pool.length && n==null){ if(!used.has(pool[k])) n=pool[k]; k++; }
+      if(n==null){ while(used.has(extra)) extra++; n=extra; }
+      used.add(n); map[p.pid]=n;
+    });
+  });
+  return map;
+}
+/* ===== QUADRANTES DO CAMPO =====
+   O campo é lido em faixas (ataque, meio, defesa, gol) x colunas. As COLUNAS saem da própria
+   formação: uma linha de 4 zagueiros ocupa quatro corredores, uma de 3 ocupa três — por isso
+   trocar de formação reposiciona o time de verdade, não só o número de camisas por faixa.
+   PITCH_LANES[n] = os n corredores (em % da largura) de uma linha com n jogadores. */
+const PITCH_LANES={
+  1:[50], 2:[34,66], 3:[22,50,78], 4:[15,38,62,85],
+  5:[11,30.5,50,69.5,89], 6:[10,26,42,58,74,90],
+};
+/* PITCH_BANDS[formação] = altura (em % do gramado) das faixas ATT, MID, DEF, GK. O goleiro
+   fica colado na pequena área; as outras faixas sobem ou descem conforme o desenho: um 4-2-4
+   deixa o meio mais recuado (só dois), um 4-5-1 adianta o meio e isola o centroavante. */
+const PITCH_BANDS={
+  _        :[13,36,57,82],
+  '3-3-4'  :[12,36,58,82],
+  '3-4-3'  :[13,36,57,82],
+  '4-2-4'  :[11,39,59,82],
+  '4-3-3'  :[13,36,57,82],
+  '4-4-2'  :[14,37,58,82],
+  '4-5-1'  :[10,35,58,82],
+};
+/* a camisa (desenho + número) é a mesma peça no gramado e no banco — só muda o tamanho, que
+   vem do CSS (.cl-bp .cl-pp-shirt é 60% da camisa do titular). */
+function shirtHTML(p, th, num){
+  return `<span class="cl-pp-shirt">
+    <svg viewBox="0 0 48 44" aria-hidden="true">
+      <path d="M17 3c1.6 2.6 3.9 4 7 4s5.4-1.4 7-4l7 2.5 8 6.5-6 6.5-3.5-3v25.5a1.5 1.5 0 0 1-1.5 1.5H13a1.5 1.5 0 0 1-1.5-1.5V15.5l-3.5 3-6-6.5 8-6.5z"
+        fill="${th.col}" stroke="${th.col2||'#000'}" stroke-width="2" stroke-linejoin="round"/>
+    </svg>
+    <span class="cl-pp-num" style="color:${lumin(th.col)>0.62?'#111':'#fff'}">${num||''}</span>
+  </span>`;
+}
+/* BANCO (coluna à direita do campo) — o resto do elenco, na mesma linguagem do gramado.
+   Vale a mesma regra do campo: o clique chama as funções da LISTA, então tocar num reserva
+   acende a linha dele no elenco. Em modo de substituição, com um titular já marcado, o toque
+   no reserva JÁ faz a troca (clEscalaPick fecha o par) — é o "um clique" da troca. */
+function benchHTML(th, nums){
+  const escala=CL.escalacaoMode;
+  const xiSet=new Set(S.xi||[]);
+  const ordem={GK:0,DEF:1,MID:2,ATT:3};
+  const banco=squad(CL.clubId).filter(p=>!xiSet.has(p.pid))
+    .slice().sort((a,b)=>(ordem[a.s]-ordem[b.s])||(b.f-a.f));
+  const marcado = escala && CL.escalaMark ? pById(CL.escalaMark,CL.clubId) : null;
+  const itens = banco.map(p=>{
+    const marked = escala && CL.escalaMark===p.pid;
+    const selc   = !escala && CL.selPlayer===p.pid;
+    const unavail= p.suspended>0||p.injuredMatches>0;
+    // com um titular marcado, só os reservas da MESMA posição podem fechar a troca (é a regra
+    // do clEscalaPick): os outros ficam apagados pra não prometer um clique que dá recusa
+    const forade = !!marcado && marcado.s!==p.s;
+    const on = escala?`clEscalaPick('${escC(p.pid)}')`:`clSelPlayer('${escC(p.pid)}')`;
+    const en = Math.round(p.energy!=null?p.energy:100);
+    const sobrenome = p.n.split(' ').slice(-1)[0]||p.n;
+    return `<button type="button" class="cl-bp ${selc?'sel':''} ${marked?'mark':''} ${unavail?'unavail':''} ${forade?'fora':''}"
+      onclick="${on}" title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}%${
+        marcado&&!forade&&!unavail?' · toque pra trocar com '+escC(marcado.n):''}">
+      ${shirtHTML(p,th,nums[p.pid])}
+      <span class="cl-pp-name">${escC(sobrenome)}${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
+      <span class="cl-pp-meta">${posLetter(p.s)} · ${en}%</span>
+    </button>`;
+  }).join('');
+  return `<div class="cl-bench">
+    <div class="cl-bench-hd">SUPLENTES</div>
+    <div class="cl-bench-list">${itens||'<div class="cl-bench-vazio">—</div>'}</div>
+  </div>`;
+}
+function pitchHTML(){
+  const escala=CL.escalacaoMode;
+  const xi=xiPlayers(CL.clubId);
+  const th=clubTheme(CL.clubId);
+  const nums=clubShirtNumbers(CL.clubId);
+  // faixas de cima pra baixo: ataque, meio, defesa, goleiro (o gol do time fica embaixo)
+  const bandas=PITCH_BANDS[CL.formation]||PITCH_BANDS._;
+  const linhas=[['ATT',bandas[0]],['MID',bandas[1]],['DEF',bandas[2]],['GK',bandas[3]]];
+  const nodes=linhas.map(([sec,top])=>{
+    const list=xi.filter(p=>p.s===sec);
+    const lanes=PITCH_LANES[list.length]||PITCH_LANES[5];
+    const dense=list.length>=5?' dense':'';
+    return list.map((p,i)=>{
+      const left = lanes[i]!=null?lanes[i]:(7+((i+0.5)/list.length)*86);
+      const marked = escala && CL.escalaMark===p.pid;
+      const selc   = !escala && CL.selPlayer===p.pid;
+      const unavail= p.suspended>0||p.injuredMatches>0;
+      const on = escala?`clEscalaPick('${escC(p.pid)}')`:`clSelPlayer('${escC(p.pid)}')`;
+      const nome = p.n.length>15 ? p.n.split(' ')[0]+' '+(p.n.split(' ').slice(-1)[0]||'') : p.n;
+      const en = Math.round(p.energy!=null?p.energy:100);
+      // o goleiro é ancorado pela BASE (e com o nome acima da camisa, ver .cl-pp.gk): assim ele
+      // encosta na pequena área, como no jogo, sem o nome vazar pra fora do gramado
+      const pos = sec==='GK' ? `bottom:2%` : `top:${top}%`;
+      return `<button type="button" class="cl-pp${dense}${sec==='GK'?' gk':''} ${selc?'sel':''} ${marked?'mark':''} ${unavail?'unavail':''}"
+        style="left:${left.toFixed(2)}%;${pos}" onclick="${on}"
+        title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}%">
+        ${shirtHTML(p,th,nums[p.pid])}
+        <span class="cl-pp-name">${escC(nome)}${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
+        <span class="cl-pp-meta">${posLetter(p.s)} · ${en}%</span>
+      </button>`;
+    }).join('');
+  }).join('');
+
+  return `<div class="cl-pitch-block">
+  <div class="cl-pitch-wrap">
+    ${pitchAdsHTML('top',3,0)}
+    <div class="cl-pitch-mid">
+      ${pitchAdsHTML('left',3,1)}
+      <div class="cl-pitch">
+        <svg class="cl-pitch-lines" viewBox="0 0 100 132" preserveAspectRatio="none" aria-hidden="true">
+          ${[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>`<rect x="0" y="${i*11}" width="100" height="11" fill="${i%2?'#2f7d34':'#35883a'}"/>`).join('')}
+        </svg>
+        <!-- guia de setores: os quadrantes que a formação usa pra posicionar o time. Fica bem
+             discreto (é orientação, não marcação de campo de verdade). -->
+        <svg class="cl-pitch-lines" viewBox="0 0 100 132" preserveAspectRatio="none" aria-hidden="true"
+             fill="none" stroke="rgba(255,255,255,.13)" stroke-width=".6" stroke-dasharray="2 3">
+          <path d="M3 27h94M3 60h94M3 93h94"/><path d="M36 3v126M67 3v126"/>
+        </svg>
+        <svg class="cl-pitch-lines" viewBox="0 0 100 132" preserveAspectRatio="none" aria-hidden="true"
+             fill="none" stroke="rgba(255,255,255,.8)" stroke-width=".7">
+          <rect x="3" y="3" width="94" height="126"/>
+          <path d="M3 66h94"/>
+          <circle cx="50" cy="66" r="13"/><circle cx="50" cy="66" r="1" fill="rgba(255,255,255,.8)" stroke="none"/>
+          <rect x="24" y="3" width="52" height="19"/><rect x="38" y="3" width="24" height="7"/>
+          <rect x="24" y="110" width="52" height="19"/><rect x="38" y="122" width="24" height="7"/>
+          <circle cx="50" cy="15" r="1" fill="rgba(255,255,255,.8)" stroke="none"/>
+          <circle cx="50" cy="117" r="1" fill="rgba(255,255,255,.8)" stroke="none"/>
+          <path d="M39 22a12 12 0 0 0 22 0"/><path d="M39 110a12 12 0 0 1 22 0"/>
+          <path d="M3 8a5 5 0 0 0 5-5"/><path d="M97 8a5 5 0 0 1-5-5"/>
+          <path d="M3 124a5 5 0 0 1 5 5"/><path d="M97 124a5 5 0 0 0-5 5"/>
+          <rect x="42" y="0" width="16" height="3" stroke-width=".9" fill="rgba(255,255,255,.18)"/>
+          <rect x="42" y="129" width="16" height="3" stroke-width=".9" fill="rgba(255,255,255,.18)"/>
+        </svg>
+        ${nodes}
+      </div>
+      ${pitchAdsHTML('right',3,2)}
+    </div>
+    ${pitchAdsHTML('bottom',3,1)}
+    ${pitchMastHTML('tl')}${pitchMastHTML('tr')}${pitchMastHTML('bl')}${pitchMastHTML('br')}
+  </div>
+  ${benchHTML(th,nums)}
+</div>`;
+}
+
 function panSeleccao(){
   if(typeof ensureMyXIResolves==='function') ensureMyXIResolves(); // nunca deixa o botão Jogar cinza por S.xi dessincronizado (online)
   const xi=xiPlayers(CL.clubId); const gkCount=xiGKCount(xi);
@@ -4021,8 +4228,9 @@ function panSeleccao(){
   </div>`;
 
   return `<div class="cl-sel">
-    <div class="cl-sel-note">${CL.tacticChosen?`Tática <b>${escC(CL.formation)}</b> · onze <b>${xi.length}/11</b>.<br>Titulares marcados com <b class="cl-rmark t" style="display:inline-flex">T</b> na lista.`:'Escolha a tática para liberar o <b>Jogar</b>.'}</div>
+    <div class="cl-sel-note">${CL.tacticChosen?`Tática <b>${escC(CL.formation)}</b> · onze <b>${xi.length}/11</b> em campo, resto no banco.`:'Escolha a tática para liberar o <b>Jogar</b>.'}</div>
     ${gkWarn}
+    ${pitchHTML()}
     ${formationsBlock}
     ${restedBlock}
     <div class="cl-sel-acts">
