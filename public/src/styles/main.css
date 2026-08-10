@@ -870,6 +870,18 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    mouse por cima pra ver a explicação, mesma linguagem visual do .cl-link já usado no jogo. */
 .cl-tip-label{cursor:help;border-bottom:1px dotted rgba(255,255,255,.45)}
 /* painel jogador */
+/* ===== PAINEL COM RODAPÉ ANCORADO (mesma peça da aba Formação) =====
+   O conteúdo rola no espaço que sobra e os botões de decisão ficam na base, lado a lado e do
+   mesmo tamanho. Na aba Jogador isso importa porque a ficha é longa (dados + historial): sem
+   isso, "Renovar contrato" e "Vender" só apareciam depois de rolar até o fim. */
+.cl-pan{display:flex;flex-direction:column;height:100%;min-height:0}
+.cl-pan-scroll{flex:1;min-height:0;overflow-y:auto;padding-right:2px}
+.cl-pan-foot{flex:none;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:12px;
+  padding-top:10px;margin-top:6px;border-top:1px solid rgba(255,255,255,.14)}
+.cl-pan-foot .cl-btn{width:100%;min-width:0;height:100%;flex-direction:row;gap:7px;
+  min-height:0;padding:10px 12px;font-weight:600}
+.cl-pan-foot .cl-btn-ic{font-size:16px}
+.cl-main.tab-jogador .cl-panel{overflow:hidden}
 .cl-jgd{font-size:15px}
 .cl-jgd-name{font-family:var(--serif);font-size:30px;color:#fff}
 .cl-jgd-nat{display:flex;align-items:center;gap:8px;margin:6px 0 16px}
@@ -1188,7 +1200,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-sell-q{font-size:15px;margin-bottom:16px}
 .cl-sell-btns{display:flex;gap:12px;justify-content:center}
 /* Renovar contrato (painel na aba Jogador) */
-.cl-renew{text-align:center;padding-top:24px}
+.cl-renew{padding-top:0}
+.cl-renew .cl-pan-scroll{text-align:center;padding-top:24px}
 .cl-renew-title{font-size:24px;font-weight:800;color:#fff;margin-bottom:40px}
 .cl-renew-row{display:flex;align-items:center;justify-content:center;gap:14px;color:#fff;font-size:16px;margin-bottom:44px}
 .cl-spin{display:inline-flex;align-items:stretch;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);background:#fff}
@@ -1197,7 +1210,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-spin-btns button{border:1px solid;border-color:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);background:var(--chrome);font-size:9px;line-height:1;cursor:pointer;flex:1;padding:0 6px}
 .cl-renew-btns{display:flex;gap:14px;justify-content:center;margin-top:24px}
 /* Vender (painel na aba Jogador) */
-.cl-vender{text-align:center;padding-top:14px;color:#fff}
+.cl-vender{padding-top:0;color:#fff}
+.cl-vender .cl-pan-scroll{text-align:center;padding-top:14px}
 .cl-vender-title{font-size:24px;font-weight:800;margin-bottom:36px}
 .cl-vender-lbl{font-size:15px;margin-bottom:14px;line-height:1.4}
 .cl-vender-in{font-family:var(--mono);font-size:16px;padding:7px 10px;border:2px solid;border-color:var(--bevD) var(--bevL) var(--bevL) var(--bevD);background:#fff;width:220px;outline:none;text-align:left}
@@ -2368,7 +2382,9 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
     align-items:stretch;box-shadow:0 -6px 18px rgba(0,0,0,.45);border-radius:6px;overflow:hidden}
   .cl-sel-jogar .cl-btn{width:100%}
   .cl-sel{padding-bottom:76px;height:auto;display:block} /* espaço reservado pra não esconder conteúdo atrás do botão fixo */
-  .cl-main.tab-seleccao .cl-panel{overflow:visible}
+  .cl-main.tab-seleccao .cl-panel,.cl-main.tab-jogador .cl-panel{overflow:visible}
+  .cl-pan{height:auto;display:block}
+  .cl-pan-scroll{overflow:visible;min-height:0}
   /* no telefone não existe "altura disponível" (a página inteira rola), então o campo volta a
      sair da largura e o banco vira coluna absoluta à direita, como no desktop antigo */
   .cl-sel-top{overflow:visible;padding-top:8px}

@@ -3171,7 +3171,8 @@ function panJogador(){
   const hist=careerHistTotals(p);
   const statusBar = p.suspended>0 ? `<div class="cl-jgd-status susp">🟥 Suspenso — falta o próximo jogo</div>`
     : p.injuredMatches>0 ? `<div class="cl-jgd-status hurt">✚ Lesionado — fora por ${p.injuredMatches} jogo${p.injuredMatches>1?'s':''}</div>` : '';
-  return `<div class="cl-jgd">
+  return `<div class="cl-jgd cl-pan">
+    <div class="cl-pan-scroll">
     <div class="cl-jgd-name">${escC(p.n)}</div>
     <div class="cl-jgd-nat"><span class="cl-flag2">${flagImg(p.nat||'Brasil')}</span> ${escC(p.nat||'Brasil')}</div>
     ${statusBar}
@@ -3192,7 +3193,8 @@ function panJogador(){
           ? (p.stats.r3.map(n=>`<span class="cl-nota ${notaCls(n)}">${notaTxt(n)}</span>`).join(''))
           : '—'}</b></div>
     </fieldset>
-    <div class="cl-jgd-act">${btn('Renovar contrato','clRenew()',{icon:'🔄',cls:'cl-btn-ok'})}${btn('Vender','clSell()',{icon:'💰',cls:'cl-btn-cancel'})}</div>
+    </div>
+    <div class="cl-pan-foot">${btn('Renovar contrato','clRenew()',{icon:'🔄',cls:'cl-btn-ok'})}${btn('Vender','clSell()',{icon:'💰',cls:'cl-btn-cancel'})}</div>
   </div>`;
 }
 function renewPanel(p){
@@ -3204,7 +3206,8 @@ function renewPanel(p){
   const currentBudget = S.budget;
   const budgetAfterRenew = currentBudget - totalCost;
   const budgetWarning = budgetAfterRenew < 0 ? ' ⚠️' : '';
-  return `<div class="cl-renew">
+  return `<div class="cl-renew cl-pan">
+  <div class="cl-pan-scroll">
   <div class="cl-renew-title">Renovar contrato</div>
   <div style="color:#fff;font-size:13px;margin-bottom:24px;padding:12px;background:#1a3a1a;border-radius:4px">
     <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Salário atual <span style="opacity:.7">(semanal)</span>:</span><b>${fmt(currentSalary)}/sem</b></div>
@@ -3220,7 +3223,8 @@ function renewPanel(p){
     <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Caixa atual:</span><b>${curSym()} ${moneyDisp(currentBudget)}</b></div>
     <div style="display:flex;justify-content:space-between;border-top:1px solid #3a4a3a;padding-top:8px;margin-top:8px"><span>Caixa após renovação:</span><b>${curSym()} ${moneyDisp(budgetAfterRenew)}${budgetWarning}</b></div>
   </div>
-  <div class="cl-renew-btns">${btn('Propôr','clRenewPropose()',{icon:'🔄',cls:'cl-btn-ok'})}${btn('Cancelar','clCancelRight()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
+  </div>
+  <div class="cl-pan-foot">${btn('Propôr','clRenewPropose()',{icon:'🔄',cls:'cl-btn-ok'})}${btn('Cancelar','clCancelRight()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
 </div>`; }
 /* piso de venda: 70% do valor de mercado, arredondado. Abaixo disso é subvalorizar o
    jogador (queima de ativo) — a janela avisa em vermelho. */
@@ -3236,12 +3240,15 @@ function venderPanel(p){
   // PISO DE ELENCO: o clube não pode ficar sem goleiro (ver canReleaseFromSquad no core). Avisa
   // ANTES, aqui na tela, em vez de deixar o usuário digitar o preço e só então recusar.
   const floor=(typeof canReleaseFromSquad==='function')?canReleaseFromSquad(CL.clubId,p):{ok:true};
-  if(!floor.ok) return `<div class="cl-vender">
+  if(!floor.ok) return `<div class="cl-vender cl-pan">
+  <div class="cl-pan-scroll">
   <div class="cl-vender-title">Vender</div>
   <div class="cl-sell-warn" style="margin-bottom:16px">🧤 ${escC(floor.msg)}</div>
-  <div class="cl-vender-btns">${btn('Voltar','clCancelRight()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
+  </div>
+  <div class="cl-pan-foot">${btn('Voltar','clCancelRight()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
 </div>`;
-  return `<div class="cl-vender">
+  return `<div class="cl-vender cl-pan">
+  <div class="cl-pan-scroll">
   <div class="cl-vender-title">Vender</div>
   <div style="color:#fff;font-size:13px;margin-bottom:20px;padding:12px;background:#3a2a2a;border-radius:4px">
     <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Valor de mercado <span style="opacity:.7">(preço sugerido)</span>:</span><b>${moneyDisp(mv)}</b></div>
@@ -3254,7 +3261,8 @@ function venderPanel(p){
     <span class="cl-money-cur">${curSym()}</span>
     <input id="cl-sellprice" class="cl-money-in" inputmode="numeric" placeholder="${grp(mv)}" value="${CL.sellPrice?moneyDisp(CL.sellPrice):''}" oninput="clSellPriceInput(this)">
   </div>
-  <div class="cl-vender-btns">${btn('Vender','clSellConfirm()',{icon:'💰',cls:'cl-btn-ok'})}${btn('Cancelar','clCancelRight()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
+  </div>
+  <div class="cl-pan-foot">${btn('Vender','clSellConfirm()',{icon:'💰',cls:'cl-btn-ok'})}${btn('Cancelar','clCancelRight()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
 </div>`; }
 
 /* ---- Jogador > Comprar jogador: primeiro escolhe a DIVISÃO, depois o clube dela ---- */
