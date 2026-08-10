@@ -281,6 +281,34 @@ function menuSairHTML(){
    É OPT-IN de propósito: os modais narrativos (pênalti, lesão, sorteio, fim de temporada) têm
    moldura e cor próprias por decisão do próprio handoff, e os demais só migram quando forem
    convertidos um a um. Sem opts.std, dlg() se comporta exatamente como antes. */
+/* ===== SLOT DE PUBLICIDADE (handoff "Novos Modais design update") =====
+   UM slot por janela, no rodapé do corpo e logo acima da barra de ação. A moldura de bisel
+   invertido + o rótulo "PUBLICIDADE" (que vem do CSS, não do HTML) fazem o bloco ler como área
+   reservada do jogo, e não como arte solta colada por cima.
+   A "arte" vem do MESMO inventário de patrocinadores que a faixa do Camarote e a pausa já usam
+   (AD_SPONSORS): logo, chamada e cores por marca, num lugar só. Sem entrega de anunciante, o
+   slot cai no anúncio-casa — que é a própria marca do jogo, não um cartaz inventado.
+   `slot` é a chave do espaço no ad server: nunca repetir o mesmo id em telas diferentes. */
+function adSlotHTML(slot, opts){
+  opts=opts||{};
+  const i=Math.abs(hashC(String(slot||'')))%AD_SPONSORS.length;
+  const s=AD_SPONSORS[i];
+  return `<div class="cl-ad ${opts.cls||''}" data-ad-slot="${escC(slot||'')}">
+    <div class="cl-ad-in" style="background:${s.bg};color:${s.fg}">
+      <img class="cl-ad-logo" src="${s.src}" alt="${escC(s.nome)}">
+      <span class="cl-ad-txt">${escC(s.cta)}</span>
+      <button type="button" class="cl-ad-cta" style="${camCtaStyle(i)}" onclick="adSlotClick('${escC(slot||'')}',${i})">SAIBA MAIS</button>
+    </div>
+  </div>`;
+}
+/* mesma mecânica do botão do Camarote (camAdClick) e da faixa de copa: abre em aba nova, sem
+   handle da janela do jogo, e registra o clique por marca — aqui com o id do slot. */
+function adSlotClick(slot, i){
+  const s=AD_SPONSORS[i]; if(!s) return;
+  try{ if(typeof gtag==='function') gtag('event','sponsor_click',{sponsor:s.nome, placement:slot||'modal'}); }catch(e){}
+  if(!s.url){ toastC('Link do patrocinador ainda não configurado ('+s.nome+').'); return; }
+  window.open(s.url,'_blank','noopener,noreferrer');
+}
 function dlg(title,body,opts){ opts=opts||{}; const w=opts.w||(opts.std?640:620);
   const badge = opts.badge ? `<div class="cl-dlg-badge">${opts.badge.icon||''}<span class="cl-dlg-badge-t">${escC(opts.badge.label||'')}</span></div>` : '';
   if(opts.std) return `<div class="cl-dlg cl-dlg-std" style="width:${w}px">
@@ -288,14 +316,24 @@ function dlg(title,body,opts){ opts=opts||{}; const w=opts.w||(opts.std?640:620)
     <div class="cl-dlg-title"><span>${escC(title)}</span><button class="cl-dlg-x" type="button" title="Fechar" aria-label="Fechar" onclick="clCloseOverlay()">✕</button></div>
     <div class="cl-dlg-body ${opts.bodyClass||'cl-body-gray'}">
       <div class="cl-dlg-content">${body}</div>
+      ${opts.ad?adSlotHTML(opts.ad):''}
       ${opts.footer?`<div class="cl-dlg-foot ${opts.footerClass||''}">${opts.footer}</div>`:''}
     </div>
   </div>`;
   return `<div class="cl-dlg" style="width:${w}px">
     ${badge}
     <div class="cl-dlg-title"><span>${escC(title)}</span>${opts.min?'<span class="cl-min">–</span>':''}</div>
-    <div class="cl-dlg-body ${opts.bodyClass||''}">${body}</div>
+    <div class="cl-dlg-body ${opts.bodyClass||''}">${opts.ad?dlgBodyComAd(body,opts.ad):body}</div>
   </div>`; }
+/* O SLOT FICA ACIMA DA BARRA DE AÇÃO (regra do handoff). Nas janelas simples os botões moram
+   DENTRO do corpo (bloco .cl-cal-ok), então grudar o anúncio no fim jogaria ele embaixo do OK —
+   o usuário passaria por cima do botão pra ver o anúncio. Aqui ele entra logo antes desse bloco;
+   se a janela não tem barra de ação, vai pro fim mesmo. */
+function dlgBodyComAd(body, slot){
+  const ad=adSlotHTML(slot);
+  const i=String(body).lastIndexOf('<div class="cl-cal-ok"');
+  return i<0 ? body+ad : body.slice(0,i)+ad+body.slice(i);
+}
 function btn(label,onclick,opts){ opts=opts||{}; return `<button class="cl-btn ${opts.cls||''}" ${opts.dis?'disabled':''}${opts.title?` title="${escC(opts.title)}"`:''} onclick="${onclick}">${opts.icon?`<span class="cl-btn-ic">${opts.icon}</span>`:''}<span>${escC(label)}</span></button>`; }
 
 /* ================= RENDER RAIZ ================= */
@@ -3472,7 +3510,7 @@ function clAuctionScreen(){ CL.menu=null;
     </div>`; }).join('') || '<div class="cl-mkt-counter">Sem jogadores em leilão agora — volta em breve.</div>';
   overlayC(dlg('Leilão de jogadores', `<div class="cl-auc-head">Cada jogador tem vários clubes disputando. Para levar, <b>cubra a maior oferta</b> antes das rodadas acabarem — se seu lance ficar abaixo do que a concorrência topa pagar, ela cobre na rodada seguinte.</div><div class="cl-auc">${rows}</div>
     <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
-    {w:700,bodyClass:'cl-body-gray',min:true}));
+    {ad:'modal-leilao-728x90',w:700,bodyClass:'cl-body-gray',min:true}));
 }
 /* dá/aumenta o lance num lote — abre um input de valor (precisa superar o maior lance atual) */
 function clAuctionBidPrompt(sellerId,player){
@@ -3862,7 +3900,7 @@ function clTrainingScreen(){ CL.menu=null;
         <span class="r">Força</span><span class="r">Ritmo</span>
         <span class="r" title="Ganho projetado de força por temporada">Δ/temp</span><span class="c">Treino</span></div>
       ${rows}
-    </div>`,{std:true, footer:btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}));
+    </div>`,{ad:'modal-treino-728x90',std:true, footer:btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}));
 }
 function clStartTraining(pid){ const r=startTraining(pid); toastC(r.msg); clTrainingScreen(); }
 function clStopTraining(pid){ stopTraining(pid); clTrainingScreen(); }
@@ -6284,7 +6322,8 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
     ${halftimeTimerHTML}${remoteWaitHTML}
     ${actionsHTML}
     ${showSubs?subPanelHTML(m):''}
-    ${penalty?penaltyPickerHTML():''}${injury?injurySubHTML(m,RL.injEvent):''}${red?redCardHTML(m,RL.redEvent):''}${shooting?shootoutPickerHTML():''}`;
+    ${penalty?penaltyPickerHTML():''}${injury?injurySubHTML(m,RL.injEvent):''}${red?redCardHTML(m,RL.redEvent):''}${shooting?shootoutPickerHTML():''}
+    ${m.user?adSlotHTML(injury?'modal-machucado-728x90':red?'modal-expulsao-728x90':(penalty||shooting)?'modal-penalti-escolha-728x90':halftime?'modal-intervalo-728x90':'modal-partida-728x90','cl-ad-live'):''}`;
 }
 function clToggleSubPanel(){ CL.subPanelOpen=!CL.subPanelOpen; CL.subOut=CL.subIn=null; cdraw(); }
 /* ---- modal clássico de pênalti: escolhe o batedor, com contagem regressiva de 10s ---- */
@@ -7687,6 +7726,10 @@ function cupIdlePanelHTML(key){
       <img class="cl-cupidle-logo" src="${s.src}" alt="${escC(s.nome)}">
       <button class="cl-cupidle-cta" style="${camCtaStyle(si)}" onclick="cupIdleAdClick()">${escC(s.cta)}</button>
     </div>
+    <div class="cl-cupidle-ad2" data-ad-slot="tela-${escC(key)}-apresenta-300x90">
+      <b>${escC(s.nome)}</b>
+      <span>${escC(s.cta)}</span>
+    </div>
   </div>`;
 }
 /* mesma mecânica do botão do Camarote (ver camAdClick): abre em aba nova, sem handle da janela
@@ -8033,7 +8076,7 @@ function clCalendar(){
     .map(r=>r.html).join('');
   const head=`<div class="cl-cal-head"><span>Rod.</span><span>Data</span><span>Confronto</span><span class="r">Result.</span><span class="c">C/F</span></div>`;
   overlayC(dlg('Calendário', `<div class="cl-cal cl-cal-sched">${head}${rows}</div>`,
-    {std:true, footer:btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}));
+    {ad:'modal-calendario-728x90',std:true, footer:btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}));
 }
 
 /* ---- menu dropdown (topo) ---- */
@@ -8315,7 +8358,7 @@ function clCoachHistory(){ CL.menu=null;
     ${jobSecurityBarHTML()}
     <div class="cl-seasonhist-wrap">${seasonTable}</div>
     <div class="cl-chist" style="margin-top:12px">${lines.map(coachHistRowHTML).join('')}</div>
-    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:660,bodyClass:'cl-body-gray',min:true})); }
+    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{ad:'modal-historia-728x90',w:660,bodyClass:'cl-body-gray',min:true})); }
 /* ---- Equipa > Historial: as temporadas em que o clube (o atual, por padrão) foi
    comandado pelo treinador neste save — útil se ele já assumiu outros clubes e quer ver
    o resumo de um deles. Só cobre clubes que o próprio jogador já comandou (S.history só
@@ -8560,7 +8603,7 @@ function clCoachRanking(){ CL.menu=null;
   }).sort((a,b)=> (b.pts + b.titles*TITLE_BONUS) - (a.pts + a.titles*TITLE_BONUS) || b.pts-a.pts);
   const list=rows.map((r,i)=>`<div class="cl-rank-row ${r.human?'me':''}"><span class="cl-rank-p">${i+1}</span><span class="cl-rank-c">${escC(r.name)}</span><span class="cl-rank-t">${escC(r.club)}</span><span class="cl-rank-n">${r.titles?('🏆 '+r.titles):'—'}</span><span class="cl-rank-n b">${r.pts} pts</span></div>`).join('');
   overlayC(dlg('Ranking de Treinadores', `<div class="cl-rank-head" style="font-size:12px;color:#666;padding:2px 10px 6px">Por pontos somados (todas as temporadas) — títulos desempatam.</div><div class="cl-rank">${list}</div>
-    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:780,bodyClass:'cl-body-gray',min:true})); }
+    <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{ad:'modal-ranking-728x90',w:780,bodyClass:'cl-body-gray',min:true})); }
 
 /* ---- Treinador > Ofertas ---- */
 function clJobOffers(){ CL.menu=null;
@@ -8794,7 +8837,7 @@ function clCompList(){ CL.menu=null;
   });
   overlayC(dlg('Minhas competições', `<div class="cl-complist">${rows.join('')}</div>
     <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
-    {w:620,bodyClass:'cl-body-gray',min:true}));
+    {ad:'modal-competicoes-728x90',w:620,bodyClass:'cl-body-gray',min:true}));
 }
 /* ================= TELA DA COPA — grupos + mata-mata, NA MESMA TELA (sem modal) =================
    Redesenho do handoff `design_handoff_copa` (protótipo Copa.dc.html): a competição deixa de ser
@@ -9224,7 +9267,7 @@ function cupScreenHTML(key, opts){
     ${opts.result||''}
     ${cupPhaseTabsHTML(key, hasGroup && (!dr || dr.stage==='group'), tab, status, !!dr)}
     <div class="cl-cupscr-panel">${body}</div>
-    ${cupAdSlotHTML()}
+    ${cupAdSlotHTML(key, tab==='grupos'?'grupos':'confrontos')}
   </div>`;
 }
 /* ===== CERIMÔNIA DO SORTEIO — layout claro (Libertadores, Sul-Americana, Copa do Brasil) =====
@@ -9240,15 +9283,9 @@ function cupLastChampion(key){
   for(let i=h.length-1;i>=0;i--){ const w=h[i].cups&&h[i].cups[key]; if(w) return w; }
   return null;
 }
-/* espaço publicitário do rodapé da tela de copa — conteúdo neutro de propósito: é um SLOT,
-   e trocar por um anunciante de verdade é mexer só aqui. */
-function cupAdSlotHTML(){
-  return `<div class="cl-cup2-ad" role="complementary" aria-label="Espaço publicitário">
-    <span class="cl-cup2-ad-tag">PUBLICIDADE</span>
-    <span class="cl-cup2-ad-main">ANUNCIE AQUI</span>
-    <span class="cl-cup2-ad-sub">Sua marca no maior torneio do continente.</span>
-  </div>`;
-}
+/* espaço publicitário do rodapé das telas de copa — mesma peça dos modais (adSlotHTML), com
+   um id de slot por TELA: sorteio, fase de grupos e confrontos são inventários diferentes. */
+function cupAdSlotHTML(key, tela){ return adSlotHTML('tela-'+(key||'copa')+'-'+(tela||'geral')+'-728x90'); }
 function cupDrawSideHTML(key, dr){
   const isGroup=dr.stage==='group';
   const last=cupDrawLast(dr);
@@ -9314,7 +9351,7 @@ function cupDrawScreenHTML(key, dr, actions){
       <main class="cl-cup2-main">
         <div class="cl-cup2-tabs">${hasGroup?aba('grupos','FASE DE GRUPOS',tab==='grupos'):''}${aba('chave','MATA-MATA',tab==='chave')}</div>
         <div class="cl-cup2-stage">${body}</div>
-        ${cupAdSlotHTML()}
+        ${cupAdSlotHTML(key,'sorteio')}
       </main>
     </div>
   </div>`;
@@ -9932,7 +9969,7 @@ function clScorers(){ CL.menu=null;
   const rows=arr.length?arr.map((s,i)=>{ const cid=findPlayerClub(s.n);
     return `<div class="cl-cal-row"><span class="cl-cal-n">${i+1}</span><span class="cl-cal-t">${playerLink(s.n,cid)}${cid?' <small style="color:#666">('+escC(clubOf(cid).short)+')</small>':''}</span><span class="cl-cal-cf">${s.g}</span></div>`;
   }).join(''):'<div style="padding:14px">Sem gols marcados ainda.</div>';
-  overlayC(dlg('Melhores marcadores', `<div class="cl-cal">${rows}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:520,bodyClass:'cl-body-gray',min:true})); }
+  overlayC(dlg('Melhores marcadores', `<div class="cl-cal">${rows}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{ad:'modal-marcadores-728x90',w:520,bodyClass:'cl-body-gray',min:true})); }
 
 /* ---- Campeonato > Últimos vencedores: histórico persistido por save (S.history), com o
    campeão da liga (por divisão) e das copas (Copa do Brasil/Libertadores/Sul-Americana).
@@ -9951,7 +9988,7 @@ function clUltimosVencedores(){ CL.menu=null;
       .filter(Boolean).join('');
     return `<fieldset class="cl-cup-round"><legend>${h.season}</legend>${rows}</fieldset>`;
   }).join(''):'<div class="cl-cup-hint">Ainda não há temporadas concluídas neste save.</div>';
-  overlayC(dlg('Últimos vencedores', `<div class="cl-cup-groups-wrap">${blocks}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:560,bodyClass:'cl-body-gray',min:true})); }
+  overlayC(dlg('Últimos vencedores', `<div class="cl-cup-groups-wrap">${blocks}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{ad:'modal-vencedores-728x90',w:560,bodyClass:'cl-body-gray',min:true})); }
 
 /* ---- Campeonato > Melhores marcadores de sempre: acumulado histórico (S.allTimeScorers,
    gravado a cada fim de temporada) + gols da temporada em andamento, persistido no save. ---- */
@@ -9962,7 +9999,7 @@ function clScorersAllTime(){ CL.menu=null;
   const rows=arr.length?arr.map((s,i)=>{ const cid=findPlayerClub(s.n);
     return `<div class="cl-cal-row"><span class="cl-cal-n">${i+1}</span><span class="cl-cal-t">${playerLink(s.n,cid)}${cid?' <small style="color:#666">('+escC(clubOf(cid).short)+')</small>':''}</span><span class="cl-cal-cf">${s.g}</span></div>`;
   }).join(''):'<div style="padding:14px">Sem gols marcados ainda.</div>';
-  overlayC(dlg('Melhores marcadores de sempre', `<div class="cl-cal">${rows}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:520,bodyClass:'cl-body-gray',min:true})); }
+  overlayC(dlg('Melhores marcadores de sempre', `<div class="cl-cal">${rows}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{ad:'modal-marcadores-sempre-728x90',w:520,bodyClass:'cl-body-gray',min:true})); }
 
 /* ---- Campeonatos > Ligas internacionais: visualizador das ligas de background por país
    (tabela, artilheiros, artilheiros de sempre, campeões). Só leitura — cada liga roda sozinha. */
@@ -10004,7 +10041,7 @@ function renderBgLeagues(){
     <div class="cl-otabs">${contentTabs}</div>
     <div class="cl-cal">${body}</div>
     <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,
-    {w:560,bodyClass:'cl-body-gray',min:true}));
+    {ad:'modal-ligas-728x90',w:560,bodyClass:'cl-body-gray',min:true}));
 }
 
 /* ---- Jogador > Propostas recebidas: ofertas de compra pelos jogadores do usuário ---- */
