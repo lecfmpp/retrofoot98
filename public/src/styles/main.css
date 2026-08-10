@@ -455,7 +455,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-jobinv .cl-btn{flex:1;width:auto}
 }
 /* MAIN */
-.cl-main{width:min(1000px,96vw);background:#000;border:var(--bw-frame) solid var(--navy);box-shadow:var(--shadow-main)}
+.cl-main{width:min(1280px,97vw);background:#000;border:var(--bw-frame) solid var(--navy);box-shadow:var(--shadow-main)}
 /* Resenha: reserva espaço à direita pra .cl-statusbar (fixed, 186px+12px de offset) nunca
    sobrepor o conteúdo de .cl-main-right em larguras de desktop comuns (1280/1366px) — abaixo
    de 761px a barra de status vira faixa horizontal na base (ver media query mobile) e este
@@ -614,8 +614,11 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-sala-empty{font-size:11px;color:#333}
 /* ALTURA FIXA NO DESKTOP: a janela crescia e encolhia conforme o conteúdo da aba, então trocar
    de aba redimensionava a tela inteira. Agora ela tem uma medida só e quem rola é o painel. */
-.cl-main-body{display:flex;height:600px}
-.cl-main-left{width:56%;background:#000;padding:10px 0 10px 14px;display:flex;flex-direction:column;min-height:0}
+/* a altura da janela acompanha a tela (com piso e teto): a aba Formação é a mais apertada do
+   jogo e o campo é o que mais ganha com cada pixel a mais — mas numa tela baixa a janela não
+   pode estourar a viewport. */
+.cl-main-body{display:flex;height:clamp(560px, calc(100vh - 150px), 780px)}
+.cl-main-left{width:52%;background:#000;padding:10px 0 10px 14px;display:flex;flex-direction:column;min-height:0}
 .cl-hdr{padding:6px 0 10px}
 .cl-mgr{font-family:var(--serif);font-weight:700;color:#fff;font-size:30px;line-height:1}
 .cl-hdr-sub{color:#fff;font-size:15px;margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -953,11 +956,16 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    rola por dentro em vez de esticar o conjunto todo */
 /* o banco é absoluto na direita: assim a ALTURA do bloco é a do campo, e a lista de reservas
    rola por dentro em vez de esticar o conjunto todo */
-.cl-pitch-block{position:relative;margin:0 0 8px;padding-right:146px;max-width:430px}
+.cl-pitch-block{position:relative;margin:0 0 8px;padding-right:146px;max-width:540px}
+.cl-pitch-block.banco-fechado{padding-right:32px}
 /* teto de largura calculado pra caber na altura da aba (painel − rodapé): o gramado tem
    proporção fixa, então limitar a largura é limitar a altura. Se ainda assim não couber (janela
    baixa), o .cl-sel-top rola — nada some. */
-.cl-pitch-wrap{position:relative;width:100%;max-width:278px;
+/* O TETO DE LARGURA SAI DA ALTURA DA TELA. O gramado tem proporção fixa, então limitar a
+   largura é limitar a altura: a conta abaixo devolve a maior largura cujo desenho ainda cabe
+   entre o cabeçalho da aba e o rodapé de botões. (O .cl-sel-top rola como rede de segurança
+   se a conta errar por alguns pixels em alguma tela.) */
+.cl-pitch-wrap{position:relative;width:100%;max-width:clamp(240px, calc((100vh - 482px) / 1.18 + 58px), 460px);
   background:#0e1a10;border:2px solid;border-color:#111 #555 #555 #111;padding:6px;
   box-shadow:inset 0 0 40px rgba(0,0,0,.55)}
 .cl-pitch-mid{display:flex;align-items:stretch;gap:4px}
@@ -969,43 +977,57 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-pitch-ads.top,.cl-pitch-ads.bottom{flex-direction:row}
 .cl-pitch-ads.top{margin-bottom:4px}
 .cl-pitch-ads.bottom{margin-top:4px}
-.cl-pitch-ads.left,.cl-pitch-ads.right{flex-direction:column;width:14px;flex:0 0 14px}
+.cl-pitch-ads.left,.cl-pitch-ads.right{flex-direction:column;width:19px;flex:0 0 19px}
 .cl-pitch-ad{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;
   border:1px solid rgba(0,0,0,.55);box-shadow:inset 0 -3px 6px rgba(0,0,0,.35);white-space:nowrap;
-  font-size:8px;font-weight:700;letter-spacing:.02em;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.5)}
-.cl-pitch-ads.top .cl-pitch-ad,.cl-pitch-ads.bottom .cl-pitch-ad{height:18px}
-.cl-pitch-ads.left .cl-pitch-ad span,.cl-pitch-ads.right .cl-pitch-ad span{writing-mode:vertical-rl;font-size:8px}
+  font-size:10px;font-weight:700;letter-spacing:.02em;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.5)}
+.cl-pitch-ads.top .cl-pitch-ad,.cl-pitch-ads.bottom .cl-pitch-ad{height:22px}
+.cl-pitch-ads.left .cl-pitch-ad span,.cl-pitch-ads.right .cl-pitch-ad span{writing-mode:vertical-rl;font-size:10px}
 .cl-pitch-ads.left .cl-pitch-ad span{transform:rotate(180deg)}
 .cl-pitch-ad.laranja{background:linear-gradient(#e2701c,#b8530c)}
 .cl-pitch-ad.azul{background:linear-gradient(#20437e,#122a52)}
 .cl-pitch-ad.verde{background:linear-gradient(#2f7d34,#1c5320)}
-/* mastros: o desenho é um só, espelhado por canto */
-.cl-pitch-mast{position:absolute;width:34px;height:60px;pointer-events:none;z-index:3}
-.cl-pitch-mast svg{width:100%;height:100%;display:block}
-.cl-pitch-mast.tl{left:-7px;top:-26px}
-.cl-pitch-mast.tr{right:-7px;top:-26px;transform:scaleX(-1)}
-.cl-pitch-mast.bl{left:-7px;bottom:-10px;transform:scaleY(-1)}
-.cl-pitch-mast.br{right:-7px;bottom:-10px;transform:scale(-1,-1)}
 /* jogador no campo — mesma ação da linha do elenco, ver pitchHTML */
 .cl-pp{position:absolute;transform:translateX(-50%);width:24%;padding:0;margin:0;border:0;
   background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;
   line-height:1.15;font-family:inherit;z-index:2}
-.cl-pp-shirt{position:relative;display:block;width:66%;max-width:40px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+.cl-pp-shirt{position:relative;display:block;width:62%;max-width:46px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
 .cl-pp.dense{width:19%}
 .cl-pp.gk{flex-direction:column-reverse}
 .cl-pp-shirt svg{width:100%;height:auto;display:block}
 .cl-pp-num{position:absolute;left:0;right:0;top:44%;transform:translateY(-50%);
   text-align:center;font-size:13px;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.45)}
-.cl-pp-name{margin-top:2px;font-size:9.5px;font-weight:700;color:#fff;text-align:center;
+.cl-pp-name{margin-top:1px;font-size:10.5px;font-weight:700;color:#fff;text-align:center;
   text-shadow:0 1px 2px rgba(0,0,0,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .cl-pp-meta{font-size:9px;color:#d8ffd8;text-shadow:0 1px 2px rgba(0,0,0,.8)}
+/* força em destaque (é o número que decide a escalação) + tendência, e a energia como barra */
+.cl-pp-forca{font-size:10px;color:#cfe6cf;line-height:1.1;text-shadow:0 1px 2px rgba(0,0,0,.85);white-space:nowrap}
+.cl-pp-forca b{font-size:13px;font-weight:800;color:#fff}
+.cl-pp-forca .cl-rtrend{font-size:8px;margin-left:1px}
+.cl-pp .cl-rtrend.up{color:#8dff8d}
+.cl-pp .cl-rtrend.down{color:#ff8a8a}
+.cl-pp-bat{display:block;margin-top:1px;color:#e6f0e6;line-height:0}
+.cl-pp .cl-batt{width:28px;height:7px;border-width:1px}
+.cl-bp .cl-batt{width:22px;height:6px;border-width:1px}
+.cl-pp .cl-batt:after,.cl-bp .cl-batt:after{right:-3px;top:1px;width:2px;height:3px}
 /* ===== BANCO (coluna à direita do campo, ver benchHTML) =====
    Mesma camisa do gramado a 60% do tamanho, empilhada e rolável: o banco inteiro fica à mão
    sem empurrar o campo pra baixo. */
 .cl-bench{position:absolute;right:0;top:0;bottom:0;width:140px;display:flex;flex-direction:column;min-height:0;
   background:#0e1a10;border:2px solid;border-color:#111 #555 #555 #111;padding:4px}
-.cl-bench-hd{font-size:8.5px;font-weight:700;letter-spacing:.08em;color:#9fb3a0;text-align:center;
-  padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:4px}
+.cl-bench-hd{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;
+  font-family:inherit;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:#9fb3a0;
+  background:none;border:0;border-bottom:1px solid rgba(255,255,255,.12);cursor:pointer;
+  padding:0 0 5px;margin-bottom:5px}
+.cl-bench-hd:hover{color:#fff}
+.cl-bench-hd-n{background:rgba(255,255,255,.14);border-radius:7px;padding:0 5px;color:#dfe9df;letter-spacing:0}
+.cl-bench-hd-seta{font-size:9px}
+/* fechado: só a lombada, com o rótulo de pé. Continua sendo zona de solte do arraste. */
+.cl-bench.fechado{width:26px;padding:5px 2px}
+.cl-bench.fechado .cl-bench-hd{flex-direction:column-reverse;gap:6px;height:100%;
+  border-bottom:0;margin:0;padding:0;justify-content:flex-start}
+.cl-bench.fechado .cl-bench-hd-txt{writing-mode:vertical-rl}
+.cl-bench.fechado .cl-bench-hd-n{padding:2px 0;width:100%;text-align:center}
 .cl-bench-list{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;
   gap:5px 4px;align-content:start;scrollbar-width:thin}
 .cl-bench-vazio{color:#6d7f6e;text-align:center;font-size:11px;padding:8px 0}
@@ -1015,6 +1037,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-bp .cl-pp-num{font-size:9px;top:45%}
 .cl-bp .cl-pp-name{font-size:9px;text-shadow:none}
 .cl-bp .cl-pp-meta{font-size:8px;color:#a9c4aa;text-shadow:none}
+.cl-bp .cl-pp-forca{font-size:8.5px;color:#a9c4aa;text-shadow:none}
+.cl-bp .cl-pp-forca b{font-size:11px;color:#fff}
 .cl-bp:hover{background:rgba(255,255,255,.1)}
 .cl-bp.sel{background:rgba(255,255,255,.14)}
 .cl-bp.sel .cl-pp-name{color:var(--yellow)}
@@ -2347,8 +2371,18 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-main.tab-seleccao .cl-panel{overflow:visible}
   /* no telefone não existe "altura disponível" (a página inteira rola), então o campo volta a
      sair da largura e o banco vira coluna absoluta à direita, como no desktop antigo */
-  .cl-sel-top{overflow:visible;padding-top:20px}
-  .cl-pitch-wrap{max-width:300px}   /* no telefone a página rola: o campo pode ser maior */
+  .cl-sel-top{overflow:visible;padding-top:8px}
+  /* NO TELEFONE O BANCO VAI PRA BAIXO. Reservar 146px à direita numa tela de 390 sobrava um
+     gramado de 156px — os onze não cabiam. Embaixo, em faixa cheia de quatro colunas, o campo
+     usa a largura inteira e os reservas continuam à mão (e continuam sendo alvo de arraste). */
+  .cl-pitch-block{padding-right:0;max-width:none}
+  .cl-pitch-wrap{max-width:none}
+  .cl-bench{position:static;width:auto;height:auto;margin-top:8px}
+  .cl-bench.fechado{width:auto;padding:6px 8px}
+  .cl-bench.fechado .cl-bench-hd{flex-direction:row;gap:6px;padding:0;justify-content:center}
+  .cl-bench.fechado .cl-bench-hd-txt{writing-mode:horizontal-tb}
+  .cl-bench.fechado .cl-bench-hd-n{width:auto;padding:0 5px}
+  .cl-bench-list{grid-template-columns:repeat(4,1fr);overflow:visible;max-height:none}
   /* campo no telefone: as placas laterais afinam e a tipografia do jogador encolhe pra caber
      onze camisas na largura da tela sem sobrepor nome com nome */
   .cl-pitch-ad{font-size:7px}
@@ -2357,7 +2391,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-pp-name{font-size:8.5px}
   .cl-pp{width:22%}
   .cl-pp-meta{font-size:8px}
-  .cl-pitch-mast{width:26px;height:46px}
+  .cl-pp-forca{font-size:8px}
+  .cl-pp-forca b{font-size:10.5px}
   /* barra de status no MOBILE: faixa horizontal FIXA NA BASE (antes ficava no topo, cobrindo o
      menu). Só ponto + nome (sem o rótulo), rolável na horizontal. */
   .cl-statusbar{position:fixed;top:auto;bottom:0;left:0;right:0;width:auto;border-radius:0;z-index:36}

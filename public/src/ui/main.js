@@ -3992,24 +3992,6 @@ function pitchAdsHTML(lado, n, off){
     out+=`<div class="cl-pitch-ad ${a.c}"><span>${escC(a.t)}</span></div>`; }
   return `<div class="cl-pitch-ads ${lado}">${out}</div>`;
 }
-/* mastro de holofote — um por canto. O SVG é sempre o mesmo; os cantos da direita e de baixo
-   são o mesmo desenho espelhado por CSS (ver .cl-pitch-mast.tr/.bl/.br em main.css). */
-function pitchMastHTML(canto){
-  return `<div class="cl-pitch-mast ${canto}" aria-hidden="true">
-    <svg viewBox="0 0 40 74" preserveAspectRatio="xMidYMax meet">
-      <defs><radialGradient id="pm-glow-${canto}" cx="50%" cy="30%" r="60%">
-        <stop offset="0" stop-color="#fffbe0" stop-opacity=".55"/><stop offset="1" stop-color="#fffbe0" stop-opacity="0"/>
-      </radialGradient></defs>
-      <ellipse cx="20" cy="14" rx="19" ry="14" fill="url(#pm-glow-${canto})"/>
-      <path d="M18 22h4v50h-4z" fill="#7b8794"/>
-      <path d="M9 70h22l-1 4H10z" fill="#5b6672"/>
-      <path d="M20 24 9 34M20 24l11 10" stroke="#7b8794" stroke-width="1.6" fill="none"/>
-      <rect x="4" y="4" width="32" height="15" rx="2" fill="#4a5560" stroke="#2b333c" stroke-width="1"/>
-      ${[0,1,2,3].map(c=>[0,1].map(l=>
-        `<circle cx="${8.5+c*7.6}" cy="${9+l*6}" r="2.5" fill="#fff8d0"/>`).join('')).join('')}
-    </svg>
-  </div>`;
-}
 /* NÚMERO DA CAMISA — o gerador de elenco escreve p.num aleatório (1-40, com repetição) e nada
    no jogo mostrava esse número, então ele nunca precisou fazer sentido. No campo ele aparece
    grande, em onze camisas ao mesmo tempo: dois "17" em campo saltam aos olhos. Aqui o clube
@@ -4048,14 +4030,24 @@ const PITCH_LANES={
    fica colado na pequena área; as outras faixas sobem ou descem conforme o desenho: um 4-2-4
    deixa o meio mais recuado (só dois), um 4-5-1 adianta o meio e isola o centroavante. */
 const PITCH_BANDS={
-  _        :[11,33,54,82],
-  '3-3-4'  :[10,33,55,82],
-  '3-4-3'  :[11,33,54,82],
-  '4-2-4'  :[ 9,36,56,82],
-  '4-3-3'  :[11,33,54,82],
-  '4-4-2'  :[12,34,55,82],
-  '4-5-1'  :[ 8,32,55,82],
+  _        :[ 7,30,53,82],
+  '3-3-4'  :[ 6,30,54,82],
+  '3-4-3'  :[ 7,30,53,82],
+  '4-2-4'  :[ 5,32,55,82],
+  '4-3-3'  :[ 7,30,53,82],
+  '4-4-2'  :[ 8,31,54,82],
+  '4-5-1'  :[ 4,29,54,82],
 };
+/* A LINHA DE BAIXO DA CAMISA: força em destaque + a seta de tendência, e a energia vira a
+   mesma barrinha da lista de elenco. Antes era o percentual de energia em texto — número que
+   só dizia algo depois de comparar com os outros dez. A força é o que decide quem joga; a
+   energia, lida de relance, é melhor como barra do que como "76%". */
+function chipMetaHTML(p, pos){
+  const tr = p._trend==='up'   ? '<span class="cl-rtrend up">▲</span>'
+           : p._trend==='down' ? '<span class="cl-rtrend down">▼</span>' : '';
+  return `<span class="cl-pp-forca">${pos?escC(pos)+' · ':''}<b>${p.f}</b>${tr}</span>`
+       + `<span class="cl-pp-bat">${energyCell(p)}</span>`;
+}
 /* a camisa (desenho + número) é a mesma peça no gramado e no banco — só muda o tamanho, que
    vem do CSS (.cl-bp .cl-pp-shirt é 60% da camisa do titular). */
 function shirtHTML(p, th, num){
@@ -4088,14 +4080,24 @@ function benchHTML(th, nums){
       title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}%${unavail?'':' · arraste pro campo pra escalar'}">
       ${shirtHTML(p,th,nums[p.pid])}
       <span class="cl-pp-name">${escC(sobrenome)}${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
-      <span class="cl-pp-meta">${posLetter(p.s)} · ${en}%</span>
+      ${chipMetaHTML(p, posLetter(p.s))}
     </button>`;
   }).join('');
-  return `<div class="cl-bench">
-    <div class="cl-bench-hd">SUPLENTES</div>
-    <div class="cl-bench-list">${itens||'<div class="cl-bench-vazio">—</div>'}</div>
+  // RECOLHÍVEL: o campo é o que o usuário veio ver. Fechado, o banco vira uma faixa estreita
+  // (que continua sendo alvo de arraste: soltar um titular ali chama o melhor reserva da
+  // posição), e todo o espaço devolvido vira gramado.
+  const aberto = CL.benchOpen!==false;
+  return `<div class="cl-bench ${aberto?'':'fechado'}">
+    <button type="button" class="cl-bench-hd" onclick="clToggleBench()"
+      title="${aberto?'Recolher o banco e aumentar o campo':'Mostrar os suplentes'}">
+      <span class="cl-bench-hd-txt">SUPLENTES</span>
+      <span class="cl-bench-hd-n">${banco.length}</span>
+      <span class="cl-bench-hd-seta">${aberto?'▸':'◂'}</span>
+    </button>
+    ${aberto?`<div class="cl-bench-list">${itens||'<div class="cl-bench-vazio">—</div>'}</div>`:''}
   </div>`;
 }
+function clToggleBench(){ CL.benchOpen = CL.benchOpen===false; cdraw(); }
 function pitchHTML(){
   const xi=xiPlayers(CL.clubId);
   const th=clubTheme(CL.clubId);
@@ -4126,12 +4128,12 @@ function pitchHTML(){
         title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}% · arraste pro banco pra tirar">
         ${shirtHTML(p,th,nums[p.pid])}
         <span class="cl-pp-name">${escC(nome)}${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
-        <span class="cl-pp-meta">${posLetter(p.s)} · ${en}%</span>
+        ${chipMetaHTML(p)}
       </button>`;
     }).join('');
   }).join('');
 
-  return `<div class="cl-pitch-block">
+  return `<div class="cl-pitch-block ${CL.benchOpen===false?'banco-fechado':''}">
   <div class="cl-pitch-wrap">
     ${pitchAdsHTML('top',3,0)}
     <div class="cl-pitch-mid">
@@ -4166,7 +4168,6 @@ function pitchHTML(){
       ${pitchAdsHTML('right',3,2)}
     </div>
     ${pitchAdsHTML('bottom',3,1)}
-    ${pitchMastHTML('tl')}${pitchMastHTML('tr')}${pitchMastHTML('bl')}${pitchMastHTML('br')}
   </div>
   ${benchHTML(th,nums)}
 </div>`;
