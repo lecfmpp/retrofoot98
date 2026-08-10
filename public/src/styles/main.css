@@ -1618,7 +1618,37 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-lp-win-body{background:#0d160d;border:2px solid;border-color:#808080 #fff #fff #808080}
 .cl-lp-win-claro .cl-lp-win-body{background:#fff;color:#111}
 .cl-lp-win-amarelo .cl-lp-win-body{background:#ffffcc;color:#111}
+.cl-lp-shot-b{display:block;width:100%;padding:0;border:0;background:none;cursor:zoom-in;position:relative;line-height:0}
 .cl-lp-shot{display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;object-position:top center}
+.cl-lp-shot-lupa{position:absolute;right:8px;bottom:8px;width:28px;height:28px;display:flex;align-items:center;
+  justify-content:center;background:rgba(0,0,0,.55);color:#fff;font-size:14px;line-height:1;opacity:0;transition:opacity .15s}
+.cl-lp-shot-b:hover .cl-lp-shot-lupa,.cl-lp-shot-b:focus-visible .cl-lp-shot-lupa{opacity:1}
+.cl-lp-shot-b:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+/* --- captura em tela cheia --- */
+.cl-lp-zoom{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.82);display:flex;align-items:center;
+  justify-content:center;padding:20px;box-sizing:border-box;cursor:zoom-out}
+.cl-lp-zoom-cx{position:relative;background:var(--navy);padding:3px;max-width:min(1400px,96vw);cursor:default;
+  box-shadow:0 24px 60px -12px rgba(0,0,0,.8)}
+.cl-lp-zoom-bar{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 10px;color:#fff;font:800 13px var(--sans)}
+.cl-lp-zoom-bar>span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl-lp-zoom-cont{font-family:var(--mono);font-size:12px;color:#cfd8ff}
+.cl-lp-zoom-x{width:26px;height:22px;background:var(--chrome);border:2px solid;border-color:var(--bevel-out);
+  font:800 12px var(--sans);color:#111;cursor:pointer;flex:none}
+.cl-lp-zoom-x:active{border-color:var(--bevel-in)}
+.cl-lp-zoom-img{display:block;max-width:100%;max-height:calc(100vh - 120px);width:auto;height:auto;
+  border:2px solid;border-color:#808080 #fff #fff #808080;background:#0d160d}
+.cl-lp-zoom-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:56px;background:var(--chrome);
+  border:2px solid;border-color:var(--bevel-out);font:800 16px var(--sans);color:var(--navy);cursor:pointer}
+.cl-lp-zoom-nav:active{border-color:var(--bevel-in)}
+.cl-lp-zoom-nav.esq{left:-22px}
+.cl-lp-zoom-nav.dir{right:-22px}
+@media (max-width:860px){
+  .cl-lp-zoom{padding:10px}
+  .cl-lp-zoom-nav{width:38px;height:48px}
+  .cl-lp-zoom-nav.esq{left:2px}
+  .cl-lp-zoom-nav.dir{right:2px}
+  .cl-lp-shot-lupa{opacity:1}
+}
 .cl-lp-video{position:relative;aspect-ratio:16/9}
 .cl-lp-video iframe{width:100%;height:100%;border:0;display:block}
 .cl-lp-video-vazio{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#101610}
@@ -1719,30 +1749,42 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   justify-content:space-between;font-size:12px;color:#9aa3d0}
 .cl-lp-modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;
   justify-content:center;padding:20px;box-sizing:border-box;overflow:auto}
-.cl-lp-win-modal{width:min(640px,100%);margin:auto}
-.cl-lp-win-modal .cl-lp-win-body{background:var(--chrome);color:#111;border-color:#fff #707070 #707070 #fff}
-.cl-lp-form{padding:20px 22px;display:flex;flex-direction:column;gap:14px}
-.cl-lp-aviso{background:#ffffcc;border:2px solid;border-color:var(--bevel-in);padding:10px 12px;font-size:12.5px;line-height:1.5}
+/* MODAL QUE CABE NA TELA. Era 640px de largura e altura livre: num notebook de 768px o formulário
+   passava do rodapé e a pessoa tinha que rolar a página inteira pra achar o botão de enviar.
+   Agora ele é mais estreito e o CORPO rola por dentro, com teto na altura da janela — a barra de
+   título (e os botões dela) fica sempre à vista. O □ alterna pra versão larga, pra quem tem tela
+   grande e quer o formulário espaçado. */
+.cl-lp-win-modal{width:min(520px,100%);margin:auto}
+.cl-lp-win-modal.larga{width:min(760px,100%)}
+.cl-lp-win-modal .cl-lp-win-body{background:var(--chrome);color:#111;border-color:#fff #707070 #707070 #fff;
+  max-height:calc(100vh - 132px);overflow-y:auto}
+.cl-lp-win-bar.viva button{width:18px;height:16px;background:var(--chrome);border:1px solid;
+  border-color:#fff #707070 #707070 #fff;color:#111;font:800 10px var(--sans);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0}
+.cl-lp-win-bar.viva button:active{border-color:#707070 #fff #fff #707070}
+.cl-lp-win-bar.viva button:focus-visible{outline:2px solid var(--yellow);outline-offset:1px}
+.cl-lp-form{padding:16px 18px;display:flex;flex-direction:column;gap:11px}
+.cl-lp-aviso{background:#ffffcc;border:2px solid;border-color:var(--bevel-in);padding:9px 11px;font-size:12px;line-height:1.45}
 .cl-lp-erro{background:#f6dcdc;border:2px solid;border-color:var(--bevel-in);padding:10px 12px;font-size:12.5px;
   line-height:1.5;color:#7a1414;font-weight:700}
 .cl-lp-lbl{display:flex;flex-direction:column;gap:5px;font:700 13px var(--sans)}
 .cl-lp-lbl input,.cl-lp-lbl textarea,.cl-lp-amigo input,.cl-lp-zap-row input{
-  background:#fff;border:2px solid;border-color:var(--bevel-in);padding:0 12px;height:44px;
-  font:400 14px var(--sans);color:#111;box-sizing:border-box;width:100%}
+  background:#fff;border:2px solid;border-color:var(--bevel-in);padding:0 10px;height:40px;
+  font:400 13.5px var(--sans);color:#111;box-sizing:border-box;width:100%}
 .cl-lp-lbl textarea{height:auto;padding:10px 12px;resize:vertical}
-.cl-lp-2in{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.cl-lp-fs{border:2px solid;border-color:var(--bevel-in);padding:12px 14px 14px;margin:0}
+.cl-lp-2in{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.cl-lp-fs{border:2px solid;border-color:var(--bevel-in);padding:10px 12px 12px;margin:0}
 .cl-lp-fs legend{font:800 12px var(--sans);padding:0 6px}
 .cl-lp-fs-d{font-size:12.5px;color:#3a3a3a;margin-bottom:10px}
 .cl-lp-amigo{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-.cl-lp-amigo .cl-lp-btn-sq{height:44px;color:var(--danger-deep)}
+.cl-lp-amigo .cl-lp-btn-sq{height:40px;width:40px;color:var(--danger-deep)}
 .cl-lp-zap{margin-top:14px;padding-top:12px;border-top:1px solid #a8a8a8}
 .cl-lp-zap-t{font:800 12.5px var(--sans);margin-bottom:4px}
 .cl-lp-zap-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .cl-lp-zap-row input{flex:1;min-width:190px}
 .cl-lp-form-acts{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .cl-lp-form-nota{font-size:11.5px;color:#3a3a3a}
-.cl-lp-form-ok{text-align:center;padding:28px 22px}
+.cl-lp-form-ok{text-align:center;padding:24px 20px}
 .cl-lp-ok-ic{font-size:46px;line-height:1;color:#0b7a2f}
 .cl-lp-ok-t{font-family:var(--serif);font-style:italic;font-weight:700;font-size:24px;color:#00005c;margin:10px 0 8px}
 .cl-lp-form-ok p{margin:0 auto 20px;font-size:14px;line-height:1.55;max-width:44ch}

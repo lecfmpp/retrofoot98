@@ -761,6 +761,7 @@ function scAbertura(){
     <main class="cl-lp-main">${body}</main>
     ${landingRodapeHTML()}
     ${CL.waitlistOpen?waitlistModalHTML():''}
+    ${CL.lpZoom!=null?lpZoomHTML():''}
   </div>`;
 }
 function landingRodapeHTML(){
@@ -799,6 +800,7 @@ function landingRodapeHTML(){
    de vagas vem de uma função que devolve só a contagem (retrofoot_waitlist_count). */
 function clWaitlistOpen(){
   CL.waitlistOpen=true; CL.waitlistSent=false; CL.waitlistErr=''; CL.navMenuOpen=false;
+  CL.waitlistMin=false; CL.waitlistMax=false;
   CL.waitlist=CL.waitlist||{nome:'',email:'',tel:'',resposta:'',amigos:[''],zap:''};
   cdraw(); clWaitlistCount();
 }
@@ -865,7 +867,7 @@ function waitlistModalHTML(){
         <a class="cl-lp-cta" href="${waitlistZapHref()}" target="_blank" rel="noopener">💬 Chamar a galera</a>
         <button class="cl-lp-btn" onclick="clWaitlistClose()">Fechar</button>
       </div>
-    </div>`, 'cl-lp-win-modal')}
+    </div>`, 'cl-lp-win-modal'+(CL.waitlistMax?' larga':''), {min:'clWaitlistMin()', max:'clWaitlistMax()', close:'clWaitlistClose()', minimizada:CL.waitlistMin})}
   </div>`;
   const amigos=(w.amigos||['']).map((a,i)=>`<div class="cl-lp-amigo">
       <input type="email" value="${escC(a||'')}" placeholder="email do amigo" oninput="clWaitlistAmigo(${i},this.value)">
@@ -904,20 +906,71 @@ function waitlistModalHTML(){
         <button class="cl-lp-btn" onclick="clWaitlistClose()">Cancelar</button>
         <span class="cl-lp-form-nota">A gente só usa seus dados pra avisar da vaga.</span>
       </div>
-    </div>`, 'cl-lp-win-modal')}
+    </div>`, 'cl-lp-win-modal'+(CL.waitlistMax?' larga':''), {min:'clWaitlistMin()', max:'clWaitlistMax()', close:'clWaitlistClose()', minimizada:CL.waitlistMin})}
   </div>`;
 }
 /* moldura de janela do Windows raiz: barra de título + área rebaixada. É a peça que se repete em
    toda a home (vídeo, telas, chat, lista de espera) — por isso mora numa função só. */
-function janelaHTML(titulo, inner, extra){
+function janelaHTML(titulo, inner, extra, acoes){
+  // sem `acoes` os três selos são enfeite (é uma moldura, não uma janela de verdade). Com elas,
+  // viram botão: minimizar recolhe pra barra de título, maximizar alterna a largura e ✕ fecha.
+  const btns = acoes
+    ? `<button type="button" onclick="${acoes.min||''}" title="Minimizar" aria-label="Minimizar">_</button>
+       <button type="button" onclick="${acoes.max||''}" title="Maximizar" aria-label="Maximizar">□</button>
+       <button type="button" onclick="${acoes.close||''}" title="Fechar" aria-label="Fechar">✕</button>`
+    : `<i>_</i><i>□</i><i>✕</i>`;
   return `<div class="cl-lp-win ${extra||''}">
-    <div class="cl-lp-win-bar"><span>${escC(titulo)}</span>
-      <span class="cl-lp-win-btns"><i>_</i><i>□</i><i>✕</i></span></div>
-    <div class="cl-lp-win-body">${inner}</div>
+    <div class="cl-lp-win-bar ${acoes?'viva':''}"><span>${escC(titulo)}</span>
+      <span class="cl-lp-win-btns">${btns}</span></div>
+    ${acoes&&acoes.minimizada?'':`<div class="cl-lp-win-body">${inner}</div>`}
   </div>`;
 }
+function clWaitlistMin(){ CL.waitlistMin=!CL.waitlistMin; cdraw(); }
+function clWaitlistMax(){ CL.waitlistMin=false; CL.waitlistMax=!CL.waitlistMax; cdraw(); }
+/* CLICOU, ABRE GRANDE. As capturas do carrossel e das seções aparecem em 300-400px de largura:
+   dá pra sentir o clima da tela, mas não pra LER a tabela, o placar ou a escalação — que é
+   justamente o que a pessoa quer conferir antes de entrar no jogo. O clique abre a mesma imagem
+   em tela cheia, e de lá dá pra navegar pelas outras com as setas (ou o teclado). */
 function lpTelaHTML(arq, alt){
-  return `<img class="cl-lp-shot" src="img/telas/${escC(arq)}.webp" alt="${escC(alt)}" loading="lazy" decoding="async">`;
+  return `<button type="button" class="cl-lp-shot-b" onclick="clLpZoom('${escC(arq)}')"
+      title="Abrir em tela cheia" aria-label="Abrir ${escC(alt)} em tela cheia">
+    <img class="cl-lp-shot" src="img/telas/${escC(arq)}.webp" alt="${escC(alt)}" loading="lazy" decoding="async">
+    <span class="cl-lp-shot-lupa" aria-hidden="true">⛶</span>
+  </button>`;
+}
+function clLpZoom(arq){
+  const i=LANDING_TELAS.findIndex(t=>t[0]===arq);
+  CL.lpZoom = i>=0 ? i : 0;
+  document.addEventListener('keydown', clLpZoomTecla);
+  cdraw();
+}
+function clLpZoomFecha(){ CL.lpZoom=null; document.removeEventListener('keydown', clLpZoomTecla); cdraw(); }
+function clLpZoomIr(d){
+  if(CL.lpZoom==null) return;
+  const n=LANDING_TELAS.length;
+  CL.lpZoom=(CL.lpZoom+d+n)%n; cdraw();
+}
+function clLpZoomTecla(e){
+  if(CL.lpZoom==null) return;
+  if(e.key==='Escape'){ e.preventDefault(); clLpZoomFecha(); }
+  else if(e.key==='ArrowRight'){ e.preventDefault(); clLpZoomIr(1); }
+  else if(e.key==='ArrowLeft'){ e.preventDefault(); clLpZoomIr(-1); }
+}
+function lpZoomHTML(){
+  const i=CL.lpZoom; if(i==null) return '';
+  const [arq,label]=LANDING_TELAS[i]||LANDING_TELAS[0];
+  return `<div class="cl-lp-zoom" onclick="if(event.target===this)clLpZoomFecha()">
+    <div class="cl-lp-zoom-cx">
+      <div class="cl-lp-zoom-bar">
+        <span>${escC(label)}</span>
+        <span class="cl-lp-zoom-cont">${i+1}/${LANDING_TELAS.length}</span>
+        <button class="cl-lp-zoom-x" onclick="clLpZoomFecha()" aria-label="Fechar">✕</button>
+      </div>
+      <img class="cl-lp-zoom-img" src="img/telas/${escC(arq)}.webp" alt="${escC(label)}">
+      <button class="cl-lp-zoom-nav esq" onclick="clLpZoomIr(-1)" aria-label="Tela anterior">◀</button>
+      <button class="cl-lp-zoom-nav dir" onclick="clLpZoomIr(1)" aria-label="Próxima tela">▶</button>
+    </div>
+  </div>`;
 }
 function landingHeroHTML(){
   const vid=LANDING_VIDEO_ID||'';
