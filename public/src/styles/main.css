@@ -680,8 +680,6 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    toda cresce pra caber um selo maior e a lista de elenco passa a rolar sem necessidade (era
    assim antes, com width/height maiores, e foi revertido por causa disso). O alvo de toque
    real continua sendo a linha inteira (onclick no .cl-rrow), não só o selo. */
-.cl-rmark-hit.t,.cl-rmark-hit.r{box-shadow:0 0 0 2px rgba(255,255,255,.35) inset,0 1px 3px rgba(0,0,0,.4)}
-.cl-rrow.swap-out .cl-rmark-hit{box-shadow:0 0 0 2px #000 inset,0 0 0 4px var(--yellow)}
 /* :hover fica só pra quem tem mouse de verdade — em touch, :hover "gruda" depois do toque até o
    usuário tocar em outra coisa, o que junto com o alto contraste do modo escalação (sel/swap-out)
    dava uma sensação de UI emperrada. :active substitui como feedback IMEDIATO do toque, e esse
@@ -689,14 +687,6 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 @media (hover:hover){ .cl-rrow:hover{background:#e8e8e8} }
 .cl-rrow:active{filter:brightness(.85)}
 .cl-rrow.sel{background:#000;color:#fff}
-/* barra fixa do modo escalação (ver escalaBarHTML em main.js) — troca de lugar com o cabeçalho
-   normal de colunas (mesmo sticky), então precisa vencer .cl-rrow.head em qualquer breakpoint;
-   por isso specificity de 3 classes em vez de depender da ordem no arquivo. */
-.cl-rrow.head.cl-esc-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;text-transform:none;letter-spacing:0;font-size:12.5px;background:#2a2a2a;color:#ffd54a;cursor:default}
-.cl-rrow.head.cl-esc-bar.marked{background:var(--yellow);color:#000}
-.cl-esc-bar-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cl-esc-bar-x{flex:none;cursor:pointer;font-weight:800;padding:3px 10px;border-radius:5px;background:rgba(0,0,0,.18);touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-.cl-esc-bar-x:active{background:rgba(0,0,0,.35)}
 .cl-rpos{}
 .cl-rname{}
 .cl-rage{text-align:center;font-weight:400;opacity:.75;font-size:12px}
@@ -937,8 +927,19 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-fin-row.big2{font-size:20px;margin-top:8px}
 .cl-fin-row.big2 b{font-weight:800}
 /* selecção */
-.cl-sel{font-size:15px;position:relative;min-height:400px;padding-bottom:120px}
-.cl-sel-note{margin-bottom:16px;color:#aaa}
+/* A ABA FORMAÇÃO É UMA TELA DE DUAS PARTES: o campo (com o banco) rola no espaço que sobra,
+   e as decisões — formações, "Selecionar descansados" e "Jogar" — ficam ancoradas na base,
+   sempre à mão. Antes tudo rolava junto e o botão que começa a partida sumia embaixo do campo. */
+.cl-sel{font-size:15px;position:relative;display:flex;flex-direction:column;height:100%;min-height:0}
+/* O CAMPO É DIMENSIONADO PELA ALTURA, não pela largura: .cl-pitch tem height:100% e
+   aspect-ratio, então a LARGURA é que sai da conta. É o que garante que o gramado inteiro
+   caiba na aba sem rolagem — e num arraste os dois pontos (de onde sai e onde entra) precisam
+   estar visíveis ao mesmo tempo. */
+.cl-sel-top{flex:1;min-height:0;overflow-y:auto;padding-top:16px}
+.cl-sel-foot{flex:none;padding-top:8px;margin-top:4px;border-top:1px solid rgba(255,255,255,.14)}
+/* o painel desta aba não rola: quem rola é o .cl-sel-scroll por dentro (o rodapé precisa ficar) */
+.cl-main.tab-seleccao .cl-panel{overflow:hidden}
+.cl-sel-note{margin-bottom:10px;color:#aaa}
 /* ===== PAINEL FORMAÇÃO: uma caixa só =====
    Eram três larguras diferentes na mesma coluna — a grade de formações (340px), o "Selecionar
    descansados" (largura cheia) e o par Substituir/Jogar (320px) —, então cada bloco começava e
@@ -950,12 +951,17 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    os jogadores (posicionados em %) acompanham qualquer largura sem recalcular nada em JS. */
 /* o banco é absoluto na direita: assim a ALTURA do bloco é a do campo, e a lista de reservas
    rola por dentro em vez de esticar o conjunto todo */
-.cl-pitch-block{position:relative;max-width:460px;margin:24px 0 14px;padding-right:80px}
-.cl-pitch-wrap{position:relative;width:100%;max-width:300px;
+/* o banco é absoluto na direita: assim a ALTURA do bloco é a do campo, e a lista de reservas
+   rola por dentro em vez de esticar o conjunto todo */
+.cl-pitch-block{position:relative;margin:0 0 8px;padding-right:146px;max-width:430px}
+/* teto de largura calculado pra caber na altura da aba (painel − rodapé): o gramado tem
+   proporção fixa, então limitar a largura é limitar a altura. Se ainda assim não couber (janela
+   baixa), o .cl-sel-top rola — nada some. */
+.cl-pitch-wrap{position:relative;width:100%;max-width:278px;
   background:#0e1a10;border:2px solid;border-color:#111 #555 #555 #111;padding:6px;
   box-shadow:inset 0 0 40px rgba(0,0,0,.55)}
 .cl-pitch-mid{display:flex;align-items:stretch;gap:4px}
-.cl-pitch{position:relative;flex:1;aspect-ratio:100/132;min-width:0;overflow:hidden;
+.cl-pitch{position:relative;flex:1;min-width:0;aspect-ratio:100/118;overflow:hidden;
   border:1px solid rgba(0,0,0,.6)}
 .cl-pitch-lines{position:absolute;inset:0;width:100%;height:100%}
 /* placas: mesma peça nas quatro bordas, só muda a direção do texto */
@@ -963,12 +969,12 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-pitch-ads.top,.cl-pitch-ads.bottom{flex-direction:row}
 .cl-pitch-ads.top{margin-bottom:4px}
 .cl-pitch-ads.bottom{margin-top:4px}
-.cl-pitch-ads.left,.cl-pitch-ads.right{flex-direction:column;width:16px;flex:0 0 16px}
+.cl-pitch-ads.left,.cl-pitch-ads.right{flex-direction:column;width:14px;flex:0 0 14px}
 .cl-pitch-ad{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;
-  border:1px solid rgba(0,0,0,.55);box-shadow:inset 0 -3px 6px rgba(0,0,0,.35);
-  font-size:10px;font-weight:700;letter-spacing:.06em;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.5)}
+  border:1px solid rgba(0,0,0,.55);box-shadow:inset 0 -3px 6px rgba(0,0,0,.35);white-space:nowrap;
+  font-size:8px;font-weight:700;letter-spacing:.02em;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.5)}
 .cl-pitch-ads.top .cl-pitch-ad,.cl-pitch-ads.bottom .cl-pitch-ad{height:18px}
-.cl-pitch-ads.left .cl-pitch-ad span,.cl-pitch-ads.right .cl-pitch-ad span{writing-mode:vertical-rl;font-size:9px}
+.cl-pitch-ads.left .cl-pitch-ad span,.cl-pitch-ads.right .cl-pitch-ad span{writing-mode:vertical-rl;font-size:8px}
 .cl-pitch-ads.left .cl-pitch-ad span{transform:rotate(180deg)}
 .cl-pitch-ad.laranja{background:linear-gradient(#e2701c,#b8530c)}
 .cl-pitch-ad.azul{background:linear-gradient(#20437e,#122a52)}
@@ -978,8 +984,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-pitch-mast svg{width:100%;height:100%;display:block}
 .cl-pitch-mast.tl{left:-7px;top:-26px}
 .cl-pitch-mast.tr{right:-7px;top:-26px;transform:scaleX(-1)}
-.cl-pitch-mast.bl{left:-7px;bottom:-18px;transform:scaleY(-1)}
-.cl-pitch-mast.br{right:-7px;bottom:-18px;transform:scale(-1,-1)}
+.cl-pitch-mast.bl{left:-7px;bottom:-10px;transform:scaleY(-1)}
+.cl-pitch-mast.br{right:-7px;bottom:-10px;transform:scale(-1,-1)}
 /* jogador no campo — mesma ação da linha do elenco, ver pitchHTML */
 .cl-pp{position:absolute;transform:translateX(-50%);width:24%;padding:0;margin:0;border:0;
   background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;
@@ -990,18 +996,18 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-pp-shirt svg{width:100%;height:auto;display:block}
 .cl-pp-num{position:absolute;left:0;right:0;top:44%;transform:translateY(-50%);
   text-align:center;font-size:13px;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.45)}
-.cl-pp-name{margin-top:2px;font-size:10px;font-weight:700;color:#fff;text-align:center;
+.cl-pp-name{margin-top:2px;font-size:9.5px;font-weight:700;color:#fff;text-align:center;
   text-shadow:0 1px 2px rgba(0,0,0,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .cl-pp-meta{font-size:9px;color:#d8ffd8;text-shadow:0 1px 2px rgba(0,0,0,.8)}
 /* ===== BANCO (coluna à direita do campo, ver benchHTML) =====
    Mesma camisa do gramado a 60% do tamanho, empilhada e rolável: o banco inteiro fica à mão
    sem empurrar o campo pra baixo. */
-.cl-bench{position:absolute;right:0;top:0;bottom:0;width:74px;display:flex;flex-direction:column;min-height:0;
+.cl-bench{position:absolute;right:0;top:0;bottom:0;width:140px;display:flex;flex-direction:column;min-height:0;
   background:#0e1a10;border:2px solid;border-color:#111 #555 #555 #111;padding:4px}
 .cl-bench-hd{font-size:8.5px;font-weight:700;letter-spacing:.08em;color:#9fb3a0;text-align:center;
   padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:4px}
-.cl-bench-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:5px;
-  scrollbar-width:thin}
+.cl-bench-list{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;
+  gap:5px 4px;align-content:start;scrollbar-width:thin}
 .cl-bench-vazio{color:#6d7f6e;text-align:center;font-size:11px;padding:8px 0}
 .cl-bp{display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px 0;margin:0;border:0;
   background:none;cursor:pointer;font-family:inherit;line-height:1.1;border-radius:3px}
@@ -1015,19 +1021,31 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-bp.mark{background:rgba(255,255,255,.2)}
 .cl-bp.mark .cl-pp-shirt{filter:drop-shadow(0 0 5px #fff)}
 .cl-bp.unavail,.cl-bp.fora{opacity:.42}
+/* ARRASTE (ver clDragStart): a camisa fantasma segue o dedo/cursor, a origem fica apagada e
+   só os destinos válidos acendem — o usuário vê a regra da troca antes de soltar. */
+.cl-pp,.cl-bp{touch-action:none;-webkit-tap-highlight-color:transparent}
+.cl-dnd-ghost{position:fixed;z-index:999;pointer-events:none;width:44px;margin:0;
+  transform:translate(-50%,-50%);opacity:.92;filter:drop-shadow(0 4px 8px rgba(0,0,0,.6))}
+.cl-dnd-ghost svg{width:100%;height:auto;display:block}
+.cl-dnd-ghost .cl-pp-num{position:absolute;left:0;right:0;top:44%;transform:translateY(-50%);
+  text-align:center;font-size:13px;font-weight:800}
+.cl-pp.dragging,.cl-bp.dragging{opacity:.3}
+.cl-pp.alvo .cl-pp-shirt,.cl-bp.alvo .cl-pp-shirt{filter:drop-shadow(0 0 6px var(--yellow))}
+.cl-bp.alvo{background:rgba(255,213,74,.18)}
+.cl-pitch.alvo-zona{box-shadow:inset 0 0 0 2px var(--yellow)}
+.cl-bench.alvo-zona{border-color:var(--yellow)}
 .cl-pp:hover .cl-pp-shirt{transform:translateY(-2px)}
 .cl-pp.sel .cl-pp-shirt{filter:drop-shadow(0 0 6px var(--yellow)) drop-shadow(0 2px 3px rgba(0,0,0,.5))}
 .cl-pp.sel .cl-pp-name{color:var(--yellow)}
 .cl-pp.mark .cl-pp-shirt{filter:drop-shadow(0 0 7px #fff);animation:cl-pp-pulse .9s infinite alternate}
 .cl-pp.unavail{opacity:.55}
 @keyframes cl-pp-pulse{from{transform:scale(1)}to{transform:scale(1.12)}}
-.cl-sel-formations,.cl-sel-rested,.cl-sel-acts{width:100%;max-width:340px}
-.cl-sel-formations{margin:0 0 16px;padding:0}
-.cl-formgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.cl-sel-rested{margin:0 0 16px}
-.cl-sel-rested .cl-btn{width:100%}
+.cl-sel-formations,.cl-sel-acts{width:100%;max-width:none}
+.cl-sel-formations{margin:0 0 6px;padding:0}
+.cl-formgrid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
 .cl-sel-acts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0}
-.cl-sel-acts .cl-btn{width:100%;min-width:0}
+.cl-sel-acts .cl-btn{width:100%;min-width:0;height:100%;flex-direction:row;gap:7px;min-height:0;padding:9px 10px}
+.cl-sel-acts .cl-btn-ic{font-size:16px}
 .cl-sel-xi{display:flex;flex-direction:column;gap:3px;max-height:300px;overflow:auto}
 .cl-sel-p{color:#fff;font-size:14px}
 .cl-sel-p i{display:inline-block;width:18px;color:var(--yellow);font-style:normal;font-weight:700}
@@ -1641,7 +1659,6 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-sub-row.sel{background:#ffd400;color:#141414}
 .cl-sub-row.sel *{color:#141414 !important}
 .cl-sub-btn{display:flex;justify-content:flex-end;margin-top:6px}
-.cl-rrow.swap-out{background:var(--yellow);color:#000;font-weight:800}
 /* Classificação (fim de rodada) */
 /* ranking pós-rodada: DESKTOP mostra as 4 divisões expandidas em grade 2x2 (há espaço);
    MOBILE vira accordion vertical (divisão do usuário aberta, outras colapsadas). */
@@ -2296,7 +2313,6 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-rv{font-size:11px}
   .cl-rrow.head{font-size:9.5px}
   .cl-rmark.t,.cl-rmark.r{width:14px;height:14px;font-size:9px;border-radius:3px}
-  .cl-rrow.head.cl-esc-bar{font-size:11px}
   .cl-mkt-p,.cl-auc-row,.cl-cls-row{font-size:12px}
   /* leilão em cartão (2 linhas) empilha sozinho; só garante largura total no mobile */
   .cl-mkt-clublist,.cl-mkt-squad,.cl-mkt-roster,.cl-auc{min-width:0;width:100%}
@@ -2327,14 +2343,19 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-sel-jogar{position:fixed;left:10px;right:10px;bottom:10px;top:auto;z-index:60;
     align-items:stretch;box-shadow:0 -6px 18px rgba(0,0,0,.45);border-radius:6px;overflow:hidden}
   .cl-sel-jogar .cl-btn{width:100%}
-  .cl-sel{padding-bottom:76px} /* espaço reservado pra não esconder conteúdo atrás do botão fixo */
+  .cl-sel{padding-bottom:76px;height:auto;display:block} /* espaço reservado pra não esconder conteúdo atrás do botão fixo */
+  .cl-main.tab-seleccao .cl-panel{overflow:visible}
+  /* no telefone não existe "altura disponível" (a página inteira rola), então o campo volta a
+     sair da largura e o banco vira coluna absoluta à direita, como no desktop antigo */
+  .cl-sel-top{overflow:visible;padding-top:20px}
+  .cl-pitch-wrap{max-width:300px}   /* no telefone a página rola: o campo pode ser maior */
   /* campo no telefone: as placas laterais afinam e a tipografia do jogador encolhe pra caber
      onze camisas na largura da tela sem sobrepor nome com nome */
-  .cl-pitch-ads.left,.cl-pitch-ads.right{width:16px;flex:0 0 16px}
-  .cl-pitch-ad{font-size:9px}
+  .cl-pitch-ad{font-size:7px}
   .cl-pitch-ads.top .cl-pitch-ad,.cl-pitch-ads.bottom .cl-pitch-ad{height:17px}
   .cl-pp-num{font-size:11px}
-  .cl-pp-name{font-size:9px}
+  .cl-pp-name{font-size:8.5px}
+  .cl-pp{width:22%}
   .cl-pp-meta{font-size:8px}
   .cl-pitch-mast{width:26px;height:46px}
   /* barra de status no MOBILE: faixa horizontal FIXA NA BASE (antes ficava no topo, cobrindo o

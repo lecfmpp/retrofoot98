@@ -296,7 +296,7 @@ function dlg(title,body,opts){ opts=opts||{}; const w=opts.w||(opts.std?640:620)
     <div class="cl-dlg-title"><span>${escC(title)}</span>${opts.min?'<span class="cl-min">–</span>':''}</div>
     <div class="cl-dlg-body ${opts.bodyClass||''}">${body}</div>
   </div>`; }
-function btn(label,onclick,opts){ opts=opts||{}; return `<button class="cl-btn ${opts.cls||''}" ${opts.dis?'disabled':''} onclick="${onclick}">${opts.icon?`<span class="cl-btn-ic">${opts.icon}</span>`:''}<span>${escC(label)}</span></button>`; }
+function btn(label,onclick,opts){ opts=opts||{}; return `<button class="cl-btn ${opts.cls||''}" ${opts.dis?'disabled':''}${opts.title?` title="${escC(opts.title)}"`:''} onclick="${onclick}">${opts.icon?`<span class="cl-btn-ic">${opts.icon}</span>`:''}<span>${escC(label)}</span></button>`; }
 
 /* ================= RENDER RAIZ ================= */
 /* overlay de carregamento full-screen pra virada de rodada online — evita mostrar uma tela
@@ -2029,14 +2029,14 @@ function enterSeatContext(seat, fx){
   const H=CL._hotseat;
   ensureBgClubMaterialized(fx.home); ensureBgClubMaterialized(fx.away);
   H._prev={ clubId:S.clubId, xi:(S.xi||[]).slice(), tactic:S.tactic, formation:CL.formation,
-    tacticChosen:CL.tacticChosen, selPlayer:CL.selPlayer, escalacaoMode:CL.escalacaoMode, tab:CL.tab };
+    tacticChosen:CL.tacticChosen, selPlayer:CL.selPlayer, tab:CL.tab };
   CL._seatContext={ seat, fx };
   const st=(CL.seatStore&&CL.seatStore[seat.clubId])||null;
   S.clubId=seat.clubId; CL.clubId=seat.clubId;
   if(st){ S.xi=(st.xi||[]).slice(); CL.formation=st.formation; S.tactic=st.tactic||'equilibrado'; CL.tacticChosen=true; }
   else { S.xi=autoXI(seat.clubId); CL.formation=null; S.tactic='equilibrado'; CL.tacticChosen=false; }
   fixUserXIAvailability();
-  CL.selPlayer=squad(seat.clubId)[0]?.pid||null; CL.escalacaoMode=false; CL.tab='seleccao';
+  CL.selPlayer=squad(seat.clubId)[0]?.pid||null; CL.tab='seleccao';
   CL.subPanelOpen=false; CL.subsUsed=0; CL.liveDivOpen=null;
 }
 function exitSeatContext(){
@@ -2044,7 +2044,7 @@ function exitSeatContext(){
   if(seat){ CL.seatStore=CL.seatStore||{}; CL.seatStore[seat.clubId]={ xi:(S.xi||[]).slice(), formation:CL.formation, tactic:S.tactic }; }
   const p=H&&H._prev;
   if(p){ S.clubId=p.clubId; CL.clubId=p.clubId; S.xi=p.xi; S.tactic=p.tactic; CL.formation=p.formation;
-    CL.tacticChosen=p.tacticChosen; CL.selPlayer=p.selPlayer; CL.escalacaoMode=p.escalacaoMode; CL.tab=p.tab; }
+    CL.tacticChosen=p.tacticChosen; CL.selPlayer=p.selPlayer; CL.tab=p.tab; }
   CL._seatContext=null;
 }
 /* "Jogar partida" na tela do assento -> inicia a partida ao vivo dele (contexto já é o do assento) */
@@ -2182,7 +2182,7 @@ function scSeatTurn(){
         <div class="cl-hdr"><div class="cl-mgr">${escC(seat.name)}</div>
           <div class="cl-hdr-sub"><span class="cl-flag2">${flag}</span> ${escC(seat.country)} <span class="cl-div">${escC(seatDivLabel(seat,fx))}</span></div></div>
         <div class="cl-roster-hd cl-acc-hd"><span>Elenco</span></div>
-        <div class="cl-roster cl-acc-body ${CL.escalacaoMode?'cl-roster-escala':''}">${rosterHTML()}</div>
+        <div class="cl-roster cl-acc-body">${rosterHTML()}</div>
       </div>
       <div class="cl-main-right ${ADV_HDR_TABS[CL.tab]?'':'sem-adv'}" style="background:${th.bg}">
         ${advHeaderHTML({nome:opp.short||'—', home, comp:divisionLabel(), fase:((S.round||0)+1)+'ª Jornada', season:S.season, chip:th.bg2})}
@@ -2397,7 +2397,7 @@ function scMain(){
         <div class="cl-roster-hd cl-acc-hd" onclick="clToggleRoster()">
           <span>Elenco</span><span class="cl-acc-arrow ${CL.rosterOpen===false?'closed':''}">▾</span>
         </div>
-        <div class="cl-roster cl-acc-body ${CL.rosterOpen===false?'closed':''} ${CL.escalacaoMode?'cl-roster-escala':''}">${rosterHTML()}</div>
+        <div class="cl-roster cl-acc-body ${CL.rosterOpen===false?'closed':''}">${rosterHTML()}</div>
       </div>
       <div class="cl-main-right ${ADV_HDR_TABS[CL.tab]?'':'sem-adv'}" style="background:${th.bg}">
         ${advHeaderHTML({nome:oppId?((anyClubOf(oppId)||{short:'—'}).short):'—', home:nm?nm.home:null,
@@ -2426,16 +2426,6 @@ function rosterHeadHTML(){
    está marcado, mesmo depois de rolar a lista pra achar o reserva no fim da posição. Sem isso,
    no celular (onde o elenco é uma lista curta e rolável, .cl-roster) o usuário marcava um
    titular lá em cima, rolava pra baixo atrás do reserva e perdia de vista quem tinha marcado. */
-function escalaBarHTML(){
-  const m=CL.escalaMark?pById(CL.escalaMark,CL.clubId):null;
-  if(m) return `<div class="cl-rrow head cl-esc-bar marked">
-    <span class="cl-esc-bar-txt">🔁 Trocando <b>${escC(m.n)}</b> (${posLetter(m.s)}) — toque em outro ${posLetter(m.s)}</span>
-    <span class="cl-esc-bar-x" onclick="event.stopPropagation();clEscalaMarkClear()">✕</span>
-  </div>`;
-  return `<div class="cl-rrow head cl-esc-bar">
-    <span class="cl-esc-bar-txt">👆 Toque no T ou R de um jogador pra marcar</span>
-  </div>`;
-}
 /* salário SEMANAL exibido de um jogador, de qualquer clube. Sem contrato explícito cai no mesmo
    salário-tabela por força que o motor já usa pra folha dos clubes de CPU (ver cpuSeasonFinances),
    em vez de mostrar "0k" — que era o que aparecia no elenco de quem não tinha contract. */
@@ -2518,25 +2508,19 @@ function rosterHTML(){
   // o início de jogo, então a marca é sempre válida — e saber quem está escalado é útil em
   // qualquer aba (Jogo, Jogador etc.), não só na hora de mexer na escalação.
   const xiSet=new Set(S.xi||[]); const showMarks=xiSet.size>0;
-  const escala=CL.escalacaoMode;
-  let html=escala?escalaBarHTML():rosterHeadHTML();
+  let html=rosterHeadHTML();
   groups.forEach(([sec])=>{ const list=sq.filter(p=>p.s===sec);
     html+=`<div class="cl-rgroup">`+list.map(p=>{const starter=xiSet.has(p.pid);   // identidade por pid, não nome
-      const marked=escala && CL.escalaMark===p.pid;
-      const selc=!escala && CL.selPlayer===p.pid;
+      const selc=CL.selPlayer===p.pid;
       const unavail=p.suspended>0||p.injuredMatches>0;
       const badge=p.suspended>0?'🟥':(p.injuredMatches>0?'✚'+p.injuredMatches:'');
-      const onclickFn=escala?`clEscalaPick('${escC(p.pid)}')`:`clSelPlayer('${escC(p.pid)}')`;
+      const onclickFn=`clSelPlayer('${escC(p.pid)}')`;
       // salário real do contrato (não mais uma estimativa a partir do valor de mercado) — com
       // moeda abreviada (fmt: k/M) e periodicidade explícita, pro usuário nunca confundir
       // "10 mil" com "10 milhões" nem esquecer que o débito é SEMANAL.
       const salary=playerSalary(p);
-      // em modo de escalação o T/R vira o alvo principal do toque: área bem maior que o
-      // resto da linha (.cl-rmark-hit, ver main.css) — continua chamando a mesma função que
-      // a linha toda (onclick já borbulha), só existe pra dar um "botão" óbvio pro dedo, sem
-      // precisar acertar o texto pequeno.
-      return `<div class="cl-rrow ${selc?'sel':''} ${marked?'swap-out':''} ${unavail?'unavail':''}" style="${selc?'':`color:${th.txt}`}" onclick="${onclickFn}">
-        <span class="cl-rmark ${escala?'cl-rmark-hit':''} ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
+      return `<div class="cl-rrow ${selc?'sel':''} ${unavail?'unavail':''}" style="${selc?'':`color:${th.txt}`}" onclick="${onclickFn}">
+        <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname" title="${escC(p.n)}">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
         <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}${trainingIcon(CL.clubId,p)}</span><span class="cl-rnota">${notaChip(p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(salary)}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;}).join('')+`</div>`;
@@ -3980,7 +3964,7 @@ function panFinancasLog(){
 
 /* ---- painel: SELECÇÃO (+ Jogar) ---- */
 /* exige exatamente 1 goleiro titular — antes só era mantido por convenção (pickXIByFormation/
-   autoXI/clEscalaPick sempre preservavam isso), sem checagem explícita no botão Jogar: se o
+   autoXI/clTrocarPorPid sempre preservavam isso), sem checagem explícita no botão Jogar: se o
    elenco ficasse sem nenhum goleiro de verdade (raro, mas possível), o jogo escalava 11 de linha
    silenciosamente em vez de avisar. */
 function xiGKCount(xi){ return xi.filter(p=>p.s==='GK').length; }
@@ -3992,9 +3976,9 @@ function xiGKCount(xi){ return xi.filter(p=>p.s==='GK').length; }
    só que vista de cima: quatro faixas (ataque, meio, defesa, goleiro) com a camisa, o número
    e a energia de cada titular.
    O clique no campo NÃO tem lógica própria: chama exatamente as mesmas funções da lista
-   (clSelPlayer fora do modo de escalação, clEscalaPick dentro dele). Assim tocar num jogador
-   no campo acende a linha dele no elenco, e a troca de titular funciona igual — campo e lista
-   são duas janelas pro mesmo estado, nunca dois caminhos que podem divergir. */
+   (clSelPlayer): tocar num jogador no campo acende a linha dele no elenco — campo e lista são
+   duas janelas pro mesmo estado, nunca dois caminhos que podem divergir. A TROCA é o arraste
+   entre campo e banco (ver clDragStart). */
 /* placas de publicidade: o inventário fica aqui num lugar só. Trocar por patrocinador de
    verdade depois é mexer só nesta lista (ver pasta patrocinadores/). */
 const PITCH_ADS=[
@@ -4064,13 +4048,13 @@ const PITCH_LANES={
    fica colado na pequena área; as outras faixas sobem ou descem conforme o desenho: um 4-2-4
    deixa o meio mais recuado (só dois), um 4-5-1 adianta o meio e isola o centroavante. */
 const PITCH_BANDS={
-  _        :[13,36,57,82],
-  '3-3-4'  :[12,36,58,82],
-  '3-4-3'  :[13,36,57,82],
-  '4-2-4'  :[11,39,59,82],
-  '4-3-3'  :[13,36,57,82],
-  '4-4-2'  :[14,37,58,82],
-  '4-5-1'  :[10,35,58,82],
+  _        :[11,33,54,82],
+  '3-3-4'  :[10,33,55,82],
+  '3-4-3'  :[11,33,54,82],
+  '4-2-4'  :[ 9,36,56,82],
+  '4-3-3'  :[11,33,54,82],
+  '4-4-2'  :[12,34,55,82],
+  '4-5-1'  :[ 8,32,55,82],
 };
 /* a camisa (desenho + número) é a mesma peça no gramado e no banco — só muda o tamanho, que
    vem do CSS (.cl-bp .cl-pp-shirt é 60% da camisa do titular). */
@@ -4083,30 +4067,25 @@ function shirtHTML(p, th, num){
     <span class="cl-pp-num" style="color:${lumin(th.col)>0.62?'#111':'#fff'}">${num||''}</span>
   </span>`;
 }
-/* BANCO (coluna à direita do campo) — o resto do elenco, na mesma linguagem do gramado.
-   Vale a mesma regra do campo: o clique chama as funções da LISTA, então tocar num reserva
-   acende a linha dele no elenco. Em modo de substituição, com um titular já marcado, o toque
-   no reserva JÁ faz a troca (clEscalaPick fecha o par) — é o "um clique" da troca. */
+/* BANCO (duas colunas à direita do campo) — o resto do elenco, na mesma linguagem do gramado.
+   Duas colunas em vez de uma: o banco de um elenco típico tem 10-16 nomes, e numa fila só o
+   usuário rolava pra cima e pra baixo pra achar o reserva da posição que queria.
+   Vale a mesma regra do campo: o toque chama a função da LISTA (clSelPlayer), então tocar
+   num reserva acende a linha dele no elenco. A troca é o ARRASTE (ver clDragStart). */
 function benchHTML(th, nums){
-  const escala=CL.escalacaoMode;
   const xiSet=new Set(S.xi||[]);
   const ordem={GK:0,DEF:1,MID:2,ATT:3};
   const banco=squad(CL.clubId).filter(p=>!xiSet.has(p.pid))
     .slice().sort((a,b)=>(ordem[a.s]-ordem[b.s])||(b.f-a.f));
-  const marcado = escala && CL.escalaMark ? pById(CL.escalaMark,CL.clubId) : null;
   const itens = banco.map(p=>{
-    const marked = escala && CL.escalaMark===p.pid;
-    const selc   = !escala && CL.selPlayer===p.pid;
+    const selc   = CL.selPlayer===p.pid;
     const unavail= p.suspended>0||p.injuredMatches>0;
-    // com um titular marcado, só os reservas da MESMA posição podem fechar a troca (é a regra
-    // do clEscalaPick): os outros ficam apagados pra não prometer um clique que dá recusa
-    const forade = !!marcado && marcado.s!==p.s;
-    const on = escala?`clEscalaPick('${escC(p.pid)}')`:`clSelPlayer('${escC(p.pid)}')`;
     const en = Math.round(p.energy!=null?p.energy:100);
     const sobrenome = p.n.split(' ').slice(-1)[0]||p.n;
-    return `<button type="button" class="cl-bp ${selc?'sel':''} ${marked?'mark':''} ${unavail?'unavail':''} ${forade?'fora':''}"
-      onclick="${on}" title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}%${
-        marcado&&!forade&&!unavail?' · toque pra trocar com '+escC(marcado.n):''}">
+    return `<button type="button" class="cl-bp ${selc?'sel':''} ${unavail?'unavail':''}"
+      data-pid="${escC(p.pid)}" data-sec="${p.s}"
+      onpointerdown="clDragStart(event,'${escC(p.pid)}')" onkeydown="if(event.key==='Enter'||event.key===' ')clSelPlayer('${escC(p.pid)}')"
+      title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}%${unavail?'':' · arraste pro campo pra escalar'}">
       ${shirtHTML(p,th,nums[p.pid])}
       <span class="cl-pp-name">${escC(sobrenome)}${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
       <span class="cl-pp-meta">${posLetter(p.s)} · ${en}%</span>
@@ -4118,7 +4097,6 @@ function benchHTML(th, nums){
   </div>`;
 }
 function pitchHTML(){
-  const escala=CL.escalacaoMode;
   const xi=xiPlayers(CL.clubId);
   const th=clubTheme(CL.clubId);
   const nums=clubShirtNumbers(CL.clubId);
@@ -4131,18 +4109,21 @@ function pitchHTML(){
     const dense=list.length>=5?' dense':'';
     return list.map((p,i)=>{
       const left = lanes[i]!=null?lanes[i]:(7+((i+0.5)/list.length)*86);
-      const marked = escala && CL.escalaMark===p.pid;
-      const selc   = !escala && CL.selPlayer===p.pid;
+      const selc   = CL.selPlayer===p.pid;
       const unavail= p.suspended>0||p.injuredMatches>0;
-      const on = escala?`clEscalaPick('${escC(p.pid)}')`:`clSelPlayer('${escC(p.pid)}')`;
-      const nome = p.n.length>15 ? p.n.split(' ')[0]+' '+(p.n.split(' ').slice(-1)[0]||'') : p.n;
+      // linha cheia (3+ na mesma faixa) só cabe um nome: usa o último, que é como o jogador
+      // é chamado na escalação ("Richard Almeida" vira "Almeida")
+      const partes = p.n.split(' ');
+      const nome = list.length>=3 ? (partes.slice(-1)[0]||p.n)
+                 : (p.n.length>15 ? partes[0]+' '+(partes.slice(-1)[0]||'') : p.n);
       const en = Math.round(p.energy!=null?p.energy:100);
       // o goleiro é ancorado pela BASE (e com o nome acima da camisa, ver .cl-pp.gk): assim ele
       // encosta na pequena área, como no jogo, sem o nome vazar pra fora do gramado
       const pos = sec==='GK' ? `bottom:2%` : `top:${top}%`;
-      return `<button type="button" class="cl-pp${dense}${sec==='GK'?' gk':''} ${selc?'sel':''} ${marked?'mark':''} ${unavail?'unavail':''}"
-        style="left:${left.toFixed(2)}%;${pos}" onclick="${on}"
-        title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}%">
+      return `<button type="button" class="cl-pp${dense}${sec==='GK'?' gk':''} ${selc?'sel':''} ${unavail?'unavail':''}"
+        style="left:${left.toFixed(2)}%;${pos}" data-pid="${escC(p.pid)}" data-sec="${p.s}"
+        onpointerdown="clDragStart(event,'${escC(p.pid)}')" onkeydown="if(event.key==='Enter'||event.key===' ')clSelPlayer('${escC(p.pid)}')"
+        title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}% · arraste pro banco pra tirar">
         ${shirtHTML(p,th,nums[p.pid])}
         <span class="cl-pp-name">${escC(nome)}${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
         <span class="cl-pp-meta">${posLetter(p.s)} · ${en}%</span>
@@ -4156,29 +4137,29 @@ function pitchHTML(){
     <div class="cl-pitch-mid">
       ${pitchAdsHTML('left',3,1)}
       <div class="cl-pitch">
-        <svg class="cl-pitch-lines" viewBox="0 0 100 132" preserveAspectRatio="none" aria-hidden="true">
-          ${[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>`<rect x="0" y="${i*11}" width="100" height="11" fill="${i%2?'#2f7d34':'#35883a'}"/>`).join('')}
+        <svg class="cl-pitch-lines" viewBox="0 0 100 118" preserveAspectRatio="none" aria-hidden="true">
+          ${[0,1,2,3,4,5,6,7,8,9].map(i=>`<rect x="0" y="${i*11.8}" width="100" height="11.8" fill="${i%2?'#2f7d34':'#35883a'}"/>`).join('')}
         </svg>
         <!-- guia de setores: os quadrantes que a formação usa pra posicionar o time. Fica bem
              discreto (é orientação, não marcação de campo de verdade). -->
-        <svg class="cl-pitch-lines" viewBox="0 0 100 132" preserveAspectRatio="none" aria-hidden="true"
+        <svg class="cl-pitch-lines" viewBox="0 0 100 118" preserveAspectRatio="none" aria-hidden="true"
              fill="none" stroke="rgba(255,255,255,.13)" stroke-width=".6" stroke-dasharray="2 3">
-          <path d="M3 27h94M3 60h94M3 93h94"/><path d="M36 3v126M67 3v126"/>
+          <path d="M3 24h94M3 54h94M3 84h94"/><path d="M36 3v112M67 3v112"/>
         </svg>
-        <svg class="cl-pitch-lines" viewBox="0 0 100 132" preserveAspectRatio="none" aria-hidden="true"
+        <svg class="cl-pitch-lines" viewBox="0 0 100 118" preserveAspectRatio="none" aria-hidden="true"
              fill="none" stroke="rgba(255,255,255,.8)" stroke-width=".7">
-          <rect x="3" y="3" width="94" height="126"/>
-          <path d="M3 66h94"/>
-          <circle cx="50" cy="66" r="13"/><circle cx="50" cy="66" r="1" fill="rgba(255,255,255,.8)" stroke="none"/>
-          <rect x="24" y="3" width="52" height="19"/><rect x="38" y="3" width="24" height="7"/>
-          <rect x="24" y="110" width="52" height="19"/><rect x="38" y="122" width="24" height="7"/>
-          <circle cx="50" cy="15" r="1" fill="rgba(255,255,255,.8)" stroke="none"/>
-          <circle cx="50" cy="117" r="1" fill="rgba(255,255,255,.8)" stroke="none"/>
-          <path d="M39 22a12 12 0 0 0 22 0"/><path d="M39 110a12 12 0 0 1 22 0"/>
+          <rect x="3" y="3" width="94" height="112"/>
+          <path d="M3 59h94"/>
+          <circle cx="50" cy="59" r="12"/><circle cx="50" cy="59" r="1" fill="rgba(255,255,255,.8)" stroke="none"/>
+          <rect x="24" y="3" width="52" height="17"/><rect x="38" y="3" width="24" height="6"/>
+          <rect x="24" y="98" width="52" height="17"/><rect x="38" y="109" width="24" height="6"/>
+          <circle cx="50" cy="13" r="1" fill="rgba(255,255,255,.8)" stroke="none"/>
+          <circle cx="50" cy="105" r="1" fill="rgba(255,255,255,.8)" stroke="none"/>
+          <path d="M39 20a12 12 0 0 0 22 0"/><path d="M39 98a12 12 0 0 1 22 0"/>
           <path d="M3 8a5 5 0 0 0 5-5"/><path d="M97 8a5 5 0 0 1-5-5"/>
-          <path d="M3 124a5 5 0 0 1 5 5"/><path d="M97 124a5 5 0 0 0-5 5"/>
+          <path d="M3 110a5 5 0 0 1 5 5"/><path d="M97 110a5 5 0 0 0-5 5"/>
           <rect x="42" y="0" width="16" height="3" stroke-width=".9" fill="rgba(255,255,255,.18)"/>
-          <rect x="42" y="129" width="16" height="3" stroke-width=".9" fill="rgba(255,255,255,.18)"/>
+          <rect x="42" y="115" width="16" height="3" stroke-width=".9" fill="rgba(255,255,255,.18)"/>
         </svg>
         ${nodes}
       </div>
@@ -4200,12 +4181,6 @@ function panSeleccao(){
   // "Selecionar descansados": só aparece depois que uma formação foi escolhida (mesmo gate
   // usado pelo botão Substituir logo abaixo). Reescala os mesmos setores da formação atual,
   // mas priorizando energia (menos cansados) em vez de força.
-  const restedBlock = !CL.tacticChosen ? '' : `<div class="cl-sel-rested" title="Reescala o onze priorizando quem está com mais energia, dentro da mesma formação">
-    ${btn('Selecionar descansados','clSelectRested()',{icon:'🔋',cls:'cl-btn-mini'})}
-  </div>`;
-
-  const escala=CL.escalacaoMode;
-
   // formações disponíveis com atalhos — estilo vintage RetroFoot98. Além das 6 formações,
   // inclui os modos rápidos "Automático" e "Melhores" no mesmo grid (4 colunas, quadrados
   // menores pra alinhar 8 opções em 2 linhas).
@@ -4216,60 +4191,141 @@ function panSeleccao(){
       {sel:CL.formation==='Melhores',   on:"clSelFormation('best');cdraw()", main:'11+',  sub:'Melhores', title:'Os 11 melhores'},
     ]);
   const formationsBlock = `<div class="cl-sel-formations">
-    <div style="color:#aaa;font-size:12px;margin-bottom:10px">Formações:</div>
     <div class="cl-formgrid">
       ${formOpts.map(o=>{
         const btnStyle = o.sel
           ? 'border:2px solid;border-color:#fff #111 #111 #fff;background:#2f8f2f;color:#fff;font-weight:700'
           : 'border:2px solid;border-color:#999 #333 #333 #999;background:#ccc;color:#000;font-weight:700';
-        return `<button style="padding:7px 4px;text-align:center;font-size:12px;cursor:pointer;${btnStyle}" onclick="${o.on}" title="${escC(o.title)}">${escC(o.main)}<br><small style="font-size:9px;opacity:.7">${escC(o.sub)}</small></button>`;
+        return `<button style="padding:5px 3px;text-align:center;font-size:11.5px;cursor:pointer;${btnStyle}" onclick="${o.on}" title="${escC(o.title)}">${escC(o.main)}<br><small style="font-size:9px;opacity:.7">${escC(o.sub)}</small></button>`;
       }).join('')}
     </div>
   </div>`;
 
+  // O CAMPO ROLA, O RODAPÉ NÃO. Formações, "Selecionar descansados" e "Jogar" são as decisões
+  // da aba — ficam ancoradas na base, do mesmo tamanho e alinhadas, enquanto o campo e o banco
+  // ocupam o espaço que sobra.
   return `<div class="cl-sel">
-    <div class="cl-sel-note">${CL.tacticChosen?`Tática <b>${escC(CL.formation)}</b> · onze <b>${xi.length}/11</b> em campo, resto no banco.`:'Escolha a tática para liberar o <b>Jogar</b>.'}</div>
+    ${CL.tacticChosen?'':'<div class="cl-sel-note">Escolha a tática para liberar o <b>Jogar</b>.</div>'}
     ${gkWarn}
-    ${pitchHTML()}
-    ${formationsBlock}
-    ${restedBlock}
-    <div class="cl-sel-acts">
-      ${btn('Substituir','clToggleEscalacao()',{icon:'⇄',cls:'cl-btn-ok'+(escala?' cl-btn-on':''),dis:!CL.tacticChosen})}
-      ${jogarBtnHTML(ok)}
+    <div class="cl-sel-top">
+      ${pitchHTML()}
+    </div>
+    <div class="cl-sel-foot">
+      ${formationsBlock}
+      <div class="cl-sel-acts">
+        ${btn('Selecionar descansados','clSelectRested()',{icon:'🔋',cls:'cl-btn-ok',dis:!CL.tacticChosen,title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
+        ${jogarBtnHTML(ok)}
+      </div>
     </div>
   </div>`;
 }
-/* ---- troca de titular ANTES da partida, direto na lista de elenco (à esquerda) —
-   diferente da troca AO VIVO (liveSubPick/liveDoSub, limitada a 3 e só durante a
-   partida): aqui é livre. Fluxo simplificado: toca no T ou R de um jogador (marca,
-   não importa se é titular ou reserva), toca em outro DA MESMA POSIÇÃO e troca na
-   hora — sem popup de confirmação no meio, um toque a menos que antes. Restringir a
-   mesma posição (em vez de aceitar qualquer troca com aviso, como era antes) também
-   garante de graça o invariante de 1 goleiro só: GK só troca com GK. ---- */
-function clToggleEscalacao(){ CL.escalacaoMode=!CL.escalacaoMode; CL.escalaMark=null;
-  // no telefone só uma aba aparece por vez: trocar jogadores é tocar nas linhas do ELENCO,
-  // então entrar em modo de escalação leva pra aba dele (e sair volta pra Formação)
-  if(isPhone()){ clTab(CL.escalacaoMode?'elenco':'seleccao'); return; }
-  cdraw(); }
-function clEscalaPick(pid){   // pid do jogador clicado (identidade por ID, não nome)
+/* ===== TROCA POR ARRASTE (campo ⇄ banco) =====
+   Antes a troca vivia atrás de um botão de modo ("Substituir"): entrava-se num estado, tocava-se
+   em dois jogadores e saía-se. Um modo é uma pergunta a mais ("estou dentro ou fora?") pra uma
+   ação que o gesto já explica sozinho — arrastar a camisa de quem entra por cima de quem sai.
+   Sem modo, o toque simples volta a significar só uma coisa: mostrar o jogador na lista.
+
+   É Pointer Events, não HTML5 drag-and-drop, porque o segundo não existe no toque — e trocar
+   jogador no telefone é justamente onde isso mais importa. O mesmo código serve mouse e dedo.
+
+   Três destinos válidos ao soltar:
+     · em cima de outro jogador  -> troca os dois (mesma posição, um em campo e outro no banco)
+     · no banco, fora de qualquer jogador -> o titular sai e entra o melhor reserva da posição
+     · no gramado, fora de qualquer jogador -> o reserva entra no lugar do pior titular da posição
+   A regra de MESMA POSIÇÃO é a mesma de sempre: ela garante de graça o invariante de um goleiro
+   só em campo, e mantém o desenho da formação de pé. */
+const DRAG={ pid:null, sec:null, el:null, ghost:null, moved:false, x0:0, y0:0 };
+function clDragStart(ev,pid){
+  if(ev.button!=null && ev.button!==0) return;   // só o botão principal
   const p=pById(pid,CL.clubId); if(!p) return;
-  if(!CL.escalaMark){    // nada marcado ainda -> este vira a marca, seja T ou R
-    if(p.suspended>0||p.injuredMatches>0){ toastC('Esse jogador não está disponível.'); return; }
-    CL.escalaMark=pid; cdraw(); return;
+  // sem preventDefault, o mousedown DÁ FOCO ao botão e o navegador rola o container pra
+  // trazê-lo à vista: o campo inteiro pulava debaixo do cursor no meio do arraste, e o solte
+  // caía noutro lugar. Sem foco também não há seleção de texto arrastando junto.
+  ev.preventDefault();
+  DRAG.pid=pid; DRAG.sec=p.s; DRAG.el=ev.currentTarget; DRAG.moved=false;
+  DRAG.x0=ev.clientX; DRAG.y0=ev.clientY;
+  window.addEventListener('pointermove',clDragMove,{passive:false});
+  window.addEventListener('pointerup',clDragEnd);
+  window.addEventListener('pointercancel',clDragAbort);
+}
+function clDragMove(ev){
+  if(!DRAG.pid) return;
+  if(!DRAG.moved){
+    if(Math.abs(ev.clientX-DRAG.x0)+Math.abs(ev.clientY-DRAG.y0) < 6) return;   // ainda é um toque
+    DRAG.moved=true;
+    const camisa=DRAG.el.querySelector('.cl-pp-shirt');
+    DRAG.ghost=document.createElement('div');
+    DRAG.ghost.className='cl-dnd-ghost';
+    DRAG.ghost.innerHTML=camisa?camisa.innerHTML:'';
+    document.body.appendChild(DRAG.ghost);
+    DRAG.el.classList.add('dragging');
+    // acende só quem pode receber: mesma posição, e um dos dois tem que estar em campo
+    const xiSet=new Set(S.xi||[]); const souTitular=xiSet.has(DRAG.pid);
+    document.querySelectorAll('.cl-pp,.cl-bp').forEach(el=>{
+      const alvo=pById(el.getAttribute('data-pid'),CL.clubId); if(!alvo) return;
+      if(alvo.pid!==DRAG.pid && alvo.s===DRAG.sec && xiSet.has(alvo.pid)!==souTitular
+         && !(souTitular && (alvo.suspended>0||alvo.injuredMatches>0))) el.classList.add('alvo');
+    });
+    const zona=document.querySelector(souTitular?'.cl-bench':'.cl-pitch');
+    if(zona) zona.classList.add('alvo-zona');
   }
-  if(CL.escalaMark===pid){ CL.escalaMark=null; cdraw(); return; }   // toca de novo -> desmarca
-  const a=pById(CL.escalaMark,CL.clubId); if(!a){ CL.escalaMark=pid; cdraw(); return; }
-  if(a.s!==p.s){ toastC('Só dá pra trocar jogadores da mesma posição ('+posLetter(a.s)+').'); return; }
+  ev.preventDefault();
+  DRAG.ghost.style.left=ev.clientX+'px';
+  DRAG.ghost.style.top =ev.clientY+'px';
+}
+function clDragLimpa(){
+  if(DRAG.ghost) DRAG.ghost.remove();
+  if(DRAG.el) DRAG.el.classList.remove('dragging');
+  document.querySelectorAll('.alvo').forEach(el=>el.classList.remove('alvo'));
+  document.querySelectorAll('.alvo-zona').forEach(el=>el.classList.remove('alvo-zona'));
+  window.removeEventListener('pointermove',clDragMove);
+  window.removeEventListener('pointerup',clDragEnd);
+  window.removeEventListener('pointercancel',clDragAbort);
+  DRAG.pid=null; DRAG.el=null; DRAG.ghost=null;
+}
+function clDragAbort(){ clDragLimpa(); }
+function clDragEnd(ev){
+  const pid=DRAG.pid, moveu=DRAG.moved;
+  if(moveu && DRAG.ghost) DRAG.ghost.style.display='none';   // pra não ser ele o elemento sob o dedo
+  const sob = moveu ? document.elementFromPoint(ev.clientX,ev.clientY) : null;
+  clDragLimpa();
+  if(!moveu || !pid){ if(pid) clSelPlayer(pid); return; }      // foi toque, não arraste: só seleciona
+  // arrastou: o clique que vem logo atrás do pointerup não deve selecionar ninguém
+  window.addEventListener('click',e=>{ e.stopPropagation(); e.preventDefault(); },{capture:true,once:true});
+  if(!sob) return;
+  const chip=sob.closest && sob.closest('.cl-pp,.cl-bp');
+  if(chip){ clTrocarPorPid(pid, chip.getAttribute('data-pid')); return; }
+  const xiSet=new Set(S.xi||[]); const souTitular=xiSet.has(pid);
+  const p=pById(pid,CL.clubId); if(!p) return;
+  if(souTitular && sob.closest && sob.closest('.cl-bench')){
+    // titular solto no banco: entra o melhor reserva disponível da mesma posição
+    const entra=squad(CL.clubId).filter(q=>!xiSet.has(q.pid) && q.s===p.s && !(q.suspended>0) && !(q.injuredMatches>0))
+      .sort((a,b)=>b.f-a.f)[0];
+    if(!entra){ toastC('Não há reserva de '+posLetter(p.s)+' disponível pra entrar.'); return; }
+    clTrocarPorPid(pid, entra.pid); return;
+  }
+  if(!souTitular && sob.closest && sob.closest('.cl-pitch')){
+    // reserva solto no gramado: sai o titular mais fraco da mesma posição
+    const sai=xiPlayers(CL.clubId).filter(q=>q.s===p.s).sort((a,b)=>a.f-b.f)[0];
+    if(!sai){ toastC('Não há ninguém de '+posLetter(p.s)+' em campo pra sair.'); return; }
+    clTrocarPorPid(pid, sai.pid); return;
+  }
+}
+/* a troca em si — um titular sai, um reserva entra. Único caminho que mexe em S.xi na aba
+   Formação, então as travas (mesma posição, jogador disponível) moram todas aqui. */
+function clTrocarPorPid(aPid,bPid){
+  const a=pById(aPid,CL.clubId), b=pById(bPid,CL.clubId);
+  if(!a||!b||a.pid===b.pid) return;
+  if(a.s!==b.s){ toastC('Só dá pra trocar jogadores da mesma posição ('+posLetter(a.s)+').'); return; }
   const xiSet=new Set(S.xi||[]);
-  const aStarter=xiSet.has(a.pid), bStarter=xiSet.has(p.pid);
-  if(aStarter===bStarter){ CL.escalaMark=pid; cdraw(); return; }   // os dois T ou os dois R -> só troca a marca
-  if(p.suspended>0||p.injuredMatches>0){ toastC('Esse jogador não está disponível.'); return; }
-  const outP=aStarter?a:p, inP=aStarter?p:a;
+  const aTit=xiSet.has(a.pid), bTit=xiSet.has(b.pid);
+  if(aTit===bTit){ toastC(aTit?'Os dois já estão em campo.':'Os dois estão no banco.'); return; }
+  const outP=aTit?a:b, inP=aTit?b:a;
+  if(inP.suspended>0||inP.injuredMatches>0){ toastC('Esse jogador não está disponível.'); return; }
   S.xi=(S.xi||[]).map(x=>x===outP.pid?inP.pid:x);
   toastC(inP.n.split(' ').slice(-1)[0]+' entrou no lugar de '+outP.n.split(' ').slice(-1)[0]+' na escalação.');
-  CL.escalaMark=null; saveV3(); republicarEscalacao(); cdraw();
+  saveV3(); republicarEscalacao(); cdraw();
 }
-function clEscalaMarkClear(){ CL.escalaMark=null; cdraw(); }   // botão ✕ da barra fixa (escalaBarHTML)
 /* ---- PORTÃO DE LARGADA DA RESENHA (o mesmo pra liga e pra copa) ----
    A LIGA sempre teve largada coordenada: clicar em "Jogar" marca PRONTO e espera; o servidor vira
    a fase pra 'running' quando todos estão prontos (ou o cronômetro zera) e, no mesmo update,
@@ -9501,7 +9557,7 @@ function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
   else if(f==='best'){ S.xi=squad(CL.clubId).slice().sort((a,b)=>b.f-a.f).slice(0,11).map(p=>p.pid); CL.formation='Melhores'; S.tactic='equilibrado'; }
   else { const real=coherentFormation(CL.clubId,f); if(real!==f) adjustedFrom=f;
     S.xi=pickXIByFormation(CL.clubId,real); CL.formation=real; S.tactic=tacticPosture(real); }
-  CL.tacticChosen=true; CL.tab='seleccao'; CL.escalaMark=null; CL.escalacaoMode=false; saveV3();
+  CL.tacticChosen=true; CL.tab='seleccao'; saveV3();
   republicarEscalacao();   // mudei o time depois de ficar pronto? o que vale é o que está na tela
   cdraw();
   toastC(adjustedFrom ? `Sem jogadores pro ${adjustedFrom} — ajustado pra ${CL.formation}.` : 'Tática '+CL.formation+' seleccionada.'); }
@@ -9511,7 +9567,7 @@ function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
    solo, resenha e hotseat porque só mexe em S.xi/CL.formation, igual clSelFormation. */
 function clSelectRested(){ if(!CL.tacticChosen) return;
   const f=(FORMATIONS[CL.formation])?CL.formation:'4-3-3';
-  S.xi=pickXIByFormationRested(CL.clubId,f); CL.escalaMark=null; CL.escalacaoMode=false; saveV3();
+  S.xi=pickXIByFormationRested(CL.clubId,f); saveV3();
   republicarEscalacao(); cdraw();
   toastC('🔋 Onze mais descansado seleccionado.'); }
 
