@@ -72,27 +72,35 @@
      Agora a home é HTML de verdade, servida na primeira resposta: cabeçalho, chamada, as dez
      páginas e rodapé. O jogo carrega em segundo plano (os scripts estão com `defer`) e assume
      esta mesma área quando estiver pronto — o desenho é o mesmo, então a troca não pisca. -->
-<div class="cl-home">
-  <div class="cl-home-titlebar">
-    <div class="cl-home-tb-l"><img src="img/logo.webp" width="500" height="500" alt="">RetroFoot98</div>
-    <div class="cl-home-tb-r"><span>_</span><span>□</span><span>✕</span></div>
-  </div>
-  <div class="cl-home-navbar">
-    <div class="cl-home-navlinks">
-      <a class="cl-home-nav on" href="/">Início</a>
-      <a class="cl-home-nav" href="/guia/">Como jogar</a>
-      <a class="cl-home-nav" href="/ranking/">Ranking</a>
-      <a class="cl-home-nav" href="/historia-do-elifoot/">História</a>
+<div class="cl-lp-page">
+  <header class="cl-lp-hdr">
+    <div class="cl-lp-hdr-in">
+      <a class="cl-lp-logo" href="/"><img src="img/logo.webp" width="500" height="500" alt="RetroFoot98"><span>RetroFoot<i>98</i></span></a>
+      <nav class="cl-lp-navlinks">
+        <a class="cl-lp-nav" href="/guia/">Como jogar</a>
+        <a class="cl-lp-nav" href="/ranking/">Ranking</a>
+        <a class="cl-lp-nav" href="/historia-do-elifoot/">História</a>
+        <a class="cl-lp-nav" href="/jogar-com-amigos/">Jogar com amigos</a>
+      </nav>
     </div>
-    <div class="cl-home-nav-r"><span class="cl-home-online"><span class="cl-home-online-dot"></span>100% Online</span></div>
-  </div>
-  <div class="cl-home-body">
-    <div class="cl-home-hero">
-      <img class="cl-home-hero-logo" src="img/logo.webp" width="500" height="500" alt="RetroFoot98">
-      <h1 class="cl-home-hero-h">O clássico da sua infância,<br>agora online e com os amigos.</h1>
-      <p class="cl-home-hero-sub">Você é o técnico. Escale o time, negocie jogadores e leve o clube da
-        Série D ao topo. Grátis, no navegador, sozinho ou com a sua turma no Modo Resenha.</p>
-    </div>
+  </header>
+  <main class="cl-lp">
+    <section class="cl-lp-wrap cl-lp-sec">
+      <span class="cl-lp-pill"><span class="cl-lp-dot"></span>100% online — nada pra instalar</span>
+      <h1 class="cl-lp-h1">O clássico da sua infância,<br>agora online e com os amigos.</h1>
+      <p class="cl-lp-lead">Você é o técnico. Escala o time, negocia jogadores, cuida do caixa e briga por acesso da Série D ao topo — sozinho contra a máquina ou na resenha com até 20 treinadores na mesma liga.</p>
+    </section>
+    <section class="cl-lp-band escura"><div class="cl-lp-wrap">
+      <h2 class="cl-lp-h2">O que dá pra fazer no RetroFoot98</h2>
+      <div class="cl-lp-3col">
+        <div class="cl-lp-card"><div class="cl-lp-card-t">Modo Resenha</div>
+          <p>A liga da galera, com até 20 treinadores na mesma competição. Todo mundo joga a mesma rodada ao vivo, com tabela, mercado e chat.</p></div>
+        <div class="cl-lp-card"><div class="cl-lp-card-t">Modo Solo</div>
+          <p>Pega um clube da Série D e sobe até a elite no seu ritmo, com mercado de transferências, finanças e o calendário completo de copas.</p></div>
+        <div class="cl-lp-card"><div class="cl-lp-card-t">Quatro divisões e todas as taças</div>
+          <p>Série A, B, C e D, Copa do Brasil, Libertadores e Sul-Americana — com tabela, sorteio das chaves e mata-mata.</p></div>
+      </div>
+    </div></section>
     <section class="cl-pg-sec">
       <h2 class="cl-pg-h">Conheça o RetroFoot98</h2>
       <div class="cl-pg-grid">
@@ -138,9 +146,9 @@
       </a>
       </div>
     </section>
-  </div>
-  <div class="cl-home-footer">
-    <div class="cl-home-foot-paginas">
+  </main>
+  <footer class="cl-lp-foot"><div class="cl-lp-wrap">
+    <div class="cl-lp-foot-paginas">
       <a class="cl-home-foot" href="/guia/">Guia do jogo</a>
       <a class="cl-home-foot" href="/ranking/">Ranking de treinadores</a>
       <a class="cl-home-foot" href="/historia-do-elifoot/">História do Elifoot</a>
@@ -152,10 +160,8 @@
       <a class="cl-home-foot" href="/jogos-parecidos-com-elifoot/">Jogos parecidos com o Elifoot</a>
       <a class="cl-home-foot" href="/elifoot-vs-brasfoot/">Elifoot vs Brasfoot</a>
     </div>
-    <div class="cl-home-foot-linha">
-      <div class="cl-home-foot-l"><span class="cl-home-ver">v2026.01</span><span>© 2026 RetroFoot98</span></div>
-    </div>
-  </div>
+    <div class="cl-lp-foot-fim"><span>© 2026 RetroFoot98</span><span class="cl-lp-mono">v2026.01</span></div>
+  </div></footer>
 </div>
 </div>
 <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0"></script>

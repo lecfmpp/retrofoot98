@@ -603,11 +603,6 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
    escalado por JS — truque específico da ferramenta de design pra caber num iframe de
    preview. Aqui adaptado pro padrão responsivo real do resto do app: 100vh fluido,
    único breakpoint em 760px (ver .cl-home-* no CSS), igual todo o resto do RetroFoot98. */
-const FEATURES=[
-  {img:'img/badge-clubes.webp', t:'Clubes e jogadores reais', d:'Elencos de verdade, das quatro divisões às copas.'},
-  {img:'img/badge-liga.webp', t:'Liga com amigos', d:'Monte a sua liga no Modo Resenha e dispute a rodada.'},
-  {img:'img/badge-chat.webp', t:'Chat em tempo real', d:'Resenha com a galera enquanto os jogos rolam.'}
-];
 const LANDING_NAV=[['home','Início'],['sobre','Sobre nós'],['ajuda','Como jogar'],['contato','Contato']];
 const LANDING_FOOT=[['sobre','Sobre nós'],['contato','Contato'],['termos','Termos'],['priv','Privacidade']];
 /* ===== AS PÁGINAS DE CONTEÚDO NO RODAPÉ =====
@@ -671,54 +666,492 @@ function clToggleNavMenu(e){ if(e&&e.stopPropagation) e.stopPropagation(); CL.na
    redraw é disparado por clique (landing/institucionais), NUNCA na partida ao vivo, no
    mercado, na premiação ou entre rodadas — cdraw() troca o innerHTML inteiro, e um <ins>
    ali seria recriado a cada redraw, pedindo anúncio novo sem parar. */
+/* ================= HOME DE VENDAS (handoff "Retrofoot homepage de vendas") =================
+   A home deixou de ser um cartão de visitas com um botão e virou uma PÁGINA DE VENDA: herói com
+   vídeo, carrossel das telas reais do jogo, uma seção por motivo (Resenha, Solo, chat, copas,
+   elencos, 100% online), ranking com prêmio, Ligas Oficiais, criadores, lista de espera,
+   patrocínio e canais.
+
+   DUAS PORTAS, de propósito. O desenho original tinha só "entrar na lista de espera" — mas o jogo
+   JÁ ESTÁ NO AR: tirar o "Jogar agora" fecharia a porta de quem quer jogar hoje. A lista de espera
+   é o CTA do herói (é a campanha da primeira versão) e o "Jogar agora" fica no cabeçalho, ao lado
+   do Entrar, em todas as telas.
+
+   O visual segue o resto do jogo: bisel de 2px, quadrado, Tahoma pro texto e Georgia itálico nos
+   títulos. O cabeçalho branco e os cartões são do handoff. */
+const WAITLIST_VAGAS=100;
+/* id do vídeo do YouTube do herói. Vazio = moldura com o espaço reservado (não invento vídeo). */
+const LANDING_VIDEO_ID='';
+const LANDING_SECOES=[
+  { id:'resenha', kicker:'MODO RESENHA', dir:'esq',
+    h:'A liga da galera, até 20 treinadores na mesma competição.',
+    p:'Monte a liga do grupo do trabalho, da turma da faculdade ou da sua comunidade inteira. Todo mundo joga a mesma rodada ao vivo, com tabela, mercado e a zoeira rolando junto.',
+    badge:'img/badge-liga.webp', chip:'até 20 treinadores', chipCls:'navy',
+    janela:'Sala do Modo Resenha', img:'hub' },
+  { id:'solo', kicker:'MODO SOLO', dir:'dir',
+    h:'Você contra a máquina, temporada após temporada.',
+    p:'Pega um clube da Série D e sobe até a elite no seu ritmo. Mercado de transferências, finanças do clube e o calendário completo de copas — sem depender de ninguém entrar na sala.',
+    badge:'img/badge-clubes.webp', chip:'no seu ritmo', chipCls:'verde',
+    janela:'Formação e escalação — Modo Solo', img:'formacao' },
+  { id:'chat', kicker:'CHAT AO VIVO', dir:'esq',
+    h:'A zoeira faz parte do jogo.',
+    p:'Chat em tempo real durante a rodada: os gols pingam na tela e todo mundo comenta ao mesmo tempo. É a resenha do grupo, dentro do jogo.',
+    badge:'img/badge-chat.webp', chip:'tempo real', chipCls:'ouro',
+    janela:'Partida ao vivo', img:'partida' },
+  { id:'copas', kicker:'CAMPEONATOS', dir:'dir',
+    h:'Quatro divisões e todas as taças.',
+    p:'Série A, B, C e D, Copa do Brasil, Libertadores e Sul-Americana. Tabela, sorteio das chaves, mata-mata e a taça esperando no fim da linha.',
+    trofeus:['img/trofeus/serie-a.webp','img/trofeus/libertadores.webp','img/trofeus/copa-do-brasil.webp'],
+    chip:'7 competições', chipCls:'navy',
+    janela:'Fase de grupos — Libertadores', img:'copa' },
+  { id:'elencos', kicker:'JOGADORES REAIS NO MUNDO TODO', dir:'esq',
+    h:'Elencos de verdade, clubes do mundo todo.',
+    p:'Você negocia nomes que conhece, de clubes de vários países — e enfrenta técnicos de carne e osso em qualquer fuso horário.',
+    emoji:'🌎', chip:'mercado global', chipCls:'verde',
+    janela:'Leilão de jogadores', img:'leilao' },
+  { id:'online', kicker:'100% ONLINE', dir:'dir',
+    h:'Abre o navegador e joga. Nada pra instalar.',
+    p:'Funciona no celular, no tablet e no PC. O jogo fica gravado na nuvem, então você continua de onde parou — na fila do banco ou no computador de casa.',
+    emoji:'💾', chip:'jogo gravado na nuvem', chipCls:'navy',
+    janela:'Classificação da Série D', img:'classificacao' },
+];
+const LANDING_TELAS=[
+  ['hub','Hub do time'], ['formacao','Formação e escalação'], ['classificacao','Classificação'],
+  ['leilao','Leilão de jogadores'], ['copa','Copa — fase de grupos'], ['partida','Partida ao vivo'],
+];
+/* url vazia = ainda não temos o endereço do perfil. Mesma regra dos patrocinadores: não invento
+   link. Sem url o cartão vira texto (não vira link quebrado). */
+const LANDING_CANAIS=[
+  { ic:'▶️', nome:'YouTube',   d:'Bastidores, ligas e tutoriais',    arroba:'@retrofoot98', url:'' },
+  { ic:'📸', nome:'Instagram', d:'Novidades e recortes das rodadas', arroba:'@retrofoot98', url:'' },
+  { ic:'🎵', nome:'TikTok',    d:'Os melhores momentos da resenha',  arroba:'@retrofoot98', url:'' },
+];
+const LANDING_COTAS=[
+  ['Cota Master','Marca na tela de partida e no Ranking Global.','sob consulta'],
+  ['Cota Liga Oficial','Naming de uma competição entre embaixadores.','sob consulta'],
+  ['Cota Apoiador','Presença no rodapé do jogo e nos canais.','sob consulta'],
+];
+const LANDING_MENU=[
+  ['recursos','Recursos'], ['telas','Telas'], ['ranking','Ranking'],
+  ['ligas','Ligas Oficiais'], ['criadores','Criadores'],
+];
 function scAbertura(){
   const v=CL.landingView||'home';
-  const navHTML=LANDING_NAV.map(([view,label])=>`<button class="cl-home-nav ${v===view?'on':''}" onclick="clLandingGo('${view}')">${escC(label)}</button>`).join('');
-  const footHTML=LANDING_FOOT.map(([view,label])=>`<a class="cl-home-foot" onclick="clLandingGo('${view}')">${escC(label)}</a>`).join('');
-  const bodyFns={sobre:landingSobreHTML, ajuda:landingAjudaHTML, contato:landingContatoHTML, termos:landingTermosHTML, priv:landingPrivHTML};
+  const bodyFns={sobre:landingSobreHTML, ajuda:landingAjudaHTML, contato:landingContatoHTML,
+                 termos:landingTermosHTML, priv:landingPrivHTML, apoie:landingApoieHTML};
   const body=(bodyFns[v]||landingHomeHTML)();
-  return `<div class="cl-home">
-    <div class="cl-home-titlebar">
-      <div class="cl-home-tb-l"><img src="img/logo.webp" width="500" height="500" alt="">RetroFoot98</div>
-      <div class="cl-home-tb-r"><span>_</span><span>□</span><span>✕</span></div>
-    </div>
-    ${homeNavbar(LANDING_NAV.map(([view,label])=>[label,`clLandingGo('${view}')`,v===view]),
-      `<span class="cl-home-online"><span class="cl-home-online-dot"></span>100% Online</span>
-       <button class="cl-home-entrar" onclick="clGoModo()"><span>🔑</span>Entrar</button>`)}
-    <div class="cl-home-body">${body}</div>
-    <div class="cl-home-footer">
-      <div class="cl-home-foot-paginas">${rodapePaginasHTML()}</div>
-      <div class="cl-home-foot-linha">
-        <div class="cl-home-foot-l"><span class="cl-home-ver">v2026.01</span><span>© 2026 RetroFoot98</span></div>
-        <div class="cl-home-foot-r">${footHTML}</div>
+  const menu=LANDING_MENU.map(([id,label])=>`<button class="cl-lp-nav" onclick="clLpIr('${id}')">${escC(label)}</button>`).join('')
+    +`<button class="cl-lp-nav ${v==='apoie'?'on':''}" onclick="clLandingGo('apoie')">Apoie o projeto</button>`;
+  return `<div class="cl-lp-page">
+    <header class="cl-lp-hdr">
+      <div class="cl-lp-hdr-in">
+        <button class="cl-lp-logo" onclick="clLandingGo('home')">
+          <img src="img/logo.webp" width="500" height="500" alt="">
+          <span>RetroFoot<i>98</i></span>
+        </button>
+        <nav class="cl-lp-navlinks ${CL.navMenuOpen?'open':''}">${menu}</nav>
+        <div class="cl-lp-hdr-r">
+          <button class="cl-lp-burger" onclick="clToggleNavMenu(event)" aria-label="Menu">☰</button>
+          <button class="cl-lp-btn" onclick="clGoModo()" title="Jogar agora"><span>⚽</span><span class="cl-lp-so-lg">Jogar agora</span></button>
+          <button class="cl-lp-btn cl-lp-btn-so" onclick="clGoModo('login')"><span>🔑</span>Entrar</button>
+          <button class="cl-lp-cta" onclick="clWaitlistOpen()">Entrar na lista</button>
+        </div>
       </div>
-    </div>
+    </header>
+    <main class="cl-lp-main">${body}</main>
+    ${landingRodapeHTML()}
+    ${CL.waitlistOpen?waitlistModalHTML():''}
   </div>`;
 }
-function landingHomeHTML(){
-  const featHTML=FEATURES.map(f=>`<div class="cl-home-feat">
-      <img src="${f.img}" width="500" height="500" alt="">
-      <div class="cl-home-feat-t">${escC(f.t)}</div>
-      <div class="cl-home-feat-d">${escC(f.d)}</div>
-    </div>`).join('');
-  return `<div class="cl-home-hero">
-    <img class="cl-home-hero-logo" src="img/logo.webp" width="500" height="500" alt="RetroFoot98">
-    <h1 class="cl-home-hero-h">O clássico da sua infância,<br>agora online e com os amigos.</h1>
-    <p class="cl-home-hero-sub">Você é o técnico. Escale o time, negocie jogadores e leve o clube da Série D ao topo.</p>
-    <div class="cl-home-hero-cta">
-      <button class="cl-home-cta" onclick="clGoModo()"><span>⚽</span>Jogar agora</button>
-      <div class="cl-home-hero-links">
-        <button class="cl-home-mini" onclick="clGoModo('signup')">Criar conta grátis</button>
-        <span>·</span>
-        <button class="cl-home-mini" onclick="clGoModo('login')">Já tenho conta</button>
+function landingRodapeHTML(){
+  const col=(titulo,itens)=>`<div><div class="cl-lp-foot-h">${escC(titulo)}</div>
+    <div class="cl-lp-foot-l">${itens}</div></div>`;
+  const bt=(label,acao)=>`<button class="cl-lp-foot-a" onclick="${acao}">${escC(label)}</button>`;
+  const lk=(label,href)=>`<a class="cl-lp-foot-a" href="${href}">${escC(label)}</a>`;
+  return `<footer class="cl-lp-foot">
+    <div class="cl-lp-wrap">
+      <div class="cl-lp-foot-cols">
+        <div>
+          <div class="cl-lp-foot-marca"><img src="img/logo.webp" width="500" height="500" alt=""><span>RetroFoot<i>98</i></span></div>
+          <p class="cl-lp-foot-sobre">O jogo de gerenciamento de futebol que você jogava na escola — agora online, com os amigos e no navegador.</p>
+        </div>
+        ${col('O JOGO', bt('Recursos',"clLpIr('recursos')")+bt('Telas do jogo',"clLpIr('telas')")
+          +bt('Modo Resenha',"clLpIr('resenha')")+bt('Modo Solo',"clLpIr('solo')")
+          +bt('Ranking Global',"clLpIr('ranking')")+bt('Ligas Oficiais',"clLpIr('ligas')"))}
+        ${col('COMUNIDADE', bt('Para criadores',"clLpIr('criadores')")+bt('Lista de espera','clWaitlistOpen()')
+          +bt('Como jogar',"clLandingGo('ajuda')")+bt('Sobre nós',"clLandingGo('sobre')")+bt('Contato',"clLandingGo('contato')"))}
+        ${col('PROJETO', bt('Apoie o projeto',"clLandingGo('apoie')")
+          +lk('Contato','mailto:contato@retrofoot98.com')
+          +bt('Termos de uso',"clLandingGo('termos')")+bt('Privacidade',"clLandingGo('priv')"))}
+      </div>
+      <div class="cl-lp-foot-paginas">${rodapePaginasHTML()}</div>
+      <div class="cl-lp-foot-fim">
+        <span>© 2026 RetroFoot98. Todos os direitos reservados.</span>
+        <span class="cl-lp-mono">v2026.01 — feito por quem cresceu jogando Elifoot.</span>
       </div>
     </div>
-    <div class="cl-home-features">
-      <div class="cl-home-features-lbl">POR QUE JOGAR</div>
-      <div class="cl-home-featrow">${featHTML}</div>
+  </footer>`;
+}
+/* ===== LISTA DE ESPERA =====
+   O formulário GRAVA de verdade (tabela retrofoot_waitlist no Supabase): sem isso a pessoa
+   preenche, vê "pronto!" e o lead se perde. A tabela só aceita INSERT pela chave anônima — não
+   existe policy de leitura, então ninguém lê a lista de volta pelo navegador. O número da barra
+   de vagas vem de uma função que devolve só a contagem (retrofoot_waitlist_count). */
+function clWaitlistOpen(){
+  CL.waitlistOpen=true; CL.waitlistSent=false; CL.waitlistErr=''; CL.navMenuOpen=false;
+  CL.waitlist=CL.waitlist||{nome:'',email:'',tel:'',resposta:'',amigos:[''],zap:''};
+  cdraw(); clWaitlistCount();
+}
+function clWaitlistClose(){ CL.waitlistOpen=false; cdraw(); }
+function clWaitlistSet(campo,val){ CL.waitlist=CL.waitlist||{}; CL.waitlist[campo]=val; }
+function clWaitlistAmigo(i,val){ const w=CL.waitlist; if(w&&w.amigos) w.amigos[i]=val; }
+function clWaitlistAddAmigo(){ const w=CL.waitlist; if(!w) return;
+  if((w.amigos||[]).length>=20){ toastC('Dá pra indicar até 20 amigos.'); return; }
+  w.amigos=(w.amigos||[]).concat(['']); cdraw(); }
+function clWaitlistRmAmigo(i){ const w=CL.waitlist; if(!w) return;
+  w.amigos=(w.amigos||[]).filter((_,k)=>k!==i); if(!w.amigos.length) w.amigos=['']; cdraw(); }
+/* o cliente do Supabase é o MESMO do jogo (supabase-adapter.js), inclusive o schema — a tabela
+   da lista mora no elifoot_v3 por causa disso. Na home ele ainda não foi criado, então garante. */
+async function lpSupabase(){
+  try{ if(typeof netInitSupabase==='function') await netInitSupabase(); }catch(e){ return null; }
+  return (typeof sb!=='undefined' && sb) ? sb : null;
+}
+async function clWaitlistCount(){
+  try{
+    const cli=await lpSupabase(); if(!cli) return;
+    const {data,error}=await cli.rpc('retrofoot_waitlist_count');
+    if(!error && typeof data==='number'){ CL.waitlistCount=data; cdraw(); }
+  }catch(e){ /* sem número é melhor que número errado: a barra fica com "—" */ }
+}
+async function clWaitlistSubmit(){
+  const w=CL.waitlist||{};
+  const nome=(w.nome||'').trim(), email=(w.email||'').trim();
+  if(nome.length<2){ CL.waitlistErr='Diz como te chamam na resenha.'; cdraw(); return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)){ CL.waitlistErr='Confere o e-mail — é por ele que a gente avisa da vaga.'; cdraw(); return; }
+  const amigos=(w.amigos||[]).map(a=>(a||'').trim()).filter(a=>/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(a));
+  CL.waitlistErr=''; CL.waitlistBusy=true; cdraw();
+  try{
+    const cli=await lpSupabase();
+    if(!cli) throw new Error('sem conexão');
+    const {error}=await cli.from('retrofoot_waitlist').insert({
+      nome, email, telefone:(w.tel||'').trim()||null, resposta:(w.resposta||'').trim()||null,
+      amigos, origem:(location&&location.pathname)||'/', user_agent:(navigator&&navigator.userAgent||'').slice(0,400)
+    });
+    if(error){
+      // e-mail repetido não é erro pro visitante: ele já está na lista, e dizer isso é melhor
+      // do que mandar tentar de novo uma coisa que já deu certo.
+      if(String(error.code)==='23505' || /duplicate|unique/i.test(error.message||'')){ CL.waitlistSent=true; }
+      else throw error;
+    } else CL.waitlistSent=true;
+  }catch(e){
+    console.warn('lista de espera:', e&&e.message);
+    CL.waitlistErr='Não deu pra gravar agora. Tenta de novo em instantes ou manda um e-mail pra contato@retrofoot98.com.';
+  }
+  CL.waitlistBusy=false; cdraw(); clWaitlistCount();
+}
+function waitlistZapHref(){
+  const num=String((CL.waitlist&&CL.waitlist.zap)||'').replace(/\D/g,'');
+  const msg=encodeURIComponent('Bora montar nossa liga no RetroFoot98? Entra na lista de espera — só '+WAITLIST_VAGAS+' treinadores na primeira versão: https://retrofoot98.com.br');
+  return num ? 'https://wa.me/'+(num.length>11?num:'55'+num)+'?text='+msg : 'https://wa.me/?text='+msg;
+}
+function waitlistModalHTML(){
+  const w=CL.waitlist||{};
+  if(CL.waitlistSent) return `<div class="cl-lp-modal" onclick="if(event.target===this)clWaitlistClose()">
+    ${janelaHTML('📋 Lista de espera — RetroFoot98', `<div class="cl-lp-form cl-lp-form-ok">
+      <div class="cl-lp-ok-ic">✓</div>
+      <div class="cl-lp-ok-t">Pronto! Você está na lista.</div>
+      <p>A gente avisa por e-mail assim que a sua vaga entre os ${WAITLIST_VAGAS} primeiros treinadores for liberada. Enquanto isso, chama a galera pra resenha.</p>
+      <div class="cl-lp-form-acts">
+        <a class="cl-lp-cta" href="${waitlistZapHref()}" target="_blank" rel="noopener">💬 Chamar a galera</a>
+        <button class="cl-lp-btn" onclick="clWaitlistClose()">Fechar</button>
+      </div>
+    </div>`, 'cl-lp-win-modal')}
+  </div>`;
+  const amigos=(w.amigos||['']).map((a,i)=>`<div class="cl-lp-amigo">
+      <input type="email" value="${escC(a||'')}" placeholder="email do amigo" oninput="clWaitlistAmigo(${i},this.value)">
+      <button class="cl-lp-btn cl-lp-btn-sq" onclick="clWaitlistRmAmigo(${i})" aria-label="Remover">✕</button>
+    </div>`).join('');
+  return `<div class="cl-lp-modal" onclick="if(event.target===this)clWaitlistClose()">
+    ${janelaHTML('📋 Lista de espera — RetroFoot98', `<div class="cl-lp-form">
+      <div class="cl-lp-aviso"><b>⚠ Vagas limitadas:</b> a primeira versão libera o jogo para <b>${WAITLIST_VAGAS} treinadores</b>, para testes online e recursos beta. Quem indicar amigos sobe na fila.</div>
+      ${CL.waitlistErr?`<div class="cl-lp-erro">${escC(CL.waitlistErr)}</div>`:''}
+      <label class="cl-lp-lbl"><span>Nome do treinador</span>
+        <input type="text" value="${escC(w.nome||'')}" placeholder="Como te chamam na resenha" oninput="clWaitlistSet('nome',this.value)"></label>
+      <div class="cl-lp-2in">
+        <label class="cl-lp-lbl"><span>E-mail</span>
+          <input type="email" value="${escC(w.email||'')}" placeholder="voce@email.com" oninput="clWaitlistSet('email',this.value)"></label>
+        <label class="cl-lp-lbl"><span>Telefone (WhatsApp)</span>
+          <input type="tel" value="${escC(w.tel||'')}" placeholder="(11) 99999-0000" oninput="clWaitlistSet('tel',this.value)"></label>
+      </div>
+      <label class="cl-lp-lbl"><span>O que não pode faltar no RetroFoot?</span>
+        <textarea rows="3" placeholder="Fala o recurso que você quer ver no jogo" oninput="clWaitlistSet('resposta',this.value)">${escC(w.resposta||'')}</textarea></label>
+      <fieldset class="cl-lp-fs">
+        <legend>Indicar amigos para a lista</legend>
+        <div class="cl-lp-fs-d">Cada amigo indicado entra na fila junto com você — dá pra montar a liga inteira antes do lançamento.</div>
+        ${amigos}
+        <button class="cl-lp-btn" onclick="clWaitlistAddAmigo()">+ Adicionar outro e-mail</button>
+        <div class="cl-lp-zap">
+          <div class="cl-lp-zap-t">Chamar pra Resenha pelo WhatsApp</div>
+          <div class="cl-lp-fs-d">Coloca o número do amigo e a gente monta a mensagem com o link do jogo.</div>
+          <div class="cl-lp-zap-row">
+            <input type="tel" value="${escC(w.zap||'')}" placeholder="DDD + número, ex: 11999990000" oninput="clWaitlistSet('zap',this.value)">
+            <a class="cl-lp-cta" href="${waitlistZapHref()}" target="_blank" rel="noopener">💬 Enviar convite</a>
+          </div>
+        </div>
+      </fieldset>
+      <div class="cl-lp-form-acts">
+        <button class="cl-lp-cta" onclick="clWaitlistSubmit()" ${CL.waitlistBusy?'disabled':''}>${CL.waitlistBusy?'Gravando…':'Garantir minha vaga'}</button>
+        <button class="cl-lp-btn" onclick="clWaitlistClose()">Cancelar</button>
+        <span class="cl-lp-form-nota">A gente só usa seus dados pra avisar da vaga.</span>
+      </div>
+    </div>`, 'cl-lp-win-modal')}
+  </div>`;
+}
+/* moldura de janela do Windows raiz: barra de título + área rebaixada. É a peça que se repete em
+   toda a home (vídeo, telas, chat, lista de espera) — por isso mora numa função só. */
+function janelaHTML(titulo, inner, extra){
+  return `<div class="cl-lp-win ${extra||''}">
+    <div class="cl-lp-win-bar"><span>${escC(titulo)}</span>
+      <span class="cl-lp-win-btns"><i>_</i><i>□</i><i>✕</i></span></div>
+    <div class="cl-lp-win-body">${inner}</div>
+  </div>`;
+}
+function lpTelaHTML(arq, alt){
+  return `<img class="cl-lp-shot" src="img/telas/${escC(arq)}.webp" alt="${escC(alt)}" loading="lazy" decoding="async">`;
+}
+function landingHeroHTML(){
+  const vid=LANDING_VIDEO_ID||'';
+  const video = vid
+    ? `<iframe src="https://www.youtube-nocookie.com/embed/${escC(vid)}" title="Vídeo de lançamento RetroFoot98"
+         allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`
+    : `<div class="cl-lp-video-vazio">
+         <div class="cl-lp-play">▶</div>
+         <div class="cl-lp-video-t">Espaço reservado para o vídeo de lançamento</div>
+         <div class="cl-lp-video-d">Configure o ID do YouTube em LANDING_VIDEO_ID</div>
+       </div>`;
+  return `<section class="cl-lp-hero-sec">
+    <div class="cl-lp-wrap cl-lp-hero">
+      <div>
+        <span class="cl-lp-pill"><span class="cl-lp-dot"></span>100% online — nada pra instalar</span>
+        <h1 class="cl-lp-h1">O clássico da sua infância,<br>agora online e com os amigos.</h1>
+        <p class="cl-lp-lead">Você é o técnico. Escala o time, negocia jogadores, cuida do caixa e briga por acesso da Série D ao topo — sozinho contra a máquina ou na resenha com até 20 treinadores na mesma liga.</p>
+        <div class="cl-lp-hero-cta">
+          <button class="cl-lp-cta cl-lp-cta-lg" onclick="clWaitlistOpen()"><span>👑</span>Entrar na lista de espera</button>
+          <button class="cl-lp-btn cl-lp-btn-lg" onclick="clGoModo()"><span>⚽</span>Jogar agora</button>
+        </div>
+        <div class="cl-lp-hero-nota">Primeira versão liberada para apenas <b>${WAITLIST_VAGAS} treinadores</b>.</div>
+      </div>
+      ${janelaHTML('▶ Vídeo de lançamento', `<div class="cl-lp-video">${video}</div>`, 'cl-lp-win-video')}
     </div>
+  </section>`;
+}
+function landingTelasHTML(){
+  const slides=LANDING_TELAS.map(([arq,label])=>`<div class="cl-lp-slide">
+      ${janelaHTML(label, lpTelaHTML(arq,label))}
+    </div>`).join('');
+  return `<section class="cl-lp-wrap cl-lp-sec" id="lp-telas">
+    <div class="cl-lp-kicker">TELAS DO JOGO</div>
+    <h2 class="cl-lp-h2">Veja por dentro antes de entrar.</h2>
+    <p class="cl-lp-p">Janelinha, placar em mono e tabela na tela — do jeito que você lembra. Estas são as telas que você vai usar em cada rodada.</p>
+    <div class="cl-lp-track-nav">
+      <button class="cl-lp-btn cl-lp-btn-sq" onclick="clLpTrack(-1)" aria-label="Tela anterior">◀</button>
+      <button class="cl-lp-btn cl-lp-btn-sq" onclick="clLpTrack(1)" aria-label="Próxima tela">▶</button>
+    </div>
+    <div class="cl-lp-track" id="cl-lp-track">${slides}</div>
+  </section>`;
+}
+function landingSecaoHTML(sec, faixa){
+  const selo = sec.trofeus ? `<span class="cl-lp-trofeus">${sec.trofeus.map(t=>`<img src="${t}" alt="" loading="lazy">`).join('')}</span>`
+             : sec.badge   ? `<img class="cl-lp-badge" src="${sec.badge}" width="500" height="500" alt="" loading="lazy">`
+             : `<span class="cl-lp-emoji">${sec.emoji||''}</span>`;
+  const texto=`<div class="cl-lp-col-txt">
+      <div class="cl-lp-kicker">${escC(sec.kicker)}</div>
+      <h3 class="cl-lp-h3">${escC(sec.h)}</h3>
+      <p class="cl-lp-p">${escC(sec.p)}</p>
+      <div class="cl-lp-selo">${selo}<span class="cl-lp-chip ${sec.chipCls||''}">${escC(sec.chip)}</span></div>
+    </div>`;
+  const janela=`<div class="cl-lp-col-img">${janelaHTML(sec.janela, lpTelaHTML(sec.img, sec.janela))}</div>`;
+  return `<section class="cl-lp-band ${faixa?'escura':''}" id="lp-${sec.id}">
+    <div class="cl-lp-wrap cl-lp-2col ${sec.dir==='dir'?'invertida':''}">${texto}${janela}</div>
+  </section>`;
+}
+function landingRankingHTML(){
+  const linhas=[
+    ['1','Campanha da temporada','pontos por título, acesso e campanha'],
+    ['2','Histórico público','cada clube que você comandou fica registrado'],
+    ['3','Prêmio no fim','os melhores da temporada levam prêmio de verdade'],
+  ].map(([n,t,d])=>`<div class="cl-lp-rank-r"><span class="cl-lp-rank-p">${n}</span>
+      <span class="cl-lp-rank-n">${escC(t)}</span><span class="cl-lp-rank-d">${escC(d)}</span></div>`).join('');
+  return `<section class="cl-lp-band escura" id="lp-ranking">
+    <div class="cl-lp-wrap cl-lp-2col">
+      <div class="cl-lp-col-txt">
+        <div class="cl-lp-kicker">RANKING GLOBAL DE TREINADORES</div>
+        <h2 class="cl-lp-h2">Todo mundo na mesma tabela. Com prêmio de verdade no fim.</h2>
+        <p class="cl-lp-p">Cada título, acesso e campanha rende pontos no ranking mundial de técnicos. A temporada fecha, a tabela congela e os melhores levam prêmios reais — não moeda de jogo.</p>
+        <ul class="cl-lp-ul">
+          <li>Pontuação por temporada, com histórico público do seu clube.</li>
+          <li>Premiação em dinheiro e produtos para o top da temporada.</li>
+          <li>Quem sobe no ranking desbloqueia as Ligas Oficiais.</li>
+        </ul>
+        <div class="cl-lp-hero-cta">
+          <button class="cl-lp-cta" onclick="clWaitlistOpen()">Quero disputar o ranking</button>
+          <a class="cl-lp-btn" href="/ranking/">Como funciona o ranking</a>
+        </div>
+      </div>
+      <div class="cl-lp-col-img">
+        ${janelaHTML('🏆 Ranking Global — como pontua', `<div class="cl-lp-rank">${linhas}
+          <div class="cl-lp-rank-foot"><span>Prêmio do 1º lugar da temporada</span><b>a definir</b></div>
+        </div>`)}
+      </div>
+    </div>
+  </section>`;
+}
+function landingLigasHTML(){
+  const cards=[
+    ['🥇','Vaga por mérito','Não se compra convite. Fique no topo do Ranking Global da temporada e a vaga chega até você.'],
+    ['🧪','Recursos em primeira mão','Embaixador joga a versão beta antes do lançamento e opina direto com quem desenvolve o jogo.'],
+    ['💰','Premiação real','As competições entre embaixadores valem prêmios em dinheiro, produtos e patrocínio da temporada.'],
+  ].map(([ic,t,d])=>`<div class="cl-lp-card"><div class="cl-lp-card-ic">${ic}</div>
+      <div class="cl-lp-card-t">${escC(t)}</div><p>${escC(d)}</p></div>`).join('');
+  return `<section class="cl-lp-wrap cl-lp-sec" id="lp-ligas">
+    <div class="cl-lp-kicker">LIGAS OFICIAIS RETROFOOT</div>
+    <h2 class="cl-lp-h2">Seja um dos Embaixadores RetroFoot</h2>
+    <p class="cl-lp-p cl-lp-p-larga">Teste novos recursos antes de todo mundo e concorra a prêmios reais. Os treinadores mais bem colocados no ranking recebem convite para as Ligas Oficiais — competições fechadas, disputadas só entre embaixadores.</p>
+    <div class="cl-lp-3col">${cards}</div>
+  </section>`;
+}
+function landingCriadoresHTML(){
+  const passos=[
+    ['1','Abra a sala','e compartilhe o código com a live.'],
+    ['2','Até 20 inscritos','entram como técnicos na sua liga.'],
+    ['3','Rode a temporada','episódio a episódio, com tabela e chat na tela.'],
+  ].map(([n,b,d])=>`<div class="cl-lp-passo"><span class="cl-lp-passo-n">${n}</span>
+      <span><b>${escC(b)}</b> ${escC(d)}</span></div>`).join('');
+  const chat=[
+    ['lucão:','contratei o camisa 10 no leilão 🔨'],
+    ['bia_tec:','meu goleiro tá com moral no chão, socorro'],
+    ['canal:','rodada começa em 2 min, escala aí galera'],
+    ['rafa:','se eu ganhar hoje subo pra Série B 🟢'],
+  ].map(([u,t])=>`<div class="cl-lp-chat-l"><span>${escC(u)}</span><span>${escC(t)}</span></div>`).join('');
+  return `<section class="cl-lp-band escura" id="lp-criadores">
+    <div class="cl-lp-wrap cl-lp-2col">
+      <div class="cl-lp-col-txt">
+        <div class="cl-lp-kicker">PARA CANAIS E COMUNIDADES</div>
+        <h2 class="cl-lp-h2">Jogue ao vivo com a sua audiência.</h2>
+        <p class="cl-lp-p">Se você tem canal no YouTube ou live na Twitch, o RetroFoot98 é feito pra isso: abre a sala, chama a comunidade e roda a liga inteira ao vivo, com o chat comentando cada rodada.</p>
+        <div class="cl-lp-passos">${passos}</div>
+        <button class="cl-lp-btn" onclick="clLandingGo('apoie')">Falar sobre parceria de canal</button>
+      </div>
+      <div class="cl-lp-col-img">
+        ${janelaHTML('💬 Resenha — sala do canal', `<div class="cl-lp-chat">${chat}
+          <div class="cl-lp-chat-in">Manda a braba na resenha…</div>
+          <div class="cl-lp-chat-foot"><span>🟢 18 de 20 treinadores na sala</span><b>SALA #RF-7742</b></div>
+        </div>`, 'cl-lp-win-claro')}
+      </div>
+    </div>
+  </section>`;
+}
+function landingListaHTML(){
+  // busca a contagem UMA vez por sessão: a barra precisa do número antes de alguém abrir o modal
+  if(CL.waitlistCount==null && !CL._waitlistCountPedido){ CL._waitlistCountPedido=true; setTimeout(clWaitlistCount,80); }
+  const n=(CL.waitlistCount!=null)?CL.waitlistCount:null;
+  const pct=n==null?0:Math.max(2,Math.min(100,Math.round(n/WAITLIST_VAGAS*100)));
+  return `<section class="cl-lp-wrap cl-lp-sec" id="lp-lista">
+    ${janelaHTML('📋 Lista de espera — primeira versão', `<div class="cl-lp-lista">
+      <h2 class="cl-lp-h2">Só ${WAITLIST_VAGAS} treinadores entram na primeira versão.</h2>
+      <p class="cl-lp-p">A primeira versão do RetroFoot98 abre para ${WAITLIST_VAGAS} pessoas testarem o jogo online e os recursos beta. Entre na lista, responda uma pergunta rápida e indique os amigos que você quer na sua liga.</p>
+      <div class="cl-lp-barra-wrap">
+        <div class="cl-lp-barra-lbl"><span>Vagas preenchidas</span><b>${n==null?'—':n} / ${WAITLIST_VAGAS}</b></div>
+        <div class="cl-lp-barra"><div class="cl-lp-barra-in" style="width:${pct}%"></div></div>
+      </div>
+      <button class="cl-lp-cta cl-lp-cta-lg" onclick="clWaitlistOpen()"><span>⚽</span>Garantir minha vaga</button>
+      <div class="cl-lp-lista-nota">Leva menos de um minuto. A gente avisa por e-mail quando a sua vaga abrir.</div>
+    </div>`, 'cl-lp-win-amarelo')}
+  </section>`;
+}
+function landingPatrocinioHTML(){
+  const slots=[0,1,2,3].map(()=>`<div class="cl-lp-slot">Sua marca aqui</div>`).join('');
+  return `<section class="cl-lp-band escura">
+    <div class="cl-lp-wrap cl-lp-2col">
+      <div class="cl-lp-col-txt">
+        <div class="cl-lp-kicker">PATROCINADORES</div>
+        <h2 class="cl-lp-h2">Sua marca dentro do jogo que a galera não larga.</h2>
+        <p class="cl-lp-p">Placa de patrocínio nas telas de partida, presença nas Ligas Oficiais e premiação das temporadas. Um público de futebol engajado, com sessões longas e retorno diário.</p>
+        <button class="cl-lp-btn" onclick="clLandingGo('apoie')">Apoiar o projeto e ver as cotas</button>
+      </div>
+      <div class="cl-lp-col-img">
+        <div class="cl-lp-slots"><div class="cl-lp-slots-h">ESPAÇOS DISPONÍVEIS</div>
+          <div class="cl-lp-slots-g">${slots}</div></div>
+      </div>
+    </div>
+  </section>`;
+}
+function landingCanaisHTML(){
+  const cards=LANDING_CANAIS.map(c=>{
+    const inner=`<span class="cl-lp-canal-ic">${c.ic}</span><span class="cl-lp-canal-n">${escC(c.nome)}</span>
+      <span class="cl-lp-canal-d">${escC(c.d)}</span><span class="cl-lp-canal-a">${escC(c.arroba)}</span>`;
+    return c.url ? `<a class="cl-lp-canal" href="${escC(c.url)}" target="_blank" rel="noopener">${inner}</a>`
+                 : `<div class="cl-lp-canal">${inner}</div>`;
+  }).join('');
+  return `<section class="cl-lp-wrap cl-lp-sec cl-lp-centro">
+    <div class="cl-lp-kicker">NOSSOS CANAIS</div>
+    <h2 class="cl-lp-h2">Acompanhe o jogo sendo feito.</h2>
+    <div class="cl-lp-3col cl-lp-3col-estreita">${cards}</div>
+  </section>`;
+}
+function landingHomeHTML(){
+  return `<div class="cl-lp">
+    ${landingHeroHTML()}
+    ${landingTelasHTML()}
+    <div id="lp-recursos"></div>
+    ${LANDING_SECOES.map((sec,i)=>landingSecaoHTML(sec, i%2===0)).join('')}
+    ${landingRankingHTML()}
+    ${landingLigasHTML()}
+    ${landingCriadoresHTML()}
+    ${landingListaHTML()}
+    ${landingPatrocinioHTML()}
+    ${landingCanaisHTML()}
     ${landingPaginasHTML()}
   </div>`;
+}
+function landingApoieHTML(){
+  const cotas=LANDING_COTAS.map(([n,d,v])=>`<div class="cl-lp-cota">
+      <div><div class="cl-lp-cota-n">${escC(n)}</div><div class="cl-lp-cota-d">${escC(d)}</div></div>
+      <div class="cl-lp-cota-v">${escC(v)}</div></div>`).join('');
+  return `<div class="cl-lp">
+    <section class="cl-lp-wrap cl-lp-sec">
+      <button class="cl-lp-btn" onclick="clLandingGo('home')">↩ Voltar ao início</button>
+      <div class="cl-lp-kicker" style="margin-top:20px">APOIE O RETROFOOT98</div>
+      <h1 class="cl-lp-h2">Um projeto independente, tocado por quem cresceu jogando.</h1>
+      <p class="cl-lp-p cl-lp-p-larga">O RetroFoot98 é gratuito para jogar e vive de apoio: patrocínio de marcas, parceria com canais e a torcida da comunidade. Se você quer colocar a sua marca no jogo ou apoiar o desenvolvimento, o material está aqui embaixo.</p>
+      <div class="cl-lp-2col cl-lp-2col-igual">
+        ${janelaHTML('Cotas de patrocínio', `<div class="cl-lp-cotas">${cotas}
+          <p class="cl-lp-cotas-nota">Cotas anuais, com contrapartida dentro do jogo, nas Ligas Oficiais e nos canais.</p></div>`)}
+        ${janelaHTML('Media kit', `<div class="cl-lp-media">
+          <p>Números da comunidade, perfil do público, formatos de anúncio dentro do jogo, logos e capturas em alta resolução.</p>
+          <ul class="cl-lp-ul"><li>Audiência e engajamento por temporada</li>
+            <li>Espaços de marca: partida, ranking e ligas</li>
+            <li>Pacote de logos e screenshots</li></ul>
+          <a class="cl-lp-cta" href="mailto:parcerias@retrofoot98.com?subject=Media%20kit%20RetroFoot98">✉ Pedir o media kit</a>
+        </div>`, 'cl-lp-win-amarelo')}
+      </div>
+      <div class="cl-lp-card cl-lp-card-larga">
+        <div class="cl-lp-card-t">Quer apoiar sem ser patrocinador?</div>
+        <p>Entre na lista de espera, chame os amigos pra sua liga e siga os canais. Comunidade cheia é o que mantém o projeto de pé.</p>
+      </div>
+    </section>
+  </div>`;
+}
+/* rola até a seção; usada pelo menu do topo e pelo rodapé */
+function clLpIr(id){
+  CL.navMenuOpen=false;
+  if((CL.landingView||'home')!=='home'){ CL.landingView='home'; cdraw(); }
+  setTimeout(()=>{ const el=document.getElementById('lp-'+id);
+    if(el) window.scrollTo({top:Math.max(0, el.getBoundingClientRect().top+(window.scrollY||0)-84), behavior:'smooth'}); }, 60);
+}
+function clLpTrack(dir){
+  const t=document.getElementById('cl-lp-track'); if(!t) return;
+  t.scrollBy({left:dir*(t.clientWidth/3+16), behavior:'smooth'});
 }
 function landingPageHTML(title, bodyHTML, opts){ opts=opts||{};
   return `<div class="cl-home-page">
