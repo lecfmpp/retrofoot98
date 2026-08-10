@@ -1402,6 +1402,51 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:44%}
 .cl-cupscr-panel{flex:1;min-height:0;background:var(--chrome);border:2px solid;border-color:var(--bevel-out);
   border-top:4px solid var(--navy);padding:8px;overflow:hidden;position:relative}
+
+/* ===== TELA DA COMPETIÇÃO — visual novo (grupos ao vivo) =====
+   O mesmo conteúdo de antes (cabeçalho, abas, cards de grupo) num desenho mais limpo: cantos
+   arredondados, cartões flutuando sobre o gramado em vez de dentro de uma caixa de sistema,
+   e o confronto lido como duas plaquetas nas cores dos clubes com o placar no meio. */
+.cl-cupscr{padding:10px 12px 12px;gap:0}
+.cl-cupscr-hdr{background:linear-gradient(180deg,#16234a,#0e1834);border:0;border-radius:10px;
+  padding:9px 12px;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.28)}
+.cl-cupscr-tr{width:42px;height:42px;justify-content:center;border-radius:9px;
+  background:linear-gradient(160deg,#243863,#101c38);flex:none}
+.cl-cupscr-tr .cl-trophy-img{width:32px;height:32px}
+.cl-cupscr-nm{font-size:18px;letter-spacing:.2px}
+.cl-cupscr-se{border-radius:5px;background:rgba(255,255,255,.12);color:#ffd97a}
+.cl-cuptabs{padding:9px 2px 0;gap:6px;align-items:center}
+.cl-cuptab{border:0;border-radius:8px 8px 0 0;top:0;padding:9px 18px;background:rgba(0,0,0,.22);
+  color:#cfe0cf;font-weight:800;letter-spacing:.3px;box-shadow:none}
+.cl-cuptab.active{background:#16234a;color:#fff;top:0;margin-bottom:-2px;padding-bottom:11px;
+  box-shadow:0 -3px 0 var(--gold) inset}
+.cl-cuptabs-st{color:#eaf4ea;opacity:.85}
+.cl-cupscr-panel{background:rgba(0,0,0,.16);border:0;border-radius:0 10px 10px 10px;padding:10px}
+.cl-cupgrid{gap:10px}
+/* --- cartão do grupo --- */
+.cl-cupgc{background:#e9edf3;border:0;border-radius:9px;box-shadow:0 2px 5px rgba(0,0,0,.25)}
+.cl-cupgc.mine{box-shadow:0 0 0 2px var(--gold),0 2px 5px rgba(0,0,0,.25)}
+.cl-cupgc-h{background:#16234a;border-radius:9px 9px 0 0;padding:7px 10px;font-size:13px;font-weight:800}
+.cl-cupgc-badge{font-size:9.5px;letter-spacing:.6px}
+.cl-cupgc-ms{background:#dfe4ec;border-bottom:1px solid #c6ccd8;padding:6px 7px 5px;gap:5px}
+.cl-cupgc-m{grid-template-columns:1fr 46px 1fr;gap:5px}
+.cl-cupgc-t{border:0;border-radius:4px;padding:4px 7px;font-size:11.5px;box-shadow:inset 0 -2px 4px rgba(0,0,0,.18)}
+.cl-cupgc-s{font-size:13px;color:#1b2942}
+.cl-cupgc-tb{padding:5px 7px 6px}
+.cl-cupgc-tl{color:#5a667a;letter-spacing:.7px}
+.cl-cupgc-r{border-left:0;border-radius:4px;padding:2px 4px;gap:7px}
+.cl-cupgc-r:nth-child(odd){background:rgba(22,35,74,.05)}
+.cl-cupgc-r.ok{box-shadow:inset 3px 0 0 var(--success-alt)}
+.cl-cupgc-r.edge{box-shadow:inset 3px 0 0 var(--gold)}
+.cl-cupgc-r.me{outline:0;box-shadow:inset 3px 0 0 var(--navy),0 0 0 1px rgba(22,35,74,.35)}
+/* o número da posição vira um selo na cor do clube — no lugar do quadradinho solto de antes */
+.cl-cupgc-p{width:17px;height:17px;border-radius:3px;display:flex;align-items:center;justify-content:center;
+  background:var(--cor,#8b97a8);color:#fff;font-size:10px;font-weight:800;text-shadow:0 1px 1px rgba(0,0,0,.45);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.cl-cupgc-n{font-size:12.5px}
+.cl-cupgc-pts{font-size:12.5px}
+/* faixa de publicidade do rodapé (mesma peça da cerimônia de sorteio) */
+.cl-cupscr>.cl-cup2-ad{margin-top:8px;background:rgba(255,255,255,.9);border-color:rgba(255,255,255,.45)}
 /* ---- palco do chaveamento (coordenadas absolutas, escalado por JS) ---- */
 .cl-cupstage-host{position:absolute;inset:8px;overflow:hidden}
 .cl-cupstage{position:absolute;transform-origin:top left;background:#d2d2d2;border:2px solid;border-color:var(--bevel-in)}
@@ -1478,9 +1523,9 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-cupgc-s{text-align:center;font-family:var(--mono);font-weight:800;font-size:14px;color:#111;white-space:nowrap;line-height:1}
 /* a tabela ocupa a altura que sobra e distribui as linhas nela (sem vazio no pé do card e com
    alvo de toque decente); o teto por linha evita a linha "gigante" em grupos de poucos times */
-.cl-cupgc-tb{flex:1;min-height:0;padding:4px 6px 5px;overflow:hidden;display:flex;flex-direction:column}
+.cl-cupgc-tb{flex:1;min-height:0;padding:4px 6px 6px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-evenly}
 .cl-cupgc-tl{flex:none;font-size:9px;color:#4a4a4a;font-weight:800;letter-spacing:.6px;margin-bottom:2px}
-.cl-cupgc-r{flex:1 1 auto;max-height:40px;display:flex;align-items:center;gap:5px;padding:2px 3px;border-left:3px solid transparent}
+.cl-cupgc-r{flex:1 1 auto;max-height:54px;display:flex;align-items:center;gap:5px;padding:2px 3px;border-left:3px solid transparent}
 .cl-cupgc-r:nth-child(odd){background:rgba(0,0,0,.05)}
 .cl-cupgc-r.ok{border-left-color:var(--success-alt)}
 .cl-cupgc-r.edge{border-left-color:var(--gold)}
@@ -1502,6 +1547,129 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-money-ic{flex:none;display:block}
 /* ================= CERIMÔNIA DO SORTEIO (mesma tela da competição) ================= */
 .cl-cupscr-panel.drawing{padding:0}
+
+/* ================= CERIMÔNIA DO SORTEIO — TELA CLARA (ver cupDrawScreenHTML) =================
+   Tela inteira, fundo claro: é o único momento em que a competição não é um painel dentro do
+   jogo, e sim o assunto. A esquerda conta a taça (troféu, campeão atual, premiação, etapa,
+   pote e a última bola); a direita mostra as vagas se preenchendo. Tudo sai da chave da
+   competição, então Libertadores, Sul-Americana e Copa do Brasil usam este mesmo desenho. */
+.cl-cupscr.cl-cup2{background:#eef1f6;color:#15243a;padding:0;gap:0}
+.cl-cup2-hdr{flex:none;display:flex;align-items:center;gap:14px;padding:12px 22px;background:#fff;
+  border-bottom:1px solid #d9dfe9;box-shadow:0 1px 4px rgba(20,35,60,.06)}
+.cl-cup2-tr{display:flex;align-items:center;justify-content:center;width:56px;height:56px;flex:none;
+  background:linear-gradient(160deg,#1e2f52,#0f1c35);border-radius:12px}
+.cl-cup2-nm{margin:0;font-size:26px;font-weight:900;letter-spacing:.5px;color:#15243a;white-space:nowrap}
+.cl-cup2-yr{font-family:var(--mono);font-size:24px;font-weight:800;color:#2f6bd8}
+.cl-cup2-sp{flex:1}
+.cl-cup2-st{display:flex;align-items:center;gap:8px;font-size:15px;color:#5b6880;white-space:nowrap}
+.cl-cup2-st.done{color:#1f7a45;font-weight:700}
+.cl-cup2-ok{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;
+  border:2px solid #1f7a45;font-size:12px;font-weight:900}
+.cl-cup2-act{display:flex;align-items:center;gap:8px}
+.cl-cup2-act .cl-btn{flex-direction:row;gap:6px;min-height:0;padding:8px 14px;font-weight:700}
+.cl-cup2-act .cl-btn-ic{font-size:14px}
+.cl-cup2-body{flex:1;min-height:0;display:flex;gap:16px;padding:16px 22px 18px}
+/* --- coluna da esquerda --- */
+.cl-cup2-side{flex:0 0 232px;width:232px;display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto}
+.cl-cup2-card{background:#fff;border:1px solid #dfe4ee;border-radius:10px;padding:12px}
+.cl-cup2-card h4{margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:1px;color:#7b8798;
+  display:flex;align-items:center;justify-content:space-between}
+.cl-cup2-card h4 i{font-style:normal;background:#eef1f6;color:#41506b;border-radius:9px;padding:1px 8px;font-size:11px}
+.cl-cup2-trophy{text-align:center;background:linear-gradient(180deg,#fff,#f2f5fb)}
+/* as imagens de troféu vêm com fundo preto: em vez de brigar com isso, a taça ganha um pedestal
+   escuro — que é o mesmo tratamento do selo no cabeçalho */
+.cl-cup2-trophy-img{display:flex;align-items:center;justify-content:center;min-height:150px;border-radius:9px;
+  background:linear-gradient(160deg,#16233c,#0b1120);padding:8px;margin-bottom:10px}
+.cl-cup2-trophy-img .cl-trophy-img{mix-blend-mode:screen}
+.cl-cup2-trophy-lbl{font-size:10px;font-weight:800;letter-spacing:1.2px;color:#8b97a8;margin-top:6px}
+.cl-cup2-trophy-nm{font-size:16px;font-weight:900;color:#15243a;line-height:1.15}
+.cl-cup2-prize{display:flex;align-items:center;gap:10px}
+.cl-cup2-prize>div{display:flex;flex-direction:column;line-height:1.15}
+.cl-cup2-prize span{font-size:10px;font-weight:800;letter-spacing:.8px;color:#7b8798}
+.cl-cup2-prize b{font-size:20px;font-weight:900;color:#15243a}
+.cl-cup2-prize i{font-style:normal;font-size:10px;color:#8b97a8;letter-spacing:.6px}
+.cl-cup2-step{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:7px;font-size:12px;
+  font-weight:700;color:#6a768a;background:#f4f6fa;margin-bottom:5px}
+.cl-cup2-step:last-child{margin-bottom:0}
+.cl-cup2-step i{font-style:normal;display:flex;align-items:center;justify-content:center;width:20px;height:20px;
+  flex:none;border-radius:5px;background:#dfe4ee;color:#5b6880;font-size:11px;font-weight:800}
+.cl-cup2-step.on{background:#e4edff;color:#1c4fa8}
+.cl-cup2-step.on i{background:#2f6bd8;color:#fff}
+.cl-cup2-pot{display:flex;flex-direction:column;min-height:0}
+.cl-cup2-pot-l{max-height:180px;overflow-y:auto;border-top:1px solid #eef1f6}
+.cl-cup2-pot-r{font-size:12px;color:#3b4759;padding:4px 2px;border-bottom:1px solid #f2f4f8;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-cup2-pot-r.me{font-weight:800;color:#1c4fa8}
+.cl-cup2-pot-r.empty{color:#98a3b4;font-style:italic;text-align:center;padding:10px 0}
+.cl-cup2-last-b{display:flex;align-items:center;gap:10px}
+.cl-cup2-last-b>span[style*="position:relative"]{width:30px !important;height:30px !important;flex:none}
+.cl-cup2-last-b .cl-welc-crest{width:30px;height:30px;object-fit:contain}
+.cl-cup2-last-b .cl-welc-crest-fallback{width:30px;height:30px;font-size:10px}
+.cl-cup2-last-t{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.cl-cup2-last-t b{font-size:14px;font-weight:900;color:#15243a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-cup2-last-t span{font-size:10px;font-weight:800;letter-spacing:.8px;color:#7b8798}
+/* --- direita: abas + grade de grupos --- */
+.cl-cup2-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;min-height:0}
+.cl-cup2-tabs{flex:none;display:flex;gap:6px;background:#fff;border:1px solid #dfe4ee;border-radius:10px;padding:5px;align-self:flex-start}
+.cl-cup2-tab{padding:8px 22px;border-radius:7px;font-size:13px;font-weight:800;letter-spacing:.6px;color:#7b8798}
+.cl-cup2-tab.on{background:#2f6bd8;color:#fff}
+.cl-cup2-stage{flex:1;min-height:0;background:#fff;border:1px solid #dfe4ee;border-radius:12px;padding:14px;
+  overflow:hidden;position:relative}   /* position: a chave (.cl-cupstage-host) se ancora aqui */
+.cl-cup2-stage .cl-cupgrid{height:100%;gap:12px}
+.cl-cup2-gc{display:flex;flex-direction:column;min-height:0;overflow:hidden;background:#fff;
+  border:1px solid #e2e7f0;border-radius:10px;box-shadow:0 1px 3px rgba(20,35,60,.06)}
+.cl-cup2-gc.fresco{background:#fffdf2;border-color:#f0dea6}
+.cl-cup2-gc.mine{border-color:#2f6bd8;box-shadow:0 0 0 2px rgba(47,107,216,.16)}
+.cl-cup2-gc-h{flex:none;display:flex;align-items:center;justify-content:space-between;padding:9px 12px;
+  border-bottom:1px solid #eef1f6;font-size:15px;font-weight:800;color:#1c4fa8}
+.cl-cup2-gc-h b{font-family:var(--mono);font-size:12px;font-weight:800;color:#8b97a8}
+.cl-cup2-gc-h b.full{color:#1f7a45}
+.cl-cup2-gc-b{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-start}
+.cl-cup2-r{flex:1 1 0;min-height:0;display:flex;align-items:center;gap:9px;padding:0 10px;
+  border-bottom:1px solid #f2f4f8;position:relative;overflow:hidden}
+.cl-cup2-r:last-child{border-bottom:0}
+.cl-cup2-r:before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;border-radius:0 2px 2px 0;
+  background:var(--barra,transparent)}
+.cl-cup2-r i{font-style:normal;width:12px;flex:none;text-align:center;font-family:var(--mono);font-size:12px;
+  font-weight:800;color:#8b97a8}
+.cl-cup2-rn{flex:1;min-width:0;font-size:13px;font-weight:700;color:#15243a;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* o escudo entra no tamanho da linha; o badge de iniciais (quando não há escudo real) precisa
+   continuar REDONDO — por isso o quadrado, não o retângulo da imagem */
+.cl-cup2-r>span[style*="position:relative"]{width:22px !important;height:22px !important;flex:none}
+.cl-cup2-r .cl-welc-crest{width:22px;height:22px;object-fit:contain;flex:none}
+.cl-cup2-r .cl-welc-crest-fallback{width:22px;height:22px;font-size:8.5px;box-shadow:none;flex:none}
+.cl-cup2-r.empty .cl-cup2-rn{color:#c3cad6}
+.cl-cup2-r.empty i{color:#c3cad6}
+.cl-cup2-r.fresh{background:#fff6d8;animation:cl-cup2-flash .6s ease-out}
+.cl-cup2-r.me .cl-cup2-rn{color:#1c4fa8}
+/* o número da posição toma a cor do clube, como a barrinha da esquerda */
+.cl-cup2-r i{color:var(--barra,#8b97a8)}
+@keyframes cl-cup2-flash{from{background:#ffe08a}to{background:#fff6d8}}
+/* --- faixa de publicidade --- */
+.cl-cup2-ad{flex:none;display:flex;align-items:center;gap:14px;padding:12px 18px;background:#fff;
+  border:1px dashed #cfd7e4;border-radius:10px;color:#7b8798}
+.cl-cup2-ad-tag{font-size:9px;font-weight:800;letter-spacing:1.2px;color:#a7b1c1;border:1px solid #dfe4ee;
+  border-radius:4px;padding:2px 6px}
+.cl-cup2-ad-main{font-size:16px;font-weight:900;letter-spacing:1px;color:#41506b}
+.cl-cup2-ad-sub{font-size:12px}
+@media (max-width:900px){
+  /* no telefone a cerimônia rola a página inteira: nada de altura de viewport nem de grade que
+     divide a altura em frações (os cards ficavam com o cabeçalho e mais nada) */
+  .cl-cupscr.cl-cup2{height:auto;min-height:100vh}
+  .cl-cup2-hdr{flex-wrap:wrap;gap:8px 10px;padding:10px 12px}
+  .cl-cup2-stage{overflow:visible;padding:10px}
+  .cl-cup2-stage .cl-cupgrid{grid-template-columns:1fr 1fr !important;grid-template-rows:none !important;
+    height:auto;gap:8px}
+  .cl-cup2-gc-b{display:block}
+  .cl-cup2-r{min-height:30px}
+  .cl-cup2-body{flex-direction:column;padding:12px}
+  .cl-cup2-side{flex:none;width:auto;overflow:visible;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .cl-cup2-trophy{grid-column:1/-1}
+  .cl-cup2-nm{font-size:18px}.cl-cup2-yr{font-size:18px}
+  .cl-cup2-tr{width:42px;height:42px}
+  .cl-cup2-ad-sub{display:none}
+}
 .cl-cupdrawwrap{position:absolute;inset:0;display:flex;min-height:0}
 /* painel da taça: troféu grande + premiação + pote encolhendo */
 .cl-cupdrawrail{flex:none;width:232px;display:flex;flex-direction:column;align-items:center;gap:4px;
