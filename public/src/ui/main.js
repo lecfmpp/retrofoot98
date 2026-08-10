@@ -800,7 +800,7 @@ function landingRodapeHTML(){
    de vagas vem de uma função que devolve só a contagem (retrofoot_waitlist_count). */
 function clWaitlistOpen(){
   CL.waitlistOpen=true; CL.waitlistSent=false; CL.waitlistErr=''; CL.navMenuOpen=false;
-  CL.waitlistMin=false; CL.waitlistMax=false;
+  CL.waitlistMin=false; CL.waitlistMax=false; CL.waitlistAmigosOk=false;
   CL.waitlist=CL.waitlist||{nome:'',email:'',tel:'',resposta:'',amigos:[''],zap:''};
   cdraw(); clWaitlistCount();
 }
@@ -830,14 +830,13 @@ async function clWaitlistSubmit(){
   const nome=(w.nome||'').trim(), email=(w.email||'').trim();
   if(nome.length<2){ CL.waitlistErr='Diz como te chamam na resenha.'; cdraw(); return; }
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)){ CL.waitlistErr='Confere o e-mail — é por ele que a gente avisa da vaga.'; cdraw(); return; }
-  const amigos=(w.amigos||[]).map(a=>(a||'').trim()).filter(a=>/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(a));
   CL.waitlistErr=''; CL.waitlistBusy=true; cdraw();
   try{
     const cli=await lpSupabase();
     if(!cli) throw new Error('sem conexão');
     const {error}=await cli.from('retrofoot_waitlist').insert({
       nome, email, telefone:(w.tel||'').trim()||null, resposta:(w.resposta||'').trim()||null,
-      amigos, origem:(location&&location.pathname)||'/', user_agent:(navigator&&navigator.userAgent||'').slice(0,400)
+      origem:(location&&location.pathname)||'/', user_agent:(navigator&&navigator.userAgent||'').slice(0,400)
     });
     if(error){
       // e-mail repetido não é erro pro visitante: ele já está na lista, e dizer isso é melhor
@@ -856,61 +855,93 @@ function waitlistZapHref(){
   const msg=encodeURIComponent('Bora montar nossa liga no RetroFoot98? Entra na lista de espera — só '+WAITLIST_VAGAS+' treinadores na primeira versão: https://retrofoot98.com.br');
   return num ? 'https://wa.me/'+(num.length>11?num:'55'+num)+'?text='+msg : 'https://wa.me/?text='+msg;
 }
+/* ===== O FORMULÁRIO EM DOIS PASSOS =====
+   Numa janela só ele tinha nome, e-mail, telefone, uma pergunta aberta, a lista de amigos e o
+   convite por WhatsApp: passava de qualquer tela de notebook e obrigava a rolar por dentro do
+   modal pra achar o botão de enviar — o pior lugar pra esconder um botão de conversão.
+   Agora o PASSO 1 pede só o que garante a vaga (nome, e-mail, telefone e a pergunta rápida) e
+   cabe inteiro na tela. As INDICAÇÕES viraram o PASSO 2, depois de gravar: quem abandona ali já
+   está na lista, e convidar amigos é uma decisão de quem JÁ entrou — não um pedágio antes. */
 function waitlistModalHTML(){
   const w=CL.waitlist||{};
-  if(CL.waitlistSent) return `<div class="cl-lp-modal" onclick="if(event.target===this)clWaitlistClose()">
-    ${janelaHTML('📋 Lista de espera — RetroFoot98', `<div class="cl-lp-form cl-lp-form-ok">
-      <div class="cl-lp-ok-ic">✓</div>
-      <div class="cl-lp-ok-t">Pronto! Você está na lista.</div>
-      <p>A gente avisa por e-mail assim que a sua vaga entre os ${WAITLIST_VAGAS} primeiros treinadores for liberada. Enquanto isso, chama a galera pra resenha.</p>
-      <div class="cl-lp-form-acts">
-        <a class="cl-lp-cta" href="${waitlistZapHref()}" target="_blank" rel="noopener">💬 Chamar a galera</a>
-        <button class="cl-lp-btn" onclick="clWaitlistClose()">Fechar</button>
-      </div>
-    </div>`, 'cl-lp-win-modal'+(CL.waitlistMax?' larga':''), {min:'clWaitlistMin()', max:'clWaitlistMax()', close:'clWaitlistClose()', minimizada:CL.waitlistMin})}
-  </div>`;
-  const amigos=(w.amigos||['']).map((a,i)=>`<div class="cl-lp-amigo">
-      <input type="email" value="${escC(a||'')}" placeholder="email do amigo" oninput="clWaitlistAmigo(${i},this.value)">
-      <button class="cl-lp-btn cl-lp-btn-sq" onclick="clWaitlistRmAmigo(${i})" aria-label="Remover">✕</button>
-    </div>`).join('');
+  const acoes={min:'clWaitlistMin()', max:'clWaitlistMax()', close:'clWaitlistClose()', minimizada:CL.waitlistMin};
+  const cls='cl-lp-win-modal'+(CL.waitlistMax?' larga':'');
+  const corpo = CL.waitlistSent ? waitlistPasso2HTML(w) : waitlistPasso1HTML(w);
   return `<div class="cl-lp-modal" onclick="if(event.target===this)clWaitlistClose()">
-    ${janelaHTML('📋 Lista de espera — RetroFoot98', `<div class="cl-lp-form">
-      <div class="cl-lp-aviso"><b>⚠ Vagas limitadas:</b> a primeira versão libera o jogo para <b>${WAITLIST_VAGAS} treinadores</b>, para testes online e recursos beta. Quem indicar amigos sobe na fila.</div>
-      ${CL.waitlistErr?`<div class="cl-lp-erro">${escC(CL.waitlistErr)}</div>`:''}
-      <label class="cl-lp-lbl"><span>Nome do treinador</span>
-        <input type="text" value="${escC(w.nome||'')}" placeholder="Como te chamam na resenha" oninput="clWaitlistSet('nome',this.value)"></label>
-      <div class="cl-lp-2in">
-        <label class="cl-lp-lbl"><span>E-mail</span>
-          <input type="email" value="${escC(w.email||'')}" placeholder="voce@email.com" oninput="clWaitlistSet('email',this.value)"></label>
-        <label class="cl-lp-lbl"><span>Telefone (WhatsApp)</span>
-          <input type="tel" value="${escC(w.tel||'')}" placeholder="(11) 99999-0000" oninput="clWaitlistSet('tel',this.value)"></label>
-      </div>
-      <label class="cl-lp-lbl"><span>O que não pode faltar no RetroFoot?</span>
-        <textarea rows="3" placeholder="Fala o recurso que você quer ver no jogo" oninput="clWaitlistSet('resposta',this.value)">${escC(w.resposta||'')}</textarea></label>
-      <fieldset class="cl-lp-fs">
-        <legend>Indicar amigos para a lista</legend>
-        <div class="cl-lp-fs-d">Cada amigo indicado entra na fila junto com você — dá pra montar a liga inteira antes do lançamento.</div>
-        ${amigos}
-        <button class="cl-lp-btn" onclick="clWaitlistAddAmigo()">+ Adicionar outro e-mail</button>
-        <div class="cl-lp-zap">
-          <div class="cl-lp-zap-t">Chamar pra Resenha pelo WhatsApp</div>
-          <div class="cl-lp-fs-d">Coloca o número do amigo e a gente monta a mensagem com o link do jogo.</div>
-          <div class="cl-lp-zap-row">
-            <input type="tel" value="${escC(w.zap||'')}" placeholder="DDD + número, ex: 11999990000" oninput="clWaitlistSet('zap',this.value)">
-            <a class="cl-lp-cta" href="${waitlistZapHref()}" target="_blank" rel="noopener">💬 Enviar convite</a>
-          </div>
-        </div>
-      </fieldset>
-      <div class="cl-lp-form-acts">
-        <button class="cl-lp-cta" onclick="clWaitlistSubmit()" ${CL.waitlistBusy?'disabled':''}>${CL.waitlistBusy?'Gravando…':'Garantir minha vaga'}</button>
-        <button class="cl-lp-btn" onclick="clWaitlistClose()">Cancelar</button>
-        <span class="cl-lp-form-nota">A gente só usa seus dados pra avisar da vaga.</span>
-      </div>
-    </div>`, 'cl-lp-win-modal'+(CL.waitlistMax?' larga':''), {min:'clWaitlistMin()', max:'clWaitlistMax()', close:'clWaitlistClose()', minimizada:CL.waitlistMin})}
+    ${janelaHTML('📋 Lista de espera — RetroFoot98', corpo, cls, acoes)}
   </div>`;
 }
-/* moldura de janela do Windows raiz: barra de título + área rebaixada. É a peça que se repete em
-   toda a home (vídeo, telas, chat, lista de espera) — por isso mora numa função só. */
+function waitlistPasso1HTML(w){
+  return `<div class="cl-lp-form">
+    <div class="cl-lp-form-rola">
+      <div class="cl-lp-aviso"><b>⚠ Vagas limitadas:</b> a primeira versão libera o jogo para <b>${WAITLIST_VAGAS} treinadores</b>. Quem indicar amigos sobe na fila.</div>
+      ${CL.waitlistErr?`<div class="cl-lp-erro">${escC(CL.waitlistErr)}</div>`:''}
+      <label class="cl-lp-lbl"><span>Nome do treinador</span>
+        <input type="text" value="${escC(w.nome||'')}" placeholder="Como te chamam na resenha"
+          autocomplete="name" oninput="clWaitlistSet('nome',this.value)"></label>
+      <div class="cl-lp-2in">
+        <label class="cl-lp-lbl"><span>E-mail</span>
+          <input type="email" value="${escC(w.email||'')}" placeholder="voce@email.com"
+            autocomplete="email" inputmode="email" oninput="clWaitlistSet('email',this.value)"></label>
+        <label class="cl-lp-lbl"><span>WhatsApp <i>(opcional)</i></span>
+          <input type="tel" value="${escC(w.tel||'')}" placeholder="(11) 99999-0000"
+            autocomplete="tel" inputmode="tel" oninput="clWaitlistSet('tel',this.value)"></label>
+      </div>
+      <label class="cl-lp-lbl"><span>O que não pode faltar no RetroFoot? <i>(opcional)</i></span>
+        <input type="text" value="${escC(w.resposta||'')}" placeholder="Fala o recurso que você quer ver no jogo"
+          oninput="clWaitlistSet('resposta',this.value)"></label>
+    </div>
+    <div class="cl-lp-form-acts">
+      <button class="cl-lp-cta" onclick="clWaitlistSubmit()" ${CL.waitlistBusy?'disabled':''}>${CL.waitlistBusy?'Gravando…':'Garantir minha vaga'}</button>
+      <span class="cl-lp-form-nota">A gente só usa seus dados pra avisar da vaga.</span>
+    </div>
+  </div>`;
+}
+function waitlistPasso2HTML(w){
+  const amigos=(w.amigos||['']).map((a,i)=>`<div class="cl-lp-amigo">
+      <input type="email" value="${escC(a||'')}" placeholder="email do amigo" inputmode="email"
+        autocomplete="off" oninput="clWaitlistAmigo(${i},this.value)">
+      <button class="cl-lp-btn cl-lp-btn-sq" onclick="clWaitlistRmAmigo(${i})" aria-label="Remover">✕</button>
+    </div>`).join('');
+  const guardado = CL.waitlistAmigosOk ? `<div class="cl-lp-ok-linha">✓ Indicações guardadas.</div>` : '';
+  return `<div class="cl-lp-form">
+    <div class="cl-lp-form-rola">
+      <div class="cl-lp-ok-topo">
+        <span class="cl-lp-ok-ic">✓</span>
+        <div><div class="cl-lp-ok-t">Você está na lista.</div>
+          <p>A gente avisa por e-mail quando a sua vaga entre os ${WAITLIST_VAGAS} primeiros for liberada.</p></div>
+      </div>
+      ${guardado}
+      <div class="cl-lp-fs-d">Agora chama a galera: <b>cada amigo indicado sobe você na fila</b> — dá pra montar a liga inteira antes do lançamento.</div>
+      ${amigos}
+      <button class="cl-lp-btn" onclick="clWaitlistAddAmigo()">+ Adicionar outro e-mail</button>
+      <div class="cl-lp-zap">
+        <div class="cl-lp-zap-t">Ou chama direto no WhatsApp</div>
+        <div class="cl-lp-zap-row">
+          <input type="tel" value="${escC(w.zap||'')}" placeholder="DDD + número" inputmode="tel" oninput="clWaitlistSet('zap',this.value)">
+          <a class="cl-lp-btn" href="${waitlistZapHref()}" target="_blank" rel="noopener">💬 Convidar</a>
+        </div>
+      </div>
+    </div>
+    <div class="cl-lp-form-acts">
+      <button class="cl-lp-cta" onclick="clWaitlistIndicar()" ${CL.waitlistBusy?'disabled':''}>${CL.waitlistBusy?'Gravando…':'Enviar indicações'}</button>
+      <button class="cl-lp-btn" onclick="clWaitlistClose()">Fechar</button>
+    </div>
+  </div>`;
+}
+/* passo 2: anexa as indicações ao lead que acabou de entrar (ver retrofoot_waitlist_indicar) */
+async function clWaitlistIndicar(){
+  const w=CL.waitlist||{};
+  const amigos=(w.amigos||[]).map(a=>(a||'').trim()).filter(a=>/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(a));
+  if(!amigos.length){ clWaitlistClose(); return; }
+  CL.waitlistBusy=true; cdraw();
+  try{
+    const cli=await lpSupabase();
+    if(cli){ await cli.rpc('retrofoot_waitlist_indicar', {p_email:(w.email||'').trim(), p_amigos:amigos}); }
+    CL.waitlistAmigosOk=true; CL.waitlist.amigos=[''];
+  }catch(e){ console.warn('indicações:', e&&e.message); }
+  CL.waitlistBusy=false; cdraw();
+}
 function janelaHTML(titulo, inner, extra, acoes){
   // sem `acoes` os três selos são enfeite (é uma moldura, não uma janela de verdade). Com elas,
   // viram botão: minimizar recolhe pra barra de título, maximizar alterna a largura e ✕ fecha.
