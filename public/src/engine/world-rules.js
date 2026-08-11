@@ -131,17 +131,47 @@
      seria uma TERCEIRA cópia das mesmas datas — exatamente o que causou dois jogos no mesmo dia.
      O banco guarda o resultado e anda com o índice; a regra continua num lugar só.
      `cups` = competições que existem neste save (as continentais não existem em todo universo). */
-  function buildDayPlan(cups, epoch){
+  /* puxa pra dentro da temporada o que a data real jogou pra fora, preservando a ordem das
+     rodadas e sem empilhar duas rodadas da mesma copa na mesma jornada. Mesma regra do calendário
+     do solo (ver ancorarCalendarioCopa em core.js) — as duas leem a mesma folha de datas. */
+  function ancorarNaTemporada(rodadas, ultima, folga){
+    if(!Array.isArray(rodadas) || !rodadas.length) return rodadas||[];
+    const out=rodadas.slice();
+    const teto0=Math.max(0, ultima-(folga||0));
+    for(let i=out.length-1, teto=teto0; i>=0; i--, teto--) if(out[i]>teto) out[i]=teto;
+    for(let i=1;i<out.length;i++) if(out[i]<=out[i-1]) out[i]=out[i-1]+1;
+    for(let i=out.length-1, teto=ultima; i>=0; i--, teto--) if(out[i]>teto) out[i]=teto;
+    return out.map(r=>Math.max(0,r));
+  }
+  function buildDayPlan(cups, epoch, totais){
     const ativas=(cups&&cups.length)?cups:['copaBrasil','libertadores','sulamericana'];
     const L=CAL_2026.league, dias=[];
-    // total de rodadas de cada copa = quantas datas ela tem na tabela
+    /* QUANTAS RODADAS A COPA TEM ≠ QUANTAS DATAS ESTÃO NA TABELA. O plano usava d.length (as datas
+       de CAL_2026) como total — e as continentais têm 10 datas para 11 rodadas. A rodada que
+       sobrava era a ÚLTIMA: a FINAL nunca ganhava um dia no plano da sala, então ela não era
+       jogada e a temporada virava sem ela. Quem chama passa o total de verdade (cupTotalRounds);
+       sem ele, cai no comportamento antigo. buildCupSchedule já sabe estender as datas que
+       faltam (+3 jornadas a partir da última conhecida). */
     const agenda={};
-    ativas.forEach(k=>{ const d=CAL_2026[k]; if(d&&d.length) agenda[k]=buildCupSchedule(k, d.length, epoch); });
+    // NENHUMA RODADA DE COPA PODE FICAR FORA DO PLANO. O laço abaixo só caminha pelas jornadas da
+    // LIGA (0..L.length-1): rodada de copa marcada pra uma jornada além disso simplesmente não
+    // entrava no plano — e era assim que a final da Libertadores e a da Sul-Americana (jornada 39
+    // num calendário que acaba na 37) desapareciam da sala. Ancoro cada agenda dentro da
+    // temporada, com uma jornada de folga por competição pra as finais não caírem no mesmo dia.
+    const ultima=L.length-1;
+    ativas.slice().sort().forEach((k,i)=>{ const d=CAL_2026[k]; if(!(d&&d.length)) return;
+      const total=(totais && totais[k]) ? totais[k] : d.length;
+      agenda[k]=ancorarNaTemporada(buildCupSchedule(k, total, epoch), ultima, i); });
     for(let r=0;r<L.length;r++){
       const doDia=[];
       Object.keys(agenda).forEach(k=>{
         const i=agenda[k].indexOf(r);
-        if(i>=0) doDia.push({ r:r, comp:k, idx:i, dia:cupMatchDayByRound(k,i,epoch) });
+        if(i<0) return;
+        // rodada que a folha de datas não cobre (a final das continentais é uma delas) cai no dia
+        // seguinte ao jogo de liga da mesma jornada: sem data o dia sairia null e a ORDENAÇÃO do
+        // plano — que é por data — ficaria indefinida justamente no fim da temporada.
+        const dia=cupMatchDayByRound(k,i,epoch);
+        doDia.push({ r:r, comp:k, idx:i, dia:(dia!=null?dia:leagueMatchDay(r,epoch)+1) });
       });
       doDia.forEach(d=>dias.push(d));
       dias.push({ r:r, comp:'liga', idx:r, dia:leagueMatchDay(r, epoch) });

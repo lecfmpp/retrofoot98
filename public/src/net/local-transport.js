@@ -1583,6 +1583,12 @@ function onlineCompleteSeasonTurnover(){
         cdraw();
         if(typeof openPressRoom==='function') openPressRoom(_sum);
         else { const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division); toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.'); }
+        // O CALENDÁRIO DA SALA TAMBÉM VIRA DE TEMPORADA. O plano de dias era gravado uma vez e
+        // nunca mais: na virada, o ponteiro continuava apontando pra última jornada da temporada
+        // VELHA (r=37) enquanto todo mundo já estava na jornada 0 da nova — o desacordo não se
+        // resolvia sozinho e a sala ficava presa em "acertando a jornada, um instante".
+        // Só o anfitrião reescreve (é ele quem já grava o plano na criação da sala).
+        if(NET.isHost && typeof NET.reseedDayPlan==='function') NET.reseedDayPlan();
         // reabre a fase 'ready' pra próxima rodada (senão os dois ficam presos sem conseguir jogar)
         if(NET.isHost && typeof NET.reopenReady==='function') NET.reopenReady();
       }
@@ -1832,6 +1838,18 @@ function dayRoundWatch(){
   CL._dayDrift=(CL._dayDrift||0)+1;
   console.warn('ponteiro e jornada local discordam há '+Math.round((Date.now()-CL._dayDriftSince)/1000)+
     's: ponteiro='+pt+' eu='+(S.round||0)+' — o item 3 vai tirar essa segunda fonte de verdade');
+  // AUTORREPARO DA VIRADA DE TEMPORADA. Um desacordo em que o ponteiro está numa jornada ADIANTE
+  // e eu estou na jornada 0 só tem uma explicação: a temporada virou e o calendário da sala é o
+  // da temporada passada (ele era gravado uma vez e nunca mais). Aí ninguém carimba nada, porque
+  // o dia apontado pertence a um campeonato que acabou — e a sala fica parada pra sempre em
+  // "acertando a jornada". O anfitrião reescreve o calendário e devolve o ponteiro pro dia 0.
+  // Só o anfitrião, e uma vez por temporada: replantar em laço rebobinaria a sala.
+  if(pt>(S.round||0) && (S.round||0)===0 && typeof NET!=='undefined' && NET.isHost
+     && typeof NET.reseedDayPlan==='function' && CL._replantioTemporada!==(S.season||0)){
+    CL._replantioTemporada=(S.season||0);
+    console.warn('calendário da sala é da temporada passada — replantando (jornada 0)');
+    try{ NET.reseedDayPlan(); }catch(e){ console.warn('replantio:', e&&e.message); }
+  }
 }
 
 function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return; if(!CL.online || !S) return;

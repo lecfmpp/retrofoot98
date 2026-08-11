@@ -386,11 +386,17 @@ async function netRefreshRoom(){
       // detecta a defasagem que a comparação por rodada não vê. Ver onlineReconcileIfBehind.
       stateVersion: g.state_version||0
     });
-    /* O DIA DA SALA, direto do servidor. Vem de graça no select('*') acima — o plano nunca muda
-       depois de gravado, então só o índice e o momento andam. É daqui que as telas passam a sair:
-       enquanto cada cliente deduzia a competição do próprio estado local, dois humanos podiam
-       estar "certos" e ainda assim em competições diferentes. Agora a resposta é uma linha só. */
-    if(g.day_plan && !NET.room.dayPlan) NET.room.dayPlan = g.day_plan;
+    /* O DIA DA SALA, direto do servidor. É daqui que as telas passam a sair: enquanto cada
+       cliente deduzia a competição do próprio estado local, dois humanos podiam estar "certos" e
+       ainda assim em competições diferentes. Agora a resposta é uma linha só.
+       O PLANO PODE TROCAR: na virada de temporada ele é refeito (ver netSeedDayPlan(force)). O
+       cache aqui só era preenchido quando estava VAZIO — então o cliente seguia com o calendário
+       da temporada velha, o ponteiro do servidor apontava pra jornada 37 e o meu S.round já era 0:
+       o desacordo nunca se resolvia e a sala ficava em "acertando a jornada" pra sempre. */
+    if(g.day_plan && (!NET.room.dayPlan || NET.room.dayPlan.length!==g.day_plan.length
+        || JSON.stringify(NET.room.dayPlan[0]||null)!==JSON.stringify(g.day_plan[0]||null))){
+      NET.room.dayPlan = g.day_plan;
+    }
     if(NET.room.dayPlan){
       const e = NET.room.dayPlan[g.day_idx||0] || null;
       NET.room.day = e ? { idx:g.day_idx||0, moment:g.day_moment||'escalando',
@@ -759,15 +765,21 @@ async function netSetReady(ready, clubId){
    banco seria uma terceira cópia das mesmas datas.
    Só o anfitrião grava, e só uma vez: day_plan já preenchido nunca é sobrescrito, senão um
    reinício jogaria a sala de volta pro primeiro dia. */
-async function netSeedDayPlan(){
+async function netSeedDayPlan(force){
   try{
     if(typeof WORLD_RULES==='undefined' || !WORLD_RULES.buildDayPlan) return;
     const { data: g } = await sb.from('games').select('day_plan').eq('id', NET.gameId).single();
-    if(g && g.day_plan) return;                       // sala já tem o seu calendário
+    // `force` é a VIRADA DE TEMPORADA: aí o calendário TEM que ser refeito, e o ponteiro voltar
+    // ao dia 0. Sem isso o plano da temporada velha continuava valendo e o ponteiro ficava preso
+    // na última jornada dela, enquanto os clientes já estavam na jornada 0 da temporada nova.
+    if(g && g.day_plan && !force) return;             // sala já tem o seu calendário
     const tog = (typeof S!=='undefined' && S && S.compToggle) || {};
     const cups = (typeof allCupKeys==='function' ? allCupKeys() : []).filter(k=>tog[k]!==false);
     const epoch = (typeof seasonEpoch==='function') ? seasonEpoch() : null;
-    const plan = WORLD_RULES.buildDayPlan(cups, epoch);
+    // o total de rodadas de cada copa vem do jogo (cupTotalRounds), não do número de datas na
+    // folha — senão a final das continentais fica sem dia no plano (ver buildDayPlan)
+    const totais={}; cups.forEach(k=>{ try{ if(typeof cupTotalRounds==='function') totais[k]=cupTotalRounds(k); }catch(e){} });
+    const plan = WORLD_RULES.buildDayPlan(cups, epoch, totais);
     if(!plan || !plan.length) return;
     await sb.from('games').update({ day_plan: plan, day_idx: 0, day_moment: 'escalando' }).eq('id', NET.gameId);
   }catch(e){ console.warn('seedDayPlan:', e && e.message); }
@@ -1511,6 +1523,7 @@ NET.dayAck = netDayAck;
 NET.dayUnack = netDayUnack;
 NET.dayStatus = netDayStatus;
 NET.refreshDay = netRefreshDay;
+NET.reseedDayPlan = ()=>netSeedDayPlan(true);
 NET.listMyRooms = netListMyRooms;
 NET.deleteRoom = netDeleteRoom;
 NET.sendEmailInvite = netSendEmailInvite;
