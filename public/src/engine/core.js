@@ -3927,7 +3927,15 @@ function playRound(userResult, humanResults){
   advanceAuctions(Rr); // leilão competitivo: CPU dá lances, resolve lotes vencidos e repõe o pool
   rollStory(Rr);
   advanceBgLeagues(humanResults, bgRoundIdx); // ligas dos outros países selecionados rodam junto, no background (humanos hotseat entram aqui) — mesmo índice de rodada do primário
-  if(S.round>=S.sched.length){ endSeason(); }
+  /* A TEMPORADA ESPERA AS FINAIS. A liga acabou — mas se alguma copa ficou devendo rodada, a
+     temporada ganha jornadas extras pra essas rodadas serem jogadas, em vez de virar por cima
+     delas (ver prorrogarPorCopasPendentes em world-rules.js). Não é trava: se o teto de
+     prorrogação estourar, a temporada vira assim mesmo, com aviso — jogo parado é pior que
+     final perdida. */
+  if(S.round>=S.sched.length){
+    const extras=prorrogarSeFaltaCopa();
+    if(!extras) endSeason();
+  }
   S._roundIncidents={};
   save();
 }
@@ -4418,6 +4426,36 @@ function accrueTitlesByClub(prevTables){
     const t=S.titlesByClub[clubId]=S.titlesByClub[clubId]||{}; t[comp]=(t[comp]||0)+1; };
   DIV_ORDER.forEach(d=>{ const rows=prevTables&&prevTables[d]; if(rows&&rows.length) add(rows[0].id, divisionCompKeyFor(d)); });
   if(S.cups) allCupKeys().forEach(k=>add(cupCompetitionChampion(S.cups[k]), k));
+}
+/* quantas rodadas cada copa ainda deve. Uma copa sem campeão ainda deve pelo menos uma rodada;
+   quantas exatamente sai da diferença entre o total de rodadas dela e o número de dias que o
+   calendário reservou — que é justamente onde o erro nasceu (10 datas pra 11 rodadas). */
+function copasPendentes(){
+  if(!S.cups) return [];
+  return allCupKeys().map(key=>{
+    const c=S.cups[key]; if(!c) return null;
+    const b=(c.champion!==undefined)?c:c.bracket;
+    if(b && cupIsFinished(b)) return null;
+    const reservadas=((S.cupCalendar&&S.cupCalendar[key])||[]).length;
+    return { key, faltam: Math.max(1, cupTotalRounds(key)-reservadas) };
+  }).filter(Boolean);
+}
+function prorrogarSeFaltaCopa(){
+  const pend=copasPendentes();
+  if(!pend.length) return 0;
+  const extras=(typeof WORLD_RULES!=='undefined' && WORLD_RULES.prorrogarPorCopasPendentes)
+    ? WORLD_RULES.prorrogarPorCopasPendentes(S, pend, 10) : 0;
+  const lista=pend.map(p=>((COMP_DEFS[p.key]&&COMP_DEFS[p.key].short)||p.key)+' ('+p.faltam+')').join(', ');
+  if(extras){
+    console.log('temporada prorrogada em '+extras+' jornada(s): faltava jogar '+lista);
+    S.roundNews=S.roundNews||[];
+    S.roundNews.push('📅 A temporada foi estendida: ainda falta decidir '+lista+'.');
+  } else {
+    console.warn('temporada encerrada com competição por decidir: '+lista+' (teto de prorrogação atingido)');
+    S.roundNews=S.roundNews||[];
+    S.roundNews.push('⚠️ A temporada terminou com competição por decidir: '+lista+'.');
+  }
+  return extras;
 }
 function endSeason(){
   const tbl=sortedTable();

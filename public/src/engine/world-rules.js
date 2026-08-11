@@ -183,11 +183,58 @@
     dias.sort((a,b)=>a.dia-b.dia);
     return dias;
   }
+  /* ===================== PRORROGAÇÃO: A TEMPORADA ESPERA AS FINAIS =====================
+     A temporada acabava quando a LIGA acabava (S.round >= S.sched.length), sem perguntar se as
+     copas tinham terminado. Quando o calendário de copa não coube dentro da liga — foi o que
+     aconteceu com as folhas de datas da Libertadores e da Sul-Americana, que tinham 10 datas
+     para 11 rodadas —, a final simplesmente não era jogada e a temporada virava por cima dela.
+
+     A resposta aqui NÃO é travar. Travar transforma um erro de dado num jogo que não abre mais
+     (foi o que aconteceu com a barreira do ponteiro de dia, que segurou corretamente e deixou a
+     sala morta). A resposta é CONSERTAR: acrescentar ao fim da temporada tantas jornadas quantas
+     forem as rodadas de copa que ficaram devendo, e registrar cada uma no calendário da copa
+     dona daquela rodada. A temporada segue andando pra frente; só demora um pouco mais.
+
+     Uma jornada acrescentada não tem jogo de liga (a liga acabou de verdade) — ela existe pra
+     dar dia à rodada de copa. Por isso cada uma recebe EXATAMENTE uma competição: sem isso, uma
+     jornada acrescentada poderia ficar vazia e o jogador clicaria "Jogar" sem nada em campo.
+
+     E há um teto. Se depois de `maximo` jornadas extras ainda faltar coisa, a temporada vira
+     assim mesmo: perder uma final é ruim, ficar presa pra sempre é pior. Quem chama avisa.
+
+     pendentes: [{key, faltam}] — quantas rodadas cada copa ainda deve. Devolve quantas jornadas
+     foram acrescentadas (0 = nada a fazer, ou teto atingido). */
+  function prorrogarPorCopasPendentes(S, pendentes, maximo){
+    if(!S || !Array.isArray(S.sched) || !Array.isArray(pendentes) || !pendentes.length) return 0;
+    const teto=(maximo!=null)?maximo:10;
+    const jaExtras=S._jornadasExtras||0;
+    if(jaExtras>=teto) return 0;
+    // uma jornada por rodada devedora, intercalando as competições: se a Libertadores deve 2 e a
+    // Copa do Brasil deve 1, a ordem é Lib, Copa, Lib — nunca duas finais no mesmo dia.
+    const fila=[];
+    const restante=pendentes.map(p=>({ key:p.key, faltam:Math.max(0, p.faltam|0) }));
+    let sobrou=true;
+    while(sobrou){
+      sobrou=false;
+      restante.forEach(p=>{ if(p.faltam>0){ fila.push(p.key); p.faltam--; sobrou=true; } });
+    }
+    if(!fila.length) return 0;
+    const cabe=Math.min(fila.length, teto-jaExtras);
+    S.cupCalendar=S.cupCalendar||{};
+    for(let i=0;i<cabe;i++){
+      const jornada=S.sched.length;
+      S.sched.push([]);                                   // jornada sem jogo de liga
+      const key=fila[i];
+      S.cupCalendar[key]=(S.cupCalendar[key]||[]).concat([jornada]);
+    }
+    S._jornadasExtras=jaExtras+cabe;
+    return cabe;
+  }
   /* os três momentos de cada dia, na ordem em que o jogador os vive */
   const DAY_MOMENTS=['escalando','jogando','classificacao'];
 
   const API={ calendar, seasonStart, calDay, jornadaOfCalDate, leagueMatchDay, cupMatchDayByRound,
-    buildDayPlan, DAY_MOMENTS,
+    buildDayPlan, DAY_MOMENTS, prorrogarPorCopasPendentes,
     cupDrawDay, buildCupSchedule, cupTickMatchesRound, cupRoundIndexAt,
     cupAlreadyResolved, markCupResolved, CUP_FIRST_ROUND };
   root.WORLD_RULES=API;

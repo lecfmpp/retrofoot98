@@ -494,11 +494,58 @@ const ME = (globalThis as any).MATCH_ENGINE;
     dias.sort((a,b)=>a.dia-b.dia);
     return dias;
   }
+  /* ===================== PRORROGAÇÃO: A TEMPORADA ESPERA AS FINAIS =====================
+     A temporada acabava quando a LIGA acabava (S.round >= S.sched.length), sem perguntar se as
+     copas tinham terminado. Quando o calendário de copa não coube dentro da liga — foi o que
+     aconteceu com as folhas de datas da Libertadores e da Sul-Americana, que tinham 10 datas
+     para 11 rodadas —, a final simplesmente não era jogada e a temporada virava por cima dela.
+
+     A resposta aqui NÃO é travar. Travar transforma um erro de dado num jogo que não abre mais
+     (foi o que aconteceu com a barreira do ponteiro de dia, que segurou corretamente e deixou a
+     sala morta). A resposta é CONSERTAR: acrescentar ao fim da temporada tantas jornadas quantas
+     forem as rodadas de copa que ficaram devendo, e registrar cada uma no calendário da copa
+     dona daquela rodada. A temporada segue andando pra frente; só demora um pouco mais.
+
+     Uma jornada acrescentada não tem jogo de liga (a liga acabou de verdade) — ela existe pra
+     dar dia à rodada de copa. Por isso cada uma recebe EXATAMENTE uma competição: sem isso, uma
+     jornada acrescentada poderia ficar vazia e o jogador clicaria "Jogar" sem nada em campo.
+
+     E há um teto. Se depois de `maximo` jornadas extras ainda faltar coisa, a temporada vira
+     assim mesmo: perder uma final é ruim, ficar presa pra sempre é pior. Quem chama avisa.
+
+     pendentes: [{key, faltam}] — quantas rodadas cada copa ainda deve. Devolve quantas jornadas
+     foram acrescentadas (0 = nada a fazer, ou teto atingido). */
+  function prorrogarPorCopasPendentes(S, pendentes, maximo){
+    if(!S || !Array.isArray(S.sched) || !Array.isArray(pendentes) || !pendentes.length) return 0;
+    const teto=(maximo!=null)?maximo:10;
+    const jaExtras=S._jornadasExtras||0;
+    if(jaExtras>=teto) return 0;
+    // uma jornada por rodada devedora, intercalando as competições: se a Libertadores deve 2 e a
+    // Copa do Brasil deve 1, a ordem é Lib, Copa, Lib — nunca duas finais no mesmo dia.
+    const fila=[];
+    const restante=pendentes.map(p=>({ key:p.key, faltam:Math.max(0, p.faltam|0) }));
+    let sobrou=true;
+    while(sobrou){
+      sobrou=false;
+      restante.forEach(p=>{ if(p.faltam>0){ fila.push(p.key); p.faltam--; sobrou=true; } });
+    }
+    if(!fila.length) return 0;
+    const cabe=Math.min(fila.length, teto-jaExtras);
+    S.cupCalendar=S.cupCalendar||{};
+    for(let i=0;i<cabe;i++){
+      const jornada=S.sched.length;
+      S.sched.push([]);                                   // jornada sem jogo de liga
+      const key=fila[i];
+      S.cupCalendar[key]=(S.cupCalendar[key]||[]).concat([jornada]);
+    }
+    S._jornadasExtras=jaExtras+cabe;
+    return cabe;
+  }
   /* os três momentos de cada dia, na ordem em que o jogador os vive */
   const DAY_MOMENTS=['escalando','jogando','classificacao'];
 
   const API={ calendar, seasonStart, calDay, jornadaOfCalDate, leagueMatchDay, cupMatchDayByRound,
-    buildDayPlan, DAY_MOMENTS,
+    buildDayPlan, DAY_MOMENTS, prorrogarPorCopasPendentes,
     cupDrawDay, buildCupSchedule, cupTickMatchesRound, cupRoundIndexAt,
     cupAlreadyResolved, markCupResolved, CUP_FIRST_ROUND };
   root.WORLD_RULES=API;
@@ -1558,7 +1605,34 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   generateIncomingOffers(S, humanClubs);                          // 6c) CPU faz propostas pelos jogadores dos humanos (chega como e-mail no cliente)
   S._roundIncidents = {};
   // 7) fim de temporada? liga terminou -> virada (promoção/rebaixamento + regen + nova temporada)
-  if (Array.isArray(S.sched) && S.round >= S.sched.length) resolveSeasonTurnover(S, new Set(humanClubs));
+  /* A TEMPORADA ESPERA AS FINAIS (mesma regra do cliente, ver prorrogarSeFaltaCopa em core.js).
+     Se a liga acabou mas alguma copa ficou devendo rodada, a temporada ganha jornadas extras em
+     vez de virar por cima da final. Não é trava: estourado o teto, a temporada vira assim mesmo,
+     com aviso — jogo parado é pior que final perdida. Os dias dessas jornadas entram no plano
+     junto com a gravação do estado, senão o ponteiro chegaria ao fim do plano com a temporada
+     ainda correndo (foi exatamente assim que a final da Copa do Brasil ficou sem dia). */
+  if (Array.isArray(S.sched) && S.round >= S.sched.length) {
+    const pendentes = Object.keys(S.cups || {}).map((key) => {
+      const c = S.cups[key]; if (!c) return null;
+      const b = (c.champion !== undefined) ? c : c.bracket;
+      if (b && cupIsFinished(b)) return null;
+      const reservadas = ((S.cupCalendar && S.cupCalendar[key]) || []).length;
+      return { key, faltam: Math.max(1, cupTotalRoundsS(S, key) - reservadas) };
+    }).filter(Boolean) as any[];
+    const antes = S.sched.length;
+    const extras = pendentes.length ? WR.prorrogarPorCopasPendentes(S, pendentes, 10) : 0;
+    if (extras) {
+      console.log('temporada prorrogada em ' + extras + ' jornada(s): faltava ' + pendentes.map((p: any) => p.key).join(', '));
+      for (let i = 0; i < extras; i++) {
+        const jornada = antes + i;
+        const key = Object.keys(S.cupCalendar || {}).find((k) => (S.cupCalendar[k] || []).includes(jornada));
+        if (key) S._diasExtras = (S._diasExtras || []).concat([{ r: jornada, comp: key, idx: (S.cupCalendar[key] || []).indexOf(jornada) }]);
+      }
+    } else {
+      if (pendentes.length) console.warn('temporada encerrada com competição por decidir: ' + pendentes.map((p: any) => p.key).join(', '));
+      resolveSeasonTurnover(S, new Set(humanClubs));
+    }
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -1582,7 +1656,7 @@ Deno.serve(async (req: Request) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { db: { schema: "elifoot_v3" } });
     // só membro da sala (tem assento OU é host) pode disparar
     const { data: seat } = await admin.from("game_seats").select("user_id").eq("game_id", gameId).eq("user_id", user.id).maybeSingle();
-    const { data: gameHost } = await admin.from("games").select("host_id, shared_state, state_version, round, kickoff_lineups").eq("id", gameId).maybeSingle();
+    const { data: gameHost } = await admin.from("games").select("host_id, shared_state, state_version, round, kickoff_lineups, day_plan").eq("id", gameId).maybeSingle();
     if (!gameHost) return json({ error: "sala não encontrada" }, 404);
     if (!seat && gameHost.host_id !== user.id) return json({ error: "não é membro da sala" }, 403);
 
@@ -1658,7 +1732,15 @@ Deno.serve(async (req: Request) => {
     }
     stateObj.round = S.round;
 
-    const { data: upd, error: upErr } = await admin.from("games").update({ shared_state: stateObj, state_version: curVer + 1, round: S.round }).eq("id", gameId).eq("state_version", curVer).select("state_version");
+    // dias das jornadas de prorrogação entram no plano na MESMA escrita do estado: um plano que
+    // acabasse antes da temporada deixaria o ponteiro sem dia pra apontar.
+    const patchJogo: any = { shared_state: stateObj, state_version: curVer + 1, round: S.round };
+    if (S._diasExtras && S._diasExtras.length && gameHost.day_plan && gameHost.day_plan.length) {
+      const ultimo = gameHost.day_plan[gameHost.day_plan.length - 1].dia || 0;
+      patchJogo.day_plan = gameHost.day_plan.concat(S._diasExtras.map((d: any, i: number) => ({ ...d, dia: ultimo + 3 * (i + 1) })));
+      delete S._diasExtras;
+    }
+    const { data: upd, error: upErr } = await admin.from("games").update(patchJogo).eq("id", gameId).eq("state_version", curVer).select("state_version");
     if (upErr) throw upErr;
     if (!upd || !upd.length) { // outro resolvedor ganhou a corrida — devolve o estado atual
       const { data: g2 } = await admin.from("games").select("state_version, round").eq("id", gameId).maybeSingle();
