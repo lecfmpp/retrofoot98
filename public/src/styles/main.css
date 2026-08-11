@@ -1584,11 +1584,16 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-lp-btn:active{border-color:var(--bevel-in)}
 .cl-lp-btn-lg{height:56px;padding:0 24px;font-size:16px;border-width:3px}
 .cl-lp-btn-sq{width:44px;padding:0;font-weight:800;color:var(--navy)}
+/* O CTA É AMARELO. Verde sobre o gramado verde é a mesma família de cor: o botão principal
+   competia com o fundo em vez de saltar dele. O amarelo é a cor de destaque que o jogo já usa
+   (--yellow nos rótulos e no selo do time) e é a que mais contrasta com o feltro; o texto fica
+   preto porque em amarelo nenhuma outra cor lê. */
 .cl-lp-cta{display:inline-flex;align-items:center;justify-content:center;gap:9px;height:44px;padding:0 22px;
-  background:#1a8f3c;color:#fff;border:2px solid;border-color:#4fd07d #0b5f22 #0b5f22 #4fd07d;
-  font:800 14px var(--sans);cursor:pointer;text-decoration:none;box-shadow:0 4px 0 rgba(0,0,0,.18);box-sizing:border-box}
-.cl-lp-cta:active{border-color:#0b5f22 #4fd07d #4fd07d #0b5f22;box-shadow:none;transform:translateY(3px)}
-.cl-lp-cta:disabled{background:#7f9f88;cursor:default;box-shadow:none}
+  background:#ffd23f;color:#111;border:2px solid;border-color:#ffe89a #a8791a #a8791a #ffe89a;
+  font:800 14px var(--sans);cursor:pointer;text-decoration:none;box-shadow:0 4px 0 rgba(0,0,0,.22);box-sizing:border-box}
+.cl-lp-cta:hover{background:#ffdf6b}
+.cl-lp-cta:active{border-color:#a8791a #ffe89a #ffe89a #a8791a;box-shadow:none;transform:translateY(3px)}
+.cl-lp-cta:disabled{background:#d8cfa8;color:#5a5a5a;cursor:default;box-shadow:none}
 .cl-lp-cta-lg{height:56px;padding:0 28px;font-size:17px;border-width:3px;box-shadow:0 6px 0 rgba(0,0,0,.18)}
 .cl-lp-kicker{color:var(--yellow);font:800 12px var(--sans);letter-spacing:1.6px;margin-bottom:8px}
 .cl-lp-h1{font-family:var(--serif);font-style:italic;font-weight:700;font-size:42px;line-height:1.1;
