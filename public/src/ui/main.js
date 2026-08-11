@@ -7875,6 +7875,9 @@ async function onlineAdoptServerRound(RL){
       if(typeof pruneAppliedNetCounters==='function') pruneAppliedNetCounters(); // idem pras contrapropostas
       if(typeof pruneAppliedNetOfferDrops==='function') pruneAppliedNetOfferDrops(); // idem pras baixas de proposta
       if(typeof restoreMyFinances==='function') restoreMyFinances();               // meu log de finanças por cima do que veio do anfitrião
+      // rede de segurança: foto do estado ao fim da jornada (ver autosave.js). Idempotente por
+      // (temporada, jornada), então chamar de mais de um caminho de adoção não duplica nada.
+      if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
       if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
     }
   }catch(e){ console.warn('adotar estado do servidor:', e); }
@@ -7985,6 +7988,8 @@ function _commitLeagueRound(RL, userResult, humanResults, allEvents, _auditPaylo
     // RODADA COLETIVA (solo e hotseat): as copas que entraram em campo nesta jornada mostram a
     // classificação delas ANTES da tabela da liga, mesmo pra quem não disputa a competição —
     // esse vê o painel de dicas + patrocinador. Ver queueRoundCupClassifs.
+    // rede de segurança: foto do estado com a jornada já fechada (ver autosave.js)
+    if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
     queueRoundCupClassifs(_roundJogado, ()=>{
       const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
       if(seats.length) startPostRoundClassifs(seats); // cada humano vê a SUA classificação, em rotação
@@ -8898,6 +8903,9 @@ function clSetTempo(label){
 function clOptions(){ CL.menu=null; CL.optTab='geral';
   if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',gravar:'De 3 em 3 jornadas',som:'Sim',
     subsIntervalo:'Sim',penaltisCPU:'Sim',tempo:TEMPO_DEFAULT};
+  // LIGADO por padrão pra todo mundo, inclusive pra quem já tinha CL.options gravado antes de o
+  // salvamento automático existir — daí o preenchimento aqui e não só no objeto acima.
+  if(!CL.options.autoSave) CL.options.autoSave='Sim';
   renderOptions(); }
 function renderOptions(){ const o=CL.options; const tab=CL.optTab||'geral';
   const avisoTeste = TEMPO_TESTE ? `<div class="cl-opt-teste">🧪 <b>Modo de teste:</b> o ritmo está travado em <b>${escC(TEMPO_TESTE)}</b> no Solo e na Resenha, ignorando esta opção e a escolha do anfitrião.</div>` : '';
@@ -8905,7 +8913,9 @@ function renderOptions(){ const o=CL.options; const tab=CL.optTab||'geral';
   const geral=`<div class="cl-orow"><span>Mostrar chicotadas psicológicas</span>${sel('chicotadas',['Nunca','Dos humanos','De todos'],o.chicotadas)}</div>
     <div class="cl-orow"><span>Ver sorteio da taça</span>${sel('sorteio',['Nunca','Quando houver humanos','Sempre'],o.sorteio)}</div>
     <div class="cl-orow"><span>Gravar o jogo</span>${sel('gravar',['Nunca','De 3 em 3 jornadas','Sempre'],o.gravar)}</div>
-    <div class="cl-orow"><span>Habilitar som</span>${sel('som',['Sim','Não'],o.som)}</div>`;
+    <div class="cl-orow"><span>Habilitar som</span>${sel('som',['Sim','Não'],o.som)}</div>
+    <div class="cl-orow"><span>Salvamento automático<br><i>Guarda as 3 últimas jornadas e o fim de cada temporada</i></span>${sel('autoSave',['Sim','Não'],o.autoSave||'Sim')}</div>
+    <div class="cl-orow"><span>Voltar a um ponto guardado</span>${btn('Ver pontos guardados','clAutoSaveAbrir()',{icon:'⏪'})}</div>`;
   const amHost=typeof NET!=='undefined' && NET.isHost;
   const tempoRow = (CL.online && !amHost)
     ? `<div class="cl-orow"><span>Tempo de jogo</span><span class="cl-oval-locked">🔒 ${escC(tempoLabelFromMult(CL.speedMult))} <i>(definido pelo Anfitrião)</i></span></div>`
@@ -8918,6 +8928,47 @@ function renderOptions(){ const o=CL.options; const tab=CL.optTab||'geral';
     <div class="cl-opanel">${tab==='geral'?geral:jogo}</div>
     <div class="cl-oside">${btn('OK','clOptOk()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
   </div>`,{w:740,bodyClass:'cl-body-gray',min:true})); }
+/* ---- RetroFoot98 > Opções > Voltar a um ponto guardado ----
+   Lista as fotos que o salvamento automático guardou (ver autosave.js). Voltar é destrutivo por
+   natureza — o que veio depois do ponto some —, então a confirmação diz exatamente o que se
+   perde, e na Resenha avisa que a sala inteira volta junto. */
+function clAutoSaveAbrir(){
+  if(typeof autoSaveLista!=='function'){ toastC('Salvamento automático indisponível.'); return; }
+  autoSaveLista().then(fotos=>{
+    const online=!!(CL.online), souAnfitriao=(typeof NET!=='undefined' && NET.isHost);
+    const trava = (online && !souAnfitriao)
+      ? '<div class="cl-opt-teste">🔒 Só o <b>Anfitrião</b> pode voltar a sala a um ponto guardado — o jogo dos dois volta junto.</div>' : '';
+    const aviso = (online && souAnfitriao)
+      ? '<div class="cl-opt-teste">⚠️ Voltar a sala afeta <b>os dois jogadores</b>: tudo que aconteceu depois do ponto escolhido é descartado.</div>' : '';
+    const linhas = fotos.length ? fotos.map(f=>{
+      const r=autoSaveRotulo(f);
+      const acao=(online && !souAnfitriao) ? '' : btn('Voltar aqui','clAutoSaveVoltar('+f.id+')',{icon:'⏪'});
+      return `<div class="cl-orow"><span>${r.fixa?'📌 ':''}${escC(r.que)}<br><i>guardado em ${escC(r.quando)}</i></span>${acao}</div>`;
+    }).join('') : '<div class="cl-orow"><span>Nenhum ponto guardado ainda. A primeira foto sai ao fim da próxima jornada.</span></div>';
+    overlayC(dlg('Pontos guardados', `<div class="cl-opt"><div class="cl-opanel">${trava}${aviso}${linhas}</div>
+      <div class="cl-oside">${btn('Fechar','clOptions()',{icon:'✖',cls:'cl-btn-cancel'})}</div></div>`,
+      {w:700,bodyClass:'cl-body-gray',min:true}));
+  });
+}
+function clAutoSaveVoltar(id){
+  autoSaveLista().then(fotos=>{
+    const f=fotos.find(x=>x.id===id); if(!f){ toastC('Ponto não encontrado.'); return; }
+    const r=autoSaveRotulo(f);
+    const extra=CL.online?' O jogo dos <b>dois jogadores</b> da sala volta junto.':'';
+    overlayC(dlg('Voltar para este ponto?', `<div class="cl-opt"><div class="cl-opanel">
+      <div class="cl-orow"><span>Você vai voltar para <b>${escC(r.que)}</b>, guardado em ${escC(r.quando)}.<br>
+      Tudo que aconteceu depois disso é descartado e não dá para desfazer.${extra}</span></div></div>
+      <div class="cl-oside">${btn('Voltar aqui','clAutoSaveVoltarOk('+id+')',{icon:'⏪',cls:'cl-btn-ok'})}${btn('Cancelar','clAutoSaveAbrir()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
+    </div>`,{w:640,bodyClass:'cl-body-gray',min:true}));
+  });
+}
+function clAutoSaveVoltarOk(id){
+  autoSaveRestaurar(id).then(res=>{
+    if(!res.ok){ toastC('Não deu para voltar: '+(res.erro||'erro desconhecido')); return; }
+    clCloseOverlay(); CL.screen='main'; CL.tab='jogo'; cdraw();
+    toastC('⏪ Voltou para a temporada '+(S.season||'?')+', jornada '+((S.round||0)+1)+'.');
+  });
+}
 function clOptOk(){ saveV3(); clCloseOverlay(); toastC('Opções guardadas.'); }
 
 /* ---- Treinador > Perfil: preferências de verdade, não só cosmética —

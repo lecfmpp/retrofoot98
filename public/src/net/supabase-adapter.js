@@ -1541,6 +1541,25 @@ NET.dayAck = netDayAck;
 NET.dayUnack = netDayUnack;
 NET.dayStatus = netDayStatus;
 NET.refreshDay = netRefreshDay;
+/* VOLTAR O PONTEIRO DE DIA JUNTO COM O ESTADO (restauração do auto-save). Sem isto a sala
+   ficaria apontando pra um dia que o estado restaurado ainda não viveu — o mesmo descompasso que
+   travou a ZAF6T em "acertando a jornada". Escolhe o PRIMEIRO dia do plano cuja jornada é a
+   restaurada; se o plano não tiver essa jornada (restauração pra uma temporada anterior), volta
+   ao dia 0. Só o anfitrião escreve. */
+async function netRewindDayPointer(round){
+  if(!sb || !NET.gameId || !NET.isHost) return;
+  try{
+    const { data:g } = await sb.from('games').select('day_plan').eq('id', NET.gameId).maybeSingle();
+    const plano=(g && g.day_plan) || [];
+    let idx=plano.findIndex(d=>d && d.r===round);
+    if(idx<0) idx=0;
+    await sb.from('games').update({ day_idx:idx, day_moment:'escalando', round:round }).eq('id', NET.gameId);
+    if(NET.room) NET.room.dayIdx=idx;
+    await sb.from('game_seats').update({ day_ack:null }).eq('game_id', NET.gameId);   // ninguém carimbou este dia ainda
+    console.log('ponteiro de dia rebobinado pro dia '+idx+' (jornada '+round+')');
+  }catch(e){ console.warn('rewindDayPointer:', e&&e.message); }
+}
+NET.rewindDayPointer = netRewindDayPointer;
 NET.reseedDayPlan = ()=>netSeedDayPlan(true);
 NET.listMyRooms = netListMyRooms;
 NET.deleteRoom = netDeleteRoom;

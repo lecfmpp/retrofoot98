@@ -475,6 +475,9 @@ function onlineReconcileIfBehind(room){
       if(typeof pruneAppliedNetCounters==='function') pruneAppliedNetCounters(); // idem pras contrapropostas
       if(typeof pruneAppliedNetOfferDrops==='function') pruneAppliedNetOfferDrops(); // idem pras baixas de proposta
       if(typeof restoreMyFinances==='function') restoreMyFinances();               // finanças são individuais (ver restoreMyFinances)
+      // rede de segurança: foto do estado ao fim da jornada (ver autosave.js). Idempotente por
+      // (temporada, jornada), então chamar de mais de um caminho de adoção não duplica nada.
+      if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
       if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
       if(typeof applyOwnPendingFinances==='function') applyOwnPendingFinances(); // F3.3: finanças da MINHA rodada (convidado)
       if(typeof applyMyCupPrizes==='function') applyMyCupPrizes(); // cota de fase da Copa do Brasil resolvida pelo servidor
@@ -1304,6 +1307,9 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
           // junto. Restaura os MEUS por cima — sem isto, toda vez que o convidado entrava na sala
           // ele voltava a ver as transações do anfitrião e as próprias sumiam (ver restoreMyFinances).
           if(typeof restoreMyFinances==='function') restoreMyFinances();
+          // rede de segurança: foto do estado ao fim da jornada (ver autosave.js). Idempotente por
+          // (temporada, jornada), então chamar de mais de um caminho de adoção não duplica nada.
+          if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
           // REPARO DO PASSADO: salas que já viraram de temporada ANTES de a Resenha aprender a
           // registrar título carregam o _prevSeason da última virada, e é dele que a taça sai.
           // Carimbado por temporada, então quem já está em dia não ganha nada duas vezes.
@@ -1605,6 +1611,9 @@ function onlineCompleteSeasonTurnover(){
         S.xi = resolveClubXI(CL.clubId);
         if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
         if(typeof restoreMyFinances==='function') restoreMyFinances(); // ANTES da premiação: o carimbo de "já recebi" é meu, não do anfitrião
+        // rede de segurança: foto do estado ao fim da jornada (ver autosave.js). Idempotente por
+        // (temporada, jornada), então chamar de mais de um caminho de adoção não duplica nada.
+        if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
         if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
         CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
         // credita a premiação ANTES do cdraw: se o desenho falhar, o dinheiro não se perde.
