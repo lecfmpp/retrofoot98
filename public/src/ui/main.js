@@ -2784,7 +2784,7 @@ function clSeatPlay(){
   const m=buildLiveMatchObject(fx.home,fx.away,fx.seed,{user:true, div:fx.div});
   const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], humanSeat:{seat:c.seat,fx} };
   RL.maxMin=Math.max(94, m.events.length?m.events[m.events.length-1].min:90);
-  CL.live=RL; CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
+  CL.live=RL; camKickoffLine(RL); CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
 }
 function finishHotseatMatch(){
   const RL=CL.live, m=RL.matches[0], H=CL._hotseat;
@@ -5357,7 +5357,7 @@ function startCupRound(key, stage, pending){
     sel:(matches.length===1?0:null), subOpen:false, matches,
     cup: pending ? pending : {key, stage, spectate:true} };
   RL.maxMin=Math.max(94,...matches.map(m=>m.events.length?m.events[m.events.length-1].min:90));
-  CL.live=RL; CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
+  CL.live=RL; camKickoffLine(RL); CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
   return true;
 }
 function startCupSpectate(cand){ startCupRound(cand.key, cand.stage, null); }
@@ -5598,7 +5598,7 @@ function startLiveRound(){
     const lagMs=nowMs()-NET.room.kickoffAt;
     if(lagMs>0 && lagMs<=8000) RL.minute=Math.min(Math.floor(lagMs/msPerMin),44);
   }
-  CL.live=RL; CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
+  CL.live=RL; camKickoffLine(RL); CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
 }
 /* ---- PARTIDA DE COPA AO VIVO — mesma maquinaria de startLiveRound/liveTick/scLive/
    liveModalHTML (pênalti, lesão, substituições), só que pra UMA partida avulsa, fora do
@@ -5623,7 +5623,7 @@ function startCupLiveMatch(pending){
   const m=buildLiveMatchObject(pending.h,pending.a,seed,{user:true,div:pending.key,cupKey:pending.key});
   const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], cup:pending };
   RL.maxMin=Math.max(94, m.events.length?m.events[m.events.length-1].min:90);
-  CL.live=RL; CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
+  CL.live=RL; camKickoffLine(RL); CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
 }
 /* ===== FASE 3B: transmissão ao vivo da partida autoritativa =====
    O cliente que RODA a sessão (mandante no humano×humano; qualquer humano vs CPU) emite snapshots
@@ -6560,11 +6560,14 @@ function camTempoMs(){
 function camSpeedOk(){ return camTempoMs() >= (TEMPO_MS['Ultrassônico']-1); }
 /* preferência do usuário (guardada) E velocidade compatível. A preferência NÃO é apagada quando
    a velocidade bloqueia — quem jogava de camarote volta a ele sozinho ao baixar o ritmo. */
-/* O estado vive na PRÓPRIA rodada (RL.camarote), não em CL nem no localStorage: o Camarote não é
-   uma preferência que gruda — toda rodada começa na visão de tabela, e quem quiser assistir só ao
-   próprio jogo liga no interruptor de novo. Como cada rodada monta um RL novo, o padrão "desligado"
-   sai de graça, sem precisar zerar nada em startLiveRound/startCupLiveMatch/clSeatPlay. */
-function camOn(){ const RL=CL.live; return !!(RL && RL.camarote) && camSpeedOk(); }
+/* O CAMAROTE É A VISÃO PADRÃO. A grade de placares de todas as divisões é um painel de controle:
+   serve pra acompanhar a rodada inteira, mas não conta a SUA partida — e é ela que o treinador
+   veio ver. Agora a rodada abre no Camarote (relógio, narração, pressão e estatística do seu
+   jogo) e o interruptor leva pra grade quando ele quiser ver o resto.
+   O estado continua vivendo na PRÓPRIA rodada (RL.camarote), não em CL nem no localStorage: é
+   uma escolha daquela rodada, não uma preferência que gruda. `undefined` = padrão (ligado);
+   quem desliga grava `false` e volta pra grade só naquela rodada. */
+function camOn(){ const RL=CL.live; return !!(RL && RL.camarote!==false) && camSpeedOk(); }
 function camMatch(){ const RL=CL.live; return RL ? (RL.matches||[]).find(m=>m.user) : null; }
 function camToggle(){ if(!camSpeedOk()){ toastC(camSpeedHint()); return; }   // trancado pela velocidade
   const RL=CL.live; if(!RL) return;
@@ -6659,6 +6662,11 @@ function camPush(m,kind,extra,mn){
    O compasso é o MINUTO DA PARTIDA (camMinuteNow), não o da rodada: num stream o relógio
    dela anda em ritmo próprio, e depois do apito final dela a rodada ainda pode correr um
    bom tempo esperando as transmissões dos outros humanos fecharem. */
+/* a primeira fala entra com o relógio ainda em zero — antes ela era escrita no primeiro tique,
+   quando o cronômetro já tinha andado. Bola rolando é 0'. */
+function camKickoffLine(RL){
+  try{ const um=(RL&&RL.matches||[]).find(m=>m.user); if(um) camMinuteTick(um,RL); }catch(e){}
+}
 function camMinuteTick(m,RL){
   camEnsure(m);
   const over=camMatchOver(m);
@@ -6677,7 +6685,10 @@ function camMinuteTick(m,RL){
     m._camTickedMin=mn;
   }
   const mark=(k,fn)=>{ if(!m._camMarks[k]){ m._camMarks[k]=1; fn(); } };
-  if(mn>=1)  mark('ini',()=>camPush(m,'inicio',null,mn));
+  // O JOGO COMEÇA NO MINUTO ZERO. O apito inicial saía carimbado com o minuto em que o relógio
+  // já estava (1' ou 2', dependendo de quando a tela apareceu) — a primeira linha da narração
+  // nascia atrasada em relação ao lance que ela anuncia, que é a bola rolando. Bola rolando é 0'.
+  if(mn>=0)  mark('ini',()=>camPush(m,'inicio',null,0));
   if(mn>=45) mark('ht', ()=>camPush(m,'intervalo',null,mn));
   if(mn>=46) mark('h2', ()=>camPush(m,'recomeco',null,mn));
   if(mn>=91 && RL.extraStartMinute==null) mark('acr',()=>camPush(m,'acrescimos',null,mn));
@@ -9335,24 +9346,32 @@ function clJobOffers(){ CL.menu=null;
     <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{w:600,bodyClass:'cl-body-gray',min:true}));
     return;
   }
+  // A CAIXA DE OFERTAS TAMBÉM RECEBE CONVITE DE FORA DO PAÍS. Ela lia o clube com clubOf(), que
+  // só conhece o universo do jogador — e sondagem do exterior (a única que existe pra quem está
+  // na Série A, ver maybeForeignJobOffer) vem de uma liga de FUNDO, que mora em S.bgLeagues.
+  // Resultado: clubOf devolvia undefined, o `.short` explodia e a tela inteira não abria — a
+  // oferta existia em S.pendingJobOffers e não havia como vê-la. Agora resolve pelo mesmo
+  // caminho do convite (jobOfferClub, que já olhava as duas fontes), e cada dado que só existe
+  // pro clube local (elenco, posição na tabela, caixa) aparece como "—" quando não se aplica.
   const rows=offers.map((o,i)=>{
-    const c=clubOf(o.clubId);
-    const sq = squad(o.clubId);
-    const avgMoral = sq ? sq.reduce((s,p)=>s+(p.moral||70),0) / (sq.length||1) : 0;
-    const tablePos = sortedTable().findIndex(t=>t.id===o.clubId)+1;
+    const c=jobOfferClub(o);
+    const sq = (typeof squad==='function') ? squad(o.clubId) : null;
+    const avgMoral = (sq && sq.length) ? sq.reduce((s,p)=>s+(p.moral||70),0)/sq.length : null;
+    const pos = (typeof sortedTable==='function') ? sortedTable().findIndex(t=>t.id===o.clubId)+1 : 0;
+    const posTxt = pos>0 ? pos+'º lugar' : (o.foreign?escC(o.country||'exterior'):'—');
     return `<div class="cl-offer-item">
       <div class="cl-offer-header" style="${clubStripe(c)};padding:8px;border-radius:4px;color:white;margin-bottom:6px">
-        <span style="font-weight:bold">${escC(c.short)}</span> — <span>${DIV_LABEL_FULL[o.division]}</span>
+        <span style="font-weight:bold">${escC(c.short||c.name||'?')}</span> — <span>${escC(jobOfferDivLabel(o))}</span>
       </div>
       <div class="cl-offer-details">
-        <div><span>Posição:</span><b>${tablePos}º lugar</b></div>
-        <div><span>Salário:</span><b>${fmt(o.salary)}/sem</b></div>
-        <div><span>Moral média do time:</span><b>${Math.round(avgMoral)}%</b></div>
-        <div><span>Caixa do clube:</span><b>${fmt(c.cash||0)}</b></div>
+        <div><span>Posição:</span><b>${posTxt}</b></div>
+        <div><span>Salário:</span><b>${fmt(o.salary||0)}/sem</b></div>
+        <div><span>Moral média do time:</span><b>${avgMoral!=null?Math.round(avgMoral)+'%':'—'}</b></div>
+        <div><span>Caixa do clube:</span><b>${c.cash!=null?fmt(c.cash):'—'}</b></div>
       </div>
       <div class="cl-offer-actions">
         ${btn('Aceitar','clAcceptPendingOffer('+i+')',{icon:'✔',cls:'cl-btn-ok'})}
-        ${btn('Ver elenco','clViewOfferSquad('+i+')',{icon:'👥',cls:'cl-btn-info'})}
+        ${(sq&&sq.length)?btn('Ver elenco','clViewOfferSquad('+i+')',{icon:'👥',cls:'cl-btn-info'}):''}
         ${btn('Recusar','clDeclinePendingOffer('+i+')',{icon:'✖',cls:'cl-btn-cancel'})}
       </div>
     </div>`; }).join('');
