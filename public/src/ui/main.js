@@ -7890,6 +7890,9 @@ async function onlineAdoptServerRound(RL){
     // lido de S._prevSeason. Credita meu caixa ANTES do cdraw (não perde o dinheiro se o desenho
     // falhar); o servidor não credita prêmio, igual às finanças por-humano.
     const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null; if(typeof accrueCareerStats==='function') accrueCareerStats();
+    // registra os TÍTULOS da temporada que fechou — na Resenha o endSeason() do cliente
+    // (que sempre fez isso) nunca roda: quem vira a temporada é o servidor.
+    if(typeof registerPrevSeasonTitles==='function') registerPrevSeasonTitles();
     queueSeasonCupDrawsIfNew(); // virada: enfileira o sorteio da copa NOVA (mostra na 1ª rodada da temporada nova)
     hideSyncLoading();
     cdraw();

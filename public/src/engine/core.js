@@ -3393,7 +3393,12 @@ function checkManagerJobEvent(){
 /* trainingByClub entra aqui pelo mesmo motivo do playerGrowth: é um mapa por clubId que vive no S
    COMPARTILHADO. Na Resenha o Object.assign do adopt troca o mapa INTEIRO pelo do anfitrião — que
    não tem a chave do convidado — e o convidado perdia a lista de quem pôs em treino a cada rodada. */
-const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub','criseVista'];
+/* history/titlesByClub/financeHistory entram aqui pelo mesmo motivo do coachHistory: são o
+   registro do MEU treinador (Historial do clube, Sala de Troféus, resumo financeiro por
+   temporada). Na Resenha o S vem do save do ANFITRIÃO, e sem esta lista o convidado herdaria a
+   estante de troféus do host — ou, mais provável, uma vazia. _titlesRegisteredSeason é o carimbo
+   de "já registrei esta virada" e precisa sobreviver ao mesmo Object.assign. */
+const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub','criseVista','history','titlesByClub','financeHistory','_titlesRegisteredSeason'];
 /* ---- EVOLUÇÃO DO ELENCO (o que o treino de fato fez) ----
    O ícone 🔺 dizia "está em treino", mas não dizia se rendeu alguma coisa. Aqui fica o histórico
    de FORÇA do meu elenco: uma entrada por MUDANÇA (não por rodada), então uma temporada inteira
@@ -4271,6 +4276,87 @@ function applyMyPrevSeasonPrizes(){
   }
   return sum;
 }
+/* ================= TÍTULOS DA TEMPORADA QUE FECHOU (RESENHA) =================
+   Na Resenha quem vira a temporada é o SERVIDOR (resolveSeasonTurnover), e o endSeason() do
+   cliente — que é onde o jogo SEMPRE registrou título — nunca roda. Resultado: no multijogador
+   nenhum título jamais foi registrado. O campeão levantava a taça na tela da classificação e
+   depois não achava nada: Sala de Troféus vazia, Historial do clube vazio, ranking de treinadores
+   sem taça. Era o "o troféu do brasileirão não foi atribuído a mim".
+
+   Esta função é o endSeason() que faltava, montado a partir do único material que sobrevive à
+   virada: S._prevSeason (tabelas finais das 4 divisões + artilharia + chaves das copas, gravado
+   pelo servidor ANTES de zerar tudo). Roda em CADA cliente, sobre o SEU clube — títulos são de
+   treinador, não da sala.
+
+   Ela também repara o passado: quem já virou de temporada antes desta correção ainda tem o
+   _prevSeason da última virada no estado, então o título perdido é registrado assim que o jogo
+   abrir. Uma vez por temporada, pelo carimbo _titlesRegisteredSeason.
+
+   O que NÃO dá pra recuperar: o placar da decisão da LIGA (S.results é zerado na virada) e o
+   resumo financeiro da temporada (S.seasonTotals idem). O título entra sem esses cartões — a
+   Sala de Troféus já trata a ausência deles, porque títulos antigos também não os tinham. */
+function prevSeasonCupBrackets(){
+  const pv=(S&&S._prevSeason)||{};
+  const out={};
+  if(pv.cups) Object.keys(pv.cups).forEach(k=>{ if(pv.cups[k]) out[k]=pv.cups[k]; });
+  if(!out.copaBrasil && pv.copaBrasil) out.copaBrasil=pv.copaBrasil;   // snapshots antigos só tinham a Copa do Brasil
+  return out;
+}
+function registerPrevSeasonTitles(){
+  const pv=S&&S._prevSeason;
+  if(!pv || !pv.tables || !CL || !CL.clubId) return null;
+  const temporada=pv.season||0;
+  if(S._titlesRegisteredSeason===temporada) return null;      // esta virada já foi registrada
+  const order=(typeof DIV_ORDER!=='undefined'&&DIV_ORDER.length)?DIV_ORDER:['A','B','C','D'];
+  let myDiv=null, myPos=0, myTable=null;
+  order.forEach(d=>{ const rows=pv.tables[d]; if(!rows||!rows.length) return;
+    const i=rows.findIndex(r=>r.id===CL.clubId); if(i>=0){ myDiv=d; myPos=i+1; myTable=rows; } });
+  if(!myDiv) return null;                                     // não achei meu clube: não invento histórico
+  S._titlesRegisteredSeason=temporada;
+  const brackets=prevSeasonCupBrackets();
+  const shortOf=id=>{ const c=clubOf(id); return (c&&c.short)||id; };
+  const campeoesCopa={};                                      // chave da copa -> clubId campeão
+  Object.keys(brackets).forEach(k=>{ const ch=cupCompetitionChampion(brackets[k]); if(ch) campeoesCopa[k]=ch; });
+  const cups={}, myCups={};
+  Object.keys(brackets).forEach(k=>{
+    cups[k]=campeoesCopa[k]?shortOf(campeoesCopa[k]):null;
+    myCups[k]=cupBracketResultForClub(brackets[k], CL.clubId);
+  });
+  const arty=Object.entries(pv.scorers||{}).sort((a,b)=>b[1]-a[1])[0];
+  const relegN=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[myDiv])||0;
+  S.history=S.history||[];
+  S.history.push({ season:temporada, division:myDiv, clubId:CL.clubId,
+    champ:shortOf(myTable[0].id),
+    top3:myTable.slice(0,3).map(t=>shortOf(t.id)),
+    relegated:relegN?myTable.slice(-relegN).map(t=>shortOf(t.id)):[],
+    artilheiro:(arty&&arty[1]>0)?(arty[0]+' ('+arty[1]+')'):'—',
+    myPos, myClubShort:shortOf(CL.clubId), cups, myCups, qualifiedFor:[] });
+  // taças do MEU treinador — o que a Sala de Troféus lê
+  S.coachHistory=S.coachHistory||[];
+  const meuShort=shortOf(CL.clubId);
+  if(myTable[0].id===CL.clubId){
+    const divLbl=(typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[myDiv])||('Série '+myDiv);
+    S.coachHistory.push({ season:temporada, type:'campeao', comp:divisionCompKeyFor(myDiv), kind:'liga',
+      label:divLbl, uni:ACTIVE_UNI, div:myDiv, clubId:CL.clubId, clubShort:meuShort,
+      pts:(myTable[0].Pts||0), final:null,
+      text:'Campeão da '+divLbl+' pelo '+meuShort.toUpperCase() });
+  }
+  Object.keys(brackets).forEach(k=>{
+    if(campeoesCopa[k]!==CL.clubId) return;
+    const lbl=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[k]&&COMP_DEFS[k].short)||k;
+    S.coachHistory.push({ season:temporada, type:'campeao', comp:k, kind:'copa',
+      label:lbl, uni:ACTIVE_UNI, clubId:CL.clubId, clubShort:meuShort,
+      final:cupFinalFromBracket(brackets[k], CL.clubId),
+      text:'Campeão da '+lbl+' pelo '+meuShort.toUpperCase() });
+  });
+  // títulos por clube (aba Resenha da Sala de Troféus): TODO MUNDO, não só eu
+  S.titlesByClub=S.titlesByClub||{};
+  const add=(clubId,comp)=>{ if(!clubId||!comp) return;
+    const t=S.titlesByClub[clubId]=S.titlesByClub[clubId]||{}; t[comp]=(t[comp]||0)+1; };
+  order.forEach(d=>{ const rows=pv.tables[d]; if(rows&&rows.length) add(rows[0].id, divisionCompKeyFor(d)); });
+  Object.keys(campeoesCopa).forEach(k=>add(campeoesCopa[k], k));
+  return { season:temporada, campeaoLiga:myTable[0].id===CL.clubId, copas:Object.keys(campeoesCopa).filter(k=>campeoesCopa[k]===CL.clubId) };
+}
 /* CAMINHO LOCAL (solo, ou fallback do anfitrião quando resolve-round falha — ver
    onlineHostCloseRound/_commitLeagueRound): monta o MESMO snapshot que o servidor grava em
    S._prevSeason (resolveSeasonTurnover, resolve-round/index.ts), com as tabelas finais AINDA
@@ -4300,14 +4386,17 @@ function divisionTitleCompKey(){ return divisionCompKeyFor(S.division); }
 /* Final da copa: o chaveamento guarda uma entrada de history por fase, e a ÚLTIMA é a decisão.
    hg/ag são o tempo normal (é o que o resto da UI mostra); pênaltis vêm à parte, como no
    Calendário. Devolve null se a copa não chegou ao fim — aí o card sai sem placar. */
-function cupTitleFinal(key){
-  const c=S.cups&&S.cups[key]; if(!c) return null;
-  const b=(c.champion!==undefined)?c:c.bracket; if(!b||!b.history||!b.history.length) return null;
+function cupFinalFromBracket(b, clubId){
+  if(!b||!b.history||!b.history.length) return null;
   const last=b.history[b.history.length-1];
-  const tie=(last.ties||[]).find(t=>t.h===S.clubId||t.a===S.clubId);
+  const tie=(last.ties||[]).find(t=>t.h===clubId||t.a===clubId);
   if(!tie || tie.hg==null) return null;
   return { home:clubOf(tie.h).short, away:clubOf(tie.a).short, hg:tie.hg, ag:tie.ag,
            pens: tie.pens ? (tie.pens.h+' × '+tie.pens.a) : null };
+}
+function cupTitleFinal(key){
+  const c=S.cups&&S.cups[key]; if(!c) return null;
+  return cupFinalFromBracket((c.champion!==undefined)?c:c.bracket, S.clubId);
 }
 /* Liga não tem final: a "decisão do título" é o último jogo do campeão na temporada. */
 function leagueTitleDecider(){

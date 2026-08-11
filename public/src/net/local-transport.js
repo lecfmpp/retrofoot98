@@ -473,6 +473,9 @@ function onlineReconcileIfBehind(room){
         // premiação do PRÓPRIO clube (convidado): cada humano vê o SEU resumo, lido de S._prevSeason.
         // Credita ANTES do cdraw pra não perder o dinheiro se o desenho falhar.
         const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null; if(typeof accrueCareerStats==='function') accrueCareerStats();
+        // registra os TÍTULOS da temporada que fechou — na Resenha o endSeason() do cliente
+        // (que sempre fez isso) nunca roda: quem vira a temporada é o servidor.
+        if(typeof registerPrevSeasonTitles==='function') registerPrevSeasonTitles();
         if(typeof hideSyncLoading==='function') hideSyncLoading();
         cdraw();
         if(typeof openPressRoom==='function') openPressRoom(_sum);
@@ -1282,6 +1285,13 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
           // junto. Restaura os MEUS por cima — sem isto, toda vez que o convidado entrava na sala
           // ele voltava a ver as transações do anfitrião e as próprias sumiam (ver restoreMyFinances).
           if(typeof restoreMyFinances==='function') restoreMyFinances();
+          // REPARO DO PASSADO: salas que já viraram de temporada ANTES de a Resenha aprender a
+          // registrar título carregam o _prevSeason da última virada, e é dele que a taça sai.
+          // Carimbado por temporada, então quem já está em dia não ganha nada duas vezes.
+          if(typeof registerPrevSeasonTitles==='function'){
+            const _t=registerPrevSeasonTitles();
+            if(_t) console.log('títulos da temporada '+_t.season+' registrados agora (a virada aconteceu antes desta correção)');
+          }
           console.log('✓ Jogo carregado (rodada', savedState.round, ') — clube:', CL.clubId); }
         // SEMENTE DO ESTADO COMPARTILHADO: sala nova, mundo recém-montado e NADA salvo ainda.
         // Sem isto, a 1ª rodada chamava resolve-round com games.shared_state vazio, a função devolvia
@@ -1580,6 +1590,9 @@ function onlineCompleteSeasonTurnover(){
         CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
         // credita a premiação ANTES do cdraw: se o desenho falhar, o dinheiro não se perde.
         const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null; if(typeof accrueCareerStats==='function') accrueCareerStats();
+        // registra os TÍTULOS da temporada que fechou — na Resenha o endSeason() do cliente
+        // (que sempre fez isso) nunca roda: quem vira a temporada é o servidor.
+        if(typeof registerPrevSeasonTitles==='function') registerPrevSeasonTitles();
         cdraw();
         if(typeof openPressRoom==='function') openPressRoom(_sum);
         else { const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division); toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.'); }
