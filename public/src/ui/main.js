@@ -9690,12 +9690,30 @@ function clCompList(){ CL.menu=null;
 /* palco de proporção fixa do chaveamento (o protótipo usa 1080×520): tudo é posicionado em
    coordenadas absolutas aqui dentro e o palco inteiro é escalado por transform:scale() pra caber
    no painel (ver cupFitStage) — é assim que a chave cabe na viewport sem rolagem. */
-const CUP_STAGE_W=1080, CUP_STAGE_H=520;
+/* A ALTURA DO PALCO SEGUE O PAINEL. A largura é fixa (todas as colunas da chave são posicionadas
+   nela), mas a altura era fixa TAMBÉM — e como o painel muda de proporção com a janela, a chave
+   nunca casava com ele: escalada por transform:scale() uniforme, ela batia numa dimensão e
+   sobrava na outra. Numa tela larga sobrava faixa cinza em cima e embaixo; numa baixa, sobrava
+   dos lados. Era esse o "muito espaço vazio ao redor da tabela".
+   Agora a altura do palco é calculada a partir da proporção real do painel (medida em
+   cupFitStage e guardada em CL._cupHostBox), então a escala cabe nas DUAS dimensões ao mesmo
+   tempo e a chave ocupa a janela inteira. As caixas não esticam: elas se ESPALHAM — o eixo
+   vertical e a distância entre as chaves crescem junto com a altura. */
+const CUP_STAGE_W=1080, CUP_STAGE_H_PADRAO=520;
+const CUP_STAGE_H_MIN=430, CUP_STAGE_H_MAX=820;
+function cupStageH(){
+  const box=(typeof CL!=='undefined') ? CL._cupHostBox : null;
+  if(!box || !box.w || !box.h) return CUP_STAGE_H_PADRAO;
+  const ideal=Math.round(CUP_STAGE_W*(box.h/box.w));
+  return Math.max(CUP_STAGE_H_MIN, Math.min(CUP_STAGE_H_MAX, ideal));
+}
+/* eixo vertical da chave e distância entre as caixas da coluna mais externa — proporcionais à
+   altura do palco (no desenho original: 267/520 e (364/3)/520). */
+function cupMidY(){ return cupStageH()/2; }
+function cupLeafGap(){ return cupStageH()*0.70/3; }
 const CUP_BOX_W=132, CUP_BOX_H=48, CUP_FINAL_W=128, CUP_FINAL_H=54;
 const CUP_COL_X=[4,168,332];                      // oitavas · quartas · semi (lado ESQUERDO; o direito é o espelho)
 const CUP_FINAL_X=(CUP_STAGE_W-CUP_FINAL_W)/2;    // 476 — a final no eixo central
-const CUP_MID_Y=267;                              // eixo vertical da chave (final + troféu)
-const CUP_LEAF_GAP=364/3;                         // distância entre centros das caixas da coluna mais externa
 
 /* confrontos de uma rodada: já jogada (history) ou a pendente (b.ties). null = rodada futura,
    ainda nem sorteada — vira caixa "a definir" na chave. */
@@ -9747,8 +9765,8 @@ function cupSideLevels(root, depth){
   return out.slice(0, depth); // out[0] = nível 1 ... out[depth-1] = nível depth
 }
 /* geometria: centro vertical do nó `i` do nível L (1 = mais interno) num lado com `depth` níveis */
-function cupLevelGap(L, depth){ return CUP_LEAF_GAP*Math.pow(2, depth-L); }
-function cupNodeY(L, i, depth){ const n=Math.pow(2,L-1); return CUP_MID_Y + (i-(n-1)/2)*cupLevelGap(L,depth); }
+function cupLevelGap(L, depth){ return cupLeafGap()*Math.pow(2, depth-L); }
+function cupNodeY(L, i, depth){ const n=Math.pow(2,L-1); return cupMidY() + (i-(n-1)/2)*cupLevelGap(L,depth); }
 function cupNodeX(L, depth, side){ const x=CUP_COL_X[3-L]!=null?CUP_COL_X[3-L]:CUP_COL_X[0];
   return side==='L' ? x : (CUP_STAGE_W - x - CUP_BOX_W); }
 
@@ -9882,11 +9900,11 @@ function cupBracketStageHTML(c, key, opts){
       const team=inner.tie&&inner.tie.winner!=null?inner.tie.winner:null;
       const gold=team!=null&&team===goldTeam, th=gold?3:2;
       conns.push(side==='L'
-        ? cupSeg(inner.x+CUP_BOX_W, CUP_MID_Y-th/2, CUP_FINAL_X-(inner.x+CUP_BOX_W), th, gold, team)
-        : cupSeg(CUP_FINAL_X+CUP_FINAL_W, CUP_MID_Y-th/2, inner.x-(CUP_FINAL_X+CUP_FINAL_W), th, gold, team));
+        ? cupSeg(inner.x+CUP_BOX_W, cupMidY()-th/2, CUP_FINAL_X-(inner.x+CUP_BOX_W), th, gold, team)
+        : cupSeg(CUP_FINAL_X+CUP_FINAL_W, cupMidY()-th/2, inner.x-(CUP_FINAL_X+CUP_FINAL_W), th, gold, team));
     }
   });
-  boxes.push(cupTieBoxHTML(root, CUP_FINAL_X, CUP_MID_Y-CUP_FINAL_H/2, CUP_FINAL_W, CUP_FINAL_H, key, goldTeam, opts));
+  boxes.push(cupTieBoxHTML(root, CUP_FINAL_X, cupMidY()-CUP_FINAL_H/2, CUP_FINAL_W, CUP_FINAL_H, key, goldTeam, opts));
   labels.push(`<div class="cl-cuplbl final" style="left:${CUP_FINAL_X}px;width:${CUP_FINAL_W}px">FINAL</div>`);
   const champ=b.champion, champCl=champ?clubOf(champ):null;
   // no sorteio quem manda no troféu é o painel lateral da cerimônia (ver cupDrawSideHTML) —
@@ -9913,7 +9931,7 @@ function cupEarlyStageHTML(b, key, opts){
   // 64 na Copa do Brasil) sairia do pote e não apareceria em lugar nenhum da tela.
   const byeIds = dr ? (b.byeTeams||b.pendingByes||[]) : [];
   const showByes = dr && byeIds.length>0;
-  const top=52, band=CUP_STAGE_H-top-14;
+  const top=52, band=cupStageH()-top-14;
   const tieBand = showByes ? Math.round(band*0.54) : band;
   const cols=Math.min(8, Math.max(4, Math.ceil(Math.sqrt(ties.length*CUP_STAGE_W/tieBand))));
   const rows=Math.ceil(ties.length/cols);
@@ -9955,7 +9973,7 @@ function cupDrawByeBandHTML(byeIds, dr, y, h){
 }
 function cupEmptyStageHTML(msg){ return cupStageWrap(`<div class="cl-cupempty">${trophyImg(CL._cupKey,72)||'🏆'}<p>${escC(msg)}</p></div>`); }
 function cupStageWrap(inner){ return `<div class="cl-cupstage-host"><div class="cl-cupstage" id="cl-cupstage"
-    style="width:${CUP_STAGE_W}px;height:${CUP_STAGE_H}px">${inner}</div></div>`; }
+    style="width:${CUP_STAGE_W}px;height:${cupStageH()}px">${inner}</div></div>`; }
 
 /* ---- fase de grupos: grade de grupos, TODOS visíveis ao mesmo tempo, sem rolagem ---- */
 function cupGroupGridHTML(c, key, opts){
@@ -10297,17 +10315,46 @@ function cupFitStage(){
   const narrow=window.innerWidth<=760;
   if(!narrow) host.style.height=''; // limpa a altura fixa do modo mobile (ex: girou o aparelho)
   const w=host.clientWidth || (host.parentElement?host.parentElement.clientWidth:0);
-  if(!w) return;
+  // O PALCO SEM MEDIDA NÃO PODE SER DESISTIDO. Este ajuste roda num requestAnimationFrame logo
+  // depois de o cdraw trocar o innerHTML, e nem sempre o navegador já fez o layout desse HTML
+  // novo — clientWidth vem 0. Desistir aqui deixava o palco SEM transform nenhum (chave em
+  // tamanho bruto, transbordando o painel) e nada mais tentava de novo. Tenta no quadro
+  // seguinte, com um teto pra não virar laço se a tela estiver mesmo escondida.
+  const hMedida=host.clientHeight;
+  if(!w || (!narrow && !hMedida)){
+    CL._cupFitTentativas=(CL._cupFitTentativas||0)+1;
+    if(CL._cupFitTentativas<=10) requestAnimationFrame(cupFitStage);
+    return;
+  }
+  CL._cupFitTentativas=0;
   // desktop: cabe na largura E na altura do painel (é o que garante "sem rolagem nenhuma").
   // mobile: a escala vem só da largura, com piso de 0.5 (abaixo disso os nomes ficam
   // ilegíveis) — e o host encolhe pra altura real do palco, senão sobraria uma faixa cinza.
-  let s, h=host.clientHeight;
+  let s; const h=hMedida;
+  // guarda a caixa medida ANTES de escalar: é dela que sai a altura do palco no próximo desenho
+  // (ver cupStageH). No telefone o palco não segue a proporção — ali ele rola e a altura padrão
+  // é a que mantém a chave legível.
+  const H=narrow?CUP_STAGE_H_PADRAO:cupStageH();
   if(narrow){ s=Math.max(Math.min(w/CUP_STAGE_W,1), 0.5); }
-  else { if(!h) return; s=Math.min(w/CUP_STAGE_W, h/CUP_STAGE_H, 1); }
+  else { s=Math.min(w/CUP_STAGE_W, h/H); }
   stage.style.transform='scale('+s+')';
   stage.style.left=Math.max(0,(w-CUP_STAGE_W*s)/2)+'px';
-  stage.style.top=narrow?'0px':Math.max(0,(h-CUP_STAGE_H*s)/2)+'px';
-  if(narrow) host.style.height=(CUP_STAGE_H*s)+'px';
+  stage.style.top=narrow?'0px':Math.max(0,(h-H*s)/2)+'px';
+  if(narrow) host.style.height=(H*s)+'px';
+  if(narrow) return;
+  /* O PALCO FOI DESENHADO COM UMA ALTURA; o painel pode pedir outra (primeira abertura, janela
+     redimensionada, barra lateral que mudou de tamanho). Guarda a medida e redesenha UMA vez se a
+     diferença for grande o bastante pra valer — o guarda por valor impede o vaivém de redesenhos
+     (mede, redesenha, mede de novo, redesenha...) que um limiar solto provocaria. */
+  const antes=CL._cupHostBox;
+  if(!antes || Math.abs(antes.w-w)>2 || Math.abs(antes.h-h)>2){
+    CL._cupHostBox={w,h};
+    const idealNovo=cupStageH();
+    if(Math.abs(idealNovo-H)>8 && CL._cupRedesenho!==idealNovo){
+      CL._cupRedesenho=idealNovo;
+      cdraw();
+    }
+  }
 }
 
 /* ================= SORTEIO DOS JOGOS DA TAÇA (cerimônia animada, igual ao RetroFoot98 clássico) =================
