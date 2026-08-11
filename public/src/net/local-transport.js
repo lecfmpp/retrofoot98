@@ -384,9 +384,28 @@ function syncDivisionClubsFromTables(){
   const od=S.otherDivs||{};
   for(const d in od){ if(od[d]) put(d, od[d].table); }
 }
+/* O CAIXA DE UM HUMANO É DO ASSENTO, NÃO DO MUNDO.
+   S.budgets[meuClube] é uma CÓPIA que o servidor faz lendo game_seats.budget no início de cada
+   resolução — e o servidor nunca a avança por conta própria (ele pula humanos de propósito, ver
+   'caixa de humano é do assento' no resolve-round). Logo o mundo só pode estar ATRASADO em
+   relação ao assento, nunca adiantado.
+   Ler o caixa do mundo aqui era, então, um rebobinador: tudo que eu creditasse entre uma
+   resolução e a próxima — premiação de fim de temporada, venda de jogador, cota de copa — era
+   desfeito no adopt seguinte. Era esse o "a premiação aparece no extrato mas não entra no
+   caixa": o crédito acontecia mesmo (por isso a linha nas transações), ia pro assento pelo
+   commitBudget, e o adopt seguinte trocava o número pelo do mundo, mais velho. Pior: o commit
+   seguinte publicava o valor rebobinado de volta no assento, e aí o dinheiro sumia de verdade.
+   Agora o assento manda no MEU clube; o mundo continua mandando em todos os outros. */
+function meuCaixaDoAssento(clubId){
+  if(typeof NET==='undefined' || !NET.uid || !NET._claimed) return null;
+  const me=NET._claimed[NET.uid]; if(!me || me.clubId!==clubId) return null;
+  return (me.budget!=null && isFinite(me.budget)) ? Number(me.budget) : null;
+}
 function applyViewerDivision(clubId){
   if(!S || !clubId) return;
-  if(S.budgets && S.budgets[clubId]!=null) S.budget = S.budgets[clubId]; // F3.3: caixa do PRÓPRIO clube (sempre, mesmo já sendo âncora)
+  const doAssento=meuCaixaDoAssento(clubId);
+  if(doAssento!=null){ S.budget=doAssento; S.budgets=S.budgets||{}; S.budgets[clubId]=doAssento; }
+  else if(S.budgets && S.budgets[clubId]!=null) S.budget = S.budgets[clubId]; // F3.3: caixa do PRÓPRIO clube
   if(S.table && S.table[clubId]){ syncDivisionClubsFromTables(); return; } // já sou a âncora (divisão)
   const od=S.otherDivs||{};
   for(const d in od){

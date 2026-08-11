@@ -9308,11 +9308,19 @@ function salaResenhaHTML(){
                 :`<span class="cl-sala-mini-x" title="${escC((c&&c.nome)||id)}">🏆</span>`; }).join('');
   };
   const meCounts={}; salaTitles().forEach(t=>{ const id=salaCompId(t); meCounts[id]=(meCounts[id]||0)+1; });
-  const rows=DATA.clubs.map((c,i)=>{
-    const eu = c.id===CL.clubId;
-    const counts = eu ? meCounts : ((S.titlesByClub&&S.titlesByClub[c.id])||{});
+  // A LISTA NÃO PODE SER SÓ A DIVISÃO ATUAL. DATA.clubs traz apenas os clubes da divisão em que
+  // eu estou (ver syncDataClubsFromState), então o campeão da Série C ou da Série D tinha a taça
+  // gravada em S.titlesByClub e NENHUMA linha onde aparecer — sumia da sala como se nunca tivesse
+  // sido campeão. Entram também, portanto, os clubes de fora da divisão que têm título: clubOf
+  // resolve o registro completo deles pelo S.clubPool, então nome e cores vêm certos.
+  const idsDivisao=DATA.clubs.map(c=>c.id);
+  const idsComTaca=Object.keys((S&&S.titlesByClub)||{})
+    .filter(id=>!idsDivisao.includes(id) && Object.values(S.titlesByClub[id]||{}).some(n=>n>0));
+  const rows=idsDivisao.concat(idsComTaca).map((id,i)=>{
+    const eu = id===CL.clubId;
+    const counts = eu ? meCounts : ((S.titlesByClub&&S.titlesByClub[id])||{});
     const total = Object.values(counts).reduce((a,b)=>a+b,0);
-    return { nome: eu?(CL.mgr||'Você'):coachName(c.id,i), club:clubOf(c.id), total, counts, eu };
+    return { nome: eu?(CL.mgr||'Você'):coachName(id,i), club:clubOf(id)||{id,short:id}, total, counts, eu };
   }).sort((a,b)=> b.total-a.total || a.nome.localeCompare(b.nome));
   const list=rows.map((r,i)=>`<div class="cl-sala-res-row ${r.eu?'me':''}">
     <span class="cl-sala-res-pos">${i+1}</span>

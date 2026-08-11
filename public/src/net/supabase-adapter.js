@@ -269,6 +269,17 @@ async function netUpdatePassword(newPassword){
    cai pro congelado. Escrita com sessão morta ainda falha no servidor (RLS) — mas falha
    GRACIOSAMENTE, capturada, sem quebrar o cliente; a autocura do timer loop reidrata a sessão
    e a próxima tentativa passa. */
+/* Caixa do MEU assento numa releitura do banco. Só eu escrevo essa coluna, então uma leitura que
+   ainda não enxerga meu último update não é notícia nova — é eco velho. Enquanto o valor em voo
+   não aparecer no banco, o cache mantém o que eu publiquei; quando os dois baterem, o guarda
+   se apaga sozinho. */
+function seatBudgetEmVoo(s){
+  if(!s || !s.user_id || s.user_id!==SB_UID()) return s ? s.budget : null;
+  const emVoo=(typeof NET!=='undefined') ? NET._budgetEmVoo : null;
+  if(emVoo==null) return s.budget;
+  if(Number(s.budget)===Number(emVoo)){ NET._budgetEmVoo=null; return s.budget; }  // banco alcançou
+  return emVoo;
+}
 function SB_UID(){ return (SB_AUTH_USER && SB_AUTH_USER.id) || (typeof NET!=='undefined' && NET.uid) || null; }
 /* participantes = união de presença ao vivo (Realtime Presence) + assentos já reivindicados (game_seats) */
 function netMergeParticipants(){
@@ -355,7 +366,11 @@ async function netJoinRoom(code, me){
   const { data: seatsData } = await sb.from('game_seats').select('*').eq('game_id', gameData.id);
   const { data: msgs } = await sb.from('messages').select('*').eq('game_id', gameData.id).order('created_at').limit(100);
   NET._claimed = {};
-  (seatsData||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round, last_bids:s.last_bids, last_seen:s.last_seen }; });
+  // budget/stadium entram aqui porque o ASSENTO é a autoridade do caixa de um humano (o servidor
+  // nunca mexe nele — ver 'caixa de humano é do assento' no resolve-round). Sem ler a coluna, o
+  // cliente só conhecia o valor que ELE MESMO publicou nesta sessão, e depois de um reload
+  // sobrava o número do mundo, que é sempre mais velho. Ver applyViewerDivision.
+  (seatsData||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round, last_bids:s.last_bids, last_seen:s.last_seen, budget:seatBudgetEmVoo(s), stadium:s.stadium }; });
   NET.room = {
     code: gameData.id, gameId: gameData.id, name: gameData.name, hostId: gameData.host_id, mode: gameData.mode, phase: gameData.phase,
     participants: [], seed: gameData.seed, round: gameData.round||0, deadline: gameData.ready_deadline?new Date(gameData.ready_deadline).getTime():0,
@@ -405,7 +420,7 @@ async function netRefreshRoom(){
     }
     const { data: seats } = await sb.from('game_seats').select('*').eq('game_id', NET.gameId);
     NET._claimed = NET._claimed || {};
-    (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round, last_bids:s.last_bids, last_seen:s.last_seen }; });
+    (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round, last_bids:s.last_bids, last_seen:s.last_seen, budget:seatBudgetEmVoo(s), stadium:s.stadium }; });
     netMergeParticipants(); // -> NET.onState (transição lobby->jogo + reconcile de rodada)
     return NET.room;
   }catch(e){ console.warn('refreshRoom:', e&&e.message); return null; }
@@ -561,8 +576,11 @@ async function netPublishBudget(budget){
   const b=Math.round(budget);
   try{
     if(NET._claimed && NET._claimed[SB_UID()]) NET._claimed[SB_UID()].budget=b;
+    // marca o valor em voo: um refresh que caia entre este update e a leitura seguinte traria o
+    // número ANTERIOR do banco e rebobinaria o caixa pela porta dos fundos (ver seatBudgetEmVoo).
+    NET._budgetEmVoo=b;
     await sb.from('game_seats').update({ budget:b }).eq('game_id', NET.gameId).eq('user_id', SB_UID());
-  }catch(e){ console.warn('publishBudget:', e&&e.message); }
+  }catch(e){ NET._budgetEmVoo=null; console.warn('publishBudget:', e&&e.message); }
 }
 /* cópia fiel de netPublishBudget acima, pro estádio do PRÓPRIO clube (game_seats.stadium) — o
    servidor (resolve-round) lê pra montar S.clubStadiumCap do mundo, exatamente como já faz com
