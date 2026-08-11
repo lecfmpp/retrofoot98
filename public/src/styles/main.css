@@ -1708,11 +1708,19 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-lp-barra{height:22px;background:#fff;border:2px solid;border-color:var(--bevel-in);padding:2px}
 .cl-lp-barra-in{height:100%;background:linear-gradient(90deg,#0b7a2f,#3fcf6a);transition:width .4s}
 .cl-lp-lista-nota{margin-top:12px;font-size:12.5px;color:#4a4a4a;font-weight:700}
-.cl-lp-slots{background:var(--chrome);border:2px solid;border-color:var(--bevel-out);padding:16px}
-.cl-lp-slots-h{font:800 12px var(--sans);color:#3a3a3a;margin-bottom:12px;letter-spacing:.6px}
-.cl-lp-slots-g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.cl-lp-slot{height:64px;background:#fff;border:2px solid;border-color:var(--bevel-in);display:flex;align-items:center;
-  justify-content:center;font:700 12px var(--sans);color:#888}
+.cl-lp-slots{background:var(--chrome);border:2px solid;border-color:var(--bevel-out);padding:14px}
+.cl-lp-slots-h{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  font:800 12px var(--sans);color:#3a3a3a;margin-bottom:10px;letter-spacing:.6px}
+.cl-lp-slots-nav{display:flex;gap:6px}
+.cl-lp-slots-nav .cl-lp-btn-sq{width:34px;height:34px}
+/* slider dos espaços: um cartão por vez, com scroll-snap (arrasta no dedo, setas no mouse) */
+.cl-lp-etrack{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;
+  padding-bottom:8px;scrollbar-width:thin}
+.cl-lp-etrack::-webkit-scrollbar{height:10px}
+.cl-lp-etrack::-webkit-scrollbar-track{background:#a8a8a8;border:2px solid;border-color:var(--bevel-in)}
+.cl-lp-etrack::-webkit-scrollbar-thumb{background:var(--chrome);border:2px solid;border-color:var(--bevel-out)}
+.cl-lp-eslide{flex:0 0 100%;scroll-snap-align:start;min-width:0}
+.cl-lp-eslide-d{margin-top:8px;font:700 12.5px var(--sans);color:#3a3a3a;line-height:1.45}
 .cl-lp-canal{background:var(--chrome);border:3px solid;border-color:var(--bevel-out);padding:22px 16px;
   display:flex;flex-direction:column;align-items:center;gap:6px;color:#111;text-decoration:none}
 .cl-lp-canal-ic{font-size:30px}
@@ -1747,6 +1755,20 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-lp-foot-paginas .cl-home-foot:hover{text-decoration:underline;color:var(--yellow)}
 .cl-lp-foot-fim{margin-top:20px;padding-top:14px;border-top:1px solid #2a2a7a;display:flex;flex-wrap:wrap;gap:10px;
   justify-content:space-between;font-size:12px;color:#9aa3d0}
+/* --- quiz do media kit: uma pergunta por tela, resposta de um toque --- */
+.cl-mk-prog{height:8px;background:#fff;border:2px solid;border-color:var(--bevel-in);padding:1px}
+.cl-mk-prog-in{height:100%;background:linear-gradient(90deg,#0b7a2f,#3fcf6a);transition:width .3s}
+.cl-mk-prog-lbl{font:700 11.5px var(--sans);color:#3a3a3a;margin-top:-5px}
+.cl-mk-q{font-family:var(--serif);font-style:italic;font-weight:700;font-size:20px;color:#00005c;line-height:1.2}
+.cl-mk-ops{display:flex;flex-direction:column;gap:8px}
+.cl-mk-op{text-align:left;background:#fff;border:2px solid;border-color:var(--bevel-out);padding:12px 14px;
+  font:700 13.5px var(--sans);color:#111;cursor:pointer;min-height:46px}
+.cl-mk-op:hover{background:#ffffcc}
+.cl-mk-op:active{border-color:var(--bevel-in)}
+.cl-mk-op.on{background:#dff3e2;border-color:#3fcf6a #0b5f22 #0b5f22 #3fcf6a}
+.cl-mk-zap{margin-top:14px;padding:12px 14px;background:#ffffcc;border:2px solid;border-color:var(--bevel-in)}
+.cl-mk-zap-t{font:800 13px var(--sans);margin-bottom:4px}
+.cl-mk-zap p{margin:0 0 10px;font-size:12.5px;line-height:1.5}
 .cl-lp-modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;
   justify-content:center;padding:20px;box-sizing:border-box;overflow:auto}
 /* MODAL QUE CABE NA TELA. Era 640px de largura e altura livre: num notebook de 768px o formulário
@@ -1824,12 +1846,17 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-lp-lista{padding:20px 16px}
   /* no telefone o modal vira FOLHA DE TELA CHEIA: sem margem, sem sombra de janela flutuando, e
      o botão de conversão fixo na base (o polegar chega nele sem rolar nada) */
-  .cl-lp-modal{padding:0;align-items:stretch}
-  .cl-lp-win-modal,.cl-lp-win-modal.larga{width:100%;margin:0;display:flex;flex-direction:column;min-height:100dvh}
-  .cl-lp-win-modal .cl-lp-win-body{max-height:none;flex:1}
+  /* a folha ocupa EXATAMENTE a altura do container fixo (que é a viewport). Com 100dvh ela
+     esticava além disso em alguns navegadores e, centralizada, saía cortada em cima e embaixo —
+     a barra de título ficava fora da tela. 100% do pai fixo não tem esse risco. */
+  .cl-lp-modal{padding:0;align-items:stretch;justify-content:stretch;overflow:hidden}
+  .cl-lp-win-modal,.cl-lp-win-modal.larga{width:100%;max-width:none;margin:0;display:flex;
+    flex-direction:column;height:100%;min-height:0}
+  .cl-lp-win-modal .cl-lp-win-body{max-height:none;flex:1;min-height:0}
   .cl-lp-form-acts{position:sticky;bottom:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px))}
   .cl-lp-form-acts .cl-lp-cta{flex:1;min-height:48px}
-  .cl-lp-form-rola{padding:14px}
+  .cl-lp-form-rola{padding:14px;flex:1}
+  .cl-lp-form{flex:1;min-height:0}
   .cl-lp-form-nota{flex-basis:100%;text-align:center}
   .cl-lp-hdr-in{gap:10px;padding:8px 12px}
   .cl-lp-logo img{width:36px;height:36px}

@@ -761,6 +761,7 @@ function scAbertura(){
     <main class="cl-lp-main">${body}</main>
     ${landingRodapeHTML()}
     ${CL.waitlistOpen?waitlistModalHTML():''}
+    ${CL.mkOpen?mediaKitModalHTML():''}
     ${CL.lpZoom!=null?lpZoomHTML():''}
   </div>`;
 }
@@ -862,6 +863,140 @@ function waitlistZapHref(){
    Agora o PASSO 1 pede só o que garante a vaga (nome, e-mail, telefone e a pergunta rápida) e
    cabe inteiro na tela. As INDICAÇÕES viraram o PASSO 2, depois de gravar: quem abandona ali já
    está na lista, e convidar amigos é uma decisão de quem JÁ entrou — não um pedágio antes. */
+/* ===== QUIZ DO MEDIA KIT =====
+   "Baixar media kit" num link solto entrega o PDF e não deixa nada pra trás: a gente não sabe
+   quem baixou, de que ramo é, nem quanto pretende investir — e não tem como voltar a falar.
+   Aqui o material é o fim de uma conversa curta: quatro perguntas sobre o negócio (uma por tela,
+   com resposta de um toque) e só então o contato. Cada pergunta é fechada de propósito — quem
+   está avaliando patrocínio responde em segundos, e a resposta já qualifica o lead.
+   No fim, além do "entraremos em contato", tem o atalho de WhatsApp com a mensagem pronta:
+   quem quer falar agora fala agora, e a mensagem já chega dizendo do que se trata. */
+const MK_ZAP='16478623292';
+const MK_PERGUNTAS=[
+  { id:'segmento', q:'Qual é o ramo da sua marca?',
+    ops:['Apostas e cassino','Bebidas e alimentos','Moda e artigos esportivos','Tecnologia e apps','Serviços financeiros','Outro'] },
+  { id:'publico', q:'Quem você quer alcançar?',
+    ops:['Torcedor de futebol em geral','Homens 18-34','Público de games','Comunidades e criadores','Ainda estou definindo'] },
+  { id:'objetivo', q:'O que você espera do patrocínio?',
+    ops:['Marca na tela (awareness)','Cliques e cadastros','Ativação com criadores','Naming de uma competição','Quero entender as opções'] },
+  { id:'verba', q:'Qual a verba prevista para a temporada?',
+    ops:['Até R$ 5 mil','R$ 5 mil a R$ 20 mil','R$ 20 mil a R$ 50 mil','Acima de R$ 50 mil','Prefiro conversar antes'] },
+];
+function clMediaKitOpen(){
+  CL.mk={ passo:0, respostas:{}, empresa:'', nome:'', email:'', tel:'', obs:'' };
+  CL.mkOpen=true; CL.mkSent=false; CL.mkErr=''; CL.navMenuOpen=false; cdraw();
+}
+function clMediaKitClose(){ CL.mkOpen=false; cdraw(); }
+function clMediaKitMin(){ CL.mkMin=!CL.mkMin; cdraw(); }
+function clMediaKitResponde(id, valor){
+  CL.mk.respostas[id]=valor;
+  CL.mk.passo=Math.min(CL.mk.passo+1, MK_PERGUNTAS.length);
+  cdraw();
+}
+function clMediaKitVolta(){ if(CL.mk.passo>0){ CL.mk.passo--; cdraw(); } }
+function clMediaKitSet(campo,val){ CL.mk[campo]=val; }
+async function clMediaKitEnviar(){
+  const m=CL.mk||{};
+  const nome=(m.nome||'').trim(), email=(m.email||'').trim();
+  if(nome.length<2){ CL.mkErr='Diz o seu nome, pra gente saber com quem falar.'; cdraw(); return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)){ CL.mkErr='Confere o e-mail — é por ele que o media kit chega.'; cdraw(); return; }
+  CL.mkErr=''; CL.mkBusy=true; cdraw();
+  try{
+    const cli=await lpSupabase();
+    if(!cli) throw new Error('sem conexão');
+    const r=m.respostas||{};
+    const {error}=await cli.from('retrofoot_media_kit').insert({
+      empresa:(m.empresa||'').trim()||null, segmento:r.segmento||null, publico:r.publico||null,
+      objetivo:r.objetivo||null, verba:r.verba||null, nome, email,
+      telefone:(m.tel||'').trim()||null, observacao:(m.obs||'').trim()||null,
+      origem:(location&&location.pathname)||'/'
+    });
+    if(error) throw error;
+    CL.mkSent=true;
+  }catch(e){
+    console.warn('media kit:', e&&e.message);
+    CL.mkErr='Não deu pra enviar agora. Tenta de novo ou chama no WhatsApp aqui embaixo.';
+  }
+  CL.mkBusy=false; cdraw();
+}
+/* mensagem pronta do WhatsApp: chega já dizendo que é patrocínio e com o que a marca respondeu,
+   pra a conversa começar do meio e não do "oi" */
+function mkZapHref(){
+  const m=CL.mk||{}, r=m.respostas||{};
+  const linhas=['Olá! Tenho interesse em patrocinar o RetroFoot98.'];
+  if((m.empresa||'').trim()) linhas.push('Empresa: '+m.empresa.trim());
+  if(r.segmento) linhas.push('Ramo: '+r.segmento);
+  if(r.publico)  linhas.push('Público: '+r.publico);
+  if(r.objetivo) linhas.push('Objetivo: '+r.objetivo);
+  if(r.verba)    linhas.push('Verba prevista: '+r.verba);
+  if((m.nome||'').trim()) linhas.push('Falo por: '+m.nome.trim());
+  linhas.push('Pode me mandar o media kit?');
+  return 'https://wa.me/'+MK_ZAP+'?text='+encodeURIComponent(linhas.join('\n'));
+}
+function mediaKitModalHTML(){
+  const m=CL.mk||{passo:0,respostas:{}};
+  const acoes={min:'clMediaKitMin()', max:'clMediaKitMin()', close:'clMediaKitClose()', minimizada:CL.mkMin};
+  const total=MK_PERGUNTAS.length+1;
+  const nPasso=Math.min(m.passo+1,total);
+  const barra=`<div class="cl-mk-prog"><div class="cl-mk-prog-in" style="width:${Math.round(nPasso/total*100)}%"></div></div>
+    <div class="cl-mk-prog-lbl">Passo ${nPasso} de ${total}</div>`;
+  let corpo;
+  if(CL.mkSent){
+    corpo=`<div class="cl-lp-form">
+      <div class="cl-lp-form-rola">
+        <div class="cl-lp-ok-topo"><span class="cl-lp-ok-ic">✓</span>
+          <div><div class="cl-lp-ok-t">Recebemos o seu pedido.</div>
+            <p>A gente entra em contato pelo e-mail <b>${escC((m.email||'').trim())}</b> com o media kit completo — números da comunidade, formatos de anúncio dentro do jogo e as cotas da temporada.</p></div></div>
+        <div class="cl-mk-zap">
+          <div class="cl-mk-zap-t">Quer falar agora?</div>
+          <p>Manda a mensagem pronta no WhatsApp e a gente já sabe do que se trata.</p>
+          <a class="cl-lp-cta" href="${mkZapHref()}" target="_blank" rel="noopener">💬 Falar no WhatsApp</a>
+        </div>
+      </div>
+      <div class="cl-lp-form-acts"><button class="cl-lp-btn" onclick="clMediaKitClose()">Fechar</button></div>
+    </div>`;
+  } else if(m.passo<MK_PERGUNTAS.length){
+    const p=MK_PERGUNTAS[m.passo];
+    const ops=p.ops.map(o=>`<button type="button" class="cl-mk-op ${m.respostas[p.id]===o?'on':''}"
+        onclick="clMediaKitResponde('${p.id}',${JSON.stringify(o).replace(/"/g,'&quot;')})">${escC(o)}</button>`).join('');
+    corpo=`<div class="cl-lp-form">
+      <div class="cl-lp-form-rola">
+        ${barra}
+        <div class="cl-mk-q">${escC(p.q)}</div>
+        <div class="cl-mk-ops">${ops}</div>
+      </div>
+      <div class="cl-lp-form-acts">
+        ${m.passo>0?`<button class="cl-lp-btn" onclick="clMediaKitVolta()">‹ Voltar</button>`:''}
+        <span class="cl-lp-form-nota">Uma resposta e a gente segue.</span>
+      </div>
+    </div>`;
+  } else {
+    corpo=`<div class="cl-lp-form">
+      <div class="cl-lp-form-rola">
+        ${barra}
+        ${CL.mkErr?`<div class="cl-lp-erro">${escC(CL.mkErr)}</div>`:''}
+        <div class="cl-mk-q">Pra onde mandamos o media kit?</div>
+        <label class="cl-lp-lbl"><span>Empresa <i>(opcional)</i></span>
+          <input type="text" value="${escC(m.empresa||'')}" placeholder="Nome da marca" autocomplete="organization" oninput="clMediaKitSet('empresa',this.value)"></label>
+        <label class="cl-lp-lbl"><span>Seu nome</span>
+          <input type="text" value="${escC(m.nome||'')}" placeholder="Quem fala pela marca" autocomplete="name" oninput="clMediaKitSet('nome',this.value)"></label>
+        <div class="cl-lp-2in">
+          <label class="cl-lp-lbl"><span>E-mail</span>
+            <input type="email" value="${escC(m.email||'')}" placeholder="voce@empresa.com" autocomplete="email" inputmode="email" oninput="clMediaKitSet('email',this.value)"></label>
+          <label class="cl-lp-lbl"><span>Telefone <i>(opcional)</i></span>
+            <input type="tel" value="${escC(m.tel||'')}" placeholder="(11) 99999-0000" autocomplete="tel" inputmode="tel" oninput="clMediaKitSet('tel',this.value)"></label>
+        </div>
+      </div>
+      <div class="cl-lp-form-acts">
+        <button class="cl-lp-btn" onclick="clMediaKitVolta()">‹ Voltar</button>
+        <button class="cl-lp-cta" onclick="clMediaKitEnviar()" ${CL.mkBusy?'disabled':''}>${CL.mkBusy?'Enviando…':'Pedir o media kit'}</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="cl-lp-modal" onclick="if(event.target===this)clMediaKitClose()">
+    ${janelaHTML('📈 Media kit — RetroFoot98', corpo, 'cl-lp-win-modal', acoes)}
+  </div>`;
+}
 function waitlistModalHTML(){
   const w=CL.waitlist||{};
   const acoes={min:'clWaitlistMin()', max:'clWaitlistMax()', close:'clWaitlistClose()', minimizada:CL.waitlistMin};
@@ -1153,19 +1288,43 @@ function landingListaHTML(){
     </div>`, 'cl-lp-win-amarelo')}
   </section>`;
 }
+/* ONDE A MARCA APARECE, mostrado em vez de descrito. O quadro com quatro retângulos "sua marca
+   aqui" pedia imaginação: o anunciante tinha que adivinhar como o espaço aparece no jogo. Agora
+   é um slider com as telas de verdade e a legenda dizendo qual é o espaço em cada uma. */
+const LANDING_ESPACOS=[
+  ['formacao','Placas do campo','Faixas ao redor do gramado, à vista em toda escalação.'],
+  ['partida','Rodada ao vivo','Faixa na janela da partida, quando a atenção está no placar.'],
+  ['copa','Telas de copa','Rodapé do sorteio e da fase de grupos das continentais.'],
+  ['classificacao','Janelas do jogo','Espaço no pé de cada janela: calendário, elenco, mercado.'],
+  ['leilao','Leilão e mercado','A tela em que o jogador está decidindo onde gastar.'],
+];
 function landingPatrocinioHTML(){
-  const slots=[0,1,2,3].map(()=>`<div class="cl-lp-slot">Sua marca aqui</div>`).join('');
+  const slots=LANDING_ESPACOS.map(([arq,t,d])=>`<div class="cl-lp-eslide">
+      ${janelaHTML(t, lpTelaHTML(arq,t))}
+      <div class="cl-lp-eslide-d">${escC(d)}</div>
+    </div>`).join('');
   return `<section class="cl-lp-band escura">
     <div class="cl-lp-wrap cl-lp-2col">
       <div class="cl-lp-col-txt">
         <div class="cl-lp-kicker">PATROCINADORES</div>
         <h2 class="cl-lp-h2">Sua marca dentro do jogo que a galera não larga.</h2>
         <p class="cl-lp-p">Placa de patrocínio nas telas de partida, presença nas Ligas Oficiais e premiação das temporadas. Um público de futebol engajado, com sessões longas e retorno diário.</p>
-        <button class="cl-lp-btn" onclick="clLandingGo('apoie')">Apoiar o projeto e ver as cotas</button>
+        <div class="cl-lp-hero-cta">
+          <button class="cl-lp-cta" onclick="clMediaKitOpen()">📈 Pedir o media kit</button>
+          <button class="cl-lp-btn" onclick="clLandingGo('apoie')">Ver as cotas</button>
+        </div>
       </div>
       <div class="cl-lp-col-img">
-        <div class="cl-lp-slots"><div class="cl-lp-slots-h">ESPAÇOS DISPONÍVEIS</div>
-          <div class="cl-lp-slots-g">${slots}</div></div>
+        <div class="cl-lp-slots">
+          <div class="cl-lp-slots-h">
+            <span>ESPAÇOS DISPONÍVEIS</span>
+            <span class="cl-lp-slots-nav">
+              <button class="cl-lp-btn cl-lp-btn-sq" onclick="clLpEspacos(-1)" aria-label="Anterior">◀</button>
+              <button class="cl-lp-btn cl-lp-btn-sq" onclick="clLpEspacos(1)" aria-label="Próximo">▶</button>
+            </span>
+          </div>
+          <div class="cl-lp-etrack" id="cl-lp-etrack">${slots}</div>
+        </div>
       </div>
     </div>
   </section>`;
@@ -1216,7 +1375,7 @@ function landingApoieHTML(){
           <ul class="cl-lp-ul"><li>Audiência e engajamento por temporada</li>
             <li>Espaços de marca: partida, ranking e ligas</li>
             <li>Pacote de logos e screenshots</li></ul>
-          <a class="cl-lp-cta" href="mailto:parcerias@retrofoot98.com?subject=Media%20kit%20RetroFoot98">✉ Pedir o media kit</a>
+          <button class="cl-lp-cta" onclick="clMediaKitOpen()">📈 Pedir o media kit</button>
         </div>`, 'cl-lp-win-amarelo')}
       </div>
       <div class="cl-lp-card cl-lp-card-larga">
@@ -1232,6 +1391,10 @@ function clLpIr(id){
   if((CL.landingView||'home')!=='home'){ CL.landingView='home'; cdraw(); }
   setTimeout(()=>{ const el=document.getElementById('lp-'+id);
     if(el) window.scrollTo({top:Math.max(0, el.getBoundingClientRect().top+(window.scrollY||0)-84), behavior:'smooth'}); }, 60);
+}
+function clLpEspacos(dir){
+  const t=document.getElementById('cl-lp-etrack'); if(!t) return;
+  t.scrollBy({left:dir*(t.clientWidth+14), behavior:'smooth'});
 }
 function clLpTrack(dir){
   const t=document.getElementById('cl-lp-track'); if(!t) return;
