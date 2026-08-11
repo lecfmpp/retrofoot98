@@ -1463,8 +1463,13 @@ function wizShell(o){
        <span class="cl-wiz-user">👤 ${escC(user)}</span>
        <button class="cl-topbar-auth-out cl-wiz-sair" onclick="clAuthLogout()">Sair</button>`;
   // pill à direita do cabeçalho de etapa: customizado (o.pill, ex.: código da sala), ou passo N/4, ou vazio
+  // O CONTADOR DIZ O TAMANHO DO CAMINHO. Era "N / 4" fixo em todas as telas, com o N reiniciando
+  // no meio (Países era 4/4 e a tela seguinte voltava pra 1/4) — o contador prometia um fim que
+  // não era o fim. Agora cada fluxo declara o próprio total (ver WIZ_PASSOS): Solo tem seis
+  // etapas, Resenha tem cinco, e a tela de escolha do modo — que é a bifurcação — só diz "Passo 1".
   const pill = o.pill!=null ? `<span class="cl-wiz-steppill">${o.pill}</span>`
-    : (o.step!=null ? `<span class="cl-wiz-steppill">${o.step} / 4</span>` : `<span class="cl-wiz-back-sp"></span>`);
+    : (o.step!=null ? `<span class="cl-wiz-steppill">${o.steps?`${o.step} / ${o.steps}`:`Passo ${o.step}`}</span>`
+                    : `<span class="cl-wiz-back-sp"></span>`);
   return `<div class="cl-home cl-wiz ${o.rootCls||''}">
     <div class="cl-home-titlebar">
       <div class="cl-home-tb-l"><img src="img/logo.webp" width="500" height="500" alt="">RetroFoot98</div>
@@ -1498,6 +1503,8 @@ function wizShell(o){
 }
 
 /* ================= 02a · PASSO 1 — ESCOLHER MODO (Solo / Resenha) ================= */
+/* total de etapas de cada caminho — o contador do cabeçalho sai daqui */
+const WIZ_PASSOS={ solo:7, resenha:5 };
 function scModoChoice(){
   return wizShell({ step:1, title:'Escolher modo', back:'clGoAbertura()', backLabel:'Voltar ao início',
     contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
@@ -1543,7 +1550,7 @@ function scModoSolo(){
   if(step==='cont') return scSoloCont();
   const loading=CL.soloSaves==null; const n=(CL.soloSaves||[]).length;
   const contDesc = loading?'Carregando seus jogos salvos…' : (n?`Você tem <b>${n}</b> jogo${n>1?'s':''} salvo${n>1?'s':''} na nuvem.`:'Nenhum jogo salvo ainda.');
-  return wizShell({ step:2, title:'Modo Solo', back:'clGoModo()',
+  return wizShell({ step:2, steps:WIZ_PASSOS.solo, title:'Modo Solo', back:'clGoModo()',
     contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
     action:`<span class="cl-wiz-hint">Toque num cartão para continuar.</span>`,
     body:`
@@ -1566,7 +1573,7 @@ function scModoSolo(){
 /* ================= PASSO 3 · NOVO JOGO — nome do save ================= */
 function scSoloNovo(){
   const val=CL.save||''; const ok=val.trim().length>0;
-  return wizShell({ step:3, title:'Novo jogo', back:'clSoloBackChoice()',
+  return wizShell({ step:3, steps:WIZ_PASSOS.solo, title:'Novo jogo', back:'clSoloBackChoice()',
     contentCls:'cl-wiz-top', actionCls:'cl-wiz-action-e',
     action:`${btn('Começar','clModoOk()',{icon:'✔',cls:'cl-btn-ok cl-wiz-cta',dis:!ok})}`,
     body:`
@@ -1586,19 +1593,23 @@ function scSoloNovo(){
 function clSyncCount(){ const el=document.querySelector('.cl-wiz-count'); if(el) el.textContent=(CL.save||'').length+'/8'; }
 /* Continuar: lista de saves na nuvem (variante do passo 2) */
 function scSoloCont(){
-  const loading=CL.soloSaves==null; const saves=CL.soloSaves||[];
+  // MAIS RECENTE EM CIMA. O jogo que a pessoa quer continuar é, quase sempre, o último que ela
+  // tocou — a consulta já devolve por updated_at, e a ordenação aqui garante isso mesmo se a
+  // lista vier de outra fonte (cache, harness).
+  const loading=CL.soloSaves==null;
+  const saves=(CL.soloSaves||[]).slice().sort((a,b)=> new Date(b.updated_at||0) - new Date(a.updated_at||0));
   let list;
   if(loading) list='<div class="cl-savempty">carregando seus jogos…</div>';
   else if(!saves.length) list='<div class="cl-savempty">Você ainda não tem jogos salvos. Comece um novo jogo!</div>';
   else list=saves.map(s=>`<div class="cl-myroom" onclick="clLoadSave('${escC(s.name)}')">
       <div class="cl-myroom-main">
         <div class="cl-myroom-name">${escC(s.name)}</div>
-        <div class="cl-myroom-sub">${s.updated_at?('Salvo em '+new Date(s.updated_at).toLocaleDateString('pt-BR')):'Jogo salvo'}</div>
+        <div class="cl-myroom-sub">${s.updated_at?('Salvo em '+new Date(s.updated_at).toLocaleDateString('pt-BR')+' às '+new Date(s.updated_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})):'Jogo salvo'}</div>
       </div>
       <button class="cl-myroom-del" title="Apagar jogo" onclick="event.stopPropagation();clDeleteSave('${escC(s.name)}')">🗑</button>
       <div class="cl-myroom-arrow">➜</div>
     </div>`).join('');
-  return wizShell({ step:2, title:'Continuar jogo', back:'clSoloBackChoice()',
+  return wizShell({ pill:'Continuar', title:'Continuar jogo', back:'clSoloBackChoice()',
     contentCls:'cl-wiz-top', actionCls:'cl-wiz-action-c',
     action:`<span class="cl-wiz-hint">Toque num jogo pra continuar de onde parou.</span>`,
     body:`<div class="cl-wiz-form cl-wiz-form-wide"><div class="cl-myrooms-list">${list}</div></div>`
@@ -1671,7 +1682,7 @@ function scPaises(){
   const compHelp = selCountries.length
     ? '<div class="cl-wiz-comphelp">Todas as ligas e copas de cada país selecionado entram no seu save.</div>'
     : '<div class="cl-wiz-comphelp">Selecione países à esquerda para ver as competições disponíveis.</div>';
-  return wizShell({ step:4, title:'Selecção de Países', back:'clPaisesBack()',
+  return wizShell({ step:4, steps:WIZ_PASSOS.solo, title:'Selecção de Países', back:'clPaisesBack()',
     contentCls:'cl-wiz-paises', actionCls:'',
     action:`
       ${btn('Todas','clAllCountries()',{icon:'▤',cls:'cl-btn-row'})}
@@ -1823,7 +1834,7 @@ function scMoeda(){
     </select>
     <div class="cl-wiz-note">A moeda vale pra toda a Resenha — todo mundo negocia jogadores e vê as finanças nela.</div>
   </div>`;
-  return wizShell({ step:1, title:'Dinheiro', back:'clMoedaBack()', backLabel:'Voltar',
+  return wizShell({ step:5, steps:WIZ_PASSOS.solo, title:'Dinheiro', back:'clMoedaBack()', backLabel:'Voltar',
     contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
     action: btn('OK','clMoedaOk()',{icon:'✔',cls:'cl-wiz-cta'}) });
 }
@@ -1872,7 +1883,7 @@ function scJogadores(){
       <span class="cl-resenha-banner-go">Ir pro Modo Resenha ›</span>
     </div>
   </div>`;
-  return wizShell({ step:2, title:'Jogadores', back:'clGoMoeda()', backLabel:'Voltar',
+  return wizShell({ step:6, steps:WIZ_PASSOS.solo, title:'Jogadores', back:'clGoMoeda()', backLabel:'Voltar',
     contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
     action: btn('Escolher clubes','clEscolherClubes()',{icon:'›',cls:'cl-wiz-cta'}) });
 }
@@ -2428,7 +2439,7 @@ function scEscolhaClubes(){
     ${rows}
     <div class="cl-wiz-note">${instr}</div>
   </div>`;
-  return wizShell({ step:3, title:'Escolha os clubes', back:'clGoJogadores()', backLabel:'Voltar',
+  return wizShell({ step:7, steps:WIZ_PASSOS.solo, title:'Escolha os clubes', back:'clGoJogadores()', backLabel:'Voltar',
     contentCls:'cl-wiz-top', body, action });
 }
 /* atribui aleatoriamente um clube livre a cada manager (respeita o país escolhido) */

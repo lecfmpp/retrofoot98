@@ -962,29 +962,33 @@ async function netListMyRooms(){
     // (anfitrião) — aparecem MESMO sem eu ter reivindicado clube ainda, pois create_game só cria
     // assentos CPU e o host não tem assento até escolher/sortear o time, (3) CONVITES pendentes.
     const [{ data: seatData, error: e1 }, { data: inviteData, error: e2 }, { data: hostData, error: e3 }] = await Promise.all([
-      sb.from('game_seats').select('game_id, club_id, is_ready, games(name, phase, round, host_id)').eq('user_id', SB_UID()),
-      sb.from('room_invites').select('game_id, games(name, phase, round, host_id)').eq('user_id', SB_UID()),
-      sb.from('games').select('id, name, phase, round, host_id').eq('host_id', SB_UID())
+      sb.from('game_seats').select('game_id, club_id, is_ready, games(name, phase, round, host_id, created_at)').eq('user_id', SB_UID()),
+      sb.from('room_invites').select('game_id, games(name, phase, round, host_id, created_at)').eq('user_id', SB_UID()),
+      sb.from('games').select('id, name, phase, round, host_id, created_at').eq('host_id', SB_UID())
     ]);
     if(e1) throw e1;
     const byCode = new Map();
     // (1) assento reivindicado — tem prioridade (traz o clubId escolhido)
     (seatData||[]).filter(r=>r.games && r.games.phase!=='deleted').forEach(r=>{
       byCode.set(r.game_id, { code:r.game_id, name:r.games.name, phase:r.games.phase, round:r.games.round,
-        isHost:r.games.host_id===SB_UID(), clubId:r.club_id, pending:false });
+        isHost:r.games.host_id===SB_UID(), clubId:r.club_id, pending:false, createdAt:r.games.created_at });
     });
     // (2) salas que eu criei (mesmo sem assento) — não sobrescreve um assento já mapeado
     (e3?[]:(hostData||[])).filter(g=>g.phase!=='deleted').forEach(g=>{
       if(byCode.has(g.id)) return;
-      byCode.set(g.id, { code:g.id, name:g.name, phase:g.phase, round:g.round, isHost:true, clubId:null, pending:false });
+      byCode.set(g.id, { code:g.id, name:g.name, phase:g.phase, round:g.round, isHost:true, clubId:null, pending:false, createdAt:g.created_at });
     });
     // (3) convites pendentes — só se eu ainda não estiver na sala por outra via
     (e2?[]:(inviteData||[])).filter(r=>r.games && r.games.phase!=='deleted').forEach(r=>{
       if(byCode.has(r.game_id)) return;
       byCode.set(r.game_id, { code:r.game_id, name:r.games.name, phase:r.games.phase, round:r.games.round,
-        isHost:false, clubId:null, pending:true });
+        isHost:false, clubId:null, pending:true, createdAt:r.games.created_at });
     });
-    return Array.from(byCode.values());
+    // DA MAIS NOVA PRA MAIS VELHA. A lista saía na ordem em que o Map foi preenchido (assentos,
+    // depois salas que criei, depois convites) — ou seja, numa ordem que não diz nada pra quem
+    // olha. A sala aberta agora é a que a pessoa quer reentrar, então ela vem em cima.
+    return Array.from(byCode.values())
+      .sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
   } catch(e) { console.error('listMyRooms erro:', e); return []; }
 }
 

@@ -80,10 +80,24 @@ ${p.keywords?`<meta name="keywords" content="${esc(p.keywords)}">\n`:''}<link re
 :root{--felt:#2f8f2f;--navy:#0b2a4a;--yellow:#ffd23f;--ink:#14210f}
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);background:#f4f6f2;line-height:1.6}
-header{background:var(--felt);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-header img{height:34px;width:auto}
-header .brand{font-weight:800;font-size:18px;color:#fff;text-decoration:none;margin-right:auto}
-.cta{display:inline-block;background:var(--yellow);color:var(--ink);font-weight:800;text-decoration:none;padding:9px 18px;border-radius:8px}
+/* CABEÇALHO E RODAPÉ NO PADRÃO DA HOME. As dez páginas de conteúdo tinham uma barra verde e um
+   rodapé de duas linhas — desenho próprio, que não era o de lugar nenhum. Quem chega pelo Google
+   cai aqui primeiro: se a página não parece o site, ela parece um clone. Agora é a mesma casca
+   da home (barra branca com o logo à esquerda, bisel de 2px nos botões, rodapé navy com as
+   colunas) — sem depender do CSS do jogo, porque estas páginas são HTML puro e servidas soltas. */
+header{background:#fff;border-bottom:2px solid #707070;box-shadow:0 4px 14px rgba(0,0,0,.18);
+  padding:0;position:sticky;top:0;z-index:20}
+.hdr-in{max-width:1180px;margin:0 auto;min-height:66px;display:flex;align-items:center;gap:16px;padding:8px 20px;flex-wrap:wrap}
+header img{height:40px;width:40px;object-fit:contain;border-radius:0}
+header .brand{font-weight:900;font-size:19px;color:#000080;text-decoration:none;letter-spacing:.4px;display:flex;align-items:center;gap:10px}
+header .brand i{font-style:normal;color:#a8791a}
+header nav{display:flex;gap:2px;flex-wrap:wrap;margin-right:auto}
+header nav a{font-weight:700;font-size:13.5px;color:#000080;text-decoration:none;padding:10px 8px}
+header nav a:hover{background:#000080;color:#fff}
+.cta{display:inline-flex;align-items:center;gap:8px;background:#1a8f3c;color:#fff;font-weight:800;
+  text-decoration:none;padding:0 20px;height:44px;border:2px solid;border-color:#4fd07d #0b5f22 #0b5f22 #4fd07d;
+  border-radius:0;box-shadow:0 4px 0 rgba(0,0,0,.18)}
+.cta:active{border-color:#0b5f22 #4fd07d #4fd07d #0b5f22;box-shadow:none;transform:translateY(3px)}
 main{max-width:760px;margin:0 auto;padding:28px 20px 8px}
 main h1{font-size:30px;line-height:1.15;color:var(--navy);margin:.2em 0 .5em}
 main h2{font-size:22px;color:var(--navy);margin:1.4em 0 .4em}
@@ -100,15 +114,31 @@ figcaption{font-size:13px;color:#5a6b58;text-align:center;margin-top:6px}
 ul,ol{margin:.6em 0;padding-left:1.3em}li{margin:.3em 0}
 .playbar{text-align:center;margin:26px 0}
 .playbar .cta{padding:13px 26px;font-size:17px}
-footer{max-width:760px;margin:20px auto 0;padding:20px;border-top:1px solid #d7ddd5;font-size:14px}
-footer .links{display:flex;flex-wrap:wrap;gap:6px 16px;margin:8px 0}
-footer a{color:var(--navy)}
+footer{background:#00005c;border-top:3px solid #1a1aa8;margin-top:34px;color:#dfe4f7;font-size:14px}
+.foot-in{max-width:1180px;margin:0 auto;padding:32px 20px 20px}
+.foot-marca{display:flex;align-items:center;gap:10px;font-weight:900;font-size:17px;color:#fff;margin-bottom:8px}
+.foot-marca img{height:34px;width:34px}
+.foot-marca i{font-style:normal;color:#e0b23a}
+.foot-sobre{margin:0 0 18px;color:#b9c2e8;max-width:52ch;line-height:1.55;font-size:13px}
+.foot-h{font-weight:800;font-size:12px;color:#ffff00;letter-spacing:1.2px;margin:0 0 10px}
+footer .links{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 18px}
+footer a{color:#dfe4f7;text-decoration:none;font-weight:700;font-size:13px}
+footer a:hover{text-decoration:underline;color:#ffff00}
+.foot-fim{padding-top:14px;border-top:1px solid #2a2a7a;display:flex;flex-wrap:wrap;gap:10px;
+  justify-content:space-between;font-size:12px;color:#9aa3d0}
 </style>
 </head><body>
 <header>
-  <img src="/img/logo.webp" alt="RetroFoot98" width="34" height="34">
-  <a class="brand" href="/">RetroFoot98</a>
-  <a class="cta" href="/">▶ Jogar agora</a>
+  <div class="hdr-in">
+    <a class="brand" href="/"><img src="/img/logo.webp" alt="RetroFoot98" width="40" height="40">RetroFoot<i>98</i></a>
+    <nav>
+      <a href="/guia/">Como jogar</a>
+      <a href="/ranking/">Ranking</a>
+      <a href="/historia-do-elifoot/">História</a>
+      <a href="/jogar-com-amigos/">Jogar com amigos</a>
+    </nav>
+    <a class="cta" href="/">⚽ Jogar agora</a>
+  </div>
 </header>
 <main>
   <h1>${esc(p.h1)}</h1>
@@ -116,9 +146,16 @@ footer a{color:var(--navy)}
   <div class="playbar"><a class="cta" href="/">▶ Jogar de graça no navegador</a></div>
 </main>
 <footer>
-  <strong>RetroFoot98</strong> — futebol manager retrô, online e grátis.
-  <div class="links">${nav}</div>
-  <div><a href="/">Voltar ao jogo</a></div>
+  <div class="foot-in">
+    <div class="foot-marca"><img src="/img/logo.webp" alt="" width="34" height="34">RetroFoot<i>98</i></div>
+    <p class="foot-sobre">O jogo de gerenciamento de futebol que você jogava na escola — agora online, com os amigos e no navegador. Grátis, sem instalar nada.</p>
+    <div class="foot-h">CONHEÇA O RETROFOOT98</div>
+    <div class="links">${nav}</div>
+    <div class="foot-fim">
+      <span>© 2026 RetroFoot98. Todos os direitos reservados.</span>
+      <span><a href="/">▶ Voltar ao jogo</a></span>
+    </div>
+  </div>
 </footer>
 </body></html>`;
 }
