@@ -1856,12 +1856,40 @@ function cupTotalRounds(key){
    o tamanho e quebra a invariante 1, que é a pior das três. */
 function buildCupSchedule(key, total){ return WORLD_RULES.buildCupSchedule(key, total, seasonEpoch()); }
 /* (re)constrói S.cupCalendar. Idempotente: não recalcula o que já existe pra esta temporada. */
+/* NENHUMA RODADA DE COPA PODE CAIR FORA DA TEMPORADA. As datas das copas vêm do calendário real
+   de 2026 (ver buildCupSchedule) e são traduzidas em jornadas — só que a temporada tem um fim
+   fixo: a última jornada da liga. As finais das continentais caíam na jornada 39 num calendário
+   que acaba na 37, então elas simplesmente NUNCA eram jogadas: a temporada encerrava com o
+   usuário classificado para uma final que não existia.
+   Aqui o calendário é ancorado: o que passa do fim é puxado para as últimas jornadas livres,
+   preservando a ORDEM das rodadas e sem empilhar duas rodadas da mesma copa na mesma jornada.
+   Nunca se perde uma rodada — no pior caso ela chega mais cedo. */
+function ancorarCalendarioCopa(rodadas, last, folga){
+  if(!Array.isArray(rodadas) || !rodadas.length) return rodadas||[];
+  const out=rodadas.slice();
+  // `folga` afasta o teto de cada competição em uma jornada, pra as finais das três copas não
+  // caírem todas no mesmo dia da última rodada da liga — o clube que chega em três finais
+  // jogaria as três (mais a liga) na mesma jornada.
+  const teto0=Math.max(0, last-(folga||0));
+  // 1) puxa de trás pra frente o que estourou o fim da temporada
+  for(let i=out.length-1, teto=teto0; i>=0; i--, teto--){
+    if(out[i]>teto) out[i]=teto;
+  }
+  // 2) garante ordem crescente estrita (o passo 1 pode ter empatado duas rodadas)
+  for(let i=1;i<out.length;i++) if(out[i]<=out[i-1]) out[i]=out[i-1]+1;
+  // 3) se a correção do passo 2 estourou de novo, comprime pela frente
+  for(let i=out.length-1, teto=last; i>=0; i--, teto--) if(out[i]>teto) out[i]=teto;
+  return out.map(r=>Math.max(0,r));
+}
 function ensureCupCalendar(force){
   if(typeof S==='undefined' || !S || !S.cups) return;
   const last=(Array.isArray(S.sched)&&S.sched.length?S.sched.length:38)-1;
   if(!force && S.cupCalendar && S.cupCalendar._season===S.season) return;
   const cal={ _season:S.season };
-  Object.keys(S.cups).forEach(key=>{ if(S.cups[key]) cal[key]=buildCupSchedule(key, cupTotalRounds(key), last); });
+  // ordem fixa (copaBrasil, libertadores, sulamericana...) pra a folga ser sempre a mesma no
+  // mesmo save — calendário não pode mudar de forma entre dois carregamentos
+  const chaves=Object.keys(S.cups).filter(k=>S.cups[k]).sort();
+  chaves.forEach((key,i)=>{ cal[key]=ancorarCalendarioCopa(buildCupSchedule(key, cupTotalRounds(key)), last, i); });
   S.cupCalendar=cal;
 }
 /* ==================== DATA DO SORTEIO DE CADA COPA ====================
