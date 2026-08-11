@@ -617,7 +617,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* a altura da janela acompanha a tela (com piso e teto): a aba Formação é a mais apertada do
    jogo e o campo é o que mais ganha com cada pixel a mais — mas numa tela baixa a janela não
    pode estourar a viewport. */
-.cl-main-body{display:flex;height:clamp(560px, calc(100vh - 150px), 780px)}
+.cl-main-body{display:flex;height:clamp(420px, calc(100vh - 150px), 780px)}
 .cl-main-left{width:52%;background:#000;padding:10px 0 10px 14px;display:flex;flex-direction:column;min-height:0}
 .cl-hdr{padding:6px 0 10px}
 .cl-mgr{font-family:var(--serif);font-weight:700;color:#fff;font-size:30px;line-height:1}
