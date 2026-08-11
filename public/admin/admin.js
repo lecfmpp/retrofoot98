@@ -519,6 +519,8 @@ async function pgJogos(){
   D.jogos = data;
   const salas = data.salas||[], conv = data.convites||[], solos = data.solos||[], pedidos = data.pedidos||[];
   const aceites = conv.filter(c=>c.estado==='aceito').length;
+  const podeApagar = ME.papel==='socio';   // apagar sala é irreversível (ver apagarSala)
+  const colSalas = `.9fr 1.2fr .8fr .8fr${podeApagar?' 30px':''}`;
 
   el('page').innerHTML = `
     <div class="g3">
@@ -528,16 +530,20 @@ async function pgJogos(){
     </div>
     <div style="display:grid;grid-template-columns:1.05fr 1fr;gap:16px">
       <div class="card" style="overflow:hidden">
-        <div class="card-h"><b>Resenhas abertas</b></div>
-        <div class="rowh" style="grid-template-columns:.9fr 1.2fr .8fr .8fr;border-bottom:none">
-          <span>Sala</span><span>Anfitrião</span><span style="text-align:center">Treinadores</span><span style="text-align:right">Aberta há</span>
+        <div class="card-h"><b>Resenhas abertas</b>
+          ${podeApagar?'<span style="font-size:11.5px;color:var(--dim3)">✕ apaga a sala de vez</span>':''}</div>
+        <div class="rowh" style="grid-template-columns:${colSalas};border-bottom:none">
+          <span>Sala</span><span>Anfitrião</span><span style="text-align:center">Treinadores</span>
+          <span style="text-align:right">Aberta há</span>${podeApagar?'<span></span>':''}
         </div>
         ${salas.length ? salas.map(s=>`
-          <div class="row" style="grid-template-columns:.9fr 1.2fr .8fr .8fr;padding:10px 20px">
+          <div class="row" style="grid-template-columns:${colSalas};padding:10px 20px">
             <span class="mono" style="font-size:12px;color:var(--verde2)">${h(s.id)}</span>
             <span style="font-size:12.5px">${h(s.anfitriao)}</span>
             <span class="mono" style="font-size:12.5px;font-weight:700;text-align:center;color:${s.humanos>=s.lugares?'var(--verde2)':'var(--fg)'}">${s.humanos}/${s.lugares}</span>
             <span class="mono" style="font-size:12.5px;text-align:right;color:var(--dim2)">${h(ha(s.created_at))}</span>
+            ${podeApagar?`<span class="link" data-apagar-sala="${h(s.id)}" data-humanos="${s.humanos}"
+               title="Apagar a sala ${h(s.id)}" style="color:var(--dim3);text-align:center">✕</span>`:''}
           </div>`).join('') : '<div class="vazio">Nenhuma sala aberta.</div>'}
       </div>
       <div class="card" style="overflow:hidden">
@@ -581,6 +587,43 @@ async function pgJogos(){
         </div>`;
       }).join('') : '<div class="vazio">Nenhum save solo.</div>'}
     </div>`;
+
+  document.querySelectorAll('[data-apagar-sala]').forEach(b =>
+    b.onclick = () => modalApagarSala(b.dataset.apagarSala, +b.dataset.humanos));
+}
+
+/* APAGAR SALA — some com a sala e com tudo que pende dela (assentos, chat, convites,
+   pedidos, eventos da rodada), por cascata no banco. Não há cópia do estado em lugar
+   nenhum: quem estava jogando perde a temporada. Por isso não é um confirm() seco —
+   exige digitar o código da sala, que é o que separa "cliquei sem ler" de "quis mesmo". */
+function modalApagarSala(codigo, humanos){
+  abrirModal(`
+    <h3>Apagar a sala ${h(codigo)}?</h3>
+    <div class="col">
+      <div class="erro" style="line-height:1.6">
+        Isto apaga a sala do banco de vez — assentos, chat, convites e histórico de rodadas
+        vão junto.${humanos>0?` Há <b>${humanos} treinador${humanos>1?'es humanos':' humano'}</b> nesta sala; a temporada deles acaba aqui.`:''}
+        <br>Não dá para desfazer.
+      </div>
+      <label class="f">Digite <b class="mono">${h(codigo)}</b> para confirmar
+        <input class="f mono" id="del-cod" autocomplete="off" placeholder="${h(codigo)}"></label>
+      <div class="acoes">
+        <button class="btn" id="del-ok" style="background:var(--vermelho);color:#fff" disabled>Apagar sala</button>
+        <button class="btn btn-ghost" data-fechar>Cancelar</button>
+      </div>
+    </div>`);
+  const inp = el('del-cod'), ok = el('del-ok');
+  inp.oninput = () => { ok.disabled = inp.value.trim().toUpperCase() !== String(codigo).toUpperCase(); };
+  inp.onkeydown = ev => { if(ev.key==='Enter' && !ok.disabled) ok.click(); };
+  inp.focus();
+  ok.onclick = async () => {
+    ok.disabled = true; ok.textContent = 'Apagando…';
+    const { data, error } = await sb.rpc('apagar_sala', { p_game: codigo });
+    if(error){ ok.disabled = false; ok.textContent = 'Apagar sala'; return toast(erroMsg(error), true); }
+    fecharModal();
+    toast(`Sala ${data.sala} apagada — ${data.assentos} assentos, ${data.mensagens} mensagens.`);
+    pgJogos();
+  };
 }
 /* e-mail/telefone de terceiros no painel: mostra o suficiente para identificar,
    não o contato inteiro */

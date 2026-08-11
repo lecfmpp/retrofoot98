@@ -114,6 +114,15 @@ Para acrescentar um espaço novo: inserir a linha em `ad_spaces` **e** chamar
 `adSlotHTML('nova.chave')` (ou `ADS.html(...)`) na tela — sem os dois lados, o painel mostra um
 espaço que nunca aparece.
 
+### Apagar uma sala
+
+Em *Resenhas & solo*, o ✕ na linha da sala chama `admin_rf98.apagar_sala(codigo)` — só para
+`socio`. É um DELETE de verdade em `elifoot_v3.games`; as seis tabelas filhas (`game_seats`,
+`messages`, `game_results`, `room_invites`, `join_requests`, `round_events`) têm FK
+`ON DELETE CASCADE` e vão junto. **Não há cópia do `shared_state` em lugar nenhum**: quem
+estava jogando perde a temporada. Por isso o painel exige digitar o código da sala e avisa
+quantos humanos estão sentados nela antes de liberar o botão.
+
 ---
 
 ## 4. De onde vem cada número
