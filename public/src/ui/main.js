@@ -208,6 +208,38 @@ function coherentFormation(id,preferred){
     if(score<bestScore){ bestScore=score; best=k; } });
   return best || preferred;
 }
+/* "MELHORES" É O MELHOR DE CADA POSIÇÃO, NÃO OS 11 MAIS FORTES.
+   Antes esta opção ordenava o elenco inteiro por força e cortava nos 11 primeiros, sem olhar
+   posição nenhuma: se o goleiro não estivesse entre os 11 mais fortes do elenco, o time entrava
+   em campo SEM GOLEIRO — e podia entrar sem zagueiro também, pelo mesmo motivo.
+   O que "melhores" quer dizer de verdade é: entre as formações que o jogo tem, aquela cujo onze
+   soma mais força, com cada setor preenchido pelos mais fortes daquele setor. Assim o goleiro é
+   sempre o melhor goleiro (nunca um ausente), e a escolha continua sendo "o time mais forte
+   possível" — só que um time que existe. Devolve null se nenhuma formação couber no elenco. */
+function bestFormationForSquad(id){
+  const sq=squad(id).slice().sort((a,b)=>b.f-a.f);
+  const porSetor={GK:[],DEF:[],MID:[],ATT:[]};
+  sq.forEach(p=>{ if(porSetor[p.s]) porSetor[p.s].push(p); });
+  const secs=['GK','DEF','MID','ATT'];
+  // desempate: num elenco de forças parecidas, várias formações somam o MESMO total e a escolha
+  // cairia sempre na primeira da lista (3-3-4) — o time viraria ofensivo por acidente de ordem.
+  // Empatou, fica a forma mais próxima do 4-4-2, que é a neutra.
+  const distanciaDoNeutro=f=>{ const n=FORMATIONS[f]; return Math.abs(n[1]-4)+Math.abs(n[2]-4)+Math.abs(n[3]-2); };
+  let melhor=null, melhorForca=-1;
+  Object.keys(FORMATIONS).forEach(f=>{
+    const need=FORMATIONS[f]; let forca=0, incompleta=false;
+    secs.forEach((sec,i)=>{
+      const tem=porSetor[sec].slice(0,need[i]);
+      if(tem.length<need[i]) incompleta=true;
+      tem.forEach(p=>forca+=p.f);
+    });
+    if(incompleta) return;                       // o elenco não comporta esta formação
+    if(forca>melhorForca || (forca===melhorForca && melhor && distanciaDoNeutro(f)<distanciaDoNeutro(melhor))){
+      melhorForca=forca; melhor=f;
+    }
+  });
+  return melhor;
+}
 function pickXIByFormation(id,f){ const need=FORMATIONS[f]||FORMATIONS['4-3-3']; const secs=['GK','DEF','MID','ATT'];
   const sq=squad(id).slice().sort((a,b)=>b.f-a.f); const xi=[];   // xi = lista de PIDs
   secs.forEach((sec,i)=>{ sq.filter(p=>p.s===sec).slice(0,need[i]).forEach(p=>xi.push(p.pid)); });
@@ -4925,10 +4957,10 @@ function panSeleccao(){
   // inclui os modos rápidos "Automático" e "Melhores" no mesmo grid (4 colunas, quadrados
   // menores pra alinhar 8 opções em 2 linhas).
   const formKeys = Object.keys(FORMATIONS);
-  const formOpts = formKeys.map(f=>({sel:CL.formation===f, on:`clSelFormation('${f}');cdraw()`, main:f, sub:FKEY[f], title:'Tecla '+FKEY[f]}))
+  const formOpts = formKeys.map(f=>({sel:!CL.xiModo && CL.formation===f, on:`clSelFormation('${f}');cdraw()`, main:f, sub:FKEY[f], title:'Tecla '+FKEY[f]}))
     .concat([
-      {sel:CL.formation==='Automático', on:"clSelFormation('auto');cdraw()", main:'Auto', sub:'A', title:'Escalação automática'},
-      {sel:CL.formation==='Melhores',   on:"clSelFormation('best');cdraw()", main:'11+',  sub:'Melhores', title:'Os 11 melhores'},
+      {sel:CL.xiModo==='auto', on:"clSelFormation('auto');cdraw()", main:'Auto', sub:'A', title:'Escalação automática'},
+      {sel:CL.xiModo==='best', on:"clSelFormation('best');cdraw()", main:'11+',  sub:'Melhores', title:'O melhor de cada posição'},
     ]);
   const formationsBlock = `<div class="cl-sel-formations">
     <div class="cl-formgrid">
@@ -10527,15 +10559,23 @@ function clCancelarPronto(){
   toastC('Você não está mais pronto — a sala espera por você.');
   cdraw();
 }
+/* CL.xiModo guarda QUAL BOTÃO foi apertado ('auto'/'best'/null); CL.formation guarda sempre uma
+   formação de verdade. Antes CL.formation virava o texto 'Automático'/'Melhores', e aí o campo
+   caía nas faixas genéricas (PITCH_BANDS._) e o "Selecionar descansados" reescalava num 4-3-3
+   que ninguém pediu — os jogadores mudavam de lugar sem o usuário mexer em nada. */
 function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
-  if(f==='auto'){ S.xi=autoXI(CL.clubId); CL.formation='Automático'; S.tactic='equilibrado'; }
-  else if(f==='best'){ S.xi=squad(CL.clubId).slice().sort((a,b)=>b.f-a.f).slice(0,11).map(p=>p.pid); CL.formation='Melhores'; S.tactic='equilibrado'; }
+  if(f==='auto'){ S.xi=autoXI(CL.clubId); CL.formation=coherentFormation(CL.clubId,'4-3-3');
+    CL.xiModo='auto'; S.tactic='equilibrado'; }
+  else if(f==='best'){ const forma=bestFormationForSquad(CL.clubId) || coherentFormation(CL.clubId,'4-3-3');
+    S.xi=pickXIByFormation(CL.clubId,forma); CL.formation=forma; CL.xiModo='best'; S.tactic=tacticPosture(forma); }
   else { const real=coherentFormation(CL.clubId,f); if(real!==f) adjustedFrom=f;
-    S.xi=pickXIByFormation(CL.clubId,real); CL.formation=real; S.tactic=tacticPosture(real); }
+    S.xi=pickXIByFormation(CL.clubId,real); CL.formation=real; CL.xiModo=null; S.tactic=tacticPosture(real); }
   CL.tacticChosen=true; CL.tab='seleccao'; saveV3();
   republicarEscalacao();   // mudei o time depois de ficar pronto? o que vale é o que está na tela
   cdraw();
-  toastC(adjustedFrom ? `Sem jogadores pro ${adjustedFrom} — ajustado pra ${CL.formation}.` : 'Tática '+CL.formation+' seleccionada.'); }
+  const rotulo = CL.xiModo==='best' ? ('Melhores de cada posição ('+CL.formation+')')
+               : CL.xiModo==='auto' ? ('Automático ('+CL.formation+')') : ('Tática '+CL.formation);
+  toastC(adjustedFrom ? `Sem jogadores pro ${adjustedFrom} — ajustado pra ${CL.formation}.` : rotulo+' seleccionada.'); }
 /* "Selecionar descansados": reaplica a formação já escolhida trocando o critério de escala
    de força (p.f) por energia (menos cansados primeiro), respeitando os setores da formação.
    Disponível só depois que uma formação foi escolhida (CL.tacticChosen) — funciona igual em
