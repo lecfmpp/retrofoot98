@@ -9854,7 +9854,9 @@ function cupGroupGridHTML(c, key, opts){
   const drawn = opts.draw ? opts.draw.drawn.some(p=>p.h===CL.clubId) : true;
   const myLabel = drawn ? labels.find(l=>g.groups[l].teams.includes(CL.clubId)) : null;
   const ordered = (myLabel && !opts.draw) ? [myLabel, ...labels.filter(l=>l!==myLabel)] : labels;
-  return `<div class="cl-cupgrid" style="grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},1fr)">
+  // a grade da COMPETIÇÃO leva uma marca própria: o cartão dela tem seis colunas de tabela e, no
+  // telefone, precisa da largura inteira (o do sorteio, com uma linha por clube, cabe em duas)
+  return `<div class="cl-cupgrid ${opts.draw?'':'cl-cupgrid-comp'}" style="grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},1fr)">
     ${ordered.map(l=>cupGroupCardHTML(g, l, l===myLabel, opts)).join('')}</div>`;
 }
 function cupGroupCardHTML(g, label, mine, opts){
@@ -9864,35 +9866,46 @@ function cupGroupCardHTML(g, label, mine, opts){
   const res=(grp.results||[]).filter(r=>r.r===lastRound).slice(0,3);
   const live = !!opts.live && !g.finished && res.length>0;
   const badge = g.finished
-    ? `<span class="cl-cupgc-badge done">ENCERRADO</span>`
+    ? `<b class="done">ENCERRADO</b>`
     : live
-      ? `<span class="cl-cupgc-badge live"><i></i>AO VIVO</span>`
-      : `<span class="cl-cupgc-badge">RODADA ${Math.min((g.round||0)+1, g.roundsTotal)}/${g.roundsTotal}</span>`;
+      ? `<b class="live"><i></i>AO VIVO</b>`
+      : `<b>RODADA ${Math.min((g.round||0)+1, g.roundsTotal)}/${g.roundsTotal}</b>`;
+  // OS JOGOS DA RODADA: duas plaquetas nas cores dos clubes com o placar no meio. É a informação
+  // que estava faltando na tela clara — sem ela a tabela mudava sozinha, sem dizer por quê.
   const matchRow=(r)=>{
     const h=clubOf(r.h), a=clubOf(r.a);
-    return `<div class="cl-cupgc-m">
-      <span class="cl-cupgc-t" style="${clubStripe(h)}">${escC(h?h.short:r.h)}</span>
-      <span class="cl-cupgc-s">${r.hg} × ${r.ag}</span>
-      <span class="cl-cupgc-t" style="${clubStripe(a)}">${escC(a?a.short:r.a)}</span></div>`;
+    const venceH=r.hg>r.ag, venceA=r.ag>r.hg;
+    return `<div class="cl-cup2-m">
+      <span class="cl-cup2-mt ${venceH?'ganhou':''}" style="${clubStripe(h)}">${escC(h?h.short:r.h)}</span>
+      <span class="cl-cup2-ms">${r.hg}<i>×</i>${r.ag}</span>
+      <span class="cl-cup2-mt ${venceA?'ganhou':''}" style="${clubStripe(a)}">${escC(a?a.short:r.a)}</span></div>`;
   };
-  const matches = res.length
+  const jogos = res.length
     ? res.map(matchRow).join('')
-    : `<div class="cl-cupgc-m empty">aguardando a 1ª rodada</div>`;
+    : `<div class="cl-cup2-m vazio">aguardando a 1ª rodada</div>`;
   const standings=groupTableStandings(grp);
   const adv=g.advancePerGroup||2;
+  // A TABELA COMPLETA, não só os pontos: jogos, saldo e pontos. Quem olha uma fase de grupos
+  // quer saber se ainda dá — e "ainda dá" se lê no saldo e nos jogos que faltam, não no Pts.
   const rows=standings.map((t,i)=>{
     const cl=clubOf(t.id); const {col,col2}=clubColors(cl); const txtCor=barTextColor(col,col2);
-    // 1º..Nº classificados (verde) · 1º de fora (dourado, "na bolha") · último eliminado (cinza)
-    const zone = i<adv ? 'ok' : (i===adv ? 'edge' : (i===standings.length-1 ? 'out' : ''));
-    return `<div class="cl-cupgc-r ${zone} ${t.id===CL.clubId?'me':''}" data-cupt="${escC(t.id)}"
-        onmouseover="cupHover('${escC(t.id)}')" onmouseout="cupHover(null)">
-      <span class="cl-cupgc-p" style="--cor:${col};color:${txtCor}">${i+1}</span>
-      <span class="cl-cupgc-n">${escC(cl?cl.short:t.id)}</span><span class="cl-cupgc-pts">${t.Pts}</span></div>`;
+    const zone = i<adv ? 'ok' : (i===adv ? 'edge' : '');
+    const sg=(t.GF||0)-(t.GA||0);
+    return `<div class="cl-cup2-lin ${zone} ${t.id===CL.clubId?'me':''}">
+      <span class="cl-cup2-pos" style="background:${col};color:${txtCor}">${i+1}</span>
+      ${cl?clubCrestHTML(cl):''}
+      <span class="cl-cup2-tn">${escC(cl?cl.short:t.id)}</span>
+      <span class="cl-cup2-td">${t.P||0}</span>
+      <span class="cl-cup2-td">${sg>0?'+':''}${sg}</span>
+      <span class="cl-cup2-tp">${t.Pts||0}</span></div>`;
   }).join('');
-  return `<div class="cl-cupgc${mine?' mine':''}">
-    <div class="cl-cupgc-h"><span>Grupo ${escC(label)}</span>${badge}</div>
-    <div class="cl-cupgc-ms">${matches}</div>
-    <div class="cl-cupgc-tb"><div class="cl-cupgc-tl">CLASSIFICAÇÃO</div>${rows}</div></div>`;
+  return `<div class="cl-cup2-gc${mine?' mine':''}">
+    <div class="cl-cup2-gc-h"><span>Grupo ${escC(label)}</span>${badge}</div>
+    <div class="cl-cup2-jogos">${jogos}</div>
+    <div class="cl-cup2-tab">
+      <div class="cl-cup2-lh"><span></span><span></span><span>CLASSIFICAÇÃO</span><span>J</span><span>SG</span><span>P</span></div>
+      ${rows}
+    </div></div>`;
 }
 /* card do grupo DURANTE O SORTEIO: só as vagas do grupo, preenchidas na ordem em que os clubes
    saem do pote. Sem jogos e sem tabela — ainda não existe nada disputado pra mostrar. */
@@ -9962,31 +9975,100 @@ function cupPhaseTabsHTML(key, hasGroup, tab, status, locked){
    do resultado da partida recém-jogada; {live} — marca os grupos como AO VIVO nesta rodada;
    {draw} — estado da cerimônia de sorteio (CL.cupDraw): trava a aba, abre o painel do troféu/
    premiação/pote e faz a grade e a chave se preencherem clube a clube. */
+/* ===== A TELA DA COMPETIÇÃO USA A MESMA CASCA CLARA DO SORTEIO =====
+   Eram dois desenhos para a mesma competição: a cerimônia era clara e larga, com a taça contando
+   a história à esquerda; a tabela de grupos era um painel escuro, com cartões apertados. Quem
+   acabava de ver o sorteio entrava na classificação e parecia ter mudado de jogo.
+   Agora é uma casca só (cupLightShell): muda o que a coluna da esquerda conta — no sorteio, o
+   pote e a última bola; na competição, a fase, o seu grupo e a premiação — e o que o cartão de
+   grupo mostra: as vagas se preenchendo lá, os jogos e a tabela aqui. */
+function cupSideHTML(key, o){
+  o=o||{};
+  const c=S.cups&&S.cups[key];
+  const camp=cupCompetitionChampion(c) ? (clubOf(cupCompetitionChampion(c))||{}).short : cupLastChampion(key);
+  const rotulo=cupCompetitionChampion(c) ? 'CAMPEÃO' : (cupLastChampion(key)?'CAMPEÃO ATUAL':COMP_DEFS[key].short.toUpperCase());
+  const premio=cupChampionPrize(key);
+  const g=c&&c.group;
+  const fase = cupCompetitionRoundLabel(c,key);
+  // MEU GRUPO: onde eu estou, agora. É a única informação da tela que é sobre o usuário — e era
+  // a que dava mais trabalho pra achar (procurar o próprio clube em oito cartões).
+  let meu='';
+  if(g && g.groups){
+    const label=Object.keys(g.groups).find(l=>(g.groups[l].teams||[]).includes(CL.clubId));
+    if(label){
+      const tb=groupTableStandings(g.groups[label]);
+      const pos=tb.findIndex(t=>t.id===CL.clubId);
+      const eu=tb[pos]; const adv=g.advancePerGroup||2;
+      const cl=clubOf(CL.clubId);
+      meu=`<div class="cl-cup2-card cl-cup2-meu">
+        <h4>SEU GRUPO</h4>
+        <div class="cl-cup2-meu-b">
+          ${cl?clubCrestHTML(cl):''}
+          <div class="cl-cup2-meu-t">
+            <b>Grupo ${escC(label)} · ${pos+1}º lugar</b>
+            <span>${eu?`${eu.Pts} pt${eu.Pts===1?'':'s'} em ${eu.P} jogo${eu.P===1?'':'s'}`:'—'}</span>
+          </div>
+        </div>
+        <div class="cl-cup2-meu-z ${pos<adv?'ok':'fora'}">${pos<adv?'✓ na zona de classificação':'✗ fora da zona (top '+adv+' passa)'}</div>
+      </div>`;
+    }
+  }
+  return `<aside class="cl-cup2-side">
+    <div class="cl-cup2-card cl-cup2-trophy">
+      <div class="cl-cup2-trophy-img">${trophyImg(key,150)||'🏆'}</div>
+      <div class="cl-cup2-trophy-lbl">${escC(rotulo)}</div>
+      <div class="cl-cup2-trophy-nm">${escC(String(camp||'a definir').toUpperCase())}</div>
+    </div>
+    <div class="cl-cup2-card cl-cup2-fase">
+      <h4>ONDE A COPA ESTÁ</h4>
+      <div class="cl-cup2-fase-t">${escC(fase||'—')}</div>
+      ${g?`<div class="cl-cup2-fase-d">${Object.keys(g.groups||{}).length} grupos · passam ${g.advancePerGroup||2} de cada</div>`:''}
+    </div>
+    ${premio?`<div class="cl-cup2-card cl-cup2-prize">${moneyStackSVG(26)}
+      <div><span>PRÊMIO TOTAL</span><b>${escC(fmt(premio))}</b><i>AO CAMPEÃO</i></div></div>`:''}
+    ${meu}</aside>`;
+}
+/* casca clara compartilhada pelo sorteio e pela competição */
+function cupLightShell(key, o){
+  const fim=o.fim;
+  const aba=(id,label,ativa,clicavel)=>clicavel
+    ? `<button class="cl-cup2-tab${ativa?' on':''}" onclick="clCupTab('${escC(key)}','${id}')">${escC(label)}</button>`
+    : `<span class="cl-cup2-tab${ativa?' on':''}">${escC(label)}</span>`;
+  return `<div class="cl-cupscr cl-cup2">
+    <header class="cl-cup2-hdr">
+      <span class="cl-cup2-tr">${trophyImg(key,44)||'🏆'}</span>
+      <h1 class="cl-cup2-nm">${escC(COMP_DEFS[key].name.toUpperCase())}</h1>
+      <span class="cl-cup2-yr">${escC(String(S.season||''))}</span>
+      <div class="cl-cup2-sp"></div>
+      ${o.status?`<div class="cl-cup2-st${fim?' done':''}">${o.status}</div>`:''}
+      ${o.actions?`<div class="cl-cup2-act">${o.actions}</div>`:''}
+    </header>
+    ${o.result||''}
+    <div class="cl-cup2-body">
+      ${o.side}
+      <main class="cl-cup2-main">
+        <div class="cl-cup2-tabs">${o.hasGroup?aba('grupos','FASE DE GRUPOS',o.tab==='grupos',o.tabsOn):''}${aba('chave','MATA-MATA',o.tab==='chave',o.tabsOn)}</div>
+        <div class="cl-cup2-stage">${o.body}</div>
+        ${cupAdSlotHTML(key, o.tab==='grupos'?'grupos':'confrontos')}
+      </main>
+    </div>
+  </div>`;
+}
 function cupScreenHTML(key, opts){
   opts=opts||{};
   const c=S.cups&&S.cups[key]; if(!c) return '';
   CL._cupKey=key;
-  const dr=opts.draw;
   const hasGroup=cupHasGroupTab(key,c);
-  const tab = dr ? (dr.stage==='group'?'grupos':'chave') : (hasGroup ? (CL.cupTab==='chave'?'chave':'grupos') : 'chave');
+  const tab = hasGroup ? (CL.cupTab==='chave'?'chave':'grupos') : 'chave';
   const body = tab==='grupos' ? cupGroupGridHTML(c,key,opts) : cupBracketStageHTML(c,key,opts);
   const champ=cupCompetitionChampion(c);
-  const status = dr
-    ? (dr.idx>=dr.reveal.length ? 'sorteio encerrado' : `sorteando ${dr.idx}/${dr.reveal.length}`)
-    : (champ ? `campeão: ${(clubOf(champ)||{}).short||champ}` : cupCompetitionRoundLabel(c,key));
-  return `<div class="cl-cupscr">
-    <div class="cl-cupscr-hdr">
-      <span class="cl-cupscr-tr">${trophyImg(key,38)||'🏆'}</span>
-      <span class="cl-cupscr-nm">${escC(COMP_DEFS[key].name)}</span>
-      <span class="cl-cupscr-se">${escC(String(S.season||''))}</span>
-      <div class="cl-cupscr-sp"></div>
-      ${opts.actions?`<div class="cl-cupscr-act">${opts.actions}</div>`:''}
-    </div>
-    ${opts.result||''}
-    ${cupPhaseTabsHTML(key, hasGroup && (!dr || dr.stage==='group'), tab, status, !!dr)}
-    <div class="cl-cupscr-panel">${body}</div>
-    ${cupAdSlotHTML(key, tab==='grupos'?'grupos':'confrontos')}
-  </div>`;
+  return cupLightShell(key, {
+    tab, hasGroup, tabsOn:true, body, actions:opts.actions, result:opts.result,
+    fim:!!champ,
+    status: champ ? `<span>campeão: ${escC((clubOf(champ)||{}).short||champ)}</span><span class="cl-cup2-ok">🏆</span>`
+                  : `<span>${escC(cupCompetitionRoundLabel(c,key)||'')}</span>`,
+    side: cupSideHTML(key, {}),
+  });
 }
 /* ===== CERIMÔNIA DO SORTEIO — layout claro (Libertadores, Sul-Americana, Copa do Brasil) =====
    A cerimônia é o único momento em que a competição é a tela inteira, e ela tinha o mesmo
@@ -10051,28 +10133,12 @@ function cupDrawScreenHTML(key, dr, actions){
   const tab = dr.stage==='group'?'grupos':'chave';
   const body = tab==='grupos' ? cupGroupGridHTML(c,key,{draw:dr}) : cupBracketStageHTML(c,key,{draw:dr});
   const fim=dr.idx>=dr.reveal.length;
-  const aba=(id,label,ativa)=>`<span class="cl-cup2-tab${ativa?' on':''}">${escC(label)}</span>`;
-  return `<div class="cl-cupscr cl-cup2">
-    <header class="cl-cup2-hdr">
-      <span class="cl-cup2-tr">${trophyImg(key,44)||'🏆'}</span>
-      <h1 class="cl-cup2-nm">${escC(COMP_DEFS[key].name.toUpperCase())}</h1>
-      <span class="cl-cup2-yr">${escC(String(S.season||''))}</span>
-      <div class="cl-cup2-sp"></div>
-      <div class="cl-cup2-st${fim?' done':''}">
-        ${fim?`<span>Sorteio encerrado</span><span class="cl-cup2-ok">✓</span>`
-             :`<span>Sorteando ${dr.idx}/${dr.reveal.length}</span>`}
-      </div>
-      ${actions?`<div class="cl-cup2-act">${actions}</div>`:''}
-    </header>
-    <div class="cl-cup2-body">
-      ${cupDrawSideHTML(key,dr)}
-      <main class="cl-cup2-main">
-        <div class="cl-cup2-tabs">${hasGroup?aba('grupos','FASE DE GRUPOS',tab==='grupos'):''}${aba('chave','MATA-MATA',tab==='chave')}</div>
-        <div class="cl-cup2-stage">${body}</div>
-        ${cupAdSlotHTML(key,'sorteio')}
-      </main>
-    </div>
-  </div>`;
+  return cupLightShell(key, {
+    tab, hasGroup, tabsOn:false, body, actions, fim,
+    status: fim ? `<span>Sorteio encerrado</span><span class="cl-cup2-ok">✓</span>`
+                : `<span>Sorteando ${dr.idx}/${dr.reveal.length}</span>`,
+    side: cupDrawSideHTML(key,dr),
+  });
 }
 /* ---- estado/interação da tela (tudo na própria tela: nada abre modal) ---- */
 function clCupTab(key,tab){ CL.cupTab=tab; CL._cupTie=null; cdraw(); }
