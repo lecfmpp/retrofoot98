@@ -1247,6 +1247,9 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-oval-locked{font-size:14px;color:#555;min-width:220px;text-align:right}
 .cl-oval-locked i{font-style:italic;opacity:.8}
 .cl-oside{position:absolute;right:16px;top:44px;display:flex;flex-direction:column;align-items:center;gap:6px}
+/* aviso do interruptor de teste do ritmo (ver TEMPO_TESTE em main.js) */
+.cl-opt-teste{margin-top:10px;background:#ffffcc;border:2px solid;border-color:var(--bevel-field);
+  padding:9px 11px;font-size:12.5px;line-height:1.45;color:#111}
 /* PARTIDA AO VIVO (placar por divisões) */
 /* FUNDO CLARO NA RODADA AO VIVO. O feltro verde é a mesa do jogo — ele é o certo pro menu, pro
    sorteio e pras telas de leitura. Na rodada ao vivo a tela é uma GRADE DE PLACARES em cores de
@@ -1835,10 +1838,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
   .cl-lp-h3{font-size:22px}
   .cl-lp-foot-cols{grid-template-columns:1fr 1fr}
   .cl-lp-2in{grid-template-columns:1fr}
-  /* no telefone o cabeçalho tem 390px pra logo + duas portas: o "Jogar agora" fica só no ícone
-     (o title diz o resto) e o "Entrar" de login vai pro menu — a lista de espera é a que fica
-     por extenso, porque é a campanha */
-  .cl-lp-btn-so{display:none}
+  /* no telefone o "Entrar" fica só no ícone (o title diz o resto) e a lista de espera fica por
+     extenso, porque é a campanha. Nada é escondido: com uma porta só, as duas cabem. */
   .cl-lp-so-lg{display:none}
   .cl-lp-hdr-r{gap:6px}
   .cl-lp-btn{padding:0 12px;font-size:13px}

@@ -672,10 +672,10 @@ function clToggleNavMenu(e){ if(e&&e.stopPropagation) e.stopPropagation(); CL.na
    elencos, 100% online), ranking com prêmio, Ligas Oficiais, criadores, lista de espera,
    patrocínio e canais.
 
-   DUAS PORTAS, de propósito. O desenho original tinha só "entrar na lista de espera" — mas o jogo
-   JÁ ESTÁ NO AR: tirar o "Jogar agora" fecharia a porta de quem quer jogar hoje. A lista de espera
-   é o CTA do herói (é a campanha da primeira versão) e o "Jogar agora" fica no cabeçalho, ao lado
-   do Entrar, em todas as telas.
+   O CABEÇALHO TEM UMA PORTA SÓ: "Entrar na lista" (a campanha da primeira versão) e, ao lado, o
+   "Entrar" de quem já tem conta. O "Jogar agora" saiu do topo — a página é de venda, e dois CTAs
+   verdes competindo no mesmo canto diluíam a campanha. Quem quer jogar agora continua com o
+   botão no herói, logo abaixo do CTA principal, e com o "Entrar" no topo em qualquer tela.
 
    O visual segue o resto do jogo: bisel de 2px, quadrado, Tahoma pro texto e Georgia itálico nos
    títulos. O cabeçalho branco e os cartões são do handoff. */
@@ -752,8 +752,7 @@ function scAbertura(){
         <nav class="cl-lp-navlinks ${CL.navMenuOpen?'open':''}">${menu}</nav>
         <div class="cl-lp-hdr-r">
           <button class="cl-lp-burger" onclick="clToggleNavMenu(event)" aria-label="Menu">☰</button>
-          <button class="cl-lp-btn" onclick="clGoModo()" title="Jogar agora"><span>⚽</span><span class="cl-lp-so-lg">Jogar agora</span></button>
-          <button class="cl-lp-btn cl-lp-btn-so" onclick="clGoModo('login')"><span>🔑</span>Entrar</button>
+          <button class="cl-lp-btn" onclick="clGoModo('login')" title="Entrar no jogo"><span>🔑</span><span class="cl-lp-so-lg">Entrar</span></button>
           <button class="cl-lp-cta" onclick="clWaitlistOpen()">Entrar na lista</button>
         </div>
       </div>
@@ -5880,7 +5879,7 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
   }
   // Online: o ritmo é o do ANFITRIÃO (games.speed_mult, sincronizado — ver clSetTempo/wireNet),
   // não a preferência local de cada convidado. Solo: cada um usa a própria opção "Tempo de jogo".
-  const spd = CL.online ? TEMPO_MS['Usain Bolt'] : (TEMPO_MS[(CL.options&&CL.options.tempo)||TEMPO_DEFAULT]||TEMPO_MS[TEMPO_DEFAULT]);
+  const spd = CL.online ? TEMPO_MS['Usain Bolt'] : (TEMPO_MS[tempoLabelAtual()]||TEMPO_MS[TEMPO_DEFAULT]);
   const actualSpd=Math.max(onlineTickFloorMs(RL), spd / roundSpeedMult());
   CL._liveTimer=setTimeout(liveTick, actualSpd);
 }
@@ -5891,6 +5890,9 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
    ritmo diferente do anfitrião; e como o Modo Camarote é travado por velocidade, ele aparecia
    liberado só pra quem tinha o valor certo — na prática, só pro anfitrião. */
 function roundSpeedMult(){
+  // teste ligado: o ritmo é o mesmo pra todo mundo, sala ou solo — inclusive pro convidado, que
+  // normalmente segue o anfitrião (senão um lado correria e o outro não)
+  if(TEMPO_TESTE && TEMPO_MULT[TEMPO_TESTE]) return TEMPO_MULT[TEMPO_TESTE];
   if(CL.online && typeof NET!=='undefined' && NET.room && NET.room.speedMult) return NET.room.speedMult;
   return CL.speedMult||1;
 }
@@ -5904,6 +5906,9 @@ function roundSpeedMult(){
    humano×humano viva nesta rodada; nas demais o anfitrião manda no ritmo sem freio nenhum. */
 const STREAM_MIN_MS=300;   // ~3 minutos de jogo por batida de heartbeat (900ms) — assistível
 function onlineTickFloorMs(RL){
+  // com o teste ligado o piso cai pro próprio ritmo de teste: o piso existe pra transmissão
+  // humano×humano ficar assistível, e em bancada a gente quer justamente que ela voe
+  if(TEMPO_TESTE && TEMPO_MS[TEMPO_TESTE]) return 12;
   if(!CL.online || !RL) return 12;
   const ms=RL.matches||[];
   const assistindo = ms.some(m=>(m.streamRemote||m.spectate) && !m.streamDone && !m.streamDead);
@@ -6550,7 +6555,7 @@ const CAM_TATICA={retranca:'Retranca',equilibrado:'Equilibrado',ofensivo:'Ofensi
    Vale pros dois modos: no solo lê a opção local, na Resenha lê o ritmo do anfitrião. */
 function camTempoMs(){
   if(CL.online) return TEMPO_MS['Usain Bolt']/roundSpeedMult();
-  return TEMPO_MS[(CL.options&&CL.options.tempo)||TEMPO_DEFAULT]||TEMPO_MS[TEMPO_DEFAULT];
+  return TEMPO_MS[tempoLabelAtual()]||TEMPO_MS[TEMPO_DEFAULT];
 }
 // tolerância de 1ms: o ritmo online vem de uma divisão (37/mult) e pode cair em 109.9999
 function camSpeedOk(){ return camTempoMs() >= (TEMPO_MS['Ultrassônico']-1); }
@@ -8843,6 +8848,23 @@ const TEMPO_MS={Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37
    partida) é o ponto em que ainda dá pra assistir sem ficar lento. Quem quiser o extremo continua
    escolhendo Usain Bolt na mão — só perde o Camarote enquanto estiver nele. */
 const TEMPO_DEFAULT='Ultrassônico';
+/* ===== INTERRUPTOR TEMPORÁRIO DE TESTE: RITMO ULTRASSÔNICO NOS DOIS MODOS =====
+   Ligado, força o rótulo abaixo no Solo E na Resenha, ignorando a opção salva de cada save e o
+   ritmo escolhido pelo anfitrião da sala. É uma trava de BANCADA — serve pra rodar temporada
+   inteira em minutos enquanto se testa outra coisa, não pra ser o comportamento do jogo.
+
+   PRA DESLIGAR: ponha null aqui. Nada mais precisa mudar — quem lê o ritmo passa por
+   tempoLabelAtual()/roundSpeedMult(), e os dois voltam a respeitar a opção do usuário e a
+   configuração da sala no mesmo instante.
+
+   Enquanto estiver ligado, a tela de Opções mostra o aviso (ver renderOptions) pra ninguém
+   passar meia hora achando que a preferência dele quebrou. */
+const TEMPO_TESTE='Ultrassônico';   // ← null desliga
+/* rótulo de ritmo que vale AGORA (o de teste, quando ligado; senão a opção do save) */
+function tempoLabelAtual(){
+  if(TEMPO_TESTE && TEMPO_MS[TEMPO_TESTE]) return TEMPO_TESTE;
+  return (CL.options&&CL.options.tempo)||TEMPO_DEFAULT;
+}
 /* A Resenha usa a MESMA escala do solo: o rótulo escolhido pelo ANFITRIÃO vale ms por ms pra todo
    mundo (viaja em games.speed_mult = TEMPO_MS['Usain Bolt']/TEMPO_MS[rótulo], então
    TEMPO_MS['Usain Bolt']/speed_mult devolve exatamente o ms dele). A Fase 3B tinha ancorado o
@@ -8862,6 +8884,7 @@ function clOptions(){ CL.menu=null; CL.optTab='geral';
     subsIntervalo:'Sim',penaltisCPU:'Sim',tempo:TEMPO_DEFAULT};
   renderOptions(); }
 function renderOptions(){ const o=CL.options; const tab=CL.optTab||'geral';
+  const avisoTeste = TEMPO_TESTE ? `<div class="cl-opt-teste">🧪 <b>Modo de teste:</b> o ritmo está travado em <b>${escC(TEMPO_TESTE)}</b> no Solo e na Resenha, ignorando esta opção e a escolha do anfitrião.</div>` : '';
   const sel=(id,opts,val)=>`<select class="cl-osel" onchange="CL.options['${id}']=this.value">${opts.map(x=>`<option ${x===val?'selected':''}>${escC(x)}</option>`).join('')}</select>`;
   const geral=`<div class="cl-orow"><span>Mostrar chicotadas psicológicas</span>${sel('chicotadas',['Nunca','Dos humanos','De todos'],o.chicotadas)}</div>
     <div class="cl-orow"><span>Ver sorteio da taça</span>${sel('sorteio',['Nunca','Quando houver humanos','Sempre'],o.sorteio)}</div>
@@ -8873,7 +8896,7 @@ function renderOptions(){ const o=CL.options; const tab=CL.optTab||'geral';
     : `<div class="cl-orow"><span>Tempo de jogo${CL.online?' <i>(vale pra todos)</i>':''}</span><select class="cl-osel" onchange="clSetTempo(this.value)">${['Curto','Médio','Longo','Ultrassônico','Usain Bolt'].map(x=>`<option ${x===o.tempo?'selected':''}>${escC(x)}</option>`).join('')}</select></div>`;
   const jogo=`<div class="cl-orow"><span>Substituições ao intervalo</span>${sel('subsIntervalo',['Sim','Não'],o.subsIntervalo)}</div>
     <div class="cl-orow"><span>Ver os desempates por penalties<br>nos jogos sem treinadores humanos</span>${sel('penaltisCPU',['Sim','Não'],o.penaltisCPU)}</div>
-    ${tempoRow}`;
+    ${tempoRow}${avisoTeste}`;
   overlayC(dlg('Opções', `<div class="cl-opt">
     <div class="cl-otabs"><span class="cl-otab ${tab==='geral'?'on':''}" onclick="CL.optTab='geral';renderOptions()">Geral</span><span class="cl-otab ${tab==='jogo'?'on':''}" onclick="CL.optTab='jogo';renderOptions()">Jogo</span></div>
     <div class="cl-opanel">${tab==='geral'?geral:jogo}</div>

@@ -137,7 +137,7 @@ footer a:hover{text-decoration:underline;color:#ffff00}
       <a href="/historia-do-elifoot/">História</a>
       <a href="/jogar-com-amigos/">Jogar com amigos</a>
     </nav>
-    <a class="cta" href="/">⚽ Jogar agora</a>
+    <a class="cta" href="/">📋 Entrar na lista</a>
   </div>
 </header>
 <main>
