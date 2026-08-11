@@ -1581,5 +1581,32 @@ NET.listSoloSaves = netListSoloSaves;
 NET.loadSoloSave = netLoadSoloSave;
 NET.saveSoloGame = netSaveSoloGame;
 NET.deleteSoloSave = netDeleteSoloSave;
+
+/* ---- TEMPO DE JOGO ----
+   O painel dos sócios mostra "tempo médio por usuário" e "ativos em 7 dias", e nada no jogo
+   media isso: só havia o último login, que não distingue quem entrou e saiu de quem jogou
+   duas horas. Um tique por minuto de jogo REAL (aba visível e dentro do jogo, não parado na
+   Home) incrementa um contador por conta/dia — uma linha por dia, não por sessão.
+   Falha de rede aqui é irrelevante: perde-se um minuto de estatística, nada do jogo. */
+let HB_TIMER = null;
+function netStartHeartbeat(){
+  if(HB_TIMER) return;
+  HB_TIMER = setInterval(async ()=>{
+    try{
+      if(document.hidden) return;                       // aba em segundo plano não conta
+      if(!sb || !SB_AUTH_USER) return;                  // deslogado não tem a quem creditar
+      if(typeof CL==='undefined' || !CL) return;
+      // só conta quem está DENTRO de um jogo (hub, partida, classificação…) — a landing,
+      // o login e os assistentes de criação não são tempo de jogo
+      const dentro = ['main','live','classif','cupclassif','cupview','cupdraw','waitround',
+                      'imprensa','teamview','seatturn','seatclassif','handoff','boasvindas'];
+      if(dentro.indexOf(CL.screen) < 0) return;
+      await sb.rpc('rf_heartbeat', { p_modo: CL.online ? 'resenha' : 'solo' });
+    }catch(e){}
+  }, 60000);
+}
+NET.startHeartbeat = netStartHeartbeat;
+netStartHeartbeat();
+
 NET.useSupabase = true;
 

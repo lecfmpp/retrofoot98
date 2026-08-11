@@ -1,57 +1,79 @@
 {
-  "hosting": {
-    "public": "dist",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [{ "source": "**", "destination": "/index.html" }],
-    "headers": [
-      {
-        "source": "**",
-        "headers": [
-          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-        ]
-      },
-      {
-        "source": "assets/**",
-        "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-        ]
-      },
-      {
-        "source": "/",
-        "headers": [
-          { "key": "Link", "value": "</sitemap.xml>; rel=\"sitemap\", </llms.txt>; rel=\"describedby\"; type=\"text/markdown\"" }
-        ]
-      },
-      {
-        "source": "/index.html",
-        "headers": [
-          { "key": "Link", "value": "</sitemap.xml>; rel=\"sitemap\", </llms.txt>; rel=\"describedby\"; type=\"text/markdown\"" }
-        ]
-      },
-      {
-        "source": "/llms.txt",
-        "headers": [
-          { "key": "Content-Type", "value": "text/markdown; charset=utf-8" }
-        ]
-      },
-      {
-        "source": "/robots.txt",
-        "headers": [
-          { "key": "Content-Type", "value": "text/plain; charset=utf-8" }
-        ]
-      },
-      {
-        "source": "/ads.txt",
-        "headers": [
-          { "key": "Content-Type", "value": "text/plain; charset=utf-8" }
-        ]
-      },
-      {
-        "source": "/sitemap.xml",
-        "headers": [
-          { "key": "Content-Type", "value": "application/xml; charset=utf-8" }
-        ]
-      }
-    ]
-  }
+  "hosting": [
+    {
+      "//": "SITE DO JOGO — retrofoot98.com.br. Nada aqui mudou com o painel: o admin saiu para um site próprio.",
+      "target": "jogo",
+      "public": "dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [{ "source": "**", "destination": "/index.html" }],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          ]
+        },
+        {
+          "source": "assets/**",
+          "headers": [
+            { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+          ]
+        },
+        {
+          "source": "/",
+          "headers": [
+            { "key": "Link", "value": "</sitemap.xml>; rel=\"sitemap\", </llms.txt>; rel=\"describedby\"; type=\"text/markdown\"" }
+          ]
+        },
+        {
+          "source": "/index.html",
+          "headers": [
+            { "key": "Link", "value": "</sitemap.xml>; rel=\"sitemap\", </llms.txt>; rel=\"describedby\"; type=\"text/markdown\"" }
+          ]
+        },
+        {
+          "source": "/llms.txt",
+          "headers": [
+            { "key": "Content-Type", "value": "text/markdown; charset=utf-8" }
+          ]
+        },
+        {
+          "source": "/robots.txt",
+          "headers": [
+            { "key": "Content-Type", "value": "text/plain; charset=utf-8" }
+          ]
+        },
+        {
+          "source": "/ads.txt",
+          "headers": [
+            { "key": "Content-Type", "value": "text/plain; charset=utf-8" }
+          ]
+        },
+        {
+          "source": "/sitemap.xml",
+          "headers": [
+            { "key": "Content-Type", "value": "application/xml; charset=utf-8" }
+          ]
+        }
+      ]
+    },
+    {
+      "//": "PAINEL DOS SÓCIOS — admin.retrofoot98.com.br. Site separado de propósito: deploy do painel não toca no jogo, e o jogo não serve nenhum ficheiro do painel.",
+      "target": "admin",
+      "public": "public/admin",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [{ "source": "**", "destination": "/index.html" }],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+            { "key": "X-Robots-Tag", "value": "noindex, nofollow" },
+            { "key": "X-Frame-Options", "value": "DENY" },
+            { "key": "Referrer-Policy", "value": "same-origin" }
+          ]
+        }
+      ]
+    }
+  ]
 }

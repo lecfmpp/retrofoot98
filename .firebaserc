@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "elifoot-d368d"
+  },
+  "targets": {
+    "elifoot-d368d": {
+      "hosting": {
+        "jogo": ["elifoot-d368d"],
+        "admin": ["retrofoot98-admin"]
+      }
+    }
   }
 }

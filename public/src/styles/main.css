@@ -1895,6 +1895,44 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-ad-rect .cl-ad-cta{align-self:stretch;text-align:center}
 /* dentro do modal da partida ao vivo o slot fecha a janela: mesma moldura, coladinho na base */
 .cl-ad-live{margin:0;border-left:0;border-right:0;border-bottom:0}
+
+/* ===== CRIATIVO DE VERDADE (painel dos sócios — ver public/src/net/ads.js) =====
+   Quando um anunciante tem arte publicada naquela chave, o bloco acima é substituído por
+   esta peça: a arte inteira, sem o cartão-casa por baixo. Mesma moldura rebaixada e mesmo
+   rótulo "PUBLICIDADE" (herdados de .cl-ad) — o que muda é o conteúdo.
+   TODOS estes blocos só existem no HTML quando há criativo: espaço vazio não é desenhado. */
+.rf-ad{position:relative;overflow:hidden;background:#0a0a0a;line-height:0}
+.rf-ad .rf-ad-art{display:block;width:100%;height:auto;max-height:250px;object-fit:contain}
+.rf-ad.cl-ad{margin:12px 0 0;border:2px solid;border-color:var(--bevel-field)}
+.rf-ad.cl-ad:before{content:"PUBLICIDADE";position:absolute;top:0;left:0;z-index:1;
+  background:var(--chrome);color:#4a4a4a;font:700 9px/1 var(--sans);letter-spacing:1px;padding:2px 6px}
+/* retângulo da coluna direita do hub (300×250) */
+.rf-ad-rect{margin:8px 0 0;border:2px solid;border-color:var(--bevel-field)}
+.rf-ad-rect .rf-ad-art{max-height:250px}
+/* splash da tela de carregamento (16:9) e cartão do convite (1200×630) */
+.rf-ad-splash,.rf-ad-card{margin:14px auto;max-width:520px;border:2px solid;border-color:var(--bevel-field)}
+.rf-ad-splash .rf-ad-art,.rf-ad-card .rf-ad-art{max-height:none}
+/* faixa entre divisões na partida ao vivo */
+.rf-ad-inline{margin:10px auto;max-width:468px}
+.rf-ad-inline .rf-ad-art{max-height:60px}
+/* FAIXA ÂNCORA — o único espaço por cima do conteúdo. Fica presa ao rodapé, centrada, e
+   reserva o seu próprio espaço com padding no fim da página (ver .cl-lp-page/.cl-wrap). */
+.rf-anchor{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:44;
+  max-width:min(970px,100vw);box-shadow:0 -6px 18px rgba(0,0,0,.45);
+  padding-bottom:env(safe-area-inset-bottom,0px)}
+.rf-anchor .rf-ad-art{max-height:100px}
+/* espaço reservado no fim da página (a classe é posta por ADS.scan quando a faixa existe) */
+body.rf-tem-anchor .cl-lp-page,
+body.rf-tem-anchor .cl-wrap{padding-bottom:118px}
+@media (max-width:760px){
+  /* no telefone a barra de abas do jogo mora no rodapé: a faixa sobe para cima dela em vez
+     de a tapar (56px da barra + a área segura do aparelho) */
+  .rf-anchor{bottom:calc(56px + env(safe-area-inset-bottom,0px));width:100%}
+  .rf-anchor .rf-ad-art{max-height:50px}
+  .rf-ad-inline .rf-ad-art{max-height:50px}
+  body.rf-tem-anchor .cl-lp-page,
+  body.rf-tem-anchor .cl-wrap{padding-bottom:124px}
+}
 @media (max-width:760px){
   .cl-ad{margin-top:10px}
   .cl-ad-in{height:64px;gap:10px;padding:0 10px}

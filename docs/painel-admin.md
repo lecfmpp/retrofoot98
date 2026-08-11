@@ -1,0 +1,179 @@
+# Painel dos sócios — como funciona
+
+Painel de administração do RetroFoot98: usuários, engajamento, finanças, publicidade e
+funcionalidades. Vive em `public/admin/` (HTML/CSS/JS clássico, sem build, como o jogo) e é
+publicado num **site Firebase separado** — deploy do painel não toca no jogo, e o jogo não
+serve nenhum arquivo do painel.
+
+Referência de design: o handoff *Dashboard administrativo do projeto* (protótipo
+`Painel Admin v2.dc.html` + `IMPLEMENTACAO.md`).
+
+---
+
+## 1. Onde vive cada coisa
+
+| Peça | Caminho |
+|---|---|
+| Página do painel | `public/admin/index.html` · `admin.css` · `admin.js` |
+| Entrega de anúncios no jogo | `public/src/net/ads.js` |
+| Slots dentro do jogo | `adSlotHTML()` / `anchorAdHTML()` em `public/src/ui/main.js` |
+| Estilo dos criativos | bloco “CRIATIVO DE VERDADE” em `public/src/styles/main.css` |
+| Batimento de tempo de jogo | `netStartHeartbeat()` em `public/src/net/supabase-adapter.js` |
+| Hosting | `firebase.json` (dois targets: `jogo` e `admin`) · `.firebaserc` |
+
+### Dois schemas no Supabase, de propósito
+
+- **`admin_rf98`** — o que só os sócios veem: `adm_users`, `adm_invites`, `adm_lancamentos`,
+  `adm_patrocinadores`, `adm_user_plans`, `adm_kanban_cols`, `adm_features`, `adm_config`.
+  O papel `anon` **não tem sequer USAGE** neste schema: um bug no jogo não alcança as finanças.
+- **`elifoot_v3`** (schema do jogo) — só o que o **jogo** precisa ler/escrever:
+  `ad_spaces`, `ad_creatives`, `ad_events` e `user_activity`.
+
+A linha divisória é “quem toca nisto?”, não “isto é do painel?”. O inventário de anúncios é
+servido ao jogador deslogado, então pertence ao schema do jogo.
+
+> O schema novo foi exposto na API com
+> `alter role authenticator set pgrst.db_schemas = 'public, elifoot_v3, admin_rf98'`.
+> **Atenção:** gravar a página *Settings → API* no dashboard do Supabase pode reescrever essa
+> lista. Se o painel começar a devolver 404 nas tabelas, é isto — reponha `admin_rf98` na lista
+> de *Exposed schemas*.
+
+---
+
+## 2. Quem entra no painel
+
+Não há trigger em `auth.users`: a **mesma** base autentica os jogadores do jogo. Ser admin é
+estar em `admin_rf98.adm_users`, e o único caminho para lá é:
+
+1. um sócio cria um convite (`admin_rf98.convidar(email, papel, mensagem)`);
+2. a pessoa entra (ou cria conta) com **esse e-mail**;
+3. o painel chama `admin_rf98.reivindicar_convite(token)`, que confere e-mail × convite e insere
+   a linha em `adm_users`.
+
+Sem convite ativo, o painel não abre — mesmo com conta válida no jogo.
+
+**Papéis:** `socio` (tudo), `financeiro` (Finanças + Publicidade), `produto` (Analytics,
+Usuários, Resenhas, Funcionalidades), `leitura` (vê, não escreve). O papel é aplicado nos dois
+lados: a navegação esconde o que não interessa e a RLS recusa a escrita (`admin_rf98.pode()`).
+
+**Primeiro acesso:** o primeiro convite não pode sair do painel (não haveria sócio para clicar
+no botão), então foi criado direto no banco — `socio` para `lecfmpp@gmail.com`. Do segundo em
+diante é tudo pela tela *Equipe admin*. Para repetir o truque com outro e-mail, no SQL editor:
+
+```sql
+insert into admin_rf98.adm_invites (email, papel, expira_em)
+values ('outro@email.com', 'socio', now() + interval '30 days')
+on conflict (lower(email)) where aceito_em is null
+do update set papel = 'socio', expira_em = now() + interval '30 days';
+```
+
+**Envio do convite:** o painel gera o link (`?convite=<token>`) e copia-o para a área de
+transferência — não manda e-mail sozinho, porque isso exige uma edge function com credencial de
+envio. A recuperação de senha, essa sim, reutiliza a function `send-password-reset` que
+o jogo já usa (com o e-mail da marca, via Resend).
+
+---
+
+## 3. Publicidade — o inventário e a ligação com o jogo
+
+O contrato entre painel e jogo é a **chave** do espaço. Os oito espaços estão em
+`elifoot_v3.ad_spaces`:
+
+| Chave | Onde aparece no jogo | Desktop | Celular | Formatos | Peso |
+|---|---|---|---|---|---|
+| `rf98.anchor.bottom` | faixa fixa no rodapé da Home e do Hub | 970×250 | 320×50 | JPG, PNG, WEBP | 150 KB |
+| `rf98.hub.sidebar` | coluna direita do Hub + Sala de Troféus | 300×250 | 300×250 | JPG, PNG, WEBP | 120 KB |
+| `rf98.match.halftime` | modal do intervalo da partida | 640×480 | 320×480 | + MP4 (≤15 s) | 800 KB |
+| `rf98.copa.sponsor` | modais de copa (sorteio, grupos, chave) | 250×250 | 160×160 | PNG, WEBP | 80 KB |
+| `rf98.auction.footer` | modal de leilão | 728×90 | 320×100 | JPG, PNG, WEBP | 120 KB |
+| `rf98.loading.splash` | tela “A iniciar o jogo…” | 1280×720 | 720×1280 | JPG, WEBP | 400 KB |
+| `rf98.live.inline` | partida ao vivo, abaixo das divisões | 234×60 | 234×60 | JPG, PNG, WEBP | 60 KB |
+| `rf98.resenha.invite` | cartão do convite da Resenha | 1200×630 | 1200×630 | JPG, PNG | 300 KB |
+
+**Regra de ouro:** espaço sem criativo **não é desenhado**. Enquanto ninguém publicar nada, o
+jogo fica exatamente como estava — os espaços de modal continuam a mostrar o anúncio-casa
+(`AD_SPONSORS`), que é o comportamento que já existia.
+
+### Ciclo de vida
+
+1. **Upload** (painel → Publicidade → *Enviar*): valida **extensão**, **peso** e **dimensão
+   exata** (desktop ou celular) lendo o próprio arquivo antes de subir; MP4 também valida a
+   duração (≤ 15 s). Vai para o bucket público `publicidade`.
+2. **Publicar substitui**: o criativo anterior daquela chave passa a `ativo = false`. Um espaço
+   tem no máximo um criativo no ar.
+3. **Leitura no jogo**: `ads.js` faz um GET público de `ad_creatives` (RLS deixa ver só o que
+   está no ar), guarda em memória e em `localStorage`, e recarrega a cada 5 minutos.
+4. **Impressão**: contada quando o bloco **entra no viewport** (`IntersectionObserver`), no
+   máximo uma por chave a cada 30 s — o jogo remonta a tela inteira a cada `cdraw()`, contar no
+   desenho inflaria tudo. **Clique**: registrado e abre o `link_destino` em aba nova
+   (`noopener`).
+5. Ambos gravam em `elifoot_v3.ad_events` via `rf_ad_event()`, e o painel mostra impressões,
+   cliques e CTR dos últimos 30 dias.
+
+Para acrescentar um espaço novo: inserir a linha em `ad_spaces` **e** chamar
+`adSlotHTML('nova.chave')` (ou `ADS.html(...)`) na tela — sem os dois lados, o painel mostra um
+espaço que nunca aparece.
+
+---
+
+## 4. De onde vem cada número
+
+Tudo o que o painel mostra sai da base real, através de funções `SECURITY DEFINER` em
+`admin_rf98` (o painel roda no browser e não pode ler `auth.users` diretamente):
+`overview`, `usuarios`, `jogos`, `analytics`, `publicidade`.
+
+- **Pontos / ranking**: `Pts` do clube do técnico em cada save solo (`solo_saves`) e em cada
+  assento de Resenha (`games.shared_state`).
+- **Tempo de jogo / ativos**: `user_activity`, alimentada pelo batimento de um minuto do próprio
+  jogo — só conta com a aba visível, logado e **dentro** de um jogo (a Home e os assistentes de
+  criação não contam). Contas antigas aparecem com 0 min: a medição só existe a partir de agora.
+- **Convites da Resenha**: `room_invites` + `join_requests`; `aceite` = o convidado acabou
+  sentado naquela sala; `expirado` = mais de 48 h sem isso.
+- **Plano / MRR**: `adm_user_plans`, mantida à mão — não há cobrança ligada ao jogo. Enquanto
+  ninguém preencher, todos aparecem como `grátis` e o MRR é R$ 0. É o único lugar onde o painel
+  depende de dado inserido manualmente, e é de propósito: melhor um zero honesto do que um número
+  inventado.
+- **Finanças**: `adm_lancamentos`, em centavos. Recorrência mensal/anual materializa os meses em
+  falta ao abrir a página (`gerar_recorrencias()`, idempotente).
+- **Analytics**: contas criadas, atividade diária e funil saem da base própria. Os blocos de
+  **GA4** (origem de tráfego, páginas, dispositivo) precisam da Google Analytics Data API, que
+  exige uma chave de serviço no servidor — o painel não pode guardá-la. Assim que houver um job a
+  escrever o snapshot em `adm_config['ga4_snapshot']`, os blocos aparecem sozinhos:
+
+  ```json
+  { "visitas": 12000, "fontes": [{"nome":"Orgânico","pct":42}],
+    "paginas": [{"url":"/","n":8100}], "device": [{"l":"Celular","v":"63%"}] }
+  ```
+
+---
+
+## 5. Deploy
+
+O painel é um site Firebase próprio no mesmo projeto (`elifoot-d368d`). O `firebase.json` já
+está com os dois targets; falta criar o site e apontar o domínio:
+
+```bash
+firebase login --reauth
+```
+
+```bash
+firebase hosting:sites:create retrofoot98-admin --project elifoot-d368d
+```
+
+```bash
+firebase deploy --only hosting:admin --project elifoot-d368d
+```
+
+Depois, no console do Firebase → Hosting → site `retrofoot98-admin` → *Add custom domain* →
+`admin.retrofoot98.com.br`, e criar no registrador os registos DNS que o console indicar
+(verificação TXT + os A records do Firebase). O certificado sai sozinho depois da propagação.
+
+**O deploy do jogo mudou de comando** (agora há dois sites):
+
+```bash
+npm run build && firebase deploy --only hosting:jogo --project elifoot-d368d
+```
+
+`firebase deploy --only hosting` passa a publicar **os dois** sites. Se algum comando reclamar
+que o target não está aplicado, é porque o `.firebaserc` não foi lido — confirme que o site do
+jogo se chama mesmo `elifoot-d368d` com `firebase hosting:sites:list`.

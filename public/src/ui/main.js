@@ -320,9 +320,15 @@ function menuSairHTML(){
    A "arte" vem do MESMO inventário de patrocinadores que a faixa do Camarote e a pausa já usam
    (AD_SPONSORS): logo, chamada e cores por marca, num lugar só. Sem entrega de anunciante, o
    slot cai no anúncio-casa — que é a própria marca do jogo, não um cartaz inventado.
-   `slot` é a chave do espaço no ad server: nunca repetir o mesmo id em telas diferentes. */
+   `slot` é a chave do espaço no ad server: nunca repetir o mesmo id em telas diferentes.
+
+   ENTREGA REAL (painel dos sócios): quando existe criativo publicado para esta chave
+   (ver public/src/net/ads.js e a tabela elifoot_v3.ad_spaces), é ELE que aparece — a
+   arte enviada pelo anunciante, com o link dele. O anúncio-casa abaixo continua sendo
+   o que preenche o espaço enquanto ninguém comprou aquela chave. */
 function adSlotHTML(slot, opts){
   opts = typeof opts==='string' ? {cls:opts} : (opts||{});
+  if(window.ADS){ const real=ADS.html(slot, {cls:'cl-ad '+(opts.cls||'')}); if(real) return real; }
   const i=Math.abs(hashC(String(slot||'')))%AD_SPONSORS.length;
   const s=AD_SPONSORS[i];
   return `<div class="cl-ad ${opts.cls||''}" data-ad-slot="${escC(slot||'')}">
@@ -623,6 +629,9 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
   // precisa medir DEPOIS do innerHTML, e de novo a cada resize (ver cupFitStage).
   if(CL.screen==='cupclassif'||CL.screen==='cupview'||CL.screen==='cupdraw') requestAnimationFrame(cupFitStage);
   if(typeof renderChatDock==='function') renderChatDock(); // doca do chat em TODAS as telas online (inclusive ao vivo)
+  // impressão de anúncio é contada quando o bloco ENTRA no viewport, não aqui: a tela
+  // é remontada inteira a cada cdraw() e contar no desenho inflaria tudo (ver ads.js).
+  if(window.ADS) ADS.scan();
   if(CL.screen==='loading') runLoading();
   const f=$c('#cl-focus'); if(f) f.focus();
 }
@@ -791,6 +800,7 @@ function scAbertura(){
     </header>
     <main class="cl-lp-main">${body}</main>
     ${landingRodapeHTML()}
+    ${anchorAdHTML()}
     ${CL.waitlistOpen?waitlistModalHTML():''}
     ${CL.mkOpen?mediaKitModalHTML():''}
     ${CL.lpZoom!=null?lpZoomHTML():''}
@@ -2038,8 +2048,13 @@ function clGoMoeda(){ CL.screen='moeda'; cdraw(); }
 
 /* ---- 4/4 · A INICIAR O JOGO (loading + barra de progresso) ---- */
 function scLoading(){
+  // rf98.loading.splash: a tela de carregamento é o único momento em que o jogador está
+  // parado olhando por alguns segundos — é o espaço de splash do inventário. Sem criativo
+  // publicado, ADS.html devolve '' e a tela fica idêntica ao que sempre foi.
+  const splash = window.ADS ? ADS.html('rf98.loading.splash', {cls:'rf-ad-splash'}) : '';
   const body=`<div class="cl-progwrap">
     <div class="cl-progtitle">A iniciar o jogo…</div>
+    ${splash}
     <div class="cl-progtrack"><div id="cl-load-fill" class="cl-progfill" style="width:0%"></div><div id="cl-load-pct" class="cl-progpct">0%</div></div>
     <div class="cl-wiz-note" style="text-align:center;margin-top:10px">Montando tabelas, elencos e calendário da temporada.</div>
   </div>`;
@@ -3165,10 +3180,19 @@ function scMain(){
           trofeu:(nm&&nm.kind==='cup')?(trophyImg(nm.cupKey,13)||'🏆'):'',
           dia:(nm&&shortMatchDate(nm))||'', season:S.season, chip:th.bg2})}
         <div class="cl-panel">${panel}</div>
+        ${window.ADS?ADS.html('rf98.hub.sidebar',{cls:'rf-ad-rect'}):''}
         ${tabBar}
       </div>
     </div>
+    ${anchorAdHTML()}
   </div>`;
+}
+/* rf98.anchor.bottom — faixa fixa no rodapé da Home e do Hub. É o único espaço que fica
+   POR CIMA do conteúdo (position:fixed), então duas salvaguardas: só existe quando há
+   criativo publicado, e no telefone o CSS sobe a faixa para cima da barra de abas em vez
+   de a tapar (ver .rf-anchor em main.css). */
+function anchorAdHTML(){
+  return window.ADS ? ADS.html('rf98.anchor.bottom', {cls:'rf-anchor'}) : '';
 }
 /* cabeçalho fixo das colunas do elenco — precisa ficar em sincronia com o grid-template-columns
    de .cl-rrow (main.css): T/R · Pos · Nome · Idade · Força · Salário. Sem isto o usuário via 6
@@ -4232,7 +4256,7 @@ function clAuctionScreen(){ CL.menu=null;
     </div>`; }).join('') || '<div class="cl-mkt-counter">Sem jogadores em leilão agora — volta em breve.</div>';
   overlayC(dlg('Leilão de jogadores', `<div class="cl-auc-head">Cada jogador tem vários clubes disputando. Para levar, <b>cubra a maior oferta</b> antes das rodadas acabarem — se seu lance ficar abaixo do que a concorrência topa pagar, ela cobre na rodada seguinte.</div><div class="cl-auc">${rows}</div>
     <div class="cl-cal-ok">${btn('Fechar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}</div>`,
-    {ad:'modal-leilao-728x90',w:700,bodyClass:'cl-body-gray',min:true}));
+    {ad:'rf98.auction.footer',w:700,bodyClass:'cl-body-gray',min:true}));
 }
 /* dá/aumenta o lance num lote — abre um input de valor (precisa superar o maior lance atual) */
 function clAuctionBidPrompt(sellerId,player){
@@ -6564,6 +6588,7 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
     ${RL.pens ? '' : `<div class="cl-live-clock" id="cl-liveclock" style="--pct:${liveClockPct(RL)}">${RL.extraStartMinute!=null?'<span class="cl-live-clock-lbl">PRORR.</span>':''}</div>`}
     ${shootoutBoard}
     ${groups}
+    ${window.ADS?ADS.html('rf98.live.inline',{cls:'rf-ad-inline'}):''}
     ${camAberto?camaroteHTML(userMatch):''}
     ${RL.sel!=null?`<div class="cl-live-overlay"><div class="cl-live-modal" id="cl-livemodal">${liveModalHTML(RL.matches[RL.sel])}</div></div>`:''}
   </div>`;
@@ -7068,7 +7093,7 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
     ${actionsHTML}
     ${showSubs?subPanelHTML(m):''}
     ${penalty?penaltyPickerHTML():''}${injury?injurySubHTML(m,RL.injEvent):''}${red?redCardHTML(m,RL.redEvent):''}${shooting?shootoutPickerHTML():''}
-    ${m.user?adSlotHTML(injury?'modal-machucado-728x90':red?'modal-expulsao-728x90':(penalty||shooting)?'modal-penalti-escolha-728x90':halftime?'modal-intervalo-728x90':'modal-partida-728x90','cl-ad-live'):''}`;
+    ${m.user?adSlotHTML(injury?'modal-machucado-728x90':red?'modal-expulsao-728x90':(penalty||shooting)?'modal-penalti-escolha-728x90':halftime?'rf98.match.halftime':'modal-partida-728x90','cl-ad-live'):''}`;
 }
 /* ---- modal clássico de pênalti: escolhe o batedor, com contagem regressiva de 10s ---- */
 function penaltyRating(p){ return Math.max(1,Math.min(9,Math.round((p.f-40)/7))); }
@@ -9345,7 +9370,7 @@ function renderTrophyRoom(){
         <div class="cl-sala-lock-d">${escC(sel.dica||'')}</div>
       </div>`}
     </div>
-    ${adSlotHTML('tela-trofeus-300x250','cl-ad-rect')}
+    ${adSlotHTML('rf98.hub.sidebar','cl-ad-rect')}
   </div>`;
 
   // --- por clube (rodapé) ---
@@ -9501,8 +9526,12 @@ function clViewOfferSquad(idx){
 /* ---- Modo Resenha > Chamar pra Resenha ---- */
 function clInviteResenha(){ CL.menu=null; if(!CL.online){ toastC('Modo Resenha requer jogo online.'); return; }
   const link=(typeof NET!=='undefined')?NET.inviteLink():'';
+  // rf98.resenha.invite (1200×630): o cartão que acompanha o convite partilhado. Aqui ele
+  // aparece como pré-visualização do que o amigo vai receber — vazio, o modal fica igual.
+  const cartao = window.ADS ? ADS.html('rf98.resenha.invite', {cls:'rf-ad-card'}) : '';
   overlayC(dlg('Chamar pra Resenha', `<div class="cl-invres">
     <div class="cl-invres-msg">Convide amigos para assumir times de CPU nesta partida. Eles entrarão agora mesmo na sua sala de jogo.</div>
+    ${cartao}
     <div class="cl-invres-opt" style="margin-bottom:16px">
       <div class="cl-invres-lbl">🔗 Link da sala</div>
       <div class="cl-invres-linkrow">
@@ -10216,9 +10245,10 @@ function cupLastChampion(key){
   for(let i=h.length-1;i>=0;i--){ const w=h[i].cups&&h[i].cups[key]; if(w) return w; }
   return null;
 }
-/* espaço publicitário do rodapé das telas de copa — mesma peça dos modais (adSlotHTML), com
-   um id de slot por TELA: sorteio, fase de grupos e confrontos são inventários diferentes. */
-function cupAdSlotHTML(key, tela){ return adSlotHTML('tela-'+(key||'copa')+'-'+(tela||'geral')+'-728x90'); }
+/* espaço publicitário das telas de copa. Era um id por TELA (sorteio, grupos, confrontos),
+   inventado aqui; agora é a chave `rf98.copa.sponsor` do inventário do painel — uma marca
+   patrocina A COPA, não cada tela dela, e é assim que o espaço é vendido. */
+function cupAdSlotHTML(key, tela){ return adSlotHTML('rf98.copa.sponsor'); }
 function cupDrawSideHTML(key, dr){
   const isGroup=dr.stage==='group';
   const last=cupDrawLast(dr);
