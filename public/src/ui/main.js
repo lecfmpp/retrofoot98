@@ -2765,7 +2765,7 @@ function enterSeatContext(seat, fx){
   else { S.xi=autoXI(seat.clubId); CL.formation=null; S.tactic='equilibrado'; CL.tacticChosen=false; }
   fixUserXIAvailability();
   CL.selPlayer=squad(seat.clubId)[0]?.pid||null; CL.tab='seleccao';
-  CL.subPanelOpen=false; CL.subsUsed=0; CL.liveDivOpen=null;
+  CL.subsUsed=0; CL.liveDivOpen=null;
 }
 function exitSeatContext(){
   const H=CL._hotseat, seat=CL._seatContext&&CL._seatContext.seat;
@@ -2780,7 +2780,7 @@ function clSeatPlay(){
   const c=CL._seatContext; if(!c) return;
   const xi=xiPlayers(CL.clubId); if(!(xi.length>=11 && CL.tacticChosen)){ toastC('Escolha a tática primeiro.'); return; }
   const fx=c.fx;
-  CL.subPanelOpen=false; CL.subsUsed=0; CL.liveDivOpen=null;
+  CL.subsUsed=0; CL.liveDivOpen=null;
   const m=buildLiveMatchObject(fx.home,fx.away,fx.seed,{user:true, div:fx.div});
   const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], humanSeat:{seat:c.seat,fx} };
   RL.maxMin=Math.max(94, m.events.length?m.events[m.events.length-1].min:90);
@@ -5564,7 +5564,7 @@ function startLiveRound(){
   // (ver availableXI) caso eu não confirme a tempo numa rodada futura e ela expire sozinha.
   if(CL.online && CL.humans && CL.humans[CL.clubId]){ S.clubXI=S.clubXI||{}; S.clubXI[CL.clubId]=(S.xi||[]).slice(); S.clubTactic=S.clubTactic||{}; S.clubTactic[CL.clubId]=S.tactic||"equilibrado";
     if(typeof NET!=='undefined' && NET.publishLineup) NET.publishLineup(S.clubXI[CL.clubId], S.clubTactic[CL.clubId]); } // publica minha escalação pros outros clientes (sim. de ausente)
-  CL.subPanelOpen=false; CL.subsUsed=0; CL.liveDivOpen=null; // accordion reabre na divisão do usuário a cada rodada
+  CL.subsUsed=0; CL.liveDivOpen=null; // accordion reabre na divisão do usuário a cada rodada
   const fxRaw=(S.sched[S.round])||[]; const seedBase=hashC('rnd'+S.season+'-'+S.round);
   // a partida do PRÓPRIO clube vem PRIMEIRO (RL.matches[0]) — várias partes da tela ao vivo usam
   // RL.matches[0] como "a minha partida" (pausa, substituição, pênalti). Sem isso, quem não estava
@@ -5614,7 +5614,7 @@ function startCupLiveMatch(pending){
   // ser simulado em segundo plano antes de eu jogar a próxima partida de liga.
   if(CL.online && CL.humans && CL.humans[CL.clubId]){ S.clubXI=S.clubXI||{}; S.clubXI[CL.clubId]=(S.xi||[]).slice(); S.clubTactic=S.clubTactic||{}; S.clubTactic[CL.clubId]=S.tactic||"equilibrado";
     if(typeof NET!=='undefined' && NET.publishLineup) NET.publishLineup(S.clubXI[CL.clubId], S.clubTactic[CL.clubId]); }
-  CL.subPanelOpen=false; CL.subsUsed=0;
+  CL.subsUsed=0;
   // rodada de copa INTEIRA (a minha partida + as dos outros), igual à rodada de liga — ver
   // startCupRound. Se por algum motivo o confronto não estiver na lista da rodada (estado
   // inconsistente), cai no modo antigo de partida avulsa pra não deixar o jogador sem jogo.
@@ -6176,14 +6176,13 @@ function closePenaltyModal(){
   CL._liveTimer=setTimeout(liveTick,420);
 }
 
-function liveRowClick(i){ CL.live.sel=i; CL.subOut=CL.subIn=null; CL.subPanelOpen=false; cdraw(); }
+function liveRowClick(i){ CL.live.sel=i; CL.subOut=CL.subIn=null; cdraw(); }
 // Fechar o modal (RL.sel=null) SEMPRE revela algo útil por baixo — mesmo em partida avulsa de
 // copa/assento, a tela ao vivo já desenha a própria linha do jogo + relógio (ver scLive, single =
 // RL.cup||RL.humanSeat, começa com sel:null em startCupLiveMatch). Antes, pra copa, o intervalo
 // deixava RL.sel=0 (modal continuava aberto, sem jeito de fechar) e fora do intervalo o botão virava
 // um no-op — o "Continuar" clicava e nada acontecia. clique no card (liveRowClick) reabre quando quiser.
 function liveContinue(){ const RL=CL.live; if(!RL) return;
-  CL.subPanelOpen=false;
   if(RL.paused){ clearHalftimeCountdown(); RL.paused=false; RL.halftimeLeft=null; RL.sel=null; cdraw(); CL._liveTimer=setTimeout(liveTick,320); return; }
   RL.sel=null; cdraw(); }
 /* INTERVALO na Resenha: no máximo 10s para fazer a substituição — se o usuário não apertar
@@ -6990,18 +6989,22 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
   const penalty=(RL.penEvent && RL.penMatch===m);
   const injury=(RL.injEvent && RL.injMatch===m);
   const red=(RL.redEvent && RL.redMatch===m);
+  // SUBSTITUIÇÃO SÓ NO INTERVALO. Havia um botão "Substituições (n)" no meio da partida que abria
+  // o painel a qualquer minuto — mas a troca livre em jogo corrido nunca fez parte do jogo: o
+  // momento de mexer no time é o intervalo, e é lá que o painel abre sozinho. O botão prometia
+  // uma decisão fora de hora e dava três cliques (abrir, trocar, fechar) pra uma coisa que o
+  // intervalo já entrega pronta. Lesão continua sendo a exceção — ela abre o próprio painel
+  // (injurySubHTML) na hora em que acontece, porque aí a troca é obrigatória.
   // replay (ver buildLiveMatchObject): o resultado já é oficial, publicado pelo adversário humano —
   // substituições aqui não mudariam nada (os eventos futuros já estão fixados), então nem mostra o painel.
-  const showSubs = m.user && !m.replay && !penalty && !injury && !red && !shooting && (halftime || CL.subPanelOpen);
+  const showSubs = m.user && !m.replay && !penalty && !injury && !red && !shooting && halftime;
   const incHTML=incidentLines(m);
-  const subsLeft=Math.max(0,3-(CL.subsUsed||0));
   // botões de ação ficam FORA de .cl-lm-top de propósito: esse é um flex row com os
   // eventos, e por padrão o flexbox estica todo mundo pra altura do irmão mais alto
   // (align-items:stretch) — com muitos incidentes na partida, isso inflava os botões
   // junto (mesmo com o teto de altura em .cl-lm-events). Como bloco separado abaixo,
   // os botões mantêm sempre o próprio tamanho natural, disputa alguma seja a duração do jogo.
-  const actionsHTML=(penalty||injury||red||shooting)?'':`<div class="cl-lm-cont" style="grid-template-columns:${m.user && !halftime ? 'repeat(3,1fr)' : '1fr 1fr'}">
-        ${(m.user && !halftime)?btn(showSubs?'Fechar substituições':`Substituições (${subsLeft})`,'clToggleSubPanel()',{icon:'⇄',cls:'cl-btn-ok',dis:subsLeft<=0&&!showSubs}):''}
+  const actionsHTML=(penalty||injury||red||shooting)?'':`<div class="cl-lm-cont" style="grid-template-columns:${m.user?'1fr 1fr':'1fr'}">
         ${m.user?btn('Compartilhar','clShareResult()',{icon:'📤',cls:'cl-btn-cancel cl-noshot'}):''}
         ${btn('Continuar','liveContinue()',{icon:'✔',cls:'cl-btn-ok'})}
       </div>`;
@@ -7024,7 +7027,6 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
     ${penalty?penaltyPickerHTML():''}${injury?injurySubHTML(m,RL.injEvent):''}${red?redCardHTML(m,RL.redEvent):''}${shooting?shootoutPickerHTML():''}
     ${m.user?adSlotHTML(injury?'modal-machucado-728x90':red?'modal-expulsao-728x90':(penalty||shooting)?'modal-penalti-escolha-728x90':halftime?'modal-intervalo-728x90':'modal-partida-728x90','cl-ad-live'):''}`;
 }
-function clToggleSubPanel(){ CL.subPanelOpen=!CL.subPanelOpen; CL.subOut=CL.subIn=null; cdraw(); }
 /* ---- modal clássico de pênalti: escolhe o batedor, com contagem regressiva de 10s ---- */
 function penaltyRating(p){ return Math.max(1,Math.min(9,Math.round((p.f-40)/7))); }
 /* cor do modal de pênalti = cor real do clube que está batendo (igual ao clássico:
