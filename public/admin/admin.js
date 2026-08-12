@@ -3272,10 +3272,62 @@ function modalCompeticao(indice){
    código até o cadastro é o próprio jogo (ver src/net/ads.js): a pessoa quase
    nunca cria conta na primeira visita, e o primeiro link é o que vale.
    ============================================================================ */
+/* Cada rede com o endereço que o link precisa ter. `arroba` marca as que põem @ antes
+   do perfil (TikTok e YouTube), e `hosts` lista os domínios que a pessoa pode colar —
+   inclusive os curtos (youtu.be) e o m. do celular, que é de onde vem metade dos links
+   copiados no telefone. */
 const REDES = [
-  ['youtube','YouTube','▶'], ['tiktok','TikTok','♪'], ['instagram','Instagram','◎'],
-  ['twitch','Twitch','◇'], ['site','Site','⌂']
+  { k:'youtube',   nome:'YouTube',   ic:'▶', base:'youtube.com/',   arroba:true,
+    hosts:['youtube.com','m.youtube.com','youtu.be'] },
+  { k:'tiktok',    nome:'TikTok',    ic:'♪', base:'tiktok.com/',    arroba:true,
+    hosts:['tiktok.com','m.tiktok.com','vm.tiktok.com'] },
+  { k:'instagram', nome:'Instagram', ic:'◎', base:'instagram.com/', arroba:false,
+    hosts:['instagram.com'] },
+  { k:'twitch',    nome:'Twitch',    ic:'◇', base:'twitch.tv/',     arroba:false,
+    hosts:['twitch.tv','m.twitch.tv'] },
+  { k:'site',      nome:'Site',      ic:'⌂', base:null,             arroba:false, hosts:[] }
 ];
+const REDE = k => REDES.find(r => r.k === k) || REDES[REDES.length-1];
+
+/* COLOU A URL INTEIRA OU SÓ O PERFIL? Aceita os dois e devolve sempre o perfil limpo.
+   Tira protocolo, www., o domínio da rede, o @, a barra final e o ?rastro=... que vem
+   grudado quando se copia do app. É o que permite deixar o prefixo fixo na tela e a
+   pessoa colar o que tiver na mão. */
+function perfilLimpo(valor, rede){
+  let t = String(valor||'').trim();
+  if(!t) return '';
+  t = t.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+  (rede.hosts||[]).forEach(hst => {
+    const re = new RegExp('^' + hst.replace(/\./g,'\\.') + '\/?', 'i');
+    t = t.replace(re, '');
+  });
+  t = t.split('?')[0].split('#')[0];      // ?igsh=..., ?si=... e afins
+  t = t.replace(/^@+/, '').replace(/\/+$/, '').trim();
+  /* SÓ O PERFIL, NÃO A PÁGINA DELE. Link copiado do app costuma vir com a aba junto
+     (/videos, /reels, /about) e isso virava parte do nome. Fica o primeiro pedaço —
+     menos nas rotas antigas do YouTube (/channel/UC…, /c/nome, /user/nome), em que o
+     perfil são dois pedaços. */
+  if(rede.base){
+    const partes = t.split('/').filter(Boolean);
+    if(partes.length > 1){
+      t = ['channel','c','user'].includes(partes[0].toLowerCase())
+        ? partes.slice(0,2).join('/')
+        : partes[0];
+    }
+  }
+  return t;
+}
+/* perfil -> endereço canônico, que é o que fica gravado (a lista usa direto no href) */
+function perfilUrl(perfil, rede){
+  const t = perfilLimpo(perfil, rede);
+  if(!t) return null;
+  if(!rede.base){                          // site livre: só garante o protocolo
+    return /^https?:\/\//i.test(String(perfil).trim()) ? String(perfil).trim() : 'https://' + t;
+  }
+  // /channel/UC… e /c/nome são caminho, não perfil com @
+  const rota = /^(channel|c|user)\//i.test(t);
+  return 'https://' + rede.base + (rede.arroba && !rota ? '@' : '') + t;
+}
 /* telefone brasileiro: guarda só dígitos, mostra (11) 91234-5678 */
 function telFmt(v){
   const d = String(v||'').replace(/\D/g,'').slice(0,11);
@@ -3386,9 +3438,9 @@ async function pgParceiros(){
           <span style="min-width:0;font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis">
             ${h(p.email||'—')}${p.telefone?'<br>'+h(telFmt(p.telefone)):''}</span>
           <span style="display:flex;gap:8px;font-size:14px">
-            ${REDES.filter(([k])=>p[k]).map(([k,nome,ic])=>
-              `<a href="${h(p[k])}" target="_blank" rel="noopener" title="${nome}"
-                  onclick="event.stopPropagation()" style="color:var(--dim)">${ic}</a>`).join('') || '<span style="color:var(--dim3);font-size:12px">—</span>'}
+            ${REDES.filter(r=>p[r.k]).map(r=>
+              `<a href="${h(p[r.k])}" target="_blank" rel="noopener" title="${r.nome}: ${h(p[r.k])}"
+                  onclick="event.stopPropagation()" style="color:var(--dim)">${r.ic}</a>`).join('') || '<span style="color:var(--dim3);font-size:12px">—</span>'}
           </span>
           <span class="mono" style="font-size:12.5px;text-align:center">${num(p.visitas)}</span>
           <span class="mono" style="font-size:12.5px;text-align:center;color:${p.inscritos?'var(--fg)':'var(--dim3)'}">${num(p.inscritos)}</span>
@@ -3443,9 +3495,24 @@ function modalParceiro(p){
         <label class="f">Telefone (com DDD)
           <input class="f mono" id="pa-tel" inputmode="numeric" value="${h(telFmt(p.telefone))}" placeholder="(11) 91234-5678"></label>
       </div>
-      ${REDES.map(([k,nome])=>`
-        <label class="f">${nome}<input class="f" id="pa-${k}" value="${h(p[k]||'')}"
-          placeholder="${k==='site'?'https://':'https://'+k+'.com/…'}"></label>`).join('')}
+      ${REDES.map(r => r.base ? `
+        <label class="f">${r.nome}
+          <span class="perfil">
+            <span class="perfil-pre">${r.base}${r.arroba?'@':''}</span>
+            <input id="pa-${r.k}" data-rede="${r.k}" autocomplete="off"
+                   value="${h(perfilLimpo(p[r.k]||'', r))}" placeholder="perfil">
+            <a class="perfil-ir hide" id="pa-${r.k}-ir" target="_blank" rel="noopener" title="Abrir para conferir">↗</a>
+          </span>
+          <small style="font-size:11px;color:var(--dim3)">Cole o link inteiro ou só o perfil — o campo ajusta.</small>
+        </label>` : `
+        <label class="f">${r.nome}
+          <span class="perfil">
+            <span class="perfil-pre">https://</span>
+            <input id="pa-${r.k}" data-rede="${r.k}" autocomplete="off"
+                   value="${h(String(p[r.k]||'').replace(/^https?:\/\//i,''))}" placeholder="site.com.br">
+            <a class="perfil-ir hide" id="pa-${r.k}-ir" target="_blank" rel="noopener" title="Abrir para conferir">↗</a>
+          </span>
+        </label>`).join('')}
       <label class="f">Código do link
         <input class="f mono" id="pa-cod" value="${h(p.codigo)}" maxlength="16" placeholder="gerado a partir do nome">
         <small style="font-size:11.5px;color:var(--dim3)" id="pa-link">${p.codigo?h(linkRef(p.codigo)):''}</small>
@@ -3461,6 +3528,22 @@ function modalParceiro(p){
 
   const tel = el('pa-tel');
   tel.oninput = () => { tel.value = telFmt(tel.value); };
+
+  /* o campo aceita o link inteiro (colado do app) e guarda só o perfil; a setinha ao
+     lado abre o endereço montado, que é como se confere o parceiro sem sair da ficha */
+  REDES.forEach(r => {
+    const inp = el('pa-'+r.k), ir = el('pa-'+r.k+'-ir');
+    const ajustar = () => {
+      const limpo = r.base ? perfilLimpo(inp.value, r) : perfilLimpo(inp.value, r);
+      if(limpo !== inp.value) inp.value = limpo;
+      const url = perfilUrl(inp.value, r);
+      if(url){ ir.href = url; ir.classList.remove('hide'); }
+      else ir.classList.add('hide');
+    };
+    inp.oninput = ajustar;
+    inp.onpaste = () => setTimeout(ajustar, 0);   // o valor colado só existe no tique seguinte
+    ajustar();
+  });
   let codTocado = !novo;
   el('pa-cod').oninput = () => { codTocado = true; mostrarLink(); };
   el('pa-nome').oninput = () => {
@@ -3483,7 +3566,7 @@ function modalParceiro(p){
       telefone: telDigitos(el('pa-tel').value)||null,
       notas: el('pa-notas').value.trim()||null
     };
-    REDES.forEach(([k]) => { linha[k] = el('pa-'+k).value.trim()||null; });
+    REDES.forEach(r => { linha[r.k] = perfilUrl(el('pa-'+r.k).value, r); });
     let r;
     if(novo){
       linha.criado_por = (await sb.auth.getUser()).data.user.id;
