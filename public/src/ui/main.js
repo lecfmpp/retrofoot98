@@ -9604,7 +9604,20 @@ function clSendResenhaEmailInvite(){ const email=(document.querySelector('#cl-in
   (async ()=>{ try { await NET.sendEmailInvite(email); toastC('✓ Convite enviado por e-mail!'); const inp=document.querySelector('#cl-invres-email'); if(inp) inp.value=''; }
     catch(e){ toastC('⚠ '+(e&&e.message||'Erro ao enviar convite por e-mail')); } })(); }
 function clTab2(t){ CL.menu=null; CL.tab=t; cdraw(); }
-function clSaveMenu(){ CL.menu=null; cdraw(); saveV3(true); }
+/* "Gravar jogo" (menu RetroFoot98).
+   NA RESENHA ELE NÃO FAZIA NADA. saveV3() retorna na PRIMEIRA linha quando CL.online (o mundo é
+   do servidor, não do save solo), então o menu fechava, a tela redesenhava e o jogador não via
+   nem toast nem overlay: pra ele o botão de salvar simplesmente não existia.
+   O mundo compartilhado de fato já está gravado no servidor — mas o que é MEU vive no assento
+   (carreira, escalação, tática, caixa de entrada) e só sobe em momentos específicos. Aqui a opção
+   força essas gravações e responde ao jogador, que é o que ele foi buscar no menu. */
+function clSaveMenu(){ CL.menu=null; cdraw();
+  if(!CL.online){ saveV3(true); return; }
+  if(typeof persistCareer==='function') persistCareer();          // títulos, troféus, Historial
+  if(typeof republicarEscalacao==='function') republicarEscalacao(); // escalação e tática do assento
+  if(typeof saveInbox==='function') saveInbox();                   // caixa de entrada
+  toastC('✓ Resenha gravada — o mundo da sala fica no servidor e o seu progresso, no seu assento.');
+}
 /* "Sair para o menu" não pode simplesmente descartar a partida em andamento — progresso
    não gravado (rodadas jogadas desde o último save) se perderia sem aviso. Pergunta
    primeiro; em modo online a sala já fica sincronizada a cada rodada (NET.saveGame), então
