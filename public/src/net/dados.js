@@ -25,13 +25,35 @@ const SB_KEY = 'sb_publishable_WxYyZVfS-ER00kl2q5bBHg_qifOGq5k';
 const REST   = SB_URL + '/rest/v1/';
 const CACHE  = 'rf98:pack:oficial:v1';
 
+/* Onde cada clube mora, por origem:
+     Brasil Série A  -> window.GAME_DATA.clubs
+     Brasil B/C/D    -> window.BRASIL_LOWER[div]
+     Europa          -> window.INTL_LEAGUES[país]      (lista única por país; a divisão é o campo lg)
+     América do Sul  -> window.CONMEBOL_LEAGUES[país]  (divisão única)
+   Um clube novo entra na lista do país escolhido no editor; sem país, cai no Brasil. */
 function listas(){
   const out = [];
-  if(window.GAME_DATA && Array.isArray(window.GAME_DATA.clubs)) out.push({div:'A', arr:window.GAME_DATA.clubs});
+  if(window.GAME_DATA && Array.isArray(window.GAME_DATA.clubs)) out.push({div:'A', pais:'brasil', arr:window.GAME_DATA.clubs});
   if(window.BRASIL_LOWER) for(const d of ['B','C','D']){
-    if(Array.isArray(window.BRASIL_LOWER[d])) out.push({div:d, arr:window.BRASIL_LOWER[d]});
+    if(Array.isArray(window.BRASIL_LOWER[d])) out.push({div:d, pais:'brasil', arr:window.BRASIL_LOWER[d]});
+  }
+  for(const fonte of ['INTL_LEAGUES','CONMEBOL_LEAGUES']){
+    const mapa = window[fonte]; if(!mapa) continue;
+    for(const pais of Object.keys(mapa))
+      if(Array.isArray(mapa[pais])) out.push({ div:null, pais, arr:mapa[pais] });
   }
   return out;
+}
+/* lista de destino de um clube NOVO: país primeiro (Europa/CONMEBOL têm uma lista
+   por país), divisão depois (só o Brasil é separado por divisão) */
+function listaDestino(pais, divisao){
+  const ls = listas();
+  if(pais && pais !== 'brasil'){
+    const nome = (window.UNIVERSOS && window.UNIVERSOS[pais] && window.UNIVERSOS[pais].country) || pais;
+    const l = ls.find(x => x.pais === nome) || ls.find(x => x.pais === pais);
+    if(l) return l;
+  }
+  return ls.find(x => x.pais === 'brasil' && x.div === (divisao||'D')) || ls[0];
 }
 function acharClube(id){
   for(const l of listas()){ const c = l.arr.find(x => String(x.id) === String(id)); if(c) return c; }
@@ -54,10 +76,13 @@ function aplicar(edits){
   for(const e of edits){
     try{
       if(e.novo){
-        const alvo = listas().find(l => l.div === (e.divisao||'D'));
+        const alvo = listaDestino((e.patch||{}).pais, e.divisao);
         if(!alvo || acharClube(e.club_id)) continue;
         const clube = Object.assign({}, e.patch, { id: e.club_id });
         if(!Array.isArray(clube.squad)) clube.squad = [];
+        // fora do Brasil a divisão é o campo lg ('ENG-1'), não uma lista separada
+        const uni = (window.UNIVERSOS||{})[(e.patch||{}).pais];
+        if(uni && uni.lg && e.divisao && uni.lg[e.divisao]) clube.lg = uni.lg[e.divisao];
         alvo.arr.push(clube); n++; continue;
       }
       const clube = acharClube(e.club_id);

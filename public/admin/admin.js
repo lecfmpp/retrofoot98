@@ -1573,7 +1573,9 @@ function setorDe(pos){
 let catalogoCarregado = false;
 function carregarCatalogo(){
   if(catalogoCarregado) return Promise.resolve();
-  const arquivos = ['/src/data/game-data.js', '/src/data/leagues-brasil-lower.js'];
+  const arquivos = ['/src/data/game-data.js', '/src/data/leagues-brasil-lower.js',
+                    '/src/data/leagues-intl.js', '/src/data/leagues-conmebol.js',
+                    '/src/data/universos.js'];
   return Promise.all(arquivos.map(f => new Promise((ok, erro) => {
     const t = document.createElement('script');
     t.src = JOGO_URL + f; t.onload = ok;
@@ -1581,12 +1583,19 @@ function carregarCatalogo(){
     document.head.appendChild(t);
   }))).then(() => { catalogoCarregado = true; });
 }
+/* Todo clube que o jogo conhece, com país e divisão. Brasil é separado por divisão;
+   Europa e América do Sul têm uma lista por país, e a divisão de lá é o campo `lg`. */
 function clubesDeFabrica(){
   const out = [];
   if(window.GAME_DATA && Array.isArray(window.GAME_DATA.clubs))
-    window.GAME_DATA.clubs.forEach(c => out.push({ div:'A', c }));
+    window.GAME_DATA.clubs.forEach(c => out.push({ div:'A', pais:'Brasil', c }));
   if(window.BRASIL_LOWER) for(const d of ['B','C','D'])
-    (window.BRASIL_LOWER[d]||[]).forEach(c => out.push({ div:d, c }));
+    (window.BRASIL_LOWER[d]||[]).forEach(c => out.push({ div:d, pais:'Brasil', c }));
+  for(const fonte of ['INTL_LEAGUES','CONMEBOL_LEAGUES']){
+    const mapa = window[fonte]; if(!mapa) continue;
+    for(const pais of Object.keys(mapa))
+      (mapa[pais]||[]).forEach(c => out.push({ div:c.lg||'—', pais, c }));
+  }
   return out;
 }
 /* comparação de nome tolerante: acento, caixa e pontuação não podem separar
@@ -1607,94 +1616,137 @@ async function pgEditor(){
   if(!ST.packId || !D.packs.some(p=>p.id===ST.packId))
     ST.packId = (D.packs.find(p=>p.oficial)||D.packs[0]||{}).id;
   const pack = D.packs.find(p=>p.id===ST.packId);
-  if(!pack){ el('page').innerHTML = '<div class="erro">Nenhum pacote de dados encontrado.</div>'; return; }
+  if(!pack){ el('page').innerHTML = '<div class="erro">Nenhum patch encontrado.</div>'; return; }
 
   const eds = await jogo('pack_edits').select('*').eq('pack_id', pack.id);
   if(eds.error) throw eds.error;
   D.edits = {}; (eds.data||[]).forEach(e => { D.edits[e.club_id] = e; });
 
   const base = clubesDeFabrica();
-  (eds.data||[]).filter(e => e.novo).forEach(e => {
+  (eds.data||[]).filter(e => e.novo && e.club_id !== COMPETICOES_CHAVE).forEach(e => {
     if(!base.some(x => String(x.c.id)===String(e.club_id)))
-      base.push({ div:e.divisao||'D', c:Object.assign({id:e.club_id}, e.patch||{}), criado:true });
+      base.push({ div:e.divisao||'D', pais:(e.patch||{}).pais||'Brasil',
+                  c:Object.assign({id:e.club_id}, e.patch||{}), criado:true });
   });
   D.catalogo = base;
 
+  const aba = ST.abaEditor || 'clubes';
+  el('page').innerHTML = `
+    ${cabecalhoPatches(pack, editar)}
+    <div class="per" style="gap:6px;margin-top:2px">
+      ${[['clubes','Clubes'],['jogadores','Jogadores'],['competicoes','Competições']]
+        .map(([id,l])=>`<span class="${aba===id?'on':''}" data-aba="${id}" style="padding:9px 16px">${l}</span>`).join('')}
+    </div>
+    <div id="ed-aba"></div>`;
+
+  document.querySelectorAll('[data-aba]').forEach(x => x.onclick = () => { ST.abaEditor=x.dataset.aba; pgEditor(); });
+  ligarCabecalhoPatches(pack, editar);
+
+  if(aba==='clubes')      abaClubes(editar);
+  else if(aba==='jogadores') abaJogadores(editar);
+  else                    abaCompeticoes(pack, editar);
+}
+
+/* ---------- cabeçalho: escolha do patch ---------- */
+function nomePatch(p){ return p.oficial ? 'Patch Original RetroFoot 2026' : p.nome; }
+function cabecalhoPatches(pack, editar){
+  return `
+    <div class="card card-p">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div style="flex:1"><div class="tt">Patch em edição</div>
+          <div class="st">Clique num patch para editá-lo. O original entra em todo jogo novo; os demais valem para quem os escolher ao criar a partida.</div></div>
+        ${editar?`<button class="btn btn-sm btn-ghost" id="ed-novo-pack">+ Novo patch</button>`:''}
+        ${editar?`<button class="btn btn-sm" id="ed-importar">Importar arquivo</button>`:''}
+      </div>
+      <div class="g3" style="gap:10px">
+        ${(D.packs||[]).map(p=>`
+          <div class="slot ${p.id===pack.id?'no-ar':'livre'}" data-pack="${p.id}"
+               style="cursor:pointer;padding:14px 16px;gap:8px">
+            <div style="display:flex;align-items:flex-start;gap:8px">
+              <div style="flex:1;min-width:0">
+                <b style="display:block;font-size:13.5px">${h(nomePatch(p))}</b>
+                <small style="display:block;font-size:11.5px;color:var(--dim2)">
+                  ${p.oficial?'entra em todo jogo novo':'de '+h(p.autor_nome||'—')}</small>
+              </div>
+              ${p.id===pack.id?'<span class="tag t-ok">editando</span>':''}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <code class="mono" style="font-size:11px;color:var(--verde2)">${h(p.codigo)}</code>
+              ${p.id===pack.id?`<span class="link" data-copiar-pack style="font-size:11px">copiar convite</span>`:''}
+            </div>
+          </div>`).join('')}
+        <div class="slot livre" style="padding:14px 16px;gap:8px;opacity:.65">
+          <div><b style="display:block;font-size:13.5px">Editor público</b>
+            <small style="display:block;font-size:11.5px;color:var(--dim2)">para o jogador montar o patch dele</small></div>
+          <button class="btn btn-sm" disabled style="cursor:not-allowed">Em breve</button>
+          <small style="font-size:11px;color:var(--dim3);line-height:1.5">
+            Estamos trabalhando nisso para a próxima versão do jogo.</small>
+        </div>
+      </div>
+      ${pack.descricao?`<div class="st" style="margin-top:10px">${h(pack.descricao)}</div>`:''}
+    </div>`;
+}
+function ligarCabecalhoPatches(pack, editar){
+  document.querySelectorAll('[data-pack]').forEach(c => c.onclick = ev => {
+    if(ev.target.closest('[data-copiar-pack]')) return;
+    ST.packId = c.dataset.pack; pgEditor();
+  });
+  const cp = document.querySelector('[data-copiar-pack]');
+  if(cp) cp.onclick = () => {
+    const url = `${JOGO_URL}/?pacote=${encodeURIComponent(pack.codigo)}`;
+    navigator.clipboard.writeText(url).then(()=>toast('Convite do patch copiado.'), ()=>prompt('Copie o link:', url));
+  };
+  if(editar){
+    el('ed-novo-pack').onclick = modalNovoPacote;
+    el('ed-importar').onclick = modalImportar;
+  }
+}
+
+/* ---------- aba CLUBES ---------- */
+function abaClubes(editar){
+  const base = D.catalogo||[];
   const busca = (ST.buscaClube||'').toLowerCase();
-  const filtro = ST.divFiltro || 'todas';
+  const pais = ST.paisFiltro || 'todos';
+  const paises = Array.from(new Set(base.map(x=>x.pais))).sort((a,b)=> a==='Brasil'?-1:b==='Brasil'?1:a.localeCompare(b,'pt-BR'));
   const lista = base.filter(x =>
-    (filtro==='todas' || x.div===filtro) &&
+    (pais==='todos' || x.pais===pais) &&
     (!busca || String(x.c.name||'').toLowerCase().includes(busca)
             || String(x.c.short||'').toLowerCase().includes(busca)
             || String(x.c.id).toLowerCase().includes(busca)));
-  const editados = Object.keys(D.edits).length;
+  const editados = Object.values(D.edits||{}).filter(e=>e.club_id!==COMPETICOES_CHAVE).length;
 
-  el('page').innerHTML = `
-    <div class="card card-p">
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <label class="f" style="flex:1;min-width:220px">Pacote em edição
-          <select class="f" id="ed-pack">
-            ${D.packs.map(p=>`<option value="${p.id}" ${p.id===pack.id?'selected':''}>
-              ${h(p.nome)}${p.oficial?' — entra em todo jogo novo':''}</option>`).join('')}
-          </select>
-        </label>
-        <label class="f" style="flex:none">Código
-          <span style="display:flex;align-items:center;gap:8px">
-            <b class="mono" style="font-size:15px;color:var(--verde2)">${h(pack.codigo)}</b>
-            <button class="btn btn-sm btn-ghost" id="ed-copiar">Copiar convite</button>
-          </span>
-        </label>
-        ${editar?`<button class="btn btn-sm btn-ghost" id="ed-novo-pack" style="align-self:flex-end">+ Pacote</button>`:''}
-        ${editar?`<button class="btn btn-sm" id="ed-importar" style="align-self:flex-end">Importar arquivo</button>`:''}
-      </div>
-      <div class="st" style="line-height:1.7;margin-top:10px">
-        ${pack.oficial
-          ? 'Este é o pacote <b>oficial</b>: entra por padrão em todo jogo novo, sem ninguém escolher nada. É aqui que se corrige dado errado do catálogo.'
-          : `Pacote de <b>${h(pack.autor_nome||'autor desconhecido')}</b>. Vale para quem escolher este pacote ao criar o jogo — quem entra na sala depois recebe os elencos prontos e não precisa ter o pacote.`}
-        ${pack.descricao?'<br>'+h(pack.descricao):''}
-      </div>
+  el('ed-aba').innerHTML = `
+    <div class="g4" style="margin-bottom:16px">
+      ${kpiHTML({l:'Clubes no catálogo', v:num(base.length), d:`${paises.length} países`})}
+      ${kpiHTML({l:'Clubes neste patch', v:num(editados), d: editados? 'alterados ou criados' : 'nada alterado ainda'})}
+      ${kpiHTML({l:'Criados aqui', v:num(base.filter(x=>x.criado).length), d:'não existem no arquivo de fábrica'})}
+      ${kpiHTML({l:'Jogadores', v:num(base.reduce((a,x)=>a+((x.c.squad||[]).length),0)), d:'somando todos os países'})}
     </div>
-
-    <div class="g4">
-      ${kpiHTML({l:'Clubes no catálogo', v:num(base.length), d:'Séries A, B, C e D'})}
-      ${kpiHTML({l:'Clubes neste pacote', v:num(editados), d: editados? 'alterados ou criados' : 'nada alterado ainda'})}
-      ${kpiHTML({l:'Clubes criados aqui', v:num((eds.data||[]).filter(e=>e.novo).length), d:'não existem no arquivo de fábrica'})}
-      ${kpiHTML({l:'Jogadores no catálogo', v:num(base.reduce((a,x)=>a+((x.c.squad||[]).length),0)), d:'somando todas as divisões'})}
-    </div>
-
-    <div class="card card-p" style="border-color:#5a4a18;background:#1c1710">
-      <div class="tt" style="margin-bottom:6px;color:var(--ambar)">O que a edição alcança</div>
-      <div class="st" style="line-height:1.7">
-        O pacote é aplicado <b>na criação do jogo</b> — os elencos ficam gravados dentro do save.
-        Save já começado não muda, e quem entra numa sala já criada recebe o elenco do anfitrião
-        pelo servidor, sem precisar do pacote.
-      </div>
-    </div>
-
     <div class="card" style="overflow:hidden">
       <div class="card-h">
         <b>Clubes</b>
-        <span class="per" style="gap:4px">
-          ${['todas','A','B','C','D'].map(d=>`<span class="${filtro===d?'on':''}" data-div="${d}">${d==='todas'?'Todas':'Série '+d}</span>`).join('')}
-        </span>
+        <select class="busca" id="ed-pais" style="width:170px">
+          <option value="todos">Todos os países</option>
+          ${paises.map(p=>`<option value="${h(p)}" ${p===pais?'selected':''}>${h(p)}</option>`).join('')}
+        </select>
         <input class="busca" id="ed-busca" placeholder="Procurar clube…" value="${h(ST.buscaClube||'')}">
         ${editar?'<button class="btn btn-sm" id="ed-novo">+ Clube</button>':''}
       </div>
-      <div class="rowh" style="grid-template-columns:44px 1.6fr .5fr .8fr .8fr 1fr">
-        <span></span><span>Clube</span><span style="text-align:center">Série</span>
+      <div class="rowh" style="grid-template-columns:44px 1.6fr .9fr .7fr .7fr .8fr .9fr">
+        <span></span><span>Clube</span><span>País</span><span style="text-align:center">Divisão</span>
         <span style="text-align:center">Força</span><span style="text-align:center">Elenco</span>
-        <span style="text-align:right">Neste pacote</span>
+        <span style="text-align:right">Neste patch</span>
       </div>
       ${lista.length ? lista.slice(0,120).map(x => {
-        const e = D.edits[x.c.id];
-        const cor = x.c.color || '#333';
-        return `<div class="row" style="grid-template-columns:44px 1.6fr .5fr .8fr .8fr 1fr;cursor:pointer" data-clube="${h(x.c.id)}">
+        const e = D.edits[x.c.id]; const cor = x.c.color || '#333';
+        return `<div class="row" style="grid-template-columns:44px 1.6fr .9fr .7fr .7fr .8fr .9fr;cursor:pointer" data-clube="${h(x.c.id)}">
           <span>${x.c.crest
             ? `<img src="${h(x.c.crest)}" alt="" style="width:26px;height:26px;object-fit:contain">`
             : `<i class="av" style="width:26px;height:26px;border-radius:6px;background:${h(cor)};color:#fff;font-size:10px">${h(iniciais(x.c.short||x.c.name))}</i>`}</span>
           <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(x.c.short||x.c.name)}</b>
             <small class="mono" style="font-size:11px;color:var(--dim3)">${h(x.c.id)}</small></span>
-          <span class="mono" style="font-size:12.5px;text-align:center">${h(x.div)}</span>
+          <span style="font-size:12px;color:var(--dim)">${h(x.pais)}</span>
+          <span class="mono" style="font-size:12px;text-align:center">${h(x.div)}</span>
           <span class="mono" style="font-size:12.5px;text-align:center">${x.c.overall!=null?x.c.overall:'—'}</span>
           <span class="mono" style="font-size:12.5px;text-align:center">${(x.c.squad||[]).length}</span>
           <span style="text-align:right">${e
@@ -1705,22 +1757,59 @@ async function pgEditor(){
       ${lista.length>120?`<div class="vazio">Mostrando 120 de ${lista.length} — refine a busca.</div>`:''}
     </div>`;
 
-  const b = el('ed-busca');
-  let t=null;
+  const b = el('ed-busca'); let t=null;
   b.oninput = () => { clearTimeout(t); t=setTimeout(()=>{ ST.buscaClube=b.value.trim(); pgEditor(); },300); };
-  el('ed-pack').onchange = () => { ST.packId = el('ed-pack').value; pgEditor(); };
-  el('ed-copiar').onclick = () => {
-    const url = `${JOGO_URL}/?pacote=${encodeURIComponent(pack.codigo)}`;
-    navigator.clipboard.writeText(url).then(
-      ()=>toast('Convite do pacote copiado.'), ()=>prompt('Copie o link:', url));
-  };
-  document.querySelectorAll('[data-div]').forEach(d => d.onclick = () => { ST.divFiltro=d.dataset.div; pgEditor(); });
+  el('ed-pais').onchange = () => { ST.paisFiltro = el('ed-pais').value; pgEditor(); };
   document.querySelectorAll('[data-clube]').forEach(r => r.onclick = () => abrirClube(r.dataset.clube));
-  if(editar){
-    el('ed-novo').onclick = modalNovoClube;
-    el('ed-novo-pack').onclick = modalNovoPacote;
-    el('ed-importar').onclick = modalImportar;
+  if(editar) el('ed-novo').onclick = modalNovoClube;
+}
+
+/* ---------- aba JOGADORES ----------
+   A mesma edição da ficha do clube, mas entrando pelo jogador: quem quer corrigir
+   "a idade do Vitor Roque" não deveria precisar saber em que clube ele está. */
+function abaJogadores(editar){
+  const busca = (ST.buscaJogador||'').trim().toLowerCase();
+  let achados = [];
+  if(busca.length >= 2){
+    for(const x of (D.catalogo||[])){
+      for(const p of (x.c.squad||[])){
+        if(String(p.n||'').toLowerCase().includes(busca)) achados.push({ x, p });
+        if(achados.length > 300) break;
+      }
+      if(achados.length > 300) break;
+    }
+    achados.sort((a,b)=>(b.p.f||0)-(a.p.f||0));
   }
+  el('ed-aba').innerHTML = `
+    <div class="card" style="overflow:hidden">
+      <div class="card-h">
+        <b>Jogadores</b>
+        <input class="busca" id="ed-bj" style="width:300px" placeholder="Nome do jogador (mín. 2 letras)…" value="${h(ST.buscaJogador||'')}">
+        <span style="font-size:12px;color:var(--dim2)">${busca.length>=2? num(achados.length)+' encontrados' : ''}</span>
+      </div>
+      ${busca.length<2
+        ? '<div class="vazio">Escreva o nome do jogador para procurar em todos os clubes e países.</div>'
+        : (achados.length ? `
+          <div class="rowh" style="grid-template-columns:1.6fr 1.2fr .7fr .6fr .5fr .9fr">
+            <span>Jogador</span><span>Clube</span><span>Pos</span>
+            <span style="text-align:center">Força</span><span style="text-align:center">Idade</span>
+            <span style="text-align:right">Valor</span>
+          </div>` + achados.slice(0,120).map(({x,p})=>`
+            <div class="row" style="grid-template-columns:1.6fr 1.2fr .7fr .6fr .5fr .9fr;cursor:pointer" data-jog-clube="${h(x.c.id)}">
+              <b style="font-size:13px;font-weight:600">${h(p.n)}</b>
+              <span style="font-size:12.5px;color:var(--dim)">${h(x.c.short||x.c.name)} · ${h(x.pais)}</span>
+              <span class="mono" style="font-size:12px">${h(p.p||'—')}</span>
+              <span class="mono" style="font-size:12.5px;text-align:center">${p.f!=null?p.f:'—'}</span>
+              <span class="mono" style="font-size:12.5px;text-align:center">${p.age!=null?p.age:'—'}</span>
+              <span class="mono" style="font-size:12px;text-align:right;color:var(--dim)">${p.mv?brl(p.mv*100):'—'}</span>
+            </div>`).join('')
+          : '<div class="vazio">Nenhum jogador com esse nome.</div>')}
+      ${achados.length>120?`<div class="vazio">Mostrando 120 de ${achados.length}.</div>`:''}
+    </div>`;
+  const b = el('ed-bj'); let t=null;
+  b.oninput = () => { clearTimeout(t); t=setTimeout(()=>{ ST.buscaJogador=b.value; pgEditor(); },350); };
+  b.focus(); b.setSelectionRange(b.value.length,b.value.length);
+  document.querySelectorAll('[data-jog-clube]').forEach(r => r.onclick = () => abrirClube(r.dataset.jogClube));
 }
 
 /* ---------- ficha do clube: dados + elenco ---------- */
@@ -1903,45 +1992,110 @@ async function salvarClube(item){
 }
 
 function modalNovoClube(){
+  const paises = paisesDisponiveis();
   abrirModal(`
     <h3>Novo clube</h3>
     <div class="col">
       <div class="st" style="line-height:1.6;margin-bottom:4px">
         Entra na divisão escolhida como qualquer clube de fábrica, para quem usar este pacote.
         O elenco pode ficar vazio agora e ser preenchido depois, na ficha do clube.</div>
+
+      <div class="g2" style="gap:12px">
+        <label class="f">País
+          <select class="f" id="n-pais">
+            ${paises.map(p=>`<option value="${h(p.chave)}">${h(p.nome)}</option>`).join('')}
+          </select></label>
+        <label class="f">Competição / divisão
+          <select class="f" id="n-div"></select></label>
+      </div>
+
       <div class="g2" style="gap:12px">
         <label class="f">Nome<input class="f" id="n-name" placeholder="Ex.: Grêmio Novo Horizonte"></label>
         <label class="f">Nome curto<input class="f" id="n-short" placeholder="Ex.: Novo Horizonte"></label>
       </div>
+      <label class="f">Identificador
+        <input class="f mono" id="n-id" placeholder="gerado a partir do nome — pode editar"></label>
+
       <div class="g2" style="gap:12px">
-        <label class="f">Identificador<input class="f mono" id="n-id" placeholder="br_D_novohorizonte"></label>
-        <label class="f">Série<select class="f" id="n-div">
-          ${['A','B','C','D'].map(d=>`<option ${d==='D'?'selected':''}>${d}</option>`).join('')}
-        </select></label>
+        ${campoCor('n-color','Cor principal','#1b7a3d')}
+        ${campoCor('n-color2','Cor secundária','#ffffff')}
       </div>
+      <div id="n-preview" style="padding:4px 0"></div>
+
+      <label class="f">Escudo
+        <input class="f" id="n-crest" placeholder="https://… ou envie um arquivo"></label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="btn btn-sm btn-ghost" id="n-escudo-btn">Enviar escudo (PNG/WEBP, até 1 MB)</button>
+        <input type="file" id="n-escudo" accept=".png,.webp,.jpg,.jpeg" style="display:none">
+        <span id="n-escudo-prev"></span>
+      </div>
+
       <div class="g4" style="gap:10px">
-        <label class="f">Cor<input class="f" id="n-color" type="color" value="#1b7a3d"></label>
         ${[['OS','Ataque'],['MS','Meio'],['DS','Defesa']].map(([k,l])=>
           `<label class="f">${l}<input class="f mono" id="n-${k}" type="number" min="1" max="99" value="30"></label>`).join('')}
+        <label class="f">Geral<input class="f mono" id="n-overall" type="number" min="1" max="99" value="30" disabled></label>
       </div>
+
       <div class="acoes">
         <button class="btn" id="n-ok">Criar clube</button>
         <button class="btn btn-ghost" data-fechar>Cancelar</button>
       </div>
-    </div>`);
+    </div>`, 'lg');
+
+  // divisões seguem o país escolhido
+  function encherDivisoes(){
+    const pais = paises.find(p => p.chave === el('n-pais').value) || paises[0];
+    el('n-div').innerHTML = pais.divisoes.map(d =>
+      `<option value="${h(d.codigo)}">${h(d.nome)}</option>`).join('');
+  }
+  el('n-pais').onchange = encherDivisoes; encherDivisoes();
+  ligarCores('n-color','n-color2','n-preview');
+
+  // identificador sai do nome, mas continua editável (é a chave do clube no jogo)
+  let idTocado = false;
+  el('n-id').oninput = () => { idTocado = true; };
+  el('n-name').oninput = () => {
+    if(idTocado) return;
+    const pais = el('n-pais').value, div = el('n-div').value;
+    const base = chaveNome(el('n-name').value).slice(0,24);
+    el('n-id').value = base ? `${pais==='brasil'?'br':pais.slice(0,3).toLowerCase()}_${div}_${base}` : '';
+  };
+
+  el('n-escudo-btn').onclick = () => el('n-escudo').click();
+  el('n-escudo').onchange = async () => {
+    const f = el('n-escudo').files[0]; if(!f) return;
+    if(f.size > 1024*1024) return toast('Escudo acima de 1 MB.', true);
+    const ext = (f.name.split('.').pop()||'png').toLowerCase();
+    const caminho = `novo-${Date.now()}.${ext}`;
+    const up = await sb.storage.from('escudos').upload(caminho, f, { upsert:false, cacheControl:'3600' });
+    if(up.error) return toast(erroMsg(up.error), true);
+    const url = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
+    el('n-crest').value = url;
+    el('n-escudo-prev').innerHTML = `<img src="${h(url)}" style="width:30px;height:30px;object-fit:contain">`;
+  };
+
+  const media = () => {
+    const m = Math.round(((+el('n-OS').value||0)+(+el('n-MS').value||0)+(+el('n-DS').value||0))/3);
+    el('n-overall').value = m || 30;
+  };
+  ['OS','MS','DS'].forEach(k => { el('n-'+k).oninput = media; });
+
   el('n-ok').onclick = async () => {
     const id = el('n-id').value.trim(), nome = el('n-name').value.trim();
     if(!id || !nome) return toast('Nome e identificador são obrigatórios.', true);
     if(!/^[a-z0-9_]+$/i.test(id)) return toast('Identificador: só letras, números e _', true);
     if((D.catalogo||[]).some(x => String(x.c.id)===id)) return toast('Já existe clube com esse identificador.', true);
     const OS=+el('n-OS').value||30, MS=+el('n-MS').value||30, DS=+el('n-DS').value||30;
+    const pais = el('n-pais').value;
     const { error } = await jogo('pack_edits').insert({
       pack_id: ST.packId, club_id:id, divisao:el('n-div').value, novo:true,
-      patch:{ id, name:nome, short:el('n-short').value.trim()||nome, color:el('n-color').value,
+      patch:{ id, name:nome, short:el('n-short').value.trim()||nome,
+              color:el('n-color').value, color2:el('n-color2').value,
+              crest: el('n-crest').value.trim()||null, pais,
               OS, MS, DS, overall: Math.round((OS+MS+DS)/3), squad:[] }
     });
     if(error) return toast(erroMsg(error), true);
-    registrar('clube.criar', id, { nome, divisao: el('n-div').value, pacote: ST.packId });
+    registrar('clube.criar', id, { nome, pais, divisao: el('n-div').value, pacote: ST.packId });
     fecharModal(); toast('Clube criado.'); pgEditor();
   };
 }
@@ -2243,5 +2397,341 @@ function modalImportar(){
     await jogo('data_packs').update({ atualizado_em:new Date().toISOString() }).eq('id', ST.packId);
     registrar('pacote.importar', ST.packId, { clubes: linhas.length, linhas: resultado.linhas });
     fecharModal(); toast(`${linhas.length} clubes atualizados no pacote.`); pgEditor();
+  };
+}
+
+/* ============================================================================
+   PAÍSES E COMPETIÇÕES DISPONÍVEIS
+   ----------------------------------------------------------------------------
+   Vem de src/data/universos.js — o MESMO arquivo que o core.js do jogo lê. Foi
+   extraído do core.js justamente para o painel não manter uma segunda lista:
+   duas versões da mesma regra é o que world-rules.js descreve como a origem dos
+   bugs de calendário.
+   ============================================================================ */
+function universos(){ return window.UNIVERSOS || {}; }
+function paisesDisponiveis(){
+  return Object.keys(universos()).map(k => ({
+    chave: k,
+    nome: k==='brasil' ? 'Brasil' : (universos()[k].country || k),
+    bandeira: (window.UNIVERSO_BANDEIRA||{})[k] || null,
+    divisoes: (universos()[k].order||[]).map(d => ({ codigo:d, nome:(universos()[k].label||{})[d]||d }))
+  })).sort((a,b)=> a.chave==='brasil' ? -1 : b.chave==='brasil' ? 1 : a.nome.localeCompare(b.nome,'pt-BR'));
+}
+function bandeiraImg(iso, px){
+  if(!iso) return '';
+  return `<img src="https://flagcdn.com/${h(iso)}.svg" alt="" style="width:${px||16}px;height:auto;border-radius:2px;vertical-align:middle">`;
+}
+/* seletor de cor com amostra grande — dois cliques e a pessoa vê o resultado,
+   em vez de decorar hexadecimal */
+function campoCor(id, rotulo, valor){
+  return `<label class="f">${h(rotulo)}
+    <span style="display:flex;align-items:center;gap:8px">
+      <input type="color" id="${id}" value="${h(valor||'#1b7a3d')}"
+             style="width:46px;height:34px;padding:2px;border:1px solid var(--bd2);border-radius:8px;background:var(--bg);cursor:pointer">
+      <input class="f mono" id="${id}-hex" value="${h(valor||'#1b7a3d')}" style="flex:1;font-size:12px" maxlength="7">
+    </span></label>`;
+}
+/* mantém o seletor visual e o campo hexadecimal em sincronia, e redesenha a
+   amostra da camisa a cada mudança */
+function ligarCores(idA, idB, idPreview){
+  const par = (id) => {
+    const cor = el(id), hex = el(id+'-hex');
+    if(!cor || !hex) return;
+    cor.oninput = () => { hex.value = cor.value; desenhar(); };
+    hex.oninput = () => { if(/^#[0-9a-f]{6}$/i.test(hex.value)){ cor.value = hex.value; desenhar(); } };
+  };
+  function desenhar(){
+    const alvo = el(idPreview); if(!alvo) return;
+    const a = (el(idA)||{}).value || '#1b7a3d';
+    const b = (el(idB)||{}).value || '#ffffff';
+    alvo.innerHTML = `<span style="display:inline-flex;align-items:center;gap:10px">
+      <span style="width:34px;height:40px;border-radius:4px 4px 8px 8px;border:1px solid #0006;
+        background:linear-gradient(90deg,${h(a)} 0 34%, ${h(b)} 34% 66%, ${h(a)} 66%)"></span>
+      <span style="width:34px;height:34px;border-radius:99px;border:2px solid ${h(b)};background:${h(a)}"></span>
+      <small style="font-size:11.5px;color:var(--dim2)">camisa e escudo de reserva</small></span>`;
+  }
+  par(idA); par(idB); desenhar();
+}
+
+/* ============================================================================
+   ABA COMPETIÇÕES
+   ----------------------------------------------------------------------------
+   As competições do jogo hoje são fixas no motor (COMP_DEFS em engine/core.js) e
+   o calendário é uma tabela escrita à mão em engine/world-rules.js — que é
+   injetada byte a byte dentro da edge function resolve-round, com trava no CI.
+   Ou seja: o motor ainda não sabe jogar competição definida aqui.
+
+   O que esta aba faz HOJE é definir a competição e o calendário dela dentro do
+   patch, com a regra que world-rules.js chama de causa raiz dos bugs de
+   calendário: DUAS competições não podem cair no mesmo dia. A validação já roda
+   aqui, na definição — é mais barato impedir o conflito do que descobri-lo com a
+   temporada rodando.
+   ============================================================================ */
+const COMPETICOES_CHAVE = '__competicoes__';   // guardada como uma linha especial do patch
+
+function competicoesDoPatch(){
+  const linha = (D.edits||{})[COMPETICOES_CHAVE];
+  return (linha && linha.patch && Array.isArray(linha.patch.lista)) ? linha.patch.lista : [];
+}
+/* modelo do Brasileirão: 4 divisões, ida e volta, acesso e rebaixamento */
+function modeloBrasileirao(){
+  const uni = (window.UNIVERSOS||{}).brasil || {order:['A','B','C','D'],size:{},label:{}};
+  return uni.order.map((d,i) => ({
+    id: 'liga'+d, nome: (uni.label||{})[d] || ('Série '+d), tipo:'liga', pais:'brasil', divisao:d,
+    clubes: (uni.size||{})[d] || 20, idaEVolta:true, playoff:false,
+    sobe: (uni.promo||{})[d] || 0, desce: (uni.releg||{})[d] || 0,
+    continental: i===0 ? { libertadores:6, sulamericana:6 } : null,
+    datas: []
+  }));
+}
+function modeloCopa(nome){
+  return { id:'copa'+Date.now().toString(36), nome, tipo:'mata-mata', pais:'brasil', divisao:null,
+           clubes:32, idaEVolta:true, playoff:true, sobe:0, desce:0,
+           continental:null, datas:[] };
+}
+
+function abaCompeticoes(pack, editar){
+  const comps = competicoesDoPatch();
+  const conflitos = conflitosDeCalendario(comps);
+
+  el('ed-aba').innerHTML = `
+    <div class="card card-p" style="border-color:#5a4a18;background:#1c1710;margin-bottom:16px">
+      <div class="tt" style="margin-bottom:6px;color:var(--ambar)">Definição pronta, motor ainda não</div>
+      <div class="st" style="line-height:1.7">
+        As competições do jogo hoje são fixas no motor, e o calendário é uma tabela compartilhada
+        byte a byte com o servidor que resolve as rodadas. O que se define aqui fica guardado no
+        patch e já é validado (inclusive o conflito de datas), mas <b>o motor só passa a jogar
+        estas competições numa próxima etapa</b> — que mexe no motor e na edge function juntos.
+      </div>
+    </div>
+
+    <div class="card" style="overflow:hidden">
+      <div class="card-h">
+        <b>Competições do patch</b>
+        ${editar?`<button class="btn btn-sm btn-ghost" id="cp-brasileirao">Usar modelo do Brasileirão</button>`:''}
+        ${editar?`<button class="btn btn-sm btn-ghost" id="cp-copa">+ Copa</button>`:''}
+        ${editar?`<button class="btn btn-sm" id="cp-nova">+ Competição</button>`:''}
+      </div>
+      ${conflitos.length?`<div class="erro" style="margin:12px 20px">
+        ${conflitos.length} conflito(s) de data — duas competições no mesmo dia:
+        ${h(conflitos.slice(0,5).map(c=>`${c.data} (${c.quais.join(' × ')})`).join('; '))}
+      </div>`:''}
+      ${comps.length ? `
+        <div class="rowh" style="grid-template-columns:1.5fr .8fr .7fr 1fr .8fr .8fr ${editar?'26px':''}">
+          <span>Competição</span><span>Formato</span><span style="text-align:center">Clubes</span>
+          <span>Turno</span><span style="text-align:center">Datas</span>
+          <span style="text-align:center">Sobe / desce</span>${editar?'<span></span>':''}
+        </div>
+        ${comps.map((c,i)=>`
+          <div class="row" style="grid-template-columns:1.5fr .8fr .7fr 1fr .8fr .8fr ${editar?'26px':''};cursor:pointer" data-comp="${i}">
+            <span style="min-width:0"><b style="display:block;font-size:13px">${h(c.nome)}</b>
+              <small class="mono" style="font-size:11px;color:var(--dim3)">${h(c.id)}</small></span>
+            <span class="tag ${c.tipo==='liga'?'t-azul':'t-roxo'}">${c.tipo==='liga'?'Liga':'Mata-mata'}</span>
+            <span class="mono" style="font-size:12.5px;text-align:center">${c.clubes}</span>
+            <span style="font-size:12px;color:var(--dim)">${c.idaEVolta?'Ida e volta':'Só ida'}${c.playoff?' + playoff':''}</span>
+            <span class="mono" style="font-size:12.5px;text-align:center;color:${(c.datas||[]).length?'var(--verde2)':'var(--dim3)'}">${(c.datas||[]).length}</span>
+            <span class="mono" style="font-size:12px;text-align:center">${c.sobe||0} / ${c.desce||0}</span>
+            ${editar?`<span class="link" data-rm-comp="${i}" style="color:var(--dim3);text-align:center">✕</span>`:''}
+          </div>`).join('')}
+      ` : '<div class="vazio">Nenhuma competição neste patch. Comece pelo modelo do Brasileirão.</div>'}
+    </div>`;
+
+  if(!editar) return;
+  el('cp-brasileirao').onclick = async () => {
+    if(comps.length && !confirm('Isto substitui as competições deste patch pelas 4 divisões do Brasileirão. Continuar?')) return;
+    await gravarCompeticoes(modeloBrasileirao());
+  };
+  el('cp-copa').onclick = () => {
+    const nome = prompt('Nome da copa:', 'Copa do Brasil');
+    if(!nome) return;
+    gravarCompeticoes(comps.concat([modeloCopa(nome)]));
+  };
+  el('cp-nova').onclick = () => modalCompeticao(null);
+  document.querySelectorAll('[data-comp]').forEach(r => r.onclick = ev => {
+    if(ev.target.closest('[data-rm-comp]')) return;
+    modalCompeticao(+r.dataset.comp);
+  });
+  document.querySelectorAll('[data-rm-comp]').forEach(x => x.onclick = async () => {
+    if(!confirm('Remover esta competição do patch?')) return;
+    const nova = comps.slice(); nova.splice(+x.dataset.rmComp,1);
+    await gravarCompeticoes(nova);
+  });
+}
+
+/* DUAS COMPETIÇÕES NO MESMO DIA é o bug que world-rules.js descreve como o pior do
+   calendário (o jogador via dois jogos no mesmo dia e o avanço de copa duplicava).
+   Aqui isso é impedido na definição, que é onde sai barato. */
+function conflitosDeCalendario(comps){
+  const porData = {};
+  (comps||[]).forEach(c => (c.datas||[]).forEach(d => {
+    (porData[d] = porData[d] || []).push(c.nome);
+  }));
+  return Object.keys(porData).filter(d => porData[d].length > 1)
+    .sort().map(d => ({ data:d, quais:porData[d] }));
+}
+/* datas já ocupadas por OUTRAS competições do patch */
+function datasOcupadas(comps, exceto){
+  const s = new Set();
+  (comps||[]).forEach((c,i) => { if(i!==exceto) (c.datas||[]).forEach(d=>s.add(d)); });
+  return s;
+}
+
+async function gravarCompeticoes(lista){
+  const linha = { pack_id: ST.packId, club_id: COMPETICOES_CHAVE, divisao: null, novo: true,
+                  patch: { lista } };
+  const { error } = await jogo('pack_edits').upsert(linha, { onConflict:'pack_id,club_id' });
+  if(error) return toast(erroMsg(error), true);
+  registrar('competicoes.gravar', ST.packId, { total: lista.length });
+  toast('Competições salvas no patch.'); pgEditor();
+}
+
+function modalCompeticao(indice){
+  const comps = competicoesDoPatch();
+  const c = indice==null
+    ? { id:'comp'+Date.now().toString(36), nome:'', tipo:'liga', pais:'brasil', divisao:null,
+        clubes:20, idaEVolta:true, playoff:false, sobe:0, desce:0, continental:null, datas:[] }
+    : JSON.parse(JSON.stringify(comps[indice]));
+  const paises = paisesDisponiveis();
+  const ocupadas = datasOcupadas(comps, indice);
+
+  abrirModal(`
+    <h3>${indice==null?'Nova competição':h(c.nome)}</h3>
+    <div class="col">
+      <div class="g2" style="gap:12px">
+        <label class="f">Nome<input class="f" id="k-nome" value="${h(c.nome)}" placeholder="Ex.: Brasileirão Série A"></label>
+        <label class="f">País
+          <select class="f" id="k-pais">
+            ${paises.map(p=>`<option value="${h(p.chave)}" ${p.chave===c.pais?'selected':''}>${h(p.nome)}</option>`).join('')}
+          </select></label>
+      </div>
+
+      <div class="tt" style="margin-top:4px">Formato</div>
+      <div class="g2" style="gap:12px">
+        <label class="f">Tipo
+          <select class="f" id="k-tipo">
+            <option value="liga" ${c.tipo==='liga'?'selected':''}>Liga (todos contra todos, por pontos)</option>
+            <option value="mata-mata" ${c.tipo==='mata-mata'?'selected':''}>Copa (mata-mata)</option>
+          </select></label>
+        <label class="f">Nº de clubes<input class="f mono" id="k-clubes" type="number" min="2" max="64" value="${c.clubes}"></label>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--fg2)">
+        <input type="checkbox" id="k-ida" ${c.idaEVolta?'checked':''} style="accent-color:#35c46a">
+        Ida e volta <small style="color:var(--dim2)">(na liga, turno e returno; na copa, dois jogos por confronto)</small></label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--fg2)">
+        <input type="checkbox" id="k-playoff" ${c.playoff?'checked':''} style="accent-color:#35c46a">
+        Tem fase final / playoff <small style="color:var(--dim2)">(na liga, mata-mata entre os melhores no fim)</small></label>
+
+      <div id="k-liga" class="${c.tipo==='liga'?'':'hide'}">
+        <div class="tt" style="margin:8px 0 6px">Acesso e rebaixamento</div>
+        <div class="g2" style="gap:12px">
+          <label class="f">Sobem<input class="f mono" id="k-sobe" type="number" min="0" max="10" value="${c.sobe||0}"></label>
+          <label class="f">Descem<input class="f mono" id="k-desce" type="number" min="0" max="10" value="${c.desce||0}"></label>
+        </div>
+        <div class="tt" style="margin:12px 0 6px">Classificação para competições continentais</div>
+        <div class="st" style="margin-bottom:8px">Quantos primeiros colocados vão para cada uma. Zero = não classifica.</div>
+        <div class="g2" style="gap:12px">
+          <label class="f">Libertadores<input class="f mono" id="k-lib" type="number" min="0" max="12"
+            value="${(c.continental&&c.continental.libertadores)||0}"></label>
+          <label class="f">Sul-Americana<input class="f mono" id="k-sul" type="number" min="0" max="12"
+            value="${(c.continental&&c.continental.sulamericana)||0}"></label>
+        </div>
+      </div>
+
+      <div class="tt" style="margin-top:10px">Calendário</div>
+      <div class="st" style="line-height:1.6">
+        Uma data por rodada, na ordem. <b>Duas competições não podem cair no mesmo dia</b> —
+        as datas já usadas por outras competições deste patch são recusadas aqui.
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <label class="f" style="flex:1">Nova data<input class="f" id="k-data" type="date"></label>
+        <button class="btn btn-sm btn-ghost" id="k-add-data" style="margin-bottom:2px">Adicionar</button>
+        <button class="btn btn-sm btn-ghost" id="k-auto" style="margin-bottom:2px">Preencher automático</button>
+      </div>
+      <div class="erro hide" id="k-erro"></div>
+      <div id="k-datas" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+
+      <div class="acoes">
+        <button class="btn" id="k-ok">Salvar competição</button>
+        <button class="btn btn-ghost" data-fechar>Cancelar</button>
+      </div>
+    </div>`, 'lg');
+
+  const erro = el('k-erro');
+  el('k-tipo').onchange = () => el('k-liga').classList.toggle('hide', el('k-tipo').value!=='liga');
+
+  function desenharDatas(){
+    el('k-datas').innerHTML = (c.datas||[]).length
+      ? c.datas.map((d,i)=>`<span class="tag t-dim" style="display:inline-flex;align-items:center;gap:6px">
+          <b class="mono" style="font-weight:500">${i+1}ª · ${h(dmy(d))}</b>
+          <span class="link" data-rm-data="${i}" style="color:var(--dim3)">✕</span></span>`).join('')
+      : '<span class="st">Nenhuma data ainda.</span>';
+    el('k-datas').querySelectorAll('[data-rm-data]').forEach(x => x.onclick = () => {
+      c.datas.splice(+x.dataset.rmData,1); desenharDatas();
+    });
+  }
+  desenharDatas();
+
+  function tentarAdicionar(d){
+    erro.classList.add('hide');
+    if(!d) return false;
+    if(ocupadas.has(d)){ erro.textContent = `${dmy(d)} já é dia de outra competição deste patch.`; erro.classList.remove('hide'); return false; }
+    if((c.datas||[]).includes(d)){ erro.textContent = `${dmy(d)} já está nesta competição.`; erro.classList.remove('hide'); return false; }
+    c.datas = (c.datas||[]).concat([d]).sort();
+    return true;
+  }
+  el('k-add-data').onclick = () => { if(tentarAdicionar(el('k-data').value)) { el('k-data').value=''; desenharDatas(); } };
+
+  /* preenchimento automático: uma rodada por semana a partir da primeira data livre,
+     pulando qualquer dia já usado por outra competição — é a regra do calendário
+     aplicada na hora de gerar, não depois */
+  el('k-auto').onclick = () => {
+    erro.classList.add('hide');
+    const tipo = el('k-tipo').value, n = +el('k-clubes').value||20;
+    const rodadas = tipo==='liga'
+      ? (n-1) * (el('k-ida').checked?2:1)
+      : Math.ceil(Math.log2(Math.max(2,n))) * (el('k-ida').checked?2:1);
+    const inicio = el('k-data').value ? new Date(el('k-data').value+'T12:00:00') : new Date('2026-03-01T12:00:00');
+    c.datas = [];
+    /* Uma rodada por semana. Quando o dia da semana já é de outra competição, procura
+       OUTRO DIA DA MESMA SEMANA antes de pular para a seguinte — é assim que as quatro
+       divisões correm em paralelo (A no domingo, B no sábado…). Pulando a semana inteira,
+       a Série B só começava depois de a Série A acabar: 38 semanas depois. */
+    const livre = iso => !ocupadas.has(iso) && !c.datas.includes(iso);
+    const iso = dt => dt.toISOString().slice(0,10);
+    let semana = 0, seguranca = 0;
+    while(c.datas.length < rodadas && seguranca++ < 400){
+      const base = new Date(inicio); base.setDate(base.getDate() + semana*7);
+      let posta = false;
+      for(const desloc of [0,-1,1,-2,2,-3,3]){        // mesmo dia, depois os vizinhos da semana
+        const dia = new Date(base); dia.setDate(dia.getDate() + desloc);
+        if(livre(iso(dia))){ c.datas.push(iso(dia)); posta = true; break; }
+      }
+      semana++;
+      if(!posta && semana > rodadas + 60) break;      // semana lotada em todos os dias
+    }
+    c.datas.sort();
+    desenharDatas();
+    toast(`${c.datas.length} rodadas no calendário.`);
+  };
+
+  el('k-ok').onclick = async () => {
+    const nome = el('k-nome').value.trim();
+    if(!nome) return toast('Dê um nome à competição.', true);
+    const tipo = el('k-tipo').value;
+    const nova = Object.assign({}, c, {
+      nome, tipo, pais: el('k-pais').value,
+      clubes: +el('k-clubes').value||20,
+      idaEVolta: el('k-ida').checked, playoff: el('k-playoff').checked,
+      sobe: tipo==='liga' ? (+el('k-sobe').value||0) : 0,
+      desce: tipo==='liga' ? (+el('k-desce').value||0) : 0,
+      continental: tipo==='liga' && ((+el('k-lib').value||0) || (+el('k-sul').value||0))
+        ? { libertadores:+el('k-lib').value||0, sulamericana:+el('k-sul').value||0 } : null
+    });
+    const lista = comps.slice();
+    if(indice==null) lista.push(nova); else lista[indice] = nova;
+    const conf = conflitosDeCalendario(lista);
+    if(conf.length) return toast(`Conflito de data em ${conf[0].data} — duas competições no mesmo dia.`, true);
+    fecharModal();
+    await gravarCompeticoes(lista);
   };
 }

@@ -190,6 +190,9 @@
 <script src="src/data/leagues-brasil-lower.js"></script>
 <script src="src/data/club-crests-brasil-lower.js"></script>
 <script src="src/data/flags.js"></script>
+<!-- países jogáveis e suas divisões: saiu do core.js porque o painel de admin também
+     precisa da lista (editor de clubes) e copiar seria manter duas versões da mesma regra -->
+<script src="src/data/universos.js"></script>
 <!-- correções do painel dos sócios por cima do catálogo de fábrica (força, idade, escudo,
      clubes novos). DEPOIS dos dados, porque mexe neles; ANTES do bloco inline abaixo, que
      faz `const DATA = window.GAME_DATA` e começa a montar o jogo. Ver src/net/dados.js. -->

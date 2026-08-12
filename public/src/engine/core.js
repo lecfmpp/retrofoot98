@@ -2490,40 +2490,9 @@ function cupRoundsUserSitsOut(){
 /* nat = nacionalidades "domésticas" (p.nat vem em inglês do Transfermarkt); foreignMax =
    cota SIMPLIFICADA de estrangeiros no elenco (regra real varia muito por liga — números
    abaixo refletem a abertura relativa de cada país e são facilmente ajustáveis). */
-const UNI_CONFIGS={
-  brasil:    { order:['A','B','C','D'], size:{A:20,B:20,C:20,D:20}, promo:{A:0,B:4,C:4,D:4}, releg:{A:4,B:4,C:4,D:0},
-               label:{A:'Série A',B:'Série B',C:'Série C',D:'Série D'}, nat:['Brasil','Brazil'], foreignMax:8 },
-  Inglaterra:{ order:['PL','CH'], size:{PL:20,CH:24}, promo:{PL:0,CH:3}, releg:{PL:3,CH:0},
-               label:{PL:'Premier League',CH:'Championship'}, lg:{PL:'ENG-1',CH:'ENG-2'}, country:'Inglaterra',
-               nat:['England','Wales','Scotland','Northern Ireland'], foreignMax:22 },
-  Espanha:   { order:['ES','ES2'], size:{ES:20,ES2:18}, promo:{ES:0,ES2:3}, releg:{ES:3,ES2:0},
-               label:{ES:'La Liga',ES2:'La Liga 2'}, lg:{ES:'ESP-1',ES2:'ESP-2'}, country:'Espanha',
-               nat:['Spain'], foreignMax:15 },
-  'Itália':  { order:['IT','IT2'], size:{IT:20,IT2:18}, promo:{IT:0,IT2:3}, releg:{IT:3,IT2:0},
-               label:{IT:'Serie A',IT2:'Serie B'}, lg:{IT:'ITA-1',IT2:'ITA-2'}, country:'Itália',
-               nat:['Italy'], foreignMax:16 },
-  Alemanha:  { order:['DE','DE2'], size:{DE:18,DE2:18}, promo:{DE:0,DE2:3}, releg:{DE:3,DE2:0},
-               label:{DE:'Bundesliga',DE2:'2. Bundesliga'}, lg:{DE:'GER-1',DE2:'GER-2'}, country:'Alemanha',
-               nat:['Germany'], foreignMax:17 },
-  Portugal:  { order:['PT','PT2'], size:{PT:18,PT2:18}, promo:{PT:0,PT2:3}, releg:{PT:3,PT2:0},
-               label:{PT:'Primeira Liga',PT2:'Liga Portugal 2'}, lg:{PT:'POR-1',PT2:'POR-2'}, country:'Portugal',
-               nat:['Portugal'], foreignMax:18 },
-  /* CONMEBOL: divisão ÚNICA (só 1ª divisão real, sem pirâmide -> sem acesso/rebaixamento);
-     clubes reais em window.CONMEBOL_LEAGUES (src:'conmebol'). Classificam pra Libertadores/
-     Sul-Americana. size = nº real de clubes raspados (Argentina cortada em 20 p/ temporada padrão). */
-  Argentina: { order:['ARG'], size:{ARG:30}, promo:{ARG:0}, releg:{ARG:0}, label:{ARG:'Liga Profesional'}, lg:{ARG:'ARG-1'}, country:'Argentina', nat:['Argentina'], foreignMax:6, src:'conmebol' },
-  Uruguai:   { order:['URU'], size:{URU:16}, promo:{URU:0}, releg:{URU:0}, label:{URU:'Primera División'}, lg:{URU:'URU-1'}, country:'Uruguai', nat:['Uruguay'], foreignMax:6, src:'conmebol' },
-  'Colômbia':{ order:['COL'], size:{COL:20}, promo:{COL:0}, releg:{COL:0}, label:{COL:'Categoría Primera A'}, lg:{COL:'COL-1'}, country:'Colômbia', nat:['Colombia'], foreignMax:5, src:'conmebol' },
-  Chile:     { order:['CHI'], size:{CHI:16}, promo:{CHI:0}, releg:{CHI:0}, label:{CHI:'Primera División'}, lg:{CHI:'CHI-1'}, country:'Chile', nat:['Chile'], foreignMax:6, src:'conmebol' },
-  Peru:      { order:['PER'], size:{PER:18}, promo:{PER:0}, releg:{PER:0}, label:{PER:'Liga 1'}, lg:{PER:'PER-1'}, country:'Peru', nat:['Peru'], foreignMax:5, src:'conmebol' },
-  Equador:   { order:['ECU'], size:{ECU:16}, promo:{ECU:0}, releg:{ECU:0}, label:{ECU:'LigaPro Serie A'}, lg:{ECU:'ECU-1'}, country:'Equador', nat:['Ecuador'], foreignMax:5, src:'conmebol' },
-  Paraguai:  { order:['PAR'], size:{PAR:12},  promo:{PAR:0}, releg:{PAR:0}, label:{PAR:'División Profesional'}, lg:{PAR:'PAR-1'}, country:'Paraguai', nat:['Paraguay'], foreignMax:6, src:'conmebol' },
-  Venezuela: { order:['VEN'], size:{VEN:14}, promo:{VEN:0}, releg:{VEN:0}, label:{VEN:'Liga FUTVE'}, lg:{VEN:'VEN-1'}, country:'Venezuela', nat:['Venezuela'], foreignMax:6, src:'conmebol' },
-  'Bolívia': { order:['BOL'], size:{BOL:16}, promo:{BOL:0}, releg:{BOL:0}, label:{BOL:'División Profesional'}, lg:{BOL:'BOL-1'}, country:'Bolívia', nat:['Bolivia'], foreignMax:6, src:'conmebol' },
-};
+const UNI_CONFIGS = window.UNIVERSOS;          // ver src/data/universos.js (compartilhado com o painel)
 /* código ISO da bandeira de cada universo (UNI_CONFIGS só guarda o nome do país) */
-const UNI_COUNTRY_FLAG={brasil:'br',Inglaterra:'gb-eng',Espanha:'es','Itália':'it',Alemanha:'de',Portugal:'pt',
-  Argentina:'ar',Uruguai:'uy','Colômbia':'co',Chile:'cl',Peru:'pe',Equador:'ec',Paraguai:'py',Venezuela:'ve','Bolívia':'bo'};
+const UNI_COUNTRY_FLAG = window.UNIVERSO_BANDEIRA;
 /* CONMEBOL (Argentina, Uruguai, Colômbia, Chile, Peru, Equador, Paraguai, Venezuela, Bolívia): o
    bundle só traz o elenco real de cada clube, sem overall/OS/MS/DS — diferente do INTL_LEAGUES
    (Europa), que já vem com isso pronto. Sem essa conta, todo consumidor que lê `c.overall` direto
