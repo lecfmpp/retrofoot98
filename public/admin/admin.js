@@ -152,17 +152,17 @@ const PAPEIS = { socio:'Sócio · vê tudo', financeiro:'Financeiro', produto:'P
 /* o que cada papel vê (o guia: socio=tudo, financeiro=Finanças+Publicidade,
    produto=Analytics/Usuários/Funcionalidades, leitura=tudo em modo leitura) */
 const ACESSO = {
-  socio:      ['visao','usuarios','jogos','analytics','financas','publicidade','features','equipa'],
+  socio:      ['visao','usuarios','jogos','analytics','financas','publicidade','features','editor','equipa'],
   financeiro: ['visao','financas','publicidade'],
-  produto:    ['visao','usuarios','jogos','analytics','features'],
-  leitura:    ['visao','usuarios','jogos','analytics','financas','publicidade','features']
+  produto:    ['visao','usuarios','jogos','analytics','features','editor'],
+  leitura:    ['visao','usuarios','jogos','analytics','financas','publicidade','features','editor']
 };
 function podeVer(tab){ return (ACESSO[ME&&ME.papel] || ACESSO.leitura).includes(tab); }
 function podeEditar(area){
   if(!ME) return false;
   if(ME.papel==='socio') return true;
   if(ME.papel==='financeiro') return area==='financas'||area==='publicidade';
-  if(ME.papel==='produto') return area==='produto';
+  if(ME.papel==='produto') return area==='produto' || area==='dados';
   return false;
 }
 
@@ -318,6 +318,7 @@ const NAV = [
   { id:'financas',    ic:'▤', label:'Finanças',       tit:'Finanças',           sub:'Receita, despesa e fecho do mês' },
   { id:'publicidade', ic:'◫', label:'Publicidade',    tit:'Publicidade',        sub:'Patrocinadores e espaços do jogo' },
   { id:'features',    ic:'✦', label:'Funcionalidades',tit:'Funcionalidades',    sub:'O que os treinadores pedem' },
+  { id:'editor',      ic:'✎', label:'Editor de dados',tit:'Editor de dados do jogo', sub:'Clubes, elencos, escudos e força' },
   { id:'equipa',      ic:'☗', label:'Equipe admin',   tit:'Equipe admin',       sub:'Quem entra no painel' }
 ];
 function renderNav(){
@@ -339,7 +340,8 @@ function irPara(tab, forcar){
   el('pg-tit').textContent = n.tit; el('pg-sub').textContent = n.sub;
   el('page').innerHTML = '<div class="vazio">Carregando…</div>';
   const fn = { visao:pgVisao, usuarios:pgUsuarios, jogos:pgJogos, analytics:pgAnalytics,
-               financas:pgFinancas, publicidade:pgPublicidade, features:pgFeatures, equipa:pgEquipa }[tab];
+               financas:pgFinancas, publicidade:pgPublicidade, features:pgFeatures,
+               editor:pgEditor, equipa:pgEquipa }[tab];
   fn(forcar).catch(e => { el('page').innerHTML = `<div class="erro">${h(erroMsg(e))}</div>`; });
 }
 
@@ -1543,3 +1545,361 @@ function escFechar(e){ if(e.key==='Escape') fecharModal(); }
 /* ============================ arranque ============================ */
 el('sair').onclick = async () => { await sb.auth.signOut(); ME=null; ST.authMode='login'; mostrarAuth(); };
 init();
+
+/* ============================================================================
+   EDITOR DE DADOS DO JOGO
+   ----------------------------------------------------------------------------
+   O catálogo de fábrica (clubes e elencos) NÃO está no banco: são ~360 KB de
+   JS servidos com o jogo. O editor carrega esses mesmos arquivos do site do
+   jogo — assim o painel enxerga exatamente o que o jogador enxerga — e grava
+   apenas o DIFF em elifoot_v3.club_edits. Quem aplica o diff é src/net/dados.js,
+   no boot do jogo.
+
+   Save já começado não muda: o universo é gerado e gravado dentro do save. A
+   correção vale para jogos novos, e é isso que o aviso no topo da página diz.
+   ============================================================================ */
+const JOGO_URL = 'https://retrofoot98.com.br';
+const CAMPOS_CLUBE   = ['name','short','color','color2','crest','OS','MS','DS','overall'];
+const CAMPOS_JOGADOR = ['n','p','s','f','age','mv','num','nat'];
+const POSICOES = ['GOL','ZAG','LAD','LAE','VOL','MC','MEI','PD','PE','SA','CA'];
+const SETORES  = ['GK','DEF','MID','ATT'];
+
+/* carrega game-data.js / leagues-brasil-lower.js do site do jogo como <script>.
+   São arquivos que definem window.GAME_DATA e window.BRASIL_LOWER — a mesma
+   fonte do jogo, sem cópia paralela que possa divergir. */
+let catalogoCarregado = false;
+function carregarCatalogo(){
+  if(catalogoCarregado) return Promise.resolve();
+  const arquivos = ['/src/data/game-data.js', '/src/data/leagues-brasil-lower.js'];
+  return Promise.all(arquivos.map(f => new Promise((ok, erro) => {
+    const t = document.createElement('script');
+    t.src = JOGO_URL + f; t.onload = ok;
+    t.onerror = () => erro(new Error('Não foi possível carregar ' + f + ' do site do jogo.'));
+    document.head.appendChild(t);
+  }))).then(() => { catalogoCarregado = true; });
+}
+/* clubes de fábrica, achatados numa lista só, com a divisão de cada um */
+function clubesDeFabrica(){
+  const out = [];
+  if(window.GAME_DATA && Array.isArray(window.GAME_DATA.clubs))
+    window.GAME_DATA.clubs.forEach(c => out.push({ div:'A', c }));
+  if(window.BRASIL_LOWER) for(const d of ['B','C','D'])
+    (window.BRASIL_LOWER[d]||[]).forEach(c => out.push({ div:d, c }));
+  return out;
+}
+
+async function pgEditor(){
+  const editar = podeEditar('dados');
+  try{ await carregarCatalogo(); }
+  catch(e){ el('page').innerHTML = `<div class="erro">${h(e.message)}</div>`; return; }
+
+  const eds = await jogo('club_edits').select('*');
+  if(eds.error) throw eds.error;
+  D.edits = {}; (eds.data||[]).forEach(e => { D.edits[e.club_id] = e; });
+
+  const base = clubesDeFabrica();
+  // clubes criados no painel entram na lista como qualquer outro
+  (eds.data||[]).filter(e => e.novo).forEach(e => {
+    if(!base.some(x => String(x.c.id)===String(e.club_id)))
+      base.push({ div:e.divisao||'D', c:Object.assign({id:e.club_id}, e.patch||{}), criado:true });
+  });
+  D.catalogo = base;
+
+  const busca = (ST.buscaClube||'').toLowerCase();
+  const filtro = ST.divFiltro || 'todas';
+  const lista = base.filter(x =>
+    (filtro==='todas' || x.div===filtro) &&
+    (!busca || String(x.c.name||'').toLowerCase().includes(busca)
+            || String(x.c.short||'').toLowerCase().includes(busca)
+            || String(x.c.id).toLowerCase().includes(busca)));
+
+  const editados = Object.keys(D.edits).length;
+  el('page').innerHTML = `
+    <div class="g4">
+      ${kpiHTML({l:'Clubes no catálogo', v:num(base.length), d:'Séries A, B, C e D'})}
+      ${kpiHTML({l:'Clubes com edição', v:num(editados), d: editados? 'já valendo no jogo' : 'nada alterado ainda'})}
+      ${kpiHTML({l:'Clubes criados aqui', v:num((eds.data||[]).filter(e=>e.novo).length), d:'não existem no arquivo de fábrica'})}
+      ${kpiHTML({l:'Jogadores no catálogo', v:num(base.reduce((a,x)=>a+((x.c.squad||[]).length),0)), d:'somando todas as divisões'})}
+    </div>
+
+    <div class="card card-p" style="border-color:#5a4a18;background:#1c1710">
+      <div class="tt" style="margin-bottom:6px;color:var(--ambar)">O que a edição alcança</div>
+      <div class="st" style="line-height:1.7">
+        A correção vale para <b>jogos novos</b>. Um save já começado guarda o universo dentro dele —
+        mudar a força de um elenco no meio da temporada de alguém seria pior que o erro.
+        No jogo, a mudança aparece no próximo carregamento da página.
+      </div>
+    </div>
+
+    <div class="card" style="overflow:hidden">
+      <div class="card-h">
+        <b>Clubes</b>
+        <span class="per" style="gap:4px">
+          ${['todas','A','B','C','D'].map(d=>`<span class="${filtro===d?'on':''}" data-div="${d}">${d==='todas'?'Todas':'Série '+d}</span>`).join('')}
+        </span>
+        <input class="busca" id="ed-busca" placeholder="Procurar clube…" value="${h(ST.buscaClube||'')}">
+        ${editar?'<button class="btn btn-sm" id="ed-novo">+ Clube</button>':''}
+      </div>
+      <div class="rowh" style="grid-template-columns:44px 1.6fr .5fr .8fr .8fr 1fr">
+        <span></span><span>Clube</span><span style="text-align:center">Série</span>
+        <span style="text-align:center">Força</span><span style="text-align:center">Elenco</span>
+        <span style="text-align:right">Edição</span>
+      </div>
+      ${lista.length ? lista.slice(0,120).map(x => {
+        const e = D.edits[x.c.id];
+        const cor = x.c.color || '#333';
+        return `<div class="row" style="grid-template-columns:44px 1.6fr .5fr .8fr .8fr 1fr;cursor:pointer"
+                     data-clube="${h(x.c.id)}">
+          <span>${x.c.crest
+            ? `<img src="${h(x.c.crest)}" alt="" style="width:26px;height:26px;object-fit:contain">`
+            : `<i class="av" style="width:26px;height:26px;border-radius:6px;background:${h(cor)};color:#fff;font-size:10px">${h(iniciais(x.c.short||x.c.name))}</i>`}</span>
+          <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(x.c.short||x.c.name)}</b>
+            <small class="mono" style="font-size:11px;color:var(--dim3)">${h(x.c.id)}</small></span>
+          <span class="mono" style="font-size:12.5px;text-align:center">${h(x.div)}</span>
+          <span class="mono" style="font-size:12.5px;text-align:center">${x.c.overall!=null?x.c.overall:'—'}</span>
+          <span class="mono" style="font-size:12.5px;text-align:center">${(x.c.squad||[]).length}</span>
+          <span style="text-align:right">${e
+            ? `<span class="tag ${e.novo?'t-roxo':'t-ok'}">${e.novo?'criado aqui':'editado'}</span>`
+            : '<span style="font-size:12px;color:var(--dim3)">de fábrica</span>'}</span>
+        </div>`;
+      }).join('') : '<div class="vazio">Nenhum clube encontrado.</div>'}
+      ${lista.length>120?`<div class="vazio">Mostrando 120 de ${lista.length} — refine a busca.</div>`:''}
+    </div>`;
+
+  const b = el('ed-busca');
+  let t=null;
+  b.oninput = () => { clearTimeout(t); t=setTimeout(()=>{ ST.buscaClube=b.value.trim(); pgEditor(); },300); };
+  document.querySelectorAll('[data-div]').forEach(d => d.onclick = () => { ST.divFiltro=d.dataset.div; pgEditor(); });
+  document.querySelectorAll('[data-clube]').forEach(r => r.onclick = () => abrirClube(r.dataset.clube));
+  if(editar) el('ed-novo').onclick = modalNovoClube;
+}
+
+/* ---------- ficha do clube: dados + elenco ---------- */
+function abrirClube(id){
+  const item = (D.catalogo||[]).find(x => String(x.c.id)===String(id));
+  if(!item) return;
+  const c = item.c, ed = D.edits[id], editar = podeEditar('dados');
+  const sq = (c.squad||[]).slice().sort((a,b)=>(b.f||0)-(a.f||0));
+
+  abrirModal(`
+    <h3 style="margin-bottom:4px">${h(c.short||c.name)}</h3>
+    <div style="font-size:12.5px;color:var(--dim2);margin-bottom:16px">
+      <span class="mono">${h(c.id)}</span> · Série ${h(item.div)}
+      ${ed?` · <span class="tag ${ed.novo?'t-roxo':'t-ok'}">${ed.novo?'criado aqui':'editado'}</span>`:''}
+    </div>
+    <div class="col" style="gap:14px">
+      <div class="g2" style="gap:12px">
+        <label class="f">Nome<input class="f" id="c-name" value="${h(c.name||'')}" ${editar?'':'disabled'}></label>
+        <label class="f">Nome curto<input class="f" id="c-short" value="${h(c.short||'')}" ${editar?'':'disabled'}></label>
+      </div>
+      <div class="g2" style="gap:12px">
+        <label class="f">Cor principal<input class="f" id="c-color" type="color" value="${h(c.color||'#1b7a3d')}" ${editar?'':'disabled'}></label>
+        <label class="f">Cor secundária<input class="f" id="c-color2" type="color" value="${h(c.color2||'#ffffff')}" ${editar?'':'disabled'}></label>
+      </div>
+      <label class="f">Escudo (URL)
+        <input class="f" id="c-crest" value="${h(c.crest||'')}" placeholder="https://… ou envie um arquivo" ${editar?'':'disabled'}>
+      </label>
+      ${editar?`<div style="display:flex;align-items:center;gap:10px">
+        <button class="btn btn-sm btn-ghost" id="c-escudo-btn">Enviar escudo (PNG/WEBP, até 1 MB)</button>
+        <input type="file" id="c-escudo" accept=".png,.webp,.jpg,.jpeg" style="display:none">
+        <span id="c-escudo-prev">${c.crest?`<img src="${h(c.crest)}" style="width:28px;height:28px;object-fit:contain">`:''}</span>
+      </div>`:''}
+      <div class="g4" style="gap:10px">
+        ${[['OS','Ataque'],['MS','Meio'],['DS','Defesa'],['overall','Geral']].map(([k,l])=>
+          `<label class="f">${l}<input class="f mono" id="c-${k}" type="number" min="1" max="99"
+             value="${c[k]!=null?c[k]:''}" ${editar?'':'disabled'}></label>`).join('')}
+      </div>
+
+      <div class="tt" style="margin-top:6px">Elenco — ${sq.length} jogadores</div>
+      <div style="max-height:320px;overflow:auto;border:1px solid var(--bd);border-radius:10px">
+        <div class="rowh" style="grid-template-columns:1.6fr .7fr .6fr .5fr .9fr ${editar?'26px':''};padding:8px 12px;position:sticky;top:0;background:var(--card)">
+          <span>Jogador</span><span>Pos</span><span style="text-align:center">Força</span>
+          <span style="text-align:center">Idade</span><span style="text-align:right">Valor</span>${editar?'<span></span>':''}
+        </div>
+        <div id="c-elenco">
+          ${sq.map(p => linhaJogador(p, editar)).join('') || '<div class="vazio">Elenco vazio.</div>'}
+        </div>
+      </div>
+      ${editar?`<button class="btn btn-sm btn-ghost" id="c-add-jog">+ Adicionar jogador</button>`:''}
+
+      <label class="f">Nota da mudança (aparece no histórico)
+        <input class="f" id="c-nota" placeholder="Ex.: força do elenco corrigida pela tabela de 2026" ${editar?'':'disabled'}>
+      </label>
+      <div class="acoes">
+        ${editar?`<button class="btn" id="c-salvar">Salvar e publicar</button>`:''}
+        ${editar&&ed?`<button class="btn btn-ghost" id="c-reverter" style="flex:0 0 auto;color:var(--vermelho)">Voltar ao de fábrica</button>`:''}
+        <button class="btn btn-ghost" data-fechar>Fechar</button>
+      </div>
+    </div>`, 'lg');
+
+  if(!editar) return;
+
+  /* RETRATO DO FORMULÁRIO NA ABERTURA. O diff não pode comparar o campo com o objeto
+     do clube direto: <input type="color"> normaliza #1B7A3D para minúsculas e devolve
+     #ffffff para clube sem cor secundária — sem tocar em nada, as duas cores entravam
+     no patch. Comparar com o que o campo TINHA quando abriu diz o que a pessoa mexeu. */
+  D.formInicial = {};
+  CAMPOS_CLUBE.forEach(k => { const n = el('c-'+k); if(n) D.formInicial['c-'+k] = n.value; });
+
+  el('c-escudo-btn').onclick = () => el('c-escudo').click();
+  el('c-escudo').onchange = async () => {
+    const f = el('c-escudo').files[0]; if(!f) return;
+    if(f.size > 1024*1024) return toast('Escudo acima de 1 MB.', true);
+    const ext = (f.name.split('.').pop()||'png').toLowerCase();
+    const caminho = `${c.id}-${Date.now()}.${ext}`;
+    const up = await sb.storage.from('escudos').upload(caminho, f, { upsert:false, cacheControl:'3600' });
+    if(up.error) return toast(erroMsg(up.error), true);
+    const url = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
+    el('c-crest').value = url;
+    el('c-escudo-prev').innerHTML = `<img src="${h(url)}" style="width:28px;height:28px;object-fit:contain">`;
+    toast('Escudo enviado — salve para publicar.');
+  };
+  el('c-add-jog').onclick = () => {
+    const div = document.createElement('div');
+    div.innerHTML = linhaJogador({ n:'', p:'MC', s:'MID', f:30, age:22, mv:100000 }, true, true);
+    const linha = div.firstElementChild;
+    el('c-elenco').prepend(linha);
+    linha.querySelector('[data-k="n"]').focus();
+  };
+  // remover jogador é só tirar a linha da tela: quem some do elenco entra em
+  // squad_remover na hora de montar o diff (ver salvarClube)
+  el('c-elenco').addEventListener('click', ev => {
+    const x = ev.target.closest('[data-rm-jog]');
+    if(x) x.closest('[data-jog]').remove();
+  });
+  el('c-salvar').onclick = () => salvarClube(item);
+  if(ed) el('c-reverter').onclick = async () => {
+    if(!confirm('Voltar este clube ao arquivo de fábrica? A edição é apagada.')) return;
+    const { error } = await jogo('club_edits').delete().eq('club_id', c.id);
+    if(error) return toast(erroMsg(error), true);
+    registrar('clube.reverter', String(c.id));
+    fecharModal(); toast('Clube voltou ao de fábrica.'); pgEditor();
+  };
+}
+
+function linhaJogador(p, editar, novo){
+  const dis = editar?'':'disabled';
+  return `<div class="row" style="grid-template-columns:1.6fr .7fr .6fr .5fr .9fr ${editar?'26px':''};padding:6px 12px;border-top:1px solid var(--bd3)"
+       data-jog data-orig="${h(p.n||'')}" ${novo?'data-novo="1"':''}>
+    <input class="f" style="padding:5px 8px;font-size:12.5px" data-k="n" value="${h(p.n||'')}" ${dis}>
+    <select class="f" style="padding:5px 6px;font-size:12px" data-k="p" ${dis}>
+      ${POSICOES.map(x=>`<option ${x===p.p?'selected':''}>${x}</option>`).join('')}
+    </select>
+    <input class="f mono" style="padding:5px 6px;font-size:12px;text-align:center" data-k="f" type="number" min="1" max="99" value="${p.f!=null?p.f:''}" ${dis}>
+    <input class="f mono" style="padding:5px 6px;font-size:12px;text-align:center" data-k="age" type="number" min="15" max="45" value="${p.age!=null?p.age:''}" ${dis}>
+    <input class="f mono" style="padding:5px 6px;font-size:12px;text-align:right" data-k="mv" type="number" min="0" step="10000" value="${p.mv!=null?p.mv:''}" ${dis}>
+    ${editar?`<span class="link" data-rm-jog style="color:var(--dim3);text-align:center" title="Remover do elenco">✕</span>`:''}
+  </div>`;
+}
+
+/* monta o DIFF: só o que difere do arquivo de fábrica entra no patch. É o que
+   mantém a tabela pequena e deixa o clube seguir recebendo atualização do
+   catálogo nos campos que ninguém tocou. */
+async function salvarClube(item){
+  const c = item.c, ed = D.edits[c.id];
+  const patch = {};
+  const valor = id => { const n = el(id); return n ? n.value : null; };
+
+  const inicial = D.formInicial || {};
+  for(const k of CAMPOS_CLUBE){
+    const v = valor('c-'+k);
+    if(v == null) continue;
+    if(v === inicial['c-'+k]) continue;             // campo intocado não vira patch
+    if(k==='color'||k==='color2'||k==='crest'||k==='name'||k==='short'){
+      const t = v.trim();
+      if(t && t.toLowerCase() !== String(c[k]||'').toLowerCase()) patch[k] = t;
+    } else if(v !== '' && Number(v) !== c[k]) {
+      patch[k] = Number(v);
+    }
+  }
+
+  const squad = {}, novos = [], remover = [];
+  const originais = new Map((c.squad||[]).map(p => [p.n, p]));
+  const vistos = new Set();
+  document.querySelectorAll('#c-elenco [data-jog]').forEach(linha => {
+    const dados = {};
+    linha.querySelectorAll('[data-k]').forEach(inp => {
+      const k = inp.dataset.k;
+      dados[k] = (k==='n'||k==='p') ? inp.value.trim() : (inp.value===''?null:Number(inp.value));
+    });
+    if(!dados.n) return;
+    // setor derivado da posição: o motor escala por s (GK/DEF/MID/ATT), não por p
+    dados.s = dados.p==='GOL' ? 'GK'
+            : ['ZAG','LAD','LAE'].includes(dados.p) ? 'DEF'
+            : ['VOL','MC','MEI'].includes(dados.p) ? 'MID' : 'ATT';
+    const orig = originais.get(linha.dataset.orig);
+    if(linha.dataset.novo || !orig){ novos.push(dados); return; }
+    vistos.add(orig.n);
+    const dif = {};
+    for(const k of CAMPOS_JOGADOR) if(dados[k]!=null && dados[k]!=='' && dados[k]!==orig[k]) dif[k]=dados[k];
+    if(dados.s !== orig.s) dif.s = dados.s;
+    if(Object.keys(dif).length) squad[orig.n] = dif;
+  });
+  (c.squad||[]).forEach(p => { if(!vistos.has(p.n)) remover.push(p.n); });
+
+  if(Object.keys(squad).length) patch.squad = squad;
+  if(novos.length) patch.squad_novos = novos;
+  if(remover.length) patch.squad_remover = remover;
+
+  if(!Object.keys(patch).length && !ed){ toast('Nada mudou.'); return; }
+
+  const linha = {
+    club_id: String(c.id), divisao: item.div, novo: !!(ed && ed.novo),
+    patch: (ed && ed.novo) ? Object.assign({}, ed.patch, patch) : patch,
+    nota: (valor('c-nota')||'').trim() || null,
+    atualizado_em: new Date().toISOString(),
+    atualizado_por: (await sb.auth.getUser()).data.user.id
+  };
+  const { error } = await jogo('club_edits').upsert(linha, { onConflict:'club_id' });
+  if(error) return toast(erroMsg(error), true);
+  registrar('clube.editar', String(c.id), {
+    campos: Object.keys(patch).filter(k=>k!=='squad'&&k!=='squad_novos'&&k!=='squad_remover'),
+    jogadores: Object.keys(squad).length, novos: novos.length, removidos: remover.length,
+    nota: linha.nota });
+  fecharModal(); toast('Publicado — vale nos jogos novos.'); pgEditor();
+}
+
+function modalNovoClube(){
+  abrirModal(`
+    <h3>Novo clube</h3>
+    <div class="col">
+      <div class="st" style="line-height:1.6;margin-bottom:4px">
+        Entra na divisão escolhida como qualquer clube de fábrica. O elenco pode ficar vazio
+        agora e ser preenchido depois, na ficha do clube.</div>
+      <div class="g2" style="gap:12px">
+        <label class="f">Nome<input class="f" id="n-name" placeholder="Ex.: Grêmio Novo Horizonte"></label>
+        <label class="f">Nome curto<input class="f" id="n-short" placeholder="Ex.: Novo Horizonte"></label>
+      </div>
+      <div class="g2" style="gap:12px">
+        <label class="f">Identificador<input class="f mono" id="n-id" placeholder="br_D_novohorizonte"></label>
+        <label class="f">Série<select class="f" id="n-div">
+          ${['A','B','C','D'].map(d=>`<option ${d==='D'?'selected':''}>${d}</option>`).join('')}
+        </select></label>
+      </div>
+      <div class="g4" style="gap:10px">
+        <label class="f">Cor<input class="f" id="n-color" type="color" value="#1b7a3d"></label>
+        ${[['OS','Ataque'],['MS','Meio'],['DS','Defesa']].map(([k,l])=>
+          `<label class="f">${l}<input class="f mono" id="n-${k}" type="number" min="1" max="99" value="30"></label>`).join('')}
+      </div>
+      <div class="acoes">
+        <button class="btn" id="n-ok">Criar clube</button>
+        <button class="btn btn-ghost" data-fechar>Cancelar</button>
+      </div>
+    </div>`);
+  el('n-ok').onclick = async () => {
+    const id = el('n-id').value.trim(), nome = el('n-name').value.trim();
+    if(!id || !nome) return toast('Nome e identificador são obrigatórios.', true);
+    if(!/^[a-z0-9_]+$/i.test(id)) return toast('Identificador: só letras, números e _', true);
+    if((D.catalogo||[]).some(x => String(x.c.id)===id)) return toast('Já existe clube com esse identificador.', true);
+    const OS=+el('n-OS').value||30, MS=+el('n-MS').value||30, DS=+el('n-DS').value||30;
+    const { error } = await jogo('club_edits').insert({
+      club_id:id, divisao:el('n-div').value, novo:true,
+      patch:{ id, name:nome, short:el('n-short').value.trim()||nome, color:el('n-color').value,
+              OS, MS, DS, overall: Math.round((OS+MS+DS)/3), squad:[] },
+      atualizado_por: (await sb.auth.getUser()).data.user.id
+    });
+    if(error) return toast(erroMsg(error), true);
+    registrar('clube.criar', id, { nome, divisao: el('n-div').value });
+    fecharModal(); toast('Clube criado.'); pgEditor();
+  };
+}

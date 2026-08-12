@@ -190,6 +190,10 @@
 <script src="src/data/leagues-brasil-lower.js"></script>
 <script src="src/data/club-crests-brasil-lower.js"></script>
 <script src="src/data/flags.js"></script>
+<!-- correções do painel dos sócios por cima do catálogo de fábrica (força, idade, escudo,
+     clubes novos). DEPOIS dos dados, porque mexe neles; ANTES do bloco inline abaixo, que
+     faz `const DATA = window.GAME_DATA` e começa a montar o jogo. Ver src/net/dados.js. -->
+<script src="src/net/dados.js"></script>
 <script>
 /* ================= ELIFOOT MODERNO — Brasileirão 2026 ================= */
 /* Dados reais via Investbola/Transfermarkt. Motor: random walk 1D.        */
