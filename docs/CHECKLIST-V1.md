@@ -15,6 +15,16 @@ Um item só sai da lista depois que o usuário testar no ar
 > Conferido em produção (retrofoot98.com.br): o roteamento de resultado por competição
 > devolve placares distintos pro mesmo confronto em copas diferentes, o chat está
 > desligado e o console está limpo.
+> Também no ar: o **Ranking de Treinadores** parou de zerar a cada recarga (vivia em
+> `CL.careerStats`, client-local; agora é `S.coachCareerStats` e viaja em `game_seats.career`).
+>
+> **O que persiste hoje, verificado no banco de produção:**
+> `games.shared_state.S` guarda o mundo da sala — artilharia da temporada e de sempre, elencos
+> com a súmula de cada jogador, chaves e campeões das copas, classificação.
+> `game_seats.career` guarda a carreira de CADA treinador — Historial por temporada (posição,
+> campeão, top 3, artilheiro, copas), títulos e troféus, títulos por clube, histórico financeiro,
+> evolução do elenco e o ranking de treinadores.
+>
 > **Falta o usuário confirmar jogando** — principalmente #10 (premiação e final da Copa
 > do Brasil) e #13 (títulos sobreviverem ao logout).
 
