@@ -201,7 +201,19 @@ async function netAuthSignUp(email, password, name){
     throw e2;
   }
   SB_AUTH_USER = data.user;
+  await netAtribuirReferral();
   return SB_AUTH_USER;
+}
+
+/* Conta recém-criada veio pelo link de um parceiro? O código ficou guardado desde a
+   visita (ver ads.js) e é gravado UMA vez — no banco a chave é o user_id, então
+   reabrir outro link depois não rouba a indicação de quem trouxe a pessoa. */
+async function netAtribuirReferral(){
+  try{
+    const cod = window.ADS && ADS.refGuardado && ADS.refGuardado();
+    if(!cod || !sb || !SB_AUTH_USER) return;
+    await sb.rpc('rf_ref_signup', { p_codigo: cod });
+  }catch(e){ console.warn('referral:', e && e.message); }
 }
 
 /* ---- LOGIN: e-mail + senha ---- */

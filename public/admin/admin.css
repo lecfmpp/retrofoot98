@@ -251,3 +251,18 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
   font-size:13px;color:var(--fg2)}
 .sel-barra b{font-family:var(--mono);color:var(--fg)}
 .row input[type=checkbox],.rowh input[type=checkbox]{accent-color:#35c46a;width:15px;height:15px;cursor:pointer}
+
+/* ---------- calendário de conteúdo ---------- */
+.ct-cal{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.ct-card{border:1px solid var(--bd);background:var(--card2);border-radius:12px;overflow:hidden;
+  cursor:pointer;display:flex;flex-direction:column}
+.ct-card:hover{border-color:var(--bd2)}
+.ct-mid{position:relative;height:130px;background:var(--bg);display:flex;align-items:center;
+  justify-content:center;border-bottom:1px solid var(--bd)}
+.ct-mid img,.ct-mid video{width:100%;height:100%;object-fit:cover;display:block}
+.ct-vazio,.ct-link{font-size:12px;color:var(--dim3)}
+.ct-ok{position:absolute;top:8px;right:8px;font-size:10.5px;font-weight:700;padding:3px 8px;
+  border-radius:99px;background:var(--verde-bg);border:1px solid var(--verde-bd);color:var(--verde2)}
+.ct-corpo{padding:12px 13px;display:flex;flex-direction:column;gap:7px;flex:1}
+.ct-desc{font-size:11.5px;color:var(--dim2);line-height:1.5;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}

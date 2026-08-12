@@ -136,5 +136,39 @@ function html(chave, opts){
     ${clicavel} onclick="ADS.clique('${esc(chave)}')">${arte}</div>`;
 }
 
-window.ADS = { get, html, clique, scan, evento, get carregado(){ return carregado; } };
+/* ===== REFERRAL DE PARCEIRO (?ref=CODIGO) =====
+   Mesma mecânica dos anúncios — GET/POST cru com a chave publicável, porque isto roda
+   deslogado, antes de o SDK existir. A VISITA é contada uma vez por código por dia (o
+   mesmo link aberto cinco vezes é uma pessoa, não cinco). O código fica guardado até a
+   pessoa criar conta, que pode ser dias depois — é o cadastro que interessa ao parceiro,
+   e ele quase nunca acontece na primeira visita. Quem atribui a conta é o jogo, depois
+   do cadastro (ver netAuthSignUp). */
+const REF_KEY = 'rf98:ref';
+(function referral(){
+  let cod = null;
+  try{ cod = new URLSearchParams(location.search).get('ref'); }catch(e){}
+  if(!cod) return;
+  cod = String(cod).trim().toUpperCase().slice(0,32);
+  if(!cod) return;
+  let guardado = null;
+  try{ guardado = JSON.parse(localStorage.getItem(REF_KEY)||'null'); }catch(e){}
+  // PRIMEIRO LINK VENCE: quem trouxe a pessoa foi o primeiro, não o último clicado
+  if(!guardado || !guardado.cod){
+    try{ localStorage.setItem(REF_KEY, JSON.stringify({ cod, t:Date.now() })); }catch(e){}
+  }
+  const hoje = new Date().toISOString().slice(0,10);
+  const marca = 'rf98:refhit:'+cod+':'+hoje;
+  try{ if(localStorage.getItem(marca)) return; localStorage.setItem(marca,'1'); }catch(e){}
+  try{
+    fetch(REST + 'rpc/rf_ref_hit', { method:'POST', keepalive:true,
+      headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY,
+                'Content-Type':'application/json', 'Content-Profile':'elifoot_v3' },
+      body: JSON.stringify({ p_codigo: cod }) });
+  }catch(e){}
+})();
+function refGuardado(){
+  try{ const g = JSON.parse(localStorage.getItem(REF_KEY)||'null'); return (g && g.cod) || null; }catch(e){ return null; }
+}
+
+window.ADS = { get, html, clique, scan, evento, refGuardado, get carregado(){ return carregado; } };
 })();

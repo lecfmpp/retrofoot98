@@ -154,10 +154,10 @@ const PAPEIS = { socio:'Sócio · vê tudo', financeiro:'Financeiro', produto:'P
 /* o que cada papel vê (o guia: socio=tudo, financeiro=Finanças+Publicidade,
    produto=Analytics/Usuários/Funcionalidades, leitura=tudo em modo leitura) */
 const ACESSO = {
-  socio:      ['visao','usuarios','jogos','analytics','financas','publicidade','features','editor','equipa'],
-  financeiro: ['visao','financas','publicidade'],
-  produto:    ['visao','usuarios','jogos','analytics','features','editor'],
-  leitura:    ['visao','usuarios','jogos','analytics','financas','publicidade','features','editor']
+  socio:      ['visao','usuarios','jogos','analytics','financas','publicidade','parceiros','conteudo','features','editor','equipa'],
+  financeiro: ['visao','financas','publicidade','parceiros'],
+  produto:    ['visao','usuarios','jogos','analytics','parceiros','conteudo','features','editor'],
+  leitura:    ['visao','usuarios','jogos','analytics','financas','publicidade','parceiros','conteudo','features','editor']
 };
 function podeVer(tab){ return (ACESSO[ME&&ME.papel] || ACESSO.leitura).includes(tab); }
 function podeEditar(area){
@@ -320,6 +320,8 @@ const NAV = [
   { id:'financas',    ic:'▤', label:'Finanças',       tit:'Finanças',           sub:'Receita, despesa e fecho do mês' },
   { id:'publicidade', ic:'◫', label:'Publicidade',    tit:'Publicidade',        sub:'Patrocinadores e espaços do jogo' },
   { id:'features',    ic:'✦', label:'Funcionalidades',tit:'Funcionalidades',    sub:'O que os treinadores pedem' },
+  { id:'parceiros',   ic:'★', label:'Parceiros',      tit:'Parceiros influenciadores', sub:'Canais, link de indicação e o que ele trouxe' },
+  { id:'conteudo',    ic:'▦', label:'Conteúdo',       tit:'Calendário de conteúdo', sub:'Da ideia ao agendado, por canal' },
   { id:'editor',      ic:'✎', label:'Editor de dados',tit:'Editor de dados do jogo', sub:'Clubes, elencos, escudos e força' },
   { id:'equipa',      ic:'☗', label:'Equipe admin',   tit:'Equipe admin',       sub:'Quem entra no painel' }
 ];
@@ -343,6 +345,7 @@ function irPara(tab, forcar){
   el('page').innerHTML = '<div class="vazio">Carregando…</div>';
   const fn = { visao:pgVisao, usuarios:pgUsuarios, jogos:pgJogos, analytics:pgAnalytics,
                financas:pgFinancas, publicidade:pgPublicidade, features:pgFeatures,
+               parceiros:pgParceiros, conteudo:pgConteudo,
                editor:pgEditor, equipa:pgEquipa }[tab];
   fn(forcar).catch(e => { el('page').innerHTML = `<div class="erro">${h(erroMsg(e))}</div>`; });
 }
@@ -479,7 +482,7 @@ async function pgUsuarios(){
   const vivos = new Set(us.map(u=>u.id));
   Array.from(SEL.contas).forEach(x => { if(!vivos.has(x)) SEL.contas.delete(x); });
 
-  const col = `${podeApagar?'30px ':''}1.5fr .6fr .8fr .7fr .8fr .7fr 92px`;
+  const col = `${podeApagar?'30px ':''}1.5fr .6fr 1fr .8fr .7fr .8fr .7fr 92px`;
 
   el('page').innerHTML = `
     <div class="g4">
@@ -500,7 +503,7 @@ async function pgUsuarios(){
       </div>
       <div class="rowh" style="grid-template-columns:${col}">
         ${podeApagar?'<span><input type="checkbox" id="sel-todas-contas" title="Selecionar todas"></span>':''}
-        <span>Técnico</span><span>Plano</span><span style="text-align:right">Tempo de jogo</span>
+        <span>Técnico</span><span>Plano</span><span>Referral</span><span style="text-align:right">Tempo de jogo</span>
         <span style="text-align:right">Pontos</span><span style="text-align:right">Últ. acesso</span>
         <span style="text-align:center">Estado</span><span style="text-align:right">Senha</span>
       </div>
@@ -514,6 +517,10 @@ async function pgUsuarios(){
             <small style="font-size:11.5px;color:var(--dim2)">${h(clube(u.clube))} · ${h(mascara(u.email))}</small></span>
           </span>
           <span class="tag ${u.plano==='pago'?'t-ok':'t-dim'}" style="justify-self:start">${u.plano==='pago'?'pago':'grátis'}</span>
+          <span style="min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis">${u.referral
+            ? `<b style="font-weight:600;color:var(--fg2)">${h(u.parceiro||u.referral)}</b>
+               <small class="mono" style="display:block;font-size:10.5px;color:var(--verde2)">${h(u.referral)}</small>`
+            : '<span style="color:var(--dim3)">orgânico</span>'}</span>
           <span class="mono" style="font-size:12.5px;text-align:right">${hm(u.minutos)}</span>
           <span class="mono" style="font-size:12.5px;text-align:right">${num(u.pontos)}</span>
           <span class="mono" style="font-size:12.5px;text-align:right;color:var(--dim2)">${h(ha(u.ultimo_acesso))}</span>
@@ -3219,5 +3226,394 @@ function modalCompeticao(indice){
     if(conf.length) return toast(`Conflito de data em ${conf[0].data} — duas competições no mesmo dia.`, true);
     fecharModal();
     await gravarCompeticoes(lista);
+  };
+}
+
+/* ============================================================================
+   PARCEIROS — influenciadores e o rastro do link deles
+   ----------------------------------------------------------------------------
+   O que interessa num programa de influenciador é uma linha só: visita → conta
+   criada → conta pagante. As três pontas vivem em tabelas diferentes (ref_hits,
+   ref_signups, adm_user_plans) e a função parceiros() já as cruza.
+
+   O link é `?ref=CODIGO` no site do jogo. Quem registra a visita e guarda o
+   código até o cadastro é o próprio jogo (ver src/net/ads.js): a pessoa quase
+   nunca cria conta na primeira visita, e o primeiro link é o que vale.
+   ============================================================================ */
+const REDES = [
+  ['youtube','YouTube','▶'], ['tiktok','TikTok','♪'], ['instagram','Instagram','◎'],
+  ['twitch','Twitch','◇'], ['site','Site','⌂']
+];
+/* telefone brasileiro: guarda só dígitos, mostra (11) 91234-5678 */
+function telFmt(v){
+  const d = String(v||'').replace(/\D/g,'').slice(0,11);
+  if(d.length <= 2) return d;
+  if(d.length <= 6) return `(${d.slice(0,2)}) ${d.slice(2)}`;
+  if(d.length <= 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+  return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+}
+const telDigitos = v => String(v||'').replace(/\D/g,'');
+function linkRef(codigo){ return `${JOGO_URL}/?ref=${encodeURIComponent(codigo)}`; }
+/* código a partir do nome: é o que aparece no link, então sem acento nem espaço */
+function codigoDe(nome){
+  return chaveNome(nome).toUpperCase().slice(0,16) || ('P'+Date.now().toString(36).toUpperCase());
+}
+
+async function pgParceiros(){
+  const editar = podeEditar('publicidade');
+  const { data, error } = await sb.rpc('parceiros');
+  if(error) throw error;
+  D.parceiros = data || [];
+  const ps = D.parceiros;
+  const visitas = ps.reduce((a,p)=>a+ +p.visitas, 0);
+  const inscritos = ps.reduce((a,p)=>a+ +p.inscritos, 0);
+  const pagantes = ps.reduce((a,p)=>a+ +p.pagantes, 0);
+
+  el('page').innerHTML = `
+    <div class="g4">
+      ${kpiHTML({l:'Parceiros', v:num(ps.length), d:`${num(ps.filter(p=>p.estado==='ativo').length)} ativos`})}
+      ${kpiHTML({l:'Visitas pelos links', v:num(visitas), d:'uma por pessoa/dia'})}
+      ${kpiHTML({l:'Contas criadas', v:num(inscritos),
+                 d: visitas? `${pct(inscritos,visitas)}% das visitas` : 'nenhuma ainda'})}
+      ${kpiHTML({l:'Viraram pagantes', v:num(pagantes),
+                 d: inscritos? `${pct(pagantes,inscritos)}% dos inscritos` : '—', c:'var(--verde2)'})}
+    </div>
+
+    <div class="card" style="overflow:hidden">
+      <div class="card-h">
+        <b>Parceiros</b>
+        ${editar?'<button class="btn btn-sm" id="pa-novo">+ Parceiro</button>':''}
+      </div>
+      <div class="rowh" style="grid-template-columns:1.5fr 1.1fr 1fr .7fr .7fr .7fr .9fr">
+        <span>Parceiro</span><span>Contato</span><span>Canais</span>
+        <span style="text-align:center">Visitas</span><span style="text-align:center">Inscritos</span>
+        <span style="text-align:center">Pagantes</span><span style="text-align:right">Link</span>
+      </div>
+      ${ps.length ? ps.map(p=>`
+        <div class="row" style="grid-template-columns:1.5fr 1.1fr 1fr .7fr .7fr .7fr .9fr;cursor:pointer" data-parceiro="${p.id}">
+          <span style="display:flex;align-items:center;gap:10px;min-width:0">
+            <i class="av" style="width:28px;height:28px;border-radius:8px;background:${corAv(p.nome)};color:#0c1210">${h(iniciais(p.nome))}</i>
+            <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(p.nome)}</b>
+              <small class="mono" style="font-size:11px;color:var(--verde2)">${h(p.codigo)}</small>
+              ${p.estado!=='ativo'?`<span class="tag t-dim" style="font-size:9.5px">${h(p.estado)}</span>`:''}</span>
+          </span>
+          <span style="min-width:0;font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis">
+            ${h(p.email||'—')}${p.telefone?'<br>'+h(telFmt(p.telefone)):''}</span>
+          <span style="display:flex;gap:8px;font-size:14px">
+            ${REDES.filter(([k])=>p[k]).map(([k,nome,ic])=>
+              `<a href="${h(p[k])}" target="_blank" rel="noopener" title="${nome}"
+                  onclick="event.stopPropagation()" style="color:var(--dim)">${ic}</a>`).join('') || '<span style="color:var(--dim3);font-size:12px">—</span>'}
+          </span>
+          <span class="mono" style="font-size:12.5px;text-align:center">${num(p.visitas)}</span>
+          <span class="mono" style="font-size:12.5px;text-align:center;color:${p.inscritos?'var(--fg)':'var(--dim3)'}">${num(p.inscritos)}</span>
+          <span class="mono" style="font-size:12.5px;text-align:center;color:${p.pagantes?'var(--verde2)':'var(--dim3)'}">${num(p.pagantes)}</span>
+          <span style="text-align:right"><span class="link" data-copiar="${h(p.codigo)}"
+            onclick="event.stopPropagation()" style="font-size:11.5px">Copiar link</span></span>
+        </div>`).join('') : '<div class="vazio">Nenhum parceiro cadastrado.</div>'}
+    </div>
+
+    <div class="card card-p">
+      <div class="tt" style="margin-bottom:6px">Como o rastro funciona</div>
+      <div class="st" style="line-height:1.7">
+        O link do parceiro é <code class="mono">${h(JOGO_URL)}/?ref=CODIGO</code>. Ao abrir, o jogo
+        conta <b>uma visita por pessoa por dia</b> e guarda o código no navegador. Quando essa
+        pessoa cria conta — no mesmo dia ou semanas depois — a conta fica ligada ao parceiro, e
+        aparece na coluna <b>Referral</b> em Usuários. <b>O primeiro link vence</b>: abrir o link
+        de outro parceiro depois não rouba a indicação de quem trouxe a pessoa.
+      </div>
+    </div>`;
+
+  document.querySelectorAll('[data-copiar]').forEach(b => b.onclick = () => {
+    const url = linkRef(b.dataset.copiar);
+    navigator.clipboard.writeText(url).then(()=>toast('Link copiado: '+url), ()=>prompt('Copie o link:', url));
+  });
+  if(editar){
+    el('pa-novo').onclick = () => modalParceiro(null);
+    document.querySelectorAll('[data-parceiro]').forEach(r => r.onclick = () =>
+      modalParceiro(ps.find(p=>p.id===r.dataset.parceiro)));
+  }
+}
+
+function modalParceiro(p){
+  const novo = !p;
+  p = p || { nome:'', email:'', telefone:'', codigo:'', estado:'ativo' };
+  abrirModal(`
+    <h3>${novo?'Novo parceiro':h(p.nome)}</h3>
+    <div class="col">
+      <div class="g2" style="gap:12px">
+        <label class="f">Nome<input class="f" id="pa-nome" value="${h(p.nome)}" placeholder="Ex.: Canal do Zé"></label>
+        <label class="f">Estado<select class="f" id="pa-estado">
+          ${['ativo','pausado','encerrado'].map(e=>`<option value="${e}" ${e===p.estado?'selected':''}>${e}</option>`).join('')}
+        </select></label>
+      </div>
+      <div class="g2" style="gap:12px">
+        <label class="f">E-mail<input class="f" id="pa-email" type="email" value="${h(p.email||'')}" placeholder="contato@canal.com"></label>
+        <label class="f">Telefone (com DDD)
+          <input class="f mono" id="pa-tel" inputmode="numeric" value="${h(telFmt(p.telefone))}" placeholder="(11) 91234-5678"></label>
+      </div>
+      ${REDES.map(([k,nome])=>`
+        <label class="f">${nome}<input class="f" id="pa-${k}" value="${h(p[k]||'')}"
+          placeholder="${k==='site'?'https://':'https://'+k+'.com/…'}"></label>`).join('')}
+      <label class="f">Código do link
+        <input class="f mono" id="pa-cod" value="${h(p.codigo)}" maxlength="16" placeholder="gerado a partir do nome">
+        <small style="font-size:11.5px;color:var(--dim3)" id="pa-link">${p.codigo?h(linkRef(p.codigo)):''}</small>
+      </label>
+      <label class="f">Notas<textarea class="f" id="pa-notas" rows="2" placeholder="Combinado comercial, prazos…">${h(p.notas||'')}</textarea></label>
+      <div class="erro hide" id="pa-erro"></div>
+      <div class="acoes">
+        <button class="btn" id="pa-ok">${novo?'Cadastrar':'Salvar'}</button>
+        ${!novo?`<button class="btn btn-ghost" id="pa-del" style="flex:0 0 auto;color:var(--vermelho)">Apagar</button>`:''}
+        <button class="btn btn-ghost" data-fechar>Cancelar</button>
+      </div>
+    </div>`, 'lg');
+
+  const tel = el('pa-tel');
+  tel.oninput = () => { tel.value = telFmt(tel.value); };
+  let codTocado = !novo;
+  el('pa-cod').oninput = () => { codTocado = true; mostrarLink(); };
+  el('pa-nome').oninput = () => {
+    if(!codTocado) el('pa-cod').value = codigoDe(el('pa-nome').value);
+    mostrarLink();
+  };
+  function mostrarLink(){
+    const c = el('pa-cod').value.trim().toUpperCase();
+    el('pa-link').textContent = c ? linkRef(c) : '';
+  }
+
+  el('pa-ok').onclick = async () => {
+    const erro = el('pa-erro');
+    const nome = el('pa-nome').value.trim();
+    const cod = el('pa-cod').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(!nome || !cod){ erro.textContent='Nome e código são obrigatórios.'; erro.classList.remove('hide'); return; }
+    const linha = {
+      nome, codigo: cod, estado: el('pa-estado').value,
+      email: el('pa-email').value.trim()||null,
+      telefone: telDigitos(el('pa-tel').value)||null,
+      notas: el('pa-notas').value.trim()||null
+    };
+    REDES.forEach(([k]) => { linha[k] = el('pa-'+k).value.trim()||null; });
+    let r;
+    if(novo){
+      linha.criado_por = (await sb.auth.getUser()).data.user.id;
+      r = await sb.from('adm_parceiros').insert(linha);
+    } else {
+      r = await sb.from('adm_parceiros').update(linha).eq('id', p.id);
+    }
+    if(r.error){
+      erro.textContent = /duplicate|unique/i.test(r.error.message) ? 'Já existe parceiro com esse código.' : erroMsg(r.error);
+      erro.classList.remove('hide'); return;
+    }
+    registrar(novo?'parceiro.criar':'parceiro.editar', cod, { nome });
+    fecharModal(); toast(novo?'Parceiro cadastrado.':'Parceiro salvo.'); pgParceiros();
+  };
+  if(!novo) el('pa-del').onclick = async () => {
+    if(!confirm(`Apagar ${p.nome}? O histórico de visitas e as contas já indicadas continuam no banco.`)) return;
+    const { error } = await sb.from('adm_parceiros').delete().eq('id', p.id);
+    if(error) return toast(erroMsg(error), true);
+    registrar('parceiro.apagar', p.codigo);
+    fecharModal(); toast('Parceiro apagado.'); pgParceiros();
+  };
+}
+
+/* ============================================================================
+   CONTEÚDO — calendário editorial
+   ----------------------------------------------------------------------------
+   Começa com uma ideia e só isso: título e canal bastam para salvar. O resto
+   (descrição, arte, data, status) entra depois, editando o mesmo card — é assim
+   que pauta funciona, e obrigar a preencher tudo de uma vez só faz a ideia não
+   ser registrada.
+   ============================================================================ */
+const CANAIS = { youtube:['YouTube','#ff0033'], instagram:['Instagram','#c13584'],
+                 facebook:['Facebook','#1877f2'], tiktok:['TikTok','#25f4ee'], twitch:['Twitch','#9146ff'] };
+const STATUS = { ideia:['Ideia','t-dim'], design:['Design','t-azul'], edicao:['Edição','t-warn'],
+                 agendado:['Agendado','t-roxo'], publicado:['Publicado','t-ok'] };
+
+async function pgConteudo(){
+  const editar = podeEditar('publicidade') || podeEditar('produto');
+  const { data, error } = await sb.from('adm_conteudo').select('*').order('data_prevista', { ascending:true, nullsFirst:false });
+  if(error) throw error;
+  D.conteudo = data || [];
+  const cs = D.conteudo;
+  const filtro = ST.filtroConteudo || 'todos';
+  const lista = filtro==='todos' ? cs : cs.filter(c => c.status===filtro);
+  const semData = lista.filter(c => !c.data_prevista);
+  const comData = lista.filter(c => c.data_prevista);
+
+  el('page').innerHTML = `
+    <div class="g4">
+      ${kpiHTML({l:'Na pauta', v:num(cs.length), d:`${num(cs.filter(c=>c.status==='ideia').length)} ainda são ideia`})}
+      ${kpiHTML({l:'Em produção', v:num(cs.filter(c=>c.status==='design'||c.status==='edicao').length), d:'design e edição'})}
+      ${kpiHTML({l:'Agendados', v:num(cs.filter(c=>c.status==='agendado').length), d:'com data marcada'})}
+      ${kpiHTML({l:'Aprovados', v:num(cs.filter(c=>c.aprovado).length), d:'prontos para publicar', c:'var(--verde2)'})}
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="per" style="gap:6px;flex:1;flex-wrap:wrap">
+        ${[['todos','Todos']].concat(Object.keys(STATUS).map(k=>[k,STATUS[k][0]]))
+          .map(([k,l])=>`<span class="${filtro===k?'on':''}" data-fc="${k}">${l}</span>`).join('')}
+      </span>
+      ${editar?'<button class="btn btn-sm" id="ct-nova">+ Conteúdo</button>':''}
+    </div>
+
+    ${comData.length ? `<div class="card card-p">
+      <div class="tt" style="margin-bottom:12px">Calendário</div>
+      <div class="ct-cal">${comData.map(c=>cardConteudo(c)).join('')}</div>
+    </div>` : ''}
+
+    ${semData.length ? `<div class="card card-p">
+      <div class="tt" style="margin-bottom:4px">Sem data — banco de ideias</div>
+      <div class="st" style="margin-bottom:12px">Registre agora, agende depois.</div>
+      <div class="ct-cal">${semData.map(c=>cardConteudo(c)).join('')}</div>
+    </div>` : ''}
+
+    ${!lista.length ? '<div class="card"><div class="vazio">Nada nesta lista ainda.</div></div>' : ''}`;
+
+  document.querySelectorAll('[data-fc]').forEach(x => x.onclick = () => { ST.filtroConteudo=x.dataset.fc; pgConteudo(); });
+  if(editar) el('ct-nova').onclick = () => modalConteudo(null);
+  document.querySelectorAll('[data-conteudo]').forEach(c => c.onclick = ev => {
+    if(ev.target.closest('[data-acao]')) return;
+    modalConteudo(D.conteudo.find(x=>x.id===c.dataset.conteudo));
+  });
+  document.querySelectorAll('[data-acao="aprovar"]').forEach(b => b.onclick = async () => {
+    const c = D.conteudo.find(x=>x.id===b.dataset.id);
+    const novo = !c.aprovado;
+    const { error } = await sb.from('adm_conteudo').update({
+      aprovado: novo, aprovado_em: novo? new Date().toISOString() : null,
+      aprovado_por: novo? (await sb.auth.getUser()).data.user.id : null
+    }).eq('id', c.id);
+    if(error) return toast(erroMsg(error), true);
+    registrar(novo?'conteudo.aprovar':'conteudo.desaprovar', c.titulo);
+    toast(novo?'Aprovado.':'Aprovação retirada.'); pgConteudo();
+  });
+}
+
+function cardConteudo(c){
+  const [canal, cor] = CANAIS[c.canal] || ['—','#666'];
+  const [rot, tag] = STATUS[c.status] || ['—','t-dim'];
+  const img = c.midia_url && c.midia_tipo==='imagem';
+  const vid = c.midia_url && c.midia_tipo==='video';
+  return `<div class="ct-card" data-conteudo="${c.id}">
+    <div class="ct-mid">
+      ${img ? `<img src="${h(c.midia_url)}" alt="">`
+        : vid ? `<video src="${h(c.midia_url)}" muted playsinline preload="metadata"></video>`
+        : c.midia_url ? `<span class="ct-link">🔗 link externo</span>`
+        : `<span class="ct-vazio">sem arte ainda</span>`}
+      ${c.aprovado?'<span class="ct-ok">✓ aprovado</span>':''}
+    </div>
+    <div class="ct-corpo">
+      <div style="display:flex;align-items:center;gap:6px">
+        <i style="width:8px;height:8px;border-radius:99px;background:${cor};flex:none"></i>
+        <small style="font-size:11px;color:var(--dim2)">${canal}</small>
+        <span class="tag ${tag}" style="margin-left:auto;font-size:10px">${rot}</span>
+      </div>
+      <b style="font-size:13px;line-height:1.35">${h(c.titulo)}</b>
+      ${c.descricao?`<div class="ct-desc">${h(c.descricao)}</div>`:''}
+      <div style="display:flex;align-items:center;gap:8px;margin-top:auto">
+        <span class="mono" style="font-size:11px;color:${c.data_prevista?'var(--dim)':'var(--dim3)'}">
+          ${c.data_prevista?dmy(c.data_prevista):'sem data'}</span>
+        <span style="margin-left:auto;display:flex;gap:8px">
+          ${c.midia_url?`<a class="link" style="font-size:11.5px" href="${h(c.midia_url)}"
+             target="_blank" rel="noopener" download data-acao="baixar">Baixar</a>`:''}
+          <span class="link" style="font-size:11.5px;color:${c.aprovado?'var(--dim3)':'var(--verde2)'}"
+                data-acao="aprovar" data-id="${c.id}">${c.aprovado?'Desfazer':'Aprovar'}</span>
+        </span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function modalConteudo(c){
+  const novo = !c;
+  c = c || { canal:'youtube', titulo:'', descricao:'', midia_url:'', midia_tipo:'link',
+             status:'ideia', data_prevista:'', aprovado:false };
+  abrirModal(`
+    <h3>${novo?'Nova ideia de conteúdo':h(c.titulo)}</h3>
+    <div class="col">
+      ${novo?`<div class="st" style="line-height:1.6">Só título e canal bastam para salvar. O resto entra
+        depois, editando este mesmo card.</div>`:''}
+      <div class="g2" style="gap:12px">
+        <label class="f">Canal<select class="f" id="ct-canal">
+          ${Object.keys(CANAIS).map(k=>`<option value="${k}" ${k===c.canal?'selected':''}>${CANAIS[k][0]}</option>`).join('')}
+        </select></label>
+        <label class="f">Status<select class="f" id="ct-status">
+          ${Object.keys(STATUS).map(k=>`<option value="${k}" ${k===c.status?'selected':''}>${STATUS[k][0]}</option>`).join('')}
+        </select></label>
+      </div>
+      <label class="f">Título<input class="f" id="ct-titulo" value="${h(c.titulo)}" placeholder="Ex.: Como subir da Série D em 3 temporadas"></label>
+      <label class="f">Descrição / roteiro<textarea class="f" id="ct-desc" rows="4"
+        placeholder="A ideia, o ângulo, o que precisa aparecer">${h(c.descricao||'')}</textarea></label>
+
+      <div class="g2" style="gap:12px">
+        <label class="f">Tipo da mídia<select class="f" id="ct-tipo">
+          ${[['imagem','Imagem'],['video','Vídeo'],['link','Link (Drive, etc.)']].map(([k,l])=>
+            `<option value="${k}" ${k===c.midia_tipo?'selected':''}>${l}</option>`).join('')}
+        </select></label>
+        <label class="f">Data prevista<input class="f" id="ct-data" type="date" value="${c.data_prevista||''}"></label>
+      </div>
+      <label class="f">URL da mídia
+        <input class="f" id="ct-url" value="${h(c.midia_url||'')}" placeholder="https://… ou envie um arquivo"></label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="btn btn-sm btn-ghost" id="ct-up-btn">Enviar arquivo (até 25 MB)</button>
+        <input type="file" id="ct-up" accept="image/*,video/*" style="display:none">
+        <span id="ct-prev"></span>
+      </div>
+
+      <div class="erro hide" id="ct-erro"></div>
+      <div class="acoes">
+        <button class="btn" id="ct-ok">${novo?'Salvar ideia':'Salvar'}</button>
+        ${!novo?`<button class="btn btn-ghost" id="ct-del" style="flex:0 0 auto;color:var(--vermelho)">Apagar</button>`:''}
+        <button class="btn btn-ghost" data-fechar>Fechar</button>
+      </div>
+    </div>`, 'lg');
+
+  el('ct-up-btn').onclick = () => el('ct-up').click();
+  el('ct-up').onchange = async () => {
+    const f = el('ct-up').files[0]; if(!f) return;
+    const erro = el('ct-erro');
+    if(f.size > 25*1024*1024){ erro.textContent='Arquivo acima de 25 MB.'; erro.classList.remove('hide'); return; }
+    el('ct-up-btn').disabled = true; el('ct-up-btn').textContent = 'Enviando…';
+    const ext = (f.name.split('.').pop()||'bin').toLowerCase();
+    const caminho = `${Date.now()}-${chaveNome(f.name).slice(0,20)}.${ext}`;
+    const up = await sb.storage.from('conteudo').upload(caminho, f, { upsert:false, cacheControl:'3600' });
+    el('ct-up-btn').disabled = false; el('ct-up-btn').textContent = 'Enviar arquivo (até 25 MB)';
+    if(up.error){ erro.textContent = erroMsg(up.error); erro.classList.remove('hide'); return; }
+    const url = sb.storage.from('conteudo').getPublicUrl(caminho).data.publicUrl;
+    el('ct-url').value = url;
+    el('ct-tipo').value = /^video\//.test(f.type) ? 'video' : 'imagem';
+    el('ct-prev').innerHTML = /^video\//.test(f.type)
+      ? `<video src="${h(url)}" style="height:34px" muted></video>`
+      : `<img src="${h(url)}" style="height:34px;border-radius:4px">`;
+    toast('Arquivo enviado — salve para valer.');
+  };
+
+  el('ct-ok').onclick = async () => {
+    const erro = el('ct-erro');
+    const titulo = el('ct-titulo').value.trim();
+    if(!titulo){ erro.textContent='O título é obrigatório.'; erro.classList.remove('hide'); return; }
+    const linha = {
+      canal: el('ct-canal').value, status: el('ct-status').value, titulo,
+      descricao: el('ct-desc').value.trim()||null,
+      midia_url: el('ct-url').value.trim()||null,
+      midia_tipo: el('ct-tipo').value,
+      data_prevista: el('ct-data').value || null,
+      atualizado_em: new Date().toISOString()
+    };
+    let r;
+    if(novo){
+      linha.criado_por = (await sb.auth.getUser()).data.user.id;
+      r = await sb.from('adm_conteudo').insert(linha);
+    } else {
+      r = await sb.from('adm_conteudo').update(linha).eq('id', c.id);
+    }
+    if(r.error){ erro.textContent = erroMsg(r.error); erro.classList.remove('hide'); return; }
+    registrar(novo?'conteudo.criar':'conteudo.editar', titulo, { canal: linha.canal, status: linha.status });
+    fecharModal(); toast(novo?'Ideia registrada.':'Conteúdo salvo.'); pgConteudo();
+  };
+  if(!novo) el('ct-del').onclick = async () => {
+    if(!confirm(`Apagar "${c.titulo}"?`)) return;
+    const { error } = await sb.from('adm_conteudo').delete().eq('id', c.id);
+    if(error) return toast(erroMsg(error), true);
+    registrar('conteudo.apagar', c.titulo);
+    fecharModal(); toast('Conteúdo apagado.'); pgConteudo();
   };
 }
