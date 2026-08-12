@@ -827,8 +827,12 @@ async function pgFinancas(){
     el('f-meta').onclick  = () => editarConfig('meta_lucro_centavos','Meta de lucro mensal (R$)', +ov.data.meta_lucro);
     document.querySelectorAll('[data-del-lanc]').forEach(b => b.onclick = async () => {
       if(!confirm('Apagar este lançamento?')) return;
+      // guarda o retrato ANTES de apagar — depois a linha já não existe para descrever
+      const alvo = D.lancamentos.find(x => x.id === b.dataset.delLanc) || {};
       const { error } = await sb.from('adm_lancamentos').delete().eq('id', b.dataset.delLanc);
       if(error) return toast(erroMsg(error), true);
+      registrar('lancamento.apagar', b.dataset.delLanc,
+                { descricao: alvo.descricao, categoria: alvo.categoria, valor: alvo.valor_centavos });
       toast('Lançamento apagado.'); pgFinancas();
     });
   }
@@ -942,6 +946,7 @@ async function pgPublicidade(){
       if(!confirm('Apagar este patrocinador? Os criativos dele ficam no ar sem marca associada.')) return;
       const { error } = await sb.from('adm_patrocinadores').delete().eq('id', b.dataset.delPatro);
       if(error) return toast(erroMsg(error), true);
+      registrar('patrocinador.apagar', b.dataset.delPatro);
       toast('Patrocinador apagado.'); pgPublicidade();
     });
     document.querySelectorAll('[data-upload]').forEach(b => b.onclick = () => modalUpload(b.dataset.upload));
@@ -949,6 +954,7 @@ async function pgPublicidade(){
       if(!confirm('Tirar este criativo do ar? O espaço deixa de ser desenhado no jogo.')) return;
       const { error } = await jogo('ad_creatives').update({ ativo:false }).eq('id', b.dataset.tirar);
       if(error) return toast(erroMsg(error), true);
+      registrar('criativo.tirar', b.dataset.tirar);
       toast('Criativo fora do ar.'); pgPublicidade();
     });
   }
@@ -1030,6 +1036,7 @@ function modalPatrocinador(){
         valor_centavos: valor, recorrencia:'mensal'
       });
     }
+    registrar('patrocinador.criar', nome, {valor_mes_centavos:valor});
     fecharModal(); toast('Patrocinador salvo.'); pgPublicidade();
   };
 }
@@ -1149,6 +1156,7 @@ function modalUpload(chave){
         no_ar_ate: el('up-ate').value ? new Date(el('up-ate').value+'T23:59:59').toISOString() : null
       });
       if(ins.error) throw ins.error;
+      registrar('criativo.publicar', e.chave, {arquivo:caminho, bytes:arquivo.size, link:link||null});
       fecharModal(); toast('Criativo no ar em '+e.chave); pgPublicidade();
     }catch(err){
       btn.disabled = false; btn.textContent = 'Publicar criativo';
@@ -1366,15 +1374,32 @@ function modalFeature(colunaId){
   };
 }
 
-/* ============================ EQUIPA ADMIN ============================ */
+/* rótulos das ações do log — a coluna mostra a frase, não a chave técnica */
+const ACOES = {
+  'sala.apagar':'Apagou uma sala', 'convite.criar':'Criou convite',
+  'convite.aceitar':'Entrou no painel pela primeira vez', 'papel.mudar':'Mudou o papel de alguém',
+  'criativo.publicar':'Publicou criativo', 'criativo.tirar':'Tirou criativo do ar',
+  'patrocinador.criar':'Cadastrou patrocinador', 'patrocinador.apagar':'Apagou patrocinador',
+  'lancamento.apagar':'Apagou lançamento'
+};
+function resumoAcao(a){
+  const d = a.detalhe || {};
+  if(a.acao==='sala.apagar')  return `${a.alvo} · ${d.assentos||0} assentos, ${d.humanos||0} humano${d.humanos===1?'':'s'}`;
+  if(a.acao==='lancamento.apagar') return `${d.descricao||a.alvo||''}${d.valor?' · '+brl(d.valor):''}`;
+  if(a.acao==='criativo.publicar') return `${a.alvo}${d.bytes?' · '+Math.round(d.bytes/1024)+' KB':''}`;
+  if(d.papel) return `${a.alvo} · ${d.papel}`;
+  return a.alvo || '—';
+}
+/* ============================ EQUIPE ADMIN ============================ */
 async function pgEquipa(){
   // A lista de contas do jogo alimenta o seletor do convite: quase sempre o convidado
   // já é jogador, e digitar o e-mail dele de novo é onde nasce o erro de digitação
   // (o convite fica preso a um endereço que ninguém usa).
-  const [us, inv, jogadores] = await Promise.all([
+  const [us, inv, jogadores, log] = await Promise.all([
     sb.from('adm_users').select('*').order('criado_em'),
     sb.from('adm_invites').select('*').is('aceito_em', null).order('criado_em', { ascending:false }),
-    sb.rpc('usuarios', { p_busca:null, p_limite:500 })
+    sb.rpc('usuarios', { p_busca:null, p_limite:500 }),
+    sb.from('adm_audit').select('*').order('quando', { ascending:false }).limit(40)
   ]);
   if(us.error) throw us.error;
   D.admins = us.data||[]; D.invites = inv.data||[];
@@ -1447,6 +1472,18 @@ async function pgEquipa(){
             depois de criar, copie o link e mande pelo canal que preferir.</div>
         </div>` : `<div class="st">Só o dono do painel (${h(donoEmail())}) pode convidar.</div>`}
       </div>
+    </div>
+
+    <div class="card" style="overflow:hidden">
+      <div class="card-h"><b>Histórico de ações</b>
+        <span style="font-size:11.5px;color:var(--dim3)">quem mexeu em quê · o registro não pode ser editado nem apagado</span></div>
+      ${(log.data||[]).length ? (log.data||[]).map(a=>`
+        <div class="row" style="grid-template-columns:150px 1fr 1.2fr 130px;padding:10px 20px">
+          <span class="mono" style="font-size:11.5px;color:var(--dim2)">${dmy(a.quando)} ${new Date(a.quando).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>
+          <span style="font-size:12.5px">${h(ACOES[a.acao]||a.acao)}</span>
+          <span class="mono" style="font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis">${h(resumoAcao(a))}</span>
+          <span style="font-size:12px;color:var(--dim2);text-align:right;overflow:hidden;text-overflow:ellipsis">${h(a.quem_email||'—')}</span>
+        </div>`).join('') : '<div class="vazio">Nenhuma ação registrada ainda.</div>'}
     </div>`;
 
   if(dono){
@@ -1463,6 +1500,7 @@ async function pgEquipa(){
     document.querySelectorAll('[data-papel]').forEach(s => s.onchange = async () => {
       const { error } = await sb.from('adm_users').update({ papel: s.value }).eq('user_id', s.dataset.papel);
       if(error) return toast(erroMsg(error), true);
+      registrar('papel.mudar', s.dataset.papel, {papel:s.value});
       toast('Papel atualizado.');
     });
   }
@@ -1472,6 +1510,17 @@ async function pgEquipa(){
 function donoEmail(){
   const d = (D.admins||[]).find(a => a.papel==='socio');
   return (d && d.email) || 'o sócio fundador';
+}
+/* AUDITORIA — as ações que passam por RLS (sem função no banco no meio) registram
+   daqui. As que já são função (apagar sala, convidar) registram lá dentro, na mesma
+   transação. Falha de registro nunca derruba a ação em si: o log é consequência,
+   não condição. */
+async function registrar(acao, alvo, detalhe){
+  try{
+    const { data:{ user } } = await sb.auth.getUser();
+    await sb.from('adm_audit').insert({ quem:user.id, quem_email:user.email,
+      acao, alvo: alvo||null, detalhe: detalhe||null });
+  }catch(e){ console.warn('auditoria:', e && e.message); }
 }
 function copiarLink(token){
   const url = location.origin + location.pathname + '?convite=' + token;
