@@ -10,7 +10,7 @@ Um item só sai da lista depois que o usuário testar no ar
 (implementar → commitar → publicar → testar).
 
 > **ESTADO EM 12/08/2026, madrugada.** Implementados e commitados: #8, #10 (raiz),
-> #9, #13, #12. **A edge function `resolve-round` está NO AR** (GitHub Actions, deploy
+> #9, #13, #12, #4. **A edge function `resolve-round` está NO AR** (GitHub Actions, deploy
 > com sucesso). **O SITE NÃO FOI PUBLICADO**: `firebase deploy` falhou com
 > *"credentials are no longer valid"* — só o usuário resolve, com
 > `firebase login --reauth`. Enquanto isso, produção roda o cliente ANTIGO com o
@@ -190,10 +190,13 @@ do Bloco A.
 - **#1 — Remover o botão "Sincronizar" das telas de onboarding.**
   Fluxo em `net/local-transport.js:214-320` (`resyncDialog`). Tirar só do onboarding,
   manter no painel da sala.
-- **#4 — Remover a feature de chat (por enquanto).**
-  `local-transport.js:18,64,79`; `net/supabase-adapter.js:982,1197`.
-  Esconder a UI e parar de enviar; **não** apagar tabela/coluna no banco, pra poder
-  voltar sem migração.
+- **#4 — ✅ FEITO (commit 8189e4f) — Chat fora do ar.**
+  Desligado por uma constante `CHAT_ATIVO` em `net/local-transport.js`: some a doca
+  flutuante "💬 Chat da Liga" (que ficava por cima do jogo em todas as telas online,
+  inclusive a partida ao vivo), some a seção "Chat da sala" do lobby, e o `onChat`
+  retorna cedo — sem badge de não-lidas e sem toast interrompendo a partida.
+  Transporte, histórico em `room.chat` e coluna no banco **intactos**: voltar é trocar
+  a constante pra `true`, sem migração e sem perder conversa.
 - **#15 — Remover o modal de preparação para a Copa do Brasil** (ficou sem função).
   É o momento `'abertura-copa'` — *"A COPA COMEÇA HOJE / Preparar o time"*.
   Onde vive: `MOMENTO_DEFS['abertura-copa']` (`ui/main.js:4328`),
