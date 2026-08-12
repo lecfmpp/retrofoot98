@@ -1483,6 +1483,23 @@ async function netLoadInbox(){
   if(!NET.gameId || !SB_AUTH_USER) return null;
   try{ const { data } = await sb.from('game_seats').select('inbox').eq('game_id', NET.gameId).eq('user_id', SB_UID()).maybeSingle(); return (data&&data.inbox)||null; }catch(e){ return null; }
 }
+/* CARREIRA DO TREINADOR POR ASSENTO (game_seats.career).
+   O BUG: títulos, troféus e conquistas (coachHistory, history, titlesByClub, financeHistory)
+   vivem no S COMPARTILHADO, mas são de CADA treinador — CAREER_KEYS já os protegia do
+   Object.assign do adopt DENTRO da sessão. Só que eles nunca eram gravados em lugar nenhum: o
+   save da sala é o do ANFITRIÃO. Bastava sair, deslogar e voltar pra mesma Resenha e o convidado
+   reentrava com a estante vazia — pior, o próprio código zerava coachHistory de propósito, pra
+   ele não herdar a do host. Agora a carreira tem casa própria, por assento. */
+async function netSaveCareer(data){
+  if(!sb || !NET.gameId || !SB_AUTH_USER || !data) return;
+  try{ await sb.from('game_seats').update({ career:data }).eq('game_id', NET.gameId).eq('user_id', SB_UID()); }
+  catch(e){ console.warn('saveCareer:', e&&e.message); }
+}
+async function netLoadCareer(){
+  if(!sb || !NET.gameId || !SB_AUTH_USER) return null;
+  try{ const { data } = await sb.from('game_seats').select('career').eq('game_id', NET.gameId).eq('user_id', SB_UID()).maybeSingle(); return (data&&data.career)||null; }
+  catch(e){ return null; }
+}
 /* LEITURA FRESCA DO MEU ASSENTO (direto do servidor, sem passar pelo cache _claimed).
    Existe pra UMA pergunta que só o servidor responde com honestidade: "o resultado da minha
    partida desta rodada já chegou?". O NET._claimed local não serve — netPublishResult carimba
@@ -1576,6 +1593,8 @@ NET.assignClub = netAssignClub;
 NET.setMyClub = netSetMyClub;
 NET.saveInbox = netSaveInbox;
 NET.loadInbox = netLoadInbox;
+NET.saveCareer = netSaveCareer;
+NET.loadCareer = netLoadCareer;
 NET.mySeat = netMySeat;
 NET.drawClubs = netDrawClubs;
 NET.setReady = netSetReady;

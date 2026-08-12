@@ -7958,6 +7958,7 @@ async function onlineAdoptServerRound(RL){
       // (temporada, jornada), então chamar de mais de um caminho de adoção não duplica nada.
       if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
       if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
+      if(typeof persistCareer==='function') persistCareer();   // a carreira mudou nesta jornada: grava no meu assento
     }
   }catch(e){ console.warn('adotar estado do servidor:', e); }
   applyOwnPendingFinances(); // F3.3: aplica as finanças da MINHA rodada (o servidor não computa finanças)
@@ -9142,6 +9143,7 @@ function enterResenhaUnemployment(){
   CL._firedFrom=CL.clubId; CL.unemployed=true; CL._unempRounds=0; CL._pendingResenhaOffer=null;
   S.coachHistory=S.coachHistory||[];
   S.coachHistory.push({season:S.season, type:'demissao', text:`Demitido pelo ${String((clubOf(CL._firedFrom)||{}).short||'clube').toUpperCase()}`});
+  if(typeof persistCareer==='function') persistCareer();   // a carreira mudou: grava no assento (ver #13)
   // libera o clube no servidor (vira CPU); se falhar, desfaz o estado local pra não travar o jogador
   if(typeof NET!=='undefined' && NET.setMyClub){
     NET.setMyClub(null).then(r=>{ if(!r||!r.ok){ console.warn('setMyClub(null):', r&&r.error); CL.unemployed=false; } });
@@ -9190,6 +9192,7 @@ function clAcceptResenhaOffer(){
     S.lastClubChangeSeason=S.season;                 // trava a próxima troca por duas temporadas (ver resenhaCanMoveClub)
     S.coachHistory=S.coachHistory||[];
     S.coachHistory.push({season:S.season, type:'contratado', text:`Contratado pelo ${String((clubOf(offer.clubId)||{}).short||offer.clubId).toUpperCase()}`});
+    if(typeof persistCareer==='function') persistCareer();   // a carreira mudou: grava no assento (ver #13)
     clCloseOverlay(); CL.screen='main'; CL.tab='jogo'; cdraw();
     toastC('Você é o novo treinador do '+((clubOf(offer.clubId)||{}).short||''));
   });

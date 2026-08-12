@@ -465,6 +465,7 @@ function onlineReconcileIfBehind(room){
       const _career=(typeof snapshotCareer==='function')?snapshotCareer():null; // carreira é minha, não do anfitrião (ver CAREER_KEYS)
       Object.assign(S, sState);
       if(typeof restoreCareer==='function') restoreCareer(_career);
+      if(typeof persistCareer==='function') persistCareer();   // e grava no assento, pra sobreviver ao logout (ver #13)
       // o save é do HOST — restaura o MEU clube (senão eu assumo o clube do host no motor)
       S.clubId = CL.clubId;
       applyViewerDivision(CL.clubId);                    // F3.5: renderiza a divisão do PRÓPRIO clube (temporada 2+)
@@ -1286,9 +1287,15 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
     (async ()=>{
       try {
         const savedState = await NET.loadGame();
+        // CARREIRA GRAVADA NO MEU ASSENTO — é ela que atravessa o logout (ver persistCareer).
+        // Antes só existia a foto da memória, que numa entrada nova está vazia: o jogador voltava
+        // pra mesma Resenha sem títulos, sem troféus e sem conquistas, e o guard logo abaixo ainda
+        // zerava o coachHistory de propósito, pra ele não herdar o do anfitrião.
+        const _salva = (NET.loadCareer) ? await NET.loadCareer().catch(()=>null) : null;
         CL._adoptedVer=(typeof NET!=='undefined' && NET._loadedVersion)||CL._adoptedVer||0; // versão do estado que acabei de adotar
         if(savedState && savedState.S){
-          const _career=(typeof snapshotCareer==='function')?snapshotCareer():null; // carreira é minha, não do anfitrião (ver CAREER_KEYS)
+          const _local=(typeof snapshotCareer==='function')?snapshotCareer():null; // carreira é minha, não do anfitrião (ver CAREER_KEYS)
+          const _career=_salva?{..._local||{}, ..._salva}:_local;   // o que está gravado no assento manda
           Object.assign(S, savedState.S);
           if(typeof restoreCareer==='function') restoreCareer(_career);
           // convidado ENTRANDO sem carreira própria: começa a régua do zero em vez de herdar a
@@ -1296,6 +1303,9 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
           if(!NET.isHost && (!_career || _career.jobSecurity==null)){
             S.jobSecurity=60; S.roundsSinceFired=null; S.pendingJobOffers=[]; S.coachHistory=[]; S.lastClubChangeSeason=null;
           }
+          // primeira entrada depois desta correção: a sala já existia e o assento ainda não tem
+          // carreira gravada — grava agora o que veio da memória, pra não começar do zero de novo
+          if(!_salva && typeof persistCareer==='function') persistCareer();
           // O save é do HOST — S.clubId/S.xi dele. RESTAURA o MEU clube: sem isso, quem reconecta/volta
           // (ex.: depois de ser expulso) assume o CLUBE DO HOST no motor -> "dois usuários com o mesmo
           // time". CL.clubId é o clube (livre) que EU acabei de assumir; o motor tem que usar ELE.
@@ -1622,6 +1632,7 @@ function onlineCompleteSeasonTurnover(){
         // registra os TÍTULOS da temporada que fechou — na Resenha o endSeason() do cliente
         // (que sempre fez isso) nunca roda: quem vira a temporada é o servidor.
         if(typeof registerPrevSeasonTitles==='function') registerPrevSeasonTitles();
+        if(typeof persistCareer==='function') persistCareer();   // títulos novos: grava no assento (ver #13)
         cdraw();
         if(typeof openPressRoom==='function') openPressRoom(_sum);
         else { const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division); toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.'); }

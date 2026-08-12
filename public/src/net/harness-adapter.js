@@ -225,6 +225,10 @@
   NET.getDivisionClubs=null;                     // clubes reais indisponíveis -> fallback procedural
   NET.saveSoloGame=async()=>{}; NET.loadSoloSave=async()=>null; NET.listSoloSaves=async()=>[];
   NET.saveInbox=async()=>{}; NET.loadInbox=async()=>null; NET.deleteSoloSave=async()=>{};
+  // carreira por assento (ver netSaveCareer/netLoadCareer no supabase-adapter): o harness guarda
+  // no mesmo seat store, senão não dá pra testar a perda de títulos ao sair e voltar
+  NET.saveCareer=async(data)=>{ SRV.seatPatch(NET.gameId, uid, { career:data||null }); };
+  NET.loadCareer=async()=>{ const g=SRV.snapshot(NET.gameId); const s=g&&g.seats[uid]; return (s&&s.career)||null; };
 
   /* ---- INSTRUMENTAÇÃO: espelha no runner cada passo relevante do fluxo de copa/fase ----
      (só no harness; produção nunca carrega este arquivo) */

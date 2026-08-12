@@ -3399,6 +3399,17 @@ function snapshotCareer(){ if(typeof S==='undefined'||!S) return null;
   const o={}; CAREER_KEYS.forEach(k=>{ if(S[k]!==undefined) o[k]=S[k]; }); return o; }
 function restoreCareer(snap){ if(!snap||typeof S==='undefined'||!S) return;
   CAREER_KEYS.forEach(k=>{ if(snap[k]!==undefined) S[k]=snap[k]; }); }
+/* GRAVA a carreira no MEU assento (game_seats.career). CAREER_KEYS protegia estes campos do
+   Object.assign do adopt, mas só na memória: o save da sala é o do ANFITRIÃO, então nada disso
+   sobrevivia a um logout. Sair e voltar na mesma Resenha devolvia a estante de troféus vazia.
+   Chamado depois de toda mudança de carreira (fim de rodada, virada de temporada, contratação,
+   demissão). Silencioso e best-effort: falhar aqui nunca pode atrapalhar o jogo. */
+function persistCareer(){
+  if(typeof CL==='undefined' || !CL.online) return;            // solo já grava tudo no save do jogo
+  if(typeof NET==='undefined' || !NET.saveCareer) return;
+  const snap=snapshotCareer(); if(!snap) return;
+  try{ Promise.resolve(NET.saveCareer(snap)).catch(()=>{}); }catch(e){}
+}
 /* ===== CARREIRA NA RESENHA (Fase 2): demissão -> desempregado -> convite -> assume =====
    Diferente do solo (que oferece clubes na hora): na Resenha o treinador é DEMITIDO, fica
    assistindo as rodadas sem interagir e só depois recebe convite de um clube LIVRE da CPU.
