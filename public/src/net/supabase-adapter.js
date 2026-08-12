@@ -542,13 +542,52 @@ function cupDoneList(round, addKey){
   if(addKey && prev.indexOf(addKey)<0) prev.push(addKey);
   return prev;
 }
+/* TODOS OS RESULTADOS DE COPA DESTA JORNADA, UM POR COMPETIÇÃO.
+   O BUG MEDIDO EM PRODUÇÃO: `last_cup_result` é UMA coluna, e o calendário oficial põe
+   Libertadores, Sul-Americana e Copa do Brasil na MESMA jornada. Publicar a segunda partida
+   APAGAVA a primeira. Consequências, todas relatadas:
+     - o servidor não encontrava mais o resultado da Copa do Brasil e RE-SIMULAVA a partida que o
+       humano tinha acabado de ganhar ao vivo -> ele era eliminado com outro placar;
+     - netHumanCupResultFor devolvia null pros OUTROS clientes, que caíam na simulação -> cada um
+       via um placar diferente do dono do clube;
+     - sem o resultado, o título e a cota da fase não eram creditados.
+   O `done` (acima) já tinha resolvido o lado da BARREIRA ("que competições eu cumpri"), mas não o
+   lado do RESULTADO. `results` guarda uma entrada por competição dentro do mesmo JSONB — aditivo,
+   um servidor antigo simplesmente ignora a chave que não conhece. */
+function cupResultsList(round, entry){
+  const me=(NET._claimed&&NET._claimed[SB_UID()])||{};
+  const anterior=(me.last_cup_round===round && me.last_cup_result) || null;
+  let prev=(anterior && Array.isArray(anterior.results)) ? anterior.results.slice() : [];
+  // payload gravado por uma versão anterior (só um resultado, no topo): entra na lista pra não sumir
+  if(!prev.length && anterior && anterior.h && anterior.a){
+    const {results:_r, done:_d, ...solto}=anterior; prev=[solto];
+  }
+  if(!entry) return prev;
+  // mesma competição + mesmo confronto = republicação (ex.: prorrogação): substitui, não duplica
+  const i=prev.findIndex(r=>String(r.key||'')===String(entry.key||'') && String(r.h)===String(entry.h) && String(r.a)===String(entry.a));
+  if(i>=0) prev[i]=entry; else prev.push(entry);
+  return prev;
+}
+/* acha o resultado de UM confronto de UMA competição dentro do payload do assento */
+function cupEntryIn(payload, h, a, cupKey){
+  if(!payload) return null;
+  const bate=r=>r && String(r.h)===String(h) && String(r.a)===String(a);
+  const lista=Array.isArray(payload.results)?payload.results:null;
+  if(lista) return lista.find(r=>bate(r) && (!cupKey || !r.key || String(r.key)===String(cupKey))) || null;
+  // compat: payload antigo tinha um resultado só e não dizia de qual competição era. Se ele
+  // declara a competição e é outra, recusa; sem declaração, o confronto é tudo que dá pra conferir.
+  if(!bate(payload)) return null;
+  if(cupKey && payload.key && String(payload.key)!==String(cupKey)) return null;
+  return payload;
+}
 async function netPublishCupResult(round, cupResult){
   // `winner` só existe no mata-mata; confronto de FASE DE GRUPOS (stage:'group') não tem — sem
   // esta exceção o resultado de grupo era descartado aqui e o servidor re-simulava a partida que
   // o humano acabou de jogar ao vivo.
   if(!sb || !NET.gameId || !SB_AUTH_USER || !cupResult || !cupResult.h || !cupResult.a) return;
   if(!cupResult.winner && cupResult.stage!=='group') return;
-  const payload = { stage:cupResult.stage||'bracket', h:cupResult.h, a:cupResult.a, hg:cupResult.hg, ag:cupResult.ag,
+  const payload = { key:cupResult.key||null, // QUAL competição — ver cupResultsList abaixo
+    stage:cupResult.stage||'bracket', h:cupResult.h, a:cupResult.a, hg:cupResult.hg, ag:cupResult.ag,
     winner:cupResult.winner||null, pens:cupResult.pens||null, events:cupResult.events||[],
     scorers:cupResult.scorers||[], perf:cupResult.perf||null, // artilharia + Historial no servidor (cupSumula)
     caps:cupResult.caps||null, matchMinutes:cupResult.matchMinutes||null, // súmula de minutos em campo (ver liveCaps)
@@ -559,6 +598,10 @@ async function netPublishCupResult(round, cupResult){
   // e a barreira soltava com o jogador ainda em campo na Copa do Brasil. O campo `done` (dentro do
   // JSONB que já existe, aditivo — o servidor ignora chave que não conhece) carrega a lista.
   payload.done = cupDoneList(round, cupResult.key||null);
+  // uma entrada por competição (ver cupResultsList) — lê o payload ANTERIOR, então tem que vir
+  // antes de sobrescrever _claimed logo abaixo. A entrada não carrega `done`/`results` (só o jogo).
+  const { done:_omitDone, ...entradaDoJogo } = payload;
+  payload.results = cupResultsList(round, entradaDoJogo);
   try{
     if(NET._claimed && NET._claimed[SB_UID()]){ NET._claimed[SB_UID()].last_cup_result=payload; NET._claimed[SB_UID()].last_cup_round=round; }
     await sb.from('game_seats').update({ last_cup_result:payload, last_cup_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_UID());
@@ -670,10 +713,14 @@ function netHumanResultFor(h, a, round){
    autoritativo, igual netHumanResultFor da liga) — usado antes de abrir uma partida de copa ao
    vivo: se o outro lado JÁ jogou e publicou (ex.: eu estava ausente e cliquei depois), reproduzo
    o jogo oficial em vez de esperar um stream que não vai mais chegar. */
-function netHumanCupResultFor(h, a, round){
+/* `cupKey` diz QUAL competição — sem ele, dois confrontos do mesmo par de clubes na mesma jornada
+   (Copa do Brasil e Sul-Americana caem juntas no calendário oficial) se confundiam e o placar de
+   uma aparecia na outra. Ver cupResultsList. */
+function netHumanCupResultFor(h, a, round, cupKey){
   const cl=NET._claimed||{}; let homeR=null, awayR=null;
-  for(const uid in cl){ const c=cl[uid]; const r=c&&c.last_cup_result;
-    if(!(r && c.last_cup_round===round && String(r.h)===String(h) && String(r.a)===String(a))) continue;
+  for(const uid in cl){ const c=cl[uid];
+    if(!c || c.last_cup_round!==round) continue;
+    const r=cupEntryIn(c.last_cup_result, h, a, cupKey); if(!r) continue;
     if(String(c.clubId)===String(h)) homeR=r; else if(String(c.clubId)===String(a)) awayR=r;
   }
   return homeR||awayR||null;

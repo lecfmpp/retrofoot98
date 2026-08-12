@@ -5538,9 +5538,15 @@ function buildLiveMatchObject(h,a,seed,opts){
   // (a simulação local usa a seed AUTORITATIVA, a mesma do advanceCupBracket no servidor).
   const isCup=CL.online && !isLeague && !!opts.cupKey;
   const netLive=isLeague||isCup;
-  const skPrefix=isCup?'cp:':'lg:';
+  // A COMPETIÇÃO ENTRA NA CHAVE DA TRANSMISSÃO. Antes era só 'cp:'+mandante+'-'+visitante, e o
+  // calendário oficial põe Copa do Brasil e Sul-Americana na MESMA jornada: quando o mesmo par de
+  // clubes se encontrava nas duas, as duas partidas nasciam com a MESMA streamKey. O onNetMatchLive
+  // casa o stream pela chave (`find`), então os eventos de uma partida entravam na outra — e qual
+  // das duas era "a primeira da lista" mudava de cliente pra cliente, que é exatamente o relato de
+  // placares diferentes pro mesmo jogo. Ver também cupResultsList no supabase-adapter.
+  const skPrefix=isCup?('cp:'+(opts.cupKey||'?')+':'):'lg:';
   const pub=(netLive && typeof NET!=='undefined')
-    ? (isCup ? (NET.humanCupResultFor?NET.humanCupResultFor(h,a,S.round):null)
+    ? (isCup ? (NET.humanCupResultFor?NET.humanCupResultFor(h,a,S.round,opts.cupKey):null)
              : (NET.humanResultFor?NET.humanResultFor(h,a,S.round):null))
     : null;
   // FASE 2: stream PRÉ-COMPUTADO pelo servidor no apito (kickoff-round -> CL._roundStreams).

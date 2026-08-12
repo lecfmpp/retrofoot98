@@ -976,7 +976,10 @@ function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: an
   const winners: string[] = [];
   b.ties.forEach((t: any) => {
     if (t.winner) { winners.push(t.winner); return; }
-    const k = t.h + '-' + t.a; const sub = cupResultByFx && cupResultByFx[k];
+    // a competição faz parte da chave: sem ela, um resultado da Sul-Americana entre os mesmos dois
+    // clubes era consumido pela chave da Copa do Brasil da mesma jornada (e vice-versa)
+    const k = t.h + '-' + t.a; const cupKey = roundLabel.split('-')[0];
+    const sub = cupResultByFx && (cupResultByFx[cupKey + '|' + k] || cupResultByFx[k]);
     if (sub && sub.winner) { // resultado submetido por um humano (mandante-autoritativo)
       t.hg = sub.hg; t.ag = sub.ag; t.events = sub.events || []; t.winner = sub.winner; t.pens = sub.pens || null;
       applyMatchIncidents(S, sub.events || []);
@@ -1048,7 +1051,8 @@ function advanceGroupStageRoundS(S: any, mg: any, roundLabel: string, cupResultB
       let gcaps: any = null, gmins = 90;                      // súmula de minutos (ver ratePlayersS)
       // partida jogada AO VIVO por um humano: usa o resultado que ELE viu, em vez de re-simular
       // (senão o placar da tela dele seria sobrescrito por outro no adopt seguinte).
-      const sub = cupResultByFx && cupResultByFx[h + '-' + a];
+      const gCupKey = roundLabel.split('-')[0];   // idem advanceCupBracket: a competição entra na chave
+      const sub = cupResultByFx && (cupResultByFx[gCupKey + '|' + h + '-' + a] || cupResultByFx[h + '-' + a]);
       if (sub && sub.stage === 'group') {
         hg = sub.hg; ag = sub.ag; scorers = sub.scorers || []; perf = sub.perf || null; gcaps = sub.caps || null; gmins = sub.matchMinutes || 90;
         applyMatchIncidents(S, sub.events || []);
@@ -1692,12 +1696,28 @@ Deno.serve(async (req: Request) => {
       // TREINO ESPECIAL: pids que este humano pôs em treino (ver netPublishResult). Chega toda
       // rodada — é estado corrente, não evento, então sobrescreve em vez de acumular.
       if (r && s.last_result_round === round && Array.isArray(r.training)) trainingByClub[s.club_id] = r.training;
-      // resultado de COPA submetido pra ESTA rodada (aplicado na chave; mandante-autoritativo)
+      // resultados de COPA submetidos pra ESTA rodada (aplicados na chave; mandante-autoritativo).
+      // UM ASSENTO PODE TER JOGADO MAIS DE UMA COPA NA MESMA JORNADA — o calendário oficial põe
+      // Libertadores, Sul-Americana e Copa do Brasil juntas. Antes só o campo do topo era lido, e
+      // como o cliente sobrescrevia a coluna a cada publicação, ficava só a ÚLTIMA: a partida da
+      // Copa do Brasil que o humano tinha acabado de ganhar ao vivo era re-simulada aqui e ele
+      // saía eliminado com outro placar. `results` (ver cupResultsList no cliente) traz uma
+      // entrada por competição; um cliente antigo manda só o topo e continua funcionando.
       const cr = s.last_cup_result;
-      // `winner` só existe no mata-mata; confronto de FASE DE GRUPOS (stage:'group') não tem —
-      // sem esta exceção o resultado de grupo do humano era descartado e advanceGroupStageRoundS
-      // re-simulava a partida que ele acabou de jogar ao vivo, trocando o placar que ele viu.
-      if (cr && s.last_cup_round === round && cr.h && cr.a && (cr.winner || cr.stage === 'group')) { const ck = cr.h + "-" + cr.a; if (!cupResultByFx[ck] || s.club_id === cr.h) cupResultByFx[ck] = { stage: cr.stage || 'bracket', hg: cr.hg, ag: cr.ag, winner: cr.winner || null, pens: cr.pens || null, events: cr.events || [], scorers: cr.scorers || [], perf: cr.perf || null }; }
+      if (cr && s.last_cup_round === round) {
+        const entradas = Array.isArray(cr.results) && cr.results.length ? cr.results : [cr];
+        entradas.forEach((e: any) => {
+          // `winner` só existe no mata-mata; confronto de FASE DE GRUPOS (stage:'group') não tem —
+          // sem esta exceção o resultado de grupo do humano era descartado e advanceGroupStageRoundS
+          // re-simulava a partida que ele acabou de jogar ao vivo, trocando o placar que ele viu.
+          if (!e || !e.h || !e.a || !(e.winner || e.stage === 'group')) return;
+          const valor = { stage: e.stage || 'bracket', hg: e.hg, ag: e.ag, winner: e.winner || null, pens: e.pens || null, events: e.events || [], scorers: e.scorers || [], perf: e.perf || null, caps: e.caps || null, matchMinutes: e.matchMinutes || null };
+          const fx = e.h + "-" + e.a;
+          // chave COM competição é a que vale; a sem competição fica como reserva pro cliente antigo
+          if (e.key) { const ck = e.key + "|" + fx; if (!cupResultByFx[ck] || s.club_id === e.h) cupResultByFx[ck] = valor; }
+          if (!cupResultByFx[fx] || s.club_id === e.h) cupResultByFx[fx] = valor;
+        });
+      }
     });
 
     // FASE 1: snapshot do APITO (games.kickoff_lineups, carimbado na virada ready->running) tem

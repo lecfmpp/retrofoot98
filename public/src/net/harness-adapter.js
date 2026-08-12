@@ -164,7 +164,19 @@
   /* publicações por assento */
   NET.publishLineup=function(xi,tactic){ SRV.seatPatch(NET.gameId, uid, { last_xi:(xi||[]).slice(), last_tactic:tactic||'equilibrado' }); };
   NET.publishResult=function(round,res){ SRV.seatPatch(NET.gameId, uid, { last_result:res||null, last_result_round:round }); };
-  NET.publishCupResult=function(round,res){ SRV.seatPatch(NET.gameId, uid, { last_cup_result:res||null, last_cup_round:round }); };
+  /* espelha o acúmulo do adaptador real (ver cupResultsList no supabase-adapter): uma entrada por
+     competição, porque a mesma jornada pode ter Copa do Brasil, Libertadores e Sul-Americana e a
+     coluna é uma só. Sem isto o harness nunca reproduziria o bug de placar divergente entre copas. */
+  NET.publishCupResult=function(round,res){
+    if(!res){ SRV.seatPatch(NET.gameId, uid, { last_cup_result:null, last_cup_round:round }); return; }
+    const g=SRV.snapshot(NET.gameId); const s=(g&&g.seats[uid])||{};
+    const ant=(s.last_cup_round===round && s.last_cup_result)||null;
+    let lista=(ant && Array.isArray(ant.results)) ? ant.results.slice() : [];
+    if(!lista.length && ant && ant.h && ant.a){ const {results:_r, done:_d, ...solto}=ant; lista=[solto]; }
+    const i=lista.findIndex(r=>String(r.key||'')===String(res.key||'') && String(r.h)===String(res.h) && String(r.a)===String(res.a));
+    if(i>=0) lista[i]=res; else lista.push(res);
+    SRV.seatPatch(NET.gameId, uid, { last_cup_result:{...res, results:lista}, last_cup_round:round });
+  };
   NET.markCupDone=async function(round){
     const g=SRV.snapshot(NET.gameId); const s=g&&g.seats[uid];
     if(s && s.last_cup_round===round) return;                      // nunca sobrescreve resultado publicado
