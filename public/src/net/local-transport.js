@@ -69,7 +69,12 @@ const NET = {
   waLink(phoneDigits){ const num='55'+String(phoneDigits||'').replace(/\D/g,''); const txt=encodeURIComponent('Bora jogar RetroFoot98 comigo! 🟢 Entra na minha sala "'+((this.room&&this.room.name)||'')+'": '+this.inviteLink()); return 'https://wa.me/'+num+'?text='+txt; },
 };
 
-/* ---- chat da liga (visível no lobby e como doca no hub) ---- */
+/* ---- chat da liga (visível no lobby e como doca no hub) ----
+   FORA DO AR NA V1. O chat sai do lançamento: a doca ficava por cima do jogo em todas as telas
+   online e o toast de mensagem nova interrompia partida ao vivo. Aqui só a INTERFACE é desligada
+   — o transporte (sendChat/onChat), o histórico em room.chat e a coluna no banco continuam
+   intactos, então voltar é trocar esta constante pra true, sem migração e sem perder conversa. */
+const CHAT_ATIVO = false;
 function chatMsgsHTML(){ const room=NET.room; const msgs=(room&&room.chat)||[];
   if(!msgs.length) return '<div class="cl-chat-empty">Nenhuma mensagem ainda. Diga oi! 👋</div>';
   return msgs.slice(-60).map(m=>{ const c=m.clubId?clubOf(m.clubId):null; const col=c?c.color:'#666';
@@ -93,13 +98,13 @@ function clChatToggle(){ CL.chatOpen=!CL.chatOpen; if(CL.chatOpen) CL.chatUnread
 function renderChatDock(){
   if(typeof document==='undefined') return;
   let host=document.getElementById('cl-chatdock-host');
-  const show = CL.online && CL.screen!=='online';
+  const show = CHAT_ATIVO && CL.online && CL.screen!=='online';
   if(!show){ if(host){ host.innerHTML=''; host.className=''; } return; }
   if(!host){ host=document.createElement('div'); host.id='cl-chatdock-host'; document.body.appendChild(host); }
   host.className = (CL.screen==='main') ? 'onmain' : ''; // no mobile, na tela principal sobe pra não bater na barra de status/Jogar
   host.innerHTML = chatDockHTML();
 }
-function chatDockHTML(){ if(!CL.online) return '';
+function chatDockHTML(){ if(!CHAT_ATIVO || !CL.online) return '';
   const unread=CL.chatUnread||0;
   const badge=(!CL.chatOpen && unread>0) ? `<span class="cl-chatdock-badge" title="${unread} nova(s) mensagem(ns)">${unread>99?'99+':unread}</span>` : '';
   return `<div class="cl-chatdock ${CL.chatOpen?'open':''} ${(!CL.chatOpen&&unread>0)?'has-unread':''}">
@@ -194,6 +199,7 @@ function wireNet(){ NET.onState=(room)=>{ if(room && room.speedMult && !NET.isHo
   NET.onJoinReq=()=>{ if(typeof NET==='undefined' || !NET.isHost) return;
     (async ()=>{ try{ CL.pendingJoins=await NET.listJoinRequests(); }catch(e){} clRefreshReqSurfaces(); })(); };
   NET.onChat=(msg)=>{
+    if(!CHAT_ATIVO) return;   // interface desligada na v1: nada de badge nem toast interrompendo a partida
     const mine = !!(msg && NET.self && msg.id===NET.self.id);
     if(CL.screen==='online'){ renderOnlineInto(); return; } // lobby: chat sempre visível, sem badge
     if(CL.chatOpen){ renderChatBoxes(); return; }           // doca aberta: só atualiza as mensagens (preserva o input)
@@ -970,9 +976,9 @@ function scLobby(){ const room=NET.room;
     </section>`;
   }
 
-  // Chat — recolhível (todos)
+  // Chat — recolhível (todos). Desligado na v1 junto com a doca (ver CHAT_ATIVO).
   const chatOpen=CL.net.lobbyChatOpen!==false;
-  steps += `<section class="cl-step cl-step-chat">
+  if(CHAT_ATIVO) steps += `<section class="cl-step cl-step-chat">
       <div class="cl-step-h cl-step-h-btn" onclick="CL.net.lobbyChatOpen=${chatOpen?'false':'true'};renderOnlineInto()">
         <span class="cl-step-t">💬 Chat da sala</span><span class="cl-step-caret">${chatOpen?'▾':'▸'}</span>
       </div>
