@@ -3450,7 +3450,7 @@ function porResponsavelHTML(ps){
    parceiro pode estar negociando e ainda não ativo, ou ativo e aguardando retorno sobre
    a próxima campanha. */
 const STATUS_PARCEIRO = {
-  sem_contato:        ['Sem contato',       't-dim',  'var(--dim2)'],
+  novo:               ['Novo',              't-dim',  'var(--dim2)'],
   contatado:          ['Contatado',         't-azul', 'var(--azul)'],
   negociando:         ['Negociando',        't-warn', 'var(--ambar)'],
   aguardando_retorno: ['Aguardando retorno','t-roxo', 'var(--roxo)'],
@@ -3462,7 +3462,7 @@ const STATUS_PARCEIRO = {
 function funilParceirosHTML(ps){
   if(!ps.length) return '';
   const cont = {}; Object.keys(STATUS_PARCEIRO).forEach(k => cont[k] = 0);
-  ps.forEach(p => { cont[p.status || 'sem_contato'] = (cont[p.status || 'sem_contato']||0) + 1; });
+  ps.forEach(p => { cont[p.status || 'novo'] = (cont[p.status || 'novo']||0) + 1; });
   const total = ps.length;
   return `<div class="card card-p">
     <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px">
@@ -3489,7 +3489,7 @@ async function pgParceiros(){
   D.parceiros = data || [];
   const todos = D.parceiros;
   const ps = ST.statusParceiro
-    ? todos.filter(p => (p.status||'sem_contato') === ST.statusParceiro)
+    ? todos.filter(p => (p.status||'novo') === ST.statusParceiro)
     : todos;
   const colPa = '1.3fr 1.15fr 1fr .85fr .8fr .55fr .65fr .65fr .75fr';
   const visitas = ps.reduce((a,p)=>a+ +p.visitas, 0);
@@ -3530,10 +3530,10 @@ async function pgParceiros(){
           </span>
           <span onclick="event.stopPropagation()">
             <select class="sel-status" data-status="${p.id}"
-                    style="color:${STATUS_PARCEIRO[p.status||'sem_contato'][2]}"
+                    style="color:${STATUS_PARCEIRO[p.status||'novo'][2]}"
                     ${editar?'':'disabled'} title="${p.status_em?'Neste ponto desde '+h(dmy(p.status_em)):''}">
               ${Object.keys(STATUS_PARCEIRO).map(k=>
-                `<option value="${k}" ${k===(p.status||'sem_contato')?'selected':''}>${STATUS_PARCEIRO[k][0]}</option>`).join('')}
+                `<option value="${k}" ${k===(p.status||'novo')?'selected':''}>${STATUS_PARCEIRO[k][0]}</option>`).join('')}
             </select></span>
           <span style="min-width:0;display:flex;align-items:center;gap:8px">
             ${p.responsavel
@@ -3634,7 +3634,7 @@ function modalParceiro(p){
             <div class="g2" style="gap:12px">
               <label class="f">Status da conversa<select class="f" id="pa-status">
                 ${Object.keys(STATUS_PARCEIRO).map(k=>
-                  `<option value="${k}" ${k===(p.status||'sem_contato')?'selected':''}>${STATUS_PARCEIRO[k][0]}</option>`).join('')}
+                  `<option value="${k}" ${k===(p.status||'novo')?'selected':''}>${STATUS_PARCEIRO[k][0]}</option>`).join('')}
               </select></label>
               <label class="f">Parceria<select class="f" id="pa-estado">
                 ${['ativo','pausado','encerrado'].map(e=>`<option value="${e}" ${e===p.estado?'selected':''}>${e}</option>`).join('')}
@@ -3722,11 +3722,11 @@ function modalParceiro(p){
     };
     REDES.forEach(r => { linha[r.k] = perfilUrl(el('pa-'+r.k).value, r); });
     // status_em é "desde quando está neste ponto": só mexe quando o ponto muda
-    if(!novo && linha.status !== (p.status||'sem_contato')) linha.status_em = new Date().toISOString();
+    if(!novo && linha.status !== (p.status||'novo')) linha.status_em = new Date().toISOString();
     let res;
     if(novo){
       linha.criado_por = (await sb.auth.getUser()).data.user.id;
-      if(linha.status !== 'sem_contato') linha.status_em = new Date().toISOString();
+      if(linha.status !== 'novo') linha.status_em = new Date().toISOString();
       res = await sb.from('adm_parceiros').insert(linha);
     } else {
       res = await sb.from('adm_parceiros').update(linha).eq('id', p.id);
