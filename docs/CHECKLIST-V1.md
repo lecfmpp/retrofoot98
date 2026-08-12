@@ -9,14 +9,14 @@ estáveis. O que mudou foi a ordem de execução.
 Um item só sai da lista depois que o usuário testar no ar
 (implementar → commitar → publicar → testar).
 
-> **ESTADO EM 12/08/2026, madrugada.** Implementados e commitados: #8, #10 (raiz),
-> #9, #13, #12, #4. **A edge function `resolve-round` está NO AR** (GitHub Actions, deploy
-> com sucesso). **O SITE NÃO FOI PUBLICADO**: `firebase deploy` falhou com
-> *"credentials are no longer valid"* — só o usuário resolve, com
-> `firebase login --reauth`. Enquanto isso, produção roda o cliente ANTIGO com o
-> servidor NOVO; a mudança do servidor é retrocompatível de propósito (cliente sem
-> `results`/`key` cai exatamente no comportamento anterior), então nada quebra —
-> mas as correções só chegam ao jogador depois do deploy do site.
+> **ESTADO EM 12/08/2026.** **TUDO NO AR.** Edge function `resolve-round` publicada
+> (GitHub Actions) e site publicado no Firebase depois da reautenticação.
+> Implementados, commitados e publicados: **#8, #10 (raiz), #9, #13, #12, #4**.
+> Conferido em produção (retrofoot98.com.br): o roteamento de resultado por competição
+> devolve placares distintos pro mesmo confronto em copas diferentes, o chat está
+> desligado e o console está limpo.
+> **Falta o usuário confirmar jogando** — principalmente #10 (premiação e final da Copa
+> do Brasil) e #13 (títulos sobreviverem ao logout).
 
 ---
 
