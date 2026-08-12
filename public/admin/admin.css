@@ -302,3 +302,20 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
   display:flex;flex-direction:column;gap:12px;background:var(--card2)}
 .secao > legend{font-size:11px;font-weight:700;color:var(--dim2);text-transform:uppercase;
   letter-spacing:.6px;padding:0 6px;margin-left:-2px}
+
+/* ---------- etapas da negociação (Parceiros) ---------- */
+.etapas{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.etapa{border:1px solid var(--bd);background:var(--card2);border-radius:11px;padding:12px 14px;
+  cursor:pointer;display:flex;flex-direction:column;gap:6px}
+.etapa:hover{border-color:var(--bd2)}
+.etapa.vazia{opacity:.55}
+.etapa-n{font-family:var(--mono);font-size:24px;font-weight:700;line-height:1;letter-spacing:-1px}
+.etapa-r{font-size:11.5px;color:var(--dim2);font-weight:600}
+.etapa-b{height:4px;border-radius:99px;background:var(--bd);overflow:hidden}
+.etapa-b i{display:block;height:100%;border-radius:99px}
+/* dropdown de status direto na linha da tabela */
+.sel-status{background:var(--card2);border:1px solid var(--bd2);border-radius:7px;
+  padding:5px 6px;font-size:11.5px;font-weight:600;font-family:inherit;outline:none;
+  max-width:100%;cursor:pointer}
+.sel-status:focus{border-color:var(--verde)}
+.sel-status:disabled{cursor:default;opacity:.8}

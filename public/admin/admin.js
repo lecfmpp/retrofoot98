@@ -3445,13 +3445,53 @@ function porResponsavelHTML(ps){
     </div>
   </div>`;
 }
+/* STATUS DA NEGOCIAÇÃO — eixo diferente do `estado` da parceria. `estado` diz se ela
+   está de pé (ativo/pausado/encerrado); `status` diz em que ponto está a conversa. Um
+   parceiro pode estar negociando e ainda não ativo, ou ativo e aguardando retorno sobre
+   a próxima campanha. */
+const STATUS_PARCEIRO = {
+  sem_contato:        ['Sem contato',       't-dim',  'var(--dim2)'],
+  contatado:          ['Contatado',         't-azul', 'var(--azul)'],
+  negociando:         ['Negociando',        't-warn', 'var(--ambar)'],
+  aguardando_retorno: ['Aguardando retorno','t-roxo', 'var(--roxo)'],
+  fechado:            ['Fechado',           't-ok',   'var(--verde2)']
+};
+/* CONTAGEM POR ETAPA, separada dos números de audiência. As duas leituras respondem
+   perguntas diferentes: uma é "o que este parceiro já trouxe", a outra é "onde está a
+   conversa" — juntar as duas numa fileira de KPIs faria parecer que são a mesma coisa. */
+function funilParceirosHTML(ps){
+  if(!ps.length) return '';
+  const cont = {}; Object.keys(STATUS_PARCEIRO).forEach(k => cont[k] = 0);
+  ps.forEach(p => { cont[p.status || 'sem_contato'] = (cont[p.status || 'sem_contato']||0) + 1; });
+  const total = ps.length;
+  return `<div class="card card-p">
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px">
+      <div class="tt">Em que ponto está cada conversa</div>
+      <span class="st" style="margin:0">${num(total)} parceiro${total>1?'s':''} no total</span>
+    </div>
+    <div class="etapas">
+      ${Object.keys(STATUS_PARCEIRO).map(k=>{
+        const [rot,, cor] = STATUS_PARCEIRO[k];
+        const n = cont[k]||0;
+        return `<div class="etapa ${n?'':'vazia'}" data-filtro-status="${k}" title="Ver só estes">
+          <div class="etapa-n" style="color:${n?cor:'var(--dim3)'}">${n}</div>
+          <div class="etapa-r">${rot}</div>
+          <div class="etapa-b"><i style="width:${pct(n,total)}%;background:${cor}"></i></div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
 async function pgParceiros(){
   const editar = podeEditar('publicidade');
   const { data, error } = await sb.rpc('parceiros');
   if(error) throw error;
   D.parceiros = data || [];
-  const ps = D.parceiros;
-  const colPa = '1.4fr 1.1fr 1fr .9fr .6fr .7fr .7fr .8fr';
+  const todos = D.parceiros;
+  const ps = ST.statusParceiro
+    ? todos.filter(p => (p.status||'sem_contato') === ST.statusParceiro)
+    : todos;
+  const colPa = '1.3fr 1.15fr 1fr .85fr .8fr .55fr .65fr .65fr .75fr';
   const visitas = ps.reduce((a,p)=>a+ +p.visitas, 0);
   const inscritos = ps.reduce((a,p)=>a+ +p.inscritos, 0);
   const pagantes = ps.reduce((a,p)=>a+ +p.pagantes, 0);
@@ -3466,6 +3506,8 @@ async function pgParceiros(){
                  d: inscritos? `${pct(pagantes,inscritos)}% dos inscritos` : '—', c:'var(--verde2)'})}
     </div>
 
+    ${funilParceirosHTML(todos)}
+
     ${porResponsavelHTML(ps)}
 
     <div class="card" style="overflow:hidden">
@@ -3474,7 +3516,7 @@ async function pgParceiros(){
         ${editar?'<button class="btn btn-sm" id="pa-novo">+ Parceiro</button>':''}
       </div>
       <div class="rowh" style="grid-template-columns:${colPa}">
-        <span>Parceiro</span><span>Responsável</span><span>Contato</span><span>Canais</span>
+        <span>Parceiro</span><span>Status</span><span>Responsável</span><span>Contato</span><span>Canais</span>
         <span style="text-align:center">Visitas</span><span style="text-align:center">Inscritos</span>
         <span style="text-align:center">Pagantes</span><span style="text-align:right">Link</span>
       </div>
@@ -3486,6 +3528,13 @@ async function pgParceiros(){
               <small class="mono" style="font-size:11px;color:var(--verde2)">${h(p.codigo)}</small>
               ${p.estado!=='ativo'?`<span class="tag t-dim" style="font-size:9.5px">${h(p.estado)}</span>`:''}</span>
           </span>
+          <span onclick="event.stopPropagation()">
+            <select class="sel-status" data-status="${p.id}"
+                    style="color:${STATUS_PARCEIRO[p.status||'sem_contato'][2]}"
+                    ${editar?'':'disabled'} title="${p.status_em?'Neste ponto desde '+h(dmy(p.status_em)):''}">
+              ${Object.keys(STATUS_PARCEIRO).map(k=>
+                `<option value="${k}" ${k===(p.status||'sem_contato')?'selected':''}>${STATUS_PARCEIRO[k][0]}</option>`).join('')}
+            </select></span>
           <span style="min-width:0;display:flex;align-items:center;gap:8px">
             ${p.responsavel
               ? `<i class="av" style="width:24px;height:24px;font-size:10px;background:${corAv(p.responsavel)};color:#0c1210"
@@ -3524,7 +3573,24 @@ async function pgParceiros(){
     const url = linkRef(b.dataset.copiar);
     navigator.clipboard.writeText(url).then(()=>toast('Link copiado: '+url), ()=>prompt('Copie o link:', url));
   });
+  document.querySelectorAll('[data-filtro-status]').forEach(e => e.onclick = () => {
+    ST.statusParceiro = ST.statusParceiro===e.dataset.filtroStatus ? null : e.dataset.filtroStatus;
+    pgParceiros();
+  });
   if(editar){
+    /* muda o ponto da conversa direto na lista: é uma troca de uma palavra, e abrir a
+       ficha inteira para isso é o tipo de atrito que faz o status nunca ser atualizado */
+    document.querySelectorAll('[data-status]').forEach(sel => sel.onchange = async () => {
+      const antes = sel.dataset.antes || '';
+      const { error } = await sb.from('adm_parceiros')
+        .update({ status: sel.value, status_em: new Date().toISOString() })
+        .eq('id', sel.dataset.status);
+      if(error){ toast(erroMsg(error), true); return; }
+      sel.style.color = STATUS_PARCEIRO[sel.value][2];
+      registrar('parceiro.status', sel.dataset.status, { de: antes, para: sel.value });
+      toast('Status: ' + STATUS_PARCEIRO[sel.value][0]);
+      pgParceiros();
+    });
     el('pa-novo').onclick = () => modalParceiro(null);
     document.querySelectorAll('[data-parceiro]').forEach(r => r.onclick = () =>
       modalParceiro(ps.find(p=>p.id===r.dataset.parceiro)));
@@ -3564,9 +3630,13 @@ function modalParceiro(p){
         <div class="col" style="gap:14px">
           <fieldset class="secao">
             <legend>Quem é</legend>
+            <label class="f">Nome<input class="f" id="pa-nome" value="${h(p.nome)}" placeholder="Ex.: Canal do Zé"></label>
             <div class="g2" style="gap:12px">
-              <label class="f">Nome<input class="f" id="pa-nome" value="${h(p.nome)}" placeholder="Ex.: Canal do Zé"></label>
-              <label class="f">Estado<select class="f" id="pa-estado">
+              <label class="f">Status da conversa<select class="f" id="pa-status">
+                ${Object.keys(STATUS_PARCEIRO).map(k=>
+                  `<option value="${k}" ${k===(p.status||'sem_contato')?'selected':''}>${STATUS_PARCEIRO[k][0]}</option>`).join('')}
+              </select></label>
+              <label class="f">Parceria<select class="f" id="pa-estado">
                 ${['ativo','pausado','encerrado'].map(e=>`<option value="${e}" ${e===p.estado?'selected':''}>${e}</option>`).join('')}
               </select></label>
             </div>
@@ -3645,15 +3715,18 @@ function modalParceiro(p){
     const cod = el('pa-cod').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
     if(!nome || !cod){ erro.textContent='Nome e código são obrigatórios.'; erro.classList.remove('hide'); return; }
     const linha = {
-      nome, codigo: cod, estado: el('pa-estado').value,
+      nome, codigo: cod, estado: el('pa-estado').value, status: el('pa-status').value,
       email: el('pa-email').value.trim()||null,
       telefone: telDigitos(el('pa-tel').value)||null,
       notas: el('pa-notas').value.trim()||null
     };
     REDES.forEach(r => { linha[r.k] = perfilUrl(el('pa-'+r.k).value, r); });
+    // status_em é "desde quando está neste ponto": só mexe quando o ponto muda
+    if(!novo && linha.status !== (p.status||'sem_contato')) linha.status_em = new Date().toISOString();
     let res;
     if(novo){
       linha.criado_por = (await sb.auth.getUser()).data.user.id;
+      if(linha.status !== 'sem_contato') linha.status_em = new Date().toISOString();
       res = await sb.from('adm_parceiros').insert(linha);
     } else {
       res = await sb.from('adm_parceiros').update(linha).eq('id', p.id);
