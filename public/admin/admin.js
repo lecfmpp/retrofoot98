@@ -3483,6 +3483,46 @@ function funilParceirosHTML(ps){
     </div>
   </div>`;
 }
+/* ===== SEGUIDORES =====
+   Só o YouTube dá o número de graça e sem depender do parceiro: channels.list custa 1
+   unidade das 10.000 diárias e aceita o @handle direto (forHandle). Instagram e TikTok
+   não expõem seguidores sem conta comercial vinculada, e o Twitch só devolve o total com
+   autorização do próprio canal — nesses três o número é digitado à mão.
+   A origem fica gravada porque um número conferido pela API e um anotado por alguém não
+   valem a mesma coisa depois de três meses. */
+const REDES_SEG = ['youtube','tiktok','instagram','twitch'];
+function seguidoresTotal(p){
+  return REDES_SEG.reduce((a,k)=> a + (Number(p['seg_'+k])||0), 0);
+}
+/* 12.400 -> "12,4 mil" · 1.250.000 -> "1,3 mi" — a lista precisa da ordem de grandeza,
+   não do número exato (esse fica no tooltip) */
+function segCurto(n){
+  n = Number(n)||0;
+  if(n >= 1e6) return (n/1e6).toFixed(n>=1e7?0:1).replace('.',',')+' mi';
+  if(n >= 1e3) return (n/1e3).toFixed(n>=1e4?0:1).replace('.',',')+' mil';
+  return String(n);
+}
+async function chaveYoutube(){
+  if(D.ytKey !== undefined) return D.ytKey;
+  try{
+    const { data } = await sb.from('adm_config').select('valor').eq('chave','youtube_api_key').maybeSingle();
+    D.ytKey = (data && String(data.valor).replace(/^"|"$/g,'')) || null;
+  }catch(e){ D.ytKey = null; }
+  return D.ytKey;
+}
+/* busca os inscritos de um @handle. Devolve null quando o canal não existe ou a chave
+   não está configurada — quem chama decide o que dizer. */
+async function inscritosYoutube(handle, key){
+  if(!handle || !key) return null;
+  const url = 'https://www.googleapis.com/youtube/v3/channels'
+            + '?part=statistics&forHandle=' + encodeURIComponent(handle) + '&key=' + encodeURIComponent(key);
+  const r = await fetch(url);
+  if(!r.ok) throw new Error(r.status===403 ? 'A chave do YouTube foi recusada (cota ou restrição de domínio).' : 'YouTube respondeu HTTP '+r.status);
+  const j = await r.json();
+  const item = j.items && j.items[0];
+  if(!item) return null;
+  return Number(item.statistics && item.statistics.subscriberCount) || 0;
+}
 async function pgParceiros(){
   const editar = podeEditar('publicidade');
   const { data, error } = await sb.rpc('parceiros');
@@ -3492,14 +3532,16 @@ async function pgParceiros(){
   const ps = ST.statusParceiro
     ? todos.filter(p => (p.status||'novo') === ST.statusParceiro)
     : todos;
-  const colPa = '1.3fr 1.15fr 1fr .85fr .8fr .55fr .65fr .65fr .75fr';
+  const colPa = '1.25fr 1.1fr .95fr .8fr .75fr .7fr .55fr .6fr .6fr .7fr';
   const visitas = ps.reduce((a,p)=>a+ +p.visitas, 0);
   const inscritos = ps.reduce((a,p)=>a+ +p.inscritos, 0);
   const pagantes = ps.reduce((a,p)=>a+ +p.pagantes, 0);
 
   el('page').innerHTML = `
-    <div class="g4">
+    <div class="kpis">
       ${kpiHTML({l:'Parceiros', v:num(ps.length), d:`${num(ps.filter(p=>p.estado==='ativo').length)} ativos`})}
+      ${kpiHTML({l:'Alcance somado', v:segCurto(ps.reduce((a,p)=>a+seguidoresTotal(p),0)),
+                 d:`${num(ps.filter(p=>seguidoresTotal(p)).length)} com número registrado`})}
       ${kpiHTML({l:'Visitas pelos links', v:num(visitas), d:'uma por pessoa/dia'})}
       ${kpiHTML({l:'Contas criadas', v:num(inscritos),
                  d: visitas? `${pct(inscritos,visitas)}% das visitas` : 'nenhuma ainda'})}
@@ -3514,10 +3556,12 @@ async function pgParceiros(){
     <div class="card" style="overflow:hidden">
       <div class="card-h">
         <b>Parceiros</b>
+        ${editar?'<button class="btn btn-sm btn-ghost" id="pa-yt">Atualizar YouTube</button>':''}
         ${editar?'<button class="btn btn-sm" id="pa-novo">+ Parceiro</button>':''}
       </div>
       <div class="rowh" style="grid-template-columns:${colPa}">
         <span>Parceiro</span><span>Status</span><span>Responsável</span><span>Contato</span><span>Canais</span>
+        <span style="text-align:center">Seguidores</span>
         <span style="text-align:center">Visitas</span><span style="text-align:center">Inscritos</span>
         <span style="text-align:center">Pagantes</span><span style="text-align:right">Link</span>
       </div>
@@ -3551,6 +3595,11 @@ async function pgParceiros(){
               `<a href="${h(p[r.k])}" target="_blank" rel="noopener" title="${r.nome}: ${h(p[r.k])}"
                   onclick="event.stopPropagation()" style="color:var(--dim)">${r.ic}</a>`).join('') || '<span style="color:var(--dim3);font-size:12px">—</span>'}
           </span>
+          <span class="mono" style="font-size:12.5px;text-align:center;color:${seguidoresTotal(p)?'var(--fg)':'var(--dim3)'}"
+                title="${REDES_SEG.filter(k=>p['seg_'+k]).map(k=>REDE(k).nome+': '+num(p['seg_'+k])).join(' · ')||'sem número registrado'}${p.seg_em?' — atualizado '+ha(p.seg_em)+(p.seg_origem==='api'?' pela API':' à mão'):''}">
+            ${seguidoresTotal(p) ? segCurto(seguidoresTotal(p)) : '—'}
+            ${p.seg_origem==='api'?'<small style="display:block;font-size:9px;color:var(--verde2)">API</small>':''}
+          </span>
           <span class="mono" style="font-size:12.5px;text-align:center">${num(p.visitas)}</span>
           <span class="mono" style="font-size:12.5px;text-align:center;color:${p.inscritos?'var(--fg)':'var(--dim3)'}">${num(p.inscritos)}</span>
           <span class="mono" style="font-size:12.5px;text-align:center;color:${p.pagantes?'var(--verde2)':'var(--dim3)'}">${num(p.pagantes)}</span>
@@ -3579,6 +3628,7 @@ async function pgParceiros(){
     pgParceiros();
   });
   if(editar){
+    el('pa-yt').onclick = () => atualizarYoutube(ps);
     /* muda o ponto da conversa direto na lista: é uma troca de uma palavra, e abrir a
        ficha inteira para isso é o tipo de atrito que faz o status nunca ser atualizado */
     document.querySelectorAll('[data-status]').forEach(sel => sel.onchange = async () => {
@@ -3598,8 +3648,10 @@ async function pgParceiros(){
   }
 }
 
-/* um campo de perfil: prefixo fixo + só o nome, com a seta que abre para conferir */
-function campoPerfil(r, valor){
+/* um campo de perfil: prefixo fixo + só o nome, com a seta que abre para conferir.
+   Nos canais que têm público, o número de seguidores fica ao lado — YouTube vem da API
+   (botão no topo da lista); os outros são digitados. */
+function campoPerfil(r, valor, seguidores){
   const pre = r.base ? r.base + (r.arroba?'@':'') : 'https://';
   const v = r.base ? perfilLimpo(valor||'', r) : String(valor||'').replace(/^https?:\/\//i,'');
   return `<label class="f">${h(r.nome)}
@@ -3608,12 +3660,102 @@ function campoPerfil(r, valor){
       <input id="pa-${r.k}" data-rede="${r.k}" autocomplete="off" value="${h(v)}"
              placeholder="${r.grupo?'código do convite':(r.base?'perfil':'site.com.br')}">
       <a class="perfil-ir hide" id="pa-${r.k}-ir" target="_blank" rel="noopener" title="Abrir para conferir">↗</a>
-    </span></label>`;
+    </span>
+    ${REDES_SEG.includes(r.k) ? `<span style="display:flex;align-items:center;gap:8px">
+      <input class="f mono" id="pa-seg-${r.k}" inputmode="numeric" style="padding:7px 10px;font-size:12.5px"
+             value="${seguidores!=null?num(seguidores):''}" placeholder="seguidores">
+      ${r.k==='youtube'?'<small style="font-size:10.5px;color:var(--dim3);white-space:nowrap">vem da API</small>':''}
+    </span>` : ''}
+  </label>`;
 }
 
 /* MODAL EM SEÇÕES, LADO A LADO. Com canais, grupos, contato e indicação, a ficha
    empilhada passava de qualquer tela. Em duas colunas cada bloco tem um assunto, e a
    altura cai pela metade — abaixo de 980px de janela o CSS volta a empilhar. */
+
+/* ATUALIZAÇÃO EM LOTE DOS INSCRITOS DO YOUTUBE.
+   Uma chamada por parceiro com canal (1 unidade de cota cada), em série e não em
+   paralelo: 30 parceiros é 30 unidades das 10.000 do dia, e disparar tudo de uma vez
+   só serviria para tomar 403 por rajada. Mostra o que deu certo e o que não achou —
+   canal renomeado é o caso comum, e falhar calado deixaria um número velho parecendo
+   atual na tela. */
+async function atualizarYoutube(ps){
+  const key = await chaveYoutube();
+  if(!key){ return modalChaveYoutube(); }
+  const alvos = ps.filter(p => p.youtube);
+  if(!alvos.length) return toast('Nenhum parceiro com canal do YouTube.', true);
+
+  const btn = el('pa-yt'); btn.disabled = true;
+  let ok = 0; const falhas = [];
+  for(let i=0;i<alvos.length;i++){
+    const p = alvos[i];
+    btn.textContent = `Atualizando ${i+1}/${alvos.length}…`;
+    try{
+      const handle = perfilLimpo(p.youtube, REDE('youtube'));
+      const n = await inscritosYoutube(handle, key);
+      if(n == null){ falhas.push(p.nome + ' (canal não encontrado)'); continue; }
+      const { error } = await sb.from('adm_parceiros')
+        .update({ seg_youtube:n, seg_em:new Date().toISOString(), seg_origem:'api' })
+        .eq('id', p.id);
+      if(error) throw error;
+      ok++;
+    }catch(e){
+      falhas.push(p.nome + ' — ' + erroMsg(e));
+      if(/recusada/i.test(e.message||'')) break;   // chave ruim: não adianta insistir
+    }
+  }
+  btn.disabled = false; btn.textContent = 'Atualizar YouTube';
+  registrar('parceiros.seguidores', ok + ' canais', { ok, falhas: falhas.length });
+  if(falhas.length) toast(`${ok} atualizados · ${falhas.length} sem resposta: ${falhas.slice(0,2).join('; ')}`, true);
+  else toast(`${ok} canais atualizados.`);
+  pgParceiros();
+}
+
+/* a chave é pedida uma vez e fica em adm_config (só admin lê). Não é segredo forte —
+   o painel roda no navegador —, então a proteção certa é restringir a chave por
+   domínio no console do Google, e é isso que o texto explica. */
+function modalChaveYoutube(){
+  abrirModal(`
+    <h3>Ligar a contagem do YouTube</h3>
+    <div class="col">
+      <div class="st" style="line-height:1.7">
+        Os inscritos vêm da <b>YouTube Data API v3</b>, que é gratuita: cada parceiro
+        consultado custa 1 unidade das 10.000 por dia. Para ligar:
+        <br>1. Crie um projeto em <code class="mono">console.cloud.google.com</code>
+        <br>2. Ative a <b>YouTube Data API v3</b>
+        <br>3. Crie uma chave de API e, em <i>Restrições</i>, limite-a ao domínio
+        <code class="mono">admin.retrofoot.com.br</code>
+        <br><br>A restrição por domínio é o que protege a chave: o painel roda no
+        navegador, então ela fica visível para quem abrir o código da página.
+      </div>
+      <label class="f">Chave da API<input class="f mono" id="yt-key" placeholder="AIza…"></label>
+      <div class="erro hide" id="yt-erro"></div>
+      <div class="acoes">
+        <button class="btn" id="yt-ok">Salvar e testar</button>
+        <button class="btn btn-ghost" data-fechar>Cancelar</button>
+      </div>
+    </div>`, 'lg');
+  el('yt-ok').onclick = async () => {
+    const erro = el('yt-erro'), btn = el('yt-ok');
+    const key = el('yt-key').value.trim();
+    if(!key){ erro.textContent='Cole a chave.'; erro.classList.remove('hide'); return; }
+    btn.disabled = true; btn.textContent = 'Testando…';
+    try{
+      // testa num canal que existe, para a chave não ser salva quebrada
+      await inscritosYoutube('@youtube', key);
+    }catch(e){
+      btn.disabled=false; btn.textContent='Salvar e testar';
+      erro.textContent = erroMsg(e); erro.classList.remove('hide'); return;
+    }
+    const { error } = await sb.from('adm_config').upsert({ chave:'youtube_api_key', valor: key });
+    if(error){ btn.disabled=false; btn.textContent='Salvar e testar';
+               erro.textContent=erroMsg(error); erro.classList.remove('hide'); return; }
+    D.ytKey = key;
+    registrar('config.youtube_api_key', 'configurada');
+    fecharModal(); toast('Chave salva. Clique em "Atualizar YouTube".');
+  };
+}
+
 function modalParceiro(p){
   const novo = !p;
   p = p || { nome:'', email:'', telefone:'', codigo:'', estado:'ativo' };
@@ -3655,7 +3797,7 @@ function modalParceiro(p){
         <div class="col" style="gap:14px">
           <fieldset class="secao">
             <legend>Canais</legend>
-            ${CANAIS_REDE().map(r => campoPerfil(r, p[r.k])).join('')}
+            ${CANAIS_REDE().map(r => campoPerfil(r, p[r.k], p['seg_'+r.k])).join('')}
             <div class="st" style="margin:0">Cole o link inteiro ou só o perfil — o campo ajusta.</div>
           </fieldset>
 
@@ -3722,6 +3864,16 @@ function modalParceiro(p){
       notas: el('pa-notas').value.trim()||null
     };
     REDES.forEach(r => { linha[r.k] = perfilUrl(el('pa-'+r.k).value, r); });
+    // seguidores digitados: só marca 'manual' se algum número mudou, para não apagar o
+    // carimbo de "veio da API" numa edição que só mexeu no telefone
+    let mexeuSeg = false;
+    REDES_SEG.forEach(k => {
+      const campo = el('pa-seg-'+k); if(!campo) return;
+      const n = campo.value.trim()==='' ? null : Number(campo.value.replace(/\D/g,''));
+      linha['seg_'+k] = n;
+      if(n !== (p['seg_'+k]==null?null:Number(p['seg_'+k]))) mexeuSeg = true;
+    });
+    if(mexeuSeg){ linha.seg_em = new Date().toISOString(); linha.seg_origem = 'manual'; }
     // status_em é "desde quando está neste ponto": só mexe quando o ponto muda
     if(!novo && linha.status !== (p.status||'novo')) linha.status_em = new Date().toISOString();
     let res;

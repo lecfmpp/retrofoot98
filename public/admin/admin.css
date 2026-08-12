@@ -319,3 +319,5 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
   max-width:100%;cursor:pointer}
 .sel-status:focus{border-color:var(--verde)}
 .sel-status:disabled{cursor:default;opacity:.8}
+/* fileira de KPIs que cresce conforme a quantidade (Parceiros tem 5) */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
