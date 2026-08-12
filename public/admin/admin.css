@@ -321,3 +321,12 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
 .sel-status:disabled{cursor:default;opacity:.8}
 /* fileira de KPIs que cresce conforme a quantidade (Parceiros tem 5) */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+
+/* ---------- reordenar colunas do kanban ---------- */
+.kbgrip{cursor:grab;color:var(--dim3);font-size:13px;line-height:1;padding:0 2px;
+  touch-action:none;user-select:none;flex:none}
+.kbgrip:hover{color:var(--verde2)}
+.kbgrip:active{cursor:grabbing}
+.kbcol-ghost{position:fixed;z-index:80;pointer-events:none;transform:rotate(2deg) scale(.98);
+  box-shadow:0 18px 34px rgba(0,0,0,.55);border-color:var(--verde);opacity:.95;overflow:hidden}
+.kbcol-slot{flex:none;border:1px dashed var(--verde);background:#14301f66;border-radius:14px}

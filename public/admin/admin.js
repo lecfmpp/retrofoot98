@@ -1558,12 +1558,12 @@ async function pgFeatures(){
   el('page').innerHTML = `
     <div style="display:flex;align-items:center;gap:12px">
       <span style="font-size:12.5px;color:var(--dim2);flex:1">
-        ${total} funcionalidades · ${votos} votos${editar?' · arraste um card para mudar de coluna':''}</span>
+        ${total} funcionalidades · ${votos} votos${editar?' · arraste um card para mudar de coluna, ou o ⠿ para mudar a ordem das colunas':''}</span>
       ${editar?'<button class="btn btn-sm" id="kb-nova">+ Nova funcionalidade</button>':''}
     </div>
     <div class="kb" id="kb">
       ${D.cols.map(c=>colunaHTML(c, editar)).join('')}
-      ${editar?`<div style="width:236px;flex:none;display:flex;flex-direction:column;gap:8px">
+      ${editar?`<div class="kbnova" style="width:236px;flex:none;display:flex;flex-direction:column;gap:8px">
         <input class="f" id="kb-nome" placeholder="Nome da nova coluna" style="border-style:dashed;background:var(--card)">
         <button class="btn btn-ghost btn-sm" id="kb-add-col">+ Criar coluna</button>
       </div>`:''}
@@ -1575,6 +1575,7 @@ function colunaHTML(c, editar){
   const cards = D.feats.filter(f=>f.coluna_id===c.id).sort((a,b)=>a.ord-b.ord);
   return `<div class="kbcol" data-col="${c.id}">
     <div class="kbh">
+      ${editar?`<span class="kbgrip" data-mover-col="${c.id}" title="Arraste para mudar a ordem da coluna">⠿</span>`:''}
       <i style="background:${h(c.cor)}"></i>
       <input value="${h(c.nome)}" data-rename="${c.id}" ${editar?'':'disabled'}>
       <span class="n">${cards.length}</span>
@@ -1643,6 +1644,67 @@ function ligarKanban(){
     f.votos = novo; pgFeatures();
   });
 
+  /* ---- ARRASTAR A COLUNA INTEIRA (pelo punho ⠿) ----
+     Mesmo padrão do card: pointer events, limiar de 4px e um espaço tracejado abrindo
+     onde ela vai cair. O punho existe porque o cabeçalho já tem o campo de renomear —
+     arrastar por ele impediria de clicar para editar o nome. */
+  document.querySelectorAll('[data-mover-col]').forEach(punho => {
+    punho.addEventListener('pointerdown', ev => {
+      if(ev.button!==0) return;
+      ev.preventDefault();
+      const col = punho.closest('.kbcol');
+      const inicio = { x:ev.clientX, y:ev.clientY };
+      let ativo=false, ghost=null, slot=null;
+
+      const mover = e2 => {
+        if(!ativo){
+          if(Math.hypot(e2.clientX-inicio.x, e2.clientY-inicio.y) < 4) return;
+          ativo = true;
+          const r = col.getBoundingClientRect();
+          ghost = col.cloneNode(true);
+          ghost.className = 'kbcol kbcol-ghost';
+          ghost.style.width = r.width+'px';
+          ghost.style.height = Math.min(r.height, 360)+'px';
+          document.body.appendChild(ghost);
+          slot = document.createElement('div');
+          slot.className = 'kbcol-slot';
+          slot.style.width = r.width+'px';
+          slot.style.height = Math.min(r.height, 360)+'px';
+          col.after(slot);
+          col.style.display='none';
+          punho.setPointerCapture(ev.pointerId);
+        }
+        ghost.style.left = (e2.clientX-60)+'px';
+        ghost.style.top  = (e2.clientY-18)+'px';
+        const outras = Array.from(el('kb').querySelectorAll('.kbcol')).filter(c=>c.style.display!=='none');
+        const antes = outras.find(c => { const r=c.getBoundingClientRect(); return e2.clientX < r.left + r.width/2; });
+        if(antes) el('kb').insertBefore(slot, antes);
+        else el('kb').insertBefore(slot, el('kb').querySelector('.kbnova') || null);
+      };
+      const largar = async () => {
+        window.removeEventListener('pointermove', mover);
+        window.removeEventListener('pointerup', largar);
+        if(!ativo) return;
+        if(ghost) ghost.remove();
+        // ordem final: onde o espaço parou é onde a coluna entra
+        // o elemento ORIGINAL continua no DOM, só escondido — sem tirá-lo daqui a coluna
+        // entraria duas vezes na ordem, e dois updates do mesmo id disputariam a posição
+        const ids = Array.from(el('kb').children)
+          .map(n => n===slot ? punho.dataset.moverCol : (n===col ? null : n.dataset.col))
+          .filter(Boolean);
+        slot.remove(); col.style.display='';
+        try{
+          await Promise.all(ids.map((id,i) =>
+            sb.from('adm_kanban_cols').update({ ord:i }).eq('id', id)));
+          registrar('kanban.ordem', ids.length + ' colunas');
+        }catch(e){ toast(erroMsg(e), true); }
+        pgFeatures();
+      };
+      window.addEventListener('pointermove', mover, { passive:true });
+      window.addEventListener('pointerup', largar);
+    });
+  });
+
   // ---- arrastar e soltar por POINTER EVENTS (não HTML5 drag) ----
   // limiar de 4px para não roubar o clique; fantasma inclinado segue o cursor e
   // um espaço tracejado abre onde o card vai cair. Ao largar, grava col+ord da coluna.
@@ -1688,8 +1750,11 @@ function ligarKanban(){
         const lista = slot.parentElement;
         const colId = lista.dataset.cards;
         // ordem final da coluna de destino, com o card na posição do espaço
+        // mesma armadilha do arrasto de coluna: o card original está escondido, não removido.
+        // Solto na MESMA coluna, ele apareceria duas vezes na ordem.
         const ids = Array.from(lista.children)
-          .map(n => n===slot ? id : n.dataset.card).filter(Boolean);
+          .map(n => n===slot ? id : (n===card ? null : n.dataset.card))
+          .filter(Boolean);
         slot.remove(); card.style.display = '';
         try{
           await Promise.all(ids.map((cid,i) =>
