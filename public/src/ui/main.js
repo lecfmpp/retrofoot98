@@ -632,6 +632,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
   // impressão de anúncio é contada quando o bloco ENTRA no viewport, não aqui: a tela
   // é remontada inteira a cada cdraw() e contar no desenho inflaria tudo (ver ads.js).
   if(window.ADS) ADS.scan();
+  if(typeof patchPickerFill==='function') patchPickerFill();
   if(CL.screen==='loading') runLoading();
   const f=$c('#cl-focus'); if(f) f.focus();
 }
@@ -1791,6 +1792,7 @@ function scSoloNovo(){
           oninput="CL.save=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');this.value=CL.save;clSyncOk();clSyncCount()"
           onkeydown="if(event.key==='Enter')clModoOk()">
         <div class="cl-wiz-note">Só letras e números, sem espaços.</div>
+        ${patchPickerHTML()}
       </div>`
   });
 }
@@ -1843,6 +1845,9 @@ function clSyncOk(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); 
 function clGoAbertura(){ CL.screen='abertura'; cdraw(); }
 function clModoOk(){
   if(CL.mode==='cont'&&CL.contSel){ clLoadSave(CL.contSel); return; }
+  // patch escolhido pelo jogador entra AQUI, antes de o universo ser montado (o wizard
+  // ainda tem telas pela frente, então a busca na rede não segura ninguém)
+  if(typeof aplicarPatchEscolhido==='function') aplicarPatchEscolhido();
   if((CL.save||'').trim().length>0){ CL.mode='novo'; CL.compToggle={libertadores:true,copaBrasil:true,sulamericana:true};
     if(!CL.countries.size) CL.countries.add('Brasil'); // Brasil pré-selecionado (default)
     CL.screen='paises'; cdraw(); }
@@ -11340,3 +11345,74 @@ document.addEventListener('keydown', (e)=>{
   if(FKEY_INV[e.key] && handleTacticShortcut(e.key)) e.preventDefault(); // evita F1=ajuda do navegador, F5=recarregar, etc.
 });
 
+
+/* ===================================================================
+   SELETOR DE PATCH DE DADOS (anfitrião)
+   -------------------------------------------------------------------
+   Um patch é um conjunto de correções de catálogo (clubes, elencos, escudos)
+   publicado no painel dos sócios. O "Patch Original RetroFoot 2026" entra
+   sozinho em todo jogo novo; os demais são escolhidos por quem CRIA o jogo.
+
+   Por que só na criação: mpBuildInitialState() materializa os elencos DENTRO
+   do save/da sala, e o servidor resolve as rodadas em cima desse estado. Basta
+   o catálogo estar corrigido na hora de criar — quem entra na sala depois
+   recebe o elenco pronto e não precisa ter o patch. Quem entra numa sala com
+   patch aplica só para VER os mesmos nomes e escudos do anfitrião
+   (ver netJoinRoom).
+   =================================================================== */
+let PATCHES_CACHE = null;
+async function patchesDisponiveis(){
+  if(PATCHES_CACHE) return PATCHES_CACHE;
+  if(!window.RF_PACKS) return [];
+  let token = null;
+  try{ token = (typeof NET!=='undefined' && NET.accessToken) ? await NET.accessToken() : null; }catch(e){}
+  try{ PATCHES_CACHE = await RF_PACKS.meusPacotes(token); }catch(e){ PATCHES_CACHE = []; }
+  return PATCHES_CACHE;
+}
+/* bloco pronto para entrar em qualquer tela de criação. Desenha vazio e se
+   preenche quando a lista chega — nunca segura o desenho da tela. */
+function patchPickerHTML(){
+  return `<div class="cl-authfield" id="cl-patch-box" style="display:none">
+      <label>Dados do jogo</label>
+      <select id="cl-patch-sel" onchange="clPatchPick(this.value)"></select>
+      <div class="cl-authhint" id="cl-patch-hint"></div>
+    </div>`;
+}
+async function patchPickerFill(){
+  const box = document.getElementById('cl-patch-box'); if(!box) return;
+  const lista = await patchesDisponiveis();
+  if(!lista.length) return;                      // sem patch nenhum: nem mostra a opção
+  const sel = document.getElementById('cl-patch-sel');
+  const oficial = lista.find(p=>p.oficial);
+  const outros = lista.filter(p=>!p.oficial);
+  sel.innerHTML = [oficial].filter(Boolean).map(p=>
+      `<option value="">${escC(p.nome||'Patch Original RetroFoot 2026')} (padrão)</option>`).join('')
+    + outros.map(p=>`<option value="${escC(p.id)}" ${CL.packId===p.id?'selected':''}>${escC(p.nome)}</option>`).join('');
+  document.getElementById('cl-patch-hint').textContent = outros.length
+    ? 'O patch escolhido vale para este jogo. Quem entrar na sala depois não precisa tê-lo.'
+    : 'Você ainda não tem outros patches. O original entra sozinho.';
+  box.style.display = outros.length ? '' : 'none';
+}
+function clPatchPick(id){ CL.packId = id || null; }
+/* aplica o patch escolhido ANTES de o universo ser montado */
+async function aplicarPatchEscolhido(){
+  if(CL.packId && window.RF_PACKS){
+    try{ await RF_PACKS.usarPacote(CL.packId); }
+    catch(e){ console.warn('patch de dados:', e && e.message); }
+  }
+}
+/* link ?pacote=CODIGO — adiciona o patch à conta e já deixa escolhido */
+async function clPatchPorLink(){
+  let cod=null; try{ cod = new URLSearchParams(location.search).get('pacote'); }catch(e){}
+  if(!cod || !window.RF_PACKS) return;
+  try{
+    const lista = await patchesDisponiveis();
+    const achado = lista.find(p => String(p.codigo).toUpperCase() === cod.toUpperCase());
+    if(achado){ CL.packId = achado.oficial ? null : achado.id; return; }
+    if(typeof NET!=='undefined' && NET.adicionarPatch){
+      const p = await NET.adicionarPatch(cod);
+      if(p){ PATCHES_CACHE = null; CL.packId = p.id;
+             toastC('Patch "'+p.nome+'" adicionado à sua conta.'); }
+    }
+  }catch(e){ console.warn('patch por link:', e && e.message); }
+}

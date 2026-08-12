@@ -1236,14 +1236,7 @@ function placeAuctionBid(lotId, amount){
    Classificação pra Libertadores/Sul-Americana segue a REGRA REAL 2026 (simplificada,
    sem "vaga deslocada" por acúmulo de títulos): G6 do Brasileirão -> Libertadores
    (4 direto à fase de grupos + 2 na fase preliminar); 7º ao 12º -> Sul-Americana.  */
-const COMP_DEFS={
-  serieA:{id:'serieA',name:'Brasileirão Série A',short:'Série A',type:'liga'},
-  copaBrasil:{id:'copaBrasil',name:'Copa do Brasil',short:'Copa do Brasil',type:'mata-mata'},
-  libertadores:{id:'libertadores',name:'Copa Libertadores',short:'Libertadores',type:'mata-mata'},
-  sulamericana:{id:'sulamericana',name:'Copa Sul-Americana',short:'Sul-Americana',type:'mata-mata'},
-  championsLeague:{id:'championsLeague',name:'UEFA Champions League',short:'Champions League',type:'mata-mata'},
-  europaLeague:{id:'europaLeague',name:'UEFA Europa League',short:'Europa League',type:'mata-mata'}
-};
+const COMP_DEFS = window.COMPETICOES;   // ver src/data/competicoes.js (compartilhado com o painel)
 /* calcula quem se classifica pras copas continentais + Copa do Brasil, a partir
    da tabela final (ordenada, posição 0 = campeão) da Série A da temporada ANTERIOR */
 function computeQualification(finalTableSorted){

@@ -872,6 +872,7 @@ function scSalaHost(){ const n=CL.net;
       <div class="cl-authfield"><label>Nome da sala</label>
         <input id="cl-focus" maxlength="18" placeholder="Ex: Resenha da firma" value="${escC(n.roomName||'')}" oninput="CL.net.roomName=this.value;netSalaSync()" onkeydown="if(event.key==='Enter')clOpenRoom()"></div>
       <div class="cl-authhint">Cada jogador escolhe o próprio time ao entrar, entre os clubes ainda controlados pela CPU.</div>
+      ${(typeof patchPickerHTML==='function')?patchPickerHTML():''}
       ${salaTestDivRow()}
     </div>`;
   return wizShell({

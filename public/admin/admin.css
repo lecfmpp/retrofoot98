@@ -188,6 +188,21 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
 .modal .box{width:440px;max-width:100%;background:var(--card);border:1px solid var(--bd2);
   border-radius:16px;padding:22px 24px}
 .modal .box.lg{width:520px}
+/* ficha do clube: a grade do elenco (nome + 4 atributos + remover) não cabe em 520px
+   sem empurrar as colunas para fora — daí uma largura própria, e não rolagem lateral */
+.modal .box.xl{width:min(820px,96vw)}
+/* toda célula da grade precisa poder ENCOLHER: sem min-width:0 o input mantém a
+   largura padrão do navegador e estoura o grid, que é o que criava a barra lateral */
+.jog-linha{display:grid;gap:8px;align-items:center;padding:6px 12px;border-top:1px solid var(--bd3)}
+.jog-linha > *{min-width:0}
+.jog-linha input,.jog-linha select{width:100%;padding:6px 8px;font-size:12.5px}
+.jog-linha input[type=number]{text-align:center}
+.jog-linha .rm{color:var(--dim3);text-align:center;cursor:pointer;font-size:13px}
+.jog-linha .rm:hover{color:var(--vermelho)}
+.jog-hd{display:grid;gap:8px;padding:8px 12px;font-size:11px;font-weight:700;color:var(--dim2);
+  text-transform:uppercase;letter-spacing:.6px;position:sticky;top:0;background:var(--card);z-index:1}
+.jog-hd > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jog-wrap{max-height:340px;overflow-y:auto;overflow-x:hidden;border:1px solid var(--bd);border-radius:10px}
 .modal h3{font-size:17px;font-weight:800;letter-spacing:-.3px;margin:0 0 18px}
 .modal .acoes{display:flex;gap:10px;margin-top:4px}
 .modal .acoes button{flex:1}
@@ -213,3 +228,18 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
   .g4{grid-template-columns:1fr 1fr} .g3,.g2{grid-template-columns:1fr}
   .auth{grid-template-columns:1fr} .auth-l{display:none}
 }
+
+/* ---------- calendário do ano (aba Competições) ---------- */
+.cal-ano{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.cal-mes{border:1px solid var(--bd);border-radius:10px;padding:10px 12px;background:var(--card2)}
+.cal-mes-t{font-size:12px;font-weight:700;color:var(--dim);text-transform:uppercase;
+  letter-spacing:.6px;margin-bottom:8px}
+.cal-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-ds{font-size:9.5px;color:var(--dim3);text-align:center;font-weight:700}
+.cal-dia{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;border-radius:5px;font-size:10.5px;color:var(--dim3);font-family:var(--mono)}
+.cal-dia.tem{background:var(--bd3);color:var(--fg2)}
+.cal-dia.tem:hover{background:var(--bd2)}
+.cal-dia.conflito{background:#3a1620;color:var(--vermelho);outline:1px solid #5a1f2a}
+.cal-dia i{display:flex;gap:2px;line-height:0}
+.cal-dia em{width:4px;height:4px;border-radius:99px;display:block}

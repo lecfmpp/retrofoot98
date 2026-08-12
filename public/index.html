@@ -193,6 +193,7 @@
 <!-- países jogáveis e suas divisões: saiu do core.js porque o painel de admin também
      precisa da lista (editor de clubes) e copiar seria manter duas versões da mesma regra -->
 <script src="src/data/universos.js"></script>
+<script src="src/data/competicoes.js"></script>
 <!-- correções do painel dos sócios por cima do catálogo de fábrica (força, idade, escudo,
      clubes novos). DEPOIS dos dados, porque mexe neles; ANTES do bloco inline abaixo, que
      faz `const DATA = window.GAME_DATA` e começa a montar o jogo. Ver src/net/dados.js. -->
@@ -704,6 +705,8 @@ if(location.search.indexOf('harness=')>=0){ document.write('<script src="src/net
 /* init online ao carregar */
 document.addEventListener('DOMContentLoaded',async ()=>{
   let sala=null; try{ sala=new URLSearchParams(location.search).get('sala'); }catch(e){}
+  // link de patch compartilhado (?pacote=CODIGO): guarda na conta e já deixa escolhido
+  try{ if(typeof clPatchPorLink==='function') clPatchPorLink(); }catch(e){}
   // marca deixada pelo "Sincronizar a Resenha" (ver clResenhaSyncGo). Consumida na hora: um
   // reload seguinte, feito pelo usuário, não deve reentrar por este caminho.
   let resync=null; try{ resync=sessionStorage.getItem('rf98:resync'); if(resync) sessionStorage.removeItem('rf98:resync'); }catch(e){}

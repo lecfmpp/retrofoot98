@@ -327,6 +327,12 @@ async function netCreateRoom(name, host){
   // Europa) — senão os assentos ficam com clubes de outro país e o convidado não consegue reivindicar.
   // MODO TESTE (TESTING_FREE_DIVISION_PICK, ui/main.js): CL.testStartDiv.brasil, quando escolhido
   // em scSalaHost, sobrescreve a divisão inicial só desta sala — sem escolha, cai no 'D' de sempre.
+  // PATCH DE DADOS DO ANFITRIÃO — antes de ler os clubes. O pool vira os assentos da sala e,
+  // logo depois, os elencos gravados em shared_state; aplicar depois disso não mudaria nada.
+  if(CL.packId && window.RF_PACKS){
+    try{ await RF_PACKS.usarPacote(CL.packId); }
+    catch(e){ console.warn('patch de dados da sala:', e && e.message); }
+  }
   const testDiv = (typeof TESTING_FREE_DIVISION_PICK!=='undefined' && TESTING_FREE_DIVISION_PICK && CL.testStartDiv && CL.testStartDiv.brasil) || undefined;
   const poolClubs = (typeof resenhaStartClubs==='function' && resenhaStartClubs(testDiv).length) ? resenhaStartClubs(testDiv)
     : ((typeof DATA!=='undefined' && DATA.clubsSerieA && DATA.clubsSerieA.length) ? DATA.clubsSerieA : DATA.clubs);
@@ -351,6 +357,13 @@ async function netCreateRoom(name, host){
     try{ await sb.from('games').update({ speed_mult: NET.room.speedMult }).eq('id', code); }
     catch(e){ console.warn('padrão de ritmo da sala:', e && e.message); }
   }
+  // a sala guarda COM QUE PATCH nasceu: o elenco já vai em shared_state, mas nome, cor e
+  // escudo o convidado desenha do catálogo dele — sem isto, anfitrião e convidado veriam
+  // clubes com nomes diferentes na mesma sala
+  if(CL.packId){
+    try{ await sb.from('games').update({ pack_id: CL.packId }).eq('id', code); }
+    catch(e){ console.warn('patch da sala:', e && e.message); }
+  }
   netSetupRealtime(); netTrackPresence(); netMergeParticipants();
   return code;
 }
@@ -363,6 +376,12 @@ async function netJoinRoom(code, me){
   NET.uid = SB_AUTH_USER.id; // identidade congelada da sala (ver SB_UID)
   NET.code = gameData.id; NET.gameId = gameData.id; NET.isHost = (gameData.host_id === NET.uid);
   NET.self = { id: NET.uid, name: (me&&me.name) || netAuthStatus().name, email: (me&&me.email)||SB_AUTH_USER.email };
+  // patch com que a sala foi criada — o convidado aplica só para VER o mesmo que o
+  // anfitrião (os elencos já chegam prontos pelo shared_state)
+  if(gameData.pack_id && window.RF_PACKS){
+    try{ await RF_PACKS.usarPacote(gameData.pack_id); CL.packId = gameData.pack_id; }
+    catch(e){ console.warn('patch da sala:', e && e.message); }
+  }
   const { data: seatsData } = await sb.from('game_seats').select('*').eq('game_id', gameData.id);
   const { data: msgs } = await sb.from('messages').select('*').eq('game_id', gameData.id).order('created_at').limit(100);
   NET._claimed = {};
@@ -1607,6 +1626,22 @@ function netStartHeartbeat(){
 }
 NET.startHeartbeat = netStartHeartbeat;
 netStartHeartbeat();
+
+/* token da sessão — o seletor de patch precisa dele para listar os patches QUE A CONTA
+   tem (pack_users é protegido por RLS; o patch oficial é público e vem sem token) */
+NET.accessToken = async function(){
+  try{ const { data:{ session } } = await sb.auth.getSession(); return session && session.access_token; }
+  catch(e){ return null; }
+};
+/* adicionar patch por código (link ?pacote=CODIGO) — guarda na conta para aparecer no
+   seletor das próximas partidas */
+NET.adicionarPatch = async function(codigo){
+  if(!sb || !SB_AUTH_USER) return null;
+  const { data: p } = await sb.from('data_packs').select('id,codigo,nome').eq('codigo', String(codigo).toUpperCase()).maybeSingle();
+  if(!p) return null;
+  try{ await sb.from('pack_users').upsert({ user_id: SB_AUTH_USER.id, pack_id: p.id }); }catch(e){}
+  return p;
+};
 
 NET.useSupabase = true;
 
