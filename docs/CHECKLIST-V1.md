@@ -11,7 +11,7 @@ Um item só sai da lista depois que o usuário testar no ar
 
 > **ESTADO EM 12/08/2026.** **TUDO NO AR.** Edge function `resolve-round` publicada
 > (GitHub Actions) e site publicado no Firebase depois da reautenticação.
-> Implementados, commitados e publicados: **#8, #10 (raiz), #9, #13, #12, #4**.
+> Implementados, commitados e publicados: **#8, #10 (raiz), #9, #13, #12, #4, #14**.
 > Conferido em produção (retrofoot98.com.br): o roteamento de resultado por competição
 > devolve placares distintos pro mesmo confronto em copas diferentes, o chat está
 > desligado e o console está limpo.
@@ -147,7 +147,7 @@ O filtro da escalação automática está ignorando o estado de lesão. Entra aq
 escalar um machucado contamina a simulação inteira daquela partida — o usuário vê um
 resultado que não corresponde ao time que ele acha que montou.
 
-### B4 · #14 — Proposta de clube a outro treinador humano usa o modal errado
+### B4 · #14 — ✅ FEITO (commit 873995f) — Proposta usava o modal errado
 Esperado: **convite para o jantar** → depois o modal de **aceitar ou recusar**.
 Na Resenha aparece só um modal genérico.
 **Confirmado pelo usuário: o modal genérico APARECE** — ou seja, o gatilho
