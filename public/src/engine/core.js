@@ -3293,11 +3293,23 @@ function generateJobOffer(){
   // R$ 0. Passava despercebido porque o modal antigo só mostrava o salário se ele fosse != 0;
   // a tela nova de proposta põe o número em destaque (ver showJobProposal). Mesma fórmula de
   // base que applyManagerJobChange usa — é o que ele ganharia hoje no clube atual.
-  const salarioAtual = S.coachSalary || Math.round(100000 + curOverall*5000);
-  const salaryBump = Math.round(salarioAtual * (0.1 + (clubOfferOverall-curOverall)*0.02)); // 10% base + 2% por ponto de overall
-  const proposedSalary = salarioAtual + salaryBump;
+  const proposedSalary = proposedCoachSalary(pick.id, S.clubId, curOverall);
 
   return { clubId:pick.id, division: fromUp?DIV_ORDER[divIdx-1]:S.division, salary:proposedSalary };
+}
+/* SALÁRIO PROPOSTO POR UM CLUBE — régua única pros dois caminhos (carreira solo e Resenha).
+   Existe como função separada porque a Resenha passou a usar a MESMA mesa de jantar do solo
+   (showJobProposal), e aquela tela põe o salário em destaque: a oferta da Resenha só carregava
+   {clubId, division}, então a proposta apareceria como "R$ 0/sem".
+   Base: o que o treinador ganha hoje — ou o que ganharia no clube atual, pra quem nunca
+   negociou (o save nasce com coachSalary 0). Mais 10%, e mais 2% por ponto de overall de
+   diferença entre quem convida e o clube atual. */
+function proposedCoachSalary(targetClubId, fromClubId, fromOverall){
+  const base = (fromOverall!=null) ? fromOverall
+             : (fromClubId!=null ? anyClubOverall(fromClubId) : 55);   // sem clube (demitido): piso
+  const alvo = anyClubOverall(targetClubId);
+  const salarioAtual = S.coachSalary || Math.round(100000 + base*5000);
+  return salarioAtual + Math.round(salarioAtual * (0.1 + (alvo-base)*0.02));
 }
 /* decide se algo acontece nesta rodada (demissão OU múltiplas ofertas pendentes) — chamada 1x por rodada,
    depois de tickJobSecurity(); precisa de pelo menos 5 rodadas na divisão atual (evita eventos
@@ -3470,6 +3482,9 @@ function tickResenhaCareer(){
       const ranked=free.map(f=>({ ...f, ov:clubOverall(f.clubId) })).sort((a,b)=>a.ov-b.ov);
       const pool=ranked.slice(0, Math.max(3, Math.ceil(ranked.length*0.4)));
       const pick=pool[Math.floor(R.random()*pool.length)];
+      // salário na oferta: a mesa do jantar (showJobProposal) mostra o número em destaque —
+      // sem isto a proposta da Resenha aparecia como "R$ 0/sem". Demitido não tem clube atual.
+      pick.salary=proposedCoachSalary(pick.clubId, null);
       CL._pendingResenhaOffer=pick;
       return {kind:'offer', offer:pick};
     }
@@ -3493,7 +3508,8 @@ function tickResenhaCareer(){
       const pool = (up.length && (R.random()<0.25 || !same.length)) ? up : same;
       if(pool.length){
         const pick=pool[Math.floor(R.random()*pool.length)];
-        const offer={clubId:pick.clubId, division:pick.division};
+        const offer={clubId:pick.clubId, division:pick.division,
+          salary:proposedCoachSalary(pick.clubId, S.clubId)};   // ver proposedCoachSalary
         CL._pendingResenhaOffer=offer;
         S.roundNews=S.roundNews||[];
         S.roundNews.push(`🤝 Sondagem do ${(clubOf(pick.clubId)||{short:'outro clube'}).short}: eles querem você como treinador.`);

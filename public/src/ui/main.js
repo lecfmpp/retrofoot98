@@ -2472,7 +2472,11 @@ function showJobInvite(offer){
   CL._jobOffer=offer;
   const c=jobOfferClub(offer), me=clubOf(CL.clubId)||{short:'?'};
   const flag=offer.foreign && typeof flagImg==='function' ? flagImg(offer.country)+' ' : '';
-  const myPos=tablePos(CL.clubId);
+  // SEM CLUBE (demitido na Resenha, esperando convite): a tela toda partia do princípio de que
+  // existe um clube atual — mostrava a tabela em volta da "minha" posição e dizia que eu sigo no
+  // meu clube até decidir. Pro demitido isso é a posição do clube que acabou de demiti-lo.
+  const semClube = !!(typeof CL!=='undefined' && CL.unemployed);
+  const myPos=semClube?0:tablePos(CL.clubId);
   const exterior = offer.foreign
     ? `<div style="margin-top:8px">✈️ É um convite pra dirigir <strong style="color:#fff">fora do país</strong>, na ${flag}<strong style="color:#fff">${escC(offer.country)}</strong>. Sua liga atual passa a rodar em segundo plano.</div>` : '';
   overlayC(dlg(`Convite — ${c.short}`, `
@@ -2491,22 +2495,27 @@ function showJobInvite(offer){
           </div>
           <div class="cl-welc-cap">O presidente do ${escC(c.short)} espera você para conversar.</div>
         </div>
-        <fieldset class="cl-welc-facts cl-jobinv-tabela"><legend>${escC(classifDivName(S.division,S.intlUniverse))} — ${(S.round||0)}ª rodada</legend>
-          <div class="cl-jobinv-grid">${jobInviteTableHTML()}</div>
-          <div class="cl-jobinv-note">${myPos?`Você é <strong style="color:var(--yellow)">${myPos}º</strong> — é essa campanha que chamou a atenção do ${escC(c.short)}.`:''}</div>
-        </fieldset>
+        ${semClube
+          ? `<fieldset class="cl-welc-facts cl-jobinv-tabela"><legend>Sua situação</legend>
+              <div class="cl-jobinv-note" style="margin-top:0">Você está <strong style="color:var(--yellow)">sem clube</strong> desde a demissão do ${escC((clubOf(CL._firedFrom)||{}).short||'seu último clube')}.<br><br>
+              O ${escC(c.short)} tem a vaga aberta na ${escC(jobOfferDivLabel(offer))} e procurou você para a próxima temporada.</div>
+            </fieldset>`
+          : `<fieldset class="cl-welc-facts cl-jobinv-tabela"><legend>${escC(classifDivName(S.division,S.intlUniverse))} — ${(S.round||0)}ª rodada</legend>
+              <div class="cl-jobinv-grid">${jobInviteTableHTML()}</div>
+              <div class="cl-jobinv-note">${myPos?`Você é <strong style="color:var(--yellow)">${myPos}º</strong> — é essa campanha que chamou a atenção do ${escC(c.short)}.`:''}</div>
+            </fieldset>`}
       </div>
 
       <fieldset class="cl-welc-facts"><legend>Recado do seu empresário</legend>
         <div class="cl-jobinv-recado">
-          <div>O presidente do <strong style="color:#fff">${escC(c.name||c.short)}</strong> (${flag}${escC(jobOfferDivLabel(offer))}) pediu para falar com você pessoalmente. Ele acompanha o seu trabalho no ${escC(me.short)} e quer conversar num jantar, sem compromisso.</div>
+          <div>O presidente do <strong style="color:#fff">${escC(c.name||c.short)}</strong> (${flag}${escC(jobOfferDivLabel(offer))}) pediu para falar com você pessoalmente. ${semClube?'Ele acompanhou o seu trabalho e quer conversar num jantar, sem compromisso.':`Ele acompanha o seu trabalho no ${escC(me.short)} e quer conversar num jantar, sem compromisso.`}</div>
           <div>Não há proposta na mesa — por enquanto é só uma conversa. Aceitar o convite não obriga você a nada.</div>
           ${exterior}
         </div>
       </fieldset>
 
       <div class="cl-welc-actions">
-        <div class="cl-welc-hint">Você segue como treinador do ${escC(me.short)} até decidir.</div>
+        <div class="cl-welc-hint">${semClube?'Recusar mantém você sem clube, esperando outro convite.':`Você segue como treinador do ${escC(me.short)} até decidir.`}</div>
         ${btn('Aceitar o jantar','clJobInviteAccept()',{icon:'🍽',cls:'cl-btn-ok'})}
         ${btn('Recusar convite','clJobInviteDecline()',{icon:'✖',cls:'cl-btn-cancel'})}
       </div>
@@ -2517,6 +2526,7 @@ function clJobInviteDecline(){ showJobDeclined('Você agradeceu o convite e segu
 function showJobProposal(){
   const o=CL._jobOffer; if(!o) return;
   const c=jobOfferClub(o), me=clubOf(CL.clubId)||{short:'?'};
+  const semClube = !!(typeof CL!=='undefined' && CL.unemployed);   // ver showJobInvite
   // Termos REAIS do save onde existem: o salário é o que a oferta carrega e o que passa a valer
   // ao aceitar (S.coachSalary), e a verba é o caixa de verdade do clube que está contratando
   // (S.budgets). Sem inventar número que o jogo não vá honrar depois.
@@ -2543,7 +2553,7 @@ function showJobProposal(){
           <div class="cl-jobterm"><span>Salário</span><b class="cl-jobterm-hl">${fmt(o.salary||0)}/sem</b></div>
           ${S.coachSalary ? `<div class="cl-jobterm"><span>Hoje você ganha</span><b>${fmt(S.coachSalary)}/sem</b></div>` : ''}
           <div class="cl-jobterm"><span>Prêmio por objetivo</span><b class="cl-jobterm-hl">${fmt(premio)}</b></div>
-          <div class="cl-jobterm"><span>Caixa do clube</span><b>${fmt(verba)}</b></div>
+          ${verba>0?`<div class="cl-jobterm"><span>Caixa do clube</span><b>${fmt(verba)}</b></div>`:''}
           <div class="cl-jobterm"><span>Divisão</span><b>${escC(jobOfferDivLabel(o))}</b></div>
           <div class="cl-jobobj">
             <div class="cl-jobobj-lbl">🎯 OBJETIVO PRINCIPAL</div>
@@ -2554,11 +2564,17 @@ function showJobProposal(){
 
       <div class="cl-welc-quote">
         <div class="cl-welc-quote-lbl">💬 O PRESIDENTE DO ${escC(String(c.short).toUpperCase())}</div>
-        <div class="cl-welc-quote-txt">"Vi o que você fez no ${escC(me.short)} com o elenco que tinha. Aqui você tem estrutura, torcida e uma diretoria que não muda de treinador a cada três jogos. Leia com calma, mas responda hoje."</div>
+        <div class="cl-welc-quote-txt">${semClube
+          ? '"Sei que a sua saída não foi por falta de trabalho. Aqui você tem estrutura, torcida e uma diretoria que não muda de treinador a cada três jogos. Leia com calma, mas responda hoje."'
+          : `"Vi o que você fez no ${escC(me.short)} com o elenco que tinha. Aqui você tem estrutura, torcida e uma diretoria que não muda de treinador a cada três jogos. Leia com calma, mas responda hoje."`}</div>
       </div>
 
       <div class="cl-welc-actions">
-        <div class="cl-welc-hint">Recusar encerra a conversa. O ${escC(me.short)} continua com você.</div>
+        <div class="cl-welc-hint">${semClube
+          ? 'Recusar encerra a conversa e você continua sem clube.'
+          : (o._resenha
+             ? `Aceitar significa deixar o ${escC(me.short)} agora — a próxima troca de clube só depois de duas temporadas.`
+             : `Recusar encerra a conversa. O ${escC(me.short)} continua com você.`)}</div>
         ${btn('Aceitar oferta','clJobProposalAccept()',{icon:'✔',cls:'cl-btn-ok'})}
         ${btn('Recusar oferta','clJobProposalDecline()',{icon:'✖',cls:'cl-btn-cancel'})}
       </div>
@@ -2568,9 +2584,12 @@ function clJobProposalDecline(){ showJobDeclined('Você agradeceu, recusou a pro
 function showJobDeclined(msg){
   const o=CL._jobOffer; const c=o?jobOfferClub(o):{short:'o clube'};
   const me=clubOf(CL.clubId)||{short:'seu clube'};
+  const semClube = !!(typeof CL!=='undefined' && CL.unemployed);
   CL._jobOffer=null;
+  // Resenha: recusar também limpa a pendência da sala (e o demitido volta pra fila de convites)
+  if(o && o._resenha){ CL._pendingResenhaOffer=null; if(CL.unemployed) CL._unempRounds=0; }
   overlayC(dlg('Convite recusado', `<div class="cl-res">
-    <div class="cl-res-verd" style="text-align:left">✓ ${escC(msg)} O ${escC(c.short)} foi informado e você continua no comando do ${escC(me.short)}.</div>
+    <div class="cl-res-verd" style="text-align:left">✓ ${escC(msg)} O ${escC(c.short)} foi informado${semClube?' e você segue sem clube, esperando outro convite.':` e você continua no comando do ${escC(me.short)}.`}</div>
     <div class="cl-cal-ok">${btn('Voltar ao jogo','clCloseOverlay()',{icon:'↩',cls:'cl-btn-ok'})}</div>
   </div>`, {w:460, bodyClass:'cl-body-gray'}));
 }
@@ -2578,6 +2597,10 @@ function showJobDeclined(msg){
    temporada. Mesmo efeito do antigo clAcceptJobOffer — o que muda é só o caminho até aqui. */
 function clJobProposalAccept(){
   const o=CL._jobOffer; if(!o) return;
+  // RESENHA: assumir o clube é uma troca de ASSENTO no servidor (NET.setMyClub), não a troca
+  // local do solo — applyManagerJobChange aqui deixaria o cliente com um clube que a sala não
+  // reconhece. clAcceptResenhaOffer já faz tudo (assento, humanos, XI, carreira, cooldown).
+  if(o._resenha){ CL._jobOffer=null; clAcceptResenhaOffer(); return; }
   const c=jobOfferClub(o), deOnde=(clubOf(CL.clubId)||{short:''}).short;
   S.coachHistory=S.coachHistory||[];
   S.coachHistory.push({season:S.season, type:'contratado',
@@ -9155,27 +9178,18 @@ function enterResenhaUnemployment(){
     <div class="cl-cal-ok" style="margin-top:14px">${btn('Entendi','clCloseOverlay();CL.screen=\'main\';CL.tab=\'jogo\';cdraw()',{icon:'✔',cls:'cl-btn-ok'})}</div>
   </div>`,{w:470,bodyClass:'cl-body-gray'}));
 }
-/* mesmo modal serve pros dois casos: convite pra quem está DESEMPREGADO (depois da demissão) e
-   sondagem pra quem está EMPREGADO e indo muito bem. No segundo caso o convite custa alguma coisa
-   — sair do clube atual — então o texto diz isso e avisa do intervalo de duas temporadas. */
+/* A RESENHA USA A MESMA MESA DE JANTAR DA CARREIRA SOLO.
+   Antes havia dois caminhos e o multiplayer usava o pobre: um único modal genérico
+   "🤝 Proposta de emprego" com Aceitar/Recusar, enquanto o solo tinha as duas etapas
+   (showJobInvite -> showJobProposal) com o convite pro jantar, os termos do contrato na mesa e o
+   recado do presidente. Era a mesma decisão de carreira contada de duas formas diferentes.
+   Agora os dois caminhos entram nas MESMAS telas; `_resenha` marca a oferta pra que aceitar e
+   recusar sigam a mecânica da sala (troca de assento via NET.setMyClub) em vez da do solo. */
 function showResenhaOffer(offer){
-  const c=clubOf(offer.clubId)||{};
-  const atual = !CL.unemployed ? (clubOf(CL.clubId)||{}).short : null;
-  const divLbl=(typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[offer.division])||('Série '+offer.division);
-  const corpo = atual
-    ? `${escC(divLbl)} · quer você como treinador.<br><span style="font-size:12px">Aceitar significa deixar o <b>${escC(atual)}</b> agora. A próxima troca de clube só depois de duas temporadas.</span>`
-    : `${escC(divLbl)} · quer você como treinador.`;
-  overlayC(dlg('🤝 Proposta de emprego', `<div class="cl-res" style="text-align:center;padding:16px">
-    <div class="cl-res-score">${escC(c.short||offer.clubId)}</div>
-    <div class="cl-res-verd" style="margin-top:6px">${corpo}</div>
-    <div class="cl-cal-ok" style="display:flex;gap:10px;justify-content:center;margin-top:14px">
-      ${btn('Aceitar','clAcceptResenhaOffer()',{icon:'✔',cls:'cl-btn-ok'})}
-      ${btn('Recusar','clDeclineResenhaOffer()',{icon:'✖',cls:'cl-btn-cancel'})}
-    </div></div>`,{w:470,bodyClass:'cl-body-green'}));
+  if(!offer) return;
+  offer._resenha=true;
+  showJobInvite(offer);
 }
-function clDeclineResenhaOffer(){ clCloseOverlay(); CL._pendingResenhaOffer=null;
-  if(CL.unemployed) CL._unempRounds=0; // desempregado: recusou -> volta a esperar outro convite
-  cdraw(); }
 function clAcceptResenhaOffer(){
   const offer=CL._pendingResenhaOffer; if(!offer){ clCloseOverlay(); return; }
   if(typeof NET==='undefined' || !NET.setMyClub){ toastC('Recurso indisponível.'); return; }
@@ -9189,6 +9203,7 @@ function clAcceptResenhaOffer(){
     if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
     S.xi=(typeof resolveClubXI==='function')?resolveClubXI(CL.clubId):(typeof autoXI==='function'?autoXI(CL.clubId):S.xi);
     CL.tacticChosen=false; CL.formation=null; CL.selPlayer=squad(CL.clubId)[0]?.pid||null; S.jobSecurity=55;
+    if(offer.salary) S.coachSalary=offer.salary;     // o número que ele viu na mesa do jantar é o que passa a valer
     S.lastClubChangeSeason=S.season;                 // trava a próxima troca por duas temporadas (ver resenhaCanMoveClub)
     S.coachHistory=S.coachHistory||[];
     S.coachHistory.push({season:S.season, type:'contratado', text:`Contratado pelo ${String((clubOf(offer.clubId)||{}).short||offer.clubId).toUpperCase()}`});
