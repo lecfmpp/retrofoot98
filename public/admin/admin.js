@@ -1546,27 +1546,30 @@ function escFechar(e){ if(e.key==='Escape') fecharModal(); }
 el('sair').onclick = async () => { await sb.auth.signOut(); ME=null; ST.authMode='login'; mostrarAuth(); };
 init();
 
-/* ============================================================================
-   EDITOR DE DADOS DO JOGO
-   ----------------------------------------------------------------------------
-   O catálogo de fábrica (clubes e elencos) NÃO está no banco: são ~360 KB de
-   JS servidos com o jogo. O editor carrega esses mesmos arquivos do site do
-   jogo — assim o painel enxerga exatamente o que o jogador enxerga — e grava
-   apenas o DIFF em elifoot_v3.club_edits. Quem aplica o diff é src/net/dados.js,
-   no boot do jogo.
 
-   Save já começado não muda: o universo é gerado e gravado dentro do save. A
-   correção vale para jogos novos, e é isso que o aviso no topo da página diz.
+/* ============================================================================
+   EDITOR DE DADOS DO JOGO — pacotes
+   ----------------------------------------------------------------------------
+   O catálogo de fábrica (clubes e elencos) NÃO está no banco: são ~360 KB de JS
+   servidos com o jogo, iguais para todo jogador. O editor carrega esses mesmos
+   arquivos do site do jogo — assim o painel enxerga exatamente o que o jogador
+   enxerga — e grava só o DIFF, dentro de um PACOTE.
+
+   O pacote OFICIAL entra por padrão em todo jogo novo: é onde se corrige dado
+   errado do catálogo. Os demais pacotes têm dono e código de compartilhamento, e
+   valem no jogo de quem os escolhe ao criar a partida (ver src/net/dados.js).
    ============================================================================ */
 const JOGO_URL = 'https://retrofoot98.com.br';
 const CAMPOS_CLUBE   = ['name','short','color','color2','crest','OS','MS','DS','overall'];
 const CAMPOS_JOGADOR = ['n','p','s','f','age','mv','num','nat'];
 const POSICOES = ['GOL','ZAG','LAD','LAE','VOL','MC','MEI','PD','PE','SA','CA'];
-const SETORES  = ['GK','DEF','MID','ATT'];
+/* o motor escala por SETOR (s), não pela posição escrita (p) */
+function setorDe(pos){
+  return pos==='GOL' ? 'GK'
+       : ['ZAG','LAD','LAE'].includes(pos) ? 'DEF'
+       : ['VOL','MC','MEI'].includes(pos) ? 'MID' : 'ATT';
+}
 
-/* carrega game-data.js / leagues-brasil-lower.js do site do jogo como <script>.
-   São arquivos que definem window.GAME_DATA e window.BRASIL_LOWER — a mesma
-   fonte do jogo, sem cópia paralela que possa divergir. */
 let catalogoCarregado = false;
 function carregarCatalogo(){
   if(catalogoCarregado) return Promise.resolve();
@@ -1578,7 +1581,6 @@ function carregarCatalogo(){
     document.head.appendChild(t);
   }))).then(() => { catalogoCarregado = true; });
 }
-/* clubes de fábrica, achatados numa lista só, com a divisão de cada um */
 function clubesDeFabrica(){
   const out = [];
   if(window.GAME_DATA && Array.isArray(window.GAME_DATA.clubs))
@@ -1587,18 +1589,31 @@ function clubesDeFabrica(){
     (window.BRASIL_LOWER[d]||[]).forEach(c => out.push({ div:d, c }));
   return out;
 }
+/* comparação de nome tolerante: acento, caixa e pontuação não podem separar
+   "Atlético-MG" de "atletico mg" quando o arquivo importado vier de outra fonte */
+function chaveNome(s){
+  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/[^a-z0-9]/g,'');
+}
 
 async function pgEditor(){
   const editar = podeEditar('dados');
   try{ await carregarCatalogo(); }
   catch(e){ el('page').innerHTML = `<div class="erro">${h(e.message)}</div>`; return; }
 
-  const eds = await jogo('club_edits').select('*');
+  const packs = await jogo('data_packs').select('*').order('oficial', { ascending:false }).order('criado_em');
+  if(packs.error) throw packs.error;
+  D.packs = packs.data||[];
+  if(!ST.packId || !D.packs.some(p=>p.id===ST.packId))
+    ST.packId = (D.packs.find(p=>p.oficial)||D.packs[0]||{}).id;
+  const pack = D.packs.find(p=>p.id===ST.packId);
+  if(!pack){ el('page').innerHTML = '<div class="erro">Nenhum pacote de dados encontrado.</div>'; return; }
+
+  const eds = await jogo('pack_edits').select('*').eq('pack_id', pack.id);
   if(eds.error) throw eds.error;
   D.edits = {}; (eds.data||[]).forEach(e => { D.edits[e.club_id] = e; });
 
   const base = clubesDeFabrica();
-  // clubes criados no painel entram na lista como qualquer outro
   (eds.data||[]).filter(e => e.novo).forEach(e => {
     if(!base.some(x => String(x.c.id)===String(e.club_id)))
       base.push({ div:e.divisao||'D', c:Object.assign({id:e.club_id}, e.patch||{}), criado:true });
@@ -1612,12 +1627,37 @@ async function pgEditor(){
     (!busca || String(x.c.name||'').toLowerCase().includes(busca)
             || String(x.c.short||'').toLowerCase().includes(busca)
             || String(x.c.id).toLowerCase().includes(busca)));
-
   const editados = Object.keys(D.edits).length;
+
   el('page').innerHTML = `
+    <div class="card card-p">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <label class="f" style="flex:1;min-width:220px">Pacote em edição
+          <select class="f" id="ed-pack">
+            ${D.packs.map(p=>`<option value="${p.id}" ${p.id===pack.id?'selected':''}>
+              ${h(p.nome)}${p.oficial?' — entra em todo jogo novo':''}</option>`).join('')}
+          </select>
+        </label>
+        <label class="f" style="flex:none">Código
+          <span style="display:flex;align-items:center;gap:8px">
+            <b class="mono" style="font-size:15px;color:var(--verde2)">${h(pack.codigo)}</b>
+            <button class="btn btn-sm btn-ghost" id="ed-copiar">Copiar convite</button>
+          </span>
+        </label>
+        ${editar?`<button class="btn btn-sm btn-ghost" id="ed-novo-pack" style="align-self:flex-end">+ Pacote</button>`:''}
+        ${editar?`<button class="btn btn-sm" id="ed-importar" style="align-self:flex-end">Importar arquivo</button>`:''}
+      </div>
+      <div class="st" style="line-height:1.7;margin-top:10px">
+        ${pack.oficial
+          ? 'Este é o pacote <b>oficial</b>: entra por padrão em todo jogo novo, sem ninguém escolher nada. É aqui que se corrige dado errado do catálogo.'
+          : `Pacote de <b>${h(pack.autor_nome||'autor desconhecido')}</b>. Vale para quem escolher este pacote ao criar o jogo — quem entra na sala depois recebe os elencos prontos e não precisa ter o pacote.`}
+        ${pack.descricao?'<br>'+h(pack.descricao):''}
+      </div>
+    </div>
+
     <div class="g4">
       ${kpiHTML({l:'Clubes no catálogo', v:num(base.length), d:'Séries A, B, C e D'})}
-      ${kpiHTML({l:'Clubes com edição', v:num(editados), d: editados? 'já valendo no jogo' : 'nada alterado ainda'})}
+      ${kpiHTML({l:'Clubes neste pacote', v:num(editados), d: editados? 'alterados ou criados' : 'nada alterado ainda'})}
       ${kpiHTML({l:'Clubes criados aqui', v:num((eds.data||[]).filter(e=>e.novo).length), d:'não existem no arquivo de fábrica'})}
       ${kpiHTML({l:'Jogadores no catálogo', v:num(base.reduce((a,x)=>a+((x.c.squad||[]).length),0)), d:'somando todas as divisões'})}
     </div>
@@ -1625,9 +1665,9 @@ async function pgEditor(){
     <div class="card card-p" style="border-color:#5a4a18;background:#1c1710">
       <div class="tt" style="margin-bottom:6px;color:var(--ambar)">O que a edição alcança</div>
       <div class="st" style="line-height:1.7">
-        A correção vale para <b>jogos novos</b>. Um save já começado guarda o universo dentro dele —
-        mudar a força de um elenco no meio da temporada de alguém seria pior que o erro.
-        No jogo, a mudança aparece no próximo carregamento da página.
+        O pacote é aplicado <b>na criação do jogo</b> — os elencos ficam gravados dentro do save.
+        Save já começado não muda, e quem entra numa sala já criada recebe o elenco do anfitrião
+        pelo servidor, sem precisar do pacote.
       </div>
     </div>
 
@@ -1643,13 +1683,12 @@ async function pgEditor(){
       <div class="rowh" style="grid-template-columns:44px 1.6fr .5fr .8fr .8fr 1fr">
         <span></span><span>Clube</span><span style="text-align:center">Série</span>
         <span style="text-align:center">Força</span><span style="text-align:center">Elenco</span>
-        <span style="text-align:right">Edição</span>
+        <span style="text-align:right">Neste pacote</span>
       </div>
       ${lista.length ? lista.slice(0,120).map(x => {
         const e = D.edits[x.c.id];
         const cor = x.c.color || '#333';
-        return `<div class="row" style="grid-template-columns:44px 1.6fr .5fr .8fr .8fr 1fr;cursor:pointer"
-                     data-clube="${h(x.c.id)}">
+        return `<div class="row" style="grid-template-columns:44px 1.6fr .5fr .8fr .8fr 1fr;cursor:pointer" data-clube="${h(x.c.id)}">
           <span>${x.c.crest
             ? `<img src="${h(x.c.crest)}" alt="" style="width:26px;height:26px;object-fit:contain">`
             : `<i class="av" style="width:26px;height:26px;border-radius:6px;background:${h(cor)};color:#fff;font-size:10px">${h(iniciais(x.c.short||x.c.name))}</i>`}</span>
@@ -1669,9 +1708,19 @@ async function pgEditor(){
   const b = el('ed-busca');
   let t=null;
   b.oninput = () => { clearTimeout(t); t=setTimeout(()=>{ ST.buscaClube=b.value.trim(); pgEditor(); },300); };
+  el('ed-pack').onchange = () => { ST.packId = el('ed-pack').value; pgEditor(); };
+  el('ed-copiar').onclick = () => {
+    const url = `${JOGO_URL}/?pacote=${encodeURIComponent(pack.codigo)}`;
+    navigator.clipboard.writeText(url).then(
+      ()=>toast('Convite do pacote copiado.'), ()=>prompt('Copie o link:', url));
+  };
   document.querySelectorAll('[data-div]').forEach(d => d.onclick = () => { ST.divFiltro=d.dataset.div; pgEditor(); });
   document.querySelectorAll('[data-clube]').forEach(r => r.onclick = () => abrirClube(r.dataset.clube));
-  if(editar) el('ed-novo').onclick = modalNovoClube;
+  if(editar){
+    el('ed-novo').onclick = modalNovoClube;
+    el('ed-novo-pack').onclick = modalNovoPacote;
+    el('ed-importar').onclick = modalImportar;
+  }
 }
 
 /* ---------- ficha do clube: dados + elenco ---------- */
@@ -1722,12 +1771,9 @@ function abrirClube(id){
       </div>
       ${editar?`<button class="btn btn-sm btn-ghost" id="c-add-jog">+ Adicionar jogador</button>`:''}
 
-      <label class="f">Nota da mudança (aparece no histórico)
-        <input class="f" id="c-nota" placeholder="Ex.: força do elenco corrigida pela tabela de 2026" ${editar?'':'disabled'}>
-      </label>
       <div class="acoes">
-        ${editar?`<button class="btn" id="c-salvar">Salvar e publicar</button>`:''}
-        ${editar&&ed?`<button class="btn btn-ghost" id="c-reverter" style="flex:0 0 auto;color:var(--vermelho)">Voltar ao de fábrica</button>`:''}
+        ${editar?`<button class="btn" id="c-salvar">Salvar no pacote</button>`:''}
+        ${editar&&ed?`<button class="btn btn-ghost" id="c-reverter" style="flex:0 0 auto;color:var(--vermelho)">Tirar do pacote</button>`:''}
         <button class="btn btn-ghost" data-fechar>Fechar</button>
       </div>
     </div>`, 'lg');
@@ -1752,7 +1798,7 @@ function abrirClube(id){
     const url = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
     el('c-crest').value = url;
     el('c-escudo-prev').innerHTML = `<img src="${h(url)}" style="width:28px;height:28px;object-fit:contain">`;
-    toast('Escudo enviado — salve para publicar.');
+    toast('Escudo enviado — salve para valer.');
   };
   el('c-add-jog').onclick = () => {
     const div = document.createElement('div');
@@ -1769,10 +1815,10 @@ function abrirClube(id){
   });
   el('c-salvar').onclick = () => salvarClube(item);
   if(ed) el('c-reverter').onclick = async () => {
-    if(!confirm('Voltar este clube ao arquivo de fábrica? A edição é apagada.')) return;
-    const { error } = await jogo('club_edits').delete().eq('club_id', c.id);
+    if(!confirm('Tirar este clube do pacote? Ele volta ao arquivo de fábrica.')) return;
+    const { error } = await jogo('pack_edits').delete().eq('pack_id', ST.packId).eq('club_id', c.id);
     if(error) return toast(erroMsg(error), true);
-    registrar('clube.reverter', String(c.id));
+    registrar('clube.reverter', String(c.id), { pacote: ST.packId });
     fecharModal(); toast('Clube voltou ao de fábrica.'); pgEditor();
   };
 }
@@ -1792,27 +1838,25 @@ function linhaJogador(p, editar, novo){
   </div>`;
 }
 
-/* monta o DIFF: só o que difere do arquivo de fábrica entra no patch. É o que
-   mantém a tabela pequena e deixa o clube seguir recebendo atualização do
-   catálogo nos campos que ninguém tocou. */
-async function salvarClube(item){
-  const c = item.c, ed = D.edits[c.id];
+/* monta o DIFF: só o que difere do arquivo de fábrica entra no patch. É o que mantém
+   o pacote pequeno e deixa o clube seguir recebendo atualização do catálogo nos
+   campos que ninguém tocou. */
+function montarPatch(item){
+  const c = item.c;
   const patch = {};
-  const valor = id => { const n = el(id); return n ? n.value : null; };
-
   const inicial = D.formInicial || {};
+  const valor = id => { const n = el(id); return n ? n.value : null; };
   for(const k of CAMPOS_CLUBE){
     const v = valor('c-'+k);
     if(v == null) continue;
-    if(v === inicial['c-'+k]) continue;             // campo intocado não vira patch
-    if(k==='color'||k==='color2'||k==='crest'||k==='name'||k==='short'){
+    if(v === inicial['c-'+k]) continue;
+    if(['color','color2','crest','name','short'].includes(k)){
       const t = v.trim();
       if(t && t.toLowerCase() !== String(c[k]||'').toLowerCase()) patch[k] = t;
     } else if(v !== '' && Number(v) !== c[k]) {
       patch[k] = Number(v);
     }
   }
-
   const squad = {}, novos = [], remover = [];
   const originais = new Map((c.squad||[]).map(p => [p.n, p]));
   const vistos = new Set();
@@ -1823,10 +1867,7 @@ async function salvarClube(item){
       dados[k] = (k==='n'||k==='p') ? inp.value.trim() : (inp.value===''?null:Number(inp.value));
     });
     if(!dados.n) return;
-    // setor derivado da posição: o motor escala por s (GK/DEF/MID/ATT), não por p
-    dados.s = dados.p==='GOL' ? 'GK'
-            : ['ZAG','LAD','LAE'].includes(dados.p) ? 'DEF'
-            : ['VOL','MC','MEI'].includes(dados.p) ? 'MID' : 'ATT';
+    dados.s = setorDe(dados.p);
     const orig = originais.get(linha.dataset.orig);
     if(linha.dataset.novo || !orig){ novos.push(dados); return; }
     vistos.add(orig.n);
@@ -1836,27 +1877,29 @@ async function salvarClube(item){
     if(Object.keys(dif).length) squad[orig.n] = dif;
   });
   (c.squad||[]).forEach(p => { if(!vistos.has(p.n)) remover.push(p.n); });
-
   if(Object.keys(squad).length) patch.squad = squad;
   if(novos.length) patch.squad_novos = novos;
   if(remover.length) patch.squad_remover = remover;
+  return { patch, squad, novos, remover };
+}
 
+async function salvarClube(item){
+  const c = item.c, ed = D.edits[c.id];
+  const { patch, squad, novos, remover } = montarPatch(item);
   if(!Object.keys(patch).length && !ed){ toast('Nada mudou.'); return; }
 
   const linha = {
-    club_id: String(c.id), divisao: item.div, novo: !!(ed && ed.novo),
-    patch: (ed && ed.novo) ? Object.assign({}, ed.patch, patch) : patch,
-    nota: (valor('c-nota')||'').trim() || null,
-    atualizado_em: new Date().toISOString(),
-    atualizado_por: (await sb.auth.getUser()).data.user.id
+    pack_id: ST.packId, club_id: String(c.id), divisao: item.div, novo: !!(ed && ed.novo),
+    patch: (ed && ed.novo) ? Object.assign({}, ed.patch, patch) : patch
   };
-  const { error } = await jogo('club_edits').upsert(linha, { onConflict:'club_id' });
+  const { error } = await jogo('pack_edits').upsert(linha, { onConflict:'pack_id,club_id' });
   if(error) return toast(erroMsg(error), true);
+  await jogo('data_packs').update({ atualizado_em:new Date().toISOString() }).eq('id', ST.packId);
   registrar('clube.editar', String(c.id), {
-    campos: Object.keys(patch).filter(k=>k!=='squad'&&k!=='squad_novos'&&k!=='squad_remover'),
-    jogadores: Object.keys(squad).length, novos: novos.length, removidos: remover.length,
-    nota: linha.nota });
-  fecharModal(); toast('Publicado — vale nos jogos novos.'); pgEditor();
+    pacote: ST.packId,
+    campos: Object.keys(patch).filter(k=>!k.startsWith('squad')),
+    jogadores: Object.keys(squad).length, novos: novos.length, removidos: remover.length });
+  fecharModal(); toast('Salvo no pacote.'); pgEditor();
 }
 
 function modalNovoClube(){
@@ -1864,8 +1907,8 @@ function modalNovoClube(){
     <h3>Novo clube</h3>
     <div class="col">
       <div class="st" style="line-height:1.6;margin-bottom:4px">
-        Entra na divisão escolhida como qualquer clube de fábrica. O elenco pode ficar vazio
-        agora e ser preenchido depois, na ficha do clube.</div>
+        Entra na divisão escolhida como qualquer clube de fábrica, para quem usar este pacote.
+        O elenco pode ficar vazio agora e ser preenchido depois, na ficha do clube.</div>
       <div class="g2" style="gap:12px">
         <label class="f">Nome<input class="f" id="n-name" placeholder="Ex.: Grêmio Novo Horizonte"></label>
         <label class="f">Nome curto<input class="f" id="n-short" placeholder="Ex.: Novo Horizonte"></label>
@@ -1892,14 +1935,313 @@ function modalNovoClube(){
     if(!/^[a-z0-9_]+$/i.test(id)) return toast('Identificador: só letras, números e _', true);
     if((D.catalogo||[]).some(x => String(x.c.id)===id)) return toast('Já existe clube com esse identificador.', true);
     const OS=+el('n-OS').value||30, MS=+el('n-MS').value||30, DS=+el('n-DS').value||30;
-    const { error } = await jogo('club_edits').insert({
-      club_id:id, divisao:el('n-div').value, novo:true,
+    const { error } = await jogo('pack_edits').insert({
+      pack_id: ST.packId, club_id:id, divisao:el('n-div').value, novo:true,
       patch:{ id, name:nome, short:el('n-short').value.trim()||nome, color:el('n-color').value,
-              OS, MS, DS, overall: Math.round((OS+MS+DS)/3), squad:[] },
-      atualizado_por: (await sb.auth.getUser()).data.user.id
+              OS, MS, DS, overall: Math.round((OS+MS+DS)/3), squad:[] }
     });
     if(error) return toast(erroMsg(error), true);
-    registrar('clube.criar', id, { nome, divisao: el('n-div').value });
+    registrar('clube.criar', id, { nome, divisao: el('n-div').value, pacote: ST.packId });
     fecharModal(); toast('Clube criado.'); pgEditor();
+  };
+}
+
+function modalNovoPacote(){
+  abrirModal(`
+    <h3>Novo pacote de dados</h3>
+    <div class="col">
+      <div class="st" style="line-height:1.6">
+        Um pacote é um conjunto de mudanças com dono. Ele <b>não</b> entra em todo jogo novo:
+        vale para quem escolher este pacote ao criar a partida — e o código pode ser
+        compartilhado para outras pessoas usarem o mesmo.</div>
+      <label class="f">Nome<input class="f" id="p-nome" placeholder="Ex.: Brasileirão 2027 atualizado"></label>
+      <label class="f">Descrição<input class="f" id="p-desc" placeholder="O que este pacote muda"></label>
+      <label class="f">Código de compartilhamento
+        <input class="f mono" id="p-cod" placeholder="BR2027" maxlength="16"></label>
+      <div class="acoes">
+        <button class="btn" id="p-ok">Criar pacote</button>
+        <button class="btn btn-ghost" data-fechar>Cancelar</button>
+      </div>
+    </div>`);
+  el('p-ok').onclick = async () => {
+    const nome = el('p-nome').value.trim();
+    const cod = (el('p-cod').value.trim() || nome).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,16);
+    if(!nome || !cod) return toast('Nome e código são obrigatórios.', true);
+    const { data:{ user } } = await sb.auth.getUser();
+    const { data, error } = await jogo('data_packs').insert({
+      codigo: cod, nome, descricao: el('p-desc').value.trim()||null,
+      autor: user.id, autor_nome: ME.nome || user.email, oficial:false, publico:true
+    }).select().single();
+    if(error) return toast(/duplicate|unique/i.test(error.message)?'Já existe pacote com esse código.':erroMsg(error), true);
+    await jogo('pack_users').insert({ user_id:user.id, pack_id:data.id });
+    registrar('pacote.criar', cod, { nome });
+    ST.packId = data.id;
+    fecharModal(); toast('Pacote criado.'); pgEditor();
+  };
+}
+
+/* ============================================================================
+   IMPORTADOR DE ARQUIVO (txt / md / csv)
+   ----------------------------------------------------------------------------
+   Sem IA de propósito: o formato é tabelado, e um interpretador comum é
+   previsível — o mesmo arquivo dá sempre o mesmo resultado, e um arquivo torto
+   falha na linha errada em vez de "quase acertar" o elenco inteiro.
+
+   Aceita tabela markdown (| a | b |), CSV e TSV, com cabeçalho. As colunas são
+   reconhecidas pelo NOME, sem depender da ordem, e sem depender de acento ou
+   caixa (ver chaveNome). Linha sem coluna de jogador é entendida como dado de
+   clube; com jogador, como dado de elenco.
+
+   NADA é gravado direto: o arquivo vira uma PRÉVIA do que muda, e só o botão de
+   confirmar aplica. É o que impede um arquivo mal formatado de reescrever o
+   catálogo — e o que mostra, antes, as linhas que não casaram com nenhum clube.
+   ============================================================================ */
+const COLUNAS = {
+  clube:    ['clube','time','equipe','club','team','id_clube','clubid'],
+  jogador:  ['jogador','nome','atleta','player','name'],
+  forca:    ['forca','força','overall','ovr','f','power','rating'],
+  idade:    ['idade','age'],
+  posicao:  ['posicao','posição','pos','position'],
+  valor:    ['valor','mv','preco','preço','value','marketvalue','valordemercado'],
+  nomecurto:['nomecurto','curto','short','apelido'],
+  escudo:   ['escudo','crest','logo','brasao','brasão'],
+  cor:      ['cor','color','corprincipal'],
+  ataque:   ['ataque','os','atk'],
+  meio:     ['meio','ms','mid'],
+  defesa:   ['defesa','ds','def']
+};
+function acharColuna(cabecalho){
+  const mapa = {};
+  cabecalho.forEach((titulo, i) => {
+    const k = chaveNome(titulo);
+    for(const campo of Object.keys(COLUNAS))
+      if(COLUNAS[campo].some(a => chaveNome(a) === k)) { mapa[campo] = i; break; }
+  });
+  return mapa;
+}
+/* separa a linha pelo delimitador do arquivo: | de markdown, ; ou , de CSV, tab de TSV */
+function separar(linha){
+  const t = linha.trim();
+  if(t.startsWith('|')) return t.replace(/^\||\|$/g,'').split('|').map(x=>x.trim());
+  if(t.includes('\t')) return t.split('\t').map(x=>x.trim());
+  if(t.includes(';'))  return t.split(';').map(x=>x.trim());
+  return t.split(',').map(x=>x.trim());
+}
+const soLinha = l => /^[\s|:\-+=]+$/.test(l);   // separador de tabela markdown
+
+/* interpreta o texto e devolve o que MUDA em relação ao catálogo carregado */
+function interpretar(texto){
+  const linhas = texto.split(/\r?\n/).filter(l => l.trim() && !soLinha(l));
+  if(linhas.length < 2) return { erro:'O arquivo precisa de um cabeçalho e ao menos uma linha.' };
+  const cabecalho = separar(linhas[0]);
+  const col = acharColuna(cabecalho);
+  if(col.clube == null)
+    return { erro:'Não encontrei a coluna do clube. O cabeçalho precisa ter uma coluna "Clube" (ou Time, Equipe, Club).' };
+
+  // índice de busca por id, nome e nome curto
+  const porChave = new Map();
+  (D.catalogo||[]).forEach(x => {
+    [x.c.id, x.c.name, x.c.short].forEach(v => { if(v) porChave.set(chaveNome(v), x); });
+  });
+
+  const mudancas = new Map();   // club_id -> {item, clube:{}, squad:{}, novos:[]}
+  const semClube = [], semJogador = [], semEfeito = [];
+  // coluna ausente/vazia tem de virar null, não 0: Number('') é 0, e isso estava
+  // zerando o valor de mercado de todo jogador de arquivo sem coluna de valor
+  const numero = v => {
+    const t = String(v==null?'':v).replace(/[^\d.-]/g,'');
+    if(t==='' || t==='-') return null;
+    const n = Number(t);
+    return isNaN(n) ? null : n;
+  };
+
+  let colAtual = col;
+  const pegaCol = (celulas, campo) => colAtual[campo]!=null ? (celulas[colAtual[campo]]||'').trim() : '';
+  for(let i=1;i<linhas.length;i++){
+    const cel = separar(linhas[i]);
+    // ARQUIVO COM MAIS DE UMA TABELA: um bloco de clubes e outro de jogadores, cada um
+    // com seu cabeçalho. Sem isto, o cabeçalho do segundo bloco era lido como dado e as
+    // colunas dele iam para o lugar errado. Uma linha em que TODAS as células são nomes
+    // de coluna conhecidos é cabeçalho, não dado.
+    const talvezCabecalho = acharColuna(cel);
+    if(talvezCabecalho.clube != null && cel.every(x => {
+         const k = chaveNome(x);
+         return !k || Object.keys(COLUNAS).some(campo => COLUNAS[campo].some(a2 => chaveNome(a2)===k));
+       })){ colAtual = talvezCabecalho; continue; }
+    const nomeClube = pegaCol(cel,'clube');
+    if(!nomeClube) continue;
+    const item = porChave.get(chaveNome(nomeClube));
+    if(!item){ semClube.push(nomeClube); continue; }
+    const id = String(item.c.id);
+    if(!mudancas.has(id)) mudancas.set(id, { item, clube:{}, squad:{}, novos:[] });
+    const alvo = mudancas.get(id);
+    const nomeJog = pegaCol(cel,'jogador');
+
+    if(!nomeJog){
+      // linha de CLUBE
+      const c = item.c;
+      const cand = { short:pegaCol(cel,'nomecurto'), crest:pegaCol(cel,'escudo'), color:pegaCol(cel,'cor'),
+                     OS:numero(pegaCol(cel,'ataque')), MS:numero(pegaCol(cel,'meio')), DS:numero(pegaCol(cel,'defesa')) };
+      let mexeu = false;
+      for(const k of Object.keys(cand)){
+        const v = cand[k];
+        if(v==null || v==='' ) continue;
+        if(String(v).toLowerCase() === String(c[k]||'').toLowerCase()) continue;
+        alvo.clube[k] = v; mexeu = true;
+      }
+      if(!mexeu) semEfeito.push(nomeClube);
+      continue;
+    }
+
+    // linha de JOGADOR
+    const jog = (item.c.squad||[]).find(p => chaveNome(p.n) === chaveNome(nomeJog));
+    const dados = {};
+    const f = numero(pegaCol(cel,'forca')), age = numero(pegaCol(cel,'idade')), mv = numero(pegaCol(cel,'valor'));
+    const pos = pegaCol(cel,'posicao').toUpperCase();
+    if(f!=null) dados.f = f;
+    if(age!=null) dados.age = age;
+    if(mv!=null) dados.mv = mv;
+    if(pos && POSICOES.includes(pos)){ dados.p = pos; dados.s = setorDe(pos); }
+    if(!Object.keys(dados).length){ semEfeito.push(nomeJog); continue; }
+
+    if(!jog){
+      // jogador que não existe no elenco: entra como novo (com o nome escrito no arquivo)
+      semJogador.push(`${nomeJog} (${item.c.short||item.c.name})`);
+      alvo.novos.push(Object.assign({ n:nomeJog, p:'MC', s:'MID', f:30, age:24, mv:100000 }, dados));
+      continue;
+    }
+    const dif = {};
+    for(const k of Object.keys(dados)) if(dados[k] !== jog[k]) dif[k] = dados[k];
+    if(Object.keys(dif).length) alvo.squad[jog.n] = dif; else semEfeito.push(nomeJog);
+  }
+
+  // clubes cujo resultado final não muda nada saem da prévia
+  for(const [id, m] of Array.from(mudancas))
+    if(!Object.keys(m.clube).length && !Object.keys(m.squad).length && !m.novos.length) mudancas.delete(id);
+
+  return { mudancas, semClube, semJogador, semEfeito, linhas: linhas.length-1 };
+}
+
+function modalImportar(){
+  const pack = (D.packs||[]).find(p=>p.id===ST.packId) || {};
+  abrirModal(`
+    <h3>Importar arquivo de dados</h3>
+    <div style="font-size:12.5px;color:var(--dim2);margin:-12px 0 16px">
+      Aplica em <b>${h(pack.nome||'')}</b> · nada é salvo antes de você conferir a prévia
+    </div>
+    <div class="col">
+      <div class="spec" style="grid-template-columns:1fr">
+        <div style="display:block;line-height:1.7">
+          Tabela <b>markdown</b>, <b>CSV</b> ou <b>TSV</b>, com cabeçalho. As colunas são
+          reconhecidas pelo nome, em qualquer ordem:<br>
+          <code class="mono" style="color:var(--verde2)">Clube</code> (obrigatória) ·
+          <code class="mono">Jogador</code> · <code class="mono">Força</code> ·
+          <code class="mono">Idade</code> · <code class="mono">Posição</code> ·
+          <code class="mono">Valor</code> · <code class="mono">Escudo</code> ·
+          <code class="mono">Ataque/Meio/Defesa</code><br>
+          Linha <b>sem</b> jogador é lida como dado do clube; <b>com</b> jogador, como dado de elenco.
+        </div>
+      </div>
+      <div class="drop" id="i-drop">
+        <div class="ic">⬆</div>
+        <div class="t" id="i-tit">Escolher arquivo (.txt, .md, .csv, .tsv)</div>
+        <div class="s" id="i-sub">ou cole o conteúdo no campo abaixo</div>
+        <input type="file" id="i-file" accept=".txt,.md,.csv,.tsv,text/plain" style="display:none">
+      </div>
+      <label class="f">Conteúdo
+        <textarea class="f mono" id="i-texto" rows="8" style="font-size:12px"
+          placeholder="| Clube | Jogador | Força | Idade |&#10;| Palmeiras | Vitor Roque | 92 | 20 |"></textarea>
+      </label>
+      <div class="erro hide" id="i-erro"></div>
+      <div id="i-previa"></div>
+      <div class="acoes">
+        <button class="btn btn-ghost" id="i-ver">Ver o que muda</button>
+        <button class="btn" id="i-aplicar" disabled>Aplicar ao pacote</button>
+        <button class="btn btn-ghost" data-fechar>Cancelar</button>
+      </div>
+    </div>`, 'lg');
+
+  const erro = el('i-erro'), previa = el('i-previa');
+  let resultado = null;
+
+  el('i-drop').onclick = () => el('i-file').click();
+  el('i-drop').ondragover = ev => { ev.preventDefault(); el('i-drop').classList.add('ok'); };
+  el('i-drop').ondragleave = () => el('i-drop').classList.remove('ok');
+  el('i-drop').ondrop = ev => { ev.preventDefault(); if(ev.dataTransfer.files[0]) lerArquivo(ev.dataTransfer.files[0]); };
+  el('i-file').onchange = () => { if(el('i-file').files[0]) lerArquivo(el('i-file').files[0]); };
+  function lerArquivo(f){
+    if(f.size > 2*1024*1024) { erro.textContent='Arquivo acima de 2 MB.'; erro.classList.remove('hide'); return; }
+    const r = new FileReader();
+    r.onload = () => { el('i-texto').value = r.result; el('i-tit').textContent = f.name;
+                       el('i-drop').classList.add('ok'); verPrevia(); };
+    r.readAsText(f);
+  }
+
+  el('i-ver').onclick = verPrevia;
+  function verPrevia(){
+    erro.classList.add('hide'); previa.innerHTML=''; el('i-aplicar').disabled = true;
+    const texto = el('i-texto').value.trim();
+    if(!texto){ erro.textContent='Escolha um arquivo ou cole o conteúdo.'; erro.classList.remove('hide'); return; }
+    resultado = interpretar(texto);
+    if(resultado.erro){ erro.textContent = resultado.erro; erro.classList.remove('hide'); return; }
+
+    const ms = Array.from(resultado.mudancas.values());
+    const totalJog = ms.reduce((a,m)=>a+Object.keys(m.squad).length,0);
+    const totalNovos = ms.reduce((a,m)=>a+m.novos.length,0);
+    if(!ms.length){
+      previa.innerHTML = `<div class="ok">Li ${resultado.linhas} linhas e nada mudaria — os valores do arquivo já são os do catálogo.</div>`;
+      return;
+    }
+    previa.innerHTML = `
+      <div class="ok" style="margin-bottom:10px">
+        ${resultado.linhas} linhas lidas · <b>${ms.length} clubes</b> mudam ·
+        <b>${totalJog} jogadores</b> alterados${totalNovos?` · <b>${totalNovos}</b> jogadores novos`:''}
+      </div>
+      ${resultado.semClube.length?`<div class="erro" style="margin-bottom:10px">
+        ${resultado.semClube.length} linhas ignoradas — clube não encontrado:
+        ${h(Array.from(new Set(resultado.semClube)).slice(0,8).join(', '))}${resultado.semClube.length>8?'…':''}</div>`:''}
+      <div style="max-height:220px;overflow:auto;border:1px solid var(--bd);border-radius:10px">
+        ${ms.map(m => `
+          <div class="row" style="grid-template-columns:1.2fr 2fr;padding:8px 12px;border-top:1px solid var(--bd3)">
+            <b style="font-size:12.5px">${h(m.item.c.short||m.item.c.name)}</b>
+            <span style="font-size:12px;color:var(--dim);line-height:1.6">
+              ${Object.keys(m.clube).map(k=>`${h(k)} → <b>${h(String(m.clube[k]))}</b>`).join(' · ')}
+              ${Object.keys(m.clube).length && (Object.keys(m.squad).length||m.novos.length) ? '<br>' : ''}
+              ${Object.keys(m.squad).slice(0,6).map(n=>{
+                 const d=m.squad[n];
+                 return `${h(n)}: ${Object.keys(d).map(k=>k+' → '+d[k]).join(', ')}`;
+               }).join('<br>')}
+              ${Object.keys(m.squad).length>6?`<br><i>+${Object.keys(m.squad).length-6} jogadores</i>`:''}
+              ${m.novos.length?`<br><span style="color:var(--roxo)">novos: ${h(m.novos.map(p=>p.n).slice(0,5).join(', '))}${m.novos.length>5?'…':''}</span>`:''}
+            </span>
+          </div>`).join('')}
+      </div>`;
+    el('i-aplicar').disabled = false;
+  }
+
+  el('i-aplicar').onclick = async () => {
+    if(!resultado || !resultado.mudancas) return;
+    const btn = el('i-aplicar'); btn.disabled = true; btn.textContent = 'Aplicando…';
+    const linhas = [];
+    for(const [id, m] of resultado.mudancas){
+      const jaTem = D.edits[id];
+      // funde com o que o pacote já tinha para aquele clube — importar duas vezes
+      // não pode apagar a edição feita à mão antes
+      const patch = Object.assign({}, (jaTem && jaTem.patch) || {});
+      Object.assign(patch, m.clube);
+      if(Object.keys(m.squad).length)
+        patch.squad = Object.assign({}, patch.squad||{}, m.squad);
+      if(m.novos.length){
+        const nomes = new Set((patch.squad_novos||[]).map(p=>p.n));
+        patch.squad_novos = (patch.squad_novos||[]).concat(m.novos.filter(p=>!nomes.has(p.n)));
+      }
+      linhas.push({ pack_id: ST.packId, club_id: id, divisao: m.item.div,
+                    novo: !!(jaTem && jaTem.novo), patch });
+    }
+    const { error } = await jogo('pack_edits').upsert(linhas, { onConflict:'pack_id,club_id' });
+    if(error){ btn.disabled=false; btn.textContent='Aplicar ao pacote'; return toast(erroMsg(error), true); }
+    await jogo('data_packs').update({ atualizado_em:new Date().toISOString() }).eq('id', ST.packId);
+    registrar('pacote.importar', ST.packId, { clubes: linhas.length, linhas: resultado.linhas });
+    fecharModal(); toast(`${linhas.length} clubes atualizados no pacote.`); pgEditor();
   };
 }
