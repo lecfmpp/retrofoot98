@@ -3452,6 +3452,7 @@ function porResponsavelHTML(ps){
 const STATUS_PARCEIRO = {
   novo:               ['Novo',              't-dim',  'var(--dim2)'],
   contatado:          ['Contatado',         't-azul', 'var(--azul)'],
+  testando:           ['Testando',          't-ok',   'var(--verde)'],
   negociando:         ['Negociando',        't-warn', 'var(--ambar)'],
   aguardando_retorno: ['Aguardando retorno','t-roxo', 'var(--roxo)'],
   fechado:            ['Fechado',           't-ok',   'var(--verde2)']
