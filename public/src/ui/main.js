@@ -217,7 +217,9 @@ function coherentFormation(id,preferred){
    sempre o melhor goleiro (nunca um ausente), e a escolha continua sendo "o time mais forte
    possível" — só que um time que existe. Devolve null se nenhuma formação couber no elenco. */
 function bestFormationForSquad(id){
-  const sq=squad(id).slice().sort((a,b)=>b.f-a.f);
+  // só quem pode jogar entra na conta (ver squadEscalavel): senão a formação era escolhida contando
+  // com um zagueiro machucado e o onze montado depois não tinha como preencher aquele setor
+  const sq=squadEscalavel(id).slice().sort((a,b)=>b.f-a.f);
   const porSetor={GK:[],DEF:[],MID:[],ATT:[]};
   sq.forEach(p=>{ if(porSetor[p.s]) porSetor[p.s].push(p); });
   const secs=['GK','DEF','MID','ATT'];
@@ -240,27 +242,36 @@ function bestFormationForSquad(id){
   });
   return melhor;
 }
+/* QUEM PODE SER ESCALADO: sem lesão e sem suspensão — a MESMA régua do motor (isAvail em
+   match-engine.js, availableXI em simulate.js). Os dois seletores abaixo montavam o onze a partir
+   do elenco inteiro, então escalavam machucado e suspenso; na hora do jogo o motor filtrava de
+   novo e o time entrava em campo DESFALCADO, sem o usuário entender por quê.
+   No "Selecionar descansados" era pior ainda e sistemático: quem está machucado não joga, não
+   gasta energia e por isso aparecia no TOPO da ordenação por energia — o botão de descansar
+   praticamente escolhia os lesionados. */
+function squadEscalavel(id){ return squad(id).filter(p=>!(p.suspended>0)&&!(p.injuredMatches>0)); }
+/* preenche o que faltar do onze, primeiro com quem está apto e só no fim com o resto do elenco
+   (elenco muito desfalcado: 11 com um machucado ainda é melhor que entrar com 9) */
+function completaXI(id,xi,sq){
+  if(xi.length>=11) return xi;
+  const have=new Set(xi);
+  const add=pid=>{ if(xi.length<11 && !have.has(pid)){ xi.push(pid); have.add(pid); } };
+  for(const p of sq){ if(p.s!=='GK') add(p.pid); }  // jogadores de linha primeiro
+  for(const p of sq){ add(p.pid); }                  // 2º goleiro só se não sobrar mais ninguém
+  if(xi.length<11) for(const p of squad(id)) add(p.pid);   // último recurso: evita XI < 11
+  return xi;
+}
 function pickXIByFormation(id,f){ const need=FORMATIONS[f]||FORMATIONS['4-3-3']; const secs=['GK','DEF','MID','ATT'];
-  const sq=squad(id).slice().sort((a,b)=>b.f-a.f); const xi=[];   // xi = lista de PIDs
+  const sq=squadEscalavel(id).slice().sort((a,b)=>b.f-a.f); const xi=[];   // xi = lista de PIDs
   secs.forEach((sec,i)=>{ sq.filter(p=>p.s===sec).slice(0,need[i]).forEach(p=>xi.push(p.pid)); });
-  if(xi.length<11){ const have=new Set(xi); // completa sem colocar 2º goleiro na linha
-    const add=pid=>{ if(xi.length<11 && !have.has(pid)){ xi.push(pid); have.add(pid); } };
-    for(const p of sq){ if(p.s!=='GK') add(p.pid); }  // jogadores de linha primeiro
-    for(const p of sq){ add(p.pid); }                  // último recurso: evita XI < 11
-  }
-  return xi.slice(0,11); }
+  return completaXI(id,xi,sq).slice(0,11); }
 /* mesma lógica de pickXIByFormation, mas ordenando por energia (menos cansados primeiro)
    em vez de força — usada pelo botão "Selecionar descansados" */
 function pickXIByFormationRested(id,f){ const need=FORMATIONS[f]||FORMATIONS['4-3-3']; const secs=['GK','DEF','MID','ATT'];
   const nrg=p=>(p&&p.energy!=null)?p.energy:100;
-  const sq=squad(id).slice().sort((a,b)=>nrg(b)-nrg(a)||b.f-a.f); const xi=[];   // xi = lista de PIDs
+  const sq=squadEscalavel(id).slice().sort((a,b)=>nrg(b)-nrg(a)||b.f-a.f); const xi=[];   // xi = lista de PIDs
   secs.forEach((sec,i)=>{ sq.filter(p=>p.s===sec).slice(0,need[i]).forEach(p=>xi.push(p.pid)); });
-  if(xi.length<11){ const have=new Set(xi); // completa sem colocar 2º goleiro na linha
-    const add=pid=>{ if(xi.length<11 && !have.has(pid)){ xi.push(pid); have.add(pid); } };
-    for(const p of sq){ if(p.s!=='GK') add(p.pid); }  // jogadores de linha primeiro
-    for(const p of sq){ add(p.pid); }                  // último recurso: evita XI < 11
-  }
-  return xi.slice(0,11); }
+  return completaXI(id,xi,sq).slice(0,11); }
 /* simula uma partida completa capturando eventos (determinístico; usa SIM_SYNC do motor) */
 function simEventsC(h,a,seed,opts){ const evs=[]; let fin=null; const isU=(h===S.clubId||a===S.clubId);
   const prev=(typeof SIM_SYNC!=='undefined')?SIM_SYNC:false; if(typeof SIM_SYNC!=='undefined')SIM_SYNC=true;
