@@ -514,7 +514,7 @@ async function pgUsuarios(){
           <span style="display:flex;align-items:center;gap:10px;min-width:0">
             <i class="av" style="width:26px;height:26px;background:${corAv(u.nome)};color:#0c1210;font-size:11px">${h(iniciais(u.nome))}</i>
             <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(u.nome)}</b>
-            <small style="font-size:11.5px;color:var(--dim2)">${h(clube(u.clube))} · ${h(mascara(u.email))}</small></span>
+            <small style="font-size:11.5px;color:var(--dim2)">${h(clube(u.clube))} · ${h(u.email)}</small></span>
           </span>
           <span class="tag ${u.plano==='pago'?'t-ok':'t-dim'}" style="justify-self:start">${u.plano==='pago'?'pago':'grátis'}</span>
           <span style="min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis">${u.referral
@@ -953,8 +953,10 @@ function modalApagarSala(codigo, humanos){
     pgJogos();
   };
 }
-/* e-mail/telefone de terceiros no painel: mostra o suficiente para identificar,
-   não o contato inteiro */
+/* Máscara de contato de terceiros — usada nas listas de CONVITE e de SAVE, onde o
+   e-mail é só referência de quem é quem. Em Usuários o e-mail aparece inteiro: é a
+   ferramenta de trabalho da página (procurar a conta, reenviar senha, dar suporte),
+   e meio e-mail não serve para nada disso. */
 function mascara(s){
   if(!s) return '—';
   const [u,d] = String(s).split('@');
