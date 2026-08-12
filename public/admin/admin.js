@@ -29,6 +29,7 @@ let sb = null;
 const jogo = (t) => sb.schema(SCHEMA_JOGO).from(t);
 let ME = null;                     // linha de adm_users
 const D  = {};                     // dados carregados por página
+const SEL = { salas:new Set(), saves:new Set() };  // seleção em massa da página Resenhas & solo
 const ST = {
   tab: 'visao', periodo: 30, authMode: 'login', authErro: '', authOk: '',
   busca: '', carregando: false, modal: null, drag: null
@@ -521,33 +522,54 @@ async function pgJogos(){
   D.jogos = data;
   const salas = data.salas||[], conv = data.convites||[], solos = data.solos||[], pedidos = data.pedidos||[];
   const aceites = conv.filter(c=>c.estado==='aceito').length;
-  const podeApagar = ME.papel==='socio';   // apagar sala é irreversível (ver apagarSala)
-  const colSalas = `.9fr 1.2fr .8fr .8fr${podeApagar?' 30px':''}`;
+  const podeApagar = ME.papel==='socio';   // apagar é irreversível (ver modalApagarEmMassa)
+  SEL.salas = SEL.salas || new Set();
+  SEL.saves = SEL.saves || new Set();
+  // seleção só vale para o que ainda está na tela
+  const idsSala = new Set(salas.map(s=>s.id));
+  Array.from(SEL.salas).forEach(x => { if(!idsSala.has(x)) SEL.salas.delete(x); });
+  const idsSave = new Set(solos.map(chaveSave));
+  Array.from(SEL.saves).forEach(x => { if(!idsSave.has(x)) SEL.saves.delete(x); });
+
+  const colSalas = `${podeApagar?'30px ':''}.9fr 1.2fr .8fr .8fr .8fr${podeApagar?' 30px':''}`;
+  const colSolos = `${podeApagar?'30px ':''}1.2fr 1fr .7fr .7fr 1fr`;
 
   el('page').innerHTML = `
-    <div class="g3">
+    <div class="g4">
       ${kpiHTML({l:'Resenhas abertas', v:num(salas.length), d:`${num(salas.filter(s=>s.phase==='running').length)} em jogo`})}
+      ${kpiHTML({l:'Salas sem humano', v:num(data.salas_vazias), d:'só CPU — candidatas a limpeza'})}
       ${kpiHTML({l:'Convites (30 dias)', v:num(conv.length), d: conv.length? `${pct(aceites,conv.length)}% aceitos` : 'nenhum enviado'})}
       ${kpiHTML({l:'Jogos solo', v:num(solos.length), d:`${num(data.solos_parados)} parados há 14 dias ou mais`})}
     </div>
+
     <div style="display:grid;grid-template-columns:1.05fr 1fr;gap:16px">
       <div class="card" style="overflow:hidden">
-        <div class="card-h"><b>Resenhas abertas</b>
-          ${podeApagar?'<span style="font-size:11.5px;color:var(--dim3)">✕ apaga a sala de vez</span>':''}</div>
+        <div class="card-h">
+          <b>Resenhas abertas</b>
+          ${podeApagar?`<span class="st" style="margin:0">selecionar:
+            <span class="link" data-sel-salas="vazias">sem humano</span> ·
+            <span class="link" data-sel-salas="velhas">paradas 14d+</span> ·
+            <span class="link" data-sel-salas="nenhuma">limpar</span></span>`:''}
+        </div>
         <div class="rowh" style="grid-template-columns:${colSalas};border-bottom:none">
+          ${podeApagar?'<span><input type="checkbox" id="sel-todas-salas" title="Selecionar todas"></span>':''}
           <span>Sala</span><span>Anfitrião</span><span style="text-align:center">Treinadores</span>
-          <span style="text-align:right">Aberta há</span>${podeApagar?'<span></span>':''}
+          <span style="text-align:right">Aberta há</span><span style="text-align:right">Ativa há</span>
+          ${podeApagar?'<span></span>':''}
         </div>
         ${salas.length ? salas.map(s=>`
           <div class="row" style="grid-template-columns:${colSalas};padding:10px 20px">
+            ${podeApagar?`<span><input type="checkbox" data-sala="${h(s.id)}" ${SEL.salas.has(s.id)?'checked':''}></span>`:''}
             <span class="mono" style="font-size:12px;color:var(--verde2)">${h(s.id)}</span>
-            <span style="font-size:12.5px">${h(s.anfitriao)}</span>
-            <span class="mono" style="font-size:12.5px;font-weight:700;text-align:center;color:${s.humanos>=s.lugares?'var(--verde2)':'var(--fg)'}">${s.humanos}/${s.lugares}</span>
-            <span class="mono" style="font-size:12.5px;text-align:right;color:var(--dim2)">${h(ha(s.created_at))}</span>
+            <span style="font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis">${h(s.anfitriao)}</span>
+            <span class="mono" style="font-size:12.5px;font-weight:700;text-align:center;color:${s.humanos>=s.lugares?'var(--verde2)':s.humanos?'var(--fg)':'var(--dim3)'}">${s.humanos}/${s.lugares}</span>
+            <span class="mono" style="font-size:12px;text-align:right;color:var(--dim2)">${h(ha(s.created_at))}</span>
+            <span class="mono" style="font-size:12px;text-align:right;color:${dias(s.updated_at)>=14?'var(--vermelho)':'var(--dim2)'}">${h(ha(s.updated_at))}</span>
             ${podeApagar?`<span class="link" data-apagar-sala="${h(s.id)}" data-humanos="${s.humanos}"
                title="Apagar a sala ${h(s.id)}" style="color:var(--dim3);text-align:center">✕</span>`:''}
           </div>`).join('') : '<div class="vazio">Nenhuma sala aberta.</div>'}
       </div>
+
       <div class="card" style="overflow:hidden">
         <div class="card-h"><b>Convites enviados</b>
           <span style="font-size:12px;color:var(--dim2);font-weight:500">${conv.length?pct(aceites,conv.length)+'% aceitos':'—'}</span></div>
@@ -571,17 +593,29 @@ async function pgJogos(){
           </div>`).join('') : ''}
       </div>
     </div>
+
     <div class="card" style="overflow:hidden">
-      <div class="card-h"><b>Jogos abertos no modo solo</b></div>
-      <div class="rowh" style="grid-template-columns:1.3fr 1.1fr .8fr .8fr 1fr;border-bottom:none">
+      <div class="card-h">
+        <b>Jogos abertos no modo solo</b>
+        ${podeApagar?`<span class="st" style="margin:0">selecionar:
+          <span class="link" data-sel-saves="14">parados 14d+</span> ·
+          <span class="link" data-sel-saves="30">parados 30d+</span> ·
+          <span class="link" data-sel-saves="zerados">sem temporada</span> ·
+          <span class="link" data-sel-saves="nenhum">limpar</span></span>`:''}
+      </div>
+      <div class="rowh" style="grid-template-columns:${colSolos};border-bottom:none">
+        ${podeApagar?'<span><input type="checkbox" id="sel-todos-saves" title="Selecionar todos"></span>':''}
         <span>Técnico</span><span>Clube</span><span style="text-align:center">Divisão</span>
         <span style="text-align:center">Temporada</span><span style="text-align:right">Último salvamento</span>
       </div>
       ${solos.length ? solos.map(s=>{
         const n = dias(s.updated_at);
         const cor = n<=2?'var(--verde2)':n<=13?'var(--ambar)':'var(--vermelho)';
-        return `<div class="row" style="grid-template-columns:1.3fr 1.1fr .8fr .8fr 1fr;padding:10px 20px">
-          <span style="font-size:12.5px;font-weight:600">${h(s.tecnico||s.save_name)}</span>
+        const k = chaveSave(s);
+        return `<div class="row" style="grid-template-columns:${colSolos};padding:10px 20px">
+          ${podeApagar?`<span><input type="checkbox" data-save="${h(k)}" ${SEL.saves.has(k)?'checked':''}></span>`:''}
+          <span style="min-width:0"><b style="display:block;font-size:12.5px;font-weight:600">${h(s.tecnico||s.save_name)}</b>
+            <small class="mono" style="font-size:11px;color:var(--dim3)">${h(s.save_name)}${s.dono?' · '+h(mascara(s.dono)):''}</small></span>
           <span style="font-size:12.5px;color:var(--dim)">${h(clube(s.clube))}</span>
           <span class="mono" style="font-size:12.5px;text-align:center">${h(s.divisao||'—')}</span>
           <span class="mono" style="font-size:12.5px;text-align:center">${h(s.temporada||'—')}</span>
@@ -590,8 +624,135 @@ async function pgJogos(){
       }).join('') : '<div class="vazio">Nenhum save solo.</div>'}
     </div>`;
 
-  document.querySelectorAll('[data-apagar-sala]').forEach(b =>
-    b.onclick = () => modalApagarSala(b.dataset.apagarSala, +b.dataset.humanos));
+  if(podeApagar){
+    document.querySelectorAll('[data-apagar-sala]').forEach(b =>
+      b.onclick = () => modalApagarSala(b.dataset.apagarSala, +b.dataset.humanos));
+    ligarSelecao(salas, solos);
+  }
+  barraSelecao();
+}
+/* um save é identificado pelo PAR dono+nome: dois jogadores podem ter um save "TESTE" */
+function chaveSave(s){ return s.user_id + ' ' + s.save_name; }
+
+function ligarSelecao(salas, solos){
+  document.querySelectorAll('[data-sala]').forEach(c => c.onchange = () => {
+    if(c.checked) SEL.salas.add(c.dataset.sala); else SEL.salas.delete(c.dataset.sala);
+    barraSelecao();
+  });
+  document.querySelectorAll('[data-save]').forEach(c => c.onchange = () => {
+    if(c.checked) SEL.saves.add(c.dataset.save); else SEL.saves.delete(c.dataset.save);
+    barraSelecao();
+  });
+  const todasSalas = el('sel-todas-salas');
+  if(todasSalas) todasSalas.onchange = () => {
+    salas.forEach(s => { if(todasSalas.checked) SEL.salas.add(s.id); else SEL.salas.delete(s.id); });
+    marcarCaixas(); barraSelecao();
+  };
+  const todosSaves = el('sel-todos-saves');
+  if(todosSaves) todosSaves.onchange = () => {
+    solos.forEach(s => { if(todosSaves.checked) SEL.saves.add(chaveSave(s)); else SEL.saves.delete(chaveSave(s)); });
+    marcarCaixas(); barraSelecao();
+  };
+  /* FILTROS RÁPIDOS — o caso real de limpeza não é escolher linha a linha, é
+     "tudo que está parado há um mês". Cada atalho SOMA à seleção atual. */
+  document.querySelectorAll('[data-sel-salas]').forEach(a => a.onclick = () => {
+    const q = a.dataset.selSalas;
+    if(q==='nenhuma') SEL.salas.clear();
+    else salas.filter(s => q==='vazias' ? s.humanos===0 : dias(s.updated_at)>=14)
+              .forEach(s => SEL.salas.add(s.id));
+    marcarCaixas(); barraSelecao();
+  });
+  document.querySelectorAll('[data-sel-saves]').forEach(a => a.onclick = () => {
+    const q = a.dataset.selSaves;
+    if(q==='nenhum') SEL.saves.clear();
+    else solos.filter(s => q==='zerados' ? (!s.temporada || s.temporada==='0')
+                                         : dias(s.updated_at) >= Number(q))
+              .forEach(s => SEL.saves.add(chaveSave(s)));
+    marcarCaixas(); barraSelecao();
+  });
+}
+/* repinta só as caixinhas — redesenhar a página perderia a rolagem e o foco */
+function marcarCaixas(){
+  document.querySelectorAll('[data-sala]').forEach(c => { c.checked = SEL.salas.has(c.dataset.sala); });
+  document.querySelectorAll('[data-save]').forEach(c => { c.checked = SEL.saves.has(c.dataset.save); });
+}
+
+/* BARRA FLUTUANTE — só existe com algo selecionado, e diz exatamente o que vai embora */
+function barraSelecao(){
+  let barra = el('sel-barra');
+  const nS = SEL.salas ? SEL.salas.size : 0, nV = SEL.saves ? SEL.saves.size : 0;
+  if(!nS && !nV){ if(barra) barra.remove(); return; }
+  if(!barra){
+    barra = document.createElement('div');
+    barra.id = 'sel-barra'; barra.className = 'sel-barra';
+    document.body.appendChild(barra);
+  }
+  const partes = [];
+  if(nS) partes.push(`<b>${nS}</b> sala${nS>1?'s':''}`);
+  if(nV) partes.push(`<b>${nV}</b> save${nV>1?'s':''} solo`);
+  barra.innerHTML = `<span>${partes.join(' e ')} na seleção</span>
+    <button class="btn btn-sm btn-ghost" id="sel-limpar">Limpar</button>
+    <button class="btn btn-sm" id="sel-apagar" style="background:var(--vermelho);color:#fff">Apagar</button>`;
+  el('sel-limpar').onclick = () => { SEL.salas.clear(); SEL.saves.clear(); marcarCaixas(); barraSelecao(); };
+  el('sel-apagar').onclick = modalApagarEmMassa;
+}
+
+/* Confirmação proporcional ao estrago: mostra quantos treinadores HUMANOS perdem a
+   temporada e exige digitar o número de itens — um "tem certeza?" não segura ninguém
+   que acabou de clicar em "selecionar todos". */
+function modalApagarEmMassa(){
+  const salas = (D.jogos.salas||[]).filter(s => SEL.salas.has(s.id));
+  const saves = (D.jogos.solos||[]).filter(s => SEL.saves.has(chaveSave(s)));
+  const total = salas.length + saves.length;
+  const humanos = salas.reduce((a,s)=>a+ (Number(s.humanos)||0), 0);
+  const ativos = salas.filter(s=>dias(s.updated_at)<14).length + saves.filter(s=>dias(s.updated_at)<14).length;
+
+  abrirModal(`
+    <h3>Apagar ${total} ite${total>1?'ns':'m'}?</h3>
+    <div class="col">
+      <div class="erro" style="line-height:1.7">
+        ${salas.length?`<b>${salas.length} sala${salas.length>1?'s':''}</b> — assentos, chat, convites e histórico de rodadas vão junto.<br>`:''}
+        ${saves.length?`<b>${saves.length} save${saves.length>1?'s':''} solo</b> — a carreira de cada um acaba aqui.<br>`:''}
+        ${humanos?`Há <b>${humanos} treinador${humanos>1?'es humanos':' humano'}</b> sentado${humanos>1?'s':''} nessas salas.<br>`:''}
+        ${ativos?`<b>${ativos}</b> desses itens teve movimento nos últimos 14 dias — não são jogos abandonados.<br>`:''}
+        Não dá para desfazer.
+      </div>
+      ${salas.length?`<div class="st mono" style="line-height:1.6">${h(salas.map(s=>s.id).slice(0,30).join(' '))}${salas.length>30?' …':''}</div>`:''}
+      <label class="f">Digite <b class="mono">${total}</b> para confirmar
+        <input class="f mono" id="bulk-n" inputmode="numeric" autocomplete="off" placeholder="${total}"></label>
+      <div class="acoes">
+        <button class="btn" id="bulk-ok" style="background:var(--vermelho);color:#fff" disabled>Apagar tudo</button>
+        <button class="btn btn-ghost" data-fechar>Cancelar</button>
+      </div>
+    </div>`);
+  const inp = el('bulk-n'), ok = el('bulk-ok');
+  inp.oninput = () => { ok.disabled = inp.value.trim() !== String(total); };
+  inp.onkeydown = ev => { if(ev.key==='Enter' && !ok.disabled) ok.click(); };
+  inp.focus();
+  ok.onclick = async () => {
+    ok.disabled = true; ok.textContent = 'Apagando…';
+    const msg = [];
+    try{
+      if(salas.length){
+        const { data, error } = await sb.rpc('apagar_salas', { p_ids: salas.map(s=>s.id) });
+        if(error) throw error;
+        msg.push(`${data.apagadas} sala${data.apagadas>1?'s':''}`);
+      }
+      if(saves.length){
+        const { data, error } = await sb.rpc('apagar_saves',
+          { p_saves: saves.map(s => ({ u:s.user_id, s:s.save_name })) });
+        if(error) throw error;
+        msg.push(`${data.saves} save${data.saves>1?'s':''}`);
+      }
+    }catch(e){
+      ok.disabled=false; ok.textContent='Apagar tudo';
+      return toast(erroMsg(e), true);
+    }
+    SEL.salas.clear(); SEL.saves.clear();
+    fecharModal(); barraSelecao();
+    toast('Apagado: ' + msg.join(' e ') + '.');
+    pgJogos();
+  };
 }
 
 /* APAGAR SALA — some com a sala e com tudo que pende dela (assentos, chat, convites,

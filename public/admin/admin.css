@@ -243,3 +243,11 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
 .cal-dia.conflito{background:#3a1620;color:var(--vermelho);outline:1px solid #5a1f2a}
 .cal-dia i{display:flex;gap:2px;line-height:0}
 .cal-dia em{width:4px;height:4px;border-radius:99px;display:block}
+
+/* ---------- seleção em massa (Resenhas & solo) ---------- */
+.sel-barra{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:45;
+  display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;
+  background:var(--card);border:1px solid var(--bd2);box-shadow:0 10px 30px rgba(0,0,0,.55);
+  font-size:13px;color:var(--fg2)}
+.sel-barra b{font-family:var(--mono);color:var(--fg)}
+.row input[type=checkbox],.rowh input[type=checkbox]{accent-color:#35c46a;width:15px;height:15px;cursor:pointer}

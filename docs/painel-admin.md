@@ -114,6 +114,18 @@ Para acrescentar um espaço novo: inserir a linha em `ad_spaces` **e** chamar
 `adSlotHTML('nova.chave')` (ou `ADS.html(...)`) na tela — sem os dois lados, o painel mostra um
 espaço que nunca aparece.
 
+### Apagar salas e saves
+
+Em *Resenhas & solo* cada linha tem caixa de seleção, com atalhos por critério — salas **sem
+humano** ou **paradas há 14 dias**, saves **parados há 14/30 dias** ou **sem temporada**. A barra
+flutuante mostra o que está selecionado e abre a confirmação, que exige digitar o **número de
+itens** (um "tem certeza?" não segura quem acabou de clicar em "selecionar todos") e avisa
+quantos treinadores humanos e quantos itens **com movimento recente** estão na lista.
+
+`admin_rf98.apagar_salas(text[])` e `admin_rf98.apagar_saves(jsonb)` — socio-only, ambas
+auditadas. Um save é identificado pelo **par `user_id` + `save_name`**: o nome sozinho não
+identifica, dois jogadores podem ter um save "TESTE".
+
 ### Apagar uma sala
 
 Em *Resenhas & solo*, o ✕ na linha da sala chama `admin_rf98.apagar_sala(codigo)` — só para
@@ -173,9 +185,7 @@ firebase hosting:sites:create retrofoot98-admin --project elifoot-d368d
 firebase deploy --only hosting:admin --project elifoot-d368d
 ```
 
-Depois, no console do Firebase → Hosting → site `retrofoot98-admin` → *Add custom domain* →
-`admin.retrofoot98.com.br`, e criar no registrador os registos DNS que o console indicar
-(verificação TXT + os A records do Firebase). O certificado sai sozinho depois da propagação.
+O domínio **https://admin.retrofoot.com.br** já está apontado para este site e no ar.
 
 **O deploy do jogo mudou de comando** (agora há dois sites):
 
