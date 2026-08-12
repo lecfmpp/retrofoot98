@@ -114,6 +114,17 @@ Para acrescentar um espaço novo: inserir a linha em `ad_spaces` **e** chamar
 `adSlotHTML('nova.chave')` (ou `ADS.html(...)`) na tela — sem os dois lados, o painel mostra um
 espaço que nunca aparece.
 
+### Parceiros — quem cadastrou
+
+`adm_parceiros.criado_por` guarda a conta que cadastrou o parceiro, e `parceiros()` resolve o
+nome em `adm_users` (com o e-mail da conta como reserva, para quem já saiu do painel — nesse
+caso a linha aparece marcada em âmbar). A página mostra isso em três lugares: coluna
+**Responsável** na tabela, bloco **Quem cadastrou cada parceiro** (parceiros, inscritos e
+pagantes por pessoa) e uma linha no topo da ficha do parceiro.
+
+O bloco soma inscritos e pagantes, não só a contagem de parceiros: dois parceiros que trazem
+300 inscritos valem mais que dez parados, e contar cabeça esconderia isso.
+
 ### Apagar contas de jogador
 
 `admin_rf98.apagar_usuarios(uuid[])` — socio-only, auditada. **auth.users não tem FK vinda de

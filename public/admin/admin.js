@@ -3291,12 +3291,56 @@ function codigoDe(nome){
   return chaveNome(nome).toUpperCase().slice(0,16) || ('P'+Date.now().toString(36).toUpperCase());
 }
 
+/* CONTABILIDADE POR RESPONSÁVEL — quem trouxe quantos parceiros, e o que eles renderam.
+   Não é só contar cabeça: um sócio com 2 parceiros que trazem 300 inscritos vale mais
+   que outro com 10 parados, então a linha mostra as três colunas juntas. */
+function porResponsavelHTML(ps){
+  if(!ps.length) return '';
+  const por = new Map();
+  ps.forEach(p => {
+    const chave = p.responsavel || 'não registrado';
+    const r = por.get(chave) || { nome:chave, email:p.responsavel_email, saiu:p.responsavel_saiu,
+                                  parceiros:0, ativos:0, inscritos:0, pagantes:0 };
+    r.parceiros++;
+    if(p.estado==='ativo') r.ativos++;
+    r.inscritos += Number(p.inscritos)||0;
+    r.pagantes  += Number(p.pagantes)||0;
+    por.set(chave, r);
+  });
+  const linhas = Array.from(por.values()).sort((a,b)=> b.parceiros - a.parceiros);
+  const maior = Math.max(1, ...linhas.map(l=>l.parceiros));
+  return `<div class="card card-p">
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px">
+      <div class="tt">Quem cadastrou cada parceiro</div>
+      <span class="st" style="margin:0">com quem falar quando a negociação avança</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${linhas.map(l=>`
+        <div style="display:grid;grid-template-columns:200px 1fr 92px 92px 92px;align-items:center;gap:12px">
+          <span style="display:flex;align-items:center;gap:8px;min-width:0">
+            ${l.nome==='não registrado'
+              ? `<i class="av" style="width:24px;height:24px;font-size:11px;background:var(--bd2);color:var(--dim2)">?</i>`
+              : `<i class="av" style="width:24px;height:24px;font-size:10px;background:${corAv(l.nome)};color:#0c1210">${h(iniciais(l.nome))}</i>`}
+            <span style="min-width:0;overflow:hidden">
+              <b style="display:block;font-size:12.5px;font-weight:600;color:${l.nome==='não registrado'?'var(--dim2)':'var(--fg)'};overflow:hidden;text-overflow:ellipsis">${h(l.nome)}</b>
+              <small style="font-size:10.5px;color:${l.saiu?'var(--ambar)':'var(--dim3)'};overflow:hidden;text-overflow:ellipsis;display:block">
+                ${l.saiu?'saiu do painel':h(l.email||(l.nome==='não registrado'?'cadastrado antes deste controle':''))}</small></span>
+          </span>
+          <span class="bar"><i style="width:${pct(l.parceiros,maior)}%"></i></span>
+          <span class="mono" style="font-size:12.5px;text-align:right">${l.parceiros} parceiro${l.parceiros>1?'s':''}</span>
+          <span class="mono" style="font-size:12.5px;text-align:right;color:var(--dim)">${num(l.inscritos)} inscritos</span>
+          <span class="mono" style="font-size:12.5px;text-align:right;color:${l.pagantes?'var(--verde2)':'var(--dim3)'}">${num(l.pagantes)} pagantes</span>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
 async function pgParceiros(){
   const editar = podeEditar('publicidade');
   const { data, error } = await sb.rpc('parceiros');
   if(error) throw error;
   D.parceiros = data || [];
   const ps = D.parceiros;
+  const colPa = '1.4fr 1.1fr 1fr .9fr .6fr .7fr .7fr .8fr';
   const visitas = ps.reduce((a,p)=>a+ +p.visitas, 0);
   const inscritos = ps.reduce((a,p)=>a+ +p.inscritos, 0);
   const pagantes = ps.reduce((a,p)=>a+ +p.pagantes, 0);
@@ -3311,24 +3355,34 @@ async function pgParceiros(){
                  d: inscritos? `${pct(pagantes,inscritos)}% dos inscritos` : '—', c:'var(--verde2)'})}
     </div>
 
+    ${porResponsavelHTML(ps)}
+
     <div class="card" style="overflow:hidden">
       <div class="card-h">
         <b>Parceiros</b>
         ${editar?'<button class="btn btn-sm" id="pa-novo">+ Parceiro</button>':''}
       </div>
-      <div class="rowh" style="grid-template-columns:1.5fr 1.1fr 1fr .7fr .7fr .7fr .9fr">
-        <span>Parceiro</span><span>Contato</span><span>Canais</span>
+      <div class="rowh" style="grid-template-columns:${colPa}">
+        <span>Parceiro</span><span>Responsável</span><span>Contato</span><span>Canais</span>
         <span style="text-align:center">Visitas</span><span style="text-align:center">Inscritos</span>
         <span style="text-align:center">Pagantes</span><span style="text-align:right">Link</span>
       </div>
       ${ps.length ? ps.map(p=>`
-        <div class="row" style="grid-template-columns:1.5fr 1.1fr 1fr .7fr .7fr .7fr .9fr;cursor:pointer" data-parceiro="${p.id}">
+        <div class="row" style="grid-template-columns:${colPa};cursor:pointer" data-parceiro="${p.id}">
           <span style="display:flex;align-items:center;gap:10px;min-width:0">
             <i class="av" style="width:28px;height:28px;border-radius:8px;background:${corAv(p.nome)};color:#0c1210">${h(iniciais(p.nome))}</i>
             <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(p.nome)}</b>
               <small class="mono" style="font-size:11px;color:var(--verde2)">${h(p.codigo)}</small>
               ${p.estado!=='ativo'?`<span class="tag t-dim" style="font-size:9.5px">${h(p.estado)}</span>`:''}</span>
           </span>
+          <span style="min-width:0;display:flex;align-items:center;gap:8px">
+            ${p.responsavel
+              ? `<i class="av" style="width:24px;height:24px;font-size:10px;background:${corAv(p.responsavel)};color:#0c1210"
+                    title="${h(p.responsavel_email||'')}">${h(iniciais(p.responsavel))}</i>
+                 <span style="min-width:0;overflow:hidden">
+                   <b style="display:block;font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis">${h(p.responsavel)}</b>
+                   ${p.responsavel_saiu?'<small style="font-size:10.5px;color:var(--ambar)">saiu do painel</small>':''}</span>`
+              : '<span style="font-size:12px;color:var(--dim3)">não registrado</span>'}</span>
           <span style="min-width:0;font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis">
             ${h(p.email||'—')}${p.telefone?'<br>'+h(telFmt(p.telefone)):''}</span>
           <span style="display:flex;gap:8px;font-size:14px">
@@ -3372,6 +3426,12 @@ function modalParceiro(p){
   abrirModal(`
     <h3>${novo?'Novo parceiro':h(p.nome)}</h3>
     <div class="col">
+      ${!novo && p.responsavel ? `<div class="st" style="display:flex;align-items:center;gap:8px;margin:0">
+        <i class="av" style="width:22px;height:22px;font-size:9.5px;background:${corAv(p.responsavel)};color:#0c1210">${h(iniciais(p.responsavel))}</i>
+        Cadastrado por <b style="color:var(--fg2)">${h(p.responsavel)}</b>
+        ${p.responsavel_email?`<span class="mono" style="font-size:11px">${h(p.responsavel_email)}</span>`:''}
+        ${p.responsavel_saiu?'<span class="tag t-warn" style="font-size:10px">saiu do painel</span>':''}
+      </div>` : ''}
       <div class="g2" style="gap:12px">
         <label class="f">Nome<input class="f" id="pa-nome" value="${h(p.nome)}" placeholder="Ex.: Canal do Zé"></label>
         <label class="f">Estado<select class="f" id="pa-estado">
