@@ -469,6 +469,21 @@ const CAT_TAG = { softwares:'t-azul', creditos_ia:'t-roxo', banco_dados:'t-warn'
   publicidade:'t-azul', assinaturas:'t-ok', aportes:'t-roxo' };
 
 /* ============================ USUÁRIOS ============================ */
+/* SOLO E RESENHA LADO A LADO. Somar os dois num número só escondia o que a página
+   precisa responder — se a pessoa joga sozinha ou com amigos são comportamentos
+   diferentes, e o total não distingue. Zero fica apagado para a coluna não virar
+   um paredão de zeros. */
+function duplaHTML(a, b, rotuloA, rotuloB, troféu){
+  const na = Number(a)||0, nb = Number(b)||0;
+  const cor = n => n ? 'var(--fg)' : 'var(--dim3)';
+  return `<span class="mono" style="font-size:12px;text-align:center;line-height:1.35"
+      title="${na} ${rotuloA}${na===1?'':'s'} · ${nb} ${rotuloB}${nb===1?'':'s'}">
+    <b style="font-weight:600;color:${troféu&&na?'var(--ambar)':cor(na)}">${na}</b>
+    <small style="color:var(--dim3)"> / </small>
+    <b style="font-weight:600;color:${troféu&&nb?'var(--ambar)':cor(nb)}">${nb}</b>
+    <small style="display:block;font-size:9.5px;color:var(--dim3);letter-spacing:.3px">solo/res</small>
+  </span>`;
+}
 async function pgUsuarios(){
   const { data, error } = await sb.rpc('usuarios', { p_busca: ST.busca || null, p_limite: 500 });
   if(error) throw error;
@@ -482,7 +497,8 @@ async function pgUsuarios(){
   const vivos = new Set(us.map(u=>u.id));
   Array.from(SEL.contas).forEach(x => { if(!vivos.has(x)) SEL.contas.delete(x); });
 
-  const col = `${podeApagar?'30px ':''}1.5fr .6fr 1fr .8fr .7fr .8fr .7fr 92px`;
+  // Jogos / Pontos / Títulos vêm por MODO — é a leitura que a página precisa dar
+  const col = `${podeApagar?'30px ':''}1.5fr .55fr .9fr .85fr .8fr .7fr .8fr .75fr .7fr 84px`;
 
   el('page').innerHTML = `
     <div class="g4">
@@ -503,8 +519,10 @@ async function pgUsuarios(){
       </div>
       <div class="rowh" style="grid-template-columns:${col}">
         ${podeApagar?'<span><input type="checkbox" id="sel-todas-contas" title="Selecionar todas"></span>':''}
-        <span>Técnico</span><span>Plano</span><span>Referral</span><span style="text-align:right">Tempo de jogo</span>
-        <span style="text-align:right">Pontos</span><span style="text-align:right">Últ. acesso</span>
+        <span>Técnico</span><span>Plano</span><span>Referral</span>
+        <span style="text-align:center">Jogos</span><span style="text-align:center">Pontos</span>
+        <span style="text-align:center">Títulos</span>
+        <span style="text-align:right">Tempo</span><span style="text-align:right">Últ. acesso</span>
         <span style="text-align:center">Estado</span><span style="text-align:right">Senha</span>
       </div>
       ${us.length ? us.map(u => {
@@ -521,8 +539,10 @@ async function pgUsuarios(){
             ? `<b style="font-weight:600;color:var(--fg2)">${h(u.parceiro||u.referral)}</b>
                <small class="mono" style="display:block;font-size:10.5px;color:var(--verde2)">${h(u.referral)}</small>`
             : '<span style="color:var(--dim3)">orgânico</span>'}</span>
+          ${duplaHTML(u.saves_solo, u.salas_resenha, 'save solo', 'sala de Resenha')}
+          ${duplaHTML(u.pontos_solo, u.pontos_resenha, 'ponto no Solo', 'ponto na Resenha')}
+          ${duplaHTML(u.titulos_solo, u.titulos_resenha, 'título no Solo', 'título na Resenha', true)}
           <span class="mono" style="font-size:12.5px;text-align:right">${hm(u.minutos)}</span>
-          <span class="mono" style="font-size:12.5px;text-align:right">${num(u.pontos)}</span>
           <span class="mono" style="font-size:12.5px;text-align:right;color:var(--dim2)">${h(ha(u.ultimo_acesso))}</span>
           <span style="justify-self:center;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)">
             <i style="width:7px;height:7px;border-radius:99px;background:${e.c};display:block"></i>${e.t}</span>
@@ -609,141 +629,166 @@ async function pgJogos(){
   const { data, error } = await sb.rpc('jogos');
   if(error) throw error;
   D.jogos = data;
-  const salas = data.salas||[], conv = data.convites||[], solos = data.solos||[], pedidos = data.pedidos||[];
+  const salas = data.salas||[], conv = data.convites||[], solos = data.solos||[],
+        pedidos = data.pedidos||[], soloUsers = data.solo_usuarios||[];
   const aceites = conv.filter(c=>c.estado==='aceito').length;
-  const podeApagar = ME.papel==='socio';   // apagar é irreversível (ver modalApagarEmMassa)
+  const podeApagar = ME.papel==='socio';
   SEL.salas = SEL.salas || new Set();
   SEL.saves = SEL.saves || new Set();
-  // seleção só vale para o que ainda está na tela
+  SEL.convites = SEL.convites || new Set();
   const idsSala = new Set(salas.map(s=>s.id));
   Array.from(SEL.salas).forEach(x => { if(!idsSala.has(x)) SEL.salas.delete(x); });
   const idsSave = new Set(solos.map(chaveSave));
   Array.from(SEL.saves).forEach(x => { if(!idsSave.has(x)) SEL.saves.delete(x); });
-
-  const colSalas = `${podeApagar?'30px ':''}.9fr 1.2fr .8fr .8fr .8fr${podeApagar?' 30px':''}`;
-  const colSolos = `${podeApagar?'30px ':''}1.2fr 1fr .7fr .7fr 1fr`;
-  const colConv  = `${podeApagar?'30px ':''}1.3fr .7fr .7fr .9fr`;
-  SEL.convites = SEL.convites || new Set();
   const idsConv = new Set(conv.map(chaveConvite));
   Array.from(SEL.convites).forEach(x => { if(!idsConv.has(x)) SEL.convites.delete(x); });
+
+  const colSalas = `${podeApagar?'30px ':''}.8fr 1.3fr .8fr .8fr .8fr .8fr${podeApagar?' 30px':''}`;
+  const colSolo  = `${podeApagar?'30px ':''}1.6fr 1.4fr .7fr .8fr .9fr 1fr`;
+  const colConv  = `${podeApagar?'30px ':''}1.6fr .8fr .8fr .9fr`;
+  // saves de cada pessoa, para o check da linha marcar todos de uma vez
+  const savesDe = u => solos.filter(s => s.user_id === u.user_id);
 
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Resenhas abertas', v:num(salas.length), d:`${num(salas.filter(s=>s.phase==='running').length)} em jogo`})}
       ${kpiHTML({l:'Salas sem humano', v:num(data.salas_vazias), d:'só CPU — candidatas a limpeza'})}
+      ${kpiHTML({l:'Jogadores no solo', v:num(soloUsers.length), d:`${num(solos.length)} saves no total`})}
       ${kpiHTML({l:'Convites (30 dias)', v:num(conv.length), d: conv.length? `${pct(aceites,conv.length)}% aceitos` : 'nenhum enviado'})}
-      ${kpiHTML({l:'Jogos solo', v:num(solos.length), d:`${num(data.solos_parados)} parados há 14 dias ou mais`})}
     </div>
 
-    <div style="display:grid;grid-template-columns:1.05fr 1fr;gap:16px">
-      <div class="card" style="overflow:hidden">
-        <div class="card-h">
-          <b>Resenhas abertas</b>
-          ${podeApagar?`<span class="st" style="margin:0">selecionar:
-            <span class="link" data-sel-salas="vazias">sem humano</span> ·
-            <span class="link" data-sel-salas="velhas">paradas 14d+</span> ·
-            <span class="link" data-sel-salas="nenhuma">limpar</span></span>`:''}
-        </div>
-        <div class="rowh" style="grid-template-columns:${colSalas};border-bottom:none">
-          ${podeApagar?'<span><input type="checkbox" id="sel-todas-salas" title="Selecionar todas"></span>':''}
-          <span>Sala</span><span>Anfitrião</span><span style="text-align:center">Treinadores</span>
-          <span style="text-align:right">Aberta há</span><span style="text-align:right">Ativa há</span>
-          ${podeApagar?'<span></span>':''}
-        </div>
-        ${salas.length ? salas.map(s=>`
-          <div class="row" style="grid-template-columns:${colSalas};padding:10px 20px">
-            ${podeApagar?`<span><input type="checkbox" data-sala="${h(s.id)}" ${SEL.salas.has(s.id)?'checked':''}></span>`:''}
-            <span class="mono" style="font-size:12px;color:var(--verde2)">${h(s.id)}</span>
-            <span style="font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis">${h(s.anfitriao)}</span>
-            <span class="mono" style="font-size:12.5px;font-weight:700;text-align:center;color:${s.humanos>=s.lugares?'var(--verde2)':s.humanos?'var(--fg)':'var(--dim3)'}">${s.humanos}/${s.lugares}</span>
-            <span class="mono" style="font-size:12px;text-align:right;color:var(--dim2)">${h(ha(s.created_at))}</span>
-            <span class="mono" style="font-size:12px;text-align:right;color:${dias(s.updated_at)>=14?'var(--vermelho)':'var(--dim2)'}">${h(ha(s.updated_at))}</span>
-            ${podeApagar?`<span class="link" data-apagar-sala="${h(s.id)}" data-humanos="${s.humanos}"
-               title="Apagar a sala ${h(s.id)}" style="color:var(--dim3);text-align:center">✕</span>`:''}
-          </div>`).join('') : '<div class="vazio">Nenhuma sala aberta.</div>'}
-      </div>
-
-      <div class="card" style="overflow:hidden">
-        <div class="card-h"><b>Convites enviados</b>
-          ${podeApagar?`<span class="st" style="margin:0">
-            <span class="link" data-sel-conv="expirados">expirados</span> ·
-            <span class="link" data-sel-conv="aceitos">já aceitos</span> ·
-            <span class="link" data-sel-conv="nenhum">limpar</span></span>`:''}
-          <span style="font-size:12px;color:var(--dim2);font-weight:500">${conv.length?pct(aceites,conv.length)+'% aceitos':'—'}</span></div>
-        <div class="rowh" style="grid-template-columns:${colConv};border-bottom:none">
-          ${podeApagar?'<span><input type="checkbox" id="sel-todos-conv" title="Selecionar todos"></span>':''}
-          <span>Destino</span><span>Sala</span><span style="text-align:right">Enviado</span><span style="text-align:center">Estado</span>
-        </div>
-        ${conv.length ? conv.map(c=>{
-          const k = chaveConvite(c);
-          return `<div class="row" style="grid-template-columns:${colConv};padding:10px 20px">
-            ${podeApagar?`<span><input type="checkbox" data-conv="${h(k)}" ${SEL.convites.has(k)?'checked':''}></span>`:''}
-            <span style="font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis">${h(mascara(c.destino))}</span>
-            <span class="mono" style="font-size:12px;color:var(--dim)">${h(c.game_id)}</span>
-            <span class="mono" style="font-size:12.5px;text-align:right;color:var(--dim2)">${h(ha(c.created_at))}</span>
-            <span class="tag ${c.estado==='aceito'?'t-ok':c.estado==='pendente'?'t-warn':'t-dim'}" style="justify-self:center">${h(c.estado)}</span>
-          </div>`;
-        }).join('') : '<div class="vazio">Nenhum convite registrado.</div>'}
-        ${pedidos.length ? `<div class="card-h" style="border-top:1px solid var(--bd)"><b>Pedidos para entrar</b></div>` +
-          pedidos.map(p=>`
-          <div class="row" style="grid-template-columns:1.4fr .8fr .7fr .9fr;padding:10px 20px">
-            <span style="font-size:12.5px">${h(p.destino||'—')}</span>
-            <span style="font-size:12.5px;color:var(--dim)">Sala ${h(p.game_id)}</span>
-            <span class="mono" style="font-size:12.5px;text-align:right;color:var(--dim2)">${h(ha(p.created_at))}</span>
-            <span class="tag ${p.estado==='aceito'?'t-ok':p.estado==='pendente'?'t-warn':'t-dim'}" style="justify-self:center">${h(p.estado)}</span>
-          </div>`).join('') : ''}
-      </div>
-    </div>
-
+    <!-- ===================== MODO RESENHA ===================== -->
     <div class="card" style="overflow:hidden">
       <div class="card-h">
-        <b>Jogos abertos no modo solo</b>
+        <b>Modo Resenha — salas abertas</b>
         ${podeApagar?`<span class="st" style="margin:0">selecionar:
-          <span class="link" data-sel-saves="14">parados 14d+</span> ·
-          <span class="link" data-sel-saves="30">parados 30d+</span> ·
-          <span class="link" data-sel-saves="zerados">sem temporada</span> ·
+          <span class="link" data-sel-salas="vazias">sem humano</span> ·
+          <span class="link" data-sel-salas="velhas">paradas 14d+</span> ·
+          <span class="link" data-sel-salas="nenhuma">limpar</span></span>`:''}
+        <span class="mono" style="font-size:12px;color:var(--dim2)">${num(salas.length)} salas</span>
+      </div>
+      <div class="rowh" style="grid-template-columns:${colSalas};border-bottom:none">
+        ${podeApagar?'<span><input type="checkbox" id="sel-todas-salas" title="Selecionar todas"></span>':''}
+        <span>Sala</span><span>Anfitrião</span><span style="text-align:center">Treinadores</span>
+        <span style="text-align:center">Jornada</span>
+        <span style="text-align:right">Aberta há</span><span style="text-align:right">Ativa há</span>
+        ${podeApagar?'<span></span>':''}
+      </div>
+      ${salas.length ? salas.map(s=>`
+        <div class="row" style="grid-template-columns:${colSalas};padding:10px 20px">
+          ${podeApagar?`<span><input type="checkbox" data-sala="${h(s.id)}" ${SEL.salas.has(s.id)?'checked':''}></span>`:''}
+          <span class="mono" style="font-size:12px;color:var(--verde2)">${h(s.id)}</span>
+          <span style="font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis">${h(s.anfitriao)}</span>
+          <span class="mono" style="font-size:12.5px;font-weight:700;text-align:center;color:${s.humanos>=s.lugares?'var(--verde2)':s.humanos?'var(--fg)':'var(--dim3)'}">${s.humanos}/${s.lugares}</span>
+          <span class="mono" style="font-size:12px;text-align:center;color:var(--dim)">${s.round||0}ª</span>
+          <span class="mono" style="font-size:12px;text-align:right;color:var(--dim2)">${h(ha(s.created_at))}</span>
+          <span class="mono" style="font-size:12px;text-align:right;color:${dias(s.updated_at)>=14?'var(--vermelho)':'var(--dim2)'}">${h(ha(s.updated_at))}</span>
+          ${podeApagar?`<span class="link" data-apagar-sala="${h(s.id)}" data-humanos="${s.humanos}"
+             title="Apagar a sala ${h(s.id)}" style="color:var(--dim3);text-align:center">✕</span>`:''}
+        </div>`).join('') : '<div class="vazio">Nenhuma sala aberta.</div>'}
+    </div>
+
+    <!-- ===================== MODO SOLO =====================
+         Uma linha por JOGADOR, não por save: aqui a pergunta é quantos saves cada um
+         tem. Quem é a pessoa, quanto pontuou e quantos títulos ganhou está em Usuários. -->
+    <div class="card" style="overflow:hidden">
+      <div class="card-h">
+        <b>Modo Solo — saves por jogador</b>
+        ${podeApagar?`<span class="st" style="margin:0">selecionar:
+          <span class="link" data-sel-saves="14">saves parados 14d+</span> ·
+          <span class="link" data-sel-saves="30">30d+</span> ·
           <span class="link" data-sel-saves="nenhum">limpar</span></span>`:''}
+        <span class="mono" style="font-size:12px;color:var(--dim2)">${num(solos.length)} saves</span>
       </div>
-      <div class="rowh" style="grid-template-columns:${colSolos};border-bottom:none">
-        ${podeApagar?'<span><input type="checkbox" id="sel-todos-saves" title="Selecionar todos"></span>':''}
-        <span>Técnico</span><span>Clube</span><span style="text-align:center">Divisão</span>
-        <span style="text-align:center">Temporada</span><span style="text-align:right">Último salvamento</span>
+      <div class="rowh" style="grid-template-columns:${colSolo};border-bottom:none">
+        ${podeApagar?'<span><input type="checkbox" id="sel-todos-saves" title="Selecionar todos os saves"></span>':''}
+        <span>Jogador</span><span>Conta</span><span style="text-align:center">Saves</span>
+        <span style="text-align:center">Parados</span><span>Divisões</span>
+        <span style="text-align:right">Último salvamento</span>
       </div>
-      ${solos.length ? solos.map(s=>{
-        const n = dias(s.updated_at);
+      ${soloUsers.length ? soloUsers.map(u=>{
+        const meus = savesDe(u);
+        const marcados = meus.filter(s=>SEL.saves.has(chaveSave(s))).length;
+        const n = dias(u.ultimo);
         const cor = n<=2?'var(--verde2)':n<=13?'var(--ambar)':'var(--vermelho)';
-        const k = chaveSave(s);
-        return `<div class="row" style="grid-template-columns:${colSolos};padding:10px 20px">
-          ${podeApagar?`<span><input type="checkbox" data-save="${h(k)}" ${SEL.saves.has(k)?'checked':''}></span>`:''}
-          <span style="min-width:0"><b style="display:block;font-size:12.5px;font-weight:600">${h(s.tecnico||s.save_name)}</b>
-            <small class="mono" style="font-size:11px;color:var(--dim3)">${h(s.save_name)}${s.dono?' · '+h(mascara(s.dono)):''}</small></span>
-          <span style="font-size:12.5px;color:var(--dim)">${h(clube(s.clube))}</span>
-          <span class="mono" style="font-size:12.5px;text-align:center">${h(s.divisao||'—')}</span>
-          <span class="mono" style="font-size:12.5px;text-align:center">${h(s.temporada||'—')}</span>
-          <span class="mono" style="font-size:12.5px;text-align:right;color:${cor}">${h(ha(s.updated_at))}</span>
+        return `<div class="row" style="grid-template-columns:${colSolo};padding:10px 20px">
+          ${podeApagar?`<span><input type="checkbox" data-solo-user="${h(u.user_id)}"
+             ${marcados===meus.length&&meus.length?'checked':''}
+             title="Selecionar os ${meus.length} saves deste jogador"></span>`:''}
+          <span style="display:flex;align-items:center;gap:10px;min-width:0">
+            <i class="av" style="width:26px;height:26px;background:${corAv(u.tecnico)};color:#0c1210;font-size:11px">${h(iniciais(u.tecnico))}</i>
+            <b style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis">${h(u.tecnico)}</b>
+          </span>
+          <span style="font-size:12px;color:var(--dim);min-width:0;overflow:hidden;text-overflow:ellipsis">${h(u.dono||'—')}</span>
+          <span class="mono" style="font-size:13px;font-weight:700;text-align:center">${u.saves}${
+            marcados&&marcados<meus.length?`<small style="color:var(--verde2);font-weight:500"> (${marcados} sel.)</small>`:''}</span>
+          <span class="mono" style="font-size:12.5px;text-align:center;color:${+u.parados?'var(--vermelho)':'var(--dim3)'}">${u.parados}</span>
+          <span class="mono" style="font-size:12px;color:var(--dim)">${h(u.divisoes||'—')}</span>
+          <span class="mono" style="font-size:12.5px;text-align:right;color:${cor}">${h(ha(u.ultimo))}</span>
         </div>`;
       }).join('') : '<div class="vazio">Nenhum save solo.</div>'}
+    </div>
+
+    <!-- ===================== CONVITES ===================== -->
+    <div class="card" style="overflow:hidden">
+      <div class="card-h">
+        <b>Convites de sala</b>
+        ${podeApagar?`<span class="st" style="margin:0">selecionar:
+          <span class="link" data-sel-conv="expirados">expirados</span> ·
+          <span class="link" data-sel-conv="aceitos">já aceitos</span> ·
+          <span class="link" data-sel-conv="nenhum">limpar</span></span>`:''}
+        <span style="font-size:12px;color:var(--dim2)">${conv.length?pct(aceites,conv.length)+'% aceitos':'—'}</span>
+      </div>
+      <div class="rowh" style="grid-template-columns:${colConv};border-bottom:none">
+        ${podeApagar?'<span><input type="checkbox" id="sel-todos-conv" title="Selecionar todos"></span>':''}
+        <span>Destino</span><span>Sala</span><span style="text-align:right">Enviado</span>
+        <span style="text-align:center">Estado</span>
+      </div>
+      ${conv.length ? conv.map(c=>{
+        const k = chaveConvite(c);
+        return `<div class="row" style="grid-template-columns:${colConv};padding:10px 20px">
+          ${podeApagar?`<span><input type="checkbox" data-conv="${h(k)}" ${SEL.convites.has(k)?'checked':''}></span>`:''}
+          <span style="font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis">${h(mascara(c.destino))}</span>
+          <span class="mono" style="font-size:12px;color:var(--verde2)">${h(c.game_id)}</span>
+          <span class="mono" style="font-size:12.5px;text-align:right;color:var(--dim2)">${h(ha(c.created_at))}</span>
+          <span class="tag ${c.estado==='aceito'?'t-ok':c.estado==='pendente'?'t-warn':'t-dim'}" style="justify-self:center">${h(c.estado)}</span>
+        </div>`;
+      }).join('') : '<div class="vazio">Nenhum convite registrado.</div>'}
+      ${pedidos.length ? `<div class="card-h" style="border-top:1px solid var(--bd)"><b>Pedidos para entrar</b></div>` +
+        pedidos.map(p=>`
+        <div class="row" style="grid-template-columns:${colConv};padding:10px 20px">
+          ${podeApagar?'<span></span>':''}
+          <span style="font-size:12.5px">${h(p.destino||'—')}</span>
+          <span class="mono" style="font-size:12px;color:var(--verde2)">${h(p.game_id)}</span>
+          <span class="mono" style="font-size:12.5px;text-align:right;color:var(--dim2)">${h(ha(p.created_at))}</span>
+          <span class="tag ${p.estado==='aceito'?'t-ok':p.estado==='pendente'?'t-warn':'t-dim'}" style="justify-self:center">${h(p.estado)}</span>
+        </div>`).join('') : ''}
     </div>`;
 
   if(podeApagar){
     document.querySelectorAll('[data-apagar-sala]').forEach(b =>
       b.onclick = () => modalApagarSala(b.dataset.apagarSala, +b.dataset.humanos));
-    ligarSelecao(salas, solos);
+    ligarSelecao(salas, solos, soloUsers);
   }
   barraSelecao();
 }
+
 /* um save é identificado pelo PAR dono+nome: dois jogadores podem ter um save "TESTE" */
 function chaveSave(s){ return s.user_id + ' ' + s.save_name; }
 /* room_invites não tem chave única — o par sala+convidado é o que identifica */
 function chaveConvite(c){ return c.game_id + ' ' + c.user_id; }
 
-function ligarSelecao(salas, solos){
+function ligarSelecao(salas, solos, soloUsers){
   document.querySelectorAll('[data-sala]').forEach(c => c.onchange = () => {
     if(c.checked) SEL.salas.add(c.dataset.sala); else SEL.salas.delete(c.dataset.sala);
     barraSelecao();
   });
-  document.querySelectorAll('[data-save]').forEach(c => c.onchange = () => {
-    if(c.checked) SEL.saves.add(c.dataset.save); else SEL.saves.delete(c.dataset.save);
+  /* a linha do solo é por JOGADOR, mas a exclusão continua sendo por SAVE: marcar a
+     linha marca todos os saves daquela pessoa, e os atalhos por idade seguem pegando
+     save a save (é o que permite apagar só os parados de quem ainda joga). */
+  document.querySelectorAll('[data-solo-user]').forEach(c => c.onchange = () => {
+    const meus = solos.filter(s => s.user_id === c.dataset.soloUser);
+    meus.forEach(s => { if(c.checked) SEL.saves.add(chaveSave(s)); else SEL.saves.delete(chaveSave(s)); });
     barraSelecao();
   });
   const todasSalas = el('sel-todas-salas');
@@ -763,7 +808,7 @@ function ligarSelecao(salas, solos){
     if(q==='nenhuma') SEL.salas.clear();
     else salas.filter(s => q==='vazias' ? s.humanos===0 : dias(s.updated_at)>=14)
               .forEach(s => SEL.salas.add(s.id));
-    marcarCaixas(); barraSelecao();
+    pgJogos();
   });
   document.querySelectorAll('[data-conv]').forEach(c => c.onchange = () => {
     if(c.checked) SEL.convites.add(c.dataset.conv); else SEL.convites.delete(c.dataset.conv);
@@ -780,7 +825,7 @@ function ligarSelecao(salas, solos){
     if(q==='nenhum') SEL.convites.clear();
     else cs.filter(c => c.estado === (q==='aceitos'?'aceito':'expirado'))
            .forEach(c => SEL.convites.add(chaveConvite(c)));
-    marcarCaixas(); barraSelecao();
+    pgJogos();
   });
   document.querySelectorAll('[data-sel-saves]').forEach(a => a.onclick = () => {
     const q = a.dataset.selSaves;
@@ -788,13 +833,16 @@ function ligarSelecao(salas, solos){
     else solos.filter(s => q==='zerados' ? (!s.temporada || s.temporada==='0')
                                          : dias(s.updated_at) >= Number(q))
               .forEach(s => SEL.saves.add(chaveSave(s)));
-    marcarCaixas(); barraSelecao();
+    pgJogos();
   });
 }
 /* repinta só as caixinhas — redesenhar a página perderia a rolagem e o foco */
 function marcarCaixas(){
   document.querySelectorAll('[data-sala]').forEach(c => { c.checked = SEL.salas.has(c.dataset.sala); });
-  document.querySelectorAll('[data-save]').forEach(c => { c.checked = SEL.saves.has(c.dataset.save); });
+  document.querySelectorAll('[data-solo-user]').forEach(c => {
+    const meus = ((D.jogos||{}).solos||[]).filter(s => s.user_id === c.dataset.soloUser);
+    c.checked = meus.length > 0 && meus.every(s => SEL.saves.has(chaveSave(s)));
+  });
   document.querySelectorAll('[data-conv]').forEach(c => { c.checked = SEL.convites.has(c.dataset.conv); });
   document.querySelectorAll('[data-conta]').forEach(c => { c.checked = SEL.contas.has(c.dataset.conta); });
 }
@@ -3285,8 +3333,18 @@ const REDES = [
     hosts:['instagram.com'] },
   { k:'twitch',    nome:'Twitch',    ic:'◇', base:'twitch.tv/',     arroba:false,
     hosts:['twitch.tv','m.twitch.tv'] },
-  { k:'site',      nome:'Site',      ic:'⌂', base:null,             arroba:false, hosts:[] }
+  { k:'site',      nome:'Site',      ic:'⌂', base:null,             arroba:false, hosts:[] },
+  /* GRUPOS DE COMUNIDADE — o convite do WhatsApp é um código, o do Telegram é um nome e
+     o do Facebook é /groups/ID. Mesma regra dos canais: cole o link ou só o pedaço final. */
+  { k:'whatsapp', nome:'Grupo de WhatsApp', ic:'✆', base:'chat.whatsapp.com/', arroba:false,
+    grupo:true, hosts:['chat.whatsapp.com','wa.me','api.whatsapp.com'] },
+  { k:'telegram', nome:'Grupo de Telegram', ic:'✈', base:'t.me/',              arroba:false,
+    grupo:true, hosts:['t.me','telegram.me','telegram.dog'] },
+  { k:'facebook', nome:'Grupo de Facebook', ic:'⌘', base:'facebook.com/groups/', arroba:false,
+    grupo:true, hosts:['facebook.com','m.facebook.com','fb.com','web.facebook.com'] }
 ];
+const CANAIS_REDE = () => REDES.filter(r => !r.grupo);
+const GRUPOS_REDE = () => REDES.filter(r => r.grupo);
 const REDE = k => REDES.find(r => r.k === k) || REDES[REDES.length-1];
 
 /* COLOU A URL INTEIRA OU SÓ O PERFIL? Aceita os dois e devolve sempre o perfil limpo.
@@ -3307,6 +3365,7 @@ function perfilLimpo(valor, rede){
      (/videos, /reels, /about) e isso virava parte do nome. Fica o primeiro pedaço —
      menos nas rotas antigas do YouTube (/channel/UC…, /c/nome, /user/nome), em que o
      perfil são dois pedaços. */
+  if(rede.k === 'facebook') t = t.replace(/^groups\//i, '');
   if(rede.base){
     const partes = t.split('/').filter(Boolean);
     if(partes.length > 1){
@@ -3472,59 +3531,82 @@ async function pgParceiros(){
   }
 }
 
+/* um campo de perfil: prefixo fixo + só o nome, com a seta que abre para conferir */
+function campoPerfil(r, valor){
+  const pre = r.base ? r.base + (r.arroba?'@':'') : 'https://';
+  const v = r.base ? perfilLimpo(valor||'', r) : String(valor||'').replace(/^https?:\/\//i,'');
+  return `<label class="f">${h(r.nome)}
+    <span class="perfil">
+      <span class="perfil-pre">${h(pre)}</span>
+      <input id="pa-${r.k}" data-rede="${r.k}" autocomplete="off" value="${h(v)}"
+             placeholder="${r.grupo?'código do convite':(r.base?'perfil':'site.com.br')}">
+      <a class="perfil-ir hide" id="pa-${r.k}-ir" target="_blank" rel="noopener" title="Abrir para conferir">↗</a>
+    </span></label>`;
+}
+
+/* MODAL EM SEÇÕES, LADO A LADO. Com canais, grupos, contato e indicação, a ficha
+   empilhada passava de qualquer tela. Em duas colunas cada bloco tem um assunto, e a
+   altura cai pela metade — abaixo de 980px de janela o CSS volta a empilhar. */
 function modalParceiro(p){
   const novo = !p;
   p = p || { nome:'', email:'', telefone:'', codigo:'', estado:'ativo' };
   abrirModal(`
     <h3>${novo?'Novo parceiro':h(p.nome)}</h3>
-    <div class="col">
+    <div class="col" style="gap:14px">
       ${!novo && p.responsavel ? `<div class="st" style="display:flex;align-items:center;gap:8px;margin:0">
         <i class="av" style="width:22px;height:22px;font-size:9.5px;background:${corAv(p.responsavel)};color:#0c1210">${h(iniciais(p.responsavel))}</i>
         Cadastrado por <b style="color:var(--fg2)">${h(p.responsavel)}</b>
         ${p.responsavel_email?`<span class="mono" style="font-size:11px">${h(p.responsavel_email)}</span>`:''}
         ${p.responsavel_saiu?'<span class="tag t-warn" style="font-size:10px">saiu do painel</span>':''}
       </div>` : ''}
-      <div class="g2" style="gap:12px">
-        <label class="f">Nome<input class="f" id="pa-nome" value="${h(p.nome)}" placeholder="Ex.: Canal do Zé"></label>
-        <label class="f">Estado<select class="f" id="pa-estado">
-          ${['ativo','pausado','encerrado'].map(e=>`<option value="${e}" ${e===p.estado?'selected':''}>${e}</option>`).join('')}
-        </select></label>
+
+      <div class="duas-col">
+        <div class="col" style="gap:14px">
+          <fieldset class="secao">
+            <legend>Quem é</legend>
+            <div class="g2" style="gap:12px">
+              <label class="f">Nome<input class="f" id="pa-nome" value="${h(p.nome)}" placeholder="Ex.: Canal do Zé"></label>
+              <label class="f">Estado<select class="f" id="pa-estado">
+                ${['ativo','pausado','encerrado'].map(e=>`<option value="${e}" ${e===p.estado?'selected':''}>${e}</option>`).join('')}
+              </select></label>
+            </div>
+            <label class="f">E-mail<input class="f" id="pa-email" type="email" value="${h(p.email||'')}" placeholder="contato@canal.com"></label>
+            <label class="f">Telefone (com DDD)
+              <input class="f mono" id="pa-tel" inputmode="numeric" value="${h(telFmt(p.telefone))}" placeholder="(11) 91234-5678"></label>
+          </fieldset>
+
+          <fieldset class="secao">
+            <legend>Grupos de comunidade</legend>
+            ${GRUPOS_REDE().map(r => campoPerfil(r, p[r.k])).join('')}
+          </fieldset>
+        </div>
+
+        <div class="col" style="gap:14px">
+          <fieldset class="secao">
+            <legend>Canais</legend>
+            ${CANAIS_REDE().map(r => campoPerfil(r, p[r.k])).join('')}
+            <div class="st" style="margin:0">Cole o link inteiro ou só o perfil — o campo ajusta.</div>
+          </fieldset>
+
+          <fieldset class="secao">
+            <legend>Indicação</legend>
+            <label class="f">Código do link
+              <input class="f mono" id="pa-cod" value="${h(p.codigo)}" maxlength="16" placeholder="gerado a partir do nome">
+              <small style="font-size:11.5px;color:var(--dim3)" id="pa-link">${p.codigo?h(linkRef(p.codigo)):''}</small>
+            </label>
+            <label class="f">Notas<textarea class="f" id="pa-notas" rows="3"
+              placeholder="Combinado comercial, prazos…">${h(p.notas||'')}</textarea></label>
+          </fieldset>
+        </div>
       </div>
-      <div class="g2" style="gap:12px">
-        <label class="f">E-mail<input class="f" id="pa-email" type="email" value="${h(p.email||'')}" placeholder="contato@canal.com"></label>
-        <label class="f">Telefone (com DDD)
-          <input class="f mono" id="pa-tel" inputmode="numeric" value="${h(telFmt(p.telefone))}" placeholder="(11) 91234-5678"></label>
-      </div>
-      ${REDES.map(r => r.base ? `
-        <label class="f">${r.nome}
-          <span class="perfil">
-            <span class="perfil-pre">${r.base}${r.arroba?'@':''}</span>
-            <input id="pa-${r.k}" data-rede="${r.k}" autocomplete="off"
-                   value="${h(perfilLimpo(p[r.k]||'', r))}" placeholder="perfil">
-            <a class="perfil-ir hide" id="pa-${r.k}-ir" target="_blank" rel="noopener" title="Abrir para conferir">↗</a>
-          </span>
-          <small style="font-size:11px;color:var(--dim3)">Cole o link inteiro ou só o perfil — o campo ajusta.</small>
-        </label>` : `
-        <label class="f">${r.nome}
-          <span class="perfil">
-            <span class="perfil-pre">https://</span>
-            <input id="pa-${r.k}" data-rede="${r.k}" autocomplete="off"
-                   value="${h(String(p[r.k]||'').replace(/^https?:\/\//i,''))}" placeholder="site.com.br">
-            <a class="perfil-ir hide" id="pa-${r.k}-ir" target="_blank" rel="noopener" title="Abrir para conferir">↗</a>
-          </span>
-        </label>`).join('')}
-      <label class="f">Código do link
-        <input class="f mono" id="pa-cod" value="${h(p.codigo)}" maxlength="16" placeholder="gerado a partir do nome">
-        <small style="font-size:11.5px;color:var(--dim3)" id="pa-link">${p.codigo?h(linkRef(p.codigo)):''}</small>
-      </label>
-      <label class="f">Notas<textarea class="f" id="pa-notas" rows="2" placeholder="Combinado comercial, prazos…">${h(p.notas||'')}</textarea></label>
+
       <div class="erro hide" id="pa-erro"></div>
-      <div class="acoes">
-        <button class="btn" id="pa-ok">${novo?'Cadastrar':'Salvar'}</button>
-        ${!novo?`<button class="btn btn-ghost" id="pa-del" style="flex:0 0 auto;color:var(--vermelho)">Apagar</button>`:''}
-        <button class="btn btn-ghost" data-fechar>Cancelar</button>
-      </div>
-    </div>`, 'lg');
+    </div>
+    <div class="acoes">
+      <button class="btn" id="pa-ok">${novo?'Cadastrar':'Salvar'}</button>
+      ${!novo?`<button class="btn btn-ghost" id="pa-del" style="flex:0 0 auto;color:var(--vermelho)">Apagar</button>`:''}
+      <button class="btn btn-ghost" data-fechar>Cancelar</button>
+    </div>`, 'xl');
 
   const tel = el('pa-tel');
   tel.oninput = () => { tel.value = telFmt(tel.value); };
@@ -3533,8 +3615,9 @@ function modalParceiro(p){
      lado abre o endereço montado, que é como se confere o parceiro sem sair da ficha */
   REDES.forEach(r => {
     const inp = el('pa-'+r.k), ir = el('pa-'+r.k+'-ir');
+    if(!inp) return;
     const ajustar = () => {
-      const limpo = r.base ? perfilLimpo(inp.value, r) : perfilLimpo(inp.value, r);
+      const limpo = perfilLimpo(inp.value, r);
       if(limpo !== inp.value) inp.value = limpo;
       const url = perfilUrl(inp.value, r);
       if(url){ ir.href = url; ir.classList.remove('hide'); }
@@ -3544,6 +3627,7 @@ function modalParceiro(p){
     inp.onpaste = () => setTimeout(ajustar, 0);   // o valor colado só existe no tique seguinte
     ajustar();
   });
+
   let codTocado = !novo;
   el('pa-cod').oninput = () => { codTocado = true; mostrarLink(); };
   el('pa-nome').oninput = () => {
@@ -3567,15 +3651,15 @@ function modalParceiro(p){
       notas: el('pa-notas').value.trim()||null
     };
     REDES.forEach(r => { linha[r.k] = perfilUrl(el('pa-'+r.k).value, r); });
-    let r;
+    let res;
     if(novo){
       linha.criado_por = (await sb.auth.getUser()).data.user.id;
-      r = await sb.from('adm_parceiros').insert(linha);
+      res = await sb.from('adm_parceiros').insert(linha);
     } else {
-      r = await sb.from('adm_parceiros').update(linha).eq('id', p.id);
+      res = await sb.from('adm_parceiros').update(linha).eq('id', p.id);
     }
-    if(r.error){
-      erro.textContent = /duplicate|unique/i.test(r.error.message) ? 'Já existe parceiro com esse código.' : erroMsg(r.error);
+    if(res.error){
+      erro.textContent = /duplicate|unique/i.test(res.error.message) ? 'Já existe parceiro com esse código.' : erroMsg(res.error);
       erro.classList.remove('hide'); return;
     }
     registrar(novo?'parceiro.criar':'parceiro.editar', cod, { nome });

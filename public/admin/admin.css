@@ -296,3 +296,9 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
 .perfil-ir{display:flex;align-items:center;padding:0 12px;color:var(--verde2);
   font-size:14px;text-decoration:none;border-left:1px solid var(--bd2)}
 .perfil-ir:hover{background:var(--verde-bg)}
+
+/* ---------- seções dentro do modal ---------- */
+.secao{border:1px solid var(--bd);border-radius:12px;padding:14px 16px 16px;margin:0;
+  display:flex;flex-direction:column;gap:12px;background:var(--card2)}
+.secao > legend{font-size:11px;font-weight:700;color:var(--dim2);text-transform:uppercase;
+  letter-spacing:.6px;padding:0 6px;margin-left:-2px}
