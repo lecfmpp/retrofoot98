@@ -29,7 +29,8 @@ let sb = null;
 const jogo = (t) => sb.schema(SCHEMA_JOGO).from(t);
 let ME = null;                     // linha de adm_users
 const D  = {};                     // dados carregados por página
-const SEL = { salas:new Set(), saves:new Set() };  // seleção em massa da página Resenhas & solo
+const SEL = { salas:new Set(), saves:new Set(), contas:new Set(), convites:new Set() }; // seleções em massa
+const JOGO_URL = 'https://retrofoot98.com.br';   // destino dos links que o painel gera
 const ST = {
   tab: 'visao', periodo: 30, authMode: 'login', authErro: '', authOk: '',
   busca: '', carregando: false, modal: null, drag: null
@@ -473,6 +474,12 @@ async function pgUsuarios(){
   const pagos = us.filter(u=>u.plano==='pago');
   const mrr = pagos.reduce((a,u)=>a+ +u.mrr, 0);
   const minutos = us.reduce((a,u)=>a+ +u.minutos, 0);
+  const podeApagar = ME.papel==='socio';
+  SEL.contas = SEL.contas || new Set();
+  const vivos = new Set(us.map(u=>u.id));
+  Array.from(SEL.contas).forEach(x => { if(!vivos.has(x)) SEL.contas.delete(x); });
+
+  const col = `${podeApagar?'30px ':''}1.5fr .6fr .8fr .7fr .8fr .7fr 92px`;
 
   el('page').innerHTML = `
     <div class="g4">
@@ -484,21 +491,27 @@ async function pgUsuarios(){
     <div class="card" style="overflow:hidden">
       <div class="card-h">
         <b>Usuários no jogo</b>
+        ${podeApagar?`<span class="st" style="margin:0">selecionar:
+          <span class="link" data-sel-contas="nunca">nunca jogaram</span> ·
+          <span class="link" data-sel-contas="90">sumidos 90d+</span> ·
+          <span class="link" data-sel-contas="nenhuma">limpar</span></span>`:''}
         <input class="busca" id="u-busca" placeholder="Procurar técnico, clube ou e-mail…" value="${h(ST.busca)}">
         <span class="mono" style="font-size:12px;color:var(--dim2)">${num(us.length)} contas</span>
       </div>
-      <div class="rowh" style="grid-template-columns:1.6fr .7fr .9fr .8fr .9fr .8fr">
+      <div class="rowh" style="grid-template-columns:${col}">
+        ${podeApagar?'<span><input type="checkbox" id="sel-todas-contas" title="Selecionar todas"></span>':''}
         <span>Técnico</span><span>Plano</span><span style="text-align:right">Tempo de jogo</span>
         <span style="text-align:right">Pontos</span><span style="text-align:right">Últ. acesso</span>
-        <span style="text-align:center">Estado</span>
+        <span style="text-align:center">Estado</span><span style="text-align:right">Senha</span>
       </div>
       ${us.length ? us.map(u => {
         const e = estadoAcesso(u.ultimo_acesso);
-        return `<div class="row" style="grid-template-columns:1.6fr .7fr .9fr .8fr .9fr .8fr">
+        return `<div class="row" style="grid-template-columns:${col}">
+          ${podeApagar?`<span><input type="checkbox" data-conta="${h(u.id)}" ${SEL.contas.has(u.id)?'checked':''}></span>`:''}
           <span style="display:flex;align-items:center;gap:10px;min-width:0">
             <i class="av" style="width:26px;height:26px;background:${corAv(u.nome)};color:#0c1210;font-size:11px">${h(iniciais(u.nome))}</i>
             <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(u.nome)}</b>
-            <small style="font-size:11.5px;color:var(--dim2)">${h(clube(u.clube))}</small></span>
+            <small style="font-size:11.5px;color:var(--dim2)">${h(clube(u.clube))} · ${h(mascara(u.email))}</small></span>
           </span>
           <span class="tag ${u.plano==='pago'?'t-ok':'t-dim'}" style="justify-self:start">${u.plano==='pago'?'pago':'grátis'}</span>
           <span class="mono" style="font-size:12.5px;text-align:right">${hm(u.minutos)}</span>
@@ -506,13 +519,82 @@ async function pgUsuarios(){
           <span class="mono" style="font-size:12.5px;text-align:right;color:var(--dim2)">${h(ha(u.ultimo_acesso))}</span>
           <span style="justify-self:center;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)">
             <i style="width:7px;height:7px;border-radius:99px;background:${e.c};display:block"></i>${e.t}</span>
+          <span style="text-align:right">
+            <span class="link" data-reset="${h(u.email)}" data-nome="${h(u.nome)}"
+                  style="font-size:11.5px" title="Enviar link de nova senha para ${h(u.email)}">Reenviar</span></span>
         </div>`;
       }).join('') : '<div class="vazio">Nenhuma conta encontrada.</div>'}
     </div>`;
+
   const b = el('u-busca');
   let t=null;
   b.oninput = () => { clearTimeout(t); t = setTimeout(()=>{ ST.busca = b.value.trim(); pgUsuarios(); }, 350); };
-  b.focus(); b.setSelectionRange(b.value.length, b.value.length);
+
+  document.querySelectorAll('[data-reset]').forEach(a =>
+    a.onclick = () => modalResetSenha(a.dataset.reset, a.dataset.nome));
+
+  if(podeApagar){
+    document.querySelectorAll('[data-conta]').forEach(c => c.onchange = () => {
+      if(c.checked) SEL.contas.add(c.dataset.conta); else SEL.contas.delete(c.dataset.conta);
+      barraSelecao();
+    });
+    const todas = el('sel-todas-contas');
+    if(todas) todas.onchange = () => {
+      us.forEach(u => { if(todas.checked) SEL.contas.add(u.id); else SEL.contas.delete(u.id); });
+      marcarCaixas(); barraSelecao();
+    };
+    document.querySelectorAll('[data-sel-contas]').forEach(a => a.onclick = () => {
+      const q = a.dataset.selContas;
+      if(q==='nenhuma') SEL.contas.clear();
+      // "nunca jogaram" = sem clube, sem pontos e sem tempo: conta criada e abandonada
+      else if(q==='nunca') us.filter(u => !u.clube && !u.pontos && !u.minutos).forEach(u=>SEL.contas.add(u.id));
+      else us.filter(u => dias(u.ultimo_acesso) >= Number(q)).forEach(u=>SEL.contas.add(u.id));
+      marcarCaixas(); barraSelecao();
+    });
+  }
+  barraSelecao();
+}
+
+/* REENVIAR SENHA — usa a MESMA edge function que o "Esqueci a senha" do jogo
+   (send-password-reset, com o template da marca via Resend). O painel não gera nem vê
+   senha nenhuma: quem cria o link é o servidor, e ele vai direto para o e-mail da pessoa.
+   O redirect é o SITE DO JOGO, não o painel — é lá que o jogador precisa entrar. */
+function modalResetSenha(email, nome){
+  abrirModal(`
+    <h3>Enviar link de nova senha</h3>
+    <div class="col">
+      <div class="st" style="line-height:1.7">
+        Vai um e-mail para <b class="mono">${h(email)}</b>${nome?` (${h(nome)})`:''} com um link para
+        definir uma senha nova no jogo. O link vale por tempo limitado e é de uso único.
+        <br>Você não vê nem define a senha — quem faz isso é a própria pessoa.
+      </div>
+      <div class="erro hide" id="rs-erro"></div>
+      <div class="acoes">
+        <button class="btn" id="rs-ok">Enviar e-mail</button>
+        <button class="btn btn-ghost" data-fechar>Cancelar</button>
+      </div>
+    </div>`);
+  el('rs-ok').onclick = async () => {
+    const btn = el('rs-ok'), erro = el('rs-erro');
+    btn.disabled = true; btn.textContent = 'Enviando…'; erro.classList.add('hide');
+    try{
+      const { error } = await sb.functions.invoke('send-password-reset',
+        { body: { email, redirectTo: JOGO_URL + '/' } });
+      if(error){
+        // a mensagem real vem no corpo; error.message é sempre genérico
+        let msg = error.message;
+        try{ const b = await error.context.json(); if(b && b.error) msg = b.error; }catch(e){}
+        throw new Error(msg);
+      }
+    }catch(e){
+      btn.disabled = false; btn.textContent = 'Enviar e-mail';
+      erro.textContent = erroMsg(e); erro.classList.remove('hide');
+      return;
+    }
+    registrar('senha.reenviar', email);
+    fecharModal();
+    toast('Link de nova senha enviado para ' + email);
+  };
 }
 
 /* ============================ RESENHAS & SOLO ============================ */
@@ -533,6 +615,10 @@ async function pgJogos(){
 
   const colSalas = `${podeApagar?'30px ':''}.9fr 1.2fr .8fr .8fr .8fr${podeApagar?' 30px':''}`;
   const colSolos = `${podeApagar?'30px ':''}1.2fr 1fr .7fr .7fr 1fr`;
+  const colConv  = `${podeApagar?'30px ':''}1.3fr .7fr .7fr .9fr`;
+  SEL.convites = SEL.convites || new Set();
+  const idsConv = new Set(conv.map(chaveConvite));
+  Array.from(SEL.convites).forEach(x => { if(!idsConv.has(x)) SEL.convites.delete(x); });
 
   el('page').innerHTML = `
     <div class="g4">
@@ -572,17 +658,25 @@ async function pgJogos(){
 
       <div class="card" style="overflow:hidden">
         <div class="card-h"><b>Convites enviados</b>
+          ${podeApagar?`<span class="st" style="margin:0">
+            <span class="link" data-sel-conv="expirados">expirados</span> ·
+            <span class="link" data-sel-conv="aceitos">já aceitos</span> ·
+            <span class="link" data-sel-conv="nenhum">limpar</span></span>`:''}
           <span style="font-size:12px;color:var(--dim2);font-weight:500">${conv.length?pct(aceites,conv.length)+'% aceitos':'—'}</span></div>
-        <div class="rowh" style="grid-template-columns:1.4fr .8fr .7fr .9fr;border-bottom:none">
-          <span>Destino</span><span>Canal</span><span style="text-align:right">Enviado</span><span style="text-align:center">Estado</span>
+        <div class="rowh" style="grid-template-columns:${colConv};border-bottom:none">
+          ${podeApagar?'<span><input type="checkbox" id="sel-todos-conv" title="Selecionar todos"></span>':''}
+          <span>Destino</span><span>Sala</span><span style="text-align:right">Enviado</span><span style="text-align:center">Estado</span>
         </div>
-        ${conv.length ? conv.map(c=>`
-          <div class="row" style="grid-template-columns:1.4fr .8fr .7fr .9fr;padding:10px 20px">
-            <span style="font-size:12.5px">${h(mascara(c.destino))}</span>
-            <span style="font-size:12.5px;color:var(--dim)">Sala ${h(c.game_id)}</span>
+        ${conv.length ? conv.map(c=>{
+          const k = chaveConvite(c);
+          return `<div class="row" style="grid-template-columns:${colConv};padding:10px 20px">
+            ${podeApagar?`<span><input type="checkbox" data-conv="${h(k)}" ${SEL.convites.has(k)?'checked':''}></span>`:''}
+            <span style="font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis">${h(mascara(c.destino))}</span>
+            <span class="mono" style="font-size:12px;color:var(--dim)">${h(c.game_id)}</span>
             <span class="mono" style="font-size:12.5px;text-align:right;color:var(--dim2)">${h(ha(c.created_at))}</span>
             <span class="tag ${c.estado==='aceito'?'t-ok':c.estado==='pendente'?'t-warn':'t-dim'}" style="justify-self:center">${h(c.estado)}</span>
-          </div>`).join('') : '<div class="vazio">Nenhum convite nos últimos 30 dias.</div>'}
+          </div>`;
+        }).join('') : '<div class="vazio">Nenhum convite registrado.</div>'}
         ${pedidos.length ? `<div class="card-h" style="border-top:1px solid var(--bd)"><b>Pedidos para entrar</b></div>` +
           pedidos.map(p=>`
           <div class="row" style="grid-template-columns:1.4fr .8fr .7fr .9fr;padding:10px 20px">
@@ -633,6 +727,8 @@ async function pgJogos(){
 }
 /* um save é identificado pelo PAR dono+nome: dois jogadores podem ter um save "TESTE" */
 function chaveSave(s){ return s.user_id + ' ' + s.save_name; }
+/* room_invites não tem chave única — o par sala+convidado é o que identifica */
+function chaveConvite(c){ return c.game_id + ' ' + c.user_id; }
 
 function ligarSelecao(salas, solos){
   document.querySelectorAll('[data-sala]').forEach(c => c.onchange = () => {
@@ -662,6 +758,23 @@ function ligarSelecao(salas, solos){
               .forEach(s => SEL.salas.add(s.id));
     marcarCaixas(); barraSelecao();
   });
+  document.querySelectorAll('[data-conv]').forEach(c => c.onchange = () => {
+    if(c.checked) SEL.convites.add(c.dataset.conv); else SEL.convites.delete(c.dataset.conv);
+    barraSelecao();
+  });
+  const todosConv = el('sel-todos-conv');
+  if(todosConv) todosConv.onchange = () => {
+    (D.jogos.convites||[]).forEach(c => { const k=chaveConvite(c);
+      if(todosConv.checked) SEL.convites.add(k); else SEL.convites.delete(k); });
+    marcarCaixas(); barraSelecao();
+  };
+  document.querySelectorAll('[data-sel-conv]').forEach(a => a.onclick = () => {
+    const q = a.dataset.selConv, cs = D.jogos.convites||[];
+    if(q==='nenhum') SEL.convites.clear();
+    else cs.filter(c => c.estado === (q==='aceitos'?'aceito':'expirado'))
+           .forEach(c => SEL.convites.add(chaveConvite(c)));
+    marcarCaixas(); barraSelecao();
+  });
   document.querySelectorAll('[data-sel-saves]').forEach(a => a.onclick = () => {
     const q = a.dataset.selSaves;
     if(q==='nenhum') SEL.saves.clear();
@@ -675,83 +788,128 @@ function ligarSelecao(salas, solos){
 function marcarCaixas(){
   document.querySelectorAll('[data-sala]').forEach(c => { c.checked = SEL.salas.has(c.dataset.sala); });
   document.querySelectorAll('[data-save]').forEach(c => { c.checked = SEL.saves.has(c.dataset.save); });
+  document.querySelectorAll('[data-conv]').forEach(c => { c.checked = SEL.convites.has(c.dataset.conv); });
+  document.querySelectorAll('[data-conta]').forEach(c => { c.checked = SEL.contas.has(c.dataset.conta); });
 }
 
-/* BARRA FLUTUANTE — só existe com algo selecionado, e diz exatamente o que vai embora */
+/* BARRA FLUTUANTE — só existe com algo selecionado, e diz exatamente o que vai embora.
+   Serve às quatro seleções (salas, saves, convites e contas), que vivem em páginas
+   diferentes mas usam o mesmo caminho de exclusão. */
 function barraSelecao(){
   let barra = el('sel-barra');
-  const nS = SEL.salas ? SEL.salas.size : 0, nV = SEL.saves ? SEL.saves.size : 0;
-  if(!nS && !nV){ if(barra) barra.remove(); return; }
+  const n = { salas:SEL.salas.size, saves:SEL.saves.size, convites:SEL.convites.size, contas:SEL.contas.size };
+  const total = n.salas + n.saves + n.convites + n.contas;
+  if(!total){ if(barra) barra.remove(); return; }
   if(!barra){
     barra = document.createElement('div');
     barra.id = 'sel-barra'; barra.className = 'sel-barra';
     document.body.appendChild(barra);
   }
   const partes = [];
-  if(nS) partes.push(`<b>${nS}</b> sala${nS>1?'s':''}`);
-  if(nV) partes.push(`<b>${nV}</b> save${nV>1?'s':''} solo`);
-  barra.innerHTML = `<span>${partes.join(' e ')} na seleção</span>
+  const plural = (q,s,p) => `<b>${q}</b> ${q>1?p:s}`;
+  if(n.contas)   partes.push(plural(n.contas,'conta','contas'));
+  if(n.salas)    partes.push(plural(n.salas,'sala','salas'));
+  if(n.saves)    partes.push(plural(n.saves,'save solo','saves solo'));
+  if(n.convites) partes.push(plural(n.convites,'convite','convites'));
+  barra.innerHTML = `<span>${partes.join(' · ')} na seleção</span>
     <button class="btn btn-sm btn-ghost" id="sel-limpar">Limpar</button>
     <button class="btn btn-sm" id="sel-apagar" style="background:var(--vermelho);color:#fff">Apagar</button>`;
-  el('sel-limpar').onclick = () => { SEL.salas.clear(); SEL.saves.clear(); marcarCaixas(); barraSelecao(); };
+  el('sel-limpar').onclick = () => {
+    SEL.salas.clear(); SEL.saves.clear(); SEL.convites.clear(); SEL.contas.clear();
+    marcarCaixas(); barraSelecao();
+  };
   el('sel-apagar').onclick = modalApagarEmMassa;
 }
 
-/* Confirmação proporcional ao estrago: mostra quantos treinadores HUMANOS perdem a
-   temporada e exige digitar o número de itens — um "tem certeza?" não segura ninguém
-   que acabou de clicar em "selecionar todos". */
-function modalApagarEmMassa(){
-  const salas = (D.jogos.salas||[]).filter(s => SEL.salas.has(s.id));
-  const saves = (D.jogos.solos||[]).filter(s => SEL.saves.has(chaveSave(s)));
-  const total = salas.length + saves.length;
+/* Confirmação proporcional ao estrago: diz o que cada tipo leva junto e exige digitar o
+   NÚMERO de itens — um "tem certeza?" não segura quem acabou de clicar em "selecionar
+   todos". Conta é o caso mais grave, e por isso ganha um resumo vindo do banco. */
+async function modalApagarEmMassa(){
+  const salas = ((D.jogos||{}).salas||[]).filter(s => SEL.salas.has(s.id));
+  const saves = ((D.jogos||{}).solos||[]).filter(s => SEL.saves.has(chaveSave(s)));
+  const convs = ((D.jogos||{}).convites||[]).filter(c => SEL.convites.has(chaveConvite(c)));
+  const contas = (D.usuarios||[]).filter(u => SEL.contas.has(u.id));
+  const total = salas.length + saves.length + convs.length + contas.length;
   const humanos = salas.reduce((a,s)=>a+ (Number(s.humanos)||0), 0);
-  const ativos = salas.filter(s=>dias(s.updated_at)<14).length + saves.filter(s=>dias(s.updated_at)<14).length;
+  const ativos = salas.filter(s=>dias(s.updated_at)<14).length
+               + saves.filter(s=>dias(s.updated_at)<14).length
+               + contas.filter(u=>dias(u.ultimo_acesso)<14).length;
+
+  // conta é o caso irreversível mais pesado: o banco diz o que vai junto ANTES de apagar
+  let resumo = null;
+  if(contas.length){
+    try{
+      const { data } = await sb.rpc('resumo_usuarios', { p_ids: contas.map(u=>u.id) });
+      resumo = data;
+    }catch(e){}
+  }
 
   abrirModal(`
     <h3>Apagar ${total} ite${total>1?'ns':'m'}?</h3>
     <div class="col">
       <div class="erro" style="line-height:1.7">
-        ${salas.length?`<b>${salas.length} sala${salas.length>1?'s':''}</b> — assentos, chat, convites e histórico de rodadas vão junto.<br>`:''}
+        ${contas.length?`<b>${contas.length} conta${contas.length>1?'s':''} de jogador</b> — a pessoa perde o acesso
+          e tudo que ela tem no jogo${resumo?`: <b>${resumo.saves}</b> save(s), <b>${resumo.assentos}</b> assento(s)
+          e <b>${resumo.salas}</b> sala(s) que ela hospeda`:''}.<br>`:''}
+        ${resumo && resumo.salas_com_gente?`As salas dela têm <b>outros treinadores</b> jogando — eles perdem a temporada também.<br>`:''}
+        ${salas.length?`<b>${salas.length} sala${salas.length>1?'s':''}</b> — assentos, chat, convites e histórico vão junto.<br>`:''}
         ${saves.length?`<b>${saves.length} save${saves.length>1?'s':''} solo</b> — a carreira de cada um acaba aqui.<br>`:''}
-        ${humanos?`Há <b>${humanos} treinador${humanos>1?'es humanos':' humano'}</b> sentado${humanos>1?'s':''} nessas salas.<br>`:''}
-        ${ativos?`<b>${ativos}</b> desses itens teve movimento nos últimos 14 dias — não são jogos abandonados.<br>`:''}
+        ${convs.length?`<b>${convs.length} convite${convs.length>1?'s':''}</b> de sala — só o registro do convite.<br>`:''}
+        ${humanos?`Há <b>${humanos} treinador${humanos>1?'es humanos':' humano'}</b> sentado${humanos>1?'s':''} nas salas selecionadas.<br>`:''}
+        ${ativos?`<b>${ativos}</b> desses itens teve movimento nos últimos 14 dias — não são abandonados.<br>`:''}
         Não dá para desfazer.
       </div>
+      ${contas.length?`<div class="st mono" style="line-height:1.6">${h(contas.map(u=>u.email).slice(0,20).join(' '))}${contas.length>20?' …':''}</div>`:''}
       ${salas.length?`<div class="st mono" style="line-height:1.6">${h(salas.map(s=>s.id).slice(0,30).join(' '))}${salas.length>30?' …':''}</div>`:''}
       <label class="f">Digite <b class="mono">${total}</b> para confirmar
         <input class="f mono" id="bulk-n" inputmode="numeric" autocomplete="off" placeholder="${total}"></label>
+      <div class="erro hide" id="bulk-erro"></div>
       <div class="acoes">
         <button class="btn" id="bulk-ok" style="background:var(--vermelho);color:#fff" disabled>Apagar tudo</button>
         <button class="btn btn-ghost" data-fechar>Cancelar</button>
       </div>
     </div>`);
-  const inp = el('bulk-n'), ok = el('bulk-ok');
+  const inp = el('bulk-n'), ok = el('bulk-ok'), erro = el('bulk-erro');
   inp.oninput = () => { ok.disabled = inp.value.trim() !== String(total); };
   inp.onkeydown = ev => { if(ev.key==='Enter' && !ok.disabled) ok.click(); };
   inp.focus();
   ok.onclick = async () => {
-    ok.disabled = true; ok.textContent = 'Apagando…';
+    ok.disabled = true; ok.textContent = 'Apagando…'; erro.classList.add('hide');
     const msg = [];
     try{
+      // contas primeiro: apagar a conta já limpa saves, assentos e salas dela, e evita
+      // gastar chamada apagando o que sairia junto de qualquer jeito
+      if(contas.length){
+        const { data, error } = await sb.rpc('apagar_usuarios', { p_ids: contas.map(u=>u.id) });
+        if(error) throw error;
+        msg.push(`${data.apagadas} conta${data.apagadas>1?'s':''}`);
+      }
       if(salas.length){
         const { data, error } = await sb.rpc('apagar_salas', { p_ids: salas.map(s=>s.id) });
         if(error) throw error;
-        msg.push(`${data.apagadas} sala${data.apagadas>1?'s':''}`);
+        if(data.apagadas) msg.push(`${data.apagadas} sala${data.apagadas>1?'s':''}`);
       }
       if(saves.length){
         const { data, error } = await sb.rpc('apagar_saves',
           { p_saves: saves.map(s => ({ u:s.user_id, s:s.save_name })) });
         if(error) throw error;
-        msg.push(`${data.saves} save${data.saves>1?'s':''}`);
+        if(data.saves) msg.push(`${data.saves} save${data.saves>1?'s':''}`);
+      }
+      if(convs.length){
+        const { data, error } = await sb.rpc('apagar_convites',
+          { p_convites: convs.map(c => ({ g:c.game_id, u:c.user_id })) });
+        if(error) throw error;
+        if(data.convites) msg.push(`${data.convites} convite${data.convites>1?'s':''}`);
       }
     }catch(e){
       ok.disabled=false; ok.textContent='Apagar tudo';
-      return toast(erroMsg(e), true);
+      erro.textContent = erroMsg(e); erro.classList.remove('hide');
+      return;
     }
-    SEL.salas.clear(); SEL.saves.clear();
+    SEL.salas.clear(); SEL.saves.clear(); SEL.convites.clear(); SEL.contas.clear();
     fecharModal(); barraSelecao();
-    toast('Apagado: ' + msg.join(' e ') + '.');
-    pgJogos();
+    toast('Apagado: ' + (msg.join(', ') || 'nada'));
+    if(ST.tab==='usuarios') pgUsuarios(); else pgJogos();
   };
 }
 
@@ -1602,7 +1760,10 @@ async function pgEquipa(){
               <small style="font-size:11.5px;color:var(--dim2)">convite ${new Date(i.expira_em)<new Date()?'expirado':'enviado '+ha(i.criado_em)}</small></span></span>
             <span style="font-size:12.5px;color:var(--fg2)">${h(PAPEIS[i.papel]||i.papel)}</span>
             <span class="tag t-warn" style="justify-self:center">convite pendente</span>
-            <span style="text-align:right">${dono?`<span class="link" data-link-inv="${h(i.token)}" style="font-size:11.5px">Copiar link</span>`:''}</span>
+            <span style="text-align:right;display:flex;gap:10px;justify-content:flex-end">${dono?
+              `<span class="link" data-link-inv="${h(i.token)}" style="font-size:11.5px">Copiar link</span>
+               <span class="link" data-del-inv="${h(i.id)}" data-email="${h(i.email)}"
+                     style="font-size:11.5px;color:var(--dim3)" title="Cancelar convite">Cancelar</span>`:''}</span>
           </div>`).join('')}
       </div>
 
@@ -1660,6 +1821,12 @@ async function pgEquipa(){
       pgEquipa();
     };
     document.querySelectorAll('[data-link-inv]').forEach(b => b.onclick = () => copiarLink(b.dataset.linkInv));
+    document.querySelectorAll('[data-del-inv]').forEach(b => b.onclick = async () => {
+      if(!confirm(`Cancelar o convite de ${b.dataset.email}? O link deixa de funcionar.`)) return;
+      const { error } = await sb.rpc('apagar_convites_painel', { p_ids:[b.dataset.delInv] });
+      if(error) return toast(erroMsg(error), true);
+      toast('Convite cancelado.'); pgEquipa();
+    });
     document.querySelectorAll('[data-papel]').forEach(s => s.onchange = async () => {
       const { error } = await sb.from('adm_users').update({ papel: s.value }).eq('user_id', s.dataset.papel);
       if(error) return toast(erroMsg(error), true);
@@ -1720,7 +1887,6 @@ init();
    errado do catálogo. Os demais pacotes têm dono e código de compartilhamento, e
    valem no jogo de quem os escolhe ao criar a partida (ver src/net/dados.js).
    ============================================================================ */
-const JOGO_URL = 'https://retrofoot98.com.br';
 const CAMPOS_CLUBE   = ['name','short','color','color2','crest','OS','MS','DS','overall'];
 const CAMPOS_JOGADOR = ['n','p','s','f','age','mv','num','nat'];
 const POSICOES = ['GOL','ZAG','LAD','LAE','VOL','MC','MEI','PD','PE','SA','CA'];

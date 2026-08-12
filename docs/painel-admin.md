@@ -114,6 +114,32 @@ Para acrescentar um espaço novo: inserir a linha em `ad_spaces` **e** chamar
 `adSlotHTML('nova.chave')` (ou `ADS.html(...)`) na tela — sem os dois lados, o painel mostra um
 espaço que nunca aparece.
 
+### Apagar contas de jogador
+
+`admin_rf98.apagar_usuarios(uuid[])` — socio-only, auditada. **auth.users não tem FK vinda de
+`solo_saves`, `game_seats`, `games`, `room_invites` nem `join_requests`**: essas tabelas guardam
+o `user_id` como uuid solto, então um DELETE na conta deixaria save e assento órfãos (foi isso
+que fez o funil dizer "14 jogaram para 12 contas"). A limpeza é explícita:
+
+| O que | Vira |
+|---|---|
+| saves solo da pessoa | apagados |
+| assentos dela em salas de outros | devolvidos à CPU (a sala segue jogável) |
+| salas que ela **hospeda** | apagadas (sala sem anfitrião não funciona) |
+| convites e pedidos dela | apagados |
+| referências em auditoria/lançamentos | anuladas (FK `NO ACTION` bloquearia o delete) |
+
+Duas travas, testadas: não apaga a **própria** conta, e recusa a seleção inteira se houver
+**admin do painel** nela (tire o acesso em *Equipe admin* antes). Antes de confirmar, o painel
+chama `resumo_usuarios()` e mostra quantos saves, assentos e salas vão junto — e avisa quando as
+salas da pessoa têm **outros treinadores** dentro.
+
+### Reenviar senha
+
+Em *Usuários*, o link **Reenviar** chama a mesma edge function do "Esqueci a senha" do jogo
+(`send-password-reset`, template da marca via Resend), com `redirectTo` para o **site do jogo**.
+O painel não gera nem vê senha: o link é criado no servidor e vai direto para o e-mail da pessoa.
+
 ### Apagar salas e saves
 
 Em *Resenhas & solo* cada linha tem caixa de seleção, com atalhos por critério — salas **sem
