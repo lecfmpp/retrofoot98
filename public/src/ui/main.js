@@ -9240,19 +9240,36 @@ function clClubHistory(clubId){ CL.menu=null;
 /* CARREIRA (ranking de treinador): acumula, por clube, os PONTOS SOMADOS de todas as temporadas
    encerradas + a contagem de TÍTULOS (campeão da própria divisão). Lê as tabelas finais de
    S._prevSeason (que o servidor fornece na virada) e soma UMA vez por temporada (guarda por
-   marcador). Client-local (CL.careerStats) — cada cliente mantém a sua visão da sessão. */
+   marcador).
+
+   MORAVA EM CL (client-local) E SUMIA A CADA RECARGA. O acumulado só é somado na VIRADA de
+   temporada, e S._prevSeason é consumido ali mesmo — conferido em produção, ele não fica guardado
+   no estado da sala. Ou seja: quem recarregasse a página perdia o Ranking de Treinadores pra
+   sempre, sem nenhuma forma de recomputar. Mesmo buraco do histórico de títulos, só que numa tela
+   diferente. Agora vive em S.coachCareerStats e viaja em CAREER_KEYS -> game_seats.career.
+   (o nome não é `careerStats` de propósito: p.careerStats já existe e é a súmula do JOGADOR) */
 function accrueCareerStats(){
   const pv=S && S._prevSeason; if(!pv || !pv.tables) return;
-  CL.careerStats = CL.careerStats || {};
-  if(CL._careerAccruedSeason===pv.season) return;   // já contei esta temporada
-  CL._careerAccruedSeason=pv.season;
+  migrateCoachCareerStats();
+  if(S._coachCareerSeason===pv.season) return;      // já contei esta temporada
+  S._coachCareerSeason=pv.season;
   Object.keys(pv.tables).forEach(div=>{
     (pv.tables[div]||[]).forEach((row,i)=>{
-      const s=CL.careerStats[row.id]||(CL.careerStats[row.id]={pts:0,titles:0});
+      const s=S.coachCareerStats[row.id]||(S.coachCareerStats[row.id]={pts:0,titles:0});
       s.pts += (row.Pts||0);
       if(i===0) s.titles += 1;                       // campeão da divisão
     });
   });
+  if(typeof persistCareer==='function') persistCareer();   // grava no assento junto com o resto da carreira
+}
+/* sessão que já vinha rodando com o acumulado em CL: aproveita o que ela tem em vez de zerar */
+function migrateCoachCareerStats(){
+  if(!S) return;
+  if(!S.coachCareerStats){
+    S.coachCareerStats = (CL && CL.careerStats) ? CL.careerStats : {};
+    if(S._coachCareerSeason==null && CL && CL._careerAccruedSeason!=null) S._coachCareerSeason=CL._careerAccruedSeason;
+  }
+  if(CL) CL.careerStats=S.coachCareerStats;   // leitores antigos continuam vendo a mesma referência
 }
 /* ================= SALA DE TROFÉUS (handoff "Sala de Troféus do Treinador") =================
    Treinador > Sala de Troféus... — as taças da CARREIRA (não do clube), agrupadas por região,
@@ -9469,10 +9486,11 @@ function salaResenhaHTML(){
   </div>`;
 }
 function clCoachRanking(){ CL.menu=null;
+  migrateCoachCareerStats();   // save antigo (acumulado ainda em CL): adota antes de desenhar
   const TITLE_BONUS=50; // um título vale ~50 pts no critério de desempate (só pesa quando tem título)
   const rows=DATA.clubs.map((c,i)=>{
     const t=S.table[c.id]||{Pts:0};
-    const career=(CL.careerStats&&CL.careerStats[c.id])||{pts:0,titles:0};
+    const career=(S.coachCareerStats&&S.coachCareerStats[c.id])||{pts:0,titles:0};
     const totalPts=career.pts + (t.Pts||0);          // pontos somados totais (temporadas anteriores + atual)
     return {name:coachName(c.id,i),club:clubOf(c.id).short,pts:totalPts,titles:career.titles,human:!!(CL.humans&&CL.humans[c.id])};
   }).sort((a,b)=> (b.pts + b.titles*TITLE_BONUS) - (a.pts + a.titles*TITLE_BONUS) || b.pts-a.pts);

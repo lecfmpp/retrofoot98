@@ -3360,7 +3360,10 @@ function checkManagerJobEvent(){
    temporada). Na Resenha o S vem do save do ANFITRIÃO, e sem esta lista o convidado herdaria a
    estante de troféus do host — ou, mais provável, uma vazia. _titlesRegisteredSeason é o carimbo
    de "já registrei esta virada" e precisa sobreviver ao mesmo Object.assign. */
-const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub','criseVista','history','titlesByClub','financeHistory','_titlesRegisteredSeason'];
+/* coachCareerStats/_coachCareerSeason: o Ranking de Treinadores (pontos somados + títulos por
+   clube). Vivia em CL e sumia a cada recarga — o acumulado só é somado na virada de temporada e
+   S._prevSeason é consumido ali, então não havia como recomputar. Ver accrueCareerStats. */
+const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub','criseVista','history','titlesByClub','financeHistory','_titlesRegisteredSeason','coachCareerStats','_coachCareerSeason'];
 /* ---- EVOLUÇÃO DO ELENCO (o que o treino de fato fez) ----
    O ícone 🔺 dizia "está em treino", mas não dizia se rendeu alguma coisa. Aqui fica o histórico
    de FORÇA do meu elenco: uma entrada por MUDANÇA (não por rodada), então uma temporada inteira
