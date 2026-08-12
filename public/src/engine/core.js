@@ -4730,30 +4730,23 @@ function applyCpuRoundCash(){
    entre os jogadores da sala (etapa futura, fora desta entrega). */
 function applyCpuStadiumGrowth(){
   if(!S || !S.budgets || !S.clubStadiumCap) return;
-  if(typeof CL!=='undefined' && CL.online) return;
+  if(typeof CL!=='undefined' && CL.online) return;   // na Resenha quem calcula é o servidor (folha única)
+  if(typeof standCostFor!=='function' || typeof stadiumMaxCapacityFor!=='function') return;
   const humans=new Set();
   if(S.clubId) humans.add(S.clubId);
   if(typeof CL!=='undefined' && CL.humans) Object.keys(CL.humans).forEach(id=>humans.add(id));
-
-  Object.keys(S.budgets).forEach(id=>{
-    if(humans.has(id)) return;
-    const c=clubOf(id); if(!c) return;
-    if(!S.clubStadiumCap[id]) S.clubStadiumCap[id]={
-      capacity:(typeof realCapFor==='function'&&realCapFor(c))||((typeof REBAL.stadiumCap==='function')?REBAL.stadiumCap(c.overall):20000),
-      builtThisSeason:0 };
-    const st=S.clubStadiumCap[id];
-    st.builtThisSeason=0;   // roda 1x por virada — reset local, não precisa de outro passo em newSeasonReset
-    if(typeof standCostFor!=='function' || typeof stadiumMaxCapacityFor!=='function') return;
-    let guard=0;
-    while(guard++<10){      // teto defensivo; SEASON_BUILD_LIMIT/STAND_SEATS já limita a 2 na prática
-      const cost=standCostFor(st.capacity);
-      if(st.capacity+STAND_SEATS > stadiumMaxCapacityFor(c.overall, st.capacity)) break;   // teto de porte
-      if((st.builtThisSeason+STAND_SEATS) > SEASON_BUILD_LIMIT) break;                     // cota da temporada
-      if((S.budgets[id]||0) < cost) break;                                                 // caixa insuficiente
-      S.budgets[id] -= cost;
-      st.capacity += STAND_SEATS;
-      st.builtThisSeason += STAND_SEATS;
-    }
+  // A REGRA está em world-rules.js — a mesma que o resolve-round roda na Resenha. Daqui saem só
+  // os limites (cota, custo e teto de porte vivem no main.js) e o overall de cada clube.
+  WORLD_RULES.cpuCrescerEstadio(S, {
+    humanos:humans,
+    overall:id=>{ const c=clubOf(id); return c?c.overall:null; },
+    custo:standCostFor,
+    teto:stadiumMaxCapacityFor,
+    capInicial:(id,ov)=>{ const c=clubOf(id);
+      return (typeof realCapFor==='function' && c && realCapFor(c))
+        || ((typeof REBAL.stadiumCap==='function')?REBAL.stadiumCap(ov):20000); },
+    lugares:STAND_SEATS,
+    cota:SEASON_BUILD_LIMIT
   });
 }
 function newSeasonReset(){

@@ -329,10 +329,50 @@
       let salarios=0;
       (S.squads[id]||[]).forEach(function(p){ salarios+=folha(p); });
       const preco=Math.round(Math.max(6, Math.min(16, 6+Math.max(0,ov-20)*0.32)));
-      const bilheteriaEmCasa=Math.round(capacidade(ov)*0.55)*preco;
+      // CAPACIDADE CONSTRUÍDA MANDA. Sem isto a bilheteria saía sempre da capacidade sintética do
+      // overall e a bancada nova não rendia UM centavo a mais — o clube gastava pra construir e o
+      // estádio virava enfeite. É este ponto que liga o crescimento (cpuCrescerEstadio) ao caixa.
+      const persistida=(S.clubStadiumCap && S.clubStadiumCap[id] && S.clubStadiumCap[id].capacity)||null;
+      const bilheteriaEmCasa=Math.round((persistida||capacidade(ov))*0.55)*preco;
       const porRodada=base + Math.round(bilheteriaEmCasa/2) - salarios - Math.round(base*OPEX);
       S.budgets[id]=Math.max(-base*4, Math.round((S.budgets[id]||0)+porRodada));
     });
+  }
+  /* CRESCIMENTO DO ESTÁDIO DOS CLUBES DA CPU — a mesma decisão que o usuário toma na mão, uma vez
+     por virada de temporada: constrói bancadas enquanto couber no teto de porte, na cota da
+     temporada e no caixa. Vivia só no cliente (applyCpuStadiumGrowth) e tinha uma trava explícita
+     de "só solo": na Resenha cada cliente calcularia um crescimento diferente e os estádios
+     divergiriam entre os jogadores da sala. Escrito aqui, quem calcula é o servidor — um número
+     só pra todo mundo — e o cliente offline roda exatamente o mesmo código.
+     Os três limites entram por `opts` porque são regra de UI/rebalanceamento (main.js). */
+  function cpuCrescerEstadio(S, opts){
+    opts=opts||{};
+    const humanos=opts.humanos||new Set();
+    const overall=opts.overall, custo=opts.custo, teto=opts.teto, capInicial=opts.capInicial;
+    if(!S || !S.budgets || !overall || !custo || !teto) return [];
+    S.clubStadiumCap=S.clubStadiumCap||{};
+    const LUGARES=opts.lugares!=null?opts.lugares:5000;
+    const COTA=opts.cota!=null?opts.cota:10000;
+    const feitas=[];
+    Object.keys(S.budgets).forEach(function(id){
+      if(humanos.has(id)) return;                       // o estádio do humano é decisão dele
+      const ov=overall(id); if(ov==null) return;
+      if(!S.clubStadiumCap[id]) S.clubStadiumCap[id]={ capacity:(capInicial?capInicial(id,ov):20000), builtThisSeason:0 };
+      const st=S.clubStadiumCap[id];
+      st.builtThisSeason=0;                             // roda 1x por virada: o reset da cota é aqui
+      let guarda=0, antes=st.capacity;
+      while(guarda++<10){                               // teto defensivo; a cota já limita a 2 bancadas
+        const preco=custo(st.capacity);
+        if(st.capacity+LUGARES > teto(ov, st.capacity)) break;          // teto de porte do clube
+        if((st.builtThisSeason+LUGARES) > COTA) break;                  // cota da temporada
+        if((S.budgets[id]||0) < preco) break;                           // caixa insuficiente
+        S.budgets[id]-=preco;
+        st.capacity+=LUGARES;
+        st.builtThisSeason+=LUGARES;
+      }
+      if(st.capacity!==antes) feitas.push({ club:id, de:antes, para:st.capacity });
+    });
+    return feitas;
   }
   /* os três momentos de cada dia, na ordem em que o jogador os vive */
   const DAY_MOMENTS=['escalando','jogando','classificacao'];
@@ -341,7 +381,7 @@
     buildDayPlan, DAY_MOMENTS, prorrogarPorCopasPendentes,
     cupDrawDay, buildCupSchedule, cupTickMatchesRound, cupRoundIndexAt,
     cupAlreadyResolved, markCupResolved, CUP_FIRST_ROUND,
-    cpuMarket, cpuCaixaRodada };
+    cpuMarket, cpuCaixaRodada, cpuCrescerEstadio };
   root.WORLD_RULES=API;
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
 })(typeof globalThis!=='undefined'?globalThis:this);
