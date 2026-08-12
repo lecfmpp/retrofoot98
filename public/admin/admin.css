@@ -184,13 +184,30 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
 
 /* ---------- modais / toast ---------- */
 .modal{position:fixed;inset:0;background:rgba(4,8,6,.7);display:flex;align-items:center;
-  justify-content:center;z-index:50;padding:20px;overflow:auto}
-.modal .box{width:440px;max-width:100%;background:var(--card);border:1px solid var(--bd2);
-  border-radius:16px;padding:22px 24px}
-.modal .box.lg{width:520px}
+  justify-content:center;z-index:50;padding:20px}
+/* o modal é uma coluna de três partes: cabeçalho e rodapé fixos, miolo rolando.
+   max-height garante que ele NUNCA passe da janela (ver abrirModal, que monta as três) */
+.modal .box{width:440px;max-width:100%;max-height:calc(100vh - 40px);
+  background:var(--card);border:1px solid var(--bd2);border-radius:16px;
+  display:flex;flex-direction:column;overflow:hidden}
+.modal .box > .box-hd{flex:none;padding:20px 24px 12px;margin:0;
+  border-bottom:1px solid var(--bd3)}
+.modal .box > .box-corpo{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;
+  padding:16px 24px}
+.modal .box > .box-ft{flex:none;padding:14px 24px 18px;border-top:1px solid var(--bd3);
+  background:var(--card);margin:0}
+/* modal sem título nem botões (raro) continua com respiro */
+.modal .box > .box-corpo:only-child{padding:22px 24px}
+.modal .box.lg{width:min(560px,96vw)}
 /* ficha do clube: a grade do elenco (nome + 4 atributos + remover) não cabe em 520px
    sem empurrar as colunas para fora — daí uma largura própria, e não rolagem lateral */
-.modal .box.xl{width:min(820px,96vw)}
+.modal .box.xl{width:min(980px,96vw)}
+/* DUAS COLUNAS onde o conteúdo é naturalmente alto (ficha do clube, competição):
+   empilhar tudo criava um modal de 1400px que não cabia em tela nenhuma. Abaixo de
+   980px de janela volta a ser uma coluna só, que é o certo no notebook pequeno. */
+.duas-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start}
+.duas-col > *{min-width:0}
+@media (max-width:980px){ .duas-col{grid-template-columns:1fr} }
 /* toda célula da grade precisa poder ENCOLHER: sem min-width:0 o input mantém a
    largura padrão do navegador e estoura o grid, que é o que criava a barra lateral */
 .jog-linha{display:grid;gap:8px;align-items:center;padding:6px 12px;border-top:1px solid var(--bd3)}

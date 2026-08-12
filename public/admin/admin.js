@@ -1869,9 +1869,32 @@ function copiarLink(token){
 }
 
 /* ============================ modais ============================ */
+/* MODAL SEMPRE INTEIRO NA TELA.
+   Os modais são escritos como um bloco só (título, campos, botões). Nos maiores — ficha
+   do clube com elenco, competição com calendário — isso passava da altura da janela: a
+   pessoa rolava a PÁGINA atrás do botão de salvar, e em tela baixa o botão simplesmente
+   não aparecia.
+
+   Em vez de acertar cada modal à mão (e ter de lembrar disso em todo modal novo), a
+   montagem é rearranjada aqui, uma vez: o <h3> vira cabeçalho fixo, os botões (.acoes)
+   viram rodapé fixo, e TUDO que sobra no meio vai para uma área que rola sozinha. O
+   modal nunca passa da altura da janela, e título e ação ficam sempre à vista. */
 function abrirModal(html, cls){
   el('modais').innerHTML = `<div class="modal"><div class="box ${cls||''}">${html}</div></div>`;
   const m = el('modais').firstElementChild;
+  const box = m.firstElementChild;
+
+  const titulo = box.querySelector(':scope > h3');
+  const acoes  = box.querySelector('.acoes');
+  const corpo = document.createElement('div');
+  corpo.className = 'box-corpo';
+  // move o miolo para a área rolável (o cabeçalho e o rodapé ficam de fora)
+  Array.from(box.childNodes).forEach(n => { if(n !== titulo) corpo.appendChild(n); });
+  if(acoes && corpo.contains(acoes)) acoes.remove();
+  box.appendChild(corpo);
+  if(titulo) titulo.classList.add('box-hd');
+  if(acoes){ acoes.classList.add('box-ft'); box.appendChild(acoes); }
+
   m.onclick = ev => { if(ev.target===m) fecharModal(); };
   m.querySelectorAll('[data-fechar]').forEach(b => b.onclick = fecharModal);
   document.addEventListener('keydown', escFechar);
@@ -2162,7 +2185,8 @@ function abrirClube(id){
       <span class="mono">${h(c.id)}</span> · Série ${h(item.div)}
       ${ed?` · <span class="tag ${ed.novo?'t-roxo':'t-ok'}">${ed.novo?'criado aqui':'editado'}</span>`:''}
     </div>
-    <div class="col" style="gap:14px">
+    <div class="duas-col">
+     <div class="col" style="gap:14px">
       <div class="g2" style="gap:12px">
         <label class="f">Nome<input class="f" id="c-name" value="${h(c.name||'')}" ${editar?'':'disabled'}></label>
         <label class="f">Nome curto<input class="f" id="c-short" value="${h(c.short||'')}" ${editar?'':'disabled'}></label>
@@ -2186,7 +2210,9 @@ function abrirClube(id){
              value="${c[k]!=null?c[k]:''}" ${editar?'':'disabled'}></label>`).join('')}
       </div>
 
-      <div style="display:flex;align-items:baseline;gap:10px;margin-top:6px">
+     </div>
+     <div class="col" style="gap:10px">
+      <div style="display:flex;align-items:baseline;gap:10px">
         <div class="tt">Elenco — ${sq.length} jogadores</div>
         <span class="st" style="margin:0">valores em <b>R$</b> — o jogo converte para a moeda escolhida ao criar o save</span>
       </div>
@@ -2200,12 +2226,12 @@ function abrirClube(id){
         </div>
       </div>
       ${editar?`<button class="btn btn-sm btn-ghost" id="c-add-jog">+ Adicionar jogador</button>`:''}
-
-      <div class="acoes">
+     </div>
+    </div>
+    <div class="acoes">
         ${editar?`<button class="btn" id="c-salvar">Salvar no patch</button>`:''}
         ${editar&&ed?`<button class="btn btn-ghost" id="c-reverter" style="flex:0 0 auto;color:var(--vermelho)">Tirar do patch</button>`:''}
         <button class="btn btn-ghost" data-fechar>Fechar</button>
-      </div>
     </div>`, 'xl');
 
   if(!editar) return;
@@ -3091,7 +3117,8 @@ function modalCompeticao(indice){
 
   abrirModal(`
     <h3>${indice==null?'Nova competição':h(c.nome)}</h3>
-    <div class="col">
+    <div class="duas-col">
+     <div class="col">
       <div class="g2" style="gap:12px">
         <label class="f">Nome<input class="f" id="k-nome" value="${h(c.nome)}" placeholder="Ex.: Brasileirão Série A"></label>
         <label class="f">País
@@ -3132,7 +3159,9 @@ function modalCompeticao(indice){
         </div>
       </div>
 
-      <div class="tt" style="margin-top:10px">Calendário</div>
+     </div>
+     <div class="col">
+      <div class="tt">Calendário</div>
       <div class="st" style="line-height:1.6">
         Uma data por rodada, na ordem. <b>Duas competições não podem cair no mesmo dia</b> —
         as datas já usadas por outras competições deste patch são recusadas aqui.
@@ -3143,13 +3172,14 @@ function modalCompeticao(indice){
         <button class="btn btn-sm btn-ghost" id="k-auto" style="margin-bottom:2px">Preencher automático</button>
       </div>
       <div class="erro hide" id="k-erro"></div>
-      <div id="k-datas" style="display:flex;flex-wrap:wrap;gap:6px"></div>
-
-      <div class="acoes">
-        <button class="btn" id="k-ok">Salvar competição</button>
-        <button class="btn btn-ghost" data-fechar>Cancelar</button>
-      </div>
-    </div>`, 'lg');
+      <div id="k-datas" style="display:flex;flex-wrap:wrap;gap:6px;max-height:260px;overflow-y:auto;
+           align-content:flex-start;padding:2px"></div>
+     </div>
+    </div>
+    <div class="acoes">
+      <button class="btn" id="k-ok">Salvar competição</button>
+      <button class="btn btn-ghost" data-fechar>Cancelar</button>
+    </div>`, 'xl');
 
   const erro = el('k-erro');
   el('k-tipo').onchange = () => el('k-liga').classList.toggle('hide', el('k-tipo').value!=='liga');
