@@ -680,26 +680,22 @@ function cpuBackgroundTransfers(R){
   R=R||makeRng(hashSeed(S.seed,S.round,'cpumkt'));
   const cpuClubs=DATA.clubs.filter(c=>!isCpuMarketProtected(c.id));
   if(cpuClubs.length<2) return;
-  const nTransfers=2+Math.floor(R.rnd(0,3)); // 2-4 por rodada — liga do usuário é o mercado mais ativo/real
-  for(let i=0;i<nTransfers;i++){
-    const seller=cpuClubs[Math.floor(R.random()*cpuClubs.length)];
-    const sellerSquad=S.squads[seller.id]; if(!sellerSquad || sellerSquad.length<=16) continue; // não deixa o elenco vazio
-    // vende preferencialmente banco (não titular óbvio): pega entre os 40% mais fracos do elenco
-    const sorted=sellerSquad.slice().sort((a,b)=>b.f-a.f);
-    // piso de elenco também vale pra CPU: sem isso, ao longo de várias temporadas um clube da CPU
-    // ia vendendo o 2º/3º goleiro (que caem sempre na metade mais fraca) até ficar sem nenhum.
-    const pool=sorted.slice(Math.ceil(sorted.length*0.5)).filter(x=>canReleaseFromSquad(seller.id,x).ok);
-    if(!pool.length) continue;
-    const p=pool[Math.floor(R.random()*pool.length)];
-    const buyers=cpuClubs.filter(c=>c.id!==seller.id);
-    const buyer=buyers[Math.floor(R.random()*buyers.length)];
-    if(!buyer) continue;
-    const fee=Math.round((p.mv||1e6)*(0.6+R.random()*0.6));
-    S.squads[seller.id]=sellerSquad.filter(x=>x.n!==p.n);
-    S.squads[buyer.id]=S.squads[buyer.id]||[]; S.squads[buyer.id].push(p);
-    S.roundNews=S.roundNews||[];
-    S.roundNews.push(`🔄 ${p.n} foi negociado do ${seller.short} pro ${buyer.short} por ${fmt(fee)}.`);
-  }
+  // A REGRA MORA EM world-rules.js (folha única cliente⇄servidor). Antes ela só existia aqui, e
+  // como o cliente não comita mais rodada na Resenha, o mercado da CPU não acontecia no
+  // multiplayer. Daqui só saem os DADOS do jogo: quem pode negociar, quem pode sair do elenco e
+  // quanto vale o jogador. O dinheiro agora sai de um caixa e entra no outro (ver WORLD_RULES.cpuMarket).
+  const feitas=WORLD_RULES.cpuMarket(S, R, {
+    clubes: cpuClubs.map(c=>({id:c.id, short:c.short})),
+    podeSair: (clubId,p)=>canReleaseFromSquad(clubId,p).ok,
+    valor: p=>p.mv||1e6,
+    n: 2+Math.floor(R.rnd(0,3))                 // 2-4 por rodada — a liga do usuário é o mercado mais ativo
+  });
+  if(!feitas.length) return;
+  S.roundNews=S.roundNews||[];
+  feitas.forEach(t=>{
+    const de=(clubOf(t.from)||{}).short||t.from, para=(clubOf(t.to)||{}).short||t.to;
+    S.roundNews.push(`🔄 ${t.player} foi negociado do ${de} pro ${para} por ${fmt(t.fee)}.`);
+  });
 }
 /* ---- mercado das LIGAS DE BACKGROUND: os clubes estrangeiros negociam entre si (compra e
    venda), dando vida às ligas que rodam sozinhas. Mesma cadência do mercado da liga do
@@ -3913,6 +3909,7 @@ function playRound(userResult, humanResults){
   S.round++; S.week++; S.day+=7;
   advanceNegos();
   executePendingTransfers(); // pré-acordos entram em vigor quando a janela abre
+  applyCpuRoundCash();        // caixa dos rivais anda TODA rodada — o mercado abaixo depende dele
   cpuBackgroundTransfers(Rr); // mercado entre CPUs — dá vida ao jogo mesmo sem o usuário negociar
   bgCpuTransfers(Rr); // clubes das ligas de background negociam entre si (compra/venda)
   generateIncomingOffers(Rr); // clubes fazem propostas de compra pelos jogadores do usuário
@@ -4693,11 +4690,34 @@ function applyCpuSeasonFinances(){
     let prize=0;
     if(m && typeof PRIZES!=='undefined'){ try{ prize=PRIZES.leaguePrize(m.div,m.pos,m.n)||0; }catch(e){} }
 
-    const revenue=base*rounds + gate + bonus + prize;
-    const costs=payroll*rounds + Math.round(base*REBAL.OPEX)*rounds;
+    // SÓ O DINHEIRO DE DESEMPENHO FICA AQUI (bônus por vitória + premiação). Receita base,
+    // bilheteria, folha e custo fixo passaram a entrar TODA RODADA (applyCpuRoundCash) — antes o
+    // ano inteiro caía de uma vez na virada e o caixa dos rivais ficava congelado durante a
+    // temporada, que é justamente quando a janela de transferências abre e o mercado da CPU
+    // precisa de caixa de verdade. A soma do ano é a mesma; somar os dois aqui contaria duas vezes.
+    // `gate` continua calculado acima porque a bilheteria por rodada deriva dele.
+    void gate;
     // piso: um clube da CPU não some do mercado por dívida — fica raspando o caixa, como no
     // save do usuário, que também só recebe um aviso quando fica negativo.
-    S.budgets[id]=Math.max(-base*4, Math.round((S.budgets[id]||0) + revenue - costs));
+    S.budgets[id]=Math.max(-base*4, Math.round((S.budgets[id]||0) + bonus + prize));
+  });
+}
+/* CAIXA DA CPU POR RODADA (solo/hotseat) — a regra mora em world-rules.js e é a MESMA que o
+   servidor roda na Resenha (cpuRoundCash no resolve-round). Ver applyCpuSeasonFinances acima:
+   o que é operação entra aqui, rodada a rodada; o que é desempenho fica na virada. */
+function applyCpuRoundCash(){
+  if(!S || !S.budgets) return;
+  if(typeof CL!=='undefined' && CL.online) return;   // na Resenha quem faz esta conta é o servidor
+  const humans=new Set();
+  if(S.clubId) humans.add(S.clubId);
+  if(typeof CL!=='undefined' && CL.humans) Object.keys(CL.humans).forEach(id=>humans.add(id));
+  WORLD_RULES.cpuCaixaRodada(S, {
+    humanos:humans,
+    renda:baseIncome,
+    folha:p=>(p.contract && p.contract.salary) || REBAL.wage(p.f),
+    capacidade:ov=>(typeof REBAL.stadiumCap==='function')?REBAL.stadiumCap(ov):20000,
+    overall:id=>{ const c=clubOf(id); return c?c.overall:null; },
+    OPEX:REBAL.OPEX
   });
 }
 /* crescimento AUTOMÁTICO do estádio dos clubes da CPU — mesma decisão que o usuário toma na mão

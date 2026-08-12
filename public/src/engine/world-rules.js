@@ -230,13 +230,118 @@
     S._jornadasExtras=jaExtras+cabe;
     return cabe;
   }
+  /* ---------- MERCADO E CAIXA DOS CLUBES DA CPU ----------
+     POR QUE ESTÁ AQUI. O mercado da CPU só existia no cliente (cpuBackgroundTransfers, core.js),
+     dentro do playRound(). Na Resenha o cliente parou de comitar rodada localmente (o servidor é
+     autoridade única desde o F3.5), então o mercado da CPU simplesmente NÃO ACONTECIA no
+     multiplayer: os elencos dos rivais ficavam parados a temporada inteira. Escrito aqui, o
+     sync-world-rules injeta no resolve-round e os dois lados rodam o MESMO código.
+
+     E O DINHEIRO. A transferência entre dois clubes da CPU calculava uma taxa, anunciava na
+     notícia e não debitava nem creditava ninguém — dinheiro que aparecia do nada e sumia no nada.
+     O comprador também era sorteado sem olhar o caixa: um clube da Série D "comprava" um craque
+     de 20 milhões. Agora a taxa sai do caixa de quem compra e entra no de quem vende, e quem não
+     tem caixa VENDE ANTES DE COMPRAR (uma venda por negócio — o suficiente pra dar movimento em
+     cadeia sem virar leilão infinito).
+
+     Tudo o que depende do jogo (quem é clube elegível, se um jogador pode sair do elenco, o valor
+     de mercado) entra por `opts` — a regra de ouro deste arquivo é não tocar em global nenhum. */
+  function cpuMarket(S, R, opts){
+    opts=opts||{};
+    const clubes=opts.clubes||[];                       // [{id, short}] — já filtrados por quem pode negociar
+    const podeSair=opts.podeSair||function(){ return true; };
+    const valor=opts.valor||function(p){ return (p&&p.mv)||1e6; };
+    const pisoElenco=opts.pisoElenco!=null?opts.pisoElenco:16;
+    const tetoElenco=opts.tetoElenco!=null?opts.tetoElenco:32;
+    const n=opts.n!=null?opts.n:2;
+    if(!S || !S.squads || clubes.length<2) return [];
+    S.budgets=S.budgets||{};
+    const caixa=function(id){ return S.budgets[id]||0; };
+    const feitas=[];
+
+    /* tira um jogador vendável do elenco: metade mais fraca, respeitando o piso e o cadeado
+       de quem não pode sair (goleiro único, contrato travado — quem sabe disso é o chamador) */
+    function vendavel(clubId){
+      const sq=S.squads[clubId]; if(!sq || sq.length<=pisoElenco) return null;
+      const ord=sq.slice().sort(function(a,b){ return b.f-a.f; });
+      const pool=ord.slice(Math.ceil(ord.length*0.5)).filter(function(x){ return podeSair(clubId,x); });
+      return pool.length ? pool[Math.floor(R.random()*pool.length)] : null;
+    }
+    function mover(deId, paraId, p, taxa){
+      S.squads[deId]=S.squads[deId].filter(function(x){ return x.pid!=null ? x.pid!==p.pid : x.n!==p.n; });
+      S.squads[paraId]=S.squads[paraId]||[]; S.squads[paraId].push(p);
+      S.budgets[deId]=Math.round(caixa(deId)+taxa);      // o dinheiro sai de um caixa e entra no outro
+      S.budgets[paraId]=Math.round(caixa(paraId)-taxa);
+      feitas.push({ player:p.n, from:deId, to:paraId, fee:taxa });
+    }
+
+    for(let i=0;i<n;i++){
+      const vendedor=clubes[Math.floor(R.random()*clubes.length)];
+      const p=vendavel(vendedor.id); if(!p) continue;
+      const taxa=Math.round(valor(p)*(0.6+R.random()*0.6));
+
+      // compradores plausíveis: não é o vendedor, tem espaço no elenco. Quem já pode pagar entra
+      // na frente; quem não pode ainda tem a chance de levantar o dinheiro vendendo alguém.
+      const cand=clubes.filter(function(c){
+        return c.id!==vendedor.id && (S.squads[c.id]||[]).length<tetoElenco;
+      });
+      if(!cand.length) continue;
+      const podem=cand.filter(function(c){ return caixa(c.id)>=taxa; });
+      let comprador=null;
+      if(podem.length){ comprador=podem[Math.floor(R.random()*podem.length)]; }
+      else {
+        // VENDE ANTES DE COMPRAR: um candidato tenta levantar caixa com uma venda própria.
+        const tentante=cand[Math.floor(R.random()*cand.length)];
+        const sai=vendavel(tentante.id);
+        if(sai){
+          const taxaSaida=Math.round(valor(sai)*(0.6+R.random()*0.6));
+          const quemPaga=clubes.filter(function(c){
+            return c.id!==tentante.id && c.id!==vendedor.id
+              && caixa(c.id)>=taxaSaida && (S.squads[c.id]||[]).length<tetoElenco;
+          });
+          if(quemPaga.length){
+            mover(tentante.id, quemPaga[Math.floor(R.random()*quemPaga.length)].id, sai, taxaSaida);
+            if(caixa(tentante.id)>=taxa) comprador=tentante;   // agora dá
+          }
+        }
+      }
+      if(!comprador) continue;                                  // sem caixa e sem como levantar: não compra
+      mover(vendedor.id, comprador.id, p, taxa);
+    }
+    return feitas;
+  }
+  /* CAIXA DA CPU POR RODADA — a parte de OPERAÇÃO do ano (receita base, bilheteria média, folha e
+     custo fixo), dividida pelas rodadas. Antes tudo isso era aplicado de uma vez na virada de
+     temporada: durante o ano o caixa dos rivais ficava CONGELADO — e a janela de transferências
+     acontece justamente durante o ano, então o mercado da CPU negociava com um caixa que não
+     refletia nada. O que é de DESEMPENHO (bônus por vitória e premiação) continua no fim da
+     temporada, que é quando de fato se recebe. A soma do ano é a mesma de antes. */
+  function cpuCaixaRodada(S, opts){
+    opts=opts||{};
+    const humanos=opts.humanos||new Set();
+    const renda=opts.renda, folha=opts.folha, capacidade=opts.capacidade, overall=opts.overall;
+    if(!S || !S.budgets || !renda || !folha || !capacidade || !overall) return;
+    const OPEX=opts.OPEX!=null?opts.OPEX:0.08;
+    Object.keys(S.budgets).forEach(function(id){
+      if(humanos.has(id)) return;                       // humano paga/recebe pelo próprio caminho
+      const ov=overall(id); if(ov==null) return;
+      const base=renda(ov);
+      let salarios=0;
+      (S.squads[id]||[]).forEach(function(p){ salarios+=folha(p); });
+      const preco=Math.round(Math.max(6, Math.min(16, 6+Math.max(0,ov-20)*0.32)));
+      const bilheteriaEmCasa=Math.round(capacidade(ov)*0.55)*preco;
+      const porRodada=base + Math.round(bilheteriaEmCasa/2) - salarios - Math.round(base*OPEX);
+      S.budgets[id]=Math.max(-base*4, Math.round((S.budgets[id]||0)+porRodada));
+    });
+  }
   /* os três momentos de cada dia, na ordem em que o jogador os vive */
   const DAY_MOMENTS=['escalando','jogando','classificacao'];
 
   const API={ calendar, seasonStart, calDay, jornadaOfCalDate, leagueMatchDay, cupMatchDayByRound,
     buildDayPlan, DAY_MOMENTS, prorrogarPorCopasPendentes,
     cupDrawDay, buildCupSchedule, cupTickMatchesRound, cupRoundIndexAt,
-    cupAlreadyResolved, markCupResolved, CUP_FIRST_ROUND };
+    cupAlreadyResolved, markCupResolved, CUP_FIRST_ROUND,
+    cpuMarket, cpuCaixaRodada };
   root.WORLD_RULES=API;
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
 })(typeof globalThis!=='undefined'?globalThis:this);
