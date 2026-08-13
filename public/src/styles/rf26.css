@@ -3695,3 +3695,20 @@
   .rf-el-hd-acts{width:100%}
   .rf-el-hd-acts .rf-btn{flex:1}
 }
+
+/* ---- Campeonatos: cards de competição com o troféu real ---- */
+.rf-cp-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.rf-cp-card{gap:12px}
+.rf-cp-card-hd{display:flex;align-items:center;gap:12px}
+.rf-cp-card-id{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-cp-card-n{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-cp-card-1{font-size:var(--fs-caption);color:var(--text-3)}
+.rf-cp-card-2{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-faint)}
+.rf-cp-card-ft{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line-1);padding-top:10px}
+.rf-cp-card-selo{font-family:var(--font-mono);font-size:9px;font-weight:var(--fw-bold);
+  letter-spacing:.06em;color:var(--club-on-secondary);background:var(--club-secondary);
+  border-radius:var(--r-pill);padding:3px 9px;white-space:nowrap}
+.rf-linha.me{background:var(--club-primary-soft);border-radius:var(--r-chip);
+  padding-left:8px;padding-right:8px}
+@media (max-width:900px){ .rf-cp-cards{grid-template-columns:minmax(0,1fr)} }
