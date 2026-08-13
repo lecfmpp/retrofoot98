@@ -207,8 +207,19 @@
    (coluna de 530 + coluna do campo de 770 + 14). Sem isto o envelope
    encolhia e crescia a cada troca de página e a faixa do clube dançava de
    tamanho junto: navegar parecia trocar de site, não de secção. */
-:root{--rf-content-w:1314px}
-.rf-content{width:var(--rf-content-w);max-width:100%;min-width:0;display:flex;flex-direction:column;gap:14px}
+/* LARGURA DO MIOLO, contínua em vez de degraus. 1314 é o ideal (o Hub lado a
+   lado); daí pra baixo ela acompanha a janela, sempre descontando a mesa (36),
+   a sidebar aberta (216) e o respiro (14) — e nunca abaixo de 770, que é a
+   coluna do campo, a peça que não encolhe. Assim as páginas internas ganham
+   toda a largura disponível num monitor de 1440 em vez de ficarem presas a um
+   número fixo, e a faixa do clube continua igual em todas as páginas (que é o
+   motivo de existir uma largura só). */
+:root{--rf-content-w:max(770px, min(1314px, calc(100vw - 266px)))}
+/* o CONTÊINER da consulta é o miolo, não a grade: @container estiliza os
+   DESCENDENTES do contêiner, nunca o próprio contêiner — com o container-type
+   na grade, a regra abaixo simplesmente não pegava nela. */
+.rf-content{width:var(--rf-content-w);max-width:100%;min-width:0;display:flex;flex-direction:column;gap:14px;
+  container-type:inline-size;container-name:rfmiolo}
 .rf-band{display:flex;align-items:center;gap:16px;
   background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
   border-radius:var(--r-card);padding:16px 20px;position:relative;overflow:hidden;color:#fff}
@@ -297,11 +308,11 @@
 /* ver a "ordem de sacrifício" acima: 1580 é a largura em que as duas colunas
    ainda cabem lado a lado com a sidebar aberta. */
 @media (max-width:1580px){
-  /* empilhado, o miolo passa a ter a largura da coluna do campo */
-  :root{--rf-content-w:770px}
+  /* o HUB empilha aqui — a coluna dele é o campo, de 770, e não encolhe */
   .rf-cols{grid-template-columns:minmax(0,1fr)}
   .rf-col{min-width:0}
 }
+
 @media (max-width:1024px){
   .rf-band{flex-wrap:wrap;row-gap:12px}
   .rf-band-sp{display:none}
@@ -1159,10 +1170,26 @@
 .rf-tabp.on{background:var(--club-primary);color:var(--club-on-primary);font-weight:var(--fw-bold)}
 .rf-tabp.on:hover{background:var(--club-primary)}
 
-/* a grade de duas colunas da página — a proporção vem inline, de cada tela */
+/* a grade de duas colunas da página — a proporção vem inline, de cada tela.
+
+   QUEM MANDA AQUI É A LARGURA DA PRÓPRIA GRADE, não a da janela. Antes esta
+   grade empilhava abaixo de 1580px de JANELA, o mesmo número do Hub — e o Hub
+   precisa daquilo porque a coluna dele é o CAMPO, de 770px. A coluna destas
+   páginas é um trilho de 340. O resultado é que num monitor de 1440 (o mais
+   comum) toda página interna perdia a segunda coluna sem precisar: a grade
+   tinha 738px de sobra e mesmo assim empilhava.
+
+   Com container query, a grade empilha quando ELA fica estreita — o que
+   também acerta sozinho quando a sidebar abre/fecha ou quando um trilho de
+   publicidade entra, sem número mágico novo a cada caso. */
 .rf-pagegrid{display:grid;gap:14px;align-items:start;animation:ds-fade-up var(--dur-base) var(--ease)}
 .rf-pagecol{display:flex;flex-direction:column;gap:14px;min-width:0}
-@media (max-width:1580px){ .rf-pagegrid{grid-template-columns:minmax(0,1fr) !important} }
+/* 900 = trilho de 340 + respiro de 14 + ~546 de coluna útil pra tabela de dados */
+@container rfmiolo (max-width:900px){ .rf-pagegrid{grid-template-columns:minmax(0,1fr) !important} }
+/* sem suporte a container query, cai num degrau de janela */
+@supports not (container-type:inline-size){
+  @media (max-width:1180px){ .rf-pagegrid{grid-template-columns:minmax(0,1fr) !important} }
+}
 @media (max-width:760px){
   .rf-pagehead-top{flex-direction:column;align-items:stretch;gap:8px}
   .rf-pagehead-t{font-size:var(--fs-title)}
