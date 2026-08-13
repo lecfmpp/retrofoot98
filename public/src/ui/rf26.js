@@ -129,15 +129,15 @@ const RF_PAGES=[
   { key:'email', ico:'✉️', label:'E-mail', curto:'E-mail',
     titulo:'E-mail', sub:'Comunicados da diretoria, propostas e avisos',
     pill:()=>rfPillNaoLidas(), grid:'340px minmax(0,1fr)',
-    tabs:[ {k:'caixa',     l:()=>'Caixa de entrada'+rfSufixo(rfNaoLidas()), build:()=>rfEmailHTML('caixa')},
-           {k:'arquivadas',l:()=>'Arquivadas',                              build:()=>rfEmailHTML('arquivadas')} ] },
+    tabs:[ {k:'caixa',     l:()=>'Caixa de entrada'+rfSufixo(rfNaoLidas()), build:()=>rfEmCaixaHTML()},
+           {k:'arquivadas',l:()=>'Arquivadas',                              build:()=>rfEmArquivadasHTML()} ] },
 
   { key:'config', ico:'⚙️', label:'Configurações', curto:'Config',
     titulo:'Configurações', sub:'Preferências, save e Modo Resenha',
     pill:()=>rfPillGravado(), grid:'minmax(0,1fr) 340px',
-    tabs:[ {k:'opcoes',  l:()=>'Opções',       build:()=>rfConfigHTML('opcoes')},
-           {k:'jogo',    l:()=>'Jogo',         build:()=>rfConfigHTML('jogo')},
-           {k:'resenha', l:()=>'Modo Resenha', build:()=>rfConfigHTML('resenha'),
+    tabs:[ {k:'opcoes',  l:()=>'Opções',       build:()=>rfCfOpcoesHTML()},
+           {k:'jogo',    l:()=>'Jogo',         build:()=>rfCfJogoHTML()},
+           {k:'resenha', l:()=>'Modo Resenha', build:()=>rfCfResenhaHTML(),
             show:()=>!!CL.online} ] },
 ];
 
