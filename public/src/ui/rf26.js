@@ -868,9 +868,15 @@ function rfMercadoLinhaHTML(item){
       title="${escC(p.n)} — ${escC(c.short)}">
     <span class="rf-mkt-crest">${rfCrest(c,24)}</span>
     <span class="rf-mkt-name">${escC(p.n)}</span>
-    <span class="rf-mkt-pos">${escC(rfPosLabel(p.s))}</span>
-    <span class="rf-mkt-id">${p.age||''}</span>
-    <span class="rf-mkt-frc">${p.f}</span>
+    <!-- POS/ID/FRC ficam dentro de um invólucro que no DESKTOP é
+         display:contents (os três viram colunas da grade, como na tela) e no
+         TELEFONE vira uma linha só, de subtítulo embaixo do nome. Um HTML,
+         duas leituras — sem repetir o dado em dois lugares. -->
+    <span class="rf-mkt-meta">
+      <span class="rf-mkt-pos">${escC(rfPosLabel(p.s))}</span>
+      <span class="rf-mkt-id">${p.age||''}</span>
+      <span class="rf-mkt-frc">${p.f}</span>
+    </span>
     <span class="rf-mkt-val">${escC(mvShort(ask))}</span>
     <span class="rf-mkt-act">Fazer proposta</span>
   </div>`;

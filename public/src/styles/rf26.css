@@ -1176,6 +1176,7 @@
 .rf-mkt-row{padding:8px 10px;border-radius:var(--r-chip);cursor:pointer;
   transition:background var(--dur-fast) var(--ease)}
 .rf-mkt-row:hover{background:var(--surface-row-active)}
+.rf-mkt-meta{display:contents}
 .rf-mkt-crest{display:flex;align-items:center;justify-content:center}
 .rf-mkt-crest img,.rf-mkt-crest .rf-crest-fb{width:24px;height:24px;object-fit:contain}
 .rf-mkt-name{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -1407,3 +1408,84 @@
 .rf-fh-l.neg{color:var(--danger)}
 @media (max-width:1024px){ .rf-kpis{flex-wrap:wrap} .rf-kpi{flex:1 1 45%} }
 @media (max-width:760px){ .rf-kpi{flex:1 1 100%} }
+
+/* =====================================================================
+   MOBILE DAS PÁGINAS (telas "- Mobile.html", 390px)
+   A regra é a mesma em todas: a TABELA PERDE COLUNAS, nunca linhas. O que
+   sai vira subtítulo embaixo do nome — o dado continua na tela, muda de
+   lugar. Nada aqui usa reticências pra esconder informação que importa.
+   ===================================================================== */
+@media (max-width:760px){
+
+  /* ---- Mercado: a linha vira nome+subtítulo à esquerda, valor à direita ---- */
+  /* a linha vira duas fileiras: nome/valor em cima, meta/ação embaixo */
+  .rf-mkt-head{display:none}
+  .rf-mkt-row{grid-template-columns:30px minmax(0,1fr) auto;gap:2px 10px;
+    grid-template-areas:'escudo nome valor' 'escudo meta acao';
+    padding:8px 0;border-radius:0;border-bottom:1px solid var(--line-3)}
+  .rf-mkt-row:last-child{border-bottom:none}
+  .rf-mkt-crest{grid-area:escudo;align-self:center}
+  .rf-mkt-name{grid-area:nome;font-size:var(--fs-body-sm)}
+  .rf-mkt-meta{grid-area:meta;display:flex;align-items:center;gap:6px;min-width:0}
+  .rf-mkt-meta>span{font-size:var(--fs-micro);color:var(--text-4);text-align:left;font-weight:var(--fw-regular)}
+  .rf-mkt-meta>span:not(:last-child)::after{content:' ·';color:var(--text-faint)}
+  .rf-mkt-val{grid-area:valor;font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1)}
+  .rf-mkt-act{grid-area:acao;font-size:var(--fs-caption)}
+  .rf-mkt-list{max-height:none}
+  .rf-mkt-filtros{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .rf-mkt-filtros::-webkit-scrollbar{display:none}
+  .rf-mkt-filtros .rf-sp,.rf-mkt-filtros .rf-label-r{display:none}
+
+  /* ---- Elenco: fica POS, nome, força e energia (o que o design manda) ---- */
+  .rf-sq-head{display:none}
+  .rf-sq-row{grid-template-columns:22px 26px minmax(0,1fr) 34px 46px !important;gap:0 8px}
+  .rf-sq-id,.rf-sq-nota,.rf-sq-sal,.rf-sq-val{display:none}
+  .rf-sq-list{max-height:none}
+
+  /* ---- Campeonatos: posição, equipa, saldo e pontos ---- */
+  .rf-tb-head,.rf-tb-row{grid-template-columns:30px minmax(0,1fr) 34px 26px}
+  .rf-tb-head>span:nth-child(3),.rf-tb-head>span:nth-child(4),
+  .rf-tb-head>span:nth-child(5),.rf-tb-head>span:nth-child(6){display:none}
+  .rf-tb-row>.rf-tb-x:nth-of-type(1),.rf-tb-row>.rf-tb-x:nth-of-type(2),
+  .rf-tb-row>.rf-tb-x:nth-of-type(3),.rf-tb-row>.rf-tb-x:nth-of-type(4){display:none}
+  .rf-tb-list{max-height:none}
+  .rf-cal-head>span:nth-child(3){display:none}
+  .rf-cal-head,.rf-cal-row{grid-template-columns:58px minmax(0,1fr) 52px}
+  .rf-cal-l{display:none}
+  .rf-cal-list{max-height:none}
+
+  /* ---- Finanças: KPIs em duas colunas, tabelas mais estreitas ---- */
+  .rf-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .rf-kpi{flex:none}
+  .rf-kpi-v{font-size:19px}
+  .rf-fh-head,.rf-fh-row{grid-template-columns:46px repeat(3,minmax(0,1fr));gap:0 6px}
+  .rf-fh-r,.rf-fh-d,.rf-fh-l{font-size:var(--fs-micro)}
+  .rf-extrato{max-height:none}
+
+  /* ---- Treinador: troféus continuam 4 por linha, história perde colunas ---- */
+  .rf-trofeus{grid-template-columns:repeat(4,1fr);gap:8px}
+  .rf-trofeu{padding:10px 6px}
+  .rf-trofeu-n{font-size:var(--fs-label)}
+  .rf-th-head,.rf-th-row{grid-template-columns:46px minmax(0,1fr) 40px}
+  .rf-th-head>span:nth-child(3),.rf-th-head>span:nth-child(5),
+  .rf-th-d,.rf-th-t{display:none}
+  .rf-kpi-id{grid-column:1 / -1}
+  .rf-tr-nome{font-size:var(--fs-title)}
+
+  /* ---- Últimas transferências ---- */
+  .rf-tr-head,.rf-tr-row{grid-template-columns:minmax(0,1fr) 74px}
+  .rf-tr-head>span:nth-child(1),.rf-tr-head>span:nth-child(3),
+  .rf-tr-a,.rf-tr-c{display:none}
+  .rf-tr-list{max-height:none}
+
+  /* ---- Clube & Sistema: a lista de e-mails vem primeiro, depois a leitura ---- */
+  .rf-mails{max-height:none}
+  .rf-opt{flex-wrap:wrap;row-gap:8px}
+  .rf-opt-c{margin-left:auto}
+  .rf-acoes .rf-acao{flex:1 1 100%;justify-content:center}
+
+  /* ---- Ficha e Equipa ---- */
+  .rf-ficha{max-height:none}
+  .rf-eq-crest img,.rf-eq-crest .rf-crest-fb{width:44px;height:44px}
+  .rf-eq-n{font-size:var(--fs-heading)}
+}
