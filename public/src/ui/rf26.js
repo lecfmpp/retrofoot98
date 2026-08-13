@@ -456,8 +456,38 @@ function rfResenhaHTML(){
 /* =====================================================================
    O ROTEADOR — o que cdraw() chama no lugar de scMain()
    ===================================================================== */
+/* ===== A PONTE DAS ABAS ANTIGAS =====
+   Vinte lugares do jogo dizem "volta pra tela principal mostrando X" com
+   `CL.tab='jogador'` / `'financas'` / `'correio'` — o vocabulário da barra de
+   abas que não existe mais. Reescrever os vinte seria churn e deixaria o
+   próximo `CL.tab=` que alguém escrever apontando pro vazio. Em vez disso o
+   roteador ENTENDE o vocabulário antigo: quando CL.tab muda, ele leva pra
+   página equivalente.
+
+   Só age na MUDANÇA. Se agisse a cada desenho, o usuário não conseguiria
+   navegar: qualquer clique na sidebar seria desfeito no render seguinte,
+   porque CL.tab continuaria com o último valor escrito. */
+const RF_TAB_LEGADA={
+  jogador:  ['elenco','ficha'],
+  financas: ['financas','caixa'],
+  correio:  ['clube','email'],
+  seleccao: ['hub',null],
+  jogo:     ['hub',null],
+  elenco:   ['hub',null],
+  equipa:   ['hub',null],
+  adversario:['hub',null],
+};
+function rfSyncFromLegacyTab(){
+  const st=rfState();
+  if(CL.tab===st._ultimaTab) return;      // ninguém pediu nada de novo
+  st._ultimaTab=CL.tab;
+  const alvo=RF_TAB_LEGADA[CL.tab]; if(!alvo) return;
+  st.page=alvo[0];
+  if(alvo[1]) st.tab[alvo[0]]=alvo[1];
+}
 function rfScreenHTML(){
   const st=rfState();
+  rfSyncFromLegacyTab();
   const def=rfPageDef(st.page);
   if(def.key==='hub') return rfEnvelope(rfHubHTML());
 
