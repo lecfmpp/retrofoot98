@@ -65,7 +65,7 @@ function rfStage(o){
     <div class="rf-stg-in" style="${o.w?`width:${o.w}px`:''}">
       <div class="rf-stg-hd">
         <div class="rf-band-filete"></div>
-        ${o.semEscudo?'':`<span class="rf-stg-crest">${rfCrest(cl,38)}</span>`}
+        ${o.semEscudo?'':`<span class="rf-stg-crest">${rfCrest(o.crest||cl,38)}</span>`}
         <div class="rf-ov-ttl">
           <span class="rf-ov-eyebrow">${escC(o.contexto||'')}</span>
           <span class="rf-stg-t">${escC(o.titulo||'')}</span>

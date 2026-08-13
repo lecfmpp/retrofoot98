@@ -193,15 +193,25 @@ function rfSetTab(page, tab){ rfState().tab[page]=tab; cdraw(); }
 
 /* escudo: <img> do arquivo real com badge de iniciais como fallback — o mesmo
    comportamento de clubCrestHTML(), que já resolve os dois casos. */
+/* ESCUDO — marcação própria, sem passar pelo clubCrestHTML legado (que trazia
+   um invólucro fixo de 34x41 e o emblema de iniciais com estilo do skin antigo).
+   Aqui o tamanho vem SEMPRE do contêiner (.rf-*-crest img/.rf-crest-fb), e o
+   emblema de iniciais entra como irmão escondido — é ele que aparece quando a
+   imagem do escudo não carrega. */
 function rfCrest(club, size){
-  if(typeof clubCrestHTML==='function'){
-    const h=clubCrestHTML(club);
-    if(h) return h;
-  }
-  const {col,col2}=clubColors(club||{});
-  const ini=String((club&&club.short)||'?').slice(0,3).toUpperCase();
-  return `<span class="rf-crest-fb" style="background:${col};color:${col2};width:${size||30}px;height:${size||30}px">${escC(ini)}</span>`;
+  club=club||{};
+  const {col,col2}=clubColors(club);
+  const txt=(typeof barTextColor==='function')?barTextColor(col,col2):col2;
+  const ini=escC(String(club.short||club.name||'?').replace(/[^\p{L}\p{N}]/gu,'').slice(0,3).toUpperCase());
+  const s=size?`width:${size}px;height:${size}px`:'';
+  const fb=`<span class="rf-crest-fb" style="background:${col};color:${txt};${s}">${ini}</span>`;
+  const url=(typeof clubCrestUrl==='function')?clubCrestUrl(club):'';
+  if(!url) return fb;
+  return `<img class="rf-crest" src="${escC(url)}" alt="Escudo do ${escC(club.short||'')}" style="${s}"
+    onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'"
+  ><span class="rf-crest-fb" style="display:none;background:${col};color:${txt};${s}">${ini}</span>`;
 }
+
 
 /* forma: os últimos cinco resultados do meu clube, do mais antigo pro mais novo */
 function rfForma(){

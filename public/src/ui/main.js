@@ -3840,6 +3840,10 @@ function clViewTab(t){ CL.viewTab=t;
 function clViewSelPlayer(n){ CL.viewSelPlayer=n; CL.viewTab='jogador'; cdraw(); }
 function fixtureFor(clubId){ return currentFixtures().find(([h,a])=>h===clubId||a===clubId); }
 function scTeamView(){
+  // TELA PORTADA (telas/Adversario - Ver Time)
+  return rfVerTimeHTML(CL.viewClubId);
+}
+function scTeamViewLegado(){
   const vid=CL.viewClubId; const c=clubOf(vid);
   if(!c){ CL.viewClubId=null; CL.screen='main'; return scMain(); }
   const th=clubTheme(vid);
@@ -7560,16 +7564,8 @@ function seasonEndDialog(){
       <div class="cl-prize-total"><span>Total recebido</span><span>+${fmt(pz.total)}</span></div>
       ${pz.art&&pz.art.mine?`<div class="cl-prize-art">👟 <b>${escC(pz.art.name)}</b> foi artilheiro (${pz.art.goals} gols) e valorizou: ${fmt(pz.art.valFrom)} → <b>${fmt(pz.art.valTo)}</b></div>`:''}
     </div>` : '';
-  overlayC(dlg('Fim da temporada!', `<div class="cl-res">
-    <div class="cl-res-score">${escC(champ)} é campeão</div>
-    <div class="cl-res-verd">Você terminou em ${myPos}º na ${escC(divisionLabel())}${qualMsg?'<br>'+escC(qualMsg):''}</div>
-    ${prizeBlock}
-    <div class="cl-seasontbl-wrap" style="max-height:340px;overflow-y:auto;margin-top:10px">
-      <div class="cl-cls2-head ${hasQual?'hasqual':''}"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-pts">P</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-x">GP</span><span class="cl-cls2-x">GC</span>${hasQual?'<span></span>':''}</div>
-      ${rows}
-    </div>
-    <div class="cl-cal-ok">${btn('Nova temporada','clAdvanceSeason()',{icon:'✔',cls:'cl-btn-ok'})}</div>
-  </div>`,{w:620,bodyClass:'cl-body-green'}));
+  // TELA PORTADA (telas/Fim de Temporada): rfStage 1080px, sem modal.
+  overlayC(rfFimTemporadaHTML());
 }
 function clAdvanceSeason(){
   clCloseOverlay();
@@ -7624,18 +7620,8 @@ function onlineSeasonEndDialog(sum){
       <div class="cl-prizes-h">👋 Aposentadorias no elenco</div>
       ${rets.map(r=>`<div class="cl-prize-row"><span class="cl-prize-ic">🎽</span><span class="cl-prize-c">${escC(r.name)} <span style="opacity:.7">(${r.age||'?'} anos)</span></span><span class="cl-prize-p" style="flex:2;text-align:left;opacity:.85">${escC(r.reason||'')}</span></div>`).join('')}
     </div>` : '';
-  overlayC(dlg('Fim da temporada!', `<div class="cl-res">
-    <div class="cl-res-score">${escC(champ)} é campeão</div>
-    <div class="cl-res-verd">Você terminou em ${sum.myPos}º na ${escC(sum.divLbl)}</div>
-    ${prizeBlock}
-    ${retireBlock}
-    <div class="cl-seasontbl-wrap" style="max-height:340px;overflow-y:auto;margin-top:10px">
-      <div class="cl-cls2-head ${hasQual?'hasqual':''}"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-pts">P</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-x">GP</span><span class="cl-cls2-x">GC</span>${hasQual?'<span></span>':''}</div>
-      ${rows}
-    </div>
-    <div class="cl-cal-ok">${btn('Nova temporada','clOnlineSeasonContinue()',{icon:'✔',cls:'cl-btn-ok'})}</div>
-    <div class="cl-classif-autohint">avança sozinho em <span id="cl-season-count">15</span>s...</div>
-  </div>`,{w:620,bodyClass:'cl-body-green'}));
+  // TELA PORTADA (telas/Fim de Temporada): mesma tela, alimentada pelo resumo do assento.
+  overlayC(rfFimTemporadaHTML(sum));
   armSeasonEndTimer(); // auto-avança pra não segurar o outro jogador / a próxima rodada
 }
 /* contador regressivo do modal de fim de temporada (online): 15s e auto-avança pra tela
@@ -7715,6 +7701,10 @@ function pressFinish(){
   CL.screen='main'; CL.tab='seleccao'; cdraw();
 }
 function scImprensa(){
+  // TELA PORTADA (telas/Imprensa)
+  return rfImprensaHTML(CL._press);
+}
+function scImprensaLegado(){
   const P=CL._press; if(!P) return '';
   const b=P.b, cnt=`<span id="cl-press-count">${Math.max(0,CL._pressLeft!=null?CL._pressLeft:25)}</span>`;
   const hint=`<div class="cl-classif-autohint">avança sozinho em ${cnt}s</div>`;
@@ -8586,18 +8576,10 @@ function showCupClassif(key, round){ CL.screen='cupclassif'; CL._cupClassifKey=k
   armCupFlowTimer(cupClassifContinue, CUP_CLASSIF_AUTO_MS);
 }
 function scCupClassif(){
-  const key=CL._cupClassifKey, c=S.cups&&S.cups[key];
-  if(!c) return '';
-  const r=cupResultForKey(key);
-  // MESMA TELA PROS DOIS: quem jogou lê a faixa do próprio placar; quem não disputa a
-  // competição lê, no mesmo lugar, o painel de dicas + patrocinador (ver cupIdlePanelHTML).
-  const result = r ? `<div class="cl-cupres ${escC(r.tone)}">
-      <span class="cl-cupres-sc">${escC(r.score)}</span>
-      <span class="cl-cupres-msg">${escC(r.msg)}</span></div>` : cupIdlePanelHTML(key);
-  const actions = btn('Continuar','cupClassifContinue()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})
-    + (CL.online?'<span class="cl-cupscr-auto">avança sozinho em alguns segundos...</span>':'');
-  return cupScreenHTML(key, {actions, result, live:true});
+  // TELA PORTADA (telas/Copa - Classificacao da Fase)
+  return rfCopaFaseHTML(CL._cupClassifKey);
 }
+
 function cupClassifContinue(){
   clearCupFlowTimer();
   // AGORA SIM: a tela foi de fato mostrada e o jogador está saindo dela (no botão ou no
@@ -10595,6 +10577,10 @@ function clCupView(key, tab){ CL.menu=null; clCloseOverlay();
   CL.screen='cupview'; cdraw();
 }
 function scCupView(){
+  // TELA PORTADA (telas/Competicao - Visao Geral)
+  return rfCompeticaoHTML(CL._cupKey);
+}
+function scCupViewLegado(){
   const key=CL._cupKey; if(!key || !(S.cups&&S.cups[key])) { CL.screen='main'; return scMain(); }
   return cupScreenHTML(key, {actions:btn('Voltar','clCupViewBack()',{icon:'◀',cls:'cl-btn-cancel cl-btn-sm'})});
 }
