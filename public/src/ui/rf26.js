@@ -73,12 +73,6 @@ const RF_PAGES=[
 
   { key:'hub', ico:'🥅', label:'Formação', curto:'Formação', banda:true },
 
-  { key:'equipa', ico:'👥', label:'Equipa', curto:'Equipa',
-    titulo:'Equipa', sub:'Estádio, historial e identidade do clube',
-    pill:()=>rfPillDivisao(), grid:'minmax(0,1fr) 340px',
-    tabs:[ {k:'estadio',  l:()=>'Estádio',  build:()=>rfEquipaHTML('estadio')},
-           {k:'historial',l:()=>'Historial',build:()=>rfEquipaHTML('historial')} ] },
-
   { key:'mercado', ico:'🛒', label:'Mercado', curto:'Mercado',
     titulo:'Mercado', sub:()=>rfSubMercado(),
     pill:()=>rfPillCaixa(), grid:'minmax(0,1fr) 340px',
@@ -104,6 +98,7 @@ const RF_PAGES=[
            {k:'calendario',l:()=>'Calendário',         build:()=>rfCampeonatosHTML('calendario')},
            {k:'artilharia',l:()=>'Artilharia',         build:()=>rfCampeonatosHTML('artilharia')},
            {k:'historia',  l:()=>'História',           build:()=>rfCampeonatosHTML('historia')},
+           {k:'historial', l:()=>'Historial do clube',  build:()=>rfCampeonatosHTML('historial')},
            {k:'intl',      l:()=>'Ligas internacionais', run:()=>clBgLeaguesMenu(),
             show:()=>!!(S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)} ] },
 
@@ -1253,6 +1248,12 @@ function rfCampeonatosHTML(enfase){
   ) + rfCol(
       rfCard('Artilharia da '+divisionLabel(), rfArtilhariaHTML(S.scorers), {cls:d('artilharia')})
     + rfCard('Últimos vencedores', rfVencedoresHTML(), {cls:d('historia')})
+    // HISTORIAL DO CLUBE: era a única coisa que só existia na página Equipa.
+    // A Equipa foi retirada da sidebar (elenco e formação já cobrem o resto),
+    // e o historial veio pra cá — é história de competição, que é do que esta
+    // página trata.
+    + rfCard('Historial do clube', rfHistorialHTML(), {cls:d('historial'),
+        right:(S.history||[]).filter(h=>h.clubId===CL.clubId).length+' temporadas'})
     + rfCard('Marcadores de sempre', rfArtilhariaHTML(acc))
   );
 }
@@ -1562,35 +1563,12 @@ function rfClubeSistemaHTML(enfase){
   return esquerda+direita;
 }
 
-/* =====================================================================
-   EQUIPA
-   Este destino existe na sidebar da referência, mas o pacote NÃO traz uma
-   tela "Equipa.html" — os dois arquivos de Hub são a mesma tela com a
-   sidebar aberta e recolhida. Então a página é montada no mesmo padrão das
-   outras (cabeçalho + duas colunas) com o que a tabela de consolidação do
-   prompt manda ela conter: identidade do clube, estádio e historial.
-   Quando a tela chegar, é aqui que ela entra.
+/* ---- HISTORIAL DO CLUBE ----
+   Sobrou da página Equipa, que saiu da sidebar: elenco e formação já cobrem
+   o time, estádio mora em Finanças, e a identidade do clube já está na faixa
+   do topo do Hub. O historial é o único dado que não tinha outro lugar, e
+   agora vive em Campeonatos.
    ===================================================================== */
-function rfEquipaIdentidadeHTML(){
-  const cl=clubOf(CL.clubId)||{short:'—'};
-  const {col,col2}=clubColors(cl);
-  const sq=squad(CL.clubId);
-  const forca=Math.round(sq.reduce((s,p)=>s+(p.f||0),0)/Math.max(1,sq.length));
-  return `<div class="rf-eq-id">
-      <span class="rf-eq-crest">${rfCrest(cl,56)}</span>
-      <div class="rf-eq-nm">
-        <span class="rf-eq-n">${escC(cl.short)}</span>
-        <span class="rf-eq-s">${universeFlag()} ${escC(universeCountryName())} · ${escC(divisionLabel())} · ${escC(String(S.season||''))}</span>
-        <span class="rf-eq-cores"><i style="background:${col}"></i><i style="background:${col2}"></i>
-          <span class="rf-label-r">cores do clube</span></span>
-      </div>
-    </div>
-    <div class="rf-sep"></div>
-    <div class="rf-linha"><span class="rf-linha-t">Treinador</span><span class="rf-linha-v rf-mgr">${escC(CL.mgr||'—')}</span></div>
-    <div class="rf-linha"><span class="rf-linha-t">Elenco</span><span class="rf-linha-v">${sq.length} jogadores</span></div>
-    <div class="rf-linha"><span class="rf-linha-t">Força média</span><span class="rf-linha-v">${forca}</span></div>
-    <div class="rf-linha"><span class="rf-linha-t">Em caixa</span><span class="rf-linha-v">${escC(fmt(S.budget||0))}</span></div>`;
-}
 function rfHistorialHTML(){
   const ent=(S.history||[]).filter(h=>h.clubId===CL.clubId).slice().reverse();
   if(!ent.length) return '<span class="rf-note">Mostra só as temporadas em que você comandou este clube neste save. Ainda não há nenhuma fechada.</span>';
@@ -1603,16 +1581,7 @@ function rfHistorialHTML(){
       <span class="rf-th-t">${escC(h.champ||'—')}</span>
     </div>`).join('')}</div>`;
 }
-function rfEquipaHTML(enfase){
-  const d=k=>enfase===k?'rf-card-destaque':'';
-  return rfCol(
-      rfCard('Historial', rfHistorialHTML(), {cls:d('historial'),
-        right:(S.history||[]).filter(h=>h.clubId===CL.clubId).length+' temporadas'})
-  ) + rfCol(
-      rfCard('O clube', rfEquipaIdentidadeHTML())
-    + rfCard('Estádio', rfEstadioCardHTML(), {cls:d('estadio')})
-  );
-}
+
 
 /* ---- Mercado ▸ Contrapropostas e Últimas transferências ----
    Os dois últimos destinos do Mercado que ainda passavam pela captura.

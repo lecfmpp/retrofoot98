@@ -1486,8 +1486,6 @@
 
   /* ---- Ficha e Equipa ---- */
   .rf-ficha{max-height:none}
-  .rf-eq-crest img,.rf-eq-crest .rf-crest-fb{width:44px;height:44px}
-  .rf-eq-n{font-size:var(--fs-heading)}
 }
 
 /* ----- Dialog: ajustes pra ele receber o corpo das telas antigas -----
