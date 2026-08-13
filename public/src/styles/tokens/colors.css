@@ -1,4 +1,11 @@
 :root{
+  /* Marca — NUNCA trocam por clube. As telas de sistema (troca de aparelho no
+     hotseat, por exemplo) mostram o clube de OUTRA pessoa no corpo; pintar o
+     cabeçalho com a cor de quem está sentado seria dizer que o time é dele. */
+  --brand-primary:#17458F;
+  --brand-primary-deep:#0e2f66;
+  --brand-on-primary:#ffffff;
+
   /* Clube — trocáveis por time. Estes são os do XV Piracicaba. */
   --club-primary:#17458F;
   --club-primary-deep:#0e2f66;

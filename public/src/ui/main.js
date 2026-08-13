@@ -701,11 +701,14 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     // A barra de título cinza do Windows não existe mais aqui: a identidade do save
     // agora mora na faixa do clube, dentro do próprio envelope.
     case 'main':      html=rfScreenHTML(); break;
-    case 'waitround': html=titleBarTop('RetroFoot98')+deskWrap(scWaitRound()); break;
-    case 'imprensa':  html=titleBarTop('RetroFoot98')+deskWrap(scImprensa()); break;
-    case 'teamview':  html=titleBarTop('RetroFoot98')+deskWrap(scTeamView()); break;
-    case 'handoff':   html=titleBarTop('RetroFoot98')+deskWrap(scHandoff()); break;
-    case 'seatturn':  html=titleBarTop('RetroFoot98',{phoneHide:true})+deskWrap(scSeatTurn()); break;
+    case 'waitround': html=scWaitRound(); break;
+    case 'imprensa':  html=scImprensa(); break;
+    case 'teamview':  html=scTeamView(); break;
+    case 'handoff':   html=scHandoff(); break;
+    case 'entrega':   html=rfEntregaHTML(); break;
+    // o assento joga no MESMO envelope do manager 1 — trocar de cadeira não pode
+    // trocar o desenho do jogo (ver enterSeatContext, que já troca o contexto)
+    case 'seatturn':  html=rfScreenHTML(); break;
     case 'seatclassif': html=scSeatClassif(); break;
     case 'live':      html=scLive(); break;
     case 'classif':   html=scClassif(); break;
@@ -3004,7 +3007,19 @@ function finishHotseatMatch(){
     caps:{H:liveCaps(m,'H'),A:liveCaps(m,'A')}, matchMinutes:liveMatchMinutes(m)};
     H.allEvents=(H.allEvents||[]).concat(m.events||[]); }
   CL.live=null; CL.subsUsed=0;
+  // TELA PORTADA (telas/Resenha - Entrega do Aparelho): antes de chamar o próximo
+  // assento, quem acabou de jogar vê o que aconteceu na vez dele e devolve o
+  // aparelho. Sem isso a tela pulava direto pro "passe para o próximo", e o
+  // jogador saía da partida sem ler o próprio resultado.
+  const seat=CL._seatContext&&CL._seatContext.seat;
+  if(seat){
+    const emCasa=m.h===seat.clubId;
+    const outro=(anyClubOf(emCasa?m.a:m.h)||{short:'—'}).short;
+    CL._entrega={ nome:seat.name, adv:outro, mando:emCasa?'em casa':'fora',
+      placar:(emCasa?m.hg:m.ag)+'–'+(emCasa?m.ag:m.hg), att:emCasa?m.att:0 };
+  }
   exitSeatContext(); // restaura o manager 1 (persistindo a tática do assento)
+  if(CL._entrega){ CL.screen='entrega'; cdraw(); return; }
   startNextHotseatMatch();
 }
 /* rótulo da divisão do assento (no universo do país dele) */
@@ -3041,36 +3056,10 @@ function clClassifContinue(){
 /* classificação de pós-jogo de um HUMANO secundário — mesma tela do manager 1 (scClassif),
    só que com a liga do assento (fundo OU divisão primária, se mesmo país) e o clube dele em destaque. */
 function scSeatClassif(){
-  const seat=CL._classifSeat; if(!seat) return deskWrap('');
-  const country=seat.country, flag=(typeof flagImg==='function')?flagImg(country):'';
-  const cfg=UNI_CONFIGS[uniKeyOf(country)]||{}; const labels=cfg.label||{};
-  const isBg=!!(S.bgLeagues&&S.bgLeagues[country]);
-  const seatDiv=seatDivOfClub(seat);
-  const divs=isBg?Object.keys(S.bgLeagues[country].divs):(cfg.order||[S.division]);
-  const ordered=divs;   // ordem natural (A/B/C/D); a divisão do assento é destacada pela borda verde, não posta no topo
-  const rowsFor=(d)=>{
-    const tbl=isBg?bgStandings(country,d):sortedTableOf(d===S.division?S.table:((S.otherDivs&&S.otherDivs[d]&&S.otherDivs[d].table)||{}));
-    return (tbl||[]).map((t,i)=>{ const c=clubOf(t.id)||bgClubById(t.id)||{short:String(t.id)}; const me=t.id===seat.clubId;
-      return `<div class="cl-cls2-row ${me?'me':''}" style="${clubStripe(c)}">
-        <span class="cl-cls2-pos">${i+1}</span><span class="cl-cls2-n">${escC(c.short||'')}</span>
-        <span class="cl-cls2-pts">${t.Pts}</span><span class="cl-cls2-x">${t.W}</span><span class="cl-cls2-x">${t.D}</span><span class="cl-cls2-x">${t.L}</span>
-        <span class="cl-cls2-x">${t.GF}</span><span class="cl-cls2-x">${t.GA}</span></div>`; }).join('');
-  };
-  const panelHTML=(d)=>{ const open=(CL.clsDivOpen&&CL.clsDivOpen[d]!=null)?CL.clsDivOpen[d]:(d===seatDiv); const mine=d===seatDiv;
-    return `<div class="cl-clsacc ${open?'open':'collapsed'} ${mine?'mine':''}">
-      <div class="cl-clsacc-h" onclick="event.stopPropagation();clToggleDivAcc('clsDivOpen','${d}')">
-        <span class="cl-clsacc-h-title">🏆 ${escC(classifDivName(d, country))}${mine?' <span class="cl-acc-you">'+escC(seat.name)+'</span>':''}</span>
-        <span class="cl-acc-arrow ${open?'':'closed'}">▾</span></div>
-      <div class="cl-clsacc-body">
-        <div class="cl-cls2-head"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-pts">P</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-x">GP</span><span class="cl-cls2-x">GC</span></div>
-        ${rowsFor(d)}</div></div>`; };
-  return `<div class="cl-live cl-classif">
-    <div class="cl-classif-buttons">${btn('Continuar','clClassifContinue()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})}</div>
-    <div class="cl-classif-autohint">avança sozinho em alguns segundos...</div>
-    <div class="cl-live-top">${flag} ${escC(seat.name)} · Classificação - ${S.round}ª jornada</div>
-    <div class="cl-clsacc-wrap">${ordered.map(panelHTML).join('')}</div>
-  </div>`;
+  // TELA PORTADA (telas/Resenha - Classificacao do Assento)
+  return rfAssentoClassifHTML(CL._classifSeat);
 }
+
 /* TELA DO TIME do assento (hotseat): mesma pegada da tela principal — elenco à esquerda,
    tática + classificação + Jogar à direita. Reusa rosterHTML()/panSeleccao() com o contexto
    já trocado pro assento (clJogar detecta o contexto e chama clSeatPlay).
@@ -3079,7 +3068,9 @@ function scSeatClassif(){
    que é o único que passa por scMain(). Todo assento tem os mesmos direitos durante a própria
    vez — enterSeatContext() já troca S.clubId/CL.clubId pro clube do assento, então os mesmos
    painéis/menus de scMain() funcionam aqui sem mudança nenhuma neles. */
-function scSeatTurn(){
+/* MORTO desde que 'seatturn' passou a desenhar o mesmo envelope do manager 1
+   (ver o switch de cdraw). Fica só como referência do que a tela mostrava. */
+function scSeatTurnLegado(){
   const c=CL._seatContext; if(!c) return deskWrap('');
   const seat=c.seat, fx=c.fx; const cl=clubOf(seat.clubId)||bgClubById(seat.clubId)||{};
   const oppId=fx.home===seat.clubId?fx.away:fx.home; const opp=clubOf(oppId)||bgClubById(oppId)||{};
@@ -3133,25 +3124,10 @@ function scSeatTurn(){
 }
 /* tela de passagem de aparelho (hotseat) entre os treinadores humanos */
 function scHandoff(){
-  const it=CL._handoff; if(!it) return deskWrap('');
-  const seat=it.seat, fx=it.fx;
-  // clube de fundo pode ainda não estar materializado (clubOf só resolve nesse ponto após
-  // ensureBgClubMaterialized) — cai no dado real do intlClubById pra mostrar nome/cores.
-  const anyClub=id=>clubOf(id)||(typeof bgClubById==='function'?bgClubById(id):null)||{};
-  const c=anyClub(seat.clubId);
-  const oppId=fx.home===seat.clubId?fx.away:fx.home; const opp=anyClub(oppId);
-  const loc=fx.home===seat.clubId?'em casa':'fora';
-  const flag=(typeof flagImg==='function')?flagImg(seat.country):'';
-  return dlg('Passe o aparelho', `
-    <div class="cl-handoff">
-      <div class="cl-handoff-to">Agora é a vez de</div>
-      <div class="cl-handoff-name">${escC(seat.name)}</div>
-      <div class="cl-handoff-club" style="${clubStripe?clubStripe(c):''}">${flag} ${escC(c.short||c.name||'')}</div>
-      <div class="cl-handoff-country">${flag} ${escC(seat.country)}</div>
-      <div class="cl-handoff-match">${escC(c.short||'')} <span class="cl-handoff-x">×</span> ${escC(opp.short||'')} <span class="cl-handoff-loc">(${loc})</span></div>
-      <div class="cl-handoff-actions">${btn('Continuar','clPlayHotseatMatch()',{icon:'▶',cls:'cl-btn-ok cl-btn-wide'})}</div>
-    </div>`, {w:600,bodyClass:'cl-body-green'});
+  // TELA PORTADA (telas/Resenha - Passe o Aparelho)
+  return rfPasseHTML(CL._handoff);
 }
+
 
 /* ================= SAVE / LOAD (Modo Solo — só nuvem via Supabase) =================
    Salva/carrega por nome, vinculado ao usuário logado. O estado do jogo NUNCA fica
@@ -7854,8 +7830,11 @@ function finishLiveRound(){
   // entra no caixa via processFinances()/pushFinanceEntry() (ver core.js), que lê o mesmo
   // CL.live.matches e loga isso na aba Finanças, então NÃO soma direto no S.budget aqui
   // (fazia isso duas vezes: aqui E de novo na renda-base da rodada).
-  let gate=0; if(uf && uf[0]===CL.clubId){ const um=RL.matches.find(m=>m.h===uf[0]&&m.a===uf[1]); if(um){ gate=um.att*um.price; } }
+  let gate=0; if(uf && uf[0]===CL.clubId){ const um=RL.matches.find(m=>m.h===uf[0]&&m.a===uf[1]); if(um){ gate=um.att*um.price; CL.lastAtt=um.att; } }
   CL.lastGate=gate;
+  // CL.lastGate é zerado logo depois pelo toast da bilheteira; a tela "À espera da
+  // rodada" precisa do valor DEPOIS disso, então ele fica guardado aqui também.
+  CL._ultimaRenda={ att:CL.lastAtt||0, gate };
   // FASE 2 (hotseat solo): se há OUTROS humanos com jogo nesta rodada, cada um joga a SUA
   // partida ao vivo (passando o aparelho) ANTES de commitar a rodada. Guarda o contexto do
   // manager 1 e enfileira; ao esvaziar a fila, _commitLeagueRound roda com os resultados deles.
@@ -7911,6 +7890,19 @@ function nowMs(){ try{ return Date.now(); }catch(e){ return 0; } }
    não fecha a rodada enquanto alguém está ocupado — ficaria em deadlock. Tem escape manual
    (clWaitRoundSkip) pra ninguém ficar preso se algo travar do outro lado. */
 function scWaitRound(){
+  ensureSyncFunTicker();
+  // DUAS TELAS PORTADAS PRO MESMO ESTADO (telas/Resenha - Pausa Patrocinada e
+  // Resenha - A Espera da Rodada). A janela de 10s do patrocinador é a PAUSA;
+  // passada ela, se o que falta são os OUTROS treinadores, a tela vira a sala
+  // de espera — que é onde a informação útil é quem já jogou, não a barra.
+  let faltaGente=false;
+  if(CL.online && typeof NET!=='undefined' && NET.allHumanResultsIn){
+    try{ faltaGente=!NET.allHumanResultsIn(S.round); }catch(e){ faltaGente=false; }
+  }
+  return (pausaOvertime() && faltaGente) ? rfEsperaHTML() : rfPausaHTML();
+}
+function scWaitRoundLegado(){
+
   ensureSyncFunTicker();
   const g=pausaGif(), n=(CL._pausaI||0)%PAUSA_GIFS.length;
   return `<div class="rf-view">

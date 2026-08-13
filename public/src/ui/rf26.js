@@ -240,7 +240,7 @@ function rfBandHTML(titulo){
     <div class="rf-band-id">
       <span class="rf-band-club">${escC(cl.short)}</span>
       <span class="rf-band-sub">
-        <span class="rf-band-mgr">${escC(CL.mgr||'Treinador')}</span>
+        <span class="rf-band-mgr">${escC(rfTreinadorNome())}</span>
         <span class="rf-label-t">Treinador</span>
         <span>·</span><span>${universeFlag()} ${escC(universeCountryName())}</span>
         <span>·</span><span>${escC(divisionLabel())}</span>
@@ -330,6 +330,13 @@ function rfSidebarHTML(){
    interruptor "Pronto" — clicar de novo cancela e a sala volta a esperar
    por mim (ver jogarBtnHTML/clCancelarPronto em main.js). Duplicar essa
    regra aqui seria criar um segundo caminho pra virar rodada. */
+/* de quem é esta cadeira: no hotseat o envelope é o MESMO, mas quem está
+   sentado é o assento da vez — mostrar o nome do anfitrião ali seria dizer que
+   o time é dele (ver enterSeatContext) */
+function rfTreinadorNome(){
+  const seat=CL._seatContext&&CL._seatContext.seat;
+  return (seat&&seat.name)||CL.mgr||'Treinador';
+}
 function rfJogar(){
   if(typeof estouPronto==='function' && estouPronto()){ clCancelarPronto(); return; }
   if(typeof clJogar==='function') clJogar();
@@ -1378,7 +1385,7 @@ function rfTreinadorTopoHTML(){
   return `<div class="rf-kpis">
     <div class="rf-kpi rf-kpi-id">
       <span class="rf-label-t">Treinador</span>
-      <span class="rf-tr-nome">${escC(CL.mgr||'Treinador')}</span>
+      <span class="rf-tr-nome">${escC(rfTreinadorNome())}</span>
       <span class="rf-kpi-s">${escC(cl.short)} · ${escC(divisionLabel())} · ${escC(String(S.season||''))}</span>
     </div>
     ${rfKpiHTML('Reputação', String(Math.round(S.coachRep!=null?S.coachRep:50)), 'entre 0 e 100')}
