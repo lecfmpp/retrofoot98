@@ -148,7 +148,10 @@
 .rf-sidebar{position:sticky;top:18px;display:flex;flex-direction:column;gap:10px;
   background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);
   padding:12px;box-sizing:border-box;overflow:hidden}
-.rf-sb-club{display:flex;align-items:center;gap:10px;padding:4px 4px 10px;border-bottom:1px solid var(--line-3)}
+.rf-sb-club{display:flex;align-items:center;gap:10px;padding:4px 4px 10px;
+  border:0;border-bottom:1px solid var(--line-3);background:none;width:100%;
+  text-align:left;font:inherit;color:inherit;cursor:pointer;-webkit-appearance:none;appearance:none}
+.rf-sb-club:hover .rf-sb-nome{color:var(--brand-primary)}
 .rf-sb-crest{width:34px;height:34px;object-fit:contain;flex:0 0 auto;border-radius:8px}
 .rf-sb-cnames{display:flex;flex-direction:column;gap:1px;min-width:0}
 .rf-sb-cname{font-size:var(--fs-body);font-weight:var(--fw-bold);color:var(--text-1);
@@ -3936,3 +3939,38 @@
 .rf-bj-n{position:absolute;left:9px;top:8px;width:12px;height:20px;display:flex;
   align-items:center;justify-content:center;font-family:var(--font-mono);
   font-size:9px;font-weight:var(--fw-semibold);color:var(--brand-primary-deep,#17458F)}
+
+/* =====================================================================
+   MEDIDORES E CLASSIFICAÇÃO DO HUB  (pacote "Hub do time v2")
+   ===================================================================== */
+.rf-medidor{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0}
+.rf-med-l{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rf-med-v{font-family:var(--font-mono);font-size:22px;font-weight:var(--fw-semibold);
+  color:var(--text-1)}
+.rf-med-t{font-family:var(--font-mono);font-size:12px;color:var(--text-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-med-bar{height:8px;border-radius:99px;background:var(--surface-sunken);overflow:hidden}
+.rf-med-bar i{display:block;height:100%;border-radius:99px}
+/* a forma (V V E D V) vive dentro da leitura do medidor: mono, espaçada */
+.rf-med-t .rf-forma{display:inline-flex;gap:4px;vertical-align:baseline}
+.rf-med-t .rf-forma i{background:none;width:auto;height:auto;font-style:normal;
+  font-family:var(--font-mono);font-size:12px;color:var(--text-3)}
+.rf-med-t .rf-forma i.v{color:var(--ok)}
+.rf-med-t .rf-forma i.d{color:var(--danger)}
+
+.rf-cl-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rf-cl-hd .rf-label-t,.rf-cl-hd .rf-label-r{white-space:nowrap}
+.rf-comp-chips{display:flex;flex-wrap:wrap;gap:6px}
+.rf-comp-chip{font-size:11px;font-weight:var(--fw-semibold);border-radius:var(--r-pill);
+  padding:6px 11px;white-space:nowrap;cursor:pointer;font-family:inherit;
+  border:1px solid var(--line-2);background:var(--surface-card);color:var(--text-2);
+  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease)}
+.rf-comp-chip:hover{border-color:var(--brand-primary);color:var(--brand-primary)}
+.rf-comp-chip.on{background:var(--brand-primary);border-color:var(--brand-primary);color:#fff}
+.rf-cl-fill{flex:1}
+.rf-cl-ver{display:flex;align-items:center;justify-content:center;height:36px;
+  border:1px solid var(--line-2);border-radius:11px;background:var(--surface-card);
+  font-family:inherit;font-size:12px;font-weight:var(--fw-semibold);
+  color:var(--brand-primary);white-space:nowrap;cursor:pointer}
+.rf-cl-ver:hover{background:var(--surface-sunken)}

@@ -447,12 +447,9 @@ function rfHubHTML(){
       ${rfSquadTableHTML('hub')}
     </div>
     <div class="rf-duo">
-      <div class="rf-card">
-        <span class="rf-label-t" title="${escC(moralTipText())}">Moral do plantel</span>
-        <span class="rf-big rf-num">${moral}</span>
-        <div class="rf-bar"><div class="rf-bar-fill" style="width:${moral}%;background:var(--ok)"></div></div>
-      </div>
-      <div class="rf-card">${jobSecurityBarHTML({dark:false})}</div>
+      ${rfMedidorHTML('Moral do plantel', moral, rfFormaHTML()||'sem jogos',
+        'var(--brand-primary)', moralTipText())}
+      ${rfSegurancaHTML()}
     </div>
     <div class="rf-card rf-card-grow">${rfClassifHTML()}</div>`;
 
@@ -498,29 +495,149 @@ function rfFormacoesHTML(){
 }
 
 /* classificação compacta da coluna esquerda, com as competições como chips */
+/* =====================================================================
+   MEDIDORES E CLASSIFICAÇÃO DO HUB  (pacote "Hub do time v2")
+   Os dois medidores são a mesma peça: rótulo, o número grande em mono
+   à esquerda e a leitura em texto à direita, na MESMA linha de base, e
+   a barra de 8px embaixo. Antes eram dois desenhos diferentes — a moral
+   com o número solto e a segurança ainda com a barra do jogo antigo.
+   ===================================================================== */
+function rfMedidorHTML(rotulo, valor, leitura, cor, dica){
+  const v=Math.max(0,Math.min(100,Math.round(valor)));
+  return `<div class="rf-card rf-medidor">
+    <span class="rf-label-t"${dica?` title="${escC(dica)}"`:''}>${escC(rotulo)}</span>
+    <div class="rf-med-l">
+      <span class="rf-med-v rf-num">${v}</span>
+      <span class="rf-med-t">${leitura}</span>
+    </div>
+    <div class="rf-med-bar"><i style="width:${v}%;background:${cor}"></i></div>
+  </div>`;
+}
+function rfSegurancaHTML(){
+  const js=Math.round(S.jobSecurity!=null?S.jobSecurity:60);
+  const leitura = js>=70?'direção confiante' : js>=40?'direção neutra'
+                : js>=16?'direção impaciente' : 'cargo em risco';
+  const cor = js>=70?'var(--ok)' : js>=40?'var(--brand-secondary,#F2B90C)' : 'var(--danger)';
+  const dica=(typeof jobSecurityTipText==='function')
+    ? jobSecurityTipText(js, leitura) : '';
+  return rfMedidorHTML('Segurança no cargo', js, escC(leitura), cor, dica);
+}
+
+/* ----- Classificação com os CHIPS das competições -----
+   O bloco mostra uma competição por vez e os chips trocam entre elas.
+   Só entram competições que o clube DISPUTA neste save: a liga sempre, e
+   cada copa que existe em S.cups e não foi desligada no compToggle. Nada
+   de chip decorativo pra torneio que o motor não simula. */
+function rfHubComps(){
+  const out=[{key:'liga', rot:divisionLabel()}];
+  ((typeof allCupKeys==='function')?allCupKeys():[]).forEach(k=>{
+    if(S.compToggle && S.compToggle[k]===false) return;
+    if(!(S.cups&&S.cups[k])) return;
+    const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[k])||{};
+    out.push({key:k, rot:def.short||def.name||k});
+  });
+  return out;
+}
+function rfSetHubComp(k){ CL.hubComp=k; cdraw(); }
 function rfClassifHTML(){
-  try{
-    if(typeof classifTableHTML==='function') return classifTableHTML();
-  }catch(e){}
-  // fallback: a tabela da divisão do usuário, direto de S.table
+  const comps=rfHubComps();
+  const atual = comps.find(c=>c.key===CL.hubComp) || comps[0];
+  const chips = comps.length>1 ? `<div class="rf-comp-chips">${comps.map(c=>
+    `<button type="button" class="rf-comp-chip ${c.key===atual.key?'on':''}"
+      onclick="rfSetHubComp('${escC(c.key)}')">${escC(c.rot)}</button>`).join('')}</div>` : '';
+  const corpo = atual.key==='liga' ? rfClassifLigaHTML() : rfClassifCopaHTML(atual.key);
+  return `<div class="rf-cl-hd">
+      <span class="rf-label-t">Classificação · ${escC(atual.rot)}</span>
+      <span class="rf-label-r">${corpo.meta}</span>
+    </div>
+    ${chips}
+    ${corpo.html}
+    <div class="rf-cl-fill"></div>
+    <button type="button" class="rf-cl-ver" onclick="rfGo('campeonatos')">Ver tabela completa…</button>`;
+}
+function rfClTabelaHTML(linhas){
+  return `<div class="rf-tb-head"><span></span><span></span><span>J</span><span>V</span>
+      <span>E</span><span>D</span><span>GM:GS</span><span>P</span></div>
+    <div class="rf-tb-list">${linhas}</div>`;
+}
+function rfClassifLigaHTML(){
   const ids=Object.keys(S.table||{});
-  if(!ids.length) return '<span class="rf-label-t">Classificação</span><div class="rf-empty">A tabela aparece depois da primeira rodada.</div>';
+  if(!ids.length) return {meta:'a começar',
+    html:'<div class="rf-empty">A tabela aparece depois da primeira rodada.</div>'};
   const rows=ids.map(id=>({id,t:S.table[id]}))
     .sort((a,b)=>(b.t.Pts-a.t.Pts)||((b.t.GF-b.t.GA)-(a.t.GF-a.t.GA))||(b.t.GF-a.t.GF));
-  return `<span class="rf-label-t">Classificação · ${escC(divisionLabel())}</span>
-    <div class="rf-table">
-      <div class="rf-tr rf-th"><span>#</span><span>Equipa</span><span class="rf-num-r">J</span>
-        <span class="rf-num-r">V</span><span class="rf-num-r">E</span><span class="rf-num-r">D</span>
-        <span class="rf-num-r">GP:GC</span><span class="rf-num-r">P</span></div>
-      ${rows.map((r,i)=>`<div class="rf-tr ${r.id===CL.clubId?'me':''}">
-        <span class="rf-num">${i+1}</span>
-        <span class="rf-td-n">${escC((anyClubOf(r.id)||{short:r.id}).short)}</span>
-        <span class="rf-num-r">${r.t.P}</span><span class="rf-num-r">${r.t.W}</span>
-        <span class="rf-num-r">${r.t.D}</span><span class="rf-num-r">${r.t.L}</span>
-        <span class="rf-num-r">${r.t.GF}:${r.t.GA}</span>
-        <span class="rf-num-r"><b>${r.t.Pts}</b></span>
-      </div>`).join('')}
+  const promo=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[S.division])||0;
+  const releg=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[S.division])||0;
+  const minha=rows.findIndex(r=>r.id===CL.clubId)+1;
+  const linhas=rows.map((r,i)=>{
+    const z = (promo&&i<promo)?'promo' : (releg&&i>=rows.length-releg)?'drop' : '';
+    const c=anyClubOf(r.id)||{short:r.id};
+    return `<div class="rf-tb-row ${r.id===CL.clubId?'me':''}">
+      <span class="rf-tb-pos"><i class="rf-zona ${z}"></i><b>${i+1}</b></span>
+      <span class="rf-tb-n">${escC(c.short||r.id)}</span>
+      <span class="rf-tb-x">${r.t.P}</span><span class="rf-tb-x">${r.t.W}</span>
+      <span class="rf-tb-x">${r.t.D}</span><span class="rf-tb-x">${r.t.L}</span>
+      <span class="rf-tb-x">${r.t.GF}:${r.t.GA}</span>
+      <span class="rf-tb-p">${r.t.Pts}</span>
     </div>`;
+  }).join('');
+  return {meta: minha? minha+'º de '+rows.length : rows.length+' equipas',
+    html: rfClTabelaHTML(linhas)};
+}
+/* Copa tem DOIS formatos e eles não se parecem: a fase de grupos é uma
+   tabela de verdade (do meu grupo), o mata-mata é a escada de fases. As
+   duas usam a mesma grelha da liga — no mata-mata as colunas que não
+   existem (J V E D) ficam em travessão, como no desenho. */
+function rfClassifCopaHTML(key){
+  const c=(S.cups&&S.cups[key])||{};
+  const meta=(typeof cupCompetitionRoundLabel==='function'&&cupCompetitionRoundLabel(c,key))||'—';
+  const gobj=(c.group&&c.group.groups)||null;
+  if(gobj && !c.bracket){
+    const letras=Object.keys(gobj).sort();
+    const L=letras.find(x=>(gobj[x].teams||[]).includes(CL.clubId));
+    const tab=L?gobj[L]:null;
+    if(!tab) return {meta:'não disputa',
+      html:'<div class="rf-empty">O clube não está na fase de grupos desta competição.</div>'};
+    const ord=Object.values(tab.table||{})
+      .sort((a,b)=>(b.Pts-a.Pts)||((b.GF-b.GA)-(a.GF-a.GA))||(b.GF-a.GF));
+    const linhas=ord.map((t,i)=>{
+      const cl=anyClubOf(t.id)||{short:t.id};
+      return `<div class="rf-tb-row ${t.id===CL.clubId?'me':''}">
+        <span class="rf-tb-pos"><i class="rf-zona ${i<2?'promo':''}"></i><b>${i+1}</b></span>
+        <span class="rf-tb-n">${escC(cl.short||t.id)}</span>
+        <span class="rf-tb-x">${t.P}</span><span class="rf-tb-x">${t.W}</span>
+        <span class="rf-tb-x">${t.D}</span><span class="rf-tb-x">${t.L}</span>
+        <span class="rf-tb-x">${t.GF}:${t.GA}</span>
+        <span class="rf-tb-p">${t.Pts}</span>
+      </div>`;
+    }).join('');
+    return {meta:'grupo '+L, html:rfClTabelaHTML(linhas)};
+  }
+  const br=c.bracket;
+  if(!br) return {meta, html:'<div class="rf-empty">A chave ainda não foi sorteada.</div>'};
+  const fases=[];
+  (br.history||[]).forEach(h=>(h.ties||[]).forEach(t=>{
+    if(t.h!==CL.clubId && t.a!==CL.clubId) return;
+    const casa=t.h===CL.clubId, adv=anyClubOf(casa?t.a:t.h)||{short:'—'};
+    fases.push({f:cupPhaseLabel(h.round,br.roundsTotal), adv:adv.short||'—',
+      pl:(t.hg!=null&&t.ag!=null)?((casa?t.hg:t.ag)+':'+(casa?t.ag:t.hg)):'—',
+      ok:t.winner?(t.winner===CL.clubId?'promo':'drop'):''});
+  }));
+  (br.ties||[]).forEach(t=>{
+    if(t.h!==CL.clubId && t.a!==CL.clubId) return;
+    const casa=t.h===CL.clubId, adv=anyClubOf(casa?t.a:t.h)||{short:'—'};
+    fases.push({f:cupPhaseLabel(br.round,br.roundsTotal), adv:adv.short||'—', pl:'—', ok:''});
+  });
+  if(!fases.length) return {meta, html:'<div class="rf-empty">O clube não está nesta chave.</div>'};
+  const linhas=fases.map(x=>`<div class="rf-tb-row">
+      <span class="rf-tb-pos"><i class="rf-zona ${x.ok}"></i><b>${escC(x.f.replace(/[^0-9A-Za-zªº]/g,'').slice(0,5))}</b></span>
+      <span class="rf-tb-n">${escC(x.adv)}</span>
+      <span class="rf-tb-x">—</span><span class="rf-tb-x">—</span>
+      <span class="rf-tb-x">—</span><span class="rf-tb-x">—</span>
+      <span class="rf-tb-x">${escC(x.pl)}</span>
+      <span class="rf-tb-p">—</span>
+    </div>`).join('');
+  return {meta, html:rfClTabelaHTML(linhas)};
 }
 
 /* ----- Mercado ▸ Vender -----
