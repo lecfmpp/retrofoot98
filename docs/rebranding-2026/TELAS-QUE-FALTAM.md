@@ -2,7 +2,7 @@
 
 Estado em 2026-08-13, na branch `claude/retrofoot-new-layout-design-c09780`.
 
-As 50 telas do zip estão portadas. Estas aqui **existem no jogo** e ficaram sem
+As 55 telas dos dois pacotes estão portadas. Estas aqui **existem no jogo** e ficaram sem
 equivalente no pacote — hoje desenham com o shell antigo (`titleBarTop` +
 `deskWrap` + `wizShell`), que é justamente o que o rebranding tira.
 
@@ -53,9 +53,9 @@ próprio: aparecem por cima de `live`.
 | 9 | **Pênalti — suspense** | `38 - Partida - Penalti (suspense).png` | `penaltySuspenseHTML()` `7351` | `cl-pen` |
 | 10 | **Pênalti — resultado** | `39 - Partida - Penalti (gol).png` | `penaltyResultHTML()` `7359` | `cl-pen` |
 | 11 | **Disputa de pênaltis** | `45 - Partida - Disputa de penaltis.png` | `shootoutScoreboardHTML()` `7213` | `cl-pens` |
-| 12 | **Lesão — substituir** | `40 - Partida - Lesao (substituicao).png` | `injurySubHTML()` `6482` | `cl-inj` |
-| 13 | **Cartão vermelho** | `41 - Partida - Expulsao (cartao vermelho).png` | `redCardHTML()` `6637` | `cl-inj` |
-| 14 | **Substituição** | `43` e `44 - Partida - Substituicao...png` | `subPanelHTML()` `7392` | `cl-sub` |
+
+
+
 | 15 | **Detalhe de um jogo** | `34`–`36 - Partida ao vivo...png` | `liveModalHTML()` `7240` | `cl-lm` |
 | 16 | **Prorrogação** | — | `startExtraTime()` `6095`; cabeçalho vem de `RL.extraStartMinute` | — |
 
@@ -66,7 +66,7 @@ próprio: aparecem por cima de `live`.
 
 | # | Tela | print | função | classe | `CL.screen` |
 |---|---|---|---|---|---|
-| 17 | **Classificação pós-rodada** | `42 - Pos-rodada - Classificacao das divisoes.png` | `scClassif()` `7432` | `cl-cls2` | `classif` |
+
 | 18 | **Classificação de copa** | — | `scCupClassif()` `8540` | `cl-cupres` | `cupclassif` |
 | 19 | **Tela da competição** | `23 - Modal - Minhas competicoes.png` | `scCupView()` `10549` | `cl-cup2` | `cupview` |
 | 20 | **Fim de temporada** | `46 - Fim de temporada (premiacao).png` | `dlg('Fim da temporada!'…)` `7515` e `7579` | `cl-dlg` | — |
@@ -76,7 +76,7 @@ próprio: aparecem por cima de `live`.
 
 | # | Tela | print | função | classe | `CL.screen` |
 |---|---|---|---|---|---|
-| 22 | **Lobby da sala** | `47`, `48` e `49 - Resenha - ...png` | `renderOnline()` `src/net/local-transport.js:569` | `cl-sala` | `online` |
+
 | 23 | **Pausa patrocinada** | — | `PAUSA_GIFS` `470`, `pausaChecklist()` `558`, monta em `showSyncLoading()` `631` | `rf-step`, `rf-stage`, `rf-tv` | *(sobreposição `#c-syncload`)* |
 | 24 | **À espera da rodada** | — | `scWaitRound()` `7875` | `cl-wait` | `waitround` |
 | 25 | **Passe o aparelho** | — | `scSeatTurn()` `3082` | reusa `cl-main` (é o Hub com outro cabeçalho) | `seatturn` |
@@ -97,14 +97,15 @@ próprio: aparecem por cima de `live`.
 
 Pelo que o jogador esbarra com mais frequência:
 
-1. **Lobby da Resenha** (22) — a tela mais antiga que sobrou, e é a porta do
-   multiplayer inteiro; 8 caminhos levam até ela
-2. **Classificação pós-rodada** (17) — aparece depois de *toda* rodada
-3. **Substituição** (14) e **lesão** (12) — acontecem em quase todo jogo
-4. **Equipa** (1) — está na sidebar, a um clique o tempo todo
-5. **Pênaltis** (8–11) — decidem mata-mata
-6. **Fim de temporada** (20) — é o momento de celebração do save
-7. **Pausa patrocinada** (23) — toda virada de rodada na Resenha
+1. **Equipa** (1) — está na sidebar, a um clique o tempo todo
+2. **Pênaltis** (8–11) — decidem mata-mata, e hoje passam pela tela genérica
+3. **Fim de temporada** (20) — é o momento de celebração do save
+4. **Pausa patrocinada** (23) — toda virada de rodada na Resenha
+5. **Prorrogação** (16) — mesma lacuna dos pênaltis
+
+> **Leva 2 entregue em 2026-08-13:** lobby da Resenha, classificação
+> pós-rodada, substituição, lesão e cartão vermelho saíram desta lista e
+> estão portadas em `src/ui/rf26-partida.js`.
 
 ## Onde ver o desenho de hoje rodando
 

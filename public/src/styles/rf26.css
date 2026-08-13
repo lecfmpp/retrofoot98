@@ -2307,3 +2307,275 @@
   .rf-cam-tag{min-width:0}
   .rf-cam-abas{overflow-x:auto}
 }
+
+/* =====================================================================
+   LEVA 2 · ENVELOPES
+   rfOverlay() — durante a partida: gramado escurecido por baixo.
+   rfStage()   — entre partidas: faixa do clube e mesa verde-clara.
+   ===================================================================== */
+.rf-ov{position:fixed;inset:0;z-index:65;box-sizing:border-box;padding:32px;
+  display:flex;align-items:center;justify-content:center;overflow-y:auto;
+  font-family:var(--font-sans);color:var(--text-1);
+  background:radial-gradient(120% 90% at 50% 0%,#2f6f45 0%,#1d4a2e 55%,#0b1a12 100%)}
+/* as faixas do gramado — um dos três gradientes que o sistema permite */
+.rf-ov-faixas{position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.035) 0 44px,transparent 44px 88px)}
+.rf-ov-win{position:relative;width:900px;max-width:100%;background:var(--surface-card);
+  border-radius:var(--r-shell);overflow:hidden;box-shadow:0 40px 90px -40px rgba(0,0,0,.7);
+  display:flex;flex-direction:column;box-sizing:border-box;
+  animation:ds-fade-up var(--dur-base) var(--ease)}
+.rf-ov-hd{position:relative;display:flex;align-items:center;gap:14px;padding:18px 22px;
+  background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%)}
+.rf-ov-ttl{display:flex;flex-direction:column;gap:3px;min-width:0;margin-left:6px}
+.rf-ov-eyebrow{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-semibold);
+  letter-spacing:var(--ls-label-wide);text-transform:uppercase;color:var(--text-on-dark-faint);white-space:nowrap}
+.rf-ov-t{font-size:22px;font-weight:var(--fw-bold);color:#fff;letter-spacing:var(--ls-tight);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-ov-body{padding:20px 22px 22px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box}
+.rf-ov-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.rf-ov-foot{border-top:1px solid var(--line-3);background:#f7faf6;padding:14px 22px;
+  display:flex;align-items:center;gap:10px;box-sizing:border-box}
+.rf-ov-b2{height:44px;padding:0 20px;display:flex;align-items:center;justify-content:center;gap:8px;
+  border-radius:13px;background:transparent;border:var(--border-control);color:var(--text-3);
+  font-family:var(--font-sans);font-weight:var(--fw-semibold);font-size:var(--fs-body);
+  white-space:nowrap;cursor:pointer}
+.rf-ov-b2:hover{background:var(--surface-sunken)}
+.rf-ov-cta{height:44px;padding:0 20px;display:flex;align-items:center;justify-content:center;gap:8px;
+  border-radius:13px;background:var(--club-cta-bg,var(--club-secondary));border:1px solid transparent;
+  color:var(--club-cta-fg,var(--club-on-secondary));font-family:var(--font-sans);
+  font-weight:var(--fw-bold);font-size:var(--fs-body);white-space:nowrap;cursor:pointer}
+.rf-ov-cta:hover:not(:disabled){background:var(--club-secondary-hover)}
+.rf-ov-cta:disabled{opacity:.5;cursor:default}
+/* as três pílulas de substituição */
+.rf-ov-subs{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:0 0 auto}
+.rf-ov-subs-l{font-size:var(--fs-label-xs);font-weight:var(--fw-semibold);letter-spacing:var(--ls-label);
+  text-transform:uppercase;color:var(--text-on-dark-faint);white-space:nowrap}
+.rf-ov-pills{display:flex;gap:4px}
+.rf-ov-pill{width:20px;height:6px;border-radius:var(--r-pill);background:rgba(255,255,255,.25)}
+.rf-ov-pill.on{background:var(--club-secondary)}
+.rf-ov-subs-n{font-family:var(--font-mono);font-size:var(--fs-label);color:#fff;white-space:nowrap}
+.rf-ov-glyph{font-size:20px;flex:0 0 auto}
+/* o cartão vermelho é desenhado em CSS: emoji não aceita `color` */
+.rf-ov-vermelho{width:20px;height:26px;border-radius:3px;background:var(--danger);flex:0 0 auto;
+  box-shadow:0 2px 6px rgba(0,0,0,.3)}
+
+/* ----- rfStage ----- */
+.rf-stg{min-height:100vh;box-sizing:border-box;padding:24px;display:flex;justify-content:center;
+  background:var(--surface-desk);font-family:var(--font-sans);color:var(--text-1)}
+.rf-stg-in{width:1080px;max-width:100%;display:flex;flex-direction:column;gap:14px;padding:4px 0}
+.rf-stg-hd{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;
+  background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
+  border-radius:20px;padding:18px 22px;box-sizing:border-box}
+.rf-stg-crest{flex:0 0 auto;margin-left:8px;display:flex}
+.rf-stg-crest img,.rf-stg-crest .rf-crest-fb{width:38px;height:38px;object-fit:contain}
+.rf-stg-t{font-size:24px;font-weight:var(--fw-bold);color:#fff;letter-spacing:var(--ls-tight);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-stg-shell{background:var(--surface-desk);border:1px solid #d2e0d0;border-radius:var(--r-shell);
+  padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box;box-shadow:var(--shadow-shell)}
+.rf-stg-foot{display:flex;align-items:center;gap:10px}
+
+/* =====================================================================
+   LEVA 2 · LINHA DE JOGADOR (38 · nome · POS 34 · ENERGIA 60 · FOR 34)
+   ===================================================================== */
+.rf-pl-head,.rf-pl{display:grid;grid-template-columns:38px minmax(0,1fr) 34px 60px 34px;
+  gap:0 10px;align-items:center}
+.rf-pl-head{padding:0 10px 4px;font-family:var(--font-mono);font-size:var(--fs-label-xs);
+  color:var(--text-faint);letter-spacing:.06em;text-transform:uppercase}
+.rf-pl-head>span:nth-child(n+3){text-align:right}
+.rf-pl{padding:8px 10px;border-radius:var(--r-control);border:1px solid transparent;cursor:pointer;
+  transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease)}
+.rf-pl:hover{background:var(--surface-sunken)}
+.rf-pl.sel{background:var(--club-primary-soft);border-color:var(--club-primary)}
+.rf-pl.off{opacity:.5;cursor:default}
+/* o número é a camisa, em pastilha na cor do clube */
+.rf-pl-num{width:24px;height:24px;border-radius:7px;background:var(--club-primary);
+  color:var(--club-secondary-on-primary,var(--club-secondary));font-family:var(--font-mono);
+  font-size:var(--fs-micro);font-weight:var(--fw-semibold);display:flex;align-items:center;
+  justify-content:center;flex:0 0 auto}
+.rf-pl-id{min-width:0;display:flex;flex-direction:column;gap:1px}
+.rf-pl-n{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-pl-s{font-size:var(--fs-label);color:var(--text-faint);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rf-pl-pos{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-faint);text-align:right}
+.rf-pl-en{display:flex;justify-content:flex-end;align-items:center}
+.rf-pl-en .rf-ener{width:44px}
+.rf-pl-for{font-family:var(--font-mono);font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);
+  color:var(--text-1);text-align:right}
+
+/* ----- resumo sai/entra ----- */
+.rf-ov-resumo{display:flex;align-items:center;gap:14px;background:var(--surface-card);
+  border:1px solid var(--club-primary);border-radius:var(--r-card);padding:12px 16px}
+.rf-ov-res-l{display:flex;align-items:center;gap:8px;min-width:0}
+.rf-ov-res-l b{font-size:var(--fs-body);color:var(--text-1);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rf-ov-res-t{font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
+  text-transform:uppercase;color:var(--text-muted);white-space:nowrap}
+.rf-ov-res-seta{color:var(--text-faint);font-size:var(--fs-subhead)}
+.rf-ov-res-forca{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:0 0 auto}
+.rf-ov-res-n{font-family:var(--font-mono);font-size:var(--fs-subhead);font-weight:var(--fw-semibold);white-space:nowrap}
+.rf-ov-res-n.sobe{color:var(--ok)}
+.rf-ov-res-n.cai{color:var(--danger)}
+
+/* ----- alerta de lesão / expulsão: filete vermelho de 4px ----- */
+.rf-ov-alerta{display:flex;align-items:center;gap:12px;background:var(--surface-card);
+  border:var(--border-hairline);border-left:4px solid var(--danger);
+  border-radius:var(--r-card);padding:14px 16px}
+.rf-ov-al-id{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-ov-al-n{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1);white-space:nowrap}
+.rf-ov-al-s{font-size:var(--fs-caption);color:var(--text-4);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rf-ov-al-t{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:0 0 auto}
+.rf-ov-al-n2{font-family:var(--font-mono);font-size:var(--fs-subhead);font-weight:var(--fw-semibold);
+  color:var(--danger);white-space:nowrap}
+.rf-ov-dez{display:flex;align-items:baseline;gap:8px}
+.rf-ov-dez b{font-family:var(--font-mono);font-size:34px;font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-ov-dez span{font-size:var(--fs-body-sm);color:var(--text-3)}
+
+/* ----- as três reorganizações ----- */
+.rf-reorg{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-control);
+  border:1px solid var(--line-2);background:var(--surface-card);cursor:pointer;
+  transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease)}
+.rf-reorg:hover{background:var(--surface-sunken)}
+.rf-reorg.sel{border-color:var(--club-primary);background:var(--club-primary-soft)}
+.rf-reorg-f{font-family:var(--font-mono);font-size:var(--fs-body-sm);font-weight:var(--fw-bold);
+  color:var(--text-1);white-space:nowrap}
+.rf-reorg-d{font-size:var(--fs-caption);color:var(--text-3);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;min-width:0}
+.rf-reorg-e{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-faint);
+  background:var(--surface-sunken);border-radius:var(--r-pill);padding:3px 8px;white-space:nowrap}
+.rf-reorg-rec{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);
+  color:var(--club-on-secondary);background:var(--club-secondary);border-radius:var(--r-pill);
+  padding:3px 9px;white-space:nowrap}
+
+/* ----- MOBILE: a janela vira tela cheia e o rodapé gruda embaixo ----- */
+@media (max-width:760px){
+  .rf-ov{padding:0;align-items:stretch}
+  .rf-ov-win{width:100%;max-width:100%;border-radius:0;min-height:100vh}
+  .rf-ov-hd{padding:14px 16px}
+  .rf-ov-t{font-size:var(--fs-subhead)}
+  .rf-ov-body{padding:14px 16px 16px}
+  .rf-ov-cols{grid-template-columns:minmax(0,1fr)}
+  /* sem isto, numa lista de reservas longa o botão de confirmar sai da tela */
+  .rf-ov-foot{position:sticky;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px))}
+  .rf-ov-b2,.rf-ov-cta{flex:1;padding:0 12px;font-size:var(--fs-body-sm)}
+  .rf-ov-resumo{flex-wrap:wrap;row-gap:8px}
+  .rf-stg{padding:0}
+  .rf-stg-hd{border-radius:0;padding:14px 16px}
+  .rf-stg-t{font-size:var(--fs-title)}
+  .rf-stg-shell{border-radius:0;border-left:none;border-right:none;padding:12px}
+  .rf-stg-foot{position:sticky;bottom:0;background:var(--surface-card);
+    border-top:1px solid var(--line-1);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));
+    margin:0 -12px -12px}
+}
+
+/* =====================================================================
+   LEVA 2 · PÓS-RODADA E LOBBY
+   ===================================================================== */
+.rf-pr-cols{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;align-items:start}
+.rf-pr-dir{display:flex;flex-direction:column;gap:14px;min-width:0}
+/* tabela: zona · pos · escudo+nome · J V E D · GM:GS · P */
+.rf-pr-head,.rf-pr-row{display:grid;grid-template-columns:26px 22px minmax(0,1fr) 24px 24px 24px 24px 44px 28px;
+  gap:0 8px;align-items:center}
+.rf-pr-head{padding:0 8px 4px;font-family:var(--font-mono);font-size:var(--fs-label-xs);
+  color:var(--text-faint);letter-spacing:.06em;text-transform:uppercase}
+.rf-pr-head>span:nth-child(n+4){text-align:right}
+.rf-pr-list{display:flex;flex-direction:column}
+.rf-pr-row{padding:7px 8px;border-radius:var(--r-chip)}
+.rf-pr-row:hover{background:var(--surface-sunken)}
+.rf-pr-row.me{background:var(--surface-row-active)}
+.rf-pr-row.me .rf-pr-n{font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-pr-z{display:flex;justify-content:center}
+.rf-pr-p{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-muted);text-align:right}
+.rf-pr-c{display:flex;align-items:center;gap:7px;min-width:0}
+.rf-pr-c img,.rf-pr-c .rf-crest-fb{width:18px;height:18px;object-fit:contain;flex:0 0 auto}
+.rf-pr-n{font-size:var(--fs-body-sm);font-weight:var(--fw-medium);color:var(--text-2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-zona.playoff{background:var(--warn)}
+.rf-pr-legenda{display:flex;gap:16px;padding-top:8px;margin-top:4px;border-top:1px solid var(--line-3);
+  font-size:var(--fs-label);color:var(--text-4)}
+.rf-pr-legenda span{display:flex;align-items:center;gap:6px}
+/* resultados: público em mono à esquerda */
+.rf-pr-jogo{display:grid;grid-template-columns:56px minmax(0,1fr) 62px minmax(0,1fr);
+  gap:0 10px;align-items:center;padding:8px 10px;border-radius:var(--r-chip)}
+.rf-pr-jogo:hover{background:var(--surface-sunken)}
+.rf-pr-jogo.meu{background:var(--club-primary-soft);box-shadow:inset 0 0 0 1px var(--club-primary-line)}
+.rf-pr-pub{display:flex;align-items:center;justify-content:flex-end;gap:4px;
+  font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-muted);white-space:nowrap}
+.rf-pr-lado{display:flex;align-items:center;gap:7px;min-width:0}
+.rf-pr-lado.dir{justify-content:flex-end}
+.rf-pr-lado img,.rf-pr-lado .rf-crest-fb{width:18px;height:18px;object-fit:contain;flex:0 0 auto}
+.rf-pr-jn{font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-pr-placar{font-family:var(--font-mono);font-size:var(--fs-body-sm);font-weight:var(--fw-bold);
+  color:var(--club-on-primary);background:var(--club-primary);border-radius:var(--r-tag);
+  padding:4px 0;text-align:center}
+/* o que mudou para você */
+.rf-pr-mudou{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rf-pr-m{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-pr-mv{font-family:var(--font-mono);font-size:22px;font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-pr-mv.sm{font-family:var(--font-sans);font-size:var(--fs-subhead);font-weight:var(--fw-bold);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-pr-ms{font-size:var(--fs-label);color:var(--text-4);white-space:nowrap}
+
+/* ----- lobby ----- */
+.rf-lb-cols{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:start}
+.rf-lb-esq{display:flex;flex-direction:column;gap:14px;min-width:0}
+.rf-lb-codigo{flex-direction:row;align-items:center;gap:12px;flex-wrap:wrap}
+.rf-lb-cod-id{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-lb-cod{font-family:var(--font-mono);font-size:26px;font-weight:var(--fw-semibold);
+  letter-spacing:.22em;color:var(--text-1);white-space:nowrap}
+.rf-lb-t{display:grid;grid-template-columns:26px minmax(0,1fr) minmax(0,1fr) 96px;
+  gap:0 10px;align-items:center;padding:9px 10px;border-radius:var(--r-control);
+  border:1px solid transparent}
+.rf-lb-t:hover{background:var(--surface-sunken)}
+.rf-lb-t.eu{background:var(--club-primary-soft);border-color:var(--club-primary)}
+.rf-lb-crest{display:flex;flex:0 0 auto}
+.rf-lb-crest img,.rf-lb-crest .rf-crest-fb{width:26px;height:26px;object-fit:contain}
+.rf-lb-vazio{width:26px;height:26px;border-radius:7px;background:var(--line-3);display:block}
+.rf-lb-id{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-lb-n{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-lb-s{font-size:var(--fs-label);color:var(--text-faint);white-space:nowrap}
+.rf-lb-clube{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-lb-cn{font-size:var(--fs-caption);color:var(--text-2);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rf-lb-cd{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-faint);white-space:nowrap}
+.rf-lb-estado{justify-self:end;font-size:var(--fs-label);font-weight:var(--fw-bold);
+  border-radius:var(--r-pill);padding:4px 10px;white-space:nowrap}
+.rf-lb-estado.pronto{color:#1a6b39;background:#e9f6ee;border:1px solid #cfe8d9}
+.rf-lb-estado.aguarda{color:#7a5c00;background:#fdf3d4;border:1px solid #f2e2a8}
+.rf-lb-vaga{margin-top:4px;padding:10px;border:1px dashed var(--line-2);border-radius:var(--r-control);
+  font-size:var(--fs-caption);color:var(--text-4);text-align:center}
+.rf-lb-regras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.rf-lb-r{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-lb-rv{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-1);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rf-lb-chat{display:flex;flex-direction:column;gap:10px}
+.rf-lb-msgs{display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;
+  font-size:var(--fs-body-sm)}
+
+@media (max-width:900px){
+  .rf-pr-cols,.rf-lb-cols{grid-template-columns:minmax(0,1fr)}
+  .rf-lb-regras{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:760px){
+  .rf-pr-mudou{grid-template-columns:1fr 1fr}
+  .rf-pr-head>span:nth-child(4),.rf-pr-head>span:nth-child(5),
+  .rf-pr-head>span:nth-child(6),.rf-pr-head>span:nth-child(7){display:none}
+  .rf-pr-head,.rf-pr-row{grid-template-columns:20px 20px minmax(0,1fr) 44px 28px}
+  .rf-pr-row>.rf-tb-x:nth-of-type(1),.rf-pr-row>.rf-tb-x:nth-of-type(2),
+  .rf-pr-row>.rf-tb-x:nth-of-type(3),.rf-pr-row>.rf-tb-x:nth-of-type(4){display:none}
+  .rf-lb-t{grid-template-columns:26px minmax(0,1fr) 90px;row-gap:2px}
+  .rf-lb-clube{display:none}
+  .rf-lb-cod{font-size:var(--fs-title)}
+}
+
+/* As listas da sobreposição ROLAM POR DENTRO. A referência é uma maquete
+   com 6 titulares e 5 reservas; um elenco real tem 11 e 20, e sem teto a
+   janela ficava mais alta que a tela — o rodapé com o "Confirmar" saía de
+   vista, que é o oposto do que a tela quer. Cortar jogador da lista não é
+   opção (densidade é característica): quem cede é a altura, não o dado. */
+.rf-ov-cols>.rf-card{max-height:min(52vh,420px);overflow-y:auto}
+.rf-ov-win{max-height:calc(100vh - 64px)}
+.rf-ov-body{overflow-y:auto;min-height:0}

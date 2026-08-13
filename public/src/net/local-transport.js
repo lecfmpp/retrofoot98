@@ -566,7 +566,12 @@ function onlineReconcileIfBehind(room){
 }
 
 /* cada tela do fluxo Resenha já retorna o shell completo (wizShell) — sem deskWrap/titleBar */
-function renderOnline(){ const n=CL.net||{};
+function renderOnline(){
+  // TELA PORTADA (telas/Resenha - Lobby da Sala). O lobby antigo — a tela
+  // mais velha que tinha sobrado no jogo — sai de cena aqui.
+  return rfLobbyHTML();
+}
+function renderOnlineLegado(){ const n=CL.net||{};
   if(n.step==='escolha') return scResenhaChoice();
   if(n.step==='joincode') return scJoinCode();
   if(n.step==='conta')  return scConta();

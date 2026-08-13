@@ -6480,6 +6480,10 @@ function injuryClubStyle(){
   return `style="--inj-bg:linear-gradient(165deg,${col} 45%,${col2} 100%);--inj-fg:${txtOn(col)}"`;
 }
 function injurySubHTML(m,e){
+  // TELA PORTADA (telas/Modal - Lesao)
+  return rfLesaoHTML(m,e);
+}
+function injurySubHTMLLegado(m,e){
   const posName={GK:'Goleiro',DEF:'Zagueiro',MID:'Meia',ATT:'Atacante'}[e.pos]||'Jogador';
   const secsLeft=Math.max(0, Math.ceil(((CL.injDeadline||0)-Date.now())/1000)); // auto-avanço (ver injuryTick)
   const opts=injurySubOptions(e);
@@ -6635,6 +6639,10 @@ function resolveRedConfirm(){
   cdraw(); CL._liveTimer=setTimeout(liveTick,420);
 }
 function redCardHTML(m,e){
+  // TELA PORTADA (telas/Modal - Cartao Vermelho)
+  return rfExpulsaoHTML(m,e);
+}
+function redCardHTMLLegado(m,e){
   const secsLeft=Math.max(0, Math.ceil(((CL.redDeadline||0)-Date.now())/1000));
   const bench=redCardBench(m,e);
   const canReorg=bench.length>0;
@@ -7389,7 +7397,11 @@ function incidentLines(m){
   if(!rows.length) return '<div class="cl-lm-noinc">Sem incidentes ainda…</div>';
   return rows.map(r=>`<div>${r.html}</div>`).join('');
 }
-function subPanelHTML(m){ const id=CL.clubId; const xiSet=new Set(S.xi||[]); const xi=squad(id).filter(p=>xiSet.has(p.pid)).sort(bySquadOrder); const bench=squad(id).filter(p=>!xiSet.has(p.pid)).sort(bySquadOrder);
+function subPanelHTML(m){
+  // TELA PORTADA (telas/Modal - Substituicao). O painel antigo some.
+  return rfSubHTML(m);
+}
+function subPanelHTMLLegado(m){ const id=CL.clubId; const xiSet=new Set(S.xi||[]); const xi=squad(id).filter(p=>xiSet.has(p.pid)).sort(bySquadOrder); const bench=squad(id).filter(p=>!xiSet.has(p.pid)).sort(bySquadOrder);
   const rowP=(p,side)=>`<div class="cl-sub-row ${((side==='out')?CL.subOut:CL.subIn)===p.pid?'sel':''}" onclick="liveSubPick('${side}','${escC(p.pid)}')"><span class="cl-sub-p">${posLetter(p.s)}</span><span class="cl-sub-n">${escC(p.n)}</span><b>${p.f}</b></div>`;
   return `<fieldset class="cl-sub"><legend>${escC(clubOf(id).short)}</legend>
     <div class="cl-sub-cols"><div class="cl-sub-c">${xi.map(p=>rowP(p,'out')).join('')}</div><div class="cl-sub-c">${bench.map(p=>rowP(p,'in')).join('')}</div></div>
@@ -7430,6 +7442,10 @@ function classifDivName(d, country){
   return legend[d] || labels[d] || d;
 }
 function scClassif(){
+  // TELA PORTADA (telas/Pos-Rodada - Classificacao)
+  return rfPosRodadaHTML();
+}
+function scClassifLegado(){
   // accordion vertical: divisão do usuário no topo e aberta; as outras colapsadas.
   const panelHTML=(d)=>{
     const isMine = d===S.division;
