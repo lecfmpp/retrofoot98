@@ -2,83 +2,117 @@
 
 Estado em 2026-08-13, na branch `claude/retrofoot-new-layout-design-c09780`.
 
-As 50 telas do zip estão portadas. Estas aqui são telas que **existem no jogo**
-e ficaram sem equivalente no pacote — hoje elas desenham com o shell antigo
-(`titleBarTop` + `deskWrap` + `wizShell`), que é justamente o que o rebranding
-tira. Quando a tela nova chegar, o ponto de troca é o `case` do `cdraw()`.
+As 50 telas do zip estão portadas. Estas aqui **existem no jogo** e ficaram sem
+equivalente no pacote — hoje desenham com o shell antigo (`titleBarTop` +
+`deskWrap` + `wizShell`), que é justamente o que o rebranding tira.
 
-## Como ler as referências
+## Como usar esta lista
 
-- **`CL.screen`** — a chave da tela. O roteador é o `switch` dentro de
-  `cdraw()`, em `public/src/ui/main.js:672`. Trocar uma tela é trocar o `case` dela.
-- **função** — quem monta o HTML hoje.
-- **chegada** — o que leva o jogador até ali.
+Cada tela tem quatro referências, para você achar o desenho atual e redesenhar
+em cima:
 
----
+| Coluna | Para que serve |
+|---|---|
+| **print** | O arquivo em `screenshots-atual/` — é o desenho de hoje, do jeito que o jogador vê |
+| **função** | Quem monta o HTML, em `public/src/ui/main.js` salvo indicação |
+| **classe** | O prefixo CSS da tela em `public/src/styles/main.css` — busque por ele para achar todo o estilo |
+| **`CL.screen`** | A chave da tela. O roteador é o `switch` do `cdraw()` em `main.js:672` — trocar a tela é trocar o `case` dela |
 
-## 1 · Bloqueiam o fluxo principal
+Nem toda tela tem print: as marcadas com `—` não foram capturadas. As que não
+têm `CL.screen` são sobreposições (modais) e trocam no ponto onde são chamadas.
 
-| # | Tela | `CL.screen` | Função (arquivo:linha) | Chegada |
-|---|---|---|---|---|
-| 1 | **Equipa** | *(não é tela; é destino da sidebar)* | `rfEquipaHTML()` — `src/ui/rf26.js:1606`; destino em `RF_PAGES`, `rf26.js:76` | Sidebar ▸ Equipa. **Único destino da sidebar da referência sem tela própria** — montei com identidade do clube + estádio + historial |
-| 2 | **Escolha de moeda** | `moeda` | `scMoeda()` — `main.js:2165` | Onboarding solo, depois de País e Ligas |
-| 3 | **País jogável** | `paisJogavel` | `scPaisJogavel()` — `main.js:2139` | Só quando mais de um país jogável é escolhido |
-| 4 | **Carregando** | `loading` | `scLoading()` — `main.js:2185` | Entre a configuração e o sorteio do clube |
-| 5 | **Sorteio dos treinadores** | `jogadores` | `scJogadores()` — `main.js:2212` | Antes do sorteio de clubes (define quem é quem) |
-| 6 | **Escolha de clubes** | `escolhaclubes` | `scEscolhaClubes()` — `main.js:2782` | Variante do sorteio quando a sala escolhe em vez de sortear |
-
-> **Nota sobre a 2 e a 4:** o pacote traz o onboarding em 5 marcos (Entrar ·
-> Modo · Configurar · Sorteio · Jogar). Moeda e Carregando caem dentro de
-> *Configurar* e *Sorteio* — se você desenhá-las, elas encaixam na trilha
-> existente sem mudar a contagem de passos.
-
-## 2 · Partida — bordas que hoje caem na tela genérica
-
-| # | Tela | Onde | Função (arquivo:linha) | Chegada |
-|---|---|---|---|---|
-| 7 | **Disputa de pênaltis** | dentro de `live` | `shootoutScoreboardHTML()` — `main.js:7213`; ligado por `startPenaltyShootout()` em `main.js:6096` | Mata-mata empatado após a prorrogação |
-| 8 | **Prorrogação** | dentro de `live` | `startExtraTime()` — `main.js:6095`; o cabeçalho sai de `RL.extraStartMinute` | Mata-mata empatado no tempo normal |
-| 9 | **Partida avulsa de copa** | dentro de `live` | `scLive()` com `RL.cup` — `main.js:6716` | Jogo de copa fora da rodada de liga |
-| 10 | **Classificação de fim de rodada** | `classif` | `scClassif()` — `main.js:7432` | Depois de cada rodada de liga |
-| 11 | **Classificação de copa** | `cupclassif` | `scCupClassif()` — `main.js:8540` | Depois de cada rodada de copa |
-| 12 | **Tela da competição** | `cupview` | `scCupView()` — `main.js:10549` | Campeonatos ▸ ver grupos/chave fora do sorteio |
-
-> **Nota:** 7, 8 e 9 são as três exceções que eu removi do `scLive()`. Hoje elas
-> passam pela tela nova de Partida ao Vivo, que **não tem** o placar de série
-> de pênaltis nem o cabeçalho de troféu — funciona, mas está incompleto.
-
-## 3 · Modo Resenha
-
-| # | Tela | `CL.screen` | Função (arquivo:linha) | Chegada |
-|---|---|---|---|---|
-| 13 | **Lobby da sala** | `online` | `renderOnline()` — `src/net/local-transport.js:569` | Criar ou entrar numa sala. **É a tela mais antiga que sobrou** — 8 caminhos levam até ela |
-| 14 | **Pausa patrocinada** | *(sobreposição)* | `PAUSA_GIFS`/`pausaChecklist()` — `main.js:470` e `main.js:558` | Intervalo entre o fim da rodada e a classificação |
-| 15 | **Passe o aparelho** (hotseat) | `seatturn` | `scSeatTurn()` — `main.js:3082` | Modo hotseat, ao trocar de treinador |
-| 16 | **Classificação do assento** | `seatclassif` | `scSeatClassif()` — `main.js:3043` | Fim da rodada no hotseat |
-| 17 | **Entrega do aparelho** | `handoff` | `scHandoff()` — `main.js:3135` | Transição entre assentos |
-| 18 | **À espera da rodada** | `waitround` | `scWaitRound()` — `main.js:7875` | Esperando os outros treinadores |
-
-## 4 · Secundárias
-
-| # | Tela | `CL.screen` | Função (arquivo:linha) | Chegada |
-|---|---|---|---|---|
-| 19 | **Ver time de outro clube** | `teamview` | `scTeamView()` — `main.js:3842` | Clicar no nome de um clube em qualquer lista |
-| 20 | **Imprensa** | `imprensa` | `scImprensa()` — `main.js:7669` | Eventos de imprensa entre rodadas |
-| 21 | **Recuperar senha** | `resetpassword` | `scResetPassword()` — `main.js:1689` | Link de e-mail de recuperação |
-| 22 | **Continuar um save** | `modosolo` | `scModoSolo()` — `main.js:1882` | Onboarding ▸ Entrar ▸ continuar save. A tela 1 do pacote mostra o acordeão de saves, mas a lista em si é esta |
-| 23 | **Páginas institucionais** | `abertura` + `CL.landingView` | `landingPageHTML()` — `main.js:1536`; conteúdo em `landingSobreHTML()` (1544), `landingAjudaHTML()` (1552), `landingContatoHTML()` (1570), `landingTermosHTML()` (1580), `landingPrivHTML()` (1589) | Rodapé da landing |
+> **Atenção ao prefixo `rf-`:** a Pausa Patrocinada (nº 23) já usa `rf-` no CSS
+> antigo — ela veio de um handoff anterior. Não confundir com o `rf-` do
+> rebranding 2026 (`public/src/styles/rf26.css`). São arquivos diferentes.
 
 ---
 
-## Sugestão de prioridade
+## 1 · Fluxo principal
+
+| # | Tela | print | função | classe | `CL.screen` |
+|---|---|---|---|---|---|
+| 1 | **Equipa** | — | `rfEquipaHTML()` `src/ui/rf26.js:1606` | `rf-eq-` | *(destino da sidebar, `RF_PAGES` em `rf26.js:76`)* |
+| 2 | **Escolha de moeda** | `06 - Escolha de moeda.png` | `scMoeda()` `2165` | `cl-bigsel` | `moeda` |
+| 3 | **País jogável** | — | `scPaisJogavel()` `2139` | `cl-ctry` | `paisJogavel` |
+| 4 | **Carregando** | — | `scLoading()` `2185` | `cl-prog` | `loading` |
+| 5 | **Número de treinadores** | `07 - Numero de jogadores.png` | `scJogadores()` `2212` | `cl-prow` | `jogadores` |
+| 6 | **Escolha dos clubes** | `08 - Escolha os clubes (sorteio).png` | `scEscolhaClubes()` `2782` | `cl-navysel`, `cl-pick` | `escolhaclubes` |
+| 7 | **Continuar um save** | `03 - Solo - novo ou continuar.png`, `04 - Solo - nome do save.png` | `scModoSolo()` `1882` | `cl-mc` | `modosolo` |
+
+> A tela 1 do pacote (*Onboarding 1 - Entrar*) mostra o acordeão de saves, mas a
+> lista em si é a de nº 7 — vale desenhar as duas juntas.
+
+## 2 · Partida — o que acontece dentro do jogo
+
+Estas são **sobreposições** sobre a partida ao vivo. Nenhuma tem `CL.screen`
+próprio: aparecem por cima de `live`.
+
+| # | Tela | print | função | classe |
+|---|---|---|---|---|
+| 8 | **Pênalti — escolher batedor** | `37 - Partida - Penalti (escolher batedor).png` | `penaltyPickerHTML()` `7298` | `cl-pen` |
+| 9 | **Pênalti — suspense** | `38 - Partida - Penalti (suspense).png` | `penaltySuspenseHTML()` `7351` | `cl-pen` |
+| 10 | **Pênalti — resultado** | `39 - Partida - Penalti (gol).png` | `penaltyResultHTML()` `7359` | `cl-pen` |
+| 11 | **Disputa de pênaltis** | `45 - Partida - Disputa de penaltis.png` | `shootoutScoreboardHTML()` `7213` | `cl-pens` |
+| 12 | **Lesão — substituir** | `40 - Partida - Lesao (substituicao).png` | `injurySubHTML()` `6482` | `cl-inj` |
+| 13 | **Cartão vermelho** | `41 - Partida - Expulsao (cartao vermelho).png` | `redCardHTML()` `6637` | `cl-inj` |
+| 14 | **Substituição** | `43` e `44 - Partida - Substituicao...png` | `subPanelHTML()` `7392` | `cl-sub` |
+| 15 | **Detalhe de um jogo** | `34`–`36 - Partida ao vivo...png` | `liveModalHTML()` `7240` | `cl-lm` |
+| 16 | **Prorrogação** | — | `startExtraTime()` `6095`; cabeçalho vem de `RL.extraStartMinute` | — |
+
+> **8 a 11 e 16:** hoje passam pela Partida ao Vivo nova, que **não tem** placar
+> de série de pênaltis nem cabeçalho de prorrogação. Funciona, está incompleto.
+
+## 3 · Entre rodadas
+
+| # | Tela | print | função | classe | `CL.screen` |
+|---|---|---|---|---|---|
+| 17 | **Classificação pós-rodada** | `42 - Pos-rodada - Classificacao das divisoes.png` | `scClassif()` `7432` | `cl-cls2` | `classif` |
+| 18 | **Classificação de copa** | — | `scCupClassif()` `8540` | `cl-cupres` | `cupclassif` |
+| 19 | **Tela da competição** | `23 - Modal - Minhas competicoes.png` | `scCupView()` `10549` | `cl-cup2` | `cupview` |
+| 20 | **Fim de temporada** | `46 - Fim de temporada (premiacao).png` | `dlg('Fim da temporada!'…)` `7515` e `7579` | `cl-dlg` | — |
+| 21 | **Imprensa** | — | `scImprensa()` `7669` | `cl-press` | `imprensa` |
+
+## 4 · Modo Resenha
+
+| # | Tela | print | função | classe | `CL.screen` |
+|---|---|---|---|---|---|
+| 22 | **Lobby da sala** | `47`, `48` e `49 - Resenha - ...png` | `renderOnline()` `src/net/local-transport.js:569` | `cl-sala` | `online` |
+| 23 | **Pausa patrocinada** | — | `PAUSA_GIFS` `470`, `pausaChecklist()` `558`, monta em `showSyncLoading()` `631` | `rf-step`, `rf-stage`, `rf-tv` | *(sobreposição `#c-syncload`)* |
+| 24 | **À espera da rodada** | — | `scWaitRound()` `7875` | `cl-wait` | `waitround` |
+| 25 | **Passe o aparelho** | — | `scSeatTurn()` `3082` | reusa `cl-main` (é o Hub com outro cabeçalho) | `seatturn` |
+| 26 | **Classificação do assento** | — | `scSeatClassif()` `3043` | `cl-cls2` | `seatclassif` |
+| 27 | **Entrega do aparelho** | — | `scHandoff()` `3135` | `cl-handoff` | `handoff` |
+
+## 5 · Secundárias
+
+| # | Tela | print | função | classe | `CL.screen` |
+|---|---|---|---|---|---|
+| 28 | **Ver time de outro clube** | — | `scTeamView()` `3842` | `cl-main` | `teamview` |
+| 29 | **Recuperar senha** | — | `scResetPassword()` `1689` | `cl-authform` | `resetpassword` |
+| 30 | **Páginas institucionais** | — | `landingPageHTML()` `1536`; conteúdo em `landingSobreHTML()` `1544`, `landingAjudaHTML()` `1552`, `landingContatoHTML()` `1570`, `landingTermosHTML()` `1580`, `landingPrivHTML()` `1589` | `cl-lp-page` | `abertura` + `CL.landingView` |
+
+---
+
+## Prioridade sugerida
 
 Pelo que o jogador esbarra com mais frequência:
 
-1. **Lobby da Resenha** (13) — a mais antiga que sobrou, e é a porta do modo
-   multiplayer inteiro
-2. **Equipa** (1) — está na sidebar, então é um clique de distância o tempo todo
-3. **Classificação de fim de rodada** (10) — aparece depois de *toda* rodada
-4. **Pênaltis** (7) e **prorrogação** (8) — decidem mata-mata
-5. **Pausa patrocinada** (14) — aparece toda virada de rodada na Resenha
+1. **Lobby da Resenha** (22) — a tela mais antiga que sobrou, e é a porta do
+   multiplayer inteiro; 8 caminhos levam até ela
+2. **Classificação pós-rodada** (17) — aparece depois de *toda* rodada
+3. **Substituição** (14) e **lesão** (12) — acontecem em quase todo jogo
+4. **Equipa** (1) — está na sidebar, a um clique o tempo todo
+5. **Pênaltis** (8–11) — decidem mata-mata
+6. **Fim de temporada** (20) — é o momento de celebração do save
+7. **Pausa patrocinada** (23) — toda virada de rodada na Resenha
 
-O resto pode vir depois sem prejudicar a experiência principal.
+## Onde ver o desenho de hoje rodando
+
+O atalho de bancada abre o jogo direto, sem passar pelo onboarding:
+
+```bash
+npm run dev
+```
+
+Depois abra `http://localhost:5199/?rf=hub`. Para as telas de partida, use o
+botão **Jogar** — ele passa pelo sorteio e cai na rodada ao vivo.
