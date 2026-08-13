@@ -1,18 +1,37 @@
-:root{--felt:#2f8f2f;--navy:#000080;--chrome:#c0c0c0;--yellow:#ffff00;--yellowlite:#ffff66;--bluetxt:#3a3ad6;
- --bevL:#ffffff;--bevL2:#dfdfdf;--bevD:#808080;--bevD2:#000000;
- --serif:Georgia,'Times New Roman',serif;--sans:Tahoma,'Segoe UI',Arial,sans-serif;--mono:'Consolas','JetBrains Mono',monospace;
+/* ================= REBRANDING 2026 — TOKENS =================
+   Ponto de entrada do design system novo (ver docs/rebranding-2026/readme.md).
+   Vem ANTES de tudo: o :root logo abaixo faz a PONTE das variáveis antigas
+   (--felt, --navy, --chrome, --yellow, bisel) para os tokens, então uma tela
+   ainda não convertida já nasce com a paleta nova em vez da pele Windows 98.
+   @import tem que ficar no topo do arquivo — é regra do CSS, não escolha. */
+@import "tokens/fonts.css";
+@import "tokens/colors.css";
+@import "tokens/typography.css";
+@import "tokens/spacing.css";
+@import "tokens/shape.css";
+@import "tokens/motion.css";
+:root{
+ /* ---- PONTE 2026: os treze nomes da pele Windows 98 continuam existindo, mas
+    agora APONTAM para os tokens. Assim uma tela ainda não reescrita já sai com a
+    paleta nova, e cada nome vai sendo removido conforme a tela é convertida.
+    O bisel morreu: as quatro cores dele viram a MESMA hairline, então o efeito
+    3D some sozinho onde ainda houver `border-color:var(--bevel-out)`. ---- */
+ --felt:var(--surface-desk);--navy:var(--club-primary);--chrome:var(--surface-card);
+ --yellow:var(--club-secondary);--yellowlite:var(--club-secondary-hover);--bluetxt:var(--club-primary);
+ --bevL:var(--line-1);--bevL2:var(--line-1);--bevD:var(--line-1);--bevD2:var(--line-1);
+ --serif:var(--font-serif);--sans:var(--font-sans);--mono:var(--font-mono);
  /* ---- Design system RetroFoot98 — tokens formalizados (aditivos; os 13 acima
     continuam sendo a fonte da verdade e não mudam de valor) ---- */
  --success:#0b7a2f; --success-alt:#1a8f3c; --success-deep:#063d18; --success-lite:#3fcf6a;
  --ontext-lite:#eaffea; --ontext-lite2:#cfe6cf; --ontext-lite3:#9fe89f;
- --danger:#cc0000; --danger-alt:#e21c1c; --danger-deep:#c0392b;
+ --old-danger:#cc0000; --danger-alt:#e21c1c; --danger-deep:#c0392b;
  --gold:#cc9a1a; --gold-warm:#e67e22;
  --body-green:var(--felt); --body-yellow:#ffffcc; --body-gray:var(--chrome); --body-estadio:#9be89b;
  --ink:#000000; --paper:#ffffff; --gray-666:#666666; --gray-888:#888888; --gray-999:#999999; --gray-aaa:#aaaaaa;
  --zone-lib-bg:#2a5a2a; --zone-lib-fg:#9fe89f; --zone-lib-bar:#2f8f2f;
  --zone-sul-bg:#5a4a1a; --zone-sul-fg:#ffd97a; --zone-sul-bar:#cc9a1a;
  --moral-grad:linear-gradient(90deg,#c0392b 0%,#e67e22 25%,#f1c40f 50%,#8bc34a 75%,#2ecc71 100%);
- --sp-1:3px; --sp-2:6px; --sp-3:8px; --sp-4:12px; --sp-5:16px; --sp-6:20px; --sp-7:26px;
+ --old-sp-1:3px; --old-sp-2:6px; --old-sp-3:8px; --old-sp-4:12px; --old-sp-5:16px; --old-sp-6:20px; --old-sp-7:26px;
  --bw-hair:1px; --bw-bevel:2px; --bw-frame:3px;
  --radius-none:0; --radius-pill:12px; --radius-tag:3px; --radius-chip:99px;
  --bevel-out:var(--bevL) var(--bevD2) var(--bevD2) var(--bevL);
@@ -22,7 +41,7 @@
  --shadow-dlg:0 10px 40px -8px rgba(0,0,0,.55); --shadow-badge:0 3px 10px rgba(0,0,0,.4);
  --shadow-logo:drop-shadow(0 6px 14px rgba(0,0,0,.4)); --shadow-main:0 20px 60px -10px rgba(0,0,0,.6);
  --topbar-h:26px; --bp-mobile:760px; --dlg-pad:18px 20px; --btn-min-h:46px;
- --fs-min:11px; --fs-sm:13px; --fs-body:15px; --fs-lg:18px; --fs-title:20px; --fs-hero:30px; --fs-pen:52px;
+ --fs-min:11px; --fs-sm:13px; --old-fs-body:15px; --fs-lg:18px; --fs-title:20px; --fs-hero:30px; --fs-pen:52px;
  --fw-normal:400; --fw-bold:700; --fw-black:800; --fw-heavy:900;
  --lh-tight:1.1; --lh-ui:1.2; --lh-body:1.45;
 }
@@ -3297,33 +3316,33 @@ body.rf-tem-anchor .cl-wrap{padding-bottom:118px}
    caixa alta, manchete serifada. Usa os tokens de espaçamento pra respirar e rola
    sozinho quando a temporada teve muita notícia. */
 /* padding-bottom generoso: a doca do "Chat da Liga" flutua no canto e cobria o último card */
-.cl-press{width:100%;max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:var(--sp-4);
+.cl-press{width:100%;max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:var(--old-sp-4);
   max-height:calc(100vh - 90px);overflow-y:auto;padding-bottom:64px}
 .cl-press-head{text-align:center}
 .cl-press-kicker{font-family:var(--sans);font-size:var(--fs-min);font-weight:var(--fw-bold);letter-spacing:.14em;
   text-transform:uppercase;color:var(--yellow);opacity:.9}
 .cl-press-h1{font-family:var(--serif);font-style:italic;font-weight:var(--fw-bold);font-size:var(--fs-title);
-  color:#fff;line-height:1.2;margin-top:var(--sp-1);text-shadow:0 2px 4px rgba(0,0,0,.35)}
-.cl-press-cards{display:flex;flex-direction:column;gap:var(--sp-2)}
-.cl-press-card{display:flex;gap:var(--sp-3);align-items:flex-start;background:var(--paper);
-  border:var(--bw-bevel) solid;border-color:var(--bevel-in);padding:var(--sp-3)}
+  color:#fff;line-height:1.2;margin-top:var(--old-sp-1);text-shadow:0 2px 4px rgba(0,0,0,.35)}
+.cl-press-cards{display:flex;flex-direction:column;gap:var(--old-sp-2)}
+.cl-press-card{display:flex;gap:var(--old-sp-3);align-items:flex-start;background:var(--paper);
+  border:var(--bw-bevel) solid;border-color:var(--bevel-in);padding:var(--old-sp-3)}
 .cl-press-ic{font-size:var(--fs-lg);line-height:1.1;flex:none}
-.cl-press-t{font-family:var(--sans);font-weight:var(--fw-bold);font-size:var(--fs-body);color:var(--ink)}
+.cl-press-t{font-family:var(--sans);font-weight:var(--fw-bold);font-size:var(--old-fs-body);color:var(--ink)}
 .cl-press-d{font-family:var(--sans);font-size:var(--fs-sm);color:var(--gray-666);margin-top:2px;line-height:1.45}
-.cl-press-opts{display:flex;flex-direction:column;gap:var(--sp-2)}
-.cl-press-opt{width:100%;text-align:left;font-family:var(--sans);font-size:var(--fs-body);color:var(--ink);
+.cl-press-opts{display:flex;flex-direction:column;gap:var(--old-sp-2)}
+.cl-press-opt{width:100%;text-align:left;font-family:var(--sans);font-size:var(--old-fs-body);color:var(--ink);
   background:var(--chrome);border:var(--bw-bevel) solid;border-color:var(--bevel-out);
-  padding:var(--sp-3) var(--sp-4);min-height:var(--btn-min-h);cursor:pointer;line-height:1.35}
+  padding:var(--old-sp-3) var(--old-sp-4);min-height:var(--btn-min-h);cursor:pointer;line-height:1.35}
 .cl-press-opt:hover{background:var(--bevL2)}
 .cl-press-opt:active{border-color:var(--bevel-in)}
-.cl-press-moral{text-align:center;font-family:var(--sans);font-size:var(--fs-body);color:#fff;
-  background:rgba(0,0,0,.22);border:var(--bw-hair) solid rgba(255,255,255,.25);padding:var(--sp-3)}
+.cl-press-moral{text-align:center;font-family:var(--sans);font-size:var(--old-fs-body);color:#fff;
+  background:rgba(0,0,0,.22);border:var(--bw-hair) solid rgba(255,255,255,.25);padding:var(--old-sp-3)}
 .cl-press-moral.up{background:rgba(11,122,47,.35);border-color:var(--success-lite)}
 .cl-press-moral.down{background:rgba(204,0,0,.28);border-color:var(--danger-alt)}
 @media (max-width:760px){
   .cl-press{max-height:calc(100vh - 70px)}
   .cl-press-h1{font-size:var(--fs-lg)}
-  .cl-press-opt{padding:var(--sp-2) var(--sp-3)}
+  .cl-press-opt{padding:var(--old-sp-2) var(--old-sp-3)}
 }
 
 /* ===================================================================
@@ -3353,7 +3372,7 @@ body.rf-tem-anchor .cl-wrap{padding-bottom:118px}
 .rf-cam-sw.dis{opacity:.5;cursor:not-allowed}
 .rf-cam-sw.dis:active{border-color:var(--bevel-out)}
 .rf-cam-sw.dis .rf-cam-sw-track{background:var(--bevD)}
-.rf-cam-sw-warn{font-size:10px;font-weight:var(--fw-bold);color:var(--danger);white-space:nowrap}
+.rf-cam-sw-warn{font-size:10px;font-weight:var(--fw-bold);color:var(--old-danger);white-space:nowrap}
 
 /* ---- janela ---- */
 .rf-cam-ov{position:fixed;inset:0;z-index:30;background:rgba(6,45,10,.62);

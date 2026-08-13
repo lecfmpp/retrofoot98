@@ -134,6 +134,46 @@ function clubStripe(club){ const {col,col2}=clubColors(club);
   return `background:${col};color:${barTextColor(col,col2)}`; }
 /* acento de duas cores pra borda esquerda de linhas de lista (mercado, entrar na sala) */
 function clubEdge(club){ const {col,col2}=clubColors(club); return `border-left-color:${col2};box-shadow:inset 4px 0 0 0 ${col}`; }
+/* ===== REBRANDING 2026 · AS DUAS VARIÁVEIS QUE MUDAM POR CLUBE =====
+   Todo o resto do cromo (--surface-*, --line-*, --text-*) é FIXO e igual para
+   todos os times — foi decisão explícita do design system: o cromo não segue o
+   clube, só o conteúdo do clube segue. Aqui escrevemos no elemento raiz apenas
+   --club-primary/--club-secondary e as quatro derivadas que o CSS precisa, lidas
+   de color/color2 do banco de clubes (as mesmas que clubColors() já usa).
+   Roda a cada cdraw() porque o clube do usuário muda (sorteio, troca de emprego,
+   assento no Modo Resenha) e o custo é escrever seis propriedades num nó só. */
+function applyClubTokens(id){
+  const el=document.documentElement; if(!el) return;
+  const cl=(typeof clubOf==='function')?clubOf(id):null;
+  // sem clube (home, login, onboarding antes do sorteio) o padrão do token vale:
+  // XV Piracicaba, que é o clube em que o design foi desenhado e aprovado.
+  if(!cl){ el.removeAttribute('data-club-tokens'); ['--club-primary','--club-primary-deep','--club-primary-soft','--club-primary-line','--club-secondary','--club-secondary-hover','--club-on-primary','--club-on-secondary'].forEach(k=>el.style.removeProperty(k)); return; }
+  const {col,col2}=clubColors(cl);
+  el.style.setProperty('--club-primary',col);
+  el.style.setProperty('--club-primary-deep',shade(col,-0.35));   // topo da faixa do clube
+  el.style.setProperty('--club-primary-soft',shade(col,0.90));    // fundo de chip/linha ativa
+  el.style.setProperty('--club-primary-line',shade(col,0.78));    // hairline tingida
+  el.style.setProperty('--club-secondary',col2);
+  el.style.setProperty('--club-secondary-hover',shade(col2,0.18));
+  // A secundária É A COR DO CLUBE, e em muitos times ela é quase igual à primária
+  // (Palmeiras: verde escuro e verde). Sobre a faixa do clube — que é a primária —
+  // ela sumiria. Este token é a MESMA regra de contraste que clubStripe() já usava
+  // pro badge do time: usa a secundária quando ela contrasta, e cai pra branco/preto
+  // quando as duas cores do clube são vizinhas demais.
+  el.style.setProperty('--club-secondary-on-primary', barTextColor(col,col2));
+  // FUNDO do botão Jogar. Pela mesma razão acima: em clube cujas duas cores são
+  // vizinhas (Palmeiras, Vasco), um botão pintado com a secundária desaparece
+  // dentro do card azul/verde do clube. Quando não há contraste, o CTA cai no
+  // amarelo do design system — que é justamente o "botão de jogar" que o jogo
+  // sempre teve, e continua sendo a ação mais visível da tela.
+  const contrasta = Math.abs(lumin(col)-lumin(col2))>=0.45;
+  el.style.setProperty('--club-cta-bg', contrasta?col2:'#F2B90C');
+  el.style.setProperty('--club-cta-fg', contrasta?(lumin(col2)>0.58?'#12201a':'#ffffff'):'#12201a');
+  // texto POR CIMA de cada uma das duas — mesma regra de contraste do clubStripe()
+  el.style.setProperty('--club-on-primary',lumin(col)>0.58?'#12201a':'#ffffff');
+  el.style.setProperty('--club-on-secondary',lumin(col2)>0.58?'#12201a':'#ffffff');
+  el.setAttribute('data-club-tokens',cl.short||'');
+}
 function clubTheme(id){ const cl=clubOf(id); const {col,col2}=clubColors(cl); return { col, col2, bg:shade(col,-0.6), bg2:shade(col,-0.42),
   txt:lumin(col)>0.62?shade(col,-0.45):col, hdr:lumin(col)>0.62?'#111':'#fff' }; }
 /* formações: G-D-M-A */
@@ -605,6 +645,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
   const _rolagem=capturaRolagem();
   // registra a força do meu elenco uma vez por rodada (no-op se nada mudou) — ver trackMyForces
   if(typeof trackMyForces==='function'){ try{ trackMyForces(); }catch(e){} }
+  applyClubTokens(CL.clubId);   // ver applyClubTokens: --club-primary/--club-secondary do time do usuário
   let html='';
   switch(CL.screen){
     case 'abertura':  html=scAbertura(); break;
@@ -620,7 +661,11 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'escolhaclubes': html=scEscolhaClubes(); break;
     case 'sorteio':   html=scSorteio(); break;   // cerimônia do sorteio (wizShell própria)
     case 'boasvindas':html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scBoasVindas(),{logo:true}); break;
-    case 'main':      html=titleBarTop('RetroFoot98',{phoneHide:true})+deskWrap(scMain()); break;
+    // REBRANDING 2026: a tela principal virou o ENVELOPE (sidebar + faixa do clube +
+    // área de duas colunas) e é ele que roteia as sete páginas — ver src/ui/rf26.js.
+    // A barra de título cinza do Windows não existe mais aqui: a identidade do save
+    // agora mora na faixa do clube, dentro do próprio envelope.
+    case 'main':      html=(typeof rfScreenHTML==='function')?rfScreenHTML():(titleBarTop('RetroFoot98',{phoneHide:true})+deskWrap(scMain())); break;
     case 'waitround': html=titleBarTop('RetroFoot98')+deskWrap(scWaitRound()); break;
     case 'imprensa':  html=titleBarTop('RetroFoot98')+deskWrap(scImprensa()); break;
     case 'teamview':  html=titleBarTop('RetroFoot98')+deskWrap(scTeamView()); break;
@@ -1686,6 +1731,11 @@ function wizShell(o){
   const pill = o.pill!=null ? `<span class="cl-wiz-steppill">${o.pill}</span>`
     : (o.step!=null ? `<span class="cl-wiz-steppill">${o.steps?`${o.step} / ${o.steps}`:`Passo ${o.step}`}</span>`
                     : `<span class="cl-wiz-back-sp"></span>`);
+  // REBRANDING 2026: no desktop o passo vira uma TRILHA NUMERADA (o caminho inteiro
+  // à vista, com o que já ficou pra trás marcado); no telefone, a mesma informação
+  // vira barra de progresso no cabeçalho. O pill "N / 7" continua existindo como
+  // fallback pras telas que não declaram passo (sala, convites com código próprio).
+  const trilha = (o.step!=null && o.steps) ? rfTrilhaHTML(o.step,o.steps) : '';
   return `<div class="cl-home cl-wiz ${o.rootCls||''}">
     <div class="cl-home-titlebar">
       <div class="cl-home-tb-l"><img src="img/logo.webp" width="500" height="500" alt="">RetroFoot98</div>
@@ -1695,6 +1745,7 @@ function wizShell(o){
       [['Início',"clWizHome('home')"],['Sobre nós',"clWizHome('sobre')"],['Como jogar',"clWizHome('ajuda')"],['Contato',"clWizHome('contato')"]],
       navRight)}
     <div class="cl-home-body cl-wiz-body">
+      ${trilha}
       ${o.noHeader?'':`<div class="cl-wiz-stephead">
         ${o.headLeft!=null?o.headLeft:back}
         <span class="cl-wiz-steptitle">${escC(o.title)}</span>
@@ -1721,23 +1772,56 @@ function wizShell(o){
 /* ================= 02a · PASSO 1 — ESCOLHER MODO (Solo / Resenha) ================= */
 /* total de etapas de cada caminho — o contador do cabeçalho sai daqui */
 const WIZ_PASSOS={ solo:7, resenha:5 };
+/* ===== TRILHA DO ONBOARDING (rebranding 2026) =====
+   Os rótulos são os do fluxo Solo, que é o de sete passos; a Resenha usa os
+   cinco primeiros e o nome de cada um continua valendo. Passo cumprido leva ✓ —
+   é o que diferencia "já fiz" de "ainda vou fazer" sem precisar de legenda.
+   No telefone o CSS troca a trilha por uma barra de progresso (ver .rf-trilha). */
+const RF_TRILHA=['Entrar','Modo','País e ligas','Sala','Convites','Sorteio','Jogar'];
+function rfTrilhaHTML(passo, total){
+  const n=Math.max(1,Math.min(RF_TRILHA.length,total||RF_TRILHA.length));
+  const itens=[];
+  for(let i=1;i<=n;i++){
+    const feito=i<passo, atual=i===passo;
+    itens.push(`<span class="rf-trilha-i ${feito?'feito':''} ${atual?'atual':''}">
+      <span class="rf-trilha-n">${feito?'✓':i}</span>
+      <span class="rf-trilha-l">${escC(RF_TRILHA[i-1]||('Passo '+i))}</span>
+    </span>`);
+  }
+  return `<nav class="rf-trilha" aria-label="Passo ${passo} de ${n}"
+    style="--rf-trilha-pct:${Math.round(100*passo/n)}%">
+    <span class="rf-trilha-mob">Passo <b>${passo}</b> de <b>${n}</b> · ${escC(RF_TRILHA[passo-1]||'')}
+      <span class="rf-trilha-bar"><i></i></span></span>
+    ${itens.join('<span class="rf-trilha-sep"></span>')}
+  </nav>`;
+}
+/* NA BETA O MODO RESENHA É "EM BREVE" (regra do rebranding). O cartão continua
+   na tela, com a descrição inteira — esconder o modo seria esconder metade do que
+   o jogo é. O que muda é que ele não é clicável e diz por quê. Trocar esta
+   constante pra false devolve o clique, sem mexer em mais nada. */
+const RESENHA_EM_BREVE=true;
 function scModoChoice(){
-  return wizShell({ step:1, title:'Escolher modo', back:'clGoAbertura()', backLabel:'Voltar ao início',
+  return wizShell({ step:1, steps:WIZ_PASSOS.solo, title:'Escolher modo', back:'clGoAbertura()', backLabel:'Voltar ao início',
     contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
     action:`<span class="cl-wiz-hint">Toque num cartão para continuar.</span>`,
     body:`
-      <div class="cl-wiz-h">Como você quer jogar?</div>
-      <div class="cl-wiz-sub">Você pode mudar de modo depois, a qualquer momento.</div>
+      <div class="cl-wiz-h">Comece a sua carreira contra a máquina.</div>
+      <div class="cl-wiz-sub">${RESENHA_EM_BREVE
+        ? 'O Modo Resenha, para jogar com a turma, chega em breve. Na beta, o Solo já está completo.'
+        : 'Você pode mudar de modo depois, a qualquer momento.'}</div>
       <div class="cl-wiz-cards">
-        <div class="cl-mc-card" onclick="clPickSolo()">
-          <div class="cl-mc-ic">🎮</div>
+        <div class="cl-mc-card rec" onclick="clPickSolo()">
+          <span class="rf-tag-rec">Recomendado</span>
+          <div class="cl-mc-ic">🛋️</div>
           <div class="cl-mc-t">Modo Solo</div>
-          <div class="cl-mc-d">Você contra a máquina, no estilo RetroFoot98 tradicional.</div>
+          <div class="cl-mc-d">Pega um clube da Série D e sobe até a elite no seu ritmo. Mercado, finanças e o calendário completo de copas — sem depender de ninguém entrar na sala.</div>
         </div>
-        <div class="cl-mc-card" onclick="clPickResenha()">
-          <div class="cl-mc-ic">👥</div>
+        <div class="cl-mc-card ${RESENHA_EM_BREVE?'embreve':''}" ${RESENHA_EM_BREVE?'':'onclick="clPickResenha()"'}>
+          <span class="${RESENHA_EM_BREVE?'rf-tag-soon':'rf-tag-rec'}">${RESENHA_EM_BREVE?'Em breve':'Online'}</span>
+          <div class="cl-mc-ic">🍺</div>
           <div class="cl-mc-t">Modo Resenha</div>
-          <div class="cl-mc-d">Jogue online com amigos — cada um assume um clube, com chat da liga.</div>
+          <div class="cl-mc-d">Monte a liga do grupo do trabalho ou da comunidade. Até 20 treinadores jogam a mesma rodada ao vivo, com tabela, mercado e zoeira no chat.</div>
+          ${RESENHA_EM_BREVE?`<div class="rf-mc-lock">🔒 Não disponível na versão beta.</div>`:''}
         </div>
       </div>`
   });
@@ -8566,7 +8650,19 @@ function cupIdleAdClick(){
 function updateLive(){ const RL=CL.live; if(!RL) return;
   const clk=document.querySelector('#cl-liveclock'); if(clk) clk.style.setProperty('--pct', liveClockPct(RL));
   RL.matches.forEach((m,i)=>{ const sc=document.querySelector('#cl-lm-'+i); if(sc) sc.innerHTML=liveScoreCells(m);
-    const lg=document.querySelector('#cl-lg-'+i); if(lg){ const inc=(m.incidents||[])[m.incidents.length-1]; lg.textContent=inc?lastIncidentTxt(inc):''; } });
+    // A LINHA DO JOGO TEM ALTURA FIXA (56px, ver .cl-lrow no rebranding): o fato mais
+    // recente aparece por extenso e os anteriores viram um contador "+N". Sem isso, num
+    // jogo de 4 a 3 a linha crescia e empurrava a lista inteira pra baixo no meio da
+    // transmissão — a tabela dançava enquanto o usuário tentava ler o placar.
+    const lg=document.querySelector('#cl-lg-'+i);
+    if(lg){
+      const incs=m.incidents||[]; const inc=incs[incs.length-1];
+      const extras=Math.max(0,incs.length-1);
+      lg.innerHTML = inc
+        ? `<span class="cl-lgoal-t">${escC(lastIncidentTxt(inc))}</span>`
+          + (extras?`<span class="cl-lgoal-n" title="${extras} fato(s) anterior(es) nesta partida">+${extras}</span>`:'')
+        : '';
+    } });
   if(RL.sel!=null){ const box=document.querySelector('#cl-livemodal'); if(box) box.innerHTML=liveModalHTML(RL.matches[RL.sel]); }
   camUpdate(); // Modo Camarote: relógio, placar, barra de pressão, narração e estatística
 }
@@ -10369,8 +10465,14 @@ function cupDrawScreenHTML(key, dr, actions){
   const fim=dr.idx>=dr.reveal.length;
   return cupLightShell(key, {
     tab, hasGroup, tabsOn:false, body, actions, fim,
+    // A CERIMÔNIA PRECISA DE UMA BARRA, NÃO SÓ DE UM CONTADOR (regra do rebranding):
+    // "2/32" não diz quanto falta sem fazer conta; a barra diz de relance. O número
+    // continua ao lado, em mono, porque quem acompanha sorteio quer os dois.
     status: fim ? `<span>Sorteio encerrado</span><span class="cl-cup2-ok">✓</span>`
-                : `<span>Sorteando ${dr.idx}/${dr.reveal.length}</span>`,
+                : `<span class="rf-draw-prog">
+                     <span class="rf-draw-bar"><i style="width:${Math.round(100*dr.idx/Math.max(1,dr.reveal.length))}%"></i></span>
+                     <span class="rf-draw-n">${dr.idx}/${dr.reveal.length}</span>
+                   </span>`,
     side: cupDrawSideHTML(key,dr),
   });
 }
@@ -11371,8 +11473,51 @@ document.addEventListener('keydown',e=>{
 });
 function resultDialog(score,verd){ overlayC(dlg('RetroFoot98', `<div class="cl-res"><div class="cl-res-score">${escC(score)}</div>
   <div class="cl-res-verd">${escC(verd)}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div></div>`,{w:520,bodyClass:'cl-body-green'})); }
-function toastC(msg){ let t=$c('#c-toast'); if(!t){ t=document.createElement('div'); t.id='c-toast'; document.body.appendChild(t); }
-  const d=document.createElement('div'); d.className='cl-toast'; d.textContent=msg; t.appendChild(d); setTimeout(()=>d.remove(),2600); }
+/* ===== TOAST (rebranding 2026) — cinco tons, um glifo fixo por tom =====
+   Escuro, filete de 4px à esquerda na cor do tom, UMA frase, some sozinho.
+   Toast NUNCA pede decisão — decisão é Dialog (ver a regra "página ou popup").
+
+   A assinatura antiga toastC('texto') continua valendo nos 200+ lugares que já
+   chamam assim: quando o tom não é informado, ele é DEDUZIDO da própria frase,
+   porque o jogo já escrevia o glifo no texto ("⚠ ...", "✓ ...") e já usava
+   reticências pra processo em curso ("Conectando…"). Assim a migração não exige
+   tocar em cada chamada, e o glifo duplicado é removido do texto — quem escreveu
+   "⚠ Caixa insuficiente" vira tom `warn` com o ⚠ vindo do componente, não do texto.
+
+   opts: {action, onAction, ms} — ação à direita existe só no tom `info`. */
+const TOAST_TONES={
+  info:    {glyph:''},
+  success: {glyph:'✓'},
+  warn:    {glyph:'⚠'},
+  danger:  {glyph:'✖'},
+  progress:{glyph:''}
+};
+function toastTone(msg){
+  const m=String(msg||'');
+  if(/^\s*[⚠️]/.test(m)) return 'warn';
+  if(/^\s*[✖✕❌]/.test(m)) return 'danger';
+  if(/^\s*[✓✔]/.test(m)) return 'success';
+  // reticências (… ou ...) no fim = processo em curso, é a convenção do jogo
+  if(/(…|\.\.\.)\s*$/.test(m)) return 'progress';
+  return 'info';
+}
+function toastC(msg, tone, opts){
+  opts=opts||{};
+  let txt=String(msg==null?'':msg);
+  tone=tone||toastTone(txt);
+  // tira o glifo do TEXTO — quem desenha o glifo agora é o componente
+  txt=txt.replace(/^\s*[⚠️✖✕❌✓✔]\uFE0F?\s*/,'');
+  const t=$c('#c-toast')||(()=>{ const n=document.createElement('div'); n.id='c-toast'; document.body.appendChild(n); return n; })();
+  const cfg=TOAST_TONES[tone]||TOAST_TONES.info;
+  const glyph=(opts.glyph!==undefined)?opts.glyph:cfg.glyph;
+  const d=document.createElement('div');
+  d.className='rf-toast rf-toast-'+tone;
+  d.innerHTML=`${glyph?`<span class="rf-toast-ico">${escC(glyph)}</span>`:''}<span class="rf-toast-t"></span>${opts.action?`<span class="rf-toast-act">${escC(opts.action)}</span>`:''}`;
+  d.querySelector('.rf-toast-t').textContent=txt;   // textContent: a frase nunca é HTML
+  if(opts.action&&opts.onAction){ d.querySelector('.rf-toast-act').onclick=()=>{ opts.onAction(); d.remove(); }; }
+  t.appendChild(d);
+  setTimeout(()=>d.remove(), opts.ms||2600);
+}
 
 /* fechar dropdown ao clicar fora */
 document.addEventListener('click',()=>{

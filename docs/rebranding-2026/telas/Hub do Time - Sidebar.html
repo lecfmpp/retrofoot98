@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ee}
+a{color:#0f7a3d;text-decoration:none}
+a:hover{color:#0b5f2e}
+@keyframes compFadeA{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes compFadeB{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes jogarPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+</style>
+</helmet>
+
+<section style="padding:48px 48px 40px;font-family:Manrope,system-ui,sans-serif">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:24px">
+    <h2 style="margin:0;font-size:22px;font-weight:800;color:#14211a;letter-spacing:-.01em">Hub do time — layout final</h2>
+    <span style="font-size:14px;color:#6b7a70">Base do design system — <a href="#3a">3a</a></span>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+  <div id="3a" style="width:max-content;flex:0 0 auto;font-family:'Space Grotesk',system-ui,sans-serif">
+    <div style="background:#e8f0e7;border:1px solid #d2e0d0;border-radius:24px;padding:18px;box-shadow:0 18px 40px -28px rgba(20,33,26,.35)">
+
+      <div data-shell style="{{ shellStyle }}">
+
+        <aside data-sidebar style="position:sticky;top:18px;display:flex;flex-direction:column;gap:10px;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:12px;box-sizing:border-box">
+          <div style="display:flex;align-items:center;gap:10px;padding:4px 4px 10px;border-bottom:1px solid #eef1ee">
+            <img src="uploads/pasted-1786581574687-0.png" alt="Escudo" style="width:34px;height:34px;object-fit:contain;flex:0 0 auto">
+            <div style="{{ clubBlockStyle }}">
+              <span style="font-size:14px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8b978d;white-space:nowrap">SÉRIE D · 2026</span>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:2px">
+          <span title="RetroFoot98" style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+            <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🏠</span>
+            <span style="{{ labelStyle }}">RetroFoot98</span>
+            
+          </span>
+          <span title="Formação" style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:700;color:#fff;background:#17458F;white-space:nowrap;cursor:pointer;overflow:hidden">
+            <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🥅</span>
+            <span style="{{ labelStyle }}">Formação</span>
+            
+          </span>
+          <span title="Equipa" style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+            <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">👥</span>
+            <span style="{{ labelStyle }}">Equipa</span>
+            
+          </span>
+          <span title="Mercado" style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+            <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🛒</span>
+            <span style="{{ labelStyle }}">Mercado</span>
+            <span style="{{ badgeStyle }}">2</span>
+          </span>
+          <span title="Elenco & Base" style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+            <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">👤</span>
+            <span style="{{ labelStyle }}">Elenco & Base</span>
+            
+          </span>
+          <span title="Campeonatos" style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+            <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🏆</span>
+            <span style="{{ labelStyle }}">Campeonatos</span>
+            
+          </span>
+          <span title="Treinador" style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+            <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🎓</span>
+            <span style="{{ labelStyle }}">Treinador</span>
+            
+          </span>
+          <span title="Finanças" style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+            <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">💰</span>
+            <span style="{{ labelStyle }}">Finanças</span>
+            
+          </span>
+          <span title="E-mail" style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+            <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">✉️</span>
+            <span style="{{ labelStyle }}">E-mail</span>
+            <span style="{{ badgeStyle }}">3</span>
+          </span>
+          </div>
+
+          <div style="flex:1"></div>
+
+          <div style="{{ nextGameStyle }}">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <span style="font-size:9px;font-weight:600;letter-spacing:.12em;color:#c3d3ec;white-space:nowrap">PRÓXIMO JOGO</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#F2B90C;white-space:nowrap">25/abr</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;min-width:0">
+              <img src="assets/crests/cruzeiro.png" alt="Escudo" style="width:26px;height:26px;object-fit:contain;flex:0 0 auto">
+              <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-size:14px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cianorte</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#c3d3ec;white-space:nowrap">FORA · 8ª JORNADA</span>
+              </div>
+            </div>
+            <button style="height:40px;border:none;border-radius:12px;background:#F2B90C;color:#17458F;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;animation:jogarPulse 2.4s ease-in-out infinite" style-hover="background:#ffcb2e;animation:none">⚽ Jogar</button>
+          </div>
+
+          <button style="{{ nextGameMiniStyle }}" title="Jogar contra o Cianorte" style-hover="background:#ffcb2e">⚽</button>
+
+          <div style="height:1px;background:#eef1ee"></div>
+          <span onClick="{{ toggleSidebar }}" style="display:flex;align-items:center;gap:11px;height:38px;padding:0 12px;border-radius:12px;font-size:12px;font-weight:600;color:#5d6c62;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#f2f7f1">
+            <span style="flex:0 0 auto;width:18px;text-align:center;font-size:14px">{{ toggleIcon }}</span>
+            <span style="{{ labelStyle }}">{{ toggleLabel }}</span>
+          </span>
+        </aside>
+
+        <div style="min-width:0;display:flex;flex-direction:column;gap:14px">
+
+
+      <div style="display:flex;align-items:center;gap:16px;background:linear-gradient(100deg,#0e2f66,#17458F 62%);border-radius:18px;padding:16px 20px;margin-bottom:12px;position:relative;overflow:hidden">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:6px;background:#F2B90C"></div>
+        <div style="width:48px;height:48px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin-left:6px;overflow:hidden"><img src="uploads/pasted-1786581574687-0.png" alt="Escudo do XV Piracicaba" style="width:38px;height:38px;object-fit:contain"></div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex:0 0 auto">
+          <span style="font-size:28px;font-weight:700;color:#fff;letter-spacing:-.02em;white-space:nowrap">XV Piracicaba</span>
+          <div style="display:flex;align-items:baseline;gap:10px;font-size:12px;color:#c3d3ec;font-weight:500;white-space:nowrap">
+            <span style="font-family:Georgia,serif;font-size:18px;font-weight:700;color:#F2B90C">Gringo</span><span style="font-size:10px;font-weight:700;letter-spacing:.14em">TREINADOR</span><span style="width:3px;height:3px;border-radius:99px;background:#5f80b5"></span><span>🇧🇷 Brasil</span><span style="width:3px;height:3px;border-radius:99px;background:#5f80b5"></span><span>Série D</span><span style="width:3px;height:3px;border-radius:99px;background:#5f80b5"></span><span>2026</span>
+          </div>
+        </div>
+        <div style="flex:1"></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding-right:16px">
+          <span style="font-size:9px;font-weight:600;letter-spacing:.12em;color:#a9bfe0">EM CAIXA</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:#fff;white-space:nowrap">R$ 1,27 mi</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#F2B90C;white-space:nowrap">folha R$ 184 mil/mês</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:0 16px;border-left:1px solid rgba(255,255,255,.15);border-right:1px solid rgba(255,255,255,.15)">
+          <span style="font-size:9px;font-weight:600;letter-spacing:.12em;color:#a9bfe0">FORMA</span>
+          <div style="display:flex;gap:3px">
+            <span style="width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#0d3d22;background:#2fbf5f">V</span><span style="width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#0d3d22;background:#2fbf5f">V</span><span style="width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#4a3c00;background:#F2B90C">E</span><span style="width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;background:#d94141">D</span><span style="width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#0d3d22;background:#2fbf5f">V</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding-left:16px">
+          <span style="font-size:9px;font-weight:600;letter-spacing:.12em;color:#a9bfe0">APITO INICIAL EM</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#F2B90C">2d 14h</span>
+        </div>
+        <span style="font-size:12px;font-weight:600;color:#17458F;background:#F2B90C;border-radius:99px;padding:8px 14px;white-space:nowrap;cursor:pointer;margin-left:16px" style-hover="background:#ffcb2e">💾 Gravar</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:530px minmax(0,1fr);gap:14px;align-items:stretch">
+
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:14px 14px 10px;display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 4px">
+              <span style="font-size:15px;font-weight:700;color:#12201a">Elenco</span>
+              <div style="display:flex;gap:14px;flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e">
+                <span style="white-space:nowrap">26 jogadores</span><span style="white-space:nowrap;color:#17458F;font-weight:600">11 titulares</span>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;padding:0 10px 6px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;letter-spacing:.06em">
+              <span></span><span>POS</span><span>NOME</span><span style="text-align:right">ID</span><span style="text-align:right">FRC</span><span style="text-align:right">NOTA</span><span style="text-align:right">ENER</span><span style="text-align:right">SAL.</span><span style="text-align:right">VALOR</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:1px;max-height:560px;overflow:auto">
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fff;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#eceff0;color:#8b978d;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">G</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e">G</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:500;color:#3a473f">Victor Gomes</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">23</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">8</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c3ccc4;text-align:right">–</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">82%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 2k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 99k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fafbfa;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#17458F;color:#F2B90C;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">T</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#17458F">G</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:600;color:#12201a">Ronaldo Lima</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">21</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">12</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c0392b;text-align:right">5,0</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">79%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 4k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 385k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fff;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#eceff0;color:#8b978d;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">R</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e">R</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:500;color:#3a473f">Jonathan Reis</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">24</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">12</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c3ccc4;text-align:right">–</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">84%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 4k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 315k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fafbfa;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#eceff0;color:#8b978d;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">R</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e">R</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:500;color:#3a473f">João Victor</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">20</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">9</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c0392b;text-align:right">3,0</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">81%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 3k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 154k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fff;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#eceff0;color:#8b978d;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">R</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e">R</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:500;color:#3a473f">Kuhn Gustavo</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">25</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">7</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c3ccc4;text-align:right">–</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">68%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 2k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 102k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fafbfa;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#eceff0;color:#8b978d;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">R</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e">R</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:500;color:#3a473f">Renna</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">26</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">9</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c3ccc4;text-align:right">–</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">72%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 3k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 114k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fff;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#17458F;color:#F2B90C;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">T</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#17458F">T</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:600;color:#12201a">Thales Oliveira</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">21</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">11</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c0392b;text-align:right">3,8</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">83%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 4k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 456k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fafbfa;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#17458F;color:#F2B90C;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">T</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#17458F">T</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:600;color:#12201a">Breno Nunes</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">20</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">10</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c0392b;text-align:right">4,6</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">76%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 3k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 270k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fff;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#17458F;color:#F2B90C;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">T</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#17458F">T</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:600;color:#12201a">Vitor Almeida</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">21</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">11</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c0392b;text-align:right">4,5</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">77%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 4k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 321k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fafbfa;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#17458F;color:#F2B90C;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">T</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#17458F">T</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:600;color:#12201a">Carlos Miguel</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">26</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">11</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c0392b;text-align:right">4,6</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">85%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 4k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 238k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fff;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#eceff0;color:#8b978d;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">R</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e">R</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:500;color:#3a473f">Dudu Vieira</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">24</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">7</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c3ccc4;text-align:right">–</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">80%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 2k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 102k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fafbfa;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#eceff0;color:#8b978d;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">R</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e">R</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:500;color:#3a473f">Richard</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">28</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">9</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c3ccc4;text-align:right">–</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">73%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 3k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 92k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fff;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#17458F;color:#F2B90C;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">T</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#17458F">T</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:600;color:#12201a">Serginho</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">31</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">10</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c0392b;text-align:right">4,7</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">78%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 3k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 160k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fafbfa;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#eceff0;color:#8b978d;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">R</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e">R</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:500;color:#3a473f">Felipe Matos</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">22</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">10</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c3ccc4;text-align:right">–</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">74%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 3k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 270k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fff;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#17458F;color:#F2B90C;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">T</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#17458F">T</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:600;color:#12201a">Ronaldo Júnior</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">24</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">12</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c0392b;text-align:right">3,3</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">71%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 4k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 405k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fafbfa;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#eceff0;color:#8b978d;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">R</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e">A</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:500;color:#3a473f">Antônio Carlos</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">23</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">7</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c3ccc4;text-align:right">–</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">69%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 2k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 134k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fff;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#17458F;color:#F2B90C;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">T</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#17458F">T</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:600;color:#12201a">David Ribeiro</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">30</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">12</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c0392b;text-align:right">4,2</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">75%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 4k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 252k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fafbfa;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#17458F;color:#F2B90C;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">T</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#17458F">T</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:600;color:#12201a">Erick Bessa</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">20</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">11</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c0392b;text-align:right">3,0</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">70%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 4k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 456k</span>
+                </div>
+              <div style="display:grid;grid-template-columns:20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px;gap:0 8px;align-items:center;padding:7px 10px;background:#fff;border-radius:9px;cursor:pointer" style-hover="background:#eef3fa">
+                  <span style="width:17px;height:17px;border-radius:5px;background:#17458F;color:#F2B90C;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">T</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#17458F">T</span>
+                  <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:600;color:#12201a">Henry</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">22</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:right">12</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c0392b;text-align:right">3,6</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5d6c62;text-align:right">73%</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8b978d;text-align:right">R$ 4k</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a;text-align:right">R$ 315k</span>
+                </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:14px">
+            <div style="flex:1;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em">MORAL DO PLANTEL</span>
+              <div style="display:flex;align-items:baseline;justify-content:space-between">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:#12201a">72</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#78877c">V V E D V</span>
+              </div>
+              <div style="height:8px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:72%;height:100%;border-radius:99px;background:#17458F"></div></div>
+            </div>
+            <div style="flex:1;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em">SEGURANÇA NO CARGO</span>
+              <div style="display:flex;align-items:baseline;justify-content:space-between">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:#12201a">54</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#78877c">direção neutra</span>
+              </div>
+              <div style="height:8px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:54%;height:100%;border-radius:99px;background:#F2B90C"></div></div>
+            </div>
+          </div>
+
+          <div style="flex:1;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+              <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">{{ compTitle }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">{{ compMeta }}</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <sc-for list="{{ comps }}" as="c" hint-placeholder-count="4">
+                <span style="{{ c.style }}" onClick="{{ c.onClick }}">{{ c.label }}</span>
+              </sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:32px minmax(0,1fr) 20px 20px 20px 20px 34px 24px;gap:0 6px;padding:0 8px 2px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
+              <span></span><span></span><span style="text-align:right">J</span><span style="text-align:right">V</span><span style="text-align:right">E</span><span style="text-align:right">D</span><span style="text-align:right">GM:GS</span><span style="text-align:right">P</span>
+            </div>
+            <div style="{{ tableStyle }}">
+              <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+                <div style="{{ r.rowStyle }}">
+                  <span style="display:flex;align-items:center;gap:5px"><span style="{{ r.zoneStyle }}"></span><span style="{{ r.posStyle }}">{{ r.pos }}</span></span>
+                  <span style="{{ r.nameStyle }}">{{ r.name }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">{{ r.j }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">{{ r.v }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">{{ r.e }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">{{ r.d }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5d6c62;text-align:right">{{ r.gm }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right">{{ r.p }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="flex:1"></div>
+            <span style="display:flex;align-items:center;justify-content:center;height:36px;border:1px solid #d8e2d6;border-radius:11px;font-size:12px;font-weight:600;color:#17458F;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Ver tabela completa…</span>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px">
+
+          <div style="height:751px;box-sizing:border-box;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:baseline;gap:10px">
+              <span style="font-size:15px;font-weight:700;color:#12201a">Tática 3-3-4</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#17458F">onze 11/11</span>
+              <span style="font-size:12px;color:#78877c">titulares marcados com T na lista</span>
+            </div>
+
+            <div style="flex:1;min-height:0;display:flex;gap:12px;align-items:stretch;min-width:0">
+              <div style="flex:0 0 auto;display:flex;flex-direction:column;gap:2px;background:#12201a;border-radius:14px;padding:2px;overflow:hidden">
+                <div style="display:flex;gap:2px;height:47px">
+                  <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#12201a;color:#fff;font-size:10px;font-weight:700;letter-spacing:.14em;white-space:nowrap">⚽ ANUNCIE AQUI</span>
+                  <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#d1541f;color:#fff;font-size:10px;font-weight:700;letter-spacing:.14em;white-space:nowrap">SUA MARCA</span>
+                  <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#1d6b3a;color:#fff;font-size:10px;font-weight:700;letter-spacing:.14em;white-space:nowrap">PATROCÍNIO ⚽</span>
+                </div>
+                <div style="display:flex;gap:2px;flex:1;min-width:0">
+                  <div style="display:flex;flex-direction:column;gap:2px;width:43px">
+                  <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#12201a;color:#fff;font-size:9px;font-weight:700;letter-spacing:.12em;white-space:nowrap;writing-mode:vertical-rl;transform:rotate(180deg)">SUA MARCA</span>
+                  <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#d1541f;color:#fff;font-size:9px;font-weight:700;letter-spacing:.12em;white-space:nowrap;writing-mode:vertical-rl;transform:rotate(180deg)">ANUNCIE AQUI</span>
+                  <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#1d6b3a;color:#fff;font-size:9px;font-weight:700;letter-spacing:.12em;white-space:nowrap;writing-mode:vertical-rl;transform:rotate(180deg)">PATROCÍNIO</span>
+                </div>
+                  <div style="width:470px;height:585px;flex:0 0 auto;box-sizing:border-box;position:relative;border-radius:6px;background:repeating-linear-gradient(180deg,#3e9c5a 0 46px,#37904f 46px 92px);box-shadow:inset 0 18px 40px -22px rgba(0,0,0,.55),inset 0 -18px 40px -22px rgba(0,0,0,.45);padding:40px 10px 16px;display:flex;flex-direction:column;justify-content:space-between;gap:12px;overflow:hidden">
+                    <div style="position:absolute;left:10px;right:10px;top:10px;bottom:10px;border:2px solid rgba(255,255,255,.4);border-radius:4px;pointer-events:none"></div>
+                    <div style="position:absolute;left:10px;right:10px;top:50%;height:2px;background:rgba(255,255,255,.4)"></div>
+                    <div style="position:absolute;left:50%;top:calc(50% - 40px);width:80px;height:80px;border:2px solid rgba(255,255,255,.4);border-radius:99px;transform:translateX(-50%)"></div>
+                    <div style="position:absolute;left:50%;bottom:10px;width:180px;height:64px;border:2px solid rgba(255,255,255,.4);border-bottom:none;transform:translateX(-50%)"></div>
+                    <div style="position:absolute;left:50%;bottom:10px;width:86px;height:26px;border:2px solid rgba(255,255,255,.4);border-bottom:none;transform:translateX(-50%)"></div>
+                    <div style="position:absolute;left:50%;top:10px;width:180px;height:64px;border:2px solid rgba(255,255,255,.4);border-top:none;transform:translateX(-50%)"></div>
+                    <div style="position:absolute;left:50%;top:10px;width:86px;height:26px;border:2px solid rgba(255,255,255,.4);border-top:none;transform:translateX(-50%)"></div>
+                    <div style="position:absolute;left:50%;top:50%;width:7px;height:7px;border-radius:99px;background:rgba(255,255,255,.6);transform:translate(-50%,-50%)"></div>
+                    <div style="position:absolute;left:50%;bottom:52px;width:6px;height:6px;border-radius:99px;background:rgba(255,255,255,.5);transform:translateX(-50%)"></div>
+                    <div style="position:absolute;left:50%;top:52px;width:6px;height:6px;border-radius:99px;background:rgba(255,255,255,.5);transform:translateX(-50%)"></div>
+                    <div style="position:absolute;left:10px;top:10px;width:22px;height:22px;border-right:2px solid rgba(255,255,255,.4);border-bottom:2px solid rgba(255,255,255,.4);border-radius:0 0 22px 0"></div>
+                    <div style="position:absolute;right:10px;top:10px;width:22px;height:22px;border-left:2px solid rgba(255,255,255,.4);border-bottom:2px solid rgba(255,255,255,.4);border-radius:0 0 0 22px"></div>
+                    <div style="position:absolute;left:10px;bottom:10px;width:22px;height:22px;border-right:2px solid rgba(255,255,255,.4);border-top:2px solid rgba(255,255,255,.4);border-radius:0 22px 0 0"></div>
+                    <div style="position:absolute;right:10px;bottom:10px;width:22px;height:22px;border-left:2px solid rgba(255,255,255,.4);border-top:2px solid rgba(255,255,255,.4);border-radius:22px 0 0 0"></div>
+                    <img src="uploads/pasted-1786581574687-0.png" alt="" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:190px;height:190px;object-fit:contain;opacity:.1;filter:brightness(0) invert(1);pointer-events:none;user-select:none">
+                    <div style="position:relative;display:flex;justify-content:space-around;align-items:flex-start;transform:translateY(46px)">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
+                    <div style="position:relative;width:44px;height:40px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))">
+                      <div style="position:absolute;left:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:4px 2px 6px 5px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:2px 4px 5px 6px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:10px;top:4px;width:24px;height:36px;background:#17458F;border-radius:4px 4px 7px 7px;display:flex;align-items:center;justify-content:center">
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#F2B90C;margin-top:4px">11</span>
+                      </div>
+                      <div style="position:absolute;left:50%;top:2px;transform:translateX(-50%);width:14px;height:6px;background:#F2B90C;border-radius:0 0 8px 8px"></div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65);white-space:nowrap">Carlos Miguel</span>
+                    <div style="display:flex;align-items:center;gap:5px;width:76px">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#dff0e6;text-shadow:0 1px 3px rgba(0,0,0,.65)">A</span>
+                      <div style="flex:1;height:5px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden"><div style="width:85%;height:100%;border-radius:99px;background:#2fbf5f"></div></div>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65)">85</span>
+                    </div>
+                  </div>
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
+                    <div style="position:relative;width:44px;height:40px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))">
+                      <div style="position:absolute;left:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:4px 2px 6px 5px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:2px 4px 5px 6px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:10px;top:4px;width:24px;height:36px;background:#17458F;border-radius:4px 4px 7px 7px;display:flex;align-items:center;justify-content:center">
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#F2B90C;margin-top:4px">9</span>
+                      </div>
+                      <div style="position:absolute;left:50%;top:2px;transform:translateX(-50%);width:14px;height:6px;background:#F2B90C;border-radius:0 0 8px 8px"></div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65);white-space:nowrap">Dudu Vieira</span>
+                    <div style="display:flex;align-items:center;gap:5px;width:76px">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#dff0e6;text-shadow:0 1px 3px rgba(0,0,0,.65)">A</span>
+                      <div style="flex:1;height:5px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden"><div style="width:80%;height:100%;border-radius:99px;background:#2fbf5f"></div></div>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65)">80</span>
+                    </div>
+                  </div>
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
+                    <div style="position:relative;width:44px;height:40px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))">
+                      <div style="position:absolute;left:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:4px 2px 6px 5px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:2px 4px 5px 6px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:10px;top:4px;width:24px;height:36px;background:#17458F;border-radius:4px 4px 7px 7px;display:flex;align-items:center;justify-content:center">
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#F2B90C;margin-top:4px">17</span>
+                      </div>
+                      <div style="position:absolute;left:50%;top:2px;transform:translateX(-50%);width:14px;height:6px;background:#F2B90C;border-radius:0 0 8px 8px"></div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65);white-space:nowrap">Felipe Matos</span>
+                    <div style="display:flex;align-items:center;gap:5px;width:76px">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#dff0e6;text-shadow:0 1px 3px rgba(0,0,0,.65)">A</span>
+                      <div style="flex:1;height:5px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden"><div style="width:74%;height:100%;border-radius:99px;background:#8fc93a"></div></div>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65)">74</span>
+                    </div>
+                  </div>
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
+                    <div style="position:relative;width:44px;height:40px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))">
+                      <div style="position:absolute;left:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:4px 2px 6px 5px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:2px 4px 5px 6px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:10px;top:4px;width:24px;height:36px;background:#17458F;border-radius:4px 4px 7px 7px;display:flex;align-items:center;justify-content:center">
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#F2B90C;margin-top:4px">7</span>
+                      </div>
+                      <div style="position:absolute;left:50%;top:2px;transform:translateX(-50%);width:14px;height:6px;background:#F2B90C;border-radius:0 0 8px 8px"></div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65);white-space:nowrap">Vitor Almeida</span>
+                    <div style="display:flex;align-items:center;gap:5px;width:76px">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#dff0e6;text-shadow:0 1px 3px rgba(0,0,0,.65)">A</span>
+                      <div style="flex:1;height:5px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden"><div style="width:77%;height:100%;border-radius:99px;background:#8fc93a"></div></div>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65)">77</span>
+                    </div>
+                  </div>
+                  </div>
+                    <div style="position:relative;display:flex;justify-content:space-around;align-items:flex-start;padding:0 26px;transform:translateY(64px)">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
+                    <div style="position:relative;width:44px;height:40px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))">
+                      <div style="position:absolute;left:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:4px 2px 6px 5px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:2px 4px 5px 6px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:10px;top:4px;width:24px;height:36px;background:#17458F;border-radius:4px 4px 7px 7px;display:flex;align-items:center;justify-content:center">
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#F2B90C;margin-top:4px">10</span>
+                      </div>
+                      <div style="position:absolute;left:50%;top:2px;transform:translateX(-50%);width:14px;height:6px;background:#F2B90C;border-radius:0 0 8px 8px"></div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65);white-space:nowrap">Breno Nunes</span>
+                    <div style="display:flex;align-items:center;gap:5px;width:76px">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#dff0e6;text-shadow:0 1px 3px rgba(0,0,0,.65)">M</span>
+                      <div style="flex:1;height:5px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden"><div style="width:76%;height:100%;border-radius:99px;background:#8fc93a"></div></div>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65)">76</span>
+                    </div>
+                  </div>
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
+                    <div style="position:relative;width:44px;height:40px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))">
+                      <div style="position:absolute;left:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:4px 2px 6px 5px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:2px 4px 5px 6px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:10px;top:4px;width:24px;height:36px;background:#17458F;border-radius:4px 4px 7px 7px;display:flex;align-items:center;justify-content:center">
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#F2B90C;margin-top:4px">8</span>
+                      </div>
+                      <div style="position:absolute;left:50%;top:2px;transform:translateX(-50%);width:14px;height:6px;background:#F2B90C;border-radius:0 0 8px 8px"></div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65);white-space:nowrap">Thales Oliveira</span>
+                    <div style="display:flex;align-items:center;gap:5px;width:76px">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#dff0e6;text-shadow:0 1px 3px rgba(0,0,0,.65)">M</span>
+                      <div style="flex:1;height:5px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden"><div style="width:83%;height:100%;border-radius:99px;background:#2fbf5f"></div></div>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65)">83</span>
+                    </div>
+                  </div>
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
+                    <div style="position:relative;width:44px;height:40px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))">
+                      <div style="position:absolute;left:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:4px 2px 6px 5px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:2px 4px 5px 6px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:10px;top:4px;width:24px;height:36px;background:#17458F;border-radius:4px 4px 7px 7px;display:flex;align-items:center;justify-content:center">
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#F2B90C;margin-top:4px">6</span>
+                      </div>
+                      <div style="position:absolute;left:50%;top:2px;transform:translateX(-50%);width:14px;height:6px;background:#F2B90C;border-radius:0 0 8px 8px"></div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65);white-space:nowrap">Serginho</span>
+                    <div style="display:flex;align-items:center;gap:5px;width:76px">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#dff0e6;text-shadow:0 1px 3px rgba(0,0,0,.65)">M</span>
+                      <div style="flex:1;height:5px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden"><div style="width:78%;height:100%;border-radius:99px;background:#8fc93a"></div></div>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65)">78</span>
+                    </div>
+                  </div>
+                  </div>
+                    <div style="position:relative;display:flex;justify-content:space-around;align-items:flex-start;padding:0 26px;transform:translateY(58px)">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
+                    <div style="position:relative;width:44px;height:40px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))">
+                      <div style="position:absolute;left:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:4px 2px 6px 5px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:2px 4px 5px 6px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:10px;top:4px;width:24px;height:36px;background:#17458F;border-radius:4px 4px 7px 7px;display:flex;align-items:center;justify-content:center">
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#F2B90C;margin-top:4px">4</span>
+                      </div>
+                      <div style="position:absolute;left:50%;top:2px;transform:translateX(-50%);width:14px;height:6px;background:#F2B90C;border-radius:0 0 8px 8px"></div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65);white-space:nowrap">Ronaldo Lima</span>
+                    <div style="display:flex;align-items:center;gap:5px;width:76px">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#dff0e6;text-shadow:0 1px 3px rgba(0,0,0,.65)">Z</span>
+                      <div style="flex:1;height:5px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden"><div style="width:79%;height:100%;border-radius:99px;background:#8fc93a"></div></div>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65)">79</span>
+                    </div>
+                  </div>
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
+                    <div style="position:relative;width:44px;height:40px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))">
+                      <div style="position:absolute;left:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:4px 2px 6px 5px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:2px 4px 5px 6px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:10px;top:4px;width:24px;height:36px;background:#17458F;border-radius:4px 4px 7px 7px;display:flex;align-items:center;justify-content:center">
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#F2B90C;margin-top:4px">3</span>
+                      </div>
+                      <div style="position:absolute;left:50%;top:2px;transform:translateX(-50%);width:14px;height:6px;background:#F2B90C;border-radius:0 0 8px 8px"></div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65);white-space:nowrap">Jonathan Reis</span>
+                    <div style="display:flex;align-items:center;gap:5px;width:76px">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#dff0e6;text-shadow:0 1px 3px rgba(0,0,0,.65)">Z</span>
+                      <div style="flex:1;height:5px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden"><div style="width:84%;height:100%;border-radius:99px;background:#2fbf5f"></div></div>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65)">84</span>
+                    </div>
+                  </div>
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
+                    <div style="position:relative;width:44px;height:40px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))">
+                      <div style="position:absolute;left:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:4px 2px 6px 5px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:2px 4px 5px 6px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:10px;top:4px;width:24px;height:36px;background:#17458F;border-radius:4px 4px 7px 7px;display:flex;align-items:center;justify-content:center">
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#F2B90C;margin-top:4px">2</span>
+                      </div>
+                      <div style="position:absolute;left:50%;top:2px;transform:translateX(-50%);width:14px;height:6px;background:#F2B90C;border-radius:0 0 8px 8px"></div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65);white-space:nowrap">João Victor</span>
+                    <div style="display:flex;align-items:center;gap:5px;width:76px">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#dff0e6;text-shadow:0 1px 3px rgba(0,0,0,.65)">Z</span>
+                      <div style="flex:1;height:5px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden"><div style="width:81%;height:100%;border-radius:99px;background:#2fbf5f"></div></div>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65)">81</span>
+                    </div>
+                  </div>
+                  </div>
+                    <div style="position:relative;display:flex;justify-content:space-around;align-items:flex-start;padding:0 150px">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
+                    <div style="position:relative;width:44px;height:40px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))">
+                      <div style="position:absolute;left:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:4px 2px 6px 5px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:7px;width:13px;height:16px;background:#F2B90C;border-radius:2px 4px 5px 6px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:10px;top:4px;width:24px;height:36px;background:#17458F;border-radius:4px 4px 7px 7px;display:flex;align-items:center;justify-content:center">
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#F2B90C;margin-top:4px">1</span>
+                      </div>
+                      <div style="position:absolute;left:50%;top:2px;transform:translateX(-50%);width:14px;height:6px;background:#F2B90C;border-radius:0 0 8px 8px"></div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65);white-space:nowrap">Victor Gomes</span>
+                    <div style="display:flex;align-items:center;gap:5px;width:76px">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#dff0e6;text-shadow:0 1px 3px rgba(0,0,0,.65)">G</span>
+                      <div style="flex:1;height:5px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden"><div style="width:82%;height:100%;border-radius:99px;background:#2fbf5f"></div></div>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65)">82</span>
+                    </div>
+                  </div>
+                  </div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;width:43px">
+                  <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#12201a;color:#fff;font-size:9px;font-weight:700;letter-spacing:.12em;white-space:nowrap;writing-mode:vertical-rl;transform:rotate(180deg)">SUA MARCA</span>
+                  <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#d1541f;color:#fff;font-size:9px;font-weight:700;letter-spacing:.12em;white-space:nowrap;writing-mode:vertical-rl;transform:rotate(180deg)">ANUNCIE AQUI</span>
+                  <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#1d6b3a;color:#fff;font-size:9px;font-weight:700;letter-spacing:.12em;white-space:nowrap;writing-mode:vertical-rl;transform:rotate(180deg)">PATROCÍNIO</span>
+                </div>
+                </div>
+                <div style="display:flex;gap:2px;height:47px">
+                  <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#12201a;color:#fff;font-size:10px;font-weight:700;letter-spacing:.14em;white-space:nowrap">⚽ SUA MARCA</span>
+                  <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#d1541f;color:#fff;font-size:10px;font-weight:700;letter-spacing:.14em;white-space:nowrap">ANUNCIE AQUI</span>
+                  <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#1d6b3a;color:#fff;font-size:10px;font-weight:700;letter-spacing:.14em;white-space:nowrap">PATROCÍNIO ⚽</span>
+                </div>
+              </div>
+
+              <div style="width:196px;flex:0 0 auto;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;letter-spacing:.1em">SUPLENTES</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e">14</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:1px">
+                  <span style="font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em;padding:2px 5px">GOLEIROS</span>
+                  <div style="display:grid;grid-template-columns:30px 1fr 20px;gap:7px;align-items:center;padding:3px 5px;border-radius:8px;cursor:pointer" style-hover="background:#eaf2e9">
+                    <div style="position:relative;width:30px;height:28px;flex:0 0 auto">
+                      <div style="position:absolute;left:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:1px 3px 3px 4px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:7px;top:3px;width:16px;height:25px;background:#17458F;border-radius:3px 3px 5px 5px"></div>
+                      <div style="position:absolute;left:9px;top:8px;width:12px;height:20px;background:#F2B90C;border-radius:2px 2px 4px 4px;box-shadow:inset 0 0 0 1px rgba(23,69,143,.35)"></div>
+                      <div style="position:absolute;left:11px;top:9px;right:11px;height:18px;display:flex;align-items:center;justify-content:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#17458F">12</span></div>
+                    </div>
+                    <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;color:#12201a">Ronaldo Lima</span>
+                      <div style="height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:79%;height:100%;border-radius:99px;background:#8fc93a"></div></div>
+                    </div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#5d6c62;text-align:right">12</span>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:1px">
+                  <span style="font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em;padding:2px 5px">DEFESA</span>
+                  <div style="display:grid;grid-template-columns:30px 1fr 20px;gap:7px;align-items:center;padding:3px 5px;border-radius:8px;cursor:pointer" style-hover="background:#eaf2e9">
+                    <div style="position:relative;width:30px;height:28px;flex:0 0 auto">
+                      <div style="position:absolute;left:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:1px 3px 3px 4px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:7px;top:3px;width:16px;height:25px;background:#17458F;border-radius:3px 3px 5px 5px"></div>
+                      <div style="position:absolute;left:9px;top:8px;width:12px;height:20px;background:#F2B90C;border-radius:2px 2px 4px 4px;box-shadow:inset 0 0 0 1px rgba(23,69,143,.35)"></div>
+                      <div style="position:absolute;left:11px;top:9px;right:11px;height:18px;display:flex;align-items:center;justify-content:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#17458F">13</span></div>
+                    </div>
+                    <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;color:#12201a">Kuhn Gustavo</span>
+                      <div style="height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:68%;height:100%;border-radius:99px;background:#F2B90C"></div></div>
+                    </div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#5d6c62;text-align:right">7</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:30px 1fr 20px;gap:7px;align-items:center;padding:3px 5px;border-radius:8px;cursor:pointer" style-hover="background:#eaf2e9">
+                    <div style="position:relative;width:30px;height:28px;flex:0 0 auto">
+                      <div style="position:absolute;left:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:1px 3px 3px 4px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:7px;top:3px;width:16px;height:25px;background:#17458F;border-radius:3px 3px 5px 5px"></div>
+                      <div style="position:absolute;left:9px;top:8px;width:12px;height:20px;background:#F2B90C;border-radius:2px 2px 4px 4px;box-shadow:inset 0 0 0 1px rgba(23,69,143,.35)"></div>
+                      <div style="position:absolute;left:11px;top:9px;right:11px;height:18px;display:flex;align-items:center;justify-content:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#17458F">14</span></div>
+                    </div>
+                    <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;color:#12201a">Renna</span>
+                      <div style="height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:72%;height:100%;border-radius:99px;background:#8fc93a"></div></div>
+                    </div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#5d6c62;text-align:right">9</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:30px 1fr 20px;gap:7px;align-items:center;padding:3px 5px;border-radius:8px;cursor:pointer" style-hover="background:#eaf2e9">
+                    <div style="position:relative;width:30px;height:28px;flex:0 0 auto">
+                      <div style="position:absolute;left:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:1px 3px 3px 4px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:7px;top:3px;width:16px;height:25px;background:#17458F;border-radius:3px 3px 5px 5px"></div>
+                      <div style="position:absolute;left:9px;top:8px;width:12px;height:20px;background:#F2B90C;border-radius:2px 2px 4px 4px;box-shadow:inset 0 0 0 1px rgba(23,69,143,.35)"></div>
+                      <div style="position:absolute;left:11px;top:9px;right:11px;height:18px;display:flex;align-items:center;justify-content:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#17458F">15</span></div>
+                    </div>
+                    <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;color:#12201a">Richard</span>
+                      <div style="height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:73%;height:100%;border-radius:99px;background:#8fc93a"></div></div>
+                    </div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#5d6c62;text-align:right">9</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:30px 1fr 20px;gap:7px;align-items:center;padding:3px 5px;border-radius:8px;cursor:pointer" style-hover="background:#eaf2e9">
+                    <div style="position:relative;width:30px;height:28px;flex:0 0 auto">
+                      <div style="position:absolute;left:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:1px 3px 3px 4px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:7px;top:3px;width:16px;height:25px;background:#17458F;border-radius:3px 3px 5px 5px"></div>
+                      <div style="position:absolute;left:9px;top:8px;width:12px;height:20px;background:#F2B90C;border-radius:2px 2px 4px 4px;box-shadow:inset 0 0 0 1px rgba(23,69,143,.35)"></div>
+                      <div style="position:absolute;left:11px;top:9px;right:11px;height:18px;display:flex;align-items:center;justify-content:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#17458F">16</span></div>
+                    </div>
+                    <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;color:#12201a">Ronaldo Júnior</span>
+                      <div style="height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:71%;height:100%;border-radius:99px;background:#8fc93a"></div></div>
+                    </div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#5d6c62;text-align:right">12</span>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:1px">
+                  <span style="font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em;padding:2px 5px">MEIO</span>
+                  <div style="display:grid;grid-template-columns:30px 1fr 20px;gap:7px;align-items:center;padding:3px 5px;border-radius:8px;cursor:pointer" style-hover="background:#eaf2e9">
+                    <div style="position:relative;width:30px;height:28px;flex:0 0 auto">
+                      <div style="position:absolute;left:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:1px 3px 3px 4px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:7px;top:3px;width:16px;height:25px;background:#17458F;border-radius:3px 3px 5px 5px"></div>
+                      <div style="position:absolute;left:9px;top:8px;width:12px;height:20px;background:#F2B90C;border-radius:2px 2px 4px 4px;box-shadow:inset 0 0 0 1px rgba(23,69,143,.35)"></div>
+                      <div style="position:absolute;left:11px;top:9px;right:11px;height:18px;display:flex;align-items:center;justify-content:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#17458F">18</span></div>
+                    </div>
+                    <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;color:#12201a">David Ribeiro</span>
+                      <div style="height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:75%;height:100%;border-radius:99px;background:#8fc93a"></div></div>
+                    </div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#5d6c62;text-align:right">12</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:30px 1fr 20px;gap:7px;align-items:center;padding:3px 5px;border-radius:8px;cursor:pointer" style-hover="background:#eaf2e9">
+                    <div style="position:relative;width:30px;height:28px;flex:0 0 auto">
+                      <div style="position:absolute;left:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:1px 3px 3px 4px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:7px;top:3px;width:16px;height:25px;background:#17458F;border-radius:3px 3px 5px 5px"></div>
+                      <div style="position:absolute;left:9px;top:8px;width:12px;height:20px;background:#F2B90C;border-radius:2px 2px 4px 4px;box-shadow:inset 0 0 0 1px rgba(23,69,143,.35)"></div>
+                      <div style="position:absolute;left:11px;top:9px;right:11px;height:18px;display:flex;align-items:center;justify-content:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#17458F">19</span></div>
+                    </div>
+                    <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;color:#12201a">Erick Bessa</span>
+                      <div style="height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:70%;height:100%;border-radius:99px;background:#8fc93a"></div></div>
+                    </div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#5d6c62;text-align:right">11</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:30px 1fr 20px;gap:7px;align-items:center;padding:3px 5px;border-radius:8px;cursor:pointer" style-hover="background:#eaf2e9">
+                    <div style="position:relative;width:30px;height:28px;flex:0 0 auto">
+                      <div style="position:absolute;left:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:1px 3px 3px 4px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:7px;top:3px;width:16px;height:25px;background:#17458F;border-radius:3px 3px 5px 5px"></div>
+                      <div style="position:absolute;left:9px;top:8px;width:12px;height:20px;background:#F2B90C;border-radius:2px 2px 4px 4px;box-shadow:inset 0 0 0 1px rgba(23,69,143,.35)"></div>
+                      <div style="position:absolute;left:11px;top:9px;right:11px;height:18px;display:flex;align-items:center;justify-content:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#17458F">20</span></div>
+                    </div>
+                    <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;color:#12201a">Henry</span>
+                      <div style="height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:73%;height:100%;border-radius:99px;background:#8fc93a"></div></div>
+                    </div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#5d6c62;text-align:right">12</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:30px 1fr 20px;gap:7px;align-items:center;padding:3px 5px;border-radius:8px;cursor:pointer" style-hover="background:#eaf2e9">
+                    <div style="position:relative;width:30px;height:28px;flex:0 0 auto">
+                      <div style="position:absolute;left:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:1px 3px 3px 4px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:7px;top:3px;width:16px;height:25px;background:#17458F;border-radius:3px 3px 5px 5px"></div>
+                      <div style="position:absolute;left:9px;top:8px;width:12px;height:20px;background:#F2B90C;border-radius:2px 2px 4px 4px;box-shadow:inset 0 0 0 1px rgba(23,69,143,.35)"></div>
+                      <div style="position:absolute;left:11px;top:9px;right:11px;height:18px;display:flex;align-items:center;justify-content:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#17458F">21</span></div>
+                    </div>
+                    <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;color:#12201a">Wesley Pires</span>
+                      <div style="height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:66%;height:100%;border-radius:99px;background:#F2B90C"></div></div>
+                    </div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#5d6c62;text-align:right">9</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:30px 1fr 20px;gap:7px;align-items:center;padding:3px 5px;border-radius:8px;cursor:pointer" style-hover="background:#eaf2e9">
+                    <div style="position:relative;width:30px;height:28px;flex:0 0 auto">
+                      <div style="position:absolute;left:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:1px 3px 3px 4px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:7px;top:3px;width:16px;height:25px;background:#17458F;border-radius:3px 3px 5px 5px"></div>
+                      <div style="position:absolute;left:9px;top:8px;width:12px;height:20px;background:#F2B90C;border-radius:2px 2px 4px 4px;box-shadow:inset 0 0 0 1px rgba(23,69,143,.35)"></div>
+                      <div style="position:absolute;left:11px;top:9px;right:11px;height:18px;display:flex;align-items:center;justify-content:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#17458F">22</span></div>
+                    </div>
+                    <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;color:#12201a">Léo Baiano</span>
+                      <div style="height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:58%;height:100%;border-radius:99px;background:#F2B90C"></div></div>
+                    </div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#5d6c62;text-align:right">8</span>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:1px">
+                  <span style="font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em;padding:2px 5px">ATAQUE</span>
+                  <div style="display:grid;grid-template-columns:30px 1fr 20px;gap:7px;align-items:center;padding:3px 5px;border-radius:8px;cursor:pointer" style-hover="background:#eaf2e9">
+                    <div style="position:relative;width:30px;height:28px;flex:0 0 auto">
+                      <div style="position:absolute;left:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:1px 3px 3px 4px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:7px;top:3px;width:16px;height:25px;background:#17458F;border-radius:3px 3px 5px 5px"></div>
+                      <div style="position:absolute;left:9px;top:8px;width:12px;height:20px;background:#F2B90C;border-radius:2px 2px 4px 4px;box-shadow:inset 0 0 0 1px rgba(23,69,143,.35)"></div>
+                      <div style="position:absolute;left:11px;top:9px;right:11px;height:18px;display:flex;align-items:center;justify-content:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#17458F">23</span></div>
+                    </div>
+                    <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;color:#12201a">Antônio Carlos</span>
+                      <div style="height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:69%;height:100%;border-radius:99px;background:#F2B90C"></div></div>
+                    </div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#5d6c62;text-align:right">7</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:30px 1fr 20px;gap:7px;align-items:center;padding:3px 5px;border-radius:8px;cursor:pointer" style-hover="background:#eaf2e9">
+                    <div style="position:relative;width:30px;height:28px;flex:0 0 auto">
+                      <div style="position:absolute;left:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:1px 3px 3px 4px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:7px;top:3px;width:16px;height:25px;background:#17458F;border-radius:3px 3px 5px 5px"></div>
+                      <div style="position:absolute;left:9px;top:8px;width:12px;height:20px;background:#F2B90C;border-radius:2px 2px 4px 4px;box-shadow:inset 0 0 0 1px rgba(23,69,143,.35)"></div>
+                      <div style="position:absolute;left:11px;top:9px;right:11px;height:18px;display:flex;align-items:center;justify-content:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#17458F">24</span></div>
+                    </div>
+                    <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;color:#12201a">Kauã Silva</span>
+                      <div style="height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:64%;height:100%;border-radius:99px;background:#F2B90C"></div></div>
+                    </div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#5d6c62;text-align:right">10</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:30px 1fr 20px;gap:7px;align-items:center;padding:3px 5px;border-radius:8px;cursor:pointer" style-hover="background:#eaf2e9">
+                    <div style="position:relative;width:30px;height:28px;flex:0 0 auto">
+                      <div style="position:absolute;left:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:1px 3px 3px 4px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:7px;top:3px;width:16px;height:25px;background:#17458F;border-radius:3px 3px 5px 5px"></div>
+                      <div style="position:absolute;left:9px;top:8px;width:12px;height:20px;background:#F2B90C;border-radius:2px 2px 4px 4px;box-shadow:inset 0 0 0 1px rgba(23,69,143,.35)"></div>
+                      <div style="position:absolute;left:11px;top:9px;right:11px;height:18px;display:flex;align-items:center;justify-content:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#17458F">25</span></div>
+                    </div>
+                    <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;color:#12201a">Diego Rocha</span>
+                      <div style="height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:52%;height:100%;border-radius:99px;background:#e8802a"></div></div>
+                    </div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#5d6c62;text-align:right">9</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:30px 1fr 20px;gap:7px;align-items:center;padding:3px 5px;border-radius:8px;cursor:pointer" style-hover="background:#eaf2e9">
+                    <div style="position:relative;width:30px;height:28px;flex:0 0 auto">
+                      <div style="position:absolute;left:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)"></div>
+                      <div style="position:absolute;right:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:1px 3px 3px 4px;transform:rotate(16deg)"></div>
+                      <div style="position:absolute;left:7px;top:3px;width:16px;height:25px;background:#17458F;border-radius:3px 3px 5px 5px"></div>
+                      <div style="position:absolute;left:9px;top:8px;width:12px;height:20px;background:#F2B90C;border-radius:2px 2px 4px 4px;box-shadow:inset 0 0 0 1px rgba(23,69,143,.35)"></div>
+                      <div style="position:absolute;left:11px;top:9px;right:11px;height:18px;display:flex;align-items:center;justify-content:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#17458F">26</span></div>
+                    </div>
+                    <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:600;color:#12201a">Igor Melo</span>
+                      <div style="height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:44%;height:100%;border-radius:99px;background:#e8802a"></div></div>
+                    </div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#5d6c62;text-align:right">8</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex:1;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;gap:10px">
+            <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em">FORMAÇÕES</span>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+              <span style="display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid #17458F;background:#17458F;border-radius:10px;padding:7px 4px;white-space:nowrap;cursor:pointer">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff">3-3-4</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;color:#F2B90C">F1</span>
+                </span>
+              <span style="display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid #d8e2d6;background:#fff;border-radius:10px;padding:7px 4px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#3a473f">3-4-3</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;color:#9aa79e">F2</span>
+                </span>
+              <span style="display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid #d8e2d6;background:#fff;border-radius:10px;padding:7px 4px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#3a473f">4-2-4</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;color:#9aa79e">F3</span>
+                </span>
+              <span style="display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid #d8e2d6;background:#fff;border-radius:10px;padding:7px 4px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#3a473f">4-3-3</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;color:#9aa79e">F4</span>
+                </span>
+              <span style="display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid #d8e2d6;background:#fff;border-radius:10px;padding:7px 4px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#3a473f">4-4-2</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;color:#9aa79e">F5</span>
+                </span>
+              <span style="display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid #d8e2d6;background:#fff;border-radius:10px;padding:7px 4px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#3a473f">4-5-1</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;color:#9aa79e">F6</span>
+                </span>
+              <span style="display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid #d8e2d6;background:#fff;border-radius:10px;padding:7px 4px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#3a473f">Auto</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;color:#9aa79e">A</span>
+                </span>
+              <span style="display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid #d8e2d6;background:#fff;border-radius:10px;padding:7px 4px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#3a473f">11+ Melhores</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;color:#9aa79e">M</span>
+                </span>
+            </div>
+            <span style="height:42px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:600;color:#3a473f;background:#fff;border:1px solid #d8e2d6;border-radius:12px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">🟩 Seleccionar descansados</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:stretch">
+            <div style="height:260px;box-sizing:border-box;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:4px 16px 8px;display:flex;flex-direction:column;justify-content:center;min-width:0">
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #eef1ee">
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em">ARTILHEIRO DO CLUBE</span>
+                  <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Carlos Miguel</span>
+                  <span style="font-size:11px;color:#78877c">gols em 7 jogos · 3 assistências</span>
+                </div>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:#17458F;flex:0 0 auto">6</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #eef1ee">
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em">DESTAQUE DA RODADA</span>
+                  <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Serginho</span>
+                  <span style="font-size:11px;color:#78877c">nota do jogo contra o Aimoré</span>
+                </div>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:#F2B90C;flex:0 0 auto">4,7</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0">
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em">EM BAIXA</span>
+                  <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Igor Melo</span>
+                  <span style="font-size:11px;color:#78877c">energia baixa · fora dos planos</span>
+                </div>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:#d94141;flex:0 0 auto">44%</span>
+              </div>
+            </div>
+            <div style="height:260px;background:#17458F;border-radius:18px;padding:18px;color:#fff;display:flex;flex-direction:column;justify-content:center;gap:12px;min-width:0;box-sizing:border-box">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:10px;font-weight:600;letter-spacing:.12em;color:#c3d3ec">ADVERSÁRIO</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#F2B90C">25/abr · 2026</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:36px;height:36px;border-radius:11px;background:#fff;color:#17458F;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:0 0 auto">CIA</div>
+                <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                  <span style="font-size:19px;font-weight:700;letter-spacing:-.02em;white-space:nowrap">Cianorte</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#c3d3ec;white-space:nowrap">FORA · SÉRIE D · 8ª JORNADA</span>
+                </div>
+              </div>
+              <div style="background:rgba(255,255,255,.09);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px">
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) 22px 22px 22px 40px 26px;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#a9bfe0"><span></span><span style="text-align:right">J</span><span style="text-align:right">V</span><span style="text-align:right">D</span><span style="text-align:right">GM:GS</span><span style="text-align:right">P</span></div>
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) 22px 22px 22px 40px 26px;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:12px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba</span><span style="text-align:right">7</span><span style="text-align:right">3</span><span style="text-align:right">2</span><span style="text-align:right">9:7</span><span style="text-align:right">11</span></div>
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) 22px 22px 22px 40px 26px;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#c3d3ec"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cianorte</span><span style="text-align:right">7</span><span style="text-align:right">4</span><span style="text-align:right">1</span><span style="text-align:right">11:6</span><span style="text-align:right">14</span></div>
+              </div>
+              <button style="height:46px;border:none;border-radius:14px;background:#F2B90C;color:#17458F;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;animation:jogarPulse 2.4s ease-in-out infinite" style-hover="background:#ffcb2e;animation:none">⚽ Jogar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { comp: 0, tick: 0, sidebar: true };
+
+  get data() {
+    const P = '#17458F', S = '#F2B90C', G = '#2fbf5f', R = '#d94141', N = '#c9d2ca';
+    return [
+      { label: 'Série D', title: 'CLASSIFICAÇÃO · SÉRIE D', meta: '4º de 64', head: ['J','V','E','D','GM:GS','P'], rows: [
+        ['1','Nacional-PR','7','5','1','1','13:5','16',G],
+        ['2','Cascavel','7','4','3','0','10:4','15',G],
+        ['3','Cianorte','7','4','2','1','11:6','14',G],
+        ['4','XV Piracicaba','7','3','2','2','9:7','11',S,true],
+        ['5','Aimoré','7','3','2','2','8:8','11',N],
+        ['6','Azuriz','7','2','3','2','7:8','9',N],
+        ['7','Marcílio Dias','7','2','2','3','6:9','8',N],
+        ['8','Rio Branco-PR','7','1','3','3','5:10','6',R],
+        ['9','Sãocarlense','7','1','3','3','5:11','6',R],
+        ['10','Grêmio Prudente','7','1','2','4','4:11','5',R],
+        ['11','Comercial','7','1','1','5','3:12','4',R]
+      ]},
+      { label: 'Copa do Brasil', title: 'COPA DO BRASIL · 2ª FASE', meta: 'classificado', head: ['J','V','E','D','GM:GS','P'], rows: [
+        ['1ª','Operário-MT','2','1','1','0','3:1','—',G],
+        ['2ª','Ferroviária','2','1','0','1','2:2','—',S,true],
+        ['3ª','a sortear','—','—','—','—','—','—',N],
+        ['4ª','a sortear','—','—','—','—','—','—',N],
+        ['8vos','a sortear','—','—','—','—','—','—',N],
+        ['4tas','a sortear','—','—','—','—','—','—',N],
+        ['semi','a sortear','—','—','—','—','—','—',N],
+        ['final','a sortear','—','—','—','—','—','—',N]
+      ]},
+      { label: 'Libertadores', title: 'LIBERTADORES · GRUPO F', meta: 'não disputa', head: ['J','V','E','D','GM:GS','P'], rows: [
+        ['1','Palmeiras','6','4','1','1','11:5','13',G],
+        ['2','Peñarol','6','3','2','1','9:6','11',G],
+        ['3','Bolívar','6','2','1','3','7:9','7',S],
+        ['4','Alianza Lima','6','0','2','4','4:11','2',R]
+      ]},
+      { label: 'Sul-Americana', title: 'SUL-AMERICANA · GRUPO C', meta: 'não disputa', head: ['J','V','E','D','GM:GS','P'], rows: [
+        ['1','Fortaleza','6','4','2','0','10:3','14',G],
+        ['2','Defensa y Justicia','6','3','1','2','8:6','10',G],
+        ['3','Cerro Largo','6','1','2','3','5:8','5',S],
+        ['4','Racing-URU','6','1','1','4','4:10','4',R]
+      ]}
+    ];
+  }
+
+  renderVals() {
+    const P = '#17458F', MONO = "'IBM Plex Mono',monospace";
+    const data = this.data;
+    const cur = data[this.state.comp] || data[0];
+    const cols = '32px minmax(0,1fr) 20px 20px 20px 20px 34px 24px';
+    const chipBase = 'font-size:11px;font-weight:600;border-radius:99px;padding:6px 11px;white-space:nowrap;cursor:pointer;transition:background .18s ease,color .18s ease,border-color .18s ease;border:1px solid ';
+    const open = this.state.sidebar;
+    return {
+      shellStyle: {
+        display: 'grid',
+        gridTemplateColumns: (open ? '216px' : '62px') + ' max-content',
+        gap: '14px', alignItems: 'start',
+        transition: 'grid-template-columns .22s ease'
+      },
+      labelStyle: open
+        ? 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'
+        : 'display:none',
+      badgeStyle: open
+        ? "flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;background:#c0392b;border-radius:99px;padding:1px 6px"
+        : 'display:none',
+      clubBlockStyle: open
+        ? 'display:flex;flex-direction:column;gap:1px;min-width:0'
+        : 'display:none',
+      nextGameStyle: open
+        ? 'display:flex;flex-direction:column;gap:10px;background:linear-gradient(160deg,#0e2f66,#17458F);border-radius:14px;padding:12px'
+        : 'display:none',
+      nextGameMiniStyle: open
+        ? 'display:none'
+        : "height:40px;width:100%;border:none;border-radius:12px;background:#F2B90C;color:#17458F;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;animation:jogarPulse 2.4s ease-in-out infinite",
+      toggleIcon: open ? '◀' : '▶',
+      toggleLabel: open ? 'Recolher menu' : '',
+      toggleSidebar: () => this.setState(st => ({ sidebar: !st.sidebar })),
+      compTitle: cur.title,
+      compMeta: cur.meta,
+      compCols: cols,
+      tableStyle: {
+        display: 'flex', flexDirection: 'column', gap: '1px',
+        animation: (this.state.tick % 2 ? 'compFadeA' : 'compFadeB') + ' .32s ease'
+      },
+      comps: data.map((c, i) => ({
+        label: c.label,
+        style: chipBase + (i === this.state.comp ? P + ';background:' + P + ';color:#fff' : '#d8e2d6;background:#fff;color:#3a473f'),
+        onClick: () => this.setState(s => ({ comp: i, tick: s.tick + 1 }))
+      })),
+      rows: cur.rows.map(r => ({
+        pos: r[0], name: r[1], j: r[2], v: r[3], e: r[4], d: r[5], gm: r[6], p: r[7],
+        zone: r[8], mine: !!r[9],
+        rowStyle: 'display:grid;grid-template-columns:' + cols + ';gap:0 6px;align-items:center;padding:6px 8px;border-radius:9px;cursor:pointer;background:' + (r[9] ? '#eef3fa' : 'transparent'),
+        zoneStyle: 'width:3px;height:14px;border-radius:99px;background:' + r[8],
+        posStyle: 'font-family:' + MONO + ';font-size:11px;font-weight:600;color:' + (r[9] ? P : '#8b978d'),
+        nameStyle: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:' + (r[9] ? 700 : 500) + ';color:' + (r[9] ? '#12201a' : '#3a473f')
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

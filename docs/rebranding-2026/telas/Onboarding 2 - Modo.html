@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Onboarding — Modo de jogo" description="Onboarding — Onboarding — Modo de jogo" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ee}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes ctaPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+@keyframes ballDrop{from{opacity:0;transform:translateY(-8px) scale(.9)}to{opacity:1;transform:none}}
+@media (max-width:900px){ [data-wiz-cards]{grid-template-columns:minmax(0,1fr)!important} [data-wiz-steps]{display:none} }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#eef0ee;font-family:'Space Grotesk',system-ui,sans-serif;padding:24px;box-sizing:border-box;display:flex;justify-content:center">
+  <div style="width:980px;max-width:100%;display:flex;flex-direction:column;gap:14px">
+
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="display:flex;align-items:center;gap:10px;flex:0 0 auto">
+        <img src="uploads/pasted-1786581574687-0.png" alt="RetroFoot98" style="width:32px;height:32px;object-fit:contain">
+        <span style="font-size:16px;font-weight:700;color:#12201a;letter-spacing:-.02em;white-space:nowrap">RetroFoot<span style="font-family:'IBM Plex Mono',monospace;color:#17458F">98</span></span>
+      </div>
+      <div style="flex:1"></div>
+      <span style="height:36px;padding:0 14px;display:flex;align-items:center;gap:7px;border:1px solid #d8e2d6;border-radius:11px;background:#fff;font-size:12px;font-weight:600;color:#5d6c62;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">‹ Voltar</span>
+    </div>
+
+    <div style="background:#e8f0e7;border:1px solid #d2e0d0;border-radius:24px;padding:18px;box-shadow:0 18px 40px -28px rgba(20,33,26,.35);display:flex;flex-direction:column;gap:16px">
+
+      <div data-wiz-steps style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #dde7db;border-radius:16px;padding:10px 14px;overflow:auto">
+        <span style="display:flex;align-items:center;gap:8px;flex:0 0 auto">
+          <span style="width:22px;height:22px;border-radius:99px;background:#2fbf5f;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">✓</span>
+          <span style="font-size:12px;font-weight:500;color:#78877c;white-space:nowrap">Entrar</span>
+        </span><span style="flex:0 0 auto;width:18px;height:1px;background:#dde7db"></span>
+        <span style="display:flex;align-items:center;gap:8px;flex:0 0 auto">
+          <span style="width:22px;height:22px;border-radius:99px;background:#17458F;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">2</span>
+          <span style="font-size:12px;font-weight:700;color:#12201a;white-space:nowrap">Modo</span>
+        </span><span style="flex:0 0 auto;width:18px;height:1px;background:#dde7db"></span>
+        <span style="display:flex;align-items:center;gap:8px;flex:0 0 auto">
+          <span style="width:22px;height:22px;border-radius:99px;background:#eef1ee;color:#9aa79e;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">3</span>
+          <span style="font-size:12px;font-weight:500;color:#78877c;white-space:nowrap">Configurar</span>
+        </span><span style="flex:0 0 auto;width:18px;height:1px;background:#dde7db"></span>
+        <span style="display:flex;align-items:center;gap:8px;flex:0 0 auto">
+          <span style="width:22px;height:22px;border-radius:99px;background:#eef1ee;color:#9aa79e;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">4</span>
+          <span style="font-size:12px;font-weight:500;color:#78877c;white-space:nowrap">Sorteio</span>
+        </span><span style="flex:0 0 auto;width:18px;height:1px;background:#dde7db"></span>
+        <span style="display:flex;align-items:center;gap:8px;flex:0 0 auto">
+          <span style="width:22px;height:22px;border-radius:99px;background:#eef1ee;color:#9aa79e;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">5</span>
+          <span style="font-size:12px;font-weight:500;color:#78877c;white-space:nowrap">Jogar</span>
+        </span>
+      </div>
+
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:20px;min-height:340px">
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;letter-spacing:.14em;white-space:nowrap">COMO VOCÊ QUER JOGAR</span>
+          <span style="font-size:28px;font-weight:700;color:#12201a;letter-spacing:-.02em;line-height:1.15;white-space:nowrap">Comece a sua carreira contra a máquina.</span>
+          <span style="font-size:14px;color:#78877c;max-width:560px;line-height:1.55;text-wrap:pretty">O Modo Resenha, para jogar com a turma, chega em novembro. Na beta, o Solo já está completo.</span>
+        </div>
+        <div data-wiz-cards style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div style="flex:1;min-width:0;background:#eef3fa;border:2px solid #17458F;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:9px;cursor:pointer;position:relative" style-hover="border-color:#17458F">
+            <span style="position:absolute;right:14px;top:14px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#17458F;background:#F2B90C;border-radius:99px;padding:3px 9px;white-space:nowrap">RECOMENDADO</span>
+            <span style="font-size:28px">🛋️</span>
+            <span style="font-size:18px;font-weight:700;color:#12201a;white-space:nowrap">Modo Solo</span>
+            <span style="font-size:13px;color:#3a473f;line-height:1.55">Pega um clube da Série D e sobe até a elite no seu ritmo. Mercado, finanças e o calendário completo de copas — sem depender de ninguém entrar na sala.</span>
+          </div>
+          <div style="flex:1;min-width:0;background:#f6f8f5;border:2px dashed #d8e2d6;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:9px;position:relative;cursor:default">
+            <span style="position:absolute;right:14px;top:14px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#5d6c62;background:#e7ece6;border-radius:99px;padding:3px 9px;white-space:nowrap">EM BREVE</span>
+            <span style="font-size:28px;opacity:.45">🍺</span>
+            <span style="font-size:18px;font-weight:700;color:#5d6c62;white-space:nowrap">Modo Resenha</span>
+            <span style="font-size:13px;color:#78877c;line-height:1.55">Monte a liga do grupo do trabalho ou da comunidade. Até 20 treinadores jogam a mesma rodada ao vivo, com tabela, mercado e zoeira no chat.</span>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:2px;padding:9px 11px;border-radius:11px;background:#fff;border:1px solid #dde7db">
+              <span style="font-size:13px;flex:0 0 auto">🔒</span>
+              <span style="flex:1;min-width:0;font-size:12px;color:#5d6c62;line-height:1.45">Não disponível na versão beta — previsão de lançamento em <b style="color:#12201a">novembro</b>.</span>
+            </div>
+            <span style="height:34px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:11px;background:#fff;border:1px solid #d8e2d6;color:#17458F;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="background:#f2f7f1">Avise-me no lançamento</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;background:#f6f8f5;border-radius:14px;padding:12px;min-width:0">
+          <div style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <span style="font-size:17px;flex:0 0 auto">📁</span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+              <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap">Continuar um jogo salvo</span>
+              <span style="font-size:11px;color:#78877c;white-space:nowrap">Você tem 2 jogos salvos na nuvem.</span>
+            </div>
+            <span style="flex:0 0 auto;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#17458F;white-space:nowrap">Ver saves <span style="font-size:10px">▾</span></span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:30px minmax(0,1fr) 96px 84px 92px;gap:0 12px;padding:6px 12px 0;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
+            <span></span><span>SAVE</span><span style="text-align:right">JORNADA</span><span style="text-align:right">GRAVADO</span><span></span>
+          </div>
+            <div style="display:grid;grid-template-columns:30px minmax(0,1fr) 96px 84px 92px;gap:0 12px;align-items:center;padding:10px 12px;border-radius:11px;background:#fff;border:1px solid #eef1ee;cursor:pointer" style-hover="border-color:#17458F">
+              <img src="assets/crests/vasco.png" alt="" style="width:26px;height:26px;object-fit:contain">
+              <div style="min-width:0;display:flex;flex-direction:column;gap:1px">
+                <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Carreira do zero</span>
+                <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba · Série D</span>
+              </div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5d6c62;text-align:right;white-space:nowrap">8ª de 14</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;text-align:right;white-space:nowrap">há 2 dias</span>
+              <span style="height:32px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#F2B90C;color:#17458F;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer">Continuar</span>
+            </div>
+            <div style="display:grid;grid-template-columns:30px minmax(0,1fr) 96px 84px 92px;gap:0 12px;align-items:center;padding:10px 12px;border-radius:11px;background:#fff;border:1px solid #eef1ee;cursor:pointer" style-hover="border-color:#17458F">
+              <img src="assets/crests/fluminense.png" alt="" style="width:26px;height:26px;object-fit:contain">
+              <div style="min-width:0;display:flex;flex-direction:column;gap:1px">
+                <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Subindo com o Velo</span>
+                <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Velo Clube · Série D</span>
+              </div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5d6c62;text-align:right;white-space:nowrap">21ª de 14</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;text-align:right;white-space:nowrap">há 3 semanas</span>
+              <span style="height:32px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#F2B90C;color:#17458F;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer">Continuar</span>
+            </div>
+          <span style="height:36px;display:flex;align-items:center;justify-content:center;border:1px dashed #c9d2ca;border-radius:11px;color:#9aa79e;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Gerenciar saves na nuvem</span>
+        </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:12px;color:#78877c">Toque num cartão para continuar.</span>
+        <div style="flex:1"></div>
+        <span style="height:46px;padding:0 22px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:13px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Continuar no Modo Solo</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

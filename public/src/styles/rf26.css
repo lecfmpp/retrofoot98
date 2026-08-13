@@ -1,0 +1,1047 @@
+/* =====================================================================
+   RetroFoot98 — REBRANDING 2026
+   Camada do design system novo. Carrega DEPOIS de main.css e é onde mora
+   tudo que já foi convertido; main.css continua servindo as telas que
+   ainda não foram. Nada aqui usa bisel, sombra em botão ou gradiente
+   decorativo — ver docs/rebranding-2026/readme.md.
+
+   Prefixo `rf-` em tudo, pra nunca colidir com as classes `cl-` legadas.
+   Os tokens vêm de main.css (que importa tokens/) — este arquivo só os usa.
+   ===================================================================== */
+
+/* ============================ CORE ============================ */
+
+/* ----- Card: a superfície branca com hairline e raio 18. Três tons:
+   claro (padrão), do clube (faixa azul) e recuado (bloco dentro do card). */
+.rf-card{background:var(--surface-card);border:var(--border-hairline);color:var(--text-1);
+  border-radius:var(--r-card);padding:var(--pad-card);display:flex;flex-direction:column;
+  gap:var(--sp-5);box-sizing:border-box;min-width:0;font-family:var(--font-sans)}
+.rf-card-club{background:var(--club-primary);border:none;color:var(--text-on-dark)}
+.rf-card-quiet{background:var(--surface-sunken);color:var(--text-2)}
+/* as duas colunas terminam alinhadas: um card de cada lado absorve a folga */
+.rf-card-grow{flex:1}
+.rf-card-flat{padding:0;overflow:hidden}
+
+/* ----- SectionLabel: 10px, 700, caixa alta, tracking .12em.
+   O `right` é sempre mono — é contagem, data ou atalho. */
+.rf-label{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rf-label-t{font-size:var(--fs-label);font-weight:var(--fw-bold);color:var(--text-muted);
+  letter-spacing:var(--ls-label);text-transform:uppercase;white-space:nowrap}
+.rf-label-r{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-faint);white-space:nowrap}
+
+/* ----- Button: cinco peles. Nenhuma tem sombra nem bisel — a única
+   elevação de botão é a mudança de fundo no hover. */
+.rf-btn{font-family:var(--font-sans);font-weight:var(--fw-semibold);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;
+  box-sizing:border-box;transition:background var(--dur-fast) var(--ease)}
+.rf-btn:disabled{opacity:.5;cursor:default}
+.rf-btn-full{width:100%}
+/* primária: amarelo do clube — a ação dominante da tela (Jogar) */
+.rf-btn-primary{height:var(--h-cta);border:none;border-radius:var(--r-inner);
+  background:var(--club-cta-bg,var(--club-secondary));color:var(--club-cta-fg,var(--club-on-secondary));
+  font-size:var(--fs-subhead);font-weight:var(--fw-bold);padding:0 18px}
+.rf-btn-primary:hover:not(:disabled){background:var(--club-secondary-hover)}
+.rf-btn-secondary{height:var(--h-control);border:var(--border-control);border-radius:var(--r-control);
+  background:var(--surface-card);color:var(--text-2);font-size:var(--fs-body-sm);padding:0 14px}
+.rf-btn-secondary:hover:not(:disabled){background:var(--surface-sunken)}
+.rf-btn-dark{height:var(--h-control);border:none;border-radius:var(--r-control);
+  background:var(--club-primary);color:var(--club-on-primary);font-size:var(--fs-body-sm);padding:0 14px}
+.rf-btn-pill{height:36px;border:none;border-radius:var(--r-pill);background:var(--club-secondary);
+  color:var(--club-on-secondary);font-size:var(--fs-caption);padding:0 14px}
+.rf-btn-quiet{height:36px;border:var(--border-control);border-radius:var(--r-chip);background:transparent;
+  color:var(--club-primary);font-size:var(--fs-caption);padding:0 12px}
+.rf-btn-quiet:hover:not(:disabled){background:var(--surface-sunken)}
+/* pulso lento do CTA — para no hover, de propósito (ver readme: movimento é funcional) */
+.rf-btn-pulse:not(:disabled){animation:ds-cta-pulse 2.4s var(--ease) infinite}
+.rf-btn-pulse:hover{animation:none}
+
+/* ----- Chip: pastilha de formação (com atalho embaixo), competição e status. */
+.rf-chip{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border:1px solid var(--line-2);background:var(--surface-card);color:var(--text-2);
+  border-radius:var(--r-pill);padding:6px 11px;font-family:var(--font-sans);
+  font-size:var(--fs-micro);font-weight:var(--fw-semibold);white-space:nowrap;cursor:pointer;
+  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease)}
+.rf-chip:hover{background:var(--surface-sunken)}
+.rf-chip-info{background:var(--club-primary-soft);color:var(--club-primary);border-color:var(--club-primary-line)}
+.rf-chip-warn{background:#fdf3d4;color:#7a5c00;border-color:#f2e2a8}
+.rf-chip.on{background:var(--club-primary);color:var(--club-on-primary);border-color:var(--club-primary)}
+.rf-chip.on:hover{background:var(--club-primary)}
+/* variante com dica (F1-F6): vira bloco de duas linhas, raio menor */
+.rf-chip-hint{flex-direction:column;gap:2px;border-radius:var(--r-chip);padding:7px 4px}
+.rf-chip-hint>.rf-chip-l{font-family:var(--font-mono);font-size:var(--fs-caption)}
+.rf-chip-h{font-family:var(--font-mono);font-size:var(--fs-label-xs);font-weight:var(--fw-medium);color:var(--text-faint)}
+.rf-chip.on .rf-chip-h{color:var(--club-secondary)}
+
+/* números: SEMPRE mono, e à direita quando é coluna de tabela */
+.rf-num{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.rf-num-r{font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align:right}
+/* Georgia tem UM uso por tela: o nome do treinador */
+.rf-mgr{font-family:var(--font-serif);font-style:italic;font-weight:700}
+/* regra do checklist: rótulo de coluna, chip e contador nunca quebram em duas linhas */
+.rf-label-t,.rf-chip,.rf-nowrap{white-space:nowrap}
+
+/* ============================ FEEDBACK ============================ */
+
+/* ----- Toast: escuro, filete de 4px à esquerda na cor do tom, uma frase.
+   Empilhado no rodapé central. NUNCA pede decisão — decisão é Dialog. */
+#c-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);display:flex;
+  flex-direction:column;gap:var(--sp-4);z-index:60;pointer-events:none}
+.rf-toast{display:flex;align-items:center;gap:var(--sp-5);background:#12201a;color:#fff;
+  border-radius:var(--r-control);padding:11px 16px;min-height:44px;box-sizing:border-box;
+  border-left:4px solid var(--text-faint);box-shadow:0 10px 30px -18px rgba(0,0,0,.7);
+  font-family:var(--font-sans);font-size:var(--fs-body-sm);font-weight:var(--fw-medium);
+  max-width:460px;animation:ds-fade-up var(--dur-base) var(--ease);pointer-events:auto}
+.rf-toast-ico{flex:0 0 auto;font-size:14px}
+.rf-toast-t{flex:1;min-width:0;line-height:1.35}
+.rf-toast-act{flex:0 0 auto;font-size:var(--fs-caption);font-weight:var(--fw-bold);
+  color:var(--club-secondary);white-space:nowrap;cursor:pointer}
+.rf-toast-success{border-left-color:var(--ok)}
+.rf-toast-warn{border-left-color:var(--warn)}
+.rf-toast-danger{border-left-color:var(--danger)}
+.rf-toast-progress{border-left-color:var(--text-faint);color:var(--text-on-dark-soft)}
+/* info é o único com fundo azul do clube — é fato do jogo, não estado do sistema */
+.rf-toast-info{background:var(--club-primary);border-left-color:var(--club-secondary)}
+
+/* ----- Dialog: SÓ para o que acontece sozinho no save. Item de menu é página. */
+.rf-dlg{width:520px;max-width:100%;background:var(--surface-desk);border:1px solid var(--line-2);
+  border-radius:var(--r-shell);padding:var(--pad-shell);box-sizing:border-box;
+  box-shadow:0 24px 60px -30px rgba(0,0,0,.6);display:flex;flex-direction:column;
+  gap:var(--gap-grid);animation:ds-fade-up var(--dur-base) var(--ease);font-family:var(--font-sans)}
+.rf-dlg-hd{display:flex;align-items:center;gap:var(--sp-6);position:relative;overflow:hidden;
+  background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);padding:14px 18px}
+.rf-dlg-club>.rf-dlg-hd{background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);border:none}
+.rf-dlg-club .rf-dlg-t{color:var(--text-on-dark)}
+.rf-dlg-club .rf-dlg-sub{color:var(--text-on-dark-soft)}
+.rf-dlg-club .rf-dlg-x{color:#fff}
+.rf-dlg-filete{position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--club-secondary)}
+.rf-dlg-glyph{font-size:18px;flex:0 0 auto}
+.rf-dlg-club .rf-dlg-glyph{margin-left:6px}
+.rf-dlg-ttl{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-dlg-t{font-size:var(--fs-heading);font-weight:var(--fw-bold);letter-spacing:var(--ls-tight);
+  color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-dlg-sub{font-size:var(--fs-caption);color:var(--text-4);white-space:nowrap}
+.rf-dlg-sp{flex:1}
+.rf-dlg-badge{flex:0 0 auto;font-family:var(--font-mono);font-size:var(--fs-micro);
+  font-weight:var(--fw-semibold);color:var(--club-on-secondary);background:var(--club-secondary);
+  border-radius:var(--r-pill);padding:4px 10px;white-space:nowrap}
+.rf-dlg-x{flex:0 0 auto;margin-left:10px;font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);
+  color:var(--text-3);cursor:pointer;background:none;border:none;font-family:inherit}
+.rf-dlg-body{background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);
+  padding:var(--pad-card);display:flex;flex-direction:column;gap:var(--sp-5)}
+.rf-dlg-foot{display:flex;gap:var(--sp-4);justify-content:flex-end}
+
+/* ============================ HUB / ENVELOPE ============================ */
+
+/* O envelope de TODAS as páginas: mesa verde, shell arredondado, sidebar +
+   coluna de conteúdo. `max-content` na segunda coluna é o que garante que o
+   campo (470px fixos) nunca encolha quando a sidebar expande. */
+.rf-desk{min-height:100vh;background:var(--surface-desk);padding:18px;box-sizing:border-box;
+  display:flex;flex-direction:column;align-items:center;gap:14px;font-family:var(--font-sans);color:var(--text-1)}
+/* o envelope tem largura de conteúdo (o campo não encolhe, então ele não pode
+   encolher junto); a mesa é quem rola quando a janela é estreita demais */
+.rf-envelope{width:max-content;margin:0 auto;display:flex;gap:14px;align-items:flex-start}
+.rf-shell{display:grid;grid-template-columns:216px max-content;gap:14px;align-items:start;
+  transition:grid-template-columns .22s var(--ease)}
+.rf-shell.collapsed{grid-template-columns:62px max-content}
+
+/* ----- Sidebar 216px → 62px, estado persistido em localStorage ----- */
+.rf-sidebar{position:sticky;top:18px;display:flex;flex-direction:column;gap:10px;
+  background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);
+  padding:12px;box-sizing:border-box;overflow:hidden}
+.rf-sb-club{display:flex;align-items:center;gap:10px;padding:4px 4px 10px;border-bottom:1px solid var(--line-3)}
+.rf-sb-crest{width:34px;height:34px;object-fit:contain;flex:0 0 auto;border-radius:8px}
+.rf-sb-cnames{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-sb-cname{font-size:var(--fs-body);font-weight:var(--fw-bold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-sb-cmeta{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-muted);white-space:nowrap}
+.rf-sb-nav{display:flex;flex-direction:column;gap:2px}
+.rf-nav-i{display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;
+  border-radius:var(--r-control);font-size:var(--fs-body-sm);font-weight:var(--fw-medium);
+  color:var(--text-2);background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden;
+  border:none;font-family:inherit;width:100%;text-align:left;
+  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
+.rf-nav-i:hover{background:var(--surface-sunken)}
+.rf-nav-i.on{background:var(--club-primary);color:var(--club-on-primary);font-weight:var(--fw-bold)}
+.rf-nav-i.on:hover{background:var(--club-primary)}
+.rf-nav-ico{flex:0 0 auto;width:18px;text-align:center;font-size:15px}
+.rf-nav-l{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+/* badge numérico do item de menu — só número, nunca emoji */
+.rf-nav-b{flex:0 0 auto;font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);
+  color:#fff;background:var(--danger);border-radius:var(--r-pill);padding:2px 6px;min-width:18px;text-align:center}
+.rf-sb-sp{flex:1}
+/* card "próximo jogo" no pé da sidebar */
+.rf-sb-next{display:flex;flex-direction:column;gap:10px;
+  background:linear-gradient(160deg,var(--club-primary-deep),var(--club-primary));
+  border-radius:var(--r-inner);padding:12px}
+.rf-sb-next-hd{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rf-sb-next-l{font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
+  color:var(--text-on-dark-faint);white-space:nowrap}
+.rf-sb-next-d{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--club-secondary-on-primary,var(--club-secondary));white-space:nowrap}
+.rf-sb-next-opp{display:flex;align-items:center;gap:8px;min-width:0}
+.rf-sb-next-crest{width:26px;height:26px;object-fit:contain;flex:0 0 auto}
+.rf-sb-next-n{font-size:var(--fs-body);font-weight:var(--fw-bold);color:#fff;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rf-sb-next-m{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-on-dark-faint);white-space:nowrap}
+.rf-sb-toggle{display:flex;align-items:center;gap:10px;height:34px;padding:0 12px;background:none;
+  border:none;font-family:inherit;font-size:var(--fs-caption);color:var(--text-muted);cursor:pointer;
+  white-space:nowrap;border-radius:var(--r-chip)}
+.rf-sb-toggle:hover{background:var(--surface-sunken);color:var(--text-2)}
+
+/* estado recolhido: some tudo que é texto, o ícone centraliza */
+.rf-shell.collapsed .rf-nav-l,
+.rf-shell.collapsed .rf-sb-cnames,
+.rf-shell.collapsed .rf-sb-next-hd,
+.rf-shell.collapsed .rf-sb-next-opp,
+.rf-shell.collapsed .rf-sb-toggle span{display:none}
+.rf-shell.collapsed .rf-nav-i{justify-content:center;padding:0 8px;gap:0}
+.rf-shell.collapsed .rf-sb-club{justify-content:center;padding:4px 0 10px}
+.rf-shell.collapsed .rf-sb-next{padding:8px;align-items:center}
+.rf-shell.collapsed .rf-sb-toggle{justify-content:center;padding:0}
+/* o badge vira um ponto no canto do ícone quando não há espaço pro número */
+.rf-shell.collapsed .rf-nav-i{position:relative}
+.rf-shell.collapsed .rf-nav-b{position:absolute;top:5px;right:6px;padding:0;min-width:8px;
+  width:8px;height:8px;font-size:0;line-height:0}
+
+/* ----- Faixa do clube: o cabeçalho de toda página ----- */
+/* Toda página tem a MESMA largura de miolo — a do Hub, que é quem manda
+   (coluna de 530 + coluna do campo de 770 + 14). Sem isto o envelope
+   encolhia e crescia a cada troca de página e a faixa do clube dançava de
+   tamanho junto: navegar parecia trocar de site, não de secção. */
+:root{--rf-content-w:1314px}
+.rf-content{width:var(--rf-content-w);max-width:100%;min-width:0;display:flex;flex-direction:column;gap:14px}
+.rf-band{display:flex;align-items:center;gap:16px;
+  background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
+  border-radius:var(--r-card);padding:16px 20px;position:relative;overflow:hidden;color:#fff}
+.rf-band-filete{position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--club-secondary)}
+.rf-band-crest{width:48px;height:48px;border-radius:var(--r-inner);background:#fff;display:flex;
+  align-items:center;justify-content:center;flex:0 0 auto;margin-left:6px;overflow:hidden}
+.rf-band-crest img{width:38px;height:38px;object-fit:contain}
+.rf-band-id{display:flex;flex-direction:column;gap:4px;flex:0 0 auto;min-width:0}
+.rf-band-club{font-size:var(--fs-display);font-weight:var(--fw-bold);letter-spacing:var(--ls-tight);
+  color:#fff;white-space:nowrap;line-height:var(--lh-tight)}
+.rf-band-sub{display:flex;align-items:center;gap:8px;font-size:var(--fs-caption);
+  color:var(--text-on-dark-soft);white-space:nowrap}
+.rf-band-mgr{font-family:var(--font-serif);font-style:italic;font-weight:700;
+  font-size:var(--fs-subhead);color:var(--club-secondary-on-primary,var(--club-secondary))}
+.rf-band-sp{flex:1}
+/* os três blocos de números à direita, separados por hairline translúcida */
+.rf-band-stat{display:flex;flex-direction:column;gap:2px;padding:0 16px;flex:0 0 auto}
+.rf-band-stat.mid{align-items:center;border-left:1px solid rgba(255,255,255,.15);
+  border-right:1px solid rgba(255,255,255,.15)}
+.rf-band-stat.end{align-items:flex-end}
+.rf-band-sl{font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
+  color:var(--text-on-dark-faint);white-space:nowrap}
+.rf-band-sv{font-family:var(--font-mono);font-size:var(--fs-subhead);font-weight:var(--fw-semibold);
+  color:#fff;white-space:nowrap}
+.rf-band-sv.gold{color:var(--club-secondary-on-primary,var(--club-secondary))}
+.rf-band-sh{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-on-dark-faint);white-space:nowrap}
+/* forma: V/E/D em quadradinhos */
+.rf-forma{display:flex;gap:3px}
+.rf-forma i{width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-size:var(--fs-label);font-weight:700;font-style:normal;color:#fff}
+.rf-forma i.v{background:var(--ok)}
+.rf-forma i.e{background:var(--text-faint)}
+.rf-forma i.d{background:var(--danger)}
+
+/* ----- Área central de duas colunas: 530px fixos + o resto ----- */
+.rf-cols{display:grid;grid-template-columns:530px minmax(0,1fr);gap:14px;align-items:stretch}
+.rf-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+
+/* ----- Abas dentro da página (sub-itens de menu viram aba, nunca página nova) ----- */
+.rf-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.rf-tab{border:1px solid var(--line-2);background:var(--surface-card);color:var(--text-2);
+  border-radius:var(--r-pill);padding:7px 14px;font-family:var(--font-sans);font-size:var(--fs-caption);
+  font-weight:var(--fw-semibold);white-space:nowrap;cursor:pointer;
+  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
+.rf-tab:hover{background:var(--surface-sunken)}
+.rf-tab.on{background:var(--club-primary);color:var(--club-on-primary);border-color:var(--club-primary)}
+/* troca de aba faz um fade-up curto — o único movimento de transição de conteúdo */
+.rf-tabpane{animation:ds-fade-up var(--dur-base) var(--ease)}
+
+/* ============================ PUBLICIDADE ============================
+   A publicidade SAI ANTES DO CONTEÚDO quando a tela encolhe. Os trilhos
+   ficam FORA da coluna de conteúdo, e as media queries abaixo são a única
+   exceção à regra de não usar classe pra responsividade: elas se prendem
+   a atributos data-*, não a classes de componente. */
+.rf-ad-top{width:970px;max-width:100%;height:90px;margin:0 auto;border-radius:var(--r-inner);
+  overflow:hidden;background:var(--surface-sunken);border:var(--border-hairline);
+  display:flex;align-items:center;justify-content:center}
+[data-ad-rail]{width:160px;flex:0 0 auto;position:sticky;top:18px;display:flex;
+  flex-direction:column;gap:12px}
+[data-ad-rail] .rf-ad-slot{width:160px;height:600px;border-radius:var(--r-inner);overflow:hidden;
+  background:var(--surface-sunken);border:var(--border-hairline);display:flex;
+  align-items:center;justify-content:center}
+.rf-ad-anchor{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:320px;height:50px;
+  z-index:40;background:var(--surface-card);border:var(--border-hairline);border-bottom:none;
+  border-radius:var(--r-inner) var(--r-inner) 0 0;overflow:hidden;display:flex;
+  align-items:center;justify-content:center}
+.rf-ad-lbl{font-size:var(--fs-label-xs);letter-spacing:var(--ls-label);color:var(--text-faint);
+  text-transform:uppercase}
+
+/* ===== ORDEM DE SACRIFÍCIO =====
+   A REGRA é a do design system: a publicidade sai ANTES do conteúdo, e o campo
+   nunca encolhe. Os NÚMEROS são os desta implementação, medidos na tela pronta,
+   e não os 1560/1320 do readme — aquela tabela pressupõe um miolo de 1180px,
+   e o layout aprovado (`3a`) tem 1314: coluna de 530 + coluna do campo de 770
+   (gramado 470 + placas + banco de 196) + 14 de respiro.
+
+   Orçamento real, somando mesa (36) + sidebar (216) + respiro (14):
+     duas colunas lado a lado ... 1580px de janela
+     + trilho da esquerda ....... 1754px
+     + trilho da direita ........ 1928px
+   Abaixo de 1580 as duas colunas EMPILHAM em vez de espremer: o elenco em cima,
+   o campo embaixo, os dois no tamanho cheio. Nenhum dado é cortado — que é a
+   outra regra que não pode ser quebrada. */
+@media (max-width:1928px){ [data-ad-rail="right"]{display:none} }
+@media (max-width:1754px){ [data-ad-rail]{display:none} }
+/* ver a "ordem de sacrifício" acima: 1580 é a largura em que as duas colunas
+   ainda cabem lado a lado com a sidebar aberta. */
+@media (max-width:1580px){
+  /* empilhado, o miolo passa a ter a largura da coluna do campo */
+  :root{--rf-content-w:770px}
+  .rf-cols{grid-template-columns:minmax(0,1fr)}
+  .rf-col{min-width:0}
+}
+@media (max-width:1024px){
+  .rf-band{flex-wrap:wrap;row-gap:12px}
+  .rf-band-sp{display:none}
+  .rf-band-stat.mid{border:none}
+}
+@media (max-width:760px){
+  .rf-ad-top{height:100px}
+  .rf-btn-primary{width:100%}
+}
+
+/* =====================================================================
+   RESKIN DAS CLASSES LEGADAS
+   O jogo tem 131 chamadas de btn() e ~200 de dlg()/overlayC() espalhadas
+   por 11 mil linhas. Reescrever cada chamada seria churn puro: a MARCAÇÃO
+   já está certa, só a pele estava errada. Então aqui as classes `cl-*`
+   recebem a linguagem nova — hairline + raio, zero bisel, zero sombra em
+   botão — e cada tela vai sendo reestruturada depois, no seu tempo.
+   Tudo abaixo é sobrescrita deliberada de main.css; por isso o `!important`
+   aparece só onde a regra legada também usa.
+   ===================================================================== */
+
+/* ----- Botões: .cl-btn vira a pele `secondary`, e as duas variantes que o
+   jogo mais usa viram primária (OK) e recuada (Cancelar). O ícone volta pra
+   linha — botão de duas linhas (ícone em cima, rótulo embaixo) era coisa da
+   pele antiga. */
+.cl-btn{font-family:var(--font-sans);font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);
+  background:var(--surface-card);border:var(--border-control);border-radius:var(--r-control);
+  padding:0 14px;height:var(--h-control);min-height:var(--h-control);color:var(--text-2);
+  flex-direction:row;gap:8px;min-width:0;text-align:center;
+  transition:background var(--dur-fast) var(--ease)}
+.cl-btn:hover:not(:disabled){background:var(--surface-sunken)}
+.cl-btn:active{border-color:var(--line-2)}          /* sem afundar: só o hover mais escuro */
+.cl-btn:disabled{color:var(--text-faint);cursor:default;opacity:.6}
+.cl-btn-ic{font-size:15px;line-height:1}
+.cl-btn-ok{background:var(--club-cta-bg,var(--club-secondary));color:var(--club-cta-fg,var(--club-on-secondary));border-color:transparent;
+  font-weight:var(--fw-bold);font-size:var(--fs-subhead);height:var(--h-cta);min-height:var(--h-cta);
+  border-radius:var(--r-inner)}
+.cl-btn-ok:hover:not(:disabled){background:var(--club-secondary-hover)}
+.cl-btn-ok .cl-btn-ic,.cl-btn-cancel .cl-btn-ic{color:inherit}
+.cl-btn-cancel{background:var(--surface-card);color:var(--text-3)}
+.cl-btn.cl-btn-on{background:var(--club-primary);color:var(--club-on-primary);border-color:var(--club-primary)}
+.cl-btn.cl-btn-on .cl-btn-ic{color:inherit}
+.cl-btn-big{height:var(--h-cta);min-height:var(--h-cta);padding:0 20px;font-size:var(--fs-subhead)}
+.cl-btn-big .cl-btn-ic{font-size:18px}
+.cl-btn-wide{height:var(--h-cta);min-height:var(--h-cta);padding:0 34px;font-weight:var(--fw-bold);font-size:var(--fs-subhead)}
+.cl-btn-sm,.cl-btn-mini{height:32px !important;min-height:32px !important;padding:0 12px !important;
+  font-size:var(--fs-caption) !important;border-radius:var(--r-chip);flex-direction:row !important}
+.cl-btn-sm .cl-btn-ic{font-size:13px}
+.cl-btn-ico{flex-direction:row}
+.cl-btn-online,.cl-btn-wa{background:var(--ok) !important;color:#fff !important;
+  border-color:transparent !important;font-weight:var(--fw-bold);height:var(--h-cta);padding:0 20px}
+.cl-btn-invite{height:34px !important;border-radius:var(--r-chip)}
+
+/* ----- Diálogo: a moldura navy de 3px vira o envelope claro do design system. */
+.cl-overlay{background:rgba(18,32,26,.55)}
+.cl-dlg{background:var(--surface-desk);border:1px solid var(--line-2);border-radius:var(--r-shell);
+  padding:var(--pad-shell);box-shadow:0 24px 60px -30px rgba(0,0,0,.6);
+  animation:ds-fade-up var(--dur-base) var(--ease);font-family:var(--font-sans);color:var(--text-1)}
+.cl-dlg-title{background:var(--surface-card);color:var(--text-1);border:var(--border-hairline);
+  border-radius:var(--r-card);font-weight:var(--fw-bold);font-size:var(--fs-heading);
+  letter-spacing:var(--ls-tight);padding:14px 18px;justify-content:flex-start;margin-bottom:var(--gap-grid)}
+.cl-dlg-body{background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);
+  padding:var(--pad-card);color:var(--text-1)}
+.cl-dlg-std .cl-dlg-body{padding:0}
+.cl-dlg-content{padding:var(--pad-card)}
+.cl-dlg-foot{background:transparent;border-top:1px solid var(--line-3);padding:12px var(--pad-card)}
+.cl-dlg-foot .cl-btn{height:38px;min-height:38px;flex:0 0 148px;border-radius:var(--r-control)}
+.cl-dlg-x{background:transparent;border:none;color:var(--text-3);font-size:var(--fs-body-sm);
+  width:24px;height:24px;border-radius:var(--r-tag)}
+.cl-dlg-x:hover{background:var(--surface-sunken);color:var(--text-1)}
+.cl-dlg-badge{background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-pill);
+  box-shadow:none;padding:5px 12px 5px 5px}
+.cl-dlg-badge-t{font-weight:var(--fw-bold);color:var(--text-1)}
+/* os corpos coloridos do jogo antigo (verde-feltro, amarelo, cinza) viram
+   superfícies neutras — cor de fundo por "humor" não existe mais */
+.cl-body-green,.cl-body-yellow,.cl-body-gray,.cl-body-estadio{background:var(--surface-card) !important;color:var(--text-1) !important}
+
+/* ----- Menu suspenso (enquanto a barra horizontal ainda existir em telas
+   não convertidas): mesma pastilha branca com hairline. */
+.cl-menu{background:var(--surface-card);border-bottom:1px solid var(--line-1)}
+.cl-menu-i{color:var(--text-2);font-weight:var(--fw-semibold);border-radius:var(--r-chip);padding:7px 12px}
+.cl-menu-i:hover,.cl-menu-i.open{background:var(--club-primary);color:var(--club-on-primary)}
+.cl-menu-dd{background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-inner);
+  box-shadow:0 18px 40px -28px rgba(20,33,26,.45);overflow:hidden;padding:4px}
+.cl-menu-dd-i{color:var(--text-2);font-weight:var(--fw-medium);border-radius:var(--r-chip);padding:8px 12px}
+.cl-menu-dd-i:hover{background:var(--club-primary);color:var(--club-on-primary)}
+.cl-menu-sep{border-top:1px solid var(--line-3)}
+
+/* ----- Badge numérico de notificação ----- */
+.cl-count-badge{background:var(--danger);color:#fff;font-family:var(--font-mono);
+  font-size:var(--fs-label);font-weight:var(--fw-bold);border-radius:var(--r-pill);box-shadow:none}
+
+/* ----- Barra de título do topo: some a faixa cinza do Windows ----- */
+.cl-topbar{background:var(--surface-card);border-bottom:1px solid var(--line-1);color:var(--text-2);
+  font-weight:var(--fw-semibold);font-size:var(--fs-caption)}
+.cl-topbar-auth-out{background:transparent;border:var(--border-control);border-radius:var(--r-tag);
+  color:var(--text-3);font-family:var(--font-sans);padding:3px 9px}
+.cl-desk{background:var(--surface-desk)}
+
+/* ----- Acordeão ----- */
+.cl-acc-arrow{color:var(--text-muted)}
+
+/* =====================================================================
+   HUB — PEÇAS DE CONTEÚDO
+   ===================================================================== */
+.rf-card-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  padding:0;margin:0}
+.rf-card-flat>.rf-card-hd{padding:var(--pad-card) var(--pad-card) var(--sp-5)}
+.rf-page{gap:var(--gap-grid)}
+.rf-empty{padding:24px 16px;text-align:center;color:var(--text-4);font-size:var(--fs-body-sm);line-height:1.5}
+.rf-acts{display:flex;gap:var(--sp-4);flex-wrap:wrap}
+.rf-acts>.cl-btn{flex:1 1 auto;min-width:160px}
+.rf-duo{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap-grid)}
+.rf-big{font-family:var(--font-mono);font-size:var(--fs-display);font-weight:var(--fw-semibold);
+  color:var(--text-1);line-height:1}
+.rf-bar{height:var(--bar-h);border-radius:var(--r-pill);background:var(--surface-sunken);
+  border:1px solid var(--line-3);overflow:hidden}
+.rf-bar-fill{height:100%;border-radius:var(--r-pill)}
+.rf-crest-fb{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;
+  font-family:var(--font-mono);font-size:var(--fs-micro);font-weight:var(--fw-bold);line-height:1}
+
+/* ----- Elenco: a lista rola dentro do card, o cabeçalho de colunas fica ----- */
+.rf-roster{max-height:520px;overflow-y:auto;overflow-x:hidden;
+  border-top:1px solid var(--line-3);padding:0 var(--sp-4) var(--sp-4)}
+
+/* ----- Tabelas do design system: sem linhas de grade, número em mono à direita ----- */
+.rf-table{display:flex;flex-direction:column;gap:1px}
+.rf-tr{display:grid;grid-template-columns:22px 1fr 26px 26px 26px 26px 52px 32px;
+  column-gap:6px;align-items:center;padding:6px 8px;border-radius:var(--r-row);
+  font-size:var(--fs-body-sm);color:var(--text-2);transition:background var(--dur-fast) var(--ease)}
+.rf-tr:hover{background:var(--surface-sunken)}
+.rf-th{font-size:var(--fs-label);font-weight:var(--fw-bold);color:var(--text-muted);
+  letter-spacing:var(--ls-label);text-transform:uppercase;padding-bottom:4px}
+.rf-th:hover{background:transparent}
+.rf-tr>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-td-n{font-weight:var(--fw-medium)}
+.rf-tr.me{background:var(--surface-row-active)}
+.rf-tr.me .rf-td-n{font-weight:var(--fw-bold);color:var(--text-1)}
+
+/* ----- Formações: grade de 4 colunas, oito pastilhas em duas linhas ----- */
+.rf-formgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap-tight)}
+.rf-formgrid>.rf-chip{width:100%}
+
+/* ----- O CAMPO: 470×585 FIXOS. Não encolhe em largura de janela nenhuma,
+   nem com a sidebar expandida — é por isso que a coluna do shell é
+   `max-content` em vez de `1fr`. ----- */
+.rf-pitch-card{flex:0 0 auto}
+.rf-pitch-card .cl-pitch-block{flex:0 0 auto}
+.rf-pitch-card .cl-pitch{width:470px;height:585px;flex:0 0 auto;box-sizing:border-box}
+.rf-pitch-card .cl-pitch-wrap{flex:0 0 auto}
+
+/* ----- Conteúdo capturado das telas antigas (ver rfCaptura) -----
+   Fica dentro de .rf-legacy pra receber a pele nova sem tocar no HTML de origem:
+   o modal desenhava sobre fundo escuro, a página é branca. */
+.rf-legacy{color:var(--text-1);font-size:var(--fs-body-sm)}
+.rf-legacy fieldset{border:var(--border-hairline);border-radius:var(--r-inner);
+  padding:var(--pad-card-sm);margin:0 0 var(--gap-grid)}
+.rf-legacy legend{font-size:var(--fs-label);font-weight:var(--fw-bold);color:var(--text-muted);
+  letter-spacing:var(--ls-label);text-transform:uppercase;padding:0 6px}
+.rf-legacy table{width:100%;border-collapse:collapse}
+.rf-legacy th{font-size:var(--fs-label);font-weight:var(--fw-bold);color:var(--text-muted);
+  letter-spacing:var(--ls-label);text-transform:uppercase;text-align:left;padding:6px 8px;white-space:nowrap}
+.rf-legacy td{padding:6px 8px;border-bottom:1px solid var(--line-3);white-space:nowrap}
+.rf-legacy tr:hover td{background:var(--surface-sunken)}
+
+/* =====================================================================
+   O CAMPO NO LAYOUT NOVO — 470×585 FIXOS
+   A pele antiga media o campo pela ALTURA da janela (aspect-ratio + um
+   clamp de 100vh): ele encolhia junto com a tela. O design novo inverte
+   isso — o gramado é a única peça de tamanho FIXO da página, e é por causa
+   dele que a coluna do shell é `max-content`. Ele não encolhe com a janela,
+   não encolhe quando a sidebar expande, e nunca vira lista.
+   Tudo abaixo é override das regras de main.css, só dentro do Hub.
+   ===================================================================== */
+.rf-pitch-card .cl-pitch-block{position:relative;margin:0;padding:0;max-width:none;
+  display:flex;align-items:flex-start;gap:12px}
+.rf-pitch-card .cl-pitch-wrap{position:relative;width:auto;max-width:none;flex:0 0 auto;
+  background:var(--ad-dark);border:none;border-radius:var(--r-inner);padding:6px;box-shadow:none}
+.rf-pitch-card .cl-pitch-mid{display:flex;align-items:stretch;gap:4px}
+.rf-pitch-card .cl-pitch{position:relative;flex:0 0 auto;width:470px;height:585px;
+  min-width:0;aspect-ratio:auto;box-sizing:border-box;border:none;border-radius:6px;overflow:hidden;
+  box-shadow:var(--shadow-pitch)}
+/* as faixas do gramado são um dos três gradientes permitidos (ver readme) */
+.rf-pitch-card .cl-pitch>svg:first-of-type{display:none}
+.rf-pitch-card .cl-pitch{background:repeating-linear-gradient(var(--pitch-1) 0,var(--pitch-1) 46px,
+  var(--pitch-2) 46px,var(--pitch-2) 92px)}
+/* placas de publicidade: o único lugar onde anúncio encosta no conteúdo */
+.rf-pitch-card .cl-pitch-ad{border:none;box-shadow:none;border-radius:3px;font-family:var(--font-sans)}
+.rf-pitch-card .cl-pitch-ad.laranja{background:var(--ad-orange)}
+.rf-pitch-card .cl-pitch-ad.azul{background:var(--club-primary)}
+.rf-pitch-card .cl-pitch-ad.verde{background:var(--ad-green)}
+
+/* ----- Banco/suplentes: coluna própria à direita do campo, não mais um
+   bloco absoluto grudado por cima. Uma coluna só (a de duas espremia
+   nome, força e energia num espaço em que nada cabia). ----- */
+.rf-pitch-card .cl-bench{position:static;width:var(--col-bench);flex:0 0 var(--col-bench);
+  height:585px;background:var(--surface-sunken);border:var(--border-hairline);
+  border-radius:var(--r-inner);padding:10px;box-sizing:border-box;gap:8px}
+.rf-pitch-card .cl-bench-list{grid-template-columns:1fr;gap:4px}
+.rf-pitch-card .cl-bench-hd{color:var(--text-muted);font-size:var(--fs-label);
+  font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase}
+.rf-pitch-card .cl-bench-hd:hover{color:var(--text-2)}
+.rf-pitch-card .cl-bench-hd-n{background:var(--surface-card);border:var(--border-hairline);
+  color:var(--text-3);border-radius:var(--r-pill);padding:1px 7px;font-family:var(--font-mono)}
+.rf-pitch-card .cl-bench.fechado{width:34px;flex:0 0 34px;padding:8px 4px}
+/* alvo de soltura do arraste: o banco inteiro acende na cor de ação */
+.rf-pitch-card .cl-bench.alvo-zona{border-color:var(--club-cta-bg,var(--club-secondary));
+  background:var(--club-primary-soft)}
+
+/* ----- Arraste (campo ⇄ banco): as pistas visuais na linguagem nova -----
+   O gesto já existia e continua o mesmo (Pointer Events, ver clDragStart em
+   main.js — é o que faz a troca funcionar com o dedo, que HTML5 drag não faz).
+   O que muda aqui é só a cor de "pode soltar aqui": o amarelo cru da pele
+   antiga vira a cor de ação do clube, com o mesmo contraste garantido do CTA. */
+.rf-pitch-card .cl-pp.alvo .cl-pp-shirt,
+.rf-pitch-card .cl-bp.alvo .cl-pp-shirt{filter:drop-shadow(0 0 7px var(--club-cta-bg,var(--club-secondary)))}
+.rf-pitch-card .cl-bp.alvo{background:var(--club-primary-soft);border-radius:var(--r-row)}
+.rf-pitch-card .cl-pitch.alvo-zona{box-shadow:var(--shadow-pitch),inset 0 0 0 3px var(--club-cta-bg,var(--club-secondary))}
+.cl-dnd-ghost{filter:var(--shadow-piece)}
+
+/* =====================================================================
+   MOBILE (≤760px)
+   Três trocas, e só três: a sidebar vira barra inferior, os sub-itens
+   viram abas roláveis na horizontal, e o popup vira folha de baixo.
+   O que NÃO muda: o campo continua sendo campo (326×406, com todas as
+   marcações), e a tabela perde COLUNAS, nunca linhas.
+   ===================================================================== */
+.rf-bottomnav{display:none}
+.rf-sheet{display:none}
+
+@media (max-width:760px){
+  .rf-desk{padding:0 0 96px;align-items:stretch;gap:0}
+  .rf-envelope{width:auto;display:block;padding:10px 12px 0}
+  .rf-shell,.rf-shell.collapsed{display:block;grid-template-columns:none}
+  .rf-sidebar{display:none}                 /* virou a barra inferior */
+  :root{--rf-content-w:auto}
+  .rf-content{width:auto;gap:10px}
+  .rf-cols{grid-template-columns:minmax(0,1fr);gap:10px}
+  [data-ad-rail]{display:none}
+  .rf-ad-top{height:100px}
+
+  /* faixa do clube compacta: escudo, nome, treinador e o caixa. Os três
+     blocos de números viram uma tira só embaixo, pra nada quebrar em duas linhas. */
+  .rf-band{padding:12px 14px;gap:10px;flex-wrap:wrap;row-gap:8px;border-radius:var(--r-inner)}
+  .rf-band-crest{width:40px;height:40px}
+  .rf-band-crest img{width:32px;height:32px}
+  .rf-band-club{font-size:var(--fs-title)}
+  .rf-band-sp{display:none}
+  .rf-band-stat,.rf-band-stat.mid,.rf-band-stat.end{padding:0;border:none;align-items:flex-start;
+    flex-direction:row;align-items:center;gap:6px}
+  .rf-band-stat.mid{margin-left:auto}
+
+  /* abas da página: rolam na horizontal, sem quebrar linha e sem esconder item */
+  .rf-tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;padding-bottom:2px;margin:0 -2px}
+  .rf-tabs::-webkit-scrollbar{display:none}
+  .rf-tab{flex:0 0 auto}
+
+  /* O CAMPO CONTINUA CAMPO: 326×406 com todas as marcações. Nunca vira lista. */
+  .rf-pitch-card .cl-pitch-block{flex-direction:column;align-items:center;gap:10px}
+  .rf-pitch-card .cl-pitch{width:326px;height:406px}
+  .rf-pitch-card .cl-pitch-wrap{padding:4px}
+  .rf-pitch-card .cl-pitch-ads.left,.rf-pitch-card .cl-pitch-ads.right{width:12px;flex:0 0 12px}
+  /* O banco desce pra baixo do campo e ROLA POR DENTRO. O clip precisa ser
+     explícito nos dois níveis: sem ele os reservas (são 15+) transbordam a
+     altura do bloco e vão desenhar por cima dos cards seguintes da página. */
+  .rf-pitch-card .cl-bench{width:100%;flex:0 0 auto;height:230px;max-height:230px;overflow:hidden}
+  .rf-pitch-card .cl-bench-list{grid-template-columns:1fr 1fr;overflow-y:auto;min-height:0;flex:1 1 auto}
+  .rf-formgrid{grid-template-columns:repeat(3,1fr)}
+  .rf-duo{grid-template-columns:1fr}
+  .rf-roster{max-height:none}
+
+  /* elenco no telefone: POS, nome, força, energia — as outras colunas saem.
+     É a única lista do jogo que perde coluna, e perde porque no telefone
+     salário e valor não cabem sem espremer o nome a três letras. */
+  .rf-roster .cl-rrow{grid-template-columns:16px 24px 1fr 44px 46px;column-gap:6px}
+  .rf-roster .cl-rage,.rf-roster .cl-rnota,.rf-roster .cl-rv,.rf-roster .cl-rmv{display:none}
+
+  /* ----- BARRA INFERIOR: cinco destinos + ⚽ Jogar ----- */
+  .rf-bottomnav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;align-items:center;
+    justify-content:space-between;gap:4px;background:var(--surface-card);
+    border-top:1px solid var(--line-1);box-sizing:border-box;
+    padding:8px 8px calc(12px + env(safe-area-inset-bottom,0px))}
+  /* flex-basis 0 + min-width 0 pra os cinco dividirem o que sobra depois do
+     botão Jogar, que tem largura própria e não pode encolher */
+  .rf-bn-i{position:relative;flex:1 1 0;min-width:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:2px;height:46px;padding:0 2px;
+    background:none;border:none;border-radius:var(--r-chip);cursor:pointer;
+    font-family:var(--font-sans);color:var(--text-4)}
+  .rf-bn-i.on{color:var(--club-primary);background:var(--club-primary-soft)}
+  .rf-bn-ico{font-size:17px;line-height:1}
+  .rf-bn-l{font-size:var(--fs-label);font-weight:var(--fw-semibold);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;max-width:100%;letter-spacing:-.01em}
+  /* em tela bem estreita o rótulo sai e fica só o ícone — antes de deixar
+     qualquer coisa quebrar em duas linhas ou vazar da tela */
+  @media (max-width:359px){ .rf-bn-l{display:none} }
+  .rf-bn-i .rf-nav-b{position:absolute;top:2px;right:calc(50% - 20px);padding:1px 5px}
+  /* O CTA tem largura própria e não encolhe; os cinco destinos dividem o resto
+     e encurtam o rótulo com reticências se precisar. A ação nunca é a peça
+     que some quando a tela aperta. */
+  .rf-bn-jogar{flex:0 0 auto;width:92px;height:46px;padding:0 10px;border:none;border-radius:var(--r-inner);
+    background:var(--club-cta-bg,var(--club-secondary));color:var(--club-cta-fg,var(--club-on-secondary));
+    font-family:var(--font-sans);font-size:var(--fs-body);font-weight:var(--fw-bold);
+    cursor:pointer;white-space:nowrap}
+  .rf-bn-jogar:disabled{opacity:.45;cursor:default;animation:none}
+
+  /* a faixa fixa de 320×50 sobe pra cima da barra, nunca por baixo dela */
+  .rf-ad-anchor{bottom:74px}
+
+  /* ----- POPUP VIRA FOLHA DE BAIXO ----- */
+  .cl-overlay{align-items:flex-end;justify-content:stretch;padding:0}
+  .cl-overlay-in{margin:0;width:100%;display:block}
+  .cl-dlg,.rf-dlg{width:100% !important;max-width:100%;border-radius:var(--r-shell) var(--r-shell) 0 0;
+    padding:8px 14px calc(16px + env(safe-area-inset-bottom,0px));
+    max-height:88vh;overflow-y:auto;animation:rf-sheet-up var(--dur-base) var(--ease)}
+  /* a alça: a pista de que dá pra arrastar pra baixo */
+  .cl-dlg::before,.rf-dlg::before{content:'';display:block;width:38px;height:4px;margin:6px auto 10px;
+    border-radius:var(--r-pill);background:var(--line-2)}
+  /* ações empilhadas, largura cheia, na ordem em que se lê */
+  .cl-dlg-foot,.rf-dlg-foot,.rf-acts{flex-direction:column;align-items:stretch}
+  .cl-dlg-foot .cl-btn,.rf-acts>.cl-btn{flex:1 1 auto;width:100%}
+}
+@keyframes rf-sheet-up{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+
+/* folha de baixo explícita (rfSheet) — existe em qualquer largura, mas só é
+   usada pelo telefone; no desktop o mesmo conteúdo cabe num Dialog */
+.rf-sheet{display:flex;flex-direction:column;gap:var(--sp-5);background:var(--surface-card);
+  border-radius:var(--r-shell) var(--r-shell) 0 0;padding:8px 16px calc(18px + env(safe-area-inset-bottom,0px));
+  width:100%;box-sizing:border-box;max-height:80vh;overflow-y:auto;
+  animation:rf-sheet-up var(--dur-base) var(--ease);font-family:var(--font-sans)}
+.rf-sheet-alca{width:38px;height:4px;border-radius:var(--r-pill);background:var(--line-2);margin:0 auto 4px}
+.rf-sheet-hd{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rf-sheet-list{display:flex;flex-direction:column;gap:2px}
+.rf-sheet-i{display:flex;align-items:center;gap:11px;height:48px;padding:0 12px;background:none;
+  border:none;border-radius:var(--r-control);font-family:inherit;font-size:var(--fs-body);
+  color:var(--text-2);cursor:pointer;text-align:left;width:100%}
+.rf-sheet-i:hover{background:var(--surface-sunken)}
+.rf-sheet-i.on{background:var(--club-primary);color:var(--club-on-primary);font-weight:var(--fw-bold)}
+.rf-sheet-foot{display:flex;flex-direction:column;gap:var(--sp-4)}
+
+/* ----- Banco no fundo claro -----
+   O banco nasceu dentro de uma janela preta: nome branco, meta em verde-claro,
+   hover em branco translúcido. No card claro do design novo tudo isso some.
+   Aqui as cores viram as da escala de texto — o nome ganha peso em vez de
+   contraste por cor, que é a regra do sistema. */
+.rf-pitch-card .cl-bp .cl-pp-name{color:var(--text-1);font-weight:var(--fw-semibold);text-shadow:none}
+.rf-pitch-card .cl-bp .cl-pp-meta,
+.rf-pitch-card .cl-bp .cl-pp-forca{color:var(--text-4);text-shadow:none}
+.rf-pitch-card .cl-bp .cl-pp-forca b{color:var(--text-1);font-family:var(--font-mono)}
+.rf-pitch-card .cl-bp:hover{background:var(--surface-card);border-radius:var(--r-row)}
+.rf-pitch-card .cl-bp.sel{background:var(--surface-row-active);border-radius:var(--r-row)}
+
+/* =====================================================================
+   CHAT DA RESENHA
+   O painel flutua POR CIMA do conteúdo e não empurra nada — foi a regra
+   que fez o chat antigo ser desligado, e é a que o layout novo respeita.
+   ===================================================================== */
+#rf-chat-host{position:fixed;right:20px;bottom:20px;z-index:55;display:flex;
+  align-items:flex-end;gap:10px;font-family:var(--font-sans)}
+
+/* 1 · FECHADO — a bolha, e nada mais */
+.rf-chat-bolha{position:relative;width:56px;height:56px;flex:0 0 auto;border:none;
+  border-radius:var(--r-pill);background:var(--club-primary);color:#fff;font-size:22px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 12px 28px -14px rgba(18,32,26,.6)}
+.rf-chat-bolha:hover{background:var(--club-primary-deep)}
+.rf-chat-badge{position:absolute;top:-2px;right:-2px;min-width:22px;height:22px;padding:0 6px;
+  border-radius:var(--r-pill);background:var(--danger);color:#fff;font-family:var(--font-mono);
+  font-size:var(--fs-micro);font-weight:var(--fw-bold);display:flex;align-items:center;
+  justify-content:center;box-shadow:0 0 0 2px var(--surface-card)}
+/* o contador é o ÚNICO aviso: sem som, sem notificação do navegador, sem pop-up */
+.rf-chat-badge.pulsa{animation:rf-chat-pulse 1.8s var(--ease) infinite}
+@keyframes rf-chat-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.14)}}
+
+/* 2 · ESPIADA — uma linha, 4 segundos, some sozinha */
+.rf-chat-peek{max-width:300px;display:flex;align-items:baseline;gap:7px;background:#12201a;
+  color:#fff;border-radius:var(--r-control);padding:9px 14px;cursor:pointer;
+  box-shadow:0 10px 30px -18px rgba(0,0,0,.7);animation:ds-fade-up var(--dur-base) var(--ease)}
+.rf-chat-peek-q{font-size:var(--fs-caption);font-weight:var(--fw-bold);color:var(--club-secondary);white-space:nowrap}
+.rf-chat-peek-t{font-size:var(--fs-body-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* 3 · ABERTO — 264px ancorados no canto */
+.rf-chat-painel{width:264px;display:flex;flex-direction:column;gap:var(--sp-5);
+  background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);
+  padding:var(--pad-card-sm);box-shadow:0 22px 50px -26px rgba(18,32,26,.55);
+  animation:ds-fade-up var(--dur-base) var(--ease)}
+.rf-chat-hd{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rf-chat-msgs{max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:var(--sp-3);
+  font-size:var(--fs-body-sm);line-height:1.35}
+.rf-chat-msgs-sheet{max-height:none;height:52vh}
+.rf-chat-msgs .cl-chat-msg{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:baseline;
+  padding:5px 7px;border-radius:var(--r-row)}
+.rf-chat-msgs .cl-chat-who{font-family:var(--font-mono);font-size:var(--fs-micro);
+  font-weight:var(--fw-semibold);white-space:nowrap;text-align:right}
+.rf-chat-msgs .cl-chat-txt{color:var(--text-1);min-width:0;overflow-wrap:anywhere}
+.rf-chat-empty{color:var(--text-4);font-size:var(--fs-caption);text-align:center;padding:18px 6px}
+.rf-chat-in{display:flex;gap:6px;align-items:center}
+.rf-chat-input{flex:1;min-width:0;height:38px;border:var(--border-control);border-radius:var(--r-control);
+  padding:0 12px;font-family:var(--font-sans);font-size:var(--fs-body-sm);color:var(--text-1);
+  background:var(--surface-card)}
+.rf-chat-input:focus{outline:none;border-color:var(--club-primary)}
+.rf-chat-send{flex:0 0 auto;width:38px;height:38px;border:none;border-radius:var(--r-control);
+  background:var(--club-cta-bg,var(--club-secondary));color:var(--club-cta-fg,var(--club-on-secondary));
+  font-size:15px;cursor:pointer}
+
+/* SILÊNCIO TOTAL na partida ao vivo e no Camarote: a bolha continua lá (dá
+   pra abrir de propósito), mas não pulsa e não espia. */
+#rf-chat-host.mudo .rf-chat-badge{animation:none}
+#rf-chat-host.mudo .rf-chat-peek{display:none}
+
+@media (max-width:760px){
+  /* no telefone não existe bolha — o chat é o terceiro item da barra inferior */
+  #rf-chat-host{display:none}
+}
+
+/* =====================================================================
+   PARTIDA AO VIVO E MODO CAMAROTE
+   As duas telas já tinham a estrutura certa (placar, barra de pressão,
+   narração, estatísticas) — o que muda aqui é a pele. Quatro detalhes que
+   o design system trata como regra, não como enfeite:
+     · placar em painel escuro, dígitos amarelos, malha de pontos
+     · linha de jogo com ALTURA FIXA de 56px — fato extra vira +N
+     · escudo sem moldura, fundo transparente, 30px
+     · barra de pressão com as DUAS cores de clube e divisor a 50%
+   ===================================================================== */
+.cl-live{background:var(--surface-desk);color:var(--text-1);font-family:var(--font-sans)}
+.cl-live-top,.cl-live-cup-top{background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
+  color:#fff;font-weight:var(--fw-bold)}
+.cl-live-cup-stage{color:var(--club-secondary-on-primary,var(--club-secondary))}
+.cl-live-div{border:var(--border-hairline);border-radius:var(--r-card);background:var(--surface-card);
+  padding:var(--pad-card-sm) var(--pad-card)}
+.cl-live-div>legend{color:var(--text-1);font-weight:var(--fw-bold);font-size:var(--fs-subhead)}
+.cl-live-clock{background:conic-gradient(var(--club-primary) calc(var(--pct,0)*1%),var(--surface-card) 0);
+  border:2px solid var(--surface-card);box-shadow:0 10px 24px -14px rgba(18,32,26,.5)}
+.cl-live-clock-lbl{color:var(--club-primary);background:var(--surface-card)}
+
+/* ----- a linha de jogo: 56px e ponto final ----- */
+.cl-lrow{height:56px;padding:0 8px;border-radius:var(--r-row);align-items:center;
+  transition:background var(--dur-fast) var(--ease)}
+.cl-lrow:hover{background:var(--surface-sunken)}
+.cl-latt{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-faint);text-align:right}
+.cl-lteam{border-radius:var(--r-tag);padding:5px 10px;font-weight:var(--fw-semibold);
+  font-size:var(--fs-body-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-lsc{font-family:var(--font-mono);font-weight:var(--fw-bold);text-align:center}
+/* o fato mais recente por extenso, o resto como contador — nunca empurra a linha */
+.cl-lgoal{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden}
+.cl-lgoal-t{flex:1;min-width:0;font-size:var(--fs-caption);color:var(--text-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl-lgoal-n{flex:0 0 auto;font-family:var(--font-mono);font-size:var(--fs-label);
+  font-weight:var(--fw-bold);color:var(--text-3);background:var(--surface-sunken);
+  border:var(--border-hairline);border-radius:var(--r-pill);padding:1px 7px}
+
+/* ----- Camarote ----- */
+.rf-cam-ov{background:rgba(18,32,26,.62)}
+.rf-cam-win{background:var(--surface-desk);border:1px solid var(--line-2);border-radius:var(--r-shell);
+  padding:var(--pad-shell);box-shadow:0 24px 60px -30px rgba(0,0,0,.6);display:flex;
+  flex-direction:column;gap:var(--gap-grid)}
+.rf-cam-title{background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
+  border-radius:var(--r-card);padding:14px 18px;font-weight:var(--fw-bold);font-size:var(--fs-heading);
+  letter-spacing:var(--ls-tight)}
+.rf-cam-onair{font-family:var(--font-mono);color:#ff8a8a;font-size:var(--fs-micro)}
+.rf-cam-x{background:rgba(255,255,255,.14);color:#fff;border:none;border-radius:var(--r-chip);
+  padding:6px 12px;font-family:var(--font-sans);font-weight:var(--fw-semibold);font-size:var(--fs-caption)}
+.rf-cam-x:hover{background:rgba(255,255,255,.24)}
+
+/* placar: painel escuro com malha de pontos e dígitos amarelos — é um
+   marcador de estádio, não uma caixa de texto */
+.rf-cam-board{background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
+  border-radius:var(--r-card);padding:16px 20px;gap:16px;border:none}
+.rf-cam-club{border-radius:var(--r-tag);font-size:var(--fs-title);font-weight:var(--fw-bold);
+  background:transparent !important;padding:0}
+.rf-cam-where{color:var(--text-on-dark-faint);font-size:var(--fs-label);font-weight:var(--fw-bold);
+  letter-spacing:var(--ls-label);text-transform:uppercase}
+.rf-cam-clock{background:#0b1a2e;border-radius:var(--r-inner);padding:10px 18px;
+  background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px);
+  background-size:4px 4px}
+.rf-cam-g,.rf-cam-min{font-family:var(--font-mono);color:var(--club-secondary);
+  font-weight:var(--fw-bold);text-shadow:0 0 12px rgba(242,185,12,.35)}
+.rf-cam-period{color:var(--text-on-dark-soft);font-size:var(--fs-label);letter-spacing:var(--ls-label)}
+/* escudo: sem moldura, fundo transparente, 30px */
+.rf-cam-side img,.rf-cam-side .cl-crest,.rf-cam-side .cl-crest-img{width:30px;height:30px;
+  object-fit:contain;background:transparent;border:none;box-shadow:none;border-radius:0}
+
+/* barra de pressão: as DUAS cores do clube, divisor a 50% */
+.rf-cam-pres{background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);
+  border-top:1px solid var(--line-1);padding:12px 16px;gap:12px}
+.rf-cam-pres-lbl{color:var(--text-muted);font-size:var(--fs-label);letter-spacing:var(--ls-label);
+  font-weight:var(--fw-bold)}
+.rf-cam-pres-bar{height:var(--bar-h);border:none;border-radius:var(--r-pill);
+  background:var(--surface-sunken);overflow:hidden}
+.rf-cam-pres-mid{background:rgba(18,32,26,.35);width:1px}
+.rf-cam-pres-tag{font-family:var(--font-mono);font-size:var(--fs-micro);font-weight:var(--fw-bold);
+  color:var(--text-2)}
+
+/* abas e ações */
+.rf-cam-tabs{background:transparent;padding:0;gap:6px}
+.rf-cam-tab{background:var(--surface-card);border:1px solid var(--line-2);color:var(--text-2);
+  border-radius:var(--r-pill);padding:7px 14px;font-family:var(--font-sans);
+  font-weight:var(--fw-semibold);font-size:var(--fs-caption)}
+.rf-cam-tab.on{background:var(--club-primary);color:var(--club-on-primary);border-color:var(--club-primary)}
+.rf-cam-play{background:var(--club-cta-bg,var(--club-secondary));color:var(--club-cta-fg,var(--club-on-secondary));
+  border:none;border-radius:var(--r-control);height:var(--h-control);padding:0 18px;
+  font-family:var(--font-sans);font-weight:var(--fw-bold);font-size:var(--fs-body-sm)}
+.rf-cam-sync{color:var(--text-4);font-size:var(--fs-caption)}
+.rf-cam-body{background:transparent;padding:0;gap:var(--gap-grid)}
+
+/* narração */
+.rf-cam-feed{background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);
+  padding:var(--pad-card)}
+.rf-cam-feed-hd b{color:var(--text-muted);font-size:var(--fs-label);letter-spacing:var(--ls-label);
+  text-transform:uppercase;font-weight:var(--fw-bold)}
+.rf-cam-feed-hd span{color:var(--text-faint);font-family:var(--font-mono);font-size:var(--fs-micro);font-weight:var(--fw-regular)}
+.rf-cam-line{border-bottom:none;border-radius:var(--r-row);padding:8px;gap:8px;align-items:start}
+.rf-cam-lmin{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-faint);font-weight:var(--fw-medium)}
+.rf-cam-ltx{font-size:var(--fs-body-sm);color:var(--text-2);line-height:1.4}
+.rf-cam-line.k-gol{background:var(--club-primary-soft)}
+.rf-cam-line.k-gol .rf-cam-ltx{color:var(--club-primary);font-weight:var(--fw-bold)}
+.rf-cam-line.k-cartao .rf-cam-ltx{color:#7a5c00}
+.rf-cam-line.k-lesao .rf-cam-ltx{color:var(--danger)}
+.rf-cam-line.k-sub .rf-cam-ltx{color:var(--text-3)}
+
+/* o interruptor do Camarote na barra da partida */
+.rf-cam-sw{background:rgba(255,255,255,.12);border:none;border-radius:var(--r-pill);
+  padding:5px 12px;color:#fff;font-size:var(--fs-caption);font-weight:var(--fw-semibold)}
+.rf-cam-sw-track{border:none;border-radius:var(--r-pill);background:rgba(255,255,255,.28)}
+.rf-cam-sw.on .rf-cam-sw-track{background:var(--club-secondary)}
+.rf-cam-sw-knob{background:#fff;border:none;border-radius:var(--r-pill)}
+.rf-cam-sw-state{font-family:var(--font-mono);color:#fff}
+.rf-cam-sw-warn{color:#ffb4b4}
+
+/* ----- Cerimônia do sorteio: barra de progresso + contador ----- */
+.rf-draw-prog{display:inline-flex;align-items:center;gap:10px;min-width:180px}
+.rf-draw-bar{flex:1;min-width:90px;height:var(--bar-h-sm);border-radius:var(--r-pill);
+  background:var(--surface-sunken);border:1px solid var(--line-3);overflow:hidden;display:block}
+.rf-draw-bar>i{display:block;height:100%;background:var(--club-primary);border-radius:var(--r-pill);
+  transition:width var(--dur-base) var(--ease)}
+.rf-draw-n{font-family:var(--font-mono);font-size:var(--fs-micro);font-weight:var(--fw-semibold);
+  color:var(--text-3);white-space:nowrap}
+
+/* =====================================================================
+   ONBOARDING — 7 passos
+   O fluxo inteiro passa por wizShell(), então reescrever o shell reescreve
+   as sete telas de uma vez. No desktop o passo é uma TRILHA numerada à
+   vista; no telefone, barra de progresso no cabeçalho e a ação principal
+   fixa no rodapé — que é o que o design system pede.
+   ===================================================================== */
+/* fora a janela do Windows: barra de título e navbar cinza dão lugar ao
+   cabeçalho claro com a marca à esquerda */
+.cl-wiz{background:var(--surface-desk);font-family:var(--font-sans);color:var(--text-1)}
+.cl-wiz .cl-home-titlebar{display:none}
+.cl-wiz .cl-home-navbar{background:transparent;border-bottom:none;height:auto;padding:16px 22px}
+.cl-wiz .cl-home-nav{color:var(--text-3);font-weight:var(--fw-medium);border:none;border-radius:var(--r-chip)}
+.cl-wiz .cl-home-nav:hover,.cl-wiz .cl-home-nav.on{background:var(--surface-sunken);color:var(--text-1)}
+.cl-wiz .cl-home-entrar{background:var(--surface-card);color:var(--club-primary);border:var(--border-control);
+  border-radius:var(--r-control);font-weight:var(--fw-semibold);padding:9px 16px}
+.cl-wiz .cl-home-online{background:var(--surface-card);border:var(--border-hairline);color:var(--text-2);
+  font-weight:var(--fw-semibold);font-size:var(--fs-caption)}
+.cl-wiz .cl-home-online-dot{background:var(--ok)}
+.cl-wiz-body{max-width:820px;margin:0 auto;padding:0 20px 40px;width:100%;box-sizing:border-box}
+.cl-wiz-content{background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);
+  padding:26px 24px;display:flex;flex-direction:column;gap:var(--gap-grid)}
+.cl-wiz-stephead{background:transparent;border:none;padding:0 0 12px;display:flex;align-items:center;
+  justify-content:space-between;gap:12px}
+.cl-wiz-steptitle{font-size:var(--fs-heading);font-weight:var(--fw-bold);letter-spacing:var(--ls-tight);color:var(--text-1)}
+.cl-wiz-back{background:transparent;border:var(--border-control);border-radius:var(--r-control);
+  color:var(--text-2);font-family:var(--font-sans);font-size:var(--fs-caption);
+  font-weight:var(--fw-semibold);padding:8px 14px;cursor:pointer}
+.cl-wiz-back:hover{background:var(--surface-sunken)}
+.cl-wiz-steppill{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-4);
+  background:var(--surface-sunken);border:var(--border-hairline);border-radius:var(--r-pill);padding:4px 10px}
+.cl-wiz-h{font-size:var(--fs-display);font-weight:var(--fw-bold);letter-spacing:var(--ls-tight);
+  color:var(--text-1);line-height:var(--lh-tight);text-align:center}
+.cl-wiz-sub{font-size:var(--fs-body);color:var(--text-3);text-align:center;line-height:var(--lh-normal)}
+
+/* ----- a trilha ----- */
+.rf-trilha{display:flex;align-items:center;gap:8px;background:var(--surface-card);
+  border:var(--border-hairline);border-radius:var(--r-card);padding:12px 16px;margin-bottom:var(--gap-grid);
+  overflow-x:auto;scrollbar-width:none}
+.rf-trilha::-webkit-scrollbar{display:none}
+.rf-trilha-mob{display:none}
+.rf-trilha-i{display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap}
+.rf-trilha-n{width:24px;height:24px;flex:0 0 auto;border-radius:var(--r-pill);display:flex;
+  align-items:center;justify-content:center;font-family:var(--font-mono);font-size:var(--fs-micro);
+  font-weight:var(--fw-bold);background:var(--surface-sunken);color:var(--text-faint);
+  border:1px solid var(--line-2)}
+.rf-trilha-l{font-size:var(--fs-body-sm);color:var(--text-faint);font-weight:var(--fw-medium)}
+.rf-trilha-i.feito .rf-trilha-n{background:var(--ok);color:#fff;border-color:var(--ok)}
+.rf-trilha-i.feito .rf-trilha-l{color:var(--text-3)}
+.rf-trilha-i.atual .rf-trilha-n{background:var(--club-primary);color:var(--club-on-primary);
+  border-color:var(--club-primary)}
+.rf-trilha-i.atual .rf-trilha-l{color:var(--text-1);font-weight:var(--fw-bold)}
+.rf-trilha-sep{flex:1 1 14px;min-width:14px;height:1px;background:var(--line-2)}
+
+/* ----- cartões de escolha (Modo Solo / Modo Resenha, país, clube) -----
+   O texto é alinhado à ESQUERDA mesmo quando o cabeçalho da tela é centrado:
+   são três a quatro linhas de descrição por cartão, e prosa centrada nesse
+   tamanho fica difícil de varrer — cada linha começa num lugar diferente. */
+.cl-wiz-cards{display:flex;flex-direction:column;gap:var(--gap-grid);text-align:left;width:100%}
+.cl-mc-card{background:var(--surface-card);border:1px solid var(--line-2);border-radius:var(--r-card);
+  padding:20px;cursor:pointer;display:flex;flex-direction:column;gap:8px;text-align:left;align-items:flex-start;
+  transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease)}
+.cl-mc-card:hover{background:var(--surface-sunken);border-color:var(--club-primary-line)}
+.cl-mc-ic{font-size:26px;line-height:1}
+.cl-mc-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1)}
+.cl-mc-d{font-size:var(--fs-body-sm);color:var(--text-3);line-height:var(--lh-normal)}
+/* o cartão recomendado ganha a cor do clube; o indisponível fica tracejado e apagado */
+.cl-mc-card.rec{background:var(--club-primary-soft);border-color:var(--club-primary)}
+.cl-mc-card.embreve{border-style:dashed;cursor:default;opacity:.85}
+.cl-mc-card.embreve:hover{background:var(--surface-card);border-color:var(--line-2)}
+.rf-tag-rec{align-self:flex-end;order:-1;margin-bottom:-8px;font-family:var(--font-mono);font-size:var(--fs-label);
+  font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase;
+  background:var(--club-secondary);color:var(--club-on-secondary);border-radius:var(--r-pill);padding:3px 10px}
+.rf-tag-soon{align-self:flex-end;order:-1;margin-bottom:-8px;font-family:var(--font-mono);font-size:var(--fs-label);
+  font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase;
+  background:var(--surface-sunken);color:var(--text-4);border:var(--border-hairline);
+  border-radius:var(--r-pill);padding:3px 10px}
+.cl-wiz-hint{font-size:var(--fs-caption);color:var(--text-4)}
+.cl-wiz-actionbar{background:transparent;border:none;padding:16px 0 0;display:flex;
+  gap:var(--sp-4);justify-content:flex-end}
+
+@media (max-width:760px){
+  /* a trilha vira barra de progresso no cabeçalho */
+  .rf-trilha{padding:12px 14px}
+  .rf-trilha-i,.rf-trilha-sep{display:none}
+  .rf-trilha-mob{display:flex;flex-direction:column;gap:8px;width:100%;
+    font-size:var(--fs-caption);color:var(--text-3)}
+  .rf-trilha-mob b{color:var(--text-1);font-family:var(--font-mono)}
+  .rf-trilha-bar{display:block;height:var(--bar-h-sm);border-radius:var(--r-pill);
+    background:var(--surface-sunken);border:1px solid var(--line-3);overflow:hidden}
+  .rf-trilha-bar>i{display:block;height:100%;width:var(--rf-trilha-pct,0%);
+    background:var(--club-primary);border-radius:var(--r-pill);transition:width var(--dur-base) var(--ease)}
+  /* a ação principal fica FIXA no rodapé — a decisão nunca fica fora da tela */
+  .cl-wiz-actionbar{position:sticky;bottom:0;background:var(--surface-desk);
+    padding:12px 0 calc(12px + env(safe-area-inset-bottom,0px));
+    border-top:1px solid var(--line-1);margin-top:12px;flex-direction:column;align-items:stretch}
+  .cl-wiz-actionbar .cl-btn{width:100%}
+  .cl-wiz-h{font-size:var(--fs-title)}
+  .cl-wiz-content{padding:18px 16px}
+}
+.rf-mc-lock{width:100%;box-sizing:border-box;background:var(--surface-sunken);border:var(--border-hairline);border-radius:var(--r-control);
+  padding:10px 14px;font-size:var(--fs-body-sm);color:var(--text-3)}
+
+/* =====================================================================
+   LANDING — a página pública
+   A landing nasceu sobre o verde-feltro cheio: texto branco, cards cinza-
+   chrome, rodapé azul-marinho. Com a mesa clara do design novo, tudo que
+   era branco sobre verde vira branco sobre quase-branco — ilegível. Aqui
+   a página inteira passa pra superfície clara e o rodapé continua ESCURO,
+   que é o que o design pede (rodapé escuro com as páginas de SEO).
+   ===================================================================== */
+.cl-lp-page,.cl-home{background:var(--surface-desk);color:var(--text-1);font-family:var(--font-sans)}
+.cl-lp-hdr{background:var(--surface-card);border-bottom:1px solid var(--line-1);box-shadow:none}
+.cl-lp-logo span{color:var(--text-1);font-weight:var(--fw-bold)}
+.cl-lp-logo i{color:var(--club-primary)}
+.cl-lp-nav{color:var(--text-3);font-weight:var(--fw-medium);border-radius:var(--r-chip);font-family:var(--font-sans)}
+.cl-lp-nav:hover,.cl-lp-nav.on{background:var(--surface-sunken);color:var(--text-1)}
+.cl-lp-btn{border:var(--border-control);border-radius:var(--r-control);background:var(--surface-card);
+  color:var(--text-2);font-family:var(--font-sans);font-weight:var(--fw-semibold)}
+.cl-lp-btn:hover{background:var(--surface-sunken)}
+.cl-lp-btn-lg{border-radius:var(--r-inner)}
+/* o CTA dominante da página é o amarelo do sistema */
+.cl-lp-btn-cta,.cl-lp-btn.cl-lp-btn-lg{background:var(--club-cta-bg,var(--club-secondary));
+  color:var(--club-cta-fg,var(--club-on-secondary));border-color:transparent;font-weight:var(--fw-bold)}
+
+/* o título continua em serifa itálica — é a assinatura da marca — mas em
+   tinta escura, porque o fundo virou claro */
+.cl-lp-h1,.cl-home-hero-h{color:var(--text-1);text-shadow:none}
+.cl-lp-hero-nota,.cl-home-hero-sub{color:var(--text-3)}
+.cl-lp-hero-nota b{color:var(--club-primary)}
+.cl-home-hero .cl-home-mini{color:var(--club-primary)}
+.cl-lp-card{background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);
+  padding:var(--pad-card);color:var(--text-1)}
+.cl-lp-card-t{font-weight:var(--fw-bold);font-size:var(--fs-subhead);color:var(--text-1)}
+.cl-lp-card p{color:var(--text-3);font-size:var(--fs-body-sm)}
+.cl-home-cta{background:var(--club-cta-bg,var(--club-secondary));color:var(--club-cta-fg,var(--club-on-secondary));
+  border:none;border-radius:var(--r-inner);box-shadow:none;font-family:var(--font-sans);
+  font-weight:var(--fw-bold);padding:0 34px;height:var(--h-cta);display:inline-flex;align-items:center}
+.cl-home-cta:active{transform:none;box-shadow:none}
+
+/* RODAPÉ ESCURO — a única superfície escura da página, de propósito:
+   é onde moram as dez páginas de SEO, e o contraste separa o conteúdo
+   da navegação de fim de página. */
+.cl-lp-foot{background:var(--ad-dark);border-top:none;margin-top:40px}
+.cl-lp-foot-h{color:var(--club-secondary);font-family:var(--font-sans);
+  font-size:var(--fs-label);letter-spacing:var(--ls-label);font-weight:var(--fw-bold)}
+.cl-lp-foot-sobre{color:var(--text-on-dark-soft);font-size:var(--fs-body-sm)}
+.cl-lp-foot-marca i{color:var(--club-secondary)}
+.cl-home-footer{background:var(--ad-dark);color:var(--text-on-dark-soft)}
+.cl-home-foot{color:var(--text-on-dark-soft);font-size:var(--fs-caption)}
+.cl-home-foot:hover{color:#fff}
+.cl-home-ver{font-family:var(--font-mono);color:var(--text-on-dark-faint)}
+
+/* ----- As "janelas" da landing (ver janelaHTML) -----
+   Eram molduras de janela do Windows 98 — barra azul-marinho, três selos de
+   sistema, bisel. Como enfeite elas eram a marca da pele antiga; no design
+   novo viram card com hairline e uma barra de título discreta. Os três selos
+   ficam SÓ quando são botões de verdade (`acoes`), porque aí eles fazem
+   alguma coisa; como enfeite, saem. */
+.cl-lp-win{background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);
+  overflow:hidden;box-shadow:var(--shadow-shell)}
+.cl-lp-win-bar{background:var(--surface-sunken);border-bottom:1px solid var(--line-1);
+  color:var(--text-3);font-family:var(--font-sans);font-size:var(--fs-label);
+  font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase;
+  padding:9px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cl-lp-win-bar i{display:none}                       /* selo de enfeite: fora */
+.cl-lp-win-bar.viva .cl-lp-win-btns button{background:transparent;border:none;color:var(--text-4);
+  width:22px;height:22px;border-radius:var(--r-tag);cursor:pointer;font-family:var(--font-sans)}
+.cl-lp-win-bar.viva .cl-lp-win-btns button:hover{background:var(--surface-card);color:var(--text-1)}
+.cl-lp-win-body{background:var(--surface-card)}
+
+/* UM CTA DOMINANTE POR TELA. Os dois botões do hero estavam amarelos —
+   dois "clique aqui" com o mesmo peso não são hierarquia, são empate.
+   O amarelo fica na ação primária; a secundária vira branca com borda. */
+.cl-lp-hero-cta .cl-lp-btn:not(:first-child),
+.cl-home-hero-cta .cl-lp-btn:not(:first-child){background:var(--surface-card);
+  color:var(--text-2);border:var(--border-control);font-weight:var(--fw-semibold)}
+.cl-lp-hero-cta .cl-lp-btn:not(:first-child):hover,
+.cl-home-hero-cta .cl-lp-btn:not(:first-child):hover{background:var(--surface-sunken)}
+
+/* =====================================================================
+   MODAIS DE OFERTA — Convite para Jantar e Jantar e Proposta
+   São POPUP legítimo pela regra do design system: o convite de emprego
+   acontece sozinho no meio do save, o treinador não foi procurar. Os dois
+   seguem showJobInvite/showJobProposal; aqui muda só a pele — o vídeo, os
+   termos e a tabela continuam onde estavam.
+   ===================================================================== */
+.cl-jobinv{color:var(--text-1)}
+.cl-jobinv-h1{font-family:var(--font-serif);font-style:italic;font-weight:700;
+  font-size:var(--fs-title);color:var(--text-1);line-height:var(--lh-tight)}
+.cl-jobinv-video{border-radius:var(--r-inner);overflow:hidden;background:#0b1a2e}
+.cl-jobinv-vcap{font-family:var(--font-sans);font-size:var(--fs-caption);text-shadow:0 1px 3px rgba(0,0,0,.8)}
+/* a mini-tabela: sem linhas de grade, minha linha destacada pela cor do clube */
+.cl-jobinv-head{color:var(--text-muted);font-size:var(--fs-label);letter-spacing:var(--ls-label);
+  text-transform:uppercase;font-weight:var(--fw-bold)}
+.cl-jobinv-row{color:var(--text-2);border-left:3px solid transparent;border-radius:var(--r-row);
+  font-size:var(--fs-body-sm)}
+.cl-jobinv-row:nth-child(odd){background:var(--surface-row-alt)}
+.cl-jobinv-row.me{background:var(--club-primary-soft);color:var(--text-1);
+  font-weight:var(--fw-bold);border-left-color:var(--club-primary)}
+.cl-jobinv-row.me .cl-jobinv-n:first-of-type{color:var(--club-primary)}
+.cl-jobinv-pos,.cl-jobinv-n{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.cl-jobinv-note{color:var(--text-4);font-size:var(--fs-caption)}
+.cl-jobinv-recado{color:var(--text-2);font-size:var(--fs-body-sm);line-height:var(--lh-normal)}

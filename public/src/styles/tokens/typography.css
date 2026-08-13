@@ -1,0 +1,28 @@
+:root{
+  --font-sans:'Space Grotesk',system-ui,-apple-system,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;
+  --font-serif:Georgia,'Times New Roman',serif;
+
+  --fs-display:28px;
+  --fs-title:22px;
+  --fs-heading:19px;
+  --fs-subhead:15px;
+  --fs-body:14px;
+  --fs-body-sm:13px;
+  --fs-caption:12px;
+  --fs-micro:11px;
+  --fs-label:10px;
+  --fs-label-xs:9px;
+
+  --fw-regular:400;
+  --fw-medium:500;
+  --fw-semibold:600;
+  --fw-bold:700;
+
+  --ls-tight:-.02em;
+  --ls-label:.12em;
+  --ls-label-wide:.14em;
+
+  --lh-tight:1.1;
+  --lh-normal:1.4;
+}

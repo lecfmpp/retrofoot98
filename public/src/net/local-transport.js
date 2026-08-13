@@ -69,12 +69,14 @@ const NET = {
   waLink(phoneDigits){ const num='55'+String(phoneDigits||'').replace(/\D/g,''); const txt=encodeURIComponent('Bora jogar RetroFoot98 comigo! 🟢 Entra na minha sala "'+((this.room&&this.room.name)||'')+'": '+this.inviteLink()); return 'https://wa.me/'+num+'?text='+txt; },
 };
 
-/* ---- chat da liga (visível no lobby e como doca no hub) ----
-   FORA DO AR NA V1. O chat sai do lançamento: a doca ficava por cima do jogo em todas as telas
-   online e o toast de mensagem nova interrompia partida ao vivo. Aqui só a INTERFACE é desligada
-   — o transporte (sendChat/onChat), o histórico em room.chat e a coluna no banco continuam
-   intactos, então voltar é trocar esta constante pra true, sem migração e sem perder conversa. */
-const CHAT_ATIVO = false;
+/* ---- chat da liga (lobby + bolha flutuante no jogo) ----
+   FICOU FORA DO AR NA V1 por dois motivos concretos: a doca ficava por cima do jogo em todas as
+   telas online, e o toast de mensagem nova interrompia a partida ao vivo. O rebranding 2026
+   ataca exatamente esses dois — a interface virou bolha/espiada/painel flutuante que não empurra
+   nada, e existe silêncio total na partida ao vivo e no Camarote (ver rfChat* em ui/rf26.js).
+   Com a causa resolvida, o chat volta. O transporte nunca foi desligado: sendChat/onChat,
+   room.chat e a coluna no banco seguem os mesmos, então nenhuma conversa se perdeu no caminho. */
+const CHAT_ATIVO = true;
 function chatMsgsHTML(){ const room=NET.room; const msgs=(room&&room.chat)||[];
   if(!msgs.length) return '<div class="cl-chat-empty">Nenhuma mensagem ainda. Diga oi! 👋</div>';
   return msgs.slice(-60).map(m=>{ const c=m.clubId?clubOf(m.clubId):null; const col=c?c.color:'#666';
@@ -84,19 +86,35 @@ function clChatSend(inputId){ const el=document.querySelector('#'+inputId); if(!
   Promise.resolve(NET.sendChat(text, CL.clubId||null)).then(()=>{ renderChatBoxes(); }).catch(e=>{ toastC('⚠ Mensagem não enviada: '+(e.message||'erro desconhecido')); });
 }
 function clChatKey(e,inputId){ if(e.key==='Enter'){ clChatSend(inputId); } }
-function renderChatBoxes(){ const a=document.querySelector('#cl-chat-msgs-lobby'); if(a){ a.innerHTML=chatMsgsHTML(); a.scrollTop=a.scrollHeight; }
-  const b=document.querySelector('#cl-chat-msgs-dock'); if(b){ b.innerHTML=chatMsgsHTML(); b.scrollTop=b.scrollHeight; } }
+/* atualiza SÓ a lista de mensagens, onde quer que ela esteja na tela — sem
+   redesenhar o container, pra não perder o que o usuário está digitando. */
+function renderChatBoxes(){
+  ['#cl-chat-msgs-lobby','#cl-chat-msgs-dock','#rf-chat-msgs'].forEach(sel=>{
+    const el=document.querySelector(sel);
+    if(el){ el.innerHTML=chatMsgsHTML(); el.scrollTop=el.scrollHeight; }
+  });
+}
 function chatLobbyHTML(){ return `<fieldset class="cl-chatbox"><legend>💬 Chat da sala</legend>
   <div class="cl-chat-msgs" id="cl-chat-msgs-lobby">${chatMsgsHTML()}</div>
   <div class="cl-chat-in"><input id="cl-chat-input-lobby" class="cl-input cl-chat-input" placeholder="Escreva uma mensagem..." onkeydown="clChatKey(event,'cl-chat-input-lobby')">${btn('Enviar',"clChatSend('cl-chat-input-lobby')",{cls:'cl-btn-mini'})}</div>
 </fieldset>`; }
-function clChatToggle(){ CL.chatOpen=!CL.chatOpen; if(CL.chatOpen) CL.chatUnread=0; if(typeof renderChatDock==='function') renderChatDock(); else cdraw(); }
+function clChatToggle(){
+  if(typeof rfChatToggle==='function'){ rfChatToggle(); return; }
+  CL.chatOpen=!CL.chatOpen; if(CL.chatOpen) CL.chatUnread=0;
+  if(typeof renderChatDock==='function') renderChatDock(); else cdraw(); }
 /* HOST GLOBAL do chat: a doca vive num container fixo em <body>, re-renderizado a CADA cdraw —
    assim o chat aparece em TODAS as telas do jogo online (principal, ao vivo, classificação,
    sorteio de copa...), não só na tela principal. No lobby (CL.screen==='online') o chat já está
    embutido na própria tela, então lá o host fica vazio. */
 function renderChatDock(){
   if(typeof document==='undefined') return;
+  // REBRANDING 2026: quem desenha o chat dentro do jogo agora é rfChatRender()
+  // (bolha → espiada → painel). A doca antiga fica só como fallback pra o caso
+  // de rf26.js não ter carregado; o chat do LOBBY (chatLobbyHTML) não passa por aqui.
+  if(typeof rfChatRender==='function'){
+    const host=document.getElementById('cl-chatdock-host'); if(host) host.remove();
+    rfChatRender(); return;
+  }
   let host=document.getElementById('cl-chatdock-host');
   const show = CHAT_ATIVO && CL.online && CL.screen!=='online';
   if(!show){ if(host){ host.innerHTML=''; host.className=''; } return; }
@@ -203,16 +221,21 @@ function wireNet(){ NET.onState=(room)=>{ if(room && room.speedMult && !NET.isHo
     const mine = !!(msg && NET.self && msg.id===NET.self.id);
     if(CL.screen==='online'){ renderOnlineInto(); return; } // lobby: chat sempre visível, sem badge
     if(CL.chatOpen){ renderChatBoxes(); return; }           // doca aberta: só atualiza as mensagens (preserva o input)
-    // doca fechada: conta como não-lida (menos as minhas), notifica e atualiza o badge da doca
+    // FECHADO: conta como não-lida (menos as minhas) e mostra a ESPIADA — uma linha
+    // por 4 segundos. Nada de toast: toast é aviso do sistema e rouba a atenção da
+    // partida, que é justamente o que derrubou o chat na v1. O contador da bolha é o
+    // único aviso, e ele se cala sozinho na partida ao vivo e no Camarote.
     if(msg && !mine){
       CL.chatUnread=(CL.chatUnread||0)+1;
-      if(typeof toastC==='function' && msg.text){ const who=(msg.name||'').split(' ')[0]; toastC('💬 '+who+': '+(msg.text.length>60?msg.text.slice(0,60)+'…':msg.text)); }
+      if(typeof rfChatEspiada==='function') rfChatEspiada(msg);
     }
     refreshChatDock();
   }; }
 /* re-renderiza SÓ a doca do chat (bar + badge) sem redesenhar a tela toda — usado quando chega
    mensagem com a doca fechada (não há input pra preservar). */
-function refreshChatDock(){ const d=document.querySelector('.cl-chatdock'); if(d) d.outerHTML=chatDockHTML(); }
+function refreshChatDock(){
+  if(typeof rfChatRender==='function'){ rfChatRender(); return; }
+  const d=document.querySelector('.cl-chatdock'); if(d) d.outerHTML=chatDockHTML(); }
 /* SINCRONIZAR (botão): força um refetch do estado da sala e reaplica — leva o convidado do lobby
    pro jogo se o anfitrião já começou, e recarrega a rodada se ficou pra trás. Rede de segurança
    caso um evento de Realtime não chegue. */

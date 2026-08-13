@@ -1,0 +1,23 @@
+:root{
+  --sp-1:2px;
+  --sp-2:4px;
+  --sp-3:6px;
+  --sp-4:8px;
+  --sp-5:10px;
+  --sp-6:12px;
+  --sp-7:14px;
+  --sp-8:16px;
+  --sp-9:18px;
+  --sp-10:20px;
+
+  --gap-grid:14px;
+  --gap-tight:6px;
+
+  --pad-card:16px;
+  --pad-card-sm:14px;
+  --pad-shell:18px;
+
+  --col-side:530px;
+  --col-bench:196px;
+  --shell-width:1280px;
+}

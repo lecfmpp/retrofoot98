@@ -61,7 +61,9 @@
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "BRL" }
 }
 </script>
-<link rel="stylesheet" href="src/styles/main.css"></head>
+<link rel="stylesheet" href="src/styles/main.css">
+<!-- Rebranding 2026: a camada do design system novo vem DEPOIS de main.css (ver rf26.css) -->
+<link rel="stylesheet" href="src/styles/rf26.css"></head>
 <body>
 <div id="c-root">
 <!-- ===== A HOME EXISTE ANTES DO JOGO CARREGAR =====
@@ -689,6 +691,8 @@ function teamMorale(id,players){
 <script src="src/engine/core.js"></script>
 <script src="src/engine/autosave.js"></script>
 <script src="src/ui/main.js"></script>
+<!-- Rebranding 2026: envelope, sidebar e roteador de páginas (ver src/ui/rf26.js) -->
+<script src="src/ui/rf26.js"></script>
 <!-- entrega dos espaços publicitários (o painel dos sócios publica, o jogo lê por chave).
      Depois do main.js porque chama cdraw() quando o inventário chega; antes dos adapters
      de rede porque não depende de nenhum deles (faz fetch cru, ver ads.js). -->
