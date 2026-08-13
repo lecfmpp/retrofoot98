@@ -635,6 +635,10 @@ function rfCard(rotulo, corpo, opts){
         CL.clubId=cid; S.xi=autoXI(cid); CL.humans={}; CL.humans[cid]=CL.mgr;
         CL.online=false; CL.formation='4-4-2'; CL.tacticChosen=true; CL.tab='seleccao';
         CL.screen='main';
+        // ?rf=ob1..ob7 abre um PASSO DO ONBOARDING direto, com o save de
+        // bancada por trás — é o único jeito de rever o passo 6 (sorteio) ou o
+        // 7 (boas-vindas) sem refazer o fluxo inteiro a cada recarga.
+        if(/^ob[1-7]$/.test(alvo)){ rfBancadaOnboarding(alvo); return; }
         if(alvo!=='hub'&&alvo!=='1') rfState().page=alvo;
         cdraw();
         console.info('[rf26] bancada:', clubOf(cid).short, '→', alvo);
@@ -642,6 +646,35 @@ function rfCard(rotulo, corpo, opts){
     },80);
   });
 })();
+
+/* monta o estado mínimo de cada passo e desenha só ele (ver o atalho acima) */
+function rfBancadaOnboarding(alvo){
+  const n=Number(alvo.slice(2));
+  CL.auth={mode:'signup',name:CL.mgr,email:'',password:''};
+  CL.playCountry='Brasil';
+  if(n===2 && CL.soloSaves==null && typeof NET!=='undefined' && NET.listSoloSaves){
+    NET.listSoloSaves().then(l=>{ CL.soloSaves=l||[]; rfBancadaDesenha(n); }).catch(()=>{ CL.soloSaves=[]; rfBancadaDesenha(n); });
+  }
+  if(n===4||n===5){
+    // sala de mentira, só pra desenhar: o lobby de verdade exige servidor
+    NET.isHost=true; NET.self=NET.self||{id:'u1',name:CL.mgr};
+    NET.room=NET.room||{code:'RF-0000',name:'Sala de bancada',
+      participants:[{id:'u1',name:CL.mgr,host:true,confirmed:true}]};
+    if(!NET.inviteLink) NET.inviteLink=()=>location.origin+'/s/RF-0000';
+    CL.net=CL.net||{roomName:'Sala de bancada',inviteEmail:'',phone:''};
+  }
+  if(n===6){
+    const pool=DATA.clubs.slice(0,4);
+    CL.soloDraw={ list:pool.map((c,i)=>({name:['Gringo','Zé do Bairro','Marreco','Tiu'][i],clubId:c.id})),
+      idx:3, poolById:Object.fromEntries(pool.map(c=>[c.id,c])) };
+  }
+  rfBancadaDesenha(n);
+}
+function rfBancadaDesenha(n){
+  const f=window['rfOb'+n]; if(typeof f!=='function'){ console.warn('[rf26] passo inexistente:',n); return; }
+  document.querySelector('#c-root').innerHTML=f();
+  console.info('[rf26] bancada: onboarding passo', n);
+}
 
 /* =====================================================================
    MOBILE — a sidebar vira BARRA INFERIOR

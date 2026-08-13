@@ -10,12 +10,8 @@
    um card de conteúdo e uma barra de ação embaixo. Repelar não chegava lá —
    a estrutura tinha que ser outra.
 
-   A TRILHA TEM SEIS PASSOS: Entrar · Modo · País e liga · Sala ·
-   Convites · Clube. Era de cinco ('Configurar' juntava país, sala e
-   convites) até a leva 4 mostrar a trilha aberta nas telas do fluxo de
-   entrada — lá cada um desses três é um marco próprio, e é essa a trilha
-   que todas as telas do pacote desenham. As telas de moeda e de
-   carregamento entram no passo 3, junto com a escolha do país.
+   A trilha e o porquê dos cinco passos estão no comentário do
+   RF_WIZ_PASSOS, logo abaixo.
    ===================================================================== */
 
 /* A TRILHA TEM CINCO PASSOS: Entrar · Modo · Configurar · Sorteio · Jogar.
