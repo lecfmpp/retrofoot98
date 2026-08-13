@@ -65,7 +65,7 @@ function rfToggleSidebar(){
 const RF_PAGES=[
   { key:'inicio', ico:'🏠', label:'RetroFoot98', curto:'Início',
     titulo:'Clube & Sistema', sub:'E-mail, opções do jogo, save e Modo Resenha',
-    pill:()=>rfPillGravado(), grid:'340px minmax(0,1fr)',
+    resumo:()=>rfClubeSistemaHTML(), pill:()=>rfPillGravado(), grid:'340px minmax(0,1fr)',
     tabs:[ {k:'email',   l:()=>'E-mail'+rfSufixo(rfNaoLidas()), build:()=>rfClubeSistemaHTML('email')},
            {k:'opcoes',  l:()=>'Opções',      build:()=>rfClubeSistemaHTML('opcoes')},
            {k:'jogo',    l:()=>'Jogo',        build:()=>rfClubeSistemaHTML('jogo')},
@@ -76,35 +76,36 @@ const RF_PAGES=[
   { key:'mercado', ico:'🛒', label:'Mercado', curto:'Mercado',
     titulo:'Mercado', sub:()=>rfSubMercado(),
     pill:()=>rfPillCaixa(), grid:'minmax(0,1fr) 340px',
+    resumo:()=>rfMercadoResumoHTML(),
     tabs:[ {k:'comprar',l:()=>'Comprar',                      build:()=>rfMercadoComprarHTML()},
            {k:'leilao', l:()=>'Leilão',                       build:()=>rfMercadoLeilaoHTML()},
            {k:'propostas',l:()=>'Propostas'+rfSufixo(rfLen(rfPropostas())), build:()=>rfMercadoPropostasHTML()},
            {k:'contra', l:()=>'Contrapropostas',              build:()=>rfContrapropostasHTML()},
-           {k:'vender', l:()=>'Vender',                       build:()=>rfVenderHTML()},
            {k:'transf', l:()=>'Transferências',               build:()=>rfTransferenciasHTML()} ] },
 
   { key:'elenco', ico:'👤', label:'Elenco & Base', curto:'Elenco',
     titulo:'Elenco & Base', sub:'Ficha do jogador, promoções da base e treino especial',
-    pill:()=>rfPillFolha(), grid:'minmax(0,1fr) 360px',
-    tabs:[ {k:'elenco', l:()=>'Elenco',           build:()=>rfElencoHTML()},
+    resumo:()=>rfElencoHTML(), pill:()=>rfPillFolha(), grid:'minmax(0,1fr) 360px',
+    tabs:[ {k:'elenco', l:()=>'Elenco',           build:()=>rfElencoHTML('elenco')},
            {k:'ficha',  l:()=>'Ficha do jogador', build:()=>rfElencoHTML('ficha')},
            {k:'base',   l:()=>'Base',             build:()=>rfElencoHTML('base')},
            {k:'treino', l:()=>'Treino especial',  build:()=>rfElencoHTML('treino')} ] },
 
   { key:'campeonatos', ico:'🏆', label:'Campeonatos', curto:'Copas',
     titulo:'Campeonatos', sub:'Tabela, calendário, artilharia e história das competições',
-    pill:()=>rfPillPosicao(), grid:'minmax(0,1fr) 340px',
+    resumo:()=>rfCampeonatosHTML(), pill:()=>rfPillPosicao(), grid:'minmax(0,1fr) 340px',
     tabs:[ {k:'minhas',    l:()=>'Minhas competições', build:()=>rfCampeonatosHTML('minhas')},
            {k:'calendario',l:()=>'Calendário',         build:()=>rfCampeonatosHTML('calendario')},
            {k:'artilharia',l:()=>'Artilharia',         build:()=>rfCampeonatosHTML('artilharia')},
-           {k:'historia',  l:()=>'História',           build:()=>rfCampeonatosHTML('historia')},
+           {k:'historia',  l:()=>'Últimos vencedores',  build:()=>rfCampeonatosHTML('historia')},
+           {k:'sempre',    l:()=>'Marcadores de sempre', build:()=>rfCampeonatosHTML('sempre')},
            {k:'historial', l:()=>'Historial do clube',  build:()=>rfCampeonatosHTML('historial')},
            {k:'intl',      l:()=>'Ligas internacionais', run:()=>clBgLeaguesMenu(),
             show:()=>!!(S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)} ] },
 
   { key:'treinador', ico:'🎓', label:'Treinador', curto:'Treinador',
     titulo:'Treinador', sub:'Carreira, troféus, ranking, ofertas e preferências',
-    pill:()=>rfPillReputacao(), grid:'minmax(0,1fr) 340px',
+    resumo:()=>rfTreinadorHTML(), pill:()=>rfPillReputacao(), grid:'minmax(0,1fr) 340px',
     tabs:[ {k:'carreira',l:()=>'Carreira',        build:()=>rfTreinadorHTML('carreira')},
            {k:'historia',l:()=>'História',        build:()=>rfTreinadorHTML('historia')},
            {k:'trofeus', l:()=>'Sala de Troféus', build:()=>rfTreinadorHTML('trofeus')},
@@ -114,7 +115,7 @@ const RF_PAGES=[
 
   { key:'financas', ico:'💰', label:'Finanças', curto:'Finanças',
     titulo:'Finanças', sub:'Caixa, folha, bilheteria, estádio e histórico por temporada',
-    pill:()=>rfPillSaldo(), grid:'minmax(0,1fr) 340px',
+    resumo:()=>rfFinancasHTML(), pill:()=>rfPillSaldo(), grid:'minmax(0,1fr) 340px',
     tabs:[ {k:'resumo',    l:()=>'Resumo',     build:()=>rfFinancasHTML('resumo')},
            {k:'extrato',   l:()=>'Extrato',    build:()=>rfFinancasHTML('extrato')},
            {k:'historico', l:()=>'Histórico',  build:()=>rfFinancasHTML('historico')},
@@ -170,10 +171,21 @@ function rfPageDef(key){ return RF_PAGES.find(p=>p.key===key)||RF_PAGES[0]; }
 /* abas visíveis de uma página (a de ligas internacionais só existe se houver liga carregada) */
 function rfTabs(def){ return (def.tabs||[]).filter(t=>!t.show||t.show()); }
 function rfTabLabel(t){ return typeof t.l==='function'? t.l() : t.l; }
+/* A ABA ATIVA PODE SER NENHUMA. O estado em que a página abre é o RESUMO: os
+   blocos todos, cada um com uma amostra e a contagem do total ao lado — é
+   exatamente o que as telas do pacote desenham. Uma aba é a EXTENSÃO de um
+   bloco: abre aquele bloco inteiro, sem corte. Tocar de novo na aba acesa
+   volta pro resumo. Páginas sem `resumo` continuam como antes (primeira aba). */
 function rfActiveTab(def){
   const st=rfState(); const tabs=rfTabs(def); if(!tabs.length) return null;
   const want=st.tab[def.key];
-  return tabs.find(t=>t.k===want)||tabs[0];
+  if(def.resumo && !want) return null;          // resumo da página
+  return tabs.find(t=>t.k===want)||(def.resumo?null:tabs[0]);
+}
+function rfSetTabAlterna(page, tab){
+  const st=rfState();
+  st.tab[page] = (st.tab[page]===tab) ? '' : tab;   // clicou na acesa: volta ao resumo
+  cdraw();
 }
 
 /* ---- navegação ---- */
@@ -379,9 +391,13 @@ function rfEnvelope(conteudo){
 function rfTabsHTML(def){
   const tabs=rfTabs(def); if(tabs.length<2) return '';
   const at=rfActiveTab(def);
-  return `<div class="rf-tabbar">${tabs.map(t=>
+  const noResumo=def.resumo && !at;
+  return `<div class="rf-tabbar">
+    ${def.resumo?`<button type="button" class="rf-tabp ${noResumo?'on':''}"
+      onclick="rfSetTab('${def.key}','')" title="Todos os blocos da página">Resumo</button>`:''}
+    ${tabs.map(t=>
     `<button type="button" class="rf-tabp ${at&&at.k===t.k?'on':''}"
-      onclick="rfSetTab('${def.key}','${t.k}')">${escC(rfTabLabel(t))}</button>`).join('')}</div>`;
+      onclick="rfSetTabAlterna('${def.key}','${t.k}')">${escC(rfTabLabel(t))}</button>`).join('')}</div>`;
 }
 
 /* ----- Cabeçalho de página: título de 26px, subtítulo e pílula de status.
@@ -572,10 +588,11 @@ function rfScreenHTML(){
 
   const at=rfActiveTab(def);
   let corpo='<div class="rf-empty">Nada a mostrar aqui agora.</div>';
-  if(at){
-    try{ corpo = at.build(); }
+  const monta = at ? at.build : def.resumo;
+  if(monta){
+    try{ corpo = monta(); }
     catch(e){
-      console.warn('[rf26] aba falhou:', def.key+'/'+at.k, e);
+      console.warn('[rf26] página falhou:', def.key+'/'+(at?at.k:'resumo'), e);
       corpo=`<div class="rf-empty">Não foi possível carregar esta secção.<br><small>${escC(e.message||'')}</small></div>`;
     }
   }
@@ -598,6 +615,36 @@ function rfScreenHTML(){
   return rfEnvelope(`${rfPageHeadHTML(def)}
     ${topo}
     <div class="rf-pagegrid" style="grid-template-columns:${def.grid||'minmax(0,1fr) 340px'}">${colunas}</div>`);
+}
+
+/* =====================================================================
+   BLOCO É RESUMO, ABA É O BLOCO INTEIRO
+   Toda página interna é uma lista de BLOCOS. Sem aba escolhida, a página
+   desenha todos eles, cada um com uma amostra e a contagem do todo ao lado
+   — é o que as telas do pacote mostram. Escolhida uma aba, a página desenha
+   SÓ aquele bloco, inteiro e em largura cheia: a aba é a extensão do bloco,
+   não outro assunto.
+
+   `col` diz em qual das duas colunas o bloco mora no resumo. `lim` é quantas
+   linhas o resumo mostra; o corpo recebe esse número e decide o que fazer
+   com ele (quem não tem lista ignora).
+   ===================================================================== */
+function rfBlocos(pagina, blocos, so){
+  const dir=b=>(typeof b.dir==='function')?b.dir():b.dir;
+  if(so){
+    const b=blocos.find(x=>x.k===so);
+    if(!b) return '';
+    return rfCol(rfCard(typeof b.t==='function'?b.t():b.t, b.corpo(0), {right:dir(b)}));
+  }
+  const card=b=>rfCard(typeof b.t==='function'?b.t():b.t, b.corpo(b.lim||0), {right:dir(b),
+    cls: b.lim? 'rf-card-resumo':''});
+  const c1=blocos.filter(b=>(b.col||1)===1).map(card).join('');
+  const c2=blocos.filter(b=>b.col===2).map(card).join('');
+  return (pagina&&pagina.topo?pagina.topo():'') + rfCol(c1) + rfCol(c2);
+}
+/* rodapé de um bloco resumido: "ver os N …" leva pra aba daquele bloco */
+function rfVerMais(pagina, k, texto){
+  return `<button type="button" class="rf-vermais" onclick="rfSetTab('${pagina}','${k}')">${escC(texto)}</button>`;
 }
 
 /* helpers de composição das páginas refeitas pela referência */
@@ -930,13 +977,19 @@ const RF_POS_LBL={GK:'GOL',DEF:'ZAG',MID:'MEI',ATT:'ATA'};
 function rfPosLabel(s){ return RF_POS_LBL[s]||'MEI'; }
 
 /* ---- aba Comprar: o card "JOGADORES À VENDA" ---- */
-function rfMercadoComprarHTML(){
+/* =====================================================================
+   MERCADO — BLOCO É RESUMO, ABA É O BLOCO INTEIRO
+   A página abre no RESUMO: os cinco blocos, cada um com uma amostra e a
+   contagem do todo ao lado ("126 na janela", "2 novas"). É o que a tela do
+   pacote desenha. Tocar numa aba abre AQUELE bloco por inteiro, em largura
+   cheia e sem corte — a aba é a extensão do bloco, não outro assunto.
+   ===================================================================== */
+function rfMktVendaCard(lim){
   if(typeof canNegotiate==='function' && !canNegotiate())
-    return rfCol(rfCard('Jogadores à venda',
-      `<div class="rf-empty">${escC(typeof windowClosedMsg==='function'?windowClosedMsg():'A janela de transferências está fechada.')}</div>`))
-      + rfMercadoRailHTML();
-
+    return rfCard('Jogadores à venda',
+      `<div class="rf-empty">${escC(typeof windowClosedMsg==='function'?windowClosedMsg():'A janela de transferências está fechada.')}</div>`);
   const lista=rfMercadoLista();
+  const mostra=lim?lista.slice(0,lim):lista;
   const filtros=[['all','Todos'],['gk','Goleiros'],['def','Defesa'],['mid','Meio'],['att','Ataque']];
   const corpo=`
     <div class="rf-mkt-filtros">
@@ -949,17 +1002,20 @@ function rfMercadoComprarHTML(){
       <span></span><span>JOGADOR</span><span>POS</span><span>ID</span><span>FRC</span><span>VALOR</span><span>AÇÃO</span>
     </div>
     <div class="rf-mkt-list">${
-      lista.length ? lista.map(rfMercadoLinhaHTML).join('')
-                   : '<div class="rf-empty">Nenhum jogador nesta posição agora.</div>'}</div>`;
-  return rfCol(rfCard('Jogadores à venda', corpo, {right:rfMercadoTotal()+' na janela'}))
-       + rfMercadoRailHTML();
+      mostra.length ? mostra.map(rfMercadoLinhaHTML).join('')
+                    : '<div class="rf-empty">Nenhum jogador nesta posição agora.</div>'}</div>
+    ${lim&&lista.length>lim?`<button type="button" class="rf-vermais" onclick="rfSetTab('mercado','comprar')">
+      Ver os ${lista.length} jogadores à venda</button>`:''}`;
+  // "na janela" é o que a ABA abre — não o total do mundo. rfMercadoLista()
+  // corta em 120 por desempenho, e prometer 328 num botão que abre 120 é
+  // mentir sobre o próprio resumo.
+  return rfCard('Jogadores à venda', corpo, {right:lista.length+' na janela'});
 }
-
-/* ---- aba Leilão ---- */
-function rfMercadoLeilaoHTML(){
+function rfMktLeilaoCard(lim){
   const lots=((S.auctions&&S.auctions.lots)||[]).filter(l=>l.status==='open');
   if(typeof mergeAuctionBidsFromSeats==='function'){ try{ mergeAuctionBidsFromSeats(); }catch(e){} }
-  const linhas=lots.map(l=>{
+  const mostra=lim?lots.slice(0,lim):lots;
+  const linhas=mostra.map(l=>{
     const p=(typeof findP==='function')?findP(l.player,l.sellerId):null; if(!p) return '';
     const meu=l.leader===S.clubId;
     return `<div class="rf-auc-row ${meu?'me':''}">
@@ -977,12 +1033,20 @@ function rfMercadoLeilaoHTML(){
     </div>`;
   }).join('');
   const corpo=`
-    <span class="rf-note">Cubra a maior oferta antes das rodadas acabarem — se o seu lance ficar abaixo, a concorrência cobre na rodada seguinte.</span>
+    ${lim?'':'<span class="rf-note">Cubra a maior oferta antes das rodadas acabarem — se o seu lance ficar abaixo, a concorrência cobre na rodada seguinte.</span>'}
     <div class="rf-auc-head"><span>JOGADOR</span><span>FRC</span><span>SEU LANCE</span><span>MAIOR</span><span></span></div>
-    <div class="rf-auc-list">${linhas||'<div class="rf-empty">Nenhum leilão aberto nesta rodada.</div>'}</div>`;
-  return rfCol(rfCard('Leilão de jogadores', corpo, {right:'fecha em 2 rodadas'}))
-       + rfMercadoRailHTML();
+    <div class="rf-auc-list">${linhas||'<div class="rf-empty">Nenhum leilão aberto nesta rodada.</div>'}</div>
+    ${lim&&lots.length>lim?`<button type="button" class="rf-vermais" onclick="rfSetTab('mercado','leilao')">
+      Ver os ${lots.length} leilões abertos</button>`:''}`;
+  return rfCard('Leilão de jogadores', corpo, {right: lots.length?'fecha em 2 rodadas':''});
 }
+/* o RESUMO da página: coluna 1 com venda + leilão, coluna 2 com o trilho */
+function rfMercadoResumoHTML(){
+  return rfCol(rfMktVendaCard(6) + rfMktLeilaoCard(5)) + rfMercadoRailHTML();
+}
+/* as abas: o mesmo bloco, inteiro e em largura cheia */
+function rfMercadoComprarHTML(){ return rfCol(rfMktVendaCard()); }
+function rfMercadoLeilaoHTML(){ return rfCol(rfMktLeilaoCard()); }
 
 /* ---- aba Propostas: as recebidas, em detalhe ---- */
 function rfMercadoPropostasHTML(){
@@ -990,8 +1054,7 @@ function rfMercadoPropostasHTML(){
   const corpo = ofertas.length
     ? `<div class="rf-prop-list">${ofertas.map(rfPropostaCardHTML).join('')}</div>`
     : `<div class="rf-empty">Nenhuma proposta no momento.<br><small>Clubes fazem propostas pelos seus destaques enquanto a janela está aberta.</small></div>`;
-  return rfCol(rfCard('Propostas recebidas', corpo, {right:ofertas.length? ofertas.length+' novas':''}))
-       + rfMercadoRailHTML();
+  return rfCol(rfCard('Propostas recebidas', corpo, {right:ofertas.length? ofertas.length+' novas':''}));
 }
 function rfPropostaCardHTML(o){
   const p=squad(CL.clubId).find(x=>x.n===o.playerName);
@@ -1061,18 +1124,16 @@ function rfEmailHTML(){
    Quatro cards: ELENCO e BASE na coluna larga, FICHA DO JOGADOR e TREINO
    ESPECIAL na de 360px. As abas do topo levam ao card correspondente — a
    página mostra tudo, a aba é a ênfase. */
-function rfElencoHTML(enfase){
-  const sq=squad(CL.clubId), xi=xiPlayers(CL.clubId);
-  const d=k=>enfase===k?'rf-card-destaque':'';
-  return rfCol(
-      rfCard('Elenco', rfSquadTableHTML('elenco'),
-        {right:sq.length+' jogadores · <b>'+xi.length+'</b> titulares', cls:d('elenco')})
-    + rfCard('Base', rfBaseHTML(), {cls:d('base')})
-  ) + rfCol(
-      rfCard('Ficha do jogador', rfFichaHTML(), {cls:d('ficha'), right:'selecionado'})
-    + rfCard('Treino especial', rfTreinoHTML(), {cls:d('treino')})
-  );
-}
+const RF_BL_ELENCO=[
+  { k:'elenco', t:'Elenco', col:1, corpo:()=>rfSquadTableHTML('elenco'),
+    dir:()=>{ const sq=squad(CL.clubId), xi=xiPlayers(CL.clubId);
+              return sq.length+' jogadores · <b>'+xi.length+'</b> titulares'; } },
+  { k:'base',   t:'Base',   col:1, corpo:()=>rfBaseHTML() },
+  { k:'ficha',  t:'Ficha do jogador', col:2, corpo:()=>rfFichaHTML(), dir:'selecionado' },
+  { k:'treino', t:'Treino especial',  col:2, corpo:()=>rfTreinoHTML() },
+];
+function rfElencoHTML(so){ return rfBlocos(null, RF_BL_ELENCO, so); }
+
 /* base: quem dá pra subir agora, com o custo e o botão */
 function rfBaseHTML(){
   const disp=(typeof youthAvailable==='function')&&youthAvailable();
@@ -1220,14 +1281,25 @@ function rfZonaTabela(pos, total){
   if(releg>0 && pos>total-releg) return 'drop';
   return '';
 }
-function rfTabelaHTML(){
+/* `lim` corta a tabela para o RESUMO. O corte é uma JANELA EM VOLTA DO MEU
+   CLUBE, não os primeiros da tabela: quem está em 14º precisa ver os vizinhos
+   dele, não o líder. Sem `lim`, a tabela inteira. */
+function rfTabelaHTML(lim){
   const linhas=(typeof sortedTable==='function')?sortedTable():[];
   if(!linhas.length) return '<div class="rf-empty">A tabela aparece depois da primeira rodada.</div>';
   const total=linhas.length;
+  // a janela do resumo: eu no meio, os vizinhos em volta
+  let mostra=linhas.map((t,i)=>({t,i}));
+  if(lim && total>lim){
+    const meu=Math.max(0, linhas.findIndex(t=>t.id===CL.clubId));
+    let ini=Math.max(0, meu-Math.floor((lim-1)/2));
+    ini=Math.min(ini, total-lim);
+    mostra=mostra.slice(ini, ini+lim);
+  }
   return `<div class="rf-tb-head">
       <span></span><span></span><span>J</span><span>V</span><span>E</span><span>D</span><span>GM:GS</span><span>P</span>
     </div>
-    <div class="rf-tb-list">${linhas.map((t,i)=>{
+    <div class="rf-tb-list">${mostra.map(({t,i})=>{
       const eu=t.id===CL.clubId;
       return `<div class="rf-tb-row ${eu?'me':''}" onclick="clubLink&&clClubHistory('${escC(t.id)}')">
         <span class="rf-tb-pos"><i class="rf-zona ${rfZonaTabela(i+1,total)}"></i><b>${i+1}</b></span>
@@ -1237,7 +1309,8 @@ function rfTabelaHTML(){
         <span class="rf-tb-x">${t.GF}:${t.GA}</span>
         <span class="rf-tb-p">${t.Pts}</span>
       </div>`;
-    }).join('')}</div>`;
+    }).join('')}</div>
+    ${lim&&total>lim?rfVerMais('campeonatos','minhas','Ver a tabela dos '+total+' clubes'):''}`;
 }
 
 /* calendário do MEU clube: data, adversário, local e resultado */
@@ -1265,8 +1338,9 @@ function rfCalendarioHTML(){
 }
 
 /* artilharia da divisão (temporada) e de sempre — a mesma peça, duas fontes */
-function rfArtilhariaHTML(mapa, subDe){
-  const arr=Object.entries(mapa||{}).map(([n,g])=>({n,g})).sort((a,b)=>b.g-a.g).slice(0,8);
+function rfArtilhariaHTML(mapa, subDe, lim){
+  const todos=Object.entries(mapa||{}).map(([n,g])=>({n,g})).sort((a,b)=>b.g-a.g);
+  const arr=todos.slice(0, lim||20);
   if(!arr.length) return '<span class="rf-note">Sem gols marcados ainda.</span>';
   return arr.map((s,i)=>{
     const cid=(typeof findPlayerClub==='function')?findPlayerClub(s.n):null;
@@ -1276,7 +1350,8 @@ function rfArtilhariaHTML(mapa, subDe){
       <span class="rf-art-id"><span class="rf-art-n">${escC(s.n)}</span><span class="rf-art-s">${escC(sub||'')}</span></span>
       <span class="rf-art-g">${s.g}</span>
     </div>`;
-  }).join('');
+  }).join('') + (lim&&todos.length>lim
+    ? `<span class="rf-note">e mais ${todos.length-lim} marcador${todos.length-lim===1?'':'es'}.</span>` : '');
 }
 function rfVencedoresHTML(){
   const hist=(S.history||[]).slice().reverse().slice(0,6);
@@ -1286,27 +1361,30 @@ function rfVencedoresHTML(){
     <span class="rf-venc">${escC(h.champ||'—')}</span></div>`).join('');
 }
 
-function rfCampeonatosHTML(enfase){
-  const d=k=>enfase===k?'rf-card-destaque':'';
-  const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
+function rfMarcadoresDeSempre(){
   const acc={...(S.allTimeScorers||{})};
   Object.entries(S.scorers||{}).forEach(([n,g])=>{ acc[n]=(acc[n]||0)+g; });
-  return rfCol(
-      rfCard(classifDivName(S.division), rfTabelaHTML(), {cls:d('minhas'), right:rfMinhaPosicao()?rfMinhaPosicao()+'º de '+Object.keys(S.table||{}).length:''})
-    + rfCard('Calendário', rfCalendarioHTML(), {cls:d('calendario'),
-        right: nm? ((S.round||0)+1)+'ª jornada em '+escC(shortMatchDate(nm)||'') : ''})
-  ) + rfCol(
-      rfCard('Artilharia da '+divisionLabel(), rfArtilhariaHTML(S.scorers), {cls:d('artilharia')})
-    + rfCard('Últimos vencedores', rfVencedoresHTML(), {cls:d('historia')})
-    // HISTORIAL DO CLUBE: era a única coisa que só existia na página Equipa.
-    // A Equipa foi retirada da sidebar (elenco e formação já cobrem o resto),
-    // e o historial veio pra cá — é história de competição, que é do que esta
-    // página trata.
-    + rfCard('Historial do clube', rfHistorialHTML(), {cls:d('historial'),
-        right:(S.history||[]).filter(h=>h.clubId===CL.clubId).length+' temporadas'})
-    + rfCard('Marcadores de sempre', rfArtilhariaHTML(acc))
-  );
+  return acc;
 }
+const RF_BL_CAMPEONATOS=[
+  { k:'minhas',   t:()=>classifDivName(S.division), col:1, lim:7, corpo:l=>rfTabelaHTML(l),
+    dir:()=>rfMinhaPosicao()?rfMinhaPosicao()+'º de '+Object.keys(S.table||{}).length:'' },
+  { k:'calendario', t:'Calendário', col:1, corpo:()=>rfCalendarioHTML(),
+    dir:()=>{ const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
+              return nm? ((S.round||0)+1)+'ª jornada em '+(shortMatchDate(nm)||'') : ''; } },
+  { k:'artilharia', t:()=>'Artilharia da '+divisionLabel(), col:2, lim:4,
+    corpo:l=>rfArtilhariaHTML(S.scorers,null,l) },
+  { k:'historia',   t:'Últimos vencedores', col:2, corpo:()=>rfVencedoresHTML() },
+  // HISTORIAL DO CLUBE: era a única coisa que só existia na página Equipa. A
+  // Equipa saiu da sidebar e o historial veio pra cá — é história de
+  // competição, que é do que esta página trata.
+  { k:'historial',  t:'Historial do clube', col:2, corpo:()=>rfHistorialHTML(),
+    dir:()=>(S.history||[]).filter(h=>h.clubId===CL.clubId).length+' temporadas' },
+  { k:'sempre',     t:'Marcadores de sempre', col:2, lim:2,
+    corpo:l=>rfArtilhariaHTML(rfMarcadoresDeSempre(),null,l) },
+];
+function rfCampeonatosHTML(so){ return rfBlocos(null, RF_BL_CAMPEONATOS, so); }
+
 
 /* =====================================================================
    FINANÇAS (telas/Financas.html)
@@ -1393,17 +1471,20 @@ function rfPatrocinioHTML(){
     <span class="rf-linha-v">${escC(fmt(v))}/temporada</span></div>`;
   return linha('Camisa', base*2) + linha('Manga', Math.round(base*1.3)) + linha('Placas do estádio', base);
 }
-function rfFinancasHTML(enfase){
-  const d=k=>enfase===k?'rf-card-destaque':'';
-  return `${rfFinancasKpisHTML()}` + rfCol(
-      rfCard('Extrato da temporada', rfExtratoHTML(), {cls:d('extrato'),
-        right:S.season+' · '+(S.round||0)+' jogos'})
-    + rfCard('Histórico por temporada', rfHistoricoHTML(), {cls:d('historico')})
-  ) + rfCol(
-      rfCard('Estádio', rfEstadioCardHTML(), {cls:d('estadio')})
-    + rfCard('Patrocínio', rfPatrocinioHTML(), {cls:d('patrocinio')})
-  );
+const RF_BL_FINANCAS=[
+  { k:'extrato',   t:'Extrato da temporada', col:1, corpo:()=>rfExtratoHTML(),
+    dir:()=>S.season+' · '+(S.round||0)+' jogos' },
+  { k:'historico', t:'Histórico por temporada', col:1, corpo:()=>rfHistoricoHTML(),
+    dir:()=>{ const n=(S.history||[]).length; return n?n+' temporadas':''; } },
+  { k:'estadio',   t:'Estádio', col:2, corpo:()=>rfEstadioCardHTML(),
+    dir:()=>{ const st=(typeof myStadium==='function')?myStadium():null;
+              return st&&st.capacity?grp(st.capacity)+' lugares':''; } },
+  { k:'patrocinio',t:'Patrocínio', col:2, corpo:()=>rfPatrocinioHTML() },
+];
+function rfFinancasHTML(so){
+  return rfBlocos({topo:rfFinancasKpisHTML}, RF_BL_FINANCAS, so);
 }
+
 
 /* =====================================================================
    TREINADOR (telas/Treinador.html)
@@ -1467,7 +1548,7 @@ function rfHistoriaHTML(){
     </div>`).join('')}</div>`;
 }
 /* ranking: posição · nome · pontos (mesma conta do clCoachRanking) */
-function rfRankingHTML(){
+function rfRankingHTML(lim){
   if(typeof migrateCoachCareerStats==='function'){ try{ migrateCoachCareerStats(); }catch(e){} }
   const BONUS=50;
   const rows=(DATA.clubs||[]).map((c,i)=>{
@@ -1477,11 +1558,12 @@ function rfRankingHTML(){
             pts:car.pts+(t.Pts||0), titles:car.titles||0,
             eu:!!(CL.humans&&CL.humans[c.id])};
   }).sort((a,b)=>(b.pts+b.titles*BONUS)-(a.pts+a.titles*BONUS)||b.pts-a.pts);
-  return `<div class="rf-rk-list">${rows.slice(0,10).map((r,i)=>`<div class="rf-rk-row ${r.eu?'me':''}">
+  return `<div class="rf-rk-list">${rows.slice(0, lim||20).map((r,i)=>`<div class="rf-rk-row ${r.eu?'me':''}">
     <span class="rf-rk-i">${i+1}</span>
     <span class="rf-rk-n">${escC(r.nome)}</span>
     <span class="rf-rk-p">${r.pts}</span>
-  </div>`).join('')}</div>`;
+  </div>`).join('')}</div>
+  ${lim&&rows.length>lim?rfVerMais('treinador','ranking','Ver o ranking completo'):''}`;
 }
 function rfOfertasHTML(){
   const of=(S.jobOffers||[]);
@@ -1517,21 +1599,21 @@ function rfPerfilHTML(){
 }
 function rfTogglePref(k){ CL.options=CL.options||{}; CL.options[k]=!CL.options[k]; cdraw(); }
 
-function rfTreinadorHTML(enfase){
-  const d=k=>enfase===k?'rf-card-destaque':'';
-  const t=rfTitulosDoTreinador();
-  return rfTreinadorTopoHTML() + rfCol(
-      rfCard('História', rfHistoriaHTML(), {cls:d('historia'),
-        right:(S.coachHistory||[]).length+' temporadas registradas'})
-    + rfCard('Sala de Troféus', rfTrofeusHTML(), {cls:d('trofeus'),
-        right:t.length+(t.length===1?' título':' títulos')})
-  ) + rfCol(
-      rfCard('Ofertas', rfOfertasHTML(), {cls:d('ofertas'),
-        right:(S.jobOffers||[]).length? (S.jobOffers||[]).length+' nova(s)':''})
-    + rfCard('Ranking de treinadores', rfRankingHTML(), {cls:d('ranking'), right:'por pontos somados'})
-    + rfCard('Perfil', rfPerfilHTML(), {cls:d('perfil'), right:'preferências'})
-  );
+const RF_BL_TREINADOR=[
+  { k:'historia', t:'História', col:1, corpo:()=>rfHistoriaHTML(),
+    dir:()=>(S.coachHistory||[]).length+' temporadas registradas' },
+  { k:'trofeus',  t:'Sala de Troféus', col:1, corpo:()=>rfTrofeusHTML(),
+    dir:()=>{ const t=rfTitulosDoTreinador(); return t.length+(t.length===1?' título':' títulos'); } },
+  { k:'ofertas',  t:'Ofertas', col:2, corpo:()=>rfOfertasHTML(),
+    dir:()=>(S.jobOffers||[]).length? (S.jobOffers||[]).length+' nova(s)':'' },
+  { k:'ranking',  t:'Ranking de treinadores', col:2, lim:4, corpo:l=>rfRankingHTML(l),
+    dir:'por pontos somados' },
+  { k:'perfil',   t:'Perfil', col:2, corpo:()=>rfPerfilHTML(), dir:'preferências' },
+];
+function rfTreinadorHTML(so){
+  return rfBlocos({topo:rfTreinadorTopoHTML}, RF_BL_TREINADOR, so);
 }
+
 
 /* =====================================================================
    CLUBE & SISTEMA / E-MAIL (telas/Clube e Sistema.html)
@@ -1597,21 +1679,22 @@ function rfJogoHTML(){
   return `<div class="rf-acoes">${acoes}</div>
     <span class="rf-note">O jogo grava sozinho a cada rodada. "Gravar jogo" força a gravação agora e mostra os saves guardados.</span>`;
 }
-function rfClubeSistemaHTML(enfase){
-  const d=k=>enfase===k?'rf-card-destaque':'';
-  const naoLidas=rfNaoLidas();
-  // coluna ESQUERDA (340px): a lista de e-mails
-  const esquerda=rfCol(rfCard('E-mail', rfListaEmailsHTML(), {cls:d('email'),
-    right:naoLidas?naoLidas+' novos':'tudo lido'}));
-  // coluna DIREITA (larga): leitura + opções + jogo
-  const direita=rfCol(
-      rfCard('', rfLeituraHTML(), {cls:d('email')})
-    + rfCard('Opções', rfOpcoesHTML(), {cls:d('opcoes')})
-    + rfCard('Jogo', rfJogoHTML(), {cls:d('jogo')})
-    + (CL.online?rfCard('Modo Resenha', rfResenhaHTML(), {cls:d('resenha')}):'')
-  );
-  return esquerda+direita;
+/* Clube & Sistema inverte as colunas (a lista de e-mails é a de 340). O
+   bloco de LEITURA não tem aba: ele é o corpo do e-mail selecionado na
+   lista ao lado — abrir "leitura" sozinho não mostraria nada de novo. */
+const RF_BL_CLUBE=[
+  { k:'email',   t:'E-mail', col:1, corpo:()=>rfListaEmailsHTML(),
+    dir:()=>{ const n=rfNaoLidas(); return n?n+' novos':'tudo lido'; } },
+  { k:'leitura', t:'', col:2, corpo:()=>rfLeituraHTML(), semAba:true },
+  { k:'opcoes',  t:'Opções', col:2, corpo:()=>rfOpcoesHTML() },
+  { k:'jogo',    t:'Jogo',   col:2, corpo:()=>rfJogoHTML() },
+  { k:'resenha', t:'Modo Resenha', col:2, corpo:()=>rfResenhaHTML(), so:()=>!!CL.online },
+];
+function rfClubeSistemaHTML(so){
+  const blocos=RF_BL_CLUBE.filter(b=>!b.so || b.so());
+  return rfBlocos(null, blocos, so);
 }
+
 
 /* ---- HISTORIAL DO CLUBE ----
    Sobrou da página Equipa, que saiu da sidebar: elenco e formação já cobrem
@@ -1649,8 +1732,7 @@ function rfContrapropostasHTML(){
         ${o.lastMsg?`<span class="rf-prop-msg">💬 ${escC(o.lastMsg)}</span>`:''}
       </div>`).join('')
     : '<span class="rf-note">Nenhuma contraproposta aberta agora.</span>';
-  return rfCol(rfCard('Contrapropostas', corpo, {right:lista.length?lista.length+' aberta(s)':''}))
-       + rfMercadoRailHTML();
+  return rfCol(rfCard('Contrapropostas', corpo, {right:lista.length?lista.length+' aberta(s)':''}));
 }
 function rfTransferenciasHTML(){
   const nomeDe=id=>{ if(!id) return 'fora do mundo';
@@ -1668,8 +1750,7 @@ function rfTransferenciasHTML(){
          <span class="rf-tr-v">${escC(mvShort(h.fee||0))}</span>
        </div>`).join('')}</div>`
     : `<span class="rf-note">Nenhuma transferência registrada. O histórico viaja com o jogador: aparecem aqui os movimentos de quem está no seu elenco.</span>`;
-  return rfCol(rfCard('Últimas transferências', corpo, {right:ent.length?ent.length+' registros':''}))
-       + rfMercadoRailHTML();
+  return rfCol(rfCard('Últimas transferências', corpo, {right:ent.length?ent.length+' registros':''}));
 }
 
 /* =====================================================================

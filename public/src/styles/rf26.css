@@ -3576,3 +3576,13 @@
   .rf-ob5-lin{grid-template-columns:34px minmax(0,1fr) auto;row-gap:2px}
   .rf-ob5-st{grid-column:2/-1;text-align:left}
 }
+
+/* um bloco em modo RESUMO tem teto de altura: ele é amostra, não a lista
+   inteira — quem quer a lista inteira toca na aba */
+.rf-card-resumo>*:not(.rf-label):not(.rf-vermais){max-height:none}
+/* "ver os N …" no pé de um bloco resumido — leva pra aba daquele bloco */
+.rf-vermais{align-self:flex-start;height:34px;padding:0 14px;border-radius:var(--r-pill);
+  border:var(--border-control);background:transparent;color:var(--club-primary);
+  font-family:var(--font-sans);font-size:var(--fs-caption);font-weight:var(--fw-semibold);
+  cursor:pointer;transition:background var(--dur-fast) var(--ease)}
+.rf-vermais:hover{background:var(--club-primary-soft)}
