@@ -10489,6 +10489,13 @@ function cupDrawSideHTML(key, dr){
     ${ultimo}</aside>`;
 }
 function cupDrawScreenHTML(key, dr, actions){
+  // CERIMÔNIA PORTADA (ver src/ui/rf26-sorteio.js): as telas Sorteio 2..6 do
+  // pacote. O Brasileirão (Sorteio 1) fica de fora de propósito — aquele
+  // formato já vem pronto de base no jogo, e a tela de referência dele não
+  // deve substituir o que já existe.
+  if(typeof rfSorteioHTML==='function' && key!=='brasileirao'){
+    try{ return rfSorteioHTML(key, dr); }catch(e){ console.warn('[rf26] sorteio:', e); }
+  }
   const c=S.cups&&S.cups[key]; if(!c) return '';
   CL._cupKey=key;
   const hasGroup=cupHasGroupTab(key,c) && dr.stage==='group';

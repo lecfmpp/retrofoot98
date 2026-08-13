@@ -1768,3 +1768,112 @@
   .rf-bv-kpis{grid-template-columns:repeat(2,1fr)}
   .rf-modo-tag{position:static;align-self:flex-end;order:-1}
 }
+
+/* =====================================================================
+   CERIMÔNIA DO SORTEIO — portado de telas/Sorteio 2..6
+   Painel do troféu de 270px à esquerda, cerimônia à direita.
+   ===================================================================== */
+.rf-srt{display:grid;grid-template-columns:270px minmax(0,1fr);gap:16px;align-items:start}
+.rf-srt-mid{display:flex;flex-direction:column;gap:12px;min-width:0}
+
+/* painel do troféu */
+/* O painel é a identidade da COMPETIÇÃO, não do meu clube: as seis telas de
+   sorteio usam o mesmo azul, seja qual for o time do usuário. Aqui ele é
+   fixo de propósito — o cromo não segue o clube, e uma cerimônia da
+   Libertadores pintada de verde porque eu sou do Palmeiras seria justamente
+   o erro que a regra do design system evita. */
+.rf-srt-trofeu{display:flex;flex-direction:column;gap:12px;min-width:0;border-radius:var(--r-card);
+  padding:18px;background:linear-gradient(160deg,#0e2f66,#17458F)}
+.rf-srt-fase{color:#F2B90C}
+.rf-srt-pote.on .rf-srt-pn{background:#F2B90C;color:#17458F}
+.rf-srt-gb{background:#17458F;color:#F2B90C}
+.rf-srt-taca{background:linear-gradient(160deg,#0e2f66,#17458F)}
+.rf-srt-top{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.rf-srt-ic{font-size:44px;line-height:1}
+.rf-srt-ic img{width:44px;height:44px;object-fit:contain;display:block}
+.rf-srt-nome{font-size:16px;font-weight:var(--fw-bold);color:#fff;letter-spacing:var(--ls-tight);white-space:nowrap}
+.rf-srt-fase{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;white-space:nowrap}
+.rf-srt-hr{height:1px;background:rgba(255,255,255,.15)}
+.rf-srt-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rf-srt-l{font-size:var(--fs-caption);color:var(--text-on-dark-soft);white-space:nowrap}
+.rf-srt-v{font-family:var(--font-mono);font-size:var(--fs-caption);font-weight:var(--fw-semibold);
+  color:#fff;white-space:nowrap}
+.rf-srt-secao{font-size:var(--fs-label-xs);font-weight:var(--fw-semibold);letter-spacing:var(--ls-label);
+  text-transform:uppercase;color:var(--text-on-dark-soft);white-space:nowrap}
+.rf-srt-pote{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:var(--r-chip);
+  background:rgba(255,255,255,.07)}
+.rf-srt-pote.on{background:rgba(255,255,255,.18)}
+.rf-srt-pn{width:18px;height:18px;border-radius:var(--r-pill);background:rgba(255,255,255,.16);
+  color:#fff;font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-semibold);
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.rf-srt-pote.on .rf-srt-pn{background:var(--club-secondary);color:var(--club-on-secondary)}
+.rf-srt-pl{flex:1;min-width:0;font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-srt-pq{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-on-dark-soft);white-space:nowrap}
+
+/* grupos */
+.rf-srt-grupos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.rf-srt-grupo{background:var(--surface-card);border:var(--border-hairline);border-radius:14px;
+  padding:10px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.rf-srt-ghd{display:flex;align-items:center;gap:7px;padding:0 2px 4px}
+.rf-srt-gb{width:20px;height:20px;border-radius:6px;font-family:var(--font-mono);
+  font-size:var(--fs-micro);font-weight:var(--fw-semibold);display:flex;align-items:center;
+  justify-content:center;flex:0 0 auto}
+.rf-srt-gt{font-size:var(--fs-micro);font-weight:var(--fw-bold);color:var(--text-muted);
+  letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+
+/* vaga de clube */
+.rf-srt-vaga{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;min-width:0}
+.rf-srt-vaga.caiu{background:var(--surface-sunken);animation:rf-bola .3s var(--ease)}
+.rf-srt-vaga.meu{background:var(--club-primary-soft)}
+.rf-srt-vaga.meu .rf-srt-cn{font-weight:var(--fw-bold);color:var(--club-primary)}
+@keyframes rf-bola{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.rf-srt-crest img,.rf-srt-crest .rf-crest-fb{width:20px;height:20px;object-fit:contain;flex:0 0 auto}
+.rf-srt-bolha{width:20px;height:20px;border-radius:6px;background:var(--line-3);flex:0 0 auto}
+.rf-srt-cn{flex:1;min-width:0;font-size:var(--fs-caption);font-weight:var(--fw-medium);
+  color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-srt-vaga.vazia .rf-srt-cn,.rf-srt-cn.vazio{color:var(--text-faint)}
+
+/* confrontos (Copa do Brasil) */
+.rf-srt-confrontos{display:flex;flex-direction:column;gap:4px}
+.rf-srt-conf{display:grid;grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);align-items:center;
+  gap:8px;padding:8px 10px;border-radius:var(--r-chip);border:var(--border-hairline);
+  background:var(--surface-card)}
+.rf-srt-conf.meu{background:var(--club-primary-soft);border-color:var(--club-primary)}
+.rf-srt-lado{display:flex;align-items:center;gap:8px;min-width:0}
+.rf-srt-lado.dir{justify-content:flex-end}
+.rf-srt-x{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-faint);text-align:center}
+
+/* chave (playoffs) */
+.rf-srt-chave{display:flex;flex-direction:column;gap:8px;overflow-x:auto}
+.rf-srt-rots{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px;
+  font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
+  text-transform:uppercase;color:var(--text-muted);text-align:center}
+.rf-srt-bracket{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px;align-items:center}
+.rf-srt-col{display:flex;flex-direction:column;justify-content:space-around;gap:8px;min-width:0}
+.rf-srt-par{display:flex;flex-direction:column;gap:2px;background:var(--surface-card);
+  border:var(--border-hairline);border-radius:var(--r-chip);padding:4px}
+.rf-srt-final{display:flex;align-items:center;justify-content:center}
+.rf-srt-taca{width:88px;height:88px;border-radius:var(--r-pill);
+  display:flex;align-items:center;justify-content:center;font-size:38px}
+
+/* progresso e o aviso do meu confronto */
+.rf-srt-prog{display:flex;align-items:center;gap:10px}
+.rf-srt-bar{flex:1;height:6px;border-radius:var(--r-pill);background:var(--surface-sunken);
+  border:1px solid var(--line-3);overflow:hidden;display:block}
+.rf-srt-bar>i{display:block;height:100%;background:var(--club-primary);border-radius:var(--r-pill);
+  transition:width var(--dur-base) var(--ease)}
+.rf-srt-n{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-3);white-space:nowrap}
+.rf-srt-meu{background:var(--club-primary-soft);border:1px solid var(--club-primary-line);
+  border-radius:var(--r-control);padding:10px 14px;font-size:var(--fs-body-sm);color:var(--text-2)}
+.rf-srt-meu b{color:var(--club-primary)}
+
+/* ----- No telefone o bracket não cabe: a navegação é POR FASE ----- */
+@media (max-width:760px){
+  .rf-srt{grid-template-columns:minmax(0,1fr)}
+  .rf-srt-grupos{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rf-srt-chave{overflow-x:auto}
+  .rf-srt-bracket{grid-auto-columns:minmax(140px,1fr)}
+  .rf-srt-taca{width:56px;height:56px;font-size:26px}
+  .rf-srt-conf{grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr)}
+}
