@@ -2200,3 +2200,110 @@
   .rf-lp-fbase{flex-wrap:wrap;padding:14px 16px 24px}
   .rf-lp-lista-in{padding:22px 16px}
 }
+
+/* =====================================================================
+   MODO CAMAROTE — portado de telas/Modo Camarote.html
+   ===================================================================== */
+.rf-cam{position:fixed;inset:0;z-index:60;overflow-y:auto;background:rgba(18,32,26,.55);
+  padding:20px;box-sizing:border-box;font-family:var(--font-sans);color:var(--text-1)}
+.rf-cam-env{max-width:1560px;margin:0 auto;display:flex;align-items:flex-start;
+  justify-content:center;gap:16px}
+.rf-cam-mid{flex:1 1 auto;min-width:0;max-width:1180px;display:flex;flex-direction:column;gap:14px}
+.rf-cam-shell{background:var(--surface-desk);border:1px solid #d2e0d0;border-radius:var(--r-shell);
+  padding:18px;box-shadow:0 24px 60px -30px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:14px}
+
+/* faixa */
+.rf-cam-faixa{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;
+  background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
+  border-radius:var(--r-card);padding:14px 18px;color:#fff}
+.rf-cam-ic{font-size:18px;margin-left:6px}
+.rf-cam-t{font-size:20px;font-weight:var(--fw-bold);letter-spacing:var(--ls-tight);white-space:nowrap}
+.rf-cam-nota{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-on-dark-soft);white-space:nowrap}
+.rf-cam-x{height:34px;padding:0 14px;border:none;border-radius:var(--r-chip);
+  background:rgba(255,255,255,.14);color:#fff;font-family:var(--font-sans);
+  font-size:var(--fs-caption);font-weight:var(--fw-semibold);cursor:pointer;white-space:nowrap}
+.rf-cam-x:hover{background:rgba(255,255,255,.24)}
+
+/* placar de estádio */
+.rf-cam-board{display:flex;align-items:center;gap:16px;justify-content:center;
+  background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
+  border-radius:var(--r-card);padding:16px 20px;color:#fff}
+.rf-cam-lado{display:flex;flex-direction:column;gap:2px;align-items:flex-end;min-width:0;flex:1}
+.rf-cam-lado.fim{align-items:flex-start}
+.rf-cam-onde{font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
+  text-transform:uppercase;color:var(--text-on-dark-faint);white-space:nowrap}
+.rf-cam-time{font-size:var(--fs-title);font-weight:var(--fw-bold);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.rf-cam-sub{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-on-dark-soft);white-space:nowrap}
+.rf-cam-crest{flex:0 0 auto}
+.rf-cam-crest img,.rf-cam-crest .rf-crest-fb{width:44px;height:44px;object-fit:contain;
+  background:transparent;border:none}
+/* dígitos amarelos sobre malha de pontos */
+.rf-cam-placar{flex:0 0 auto;display:flex;align-items:center;gap:10px;background:#0b1a2e;
+  background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px);background-size:4px 4px;
+  border-radius:var(--r-inner);padding:10px 18px}
+.rf-cam-g{font-family:var(--font-mono);font-size:34px;font-weight:var(--fw-bold);
+  color:var(--club-secondary);text-shadow:0 0 12px rgba(242,185,12,.35);line-height:1}
+.rf-cam-d{font-family:var(--font-mono);font-size:26px;color:var(--club-secondary);opacity:.5}
+.rf-cam-relogio{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding-left:16px;border-left:1px solid rgba(255,255,255,.15)}
+.rf-cam-min{font-family:var(--font-mono);font-size:26px;font-weight:var(--fw-bold);color:var(--club-secondary)}
+.rf-cam-per{font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
+  text-transform:uppercase;color:var(--text-on-dark-soft);white-space:nowrap}
+
+/* barra de pressão: as DUAS cores de clube e divisor a 50% */
+.rf-cam-pressao{display:flex;align-items:center;gap:12px;background:var(--surface-card);
+  border:var(--border-hairline);border-radius:var(--r-card);padding:12px 16px}
+.rf-cam-bar{position:relative;flex:1;display:flex;height:var(--bar-h);border-radius:var(--r-pill);
+  background:var(--surface-sunken);overflow:hidden}
+.rf-cam-bar>i{display:block;height:100%;transition:width .45s var(--ease)}
+.rf-cam-bar>i.casa{background:var(--club-primary)}
+.rf-cam-bar>i.fora{background:var(--club-secondary)}
+.rf-cam-meio{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(18,32,26,.35)}
+.rf-cam-tag{font-family:var(--font-mono);font-size:var(--fs-micro);font-weight:var(--fw-bold);
+  color:var(--text-2);white-space:nowrap;min-width:150px;text-align:right}
+
+/* abas e corpo */
+.rf-cam-abas{display:flex;align-items:center;gap:6px;background:var(--surface-card);
+  border:var(--border-hairline);border-radius:16px;padding:6px}
+.rf-cam-pausar{height:34px;padding:0 14px;border:none;border-radius:var(--r-chip);
+  background:var(--club-cta-bg,var(--club-secondary));color:var(--club-cta-fg,var(--club-on-secondary));
+  font-family:var(--font-sans);font-size:var(--fs-caption);font-weight:var(--fw-bold);cursor:pointer}
+.rf-cam-body{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
+.rf-cam-dir{display:flex;flex-direction:column;gap:14px;min-width:0}
+.rf-cam-narra{display:flex;flex-direction:column;gap:2px;max-height:420px;overflow-y:auto}
+.rf-cam-linha{display:grid;grid-template-columns:38px 20px minmax(0,1fr);gap:8px;align-items:start;
+  padding:8px;border-radius:var(--r-row);animation:rf-bola .2s var(--ease)}
+.rf-cam-lmin{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-faint);text-align:right}
+.rf-cam-lic{font-size:13px;text-align:center}
+.rf-cam-ltx{font-size:var(--fs-body-sm);color:var(--text-2);line-height:1.4}
+.rf-cam-linha.k-gol{background:var(--club-primary-soft)}
+.rf-cam-linha.k-gol .rf-cam-ltx{color:var(--club-primary);font-weight:var(--fw-bold)}
+.rf-cam-linha.k-cartao .rf-cam-ltx{color:#7a5c00}
+.rf-cam-linha.k-lesao .rf-cam-ltx{color:var(--danger)}
+
+/* estatística: número · rótulo · número, e a barra embaixo */
+.rf-cam-st{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;
+  align-items:center;padding:6px 0}
+.rf-cam-sa,.rf-cam-sb{font-family:var(--font-mono);font-size:var(--fs-body-sm);
+  font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-cam-sb{text-align:right}
+.rf-cam-sl{font-size:var(--fs-caption);color:var(--text-3);text-align:center;white-space:nowrap}
+.rf-cam-sbar{grid-column:1/-1;height:var(--bar-h-sm);border-radius:var(--r-pill);
+  background:var(--surface-sunken);overflow:hidden;display:block}
+.rf-cam-sbar>i{display:block;height:100%;background:var(--club-primary);border-radius:var(--r-pill)}
+
+@media (max-width:1560px){ .rf-cam-env [data-ad-rail="right"]{display:none} }
+@media (max-width:1320px){ .rf-cam-env [data-ad-rail]{display:none} }
+@media (max-width:1120px){
+  .rf-cam-body{grid-template-columns:minmax(0,1fr)}
+  .rf-cam-board{flex-wrap:wrap;row-gap:14px}
+}
+@media (max-width:760px){
+  .rf-cam{padding:0}
+  .rf-cam-shell{border-radius:0;padding:12px}
+  .rf-cam-time{font-size:var(--fs-subhead)}
+  .rf-cam-g{font-size:26px}
+  .rf-cam-tag{min-width:0}
+  .rf-cam-abas{overflow-x:auto}
+}

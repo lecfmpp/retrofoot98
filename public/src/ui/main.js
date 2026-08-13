@@ -6977,6 +6977,11 @@ function camSwitchHTML(){
 }
 /* ---- a janela do Camarote ---- */
 function camaroteHTML(m){
+  // CAMAROTE PORTADO (telas/Modo Camarote). O desenho antigo não é mais
+  // alcançável — a sobreposição inteira vem de rfCamHTML.
+  return rfCamHTML(CL.live||{matches:[m]});
+}
+function camaroteHTMLLegado(m){
   const RL=CL.live; const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
   camEnsure(m);
   return `<div class="rf-cam-ov" onclick="camBackdrop(event)"><div class="rf-cam-win">
