@@ -62,30 +62,36 @@ function rfToggleSidebar(){
    elas não são todas iguais: Elenco & Base usa 360px na coluna lateral e
    Clube & Sistema inverte a ordem.
    ===================================================================== */
-const RF_PAGES=[
-  { key:'inicio', ico:'🏠', label:'RetroFoot98', curto:'Início',
-    titulo:'Clube & Sistema', sub:'E-mail, opções do jogo, save e Modo Resenha',
-    resumo:()=>rfClubeSistemaHTML(), pill:()=>rfPillGravado(), grid:'340px minmax(0,1fr)',
-    tabs:[ {k:'email',   l:()=>'E-mail'+rfSufixo(rfNaoLidas()), build:()=>rfClubeSistemaHTML('email')},
-           {k:'opcoes',  l:()=>'Opções',      build:()=>rfClubeSistemaHTML('opcoes')},
-           {k:'jogo',    l:()=>'Jogo',        build:()=>rfClubeSistemaHTML('jogo')},
-           {k:'resenha', l:()=>'Modo Resenha',build:()=>rfClubeSistemaHTML('resenha')} ] },
+/* =====================================================================
+   OS OITO DESTINOS E AS 31 ABAS (pacote "Abas Completas")
+   Formação · Mercado · Elenco & Base · Campeonatos · Treinador · Finanças ·
+   E-mail · Configurações.
 
+   O item "RetroFoot98" saiu do menu: o escudo no topo da sidebar já faz o
+   papel de voltar ao hub. Clube & Sistema virou CONFIGURAÇÕES, e o E-mail
+   ganhou destino próprio com as suas duas abas.
+
+   MODELO DE ABA: cada aba é uma tela inteira, com o conteúdo dela. Foi assim
+   que o pacote das abas definiu, e substitui o desenho anterior (bloco =
+   resumo, aba = extensão) — que era a leitura possível das telas antigas,
+   antes de existirem estas.
+   ===================================================================== */
+const RF_PAGES=[
   { key:'hub', ico:'🥅', label:'Formação', curto:'Formação', banda:true },
 
   { key:'mercado', ico:'🛒', label:'Mercado', curto:'Mercado',
     titulo:'Mercado', sub:()=>rfSubMercado(),
     pill:()=>rfPillCaixa(), grid:'minmax(0,1fr) 340px',
-    resumo:()=>rfMercadoResumoHTML(),
-    tabs:[ {k:'comprar',l:()=>'Comprar',                      build:()=>rfMercadoComprarHTML()},
-           {k:'leilao', l:()=>'Leilão',                       build:()=>rfMercadoLeilaoHTML()},
-           {k:'propostas',l:()=>'Propostas'+rfSufixo(rfLen(rfPropostas())), build:()=>rfMercadoPropostasHTML()},
-           {k:'contra', l:()=>'Contrapropostas',              build:()=>rfContrapropostasHTML()},
-           {k:'transf', l:()=>'Transferências',               build:()=>rfTransferenciasHTML()} ] },
+    tabs:[ {k:'comprar', l:()=>'Comprar',        build:()=>rfMktComprarHTML()},
+           {k:'leilao',  l:()=>'Leilão',         build:()=>rfMktLeilaoHTML()},
+           {k:'propostas',l:()=>'Propostas'+rfSufixo(rfLen(rfPropostas())), build:()=>rfMktPropostasHTML()},
+           {k:'contra',  l:()=>'Contrapropostas',build:()=>rfMktContraHTML()},
+           {k:'vender',  l:()=>'Vender',         build:()=>rfMktVenderHTML()},
+           {k:'transf',  l:()=>'Transferências', build:()=>rfMktTransfHTML()} ] },
 
   { key:'elenco', ico:'👤', label:'Elenco & Base', curto:'Elenco',
     titulo:'Elenco & Base', sub:'Ficha do jogador, promoções da base e treino especial',
-    resumo:()=>rfElencoHTML(), pill:()=>rfPillFolha(), grid:'minmax(0,1fr) 360px',
+    pill:()=>rfPillFolha(), grid:'minmax(0,1fr) 340px',
     tabs:[ {k:'elenco', l:()=>'Elenco',           build:()=>rfElencoHTML('elenco')},
            {k:'ficha',  l:()=>'Ficha do jogador', build:()=>rfElencoHTML('ficha')},
            {k:'base',   l:()=>'Base',             build:()=>rfElencoHTML('base')},
@@ -93,19 +99,17 @@ const RF_PAGES=[
 
   { key:'campeonatos', ico:'🏆', label:'Campeonatos', curto:'Copas',
     titulo:'Campeonatos', sub:'Tabela, calendário, artilharia e história das competições',
-    resumo:()=>rfCampeonatosHTML(), pill:()=>rfPillPosicao(), grid:'minmax(0,1fr) 340px',
+    pill:()=>rfPillPosicao(), grid:'minmax(0,1fr) 340px',
     tabs:[ {k:'minhas',    l:()=>'Minhas competições', build:()=>rfCampeonatosHTML('minhas')},
            {k:'calendario',l:()=>'Calendário',         build:()=>rfCampeonatosHTML('calendario')},
            {k:'artilharia',l:()=>'Artilharia',         build:()=>rfCampeonatosHTML('artilharia')},
-           {k:'historia',  l:()=>'Últimos vencedores',  build:()=>rfCampeonatosHTML('historia')},
-           {k:'sempre',    l:()=>'Marcadores de sempre', build:()=>rfCampeonatosHTML('sempre')},
-           {k:'historial', l:()=>'Historial do clube',  build:()=>rfCampeonatosHTML('historial')},
-           {k:'intl',      l:()=>'Ligas internacionais', run:()=>clBgLeaguesMenu(),
+           {k:'historia',  l:()=>'História',           build:()=>rfCampeonatosHTML('historia')},
+           {k:'intl',      l:()=>'Ligas internacionais',build:()=>rfCampeonatosHTML('intl'),
             show:()=>!!(S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)} ] },
 
   { key:'treinador', ico:'🎓', label:'Treinador', curto:'Treinador',
     titulo:'Treinador', sub:'Carreira, troféus, ranking, ofertas e preferências',
-    resumo:()=>rfTreinadorHTML(), pill:()=>rfPillReputacao(), grid:'minmax(0,1fr) 340px',
+    pill:()=>rfPillReputacao(), grid:'minmax(0,1fr) 340px',
     tabs:[ {k:'carreira',l:()=>'Carreira',        build:()=>rfTreinadorHTML('carreira')},
            {k:'historia',l:()=>'História',        build:()=>rfTreinadorHTML('historia')},
            {k:'trofeus', l:()=>'Sala de Troféus', build:()=>rfTreinadorHTML('trofeus')},
@@ -115,7 +119,7 @@ const RF_PAGES=[
 
   { key:'financas', ico:'💰', label:'Finanças', curto:'Finanças',
     titulo:'Finanças', sub:'Caixa, folha, bilheteria, estádio e histórico por temporada',
-    resumo:()=>rfFinancasHTML(), pill:()=>rfPillSaldo(), grid:'minmax(0,1fr) 340px',
+    pill:()=>rfPillSaldo(), grid:'minmax(0,1fr) 340px',
     tabs:[ {k:'resumo',    l:()=>'Resumo',     build:()=>rfFinancasHTML('resumo')},
            {k:'extrato',   l:()=>'Extrato',    build:()=>rfFinancasHTML('extrato')},
            {k:'historico', l:()=>'Histórico',  build:()=>rfFinancasHTML('historico')},
@@ -125,8 +129,18 @@ const RF_PAGES=[
   { key:'email', ico:'✉️', label:'E-mail', curto:'E-mail',
     titulo:'E-mail', sub:'Comunicados da diretoria, propostas e avisos',
     pill:()=>rfPillNaoLidas(), grid:'340px minmax(0,1fr)',
-    tabs:[ {k:'caixa', l:()=>'Caixa de entrada', build:()=>rfClubeSistemaHTML('email')} ] },
+    tabs:[ {k:'caixa',     l:()=>'Caixa de entrada'+rfSufixo(rfNaoLidas()), build:()=>rfEmailHTML('caixa')},
+           {k:'arquivadas',l:()=>'Arquivadas',                              build:()=>rfEmailHTML('arquivadas')} ] },
+
+  { key:'config', ico:'⚙️', label:'Configurações', curto:'Config',
+    titulo:'Configurações', sub:'Preferências, save e Modo Resenha',
+    pill:()=>rfPillGravado(), grid:'minmax(0,1fr) 340px',
+    tabs:[ {k:'opcoes',  l:()=>'Opções',       build:()=>rfConfigHTML('opcoes')},
+           {k:'jogo',    l:()=>'Jogo',         build:()=>rfConfigHTML('jogo')},
+           {k:'resenha', l:()=>'Modo Resenha', build:()=>rfConfigHTML('resenha'),
+            show:()=>!!CL.online} ] },
 ];
+
 
 /* ---- as pílulas de status do cabeçalho, cada uma com o dado real do save ---- */
 function rfSufixo(n){ return n>0? ' ('+n+')' : ''; }
@@ -179,8 +193,7 @@ function rfTabLabel(t){ return typeof t.l==='function'? t.l() : t.l; }
 function rfActiveTab(def){
   const st=rfState(); const tabs=rfTabs(def); if(!tabs.length) return null;
   const want=st.tab[def.key];
-  if(def.resumo && !want) return null;          // resumo da página
-  return tabs.find(t=>t.k===want)||(def.resumo?null:tabs[0]);
+  return tabs.find(t=>t.k===want)||tabs[0];
 }
 function rfSetTabAlterna(page, tab){
   const st=rfState();
@@ -284,7 +297,7 @@ function rfSidebarHTML(){
   const unread=(typeof inboxUnread==='function')?inboxUnread():0;
 
   const badgeDe=key=>{
-    if(key==='clube') return unread;
+    if(key==='email') return unread;
     if(key==='mercado') return rfLen(typeof myIncomingOffers==='function'&&myIncomingOffers())
                              + rfLen(typeof myCounterOffers==='function'&&myCounterOffers());
     if(key==='treinador') return rfLen(S&&S.jobOffers);
@@ -320,13 +333,13 @@ function rfSidebarHTML(){
     </div>` : '';
 
   return `<aside class="rf-sidebar">
-    <div class="rf-sb-club">
+    <button type="button" class="rf-sb-club" onclick="rfGo('hub')" title="Voltar à Formação">
       <span class="rf-sb-crest">${rfCrest(cl,34)}</span>
       <span class="rf-sb-cnames">
         <span class="rf-sb-cname">${escC(cl.short)}</span>
         <span class="rf-sb-cmeta">${escC(divisionLabel())} · ${escC(String(S.season||''))}</span>
       </span>
-    </div>
+    </button>
     <nav class="rf-sb-nav">${itens}</nav>
     <div class="rf-sb-sp"></div>
     ${proximo}
@@ -391,13 +404,9 @@ function rfEnvelope(conteudo){
 function rfTabsHTML(def){
   const tabs=rfTabs(def); if(tabs.length<2) return '';
   const at=rfActiveTab(def);
-  const noResumo=def.resumo && !at;
-  return `<div class="rf-tabbar">
-    ${def.resumo?`<button type="button" class="rf-tabp ${noResumo?'on':''}"
-      onclick="rfSetTab('${def.key}','')" title="Todos os blocos da página">Resumo</button>`:''}
-    ${tabs.map(t=>
+  return `<div class="rf-tabbar">${tabs.map(t=>
     `<button type="button" class="rf-tabp ${at&&at.k===t.k?'on':''}"
-      onclick="rfSetTabAlterna('${def.key}','${t.k}')">${escC(rfTabLabel(t))}</button>`).join('')}</div>`;
+      onclick="rfSetTab('${def.key}','${t.k}')">${escC(rfTabLabel(t))}</button>`).join('')}</div>`;
 }
 
 /* ----- Cabeçalho de página: título de 26px, subtítulo e pílula de status.
