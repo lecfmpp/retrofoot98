@@ -1987,3 +1987,64 @@
   .rf-lv-crest img,.rf-lv-crest .rf-crest-fb{width:24px;height:24px}
   .rf-lv-placar{font-size:var(--fs-subhead);padding:5px 8px;gap:6px}
 }
+
+/* =====================================================================
+   MODAIS DE OFERTA — telas/Modal - Convite para Jantar e Jantar e Proposta
+   Convite: 860px, coluna direita de 300. Proposta: 940px, direita de 320.
+   ===================================================================== */
+.rf-of{width:860px;max-width:100%;background:var(--surface-desk);border:1px solid var(--line-2);
+  border-radius:var(--r-shell);overflow:hidden;box-shadow:0 24px 60px -30px rgba(0,0,0,.6);
+  display:flex;flex-direction:column;animation:ds-fade-up var(--dur-base) var(--ease);
+  font-family:var(--font-sans);color:var(--text-1)}
+.rf-of-proposta{width:940px}
+.rf-of-hd{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;
+  background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
+  padding:14px 18px;color:#fff}
+.rf-of-glyph{font-size:18px;margin-left:6px;flex:0 0 auto}
+.rf-of-ttl{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-of-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);letter-spacing:var(--ls-tight);white-space:nowrap}
+.rf-of-sub{font-size:var(--fs-caption);color:var(--text-on-dark-soft);white-space:nowrap}
+.rf-of-clube{display:flex;align-items:center;gap:8px;flex:0 0 auto;font-size:var(--fs-body-sm);
+  font-weight:var(--fw-bold);white-space:nowrap}
+.rf-of-clube img,.rf-of-clube .rf-crest-fb{width:22px;height:22px;object-fit:contain}
+.rf-of-hd .rf-dlg-x{color:#fff}
+
+.rf-of-body{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;padding:14px;
+  background:var(--surface-desk)}
+.rf-of-proposta .rf-of-body{grid-template-columns:minmax(0,1fr) 320px}
+.rf-of-esq{display:flex;flex-direction:column;gap:12px;min-width:0;background:var(--surface-card);
+  border:var(--border-hairline);border-radius:var(--r-card);padding:var(--pad-card)}
+.rf-of-dir{display:flex;flex-direction:column;gap:12px;min-width:0}
+.rf-of-p{margin:0;font-size:var(--fs-body-sm);color:var(--text-2);line-height:var(--lh-normal)}
+.rf-of-p2{margin:0;font-size:var(--fs-caption);color:var(--text-4);line-height:var(--lh-normal)}
+
+/* o vídeo é um espaço reservado 16:9 — a arte entra depois */
+.rf-video{position:relative;aspect-ratio:16/9;border-radius:var(--r-inner);overflow:hidden;
+  background:radial-gradient(120% 120% at 50% 30%,#2a2a1e,#0e0e0a);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.rf-video-play{width:40px;height:40px;border-radius:var(--r-pill);background:var(--club-secondary);
+  color:var(--club-on-secondary);display:flex;align-items:center;justify-content:center;font-size:15px}
+.rf-video-t{font-size:var(--fs-caption);font-weight:var(--fw-bold);color:#fff}
+.rf-video-s{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:var(--ls-label);
+  text-transform:uppercase;color:rgba(255,255,255,.5)}
+.rf-video-d{position:absolute;right:10px;bottom:8px;font-family:var(--font-mono);
+  font-size:var(--fs-label);color:rgba(255,255,255,.7)}
+
+/* ficha da direita */
+.rf-of-linha{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rf-of-l{font-size:var(--fs-body-sm);color:var(--text-3);white-space:nowrap}
+.rf-of-v{font-family:var(--font-mono);font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);
+  color:var(--text-1);white-space:nowrap}
+.rf-of-js{display:flex;align-items:baseline;gap:10px}
+.rf-of-jsn{font-family:var(--font-mono);font-size:24px;font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-of-jsd{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-4)}
+
+.rf-of-foot{display:flex;align-items:center;gap:12px;padding:12px 18px 16px;background:var(--surface-desk)}
+.rf-of-nota{font-size:var(--fs-caption);color:var(--text-4)}
+@media (max-width:760px){
+  .rf-of,.rf-of-proposta{width:100%;border-radius:var(--r-shell) var(--r-shell) 0 0}
+  .rf-of-body,.rf-of-proposta .rf-of-body{grid-template-columns:minmax(0,1fr)}
+  .rf-of-foot{flex-wrap:wrap}
+  .rf-of-foot .rf-wiz-b2,.rf-of-foot .rf-wiz-cta{flex:1 1 100%}
+  .rf-of-nota{flex:1 1 100%;order:-1}
+}

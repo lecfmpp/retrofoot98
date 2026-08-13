@@ -681,23 +681,23 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     // pacote, com a marcação da referência. O wizShell() antigo continua
     // atendendo as telas que ainda não têm equivalente no pacote (moeda,
     // país jogável, carregamento) — essas o pacote não traz.
-    case 'login':     html=(typeof rfOb1==='function')?rfOb1():scLogin(); break;
+    case 'login':     html=rfOb1(); break;
     case 'resetpassword': html=scResetPassword(); break;
-    case 'modo':      html=(typeof rfOb2==='function')?rfOb2():scModoChoice(); break;
+    case 'modo':      html=rfOb2(); break;
     case 'modosolo':  html=scModoSolo(); break;
-    case 'paises':    html=(typeof rfOb3==='function')?rfOb3():scPaises(); break;
+    case 'paises':    html=rfOb3(); break;
     case 'paisJogavel': html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scPaisJogavel(),{logo:true}); break;
     case 'moeda':     html=scMoeda(); break;
     case 'loading':   html=scLoading(); break;
     case 'jogadores': html=scJogadores(); break;
     case 'escolhaclubes': html=scEscolhaClubes(); break;
-    case 'sorteio':   html=(typeof rfOb6==='function')?rfOb6():scSorteio(); break;   // 6 · sorteio do clube
-    case 'boasvindas':html=(typeof rfOb7==='function')?rfOb7():(titleBarTop('RetroFoot98',{logo:true})+deskWrap(scBoasVindas(),{logo:true})); break;
+    case 'sorteio':   html=rfOb6(); break;   // 6 · sorteio do clube
+    case 'boasvindas':html=rfOb7(); break;
     // REBRANDING 2026: a tela principal virou o ENVELOPE (sidebar + faixa do clube +
     // área de duas colunas) e é ele que roteia as sete páginas — ver src/ui/rf26.js.
     // A barra de título cinza do Windows não existe mais aqui: a identidade do save
     // agora mora na faixa do clube, dentro do próprio envelope.
-    case 'main':      html=(typeof rfScreenHTML==='function')?rfScreenHTML():(titleBarTop('RetroFoot98',{phoneHide:true})+deskWrap(scMain())); break;
+    case 'main':      html=rfScreenHTML(); break;
     case 'waitround': html=titleBarTop('RetroFoot98')+deskWrap(scWaitRound()); break;
     case 'imprensa':  html=titleBarTop('RetroFoot98')+deskWrap(scImprensa()); break;
     case 'teamview':  html=titleBarTop('RetroFoot98')+deskWrap(scTeamView()); break;
@@ -2586,6 +2586,10 @@ function jobInviteTableHTML(){
 }
 function showJobInvite(offer){
   CL._jobOffer=offer;
+  // MODAL PORTADO (telas/Modal - Convite para Jantar). O desenho antigo não
+  // é mais alcançável — a tela nova cobre o caso do treinador empregado e o
+  // do demitido, e é ela que vale.
+  overlayC(rfModalConviteHTML(offer)); return;
   const c=jobOfferClub(offer), me=clubOf(CL.clubId)||{short:'?'};
   const flag=offer.foreign && typeof flagImg==='function' ? flagImg(offer.country)+' ' : '';
   // SEM CLUBE (demitido na Resenha, esperando convite): a tela toda partia do princípio de que
@@ -2641,6 +2645,8 @@ function clJobInviteAccept(){ clCloseOverlay(); showJobProposal(); }
 function clJobInviteDecline(){ showJobDeclined('Você agradeceu o convite e seguiu em frente.'); }
 function showJobProposal(){
   const o=CL._jobOffer; if(!o) return;
+  // MODAL PORTADO (telas/Modal - Jantar e Proposta)
+  overlayC(rfModalPropostaHTML(o)); return;
   const c=jobOfferClub(o), me=clubOf(CL.clubId)||{short:'?'};
   const semClube = !!(typeof CL!=='undefined' && CL.unemployed);   // ver showJobInvite
   // Termos REAIS do save onde existem: o salário é o que a oferta carrega e o que passa a valer
@@ -6705,13 +6711,10 @@ function kickoffWaitHTML(RL){
   </div>`;
 }
 function scLive(){ const RL=CL.live; if(!RL) return '';
-  // PARTIDA AO VIVO PORTADA (ver src/ui/rf26-live.js). O caminho antigo fica
-  // como rede: pênaltis, prorrogação e a partida avulsa de copa desenham
-  // cabeçalhos próprios que a tela de referência não cobre — nesses casos
-  // segue o desenho de sempre, até virem as telas correspondentes.
-  if(typeof rfLiveHTML==='function' && !RL.pens && !RL.cup && !RL.humanSeat){
-    try{ const h=rfLiveHTML(RL); if(h) return h; }catch(e){ console.warn('[rf26] ao vivo:', e); }
-  }
+  // PARTIDA AO VIVO: a tela nova desenha TODOS os casos, inclusive pênaltis,
+  // prorrogação e partida avulsa de copa. Não há caminho de volta pro desenho
+  // antigo — ele não deve reaparecer em nenhuma situação de borda.
+  return rfLiveHTML(RL);
   const rowHTML=(m,i)=>{const hc=clubOf(m.h),ac=clubOf(m.a);
     return `<div class="cl-lrow" onclick="liveRowClick(${i})">
       <span class="cl-latt">${grp(m.att)}</span>
@@ -10507,9 +10510,7 @@ function cupDrawScreenHTML(key, dr, actions){
   // pacote. O Brasileirão (Sorteio 1) fica de fora de propósito — aquele
   // formato já vem pronto de base no jogo, e a tela de referência dele não
   // deve substituir o que já existe.
-  if(typeof rfSorteioHTML==='function' && key!=='brasileirao'){
-    try{ return rfSorteioHTML(key, dr); }catch(e){ console.warn('[rf26] sorteio:', e); }
-  }
+  if(key!=='brasileirao') return rfSorteioHTML(key, dr);
   const c=S.cups&&S.cups[key]; if(!c) return '';
   CL._cupKey=key;
   const hasGroup=cupHasGroupTab(key,c) && dr.stage==='group';

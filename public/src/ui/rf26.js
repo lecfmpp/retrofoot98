@@ -1652,3 +1652,124 @@ function rfTransferenciasHTML(){
   return rfCol(rfCard('Últimas transferências', corpo, {right:ent.length?ent.length+' registros':''}))
        + rfMercadoRailHTML();
 }
+
+/* =====================================================================
+   MODAIS DE OFERTA — portados de telas/Modal - Convite para Jantar e
+   telas/Modal - Jantar e Proposta.
+
+   São POPUP legítimo pela regra do design system: acontecem sozinhos no
+   meio do save, o treinador não foi procurar.
+
+   Os dois têm a mesma anatomia — cabeçalho azul com o escudo do clube que
+   sondou, vídeo à esquerda e ficha à direita, e uma barra de ação com a
+   recusa em branco e o aceite em amarelo. Muda a largura (860 / 940), a
+   coluna da direita (300 / 320) e o conteúdo da ficha.
+   ===================================================================== */
+function rfVideoHTML(titulo, dur){
+  return `<div class="rf-video">
+    <span class="rf-video-play">▶</span>
+    <span class="rf-video-t">${escC(titulo)}</span>
+    <span class="rf-video-s">Espaço reservado · 16:9</span>
+    <span class="rf-video-d">${escC(dur||'0:18')}</span>
+  </div>`;
+}
+function rfFichaLinha(l,v){
+  return `<div class="rf-of-linha"><span class="rf-of-l">${escC(l)}</span>
+    <span class="rf-of-v">${escC(String(v))}</span></div>`;
+}
+/* ---- 1 · CONVITE PARA JANTAR ---- */
+function rfModalConviteHTML(o){
+  const c=(typeof jobOfferClub==='function')?jobOfferClub(o):{short:'—'};
+  const me=clubOf(CL.clubId)||{short:'—'};
+  const js=Math.round((S.jobSecurity!=null?S.jobSecurity:50));
+  const dir=js>=66?'direção tranquila':js>=34?'direção neutra':'direção impaciente';
+  return `<div class="rf-of rf-of-convite">
+    <div class="rf-of-hd">
+      <div class="rf-band-filete"></div>
+      <span class="rf-of-glyph">🍽️</span>
+      <div class="rf-of-ttl">
+        <span class="rf-of-t">Um convite para jantar.</span>
+        <span class="rf-of-sub">O empresário ligou — querem conversar com você.</span>
+      </div>
+      <div class="rf-sp"></div>
+      <span class="rf-of-clube">${rfCrest(c,22)}<span>${escC(c.short)}</span></span>
+      <button type="button" class="rf-dlg-x" onclick="clCloseOverlay()" aria-label="Fechar">✖</button>
+    </div>
+    <div class="rf-of-body">
+      <div class="rf-of-esq">
+        ${rfVideoHTML('Convite para o jantar','0:18')}
+        <p class="rf-of-p">O presidente do <b>${escC(c.short)}</b> (${escC((typeof jobOfferDivLabel==='function'?jobOfferDivLabel(o):''))}) pediu para falar com você pessoalmente. Ele acompanha o seu trabalho no ${escC(me.short)} e quer conversar num jantar, sem compromisso.</p>
+        <p class="rf-of-p2">Aceitar o jantar não é aceitar emprego nenhum — é só ouvir o que eles têm a dizer.</p>
+      </div>
+      <div class="rf-of-dir">
+        <div class="rf-card">
+          <span class="rf-label-t">A vaga</span>
+          ${rfFichaLinha('Clube', c.short)}
+          ${rfFichaLinha('Divisão', (typeof jobOfferDivLabel==='function'?jobOfferDivLabel(o):'—'))}
+          ${rfFichaLinha('Situação', 'vaga aberta')}
+          ${rfFichaLinha('Seu clube hoje', me.short)}
+        </div>
+        <div class="rf-card rf-card-quiet">
+          <span class="rf-label-t">Sua segurança no ${escC(me.short)}</span>
+          <div class="rf-of-js">
+            <span class="rf-of-jsn">${js}</span>
+            <span class="rf-of-jsd">${escC(dir)}</span>
+          </div>
+          <div class="rf-fb"><i style="width:${js}%;background:var(--club-secondary)"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="rf-of-foot">
+      <span class="rf-of-nota">Recusar encerra a conversa. O ${escC(me.short)} continua com você.</span>
+      <div class="rf-sp"></div>
+      <button type="button" class="rf-wiz-b2" onclick="clJobInviteDecline()">Recusar o convite</button>
+      <button type="button" class="rf-wiz-cta" onclick="showJobProposal()">🍽️ Aceitar o jantar</button>
+    </div>
+  </div>`;
+}
+/* ---- 2 · JANTAR E PROPOSTA ---- */
+function rfModalPropostaHTML(o){
+  const c=(typeof jobOfferClub==='function')?jobOfferClub(o):{short:'—'};
+  const me=clubOf(CL.clubId)||{short:'—'};
+  return `<div class="rf-of rf-of-proposta">
+    <div class="rf-of-hd">
+      <div class="rf-band-filete"></div>
+      <span class="rf-of-glyph">✍️</span>
+      <div class="rf-of-ttl">
+        <span class="rf-of-t">O jantar e a proposta.</span>
+        <span class="rf-of-sub">Eles puseram os termos na mesa.</span>
+      </div>
+      <div class="rf-sp"></div>
+      <span class="rf-of-clube">${rfCrest(c,22)}<span>${escC(c.short)}</span></span>
+      <button type="button" class="rf-dlg-x" onclick="clCloseOverlay()" aria-label="Fechar">✖</button>
+    </div>
+    <div class="rf-of-body">
+      <div class="rf-of-esq">
+        ${rfVideoHTML('A assinatura','0:24')}
+        <div class="rf-card rf-card-quiet">
+          <span class="rf-label-t">💬 O presidente do ${escC(c.short)}</span>
+          <p class="rf-of-p">Treinador, a gente viu o que você fez no ${escC(me.short)}. Aqui o projeto é sério: elenco pronto, torcida do lado e paciência pra construir. Vem com a gente.</p>
+        </div>
+      </div>
+      <div class="rf-of-dir">
+        <div class="rf-card">
+          <span class="rf-label-t">Os termos</span>
+          ${rfFichaLinha('Salário', o&&o.salary?fmt(o.salary):'—')}
+          ${rfFichaLinha('Prêmio por título', o&&o.bonus?fmt(o.bonus):'—')}
+          ${rfFichaLinha('Caixa do clube', (S.budgets&&S.budgets[o&&o.clubId])?fmt(S.budgets[o.clubId]):'—')}
+          ${rfFichaLinha('Divisão', (typeof jobOfferDivLabel==='function'?jobOfferDivLabel(o):'—'))}
+        </div>
+        <div class="rf-card rf-card-quiet">
+          <span class="rf-label-t">🎯 Objetivo principal</span>
+          <p class="rf-of-p">${escC((typeof jobOfferObjective==='function'?jobOfferObjective(o):'—'))}</p>
+        </div>
+      </div>
+    </div>
+    <div class="rf-of-foot">
+      <span class="rf-of-nota">Aceitar encerra o seu contrato com o ${escC(me.short)} na hora.</span>
+      <div class="rf-sp"></div>
+      <button type="button" class="rf-wiz-b2" onclick="clJobProposalDecline()">Agradecer e ficar</button>
+      <button type="button" class="rf-wiz-cta" onclick="clJobProposalAccept()">✍️ Assinar com o ${escC(c.short)}</button>
+    </div>
+  </div>`;
+}
