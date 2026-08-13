@@ -2469,11 +2469,21 @@
   .rf-ov-cols{grid-template-columns:minmax(0,1fr)}
   /* sem isto, numa lista de reservas longa o botão de confirmar sai da tela */
   .rf-ov-foot{position:sticky;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px))}
-  .rf-ov-b2,.rf-ov-cta{flex:1;padding:0 12px;font-size:var(--fs-body-sm)}
+  /* sem min-width:0 o flex:1 não encolhe abaixo do texto do botão, e dois
+     botões longos (prorrogação) estouravam a largura em 375px */
+  .rf-ov-b2,.rf-ov-cta{flex:1 1 0;min-width:0;padding:0 10px;font-size:var(--fs-body-sm);
+    overflow:hidden;text-overflow:ellipsis;display:block;line-height:44px;text-align:center}
   .rf-ov-resumo{flex-wrap:wrap;row-gap:8px}
   .rf-stg{padding:0}
   .rf-stg-hd{border-radius:0;padding:14px 16px}
   .rf-stg-t{font-size:var(--fs-title)}
+  .rf-ov-ttl{min-width:0}
+  /* CONFERIDO CONTRA telas/*- Mobile.html: as telas do pacote mantêm
+     white-space:nowrap com reticências em nome de jogador, na linha de apoio
+     das sobreposições e nas opções de reorganização — a régua de "não cortar
+     dado" é sobre não SUMIR com coluna, e essas continuam todas na tela. */
+  /* o caminho da copa segue a grade da referência: fase, adversário, placar, mando */
+  .rf-cp-et{grid-template-columns:64px minmax(0,1fr) 56px 48px;gap:0 12px}
   .rf-stg-shell{border-radius:0;border-left:none;border-right:none;padding:12px}
   /* o rodapé é IRMÃO do .rf-stg-shell, não filho dele — a margem negativa de
      -12px de cada lado que estava aqui o deixava 24px mais largo que o

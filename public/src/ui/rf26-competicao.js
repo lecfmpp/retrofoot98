@@ -182,11 +182,20 @@ function rfCompVer(k){
   if(k==='__div'){ clCloseOverlay(); clClassif(); return; }
   CL._cupKey=k; CL.screen='cupview'; cdraw();
 }
+/* a coluna da fase tem 64px, como na referência (lá os rótulos são curtos:
+   "1ª FASE", "2ª FASE"). cupPhaseLabel devolve "Oitavas de final", que não
+   cabe — então aqui vale a forma curta, não um corte com reticências. */
+function rfFaseCurta(f){
+  return String(f||'')
+    .replace(/ de final$/i,'')
+    .replace(/^Semifinal$/i,'Semi')
+    .replace(/^Fase de grupos.*$/i,'Grupos');
+}
 /* uma linha do "seu caminho": fase, adversário, placar, casa/fora */
 function rfCpEtapa(fase, advId, placar, mando, estado){
   const a=advId?(anyClubOf(advId)||{short:advId}):null;
   return `<div class="rf-cp-et ${estado||''}">
-    <span class="rf-cp-etf"><i class="rf-cp-dot"></i><span>${escC(fase)}</span></span>
+    <span class="rf-cp-etf"><i class="rf-cp-dot"></i><span>${escC(rfFaseCurta(fase))}</span></span>
     <span class="rf-cp-eta">${escC(a?a.short:'a sortear')}</span>
     <span class="rf-cp-etp">${escC(placar||'—')}</span>
     <span class="rf-cp-etm">${escC(mando||'—')}</span>
