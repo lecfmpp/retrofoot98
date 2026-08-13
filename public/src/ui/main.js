@@ -676,7 +676,10 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
   applyClubTokens(CL.clubId);   // ver applyClubTokens: --club-primary/--club-secondary do time do usuário
   let html='';
   switch(CL.screen){
-    case 'abertura':  html=scAbertura(); break;
+    // LANDING PORTADA (telas/Landing - Home). Só a home; as páginas
+    // institucionais (sobre, ajuda, contato, termos) seguem no caminho de
+    // sempre até virem as telas delas.
+    case 'abertura':  html=(CL.landingView&&CL.landingView!=='home')?scAbertura():rfLandingHTML(); break;
     // ONBOARDING PORTADO (ver src/ui/rf26-onboarding.js): as sete telas do
     // pacote, com a marcação da referência. O wizShell() antigo continua
     // atendendo as telas que ainda não têm equivalente no pacote (moeda,

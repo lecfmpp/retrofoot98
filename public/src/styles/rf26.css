@@ -2048,3 +2048,155 @@
   .rf-of-foot .rf-wiz-b2,.rf-of-foot .rf-wiz-cta{flex:1 1 100%}
   .rf-of-nota{flex:1 1 100%;order:-1}
 }
+
+/* =====================================================================
+   LANDING — portada de telas/Landing - Home.html
+   ===================================================================== */
+.rf-lp{min-height:100vh;background:var(--surface-desk);font-family:var(--font-sans);color:var(--text-1)}
+/* nav */
+.rf-lp-nav{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;
+  padding:14px 28px;background:var(--surface-card);border-bottom:1px solid var(--line-1)}
+.rf-lp-marca{display:flex;align-items:center;gap:10px;text-decoration:none;flex:0 0 auto}
+.rf-lp-marca img{width:32px;height:32px;object-fit:contain}
+.rf-lp-marca>span{font-size:16px;font-weight:var(--fw-bold);color:var(--text-1);letter-spacing:var(--ls-tight)}
+.rf-lp-links{display:flex;align-items:center;gap:2px;margin-left:14px;overflow-x:auto;scrollbar-width:none}
+.rf-lp-links::-webkit-scrollbar{display:none}
+.rf-lp-link{background:none;border:none;font-family:var(--font-sans);font-size:var(--fs-body-sm);
+  font-weight:var(--fw-medium);color:var(--text-3);padding:8px 10px;border-radius:var(--r-chip);
+  cursor:pointer;white-space:nowrap}
+.rf-lp-link:hover{background:var(--surface-sunken);color:var(--text-1)}
+.rf-lp-entrar{height:38px;padding:0 14px;border:var(--border-control);border-radius:var(--r-control);
+  background:var(--surface-card);font-family:var(--font-sans);font-size:var(--fs-body-sm);
+  font-weight:var(--fw-semibold);color:var(--text-2);cursor:pointer;white-space:nowrap}
+.rf-lp-lista{height:38px;padding:0 16px;border:none;border-radius:var(--r-control);
+  background:var(--club-primary);color:var(--club-on-primary);font-family:var(--font-sans);
+  font-size:var(--fs-body-sm);font-weight:var(--fw-bold);cursor:pointer;white-space:nowrap}
+
+/* hero */
+.rf-lp-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;
+  align-items:center;max-width:1180px;margin:0 auto;padding:56px 28px}
+.rf-lp-hero-txt{display:flex;flex-direction:column;gap:16px;min-width:0}
+.rf-lp-pill{align-self:flex-start;display:flex;align-items:center;gap:7px;font-size:var(--fs-caption);
+  font-weight:var(--fw-semibold);color:var(--ok);background:#e9f6ee;border:1px solid #cfe8d9;
+  border-radius:var(--r-pill);padding:6px 13px;white-space:nowrap}
+.rf-lp-h1{margin:0;font-size:42px;font-weight:var(--fw-bold);letter-spacing:var(--ls-tight);
+  line-height:1.12;color:var(--text-1)}
+.rf-lp-p{margin:0;font-size:var(--fs-subhead);color:var(--text-3);line-height:1.6;max-width:60ch}
+.rf-lp-ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+.rf-lp-nota{font-size:var(--fs-caption);color:var(--text-4)}
+.rf-lp-nota b{color:var(--text-2)}
+.rf-lp-hero-art{position:relative;min-width:0;display:flex;flex-direction:column;align-items:flex-end}
+
+/* seções */
+.rf-lp-sec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;
+  align-items:center;max-width:1180px;margin:0 auto;padding:48px 28px}
+.rf-lp-sec.invertida .rf-lp-sec-txt{order:2}
+.rf-lp-sec-txt{display:flex;flex-direction:column;gap:14px;min-width:0}
+.rf-lp-eyebrow{font-family:var(--font-mono);font-size:var(--fs-micro);font-weight:var(--fw-semibold);
+  color:var(--club-primary);letter-spacing:var(--ls-label-wide);text-transform:uppercase}
+.rf-lp-h2{margin:0;font-size:32px;font-weight:var(--fw-bold);letter-spacing:var(--ls-tight);
+  line-height:1.18;color:var(--text-1)}
+.rf-lp-itens{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.rf-lp-itens li{display:flex;align-items:flex-start;gap:9px;font-size:var(--fs-body-sm);color:var(--text-2)}
+.rf-lp-losango{color:var(--club-secondary);font-size:10px;line-height:1.6;flex:0 0 auto}
+.rf-lp-cta2{align-self:flex-start;height:44px;padding:0 20px;border:var(--border-control);
+  border-radius:var(--r-control);background:var(--surface-card);font-family:var(--font-sans);
+  font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--club-primary);
+  cursor:pointer;white-space:nowrap}
+.rf-lp-cta2:hover{background:var(--surface-sunken)}
+
+/* maquetes das telas do jogo */
+.rf-lpm{background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);
+  overflow:hidden;box-shadow:var(--shadow-shell);width:100%;max-width:520px}
+.rf-lpm-hd{display:flex;align-items:center;gap:10px;padding:10px 14px;color:#fff;
+  background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%)}
+.rf-lpm-t{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);white-space:nowrap}
+.rf-lpm-s{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-on-dark-soft)}
+.rf-lpm-body{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.rf-lpm-linha{display:grid;grid-template-columns:56px minmax(0,1fr) 70px minmax(0,1fr) 34px;
+  gap:0 10px;align-items:center;height:40px}
+.rf-lpm-pub{display:flex;align-items:center;justify-content:flex-end;gap:4px;
+  font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-muted)}
+.rf-lpm-casa{text-align:right;font-size:var(--fs-caption);font-weight:var(--fw-semibold);
+  color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-lpm-fora{font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-lpm-min{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-muted);text-align:right}
+.rf-lpm .rf-lv-placar{font-size:15px;padding:4px 8px;gap:6px}
+/* as duas maquetes do hero se sobrepõem, como na tela */
+.rf-lpm-live{max-width:460px}
+.rf-lpm-cam{max-width:400px;margin-top:-56px;margin-right:-24px;position:relative;z-index:2}
+.rf-lpm-cam .rf-lpm-hd{background:linear-gradient(100deg,#0b1a2e,var(--club-primary-deep))}
+.rf-lpm-placar{display:flex;align-items:center;justify-content:center;gap:14px;padding:14px}
+.rf-lpm-time{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-1);white-space:nowrap}
+.rf-lpm-pressao{display:flex;align-items:center;gap:10px;padding:0 14px 10px}
+.rf-lpm-bar{flex:1;height:var(--bar-h);border-radius:var(--r-pill);background:var(--surface-sunken);
+  overflow:hidden;display:block}
+.rf-lpm-bar>i{display:block;height:100%;background:var(--club-primary);border-radius:var(--r-pill)}
+.rf-lpm-narra{display:flex;align-items:baseline;gap:8px;padding:10px 14px;background:var(--surface-sunken);
+  font-size:var(--fs-caption);color:var(--text-2)}
+.rf-lpm-legenda{display:flex;gap:16px;padding-top:6px;font-size:var(--fs-label);color:var(--text-4)}
+.rf-lpm-legenda span{display:flex;align-items:center;gap:6px}
+.rf-lpm-ph{color:var(--text-faint);display:flex;align-items:center}
+.rf-lpm-sala{display:flex;align-items:center;gap:8px;font-size:var(--fs-micro);color:var(--text-4)}
+.rf-lpm-lote{display:grid;grid-template-columns:minmax(0,1fr) 84px;gap:2px 10px;
+  padding:8px 0;border-bottom:1px solid var(--line-3)}
+.rf-lpm-ln{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-lpm-lp{font-size:var(--fs-label);color:var(--text-faint)}
+.rf-lpm-lv{grid-row:1/3;align-self:center;font-family:var(--font-mono);font-size:var(--fs-body-sm);
+  font-weight:var(--fw-semibold);color:var(--club-primary);text-align:right}
+
+/* Ligas Oficiais */
+.rf-lp-ligas{max-width:1180px;margin:0 auto;padding:48px 28px;display:flex;flex-direction:column;gap:14px;
+  align-items:center;text-align:center}
+.rf-lp-ligas .rf-lp-p{text-align:center;max-width:72ch}
+.rf-lp-tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;width:100%;margin-top:10px}
+.rf-lp-tres .rf-card{align-items:center;text-align:center;gap:8px}
+.rf-lp-ic{font-size:26px;line-height:1}
+.rf-lp-ct{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-lp-cd{font-size:var(--fs-body-sm);color:var(--text-3);line-height:var(--lh-normal)}
+
+/* lista de espera */
+.rf-lp-lista{padding:48px 28px}
+.rf-lp-lista-in{max-width:640px;margin:0 auto;background:var(--surface-card);border:var(--border-hairline);
+  border-radius:var(--r-shell);padding:32px;display:flex;flex-direction:column;gap:14px;
+  align-items:center;text-align:center;box-shadow:var(--shadow-shell)}
+.rf-lp-lista-in .rf-lp-p{text-align:center}
+.rf-lp-vagas{width:100%;display:flex;flex-direction:column;gap:6px}
+
+/* rodapé escuro */
+.rf-lp-rodape{background:var(--ad-dark);color:var(--text-on-dark-soft);margin-top:40px}
+.rf-lp-fgrid{max-width:1180px;margin:0 auto;padding:44px 28px 24px;display:grid;
+  grid-template-columns:1.6fr 1fr 1fr 1fr 1fr;gap:26px}
+.rf-lp-fmarca{display:flex;flex-direction:column;gap:10px;min-width:0}
+.rf-lp-fmarca .rf-lp-marca>span{color:#fff}
+.rf-lp-fp{margin:0;font-size:var(--fs-body-sm);line-height:1.55;max-width:34ch;color:var(--text-on-dark-soft)}
+.rf-lp-fcol{display:flex;flex-direction:column;gap:8px;min-width:0}
+.rf-lp-ft{font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
+  text-transform:uppercase;color:var(--club-secondary);margin-bottom:2px}
+.rf-lp-fl{font-size:var(--fs-caption);color:var(--text-on-dark-soft);text-decoration:none;cursor:pointer}
+.rf-lp-fl:hover{color:#fff}
+.rf-lp-fbase{max-width:1180px;margin:0 auto;padding:16px 28px 28px;display:flex;align-items:center;
+  gap:12px;border-top:1px solid rgba(255,255,255,.1);font-size:var(--fs-caption)}
+.rf-lp-fv{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-on-dark-faint)}
+
+@media (max-width:1024px){
+  .rf-lp-hero,.rf-lp-sec{grid-template-columns:minmax(0,1fr);gap:28px}
+  .rf-lp-sec.invertida .rf-lp-sec-txt{order:0}
+  .rf-lp-hero-art{align-items:stretch}
+  .rf-lpm-cam{margin:-32px 0 0;max-width:100%}
+  .rf-lpm-live{max-width:100%}
+  .rf-lp-tres{grid-template-columns:minmax(0,1fr)}
+  .rf-lp-fgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:760px){
+  .rf-lp-nav{padding:10px 14px;gap:8px}
+  .rf-lp-links{display:none}
+  .rf-lp-hero,.rf-lp-sec,.rf-lp-ligas,.rf-lp-lista{padding:28px 16px}
+  .rf-lp-h1{font-size:30px}
+  .rf-lp-h2{font-size:24px}
+  .rf-lp-ctas .rf-wiz-cta,.rf-lp-ctas .rf-wiz-b2{flex:1 1 100%}
+  .rf-lp-fgrid{grid-template-columns:minmax(0,1fr);padding:28px 16px 16px}
+  .rf-lp-fbase{flex-wrap:wrap;padding:14px 16px 24px}
+  .rf-lp-lista-in{padding:22px 16px}
+}
