@@ -6147,7 +6147,23 @@ function onlineTickFloorMs(RL){
    pênalti do usuário aqui pausa e abre o modal normal, igual sempre). Os eventos entram
    na timeline da própria partida (deslocados +90'), então liveTick continua tocando
    normalmente — só o relógio muda de escala/rótulo (ver scLive). ---- */
+/* A PRORROGAÇÃO GANHOU TELA (telas/Modal - Prorrogacao). Ela não tinha
+   cabeçalho próprio: o relógio simplesmente passava dos 90 e o jogador
+   descobria depois. A tela avisa antes, mostra como o elenco está e libera
+   a QUARTA troca — que é a regra que só a prorrogação abre.
+   startExtraTime() agora só apresenta; quem estende o relógio é
+   startExtraTimeGo(), chamado pelo botão da tela. */
 function startExtraTime(m){
+  const RL=CL.live; if(!RL) return;
+  RL.penMatch=m; CL._extraPend=m;
+  overlayC(rfProrrogacaoHTML(RL));
+}
+function startExtraTimeGo(){
+  clCloseOverlay();
+  const m=CL._extraPend; CL._extraPend=null;
+  if(m) startExtraTimeLegado(m);
+}
+function startExtraTimeLegado(m){
   const RL=CL.live;
   RL.cup.wentExtra=true;
   // FASE 3A: sessão interativa continua na MESMA partida — mantém quem está em campo, cartões e
@@ -7219,6 +7235,10 @@ function liveClockPct(RL){
 /* placar da disputa de pênaltis: uma linha de bolinhas por time, ✔ verde quando converte,
    ✖ vermelho quando desperdiça/defende — cresce cobrança a cobrança, igual ao clássico. */
 function shootoutScoreboardHTML(RL){
+  // TELA PORTADA (telas/Modal - Disputa de Penaltis)
+  return rfDisputaHTML(RL);
+}
+function shootoutScoreboardHTMLLegado(RL){
   const m=RL.matches[0], hc=clubOf(m.h), ac=clubOf(m.a);
   const dot=k=>`<span class="cl-pens-dot ${k.scored?'ok':'miss'}">${k.scored?'✔':'✖'}</span>`;
   return `<div class="cl-pens-board">
@@ -7306,6 +7326,10 @@ function penaltyClubStyle(){
 function penaltyPickerHTML(){
   if(CL.penPhase==='suspense') return penaltySuspenseHTML();
   if(CL.penPhase==='result') return penaltyResultHTML();
+  // TELA PORTADA (telas/Modal - Penalti Batedor)
+  return rfPenaltiBatedorHTML();
+}
+function penaltyPickerHTMLLegado(){
   const takers=penaltyTakerPool((CL.live&&CL.live.penMatch)||null, CL.clubId);
   const secsLeft=Math.max(0,Math.ceil((CL.penDeadline-Date.now())/1000));
   const rows=takers.map(p=>`<div class="cl-pen-row ${CL.penSel===p.n?'sel':''}" onclick="penaltySelect('${escC(p.n)}')">
@@ -7357,6 +7381,10 @@ function shootoutPickerHTML(){
 }
 /* fase 2: suspense — só o título, sem revelar nada ainda (a pausa dramática que faltava) */
 function penaltySuspenseHTML(extra){
+  // TELA PORTADA (telas/Modal - Penalti Suspense)
+  return rfPenaltiSuspenseHTML(extra);
+}
+function penaltySuspenseHTMLLegado(extra){
   return `<div class="cl-pen-overlay"><div class="cl-pen-modal" ${penaltyClubStyle()}>
     ${extra||''}
     <div class="cl-pen-title">PENALTI</div>
@@ -7365,6 +7393,10 @@ function penaltySuspenseHTML(extra){
 }
 /* fase 3: revelação — mesma cor do clube em todas as fases; só o texto GOLO/Defendeu muda */
 function penaltyResultHTML(extra){
+  // TELA PORTADA (telas/Modal - Penalti Resultado)
+  return rfPenaltiResultadoHTML(extra);
+}
+function penaltyResultHTMLLegado(extra){
   const scored=CL.penResultScored;
   return `<div class="cl-pen-overlay"><div class="cl-pen-modal" ${penaltyClubStyle()}>
     ${extra||''}

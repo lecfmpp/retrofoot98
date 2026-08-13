@@ -2577,3 +2577,125 @@
 .rf-ov-cols>.rf-card{max-height:min(52vh,420px);overflow-y:auto}
 .rf-ov-win{max-height:calc(100vh - 64px)}
 .rf-ov-body{overflow-y:auto;min-height:0}
+
+/* =====================================================================
+   LEVA 4 · PÊNALTIS E PRORROGAÇÃO
+   ===================================================================== */
+/* o gramado do pênalti: faixas + o gol como grade de escolha */
+/* flex:0 0 auto é obrigatório: o corpo da sobreposição é uma coluna flex com
+   rolagem, e sem isso o gramado (altura fixa) era o primeiro a ser espremido
+   quando a lista de batedores crescia — virava uma tira verde de 12px. */
+.rf-gol-campo{position:relative;flex:0 0 auto;height:200px;border-radius:var(--r-inner);overflow:hidden;
+  background:repeating-linear-gradient(180deg,var(--pitch-1) 0 40px,var(--pitch-2) 40px 80px);
+  box-shadow:inset 0 14px 30px -18px rgba(0,0,0,.5)}
+/* 290×112 dentro das traves, 8 quadrados: 4 alto, 4 rasteiro.
+   A rede é repeating-linear-gradient — padrão, não ilustração; por isso
+   não vira SVG. */
+.rf-gol{position:absolute;left:50%;top:26px;transform:translateX(-50%);width:290px;height:112px;
+  border:3px solid rgba(255,255,255,.85);border-top-width:4px;box-sizing:border-box;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.14) 0 1px,transparent 1px 11px),
+             repeating-linear-gradient(180deg,rgba(255,255,255,.14) 0 1px,transparent 1px 11px);
+  padding:6px;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:1fr 1fr;gap:6px}
+.rf-gol-q{height:100%;border-radius:5px;background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.35);cursor:pointer;box-sizing:border-box;
+  transition:background var(--dur-fast) var(--ease)}
+.rf-gol:not([data-off]) .rf-gol-q:hover{background:rgba(255,255,255,.4)}
+.rf-gol-q.sel{background:rgba(255,255,255,.85);border-color:rgba(255,255,255,.9)}
+.rf-gol[data-off] .rf-gol-q{cursor:default}
+.rf-gol-alto,.rf-gol-rasteiro{position:absolute;left:calc(50% - 178px);
+  font-family:var(--font-mono);font-size:var(--fs-label-xs);color:rgba(255,255,255,.75);
+  letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.rf-gol-alto{top:44px}
+.rf-gol-rasteiro{top:98px}
+.rf-gol-marca{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);
+  width:9px;height:9px;border-radius:var(--r-pill);background:#fff}
+.rf-gol-txt{position:absolute;left:50%;bottom:32px;transform:translateX(-50%);
+  font-family:var(--font-mono);font-size:var(--fs-label);color:rgba(255,255,255,.8);
+  letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.rf-ov-bola{font-size:22px;flex:0 0 auto}
+
+/* batedor */
+/* o elenco real tem 10+ cobradores; a lista rola por dentro do card pra o
+   gol e o rodapé continuarem à vista */
+.rf-bat-lista{max-height:220px;overflow-y:auto;display:flex;flex-direction:column}
+.rf-bat{display:grid;grid-template-columns:38px minmax(0,1fr) 34px 76px;gap:0 10px;
+  align-items:center;padding:9px 10px;border-radius:var(--r-control);
+  border:1px solid transparent;cursor:pointer;transition:background var(--dur-fast) var(--ease)}
+.rf-bat:hover{background:var(--surface-sunken)}
+.rf-bat.sel{background:var(--club-primary-soft);border-color:var(--club-primary)}
+.rf-bat-fr{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+.rf-bat-frn{font-family:var(--font-mono);font-size:var(--fs-subhead);font-weight:var(--fw-semibold)}
+.rf-bat-frn.boa{color:var(--ok)}
+.rf-bat-frn.media{color:var(--warn)}
+.rf-bat-frn.ruim{color:var(--danger)}
+
+/* suspense e resultado */
+.rf-pen-susp{display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;
+  padding:8px 0}
+.rf-pen-susp-n{font-size:var(--fs-heading);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-pen-susp-s{font-size:var(--fs-body-sm);color:var(--text-4)}
+.rf-pen-res{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;
+  padding:14px;border-radius:var(--r-card)}
+.rf-pen-res.gol{background:#e9f6ee;border:1px solid #cfe8d9}
+.rf-pen-res.perdeu{background:#fbeded;border:1px solid #f2d5d5}
+.rf-pen-res-t{font-size:var(--fs-heading);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-pen-res-s{font-size:var(--fs-body-sm);color:var(--text-3)}
+
+/* disputa: cada cobrança é uma bolinha */
+.rf-so-time{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r-control)}
+.rf-so-time.meu{background:var(--club-primary-soft);box-shadow:inset 0 0 0 1px var(--club-primary-line)}
+.rf-so-crest{flex:0 0 auto;display:flex}
+.rf-so-crest img,.rf-so-crest .rf-crest-fb{width:22px;height:22px;object-fit:contain}
+.rf-so-n{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);white-space:nowrap}
+.rf-so-g{font-family:var(--font-mono);font-size:var(--fs-heading);font-weight:var(--fw-bold);
+  color:var(--text-1);min-width:22px;text-align:right}
+.rf-so-bolas{display:flex;gap:5px;flex:0 0 auto}
+.rf-so-b{width:20px;height:20px;border-radius:var(--r-pill);background:var(--surface-sunken);
+  border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:#fff}
+.rf-so-b.ok{background:var(--ok);border-color:var(--ok)}
+.rf-so-b.no{background:var(--danger);border-color:var(--danger)}
+.rf-so-cob{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:var(--ls-label);
+  text-transform:uppercase;color:var(--text-on-dark-soft);white-space:nowrap}
+.rf-so-agora{border-left-color:var(--club-secondary)}
+.rf-so-info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.rf-so-i{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-so-iv{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* prorrogação */
+.rf-prr-placar{font-family:var(--font-mono);font-size:var(--fs-heading);font-weight:var(--fw-bold);
+  color:#fff;background:rgba(255,255,255,.14);border-radius:var(--r-chip);padding:5px 14px;
+  white-space:nowrap;flex:0 0 auto}
+.rf-prr-tempos{flex-direction:row;justify-content:space-around;gap:12px}
+.rf-prr-t{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.rf-prr-tv{font-family:var(--font-mono);font-size:26px;font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-prr-tv.sm{font-family:var(--font-sans);font-size:var(--fs-subhead);font-weight:var(--fw-bold)}
+.rf-prr-j{display:grid;grid-template-columns:minmax(0,1fr) 60px 62px;gap:0 10px;align-items:center;
+  padding:6px 0}
+.rf-prr-jn{font-size:var(--fs-body-sm);color:var(--text-2);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rf-prr-jb{display:flex;justify-content:flex-end}
+.rf-prr-jb .rf-ener{width:52px}
+.rf-prr-je{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-4);text-align:right}
+.rf-prr-tr{display:flex;align-items:baseline;gap:8px}
+.rf-prr-tr b{font-family:var(--font-mono);font-size:34px;font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-prr-tr span{font-size:var(--fs-body-sm);color:var(--text-3)}
+/* a quarta pílula é a troca extra: verde, não amarela */
+.rf-prr-tr ~ .rf-ov-subs{align-items:flex-start}
+.rf-prr-tr ~ .rf-ov-subs .rf-ov-subs-l,.rf-prr-tr ~ .rf-ov-subs .rf-ov-subs-n{color:var(--text-4)}
+.rf-prr-tr ~ .rf-ov-subs .rf-ov-pill{background:var(--line-2)}
+.rf-prr-tr ~ .rf-ov-subs .rf-ov-pill.on{background:var(--club-secondary)}
+.rf-prr-tr ~ .rf-ov-subs .rf-ov-pill:nth-child(4){background:var(--ok);opacity:.4}
+.rf-prr-tr ~ .rf-ov-subs .rf-ov-pill:nth-child(4).on{opacity:1}
+
+@media (max-width:760px){
+  .rf-gol-campo{height:170px}
+  .rf-gol{width:260px;height:100px;top:22px}
+  .rf-gol-alto,.rf-gol-rasteiro{left:8px}
+  .rf-bat{grid-template-columns:32px minmax(0,1fr) 62px}
+  .rf-bat .rf-pl-pos{display:none}
+  .rf-so-info{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rf-prr-tempos{flex-wrap:wrap}
+  .rf-so-bolas{flex-wrap:wrap;max-width:120px}
+}

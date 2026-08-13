@@ -471,3 +471,244 @@ function rfLobbyHTML(){
       <button type="button" class="rf-ov-cta" onclick="clComecarTemporada&&clComecarTemporada()">⚽ Começar a temporada</button>`
   });
 }
+
+/* =====================================================================
+   LEVA 4 · PÊNALTIS E PRORROGAÇÃO
+   Portado de telas/Modal - Penalti Batedor · Suspense · Resultado ·
+   Disputa de Penaltis · Prorrogacao.
+
+   O GOL É A PRÓPRIA GRADE DE ESCOLHA: 290×112 dentro das traves, dividido
+   em 8 quadrados — 4 ALTO em cima, 4 RASTEIRO embaixo. É desenhado em CSS
+   (rede em repeating-linear-gradient), não em SVG: o design system fecha a
+   porta pra SVG novo, e a rede é padrão, não ilustração.
+   ===================================================================== */
+
+/* o gramado com o gol e os oito cantos */
+function rfGolHTML(cantoSel, opts){
+  opts=opts||{};
+  return `<div class="rf-gol-campo">
+    <div class="rf-gol" ${opts.on?'':'data-off'}>
+      ${Array.from({length:8},(_,i)=>
+        `<span class="rf-gol-q ${cantoSel===i?'sel':''}"
+          ${opts.on?`onclick="${opts.on}(${i})"`:''}
+          title="${i<4?'alto':'rasteiro'} ${['esquerda','meio-esquerda','meio-direita','direita'][i%4]}"></span>`).join('')}
+    </div>
+    <span class="rf-gol-alto">Alto</span>
+    <span class="rf-gol-rasteiro">Rasteiro</span>
+    <span class="rf-gol-marca"></span>
+    <span class="rf-gol-txt">${escC(opts.txt||'Escolha o canto')}</span>
+  </div>`;
+}
+/* frieza: quanto o jogador aguenta a pressão. Cai com o cansaço e com quem
+   acabou de entrar — é o que a tela explica no rodapé. */
+function rfFrieza(p){
+  const en=p.energy!=null?p.energy:100;
+  return Math.max(1,Math.min(99, Math.round((p.f||50)*0.7 + en*0.3)));
+}
+function rfFriezaTom(v){ return v>=75?'boa':v>=55?'media':'ruim'; }
+function rfBatedorLinhaHTML(p, sel, on, nota){
+  const fr=rfFrieza(p);
+  return `<div class="rf-bat ${sel?'sel':''}" onclick="${on}">
+    <span class="rf-pl-num">${escC(String((clubShirtNumbers(CL.clubId)||{})[p.pid]||''))}</span>
+    <span class="rf-pl-id">
+      <span class="rf-pl-n">${escC(p.n)}</span>
+      <span class="rf-pl-s">${escC(nota||rfBatedorNota(p))}</span>
+    </span>
+    <span class="rf-pl-pos">${escC(posLetter(p.s))}</span>
+    <span class="rf-bat-fr">
+      <span class="rf-ov-res-t">Frieza</span>
+      <span class="rf-bat-frn ${rfFriezaTom(fr)}">${fr}</span>
+    </span>
+  </div>`;
+}
+function rfBatedorNota(p){
+  const gols=(S.scorers&&S.scorers[p.n])||0;
+  const en=p.energy!=null?p.energy:100;
+  if(en<45) return 'entrou agora, frio';
+  if(gols>0) return gols+' gol'+(gols>1?'s':'')+' na temporada';
+  return 'cobrador reserva';
+}
+
+/* ---- 1 · PÊNALTI: escolher batedor ---- */
+function rfPenaltiBatedorHTML(){
+  const m=(CL.live&&CL.live.penMatch)||null;
+  const takers=(typeof penaltyTakerPool==='function')?penaltyTakerPool(m,CL.clubId):[];
+  const sel=CL.penSel||(takers[0]&&takers[0].n);
+  const alvo=takers.find(p=>p.n===sel)||takers[0];
+  return rfOverlay({
+    w:800, contexto:rfCtxPartida(m), titulo:'Pênalti a favor',
+    hdDir:'<span class="rf-ov-bola" aria-hidden="true">⚽</span>',
+    corpo:`
+      ${rfGolHTML(CL.penCanto, {on:'rfPenCanto', txt:'Escolha o canto'})}
+      <div class="rf-card">
+        <div class="rf-label"><span class="rf-label-t">Quem bate</span>
+          <span class="rf-label-r">toque para escolher</span></div>
+        <div class="rf-bat-lista">${takers.map(p=>rfBatedorLinhaHTML(p, sel===p.n, `penaltySelect('${escC(p.n)}')`)).join('')}</div>
+      </div>
+      <span class="rf-note">A frieza cai quando o jogador está cansado ou entrou há pouco tempo.</span>`,
+    acoes:`<button type="button" class="rf-ov-b2" onclick="resolvePenalty(null)">Deixar o capitão bater</button>
+      <div class="rf-sp"></div>
+      <button type="button" class="rf-ov-cta" onclick="resolvePenalty(CL.penSel)">Bater com ${escC(alvo?alvo.n.split(' ')[0]:'')}</button>`
+  });
+}
+function rfPenCanto(i){ CL.penCanto=i; cdraw(); }
+
+/* ---- 2 · PÊNALTI: suspense ---- */
+function rfPenaltiSuspenseHTML(extra){
+  const m=(CL.live&&CL.live.penMatch)||null;
+  return rfOverlay({
+    w:800, contexto:rfCtxPartida(m), titulo:'A bola no ponto',
+    hdDir:'<span class="rf-ov-bola" aria-hidden="true">⚽</span>',
+    corpo:`${extra||''}
+      ${rfGolHTML(CL.penCanto,{txt:'…'})}
+      <div class="rf-pen-susp">
+        <span class="rf-pen-susp-n">${escC(CL.penSel||'')}</span>
+        <span class="rf-pen-susp-s">ajeita a bola, recua e espera o apito</span>
+      </div>`
+  });
+}
+
+/* ---- 3 · PÊNALTI: resultado ---- */
+function rfPenaltiResultadoHTML(extra){
+  const m=(CL.live&&CL.live.penMatch)||null;
+  const gol=!!CL.penScored;
+  return rfOverlay({
+    w:800, cls:gol?'':'rf-ov-grave', contexto:rfCtxPartida(m),
+    titulo:gol?'Gol!':'Perdeu!',
+    hdDir:`<span class="rf-ov-bola" aria-hidden="true">${gol?'⚽':'🧤'}</span>`,
+    corpo:`${extra||''}
+      ${rfGolHTML(CL.penCanto,{txt:gol?'no fundo da rede':'o goleiro pegou'})}
+      <div class="rf-pen-res ${gol?'gol':'perdeu'}">
+        <span class="rf-pen-res-t">${gol?'⚽ Gol de '+escC(CL.penSel||''):'🧤 '+escC(CL.penSel||'')+' parou no goleiro'}</span>
+        <span class="rf-pen-res-s">${gol?'A torcida foi ao delírio.':'Ainda dá tempo de virar.'}</span>
+      </div>`,
+    acoes:`<div class="rf-sp"></div>
+      <button type="button" class="rf-ov-cta" onclick="clCloseOverlay();cdraw()">Seguir o jogo</button>`
+  });
+}
+
+/* ---- 4 · DISPUTA DE PÊNALTIS ---- */
+/* cada cobrança é uma bolinha: verde convertida, vermelha perdida, cinza
+   ainda por bater. O placar da série fica no topo, os dois times lado a lado. */
+function rfShootoutBolasHTML(lista, total){
+  total=total||5;
+  return `<div class="rf-so-bolas">${Array.from({length:Math.max(total,lista.length)},(_,i)=>{
+    const v=lista[i];
+    return `<span class="rf-so-b ${v===true?'ok':v===false?'no':''}">${v===true?'●':v===false?'✖':''}</span>`;
+  }).join('')}</div>`;
+}
+function rfDisputaHTML(RL){
+  RL=RL||CL.live||{};
+  const pens=RL.pens||{h:[],a:[]};
+  const m=RL.penMatch||(RL.matches&&RL.matches[0])||{};
+  const hc=anyClubOf(m.h)||{short:'—'}, ac=anyClubOf(m.a)||{short:'—'};
+  const gh=pens.h.filter(Boolean).length, ga=pens.a.filter(Boolean).length;
+  const eu=(m.h===CL.clubId);
+  const takers=(typeof penaltyTakerPool==='function')?penaltyTakerPool(m,CL.clubId):[];
+  const bate=takers.find(p=>p.n===CL.penSel)||takers[0];
+  const nCob=Math.max(pens.h.length,pens.a.length)+1;
+  const linha=(c,gols,lista,meu)=>`<div class="rf-so-time ${meu?'meu':''}">
+    <span class="rf-so-crest">${rfCrest(c,22)}</span>
+    <span class="rf-so-n">${escC(c.short)}</span>
+    <div class="rf-sp"></div>
+    <span class="rf-so-g">${gols}</span>
+    ${rfShootoutBolasHTML(lista)}
+  </div>`;
+  return rfOverlay({
+    w:760,
+    contexto:`${escC(m.comp||'Mata-mata')} · ${(m.hg||0)} × ${(m.ag||0)} no tempo normal`,
+    titulo:'Disputa de pênaltis',
+    hdDir:`<span class="rf-so-cob">${nCob}ª cobrança</span>`,
+    corpo:`
+      <div class="rf-card">
+        ${linha(hc,gh,pens.h,eu)}
+        ${linha(ac,ga,pens.a,!eu)}
+      </div>
+      ${bate?`<div class="rf-ov-alerta rf-so-agora">
+        <span class="rf-pl-num">${escC(String((clubShirtNumbers(CL.clubId)||{})[bate.pid]||''))}</span>
+        <div class="rf-ov-al-id">
+          <span class="rf-ov-al-n">${escC(bate.n)}</span>
+          <span class="rf-ov-al-s">${escC(rfSoSituacao(gh,ga,eu))}</span>
+        </div>
+        <div class="rf-sp"></div>
+        <div class="rf-ov-al-t"><span class="rf-ov-res-t">Frieza</span>
+          <span class="rf-bat-frn ${rfFriezaTom(rfFrieza(bate))}">${rfFrieza(bate)}</span></div>
+      </div>`:''}
+      <div class="rf-card">
+        <span class="rf-label-t">Como está a série</span>
+        <div class="rf-so-info">
+          <div class="rf-so-i"><span class="rf-ov-res-t">Situação</span>
+            <span class="rf-so-iv">${escC(rfSoVantagem(gh,ga,hc,ac))}</span>
+            <span class="rf-pr-ms">${escC(rfSoSubtexto(gh,ga))}</span></div>
+          <div class="rf-so-i"><span class="rf-ov-res-t">Defendidos</span>
+            <span class="rf-so-iv">${pens.h.filter(v=>v===false).length} × ${pens.a.filter(v=>v===false).length}</span>
+            <span class="rf-pr-ms">quem parou mais</span></div>
+          <div class="rf-so-i"><span class="rf-ov-res-t">Reserva</span>
+            <span class="rf-so-iv">${escC(takers[1]?takers[1].n.split(' ')[0]:'—')}</span>
+            <span class="rf-pr-ms">fora da série</span></div>
+        </div>
+      </div>`,
+    acoes:`<button type="button" class="rf-ov-b2" onclick="rfSoSimular()">⏩ Simular o resto</button>
+      <div class="rf-sp"></div>
+      <button type="button" class="rf-ov-cta" onclick="resolveShootoutKick(CL.penSel)">Bater</button>`
+  });
+}
+function rfSoVantagem(gh,ga,hc,ac){
+  if(gh>ga) return 'Vantagem '+hc.short;
+  if(ga>gh) return 'Vantagem '+ac.short;
+  return 'Empatado';
+}
+function rfSoSubtexto(gh,ga){ return gh===ga?'quem errar primeiro decide':'converta e acaba'; }
+function rfSoSituacao(gh,ga,eu){
+  const meu=eu?gh:ga, dele=eu?ga:gh;
+  if(meu>dele) return 'Se converter, fica muito perto';
+  if(meu<dele) return 'Precisa converter para seguir vivo';
+  return 'Cobrança para manter a série';
+}
+function rfSoSimular(){ if(typeof shootoutSkip==='function') shootoutSkip(); else { CL.penFast=true; cdraw(); } }
+
+/* ---- 5 · PRORROGAÇÃO ---- */
+/* a QUARTA pílula aparece em verde: é a troca extra que só a prorrogação
+   libera, e a tela existe justamente pra avisar disso antes do apito. */
+function rfProrrogacaoHTML(RL){
+  RL=RL||CL.live||{};
+  const m=RL.penMatch||(RL.matches&&RL.matches.find(x=>x.user))||(RL.matches&&RL.matches[0])||{};
+  const usadas=CL.subsUsed||0;
+  const restantes=Math.max(0,4-usadas);
+  const xi=xiPlayers(CL.clubId).slice().sort((a,b)=>(a.energy||100)-(b.energy||100)).slice(0,4);
+  const estado=en=>en<35?'exausto':en<55?'pesado':en<75?'aguenta':'inteiro';
+  return rfOverlay({
+    w:760, contexto:`${escC(m.comp||'Mata-mata')} · fim dos 90'`,
+    titulo:'Vamos para a prorrogação',
+    hdDir:`<span class="rf-prr-placar">${(m.hg||0)} – ${(m.ag||0)}</span>`,
+    corpo:`
+      <div class="rf-card rf-prr-tempos">
+        <div class="rf-prr-t"><span class="rf-ov-res-t">1º tempo extra</span><span class="rf-prr-tv">15′</span></div>
+        <div class="rf-prr-t"><span class="rf-ov-res-t">2º tempo extra</span><span class="rf-prr-tv">15′</span></div>
+        <div class="rf-prr-t"><span class="rf-ov-res-t">Se empatar</span><span class="rf-prr-tv sm">Pênaltis</span></div>
+      </div>
+      <div class="rf-ov-cols">
+        <div class="rf-card">
+          <span class="rf-label-t">Como o elenco está</span>
+          ${xi.map(p=>{ const en=Math.round(p.energy!=null?p.energy:100);
+            return `<div class="rf-prr-j">
+              <span class="rf-prr-jn">${escC(p.n)}</span>
+              <span class="rf-prr-jb"><i class="rf-ener" style="--v:${en};--c:${rfEnergiaCor(en)}"></i></span>
+              <span class="rf-prr-je">${escC(estado(en))}</span>
+            </div>`; }).join('')}
+        </div>
+        <div class="rf-card">
+          <span class="rf-label-t">Trocas restantes</span>
+          <div class="rf-prr-tr"><b>${restantes}</b><span>de 4</span></div>
+          <span class="rf-note">A prorrogação libera uma troca extra. Use nos pernas cansadas antes dos pênaltis.</span>
+          ${rfSubsPillsHTML(usadas,4)}
+        </div>
+      </div>
+      <span class="rf-note">A quarta pílula é a troca extra da prorrogação.</span>`,
+    acoes:`<button type="button" class="rf-ov-b2" onclick="rfPrrSubstituir()">Fazer uma substituição</button>
+      <div class="rf-sp"></div>
+      <button type="button" class="rf-ov-cta" onclick="rfPrrComecar()">Começar a prorrogação</button>`
+  });
+}
+function rfPrrSubstituir(){ CL.subOpen=true; CL._prrPendente=true; cdraw(); }
+function rfPrrComecar(){ CL._prrPendente=false; if(typeof startExtraTimeGo==='function') startExtraTimeGo(); else { clCloseOverlay(); cdraw(); } }
