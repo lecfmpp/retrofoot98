@@ -472,10 +472,10 @@ function rfHubHTML(){
           title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
       </div>
     </div>
-    ${oppId?`<div class="rf-card rf-card-grow">
-      <span class="rf-label-t">Adversário</span>
-      ${panAdversario(oppId)}
-    </div>`:''}`;
+    <div class="rf-hub-baixo">
+      ${rfNotasHTML()}
+      ${rfAdversarioCardHTML()}
+    </div>`;
 
   return `${rfBandHTML('Formação')}
     <div class="rf-cols">

@@ -3819,3 +3819,120 @@
   /* a tabela rola DENTRO do card */
   .rf-tbl{max-width:100%}
 }
+
+/* =====================================================================
+   FORMAÇÃO v2 — notas do plantel e cartão do adversário
+   Os dois ficam lado a lado embaixo do campo: notas à esquerda,
+   adversário à direita, como o pacote desenha.
+   ===================================================================== */
+.rf-hub-baixo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:stretch}
+/* ---- notas ---- */
+.rf-notas{gap:0}
+.rf-nota{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line-3)}
+.rf-nota:last-child{border-bottom:0}
+.rf-nota-id{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.rf-nota-r{font-family:var(--font-mono);font-size:10px;font-weight:var(--fw-bold);
+  letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--text-muted)}
+.rf-nota-n{font-size:var(--fs-body);font-weight:var(--fw-bold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-nota-s{font-size:var(--fs-label);color:var(--text-faint)}
+.rf-nota-v{font-family:var(--font-mono);font-size:26px;font-weight:var(--fw-semibold);
+  color:var(--club-primary);flex:0 0 auto;white-space:nowrap}
+/* ---- adversário: cartão escuro ---- */
+.rf-adv{display:flex;flex-direction:column;gap:12px;border-radius:var(--r-card);padding:16px;
+  background:linear-gradient(160deg,var(--club-primary-deep),var(--club-primary));
+  color:#fff;box-sizing:border-box}
+.rf-adv-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rf-adv-l{font-family:var(--font-mono);font-size:10px;font-weight:var(--fw-semibold);
+  letter-spacing:var(--ls-label);text-transform:uppercase;color:#c3d3ec}
+.rf-adv-d{font-size:var(--fs-caption);color:var(--club-secondary)}
+.rf-adv-clube{display:flex;align-items:center;gap:10px}
+.rf-adv-selo{flex:0 0 auto;display:flex;width:36px;height:36px;border-radius:11px;background:#fff;
+  align-items:center;justify-content:center;overflow:hidden}
+.rf-adv-selo img,.rf-adv-selo .rf-crest-fb{width:30px;height:30px;object-fit:contain}
+.rf-adv-id{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-adv-nome{font-size:19px;font-weight:var(--fw-bold);color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-adv-sub{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:var(--ls-label);
+  color:#c3d3ec}
+.rf-adv-tab{background:rgba(255,255,255,.09);border-radius:12px;padding:10px 12px;
+  display:flex;flex-direction:column;gap:6px}
+.rf-adv-lin{display:grid;grid-template-columns:minmax(0,1fr) 22px 22px 22px 40px 26px;gap:6px;
+  align-items:center;font-family:var(--font-mono);font-size:var(--fs-caption);color:#fff}
+.rf-adv-lin>span:not(.rf-adv-n){text-align:right}
+.rf-adv-lin.cab{font-size:10px;color:#a9bfe0}
+.rf-adv-lin:not(.me):not(.cab){color:#c3d3ec}
+.rf-adv-n{font-family:var(--font-sans);font-weight:var(--fw-semibold);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-adv-p{font-weight:var(--fw-bold)}
+.rf-adv-jogar{height:46px;border:0;border-radius:14px;background:var(--club-cta-bg,var(--club-secondary));
+  color:var(--club-cta-fg,var(--club-on-secondary));font-family:var(--font-sans);
+  font-size:16px;font-weight:var(--fw-bold);cursor:pointer}
+.rf-adv-jogar.pulsa{animation:jogarPulse 2.4s var(--ease) infinite}
+.rf-adv-jogar:disabled{opacity:.55;cursor:default;animation:none}
+@keyframes jogarPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+@media (prefers-reduced-motion:reduce){.rf-adv-jogar.pulsa{animation:none}}
+.rf-adv-falta{font-size:var(--fs-label);color:#c3d3ec;text-align:center}
+.rf-adv-vazio{gap:6px}
+@media (max-width:900px){ .rf-hub-baixo{grid-template-columns:minmax(0,1fr)} }
+
+/* =====================================================================
+   CAMPO E BANCO v2  (pacote "Hub do time v2", telas/Hub do Time.html)
+   A camisa do gramado deixou de ser SVG e virou a mesma peça .rf-jersey
+   da ficha do jogador; a linha de dados virou LETRA · barra · força; e o
+   banco virou lista agrupada por setor, com colete na camisa.
+   ===================================================================== */
+
+/* --- marca d'agua do escudo, atras dos jogadores --- */
+.rf-pitch-marca{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:190px;height:190px;object-fit:contain;opacity:.1;
+  filter:brightness(0) invert(1);pointer-events:none;user-select:none;z-index:0}
+
+/* --- camisa no gramado: 44x40, sombra caida --- */
+.rf-pitch-card .cl-pp .cl-pp-shirt{width:44px;max-width:none;height:40px;margin:0 auto;
+  filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))}
+.rf-pitch-card .cl-pp .cl-pp-name{margin-top:3px;font-size:11px;font-weight:var(--fw-bold);
+  color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65);white-space:nowrap}
+
+/* --- linha de dados do titular --- */
+.rf-pp-meta{display:flex;align-items:center;gap:5px;width:76px;margin:3px auto 0}
+.rf-pp-pos{font-family:var(--font-mono);font-size:10px;color:#dff0e6;
+  text-shadow:0 1px 3px rgba(0,0,0,.65)}
+.rf-pp-bar{flex:1;height:5px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden}
+.rf-pp-bar i{display:block;height:100%;border-radius:99px}
+.rf-pp-f{font-family:var(--font-mono);font-size:10px;color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,.65)}
+
+/* --- banco: coluna de 196px, uma linha por reserva --- */
+.rf-pitch-card .rf-banco{display:flex;flex-direction:column}
+.rf-banco-lista{display:flex;flex-direction:column;gap:6px;overflow-y:auto;min-height:0;flex:1 1 auto}
+.rf-bgrupo{display:flex;flex-direction:column;gap:1px}
+.rf-bgrupo-t{font-size:9px;font-weight:var(--fw-bold);color:var(--text-4);
+  letter-spacing:.12em;padding:2px 5px}
+.rf-pitch-card .rf-bp{display:grid;grid-template-columns:30px minmax(0,1fr) 20px;gap:7px;
+  align-items:center;padding:3px 5px;border:0;background:none;border-radius:8px;
+  cursor:pointer;text-align:left;width:100%}
+.rf-pitch-card .rf-bp:hover{background:var(--surface-row-hover,var(--surface-card))}
+.rf-pitch-card .rf-bp.sel{background:var(--surface-row-active)}
+.rf-pitch-card .rf-bp.unavail{opacity:.5}
+.rf-bp-mid{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-bp-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;
+  font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-bp-bar{height:3px;border-radius:99px;background:var(--surface-sunken-2,#eef1ee);overflow:hidden}
+.rf-bp-bar i{display:block;height:100%;border-radius:99px}
+.rf-bp-f{font-family:var(--font-mono);font-size:11px;font-weight:var(--fw-semibold);
+  color:var(--text-3);text-align:right}
+
+/* camisa do banco: 30x28 com COLETE — o retangulo da cor secundaria por
+   cima do corpo, que é o que marca "esta no banco" de relance. */
+.rf-bj{position:relative;display:block;width:30px;height:28px;flex:0 0 auto}
+.rf-bj i{position:absolute;display:block}
+.rf-bj-sl{top:5px;width:9px;height:11px}
+.rf-bj-sl.l{left:0;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)}
+.rf-bj-sl.r{right:0;border-radius:1px 3px 3px 4px;transform:rotate(16deg)}
+.rf-bj-body{left:7px;top:3px;width:16px;height:25px;border-radius:3px 3px 5px 5px}
+.rf-bj-colete{left:9px;top:8px;width:12px;height:20px;border-radius:2px 2px 4px 4px;
+  background:var(--brand-secondary,#F2B90C)}
+.rf-bj-n{position:absolute;left:9px;top:8px;width:12px;height:20px;display:flex;
+  align-items:center;justify-content:center;font-family:var(--font-mono);
+  font-size:9px;font-weight:var(--fw-semibold);color:var(--brand-primary-deep,#17458F)}

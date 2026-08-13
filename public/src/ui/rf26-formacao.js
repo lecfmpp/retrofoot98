@@ -1,0 +1,181 @@
+/* =====================================================================
+   RetroFoot98 — FORMAÇÃO: os dois blocos que faltavam
+   Portado de telas/Hub do Time - Sidebar Recolhida.html (pacote v2).
+
+   NOTAS DO PLANTEL (à esquerda do Adversário) — Artilheiro do clube,
+   Destaque da rodada e Em baixa. Três linhas com rótulo, nome, uma frase
+   de contexto e o número grande à direita.
+
+   ADVERSÁRIO — cartão azul-marinho com o selo do rival, o mando e a
+   jornada, e a MINI-TABELA comparando os dois clubes (J·V·D·GM:GS·P),
+   com o botão Jogar pulsando. Antes esta caixa chamava panAdversario(),
+   que é a do skin antigo — daí não parecer nada com a tela.
+   ===================================================================== */
+
+/* ---- notas: quem está bem e quem não está ---- */
+function rfNotasHTML(){
+  const sq=squad(CL.clubId);
+  if(!sq.length) return '';
+  const golsDe=p=>(S.scorers&&S.scorers[p.n])||0;
+  const notaDe=p=>{ const r=(p.stats&&p.stats.r3)||[]; return r.length?r[r.length-1]:null; };
+  const artilheiro=sq.slice().sort((a,b)=>golsDe(b)-golsDe(a))[0];
+  const gols=artilheiro?golsDe(artilheiro):0;
+  const comNota=sq.filter(p=>notaDe(p)!=null);
+  const destaque=comNota.slice().sort((a,b)=>notaDe(b)-notaDe(a))[0];
+  const baixa=sq.slice().sort((a,b)=>(a.energy!=null?a.energy:100)-(b.energy!=null?b.energy:100))[0];
+  const linha=(rot,nome,sub,valor)=>`<div class="rf-nota">
+    <div class="rf-nota-id">
+      <span class="rf-nota-r">${escC(rot)}</span>
+      <span class="rf-nota-n">${escC(nome)}</span>
+      <span class="rf-nota-s">${escC(sub)}</span>
+    </div>
+    <span class="rf-nota-v">${escC(String(valor))}</span>
+  </div>`;
+  const jogos=(S.round||0);
+  const assist=(artilheiro&&artilheiro.stats&&artilheiro.stats.assists)||0;
+  return `<div class="rf-card rf-notas">
+    ${gols
+      ? linha('Artilheiro do clube', artilheiro.n,
+          'gols em '+jogos+(jogos===1?' jogo':' jogos')+(assist?' · '+assist+' assistências':''), gols)
+      : linha('Artilheiro do clube','—','ninguém marcou ainda','0')}
+    ${destaque
+      ? linha('Destaque da rodada', destaque.n, 'nota do último jogo',
+          String(notaDe(destaque)).replace('.',','))
+      : linha('Destaque da rodada','—','a primeira rodada ainda não foi jogada','—')}
+    ${baixa
+      ? linha('Em baixa', baixa.n,
+          (baixa.injuredMatches>0?'lesionado':baixa.suspended>0?'suspenso':'energia baixa'),
+          Math.round(baixa.energy!=null?baixa.energy:100)+'%')
+      : ''}
+  </div>`;
+}
+
+/* ---- adversário: o cartão escuro com a mini-tabela e o Jogar ---- */
+function rfAdversarioCardHTML(){
+  const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
+  if(!nm||!nm.oppId) return `<div class="rf-card rf-adv-vazio">
+    <span class="rf-label-t">Adversário</span>
+    <span class="rf-note">Sem jogo marcado agora. O calendário abre a próxima jornada.</span>
+  </div>`;
+  const opp=anyClubOf(nm.oppId)||{short:'—'};
+  const eu=clubOf(CL.clubId)||{short:'—'};
+  const data=(typeof shortMatchDate==='function')?shortMatchDate(nm):'';
+  const linhaTab=(c,destaque)=>{
+    const t=(S.table&&S.table[c.id])||{P:0,W:0,L:0,GF:0,GA:0,Pts:0};
+    return `<div class="rf-adv-lin ${destaque?'me':''}">
+      <span class="rf-adv-n">${escC(c.short||'—')}</span>
+      <span>${t.P||0}</span><span>${t.W||0}</span><span>${t.L||0}</span>
+      <span>${(t.GF||0)}:${(t.GA||0)}</span><span class="rf-adv-p">${t.Pts||0}</span>
+    </div>`;
+  };
+  const xi=xiPlayers(CL.clubId);
+  const pronto = xi.length>=11 && CL.tacticChosen && (typeof xiGKCount!=='function'||xiGKCount(xi)===1);
+  return `<div class="rf-adv">
+    <div class="rf-adv-hd">
+      <span class="rf-adv-l">Adversário</span>
+      <span class="rf-adv-d">${escC(data||'')}${S.season?' · '+S.season:''}</span>
+    </div>
+    <div class="rf-adv-clube">
+      <span class="rf-adv-selo">${rfCrest(opp,36)}</span>
+      <span class="rf-adv-id">
+        <span class="rf-adv-nome">${escC(opp.short||'')}</span>
+        <span class="rf-adv-sub">${nm.home?'CASA':'FORA'} · ${escC(divisionLabel())} · ${((S.round||0)+1)}ª JORNADA</span>
+      </span>
+    </div>
+    <div class="rf-adv-tab">
+      <div class="rf-adv-lin cab"><span></span><span>J</span><span>V</span><span>D</span><span>GM:GS</span><span>P</span></div>
+      ${linhaTab(eu,true)}
+      ${linhaTab(opp,false)}
+    </div>
+    <button type="button" class="rf-adv-jogar ${pronto?'pulsa':''}" onclick="rfJogar()"
+      ${pronto?'':'disabled'}>${rfJogarLabel()}</button>
+    ${pronto?'':'<span class="rf-adv-falta">Complete o onze e escolha a formação para entrar em campo.</span>'}
+  </div>`;
+}
+
+/* =====================================================================
+   CAMPO E BANCO  (telas/Hub do Time.html do pacote "Hub do time v2")
+   Tres peças que a pele antiga ainda desenhava do jeito de 1998:
+   a marca d'agua do escudo no gramado, a linha de dados debaixo da
+   camisa e a barra de suplentes.
+   ===================================================================== */
+
+/* Escudo gigante atras dos jogadores: 190px, 10% de opacidade e achatado
+   pra branco (brightness(0) invert(1)) — o escudo colorido brigaria com as
+   camisas. So sai quando o clube tem escudo de verdade; o crachá de
+   iniciais nao vira marca d'agua (ficaria uma mancha de texto). */
+function rfPitchMarcaHTML(){
+  const c = (typeof anyClubOf==='function') ? anyClubOf(CL.clubId) : null;
+  const url = (typeof clubCrestUrl==='function') ? clubCrestUrl(c||{}) : '';
+  if(!url) return '';
+  return `<img class="rf-pitch-marca" src="${escC(url)}" alt="" aria-hidden="true">`;
+}
+
+/* Linha de dados do titular: LETRA DA POSIÇÃO · barra de energia · força.
+   Substitui o par forca+pilha da pele antiga — no gramado o que decide a
+   escalação é ver, de relance, quem esta gasto. */
+function rfPitchMetaHTML(p){
+  const en = Math.max(0, Math.min(100, Math.round(p.energy!=null?p.energy:100)));
+  const cor = en>=70 ? 'var(--ok)' : en>=40 ? 'var(--warn)' : 'var(--danger)';
+  return `<span class="rf-pp-meta">
+    <span class="rf-pp-pos">${escC(posLetter(p.s))}</span>
+    <span class="rf-pp-bar"><i style="width:${en}%;background:${cor}"></i></span>
+    <span class="rf-pp-f">${p.f}</span>
+  </span>`;
+}
+
+/* BANCO — uma linha por reserva, agrupada por setor:
+   camisa 30x28 com colete | nome + barra de energia | força.
+   O colete (o retangulo da cor secundaria por cima do corpo) é o que
+   diferencia, de relance, quem esta no banco de quem esta em campo. */
+const RF_BANCO_GRUPOS = [['GK','GOLEIROS'],['DEF','DEFESA'],['MID','MEIO'],['ATT','ATAQUE']];
+function rfBancoJerseyHTML(th, num){
+  const c1=th.col||'#17458F', c2=th.col2||'#F2B90C';
+  // O COLETE NÃO É COR DE CLUBE. Colete de verdade é uma peça avulsa, viva,
+  // pra dar pra ver de longe quem está no banco — e é justamente isso que ele
+  // faz aqui: com a secundaria do clube, Palmeiras daria verde sobre verde e o
+  // colete sumia. Fica sempre o amarelo da marca, como na referencia.
+  return `<span class="rf-bj" aria-hidden="true">
+    <i class="rf-bj-sl l" style="background:${c2}"></i><i class="rf-bj-sl r" style="background:${c2}"></i>
+    <i class="rf-bj-body" style="background:${c1}"></i>
+    <i class="rf-bj-colete" style="box-shadow:inset 0 0 0 1px ${c1}"></i>
+    <b class="rf-bj-n">${escC(String(num||''))}</b>
+  </span>`;
+}
+function rfBancoHTML(th, nums){
+  const xiSet=new Set(S.xi||[]);
+  const banco=squad(CL.clubId).filter(p=>!xiSet.has(p.pid));
+  const aberto = CL.benchOpen!==false;
+  const grupos = RF_BANCO_GRUPOS.map(([sec,rot])=>{
+    const list=banco.filter(p=>p.s===sec).slice().sort((a,b)=>b.f-a.f);
+    if(!list.length) return '';
+    const linhas=list.map(p=>{
+      const selc   = CL.selPlayer===p.pid;
+      const unavail= p.suspended>0||p.injuredMatches>0;
+      const en = Math.max(0, Math.min(100, Math.round(p.energy!=null?p.energy:100)));
+      const cor = en>=70 ? 'var(--ok)' : en>=40 ? 'var(--warn)' : 'var(--danger)';
+      const sobrenome = p.n.split(' ').slice(-1)[0]||p.n;
+      return `<button type="button" class="rf-bp cl-bp ${selc?'sel':''} ${unavail?'unavail':''}"
+        data-pid="${escC(p.pid)}" data-sec="${p.s}"
+        onpointerdown="clDragStart(event,'${escC(p.pid)}')" onkeydown="if(event.key==='Enter'||event.key===' ')clSelPlayer('${escC(p.pid)}')"
+        title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}%${unavail?'':' · arraste pro campo pra escalar'}">
+        ${rfBancoJerseyHTML(th, nums[p.pid])}
+        <span class="rf-bp-mid">
+          <span class="rf-bp-n">${escC(sobrenome)}${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
+          <span class="rf-bp-bar"><i style="width:${en}%;background:${cor}"></i></span>
+        </span>
+        <span class="rf-bp-f">${p.f}</span>
+      </button>`;
+    }).join('');
+    return `<div class="rf-bgrupo"><span class="rf-bgrupo-t">${rot}</span>${linhas}</div>`;
+  }).join('');
+  return `<div class="cl-bench rf-banco ${aberto?'':'fechado'}">
+    <button type="button" class="cl-bench-hd" onclick="clToggleBench()"
+      title="${aberto?'Recolher o banco e aumentar o campo':'Mostrar os suplentes'}">
+      <span class="cl-bench-hd-txt">SUPLENTES</span>
+      <span class="cl-bench-hd-n">${banco.length}</span>
+      <span class="cl-bench-hd-seta">${aberto?'▸':'◂'}</span>
+    </button>
+    ${aberto?`<div class="rf-banco-lista">${grupos||'<div class="cl-bench-vazio">—</div>'}</div>`:''}
+  </div>`;
+}

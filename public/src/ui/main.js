@@ -4890,12 +4890,17 @@ function chipMetaHTML(p, pos){
 /* a camisa (desenho + número) é a mesma peça no gramado e no banco — só muda o tamanho, que
    vem do CSS (.cl-bp .cl-pp-shirt é 60% da camisa do titular). */
 function shirtHTML(p, th, num){
-  return `<span class="cl-pp-shirt">
-    <svg viewBox="0 0 48 44" aria-hidden="true">
-      <path d="M17 3c1.6 2.6 3.9 4 7 4s5.4-1.4 7-4l7 2.5 8 6.5-6 6.5-3.5-3v25.5a1.5 1.5 0 0 1-1.5 1.5H13a1.5 1.5 0 0 1-1.5-1.5V15.5l-3.5 3-6-6.5 8-6.5z"
-        fill="${th.col}" stroke="${th.col2||'#000'}" stroke-width="2" stroke-linejoin="round"/>
-    </svg>
-    <span class="cl-pp-num" style="color:${lumin(th.col)>0.62?'#111':'#fff'}">${num||''}</span>
+  // A camisa do gramado é a MESMA peça da ficha do jogador (rf-jersey): mangas
+  // inclinadas, corpo com o numero e gola. As cores vem inline porque esta funcao
+  // tambem roda fora do hub, onde as variaveis --club-* podem nao estar montadas.
+  const c1=th.col||'#17458F', c2=th.col2||'#F2B90C';
+  // o numero usa a secundaria SÓ quando ela se le sobre a primaria (Palmeiras tem
+  // verde sobre verde); senao cai pro preto/branco que barTextColor garante.
+  const cn=barTextColor(c1,c2);
+  return `<span class="cl-pp-shirt rf-jersey" aria-hidden="true">
+    <i class="rf-j-sl l" style="background:${c2}"></i><i class="rf-j-sl r" style="background:${c2}"></i>
+    <i class="rf-j-body" style="background:${c1}"><b style="color:${cn}">${num||''}</b></i>
+    <i class="rf-j-collar" style="background:${c2}"></i>
   </span>`;
 }
 /* BANCO (duas colunas à direita do campo) — o resto do elenco, na mesma linguagem do gramado.
@@ -4904,6 +4909,7 @@ function shirtHTML(p, th, num){
    Vale a mesma regra do campo: o toque chama a função da LISTA (clSelPlayer), então tocar
    num reserva acende a linha dele no elenco. A troca é o ARRASTE (ver clDragStart). */
 function benchHTML(th, nums){
+  if(typeof rfBancoHTML==='function') return rfBancoHTML(th, nums);
   const xiSet=new Set(S.xi||[]);
   const ordem={GK:0,DEF:1,MID:2,ATT:3};
   const banco=squad(CL.clubId).filter(p=>!xiSet.has(p.pid))
@@ -4967,7 +4973,7 @@ function pitchHTML(){
         title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}% · arraste pro banco pra tirar">
         ${shirtHTML(p,th,nums[p.pid])}
         <span class="cl-pp-name">${escC(nome)}${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
-        ${chipMetaHTML(p)}
+        ${typeof rfPitchMetaHTML==='function'?rfPitchMetaHTML(p):chipMetaHTML(p)}
       </button>`;
     }).join('');
   }).join('');
@@ -4978,6 +4984,7 @@ function pitchHTML(){
     <div class="cl-pitch-mid">
       ${pitchAdsHTML('left',3,1)}
       <div class="cl-pitch">
+        ${typeof rfPitchMarcaHTML==='function'?rfPitchMarcaHTML():''}
         <svg class="cl-pitch-lines" viewBox="0 0 100 118" preserveAspectRatio="none" aria-hidden="true">
           ${[0,1,2,3,4,5,6,7,8,9].map(i=>`<rect x="0" y="${i*11.8}" width="100" height="11.8" fill="${i%2?'#2f7d34':'#35883a'}"/>`).join('')}
         </svg>
