@@ -1554,3 +1554,217 @@
 .rf-dlg-body .cl-cls-row.me,.rf-dlg-body .cl-rank-row.me{background:var(--club-primary-soft);
   font-weight:var(--fw-bold);color:var(--text-1)}
 .rf-dlg-body .cl-rank,.rf-dlg-body .cl-chist{background:transparent;border:none;max-height:none}
+
+/* =====================================================================
+   ONBOARDING — portado de telas/Onboarding 1..7
+   Valores medidos na referência. O shell é: marca (32px) · trilha de
+   CINCO passos num card branco de raio 16 · card de conteúdo de raio 18
+   com 26px de respiro · barra de ação. Nada de barra de título do
+   Windows, navbar institucional ou rodapé de SEO — a tela não tem.
+   ===================================================================== */
+.rf-wiz{min-height:100vh;background:var(--surface-desk);padding:24px;box-sizing:border-box;
+  display:flex;justify-content:center;font-family:var(--font-sans);color:var(--text-1)}
+.rf-wiz-in{width:980px;max-width:100%;display:flex;flex-direction:column;gap:14px}
+.rf-wiz-marca{display:flex;align-items:center;gap:10px}
+.rf-wiz-marca img{width:32px;height:32px;object-fit:contain}
+.rf-wiz-marca-t{font-size:16px;font-weight:var(--fw-bold);color:var(--text-1);
+  letter-spacing:var(--ls-tight);white-space:nowrap}
+.rf-wiz-marca-98{font-family:var(--font-mono);color:var(--club-primary)}
+/* o shell é a "mesa" — mesmo envelope de 24px do jogo */
+.rf-wiz-shell{background:var(--surface-desk);border:1px solid #d2e0d0;border-radius:var(--r-shell);
+  padding:18px;box-shadow:var(--shadow-shell);display:flex;flex-direction:column;gap:16px}
+
+/* ----- trilha de cinco passos ----- */
+.rf-wiz-trilha{display:flex;align-items:center;gap:8px;background:var(--surface-card);
+  border:var(--border-hairline);border-radius:16px;padding:10px 14px;overflow-x:auto;scrollbar-width:none}
+.rf-wiz-trilha::-webkit-scrollbar{display:none}
+.rf-wiz-p{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.rf-wiz-n{width:22px;height:22px;border-radius:var(--r-pill);background:var(--line-3);
+  color:var(--text-faint);font-family:var(--font-mono);font-size:var(--fs-micro);
+  font-weight:var(--fw-semibold);display:flex;align-items:center;justify-content:center}
+.rf-wiz-l{font-size:var(--fs-caption);font-weight:var(--fw-medium);color:var(--text-4);white-space:nowrap}
+.rf-wiz-p.atual .rf-wiz-n{background:var(--club-primary);color:var(--club-on-primary)}
+.rf-wiz-p.atual .rf-wiz-l{font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-wiz-p.feito .rf-wiz-n{background:var(--ok);color:#fff}
+.rf-wiz-p.feito .rf-wiz-l{color:var(--text-3)}
+.rf-wiz-liga{flex:0 0 auto;width:18px;height:1px;background:var(--line-1)}
+
+/* ----- card de conteúdo ----- */
+.rf-wiz-card{background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);
+  padding:26px;display:flex;flex-direction:column;gap:20px;min-height:340px}
+.rf-wiz-head{display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center}
+.rf-wiz-eyebrow{font-family:var(--font-mono);font-size:var(--fs-micro);font-weight:var(--fw-semibold);
+  color:var(--club-primary);letter-spacing:var(--ls-label-wide);text-transform:uppercase;white-space:nowrap}
+.rf-wiz-h{font-size:28px;font-weight:var(--fw-bold);color:var(--text-1);
+  letter-spacing:var(--ls-tight);line-height:1.15}
+.rf-wiz-sub{font-size:var(--fs-body);color:var(--text-4);max-width:560px;line-height:1.55}
+.rf-wiz-mid{display:flex;justify-content:center}
+.rf-wiz-form{width:420px;max-width:100%;display:flex;flex-direction:column;gap:14px}
+
+/* ----- barra de ação ----- */
+.rf-wiz-acao{display:flex;align-items:center;gap:12px}
+.rf-wiz-nota{font-size:var(--fs-caption);color:var(--text-4)}
+.rf-wiz-cta{height:46px;padding:0 22px;display:flex;align-items:center;justify-content:center;gap:8px;
+  border-radius:13px;background:var(--club-cta-bg,var(--club-secondary));border:1px solid transparent;
+  color:var(--club-cta-fg,var(--club-on-secondary));font-family:var(--font-sans);
+  font-size:var(--fs-body);font-weight:var(--fw-bold);white-space:nowrap;cursor:pointer}
+.rf-wiz-cta:hover:not(:disabled){background:var(--club-secondary-hover)}
+.rf-wiz-cta:disabled{opacity:.5;cursor:default}
+.rf-wiz-b2{height:46px;padding:0 18px;border-radius:13px;background:var(--surface-card);
+  border:var(--border-control);color:var(--text-2);font-family:var(--font-sans);
+  font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);cursor:pointer;white-space:nowrap}
+.rf-wiz-b2:hover{background:var(--surface-sunken)}
+
+/* ----- controle segmentado (Criar conta | Entrar) ----- */
+.rf-seg{display:flex;gap:6px;background:var(--surface-sunken);border-radius:13px;padding:4px}
+.rf-seg-b{flex:1;text-align:center;font-family:var(--font-sans);font-size:var(--fs-body-sm);
+  font-weight:var(--fw-semibold);color:var(--text-3);background:transparent;border:none;
+  border-radius:10px;padding:9px 0;cursor:pointer}
+.rf-seg-b:hover{background:var(--surface-card)}
+.rf-seg-b.on{background:var(--club-primary);color:var(--club-on-primary);font-weight:var(--fw-bold)}
+
+/* ----- campo de formulário ----- */
+.rf-campo{display:flex;flex-direction:column;gap:6px;min-width:0}
+.rf-campo-l{font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:var(--text-3);white-space:nowrap}
+.rf-campo-c{height:44px;padding:0 14px;border:var(--border-control);border-radius:var(--r-control);
+  background:var(--surface-card);font-family:var(--font-sans);font-size:var(--fs-body);
+  color:var(--text-1);box-sizing:border-box;width:100%}
+.rf-campo-c::placeholder{color:var(--text-faint)}
+.rf-campo-c:focus{outline:none;border-color:var(--club-primary)}
+.rf-codigo{height:44px;display:flex;align-items:center;padding:0 14px;border:var(--border-control);
+  border-radius:var(--r-control);background:var(--surface-sunken);font-family:var(--font-mono);
+  font-size:var(--fs-subhead);font-weight:var(--fw-semibold);letter-spacing:.18em;color:var(--text-1)}
+
+/* ----- caixa de seleção ----- */
+.rf-check{display:flex;align-items:flex-start;gap:9px;padding-top:2px;cursor:pointer}
+.rf-check-b{width:18px;height:18px;border-radius:5px;background:var(--surface-card);
+  border:1px solid var(--line-2);color:#fff;font-size:var(--fs-micro);display:flex;
+  align-items:center;justify-content:center;flex:0 0 auto}
+.rf-check-b.on{background:var(--club-primary);border-color:var(--club-primary)}
+.rf-check-t{font-size:var(--fs-caption);color:var(--text-4);line-height:1.5}
+
+/* ----- divisor "ou entre com" + botões sociais ----- */
+.rf-ou{display:flex;align-items:center;gap:10px;padding:4px 0}
+.rf-ou i{flex:1;height:1px;background:var(--line-3);display:block}
+.rf-ou span{font-size:var(--fs-micro);color:var(--text-faint);white-space:nowrap}
+.rf-social{display:flex;gap:8px}
+.rf-social-b{flex:1;height:44px;display:flex;align-items:center;justify-content:center;gap:8px;
+  border:var(--border-control);border-radius:var(--r-control);background:var(--surface-card);
+  font-family:var(--font-sans);font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);
+  color:var(--text-2);cursor:pointer;white-space:nowrap}
+.rf-social-b:hover{background:var(--surface-sunken)}
+
+/* ----- passo 2: os dois modos ----- */
+.rf-modos{display:flex;flex-direction:column;gap:14px}
+.rf-modo{position:relative;background:var(--surface-card);border:1px solid var(--line-2);
+  border-radius:var(--r-card);padding:20px;cursor:pointer;display:flex;flex-direction:column;gap:8px;
+  transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease)}
+.rf-modo:hover{background:var(--surface-sunken);border-color:var(--club-primary-line)}
+.rf-modo.rec{background:var(--club-primary-soft);border-color:var(--club-primary)}
+.rf-modo.off{border-style:dashed;cursor:default}
+.rf-modo.off:hover{background:var(--surface-card);border-color:var(--line-2)}
+.rf-modo-tag{position:absolute;right:16px;top:16px;font-family:var(--font-mono);font-size:var(--fs-label);
+  font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase;
+  background:var(--surface-sunken);color:var(--text-4);border:var(--border-hairline);
+  border-radius:var(--r-pill);padding:3px 10px}
+.rf-modo-tag.rec{background:var(--club-secondary);color:var(--club-on-secondary);border-color:transparent}
+.rf-modo-ic{font-size:26px;line-height:1}
+.rf-modo-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-modo-d{font-size:var(--fs-body-sm);color:var(--text-3);line-height:var(--lh-normal);max-width:70ch}
+.rf-modo-lock{background:var(--surface-sunken);border:var(--border-hairline);border-radius:var(--r-control);
+  padding:10px 14px;font-size:var(--fs-body-sm);color:var(--text-3)}
+.rf-modo-avisar{align-self:stretch;height:44px;border:var(--border-control);border-radius:var(--r-control);
+  background:var(--surface-card);font-family:var(--font-sans);font-size:var(--fs-body-sm);
+  font-weight:var(--fw-bold);color:var(--club-primary);cursor:pointer}
+.rf-modo-avisar:hover{background:var(--surface-sunken)}
+
+/* ----- passo 3: países e divisões ----- */
+.rf-paises{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.rf-pais{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line-2);
+  border-radius:var(--r-control);background:var(--surface-card);cursor:pointer;min-width:0}
+.rf-pais:hover{background:var(--surface-sunken)}
+.rf-pais.on{background:var(--club-primary-soft);border-color:var(--club-primary)}
+.rf-pais.off{opacity:.45;cursor:default}
+.rf-pais-f{flex:0 0 auto;display:flex;align-items:center}
+.rf-pais-f img{width:18px;height:13px;object-fit:cover;display:block;border-radius:2px}
+.rf-pais-n{flex:1;min-width:0;font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);
+  color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-pais-q{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-faint);white-space:nowrap}
+.rf-divs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.rf-div{display:flex;flex-direction:column;gap:2px;align-items:flex-start;padding:12px 14px;
+  border:1px solid var(--line-2);border-radius:var(--r-control);background:var(--surface-card);
+  cursor:pointer;font-family:var(--font-sans);text-align:left}
+.rf-div:hover{background:var(--surface-sunken)}
+.rf-div.on{background:var(--club-primary-soft);border-color:var(--club-primary)}
+.rf-div-n{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-1);white-space:nowrap}
+.rf-div-s{font-size:var(--fs-label);color:var(--text-faint);white-space:nowrap}
+
+/* ----- passos 4 e 5: sala e convites ----- */
+.rf-ritmos{display:flex;gap:6px;flex-wrap:wrap}
+.rf-conv{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.rf-conv-l,.rf-conv-r{display:flex;flex-direction:column;gap:10px;min-width:0}
+.rf-conv-list{display:flex;flex-direction:column;gap:6px}
+.rf-conv-i{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-chip);
+  background:var(--surface-sunken)}
+.rf-conv-av{width:26px;height:26px;border-radius:var(--r-pill);background:var(--club-primary);
+  color:var(--club-on-primary);font-family:var(--font-mono);font-size:var(--fs-micro);
+  font-weight:var(--fw-bold);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.rf-conv-n{flex:1;min-width:0;font-size:var(--fs-body-sm);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-conv-s{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-faint);white-space:nowrap}
+.rf-conv-chat{background:var(--surface-sunken);border-radius:var(--r-control);padding:10px;
+  max-height:180px;overflow-y:auto;font-size:var(--fs-body-sm)}
+
+/* ----- passo 6: o clube sorteado ----- */
+.rf-sorteio{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.rf-sorteio-crest img,.rf-sorteio-crest .rf-crest-fb{width:88px;height:88px;object-fit:contain}
+.rf-sorteio-id{display:flex;flex-direction:column;gap:3px}
+.rf-sorteio-n{font-size:var(--fs-display);font-weight:var(--fw-bold);color:var(--text-1);
+  letter-spacing:var(--ls-tight)}
+.rf-sorteio-s{font-size:var(--fs-body-sm);color:var(--text-4)}
+.rf-sorteio-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:620px}
+.rf-sorteio-kpis .rf-kpi{text-align:left}
+
+/* ----- passo 7: boas-vindas ----- */
+.rf-bv{display:flex;flex-direction:column;gap:16px}
+.rf-bv-estadio{display:flex;justify-content:center}
+.rf-bv-estadio img,.rf-bv-estadio .rf-crest-fb{width:64px;height:64px;object-fit:contain}
+.rf-bv-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.rf-bv-recado{background:var(--surface-sunken);border-radius:var(--r-inner);padding:16px;
+  display:flex;flex-direction:column;gap:6px}
+.rf-bv-p{margin:0;font-size:var(--fs-body-sm);color:var(--text-2);line-height:var(--lh-normal)}
+
+/* =====================================================================
+   ONBOARDING NO TELEFONE (telas "Onboarding N - ... - Mobile")
+   A trilha vira barra de progresso no cabeçalho e a ação principal fica
+   FIXA no rodapé — é o que as sete telas mobile mostram.
+   ===================================================================== */
+@media (max-width:760px){
+  .rf-wiz{padding:0 0 84px}
+  .rf-wiz-in{gap:0}
+  .rf-wiz-marca{padding:14px 16px;background:var(--surface-card);border-bottom:1px solid var(--line-1)}
+  .rf-wiz-shell{border:none;border-radius:0;box-shadow:none;padding:14px 12px;gap:12px}
+  /* trilha → barra de progresso: os passos somem, sobra a fita */
+  .rf-wiz-trilha{position:relative;padding:0;border:none;border-radius:var(--r-pill);
+    background:var(--line-3);height:4px;overflow:hidden;gap:0}
+  .rf-wiz-p,.rf-wiz-liga{display:none}
+  .rf-wiz-trilha::after{content:'';position:absolute;left:0;top:0;bottom:0;
+    width:calc(var(--rf-wiz-pct,20) * 1%);background:var(--club-primary);border-radius:var(--r-pill)}
+  .rf-wiz-card{padding:18px 16px;gap:16px;min-height:0;border-radius:var(--r-card)}
+  .rf-wiz-h{font-size:var(--fs-title)}
+  .rf-wiz-sub{font-size:var(--fs-body-sm)}
+  .rf-wiz-form{width:100%}
+  /* a ação principal nunca sai da tela */
+  .rf-wiz-acao{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--surface-card);
+    border-top:1px solid var(--line-1);padding:10px 12px calc(12px + env(safe-area-inset-bottom,0px));
+    flex-wrap:wrap;row-gap:6px}
+  .rf-wiz-nota{flex:1 1 100%;order:-1;font-size:var(--fs-label)}
+  .rf-wiz-cta{flex:1;min-width:0}
+  .rf-wiz-b2{flex:0 0 auto}
+  .rf-conv{grid-template-columns:minmax(0,1fr)}
+  .rf-divs{grid-template-columns:repeat(2,1fr)}
+  .rf-paises{grid-template-columns:repeat(2,1fr)}
+  .rf-sorteio-kpis{grid-template-columns:repeat(3,1fr);gap:8px}
+  .rf-bv-kpis{grid-template-columns:repeat(2,1fr)}
+  .rf-modo-tag{position:static;align-self:flex-end;order:-1}
+}

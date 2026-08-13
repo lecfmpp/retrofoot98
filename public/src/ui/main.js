@@ -677,18 +677,22 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
   let html='';
   switch(CL.screen){
     case 'abertura':  html=scAbertura(); break;
-    case 'login':     html=scLogin(); break;
+    // ONBOARDING PORTADO (ver src/ui/rf26-onboarding.js): as sete telas do
+    // pacote, com a marcação da referência. O wizShell() antigo continua
+    // atendendo as telas que ainda não têm equivalente no pacote (moeda,
+    // país jogável, carregamento) — essas o pacote não traz.
+    case 'login':     html=(typeof rfOb1==='function')?rfOb1():scLogin(); break;
     case 'resetpassword': html=scResetPassword(); break;
-    case 'modo':      html=scModoChoice(); break;
+    case 'modo':      html=(typeof rfOb2==='function')?rfOb2():scModoChoice(); break;
     case 'modosolo':  html=scModoSolo(); break;
-    case 'paises':    html=scPaises(); break;
+    case 'paises':    html=(typeof rfOb3==='function')?rfOb3():scPaises(); break;
     case 'paisJogavel': html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scPaisJogavel(),{logo:true}); break;
     case 'moeda':     html=scMoeda(); break;
     case 'loading':   html=scLoading(); break;
     case 'jogadores': html=scJogadores(); break;
     case 'escolhaclubes': html=scEscolhaClubes(); break;
-    case 'sorteio':   html=scSorteio(); break;   // cerimônia do sorteio (wizShell própria)
-    case 'boasvindas':html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scBoasVindas(),{logo:true}); break;
+    case 'sorteio':   html=(typeof rfOb6==='function')?rfOb6():scSorteio(); break;   // 6 · sorteio do clube
+    case 'boasvindas':html=(typeof rfOb7==='function')?rfOb7():(titleBarTop('RetroFoot98',{logo:true})+deskWrap(scBoasVindas(),{logo:true})); break;
     // REBRANDING 2026: a tela principal virou o ENVELOPE (sidebar + faixa do clube +
     // área de duas colunas) e é ele que roteia as sete páginas — ver src/ui/rf26.js.
     // A barra de título cinza do Windows não existe mais aqui: a identidade do save
