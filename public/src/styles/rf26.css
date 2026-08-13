@@ -3668,3 +3668,30 @@
   .rf-prop2-acts .rf-btn{flex:1}
   .rf-mkf-i{flex:1 1 44%}
 }
+
+/* ---- Elenco & Base: atributos, forma e cabeçalho da ficha ---- */
+.rf-el-attr{display:grid;grid-template-columns:minmax(0,110px) minmax(0,1fr) 44px;gap:0 10px;
+  align-items:center;padding:5px 0}
+.rf-el-attr-l{font-size:var(--fs-caption);color:var(--text-3)}
+.rf-el-attr-b{height:8px;border-radius:var(--r-pill);background:var(--surface-sunken);overflow:hidden}
+.rf-el-attr-b i{display:block;height:100%;border-radius:var(--r-pill)}
+.rf-el-attr-v{font-family:var(--font-mono);font-size:var(--fs-caption);font-weight:var(--fw-semibold);
+  color:var(--text-1);text-align:right}
+.rf-el-forma{display:flex;gap:3px;justify-content:center}
+.rf-el-forma i{font-style:normal;font-family:var(--font-mono);font-size:9px;font-weight:var(--fw-bold);
+  width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff}
+.rf-el-fV{background:var(--ok)} .rf-el-fE{background:var(--club-secondary);color:var(--club-on-secondary)}
+.rf-el-fD{background:var(--danger)}
+.rf-el-sub{font-style:normal;color:var(--text-faint);font-weight:var(--fw-regular)}
+.rf-tbl-en{display:flex;align-items:center}
+.rf-el-hd{flex-direction:row;align-items:center;gap:14px}
+.rf-el-hd-id{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-el-hd-n{font-size:var(--fs-title);font-weight:var(--fw-bold);color:var(--text-1);
+  letter-spacing:var(--ls-tight)}
+.rf-el-hd-s{font-size:var(--fs-caption);color:var(--text-4)}
+.rf-el-hd-acts{display:flex;gap:8px;flex:0 0 auto}
+@media (max-width:760px){
+  .rf-el-hd{flex-wrap:wrap;row-gap:10px}
+  .rf-el-hd-acts{width:100%}
+  .rf-el-hd-acts .rf-btn{flex:1}
+}
