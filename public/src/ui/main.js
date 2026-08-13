@@ -679,17 +679,21 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     // LANDING PORTADA (telas/Landing - Home). Só a home; as páginas
     // institucionais (sobre, ajuda, contato, termos) seguem no caminho de
     // sempre até virem as telas delas.
-    case 'abertura':  html=(CL.landingView&&CL.landingView!=='home')?scAbertura():rfLandingHTML(); break;
+    // LANDING PORTADA: a home é rfLandingHTML; as páginas institucionais são
+    // telas/Landing - Paginas Institucionais (ver rf26-fluxo.js).
+    case 'abertura':  html=(CL.landingView&&CL.landingView!=='home')
+      ? rfInstitucionalHTML(CL.landingView) : rfLandingHTML(); break;
     // ONBOARDING PORTADO (ver src/ui/rf26-onboarding.js): as sete telas do
     // pacote, com a marcação da referência. O wizShell() antigo continua
     // atendendo as telas que ainda não têm equivalente no pacote (moeda,
     // país jogável, carregamento) — essas o pacote não traz.
     case 'login':     html=rfOb1(); break;
     case 'resetpassword': html=scResetPassword(); break;
+    case 'recuperarsenha': html=rfRecuperarSenhaHTML(); break;
     case 'modo':      html=rfOb2(); break;
-    case 'modosolo':  html=scModoSolo(); break;
+    case 'modosolo':  html=scModoSolo(); break;   // 'cont' -> telas/Fluxo - Continuar Save
     case 'paises':    html=rfOb3(); break;
-    case 'paisJogavel': html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scPaisJogavel(),{logo:true}); break;
+    case 'paisJogavel': html=scPaisJogavel(); break;
     case 'moeda':     html=scMoeda(); break;
     case 'loading':   html=scLoading(); break;
     case 'jogadores': html=scJogadores(); break;
@@ -1664,18 +1668,13 @@ function clLoginSignup(){ const a=CL.auth; if(!a||!(a.email&&a.password&&a.name)
 /* ---- Esqueci minha senha: modal simples pedindo o e-mail (pré-preenchido se
    já tiver algo digitado na tela de login), manda o link de recuperação. ---- */
 function clForgotPassword(){
-  CL._resetEmail = (CL.auth&&CL.auth.email) || '';
-  overlayC(dlg('Esqueci minha senha', `<div class="cl-authbox">
-    <div class="cl-authsub">Informe seu e-mail. Vamos mandar um link pra você criar uma senha nova.</div>
-    <div class="cl-authform">
-      <div class="cl-authfield"><label>E-mail</label><input id="cl-focus" type="email" inputmode="email" autocomplete="email" value="${escC(CL._resetEmail)}" oninput="CL._resetEmail=this.value" onkeydown="if(event.key==='Enter')clSendResetLink()"></div>
-    </div>
-    <div class="cl-auth-actions">
-      ${btn('Enviar link','clSendResetLink()',{icon:'✔',cls:'cl-btn-ok cl-authbtn-primary'})}
-      ${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel cl-authbtn-secondary'})}
-    </div>
-  </div>`, {w:420,bodyClass:'cl-body-green'}));
+  // TELA PORTADA (telas/Conta - Recuperar Senha): era um modal por cima do
+  // login; o pacote a desenha como tela inteira, com a mesma marca e a mesma
+  // barra de ação das outras do fluxo.
+  CL._resetEmail=(CL.auth&&CL.auth.email)||'';
+  CL.screen='recuperarsenha'; cdraw();
 }
+
 function clSendResetLink(){
   const email=(CL._resetEmail||'').trim();
   if(!email||!email.includes('@')){ toastC('⚠ Informe um e-mail válido.'); return; }
@@ -1690,28 +1689,10 @@ function clSendResetLink(){
 /* ---- Nova senha: só chega aqui via link de recuperação (evento PASSWORD_RECOVERY,
    ver netInitSupabase) — a sessão temporária do link já autentica o updateUser. ---- */
 function scResetPassword(){
-  const st=CL.resetPw||(CL.resetPw={password:'',confirm:'',focus:'password'});
-  const ok=st.password.length>=6 && st.password===st.confirm;
-  const mismatch=st.confirm.length>0 && st.password!==st.confirm;
-  // o campo com foco muda dinamicamente (não fixo em "Nova senha"), senão o cdraw()
-  // disparado a cada tecla sempre devolvia o cursor pro primeiro campo — impossível
-  // digitar "Confirmar senha" de corrido.
-  const idP = st.focus!=='confirm' ? 'id="cl-focus"' : '';
-  const idC = st.focus==='confirm' ? 'id="cl-focus"' : '';
-  const body=`<div class="cl-wiz-authcard">
-    <div class="cl-wiz-authsub">Escolha uma senha nova pra sua conta.</div>
-    <div class="cl-authform">
-      <div class="cl-authfield"><label>Nova senha</label><input ${idP} type="password" autocomplete="new-password" minlength="6" placeholder="••••••••" value="${escC(st.password)}" onfocus="CL.resetPw.focus='password'" oninput="clResetPwInput(this,'password')"></div>
-      <div class="cl-authfield"><label>Confirmar senha</label><input ${idC} type="password" autocomplete="new-password" placeholder="••••••••" value="${escC(st.confirm)}" onfocus="CL.resetPw.focus='confirm'" oninput="clResetPwInput(this,'confirm')" onkeydown="if(event.key==='Enter')clDoUpdatePassword()"></div>
-      <div class="cl-authwarn" id="cl-pwwarn" style="display:${mismatch?'':'none'}">As senhas não coincidem.</div>
-    </div>
-  </div>`;
-  return wizShell({
-    public:true, title:'Nova senha', back:'clGoAbertura()', backLabel:'Voltar ao início',
-    contentCls:'cl-wiz-authcenter', body, actionCls:'cl-wiz-action-e',
-    action: `<span id="cl-pwsave">${btn('Salvar senha','clDoUpdatePassword()',{icon:'✔',cls:'cl-wiz-cta',dis:!ok})}</span>`
-  });
+  // TELA PORTADA: a outra ponta do caminho de telas/Conta - Recuperar Senha
+  return rfNovaSenhaHTML();
 }
+
 /* SENHA SAINDO DE TRÁS PRA FRENTE: o oninput chamava cdraw(), que reescreve o innerHTML da tela
    inteira e RECRIA o <input>; o refoco por #cl-focus devolvia o cursor pra posição 0, então cada
    tecla nova entrava na FRENTE da anterior ("1234" virava "4321"). Digitar senha assim é quase
@@ -1932,28 +1913,10 @@ function scSoloNovo(){
 function clSyncCount(){ const el=document.querySelector('.cl-wiz-count'); if(el) el.textContent=(CL.save||'').length+'/8'; }
 /* Continuar: lista de saves na nuvem (variante do passo 2) */
 function scSoloCont(){
-  // MAIS RECENTE EM CIMA. O jogo que a pessoa quer continuar é, quase sempre, o último que ela
-  // tocou — a consulta já devolve por updated_at, e a ordenação aqui garante isso mesmo se a
-  // lista vier de outra fonte (cache, harness).
-  const loading=CL.soloSaves==null;
-  const saves=(CL.soloSaves||[]).slice().sort((a,b)=> new Date(b.updated_at||0) - new Date(a.updated_at||0));
-  let list;
-  if(loading) list='<div class="cl-savempty">carregando seus jogos…</div>';
-  else if(!saves.length) list='<div class="cl-savempty">Você ainda não tem jogos salvos. Comece um novo jogo!</div>';
-  else list=saves.map(s=>`<div class="cl-myroom" onclick="clLoadSave('${escC(s.name)}')">
-      <div class="cl-myroom-main">
-        <div class="cl-myroom-name">${escC(s.name)}</div>
-        <div class="cl-myroom-sub">${s.updated_at?('Salvo em '+new Date(s.updated_at).toLocaleDateString('pt-BR')+' às '+new Date(s.updated_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})):'Jogo salvo'}</div>
-      </div>
-      <button class="cl-myroom-del" title="Apagar jogo" onclick="event.stopPropagation();clDeleteSave('${escC(s.name)}')">🗑</button>
-      <div class="cl-myroom-arrow">➜</div>
-    </div>`).join('');
-  return wizShell({ pill:'Continuar', title:'Continuar jogo', back:'clSoloBackChoice()',
-    contentCls:'cl-wiz-top', actionCls:'cl-wiz-action-c',
-    action:`<span class="cl-wiz-hint">Toque num jogo pra continuar de onde parou.</span>`,
-    body:`<div class="cl-wiz-form cl-wiz-form-wide"><div class="cl-myrooms-list">${list}</div></div>`
-  });
+  // TELA PORTADA (telas/Fluxo - Continuar Save)
+  return rfSavesHTML();
 }
+
 /* apagar um jogo salvo (solo) — confirmação + delete na nuvem */
 function clDeleteSave(name){
   overlayC(dlg('Apagar jogo?', `<div class="cl-res">
@@ -2140,24 +2103,10 @@ function clPaisesOk(){
 /* ================= 03b · PAÍS JOGÁVEL (só quando 2+ países selecionados) ================= */
 const COUNTRY_FLAG={Brasil:flagImg('Brasil'),Argentina:flagImg('Argentina'),Uruguai:flagImg('Uruguai'),'Colômbia':flagImg('Colômbia'),Chile:flagImg('Chile'),Peru:flagImg('Peru'),Equador:flagImg('Equador'),Paraguai:flagImg('Paraguai'),Venezuela:flagImg('Venezuela'),'Bolívia':flagImg('Bolívia'),Alemanha:flagImg('Alemanha'),Espanha:flagImg('Espanha'),'França':flagImg('França'),'Itália':flagImg('Itália'),Portugal:flagImg('Portugal'),Inglaterra:flagImg('Inglaterra')};
 function scPaisJogavel(){
-  const playable=selectedPlayableCountries();
-  const rows=playable.map(c=>{
-    const sel=CL.playCountry===c;
-    const teams=intlTeams(c)|| (c==='Brasil'?20:0);
-    return `<div class="cl-ctry ${sel?'sel':''}" onclick="CL.playCountry='${c}';cdraw()">
-      <span class="cl-flag">${flagImg(c)}</span><span class="cl-ctry-n">${escC(c)}</span>
-      <span class="cl-ctry-t">${sel?'✔ seu time':`${teams} equipas`}</span></div>`;
-  }).join('');
-  const others=playable.filter(c=>c!==CL.playCountry);
-  // modal padrão: as ações vão pro rodapé fixo em vez de ficarem soltas no meio do conteúdo
-  return dlg('Onde você vai treinar?', `
-    <div class="cl-paises">
-      <div class="cl-ctry-list">${rows}</div>
-      <div class="cl-paises-side">
-        <div class="cl-instr">Escolha o país onde você vai comandar um clube. ${others.length?`As outras ligas (${others.map(escC).join(', ')}) rodam sozinhas no background — dá pra acompanhar tabelas, artilheiros e campeões no menu <b>Campeonatos</b>, e negociar jogadores com elas.`:''}</div>
-      </div>
-    </div>`, {std:true, w:900, footer:btn('Voltar','clGoPaises()',{icon:'↩',cls:'cl-btn-cancel'})+btn('OK','clPaisJogavelOk()',{icon:'✔',cls:'cl-btn-ok'})});
+  // TELA PORTADA (telas/Fluxo - Pais Jogavel)
+  return rfPaisHTML();
 }
+
 function clGoPaises(){ CL.screen='paises'; cdraw(); }
 function clPaisJogavelOk(){ CL.screen='moeda'; cdraw(); }
 
@@ -2166,40 +2115,26 @@ function clPaisJogavelOk(){ CL.screen='moeda'; cdraw(); }
    Só markup/estilo/navegação; a lógica (nomes, moeda, sorteio, montagem do jogo) é a mesma. */
 /* ---- 1/4 · DINHEIRO (moeda) ---- */
 function scMoeda(){
-  const cur=CL.currency||'Reais';
-  const body=`<div class="cl-wiz-form">
-    <label class="cl-wiz-label" style="display:block;margin-bottom:8px">Com que moeda vai querer jogar?</label>
-    <select class="cl-bigsel" onchange="CL.currency=this.value">
-      <option ${cur==='Reais'?'selected':''}>Reais</option>
-      <option ${cur==='Dólares'?'selected':''}>Dólares</option>
-      <option ${cur==='Euros'?'selected':''}>Euros</option>
-    </select>
-    <div class="cl-wiz-note">A moeda vale pra toda a Resenha — todo mundo negocia jogadores e vê as finanças nela.</div>
-  </div>`;
-  return wizShell({ step:5, steps:WIZ_PASSOS.solo, title:'Dinheiro', back:'clMoedaBack()', backLabel:'Voltar',
-    contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
-    action: btn('OK','clMoedaOk()',{icon:'✔',cls:'cl-wiz-cta'}) });
+  // TELA PORTADA (telas/Fluxo - Escolha de Moeda)
+  return rfMoedaHTML();
 }
+
 function clMoedaBack(){ CL.screen = selectedPlayableCountries().length>1 ? 'paisJogavel' : 'paises'; cdraw(); }
 function clMoedaOk(){ CL.screen='jogadores'; cdraw(); }
 function clGoMoeda(){ CL.screen='moeda'; cdraw(); }
 
 /* ---- 4/4 · A INICIAR O JOGO (loading + barra de progresso) ---- */
 function scLoading(){
-  // rf98.loading.splash: a tela de carregamento é o único momento em que o jogador está
-  // parado olhando por alguns segundos — é o espaço de splash do inventário. Sem criativo
-  // publicado, ADS.html devolve '' e a tela fica idêntica ao que sempre foi.
-  const splash = window.ADS ? ADS.html('rf98.loading.splash', {cls:'rf-ad-splash'}) : '';
-  const body=`<div class="cl-progwrap">
-    <div class="cl-progtitle">A iniciar o jogo…</div>
-    ${splash}
-    <div class="cl-progtrack"><div id="cl-load-fill" class="cl-progfill" style="width:0%"></div><div id="cl-load-pct" class="cl-progpct">0%</div></div>
-    <div class="cl-wiz-note" style="text-align:center;margin-top:10px">Montando tabelas, elencos e calendário da temporada.</div>
-  </div>`;
-  return wizShell({ noHeader:true, contentCls:'cl-wiz-center', body });
+  // TELA PORTADA (telas/Fluxo - Carregando)
+  return rfCarregandoHTML();
 }
+
 function runLoading(){ let p=0; const t=setInterval(()=>{ p+=Math.floor(8+Math.random()*14); if(p>=100)p=100;
+  // a barra E a lista de etapas: sem CL._loadPct, os quatro itens da tela portada
+  // ficariam parados em "na fila" enquanto a barra corre (ver rfCarregandoHTML)
+  CL._loadPct=p;
   const f=$c('#cl-load-fill'), pc=$c('#cl-load-pct'); if(f)f.style.width=p+'%'; if(pc)pc.textContent=p+'%';
+  if(typeof rfCarregandoEtapas==='function') rfCarregandoEtapas(p);
   if(p>=100){ clearInterval(t); setTimeout(()=>{
     if(CL._pendingLaunch){ const fn=CL._pendingLaunch; CL._pendingLaunch=null; fn(); } // clubes -> loading -> lança o jogo
     else { CL.screen='jogadores'; cdraw(); }
@@ -2213,27 +2148,10 @@ function runLoading(){ let p=0; const t=setInterval(()=>{ p+=Math.floor(8+Math.r
    só a entrada pela UI foi removida — pra não perder o trabalho se decidirmos religar depois.
    Quem quer jogar com mais gente é direcionado pro Modo Resenha (online) em vez disso. */
 function scJogadores(){
-  const body=`<div class="cl-wiz-form-wide">
-    <div class="cl-prow cl-prow-head"><span></span><span class="cl-wiz-collabel">Nome</span><span class="cl-wiz-collabel">Equipa</span></div>
-    <div class="cl-prow">
-      <span class="cl-plabel">Jogador 1</span>
-      <input class="cl-pinput cur" id="cl-focus" maxlength="12" placeholder="LEANDRO" value="${escC(CL.names[0])}" oninput="CL.names[0]=this.value.toUpperCase();this.value=CL.names[0]">
-      <span class="cl-pteam">(você)</span>
-    </div>
-    <div class="cl-wiz-note">Time vazio fica com a CPU.</div>
-    <div class="cl-resenha-banner" onclick="clPickResenha()">
-      <span class="cl-resenha-banner-ic">👥</span>
-      <div class="cl-resenha-banner-txt">
-        <b>Quer jogar com amigos?</b>
-        <span>Isso é o Modo Resenha — cada um assume um clube, online, com chat da liga.</span>
-      </div>
-      <span class="cl-resenha-banner-go">Ir pro Modo Resenha ›</span>
-    </div>
-  </div>`;
-  return wizShell({ step:6, steps:WIZ_PASSOS.solo, title:'Jogadores', back:'clGoMoeda()', backLabel:'Voltar',
-    contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
-    action: btn('Escolher clubes','clEscolherClubes()',{icon:'›',cls:'cl-wiz-cta'}) });
+  // TELA PORTADA (telas/Fluxo - Numero de Treinadores)
+  return rfTreinadoresHTML();
 }
+
 /* clubes reais dos países europeus selecionados (união de todas as ligas escolhidas) */
 function intlSelectedClubs(){
   const out=[]; const seen=new Set();
@@ -2783,41 +2701,10 @@ function clEscolherClubes(){
 }
 /* ---- 3/4 · ESCOLHA OS CLUBES ---- */
 function scEscolhaClubes(){
-  const countries=selectedPlayableCountries();
-  // SORTEIO OBRIGATÓRIO em todos os modos: cada jogador só escolhe o país; o clube é sempre
-  // sorteado (nunca escolhido). Antes, com 1 jogador, ele escolhia o próprio clube.
-  const multi=true;
-  const taken=new Set((CL.pick||[]).filter(p=>p.clubId).map(p=>p.clubId));
-  const rows=(CL.pick||[]).map((p,i)=>{
-    const countrySel=countries.map(c=>`<option value="${escC(c)}" ${p.country===c?'selected':''}>${escC(c)}</option>`).join('');
-    const countryCell=`<select class="cl-navysel" onchange="clPickCountry(${i},this.value)">${countrySel}</select>`;
-    const nameCell=`<span class="cl-plabel">${escC(p.name)}${i===0?' <span class="cl-pick-you">(você)</span>':''}</span>`;
-    if(multi){
-      return `<div class="cl-crow nocl">${nameCell}${countryCell}</div>`;
-    }
-    const clubs=((CL._pickPool||{})[p.country]||[]).filter(c=>!taken.has(c.id)||c.id===p.clubId).sort((a,b)=>a.short.localeCompare(b.short));
-    const clubSel=`<option value="">— escolha —</option>`+clubs.map(c=>`<option value="${escC(c.id)}" ${p.clubId===c.id?'selected':''}>${escC(c.short)}</option>`).join('');
-    return `<div class="cl-crow">${nameCell}${countryCell}
-      <select class="cl-navysel" onchange="clPickClub(${i},this.value)">${clubSel}</select></div>`;
-  }).join('');
-  const allChosen=(CL.pick||[]).length>0 && CL.pick.every(p=>p.clubId);
-  const head=multi
-    ? `<div class="cl-crow nocl cl-crow-head"><span class="cl-wiz-collabel">Jogador</span><span class="cl-wiz-collabel">País</span></div>`
-    : `<div class="cl-crow cl-crow-head"><span class="cl-wiz-collabel">Jogador</span><span class="cl-wiz-collabel">País</span><span class="cl-wiz-collabel">Clube</span></div>`;
-  const instr=multi
-    ? `Cada jogador escolhe seu país. Os times são <b>sorteados</b>. ${countries.length>1?'Podem estar em países diferentes.':''}`
-    : `Cada jogador escolhe seu país e um clube livre.`;
-  const action=multi
-    ? `<span class="cl-wiz-back-sp"></span><div class="cl-wiz-actbtns">${btn('Voltar','clGoJogadores()',{icon:'↩',cls:'cl-btn'})}${btn('Sortear e começar','clSortearStart()',{icon:'🎲',cls:'cl-wiz-cta'})}</div>`
-    : `${btn('Sortear','clSortearPick()',{icon:'🎲',cls:'cl-btn'})}<div class="cl-wiz-actbtns">${btn('Voltar','clGoJogadores()',{icon:'↩',cls:'cl-btn'})}${btn('Começar','clStartGame()',{icon:'✔',cls:'cl-wiz-cta',dis:!allChosen})}</div>`;
-  const body=`<div class="cl-wiz-clubes">
-    ${head}
-    ${rows}
-    <div class="cl-wiz-note">${instr}</div>
-  </div>`;
-  return wizShell({ step:7, steps:WIZ_PASSOS.solo, title:'Escolha os clubes', back:'clGoJogadores()', backLabel:'Voltar',
-    contentCls:'cl-wiz-top', body, action });
+  // TELA PORTADA (telas/Fluxo - Escolha dos Clubes)
+  return rfClubesHTML();
 }
+
 /* atribui aleatoriamente um clube livre a cada manager (respeita o país escolhido) */
 function _assignRandomClubs(){
   const taken=new Set();

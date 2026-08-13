@@ -10,13 +10,15 @@
    um card de conteúdo e uma barra de ação embaixo. Repelar não chegava lá —
    a estrutura tinha que ser outra.
 
-   A TRILHA TEM CINCO PASSOS, não sete: Entrar · Modo · Configurar ·
-   Sorteio · Jogar. As sete TELAS do pacote se distribuem nesses cinco
-   marcos (as três de configuração — país/ligas, criar sala, convites —
-   dividem o passo 3). É o que a referência mostra em todas elas.
+   A TRILHA TEM SEIS PASSOS: Entrar · Modo · País e liga · Sala ·
+   Convites · Clube. Era de cinco ('Configurar' juntava país, sala e
+   convites) até a leva 4 mostrar a trilha aberta nas telas do fluxo de
+   entrada — lá cada um desses três é um marco próprio, e é essa a trilha
+   que todas as telas do pacote desenham. As telas de moeda e de
+   carregamento entram no passo 3, junto com a escolha do país.
    ===================================================================== */
 
-const RF_WIZ_PASSOS=['Entrar','Modo','Configurar','Sorteio','Jogar'];
+const RF_WIZ_PASSOS=['Entrar','Modo','País e liga','Sala','Convites','Clube'];
 
 /* ---- envelope: marca + trilha + card + barra de ação ---- */
 function rfWiz(o){
@@ -30,7 +32,7 @@ function rfWiz(o){
         ${o.topoDir||''}
       </div>
       <div class="rf-wiz-shell">
-        ${rfWizTrilhaHTML(o.passo||1)}
+        ${o.semTrilha?'':rfWizTrilhaHTML(o.passo||1)}
         <div class="rf-wiz-card">${o.corpo||''}</div>
       </div>
       <div class="rf-wiz-acao">
@@ -197,7 +199,7 @@ function rfOb4(){
         <button type="button" class="rf-chip ${sala.quem==='aprovar'?'on':''}" onclick="rfObSala('quem','aprovar')">Só quem eu aprovar</button>
       </div>
     </div></div>`;
-  return rfWiz({passo:3, corpo, nota:'A sala fica aberta até você começar a temporada.',
+  return rfWiz({passo:4, corpo, nota:'A sala fica aberta até você começar a temporada.',
     voltar:'clGoModo()', cta:'Criar sala', ctaOn:'clCriarSala&&clCriarSala()'});
 }
 function rfObSala(k,v){ CL.sala=CL.sala||{}; CL.sala[k]=v; cdraw(); }
@@ -231,7 +233,7 @@ function rfOb5(){
         <div class="rf-conv-chat">${(typeof chatMsgsHTML==='function')?chatMsgsHTML():''}</div>
       </div>
     </div>`;
-  return rfWiz({passo:3, corpo, nota:'Dá para começar com quem já entrou.',
+  return rfWiz({passo:5, corpo, nota:'Dá para começar com quem já entrou.',
     voltar:'clGoModo()', cta:'Começar temporada', ctaOn:'clComecarTemporada&&clComecarTemporada()'});
 }
 
@@ -258,7 +260,7 @@ function rfOb6(){
         ${rfKpiHTML('Em caixa', fmt(S.budget||0), 'para a temporada')}
       </div>
     </div>`:''}`;
-  return rfWiz({passo:4, corpo, nota:'O clube é sorteado uma vez por save.',
+  return rfWiz({passo:6, corpo, nota:'O clube é sorteado uma vez por save.',
     cta:'Conhecer o clube', ctaOn:'clEntrar()'});
 }
 
@@ -287,6 +289,6 @@ function rfOb7(){
         <p class="rf-bv-p">Time montado, caixa no azul e calendário fechado. O objetivo da temporada é o acesso — e a gente sabe que a Série D não perdoa. Boa sorte.</p>
       </div>
     </div>`;
-  return rfWiz({passo:5, corpo, nota:'Você pode rever isso em Equipa.',
+  return rfWiz({passo:6, corpo, nota:'Você pode rever isso em Elenco & Base.',
     cta:'⚽ Entrar no jogo', ctaOn:'clBoasVindasContinuar()'});
 }
