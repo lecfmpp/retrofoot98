@@ -366,7 +366,7 @@ function rfHubHTML(){
       <span class="rf-label-t">Formações</span>
       ${rfFormacoesHTML()}
       <div class="rf-acts">
-        ${btn('Selecionar descansados','clSelectRested()',{icon:'🔋',dis:!CL.tacticChosen,
+        ${btn('Seleccionar descansados','clSelectRested()',{icon:'🔋',dis:!CL.tacticChosen,
           title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
       </div>
     </div>

@@ -286,7 +286,7 @@ function bestFormationForSquad(id){
    match-engine.js, availableXI em simulate.js). Os dois seletores abaixo montavam o onze a partir
    do elenco inteiro, então escalavam machucado e suspenso; na hora do jogo o motor filtrava de
    novo e o time entrava em campo DESFALCADO, sem o usuário entender por quê.
-   No "Selecionar descansados" era pior ainda e sistemático: quem está machucado não joga, não
+   No "Seleccionar descansados" era pior ainda e sistemático: quem está machucado não joga, não
    gasta energia e por isso aparecia no TOPO da ordenação por energia — o botão de descansar
    praticamente escolhia os lesionados. */
 function squadEscalavel(id){ return squad(id).filter(p=>!(p.suspended>0)&&!(p.injuredMatches>0)); }
@@ -306,7 +306,7 @@ function pickXIByFormation(id,f){ const need=FORMATIONS[f]||FORMATIONS['4-3-3'];
   secs.forEach((sec,i)=>{ sq.filter(p=>p.s===sec).slice(0,need[i]).forEach(p=>xi.push(p.pid)); });
   return completaXI(id,xi,sq).slice(0,11); }
 /* mesma lógica de pickXIByFormation, mas ordenando por energia (menos cansados primeiro)
-   em vez de força — usada pelo botão "Selecionar descansados" */
+   em vez de força — usada pelo botão "Seleccionar descansados" */
 function pickXIByFormationRested(id,f){ const need=FORMATIONS[f]||FORMATIONS['4-3-3']; const secs=['GK','DEF','MID','ATT'];
   const nrg=p=>(p&&p.energy!=null)?p.energy:100;
   const sq=squadEscalavel(id).slice().sort((a,b)=>nrg(b)-nrg(a)||b.f-a.f); const xi=[];   // xi = lista de PIDs
@@ -5097,7 +5097,7 @@ function panSeleccao(){
   const ok=xi.length>=11 && CL.tacticChosen && gkCount===1;
   const gkWarn = (CL.tacticChosen && xi.length>=11 && gkCount!==1)
     ? `<div class="cl-sel-note" style="color:#b00">⚠ ${gkCount===0?'Nenhum goleiro escalado.':'Mais de um goleiro escalado ('+gkCount+').'} Ajuste em "Substituir" pra liberar o Jogar.</div>` : '';
-  // "Selecionar descansados": só aparece depois que uma formação foi escolhida (mesmo gate
+  // "Seleccionar descansados": só aparece depois que uma formação foi escolhida (mesmo gate
   // usado pelo botão Substituir logo abaixo). Reescala os mesmos setores da formação atual,
   // mas priorizando energia (menos cansados) em vez de força.
   // formações disponíveis com atalhos — estilo vintage RetroFoot98. Além das 6 formações,
@@ -5120,7 +5120,7 @@ function panSeleccao(){
     </div>
   </div>`;
 
-  // O CAMPO ROLA, O RODAPÉ NÃO. Formações, "Selecionar descansados" e "Jogar" são as decisões
+  // O CAMPO ROLA, O RODAPÉ NÃO. Formações, "Seleccionar descansados" e "Jogar" são as decisões
   // da aba — ficam ancoradas na base, do mesmo tamanho e alinhadas, enquanto o campo e o banco
   // ocupam o espaço que sobra.
   return `<div class="cl-sel">
@@ -5132,7 +5132,7 @@ function panSeleccao(){
     <div class="cl-sel-foot">
       ${formationsBlock}
       <div class="cl-sel-acts">
-        ${btn('Selecionar descansados','clSelectRested()',{icon:'🔋',cls:'cl-btn-ok',dis:!CL.tacticChosen,title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
+        ${btn('Seleccionar descansados','clSelectRested()',{icon:'🔋',cls:'cl-btn-ok',dis:!CL.tacticChosen,title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
         ${jogarBtnHTML(ok)}
       </div>
     </div>
@@ -10811,7 +10811,7 @@ function clCancelarPronto(){
 }
 /* CL.xiModo guarda QUAL BOTÃO foi apertado ('auto'/'best'/null); CL.formation guarda sempre uma
    formação de verdade. Antes CL.formation virava o texto 'Automático'/'Melhores', e aí o campo
-   caía nas faixas genéricas (PITCH_BANDS._) e o "Selecionar descansados" reescalava num 4-3-3
+   caía nas faixas genéricas (PITCH_BANDS._) e o "Seleccionar descansados" reescalava num 4-3-3
    que ninguém pediu — os jogadores mudavam de lugar sem o usuário mexer em nada. */
 function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
   if(f==='auto'){ S.xi=autoXI(CL.clubId); CL.formation=coherentFormation(CL.clubId,'4-3-3');
@@ -10826,7 +10826,7 @@ function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
   const rotulo = CL.xiModo==='best' ? ('Melhores de cada posição ('+CL.formation+')')
                : CL.xiModo==='auto' ? ('Automático ('+CL.formation+')') : ('Tática '+CL.formation);
   toastC(adjustedFrom ? `Sem jogadores pro ${adjustedFrom} — ajustado pra ${CL.formation}.` : rotulo+' seleccionada.'); }
-/* "Selecionar descansados": reaplica a formação já escolhida trocando o critério de escala
+/* "Seleccionar descansados": reaplica a formação já escolhida trocando o critério de escala
    de força (p.f) por energia (menos cansados primeiro), respeitando os setores da formação.
    Disponível só depois que uma formação foi escolhida (CL.tacticChosen) — funciona igual em
    solo, resenha e hotseat porque só mexe em S.xi/CL.formation, igual clSelFormation. */

@@ -1045,3 +1045,61 @@
 .cl-jobinv-pos,.cl-jobinv-n{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
 .cl-jobinv-note{color:var(--text-4);font-size:var(--fs-caption)}
 .cl-jobinv-recado{color:var(--text-2);font-size:var(--fs-body-sm);line-height:var(--lh-normal)}
+
+/* ----- Listas legadas: calendário, classificação, ofertas -----
+   Essas listas pintavam a LINHA INTEIRA pra separar tipos: linha ímpar em
+   azul-marinho cheio, jogo de copa em amarelo, sorteio em roxo. Sobre a
+   superfície branca do design novo isso vira um arco-íris que compete com
+   o dado. A distinção continua existindo — ela só muda de instrumento:
+   fundo bem claro e um FILETE colorido à esquerda, que é como o resto do
+   sistema já marca categoria. */
+.rf-legacy .cl-cal,.rf-legacy .cl-cls{background:transparent;border:none;width:auto;max-height:none}
+.rf-legacy .cl-cal-row{padding:7px 10px;font-size:var(--fs-body-sm);font-weight:var(--fw-medium);
+  color:var(--text-2);border-radius:var(--r-row);border-left:3px solid transparent;
+  transition:background var(--dur-fast) var(--ease)}
+.rf-legacy .cl-cal-row:nth-child(odd){background:var(--surface-row-alt);color:var(--text-2)}
+.rf-legacy .cl-cal-row:hover{background:var(--surface-sunken)}
+.rf-legacy .cl-cal-n,.rf-legacy .cl-cal-d{font-family:var(--font-mono);font-size:var(--fs-micro);
+  color:var(--text-faint)}
+.rf-legacy .cl-cal-cf{font-family:var(--font-mono);text-align:right;color:var(--text-3)}
+/* jogo de copa: filete na cor de ação, fundo quase branco */
+.rf-legacy .cl-cal-cup{background:var(--surface-sunken)!important;color:var(--text-1)!important;
+  font-weight:var(--fw-semibold);border-left-color:var(--club-secondary)}
+.rf-legacy .cl-cal-cup .cl-cal-n{color:var(--text-faint)}
+/* cerimônia de sorteio: é evento, não jogo — filete na cor do clube e itálico */
+.rf-legacy .cl-cal-draw{background:var(--club-primary-soft)!important;color:var(--club-primary)!important;
+  font-style:italic;border-left-color:var(--club-primary)}
+/* folga: apagada, sem peso */
+.rf-legacy .cl-cal-folga{background:transparent!important;color:var(--text-faint)!important;
+  border-left-color:var(--line-2)}
+.rf-legacy .cl-cal-folga .cl-cal-n,.rf-legacy .cl-cal-folga .cl-cal-d{color:var(--text-faint)}
+.rf-legacy .cl-cal-pens{font-family:var(--font-mono);color:var(--text-faint)}
+
+/* o calendário grande (.cl-cal-sched) tem o zebrado próprio, e ele é mais
+   específico que a regra genérica acima — precisa da sua própria linha */
+.rf-legacy .cl-cal-sched .cl-cal-row:nth-child(odd){background:transparent;color:var(--text-2)}
+.rf-legacy .cl-cal-sched .cl-cal-row:nth-child(even){background:var(--surface-row-alt);color:var(--text-2)}
+.rf-legacy .cl-cal-sched .cl-cal-row:hover{background:var(--surface-sunken)}
+.rf-legacy .cl-cal-sched .cl-cal-row:nth-child(even) .cl-cal-d,
+.rf-legacy .cl-cal-sched .cl-cal-d{color:var(--text-faint)}
+.rf-legacy .cl-cal-head{font-size:var(--fs-label);font-weight:var(--fw-bold);color:var(--text-muted);
+  letter-spacing:var(--ls-label);text-transform:uppercase;padding:0 10px 6px}
+/* as variantes de tipo continuam vencendo o zebrado, agora por filete */
+.rf-legacy .cl-cal-sched .cl-cal-row.cl-cal-cup{background:var(--surface-sunken)!important}
+.rf-legacy .cl-cal-sched .cl-cal-row.cl-cal-draw{background:var(--club-primary-soft)!important}
+.rf-legacy .cl-cal-sched .cl-cal-row.cl-cal-folga{background:transparent!important}
+
+/* ----- Painéis que vieram da coluna escura (Finanças, Jogador, E-mail) -----
+   Eles nasceram dentro do painel preto da tela antiga e herdavam tudo dele.
+   No card branco a cor já resolve sozinha (herda de .rf-card); o que falta é
+   a regra de números: TODO número em IBM Plex Mono, alinhado à direita. */
+.rf-tabpane .cl-fin{font-size:var(--fs-body-sm);color:var(--text-2)}
+.rf-tabpane .cl-fin-row{max-width:460px;padding:4px 0;gap:24px}
+.rf-tabpane .cl-fin-row>*:last-child{font-family:var(--font-mono);font-variant-numeric:tabular-nums;
+  text-align:right;color:var(--text-1);white-space:nowrap}
+.rf-tabpane .cl-fin-h,.rf-tabpane .cl-fin-sec{color:var(--text-muted);font-size:var(--fs-label);
+  font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase;
+  margin:14px 0 4px}
+.rf-tabpane .cl-fin-row.big2{font-size:var(--fs-subhead);margin-top:14px;
+  border-top:1px solid var(--line-3);padding-top:12px}
+.rf-tabpane .cl-fin-row.big2>*:last-child{font-size:var(--fs-title);font-weight:var(--fw-bold)}
