@@ -6666,7 +6666,14 @@ function liveDoSub(){ if(!CL.subOut||!CL.subIn){ toastC('Escolha um titular e um
   S.xi=(S.xi||[]).map(x=>x===CL.subOut?CL.subIn:x); CL.subsUsed=(CL.subsUsed||0)+1;
   if(outP&&inP) toastC(inP.n.split(' ').slice(-1)[0]+' entrou no lugar de '+outP.n.split(' ').slice(-1)[0]); CL.subOut=CL.subIn=null; updateLive(); }
 function txtOn(hex){ return lumin(hex)>0.58?'#111':'#fff'; }
-function liveScoreCells(m){ return `<b>${m.hg}</b><b>${m.ag}</b>`; }
+/* O PLACAR É UMA PEÇA SÓ, e ela é a da tela nova (painel escuro com dígitos
+   amarelos, ver rfLvPlacarHTML). Esta função é o ponto por onde o placar é
+   redesenhado a cada minuto — se ela continuasse devolvendo dois <b>, o
+   primeiro tique da partida apagaria o painel que o render inicial montou. */
+function liveScoreCells(m){
+  if(typeof rfLvPlacarHTML==='function') return rfLvPlacarHTML(m.hg||0, m.ag||0, true);
+  return `<b>${m.hg}</b><b>${m.ag}</b>`;
+}
 /* ---- accordion por divisão (ranking + jogos ao vivo): a divisão do usuário
    fica no topo e aberta por padrão; as outras começam colapsadas. ---- */
 function divAccOpen(key,d){ const st=CL[key]; if(st && st[d]!=null) return st[d]; return d===S.division; }
@@ -6698,6 +6705,13 @@ function kickoffWaitHTML(RL){
   </div>`;
 }
 function scLive(){ const RL=CL.live; if(!RL) return '';
+  // PARTIDA AO VIVO PORTADA (ver src/ui/rf26-live.js). O caminho antigo fica
+  // como rede: pênaltis, prorrogação e a partida avulsa de copa desenham
+  // cabeçalhos próprios que a tela de referência não cobre — nesses casos
+  // segue o desenho de sempre, até virem as telas correspondentes.
+  if(typeof rfLiveHTML==='function' && !RL.pens && !RL.cup && !RL.humanSeat){
+    try{ const h=rfLiveHTML(RL); if(h) return h; }catch(e){ console.warn('[rf26] ao vivo:', e); }
+  }
   const rowHTML=(m,i)=>{const hc=clubOf(m.h),ac=clubOf(m.a);
     return `<div class="cl-lrow" onclick="liveRowClick(${i})">
       <span class="cl-latt">${grp(m.att)}</span>
