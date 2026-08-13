@@ -4,7 +4,9 @@
      cabeçalho com a cor de quem está sentado seria dizer que o time é dele. */
   --brand-primary:#17458F;
   --brand-primary-deep:#0e2f66;
+  --brand-secondary:#F2B90C;
   --brand-on-primary:#ffffff;
+  --brand-on-secondary:#17458F;
 
   /* Clube — trocáveis por time. Estes são os do XV Piracicaba. */
   --club-primary:#17458F;

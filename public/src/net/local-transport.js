@@ -902,20 +902,11 @@ function salaTestDivRow(){
   return `<div class="cl-authfield"><label>🧪 Modo teste — divisão inicial da sala</label>
     <div class="cl-divopt-row">${opts}</div></div>`;
 }
-function scSalaHost(){ const n=CL.net;
-  const body=`<div class="cl-wiz-authcard">
-      <div class="cl-authfield"><label>Nome da sala</label>
-        <input id="cl-focus" maxlength="18" placeholder="Ex: Resenha da firma" value="${escC(n.roomName||'')}" oninput="CL.net.roomName=this.value;netSalaSync()" onkeydown="if(event.key==='Enter')clOpenRoom()"></div>
-      <div class="cl-authhint">Cada jogador escolhe o próprio time ao entrar, entre os clubes ainda controlados pela CPU.</div>
-      ${(typeof patchPickerHTML==='function')?patchPickerHTML():''}
-      ${salaTestDivRow()}
-    </div>`;
-  return wizShell({
-    step:4, steps:WIZ_PASSOS.resenha, title:'Abrir sala', back:'clBackConta()', backLabel:'Voltar',
-    contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
-    action: btn('Abrir','clOpenRoom()',{icon:'✔',cls:'cl-wiz-cta',dis:!n.roomName})
-  });
+function scSalaHost(){
+  // TELA PORTADA (telas/Onboarding 4 - Criar Sala)
+  return rfOb4();
 }
+
 function netSalaSync(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(b) b.disabled=!CL.net.roomName; }
 function clBackConta(){ CL.net.step='escolha'; cdraw(); }
 function clOpenRoom(){ if(!CL.net.roomName)return;
@@ -935,101 +926,13 @@ function clOpenRoom(){ if(!CL.net.roomName)return;
    outro participante (a linha de cada um só mostra um seletor pro dono dela
    mesma, quando ainda não escolheu). "Sortear times" continua sendo um atalho
    do anfitrião pra preencher de uma vez só as vagas que ninguém pegou ainda. */
-function scLobby(){ const room=NET.room;
-  if(!room) return wizShell({ title:'Sala', back:'clLobbyExit()', backLabel:'Sair da sala',
-    contentCls:'cl-wiz-center', body:`<div class="cl-wiz-sub">A ligar à sala…</div>` });
-  const host=NET.isHost;
-  const nParts=room.participants.length;
-  const canStart=host && nParts>=2;
-  if(host) clStartHostReqPoll();
-  else clStartLobbyPoll(); // CONVIDADO: poll de segurança pra não ficar preso se o realtime falhar
-
-  // ---- lista de treinadores na sala (o time NÃO é revelado aqui — só na tela de sorteio) ----
-  const parts=room.participants.map(p=>{ const isSelf=p.id===NET.self.id;
-    const status=p.confirmed?'<span class="cl-part-st ok">● na sala</span>':'<span class="cl-part-st">○ a entrar…</span>';
-    return `<div class="cl-part">
-      <span class="cl-part-dot ${p.confirmed?'ok':''}"></span>
-      <span class="cl-part-n">${escC(p.name||'—')}${p.host?' <i>(anfitrião)</i>':''}${isSelf&&!p.host?' <i>(você)</i>':''}</span>
-      ${status}
-      <span class="cl-part-team wait">🎲 aguardando sorteio</span>
-      ${host && !isSelf ? `<button class="cl-part-kick" title="Remover da sala" onclick="clKick('${p.id}','${p.clubId||''}')">✖</button>` : ''}
-    </div>`; }).join('');
-
-  const nReq=(CL.pendingJoins&&CL.pendingJoins.length)||0;
-
-  // ======= VISÃO DO ANFITRIÃO: passo a passo em coluna única =======
-  let steps='';
-  if(host){
-    // Passo 1 — convidar
-    steps += `<section class="cl-step">
-      <div class="cl-step-h"><span class="cl-step-num">1</span><span class="cl-step-t">Convide os treinadores</span></div>
-      <div class="cl-step-b">
-        <div class="cl-wiz-invitegrid">
-          <div>
-            <div class="cl-wiz-invlbl">🟢 Por WhatsApp</div>
-            <div class="cl-wiz-invrow"><span class="cl-ddi">+55</span><input class="cl-phone" inputmode="numeric" placeholder="DDD + número" value="${escC(CL.net.phone||'')}" oninput="CL.net.phone=this.value.replace(/\\D/g,'');this.value=CL.net.phone">${btn('Enviar','clWaInvite()',{cls:'cl-btn-sm'})}</div>
-          </div>
-          <div>
-            <div class="cl-wiz-invlbl">✉ Por e-mail</div>
-            <div class="cl-wiz-invrow"><input class="cl-emailinv" type="email" placeholder="email@exemplo.com" value="${escC(CL.net.inviteEmail||'')}" oninput="CL.net.inviteEmail=this.value">${btn('Enviar','clEmailInvite()',{cls:'cl-btn-sm'})}</div>
-          </div>
-        </div>
-        <div class="cl-wiz-invlbl" style="margin-top:10px">🔍 Quem já tem conta</div>
-        <input id="cl-usersearch-input" class="cl-wiz-searchin" placeholder="Buscar por nome ou e-mail (mín. 3 letras)" oninput="clUserSearch(this.value)">
-        <div id="cl-usersearch-results" class="cl-usersearch-results"></div>
-        <div class="cl-wiz-invhint">Ou compartilhe o link: <a class="cl-wiz-invlink" href="${escC(NET.inviteLink())}" target="_blank">${escC(NET.inviteLink())}</a></div>
-      </div>
-    </section>`;
-    // Passo 2 — aprovar entradas (só aparece quando há pedidos)
-    if(nReq>0){
-      steps += `<section class="cl-step cl-step-alert">
-        <div class="cl-step-h"><span class="cl-step-num">2</span><span class="cl-step-t">Aprove os pedidos de entrada <span class="cl-step-badge">${nReq}</span></span></div>
-        <div class="cl-step-b"><div class="cl-req-list">${clReqRowsHTML()}</div></div>
-      </section>`;
-    }
-    // Passo 3 — treinadores na sala
-    steps += `<section class="cl-step">
-      <div class="cl-step-h"><span class="cl-step-num">${nReq>0?3:2}</span><span class="cl-step-t">Treinadores na sala (${nParts})</span></div>
-      <div class="cl-step-b"><div class="cl-parts">${parts}</div>
-        <div class="cl-wiz-invhint">Quando começar, cada treinador recebe um clube por sorteio — ninguém escolhe.</div>
-      </div>
-    </section>`;
-  } else {
-    // ======= VISÃO DO CONVIDADO: simples =======
-    steps += `<section class="cl-step">
-      <div class="cl-step-h"><span class="cl-step-t">Treinadores na sala (${nParts})</span></div>
-      <div class="cl-step-b"><div class="cl-parts">${parts}</div>
-        <div class="cl-wiz-invhint">Aguarde o anfitrião começar. Os clubes são sorteados na próxima tela.</div>
-      </div>
-    </section>`;
-  }
-
-  // Chat — recolhível (todos). Desligado na v1 junto com a doca (ver CHAT_ATIVO).
-  const chatOpen=CL.net.lobbyChatOpen!==false;
-  if(CHAT_ATIVO) steps += `<section class="cl-step cl-step-chat">
-      <div class="cl-step-h cl-step-h-btn" onclick="CL.net.lobbyChatOpen=${chatOpen?'false':'true'};renderOnlineInto()">
-        <span class="cl-step-t">💬 Chat da sala</span><span class="cl-step-caret">${chatOpen?'▾':'▸'}</span>
-      </div>
-      ${chatOpen?`<div class="cl-step-b">
-        <div class="cl-chat-msgs cl-wiz-chatmsgs" id="cl-chat-msgs-lobby">${chatMsgsHTML()||'<div class="cl-wiz-chatempty">Nenhuma mensagem ainda. Diga oi! 👋</div>'}</div>
-        <div class="cl-wiz-invrow"><input id="cl-chat-input-lobby" class="cl-chat-input" placeholder="Escreva uma mensagem…" onkeydown="clChatKey(event,'cl-chat-input-lobby')">${btn('Enviar',"clChatSend('cl-chat-input-lobby')",{cls:'cl-btn-sm'})}</div>
-      </div>`:''}
-    </section>`;
-
-  const action=`<span class="cl-wiz-hint">${host?(canStart?'O sorteio dos clubes acontece na próxima tela.':'Convide pelo menos mais 1 treinador pra começar.'):'À espera do anfitrião… toque em Sincronizar se ele já começou.'}</span>
-    <div class="cl-wiz-actbtns">
-      ${btn('Sair','clLobbyExit()',{icon:'✖',cls:'cl-wiz-sairbtn'})}
-      ${host?btn('Começar (sortear times)','clLobbyStart()',{icon:'🎲',cls:'cl-wiz-cta',dis:!canStart})
-            :btn('Sincronizar','clSyncResenha()',{icon:'🔄',cls:'cl-wiz-cta'})}
-    </div>`;
-  return wizShell({
-    step:4, steps:WIZ_PASSOS.resenha, title:'Sala · '+escC(room.name||''), back:'clLobbyExit()', backLabel:'Sair da sala',
-    pill:'Código '+escC(room.code||''),
-    contentCls:'cl-wiz-lobbycontent',
-    body:`<div class="cl-wiz-lobbycol">${steps}</div>`,
-    action
-  });
+function scLobby(){
+  // TELA PORTADA (telas/Onboarding 5 - Convites): a referência desenha lista,
+  // convites, link e chat; os pedidos de entrada, a busca por usuário e o
+  // remover — que só o lobby de verdade tem — entram na mesma coluna.
+  return rfOb5();
 }
+
 /* MODO TESTE (TESTING_FREE_DIVISION_PICK, ui/main.js): qual divisão do Brasil ESTA sala usa —
    normalmente sempre D, mas o anfitrião pode ter escolhido outra em scSalaHost (netCreateRoom já
    criou os assentos nela). Fonte de verdade, em ordem: (1) o clube de QUALQUER participante já

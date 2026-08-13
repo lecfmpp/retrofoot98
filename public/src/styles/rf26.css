@@ -1586,6 +1586,7 @@
   padding:18px;box-shadow:var(--shadow-shell);display:flex;flex-direction:column;gap:16px}
 
 /* ----- trilha de cinco passos ----- */
+.rf-wiz-fita{display:none}
 .rf-wiz-trilha{display:flex;align-items:center;gap:8px;background:var(--surface-card);
   border:var(--border-hairline);border-radius:16px;padding:10px 14px;overflow-x:auto;scrollbar-width:none}
 .rf-wiz-trilha::-webkit-scrollbar{display:none}
@@ -1712,7 +1713,8 @@
 .rf-modo.off:hover .rf-modo-bg{transform:none}
 .rf-modo-txt{display:flex;flex-direction:column;gap:8px;align-items:flex-start;min-width:0;
   margin-top:auto}
-.rf-modo-tag{font-family:var(--font-mono);font-size:var(--fs-label);
+.rf-modo-tag{position:absolute;right:14px;top:14px;z-index:1;
+  font-family:var(--font-mono);font-size:var(--fs-label);
   font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase;
   background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.28);
   border-radius:var(--r-pill);padding:3px 10px;backdrop-filter:blur(2px)}
@@ -1806,7 +1808,8 @@
   .rf-wiz-marca{padding:14px 16px;background:var(--surface-card);border-bottom:1px solid var(--line-1)}
   .rf-wiz-shell{border:none;border-radius:0;box-shadow:none;padding:14px 12px;gap:12px}
   /* trilha → barra de progresso: os passos somem, sobra a fita */
-  .rf-wiz-trilha{position:relative;padding:0;border:none;border-radius:var(--r-pill);
+  .rf-wiz-fita{display:none}
+.rf-wiz-trilha{position:relative;padding:0;border:none;border-radius:var(--r-pill);
     background:var(--line-3);height:4px;overflow:hidden;gap:0}
   .rf-wiz-p,.rf-wiz-liga{display:none}
   .rf-wiz-trilha::after{content:'';position:absolute;left:0;top:0;bottom:0;
@@ -1827,7 +1830,6 @@
   .rf-paises{grid-template-columns:repeat(2,1fr)}
   .rf-sorteio-kpis{grid-template-columns:repeat(3,1fr);gap:8px}
   .rf-bv-kpis{grid-template-columns:repeat(2,1fr)}
-  .rf-modo-tag{position:static;align-self:flex-end;order:-1}
 }
 
 /* =====================================================================
@@ -3279,4 +3281,271 @@
   justify-content:center;padding:0 16px}
 @media (max-width:760px){
   .rf-wl-2{grid-template-columns:minmax(0,1fr)}
+}
+
+/* =====================================================================
+   ONBOARDING — pacote completo (7 passos, desktop e telefone)
+   ===================================================================== */
+/* ---- a fita azul do telefone: marca, contador, barra e o cabeçalho ---- */
+.rf-wiz-fita{display:none;position:relative;overflow:hidden;
+  background:linear-gradient(100deg,var(--brand-primary-deep),var(--brand-primary) 62%);
+  padding:14px 16px;flex-direction:column;gap:10px}
+.rf-wiz-fita::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;
+  background:var(--brand-secondary)}
+.rf-wiz-fita-l{display:flex;align-items:center;gap:10px}
+.rf-wiz-fita-l img{width:28px;height:28px;object-fit:contain;flex:0 0 auto}
+.rf-wiz-fita-m{font-size:14px;font-weight:var(--fw-bold);color:#fff;white-space:nowrap}
+.rf-wiz-fita-98{font-family:var(--font-mono);color:var(--brand-secondary)}
+.rf-wiz-fita-c{font-family:var(--font-mono);font-size:var(--fs-label);color:#c3d3ec;white-space:nowrap}
+.rf-wiz-fita-b{display:flex;gap:4px}
+.rf-wiz-fita-b i{flex:1;height:4px;border-radius:var(--r-pill);background:rgba(255,255,255,.22)}
+.rf-wiz-fita-b i.on{background:var(--brand-secondary)}
+.rf-wiz-fita-t{display:flex;flex-direction:column;gap:3px}
+.rf-wiz-fita-h{font-size:19px;font-weight:var(--fw-bold);color:#fff;line-height:1.2}
+.rf-wiz-fita-s{font-size:var(--fs-caption);color:#c3d3ec;line-height:1.45}
+
+/* ---- passo 2: acordeão dos saves na nuvem ---- */
+.rf-obsv{display:flex;flex-direction:column;gap:8px;background:var(--surface-sunken);
+  border-radius:14px;padding:12px}
+.rf-obsv-hd{display:flex;align-items:center;gap:10px;cursor:pointer}
+.rf-obsv-i{font-size:17px;line-height:1;flex:0 0 auto}
+.rf-obsv-id{flex:1;display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-obsv-t{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-obsv-s{font-size:var(--fs-label);color:var(--text-4)}
+.rf-obsv-ver{flex:0 0 auto;display:flex;align-items:center;gap:6px;font-size:var(--fs-caption);
+  font-weight:var(--fw-semibold);color:var(--club-primary);white-space:nowrap}
+.rf-obsv-ver i{font-style:normal;font-size:10px}
+.rf-obsv-head,.rf-obsv-lin{display:grid;grid-template-columns:30px minmax(0,1fr) 96px 84px 92px;
+  gap:0 12px;align-items:center}
+.rf-obsv-head{padding:6px 12px 0;font-family:var(--font-mono);font-size:9px;color:var(--text-faint);
+  letter-spacing:var(--ls-label)}
+.rf-obsv-head span:nth-child(3),.rf-obsv-head span:nth-child(4){text-align:right}
+.rf-obsv-lin{padding:10px 12px;border-radius:11px;background:var(--surface-card);
+  border:1px solid var(--line-3)}
+.rf-obsv-crest{display:flex}
+.rf-obsv-crest img,.rf-obsv-crest .rf-crest-fb{width:26px;height:26px;object-fit:contain}
+.rf-obsv-nid{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-obsv-n{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-obsv-c{font-size:var(--fs-label);color:var(--text-4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-obsv-j{font-size:var(--fs-label);color:var(--text-3);text-align:right}
+.rf-obsv-q{font-size:var(--fs-label);color:var(--text-faint);text-align:right}
+.rf-obsv-b{height:32px;border:0;border-radius:10px;background:var(--club-cta-bg,var(--club-secondary));
+  color:var(--club-cta-fg,var(--club-on-secondary));font-family:var(--font-sans);
+  font-size:var(--fs-caption);font-weight:var(--fw-bold);cursor:pointer}
+.rf-obsv-b:hover{background:var(--club-secondary-hover)}
+.rf-obsv-ger{height:36px;border:1px dashed var(--line-2);border-radius:11px;background:transparent;
+  color:var(--text-faint);font-family:var(--font-sans);font-size:var(--fs-caption);
+  font-weight:var(--fw-semibold);cursor:pointer}
+.rf-obsv-ger:hover{background:var(--surface-card);color:var(--text-3)}
+
+/* ---- passo 3: país, divisão e ligas de fundo ---- */
+.rf-ob3{display:flex;flex-direction:column;gap:16px}
+.rf-ob3-bloco{display:flex;flex-direction:column;gap:8px}
+.rf-ob3-leve{font-style:normal;font-weight:var(--fw-regular);color:var(--text-faint)}
+.rf-ob3-paises,.rf-ob3-divs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.rf-ob3-pais{display:flex;align-items:center;gap:9px;padding:10px 12px;border:2px solid var(--line-1);
+  background:var(--surface-card);border-radius:13px;cursor:pointer;font-family:var(--font-sans);
+  text-align:left;min-width:0;transition:border-color var(--dur-fast) var(--ease)}
+.rf-ob3-pais:hover{border-color:var(--club-primary-line)}
+.rf-ob3-pais.on{border-color:var(--club-primary);background:var(--club-primary-soft)}
+.rf-ob3-f{font-size:18px;line-height:1;flex:0 0 auto;display:flex}
+.rf-ob3-f img{width:18px;height:auto;object-fit:contain}
+.rf-ob3-n{flex:1;font-size:var(--fs-body-sm);font-weight:var(--fw-medium);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-ob3-pais.on .rf-ob3-n{font-weight:var(--fw-bold)}
+.rf-ob3-ok{flex:0 0 auto;width:18px;height:18px;border-radius:var(--r-pill);
+  background:var(--club-primary);color:var(--club-on-primary);font-size:10px;
+  display:flex;align-items:center;justify-content:center}
+.rf-ob3-div{display:flex;flex-direction:column;gap:3px;padding:12px;border:2px solid var(--line-1);
+  background:var(--surface-card);border-radius:13px;cursor:pointer;font-family:var(--font-sans);
+  text-align:left;min-width:0}
+.rf-ob3-div.on{border-color:var(--club-primary);background:var(--club-primary-soft)}
+.rf-ob3-div.travada{cursor:default;opacity:.72}
+.rf-ob3-div.travada.on{opacity:1}
+.rf-ob3-dn{font-size:var(--fs-body);font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-ob3-div.on .rf-ob3-dn{font-weight:var(--fw-bold)}
+.rf-ob3-dq{font-size:var(--fs-label);color:var(--text-4)}
+.rf-ob3-pills{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ---- cartão escuro (código da sala, clube sorteado, recado) ---- */
+.rf-ob-escuro{display:flex;flex-direction:column;gap:10px;border-radius:18px;padding:18px;
+  background:linear-gradient(160deg,var(--brand-primary-deep),var(--brand-primary));box-sizing:border-box}
+.rf-ob-escuro.centro{align-items:center;text-align:center}
+.rf-ob-esc-l{font-family:var(--font-mono);font-size:9px;font-weight:var(--fw-semibold);
+  letter-spacing:var(--ls-label);text-transform:uppercase;color:#c3d3ec}
+.rf-ob-esc-p{font-size:var(--fs-caption);color:#c3d3ec;line-height:1.5}
+.rf-ob-esc-h{height:1px;background:rgba(255,255,255,.15);width:100%}
+.rf-ob-esc-lin{display:flex;justify-content:space-between;gap:10px;width:100%;
+  font-size:var(--fs-caption);color:#c3d3ec}
+.rf-ob-esc-lin b{color:#fff;font-weight:var(--fw-semibold)}
+.rf-ob-esc-bar{height:8px;border-radius:var(--r-pill);background:rgba(255,255,255,.15);
+  overflow:hidden;width:100%}
+.rf-ob-esc-bar i{display:block;height:100%;border-radius:var(--r-pill);background:var(--club-secondary)}
+.rf-ob-esc-b{height:38px;border:0;border-radius:11px;background:var(--club-secondary);
+  color:var(--club-on-secondary);font-family:var(--font-sans);font-size:var(--fs-caption);
+  font-weight:var(--fw-bold);cursor:pointer;width:100%}
+.rf-ob-esc-b:hover{background:var(--club-secondary-hover)}
+.rf-ob-esc-link{font-size:var(--fs-caption);color:#fff;background:rgba(255,255,255,.1);
+  border-radius:9px;padding:9px 11px;word-break:break-all}
+.rf-ob-codigo{font-family:var(--font-mono);font-size:26px;font-weight:var(--fw-semibold);
+  color:var(--club-secondary);letter-spacing:.02em}
+
+/* ---- passo 4: criar sala ---- */
+.rf-ob4{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+.rf-ob4-form{display:flex;flex-direction:column;gap:14px;min-width:0}
+.rf-ob4-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rf-ob4-bloco{display:flex;flex-direction:column;gap:6px}
+.rf-campo-c.leitura{display:flex;align-items:center;color:var(--text-1);background:var(--surface-sunken)}
+
+/* ---- passo 5: convites ---- */
+.rf-ob5{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+.rf-ob5-l,.rf-ob5-r{display:flex;flex-direction:column;gap:8px;min-width:0}
+.rf-ob5-r{gap:12px}
+.rf-ob5-pedidos{display:flex;flex-direction:column;gap:6px;background:var(--club-primary-soft);
+  border:1px solid var(--club-primary-line);border-radius:13px;padding:12px}
+.rf-ob5-badge{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);
+  color:var(--club-on-primary);background:var(--club-primary);border-radius:var(--r-pill);padding:2px 8px}
+.rf-ob5-lin{display:grid;grid-template-columns:34px minmax(0,1fr) 110px 92px;gap:0 12px;
+  align-items:center;padding:9px 12px;border-radius:11px;background:var(--surface-card);
+  border:1px solid var(--line-3)}
+.rf-ob5-lin.anf{background:var(--club-primary-soft);border-color:var(--club-primary-line)}
+.rf-ob5-av{width:26px;height:26px;border-radius:8px;background:var(--line-3);color:var(--text-faint);
+  display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);
+  font-size:var(--fs-label);font-weight:var(--fw-bold)}
+.rf-ob5-id{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-ob5-n{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-ob5-n i{font-style:normal;color:var(--text-faint);font-weight:var(--fw-regular)}
+.rf-ob5-selo{font-family:var(--font-mono);font-size:9px;font-weight:var(--fw-bold);
+  color:var(--club-primary);background:var(--club-primary-soft);border-radius:var(--r-pill);padding:2px 7px}
+.rf-ob5-c{font-size:var(--fs-label);color:var(--text-4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-ob5-st{font-size:var(--fs-label);font-weight:var(--fw-semibold);color:var(--text-faint);text-align:right}
+.rf-ob5-st.ok{color:var(--ok)}
+.rf-ob5-x{border:0;background:transparent;color:var(--text-faint);cursor:pointer;
+  font-family:var(--font-sans);font-size:var(--fs-label);font-weight:var(--fw-semibold);text-align:right}
+.rf-ob5-x:hover{color:var(--danger)}
+.rf-ob5-conv{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.rf-ob5-cv{display:flex;flex-direction:column;gap:6px}
+.rf-ob5-cvl{display:flex;align-items:center;gap:8px}
+.rf-ob5-cvl .rf-campo-c{flex:1 1 auto;min-width:0}
+.rf-ob5-ddi{flex:0 0 auto;font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-4)}
+.rf-ob5-zap{flex:0 0 auto;height:44px;padding:0 16px;border:0;border-radius:var(--r-control);
+  background:var(--ok);color:#fff;font-family:var(--font-sans);font-size:var(--fs-caption);
+  font-weight:var(--fw-bold);cursor:pointer}
+.rf-ob5-chat{display:flex;flex-direction:column;gap:8px;background:var(--surface-sunken);
+  border-radius:16px;padding:14px}
+.rf-ob5-msgs{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto}
+
+/* ---- passo 6: sorteio ---- */
+.rf-ob6{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+.rf-ob6-l,.rf-ob6-r{display:flex;flex-direction:column;gap:8px;min-width:0}
+.rf-ob6-r{gap:12px}
+.rf-ob6-lin{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:11px;
+  background:var(--surface-card);border:1px solid var(--line-3)}
+.rf-ob6-lin.meu{background:var(--club-primary-soft);border-color:var(--club-primary-line)}
+.rf-ob6-lin.espera{border-style:dashed;border-color:var(--line-2);background:transparent}
+.rf-ob6-nb{width:26px;height:26px;border-radius:var(--r-pill);background:var(--line-3);
+  color:var(--text-faint);font-family:var(--font-mono);font-size:var(--fs-label);
+  font-weight:var(--fw-semibold);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.rf-ob6-nb.on{background:var(--brand-primary);color:var(--club-secondary)}
+.rf-ob6-t{flex:1;font-size:var(--fs-body-sm);color:var(--text-1);min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-ob6-lin.meu .rf-ob6-t{font-weight:var(--fw-bold)}
+.rf-ob6-lin.espera .rf-ob6-t{color:var(--text-faint)}
+.rf-ob6-crest{flex:0 0 auto;display:flex}
+.rf-ob6-crest img,.rf-ob6-crest .rf-crest-fb{width:24px;height:24px;object-fit:contain}
+.rf-ob6-bola{font-size:14px;flex:0 0 auto;animation:rf-bola 1.1s var(--ease) infinite}
+@keyframes rf-bola{0%,100%{transform:none}50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.rf-ob6-bola{animation:none}}
+.rf-ob6-prog{display:flex;align-items:center;gap:10px;margin-top:4px}
+.rf-ob6-prog .rf-pz-trilho{flex:1}
+.rf-ob6-pc{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-faint)}
+.rf-ob6-crestg{display:flex}
+.rf-ob6-crestg img,.rf-ob6-crestg .rf-crest-fb{width:70px;height:70px;object-fit:contain}
+.rf-ob6-bolag{font-size:52px;line-height:1}
+.rf-ob6-n{font-size:20px;font-weight:var(--fw-bold);color:#fff;line-height:1.2}
+.rf-ob6-d{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--club-secondary);
+  letter-spacing:var(--ls-label);text-transform:uppercase}
+.rf-ob6-nota{text-align:center}
+
+/* ---- passo 7: boas-vindas ---- */
+.rf-bv-media{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:stretch}
+.rf-bv-casa,.rf-bv-video{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:16/9;
+  min-width:0;box-sizing:border-box}
+/* As fotos de estádio do jogo são RECORTES com o fundo removido (ver
+   public/src/data/stadium-images.js) — foram feitas pra assentar sobre o
+   verde, não pra preencher um retângulo. Então o cartão traz o verde por
+   baixo e a arte entra inteira (contain), em vez de ser cortada por cover
+   e deixar canto vazio. */
+.rf-bv-casa{background:radial-gradient(120% 100% at 50% 30%,#2f6f45 0%,#1d4a2e 60%,#12301f 100%)}
+.rf-bv-foto{position:absolute;left:0;right:0;top:0;bottom:14%;width:100%;height:86%;
+  object-fit:contain;object-position:center 40%}
+.rf-bv-veu{position:absolute;inset:0;background:linear-gradient(180deg,
+  rgba(9,20,14,.45) 0%,rgba(9,20,14,.05) 45%,rgba(9,20,14,.88) 100%)}
+.rf-bv-eyebrow{position:absolute;left:14px;top:12px;font-family:var(--font-mono);font-size:9px;
+  font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase;color:#c3d3ec}
+.rf-bv-eyebrow.claro{color:#a9bfe0}
+.rf-bv-casa-id{position:absolute;left:14px;right:14px;bottom:12px;display:flex;align-items:center;gap:10px}
+.rf-bv-casa-id img,.rf-bv-casa-id .rf-crest-fb{width:36px;height:36px;object-fit:contain;flex:0 0 auto}
+.rf-bv-casa-t{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-bv-casa-n{font-size:15px;font-weight:var(--fw-bold);color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-bv-casa-s{font-family:var(--font-mono);font-size:10px;color:#c3d3ec;letter-spacing:var(--ls-label)}
+.rf-bv-video{background:linear-gradient(160deg,var(--brand-primary-deep),var(--text-1));
+  display:flex;align-items:center;justify-content:center}
+.rf-bv-play{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:16px}
+.rf-bv-pb{width:54px;height:54px;border-radius:var(--r-pill);background:var(--club-secondary);
+  color:var(--club-on-secondary);font-size:19px;display:flex;align-items:center;justify-content:center}
+.rf-bv-pt{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:#fff}
+.rf-bv-ps{font-family:var(--font-mono);font-size:9px;color:#a9bfe0;letter-spacing:var(--ls-label)}
+.rf-bv-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.rf-bv-k{display:flex;flex-direction:column;gap:3px;background:var(--surface-sunken);
+  border-radius:14px;padding:13px;min-width:0}
+.rf-bv-kv{font-family:var(--font-mono);font-size:17px;font-weight:var(--fw-semibold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-bv-kv.azul{font-family:var(--font-sans);font-size:20px;color:var(--club-primary)}
+.rf-bv-kv.ouro{font-family:var(--font-sans);font-size:20px;color:var(--club-secondary)}
+.rf-bv-ks{font-size:var(--fs-label);color:var(--text-4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-bv-baixo{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
+.rf-bv-ficha{background:var(--surface-card);border:var(--border-hairline);border-radius:16px;padding:6px}
+.rf-bv-f{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;
+  padding:9px 12px;border-radius:10px}
+.rf-bv-f.destaque{background:var(--club-primary-soft)}
+.rf-bv-f span{font-size:var(--fs-body-sm);color:var(--text-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-bv-f.destaque span{color:var(--text-1);font-weight:var(--fw-semibold)}
+.rf-bv-f b{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);white-space:nowrap}
+.rf-bv-f.destaque b{color:var(--club-primary)}
+.rf-bv-fala{font-size:15px;color:#fff;line-height:1.5}
+.rf-bv-assina{font-family:var(--font-mono);font-size:10px;color:var(--club-secondary);
+  letter-spacing:var(--ls-label)}
+
+/* ---- telefone: a trilha vira fita azul e a ação gruda no pé ---- */
+@media (max-width:760px){
+  .rf-wiz{padding:0}
+  .rf-wiz-in{gap:0}
+  .rf-wiz-marca{display:none}
+  .rf-wiz-fita{display:flex}
+  .rf-wiz-trilha{display:none}
+  .rf-wiz-shell{border:none;border-radius:0;box-shadow:none;padding:14px 16px 96px;gap:12px;
+    background:var(--surface-desk)}
+  .rf-wiz-card{border:none;border-radius:0;padding:0;background:transparent;min-height:0;gap:12px}
+  .rf-wiz-head{display:none}          /* o cabeçalho já está na fita azul */
+  .rf-wiz-acao{position:sticky;bottom:0;background:var(--surface-card);
+    padding:12px 16px calc(16px + env(safe-area-inset-bottom,0px));gap:8px;flex-wrap:wrap;
+    border-top:1px solid var(--line-1)}
+  .rf-wiz-nota{flex:1 1 100%;order:-1}
+  .rf-wiz-cta,.rf-wiz-b2{flex:1 1 140px;min-width:0;height:48px}
+  .rf-ob3-paises,.rf-ob3-divs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rf-ob4,.rf-ob5,.rf-ob6,.rf-bv-media,.rf-bv-baixo{grid-template-columns:minmax(0,1fr)}
+  .rf-ob4-2{grid-template-columns:1fr 1fr}
+  .rf-bv-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  /* a tabela de saves vira linha de duas alturas, sem perder coluna */
+  .rf-obsv-head{display:none}
+  .rf-obsv-lin{grid-template-columns:30px minmax(0,1fr) auto;row-gap:2px}
+  .rf-obsv-j{grid-column:2;grid-row:2;text-align:left}
+  .rf-obsv-q{grid-column:3;grid-row:2}
+  .rf-ob5-lin{grid-template-columns:34px minmax(0,1fr) auto;row-gap:2px}
+  .rf-ob5-st{grid-column:2/-1;text-align:left}
 }

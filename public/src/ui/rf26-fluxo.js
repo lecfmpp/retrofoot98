@@ -37,8 +37,6 @@ function rfMoedaHTML(){
   const base=(typeof REBAL!=='undefined'&&REBAL.budget)
     ? REBAL.budget((typeof computeStartDivision==='function'?computeStartDivision():'D'), {random:()=>0.5}) : 0;
   const corpo=`
-    ${rfWizHead('Passo 3 de 6','Em que moeda você quer jogar?',
-      'Vale para salários, transferências e o caixa do clube. Dá para trocar depois nas opções.')}
     <div class="rf-wiz-mid">
       <div class="rf-esc-grid tres">${RF_MOEDAS.map(m=>rfEscolha({
         ico:m.ico, titulo:m.t, valor:base?rfMoedaFmt(m,base):'—', sub:m.sub, on:cur===m.k,
@@ -46,7 +44,8 @@ function rfMoedaHTML(){
       })).join('')}</div>
       <span class="rf-wiz-nota-c">O valor mostrado é o caixa inicial típico da divisão de entrada, convertido.</span>
     </div>`;
-  return rfWiz({ passo:3, corpo, nota:'Você pode trocar depois em Clube & Sistema.',
+  return rfWiz({
+    sobre:'Passo 3 de 5', titulo:'Em que moeda você quer jogar?', sub:'Vale para salários, transferências e o caixa do clube. Dá para trocar depois nas opções.', passo:3, corpo, nota:'Você pode trocar depois em Clube & Sistema.',
     voltar:'clMoedaBack()', voltarLabel:'‹ Voltar ao país',
     topoDir:'', cta:'Continuar', ctaOn:'clMoedaOk()' });
 }
@@ -63,8 +62,6 @@ function rfPaisHTML(){
   const paises=selectedPlayableCountries();
   const sel=CL.playCountry||paises[0];
   const corpo=`
-    ${rfWizHead('Passo 3 de 6','Onde você vai treinar?',
-      'O país define as divisões, as copas e o calendário do save.')}
     <div class="rf-wiz-mid">
       <div class="rf-esc-grid dois">${paises.map(c=>{
         const uk=(typeof countryUniverseKey==='function')?countryUniverseKey(c):null;
@@ -76,7 +73,8 @@ function rfPaisHTML(){
         </div>`;
       }).join('')}</div>
     </div>`;
-  return rfWiz({ passo:3, corpo, nota:'Mais países entram nas próximas atualizações.',
+  return rfWiz({
+    sobre:'Passo 3 de 5', titulo:'Onde você vai treinar?', sub:'O país define as divisões, as copas e o calendário do save.', passo:3, corpo, nota:'Mais países entram nas próximas atualizações.',
     voltar:'clGoPaises()', voltarLabel:'‹ Voltar ao modo',
     cta:`Continuar com ${sel||'o país'}`, ctaOff:!sel, ctaOn:'clPaisJogavelOk()' });
 }
@@ -111,8 +109,6 @@ function rfCarregandoHTML(){
   const dica=RF_LOAD_DICAS[Math.abs(pct)%RF_LOAD_DICAS.length];
   const splash=window.ADS?ADS.html('rf98.loading.splash',{cls:'rf-ad-splash'}):'';
   const corpo=`
-    ${rfWizHead('A preparar o seu save','Carregando jogo…',
-      'Montando as divisões, os elencos e o calendário da temporada.')}
     <div class="rf-wiz-mid">
       ${splash}
       <div class="rf-pz-barra">
@@ -131,7 +127,8 @@ function rfCarregandoHTML(){
       }).join('')}
       <span class="rf-wiz-dica">Dica: ${escC(dica)}</span>
     </div>`;
-  return rfWiz({ semTrilha:true, corpo });
+  return rfWiz({
+    sobre:'A preparar o seu save', titulo:'Carregando jogo…', sub:'Montando as divisões, os elencos e o calendário da temporada.', semTrilha:true, corpo });
 }
 
 /* as etapas avançam junto com a barra, sem redesenhar a tela inteira (um cdraw
@@ -174,8 +171,6 @@ function rfTreinadoresHTML(){
     </div>`;
   };
   const corpo=`
-    ${rfWizHead('Passo 4 de 6','Quantos treinadores na sala?',
-      'Cada treinador comanda um clube. Os outros ficam com a máquina.')}
     <div class="rf-wiz-mid">
       <div class="rf-esc-grid quatro">${[1,2,3,4].map(cartao).join('')}</div>
       <div class="rf-esc-grid quatro">${[5,6,7,8].map(cartao).join('')}</div>
@@ -196,7 +191,8 @@ function rfTreinadoresHTML(){
           <span class="rf-ft-bv sm">máquina</span></div>
       </div>
     </div>`;
-  return rfWiz({ passo:4, corpo,
+  return rfWiz({
+    sobre:'Passo 3 de 5', titulo:'Quantos treinadores na sala?', sub:'Cada treinador comanda um clube. Os outros ficam com a máquina.', passo:3, corpo,
     nota:'Os clubes que sobram ficam com a máquina.',
     voltar:'clGoMoeda()', voltarLabel:'‹ Voltar à moeda',
     cta:`Continuar com ${n}`, ctaOn:'clEscolherClubes()' });
@@ -229,8 +225,6 @@ function rfClubesHTML(){
 
   if(!sorteado){
     const corpo=`
-      ${rfWizHead('Passo 6 de 6','De onde sai cada clube?',
-        'Cada treinador escolhe o país. O clube é sempre sorteado — ninguém escolhe o próprio time.')}
       <div class="rf-wiz-mid">
         <div class="rf-cb-head"><span>TREINADOR</span><span>PAÍS</span></div>
         ${pick.map((p,i)=>`<div class="rf-cb-lin">
@@ -240,14 +234,15 @@ function rfClubesHTML(){
           </select>
         </div>`).join('')}
       </div>`;
-    return rfWiz({ passo:6, corpo, nota:'Os clubes restantes ficam com a máquina.',
+    return rfWiz({ passo:4, corpo,
+      sobre:'Passo 4 de 5', titulo:'De onde sai cada clube?',
+      sub:'Cada treinador escolhe o país. O clube é sempre sorteado — ninguém escolhe o próprio time.',
+      nota:'Os clubes restantes ficam com a máquina.',
       voltar:'clGoJogadores()', voltarLabel:'‹ Voltar aos treinadores',
       cta:'🎲 Sortear os clubes', ctaOn:'clSortearPick()' });
   }
 
   const corpo=`
-    ${rfWizHead('Passo 6 de 6','Times sorteados!',
-      'O sorteio distribuiu os clubes entre os treinadores. Confira antes de começar.')}
     <div class="rf-wiz-mid">
       <div class="rf-cs-head"><span></span><span>CLUBE</span><span>DIVISÃO</span><span>FORÇA</span><span>TREINADOR</span></div>
       ${pick.map((p,i)=>{
@@ -262,7 +257,10 @@ function rfClubesHTML(){
       }).join('')}
       <span class="rf-wiz-nota-c">O caixa de cada clube é definido quando a temporada começa.</span>
     </div>`;
-  return rfWiz({ passo:6, corpo, nota:'Os demais clubes ficam com a máquina.',
+  return rfWiz({ passo:4, corpo,
+    sobre:'Passo 4 de 5', titulo:'Times sorteados!',
+    sub:'O sorteio distribuiu os clubes entre os treinadores. Confira antes de começar.',
+    nota:'Os demais clubes ficam com a máquina.',
     voltar:'clSortearPick()', voltarLabel:'🎲 Sortear de novo',
     cta:'⚽ Começar a temporada', ctaOn:'startSoloDraw()' });
 }
@@ -279,8 +277,6 @@ function rfSavesHTML(){
   const saves=(CL.soloSaves||[]).slice()
     .sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0));
   const corpo=`
-    ${rfWizHead('Modo solo','Onde você parou',
-      'Os saves ficam na nuvem — entre de qualquer aparelho com a mesma conta.')}
     <div class="rf-wiz-mid">
       ${carregando?'<span class="rf-note">Carregando os seus jogos salvos…</span>'
         :saves.map((s,i)=>`<div class="rf-sv-lin ${i===0?'me':''}" onclick="clLoadSave('${escC(s.name)}')">
@@ -298,7 +294,10 @@ function rfSavesHTML(){
           <span class="rf-sv-s">Escolha país, liga e clube outra vez</span></span>
       </div>
     </div>`;
-  return rfWiz({ passo:2, corpo, nota:'Jogo gravado na nuvem.',
+  return rfWiz({ passo:2, corpo,
+    sobre:'Modo solo', titulo:'Onde você parou',
+    sub:'Os saves ficam na nuvem — entre de qualquer aparelho com a mesma conta.',
+    nota:'Jogo gravado na nuvem.',
     voltar:'clGoModo()', voltarLabel:'‹ Voltar ao modo',
     cta: saves.length?`Continuar ${saves[0].name}`:'Começar um save novo',
     ctaOn: saves.length?`clLoadSave('${(saves[0].name||'').replace(/'/g,"\\'")}')`:'clSoloNew()' });
@@ -321,8 +320,6 @@ function rfSaveQuando(s){
 function rfRecuperarSenhaHTML(){
   const email=CL._resetEmail||'';
   const corpo=`
-    ${rfWizHead('Acesso à conta','Esqueceu a senha?',
-      'Coloque o e-mail da conta. Enviamos um link para você criar uma nova.')}
     <div class="rf-wiz-mid">
       <div class="rf-wiz-form">
         ${rfCampo('E-mail da conta',
@@ -333,7 +330,10 @@ function rfRecuperarSenhaHTML(){
           <span>O link vale por 30 minutos. Se não chegar, confira o spam antes de pedir outro.</span></div>
       </div>
     </div>`;
-  return rfWiz({ semTrilha:true, corpo, nota:'Os seus saves na nuvem continuam intactos.',
+  return rfWiz({ semTrilha:true, corpo,
+    sobre:'Acesso à conta', titulo:'Esqueceu a senha?',
+    sub:'Coloque o e-mail da conta. Enviamos um link para você criar uma nova.',
+    nota:'Os seus saves na nuvem continuam intactos.',
     voltar:'clGoAbertura()', voltarLabel:'‹ Voltar ao login',
     cta:'Enviar o link', ctaOff:!(email&&email.includes('@')), ctaOn:'clSendResetLink()' });
 }
@@ -345,7 +345,6 @@ function rfNovaSenhaHTML(){
   const difere=st.confirm.length>0 && st.password!==st.confirm;
   const idP=st.focus!=='confirm'?'id="cl-focus"':'', idC=st.focus==='confirm'?'id="cl-focus"':'';
   const corpo=`
-    ${rfWizHead('Acesso à conta','Crie uma senha nova','Mínimo de 6 caracteres. Depois disso já dá para entrar.')}
     <div class="rf-wiz-mid">
       <div class="rf-wiz-form">
         ${rfCampo('Nova senha',
@@ -361,7 +360,10 @@ function rfNovaSenhaHTML(){
           <span class="rf-aviso-i">⚠</span><span>As senhas não coincidem.</span></div>
       </div>
     </div>`;
-  return rfWiz({ semTrilha:true, corpo, nota:'Os seus saves na nuvem continuam intactos.',
+  return rfWiz({ semTrilha:true, corpo,
+    sobre:'Acesso à conta', titulo:'Crie uma senha nova',
+    sub:'Mínimo de 6 caracteres. Depois disso já dá para entrar.',
+    nota:'Os seus saves na nuvem continuam intactos.',
     voltar:'clGoAbertura()', voltarLabel:'‹ Voltar ao início',
     cta:'Salvar senha', ctaOff:!ok, ctaOn:'clDoUpdatePassword()' });
 }
