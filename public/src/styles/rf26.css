@@ -44,6 +44,13 @@
 .rf-btn-secondary{height:var(--h-control);border:var(--border-control);border-radius:var(--r-control);
   background:var(--surface-card);color:var(--text-2);font-size:var(--fs-body-sm);padding:0 14px}
 .rf-btn-secondary:hover:not(:disabled){background:var(--surface-sunken)}
+/* CTA amarelo em altura de controlo: o botão dominante de uma tela
+   interna (Buscar jogador, Aceitar, Fechar, Cobrir). Amarelo da marca e
+   não do clube — nas telas ele é o mesmo em qualquer clube. */
+.rf-btn-cta{height:var(--h-control);border:none;border-radius:var(--r-control);
+  background:var(--brand-secondary,#F2B90C);color:var(--brand-primary-deep,#12201a);
+  font-size:var(--fs-body-sm);font-weight:var(--fw-bold);padding:0 18px}
+.rf-btn-cta:hover:not(:disabled){filter:brightness(1.05)}
 .rf-btn-dark{height:var(--h-control);border:none;border-radius:var(--r-control);
   background:var(--club-primary);color:var(--club-on-primary);font-size:var(--fs-body-sm);padding:0 14px}
 .rf-btn-pill{height:36px;border:none;border-radius:var(--r-pill);background:var(--club-secondary);
@@ -4007,3 +4014,143 @@
 .rf-btn-ghost{border:1px solid var(--line-2);background:var(--surface-card);
   color:var(--brand-primary);font-weight:var(--fw-semibold)}
 .rf-btn-ghost:hover{background:var(--surface-sunken)}
+
+/* =====================================================================
+   MERCADO — as medidas das seis telas de referência
+   Nada aqui herda aparência de sistema: o <select> do filtro fica por
+   baixo, invisível, e quem se vê é a pílula desenhada.
+   ===================================================================== */
+.rf-mk-acoes{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+
+/* ----- filtros como pílulas ----- */
+.rf-mkf{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.rf-mkf-p{position:relative;display:inline-flex;align-items:center;gap:8px;height:44px;
+  padding:0 14px;border:1px solid var(--line-2);border-radius:var(--r-pill);
+  background:var(--surface-card);cursor:pointer}
+.rf-mkf-p:hover{border-color:var(--brand-primary)}
+.rf-mkf-p:focus-within{border-color:var(--brand-primary);
+  box-shadow:0 0 0 3px var(--club-primary-soft,rgba(23,69,143,.1))}
+.rf-mkf-l{font-size:var(--fs-body-sm);color:var(--text-4)}
+.rf-mkf-v{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-mkf-c{font-size:9px;color:var(--text-4)}
+.rf-mkf-p select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;
+  border:0;-webkit-appearance:none;appearance:none}
+.rf-mkf-x{height:44px;padding:0 18px;border:1px solid var(--line-2);border-radius:var(--r-pill);
+  background:var(--surface-card);font-family:inherit;font-size:var(--fs-body-sm);
+  font-weight:var(--fw-semibold);color:var(--text-1);cursor:pointer}
+.rf-mkf-x:hover{background:var(--surface-sunken)}
+
+/* ----- a tabela ----- */
+.rf-mkt{display:flex;flex-direction:column;min-width:0}
+.rf-mkt-head,.rf-mkt-row{display:grid;grid-template-columns:var(--rf-mkt-cols);
+  gap:0 14px;align-items:center}
+.rf-mkt-head{padding:0 14px 10px;font-family:var(--font-mono);font-size:var(--fs-label-xs);
+  color:var(--text-faint);letter-spacing:.1em}
+.rf-mkt-head .dir{text-align:right}
+.rf-mkt-body{display:flex;flex-direction:column;gap:2px}
+.rf-mkt-row{padding:14px;border:1px solid transparent;border-radius:var(--r-inner);
+  cursor:pointer;transition:background var(--dur-fast) var(--ease)}
+.rf-mkt-row:hover{background:var(--surface-sunken)}
+/* a linha em destaque é a que já é sua (lance na frente, negócio aceito) */
+.rf-mkt-row.destaque{border-color:var(--brand-primary);background:var(--club-primary-soft,rgba(23,69,143,.06))}
+.rf-mkt-n,.rf-mkt-nome b{font-size:var(--fs-body);font-weight:var(--fw-bold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.rf-mkt-nome{display:flex;align-items:center;gap:12px;min-width:0}
+.rf-mkt-pos,.rf-mkt-x{font-family:var(--font-mono);font-size:var(--fs-body-sm);color:var(--text-4)}
+.rf-mkt-x{text-align:right}
+.rf-mkt-f{font-family:var(--font-mono);font-size:var(--fs-body);font-weight:var(--fw-bold);
+  color:var(--text-1);text-align:right}
+.rf-mkt-clube{display:flex;align-items:center;gap:10px;min-width:0;
+  font-size:var(--fs-body-sm);color:var(--text-2)}
+.rf-mkt-clube img,.rf-mkt-clube .rf-crest-fb{width:22px;height:22px;object-fit:contain;flex:0 0 auto}
+.rf-mkt-clube span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-mkt-v{font-family:var(--font-mono);font-size:var(--fs-body);color:var(--text-1);text-align:right;
+  white-space:nowrap}
+.rf-mkt-v.leve{color:var(--text-4)}
+.rf-mkt-v.meu{color:var(--brand-primary);font-weight:var(--fw-semibold)}
+.rf-mkt-v.ruim{color:var(--danger);font-weight:var(--fw-semibold)}
+.rf-mkt-prazo{font-family:var(--font-mono);font-size:var(--fs-body-sm);color:var(--danger);
+  text-align:right;white-space:nowrap}
+.rf-mkt-int{font-family:var(--font-mono);font-size:var(--fs-body-sm);color:var(--text-4);text-align:right}
+.rf-mkt-int b{color:var(--brand-primary);font-weight:var(--fw-semibold)}
+.rf-mkt-seta{color:var(--text-4);text-align:center}
+.rf-mkt-tag{justify-self:end;font-family:var(--font-mono);font-size:var(--fs-label-xs);
+  font-weight:var(--fw-bold);letter-spacing:.08em;padding:5px 10px;border-radius:var(--r-chip);
+  white-space:nowrap;background:var(--line-3);color:var(--text-3)}
+.rf-mkt-tag.quase{background:var(--brand-secondary,#F2B90C);color:#12201a}
+.rf-mkt-tag.ok{background:var(--ok);color:#fff}
+.rf-mkt-act{justify-self:end}
+.rf-mkt-bt{height:42px;padding:0 20px;border:1px solid var(--line-2);border-radius:var(--r-inner);
+  background:var(--surface-card);font-family:inherit;font-size:var(--fs-body-sm);
+  font-weight:var(--fw-semibold);color:var(--brand-primary);cursor:pointer;white-space:nowrap}
+.rf-mkt-bt:hover{background:var(--surface-sunken)}
+.rf-mkt-bt.cta{background:var(--brand-secondary,#F2B90C);border-color:var(--brand-secondary,#F2B90C);
+  color:#12201a}
+.rf-mkt-bt.cta:hover{filter:brightness(1.05)}
+
+/* camisa pequena do Vender */
+.rf-mkt-camisa{position:relative;display:block;width:34px;height:30px;flex:0 0 auto}
+.rf-mkt-camisa i{position:absolute;display:block}
+.rf-mkt-c-sl{top:5px;width:10px;height:12px}
+.rf-mkt-c-sl.l{left:0;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)}
+.rf-mkt-c-sl.r{right:0;border-radius:1px 3px 3px 4px;transform:rotate(16deg)}
+.rf-mkt-c-b{left:8px;top:3px;width:18px;height:27px;border-radius:3px 3px 5px 5px;
+  display:flex;align-items:center;justify-content:center}
+.rf-mkt-c-b b{font-family:var(--font-mono);font-size:11px;font-weight:var(--fw-semibold)}
+
+/* ----- arrematados recentemente ----- */
+.rf-arr{display:grid;grid-template-columns:28px minmax(0,1fr) 160px minmax(0,180px) 116px;
+  gap:0 14px;align-items:center;padding:12px 14px;border:1px solid transparent;
+  border-radius:var(--r-inner)}
+.rf-arr.destaque{border-color:var(--brand-primary);background:var(--club-primary-soft,rgba(23,69,143,.06))}
+.rf-arr-i{font-size:15px}
+.rf-arr-n{font-size:var(--fs-body);font-weight:var(--fw-bold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-arr-s{font-family:var(--font-mono);font-size:var(--fs-body-sm);color:var(--text-4)}
+.rf-arr-c{font-size:var(--fs-body-sm);color:var(--text-2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-arr-v{font-family:var(--font-mono);font-size:var(--fs-body);font-weight:var(--fw-semibold);
+  color:var(--text-1);text-align:right}
+
+/* ----- cartão de proposta ----- */
+.rf-prop2{position:relative;overflow:hidden;gap:20px;padding-left:22px}
+.rf-prop2::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;
+  background:var(--brand-secondary,#F2B90C)}
+.rf-prop2.urgente::before{background:var(--danger)}
+.rf-prop2-hd{display:flex;align-items:center;gap:14px}
+.rf-prop2-crest img,.rf-prop2-crest .rf-crest-fb{width:44px;height:44px;object-fit:contain}
+.rf-prop2-id{display:flex;flex-direction:column;gap:3px;min-width:0}
+.rf-prop2-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-prop2-s{font-size:var(--fs-body-sm);color:var(--text-4)}
+.rf-prop2-acts{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+.rf-prop2-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+
+/* ----- janela de transferências ----- */
+.rf-jan-l{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.rf-jan-t{font-size:var(--fs-body);color:var(--text-2)}
+.rf-jan-p{font-family:var(--font-mono);font-size:var(--fs-body);font-weight:var(--fw-bold);
+  color:var(--brand-primary)}
+.rf-jan-trilho{height:10px;border-radius:99px;background:var(--surface-sunken);overflow:hidden}
+.rf-jan-trilho i{display:block;height:100%;border-radius:99px;
+  background:linear-gradient(90deg,var(--brand-primary),var(--brand-secondary,#F2B90C))}
+
+/* ----- parágrafo de apoio (Como negociar, Quem não vender) ----- */
+.rf-texto{margin:0;font-size:var(--fs-body);line-height:1.55;color:var(--text-2)}
+
+/* quatro números lado a lado, como nas telas */
+.rf-kpis-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+/* Dentro de um cartão os quatro números NÃO são caixas: são colunas de
+   texto. A moldura dupla (cartão + caixa por número) é o eco da pele
+   antiga, e a referência não tem nenhuma. */
+.rf-prop2-nums .rf-kpi,.rf-kpis-4 .rf-kpi{background:none;border:0;padding:0;gap:8px}
+.rf-prop2-nums .rf-kpi-v,.rf-kpis-4 .rf-kpi-v{font-size:26px;font-weight:var(--fw-bold)}
+.rf-prop2-nums .rf-kpi-s,.rf-kpis-4 .rf-kpi-s{font-size:var(--fs-body-sm)}
+
+.rf-kpi-s.bom{color:var(--ok)}
+.rf-kpi-s.ruim{color:var(--danger)}
+
+@media (max-width:900px){
+  .rf-prop2-nums,.rf-kpis-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rf-prop2-hd{flex-wrap:wrap}
+  .rf-mk-acoes{flex-wrap:wrap}
+}

@@ -85,7 +85,7 @@ const RF_PAGES=[
        ocupa a largura inteira e o bloco de apoio ("O que o caixa
        permite", "Como negociar") vem embaixo. Espremer a tabela num
        1fr+340 comia justamente a coluna do NOME do jogador. */
-    pill:()=>rfPillCaixa(), grid:'minmax(0,1fr)',
+    acoes:()=>rfMktAcoesHTML(), grid:'minmax(0,1fr)',
     tabs:[ {k:'comprar', l:()=>'Comprar',        build:()=>rfMktComprarHTML()},
            {k:'leilao',  l:()=>'Leilão',         build:()=>rfMktLeilaoHTML()},
            {k:'propostas',l:()=>'Propostas'+rfSufixo(rfLen(rfPropostas())), build:()=>rfMktPropostasHTML()},
@@ -172,9 +172,10 @@ function rfPillSaldo(){
 }
 function rfPillNaoLidas(){ const n=rfNaoLidas(); return rfPill('✉️ '+(n?n+' por ler':'Tudo lido')); }
 function rfSubMercado(){
-  const dias=(typeof windowClosesIn==='function')?windowClosesIn():null;
-  if(typeof canNegotiate==='function' && !canNegotiate()) return 'Comprar, vender, leilão e propostas — janela fechada';
-  return 'Comprar, vender, leilão e propostas'+(dias?' — janela fecha em '+dias:'');
+  const aberta=(typeof canNegotiate!=='function')||canNegotiate();
+  return (aberta?'Janela aberta':'Janela fechada')
+    +' · caixa '+rfDin(S.budget||0)
+    +' · folha '+rfDin(rfFolha())+'/mês';
 }
 /* posição do meu clube na tabela da divisão */
 function rfMinhaPosicao(){
@@ -418,13 +419,17 @@ function rfTabsHTML(def){
 function rfPageHeadHTML(def){
   const sub = typeof def.sub==='function' ? def.sub() : def.sub;
   const pill = typeof def.pill==='function' ? def.pill() : null;
+  /* AÇÕES DA PÁGINA: quando a tela do pacote desenha botões no canto
+     superior direito (Mercado tem "Exportar lista" e "Buscar jogador"),
+     eles substituem a pílula de estado — não convivem com ela. */
+  const acoes = typeof def.acoes==='function' ? def.acoes() : null;
   return `<div class="rf-pagehead">
     <div class="rf-pagehead-top">
       <div class="rf-pagehead-id">
         <span class="rf-pagehead-t">${escC(def.titulo||def.label)}</span>
         ${sub?`<span class="rf-pagehead-s">${escC(sub)}</span>`:''}
       </div>
-      ${pill?`<span class="rf-pill rf-pill-${pill.tom}">${escC(pill.txt)}</span>`:''}
+      ${acoes||(pill?`<span class="rf-pill rf-pill-${pill.tom}">${escC(pill.txt)}</span>`:'')}
     </div>
     ${rfTabsHTML(def)}
   </div>`;
@@ -1523,11 +1528,14 @@ function rfCampeonatosHTML(so){ return rfBlocos(null, RF_BL_CAMPEONATOS, so); }
    340px. Todo número em IBM Plex Mono, e o vermelho é reservado pra
    despesa: nada de pintar de vermelho o que é só grande.
    ===================================================================== */
+/* O NÚMERO É SEMPRE NEUTRO; quem carrega cor é a LINHA DEBAIXO. É assim
+   nas telas: "R$ 3,05 mi" em preto e "+1,78 mi" em verde por baixo. Pintar
+   o número grande de vermelho fazia a tela inteira parecer um alarme. */
 function rfKpiHTML(rotulo, valor, sub, tom){
   return `<div class="rf-kpi">
     <span class="rf-label-t">${escC(rotulo)}</span>
-    <span class="rf-kpi-v ${tom||''}">${escC(valor)}</span>
-    ${sub?`<span class="rf-kpi-s">${escC(sub)}</span>`:''}
+    <span class="rf-kpi-v">${escC(valor)}</span>
+    ${sub?`<span class="rf-kpi-s ${tom||''}">${escC(sub)}</span>`:''}
   </div>`;
 }
 function rfFinTotais(){

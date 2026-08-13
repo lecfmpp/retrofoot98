@@ -16,27 +16,77 @@
    seria prometer um leilão em tempo real que o motor não roda.
    ===================================================================== */
 
+/* DINHEIRO POR EXTENSO — "R$ 620 mil", "R$ 1,25 mi". É a escrita das
+   telas, e nenhuma outra: fmt() dá "R$ 762k" e mvShort() dá "50M", duas
+   abreviações que a referência não usa em lugar nenhum do Mercado. */
+function rfDin(v){
+  v=Math.round(v||0);
+  const s=(typeof curSym==='function')?curSym():'R$';
+  const neg=v<0?'-':''; v=Math.abs(v);
+  const num=(n,c)=>String(n.toFixed(c)).replace('.',',').replace(/,0+$/,'');
+  if(v>=1e9) return neg+s+' '+num(v/1e9,2)+' bi';
+  if(v>=1e6) return neg+s+' '+num(v/1e6,2)+' mi';
+  if(v>=1e3) return neg+s+' '+num(v/1e3,0)+' mil';
+  return neg+s+' '+v;
+}
+
 /* ---- peças que se repetem nas seis abas ---- */
+/* AÇÕES DO CABEÇALHO — os dois botões do canto superior direito */
+function rfMktAcoesHTML(){
+  return `<div class="rf-mk-acoes">
+    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfMktExportar()">📤 Exportar lista</button>
+    <button type="button" class="rf-btn rf-btn-cta" onclick="rfSetTab('mercado','comprar')">🔍 Buscar jogador</button>
+  </div>`;
+}
+function rfMktExportar(){
+  const linhas=rfMktMercado().map(({p,clubId,ask})=>[p.n,rfPosInicial(p.s),p.age||'',p.f,
+    (anyClubOf(clubId)||{short:''}).short, ask, rfMkSalario(p)].join(';'));
+  const txt='jogador;pos;idade;forca;clube;valor;salario\n'+linhas.join('\n');
+  try{
+    const a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(txt);
+    a.download='mercado-'+(S.season||'')+'.csv'; a.click();
+    toastC('Lista exportada.');
+  }catch(e){ toastC('Não deu pra exportar aqui.'); }
+}
+/* TABELA — a grelha da referência: cabeçalho em mono espaçado, linhas
+   altas, e a última coluna reservada pro botão de ação. */
 function rfMkTabela(cols, cabecalho, linhas, vazio){
-  return `<div class="rf-tbl" style="--rf-tbl-cols:${cols}">
-    <div class="rf-tbl-head">${cabecalho}</div>
-    <div class="rf-tbl-body">${linhas || `<div class="rf-empty">${escC(vazio||'Nada aqui agora.')}</div>`}</div>
+  return `<div class="rf-mkt" style="--rf-mkt-cols:${cols}">
+    <div class="rf-mkt-head">${cabecalho}</div>
+    <div class="rf-mkt-body">${linhas || `<div class="rf-empty">${escC(vazio||'Nada aqui agora.')}</div>`}</div>
   </div>`;
 }
 function rfMkClube(id){
   const c=anyClubOf(id)||{short:'—'};
-  return `<span class="rf-tbl-clube">${rfCrest(c,18)}<span>${escC(c.short)}</span></span>`;
+  return `<span class="rf-mkt-clube">${rfCrest(c,22)}<span>${escC(c.short)}</span></span>`;
 }
-function rfMkPos(p){ return `<span class="rf-tbl-pos">${escC(rfPosInicial(p.s))}</span>`; }
+function rfMkPos(p){ return `<span class="rf-mkt-pos">${escC(rfPosInicial(p.s))}</span>`; }
 /* a referência usa UMA letra por setor (G/D/M/A) */
 function rfPosInicial(s){ return ({GK:'G',DEF:'D',MID:'M',ATT:'A'})[s]||'—'; }
 function rfMkSalario(p){
   const sal=(p.contract&&p.contract.salary)||p.salary||0;
-  return sal?fmt(sal):'—';
+  return sal?rfDin(sal):'—';
 }
 function rfMkFimContrato(p){
   const anos=(p.contract&&p.contract.years)!=null?p.contract.years:p.contract;
   return (typeof anos==='number')?String((S.season||0)+anos):'—';
+}
+/* botão de linha: contorno fino, texto na cor da marca. O amarelo cheio
+   fica reservado pra linha em destaque (o lance que é seu, o negócio
+   aceito) — é assim que a referência separa as duas. */
+function rfMkBt(rot, acao, cta){
+  return `<span class="rf-mkt-act"><button type="button" class="rf-mkt-bt ${cta?'cta':''}"
+    onclick="event.stopPropagation();${acao}">${escC(rot)}</button></span>`;
+}
+/* camisa pequena do Vender — a mesma peça do banco, sem colete */
+function rfMkCamisaHTML(num){
+  const th=(typeof clubTheme==='function')?clubTheme(CL.clubId):{};
+  const c1=th.col||'#17458F', c2=th.col2||'#F2B90C';
+  return `<span class="rf-mkt-camisa" aria-hidden="true">
+    <i class="rf-mkt-c-sl l" style="background:${c2}"></i><i class="rf-mkt-c-sl r" style="background:${c2}"></i>
+    <i class="rf-mkt-c-b" style="background:${c1}"><b style="color:${barTextColor(c1,c2)}">${escC(String(num||''))}</b></i>
+  </span>`;
 }
 
 /* =====================================================================
@@ -72,51 +122,60 @@ function rfMktMercado(){
   out.sort((a,b)=>(b.p.f||0)-(a.p.f||0));
   return out;
 }
+/* FILTRO = PÍLULA, não caixa de selecção do sistema. O <select> nativo é o
+   último resto de aparência de sistema operativo na tela; aqui ele fica por
+   baixo, invisível, e quem se vê é a pílula com rótulo e valor. */
+function rfMktFiltrosHTML(){
+  const f=rfMktF();
+  return `<div class="rf-mkf">
+    ${RF_MKT_FILTROS.map(ff=>{
+      const at=(ff.op.find(o=>o[0]===f[ff.k])||ff.op[0])[1];
+      return `<label class="rf-mkf-p">
+        <span class="rf-mkf-l">${escC(ff.l)}</span>
+        <span class="rf-mkf-v">${escC(at)}</span>
+        <span class="rf-mkf-c">▾</span>
+        <select onchange="rfMktSetF('${ff.k}',this.value)">
+          ${ff.op.map(([v,l])=>`<option value="${v}" ${f[ff.k]===v?'selected':''}>${escC(l)}</option>`).join('')}
+        </select>
+      </label>`;
+    }).join('')}
+    <div class="rf-sp"></div>
+    <button type="button" class="rf-mkf-x" onclick="rfMktLimpar()">Limpar filtros</button>
+  </div>`;
+}
 function rfMktComprarHTML(){
   if(typeof canNegotiate==='function' && !canNegotiate())
     return rfCol(rfCard('Jogadores no mercado',
       `<div class="rf-empty">${escC(typeof windowClosedMsg==='function'?windowClosedMsg():'A janela de transferências está fechada.')}</div>`));
-  const f=rfMktF();
   const todos=rfMktMercado();
   const mostra=todos.slice(0,60);
   const teto=S.budget||0;
-  const cabem=todos.filter(x=>x.ask<=teto);
-  const linhas=mostra.map(({p,clubId,ask})=>`<div class="rf-tbl-row" onclick="rfMkPropor('${escC(clubId)}','${escC(p.n)}')">
-    <span class="rf-tbl-n">${escC(p.n)}</span>
+  const folha=rfFolha();
+  const sq=squad(CL.clubId);
+  const linhas=mostra.map(({p,clubId,ask})=>`<div class="rf-mkt-row" onclick="rfMkPropor('${escC(clubId)}','${escC(p.n)}')">
+    <span class="rf-mkt-n">${escC(p.n)}</span>
     ${rfMkPos(p)}
-    <span class="rf-tbl-x">${p.age||'—'}</span>
-    <span class="rf-tbl-f">${p.f}</span>
+    <span class="rf-mkt-x">${p.age||'—'}</span>
+    <span class="rf-mkt-f">${p.f}</span>
     ${rfMkClube(clubId)}
-    <span class="rf-tbl-v">${escC(mvShort(ask))}</span>
-    <span class="rf-tbl-v">${escC(rfMkSalario(p))}</span>
-    <span class="rf-tbl-act"><button type="button" class="rf-btn rf-btn-pill"
-      onclick="event.stopPropagation();rfMkPropor('${escC(clubId)}','${escC(p.n)}')">Propor</button></span>
+    <span class="rf-mkt-v">${escC(rfDin(ask))}</span>
+    <span class="rf-mkt-v leve">${escC(rfMkSalario(p))}</span>
+    ${rfMkBt('Propor',`rfMkPropor('${escC(clubId)}','${escC(p.n)}')`)}
   </div>`).join('');
-  const filtros=`<div class="rf-mkf">
-    ${RF_MKT_FILTROS.map(ff=>`<label class="rf-mkf-i">
-      <span class="rf-mkf-l">${escC(ff.l)}</span>
-      <select class="rf-mkf-s" onchange="rfMktSetF('${ff.k}',this.value)">
-        ${ff.op.map(([v,l])=>`<option value="${v}" ${f[ff.k]===v?'selected':''}>${escC(l)}</option>`).join('')}
-      </select>
-    </label>`).join('')}
-    <div class="rf-sp"></div>
-    <button type="button" class="rf-mkf-x" onclick="rfMktLimpar()">Limpar filtros</button>
-  </div>`;
   const cabecalho=`<span>JOGADOR</span><span>POS</span><span>IDA</span><span>FOR</span>
     <span>CLUBE</span><span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
   return rfMktGavetaHTML(['oferta']) + rfCol(
     rfCard('Jogadores no mercado',
-      filtros + rfMkTabela('minmax(0,1fr) 34px 40px 40px minmax(0,120px) 92px 88px 84px',
+      rfMktFiltrosHTML() + rfMkTabela('minmax(0,1fr) 44px 48px 48px minmax(0,160px) 108px 100px 104px',
         cabecalho, linhas, 'Nenhum jogador com esses filtros.'),
       {right: mostra.length+' de '+todos.length})
-  ) + rfCol(
-    rfCard('O que o caixa permite', `
-      <div class="rf-kpis">
-        ${rfKpiHTML('Em caixa', fmt(teto), 'para gastar agora')}
-        ${rfKpiHTML('Cabem no caixa', String(cabem.length), 'de '+todos.length+' no mercado')}
-        ${rfKpiHTML('Mais caro que cabe', cabem.length?mvShort(cabem[0].ask):'—', cabem.length?escC(cabem[0].p.n):'')}
-      </div>
-      <span class="rf-note">A folha pesa depois: cada contratação entra no salário do mês seguinte.</span>`)
+    + rfCard('O que o caixa permite', `
+      <div class="rf-kpis rf-kpis-4">
+        ${rfKpiHTML('Caixa', rfDin(teto))}
+        ${rfKpiHTML('Folha atual', rfDin(folha)+'/mês')}
+        ${rfKpiHTML('Margem de salário', rfDin(Math.max(0,Math.round(teto/12)-folha))+'/mês')}
+        ${rfKpiHTML('Elenco', sq.length+' de 30')}
+      </div>`)
   );
 }
 
@@ -131,36 +190,39 @@ function rfMktLeilaoHTML(){
   const linha=l=>{
     const p=(typeof findP==='function')?findP(l.player,l.sellerId):null; if(!p) return '';
     const meu=l.leader===S.clubId;
-    return `<div class="rf-tbl-row ${meu?'me':''}">
-      <span class="rf-tbl-n">${escC(p.n)}</span>
+    return `<div class="rf-mkt-row ${meu?'destaque':''}">
+      <span class="rf-mkt-n">${escC(p.n)}</span>
       ${rfMkPos(p)}
-      <span class="rf-tbl-x">${p.age||'—'}</span>
-      <span class="rf-tbl-f">${p.f}</span>
+      <span class="rf-mkt-x">${p.age||'—'}</span>
+      <span class="rf-mkt-f">${p.f}</span>
       ${rfMkClube(l.sellerId)}
-      <span class="rf-tbl-v">${escC(mvShort(l.bid))}</span>
-      <span class="rf-tbl-v ${meu?'ok':''}">${l.myBid?escC(mvShort(l.myBid)):'—'}</span>
-      <span class="rf-tbl-x">${l.roundsLeft!=null?l.roundsLeft+(l.roundsLeft===1?' rodada':' rodadas'):'—'}</span>
-      <span class="rf-tbl-act"><button type="button" class="rf-btn rf-btn-pill"
-        onclick="rfMkLance('${escC(l.sellerId)}','${escC(l.player)}')">${meu?'Aumentar':'Cobrir'}</button></span>
+      <span class="rf-mkt-v">${escC(rfDin(l.bid))}</span>
+      <span class="rf-mkt-v ${l.myBid?'meu':'leve'}">${l.myBid?escC(rfDin(l.myBid)):'—'}</span>
+      <span class="rf-mkt-prazo">${l.roundsLeft!=null?l.roundsLeft+(l.roundsLeft===1?' rodada':' rodadas'):'—'}</span>
+      ${rfMkBt(meu?'Cobrir':'Dar lance',`rfMkLance('${escC(l.sellerId)}','${escC(l.player)}')`, meu)}
     </div>`;
   };
   const cabecalho=`<span>JOGADOR</span><span>POS</span><span>IDA</span><span>FOR</span>
     <span>CLUBE</span><span class="dir">LANCE ATUAL</span><span class="dir">SEU LANCE</span>
     <span class="dir">FECHA</span><span></span>`;
   const arrematados=fechados.map(l=>{
+    const p=(typeof findP==='function')?findP(l.player,l.sellerId):null;
     const c=anyClubOf(l.leader==='cpu'?l.sellerId:l.leader)||{short:'—'};
-    return `<div class="rf-linha">
-      <span class="rf-linha-t">${escC(l.player)} → ${escC(c.short)}</span>
-      <span class="rf-linha-v">${escC(mvShort(l.bid))}</span>
+    const meu=l.leader===S.clubId;
+    return `<div class="rf-arr ${meu?'destaque':''}">
+      <span class="rf-arr-i">🔨</span>
+      <span class="rf-arr-n">${escC(l.player)}</span>
+      <span class="rf-arr-s">${p?escC(rfPosInicial(p.s))+' · força '+p.f:''}</span>
+      <span class="rf-arr-c">${escC(c.short)}</span>
+      <span class="rf-arr-v">${escC(rfDin(l.bid))}</span>
     </div>`;
   }).join('');
   return rfMktGavetaHTML(['lance']) + rfCol(
     rfCard('Lotes abertos',
-      rfMkTabela('minmax(0,1fr) 34px 40px 40px minmax(0,120px) 96px 92px 84px 84px',
+      rfMkTabela('minmax(0,1fr) 44px 48px 48px minmax(0,160px) 116px 108px 92px 104px',
         cabecalho, abertos.map(linha).join(''), 'Nenhum leilão aberto nesta rodada.'),
       {right: abertos.length? abertos.length+' ativos':''})
-  ) + rfCol(
-    rfCard('Arrematados recentemente',
+    + rfCard('Arrematados recentemente',
       arrematados || '<span class="rf-note">Ainda não houve arremate nesta temporada.</span>')
   );
 }
@@ -173,17 +235,17 @@ function rfMktPropostasHTML(){
   if(!ofertas.length) return rfCol(rfCard('Propostas recebidas',
     `<div class="rf-empty">Nenhuma proposta no momento.<br><small>Clubes fazem propostas pelos seus destaques enquanto a janela está aberta.</small></div>`));
   const sq=squad(CL.clubId);
-  const cards=ofertas.map(o=>{
+  const cards=ofertas.map((o,i)=>{
     const p=sq.find(x=>x.n===o.playerName)||{};
     const rodadas=Math.max(0,o.expiresRound-S.round);
     const vm=(typeof computeVM==='function'&&p.n)?computeVM(p):(p.mv||0);
     const sal=(p.contract&&p.contract.salary)||p.salary||0;
-    // SUBSTITUTO: o melhor do elenco no mesmo setor, tirando quem está saindo
     const sub=sq.filter(x=>x.s===p.s && x.n!==p.n).sort((a,b)=>(b.f||0)-(a.f||0))[0];
-    const dif=vm?Math.round((o.fee-vm)/vm*100):0;
-    return `<div class="rf-card rf-prop2">
+    const acima=vm?(o.fee>=vm):null;
+    // a tarja da esquerda é a urgência: vermelha quando resta uma rodada
+    return `<div class="rf-card rf-prop2 ${rodadas<=1?'urgente':'atencao'}">
       <div class="rf-prop2-hd">
-        ${rfCrest(anyClubOf(o.buyerId)||{short:o.buyerName||'—'},34)}
+        <span class="rf-prop2-crest">${rfCrest(anyClubOf(o.buyerId)||{short:o.buyerName||'—'},44)}</span>
         <div class="rf-prop2-id">
           <span class="rf-prop2-t">${escC(o.buyerName||'Um clube')} quer o ${escC(o.playerName)}</span>
           <span class="rf-prop2-s">${escC(rfPosInicial(p.s))} · ${p.age||'—'} anos · força ${o.playerForce||p.f||'—'} · resposta em ${rodadas} rodada${rodadas===1?'':'s'}</span>
@@ -196,10 +258,11 @@ function rfMktPropostasHTML(){
         </div>
       </div>
       <div class="rf-prop2-nums">
-        ${rfKpiHTML('Oferta', mvShort(o.fee), 'à vista')}
-        ${rfKpiHTML('Salário que sai', sal?fmt(sal):'—', sal?'alívio na folha':'')}
-        ${rfKpiHTML('Valor de mercado', vm?mvShort(vm):'—', vm?(dif>=0?'+'+dif+'% acima':dif+'% abaixo'):'')}
-        ${rfKpiHTML('Substituto', sub?sub.n:'—', sub?('força '+sub.f):'sem reserva no setor')}
+        ${rfKpiHTML('Oferta', rfDin(o.fee), 'à vista')}
+        ${rfKpiHTML('Salário que sai', sal?rfDin(sal):'—', sal?'alívio na folha':'', sal?'bom':'')}
+        ${rfKpiHTML('Valor de mercado', vm?rfDin(vm):'—',
+          acima===null?'':(acima?'acima do valor':'abaixo do valor'), acima===null?'':(acima?'bom':'ruim'))}
+        ${rfKpiHTML('Substituto', sub?sub.n:'—', sub?'já no elenco':'sem reserva no setor', sub?'':'ruim')}
       </div>
       ${o.lastMsg?`<span class="rf-prop-msg">💬 ${escC(o.lastMsg)}</span>`:''}
     </div>`;
@@ -207,13 +270,20 @@ function rfMktPropostasHTML(){
   const totalFee=ofertas.reduce((t,o)=>t+(o.fee||0),0);
   const totalSal=ofertas.reduce((t,o)=>{ const p=sq.find(x=>x.n===o.playerName);
     return t+((p&&((p.contract&&p.contract.salary)||p.salary))||0); },0);
-  return rfMktGavetaHTML(['contra']) + rfCol(cards) + rfCol(
-    rfCard(`Impacto se aceitar ${ofertas.length===1?'a proposta':'as '+ofertas.length}`, `
-      <div class="rf-kpis">
-        ${rfKpiHTML('Entra no caixa', mvShort(totalFee), 'à vista')}
-        ${rfKpiHTML('Sai da folha', totalSal?fmt(totalSal):'—', 'por mês')}
-        ${rfKpiHTML('Caixa depois', mvShort((S.budget||0)+totalFee), 'para reinvestir')}
-        ${rfKpiHTML('Elenco depois', String(sq.length-ofertas.length), 'jogadores')}
+  // força de ataque e meio ANTES e DEPOIS, pra medir o buraco que a saída abre
+  const saindo=new Set(ofertas.map(o=>o.playerName));
+  const media=(lista,sec)=>{ const f=lista.filter(x=>x.s===sec).slice().sort((a,b)=>b.f-a.f).slice(0,4);
+    return f.length?Math.round(f.reduce((t,x)=>t+x.f,0)/f.length):0; };
+  const depois=sq.filter(x=>!saindo.has(x.n));
+  const dAtt=media(depois,'ATT')-media(sq,'ATT'), dMid=media(depois,'MID')-media(sq,'MID');
+  const del=n=>n===0?'':(n>0?'+'+n:String(n));
+  return rfMktGavetaHTML(['contra']) + rfCol(cards +
+    rfCard(`Impacto se aceitar ${ofertas.length===1?'a proposta':(ofertas.length===2?'as duas':'as '+ofertas.length)}`, `
+      <div class="rf-kpis rf-kpis-4">
+        ${rfKpiHTML('Caixa', rfDin((S.budget||0)+totalFee), '+'+rfDin(totalFee), 'bom')}
+        ${rfKpiHTML('Folha', rfDin(rfFolha()-totalSal)+'/mês', totalSal?'−'+rfDin(totalSal):'', 'bom')}
+        ${rfKpiHTML('Força do ataque', String(media(depois,'ATT')), del(dAtt), dAtt<0?'ruim':'bom')}
+        ${rfKpiHTML('Força do meio', String(media(depois,'MID')), del(dMid), dMid<0?'ruim':'bom')}
       </div>`)
   );
 }
@@ -221,21 +291,30 @@ function rfMktPropostasHTML(){
 /* =====================================================================
    4 · CONTRAPROPOSTAS
    ===================================================================== */
+/* a SITUAÇÃO é uma tarja de três estados, e a cor é a distância que falta:
+   cinza quando ainda não decidiram, amarelo quando falta pouco, verde
+   quando aceitaram — aí a linha inteira acende e o botão vira Fechar. */
+function rfMkSituacao(minha, pedido){
+  if(!pedido || pedido<=minha) return {k:'ok', t:'ACEITO'};
+  const dif=(pedido-minha)/pedido;
+  return dif<=0.1 ? {k:'quase', t:'QUASE FECHADO'} : {k:'neutro', t:'A DECIDIR'};
+}
 function rfMktContraHTML(){
   const lista=(typeof myCounterOffers==='function')?myCounterOffers():[];
   const linhas=lista.map(o=>{
     const pedido=o.ask||o.counter||0, minha=o.fee||0;
     const dif=pedido-minha;
-    return `<div class="rf-tbl-row">
-      <span class="rf-tbl-n">${escC(o.playerName||'')}</span>
-      ${o.playerPos?`<span class="rf-tbl-pos">${escC(o.playerPos)}</span>`:'<span class="rf-tbl-pos">—</span>'}
-      ${o.sellerId?rfMkClube(o.sellerId):'<span class="rf-tbl-clube">—</span>'}
-      <span class="rf-tbl-v">${escC(mvShort(minha))}</span>
-      <span class="rf-tbl-v">${pedido?escC(mvShort(pedido)):'—'}</span>
-      <span class="rf-tbl-v ${dif>0?'ruim':''}">${pedido?escC(mvShort(dif)):'—'}</span>
-      <span class="rf-tbl-tag">${escC((o.state||'a decidir').toUpperCase())}</span>
-      <span class="rf-tbl-act"><button type="button" class="rf-btn rf-btn-pill"
-        onclick="rfMkPropor('${escC(o.sellerId||'')}','${escC(o.playerName||'')}')">Subir</button></span>
+    const st=rfMkSituacao(minha,pedido);
+    const feito=st.k==='ok';
+    return `<div class="rf-mkt-row ${feito?'destaque':''}">
+      <span class="rf-mkt-n">${escC(o.playerName||'')}</span>
+      <span class="rf-mkt-pos">${escC(o.playerPos||'—')}</span>
+      ${o.sellerId?rfMkClube(o.sellerId):'<span class="rf-mkt-clube">—</span>'}
+      <span class="rf-mkt-v meu">${escC(rfDin(minha))}</span>
+      <span class="rf-mkt-v">${pedido?escC(rfDin(pedido)):'—'}</span>
+      <span class="rf-mkt-v ${dif>0?'ruim':'leve'}">${dif>0?escC(rfDin(dif)):'—'}</span>
+      <span class="rf-mkt-tag ${st.k}">${st.t}</span>
+      ${rfMkBt(feito?'Fechar':'Subir',`rfMkPropor('${escC(o.sellerId||'')}','${escC(o.playerName||'')}')`, feito)}
     </div>`;
   }).join('');
   const cabecalho=`<span>JOGADOR</span><span>POS</span><span>CLUBE</span>
@@ -243,19 +322,13 @@ function rfMktContraHTML(){
     <span class="dir">DIFERENÇA</span><span class="dir">SITUAÇÃO</span><span></span>`;
   return rfMktGavetaHTML(['oferta']) + rfCol(
     rfCard('Negociações em andamento',
-      rfMkTabela('minmax(0,1fr) 34px minmax(0,120px) 96px 100px 92px 92px 76px',
+      rfMkTabela('minmax(0,1fr) 44px minmax(0,160px) 116px 124px 112px 132px 104px',
         cabecalho, linhas, 'Nenhuma negociação aberta agora.'),
       {right: lista.length? lista.length+' abertas':''})
-  ) + rfCol(
-    rfCard('Como negociar', `
-      <div class="rf-passos">
-        <div class="rf-passo"><span class="rf-passo-n">1</span>
-          <span class="rf-passo-t">Comece abaixo do pedido. O clube vendedor quase sempre volta com um número menor.</span></div>
-        <div class="rf-passo"><span class="rf-passo-n">2</span>
-          <span class="rf-passo-t">Clube no Z-4 cobra mais caro para liberar; clube grande segura o atleta. A diferença já está no pedido.</span></div>
-        <div class="rf-passo"><span class="rf-passo-n">3</span>
-          <span class="rf-passo-t">A janela fecha por rodada. Proposta parada até o fechamento morre sem resposta.</span></div>
-      </div>`)
+    + rfCard('Como negociar',
+      `<p class="rf-texto">Cada subida na oferta consome um dia da janela. Clubes da mesma divisão
+       pedem 20% a mais quando o jogador é titular. Se a diferença for menor que 10%, costumam
+       aceitar na primeira contraproposta.</p>`)
   );
 }
 
@@ -264,45 +337,45 @@ function rfMktContraHTML(){
    ===================================================================== */
 function rfMktVenderHTML(){
   const sq=squad(CL.clubId).slice().sort((a,b)=>(b.f||0)-(a.f||0));
+  const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(CL.clubId):{};
   const xi=new Set(xiPlayers(CL.clubId).map(p=>p.pid));
-  const linhas=sq.map(p=>{
+  const linhas=sq.map((p,i)=>{
     const vm=(typeof computeVM==='function')?computeVM(p):(p.mv||0);
-    const titular=xi.has(p.pid);
-    return `<div class="rf-tbl-row" onclick="rfMkListar('${escC(p.pid)}')">
-      <span class="rf-tbl-num">${escC(String(p.num||''))}</span>
-      <span class="rf-tbl-n">${escC(p.n)}</span>
+    // INTERESSE: quantos clubes já mandaram proposta por ele
+    const clubes=rfPropostas().filter(o=>o.playerName===p.n).length;
+    return `<div class="rf-mkt-row ${i===0?'destaque':''}" onclick="rfMkListar('${escC(p.pid)}')">
+      <span class="rf-mkt-nome">${rfMkCamisaHTML(nums[p.pid]||p.num)}<b>${escC(p.n)}</b></span>
       ${rfMkPos(p)}
-      <span class="rf-tbl-x">${p.age||'—'}</span>
-      <span class="rf-tbl-f">${p.f}</span>
-      <span class="rf-tbl-v">${escC(mvShort(vm))}</span>
-      <span class="rf-tbl-v">${escC(rfMkSalario(p))}</span>
-      <span class="rf-tbl-x">${escC(rfMkFimContrato(p))}</span>
-      <span class="rf-tbl-tag ${titular?'':'leve'}">${titular?'TITULAR':'RESERVA'}</span>
-      <span class="rf-tbl-act"><button type="button" class="rf-btn rf-btn-pill"
-        onclick="event.stopPropagation();rfMkListar('${escC(p.pid)}')">Listar</button></span>
+      <span class="rf-mkt-x">${p.age||'—'}</span>
+      <span class="rf-mkt-f">${p.f}</span>
+      <span class="rf-mkt-v">${escC(rfDin(vm))}</span>
+      <span class="rf-mkt-v leve">${escC(rfMkSalario(p))}</span>
+      <span class="rf-mkt-x">${escC(rfMkFimContrato(p))}</span>
+      <span class="rf-mkt-int">${clubes?`<b>${clubes} clube${clubes===1?'':'s'}</b>`:'—'}</span>
+      ${rfMkBt('Listar',`rfMkListar('${escC(p.pid)}')`)}
     </div>`;
   }).join('');
-  const cabecalho=`<span></span><span>JOGADOR</span><span>POS</span><span>IDA</span><span>FOR</span>
+  const cabecalho=`<span>JOGADOR</span><span>POS</span><span>IDA</span><span>FOR</span>
     <span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span class="dir">FIM</span>
-    <span class="dir">SITUAÇÃO</span><span></span>`;
-  // QUEM VOCÊ NÃO DEVERIA VENDER: os titulares sem reserva no mesmo setor
-  const semReserva=[...xi].map(pid=>sq.find(p=>p.pid===pid)).filter(Boolean).filter(p=>{
+    <span class="dir">INTERESSE</span><span></span>`;
+  // QUEM VOCÊ NÃO DEVERIA VENDER: o titular mais caro de repor
+  const chave=[...xi].map(pid=>sq.find(p=>p.pid===pid)).filter(Boolean).filter(p=>{
     const outros=sq.filter(x=>x.s===p.s && x.pid!==p.pid && (x.f||0)>=(p.f||0)-5);
     return outros.length===0;
-  }).slice(0,5);
+  }).sort((a,b)=>(b.f||0)-(a.f||0))[0];
+  const gols=(chave&&chave.stats&&chave.stats.goals)||0;
+  const golsTime=sq.reduce((t,p)=>t+((p.stats&&p.stats.goals)||0),0);
   return rfMktGavetaHTML(['listar']) + rfCol(
     rfCard('Seu elenco à venda',
-      rfMkTabela('30px minmax(0,1fr) 34px 40px 40px 92px 88px 56px 84px 80px',
+      rfMkTabela('minmax(0,1fr) 44px 48px 48px 116px 108px 76px 108px 104px',
         cabecalho, linhas, 'Elenco vazio.'),
       {right: sq.length+' jogadores'})
-  ) + rfCol(
-    rfCard('Quem você não deveria vender',
-      semReserva.length
-        ? semReserva.map(p=>`<div class="rf-linha">
-            <span class="rf-linha-t">${escC(p.n)}</span>
-            <span class="rf-linha-v">sem reserva</span></div>`).join('')
-          + '<span class="rf-note">Titulares que não têm ninguém do mesmo setor à altura no banco.</span>'
-        : '<span class="rf-note">O banco cobre todos os titulares. Dá para negociar sem abrir buraco.</span>')
+    + rfCard('Quem você não deveria vender',
+      chave
+        ? `<p class="rf-texto">${escC(chave.n)} é o único do sector com esse nível no elenco${
+            golsTime?` e responde por ${gols} dos ${golsTime} gols do time`:''}. Vender agora abre
+           um buraco no onze que o banco não cobre, e a direcção cobra explicação se a campanha cair.</p>`
+        : `<p class="rf-texto">O banco cobre todos os titulares. Dá para negociar sem abrir buraco no onze.</p>`)
   );
 }
 
@@ -320,34 +393,40 @@ function rfMktTransfHTML(){
     (p.transferHistory||[]).forEach(h=>ent.push({p,h}));
   }); });
   ent.sort((a,b)=>(b.h.season-a.h.season)||(b.h.round-a.h.round));
-  const linhas=ent.slice(0,40).map(({p,h})=>`<div class="rf-tbl-row">
-    <span class="rf-tbl-n">${escC(p.n)}</span>
+  /* QUANDO: a referência escreve "há 2 dias". O jogo conta por rodada, e
+     uma rodada é uma jornada do calendário — então a distância sai em
+     jornadas, que é o tempo que o jogo realmente mede. */
+  const quando=h=>{
+    if(h.season!==S.season) return 'temporada '+h.season;
+    const d=(S.round||0)-(h.round||0);
+    return d<=0?'esta jornada':('há '+d+' jornada'+(d===1?'':'s'));
+  };
+  const linhas=ent.slice(0,40).map(({p,h})=>`<div class="rf-mkt-row ${h.to===CL.clubId||h.from===CL.clubId?'destaque':''}">
+    <span class="rf-mkt-n">${escC(p.n)}</span>
     ${rfMkPos(p)}
-    <span class="rf-tbl-f">${p.f}</span>
-    ${h.from?rfMkClube(h.from):`<span class="rf-tbl-clube">${escC(nomeDe(h.from))}</span>`}
-    <span class="rf-tbl-seta">→</span>
-    ${h.to?rfMkClube(h.to):`<span class="rf-tbl-clube">${escC(nomeDe(h.to))}</span>`}
-    <span class="rf-tbl-v">${escC(mvShort(h.fee||0))}</span>
-    <span class="rf-tbl-x">${escC(String(h.season||''))}</span>
+    <span class="rf-mkt-f">${p.f}</span>
+    ${h.from?rfMkClube(h.from):`<span class="rf-mkt-clube">${escC(nomeDe(h.from))}</span>`}
+    <span class="rf-mkt-seta">→</span>
+    ${h.to?rfMkClube(h.to):`<span class="rf-mkt-clube">${escC(nomeDe(h.to))}</span>`}
+    <span class="rf-mkt-v">${escC(rfDin(h.fee||0))}</span>
+    <span class="rf-mkt-x">${escC(quando(h))}</span>
   </div>`).join('');
   const cabecalho=`<span>JOGADOR</span><span>POS</span><span>FOR</span><span>SAIU DE</span>
-    <span></span><span>FOI PARA</span><span class="dir">VALOR</span><span class="dir">TEMP.</span>`;
+    <span></span><span>FOI PARA</span><span class="dir">VALOR</span><span class="dir">QUANDO</span>`;
   const aberta=(typeof inTransferWindow==='function')?inTransferWindow():true;
   const jornadas=(S.sched||[]).length||14;
   const pct=Math.max(0,Math.min(100,Math.round((S.round||0)/jornadas*100)));
+  const faltam=Math.max(0,jornadas-(S.round||0));
   return rfCol(
     rfCard('Janela de transferências', `
-      <div class="rf-pz-barra">
-        <div class="rf-label"><span class="rf-label-t">${aberta?'Aberta':'Fechada'} · ${(S.round||0)+1}ª de ${jornadas} jornadas</span>
-          <span class="rf-pz-pct">${pct}%</span></div>
-        <div class="rf-pz-trilho"><div class="rf-pz-fill" style="width:${pct}%"></div></div>
+      <div class="rf-jan-l">
+        <span class="rf-jan-t">${aberta?'Aberta desde a 1ª jornada':'Fechada'}</span>
+        <span class="rf-jan-p">${pct}%</span>
       </div>
-      <span class="rf-note">${aberta
-        ? 'Enquanto a janela estiver aberta dá para comprar, vender e cobrir leilão.'
-        : (typeof windowClosedMsg==='function'?escC(windowClosedMsg()):'A janela está fechada.')}</span>`,
-      {right: aberta?'aberta':'fechada'})
+      <div class="rf-jan-trilho"><i style="width:${pct}%"></i></div>`,
+      {right: aberta?('fecha em '+faltam+' jornada'+(faltam===1?'':'s')):'fechada'})
     + rfCard('Movimentações da divisão',
-      rfMkTabela('minmax(0,1fr) 34px 40px minmax(0,110px) 20px minmax(0,110px) 92px 60px',
+      rfMkTabela('minmax(0,1fr) 44px 48px minmax(0,150px) 28px minmax(0,150px) 116px 116px',
         cabecalho, linhas, 'Nenhuma transferência registrada ainda nesta temporada.'),
       {right: ent.length? ent.length+' no total':''})
   );
@@ -453,30 +532,30 @@ function rfMkOfertaHTML(){
     return rfMkGavetaHTML('Proposta por '+escC(p.n), sub, `
       <span class="rf-note">Este jogador é de outro treinador. A proposta vai direto pro e-mail dele — ele aceita, recusa ou negocia.</span>
       <div class="rf-mkg-linha">
-        ${rfMkCampoHTML('rf-mk-fee','Sua proposta',M.offer,'valor de mercado '+escC(mvShort(p.mv||0)))}
+        ${rfMkCampoHTML('rf-mk-fee','Sua proposta',M.offer,'valor de mercado '+escC(rfDin(p.mv||0)))}
         <button type="button" class="rf-btn rf-btn-primary" onclick="rfMkEnviarHumano()">Enviar proposta</button>
       </div>`);
   }
   if(!n || n.stage==='fee' || n.stage==='counterFee'){
     const pediu = n && n.stage==='counterFee' && n.clubCounter;
     return rfMkGavetaHTML('Proposta por '+escC(p.n), sub, `
-      ${pediu?`<div class="rf-mkg-aviso">O ${escC(c.short)} quer a partir de <b>${escC(fmt(n.clubCounter))}</b>.
+      ${pediu?`<div class="rf-mkg-aviso">O ${escC(c.short)} quer a partir de <b>${escC(rfDin(n.clubCounter))}</b>.
         <button type="button" class="rf-btn rf-btn-ghost" onclick="rfMkIgualar()">Igualar pedido</button></div>`:''}
       <div class="rf-mkg-linha">
-        ${rfMkCampoHTML('rf-mk-fee','Sua proposta (taxa)',M.offer,'valor de mercado '+escC(mvShort(p.mv||0))+' · caixa '+escC(mvShort(S.budget||0)))}
+        ${rfMkCampoHTML('rf-mk-fee','Sua proposta (taxa)',M.offer,'valor de mercado '+escC(rfDin(p.mv||0))+' · caixa '+escC(rfDin(S.budget||0)))}
         <button type="button" class="rf-btn rf-btn-primary" onclick="rfMkProporFee()">Propor</button>
       </div>`);
   }
   if(n.stage==='terms'){
-    return rfMkGavetaHTML('Salário de '+escC(p.n), 'taxa acertada em '+escC(fmt(n.offerFee)), `
+    return rfMkGavetaHTML('Salário de '+escC(p.n), 'taxa acertada em '+escC(rfDin(n.offerFee)), `
       ${n.agentCounter?`<div class="rf-mkg-aviso">O empresário pede <b>${escC(fmt(n.agentCounter))}</b> por semana.
         <button type="button" class="rf-btn rf-btn-ghost" onclick="rfMkAceitarAgente()">Aceitar o pedido</button></div>`:''}
       <div class="rf-mkg-linha">
-        ${rfMkCampoHTML('rf-mk-sal','Salário semanal',n.salary,'a folha de hoje é '+escC(fmt(rfFolha())))}
+        ${rfMkCampoHTML('rf-mk-sal','Salário semanal',n.salary,'a folha de hoje é '+escC(rfDin(rfFolha())))}
         <button type="button" class="rf-btn rf-btn-primary" onclick="rfMkTermos()">Oferecer</button>
       </div>`);
   }
-  return rfMkGavetaHTML(escC(p.n)+' está fechado', 'taxa '+escC(fmt(n.offerFee))+' · salário '+escC(fmt(n.salary||0)), `
+  return rfMkGavetaHTML(escC(p.n)+' está fechado', 'taxa '+escC(rfDin(n.offerFee))+' · salário '+escC(rfDin(n.salary||0)), `
     <div class="rf-mkg-linha">
       <span class="rf-note">Falta só assinar. O valor sai do caixa na hora e o salário entra na folha do mês seguinte.</span>
       <button type="button" class="rf-btn rf-btn-cta" onclick="rfMkFinalizar()">Fechar contratação</button>
@@ -516,7 +595,7 @@ function rfMkLanceHTML(){
     <div class="rf-mkg-aviso">Maior lance agora: <b>${escC(mvShort(lot.bid))}</b> ${meu?'(seu)':'(concorrência)'}
       · fecha em <b>${lot.roundsLeft} rodada${lot.roundsLeft===1?'':'s'}</b></div>
     <div class="rf-mkg-linha">
-      ${rfMkCampoHTML('rf-mk-lance','Seu lance',sugerido,'precisa passar de '+escC(mvShort(lot.bid))+' · caixa '+escC(mvShort(S.budget||0)))}
+      ${rfMkCampoHTML('rf-mk-lance','Seu lance',sugerido,'precisa passar de '+escC(mvShort(lot.bid))+' · caixa '+escC(rfDin(S.budget||0)))}
       <button type="button" class="rf-btn rf-btn-cta" onclick="rfMkLanceGo()">Confirmar lance</button>
     </div>`);
 }
@@ -540,7 +619,7 @@ function rfMkContraHTML(){
   const p=squad(CL.clubId).find(x=>x.n===o.playerName)||{};
   const vm=(typeof computeVM==='function'&&p.n)?computeVM(p):(p.mv||0);
   return rfMkGavetaHTML('Contraproposta por '+escC(o.playerName),
-    `${escC(o.buyerName||'um clube')} ofereceu ${escC(mvShort(o.fee||0))}`, `
+    `${escC(o.buyerName||'um clube')} ofereceu ${escC(rfDin(o.fee||0))}`, `
     <div class="rf-mkg-linha">
       ${rfMkCampoHTML('rf-mk-ask','Quanto você pede',Math.round((vm||o.fee)*1.15/1000)*1000,
         'valor de mercado '+escC(mvShort(vm||0))+' · pedir muito acima costuma matar a negociação')}
@@ -566,7 +645,7 @@ function rfMkListarHTML(){
     ${titular?'<div class="rf-mkg-aviso">É titular. Sair dele agora abre buraco no onze até você repor.</div>':''}
     <div class="rf-mkg-linha">
       ${rfMkCampoHTML('rf-mk-preco','Preço que você pede',Math.round(vm/1000)*1000,
-        'valor de mercado '+escC(mvShort(vm))+' · pedir muito acima afasta comprador')}
+        'valor de mercado '+escC(rfDin(vm))+' · pedir muito acima afasta comprador')}
       <button type="button" class="rf-btn rf-btn-cta" onclick="rfMkListarGo()">Pôr à venda</button>
     </div>`);
 }
