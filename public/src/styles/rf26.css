@@ -1103,3 +1103,68 @@
 .rf-tabpane .cl-fin-row.big2{font-size:var(--fs-subhead);margin-top:14px;
   border-top:1px solid var(--line-3);padding-top:12px}
 .rf-tabpane .cl-fin-row.big2>*:last-child{font-size:var(--fs-title);font-weight:var(--fw-bold)}
+
+/* =====================================================================
+   TREINADOR ▸ SALA DE TROFÉUS
+   A estante foi desenhada como uma vitrine sobre o verde-feltro cheio:
+   fundo verde, prateleiras cinza, painel verde-escuro, texto branco. Como
+   página clara isso ficou verde sobre verde. Aqui ela vira o que o design
+   system chama de bloco recuado — a estante é uma superfície RECUADA
+   dentro do card, e a taça é o que tem cor.
+   ===================================================================== */
+.rf-tabpane .cl-sala{font-family:var(--font-sans)}
+.rf-tabpane .cl-sala-tabs{background:transparent;padding:0 0 10px;gap:6px;align-items:center}
+.rf-tabpane .cl-sala-tab{border:1px solid var(--line-2);border-bottom:1px solid var(--line-2);
+  border-radius:var(--r-pill);padding:7px 14px;top:0;background:var(--surface-card);
+  color:var(--text-2);font-weight:var(--fw-semibold);font-size:var(--fs-caption);box-shadow:none}
+.rf-tabpane .cl-sala-tab.on{background:var(--club-primary);border-color:var(--club-primary);
+  color:var(--club-on-primary);padding:7px 14px;margin-bottom:0;box-shadow:none}
+.rf-tabpane .cl-sala-status{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-faint)}
+/* a estante: superfície recuada, altura pelo conteúdo da página */
+.rf-tabpane .cl-sala-body{background:var(--surface-sunken);border:var(--border-hairline);
+  border-radius:var(--r-card);padding:12px;gap:12px;height:auto;max-height:none}
+.rf-tabpane .cl-sala.sem-filtro .cl-sala-body{border-top:1px solid var(--line-1)}
+.rf-tabpane .cl-sala-reg{background:var(--surface-card);border:var(--border-hairline);
+  border-radius:var(--r-inner);overflow:hidden;min-height:0}
+.rf-tabpane .cl-sala-reg-hdr{background:transparent;color:var(--text-muted);
+  font-size:var(--fs-label);letter-spacing:var(--ls-label);font-weight:var(--fw-bold);
+  padding:8px 12px 4px;border-bottom:1px solid var(--line-3)}
+.rf-tabpane .cl-sala-reg-n{font-family:var(--font-mono);color:var(--text-faint);font-size:var(--fs-label)}
+.rf-tabpane .cl-sala-shelf{overflow-x:auto;padding:10px}
+.rf-tabpane .cl-sala-card{border:1px solid transparent;border-radius:var(--r-inner);padding:6px 4px 8px}
+.rf-tabpane .cl-sala-card:hover{background:var(--surface-sunken)}
+.rf-tabpane .cl-sala-card.on{border-color:var(--club-primary);background:var(--club-primary-soft)}
+.rf-tabpane .cl-sala-cname{color:var(--text-2);font-weight:var(--fw-semibold);font-size:var(--fs-micro)}
+.rf-tabpane .cl-sala-cname.locked{color:var(--text-faint)}
+/* taça ainda não conquistada: apagada, sem o quase-preto da vitrine escura */
+.rf-tabpane .cl-sala-img.locked{filter:grayscale(1);opacity:.28}
+.rf-tabpane .cl-sala-xn{background:var(--club-secondary);color:var(--club-on-secondary);
+  border:none;border-radius:var(--r-pill);font-family:var(--font-mono)}
+/* painel CAMPANHA: card claro, não bloco verde */
+.rf-tabpane .cl-sala-pan{background:var(--surface-card);border:var(--border-hairline);
+  border-radius:var(--r-inner);overflow:hidden}
+.rf-tabpane .cl-sala-pan-hdr{background:transparent;color:var(--text-muted);
+  font-size:var(--fs-label);letter-spacing:var(--ls-label);font-weight:var(--fw-bold);
+  padding:10px 12px 6px;border-bottom:1px solid var(--line-3)}
+.rf-tabpane .cl-sala-pan-reg{font-family:var(--font-mono);color:var(--text-faint)}
+.rf-tabpane .cl-sala-pan-top{background:var(--surface-sunken);padding:12px}
+.rf-tabpane .cl-sala-pan-frame{background:var(--surface-card);border:var(--border-hairline);
+  border-radius:var(--r-control)}
+.rf-tabpane .cl-sala-pan-name{color:var(--text-1);font-size:var(--fs-subhead);font-weight:var(--fw-bold)}
+.rf-tabpane .cl-sala-pan-sub{color:var(--text-4);font-size:var(--fs-caption)}
+.rf-tabpane .cl-sala-win,.rf-tabpane .cl-sala-lock{background:var(--surface-sunken);
+  border:var(--border-hairline);border-radius:var(--r-control);color:var(--text-2)}
+.rf-tabpane .cl-sala-win-ano{font-family:var(--font-mono);color:var(--club-primary)}
+.rf-tabpane .cl-sala-win-rot{color:var(--text-muted);letter-spacing:var(--ls-label);font-size:var(--fs-label)}
+.rf-tabpane .cl-sala-win-team{color:var(--text-1);font-size:var(--fs-caption)}
+.rf-tabpane .cl-sala-total{background:transparent;color:var(--text-2)}
+.rf-tabpane .cl-sala-total b{font-family:var(--font-mono);color:var(--text-1)}
+/* a página é estreita: as prateleiras rolam na horizontal em vez de vazar */
+.rf-tabpane .cl-sala-body{flex-wrap:wrap}
+.rf-tabpane .cl-sala-pan{width:300px;max-width:100%}
+/* a estante tinha altura fixa porque vivia num modal de altura conhecida; na
+   página ela cresce com o conteúdo — senão o nome da taça fica cortado ao meio */
+.rf-tabpane .cl-sala-reg{flex:0 0 auto;min-height:0;height:auto;overflow:visible}
+.rf-tabpane .cl-sala-shelf{overflow-x:auto;overflow-y:visible;min-height:0;padding:10px}
+.rf-tabpane .cl-sala-cname{height:auto;min-height:26px;line-height:1.25}
+.rf-tabpane .cl-sala-shelves{gap:10px}
