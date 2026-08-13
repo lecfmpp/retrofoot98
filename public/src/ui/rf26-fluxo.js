@@ -442,3 +442,102 @@ function rfInstitucionalCorpo(view){
           <span class="rf-ft-bv sm">grátis</span></div>
       </div>`;
 }
+
+
+/* =====================================================================
+   LISTA DE ESPERA — o formulário no desenho novo
+   Era uma janela do skin antigo (janelaHTML + .cl-lp-*). Ela é chamada de
+   dois lugares que já foram portados — a landing e, agora, o cartão do
+   Modo Resenha no passo 2 do onboarding — então uma janela do Windows 98
+   abrindo por cima do jogo novo era a última coisa que restava do skin.
+
+   A GRAVAÇÃO NÃO MUDOU: continua clWaitlistSubmit/clWaitlistIndicar, na
+   tabela retrofoot_waitlist do Supabase, com a mesma validação. Aqui é só
+   o desenho — e `origem`, que passa a dizer de qual tela veio o lead.
+   ===================================================================== */
+function rfWaitlistDraw(){
+  if(!CL.waitlistOpen) return;
+  overlayC(rfWaitlistHTML());
+}
+function rfWaitlistHTML(){
+  const w=CL.waitlist||{};
+  const vagas=(typeof WAITLIST_VAGAS!=='undefined')?WAITLIST_VAGAS:500;
+  const feitas=(CL.waitlistCount!=null)?CL.waitlistCount:null;
+  const pct=(feitas!=null&&vagas)?Math.min(100,Math.round(feitas/vagas*100)):null;
+
+  if(CL.waitlistSent){
+    const amigos=(w.amigos||['']).map((a,i)=>`<div class="rf-wl-amigo">
+      <input class="rf-campo-c" type="email" inputmode="email" autocomplete="off"
+        placeholder="email do amigo" value="${escC(a||'')}" oninput="clWaitlistAmigo(${i},this.value)">
+      <button type="button" class="rf-wl-x" aria-label="Remover" onclick="clWaitlistRmAmigo(${i})">✕</button>
+    </div>`).join('');
+    return dlg('Você está na lista', `
+      <div class="rf-wl">
+        <div class="rf-wl-ok">
+          <span class="rf-wl-ok-i">✓</span>
+          <span class="rf-wl-ok-d">
+            <span class="rf-wl-ok-t">Vaga garantida.</span>
+            <span class="rf-note">A gente avisa por e-mail quando a sua vaga entre os
+              ${vagas} primeiros for liberada.</span></span>
+        </div>
+        ${CL.waitlistAmigosOk?'<div class="rf-aviso"><span class="rf-aviso-i">✓</span><span>Indicações guardadas.</span></div>':''}
+        <p class="rf-in-p">Agora chama a galera: <b>cada amigo indicado sobe você na fila</b> —
+          dá para montar a liga inteira antes do lançamento.</p>
+        <div class="rf-wl-amigos">${amigos}</div>
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="clWaitlistAddAmigo()">+ Adicionar outro e-mail</button>
+        <div class="rf-wl-zap">
+          <span class="rf-label-t">Ou chama direto no WhatsApp</span>
+          <div class="rf-wl-zap-l">
+            <input class="rf-campo-c" type="tel" inputmode="tel" placeholder="DDD + número"
+              value="${escC(w.zap||'')}" oninput="clWaitlistSet('zap',this.value)">
+            <a class="rf-btn rf-btn-secondary" href="${waitlistZapHref()}" target="_blank" rel="noopener">💬 Convidar</a>
+          </div>
+        </div>
+      </div>`, {
+      w:560, glyph:'🎉',
+      footer:`<button type="button" class="rf-ov-b2" onclick="clWaitlistClose()">Fechar</button>
+        <div class="rf-sp"></div>
+        <button type="button" class="rf-ov-cta" ${CL.waitlistBusy?'disabled':''}
+          onclick="clWaitlistIndicar()">${CL.waitlistBusy?'Gravando…':'Enviar indicações'}</button>`
+    });
+  }
+
+  return dlg('Lista de espera', `
+    <div class="rf-wl">
+      <div class="rf-aviso"><span class="rf-aviso-i">⚠</span>
+        <span><b>Vagas limitadas:</b> a primeira versão libera o jogo para <b>${vagas} treinadores</b>.
+          Quem indicar amigos sobe na fila.</span></div>
+      ${pct!=null?`<div class="rf-pz-barra">
+        <div class="rf-label"><span class="rf-label-t">Vagas preenchidas</span>
+          <span class="rf-pz-pct">${feitas} / ${vagas}</span></div>
+        <div class="rf-pz-trilho"><div class="rf-pz-fill" style="width:${pct}%"></div></div>
+      </div>`:''}
+      ${CL.waitlistErr?`<div class="rf-aviso erro"><span class="rf-aviso-i">⚠</span><span>${escC(CL.waitlistErr)}</span></div>`:''}
+      <div class="rf-wl-form">
+        ${rfCampo('Nome do treinador',
+          `<input class="rf-campo-c" id="cl-focus" type="text" autocomplete="name"
+             placeholder="Como te chamam na resenha" value="${escC(w.nome||'')}"
+             oninput="clWaitlistSet('nome',this.value)">`)}
+        <div class="rf-wl-2">
+          ${rfCampo('E-mail',
+            `<input class="rf-campo-c" type="email" inputmode="email" autocomplete="email"
+               placeholder="voce@email.com" value="${escC(w.email||'')}"
+               oninput="clWaitlistSet('email',this.value)">`)}
+          ${rfCampo('WhatsApp (opcional)',
+            `<input class="rf-campo-c" type="tel" inputmode="tel" autocomplete="tel"
+               placeholder="(11) 99999-0000" value="${escC(w.tel||'')}"
+               oninput="clWaitlistSet('tel',this.value)">`)}
+        </div>
+        ${rfCampo('O que não pode faltar no RetroFoot? (opcional)',
+          `<input class="rf-campo-c" type="text" placeholder="Fala o recurso que você quer ver no jogo"
+             value="${escC(w.resposta||'')}" oninput="clWaitlistSet('resposta',this.value)"
+             onkeydown="if(event.key==='Enter')clWaitlistSubmit()">`)}
+      </div>
+    </div>`, {
+    w:560, glyph:'📋',
+    footer:`<span class="rf-im-auto">A gente só usa os seus dados pra avisar da vaga.</span>
+      <div class="rf-sp"></div>
+      <button type="button" class="rf-ov-cta" ${CL.waitlistBusy?'disabled':''}
+        onclick="clWaitlistSubmit()">${CL.waitlistBusy?'Gravando…':'Garantir minha vaga'}</button>`
+  });
+}

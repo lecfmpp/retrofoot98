@@ -28,7 +28,7 @@ function rfLpNavHTML(){
     </div>
     <div class="rf-sp"></div>
     <button type="button" class="rf-lp-entrar" onclick="clGoModo('solo')">🔑 Entrar</button>
-    <button type="button" class="rf-lp-lista" onclick="rfLpIr('lista')">Entrar na lista</button>
+    <button type="button" class="rf-lp-btlista" onclick="rfLpIr('lista')">Entrar na lista</button>
   </nav>`;
 }
 function rfLpIr(k){
@@ -220,23 +220,38 @@ function rfLandingHTML(){
       </div>
     </section>
 
-    <section class="rf-lp-lista" id="rf-lp-lista">
-      <div class="rf-lp-lista-in">
-        <span class="rf-lp-eyebrow">Lista de espera</span>
-        <h2 class="rf-lp-h2">Só 500 treinadores entram na primeira versão.</h2>
-        <p class="rf-lp-p">Entre na lista, responda uma pergunta rápida e indique os amigos que você quer na sua liga. Quem indica sobe na fila.</p>
-        <div class="rf-lp-vagas">
-          <div class="rf-label"><span class="rf-label-t">Vagas preenchidas</span>
-            <span class="rf-label-r">318 / 500</span></div>
-          <div class="rf-fb"><i style="width:63.6%;background:var(--club-secondary)"></i></div>
-        </div>
-        <button type="button" class="rf-wiz-cta" onclick="clWaitlistOpen&&clWaitlistOpen()">⚽ Garantir minha vaga</button>
-        <span class="rf-lp-nota">Leva menos de um minuto. A gente avisa por e-mail quando a sua vaga abrir.</span>
-      </div>
-    </section>
+    ${rfLpListaHTML()}
 
     ${rfLpRodapeHTML()}
   </div>`;
+}
+/* A BARRA DE VAGAS LÊ O NÚMERO DE VERDADE. O 318/500 da tela de referência é
+   texto de maquete; aqui ele vem de retrofoot_waitlist_count (clWaitlistCount),
+   e enquanto a contagem não chega a barra fica sem número em vez de mostrar um
+   inventado — número errado numa barra de escassez é pior do que número nenhum. */
+function rfLpListaHTML(){
+  const vagas=(typeof WAITLIST_VAGAS!=='undefined')?WAITLIST_VAGAS:500;
+  const n=(typeof CL!=='undefined'&&CL.waitlistCount!=null)?CL.waitlistCount:null;
+  const pct=(n!=null&&vagas)?Math.min(100,Math.round(n/vagas*1000)/10):0;
+  if(typeof CL!=='undefined' && CL.waitlistCount==null && typeof clWaitlistCount==='function'){
+    CL.waitlistCount=-1;                       // pede uma vez só, não a cada desenho
+    setTimeout(()=>{ CL.waitlistCount=null; clWaitlistCount(); },0);
+  }
+  return `<section class="rf-lp-lista" id="rf-lp-lista">
+    <div class="rf-lp-lista-in">
+      <span class="rf-lp-eyebrow">Lista de espera</span>
+      <h2 class="rf-lp-h2">Só ${vagas} treinadores entram na primeira versão.</h2>
+      <p class="rf-lp-p">Entre na lista, responda uma pergunta rápida e indique os amigos que você quer na sua liga. Quem indica sobe na fila.</p>
+      <div class="rf-lp-vagas">
+        <div class="rf-label"><span class="rf-label-t">Vagas preenchidas</span>
+          <span class="rf-label-r">${n!=null&&n>=0?n+' / '+vagas:'—'}</span></div>
+        <div class="rf-fb"><i style="width:${pct}%;background:var(--club-secondary)"></i></div>
+      </div>
+      <button type="button" class="rf-wiz-cta" onclick="clWaitlistOpen('landing · lista de espera')">
+        <span>⚽</span> Garantir minha vaga</button>
+      <span class="rf-lp-nota">Leva menos de um minuto. A gente avisa por e-mail quando a sua vaga abrir.</span>
+    </div>
+  </section>`;
 }
 function rfLpRodapeHTML(){
   const col=(t,itens)=>`<div class="rf-lp-fcol"><span class="rf-lp-ft">${escC(t)}</span>

@@ -603,9 +603,20 @@
   /* ----- POPUP VIRA FOLHA DE BAIXO ----- */
   .cl-overlay{align-items:flex-end;justify-content:stretch;padding:0}
   .cl-overlay-in{margin:0;width:100%;display:block}
+  /* A FOLHA NÃO ROLA POR INTEIRO: quem rola é o CORPO. Com a folha rolando, o
+     botão de ação ia parar abaixo da dobra dela — num formulário de conversão
+     (a lista de espera) isso é o botão sumir. Cabeçalho e rodapé ficam presos,
+     o miolo rola entre os dois. */
   .cl-dlg,.rf-dlg{width:100% !important;max-width:100%;border-radius:var(--r-shell) var(--r-shell) 0 0;
     padding:8px 14px calc(16px + env(safe-area-inset-bottom,0px));
-    max-height:88vh;overflow-y:auto;animation:rf-sheet-up var(--dur-base) var(--ease)}
+    max-height:88vh;display:flex;flex-direction:column;overflow:hidden;
+    animation:rf-sheet-up var(--dur-base) var(--ease)}
+  .rf-dlg-hd{flex:0 0 auto}
+  .rf-dlg-body{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;
+    -webkit-overflow-scrolling:touch}
+  .rf-dlg-foot{flex:0 0 auto;padding-top:10px}
+  /* o espaçador do rodapé é folga horizontal; empilhado, viraria uma linha vazia */
+  .rf-dlg-foot>.rf-sp{display:none}
   /* a alça: a pista de que dá pra arrastar pra baixo */
   .cl-dlg::before,.rf-dlg::before{content:'';display:block;width:38px;height:4px;margin:6px auto 10px;
     border-radius:var(--r-pill);background:var(--line-2)}
@@ -1660,28 +1671,73 @@
 .rf-social-b:hover{background:var(--surface-sunken)}
 
 /* ----- passo 2: os dois modos ----- */
-.rf-modos{display:flex;flex-direction:column;gap:14px}
-.rf-modo{position:relative;background:var(--surface-card);border:1px solid var(--line-2);
-  border-radius:var(--r-card);padding:20px;cursor:pointer;display:flex;flex-direction:column;gap:8px;
-  transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease)}
-.rf-modo:hover{background:var(--surface-sunken);border-color:var(--club-primary-line)}
-.rf-modo.rec{background:var(--club-primary-soft);border-color:var(--club-primary)}
-.rf-modo.off{border-style:dashed;cursor:default}
-.rf-modo.off:hover{background:var(--surface-card);border-color:var(--line-2)}
-.rf-modo-tag{position:absolute;right:16px;top:16px;font-family:var(--font-mono);font-size:var(--fs-label);
+/* Os dois cartões de modo são FOTO com véu escuro e texto branco por cima —
+   a foto é que diz o que é cada modo (o quarto com o PC de tubo, a mesa de bar
+   na quadra), então aqui não entra o emoji de ícone: seria dizer duas vezes a
+   mesma coisa, e por cima da imagem. A ordem do véu importa: escuro EM BAIXO
+   (onde o texto senta) e quase transparente em cima, senão o rosto de quem
+   está na foto fica lavado. */
+/* LADO A LADO. Os dois modos são uma escolha entre dois — empilhados, o de
+   baixo virava consequência do de cima, e no desktop dava rolagem numa tela
+   que é só uma pergunta. Só no telefone eles descem um sob o outro. */
+.rf-modos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch}
+.rf-modo{position:relative;overflow:hidden;isolation:isolate;
+  border-radius:var(--r-card);padding:20px;cursor:pointer;display:flex;flex-direction:column;
+  min-height:312px;justify-content:flex-end;
+  border:1px solid transparent;background:var(--text-1);
+  transition:border-color var(--dur-fast) var(--ease)}
+.rf-modo-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;
+  transition:transform var(--dur-slow) var(--ease)}
+/* DUAS CAMADAS, não uma. Só o degradê de baixo não bastava: o cartão da
+   Resenha tem mais conteúdo (o aviso e o botão), então o título dele sobe até
+   o terço de cima da foto, justamente onde um degradê bottom-heavy é quase
+   transparente. A base uniforme garante contraste em qualquer altura; o
+   degradê continua por cima, para o texto assentar. */
+.rf-modo-veu{position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(180deg,rgba(9,20,14,0) 0%,rgba(9,20,14,.14) 26%,
+               rgba(9,20,14,.72) 54%,rgba(9,20,14,.93) 100%),
+             rgba(9,20,14,.12)}
+/* ENQUADRAMENTO: o cartão é bem mais largo do que alto, então o corte é
+   vertical. Cada foto tem o seu ponto de interesse noutro lugar — no Solo, o
+   monitor e o rosto ficam à direita; na Resenha, a mesa fica no meio, um pouco
+   abaixo do centro. Sem isto, os dois cortavam pela metade da imagem. */
+.rf-modo.solo .rf-modo-bg{object-position:58% 42%}
+.rf-modo.resenha .rf-modo-bg{object-position:46% 56%}
+.rf-modo:hover .rf-modo-bg{transform:scale(1.03)}
+.rf-modo:hover{border-color:var(--club-secondary)}
+.rf-modo.rec{border-color:var(--club-secondary)}
+.rf-modo.off{cursor:default}
+.rf-modo.off .rf-modo-bg{filter:grayscale(.55)}
+.rf-modo.off:hover{border-color:transparent}
+.rf-modo.off:hover .rf-modo-bg{transform:none}
+.rf-modo-txt{display:flex;flex-direction:column;gap:8px;align-items:flex-start;min-width:0;
+  margin-top:auto}
+.rf-modo-tag{font-family:var(--font-mono);font-size:var(--fs-label);
   font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase;
-  background:var(--surface-sunken);color:var(--text-4);border:var(--border-hairline);
-  border-radius:var(--r-pill);padding:3px 10px}
+  background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.28);
+  border-radius:var(--r-pill);padding:3px 10px;backdrop-filter:blur(2px)}
 .rf-modo-tag.rec{background:var(--club-secondary);color:var(--club-on-secondary);border-color:transparent}
-.rf-modo-ic{font-size:26px;line-height:1}
-.rf-modo-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1)}
-.rf-modo-d{font-size:var(--fs-body-sm);color:var(--text-3);line-height:var(--lh-normal);max-width:70ch}
-.rf-modo-lock{background:var(--surface-sunken);border:var(--border-hairline);border-radius:var(--r-control);
-  padding:10px 14px;font-size:var(--fs-body-sm);color:var(--text-3)}
-.rf-modo-avisar{align-self:stretch;height:44px;border:var(--border-control);border-radius:var(--r-control);
-  background:var(--surface-card);font-family:var(--font-sans);font-size:var(--fs-body-sm);
-  font-weight:var(--fw-bold);color:var(--club-primary);cursor:pointer}
-.rf-modo-avisar:hover{background:var(--surface-sunken)}
+.rf-modo-t{font-size:var(--fs-title);font-weight:var(--fw-bold);color:#fff;
+  letter-spacing:var(--ls-tight);text-shadow:0 1px 12px rgba(0,0,0,.45)}
+.rf-modo-d{font-size:var(--fs-body-sm);color:rgba(255,255,255,.86);line-height:var(--lh-normal);
+  max-width:70ch;text-shadow:0 1px 10px rgba(0,0,0,.5)}
+/* CTA PADRÃO, amarelo, nos DOIS cartões. Um em cada porque são as duas
+   escolhas da tela — e porque, com o mesmo botão dos dois lados, os blocos de
+   texto ficam na mesma linha de base (era o botão sozinho no cartão da
+   Resenha que empurrava o título dele 56px acima do outro). */
+.rf-modo-cta{align-self:stretch;height:44px;margin-top:4px;border:1px solid transparent;
+  border-radius:var(--r-control);background:var(--club-cta-bg,var(--club-secondary));
+  color:var(--club-cta-fg,var(--club-on-secondary));
+  font-family:var(--font-sans);font-size:var(--fs-body-sm);
+  font-weight:var(--fw-bold);cursor:pointer;
+  transition:background var(--dur-fast) var(--ease)}
+.rf-modo-cta:hover{background:var(--club-secondary-hover)}
+@media (prefers-reduced-motion:reduce){.rf-modo:hover .rf-modo-bg{transform:none}}
+@media (max-width:760px){
+  .rf-modos{grid-template-columns:minmax(0,1fr)}
+  .rf-modo{min-height:268px;padding:16px}
+  .rf-modo-t{font-size:var(--fs-subhead)}
+}
 
 /* ----- passo 3: países e divisões ----- */
 .rf-paises{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
@@ -2073,9 +2129,15 @@
 .rf-lp-entrar{height:38px;padding:0 14px;border:var(--border-control);border-radius:var(--r-control);
   background:var(--surface-card);font-family:var(--font-sans);font-size:var(--fs-body-sm);
   font-weight:var(--fw-semibold);color:var(--text-2);cursor:pointer;white-space:nowrap}
-.rf-lp-lista{height:38px;padding:0 16px;border:none;border-radius:var(--r-control);
+/* COLISÃO DE NOME, corrigida: este é o BOTÃO da barra de navegação; a SEÇÃO da
+   lista de espera, lá embaixo, também se chamava .rf-lp-lista. O height:38px
+   daqui vazava pra seção, que ficava com 96px de altura e deixava o cartão de
+   300px transbordando por cima do rodapé. */
+.rf-lp-btlista{height:38px;padding:0 16px;border:none;border-radius:var(--r-control);
   background:var(--club-primary);color:var(--club-on-primary);font-family:var(--font-sans);
-  font-size:var(--fs-body-sm);font-weight:var(--fw-bold);cursor:pointer;white-space:nowrap}
+  font-size:var(--fs-body-sm);font-weight:var(--fw-bold);cursor:pointer;white-space:nowrap;
+  transition:background var(--dur-fast) var(--ease)}
+.rf-lp-btlista:hover{background:var(--club-primary-deep)}
 
 /* hero */
 .rf-lp-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;
@@ -2470,9 +2532,14 @@
   /* sem isto, numa lista de reservas longa o botão de confirmar sai da tela */
   .rf-ov-foot{position:sticky;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px))}
   /* sem min-width:0 o flex:1 não encolhe abaixo do texto do botão, e dois
-     botões longos (prorrogação) estouravam a largura em 375px */
-  .rf-ov-b2,.rf-ov-cta{flex:1 1 0;min-width:0;padding:0 10px;font-size:var(--fs-body-sm);
-    overflow:hidden;text-overflow:ellipsis;display:block;line-height:44px;text-align:center}
+     botões longos (prorrogação) estouravam a largura em 375px.
+     SÓ NAS BARRAS EM LINHA: num rodapé empilhado (o do Dialog, que no telefone
+     é coluna) flex-basis:0 vira ALTURA zero, e o botão sumia com 2px. */
+  .rf-ov-foot .rf-ov-b2,.rf-ov-foot .rf-ov-cta,
+  .rf-stg-foot .rf-ov-b2,.rf-stg-foot .rf-ov-cta{flex:1 1 0;min-width:0;padding:0 10px;
+    font-size:var(--fs-body-sm);overflow:hidden;text-overflow:ellipsis;
+    display:block;line-height:44px;text-align:center}
+  .rf-dlg-foot>*{flex:0 0 auto}
   .rf-ov-resumo{flex-wrap:wrap;row-gap:8px}
   .rf-stg{padding:0}
   .rf-stg-hd{border-radius:0;padding:14px 16px}
@@ -3184,4 +3251,32 @@
   .rf-cs-head span:nth-child(3),.rf-cs-head span:nth-child(5){display:none}
   .rf-cs-d{grid-column:2/3;grid-row:2}
   .rf-cs-t{grid-column:2/4;grid-row:3;font-size:var(--fs-label)}
+}
+
+/* =====================================================================
+   LISTA DE ESPERA — o formulário dentro do dlg() novo
+   ===================================================================== */
+.rf-wl{display:flex;flex-direction:column;gap:14px}
+.rf-wl-form{display:flex;flex-direction:column;gap:12px}
+.rf-wl-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.rf-wl-ok{display:flex;align-items:flex-start;gap:12px}
+.rf-wl-ok-i{flex:0 0 auto;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:var(--fs-subhead);font-weight:var(--fw-bold);
+  color:#fff;background:var(--ok)}
+.rf-wl-ok-d{display:flex;flex-direction:column;gap:3px;min-width:0}
+.rf-wl-ok-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-wl-amigos{display:flex;flex-direction:column;gap:8px}
+.rf-wl-amigo{display:flex;align-items:center;gap:8px}
+.rf-wl-amigo .rf-campo-c{flex:1 1 auto;min-width:0}
+.rf-wl-x{flex:0 0 auto;width:44px;height:44px;border-radius:var(--r-control);
+  border:var(--border-control);background:var(--surface-card);color:var(--text-faint);
+  cursor:pointer;font-size:var(--fs-body-sm)}
+.rf-wl-x:hover{background:var(--surface-sunken);color:var(--danger)}
+.rf-wl-zap{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line-1);padding-top:12px}
+.rf-wl-zap-l{display:flex;align-items:center;gap:8px}
+.rf-wl-zap-l .rf-campo-c{flex:1 1 auto;min-width:0}
+.rf-wl-zap-l .rf-btn{flex:0 0 auto;text-decoration:none;display:inline-flex;align-items:center;
+  justify-content:center;padding:0 16px}
+@media (max-width:760px){
+  .rf-wl-2{grid-template-columns:minmax(0,1fr)}
 }

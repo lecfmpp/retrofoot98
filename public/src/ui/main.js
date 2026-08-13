@@ -900,7 +900,6 @@ function scAbertura(){
     <main class="cl-lp-main">${body}</main>
     ${landingRodapeHTML()}
     ${anchorAdHTML()}
-    ${CL.waitlistOpen?waitlistModalHTML():''}
     ${CL.mkOpen?mediaKitModalHTML():''}
     ${CL.lpZoom!=null?lpZoomHTML():''}
   </div>`;
@@ -939,20 +938,25 @@ function landingRodapeHTML(){
    preenche, vê "pronto!" e o lead se perde. A tabela só aceita INSERT pela chave anônima — não
    existe policy de leitura, então ninguém lê a lista de volta pelo navegador. O número da barra
    de vagas vem de uma função que devolve só a contagem (retrofoot_waitlist_count). */
-function clWaitlistOpen(){
+function clWaitlistOpen(origem){
   CL.waitlistOpen=true; CL.waitlistSent=false; CL.waitlistErr=''; CL.navMenuOpen=false;
   CL.waitlistMin=false; CL.waitlistMax=false; CL.waitlistAmigosOk=false;
+  // de onde veio o lead: a lista é chamada da landing E do cartão do Modo
+  // Resenha no onboarding, e sem isto os dois chegavam ao banco iguais
+  CL.waitlistOrigem=origem||'landing';
   CL.waitlist=CL.waitlist||{nome:'',email:'',tel:'',resposta:'',amigos:[''],zap:''};
-  cdraw(); clWaitlistCount();
+  // o formulário é um modal do desenho novo (ver rfWaitlistHTML), desenhado no
+  // overlay — não mais um pedaço do HTML da landing
+  rfWaitlistDraw(); clWaitlistCount();
 }
-function clWaitlistClose(){ CL.waitlistOpen=false; cdraw(); }
+function clWaitlistClose(){ CL.waitlistOpen=false; clCloseOverlay(); }
 function clWaitlistSet(campo,val){ CL.waitlist=CL.waitlist||{}; CL.waitlist[campo]=val; }
 function clWaitlistAmigo(i,val){ const w=CL.waitlist; if(w&&w.amigos) w.amigos[i]=val; }
 function clWaitlistAddAmigo(){ const w=CL.waitlist; if(!w) return;
   if((w.amigos||[]).length>=20){ toastC('Dá pra indicar até 20 amigos.'); return; }
-  w.amigos=(w.amigos||[]).concat(['']); cdraw(); }
+  w.amigos=(w.amigos||[]).concat(['']); rfWaitlistDraw(); }
 function clWaitlistRmAmigo(i){ const w=CL.waitlist; if(!w) return;
-  w.amigos=(w.amigos||[]).filter((_,k)=>k!==i); if(!w.amigos.length) w.amigos=['']; cdraw(); }
+  w.amigos=(w.amigos||[]).filter((_,k)=>k!==i); if(!w.amigos.length) w.amigos=['']; rfWaitlistDraw(); }
 /* o cliente do Supabase é o MESMO do jogo (supabase-adapter.js), inclusive o schema — a tabela
    da lista mora no elifoot_v3 por causa disso. Na home ele ainda não foi criado, então garante. */
 async function lpSupabase(){
@@ -963,21 +967,28 @@ async function clWaitlistCount(){
   try{
     const cli=await lpSupabase(); if(!cli) return;
     const {data,error}=await cli.rpc('retrofoot_waitlist_count');
-    if(!error && typeof data==='number'){ CL.waitlistCount=data; cdraw(); }
+    if(!error && typeof data==='number'){
+      CL.waitlistCount=data;
+      // dois lugares mostram o número: a barra da landing (na página) e a do
+      // formulário (no overlay). Redesenha o que estiver na tela.
+      if(CL.waitlistOpen) rfWaitlistDraw();
+      else if(CL.screen==='abertura') cdraw();
+    }
   }catch(e){ /* sem número é melhor que número errado: a barra fica com "—" */ }
 }
 async function clWaitlistSubmit(){
   const w=CL.waitlist||{};
   const nome=(w.nome||'').trim(), email=(w.email||'').trim();
-  if(nome.length<2){ CL.waitlistErr='Diz como te chamam na resenha.'; cdraw(); return; }
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)){ CL.waitlistErr='Confere o e-mail — é por ele que a gente avisa da vaga.'; cdraw(); return; }
-  CL.waitlistErr=''; CL.waitlistBusy=true; cdraw();
+  if(nome.length<2){ CL.waitlistErr='Diz como te chamam na resenha.'; rfWaitlistDraw(); return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)){ CL.waitlistErr='Confere o e-mail — é por ele que a gente avisa da vaga.'; rfWaitlistDraw(); return; }
+  CL.waitlistErr=''; CL.waitlistBusy=true; rfWaitlistDraw();
   try{
     const cli=await lpSupabase();
     if(!cli) throw new Error('sem conexão');
     const {error}=await cli.from('retrofoot_waitlist').insert({
       nome, email, telefone:(w.tel||'').trim()||null, resposta:(w.resposta||'').trim()||null,
-      origem:(location&&location.pathname)||'/', user_agent:(navigator&&navigator.userAgent||'').slice(0,400)
+      origem:(CL.waitlistOrigem||'landing')+' · '+((location&&location.pathname)||'/'),
+      user_agent:(navigator&&navigator.userAgent||'').slice(0,400)
     });
     if(error){
       // e-mail repetido não é erro pro visitante: ele já está na lista, e dizer isso é melhor
@@ -989,7 +1000,7 @@ async function clWaitlistSubmit(){
     console.warn('lista de espera:', e&&e.message);
     CL.waitlistErr='Não deu pra gravar agora. Tenta de novo em instantes ou manda um e-mail pra contato@retrofoot98.com.';
   }
-  CL.waitlistBusy=false; cdraw(); clWaitlistCount();
+  CL.waitlistBusy=false; rfWaitlistDraw(); clWaitlistCount();
 }
 function waitlistZapHref(){
   const num=String((CL.waitlist&&CL.waitlist.zap)||'').replace(/\D/g,'');
@@ -1137,16 +1148,18 @@ function mediaKitModalHTML(){
     ${janelaHTML('📈 Media kit — RetroFoot98', corpo, 'cl-lp-win-modal', acoes)}
   </div>`;
 }
-function waitlistModalHTML(){
+/* MORTAS com a portagem do formulário (ver rfWaitlistHTML em rf26-fluxo.js):
+   eram a janela do Windows 98 e os dois botões dela. */
+function waitlistModalHTMLLegado(){
   const w=CL.waitlist||{};
   const acoes={min:'clWaitlistMin()', max:'clWaitlistMax()', close:'clWaitlistClose()', minimizada:CL.waitlistMin};
   const cls='cl-lp-win-modal'+(CL.waitlistMax?' larga':'');
-  const corpo = CL.waitlistSent ? waitlistPasso2HTML(w) : waitlistPasso1HTML(w);
+  const corpo = CL.waitlistSent ? waitlistPasso2HTMLLegado(w) : waitlistPasso1HTMLLegado(w);
   return `<div class="cl-lp-modal" onclick="if(event.target===this)clWaitlistClose()">
     ${janelaHTML('📋 Lista de espera — RetroFoot98', corpo, cls, acoes)}
   </div>`;
 }
-function waitlistPasso1HTML(w){
+function waitlistPasso1HTMLLegado(w){
   return `<div class="cl-lp-form">
     <div class="cl-lp-form-rola">
       <div class="cl-lp-aviso"><b>⚠ Vagas limitadas:</b> a primeira versão libera o jogo para <b>${WAITLIST_VAGAS} treinadores</b>. Quem indicar amigos sobe na fila.</div>
@@ -1172,7 +1185,7 @@ function waitlistPasso1HTML(w){
     </div>
   </div>`;
 }
-function waitlistPasso2HTML(w){
+function waitlistPasso2HTMLLegado(w){
   const amigos=(w.amigos||['']).map((a,i)=>`<div class="cl-lp-amigo">
       <input type="email" value="${escC(a||'')}" placeholder="email do amigo" inputmode="email"
         autocomplete="off" oninput="clWaitlistAmigo(${i},this.value)">
@@ -1209,13 +1222,13 @@ async function clWaitlistIndicar(){
   const w=CL.waitlist||{};
   const amigos=(w.amigos||[]).map(a=>(a||'').trim()).filter(a=>/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(a));
   if(!amigos.length){ clWaitlistClose(); return; }
-  CL.waitlistBusy=true; cdraw();
+  CL.waitlistBusy=true; rfWaitlistDraw();
   try{
     const cli=await lpSupabase();
     if(cli){ await cli.rpc('retrofoot_waitlist_indicar', {p_email:(w.email||'').trim(), p_amigos:amigos}); }
     CL.waitlistAmigosOk=true; CL.waitlist.amigos=[''];
   }catch(e){ console.warn('indicações:', e&&e.message); }
-  CL.waitlistBusy=false; cdraw();
+  CL.waitlistBusy=false; rfWaitlistDraw();
 }
 function janelaHTML(titulo, inner, extra, acoes){
   // sem `acoes` os três selos são enfeite (é uma moldura, não uma janela de verdade). Com elas,

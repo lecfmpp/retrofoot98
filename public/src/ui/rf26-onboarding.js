@@ -131,25 +131,38 @@ function rfOb2(){
         ? 'O Modo Resenha, para jogar com a turma, chega em breve. Na beta, o Solo já está completo.'
         : 'Você pode mudar de modo depois, a qualquer momento.')}
     <div class="rf-modos">
-      <div class="rf-modo rec" onclick="clPickSolo()">
-        <span class="rf-modo-tag rec">Recomendado</span>
-        <span class="rf-modo-ic">🛋️</span>
-        <span class="rf-modo-t">Modo Solo</span>
-        <span class="rf-modo-d">Pega um clube da Série D e sobe até a elite no seu ritmo. Mercado, finanças e o calendário completo de copas — sem depender de ninguém entrar na sala.</span>
+      <div class="rf-modo solo rec" onclick="clPickSolo()">
+        <img class="rf-modo-bg" src="img/modos/modo-solo.webp" alt="" aria-hidden="true" loading="lazy">
+        <div class="rf-modo-veu"></div>
+        <div class="rf-modo-txt">
+          <span class="rf-modo-tag rec">Recomendado</span>
+          <span class="rf-modo-t">Modo Solo</span>
+          <span class="rf-modo-d">Pega um clube da Série D e sobe até a elite no seu ritmo. Mercado, finanças e o calendário completo de copas — sem depender de ninguém entrar na sala.</span>
+          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();clPickSolo()">⚽ Começar agora</button>
+        </div>
       </div>
-      <div class="rf-modo ${RESENHA_EM_BREVE?'off':''}" ${RESENHA_EM_BREVE?'':'onclick="clPickResenha()"'}>
-        <span class="rf-modo-tag">${RESENHA_EM_BREVE?'Em breve':'Online'}</span>
-        <span class="rf-modo-ic">🍺</span>
-        <span class="rf-modo-t">Modo Resenha</span>
-        <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até 20 treinadores jogam a mesma rodada ao vivo, com tabela, mercado e zoeira no chat.</span>
-        ${RESENHA_EM_BREVE?`<div class="rf-modo-lock">🔒 Não disponível na versão beta — previsão de lançamento em <b>novembro</b>.</div>
-          <button type="button" class="rf-modo-avisar" onclick="rfObAvisar()">Avise-me no lançamento</button>`:''}
+      <div class="rf-modo resenha ${RESENHA_EM_BREVE?'off':''}" ${RESENHA_EM_BREVE?'':'onclick="clPickResenha()"'}>
+        <img class="rf-modo-bg" src="img/modos/modo-resenha.webp" alt="" aria-hidden="true" loading="lazy">
+        <div class="rf-modo-veu"></div>
+        <div class="rf-modo-txt">
+          <span class="rf-modo-tag">${RESENHA_EM_BREVE?'Em novembro':'Online'}</span>
+          <span class="rf-modo-t">Modo Resenha</span>
+          <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até 20 treinadores jogam a mesma rodada ao vivo, com tabela, mercado e zoeira no chat.</span>
+          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?'rfObAvisar()':'clPickResenha()'}">${RESENHA_EM_BREVE?'👑 Entrar na lista de espera':'🍺 Criar a sala'}</button>
+        </div>
       </div>
     </div>`;
   return rfWiz({passo:2, corpo, nota:'Toque num cartão para continuar.',
     voltar:'clGoAbertura()', voltarLabel:'Voltar'});
 }
-function rfObAvisar(){ toastC('Beleza — a gente te avisa quando o Modo Resenha abrir.','success'); }
+/* o cartão do Modo Resenha não avisa nada por conta própria: manda pra LISTA
+   DE ESPERA, o mesmo formulário da landing, que grava o lead em
+   retrofoot_waitlist. Um toast dizendo "a gente te avisa" sem pedir o e-mail
+   era uma promessa que o jogo não tinha como cumprir. */
+function rfObAvisar(){
+  if(typeof clWaitlistOpen==='function'){ clWaitlistOpen('onboarding · modo resenha'); return; }
+  toastC('Lista de espera indisponível agora. Tenta pela página inicial.','info');
+}
 
 /* =====================================================================
    3 · PAÍS E LIGAS
