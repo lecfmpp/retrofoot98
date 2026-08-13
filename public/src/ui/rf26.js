@@ -102,10 +102,10 @@ const RF_PAGES=[
   { key:'campeonatos', ico:'🏆', label:'Campeonatos', curto:'Copas',
     titulo:'Campeonatos', sub:'Tabela, calendário, artilharia e história das competições',
     pill:()=>rfPillPosicao(), grid:'minmax(0,1fr) 340px',
-    tabs:[ {k:'minhas',    l:()=>'Minhas competições', run:()=>clCompList()},
-           {k:'calendario',l:()=>'Calendário',         run:()=>clCalendar()},
-           {k:'artilharia',l:()=>'Artilharia',         run:()=>clScorers()},
-           {k:'historia',  l:()=>'História',           run:()=>clUltimosVencedores()},
+    tabs:[ {k:'minhas',    l:()=>'Minhas competições', build:()=>rfCampeonatosHTML('minhas')},
+           {k:'calendario',l:()=>'Calendário',         build:()=>rfCampeonatosHTML('calendario')},
+           {k:'artilharia',l:()=>'Artilharia',         build:()=>rfCampeonatosHTML('artilharia')},
+           {k:'historia',  l:()=>'História',           build:()=>rfCampeonatosHTML('historia')},
            {k:'intl',      l:()=>'Ligas internacionais', run:()=>clBgLeaguesMenu(),
             show:()=>!!(S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)} ] },
 
@@ -122,11 +122,11 @@ const RF_PAGES=[
   { key:'financas', ico:'💰', label:'Finanças', curto:'Finanças',
     titulo:'Finanças', sub:'Caixa, folha, bilheteria, estádio e histórico por temporada',
     pill:()=>rfPillSaldo(), grid:'minmax(0,1fr) 340px',
-    tabs:[ {k:'resumo',   l:()=>'Resumo',    build:()=>panFinancas()},
-           {k:'extrato',  l:()=>'Extrato',   build:()=>panFinancas()},
-           {k:'historico',l:()=>'Histórico', build:()=>panFinancas()},
-           {k:'estadio',  l:()=>'Estádio',   run:()=>clStadium()},
-           {k:'patrocinio',l:()=>'Patrocínio', build:()=>rfPatrocinioHTML()} ] },
+    tabs:[ {k:'resumo',    l:()=>'Resumo',     build:()=>rfFinancasHTML('resumo')},
+           {k:'extrato',   l:()=>'Extrato',    build:()=>rfFinancasHTML('extrato')},
+           {k:'historico', l:()=>'Histórico',  build:()=>rfFinancasHTML('historico')},
+           {k:'estadio',   l:()=>'Estádio',    build:()=>rfFinancasHTML('estadio')},
+           {k:'patrocinio',l:()=>'Patrocínio', build:()=>rfFinancasHTML('patrocinio')} ] },
 
   { key:'email', ico:'✉️', label:'E-mail', curto:'E-mail',
     titulo:'E-mail', sub:'Comunicados da diretoria, propostas e avisos',
@@ -608,11 +608,21 @@ function rfScreenHTML(){
   // refeita pela referência) ou um bloco só (quando ainda é conteúdo
   // herdado). Nos dois casos a grade da página é a mesma — quem monta é
   // rfCols(), com a proporção que aquela tela declara.
-  const duasColunas = String(corpo).indexOf('data-rf-col')>=0;
+  // Uma aba pode devolver: (a) só um bloco — vira painel de largura cheia;
+  // (b) duas colunas marcadas com data-rf-col — vão pra grade da página;
+  // (c) uma FAIXA (data-rf-top, os KPIs de Finanças) seguida das colunas —
+  // a faixa fica ACIMA da grade, atravessando as duas colunas.
+  const s=String(corpo);
+  const iCol=s.indexOf('data-rf-col');
+  if(iCol<0) return rfEnvelope(`${rfPageHeadHTML(def)}
+    <div class="rf-tabpane" data-tab="${at?at.k:''}">${s}</div>`);
+  // tudo que vem antes do primeiro <div class="rf-pagecol"> é faixa de topo
+  const corte=s.lastIndexOf('<div class="rf-pagecol"', iCol);
+  const topo=corte>0?s.slice(0,corte):'';
+  const colunas=corte>0?s.slice(corte):s;
   return rfEnvelope(`${rfPageHeadHTML(def)}
-    ${duasColunas
-      ? `<div class="rf-pagegrid" style="grid-template-columns:${def.grid||'minmax(0,1fr) 340px'}">${corpo}</div>`
-      : `<div class="rf-tabpane" data-tab="${at?at.k:''}">${corpo}</div>`}`);
+    ${topo}
+    <div class="rf-pagegrid" style="grid-template-columns:${def.grid||'minmax(0,1fr) 340px'}">${colunas}</div>`);
 }
 
 /* helpers de composição das páginas refeitas pela referência */
@@ -1069,10 +1079,6 @@ function rfTreinoHTML(){
   return `${linhas}
     <div class="rf-acts">${btn('Gerir treino ('+lista.length+'/'+max+')','clTrainingScreen()')}</div>`;
 }
-function rfPatrocinioHTML(){
-  return `<div class="rf-empty">O painel de patrocínio ainda não está nesta versão.<br>
-    <small>A tela de referência dele não veio no pacote.</small></div>`;
-}
 /* quantos dias faltam pra janela fechar (texto do subtítulo do Mercado) */
 function rfDiasJanela(){
   if(typeof transferWindowStatus!=='function') return null;
@@ -1181,4 +1187,200 @@ function rfFichaHTML(){
       <div class="rf-linha"><span class="rf-linha-t">Gols na temporada</span><span class="rf-linha-v">${gols}</span></div>
       <div class="rf-linha"><span class="rf-linha-t">Comportamento</span><span class="rf-linha-v">${escC(typeof playerBehaviorLabel==='function'?playerBehaviorLabel(p):'—')}</span></div>
     </div>`;
+}
+
+/* =====================================================================
+   CAMPEONATOS (telas/Campeonatos.html)
+   Cinco cards: a TABELA e o CALENDÁRIO na coluna larga; artilharia,
+   últimos vencedores e marcadores de sempre na de 340px.
+   ===================================================================== */
+
+/* zona da linha na tabela: acesso (verde), rebaixamento (vermelho), neutro.
+   As faixas vêm das MESMAS constantes que decidem a virada de temporada
+   (DIVISION_PROMO/DIVISION_RELEG) — a tabela não pode prometer um acesso
+   que o motor não vai cumprir. */
+function rfZonaTabela(pos, total){
+  const promo=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[S.division])||0;
+  const releg=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[S.division])||0;
+  if(promo>0 && pos<=promo) return 'promo';
+  if(releg>0 && pos>total-releg) return 'drop';
+  return '';
+}
+function rfTabelaHTML(){
+  const linhas=(typeof sortedTable==='function')?sortedTable():[];
+  if(!linhas.length) return '<div class="rf-empty">A tabela aparece depois da primeira rodada.</div>';
+  const total=linhas.length;
+  return `<div class="rf-tb-head">
+      <span></span><span></span><span>J</span><span>V</span><span>E</span><span>D</span><span>GM:GS</span><span>P</span>
+    </div>
+    <div class="rf-tb-list">${linhas.map((t,i)=>{
+      const eu=t.id===CL.clubId;
+      return `<div class="rf-tb-row ${eu?'me':''}" onclick="clubLink&&clClubHistory('${escC(t.id)}')">
+        <span class="rf-tb-pos"><i class="rf-zona ${rfZonaTabela(i+1,total)}"></i><b>${i+1}</b></span>
+        <span class="rf-tb-n">${escC((anyClubOf(t.id)||{short:t.id}).short)}</span>
+        <span class="rf-tb-x">${t.P}</span><span class="rf-tb-x">${t.W}</span>
+        <span class="rf-tb-x">${t.D}</span><span class="rf-tb-x">${t.L}</span>
+        <span class="rf-tb-x">${t.GF}:${t.GA}</span>
+        <span class="rf-tb-p">${t.Pts}</span>
+      </div>`;
+    }).join('')}</div>`;
+}
+
+/* calendário do MEU clube: data, adversário, local e resultado */
+function rfCalendarioHTML(){
+  const sched=S.sched||[]; const linhas=[];
+  sched.forEach((jornada,i)=>{
+    (jornada||[]).forEach(m=>{
+      if(m[0]!==CL.clubId && m[1]!==CL.clubId) return;
+      const casa=m[0]===CL.clubId;
+      const opp=anyClubOf(casa?m[1]:m[0])||{short:'—'};
+      const res=(S.results||[]).find(r=>r.round===i && r.h===m[0] && r.a===m[1]);
+      const meu=res?(casa?res.gh:res.ga):null, dele=res?(casa?res.ga:res.gh):null;
+      const tom=res?(meu>dele?'v':meu<dele?'d':'e'):'';
+      linhas.push(`<div class="rf-cal-row ${i===S.round?'agora':''}">
+        <span class="rf-cal-d">${escC((typeof calRowDate==='function'&&calRowDate(i))||((i+1)+'ª'))}</span>
+        <span class="rf-cal-o">${escC(opp.short)}</span>
+        <span class="rf-cal-l">${casa?'Casa':'Fora'}</span>
+        <span class="rf-cal-r ${tom}">${res?meu+'-'+dele:'—'}</span>
+      </div>`);
+    });
+  });
+  if(!linhas.length) return '<div class="rf-empty">O calendário aparece quando a temporada começa.</div>';
+  return `<div class="rf-cal-head"><span>DATA</span><span>ADVERSÁRIO</span><span>LOCAL</span><span>RES.</span></div>
+    <div class="rf-cal-list">${linhas.join('')}</div>`;
+}
+
+/* artilharia da divisão (temporada) e de sempre — a mesma peça, duas fontes */
+function rfArtilhariaHTML(mapa, subDe){
+  const arr=Object.entries(mapa||{}).map(([n,g])=>({n,g})).sort((a,b)=>b.g-a.g).slice(0,8);
+  if(!arr.length) return '<span class="rf-note">Sem gols marcados ainda.</span>';
+  return arr.map((s,i)=>{
+    const cid=(typeof findPlayerClub==='function')?findPlayerClub(s.n):null;
+    const sub=subDe? subDe(s) : (cid?(clubOf(cid)||{short:''}).short:'');
+    return `<div class="rf-art-row">
+      <span class="rf-art-i">${i+1}</span>
+      <span class="rf-art-id"><span class="rf-art-n">${escC(s.n)}</span><span class="rf-art-s">${escC(sub||'')}</span></span>
+      <span class="rf-art-g">${s.g}</span>
+    </div>`;
+  }).join('');
+}
+function rfVencedoresHTML(){
+  const hist=(S.history||[]).slice().reverse().slice(0,6);
+  if(!hist.length) return '<span class="rf-note">Ainda não há temporadas concluídas neste save.</span>';
+  return hist.map(h=>`<div class="rf-linha">
+    <span class="rf-linha-t rf-num">${escC(String(h.season))}</span>
+    <span class="rf-venc">${escC(h.champ||'—')}</span></div>`).join('');
+}
+
+function rfCampeonatosHTML(enfase){
+  const d=k=>enfase===k?'rf-card-destaque':'';
+  const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
+  const acc={...(S.allTimeScorers||{})};
+  Object.entries(S.scorers||{}).forEach(([n,g])=>{ acc[n]=(acc[n]||0)+g; });
+  return rfCol(
+      rfCard(classifDivName(S.division), rfTabelaHTML(), {cls:d('minhas'), right:rfMinhaPosicao()?rfMinhaPosicao()+'º de '+Object.keys(S.table||{}).length:''})
+    + rfCard('Calendário', rfCalendarioHTML(), {cls:d('calendario'),
+        right: nm? ((S.round||0)+1)+'ª jornada em '+escC(shortMatchDate(nm)||'') : ''})
+  ) + rfCol(
+      rfCard('Artilharia da '+divisionLabel(), rfArtilhariaHTML(S.scorers), {cls:d('artilharia')})
+    + rfCard('Últimos vencedores', rfVencedoresHTML(), {cls:d('historia')})
+    + rfCard('Marcadores de sempre', rfArtilhariaHTML(acc))
+  );
+}
+
+/* =====================================================================
+   FINANÇAS (telas/Financas.html)
+   Uma tira de quatro KPIs no topo — caixa, folha, sócios, estádio — e
+   depois EXTRATO e HISTÓRICO na coluna larga, ESTÁDIO e PATROCÍNIO na de
+   340px. Todo número em IBM Plex Mono, e o vermelho é reservado pra
+   despesa: nada de pintar de vermelho o que é só grande.
+   ===================================================================== */
+function rfKpiHTML(rotulo, valor, sub, tom){
+  return `<div class="rf-kpi">
+    <span class="rf-label-t">${escC(rotulo)}</span>
+    <span class="rf-kpi-v ${tom||''}">${escC(valor)}</span>
+    ${sub?`<span class="rf-kpi-s">${escC(sub)}</span>`:''}
+  </div>`;
+}
+function rfFinTotais(){
+  return S.seasonTotals||{income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
+}
+function rfFinancasKpisHTML(){
+  const sq=squad(CL.clubId);
+  const folhaSem=sq.reduce((s,p)=>s+((p.contract&&p.contract.salary)||0),0);
+  const st=myStadium?myStadium():null;
+  const cap=(st&&st.capacity)||(typeof STAND_START!=='undefined'?STAND_START:0);
+  const socios=Math.round(cap*0.18);   // proporção estável de sócios sobre a capacidade
+  const ult=(S.finances||[])[0];
+  const delta=ult?((ult.income||0)+(ult.playerSales||0)-((ult.salaries||0)+(ult.bonuses||0)+(ult.opex||0)+(ult.playerPurchases||0)+(ult.stadium||0))):0;
+  return `<div class="rf-kpis">
+    ${rfKpiHTML('Em caixa', fmt(S.budget||0), (delta>=0?'+ ':'− ')+fmt(Math.abs(delta))+' na rodada')}
+    ${rfKpiHTML('Folha salarial', fmt(folhaSem), 'por semana · '+sq.length+' jogadores','neg')}
+    ${rfKpiHTML('Sócios', grp(socios), 'estimativa sobre a capacidade')}
+    ${rfKpiHTML('Estádio', grp(cap), 'lugares')}
+  </div>`;
+}
+/* extrato: o log real de transações da temporada, mais recente primeiro */
+function rfExtratoHTML(){
+  const logs=[];
+  (S.finances||[]).forEach(f=>{ if(f.log) logs.push(...f.log); });
+  if(!logs.length) return '<span class="rf-note">Nenhum movimento registrado nesta temporada ainda.</span>';
+  return `<div class="rf-extrato">${logs.slice(0,12).map(l=>{
+    // o log já vem escrito na voz do jogo ("💰 Fulano vendido ao X por R$ 1M");
+    // aqui só separamos o valor no fim pra ele cair na coluna mono à direita
+    const m=String(l).match(/^(.*?)([+-]?\s*R?\$?\s*[\d.,]+\s*(?:mil|mi|k|M)?)\s*\.?$/);
+    const txt=m?m[1].replace(/\s+por\s*$/,''):l, val=m?m[2].trim():'';
+    return `<div class="rf-ext-row">
+      <span class="rf-ext-t">${escC(txt)}</span>
+      <span class="rf-ext-v">${escC(val)}</span></div>`;
+  }).join('')}</div>`;
+}
+/* histórico: ANO · RECEITA · DESPESA · LUCRO */
+function rfHistoricoHTML(){
+  const ent=((S.financeHistory&&S.financeHistory[CL.clubId])||[]).slice().reverse();
+  if(!ent.length) return '<span class="rf-note">O histórico aparece quando a primeira temporada fechar.</span>';
+  return `<div class="rf-fh-head"><span>ANO</span><span>RECEITA</span><span>DESPESA</span><span>LUCRO</span></div>
+    <div class="rf-fh-list">${ent.map(e=>{
+      const rec=e.income||0, des=e.expenses||0, luc=rec-des;
+      return `<div class="rf-fh-row">
+        <span class="rf-fh-a">${escC(String(e.season))}</span>
+        <span class="rf-fh-r">${escC(mvShort(rec))}</span>
+        <span class="rf-fh-d">${escC(mvShort(des))}</span>
+        <span class="rf-fh-l ${luc>=0?'pos':'neg'}">${luc>=0?'+ ':'− '}${escC(mvShort(Math.abs(luc)))}</span>
+      </div>`;
+    }).join('')}</div>`;
+}
+function rfEstadioCardHTML(){
+  const st=myStadium?myStadium():null;
+  const cap=(st&&st.capacity)||(typeof STAND_START!=='undefined'?STAND_START:0);
+  const max=(typeof stadiumMaxCapacity==='function')?stadiumMaxCapacity():cap;
+  const custo=(typeof standCost==='function')?standCost():0;
+  return `<div class="rf-linha"><span class="rf-linha-t">Capacidade</span><span class="rf-linha-v">${grp(cap)} lugares</span></div>
+    <div class="rf-linha"><span class="rf-linha-t">Teto de expansão</span><span class="rf-linha-v">${grp(max)}</span></div>
+    <div class="rf-linha"><span class="rf-linha-t">Preço do bilhete</span><span class="rf-linha-v">${CL.ticket||0} reais</span></div>
+    <div class="rf-linha"><span class="rf-linha-t">Nova bancada</span><span class="rf-linha-v">${escC(fmt(custo))}</span></div>
+    <div class="rf-acts">${btn('Gerir estádio','clStadium()')}</div>`;
+}
+/* PATROCÍNIO: a referência traz camisa, manga e placas. Os valores saem da
+   divisão e do porte do estádio — o jogo não tem contrato de patrocínio
+   como entidade, então eles são derivados, não inventados a cada desenho. */
+function rfPatrocinioHTML(){
+  const st=myStadium?myStadium():null;
+  const cap=(st&&st.capacity)||(typeof STAND_START!=='undefined'?STAND_START:20000);
+  const peso={A:8,B:4,C:2,D:1}[S.division]||1;
+  const base=Math.round(cap*peso*0.7);
+  const linha=(l,v)=>`<div class="rf-linha"><span class="rf-linha-t">${escC(l)}</span>
+    <span class="rf-linha-v">${escC(fmt(v))}/temporada</span></div>`;
+  return linha('Camisa', base*2) + linha('Manga', Math.round(base*1.3)) + linha('Placas do estádio', base);
+}
+function rfFinancasHTML(enfase){
+  const d=k=>enfase===k?'rf-card-destaque':'';
+  return `${rfFinancasKpisHTML()}` + rfCol(
+      rfCard('Extrato da temporada', rfExtratoHTML(), {cls:d('extrato'),
+        right:S.season+' · '+(S.round||0)+' jogos'})
+    + rfCard('Histórico por temporada', rfHistoricoHTML(), {cls:d('historico')})
+  ) + rfCol(
+      rfCard('Estádio', rfEstadioCardHTML(), {cls:d('estadio')})
+    + rfCard('Patrocínio', rfPatrocinioHTML(), {cls:d('patrocinio')})
+  );
 }

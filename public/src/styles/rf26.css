@@ -1357,3 +1357,108 @@
 .rf-sep{height:1px;background:var(--line-3)}
 .rf-ficha-linhas{display:flex;flex-direction:column;gap:8px}
 .rf-ficha-linhas .rf-linha-t{font-size:var(--fs-body-sm);color:var(--text-3)}
+
+/* =====================================================================
+   CAMPEONATOS (medidas de telas/Campeonatos.html)
+   ===================================================================== */
+/* tabela: 34 · nome · J V E D · GM:GS · P */
+.rf-tb-head,.rf-tb-row{display:grid;grid-template-columns:34px minmax(0,1fr) 24px 24px 24px 24px 44px 28px;
+  gap:0 8px;align-items:center}
+.rf-tb-head{padding:0 10px 4px;font-family:var(--font-mono);font-size:var(--fs-label-xs);
+  color:var(--text-faint);letter-spacing:.06em}
+.rf-tb-head>span:nth-child(n+3){text-align:right}
+.rf-tb-list{display:flex;flex-direction:column;max-height:520px;overflow-y:auto}
+.rf-tb-row{padding:7px 10px;border-radius:var(--r-chip);cursor:pointer;
+  transition:background var(--dur-fast) var(--ease)}
+.rf-tb-row:hover{background:var(--surface-sunken)}
+.rf-tb-row.me{background:var(--surface-row-active)}
+.rf-tb-row.me .rf-tb-n{font-weight:var(--fw-bold);color:var(--text-1)}
+/* a zona é um filete de 3px à esquerda do número — verde acesso, vermelho queda */
+.rf-tb-pos{display:flex;align-items:center;gap:6px}
+.rf-tb-pos b{font-family:var(--font-mono);font-size:var(--fs-micro);font-weight:var(--fw-semibold);
+  color:var(--text-muted)}
+.rf-zona{width:3px;height:14px;border-radius:var(--r-pill);background:var(--zone-neutral);flex:0 0 auto}
+.rf-zona.promo{background:var(--zone-promo)}
+.rf-zona.drop{background:var(--zone-drop)}
+.rf-tb-n{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-size:var(--fs-body-sm);font-weight:var(--fw-medium);color:var(--text-2)}
+.rf-tb-x{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-muted);text-align:right}
+.rf-tb-p{font-family:var(--font-mono);font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);
+  color:var(--text-1);text-align:right}
+
+/* calendário: data · adversário · local · resultado */
+.rf-cal-head,.rf-cal-row{display:grid;grid-template-columns:64px minmax(0,1fr) 54px 58px;
+  gap:0 10px;align-items:center}
+.rf-cal-head{padding:0 10px 4px;font-family:var(--font-mono);font-size:var(--fs-label-xs);
+  color:var(--text-faint);letter-spacing:.06em}
+.rf-cal-head>span:nth-child(n+3){text-align:right}
+.rf-cal-list{display:flex;flex-direction:column;max-height:420px;overflow-y:auto}
+.rf-cal-row{padding:8px 10px;border-radius:var(--r-chip);cursor:pointer}
+.rf-cal-row:hover{background:var(--surface-sunken)}
+.rf-cal-row.agora{background:var(--club-primary-soft)}
+.rf-cal-d{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-faint);white-space:nowrap}
+.rf-cal-o{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-size:var(--fs-body-sm);font-weight:var(--fw-medium);color:var(--text-2)}
+.rf-cal-l{font-size:var(--fs-micro);color:var(--text-faint);text-align:right;white-space:nowrap}
+.rf-cal-r{font-family:var(--font-mono);font-size:var(--fs-body-sm);text-align:right;
+  color:var(--text-faint);white-space:nowrap}
+.rf-cal-r.v{color:var(--ok);font-weight:var(--fw-bold)}
+.rf-cal-r.d{color:var(--danger)}
+.rf-cal-r.e{color:var(--text-3)}
+
+/* artilharia: posição · nome/sub · gols */
+.rf-art-row{display:grid;grid-template-columns:20px minmax(0,1fr) 30px;gap:0 10px;
+  align-items:center;padding:7px 10px;border-radius:var(--r-chip)}
+.rf-art-row:hover{background:var(--surface-sunken)}
+.rf-art-i{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-faint);text-align:right}
+.rf-art-id{min-width:0;display:flex;flex-direction:column;gap:1px}
+.rf-art-n{font-size:var(--fs-body-sm);font-weight:var(--fw-medium);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-art-s{font-size:var(--fs-label);color:var(--text-faint);white-space:nowrap}
+.rf-art-g{font-family:var(--font-mono);font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);
+  color:var(--club-primary);text-align:right}
+.rf-venc{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* =====================================================================
+   FINANÇAS (medidas de telas/Financas.html)
+   ===================================================================== */
+/* a tira de KPIs atravessa as duas colunas, acima da grade */
+.rf-kpis{display:flex;gap:14px;align-items:stretch;animation:ds-fade-up var(--dur-base) var(--ease)}
+.rf-kpi{flex:1;min-width:0;background:var(--surface-card);border:var(--border-hairline);
+  border-radius:var(--r-card);padding:var(--pad-card);display:flex;flex-direction:column;gap:6px}
+.rf-kpi-v{font-family:var(--font-mono);font-size:24px;font-weight:var(--fw-semibold);
+  color:var(--text-1);white-space:nowrap}
+/* vermelho é reservado pra DESPESA — não é "número grande", é dinheiro saindo */
+.rf-kpi-v.neg{color:var(--note)}
+.rf-kpi-s{font-size:var(--fs-micro);color:var(--text-4);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+
+/* extrato: descrição à esquerda, valor em mono à direita, hairline entre linhas */
+.rf-extrato{display:flex;flex-direction:column;max-height:420px;overflow-y:auto}
+.rf-ext-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:7px 0;border-bottom:1px solid var(--line-3)}
+.rf-ext-row:last-child{border-bottom:none}
+.rf-ext-t{font-size:var(--fs-body-sm);color:var(--text-2);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rf-ext-v{font-family:var(--font-mono);font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);
+  color:var(--text-1);white-space:nowrap}
+
+/* histórico por temporada */
+.rf-fh-head,.rf-fh-row{display:grid;grid-template-columns:56px repeat(3,minmax(0,1fr));
+  gap:0 10px;align-items:center}
+.rf-fh-head{padding:0 10px 4px;font-family:var(--font-mono);font-size:var(--fs-label-xs);
+  color:var(--text-faint);letter-spacing:.06em}
+.rf-fh-head>span:nth-child(n+2){text-align:right}
+.rf-fh-list{display:flex;flex-direction:column}
+.rf-fh-row{padding:8px 10px;border-radius:var(--r-chip)}
+.rf-fh-row:hover{background:var(--surface-sunken)}
+.rf-fh-a{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-faint)}
+.rf-fh-r,.rf-fh-d,.rf-fh-l{font-family:var(--font-mono);font-size:var(--fs-caption);text-align:right}
+.rf-fh-r{color:var(--text-1)}
+.rf-fh-d{color:var(--note)}
+.rf-fh-l{font-weight:var(--fw-semibold)}
+.rf-fh-l.pos{color:var(--ok)}
+.rf-fh-l.neg{color:var(--danger)}
+@media (max-width:1024px){ .rf-kpis{flex-wrap:wrap} .rf-kpi{flex:1 1 45%} }
+@media (max-width:760px){ .rf-kpi{flex:1 1 100%} }
