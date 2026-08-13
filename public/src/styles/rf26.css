@@ -1168,3 +1168,119 @@
 .rf-tabpane .cl-sala-shelf{overflow-x:auto;overflow-y:visible;min-height:0;padding:10px}
 .rf-tabpane .cl-sala-cname{height:auto;min-height:26px;line-height:1.25}
 .rf-tabpane .cl-sala-shelves{gap:10px}
+
+/* =====================================================================
+   CABEÇALHO DE PÁGINA E BARRA DE ABAS (medidas da referência)
+   As páginas que não são o Hub NÃO levam a faixa do clube: elas abrem com
+   título de 26px, subtítulo e uma pílula de status à direita. A barra de
+   abas é um card branco com as pastilhas por dentro.
+   ===================================================================== */
+.rf-pagehead{display:flex;flex-direction:column;gap:12px}
+.rf-pagehead-top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.rf-pagehead-id{display:flex;flex-direction:column;gap:3px;min-width:0}
+.rf-pagehead-t{font-size:var(--fs-display);font-weight:var(--fw-bold);color:var(--text-1);
+  letter-spacing:var(--ls-tight);white-space:nowrap}
+.rf-pagehead-s{font-size:var(--fs-body-sm);color:var(--text-4);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+/* pílula de status: o número que resume a página, sempre à direita do título */
+.rf-pill{flex:0 0 auto;display:flex;align-items:center;gap:8px;font-size:var(--fs-body-sm);
+  font-weight:var(--fw-bold);color:var(--club-primary);background:var(--club-primary-soft);
+  border:1px solid var(--club-primary-line);border-radius:var(--r-pill);padding:9px 15px;white-space:nowrap}
+.rf-pill-ok{color:#1a6b39;background:#e9f6ee;border-color:#cfe8d9}
+.rf-pill-danger{color:#8f2b2b;background:#fbeded;border-color:#f2d5d5}
+
+.rf-tabbar{display:flex;align-items:center;gap:6px;background:var(--surface-card);
+  border:var(--border-hairline);border-radius:16px;padding:6px;overflow-x:auto;
+  scrollbar-width:none}
+.rf-tabbar::-webkit-scrollbar{display:none}
+.rf-tabp{flex:0 0 auto;border:none;background:transparent;color:var(--text-2);
+  font-family:var(--font-sans);font-size:var(--fs-body-sm);font-weight:var(--fw-medium);
+  border-radius:11px;padding:8px 14px;white-space:nowrap;cursor:pointer;
+  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
+.rf-tabp:hover{background:var(--surface-sunken)}
+.rf-tabp.on{background:var(--club-primary);color:var(--club-on-primary);font-weight:var(--fw-bold)}
+.rf-tabp.on:hover{background:var(--club-primary)}
+
+/* a grade de duas colunas da página — a proporção vem inline, de cada tela */
+.rf-pagegrid{display:grid;gap:14px;align-items:start;animation:ds-fade-up var(--dur-base) var(--ease)}
+.rf-pagecol{display:flex;flex-direction:column;gap:14px;min-width:0}
+@media (max-width:1580px){ .rf-pagegrid{grid-template-columns:minmax(0,1fr) !important} }
+@media (max-width:760px){
+  .rf-pagehead-top{flex-direction:column;align-items:stretch;gap:8px}
+  .rf-pagehead-t{font-size:var(--fs-title)}
+  .rf-pagehead-s{white-space:normal}
+  .rf-pill{align-self:flex-start}
+}
+
+/* =====================================================================
+   MERCADO (medidas de telas/Mercado.html)
+   ===================================================================== */
+.rf-sp{flex:1}
+.rf-note{font-size:var(--fs-caption);color:var(--text-4);line-height:var(--lh-normal)}
+.rf-mkt-filtros{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.rf-mkt-filtros .rf-label-r{align-self:center}
+
+/* a grade das colunas é a da referência, e o cabeçalho usa a MESMA — é o que
+   mantém rótulo e valor na mesma vertical quando a lista rola */
+.rf-mkt-head,.rf-mkt-row{display:grid;grid-template-columns:30px minmax(0,1fr) 34px 30px 42px 74px 92px;
+  gap:0 10px;align-items:center}
+.rf-mkt-head{padding:0 10px 4px;font-family:var(--font-mono);font-size:var(--fs-label-xs);
+  color:var(--text-faint);letter-spacing:.06em}
+.rf-mkt-head>span:nth-child(n+3){text-align:right}
+.rf-mkt-list{display:flex;flex-direction:column;max-height:520px;overflow-y:auto}
+.rf-mkt-row{padding:8px 10px;border-radius:var(--r-chip);cursor:pointer;
+  transition:background var(--dur-fast) var(--ease)}
+.rf-mkt-row:hover{background:var(--surface-row-active)}
+.rf-mkt-crest{display:flex;align-items:center;justify-content:center}
+.rf-mkt-crest img,.rf-mkt-crest .rf-crest-fb{width:24px;height:24px;object-fit:contain}
+.rf-mkt-name{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-size:var(--fs-body);font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-mkt-pos,.rf-mkt-id,.rf-mkt-frc,.rf-mkt-val{font-family:var(--font-mono);text-align:right;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.rf-mkt-pos{font-size:var(--fs-micro);color:var(--text-faint)}
+.rf-mkt-id{font-size:var(--fs-caption);color:var(--text-4)}
+.rf-mkt-frc{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-mkt-val{font-size:var(--fs-body-sm);color:var(--text-2)}
+.rf-mkt-act{text-align:right;font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);
+  color:var(--club-primary);white-space:nowrap}
+.rf-mkt-act.off{color:var(--text-faint);font-weight:var(--fw-medium)}
+
+/* leilão */
+.rf-auc-head,.rf-auc-row{display:grid;grid-template-columns:minmax(0,1fr) 40px 84px 96px 96px;
+  gap:0 10px;align-items:center}
+.rf-auc-head{padding:0 10px 4px;font-family:var(--font-mono);font-size:var(--fs-label-xs);
+  color:var(--text-faint);letter-spacing:.06em}
+.rf-auc-head>span:nth-child(n+2){text-align:right}
+.rf-auc-list{display:flex;flex-direction:column;gap:2px}
+.rf-auc-row{padding:9px 10px;border-radius:var(--r-chip)}
+.rf-auc-row:hover{background:var(--surface-sunken)}
+.rf-auc-row.me{background:var(--club-primary-soft)}
+.rf-auc-id{min-width:0;display:flex;flex-direction:column;gap:2px}
+.rf-auc-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--fs-body);
+  font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-auc-sub{font-size:var(--fs-micro);color:var(--text-4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-auc-frc,.rf-auc-lance,.rf-auc-maior{font-family:var(--font-mono);text-align:right;
+  font-variant-numeric:tabular-nums;font-size:var(--fs-body-sm);color:var(--text-2)}
+.rf-auc-frc{font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-auc-lance.me{color:var(--club-primary);font-weight:var(--fw-bold)}
+.rf-auc-act{display:flex;justify-content:flex-end}
+
+/* proposta recebida: bloco recuado com as duas ações lado a lado */
+.rf-prop-list{display:flex;flex-direction:column;gap:8px}
+.rf-prop{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:var(--r-control);
+  background:var(--surface-sunken)}
+.rf-prop-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.rf-prop-n{font-size:var(--fs-body);font-weight:var(--fw-bold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-prop-fee{font-family:var(--font-mono);font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);
+  color:var(--club-primary);white-space:nowrap}
+.rf-prop-sub{font-size:var(--fs-micro);color:var(--text-4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-prop-msg{font-size:var(--fs-caption);color:var(--text-3)}
+.rf-prop-acts{display:flex;gap:6px}
+.rf-prop-b{flex:1;height:32px;border-radius:var(--r-chip);font-size:var(--fs-caption)}
+
+/* linha simples chave→valor (contrapropostas, transferências) */
+.rf-linha{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rf-linha-t{font-size:var(--fs-body-sm);color:var(--text-2);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rf-linha-v{font-family:var(--font-mono);font-size:var(--fs-body-sm);color:var(--text-1);white-space:nowrap}

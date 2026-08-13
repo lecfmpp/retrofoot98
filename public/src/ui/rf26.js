@@ -21,7 +21,10 @@
 
 /* ---- estado de navegação novo. Mora em CL (mesmo objeto do resto da UI) ---- */
 function rfState(){
-  if(!CL.rf) CL.rf={ page:'hub', tab:{}, sbCollapsed:false };
+  // _ultimaTab nasce com o CL.tab ATUAL, não indefinido: senão a ponte das abas
+  // antigas (rfSyncFromLegacyTab) enxerga "mudou" no primeiro desenho e joga o
+  // usuário de volta pro Hub, atropelando a página que ele pediu.
+  if(!CL.rf) CL.rf={ page:'hub', tab:{}, sbCollapsed:false, _ultimaTab:CL.tab };
   return CL.rf;
 }
 /* a sidebar recolhida é preferência do usuário, não estado de save: persiste
@@ -46,50 +49,134 @@ function rfToggleSidebar(){
    `build` (quando existe) tem precedência: é conteúdo escrito pro layout
    novo, sem passar pela captura.
    ===================================================================== */
+/* =====================================================================
+   OS NOVE DESTINOS DA SIDEBAR
+   A lista sai da TELA de referência (Hub do Time - Sidebar), não da tabela
+   de consolidação do PROMPT-IMPLEMENTACAO.md: a tabela lista sete páginas,
+   a tela mostra nove itens — com "RetroFoot98" no topo e "E-mail" como
+   destino próprio. Quando os dois discordam, manda a tela.
+
+   `titulo`/`sub`/`pill` são o cabeçalho da página, copiados da referência.
+   A faixa do clube (gradiente) existe SÓ no Hub; as demais páginas abrem
+   com título de 26px + subtítulo + pílula de status à direita.
+
+   `grid` é a grade de duas colunas daquela página, também da referência —
+   elas não são todas iguais: Elenco & Base usa 360px na coluna lateral e
+   Clube & Sistema inverte a ordem.
+   ===================================================================== */
 const RF_PAGES=[
-  { key:'hub',        ico:'🥅', label:'Formação',      curto:'Formação',  titulo:'Formação' },
-  { key:'equipa',     ico:'👥', label:'Equipa',        curto:'Equipa',    titulo:'Equipa',
-    tabs:[ {k:'estadio',  l:'Estádio',   run:()=>clStadium()},
-           {k:'historial',l:'Historial', run:()=>clClubHistory()} ] },
-  { key:'mercado',    ico:'🛒', label:'Mercado',       curto:'Mercado',   titulo:'Mercado',
-    tabs:[ {k:'comprar',  l:'Comprar',          run:()=>clMarketClubs()},
-           {k:'vender',   l:'Vender',           build:()=>rfVenderHTML()},
-           {k:'leilao',   l:'Leilão',           run:()=>clAuctionScreen()},
-           {k:'propostas',l:'Propostas',        run:()=>clIncomingOffers(),  badge:()=>rfLen(typeof myIncomingOffers==='function'&&myIncomingOffers())},
-           {k:'contra',   l:'Contrapropostas',  run:()=>clCounterOffers(),   badge:()=>rfLen(typeof myCounterOffers==='function'&&myCounterOffers())},
-           {k:'transf',   l:'Últimas transferências', run:()=>clTransferHistory()} ] },
-  { key:'elenco',     ico:'👤', label:'Elenco & Base', curto:'Elenco',    titulo:'Elenco & Base',
-    tabs:[ {k:'ficha',  l:'Ficha do jogador', build:()=>panJogador()},
-           {k:'base',   l:'Subir da base',    run:()=>clPromoteYouth()},
-           {k:'treino', l:'Treino especial',  run:()=>clTrainingScreen()} ] },
-  { key:'campeonatos',ico:'🏆', label:'Campeonatos',   curto:'Copas',     titulo:'Campeonatos',
-    tabs:[ {k:'minhas',   l:'Minhas competições',       run:()=>clCompList()},
-           {k:'calendario',l:'Calendário',              run:()=>clCalendar()},
-           {k:'artilharia',l:'Artilharia',              run:()=>clScorers()},
-           {k:'vencedores',l:'Últimos vencedores',      run:()=>clUltimosVencedores()},
-           {k:'sempre',   l:'Marcadores de sempre',     run:()=>clScorersAllTime()},
-           {k:'intl',     l:'Ligas internacionais',     run:()=>clBgLeaguesMenu(),
+  { key:'inicio', ico:'🏠', label:'RetroFoot98', curto:'Início',
+    titulo:'Clube & Sistema', sub:'E-mail, opções do jogo, save e Modo Resenha',
+    pill:()=>rfPillGravado(), grid:'340px minmax(0,1fr)',
+    tabs:[ {k:'email',   l:()=>'E-mail'+rfSufixo(rfNaoLidas()), build:()=>rfEmailHTML()},
+           {k:'opcoes',  l:()=>'Opções',      run:()=>clOptions()},
+           {k:'jogo',    l:()=>'Jogo',        run:()=>clSaveMenu()},
+           {k:'resenha', l:()=>'Modo Resenha',build:()=>rfResenhaHTML()} ] },
+
+  { key:'hub', ico:'🥅', label:'Formação', curto:'Formação', banda:true },
+
+  { key:'equipa', ico:'👥', label:'Equipa', curto:'Equipa',
+    titulo:'Equipa', sub:'Estádio, historial e identidade do clube',
+    pill:()=>rfPillDivisao(), grid:'minmax(0,1fr) 340px',
+    tabs:[ {k:'estadio',  l:()=>'Estádio',  run:()=>clStadium()},
+           {k:'historial',l:()=>'Historial',run:()=>clClubHistory()} ] },
+
+  { key:'mercado', ico:'🛒', label:'Mercado', curto:'Mercado',
+    titulo:'Mercado', sub:()=>rfSubMercado(),
+    pill:()=>rfPillCaixa(), grid:'minmax(0,1fr) 340px',
+    tabs:[ {k:'comprar',l:()=>'Comprar',                      build:()=>rfMercadoComprarHTML()},
+           {k:'leilao', l:()=>'Leilão',                       build:()=>rfMercadoLeilaoHTML()},
+           {k:'propostas',l:()=>'Propostas'+rfSufixo(rfLen(rfPropostas())), build:()=>rfMercadoPropostasHTML()},
+           {k:'contra', l:()=>'Contrapropostas',              run:()=>clCounterOffers()},
+           {k:'vender', l:()=>'Vender',                       build:()=>rfVenderHTML()},
+           {k:'transf', l:()=>'Transferências',               run:()=>clTransferHistory()} ] },
+
+  { key:'elenco', ico:'👤', label:'Elenco & Base', curto:'Elenco',
+    titulo:'Elenco & Base', sub:'Ficha do jogador, promoções da base e treino especial',
+    pill:()=>rfPillFolha(), grid:'minmax(0,1fr) 360px',
+    tabs:[ {k:'elenco', l:()=>'Elenco',           build:()=>rfElencoHTML()},
+           {k:'ficha',  l:()=>'Ficha do jogador', build:()=>panJogador()},
+           {k:'base',   l:()=>'Base',             run:()=>clPromoteYouth()},
+           {k:'treino', l:()=>'Treino especial',  run:()=>clTrainingScreen()} ] },
+
+  { key:'campeonatos', ico:'🏆', label:'Campeonatos', curto:'Copas',
+    titulo:'Campeonatos', sub:'Tabela, calendário, artilharia e história das competições',
+    pill:()=>rfPillPosicao(), grid:'minmax(0,1fr) 340px',
+    tabs:[ {k:'minhas',    l:()=>'Minhas competições', run:()=>clCompList()},
+           {k:'calendario',l:()=>'Calendário',         run:()=>clCalendar()},
+           {k:'artilharia',l:()=>'Artilharia',         run:()=>clScorers()},
+           {k:'historia',  l:()=>'História',           run:()=>clUltimosVencedores()},
+           {k:'intl',      l:()=>'Ligas internacionais', run:()=>clBgLeaguesMenu(),
             show:()=>!!(S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)} ] },
-  { key:'treinador',  ico:'🎓', label:'Treinador',     curto:'Treinador', titulo:'Treinador',
-    tabs:[ {k:'historia',l:'História',        run:()=>clCoachHistory()},
-           {k:'trofeus', l:'Sala de Troféus', run:()=>clTrophyRoom()},
-           {k:'ranking', l:'Ranking',         run:()=>clCoachRanking()},
-           {k:'ofertas', l:'Ofertas',         run:()=>clJobOffers(),   badge:()=>rfLen(S&&S.jobOffers)},
-           {k:'perfil',  l:'Perfil',          run:()=>clPerfilTreinador()} ] },
-  { key:'financas',   ico:'💰', label:'Finanças',      curto:'Finanças',  titulo:'Finanças',
-    tabs:[ {k:'caixa',   l:'Finanças',   build:()=>panFinancas()},
-           {k:'estadio', l:'Estádio',    run:()=>clStadium()} ] },
-  { key:'clube',      ico:'⚙️', label:'Clube & Sistema', curto:'Clube',   titulo:'Clube & Sistema',
-    tabs:[ {k:'email',   l:'E-mail',   build:()=>panCorreio(), badge:()=>rfLen0(typeof inboxUnread==='function'&&inboxUnread())},
-           {k:'opcoes',  l:'Opções',   run:()=>clOptions()},
-           {k:'gravar',  l:'Gravar',   run:()=>clSaveMenu()},
-           {k:'resenha', l:'Modo Resenha', build:()=>rfResenhaHTML()} ] },
+
+  { key:'treinador', ico:'🎓', label:'Treinador', curto:'Treinador',
+    titulo:'Treinador', sub:'Carreira, troféus, ranking, ofertas e preferências',
+    pill:()=>rfPillReputacao(), grid:'minmax(0,1fr) 340px',
+    tabs:[ {k:'carreira',l:()=>'Carreira',        run:()=>clPerfilTreinador()},
+           {k:'historia',l:()=>'História',        run:()=>clCoachHistory()},
+           {k:'trofeus', l:()=>'Sala de Troféus', run:()=>clTrophyRoom()},
+           {k:'ranking', l:()=>'Ranking',         run:()=>clCoachRanking()},
+           {k:'ofertas', l:()=>'Ofertas'+rfSufixo(rfLen(S&&S.jobOffers)), run:()=>clJobOffers()},
+           {k:'perfil',  l:()=>'Perfil',          run:()=>clPerfilTreinador()} ] },
+
+  { key:'financas', ico:'💰', label:'Finanças', curto:'Finanças',
+    titulo:'Finanças', sub:'Caixa, folha, bilheteria, estádio e histórico por temporada',
+    pill:()=>rfPillSaldo(), grid:'minmax(0,1fr) 340px',
+    tabs:[ {k:'resumo',   l:()=>'Resumo',    build:()=>panFinancas()},
+           {k:'extrato',  l:()=>'Extrato',   build:()=>panFinancas()},
+           {k:'historico',l:()=>'Histórico', build:()=>panFinancas()},
+           {k:'estadio',  l:()=>'Estádio',   run:()=>clStadium()},
+           {k:'patrocinio',l:()=>'Patrocínio', build:()=>rfPatrocinioHTML()} ] },
+
+  { key:'email', ico:'✉️', label:'E-mail', curto:'E-mail',
+    titulo:'E-mail', sub:'Comunicados da diretoria, propostas e avisos',
+    pill:()=>rfPillNaoLidas(), grid:'340px minmax(0,1fr)',
+    tabs:[ {k:'caixa', l:()=>'Caixa de entrada', build:()=>rfEmailHTML()} ] },
 ];
+
+/* ---- as pílulas de status do cabeçalho, cada uma com o dado real do save ---- */
+function rfSufixo(n){ return n>0? ' ('+n+')' : ''; }
+function rfNaoLidas(){ return (typeof inboxUnread==='function')?inboxUnread():0; }
+function rfPropostas(){ return (typeof myIncomingOffers==='function')?myIncomingOffers():[]; }
+function rfPill(txt,tom){ return {txt,tom:tom||'info'}; }
+function rfPillCaixa(){ return rfPill('🟢 Caixa '+fmt(S.budget||0)); }
+function rfPillGravado(){
+  const t=CL._lastSaveAt?new Date(CL._lastSaveAt):null;
+  return rfPill('💾 '+(t?('Gravado '+String(t.getHours()).padStart(2,'0')+'h'+String(t.getMinutes()).padStart(2,'0')):'Gravação automática'));
+}
+function rfPillDivisao(){ return rfPill('🛡️ '+divisionLabel()); }
+function rfPillFolha(){
+  const folha=squad(CL.clubId).reduce((s,p)=>s+(typeof playerSalary==='function'?playerSalary(p):0),0);
+  return rfPill('Folha '+fmt(folha)+'/sem');
+}
+function rfPillPosicao(){
+  const pos=rfMinhaPosicao();
+  return rfPill('🏆 '+(pos?pos+'º na '+divisionLabel():divisionLabel()));
+}
+function rfPillReputacao(){ return rfPill('🎓 Reputação '+Math.round((S.coachRep!=null?S.coachRep:50))); }
+function rfPillSaldo(){
+  const b=S.budget||0;
+  return rfPill((b>=0?'▲ Saldo positivo':'▼ Saldo negativo'), b>=0?'ok':'danger');
+}
+function rfPillNaoLidas(){ const n=rfNaoLidas(); return rfPill('✉️ '+(n?n+' por ler':'Tudo lido')); }
+function rfSubMercado(){
+  const dias=(typeof windowClosesIn==='function')?windowClosesIn():null;
+  if(typeof canNegotiate==='function' && !canNegotiate()) return 'Comprar, vender, leilão e propostas — janela fechada';
+  return 'Comprar, vender, leilão e propostas'+(dias?' — janela fecha em '+dias:'');
+}
+/* posição do meu clube na tabela da divisão */
+function rfMinhaPosicao(){
+  const t=S.table||{}; const ids=Object.keys(t); if(!ids.length) return null;
+  const ord=ids.map(id=>({id,r:t[id]})).sort((a,b)=>(b.r.Pts-a.r.Pts)||((b.r.GF-b.r.GA)-(a.r.GF-a.r.GA))||(b.r.GF-a.r.GF));
+  const i=ord.findIndex(x=>x.id===CL.clubId);
+  return i<0?null:i+1;
+}
 function rfLen(x){ return (x&&x.length)||0; }
 function rfLen0(n){ return n||0; }
 function rfPageDef(key){ return RF_PAGES.find(p=>p.key===key)||RF_PAGES[0]; }
 /* abas visíveis de uma página (a de ligas internacionais só existe se houver liga carregada) */
 function rfTabs(def){ return (def.tabs||[]).filter(t=>!t.show||t.show()); }
+function rfTabLabel(t){ return typeof t.l==='function'? t.l() : t.l; }
 function rfActiveTab(def){
   const st=rfState(); const tabs=rfTabs(def); if(!tabs.length) return null;
   const want=st.tab[def.key];
@@ -313,15 +400,33 @@ function rfEnvelope(conteudo){
   </div>`;
 }
 
-/* barra de abas da página (sub-itens de menu, nunca páginas novas) */
+/* ----- Barra de abas: as pastilhas moram DENTRO de um card branco -----
+   (referência: card de raio 16 com 6px de respiro, pastilha de raio 11 e
+   14px de padding; a ativa é azul cheia com texto branco). A barra rola na
+   horizontal quando não cabe, em vez de quebrar em duas linhas. */
 function rfTabsHTML(def){
   const tabs=rfTabs(def); if(tabs.length<2) return '';
   const at=rfActiveTab(def);
-  return `<div class="rf-tabs">${tabs.map(t=>{
-    const n=t.badge?t.badge():0;
-    return `<button type="button" class="rf-tab ${at&&at.k===t.k?'on':''}"
-      onclick="rfSetTab('${def.key}','${t.k}')">${escC(t.l)}${n>0?` <span class="rf-nav-b">${n>9?'9+':n}</span>`:''}</button>`;
-  }).join('')}</div>`;
+  return `<div class="rf-tabbar">${tabs.map(t=>
+    `<button type="button" class="rf-tabp ${at&&at.k===t.k?'on':''}"
+      onclick="rfSetTab('${def.key}','${t.k}')">${escC(rfTabLabel(t))}</button>`).join('')}</div>`;
+}
+
+/* ----- Cabeçalho de página: título de 26px, subtítulo e pílula de status.
+   A faixa do clube (gradiente) NÃO aparece aqui — ela existe só no Hub. ----- */
+function rfPageHeadHTML(def){
+  const sub = typeof def.sub==='function' ? def.sub() : def.sub;
+  const pill = typeof def.pill==='function' ? def.pill() : null;
+  return `<div class="rf-pagehead">
+    <div class="rf-pagehead-top">
+      <div class="rf-pagehead-id">
+        <span class="rf-pagehead-t">${escC(def.titulo||def.label)}</span>
+        ${sub?`<span class="rf-pagehead-s">${escC(sub)}</span>`:''}
+      </div>
+      ${pill?`<span class="rf-pill rf-pill-${pill.tom}">${escC(pill.txt)}</span>`:''}
+    </div>
+    ${rfTabsHTML(def)}
+  </div>`;
 }
 
 /* =====================================================================
@@ -489,6 +594,8 @@ function rfScreenHTML(){
   const st=rfState();
   rfSyncFromLegacyTab();
   const def=rfPageDef(st.page);
+
+  // O HUB é a única página com faixa do clube e com a grade 530px + campo.
   if(def.key==='hub') return rfEnvelope(rfHubHTML());
 
   const at=rfActiveTab(def);
@@ -497,12 +604,26 @@ function rfScreenHTML(){
     try{ corpo = at.build ? at.build() : rfCaptura(at.run); }
     catch(e){ corpo=`<div class="rf-empty">Não foi possível carregar esta secção.<br><small>${escC(e.message||'')}</small></div>`; }
   }
-  return rfEnvelope(`${rfBandHTML(def.titulo)}
-    <div class="rf-card rf-page">
-      <div class="rf-card-hd"><span class="rf-label-t">${escC(def.titulo)}</span></div>
-      ${rfTabsHTML(def)}
-      <div class="rf-tabpane" data-tab="${at?at.k:''}">${corpo}</div>
-    </div>`);
+  // `corpo` pode devolver as duas colunas já montadas (quando a aba foi
+  // refeita pela referência) ou um bloco só (quando ainda é conteúdo
+  // herdado). Nos dois casos a grade da página é a mesma — quem monta é
+  // rfCols(), com a proporção que aquela tela declara.
+  const duasColunas = String(corpo).indexOf('data-rf-col')>=0;
+  return rfEnvelope(`${rfPageHeadHTML(def)}
+    ${duasColunas
+      ? `<div class="rf-pagegrid" style="grid-template-columns:${def.grid||'minmax(0,1fr) 340px'}">${corpo}</div>`
+      : `<div class="rf-tabpane" data-tab="${at?at.k:''}">${corpo}</div>`}`);
+}
+
+/* helpers de composição das páginas refeitas pela referência */
+function rfCol(html){ return `<div class="rf-pagecol" data-rf-col>${html}</div>`; }
+function rfCard(rotulo, corpo, opts){
+  opts=opts||{};
+  return `<div class="rf-card ${opts.cls||''}">
+    ${rotulo?`<div class="rf-label"><span class="rf-label-t">${escC(rotulo)}</span>
+      ${opts.right?`<span class="rf-label-r">${opts.right}</span>`:''}</div>`:''}
+    ${corpo}
+  </div>`;
 }
 
 /* =====================================================================
@@ -721,3 +842,211 @@ document.addEventListener('keydown',e=>{
 });
 /* clicar fora fecha o painel — o mesmo alcance do Esc */
 document.addEventListener('click',()=>{ if(CL.chatOpen && !isPhone()) rfChatFechar(); });
+
+/* =====================================================================
+   MERCADO — refeito a partir de telas/Mercado.html
+   A tela troca o antigo caminho de gaveta (divisão → clube → elenco →
+   jogador) por uma LISTA ÚNICA de jogadores à venda, com filtro por
+   posição e o preço já visível. A coluna de 340px à direita fica fixa em
+   qualquer aba: propostas, contrapropostas e últimas transferências são
+   resumo permanente, não destino.
+   ===================================================================== */
+
+/* ---- quem está à venda: o elenco de todos os outros clubes do universo ----
+   O jogo nunca teve uma "lista de transferências" — tinha o passeio por
+   divisão e clube. A lista é derivada: todo jogador negociável de clube que
+   não é o meu, ordenado por força. É a mesma fonte que o passeio usava, só
+   que achatada, que é o que a tela pede. */
+function rfMercadoLista(){
+  if(CL._mktCache && CL._mktCache.round===S.round && CL._mktCache.pos===(CL.mktPos||'all'))
+    return CL._mktCache.lista;
+  const pos=CL.mktPos||'all';
+  const SETOR={gk:'GK',def:'DEF',mid:'MID',att:'ATT'};
+  // O TETO É O CAIXA. A referência escreve "até R$ 1,27 mi" no canto da lista:
+  // ela mostra quem eu POSSO comprar, não o mercado inteiro. Sem esse corte um
+  // clube da Série D abria a tela com trinta jogadores de 50 milhões e "Sem
+  // caixa" em toda linha — uma lista que não serve pra decidir nada.
+  const teto=S.budget||0;
+  const out=[];
+  (DATA.clubs||[]).forEach(c=>{
+    if(c.id===CL.clubId) return;
+    (squad(c.id)||[]).forEach(p=>{
+      if(typeof isTradeLocked==='function' && isTradeLocked(p)) return;
+      if(pos!=='all' && p.s!==SETOR[pos]) return;
+      const ask=(typeof playerAsk==='function')?playerAsk(p,c.id):(p.mv||0);
+      if(ask>teto) return;
+      out.push({p,clubId:c.id,ask});
+    });
+  });
+  out.sort((a,b)=>(b.p.f||0)-(a.p.f||0));
+  const lista=out.slice(0,120);
+  CL._mktCache={round:S.round,pos,lista,total:out.length};
+  return lista;
+}
+function rfMercadoTotal(){ rfMercadoLista(); return (CL._mktCache&&CL._mktCache.total)||0; }
+function rfMktPos(p){ CL.mktPos=p; CL._mktCache=null; cdraw(); }
+
+/* linha da lista: escudo · nome · POS · ID · FRC · VALOR · ação
+   (grade 30px minmax(0,1fr) 34px 30px 42px 74px 92px, da referência) */
+function rfMercadoLinhaHTML(item){
+  const p=item.p, c=clubOf(item.clubId)||{short:'?'};
+  const ask=item.ask!=null?item.ask:((typeof playerAsk==='function')?playerAsk(p,item.clubId):(p.mv||0));
+  return `<div class="rf-mkt-row" onclick="clMarketPlayer('${escC(item.clubId)}','${escC(p.n)}')"
+      title="${escC(p.n)} — ${escC(c.short)}">
+    <span class="rf-mkt-crest">${rfCrest(c,24)}</span>
+    <span class="rf-mkt-name">${escC(p.n)}</span>
+    <span class="rf-mkt-pos">${escC(rfPosLabel(p.s))}</span>
+    <span class="rf-mkt-id">${p.age||''}</span>
+    <span class="rf-mkt-frc">${p.f}</span>
+    <span class="rf-mkt-val">${escC(mvShort(ask))}</span>
+    <span class="rf-mkt-act">Fazer proposta</span>
+  </div>`;
+}
+const RF_POS_LBL={GK:'GOL',DEF:'ZAG',MID:'MEI',ATT:'ATA'};
+function rfPosLabel(s){ return RF_POS_LBL[s]||'MEI'; }
+
+/* ---- aba Comprar: o card "JOGADORES À VENDA" ---- */
+function rfMercadoComprarHTML(){
+  if(typeof canNegotiate==='function' && !canNegotiate())
+    return rfCol(rfCard('Jogadores à venda',
+      `<div class="rf-empty">${escC(typeof windowClosedMsg==='function'?windowClosedMsg():'A janela de transferências está fechada.')}</div>`))
+      + rfMercadoRailHTML();
+
+  const lista=rfMercadoLista();
+  const filtros=[['all','Todos'],['gk','Goleiros'],['def','Defesa'],['mid','Meio'],['att','Ataque']];
+  const corpo=`
+    <div class="rf-mkt-filtros">
+      ${filtros.map(([k,l])=>`<button type="button" class="rf-chip ${(CL.mktPos||'all')===k?'on':''}"
+        onclick="rfMktPos('${k}')">${escC(l)}</button>`).join('')}
+      <div class="rf-sp"></div>
+      <span class="rf-label-r">até ${escC(fmt(S.budget||0))}</span>
+    </div>
+    <div class="rf-mkt-head">
+      <span></span><span>JOGADOR</span><span>POS</span><span>ID</span><span>FRC</span><span>VALOR</span><span>AÇÃO</span>
+    </div>
+    <div class="rf-mkt-list">${
+      lista.length ? lista.map(rfMercadoLinhaHTML).join('')
+                   : '<div class="rf-empty">Nenhum jogador nesta posição agora.</div>'}</div>`;
+  return rfCol(rfCard('Jogadores à venda', corpo, {right:rfMercadoTotal()+' na janela'}))
+       + rfMercadoRailHTML();
+}
+
+/* ---- aba Leilão ---- */
+function rfMercadoLeilaoHTML(){
+  const lots=((S.auctions&&S.auctions.lots)||[]).filter(l=>l.status==='open');
+  if(typeof mergeAuctionBidsFromSeats==='function'){ try{ mergeAuctionBidsFromSeats(); }catch(e){} }
+  const linhas=lots.map(l=>{
+    const p=(typeof findP==='function')?findP(l.player,l.sellerId):null; if(!p) return '';
+    const meu=l.leader===S.clubId;
+    return `<div class="rf-auc-row ${meu?'me':''}">
+      <span class="rf-auc-id">
+        <span class="rf-auc-n">${escC(p.n)}</span>
+        <span class="rf-auc-sub">${escC(rfPosLabel(p.s))} · ${escC((clubOf(l.sellerId)||{short:'?'}).short)} · 👥 ${l.interest||0}</span>
+      </span>
+      <span class="rf-auc-frc">${p.f}</span>
+      <span class="rf-auc-lance ${meu?'me':''}">${meu?escC(mvShort(l.bid)):'—'}</span>
+      <span class="rf-auc-maior">${escC(mvShort(l.bid))}</span>
+      <span class="rf-auc-act">
+        <button type="button" class="rf-btn rf-btn-pill"
+          onclick="clAuctionBidPrompt('${escC(l.sellerId)}','${escC(l.player)}')">Cobrir</button>
+      </span>
+    </div>`;
+  }).join('');
+  const corpo=`
+    <span class="rf-note">Cubra a maior oferta antes das rodadas acabarem — se o seu lance ficar abaixo, a concorrência cobre na rodada seguinte.</span>
+    <div class="rf-auc-head"><span>JOGADOR</span><span>FRC</span><span>SEU LANCE</span><span>MAIOR</span><span></span></div>
+    <div class="rf-auc-list">${linhas||'<div class="rf-empty">Nenhum leilão aberto nesta rodada.</div>'}</div>`;
+  return rfCol(rfCard('Leilão de jogadores', corpo, {right:'fecha em 2 rodadas'}))
+       + rfMercadoRailHTML();
+}
+
+/* ---- aba Propostas: as recebidas, em detalhe ---- */
+function rfMercadoPropostasHTML(){
+  const ofertas=rfPropostas().filter(o=>o.expiresRound>S.round);
+  const corpo = ofertas.length
+    ? `<div class="rf-prop-list">${ofertas.map(rfPropostaCardHTML).join('')}</div>`
+    : `<div class="rf-empty">Nenhuma proposta no momento.<br><small>Clubes fazem propostas pelos seus destaques enquanto a janela está aberta.</small></div>`;
+  return rfCol(rfCard('Propostas recebidas', corpo, {right:ofertas.length? ofertas.length+' novas':''}))
+       + rfMercadoRailHTML();
+}
+function rfPropostaCardHTML(o){
+  const p=squad(CL.clubId).find(x=>x.n===o.playerName);
+  const rodadas=Math.max(0,o.expiresRound-S.round);
+  return `<div class="rf-prop">
+    <div class="rf-prop-top">
+      <span class="rf-prop-n">${escC(o.playerName)}</span>
+      <span class="rf-prop-fee">${escC(mvShort(o.fee))}</span>
+    </div>
+    <span class="rf-prop-sub">${escC(p?rfPosLabel(p.s):'—')} · ${o.playerForce} força · ${escC(o.buyerName||'')} · expira em ${rodadas} rodada(s)</span>
+    ${o.lastMsg?`<span class="rf-prop-msg">💬 ${escC(o.lastMsg)}</span>`:''}
+    <div class="rf-prop-acts">
+      <button type="button" class="rf-btn rf-btn-primary rf-prop-b" onclick="clAcceptOffer(${o.id})">Aceitar</button>
+      <button type="button" class="rf-btn rf-btn-secondary rf-prop-b" onclick="clRejectOffer(${o.id})">Recusar</button>
+    </div>
+  </div>`;
+}
+
+/* ---- A COLUNA DE 340px: fixa em qualquer aba ----
+   Propostas, contrapropostas e últimas transferências são resumo
+   permanente do mercado — na referência elas aparecem ao lado do conteúdo,
+   não como destino separado. */
+function rfMercadoRailHTML(){
+  const ofertas=rfPropostas().filter(o=>o.expiresRound>S.round);
+  const contra=(typeof myCounterOffers==='function')?myCounterOffers():[];
+  const props = ofertas.length
+    ? ofertas.slice(0,3).map(rfPropostaCardHTML).join('')
+    : '<span class="rf-note">Nenhuma proposta aberta agora.</span>';
+  const contraHTML = contra.length
+    ? contra.slice(0,3).map(c=>`<div class="rf-linha">
+        <span class="rf-linha-t">${escC(c.playerName||'')}</span>
+        <span class="rf-linha-v">${escC(mvShort(c.fee||0))}</span></div>`).join('')
+    : '<span class="rf-note">Nenhuma contraproposta aberta agora.</span>';
+  // O jogo não guarda um log global de transferências: o histórico VIAJA COM O
+  // JOGADOR (p.transferHistory, ver recordTransferHistory no core). Então as
+  // "últimas" são as entradas mais recentes entre os jogadores do meu elenco —
+  // a mesma fonte que a tela de Últimas transferências sempre usou.
+  const nomeDe=id=>{ if(!id) return 'fora do mundo';
+    const c=clubOf(id)||(typeof bgClubById==='function'&&bgClubById(id))||(typeof intlClubById==='function'&&intlClubById(id));
+    return (c&&c.short)||String(id); };
+  const entradas=[];
+  squad(CL.clubId).forEach(p=>{ (p.transferHistory||[]).forEach(h=>entradas.push({p,h})); });
+  entradas.sort((a,b)=>(b.h.season-a.h.season)||(b.h.round-a.h.round));
+  const transfHTML = entradas.length
+    ? entradas.slice(0,3).map(({p,h})=>{
+        const entrou = h.to===CL.clubId;
+        return `<div class="rf-linha">
+          <span class="rf-linha-t">${escC(p.n)} ${entrou?'←':'→'} ${escC(nomeDe(entrou?h.from:h.to))}</span>
+          <span class="rf-linha-v">${escC(mvShort(h.fee||0))}</span></div>`;
+      }).join('')
+    : '<span class="rf-note">Nenhuma transferência ainda nesta temporada.</span>';
+  return rfCol(
+    rfCard('Propostas recebidas', props, {right: ofertas.length? ofertas.length+' novas':''})
+    + rfCard('Contrapropostas', contraHTML)
+    + rfCard('Últimas transferências', transfHTML)
+  );
+}
+
+/* ---- helpers ainda sem tela refeita: entregam conteúdo real no formato novo,
+   e viram implementação completa quando a tela correspondente for portada ---- */
+function rfEmailHTML(){
+  if(typeof syncInbox==='function'){ try{ syncInbox(); }catch(e){} }
+  return typeof panCorreio==='function' ? panCorreio()
+    : '<div class="rf-empty">Caixa de entrada vazia.</div>';
+}
+function rfElencoHTML(){
+  const sq=squad(CL.clubId), xi=xiPlayers(CL.clubId);
+  return rfCol(rfCard('Elenco',
+      `<div class="rf-roster rf-roster-page">${rosterHTML()}</div>`,
+      {right:sq.length+' jogadores · <b>'+xi.length+'/11</b> titulares'}))
+    + rfCol(rfCard('Ficha do jogador', panJogador()));
+}
+function rfPatrocinioHTML(){
+  return `<div class="rf-empty">O painel de patrocínio ainda não está nesta versão.<br>
+    <small>A tela de referência dele não veio no pacote.</small></div>`;
+}
+/* quantos dias faltam pra janela fechar (texto do subtítulo do Mercado) */
+function rfDiasJanela(){
+  if(typeof transferWindowStatus!=='function') return null;
+  try{ const st=transferWindowStatus(); return st&&st.closesIn?st.closesIn:null; }catch(e){ return null; }
+}
+function windowClosesIn(){ const d=rfDiasJanela(); return d? (d+' rodada'+(d>1?'s':'')) : null; }
