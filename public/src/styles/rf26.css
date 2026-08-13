@@ -3974,3 +3974,36 @@
   font-family:inherit;font-size:12px;font-weight:var(--fw-semibold);
   color:var(--brand-primary);white-space:nowrap;cursor:pointer}
 .rf-cl-ver:hover{background:var(--surface-sunken)}
+
+/* =====================================================================
+   GAVETAS DO MERCADO — o que era modal virou cartão dentro da aba
+   ===================================================================== */
+.rf-gaveta{gap:12px;border-color:var(--brand-primary);
+  box-shadow:0 0 0 3px var(--club-primary-soft, rgba(23,69,143,.08))}
+.rf-gaveta-hd{display:flex;align-items:flex-start;gap:12px}
+.rf-gaveta-id{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.rf-gaveta-t{font-size:var(--fs-heading);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-gaveta-s{font-size:var(--fs-body-sm);color:var(--text-3)}
+.rf-gaveta-x{border:0;background:none;font-family:inherit;font-size:15px;line-height:1;
+  color:var(--text-4);cursor:pointer;padding:4px 6px;border-radius:var(--r-chip);flex:0 0 auto}
+.rf-gaveta-x:hover{background:var(--surface-sunken);color:var(--text-1)}
+.rf-mkg-aviso{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 12px;
+  border-radius:var(--r-inner);background:var(--surface-sunken);
+  font-size:var(--fs-body-sm);color:var(--text-2)}
+.rf-mkg-linha{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.rf-mkg-linha .rf-note{flex:1;min-width:200px}
+.rf-mkc{display:flex;flex-direction:column;gap:4px;flex:1;min-width:220px}
+.rf-mkc-l{font-size:var(--fs-label);font-weight:var(--fw-bold);color:var(--text-4);
+  letter-spacing:var(--ls-label);text-transform:uppercase}
+.rf-mkc-f{display:flex;align-items:center;gap:6px;height:42px;padding:0 12px;
+  border:1px solid var(--line-2);border-radius:var(--r-inner);background:var(--surface-card)}
+.rf-mkc-f:focus-within{border-color:var(--brand-primary)}
+.rf-mkc-cur{font-family:var(--font-mono);font-size:var(--fs-body-sm);color:var(--text-4)}
+.rf-mkc-in{flex:1;min-width:0;border:0;outline:0;background:none;font-family:var(--font-mono);
+  font-size:16px;font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-mkc-d{font-size:var(--fs-micro);color:var(--text-4)}
+.rf-btn-recusar{border:1px solid var(--danger);background:var(--surface-card);color:var(--danger)}
+.rf-btn-recusar:hover{background:var(--danger);color:#fff}
+.rf-btn-ghost{border:1px solid var(--line-2);background:var(--surface-card);
+  color:var(--brand-primary);font-weight:var(--fw-semibold)}
+.rf-btn-ghost:hover{background:var(--surface-sunken)}

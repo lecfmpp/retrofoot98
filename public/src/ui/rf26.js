@@ -81,7 +81,11 @@ const RF_PAGES=[
 
   { key:'mercado', ico:'🛒', label:'Mercado', curto:'Mercado',
     titulo:'Mercado', sub:()=>rfSubMercado(),
-    pill:()=>rfPillCaixa(), grid:'minmax(0,1fr) 340px',
+    /* MERCADO É UMA COLUNA SÓ. As telas do Mercado empilham: a tabela
+       ocupa a largura inteira e o bloco de apoio ("O que o caixa
+       permite", "Como negociar") vem embaixo. Espremer a tabela num
+       1fr+340 comia justamente a coluna do NOME do jogador. */
+    pill:()=>rfPillCaixa(), grid:'minmax(0,1fr)',
     tabs:[ {k:'comprar', l:()=>'Comprar',        build:()=>rfMktComprarHTML()},
            {k:'leilao',  l:()=>'Leilão',         build:()=>rfMktLeilaoHTML()},
            {k:'propostas',l:()=>'Propostas'+rfSufixo(rfLen(rfPropostas())), build:()=>rfMktPropostasHTML()},
