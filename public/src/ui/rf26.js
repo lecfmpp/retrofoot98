@@ -95,9 +95,9 @@ const RF_PAGES=[
     titulo:'Elenco & Base', sub:'Ficha do jogador, promoções da base e treino especial',
     pill:()=>rfPillFolha(), grid:'minmax(0,1fr) 360px',
     tabs:[ {k:'elenco', l:()=>'Elenco',           build:()=>rfElencoHTML()},
-           {k:'ficha',  l:()=>'Ficha do jogador', build:()=>panJogador()},
-           {k:'base',   l:()=>'Base',             run:()=>clPromoteYouth()},
-           {k:'treino', l:()=>'Treino especial',  run:()=>clTrainingScreen()} ] },
+           {k:'ficha',  l:()=>'Ficha do jogador', build:()=>rfElencoHTML('ficha')},
+           {k:'base',   l:()=>'Base',             build:()=>rfElencoHTML('base')},
+           {k:'treino', l:()=>'Treino especial',  build:()=>rfElencoHTML('treino')} ] },
 
   { key:'campeonatos', ico:'🏆', label:'Campeonatos', curto:'Copas',
     titulo:'Campeonatos', sub:'Tabela, calendário, artilharia e história das competições',
@@ -447,7 +447,7 @@ function rfHubHTML(){
         <span class="rf-label-t">Elenco</span>
         <span class="rf-label-r">${sq.length} jogadores · <b>${xi.length}/11</b> titulares</span>
       </div>
-      <div class="rf-roster">${rosterHTML()}</div>
+      ${rfSquadTableHTML('hub')}
     </div>
     <div class="rf-duo">
       <div class="rf-card">
@@ -1033,12 +1033,41 @@ function rfEmailHTML(){
   return typeof panCorreio==='function' ? panCorreio()
     : '<div class="rf-empty">Caixa de entrada vazia.</div>';
 }
-function rfElencoHTML(){
+/* ---- ELENCO & BASE (telas/Elenco e Base.html) ----
+   Quatro cards: ELENCO e BASE na coluna larga, FICHA DO JOGADOR e TREINO
+   ESPECIAL na de 360px. As abas do topo levam ao card correspondente — a
+   página mostra tudo, a aba é a ênfase. */
+function rfElencoHTML(enfase){
   const sq=squad(CL.clubId), xi=xiPlayers(CL.clubId);
-  return rfCol(rfCard('Elenco',
-      `<div class="rf-roster rf-roster-page">${rosterHTML()}</div>`,
-      {right:sq.length+' jogadores · <b>'+xi.length+'/11</b> titulares'}))
-    + rfCol(rfCard('Ficha do jogador', panJogador()));
+  const d=k=>enfase===k?'rf-card-destaque':'';
+  return rfCol(
+      rfCard('Elenco', rfSquadTableHTML('elenco'),
+        {right:sq.length+' jogadores · <b>'+xi.length+'</b> titulares', cls:d('elenco')})
+    + rfCard('Base', rfBaseHTML(), {cls:d('base')})
+  ) + rfCol(
+      rfCard('Ficha do jogador', rfFichaHTML(), {cls:d('ficha'), right:'selecionado'})
+    + rfCard('Treino especial', rfTreinoHTML(), {cls:d('treino')})
+  );
+}
+/* base: quem dá pra subir agora, com o custo e o botão */
+function rfBaseHTML(){
+  const disp=(typeof youthAvailable==='function')&&youthAvailable();
+  if(!disp) return `<span class="rf-note">A base não tem ninguém pronto nesta rodada.</span>`;
+  return `<span class="rf-note">Suba um jogador da base para o elenco principal. Cada promoção vale por temporada.</span>
+    <div class="rf-acts">${btn('Ver jogadores da base','clPromoteYouth()',{cls:'cl-btn-ok'})}</div>`;
+}
+/* treino especial: os que estão em treino e as vagas que sobram */
+function rfTreinoHTML(){
+  const lista=(typeof myTrainingList==='function')?myTrainingList():[];
+  const max=(typeof TRAINING_MAX_SLOTS!=='undefined')?TRAINING_MAX_SLOTS:3;
+  const linhas=lista.length ? lista.map(pid=>{
+      const p=squad(CL.clubId).find(x=>x.pid===pid); if(!p) return '';
+      return `<div class="rf-linha"><span class="rf-linha-t">${escC(p.n)}</span>
+        <span class="rf-linha-v">força ${p.f}</span></div>`;
+    }).join('')
+    : '<span class="rf-note">Ninguém em treino especial agora.</span>';
+  return `${linhas}
+    <div class="rf-acts">${btn('Gerir treino ('+lista.length+'/'+max+')','clTrainingScreen()')}</div>`;
 }
 function rfPatrocinioHTML(){
   return `<div class="rf-empty">O painel de patrocínio ainda não está nesta versão.<br>
@@ -1050,3 +1079,106 @@ function rfDiasJanela(){
   try{ const st=transferWindowStatus(); return st&&st.closesIn?st.closesIn:null; }catch(e){ return null; }
 }
 function windowClosesIn(){ const d=rfDiasJanela(); return d? (d+' rodada'+(d>1?'s':'')) : null; }
+
+/* =====================================================================
+   SQUADTABLE — a tabela de elenco do design system
+   Uma peça só, duas densidades, porque a referência traz as duas:
+     'hub'    9 colunas (20/24/1fr/26/34/34/42/46/58) — inclui SAL.
+     'elenco' 8 colunas (22/26/1fr/30/34/40/46/62)    — sem SAL., mais folgada
+   Regras que não mudam entre elas: número em IBM Plex Mono alinhado à
+   direita, nome em 14px/600, e o marcador de 17px à esquerda — "T" nas
+   cores do clube pra titular, letra da posição em cinza pra reserva.
+   ===================================================================== */
+const RF_SQUAD_COLS={
+  hub:    {grid:'20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px', sal:true,  pad:'7px 10px'},
+  elenco: {grid:'22px 26px minmax(0,1fr) 30px 34px 40px 46px 62px',      sal:false, pad:'8px 10px'},
+};
+function rfSquadTableHTML(modo, opts){
+  opts=opts||{};
+  const cfg=RF_SQUAD_COLS[modo]||RF_SQUAD_COLS.hub;
+  const id=opts.clubId||CL.clubId;
+  const lista=(opts.lista||squad(id)).slice().sort(bySquadOrder);
+  const xi=new Set(S.xi||[]);
+  const cab=`<div class="rf-sq-head" style="grid-template-columns:${cfg.grid}">
+    <span></span><span>POS</span><span>NOME</span>
+    <span>ID</span><span>FRC</span><span>NOTA</span><span>ENER</span>
+    ${cfg.sal?'<span>SAL.</span>':''}<span>VALOR</span>
+  </div>`;
+  const linhas=lista.map(p=>{
+    const tit=xi.has(p.pid);
+    const nota=(typeof playerNota==='function')?playerNota(p):null;
+    const en=Math.round(p.energy!=null?p.energy:100);
+    const sal=(typeof playerSalary==='function')?playerSalary(p):0;
+    const indisp=(p.suspended>0)||(p.injuredMatches>0);
+    return `<div class="rf-sq-row ${CL.selPlayer===p.pid?'sel':''} ${indisp?'off':''}"
+        style="grid-template-columns:${cfg.grid};padding:${cfg.pad}"
+        onclick="clSelPlayer('${escC(p.pid)}')" title="${escC(p.n)}">
+      <span class="rf-sq-mark ${tit?'tit':''}">${tit?'T':escC(posLetter(p.s))}</span>
+      <span class="rf-sq-pos">${escC(posLetter(p.s))}</span>
+      <span class="rf-sq-name">${escC(p.n)}${indisp?(p.suspended>0?' 🟥':' ✚'):''}</span>
+      <span class="rf-sq-id">${p.age||''}</span>
+      <span class="rf-sq-frc">${p.f}</span>
+      <span class="rf-sq-nota ${rfNotaTom(nota)}">${nota!=null?escC(String(nota).replace('.',',')):'–'}</span>
+      <span class="rf-sq-ener"><i class="rf-ener" style="--v:${en};--c:${rfEnergiaCor(en)}"></i><b>${en}%</b></span>
+      ${cfg.sal?`<span class="rf-sq-sal">${escC(mvShort(sal))}</span>`:''}
+      <span class="rf-sq-val">${escC(mvShort(p.mv||0))}</span>
+    </div>`;
+  }).join('');
+  return `${cab}<div class="rf-sq-list">${linhas}</div>`;
+}
+/* a escala de energia do design system: vermelho → verde em cinco faixas */
+function rfEnergiaCor(v){
+  return v>=80?'var(--energy-100)':v>=70?'var(--energy-80)':v>=55?'var(--energy-60)'
+        :v>=40?'var(--energy-40)':'var(--energy-20)';
+}
+function rfNotaTom(n){ return n==null?'':(n>=7?'boa':n>=5?'media':'ruim'); }
+
+/* =====================================================================
+   FICHA DO JOGADOR (telas/Elenco e Base.html)
+   Camisa desenhada em CSS (o design system proíbe SVG novo pra isso),
+   nome, três barras — Força, Energia, Moral — e as linhas de valor,
+   salário e gols. Nada de painel escuro: é card claro como o resto.
+   ===================================================================== */
+function rfJerseyHTML(num){
+  return `<div class="rf-jersey" aria-hidden="true">
+    <i class="rf-j-sl l"></i><i class="rf-j-sl r"></i>
+    <i class="rf-j-body"><b>${escC(String(num||''))}</b></i>
+    <i class="rf-j-collar"></i>
+  </div>`;
+}
+function rfBarraHTML(rotulo, valor, pct, cor){
+  return `<div class="rf-fb-l"><span>${escC(rotulo)}</span><span class="rf-num">${escC(String(valor))}</span></div>
+    <div class="rf-fb"><i style="width:${Math.max(0,Math.min(100,pct))}%;background:${cor}"></i></div>`;
+}
+function rfFichaHTML(){
+  const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer) || squad(CL.clubId)[0];
+  if(!p) return '<div class="rf-empty">Selecciona um jogador no elenco.</div>';
+  const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(CL.clubId):{};
+  const en=Math.round(p.energy!=null?p.energy:100);
+  const moral=Math.round(p.moral!=null?p.moral:70);
+  const sal=(typeof playerSalary==='function')?playerSalary(p):0;
+  const gols=((S.scorers&&S.scorers[p.n])||0);
+  const fim=(p.contract&&p.contract.until)||null;
+  // a força do jogo é uma escala aberta; a barra usa a maior força do meu
+  // elenco como topo, senão um clube de Série D teria todas as barras no chão
+  const topo=Math.max(1,...squad(CL.clubId).map(x=>x.f||0));
+  return `<div class="rf-ficha-id">
+      ${rfJerseyHTML(nums[p.pid])}
+      <div class="rf-ficha-nm">
+        <span class="rf-ficha-n">${escC(p.n)}</span>
+        <span class="rf-ficha-s">${escC(rfPosLabel(p.s))} · ${p.age||'?'} anos${fim?' · contrato até '+fim:''}</span>
+      </div>
+    </div>
+    <div class="rf-ficha-bars">
+      ${rfBarraHTML('Força', p.f, 100*p.f/topo, 'var(--club-primary)')}
+      ${rfBarraHTML('Energia', en+'%', en, rfEnergiaCor(en))}
+      ${rfBarraHTML('Moral', moral, moral, 'var(--club-secondary)')}
+    </div>
+    <div class="rf-sep"></div>
+    <div class="rf-ficha-linhas">
+      <div class="rf-linha"><span class="rf-linha-t">Valor de mercado</span><span class="rf-linha-v">${escC(fmt(p.mv||0))}</span></div>
+      <div class="rf-linha"><span class="rf-linha-t">Salário</span><span class="rf-linha-v">${escC(fmt(sal))}/sem</span></div>
+      <div class="rf-linha"><span class="rf-linha-t">Gols na temporada</span><span class="rf-linha-v">${gols}</span></div>
+      <div class="rf-linha"><span class="rf-linha-t">Comportamento</span><span class="rf-linha-v">${escC(typeof playerBehaviorLabel==='function'?playerBehaviorLabel(p):'—')}</span></div>
+    </div>`;
+}

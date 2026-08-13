@@ -1284,3 +1284,76 @@
 .rf-linha-t{font-size:var(--fs-body-sm);color:var(--text-2);white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis}
 .rf-linha-v{font-family:var(--font-mono);font-size:var(--fs-body-sm);color:var(--text-1);white-space:nowrap}
+
+/* =====================================================================
+   SQUADTABLE (medidas da referência; a grade vem inline, por densidade)
+   Sem linhas de grade: o que separa uma linha da outra é o respiro de 1px
+   e o realce no hover. Densidade é característica desta tela, não defeito.
+   ===================================================================== */
+.rf-sq-head{display:grid;gap:0 8px;padding:0 10px 6px;font-family:var(--font-mono);
+  font-size:var(--fs-label);color:var(--text-faint);letter-spacing:.06em}
+.rf-sq-head>span:nth-child(n+4){text-align:right}
+.rf-sq-list{display:flex;flex-direction:column;gap:1px;max-height:560px;overflow-y:auto}
+.rf-sq-row{display:grid;gap:0 8px;align-items:center;background:var(--surface-card);
+  border-radius:var(--r-row);cursor:pointer;transition:background var(--dur-fast) var(--ease)}
+.rf-sq-row:hover{background:var(--surface-row-active)}
+.rf-sq-row.sel{background:var(--club-primary-soft)}
+.rf-sq-row.off{opacity:.55}
+/* marcador: T nas cores do clube pra titular, letra da posição em cinza pro reserva */
+.rf-sq-mark{width:17px;height:17px;border-radius:5px;background:#eceff0;color:var(--text-muted);
+  font-family:var(--font-sans);font-size:9px;font-weight:var(--fw-bold);
+  display:flex;align-items:center;justify-content:center}
+.rf-sq-mark.tit{background:var(--club-primary);color:var(--club-secondary-on-primary,var(--club-secondary))}
+.rf-sq-pos{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-faint)}
+.rf-sq-name{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-size:var(--fs-body);font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-sq-id,.rf-sq-frc,.rf-sq-nota,.rf-sq-sal,.rf-sq-val{font-family:var(--font-mono);
+  text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rf-sq-id{font-size:var(--fs-caption);color:var(--text-muted)}
+.rf-sq-frc{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-sq-nota{font-size:var(--fs-caption);color:var(--text-faint)}
+.rf-sq-nota.boa{color:var(--ok)}
+.rf-sq-nota.media{color:var(--warn)}
+.rf-sq-nota.ruim{color:var(--danger)}
+.rf-sq-sal,.rf-sq-val{font-size:var(--fs-caption);color:var(--text-3)}
+/* energia: barrinha + número, na escala vermelho→verde */
+.rf-sq-ener{display:flex;align-items:center;justify-content:flex-end;gap:5px}
+.rf-sq-ener b{font-family:var(--font-mono);font-size:var(--fs-micro);font-weight:var(--fw-medium);
+  color:var(--text-4);min-width:26px;text-align:right}
+.rf-ener{display:block;width:22px;height:var(--bar-h-sm);border-radius:var(--r-pill);
+  background:var(--surface-sunken);position:relative;overflow:hidden;flex:0 0 auto}
+.rf-ener::after{content:'';position:absolute;inset:0;width:calc(var(--v,100) * 1%);
+  background:var(--c,var(--ok));border-radius:var(--r-pill)}
+/* card em ênfase: a aba escolhida no topo da página realça o card dela, em
+   vez de esconder os outros — a página mostra tudo, a aba diz onde olhar */
+.rf-card-destaque{border-color:var(--club-primary);box-shadow:0 0 0 3px var(--club-primary-soft)}
+.rf-ficha{max-height:520px;overflow-y:auto}
+
+/* ----- FICHA DO JOGADOR ----- */
+/* a camisa é desenhada em CSS, não em SVG: o design system fecha a porta pra
+   ícone novo em SVG, e a camisa já é feita assim no campo */
+.rf-jersey{position:relative;width:44px;height:41px;flex:0 0 auto;filter:var(--shadow-piece)}
+.rf-jersey i{position:absolute;display:block}
+.rf-j-sl{top:7px;width:13px;height:16px;background:var(--club-secondary)}
+.rf-j-sl.l{left:0;border-radius:4px 2px 6px 5px;transform:rotate(-16deg)}
+.rf-j-sl.r{right:0;border-radius:2px 4px 5px 6px;transform:rotate(16deg)}
+.rf-j-body{left:10px;top:4px;width:24px;height:36px;background:var(--club-primary);
+  border-radius:4px 4px 7px 7px;display:flex;align-items:center;justify-content:center}
+.rf-j-body b{font-family:var(--font-mono);font-size:14px;font-weight:var(--fw-semibold);
+  color:var(--club-secondary-on-primary,var(--club-secondary));margin-top:4px}
+.rf-j-collar{left:50%;top:2px;transform:translateX(-50%);width:14px;height:6px;
+  background:var(--club-secondary);border-radius:0 0 8px 8px}
+
+.rf-ficha-id{display:flex;align-items:center;gap:12px}
+.rf-ficha-nm{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-ficha-n{font-size:var(--fs-heading);font-weight:var(--fw-bold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-ficha-s{font-size:var(--fs-caption);color:var(--text-4);white-space:nowrap}
+.rf-ficha-bars{display:flex;flex-direction:column;gap:8px}
+.rf-fb-l{display:flex;justify-content:space-between;font-size:var(--fs-caption);color:var(--text-3)}
+.rf-fb-l .rf-num{color:var(--text-1)}
+.rf-fb{height:6px;border-radius:var(--r-pill);background:var(--line-3);overflow:hidden}
+.rf-fb>i{display:block;height:100%;border-radius:var(--r-pill);transition:width var(--dur-base) var(--ease)}
+.rf-sep{height:1px;background:var(--line-3)}
+.rf-ficha-linhas{display:flex;flex-direction:column;gap:8px}
+.rf-ficha-linhas .rf-linha-t{font-size:var(--fs-body-sm);color:var(--text-3)}
