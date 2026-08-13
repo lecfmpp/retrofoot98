@@ -398,22 +398,50 @@ function adSlotClick(slot, i){
   if(!s.url){ toastC('Link do patrocinador ainda não configurado ('+s.nome+').'); return; }
   window.open(s.url,'_blank','noopener,noreferrer');
 }
-function dlg(title,body,opts){ opts=opts||{}; const w=opts.w||(opts.std?640:620);
-  const badge = opts.badge ? `<div class="cl-dlg-badge">${opts.badge.icon||''}<span class="cl-dlg-badge-t">${escC(opts.badge.label||'')}</span></div>` : '';
-  if(opts.std) return `<div class="cl-dlg cl-dlg-std" style="width:${w}px">
-    ${badge}
-    <div class="cl-dlg-title"><span>${escC(title)}</span><button class="cl-dlg-x" type="button" title="Fechar" aria-label="Fechar" onclick="clCloseOverlay()">✕</button></div>
-    <div class="cl-dlg-body ${opts.bodyClass||'cl-body-gray'}">
-      <div class="cl-dlg-content">${body}</div>
-      ${opts.ad?adSlotHTML(opts.ad):''}
-      ${opts.footer?`<div class="cl-dlg-foot ${opts.footerClass||''}">${opts.footer}</div>`:''}
+/* ===== DIALOG (rebranding 2026, telas/Popups e Toasts.html) =====
+   Uma peça só pra todo popup do jogo. A anatomia é a da referência:
+   cabeçalho na cor do clube com filete de 6px, glifo, título, subtítulo e
+   ✖; corpo em card branco; rodapé com as ações à direita.
+
+   Reescrever aqui converte TODOS os popups de uma vez — são ~90 chamadas de
+   dlg() espalhadas pelo main.js, e nenhuma precisou mudar: a assinatura
+   (title, body, opts) é a mesma, e `opts` só ganhou campos opcionais.
+
+   opts.glyph    emoji do cabeçalho (o único sistema de ícones do projeto)
+   opts.sub      subtítulo, abaixo do título
+   opts.badge    pílula à direita — aceita o formato antigo {icon,label}
+   opts.footer   ações; sem ele, o corpo entra inteiro (as telas antigas
+                 desenham o próprio bloco de botões dentro do body)
+   opts.tone     'light' força cabeçalho claro; o padrão é a cor do clube */
+function dlg(title,body,opts){
+  opts=opts||{};
+  const w=opts.w||(opts.std?640:620);
+  const claro=opts.tone==='light';
+  const badgeTxt = opts.badge ? (typeof opts.badge==='string'?opts.badge:(opts.badge.label||'')) : '';
+  const badgeIco = (opts.badge&&opts.badge.icon)||'';
+  const glyph = opts.glyph||badgeIco||'';
+  return `<div class="rf-dlg ${claro?'':'rf-dlg-club'}" style="width:${w}px">
+    <div class="rf-dlg-hd">
+      ${claro?'':'<div class="rf-dlg-filete"></div>'}
+      ${glyph?`<span class="rf-dlg-glyph">${glyph}</span>`:''}
+      <div class="rf-dlg-ttl">
+        <span class="rf-dlg-t">${escC(title)}</span>
+        ${opts.sub?`<span class="rf-dlg-sub">${escC(opts.sub)}</span>`:''}
+      </div>
+      <div class="rf-dlg-sp"></div>
+      ${badgeTxt?`<span class="rf-dlg-badge">${escC(badgeTxt)}</span>`:''}
+      <button class="rf-dlg-x" type="button" title="Fechar" aria-label="Fechar" onclick="clCloseOverlay()">✖</button>
     </div>
+    <div class="rf-dlg-body">${opts.ad?dlgBodyComAd(body,opts.ad):body}</div>
+    ${opts.footer?`<div class="rf-dlg-foot">${opts.footer}</div>`:''}
   </div>`;
-  return `<div class="cl-dlg" style="width:${w}px">
-    ${badge}
-    <div class="cl-dlg-title"><span>${escC(title)}</span>${opts.min?'<span class="cl-min">–</span>':''}</div>
-    <div class="cl-dlg-body ${opts.bodyClass||''}">${opts.ad?dlgBodyComAd(body,opts.ad):body}</div>
-  </div>`; }
+}
+/* blocos de número do popup de celebração (CAMPANHA · PREMIAÇÃO na referência) */
+function rfStatBlocks(pares){
+  return `<div class="rf-dlg-stats">${pares.map(([l,v])=>`<div class="rf-dlg-stat">
+    <span class="rf-label-t">${escC(l)}</span>
+    <span class="rf-dlg-stat-v">${escC(v)}</span></div>`).join('')}</div>`;
+}
 /* O SLOT FICA ACIMA DA BARRA DE AÇÃO (regra do handoff). Nas janelas simples os botões moram
    DENTRO do corpo (bloco .cl-cal-ok), então grudar o anúncio no fim jogaria ele embaixo do OK —
    o usuário passaria por cima do botão pra ver o anúncio. Aqui ele entra logo antes desse bloco;

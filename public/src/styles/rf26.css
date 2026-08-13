@@ -1489,3 +1489,68 @@
   .rf-eq-crest img,.rf-eq-crest .rf-crest-fb{width:44px;height:44px}
   .rf-eq-n{font-size:var(--fs-heading)}
 }
+
+/* ----- Dialog: ajustes pra ele receber o corpo das telas antigas -----
+   Muitas chamadas de dlg() desenham o próprio bloco de botões DENTRO do
+   body (.cl-cal-ok) em vez de usar opts.footer. Em vez de reescrever as ~90
+   chamadas, o bloco recebe aqui a aparência de rodapé. */
+.rf-dlg-body .cl-cal-ok{display:flex;gap:var(--sp-4);justify-content:flex-end;
+  padding-top:var(--pad-card);margin-top:var(--sp-4);border-top:1px solid var(--line-3)}
+.rf-dlg-body .cl-cal-ok .cl-btn{flex:0 0 auto;min-width:140px}
+.rf-dlg-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rf-dlg-stat{display:flex;flex-direction:column;gap:4px;padding:12px 14px;
+  border-radius:var(--r-control);background:var(--surface-sunken)}
+.rf-dlg-stat-v{font-family:var(--font-mono);font-size:var(--fs-heading);
+  font-weight:var(--fw-semibold);color:var(--text-1);white-space:nowrap}
+/* o corpo do diálogo rola sozinho quando o conteúdo é longo (calendário,
+   elenco de outro clube), sem o cabeçalho sair da tela */
+.rf-dlg-body{max-height:64vh;overflow-y:auto}
+
+/* =====================================================================
+   CONTEÚDO LEGADO DENTRO DO DIALOG
+   As páginas não usam mais marcação antiga, mas os POPUPS ainda desenham
+   com as classes `cl-*` de sempre — e agora eles moram dentro do Dialog
+   novo, sobre fundo branco. Estas regras dão a pele do design system a
+   esse conteúdo sem tocar no HTML que o gera. Escopo estrito: só valem
+   dentro de .rf-dlg-body.
+   ===================================================================== */
+.rf-dlg-body fieldset{border:var(--border-hairline);border-radius:var(--r-inner);
+  padding:var(--pad-card-sm);margin:0 0 var(--gap-grid)}
+.rf-dlg-body legend{font-size:var(--fs-label);font-weight:var(--fw-bold);color:var(--text-muted);
+  letter-spacing:var(--ls-label);text-transform:uppercase;padding:0 6px}
+.rf-dlg-body table{width:100%;border-collapse:collapse}
+.rf-dlg-body th{font-size:var(--fs-label);font-weight:var(--fw-bold);color:var(--text-muted);
+  letter-spacing:var(--ls-label);text-transform:uppercase;text-align:left;padding:6px 8px;white-space:nowrap}
+.rf-dlg-body td{padding:6px 8px;border-bottom:1px solid var(--line-3);white-space:nowrap}
+
+/* ----- listas: a linha inteira deixa de ser pintada -----
+   O calendário separava tipo pintando a linha toda (ímpar em navy, copa em
+   amarelo, sorteio em roxo). Sobre o branco do Dialog isso vira um
+   arco-íris que compete com o dado. A distinção continua, por fundo quase
+   branco + filete colorido à esquerda. */
+.rf-dlg-body .cl-cal,.rf-dlg-body .cl-cls{background:transparent;border:none;width:auto;max-height:none}
+.rf-dlg-body .cl-cal-row{padding:7px 10px;font-size:var(--fs-body-sm);font-weight:var(--fw-medium);
+  color:var(--text-2);border-radius:var(--r-row);border-left:3px solid transparent}
+.rf-dlg-body .cl-cal-row:nth-child(odd){background:var(--surface-row-alt);color:var(--text-2)}
+.rf-dlg-body .cl-cal-row:hover{background:var(--surface-sunken)}
+.rf-dlg-body .cl-cal-sched .cl-cal-row:nth-child(odd){background:transparent}
+.rf-dlg-body .cl-cal-sched .cl-cal-row:nth-child(even){background:var(--surface-row-alt)}
+.rf-dlg-body .cl-cal-n,.rf-dlg-body .cl-cal-d{font-family:var(--font-mono);
+  font-size:var(--fs-micro);color:var(--text-faint)}
+.rf-dlg-body .cl-cal-cf{font-family:var(--font-mono);text-align:right;color:var(--text-3)}
+.rf-dlg-body .cl-cal-head{font-size:var(--fs-label);font-weight:var(--fw-bold);color:var(--text-muted);
+  letter-spacing:var(--ls-label);text-transform:uppercase;padding:0 10px 6px}
+.rf-dlg-body .cl-cal-cup{background:var(--surface-sunken)!important;color:var(--text-1)!important;
+  border-left-color:var(--club-secondary)}
+.rf-dlg-body .cl-cal-draw{background:var(--club-primary-soft)!important;color:var(--club-primary)!important;
+  font-style:italic;border-left-color:var(--club-primary)}
+.rf-dlg-body .cl-cal-folga{background:transparent!important;color:var(--text-faint)!important;
+  border-left-color:var(--line-2)}
+.rf-dlg-body .cl-cal-folga .cl-cal-n,.rf-dlg-body .cl-cal-folga .cl-cal-d{color:var(--text-faint)}
+/* classificação e ranking dentro de popup */
+.rf-dlg-body .cl-cls-row,.rf-dlg-body .cl-rank-row{border-radius:var(--r-row);padding:6px 10px;
+  color:var(--text-2);font-size:var(--fs-body-sm)}
+.rf-dlg-body .cl-cls-row:nth-child(odd),.rf-dlg-body .cl-rank-row:nth-child(odd){background:var(--surface-row-alt)}
+.rf-dlg-body .cl-cls-row.me,.rf-dlg-body .cl-rank-row.me{background:var(--club-primary-soft);
+  font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-dlg-body .cl-rank,.rf-dlg-body .cl-chist{background:transparent;border:none;max-height:none}
