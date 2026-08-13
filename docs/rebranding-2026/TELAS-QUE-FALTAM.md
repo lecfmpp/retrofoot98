@@ -1,105 +1,102 @@
-# Telas a desenhar — 24 restantes
+# Telas a desenhar — nenhuma pendente
 
-Atualizado em 2026-08-13. Estas telas existem no jogo e ainda usam o desenho
-antigo. As dos pacotes 1 e 2 já estão implementadas e saíram desta lista.
+Atualizado em 2026-08-13. As 24 telas da lista anterior chegaram na leva 4 e
+estão implementadas. **Não há nada aguardando desenho neste momento.**
 
 ## Como ler
 
 | Coluna | O que é |
 |---|---|
-| **print** | Arquivo em `screenshots-atual/` — o desenho de hoje, para referência |
-| **função** | Quem monta o HTML, em `public/src/ui/main.js` salvo indicação |
-| **classe** | Prefixo CSS em `public/src/styles/main.css` |
-| **`CL.screen`** | Chave da tela no `switch` do `cdraw()`, `main.js:672` |
-
-**Envelopes já prontos, reaproveitáveis:**
-
-- `rfOverlay()` — sobreposição durante a partida (gramado escurecido, janela
-  branca de raio 24, cabeçalho azul com filete amarelo, rodapé claro)
-- `rfStage()` — página cheia entre partidas (faixa do clube, mesa verde-clara)
-- `rfWiz()` — passo de onboarding (marca, trilha de 5 passos, card, barra de ação)
-- `dlg()` — popup padrão (cabeçalho na cor do clube, corpo branco, rodapé)
-
-As telas marcadas **↪** encaixam num envelope existente — só precisam do miolo.
-
-> **Atenção:** a Pausa Patrocinada usa prefixo `rf-` no CSS **antigo** (veio de
-> um handoff anterior). Não confundir com o `rf-` do rebranding, que mora em
-> `public/src/styles/rf26.css`.
+| **tela** | Arquivo em `telas/` do pacote da leva 4 |
+| **função** | Quem monta o HTML hoje |
+| **`CL.screen`** | Chave da tela no `switch` do `cdraw()`, `main.js` |
 
 ---
 
-## 1 · Partida — prioridade alta
+## Implementado na leva 4
 
-Sobreposições sobre `live`. Nenhuma tem `CL.screen` próprio. **↪ `rfOverlay()`**
+### Partida
 
-| # | Tela | print | função | classe |
-|---|---|---|---|---|
-| 1 | **Pênalti — escolher batedor** | `37 - Partida - Penalti (escolher batedor).png` | `penaltyPickerHTML()` `7306` | `cl-pen` |
-| 2 | **Pênalti — suspense** | `38 - Partida - Penalti (suspense).png` | `penaltySuspenseHTML()` `7359` | `cl-pen` |
-| 3 | **Pênalti — resultado** | `39 - Partida - Penalti (gol).png` | `penaltyResultHTML()` `7367` | `cl-pen` |
-| 4 | **Disputa de pênaltis** | `45 - Partida - Disputa de penaltis.png` | `shootoutScoreboardHTML()` `7221` | `cl-pens` |
-| 5 | **Prorrogação** | — | `startExtraTime()` `6150`; cabeçalho de `RL.extraStartMinute` | — |
-| 6 | **Detalhe de um jogo** | `34`–`36 - Partida ao vivo...png` | `liveModalHTML()` `7248` | `cl-lm` |
+| Tela | função | arquivo |
+|---|---|---|
+| Modal - Penalti Batedor | `rfPenaltiBatedorHTML()` | `rf26-partida.js` |
+| Modal - Penalti Suspense | `rfPenaltiSuspenseHTML()` | `rf26-partida.js` |
+| Modal - Penalti Resultado | `rfPenaltiResultadoHTML()` | `rf26-partida.js` |
+| Modal - Disputa de Penaltis | `rfDisputaHTML()` | `rf26-partida.js` |
+| Modal - Prorrogacao | `rfProrrogacaoHTML()` | `rf26-partida.js` |
 
-As 1 a 5 decidem mata-mata e hoje caem na tela genérica de Partida ao Vivo, que
-não tem placar de série nem cabeçalho de prorrogação.
+### Entre rodadas e competições
 
-## 2 · Entre rodadas
+| Tela | função | `CL.screen` |
+|---|---|---|
+| Fim de Temporada | `rfFimTemporadaHTML()` | *(sobreposição)* |
+| Competicao - Visao Geral | `rfCompeticaoHTML()` | `cupview` |
+| Copa - Classificacao da Fase | `rfCopaFaseHTML()` | `cupclassif` |
+| Imprensa | `rfImprensaHTML()` | `imprensa` |
+| Adversario - Ver Time | `rfVerTimeHTML()` | `teamview` |
 
-| # | Tela | print | função | classe | `CL.screen` |
-|---|---|---|---|---|---|
-| 7 | **Fim de temporada** ↪ `dlg()` | `46 - Fim de temporada (premiacao).png` | `dlg('Fim da temporada!'…)` `7531` e `7595` | `cl-dlg` | — |
-| 8 | **Tela da competição** ↪ `rfStage()` | `23 - Modal - Minhas competicoes.png` | `scCupView()` `10565` | `cl-cup2` | `cupview` |
-| 9 | **Classificação de copa** ↪ `rfStage()` | — | `scCupClassif()` `8556` | `cl-cupres` | `cupclassif` |
-| 10 | **Imprensa** | — | `scImprensa()` `7685` | `cl-press` | `imprensa` |
+Todas em `rf26-competicao.js`.
 
-## 3 · Modo Resenha
+### Modo Resenha
 
-| # | Tela | print | função | classe | `CL.screen` |
-|---|---|---|---|---|---|
-| 11 | **Pausa patrocinada** | — | `PAUSA_GIFS` `470`, `pausaChecklist()` `558`, monta em `showSyncLoading()` `631` | `rf-step`, `rf-stage`, `rf-tv` | *(sobreposição `#c-syncload`)* |
-| 12 | **À espera da rodada** ↪ `rfStage()` | — | `scWaitRound()` `7891` | `cl-wait` | `waitround` |
-| 13 | **Passe o aparelho** | — | `scSeatTurn()` `3082` | reusa `cl-main` (é o Hub com outro cabeçalho) | `seatturn` |
-| 14 | **Classificação do assento** ↪ `rfStage()` | — | `scSeatClassif()` `3043` | `cl-cls2` | `seatclassif` |
-| 15 | **Entrega do aparelho** ↪ `rfStage()` | — | `scHandoff()` `3135` | `cl-handoff` | `handoff` |
+| Tela | função | `CL.screen` |
+|---|---|---|
+| Resenha - Pausa Patrocinada | `rfPausaHTML()` | `waitround` |
+| Resenha - A Espera da Rodada | `rfEsperaHTML()` | `waitround` |
+| Resenha - Passe o Aparelho | `rfPasseHTML()` | `handoff` |
+| Resenha - Entrega do Aparelho | `rfEntregaHTML()` | `entrega` *(novo)* |
+| Resenha - Classificacao do Assento | `rfAssentoClassifHTML()` | `seatclassif` |
 
-## 4 · Onboarding e entrada
+Todas em `rf26-resenha.js`. As duas primeiras são o mesmo `CL.screen`: a pausa
+enquanto corre a janela do patrocinador, a espera quando o que falta são os
+outros treinadores.
 
-| # | Tela | print | função | classe | `CL.screen` |
-|---|---|---|---|---|---|
-| 16 | **Continuar um save** ↪ `rfWiz()` | `03` e `04 - Solo - ...png` | `scModoSolo()` `1882` | `cl-mc` | `modosolo` |
-| 17 | **Escolha de moeda** ↪ `rfWiz()` | `06 - Escolha de moeda.png` | `scMoeda()` `2165` | `cl-bigsel` | `moeda` |
-| 18 | **Carregando** ↪ `rfWiz()` | — | `scLoading()` `2185` | `cl-prog` | `loading` |
-| 19 | **País jogável** ↪ `rfWiz()` | — | `scPaisJogavel()` `2139` | `cl-ctry` | `paisJogavel` |
-| 20 | **Número de treinadores** ↪ `rfWiz()` | `07 - Numero de jogadores.png` | `scJogadores()` `2212` | `cl-prow` | `jogadores` |
-| 21 | **Escolha dos clubes** ↪ `rfWiz()` | `08 - Escolha os clubes (sorteio).png` | `scEscolhaClubes()` `2782` | `cl-navysel`, `cl-pick` | `escolhaclubes` |
-| 22 | **Recuperar senha** ↪ `rfWiz()` | — | `scResetPassword()` `1689` | `cl-authform` | `resetpassword` |
+### Fluxo de entrada
 
-As 17 a 21 encaixam nos marcos *Configurar* e *Sorteio* da trilha de 5 passos
-que o onboarding já tem — não mudam a contagem de passos.
+| Tela | função | `CL.screen` |
+|---|---|---|
+| Fluxo - Escolha de Moeda | `rfMoedaHTML()` | `moeda` |
+| Fluxo - Pais Jogavel | `rfPaisHTML()` | `paisJogavel` |
+| Fluxo - Carregando | `rfCarregandoHTML()` | `loading` |
+| Fluxo - Numero de Treinadores | `rfTreinadoresHTML()` | `jogadores` |
+| Fluxo - Escolha dos Clubes | `rfClubesHTML()` | `escolhaclubes` |
+| Fluxo - Continuar Save | `rfSavesHTML()` | `modosolo` (`soloStep='cont'`) |
+| Conta - Recuperar Senha | `rfRecuperarSenhaHTML()` | `recuperarsenha` *(novo)* |
+| Landing - Paginas Institucionais | `rfInstitucionalHTML()` | `abertura` + `CL.landingView` |
 
-## 5 · Secundárias
-
-| # | Tela | print | função | classe | `CL.screen` |
-|---|---|---|---|---|---|
-| 23 | **Ver time de outro clube** | — | `scTeamView()` `3842` | `cl-main` | `teamview` |
-| 24 | **Páginas institucionais** | — | `landingPageHTML()` `1536`; conteúdo em `landingSobreHTML()` `1544`, `landingAjudaHTML()` `1552`, `landingContatoHTML()` `1570`, `landingTermosHTML()` `1580`, `landingPrivHTML()` `1589` | `cl-lp-page` | `abertura` + `CL.landingView` |
+Todas em `rf26-fluxo.js`.
 
 ---
 
-## Ordem sugerida
+## Envelopes disponíveis para telas novas
 
-1. **Pênaltis e prorrogação** (1–5) — decidem mata-mata; o envelope já existe
-2. **Fim de temporada** (7) — o momento de celebração do save
-3. **Pausa patrocinada** (11) — toda virada de rodada na Resenha
-4. **Continuar um save** (16) — primeira coisa que o jogador que volta encontra
-5. **Tela da competição** (8) — ver grupos e chave fora do sorteio
+| Envelope | Para quê |
+|---|---|
+| `rfOverlay()` | sobreposição durante a partida |
+| `rfStage()` | página cheia entre partidas |
+| `rfWiz()` | passo do assistente — trilha de **6 passos** (`semTrilha:true` para telas fora do fluxo) |
+| `rfGate()` | tela cheia de troca de aparelho (fundo verde, cartão de 640px) |
+| `dlg()` | popup |
 
-## Ver o desenho de hoje rodando
+---
+
+## Três telas que o jogo tem e o pacote nunca desenhou
+
+Nenhuma delas bloqueia nada — todas já rodam com o desenho novo por herdarem um
+envelope. Ficam registradas caso valha um desenho próprio no futuro:
+
+| Tela | função | Por que ficou sem referência |
+|---|---|---|
+| **Detalhe de um jogo** | `liveModalHTML()` | sobreposição sobre a Partida ao Vivo |
+| **Nova senha** | `rfNovaSenhaHTML()` | a outra ponta de *Conta - Recuperar Senha* |
+| **Sorteio do Brasileirão** | `cupDrawScreenHTML()` | decisão de produto: o formato já vem pronto de base |
+
+---
+
+## Ver o jogo rodando
 
 ```bash
 npm run dev
 ```
 
-Depois `http://localhost:5199/?rf=hub`. Para as telas de partida, use **Jogar** —
-passa pelo sorteio e cai na rodada ao vivo.
+Depois `http://localhost:5199/?rf=hub` (atalho de bancada, só em localhost).
