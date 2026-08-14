@@ -399,6 +399,7 @@ function rfEnvelope(conteudo){
       ${rfRail('right')}
     </div>
     ${rfBottomNavHTML()}
+    ${typeof rfAcaoHTML==='function'?rfAcaoHTML():''}
   </div>`;
 }
 

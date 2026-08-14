@@ -1,0 +1,425 @@
+/* =====================================================================
+   RetroFoot98 — AS AÇÕES INTERNAS
+   Portado de telas/Acoes - Mercado, Acoes - Elenco e E-mail e
+   Acoes - Sistema e Conta (pacote "Ações Internas").
+
+   São 24 diálogos: o que abre quando você clica num botão de ação
+   dentro de uma página. Todos usam o MESMO envelope — cartão branco de
+   cantos redondos, cabeçalho em degradê escuro com o filete amarelo à
+   esquerda, corpo de 18px e rodapé com a ação à direita.
+
+   Esta camada SUBSTITUI os popups antigos (dlg/overlayC) dessas ações.
+   Nenhum deles volta: quem desenha ação interna daqui pra frente é
+   rfAcao(), e nada mais.
+   ===================================================================== */
+
+/* ---------- o envelope ---------- */
+function rfAcao(o){
+  o=o||{};
+  const larg=o.w||520;
+  const rodape = (o.acoes||[]).map(a=>{
+    const cls = a.tom==='perigo' ? 'perigo' : a.tom==='fantasma' ? 'fantasma' : 'cta';
+    return `<button type="button" class="rf-ac-bt ${cls}" onclick="${a.on||'rfAcFechar()'}">${a.l}</button>`;
+  });
+  // um botão só fica à direita; dois abrem-se nas pontas
+  const barra = rodape.length>1
+    ? rodape[0]+'<div class="rf-sp"></div>'+rodape.slice(1).join('')
+    : '<div class="rf-sp"></div>'+rodape.join('');
+  return `<div class="rf-ac-fundo" onclick="if(event.target===this)rfAcFechar()">
+    <div class="rf-ac" style="width:${larg}px" role="dialog" aria-modal="true">
+      <div class="rf-ac-hd">
+        <span class="rf-ac-k">${o.kicker||''}</span>
+        <span class="rf-ac-t">${o.titulo||''}</span>
+      </div>
+      <div class="rf-ac-corpo">${o.corpo||''}</div>
+      ${rodape.length?`<div class="rf-ac-pe">${barra}</div>`:''}
+    </div>
+  </div>`;
+}
+function rfAcAbrir(id, dados){ CL.acao={id, d:dados||{}}; cdraw(); }
+function rfAcFechar(){ CL.acao=null; cdraw(); }
+function rfAcD(){ return (CL.acao&&CL.acao.d)||{}; }
+
+/* ---------- as peças do corpo ---------- */
+/* faixa de identidade: camisa, nome + linha de contexto, e um número à direita */
+function rfAcFichaHTML(p, rotulo, valor, num){
+  const th=(typeof clubTheme==='function')?clubTheme(CL.clubId):{};
+  const c1=th.col||'#17458F', c2=th.col2||'#F2B90C';
+  const setor=({GK:'Goleiro',DEF:'Defesa',MID:'Meio-campo',ATT:'Atacante'})[p&&p.s]||'—';
+  return `<div class="rf-ac-ficha">
+    <span class="rf-ac-cam" aria-hidden="true">
+      <i class="rf-ac-cam-b" style="background:${c1}"></i>
+      <i class="rf-ac-cam-l" style="background:${c2}"></i><i class="rf-ac-cam-r" style="background:${c2}"></i>
+      <i class="rf-ac-cam-g" style="background:${c2}"></i>
+      <b style="color:${barTextColor(c1,c2)}">${escC(String(num||''))}</b>
+    </span>
+    <span class="rf-ac-f-id">
+      <span class="rf-ac-f-n">${escC((p&&p.n)||'—')}</span>
+      <span class="rf-ac-f-s">${escC(setor)} · ${(p&&p.age)||'—'} anos · força ${(p&&p.f)||'—'}</span>
+    </span>
+    ${rotulo?`<span class="rf-ac-f-v">
+      <span class="rf-ac-f-vl">${escC(rotulo)}</span>
+      <span class="rf-ac-f-vv">${escC(valor||'—')}</span>
+    </span>`:''}
+  </div>`;
+}
+/* campo de dinheiro: rótulo, caixa e a linha de ajuda embaixo */
+function rfAcCampoHTML(id, rotulo, valor, dica, opts){
+  opts=opts||{};
+  return `<label class="rf-ac-campo">
+    <span class="rf-ac-l">${escC(rotulo)}</span>
+    <span class="rf-ac-cx ${opts.foco?'foco':''}">
+      ${opts.puro?'':`<span class="rf-ac-cur">${escC(curSym())}</span>`}
+      <input class="rf-ac-in" id="${id}" ${opts.tipo==='texto'?'':'inputmode="numeric"'}
+        value="${valor!=null?escC(String(valor)):''}" placeholder="${escC(opts.ph||'')}"
+        ${opts.tipo==='texto'?'':'oninput="clMoneyInputReformat(this)"'}>
+      ${opts.sufixo?`<span class="rf-ac-suf">${escC(opts.sufixo)}</span>`:''}
+    </span>
+    ${dica?`<span class="rf-ac-d">${dica}</span>`:''}
+  </label>`;
+}
+/* − valor ＋ */
+function rfAcPassoHTML(id, rotulo, valor, dica){
+  return `<label class="rf-ac-campo">
+    <span class="rf-ac-l">${escC(rotulo)}</span>
+    <span class="rf-ac-passo">
+      <button type="button" class="rf-ac-pb" onclick="rfAcPasso('${id}',-1)">−</button>
+      <span class="rf-ac-pv" id="${id}">${valor}</span>
+      <button type="button" class="rf-ac-pb" onclick="rfAcPasso('${id}',1)">＋</button>
+    </span>
+    ${dica?`<span class="rf-ac-d">${dica}</span>`:''}
+  </label>`;
+}
+function rfAcPasso(id, d){
+  const el=document.querySelector('#'+id); if(!el) return;
+  const v=Math.max(1,Math.min(6,(parseInt(el.textContent,10)||1)+d));
+  el.textContent=v;
+}
+/* linha de consequência: rótulo à esquerda, número à direita, com tom */
+function rfAcLinhaHTML(rotulo, valor, tom, topo){
+  return `<div class="rf-ac-linha ${topo?'topo':''}">
+    <span class="rf-ac-li-l">${escC(rotulo)}</span>
+    <span class="rf-ac-li-v ${tom||''}">${escC(valor)}</span>
+  </div>`;
+}
+function rfAcNotaHTML(txt){ return `<span class="rf-ac-nota">${txt}</span>`; }
+/* medidor de chance (0-100) */
+function rfAcChanceHTML(rotulo, pct){
+  const cor = pct>=70?'ok' : pct>=40?'aviso' : 'ruim';
+  return `<div class="rf-ac-chance">
+    <div class="rf-ac-ch-l"><span class="rf-ac-l">${escC(rotulo)}</span>
+      <span class="rf-ac-ch-p ${cor}">${pct}%</span></div>
+    <div class="rf-ac-ch-t"><i class="${cor}" style="width:${pct}%"></i></div>
+  </div>`;
+}
+/* aviso destacado (perigo, atenção) */
+function rfAcAvisoHTML(txt, tom){ return `<div class="rf-ac-aviso ${tom||''}">${txt}</div>`; }
+/* selo grande de resultado (arrematado, gravado, renovado) */
+function rfAcSeloHTML(emoji, titulo, sub){
+  return `<div class="rf-ac-selo">
+    <span class="rf-ac-selo-e">${emoji}</span>
+    <span class="rf-ac-selo-t">${escC(titulo)}</span>
+    ${sub?`<span class="rf-ac-selo-s">${escC(sub)}</span>`:''}
+  </div>`;
+}
+/* lista de opções de rádio (o que responder, como listar, o que fazer) */
+function rfAcOpcoesHTML(nome, opcoes, sel){
+  return `<div class="rf-ac-ops">${opcoes.map((o,i)=>`
+    <button type="button" class="rf-ac-op ${(sel==null?i===0:sel===i)?'on':''}"
+      onclick="rfAcEscolher('${nome}',${i})">
+      <span class="rf-ac-op-r"></span>
+      <span class="rf-ac-op-id"><span class="rf-ac-op-t">${escC(o.t)}</span>
+        ${o.s?`<span class="rf-ac-op-s">${escC(o.s)}</span>`:''}</span>
+    </button>`).join('')}</div>`;
+}
+function rfAcEscolher(nome, i){ CL.acao.d[nome]=i; cdraw(); }
+
+/* =====================================================================
+   OS 24 DIÁLOGOS
+   Cada entrada devolve o envelope montado. O ROTEADOR embaixo é o único
+   ponto que o resto do jogo precisa conhecer: rfAcAbrir('id', dados).
+   ===================================================================== */
+const RF_ACOES = {
+
+/* ---------- MERCADO (9) ---------- */
+'mkt-propor': d=>{
+  const p=(typeof findP==='function')?findP(d.player,d.clubId):null;
+  const c=anyClubOf(d.clubId)||{short:'—'};
+  const ask=(p&&typeof playerAsk==='function')?playerAsk(p,d.clubId):0;
+  const oferta=d.oferta||Math.round(ask/1000)*1000;
+  const sal=(p&&((p.contract&&p.contract.salary)||p.salary))||0;
+  const caixa=(S.budget||0)-oferta;
+  const folha=rfFolha()+sal;
+  return rfAcao({ kicker:'MERCADO · COMPRAR', titulo:'Proposta por '+escC((p&&p.n)||'—'), w:520,
+    corpo:
+      rfAcFichaHTML(p,'PEDIDO',rfDin(ask),d.num)
+      + rfAcCampoHTML('rf-ac-fee','Valor da proposta', oferta?moneyDisp(oferta):'',
+          `Abaixo de ${escC(rfDin(Math.round(ask*0.9)))} o ${escC(c.short)} recusa direto.`, {foco:true})
+      + rfAcCampoHTML('rf-ac-sal','Salário oferecido', sal?moneyDisp(sal):'',
+          `O jogador pede no mínimo ${escC(rfDin(Math.round(sal*0.9)))}.`, {sufixo:'/mês'})
+      + rfAcPassoHTML('rf-ac-anos','Anos de contrato', d.anos||3,
+          'Contrato mais longo derruba o valor do passe em até 8%.')
+      + rfAcLinhaHTML('Caixa depois da compra', rfDin(caixa), caixa<0?'ruim':'ok', true)
+      + rfAcLinhaHTML('Folha depois da contratação', rfDin(folha)+'/mês', 'aviso')
+      + rfAcNotaHTML(`A proposta consome um dia da janela. O ${escC(c.short)} responde na próxima jornada.`),
+    acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar proposta',on:'rfMkProporFee()'}] });
+},
+
+'mkt-lance': d=>{
+  const lot=((S.auctions&&S.auctions.lots)||[]).find(l=>l.id===d.sellerId+'|'+d.player);
+  const p=(typeof findP==='function')?findP(d.player,d.sellerId):null;
+  if(!lot||!p) return '';
+  const sug=Math.round(lot.bid+Math.max(50000,lot.bid*0.08));
+  return rfAcao({ kicker:'MERCADO · LEILÃO · FECHA EM '+lot.roundsLeft+' RODADA'+(lot.roundsLeft===1?'':'S'),
+    titulo:'Lance por '+escC(p.n), w:500,
+    corpo:
+      rfAcFichaHTML(p,'LANCE ATUAL',rfDin(lot.bid),d.num)
+      + rfAcCampoHTML('rf-ac-lance','Seu lance', moneyDisp(sug),
+          `Precisa passar de ${escC(rfDin(lot.bid))}. Caixa: ${escC(rfDin(S.budget||0))}.`, {foco:true})
+      + rfAcLinhaHTML('Clubes na disputa', String(lot.interest||1), '', true)
+      + rfAcLinhaHTML('Caixa depois do lance', rfDin((S.budget||0)-sug), (S.budget||0)-sug<0?'ruim':'ok')
+      + rfAcNotaHTML('Para <b>garantir</b>, ofereça acima do que a concorrência topa pagar — quem fica abaixo é coberto na rodada seguinte.'),
+    acoes:[{l:'Cancelar',tom:'fantasma'},{l:'🔨 Dar lance',on:'rfMkLanceGo()'}] });
+},
+
+'mkt-cobrir': d=>{
+  const lot=((S.auctions&&S.auctions.lots)||[]).find(l=>l.id===d.sellerId+'|'+d.player);
+  const p=(typeof findP==='function')?findP(d.player,d.sellerId):null;
+  if(!lot||!p) return '';
+  const lider=anyClubOf(lot.leader)||{short:'a concorrência'};
+  const sug=Math.round(lot.bid+Math.max(50000,lot.bid*0.08));
+  return rfAcao({ kicker:'MERCADO · LEILÃO · FECHA EM '+lot.roundsLeft+' RODADA'+(lot.roundsLeft===1?'':'S'),
+    titulo:'Cobrir o lance do '+escC(lider.short), w:500,
+    corpo:
+      rfAcFichaHTML(p,'SEU LANCE',lot.myBid?rfDin(lot.myBid):'—',d.num)
+      + rfAcAvisoHTML(`O lance na frente é de <b>${escC(rfDin(lot.bid))}</b>. Se a rodada fechar assim, o lote é do ${escC(lider.short)}.`,'aviso')
+      + rfAcCampoHTML('rf-ac-lance','Cobrir com', moneyDisp(sug),
+          `Precisa passar de ${escC(rfDin(lot.bid))}.`, {foco:true})
+      + rfAcLinhaHTML('Caixa depois do lance', rfDin((S.budget||0)-sug), (S.budget||0)-sug<0?'ruim':'ok', true)
+      + rfAcNotaHTML('Desistir do lote não custa nada — mas o jogador sai do mercado se outro clube arrematar.'),
+    acoes:[{l:'Desistir do lote',tom:'fantasma'},{l:'⚡ Cobrir agora',on:'rfMkLanceGo()'}] });
+},
+
+'mkt-aceitar': d=>{
+  const o=rfPropostas().find(x=>x.id===d.id); if(!o) return '';
+  const p=squad(CL.clubId).find(x=>x.n===o.playerName)||{};
+  const vm=(typeof computeVM==='function'&&p.n)?computeVM(p):(p.mv||0);
+  const sal=(p.contract&&p.contract.salary)||p.salary||0;
+  const sub=squad(CL.clubId).filter(x=>x.s===p.s&&x.n!==p.n).sort((a,b)=>(b.f||0)-(a.f||0))[0];
+  return rfAcao({ kicker:'MERCADO · PROPOSTAS', titulo:'Aceitar a venda de '+escC(o.playerName)+'?', w:500,
+    corpo:
+      rfAcFichaHTML(p,'OFERTA',rfDin(o.fee),d.num)
+      + rfAcLinhaHTML('Entra no caixa', '+'+rfDin(o.fee), 'ok', true)
+      + rfAcLinhaHTML('Sai da folha', sal?('−'+rfDin(sal)+'/mês'):'—', 'ok')
+      + rfAcLinhaHTML('Valor de mercado dele', vm?rfDin(vm):'—', o.fee>=vm?'ok':'ruim')
+      + rfAcLinhaHTML('Quem herda a vaga', sub?sub.n+' (força '+sub.f+')':'ninguém no setor', sub?'':'ruim')
+      + rfAcNotaHTML(sub
+          ? 'A venda é definitiva e vale já nesta jornada.'
+          : '<b>Sem reserva no setor.</b> Vender agora abre um buraco no onze que o banco não cobre.'),
+    acoes:[{l:'Voltar',tom:'fantasma'},{l:'Confirmar a venda',on:`rfMkAceitar(${d.id})`}] });
+},
+
+'mkt-recusar': d=>{
+  const o=rfPropostas().find(x=>x.id===d.id); if(!o) return '';
+  const p=squad(CL.clubId).find(x=>x.n===o.playerName)||{};
+  return rfAcao({ kicker:'MERCADO · PROPOSTAS', titulo:'Recusar a proposta do '+escC(o.buyerName||'clube')+'?', w:460,
+    corpo:
+      rfAcFichaHTML(p,'OFERTA',rfDin(o.fee),d.num)
+      + rfAcNotaHTML(`O ${escC(o.buyerName||'clube')} pode não voltar nesta janela. Se a ideia é só melhorar o valor, use <b>Contrapropor</b> em vez de recusar.`),
+    acoes:[{l:'Voltar',tom:'fantasma'},{l:'Recusar',tom:'perigo',on:`rfMkRecusar(${d.id})`}] });
+},
+
+'mkt-contra': d=>{
+  const o=rfPropostas().find(x=>x.id===d.id); if(!o) return '';
+  const p=squad(CL.clubId).find(x=>x.n===o.playerName)||{};
+  const vm=(typeof computeVM==='function'&&p.n)?computeVM(p):(p.mv||0);
+  const pedido=d.pedido||Math.round((vm||o.fee)*1.15/1000)*1000;
+  const chance=Math.max(5,Math.min(95,Math.round(100-((pedido-o.fee)/Math.max(1,o.fee))*180)));
+  return rfAcao({ kicker:'MERCADO · CONTRAPROPOSTA', titulo:'Contrapropor ao '+escC(o.buyerName||'clube'), w:500,
+    corpo:
+      rfAcFichaHTML(p,'OFERTA DELES',rfDin(o.fee),d.num)
+      + rfAcCampoHTML('rf-ac-ask','Seu pedido', moneyDisp(pedido),
+          `Valor de mercado: ${escC(rfDin(vm))}.`, {foco:true})
+      + rfAcChanceHTML('Chance de aceitarem', chance)
+      + rfAcNotaHTML('Pedir muito acima do valor de mercado costuma matar a negociação — o clube some da janela.'),
+    acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar contraproposta',on:'rfMkContraporGo()'}] });
+},
+
+'mkt-listar': d=>{
+  const p=squad(CL.clubId).find(x=>x.pid===d.pid); if(!p) return '';
+  const vm=(typeof computeVM==='function')?computeVM(p):(p.mv||0);
+  const titular=xiPlayers(CL.clubId).some(x=>x.pid===p.pid);
+  const sel=d.como!=null?d.como:0;
+  return rfAcao({ kicker:'MERCADO · VENDER', titulo:'Listar '+escC(p.n)+' para venda', w:500,
+    corpo:
+      rfAcFichaHTML(p,'VALOR',rfDin(vm),d.num)
+      + rfAcCampoHTML('rf-ac-preco','Preço pedido', moneyDisp(Math.round(vm/1000)*1000),
+          'Pedir muito acima do valor afasta comprador; abaixo, sai na primeira jornada.', {foco:true})
+      + `<span class="rf-ac-l">Como listar</span>`
+      + rfAcOpcoesHTML('como',[
+          {t:'Venda direta ao mercado', s:'o primeiro clube que topar leva'},
+          {t:'Leilão', s:'os interessados disputam por algumas rodadas'}], sel)
+      + (titular?rfAcAvisoHTML('É <b>titular</b>. Sair dele agora abre buraco no onze até você repor.','aviso'):'')
+      + rfAcNotaHTML('Dá para tirar da lista a qualquer momento enquanto ninguém tiver fechado.'),
+    acoes:[{l:'Cancelar',tom:'fantasma'},{l:'🏷 Listar',on:'rfMkListarGo()'}] });
+},
+
+'mkt-arrematado': d=>{
+  const p=(typeof findP==='function')?findP(d.player,d.sellerId):null;
+  return rfAcao({ kicker:'MERCADO · LEILÃO ENCERRADO', titulo:'Arrematado!', w:460,
+    corpo:
+      rfAcSeloHTML('🎉', escC((p&&p.n)||d.player||'—'), 'entra no seu elenco agora')
+      + rfAcLinhaHTML('Seu lance', rfDin(d.valor||0), 'ok', true)
+      + rfAcLinhaHTML('Caixa depois', rfDin(S.budget||0), '')
+      + rfAcNotaHTML('Ele já pode ser escalado na Formação.'),
+    acoes:[{l:'Ver o elenco',tom:'fantasma',on:"rfAcFechar();rfGo('elenco')"},{l:'Continuar'}] });
+},
+
+'mkt-semcaixa': d=>rfAcao({ kicker:'MERCADO', titulo:'Caixa insuficiente', w:460,
+  corpo:
+    rfAcAvisoHTML(`A proposta é de <b>${escC(rfDin(d.pedido||0))}</b> e o caixa tem <b>${escC(rfDin(S.budget||0))}</b>.`,'perigo')
+    + `<span class="rf-ac-l">De onde tirar</span>`
+    + rfAcOpcoesHTML('donde',[
+        {t:'Vender um jogador', s:'a aba Vender mostra quem sai sem abrir buraco'},
+        {t:'Baixar a oferta', s:'o clube pode aceitar menos se o jogador for reserva lá'},
+        {t:'Esperar a próxima jornada', s:'bilheteria e patrocínio entram no fecho da rodada'}], d.donde)
+    + rfAcNotaHTML('O jogo não deixa o caixa ficar negativo — nenhuma compra passa acima do que existe.'),
+  acoes:[{l:'Reduzir a oferta',tom:'fantasma'},{l:'Ir ao mercado',on:"rfAcFechar();rfSetTab('mercado','vender')"}] }),
+
+/* ---------- ELENCO E E-MAIL (7) ---------- */
+'mail-responder': d=>rfAcao({ kicker:'E-MAIL · RESPOSTA À DIRETORIA', titulo:escC(d.assunto||'Resposta'), w:520,
+  corpo:
+    `<span class="rf-ac-l">O que responder</span>`
+    + rfAcOpcoesHTML('resp',[
+        {t:'Assumo a meta', s:'a direção cobra o resultado, mas ganha paciência agora'},
+        {t:'Peço mais tempo', s:'sem promessa; a segurança no cargo não sobe nem desce'},
+        {t:'Discordo da meta', s:'a direção anota; segurança no cargo cai se a campanha não virar'}], d.resp)
+    + rfAcCampoHTML('rf-ac-msg','Acrescentar algo (opcional)','', '', {tipo:'texto',puro:true,ph:'até 140 caracteres'})
+    + rfAcNotaHTML('A resposta vai pro histórico da direção e pesa na avaliação de fim de temporada.'),
+  acoes:[{l:'Descartar',tom:'fantasma'},{l:'Enviar resposta'}] }),
+
+'mail-arquivar': d=>rfAcao({ kicker:'E-MAIL', titulo:'Arquivar esta mensagem?', w:440,
+  corpo:
+    rfAcNotaHTML(`<b>${escC(d.assunto||'A mensagem')}</b> sai da caixa de entrada. Nada se perde: ela continua na aba <b>Arquivo</b>.`),
+  acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Arquivar'}] }),
+
+'elenco-renovar': d=>{
+  const p=squad(CL.clubId).find(x=>x.pid===d.pid); if(!p) return '';
+  const sal=(p.contract&&p.contract.salary)||p.salary||0;
+  const novo=Math.round(sal*1.2/1000)*1000;
+  const chance=Math.max(5,Math.min(95, 50 + Math.round((novo-sal)/Math.max(1,sal)*140) - Math.max(0,(p.f||0)-70)));
+  return rfAcao({ kicker:'ELENCO · RENOVAÇÃO', titulo:'Renovar com '+escC(p.n), w:500,
+    corpo:
+      rfAcFichaHTML(p,'SALÁRIO',sal?rfDin(sal):'—',d.num)
+      + rfAcCampoHTML('rf-ac-novo','Novo salário', moneyDisp(novo),
+          `Hoje ele ganha ${escC(rfDin(sal))}. Abaixo disso ele nem escuta.`, {foco:true,sufixo:'/mês'})
+      + rfAcPassoHTML('rf-ac-anos','Anos de contrato', 3, 'Mais anos seguram o jogador, mas travam a folha.')
+      + rfAcChanceHTML('Chance de aceitar', chance)
+      + rfAcNotaHTML('Contrato vencendo derruba o valor do passe: renovar cedo é o que segura o preço.'),
+    acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Oferecer renovação'}] });
+},
+
+'elenco-renovado': d=>rfAcao({ kicker:'ELENCO · RENOVAÇÃO', titulo:'Contrato renovado', w:440,
+  corpo:
+    rfAcSeloHTML('✓', escC(d.nome||'—'), 'assinou com você')
+    + rfAcLinhaHTML('Novo salário', rfDin(d.salario||0), 'aviso', true)
+    + rfAcLinhaHTML('Até', String(d.ate||'—'), '')
+    + rfAcNotaHTML('A folha nova vale a partir do mês seguinte.'),
+  acoes:[{l:'Continuar'}] }),
+
+'elenco-semrenovar': d=>rfAcao({ kicker:'ELENCO · RENOVAÇÃO', titulo:'Não dá para renovar agora', w:460,
+  corpo:
+    rfAcAvisoHTML(escC(d.motivo||'A folha não comporta este salário.'),'perigo')
+    + `<span class="rf-ac-l">O que fazer</span>`
+    + rfAcOpcoesHTML('fazer',[
+        {t:'Baixar a oferta', s:'ele pode aceitar menos se for titular'},
+        {t:'Liberar salário', s:'vender ou emprestar quem não joga'},
+        {t:'Esperar a rodada fechar', s:'bilheteria e patrocínio entram no caixa'}], d.fazer)
+    + rfAcNotaHTML('Enquanto isso o contrato segue correndo — e o passe cai a cada jornada.'),
+  acoes:[{l:'Entendi'}] }),
+
+'base-promover': d=>{
+  const p=d.p||{};
+  return rfAcao({ kicker:'BASE · PROMOÇÃO', titulo:'Promover '+escC(p.n||'—')+'?', w:480,
+    corpo:
+      rfAcFichaHTML(p,'PRONTO EM',d.pronto||'—',d.num)
+      + rfAcLinhaHTML('Entra na folha', rfDin(d.salario||0)+'/mês', 'aviso', true)
+      + rfAcLinhaHTML('Elenco depois', (squad(CL.clubId).length+1)+' de 30', '')
+      + rfAcNotaHTML('Promovido, ele ocupa vaga no elenco e passa a contar na folha. Não dá para devolvê-lo à base nesta temporada.'),
+    acoes:[{l:'Deixar na base',tom:'fantasma'},{l:'Promover'}] });
+},
+
+'treino-confirmar': d=>rfAcao({ kicker:'TREINO ESPECIAL · '+escC(String(d.semana||'')).toUpperCase(),
+  titulo:'Confirmar o treino de '+escC(d.tema||'—'), w:500,
+  corpo:
+    rfAcLinhaHTML('Jogadores no treino', String(d.n||0), '', true)
+    + rfAcLinhaHTML('Energia que custa', '−'+(d.custo||10)+'% por jogador', 'aviso')
+    + rfAcNotaHTML('Treino forte antes de jogo decisivo chega a tirar a energia que faltava. Quem estiver abaixo de 60% entra cansado.'),
+  acoes:[{l:'Rever a lista',tom:'fantasma'},{l:'Confirmar treino'}] }),
+
+/* ---------- SISTEMA E CONTA (8) ---------- */
+'sys-gravado': d=>rfAcao({ kicker:'SAVE NA NUVEM', titulo:'Jogo gravado', w:420,
+  corpo:
+    rfAcSeloHTML('💾','Tudo salvo', escC(d.quando||'agora'))
+    + rfAcNotaHTML('O save fica na nuvem e na máquina. Dá para continuar de qualquer aparelho com a mesma conta.'),
+  acoes:[{l:'Continuar'}] }),
+
+'sys-sair-save': d=>rfAcao({ kicker:'SAVE', titulo:'Sair deste save?', w:460,
+  corpo:
+    rfAcLinhaHTML('Clube', escC(d.clube||'—'), '', true)
+    + rfAcLinhaHTML('Jornada', String(d.jornada||'—'), '')
+    + rfAcNotaHTML('Nada se perde: o save é gravado antes de sair e aparece na lista de saves.'),
+  acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Gravar e sair'}] }),
+
+'sys-apagar-save': d=>rfAcao({ kicker:'SAVE', titulo:'Apagar o save do '+escC(d.clube||'—')+'?', w:480,
+  corpo:
+    rfAcAvisoHTML('Isto <b>não tem volta</b>. A temporada, o elenco e o histórico do treinador somem para sempre.','perigo')
+    + rfAcCampoHTML('rf-ac-conf','Digite o nome do clube para confirmar','', '', {tipo:'texto',puro:true,ph:escC(d.clube||'')})
+    + rfAcNotaHTML('Se a ideia é só começar outra carreira, dá para criar um save novo sem apagar este.'),
+  acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Apagar para sempre',tom:'perigo'}] }),
+
+'sys-encerrar': d=>rfAcao({ kicker:'TREINADOR', titulo:'Encerrar a carreira do '+escC(d.nome||'—')+'?', w:480,
+  corpo:
+    rfAcLinhaHTML('Temporadas', String(d.temporadas||0), '', true)
+    + rfAcLinhaHTML('Títulos', String(d.titulos||0), 'ok')
+    + rfAcAvisoHTML('A carreira vai para o hall e <b>não continua</b>. O save fica só para consulta.','perigo')
+    + rfAcNotaHTML('Encerrar não apaga nada — o histórico continua visível na sala de troféus.'),
+  acoes:[{l:'Voltar',tom:'fantasma'},{l:'Encerrar carreira',tom:'perigo'}] }),
+
+'sys-sair-sala': d=>rfAcao({ kicker:'MODO RESENHA · SALA '+escC(String(d.sala||'')).toUpperCase(), titulo:'Sair da resenha?', w:480,
+  corpo:
+    rfAcAvisoHTML('Os outros treinadores continuam a rodada sem você — e seu clube passa a ser jogado pela máquina.','aviso')
+    + rfAcLinhaHTML('Treinadores na sala', String(d.n||'—'), '', true)
+    + rfAcNotaHTML('Dá para voltar depois com o mesmo código, desde que a sala ainda esteja aberta.'),
+  acoes:[{l:'Ficar na sala',tom:'fantasma'},{l:'Sair da resenha',tom:'perigo'}] }),
+
+'conta-senha': d=>rfAcao({ kicker:'CONTA', titulo:'Trocar a senha', w:460,
+  corpo:
+    rfAcCampoHTML('rf-ac-s1','Senha atual','', '', {tipo:'texto',puro:true,ph:'••••••••'})
+    + rfAcCampoHTML('rf-ac-s2','Nova senha','', 'Pelo menos 8 caracteres.', {tipo:'texto',puro:true,ph:'••••••••',foco:true})
+    + rfAcCampoHTML('rf-ac-s3','Confirme a nova senha','', '', {tipo:'texto',puro:true,ph:'••••••••'})
+    + rfAcNotaHTML('Trocar a senha não desconecta os saves — só a conta.'),
+  acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Trocar senha'}] }),
+
+'conta-apagar': d=>rfAcao({ kicker:'CONTA', titulo:'Apagar a sua conta?', w:480,
+  corpo:
+    rfAcAvisoHTML('Some <b>tudo</b>: os saves na nuvem, as salas da Resenha e o histórico de treinador. Não tem volta.','perigo')
+    + rfAcCampoHTML('rf-ac-apagar','Digite APAGAR para confirmar','', '', {tipo:'texto',puro:true,ph:'APAGAR'})
+    + rfAcNotaHTML('Se você só quer parar de receber e-mail, dá para desligar isso em Configurações.'),
+  acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Apagar a conta',tom:'perigo'}] }),
+
+'sys-sincronizar': d=>rfAcao({ kicker:'MODO RESENHA · SALA '+escC(String(d.sala||'')).toUpperCase(), titulo:'Sincronizando a rodada', w:460,
+  corpo:
+    rfAcChanceHTML('Assentos prontos', Math.round(((d.prontos||0)/Math.max(1,d.total||1))*100))
+    + rfAcLinhaHTML('Faltam', String(Math.max(0,(d.total||0)-(d.prontos||0)))+' treinador'+(((d.total||0)-(d.prontos||0))===1?'':'es'), 'aviso', true)
+    + rfAcNotaHTML('A rodada só fecha quando todos os assentos jogarem. Enquanto isso dá para ver a tabela e o elenco.'),
+  acoes:[{l:'Fechar',tom:'fantasma'},{l:'⏩ Pular espera'}] }),
+};
+
+/* O ROTEADOR — o resto do jogo só precisa de rfAcAbrir('id', dados). */
+function rfAcaoHTML(){
+  if(!CL.acao) return '';
+  const f=RF_ACOES[CL.acao.id];
+  if(!f){ CL.acao=null; return ''; }
+  try{ return f(rfAcD())||''; }catch(e){ CL.acao=null; return ''; }
+}

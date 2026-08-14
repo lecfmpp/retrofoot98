@@ -252,9 +252,9 @@ function rfMktPropostasHTML(){
         </div>
         <div class="rf-sp"></div>
         <div class="rf-prop2-acts">
-          <button type="button" class="rf-btn rf-btn-recusar" onclick="rfMkRecusar(${o.id})">Recusar</button>
+          <button type="button" class="rf-btn rf-btn-recusar" onclick="rfAcAbrir('mkt-recusar',{id:${o.id}})">Recusar</button>
           <button type="button" class="rf-btn rf-btn-secondary" onclick="rfMkContrapor(${o.id})">Contrapropor</button>
-          <button type="button" class="rf-btn rf-btn-cta" onclick="rfMkAceitar(${o.id})">Aceitar</button>
+          <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcAbrir('mkt-aceitar',{id:${o.id}})">Aceitar</button>
         </div>
       </div>
       <div class="rf-prop2-nums">
@@ -477,6 +477,11 @@ function rfMkCampoHTML(id, rotulo, valor, dica){
 
 /* ---- 1 · PROPOR / SUBIR A OFERTA (Comprar e Contrapropostas) ---- */
 function rfMkPropor(clubId, nome){
+  rfAcPreparar(clubId, nome); if(!CL.market) return;
+  rfAcAbrir('mkt-propor', {clubId, player:nome, oferta:CL.market.offer});
+}
+function rfAcPreparar(clubId, nome){
+  CL.market=null;
   const p=(typeof findP==='function')?findP(nome,clubId):null; if(!p) return;
   if(typeof isTradeLocked==='function' && isTradeLocked(p)){
     toastC(`${p.n} já foi negociado nesta temporada.`); return; }
@@ -486,8 +491,6 @@ function rfMkPropor(clubId, nome){
   CL.market={step:'offer', clubId, player:nome,
     offer: idx>=0 ? (S.negos[idx].clubCounter||S.negos[idx].offerFee) : Math.round(ask/1000)*1000,
     negoIdx: idx>=0?idx:null};
-  CL.mkP={tipo:'oferta'};
-  cdraw();
 }
 function rfMkProporFee(){
   const M=CL.market; if(!M) return;
@@ -517,7 +520,7 @@ function rfMkAceitarAgente(){
 function rfMkFinalizar(){
   const M=CL.market; const r=finalizeTransfer(M.negoIdx);
   toastC(r.msg||'');
-  if(r.ok){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.market=null; }
+  if(r.ok){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.market=null; CL.acao=null; }
   cdraw();
 }
 function rfMkOfertaHTML(){
@@ -564,7 +567,7 @@ function rfMkOfertaHTML(){
 function rfMkEnviarHumano(){
   const M=CL.market; M.offer=rfMkNum('rf-mk-fee');
   const r=sendHumanOffer(M.clubId,M.player,M.offer); toastC(r.msg||'');
-  if(r.ok){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.market=null; }
+  if(r.ok){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.market=null; CL.acao=null; }
   cdraw();
 }
 function rfFolha(){
@@ -574,12 +577,17 @@ function rfFolha(){
 /* ---- 2 · LANCE DE LEILÃO ---- */
 function rfMkLance(sellerId, player){
   if(typeof mergeAuctionBidsFromSeats==='function'){ try{ mergeAuctionBidsFromSeats(); }catch(e){} }
-  CL.mkP={tipo:'lance', sellerId, player}; cdraw();
+  CL.mkP={tipo:'lance', sellerId, player};
+  const lot=((S.auctions&&S.auctions.lots)||[]).find(l=>l.id===sellerId+'|'+player);
+  // COBRIR e DAR LANCE são dois diálogos diferentes no pacote: cobrir é
+  // quando alguém já está na frente, e abre com o aviso de quem é.
+  const cobrir = lot && lot.leader && lot.leader!==S.clubId && lot.myBid;
+  rfAcAbrir(cobrir?'mkt-cobrir':'mkt-lance', {sellerId, player});
 }
 function rfMkLanceGo(){
   const P=CL.mkP; const r=placeAuctionBid(P.sellerId+'|'+P.player, rfMkNum('rf-mk-lance'));
   toastC(r.msg||'');
-  if(r.ok){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; }
+  if(r.ok){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.acao=null; }
   cdraw();
 }
 function rfMkLanceHTML(){
@@ -601,7 +609,7 @@ function rfMkLanceHTML(){
 }
 
 /* ---- 3 · CONTRAPROPOR (uma proposta recebida) ---- */
-function rfMkContrapor(id){ CL.mkP={tipo:'contra', id}; cdraw(); }
+function rfMkContrapor(id){ CL.mkP={tipo:'contra', id}; rfAcAbrir('mkt-contra',{id}); }
 function rfMkContraporGo(){
   const P=CL.mkP; const valor=rfMkNum('rf-mk-ask');
   if(valor<=0){ toastC('Digite quanto você quer pedir.'); return; }
@@ -610,7 +618,7 @@ function rfMkContraporGo(){
   const r = humano ? counterHumanOffer(P.id, curParse(valor))
                    : (counterIncomingOffer(P.id, curParse(valor))||{ok:true});
   if(r&&r.msg) toastC(r.msg);
-  if(!r||r.ok!==false){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; }
+  if(!r||r.ok!==false){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.acao=null; }
   cdraw();
 }
 function rfMkContraHTML(){
@@ -628,11 +636,11 @@ function rfMkContraHTML(){
 }
 
 /* ---- 4 · LISTAR PRA VENDA ---- */
-function rfMkListar(pid){ CL.mkP={tipo:'listar', pid}; CL.selPlayer=pid; cdraw(); }
+function rfMkListar(pid){ CL.mkP={tipo:'listar', pid}; CL.selPlayer=pid; rfAcAbrir('mkt-listar',{pid}); }
 function rfMkListarGo(){
   CL.selPlayer=CL.mkP.pid;
   CL.sellPrice=String(rfMkNum('rf-mk-preco')||'');
-  CL.mkP=null;
+  CL.mkP=null; CL.acao=null;
   clSellConfirm();
 }
 function rfMkListarHTML(){
@@ -651,7 +659,12 @@ function rfMkListarHTML(){
 }
 
 /* a gaveta certa pra aba certa — cada aba chama isto no topo */
+/* AS GAVETAS SAÍRAM. O pacote "Ações Internas" define ação interna como
+   DIÁLOGO — cartão centrado, cabeçalho em degradê, filete amarelo —, não
+   como cartão dentro da aba. Quem desenha agora é rfAcao(), em
+   rf26-acoes.js; esta função devolve vazio para as abas não mudarem. */
 function rfMktGavetaHTML(abas){
+  return '';
   const P=rfMkP(); if(!P) return '';
   if(abas && abas.indexOf(P.tipo)<0) return '';
   if(P.tipo==='oferta') return rfMkOfertaHTML();
@@ -666,11 +679,12 @@ function rfMktGavetaHTML(abas){
 function rfMkAceitar(id){
   const r=(typeof acceptIncomingOffer==='function')?acceptIncomingOffer(id):null;
   toastC((r&&r.msg)||'');
-  if(r&&r.ok){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; }
+  if(r&&r.ok){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.acao=null; }
   cdraw();
 }
 function rfMkRecusar(id){
   if(typeof rejectIncomingOffer==='function') rejectIncomingOffer(id);
   if(CL.mkP&&CL.mkP.tipo==='contra'&&CL.mkP.id===id) CL.mkP=null;
+  CL.acao=null;
   cdraw();
 }
