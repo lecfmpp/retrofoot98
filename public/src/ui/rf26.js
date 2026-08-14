@@ -337,21 +337,14 @@ function rfSidebarHTML(){
         onclick="rfJogar()">${rfJogarLabel()}</button>
     </div>` : '';
 
-  // O INTERRUPTOR DO MENU FICA NO TOPO, e é a mesma peça nos dois estados.
-  // Estava no pé, abaixo do botão Jogar, sem moldura: num fundo branco virava
-  // um texto cinza que ninguém achava — e recolhido só sobrava a setinha solta.
+  /* O INTERRUPTOR DO MENU MORA NO PÉ, embaixo do botão Jogar, e é a mesma seta
+     nos dois estados — para a direita abre, para a esquerda fecha. Já esteve no
+     topo; voltou para baixo porque é ali que ele fecha o bloco do próximo jogo,
+     e recolhido os dois viram uma coluna só: o quadrado amarelo com a bola e a
+     seta logo abaixo. */
   const recolhida=rfSidebarCollapsed();
-  const aba=`<div class="rf-sb-top">
-    <button type="button" class="rf-sb-toggle" onclick="rfToggleSidebar()"
-      aria-expanded="${recolhida?'false':'true'}"
-      title="${recolhida?'Expandir menu':'Recolher menu'}">
-      <span class="rf-sb-toggle-i" aria-hidden="true">${recolhida?'»':'«'}</span>
-      <span class="rf-sb-toggle-l">Recolher</span>
-    </button>
-  </div>`;
 
   return `<aside class="rf-sidebar">
-    ${aba}
     <button type="button" class="rf-sb-club" onclick="rfGo('hub')" title="Voltar à Formação">
       <span class="rf-sb-crest">${rfCrest(cl,34)}</span>
       <span class="rf-sb-cnames">
@@ -362,6 +355,14 @@ function rfSidebarHTML(){
     <nav class="rf-sb-nav">${itens}</nav>
     <div class="rf-sb-sp"></div>
     ${proximo}
+    <div class="rf-sb-pe">
+      <button type="button" class="rf-sb-toggle" onclick="rfToggleSidebar()"
+        aria-expanded="${recolhida?'false':'true'}"
+        title="${recolhida?'Expandir menu':'Recolher menu'}">
+        ${rfIcone(recolhida?'seta-dir':'seta-esq',22)}
+        <span class="rf-sb-toggle-l">Recolher menu</span>
+      </button>
+    </div>
   </aside>`;
 }
 /* O BOTÃO JOGAR DA SIDEBAR É O MESMO BOTÃO DE SEMPRE, não um atalho novo:

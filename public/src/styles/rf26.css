@@ -238,22 +238,22 @@
 .rf-sb-next-n{font-size:var(--fs-body);font-weight:var(--fw-bold);color:#fff;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis}
 .rf-sb-next-m{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-on-dark-faint);white-space:nowrap}
-/* A ABA DE RECOLHER — topo da sidebar, com moldura própria.
-   Antes era um texto cinza sem fundo, no pé, embaixo do botão Jogar: sobre o
-   branco da sidebar não se lia, e recolhida sobrava só uma seta solta. Agora é
-   um controlo de verdade, no mesmo lugar nos dois estados — recolhida ela vira
-   um quadrado com o chevron, expandida abre com o rótulo ao lado. */
-.rf-sb-top{flex:0 0 auto;display:flex;justify-content:flex-end}
-.rf-sb-toggle{display:flex;align-items:center;justify-content:center;gap:7px;
-  height:32px;padding:0 11px;box-sizing:border-box;
-  background:var(--surface-sunken);border:1px solid var(--line-2);border-radius:var(--r-chip);
-  font-family:inherit;font-size:var(--fs-label);font-weight:var(--fw-semibold);
-  letter-spacing:var(--ls-label);color:var(--text-3);cursor:pointer;white-space:nowrap;
-  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease),
-             border-color var(--dur-fast) var(--ease)}
-.rf-sb-toggle:hover{background:var(--surface-card);border-color:var(--line-1);color:var(--text-1)}
-.rf-sb-toggle-i{font-family:var(--font-mono);font-size:var(--fs-body-sm);line-height:1}
-.rf-app.collapsed .rf-sb-top{justify-content:center}
+/* A SETA DO MENU — pé da sidebar, embaixo do botão Jogar.
+   Azul e maior que o resto do cromo, porque é o único controle daquela coluna
+   e recolhido ele fica sozinho com a bola. Para a direita abre, para a
+   esquerda fecha; o `aria-expanded` é o que conta o estado para leitor de
+   tela. */
+.rf-sb-pe{flex:0 0 auto;display:flex;justify-content:center;padding-top:2px}
+.rf-sb-toggle{display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;height:40px;padding:0 10px;box-sizing:border-box;
+  border:none;border-radius:var(--r-control);background:transparent;
+  font-family:inherit;font-size:var(--fs-caption);font-weight:var(--fw-semibold);
+  color:var(--brand-primary,#17458F);cursor:pointer;white-space:nowrap;
+  transition:background var(--dur-fast) var(--ease)}
+.rf-sb-toggle:hover{background:var(--surface-sunken)}
+/* AZUL DA MARCA, não do clube: a seta é cromo de navegação, e num clube verde
+   ela sumia dentro do próprio menu verde. */
+.rf-sb-toggle .rf-ico{color:var(--brand-primary,#17458F)}
 .rf-app.collapsed .rf-sb-toggle{width:44px;padding:0}
 .rf-app.collapsed .rf-sb-toggle-l{display:none}
 
@@ -270,10 +270,16 @@
    botão nenhuma. O rótulo sai por font-size:0 e a bola entra por ::before, em
    vez de ::first-letter (que não pega o emoji de forma confiável). O sentido
    não se perde: o title do botão continua dizendo o que ele faz. */
-.rf-app.collapsed .rf-sb-next{padding:8px;align-items:center}
-.rf-app.collapsed .rf-sb-next .rf-btn{width:44px;height:44px;flex:0 0 auto;padding:0;gap:0;
-  border-radius:var(--r-control);font-size:0;display:flex;align-items:center;justify-content:center}
-.rf-app.collapsed .rf-sb-next .rf-btn::before{content:"⚽";font-size:19px;line-height:1}
+/* Recolhida, o cartão do próximo jogo fica só com o botão, e o botão vira o
+   QUADRADO AMARELO com a bola no meio — o mesmo ícone do menu, não um emoji.
+   O fundo do cartão sai: no estreito ele virava uma moldura escura em volta de
+   um quadrado, e o desenho pede o quadrado sozinho sobre o branco. */
+.rf-app.collapsed .rf-sb-next{padding:0;background:none;align-items:center;gap:8px}
+.rf-app.collapsed .rf-sb-next .rf-btn{width:48px;height:48px;flex:0 0 auto;padding:0;gap:0;
+  border-radius:14px;font-size:0;display:flex;align-items:center;justify-content:center;
+  background:var(--club-cta-bg,var(--club-secondary))}
+.rf-app.collapsed .rf-sb-next .rf-btn .rf-ico{width:24px;height:24px;
+  color:var(--club-cta-fg,var(--club-on-secondary))}
 /* o badge vira um ponto no canto do ícone quando não há espaço pro número */
 .rf-app.collapsed .rf-nav-i{position:relative}
 .rf-app.collapsed .rf-nav-b{position:absolute;top:5px;right:6px;padding:0;min-width:8px;
