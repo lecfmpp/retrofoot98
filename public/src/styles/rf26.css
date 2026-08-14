@@ -133,22 +133,31 @@
   60% {opacity:0;transform:translateX(28px) scale(.97);max-height:140px;margin-bottom:0}
   100%{opacity:0;transform:translateX(28px) scale(.97);max-height:0;margin-bottom:calc(var(--sp-4) * -1);
        padding-top:0;padding-bottom:0;min-height:0;border-width:0}}
-.rf-toast{display:flex;align-items:center;gap:var(--sp-5);background:#12201a;color:#fff;
+/* O toast era #12201a — o MESMO verde quase preto do fundo e dos cabeçalhos das
+   páginas. Lido de relance ele parecia mais um bloco da tela do que um aviso.
+   Agora é uma peça clara: fundo de tinta suave no tom do recado, filete forte à
+   esquerda, texto escuro. Nenhuma dessas cores vem do clube — o toast é voz do
+   SISTEMA e não pode mudar de cara conforme o time do jogador. */
+.rf-toast{display:flex;align-items:center;gap:var(--sp-5);
+  background:var(--toast-bg,#f4f7f4);color:var(--toast-ink,#1d2b22);
+  border:1px solid var(--toast-linha,#dfe7e0);
+  border-left:4px solid var(--toast-forte,#8b978d);
   border-radius:var(--r-control);padding:11px 16px;min-height:44px;box-sizing:border-box;
-  border-left:4px solid var(--text-faint);box-shadow:0 10px 30px -18px rgba(0,0,0,.7);
+  box-shadow:0 12px 28px -14px rgba(18,32,26,.35);
   font-family:var(--font-sans);font-size:var(--fs-body-sm);font-weight:var(--fw-medium);
   max-width:460px;animation:rf-toast-entra 260ms var(--ease);pointer-events:auto;overflow:hidden}
 .rf-toast-saindo{animation:rf-toast-sai 280ms var(--ease) forwards;pointer-events:none}
 .rf-toast-ico{flex:0 0 auto;font-size:14px}
 .rf-toast-t{flex:1;min-width:0;line-height:1.35}
 .rf-toast-act{flex:0 0 auto;font-size:var(--fs-caption);font-weight:var(--fw-bold);
-  color:var(--club-secondary);white-space:nowrap;cursor:pointer}
-.rf-toast-success{border-left-color:var(--ok)}
-.rf-toast-warn{border-left-color:var(--warn)}
-.rf-toast-danger{border-left-color:var(--danger)}
-.rf-toast-progress{border-left-color:var(--text-faint);color:var(--text-on-dark-soft)}
-/* info é o único com fundo azul do clube — é fato do jogo, não estado do sistema */
-.rf-toast-info{background:var(--club-primary);border-left-color:var(--club-secondary)}
+  white-space:nowrap;cursor:pointer}
+.rf-toast-success{--toast-bg:#eaf7ee;--toast-linha:#c3e6cf;--toast-forte:#2fa35c;--toast-ink:#17492e}
+.rf-toast-warn   {--toast-bg:#fdf5e0;--toast-linha:#f2e0ab;--toast-forte:#e0a908;--toast-ink:#5a4407}
+.rf-toast-danger {--toast-bg:#fdeeee;--toast-linha:#f3cccc;--toast-forte:#d94141;--toast-ink:#6d1f1f}
+.rf-toast-info   {--toast-bg:#eaf1fb;--toast-linha:#c6d8f2;--toast-forte:#17458F;--toast-ink:#123162}
+.rf-toast-progress{--toast-bg:#f2f5f2;--toast-linha:#dde5de;--toast-forte:#9aa79e;--toast-ink:#4a574f}
+.rf-toast-ico{color:var(--toast-forte)}
+.rf-toast-act{color:var(--toast-forte)}
 
 /* ----- Dialog: SÓ para o que acontece sozinho no save. Item de menu é página. */
 .rf-dlg{width:520px;max-width:100%;background:var(--surface-desk);border:1px solid var(--line-2);
@@ -5127,3 +5136,9 @@
   .rf-ac-pe{flex-wrap:wrap}
   .rf-ac-bt{flex:1}
 }
+
+/* Campo que MOSTRA maiúsculo. O valor é passado pra maiúscula no estado; a
+   caixa alta na tela vem daqui e não de reescrever `input.value`, que empurraria
+   o cursor pro fim toda vez que a pessoa editasse no meio da palavra. */
+.rf-campo-c.maiuscula,input.maiuscula{text-transform:uppercase}
+.rf-campo-c.maiuscula::placeholder,input.maiuscula::placeholder{text-transform:none}

@@ -176,7 +176,7 @@ function rfTreinadoresHTML(){
       <div class="rf-esc-grid quatro">${[5,6,7,8].map(cartao).join('')}</div>
       <div class="rf-tr-nomes">
         ${(CL.names||['']).slice(0,n).map((nm,i)=>rfCampo(i===0?'Treinador 1 (você)':'Treinador '+(i+1),
-          `<input class="rf-campo-c" ${i===0?'id="cl-focus"':''} maxlength="12" placeholder="TREINADOR"
+          `<input class="rf-campo-c maiuscula" ${i===0?'id="cl-focus"':''} maxlength="12" placeholder="TREINADOR"
              value="${escC(nm||'')}" oninput="rfNomeTreinador(${i},this.value)">`)).join('')}
       </div>
       ${RF_HOTSEAT_LIGADO?'':`<div class="rf-aviso"><span class="rf-aviso-i">${rfIcone('elenco',16)}</span>
@@ -204,7 +204,13 @@ function rfTreinadoresSel(k){
   if(!CL.names[0]) CL.names[0]=(CL.mgr||'TREINADOR').toUpperCase();
   cdraw();
 }
-function rfNomeTreinador(i,v){ CL.names[i]=String(v||'').toUpperCase(); cdraw(); }
+/* NÃO redesenha. Com `cdraw()` aqui o campo era destruído e reconstruído a cada
+   tecla: o cursor voltava para a posição 0 e o texto saía ao contrário, letra
+   nova sempre na frente, e o Delete apagava o caractere errado. Nada nesta tela
+   depende do nome digitado (o grid é de contagem, o CTA diz "Continuar com N"),
+   então guardar no estado basta. O MAIÚSCULO agora é do CSS (.maiuscula): mexer
+   em `this.value` empurraria o cursor pro fim no meio de uma edição. */
+function rfNomeTreinador(i,v){ CL.names[i]=String(v||'').toUpperCase(); }
 function rfClubesNaDivisao(){
   const pool=CL._pickPool&&CL._pickPool[(CL.playCountry||'Brasil')];
   if(pool&&pool.length) return pool.length;
