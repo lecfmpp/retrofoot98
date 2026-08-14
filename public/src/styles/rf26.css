@@ -3622,6 +3622,116 @@
 .rf-ob5-x{border:0;background:transparent;color:var(--text-faint);cursor:pointer;
   font-family:var(--font-sans);font-size:var(--fs-label);font-weight:var(--fw-semibold);text-align:right}
 .rf-ob5-x:hover{color:var(--danger)}
+/* =====================================================================
+   RESENHA · ABRIR SALA e SALA ABERTA
+   (telas/Resenha - Abrir Sala e Resenha - Sala Aberta)
+   ===================================================================== */
+.rf-sl{display:flex;flex-direction:column;gap:18px;min-width:0}
+.rf-sl-l{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-semibold);
+  letter-spacing:.12em;color:var(--text-muted);white-space:nowrap}
+.rf-sl-campo{display:flex;flex-direction:column;gap:8px;min-width:0}
+.rf-sl-in{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px;
+  border:var(--border-control);border-radius:var(--r-control);background:var(--surface-card)}
+.rf-sl-input{flex:1;min-width:0;border:none;background:none;outline:none;
+  font-family:inherit;font-size:var(--fs-body);color:var(--text-1)}
+.rf-sl-cont{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-faint)}
+.rf-sl-nota{font-size:var(--fs-caption);color:var(--text-4)}
+.rf-sl-bloco{display:flex;flex-direction:column;gap:10px;min-width:0}
+.rf-sl-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rf-sl-hd-s{font-size:var(--fs-caption);color:var(--text-4)}
+/* AS QUATRO DIVISÕES em grade 2×2, com o troféu real. O troféu apagado é o que
+   diz "isto ainda não está pronto" sem precisar de texto. */
+.rf-sl-divs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.rf-sl-div{display:flex;align-items:center;gap:12px;padding:14px;min-width:0;text-align:left;
+  border:2px solid var(--line-2);border-radius:16px;background:var(--surface-card);
+  font-family:inherit;cursor:pointer;
+  transition:border-color var(--dur-fast) var(--ease),background var(--dur-fast) var(--ease)}
+.rf-sl-div:hover{border-color:var(--club-primary)}
+.rf-sl-div.on{border-color:var(--club-primary);background:var(--club-primary-soft)}
+.rf-sl-div.teste img,.rf-sl-div.teste .rf-trofeu-arte{filter:grayscale(1);opacity:.55}
+.rf-sl-div.teste.on img,.rf-sl-div.teste.on .rf-trofeu-arte{filter:none;opacity:1}
+.rf-sl-div-id{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.rf-sl-div-n{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1);white-space:nowrap}
+.rf-sl-div-s{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-4);white-space:nowrap}
+.rf-sl-selo{font-family:var(--font-mono);font-size:9px;font-weight:var(--fw-bold);letter-spacing:.06em;
+  border-radius:var(--r-pill);padding:3px 9px;white-space:nowrap;flex:0 0 auto}
+.rf-sl-selo.padrao{color:var(--club-on-primary);background:var(--club-primary)}
+.rf-sl-selo.teste{color:var(--text-3);background:var(--surface-sunken);border:1px solid var(--line-2)}
+.rf-sl-aviso{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:14px;
+  background:#fdf6e0;border:1px solid #f0e0aa;font-size:var(--fs-caption);color:#6b5a12;line-height:1.55}
+.rf-sl-faixa{display:flex;align-items:center;gap:16px;padding:14px 16px;border-radius:16px;
+  background:var(--surface-sunken);border:var(--border-hairline)}
+.rf-sl-fx{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.rf-sl-fx-v{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-1);white-space:nowrap}
+.rf-sl-fx-v.mono{font-family:var(--font-mono);letter-spacing:.08em}
+.rf-sl-fx-sep{width:1px;align-self:stretch;background:var(--line-2);flex:0 0 auto}
+
+/* ----- SALA ABERTA ----- */
+.rf-sa{display:flex;flex-direction:column;gap:16px;min-width:0}
+.rf-sa-l{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-semibold);
+  letter-spacing:.12em;color:var(--text-on-dark-faint);white-space:nowrap}
+.rf-sa-lista .rf-sa-l,.rf-sa-busca .rf-sa-l{color:var(--text-muted)}
+/* o link abre a tela: é o canal mais usado, e no desenho antigo fechava */
+.rf-sa-link{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 18px;
+  border-radius:16px;background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
+  border:1px solid var(--club-primary-deep);color:#fff}
+.rf-sa-link-id{display:flex;flex-direction:column;gap:4px;min-width:0}
+.rf-sa-link-v{font-family:var(--font-mono);font-size:var(--fs-body);color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-sa-copiar{display:flex;align-items:center;gap:8px;height:42px;padding:0 18px;flex:0 0 auto;
+  border:none;border-radius:12px;background:var(--brand-secondary,#F2B90C);color:var(--brand-primary,#17458F);
+  font-family:inherit;font-size:var(--fs-body-sm);font-weight:var(--fw-bold);cursor:pointer}
+.rf-sa-copiar:hover{background:#ffcb2e}
+.rf-sa-canais{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.rf-sa-canal{display:flex;flex-direction:column;gap:8px;padding:14px;min-width:0;
+  border:var(--border-hairline);border-radius:16px;background:var(--surface-card)}
+.rf-sa-canal-hd{display:flex;align-items:center;gap:8px;font-size:var(--fs-body-sm);color:var(--text-2)}
+.rf-sa-linha{display:flex;align-items:center;gap:8px;min-width:0}
+.rf-sa-ddi{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-4);flex:0 0 auto}
+.rf-sa-input{flex:1;min-width:0;height:40px;padding:0 12px;box-sizing:border-box;
+  border:var(--border-control);border-radius:var(--r-control);background:var(--surface-card);
+  font-family:inherit;font-size:var(--fs-body-sm);color:var(--text-1);outline:none}
+.rf-sa-input:focus{border-color:var(--club-primary)}
+.rf-sa-bt{height:40px;padding:0 16px;flex:0 0 auto;border:1px solid var(--line-2);border-radius:var(--r-control);
+  background:var(--surface-card);font-family:inherit;font-size:var(--fs-caption);
+  font-weight:var(--fw-semibold);color:var(--club-primary);cursor:pointer}
+.rf-sa-bt:hover{background:var(--surface-sunken)}
+.rf-sa-busca{display:flex;flex-direction:column;gap:8px;min-width:0}
+.rf-sa-busca-in{display:flex;align-items:center;gap:10px;min-width:0}
+.rf-sa-busca-in .rf-ico{color:var(--text-faint)}
+/* assentos e vagas na MESMA lista — o desenho antigo separava as duas contagens */
+.rf-sa-lista{display:flex;flex-direction:column;gap:8px;padding:14px;
+  border:var(--border-hairline);border-radius:16px;background:var(--surface-card)}
+.rf-sa-lista-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rf-sa-lista-c{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-faint);white-space:nowrap}
+.rf-sa-lin{display:grid;grid-template-columns:10px minmax(0,1fr) auto auto;gap:12px;align-items:center;
+  padding:9px 0;border-top:1px solid var(--line-1)}
+.rf-sa-ponto{width:10px;height:10px;border-radius:var(--r-pill);background:var(--line-2)}
+.rf-sa-ponto.on{background:var(--ok)}
+.rf-sa-id{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-sa-n{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-1);white-space:nowrap}
+.rf-sa-p{font-size:var(--fs-caption);color:var(--text-4);white-space:nowrap}
+.rf-sa-st{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-faint);white-space:nowrap}
+.rf-sa-st.ok{color:var(--ok)}
+.rf-sa-x{border:none;background:none;font-family:inherit;font-size:var(--fs-caption);
+  color:var(--text-faint);cursor:pointer;padding:0 2px}
+.rf-sa-x:hover{color:var(--danger)}
+.rf-sa-vagas{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-top:2px;
+  border:1px dashed var(--line-2);border-radius:12px;
+  font-size:var(--fs-caption);color:var(--text-4)}
+.rf-sa-mais{font-size:15px;color:var(--text-faint);line-height:1}
+.rf-sa-nota{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:14px;
+  background:var(--surface-sunken);border:var(--border-hairline);
+  font-size:var(--fs-caption);color:var(--text-3);line-height:1.55}
+
+@media (max-width:900px){
+  .rf-sl-divs,.rf-sa-canais{grid-template-columns:minmax(0,1fr)}
+  .rf-sl-faixa{flex-wrap:wrap;row-gap:12px}
+  .rf-sl-fx-sep{display:none}
+  .rf-sl-fx{flex:1 1 40%}
+  .rf-sa-copiar{width:100%}
+}
+
 .rf-ob5-conv{display:flex;flex-direction:column;gap:10px;margin-top:4px}
 /* os dois botões do pacote: o de e-mail em contorno tracejado, o do WhatsApp
    cheio no verde da marca dele */

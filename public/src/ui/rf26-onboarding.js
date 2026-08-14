@@ -21,7 +21,20 @@
    e o contador do telefone dizendo "2 de 5". As telas de moeda, carregamento,
    nº de treinadores e escolha dos clubes caem dentro de "Configurar", que é o
    que a ordem do LEIA-ME descreve (1 → 2 → 3 → moeda → carregando → 6 → 7). */
-const RF_WIZ_PASSOS=['Entrar','Modo','Configurar','Sorteio','Jogar'];
+/* DUAS TRILHAS, porque os dois modos têm caminhos diferentes: no Solo o
+   treinador configura país e divisão e o clube sai no sorteio (5 passos); na
+   Resenha ele abre a sala e chama a turma antes disso (6 passos). Uma trilha
+   só obrigava a chamar de "Configurar" tanto escolher país quanto montar sala,
+   e o número de passos mentia num dos dois. */
+const RF_WIZ_TRILHAS={
+  solo:   ['Entrar','Modo','Configurar','Sorteio','Jogar'],
+  resenha:['Entrar','Modo','Sala','Convites','Clube','Jogar'],
+};
+/* a trilha vem do modo escolhido, mas pode ser forçada por quem desenha */
+function rfWizPassos(trilha){
+  return RF_WIZ_TRILHAS[trilha] || RF_WIZ_TRILHAS[CL.online?'resenha':'solo'] || RF_WIZ_TRILHAS.solo;
+}
+const RF_WIZ_PASSOS=RF_WIZ_TRILHAS.solo;
 
 /* ---- envelope: marca + [ trilha · card · barra de ação ] ----
    A BARRA DE AÇÃO É O TERCEIRO FILHO DA CAIXA VERDE, não uma faixa solta
@@ -35,7 +48,8 @@ const RF_WIZ_PASSOS=['Entrar','Modo','Configurar','Sorteio','Jogar'];
    não é daquela largura. */
 function rfWiz(o){
   o=o||{};
-  const passo=o.passo||1, total=RF_WIZ_PASSOS.length;
+  const passos=rfWizPassos(o.trilha);
+  const passo=o.passo||1, total=passos.length;
   const cabeca=(o.titulo||o.sobre||o.sub)
     ? rfWizHead(o.sobre,o.titulo,o.sub) : '';
   return `<div class="rf-wiz">
@@ -53,7 +67,7 @@ function rfWiz(o){
           <div class="rf-sp"></div>
           <span class="rf-wiz-fita-c">${passo} de ${total}</span>
         </div>
-        <div class="rf-wiz-fita-b">${RF_WIZ_PASSOS.map((_,i)=>
+        <div class="rf-wiz-fita-b">${passos.map((_,i)=>
           `<i class="${i<passo?'on':''}"></i>`).join('')}</div>
         ${cabeca?`<div class="rf-wiz-fita-t">
           <span class="rf-wiz-fita-h">${escC(o.titulo||'')}</span>
@@ -61,7 +75,7 @@ function rfWiz(o){
         </div>`:''}
       </div>`}
       <div class="rf-wiz-shell">
-        ${o.semTrilha?'':rfWizTrilhaHTML(passo)}
+        ${o.semTrilha?'':rfWizTrilhaHTML(passo,o.trilha)}
         <div class="rf-wiz-card">${cabeca}${o.corpo||''}</div>
         <div class="rf-wiz-acao">
           ${o.nota?`<span class="rf-wiz-nota">${escC(o.nota)}</span>`:''}
@@ -73,10 +87,11 @@ function rfWiz(o){
     </div>
   </div>`;
 }
-function rfWizTrilhaHTML(passo){
+function rfWizTrilhaHTML(passo, trilha){
+  const passos=rfWizPassos(trilha);
   return `<div class="rf-wiz-trilha"
-      role="progressbar" aria-valuenow="${passo}" aria-valuemin="1" aria-valuemax="${RF_WIZ_PASSOS.length}"
-      aria-label="Passo ${passo} de ${RF_WIZ_PASSOS.length}: ${escC(RF_WIZ_PASSOS[passo-1]||'')}">${RF_WIZ_PASSOS.map((l,i)=>{
+      role="progressbar" aria-valuenow="${passo}" aria-valuemin="1" aria-valuemax="${passos.length}"
+      aria-label="Passo ${passo} de ${passos.length}: ${escC(passos[passo-1]||'')}">${passos.map((l,i)=>{
     const n=i+1, feito=n<passo, atual=n===passo;
     return `${i?'<span class="rf-wiz-liga"></span>':''}
       <span class="rf-wiz-p ${feito?'feito':''} ${atual?'atual':''}">
@@ -315,64 +330,77 @@ const RF_RITMOS=['Calmo','Normal','Ultrassônico','Usain Bolt'];
 const RF_ENTRADAS=[['convite','Só com convite'],['codigo','Qualquer um com o código'],['aprovar','Aprovar cada entrada']];
 function rfOb4(){
   const n=CL.net||(CL.net={});
-  const sala=CL.sala||(CL.sala={ritmo:'Ultrassônico',quem:'codigo'});
+  const sala=CL.sala||(CL.sala={});
   const codigo=(typeof NET!=='undefined'&&NET.code)||n.code||'——————';
   const pais=CL.playCountry||'Brasil';
   const uk=(typeof countryUniverseKey==='function')?countryUniverseKey(pais):null;
   const cfg=(typeof UNI_CONFIGS!=='undefined'&&uk)?UNI_CONFIGS[uk]:null;
-  const d=(typeof computeStartDivision==='function')?computeStartDivision():'D';
-  const divLbl=((cfg&&cfg.label&&cfg.label[d])||('Série '+d))
-    +(((cfg&&cfg.size&&cfg.size[d])||0)?' · '+cfg.size[d]+' clubes':'');
-  const bandeira=(typeof flagImg==='function')?flagImg(pais):'';
-  const vagas=((typeof NET!=='undefined'&&NET.room&&NET.room.participants)||[]).length||1;
-  const teto=20;
+  const escolhida=(CL.testStartDiv&&CL.testStartDiv.brasil)||'D';
+  const nome=n.roomName||'';
+  const MAX=24;
+  /* AS QUATRO DIVISÕES COM O TROFÉU REAL. A Série D é a PADRÃO, não só a
+     pré-selecionada: é a única pronta. As outras três levam a etiqueta TESTE e
+     o troféu apagado — o cinza diz "isto ainda não está pronto" sem texto. */
+  const cards=['D','C','B','A'].map(d=>{
+    const lbl=(cfg&&cfg.label&&cfg.label[d])||('Série '+d);
+    const clubes=(cfg&&cfg.size&&cfg.size[d])||0;
+    // jornadas = turno e returno entre os clubes da divisão; o motor não guarda
+    // esse número, ele CAI da contagem de clubes (n-1 jogos, ida e volta)
+    const jorn=clubes?((clubes-1)*2):0;
+    const teste=d!=='D';
+    return `<button type="button" class="rf-sl-div ${escolhida===d?'on':''} ${teste?'teste':''}"
+        onclick="rfObDivisao('${d}')">
+      ${rfTrofeuHTML('serie'+d,42)}
+      <span class="rf-sl-div-id">
+        <span class="rf-sl-div-n">${escC(lbl)}</span>
+        <span class="rf-sl-div-s">${clubes?clubes+' clubes':'—'}${jorn?' · '+jorn+' jornadas':''}</span>
+      </span>
+      <span class="rf-sl-selo ${teste?'teste':'padrao'}">${teste?'TESTE':'PADRÃO'}</span>
+    </button>`;
+  }).join('');
   const corpo=`
-    <div class="rf-ob4">
-      <div class="rf-ob4-form">
-        ${rfCampo('Nome da sala',
-          `<input class="rf-campo-c" id="cl-focus" maxlength="18" placeholder="Resenha do trampo"
-             value="${escC(n.roomName||'')}" oninput="CL.net.roomName=this.value;rfOb4Sync()"
-             onkeydown="if(event.key==='Enter')clOpenRoom()">`)}
-        <div class="rf-ob4-2">
-          ${rfCampo('País', `<span class="rf-campo-c leitura">${bandeira} ${escC(pais)}</span>`)}
-          ${rfCampo('Divisão', `<span class="rf-campo-c leitura">${escC(divLbl)}</span>`)}
+    <div class="rf-sl">
+      <label class="rf-sl-campo">
+        <span class="rf-sl-l">NOME DA SALA</span>
+        <span class="rf-sl-in">
+          <input class="rf-sl-input" maxlength="${MAX}" placeholder="Resenha da firma"
+            value="${escC(nome)}" oninput="CL.net.roomName=this.value;rfOb4Sync()">
+          <span class="rf-sl-cont">${nome.length}/${MAX}</span>
+        </span>
+        <span class="rf-sl-nota">É o nome que os convidados veem. Dá para trocar depois.</span>
+      </label>
+
+      <div class="rf-sl-bloco">
+        <div class="rf-sl-hd">
+          <span class="rf-sl-l">DIVISÃO INICIAL</span>
+          <span class="rf-sl-hd-s">Todos começam na mesma divisão</span>
         </div>
-        <div class="rf-ob4-bloco">
-          <span class="rf-campo-l">Tempo de jogo <i class="rf-ob3-leve">— o Camarote trava no Usain Bolt</i></span>
-          <div class="rf-ob3-pills">${RF_RITMOS.map(r=>`
-            <button type="button" class="rf-chip ${sala.ritmo===r?'on':''}" onclick="rfObSala('ritmo','${r}')">${escC(r)}</button>`).join('')}</div>
-        </div>
-        <div class="rf-ob4-bloco">
-          <span class="rf-campo-l">Quem pode entrar</span>
-          <div class="rf-ob3-pills">${RF_ENTRADAS.map(([k,l])=>`
-            <button type="button" class="rf-chip ${sala.quem===k?'on':''}" onclick="rfObSala('quem','${k}')">${escC(l)}</button>`).join('')}</div>
-        </div>
-        <!-- salaTestDivRow() ficou de fora: é marcação do skin antigo e só existe
-             no modo de teste, onde o passo 3 já traz o mesmo seletor de divisão. -->
+        <div class="rf-sl-divs">${cards}</div>
+        ${escolhida!=='D'?`<div class="rf-sl-aviso">
+          ${rfIcone('aviso',16)}
+          <span>Série A, B e C ainda são <b>modo teste</b> — a temporada roda, mas o mercado e as
+            copas podem se comportar de forma estranha. A Série D é a que está pronta.</span>
+        </div>`:''}
       </div>
-      <div class="rf-ob-escuro">
-        <span class="rf-ob-esc-l">Código da sala</span>
-        <span class="rf-ob-codigo">${escC(codigo)}</span>
-        <span class="rf-ob-esc-p">Quem tiver esse código entra direto na sua liga.</span>
-        <div class="rf-ob-esc-h"></div>
-        <div class="rf-ob-esc-lin"><span>Vagas</span><b>${vagas} / ${teto}</b></div>
-        <div class="rf-ob-esc-bar"><i style="width:${Math.round(vagas/teto*100)}%"></i></div>
-        <button type="button" class="rf-ob-esc-b" onclick="rfObCopiar('${escC(codigo)}')">📋 Copiar código</button>
+
+      <div class="rf-sl-faixa">
+        <div class="rf-sl-fx"><span class="rf-sl-l">CÓDIGO</span><span class="rf-sl-fx-v mono">${escC(codigo)}</span></div>
+        <span class="rf-sl-fx-sep"></span>
+        <div class="rf-sl-fx"><span class="rf-sl-l">TREINADORES</span><span class="rf-sl-fx-v">até 20</span></div>
+        <span class="rf-sl-fx-sep"></span>
+        <div class="rf-sl-fx"><span class="rf-sl-l">CLUBES</span><span class="rf-sl-fx-v">por sorteio</span></div>
       </div>
     </div>`;
-  return rfWiz({passo:3, corpo,
-    sobre:'Modo Resenha', titulo:'Monte a sua sala.',
-    sub:'Você é o anfitrião: define o país, o ritmo da rodada e quem entra. Todo mundo joga a mesma rodada ao vivo.',
-    nota:'Você pode mudar tudo isso antes de a primeira rodada começar.',
-    voltar:'clBackConta()', cta:'Criar sala e convidar', ctaOff:!n.roomName, ctaOn:'clOpenRoom()'});
+  return rfWiz({trilha:'resenha', passo:3,
+    sobre:'PASSO 3 DE 6 · MODO RESENHA', titulo:'Abrir a sua sala',
+    sub:'Dê um nome e escolha onde a resenha começa. Você é o anfitrião: só você muda essas duas coisas.',
+    corpo, nota:'A sala fica aberta por 7 dias sem ninguém entrar.',
+    voltar:'clBackConta()', cta:'Abrir a sala', ctaOff:!n.roomName, ctaOn:'clOpenRoom()'});
 }
-/* O PACOTE DESENHA DOIS BOTÕES, não três formulários abertos ao mesmo tempo.
-   Os campos continuam existindo — e-mail, WhatsApp e busca por quem já tem
-   conta — mas só aparecem depois de escolher o canal. É o estado de repouso
-   do desenho: a sala respira, e quem quer convidar diz por onde primeiro. */
-function rfObConvite(qual){ CL.obConvite=(CL.obConvite===qual)?null:qual; cdraw(); }
+function rfOb4Sync(){ const b=document.querySelector('.rf-wiz-cta'); if(b) b.disabled=!CL.net.roomName;
+  const c=document.querySelector('.rf-sl-cont'); if(c) c.textContent=(CL.net.roomName||'').length+'/24'; }
+
 function rfObSala(k,v){ CL.sala=CL.sala||{}; CL.sala[k]=v; cdraw(); }
-function rfOb4Sync(){ const b=document.querySelector('.rf-wiz-cta'); if(b) b.disabled=!CL.net.roomName; }
 function rfObCopiar(txt){
   try{ navigator.clipboard.writeText(txt); toastC('Copiado: '+txt,'success'); }
   catch(e){ toastC('Copie à mão: '+txt,'info'); }
@@ -388,93 +416,109 @@ function rfObCopiar(txt){
    ===================================================================== */
 function rfOb5(){
   const room=(typeof NET!=='undefined')?NET.room:null;
-  if(!room) return rfWiz({passo:3, corpo:'<span class="rf-note">A ligar à sala</span>',
-    sobre:'Modo Resenha', titulo:'Sala', voltar:'clLobbyExit()', voltarLabel:'Sair da sala'});
+  if(!room) return rfWiz({trilha:'resenha', passo:4,
+    corpo:'<span class="rf-note">A ligar à sala</span>',
+    sobre:'PASSO 4 DE 6 · MODO RESENHA', titulo:'Sala', voltar:'clLobbyExit()', voltarLabel:'Sair da sala'});
   const anfitriao=NET.isHost;
   if(anfitriao && typeof clStartHostReqPoll==='function') clStartHostReqPoll();
   else if(typeof clStartLobbyPoll==='function') clStartLobbyPoll();
   const parts=room.participants||[];
-  const prontos=parts.filter(p=>p.confirmed).length;
-  const pedidos=(CL.pendingJoins&&CL.pendingJoins.length)||0;
+  const dentro=parts.filter(p=>p.confirmed).length;
+  const convidados=parts.length-dentro;
+  const teto=20, vagas=Math.max(0,teto-parts.length);
   const link=(typeof NET.inviteLink==='function')?NET.inviteLink():'';
+  const codigo=room.code||'';
+  const divLbl=(typeof divisionLabel==='function')?divisionLabel():'';
+
+  /* O LINK É O BLOCO PRINCIPAL. No desenho antigo ele fechava a tela em texto
+     pequeno, sendo o canal mais usado — agora abre, em azul, com o Copiar em
+     amarelo. WhatsApp e e-mail viram dois cards iguais logo abaixo, e a busca
+     de quem já tem conta desce para um campo simples. */
   const corpo=`
-    <div class="rf-ob5">
-      <div class="rf-ob5-l">
-        ${anfitriao&&pedidos?`<div class="rf-ob5-pedidos">
-          <div class="rf-label"><span class="rf-label-t">Pedidos de entrada</span>
-            <span class="rf-ob5-badge">${pedidos}</span></div>
-          ${(typeof clReqRowsHTML==='function')?clReqRowsHTML():''}
-        </div>`:''}
-        <div class="rf-label"><span class="rf-label-t">Treinadores na sala</span>
-          <span class="rf-label-r">${parts.length} / 20</span></div>
+    <div class="rf-sa">
+      <div class="rf-sa-link">
+        <span class="rf-sa-link-id">
+          <span class="rf-sa-l">LINK DA SALA · O JEITO MAIS RÁPIDO</span>
+          <span class="rf-sa-link-v">${escC(link||('código '+codigo))}</span>
+        </span>
+        <div class="rf-sp"></div>
+        <button type="button" class="rf-sa-copiar" onclick="rfObCopiar('${escC(link||codigo)}')">
+          ${rfIcone('copiar',16)} Copiar link</button>
+      </div>
+
+      <div class="rf-sa-canais">
+        <div class="rf-sa-canal">
+          <span class="rf-sa-canal-hd">${rfIcone('chat',16)} <b>WhatsApp</b></span>
+          <span class="rf-sa-linha">
+            <span class="rf-sa-ddi">+55</span>
+            <input class="rf-sa-input" inputmode="numeric" placeholder="DDD + número"
+              value="${escC((CL.net&&CL.net.phone)||'')}"
+              oninput="CL.net.phone=this.value.replace(/\D/g,'');this.value=CL.net.phone">
+            <button type="button" class="rf-sa-bt" onclick="clWaInvite()">Enviar</button>
+          </span>
+        </div>
+        <div class="rf-sa-canal">
+          <span class="rf-sa-canal-hd">${rfIcone('email',16)} <b>E-mail</b></span>
+          <span class="rf-sa-linha">
+            <input class="rf-sa-input" type="email" placeholder="email@exemplo.com"
+              value="${escC((CL.net&&CL.net.inviteEmail)||'')}"
+              oninput="CL.net.inviteEmail=this.value">
+            <button type="button" class="rf-sa-bt" onclick="clEmailInvite()">Enviar</button>
+          </span>
+        </div>
+      </div>
+
+      <label class="rf-sa-busca">
+        <span class="rf-sa-l">QUEM JÁ TEM CONTA</span>
+        <span class="rf-sa-busca-in">
+          ${rfIcone('buscar',16)}
+          <input id="cl-usersearch-input" class="rf-sa-input"
+            placeholder="Buscar por nome ou e-mail (mín. 3 letras)" oninput="clUserSearch(this.value)">
+        </span>
+        <div id="cl-usersearch-results" class="cl-usersearch-results"></div>
+      </label>
+
+      <div class="rf-sa-lista">
+        <div class="rf-sa-lista-hd">
+          <span class="rf-sa-l">TREINADORES NA SALA</span>
+          <span class="rf-sa-lista-c">${dentro} dentro · ${convidados} convidado${convidados===1?'':'s'} · ${vagas} vaga${vagas===1?'':'s'}</span>
+        </div>
         ${parts.map(p=>{
           const eu=p.id===NET.self.id;
-          return `<div class="rf-ob5-lin ${p.host?'anf':''}">
-            <span class="rf-ob5-av">${escC(String(p.name||'?').slice(0,1).toUpperCase())}</span>
-            <span class="rf-ob5-id">
-              <span class="rf-ob5-n">${escC(p.name||'—')}${p.host?' <i class="rf-ob5-selo">ANFITRIÃO</i>':''}${eu&&!p.host?' <i>(você)</i>':''}</span>
-              <span class="rf-ob5-c">🎲 clube sorteado na próxima tela</span></span>
-            <span class="rf-ob5-st ${p.confirmed?'ok':''}">${p.confirmed?'● na sala':'○ a entrar'}</span>
-            ${anfitriao&&!eu?`<button type="button" class="rf-ob5-x" onclick="clKick('${escC(p.id)}','${escC(p.clubId||'')}')">Remover</button>`:'<span></span>'}
+          const papel=p.host?('anfitrião'+(eu?' · você':'')):(eu?'você':'convidado');
+          return `<div class="rf-sa-lin">
+            <span class="rf-sa-ponto ${p.confirmed?'on':''}"></span>
+            <span class="rf-sa-id">
+              <span class="rf-sa-n">${escC(p.name||'—')}</span>
+              <span class="rf-sa-p">${escC(papel)}</span>
+            </span>
+            <span class="rf-sa-st ${p.confirmed?'ok':''}">${p.confirmed?'● na sala':'convite enviado'}</span>
+            ${anfitriao&&!eu?`<button type="button" class="rf-sa-x"
+              onclick="clKick('${escC(p.id)}','${escC(p.clubId||'')}')">Remover</button>`:'<span></span>'}
           </div>`;}).join('')}
-        ${anfitriao?`<div class="rf-ob5-conv">
-          <div class="rf-ob5-bts">
-            <button type="button" class="rf-ob5-bt tracejado ${CL.obConvite==='email'?'on':''}"
-              onclick="rfObConvite('email')">＋ Convidar por e-mail</button>
-            <button type="button" class="rf-ob5-bt zap ${CL.obConvite==='zap'?'on':''}"
-              onclick="rfObConvite('zap')">💬 Chamar no WhatsApp</button>
-          </div>
-          <div class="rf-ob5-cv" ${CL.obConvite==='email'?'':'hidden'}>
-            <span class="rf-campo-l">✉ Por e-mail</span>
-            <div class="rf-ob5-cvl">
-              <input class="rf-campo-c" type="email" placeholder="email@exemplo.com"
-                value="${escC(CL.net.inviteEmail||'')}" oninput="CL.net.inviteEmail=this.value">
-              <button type="button" class="rf-btn rf-btn-secondary" onclick="clEmailInvite()">Enviar</button>
-            </div>
-          </div>
-          <div class="rf-ob5-cv" ${CL.obConvite==='zap'?'':'hidden'}>
-            <span class="rf-campo-l">🟢 Por WhatsApp</span>
-            <div class="rf-ob5-cvl">
-              <span class="rf-ob5-ddi">+55</span>
-              <input class="rf-campo-c" inputmode="numeric" placeholder="DDD + número"
-                value="${escC(CL.net.phone||'')}"
-                oninput="CL.net.phone=this.value.replace(/\D/g,'');this.value=CL.net.phone">
-              <button type="button" class="rf-ob5-zap" onclick="clWaInvite()">Chamar</button>
-            </div>
-          </div>
-          <div class="rf-ob5-cv" ${CL.obConvite==='email'?'':'hidden'}>
-            <span class="rf-campo-l">🔍 Quem já tem conta</span>
-            <input id="cl-usersearch-input" class="rf-campo-c" placeholder="Buscar por nome ou e-mail (mín. 3 letras)"
-              oninput="clUserSearch(this.value)">
-            <div id="cl-usersearch-results" class="cl-usersearch-results"></div>
-          </div>
+        ${vagas?`<div class="rf-sa-vagas">
+          <span class="rf-sa-mais">＋</span>
+          <span>${vagas} vaga${vagas===1?' livre':'s livres'} — mande o código <b>${escC(codigo)}</b> ou o link acima</span>
         </div>`:''}
       </div>
-      <div class="rf-ob5-r">
-        <div class="rf-ob-escuro">
-          <span class="rf-ob-esc-l">Link da sala</span>
-          <span class="rf-ob-esc-link">${escC(link||('código '+(room.code||'')))}</span>
-          <button type="button" class="rf-ob-esc-b" onclick="rfObCopiar('${escC(link||room.code||'')}')">📋 Copiar link</button>
-        </div>
-        ${CHAT_ATIVO?`<div class="rf-ob5-chat">
-          <span class="rf-label-t">Chat da sala</span>
-          <div class="rf-ob5-msgs" id="cl-chat-msgs-lobby">${(typeof chatMsgsHTML==='function'&&chatMsgsHTML())||'<span class="rf-note">Nenhuma mensagem ainda. Diga oi! 👋</span>'}</div>
-          <input id="cl-chat-input-lobby" class="rf-campo-c" placeholder="Manda a braba"
-            onkeydown="clChatKey(event,'cl-chat-input-lobby')">
-        </div>`:''}
+
+      <div class="rf-sa-nota">
+        ${rfIcone('sorteio',16)}
+        <span>Ao começar, os clubes ${divLbl?('da '+escC(divLbl)+' '):''}são sorteados entre os treinadores
+          que estiverem <b>na sala</b>. Quem não tiver entrado fica de fora e o clube vai para a máquina.</span>
       </div>
     </div>`;
-  const podeComecar=anfitriao && parts.length>=2;
-  return rfWiz({passo:3, corpo,
-    sobre:`Sala ${escC(room.code||'')}${room.name?' · '+escC(room.name):''}`,
-    titulo:'Chama a galera.',
-    sub:'A rodada só começa quando todo mundo estiver pronto. Cada treinador escolhe o país; o clube é sorteado na hora.',
+  const podeComecar=anfitriao && dentro>=2;
+  return rfWiz({trilha:'resenha', passo:4, corpo,
+    sobre:`PASSO 4 DE 6${divLbl?' · '+escC(divLbl).toUpperCase():''}`,
+    titulo: room.name||'Sala aberta',
+    sub:'Chame os treinadores. Quando você começar, cada um recebe um clube por sorteio — ninguém escolhe.',
     nota: anfitriao
-      ? (podeComecar?`${prontos} de ${parts.length} treinadores na sala · o sorteio é na próxima tela`
-                    :'Convide pelo menos mais 1 treinador pra começar.')
+      ? (podeComecar?`${dentro} de ${parts.length} treinadores na sala`
+                    :'Precisa de pelo menos 2 treinadores na sala para começar.')
       : 'À espera do anfitrião — toque em Sincronizar se ele já começou.',
-    voltar:'clLobbyExit()', voltarLabel:'Sair da sala',
-    cta: anfitriao?'⚽ Começar a temporada':'🔄 Sincronizar',
+    voltar:'clLobbyExit()', voltarLabel:'✕ Fechar a sala',
+    cta: anfitriao?'Começar (sortear times)':'Sincronizar',
     ctaOff: anfitriao&&!podeComecar,
     ctaOn: anfitriao?'clLobbyStart()':'clSyncResenha()'});
 }

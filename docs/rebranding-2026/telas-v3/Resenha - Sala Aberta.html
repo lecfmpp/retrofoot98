@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Sala aberta" description="Onboarding — Sala aberta" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ee}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes ctaPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+@keyframes ballDrop{from{opacity:0;transform:translateY(-8px) scale(.9)}to{opacity:1;transform:none}}
+@media (max-width:900px){ [data-wiz-cards]{grid-template-columns:minmax(0,1fr)!important} [data-wiz-steps]{display:none} }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#eef0ee;font-family:'Space Grotesk',system-ui,sans-serif;padding:24px;box-sizing:border-box;display:flex;justify-content:center">
+  <div style="width:940px;max-width:100%;display:flex;flex-direction:column;gap:14px">
+
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="display:flex;align-items:center;gap:10px;flex:0 0 auto">
+        <img src="uploads/pasted-1786581574687-0.png" alt="RetroFoot98" style="width:32px;height:32px;object-fit:contain">
+        <span style="font-size:16px;font-weight:700;color:#12201a;letter-spacing:-.02em;white-space:nowrap">RetroFoot<span style="font-family:'IBM Plex Mono',monospace;color:#17458F">98</span></span>
+      </div>
+      <div style="flex:1"></div>
+      <span style="height:36px;padding:0 14px;display:flex;align-items:center;gap:7px;border:1px solid #d8e2d6;border-radius:11px;background:#fff;font-size:12px;font-weight:600;color:#5d6c62;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">‹ Voltar à sala</span>
+    </div>
+
+    <div style="background:#e8f0e7;border:1px solid #d2e0d0;border-radius:24px;padding:18px;box-shadow:0 18px 40px -28px rgba(20,33,26,.35);display:flex;flex-direction:column;gap:16px">
+
+      <div data-wiz-steps style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #dde7db;border-radius:16px;padding:10px 14px;overflow:auto">
+        <span style="display:flex;align-items:center;gap:8px;flex:0 0 auto">
+          <span style="width:22px;height:22px;border-radius:99px;background:#2fbf5f;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">✓</span>
+          <span style="font-size:12px;font-weight:500;color:#78877c;white-space:nowrap">Entrar</span>
+        </span><span style="flex:0 0 auto;width:18px;height:1px;background:#dde7db"></span>
+        <span style="display:flex;align-items:center;gap:8px;flex:0 0 auto">
+          <span style="width:22px;height:22px;border-radius:99px;background:#2fbf5f;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">✓</span>
+          <span style="font-size:12px;font-weight:500;color:#78877c;white-space:nowrap">Modo</span>
+        </span><span style="flex:0 0 auto;width:18px;height:1px;background:#dde7db"></span>
+        <span style="display:flex;align-items:center;gap:8px;flex:0 0 auto">
+          <span style="width:22px;height:22px;border-radius:99px;background:#2fbf5f;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">✓</span>
+          <span style="font-size:12px;font-weight:500;color:#78877c;white-space:nowrap">Sala</span>
+        </span><span style="flex:0 0 auto;width:18px;height:1px;background:#dde7db"></span>
+        <span style="display:flex;align-items:center;gap:8px;flex:0 0 auto">
+          <span style="width:22px;height:22px;border-radius:99px;background:#17458F;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">4</span>
+          <span style="font-size:12px;font-weight:700;color:#12201a;white-space:nowrap">Convites</span>
+        </span><span style="flex:0 0 auto;width:18px;height:1px;background:#dde7db"></span>
+        <span style="display:flex;align-items:center;gap:8px;flex:0 0 auto">
+          <span style="width:22px;height:22px;border-radius:99px;background:#eef1ee;color:#9aa79e;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">5</span>
+          <span style="font-size:12px;font-weight:500;color:#78877c;white-space:nowrap">Clube</span>
+        </span><span style="flex:0 0 auto;width:18px;height:1px;background:#dde7db"></span>
+        <span style="display:flex;align-items:center;gap:8px;flex:0 0 auto">
+          <span style="width:22px;height:22px;border-radius:99px;background:#eef1ee;color:#9aa79e;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">6</span>
+          <span style="font-size:12px;font-weight:500;color:#78877c;white-space:nowrap">Jogar</span>
+        </span>
+      </div>
+
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:20px;min-height:340px">
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;letter-spacing:.14em;white-space:nowrap">PASSO 4 DE 6 · SÉRIE D · MODO TESTE</span>
+          <span style="font-size:28px;font-weight:700;color:#12201a;letter-spacing:-.02em;line-height:1.15;white-space:nowrap">Resenha da firma</span>
+          <span style="font-size:14px;color:#78877c;max-width:560px;line-height:1.55;text-wrap:pretty">Chame os treinadores. Quando você começar, cada um recebe um clube por sorteio — ninguém escolhe.</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+
+          <div style="display:flex;align-items:center;gap:13px;background:#eef3fa;border:1px solid #17458F;border-radius:14px;padding:13px 15px;flex-wrap:wrap">
+            <span style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#17458F;letter-spacing:.12em;white-space:nowrap">LINK DA SALA · O JEITO MAIS RÁPIDO</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">retrofoot98.com.br/?sala=6DHK9</span>
+            </span>
+            <span style="height:40px;padding:0 16px;display:flex;align-items:center;gap:7px;border-radius:11px;background:#F2B90C;color:#17458F;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer;flex:0 0 auto" style-hover="background:#ffcb2e">📤 Copiar link</span>
+          </div>
+
+          <div data-wiz-cards style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="background:#fff;border:1px solid #dde7db;border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:8px;min-width:0">
+              <span style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:13px;flex:0 0 auto">🟢</span>
+                <span style="font-size:12px;font-weight:700;color:#12201a;white-space:nowrap">WhatsApp</span>
+              </span>
+              <span style="display:flex;align-items:center;gap:7px;min-width:0">
+                <span style="height:40px;padding:0 11px;display:flex;align-items:center;border:1px solid #d8e2d6;border-radius:11px;background:#f7faf6;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#5d6c62;flex:0 0 auto">+55</span>
+                <span style="flex:1;min-width:0;height:40px;display:flex;align-items:center;padding:0 12px;border:1px solid #d8e2d6;border-radius:11px;background:#fff;font-size:13px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box">DDD + número</span>
+                <span style="height:40px;padding:0 14px;display:flex;align-items:center;border:1px solid #d8e2d6;border-radius:11px;background:#fff;font-size:12px;font-weight:600;color:#3a473f;white-space:nowrap;cursor:pointer;flex:0 0 auto" style-hover="background:#f2f7f1">Enviar</span>
+              </span>
+            </div>
+            <div style="background:#fff;border:1px solid #dde7db;border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:8px;min-width:0">
+              <span style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:13px;flex:0 0 auto">✉️</span>
+                <span style="font-size:12px;font-weight:700;color:#12201a;white-space:nowrap">E-mail</span>
+              </span>
+              <span style="display:flex;align-items:center;gap:7px;min-width:0">
+                
+                <span style="flex:1;min-width:0;height:40px;display:flex;align-items:center;padding:0 12px;border:1px solid #d8e2d6;border-radius:11px;background:#fff;font-size:13px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box">email@exemplo.com</span>
+                <span style="height:40px;padding:0 14px;display:flex;align-items:center;border:1px solid #d8e2d6;border-radius:11px;background:#fff;font-size:12px;font-weight:600;color:#3a473f;white-space:nowrap;cursor:pointer;flex:0 0 auto" style-hover="background:#f2f7f1">Enviar</span>
+              </span>
+            </div>
+          </div>
+
+          <label style="display:flex;flex-direction:column;gap:7px;min-width:0">
+            <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">QUEM JÁ TEM CONTA</span>
+            <span style="height:44px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #d8e2d6;border-radius:12px;background:#fff;box-sizing:border-box">
+              <span style="font-size:13px;flex:0 0 auto;color:#9aa79e">🔍</span>
+              <span style="flex:1;min-width:0;font-size:13px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Buscar por nome ou e-mail (mín. 3 letras)</span>
+            </span>
+          </label>
+
+          <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid #dde7db;padding-top:16px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap">
+              <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">TREINADORES NA SALA</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">2 dentro · 1 convidado · 5 vagas</span>
+            </div>
+            <div style="display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;background:#eef3fa;border:1px solid #17458F">
+              <span style="width:9px;height:9px;border-radius:99px;background:#2fbf5f;justify-self:center"></span>
+              <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-size:14px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">lecfmpp</span>
+                <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">anfitrião · você</span>
+              </span>
+              <span style="font-size:11px;font-weight:700;color:#0d3d22;background:#d7f5e2;border-radius:99px;padding:5px 10px;white-space:nowrap">● na sala</span>
+            </div>
+            <div style="display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;background:#fff;border:1px solid #dde7db">
+              <span style="width:9px;height:9px;border-radius:99px;background:#2fbf5f;justify-self:center"></span>
+              <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-size:14px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rafa</span>
+                <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">convidado por WhatsApp</span>
+              </span>
+              <span style="font-size:11px;font-weight:700;color:#0d3d22;background:#d7f5e2;border-radius:99px;padding:5px 10px;white-space:nowrap">● na sala</span>
+            </div>
+            <div style="display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;background:#fff;border:1px solid #dde7db">
+              <span style="width:9px;height:9px;border-radius:99px;background:#c9d2ca;justify-self:center"></span>
+              <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-size:14px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Bea</span>
+                <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">convidada por e-mail</span>
+              </span>
+              <span style="font-size:11px;font-weight:700;color:#7a6a12;background:#fdf1c8;border-radius:99px;padding:5px 10px;white-space:nowrap">⏳ convite enviado</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px dashed #c9d2ca;border-radius:12px">
+              <span style="width:20px;text-align:center;font-size:15px;color:#9aa79e;flex:0 0 auto">＋</span>
+              <span style="flex:1;min-width:0;font-size:12px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">5 vagas livres — mande o código <strong>6DHK9</strong> ou o link acima</span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:flex-start;gap:10px;background:#f7faf6;border-radius:12px;padding:11px 13px">
+            <span style="font-size:13px;flex:0 0 auto">🎲</span>
+            <span style="font-size:12px;color:#5d6c62;line-height:1.55;text-wrap:pretty">Ao começar, os clubes da Série D são sorteados entre os treinadores que estiverem <strong>na sala</strong>. Quem não tiver entrado fica de fora e o clube vai para a máquina.</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:12px;color:#78877c">Precisa de pelo menos 2 treinadores na sala para começar.</span>
+        <div style="flex:1"></div>
+        <span style="height:46px;padding:0 22px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:13px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">✕ Fechar a sala</span><span style="height:46px;padding:0 22px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:13px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">🎲 Começar (sortear times)</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
