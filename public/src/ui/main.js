@@ -737,7 +737,10 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
        apontava para a antiga, e por isso ela continuava aparecendo.
        O passo 'novo' (dar nome ao save) segue na tela antiga: o pacote não
        trouxe equivalente para ele. */
-    case 'modosolo':  html=(CL.soloStep==='novo')?scSoloNovo():rfSavesHTML(); break;
+    /* UMA tela só (rfObSoloHTML): os dois cartões e os saves recentes juntos.
+       Antes isto caía em scSoloNovo() — o "EX: SAVE01" da pele antiga, desenhado
+       com o assistente velho por dentro do assistente novo. */
+    case 'modosolo':  html=rfObSoloHTML(); break;
     case 'paises':    html=rfOb3(); break;
     case 'paisJogavel': html=scPaisJogavel(); break;
     case 'moeda':     html=scMoeda(); break;
@@ -2005,7 +2008,19 @@ function clDeleteSaveGo(name){
     else toastC('⚠ Não foi possível apagar o jogo. Tente de novo.');
   })();
 }
-function clSoloNew(){ CL.soloStep='novo'; cdraw(); }
+/* O desenho novo NÃO tem passo pra nomear o save — a trilha vai direto de "Modo"
+   pra "País e liga". O nome então nasce aqui, no mesmo padrão que o campo antigo
+   sugeria no placeholder (SAVE01, SAVE02…), pulando os que já existem na conta.
+   `clModoOk()` continua exigindo CL.save preenchido, e é ele que decide seguir. */
+function clSaveNomeLivre(){
+  const usados=new Set((CL.soloSaves||[]).map(s=>String(s.name||s.save_name||'').toUpperCase()));
+  for(let i=1;i<100;i++){
+    const n='SAVE'+String(i).padStart(2,'0');
+    if(!usados.has(n)) return n;
+  }
+  return 'SAVE'+Date.now().toString(36).slice(-4).toUpperCase();
+}
+function clSoloNew(){ CL.save=clSaveNomeLivre(); CL.soloStep='novo'; clModoOk(); }
 function clSoloContinue(){ CL.soloStep='cont'; cdraw(); }
 function clSoloBackChoice(){ CL.soloStep='choice'; cdraw(); }
 function clSyncOk(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(b) b.disabled = !((CL.save||'').trim().length>0); }

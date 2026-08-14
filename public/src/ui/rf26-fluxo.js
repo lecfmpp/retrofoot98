@@ -639,3 +639,87 @@ function rfClubeEscolhe(nome){
   CL.waitlistClubeOpen=false;
   rfWaitlistDraw();
 }
+
+/* =====================================================================
+   PASSO 2 · COMO VOCÊ QUER COMEÇAR  (Modo Solo)
+   Substitui DUAS telas da pele antiga que ainda apareciam por dentro do
+   assistente novo: a escolha "Novo jogo / Continuar" (scSoloModo) e a de
+   nomear o save (scSoloNovo, o "EX: SAVE01"). O desenho novo junta as duas
+   coisas numa tela só — os dois cartões em cima e os saves recentes logo
+   abaixo, sem precisar de um passo extra só pra digitar um nome.
+   ===================================================================== */
+function rfObSoloHTML(){
+  const carregando = CL.soloSaves==null;
+  const saves=(CL.soloSaves||[]).slice()
+    .sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0));
+  const n=saves.length;
+  const recentes=saves.slice(0,3);
+  const novoSel = CL.soloEscolha!=='continuar';
+
+  const cartao=(sel,onclick,ico,titulo,desc,chip,chipCls)=>`
+    <button type="button" class="rf-sc-card ${sel?'sel':''}" onclick="${onclick}">
+      <span class="rf-sc-ico ${chipCls==='novo'?'novo':''}">${ico}</span>
+      <span class="rf-sc-t">${escC(titulo)}</span>
+      <span class="rf-sc-d">${escC(desc)}</span>
+      ${chip?`<span class="rf-sc-chip ${chipCls||''}">${escC(chip)}</span>`:''}
+    </button>`;
+
+  const linha=(s,i)=>{
+    const st=s.state||{};
+    const clube=st.clubName||st.club||s.club||s.save_name||s.name||'—';
+    const serie=st.divisionLabel||st.division||s.division||'';
+    const ano=st.season||s.season||'';
+    const onde=st.roundLabel||(st.round?`${st.round}ª jornada`:'')||s.round_label||'';
+    const nome=s.name||s.save_name||'';
+    return `<div class="rf-sv2 ${i===0?'me':''}" onclick="clLoadSave('${escC(nome).replace(/'/g,"\\'")}')">
+      <span class="rf-sv2-cr">${rfSaveEscudoHTML(st)}</span>
+      <span class="rf-sv2-id">
+        <span class="rf-sv2-n">${escC(clube)}</span>
+        <span class="rf-sv2-s">${escC([serie,ano].filter(Boolean).join(' · ')||nome)}</span>
+      </span>
+      <span class="rf-sv2-onde">${escC(onde)}</span>
+      <span class="rf-sv2-q">${escC(rfSaveQuando(s))}</span>
+      <span class="rf-sv2-b ${i===0?'forte':''}">${i===0?'Continuar':'Abrir'}</span>
+    </div>`;
+  };
+
+  const corpo=`
+    <div class="rf-sc">
+      <div class="rf-sc-cards">
+        ${cartao(novoSel,'clSoloNew()','NEW','Novo jogo',
+          'Comece uma carreira do zero contra a máquina. Você escolhe país, divisão e clube.',
+          '7 passos · ~2 min','novo')}
+        ${cartao(!novoSel,'clSoloContinue()',rfIcone('arquivar',20),'Continuar',
+          'Retome um dos seus saves na nuvem, do ponto exato onde parou.',
+          carregando?'Carregando':`${n} save${n===1?'':'s'} gravado${n===1?'':'s'}`,'')}
+      </div>
+      ${(carregando||n)?`
+      <div class="rf-sc-sep"></div>
+      <div class="rf-sc-hd">
+        <span class="rf-label-t">Os seus saves mais recentes</span>
+        <span class="rf-sc-cont">${carregando?'—':`${n} na nuvem`}</span>
+      </div>
+      <div class="rf-sc-lista">
+        ${carregando?'<span class="rf-note">Carregando os seus jogos salvos</span>'
+                    :recentes.map(linha).join('')}
+      </div>
+      ${n>3?`<button type="button" class="rf-sc-todos" onclick="clSoloContinue()">Ver os ${n} saves</button>`:''}
+      `:''}
+    </div>`;
+
+  return rfWiz({ passo:2, corpo,
+    sobre:`Modo solo · passo 2 de ${rfWizPassos('solo').length}`,
+    titulo:'Como você quer começar?',
+    sub:'Comece do zero ou retome um dos seus saves na nuvem.',
+    nota:'Os saves ficam na nuvem — entre de qualquer aparelho com a mesma conta.',
+    topoDir:`<button type="button" class="rf-lp-entrar" onclick="clGoModo()">‹ Voltar ao modo</button>`,
+    cta:'Começar do zero', ctaOn:'clSoloNew()' });
+}
+/* escudo do clube do save; sem clube identificado, o crachá fica vazio em vez
+   de sumir — a linha perderia o alinhamento das colunas */
+function rfSaveEscudoHTML(st){
+  const url=(typeof clubCrestUrl==='function' && st && (st.clubId||st.club))
+    ? clubCrestUrl({id:st.clubId,crest:st.crest,nome:st.clubName}) : '';
+  return url?`<img class="rf-sv2-img" src="${escC(url)}" alt="">`
+            :`<span class="rf-sv2-vazio">${rfIcone('camisa',16)}</span>`;
+}

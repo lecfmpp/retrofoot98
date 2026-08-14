@@ -26,9 +26,14 @@
    Resenha ele abre a sala e chama a turma antes disso (6 passos). Uma trilha
    só obrigava a chamar de "Configurar" tanto escolher país quanto montar sala,
    e o número de passos mentia num dos dois. */
+/* A TRILHA É UMA SÓ, de sete passos, igual nos dois modos — é o que o desenho
+   mostra ("MODO SOLO · PASSO 2 DE 7" sobre a mesma régua que a Resenha usa).
+   Eu tinha inventado duas trilhas curtas e diferentes; o resultado é que a
+   pessoa via um caminho no Solo e outro na Resenha, e o número do passo não
+   batia com o cabeçalho. */
 const RF_WIZ_TRILHAS={
-  solo:   ['Entrar','Modo','Configurar','Sorteio','Jogar'],
-  resenha:['Entrar','Modo','Sala','Convites','Clube','Jogar'],
+  solo:   ['Entrar','Modo','País e liga','Sala','Convites','Clube','Jogar'],
+  resenha:['Entrar','Modo','País e liga','Sala','Convites','Clube','Jogar'],
 };
 /* a trilha vem do modo escolhido, mas pode ser forçada por quem desenha */
 function rfWizPassos(trilha){

@@ -17,7 +17,10 @@ const RF_LP_NAV=[
   ['ligas','Ligas Oficiais'],['canais','Para canais'],['blog','Blog'],['apoie','Apoie o projeto'],
 ];
 
-function rfLpNavHTML(){
+/* `extra` é o encaixe da DIREITA do cabeçalho: dentro do assistente é ali que
+   mora o "‹ Voltar ao modo" do desenho, no lugar dos botões de entrar. Nas
+   páginas públicas ele vem vazio e o cabeçalho é o de sempre. */
+function rfLpNavHTML(extra){
   return `<nav class="rf-lp-nav">
     <a class="rf-lp-marca" href="/" aria-label="RetroFoot98">
       <img src="img/logo.webp" width="32" height="32" alt="">
@@ -27,8 +30,8 @@ function rfLpNavHTML(){
       ${RF_LP_NAV.map(([k,l])=>`<button type="button" class="rf-lp-link" onclick="rfLpIr('${k}')">${escC(l)}</button>`).join('')}
     </div>
     <div class="rf-sp"></div>
-    <button type="button" class="rf-lp-entrar" onclick="clGoModo('solo')">🔑 Entrar</button>
-    <button type="button" class="rf-lp-btlista" onclick="rfLpIr('lista')">Entrar na lista</button>
+    ${extra ? extra : `<button type="button" class="rf-lp-entrar" onclick="clGoModo('solo')">${rfIcone('chave',16)} Entrar</button>
+    <button type="button" class="rf-lp-btlista" onclick="rfLpIr('lista')">Entrar na lista</button>`}
   </nav>`;
 }
 function rfLpIr(k){
