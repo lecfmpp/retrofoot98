@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template mobile="1" name="Recuperar senha" description="Onboarding — Recuperar senha · mobile 390px" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ee}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes ctaPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+@keyframes ballDrop{from{opacity:0;transform:translateY(-8px) scale(.9)}to{opacity:1;transform:none}}
+@media (max-width:900px){ [data-ov-cols],[data-wiz-cards]{grid-template-columns:minmax(0,1fr)!important}  [data-wiz-cards]{grid-template-columns:minmax(0,1fr)!important} [data-wiz-steps]{display:none} }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#eef0ee;font-family:'Space Grotesk',system-ui,sans-serif;padding:24px;box-sizing:border-box;display:flex;justify-content:center">
+  <div style="width:390px;max-width:100%;display:flex;flex-direction:column;gap:14px">
+
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="display:flex;align-items:center;gap:10px;flex:0 0 auto">
+        <img src="uploads/pasted-1786581574687-0.png" alt="RetroFoot98" style="width:32px;height:32px;object-fit:contain">
+        <span style="font-size:16px;font-weight:700;color:#12201a;letter-spacing:-.02em;white-space:nowrap">RetroFoot<span style="font-family:'IBM Plex Mono',monospace;color:#17458F">98</span></span>
+      </div>
+      <div style="flex:1"></div>
+      <span style="height:36px;padding:0 14px;display:flex;align-items:center;gap:7px;border:1px solid #d8e2d6;border-radius:11px;background:#fff;font-size:12px;font-weight:600;color:#5d6c62;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">‹ Voltar ao login</span>
+    </div>
+
+    <div style="background:#e8f0e7;border:1px solid #d2e0d0;border-radius:0;padding:14px;box-shadow:0 18px 40px -28px rgba(20,33,26,.35);display:flex;flex-direction:column;gap:16px">
+
+      
+
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:20px;min-height:340px">
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;letter-spacing:.14em;white-space:nowrap">ACESSO À CONTA</span>
+          <span style="font-size:28px;font-weight:700;color:#12201a;letter-spacing:-.02em;line-height:1.15;white-space:nowrap">Esqueceu a senha?</span>
+          <span style="font-size:14px;color:#78877c;max-width:560px;line-height:1.55;text-wrap:pretty">Coloque o e-mail da conta. Enviamos um link para você criar uma nova.</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:400px;align-self:center;width:100%">
+            <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+              <span style="font-size:12px;font-weight:600;color:#5d6c62;white-space:nowrap">E-mail da conta</span>
+              <span style="height:44px;display:flex;align-items:center;padding:0 14px;border:1px solid #d8e2d6;border-radius:12px;background:#fff;font-size:14px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">gringo@exemplo.com</span>
+            </label>
+          <div style="display:flex;align-items:flex-start;gap:10px;background:#f2f7f1;border:1px solid #e6ebe4;border-radius:12px;padding:12px">
+            <span style="font-size:14px;flex:0 0 auto">✉️</span>
+            <span style="font-size:12px;color:#5d6c62;line-height:1.55;text-wrap:pretty">O link vale por 30 minutos. Se não chegar, confira o spam antes de pedir outro.</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:12px;color:#78877c">Os seus saves na nuvem continuam intactos.</span>
+        <div style="flex:1"></div>
+        <span style="height:46px;padding:0 22px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:13px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Enviar o link</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

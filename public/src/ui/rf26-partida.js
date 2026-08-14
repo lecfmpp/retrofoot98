@@ -167,14 +167,31 @@ function rfSubPick(lado,pid){
   else CL.subIn=(CL.subIn===pid)?null:pid;
   cdraw();
 }
-function rfSubFechar(){ CL.subOut=null; CL.subIn=null; CL.subOpen=false; cdraw(); }
+/* ESTAS DUAS FUNÇÕES SÓ DELEGAM — e é esse o ponto.
+   Elas tinham lógica própria, e as duas estavam erradas:
+
+   · Confirmar chamava um `doSubstitution` que NÃO EXISTE, então caía no ramo
+     de reserva, que só mexia em `S.xi`. Mas a partida em curso mantém a escalação
+     dentro da própria sessão do motor (`cur[side]` em simulate.js) — mudar `S.xi`
+     no meio do jogo não troca ninguém em campo. A substituição "acontecia" na tela
+     e não acontecia no jogo. O caminho certo é `liveDoSub()`, que entra no motor
+     por `applyDecision({tipo:'sub'})`, retransmite a decisão na Resenha, respeita o
+     limite de 3 e a regra de trocar goleiro só por goleiro.
+
+   · Fechar só apagava `CL.subOpen`. Mas no INTERVALO o painel é aberto por
+     `RL.paused`, não por `CL.subOpen` (ver rfLvSobreposicaoHTML) — então ele
+     reabria no mesmo instante e prendia o utilizador num laço. Quem realmente
+     tira do intervalo é `liveContinue()`, que zera o cronómetro, despausa e
+     religa o tique. */
+function rfSubFechar(){
+  CL.subOut=null; CL.subIn=null; CL.subOpen=false;
+  if(typeof liveContinue==='function') liveContinue(); else cdraw();
+}
 function rfSubConfirmar(){
   if(!CL.subOut||!CL.subIn) return;
-  // a troca em si continua sendo a do jogo (mesmo invariante de posição e
-  // de contagem); aqui só entregamos os dois escolhidos
-  if(typeof doSubstitution==='function') doSubstitution(CL.subOut, CL.subIn);
-  else { S.xi=(S.xi||[]).map(x=>x===CL.subOut?CL.subIn:x); CL.subsUsed=(CL.subsUsed||0)+1; }
-  CL.subOut=null; CL.subIn=null; CL.subOpen=false; cdraw();
+  if(typeof liveDoSub==='function') liveDoSub();   // já limpa subOut/subIn e redesenha
+  else { S.xi=(S.xi||[]).map(x=>x===CL.subOut?CL.subIn:x); CL.subsUsed=(CL.subsUsed||0)+1;
+         CL.subOut=null; CL.subIn=null; cdraw(); }
 }
 
 /* =====================================================================

@@ -61,16 +61,21 @@ function rfWiz(o){
   const passo=o.passo||1, total=passos.length;
   const cabeca=(o.titulo||o.sobre||o.sub)
     ? rfWizHead(o.sobre,o.titulo,o.sub) : '';
+  /* CABEÇALHO MÍNIMO, não o menu público. O pacote do Modo Solo mostra só a
+     marca à esquerda e o botão do passo à direita — sem links de navegação e
+     sem rodapé. Eu tinha envolvido o assistente no cabeçalho/rodapé públicos;
+     dentro de um fluxo de sete passos isso é saída de emergência em cada linha,
+     que é exatamente o que um assistente não deve oferecer. */
   return `<div class="rf-wiz">
-    ${(typeof rfLpNavHTML==='function')?rfLpNavHTML(o.topoDir):''}
     <div class="rf-wiz-in">
-      ${(typeof rfLpNavHTML==='function')?'':`
       <div class="rf-wiz-marca">
         <img src="img/logo.webp" width="32" height="32" alt="RetroFoot98">
         <span class="rf-wiz-marca-t">RetroFoot<span class="rf-wiz-marca-98">98</span></span>
         <div class="rf-sp"></div>
-        ${o.topoDir||''}
-      </div>`}
+        ${o.topoDir || (o.voltar
+          ? `<button type="button" class="rf-wiz-b2" onclick="${o.voltar}">${o.voltarLabel||'‹ Voltar'}</button>`
+          : '')}
+      </div>
       ${o.semTrilha?'':`<div class="rf-wiz-fita">
         <div class="rf-wiz-fita-l">
           <img src="img/logo.webp" width="28" height="28" alt="">
@@ -95,12 +100,10 @@ function rfWiz(o){
                trazer marcação (rfIcone(...) + texto). Escapando, o botão exibia
                o código do <svg> como texto e esticava a página para 6000px.
                Os rótulos são literais do código, nunca entrada do utilizador. -->
-          ${o.voltar?`<button type="button" class="rf-wiz-b2" onclick="${o.voltar}">${o.voltarLabel||'Voltar'}</button>`:''}
           ${o.cta?`<button type="button" class="rf-wiz-cta" ${o.ctaOff?'disabled':''} onclick="${o.ctaOn||''}">${o.cta}</button>`:''}
         </div>
       </div>
     </div>
-    ${(typeof rfLpRodapeHTML==='function')?rfLpRodapeHTML():''}
   </div>`;
 }
 function rfWizTrilhaHTML(passo, trilha){
@@ -154,11 +157,6 @@ function rfOb1(){
           <span class="rf-check-b ${a.aviso!==false?'on':''}">${a.aviso!==false?rfIcone('ok',14):''}</span>
           <span class="rf-check-t">Quero receber aviso quando abrir vaga nas Ligas Oficiais.</span>
         </div>`:''}
-        <div class="rf-ou"><i></i><span>ou entre com</span><i></i></div>
-        <div class="rf-social">
-          <button type="button" class="rf-social-b" onclick="rfObSocial('Google')">Google</button>
-          <button type="button" class="rf-social-b" onclick="rfObSocial('Discord')">Discord</button>
-        </div>
       </div>
     </div>`;
   return rfWiz({passo:1, corpo,
@@ -176,7 +174,6 @@ function rfObSyncCta(){
   const a=CL.auth||{}; const criando=a.mode!=='login';
   b.disabled=!(a.email&&a.password&&(!criando||a.name));
 }
-function rfObSocial(qual){ toastC('Entrar com '+qual+' — em breve.','info'); }
 
 /* =====================================================================
    2 · MODO
@@ -215,7 +212,7 @@ function rfOb2(){
       ? 'O Modo Resenha, para jogar com a turma, chega em novembro. Na beta, o Solo já está completo.'
       : 'Você pode mudar de modo depois, a qualquer momento.',
     nota:'Toque num cartão para continuar.',
-    voltar:'clGoAbertura()', voltarLabel:'Voltar',
+    voltar:'clGoAbertura()', voltarLabel:'‹ Voltar',
     cta:'Continuar no Modo Solo', ctaOn:'clPickSolo()'});
 }
 /* ACORDEÃO DOS SAVES NA NUVEM. A lista chega assíncrona (NET.listSoloSaves),
@@ -343,7 +340,7 @@ function rfOb3(){
     sobre:'Onde você vai treinar', titulo:'Escolha o país. O clube é sempre sorteado.',
     sub:'Você escolhe o país e a divisão em que quer começar; o clube sai no sorteio — é assim para todo mundo, inclusive na resenha.',
     nota:`Clube sorteado: ${lblEntrada} · ${principal}${qtdEntrada?' · '+qtdEntrada+' clubes no pote':''}`,
-    voltar:'clGoModo()', cta:'Sortear meu clube', ctaOn:'clPaisesOk()'});
+    voltar:'clGoModo()', voltarLabel:'‹ Modo', cta:'Sortear meu clube', ctaOn:'clPaisesOk()'});
 }
 function rfObPais(n){
   CL.playCountry=n;
@@ -605,7 +602,7 @@ function rfOb6(){
     titulo: fim?'Times sorteados!':'Sorteando os clubes, boa sorte!',
     sub:'Cada treinador escolheu o país; o clube sai no sorteio. É a mesma cerimônia no solo e na resenha.',
     nota: fim?'Pronto — pode entrar no clube.':'Aguarde o sorteio',
-    cta: fim?'Conhecer o clube':'⏩ Acelerar',
+    cta: fim?'Conhecer o clube':rfIcone('raio',16)+' Acelerar',
     ctaOn: fim?'clEntrar()':'rfObAcelerar()'});
 }
 /* ⏩ não pula o sorteio: só encurta a espera entre uma revelação e outra */

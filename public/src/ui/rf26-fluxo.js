@@ -45,7 +45,7 @@ function rfMoedaHTML(){
       <span class="rf-wiz-nota-c">O valor mostrado é o caixa inicial típico da divisão de entrada, convertido.</span>
     </div>`;
   return rfWiz({
-    sobre:'Passo 3 de 5', titulo:'Em que moeda você quer jogar?', sub:'Vale para salários, transferências e o caixa do clube. Dá para trocar depois nas opções.', passo:3, corpo, nota:'Você pode trocar depois em Clube & Sistema.',
+    sobre:'Passo 3 de 6', titulo:'Em que moeda você quer jogar?', sub:'Vale para salários, transferências e o caixa do clube. Dá para trocar depois nas opções.', passo:3, corpo, nota:'Você pode trocar depois em Clube & Sistema.',
     voltar:'clMoedaBack()', voltarLabel:'‹ Voltar ao país',
     topoDir:'', cta:'Continuar', ctaOn:'clMoedaOk()' });
 }
@@ -74,7 +74,7 @@ function rfPaisHTML(){
       }).join('')}</div>
     </div>`;
   return rfWiz({
-    sobre:'Passo 3 de 5', titulo:'Onde você vai treinar?', sub:'O país define as divisões, as copas e o calendário do save.', passo:3, corpo, nota:'Mais países entram nas próximas atualizações.',
+    sobre:'Passo 3 de 6', titulo:'Onde você vai treinar?', sub:'O país define as divisões, as copas e o calendário do save.', passo:3, corpo, nota:'Mais países entram nas próximas atualizações.',
     voltar:'clGoPaises()', voltarLabel:'‹ Voltar ao modo',
     cta:`Continuar com ${sel||'o país'}`, ctaOff:!sel, ctaOn:'clPaisJogavelOk()' });
 }
@@ -192,7 +192,7 @@ function rfTreinadoresHTML(){
       </div>
     </div>`;
   return rfWiz({
-    sobre:'Passo 3 de 5', titulo:'Quantos treinadores na sala?', sub:'Cada treinador comanda um clube. Os outros ficam com a máquina.', passo:3, corpo,
+    sobre:'Passo 3 de 6', titulo:'Quantos treinadores na sala?', sub:'Cada treinador comanda um clube. Os outros ficam com a máquina.', passo:3, corpo,
     nota:'Os clubes que sobram ficam com a máquina.',
     voltar:'clGoMoeda()', voltarLabel:'‹ Voltar à moeda',
     cta:`Continuar com ${n}`, ctaOn:'clEscolherClubes()' });
@@ -286,16 +286,16 @@ function rfSavesHTML(){
     <div class="rf-wiz-mid">
       ${carregando?'<span class="rf-note">Carregando os seus jogos salvos</span>'
         :saves.map((s,i)=>`<div class="rf-sv-lin ${i===0?'me':''}" onclick="clLoadSave('${escC(s.name)}')">
-          <span class="rf-sv-ico">💾</span>
-          <span class="rf-sv-id"><span class="rf-sv-n">${escC(s.name)}</span>
-            <span class="rf-sv-s">${escC(rfSaveQuando(s))}</span></span>
+          <span class="rf-sv-ico">${rfIcone('salvar',16)}</span>
+          <span class="rf-sv-id"><span class="rf-sv-n">${escC(rfSaveClube(s))}</span>
+            <span class="rf-sv-s">${escC(rfSaveOnde(s))}</span></span>
           <div class="rf-sp"></div>
           <span class="rf-sv-b">${i===0?'Continuar':'Abrir'}</span>
           <button type="button" class="rf-sv-x" title="Apagar este jogo"
-            onclick="event.stopPropagation();clDeleteSave('${escC(s.name)}')">🗑</button>
+            onclick="event.stopPropagation();clDeleteSave('${escC(s.name)}')">${rfIcone('apagar',15)}</button>
         </div>`).join('')}
       <div class="rf-sv-lin novo" onclick="clSoloNew()">
-        <span class="rf-sv-ico">＋</span>
+        <span class="rf-sv-ico">${rfIcone('mais',16)}</span>
         <span class="rf-sv-id"><span class="rf-sv-n">Começar um save novo</span>
           <span class="rf-sv-s">Escolha país, liga e clube outra vez</span></span>
       </div>
@@ -305,8 +305,23 @@ function rfSavesHTML(){
     sub:'Os saves ficam na nuvem — entre de qualquer aparelho com a mesma conta.',
     nota:'Jogo gravado na nuvem.',
     voltar:'clGoModo()', voltarLabel:'‹ Voltar ao modo',
-    cta: saves.length?`Continuar ${saves[0].name}`:'Começar um save novo',
+    cta: saves.length?`Continuar o ${rfSaveClube(saves[0])}`:'Começar um save novo',
     ctaOn: saves.length?`clLoadSave('${(saves[0].name||'').replace(/'/g,"\\'")}')`:'clSoloNew()' });
+}
+/* O pacote mostra CLUBE e divisão nas linhas de save, não o nome do arquivo:
+   "XV Piracicaba / Série D · 2026", e o botão diz "Continuar o XV Piracicaba".
+   O nome cru (SAVE01) só aparece quando o save não guardou o clube. */
+function rfSaveClube(s){
+  const st=(s&&s.state)||{};
+  return st.clubName||st.club||s.club||s.name||s.save_name||'Jogo salvo';
+}
+function rfSaveOnde(s){
+  const st=(s&&s.state)||{};
+  const serie=st.divisionLabel||st.division||s.division||'';
+  const ano=st.season||s.season||'';
+  const base=[serie,ano].filter(Boolean).join(' · ');
+  const q=rfSaveQuando(s);
+  return base?`${base} · ${q}`:q;
 }
 function rfSaveQuando(s){
   if(!s.updated_at) return 'Jogo salvo';
@@ -332,7 +347,7 @@ function rfRecuperarSenhaHTML(){
           `<input class="rf-campo-c" id="cl-focus" type="email" inputmode="email" autocomplete="email"
              placeholder="voce@exemplo.com" value="${escC(email)}"
              oninput="CL._resetEmail=this.value" onkeydown="if(event.key==='Enter')clSendResetLink()">`)}
-        <div class="rf-aviso"><span class="rf-aviso-i">✉️</span>
+        <div class="rf-aviso"><span class="rf-aviso-i">${rfIcone('email',16)}</span>
           <span>O link vale por 30 minutos. Se não chegar, confira o spam antes de pedir outro.</span></div>
       </div>
     </div>`;
@@ -712,7 +727,7 @@ function rfObSoloHTML(){
     titulo:'Como você quer começar?',
     sub:'Comece do zero ou retome um dos seus saves na nuvem.',
     nota:'Os saves ficam na nuvem — entre de qualquer aparelho com a mesma conta.',
-    topoDir:`<button type="button" class="rf-lp-entrar" onclick="clGoModo()">‹ Voltar ao modo</button>`,
+    voltar:'clGoModo()', voltarLabel:'‹ Voltar ao modo',
     cta:'Começar do zero', ctaOn:'clSoloNew()' });
 }
 /* escudo do clube do save; sem clube identificado, o crachá fica vazio em vez
