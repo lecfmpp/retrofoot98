@@ -142,7 +142,33 @@ function rfLiveHTML(RL){
       ${rfRail('right')}
     </div>
     ${camAberto?rfCamHTML(RL):''}
+    ${rfLvSobreposicaoHTML(RL)}
   </div>`;
+}
+
+/* =====================================================================
+   AS SOBREPOSIÇÕES DA PARTIDA — substituição, lesão, expulsão, pênalti e
+   disputa de pênaltis.
+   ELAS NÃO APARECIAM. O motor abria cada uma direitinho (openInjuryModal,
+   openRedCardModal, RL.penEvent…), mas quem as desenhava era `liveModalHTML`,
+   chamado só no trecho de `scLive` que vem DEPOIS do `return rfLiveHTML(RL)` —
+   ou seja, código morto desde que a tela nova assumiu. Mesma história do
+   Camarote. Aqui a tela nova chama as telas do pacote diretamente; o invólucro
+   antigo (título, ficha do árbitro, banner) fica de fora de propósito, porque
+   cada uma dessas telas já traz o próprio envelope de tela cheia.
+   ===================================================================== */
+function rfLvSobreposicaoHTML(RL){
+  const m=(RL.matches||[]).find(x=>x.user); if(!m) return '';
+  if(RL.pensPicking) return (typeof shootoutPickerHTML==='function')?shootoutPickerHTML():'';
+  if(RL.penEvent && RL.penMatch===m) return (typeof penaltyPickerHTML==='function')?penaltyPickerHTML():'';
+  if(RL.injEvent && RL.injMatch===m) return (typeof rfLesaoHTML==='function')?rfLesaoHTML(m,RL.injEvent):'';
+  if(RL.redEvent && RL.redMatch===m) return (typeof rfExpulsaoHTML==='function')?rfExpulsaoHTML(m,RL.redEvent):'';
+  // SUBSTITUIÇÃO SÓ NO INTERVALO — a regra do jogo. `RL.paused` é a pausa do
+  // MOTOR (intervalo); a pausa do utilizador no Camarote é `RL.userPaused` e
+  // não abre painel nenhum.
+  const intervalo = RL.paused && !RL.pens && !m.replay;
+  if(CL.subOpen || intervalo) return (typeof rfSubHTML==='function')?rfSubHTML(m):'';
+  return '';
 }
 
 /* =====================================================================
