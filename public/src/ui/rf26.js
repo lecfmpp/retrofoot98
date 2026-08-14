@@ -94,8 +94,8 @@ const RF_PAGES=[
            {k:'transf',  l:()=>'Transferências', build:()=>rfMktTransfHTML()} ] },
 
   { key:'elenco', ico:'👤', label:'Elenco & Base', curto:'Elenco',
-    titulo:'Elenco & Base', sub:'Ficha do jogador, promoções da base e treino especial',
-    pill:()=>rfPillFolha(), grid:'minmax(0,1fr) 340px',
+    titulo:'Elenco & Base', sub:()=>rfElSubHTML(),
+    acoes:()=>rfElAcoesHTML(), grid:'minmax(0,1fr) 340px',
     tabs:[ {k:'elenco', l:()=>'Elenco',           build:()=>rfElElencoHTML()},
            {k:'ficha',  l:()=>'Ficha do jogador', build:()=>rfElFichaHTML()},
            {k:'base',   l:()=>'Base',             build:()=>rfElBaseHTML()},
