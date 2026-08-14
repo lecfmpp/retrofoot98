@@ -122,8 +122,8 @@ const RF_PAGES=[
            {k:'perfil',  l:()=>'Perfil',          build:()=>rfTrPerfilHTML()} ] },
 
   { key:'financas', ico:'💰', label:'Finanças', curto:'Finanças',
-    titulo:'Finanças', sub:'Caixa, folha, bilheteria, estádio e histórico por temporada',
-    pill:()=>rfPillSaldo(), grid:'minmax(0,1fr) 340px',
+    titulo:'Finanças', sub:()=>rfFiSubHTML(),
+    acoes:()=>rfFiAcoesHTML(), grid:'minmax(0,1fr)',
     tabs:[ {k:'resumo',    l:()=>'Resumo',     build:()=>rfFiResumoHTML()},
            {k:'extrato',   l:()=>'Extrato',    build:()=>rfFiExtratoHTML()},
            {k:'historico', l:()=>'Histórico',  build:()=>rfFiHistoricoHTML()},
