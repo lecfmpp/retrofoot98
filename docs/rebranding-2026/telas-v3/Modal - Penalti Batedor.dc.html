@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Pênalti a favor" description="Sobreposição de partida — Pênalti a favor" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0b1a12}
+a{color:#F2B90C;text-decoration:none}
+a:hover{color:#ffcb2e}
+@keyframes ctaPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+@keyframes penDot{0%,100%{opacity:.25}50%{opacity:1}}
+@media (max-width:900px){ [data-ov-cols]{grid-template-columns:minmax(0,1fr)!important} }
+</style>
+</helmet>
+
+<div style="min-height:100vh;box-sizing:border-box;padding:32px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',system-ui,sans-serif;background:radial-gradient(120% 90% at 50% 0%,#2f6f45 0%,#1d4a2e 55%,#0b1a12 100%)">
+  <div style="position:absolute;inset:0;background:repeating-linear-gradient(180deg,rgba(255,255,255,.035) 0 44px,transparent 44px 88px);pointer-events:none"></div>
+
+  <div style="position:relative;width:720px;max-width:100%;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 40px 90px -40px rgba(0,0,0,.7);display:flex;flex-direction:column;box-sizing:border-box">
+
+    <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:18px 22px;display:flex;align-items:center;gap:14px;position:relative">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+      <div style="display:flex;flex-direction:column;gap:3px;min-width:0;margin-left:6px">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap">2º TEMPO · 78′ · XV 1 × 1 CIANORTE</span>
+        <span style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Pênalti a favor</span>
+      </div>
+      <div style="flex:1"></div>
+      <span style="font-size:26px;flex:0 0 auto">⚽</span>
+    </div>
+
+    <div style="padding:20px 22px 22px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+        <div style="position:relative;height:200px;border-radius:14px;background:repeating-linear-gradient(180deg,#3e9c5a 0 40px,#37904f 40px 80px);overflow:hidden;box-shadow:inset 0 14px 30px -18px rgba(0,0,0,.5)">
+          <div style="position:absolute;left:50%;top:26px;transform:translateX(-50%);width:290px;height:112px;border:3px solid rgba(255,255,255,.85);border-top-width:4px;box-sizing:border-box;background:repeating-linear-gradient(90deg,rgba(255,255,255,.14) 0 1px,transparent 1px 11px),repeating-linear-gradient(180deg,rgba(255,255,255,.14) 0 1px,transparent 1px 11px);padding:6px;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:1fr 1fr;gap:6px">
+            <span style="height:100%;border-radius:5px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);cursor:pointer;box-sizing:border-box"></span><span style="height:100%;border-radius:5px;background:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.9);cursor:pointer;box-sizing:border-box"></span><span style="height:100%;border-radius:5px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);cursor:pointer;box-sizing:border-box"></span><span style="height:100%;border-radius:5px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);cursor:pointer;box-sizing:border-box"></span>
+            <span style="height:100%;border-radius:5px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);cursor:pointer;box-sizing:border-box"></span><span style="height:100%;border-radius:5px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);cursor:pointer;box-sizing:border-box"></span><span style="height:100%;border-radius:5px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);cursor:pointer;box-sizing:border-box"></span><span style="height:100%;border-radius:5px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);cursor:pointer;box-sizing:border-box"></span>
+          </div>
+          <span style="position:absolute;left:calc(50% - 178px);top:44px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:rgba(255,255,255,.75);letter-spacing:.1em;white-space:nowrap">ALTO</span>
+          <span style="position:absolute;left:calc(50% - 178px);top:98px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:rgba(255,255,255,.75);letter-spacing:.1em;white-space:nowrap">RASTEIRO</span>
+          <div style="position:absolute;left:50%;bottom:16px;transform:translateX(-50%);width:9px;height:9px;border-radius:99px;background:#fff"></div>
+          <span style="position:absolute;left:50%;bottom:32px;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:10px;color:rgba(255,255,255,.8);letter-spacing:.1em;white-space:nowrap">ESCOLHA O CANTO</span>
+        </div>
+
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+          <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">QUEM BATE</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">toque para escolher</span>
+        </div>        <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 28px 74px;gap:12px;align-items:center;padding:9px;border-radius:12px;background:#eef3fa;border:1px solid #17458F;cursor:pointer">
+          <span style="position:relative;width:30px;height:26px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+            <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+            <span style="position:absolute;left:-4px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+            <span style="position:absolute;right:-4px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+            <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:11px;height:5px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+            <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#fff;margin-top:4px">10</span>
+          </span>
+          <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+            <span style="font-size:14px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Carlos Miguel</span>
+            <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">6 gols · 2 de pênalti</span>
+          </span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#5d6c62;text-align:center">A</span>
+          <span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.08em;white-space:nowrap">FRIEZA</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#2fbf5f;white-space:nowrap">86</span>
+          </span>
+        </div>
+        <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 28px 74px;gap:12px;align-items:center;padding:9px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer" style-hover="background:#f5f8f4">
+          <span style="position:relative;width:30px;height:26px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+            <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+            <span style="position:absolute;left:-4px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+            <span style="position:absolute;right:-4px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+            <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:11px;height:5px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+            <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#fff;margin-top:4px">8</span>
+          </span>
+          <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+            <span style="font-size:14px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Serginho</span>
+            <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">cobrador reserva</span>
+          </span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#5d6c62;text-align:center">M</span>
+          <span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.08em;white-space:nowrap">FRIEZA</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#8cc63f;white-space:nowrap">74</span>
+          </span>
+        </div>
+        <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 28px 74px;gap:12px;align-items:center;padding:9px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer" style-hover="background:#f5f8f4">
+          <span style="position:relative;width:30px;height:26px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+            <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+            <span style="position:absolute;left:-4px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+            <span style="position:absolute;right:-4px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+            <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:11px;height:5px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+            <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#fff;margin-top:4px">7</span>
+          </span>
+          <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+            <span style="font-size:14px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Léo Vargas</span>
+            <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">bate forte, pouca precisão</span>
+          </span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#5d6c62;text-align:center">D</span>
+          <span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.08em;white-space:nowrap">FRIEZA</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#F2B90C;white-space:nowrap">61</span>
+          </span>
+        </div>
+        <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 28px 74px;gap:12px;align-items:center;padding:9px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer" style-hover="background:#f5f8f4">
+          <span style="position:relative;width:30px;height:26px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+            <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+            <span style="position:absolute;left:-4px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+            <span style="position:absolute;right:-4px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+            <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:11px;height:5px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+            <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#fff;margin-top:4px">19</span>
+          </span>
+          <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+            <span style="font-size:14px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Alan Pedro</span>
+            <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">entrou agora, frio</span>
+          </span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#5d6c62;text-align:center">A</span>
+          <span style="display:flex;flex-direction:column;gap:2px;align-items:flex-end">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.08em;white-space:nowrap">FRIEZA</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#8cc63f;white-space:nowrap">70</span>
+          </span>
+        </div>
+      </div>
+      <span style="font-size:12px;color:#78877c;line-height:1.55;text-wrap:pretty">A frieza cai quando o jogador está cansado ou entrou há pouco tempo.</span>
+    </div>
+
+    <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:14px 22px;display:flex;align-items:center;gap:10px;box-sizing:border-box">
+      <span style="height:44px;padding:0 20px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:13px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:14px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Deixar o capitão bater</span>
+      <div style="flex:1"></div>
+      <span style="height:44px;padding:0 20px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:13px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:14px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Bater com Carlos Miguel</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

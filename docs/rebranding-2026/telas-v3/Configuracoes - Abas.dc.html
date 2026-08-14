@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Configurações" description="Tela Configurações — opções, jogo e Modo Resenha" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ee}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes jogarPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+@keyframes dlgIn{from{opacity:0}to{opacity:1}}
+@keyframes dlgUp{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes tabIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media (max-width:1560px){ [data-ad-rail="right"]{display:none} }
+@media (max-width:1320px){ [data-ad-rail]{display:none} }
+@media (max-width:1100px){ [data-shell]{grid-template-columns:minmax(0,1fr)!important} [data-shell] aside{display:none!important} [data-cols]{grid-template-columns:minmax(0,1fr)!important} }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#eef0ee;font-family:'Space Grotesk',system-ui,sans-serif;padding:20px;box-sizing:border-box">
+  <div style="display:flex;align-items:flex-start;justify-content:center;gap:16px">
+
+    <div data-ad-rail="left" style="width:160px;flex:0 0 auto;position:sticky;top:20px">
+      <div style="width:160px;height:600px;display:flex;align-items:center;justify-content:center;border:1px dashed #c9d2ca;border-radius:14px;background:#f2f7f1;color:#9aa79e;font-size:10px;font-weight:700;letter-spacing:.16em;text-align:center;box-sizing:border-box">PUBLICIDADE<br>160×600</div>
+    </div>
+
+    <div style="width:1180px;max-width:100%;flex:0 0 auto;display:flex;flex-direction:column;gap:14px">
+
+      <div style="background:#e8f0e7;border:1px solid #d2e0d0;border-radius:24px;padding:18px;box-sizing:border-box;box-shadow:0 18px 40px -28px rgba(20,33,26,.35)">
+        <div data-shell style="display:grid;grid-template-columns:216px minmax(0,1fr);gap:14px;align-items:start">
+        <aside style="position:sticky;top:18px;display:flex;flex-direction:column;gap:10px;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:12px;box-sizing:border-box;min-height:640px">
+          <div style="display:flex;align-items:center;gap:10px;padding:4px 4px 10px;border-bottom:1px solid #eef1ee">
+            <img src="uploads/pasted-1786581574687-0.png" alt="Escudo" style="width:34px;height:34px;object-fit:contain;flex:0 0 auto">
+            <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+              <span style="font-size:14px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8b978d;white-space:nowrap">SÉRIE D · 2026</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🥅</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Formação</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🛒</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Mercado</span>
+              <span style="flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;background:#c0392b;border-radius:99px;padding:1px 6px">2</span>
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">👤</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Elenco & Base</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🏆</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Campeonatos</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🎓</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Treinador</span>
+              <span style="flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;background:#c0392b;border-radius:99px;padding:1px 6px">1</span>
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">💰</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Finanças</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">✉️</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">E-mail</span>
+              <span style="flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;background:#c0392b;border-radius:99px;padding:1px 6px">3</span>
+            </span>
+
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:700;color:#fff;background:#17458F;white-space:nowrap;cursor:pointer;overflow:hidden">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">⚙️</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Configurações</span>
+              
+            </span>
+          </div>
+          <div style="flex:1"></div>
+          <div style="display:flex;flex-direction:column;gap:10px;background:linear-gradient(160deg,#0e2f66,#17458F);border-radius:14px;padding:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <span style="font-size:9px;font-weight:600;letter-spacing:.12em;color:#c3d3ec;white-space:nowrap">PRÓXIMO JOGO</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#F2B90C;white-space:nowrap">25/abr</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;min-width:0">
+              <img src="assets/crests/cruzeiro.png" alt="Escudo" style="width:26px;height:26px;object-fit:contain;flex:0 0 auto">
+              <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-size:14px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cianorte</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#c3d3ec;white-space:nowrap">FORA · 8ª JORNADA</span>
+              </div>
+            </div>
+            <button style="height:40px;border:none;border-radius:12px;background:#F2B90C;color:#17458F;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;animation:jogarPulse 2.4s ease-in-out infinite" style-hover="background:#ffcb2e;animation:none">⚽ Jogar</button>
+          </div>
+        </aside>
+
+          <div style="min-width:0;display:flex;flex-direction:column;gap:14px">
+
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                <span style="font-size:26px;font-weight:700;color:#12201a;letter-spacing:-.02em;white-space:nowrap">Configurações</span>
+                <span style="font-size:13px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Save gravado há 12 minutos · sala 7KP2M em dia</span>
+              </div>
+              <div style="display:flex;gap:8px;flex:0 0 auto"><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">↩ Voltar ao hub</span><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e" onClick="{{ open0 }}">💾 Gravar agora</span></div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #dde7db;border-radius:16px;padding:6px;overflow:auto">
+              <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+                <span style="{{ t.style }}" onClick="{{ t.onClick }}">{{ t.label }}</span>
+              </sc-for>
+            </div>
+
+            <div style="{{ panel0 }}">
+              <div data-cols style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">PREFERÊNCIAS</span>
+                  
+                </div>                <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                  <span style="font-size:12px;font-weight:600;color:#5d6c62;white-space:nowrap">Moeda</span>
+                  <span style="height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border:1px solid #d8e2d6;border-radius:12px;background:#fff;font-size:13px;color:#12201a;white-space:nowrap;cursor:pointer">
+                    <span style="min-width:0;overflow:hidden;text-overflow:ellipsis">Real (R$)</span><span style="font-size:9px;color:#9aa79e">▾</span>
+                  </span>
+                </label>
+                <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                  <span style="font-size:12px;font-weight:600;color:#5d6c62;white-space:nowrap">Idioma</span>
+                  <span style="height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border:1px solid #d8e2d6;border-radius:12px;background:#fff;font-size:13px;color:#12201a;white-space:nowrap;cursor:pointer">
+                    <span style="min-width:0;overflow:hidden;text-overflow:ellipsis">Português do Brasil</span><span style="font-size:9px;color:#9aa79e">▾</span>
+                  </span>
+                </label>
+                <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                  <span style="font-size:12px;font-weight:600;color:#5d6c62;white-space:nowrap">Velocidade da partida</span>
+                  <span style="height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border:1px solid #d8e2d6;border-radius:12px;background:#fff;font-size:13px;color:#12201a;white-space:nowrap;cursor:pointer">
+                    <span style="min-width:0;overflow:hidden;text-overflow:ellipsis">Normal</span><span style="font-size:9px;color:#9aa79e">▾</span>
+                  </span>
+                </label>
+                <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                  <span style="font-size:12px;font-weight:600;color:#5d6c62;white-space:nowrap">Formato de data</span>
+                  <span style="height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border:1px solid #d8e2d6;border-radius:12px;background:#fff;font-size:13px;color:#12201a;white-space:nowrap;cursor:pointer">
+                    <span style="min-width:0;overflow:hidden;text-overflow:ellipsis">25/abr/2026</span><span style="font-size:9px;color:#9aa79e">▾</span>
+                  </span>
+                </label>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">AVISOS E SOM</span>
+                  
+                </div>                <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #eef1ee">
+                  <span style="flex:1;min-width:0;font-size:12px;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Som da partida</span>
+                  <span style="width:40px;height:22px;border-radius:99px;background:#17458F;position:relative;flex:0 0 auto;cursor:pointer">
+                    <span style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:99px;background:#fff"></span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #eef1ee">
+                  <span style="flex:1;min-width:0;font-size:12px;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Aviso de proposta recebida</span>
+                  <span style="width:40px;height:22px;border-radius:99px;background:#17458F;position:relative;flex:0 0 auto;cursor:pointer">
+                    <span style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:99px;background:#fff"></span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #eef1ee">
+                  <span style="flex:1;min-width:0;font-size:12px;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Aviso de lesão</span>
+                  <span style="width:40px;height:22px;border-radius:99px;background:#17458F;position:relative;flex:0 0 auto;cursor:pointer">
+                    <span style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:99px;background:#fff"></span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #eef1ee">
+                  <span style="flex:1;min-width:0;font-size:12px;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Chat da Resenha durante o jogo</span>
+                  <span style="width:40px;height:22px;border-radius:99px;background:#dde7db;position:relative;flex:0 0 auto;cursor:pointer">
+                    <span style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:99px;background:#fff"></span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #eef1ee">
+                  <span style="flex:1;min-width:0;font-size:12px;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Confirmar antes de gravar</span>
+                  <span style="width:40px;height:22px;border-radius:99px;background:#dde7db;position:relative;flex:0 0 auto;cursor:pointer">
+                    <span style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:99px;background:#fff"></span>
+                  </span>
+                </div>
+              </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">CONTA</span>
+                  
+                </div>                <div style="display:flex;gap:8px;flex-wrap:wrap"><span onClick="{{ open8 }}" style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">⚙️ Abrir opções do jogo</span><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open5 }}">Trocar a senha</span><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open1 }}">Sair da conta</span><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #e8c4bf;color:#c0392b;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open6 }}">Apagar a conta</span></div>
+              </div>
+            </div>
+            <div style="{{ panel1 }}">
+              <div data-cols style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">SAVE ATUAL</span>
+                  
+                </div>                <div style="display:flex;align-items:center;gap:12px">
+                  <img src="uploads/pasted-1786581574687-0.png" alt="" style="width:38px;height:38px;object-fit:contain;flex:0 0 auto">
+                  <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap">XV Piracicaba · Série D 2026</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">8ª JORNADA · GRAVADO HÁ 12 MINUTOS</span>
+                  </span>
+                </div>
+                <div data-cols style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">JORNADAS JOGADAS</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">8</span>
+                    
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">TEMPO DE JOGO</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">6h 24min</span>
+                    
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">GRAVAÇÕES</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">34</span>
+                    
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">NA NUVEM</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">sim</span>
+                    
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid #eef1ee;padding-top:12px"><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e" onClick="{{ open0 }}">💾 Gravar agora</span><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">📤 Baixar o save</span></div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">OUTROS SAVES</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">3 na nuvem</span>
+                </div>                <div style="display:grid;grid-template-columns:24px minmax(0,1.1fr) minmax(0,1fr) 68px;gap:10px;align-items:center;padding:9px 0;border-top:1px solid #eef1ee">
+                  <img src="assets/crests/vasco.png" alt="" style="width:22px;height:22px;object-fit:contain;flex:0 0 auto">
+                  <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ferroviária</span>
+                  <span style="font-size:11px;font-weight:500;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Série C · 2027</span>
+                  <span style="height:30px;padding:0 10px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#3a473f;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Abrir</span>
+                </div>
+                <div style="display:grid;grid-template-columns:24px minmax(0,1.1fr) minmax(0,1fr) 68px;gap:10px;align-items:center;padding:9px 0;border-top:1px solid #eef1ee">
+                  <img src="assets/crests/fluminense.png" alt="" style="width:22px;height:22px;object-fit:contain;flex:0 0 auto">
+                  <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ponte Preta</span>
+                  <span style="font-size:11px;font-weight:500;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Série B · 2028</span>
+                  <span style="height:30px;padding:0 10px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#3a473f;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Abrir</span>
+                </div>
+                <div style="display:grid;grid-template-columns:24px minmax(0,1.1fr) minmax(0,1fr) 68px;gap:10px;align-items:center;padding:9px 0;border-top:1px solid #eef1ee">
+                  <img src="assets/crests/cruzeiro.png" alt="" style="width:22px;height:22px;object-fit:contain;flex:0 0 auto">
+                  <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Guarani</span>
+                  <span style="font-size:11px;font-weight:500;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Série D · 2026</span>
+                  <span style="height:30px;padding:0 10px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#3a473f;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Abrir</span>
+                </div>
+              </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">SAIR DO SAVE</span>
+                  
+                </div>                <span style="font-size:12px;color:#5d6c62;line-height:1.6;text-wrap:pretty">Sair grava a temporada no ponto atual. Você volta para a escolha de save e nada é perdido.</span>
+                <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open1 }}">↩ Voltar aos saves</span><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open1 }}">Começar outro save</span><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #e8c4bf;color:#c0392b;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open2 }}">Apagar este save</span></div>
+              </div>
+            </div>
+            <div style="{{ panel2 }}">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                  <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.12em;white-space:nowrap">CÓDIGO DA SALA</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;color:#17458F;letter-spacing:.16em;white-space:nowrap">7KP2M</span>
+                  </div>
+                  <div style="flex:1"></div>
+                  <div style="display:flex;gap:8px;flex:0 0 auto"><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">📤 Copiar convite</span><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">💬 Abrir o chat</span></div>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">TREINADORES</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">4 na sala</span>
+                </div>                <div style="display:grid;grid-template-columns:22px minmax(0,1fr) minmax(0,1fr) 62px auto;gap:0 10px;padding:0 10px 4px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
+                  <span></span>
+                  <span>TREINADOR</span>
+                  <span>CLUBE</span>
+                  <span>RODADA</span>
+                  <span>ESTADO</span>
+                </div>
+                <div style="display:grid;grid-template-columns:22px minmax(0,1fr) minmax(0,1fr) 62px auto;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:#eef3fa;border:1px solid #17458F">
+                  <img src="uploads/pasted-1786581574687-0.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto">
+                  <span style="font-size:12px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Gringo (você)</span>
+                  <span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:left;white-space:nowrap">9ª</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#0d3d22;background:#d7f5e2;border-radius:99px;padding:3px 8px;white-space:nowrap;justify-self:start">JOGOU</span>
+                </div>
+                <div style="display:grid;grid-template-columns:22px minmax(0,1fr) minmax(0,1fr) 62px auto;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <img src="assets/crests/vasco.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto">
+                  <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rafa</span>
+                  <span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cascavel</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:left;white-space:nowrap">9ª</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#0d3d22;background:#d7f5e2;border-radius:99px;padding:3px 8px;white-space:nowrap;justify-self:start">JOGOU</span>
+                </div>
+                <div style="display:grid;grid-template-columns:22px minmax(0,1fr) minmax(0,1fr) 62px auto;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <img src="assets/crests/fluminense.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto">
+                  <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Bea</span>
+                  <span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Nacional-PR</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:left;white-space:nowrap">9ª</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#7a6a12;background:#fdf1c8;border-radius:99px;padding:3px 8px;white-space:nowrap;justify-self:start">EM PARTIDA</span>
+                </div>
+                <div style="display:grid;grid-template-columns:22px minmax(0,1fr) minmax(0,1fr) 62px auto;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <img src="assets/crests/cruzeiro.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto">
+                  <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Duda</span>
+                  <span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cianorte</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:left;white-space:nowrap">9ª</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#7a6a12;background:#fdf1c8;border-radius:99px;padding:3px 8px;white-space:nowrap;justify-self:start">NÃO ENTROU</span>
+                </div>
+              </div>
+              <div data-cols style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">REGRAS DA SALA</span>
+                  
+                </div>                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid #eef1ee">
+                  <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Ritmo</span>
+                  <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap">1 rodada por dia</span>
+                </div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid #eef1ee">
+                  <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Janela de mercado</span>
+                  <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap">a cada 10 rodadas</span>
+                </div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid #eef1ee">
+                  <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Quem pode entrar</span>
+                  <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap">só por convite</span>
+                </div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid #eef1ee">
+                  <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Anfitrião</span>
+                  <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap">Gringo</span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">SINCRONIZAÇÃO</span>
+                  
+                </div>                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                    <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Última sincronização há 3 minutos</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#2fbf5f;white-space:nowrap">em dia</span>
+                  </div>
+                  <div style="height:8px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:100%;height:100%;border-radius:99px;background:#2fbf5f"></div></div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open7 }}">🔄 Sincronizar agora</span><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #e8c4bf;color:#c0392b;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open4 }}">Sair da sala</span></div>
+              </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div data-ad-rail="right" style="width:160px;flex:0 0 auto;position:sticky;top:20px">
+      <div style="width:160px;height:600px;display:flex;align-items:center;justify-content:center;border:1px dashed #c9d2ca;border-radius:14px;background:#f2f7f1;color:#9aa79e;font-size:10px;font-weight:700;letter-spacing:.16em;text-align:center;box-sizing:border-box">PUBLICIDADE<br>160×600</div>
+    </div>
+  </div>
+</div>
+<div data-dlg-layer style="{{ dlgLayer }}">
+  <div onClick="{{ closeDlg }}" style="position:absolute;inset:0;background:rgba(11,26,18,.42)"></div>
+  <div style="{{ dlg0 }}">
+          <div style="width:420px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#2fbf5f"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">SAVE NA NUVEM</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Jogo gravado</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:#d7f5e2;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#2fbf5f">✓</span>
+                <span style="font-size:12px;color:#0d3d22;line-height:1.55;text-wrap:pretty">Jogo gravado na nuvem.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Clube</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">XV Piracicaba</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Ponto do save</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">8ª jornada</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Gravado às</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">25/abr 19:42</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Gravações desta temporada</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">34</span>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Continuar</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg1 }}">
+          <div style="width:460px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">SAVE</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Sair deste save?</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:#fdf1c8;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#F2B90C">⚠</span>
+                <span style="font-size:12px;color:#5c4a00;line-height:1.55;text-wrap:pretty">A temporada é gravada no ponto atual antes de sair. Nada é perdido.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Clube</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">XV Piracicaba</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Última gravação</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">há 12 minutos</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Jornada</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">8ª de 14</span>
+              </div>              <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:11px;border:1px solid #eef1ee;cursor:pointer">
+                <span style="width:18px;height:18px;border-radius:5px;border:1px solid #17458F;background:#17458F;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto">✓</span>
+                <span style="font-size:12px;color:#12201a;white-space:nowrap">Gravar antes de sair</span>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Gravar e sair</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg2 }}">
+          <div style="width:480px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#c0392b"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">SAVE</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Apagar o save do XV Piracicaba?</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:#fbe3e0;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#c0392b">⚠</span>
+                <span style="font-size:12px;color:#7a2118;line-height:1.55;text-wrap:pretty">Isso apaga a temporada inteira da nuvem. Não tem como recuperar.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Jornadas jogadas</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">8</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Tempo de jogo</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">6h 24min</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Campanha</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">4º no grupo · 14 pts</span>
+              </div>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">DIGITE O NOME DO CLUBE PARA CONFIRMAR</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #17458F;border-radius:12px;background:#fff;box-sizing:border-box">
+                  
+                  <span style="flex:1;min-width:0;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba</span>
+                  
+                </span>
+                
+              </label>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#c0392b;border:1px solid #c0392b;color:#fff;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#a93226">Apagar para sempre</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg3 }}">
+          <div style="width:480px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#c0392b"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">TREINADOR</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Encerrar a carreira do Gringo?</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:#fbe3e0;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#c0392b">⚠</span>
+                <span style="font-size:12px;color:#7a2118;line-height:1.55;text-wrap:pretty">A carreira é fechada e vai para o histórico. Você começa outra do zero, com reputação 1.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Temporadas</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">3</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Jogos</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">68</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Aproveitamento</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">55%</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Títulos</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">0</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Clubes treinados</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">2</span>
+              </div>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">O save atual do XV Piracicaba continua na nuvem, mas sem treinador.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Voltar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#c0392b;border:1px solid #c0392b;color:#fff;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#a93226">Encerrar carreira</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg4 }}">
+          <div style="width:480px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#c0392b"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">MODO RESENHA · SALA 7KP2M</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Sair da resenha?</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:#fbe3e0;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#c0392b">⚠</span>
+                <span style="font-size:12px;color:#7a2118;line-height:1.55;text-wrap:pretty">Você é o anfitrião. Ao sair, a sala passa para o Rafa e o XV Piracicaba fica com a máquina.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Treinadores na sala</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">4</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Jornada</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">9ª de 14</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Seu clube</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">XV Piracicaba</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Novo anfitrião</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#F2B90C;white-space:nowrap;flex:0 0 auto">Rafa</span>
+              </div>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">Para voltar depois, peça o código 7KP2M — mas o clube pode não estar mais livre.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Ficar na sala</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#c0392b;border:1px solid #c0392b;color:#fff;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#a93226">Sair da resenha</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg5 }}">
+          <div style="width:460px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">CONTA</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Trocar a senha</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">SENHA ATUAL</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #d8e2d6;border-radius:12px;background:#fff;box-sizing:border-box">
+                  
+                  <span style="flex:1;min-width:0;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">••••••••</span>
+                  
+                </span>
+                
+              </label>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">NOVA SENHA</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #17458F;border-radius:12px;background:#fff;box-sizing:border-box">
+                  
+                  <span style="flex:1;min-width:0;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">••••••••••</span>
+                  
+                </span>
+                <span style="font-size:11px;color:#9aa79e;line-height:1.45;text-wrap:pretty">Mínimo de 8 caracteres.</span>
+              </label>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">CONFIRME A NOVA SENHA</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #d8e2d6;border-radius:12px;background:#fff;box-sizing:border-box">
+                  
+                  <span style="flex:1;min-width:0;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">••••••••••</span>
+                  
+                </span>
+                
+              </label>              <div style="display:flex;align-items:flex-start;gap:10px;background:#fdf1c8;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#F2B90C">⚠</span>
+                <span style="font-size:12px;color:#5c4a00;line-height:1.55;text-wrap:pretty">Seus saves na nuvem continuam intactos. Você segue conectado neste aparelho.</span>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Trocar senha</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg6 }}">
+          <div style="width:480px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#c0392b"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">CONTA</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Apagar a sua conta?</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:#fbe3e0;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#c0392b">⚠</span>
+                <span style="font-size:12px;color:#7a2118;line-height:1.55;text-wrap:pretty">Isso apaga a conta, os 4 saves na nuvem e a sua carreira de treinador. Não tem como recuperar.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">E-mail</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">gringo@exemplo.com</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Saves na nuvem</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">4</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Carreira</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">3 temporadas · 68 jogos</span>
+              </div>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">DIGITE APAGAR PARA CONFIRMAR</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #17458F;border-radius:12px;background:#fff;box-sizing:border-box">
+                  
+                  <span style="flex:1;min-width:0;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">APAGAR</span>
+                  
+                </span>
+                
+              </label>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#c0392b;border:1px solid #c0392b;color:#fff;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#a93226">Apagar a conta</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg7 }}">
+          <div style="width:460px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">MODO RESENHA · SALA 7KP2M</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Sincronizando a rodada</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Buscando a rodada dos outros treinadores</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#17458F;white-space:nowrap">62%</span>
+                </div>
+                <div style="height:10px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:62%;height:100%;border-radius:99px;background:linear-gradient(90deg,#17458F,#F2B90C);transition:width .18s"></div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:0">
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #eef1ee">
+                  <span style="width:20px;height:20px;border-radius:99px;background:#2fbf5f;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto">✓</span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rodada dos outros treinadores</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #eef1ee">
+                  <span style="width:20px;height:20px;border-radius:99px;background:#2fbf5f;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto">✓</span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Resultados da 9ª jornada</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #eef1ee">
+                  <span style="width:20px;height:20px;border-radius:99px;background:#eef1ee;color:#9aa79e;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto">⏳</span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Tabela e classificação</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #eef1ee">
+                  <span style="width:20px;height:20px;border-radius:99px;background:#eef1ee;color:#9aa79e;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto">⏳</span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Mercado e propostas</span>
+                </div>
+              </div>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">À espera do Duda, que ainda não entrou nesta jornada.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Fechar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">⏩ Pular espera</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg8 }}">
+          <div style="width:560px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">OPÇÕES DO JOGO</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Opções</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:5px;background:#f2f7f1;border:1px solid #e6ebe4;border-radius:12px;padding:4px">
+                <span style="flex:1;text-align:center;font-size:12px;font-weight:700;color:#fff;background:#17458F;border-radius:9px;padding:8px 0;white-space:nowrap;cursor:pointer">Geral</span>
+                <span style="flex:1;text-align:center;font-size:12px;font-weight:500;color:#3a473f;background:transparent;border-radius:9px;padding:8px 0;white-space:nowrap;cursor:pointer">Jogo</span>
+              </div>              <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid #eef1ee;min-width:0">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Mostrar chicotadas psicológicas</span>
+                  
+                </span>
+                <span style="display:flex;align-items:center;gap:3px;background:#f2f7f1;border:1px solid #e6ebe4;border-radius:10px;padding:3px;flex:0 0 auto">
+                  <span style="font-size:11px;font-weight:500;color:#5d6c62;background:transparent;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:pointer">Nunca</span>
+                  <span style="font-size:11px;font-weight:700;color:#fff;background:#17458F;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:pointer">Dos humanos</span>
+                  <span style="font-size:11px;font-weight:500;color:#5d6c62;background:transparent;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:pointer">De todos</span>
+                </span>
+              </div>              <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid #eef1ee;min-width:0">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ver sorteio da taça</span>
+                  
+                </span>
+                <span style="display:flex;align-items:center;gap:3px;background:#f2f7f1;border:1px solid #e6ebe4;border-radius:10px;padding:3px;flex:0 0 auto">
+                  <span style="font-size:11px;font-weight:500;color:#5d6c62;background:transparent;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:pointer">Nunca</span>
+                  <span style="font-size:11px;font-weight:700;color:#fff;background:#17458F;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:pointer">Com humanos</span>
+                  <span style="font-size:11px;font-weight:500;color:#5d6c62;background:transparent;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:pointer">Sempre</span>
+                </span>
+              </div>              <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid #eef1ee;min-width:0">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Gravar o jogo</span>
+                  
+                </span>
+                <span style="display:flex;align-items:center;gap:3px;background:#f2f7f1;border:1px solid #e6ebe4;border-radius:10px;padding:3px;flex:0 0 auto">
+                  <span style="font-size:11px;font-weight:500;color:#5d6c62;background:transparent;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:pointer">Nunca</span>
+                  <span style="font-size:11px;font-weight:500;color:#5d6c62;background:transparent;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:pointer">3 em 3</span>
+                  <span style="font-size:11px;font-weight:700;color:#fff;background:#17458F;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:pointer">Sempre</span>
+                </span>
+              </div>              <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid #eef1ee;min-width:0">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Som</span>
+                  
+                </span>
+                <span style="width:40px;height:22px;border-radius:99px;background:#17458F;position:relative;flex:0 0 auto;cursor:pointer">
+                  <span style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:99px;background:#fff"></span>
+                </span>
+              </div>              <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid #eef1ee;min-width:0">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Salvamento automático</span>
+                  <span style="font-size:11px;color:#9aa79e;line-height:1.5;text-wrap:pretty">Guarda as 3 últimas jornadas e o fim de cada temporada.</span>
+                </span>
+                <span style="width:40px;height:22px;border-radius:99px;background:#17458F;position:relative;flex:0 0 auto;cursor:pointer">
+                  <span style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:99px;background:#fff"></span>
+                </span>
+              </div>              <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid #eef1ee;min-width:0">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Voltar a um ponto guardado</span>
+                  <span style="font-size:11px;color:#9aa79e;line-height:1.5;text-wrap:pretty">Abre a lista dos pontos guardados neste save.</span>
+                </span>
+                <span style="height:36px;padding:0 14px;display:flex;align-items:center;border-radius:11px;background:#fff;border:1px solid #d8e2d6;font-size:12px;font-weight:600;color:#17458F;white-space:nowrap;cursor:pointer;flex:0 0 auto" style-hover="background:#f2f7f1">Escolher ponto…</span>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Guardar</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg9 }}">
+          <div style="width:560px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">OPÇÕES DO JOGO</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Opções</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:5px;background:#f2f7f1;border:1px solid #e6ebe4;border-radius:12px;padding:4px">
+                <span style="flex:1;text-align:center;font-size:12px;font-weight:500;color:#3a473f;background:transparent;border-radius:9px;padding:8px 0;white-space:nowrap;cursor:pointer">Geral</span>
+                <span style="flex:1;text-align:center;font-size:12px;font-weight:700;color:#fff;background:#17458F;border-radius:9px;padding:8px 0;white-space:nowrap;cursor:pointer">Jogo</span>
+              </div>              <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid #eef1ee;min-width:0">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Substituições ao intervalo</span>
+                  
+                </span>
+                <span style="width:40px;height:22px;border-radius:99px;background:#17458F;position:relative;flex:0 0 auto;cursor:pointer">
+                  <span style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:99px;background:#fff"></span>
+                </span>
+              </div>              <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid #eef1ee;min-width:0">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ver desempates por penalties</span>
+                  <span style="font-size:11px;color:#9aa79e;line-height:1.5;text-wrap:pretty">Nos jogos sem treinadores humanos.</span>
+                </span>
+                <span style="width:40px;height:22px;border-radius:99px;background:#dde7db;position:relative;flex:0 0 auto;cursor:pointer">
+                  <span style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:99px;background:#fff"></span>
+                </span>
+              </div>              <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid #eef1ee;min-width:0">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Tempo de jogo</span>
+                  
+                </span>
+                <span style="display:flex;align-items:center;gap:3px;background:#f2f7f1;border:1px solid #e6ebe4;border-radius:10px;padding:3px;flex:0 0 auto">
+                  <span style="font-size:11px;font-weight:500;color:#5d6c62;background:transparent;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:pointer">Curto</span>
+                  <span style="font-size:11px;font-weight:700;color:#fff;background:#17458F;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:pointer">Médio</span>
+                  <span style="font-size:11px;font-weight:500;color:#5d6c62;background:transparent;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:pointer">Longo</span>
+                  <span style="font-size:11px;font-weight:500;color:#5d6c62;background:transparent;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:pointer">Ultrassónico</span>
+                </span>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Guardar</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg10 }}">
+          <div style="width:560px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">OPÇÕES DO JOGO · SALA 7KP2M</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Opções</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:5px;background:#f2f7f1;border:1px solid #e6ebe4;border-radius:12px;padding:4px">
+                <span style="flex:1;text-align:center;font-size:12px;font-weight:500;color:#3a473f;background:transparent;border-radius:9px;padding:8px 0;white-space:nowrap;cursor:pointer">Geral</span>
+                <span style="flex:1;text-align:center;font-size:12px;font-weight:700;color:#fff;background:#17458F;border-radius:9px;padding:8px 0;white-space:nowrap;cursor:pointer">Jogo</span>
+              </div>              <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid #eef1ee;min-width:0">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Substituições ao intervalo</span>
+                  
+                </span>
+                <span style="width:40px;height:22px;border-radius:99px;background:#17458F;position:relative;flex:0 0 auto;cursor:pointer">
+                  <span style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:99px;background:#fff"></span>
+                </span>
+              </div>              <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid #eef1ee;min-width:0">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ver desempates por penalties</span>
+                  <span style="font-size:11px;color:#9aa79e;line-height:1.5;text-wrap:pretty">Nos jogos sem treinadores humanos.</span>
+                </span>
+                <span style="width:40px;height:22px;border-radius:99px;background:#dde7db;position:relative;flex:0 0 auto;cursor:pointer">
+                  <span style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:99px;background:#fff"></span>
+                </span>
+              </div>              <div style="display:flex;align-items:center;gap:14px;padding:11px 12px;margin-top:2px;border-radius:12px;background:#f7f9f7;border:1px dashed #d8e2d6;min-width:0">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="display:flex;align-items:center;gap:7px">
+                    <span style="font-size:12px;flex:0 0 auto">🔒</span>
+                    <span style="font-size:13px;font-weight:600;color:#9aa79e;white-space:nowrap">Tempo de jogo</span>
+                  </span>
+                  <span style="font-size:11px;color:#9aa79e;line-height:1.5;text-wrap:pretty">Numa resenha, quem define o tempo de jogo é o Anfitrião. Fale com o Gringo para mudar.</span>
+                </span>
+                <span style="display:flex;align-items:center;gap:3px;background:#f2f4f2;border:1px solid #e4e8e3;border-radius:10px;padding:3px;flex:0 0 auto">
+                  <span style="font-size:11px;font-weight:500;color:#9aa79e;background:transparent;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:not-allowed">Curto</span>
+                  <span style="font-size:11px;font-weight:700;color:#9aa79e;background:#b6c2b8;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:not-allowed">Médio</span>
+                  <span style="font-size:11px;font-weight:500;color:#9aa79e;background:transparent;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:not-allowed">Longo</span>
+                  <span style="font-size:11px;font-weight:500;color:#9aa79e;background:transparent;border-radius:7px;padding:5px 10px;white-space:nowrap;cursor:not-allowed">Ultrassónico</span>
+                </span>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Guardar</span>
+            </div>
+          </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab: 0, dlg: -1 };
+  renderVals() {
+    const TABS = ["Opções","Jogo","Modo Resenha"];
+    const on = 'flex:0 0 auto;font-size:13px;font-weight:700;color:#fff;background:#17458F;border-radius:11px;padding:8px 14px;white-space:nowrap;cursor:pointer';
+    const off = 'flex:0 0 auto;font-size:13px;font-weight:500;color:#3a473f;background:transparent;border-radius:11px;padding:8px 14px;white-space:nowrap;cursor:pointer';
+    const N = 11;
+    const vals = { tabs: TABS.map((label, i) => ({ label, style: i === this.state.tab ? on : off, onClick: () => this.setState({ tab: i }) })) };
+    vals.dlgLayer = this.state.dlg < 0
+      ? { display: 'none' }
+      : { position: 'fixed', inset: 0, zIndex: 90, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflow: 'auto', animation: 'dlgIn .2s ease' };
+    vals.closeDlg = () => this.setState({ dlg: -1 });
+    for (let k = 0; k < N; k++) {
+      vals['open' + k] = () => this.setState({ dlg: k });
+      vals['dlg' + k] = this.state.dlg === k
+        ? { position: 'relative', display: 'flex', justifyContent: 'center', width: '100%', animation: 'dlgUp .24s ease' }
+        : { display: 'none' };
+    }
+    TABS.forEach((_, i) => {
+      vals['panel' + i] = i === this.state.tab
+        ? { display:'flex', flexDirection:'column', gap:'14px', minWidth:0, animation:'tabIn .26s ease' }
+        : { display:'none' };
+    });
+    return vals;
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Popups e Toasts" description="Popups e Toasts — design system 2026" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ee}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes dsFadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#eef0ee;font-family:'Space Grotesk',system-ui,sans-serif;padding:28px;box-sizing:border-box">
+  <div style="max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:28px">
+
+    <div>
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:14px">
+      <span style="font-size:20px;font-weight:700;color:#12201a;letter-spacing:-.01em;white-space:nowrap">Avisos (toast)</span>
+      <span style="font-size:13px;color:#78877c">rodapé central · um por vez · some sozinho · nunca pede decisão</span>
+    </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;background:#12201a;color:#fff;border-left:4px solid #2fbf5f;border-radius:12px;padding:11px 16px;min-height:44px;box-sizing:border-box;box-shadow:0 10px 30px -18px rgba(0,0,0,.7);font-size:13px;font-weight:500;max-width:460px">
+          <span style="flex:0 0 auto;font-size:14px">✓</span>
+          <span style="flex:1;min-width:0;line-height:1.35">Jogo gravado na nuvem.</span>
+          
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:#12201a;color:#fff;border-left:4px solid #F2B90C;border-radius:12px;padding:11px 16px;min-height:44px;box-sizing:border-box;box-shadow:0 10px 30px -18px rgba(0,0,0,.7);font-size:13px;font-weight:500;max-width:460px">
+          <span style="flex:0 0 auto;font-size:14px">⚠</span>
+          <span style="flex:1;min-width:0;line-height:1.35">Caixa insuficiente para renovar este contrato.</span>
+          
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:#12201a;color:#fff;border-left:4px solid #d94141;border-radius:12px;padding:11px 16px;min-height:44px;box-sizing:border-box;box-shadow:0 10px 30px -18px rgba(0,0,0,.7);font-size:13px;font-weight:500;max-width:460px">
+          <span style="flex:0 0 auto;font-size:14px">✖</span>
+          <span style="flex:1;min-width:0;line-height:1.35">Máximo de 3 substituições.</span>
+          
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:#12201a;color:#fff;border-left:4px solid #9aa79e;border-radius:12px;padding:11px 16px;min-height:44px;box-sizing:border-box;box-shadow:0 10px 30px -18px rgba(0,0,0,.7);font-size:13px;font-weight:500;max-width:460px">
+          
+          <span style="flex:1;min-width:0;line-height:1.35">Conectando…</span>
+          
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:#17458F;color:#fff;border-left:4px solid #F2B90C;border-radius:12px;padding:11px 16px;min-height:44px;box-sizing:border-box;box-shadow:0 10px 30px -18px rgba(0,0,0,.7);font-size:13px;font-weight:500;max-width:460px">
+          <span style="flex:0 0 auto;font-size:14px">🔨</span>
+          <span style="flex:1;min-width:0;line-height:1.35">Kaique arrematado por 120 mil.</span>
+          <span style="flex:0 0 auto;font-size:12px;font-weight:700;color:#F2B90C;white-space:nowrap;cursor:pointer">Ver</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:#17458F;color:#fff;border-left:4px solid #F2B90C;border-radius:12px;padding:11px 16px;min-height:44px;box-sizing:border-box;box-shadow:0 10px 30px -18px rgba(0,0,0,.7);font-size:13px;font-weight:500;max-width:460px">
+          <span style="flex:0 0 auto;font-size:14px">🎥</span>
+          <span style="flex:1;min-width:0;line-height:1.35">O Camarote trava no Usain Bolt — mude em Opções.</span>
+          <span style="flex:0 0 auto;font-size:12px;font-weight:700;color:#F2B90C;white-space:nowrap;cursor:pointer">Abrir</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:14px">
+      <span style="font-size:20px;font-weight:700;color:#12201a;letter-spacing:-.01em;white-space:nowrap">Popups (dialog)</span>
+      <span style="font-size:13px;color:#78877c">só para o que acontece sozinho no save — nunca para item de menu</span>
+    </div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+        <div style="width:440px;flex:0 0 auto;background:#e8f0e7;border:1px solid #d8e2d6;border-radius:24px;padding:18px;box-sizing:border-box;box-shadow:0 24px 60px -30px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;background:linear-gradient(100deg,#0e2f66,#17458F 62%);border:none;border-radius:18px;padding:14px 18px">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:6px;background:#F2B90C"></div>
+            <span style="font-size:18px;flex:0 0 auto;margin-left:6px">🏆</span>
+            <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+              <span style="font-size:19px;font-weight:700;letter-spacing:-.02em;color:#fff;white-space:nowrap">Campeão da Série D!</span>
+              <span style="font-size:12px;color:#c3d3ec;white-space:nowrap">XV Piracicaba · temporada 2026</span>
+            </div>
+            <div style="flex:1"></div>
+            <span style="flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;background:#F2B90C;border-radius:99px;padding:4px 10px;white-space:nowrap">2026</span>
+            <span style="flex:0 0 auto;margin-left:10px;font-size:13px;font-weight:600;color:#fff;cursor:pointer">✖</span>
+          </div>
+          <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:15px;color:#3a473f;line-height:1.5">Acabou, treinador. O XV é campeão da Série D e sobe para a Série C no ano que vem. A cidade não dormiu.</span>
+            <div style="display:flex;gap:10px;padding-top:4px">
+              <div style="flex:1;background:#f6f8f5;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:3px"><span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em">CAMPANHA</span><span style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a">18V 7E 3D</span></div>
+              <div style="flex:1;background:#f6f8f5;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:3px"><span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em">PREMIAÇÃO</span><span style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a">R$ 1,4 mi</span></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">Ver troféus</span>
+            <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Comemorar</span>
+          </div>
+        </div>
+
+        <div style="width:440px;flex:0 0 auto;background:#e8f0e7;border:1px solid #d8e2d6;border-radius:24px;padding:18px;box-sizing:border-box;box-shadow:0 24px 60px -30px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:14px 18px">
+            
+            <span style="font-size:18px;flex:0 0 auto;">📩</span>
+            <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+              <span style="font-size:19px;font-weight:700;letter-spacing:-.02em;color:#12201a;white-space:nowrap">Oferta do Paysandu</span>
+              <span style="font-size:12px;color:#78877c;white-space:nowrap">Série C · resposta até a 10ª jornada</span>
+            </div>
+            <div style="flex:1"></div>
+            <span style="flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;background:#F2B90C;border-radius:99px;padding:4px 10px;white-space:nowrap">R$ 32k/mês</span>
+            <span style="flex:0 0 auto;margin-left:10px;font-size:13px;font-weight:600;color:#5d6c62;cursor:pointer">✖</span>
+          </div>
+          <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:15px;color:#3a473f;line-height:1.5">O Paysandu quer um treinador que já subiu de série. Se aceitar, você deixa o XV na 8ª jornada da Série D.</span>
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding-top:2px"><span style="color:#5d6c62;white-space:nowrap">Salário atual</span><span style="font-family:'IBM Plex Mono',monospace;color:#12201a">R$ 18k/mês</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#5d6c62;white-space:nowrap">Reputação exigida</span><span style="font-family:'IBM Plex Mono',monospace;color:#12201a">60 · você tem 68</span></div>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">Recusar</span>
+            <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Aceitar o convite</span>
+          </div>
+        </div>
+
+        <div style="width:440px;flex:0 0 auto;background:#e8f0e7;border:1px solid #d8e2d6;border-radius:24px;padding:18px;box-sizing:border-box;box-shadow:0 24px 60px -30px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:14px 18px">
+            
+            <span style="font-size:18px;flex:0 0 auto;">🔨</span>
+            <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+              <span style="font-size:19px;font-weight:700;letter-spacing:-.02em;color:#12201a;white-space:nowrap">Leilão encerrado</span>
+              <span style="font-size:12px;color:#78877c;white-space:nowrap">Kauã Patrick · MEI · 22 anos</span>
+            </div>
+            <div style="flex:1"></div>
+            <span style="flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;background:#F2B90C;border-radius:99px;padding:4px 10px;white-space:nowrap">R$ 310k</span>
+            <span style="flex:0 0 auto;margin-left:10px;font-size:13px;font-weight:600;color:#5d6c62;cursor:pointer">✖</span>
+          </div>
+          <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:15px;color:#3a473f;line-height:1.5">O Cianorte cobriu o seu lance na última rodada. O jogador foi para eles por R$ 310 mil.</span>
+            <span style="font-size:13px;color:#78877c">Seu lance: R$ 240 mil. O dinheiro voltou para o caixa.</span>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">Ver outros leilões</span>
+            <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Entendi</span>
+          </div>
+        </div>
+
+        <div style="width:420px;flex:0 0 auto;background:#e8f0e7;border:1px solid #d8e2d6;border-radius:24px;padding:18px;box-sizing:border-box;box-shadow:0 24px 60px -30px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:14px 18px">
+            
+            <span style="font-size:18px;flex:0 0 auto;">⚠</span>
+            <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+              <span style="font-size:19px;font-weight:700;letter-spacing:-.02em;color:#12201a;white-space:nowrap">Vender Carlos Miguel?</span>
+              <span style="font-size:12px;color:#78877c;white-space:nowrap">ATA · 26 anos · 6 gols na temporada</span>
+            </div>
+            <div style="flex:1"></div>
+            
+            <span style="flex:0 0 auto;margin-left:10px;font-size:13px;font-weight:600;color:#5d6c62;cursor:pointer">✖</span>
+          </div>
+          <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:15px;color:#3a473f;line-height:1.5">Ele é o seu artilheiro e titular na 3-3-4. A venda é definitiva e não dá para desfazer.</span>
+            <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#5d6c62;white-space:nowrap">Proposta</span><span style="font-family:'IBM Plex Mono',monospace;color:#12201a">R$ 260k</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#5d6c62;white-space:nowrap">Valor de mercado</span><span style="font-family:'IBM Plex Mono',monospace;color:#12201a">R$ 238k</span></div>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">Cancelar</span>
+            <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#c0392b;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Vender mesmo assim</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

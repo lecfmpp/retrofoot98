@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="E-mail" description="Tela E-mail — caixa de entrada completa" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ee}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes jogarPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+@keyframes dlgIn{from{opacity:0}to{opacity:1}}
+@keyframes dlgUp{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes tabIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media (max-width:1560px){ [data-ad-rail="right"]{display:none} }
+@media (max-width:1320px){ [data-ad-rail]{display:none} }
+@media (max-width:1100px){ [data-shell]{grid-template-columns:minmax(0,1fr)!important} [data-shell] aside{display:none!important} [data-cols]{grid-template-columns:minmax(0,1fr)!important} }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#eef0ee;font-family:'Space Grotesk',system-ui,sans-serif;padding:20px;box-sizing:border-box">
+  <div style="display:flex;align-items:flex-start;justify-content:center;gap:16px">
+
+    <div data-ad-rail="left" style="width:160px;flex:0 0 auto;position:sticky;top:20px">
+      <div style="width:160px;height:600px;display:flex;align-items:center;justify-content:center;border:1px dashed #c9d2ca;border-radius:14px;background:#f2f7f1;color:#9aa79e;font-size:10px;font-weight:700;letter-spacing:.16em;text-align:center;box-sizing:border-box">PUBLICIDADE<br>160×600</div>
+    </div>
+
+    <div style="width:1180px;max-width:100%;flex:0 0 auto;display:flex;flex-direction:column;gap:14px">
+
+      <div style="background:#e8f0e7;border:1px solid #d2e0d0;border-radius:24px;padding:18px;box-sizing:border-box;box-shadow:0 18px 40px -28px rgba(20,33,26,.35)">
+        <div data-shell style="display:grid;grid-template-columns:216px minmax(0,1fr);gap:14px;align-items:start">
+        <aside style="position:sticky;top:18px;display:flex;flex-direction:column;gap:10px;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:12px;box-sizing:border-box;min-height:640px">
+          <div style="display:flex;align-items:center;gap:10px;padding:4px 4px 10px;border-bottom:1px solid #eef1ee">
+            <img src="uploads/pasted-1786581574687-0.png" alt="Escudo" style="width:34px;height:34px;object-fit:contain;flex:0 0 auto">
+            <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+              <span style="font-size:14px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8b978d;white-space:nowrap">SÉRIE D · 2026</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🥅</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Formação</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🛒</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Mercado</span>
+              <span style="flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;background:#c0392b;border-radius:99px;padding:1px 6px">2</span>
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">👤</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Elenco & Base</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🏆</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Campeonatos</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🎓</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Treinador</span>
+              <span style="flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;background:#c0392b;border-radius:99px;padding:1px 6px">1</span>
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">💰</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Finanças</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:700;color:#fff;background:#17458F;white-space:nowrap;cursor:pointer;overflow:hidden">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">✉️</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">E-mail</span>
+              <span style="flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;background:#c0392b;border-radius:99px;padding:1px 6px">3</span>
+            </span>
+
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">⚙️</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Configurações</span>
+              
+            </span>
+          </div>
+          <div style="flex:1"></div>
+          <div style="display:flex;flex-direction:column;gap:10px;background:linear-gradient(160deg,#0e2f66,#17458F);border-radius:14px;padding:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <span style="font-size:9px;font-weight:600;letter-spacing:.12em;color:#c3d3ec;white-space:nowrap">PRÓXIMO JOGO</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#F2B90C;white-space:nowrap">25/abr</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;min-width:0">
+              <img src="assets/crests/cruzeiro.png" alt="Escudo" style="width:26px;height:26px;object-fit:contain;flex:0 0 auto">
+              <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-size:14px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cianorte</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#c3d3ec;white-space:nowrap">FORA · 8ª JORNADA</span>
+              </div>
+            </div>
+            <button style="height:40px;border:none;border-radius:12px;background:#F2B90C;color:#17458F;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;animation:jogarPulse 2.4s ease-in-out infinite" style-hover="background:#ffcb2e;animation:none">⚽ Jogar</button>
+          </div>
+        </aside>
+
+          <div style="min-width:0;display:flex;flex-direction:column;gap:14px">
+
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                <span style="font-size:26px;font-weight:700;color:#12201a;letter-spacing:-.02em;white-space:nowrap">E-mail & Sistema</span>
+                <span style="font-size:13px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">6 mensagens · 3 não lidas</span>
+              </div>
+              <div style="display:flex;gap:8px;flex:0 0 auto"><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">💾 Gravar</span><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">✉️ Marcar como lidas</span></div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #dde7db;border-radius:16px;padding:6px;overflow:auto">
+              <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+                <span style="{{ t.style }}" onClick="{{ t.onClick }}">{{ t.label }}</span>
+              </sc-for>
+            </div>
+
+            <div style="{{ panel0 }}">
+              <div data-cols style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:14px;align-items:start">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">CAIXA DE ENTRADA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">3 não lidas</span>
+                </div>                <div style="display:grid;grid-template-columns:22px minmax(0,1fr);gap:11px;align-items:start;padding:11px 10px;border-radius:12px;background:#eef3fa;border:1px solid #17458F;cursor:pointer">
+                  <span style="font-size:15px">📋</span>
+                  <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="display:flex;align-items:baseline;gap:8px">
+                      <span style="flex:1;min-width:0;font-size:13px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Relatório da 8ª jornada</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">há 2h</span>
+                    </span>
+                    <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Diretoria</span>
+                    <span style="width:6px;height:6px;border-radius:99px;background:#c0392b;position:absolute"></span>
+                  </span>
+                </div>
+                <div style="display:grid;grid-template-columns:22px minmax(0,1fr);gap:11px;align-items:start;padding:11px 10px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-size:15px">🛒</span>
+                  <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="display:flex;align-items:baseline;gap:8px">
+                      <span style="flex:1;min-width:0;font-size:13px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Proposta por Carlos Miguel</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">há 5h</span>
+                    </span>
+                    <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cascavel</span>
+                    <span style="width:6px;height:6px;border-radius:99px;background:#c0392b;position:absolute"></span>
+                  </span>
+                </div>
+                <div style="display:grid;grid-template-columns:22px minmax(0,1fr);gap:11px;align-items:start;padding:11px 10px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-size:15px">🩹</span>
+                  <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="display:flex;align-items:baseline;gap:8px">
+                      <span style="flex:1;min-width:0;font-size:13px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rodrigo Sena fora por 2 jogos</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">ontem</span>
+                    </span>
+                    <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Departamento médico</span>
+                    <span style="width:6px;height:6px;border-radius:99px;background:#c0392b;position:absolute"></span>
+                  </span>
+                </div>
+                <div style="display:grid;grid-template-columns:22px minmax(0,1fr);gap:11px;align-items:start;padding:11px 10px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-size:15px">🏆</span>
+                  <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="display:flex;align-items:baseline;gap:8px">
+                      <span style="flex:1;min-width:0;font-size:13px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Sorteio da 3ª fase da Copa</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">ontem</span>
+                    </span>
+                    <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Federação</span>
+                    
+                  </span>
+                </div>
+                <div style="display:grid;grid-template-columns:22px minmax(0,1fr);gap:11px;align-items:start;padding:11px 10px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-size:15px">🎓</span>
+                  <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="display:flex;align-items:baseline;gap:8px">
+                      <span style="flex:1;min-width:0;font-size:13px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Convite para jantar</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">há 2 dias</span>
+                    </span>
+                    <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Nacional-PR</span>
+                    
+                  </span>
+                </div>
+                <div style="display:grid;grid-template-columns:22px minmax(0,1fr);gap:11px;align-items:start;padding:11px 10px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-size:15px">💰</span>
+                  <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="display:flex;align-items:baseline;gap:8px">
+                      <span style="flex:1;min-width:0;font-size:13px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Parcela de abril depositada</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">há 3 dias</span>
+                    </span>
+                    <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Betano</span>
+                    
+                  </span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">MENSAGEM ABERTA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">Diretoria · há 2h</span>
+                </div>                <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+                  <span style="font-family:'Georgia',serif;font-size:19px;font-weight:700;color:#12201a;line-height:1.3;text-wrap:pretty">Relatório da 8ª jornada</span>
+                  <div style="display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid #eef1ee">
+                    <img src="uploads/pasted-1786581574687-0.png" alt="" style="width:30px;height:30px;object-fit:contain;flex:0 0 auto">
+                    <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                      <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap">Diretoria do XV Piracicaba</span>
+                      <span style="font-size:11px;color:#9aa79e;white-space:nowrap">para Gringo · 25 de abril de 2026</span>
+                    </span>
+                  </div>
+                  <span style="font-size:13px;color:#3a473f;line-height:1.7;text-wrap:pretty">O empate com o Cianorte manteve o time a um ponto do G3, e a diretoria considera a campanha consistente. Quatro vitórias, dois empates e duas derrotas em oito jogos é o que se pedia na largada.</span>
+                  <span style="font-size:13px;color:#3a473f;line-height:1.7;text-wrap:pretty">Duas coisas preocupam: a folha salarial subiu 12% desde março e o meio-campo perdeu força com o desgaste do Juninho. Se o playoff se confirmar, liberamos verba na próxima janela.</span>
+                <div data-cols style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">OBJETIVO</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">playoff</span>
+                    <span style="font-size:11px;color:#2fbf5f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">em rota</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">SEGURANÇA</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">54%</span>
+                    <span style="font-size:11px;color:#F2B90C;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">estável</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">VERBA LIBERADA</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 0</span>
+                    <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">na próxima janela</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">PRAZO</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">6 jornadas</span>
+                    
+                  </div>
+                </div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid #eef1ee;padding-top:12px"><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open1 }}">Arquivar</span><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e" onClick="{{ open0 }}">Responder</span></div>
+                </div>
+              </div>
+              </div>
+            </div>
+            <div style="{{ panel1 }}">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">ARQUIVADAS</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">14 mensagens</span>
+                </div>
+                <div style="display:grid;grid-template-columns:22px minmax(0,1fr) 74px;gap:11px;align-items:center;padding:10px;border-radius:12px;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-size:15px;opacity:.6">💰</span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:13px;font-weight:500;color:#5d6c62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Parcela de março depositada</span>
+                    <span style="font-size:11px;color:#9aa79e;white-space:nowrap">Betano</span>
+                  </span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;text-align:right;white-space:nowrap">há 1 mês</span>
+                </div>
+                <div style="display:grid;grid-template-columns:22px minmax(0,1fr) 74px;gap:11px;align-items:center;padding:10px;border-radius:12px;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-size:15px;opacity:.6">🏆</span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:13px;font-weight:500;color:#5d6c62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Tabela da Série D divulgada</span>
+                    <span style="font-size:11px;color:#9aa79e;white-space:nowrap">Federação</span>
+                  </span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;text-align:right;white-space:nowrap">há 2 meses</span>
+                </div>
+                <div style="display:grid;grid-template-columns:22px minmax(0,1fr) 74px;gap:11px;align-items:center;padding:10px;border-radius:12px;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-size:15px;opacity:.6">🩹</span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:13px;font-weight:500;color:#5d6c62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Juninho liberado</span>
+                    <span style="font-size:11px;color:#9aa79e;white-space:nowrap">Departamento médico</span>
+                  </span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;text-align:right;white-space:nowrap">há 2 meses</span>
+                </div>
+                <div style="display:grid;grid-template-columns:22px minmax(0,1fr) 74px;gap:11px;align-items:center;padding:10px;border-radius:12px;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-size:15px;opacity:.6">📋</span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:13px;font-weight:500;color:#5d6c62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Metas da temporada 2026</span>
+                    <span style="font-size:11px;color:#9aa79e;white-space:nowrap">Diretoria</span>
+                  </span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;text-align:right;white-space:nowrap">há 3 meses</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div data-ad-rail="right" style="width:160px;flex:0 0 auto;position:sticky;top:20px">
+      <div style="width:160px;height:600px;display:flex;align-items:center;justify-content:center;border:1px dashed #c9d2ca;border-radius:14px;background:#f2f7f1;color:#9aa79e;font-size:10px;font-weight:700;letter-spacing:.16em;text-align:center;box-sizing:border-box">PUBLICIDADE<br>160×600</div>
+    </div>
+  </div>
+</div>
+<div data-dlg-layer style="{{ dlgLayer }}">
+  <div onClick="{{ closeDlg }}" style="position:absolute;inset:0;background:rgba(11,26,18,.42)"></div>
+  <div style="{{ dlg0 }}">
+          <div style="width:560px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">E-MAIL · RESPOSTA À DIRETORIA</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Relatório da 8ª jornada</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:11px;background:#f7faf6;border-radius:12px;padding:11px 13px;min-width:0">
+                <img src="uploads/pasted-1786581574687-0.png" alt="" style="width:28px;height:28px;object-fit:contain;flex:0 0 auto">
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                  <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap">Para: Diretoria do XV Piracicaba</span>
+                  <span style="font-size:11px;color:#9aa79e;white-space:nowrap">Assunto: Re: Relatório da 8ª jornada</span>
+                </span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">O QUE RESPONDER</span>
+                <div style="display:flex;align-items:center;gap:11px;padding:11px;border-radius:12px;border:1px solid #eef1ee;background:transparent;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="width:18px;height:18px;border-radius:99px;border:2px solid #c9d2ca;background:#fff;flex:0 0 auto;display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:99px;background:transparent"></span></span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:13px;font-weight:500;color:#12201a;white-space:nowrap">Prometer o acesso</span>
+                    <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">+ torcida, + pressão · a diretoria cobra se falhar</span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:11px;padding:11px;border-radius:12px;border:1px solid #17458F;background:#eef3fa;cursor:pointer">
+                  <span style="width:18px;height:18px;border-radius:99px;border:2px solid #17458F;background:#fff;flex:0 0 auto;display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:99px;background:#17458F"></span></span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap">Pé no chão</span>
+                    <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">sem efeito na moral, sem risco</span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:11px;padding:11px;border-radius:12px;border:1px solid #eef1ee;background:transparent;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="width:18px;height:18px;border-radius:99px;border:2px solid #c9d2ca;background:#fff;flex:0 0 auto;display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:99px;background:transparent"></span></span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:13px;font-weight:500;color:#12201a;white-space:nowrap">Cobrar reforços</span>
+                    <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">+ chance de verba, − segurança no cargo</span>
+                  </span>
+                </div>
+              </div>
+              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">ACRESCENTAR ALGO (OPCIONAL)</span>
+                <span style="min-height:78px;display:block;padding:12px 14px;border:1px solid #d8e2d6;border-radius:12px;background:#fff;font-size:13px;color:#9aa79e;line-height:1.6;box-sizing:border-box">Estamos a um ponto do G3 com o elenco que temos. Precisamos de um meia na próxima janela.</span>
+              </label>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">A diretoria responde na próxima jornada. O que você promete fica registrado.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Descartar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Enviar resposta</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg1 }}">
+          <div style="width:440px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">E-MAIL</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Arquivar esta mensagem?</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:11px;background:#f7faf6;border-radius:12px;padding:11px 13px;min-width:0">
+                <span style="font-size:17px;flex:0 0 auto">📋</span>
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Relatório da 8ª jornada</span>
+                  <span style="font-size:11px;color:#9aa79e;white-space:nowrap">Diretoria · há 2h</span>
+                </span>
+              </div>              <div style="display:flex;align-items:flex-start;gap:10px;background:#fdf1c8;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#F2B90C">⚠</span>
+                <span style="font-size:12px;color:#5c4a00;line-height:1.55;text-wrap:pretty">A mensagem sai da caixa de entrada e vai para Arquivadas. Nada é apagado.</span>
+              </div>              <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:11px;border:1px solid #eef1ee;cursor:pointer">
+                <span style="width:18px;height:18px;border-radius:5px;border:1px solid #c9d2ca;background:#fff;flex:0 0 auto"></span>
+                <span style="font-size:12px;color:#12201a;white-space:nowrap">Arquivar sempre mensagens da Diretoria</span>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Arquivar</span>
+            </div>
+          </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab: 0, dlg: -1 };
+  renderVals() {
+    const TABS = ["Caixa de entrada","Arquivadas"];
+    const on = 'flex:0 0 auto;font-size:13px;font-weight:700;color:#fff;background:#17458F;border-radius:11px;padding:8px 14px;white-space:nowrap;cursor:pointer';
+    const off = 'flex:0 0 auto;font-size:13px;font-weight:500;color:#3a473f;background:transparent;border-radius:11px;padding:8px 14px;white-space:nowrap;cursor:pointer';
+    const N = 2;
+    const vals = { tabs: TABS.map((label, i) => ({ label, style: i === this.state.tab ? on : off, onClick: () => this.setState({ tab: i }) })) };
+    vals.dlgLayer = this.state.dlg < 0
+      ? { display: 'none' }
+      : { position: 'fixed', inset: 0, zIndex: 90, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflow: 'auto', animation: 'dlgIn .2s ease' };
+    vals.closeDlg = () => this.setState({ dlg: -1 });
+    for (let k = 0; k < N; k++) {
+      vals['open' + k] = () => this.setState({ dlg: k });
+      vals['dlg' + k] = this.state.dlg === k
+        ? { position: 'relative', display: 'flex', justifyContent: 'center', width: '100%', animation: 'dlgUp .24s ease' }
+        : { display: 'none' };
+    }
+    TABS.forEach((_, i) => {
+      vals['panel' + i] = i === this.state.tab
+        ? { display:'flex', flexDirection:'column', gap:'14px', minWidth:0, animation:'tabIn .26s ease' }
+        : { display:'none' };
+    });
+    return vals;
+  }
+}
+</script>
+</body>
+</html>

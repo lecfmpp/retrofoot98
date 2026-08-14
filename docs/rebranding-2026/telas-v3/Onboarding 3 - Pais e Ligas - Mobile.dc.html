@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Onboarding — País e ligas (mobile)" description="Onboarding — País e ligas (mobile) — mobile" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#c9d2cb}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes ctaPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+@keyframes ballDrop{from{opacity:0;transform:translateY(-8px) scale(.9)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="display:flex;justify-content:center;padding:24px;font-family:'Space Grotesk',system-ui,sans-serif">
+  <div style="width:390px;flex:0 0 auto;background:#e8f0e7;border:1px solid #d2e0d0;border-radius:28px;overflow:hidden;box-shadow:0 24px 60px -30px rgba(20,33,26,.6);position:relative">
+    <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 16px;display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-left:5px">
+        <img src="uploads/pasted-1786581574687-0.png" alt="" style="width:28px;height:28px;object-fit:contain;flex:0 0 auto">
+        <span style="font-size:14px;font-weight:700;color:#fff;white-space:nowrap">RetroFoot<span style="font-family:'IBM Plex Mono',monospace;color:#F2B90C">98</span></span>
+        <div style="flex:1"></div>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#c3d3ec;white-space:nowrap">3 de 5</span>
+      </div>
+      <div style="display:flex;gap:4px;margin-left:5px">
+        <span style="flex:1;height:4px;border-radius:99px;background:#F2B90C"></span>
+        <span style="flex:1;height:4px;border-radius:99px;background:#F2B90C"></span>
+        <span style="flex:1;height:4px;border-radius:99px;background:#F2B90C"></span>
+        <span style="flex:1;height:4px;border-radius:99px;background:rgba(255,255,255,.22)"></span>
+        <span style="flex:1;height:4px;border-radius:99px;background:rgba(255,255,255,.22)"></span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;margin-left:5px;padding-top:2px">
+        <span style="font-size:19px;font-weight:700;color:#fff;letter-spacing:-.02em;line-height:1.2;text-wrap:pretty">Escolha o país. O clube é sorteado.</span>
+        <span style="font-size:12px;color:#c3d3ec;line-height:1.5;text-wrap:pretty">Você escolhe onde treinar e em que divisão começa; o clube sai no sorteio.</span>
+      </div>
+    </div>
+    <div style="padding:14px 16px 96px;display:flex;flex-direction:column;gap:12px">
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0">
+        <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">PAÍS PRINCIPAL</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+          <span style="display:flex;align-items:center;gap:7px;padding:10px;border:2px solid #17458F;background:#eef3fa;border-radius:12px;cursor:pointer;min-width:0">
+            <span style="font-size:16px;flex:0 0 auto">🇧🇷</span>
+            <span style="flex:1;min-width:0;font-size:12px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Brasil</span>
+          </span>          <span style="display:flex;align-items:center;gap:7px;padding:10px;border:2px solid #dde7db;background:#fff;border-radius:12px;cursor:pointer;min-width:0">
+            <span style="font-size:16px;flex:0 0 auto">🇦🇷</span>
+            <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Argentina</span>
+          </span>          <span style="display:flex;align-items:center;gap:7px;padding:10px;border:2px solid #dde7db;background:#fff;border-radius:12px;cursor:pointer;min-width:0">
+            <span style="font-size:16px;flex:0 0 auto">🇵🇹</span>
+            <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Portugal</span>
+          </span>          <span style="display:flex;align-items:center;gap:7px;padding:10px;border:2px solid #dde7db;background:#fff;border-radius:12px;cursor:pointer;min-width:0">
+            <span style="font-size:16px;flex:0 0 auto">🇪🇸</span>
+            <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Espanha</span>
+          </span>
+        </div>
+        <span style="font-size:11px;color:#17458F;font-weight:600;text-align:center;cursor:pointer;white-space:nowrap">Ver todos os países</span>
+      </div>
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0">
+        <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">DIVISÃO EM QUE VOCÊ COMEÇA</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+          <span style="display:flex;flex-direction:column;gap:2px;padding:11px;border:2px solid #dde7db;background:#fff;border-radius:12px;cursor:pointer;min-width:0">
+            <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap">Série A</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#78877c;white-space:nowrap">20 clubes</span>
+          </span>
+          <span style="display:flex;flex-direction:column;gap:2px;padding:11px;border:2px solid #dde7db;background:#fff;border-radius:12px;cursor:pointer;min-width:0">
+            <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap">Série B</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#78877c;white-space:nowrap">20 clubes</span>
+          </span>
+          <span style="display:flex;flex-direction:column;gap:2px;padding:11px;border:2px solid #dde7db;background:#fff;border-radius:12px;cursor:pointer;min-width:0">
+            <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap">Série C</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#78877c;white-space:nowrap">20 clubes</span>
+          </span>
+          <span style="display:flex;flex-direction:column;gap:2px;padding:11px;border:2px solid #17458F;background:#eef3fa;border-radius:12px;cursor:pointer;min-width:0">
+            <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap">Série D</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#78877c;white-space:nowrap">64 clubes</span>
+          </span>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0">
+        <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">LIGAS DE FUNDO</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:600;color:#fff;background:#17458F;border:1px solid #17458F;border-radius:99px;padding:7px 12px;white-space:nowrap;cursor:pointer">🇦🇷 Argentina</span>
+          <span style="font-size:11px;font-weight:600;color:#fff;background:#17458F;border:1px solid #17458F;border-radius:99px;padding:7px 12px;white-space:nowrap;cursor:pointer">🇵🇹 Portugal</span>
+          <span style="font-size:11px;font-weight:600;color:#3a473f;background:#fff;border:1px solid #d8e2d6;border-radius:99px;padding:7px 12px;white-space:nowrap;cursor:pointer">🇪🇸 Espanha</span>
+          <span style="font-size:11px;font-weight:600;color:#3a473f;background:#fff;border:1px solid #d8e2d6;border-radius:99px;padding:7px 12px;white-space:nowrap;cursor:pointer">🇮🇹 Itália</span>
+          <span style="font-size:11px;font-weight:600;color:#3a473f;background:#fff;border:1px solid #d8e2d6;border-radius:99px;padding:7px 12px;white-space:nowrap;cursor:pointer">🇩🇪 Alemanha</span>
+        </div>
+      </div>
+    </div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #dde7db;padding:12px 16px 16px;display:flex;gap:8px">
+      <span style="flex:1;height:48px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer;animation:ctaPulse 2.4s ease-in-out infinite">Sortear meu clube</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

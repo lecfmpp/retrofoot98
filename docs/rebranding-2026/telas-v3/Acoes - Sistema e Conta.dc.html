@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Ações de Sistema e Conta" description="Gravar, sair, apagar, senha, carreira e sincronização" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ee}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes dlgIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+@media (max-width:900px){ [data-gal]{grid-template-columns:minmax(0,1fr)!important} [data-gal] > aside{position:static!important} }
+</style>
+</helmet>
+
+<div style="min-height:100vh;box-sizing:border-box;padding:20px;font-family:'Space Grotesk',system-ui,sans-serif;background:#eef0ee">
+  <div data-gal style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:264px minmax(0,1fr);gap:16px;align-items:start">
+
+    <aside style="position:sticky;top:20px;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:8px;box-sizing:border-box">
+      <div style="display:flex;flex-direction:column;gap:2px;padding:4px 8px 10px;border-bottom:1px solid #eef1ee">
+        <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ações de Sistema e Conta</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8b978d;white-space:nowrap">8 DIÁLOGOS</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <sc-for list="{{ items }}" as="it" hint-placeholder-count="8">
+          <span style="{{ it.style }}" onClick="{{ it.onClick }}">
+            <span style="flex:0 0 auto;width:18px;text-align:center;font-size:14px">{{ it.icon }}</span>
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ it.label }}</span>
+          </span>
+        </sc-for>
+      </div>
+      <span style="font-size:11px;color:#9aa79e;line-height:1.5;padding:8px;border-top:1px solid #eef1ee;text-wrap:pretty">Cada item é o diálogo que abre ao clicar no botão correspondente da tela.</span>
+    </aside>
+
+    <div style="min-width:0;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:700;color:#12201a;letter-spacing:-.02em;white-space:nowrap">{{ curName }}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">abre em: {{ curTrigger }}</span>
+      </div>
+
+      <div style="position:relative;border-radius:20px;background:#e8f0e7;border:1px solid #d2e0d0;padding:28px;display:flex;align-items:flex-start;justify-content:center;min-height:420px;box-sizing:border-box">
+        <div style="{{ slot0 }}">
+          <div style="width:420px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#2fbf5f"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">SAVE NA NUVEM</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Jogo gravado</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:#d7f5e2;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#2fbf5f">✓</span>
+                <span style="font-size:12px;color:#0d3d22;line-height:1.55;text-wrap:pretty">Jogo gravado na nuvem.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Clube</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">XV Piracicaba</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Ponto do save</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">8ª jornada</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Gravado às</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">25/abr 19:42</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Gravações desta temporada</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">34</span>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Continuar</span>
+            </div>
+          </div>
+        </div>
+        <div style="{{ slot1 }}">
+          <div style="width:460px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">SAVE</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Sair deste save?</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:#fdf1c8;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#F2B90C">⚠</span>
+                <span style="font-size:12px;color:#5c4a00;line-height:1.55;text-wrap:pretty">A temporada é gravada no ponto atual antes de sair. Nada é perdido.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Clube</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">XV Piracicaba</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Última gravação</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">há 12 minutos</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Jornada</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">8ª de 14</span>
+              </div>              <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:11px;border:1px solid #eef1ee;cursor:pointer">
+                <span style="width:18px;height:18px;border-radius:5px;border:1px solid #17458F;background:#17458F;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto">✓</span>
+                <span style="font-size:12px;color:#12201a;white-space:nowrap">Gravar antes de sair</span>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Gravar e sair</span>
+            </div>
+          </div>
+        </div>
+        <div style="{{ slot2 }}">
+          <div style="width:480px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#c0392b"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">SAVE</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Apagar o save do XV Piracicaba?</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:#fbe3e0;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#c0392b">⚠</span>
+                <span style="font-size:12px;color:#7a2118;line-height:1.55;text-wrap:pretty">Isso apaga a temporada inteira da nuvem. Não tem como recuperar.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Jornadas jogadas</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">8</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Tempo de jogo</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">6h 24min</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Campanha</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">4º no grupo · 14 pts</span>
+              </div>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">DIGITE O NOME DO CLUBE PARA CONFIRMAR</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #17458F;border-radius:12px;background:#fff;box-sizing:border-box">
+                  
+                  <span style="flex:1;min-width:0;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba</span>
+                  
+                </span>
+                
+              </label>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#c0392b;border:1px solid #c0392b;color:#fff;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#a93226">Apagar para sempre</span>
+            </div>
+          </div>
+        </div>
+        <div style="{{ slot3 }}">
+          <div style="width:480px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#c0392b"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">TREINADOR</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Encerrar a carreira do Gringo?</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:#fbe3e0;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#c0392b">⚠</span>
+                <span style="font-size:12px;color:#7a2118;line-height:1.55;text-wrap:pretty">A carreira é fechada e vai para o histórico. Você começa outra do zero, com reputação 1.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Temporadas</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">3</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Jogos</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">68</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Aproveitamento</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">55%</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Títulos</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">0</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Clubes treinados</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">2</span>
+              </div>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">O save atual do XV Piracicaba continua na nuvem, mas sem treinador.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Voltar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#c0392b;border:1px solid #c0392b;color:#fff;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#a93226">Encerrar carreira</span>
+            </div>
+          </div>
+        </div>
+        <div style="{{ slot4 }}">
+          <div style="width:480px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#c0392b"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">MODO RESENHA · SALA 7KP2M</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Sair da resenha?</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:#fbe3e0;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#c0392b">⚠</span>
+                <span style="font-size:12px;color:#7a2118;line-height:1.55;text-wrap:pretty">Você é o anfitrião. Ao sair, a sala passa para o Rafa e o XV Piracicaba fica com a máquina.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Treinadores na sala</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">4</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Jornada</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">9ª de 14</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Seu clube</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">XV Piracicaba</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Novo anfitrião</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#F2B90C;white-space:nowrap;flex:0 0 auto">Rafa</span>
+              </div>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">Para voltar depois, peça o código 7KP2M — mas o clube pode não estar mais livre.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Ficar na sala</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#c0392b;border:1px solid #c0392b;color:#fff;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#a93226">Sair da resenha</span>
+            </div>
+          </div>
+        </div>
+        <div style="{{ slot5 }}">
+          <div style="width:460px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">CONTA</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Trocar a senha</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">SENHA ATUAL</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #d8e2d6;border-radius:12px;background:#fff;box-sizing:border-box">
+                  
+                  <span style="flex:1;min-width:0;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">••••••••</span>
+                  
+                </span>
+                
+              </label>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">NOVA SENHA</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #17458F;border-radius:12px;background:#fff;box-sizing:border-box">
+                  
+                  <span style="flex:1;min-width:0;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">••••••••••</span>
+                  
+                </span>
+                <span style="font-size:11px;color:#9aa79e;line-height:1.45;text-wrap:pretty">Mínimo de 8 caracteres.</span>
+              </label>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">CONFIRME A NOVA SENHA</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #d8e2d6;border-radius:12px;background:#fff;box-sizing:border-box">
+                  
+                  <span style="flex:1;min-width:0;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">••••••••••</span>
+                  
+                </span>
+                
+              </label>              <div style="display:flex;align-items:flex-start;gap:10px;background:#fdf1c8;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#F2B90C">⚠</span>
+                <span style="font-size:12px;color:#5c4a00;line-height:1.55;text-wrap:pretty">Seus saves na nuvem continuam intactos. Você segue conectado neste aparelho.</span>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Trocar senha</span>
+            </div>
+          </div>
+        </div>
+        <div style="{{ slot6 }}">
+          <div style="width:480px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#c0392b"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">CONTA</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Apagar a sua conta?</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:#fbe3e0;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#c0392b">⚠</span>
+                <span style="font-size:12px;color:#7a2118;line-height:1.55;text-wrap:pretty">Isso apaga a conta, os 4 saves na nuvem e a sua carreira de treinador. Não tem como recuperar.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">E-mail</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">gringo@exemplo.com</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Saves na nuvem</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">4</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Carreira</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">3 temporadas · 68 jogos</span>
+              </div>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">DIGITE APAGAR PARA CONFIRMAR</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #17458F;border-radius:12px;background:#fff;box-sizing:border-box">
+                  
+                  <span style="flex:1;min-width:0;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">APAGAR</span>
+                  
+                </span>
+                
+              </label>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#c0392b;border:1px solid #c0392b;color:#fff;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#a93226">Apagar a conta</span>
+            </div>
+          </div>
+        </div>
+        <div style="{{ slot7 }}">
+          <div style="width:460px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">MODO RESENHA · SALA 7KP2M</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Sincronizando a rodada</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Buscando a rodada dos outros treinadores</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#17458F;white-space:nowrap">62%</span>
+                </div>
+                <div style="height:10px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:62%;height:100%;border-radius:99px;background:linear-gradient(90deg,#17458F,#F2B90C);transition:width .18s"></div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:0">
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #eef1ee">
+                  <span style="width:20px;height:20px;border-radius:99px;background:#2fbf5f;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto">✓</span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rodada dos outros treinadores</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #eef1ee">
+                  <span style="width:20px;height:20px;border-radius:99px;background:#2fbf5f;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto">✓</span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Resultados da 9ª jornada</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #eef1ee">
+                  <span style="width:20px;height:20px;border-radius:99px;background:#eef1ee;color:#9aa79e;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto">⏳</span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Tabela e classificação</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #eef1ee">
+                  <span style="width:20px;height:20px;border-radius:99px;background:#eef1ee;color:#9aa79e;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto">⏳</span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Mercado e propostas</span>
+                </div>
+              </div>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">À espera do Duda, que ainda não entrou nesta jornada.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Fechar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">⏩ Pular espera</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { i: 0 };
+  renderVals() {
+    const ITEMS = [["💾","Gravar o jogo","Configurações → Gravar agora · atalho"],["↩","Sair do save","Configurações → Jogo → Voltar aos saves"],["🗑","Apagar o save","Configurações → Jogo → Apagar este save"],["🎓","Encerrar a carreira","Treinador → Perfil → Encerrar a carreira"],["🚪","Sair da sala da Resenha","Configurações → Modo Resenha → Sair da sala"],["🔒","Trocar a senha","Configurações → Opções → Trocar a senha"],["⚠","Apagar a conta","Configurações → Opções → Apagar a conta"],["🔄","Sincronizar a Resenha","Configurações → Modo Resenha → Sincronizar"]];
+    const on = 'display:flex;align-items:center;gap:10px;height:40px;padding:0 11px;border-radius:11px;font-size:12px;font-weight:700;color:#fff;background:#17458F;white-space:nowrap;cursor:pointer;overflow:hidden';
+    const off = 'display:flex;align-items:center;gap:10px;height:40px;padding:0 11px;border-radius:11px;font-size:12px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden';
+    const cur = ITEMS[this.state.i] || ITEMS[0];
+    const vals = {
+      curName: cur[1],
+      curTrigger: cur[2],
+      items: ITEMS.map((r, i) => ({
+        icon: r[0], label: r[1],
+        style: i === this.state.i ? on : off,
+        onClick: () => this.setState({ i })
+      }))
+    };
+    ITEMS.forEach((_, i) => {
+      vals['slot' + i] = i === this.state.i
+        ? { width: '100%', display: 'flex', justifyContent: 'center', animation: 'dlgIn .24s ease' }
+        : { display: 'none' };
+    });
+    return vals;
+  }
+}
+</script>
+</body>
+</html>

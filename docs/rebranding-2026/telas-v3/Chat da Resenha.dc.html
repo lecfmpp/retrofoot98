@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ee}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes chatPop{0%{transform:scale(1)}30%{transform:scale(1.14)}100%{transform:scale(1)}}
+@keyframes chatIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes chatPeek{0%{opacity:0;transform:translateY(6px)}12%{opacity:1;transform:none}80%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-4px)}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#eef0ee;font-family:'Space Grotesk',system-ui,sans-serif;padding:28px;box-sizing:border-box">
+  <div style="max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:28px">
+
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;letter-spacing:.14em;white-space:nowrap">MODO RESENHA · CHAT</span>
+      <span style="font-size:26px;font-weight:700;color:#12201a;letter-spacing:-.02em">O chat nunca atrapalha a jogada.</span>
+      <span style="font-size:14px;color:#78877c;max-width:720px;line-height:1.55;text-wrap:pretty">Fechado por padrão, avisa sem interromper e só abre quando o treinador quiser. Três estados no desktop, dois no celular — e um modo silencioso durante a partida ao vivo.</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em">DESKTOP · TRÊS ESTADOS</span>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start">
+
+        <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+          <div style="position:relative;height:300px;border-radius:18px;border:1px solid #dde7db;background:#e8f0e7;overflow:hidden">
+            <sc-for list="{{ fundo }}" as="f" hint-placeholder-count="4">
+              <div style="{{ f.style }}"></div>
+            </sc-for>
+            <div style="position:absolute;right:14px;bottom:14px;display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+              <div style="position:relative;width:52px;height:52px;border-radius:99px;background:#17458F;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 30px -12px rgba(0,0,0,.5);cursor:pointer">
+                <span style="font-size:20px">💬</span>
+                <span style="position:absolute;right:-2px;top:-2px;min-width:20px;height:20px;box-sizing:border-box;padding:0 6px;border-radius:99px;background:#c0392b;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #e8f0e7;animation:chatPop 1.8s ease-in-out infinite">7</span>
+              </div>
+            </div>
+          </div>
+          <span style="font-size:13px;font-weight:700;color:#12201a">1 · Fechado</span>
+          <span style="font-size:12px;color:#78877c;line-height:1.5">Só a bolha, no canto inferior direito. O contador pulsa quando chega mensagem nova — sem som, sem pop-up, sem roubar o clique.</span>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+          <div style="position:relative;height:300px;border-radius:18px;border:1px solid #dde7db;background:#e8f0e7;overflow:hidden">
+            <sc-for list="{{ fundo }}" as="f" hint-placeholder-count="4">
+              <div style="{{ f.style }}"></div>
+            </sc-for>
+            <div style="position:absolute;right:14px;bottom:14px;display:flex;flex-direction:column;align-items:flex-end;gap:8px;max-width:calc(100% - 28px)">
+              <div style="display:flex;align-items:center;gap:8px;background:#12201a;border-left:4px solid #F2B90C;border-radius:12px;padding:9px 12px;box-shadow:0 10px 30px -18px rgba(0,0,0,.7);animation:chatPeek 4s ease-in-out infinite;max-width:100%">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#F2B90C;white-space:nowrap">zé:</span>
+                <span style="flex:1;min-width:0;font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">tomou 4 do meu time reserva kkk</span>
+              </div>
+              <div style="position:relative;width:52px;height:52px;border-radius:99px;background:#17458F;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 30px -12px rgba(0,0,0,.5);cursor:pointer">
+                <span style="font-size:20px">💬</span>
+                <span style="position:absolute;right:-2px;top:-2px;min-width:20px;height:20px;box-sizing:border-box;padding:0 6px;border-radius:99px;background:#c0392b;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #e8f0e7">8</span>
+              </div>
+            </div>
+          </div>
+          <span style="font-size:13px;font-weight:700;color:#12201a">2 · Espiada</span>
+          <span style="font-size:12px;color:#78877c;line-height:1.5">Uma linha por vez, 4 segundos, some sozinha. Só para mensagem nova enquanto o chat está fechado — nunca durante a partida ao vivo.</span>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+          <div style="position:relative;height:300px;border-radius:18px;border:1px solid #dde7db;background:#e8f0e7;overflow:hidden">
+            <sc-for list="{{ fundo }}" as="f" hint-placeholder-count="4">
+              <div style="{{ f.style }}"></div>
+            </sc-for>
+            <div style="position:absolute;right:14px;bottom:14px;width:264px;max-width:calc(100% - 28px);background:#fff;border:1px solid #dde7db;border-radius:16px;overflow:hidden;box-shadow:0 20px 46px -22px rgba(20,33,26,.6);display:flex;flex-direction:column;animation:chatIn .28s ease">
+              <div style="display:flex;align-items:center;gap:8px;background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:10px 12px;position:relative;overflow:hidden">
+                <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#F2B90C"></div>
+                <span style="margin-left:4px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap">Resenha do trampo</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#c3d3ec;white-space:nowrap">18/20</span>
+                <div style="flex:1"></div>
+                <span style="font-size:11px;color:#fff;cursor:pointer">—</span>
+              </div>
+              <div style="flex:1;padding:10px;display:flex;flex-direction:column;gap:8px;overflow:auto">
+                <sc-for list="{{ mensagens }}" as="m" hint-placeholder-count="4">
+                  <div style="{{ m.rowStyle }}">
+                    <span style="{{ m.userStyle }}">{{ m.user }}</span>
+                    <span style="{{ m.textStyle }}">{{ m.text }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="padding:8px 10px 10px;border-top:1px solid #eef1ee;display:flex;gap:6px">
+                <span style="flex:1;height:32px;display:flex;align-items:center;padding:0 10px;border:1px solid #dde7db;border-radius:10px;font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden">Manda a braba…</span>
+                <span style="width:32px;height:32px;border-radius:10px;background:#F2B90C;color:#17458F;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;flex:0 0 auto">➤</span>
+              </div>
+            </div>
+          </div>
+          <span style="font-size:13px;font-weight:700;color:#12201a">3 · Aberto</span>
+          <span style="font-size:12px;color:#78877c;line-height:1.5">Painel de 264px ancorado no canto, por cima do conteúdo e sem empurrar nada. Fecha no ✖, no Esc ou clicando fora.</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em">MOBILE · A JOGABILIDADE VEM PRIMEIRO</span>
+      <div style="display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;justify-content:center">
+
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+          <div style="position:relative;width:300px;height:520px;background:#e8f0e7;border:1px solid #d2e0d0;border-radius:26px;overflow:hidden;box-shadow:0 24px 60px -30px rgba(20,33,26,.6)">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:12px 14px;display:flex;align-items:center;gap:10px;position:relative;overflow:hidden">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#F2B90C"></div>
+              <img src="uploads/pasted-1786581574687-0.png" alt="" style="width:26px;height:26px;object-fit:contain;flex:0 0 auto;margin-left:4px;background:#fff;border-radius:8px;padding:2px;box-sizing:border-box">
+              <span style="font-size:13px;font-weight:700;color:#fff;white-space:nowrap">XV Piracicaba</span>
+            </div>
+            <sc-for list="{{ fundoMobile }}" as="f" hint-placeholder-count="3">
+              <div style="{{ f.style }}"></div>
+            </sc-for>
+            <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #dde7db;padding:8px 10px 12px;display:flex;align-items:center;gap:6px">
+              <sc-for list="{{ navMobile }}" as="n" hint-placeholder-count="4">
+                <span style="{{ n.style }}">
+                  <span style="{{ n.iconStyle }}">{{ n.icon }}</span>
+                  <span style="{{ n.labelStyle }}">{{ n.label }}</span>
+                  <span style="{{ n.badgeStyle }}">{{ n.badge }}</span>
+                </span>
+              </sc-for>
+            </div>
+          </div>
+          <span style="font-size:13px;font-weight:700;color:#12201a">Fechado — o chat é um item da barra</span>
+          <span style="font-size:12px;color:#78877c;line-height:1.5;max-width:300px;text-align:center">Sem bolha flutuante: no celular ela cobriria o campo. O contador vive no ícone da barra inferior.</span>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+          <div style="position:relative;width:300px;height:520px;background:#e8f0e7;border:1px solid #d2e0d0;border-radius:26px;overflow:hidden;box-shadow:0 24px 60px -30px rgba(20,33,26,.6)">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:12px 14px;display:flex;align-items:center;gap:10px;position:relative;overflow:hidden">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#F2B90C"></div>
+              <img src="uploads/pasted-1786581574687-0.png" alt="" style="width:26px;height:26px;object-fit:contain;flex:0 0 auto;margin-left:4px;background:#fff;border-radius:8px;padding:2px;box-sizing:border-box">
+              <span style="font-size:13px;font-weight:700;color:#fff;white-space:nowrap">XV Piracicaba</span>
+            </div>
+            <sc-for list="{{ fundoMobile }}" as="f" hint-placeholder-count="3">
+              <div style="{{ f.style }}"></div>
+            </sc-for>
+            <div style="position:absolute;inset:0;background:rgba(18,32,26,.5)"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;height:66%;background:#fff;border-radius:22px 22px 0 0;display:flex;flex-direction:column;animation:chatIn .28s ease">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 12px 8px;border-bottom:1px solid #eef1ee">
+                <span style="width:38px;height:4px;border-radius:99px;background:#c9d2ca"></span>
+                <div style="display:flex;align-items:center;gap:8px;width:100%">
+                  <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap">Resenha do trampo</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">18/20 na sala</span>
+                  <div style="flex:1"></div>
+                  <span style="font-size:12px;color:#5d6c62;cursor:pointer">✖</span>
+                </div>
+              </div>
+              <div style="flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:9px;overflow:auto">
+                <sc-for list="{{ mensagens }}" as="m" hint-placeholder-count="4">
+                  <div style="{{ m.rowStyle }}">
+                    <span style="{{ m.userStyle }}">{{ m.user }}</span>
+                    <span style="{{ m.textStyle }}">{{ m.text }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="padding:8px 12px 14px;border-top:1px solid #eef1ee;display:flex;gap:7px">
+                <span style="flex:1;height:40px;display:flex;align-items:center;padding:0 12px;border:1px solid #dde7db;border-radius:12px;font-size:12px;color:#9aa79e">Manda a braba…</span>
+                <span style="width:40px;height:40px;border-radius:12px;background:#F2B90C;color:#17458F;display:flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto">➤</span>
+              </div>
+            </div>
+          </div>
+          <span style="font-size:13px;font-weight:700;color:#12201a">Aberto — folha de baixo, 66% da tela</span>
+          <span style="font-size:12px;color:#78877c;line-height:1.5;max-width:300px;text-align:center">Sobe por cima do conteúdo, arrasta para fechar. O jogo continua rolando atrás, sem pausar.</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em">REGRAS DO CHAT</span>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+        <sc-for list="{{ regras }}" as="r" hint-placeholder-count="6">
+          <div style="display:flex;align-items:flex-start;gap:12px;background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;min-width:0">
+            <span style="font-size:18px;flex:0 0 auto">{{ r.icon }}</span>
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+              <span style="font-size:13px;font-weight:700;color:#12201a">{{ r.title }}</span>
+              <span style="font-size:12px;color:#5d6c62;line-height:1.5">{{ r.text }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const P = '#17458F', S = '#F2B90C', INK = '#12201a', MONO = "'IBM Plex Mono',monospace";
+
+    const skel = (top, left, w, h, r) =>
+      'position:absolute;top:' + top + 'px;left:' + left + 'px;width:' + w + 'px;height:' + h + 'px;border-radius:' + (r || 10) + 'px;background:#fff;border:1px solid #dde7db';
+
+    const msgs = [
+      ['lucão:', 'contratei o camisa 10 no leilão 🔨', false],
+      ['zé:', 'tomou 4 do meu time reserva kkk', false],
+      ['você:', 'espera a volta em casa', true],
+      ['marreco:', 'sobe logo essa série D treinador', false]
+    ];
+
+    const nav = [
+      ['🏠', 'Início', '', false],
+      ['🥅', 'Formação', '', true],
+      ['💬', 'Chat', '7', false],
+      ['🏆', 'Copas', '', false]
+    ];
+
+    return {
+      fundo: [
+        { style: skel(14, 14, 150, 40) },
+        { style: skel(64, 14, 150, 120) },
+        { style: skel(194, 14, 150, 92) },
+        { style: skel(14, 176, 120, 272) }
+      ],
+      fundoMobile: [
+        { style: skel(64, 14, 272, 96) },
+        { style: skel(170, 14, 272, 150) },
+        { style: skel(330, 14, 272, 96) }
+      ],
+      mensagens: msgs.map(([user, text, me]) => ({
+        user, text,
+        rowStyle: 'display:flex;gap:7px;align-items:baseline;padding:6px 8px;border-radius:9px;background:' + (me ? '#eef3fa' : 'transparent'),
+        userStyle: 'font-family:' + MONO + ';font-size:10px;font-weight:600;color:' + (me ? P : '#8b978d') + ';white-space:nowrap;flex:0 0 auto',
+        textStyle: 'flex:1;min-width:0;font-size:12px;line-height:1.4;color:' + (me ? INK : '#3a473f')
+      })),
+      navMobile: nav.map(([icon, label, badge, on]) => ({
+        icon, label, badge,
+        style: 'position:relative;flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:12px;background:' + (on ? '#eef3fa' : 'transparent'),
+        iconStyle: 'font-size:16px;line-height:1',
+        labelStyle: 'font-size:9px;font-weight:' + (on ? 700 : 500) + ';color:' + (on ? P : '#78877c') + ';white-space:nowrap',
+        badgeStyle: badge
+          ? 'position:absolute;top:2px;right:calc(50% - 22px);min-width:16px;height:16px;box-sizing:border-box;padding:0 4px;border-radius:99px;background:#c0392b;color:#fff;font-family:' + MONO + ';font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;animation:chatPop 1.8s ease-in-out infinite'
+          : 'display:none'
+      })),
+      regras: [
+        { icon: '🔕', title: 'Silencioso na partida ao vivo', text: 'Durante a rodada e no Camarote o chat some da tela: fica só o contador, sem espiada e sem animação. A jogada nunca compete com a conversa.' },
+        { icon: '👆', title: 'Sempre por cima, nunca empurrando', text: 'O painel é ancorado e flutua sobre o conteúdo. Nenhuma coluna do jogo muda de largura quando o chat abre.' },
+        { icon: '🔢', title: 'O contador é o aviso', text: 'Mensagem nova só pulsa o número. Sem som, sem badge no título da aba, sem notificação do navegador.' },
+        { icon: '⌨️', title: 'Atalhos', text: 'Enter envia, Esc fecha, e a tecla C abre e fecha o chat de qualquer tela.' },
+        { icon: '📱', title: 'No celular, item de barra', text: 'Bolha flutuante cobriria o campo. O chat vira o terceiro item da barra inferior e abre como folha de baixo.' },
+        { icon: '💾', title: 'Histórico da sala', text: 'As últimas 200 mensagens ficam na sala; quem entra no meio vê o que perdeu, sem carregar a rodada inteira.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Finanças" description="Tela mobile 390px · Finanças — abas completas" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ee}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes jogarPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+@keyframes tabIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media (max-width:1560px){ [data-ad-rail="right"]{display:none} }
+@media (max-width:1320px){ [data-ad-rail]{display:none} }
+[data-ad-rail]{display:none!important}
+[data-shell]{grid-template-columns:minmax(0,1fr)!important}
+[data-shell] aside{display:none!important}
+[data-cols]{grid-template-columns:minmax(0,1fr)!important}
+[data-shell] > div{min-width:0}
+@media (max-width:1100px){ [data-shell]{grid-template-columns:minmax(0,1fr)!important} [data-shell] aside{display:none!important} [data-cols]{grid-template-columns:minmax(0,1fr)!important}
+[data-shell] > div{min-width:0} }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#eef0ee;font-family:'Space Grotesk',system-ui,sans-serif;padding:0;box-sizing:border-box">
+  <div style="display:flex;align-items:flex-start;justify-content:center;gap:16px">
+
+    <div data-ad-rail="left" style="width:160px;flex:0 0 auto;position:sticky;top:20px">
+      <div style="width:160px;height:600px;display:flex;align-items:center;justify-content:center;border:1px dashed #c9d2ca;border-radius:14px;background:#f2f7f1;color:#9aa79e;font-size:10px;font-weight:700;letter-spacing:.16em;text-align:center;box-sizing:border-box">PUBLICIDADE<br>160×600</div>
+    </div>
+
+    <div style="width:390px;max-width:100%;min-width:0;flex:0 0 auto;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+
+      <div style="background:#e8f0e7;border:1px solid #d2e0d0;border-radius:0;padding:12px;box-sizing:border-box">
+        <div data-shell style="display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start">
+        <aside style="position:sticky;top:18px;display:flex;flex-direction:column;gap:10px;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:12px;box-sizing:border-box;min-height:640px">
+          <div style="display:flex;align-items:center;gap:10px;padding:4px 4px 10px;border-bottom:1px solid #eef1ee">
+            <img src="uploads/pasted-1786581574687-0.png" alt="Escudo" style="width:34px;height:34px;object-fit:contain;flex:0 0 auto">
+            <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+              <span style="font-size:14px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8b978d;white-space:nowrap">SÉRIE D · 2026</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🥅</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Formação</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🛒</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Mercado</span>
+              <span style="flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;background:#c0392b;border-radius:99px;padding:1px 6px">2</span>
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">👤</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Elenco & Base</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🏆</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Campeonatos</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🎓</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Treinador</span>
+              <span style="flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;background:#c0392b;border-radius:99px;padding:1px 6px">1</span>
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:700;color:#fff;background:#17458F;white-space:nowrap;cursor:pointer;overflow:hidden">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">💰</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Finanças</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">✉️</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">E-mail</span>
+              <span style="flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;background:#c0392b;border-radius:99px;padding:1px 6px">3</span>
+            </span>
+
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">⚙️</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Configurações</span>
+              
+            </span>
+          </div>
+          <div style="flex:1"></div>
+          <div style="display:flex;flex-direction:column;gap:10px;background:linear-gradient(160deg,#0e2f66,#17458F);border-radius:14px;padding:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <span style="font-size:9px;font-weight:600;letter-spacing:.12em;color:#c3d3ec;white-space:nowrap">PRÓXIMO JOGO</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#F2B90C;white-space:nowrap">25/abr</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;min-width:0">
+              <img src="assets/crests/cruzeiro.png" alt="Escudo" style="width:26px;height:26px;object-fit:contain;flex:0 0 auto">
+              <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-size:14px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cianorte</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#c3d3ec;white-space:nowrap">FORA · 8ª JORNADA</span>
+              </div>
+            </div>
+            <button style="height:40px;border:none;border-radius:12px;background:#F2B90C;color:#17458F;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;animation:jogarPulse 2.4s ease-in-out infinite" style-hover="background:#ffcb2e;animation:none">⚽ Jogar</button>
+          </div>
+        </aside>
+
+          <div style="min-width:0;display:flex;flex-direction:column;gap:14px">
+
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                <span style="font-size:21px;font-weight:700;color:#12201a;letter-spacing:-.02em;white-space:nowrap">Finanças</span>
+                <span style="font-size:13px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Caixa R$ 1,27 mi · folha R$ 184 mil/mês · saldo +R$ 96 mil no mês</span>
+              </div>
+              <div style="display:flex;gap:8px;flex:0 0 auto"><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">📤 Exportar balanço</span><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">💰 Ver extrato</span></div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #dde7db;border-radius:16px;padding:6px;overflow:auto">
+              <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+                <span style="{{ t.style }}" onClick="{{ t.onClick }}">{{ t.label }}</span>
+              </sc-for>
+            </div>
+
+            <div style="{{ panel0 }}">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">CAIXA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">abril de 2026</span>
+                </div>                <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:38px;font-weight:600;color:#12201a;letter-spacing:-.02em;white-space:nowrap">R$ 1,27 mi</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#2fbf5f;white-space:nowrap;padding-bottom:6px">+R$ 96 mil no mês</span>
+                </div>
+              </div>
+              <div data-cols style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">ENTRA</span>
+                  
+                </div>                <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+                  <span style="flex:1;min-width:0;font-size:12px;color:#3a473f;white-space:nowrap">Bilheteria</span>
+                  <span style="display:inline-block;width:70px;height:6px;border-radius:99px;background:#eef1ee;overflow:hidden;flex:0 0 auto"><span style="display:block;width:68%;height:100%;border-radius:99px;background:#2fbf5f"></span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 184 mil</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+                  <span style="flex:1;min-width:0;font-size:12px;color:#3a473f;white-space:nowrap">Patrocínio</span>
+                  <span style="display:inline-block;width:70px;height:6px;border-radius:99px;background:#eef1ee;overflow:hidden;flex:0 0 auto"><span style="display:block;width:44%;height:100%;border-radius:99px;background:#2fbf5f"></span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 120 mil</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+                  <span style="flex:1;min-width:0;font-size:12px;color:#3a473f;white-space:nowrap">Cotas de TV</span>
+                  <span style="display:inline-block;width:70px;height:6px;border-radius:99px;background:#eef1ee;overflow:hidden;flex:0 0 auto"><span style="display:block;width:22%;height:100%;border-radius:99px;background:#2fbf5f"></span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 60 mil</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+                  <span style="flex:1;min-width:0;font-size:12px;color:#3a473f;white-space:nowrap">Sócios</span>
+                  <span style="display:inline-block;width:70px;height:6px;border-radius:99px;background:#eef1ee;overflow:hidden;flex:0 0 auto"><span style="display:block;width:14%;height:100%;border-radius:99px;background:#2fbf5f"></span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 38 mil</span>
+                </div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;border-top:1px solid #eef1ee;padding-top:10px">
+                  <span style="font-size:12px;font-weight:700;color:#12201a;white-space:nowrap">Total</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#2fbf5f;white-space:nowrap">R$ 402 mil</span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">SAI</span>
+                  
+                </div>                <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+                  <span style="flex:1;min-width:0;font-size:12px;color:#3a473f;white-space:nowrap">Folha salarial</span>
+                  <span style="display:inline-block;width:70px;height:6px;border-radius:99px;background:#eef1ee;overflow:hidden;flex:0 0 auto"><span style="display:block;width:68%;height:100%;border-radius:99px;background:#c0392b"></span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 184 mil</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+                  <span style="flex:1;min-width:0;font-size:12px;color:#3a473f;white-space:nowrap">Manutenção do estádio</span>
+                  <span style="display:inline-block;width:70px;height:6px;border-radius:99px;background:#eef1ee;overflow:hidden;flex:0 0 auto"><span style="display:block;width:23%;height:100%;border-radius:99px;background:#c0392b"></span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 62 mil</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+                  <span style="flex:1;min-width:0;font-size:12px;color:#3a473f;white-space:nowrap">Base e CT</span>
+                  <span style="display:inline-block;width:70px;height:6px;border-radius:99px;background:#eef1ee;overflow:hidden;flex:0 0 auto"><span style="display:block;width:7%;height:100%;border-radius:99px;background:#c0392b"></span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 19 mil</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+                  <span style="flex:1;min-width:0;font-size:12px;color:#3a473f;white-space:nowrap">Viagens</span>
+                  <span style="display:inline-block;width:70px;height:6px;border-radius:99px;background:#eef1ee;overflow:hidden;flex:0 0 auto"><span style="display:block;width:15%;height:100%;border-radius:99px;background:#c0392b"></span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 41 mil</span>
+                </div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;border-top:1px solid #eef1ee;padding-top:10px">
+                  <span style="font-size:12px;font-weight:700;color:#12201a;white-space:nowrap">Total</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#c0392b;white-space:nowrap">R$ 306 mil</span>
+                </div>
+              </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">PROJEÇÃO ATÉ O FIM DA TEMPORADA</span>
+                  
+                </div>                <div data-cols style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">SALDO PREVISTO</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 1,84 mi</span>
+                    <span style="font-size:11px;color:#2fbf5f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">se manter o ritmo</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">COM O PLAYOFF</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 2,48 mi</span>
+                    <span style="font-size:11px;color:#2fbf5f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">+R$ 640 mil de prêmio</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">SEM O PLAYOFF</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 1,42 mi</span>
+                    <span style="font-size:11px;color:#F2B90C;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">sem prêmio de campanha</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">LIMITE DE FOLHA</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 226 mil</span>
+                    <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">margem de R$ 42 mil</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style="{{ panel1 }}">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box;overflow-x:auto">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">LANÇAMENTOS</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">abril de 2026</span>
+                </div>                <div style="display:grid;min-width:600px;grid-template-columns:58px minmax(0,1.6fr) 74px 92px 92px;gap:0 10px;padding:0 10px 4px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
+                  <span>DATA</span>
+                  <span>LANÇAMENTO</span>
+                  <span>TIPO</span>
+                  <span style="text-align:right">VALOR</span>
+                  <span style="text-align:right">SALDO</span>
+                </div>
+                <div style="display:grid;min-width:600px;grid-template-columns:58px minmax(0,1.6fr) 74px 92px 92px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:left;white-space:nowrap">25/abr</span>
+                  <span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Bilheteria · XV 1×1 Cianorte</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#0d3d22;background:#d7f5e2;border-radius:99px;padding:3px 8px;white-space:nowrap;justify-self:start">ENTRADA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#2fbf5f;text-align:right;white-space:nowrap">R$ 92 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 1,27 mi</span>
+                </div>
+                <div style="display:grid;min-width:600px;grid-template-columns:58px minmax(0,1.6fr) 74px 92px 92px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:left;white-space:nowrap">24/abr</span>
+                  <span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Folha salarial de abril</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#c0392b;background:#fbe3e0;border-radius:99px;padding:3px 8px;white-space:nowrap;justify-self:start">SAÍDA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#c0392b;text-align:right;white-space:nowrap">R$ 184 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 1,18 mi</span>
+                </div>
+                <div style="display:grid;min-width:600px;grid-template-columns:58px minmax(0,1.6fr) 74px 92px 92px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:left;white-space:nowrap">22/abr</span>
+                  <span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Patrocínio Betano · parcela</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#0d3d22;background:#d7f5e2;border-radius:99px;padding:3px 8px;white-space:nowrap;justify-self:start">ENTRADA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#2fbf5f;text-align:right;white-space:nowrap">R$ 80 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 1,36 mi</span>
+                </div>
+                <div style="display:grid;min-width:600px;grid-template-columns:58px minmax(0,1.6fr) 74px 92px 92px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:left;white-space:nowrap">20/abr</span>
+                  <span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Compra de Alex Ramos</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#c0392b;background:#fbe3e0;border-radius:99px;padding:3px 8px;white-space:nowrap;justify-self:start">SAÍDA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#c0392b;text-align:right;white-space:nowrap">R$ 560 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 1,28 mi</span>
+                </div>
+                <div style="display:grid;min-width:600px;grid-template-columns:58px minmax(0,1.6fr) 74px 92px 92px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:left;white-space:nowrap">18/abr</span>
+                  <span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cota de TV · Série D</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#0d3d22;background:#d7f5e2;border-radius:99px;padding:3px 8px;white-space:nowrap;justify-self:start">ENTRADA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#2fbf5f;text-align:right;white-space:nowrap">R$ 60 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 1,84 mi</span>
+                </div>
+                <div style="display:grid;min-width:600px;grid-template-columns:58px minmax(0,1.6fr) 74px 92px 92px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:left;white-space:nowrap">15/abr</span>
+                  <span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Viagem para Cascavel</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#c0392b;background:#fbe3e0;border-radius:99px;padding:3px 8px;white-space:nowrap;justify-self:start">SAÍDA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#c0392b;text-align:right;white-space:nowrap">R$ 18 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 1,78 mi</span>
+                </div>
+                <div style="display:grid;min-width:600px;grid-template-columns:58px minmax(0,1.6fr) 74px 92px 92px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:left;white-space:nowrap">12/abr</span>
+                  <span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Bilheteria · XV 3×1 Rio Branco</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#0d3d22;background:#d7f5e2;border-radius:99px;padding:3px 8px;white-space:nowrap;justify-self:start">ENTRADA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#2fbf5f;text-align:right;white-space:nowrap">R$ 78 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 1,80 mi</span>
+                </div>
+                <div style="display:grid;min-width:600px;grid-template-columns:58px minmax(0,1.6fr) 74px 92px 92px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:left;white-space:nowrap">10/abr</span>
+                  <span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Manutenção do estádio</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#c0392b;background:#fbe3e0;border-radius:99px;padding:3px 8px;white-space:nowrap;justify-self:start">SAÍDA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#c0392b;text-align:right;white-space:nowrap">R$ 62 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 1,72 mi</span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">FILTROS</span>
+                  
+                </div>                <div style="display:flex;flex-wrap:wrap;gap:8px">
+                  <span style="display:flex;align-items:center;gap:7px;height:36px;padding:0 12px;border:1px solid #d8e2d6;border-radius:11px;background:#fff;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">
+                    <span style="font-size:11px;color:#9aa79e">Mês</span><span style="font-size:12px;font-weight:600;color:#12201a">abril</span><span style="font-size:9px;color:#9aa79e">▾</span>
+                  </span>
+                  <span style="display:flex;align-items:center;gap:7px;height:36px;padding:0 12px;border:1px solid #d8e2d6;border-radius:11px;background:#fff;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">
+                    <span style="font-size:11px;color:#9aa79e">Tipo</span><span style="font-size:12px;font-weight:600;color:#12201a">todos</span><span style="font-size:9px;color:#9aa79e">▾</span>
+                  </span>
+                  <span style="display:flex;align-items:center;gap:7px;height:36px;padding:0 12px;border:1px solid #d8e2d6;border-radius:11px;background:#fff;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">
+                    <span style="font-size:11px;color:#9aa79e">Valor mínimo</span><span style="font-size:12px;font-weight:600;color:#12201a">R$ 0</span><span style="font-size:9px;color:#9aa79e">▾</span>
+                  </span>
+                  <div style="flex:1"></div>
+                  <span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">📤 Exportar extrato</span>
+                </div>
+              </div>
+            </div>
+            <div style="{{ panel2 }}">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box;overflow-x:auto">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">POR TEMPORADA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">3 anos</span>
+                </div>                <div style="display:grid;min-width:600px;grid-template-columns:50px 92px 92px 92px 100px;gap:0 10px;padding:0 10px 4px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
+                  <span>ANO</span>
+                  <span style="text-align:right">CAIXA FINAL</span>
+                  <span style="text-align:right">RECEITAS</span>
+                  <span style="text-align:right">DESPESAS</span>
+                  <span style="text-align:right">SALDO</span>
+                </div>
+                <div style="display:grid;min-width:600px;grid-template-columns:50px 92px 92px 92px 100px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:#eef3fa;border:1px solid #17458F">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#17458F;text-align:left;white-space:nowrap">2026</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 1,27 mi</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 402 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 306 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#2fbf5f;text-align:right;white-space:nowrap">+R$ 96 mil</span>
+                </div>
+                <div style="display:grid;min-width:600px;grid-template-columns:50px 92px 92px 92px 100px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:left;white-space:nowrap">2025</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 890 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 3,1 mi</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 3,4 mi</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#c0392b;text-align:right;white-space:nowrap">−R$ 300 mil</span>
+                </div>
+                <div style="display:grid;min-width:600px;grid-template-columns:50px 92px 92px 92px 100px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:left;white-space:nowrap">2024</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 1,19 mi</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 2,7 mi</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 2,6 mi</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#2fbf5f;text-align:right;white-space:nowrap">+R$ 100 mil</span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">EVOLUÇÃO DO CAIXA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">últimos 12 meses</span>
+                </div>                <div style="display:flex;align-items:flex-end;gap:6px;height:120px;padding:8px 0">
+                  <span style="flex:1;min-width:0;height:54%;border-radius:5px 5px 0 0;background:#c9dcc7"></span>
+                  <span style="flex:1;min-width:0;height:48%;border-radius:5px 5px 0 0;background:#c9dcc7"></span>
+                  <span style="flex:1;min-width:0;height:62%;border-radius:5px 5px 0 0;background:#c9dcc7"></span>
+                  <span style="flex:1;min-width:0;height:58%;border-radius:5px 5px 0 0;background:#c9dcc7"></span>
+                  <span style="flex:1;min-width:0;height:71%;border-radius:5px 5px 0 0;background:#c9dcc7"></span>
+                  <span style="flex:1;min-width:0;height:66%;border-radius:5px 5px 0 0;background:#c9dcc7"></span>
+                  <span style="flex:1;min-width:0;height:74%;border-radius:5px 5px 0 0;background:#c9dcc7"></span>
+                  <span style="flex:1;min-width:0;height:69%;border-radius:5px 5px 0 0;background:#c9dcc7"></span>
+                  <span style="flex:1;min-width:0;height:58%;border-radius:5px 5px 0 0;background:#c9dcc7"></span>
+                  <span style="flex:1;min-width:0;height:64%;border-radius:5px 5px 0 0;background:#c9dcc7"></span>
+                  <span style="flex:1;min-width:0;height:72%;border-radius:5px 5px 0 0;background:#c9dcc7"></span>
+                  <span style="flex:1;min-width:0;height:78%;border-radius:5px 5px 0 0;background:#F2B90C"></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e">
+                  <span>mai/25</span><span>out/25</span><span>abr/26</span>
+                </div>
+              </div>
+            </div>
+            <div style="{{ panel3 }}">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box;padding:0;overflow:hidden">
+                <div style="position:relative;border-radius:14px;overflow:hidden;height:180px;background:url('assets/estadios/xv-piracicaba.webp') center/cover">
+                  <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(14,47,102,.88),rgba(14,47,102,.15))"></div>
+                  <div style="position:relative;padding:18px;display:flex;flex-direction:column;gap:4px;height:100%;justify-content:flex-end;box-sizing:border-box">
+                    <span style="font-size:20px;font-weight:700;color:#fff;white-space:nowrap">Barão de Serra Negra</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#F2B90C;white-space:nowrap">CAPACIDADE 15.800 · OCUPAÇÃO MÉDIA 32%</span>
+                  </div>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">BILHETERIA</span>
+                  
+                </div>                <div data-cols style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">PÚBLICO MÉDIO</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">5.021</span>
+                    <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">4 jogos em casa</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">MAIOR PÚBLICO</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">6.240</span>
+                    <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">vs Nacional-PR</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">PREÇO DO BILHETE</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 20</span>
+                    <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">média da divisão R$ 18</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">RECEITA NO ANO</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 368 mil</span>
+                    
+                  </div>
+                </div>
+              </div>
+              <div data-cols style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">PREÇO DO BILHETE</span>
+                  
+                </div>                <div style="display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:11px;background:transparent;border:1px solid #eef1ee;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#12201a;flex:0 0 auto;width:58px">R$ 15</span>
+                  <span style="flex:1;min-width:0;font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">+18% de público</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5d6c62;white-space:nowrap">−R$ 12 mil por jogo</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:11px;background:#eef3fa;border:1px solid #17458F;cursor:pointer">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#12201a;flex:0 0 auto;width:58px">R$ 20</span>
+                  <span style="flex:1;min-width:0;font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">como está hoje</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5d6c62;white-space:nowrap">R$ 92 mil por jogo</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:11px;background:transparent;border:1px solid #eef1ee;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#12201a;flex:0 0 auto;width:58px">R$ 26</span>
+                  <span style="flex:1;min-width:0;font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">−22% de público</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5d6c62;white-space:nowrap">+R$ 8 mil por jogo</span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">OBRAS</span>
+                  
+                </div>                <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #eef1ee">
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ampliar para 22.000</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#12201a;white-space:nowrap">R$ 4,2 mi</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap;width:58px;text-align:right">18 meses</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #eef1ee">
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cobrir a arquibancada</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#12201a;white-space:nowrap">R$ 1,8 mi</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap;width:58px;text-align:right">8 meses</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #eef1ee">
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Melhorar o gramado</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#12201a;white-space:nowrap">R$ 320 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap;width:58px;text-align:right">2 meses</span>
+                </div>
+              </div>
+              </div>
+            </div>
+            <div style="{{ panel4 }}">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">CONTRATOS ATIVOS</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">3 · R$ 120 mil/mês</span>
+                </div>                <div style="display:flex;flex-direction:column;gap:9px;padding:12px;border-radius:12px;border:1px solid #eef1ee;min-width:0">
+                  <div style="display:flex;align-items:center;gap:11px;min-width:0">
+                    <span style="display:flex;align-items:center;justify-content:center;width:64px;height:34px;background:#fff;border:1px solid #e6ebe4;border-radius:9px;flex:0 0 auto"><img src="assets/sponsors/betano.png" alt="Betano" style="max-height:18px;max-width:48px;object-fit:contain"></span>
+                    <span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+                      <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap">Betano</span>
+                      <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Patrocinador principal</span>
+                    </span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#fff;background:#2fbf5f;border-radius:99px;padding:3px 8px;white-space:nowrap;flex:0 0 auto">ATIVO</span>
+                  </div>
+                  <div style="display:flex;align-items:baseline;gap:12px;border-top:1px solid #eef1ee;padding-top:9px">
+                    <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">VALOR</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#12201a;white-space:nowrap">R$ 80 mil/mês</span>
+                    </span>
+                    <div style="flex:1"></div>
+                    <span style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;min-width:0">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">CONTRATO ATÉ</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#5d6c62;white-space:nowrap">dez/2026</span>
+                    </span>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:9px;padding:12px;border-radius:12px;border:1px solid #eef1ee;min-width:0">
+                  <div style="display:flex;align-items:center;gap:11px;min-width:0">
+                    <span style="display:flex;align-items:center;justify-content:center;width:64px;height:34px;background:#fff;border:1px solid #e6ebe4;border-radius:9px;flex:0 0 auto"><img src="assets/sponsors/cazetv.webp" alt="CazéTV" style="max-height:18px;max-width:48px;object-fit:contain"></span>
+                    <span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+                      <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap">CazéTV</span>
+                      <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Manga da camisa</span>
+                    </span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#17458F;background:#F2B90C;border-radius:99px;padding:3px 8px;white-space:nowrap;flex:0 0 auto">RENOVAR</span>
+                  </div>
+                  <div style="display:flex;align-items:baseline;gap:12px;border-top:1px solid #eef1ee;padding-top:9px">
+                    <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">VALOR</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#12201a;white-space:nowrap">R$ 28 mil/mês</span>
+                    </span>
+                    <div style="flex:1"></div>
+                    <span style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;min-width:0">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">CONTRATO ATÉ</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#5d6c62;white-space:nowrap">jun/2026</span>
+                    </span>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:9px;padding:12px;border-radius:12px;border:1px solid #eef1ee;min-width:0">
+                  <div style="display:flex;align-items:center;gap:11px;min-width:0">
+                    <span style="display:flex;align-items:center;justify-content:center;width:64px;height:34px;background:#fff;border:1px solid #e6ebe4;border-radius:9px;flex:0 0 auto"><img src="assets/sponsors/ifood.svg" alt="iFood" style="max-height:18px;max-width:48px;object-fit:contain"></span>
+                    <span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+                      <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap">iFood</span>
+                      <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Placas do estádio</span>
+                    </span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#fff;background:#2fbf5f;border-radius:99px;padding:3px 8px;white-space:nowrap;flex:0 0 auto">ATIVO</span>
+                  </div>
+                  <div style="display:flex;align-items:baseline;gap:12px;border-top:1px solid #eef1ee;padding-top:9px">
+                    <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">VALOR</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#12201a;white-space:nowrap">R$ 12 mil/mês</span>
+                    </span>
+                    <div style="flex:1"></div>
+                    <span style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;min-width:0">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">CONTRATO ATÉ</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#5d6c62;white-space:nowrap">dez/2027</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div data-cols style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">ESPAÇOS LIVRES</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">2</span>
+                </div>                <div style="display:flex;align-items:center;gap:12px;padding:10px;border:1px dashed #c9d2ca;border-radius:12px">
+                  <span style="font-size:16px;color:#9aa79e">＋</span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap">Calção</span>
+                    <span style="font-size:11px;color:#9aa79e;white-space:nowrap">R$ 18 mil/mês estimados</span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;padding:10px;border:1px dashed #c9d2ca;border-radius:12px">
+                  <span style="font-size:16px;color:#9aa79e">＋</span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap">Boné de treino</span>
+                    <span style="font-size:11px;color:#9aa79e;white-space:nowrap">R$ 6 mil/mês estimados</span>
+                  </span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">COMO AUMENTAR O PATROCÍNIO</span>
+                  
+                </div>                <span style="font-size:12px;color:#5d6c62;line-height:1.6;text-wrap:pretty">Subir de divisão dobra o valor dos contratos na renovação. Público médio acima de 8.000 e campanha no playoff também melhoram a proposta — as marcas olham audiência, não só a tabela.</span>
+              </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div data-ad-rail="right" style="width:160px;flex:0 0 auto;position:sticky;top:20px">
+      <div style="width:160px;height:600px;display:flex;align-items:center;justify-content:center;border:1px dashed #c9d2ca;border-radius:14px;background:#f2f7f1;color:#9aa79e;font-size:10px;font-weight:700;letter-spacing:.16em;text-align:center;box-sizing:border-box">PUBLICIDADE<br>160×600</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab: 0 };
+  renderVals() {
+    const TABS = ["Resumo","Extrato","Histórico","Estádio","Patrocínio"];
+    const on = 'flex:0 0 auto;font-size:13px;font-weight:700;color:#fff;background:#17458F;border-radius:11px;padding:8px 14px;white-space:nowrap;cursor:pointer';
+    const off = 'flex:0 0 auto;font-size:13px;font-weight:500;color:#3a473f;background:transparent;border-radius:11px;padding:8px 14px;white-space:nowrap;cursor:pointer';
+    const vals = {
+      tabs: TABS.map((label, i) => ({
+        label,
+        style: i === this.state.tab ? on : off,
+        onClick: () => this.setState({ tab: i })
+      }))
+    };
+    TABS.forEach((_, i) => {
+      vals['panel' + i] = i === this.state.tab
+        ? { display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0, animation: 'tabIn .26s ease' }
+        : { display: 'none' };
+    });
+    return vals;
+  }
+}
+</script>
+</body>
+</html>
