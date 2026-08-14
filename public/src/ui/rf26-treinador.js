@@ -265,5 +265,19 @@ function rfTrPerfilHTML(){
         <span class="rf-linha-v">${escC(typeof tempoLabelAtual==='function'?tempoLabelAtual():'—')}</span></div>
       <div class="rf-acts"><button type="button" class="rf-btn rf-btn-secondary"
         onclick="rfGo('config','opcoes')">Abrir as opções</button></div>`)
+    + rfCard('Fim de linha', `
+      <span class="rf-note">Encerrar manda a carreira para o hall. O save continua para consulta,
+        mas não avança mais.</span>
+      <div class="rf-acts"><button type="button" class="rf-btn rf-btn-recusar"
+        onclick="rfAcEncerrar()">🎓 Encerrar a carreira</button></div>`)
   );
+}
+
+
+/* Encerrar a carreira — o diálogo do pacote "Ações Internas". Junta o que
+   ele mostra (temporadas e títulos) e abre o envelope; nada de popup. */
+function rfAcEncerrar(){
+  const hist=S.history||[];
+  const titulos=hist.filter(h=>h && (h.champion===CL.clubId || h.title)).length;
+  rfAcAbrir('sys-encerrar', {nome:rfTreinadorNome(), temporadas:hist.length||1, titulos});
 }

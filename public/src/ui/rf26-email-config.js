@@ -93,8 +93,9 @@ function rfCfOpcoesHTML(){
       ${sw('avisoLesao','Avisar sobre lesões','Toast quando alguém sai machucado da rodada',true)}`)
     + rfCard('Conta', `
       <div class="rf-acoes">
+        <button type="button" class="rf-acao" onclick="rfAcAbrir('conta-senha',{})">🔒 Trocar a senha</button>
         <button type="button" class="rf-acao" onclick="clOptions()">⚙️ Abrir opções do jogo</button>
-        <button type="button" class="rf-acao perigo" onclick="clExit()">↩ Sair para o menu</button>
+        <button type="button" class="rf-acao perigo" onclick="rfAcAbrir('conta-apagar',{})">⚠ Apagar a conta</button>
       </div>`)
   );
 }
@@ -122,7 +123,7 @@ function rfCfJogoHTML(){
         ${rfKpiHTML('Temporada', String(S.season||'—'), (S.round||0)+' jornadas jogadas')}
       </div>
       <div class="rf-acoes">
-        <button type="button" class="rf-acao primaria" onclick="clSaveMenu()">💾 Gravar agora</button>
+        <button type="button" class="rf-acao primaria" onclick="rfAcGravar()">💾 Gravar agora</button>
       </div>
       <span class="rf-note">O jogo grava sozinho a cada rodada. "Gravar agora" força a gravação e
         mostra os saves guardados.</span>`)
@@ -137,7 +138,8 @@ function rfCfJogoHTML(){
     + rfCard('Sair do save', `
       <span class="rf-note">Sair não apaga nada: o save fica na nuvem e você volta nele quando quiser.</span>
       <div class="rf-acoes">
-        <button type="button" class="rf-acao perigo" onclick="clExit()">↩ Sair para o menu</button>
+        <button type="button" class="rf-acao" onclick="rfAcSairSave()">↩ Voltar aos saves</button>
+        <button type="button" class="rf-acao perigo" onclick="rfAcApagarSave()">🗑 Apagar este save</button>
       </div>`)
   );
 }
@@ -180,10 +182,40 @@ function rfCfResenhaHTML(){
       <div class="rf-acoes">
         ${anfitriao?`<button type="button" class="rf-acao" onclick="clJoinRequestsPanel()">
           ✅ Aprovar entradas${pend?' ('+pend+')':''}</button>`:''}
-        <button type="button" class="rf-acao primaria" onclick="clResenhaSync()">🔄 Sincronizar com a sala</button>
+        <button type="button" class="rf-acao primaria" onclick="rfAcSincronizar()">🔄 Sincronizar com a sala</button>
+        <button type="button" class="rf-acao perigo" onclick="rfAcSairSala()">🚪 Sair da sala</button>
         <button type="button" class="rf-acao" onclick="rfChatToggle()">💬 Abrir o chat</button>
       </div>
       <span class="rf-note">A rodada fecha quando todos publicarem o resultado. Sincronizar puxa o
         estado do servidor sem esperar o próximo tique.</span>`)
   );
+}
+
+
+/* =====================================================================
+   AS AÇÕES DE SISTEMA E CONTA
+   Cada uma junta o dado que o diálogo mostra e abre o envelope. Nenhuma
+   chama mais dlg()/overlayC — quem desenha é rfAcao().
+   ===================================================================== */
+function rfAcSala(){ return (S.room&&(S.room.code||S.room.id))||(CL.roomCode||'—'); }
+function rfAcGravar(){
+  if(typeof saveV3==='function'){ try{ saveV3(); }catch(e){} }
+  const t=CL._lastSaveAt?new Date(CL._lastSaveAt):new Date();
+  rfAcAbrir('sys-gravado', {quando:'às '+String(t.getHours()).padStart(2,'0')+'h'+String(t.getMinutes()).padStart(2,'0')});
+}
+function rfAcSairSave(){
+  const cl=clubOf(CL.clubId)||{short:'—'};
+  rfAcAbrir('sys-sair-save', {clube:cl.short, jornada:((S.round||0)+1)+'ª de '+((S.sched||[]).length||'—')});
+}
+function rfAcApagarSave(){
+  const cl=clubOf(CL.clubId)||{short:'—'};
+  rfAcAbrir('sys-apagar-save', {clube:cl.short});
+}
+function rfAcSairSala(){
+  rfAcAbrir('sys-sair-sala', {sala:rfAcSala(), n:(S.seats&&S.seats.length)||(CL.humans?Object.keys(CL.humans).length:'—')});
+}
+function rfAcSincronizar(){
+  const assentos=(S.seats&&S.seats.length)||(CL.humans?Object.keys(CL.humans).length:0);
+  const prontos=(typeof seatsDone==='function')?seatsDone():Math.max(0,assentos-1);
+  rfAcAbrir('sys-sincronizar', {sala:rfAcSala(), prontos, total:assentos});
 }

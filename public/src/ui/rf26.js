@@ -1787,7 +1787,10 @@ function rfLeituraHTML(){
     </div>
     <div class="rf-mail-body">${e.body||''}</div>
     <div class="rf-acts">
-      ${btn('Apagar',"clInboxDelete('"+escC(e.key)+"')")}
+      <button type="button" class="rf-btn rf-btn-secondary"
+        onclick="rfAcAbrir('mail-arquivar',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">📥 Arquivar</button>
+      <button type="button" class="rf-btn rf-btn-cta"
+        onclick="rfAcAbrir('mail-responder',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">↩ Responder</button>
     </div>`;
 }
 /* OPÇÕES: cada linha é rótulo + explicação + controle, como na referência */

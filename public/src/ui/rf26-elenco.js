@@ -108,8 +108,8 @@ function rfElFichaHTML(){
       </div>
       <div class="rf-sp"></div>
       <div class="rf-el-hd-acts">
-        <button type="button" class="rf-btn rf-btn-secondary" onclick="clRenewPlayer&&clRenewPlayer('${escC(p.n)}')">Renovar contrato…</button>
-        <button type="button" class="rf-btn rf-btn-primary" onclick="clVenderJogador&&clVenderJogador('${escC(p.n)}')">Listar para venda</button>
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcAbrir('elenco-renovar',{pid:'${escC(p.pid)}'})">Renovar contrato…</button>
+        <button type="button" class="rf-btn rf-btn-primary" onclick="rfAcAbrir('mkt-listar',{pid:'${escC(p.pid)}'})">Listar para venda</button>
       </div>
     </div>`
   + rfCol(
@@ -159,8 +159,8 @@ function rfElBaseHTML(){
   const corpo = disp
     ? `<span class="rf-note">A base tem gente pronta. Cada promoção vale uma por temporada, e o jogador
          promovido entra no elenco com o contrato de formação.</span>
-       <div class="rf-acts"><button type="button" class="rf-btn rf-btn-primary"
-         onclick="clPromoteYouth()">Ver os jogadores da base</button></div>`
+       <div class="rf-acts"><button type="button" class="rf-btn rf-btn-cta"
+         onclick="rfAcPromover()">🎓 Promover da base</button></div>`
     : `<div class="rf-empty">A base não tem ninguém pronto nesta rodada.<br>
          <small>Os garotos aparecem em janelas específicas da temporada.</small></div>`;
   const jaPromovido=(S.youthPromotedSeason===S.season);
@@ -192,7 +192,7 @@ function rfElTreinoHTML(){
       <span class="rf-tbl-f">${p.f}</span>
       <span class="rf-tbl-en"><i class="rf-ener" style="--v:${en};--c:${rfEnergiaCor(en)}"></i></span>
       <span class="rf-tbl-act"><button type="button" class="rf-btn rf-btn-pill"
-        onclick="clTrainingScreen()">Gerir</button></span>
+        onclick="rfAcTreino()">Gerir</button></span>
     </div>`;
   }).join('');
   const cabecalho=`<span></span><span>JOGADOR</span><span>POS</span><span class="dir">FOR</span>
@@ -204,8 +204,8 @@ function rfElTreinoHTML(){
       {right: lista.length+' de '+max+' vagas'})
     + rfCard('Vagas', `
       <div class="rf-pz-trilho"><div class="rf-pz-fill" style="width:${Math.round(lista.length/max*100)}%"></div></div>
-      <div class="rf-acts"><button type="button" class="rf-btn rf-btn-primary"
-        onclick="clTrainingScreen()">Escolher quem treina</button></div>`)
+      <div class="rf-acts"><button type="button" class="rf-btn rf-btn-cta"
+        onclick="rfAcTreino()">🏃 Confirmar treino</button></div>`)
   ) + rfCol(
     rfCard('Como funciona o treino', `
       <div class="rf-passos">
@@ -219,4 +219,36 @@ function rfElTreinoHTML(){
       <span class="rf-note">O treino daqui é por JOGADOR, não por tema da semana: não existe escolher
         "finalização" ou "marcação" — quem treina melhora a própria força.</span>`)
   );
+}
+
+
+/* ---- as duas ações que precisam de dado antes de abrir o diálogo ---- */
+/* PROMOVER: o pacote desenha a confirmação de UM garoto, não a lista.
+   Quem escolhe continua sendo a tela da base do motor; aqui abrimos a
+   confirmação já com o candidato que ela devolve. */
+function rfAcPromover(){
+  // A base sorteia UM LOTE por rodada (S._youthCandidates). O pacote
+  // desenha a confirmação de um garoto, então abrimos com o mais forte do
+  // lote. Sem lote — janela fechada, cota usada, elenco cheio — o diálogo
+  // é o "não dá para promover", com o motivo que o motor dá. NUNCA cai no
+  // modal antigo: ele não existe mais nesta pele.
+  if(typeof youthAvailable!=='function' || !youthAvailable()){
+    rfAcAbrir('elenco-semrenovar', {motivo:(typeof youthUnavailableMsg==='function')
+      ? youthUnavailableMsg() : 'A base não tem ninguém pronto agora.'});
+    return;
+  }
+  if(!(S._youthCandidates && S._youthCandidates.length && S._youthCandidatesRound===S.round)
+     && typeof rollYouthCandidatesForRound==='function') rollYouthCandidatesForRound();
+  // o candidato é um invólucro: o jogador de verdade mora em c.youth
+  const c=(S._youthCandidates||[]).slice()
+    .sort((a,b)=>((b.youth&&b.youth.f)||0)-((a.youth&&a.youth.f)||0))[0];
+  const y=c&&c.youth;
+  if(!y){ rfAcAbrir('elenco-semrenovar', {motivo:'A base não tem candidatos nesta rodada.'}); return; }
+  rfAcAbrir('base-promover', {p:y, pronto:'agora',
+    salario:(y.contract&&y.contract.salary)||y.salary||0, num:y.num});
+}
+function rfAcTreino(){
+  const lista=(typeof myTrainingList==='function')?myTrainingList():[];
+  rfAcAbrir('treino-confirmar', {semana:'Semana '+((S.round||0)+1),
+    tema:'força', n:lista.length, custo:10});
 }
