@@ -23,7 +23,11 @@
    que a ordem do LEIA-ME descreve (1 → 2 → 3 → moeda → carregando → 6 → 7). */
 const RF_WIZ_PASSOS=['Entrar','Modo','Configurar','Sorteio','Jogar'];
 
-/* ---- envelope: marca + trilha + card + barra de ação ----
+/* ---- envelope: marca + [ trilha · card · barra de ação ] ----
+   A BARRA DE AÇÃO É O TERCEIRO FILHO DA CAIXA VERDE, não uma faixa solta
+   embaixo dela. Estava por fora, e a nota e o botão flutuavam sobre o fundo
+   da página em vez de assentarem na mesa junto com o card — a tela perdia o
+   contorno que o pacote desenha.
    O CABEÇALHO É DESENHADO DUAS VEZES, de propósito. No desktop ele mora
    dentro do card branco, centrado; no telefone o pacote o move pra dentro da
    faixa azul, junto da marca e da barra de progresso. Como CSS não move nó de
@@ -59,12 +63,12 @@ function rfWiz(o){
       <div class="rf-wiz-shell">
         ${o.semTrilha?'':rfWizTrilhaHTML(passo)}
         <div class="rf-wiz-card">${cabeca}${o.corpo||''}</div>
-      </div>
-      <div class="rf-wiz-acao">
-        ${o.nota?`<span class="rf-wiz-nota">${escC(o.nota)}</span>`:''}
-        <div class="rf-sp"></div>
-        ${o.voltar?`<button type="button" class="rf-wiz-b2" onclick="${o.voltar}">${escC(o.voltarLabel||'Voltar')}</button>`:''}
-        ${o.cta?`<button type="button" class="rf-wiz-cta" ${o.ctaOff?'disabled':''} onclick="${o.ctaOn||''}">${escC(o.cta)}</button>`:''}
+        <div class="rf-wiz-acao">
+          ${o.nota?`<span class="rf-wiz-nota">${escC(o.nota)}</span>`:''}
+          <div class="rf-sp"></div>
+          ${o.voltar?`<button type="button" class="rf-wiz-b2" onclick="${o.voltar}">${escC(o.voltarLabel||'Voltar')}</button>`:''}
+          ${o.cta?`<button type="button" class="rf-wiz-cta" ${o.ctaOff?'disabled':''} onclick="${o.ctaOn||''}">${escC(o.cta)}</button>`:''}
+        </div>
       </div>
     </div>
   </div>`;
@@ -362,6 +366,11 @@ function rfOb4(){
     nota:'Você pode mudar tudo isso antes de a primeira rodada começar.',
     voltar:'clBackConta()', cta:'Criar sala e convidar', ctaOff:!n.roomName, ctaOn:'clOpenRoom()'});
 }
+/* O PACOTE DESENHA DOIS BOTÕES, não três formulários abertos ao mesmo tempo.
+   Os campos continuam existindo — e-mail, WhatsApp e busca por quem já tem
+   conta — mas só aparecem depois de escolher o canal. É o estado de repouso
+   do desenho: a sala respira, e quem quer convidar diz por onde primeiro. */
+function rfObConvite(qual){ CL.obConvite=(CL.obConvite===qual)?null:qual; cdraw(); }
 function rfObSala(k,v){ CL.sala=CL.sala||{}; CL.sala[k]=v; cdraw(); }
 function rfOb4Sync(){ const b=document.querySelector('.rf-wiz-cta'); if(b) b.disabled=!CL.net.roomName; }
 function rfObCopiar(txt){
@@ -409,7 +418,13 @@ function rfOb5(){
             ${anfitriao&&!eu?`<button type="button" class="rf-ob5-x" onclick="clKick('${escC(p.id)}','${escC(p.clubId||'')}')">Remover</button>`:'<span></span>'}
           </div>`;}).join('')}
         ${anfitriao?`<div class="rf-ob5-conv">
-          <div class="rf-ob5-cv">
+          <div class="rf-ob5-bts">
+            <button type="button" class="rf-ob5-bt tracejado ${CL.obConvite==='email'?'on':''}"
+              onclick="rfObConvite('email')">＋ Convidar por e-mail</button>
+            <button type="button" class="rf-ob5-bt zap ${CL.obConvite==='zap'?'on':''}"
+              onclick="rfObConvite('zap')">💬 Chamar no WhatsApp</button>
+          </div>
+          <div class="rf-ob5-cv" ${CL.obConvite==='email'?'':'hidden'}>
             <span class="rf-campo-l">✉ Por e-mail</span>
             <div class="rf-ob5-cvl">
               <input class="rf-campo-c" type="email" placeholder="email@exemplo.com"
@@ -417,7 +432,7 @@ function rfOb5(){
               <button type="button" class="rf-btn rf-btn-secondary" onclick="clEmailInvite()">Enviar</button>
             </div>
           </div>
-          <div class="rf-ob5-cv">
+          <div class="rf-ob5-cv" ${CL.obConvite==='zap'?'':'hidden'}>
             <span class="rf-campo-l">🟢 Por WhatsApp</span>
             <div class="rf-ob5-cvl">
               <span class="rf-ob5-ddi">+55</span>
@@ -427,7 +442,7 @@ function rfOb5(){
               <button type="button" class="rf-ob5-zap" onclick="clWaInvite()">Chamar</button>
             </div>
           </div>
-          <div class="rf-ob5-cv">
+          <div class="rf-ob5-cv" ${CL.obConvite==='email'?'':'hidden'}>
             <span class="rf-campo-l">🔍 Quem já tem conta</span>
             <input id="cl-usersearch-input" class="rf-campo-c" placeholder="Buscar por nome ou e-mail (mín. 3 letras)"
               oninput="clUserSearch(this.value)">
@@ -502,7 +517,7 @@ function rfOb6(){
             <div class="rf-ob-esc-h"></div>
             <div class="rf-ob-esc-lin"><span>Elenco</span><b>${sq.length} jogadores</b></div>
             <div class="rf-ob-esc-lin"><span>Caixa</span><b>${escC(fmt(S.budget||0))}</b></div>
-            <div class="rf-ob-esc-lin"><span>País</span><b>${escC(uk)}</b></div>`
+            <div class="rf-ob-esc-lin"><span>Estádio</span><b>${grp(((typeof myStadium==='function'&&myStadium())||{}).capacity||0)} lug.</b></div>`
           :`<span class="rf-ob6-bolag">⚽</span>
             <span class="rf-ob6-n">Sorteando…</span>
             <span class="rf-ob6-d">Boa sorte, treinador.</span>`}

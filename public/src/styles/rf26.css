@@ -11,6 +11,13 @@
 
 /* ============================ CORE ============================ */
 
+/* `hidden` TEM DE GANHAR. O atributo só vale por uma regra da folha do
+   navegador (`[hidden]{display:none}`), e qualquer `display` declarado aqui
+   a atropela — foi o que aconteceu com os campos de convite da sala, que
+   ficavam à vista mesmo marcados como escondidos. Uma linha resolve para o
+   arquivo inteiro, em vez de uma exceção por componente. */
+[hidden]{display:none !important}
+
 /* ----- Card: a superfície branca com hairline e raio 18. Três tons:
    claro (padrão), do clube (faixa azul) e recuado (bloco dentro do card). */
 .rf-card{background:var(--surface-card);border:var(--border-hairline);color:var(--text-1);
@@ -3605,6 +3612,20 @@
   font-family:var(--font-sans);font-size:var(--fs-label);font-weight:var(--fw-semibold);text-align:right}
 .rf-ob5-x:hover{color:var(--danger)}
 .rf-ob5-conv{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+/* os dois botões do pacote: o de e-mail em contorno tracejado, o do WhatsApp
+   cheio no verde da marca dele */
+.rf-ob5-bts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.rf-ob5-bt{height:46px;padding:0 16px;border-radius:13px;font-family:var(--font-sans);
+  font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;
+  transition:background var(--dur-fast) var(--ease)}
+.rf-ob5-bt.tracejado{border:1px dashed var(--line-2);background:var(--surface-card);color:var(--text-3)}
+.rf-ob5-bt.tracejado:hover,.rf-ob5-bt.tracejado.on{background:var(--surface-sunken);color:var(--text-1);
+  border-color:var(--text-faint)}
+.rf-ob5-bt.zap{border:1px solid #2ea44f;background:#2ea44f;color:#fff;font-weight:var(--fw-bold)}
+.rf-ob5-bt.zap:hover,.rf-ob5-bt.zap.on{background:#26914492}
+.rf-ob5-bt.zap.on{box-shadow:0 0 0 3px rgba(46,164,79,.22)}
+@media (max-width:760px){ .rf-ob5-bts{grid-template-columns:minmax(0,1fr)} }
 .rf-ob5-cv{display:flex;flex-direction:column;gap:6px}
 .rf-ob5-cvl{display:flex;align-items:center;gap:8px}
 .rf-ob5-cvl .rf-campo-c{flex:1 1 auto;min-width:0}
@@ -3639,6 +3660,9 @@
 @media (prefers-reduced-motion:reduce){.rf-ob6-bola{animation:none}}
 .rf-ob6-prog{display:flex;align-items:center;gap:10px;margin-top:4px}
 .rf-ob6-prog .rf-pz-trilho{flex:1}
+/* a barra do sorteio é AZUL no pacote — o amarelo herdado de .rf-pz-fill é da
+   barra de paciência da diretoria, que é outra coisa */
+.rf-ob6-prog .rf-pz-fill{background:var(--club-primary)}
 .rf-ob6-pc{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-faint)}
 .rf-ob6-crestg{display:flex}
 .rf-ob6-crestg img,.rf-ob6-crestg .rf-crest-fb{width:70px;height:70px;object-fit:contain}
