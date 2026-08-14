@@ -133,7 +133,7 @@ function rfCpCalendarioHTML(){
       <span class="rf-cp-placar">${feito?(gm+'–'+gc):'—'}</span>
       ${rfCpResultado(letra)}
     </div>`;
-  }).join('');
+  }).filter(Boolean);
   const cab=`<div class="rf-el-head" style="--el-cols:${RF_CP_CAL_COLS}">
     <span>JORNADA</span><span></span><span>ADVERSÁRIO</span><span>LOCAL</span>
     <span class="dir">PLACAR</span><span></span>
@@ -144,7 +144,7 @@ function rfCpCalendarioHTML(){
         <span class="rf-label-t">${escC(classifDivName(S.division))}${grupo?' · '+escC(grupo):''}</span>
         <span class="rf-label-r">${(S.round||0)} de ${sched.length||14} jornadas</span></div>
       ${cab}
-      ${jogos || '<div class="rf-empty">O calendário ainda não foi sorteado.</div>'}
+      ${rfLista('cal-liga', jogos, 'O calendário ainda não foi sorteado.')}
     </div>
     ${rfCpCopasCalendarioHTML()}`;
 }
@@ -204,7 +204,7 @@ function rfCpArtilhariaHTML(){
       <span class="rf-cp-gols">${s.g}</span>
       <span class="rf-el-d">${(s.g/jogos).toFixed(2).replace('.',',')}</span>
     </div>`;
-  }).join('');
+  });
   const cab=`<div class="rf-el-head" style="--el-cols:${RF_CP_ART_COLS}">
     <span></span><span>JOGADOR</span><span>CLUBE</span><span>POS</span>
     <span class="dir">GOLS</span><span class="dir">G/JOGO</span>
@@ -231,7 +231,7 @@ function rfCpArtilhariaHTML(){
       <div class="rf-label"><span class="rf-label-t">ARTILHARIA DA ${escC(String(divisionLabel()).toUpperCase())}</span>
         <span class="rf-label-r">todos os grupos</span></div>
       ${cab}
-      ${linhas || '<div class="rf-empty">Sem gols marcados ainda nesta temporada.</div>'}
+      ${rfLista('artilharia', linhas, 'Sem gols marcados ainda nesta temporada.')}
     </div>
     <div class="rf-cp-duo">
       <div class="rf-card">

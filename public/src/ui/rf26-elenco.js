@@ -80,7 +80,7 @@ function rfElElencoHTML(){
       <span class="rf-el-d">${escC(rfMkSalario(p))}</span>
       <span class="rf-el-d">${escC(rfMkFimContrato(p))}</span>
     </div>`;
-  }).join('');
+  });
   const cab=`<div class="rf-el-head" style="--el-cols:${RF_EL_COLS}">
     <span></span><span>JOGADOR</span><span>POS</span><span>IDA</span><span>FOR</span>
     <span>ENERGIA</span><span>FORMA</span><span class="dir">SALÁRIO</span><span class="dir">FIM</span>
@@ -95,7 +95,7 @@ function rfElElencoHTML(){
       <div class="rf-label"><span class="rf-label-t">ELENCO PRINCIPAL</span>
         <span class="rf-label-r">${sq.length} no elenco</span></div>
       ${cab}
-      ${linhas || '<div class="rf-empty">Elenco vazio.</div>'}
+      ${rfLista('elenco', linhas, 'Elenco vazio.')}
     </div>
     <div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">RESUMO POR SETOR</span></div>

@@ -314,6 +314,33 @@
 .rf-tabpane{display:flex;flex-direction:column;gap:14px;min-width:0;
   animation:ds-fade-up var(--dur-base) var(--ease)}
 
+/* =====================================================================
+   LISTA LONGA — rola DENTRO do card (ver rfLista em rf26.js).
+   O `gap:10px` repete o do cartão de tabela de propósito: as linhas saíram
+   de dentro do cartão e entraram aqui, então o respiro tem de vir junto.
+   ===================================================================== */
+.rf-lista{display:flex;flex-direction:column;gap:10px;min-width:0;
+  max-height:var(--rf-lista-h,560px);overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-color:var(--line-2) transparent}
+.rf-lista::-webkit-scrollbar{width:8px}
+.rf-lista::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:var(--r-pill)}
+.rf-lista::-webkit-scrollbar-track{background:transparent}
+/* quando rola, a barra ganha uma calha própria pra não encostar no conteúdo */
+.rf-lista{padding-right:2px}
+/* o Mercado tem linhas mais juntas — o respiro dele é 2px, não 10 */
+.rf-mkt .rf-lista{gap:2px}
+.rf-lista-pe{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  border-top:1px solid var(--line-1);padding-top:10px;margin-top:2px}
+.rf-lista-conta{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-faint);white-space:nowrap}
+.rf-lista-l{font-size:var(--fs-label);color:var(--text-faint);letter-spacing:var(--ls-label);white-space:nowrap}
+.rf-lista-n{height:26px;min-width:34px;padding:0 9px;border:1px solid var(--line-2);
+  border-radius:var(--r-pill);background:var(--surface-card);font-family:var(--font-mono);
+  font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:var(--text-3);cursor:pointer;
+  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
+.rf-lista-n:hover{background:var(--surface-sunken);color:var(--text-1)}
+.rf-lista-n.on{background:var(--club-primary);border-color:var(--club-primary);color:var(--club-on-primary)}
+@media (max-width:760px){ .rf-lista{max-height:none;overflow:visible} .rf-lista-pe{display:none} }
+
 /* ============================ PUBLICIDADE ============================
    A publicidade SAI ANTES DO CONTEÚDO quando a tela encolhe. Os trilhos
    ficam FORA da coluna de conteúdo, e as media queries abaixo são a única

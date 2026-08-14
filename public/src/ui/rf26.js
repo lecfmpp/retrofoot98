@@ -804,6 +804,48 @@ function rfVerMais(pagina, k, texto){
 
 /* helpers de composição das páginas refeitas pela referência */
 function rfCol(html){ return `<div class="rf-pagecol" data-rf-col>${html}</div>`; }
+
+/* =====================================================================
+   LISTA LONGA — rola DENTRO do card, e não carrega tudo de uma vez.
+   Duas coisas que uma lista de 38 jornadas ou de 60 e-mails quebra:
+   a página inteira vira um rolo (o cabeçalho da lista sai da vista logo na
+   terceira linha), e o navegador monta centenas de nós que ninguém vai ler.
+   Aqui a lista ganha rolagem própria — do mesmo jeito que o bloco Elenco do
+   Hub sempre teve — e um limite de 20/50/100 linhas com o pé mostrando
+   quantas estão à vista de quantas existem.
+   O limite vive em CL (não no save): é preferência de sessão, não estado
+   de jogo, e não deve viajar no arquivo do save.
+   ===================================================================== */
+const RF_LISTA_PASSOS=[20,50,100];
+function rfListaLim(chave){
+  const v=CL.listaLim && CL.listaLim[chave];
+  return RF_LISTA_PASSOS.indexOf(v)>=0 ? v : RF_LISTA_PASSOS[0];
+}
+function rfListaSetLim(chave, n){
+  CL.listaLim=CL.listaLim||{}; CL.listaLim[chave]=n;
+  cdraw();
+}
+/* `linhas` é um ARRAY de HTML, não uma string já juntada: o corte tem de
+   acontecer por linha, e receber a string pronta obrigaria a cortar no
+   meio de uma marcação. */
+function rfLista(chave, linhas, vazio){
+  linhas=linhas||[];
+  if(!linhas.length) return `<div class="rf-empty">${vazio||'Nada aqui agora.'}</div>`;
+  const lim=rfListaLim(chave);
+  const total=linhas.length;
+  const vistas=Math.min(lim,total);
+  const corpo=`<div class="rf-lista">${linhas.slice(0,vistas).join('')}</div>`;
+  // o pé só aparece quando há mais linha do que o menor passo — numa lista
+  // de seis nomes ele seria ruído
+  if(total<=RF_LISTA_PASSOS[0]) return corpo;
+  return corpo+`<div class="rf-lista-pe">
+    <span class="rf-lista-conta">mostrando ${vistas} de ${total}</span>
+    <div class="rf-sp"></div>
+    <span class="rf-lista-l">linhas</span>
+    ${RF_LISTA_PASSOS.map(n=>`<button type="button" class="rf-lista-n ${lim===n?'on':''}"
+      onclick="rfListaSetLim('${escC(chave)}',${n})">${n}</button>`).join('')}
+  </div>`;
+}
 function rfCard(rotulo, corpo, opts){
   opts=opts||{};
   return `<div class="rf-card ${opts.cls||''}">

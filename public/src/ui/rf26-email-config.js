@@ -22,9 +22,7 @@ function rfEmCaixaHTML(){
     `<div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">CAIXA DE ENTRADA</span>
         <span class="rf-label-r">${naoLidas? (naoLidas+' não lida'+(naoLidas===1?'':'s')) : 'tudo lido'}</span></div>
-      ${todas.length
-        ? todas.slice(0,30).map(rfEmLinha).join('')
-        : '<div class="rf-empty">Caixa de entrada vazia.</div>'}
+      ${rfLista('inbox', todas.map(rfEmLinha), 'Caixa de entrada vazia.')}
     </div>`
   ) + rfCol(rfEmLeituraHTML());
 }
@@ -89,9 +87,7 @@ function rfEmArquivadasHTML(){
   return `<div class="rf-card">
     <div class="rf-label"><span class="rf-label-t">ARQUIVADAS</span>
       <span class="rf-label-r">${lidas.length} ${lidas.length===1?'mensagem':'mensagens'}</span></div>
-    ${lidas.length
-      ? lidas.slice(0,60).map(rfEmLinha).join('')
-      : '<div class="rf-empty">Nada arquivado ainda. Uma mensagem entra aqui depois de lida.</div>'}
+    ${rfLista('arquivadas', lidas.map(rfEmLinha), 'Nada arquivado ainda. Uma mensagem entra aqui depois de lida.')}
   </div>`;
 }
 

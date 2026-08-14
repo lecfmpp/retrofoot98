@@ -51,10 +51,19 @@ function rfMktExportar(){
 }
 /* TABELA — a grelha da referência: cabeçalho em mono espaçado, linhas
    altas, e a última coluna reservada pro botão de ação. */
-function rfMkTabela(cols, cabecalho, linhas, vazio){
+/* Todas as seis abas do Mercado passam por AQUI, então a rolagem dentro do
+   card e o limite de linhas entram numa alteração só. `linhas` aceita array
+   (o corte precisa acontecer por linha) ou a string já junta, para as
+   chamadas antigas continuarem funcionando — sem `chave` não há limite. */
+function rfMkTabela(cols, cabecalho, linhas, vazio, chave){
+  const arr = Array.isArray(linhas) ? linhas
+    : (typeof linhas==='string' && linhas ? [linhas] : []);
+  const corpo = chave
+    ? rfLista(chave, arr, vazio)
+    : `<div class="rf-mkt-body">${(Array.isArray(linhas)?linhas.join(''):linhas) || `<div class="rf-empty">${escC(vazio||'Nada aqui agora.')}</div>`}</div>`;
   return `<div class="rf-mkt" style="--rf-mkt-cols:${cols}">
     <div class="rf-mkt-head">${cabecalho}</div>
-    <div class="rf-mkt-body">${linhas || `<div class="rf-empty">${escC(vazio||'Nada aqui agora.')}</div>`}</div>
+    ${corpo}
   </div>`;
 }
 function rfMkClube(id){
@@ -161,13 +170,13 @@ function rfMktComprarHTML(){
     <span class="rf-mkt-v">${escC(rfDin(ask))}</span>
     <span class="rf-mkt-v leve">${escC(rfMkSalario(p))}</span>
     ${rfMkBt('Propor',`rfMkPropor('${escC(clubId)}','${escC(p.n)}')`)}
-  </div>`).join('');
+  </div>`);
   const cabecalho=`<span>JOGADOR</span><span>POS</span><span>IDA</span><span>FOR</span>
     <span>CLUBE</span><span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
   return rfMktGavetaHTML(['oferta']) + rfCol(
     rfCard('Jogadores no mercado',
       rfMktFiltrosHTML() + rfMkTabela('minmax(0,1fr) 44px 48px 48px minmax(0,160px) 108px 100px 104px',
-        cabecalho, linhas, 'Nenhum jogador com esses filtros.'),
+        cabecalho, linhas, 'Nenhum jogador com esses filtros.', 'mkt-mercado'),
       {right: mostra.length+' de '+todos.length})
     + rfCard('O que o caixa permite', `
       <div class="rf-kpis rf-kpis-4">
@@ -220,7 +229,7 @@ function rfMktLeilaoHTML(){
   return rfMktGavetaHTML(['lance']) + rfCol(
     rfCard('Lotes abertos',
       rfMkTabela('minmax(0,1fr) 44px 48px 48px minmax(0,160px) 116px 108px 92px 104px',
-        cabecalho, abertos.map(linha).join(''), 'Nenhum leilão aberto nesta rodada.'),
+        cabecalho, abertos.map(linha), 'Nenhum leilão aberto nesta rodada.', 'mkt-leilao'),
       {right: abertos.length? abertos.length+' ativos':''})
     + rfCard('Arrematados recentemente',
       arrematados || '<span class="rf-note">Ainda não houve arremate nesta temporada.</span>')
@@ -316,14 +325,14 @@ function rfMktContraHTML(){
       <span class="rf-mkt-tag ${st.k}">${st.t}</span>
       ${rfMkBt(feito?'Fechar':'Subir',`rfMkPropor('${escC(o.sellerId||'')}','${escC(o.playerName||'')}')`, feito)}
     </div>`;
-  }).join('');
+  });
   const cabecalho=`<span>JOGADOR</span><span>POS</span><span>CLUBE</span>
     <span class="dir">SUA OFERTA</span><span class="dir">PEDIDO DELES</span>
     <span class="dir">DIFERENÇA</span><span class="dir">SITUAÇÃO</span><span></span>`;
   return rfMktGavetaHTML(['oferta']) + rfCol(
     rfCard('Negociações em andamento',
       rfMkTabela('minmax(0,1fr) 44px minmax(0,160px) 116px 124px 112px 132px 104px',
-        cabecalho, linhas, 'Nenhuma negociação aberta agora.'),
+        cabecalho, linhas, 'Nenhuma negociação aberta agora.', 'mkt-propostas'),
       {right: lista.length? lista.length+' abertas':''})
     + rfCard('Como negociar',
       `<p class="rf-texto">Cada subida na oferta consome um dia da janela. Clubes da mesma divisão
@@ -354,7 +363,7 @@ function rfMktVenderHTML(){
       <span class="rf-mkt-int">${clubes?`<b>${clubes} clube${clubes===1?'':'s'}</b>`:'—'}</span>
       ${rfMkBt('Listar',`rfMkListar('${escC(p.pid)}')`)}
     </div>`;
-  }).join('');
+  });
   const cabecalho=`<span>JOGADOR</span><span>POS</span><span>IDA</span><span>FOR</span>
     <span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span class="dir">FIM</span>
     <span class="dir">INTERESSE</span><span></span>`;
@@ -368,7 +377,7 @@ function rfMktVenderHTML(){
   return rfMktGavetaHTML(['listar']) + rfCol(
     rfCard('Seu elenco à venda',
       rfMkTabela('minmax(0,1fr) 44px 48px 48px 116px 108px 76px 108px 104px',
-        cabecalho, linhas, 'Elenco vazio.'),
+        cabecalho, linhas, 'Elenco vazio.', 'mkt-vender'),
       {right: sq.length+' jogadores'})
     + rfCard('Quem você não deveria vender',
       chave
@@ -401,7 +410,7 @@ function rfMktTransfHTML(){
     const d=(S.round||0)-(h.round||0);
     return d<=0?'esta jornada':('há '+d+' jornada'+(d===1?'':'s'));
   };
-  const linhas=ent.slice(0,40).map(({p,h})=>`<div class="rf-mkt-row ${h.to===CL.clubId||h.from===CL.clubId?'destaque':''}">
+  const linhas=ent.map(({p,h})=>`<div class="rf-mkt-row ${h.to===CL.clubId||h.from===CL.clubId?'destaque':''}">
     <span class="rf-mkt-n">${escC(p.n)}</span>
     ${rfMkPos(p)}
     <span class="rf-mkt-f">${p.f}</span>
@@ -410,7 +419,7 @@ function rfMktTransfHTML(){
     ${h.to?rfMkClube(h.to):`<span class="rf-mkt-clube">${escC(nomeDe(h.to))}</span>`}
     <span class="rf-mkt-v">${escC(rfDin(h.fee||0))}</span>
     <span class="rf-mkt-x">${escC(quando(h))}</span>
-  </div>`).join('');
+  </div>`);
   const cabecalho=`<span>JOGADOR</span><span>POS</span><span>FOR</span><span>SAIU DE</span>
     <span></span><span>FOI PARA</span><span class="dir">VALOR</span><span class="dir">QUANDO</span>`;
   const aberta=(typeof inTransferWindow==='function')?inTransferWindow():true;
@@ -427,7 +436,7 @@ function rfMktTransfHTML(){
       {right: aberta?('fecha em '+faltam+' jornada'+(faltam===1?'':'s')):'fechada'})
     + rfCard('Movimentações da divisão',
       rfMkTabela('minmax(0,1fr) 44px 48px minmax(0,150px) 28px minmax(0,150px) 116px 116px',
-        cabecalho, linhas, 'Nenhuma transferência registrada ainda nesta temporada.'),
+        cabecalho, linhas, 'Nenhuma transferência registrada ainda nesta temporada.', 'mkt-contra'),
       {right: ent.length? ent.length+' no total':''})
   );
 }

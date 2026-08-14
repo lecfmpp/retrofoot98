@@ -134,7 +134,7 @@ function rfFiExtratoHTML(){
       <div class="rf-label"><span class="rf-label-t">LANÇAMENTOS</span>
         <span class="rf-label-r">temporada de ${escC(String(S.season||''))}</span></div>
       ${cab}
-      ${linhas.join('') || '<div class="rf-empty">Nenhuma rodada fechada ainda nesta temporada.</div>'}
+      ${rfLista('extrato', linhas, 'Nenhuma rodada fechada ainda nesta temporada.')}
     </div>
     <div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">FILTROS</span></div>

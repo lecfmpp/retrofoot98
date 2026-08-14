@@ -656,10 +656,38 @@ function hideSyncLoading(){ if(CL._syncLoadingTimer){ clearTimeout(CL._syncLoadi
    resolve para todas as ações de uma vez, em vez de remendar caso a caso.
    Só devolve se o número de listas for o mesmo antes e depois: se a tela mudou, a rolagem velha
    não tem a que pertencer. */
-const CDRAW_ROLAGENS=['.cl-roster','.cl-mkt-squad'];
+/* ROLAGEM ATRAVÉS DO REDESENHO.
+   Clicar num chip de filtro dentro de um bloco chama cdraw(), que remonta a
+   página inteira — e a rolagem voltava ao topo. Quem estava lendo a
+   Classificação lá embaixo era jogado para o começo da página só por ter
+   trocado a competição: o conteúdo do bloco muda, o ponto de leitura não pode
+   mudar junto.
+   `.rf-main` é o rolo da página no painel novo e `.rf-lista` é o de cada
+   lista longa; as duas primeiras são do skin antigo, que ainda tem telas
+   vivas. */
+const CDRAW_ROLAGENS=['.cl-roster','.cl-mkt-squad','.rf-lista','.rf-sq-list','.rf-cam-narra'];
+/* O ROLO DA PÁGINA é caso à parte: restaurar sempre faria NAVEGAR de uma
+   página para outra herdar o deslocamento da anterior — aí sim o utilizador
+   cairia no meio de uma tela que nunca abriu. Só volta ao lugar quando a
+   página E a aba continuam as mesmas. */
+function rfContextoRolagem(){
+  try{
+    const st=(typeof rfState==='function')?rfState():null;
+    const pg=st?st.page:'';
+    const ab=(st&&st.tab&&pg)?(st.tab[pg]||''):'';
+    return String(CL.screen||'')+'|'+pg+'|'+ab;
+  }catch(e){ return String(CL.screen||''); }
+}
+/* O contexto do que está NA TELA, não o que está sendo desenhado.
+   rfGo()/rfSetTab() mudam o estado ANTES de chamar cdraw(), então perguntar
+   "qual é a página?" no início do desenho já devolve o DESTINO — origem e
+   destino batiam sempre e a rolagem era restaurada até ao navegar. Este
+   guarda o contexto do último desenho concluído, que é com quem comparar. */
+let RF_CTX_DESENHADO='';
 function capturaRolagem(){
-  const m={};
+  const m={_ctx:RF_CTX_DESENHADO};
   try{ CDRAW_ROLAGENS.forEach(sel=>{ m[sel]=Array.from(document.querySelectorAll(sel)).map(el=>el.scrollTop); }); }catch(e){}
+  try{ const main=document.querySelector('.rf-main'); m._main=main?main.scrollTop:0; }catch(e){}
   return m;
 }
 function devolveRolagem(m){
@@ -668,6 +696,17 @@ function devolveRolagem(m){
     if(!els.length || els.length!==vals.length) return;
     els.forEach((el,i)=>{ if(vals[i]>0) el.scrollTop=vals[i]; });
   }); }catch(e){}
+  try{
+    const main=document.querySelector('.rf-main');
+    if(main){
+      // mesma página e mesma aba: o utilizador continua onde estava.
+      // Página ou aba diferente: começa do topo, SEMPRE e explicitamente —
+      // sem isto, o navegador deixava um resto de deslocamento e a tela nova
+      // abria no meio.
+      main.scrollTop = (m._ctx===rfContextoRolagem()) ? (m._main||0) : 0;
+    }
+  }catch(e){}
+  try{ RF_CTX_DESENHADO=rfContextoRolagem(); }catch(e){}
 }
 function cdraw(){ const r=$c('#c-root'); if(!r)return;
   const _rolagem=capturaRolagem();

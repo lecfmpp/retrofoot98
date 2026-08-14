@@ -219,7 +219,7 @@ function rfTrRankingHTML(){
       pts, titles:car.titles||0, aprov: jogos?Math.round(pts/(jogos*3)*100):0,
       eu:!!(CL.humans&&CL.humans[c.id]) || c.id===CL.clubId };
   }).sort((a,b)=>(b.pts+b.titles*BONUS)-(a.pts+a.titles*BONUS)||b.pts-a.pts);
-  const linhas=rows.slice(0,20).map((r,i)=>{
+  const linhas=rows.map((r,i)=>{
     const c=anyClubOf(r.clubId)||{short:r.clubId};
     return `<div class="rf-el-row ${r.eu?'sel':''}">
       <span class="rf-tr-rank">${i+1}</span>
@@ -230,7 +230,7 @@ function rfTrRankingHTML(){
       <span class="rf-tr-num forte">${r.aprov}%</span>
       <span class="rf-tr-num">${r.pts}</span>
     </div>`;
-  }).join('');
+  });
   const cab=`<div class="rf-el-head" style="--el-cols:${RF_TR_RANK_COLS}">
     <span></span><span>TREINADOR</span><span></span><span>CLUBE</span><span>DIVISÃO</span>
     <span class="dir">APROV.</span><span class="dir">PONTOS</span>
@@ -239,7 +239,7 @@ function rfTrRankingHTML(){
       <div class="rf-label"><span class="rf-label-t">RANKING DE TREINADORES</span>
         <span class="rf-label-r">${escC(divisionLabel())}</span></div>
       ${cab}
-      ${linhas || '<div class="rf-empty">Sem ranking ainda.</div>'}
+      ${rfLista('ranking', linhas, 'Sem ranking ainda.')}
     </div>
     <div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">COMO O RANKING É CALCULADO</span></div>
