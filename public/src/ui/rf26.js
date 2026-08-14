@@ -112,8 +112,8 @@ const RF_PAGES=[
             show:()=>!!(S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)} ] },
 
   { key:'treinador', ico:'🎓', label:'Treinador', curto:'Treinador',
-    titulo:'Treinador', sub:'Carreira, troféus, ranking, ofertas e preferências',
-    pill:()=>rfPillReputacao(), grid:'minmax(0,1fr) 340px',
+    titulo:'Treinador', sub:()=>rfTrSubHTML(),
+    acoes:()=>rfTrAcoesHTML(), grid:'minmax(0,1fr)',
     tabs:[ {k:'carreira',l:()=>'Carreira',        build:()=>rfTrCarreiraHTML()},
            {k:'historia',l:()=>'História',        build:()=>rfTrHistoriaHTML()},
            {k:'trofeus', l:()=>'Sala de Troféus', build:()=>rfTrTrofeusHTML()},

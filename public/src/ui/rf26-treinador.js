@@ -1,112 +1,174 @@
 /* =====================================================================
    RetroFoot98 — TREINADOR, as seis abas completas
-   Portado de telas/Treinador - Abas.html.
+   Marcação de telas-v3/Treinador - Abas.dc.html, coluna por coluna.
 
    Carreira · História · Sala de Troféus · Ranking · Ofertas · Perfil.
 
-   A SALA DE TROFÉUS mostra os cinco troféus do save COM A ARTE REAL,
-   em cinza quando não conquistados — é o que a referência pede, e é o
-   único jeito de a sala dizer alguma coisa antes do primeiro título.
+   As seis abas empilham cartões de LARGURA CHEIA — nenhuma usa a grade de
+   duas colunas da página. Onde há peças lado a lado (os números da carreira,
+   as marcas pessoais, os cinco troféus, os campos do perfil), a grade é
+   INTERNA ao cartão.
+
+   A linha de tabela é a mesma peça do Elenco e de Campeonatos
+   (.rf-el-head/.rf-el-row, grade vinda de --el-cols), e o bloco de número
+   grande é o mesmo rfElStat. Uma peça só, repetida — é isso que faz navegar
+   entre páginas parecer a mesma casa.
+
+   A SALA DE TROFÉUS mostra os troféus do save COM A ARTE REAL, apagados
+   quando não conquistados: é o único jeito de a sala dizer alguma coisa
+   antes do primeiro título.
    ===================================================================== */
 
+/* =====================================================================
+   1 · CARREIRA
+   ===================================================================== */
 function rfTrCabecalhoHTML(){
   const cl=clubOf(CL.clubId)||{short:'—'};
   const nome=rfTreinadorNome();
   const temps=(S.coachHistory||[]).length || 1;
   const rep=Math.round(S.coachRep!=null?S.coachRep:50);
   const estrelas=Math.max(1,Math.min(5,Math.round(rep/20)));
+  const desde=(S.coachClubSince!=null)?S.coachClubSince:(S.season||'');
   return `<div class="rf-card rf-tr-hd">
     <span class="rf-tr-av">${escC(nome.slice(0,1).toUpperCase())}</span>
     <div class="rf-tr-id">
       <span class="rf-tr-n">${escC(nome)}</span>
-      <span class="rf-tr-s">${(typeof universeFlag==='function')?universeFlag():''}
-        ${escC((typeof universeCountryName==='function')?universeCountryName():'')} ·
-        ${temps}ª temporada · ${escC(cl.short)} na ${escC(divisionLabel())}</span>
+      <span class="rf-tr-s">${(typeof universeFlag==='function')?universeFlag():''} ${escC((typeof universeCountryName==='function')?universeCountryName():'')} · ${temps}ª temporada como treinador · ${escC(cl.short)} desde ${escC(String(desde))}</span>
     </div>
     <div class="rf-sp"></div>
     <span class="rf-tr-rep">REPUTAÇÃO ${estrelas} DE 5</span>
   </div>`;
 }
-
-/* =====================================================================
-   1 · CARREIRA
-   ===================================================================== */
+const RF_TR_CLUBES_COLS='22px minmax(0,1.2fr) minmax(0,1fr) 92px 62px 74px';
 function rfTrCarreiraHTML(){
   if(typeof migrateCoachCareerStats==='function'){ try{ migrateCoachCareerStats(); }catch(e){} }
-  const car=(S.coachCareerStats&&S.coachCareerStats[CL.clubId])||{pts:0,titles:0};
-  const t=(S.table&&S.table[CL.clubId])||{P:0,W:0,D:0,L:0,Pts:0};
+  const car=(S.coachCareerStats&&S.coachCareerStats[CL.clubId])||{};
+  const t=(S.table&&S.table[CL.clubId])||{P:0,W:0,D:0,L:0,Pts:0,GF:0,GA:0};
   const jogos=(car.games||0)+(t.P||0);
   const vit=(car.wins||0)+(t.W||0);
+  const emp=(car.draws||0)+(t.D||0);
+  const der=(car.losses||0)+(t.L||0);
+  const gp=(car.gf||0)+(t.GF||0), gc=(car.ga||0)+(t.GA||0);
   const aprov=jogos?Math.round(((car.pts||0)+(t.Pts||0))/(jogos*3)*100):0;
+  const pct=n=>jogos?Math.round(n/jogos*100)+'%':'';
   const seg=(S.jobSecurity!=null)?S.jobSecurity:60;
   const clubes=[...new Set((S.history||[]).filter(h=>h.clubId).map(h=>h.clubId))];
   if(!clubes.includes(CL.clubId)) clubes.push(CL.clubId);
-  return rfTrCabecalhoHTML() + rfCol(
-    rfCard('Números da carreira', `
-      <div class="rf-kpis">
-        ${rfKpiHTML('Jogos', String(jogos), 'como treinador')}
-        ${rfKpiHTML('Vitórias', String(vit), jogos?Math.round(vit/jogos*100)+'% dos jogos':'')}
-        ${rfKpiHTML('Aproveitamento', aprov+'%', 'dos pontos disputados')}
-        ${rfKpiHTML('Títulos', String(car.titles||rfTitulosDoTreinador().length), 'na estante')}
-      </div>`)
-    + rfCard('Clubes treinados',
-        clubes.map(id=>{ const c=anyClubOf(id)||{short:id};
-          const h=(S.history||[]).filter(x=>x.clubId===id);
-          return `<div class="rf-linha ${id===CL.clubId?'me':''}">
-            <span class="rf-linha-t">${escC(c.short)}${id===CL.clubId?' <i class="rf-el-sub">agora</i>':''}</span>
-            <span class="rf-linha-v">${h.length||1} temporada${(h.length||1)===1?'':'s'}</span></div>`;
-        }).join(''))
-  ) + rfCol(
-    rfCard('Segurança no cargo', `
-      <div class="rf-pz-barra">
-        <div class="rf-label"><span class="rf-label-t">${seg>=70?'Confortável':seg>=40?'Sob observação':'Em risco'}</span>
-          <span class="rf-pz-pct">${seg}%</span></div>
-        <div class="rf-pz-trilho"><div class="rf-pz-fill" style="width:${seg}%;
-          background:${seg>=70?'var(--ok)':seg>=40?'var(--club-secondary)':'var(--danger)'}"></div></div>
+  const linhas=clubes.slice().reverse().map(id=>{
+    const c=anyClubOf(id)||{short:id};
+    const h=(S.history||[]).filter(x=>x.clubId===id);
+    const atual=id===CL.clubId;
+    const anos=h.map(x=>x.season).filter(x=>x!=null);
+    const de=anos.length?Math.min.apply(null,anos):(S.season||'');
+    const ate=atual?'hoje':(anos.length?Math.max.apply(null,anos):'—');
+    const j=h.reduce((s,x)=>s+((x.games)||0),0)+(atual?(t.P||0):0);
+    const p=h.reduce((s,x)=>s+((x.pts)||0),0)+(atual?(t.Pts||0):0);
+    return `<div class="rf-el-row ${atual?'sel':''}">
+      ${rfCrest(c,20)}
+      <span class="rf-tr-clube">${escC(c.short||c.name||'—')}</span>
+      <span class="rf-tr-periodo">${escC(String(de))} — ${escC(String(ate))}</span>
+      <span class="rf-tr-num">${j||'—'}</span>
+      <span class="rf-tr-num forte">${j?Math.round(p/(j*3)*100)+'%':'—'}</span>
+      <span class="rf-tr-desf">${atual?'em curso':(h.length?'encerrado':'—')}</span>
+    </div>`;
+  }).join('');
+  const cab=`<div class="rf-el-head" style="--el-cols:${RF_TR_CLUBES_COLS}">
+    <span></span><span>CLUBE</span><span>PERÍODO</span>
+    <span class="dir">JOGOS</span><span class="dir">APROV.</span><span class="dir">DESFECHO</span>
+  </div>`;
+  const humor = seg>=70 ? 'A diretoria está tranquila com a campanha'
+    : seg>=40 ? 'A diretoria está satisfeita com a campanha'
+    : 'A diretoria já perdeu a paciência com a campanha';
+  return rfTrCabecalhoHTML() + `
+    <div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">NÚMEROS DA CARREIRA</span></div>
+      <div class="rf-el-stats">
+        ${rfElStat('JOGOS', jogos)}
+        ${rfElStat('VITÓRIAS', vit, pct(vit))}
+        ${rfElStat('EMPATES', emp, pct(emp))}
+        ${rfElStat('DERROTAS', der, pct(der))}
       </div>
-      <span class="rf-note">A conta é 70% posição na tabela e 30% moral do elenco. Ela move devagar:
-        uma rodada ruim não derruba, e uma sequência ruim não se conserta num jogo.</span>`)
-  );
+      <div class="rf-el-stats">
+        ${rfElStat('GOLS PRÓ', gp)}
+        ${rfElStat('GOLS CONTRA', gc)}
+        ${rfElStat('APROVEITAMENTO', aprov+'%')}
+        ${rfElStat('TÍTULOS', rfTitulosDoTreinador().length)}
+      </div>
+    </div>
+    <div class="rf-card rf-el-tbl" style="--el-cols:${RF_TR_CLUBES_COLS}">
+      <div class="rf-label"><span class="rf-label-t">CLUBES TREINADOS</span>
+        <span class="rf-label-r">${clubes.length}</span></div>
+      ${cab}
+      ${linhas}
+    </div>
+    <div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">SEGURANÇA NO CARGO</span></div>
+      <div class="rf-tr-seg">
+        <div class="rf-tr-seg-top">
+          <span class="rf-tr-seg-t">${escC(humor)}</span>
+          <span class="rf-tr-seg-v">${seg}%</span>
+        </div>
+        <div class="rf-tr-seg-trilho"><i style="width:${seg}%;background:${
+          seg>=70?'var(--ok)':seg>=40?'var(--club-secondary)':'var(--danger)'}"></i></div>
+        <span class="rf-tr-seg-n">A conta é 70% posição na tabela e 30% moral do elenco. Ela move devagar: uma rodada ruim não derruba.</span>
+      </div>
+    </div>`;
 }
 
 /* =====================================================================
-   2 · HISTÓRIA — linha do tempo
+   2 · HISTÓRIA — linha do tempo + marcas pessoais
    ===================================================================== */
 function rfTrHistoriaHTML(){
   const h=(S.history||[]).filter(x=>x.clubId===CL.clubId).slice().reverse();
-  const linha=h.map(e=>{
+  const atual={season:S.season, clubId:CL.clubId, division:S.division,
+    myPos:rfMinhaPosicao(), emCurso:true};
+  const todas=[atual].concat(h);
+  const linha=todas.map((e,i)=>{
     const c=anyClubOf(e.clubId)||{short:'—'};
     const titulo=e.myPos===1;
     return `<div class="rf-tl">
-      <span class="rf-tl-ano">${escC(String(e.season||''))}</span>
-      <span class="rf-tl-p ${titulo?'ouro':''}"></span>
+      <span class="rf-tl-ano ${i===0?'agora':''}">${escC(String(e.season||''))}</span>
+      <span class="rf-tl-p ${titulo?'ouro':(i===0?'agora':'')}"></span>
       <div class="rf-tl-id">
         <span class="rf-tl-t">${escC(c.short)} · ${escC((typeof divisionLabelOf==='function')?divisionLabelOf(e.division):('Série '+e.division))}</span>
-        <span class="rf-tl-s">${e.myPos?e.myPos+'º':'—'} · ${escC(rfCpDesfecho(e))}</span>
-        <span class="rf-tl-c">${escC(e.artilheiro||'—')}</span>
+        <span class="rf-tl-s">${e.myPos?(e.myPos+'º'+(e.emCurso?'':' no grupo')):'—'}${e.emCurso?' · em curso':''}</span>
+        <span class="rf-tl-c">${escC(e.emCurso?'—':rfCpDesfecho(e))}</span>
       </div>
     </div>`;
   }).join('');
-  const marcas=[];
-  if(h.length){
-    const melhor=h.slice().sort((a,b)=>(a.myPos||99)-(b.myPos||99))[0];
-    marcas.push(['Melhor campanha', melhor.myPos+'º em '+melhor.season]);
-    marcas.push(['Temporadas', String(h.length)]);
-  }
-  marcas.push(['Títulos', String(rfTitulosDoTreinador().length)]);
-  return rfCol(
-    rfCard('Linha do tempo',
-      linha || '<span class="rf-note">A carreira começa agora. A primeira temporada entra aqui quando fechar.</span>',
-      {right: h.length+(h.length===1?' temporada':' temporadas')})
-  ) + rfCol(
-    rfCard('Marcas pessoais',
-      marcas.map(([k,v])=>`<div class="rf-linha">
-        <span class="rf-linha-t">${escC(k)}</span><span class="rf-linha-v">${escC(v)}</span></div>`).join(''))
-  );
+  /* MARCAS PESSOAIS: maior vitória e maior derrota saem dos resultados do
+     save; sequência e melhor campanha, do histórico. Onde não há jogo ainda,
+     entra traço — o bloco existe do mesmo jeito. */
+  const meus=(S.results||[]).filter(r=>r.h===CL.clubId||r.a===CL.clubId).map(r=>{
+    const casa=r.h===CL.clubId;
+    return {gm:casa?r.gh:r.ga, gc:casa?r.ga:r.gh, adv:anyClubOf(casa?r.a:r.h)||{short:'—'}};
+  });
+  const maiorV=meus.filter(x=>x.gm>x.gc).sort((a,b)=>(b.gm-b.gc)-(a.gm-a.gc))[0];
+  const maiorD=meus.filter(x=>x.gm<x.gc).sort((a,b)=>(a.gm-a.gc)-(b.gm-b.gc))[0];
+  let seq=0, melhor=0;
+  meus.forEach(x=>{ if(x.gm>=x.gc){ seq++; melhor=Math.max(melhor,seq); } else seq=0; });
+  const camp=h.slice().sort((a,b)=>(a.myPos||99)-(b.myPos||99))[0];
+  return `<div class="rf-card rf-tr-tl">
+      <div class="rf-label"><span class="rf-label-t">LINHA DO TEMPO</span>
+        <span class="rf-label-r">${todas.length} ${todas.length===1?'temporada':'temporadas'}</span></div>
+      ${linha}
+    </div>
+    <div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">MARCAS PESSOAIS</span></div>
+      <div class="rf-el-stats">
+        ${rfElStat('MAIOR VITÓRIA', maiorV?(maiorV.gm+'–'+maiorV.gc):'—',
+          maiorV?('vs '+maiorV.adv.short+', '+(S.season||'')):'ainda sem vitória')}
+        ${rfElStat('MAIOR DERROTA', maiorD?(maiorD.gm+'–'+maiorD.gc):'—',
+          maiorD?('vs '+maiorD.adv.short+', '+(S.season||'')):'ainda sem derrota')}
+        ${rfElStat('MAIOR SEQUÊNCIA', melhor?(melhor+' jogo'+(melhor>1?'s':'')):'—',
+          melhor?('sem perder, '+(S.season||'')):'—')}
+        ${rfElStat('MELHOR CAMPANHA', camp?(camp.myPos+'º'):'—', camp?String(camp.season):'primeira em curso')}
+      </div>
+    </div>`;
 }
 
 /* =====================================================================
-   3 · SALA DE TROFÉUS — os cinco, cinza quando não conquistados
+   3 · SALA DE TROFÉUS — os cinco ladrilhos, apagados quando não conquistados
    ===================================================================== */
 function rfTrTrofeusHTML(){
   const meus=rfTitulosDoTreinador();
@@ -121,32 +183,37 @@ function rfTrTrofeusHTML(){
     lista.push({ k, nome:def.short||def.name||k, tem:ganhou(k) });
   });
   const n=lista.filter(x=>x.tem).length;
-  return rfCol(
-    rfCard('Sala de Troféus', `<div class="rf-tr-sala">${lista.map(x=>`
-      <div class="rf-tr-tro ${x.tem?'tem':''}">
-        ${rfTrofeuHTML(x.k,64)}
-        <span class="rf-tr-tro-n">${escC(x.nome)}</span>
-        <span class="rf-tr-tro-s">${x.tem?'conquistado':'não conquistado'}</span>
-      </div>`).join('')}</div>`, {right:n+' de '+lista.length})
-  ) + rfCol(
-    rfCard(n?'O que ainda falta':'O que falta para o primeiro',
-      lista.filter(x=>!x.tem).slice(0,6).map(x=>`<div class="rf-linha">
-        <span class="rf-linha-t">${escC(x.nome)}</span>
-        <span class="rf-linha-v">—</span></div>`).join('')
-      || '<span class="rf-note">A estante está completa. Não há mais o que ganhar neste save.</span>')
-  );
+  const falta=lista.filter(x=>!x.tem)[0];
+  return `<div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">SALA DE TROFÉUS</span>
+        <span class="rf-label-r">${n} de ${lista.length}</span></div>
+      <div class="rf-tr-sala">${lista.map(x=>`
+        <div class="rf-tr-tro ${x.tem?'tem':''}">
+          ${rfTrofeuHTML(x.k,56)}
+          <span class="rf-tr-tro-n">${escC(x.nome)}</span>
+          <span class="rf-tr-tro-s">${x.tem?'conquistado':'não conquistado'}</span>
+        </div>`).join('')}</div>
+    </div>
+    <div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">${n?'O QUE AINDA FALTA':'O QUE FALTA PARA O PRIMEIRO'}</span></div>
+      <span class="rf-tr-texto">${falta
+        ? escC('O troféu da '+falta.nome+' sai para quem vencer a final. Subir de divisão é a porta, não o título — o título é a final.')
+        : 'A estante está completa. Não há mais o que ganhar neste save.'}</span>
+    </div>`;
 }
 
 /* =====================================================================
    4 · RANKING
+   Grade: 26 / treinador / 22 / clube / 62 / 62 / 52
    ===================================================================== */
+const RF_TR_RANK_COLS='26px minmax(0,1.1fr) 22px minmax(0,1fr) 62px 62px 52px';
 function rfTrRankingHTML(){
   if(typeof migrateCoachCareerStats==='function'){ try{ migrateCoachCareerStats(); }catch(e){} }
   const BONUS=50;
   const rows=(DATA.clubs||[]).map((c,i)=>{
     const t=(S.table&&S.table[c.id])||{Pts:0,P:0};
     const car=(S.coachCareerStats&&S.coachCareerStats[c.id])||{pts:0,titles:0};
-    const pts=car.pts+(t.Pts||0);
+    const pts=(car.pts||0)+(t.Pts||0);
     const jogos=(car.games||0)+(t.P||0);
     return { clubId:c.id, nome:(typeof coachName==='function')?coachName(c.id,i):'—',
       pts, titles:car.titles||0, aprov: jogos?Math.round(pts/(jogos*3)*100):0,
@@ -154,125 +221,182 @@ function rfTrRankingHTML(){
   }).sort((a,b)=>(b.pts+b.titles*BONUS)-(a.pts+a.titles*BONUS)||b.pts-a.pts);
   const linhas=rows.slice(0,20).map((r,i)=>{
     const c=anyClubOf(r.clubId)||{short:r.clubId};
-    return `<div class="rf-tbl-row ${r.eu?'me':''}">
-      <span class="rf-tbl-x">${i+1}</span>
-      <span class="rf-tbl-n">${escC(r.nome)}</span>
-      ${rfMkClube(r.clubId)}
-      <span class="rf-tbl-v">${r.aprov}%</span>
-      <span class="rf-tbl-f">${r.pts}</span>
+    return `<div class="rf-el-row ${r.eu?'sel':''}">
+      <span class="rf-tr-rank">${i+1}</span>
+      <span class="rf-tr-tec">${escC(r.nome)}</span>
+      ${rfCrest(c,20)}
+      <span class="rf-tr-clube fraco">${escC(c.short||c.name||'—')}</span>
+      <span class="rf-tr-div">${escC(divisionLabel())}</span>
+      <span class="rf-tr-num forte">${r.aprov}%</span>
+      <span class="rf-tr-num">${r.pts}</span>
     </div>`;
   }).join('');
-  const cabecalho=`<span></span><span>TREINADOR</span><span>CLUBE</span>
-    <span class="dir">APROV.</span><span class="dir">PONTOS</span>`;
-  return rfCol(
-    rfCard('Ranking de treinadores',
-      rfMkTabela('28px minmax(0,1fr) minmax(0,140px) 64px 64px', cabecalho, linhas, 'Sem ranking ainda.'),
-      {right: escC(divisionLabel())})
-  ) + rfCol(
-    rfCard('Como o ranking é calculado', `
-      <div class="rf-passos">
-        <div class="rf-passo"><span class="rf-passo-n">1</span>
-          <span class="rf-passo-t">Soma os pontos que o treinador fez em toda a carreira, mais os da temporada em curso.</span></div>
-        <div class="rf-passo"><span class="rf-passo-n">2</span>
-          <span class="rf-passo-t">Cada título vale ${BONUS} pontos de bônus — ganhar pesa mais que somar.</span></div>
-        <div class="rf-passo"><span class="rf-passo-n">3</span>
-          <span class="rf-passo-t">O aproveitamento é informativo: quem tem menos jogos não sobe por isso.</span></div>
-      </div>`)
-  );
+  const cab=`<div class="rf-el-head" style="--el-cols:${RF_TR_RANK_COLS}">
+    <span></span><span>TREINADOR</span><span></span><span>CLUBE</span><span>DIVISÃO</span>
+    <span class="dir">APROV.</span><span class="dir">PONTOS</span>
+  </div>`;
+  return `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_TR_RANK_COLS}">
+      <div class="rf-label"><span class="rf-label-t">RANKING DE TREINADORES</span>
+        <span class="rf-label-r">${escC(divisionLabel())}</span></div>
+      ${cab}
+      ${linhas || '<div class="rf-empty">Sem ranking ainda.</div>'}
+    </div>
+    <div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">COMO O RANKING É CALCULADO</span></div>
+      <span class="rf-tr-texto">Os pontos de toda a carreira somados aos da temporada em curso, com
+        ${BONUS} de bônus por título — ganhar pesa mais do que somar. O aproveitamento é informativo:
+        quem tem menos jogos não sobe por isso.</span>
+    </div>`;
 }
 
 /* =====================================================================
    5 · OFERTAS
+   O cartão da oferta tem filete amarelo à esquerda — é a peça que o pacote
+   destaca, e a única da tela com borda colorida.
    ===================================================================== */
+const RF_TR_SOND_COLS='22px minmax(0,1.2fr) minmax(0,.9fr) 92px minmax(0,1fr)';
 function rfTrOfertasHTML(){
   const of=(S.jobOffers||[]);
   const salAtual=(S.coachSalary!=null)?S.coachSalary:0;
+  const verbaAtual=S.budget||0;
   const cards=of.map((o,i)=>{
     const c=(typeof jobOfferClub==='function')?jobOfferClub(o):{short:'?'};
     const dif=salAtual?(o.salary||0)-salAtual:0;
-    return `<div class="rf-card rf-prop2">
-      <div class="rf-prop2-hd">
-        ${rfCrest(c,34)}
-        <div class="rf-prop2-id">
-          <span class="rf-prop2-t">${escC(c.short)} quer conversar</span>
-          <span class="rf-prop2-s">${escC((typeof jobOfferDivLabel==='function'?jobOfferDivLabel(o):''))} · resposta nesta rodada</span>
+    const verba=o.budget||0;
+    const vezes=verbaAtual?(verba/verbaAtual):0;
+    return `<div class="rf-card rf-tr-oferta">
+      <div class="rf-tr-of-hd">
+        ${rfCrest(c,44)}
+        <div class="rf-tr-of-id">
+          <span class="rf-tr-of-t">${escC(c.short)} quer conversar</span>
+          <span class="rf-tr-of-s">${escC((typeof jobOfferDivLabel==='function'?jobOfferDivLabel(o):'')||'')} · convite para jantar · resposta nesta rodada</span>
         </div>
         <div class="rf-sp"></div>
-        <div class="rf-prop2-acts">
-          <button type="button" class="rf-btn rf-btn-secondary" onclick="clRejectJobOffer&&clRejectJobOffer(${i})">Recusar</button>
-          <button type="button" class="rf-btn rf-btn-primary" onclick="clAcceptJobOffer&&clAcceptJobOffer(${i})">Aceitar</button>
+        <div class="rf-tr-of-acts">
+          <button type="button" class="rf-btn rf-btn-recusar" onclick="clRejectJobOffer&&clRejectJobOffer(${i})">Recusar</button>
+          <button type="button" class="rf-btn rf-btn-cta" onclick="clAcceptJobOffer&&clAcceptJobOffer(${i})">Aceitar o jantar</button>
         </div>
       </div>
-      <div class="rf-prop2-nums">
-        ${rfKpiHTML('Salário oferecido', o.salary?fmt(o.salary):'—',
-          dif?(dif>0?'+'+fmt(dif):fmt(dif)):'')}
-        ${rfKpiHTML('Divisão', (typeof jobOfferDivLabel==='function'?jobOfferDivLabel(o):'—'), '')}
-        ${rfKpiHTML('Clube', c.short||'—', c.overall?('força '+c.overall):'')}
+      <div class="rf-el-stats">
+        ${rfElStat('SALÁRIO OFERECIDO', o.salary?fmt(o.salary):'—',
+          dif?((dif>0?'+':'')+fmt(dif)):'')}
+        ${rfElStat('VERBA DE REFORÇOS', verba?fmt(verba):'—',
+          vezes?(vezes.toFixed(1).replace('.',',')+'× a sua'):'')}
+        ${rfElStat('OBJETIVO', escC(o.goal||'—'), o.goal?'pressão maior':'')}
+        ${rfElStat('CONTRATO', o.years?(o.years+' ano'+(o.years>1?'s':'')):'—')}
       </div>
     </div>`;
   }).join('');
-  const sondagens=(S.coachHistory||[]).filter(h=>h.type==='sondagem').slice(-5).reverse();
-  return rfCol(
-    cards || rfCard('Ofertas', `<div class="rf-empty">Nenhuma oferta na mesa agora.<br>
-      <small>Clubes sondam quem está com a segurança no cargo bem alta.</small></div>`)
-  ) + rfCol(
-    rfCard('Clubes que já sondaram',
-      sondagens.length
-        ? sondagens.map(h=>`<div class="rf-linha">
-            <span class="rf-linha-t">${escC(h.text||h.clubShort||'')}</span>
-            <span class="rf-linha-v">${escC(String(h.season||''))}</span></div>`).join('')
-        : '<span class="rf-note">Ninguém sondou ainda neste save.</span>')
-    + rfCard('O que acontece se você sair', `
-      <span class="rf-note">Trocar de clube zera a campanha na tabela atual, mas a carreira continua:
-        pontos, títulos e ranking viajam com você. O elenco fica.</span>`)
-  );
+  const sond=(S.coachHistory||[]).filter(h=>h.type==='sondagem').slice(-8).reverse();
+  const linhas=sond.map(h=>{
+    const c=anyClubOf(h.clubId)||{short:h.clubShort||'—'};
+    return `<div class="rf-el-row">
+      ${rfCrest(c,20)}
+      <span class="rf-tr-clube">${escC(c.short||h.clubShort||'—')}</span>
+      <span class="rf-tr-div">${escC(h.divLabel||'—')}</span>
+      <span class="rf-tr-num">${h.salary?fmt(h.salary):'—'}</span>
+      <span class="rf-tr-desf">${escC(h.outcome||h.text||'—')}</span>
+    </div>`;
+  }).join('');
+  const cab=`<div class="rf-el-head" style="--el-cols:${RF_TR_SOND_COLS}">
+    <span></span><span>CLUBE</span><span>DIVISÃO</span>
+    <span class="dir">SALÁRIO</span><span class="dir">DESFECHO</span>
+  </div>`;
+  const cl=clubOf(CL.clubId)||{short:'o clube'};
+  return `${cards || `<div class="rf-card"><div class="rf-label"><span class="rf-label-t">OFERTAS</span></div>
+      <div class="rf-empty">Nenhuma oferta na mesa agora.<br>
+        <small>Clubes sondam quem está com a segurança no cargo bem alta.</small></div></div>`}
+    <div class="rf-card rf-el-tbl" style="--el-cols:${RF_TR_SOND_COLS}">
+      <div class="rf-label"><span class="rf-label-t">CLUBES QUE JÁ SONDARAM</span>
+        <span class="rf-label-r">histórico</span></div>
+      ${cab}
+      ${linhas || '<div class="rf-empty">Ninguém sondou ainda neste save.</div>'}
+    </div>
+    <div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">O QUE ACONTECE SE VOCÊ SAIR</span></div>
+      <span class="rf-tr-texto">O save continua no clube novo, com o elenco e o caixa dele. A campanha
+        do ${escC(cl.short)} fica registrada na sua carreira e o clube passa a ser treinado pela máquina.</span>
+    </div>`;
 }
 
 /* =====================================================================
    6 · PERFIL
    ===================================================================== */
+function rfTrCampo(rot, valor){
+  return `<label class="rf-tr-campo">
+    <span class="rf-tr-campo-l">${escC(rot)}</span>
+    <span class="rf-tr-campo-v">${valor}</span>
+  </label>`;
+}
 function rfTrPerfilHTML(){
   const nome=rfTreinadorNome();
   const rep=Math.round(S.coachRep!=null?S.coachRep:50);
-  const seg=(S.jobSecurity!=null)?S.jobSecurity:60;
-  const auto=!!(CL.options&&CL.options.autoSalary);
-  const imprensa = rep>=70 ? 'Nome respeitado no meio. A imprensa cobra por resultado, não por currículo.'
-    : rep>=40 ? 'Treinador em construção. A imprensa dá crédito, mas cobra sequência.'
-    : 'Ainda desconhecido fora do clube. Uma boa campanha muda isso rápido.';
-  return rfCol(
-    rfCard('Dados do treinador', `
-      <div class="rf-tr-dados">
-        <div class="rf-linha"><span class="rf-linha-t">Nome</span>
-          <span class="rf-linha-v">${escC(nome)}</span></div>
-        <div class="rf-linha"><span class="rf-linha-t">País</span>
-          <span class="rf-linha-v">${escC((typeof universeCountryName==='function')?universeCountryName():'—')}</span></div>
-        <div class="rf-linha"><span class="rf-linha-t">Clube</span>
-          <span class="rf-linha-v">${escC((clubOf(CL.clubId)||{short:'—'}).short)}</span></div>
-        <div class="rf-linha"><span class="rf-linha-t">Temporada</span>
-          <span class="rf-linha-v">${escC(String(S.season||''))}</span></div>
-        <div class="rf-linha"><span class="rf-linha-t">Reputação</span>
-          <span class="rf-linha-v">${rep} de 100</span></div>
-        <div class="rf-linha"><span class="rf-linha-t">Segurança no cargo</span>
-          <span class="rf-linha-v">${seg}%</span></div>
-      </div>`)
-  ) + rfCol(
-    rfCard('Como a imprensa te descreve', `<p class="rf-in-p">${escC(imprensa)}</p>`)
-    + rfCard('Ajustes', `
-      <div class="rf-pref"><span class="rf-pref-l">Salários automáticos</span>
-        <button type="button" class="rf-switch ${auto?'on':''}" onclick="rfTogglePref('autoSalary')"
-          aria-pressed="${auto?'true':'false'}"><i></i></button></div>
-      <div class="rf-linha"><span class="rf-linha-t">Ritmo de jogo</span>
-        <span class="rf-linha-v">${escC(typeof tempoLabelAtual==='function'?tempoLabelAtual():'—')}</span></div>
-      <div class="rf-acts"><button type="button" class="rf-btn rf-btn-secondary"
-        onclick="rfGo('config','opcoes')">Abrir as opções</button></div>`)
-    + rfCard('Fim de linha', `
-      <span class="rf-note">Encerrar manda a carreira para o hall. O save continua para consulta,
-        mas não avança mais.</span>
-      <div class="rf-acts"><button type="button" class="rf-btn rf-btn-recusar"
-        onclick="rfAcEncerrar()">🎓 Encerrar a carreira</button></div>`)
-  );
+  const temps=(S.coachHistory||[]).length||1;
+  const inicio=(S.season||0)-(temps-1);
+  /* IDADE e ESPECIALIDADE o motor não guarda: a idade sai do início da
+     carreira (começa aos 36) e a especialidade, do que a campanha mostra. */
+  const idade=36+(temps-1);
+  const especial = rep>=70 ? 'montar elenco caro' : (S.youthPromotedSeason?'desenvolver a base':'segurar time pequeno');
+  const chips=[];
+  const tat=(typeof CAM_TATICA!=='undefined'&&CAM_TATICA[S.tactic])||S.tactic||'';
+  if(tat) chips.push(String(tat).toLowerCase());
+  if(S.youthPromotedSeason) chips.push('aposta na base');
+  chips.push(rep>=70?'nome respeitado':rep>=40?'calmo na derrota':'ainda desconhecido');
+  if((S.budget||0)<500000) chips.push('pouco caixa');
+  if(CL.formation) chips.push('fiel ao '+CL.formation);
+  return `<div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">DADOS DO TREINADOR</span></div>
+      <div class="rf-tr-campos">
+        ${rfTrCampo('Nome', escC(nome))}
+        ${rfTrCampo('Nacionalidade', ((typeof universeFlag==='function')?universeFlag():'')+' '+escC((typeof universeCountryName==='function')?universeCountryName():'—'))}
+        ${rfTrCampo('Idade', idade+' anos')}
+        ${rfTrCampo('Início da carreira', escC(String(inicio)))}
+        ${rfTrCampo('Estilo preferido', escC((CL.formation?CL.formation+' ':'')+String(tat).toLowerCase()))}
+        ${rfTrCampo('Especialidade', escC(especial))}
+      </div>
+    </div>
+    <div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">COMO A IMPRENSA TE DESCREVE</span></div>
+      <div class="rf-tr-chips">${chips.map(c=>`<span class="rf-tr-chip">${escC(c)}</span>`).join('')}</div>
+    </div>
+    <div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">AJUSTES</span></div>
+      <div class="rf-tr-ajustes">
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfGo('config','opcoes')">Trocar o nome</button>
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfSetTab('treinador','historia')">Ver histórico completo</button>
+        <button type="button" class="rf-btn rf-btn-recusar" onclick="rfAcEncerrar()">Encerrar a carreira</button>
+      </div>
+    </div>`;
 }
 
+/* ---- cabeçalho da página ---- */
+function rfTrSubHTML(){
+  if(typeof migrateCoachCareerStats==='function'){ try{ migrateCoachCareerStats(); }catch(e){} }
+  const car=(S.coachCareerStats&&S.coachCareerStats[CL.clubId])||{};
+  const t=(S.table&&S.table[CL.clubId])||{P:0};
+  const jogos=(car.games||0)+(t.P||0);
+  const temps=(S.coachHistory||[]).length||1;
+  const seg=(S.jobSecurity!=null)?S.jobSecurity:60;
+  return `${rfTreinadorNome()} · ${temps}ª temporada · ${jogos} jogos · segurança no cargo ${seg}%`;
+}
+function rfTrAcoesHTML(){
+  return `<div class="rf-mk-acoes">
+    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfTrExportar()">📤 Exportar carreira</button>
+    <button type="button" class="rf-btn rf-btn-cta" onclick="rfSetTab('treinador','ofertas')">✉️ Ver ofertas</button>
+  </div>`;
+}
+function rfTrExportar(){
+  const h=(S.history||[]).filter(x=>x.clubId===CL.clubId);
+  const linhas=h.map(e=>[e.season,(anyClubOf(e.clubId)||{short:''}).short,
+    'Série '+e.division, e.myPos||'', rfCpDesfecho(e)].join(';'));
+  const txt='temporada;clube;divisao;posicao;desfecho\n'+linhas.join('\n');
+  try{
+    const a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(txt);
+    a.download='carreira-'+rfTreinadorNome()+'.csv'; a.click();
+    toastC('Carreira exportada.');
+  }catch(e){ toastC('Não deu pra exportar aqui.'); }
+}
 
 /* Encerrar a carreira — o diálogo do pacote "Ações Internas". Junta o que
    ele mostra (temporadas e títulos) e abre o envelope; nada de popup. */
