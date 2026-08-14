@@ -39,9 +39,7 @@ function rfLvTicketHTML(){
 }
 /* placar: painel escuro com dígitos amarelos */
 function rfLvPlacarHTML(gh,ga,ativo){
-  return `<span class="rf-lv-placar ${ativo?'ao-vivo':''}">
-    <span class="rf-lv-g">${gh}</span><span class="rf-lv-d">:</span><span class="rf-lv-g">${ga}</span>
-  </span>`;
+  return `<span class="rf-lv-placar ${ativo?'ao-vivo':''}"><span class="rf-lv-g">${gh}</span><span class="rf-lv-d">:</span><span class="rf-lv-g">${ga}</span></span>`;
 }
 
 /* ---- uma linha de jogo ---- */
@@ -56,17 +54,18 @@ function rfLvLinhaHTML(m,i){
   const lado=x=>String(x.side||'').toUpperCase();
   const fh=inc.filter(x=>lado(x)==='H').map(rfLvIncToFato);
   const fa=inc.filter(x=>lado(x)==='A').map(rfLvIncToFato);
+  const gh=m.hg!=null?m.hg:(m.gh||0), ga=m.ag!=null?m.ag:(m.ga||0);
   return `<div class="rf-lv-linha ${meu?'meu':''}" onclick="liveRowClick(${i})">
     <span class="rf-lv-pub">${rfLvTicketHTML()}${grp(m.att||0)}</span>
     <span class="rf-lv-lado casa">
       ${rfLvFatosHTML(fh,'esq')}
-      <span class="rf-lv-n">${escC(hc.short)}</span>
+      <span class="rf-lv-n ${gh>ga?'frente':''}">${escC(hc.short)}</span>
       <span class="rf-lv-crest">${rfCrest(hc,30)}</span>
     </span>
-    <span id="cl-lm-${i}">${rfLvPlacarHTML(m.hg||m.gh||0,m.ag||m.ga||0,true)}</span>
+    <span id="cl-lm-${i}">${rfLvPlacarHTML(gh,ga,true)}</span>
     <span class="rf-lv-lado fora">
       <span class="rf-lv-crest">${rfCrest(ac,30)}</span>
-      <span class="rf-lv-n">${escC(ac.short)}</span>
+      <span class="rf-lv-n ${ga>gh?'frente':''}">${escC(ac.short)}</span>
       ${rfLvFatosHTML(fa,'dir')}
     </span>
     <span class="rf-lv-min" id="cl-lg-${i}">${m.min!=null?m.min+"'":''}</span>

@@ -2012,10 +2012,10 @@
 .rf-lv-sv{font-family:var(--font-mono);font-size:var(--fs-heading);font-weight:var(--fw-semibold);color:#fff}
 .rf-lv-sh{font-family:var(--font-mono);font-size:var(--fs-caption);color:#fff;white-space:nowrap}
 /* relógio: anel de progresso do minuto */
-.rf-lv-relogio{flex:0 0 auto;width:44px;height:44px;border-radius:var(--r-pill);
+.rf-lv-relogio{flex:0 0 auto;width:52px;height:52px;border-radius:var(--r-pill);
   background:conic-gradient(var(--club-secondary) calc(var(--pct,0)*1%),rgba(255,255,255,.18) 0);
   display:flex;align-items:center;justify-content:center}
-.rf-lv-relogio>span{width:34px;height:34px;border-radius:var(--r-pill);background:var(--club-primary-deep);
+.rf-lv-relogio>span{width:40px;height:40px;border-radius:var(--r-pill);background:var(--brand-primary,#17458F);
   display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);
   font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:#fff}
 .rf-lv-cam{flex:0 0 auto;margin-left:16px;height:38px;padding:0 16px;border:none;border-radius:var(--r-chip);
@@ -2050,8 +2050,12 @@
 /* lado do time: nome, escudo de 30px sem moldura, e os fatos */
 .rf-lv-lado{display:flex;align-items:center;gap:10px;min-width:0}
 .rf-lv-lado.casa{justify-content:flex-end}
+/* QUEM ESTÁ A GANHAR FICA A NEGRITO. É como a referência separa os dois
+   lados sem precisar de seta nem de cor: o placar diz o número, o peso do
+   nome diz quem está à frente de relance. */
 .rf-lv-n{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1)}
+  font-size:15px;font-weight:var(--fw-medium);color:var(--text-2)}
+.rf-lv-n.frente{font-weight:var(--fw-bold);color:var(--text-1)}
 .rf-lv-crest{flex:0 0 auto;display:flex}
 .rf-lv-crest img,.rf-lv-crest .rf-crest-fb{width:30px;height:30px;object-fit:contain;
   background:transparent;border:none;box-shadow:none}
@@ -2060,18 +2064,29 @@
 .rf-lv-fato{display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;overflow:hidden;
   white-space:nowrap;background:var(--surface-sunken);border-radius:var(--r-pill);padding:3px 8px}
 .rf-lv-fi{font-size:10px}
-.rf-lv-fn{font-size:var(--fs-micro);color:var(--text-3);overflow:hidden;text-overflow:ellipsis}
-.rf-lv-fm{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-faint)}
-.rf-lv-mais{flex:0 0 auto;font-family:var(--font-mono);font-size:var(--fs-label);
-  font-weight:var(--fw-bold);color:var(--text-3);background:var(--surface-sunken);
-  border:var(--border-hairline);border-radius:var(--r-pill);padding:1px 6px}
+.rf-lv-fn{font-size:11px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis}
+.rf-lv-fm{font-family:var(--font-mono);font-size:10px;color:var(--text-faint)}
+/* o "+N" da referência é TEXTO, não pastilha: a segunda moldura ao lado da
+   pastilha de fato fazia a linha parecer ter dois fatos em vez de um resumo. */
+.rf-lv-mais{flex:0 0 auto;font-family:var(--font-mono);font-size:10px;
+  font-weight:var(--fw-semibold);color:var(--brand-primary,#17458F);
+  white-space:nowrap;cursor:pointer}
 /* placar: painel escuro, dígitos amarelos, malha de pontos */
-.rf-lv-placar{display:flex;align-items:center;justify-content:center;gap:9px;
-  background:#0b1a2e;background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px);
-  background-size:4px 4px;border-radius:var(--r-chip);padding:6px 10px;
-  font-family:var(--font-mono);font-size:19px;font-weight:var(--fw-semibold);color:var(--club-secondary)}
-.rf-lv-d{opacity:.5}
-.rf-lv-min{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-muted);text-align:right}
+/* PLACAR: é um painel de estádio, não uma caixa escura. Fundo quase preto,
+   malha de pontos de 3px por cima, dígitos amarelos com brilho — o brilho é
+   o que faz o número parecer aceso em vez de impresso. */
+.rf-lv-placar{position:relative;overflow:hidden;display:flex;align-items:center;
+  justify-content:center;gap:9px;background:#12201a;border-radius:10px;padding:6px 0;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+  font-family:var(--font-mono);font-size:19px;font-weight:var(--fw-semibold);
+  color:var(--brand-secondary,#F2B90C)}
+.rf-lv-placar::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(rgba(255,255,255,.14) .5px,transparent .6px);
+  background-size:3px 3px}
+.rf-lv-g{position:relative;text-shadow:0 0 8px rgba(242,185,12,.75)}
+.rf-lv-d{position:relative;color:#5a6560}
+.rf-lv-min{font-family:var(--font-mono);font-size:12px;font-weight:var(--fw-semibold);
+  color:var(--brand-primary,#17458F);text-align:right}
 
 @media (max-width:1560px){ .rf-lv-env [data-ad-rail="right"]{display:none} }
 @media (max-width:1320px){ .rf-lv-env [data-ad-rail]{display:none} }
