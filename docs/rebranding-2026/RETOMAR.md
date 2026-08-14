@@ -34,11 +34,24 @@ sessão):
 
 Sempre que houver conflito entre pastas, **vale a `telas-v3`**.
 
+## O roteiro do designer
+
+`docs/rebranding-2026/PROMPT-IMPLEMENTACAO-leva7.md` é o mapeamento tela a tela do pacote v3
+para as funções de `main.js` que elas substituem, com a secção **21** dedicada às 11 ações que
+faltam. Vale mais do que o `BRIEF-acoes-que-faltam.md`, que é anterior às decisões de desenho.
+
 ## O que falta, em ordem
 
-### 1 · Modo Camarote
-`telas-v3/Modo Camarote.dc.html`. Nunca passou pelo desenho novo. É a tela que abre no botão
-amarelo do canto da Rodada ao vivo. É a maior peça pendente.
+### ~~1 · Modo Camarote~~ — FEITO (commit `63987cb`)
+O desenho de `telas-v3/Modo Camarote.dc.html` está no ar, ligado ao motor de sempre. Duas coisas
+a saber antes de mexer nele:
+
+- Os ids (`#rf-cam-dyn`, `#rf-cam-hg`, `#rf-cam-min`, `#rf-cam-anel`, `#rf-cam-presh`,
+  `#rf-cam-lines`…) são **contrato** com `camUpdate`/`camPatchBoard`/`camPatchFeed`, que
+  atualizam no lugar. Trocar um id apaga a animação da narração e faz a barra de pressão pular.
+- `main.css` ainda tem `.rf-cam-sw*` (o interruptor da barra da partida), e ele é código morto —
+  `camSwitchHTML` só é chamado no trecho de `scLive` que vem DEPOIS do `return rfLiveHTML(RL)`.
+  Aliás, todo esse trecho é morto e nunca foi apagado.
 
 ### 2 · As quatro telas novas do último pacote
 - `Acoes - Opcoes e Estadio.dc.html` — resolve **Opções do jogo** e **Construir arquibancada**.
