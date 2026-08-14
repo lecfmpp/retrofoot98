@@ -132,10 +132,10 @@ function rfLiveHTML(RL){
       ${porDiv[d].map(x=>rfLvLinhaHTML(x.m,x.i)).join('')}
     </div>`).join('');
   return `<div class="rf-lv">
-    ${rfTopAd()}
     <div class="rf-lv-env">
       ${rfRail('left')}
       <div class="rf-lv-mid">
+        ${rfTopAd()}
         ${rfLvFaixaHTML(RL)}
         ${cards}
       </div>

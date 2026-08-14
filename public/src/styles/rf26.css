@@ -139,22 +139,20 @@
 
 /* ============================ HUB / ENVELOPE ============================ */
 
-/* O envelope de TODAS as páginas: mesa verde, shell arredondado, sidebar +
-   coluna de conteúdo. `max-content` na segunda coluna é o que garante que o
-   campo (470px fixos) nunca encolha quando a sidebar expande. */
-.rf-desk{min-height:100vh;background:var(--surface-desk);padding:18px;box-sizing:border-box;
-  display:flex;flex-direction:column;align-items:center;gap:14px;font-family:var(--font-sans);color:var(--text-1)}
-/* o envelope tem largura de conteúdo (o campo não encolhe, então ele não pode
-   encolher junto); a mesa é quem rola quando a janela é estreita demais */
-.rf-envelope{width:max-content;margin:0 auto;display:flex;gap:14px;align-items:flex-start}
-.rf-shell{display:grid;grid-template-columns:216px max-content;gap:14px;align-items:start;
-  transition:grid-template-columns .22s var(--ease)}
-.rf-shell.collapsed{grid-template-columns:62px max-content}
+/* O envelope de TODAS as páginas é um PAINEL, não uma cápsula centrada:
+   sidebar colada à borda esquerda com a altura toda, miolo com o resto da
+   largura. Quem rola é o miolo — a página não rola, então a navegação está
+   sempre à vista, em qualquer resolução de desktop. */
+.rf-app{height:100dvh;display:flex;align-items:stretch;overflow:hidden;
+  background:var(--surface-desk);font-family:var(--font-sans);color:var(--text-1)}
+.rf-main{flex:1 1 auto;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
 
-/* ----- Sidebar 216px → 62px, estado persistido em localStorage ----- */
-.rf-sidebar{position:sticky;top:18px;display:flex;flex-direction:column;gap:10px;
-  background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);
-  padding:12px;box-sizing:border-box;overflow:hidden}
+/* ----- Sidebar 240px → 68px, estado persistido em localStorage ----- */
+.rf-sidebar{flex:0 0 auto;width:240px;height:100%;box-sizing:border-box;
+  display:flex;flex-direction:column;gap:10px;overflow-y:auto;overflow-x:hidden;
+  background:var(--surface-card);border-right:1px solid var(--line-2);padding:14px 12px;
+  transition:width .22s var(--ease)}
+.rf-app.collapsed .rf-sidebar{width:68px}
 .rf-sb-club{display:flex;align-items:center;gap:10px;padding:4px 4px 10px;
   border:0;border-bottom:1px solid var(--line-3);background:none;width:100%;
   text-align:left;font:inherit;color:inherit;cursor:pointer;-webkit-appearance:none;appearance:none}
@@ -198,39 +196,36 @@
 .rf-sb-toggle:hover{background:var(--surface-sunken);color:var(--text-2)}
 
 /* estado recolhido: some tudo que é texto, o ícone centraliza */
-.rf-shell.collapsed .rf-nav-l,
-.rf-shell.collapsed .rf-sb-cnames,
-.rf-shell.collapsed .rf-sb-next-hd,
-.rf-shell.collapsed .rf-sb-next-opp,
-.rf-shell.collapsed .rf-sb-toggle span{display:none}
-.rf-shell.collapsed .rf-nav-i{justify-content:center;padding:0 8px;gap:0}
-.rf-shell.collapsed .rf-sb-club{justify-content:center;padding:4px 0 10px}
-.rf-shell.collapsed .rf-sb-next{padding:8px;align-items:center}
-.rf-shell.collapsed .rf-sb-toggle{justify-content:center;padding:0}
+.rf-app.collapsed .rf-nav-l,
+.rf-app.collapsed .rf-sb-cnames,
+.rf-app.collapsed .rf-sb-next-hd,
+.rf-app.collapsed .rf-sb-next-opp,
+.rf-app.collapsed .rf-sb-toggle span{display:none}
+.rf-app.collapsed .rf-nav-i{justify-content:center;padding:0 8px;gap:0}
+.rf-app.collapsed .rf-sb-club{justify-content:center;padding:4px 0 10px}
+/* recolhida, o cartão do próximo jogo fica só com o botão — e o botão fica só
+   com o ícone: em 68px de sidebar, "⚽ Jogar" transbordava a caixa. */
+.rf-app.collapsed .rf-sb-next{padding:6px;align-items:stretch}
+.rf-app.collapsed .rf-sb-next .rf-btn{padding:0;min-width:0;font-size:0;gap:0}
+.rf-app.collapsed .rf-sb-next .rf-btn::first-letter{font-size:var(--fs-body-sm)}
+.rf-app.collapsed .rf-sb-toggle{justify-content:center;padding:0}
 /* o badge vira um ponto no canto do ícone quando não há espaço pro número */
-.rf-shell.collapsed .rf-nav-i{position:relative}
-.rf-shell.collapsed .rf-nav-b{position:absolute;top:5px;right:6px;padding:0;min-width:8px;
+.rf-app.collapsed .rf-nav-i{position:relative}
+.rf-app.collapsed .rf-nav-b{position:absolute;top:5px;right:6px;padding:0;min-width:8px;
   width:8px;height:8px;font-size:0;line-height:0}
 
 /* ----- Faixa do clube: o cabeçalho de toda página ----- */
-/* Toda página tem a MESMA largura de miolo — a do Hub, que é quem manda
-   (coluna de 530 + coluna do campo de 770 + 14). Sem isto o envelope
-   encolhia e crescia a cada troca de página e a faixa do clube dançava de
-   tamanho junto: navegar parecia trocar de site, não de secção. */
-/* LARGURA DO MIOLO, contínua em vez de degraus. 1314 é o ideal (o Hub lado a
-   lado); daí pra baixo ela acompanha a janela, sempre descontando a mesa (36),
-   a sidebar aberta (216) e o respiro (14) — e nunca abaixo de 770, que é a
-   coluna do campo, a peça que não encolhe. Assim as páginas internas ganham
-   toda a largura disponível num monitor de 1440 em vez de ficarem presas a um
-   número fixo, e a faixa do clube continua igual em todas as páginas (que é o
-   motivo de existir uma largura só). */
-:root{--rf-content-w:max(770px, min(1314px, calc(100vw - 266px)))}
-/* SEM container-type AQUI. Chegou a ter, pra a grade da página empilhar pela
-   largura dela mesma — mas a contenção de tamanho embriga com a cadeia de
-   `width:max-content` do envelope (que existe porque o CAMPO do Hub não
-   encolhe): o miolo passava a medir ~0 e a faixa do clube virava um risco
-   vertical no telefone. A grade volta a empilhar por media query, abaixo. */
-.rf-content{width:var(--rf-content-w);max-width:100%;min-width:0;display:flex;flex-direction:column;gap:14px}
+/* O MIOLO OCUPA A LARGURA QUE SOBRA — sem `--rf-content-w`.
+   Havia aqui uma largura calculada (770…1314px) porque o envelope era uma
+   cápsula e a faixa do clube precisava medir igual em toda página. Num painel
+   isso deixa de ser problema: a coluna é a mesma em todas as páginas porque é
+   a mesma coluna, e ela acompanha a janela sozinha.
+   `container-type:inline-size` VOLTA a ser possível, e é o certo aqui: a grade
+   do Hub passa a empilhar pela largura da PRÓPRIA coluna, então ela também
+   reage a recolher a sidebar — coisa que media query de viewport não vê. O que
+   impedia era a cadeia de `width:max-content` do envelope antigo, que sumiu. */
+.rf-content{width:auto;min-width:0;box-sizing:border-box;padding:16px 18px 28px;
+  display:flex;flex-direction:column;gap:14px;container-type:inline-size;container-name:miolo}
 .rf-band{display:flex;align-items:center;gap:16px;
   background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
   border-radius:var(--r-card);padding:16px 20px;position:relative;overflow:hidden;color:#fff}
@@ -265,9 +260,24 @@
 .rf-forma i.e{background:var(--text-faint)}
 .rf-forma i.d{background:var(--danger)}
 
-/* ----- Área central de duas colunas: 530px fixos + o resto ----- */
-.rf-cols{display:grid;grid-template-columns:530px minmax(0,1fr);gap:14px;align-items:stretch}
+/* ----- Área central de duas colunas -----
+   A esquerda (elenco, moral, classificação) é ELÁSTICA e a direita é o campo,
+   que tem tamanho próprio (470 do gramado + 196 do banco). Antes era o
+   contrário — 530px fixos à esquerda — e as duas juntas só cabiam a partir de
+   1580px de janela: num monitor de 1440, que é o mais comum, o Hub empilhava e
+   o campo ia parar abaixo da dobra. Com a esquerda cedendo, cabem lado a lado
+   bem antes disso. */
+.rf-cols{display:grid;grid-template-columns:minmax(340px,1fr) auto;gap:14px;align-items:stretch}
 .rf-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+/* Empilha pela largura da COLUNA (ver container-type em .rf-content), não da
+   janela — então recolher a sidebar também conta: ela devolve 172px e o campo
+   volta pro lado, sem o utilizador precisar redimensionar nada.
+   1130 é a conta, não um número redondo: 340 da coluna mínima da esquerda + 14
+   de respiro + 770 do campo (470 do gramado + 196 do banco + folga). Abaixo
+   disso a esquerda passaria do mínimo e a grade transbordaria. */
+@container miolo (max-width:1130px){
+  .rf-cols{grid-template-columns:minmax(0,1fr)}
+}
 
 /* ----- Abas dentro da página (sub-itens de menu viram aba, nunca página nova) ----- */
 .rf-tabs{display:flex;gap:6px;flex-wrap:wrap}
@@ -285,9 +295,13 @@
    ficam FORA da coluna de conteúdo, e as media queries abaixo são a única
    exceção à regra de não usar classe pra responsividade: elas se prendem
    a atributos data-*, não a classes de componente. */
-.rf-ad-top{width:970px;max-width:100%;height:90px;margin:0 auto;border-radius:var(--r-inner);
+/* O BANNER É UM BLOCO DA COLUNA, não uma peça centrada na página. Era 970px
+   fixos com `margin:0 auto`, e num monitor de 1440 caía em x=235 enquanto a
+   faixa do clube — a barra logo abaixo dele — começava em x=264. Duas peças
+   empilhadas, dois alinhamentos diferentes. Agora divide a caixa da faixa. */
+.rf-ad-top{width:100%;height:90px;border-radius:var(--r-inner);
   overflow:hidden;background:var(--surface-sunken);border:var(--border-hairline);
-  display:flex;align-items:center;justify-content:center}
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto}
 [data-ad-rail]{width:160px;flex:0 0 auto;position:sticky;top:18px;display:flex;
   flex-direction:column;gap:12px}
 [data-ad-rail] .rf-ad-slot{width:160px;height:600px;border-radius:var(--r-inner);overflow:hidden;
@@ -314,15 +328,12 @@
    Abaixo de 1580 as duas colunas EMPILHAM em vez de espremer: o elenco em cima,
    o campo embaixo, os dois no tamanho cheio. Nenhum dado é cortado — que é a
    outra regra que não pode ser quebrada. */
+/* Os trilhos de 160×600 continuam existindo para as telas de PARTIDA (rodada
+   ao vivo e Camarote), que são tomadas de tela cheia com desenho próprio. Na
+   área logada eles saíram: o painel usa a largura toda e a publicidade passa a
+   morar dentro da página. */
 @media (max-width:1928px){ [data-ad-rail="right"]{display:none} }
 @media (max-width:1754px){ [data-ad-rail]{display:none} }
-/* ver a "ordem de sacrifício" acima: 1580 é a largura em que as duas colunas
-   ainda cabem lado a lado com a sidebar aberta. */
-@media (max-width:1580px){
-  /* o HUB empilha aqui — a coluna dele é o campo, de 770, e não encolhe */
-  .rf-cols{grid-template-columns:minmax(0,1fr)}
-  .rf-col{min-width:0}
-}
 
 @media (max-width:1024px){
   .rf-band{flex-wrap:wrap;row-gap:12px}
@@ -544,12 +555,13 @@
 .rf-sheet{display:none}
 
 @media (max-width:760px){
-  .rf-desk{padding:0 0 96px;align-items:stretch;gap:0}
-  .rf-envelope{width:auto;display:block;padding:10px 12px 0}
-  .rf-shell,.rf-shell.collapsed{display:block;grid-template-columns:none}
-  .rf-sidebar{display:none}                 /* virou a barra inferior */
-  :root{--rf-content-w:auto}
-  .rf-content{width:auto;gap:10px}
+  /* no telefone o painel deixa de ser duas colunas: a sidebar vira a barra
+     inferior e o miolo passa a rolar com a página, não dentro de si — rolagem
+     aninhada em toque é o caminho curto pro scroll preso. */
+  .rf-app,.rf-app.collapsed{display:block;height:auto;overflow:visible}
+  .rf-main{overflow:visible}
+  .rf-sidebar,.rf-app.collapsed .rf-sidebar{display:none}   /* virou a barra inferior */
+  .rf-content{padding:10px 12px 96px;gap:10px}
   .rf-cols{grid-template-columns:minmax(0,1fr);gap:10px}
   [data-ad-rail]{display:none}
   .rf-ad-top{height:100px}
@@ -1237,6 +1249,22 @@
 .rf-sq-id{font-size:var(--fs-caption);color:var(--text-muted)}
 .rf-sq-frc{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1)}
 .rf-sq-nota{font-size:var(--fs-caption);color:var(--text-faint)}
+/* TABELA DO HUB NUMA COLUNA APERTADA — o Hub é resumo, o Elenco é a ficha.
+   Com o campo (770px) ao lado, a coluna da esquerda fica entre 340 e 520px, e
+   as nove colunas só deixavam 12px pro NOME. Em vez de espremer o nome — que é
+   a única coluna que o utilizador lê pra achar o jogador — caem as três que a
+   página de Elenco mostra por inteiro logo ali: idade, nota e salário.
+   A grade vem inline do JS, daí o !important (mesma razão da regra do telefone). */
+@container miolo (max-width:1300px){
+  .rf-sq-head.rf-sq-hub,.rf-sq-row.rf-sq-hub{
+    grid-template-columns:20px 24px minmax(0,1fr) 34px 42px 58px !important}
+  .rf-sq-head.rf-sq-hub>span:nth-child(4),
+  .rf-sq-head.rf-sq-hub>span:nth-child(6),
+  .rf-sq-head.rf-sq-hub>span:nth-child(8),
+  .rf-sq-row.rf-sq-hub>.rf-sq-id,
+  .rf-sq-row.rf-sq-hub>.rf-sq-nota,
+  .rf-sq-row.rf-sq-hub>.rf-sq-sal{display:none}
+}
 .rf-sq-nota.boa{color:var(--ok)}
 .rf-sq-nota.media{color:var(--warn)}
 .rf-sq-nota.ruim{color:var(--danger)}
@@ -3870,15 +3898,10 @@
    a página inteira ficava mais larga que a tela — em vez de a tabela
    rolar dentro do próprio card, que é o comportamento certo.
    ===================================================================== */
-/* SÓ O CONTEÚDO DA PÁGINA. Não tocar em .rf-envelope/.rf-shell/.rf-content:
-   eles são dimensionados por max-content por causa do CAMPO do Hub, que não
-   encolhe — pôr min-width:0 neles esmagava a faixa do clube até virar um
-   risco vertical. */
+/* SÓ O CONTEÚDO DA PÁGINA. O envelope já não precisa de trava: a cadeia de
+   `width:max-content` que fazia a tabela de 600px empurrar a página inteira
+   morreu junto com a cápsula — o miolo agora mede pela coluna. */
 @media (max-width:900px){
-  /* max-width:100% é o que DE FATO segura: min-width:0 não impede um ancestral
-     de `width:max-content` de crescer atrás da tabela de 600px. Aqui o envelope
-     para de crescer e a tabela rola dentro do card, como o pacote pede. */
-  .rf-envelope,.rf-shell,.rf-content{max-width:100%}
   .rf-pagegrid,.rf-pagecol,.rf-card,.rf-tabpane,.rf-label,.rf-linha{min-width:0}
   /* o rótulo à direita do cabeçalho do card encolhe em vez de empurrar */
   .rf-label{flex-wrap:wrap;row-gap:2px}

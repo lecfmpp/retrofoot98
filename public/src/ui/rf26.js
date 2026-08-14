@@ -386,18 +386,28 @@ function rfTopAd(){
   return real||`<div class="rf-ad-top"><span class="rf-ad-lbl">Publicidade</span></div>`;
 }
 
-/* O ENVELOPE: mesa → banner do topo → [trilho · shell(sidebar+conteúdo) · trilho] */
+/* O ENVELOPE — painel, não cápsula.
+   Antes isto era uma mesa que CENTRAVA um envelope de `width:max-content`,
+   ladeado por dois trilhos de anúncio. Três coisas saíam erradas disso:
+   a área logada deixava vazio metade de um monitor largo; o banner do topo
+   (970px fixos, centrado na mesa) não alinhava com nada — nem com a faixa do
+   clube, que é a barra logo abaixo dele; e a sidebar era um cartão flutuando
+   com 18px de respiro em volta, em vez de a coluna de navegação da página.
+   Agora é o desenho de painel: sidebar colada à borda esquerda ocupando a
+   altura toda, miolo com o resto da largura e rolagem PRÓPRIA (a página não
+   rola, o miolo rola), e o banner como primeiro bloco da coluna de conteúdo —
+   mesma caixa da faixa do clube, que era o pedido.
+   Os trilhos laterais saíram: a publicidade da área logada passa a morar
+   dentro da página. */
 function rfEnvelope(conteudo){
-  return `<div class="rf-desk">
-    ${rfTopAd()}
-    <div class="rf-envelope">
-      ${rfRail('left')}
-      <div class="rf-shell ${rfSidebarCollapsed()?'collapsed':''}">
-        ${rfSidebarHTML()}
-        <div class="rf-content">${conteudo}</div>
+  return `<div class="rf-app ${rfSidebarCollapsed()?'collapsed':''}">
+    ${rfSidebarHTML()}
+    <main class="rf-main">
+      <div class="rf-content">
+        ${rfTopAd()}
+        ${conteudo}
       </div>
-      ${rfRail('right')}
-    </div>
+    </main>
     ${rfBottomNavHTML()}
     ${typeof rfAcaoHTML==='function'?rfAcaoHTML():''}
   </div>`;
@@ -1312,11 +1322,14 @@ const RF_SQUAD_COLS={
 };
 function rfSquadTableHTML(modo, opts){
   opts=opts||{};
-  const cfg=RF_SQUAD_COLS[modo]||RF_SQUAD_COLS.hub;
+  modo=RF_SQUAD_COLS[modo]?modo:'hub';
+  const cfg=RF_SQUAD_COLS[modo];
   const id=opts.clubId||CL.clubId;
   const lista=(opts.lista||squad(id)).slice().sort(bySquadOrder);
   const xi=new Set(S.xi||[]);
-  const cab=`<div class="rf-sq-head" style="grid-template-columns:${cfg.grid}">
+  // a densidade vai na CLASSE, não só na grade inline: é por ela que o CSS
+  // enxuga a tabela do Hub quando a coluna aperta, sem tocar na do Elenco.
+  const cab=`<div class="rf-sq-head rf-sq-${modo||'hub'}" style="grid-template-columns:${cfg.grid}">
     <span></span><span>POS</span><span>NOME</span>
     <span>ID</span><span>FRC</span><span>NOTA</span><span>ENER</span>
     ${cfg.sal?'<span>SAL.</span>':''}<span>VALOR</span>
@@ -1327,7 +1340,7 @@ function rfSquadTableHTML(modo, opts){
     const en=Math.round(p.energy!=null?p.energy:100);
     const sal=(typeof playerSalary==='function')?playerSalary(p):0;
     const indisp=(p.suspended>0)||(p.injuredMatches>0);
-    return `<div class="rf-sq-row ${CL.selPlayer===p.pid?'sel':''} ${indisp?'off':''}"
+    return `<div class="rf-sq-row rf-sq-${modo||'hub'} ${CL.selPlayer===p.pid?'sel':''} ${indisp?'off':''}"
         style="grid-template-columns:${cfg.grid};padding:${cfg.pad}"
         onclick="clSelPlayer('${escC(p.pid)}')" title="${escC(p.n)}">
       <span class="rf-sq-mark ${tit?'tit':''}">${tit?'T':escC(posLetter(p.s))}</span>
