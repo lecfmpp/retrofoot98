@@ -105,13 +105,18 @@ function rfLvFaixaHTML(RL){
       <span class="rf-lv-sl">${escC(periodo)}</span>
       <span class="rf-lv-sh">${meu?('seu jogo: '+(meu.gh||0)+' × '+(meu.ga||0)):'sem jogo seu'}</span>
     </div>
-    ${camOk?`<button type="button" class="rf-lv-cam" onclick="camToggle&&camToggle()">🎥 Modo Camarote</button>`:''}
+    ${camOk?`<button type="button" class="rf-lv-cam" onclick="camToggle()">🎥 Modo Camarote</button>`:''}
   </div>`;
 }
 
 /* ---- a tela inteira ---- */
 function rfLiveHTML(RL){
   if(!RL) return '';
+  // O Camarote é a VISÃO PADRÃO (camOn devolve true enquanto ninguém desligar) e
+  // só existe quando há partida DO USUÁRIO nesta rodada — no modo espectador de
+  // copa não há jogo dele pra assistir de camarote.
+  const camAberto = (RL.matches||[]).some(m=>m.user)
+    && typeof camOn==='function' && camOn();
   const porDiv={};
   (RL.matches||[]).forEach((m,i)=>{ const d=m.div||S.division; (porDiv[d]=porDiv[d]||[]).push({m,i}); });
   const ordem=(typeof divOrderUserFirst==='function')?divOrderUserFirst():Object.keys(porDiv);
@@ -136,23 +141,25 @@ function rfLiveHTML(RL){
       </div>
       ${rfRail('right')}
     </div>
+    ${camAberto?rfCamHTML(RL):''}
   </div>`;
 }
 
 /* =====================================================================
-   MODO CAMAROTE — portado de telas/Modo Camarote.html
-   Sobreposição em tela cheia: banner, trilhos de anúncio, e um shell com
-   a faixa do Camarote, o placar de estádio, a barra de pressão e um corpo
-   de duas colunas (narração 1fr · estatísticas 320px).
+   MODO CAMAROTE — telas-v3/Modo Camarote.dc.html
+   Sobreposição em tela cheia sobre a rodada, que continua rolando ao fundo.
+   Aqui mora só o DESENHO; o motor é o de sempre (main.js): camMinuteNow dá o
+   relógio, camShare dá a pressão, m.camStats dá a estatística e m.narr dá a
+   narração. Os ids (#rf-cam-dyn, #rf-cam-hg, #rf-cam-min, #rf-cam-presh,
+   #rf-cam-lines…) são CONTRATO com camUpdate/camPatchBoard/camPatchFeed, que
+   atualizam no lugar em vez de redesenhar — mexer neles apaga a animação da
+   narração e faz a barra de pressão pular em vez de deslizar.
    ===================================================================== */
 function rfCamHTML(RL){
-  const m=(RL.matches||[]).find(x=>x.user)||(RL.matches||[])[0];
-  if(!m) return '';
-  const hc=anyClubOf(m.h)||{short:'—'}, ac=anyClubOf(m.a)||{short:'—'};
-  const min=RL.minute||RL.min||0;
-  const periodo=min>45?'2º tempo':'1º tempo';
-  const pressao=(typeof camPressure==='function')?camPressure(m):50;
-  return `<div class="rf-cam">
+  RL=RL||CL.live; if(!RL) return '';
+  const m=(RL.matches||[]).find(x=>x.user); if(!m) return '';
+  camEnsure(m);
+  return `<div class="rf-cam" onclick="camBackdrop(event)">
     <div class="rf-cam-env">
       ${rfRail('left')}
       <div class="rf-cam-mid">
@@ -162,74 +169,16 @@ function rfCamHTML(RL){
             <div class="rf-band-filete"></div>
             <span class="rf-cam-ic">🎥</span>
             <span class="rf-cam-t">Camarote</span>
-            <span class="rf-lv-aovivo">● Ao vivo</span>
+            <span class="rf-cam-aovivo" id="rf-cam-onair" ${camMatchOver(m)?'hidden':''}><i>●</i> AO VIVO</span>
+            <div class="rf-sp"></div>
             <span class="rf-cam-nota">os outros jogos seguem rolando ao fundo</span>
-            <div class="rf-sp"></div>
-            <button type="button" class="rf-cam-x" onclick="camToggle&&camToggle()">✖ Voltar</button>
+            <button type="button" class="rf-cam-x" onclick="camToggle()" title="Voltar à rodada (Esc)">✖ Voltar à rodada</button>
           </div>
-
-          <div class="rf-cam-board">
-            <div class="rf-cam-lado">
-              <span class="rf-cam-onde">Em casa</span>
-              <span class="rf-cam-time">${escC(hc.short)}</span>
-              <span class="rf-cam-sub">onze ${xiPlayers(CL.clubId).length}/11</span>
-            </div>
-            <span class="rf-cam-crest">${rfCrest(hc,44)}</span>
-            <div class="rf-cam-placar">
-              <span class="rf-cam-g">${m.hg||0}</span>
-              <span class="rf-cam-d">:</span>
-              <span class="rf-cam-g">${m.ag||0}</span>
-            </div>
-            <span class="rf-cam-crest">${rfCrest(ac,44)}</span>
-            <div class="rf-cam-lado fim">
-              <span class="rf-cam-onde">Visitante</span>
-              <span class="rf-cam-time">${escC(ac.short)}</span>
-              <span class="rf-cam-sub">${escC(CL.formation||'')}</span>
-            </div>
-            <div class="rf-cam-relogio"><span class="rf-cam-min">${min}'</span>
-              <span class="rf-cam-per">${escC(periodo)}</span></div>
-          </div>
-
-          <div class="rf-cam-pressao">
-            <span class="rf-label-t">Pressão</span>
-            <span class="rf-cam-bar">
-              <i class="casa" style="width:${pressao}%"></i>
-              <i class="fora" style="width:${100-pressao}%"></i>
-              <b class="rf-cam-meio"></b>
-            </span>
-            <span class="rf-cam-tag">${pressao>=55?escC(hc.short)+' pressiona':pressao<=45?escC(ac.short)+' pressiona':'jogo equilibrado'}</span>
-          </div>
-
-          <div class="rf-cam-abas">
-            <button type="button" class="rf-tabp on">Panorama do Jogo</button>
-            <button type="button" class="rf-tabp">Comentários</button>
-            <button type="button" class="rf-tabp">Estatísticas</button>
-            <div class="rf-sp"></div>
-            <button type="button" class="rf-cam-pausar" onclick="camPause&&camPause()">⏸ Pausar</button>
-          </div>
-
-          <div class="rf-cam-body">
-            <div class="rf-card">
-              <div class="rf-label"><span class="rf-label-t">Narração ao vivo</span>
-                <span class="rf-label-r">Casa do ${escC(hc.short)} · ${grp(m.att||0)} pagantes</span></div>
-              <div class="rf-cam-narra">${rfCamNarraHTML(m)}</div>
-            </div>
-            <div class="rf-cam-dir">
-              <div class="rf-card">
-                <div class="rf-label"><span class="rf-label-t">Estatísticas</span>
-                  <span class="rf-label-r">${escC(hc.short)} · ${escC(ac.short)}</span></div>
-                ${rfCamStatsHTML(m)}
-              </div>
-              <div class="rf-card">
-                <span class="rf-label-t">Ficha</span>
-                <div class="rf-linha"><span class="rf-linha-t">Árbitro</span>
-                  <span class="rf-linha-v">${escC(m.ref||'—')}</span></div>
-                <div class="rf-linha"><span class="rf-linha-t">Público</span>
-                  <span class="rf-linha-v">${grp(m.att||0)}</span></div>
-                <div class="rf-linha"><span class="rf-linha-t">Sua tática</span>
-                  <span class="rf-linha-v">${escC(CL.formation||'—')}</span></div>
-              </div>
-            </div>
+          <div id="rf-cam-dyn" data-tab="${escC(CL.camTab||'panorama')}">${camDynHTML(m)}</div>
+          ${rfCamPatroHTML()}
+          <div class="rf-cam-rodape">
+            <span>Esc ou ✖ para voltar à rodada</span>
+            <span>O Camarote mostra só o seu jogo — a rodada inteira continua ao fundo</span>
           </div>
         </div>
       </div>
@@ -237,25 +186,176 @@ function rfCamHTML(RL){
     </div>
   </div>`;
 }
-function rfCamNarraHTML(m){
-  const narr=(m.narr||[]).slice().reverse().slice(0,14);
-  if(!narr.length) return '<span class="rf-note">O árbitro já vai apitar…</span>';
-  return narr.map(l=>`<div class="rf-cam-linha k-${escC(l.kind||'')}">
+
+/* o miolo que muda a cada minuto — vive dentro de #rf-cam-dyn e é o único
+   pedaço que camUpdate redesenha inteiro (só na troca de aba). */
+function rfCamDynHTML(m){
+  const RL=CL.live||{};
+  const tab=CL.camTab||'panorama';
+  const mn=camMinuteNow(m,RL), fim=camMatchOver(m);
+  const periodo = RL.pens ? 'PÊNALTIS'
+    : RL.extraStartMinute!=null ? 'PRORROGAÇÃO'
+    : fim ? ((m.streamRemote && m.streamDead && !m.streamDone) ? 'SEM SINAL' : 'ENCERRADO')
+    : mn<=45 ? '1º TEMPO' : mn<=90 ? '2º TEMPO' : 'ACRÉSCIMOS';
+  const verNarra = tab!=='estatisticas', verStats = tab!=='comentarios';
+  const aba=(k,l)=>`<button type="button" class="rf-cam-aba ${tab===k?'on':''}" onclick="camTab('${k}')">${l}</button>`;
+  // no Resenha o ritmo é do anfitrião: não há o que pausar aqui.
+  const play = CL.online
+    ? `<span class="rf-cam-ritmo" title="No Resenha o ritmo é o do anfitrião">⏱ ritmo da sala</span>`
+    : `<button type="button" class="rf-cam-pausar" onclick="camTogglePlay()" ${fim?'disabled':''}>${fim?'Fim':(RL.userPaused?'▶ Jogar':'⏸ Pausar')}</button>`;
+  return rfCamBoardHTML(m,mn,periodo)
+    + rfCamPressaoHTML(m)
+    + `<div class="rf-cam-abas">${aba('panorama','Panorama do Jogo')}${aba('comentarios','Comentários')}${aba('estatisticas','Estatísticas')}<div class="rf-sp"></div>${play}</div>`
+    + `<div class="rf-cam-body${(verNarra&&verStats)?'':' unica'}">${verNarra?rfCamFeedHTML(m):''}${verStats?rfCamStatsHTML(m):''}</div>`;
+}
+
+/* PLACAR DE ESTÁDIO — a foto do estádio do mandante entra como fundo, com um
+   véu navy por cima pra o texto continuar legível em qualquer arte. Clube sem
+   foto no acervo cai no navy chapado, que é o mesmo fundo do véu. */
+function rfCamBoardHTML(m,mn,periodo){
+  const RL=CL.live||{};
+  const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
+  const foto=(window.STADIUM_IMG||{})[m.h];
+  const euEmCasa = m.h===CL.clubId;
+  const onze=(typeof xiPlayers==='function')?xiPlayers(CL.clubId).length:11;
+  const meuSub=`${escC(CL.formation||'—')} · onze ${onze}/11`;
+  const eleSub=`${RL.jornada||((S.round||0)+1)}ª rodada`;
+  const pct=(typeof liveClockPct==='function')?liveClockPct(RL):0;
+  return `<div class="rf-cam-board"${foto?` style="background-image:url('${escC(foto)}')"`:''}>
+    <span class="rf-cam-veu"></span>
+    <div class="rf-cam-lado">
+      <span class="rf-cam-onde">EM CASA</span>
+      <span class="rf-cam-time">${escC(hc.short||hc.name||'—')}</span>
+      <span class="rf-cam-sub">${euEmCasa?meuSub:eleSub}</span>
+    </div>
+    <span class="rf-cam-crest">${rfCrest(hc,52)}</span>
+    <div class="rf-cam-placar">
+      <span class="rf-cam-matriz"></span>
+      <span class="rf-cam-g" id="rf-cam-hg">${m.hg}</span>
+      <span class="rf-cam-d">:</span>
+      <span class="rf-cam-g" id="rf-cam-ag">${m.ag}</span>
+    </div>
+    <span class="rf-cam-crest">${rfCrest(ac,52)}</span>
+    <div class="rf-cam-lado fim">
+      <span class="rf-cam-onde">VISITANTE</span>
+      <span class="rf-cam-time">${escC(ac.short||ac.name||'—')}</span>
+      <span class="rf-cam-sub">${euEmCasa?eleSub:meuSub}</span>
+    </div>
+    <div class="rf-cam-relogio">
+      <span class="rf-cam-anel" id="rf-cam-anel" style="--pct:${pct}"><b id="rf-cam-min">${mn}'</b></span>
+      <span class="rf-cam-per" id="rf-cam-period">${periodo}</span>
+    </div>
+  </div>`;
+}
+
+/* BARRA DE PRESSÃO — quem manda no jogo AGORA. As cores saem de camBarColors,
+   que já resolve o caso de dois clubes de cor parecida. */
+function rfCamPressaoHTML(m){
+  const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
+  const sh=camShare(m);
+  const cores=camBarColors(hc,ac);
+  const tag = sh>=64 ? (hc.short||'')+' PRESSIONA' : sh<=36 ? (ac.short||'')+' PRESSIONA' : 'JOGO EQUILIBRADO';
+  return `<div class="rf-cam-pressao">
+    <span class="rf-cam-pressao-l">PRESSÃO</span>
+    <span class="rf-cam-bar">
+      <i id="rf-cam-presh" style="width:${sh}%;background:${cores.colH}"></i>
+      <i id="rf-cam-presa" style="width:${100-sh}%;background:${cores.colA}"></i>
+      <b class="rf-cam-meio"></b>
+    </span>
+    <span class="rf-cam-tag" id="rf-cam-prestag">${escC(tag)}</span>
+  </div>`;
+}
+
+/* NARRAÇÃO — mais recente no topo. As linhas moram num container próprio
+   (#rf-cam-lines) porque camPatchFeed só ACRESCENTA as novas: redesenhar o
+   feed inteiro fazia todas re-animarem juntas e o texto piscava sem parar. */
+function rfCamFeedHTML(m){
+  const hc=clubOf(m.h)||{};
+  const linhas=(m.narr||[]).slice().reverse().map(rfCamLinhaHTML).join('');
+  return `<div class="rf-card rf-cam-feed">
+    <div class="rf-label">
+      <span class="rf-label-t">NARRAÇÃO AO VIVO</span>
+      <span class="rf-label-r">Casa do ${escC(hc.short||'')} · ${grp(m.att||0)} pagantes</span>
+    </div>
+    <div class="rf-cam-narra" id="rf-cam-lines" data-n="${(m.narr||[]).length}">${
+      linhas||'<span class="rf-cam-vazio">O árbitro já vai apitar…</span>'}</div>
+  </div>`;
+}
+/* o desenho novo separa o gol DELE do gol CONTRA — um pinta de azul, o outro de
+   vermelho. O motor só manda o tipo do lance, então camOnEvent passou a guardar
+   também o lado (side) na linha; sem ele, tudo cai no azul. */
+function rfCamLinhaHTML(l){
+  const m=camMatch();
+  const meu = m ? (m.h===CL.clubId?'H':'A') : 'H';
+  let t=l.kind||'n';
+  if(t==='gol' && l.side && l.side!==meu) t='gol-contra';
+  return `<div class="rf-cam-linha k-${escC(t)}">
     <span class="rf-cam-lmin">${l.min}'</span>
     <span class="rf-cam-lic">${l.icon||''}</span>
     <span class="rf-cam-ltx">${escC(l.text||'')}</span>
-  </div>`).join('');
+  </div>`;
 }
+
+/* ESTATÍSTICAS + FICHA — a coluna da direita inteira. Sai embrulhada em
+   .rf-cam-stats porque é ESSE nó que camUpdate troca a cada minuto.
+   Posse vem do motor quando a partida roda/transmite aqui; no replay de um
+   resultado já publicado pelo adversário não há posse minuto a minuto — aí a
+   linha vira "Domínio em campo", medido pela própria barra de pressão. */
 function rfCamStatsHTML(m){
-  const st=m.stats||{};
-  const par=(l,a,b,pct)=>`<div class="rf-cam-st">
-    <span class="rf-cam-sa">${a}</span><span class="rf-cam-sl">${escC(l)}</span><span class="rf-cam-sb">${b}</span>
-    <span class="rf-cam-sbar"><i style="width:${pct}%"></i></span></div>`;
-  const pb=st.possH!=null?st.possH:50;
-  return par('Posse de bola',pb+'%',(100-pb)+'%',pb)
-    + par('Finalizações',st.shotsH||0,st.shotsA||0, rfPct(st.shotsH,st.shotsA))
-    + par('No alvo',st.onH||0,st.onA||0, rfPct(st.onH,st.onA))
-    + par('Defesas',st.savesH||0,st.savesA||0, rfPct(st.savesH,st.savesA))
-    + par('Cartões',st.cardsH||0,st.cardsA||0, rfPct(st.cardsH,st.cardsA));
+  const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
+  const cores=camBarColors(hc,ac);
+  const live=(m.sim&&m.sim.perf)||m.livePerf||null;
+  let possLbl='Domínio em campo', ph, pa;
+  if(live && ((live.H.poss+live.A.poss)>0)){ possLbl='Posse de bola';
+    const t=live.H.poss+live.A.poss; ph=Math.round(100*live.H.poss/t); pa=100-ph; }
+  else { const t=(m.domH+m.domA)||1; ph=Math.round(100*m.domH/t); pa=100-ph; }
+  const H=m.camStats.H, A=m.camStats.A;
+  // as duas barras são ESPELHADAS e normalizadas pelo maior dos dois, não pela
+  // soma: 11×7 tem que ler como 11 contra 7, não como 61% contra 39%.
+  const linha=(lbl,a,b,va,vb)=>{ const mx=Math.max(va,vb,1);
+    return `<div class="rf-cam-st">
+      <div class="rf-cam-st-top"><span>${a}</span><span class="rf-cam-st-l">${escC(lbl)}</span><span>${b}</span></div>
+      <div class="rf-cam-st-bars">
+        <span class="rf-cam-st-b esq"><i style="width:${Math.round(100*va/mx)}%;background:${cores.colH}"></i></span>
+        <span class="rf-cam-st-b dir"><i style="width:${Math.round(100*vb/mx)}%;background:${cores.colA}"></i></span>
+      </div></div>`; };
+  const cart=s=>(s.yellow+s.red);
+  const cartTxt=s=>`${s.yellow}🟨${s.red?' '+s.red+'🟥':''}`;
+  const usadas=CL.subsUsed||0;
+  const bolinhas=[0,1,2].map(i=>`<i class="${i<usadas?'on':''}"></i>`).join('');
+  return `<div class="rf-cam-stats">
+    <div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">ESTATÍSTICAS</span>
+        <span class="rf-label-r">${escC(hc.short||'')} · ${escC(ac.short||'')}</span></div>
+      ${linha(possLbl,ph+'%',pa+'%',ph,pa)}
+      ${linha('Finalizações',H.shots,A.shots,H.shots,A.shots)}
+      ${linha('No alvo',H.onTarget,A.onTarget,H.onTarget,A.onTarget)}
+      ${linha('Defesas',H.saves,A.saves,H.saves,A.saves)}
+      ${linha('Cartões',cartTxt(H),cartTxt(A),cart(H),cart(A))}
+      ${linha('Substituições',H.subs,A.subs,H.subs,A.subs)}
+    </div>
+    <div class="rf-card">
+      <span class="rf-label-t">FICHA</span>
+      <div class="rf-cam-fl"><span>Árbitro</span><b>${escC(m.ref||'—')}</b></div>
+      <div class="rf-cam-fl"><span>Público</span><b class="mono">${grp(m.att||0)}</b></div>
+      ${m.price?`<div class="rf-cam-fl"><span>Ingresso</span><b class="mono">${grp(m.price)}</b></div>`:''}
+      <div class="rf-cam-fl"><span>Sua tática</span><b>${escC((CL.formation?CL.formation+' ':'')+(CAM_TATICA[S.tactic]||S.tactic||'—'))}</b></div>
+      <div class="rf-cam-hr"></div>
+      <div class="rf-cam-fl"><span>Substituições</span>
+        <span class="rf-cam-subs"><span class="rf-cam-bolinhas">${bolinhas}</span><b class="mono">${usadas} de 3</b></span></div>
+    </div>
+  </div>`;
 }
-function rfPct(a,b){ a=a||0;b=b||0; return (a+b)?Math.round(100*a/(a+b)):50; }
+
+/* BANDA DE PATROCÍNIO — mesmo inventário AD_SPONSORS da pausa e da faixa de copa.
+   A marca em destaque gira com o relógio (camAdIdx) e camUpdate acompanha. */
+function rfCamPatroHTML(){
+  if(typeof AD_SPONSORS==='undefined' || !AD_SPONSORS.length) return '';
+  const i=camAdIdx(), s=AD_SPONSORS[i];
+  return `<div class="rf-cam-patro">
+    <span class="rf-cam-patro-l">CAMAROTE APRESENTADO POR</span>
+    <div class="rf-cam-patro-marcas">${AD_SPONSORS.map((x,k)=>
+      `<img class="rf-cam-ad ${k===i?'on':''}" src="${escC(x.src)}" alt="${escC(x.nome)}">`).join('')}</div>
+    <button type="button" class="rf-cam-cta" id="rf-cam-cta" style="${camCtaStyle(i)}" onclick="camAdClick()">${escC(s.cta)}</button>
+  </div>`;
+}

@@ -6796,7 +6796,7 @@ function camOnEvent(m,e){
   else if(e.type==='cartao'){ if(e.cardType==='vermelho'){ A.red++; m.presBias+=(e.side==='H'?-8:8); } else A.yellow++; }
   else if(e.type==='sub'){ A.subs++; }
   const l=RF_NARRA.narrate(e,{...ctx,out});
-  if(l){ m.narr.push({min:e.min,icon:l.icon,text:l.text,kind:l.kind}); m._camLastLine=e.min; }
+  if(l){ m.narr.push({min:e.min,icon:l.icon,text:l.text,kind:l.kind,side:e.side}); m._camLastLine=e.min; }
   m.pres=Math.max(-100,Math.min(100,(m.pres||0)+RF_NARRA.pressureOf(e,out)));
 }
 function camPush(m,kind,extra,mn){
@@ -6892,25 +6892,6 @@ function camaroteHTML(m){
   // alcançável — a sobreposição inteira vem de rfCamHTML.
   return rfCamHTML(CL.live||{matches:[m]});
 }
-function camaroteHTMLLegado(m){
-  const RL=CL.live; const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
-  camEnsure(m);
-  return `<div class="rf-cam-ov" onclick="camBackdrop(event)"><div class="rf-cam-win">
-    <div class="rf-cam-title">
-      <span class="rf-cam-title-t">🎥 Camarote — ${escC(hc.short||'')} × ${escC(ac.short||'')}</span>
-      <span class="rf-cam-onair" id="rf-cam-onair" ${camMatchOver(m)?'hidden':''}>● AO VIVO</span>
-      <span class="rf-cam-sp"></span>
-      <button class="rf-cam-x" onclick="camToggle()" title="Voltar à rodada (Esc)">✖</button>
-    </div>
-    <div id="rf-cam-dyn">${camDynHTML(m)}</div>
-    <div class="rf-cam-ads"><div class="rf-cam-ads-box">
-      <span class="rf-cam-ads-lbl">CAMAROTE APRESENTADO POR</span>
-      ${AD_SPONSORS.map((s,i)=>`<img class="rf-cam-ad ${i===camAdIdx()?'on':''}" src="${s.src}" alt="${escC(s.nome)}">`).join('')}
-      <button class="rf-cam-cta" id="rf-cam-cta" style="${camCtaStyle()}" onclick="camAdClick()">${escC(AD_SPONSORS[camAdIdx()].cta)}</button>
-    </div></div>
-    <div class="rf-cam-foot"><span>Esc ou ✖ pra voltar à rodada</span><span class="rf-cam-sp"></span><span>Os outros jogos seguem rolando ao fundo</span></div>
-  </div></div>`;
-}
 function camAdIdx(){ const RL=CL.live; return Math.floor(((RL&&RL.minute)||0)/8)%AD_SPONSORS.length; }
 /* o botão veste as cores da marca em destaque (o relevo 98 vem do bevel de cada uma) */
 function camCtaStyle(i){ const s=AD_SPONSORS[i!=null?i:camAdIdx()]; if(!s) return '';
@@ -6924,42 +6905,10 @@ function camAdClick(){
   if(!s.url){ toastC('Link do patrocinador ainda não configurado ('+s.nome+').'); return; }
   window.open(s.url,'_blank','noopener,noreferrer');
 }
-/* tudo que muda a cada minuto vive aqui dentro (um innerHTML só em updateLive) */
-function camDynHTML(m){
-  const RL=CL.live, hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
-  const tab=CL.camTab||'panorama';
-  const mn=camMinuteNow(m,RL), over=camMatchOver(m);
-  const period = RL.pens ? 'PÊNALTIS'
-    : RL.extraStartMinute!=null ? 'PRORROGAÇÃO'
-    : over ? (m.streamRemote && m.streamDead && !m.streamDone ? 'SEM SINAL' : 'ENCERRADO')
-    : mn<=45 ? '1º TEMPO' : mn<=90 ? '2º TEMPO' : 'ACRÉSCIMOS';
-  const showNarr = tab!=='estatisticas', showStats = tab!=='comentarios';
-  const tabBtn=(k,lbl)=>`<button class="rf-cam-tab ${tab===k?'on':''}" onclick="camTab('${k}')">${lbl}</button>`;
-  // "Fim" já quando a partida DELE acaba, mesmo que a rodada siga esperando as transmissões
-  // dos outros humanos (RL.done ainda false).
-  const playBtn = CL.online
-    ? `<span class="rf-cam-sync" title="No Resenha o ritmo é o do anfitrião">⏱ ritmo da sala</span>`
-    : `<button class="rf-cam-play" onclick="camTogglePlay()" ${over?'disabled':''}>${over?'Fim':(RL.userPaused?'▶ Jogar':'⏸ Pausar')}</button>`;
-  return `<div class="rf-cam-board">
-      <div class="rf-cam-side home">
-        <span class="rf-cam-where">EM CASA</span>
-        <span class="rf-cam-club" style="${clubStripe(hc)}">${escC(hc.short||'')}</span>
-        <span class="rf-cam-g" id="rf-cam-hg">${m.hg}</span>
-      </div>
-      <div class="rf-cam-clock"><div class="rf-cam-min" id="rf-cam-min">${mn}'</div><div class="rf-cam-period" id="rf-cam-period">${period}</div></div>
-      <div class="rf-cam-side away">
-        <span class="rf-cam-g" id="rf-cam-ag">${m.ag}</span>
-        <span class="rf-cam-club" style="${clubStripe(ac)}">${escC(ac.short||'')}</span>
-        <span class="rf-cam-where">VISITANTE</span>
-      </div>
-    </div>
-    ${camPressureHTML(m)}
-    <div class="rf-cam-tabs">${tabBtn('panorama','Panorama do Jogo')}${tabBtn('comentarios','Comentários')}${tabBtn('estatisticas','Estatísticas')}<span class="rf-cam-sp"></span>${playBtn}</div>
-    <div class="rf-cam-body" style="grid-template-columns:${showNarr&&showStats?'1fr 320px':'1fr'}">
-      ${showNarr?camFeedHTML(m):''}
-      ${showStats?camStatsHTML(m):''}
-    </div>`;
-}
+/* tudo que muda a cada minuto vive aqui dentro (um innerHTML só em camUpdate).
+   O DESENHO é o da leva nova, em rf26-live.js — aqui fica só a ponte, porque é
+   este nome que camUpdate chama. */
+function camDynHTML(m){ return rfCamDynHTML(m); }
 /* cores das barras (pressão e estatística): dois clubes de cor parecida — CSA × Nacional,
    dois azuis — deixavam as duas metades da barra indistinguíveis, e aí ela não informa nada.
    Quando as cores colidem, o visitante cai pra segunda cor dele e, se ainda assim colar,
@@ -6978,82 +6927,8 @@ function camBarColors(hc,ac){
   }
   return {colH,colA};
 }
-/* ---- BARRA DE PRESSÃO: quem manda no jogo AGORA, pelos fatos da partida ---- */
-function camPressureHTML(m){
-  const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
-  const sh=camShare(m);
-  const {colH,colA}=camBarColors(hc,ac);
-  const tag = sh>=64 ? escC(hc.short||'')+' PRESSIONA' : sh<=36 ? escC(ac.short||'')+' PRESSIONA' : 'JOGO EQUILIBRADO';
-  return `<div class="rf-cam-pres">
-    <span class="rf-cam-pres-lbl">PRESSÃO</span>
-    <span class="rf-cam-pres-bar">
-      <span class="rf-cam-pres-h" id="rf-cam-presh" style="width:${sh}%;background:${colH}"></span>
-      <span class="rf-cam-pres-a" id="rf-cam-presa" style="width:${100-sh}%;background:${colA}"></span>
-      <span class="rf-cam-pres-mid"></span>
-    </span>
-    <span class="rf-cam-pres-tag" id="rf-cam-prestag">${tag}</span>
-  </div>`;
-}
-/* ---- NARRAÇÃO AO VIVO (mais recente no topo) ----
-   As linhas vivem num container PRÓPRIO (#rf-cam-lines) porque o camUpdate só ACRESCENTA as
-   novas, nunca redesenha as antigas: a animação de entrada é por linha, e redesenhar o feed
-   inteiro a cada minuto fazia TODAS re-animarem juntas — o texto piscava sem parar. */
-function camLineHTML(l){
-  return `<div class="rf-cam-line k-${l.kind}">
-      <span class="rf-cam-lmin">${l.min}'</span><span class="rf-cam-lic">${l.icon}</span><span class="rf-cam-ltx">${escC(l.text)}</span>
-    </div>`;
-}
-function camFeedHTML(m){
-  const hc=clubOf(m.h)||{};
-  const rows=m.narr.slice().reverse().map(camLineHTML).join('');
-  return `<div class="rf-cam-feed" id="rf-cam-feed">
-    <div class="rf-cam-feed-hd"><b>NARRAÇÃO AO VIVO</b><span>Casa do ${escC(hc.short||'')} · ${grp(m.att||0)} pagantes</span></div>
-    <div id="rf-cam-lines" data-n="${m.narr.length}">${rows||'<div class="rf-cam-empty">O árbitro já vai apitar…</div>'}</div>
-  </div>`;
-}
-/* ---- ESTATÍSTICAS: tudo derivado dos eventos que de fato aconteceram ----
-   Posse vem do motor quando a partida roda/transmite aqui (sessão interativa ou stream);
-   no replay de um resultado já publicado pelo adversário, o motor não manda posse minuto a
-   minuto — aí a linha vira "Domínio em campo", medido pela própria barra de pressão. */
-function camStatsHTML(m){
-  const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
-  const {colH,colA}=camBarColors(hc,ac);
-  const live=(m.sim&&m.sim.perf)||m.livePerf||null;
-  let possLbl='Domínio em campo', ph, pa;
-  if(live && ((live.H.poss+live.A.poss)>0)){ possLbl='Posse de bola';
-    const t=live.H.poss+live.A.poss; ph=Math.round(100*live.H.poss/t); pa=100-ph; }
-  else { const t=(m.domH+m.domA)||1; ph=Math.round(100*m.domH/t); pa=100-ph; }
-  const H=m.camStats.H, A=m.camStats.A;
-  const row=(lbl,a,b,va,vb)=>{ const mx=Math.max(va,vb,1);
-    return `<div class="rf-cam-st">
-      <div class="rf-cam-st-top"><span>${a}</span><span class="rf-cam-st-lbl">${lbl}</span><span>${b}</span></div>
-      <div class="rf-cam-st-bars">
-        <span class="rf-cam-st-b l"><i style="width:${Math.round(100*va/mx)}%;background:${colH}"></i></span>
-        <span class="rf-cam-st-b r"><i style="width:${Math.round(100*vb/mx)}%;background:${colA}"></i></span>
-      </div></div>`; };
-  const cards=s=>(s.yellow+s.red);
-  const cardTxt=s=>`${s.yellow}🟨${s.red?' '+s.red+'🟥':''}`;
-  const subsLeft=Math.max(0,3-(CL.subsUsed||0));
-  return `<div class="rf-cam-stats">
-    <fieldset class="rf-cam-fs"><legend>Estatísticas</legend>
-      <div class="rf-cam-st-hd"><span>${escC(hc.short||'')}</span><span>${escC(ac.short||'')}</span></div>
-      ${row(possLbl,ph+'%',pa+'%',ph,pa)}
-      ${row('Finalizações',H.shots,A.shots,H.shots,A.shots)}
-      ${row('No alvo',H.onTarget,A.onTarget,H.onTarget,A.onTarget)}
-      ${row('Defesas',H.saves,A.saves,H.saves,A.saves)}
-      ${row('Cartões',cardTxt(H),cardTxt(A),cards(H),cards(A))}
-      ${row('Substituições',H.subs,A.subs,H.subs,A.subs)}
-    </fieldset>
-    <fieldset class="rf-cam-fs"><legend>Ficha</legend>
-      <div class="rf-cam-ficha">
-        Árbitro: <b>${escC(m.ref||'—')}</b><br>
-        Público: <b class="rf-mono">${grp(m.att||0)}</b>${m.price?` · Ingresso: <b class="rf-mono">${grp(m.price)}</b>`:''}<br>
-        Sua tática: <b>${escC(CAM_TATICA[S.tactic]||S.tactic||'—')}</b><br>
-        Substituições: <b>${(CL.subsUsed||0)} de 3</b> · restam <b>${subsLeft}</b>
-      </div>
-    </fieldset>
-  </div>`;
-}
+function camLineHTML(l){ return rfCamLinhaHTML(l); }
+function camStatsHTML(m){ return rfCamStatsHTML(m); }
 /* ---- atualização da janela: NO LUGAR, não redesenhando ----
    Antes isto fazia `host.innerHTML=camDynHTML(m)` a cada minuto. Recriar os nós zera as animações
    e transições: TODAS as linhas de narração re-animavam juntas (o texto piscava sem parar) e a
@@ -7065,9 +6940,9 @@ function camUpdate(){
   const host=document.querySelector('#rf-cam-dyn'); if(!host) return;
   const tab=CL.camTab||'panorama';
   if(host.dataset.tab!==tab || !host.querySelector('#rf-cam-lines')){
-    const old=host.querySelector('#rf-cam-feed'); const sc=old?old.scrollTop:0;
+    const old=host.querySelector('#rf-cam-lines'); const sc=old?old.scrollTop:0;
     host.innerHTML=camDynHTML(m); host.dataset.tab=tab;
-    const nw=host.querySelector('#rf-cam-feed'); if(nw) nw.scrollTop=sc;
+    const nw=host.querySelector('#rf-cam-lines'); if(nw) nw.scrollTop=sc;
   } else {
     camPatchBoard(m); camPatchFeed(m);
     const st=host.querySelector('.rf-cam-stats'); // sem animação: redesenho aqui não pisca
@@ -7087,6 +6962,9 @@ function camPatchBoard(m){
   const RL=CL.live; const set=(id,v)=>{ const el=document.querySelector(id); if(el && el.textContent!==v) el.textContent=v; };
   const mn=camMinuteNow(m,RL), over=camMatchOver(m);
   set('#rf-cam-hg', String(m.hg)); set('#rf-cam-ag', String(m.ag)); set('#rf-cam-min', mn+"'");
+  // o anel do relógio anda por variável CSS — trocar o style inteiro mataria a transição
+  const anel=document.querySelector('#rf-cam-anel');
+  if(anel) anel.style.setProperty('--pct', String(liveClockPct(RL)));
   set('#rf-cam-period', RL.pens ? 'PÊNALTIS'
     : RL.extraStartMinute!=null ? 'PRORROGAÇÃO'
     : over ? (m.streamRemote && m.streamDead && !m.streamDone ? 'SEM SINAL' : 'ENCERRADO')
@@ -7097,7 +6975,7 @@ function camPatchBoard(m){
   if(a) a.style.width=(100-sh)+'%';
   const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
   set('#rf-cam-prestag', sh>=64 ? (hc.short||'')+' PRESSIONA' : sh<=36 ? (ac.short||'')+' PRESSIONA' : 'JOGO EQUILIBRADO');
-  const play=document.querySelector('.rf-cam-play');
+  const play=document.querySelector('.rf-cam-pausar');
   if(play){ const lbl=over?'Fim':(RL.userPaused?'▶ Jogar':'⏸ Pausar');
     if(play.textContent!==lbl) play.textContent=lbl; play.disabled=!!over; }
 }
@@ -7107,7 +6985,7 @@ function camPatchFeed(m){
   const antes=parseInt(box.dataset.n||'0',10), agora=m.narr.length;
   if(agora===antes) return;
   if(agora<antes){ box.innerHTML=m.narr.slice().reverse().map(camLineHTML).join(''); box.dataset.n=String(agora); return; }
-  const vazio=box.querySelector('.rf-cam-empty'); if(vazio) vazio.remove();
+  const vazio=box.querySelector('.rf-cam-vazio'); if(vazio) vazio.remove();
   // insere de trás pra frente pra manter a ordem (mais recente sempre no topo)
   m.narr.slice(antes).forEach(l=>box.insertAdjacentHTML('afterbegin', camLineHTML(l)));
   box.dataset.n=String(agora);
