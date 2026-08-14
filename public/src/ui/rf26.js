@@ -102,8 +102,8 @@ const RF_PAGES=[
            {k:'treino', l:()=>'Treino especial',  build:()=>rfElTreinoHTML()} ] },
 
   { key:'campeonatos', ico:'🏆', label:'Campeonatos', curto:'Copas',
-    titulo:'Campeonatos', sub:'Tabela, calendário, artilharia e história das competições',
-    pill:()=>rfPillPosicao(), grid:'minmax(0,1fr) 340px',
+    titulo:'Campeonatos', sub:()=>rfCpSubHTML(),
+    acoes:()=>rfCpAcoesHTML(), grid:'minmax(0,1fr)',
     tabs:[ {k:'minhas',    l:()=>'Minhas competições', build:()=>rfCpMinhasHTML()},
            {k:'calendario',l:()=>'Calendário',          build:()=>rfCpCalendarioHTML()},
            {k:'artilharia',l:()=>'Artilharia',          build:()=>rfCpArtilhariaHTML()},
