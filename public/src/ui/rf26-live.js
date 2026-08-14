@@ -105,7 +105,7 @@ function rfLvFaixaHTML(RL){
       <span class="rf-lv-sl">${escC(periodo)}</span>
       <span class="rf-lv-sh">${meu?('seu jogo: '+(meu.gh||0)+' × '+(meu.ga||0)):'sem jogo seu'}</span>
     </div>
-    ${camOk?`<button type="button" class="rf-lv-cam" onclick="camToggle()">🎥 Modo Camarote</button>`:''}
+    ${camOk?`<button type="button" class="rf-lv-cam" onclick="camToggle()">${rfIcone('camarote',16)} Modo Camarote</button>`:''}
   </div>`;
 }
 

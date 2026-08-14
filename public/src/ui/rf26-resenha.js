@@ -222,7 +222,7 @@ function rfEsperaHTML(){
     acoes:`<span class="rf-im-auto">A rodada fecha quando todos jogarem.</span>
       <div class="rf-sp"></div>
       <button type="button" class="rf-ov-b2" onclick="clResenhaSync()"><span>🔄</span> Sincronizar a Resenha</button>
-      ${CL.online?`<button type="button" class="rf-ov-cta" onclick="rfChatToggle()"><span>💬</span> Abrir o chat</button>`:''}`
+      ${CL.online?`<button type="button" class="rf-ov-cta" onclick="rfChatToggle()"><span>${rfIcone('chat',16)}</span> Abrir o chat</button>`:''}`
   });
 }
 /* "Carlos Miguel (2), Jefté" — agrupa o mesmo marcador em vez de repetir o nome */
@@ -357,7 +357,7 @@ function rfAssentoClassifHTML(seat){
       </div>
     </div>`,
     acoes:`<div class="rf-sp"></div>
-      ${CL.online?`<button type="button" class="rf-ov-b2" onclick="rfChatToggle()"><span>💬</span> Chat da sala</button>`:''}
+      ${CL.online?`<button type="button" class="rf-ov-b2" onclick="rfChatToggle()"><span>${rfIcone('chat',16)}</span> Chat da sala</button>`:''}
       <button type="button" class="rf-ov-cta" onclick="clClassifContinue()">Continuar</button>`
   });
 }

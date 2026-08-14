@@ -78,7 +78,7 @@ const NET = {
    room.chat e a coluna no banco seguem os mesmos, então nenhuma conversa se perdeu no caminho. */
 const CHAT_ATIVO = true;
 function chatMsgsHTML(){ const room=NET.room; const msgs=(room&&room.chat)||[];
-  if(!msgs.length) return '<div class="cl-chat-empty">Nenhuma mensagem ainda. Diga oi! 👋</div>';
+  if(!msgs.length) return '<div class="cl-chat-empty">Nenhuma mensagem ainda. Diga oi</div>';
   return msgs.slice(-60).map(m=>{ const c=m.clubId?clubOf(m.clubId):null; const col=c?c.color:'#666';
     return `<div class="cl-chat-msg"><span class="cl-chat-who" style="color:${col}">${escC((m.name||'').split(' ')[0])}:</span> <span class="cl-chat-txt">${escC(m.text)}</span></div>`; }).join(''); }
 function clChatSend(inputId){ const el=document.querySelector('#'+inputId); if(!el) return; const text=(el.value||'').trim(); if(!text) return;

@@ -124,7 +124,7 @@ function rfFimTemporadaHTML(sum){
         </div>
       </div>
     </div>`,
-    acoes:`<button type="button" class="rf-ov-b2" onclick="rfSetTabIr('campeonatos','calendario')">📅 Ver o calendário</button>
+    acoes:`<button type="button" class="rf-ov-b2" onclick="rfSetTabIr('campeonatos','calendario')">${rfIcone('calendario',16)} Ver o calendário</button>
       <div class="rf-sp"></div>
       <button type="button" class="rf-ov-cta" onclick="${sum?'clOnlineSeasonContinue()':'clAdvanceSeason()'}">Começar a próxima temporada</button>
       ${sum?'<span class="rf-im-auto">avança sozinho em <span id="cl-season-count">15</span>s</span>':''}`
@@ -152,11 +152,11 @@ function rfFimTexto(d,pos,total){
 }
 function rfFimProximos(d){
   const out=[];
-  if(d==='playoff') out.push({i:'🏆',t:'Playoff do acesso',s:'Mata-mata pela vaga'});
-  if(d==='acesso'||d==='titulo') out.push({i:'⬆️',t:'Nova divisão',s:'Elenco vai precisar de reforço'});
-  if(d==='rebaixado') out.push({i:'⬇️',t:'Divisão de baixo',s:'Reconstrução de elenco'});
-  out.push({i:'🛒',t:'Janela de transferências',s:'Abre no começo da pré-temporada'});
-  out.push({i:'🎓',t:'Renovação de contrato',s:'A diretoria quer conversar'});
+  if(d==='playoff') out.push({i:rfIcone('trofeu',16)+'',t:'Playoff do acesso',s:'Mata-mata pela vaga'});
+  if(d==='acesso'||d==='titulo') out.push({i:rfIcone('seta-cima',16)+'',t:'Nova divisão',s:'Elenco vai precisar de reforço'});
+  if(d==='rebaixado') out.push({i:rfIcone('seta-baixo',16)+'',t:'Divisão de baixo',s:'Reconstrução de elenco'});
+  out.push({i:rfIcone('mercado',16)+'',t:'Janela de transferências',s:'Abre no começo da pré-temporada'});
+  out.push({i:rfIcone('treinador',16)+'',t:'Renovação de contrato',s:'A diretoria quer conversar'});
   return out;
 }
 function rfSetTabIr(page,tab){ clCloseOverlay(); rfState().page=page; rfState().tab[page]=tab; CL.screen='main'; cdraw(); }
@@ -310,7 +310,7 @@ function rfCompeticaoHTML(key){
         </div>
       </div>
     </div>`,
-    acoes:`<button type="button" class="rf-ov-b2" onclick="rfSetTabIr('campeonatos','calendario')"><span>📅</span> Calendário</button>
+    acoes:`<button type="button" class="rf-ov-b2" onclick="rfSetTabIr('campeonatos','calendario')"><span>${rfIcone('calendario',16)}</span> Calendário</button>
       <div class="rf-sp"></div>
       <button type="button" class="rf-ov-cta" onclick="clCupViewBack()">Voltar ao hub</button>`
   });
@@ -629,7 +629,7 @@ function rfVerTimeHTML(clubId){
         </div>
       </div>
     </div>`,
-    acoes:`<button type="button" class="rf-ov-b2" onclick="clCloseOverlay();rfGo('mercado')"><span>🛒</span> Fazer uma proposta</button>
+    acoes:`<button type="button" class="rf-ov-b2" onclick="clCloseOverlay();rfGo('mercado')"><span>${rfIcone('mercado',16)}</span> Fazer uma proposta</button>
       <div class="rf-sp"></div>
       <button type="button" class="rf-ov-cta" onclick="CL.viewClubId=null;CL.screen='main';cdraw()">Voltar</button>`
   });

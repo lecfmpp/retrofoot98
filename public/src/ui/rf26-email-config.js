@@ -33,7 +33,7 @@ function rfEmCaixaHTML(){
 function rfEmLinha(e){
   return `<div class="rf-mail ${e.read?'':'novo'} ${CL.inboxOpen===e.key?'aberto':''}"
        onclick="clInboxOpen('${escC(e.key)}')">
-    <span class="rf-mail-i">${(typeof inboxIcon==='function'?inboxIcon(e.kind):'✉️')}</span>
+    <span class="rf-mail-i">${(typeof inboxIcon==='function'?inboxIcon(e.kind):rfIcone('email',16)+'')}</span>
     <div class="rf-mail-id">
       <div class="rf-mail-top">
         <span class="rf-mail-a">${escC(e.subject||'')}</span>

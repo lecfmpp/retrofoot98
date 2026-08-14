@@ -251,9 +251,9 @@ const RF_TRN_COLS='34px minmax(0,1.2fr) 28px 34px 74px minmax(0,1fr) 74px';
    cartões existem e guardam a escolha em CL.trnFoco, mas ainda não mudam o
    resultado — é a primeira ligação a fazer quando formos ao motor. */
 const RF_TRN_FOCOS=[
-  {k:'finalizacao', ico:'⚽',  t:'Finalização', d:'+2 na finalização de até 3 atacantes'},
-  {k:'marcacao',    ico:'🛡️', t:'Marcação',    d:'+2 na defesa de até 4 defensores'},
-  {k:'resistencia', ico:'🏃',  t:'Resistência', d:'+3 de energia para todo o elenco'},
+  {k:'finalizacao', ico:rfIcone('jogar',16)+'',  t:'Finalização', d:'+2 na finalização de até 3 atacantes'},
+  {k:'marcacao',    ico:rfIcone('marcacao',16)+'', t:'Marcação',    d:'+2 na defesa de até 4 defensores'},
+  {k:'resistencia', ico:rfIcone('resistencia',16)+'',  t:'Resistência', d:'+3 de energia para todo o elenco'},
 ];
 function rfTrnFoco(k){ CL.trnFoco=k; cdraw(); }
 function rfElTreinoHTML(){

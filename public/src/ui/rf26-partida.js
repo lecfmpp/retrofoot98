@@ -376,7 +376,7 @@ function rfPosRodadaHTML(){
         <div class="rf-card"><span class="rf-label-t">O que mudou para você</span>${mudou}</div>
       </div>
     </div>`,
-    acoes:`<button type="button" class="rf-ov-b2" onclick="rfPrTodas()">🏆 Ver todas as divisões</button>
+    acoes:`<button type="button" class="rf-ov-b2" onclick="rfPrTodas()">${rfIcone('trofeu',16)} Ver todas as divisões</button>
       <div class="rf-sp"></div>
       <button type="button" class="rf-ov-cta" onclick="rfPrContinuar()">Continuar</button>`
   });
@@ -575,11 +575,11 @@ function rfPenaltiResultadoHTML(extra){
   return rfOverlay({
     w:800, cls:gol?'':'rf-ov-grave', contexto:rfCtxPartida(m),
     titulo:gol?'Gol!':'Perdeu!',
-    hdDir:`<span class="rf-ov-bola" aria-hidden="true">${gol?'⚽':'🧤'}</span>`,
+    hdDir:`<span class="rf-ov-bola" aria-hidden="true">${gol?rfIcone('jogar',16):'🧤'}</span>`,
     corpo:`${extra||''}
       ${rfGolHTML(CL.penCanto,{txt:gol?'no fundo da rede':'o goleiro pegou'})}
       <div class="rf-pen-res ${gol?'gol':'perdeu'}">
-        <span class="rf-pen-res-t">${gol?'⚽ Gol de '+escC(CL.penSel||''):'🧤 '+escC(CL.penSel||'')+' parou no goleiro'}</span>
+        <span class="rf-pen-res-t">${gol?rfIcone('jogar',16)+' Gol de '+escC(CL.penSel||''):'🧤 '+escC(CL.penSel||'')+' parou no goleiro'}</span>
         <span class="rf-pen-res-s">${gol?'A torcida foi ao delírio.':'Ainda dá tempo de virar.'}</span>
       </div>`,
     acoes:`<div class="rf-sp"></div>
@@ -594,7 +594,7 @@ function rfShootoutBolasHTML(lista, total){
   total=total||5;
   return `<div class="rf-so-bolas">${Array.from({length:Math.max(total,lista.length)},(_,i)=>{
     const v=lista[i];
-    return `<span class="rf-so-b ${v===true?'ok':v===false?'no':''}">${v===true?'●':v===false?'✖':''}</span>`;
+    return `<span class="rf-so-b ${v===true?'ok':v===false?'no':''}">${v===true?'●':v===false?rfIcone('fechar',16):''}</span>`;
   }).join('')}</div>`;
 }
 function rfDisputaHTML(RL){

@@ -273,7 +273,7 @@ function rfMktPropostasHTML(){
           acima===null?'':(acima?'acima do valor':'abaixo do valor'), acima===null?'':(acima?'bom':'ruim'))}
         ${rfKpiHTML('Substituto', sub?sub.n:'—', sub?'já no elenco':'sem reserva no setor', sub?'':'ruim')}
       </div>
-      ${o.lastMsg?`<span class="rf-prop-msg">💬 ${escC(o.lastMsg)}</span>`:''}
+      ${o.lastMsg?`<span class="rf-prop-msg">${rfIcone('chat',16)} ${escC(o.lastMsg)}</span>`:''}
     </div>`;
   }).join('');
   const totalFee=ofertas.reduce((t,o)=>t+(o.fee||0),0);

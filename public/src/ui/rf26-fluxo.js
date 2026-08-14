@@ -179,7 +179,7 @@ function rfTreinadoresHTML(){
           `<input class="rf-campo-c" ${i===0?'id="cl-focus"':''} maxlength="12" placeholder="TREINADOR"
              value="${escC(nm||'')}" oninput="rfNomeTreinador(${i},this.value)">`)).join('')}
       </div>
-      ${RF_HOTSEAT_LIGADO?'':`<div class="rf-aviso"><span class="rf-aviso-i">👥</span>
+      ${RF_HOTSEAT_LIGADO?'':`<div class="rf-aviso"><span class="rf-aviso-i">${rfIcone('elenco',16)}</span>
         <span>Jogar com mais gente é o <b>Modo Resenha</b>: cada um no seu aparelho, online,
         com tabela e chat da liga.</span></div>`}
       <div class="rf-ft-grid tres">
@@ -239,7 +239,7 @@ function rfClubesHTML(){
       sub:'Cada treinador escolhe o país. O clube é sempre sorteado — ninguém escolhe o próprio time.',
       nota:'Os clubes restantes ficam com a máquina.',
       voltar:'clGoJogadores()', voltarLabel:'‹ Voltar aos treinadores',
-      cta:'🎲 Sortear os clubes', ctaOn:'clSortearPick()' });
+      cta:rfIcone('sorteio',16)+' Sortear os clubes', ctaOn:'clSortearPick()' });
   }
 
   const corpo=`
@@ -261,8 +261,8 @@ function rfClubesHTML(){
     sobre:'Passo 4 de 5', titulo:'Times sorteados!',
     sub:'O sorteio distribuiu os clubes entre os treinadores. Confira antes de começar.',
     nota:'Os demais clubes ficam com a máquina.',
-    voltar:'clSortearPick()', voltarLabel:'🎲 Sortear de novo',
-    cta:'⚽ Começar a temporada', ctaOn:'startSoloDraw()' });
+    voltar:'clSortearPick()', voltarLabel:rfIcone('sorteio',16)+' Sortear de novo',
+    cta:rfIcone('jogar',16)+' Começar a temporada', ctaOn:'startSoloDraw()' });
 }
 function rfDivDoClube(c){
   const d=c.div||c.division||c.lg;
@@ -397,7 +397,7 @@ function rfInstitucionalHTML(view){
     </div>`,
     acoes:`<span class="rf-im-auto">© ${new Date().getFullYear()} RetroFoot98</span>
       <div class="rf-sp"></div>
-      <button type="button" class="rf-ov-cta" onclick="clGoModo()"><span>⚽</span> Jogar agora</button>`
+      <button type="button" class="rf-ov-cta" onclick="clGoModo()">${rfIcone('jogar',16)} Jogar agora</button>`
   });
 }
 /* quantos clubes o país tem no total: DATA.clubs, antes do jogo começar, é só
@@ -421,7 +421,7 @@ function rfInstitucionalCorpo(view){
     </div>`).join('');
   }
   if(view==='contato') return p('Achou um bug, tem uma ideia ou quer chamar pra resenha? Fala com a gente:')
-    +`<div class="rf-in-ct"><span>✉️</span><span class="rf-in-mono">contato@retrofoot98.com</span></div>
+    +`<div class="rf-in-ct"><span>${rfIcone('email',16)}</span><span class="rf-in-mono">contato@retrofoot98.com</span></div>
       <div class="rf-in-ct"><span>🐦</span><b>@retrofoot98</b><span class="rf-in-mudo">— novidades e updates</span></div>`;
   if(view==='termos') return p('<b>1. O jogo.</b> O RetroFoot98 é gratuito para jogar. Você é responsável pela sua conta e pelo que faz nas ligas em que entra.')
     +p('<b>2. Fair play.</b> Nada de trapaça, bots ou ofensa na resenha. Contas fora da linha podem ser suspensas.')
@@ -496,7 +496,7 @@ function rfWaitlistHTML(){
           </div>
         </div>
       </div>`, {
-      w:560, glyph:'🎉',
+      w:560, glyph:rfIcone('festa',16)+'',
       footer:`<button type="button" class="rf-ov-b2" onclick="clWaitlistClose()">Fechar</button>
         <div class="rf-sp"></div>
         <button type="button" class="rf-ov-cta" ${CL.waitlistBusy?'disabled':''}
@@ -514,7 +514,7 @@ function rfWaitlistHTML(){
           <span class="rf-pz-pct">${feitas} / ${vagas}</span></div>
         <div class="rf-pz-trilho"><div class="rf-pz-fill" style="width:${pct}%"></div></div>
       </div>`:''}
-      ${CL.waitlistErr?`<div class="rf-aviso erro"><span class="rf-aviso-i">⚠</span><span>${escC(CL.waitlistErr)}</span></div>`:''}
+      ${CL.waitlistErr?`<div class="rf-aviso erro"><span class="rf-aviso-i">${rfIcone('aviso',16)}</span><span>${escC(CL.waitlistErr)}</span></div>`:''}
       <div class="rf-wl-form">
         ${rfCampo('Nome do treinador',
           `<input class="rf-campo-c" id="cl-focus" type="text" autocomplete="name"
@@ -536,7 +536,7 @@ function rfWaitlistHTML(){
              onkeydown="if(event.key==='Enter')clWaitlistSubmit()">`)}
       </div>
     </div>`, {
-    w:560, glyph:'📋',
+    w:560, glyph:rfIcone('copiar',16)+'',
     footer:`<span class="rf-im-auto">A gente só usa os seus dados pra avisar da vaga.</span>
       <div class="rf-sp"></div>
       <button type="button" class="rf-ov-cta" ${CL.waitlistBusy?'disabled':''}

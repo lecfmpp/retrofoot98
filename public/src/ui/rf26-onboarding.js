@@ -95,7 +95,7 @@ function rfWizTrilhaHTML(passo, trilha){
     const n=i+1, feito=n<passo, atual=n===passo;
     return `${i?'<span class="rf-wiz-liga"></span>':''}
       <span class="rf-wiz-p ${feito?'feito':''} ${atual?'atual':''}">
-        <span class="rf-wiz-n">${feito?'✓':n}</span>
+        <span class="rf-wiz-n">${feito?rfIcone('ok',14):n}</span>
         <span class="rf-wiz-l">${escC(l)}</span>
       </span>`;
   }).join('')}</div>`;
@@ -135,7 +135,7 @@ function rfOb1(){
         ${rfCampo('E-mail', rfInput('rf-ob-e','voce@email.com',a.email,'email',"rfObSet('email',this.value)"))}
         ${rfCampo('Senha', rfInput('rf-ob-s','mínimo 8 caracteres',a.password,'password',"rfObSet('password',this.value)"))}
         ${criando?`<div class="rf-check" onclick="rfObSet('aviso',!(CL.auth.aviso))">
-          <span class="rf-check-b ${a.aviso!==false?'on':''}">${a.aviso!==false?'✓':''}</span>
+          <span class="rf-check-b ${a.aviso!==false?'on':''}">${a.aviso!==false?rfIcone('ok',14):''}</span>
           <span class="rf-check-t">Quero receber aviso quando abrir vaga nas Ligas Oficiais.</span>
         </div>`:''}
         <div class="rf-ou"><i></i><span>ou entre com</span><i></i></div>
@@ -178,7 +178,7 @@ function rfOb2(){
           <span class="rf-modo-tag rec">Recomendado</span>
           <span class="rf-modo-t">Modo Solo</span>
           <span class="rf-modo-d">Pega um clube da Série D e sobe até a elite no seu ritmo. Mercado, finanças e o calendário completo de copas — sem depender de ninguém entrar na sala.</span>
-          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();clPickSolo()">⚽ Começar agora</button>
+          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();clPickSolo()">${rfIcone('jogar',16)} Começar agora</button>
         </div>
       </div>
       <div class="rf-modo resenha ${RESENHA_EM_BREVE?'off':''}" ${RESENHA_EM_BREVE?'':'onclick="clPickResenha()"'}>
@@ -188,7 +188,7 @@ function rfOb2(){
           <span class="rf-modo-tag">${RESENHA_EM_BREVE?'Em novembro':'Online'}</span>
           <span class="rf-modo-t">Modo Resenha</span>
           <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até 20 treinadores jogam a mesma rodada ao vivo, com tabela, mercado e zoeira no chat.</span>
-          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?'rfObAvisar()':'clPickResenha()'}">${RESENHA_EM_BREVE?'👑 Entrar na lista de espera':'🍺 Criar a sala'}</button>
+          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?'rfObAvisar()':'clPickResenha()'}">${RESENHA_EM_BREVE?rfIcone('coroa',16)+' Entrar na lista de espera':rfIcone('chat',16)+' Criar a sala'}</button>
         </div>
       </div>
     </div>
@@ -212,17 +212,14 @@ function rfObSavesHTML(){
   if(!carregando && !saves.length) return '';
   const aberto=CL.obSavesOpen!==false;
   const n=saves.length;
-  return `<div class="rf-obsv">
-    <div class="rf-obsv-hd" onclick="rfObSaves()" role="button" tabindex="0">
-      <span class="rf-obsv-i">📁</span>
-      <span class="rf-obsv-id">
-        <span class="rf-obsv-t">Continuar um jogo salvo</span>
-        <span class="rf-obsv-s">${carregando?'Procurando os seus saves'
-          :`Você tem ${n} jogo${n>1?'s':''} salvo${n>1?'s':''} na nuvem.`}</span>
-      </span>
-      <span class="rf-obsv-ver">${aberto?'Esconder':'Ver saves'} <i>${aberto?'▴':'▾'}</i></span>
-    </div>
-    ${aberto&&saves.length?`<div class="rf-obsv-head">
+  /* O CORPO SEMPRE EXISTE QUANDO ABERTO. Antes ele só era desenhado com
+     `aberto && saves.length` — enquanto a nuvem respondia, o cabeçalho já dizia
+     "Esconder" e embaixo não vinha nada. Quem clicava via um acordeão aberto e
+     vazio e concluía, com razão, que os saves não apareciam. Agora o estado de
+     carregamento tem linha própria. */
+  const corpo = !aberto ? '' : (carregando
+    ? '<div class="rf-obsv-vazio">Procurando os seus saves na nuvem</div>'
+    : `<div class="rf-obsv-head">
         <span></span><span>SAVE</span><span>JORNADA</span><span>GRAVADO</span><span></span></div>
       ${saves.map(sv=>{
         const c=rfObSaveClube(sv);
@@ -235,7 +232,24 @@ function rfObSavesHTML(){
           <span class="rf-obsv-q">${escC(rfSaveQuando(sv))}</span>
           <button type="button" class="rf-obsv-b" onclick="event.stopPropagation();clLoadSave('${escC(sv.name)}')">Continuar</button>
         </div>`;}).join('')}
-      <button type="button" class="rf-obsv-ger" onclick="clSoloContinue()">Gerenciar saves na nuvem</button>`:''}
+      <button type="button" class="rf-obsv-ger" onclick="clSoloContinue()">Gerenciar saves na nuvem</button>`);
+  /* O CONTROLE É UM BOTÃO, não um texto. Azul, com a seta amarela: para baixo
+     abre, para cima fecha. O `aria-expanded` é o que conta o estado para quem
+     usa leitor de tela — o desenho da seta é só para quem vê. */
+  const seta=aberto?'seta-cima':'seta-baixo';
+  return `<div class="rf-obsv">
+    <div class="rf-obsv-hd" onclick="rfObSaves()" role="button" tabindex="0"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();rfObSaves();}">
+      <span class="rf-obsv-id">
+        <span class="rf-obsv-t">Continuar um jogo salvo</span>
+        <span class="rf-obsv-s">${carregando?'Procurando os seus saves'
+          :`Você tem ${n} jogo${n>1?'s':''} salvo${n>1?'s':''} na nuvem.`}</span>
+      </span>
+      <button type="button" class="rf-obsv-tg" aria-expanded="${aberto?'true':'false'}"
+        title="${aberto?'Esconder os saves':'Ver os saves'}"
+        onclick="event.stopPropagation();rfObSaves()">${rfIcone(seta,18)}</button>
+    </div>
+    ${corpo}
   </div>`;
 }
 function rfObSaves(){ CL.obSavesOpen=(CL.obSavesOpen===false); cdraw(); }
@@ -285,7 +299,7 @@ function rfOb3(){
           return `<button type="button" class="rf-ob3-pais ${on?'on':''}" onclick="rfObPais('${escC(c.n)}')">
             <span class="rf-ob3-f">${c.f}</span>
             <span class="rf-ob3-n">${escC(c.n)}</span>
-            ${on?'<span class="rf-ob3-ok">✓</span>':''}
+            ${on?`<span class="rf-ob3-ok">${rfIcone('ok',16)}</span>`:''}
           </button>`;}).join('')}</div>
       </div>
       <div class="rf-ob3-bloco">
@@ -517,7 +531,7 @@ function rfOb5(){
       ? (podeComecar?`${dentro} de ${parts.length} treinadores na sala`
                     :'Precisa de pelo menos 2 treinadores na sala para começar.')
       : 'À espera do anfitrião — toque em Sincronizar se ele já começou.',
-    voltar:'clLobbyExit()', voltarLabel:'✕ Fechar a sala',
+    voltar:'clLobbyExit()', voltarLabel:rfIcone('fechar',16)+' Fechar a sala',
     cta: anfitriao?'Começar (sortear times)':'Sincronizar',
     ctaOff: anfitriao&&!podeComecar,
     ctaOn: anfitriao?'clLobbyStart()':'clSyncResenha()'});
@@ -545,7 +559,7 @@ function rfOb6(){
           return `<div class="rf-ob6-lin ${i===0&&saiu?'meu':''} ${saiu?'':'espera'}">
             <span class="rf-ob6-nb ${saiu?'on':''}">${i+1}</span>
             <span class="rf-ob6-t">${escC(x.name||'Treinador')}${saiu&&c?' — '+escC(c.short||c.name||''):' — sorteando'}</span>
-            ${saiu&&c?`<span class="rf-ob6-crest">${rfCrest(c,24)}</span>`:'<span class="rf-ob6-bola">⚽</span>'}
+            ${saiu&&c?`<span class="rf-ob6-crest">${rfCrest(c,24)}</span>`:`<span class="rf-ob6-bola">${rfIcone('jogar',16)}</span>`}
           </div>`;}).join('')}
         <div class="rf-ob6-prog">
           <div class="rf-pz-trilho"><div class="rf-pz-fill" style="width:${Math.round(feitos/total*100)}%"></div></div>
@@ -562,7 +576,7 @@ function rfOb6(){
             <div class="rf-ob-esc-lin"><span>Elenco</span><b>${sq.length} jogadores</b></div>
             <div class="rf-ob-esc-lin"><span>Caixa</span><b>${escC(fmt(S.budget||0))}</b></div>
             <div class="rf-ob-esc-lin"><span>Estádio</span><b>${grp(((typeof myStadium==='function'&&myStadium())||{}).capacity||0)} lug.</b></div>`
-          :`<span class="rf-ob6-bolag">⚽</span>
+          :`<span class="rf-ob6-bolag">${rfIcone('jogar',16)}</span>
             <span class="rf-ob6-n">Sorteando</span>
             <span class="rf-ob6-d">Boa sorte, treinador.</span>`}
         </div>
@@ -663,7 +677,7 @@ function rfOb7(){
     sobre:'Você é o novo treinador', titulo:'Bem-vindo ao '+(cl.short||'clube')+'.',
     sub:'A diretoria confia. A torcida quer acesso.',
     nota:'Daqui você cai direto na tela de Formação.',
-    cta:'⚽ Entrar no clube', ctaOn:'clBoasVindasContinuar()'});
+    cta:rfIcone('jogar',16)+' Entrar no clube', ctaOn:'clBoasVindasContinuar()'});
 }
 /* O SAVE NÃO GUARDA O NOME DO ESTÁDIO — S.clubStadiumCap[id] só tem capacidade
    e o quanto foi construído na temporada. Então a linha diz "Casa do <clube>"

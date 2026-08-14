@@ -183,7 +183,7 @@ function rfLandingHTML(){
       ${rfLpSecaoHTML({eyebrow:'Jogue do seu jeito', titulo:'Da Série D ao topo, no seu ritmo.',
         prosa:'Pega um clube pequeno e sobe até a elite. Mercado de transferências, finanças do clube e o calendário completo de copas — sem depender de ninguém entrar na sala.',
         itens:['Séries A, B, C e D com elencos reais','Copa do Brasil, Libertadores e Sul-Americana','Partida ao vivo com narração lance a lance'],
-        cta:'⚽ Começar uma carreira', ctaOn:"clGoModo('solo')"})}
+        cta:rfIcone('jogar',16)+' Começar uma carreira', ctaOn:"clGoModo('solo')"})}
       ${rfLpMaqueteTabelaHTML()}
     </section>
 
@@ -192,14 +192,14 @@ function rfLandingHTML(){
       ${rfLpSecaoHTML({eyebrow:'Modo Resenha', titulo:'Um campeonato com a sua turma, na mesma rodada.',
         prosa:'Monte a liga do grupo do trabalho, da turma da faculdade ou da comunidade inteira. Todo mundo joga a mesma rodada ao vivo, com tabela, mercado e a zoeira rolando junto.',
         itens:['Até 20 treinadores na mesma liga','Rodada ao vivo para todo mundo ao mesmo tempo','Chat da sala durante os jogos'],
-        cta:'💬 Criar a minha sala', ctaOn:"clGoModo('resenha')"})}
+        cta:rfIcone('chat',16)+' Criar a minha sala', ctaOn:"clGoModo('resenha')"})}
     </section>
 
     <section class="rf-lp-sec">
       ${rfLpSecaoHTML({eyebrow:'Mercado global', titulo:'O leilão é onde a liga se decide.',
         prosa:'Cada jogador tem vários clubes disputando. Para levar, cubra a maior oferta antes das rodadas acabarem — se o seu lance ficar abaixo, a concorrência cobre na rodada seguinte.',
         itens:['Leilão aberto a todos os clubes da liga','Propostas e contrapropostas por jogador','Finanças de verdade: folha, bilheteria e sócios'],
-        cta:'🔨 Ver o mercado', ctaOn:"clGoModo('solo')"})}
+        cta:rfIcone('leilao',16)+' Ver o mercado', ctaOn:"clGoModo('solo')"})}
       ${rfLpMaqueteLeilaoHTML()}
     </section>
 

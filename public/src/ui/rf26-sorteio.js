@@ -36,7 +36,7 @@ function rfSorteioShell(o){
                 <span class="rf-label-r">${escC(o.estado||'')}</span></div>
               ${o.corpo||''}
               ${rfSrtProgressoHTML(o.feito||0,o.total||0)}
-              ${o.meu?`<div class="rf-srt-meu">⚽ ${o.meu}</div>`:''}
+              ${o.meu?`<div class="rf-srt-meu">${rfIcone('jogar',16)} ${o.meu}</div>`:''}
             </div>
           </div>
         </div>
@@ -62,7 +62,7 @@ function rfSrtTrofeuHTML(o){
     <span class="rf-srt-v">${escC(String(v))}</span></div>`;
   return `<aside class="rf-srt-trofeu">
     <div class="rf-srt-top">
-      <span class="rf-srt-ic">${o.trofeu||'🏆'}</span>
+      <span class="rf-srt-ic">${o.trofeu||rfIcone('trofeu',16)+''}</span>
       <span class="rf-srt-nome">${escC(o.comp||'')}</span>
       <span class="rf-srt-fase">${escC(o.fase||'')}</span>
     </div>
@@ -150,7 +150,7 @@ function rfSorteioHTML(key, dr){
   const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[key])||{};
   const meu=CL.clubId;
   const feito=dr?dr.idx:0, total=dr?dr.reveal.length:0;
-  const trofeu=(typeof trophyImg==='function'&&trophyImg(key,44))||'🏆';
+  const trofeu=(typeof trophyImg==='function'&&trophyImg(key,44))||rfIcone('trofeu',16)+'';
 
   // FICHA do painel: o que o save sabe; o resto vem da tela (ver cabeçalho)
   const campeao=(()=>{ const h=(S.history||[]).slice().reverse().find(x=>x.cups&&x.cups[key]);

@@ -1870,7 +1870,14 @@ function rfTrilhaHTML(passo, total){
    na tela, com a descrição inteira — esconder o modo seria esconder metade do que
    o jogo é. O que muda é que ele não é clicável e diz por quê. Trocar esta
    constante pra false devolve o clique, sem mexer em mais nada. */
-const RESENHA_EM_BREVE=true;
+/* LIBERADO PARA TESTE INTERNO (2026-08-14). Enquanto era `true`, o cartão do
+   Modo Resenha aparecia travado com "Em breve" e o botão levava à lista de
+   espera. Com `false`, o cartão abre o fluxo de 6 passos — Abrir Sala, Sala
+   Aberta, sorteio e lobby — que já está implementado.
+   Para voltar a esconder da beta pública, basta trocar de novo para `true`:
+   é a ÚNICA chave, e as duas peles (rf26-onboarding e o main antigo) leem
+   daqui. */
+const RESENHA_EM_BREVE=false;
 function scModoChoice(){
   return wizShell({ step:1, steps:WIZ_PASSOS.solo, title:'Escolher modo', back:'clGoAbertura()', backLabel:'Voltar ao início',
     contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
@@ -3695,7 +3702,13 @@ function clInboxClearAll(){
   (CL.inbox||[]).forEach(e=>{ CL.inboxDeleted[e.key]=true; });
   CL.inbox=[]; CL.inboxOpen=null; saveInbox(); cdraw();
 }
-function inboxIcon(kind){ return {offer:'💰', job:'🤝', warn:'⚠️', prize:'🏆', retire:'👋', money:'💵', counter:'↩️'}[kind]||'✉️'; }
+/* ÍCONE DA MENSAGEM. Devolve SVG do Iconoir, não emoji: esta função alimenta
+   a lista da Caixa de entrada, onde o emoji colorido brigava com o resto. */
+function inboxIcon(kind){
+  const n={offer:'financas', job:'acordo', warn:'aviso', prize:'trofeu',
+           retire:'jogador', money:'moedas', counter:'voltar'}[kind]||'email';
+  return (typeof rfIcone==='function')?rfIcone(n,15):'';
+}
 function panCorreio(){
   syncInbox();
   const box=CL.inbox||[];

@@ -154,23 +154,23 @@ function rfPill(txt,tom){ return {txt,tom:tom||'info'}; }
 function rfPillCaixa(){ return rfPill('🟢 Caixa '+fmt(S.budget||0)); }
 function rfPillGravado(){
   const t=CL._lastSaveAt?new Date(CL._lastSaveAt):null;
-  return rfPill('💾 '+(t?('Gravado '+String(t.getHours()).padStart(2,'0')+'h'+String(t.getMinutes()).padStart(2,'0')):'Gravação automática'));
+  return rfPill(rfIcone('gravar',16)+''+(t?('Gravado '+String(t.getHours()).padStart(2,'0')+'h'+String(t.getMinutes()).padStart(2,'0')):'Gravação automática'));
 }
-function rfPillDivisao(){ return rfPill('🛡️ '+divisionLabel()); }
+function rfPillDivisao(){ return rfPill(rfIcone('marcacao',16)+''+divisionLabel()); }
 function rfPillFolha(){
   const folha=squad(CL.clubId).reduce((s,p)=>s+(typeof playerSalary==='function'?playerSalary(p):0),0);
   return rfPill('Folha '+fmt(folha)+'/sem');
 }
 function rfPillPosicao(){
   const pos=rfMinhaPosicao();
-  return rfPill('🏆 '+(pos?pos+'º na '+divisionLabel():divisionLabel()));
+  return rfPill(rfIcone('trofeu',16)+''+(pos?pos+'º na '+divisionLabel():divisionLabel()));
 }
-function rfPillReputacao(){ return rfPill('🎓 Reputação '+Math.round((S.coachRep!=null?S.coachRep:50))); }
+function rfPillReputacao(){ return rfPill(rfIcone('treinador',16)+' Reputação '+Math.round((S.coachRep!=null?S.coachRep:50))); }
 function rfPillSaldo(){
   const b=S.budget||0;
   return rfPill((b>=0?'▲ Saldo positivo':'▼ Saldo negativo'), b>=0?'ok':'danger');
 }
-function rfPillNaoLidas(){ const n=rfNaoLidas(); return rfPill('✉️ '+(n?n+' por ler':'Tudo lido')); }
+function rfPillNaoLidas(){ const n=rfNaoLidas(); return rfPill(rfIcone('email',16)+''+(n?n+' por ler':'Tudo lido')); }
 function rfSubMercado(){
   const aberta=(typeof canNegotiate!=='function')||canNegotiate();
   return (aberta?'Janela aberta':'Janela fechada')
@@ -381,7 +381,7 @@ function rfJogar(){
   if(typeof clJogar==='function') clJogar();
 }
 function rfJogarLabel(){
-  return (typeof estouPronto==='function' && estouPronto()) ? '✔ Pronto' : '⚽ Jogar';
+  return (typeof estouPronto==='function' && estouPronto()) ? rfIcone('ok',16)+' Pronto' : rfIcone('jogar',16)+' Jogar';
 }
 
 /* trilhos de publicidade — ficam FORA da coluna de conteúdo e somem antes dela */
@@ -494,7 +494,7 @@ function rfHubHTML(){
       <span class="rf-label-t">Formações</span>
       ${rfFormacoesHTML()}
       <div class="rf-acts">
-        ${btn('Seleccionar descansados','clSelectRested()',{icon:'🔋',dis:!CL.tacticChosen,
+        ${btn('Seleccionar descansados','clSelectRested()',{icon:rfIcone('energia',16)+'',dis:!CL.tacticChosen,
           title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
       </div>
     </div>
@@ -955,7 +955,7 @@ function rfBottomNavHTML(){
   return `<nav class="rf-bottomnav">
     ${itens}
     <button type="button" class="rf-bn-i ${maisAtivo?'on':''}" onclick="rfMaisSheet()">
-      <span class="rf-bn-ico">☰</span><span class="rf-bn-l">Mais</span></button>
+      <span class="rf-bn-ico">${rfIcone('menu',20)}</span><span class="rf-bn-l">Mais</span></button>
     <button type="button" class="rf-bn-jogar ${pronto?'rf-btn-pulse':''}" ${pronto?'':'disabled'}
       onclick="rfJogar()">${rfJogarLabel()}</button>
   </nav>`;
@@ -1262,7 +1262,7 @@ function rfPropostaCardHTML(o){
       <span class="rf-prop-fee">${escC(mvShort(o.fee))}</span>
     </div>
     <span class="rf-prop-sub">${escC(p?rfPosLabel(p.s):'—')} · ${o.playerForce} força · ${escC(o.buyerName||'')} · expira em ${rodadas} rodada(s)</span>
-    ${o.lastMsg?`<span class="rf-prop-msg">💬 ${escC(o.lastMsg)}</span>`:''}
+    ${o.lastMsg?`<span class="rf-prop-msg">${rfIcone('chat',16)} ${escC(o.lastMsg)}</span>`:''}
     <div class="rf-prop-acts">
       <button type="button" class="rf-btn rf-btn-primary rf-prop-b" onclick="clAcceptOffer(${o.id})">Aceitar</button>
       <button type="button" class="rf-btn rf-btn-secondary rf-prop-b" onclick="clRejectOffer(${o.id})">Recusar</button>
@@ -1727,7 +1727,7 @@ function rfTrofeusHTML(){
   const t=rfTitulosDoTreinador();
   if(!t.length) return `<span class="rf-note">Nenhum título ainda. As silhuetas aparecem quando a primeira taça vier.</span>`;
   return `<div class="rf-trofeus">${t.slice(0,8).map(x=>`<div class="rf-trofeu">
-    <span class="rf-trofeu-i">${(typeof trophyImg==='function'&&trophyImg(x.comp,26))||'🏆'}</span>
+    <span class="rf-trofeu-i">${(typeof trophyImg==='function'&&trophyImg(x.comp,26))||rfIcone('trofeu',16)+''}</span>
     <span class="rf-trofeu-n">${escC(rfCompLabel(x.comp))}</span>
     <span class="rf-trofeu-a">${escC(String(x.season||''))}</span>
   </div>`).join('')}</div>`;
@@ -1877,9 +1877,9 @@ function rfOpcoesHTML(){
 }
 function rfJogoHTML(){
   const acoes=[
-    `<button type="button" class="rf-acao primaria" onclick="clSaveMenu()">💾 Gravar jogo</button>`,
-    CL.online?`<button type="button" class="rf-acao" onclick="clInviteResenha()">💬 Chamar pra Resenha</button>`:'',
-    `<button type="button" class="rf-acao" onclick="clOptions()">⚙️ Opções</button>`,
+    `<button type="button" class="rf-acao primaria" onclick="clSaveMenu()">${rfIcone('gravar',16)} Gravar jogo</button>`,
+    CL.online?`<button type="button" class="rf-acao" onclick="clInviteResenha()">${rfIcone('chat',16)} Chamar pra Resenha</button>`:'',
+    `<button type="button" class="rf-acao" onclick="clOptions()">${rfIcone('config',16)} Opções</button>`,
     `<button type="button" class="rf-acao perigo" onclick="clExit()">↩ Sair para o menu</button>`,
   ].filter(Boolean).join('');
   return `<div class="rf-acoes">${acoes}</div>
@@ -1935,7 +1935,7 @@ function rfContrapropostasHTML(){
           <span class="rf-prop-fee">${escC(mvShort(o.fee||0))}</span>
         </div>
         <span class="rf-prop-sub">${escC(o.buyerName||o.sellerName||'')}${o.state?' · '+escC(o.state):''}</span>
-        ${o.lastMsg?`<span class="rf-prop-msg">💬 ${escC(o.lastMsg)}</span>`:''}
+        ${o.lastMsg?`<span class="rf-prop-msg">${rfIcone('chat',16)} ${escC(o.lastMsg)}</span>`:''}
       </div>`).join('')
     : '<span class="rf-note">Nenhuma contraproposta aberta agora.</span>';
   return rfCol(rfCard('Contrapropostas', corpo, {right:lista.length?lista.length+' aberta(s)':''}));

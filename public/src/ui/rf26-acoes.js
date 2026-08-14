@@ -179,7 +179,7 @@ const RF_ACOES = {
       + rfAcLinhaHTML('Clubes na disputa', String(lot.interest||1), '', true)
       + rfAcLinhaHTML('Caixa depois do lance', rfDin((S.budget||0)-sug), (S.budget||0)-sug<0?'ruim':'ok')
       + rfAcNotaHTML('Para <b>garantir</b>, ofereça acima do que a concorrência topa pagar — quem fica abaixo é coberto na rodada seguinte.'),
-    acoes:[{l:'Cancelar',tom:'fantasma'},{l:'🔨 Dar lance',on:'rfMkLanceGo()'}] });
+    acoes:[{l:'Cancelar',tom:'fantasma'},{l:rfIcone('leilao',16)+' Dar lance',on:'rfMkLanceGo()'}] });
 },
 
 'mkt-cobrir': d=>{
@@ -197,7 +197,7 @@ const RF_ACOES = {
           `Precisa passar de ${escC(rfDin(lot.bid))}.`, {foco:true})
       + rfAcLinhaHTML('Caixa depois do lance', rfDin((S.budget||0)-sug), (S.budget||0)-sug<0?'ruim':'ok', true)
       + rfAcNotaHTML('Desistir do lote não custa nada — mas o jogador sai do mercado se outro clube arrematar.'),
-    acoes:[{l:'Desistir do lote',tom:'fantasma'},{l:'⚡ Cobrir agora',on:'rfMkLanceGo()'}] });
+    acoes:[{l:'Desistir do lote',tom:'fantasma'},{l:rfIcone('raio',16)+' Cobrir agora',on:'rfMkLanceGo()'}] });
 },
 
 'mkt-aceitar': d=>{
@@ -261,14 +261,14 @@ const RF_ACOES = {
           {t:'Leilão', s:'os interessados disputam por algumas rodadas'}], sel)
       + (titular?rfAcAvisoHTML('É <b>titular</b>. Sair dele agora abre buraco no onze até você repor.','aviso'):'')
       + rfAcNotaHTML('Dá para tirar da lista a qualquer momento enquanto ninguém tiver fechado.'),
-    acoes:[{l:'Cancelar',tom:'fantasma'},{l:'🏷 Listar',on:'rfMkListarGo()'}] });
+    acoes:[{l:'Cancelar',tom:'fantasma'},{l:rfIcone('destaque',16)+' Listar',on:'rfMkListarGo()'}] });
 },
 
 'mkt-arrematado': d=>{
   const p=(typeof findP==='function')?findP(d.player,d.sellerId):null;
   return rfAcao({ kicker:'MERCADO · LEILÃO ENCERRADO', titulo:'Arrematado!', w:460,
     corpo:
-      rfAcSeloHTML('🎉', escC((p&&p.n)||d.player||'—'), 'entra no seu elenco agora')
+      rfAcSeloHTML(rfIcone('festa',16)+'', escC((p&&p.n)||d.player||'—'), 'entra no seu elenco agora')
       + rfAcLinhaHTML('Seu lance', rfDin(d.valor||0), 'ok', true)
       + rfAcLinhaHTML('Caixa depois', rfDin(S.budget||0), '')
       + rfAcNotaHTML('Ele já pode ser escalado na Formação.'),
@@ -321,7 +321,7 @@ const RF_ACOES = {
 
 'elenco-renovado': d=>rfAcao({ kicker:'ELENCO · RENOVAÇÃO', titulo:'Contrato renovado', w:440,
   corpo:
-    rfAcSeloHTML('✓', escC(d.nome||'—'), 'assinou com você')
+    rfAcSeloHTML(rfIcone('ok',16), escC(d.nome||'—'), 'assinou com você')
     + rfAcLinhaHTML('Novo salário', rfDin(d.salario||0), 'aviso', true)
     + rfAcLinhaHTML('Até', String(d.ate||'—'), '')
     + rfAcNotaHTML('A folha nova vale a partir do mês seguinte.'),
@@ -360,7 +360,7 @@ const RF_ACOES = {
 /* ---------- SISTEMA E CONTA (8) ---------- */
 'sys-gravado': d=>rfAcao({ kicker:'SAVE NA NUVEM', titulo:'Jogo gravado', w:420,
   corpo:
-    rfAcSeloHTML('💾','Tudo salvo', escC(d.quando||'agora'))
+    rfAcSeloHTML(rfIcone('gravar',16)+'','Tudo salvo', escC(d.quando||'agora'))
     + rfAcNotaHTML('O save fica na nuvem e na máquina. Dá para continuar de qualquer aparelho com a mesma conta.'),
   acoes:[{l:'Continuar'}] }),
 
