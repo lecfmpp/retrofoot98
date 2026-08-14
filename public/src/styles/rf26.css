@@ -18,6 +18,33 @@
    arquivo inteiro, em vez de uma exceção por componente. */
 [hidden]{display:none !important}
 
+/* ----- FUNDO DE LISTRAS: GRAMADO -----
+   O arquivo do designer (img/stripes.svg) é um ladrilho de 40×1 — 20px cheios,
+   20px vazios. Ele dá a MEDIDA; a cor vem daqui, porque o preenchimento dele é
+   preto fixo e serviria para um fundo só.
+   São duas faixas de VERDE, uma escura e uma um pouco mais clara, como grama
+   cortada — não um véu por cima do fundo. A primeira tentativa pintou a listra
+   com 4% de tinta sobre a mesa e o resultado sumia na tela.
+     --listra-a  a faixa escura
+     --listra-b  a faixa clara
+     --listra-w  a largura de cada faixa (20px, do ladrilho)
+   Decoração pura: entra por ::before com pointer-events:none, para nunca roubar
+   clique nem entrar na conta de rolagem. */
+.rf-listrado{position:relative;isolation:isolate}
+.rf-listrado>*{position:relative;z-index:1}
+.rf-listrado::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-image:repeating-linear-gradient(90deg,
+    var(--listra-a,var(--pitch-2,#37904f)) 0 var(--listra-w,20px),
+    var(--listra-b,var(--pitch-1,#3e9c5a)) var(--listra-w,20px) calc(var(--listra-w,20px)*2))}
+
+/* ============================ CORE ============================ */
+
+/* `hidden` TEM DE GANHAR. O atributo só vale por uma regra da folha do
+   navegador (`[hidden]{display:none}`), e qualquer `display` declarado aqui
+   a atropela — foi o que aconteceu com os campos de convite da sala, que
+   ficavam à vista mesmo marcados como escondidos. Uma linha resolve para o
+   arquivo inteiro, em vez de uma exceção por componente. */
+[hidden]{display:none !important}
 /* ----- ÍCONE (Iconoir, MIT — ver src/ui/rf26-icones.js) -----
    `currentColor` é o ponto todo: o traço assume a cor do texto de onde o
    ícone está, então o MESMO ícone serve o card branco e a faixa navy do
@@ -163,6 +190,9 @@
    sempre à vista, em qualquer resolução de desktop. */
 .rf-app{height:100dvh;display:flex;align-items:stretch;overflow:hidden;
   background:var(--surface-desk);font-family:var(--font-sans);color:var(--text-1)}
+/* as listras vivem no MIOLO, não no .rf-app: a sidebar é branca e chapada, e
+   listrar por trás dela só sujaria a borda. Valores mais fortes que os do
+   assistente porque aqui o fundo é o verde da mesa, não o creme. */
 .rf-main{flex:1 1 auto;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
 
 /* ----- Sidebar 240px → 68px, estado persistido em localStorage ----- */
@@ -1641,7 +1671,8 @@
    com 26px de respiro · barra de ação. Nada de barra de título do
    Windows, navbar institucional ou rodapé de SEO — a tela não tem.
    ===================================================================== */
-.rf-wiz{min-height:100vh;background:var(--surface-desk);padding:24px;box-sizing:border-box;
+.rf-wiz{
+  min-height:100vh;background:var(--surface-desk);padding:24px;box-sizing:border-box;
   display:flex;justify-content:center;font-family:var(--font-sans);color:var(--text-1)}
 .rf-wiz-in{width:980px;max-width:100%;display:flex;flex-direction:column;gap:14px}
 .rf-wiz-marca{display:flex;align-items:center;gap:10px}
@@ -2363,7 +2394,8 @@
    faixa, o placar de estádio, a barra de pressão, um corpo de duas colunas
    (narração 1fr · estatísticas 320px) e a banda de patrocínio no pé.
    ===================================================================== */
-.rf-cam{position:fixed;inset:0;z-index:60;overflow-y:auto;background:rgba(18,32,26,.55);
+.rf-cam{--listra-a:#1d3a28;--listra-b:#21422d;
+  position:fixed;inset:0;z-index:60;overflow-y:auto;background:rgba(18,32,26,.55);
   padding:20px;box-sizing:border-box;font-family:var(--font-sans);color:var(--text-1)}
 .rf-cam-env{max-width:1560px;margin:0 auto;display:flex;align-items:flex-start;
   justify-content:center;gap:16px}

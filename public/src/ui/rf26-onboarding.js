@@ -52,7 +52,7 @@ function rfWiz(o){
   const passo=o.passo||1, total=passos.length;
   const cabeca=(o.titulo||o.sobre||o.sub)
     ? rfWizHead(o.sobre,o.titulo,o.sub) : '';
-  return `<div class="rf-wiz">
+  return `<div class="rf-wiz rf-listrado">
     <div class="rf-wiz-in">
       <div class="rf-wiz-marca">
         <img src="img/logo.webp" width="32" height="32" alt="RetroFoot98">

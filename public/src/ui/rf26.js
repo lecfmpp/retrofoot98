@@ -411,7 +411,7 @@ function rfTopAd(){
 function rfEnvelope(conteudo){
   return `<div class="rf-app ${rfSidebarCollapsed()?'collapsed':''}">
     ${rfSidebarHTML()}
-    <main class="rf-main">
+    <main class="rf-main rf-listrado">
       <div class="rf-content">
         ${rfTopAd()}
         ${conteudo}
