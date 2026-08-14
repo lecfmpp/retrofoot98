@@ -77,9 +77,9 @@ function rfToggleSidebar(){
    antes de existirem estas.
    ===================================================================== */
 const RF_PAGES=[
-  { key:'hub', ico:'🥅', label:'Formação', curto:'Formação', banda:true },
+  { key:'hub', ico:'jogar', label:'Formação', curto:'Formação', banda:true },
 
-  { key:'mercado', ico:'🛒', label:'Mercado', curto:'Mercado',
+  { key:'mercado', ico:'mercado', label:'Mercado', curto:'Mercado',
     titulo:'Mercado', sub:()=>rfSubMercado(),
     /* MERCADO É UMA COLUNA SÓ. As telas do Mercado empilham: a tabela
        ocupa a largura inteira e o bloco de apoio ("O que o caixa
@@ -93,7 +93,7 @@ const RF_PAGES=[
            {k:'vender',  l:()=>'Vender',         build:()=>rfMktVenderHTML()},
            {k:'transf',  l:()=>'Transferências', build:()=>rfMktTransfHTML()} ] },
 
-  { key:'elenco', ico:'👤', label:'Elenco & Base', curto:'Elenco',
+  { key:'elenco', ico:'elenco', label:'Elenco & Base', curto:'Elenco',
     titulo:'Elenco & Base', sub:()=>rfElSubHTML(),
     acoes:()=>rfElAcoesHTML(), grid:'minmax(0,1fr) 340px',
     tabs:[ {k:'elenco', l:()=>'Elenco',           build:()=>rfElElencoHTML()},
@@ -101,7 +101,7 @@ const RF_PAGES=[
            {k:'base',   l:()=>'Base',             build:()=>rfElBaseHTML()},
            {k:'treino', l:()=>'Treino especial',  build:()=>rfElTreinoHTML()} ] },
 
-  { key:'campeonatos', ico:'🏆', label:'Campeonatos', curto:'Copas',
+  { key:'campeonatos', ico:'trofeu', label:'Campeonatos', curto:'Copas',
     titulo:'Campeonatos', sub:()=>rfCpSubHTML(),
     acoes:()=>rfCpAcoesHTML(), grid:'minmax(0,1fr)',
     tabs:[ {k:'minhas',    l:()=>'Minhas competições', build:()=>rfCpMinhasHTML()},
@@ -111,7 +111,7 @@ const RF_PAGES=[
            {k:'intl',      l:()=>'Ligas internacionais',build:()=>rfCpIntlHTML(),
             show:()=>!!(S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)} ] },
 
-  { key:'treinador', ico:'🎓', label:'Treinador', curto:'Treinador',
+  { key:'treinador', ico:'treinador', label:'Treinador', curto:'Treinador',
     titulo:'Treinador', sub:()=>rfTrSubHTML(),
     acoes:()=>rfTrAcoesHTML(), grid:'minmax(0,1fr)',
     tabs:[ {k:'carreira',l:()=>'Carreira',        build:()=>rfTrCarreiraHTML()},
@@ -121,7 +121,7 @@ const RF_PAGES=[
            {k:'ofertas', l:()=>'Ofertas'+rfSufixo(rfLen(S&&S.jobOffers)), build:()=>rfTrOfertasHTML()},
            {k:'perfil',  l:()=>'Perfil',          build:()=>rfTrPerfilHTML()} ] },
 
-  { key:'financas', ico:'💰', label:'Finanças', curto:'Finanças',
+  { key:'financas', ico:'financas', label:'Finanças', curto:'Finanças',
     titulo:'Finanças', sub:()=>rfFiSubHTML(),
     acoes:()=>rfFiAcoesHTML(), grid:'minmax(0,1fr)',
     tabs:[ {k:'resumo',    l:()=>'Resumo',     build:()=>rfFiResumoHTML()},
@@ -130,13 +130,13 @@ const RF_PAGES=[
            {k:'estadio',   l:()=>'Estádio',    build:()=>rfFiEstadioHTML()},
            {k:'patrocinio',l:()=>'Patrocínio', build:()=>rfFiPatrocinioHTML()} ] },
 
-  { key:'email', ico:'✉️', label:'E-mail', curto:'E-mail',
+  { key:'email', ico:'email', label:'E-mail', curto:'E-mail',
     titulo:'E-mail & Sistema', sub:()=>rfEmSubHTML(),
     acoes:()=>rfEmAcoesHTML(), grid:'minmax(0,380px) minmax(0,1fr)',
     tabs:[ {k:'caixa',     l:()=>'Caixa de entrada'+rfSufixo(rfNaoLidas()), build:()=>rfEmCaixaHTML()},
            {k:'arquivadas',l:()=>'Arquivadas',                              build:()=>rfEmArquivadasHTML()} ] },
 
-  { key:'config', ico:'⚙️', label:'Configurações', curto:'Config',
+  { key:'config', ico:'config', label:'Configurações', curto:'Config',
     titulo:'Configurações', sub:()=>rfCfSubHTML(),
     acoes:()=>rfCfAcoesHTML(), grid:'minmax(0,1fr)',
     tabs:[ {k:'opcoes',  l:()=>'Opções',       build:()=>rfCfOpcoesHTML()},
@@ -312,7 +312,7 @@ function rfSidebarHTML(){
     const n=badgeDe(p.key);
     return `<button type="button" class="rf-nav-i ${st.page===p.key?'on':''}" title="${escC(p.label)}"
       onclick="rfGo('${p.key}')">
-      <span class="rf-nav-ico" aria-hidden="true">${p.ico}</span>
+      <span class="rf-nav-ico" aria-hidden="true">${rfIcone(p.ico,18)}</span>
       <span class="rf-nav-l">${escC(p.label)}</span>
       ${n>0?`<span class="rf-nav-b">${n>9?'9+':n}</span>`:''}
     </button>`;
@@ -946,7 +946,7 @@ function rfBottomNavHTML(){
     // não cabem em 375px sem quebrar em duas linhas, e rótulo quebrado é
     // justamente o que o checklist do design system proíbe.
     return `<button type="button" class="rf-bn-i ${st.page===k?'on':''}" onclick="rfGo('${k}')">
-      <span class="rf-bn-ico">${p.ico}</span><span class="rf-bn-l">${escC(p.curto||p.label)}</span></button>`;
+      <span class="rf-bn-ico">${rfIcone(p.ico,20)}</span><span class="rf-bn-l">${escC(p.curto||p.label)}</span></button>`;
   }).join('');
   const restantes=RF_PAGES.filter(p=>chaves.indexOf(p.key)<0);
   const maisAtivo=restantes.some(p=>p.key===st.page);
@@ -981,7 +981,7 @@ function rfMaisSheet(){
   const resto=RF_PAGES.filter(p=>chaves.indexOf(p.key)<0);
   const linhas=resto.map(p=>`<button type="button" class="rf-sheet-i ${st.page===p.key?'on':''}"
     onclick="clCloseOverlay();rfGo('${p.key}')">
-    <span class="rf-nav-ico">${p.ico}</span><span class="rf-nav-l">${escC(p.label)}</span></button>`).join('');
+    <span class="rf-nav-ico">${rfIcone(p.ico,18)}</span><span class="rf-nav-l">${escC(p.label)}</span></button>`).join('');
   rfSheet('Ir para', `<div class="rf-sheet-list">${linhas}</div>`);
 }
 

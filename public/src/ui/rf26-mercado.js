@@ -34,8 +34,8 @@ function rfDin(v){
 /* AÇÕES DO CABEÇALHO — os dois botões do canto superior direito */
 function rfMktAcoesHTML(){
   return `<div class="rf-mk-acoes">
-    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfMktExportar()">📤 Exportar lista</button>
-    <button type="button" class="rf-btn rf-btn-cta" onclick="rfSetTab('mercado','comprar')">🔍 Buscar jogador</button>
+    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfMktExportar()">${rfIcone('exportar',16)} Exportar lista</button>
+    <button type="button" class="rf-btn rf-btn-cta" onclick="rfSetTab('mercado','comprar')">${rfIcone('buscar',16)} Buscar jogador</button>
   </div>`;
 }
 function rfMktExportar(){

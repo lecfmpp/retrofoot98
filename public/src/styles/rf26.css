@@ -18,6 +18,17 @@
    arquivo inteiro, em vez de uma exceção por componente. */
 [hidden]{display:none !important}
 
+/* ----- ÍCONE (Iconoir, MIT — ver src/ui/rf26-icones.js) -----
+   `currentColor` é o ponto todo: o traço assume a cor do texto de onde o
+   ícone está, então o MESMO ícone serve o card branco e a faixa navy do
+   clube. Nada de duas artes por ícone.
+   `flex:0 0 auto` porque quase sempre ele vive ao lado de um rótulo dentro
+   de um flex, e sem isso encolhe antes do texto. */
+.rf-ico{flex:0 0 auto;display:inline-block;vertical-align:-.18em;
+  stroke:currentColor;color:inherit}
+/* dentro de botão e de item de menu o ícone acompanha a entrelinha do rótulo */
+.rf-btn .rf-ico,.rf-nav-i .rf-ico,.rf-tabp .rf-ico{vertical-align:-.2em}
+
 /* ----- Card: a superfície branca com hairline e raio 18. Três tons:
    claro (padrão), do clube (faixa azul) e recuado (bloco dentro do card). */
 .rf-card{background:var(--surface-card);border:var(--border-hairline);color:var(--text-1);

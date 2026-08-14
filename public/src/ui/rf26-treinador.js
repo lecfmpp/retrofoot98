@@ -381,8 +381,8 @@ function rfTrSubHTML(){
 }
 function rfTrAcoesHTML(){
   return `<div class="rf-mk-acoes">
-    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfTrExportar()">📤 Exportar carreira</button>
-    <button type="button" class="rf-btn rf-btn-cta" onclick="rfSetTab('treinador','ofertas')">✉️ Ver ofertas</button>
+    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfTrExportar()">${rfIcone('exportar',16)} Exportar carreira</button>
+    <button type="button" class="rf-btn rf-btn-cta" onclick="rfSetTab('treinador','ofertas')">${rfIcone('email',16)} Ver ofertas</button>
   </div>`;
 }
 function rfTrExportar(){

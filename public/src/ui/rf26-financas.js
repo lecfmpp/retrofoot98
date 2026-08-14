@@ -143,7 +143,7 @@ function rfFiExtratoHTML(){
         <span class="rf-fi-filtro"><b>Tipo</b><span>todos</span><i>▾</i></span>
         <span class="rf-fi-filtro"><b>Valor mínimo</b><span>${escC(fmt(0))}</span><i>▾</i></span>
         <div class="rf-sp"></div>
-        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfFiExportar()">📤 Exportar extrato</button>
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfFiExportar()">${rfIcone('exportar',16)} Exportar extrato</button>
       </div>
     </div>`;
 }
@@ -358,7 +358,7 @@ function rfFiSubHTML(){
 }
 function rfFiAcoesHTML(){
   return `<div class="rf-mk-acoes">
-    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfFiExportar()">📤 Exportar balanço</button>
-    <button type="button" class="rf-btn rf-btn-cta" onclick="rfSetTab('financas','extrato')">💰 Ver extrato</button>
+    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfFiExportar()">${rfIcone('exportar',16)} Exportar balanço</button>
+    <button type="button" class="rf-btn rf-btn-cta" onclick="rfSetTab('financas','extrato')">${rfIcone('financas',16)} Ver extrato</button>
   </div>`;
 }

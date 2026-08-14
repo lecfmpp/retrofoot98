@@ -364,8 +364,8 @@ function rfCpSubHTML(){
 function rfCpAcoesHTML(){
   return `<div class="rf-mk-acoes">
     <button type="button" class="rf-btn rf-btn-secondary"
-      onclick="rfSetTab('campeonatos','calendario')">📅 Calendário completo</button>
+      onclick="rfSetTab('campeonatos','calendario')">${rfIcone('calendario',16)} Calendário completo</button>
     <button type="button" class="rf-btn rf-btn-cta"
-      onclick="rfSetTab('campeonatos','minhas')">🏆 Ver classificação</button>
+      onclick="rfSetTab('campeonatos','minhas')">${rfIcone('trofeu',16)} Ver classificação</button>
   </div>`;
 }

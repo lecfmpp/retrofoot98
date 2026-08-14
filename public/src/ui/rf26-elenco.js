@@ -303,7 +303,7 @@ function rfElTreinoHTML(){
       ${cab}
       ${linhas || '<div class="rf-empty">Ninguém em treino especial agora.</div>'}
       ${lista.length<max?`<div class="rf-acts"><button type="button" class="rf-btn rf-btn-cta"
-        onclick="rfAcTreino()">🏃 Pôr alguém em treino</button></div>`:''}
+        onclick="rfAcTreino()">${rfIcone('resistencia',16)} Pôr alguém em treino</button></div>`:''}
     </div>
     <div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">CUSTO E RISCO</span></div>
@@ -352,8 +352,8 @@ function rfElSubHTML(){
 }
 function rfElAcoesHTML(){
   return `<div class="rf-mk-acoes">
-    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfElExportar()">📤 Exportar elenco</button>
-    <button type="button" class="rf-btn rf-btn-cta" onclick="rfGo('hub')">🥅 Ir para a formação</button>
+    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfElExportar()">${rfIcone('exportar',16)} Exportar elenco</button>
+    <button type="button" class="rf-btn rf-btn-cta" onclick="rfGo('hub')">${rfIcone('jogar',16)} Ir para a formação</button>
   </div>`;
 }
 function rfElExportar(){

@@ -99,8 +99,8 @@ function rfEmSubHTML(){
 }
 function rfEmAcoesHTML(){
   return `<div class="rf-mk-acoes">
-    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcGravar()">💾 Gravar</button>
-    <button type="button" class="rf-btn rf-btn-cta" onclick="rfEmLerTudo()">✉️ Marcar como lidas</button>
+    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcGravar()">${rfIcone('gravar',16)} Gravar</button>
+    <button type="button" class="rf-btn rf-btn-cta" onclick="rfEmLerTudo()">${rfIcone('email',16)} Marcar como lidas</button>
   </div>`;
 }
 function rfEmLerTudo(){
@@ -158,7 +158,7 @@ function rfCfOpcoesHTML(){
     <div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">CONTA</span></div>
       <div class="rf-cf-fila">
-        <button type="button" class="rf-btn rf-btn-cta" onclick="clOptions()">⚙️ Abrir opções do jogo</button>
+        <button type="button" class="rf-btn rf-btn-cta" onclick="clOptions()">${rfIcone('config',16)} Abrir opções do jogo</button>
         <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcAbrir('conta-senha',{})">Trocar a senha</button>
         <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSairSave()">Sair da conta</button>
         <button type="button" class="rf-btn rf-btn-recusar" onclick="rfAcAbrir('conta-apagar',{})">Apagar a conta</button>
@@ -196,8 +196,8 @@ function rfCfJogoHTML(){
           ${rfElStat('NA NUVEM', CL.save?'sim':'não')}
         </div>
         <div class="rf-cf-fila comfilete">
-          <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcGravar()">💾 Gravar agora</button>
-          <button type="button" class="rf-btn rf-btn-secondary" onclick="rfCfBaixarSave()">📤 Baixar o save</button>
+          <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcGravar()">${rfIcone('gravar',16)} Gravar agora</button>
+          <button type="button" class="rf-btn rf-btn-secondary" onclick="rfCfBaixarSave()">${rfIcone('baixar',16)} Baixar o save</button>
         </div>
       </div>
       <div class="rf-card">
@@ -221,7 +221,7 @@ function rfCfJogoHTML(){
       <span class="rf-cf-texto">Sair grava a temporada no ponto atual. Você volta para a escolha de
         save e nada é perdido.</span>
       <div class="rf-cf-fila">
-        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSairSave()">↩ Voltar aos saves</button>
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSairSave()">${rfIcone('voltar',16)} Voltar aos saves</button>
         <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSairSave()">Começar outro save</button>
         <button type="button" class="rf-btn rf-btn-recusar" onclick="rfAcApagarSave()">Apagar este save</button>
       </div>
@@ -278,8 +278,8 @@ function rfCfResenhaHTML(){
       </div>
       <div class="rf-sp"></div>
       <div class="rf-cf-fila">
-        <button type="button" class="rf-btn rf-btn-secondary" onclick="clInviteResenha()">📤 Copiar convite</button>
-        <button type="button" class="rf-btn rf-btn-cta" onclick="rfChatToggle()">💬 Abrir o chat</button>
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="clInviteResenha()">${rfIcone('copiar',16)} Copiar convite</button>
+        <button type="button" class="rf-btn rf-btn-cta" onclick="rfChatToggle()">${rfIcone('chat',16)} Abrir o chat</button>
       </div>
     </div>
     <div class="rf-card rf-el-tbl" style="--el-cols:${RF_CF_SALA_COLS}">
@@ -305,8 +305,8 @@ function rfCfResenhaHTML(){
         <div class="rf-cf-sinc-barra"><i style="width:100%"></i></div>
         <div class="rf-cf-fila">
           ${anfitriao?`<button type="button" class="rf-btn rf-btn-secondary"
-            onclick="clJoinRequestsPanel()">✅ Aprovar entradas${pend?' ('+pend+')':''}</button>`:''}
-          <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSincronizar()">🔄 Sincronizar agora</button>
+            onclick="clJoinRequestsPanel()">${rfIcone('aprovar',16)} Aprovar entradas${pend?' ('+pend+')':''}</button>`:''}
+          <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSincronizar()">${rfIcone('sincronizar',16)} Sincronizar agora</button>
           <button type="button" class="rf-btn rf-btn-recusar" onclick="rfAcSairSala()">Sair da sala</button>
         </div>
       </div>
@@ -324,8 +324,8 @@ function rfCfSubHTML(){
 }
 function rfCfAcoesHTML(){
   return `<div class="rf-mk-acoes">
-    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfGo('hub')">↩ Voltar ao hub</button>
-    <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcGravar()">💾 Gravar agora</button>
+    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfGo('hub')">${rfIcone('voltar',16)} Voltar ao hub</button>
+    <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcGravar()">${rfIcone('gravar',16)} Gravar agora</button>
   </div>`;
 }
 
