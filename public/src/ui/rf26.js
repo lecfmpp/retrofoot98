@@ -137,8 +137,8 @@ const RF_PAGES=[
            {k:'arquivadas',l:()=>'Arquivadas',                              build:()=>rfEmArquivadasHTML()} ] },
 
   { key:'config', ico:'⚙️', label:'Configurações', curto:'Config',
-    titulo:'Configurações', sub:'Preferências, save e Modo Resenha',
-    pill:()=>rfPillGravado(), grid:'minmax(0,1fr) 340px',
+    titulo:'Configurações', sub:()=>rfCfSubHTML(),
+    acoes:()=>rfCfAcoesHTML(), grid:'minmax(0,1fr)',
     tabs:[ {k:'opcoes',  l:()=>'Opções',       build:()=>rfCfOpcoesHTML()},
            {k:'jogo',    l:()=>'Jogo',         build:()=>rfCfJogoHTML()},
            {k:'resenha', l:()=>'Modo Resenha', build:()=>rfCfResenhaHTML(),

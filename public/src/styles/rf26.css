@@ -4316,19 +4316,94 @@
 .rf-ml-corpo p{margin:0}
 .rf-ml-acts{display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line-1);padding-top:12px}
 
-/* ---- Configurações: linha de preferência ---- */
-.rf-cf-lin{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line-1)}
-.rf-cf-lin:last-child{border-bottom:0}
-.rf-cf-id{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-.rf-cf-l{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1)}
-.rf-cf-d{font-size:var(--fs-label);color:var(--text-4);line-height:1.45}
-.rf-opt-c.leitura{background:var(--surface-sunken);cursor:default}
+/* =====================================================================
+   CONFIGURAÇÕES — preferências, save e Modo Resenha.
+   ===================================================================== */
+.rf-cf-duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.rf-cf-fila{display:flex;gap:8px;flex-wrap:wrap}
+.rf-cf-fila.comfilete{border-top:1px solid var(--line-1);padding-top:12px}
+.rf-cf-texto{font-size:var(--fs-body-sm);color:var(--text-3);line-height:1.6;text-wrap:pretty}
+
+/* PREFERÊNCIAS — rótulo em cima, caixa de seleção embaixo */
+.rf-cf-campo{display:flex;flex-direction:column;gap:6px;min-width:0}
+.rf-cf-campo-l{font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:var(--text-3);white-space:nowrap}
+.rf-cf-campo-v{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  height:42px;padding:0 14px;width:100%;box-sizing:border-box;
+  border:var(--border-control);border-radius:var(--r-control);background:var(--surface-card);
+  font-family:inherit;font-size:var(--fs-body-sm);color:var(--text-1);cursor:pointer;text-align:left}
+.rf-cf-campo-v:hover{background:var(--surface-sunken)}
+.rf-cf-campo-v>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rf-cf-campo-v>i{font-style:normal;font-size:9px;color:var(--text-faint);flex:0 0 auto}
+
+/* O INTERRUPTOR. Ele era chamado em três telas e NUNCA teve regra nenhuma:
+   saía como um botão padrão de 16×6px, um risquinho cinza que ninguém
+   reconhecia como controle. Agora é o pill do pacote — trilho de 44×24,
+   botão branco que desliza, azul do clube quando ligado. */
+.rf-switch{position:relative;width:44px;height:24px;flex:0 0 auto;padding:0;border:none;
+  border-radius:var(--r-pill);background:var(--line-2);cursor:pointer;
+  transition:background var(--dur-fast) var(--ease)}
+.rf-switch.on{background:var(--club-primary)}
+.rf-switch>i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:var(--r-pill);
+  background:#fff;box-shadow:0 1px 3px rgba(18,32,26,.25);
+  transition:left var(--dur-fast) var(--ease)}
+.rf-switch.on>i{left:23px}
+.rf-switch:disabled{opacity:.5;cursor:not-allowed}
+
+/* AVISOS E SOM — rótulo à esquerda, interruptor à direita, filete entre linhas */
+.rf-cf-sw{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 0;border-bottom:1px solid var(--line-1)}
+.rf-cf-sw:last-child{border-bottom:0}
+.rf-cf-sw-l{font-size:var(--fs-body-sm);color:var(--text-2);min-width:0}
+
+/* SAVE ATUAL e OUTROS SAVES */
 .rf-cf-save{display:flex;align-items:center;gap:12px}
 .rf-cf-save img,.rf-cf-save .rf-crest-fb{width:40px;height:40px;object-fit:contain;flex:0 0 auto}
 .rf-cf-save-id{display:flex;flex-direction:column;gap:2px;min-width:0}
 .rf-cf-save-n{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1)}
 .rf-cf-save-s{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:var(--ls-label);
   color:var(--text-faint)}
+.rf-el-stats.dois{grid-template-columns:repeat(2,minmax(0,1fr))}
+.rf-cf-save-lin{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;gap:12px;
+  align-items:center;padding:9px 0;border-top:1px solid var(--line-1)}
+.rf-cf-save-lin img,.rf-cf-save-lin .rf-crest-fb{width:24px;height:24px;object-fit:contain;flex:0 0 auto}
+.rf-cf-save-ln{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-cf-save-lv{font-size:var(--fs-caption);color:var(--text-4);white-space:nowrap}
+.rf-btn-mini{height:32px;padding:0 14px;font-size:var(--fs-caption)}
+
+/* MODO RESENHA */
+.rf-cf-codigo{flex-direction:row;align-items:center;gap:16px;flex-wrap:wrap}
+.rf-cf-codigo-id{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-cf-codigo-v{font-family:var(--font-mono);font-size:32px;font-weight:var(--fw-semibold);
+  letter-spacing:.08em;color:var(--club-primary);white-space:nowrap}
+.rf-cf-tec{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-cf-clu{font-size:var(--fs-caption);font-weight:var(--fw-medium);color:var(--text-2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-cf-rod{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-3);
+  text-align:right;white-space:nowrap}
+.rf-cf-estado{font-family:var(--font-mono);font-size:9px;font-weight:var(--fw-bold);
+  border-radius:var(--r-pill);padding:3px 9px;white-space:nowrap;justify-self:end}
+.rf-cf-estado.ok{color:#0d3d22;background:#d7f5e2}
+.rf-cf-estado.ouro{color:var(--club-on-secondary);background:#fdf0c8}
+.rf-cf-reg{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 0;border-bottom:1px solid var(--line-1)}
+.rf-cf-reg:last-child{border-bottom:0}
+.rf-cf-reg>span{font-size:var(--fs-body-sm);color:var(--text-3)}
+.rf-cf-reg>b{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-1);white-space:nowrap}
+.rf-cf-sinc-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rf-cf-sinc-t{font-size:var(--fs-body-sm);color:var(--text-2)}
+.rf-cf-sinc-v{font-family:var(--font-mono);font-size:var(--fs-caption);
+  font-weight:var(--fw-bold);color:var(--ok);white-space:nowrap}
+.rf-cf-sinc-barra{height:8px;border-radius:var(--r-pill);background:#eef1ee;overflow:hidden}
+.rf-cf-sinc-barra>i{display:block;height:100%;border-radius:var(--r-pill);background:var(--ok)}
+
+@container miolo (max-width:900px){ .rf-cf-duo{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:760px){
+  .rf-cf-duo{grid-template-columns:minmax(0,1fr)}
+  .rf-cf-fila .rf-btn{flex:1 1 auto}
+  .rf-cf-codigo-v{font-size:26px}
+}
 
 /* =====================================================================
    TELEFONE: NADA VAZA DOS 390px (regra do pacote das abas)

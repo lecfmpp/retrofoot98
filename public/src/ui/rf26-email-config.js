@@ -115,46 +115,59 @@ function rfEmLerTudo(){
 
 /* =====================================================================
    CONFIG · 1 · OPÇÕES
+   Duas colunas internas — preferências à esquerda, avisos à direita — e a
+   fila da conta ocupando a largura toda embaixo.
    ===================================================================== */
+/* campo de leitura com cara de seletor: rótulo em cima, caixa embaixo */
+function rfCfCampo(rot, valor, acao){
+  return `<label class="rf-cf-campo">
+    <span class="rf-cf-campo-l">${escC(rot)}</span>
+    <button type="button" class="rf-cf-campo-v" onclick="${acao||'clOptions()'}">
+      <span>${escC(valor)}</span><i>▾</i>
+    </button>
+  </label>`;
+}
+function rfCfSwitch(k, rot, padrao){
+  const v=(CL.options&&CL.options[k]!=null)?!!CL.options[k]:!!padrao;
+  return `<div class="rf-cf-sw">
+    <span class="rf-cf-sw-l">${escC(rot)}</span>
+    <button type="button" class="rf-switch ${v?'on':''}" onclick="rfTogglePref('${k}')"
+      aria-pressed="${v?'true':'false'}"><i></i></button>
+  </div>`;
+}
 function rfCfOpcoesHTML(){
   const tempo=(typeof tempoLabelAtual==='function')?tempoLabelAtual():'—';
   const moeda=(typeof curSym==='function')?curSym():'R$';
-  const opt=(k,d)=>!!(CL.options&&CL.options[k])===!!d;
-  const sw=(k,rot,desc,padrao)=>`<div class="rf-cf-lin">
-    <span class="rf-cf-id"><span class="rf-cf-l">${escC(rot)}</span>
-      <span class="rf-cf-d">${escC(desc)}</span></span>
-    <button type="button" class="rf-switch ${opt(k,true)||(CL.options&&CL.options[k]==null&&padrao)?'on':''}"
-      onclick="rfTogglePref('${k}')" aria-pressed="${opt(k,true)?'true':'false'}"><i></i></button>
-  </div>`;
-  return rfCol(
-    rfCard('Preferências', `
-      <div class="rf-cf-lin">
-        <span class="rf-cf-id"><span class="rf-cf-l">Moeda</span>
-          <span class="rf-cf-d">Símbolo usado em todo valor da tela</span></span>
-        <button type="button" class="rf-opt-c" onclick="clOptions()">${escC(moeda)}</button>
+  const hoje=new Date();
+  const data=String(hoje.getDate()).padStart(2,'0')+'/'+
+    ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][hoje.getMonth()]+
+    '/'+(S.season||hoje.getFullYear());
+  return `<div class="rf-cf-duo">
+      <div class="rf-card">
+        <div class="rf-label"><span class="rf-label-t">PREFERÊNCIAS</span></div>
+        ${rfCfCampo('Moeda', moeda)}
+        ${rfCfCampo('Idioma', 'Português do Brasil')}
+        ${rfCfCampo('Velocidade da partida', tempo)}
+        ${rfCfCampo('Formato de data', data)}
       </div>
-      <div class="rf-cf-lin">
-        <span class="rf-cf-id"><span class="rf-cf-l">Tempo de jogo</span>
-          <span class="rf-cf-d">Velocidade da rodada ao vivo — o Camarote trava no Usain Bolt</span></span>
-        <button type="button" class="rf-opt-c" onclick="clOptions()">${escC(tempo)}</button>
+      <div class="rf-card">
+        <div class="rf-label"><span class="rf-label-t">AVISOS E SOM</span></div>
+        ${rfCfSwitch('som','Som da partida',true)}
+        ${rfCfSwitch('avisoOfertas','Aviso de proposta recebida',true)}
+        ${rfCfSwitch('avisoLesao','Aviso de lesão',true)}
+        ${rfCfSwitch('chatNaPartida','Chat da Resenha durante o jogo',false)}
+        ${rfCfSwitch('confirmarGravar','Confirmar antes de gravar',false)}
       </div>
-      <div class="rf-cf-lin">
-        <span class="rf-cf-id"><span class="rf-cf-l">Modo</span>
-          <span class="rf-cf-d">Solo joga contra a máquina; Resenha é a liga com a turma</span></span>
-        <span class="rf-opt-c leitura">${CL.online?'Resenha':'Solo'}</span>
-      </div>`)
-  ) + rfCol(
-    rfCard('Avisos', `
-      ${sw('autoSalary','Salários automáticos','Renova contrato no valor de mercado sem perguntar',false)}
-      ${sw('avisoOfertas','Avisar sobre propostas','Toast quando um clube faz proposta pelo seu jogador',true)}
-      ${sw('avisoLesao','Avisar sobre lesões','Toast quando alguém sai machucado da rodada',true)}`)
-    + rfCard('Conta', `
-      <div class="rf-acoes">
-        <button type="button" class="rf-acao" onclick="rfAcAbrir('conta-senha',{})">🔒 Trocar a senha</button>
-        <button type="button" class="rf-acao" onclick="clOptions()">⚙️ Abrir opções do jogo</button>
-        <button type="button" class="rf-acao perigo" onclick="rfAcAbrir('conta-apagar',{})">⚠ Apagar a conta</button>
-      </div>`)
-  );
+    </div>
+    <div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">CONTA</span></div>
+      <div class="rf-cf-fila">
+        <button type="button" class="rf-btn rf-btn-cta" onclick="clOptions()">⚙️ Abrir opções do jogo</button>
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcAbrir('conta-senha',{})">Trocar a senha</button>
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSairSave()">Sair da conta</button>
+        <button type="button" class="rf-btn rf-btn-recusar" onclick="rfAcAbrir('conta-apagar',{})">Apagar a conta</button>
+      </div>
+    </div>`;
 }
 
 /* =====================================================================
@@ -165,89 +178,160 @@ function rfCfJogoHTML(){
   const t=CL._lastSaveAt?new Date(CL._lastSaveAt):null;
   const saves=(CL.soloSaves||[]).slice()
     .sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0));
-  return rfCol(
-    rfCard('Save atual', `
-      <div class="rf-cf-save">
-        ${rfCrest(cl,40)}
-        <span class="rf-cf-save-id">
-          <span class="rf-cf-save-n">${escC(cl.short)} · ${escC(divisionLabel())} ${escC(String(S.season||''))}</span>
-          <span class="rf-cf-save-s">${(S.round||0)+1}ª JORNADA${t?' · GRAVADO ÀS '+String(t.getHours()).padStart(2,'0')+'H'+String(t.getMinutes()).padStart(2,'0'):' · GRAVAÇÃO AUTOMÁTICA'}</span>
-        </span>
+  const quando=t
+    ? ('GRAVADO ÀS '+String(t.getHours()).padStart(2,'0')+'H'+String(t.getMinutes()).padStart(2,'0'))
+    : 'GRAVAÇÃO AUTOMÁTICA';
+  /* TEMPO DE JOGO e GRAVAÇÕES o motor não conta — o save guarda a jornada,
+     não o relógio da sessão nem quantas vezes gravou. Entram como traço. */
+  return `<div class="rf-cf-duo">
+      <div class="rf-card">
+        <div class="rf-label"><span class="rf-label-t">SAVE ATUAL</span></div>
+        <div class="rf-cf-save">
+          ${rfCrest(cl,40)}
+          <span class="rf-cf-save-id">
+            <span class="rf-cf-save-n">${escC(cl.short)} · ${escC(divisionLabel())} ${escC(String(S.season||''))}</span>
+            <span class="rf-cf-save-s">${(S.round||0)+1}ª JORNADA · ${escC(quando)}</span>
+          </span>
+        </div>
+        <div class="rf-el-stats dois">
+          ${rfElStat('JORNADAS JOGADAS', S.round||0)}
+          ${rfElStat('TEMPO DE JOGO', '—')}
+          ${rfElStat('GRAVAÇÕES', '—')}
+          ${rfElStat('NA NUVEM', CL.save?'sim':'não')}
+        </div>
+        <div class="rf-cf-fila comfilete">
+          <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcGravar()">💾 Gravar agora</button>
+          <button type="button" class="rf-btn rf-btn-secondary" onclick="rfCfBaixarSave()">📤 Baixar o save</button>
+        </div>
       </div>
-      <div class="rf-kpis">
-        ${rfKpiHTML('Elenco', String(squad(CL.clubId).length), 'jogadores')}
-        ${rfKpiHTML('Caixa', fmt(S.budget||0), 'agora')}
-        ${rfKpiHTML('Temporada', String(S.season||'—'), (S.round||0)+' jornadas jogadas')}
+      <div class="rf-card">
+        <div class="rf-label"><span class="rf-label-t">OUTROS SAVES</span>
+          <span class="rf-label-r">${saves.length} na nuvem</span></div>
+        ${saves.length
+          ? saves.slice(0,8).map(sv=>{
+              const c=anyClubOf(sv.clubId)||{short:sv.name||'—'};
+              return `<div class="rf-cf-save-lin">
+                ${rfCrest(c,24)}
+                <span class="rf-cf-save-ln">${escC(sv.name||c.short||'—')}</span>
+                <span class="rf-cf-save-lv">${escC((typeof rfSaveQuando==='function')?rfSaveQuando(sv):'')}</span>
+                <button type="button" class="rf-btn rf-btn-secondary rf-btn-mini"
+                  onclick="rfAcSairSave()">Abrir</button>
+              </div>`; }).join('')
+          : '<div class="rf-empty">Nenhum outro save na nuvem.</div>'}
       </div>
-      <div class="rf-acoes">
-        <button type="button" class="rf-acao primaria" onclick="rfAcGravar()">💾 Gravar agora</button>
+    </div>
+    <div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">SAIR DO SAVE</span></div>
+      <span class="rf-cf-texto">Sair grava a temporada no ponto atual. Você volta para a escolha de
+        save e nada é perdido.</span>
+      <div class="rf-cf-fila">
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSairSave()">↩ Voltar aos saves</button>
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSairSave()">Começar outro save</button>
+        <button type="button" class="rf-btn rf-btn-recusar" onclick="rfAcApagarSave()">Apagar este save</button>
       </div>
-      <span class="rf-note">O jogo grava sozinho a cada rodada. "Gravar agora" força a gravação e
-        mostra os saves guardados.</span>`)
-  ) + rfCol(
-    rfCard('Outros saves',
-      saves.length
-        ? saves.slice(0,6).map(sv=>`<div class="rf-linha">
-            <span class="rf-linha-t">${escC(sv.name)}</span>
-            <span class="rf-linha-v">${escC((typeof rfSaveQuando==='function')?rfSaveQuando(sv):'')}</span></div>`).join('')
-        : '<span class="rf-note">Nenhum outro save na nuvem.</span>',
-      {right: saves.length?saves.length+' na nuvem':''})
-    + rfCard('Sair do save', `
-      <span class="rf-note">Sair não apaga nada: o save fica na nuvem e você volta nele quando quiser.</span>
-      <div class="rf-acoes">
-        <button type="button" class="rf-acao" onclick="rfAcSairSave()">↩ Voltar aos saves</button>
-        <button type="button" class="rf-acao perigo" onclick="rfAcApagarSave()">🗑 Apagar este save</button>
-      </div>`)
-  );
+    </div>`;
+}
+function rfCfBaixarSave(){
+  try{
+    const a=document.createElement('a');
+    a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(S));
+    a.download='save-'+((clubOf(CL.clubId)||{short:'rf98'}).short)+'-'+(S.season||'')+'.json'; a.click();
+    toastC('Save baixado.');
+  }catch(e){ toastC('Não deu pra baixar aqui.'); }
 }
 
 /* =====================================================================
    CONFIG · 3 · MODO RESENHA
+   Grade dos treinadores: 22 / treinador / clube / 62 / 96
    ===================================================================== */
+const RF_CF_SALA_COLS='22px minmax(0,1.1fr) minmax(0,1fr) 62px 96px';
 function rfCfResenhaHTML(){
-  if(!CL.online) return rfCol(rfCard('Modo Resenha',
-    `<div class="rf-empty">Você está no <b>Modo Solo</b>.<br>
-      <small>O Modo Resenha é o campeonato com a sua turma, todo mundo na mesma rodada.</small></div>`));
+  if(!CL.online) return `<div class="rf-card">
+    <div class="rf-label"><span class="rf-label-t">MODO RESENHA</span></div>
+    <div class="rf-empty">Você está no <b>Modo Solo</b>.<br>
+      <small>O Modo Resenha é o campeonato com a sua turma, todo mundo na mesma rodada.</small></div>
+  </div>`;
   const room=(typeof NET!=='undefined')?NET.room:null;
   const codigo=(room&&room.code)||(typeof NET!=='undefined'&&NET.code)||'——————';
   const assentos=(typeof rfSalaAssentos==='function')?rfSalaAssentos():[];
   const anfitriao=(typeof NET!=='undefined')&&NET.isHost;
   const pend=(CL.pendingJoins&&CL.pendingJoins.length)||0;
-  return rfCol(
-    `<div class="rf-ob-escuro">
-      <span class="rf-ob-esc-l">Código da sala</span>
-      <span class="rf-ob-codigo">${escC(codigo)}</span>
-      <span class="rf-ob-esc-p">Quem tiver esse código entra direto na sua liga.</span>
-      <button type="button" class="rf-ob-esc-b" onclick="clInviteResenha()">📤 Copiar convite</button>
-    </div>`
-    + rfCard('Treinadores',
-      assentos.length
-        ? assentos.map(a=>`<div class="rf-linha ${a.eu?'me':''}">
-            <span class="rf-linha-t">${escC(a.nome)}${a.eu?' <i class="rf-el-sub">você</i>':''}</span>
-            <span class="rf-linha-v">${escC(a.clube.short||'')}</span></div>`).join('')
-        : '<span class="rf-note">Ninguém mais na sala ainda.</span>',
-      {right: assentos.length? assentos.length+' na sala':''})
-  ) + rfCol(
-    rfCard('Regras da sala', `
-      <div class="rf-linha"><span class="rf-linha-t">Ritmo</span>
-        <span class="rf-linha-v">${escC(typeof tempoLabelAtual==='function'?tempoLabelAtual():'—')}</span></div>
-      <div class="rf-linha"><span class="rf-linha-t">Divisão</span>
-        <span class="rf-linha-v">${escC(divisionLabel())}</span></div>
-      <div class="rf-linha"><span class="rf-linha-t">Você é</span>
-        <span class="rf-linha-v">${anfitriao?'anfitrião':'convidado'}</span></div>`)
-    + rfCard('Sincronização', `
-      <div class="rf-acoes">
-        ${anfitriao?`<button type="button" class="rf-acao" onclick="clJoinRequestsPanel()">
-          ✅ Aprovar entradas${pend?' ('+pend+')':''}</button>`:''}
-        <button type="button" class="rf-acao primaria" onclick="rfAcSincronizar()">🔄 Sincronizar com a sala</button>
-        <button type="button" class="rf-acao perigo" onclick="rfAcSairSala()">🚪 Sair da sala</button>
-        <button type="button" class="rf-acao" onclick="rfChatToggle()">💬 Abrir o chat</button>
+  const estadoDe=a=>{
+    if(a.jogou) return {t:'JOGOU', c:'ok'};
+    if(a.emPartida) return {t:'EM PARTIDA', c:'ouro'};
+    return {t:'NÃO ENTROU', c:'ouro'};
+  };
+  const linhas=assentos.map(a=>{
+    const e=estadoDe(a);
+    return `<div class="rf-el-row ${a.eu?'sel':''}">
+      ${rfCrest(a.clube||{},22)}
+      <span class="rf-cf-tec">${escC(a.nome)}${a.eu?' (você)':''}</span>
+      <span class="rf-cf-clu">${escC((a.clube&&a.clube.short)||'—')}</span>
+      <span class="rf-cf-rod">${(S.round||0)+1}ª</span>
+      <span class="rf-cf-estado ${e.c}">${e.t}</span>
+    </div>`;
+  }).join('');
+  const cab=`<div class="rf-el-head" style="--el-cols:${RF_CF_SALA_COLS}">
+    <span></span><span>TREINADOR</span><span>CLUBE</span>
+    <span class="dir">RODADA</span><span class="dir">ESTADO</span>
+  </div>`;
+  return `<div class="rf-card rf-cf-codigo">
+      <div class="rf-cf-codigo-id">
+        <span class="rf-label-t">CÓDIGO DA SALA</span>
+        <span class="rf-cf-codigo-v">${escC(codigo)}</span>
       </div>
-      <span class="rf-note">A rodada fecha quando todos publicarem o resultado. Sincronizar puxa o
-        estado do servidor sem esperar o próximo tique.</span>`)
-  );
+      <div class="rf-sp"></div>
+      <div class="rf-cf-fila">
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="clInviteResenha()">📤 Copiar convite</button>
+        <button type="button" class="rf-btn rf-btn-cta" onclick="rfChatToggle()">💬 Abrir o chat</button>
+      </div>
+    </div>
+    <div class="rf-card rf-el-tbl" style="--el-cols:${RF_CF_SALA_COLS}">
+      <div class="rf-label"><span class="rf-label-t">TREINADORES</span>
+        <span class="rf-label-r">${assentos.length} na sala</span></div>
+      ${cab}
+      ${linhas || '<div class="rf-empty">Ninguém mais na sala ainda.</div>'}
+    </div>
+    <div class="rf-cf-duo">
+      <div class="rf-card">
+        <div class="rf-label"><span class="rf-label-t">REGRAS DA SALA</span></div>
+        <div class="rf-cf-reg"><span>Ritmo</span><b>${escC(typeof tempoLabelAtual==='function'?tempoLabelAtual():'—')}</b></div>
+        <div class="rf-cf-reg"><span>Divisão</span><b>${escC(divisionLabel())}</b></div>
+        <div class="rf-cf-reg"><span>Quem pode entrar</span><b>só por convite</b></div>
+        <div class="rf-cf-reg"><span>Anfitrião</span><b>${anfitriao?escC(rfTreinadorNome()):'outro treinador'}</b></div>
+      </div>
+      <div class="rf-card">
+        <div class="rf-label"><span class="rf-label-t">SINCRONIZAÇÃO</span></div>
+        <div class="rf-cf-sinc-top">
+          <span class="rf-cf-sinc-t">Sala ${escC(codigo)}</span>
+          <span class="rf-cf-sinc-v">em dia</span>
+        </div>
+        <div class="rf-cf-sinc-barra"><i style="width:100%"></i></div>
+        <div class="rf-cf-fila">
+          ${anfitriao?`<button type="button" class="rf-btn rf-btn-secondary"
+            onclick="clJoinRequestsPanel()">✅ Aprovar entradas${pend?' ('+pend+')':''}</button>`:''}
+          <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSincronizar()">🔄 Sincronizar agora</button>
+          <button type="button" class="rf-btn rf-btn-recusar" onclick="rfAcSairSala()">Sair da sala</button>
+        </div>
+      </div>
+    </div>`;
 }
 
+/* ---- cabeçalho da página ---- */
+function rfCfSubHTML(){
+  const t=CL._lastSaveAt?new Date(CL._lastSaveAt):null;
+  const quando=t?('Save gravado às '+String(t.getHours()).padStart(2,'0')+'h'+String(t.getMinutes()).padStart(2,'0'))
+    :'Gravação automática ligada';
+  const room=(typeof NET!=='undefined')?NET.room:null;
+  const codigo=(room&&room.code)||null;
+  return quando + (CL.online&&codigo? (' · sala '+codigo+' em dia') : ' · Modo Solo');
+}
+function rfCfAcoesHTML(){
+  return `<div class="rf-mk-acoes">
+    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfGo('hub')">↩ Voltar ao hub</button>
+    <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcGravar()">💾 Gravar agora</button>
+  </div>`;
+}
 
 /* =====================================================================
    AS AÇÕES DE SISTEMA E CONTA
