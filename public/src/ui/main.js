@@ -990,7 +990,8 @@ function clWaitlistOpen(origem){
   // de onde veio o lead: a lista é chamada da landing E do cartão do Modo
   // Resenha no onboarding, e sem isto os dois chegavam ao banco iguais
   CL.waitlistOrigem=origem||'landing';
-  CL.waitlist=CL.waitlist||{nome:'',email:'',tel:'',resposta:'',amigos:[''],zap:''};
+  CL.waitlist=CL.waitlist||{nome:'',email:'',tel:'',resposta:'',clube:'',amigos:[''],zap:''};
+  CL.waitlistClubeOpen=false;
   // o formulário é um modal do desenho novo (ver rfWaitlistHTML), desenhado no
   // overlay — não mais um pedaço do HTML da landing
   rfWaitlistDraw(); clWaitlistCount();
@@ -1033,6 +1034,10 @@ async function clWaitlistSubmit(){
     if(!cli) throw new Error('sem conexão');
     const {error}=await cli.from('retrofoot_waitlist').insert({
       nome, email, telefone:(w.tel||'').trim()||null, resposta:(w.resposta||'').trim()||null,
+      // time de coração: não existe tabela de perfil do RetroFoot (o schema é o
+      // elifoot_v3; a public.profiles é do Investbola) e quem preenche isto nem
+      // está logado — a linha da waitlist É o registro da pessoa
+      time_coracao:(w.clube||'').trim()||null,
       origem:(CL.waitlistOrigem||'landing')+' · '+((location&&location.pathname)||'/'),
       user_agent:(navigator&&navigator.userAgent||'').slice(0,400)
     });
@@ -11475,6 +11480,9 @@ function toastFecha(d){
 
 /* fechar dropdown ao clicar fora */
 document.addEventListener('click',()=>{
+  // o dropdown do time de coração vive no overlay do modal, que se redesenha
+  // sozinho — fechar com cdraw() aqui apagaria o modal inteiro
+  if(CL.waitlistClubeOpen){ CL.waitlistClubeOpen=false; rfWaitlistDraw(); return; }
   if(CL.shareOpen){ CL.shareOpen=false; cdraw(); return; }
   if(CL.mobMenuOpen && isPhone()){ closeMobMenu(); return; }   // gaveta sai deslizando, não some
   if(CL.menu||CL.mobMenuOpen){ CL.menu=null; CL.mobMenuOpen=false; cdraw(); }

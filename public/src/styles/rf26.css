@@ -5142,3 +5142,38 @@
    o cursor pro fim toda vez que a pessoa editasse no meio da palavra. */
 .rf-campo-c.maiuscula,input.maiuscula{text-transform:uppercase}
 .rf-campo-c.maiuscula::placeholder,input.maiuscula::placeholder{text-transform:none}
+
+/* ============ TIME DE CORAÇÃO — dropdown com busca (Lista de espera) ======
+   Segue a regra de respiro do resto: gap explícito entre grupo e grupo, entre
+   opção e opção, e padding dentro da opção. A lista rola DENTRO do painel,
+   como as listas longas das páginas — nunca estica o modal. */
+.rf-cbx{position:relative;min-width:0}
+.rf-cbx-gatilho{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;text-align:left;cursor:pointer}
+.rf-cbx-gatilho.vazio .rf-cbx-val{color:var(--text-faint)}
+.rf-cbx-val{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* EM FLUXO, não flutuando. O modal rola por dentro, e um painel `position:
+   absolute` é recortado por qualquer ancestral com overflow — a lista aparecia
+   cortada na metade. Abrindo em fluxo o formulário cresce e o modal rola até
+   ele, que é o que já acontece com o resto do conteúdo. */
+.rf-cbx-pop{margin-top:6px;
+  background:var(--surface-card);border:1px solid var(--line-2);border-radius:var(--r-card);
+  box-shadow:0 18px 40px -20px rgba(18,32,26,.55);overflow:hidden;
+  display:flex;flex-direction:column;animation:ds-fade-up 160ms var(--ease)}
+.rf-cbx-busca{display:flex;align-items:center;gap:8px;padding:10px 12px;
+  border-bottom:1px solid var(--line-1);color:var(--text-muted);flex:0 0 auto}
+.rf-cbx-busca input{flex:1;min-width:0;border:none;outline:none;background:transparent;
+  font-family:var(--font-sans);font-size:var(--fs-body-sm);color:var(--text-1)}
+.rf-cbx-lista{max-height:220px;overflow-y:auto;padding:8px;
+  display:flex;flex-direction:column;gap:10px}
+.rf-cbx-grupo{display:flex;flex-direction:column;gap:2px}
+.rf-cbx-div{font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:.12em;
+  color:var(--text-faint);padding:4px 8px 2px}
+.rf-cbx-op{display:block;width:100%;text-align:left;padding:8px 10px;border:none;
+  background:transparent;border-radius:var(--r-control);cursor:pointer;
+  font-family:var(--font-sans);font-size:var(--fs-body-sm);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-cbx-op:hover{background:var(--surface-desk)}
+.rf-cbx-op.sel{background:var(--brand-primary);color:#fff;font-weight:var(--fw-semibold)}
+.rf-cbx-op.livre{font-style:italic;color:var(--brand-primary);font-weight:var(--fw-semibold)}
+.rf-cbx-vazio{padding:14px 12px;font-size:var(--fs-body-sm);color:var(--text-faint)}

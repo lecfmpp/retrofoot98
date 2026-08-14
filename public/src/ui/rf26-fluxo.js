@@ -536,6 +536,7 @@ function rfWaitlistHTML(){
                placeholder="(11) 99999-0000" value="${escC(w.tel||'')}"
                oninput="clWaitlistSet('tel',this.value)">`)}
         </div>
+        ${rfClubeCampoHTML()}
         ${rfCampo('O que não pode faltar no RetroFoot? (opcional)',
           `<input class="rf-campo-c" type="text" placeholder="Fala o recurso que você quer ver no jogo"
              value="${escC(w.resposta||'')}" oninput="clWaitlistSet('resposta',this.value)"
@@ -548,4 +549,93 @@ function rfWaitlistHTML(){
       <button type="button" class="rf-ov-cta" ${CL.waitlistBusy?'disabled':''}
         onclick="clWaitlistSubmit()">${CL.waitlistBusy?'Gravando':'Garantir minha vaga'}</button>`
   });
+}
+
+/* =====================================================================
+   TIME DE CORAÇÃO — dropdown com busca (modal da Lista de Espera)
+   Os 80 clubes são os MESMOS que o jogo conhece no Brasil (as quatro
+   divisões de elifoot_v3.division_clubs), embutidos aqui de propósito:
+   o formulário é de conversão e não pode depender de uma ida ao banco
+   antes da pessoa conseguir responder.
+   A busca NÃO redesenha o modal — troca só o miolo da lista. Redesenhar
+   destrói o campo e joga o cursor pra posição 0 (foi o defeito do nome do
+   treinador no passo 3), e aqui seria o mesmo bug.
+   ===================================================================== */
+const RF_CLUBES_BR=[
+  ['Série A',['Athletico PR','Atlético MG','Bahia','Botafogo','Bragantino','Chapecoense','Corinthians',
+    'Coritiba','Cruzeiro','Flamengo','Fluminense','Grêmio','Internacional','Mirassol','Palmeiras',
+    'Remo','Santos','São Paulo','Vasco','Vitória']],
+  ['Série B',['América MG','Athletic Club','Atlético GO','Avaí','Botafogo-SP','Ceará','CRB','Criciúma',
+    'Cuiabá','Fortaleza','Goiás','Juventude','Londrina','Náutico','Novorizontino','Operário-PR',
+    'Ponte Preta','São Bernardo','Sport','Vila Nova']],
+  ['Série C',['Amazonas','Anápolis GO','Barra','Botafogo PB','Brusque','Caxias do Sul','Confiança',
+    'Ferroviária','Figueirense','Floresta','Guarani','Inter de Limeira','Itabaiana','Ituano','Maranhão',
+    'Maringá','Paysandu','Santa Cruz','Volta Redonda','Ypiranga']],
+  ['Série D',['ABC','Águia de Marabá','América RN','ASA','Capital','Cianorte','CRAC','CSA','Ferroviário',
+    'Gama','Luverdense','Marcílio Dias','Nacional','Portuguesa Carioca','Portuguesa de Desportos',
+    'São José','Treze','Uberlândia','Velo Clube','XV de Piracicaba']],
+];
+/* "sao paulo" tem que achar "São Paulo": tira acento dos dois lados */
+function rfSemAcento(s){
+  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+function rfClubeListaHTML(q){
+  const busca=rfSemAcento(q);
+  const escolhido=(CL.waitlist&&CL.waitlist.clube)||'';
+  let achou=0;
+  const grupos=RF_CLUBES_BR.map(([div,times])=>{
+    const hits=times.filter(t=>!busca||rfSemAcento(t).includes(busca));
+    if(!hits.length) return '';
+    achou+=hits.length;
+    return `<div class="rf-cbx-grupo"><span class="rf-cbx-div">${escC(div)}</span>${
+      hits.map(t=>`<button type="button" class="rf-cbx-op ${t===escolhido?'sel':''}"
+        onclick="rfClubeEscolhe(${JSON.stringify(t).replace(/"/g,'&quot;')})">${escC(t)}</button>`).join('')
+    }</div>`;
+  }).join('');
+  // clube fora da lista ainda é resposta válida: quem torce pro time da várzea
+  // não pode ficar sem responder só porque o jogo ainda não tem o escudo dele
+  const livre=(q||'').trim();
+  const solto = (!achou && livre)
+    ? `<button type="button" class="rf-cbx-op livre"
+        onclick="rfClubeEscolhe(${JSON.stringify(livre).replace(/"/g,'&quot;')})">Usar “${escC(livre)}”</button>`
+    : '';
+  return grupos+solto || '<div class="rf-cbx-vazio">Digita o nome do teu time.</div>';
+}
+function rfClubeCampoHTML(){
+  const v=(CL.waitlist&&CL.waitlist.clube)||'';
+  const aberto=!!CL.waitlistClubeOpen;
+  return rfCampo('Time de coração (opcional)', `<div class="rf-cbx ${aberto?'aberto':''}" onclick="event.stopPropagation()">
+    <button type="button" class="rf-campo-c rf-cbx-gatilho ${v?'':'vazio'}"
+      aria-expanded="${aberto}" onclick="rfClubeDropToggle()">
+      <span class="rf-cbx-val">${v?escC(v):'Escolhe o teu time'}</span>
+      ${rfIcone(aberto?'seta-cima':'seta-baixo',16)}
+    </button>
+    ${aberto?`<div class="rf-cbx-pop">
+      <div class="rf-cbx-busca">${rfIcone('buscar',15)}
+        <input id="rf-cbx-q" type="text" placeholder="Buscar clube" autocomplete="off"
+          oninput="rfClubeFiltra(this.value)"
+          onkeydown="if(event.key==='Escape'){event.stopPropagation();rfClubeDropToggle();}">
+      </div>
+      <div class="rf-cbx-lista" id="rf-cbx-lista">${rfClubeListaHTML('')}</div>
+    </div>`:''}
+  </div>`);
+}
+function rfClubeDropToggle(){
+  CL.waitlistClubeOpen=!CL.waitlistClubeOpen;
+  rfWaitlistDraw();
+  if(CL.waitlistClubeOpen){
+    const q=document.getElementById('rf-cbx-q');
+    if(q){ q.focus(); const pop=q.closest('.rf-cbx'); if(pop&&pop.scrollIntoView) pop.scrollIntoView({block:'nearest'}); }
+  }
+}
+/* só o miolo da lista — ver o comentário do topo sobre o cursor */
+function rfClubeFiltra(q){
+  const alvo=document.getElementById('rf-cbx-lista');
+  if(alvo) alvo.innerHTML=rfClubeListaHTML(q);
+}
+function rfClubeEscolhe(nome){
+  CL.waitlist=CL.waitlist||{};
+  CL.waitlist.clube=nome;
+  CL.waitlistClubeOpen=false;
+  rfWaitlistDraw();
 }
