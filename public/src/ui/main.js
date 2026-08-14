@@ -704,6 +704,28 @@ function devolveRolagem(m){
       // sem isto, o navegador deixava um resto de deslocamento e a tela nova
       // abria no meio.
       main.scrollTop = (m._ctx===rfContextoRolagem()) ? (m._main||0) : 0;
+      /* PEDIDO EXPLÍCITO DE ROLAGEM (CL.rolarPara). Quem quer levar o utilizador
+         a um bloco — o "Escolher tática" da barra lateral, por exemplo — não pode
+         simplesmente rolar depois de chamar cdraw(): qualquer redesenho seguinte
+         recria o `.rf-main` e a linha acima repõe o deslocamento, desfazendo tudo.
+         A intenção fica no estado e é consumida AQUI, no fim do desenho, uma vez. */
+      if(CL.rolarPara){
+        /* A intenção vale por uma JANELA, não por um desenho só. Consumida no
+           primeiro, ela era desfeita pelo redesenho seguinte (o `.rf-main` é
+           recriado e a linha acima repõe o deslocamento), e o utilizador
+           continuava a ver o topo da página. Reaplicar enquanto a janela dura
+           resolve; o posicionamento é instantâneo de propósito, porque uma
+           rolagem suave é interrompida por esse mesmo redesenho. */
+        if(Date.now()>(CL.rolarAte||0)) CL.rolarPara=null;
+        else {
+          const alvo=document.getElementById(CL.rolarPara);
+          if(alvo){
+            const y=main.scrollTop + alvo.getBoundingClientRect().top - main.getBoundingClientRect().top
+                  - Math.max(0,(main.clientHeight-alvo.offsetHeight)/2);
+            main.scrollTop=Math.max(0,y);
+          }
+        }
+      }
     }
   }catch(e){}
   try{ RF_CTX_DESENHADO=rfContextoRolagem(); }catch(e){}

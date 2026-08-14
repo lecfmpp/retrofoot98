@@ -333,8 +333,9 @@ function rfSidebarHTML(){
         </span>
       </div>
       <button type="button" class="rf-btn rf-btn-primary rf-btn-full ${pronto?'rf-btn-pulse':''}"
-        ${pronto?'':'disabled'} title="${pronto?'Jogar':'Escale onze jogadores e escolha a tática'}"
-        onclick="rfJogar()">${rfJogarLabel()}</button>
+        ${(pronto||rfFaltaTatica())?'':'disabled'}
+        title="${pronto?'Jogar':rfFaltaTatica()?'Escolha a tática para liberar o Jogar':'Escale onze jogadores, com um goleiro'}"
+        onclick="${rfFaltaTatica()?'rfIrEscolherTatica()':'rfJogar()'}">${rfJogarLabel()}</button>
     </div>` : '';
 
   /* O INTERRUPTOR DO MENU MORA NO PÉ, embaixo do botão Jogar, e é a mesma seta
@@ -381,9 +382,27 @@ function rfJogar(){
   if(typeof estouPronto==='function' && estouPronto()){ clCancelarPronto(); return; }
   if(typeof clJogar==='function') clJogar();
 }
+/* SEM TÁTICA O BOTÃO NÃO FICA MORTO. Ele ficava desabilitado dizendo "Jogar",
+   e a pessoa não tinha como saber o que faltava nem para onde ir: um botão
+   apagado não ensina nada. Agora ele diz o que falta e leva ao lugar exato —
+   a Formação, rolada até o bloco de táticas.
+   Só a TÁTICA vira atalho; onze incompleto continua desabilitado, porque aí
+   não há um clique que resolva (é preciso escalar jogador por jogador). */
+function rfFaltaTatica(){
+  if(CL.tacticChosen) return false;
+  const xi=xiPlayers(CL.clubId);
+  return xi.length>=11 && xiGKCount(xi)===1;
+}
 function rfJogarLabel(){
+  if(rfFaltaTatica()) return rfIcone('estrategia',16)+' Escolher tática';
   return (typeof estouPronto==='function' && estouPronto()) ? rfIcone('ok',16)+' Pronto' : rfIcone('jogar',16)+' Jogar';
 }
+function rfIrEscolherTatica(){
+  CL.rolarPara='rf-taticas';   // aplicado no fim de cada desenho, em devolveRolagem
+  CL.rolarAte=Date.now()+900;  // janela: sobrevive aos redesenhos que vêm logo atrás
+  rfGo('hub');                 // a Formação é a página inicial do painel
+}
+
 
 /* trilhos de publicidade — ficam FORA da coluna de conteúdo e somem antes dela */
 function rfRail(lado){
@@ -491,7 +510,7 @@ function rfHubHTML(){
       </div>
       ${pitchHTML()}
     </div>
-    <div class="rf-card">
+    <div class="rf-card" id="rf-taticas">
       <span class="rf-label-t">Formações</span>
       ${rfFormacoesHTML()}
       <div class="rf-acts">
