@@ -111,7 +111,7 @@ function rfCpMinhasHTML(){
    2 · CALENDÁRIO — a liga num cartão, cada copa no seu
    Grade da liga: 44 / 22 / adversário / 62 / 62 / 30
    ===================================================================== */
-const RF_CP_CAL_COLS='44px 22px minmax(0,1.4fr) 62px 62px 30px';
+const RF_CP_CAL_COLS='52px 22px minmax(0,1.4fr) minmax(62px,.5fr) minmax(62px,.5fr) 34px';
 function rfCpCalendarioHTML(){
   const sched=S.sched||[];
   // o calendário do motor é [[casaId, foraId], …] por jornada, e o placar mora
@@ -149,7 +149,7 @@ function rfCpCalendarioHTML(){
     ${rfCpCopasCalendarioHTML()}`;
 }
 /* uma copa por cartão, com FASE no lugar de JORNADA */
-const RF_CP_COPA_COLS='68px 22px minmax(0,1.4fr) 62px 62px 30px';
+const RF_CP_COPA_COLS='78px 22px minmax(0,1.4fr) minmax(62px,.5fr) minmax(62px,.5fr) 34px';
 function rfCpCopasCalendarioHTML(){
   const out=[];
   ((typeof allCupKeys==='function')?allCupKeys():[]).forEach(k=>{
@@ -187,7 +187,7 @@ function rfCpCopasCalendarioHTML(){
    3 · ARTILHARIA
    Grade: 26 / jogador / clube / 28 / 40 / 56
    ===================================================================== */
-const RF_CP_ART_COLS='26px minmax(0,1.2fr) minmax(0,1fr) 28px 40px 56px';
+const RF_CP_ART_COLS='30px minmax(0,1.2fr) minmax(0,1fr) 34px 44px minmax(56px,.5fr)';
 function rfCpArtilhariaHTML(){
   const jogos=Math.max(1,(S.round||0));
   const arr=Object.entries(S.scorers||{}).map(([n,g])=>({n,g})).sort((a,b)=>b.g-a.g).slice(0,20);

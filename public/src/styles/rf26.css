@@ -4054,7 +4054,7 @@
 .rf-el-ganho{font-size:var(--fs-caption);font-weight:var(--fw-medium);color:var(--text-4);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* barrinha de 6px — energia, potencial, progresso */
-.rf-el-mini{display:inline-block;width:54px;height:6px;border-radius:var(--r-pill);
+.rf-el-mini{display:block;width:100%;max-width:var(--mini-w,54px);height:6px;border-radius:var(--r-pill);
   background:#eef1ee;overflow:hidden}
 .rf-el-mini>i{display:block;height:100%;border-radius:var(--r-pill);transition:width .4s var(--ease)}
 
@@ -4072,12 +4072,20 @@
   width:10px;height:4px;background:var(--club-secondary);border-radius:0 0 6px 6px}
 .rf-el-camisa>b{position:relative;font-family:var(--font-mono);font-size:10px;
   font-weight:var(--fw-semibold);color:var(--club-on-primary);margin-top:3px}
+.rf-el-camisa.m{width:34px;height:29px}
+.rf-el-camisa.m .c-mgesq,.rf-el-camisa.m .c-mgdir{width:8px;height:12px}
+.rf-el-camisa.m .c-mgesq{left:-4px} .rf-el-camisa.m .c-mgdir{right:-4px}
+.rf-el-camisa.m .c-gola{width:12px;height:5px}
+.rf-el-camisa.m>b{font-size:12px;margin-top:4px}
 .rf-el-camisa.g{width:54px;height:46px}
 .rf-el-camisa.g .c-corpo{top:5px}
 .rf-el-camisa.g .c-mgesq,.rf-el-camisa.g .c-mgdir{top:5px;width:13px;height:18px}
 .rf-el-camisa.g .c-mgesq{left:-6px} .rf-el-camisa.g .c-mgdir{right:-6px}
 .rf-el-camisa.g .c-gola{width:19px;height:9px}
-.rf-el-camisa.g>b{font-size:var(--fs-subhead);margin-top:5px}
+/* 19px é literal de propósito: o número da camisa é DESENHO, não texto corrido.
+   Estava em --fs-subhead (15px) e saía miúdo demais para a camisa de 54px —
+   o pacote pede 19px nesse tamanho, 12px no de 34px e 10px no de 28px. */
+.rf-el-camisa.g>b{font-size:19px;margin-top:6px}
 
 /* botão de linha (Promover / Ver / Tirar) */
 .rf-el-act{display:flex;justify-content:flex-end}

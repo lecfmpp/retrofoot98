@@ -30,9 +30,12 @@ function rfElCamisa(num, g){
   </span>`;
 }
 /* barrinha fina de 6px usada em ENERGIA, POTENCIAL e PROGRESSO */
+/* `larg` virou TETO, não largura fixa: a barra enche a célula até esse limite.
+   Como largura fixa ela ficava numa poça de espaço vazio agora que as colunas
+   numéricas dividem a folga da tela. */
 function rfElMini(pct, cor, larg){
   pct=Math.max(0,Math.min(100,Math.round(pct||0)));
-  return `<span class="rf-el-mini" ${larg?`style="width:${larg}px"`:''}><i style="width:${pct}%;background:${cor}"></i></span>`;
+  return `<span class="rf-el-mini" ${larg?`style="--mini-w:${larg*2}px"`:''}><i style="width:${pct}%;background:${cor}"></i></span>`;
 }
 /* a escala verde→amarelo→vermelho que o pacote usa nas três barras */
 function rfElTom(pct){
@@ -62,7 +65,7 @@ function rfElStat(rot, valor, sub){
    1 · ELENCO
    Grade do pacote: 34 / nome / 28 / 30 / 34 / 62 / 62 / 78 / 52
    ===================================================================== */
-const RF_EL_COLS='34px minmax(0,1.2fr) 28px 30px 34px 62px 62px 78px 52px';
+const RF_EL_COLS='34px minmax(0,1.2fr) 34px 40px 40px minmax(62px,.5fr) minmax(62px,.5fr) minmax(78px,.6fr) minmax(52px,.45fr)';
 function rfElElencoHTML(){
   const sq=squad(CL.clubId).slice().sort(bySquadOrder);
   const xi=new Set(xiPlayers(CL.clubId).map(p=>p.pid));
@@ -180,7 +183,7 @@ function rfElFichaHTML(){
    3 · BASE
    Grade do pacote: nome / 28 / 30 / 34 / 74 / 74 / 74 / 74
    ===================================================================== */
-const RF_BASE_COLS='minmax(0,1.2fr) 28px 30px 34px 74px 74px 74px 74px';
+const RF_BASE_COLS='minmax(0,1.2fr) 34px 40px 40px minmax(74px,.5fr) minmax(74px,.5fr) minmax(74px,.5fr) minmax(74px,.5fr)';
 /* POTENCIAL e PRONTO EM são DERIVADOS — o motor não guarda nenhum dos dois.
    O garoto tem força e idade, e o crescimento sai de growthProfileOf; então
    o potencial é a força projetada até os 24 e o "pronto em" é quanto falta
@@ -245,7 +248,7 @@ function rfElBaseHTML(){
    4 · TREINO ESPECIAL
    Grade do pacote: 34 / nome / 28 / 34 / 74 / 1fr / 74
    ===================================================================== */
-const RF_TRN_COLS='34px minmax(0,1.2fr) 28px 34px 74px minmax(0,1fr) 74px';
+const RF_TRN_COLS='34px minmax(0,1.2fr) 34px 40px minmax(74px,.5fr) minmax(0,1fr) minmax(74px,.5fr)';
 /* O FOCO DO TREINO é do desenho, não do motor: aqui o treino é por JOGADOR
    (até TRAINING_MAX_SLOTS ao mesmo tempo), e não por tema da semana. Os três
    cartões existem e guardam a escolha em CL.trnFoco, mas ainda não mudam o

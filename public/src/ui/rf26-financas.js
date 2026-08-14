@@ -100,7 +100,7 @@ function rfFiResumoHTML(){
    2 · EXTRATO
    Grade do pacote: 58 / lançamento / 74 / 92 / 92
    ===================================================================== */
-const RF_FI_EXT_COLS='58px minmax(0,1.6fr) 74px 92px 92px';
+const RF_FI_EXT_COLS='70px minmax(0,1.6fr) minmax(74px,.5fr) minmax(92px,.6fr) minmax(92px,.6fr)';
 function rfFiExtratoHTML(){
   const fin=(S.finances||[]);
   let saldo=S.budget||0;
@@ -163,7 +163,7 @@ function rfFiExportar(){
    3 · HISTÓRICO
    Grade do pacote: 50 / 92 / 92 / 92 / 100
    ===================================================================== */
-const RF_FI_HIST_COLS='50px 92px 92px 92px 100px';
+const RF_FI_HIST_COLS='60px minmax(92px,1fr) minmax(92px,1fr) minmax(92px,1fr) minmax(100px,1fr)';
 function rfFiHistoricoHTML(){
   const ent=((S.financeHistory&&S.financeHistory[CL.clubId])||[]).slice().reverse();
   const atual={season:S.season, budget:S.budget||0, receita:rfFiTotais().receita,
