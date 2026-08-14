@@ -11,28 +11,34 @@
 
 /* =====================================================================
    E-MAIL · 1 · CAIXA DE ENTRADA
+   Duas colunas: a lista à esquerda, a leitura à direita. É a ÚNICA página
+   do jogo que usa a grade de duas colunas — nas outras o pacote empilha
+   cartões de largura cheia.
    ===================================================================== */
 function rfEmCaixaHTML(){
-  const box=rfInbox().filter(e=>!e.read);
   const todas=rfInbox();
-  const lista=(box.length?box:todas);
+  const naoLidas=todas.filter(e=>!e.read).length;
   return rfCol(
-    rfCard('Caixa de entrada',
-      lista.length
-        ? `<div class="rf-mails">${lista.slice(0,20).map(rfEmLinha).join('')}</div>`
-        : '<span class="rf-note">Caixa de entrada vazia.</span>',
-      {right: box.length? box.length+' não lida'+(box.length===1?'':'s') : 'tudo lido'})
-  ) + rfCol(
-    rfCard('Mensagem aberta', rfLeituraHTML())
-  );
+    `<div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">CAIXA DE ENTRADA</span>
+        <span class="rf-label-r">${naoLidas? (naoLidas+' não lida'+(naoLidas===1?'':'s')) : 'tudo lido'}</span></div>
+      ${todas.length
+        ? todas.slice(0,30).map(rfEmLinha).join('')
+        : '<div class="rf-empty">Caixa de entrada vazia.</div>'}
+    </div>`
+  ) + rfCol(rfEmLeituraHTML());
 }
+/* A LINHA: ícone à esquerda, assunto e remetente empilhados, hora à direita.
+   O ponto de não lida é um PSEUDO-ELEMENTO sobre o ícone — no pacote ele
+   flutua sobre o canto, e pôr o "●" dentro do texto (como estava) empurrava
+   o assunto e desalinhava a coluna inteira. */
 function rfEmLinha(e){
   return `<div class="rf-mail ${e.read?'':'novo'} ${CL.inboxOpen===e.key?'aberto':''}"
        onclick="clInboxOpen('${escC(e.key)}')">
     <span class="rf-mail-i">${(typeof inboxIcon==='function'?inboxIcon(e.kind):'✉️')}</span>
     <div class="rf-mail-id">
       <div class="rf-mail-top">
-        <span class="rf-mail-a">${e.read?'':'● '}${escC(e.subject||'')}</span>
+        <span class="rf-mail-a">${escC(e.subject||'')}</span>
         <span class="rf-mail-q">${escC(rfQuandoHTML(e))}</span>
       </div>
       <span class="rf-mail-p">${escC(String(e.from||e.preview||'').slice(0,72))}</span>
@@ -40,20 +46,71 @@ function rfEmLinha(e){
   </div>`;
 }
 
+/* A LEITURA: assunto em serifa, bloco do remetente com escudo, corpo, e a
+   fila de botões separada por filete. */
+function rfEmLeituraHTML(){
+  const box=rfInbox();
+  const e=CL.inboxOpen? box.find(x=>x.key===CL.inboxOpen) : box[0];
+  if(!e) return `<div class="rf-card">
+    <div class="rf-label"><span class="rf-label-t">MENSAGEM ABERTA</span></div>
+    <div class="rf-empty">Escolha um e-mail na lista ao lado.</div></div>`;
+  const cl=clubOf(CL.clubId)||{short:'—'};
+  const de=e.from||('Diretoria do '+(cl.short||''));
+  return `<div class="rf-card">
+    <div class="rf-label"><span class="rf-label-t">MENSAGEM ABERTA</span>
+      <span class="rf-label-r">${escC(String(e.from||'').split('·')[0].trim()||'—')} · ${escC(rfQuandoHTML(e))}</span></div>
+    <div class="rf-ml">
+      <span class="rf-ml-subj">${escC(e.subject||'')}</span>
+      <div class="rf-ml-de">
+        ${rfCrest(cl,30)}
+        <span class="rf-ml-de-id">
+          <span class="rf-ml-de-n">${escC(de)}</span>
+          <span class="rf-ml-de-s">para ${escC(rfTreinadorNome())} · ${escC(rfQuandoHTML(e))}</span>
+        </span>
+      </div>
+      <div class="rf-ml-corpo">${e.body||''}</div>
+      <div class="rf-ml-acts">
+        <button type="button" class="rf-btn rf-btn-secondary"
+          onclick="rfAcAbrir('mail-arquivar',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">Arquivar</button>
+        <button type="button" class="rf-btn rf-btn-cta"
+          onclick="rfAcAbrir('mail-responder',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">Responder</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 /* =====================================================================
    E-MAIL · 2 · ARQUIVADAS (as já lidas)
+   Cartão único de largura cheia — sem painel de leitura ao lado, como o
+   pacote desenha.
    ===================================================================== */
 function rfEmArquivadasHTML(){
   const lidas=rfInbox().filter(e=>e.read);
-  return rfCol(
-    rfCard('Arquivadas',
-      lidas.length
-        ? `<div class="rf-mails">${lidas.slice(0,40).map(rfEmLinha).join('')}</div>`
-        : '<span class="rf-note">Nada arquivado ainda. Uma mensagem entra aqui depois de lida.</span>',
-      {right: lidas.length+(lidas.length===1?' mensagem':' mensagens')})
-  ) + rfCol(
-    rfCard('Mensagem aberta', rfLeituraHTML())
-  );
+  return `<div class="rf-card">
+    <div class="rf-label"><span class="rf-label-t">ARQUIVADAS</span>
+      <span class="rf-label-r">${lidas.length} ${lidas.length===1?'mensagem':'mensagens'}</span></div>
+    ${lidas.length
+      ? lidas.slice(0,60).map(rfEmLinha).join('')
+      : '<div class="rf-empty">Nada arquivado ainda. Uma mensagem entra aqui depois de lida.</div>'}
+  </div>`;
+}
+
+/* ---- cabeçalho da página ---- */
+function rfEmSubHTML(){
+  const box=rfInbox();
+  const n=box.filter(e=>!e.read).length;
+  return `${box.length} ${box.length===1?'mensagem':'mensagens'} · ${n} não lida${n===1?'':'s'}`;
+}
+function rfEmAcoesHTML(){
+  return `<div class="rf-mk-acoes">
+    <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcGravar()">💾 Gravar</button>
+    <button type="button" class="rf-btn rf-btn-cta" onclick="rfEmLerTudo()">✉️ Marcar como lidas</button>
+  </div>`;
+}
+function rfEmLerTudo(){
+  (CL.inbox||[]).forEach(e=>{ e.read=true; });
+  if(typeof toastC==='function') toastC('Tudo marcado como lido.');
+  cdraw();
 }
 
 /* =====================================================================

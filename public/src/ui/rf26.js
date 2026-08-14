@@ -131,8 +131,8 @@ const RF_PAGES=[
            {k:'patrocinio',l:()=>'Patrocínio', build:()=>rfFiPatrocinioHTML()} ] },
 
   { key:'email', ico:'✉️', label:'E-mail', curto:'E-mail',
-    titulo:'E-mail', sub:'Comunicados da diretoria, propostas e avisos',
-    pill:()=>rfPillNaoLidas(), grid:'340px minmax(0,1fr)',
+    titulo:'E-mail & Sistema', sub:()=>rfEmSubHTML(),
+    acoes:()=>rfEmAcoesHTML(), grid:'minmax(0,380px) minmax(0,1fr)',
     tabs:[ {k:'caixa',     l:()=>'Caixa de entrada'+rfSufixo(rfNaoLidas()), build:()=>rfEmCaixaHTML()},
            {k:'arquivadas',l:()=>'Arquivadas',                              build:()=>rfEmArquivadasHTML()} ] },
 

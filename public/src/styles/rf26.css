@@ -4269,10 +4269,46 @@
   .rf-fi-filtros .rf-btn{width:100%}
 }
 
-/* ---- E-mail: linha da lista com ícone ---- */
-.rf-mail{display:flex;align-items:flex-start;gap:10px}
-.rf-mail-i{font-size:16px;line-height:1.3;flex:0 0 auto}
-.rf-mail-id{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+/* =====================================================================
+   E-MAIL & SISTEMA — a lista e o painel de leitura.
+   É a única página que usa duas colunas de verdade: lista à esquerda,
+   mensagem aberta à direita.
+   ===================================================================== */
+.rf-mail{display:grid;grid-template-columns:22px minmax(0,1fr);gap:11px;align-items:start;
+  padding:11px 10px;border-radius:12px;background:transparent;border:1px solid transparent;
+  cursor:pointer;transition:background var(--dur-fast) var(--ease)}
+.rf-mail:hover{background:#f5f8f4}
+.rf-mail.aberto{background:var(--club-primary-soft);border-color:var(--club-primary)}
+/* o ponto de não lida FLUTUA sobre o ícone. Antes era um "●" enfiado no
+   começo do assunto, e isso empurrava o texto: as linhas lidas e não lidas
+   começavam em pontos diferentes e a coluna inteira ficava torta. */
+.rf-mail-i{position:relative;font-size:15px;line-height:1.3;flex:0 0 auto}
+.rf-mail.novo .rf-mail-i::after{content:'';position:absolute;top:-1px;right:-3px;
+  width:6px;height:6px;border-radius:var(--r-pill);background:var(--danger)}
+.rf-mail-id{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-mail-top{display:flex;align-items:baseline;gap:8px}
+.rf-mail-a{flex:1;min-width:0;font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);
+  color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-mail.novo .rf-mail-a{font-weight:var(--fw-bold)}
+.rf-mail-q{font-family:var(--font-mono);font-size:10px;color:var(--text-faint);white-space:nowrap}
+.rf-mail-p{font-size:var(--fs-caption);color:var(--text-4);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* MENSAGEM ABERTA */
+.rf-ml{display:flex;flex-direction:column;gap:12px;min-width:0}
+.rf-ml-subj{font-family:var(--font-serif);font-size:19px;font-weight:var(--fw-bold);
+  color:var(--text-1);line-height:1.3;text-wrap:pretty}
+.rf-ml-de{display:flex;align-items:center;gap:10px;padding-bottom:12px;
+  border-bottom:1px solid var(--line-1)}
+.rf-ml-de img,.rf-ml-de .rf-crest-fb{width:30px;height:30px;object-fit:contain;flex:0 0 auto}
+.rf-ml-de-id{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-ml-de-n{font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:var(--text-1);white-space:nowrap}
+.rf-ml-de-s{font-size:var(--fs-caption);color:var(--text-faint);white-space:nowrap}
+.rf-ml-corpo{display:flex;flex-direction:column;gap:12px;
+  font-size:var(--fs-body-sm);color:var(--text-2);line-height:1.7;text-wrap:pretty}
+.rf-ml-corpo p{margin:0}
+.rf-ml-acts{display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line-1);padding-top:12px}
+
 /* ---- Configurações: linha de preferência ---- */
 .rf-cf-lin{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line-1)}
 .rf-cf-lin:last-child{border-bottom:0}
