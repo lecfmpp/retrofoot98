@@ -185,7 +185,7 @@ function rfCamHTML(RL){
   RL=RL||CL.live; if(!RL) return '';
   const m=(RL.matches||[]).find(x=>x.user); if(!m) return '';
   camEnsure(m);
-  return `<div class="rf-cam rf-listrado" onclick="camBackdrop(event)">
+  return `<div class="rf-cam" onclick="camBackdrop(event)">
     <div class="rf-cam-env">
       ${rfRail('left')}
       <div class="rf-cam-mid">

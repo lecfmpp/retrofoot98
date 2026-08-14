@@ -18,25 +18,6 @@
    arquivo inteiro, em vez de uma exceção por componente. */
 [hidden]{display:none !important}
 
-/* ----- FUNDO DE LISTRAS: GRAMADO -----
-   O arquivo do designer (img/stripes.svg) é um ladrilho de 40×1 — 20px cheios,
-   20px vazios. Ele dá a MEDIDA; a cor vem daqui, porque o preenchimento dele é
-   preto fixo e serviria para um fundo só.
-   São duas faixas de VERDE, uma escura e uma um pouco mais clara, como grama
-   cortada — não um véu por cima do fundo. A primeira tentativa pintou a listra
-   com 4% de tinta sobre a mesa e o resultado sumia na tela.
-     --listra-a  a faixa escura
-     --listra-b  a faixa clara
-     --listra-w  a largura de cada faixa (20px, do ladrilho)
-   Decoração pura: entra por ::before com pointer-events:none, para nunca roubar
-   clique nem entrar na conta de rolagem. */
-.rf-listrado{position:relative;isolation:isolate}
-.rf-listrado>*{position:relative;z-index:1}
-.rf-listrado::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
-  background-image:repeating-linear-gradient(90deg,
-    var(--listra-a,var(--pitch-2,#37904f)) 0 var(--listra-w,20px),
-    var(--listra-b,var(--pitch-1,#3e9c5a)) var(--listra-w,20px) calc(var(--listra-w,20px)*2))}
-
 /* ============================ CORE ============================ */
 
 /* `hidden` TEM DE GANHAR. O atributo só vale por uma regra da folha do
@@ -1677,10 +1658,16 @@
    com 26px de respiro · barra de ação. Nada de barra de título do
    Windows, navbar institucional ou rodapé de SEO — a tela não tem.
    ===================================================================== */
-.rf-wiz{
-  min-height:100vh;background:var(--surface-desk);padding:24px;box-sizing:border-box;
-  display:flex;justify-content:center;font-family:var(--font-sans);color:var(--text-1)}
-.rf-wiz-in{width:980px;max-width:100%;display:flex;flex-direction:column;gap:14px}
+/* O ASSISTENTE É UMA COLUNA: cabeçalho público de ponta a ponta, o miolo de
+   980px centrado, e o rodapé público fechando embaixo. Já foi uma LINHA flex
+   com `justify-content:center` — e quando o cabeçalho e o rodapé entraram,
+   viraram duas colunas ao lado do conteúdo em vez de faixas. */
+.rf-wiz{min-height:100vh;background:var(--surface-desk);box-sizing:border-box;
+  display:flex;flex-direction:column;align-items:stretch;
+  font-family:var(--font-sans);color:var(--text-1)}
+.rf-wiz>.rf-lp-nav,.rf-wiz>.rf-lp-rodape{flex:0 0 auto;width:100%;box-sizing:border-box}
+.rf-wiz-in{width:980px;max-width:100%;margin:0 auto;padding:24px;box-sizing:border-box;
+  flex:1 1 auto;display:flex;flex-direction:column;gap:14px}
 .rf-wiz-marca{display:flex;align-items:center;gap:10px}
 .rf-wiz-marca img{width:32px;height:32px;object-fit:contain}
 .rf-wiz-marca-t{font-size:16px;font-weight:var(--fw-bold);color:var(--text-1);
@@ -2400,8 +2387,7 @@
    faixa, o placar de estádio, a barra de pressão, um corpo de duas colunas
    (narração 1fr · estatísticas 320px) e a banda de patrocínio no pé.
    ===================================================================== */
-.rf-cam{--listra-a:#1d3a28;--listra-b:#21422d;
-  position:fixed;inset:0;z-index:60;overflow-y:auto;background:rgba(18,32,26,.55);
+.rf-cam{position:fixed;inset:0;z-index:60;overflow-y:auto;background:rgba(18,32,26,.55);
   padding:20px;box-sizing:border-box;font-family:var(--font-sans);color:var(--text-1)}
 .rf-cam-env{max-width:1560px;margin:0 auto;display:flex;align-items:flex-start;
   justify-content:center;gap:16px}

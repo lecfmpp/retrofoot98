@@ -36,7 +36,11 @@ function rfWizPassos(trilha){
 }
 const RF_WIZ_PASSOS=RF_WIZ_TRILHAS.solo;
 
-/* ---- envelope: marca + [ trilha · card · barra de ação ] ----
+/* ---- envelope: CABEÇALHO PÚBLICO + [ trilha · card · ação ] + RODAPÉ ----
+   As telas de fora da área logada usam o mesmo cabeçalho e o mesmo rodapé das
+   páginas públicas — quem chega pela landing e entra no assistente não deve
+   sentir que trocou de site no meio do caminho. O cabeçalho aceita o botão
+   próprio de cada passo ("‹ Voltar ao modo") no canto direito.
    A BARRA DE AÇÃO É O TERCEIRO FILHO DA CAIXA VERDE, não uma faixa solta
    embaixo dela. Estava por fora, e a nota e o botão flutuavam sobre o fundo
    da página em vez de assentarem na mesa junto com o card — a tela perdia o
@@ -52,14 +56,16 @@ function rfWiz(o){
   const passo=o.passo||1, total=passos.length;
   const cabeca=(o.titulo||o.sobre||o.sub)
     ? rfWizHead(o.sobre,o.titulo,o.sub) : '';
-  return `<div class="rf-wiz rf-listrado">
+  return `<div class="rf-wiz">
+    ${(typeof rfLpNavHTML==='function')?rfLpNavHTML(o.topoDir):''}
     <div class="rf-wiz-in">
+      ${(typeof rfLpNavHTML==='function')?'':`
       <div class="rf-wiz-marca">
         <img src="img/logo.webp" width="32" height="32" alt="RetroFoot98">
         <span class="rf-wiz-marca-t">RetroFoot<span class="rf-wiz-marca-98">98</span></span>
         <div class="rf-sp"></div>
         ${o.topoDir||''}
-      </div>
+      </div>`}
       ${o.semTrilha?'':`<div class="rf-wiz-fita">
         <div class="rf-wiz-fita-l">
           <img src="img/logo.webp" width="28" height="28" alt="">
@@ -80,11 +86,16 @@ function rfWiz(o){
         <div class="rf-wiz-acao">
           ${o.nota?`<span class="rf-wiz-nota">${escC(o.nota)}</span>`:''}
           <div class="rf-sp"></div>
-          ${o.voltar?`<button type="button" class="rf-wiz-b2" onclick="${o.voltar}">${escC(o.voltarLabel||'Voltar')}</button>`:''}
-          ${o.cta?`<button type="button" class="rf-wiz-cta" ${o.ctaOff?'disabled':''} onclick="${o.ctaOn||''}">${escC(o.cta)}</button>`:''}
+          <!-- SEM escC no rótulo: desde que os ícones viraram SVG, o rótulo pode
+               trazer marcação (rfIcone(...) + texto). Escapando, o botão exibia
+               o código do <svg> como texto e esticava a página para 6000px.
+               Os rótulos são literais do código, nunca entrada do utilizador. -->
+          ${o.voltar?`<button type="button" class="rf-wiz-b2" onclick="${o.voltar}">${o.voltarLabel||'Voltar'}</button>`:''}
+          ${o.cta?`<button type="button" class="rf-wiz-cta" ${o.ctaOff?'disabled':''} onclick="${o.ctaOn||''}">${o.cta}</button>`:''}
         </div>
       </div>
     </div>
+    ${(typeof rfLpRodapeHTML==='function')?rfLpRodapeHTML():''}
   </div>`;
 }
 function rfWizTrilhaHTML(passo, trilha){

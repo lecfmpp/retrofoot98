@@ -730,7 +730,14 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'resetpassword': html=scResetPassword(); break;
     case 'recuperarsenha': html=rfRecuperarSenhaHTML(); break;
     case 'modo':      html=rfOb2(); break;
-    case 'modosolo':  html=scModoSolo(); break;   // 'cont' -> telas/Fluxo - Continuar Save
+    /* MODO SOLO. A tela antiga perguntava "novo jogo ou continuar?" em dois
+       cartões; o pacote (Fluxo - Continuar Save) elimina a bifurcação e mostra
+       os saves direto, com "começar um save novo" como última linha da lista —
+       menos um passo para quem só quer voltar ao jogo. O roteador ainda
+       apontava para a antiga, e por isso ela continuava aparecendo.
+       O passo 'novo' (dar nome ao save) segue na tela antiga: o pacote não
+       trouxe equivalente para ele. */
+    case 'modosolo':  html=(CL.soloStep==='novo')?scSoloNovo():rfSavesHTML(); break;
     case 'paises':    html=rfOb3(); break;
     case 'paisJogavel': html=scPaisJogavel(); break;
     case 'moeda':     html=scMoeda(); break;
