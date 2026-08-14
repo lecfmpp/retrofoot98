@@ -5159,10 +5159,17 @@ function clDragMove(ev){
   if(!DRAG.moved){
     if(Math.abs(ev.clientX-DRAG.x0)+Math.abs(ev.clientY-DRAG.y0) < 6) return;   // ainda é um toque
     DRAG.moved=true;
-    const camisa=DRAG.el.querySelector('.cl-pp-shirt');
+    /* O fantasma que segue o cursor precisa achar a camisa do ORIGEM. A pele
+       antiga desenha `.cl-pp-shirt`; o banco novo (rf26-formacao) desenha
+       `.rf-bj`. Como aqui só se procurava a antiga, arrastar do banco criava um
+       fantasma VAZIO: a substituição acontecia, mas nada seguia o mouse. */
+    const camisa=DRAG.el.querySelector('.cl-pp-shirt, .rf-bj');
+    const doBanco=!!camisa && camisa.classList.contains('rf-bj');
     DRAG.ghost=document.createElement('div');
-    DRAG.ghost.className='cl-dnd-ghost';
-    DRAG.ghost.innerHTML=camisa?camisa.innerHTML:'';
+    DRAG.ghost.className='cl-dnd-ghost'+(doBanco?' de-banco':'');
+    // a camisa antiga entra pelo miolo (o CSS dimensiona o svg); a nova entra
+    // inteira, porque ela é um conjunto de caixas posicionadas entre si
+    DRAG.ghost.innerHTML = !camisa ? '' : (doBanco ? camisa.outerHTML : camisa.innerHTML);
     document.body.appendChild(DRAG.ghost);
     DRAG.el.classList.add('dragging');
     // acende só quem pode receber: mesma posição, e um dos dois tem que estar em campo

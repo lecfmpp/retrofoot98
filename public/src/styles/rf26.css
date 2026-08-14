@@ -644,6 +644,13 @@
 .rf-pitch-card .cl-bp.alvo{background:var(--club-primary-soft);border-radius:var(--r-row)}
 .rf-pitch-card .cl-pitch.alvo-zona{box-shadow:var(--shadow-pitch),inset 0 0 0 3px var(--club-cta-bg,var(--club-secondary))}
 .cl-dnd-ghost{filter:var(--shadow-piece)}
+/* vindo do banco o fantasma é a própria camisa `.rf-bj`, que já tem tamanho
+   próprio — o `width:44px` da pele antiga a esmagaria */
+.cl-dnd-ghost.de-banco{width:auto;transform:translate(-50%,-50%) scale(1.25)}
+/* o realce do alvo também só conhecia a camisa antiga */
+.cl-bp.alvo .rf-bj{filter:drop-shadow(0 0 6px var(--brand-secondary))}
+.cl-bp.alvo{background:rgba(242,185,12,.18)}
+.cl-pp.dragging,.cl-bp.dragging{opacity:.3}
 
 /* =====================================================================
    MOBILE (≤760px)
