@@ -132,7 +132,7 @@ function rfElFichaHTML(){
       </div>
       <div class="rf-sp"></div>
       <div class="rf-el-hd-acts">
-        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcAbrir('elenco-renovar',{pid:'${escC(p.pid)}'})">Renovar contrato…</button>
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcAbrir('elenco-renovar',{pid:'${escC(p.pid)}'})">Renovar contrato</button>
         <button type="button" class="rf-btn rf-btn-primary" onclick="rfAcAbrir('mkt-listar',{pid:'${escC(p.pid)}'})">Listar para venda</button>
       </div>
     </div>`

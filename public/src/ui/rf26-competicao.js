@@ -423,7 +423,7 @@ function rfCopaFaseHTML(key){
         </div>
       </div>
     </div>`,
-    acoes:`${CL.online?'<span class="rf-im-auto">avança sozinho em alguns segundos…</span>':''}
+    acoes:`${CL.online?'<span class="rf-im-auto">avança sozinho em alguns segundos</span>':''}
       <div class="rf-sp"></div>
       <button type="button" class="rf-ov-cta" onclick="cupClassifContinue()">Continuar</button>`
   });

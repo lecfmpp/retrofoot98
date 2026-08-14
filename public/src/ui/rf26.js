@@ -582,7 +582,7 @@ function rfClassifHTML(){
     ${chips}
     ${corpo.html}
     <div class="rf-cl-fill"></div>
-    <button type="button" class="rf-cl-ver" onclick="rfGo('campeonatos')">Ver tabela completa…</button>`;
+    <button type="button" class="rf-cl-ver" onclick="rfGo('campeonatos')">Ver tabela completa</button>`;
 }
 function rfClTabelaHTML(linhas){
   return `<div class="rf-tb-head"><span></span><span></span><span>J</span><span>V</span>
@@ -1043,7 +1043,7 @@ function rfChatHTML(){
       </div>
       <div class="rf-chat-msgs" id="rf-chat-msgs">${chatMsgsHTML()}</div>
       <div class="rf-chat-in">
-        <input id="rf-chat-in" class="rf-chat-input" placeholder="Manda a braba…"
+        <input id="rf-chat-in" class="rf-chat-input" placeholder="Manda a braba"
           onkeydown="if(event.key==='Enter')rfChatEnviar();if(event.key==='Escape')rfChatFechar()">
         <button type="button" class="rf-chat-send" onclick="rfChatEnviar()" aria-label="Enviar">➤</button>
       </div>
@@ -1087,7 +1087,7 @@ function rfChatRender(){
 function rfChatSheet(){
   rfSheet('Chat da Resenha', `<div class="rf-chat-msgs rf-chat-msgs-sheet" id="rf-chat-msgs">${chatMsgsHTML()}</div>`, {
     footer:`<div class="rf-chat-in">
-      <input id="rf-chat-in" class="rf-chat-input" placeholder="Manda a braba…"
+      <input id="rf-chat-in" class="rf-chat-input" placeholder="Manda a braba"
         onkeydown="if(event.key==='Enter')rfChatEnviar()">
       <button type="button" class="rf-chat-send" onclick="rfChatEnviar()" aria-label="Enviar">➤</button>
     </div>`});

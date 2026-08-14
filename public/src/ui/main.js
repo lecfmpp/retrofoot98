@@ -547,13 +547,13 @@ function pausaOvertime(){ return !CL._roundSyncedAt && (nowMs()-(CL._waitSince||
    falta — gente publicando ou o servidor fechando. Era um texto fixo culpando "os outros
    treinadores" mesmo quando todos já tinham publicado e a espera era do servidor. */
 function pausaWaitLabel(){
-  if(!pausaOvertime()) return 'Todos os treinadores voltam a jogar ao mesmo tempo. Segura aí…';
+  if(!pausaOvertime()) return 'Todos os treinadores voltam a jogar ao mesmo tempo. Segura aí';
   let outros=true;
   if(CL.online && typeof NET!=='undefined' && NET.allHumanResultsIn && typeof S!=='undefined' && S){
     try{ outros=!!NET.allHumanResultsIn(S.round); }catch(e){ outros=true; }
   }
-  return outros ? 'Ainda sincronizando — o servidor está fechando a rodada…'
-                : 'Ainda sincronizando — esperando os resultados dos outros treinadores…';
+  return outros ? 'Ainda sincronizando — o servidor está fechando a rodada'
+                : 'Ainda sincronizando — esperando os resultados dos outros treinadores';
 }
 function pausaChecklist(){
   const it=(st,txt)=>`<div class="rf-srow"><span class="${st==='ok'?'rf-sdone':st==='wait'?'rf-swait':'rf-sdim'}">${st==='ok'?'✓':st==='wait'?'⏳':'·'}</span><span class="${st==='dim'?'rf-sdim':''}">${txt}</span></div>`;
@@ -1179,7 +1179,7 @@ function mediaKitModalHTML(){
       </div>
       <div class="cl-lp-form-acts">
         <button class="cl-lp-btn" onclick="clMediaKitVolta()">‹ Voltar</button>
-        <button class="cl-lp-cta" onclick="clMediaKitEnviar()" ${CL.mkBusy?'disabled':''}>${CL.mkBusy?'Enviando…':'Pedir o media kit'}</button>
+        <button class="cl-lp-cta" onclick="clMediaKitEnviar()" ${CL.mkBusy?'disabled':''}>${CL.mkBusy?'Enviando':'Pedir o media kit'}</button>
       </div>
     </div>`;
   }
@@ -1219,7 +1219,7 @@ function waitlistPasso1HTMLLegado(w){
           oninput="clWaitlistSet('resposta',this.value)"></label>
     </div>
     <div class="cl-lp-form-acts">
-      <button class="cl-lp-cta" onclick="clWaitlistSubmit()" ${CL.waitlistBusy?'disabled':''}>${CL.waitlistBusy?'Gravando…':'Garantir minha vaga'}</button>
+      <button class="cl-lp-cta" onclick="clWaitlistSubmit()" ${CL.waitlistBusy?'disabled':''}>${CL.waitlistBusy?'Gravando':'Garantir minha vaga'}</button>
       <span class="cl-lp-form-nota">A gente só usa seus dados pra avisar da vaga.</span>
     </div>
   </div>`;
@@ -1251,7 +1251,7 @@ function waitlistPasso2HTMLLegado(w){
       </div>
     </div>
     <div class="cl-lp-form-acts">
-      <button class="cl-lp-cta" onclick="clWaitlistIndicar()" ${CL.waitlistBusy?'disabled':''}>${CL.waitlistBusy?'Gravando…':'Enviar indicações'}</button>
+      <button class="cl-lp-cta" onclick="clWaitlistIndicar()" ${CL.waitlistBusy?'disabled':''}>${CL.waitlistBusy?'Gravando':'Enviar indicações'}</button>
       <button class="cl-lp-btn" onclick="clWaitlistClose()">Fechar</button>
     </div>
   </div>`;
@@ -1455,7 +1455,7 @@ function landingCriadoresHTML(){
       </div>
       <div class="cl-lp-col-img">
         ${janelaHTML('💬 Resenha — sala do canal', `<div class="cl-lp-chat">${chat}
-          <div class="cl-lp-chat-in">Manda a braba na resenha…</div>
+          <div class="cl-lp-chat-in">Manda a braba na resenha</div>
           <div class="cl-lp-chat-foot"><span>🟢 18 de 20 treinadores na sala</span><b>SALA #RF-7742</b></div>
         </div>`, 'cl-lp-win-claro')}
       </div>
@@ -1920,7 +1920,7 @@ function scModoSolo(){
   if(step==='novo') return scSoloNovo();
   if(step==='cont') return scSoloCont();
   const loading=CL.soloSaves==null; const n=(CL.soloSaves||[]).length;
-  const contDesc = loading?'Carregando seus jogos salvos…' : (n?`Você tem <b>${n}</b> jogo${n>1?'s':''} salvo${n>1?'s':''} na nuvem.`:'Nenhum jogo salvo ainda.');
+  const contDesc = loading?'Carregando seus jogos salvos' : (n?`Você tem <b>${n}</b> jogo${n>1?'s':''} salvo${n>1?'s':''} na nuvem.`:'Nenhum jogo salvo ainda.');
   return wizShell({ step:2, steps:WIZ_PASSOS.solo, title:'Modo Solo', back:'clGoModo()',
     contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
     action:`<span class="cl-wiz-hint">Toque num cartão para continuar.</span>`,
@@ -2286,10 +2286,10 @@ function scSorteio(){
       <span class="cl-rdraw-team" style="${c?clubStripe(c):''}">${c?escC(c.short||c.name):'—'}</span>
     </div>`;
   }).join('');
-  const sub=d.done?'Sorteio concluído! Preparando a temporada… ⚽':'Sorteando os clubes… boa sorte!';
+  const sub=d.done?'Sorteio concluído! Preparando a temporada ⚽':'Sorteando os clubes, boa sorte!';
   // SEM "PULAR": não há o que pular aqui — o clube ainda está sendo sorteado, e o botão só
   // convidava a sair da cerimônia antes de saber qual time saiu. A tela segue sozinha.
-  const action=`<span class="cl-wiz-hint">${d.done?'Preparando a temporada…':'Aguarde o sorteio…'}</span>`;
+  const action=`<span class="cl-wiz-hint">${d.done?'Preparando a temporada':'Aguarde o sorteio'}</span>`;
   return wizShell({ title:'Sorteio dos clubes', contentCls:'cl-wiz-center',
     body:`<div class="cl-rdraw"><div class="cl-rdraw-sub">${sub}</div><div class="cl-rdraw-list">${rows}</div></div>`,
     action });
@@ -3128,7 +3128,7 @@ function showSavingOverlay(){
   };
 }
 function clLoadSave(name){
-  toastC('Carregando jogo…');
+  toastC('Carregando jogo','progress');
   (async ()=>{ try {
     const g = (typeof NET!=='undefined'&&NET.loadSoloSave)?await NET.loadSoloSave(name):null;
     if(!g){ toastC('⚠ Save não encontrado.'); return; }
@@ -3642,7 +3642,7 @@ function syncInbox(){
         subject:'Elenco envelhecendo — '+risco.length+' jogador'+(risco.length>1?'es':'')+' perto da aposentadoria',
         body:`Estes jogadores podem pendurar as chuteiras na virada da temporada. Vale avaliar uma venda enquanto ainda valem alguma coisa, ou já buscar substituto:<br><br>`
           +risco.slice(0,6).map(x=>`<b>${escC(x.p.n)}</b> — ${x.p.age} anos, ${posLetter(x.p.s)}, força ${x.p.f} · risco <b>${Math.round(x.chance*100)}%</b> · vale ${fmt(x.p.mv||0)}`).join('<br>')
-          +(risco.length>6?`<br><span style="opacity:.7">…e mais ${risco.length-6}.</span>`:''),
+          +(risco.length>6?`<br><span style="opacity:.7">e mais ${risco.length-6}.</span>`:''),
         action:{label:'Ver elenco', go:'clCloseOverlay();CL.tab="jogador";cdraw()'} });
     }
   }
@@ -4402,15 +4402,15 @@ const VIDEOS_MOMENTO = {
    amarelo e cinza a linha de contexto é preta e o rodapé cinza-escuro; só no verde valem os tons
    claros do jogo. */
 const MOMENTO_DEFS = {
-  'campeao-liga' : { corpo:'yellow', kicker:'CAMPEÃO BRASILEIRO',        btnPri:'Comemorar',        btnSec:'Ver a tabela…',      acao:'clClassif' },
-  'campeao-copa' : { corpo:'yellow', kicker:'CAMPEÃO DA COPA DO BRASIL', btnPri:'Comemorar',        btnSec:'Ver o caminho…',     acao:'cup' },
-  'marcador-liga': { corpo:'green',  kicker:'ARTILHEIRO DA LIGA',        btnPri:'Fechado',          btnSec:'Ver o jogador…',     acao:'jogador' },
-  'marcador-copa': { corpo:'green',  kicker:'ARTILHEIRO DA COPA',        btnPri:'Fechado',          btnSec:'Ver o jogador…',     acao:'jogador' },
-  'promovido'    : { corpo:'yellow', kicker:'ACESSO CONQUISTADO',        btnPri:'Comemorar',        btnSec:'Ver o elenco…',      acao:'elenco' },
-  'rebaixado'    : { corpo:'gray',   kicker:'REBAIXAMENTO',              btnPri:'Seguir em frente', btnSec:'Ver a tabela…',      acao:'clClassif' },
-  'abertura-copa': { corpo:'green',  kicker:'A COPA COMEÇA HOJE',        btnPri:'Preparar o time',  btnSec:'Ver a escalação…',   acao:'seleccao' },
-  'final-copa'   : { corpo:'yellow', kicker:'FINAL DA COPA',             btnPri:'Entrar em campo',  btnSec:'Ver a escalação…',   acao:'seleccao' },
-  'crise'        : { corpo:'gray',   kicker:'CLIMA PESADO NO CLUBE',     btnPri:'Assumir a responsa', btnSec:'Ver a tabela…',    acao:'clClassif' },
+  'campeao-liga' : { corpo:'yellow', kicker:'CAMPEÃO BRASILEIRO',        btnPri:'Comemorar',        btnSec:'Ver a tabela',      acao:'clClassif' },
+  'campeao-copa' : { corpo:'yellow', kicker:'CAMPEÃO DA COPA DO BRASIL', btnPri:'Comemorar',        btnSec:'Ver o caminho',     acao:'cup' },
+  'marcador-liga': { corpo:'green',  kicker:'ARTILHEIRO DA LIGA',        btnPri:'Fechado',          btnSec:'Ver o jogador',     acao:'jogador' },
+  'marcador-copa': { corpo:'green',  kicker:'ARTILHEIRO DA COPA',        btnPri:'Fechado',          btnSec:'Ver o jogador',     acao:'jogador' },
+  'promovido'    : { corpo:'yellow', kicker:'ACESSO CONQUISTADO',        btnPri:'Comemorar',        btnSec:'Ver o elenco',      acao:'elenco' },
+  'rebaixado'    : { corpo:'gray',   kicker:'REBAIXAMENTO',              btnPri:'Seguir em frente', btnSec:'Ver a tabela',      acao:'clClassif' },
+  'abertura-copa': { corpo:'green',  kicker:'A COPA COMEÇA HOJE',        btnPri:'Preparar o time',  btnSec:'Ver a escalação',   acao:'seleccao' },
+  'final-copa'   : { corpo:'yellow', kicker:'FINAL DA COPA',             btnPri:'Entrar em campo',  btnSec:'Ver a escalação',   acao:'seleccao' },
+  'crise'        : { corpo:'gray',   kicker:'CLIMA PESADO NO CLUBE',     btnPri:'Assumir a responsa', btnSec:'Ver a tabela',    acao:'clClassif' },
 };
 let MOMENTO_FILA=[];
 function enfileirarMomento(id, dados){ if(!MOMENTO_DEFS[id]) return; MOMENTO_FILA.push({id,dados:dados||{}}); }
@@ -4712,7 +4712,7 @@ function clTrainingScreen(){ CL.menu=null;
       <summary class="cl-trn-intro-h"><span>Como o jogador evolui</span><i>${helpOpen?'fechar':'abrir'}</i></summary>
       <div class="cl-trn-intro-b">
       <p>Ninguém ganha "força" direto. A cada rodada o jogador pode ganhar um <b>ponto de atributo</b>
-      (finalização, passe, reflexos…), e a <b>Força</b> é a média desses atributos convertida pela escala da
+      (finalização, passe, reflexos), e a <b>Força</b> é a média desses atributos convertida pela escala da
       sua divisão. Por isso ele às vezes joga bem e a Força não mexe — e às vezes <b>salta 2 ou 3 de uma vez</b>:
       nas divisões de baixo a escala é bem mais íngreme, então o mesmo ponto ganho vale muito mais Força.</p>
       <p>O que decide a velocidade, em ordem de peso:
@@ -6658,7 +6658,7 @@ function kickoffWaitHTML(RL){
   const nome=(CL.humans&&CL.humans[opp])||((clubOf(opp)||{}).short)||'o adversário';
   return `<div class="cl-kickwait">
     <span class="cl-kickwait-spin">⏳</span>
-    <span class="cl-kickwait-t">Aguardando <b>${escC(nome)}</b> entrar em campo…</span>
+    <span class="cl-kickwait-t">Aguardando <b>${escC(nome)}</b> entrar em campo</span>
     <span class="cl-kickwait-c">${secs}s</span>
     <span class="cl-kickwait-sub">Quando o cronômetro zerar, a partida começa de qualquer forma.</span>
   </div>`;
@@ -7100,7 +7100,7 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
   // FASE 3B (mandante): a sessão está pausada esperando a decisão do VISITANTE (pênalti/lesão/
   // expulsão dele) — aviso com o teto de 15s (depois a decisão padrão é aplicada sozinha).
   const remoteWaitHTML=(m.sim && m.sim.pending && m.sim.pending.ev && m.sim.pending.ev.side!==(m.h===CL.clubId?'H':'A'))
-    ? `<div class="cl-ht-timer">📡 Aguardando a decisão do adversário… (automática em até 15s)</div>` : '';
+    ? `<div class="cl-ht-timer">📡 Aguardando a decisão do adversário (automática em até 15s)</div>` : '';
   return `<div class="cl-lm-title">${escC(hc.short)}, ${m.hg} - ${escC(ac.short)}, ${m.ag}</div>
     <div class="cl-lm-top">
       <div class="cl-lm-events">${incHTML}</div>
@@ -7230,7 +7230,7 @@ function incidentLines(m){
       return {min:inc.min,html:`✚ ${escC(inc.player)}${suf} ${inc.min}'`}; }
     return null;
   }).filter(Boolean).sort((a,b)=>b.min-a.min);
-  if(!rows.length) return '<div class="cl-lm-noinc">Sem incidentes ainda…</div>';
+  if(!rows.length) return '<div class="cl-lm-noinc">Sem incidentes ainda</div>';
   return rows.map(r=>`<div>${r.html}</div>`).join('');
 }
 function subPanelHTML(m){
@@ -9628,11 +9628,11 @@ function clCopyResenhaLink(){
 function clSendResenhaInvite(){ const phone=(document.querySelector('#cl-invres-phone')?.value||'').replace(/\D/g,'');
   if(phone.length<10){ toastC('Informe um telefone válido.'); return; }
   const link=(typeof NET!=='undefined')?NET.inviteLink():''; const wa='https://wa.me/55'+phone+'?text='+encodeURIComponent('Vem pra minha Resenha do RetroFoot98! Um time é sorteado pra você. '+link);
-  try{ window.open(wa,'_blank'); }catch(e){} toastC('Abrindo WhatsApp…'); }
+  try{ window.open(wa,'_blank'); }catch(e){} toastC('Abrindo WhatsApp','progress'); }
 function clSendResenhaEmailInvite(){ const email=(document.querySelector('#cl-invres-email')?.value||'').trim();
   if(!email || !email.includes('@')){ toastC('Informe um e-mail válido.'); return; }
   if(typeof NET==='undefined' || !NET.sendEmailInvite){ toastC('Convite por e-mail requer jogo online.'); return; }
-  toastC('Enviando convite por e-mail…');
+  toastC('Enviando convite por e-mail','progress');
   (async ()=>{ try { await NET.sendEmailInvite(email); toastC('✓ Convite enviado por e-mail!'); const inp=document.querySelector('#cl-invres-email'); if(inp) inp.value=''; }
     catch(e){ toastC('⚠ '+(e&&e.message||'Erro ao enviar convite por e-mail')); } })(); }
 function clTab2(t){ CL.menu=null; CL.tab=t; cdraw(); }
@@ -9671,7 +9671,7 @@ function exitModalHTML(online){
   const footer = online
     ? `${btn('Sair','clExitConfirm(false)',{icon:'✔',cls:'cl-btn-ok'})}${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}`
     : `${btn('Sair sem gravar','clExitConfirm(false)',{icon:'✖',cls:'cl-btn-cancel',dis:saving})}
-       ${btn(saving?'Gravando…':'Gravar e sair','clExitConfirm(true)',{icon:'✔',cls:'cl-btn-ok',dis:saving})}
+       ${btn(saving?'Gravando':'Gravar e sair','clExitConfirm(true)',{icon:'✔',cls:'cl-btn-ok',dis:saving})}
        ${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel',dis:saving})}`;
   return dlg('Sair para o menu', `<div class="cl-exit-txt">${escC(text)}</div>`,
     {std:true, footer, footerClass:'cl-exit-foot'});
@@ -11409,7 +11409,11 @@ function toastTone(msg){
   if(/^\s*[⚠️]/.test(m)) return 'warn';
   if(/^\s*[✖✕❌]/.test(m)) return 'danger';
   if(/^\s*[✓✔]/.test(m)) return 'success';
-  // reticências (… ou ...) no fim = processo em curso, é a convenção do jogo
+  /* Antes o tom `progress` era deduzido de reticências no fim da frase
+     ("Conectando…"). As reticências saíram da interface inteira, então o tom
+     agora vem EXPLÍCITO na chamada: toastC('Carregando jogo','progress'). O
+     teste continua aqui só para não quebrar chamada antiga que ainda escreva
+     assim — mas nada novo deve depender dele. */
   if(/(…|\.\.\.)\s*$/.test(m)) return 'progress';
   return 'info';
 }

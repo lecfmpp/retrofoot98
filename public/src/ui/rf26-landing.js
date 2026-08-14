@@ -131,7 +131,7 @@ function rfLpMaqueteChatHTML(){
         ${m('marreco','sobe logo essa Série D, treinador')}
       </div>
       <div class="rf-chat-in">
-        <span class="rf-chat-input rf-lpm-ph">Manda a braba na resenha…</span>
+        <span class="rf-chat-input rf-lpm-ph">Manda a braba na resenha</span>
         <span class="rf-chat-send">➤</span>
       </div>
       <div class="rf-lpm-sala">

@@ -128,7 +128,7 @@ function rfCarregandoHTML(){
       <span class="rf-wiz-dica">Dica: ${escC(dica)}</span>
     </div>`;
   return rfWiz({
-    sobre:'A preparar o seu save', titulo:'Carregando jogo…', sub:'Montando as divisões, os elencos e o calendário da temporada.', semTrilha:true, corpo });
+    sobre:'A preparar o seu save', titulo:'Carregando jogo', sub:'Montando as divisões, os elencos e o calendário da temporada.', semTrilha:true, corpo });
 }
 
 /* as etapas avançam junto com a barra, sem redesenhar a tela inteira (um cdraw
@@ -278,7 +278,7 @@ function rfSavesHTML(){
     .sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0));
   const corpo=`
     <div class="rf-wiz-mid">
-      ${carregando?'<span class="rf-note">Carregando os seus jogos salvos…</span>'
+      ${carregando?'<span class="rf-note">Carregando os seus jogos salvos</span>'
         :saves.map((s,i)=>`<div class="rf-sv-lin ${i===0?'me':''}" onclick="clLoadSave('${escC(s.name)}')">
           <span class="rf-sv-ico">💾</span>
           <span class="rf-sv-id"><span class="rf-sv-n">${escC(s.name)}</span>
@@ -500,7 +500,7 @@ function rfWaitlistHTML(){
       footer:`<button type="button" class="rf-ov-b2" onclick="clWaitlistClose()">Fechar</button>
         <div class="rf-sp"></div>
         <button type="button" class="rf-ov-cta" ${CL.waitlistBusy?'disabled':''}
-          onclick="clWaitlistIndicar()">${CL.waitlistBusy?'Gravando…':'Enviar indicações'}</button>`
+          onclick="clWaitlistIndicar()">${CL.waitlistBusy?'Gravando':'Enviar indicações'}</button>`
     });
   }
 
@@ -540,6 +540,6 @@ function rfWaitlistHTML(){
     footer:`<span class="rf-im-auto">A gente só usa os seus dados pra avisar da vaga.</span>
       <div class="rf-sp"></div>
       <button type="button" class="rf-ov-cta" ${CL.waitlistBusy?'disabled':''}
-        onclick="clWaitlistSubmit()">${CL.waitlistBusy?'Gravando…':'Garantir minha vaga'}</button>`
+        onclick="clWaitlistSubmit()">${CL.waitlistBusy?'Gravando':'Garantir minha vaga'}</button>`
   });
 }

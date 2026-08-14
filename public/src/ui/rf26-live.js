@@ -278,7 +278,7 @@ function rfCamFeedHTML(m){
       <span class="rf-label-r">Casa do ${escC(hc.short||'')} · ${grp(m.att||0)} pagantes</span>
     </div>
     <div class="rf-cam-narra" id="rf-cam-lines" data-n="${(m.narr||[]).length}">${
-      linhas||'<span class="rf-cam-vazio">O árbitro já vai apitar…</span>'}</div>
+      linhas||'<span class="rf-cam-vazio">O árbitro já vai apitar</span>'}</div>
   </div>`;
 }
 /* o desenho novo separa o gol DELE do gol CONTRA — um pinta de azul, o outro de

@@ -424,7 +424,7 @@ function rfLobbyHTML(){
       <span class="rf-label-r">${((room.chat||[]).length)} mensagens</span></div>
     <div class="rf-lb-msgs" id="cl-chat-msgs-lobby">${(typeof chatMsgsHTML==='function')?chatMsgsHTML():''}</div>
     <div class="rf-chat-in">
-      <input id="cl-chat-input-lobby" class="rf-chat-input" placeholder="Escreva pra resenha…"
+      <input id="cl-chat-input-lobby" class="rf-chat-input" placeholder="Escreva pra resenha"
         onkeydown="clChatKey(event,'cl-chat-input-lobby')">
       <button type="button" class="rf-chat-send" onclick="clChatSend('cl-chat-input-lobby')">➤</button>
     </div>
@@ -560,7 +560,7 @@ function rfPenaltiSuspenseHTML(extra){
     w:800, contexto:rfCtxPartida(m), titulo:'A bola no ponto',
     hdDir:'<span class="rf-ov-bola" aria-hidden="true">⚽</span>',
     corpo:`${extra||''}
-      ${rfGolHTML(CL.penCanto,{txt:'…'})}
+      ${rfGolHTML(CL.penCanto,{txt:''})}
       <div class="rf-pen-susp">
         <span class="rf-pen-susp-n">${escC(CL.penSel||'')}</span>
         <span class="rf-pen-susp-s">ajeita a bola, recua e espera o apito</span>

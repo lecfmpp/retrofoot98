@@ -184,7 +184,7 @@ function rfSorteioHTML(key, dr){
         qtd:grupos.length+(i?' clubes':' cabeças'), on:dr&&Math.floor(feito/grupos.length)===i})),
       rotulo:'Grupos sorteados', estado: total?`pote ${Math.min(porGrupo,Math.floor(feito/grupos.length)+1)} em sorteio`:'',
       corpo:rfSrtGruposHTML(grupos,meu,letras), feito, total,
-      nota:`Sorteando… ${feito} de ${total} clubes já caíram.`,
+      nota:`Sorteando ${feito} de ${total} clubes já caíram.`,
     });
   }
 
@@ -204,6 +204,6 @@ function rfSorteioHTML(key, dr){
     meu: (()=>{ const p=pares.find(x=>x[0]===meu||x[1]===meu); if(!p) return '';
       const outro=anyClubOf(p[0]===meu?p[1]:p[0])||{short:'—'};
       return `O seu confronto saiu: <b>${escC((clubOf(meu)||{short:''}).short)} × ${escC(outro.short)}</b> — ida fora, volta em casa.`; })(),
-    nota:`Sorteando os confrontos… ${feito} de ${total} definidos.`,
+    nota:`Sorteando os confrontos: ${feito} de ${total} definidos.`,
   });
 }

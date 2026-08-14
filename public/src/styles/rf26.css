@@ -4703,35 +4703,39 @@
 /* ----- a tabela ----- */
 .rf-mkt{display:flex;flex-direction:column;min-width:0}
 .rf-mkt-head,.rf-mkt-row{display:grid;grid-template-columns:var(--rf-mkt-cols);
-  gap:0 14px;align-items:center}
-.rf-mkt-head{padding:0 14px 10px;font-family:var(--font-mono);font-size:var(--fs-label-xs);
+  gap:0 10px;align-items:center}
+.rf-mkt-head{padding:0 10px 4px;font-family:var(--font-mono);font-size:9px;
   color:var(--text-faint);letter-spacing:.1em}
 .rf-mkt-head .dir{text-align:right}
-.rf-mkt-body{display:flex;flex-direction:column;gap:2px}
-.rf-mkt-row{padding:14px;border:1px solid transparent;border-radius:var(--r-inner);
+/* MESMA MEDIDA DAS OUTRAS LISTAS. O Mercado tinha linha de 72px e corpo
+   14px, enquanto Ranking, Elenco e Campeonatos usam 38px e 13px — trocar de
+   página mudava a densidade da leitura no meio da mesma tarefa. A régua é a
+   do Ranking. */
+.rf-mkt-body{display:flex;flex-direction:column;gap:10px}
+.rf-mkt-row{padding:8px 10px;border:1px solid transparent;border-radius:11px;
   cursor:pointer;transition:background var(--dur-fast) var(--ease)}
 .rf-mkt-row:hover{background:var(--surface-sunken)}
 /* a linha em destaque é a que já é sua (lance na frente, negócio aceito) */
 .rf-mkt-row.destaque{border-color:var(--brand-primary);background:var(--club-primary-soft,rgba(23,69,143,.06))}
-.rf-mkt-n,.rf-mkt-nome b{font-size:var(--fs-body);font-weight:var(--fw-bold);color:var(--text-1);
+.rf-mkt-n,.rf-mkt-nome b{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.rf-mkt-nome{display:flex;align-items:center;gap:12px;min-width:0}
-.rf-mkt-pos,.rf-mkt-x{font-family:var(--font-mono);font-size:var(--fs-body-sm);color:var(--text-4)}
+.rf-mkt-nome{display:flex;align-items:center;gap:10px;min-width:0}
+.rf-mkt-pos,.rf-mkt-x{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-3)}
 .rf-mkt-x{text-align:right}
-.rf-mkt-f{font-family:var(--font-mono);font-size:var(--fs-body);font-weight:var(--fw-bold);
+.rf-mkt-f{font-family:var(--font-mono);font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);
   color:var(--text-1);text-align:right}
-.rf-mkt-clube{display:flex;align-items:center;gap:10px;min-width:0;
-  font-size:var(--fs-body-sm);color:var(--text-2)}
-.rf-mkt-clube img,.rf-mkt-clube .rf-crest-fb{width:22px;height:22px;object-fit:contain;flex:0 0 auto}
+.rf-mkt-clube{display:flex;align-items:center;gap:7px;min-width:0;
+  font-size:var(--fs-caption);color:var(--text-2)}
+.rf-mkt-clube img,.rf-mkt-clube .rf-crest-fb{width:20px;height:20px;object-fit:contain;flex:0 0 auto}
 .rf-mkt-clube span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rf-mkt-v{font-family:var(--font-mono);font-size:var(--fs-body);color:var(--text-1);text-align:right;
+.rf-mkt-v{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-1);text-align:right;
   white-space:nowrap}
 .rf-mkt-v.leve{color:var(--text-4)}
 .rf-mkt-v.meu{color:var(--brand-primary);font-weight:var(--fw-semibold)}
 .rf-mkt-v.ruim{color:var(--danger);font-weight:var(--fw-semibold)}
-.rf-mkt-prazo{font-family:var(--font-mono);font-size:var(--fs-body-sm);color:var(--danger);
+.rf-mkt-prazo{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--danger);
   text-align:right;white-space:nowrap}
-.rf-mkt-int{font-family:var(--font-mono);font-size:var(--fs-body-sm);color:var(--text-4);text-align:right}
+.rf-mkt-int{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-4);text-align:right}
 .rf-mkt-int b{color:var(--brand-primary);font-weight:var(--fw-semibold)}
 .rf-mkt-seta{color:var(--text-4);text-align:center}
 .rf-mkt-tag{justify-self:end;font-family:var(--font-mono);font-size:var(--fs-label-xs);
@@ -4740,8 +4744,11 @@
 .rf-mkt-tag.quase{background:var(--brand-secondary,#F2B90C);color:#12201a}
 .rf-mkt-tag.ok{background:var(--ok);color:#fff}
 .rf-mkt-act{justify-self:end}
-.rf-mkt-bt{height:42px;padding:0 20px;border:1px solid var(--line-2);border-radius:var(--r-inner);
-  background:var(--surface-card);font-family:inherit;font-size:var(--fs-body-sm);
+/* o botão da linha é quem mandava na altura dela: 42px de botão dentro de uma
+   linha que devia ter 38. Passa a medir como o botão de linha das outras
+   tabelas (.rf-el-bt), 32px. */
+.rf-mkt-bt{height:32px;padding:0 12px;border:1px solid var(--line-2);border-radius:10px;
+  background:var(--surface-card);font-family:inherit;font-size:var(--fs-label);
   font-weight:var(--fw-semibold);color:var(--brand-primary);cursor:pointer;white-space:nowrap}
 .rf-mkt-bt:hover{background:var(--surface-sunken)}
 .rf-mkt-bt.cta{background:var(--brand-secondary,#F2B90C);border-color:var(--brand-secondary,#F2B90C);

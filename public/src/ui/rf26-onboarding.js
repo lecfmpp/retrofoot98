@@ -202,7 +202,7 @@ function rfObSavesHTML(){
       <span class="rf-obsv-i">📁</span>
       <span class="rf-obsv-id">
         <span class="rf-obsv-t">Continuar um jogo salvo</span>
-        <span class="rf-obsv-s">${carregando?'Procurando os seus saves…'
+        <span class="rf-obsv-s">${carregando?'Procurando os seus saves'
           :`Você tem ${n} jogo${n>1?'s':''} salvo${n>1?'s':''} na nuvem.`}</span>
       </span>
       <span class="rf-obsv-ver">${aberto?'Esconder':'Ver saves'} <i>${aberto?'▴':'▾'}</i></span>
@@ -388,7 +388,7 @@ function rfObCopiar(txt){
    ===================================================================== */
 function rfOb5(){
   const room=(typeof NET!=='undefined')?NET.room:null;
-  if(!room) return rfWiz({passo:3, corpo:'<span class="rf-note">A ligar à sala…</span>',
+  if(!room) return rfWiz({passo:3, corpo:'<span class="rf-note">A ligar à sala</span>',
     sobre:'Modo Resenha', titulo:'Sala', voltar:'clLobbyExit()', voltarLabel:'Sair da sala'});
   const anfitriao=NET.isHost;
   if(anfitriao && typeof clStartHostReqPoll==='function') clStartHostReqPoll();
@@ -414,7 +414,7 @@ function rfOb5(){
             <span class="rf-ob5-id">
               <span class="rf-ob5-n">${escC(p.name||'—')}${p.host?' <i class="rf-ob5-selo">ANFITRIÃO</i>':''}${eu&&!p.host?' <i>(você)</i>':''}</span>
               <span class="rf-ob5-c">🎲 clube sorteado na próxima tela</span></span>
-            <span class="rf-ob5-st ${p.confirmed?'ok':''}">${p.confirmed?'● na sala':'○ a entrar…'}</span>
+            <span class="rf-ob5-st ${p.confirmed?'ok':''}">${p.confirmed?'● na sala':'○ a entrar'}</span>
             ${anfitriao&&!eu?`<button type="button" class="rf-ob5-x" onclick="clKick('${escC(p.id)}','${escC(p.clubId||'')}')">Remover</button>`:'<span></span>'}
           </div>`;}).join('')}
         ${anfitriao?`<div class="rf-ob5-conv">
@@ -459,7 +459,7 @@ function rfOb5(){
         ${CHAT_ATIVO?`<div class="rf-ob5-chat">
           <span class="rf-label-t">Chat da sala</span>
           <div class="rf-ob5-msgs" id="cl-chat-msgs-lobby">${(typeof chatMsgsHTML==='function'&&chatMsgsHTML())||'<span class="rf-note">Nenhuma mensagem ainda. Diga oi! 👋</span>'}</div>
-          <input id="cl-chat-input-lobby" class="rf-campo-c" placeholder="Manda a braba…"
+          <input id="cl-chat-input-lobby" class="rf-campo-c" placeholder="Manda a braba"
             onkeydown="clChatKey(event,'cl-chat-input-lobby')">
         </div>`:''}
       </div>
@@ -500,7 +500,7 @@ function rfOb6(){
           const saiu=i<feitos, c=saiu?doPool(x.clubId):null;
           return `<div class="rf-ob6-lin ${i===0&&saiu?'meu':''} ${saiu?'':'espera'}">
             <span class="rf-ob6-nb ${saiu?'on':''}">${i+1}</span>
-            <span class="rf-ob6-t">${escC(x.name||'Treinador')}${saiu&&c?' — '+escC(c.short||c.name||''):' — sorteando…'}</span>
+            <span class="rf-ob6-t">${escC(x.name||'Treinador')}${saiu&&c?' — '+escC(c.short||c.name||''):' — sorteando'}</span>
             ${saiu&&c?`<span class="rf-ob6-crest">${rfCrest(c,24)}</span>`:'<span class="rf-ob6-bola">⚽</span>'}
           </div>`;}).join('')}
         <div class="rf-ob6-prog">
@@ -519,7 +519,7 @@ function rfOb6(){
             <div class="rf-ob-esc-lin"><span>Caixa</span><b>${escC(fmt(S.budget||0))}</b></div>
             <div class="rf-ob-esc-lin"><span>Estádio</span><b>${grp(((typeof myStadium==='function'&&myStadium())||{}).capacity||0)} lug.</b></div>`
           :`<span class="rf-ob6-bolag">⚽</span>
-            <span class="rf-ob6-n">Sorteando…</span>
+            <span class="rf-ob6-n">Sorteando</span>
             <span class="rf-ob6-d">Boa sorte, treinador.</span>`}
         </div>
         <span class="rf-note rf-ob6-nota">A cerimônia acelera se você tocar em ⏩ — mas a bola é a mesma.</span>
@@ -528,9 +528,9 @@ function rfOb6(){
   const fim=feitos>=total;
   return rfWiz({passo:4, corpo,
     sobre:'Cerimônia do sorteio',
-    titulo: fim?'Times sorteados!':'Sorteando os clubes… boa sorte!',
+    titulo: fim?'Times sorteados!':'Sorteando os clubes, boa sorte!',
     sub:'Cada treinador escolheu o país; o clube sai no sorteio. É a mesma cerimônia no solo e na resenha.',
-    nota: fim?'Pronto — pode entrar no clube.':'Aguarde o sorteio…',
+    nota: fim?'Pronto — pode entrar no clube.':'Aguarde o sorteio',
     cta: fim?'Conhecer o clube':'⏩ Acelerar',
     ctaOn: fim?'clEntrar()':'rfObAcelerar()'});
 }
