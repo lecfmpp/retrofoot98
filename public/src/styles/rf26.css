@@ -304,8 +304,15 @@
   transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
 .rf-tab:hover{background:var(--surface-sunken)}
 .rf-tab.on{background:var(--club-primary);color:var(--club-on-primary);border-color:var(--club-primary)}
-/* troca de aba faz um fade-up curto — o único movimento de transição de conteúdo */
-.rf-tabpane{animation:ds-fade-up var(--dur-base) var(--ease)}
+/* O PAINEL DA ABA É UMA COLUNA COM RESPIRO, igual a .rf-pagecol.
+   Faltava isto: a aba que devolve cartões de largura cheia caía num <div>
+   sem display nem gap, e os cartões encostavam uns nos outros em TODA página
+   convertida — enquanto as abas que ainda usam rfCol() (o Comprar do Mercado,
+   por exemplo) respiravam, porque .rf-pagecol sempre teve gap:14px. Mesmo
+   14px nos dois, que é o afastamento do pacote.
+   Troca de aba faz um fade-up curto — o único movimento de transição. */
+.rf-tabpane{display:flex;flex-direction:column;gap:14px;min-width:0;
+  animation:ds-fade-up var(--dur-base) var(--ease)}
 
 /* ============================ PUBLICIDADE ============================
    A publicidade SAI ANTES DO CONTEÚDO quando a tela encolhe. Os trilhos
