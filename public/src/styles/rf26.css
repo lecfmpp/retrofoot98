@@ -1993,7 +1993,11 @@
 
 /* faixa de estado */
 .rf-lv-faixa{position:relative;overflow:hidden;display:flex;align-items:center;gap:16px;
-  background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
+  /* A RODADA NÃO É DE NINGUÉM. A faixa mostra as quatro divisões ao mesmo
+     tempo, então ela usa o degradê da MARCA, como o cabeçalho dos diálogos
+     de ação — pintá-la com a cor do clube do utilizador sugeria que aquela
+     tela era só dele. */
+  background:linear-gradient(100deg,var(--brand-primary-deep,#0e2f66),var(--brand-primary,#17458F) 62%);
   border-radius:var(--r-card);padding:16px 20px;color:#fff}
 .rf-lv-faixa-id{display:flex;flex-direction:column;gap:3px;margin-left:6px;min-width:0}
 .rf-lv-faixa-t{font-size:var(--fs-title);font-weight:var(--fw-bold);letter-spacing:var(--ls-tight);white-space:nowrap}
@@ -2335,7 +2339,11 @@
 
 /* placar de estádio */
 .rf-cam-board{display:flex;align-items:center;gap:16px;justify-content:center;
-  background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
+  /* A RODADA NÃO É DE NINGUÉM. A faixa mostra as quatro divisões ao mesmo
+     tempo, então ela usa o degradê da MARCA, como o cabeçalho dos diálogos
+     de ação — pintá-la com a cor do clube do utilizador sugeria que aquela
+     tela era só dele. */
+  background:linear-gradient(100deg,var(--brand-primary-deep,#0e2f66),var(--brand-primary,#17458F) 62%);
   border-radius:var(--r-card);padding:16px 20px;color:#fff}
 .rf-cam-lado{display:flex;flex-direction:column;gap:2px;align-items:flex-end;min-width:0;flex:1}
 .rf-cam-lado.fim{align-items:flex-start}

@@ -17,7 +17,7 @@
 
 /* ---- pastilha de fato: ⚽ nome 31' ---- */
 function rfLvFatoHTML(f){
-  const ic={gol:'⚽',cartao:'🟨',vermelho:'🟥',lesao:'✚',sub:'🔄'}[f.kind]||'⚽';
+  const ic={gol:'⚽',cartao:'🟨',vermelho:'🟥',lesao:'✚',sub:'🔄',penperdido:'❌'}[f.kind]||'⚽';
   return `<span class="rf-lv-fato">
     <span class="rf-lv-fi">${ic}</span>
     <span class="rf-lv-fn">${escC(f.nome||'')}</span>
@@ -48,9 +48,14 @@ function rfLvPlacarHTML(gh,ga,ativo){
 function rfLvLinhaHTML(m,i){
   const hc=anyClubOf(m.h)||{short:'—'}, ac=anyClubOf(m.a)||{short:'—'};
   const meu=(m.h===CL.clubId||m.a===CL.clubId);
+  // O LADO VEM EM MAIÚSCULA. O motor grava side:'H'/'A' (ver o laço de
+  // incidentes em main.js); comparar com 'h' minúsculo não casava com nada
+  // e a linha ficava sempre sem fatos — era por isso que a tela parecia
+  // vazia mesmo com gols e cartões acontecendo.
   const inc=m.incidents||[];
-  const fh=inc.filter(x=>x.side==='h'||x.club===m.h).map(rfLvIncToFato);
-  const fa=inc.filter(x=>x.side==='a'||x.club===m.a).map(rfLvIncToFato);
+  const lado=x=>String(x.side||'').toUpperCase();
+  const fh=inc.filter(x=>lado(x)==='H').map(rfLvIncToFato);
+  const fa=inc.filter(x=>lado(x)==='A').map(rfLvIncToFato);
   return `<div class="rf-lv-linha ${meu?'meu':''}" onclick="liveRowClick(${i})">
     <span class="rf-lv-pub">${rfLvTicketHTML()}${grp(m.att||0)}</span>
     <span class="rf-lv-lado casa">
@@ -67,8 +72,14 @@ function rfLvLinhaHTML(m,i){
     <span class="rf-lv-min" id="cl-lg-${i}">${m.min!=null?m.min+"'":''}</span>
   </div>`;
 }
+/* o motor não tem um tipo "vermelho": manda type:'cartao' com
+   cardType:'vermelho'. E pênalti é gol quando entra, cartão perdido
+   quando não. Sem esta tradução o vermelho saía como amarelo. */
 function rfLvIncToFato(x){
-  return {kind:x.kind||x.type||'gol', nome:x.player||x.name||x.n||'', min:x.min};
+  let kind=x.kind||x.type||'gol';
+  if(kind==='cartao' && String(x.cardType||'').toLowerCase().indexOf('verm')===0) kind='vermelho';
+  if(kind==='penalti') kind=x.scored?'gol':'penperdido';
+  return {kind, nome:x.player||x.name||x.n||'', min:x.min};
 }
 
 /* ---- faixa de estado no topo ---- */
