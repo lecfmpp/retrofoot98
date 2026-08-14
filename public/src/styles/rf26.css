@@ -116,14 +116,29 @@
 /* ============================ FEEDBACK ============================ */
 
 /* ----- Toast: escuro, filete de 4px à esquerda na cor do tom, uma frase.
-   Empilhado no rodapé central. NUNCA pede decisão — decisão é Dialog. */
-#c-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);display:flex;
-  flex-direction:column;gap:var(--sp-4);z-index:60;pointer-events:none}
+   Empilhado no canto INFERIOR DIREITO. Ficava no meio do rodapé e passava por
+   cima do que a pessoa estava lendo; no canto ele avisa sem disputar a leitura.
+   NUNCA pede decisão — decisão é Dialog. */
+#c-toast{position:fixed;right:24px;bottom:24px;left:auto;transform:none;display:flex;
+  flex-direction:column;align-items:flex-end;gap:var(--sp-4);z-index:60;pointer-events:none}
+
+/* entra deslizando da direita, sai voltando pra direita ENQUANTO a altura
+   colapsa — sem o colapso, os toasts de baixo dariam um pulo quando o de cima
+   some. A margem negativa cancela o `gap` do empilhamento no mesmo compasso. */
+@keyframes rf-toast-entra{
+  from{opacity:0;transform:translateX(28px) scale(.97)}
+  to  {opacity:1;transform:none}}
+@keyframes rf-toast-sai{
+  0%  {opacity:1;transform:none;max-height:140px;margin-bottom:0}
+  60% {opacity:0;transform:translateX(28px) scale(.97);max-height:140px;margin-bottom:0}
+  100%{opacity:0;transform:translateX(28px) scale(.97);max-height:0;margin-bottom:calc(var(--sp-4) * -1);
+       padding-top:0;padding-bottom:0;min-height:0;border-width:0}}
 .rf-toast{display:flex;align-items:center;gap:var(--sp-5);background:#12201a;color:#fff;
   border-radius:var(--r-control);padding:11px 16px;min-height:44px;box-sizing:border-box;
   border-left:4px solid var(--text-faint);box-shadow:0 10px 30px -18px rgba(0,0,0,.7);
   font-family:var(--font-sans);font-size:var(--fs-body-sm);font-weight:var(--fw-medium);
-  max-width:460px;animation:ds-fade-up var(--dur-base) var(--ease);pointer-events:auto}
+  max-width:460px;animation:rf-toast-entra 260ms var(--ease);pointer-events:auto;overflow:hidden}
+.rf-toast-saindo{animation:rf-toast-sai 280ms var(--ease) forwards;pointer-events:none}
 .rf-toast-ico{flex:0 0 auto;font-size:14px}
 .rf-toast-t{flex:1;min-width:0;line-height:1.35}
 .rf-toast-act{flex:0 0 auto;font-size:var(--fs-caption);font-weight:var(--fw-bold);

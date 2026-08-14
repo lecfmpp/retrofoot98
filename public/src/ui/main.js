@@ -11450,9 +11450,20 @@ function toastC(msg, tone, opts){
   d.className='rf-toast rf-toast-'+tone;
   d.innerHTML=`${glyph?`<span class="rf-toast-ico">${escC(glyph)}</span>`:''}<span class="rf-toast-t"></span>${opts.action?`<span class="rf-toast-act">${escC(opts.action)}</span>`:''}`;
   d.querySelector('.rf-toast-t').textContent=txt;   // textContent: a frase nunca é HTML
-  if(opts.action&&opts.onAction){ d.querySelector('.rf-toast-act').onclick=()=>{ opts.onAction(); d.remove(); }; }
+  if(opts.action&&opts.onAction){ d.querySelector('.rf-toast-act').onclick=()=>{ opts.onAction(); toastFecha(d); }; }
   t.appendChild(d);
-  setTimeout(()=>d.remove(), opts.ms||2600);
+  setTimeout(()=>toastFecha(d), opts.ms||2600);
+}
+/* O toast some com animação de saída (rf-toast-sai, 280ms) em vez de sumir de
+   uma vez: a remoção do nó só acontece quando a animação termina. O `dataset`
+   é a trava — sem ela, o clique na ação e o temporizador disparariam a saída
+   duas vezes e a segunda reiniciaria a animação já no fim. */
+const TOAST_SAI_MS=280;
+function toastFecha(d){
+  if(!d||!d.parentNode||d.dataset.saindo) return;
+  d.dataset.saindo='1';
+  d.classList.add('rf-toast-saindo');
+  setTimeout(()=>d.remove(), TOAST_SAI_MS);
 }
 
 /* fechar dropdown ao clicar fora */
