@@ -171,7 +171,28 @@ Conferido bloco a bloco contra `Elenco e Base - Abas.html`.
 - [x] **Botões da ficha** — Renovar contrato leva o amarelo padrão e Listar para
       venda um vermelho claro; estavam ao contrário
 
-# 4 · Campeonatos — a conferir
+# 4 · Campeonatos
+
+Conferida em 1440 e em 375. As quatro abas (Minhas competições · Calendário ·
+Artilharia · História) desenham, sem rolagem lateral da página, e os dados vêm
+do motor.
+
+### Corrigido nesta rodada
+- [x] **"ELIMINADO" numa copa em que o clube nunca entrou.** "Minhas
+      competições" listava toda copa que existe no save e carimbava ELIMINADO
+      onde o clube não estivesse vivo — mas `cupCompetitionTeamAlive` devolve
+      falso nos dois casos, quem caiu e quem nunca foi sorteado. O cartão dizia
+      "eliminado · fase de grupos, rodada 1/6" enquanto o bloco de baixo
+      garantia "você está em todas as competições deste save".
+      `S.qualification[k]` é a lista de inscritos e responde exatamente a "eu
+      entrei nesta?". Quem não está nela vai para o bloco de baixo; ELIMINADO
+      fica para quem entrou e caiu. O bloco de baixo passa a dar o motivo certo
+      dos três possíveis: desligada no save, existe mas sem o seu clube, ou
+      ainda não sorteada
+
+### A conferir ainda
+- [ ] Calendário: cabeçalhos repetidos quando há várias copas empilhadas
+      (anotado antes, ainda não tratado)
 # 5 · Treinador — a conferir
 # 6 · Finanças — a conferir
 # 7 · E-mail — a conferir

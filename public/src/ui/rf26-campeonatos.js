@@ -43,6 +43,31 @@ function rfCpResultado(r){
    Dois cards lado a lado (troféu + identidade + rodapé com selo e Abrir),
    e embaixo a lista das competições que o clube não disputa.
    ===================================================================== */
+/* ESTAR FORA NÃO É TER SIDO ELIMINADO.
+   "Minhas competições" listava TODA copa que existe no save e carimbava
+   ELIMINADO em qualquer uma onde o clube não estivesse vivo. Mas
+   `cupCompetitionTeamAlive` devolve falso nos dois casos — quem caiu e quem
+   nunca entrou — e o cartão dizia "eliminado · fase de grupos, rodada 1/6" de
+   uma copa em que o clube nem foi sorteado. Ao mesmo tempo o bloco de baixo
+   garantia "você está em todas as competições deste save", porque só olhava as
+   copas que não existem de todo.
+
+   `S.qualification[k]` é a lista de inscritos de cada copa — a resposta exata a
+   "eu entrei nesta?". Quem não está nela vai para o bloco de baixo, onde
+   sempre pertenceu; ELIMINADO fica reservado a quem entrou e caiu.
+
+   A lista de inscritos vem antes da busca nos grupos de propósito: na Copa do
+   Brasil o clube pode ter recebido bye na primeira fase e não aparecer em
+   confronto nenhum, apesar de estar dentro. */
+function rfCpInscrito(k, c){
+  const q=(S.qualification&&S.qualification[k]);
+  if(Array.isArray(q)) return q.indexOf(CL.clubId)>=0;
+  if(c&&c.group&&c.group.groups
+     && Object.values(c.group.groups).some(g=>(g.teams||[]).indexOf(CL.clubId)>=0)) return true;
+  if(c&&c.bracket&&(c.bracket.ties||[]).some(t=>t.h===CL.clubId||t.a===CL.clubId)) return true;
+  if(c&&(c.ties||[]).some(t=>t.h===CL.clubId||t.a===CL.clubId)) return true;
+  return false;
+}
 function rfCpCards(){
   const cards=[];
   const pos=rfMinhaPosicao(), total=Object.keys(S.table||{}).length;
@@ -56,6 +81,7 @@ function rfCpCards(){
   ((typeof allCupKeys==='function')?allCupKeys():[]).forEach(k=>{
     if(S.compToggle && S.compToggle[k]===false) return;
     const c=S.cups&&S.cups[k]; if(!c) return;
+    if(!rfCpInscrito(k,c)) return;     // não entrou: o lugar dela é no bloco de baixo
     const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[k])||{};
     const vivo=(typeof cupCompetitionTeamAlive==='function')&&cupCompetitionTeamAlive(c,CL.clubId);
     const campeao=(typeof cupCompetitionChampion==='function')?cupCompetitionChampion(c):null;
@@ -80,7 +106,9 @@ function rfCpMinhasHTML(){
   const cards=rfCpCards();
   const fora=((typeof allCupKeys==='function')?allCupKeys():[]).filter(k=>{
     if(S.compToggle && S.compToggle[k]===false) return true;
-    return !(S.cups&&S.cups[k]);
+    const c=S.cups&&S.cups[k];
+    if(!c) return true;               // nem existe neste save
+    return !rfCpInscrito(k,c);        // existe, mas o clube não foi sorteado nela
   });
   const grade=`<div class="rf-cp-cards">${cards.map(c=>`
     <div class="rf-card rf-cp-card">
@@ -102,10 +130,15 @@ function rfCpMinhasHTML(){
     ? fora.map(k=>{
         const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[k])||{};
         const desligada=S.compToggle&&S.compToggle[k]===false;
+        const existe=!!(S.cups&&S.cups[k]);
+        // três motivos diferentes para não disputar, e cada um diz o seu
+        const motivo = desligada ? 'desligada neste save'
+          : existe ? 'em disputa, sem o seu clube — a vaga vem da classificação'
+          : (def.vaga||'ainda não sorteada');
         return `<div class="rf-cp-fora">
           ${rfTrofeuHTML(k,34)}
           <span class="rf-cp-fora-n">${escC(def.name||k)}</span>
-          <span class="rf-cp-fora-v">${escC(desligada?'desligada neste save':(def.vaga||'ainda não sorteada'))}</span>
+          <span class="rf-cp-fora-v">${escC(motivo)}</span>
         </div>`; }).join('')
     : '<span class="rf-note">Você está em todas as competições deste save.</span>';
   return `${grade}
