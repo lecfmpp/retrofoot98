@@ -561,7 +561,20 @@ function rfOb6(){
   const poolById=(d&&d.poolById)||{};
   const doPool=id=>poolById[id]||(typeof anyClubOf==='function'?anyClubOf(id):null);
   const meu=lista[0]?doPool(lista[0].clubId):null;
-  const sq=meu&&typeof squad==='function'?squad(lista[0].clubId):[];
+  /* A CERIMÔNIA RODA ANTES DE newGame() — `S` ainda é null aqui (o próprio
+     startSoloDraw diz isso). `squad()` lê `S.squads`, então chamá-lo neste
+     ponto ESTOURA o desenho inteiro: o cdraw morria, o soloDrawTick que vinha
+     logo atrás nunca corria, e "Começar a temporada" parecia não fazer nada —
+     a temporada nunca começava. Tudo que depende de `S` fica opcional; o que
+     dá para mostrar sai do pool do sorteio, que já está montado. */
+  const temS=(typeof S!=='undefined')&&!!S;
+  const sq=(temS&&meu&&typeof squad==='function')?squad(lista[0].clubId)
+          :((meu&&Array.isArray(meu.squad))?meu.squad:[]);
+  const temporada=temS?(S.season||''):'';
+  const caixa=temS?S.budget:null;
+  const estadio=(temS&&typeof myStadium==='function')?((myStadium()||{}).capacity||0):0;
+  const divLbl=(temS&&typeof divisionLabel==='function')?divisionLabel()
+              :((meu&&typeof rfDivDoClube==='function')?rfDivDoClube(meu):'');
   const uk=(typeof universeCountryName==='function')?universeCountryName():'';
   const corpo=`
     <div class="rf-ob6">
@@ -584,11 +597,11 @@ function rfOb6(){
           <span class="rf-ob-esc-l">O seu clube</span>
           ${meu?`<span class="rf-ob6-crestg">${rfCrest(meu,70)}</span>
             <span class="rf-ob6-n">${escC(meu.short||meu.name||'')}</span>
-            <span class="rf-ob6-d">${escC(((typeof divisionLabel==='function')?divisionLabel():'')+' · '+(S.season||''))}</span>
+            <span class="rf-ob6-d">${escC([divLbl,temporada].filter(Boolean).join(' · '))}</span>
             <div class="rf-ob-esc-h"></div>
-            <div class="rf-ob-esc-lin"><span>Elenco</span><b>${sq.length} jogadores</b></div>
-            <div class="rf-ob-esc-lin"><span>Caixa</span><b>${escC(fmt(S.budget||0))}</b></div>
-            <div class="rf-ob-esc-lin"><span>Estádio</span><b>${grp(((typeof myStadium==='function'&&myStadium())||{}).capacity||0)} lug.</b></div>`
+            ${sq.length?`<div class="rf-ob-esc-lin"><span>Elenco</span><b>${sq.length} jogadores</b></div>`:''}
+            ${caixa!=null?`<div class="rf-ob-esc-lin"><span>Caixa</span><b>${escC(fmt(caixa))}</b></div>`:''}
+            ${estadio?`<div class="rf-ob-esc-lin"><span>Estádio</span><b>${grp(estadio)} lug.</b></div>`:''}`
           :`<span class="rf-ob6-bolag">${rfIcone('jogar',16)}</span>
             <span class="rf-ob6-n">Sorteando</span>
             <span class="rf-ob6-d">Boa sorte, treinador.</span>`}
