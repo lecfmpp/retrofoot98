@@ -133,7 +133,11 @@ function rfCfSwitch(k, rot, padrao){
 }
 function rfCfOpcoesHTML(){
   const tempo=(typeof tempoLabelAtual==='function')?tempoLabelAtual():'—';
-  const moeda=(typeof curSym==='function')?curSym():'R$';
+  /* o desenho escreve "Real (R$)", não só o símbolo — RF_MOEDAS já tem o nome */
+  const moedaK=CL.currency||'Reais';
+  const mo=(typeof RF_MOEDAS!=='undefined')?RF_MOEDAS.find(m=>m.k===moedaK):null;
+  const simb=(typeof curSym==='function')?curSym():'R$';
+  const moeda=mo?`${mo.t} (${mo.simb})`:simb;
   const hoje=new Date();
   const data=String(hoje.getDate()).padStart(2,'0')+'/'+
     ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][hoje.getMonth()]+
@@ -160,7 +164,8 @@ function rfCfOpcoesHTML(){
       <div class="rf-cf-fila">
         <button type="button" class="rf-btn rf-btn-cta" onclick="clOptions()">${rfIcone('config',16)} Abrir opções do jogo</button>
         <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcAbrir('conta-senha',{})">Trocar a senha</button>
-        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSairSave()">Sair da conta</button>
+        <!-- "Sair da conta" saiu daqui: virou a página Sair, a última da barra
+             lateral. Aqui ficou só o que é AJUSTE de conta; sair é outra coisa. -->
         <button type="button" class="rf-btn rf-btn-recusar" onclick="rfAcAbrir('conta-apagar',{})">Apagar a conta</button>
       </div>
     </div>`;
@@ -355,4 +360,80 @@ function rfAcSincronizar(){
   const assentos=(S.seats&&S.seats.length)||(CL.humans?Object.keys(CL.humans).length:0);
   const prontos=(typeof seatsDone==='function')?seatsDone():Math.max(0,assentos-1);
   rfAcAbrir('sys-sincronizar', {sala:rfAcSala(), prontos, total:assentos});
+}
+
+/* =====================================================================
+   PÁGINA · MODO RESENHA  (era a terceira aba de Configurações)
+   ===================================================================== */
+function rfResenhaSubHTML(){
+  if(!CL.online) return 'Você está no Modo Solo';
+  const sala=(typeof rfAcSala==='function')?rfAcSala():'—';
+  const n=(S.seats&&S.seats.length)||(CL.humans?Object.keys(CL.humans).length:0);
+  return `Sala ${escC(sala)} · ${n} treinador${n===1?'':'es'}`;
+}
+
+/* =====================================================================
+   PÁGINA · SAIR  (era o botão "Sair da conta" no pé da aba Opções, que
+   abria o modal "Sair deste save?")
+   O modal servia para uma decisão de UM clique. Aqui há TRÊS saídas
+   diferentes — largar o save, trocar de conta, e (na resenha) deixar a
+   sala — e cada uma perde ou guarda coisas distintas. Numa página cabe
+   dizer isso antes do clique, o que um modal de 460px não comportava.
+   ===================================================================== */
+function rfSairSubHTML(){
+  const t=CL._lastSaveAt?new Date(CL._lastSaveAt):null;
+  return t?('Save gravado '+rfSaveQuando({updated_at:t.toISOString()})):'Nada é perdido ao sair';
+}
+function rfSairHTML(){
+  const cl=clubOf(CL.clubId)||{short:'—'};
+  const jornada=((S&&S.round)||0)+1;
+  const total=(S&&S.sched&&S.sched.length)||'—';
+  const naSala=!!CL.online;
+  return `
+    <div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">SAVE ATUAL</span></div>
+      <div class="rf-sair-save">
+        <span class="rf-sair-crest">${rfCrest(cl,34)}</span>
+        <span class="rf-sair-id">
+          <span class="rf-sair-n">${escC(cl.short||'—')}</span>
+          <span class="rf-sair-s">${escC((typeof divisionLabel==='function'&&S)?divisionLabel():'')} · ${jornada}ª de ${total}</span>
+        </span>
+      </div>
+      <span class="rf-note">O save é gravado antes de sair e volta a aparecer na lista de saves. Nada se perde.</span>
+      <div class="rf-cf-fila">
+        <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcSairSave()">${rfIcone('salvar',16)} Gravar e sair do save</button>
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="clSoloNew()">Começar outro save</button>
+      </div>
+    </div>
+
+    ${naSala?`<div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">SALA DA RESENHA</span></div>
+      <span class="rf-note">Sair da sala não apaga o seu save — mas o seu clube fica sem treinador nas próximas rodadas.</span>
+      <div class="rf-cf-fila">
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSairSala()">${rfIcone('sair',16)} Sair da sala</button>
+      </div>
+    </div>`:''}
+
+    <div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">CONTA</span></div>
+      <span class="rf-note">Os seus saves ficam na nuvem. Entrando de novo com a mesma conta, eles voltam.</span>
+      <div class="rf-cf-fila">
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSairConta()">${rfIcone('sair',16)} Sair da conta</button>
+        <button type="button" class="rf-btn rf-btn-recusar" onclick="rfAcApagarSave()">Apagar este save</button>
+      </div>
+    </div>`;
+}
+
+/* grava o que dá, encerra a sessão e volta para a abertura */
+async function rfSairContaGo(){
+  rfAcFechar();
+  try{ if(typeof clSaveGame==='function') await clSaveGame(); }catch(e){}
+  try{ if(typeof netAuthSignOut==='function') await netAuthSignOut(); }catch(e){}
+  CL.soloSaves=null; CL.online=false; CL.net=null;
+  CL.screen='abertura'; cdraw();
+  toastC('Você saiu da conta.','success');
+}
+function rfAcSairConta(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  rfAcAbrir('conta-sair',{email:st.email||''});
 }

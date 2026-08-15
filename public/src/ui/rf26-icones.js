@@ -104,7 +104,12 @@ Object.assign(RF_ICO_SVG,{
   link: RF_ICO_SVG.elo,
   salvar: RF_ICO_SVG.gravar,
   lesao: RF_ICO_SVG.aviso,
-  sair: RF_ICO_SVG.entrar
+  /* Iconoir não tem caneca de chopp; o copo pela metade (glass-half) é o mais
+     próximo do brinde e lê bem em 18px na barra lateral. */
+  chopp: '<path d="M3.03919 4.2939C3.01449 4.10866 3.0791 3.92338 3.23133 3.81499C3.9272 3.31953 6.3142 2 12 2C17.6858 2 20.0728 3.31952 20.7687 3.81499C20.9209 3.92338 20.9855 4.10866 20.9608 4.2939L19.2616 17.0378C19.0968 18.2744 18.3644 19.3632 17.2813 19.9821L16.9614 20.1649C13.8871 21.9217 10.1129 21.9217 7.03861 20.1649L6.71873 19.9821C5.6356 19.3632 4.90325 18.2744 4.73838 17.0378L3.03919 4.2939Z" stroke="currentColor"/> <path d="M3 5C5.57143 7.66666 18.4286 7.66662 21 5" stroke="currentColor"/> <path d="M4 13C5.03151 14.2034 7.92505 14.8638 11 14.981C12.3455 15.0323 13.7258 14.9796 15 14.823C17.2664 14.5443 19.1972 13.9366 20 13" stroke="currentColor"/> <path d="M4 13C6.28571 10.3333 17.7143 10.3334 20 13" stroke="currentColor"/>',
+  /* `sair` era um apelido do `entrar` — a mesma seta, apontando para dentro.
+     Agora é o log-out de verdade: seta saindo da porta. */
+  sair: '<path d="M12 12H19M19 12L16 15M19 12L16 9" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/> <path d="M19 6V5C19 3.89543 18.1046 3 17 3H7C5.89543 3 5 3.89543 5 5V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>'
 });
 
 /* rfIcone('trofeu', 18) — o tamanho vem em px e vira largura E altura.

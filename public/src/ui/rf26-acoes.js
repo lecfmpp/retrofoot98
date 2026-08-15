@@ -364,6 +364,16 @@ const RF_ACOES = {
     + rfAcNotaHTML('O save fica na nuvem e na máquina. Dá para continuar de qualquer aparelho com a mesma conta.'),
   acoes:[{l:'Continuar'}] }),
 
+/* SAIR DA CONTA DE VERDADE. O botão "Sair da conta" da aba Opções abria o
+   "Sair deste save?" — o rótulo prometia uma coisa e entregava outra, e não
+   havia caminho nenhum para trocar de conta: `netAuthSignOut()` existia no
+   adaptador e ninguém o chamava. */
+'conta-sair': d=>rfAcao({ kicker:'CONTA', titulo:'Sair da conta?', w:460,
+  corpo:
+    rfAcLinhaHTML('Conta', escC(d.email||'—'), '', true)
+    + rfAcNotaHTML('Os saves ficam na nuvem. Entrando de novo com a mesma conta, tudo volta como estava.'),
+  acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Sair da conta',on:'rfSairContaGo()'}] }),
+
 'sys-sair-save': d=>rfAcao({ kicker:'SAVE', titulo:'Sair deste save?', w:460,
   corpo:
     rfAcLinhaHTML('Clube', escC(d.clube||'—'), '', true)

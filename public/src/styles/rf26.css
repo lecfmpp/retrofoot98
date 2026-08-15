@@ -5242,3 +5242,13 @@
   font-size:var(--fs-body-sm);font-weight:var(--fw-semibold)}
 .rf-sv2-b.forte{background:var(--brand-secondary);border-color:var(--brand-secondary);
   color:var(--brand-primary);font-weight:var(--fw-bold)}
+
+/* ================== PÁGINA SAIR ==================
+   Respiro explícito: o cartão separa identidade, aviso e botões. */
+.rf-sair-save{display:flex;align-items:center;gap:12px;min-width:0;margin-bottom:4px}
+.rf-sair-crest{display:flex;align-items:center;justify-content:center;width:38px;height:38px;flex:0 0 auto}
+.rf-sair-id{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-sair-n{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-sair-s{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-muted)}
+/* o item Sair encosta no pé da lista, separado do resto */
+.rf-sb-item[data-pg="sair"]{margin-top:auto}

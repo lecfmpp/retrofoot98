@@ -139,10 +139,21 @@ const RF_PAGES=[
   { key:'config', ico:'config', label:'Configurações', curto:'Config',
     titulo:'Configurações', sub:()=>rfCfSubHTML(),
     acoes:()=>rfCfAcoesHTML(), grid:'minmax(0,1fr)',
-    tabs:[ {k:'opcoes',  l:()=>'Opções',       build:()=>rfCfOpcoesHTML()},
-           {k:'jogo',    l:()=>'Jogo',         build:()=>rfCfJogoHTML()},
-           {k:'resenha', l:()=>'Modo Resenha', build:()=>rfCfResenhaHTML(),
-            show:()=>!!CL.online} ] },
+    /* A aba "Modo Resenha" SAIU daqui e virou página própria (abaixo): a sala é
+       onde a pessoa passa o tempo numa resenha — código, treinadores, ritmo,
+       sincronização — e isso não é uma preferência do sistema. */
+    tabs:[ {k:'opcoes',  l:()=>'Opções', build:()=>rfCfOpcoesHTML()},
+           {k:'jogo',    l:()=>'Jogo',   build:()=>rfCfJogoHTML()} ] },
+
+  { key:'resenha', ico:'chopp', label:'Modo Resenha', curto:'Resenha',
+    titulo:'Modo Resenha', sub:()=>rfResenhaSubHTML(),
+    grid:'minmax(0,1fr)', resumo:()=>rfCfResenhaHTML() },
+
+  /* SAIR É O ÚLTIMO ITEM, sempre — é assim que se lê uma barra lateral: o que
+     tira a pessoa de dentro fica no fim, longe do que ela usa a toda hora. */
+  { key:'sair', ico:'sair', label:'Sair', curto:'Sair',
+    titulo:'Sair', sub:()=>rfSairSubHTML(),
+    grid:'minmax(0,1fr)', resumo:()=>rfSairHTML() },
 ];
 
 
