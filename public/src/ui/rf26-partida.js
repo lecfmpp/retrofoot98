@@ -409,6 +409,17 @@ function rfZonaTabelaPR(pos,total){ return rfZonaTabela(pos,total); }
    Grade 1.25fr / 1fr: código + treinadores + como a sala roda à esquerda,
    chat à direita.
    ===================================================================== */
+/* A DIVISÃO DA SALA SEM DEPENDER DE `S`. A sala existe ANTES do jogo — `S` é
+   null no lobby — e `divisionLabel()` lê `S.division` direto. Chamá-lo aqui
+   derrubava o desenho inteiro, e era por isso que "iniciar uma resenha" não
+   funcionava: a tela estourava antes de aparecer. A Resenha é sempre Brasil
+   Série A (ver clPickResenha), então esse é o padrão quando ninguém informou. */
+function rfDivisaoSala(room){
+  const d=(room&&(room.division||room.div))
+        ||((typeof S!=='undefined'&&S)?S.division:null);
+  if(!d) return 'Série A';
+  return (typeof divisionLabelOf==='function')?divisionLabelOf(d):('Série '+d);
+}
 function rfLobbyHTML(){
   const room=(typeof NET!=='undefined'&&NET.room)||{};
   const parts=room.participants||[];
@@ -429,7 +440,7 @@ function rfLobbyHTML(){
       </span>
       <span class="rf-lb-clube">
         <span class="rf-lb-cn">${escC(c?c.short:'a sortear')}</span>
-        <span class="rf-lb-cd">${escC(c?divisionLabel():'')}</span>
+        <span class="rf-lb-cd">${escC(c?rfDivisaoSala(room):'')}</span>
       </span>
       <span class="rf-lb-estado ${p.ready?'pronto':'aguarda'}">${p.ready?'✓ Pronto':'⏳ Aguarda'}</span>
     </div>`;
@@ -474,7 +485,7 @@ function rfLobbyHTML(){
             <div class="rf-lb-r"><span class="rf-ov-res-t">Ritmo</span>
               <span class="rf-lb-rv">${escC((typeof tempoLabelAtual==='function')?tempoLabelAtual():'—')}</span></div>
             <div class="rf-lb-r"><span class="rf-ov-res-t">Divisão</span>
-              <span class="rf-lb-rv">${escC(divisionLabel())}</span></div>
+              <span class="rf-lb-rv">${escC(rfDivisaoSala(room))}</span></div>
             <div class="rf-lb-r"><span class="rf-ov-res-t">Janela</span>
               <span class="rf-lb-rv">a cada 10 rodadas</span></div>
           </div>
@@ -484,8 +495,12 @@ function rfLobbyHTML(){
     </div>`,
     acoes:`<span class="rf-note">À espera dos treinadores ${prontos}/${parts.length}</span>
       <div class="rf-sp"></div>
-      <button type="button" class="rf-ov-b2" onclick="clSairDaSala&&clSairDaSala()">Sair da sala</button>
-      <button type="button" class="rf-ov-cta" onclick="clComecarTemporada&&clComecarTemporada()">⚽ Começar a temporada</button>`
+      <!-- clSairDaSala/clComecarTemporada NUNCA EXISTIRAM: escritos na forma
+           protegida "fn && fn()", os dois botões falhavam em silêncio. Quem faz o
+           serviço é o par clLobbyExit/clLobbyStart (net/local-transport.js), o
+           mesmo que a sala do assistente já usa. -->
+      <button type="button" class="rf-ov-b2" onclick="clLobbyExit()">Sair da sala</button>
+      <button type="button" class="rf-ov-cta" onclick="clLobbyStart()">${rfIcone('jogar',16)} Começar a temporada</button>`
   });
 }
 

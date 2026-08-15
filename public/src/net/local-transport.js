@@ -566,10 +566,26 @@ function onlineReconcileIfBehind(room){
 }
 
 /* cada tela do fluxo Resenha já retorna o shell completo (wizShell) — sem deskWrap/titleBar */
-function renderOnline(){
-  // TELA PORTADA (telas/Resenha - Lobby da Sala). O lobby antigo — a tela
-  // mais velha que tinha sobrado no jogo — sai de cena aqui.
-  return rfLobbyHTML();
+/* O FLUXO DA RESENHA TEM NOVE PASSOS, NÃO UM.
+   Isto devolvia `rfLobbyHTML()` SEMPRE, ignorando `CL.net.step` — a máquina de
+   passos inteira (conta, escolha, código, minhas salas, criar sala, aprovação,
+   lobby, sorteio) ficou inalcançável, e qualquer tentativa de começar uma
+   resenha caía numa sala vazia. Foi o efeito de portar UMA tela e curto-circuitar
+   as outras oito.
+   As portadas entram por dentro dos próprios passos: `scSalaHost` devolve a
+   Onboarding 4 e `scLobby` devolve a Onboarding 5. As que ainda não têm desenho
+   novo seguem com a tela antiga — feia, mas viva, que é melhor do que um beco. */
+function renderOnline(){ const n=CL.net||{};
+  if(n.step==='escolha') return scResenhaChoice();
+  if(n.step==='joincode') return scJoinCode();
+  if(n.step==='conta')  return scConta();
+  if(n.step==='minhassalas') return scMinhasSalas();
+  if(n.step==='sala')   return scSalaHost();     // -> rfOb4 (Criar Sala)
+  if(n.step==='midjoin') return scMidJoin();
+  if(n.step==='waitapproval') return scWaitApproval();
+  if(n.step==='lobby')  return scLobby();        // -> rfOb5 (Convites)
+  if(n.step==='reveal') return scResenhaDraw();
+  return scConta();
 }
 function renderOnlineLegado(){ const n=CL.net||{};
   if(n.step==='escolha') return scResenhaChoice();

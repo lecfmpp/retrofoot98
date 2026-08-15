@@ -455,7 +455,8 @@ function rfOb5(){
   const teto=20, vagas=Math.max(0,teto-parts.length);
   const link=(typeof NET.inviteLink==='function')?NET.inviteLink():'';
   const codigo=room.code||'';
-  const divLbl=(typeof divisionLabel==='function')?divisionLabel():'';
+  // mesma armadilha do lobby: aqui `S` ainda é null (ver rfDivisaoSala)
+  const divLbl=(typeof rfDivisaoSala==='function')?rfDivisaoSala(room):'';
 
   /* O LINK É O BLOCO PRINCIPAL. No desenho antigo ele fechava a tela em texto
      pequeno, sendo o canal mais usado — agora abre, em azul, com o Copiar em
