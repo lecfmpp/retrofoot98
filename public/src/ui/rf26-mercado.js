@@ -632,7 +632,15 @@ function rfMkLance(sellerId, player){
   rfAcAbrir(cobrir?'mkt-cobrir':'mkt-lance', {sellerId, player});
 }
 function rfMkLanceGo(){
-  const P=CL.mkP; const r=placeAuctionBid(P.sellerId+'|'+P.player, rfMkNum('rf-mk-lance'));
+  const P=CL.mkP; const id=P.sellerId+'|'+P.player;
+  const lot=((S.auctions&&S.auctions.lots)||[]).find(l=>l.id===id);
+  /* COBERTURA = dar lance quando a liderança é de outro clube. O motor não
+     contava isso; o diálogo do pacote mostra "2 de 3" e avisa que na terceira o
+     lote fecha, então o número precisa existir em algum lugar. Fica no próprio
+     lote, que é salvo junto com o resto do leilão. */
+  const eraCobertura = !!(lot && lot.leader && lot.leader!==S.clubId);
+  const r=placeAuctionBid(id, rfMkNum('rf-mk-lance'));
+  if(r&&r.ok&&eraCobertura&&lot) lot.myCovers=(lot.myCovers||0)+1;
   toastC(r.msg||'');
   if(r.ok){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.acao=null; }
   cdraw();

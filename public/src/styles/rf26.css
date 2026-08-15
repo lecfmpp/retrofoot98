@@ -5630,3 +5630,16 @@
   .rf-kpis-4 .rf-kpi-v{font-size:14px}
   .rf-kpis-4 .rf-kpi-l{font-size:9px;letter-spacing:.06em}
 }
+
+/* ===== ATALHOS DE LANCE NO LEILÃO =====
+   Três botões com o incremento em cima e o valor resultante embaixo — decidir um
+   lance sob relógio não deve exigir somar de cabeça. */
+.rf-ac-atalhos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:2px 0 4px}
+.rf-ac-atalho{display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 6px;
+  border:1px solid var(--line-2);border-radius:var(--r-control);background:var(--surface-card);
+  cursor:pointer;font-family:var(--font-sans)}
+.rf-ac-atalho:hover{border-color:var(--brand-primary)}
+.rf-ac-atalho.on{border-color:var(--brand-primary);background:#eef3fb}
+.rf-ac-atalho-i{font-size:var(--fs-caption);font-weight:var(--fw-bold);color:var(--brand-primary)}
+.rf-ac-atalho-v{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);white-space:nowrap}
+@media (max-width:760px){ .rf-ac-atalho-v{font-size:10px} .rf-ac-atalho{padding:8px 4px} }

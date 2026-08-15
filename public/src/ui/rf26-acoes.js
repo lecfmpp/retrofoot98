@@ -64,6 +64,29 @@ function rfAcFichaHTML(p, rotulo, valor, num){
   </div>`;
 }
 /* campo de dinheiro: rótulo, caixa e a linha de ajuda embaixo */
+/* ATALHOS DE LANCE (+25 / +50 / +100 mil). O pacote troca a digitação por três
+   botões com o VALOR RESULTANTE à vista: num leilão o que importa é decidir
+   rápido, e obrigar a somar de cabeça sob relógio é o oposto disso. Cada botão
+   escreve no campo do diálogo, então o handler continua lendo um só lugar. */
+function rfAcAtalhosLanceHTML(id, base){
+  const passos=[25000,50000,100000];
+  return `<div class="rf-ac-atalhos">${passos.map(inc=>{
+    const v=Math.round(base+inc);
+    return `<button type="button" class="rf-ac-atalho" onclick="rfAcSetValor(event,'${id}',${v})">
+      <span class="rf-ac-atalho-i">+${Math.round(inc/1000)} mil</span>
+      <span class="rf-ac-atalho-v">${escC(rfDin(v))}</span>
+    </button>`;
+  }).join('')}</div>`;
+}
+function rfAcSetValor(ev, id, v){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.value=(typeof moneyDisp==='function')?moneyDisp(v):String(v);
+  el.dispatchEvent(new Event('input',{bubbles:true}));
+  /* o botão vem pelo próprio evento — `window.event` é legado e não é fiável */
+  document.querySelectorAll('.rf-ac-atalho').forEach(b=>b.classList.remove('on'));
+  const bt=ev&&ev.currentTarget; if(bt&&bt.classList) bt.classList.add('on');
+}
 function rfAcCampoHTML(id, rotulo, valor, dica, opts){
   opts=opts||{};
   return `<label class="rf-ac-campo">
@@ -175,9 +198,11 @@ const RF_ACOES = {
     corpo:
       rfAcFichaHTML(p,'LANCE ATUAL',rfDin(lot.bid),d.num)
       + rfAcCampoHTML('rf-ac-lance','Seu lance', moneyDisp(sug),
-          `Precisa passar de ${escC(rfDin(lot.bid))}. Caixa: ${escC(rfDin(S.budget||0))}.`, {foco:true})
+          `Incremento mínimo de ${escC(rfDin(Math.max(25000,Math.round(lot.bid*0.05))))}.`, {foco:true})
+      + rfAcAtalhosLanceHTML('rf-ac-lance', lot.bid)
       + rfAcLinhaHTML('Clubes na disputa', String(lot.interest||1), '', true)
-      + rfAcLinhaHTML('Caixa depois do lance', rfDin((S.budget||0)-sug), (S.budget||0)-sug<0?'ruim':'ok')
+      + rfAcLinhaHTML('Caixa disponível', rfDin(S.budget||0), '')
+      + rfAcLinhaHTML('Se vencer, sobra', rfDin((S.budget||0)-sug), (S.budget||0)-sug<0?'ruim':'ok')
       + rfAcNotaHTML('Para <b>garantir</b>, ofereça acima do que a concorrência topa pagar — quem fica abaixo é coberto na rodada seguinte.'),
     acoes:[{l:'Cancelar',tom:'fantasma'},{l:rfIcone('leilao',16)+' Dar lance',on:'rfMkLanceGo()'}] });
 },
@@ -194,9 +219,12 @@ const RF_ACOES = {
       rfAcFichaHTML(p,'SEU LANCE',lot.myBid?rfDin(lot.myBid):'—',d.num)
       + rfAcAvisoHTML(`O lance na frente é de <b>${escC(rfDin(lot.bid))}</b>. Se a rodada fechar assim, o lote é do ${escC(lider.short)}.`,'aviso')
       + rfAcCampoHTML('rf-ac-lance','Cobrir com', moneyDisp(sug),
-          `Precisa passar de ${escC(rfDin(lot.bid))}.`, {foco:true})
-      + rfAcLinhaHTML('Caixa depois do lance', rfDin((S.budget||0)-sug), (S.budget||0)-sug<0?'ruim':'ok', true)
-      + rfAcNotaHTML('Desistir do lote não custa nada — mas o jogador sai do mercado se outro clube arrematar.'),
+          `${escC(rfDin(sug-lot.bid))} acima do lance do ${escC(lider.short)}.`, {foco:true})
+      + rfAcAtalhosLanceHTML('rf-ac-lance', lot.bid)
+      + rfAcLinhaHTML('Lance a cobrir', rfDin(lot.bid), '', true)
+      + rfAcLinhaHTML('Caixa depois', rfDin((S.budget||0)-sug), (S.budget||0)-sug<0?'ruim':'ok')
+      + rfAcLinhaHTML('Vezes que você já cobriu', ((lot.myCovers||0)+' de 3'), (lot.myCovers||0)>=2?'aviso':'')
+      + rfAcNotaHTML('Depois da terceira cobertura o leilão fecha automaticamente no maior lance.'),
     acoes:[{l:'Desistir do lote',tom:'fantasma'},{l:rfIcone('raio',16)+' Cobrir agora',on:'rfMkLanceGo()'}] });
 },
 
