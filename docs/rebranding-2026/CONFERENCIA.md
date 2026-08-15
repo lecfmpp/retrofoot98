@@ -193,7 +193,40 @@ do motor.
 ### A conferir ainda
 - [ ] Calendário: cabeçalhos repetidos quando há várias copas empilhadas
       (anotado antes, ainda não tratado)
-# 5 · Treinador — a conferir
+# 5 · Treinador
+
+Seis abas (Carreira · História · Sala de Troféus · Ranking · Ofertas · Perfil),
+todas com conteúdo do motor e sem rolagem lateral em 375px.
+
+## Os botões de confirmar que não confirmavam nada
+
+`rfAcao` desenha cada ação com `onclick="${a.on||'rfAcFechar()'}"` — uma ação
+sem `on:` apenas **fecha** o diálogo. Doze diálogos estavam assim. Sete tinham um
+botão que devia agir e não agia; clicar não fazia nada, e nada avisava:
+
+| Diálogo | Botão | Agora faz |
+|---|---|---|
+| `elenco-renovar` | Oferecer renovação | renova de verdade, com sorteio pela chance mostrada |
+| `base-promover` | Promover | sobe o garoto ao elenco |
+| `sys-sair-save` | Gravar e sair | grava local + nuvem e volta à abertura |
+| `sys-apagar-save` | Apagar para sempre | apaga, com a trava do nome do clube |
+| `sys-encerrar` | Encerrar carreira | carimba o fim no save e volta à abertura |
+| `sys-sair-sala` | Sair da resenha | usa o `clDeleteRoomGo` que já falava com o servidor |
+| `mail-arquivar` | Arquivar | marca como lida (é o que "arquivado" significa aqui) |
+| `mail-responder` | Enviar resposta | guarda a resposta no próprio e-mail |
+| `sys-sincronizar` | Pular espera | adia a consulta e devolve o jogador à tela |
+
+Três não tinham como funcionar, e passam a dizê-lo em vez de fingir:
+- **`treino-confirmar` removido** — anunciava "−10% de energia por jogador", um
+  custo que o motor nunca cobrou, e depois da reescrita do Treino ninguém o abria
+- **`conta-senha`** — os três campos não levavam a lado nenhum: o
+  `netUpdatePassword` só funciona dentro da sessão temporária do link de e-mail.
+  O diálogo passa a enviar esse link, que é o caminho real
+- **`conta-apagar`** — não há chamada de remoção de conta em lado nenhum. O
+  diálogo explica isso e aponta o que dá para fazer hoje
+
+As restantes ("Continuar", "Entendi", "Fechar") são informativas: fechar **é** o
+que devem fazer.
 # 6 · Finanças — a conferir
 # 7 · E-mail — a conferir
 # 8 · Modo Resenha

@@ -502,11 +502,11 @@ function rfBasePromoverGo(idx){
   toastC('🌱 '+nome+' subiu para o elenco principal (força '+forca+').');
   cdraw();
 }
-function rfAcTreino(){
-  const lista=(typeof myTrainingList==='function')?myTrainingList():[];
-  rfAcAbrir('treino-confirmar', {semana:'Semana '+((S.round||0)+1),
-    tema:'força', n:lista.length, custo:10});
-}
+/* `rfAcTreino` saiu com o resto do treino inventado: ela abria o diálogo
+   `treino-confirmar`, que anunciava "−10% de energia por jogador" — um custo
+   que o motor nunca cobrou. Pôr e tirar do treino agora acontece na própria
+   linha da tabela (rfTrnToggle), sem confirmação, porque não há nada a
+   confirmar: a troca é reversível e não custa nada. */
 
 /* ---- cabeçalho da página: o subtítulo conta o elenco, e as duas ações do
    pacote ficam no canto (a amarela leva pra Formação, que é onde se escala) ---- */

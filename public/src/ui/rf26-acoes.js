@@ -406,12 +406,12 @@ const RF_ACOES = {
         {t:'Discordo da meta', s:'a direção anota; segurança no cargo cai se a campanha não virar'}], d.resp)
     + rfAcCampoHTML('rf-ac-msg','Acrescentar algo (opcional)','', '', {tipo:'texto',puro:true,ph:'até 140 caracteres'})
     + rfAcNotaHTML('A resposta vai pro histórico da direção e pesa na avaliação de fim de temporada.'),
-  acoes:[{l:'Descartar',tom:'fantasma'},{l:'Enviar resposta'}] }),
+  acoes:[{l:'Descartar',tom:'fantasma'},{l:'Enviar resposta',on:`rfMailResponderGo('${escC(String(d.key||''))}')`}] }),
 
 'mail-arquivar': d=>rfAcao({ kicker:'E-MAIL', titulo:'Arquivar esta mensagem?', w:440,
   corpo:
     rfAcNotaHTML(`<b>${escC(d.assunto||'A mensagem')}</b> sai da caixa de entrada. Nada se perde: ela continua na aba <b>Arquivo</b>.`),
-  acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Arquivar'}] }),
+  acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Arquivar',on:`rfMailArquivarGo('${escC(String(d.key||''))}')`}] }),
 
 'elenco-renovar': d=>{
   const p=squad(CL.clubId).find(x=>x.pid===d.pid); if(!p) return '';
@@ -465,13 +465,8 @@ const RF_ACOES = {
     acoes:[{l:'Deixar na base',tom:'fantasma'},{l:'Promover',on:`rfBasePromoverGo(${d.idx||0})`}] });
 },
 
-'treino-confirmar': d=>rfAcao({ kicker:'TREINO ESPECIAL · '+escC(String(d.semana||'')).toUpperCase(),
-  titulo:'Confirmar o treino de '+escC(d.tema||'—'), w:500,
-  corpo:
-    rfAcLinhaHTML('Jogadores no treino', String(d.n||0), '', true)
-    + rfAcLinhaHTML('Energia que custa', '−'+(d.custo||10)+'% por jogador', 'aviso')
-    + rfAcNotaHTML('Treino forte antes de jogo decisivo chega a tirar a energia que faltava. Quem estiver abaixo de 60% entra cansado.'),
-  acoes:[{l:'Rever a lista',tom:'fantasma'},{l:'Confirmar treino'}] }),
+/* `treino-confirmar` foi removido: descrevia um custo de energia que o motor
+   não cobra, e depois da reescrita do Treino especial ninguém o abria. */
 
 /* ---------- SISTEMA E CONTA (8) ---------- */
 'sys-gravado': d=>rfAcao({ kicker:'SAVE NA NUVEM', titulo:'Jogo gravado', w:420,
@@ -495,14 +490,14 @@ const RF_ACOES = {
     rfAcLinhaHTML('Clube', escC(d.clube||'—'), '', true)
     + rfAcLinhaHTML('Jornada', String(d.jornada||'—'), '')
     + rfAcNotaHTML('Nada se perde: o save é gravado antes de sair e aparece na lista de saves.'),
-  acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Gravar e sair'}] }),
+  acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Gravar e sair',on:'rfSairSaveGo()'}] }),
 
 'sys-apagar-save': d=>rfAcao({ kicker:'SAVE', titulo:'Apagar o save do '+escC(d.clube||'—')+'?', w:480,
   corpo:
     rfAcAvisoHTML('Isto <b>não tem volta</b>. A temporada, o elenco e o histórico do treinador somem para sempre.','perigo')
     + rfAcCampoHTML('rf-ac-conf','Digite o nome do clube para confirmar','', '', {tipo:'texto',puro:true,ph:escC(d.clube||'')})
     + rfAcNotaHTML('Se a ideia é só começar outra carreira, dá para criar um save novo sem apagar este.'),
-  acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Apagar para sempre',tom:'perigo'}] }),
+  acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Apagar para sempre',tom:'perigo',on:'rfApagarSaveGo()'}] }),
 
 'sys-encerrar': d=>rfAcao({ kicker:'TREINADOR', titulo:'Encerrar a carreira do '+escC(d.nome||'—')+'?', w:480,
   corpo:
@@ -510,36 +505,45 @@ const RF_ACOES = {
     + rfAcLinhaHTML('Títulos', String(d.titulos||0), 'ok')
     + rfAcAvisoHTML('A carreira vai para o hall e <b>não continua</b>. O save fica só para consulta.','perigo')
     + rfAcNotaHTML('Encerrar não apaga nada — o histórico continua visível na sala de troféus.'),
-  acoes:[{l:'Voltar',tom:'fantasma'},{l:'Encerrar carreira',tom:'perigo'}] }),
+  acoes:[{l:'Voltar',tom:'fantasma'},{l:'Encerrar carreira',tom:'perigo',on:'rfEncerrarCarreiraGo()'}] }),
 
 'sys-sair-sala': d=>rfAcao({ kicker:'MODO RESENHA · SALA '+escC(String(d.sala||'')).toUpperCase(), titulo:'Sair da resenha?', w:480,
   corpo:
     rfAcAvisoHTML('Os outros treinadores continuam a rodada sem você — e seu clube passa a ser jogado pela máquina.','aviso')
     + rfAcLinhaHTML('Treinadores na sala', String(d.n||'—'), '', true)
     + rfAcNotaHTML('Dá para voltar depois com o mesmo código, desde que a sala ainda esteja aberta.'),
-  acoes:[{l:'Ficar na sala',tom:'fantasma'},{l:'Sair da resenha',tom:'perigo'}] }),
+  acoes:[{l:'Ficar na sala',tom:'fantasma'},{l:'Sair da resenha',on:'rfSairSalaGo()',tom:'perigo'}] }),
 
 'conta-senha': d=>rfAcao({ kicker:'CONTA', titulo:'Trocar a senha', w:460,
+  /* A TROCA EM LINHA NÃO EXISTE. Os três campos (senha atual, nova, confirmar)
+     estavam desenhados e o botão não fazia nada — e não podia fazer: o
+     `netUpdatePassword` do adaptador só funciona depois do evento
+     PASSWORD_RECOVERY, ou seja, dentro da sessão temporária que o link de
+     e-mail abre. O caminho real do jogo é esse link, e é ele que este diálogo
+     passa a oferecer, em vez de três campos que não levam a lado nenhum. */
   corpo:
-    rfAcCampoHTML('rf-ac-s1','Senha atual','', '', {tipo:'texto',puro:true,ph:'••••••••'})
-    + rfAcCampoHTML('rf-ac-s2','Nova senha','', 'Pelo menos 8 caracteres.', {tipo:'texto',puro:true,ph:'••••••••',foco:true})
-    + rfAcCampoHTML('rf-ac-s3','Confirme a nova senha','', '', {tipo:'texto',puro:true,ph:'••••••••'})
-    + rfAcNotaHTML('Trocar a senha não desconecta os saves — só a conta.'),
-  acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Trocar senha'}] }),
+    rfAcLinhaHTML('Conta', escC(d.email||'—'), '', true)
+    + rfAcNotaHTML('A senha é trocada por um <b>link enviado para o seu e-mail</b> — é assim que a conta fica protegida mesmo se alguém estiver com o jogo aberto. O link vale por uma hora.'),
+  acoes:[{l:'Fechar',tom:'fantasma'},{l:'Enviar o link',on:'rfTrocarSenhaGo()'}] }),
 
-'conta-apagar': d=>rfAcao({ kicker:'CONTA', titulo:'Apagar a sua conta?', w:480,
+'conta-apagar': d=>rfAcao({ kicker:'CONTA', titulo:'Apagar a sua conta', w:480,
+  /* NÃO HÁ COMO APAGAR A CONTA A PARTIR DAQUI, e fingir que há era pior do que
+     dizer. O botão "Apagar a conta" não tinha handler nenhum: clicar fechava o
+     diálogo e a conta continuava exatamente onde estava — quem quisesse mesmo
+     sair ficava a pensar que tinha saído. O adaptador não expõe nenhuma
+     chamada de remoção de conta; enquanto não existir, o diálogo explica o que
+     dá para fazer hoje. */
   corpo:
-    rfAcAvisoHTML('Some <b>tudo</b>: os saves na nuvem, as salas da Resenha e o histórico de treinador. Não tem volta.','perigo')
-    + rfAcCampoHTML('rf-ac-apagar','Digite APAGAR para confirmar','', '', {tipo:'texto',puro:true,ph:'APAGAR'})
-    + rfAcNotaHTML('Se você só quer parar de receber e-mail, dá para desligar isso em Configurações.'),
-  acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Apagar a conta',tom:'perigo'}] }),
+    rfAcAvisoHTML('Apagar a conta ainda <b>não é possível de dentro do jogo</b>. Este botão não fazia nada — agora diz porquê.','aviso')
+    + rfAcNotaHTML('O que dá para fazer hoje: <b>apagar um save</b> (em Sair do jogo → Apagar) tira aquela carreira da nuvem, e <b>sair da conta</b> desliga este aparelho sem perder nada.'),
+  acoes:[{l:'Fechar',tom:'fantasma'},{l:'Apagar um save',on:"rfAcFechar();rfGo('sairjogo')"}] }),
 
 'sys-sincronizar': d=>rfAcao({ kicker:'MODO RESENHA · SALA '+escC(String(d.sala||'')).toUpperCase(), titulo:'Sincronizando a rodada', w:460,
   corpo:
     rfAcChanceHTML('Assentos prontos', Math.round(((d.prontos||0)/Math.max(1,d.total||1))*100))
     + rfAcLinhaHTML('Faltam', String(Math.max(0,(d.total||0)-(d.prontos||0)))+' treinador'+(((d.total||0)-(d.prontos||0))===1?'':'es'), 'aviso', true)
     + rfAcNotaHTML('A rodada só fecha quando todos os assentos jogarem. Enquanto isso dá para ver a tabela e o elenco.'),
-  acoes:[{l:'Fechar',tom:'fantasma'},{l:'⏩ Pular espera'}] }),
+  acoes:[{l:'Fechar',tom:'fantasma'},{l:'⏩ Pular espera',on:'rfPularEsperaGo()'}] }),
 };
 
 /* O ROTEADOR — o resto do jogo só precisa de rfAcAbrir('id', dados). */

@@ -186,7 +186,7 @@ function rfCfOpcoesHTML(){
       <div class="rf-label"><span class="rf-label-t">CONTA</span></div>
       <div class="rf-cf-fila">
         <button type="button" class="rf-btn rf-btn-cta" onclick="clOptions()">${rfIcone('config',16)} Abrir opções do jogo</button>
-        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcAbrir('conta-senha',{})">Trocar a senha</button>
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcAbrir('conta-senha',{email:((typeof NET!=='undefined'&&NET.authStatus)?(NET.authStatus().email||''):'')})">Trocar a senha</button>
         <!-- "Sair da conta" saiu daqui: virou a página Sair, a última da barra
              lateral. Aqui ficou só o que é AJUSTE de conta; sair é outra coisa. -->
         <button type="button" class="rf-btn rf-btn-recusar" onclick="rfAcAbrir('conta-apagar',{})">Apagar a conta</button>
@@ -491,6 +491,128 @@ function rfSairHTML(){
         <button type="button" class="rf-btn rf-btn-recusar" onclick="rfAcApagarSave()">Apagar este save</button>
       </div>
     </div>`;
+}
+
+/* =====================================================================
+   OS BOTÕES DE CONFIRMAR QUE NÃO CONFIRMAVAM NADA
+
+   `rfAcao` desenha cada ação com `onclick="${a.on||'rfAcFechar()'}"` — uma ação
+   sem `on:` apenas FECHA o diálogo. Doze diálogos estavam assim, e sete deles
+   têm um botão que devia agir: gravar e sair, apagar o save, encerrar a
+   carreira, sair da resenha, arquivar e responder e-mail, pular a espera.
+   Clicar em qualquer um deles não fazia absolutamente nada — e nada avisava.
+
+   As cinco restantes ("Continuar", "Entendi", "Fechar") são informativas e
+   fechar É o que elas devem fazer; essas ficam como estão.
+   ===================================================================== */
+
+/* Gravar e sair: guarda local e nuvem, larga o save e volta à abertura. A conta
+   continua ligada — quem quer sair da conta usa o outro caminho. */
+async function rfSairSaveGo(){
+  rfAcFechar();
+  try{ if(typeof rfGravar==='function') rfGravar(); }catch(e){}
+  try{ if(typeof clSaveGame==='function') await clSaveGame(); }catch(e){}
+  CL.online=false; CL.live=null; CL.screen='abertura'; CL.landingView='home';
+  cdraw();
+  toastC('Jogo gravado. Até a próxima.','success');
+}
+
+/* Apagar o save: o diálogo pede o nome do clube escrito à mão, e é essa a
+   trava — sem ela seria um clique a separar o jogador de perder a carreira. */
+function rfApagarSaveGo(){
+  const campo=document.querySelector('#rf-ac-conf');
+  const escrito=((campo&&campo.value)||'').trim().toLowerCase();
+  const clube=((clubOf(CL.clubId)||{}).short||'').trim().toLowerCase();
+  if(!escrito || escrito!==clube){
+    toastC('Escreva o nome do clube exatamente como está no campo para confirmar.');
+    return;
+  }
+  const nome=CL.save||CL.mgr||'SAVE';
+  rfAcFechar();
+  try{ if(typeof wipe==='function') wipe(); }catch(e){}
+  if(typeof clDeleteSaveGo==='function'){ clDeleteSaveGo(nome); }
+  CL.online=false; CL.live=null; CL.screen='abertura'; CL.landingView='home';
+  cdraw();
+}
+
+/* Encerrar a carreira: o diálogo promete que "não apaga nada — o histórico
+   continua na sala de troféus", então é exatamente isso que faz. Carimba o
+   fim no save, grava, e devolve à abertura. O save continua na lista, para
+   consulta, como está escrito. */
+function rfEncerrarCarreiraGo(){
+  rfAcFechar();
+  S.careerClosed={ season:S.season, round:S.round, at:Date.now(),
+    clubId:CL.clubId, mgr:(typeof rfTreinadorNome==='function')?rfTreinadorNome():CL.mgr };
+  S.roundNews=S.roundNews||[];
+  S.roundNews.push('🎓 Carreira encerrada em '+(S.season||'')+'.');
+  try{ if(typeof rfGravar==='function') rfGravar(); }catch(e){}
+  CL.online=false; CL.live=null; CL.screen='abertura'; CL.landingView='home';
+  cdraw();
+  toastC('Carreira encerrada. O histórico fica guardado no save.','success');
+}
+
+/* Sair da resenha: reaproveita o caminho que já existia no menu de salas
+   (clDeleteRoomGo), que é quem fala com o servidor. */
+function rfSairSalaGo(){
+  rfAcFechar();
+  const code=(typeof rfAcSala==='function')?rfAcSala():null;
+  const anfitriao=(typeof NET!=='undefined')&&NET.isHost;
+  if(!code || code==='—' || typeof clDeleteRoomGo!=='function'){
+    toastC('Não foi possível identificar a sala.'); return;
+  }
+  clDeleteRoomGo(code, !!anfitriao);
+  CL.online=false; CL.live=null; CL.screen='abertura'; CL.landingView='home';
+  cdraw();
+}
+
+/* Arquivar: neste jogo "arquivadas" são as JÁ LIDAS (ver a nota no topo do
+   ficheiro) — o motor não tem pasta de arquivo. Arquivar é marcar como lida,
+   e é isso que tira a mensagem da caixa de entrada. */
+function rfMailArquivarGo(key){
+  const e=(CL.inbox||[]).find(x=>x.key===key);
+  if(!e){ toastC('Essa mensagem não está mais na caixa.'); rfAcFechar(); return; }
+  e.read=true;
+  if(typeof saveInbox==='function') saveInbox();
+  rfAcFechar();
+  toastC('Mensagem arquivada.');
+}
+
+/* Responder à diretoria: guarda a resposta escolhida no próprio e-mail e
+   marca-o lido. O motor não tem um "histórico da direção" separado — o e-mail
+   é o registo, e a resposta fica nele. */
+function rfMailResponderGo(key){
+  const e=(CL.inbox||[]).find(x=>x.key===key);
+  if(!e){ toastC('Essa mensagem não está mais na caixa.'); rfAcFechar(); return; }
+  const sel=document.querySelector('.rf-ac-op.on,.rf-ac-opcao.on');
+  const txt=document.querySelector('#rf-ac-msg');
+  e.reply={ opcao:(sel&&sel.textContent.trim().split('\n')[0])||'—',
+            nota:((txt&&txt.value)||'').slice(0,140), at:Date.now() };
+  e.read=true;
+  if(typeof saveInbox==='function') saveInbox();
+  rfAcFechar();
+  toastC('Resposta enviada à diretoria.');
+}
+
+/* Pular a espera: é o mesmo "aguardar mais um pouco" do painel da sala — adia
+   a consulta e devolve o jogador à tela, em vez de o prender no diálogo. */
+function rfPularEsperaGo(){
+  rfAcFechar();
+  if(typeof clWaitMore==='function') clWaitMore();
+  else { CL._waitSnoozeUntil=Date.now()+10000; cdraw(); }
+  toastC('Seguindo. A rodada fecha assim que todos jogarem.');
+}
+
+/* Trocar a senha: manda o link de recuperação para o e-mail da conta — o
+   mesmo caminho do "esqueci a senha" do login, que é o único que o adaptador
+   suporta (netUpdatePassword só vale dentro da sessão temporária do link). */
+function rfTrocarSenhaGo(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  const email=(st&&st.email)||'';
+  if(!email){ toastC('Entre na conta primeiro.'); rfAcFechar(); return; }
+  rfAcFechar();
+  CL._resetEmail=email;
+  if(typeof clSendResetLink==='function') clSendResetLink();
+  else toastC('Não foi possível enviar o link agora.');
 }
 
 /* grava o que dá, encerra a sessão e volta para a abertura */
