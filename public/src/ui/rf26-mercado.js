@@ -480,8 +480,16 @@ function rfMktTransfHTML(){
    ===================================================================== */
 function rfMkP(){ return CL.mkP||null; }
 function rfMkFechar(){ CL.mkP=null; CL.market=null; cdraw(); }
+/* O MESMO CAMPO TEM DOIS NOMES. A gaveta do Mercado desenha `rf-mk-*`; os
+   diálogos de ação (rf26-acoes.js) desenham `rf-ac-*`. Os handlers só procuravam
+   `rf-mk-*`, então TODA proposta feita pelo diálogo lia zero e devolvia "Digite
+   quanto você quer oferecer" — mesmo com o valor digitado à vista. Valia para
+   propor, dar lance, listar e contrapor: quatro botões mortos pelo mesmo motivo.
+   Aqui a busca aceita os dois nomes, e o diálogo tem prioridade porque, quando
+   ele está aberto, é nele que a pessoa está a escrever. */
 function rfMkNum(id){
-  const el=document.querySelector('#'+id);
+  const alt=String(id||'').replace(/^rf-mk-/,'rf-ac-');
+  const el=document.querySelector('#'+alt) || document.querySelector('#'+id);
   return el ? (parseInt((el.value||'').replace(/\D/g,''),10)||0) : 0;
 }
 /* moldura comum: título, subtítulo, o ✕ e o corpo */
