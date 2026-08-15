@@ -1374,7 +1374,9 @@
   text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .rf-sq-id{font-size:var(--fs-caption);color:var(--text-muted)}
 .rf-sq-frc{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1)}
-.rf-sq-nota{font-size:var(--fs-caption);color:var(--text-faint)}
+.rf-sq-nota{font-size:var(--fs-caption);color:var(--text-faint);
+  /* a nota tem sempre três caracteres ("9,4") e não pode encostar na energia */
+  white-space:nowrap;overflow:visible}
 /* TABELA DO HUB — TODAS AS COLUNAS À VISTA, ALINHADAS À ESQUERDA.
    Antes esta regra ESCONDIA idade, nota e salário abaixo de 1300px, para
    preservar a largura do nome. O efeito colateral era o oposto do pretendido:

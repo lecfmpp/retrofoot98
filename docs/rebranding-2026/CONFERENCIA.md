@@ -44,8 +44,8 @@ Arquivos do pacote: `Hub do Time - Sidebar.html`, `Hub do Time - Mobile.html`,
 - [x] **Botão "Gravar"** na faixa do clube
 - [x] **Valores com moeda** — `R$ 125k` / `R$ 12M` nas colunas SAL. e VALOR
 - [x] **Contagem do cabeçalho** — "31 jogadores · 11 titulares"
-- [x] **Grade da tabela** restaurada para a literal do pacote
-      (`20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px`)
+- [x] ~~**Grade da tabela** restaurada para a literal do pacote~~ — **revertido**
+      (ver abaixo): a literal não cabe na coluna que temos
 
 ### Bloqueado — precisa da sua decisão
 - [ ] **A coluna da esquerda tem 380px; o pacote desenha com 530px.**
@@ -103,6 +103,21 @@ conforme se clica no menu e nas abas — vale para todas as telas.**
 
 ## 1.3 Formação — SIDEBAR RECOLHIDA
 - [ ] Ainda não conferida.
+
+### A grade do Elenco no Hub — a literal do pacote não cabe
+A literal do pacote soma 284px de faixas + 64px de folga = 348, numa coluna de
+378. Sobravam 30px para o NOME — medido, **10px**. O jogador chamava-se "C" e a
+nota saía "9," cortada por cima da energia.
+
+Como a coluna **não** cresce para os 530 do pacote (decisão abaixo), saiu o
+**SALÁRIO**: é a coluna menos útil para escalar um time — decisão de mercado,
+não de escalação — e a única das nove que aparece inteira noutro sítio (Elenco &
+Base tem SALÁRIO e FIM; a ficha do jogador tem as duas). O interruptor `sal` já
+existia para isto e o modo `elenco` já o usava. Nenhum dado se perde: muda de
+tela.
+
+Resultado medido: NOME de 10px → 85px, NOTA de 34px (a largura exata de "9,4",
+sem um pixel de sobra) → 40px, e nenhuma célula a encostar na seguinte.
 
 ## Decisão registrada
 - **Resolução:** fica como está publicado. A divergência de largura do pacote

@@ -1501,12 +1501,25 @@ function rfDinCurto(v){
   return sim+' '+((typeof mvShort==='function')?mvShort(v||0):String(v||0));
 }
 const RF_SQUAD_COLS={
-  /* GRADE LITERAL DO PACOTE (Hub do Time - Sidebar.html). Cheguei a inventar
-     larguras menores para caber nos 380px que a nossa coluna esquerda tem hoje;
-     o certo é o contrário — a coluna é que está estreita. O pacote desenha esta
-     tabela numa coluna de 530px, onde estas medidas deixam ~180px para o nome. */
-  hub:    {grid:'20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px', sal:true,  pad:'7px 10px'},
-  elenco: {grid:'22px 26px minmax(0,1fr) 30px 34px 40px 46px 62px',      sal:false, pad:'8px 10px'},
+  /* A GRADE LITERAL DO PACOTE NÃO CABE NOS 380px QUE ESTA COLUNA TEM.
+     O pacote desenha esta tabela numa coluna de 530px, e as nove medidas dele
+     somam 284px de faixas fixas + 64px de folga = 348. Numa coluna de 378 sobram
+     30px para o NOME — medido, dava 10px. O resultado era uma tabela onde o
+     jogador se chamava "C" e a nota saía "9," cortada por cima da energia.
+     Já ficou decidido que a coluna NÃO cresce para 530 (ver CONFERENCIA.md), e
+     entre repetir uma medida que não cabe e mostrar a informação, a informação
+     ganha.
+
+     O que sai é o SALÁRIO. É a coluna menos útil para escalar um time — é uma
+     decisão de mercado, não de escalação — e é a única das nove que aparece
+     inteira noutro sítio: Elenco & Base tem SALÁRIO e FIM, e a ficha do jogador
+     tem as duas. O interruptor `sal` já existia para isto; o modo `elenco` já o
+     usava. Ninguém perde dado nenhum: muda de tela.
+
+     Com ela fora e a folga em 7px, o NOME passa de 10px para ~103px e a NOTA de
+     34 (que era exatamente a largura de "9,4", sem um pixel de sobra) para 40. */
+  hub:    {grid:'18px 22px minmax(0,1fr) 24px 30px 40px 40px 52px', sal:false, gap:'7px', pad:'7px 9px'},
+  elenco: {grid:'22px 26px minmax(0,1fr) 30px 34px 42px 46px 62px', sal:false, gap:'8px', pad:'8px 10px'},
 };
 function rfSquadTableHTML(modo, opts){
   opts=opts||{};
@@ -1517,7 +1530,7 @@ function rfSquadTableHTML(modo, opts){
   const xi=new Set(S.xi||[]);
   // a densidade vai na CLASSE, não só na grade inline: é por ela que o CSS
   // enxuga a tabela do Hub quando a coluna aperta, sem tocar na do Elenco.
-  const cab=`<div class="rf-sq-head rf-sq-${modo||'hub'}" style="grid-template-columns:${cfg.grid}">
+  const cab=`<div class="rf-sq-head rf-sq-${modo||'hub'}" style="grid-template-columns:${cfg.grid};column-gap:${cfg.gap||'8px'}">
     <span></span><span>POS</span><span>NOME</span>
     <span>ID</span><span>FRC</span><span>NOTA</span><span>ENER</span>
     ${cfg.sal?'<span>SAL.</span>':''}<span>VALOR</span>
@@ -1529,7 +1542,7 @@ function rfSquadTableHTML(modo, opts){
     const sal=(typeof playerSalary==='function')?playerSalary(p):0;
     const indisp=(p.suspended>0)||(p.injuredMatches>0);
     return `<div class="rf-sq-row rf-sq-${modo||'hub'} ${CL.selPlayer===p.pid?'sel':''} ${indisp?'off':''}"
-        style="grid-template-columns:${cfg.grid};padding:${cfg.pad}"
+        style="grid-template-columns:${cfg.grid};column-gap:${cfg.gap||'8px'};padding:${cfg.pad}"
         onclick="clSelPlayer('${escC(p.pid)}')" title="${escC(p.n)}">
       <span class="rf-sq-mark ${tit?'tit':''}">${tit?'T':escC(posLetter(p.s))}</span>
       <span class="rf-sq-pos">${escC(posLetter(p.s))}</span>
