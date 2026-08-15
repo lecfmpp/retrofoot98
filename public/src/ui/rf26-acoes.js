@@ -169,7 +169,13 @@ const RF_ACOES = {
   const p=(typeof findP==='function')?findP(d.player,d.clubId):null;
   const c=anyClubOf(d.clubId)||{short:'—'};
   const ask=(p&&typeof playerAsk==='function')?playerAsk(p,d.clubId):0;
-  const oferta=d.oferta||Math.round(ask/1000)*1000;
+  /* O CAMPO NUNCA NASCE ABAIXO DO QUE O CLUBE ACEITA. Ele já vinha com o pedido
+     na primeira abertura, mas ao REABRIR depois de uma recusa voltava com o valor
+     anterior — que era justamente o que o clube tinha recusado. O piso é o mínimo
+     que o clube aceita (o mesmo 90% do pedido que a dica logo abaixo anuncia),
+     então a proposta pré-preenchida é sempre uma proposta viável. */
+  const minimo=Math.round(ask*0.9/1000)*1000;
+  const oferta=Math.max(minimo, d.oferta||Math.round(ask/1000)*1000);
   const sal=(p&&((p.contract&&p.contract.salary)||p.salary))||0;
   const caixa=(S.budget||0)-oferta;
   const folha=rfFolha()+sal;
@@ -177,7 +183,7 @@ const RF_ACOES = {
     corpo:
       rfAcFichaHTML(p,'PEDIDO',rfDin(ask),d.num)
       + rfAcCampoHTML('rf-ac-fee','Valor da proposta', oferta?moneyDisp(oferta):'',
-          `Abaixo de ${escC(rfDin(Math.round(ask*0.9)))} o ${escC(c.short)} recusa direto.`, {foco:true})
+          `Abaixo de ${escC(rfDin(minimo))} o ${escC(c.short)} recusa direto.`, {foco:true})
       + rfAcCampoHTML('rf-ac-sal','Salário oferecido', sal?moneyDisp(sal):'',
           `O jogador pede no mínimo ${escC(rfDin(Math.round(sal*0.9)))}.`, {sufixo:'/mês'})
       + rfAcPassoHTML('rf-ac-anos','Anos de contrato', d.anos||3,
