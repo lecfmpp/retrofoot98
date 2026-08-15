@@ -196,7 +196,9 @@ function rfCpArtilhariaHTML(){
   const posDe=n=>{ const p=meu.find(x=>x.n===n); return p?rfPosInicial(p.s):'—'; };
   const linhas=arr.map((s,i)=>{
     const cid=(typeof findPlayerClub==='function')?findPlayerClub(s.n):null;
-    return `<div class="rf-el-row sel">
+    /* `sel` estava fixo em TODAS as linhas: a lista inteira de artilheiros
+       aparecia destacada, o que é o mesmo que nenhuma estar. */
+    return `<div class="rf-el-row">
       <span class="rf-cp-rank">${i+1}</span>
       <span class="rf-cp-art-n">${escC(s.n)}</span>
       ${cid?rfCpClube(cid):'<span class="rf-cp-clube">—</span>'}

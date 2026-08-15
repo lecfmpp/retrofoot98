@@ -375,7 +375,11 @@ function rfMktVenderHTML(){
     const vm=(typeof computeVM==='function')?computeVM(p):(p.mv||0);
     // INTERESSE: quantos clubes já mandaram proposta por ele
     const clubes=rfPropostas().filter(o=>o.playerName===p.n).length;
-    return `<div class="rf-mkt-row ${i===0?'destaque':''}" onclick="rfMkListar('${escC(p.pid)}')">
+    /* SEM LINHA DESTACADA. O primeiro da lista vinha com contorno claro como se
+       estivesse selecionado, mas ninguém o selecionou — era só o mais valioso.
+       Marca de seleção que não corresponde a uma escolha do utilizador confunde
+       em vez de orientar. */
+    return `<div class="rf-mkt-row" onclick="rfMkListar('${escC(p.pid)}')">
       <span class="rf-mkt-nome">${rfMkCamisaHTML(nums[p.pid]||p.num)}<b>${escC(p.n)}</b></span>
       ${rfMkPos(p)}
       <span class="rf-mkt-x">${p.age||'—'}</span>

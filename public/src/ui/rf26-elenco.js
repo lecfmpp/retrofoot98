@@ -280,7 +280,9 @@ function rfElTreinoHTML(){
     const porTemp=Math.round(((g&&g.forcaPorTemporada)||0)*10)/10;
     const pct=Math.max(0,Math.min(100, Math.round(((S.round||0)%38)/38*100)));
     const ganho=porTemp?('+'+String(porTemp).replace('.',',')+' força'):'sem ganho previsto';
-    return `<div class="rf-el-row sel">
+    /* mesmo caso das outras duas listas: `sel` fixo em toda linha, então a
+       lista inteira aparecia marcada — o mesmo que nenhuma marcada */
+    return `<div class="rf-el-row">
       ${rfElCamisa(nums[p.pid]||p.num||'')}
       <span class="rf-el-nome">${escC(p.n)}</span>
       <span class="rf-el-c">${escC(rfPosInicial(p.s))}</span>
