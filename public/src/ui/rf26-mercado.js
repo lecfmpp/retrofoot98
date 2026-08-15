@@ -71,7 +71,11 @@ function rfMkTabela(cols, cabecalho, linhas, vazio, chave){
 }
 function rfMkClube(id){
   const c=anyClubOf(id)||{short:'—'};
-  return `<span class="rf-mkt-clube">${rfCrest(c,22)}<span>${escC(c.short)}</span></span>`;
+  // ver rfCpClube: no telefone fica só o escudo, o nome chega pelo `title`, e o
+  // clique abre o elenco do clube
+  const acao = (id===CL.clubId) ? 'clGoSquad()' : `clViewTeam('${escC(String(id))}')`;
+  return `<span class="rf-mkt-clube rf-clicavel" title="Ver o elenco do ${escC(c.short||'')}"
+    onclick="event.stopPropagation();${acao}">${rfCrest(c,22)}<span>${escC(c.short)}</span></span>`;
 }
 function rfMkPos(p){ return `<span class="rf-mkt-pos">${escC(rfPosInicial(p.s))}</span>`; }
 /* a referência usa UMA letra por setor (G/D/M/A) */
@@ -382,14 +386,13 @@ function rfMktVenderHTML(){
       <span class="rf-mkt-f">${p.f}</span>
       <span class="rf-mkt-v">${escC(rfDin(vm))}</span>
       <span class="rf-mkt-v leve">${escC(rfMkSalario(p))}</span>
-      <span class="rf-mkt-x">${escC(rfMkFimContrato(p))}</span>
-      <span class="rf-mkt-int">${clubes?`<b>${clubes} clube${clubes===1?'':'s'}</b>`:'—'}</span>
       ${rfMkBt('Listar',`rfMkListar('${escC(p.pid)}')`)}
     </div>`;
   });
+  /* FIM DE CONTRATO e INTERESSE saíram: com nove colunas o botão Listar só
+     aparecia depois de rolar. As duas continuam na ficha do jogador. */
   const cabecalho=`<span>JOGADOR</span><span>POS</span><span>IDA</span><span>FOR</span>
-    <span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span class="dir">FIM</span>
-    <span class="dir">INTERESSE</span><span></span>`;
+    <span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
   // QUEM VOCÊ NÃO DEVERIA VENDER: o titular mais caro de repor
   const chave=[...xi].map(pid=>sq.find(p=>p.pid===pid)).filter(Boolean).filter(p=>{
     const outros=sq.filter(x=>x.s===p.s && x.pid!==p.pid && (x.f||0)>=(p.f||0)-5);
@@ -399,7 +402,7 @@ function rfMktVenderHTML(){
   const golsTime=sq.reduce((t,p)=>t+((p.stats&&p.stats.goals)||0),0);
   return rfMktGavetaHTML(['listar']) + rfCol(
     rfCard('Seu elenco à venda',
-      rfMkTabela('minmax(0,1fr) 44px 48px 48px 116px 108px 76px 108px 104px',
+      rfMkTabela('minmax(0,1.3fr) 28px 34px 34px 96px 92px 74px',
         cabecalho, linhas, 'Elenco vazio.', 'mkt-vender'),
       {right: sq.length+' jogadores'})
     + rfCard('Quem você não deveria vender',

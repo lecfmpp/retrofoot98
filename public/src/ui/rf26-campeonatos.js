@@ -22,7 +22,16 @@
 /* clube com escudo de 20px, do jeito que o pacote desenha em três tabelas */
 function rfCpClube(id){
   const c=anyClubOf(id)||{short:'—'};
-  return `<span class="rf-cp-clube">${rfCrest(c,20)}<span>${escC(c.short||c.name||'—')}</span></span>`;
+  /* `title` para o telefone: lá o nome fica escondido e só o escudo aparece,
+     então o nome tem de chegar por outro caminho — passar o rato ou tocar e
+     segurar mostra a dica do navegador. */
+  const nome=c.short||c.name||'—';
+  /* CLICAR NO ESCUDO ABRE O ELENCO DO CLUBE. `stopPropagation` porque a linha
+     costuma ter a sua própria ação (abrir a ficha, propor); o clube é um
+     desvio, não a ação da linha. */
+  const acao = (id===CL.clubId) ? 'clGoSquad()' : `clViewTeam('${escC(String(id))}')`;
+  return `<span class="rf-cp-clube rf-clicavel" title="Ver o elenco do ${escC(nome)}"
+    onclick="event.stopPropagation();${acao}">${rfCrest(c,20)}<span>${escC(nome)}</span></span>`;
 }
 /* selo de resultado: V verde, E amarelo, D vermelho, jogo por vir em cinza */
 function rfCpResultado(r){
@@ -111,7 +120,17 @@ function rfCpMinhasHTML(){
    2 · CALENDÁRIO — a liga num cartão, cada copa no seu
    Grade da liga: 44 / 22 / adversário / 62 / 62 / 30
    ===================================================================== */
-const RF_CP_CAL_COLS='52px 22px minmax(0,1.4fr) minmax(62px,.5fr) minmax(62px,.5fr) 34px';
+/* DIA DO JOGO no calendário: a coluna DATA entra entre a jornada e o escudo.
+   O motor não guarda data por jornada — ele deriva do dia do calendário
+   (7 dias por rodada, ver shortMatchDate), então a conta é a mesma aqui. */
+const RF_CP_CAL_COLS='46px 54px 22px minmax(0,1.4fr) minmax(62px,.5fr) minmax(62px,.5fr) 34px';
+function rfCpDataDaJornada(i, copa){
+  if(typeof realDateForDay!=='function') return '';
+  try{
+    const d=realDateForDay(1 + i*7 + (copa?3:6));
+    return d.getDate()+'/'+((typeof PT_MONTHS_ABBR!=='undefined')?PT_MONTHS_ABBR[d.getMonth()]:(d.getMonth()+1));
+  }catch(e){ return ''; }
+}
 function rfCpCalendarioHTML(){
   const sched=S.sched||[];
   // o calendário do motor é [[casaId, foraId], …] por jornada, e o placar mora
@@ -127,6 +146,7 @@ function rfCpCalendarioHTML(){
     const proximo=!feito && (i===(S.round||0));
     return `<div class="rf-el-row ${proximo?'sel':''} ${feito?'':'porvir'}">
       <span class="rf-cp-jor">${i+1}ª</span>
+      <span class="rf-cp-data">${escC(rfCpDataDaJornada(i))}</span>
       ${rfCrest(outro,20)}
       <span class="rf-el-nome">${escC(outro.short||outro.name||'—')}</span>
       <span class="rf-cp-local">${casa?'casa':'fora'}</span>
@@ -135,7 +155,7 @@ function rfCpCalendarioHTML(){
     </div>`;
   }).filter(Boolean);
   const cab=`<div class="rf-el-head" style="--el-cols:${RF_CP_CAL_COLS}">
-    <span>JORNADA</span><span></span><span>ADVERSÁRIO</span><span>LOCAL</span>
+    <span>JORNADA</span><span>DATA</span><span></span><span>ADVERSÁRIO</span><span>LOCAL</span>
     <span class="dir">PLACAR</span><span></span>
   </div>`;
   const grupo=(typeof myGroupLabel==='function')?myGroupLabel():'';

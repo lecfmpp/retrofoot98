@@ -4917,7 +4917,7 @@
 .rf-mkt-row:hover{background:var(--surface-sunken)}
 /* a linha em destaque é a que já é sua (lance na frente, negócio aceito) */
 .rf-mkt-row.destaque{border-color:var(--brand-primary);background:var(--club-primary-soft,rgba(23,69,143,.06))}
-.rf-mkt-n,.rf-mkt-nome b{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
+.rf-mkt-n,.rf-mkt-nome>b{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .rf-mkt-nome{display:flex;align-items:center;gap:10px;min-width:0}
 .rf-mkt-pos,.rf-mkt-x{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-3)}
@@ -5529,12 +5529,11 @@
   [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(7),
   [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(7){display:none}
 
-  /* VENDER — mesma regra, mesmo motivo (flex em vez de grid): jogador · pos ·
-     ida · for · valor à frente; salário, fim de contrato e interesse ficam à
-     direita e chegam rolando. Nada é escondido. */
+  /* VENDER — 7 colunas depois de sair FIM e INTERESSE: jogador · pos · ida ·
+     for · valor · salário · Listar. Cabe quase inteiro; o que faltar, rola. */
   [data-mkt="mkt-vender"] .rf-mkt-head,
   [data-mkt="mkt-vender"] .rf-mkt-row{
-    display:flex !important;flex-wrap:nowrap;align-items:center;gap:6px;min-width:520px}
+    display:flex !important;flex-wrap:nowrap;align-items:center;gap:6px;min-width:392px}
   [data-mkt="mkt-vender"] .rf-mkt-row>*:nth-child(1),
   [data-mkt="mkt-vender"] .rf-mkt-head>span:nth-child(1){flex:1 1 96px;min-width:96px}
   [data-mkt="mkt-vender"] .rf-mkt-row>*:nth-child(2),
@@ -5549,10 +5548,31 @@
   [data-mkt="mkt-vender"] .rf-mkt-head>span:nth-child(6){flex:0 0 76px}
   [data-mkt="mkt-vender"] .rf-mkt-row>*:nth-child(7),
   [data-mkt="mkt-vender"] .rf-mkt-head>span:nth-child(7){flex:0 0 58px}
-  [data-mkt="mkt-vender"] .rf-mkt-row>*:nth-child(8),
-  [data-mkt="mkt-vender"] .rf-mkt-head>span:nth-child(8){flex:0 0 70px}
-  [data-mkt="mkt-vender"] .rf-mkt-row>*:nth-child(9),
-  [data-mkt="mkt-vender"] .rf-mkt-head>span:nth-child(9){flex:0 0 56px}
+
+  /* LEILÃO — mesma regra: tudo numa linha e rolagem lateral quando não couber.
+     São nove colunas (jogador · pos · ida · for · clube · lance atual · seu
+     lance · fecha · ação) e nenhuma delas é dispensável durante um lote aberto. */
+  [data-mkt="mkt-leilao"] .rf-mkt-head,
+  [data-mkt="mkt-leilao"] .rf-mkt-row{
+    display:flex !important;flex-wrap:nowrap;align-items:center;gap:6px;min-width:534px}
+  [data-mkt="mkt-leilao"] .rf-mkt-row>*:nth-child(1),
+  [data-mkt="mkt-leilao"] .rf-mkt-head>span:nth-child(1){flex:1 1 96px;min-width:96px}
+  [data-mkt="mkt-leilao"] .rf-mkt-row>*:nth-child(2),
+  [data-mkt="mkt-leilao"] .rf-mkt-head>span:nth-child(2){flex:0 0 22px}
+  [data-mkt="mkt-leilao"] .rf-mkt-row>*:nth-child(3),
+  [data-mkt="mkt-leilao"] .rf-mkt-head>span:nth-child(3){flex:0 0 24px}
+  [data-mkt="mkt-leilao"] .rf-mkt-row>*:nth-child(4),
+  [data-mkt="mkt-leilao"] .rf-mkt-head>span:nth-child(4){flex:0 0 26px}
+  [data-mkt="mkt-leilao"] .rf-mkt-row>*:nth-child(5),
+  [data-mkt="mkt-leilao"] .rf-mkt-head>span:nth-child(5){flex:0 0 26px}
+  [data-mkt="mkt-leilao"] .rf-mkt-row>*:nth-child(6),
+  [data-mkt="mkt-leilao"] .rf-mkt-head>span:nth-child(6){flex:0 0 84px}
+  [data-mkt="mkt-leilao"] .rf-mkt-row>*:nth-child(7),
+  [data-mkt="mkt-leilao"] .rf-mkt-head>span:nth-child(7){flex:0 0 78px}
+  [data-mkt="mkt-leilao"] .rf-mkt-row>*:nth-child(8),
+  [data-mkt="mkt-leilao"] .rf-mkt-head>span:nth-child(8){flex:0 0 52px}
+  [data-mkt="mkt-leilao"] .rf-mkt-row>*:nth-child(9),
+  [data-mkt="mkt-leilao"] .rf-mkt-head>span:nth-child(9){flex:0 0 64px}
 
   /* os filtros viram faixa que rola de lado, como as formações */
   .rf-mkf{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:8px;
@@ -5574,3 +5594,18 @@
 .rf-sem-anim .rf-lista,
 .rf-sem-anim .rf-chat-peek,
 .rf-sem-anim .rf-cbx-pop{animation:none !important}
+
+/* ===== NO TELEFONE, CLUBE É SÓ O ESCUDO =====
+   O nome ao lado do escudo come a largura de uma coluna inteira em 375px. O
+   escudo identifica igual, e o nome continua acessível: as células levam
+   `title`, então passar o rato (ou tocar e segurar) mostra a dica. */
+@media (max-width:760px){
+  .rf-cp-clube>span,.rf-mkt-clube>span{display:none}
+  .rf-cp-clube,.rf-mkt-clube{justify-content:center;gap:0}
+}
+/* data do jogo no calendário — mono, discreta; no telefone encolhe ao máximo */
+.rf-cp-data{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-muted);white-space:nowrap}
+@media (max-width:760px){ .rf-cp-data{font-size:10px} }
+/* célula de clube clicável: leva ao elenco do adversário */
+.rf-clicavel{cursor:pointer;border-radius:8px;transition:background var(--dur-fast) var(--ease)}
+.rf-clicavel:hover{background:var(--surface-sunken)}
