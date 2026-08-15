@@ -87,6 +87,63 @@ function rfSponsorHTML(){
 }
 
 /* =====================================================================
+   0 · SALA EM ESPERA — o diálogo curto de "quem falta"
+   Portado de telas/Modal - Sala em Espera (+ Mobile).
+
+   ESTA TELA JÁ EXISTIA E JÁ ESTAVA LIGADA — só que na pele antiga
+   (`cl-esp-*`, dentro de showResenhaWaiting). É o padrão que se repete
+   neste porte: a rota está certa, o destino é que ficou velho. Aqui só
+   se troca o destino; quem chama, quando chama e o que os botões fazem
+   continua exatamente igual.
+
+   O que o pacote acrescenta ao que havia: a barra "JÁ JOGARAM · 2 de 4",
+   que dá a dimensão da espera. Sem ela, "faltam 2" não diz se a sala tem
+   três pessoas ou dez.
+   ===================================================================== */
+function rfSalaEsperaHTML(st){
+  const nomes=(st.nomes_faltando||[]).filter(Boolean);
+  const n=nomes.length||st.faltam||0;
+  const ehLiga=(st.competicao==='liga');
+  const comp = ehLiga ? 'Brasileirão'
+    : ((typeof COMP_DEFS!=='undefined' && COMP_DEFS[st.competicao] && COMP_DEFS[st.competicao].short) || 'Copa');
+  const oQue = ESPERA_MOMENTO[st.momento] || st.momento || '';
+  const manchete = n===1 ? 'Falta 1 treinador' : 'Faltam '+n+' treinadores';
+  const inicial = t => (String(t||'?').trim()[0]||'?').toUpperCase();
+
+  /* O TOTAL VEM DA SALA, não da conta de quem falta: `faltam` sozinho não
+     diz de quantos. Se a lista de assentos ainda não carregou, a barra
+     simplesmente não aparece — melhor do que uma barra a mentir. */
+  const total=(typeof rfSalaAssentos==='function')?rfSalaAssentos().length:0;
+  const jogaram=Math.max(0,total-n);
+  const pct=total?Math.round(jogaram/total*100):0;
+
+  const lista=(nomes.length?nomes:Array.from({length:n},()=>'Treinador')).map(nome=>`
+    <div class="rf-esp-quem">
+      <span class="rf-esp-av">${escC(inicial(nome))}</span>
+      <span class="rf-esp-id"><span class="rf-esp-nome">${escC(nome)}</span></span>
+      <span class="rf-esp-st">${escC(oQue)}${oQue?'…':''}</span>
+    </div>`).join('');
+
+  return `<div class="rf-esp">
+    <div class="rf-esp-top">
+      <span class="rf-label-t">Sala em espera</span>
+      <span class="rf-esp-manchete">${escC(manchete)}</span>
+      <span class="rf-esp-ctx">Jornada ${escC(String((st.jornada!=null?st.jornada:0)+1))} · ${escC(comp)}</span>
+    </div>
+    <div class="rf-esp-lista">${lista}</div>
+    ${total?`<div class="rf-esp-prog">
+      <div class="rf-esp-prog-l">
+        <span class="rf-esp-prog-t">JÁ JOGARAM</span>
+        <span class="rf-esp-prog-n">${jogaram} de ${total}</span>
+      </div>
+      <div class="rf-esp-barra"><i style="width:${pct}%"></i></div>
+    </div>`:''}
+    <span class="rf-note">A rodada não começa sem eles — e ninguém é pulado enquanto você espera.
+      Todos continuam exatamente no mesmo ponto do jogo.</span>
+  </div>`;
+}
+
+/* =====================================================================
    1 · PAUSA PATROCINADA — a rodada está a fechar no servidor
    ===================================================================== */
 function rfPausaHTML(){

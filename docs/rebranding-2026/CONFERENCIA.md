@@ -137,6 +137,36 @@ conforme se clica no menu e nas abas — vale para todas as telas.**
 # 5 · Treinador — a conferir
 # 6 · Finanças — a conferir
 # 7 · E-mail — a conferir
-# 8 · Modo Resenha — a conferir (abas: Sala · Treinadores · Chat · Sair da sala)
+# 8 · Modo Resenha
+
+## 8.1 Sala em espera (diálogo) — DESKTOP e MOBILE
+
+Arquivos do pacote: `Modal - Sala em Espera.html`, `Modal - Sala em Espera - Mobile.html`
+
+- [x] **Portada para o desenho novo.** A tela já existia e já estava ligada de
+      verdade (`showResenhaWaiting`, chamada pelo relógio da sala) — só que na
+      pele antiga, com `cl-esp-*`. É o padrão que se repete neste porte: a rota
+      certa, o destino velho. Trocado só o destino; quem chama, quando chama e o
+      que os botões fazem continua igual.
+- [x] Cabeçalho com ampulheta, manchete em serifa itálica, "Jornada 11 ·
+      Brasileirão", linhas amarelas de quem falta com o estado à direita
+- [x] **Barra "JÁ JOGARAM · 2 de 4"** — é o que o pacote acrescenta ao que havia.
+      Sem ela, "faltam 2" não diz se a sala tem três pessoas ou dez
+- [x] Rodapé: "Você é o anfitrião da sala" + Aguardar (amarelo) + Começar sem eles
+- [x] **Mobile**: folha de baixo com alça de arrasto (vem do `.rf-dlg`), estado do
+      treinador desce para a segunda linha e os botões empilham em largura cheia
+- [x] Título encurta para "Sala em espera" no telefone — o completo saía cortado
+
+### Divergências deliberadas
+- O troféu da competição, que a pele antiga mostrava nas copas, saiu: o pacote não
+  desenha esse espaço, e o texto "Jornada 11 · Copa do Brasil" já diz qual é
+- Cabeçalho na cor do clube, não no azul da marca — é a exceção acordada no topo
+
+## 8.2 Pausa Patrocinada · A Espera da Rodada · Passe o Aparelho · Entrega do Aparelho
+- [ ] Existem e estão ligadas no desenho novo (`rf26-resenha.js`); falta o diff
+      tela a tela contra o pacote, desktop e mobile
+
+## 8.3 Página Modo Resenha (Sala · Treinadores · Regras · Sincronização)
+- [ ] A conferir
 # 9 · Configurações — a conferir (deve ficar só com Perfil · Opções)
 # 10 · Sair do jogo — a conferir (abas: Gravar e sair · Outros saves · Apagar)

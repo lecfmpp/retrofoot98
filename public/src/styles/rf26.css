@@ -5749,3 +5749,44 @@
 }
 /* a marca sai com o mesmo cuidado com que entrou: nada pisca */
 .rf-pl.trocou{transition:background .3s var(--ease),box-shadow .3s var(--ease)}
+
+/* ===== SALA EM ESPERA — o diálogo de "quem falta" =====
+   Medidas tiradas de telas/Modal - Sala em Espera.html. No telefone ele vira
+   folha de baixo com alça de arrasto, e isso já vem de graça do .rf-dlg. */
+.rf-esp{display:flex;flex-direction:column;gap:14px;min-width:0}
+.rf-esp-top{display:flex;flex-direction:column;gap:4px;min-width:0}
+.rf-esp-manchete{font-family:var(--font-serif);font-style:italic;font-size:32px;
+  font-weight:var(--fw-bold);color:var(--text-1);letter-spacing:-.01em;line-height:1.1}
+.rf-esp-ctx{font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:var(--club-primary);
+  white-space:nowrap}
+.rf-esp-lista{display:flex;flex-direction:column;gap:8px}
+/* a linha de quem falta é AMARELA de propósito: é a pendência da tela */
+.rf-esp-quem{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;
+  background:#fdf9e3;border:1px solid #f0e7b8;border-radius:12px;padding:11px 13px;min-width:0}
+.rf-esp-av{width:32px;height:32px;border-radius:8px;background:var(--text-1);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);
+  font-size:13px;font-weight:var(--fw-bold);flex:0 0 auto}
+.rf-esp-id{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-esp-nome{font-size:14px;font-weight:var(--fw-bold);color:var(--text-1);letter-spacing:.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-esp-st{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);
+  white-space:nowrap;flex:0 0 auto}
+.rf-esp-prog{display:flex;flex-direction:column;gap:7px;border-top:1px solid var(--line-3);padding-top:12px}
+.rf-esp-prog-l{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rf-esp-prog-t{font-family:var(--font-mono);font-size:9px;font-weight:var(--fw-semibold);
+  color:var(--text-faint);letter-spacing:.12em;white-space:nowrap}
+.rf-esp-prog-n{font-family:var(--font-mono);font-size:11px;font-weight:var(--fw-semibold);
+  color:var(--club-primary);white-space:nowrap}
+.rf-esp-barra{height:8px;border-radius:var(--r-pill);background:var(--line-3);overflow:hidden}
+.rf-esp-barra>i{display:block;height:100%;border-radius:var(--r-pill);
+  background:linear-gradient(90deg,var(--club-primary),var(--club-secondary));transition:width .18s}
+.rf-esp-foot-nota{font-size:var(--fs-caption);color:var(--text-3);white-space:nowrap}
+@media (max-width:760px){
+  .rf-esp-manchete{font-size:24px}
+  /* o estado do treinador não cabe ao lado do nome em 390px: desce uma linha */
+  /* `gap:12px` valia para os dois eixos: com o estado na segunda linha, os 12px
+     viravam um buraco entre o nome e ele. Só a folga horizontal fica. */
+  .rf-esp-quem{grid-template-columns:32px minmax(0,1fr);gap:1px 12px;align-items:center}
+  .rf-esp-st{grid-column:2;white-space:normal}
+  .rf-esp-foot-nota{white-space:normal;text-align:center;order:3}
+}

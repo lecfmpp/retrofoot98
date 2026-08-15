@@ -11426,41 +11426,16 @@ function onlineWaitingTick(){
    jogador; "escolhendo o time" quer. */
 const ESPERA_MOMENTO={ escalando:'escolhendo o time', jogando:'em campo', classificacao:'vendo a classificação' };
 function showResenhaWaiting(st){
-  const nomes=(st.nomes_faltando||[]).filter(Boolean);
-  const n=nomes.length||st.faltam||0;
-  const ehLiga=(st.competicao==='liga');
-  const comp = ehLiga ? 'Brasileirão'
-    : ((typeof COMP_DEFS!=='undefined' && COMP_DEFS[st.competicao] && COMP_DEFS[st.competicao].short) || 'Copa');
-  const trof = (!ehLiga && typeof trophyImg==='function') ? trophyImg(st.competicao,64) : '';
-  const oQue = ESPERA_MOMENTO[st.momento] || st.momento || '';
-  const manchete = n===1 ? 'Falta 1 treinador' : 'Faltam '+n+' treinadores';
-  const inicial = s => (String(s||'?').trim()[0]||'?').toUpperCase();
-  const lista = (nomes.length ? nomes : Array.from({length:n}, ()=>'Treinador')).map(nome=>`
-    <div class="cl-esp-quem">
-      <span class="cl-esp-av">${escC(inicial(nome))}</span>
-      <span class="cl-esp-nome">${escC(nome)}</span>
-      <span class="cl-esp-st">${escC(oQue)}<i class="cl-esp-dots"></i></span>
-    </div>`).join('');
   const ehHost=(typeof NET!=='undefined' && NET.isHost);
-  const corpo=`
-    <div class="cl-esp">
-      <div class="cl-esp-top">
-        <div>
-          <div class="cl-mom-kicker">SALA EM ESPERA</div>
-          <div class="cl-mom-manchete">${escC(manchete)}</div>
-          <div class="cl-esp-ctx">Jornada ${escC(String((st.jornada!=null?st.jornada:0)+1))} · ${escC(comp)}</div>
-        </div>
-        ${trof?`<div class="cl-esp-trofeu">${trof}</div>`:''}
-      </div>
-      <div class="cl-esp-lista">${lista}</div>
-      <div class="cl-esp-nota">A rodada não começa sem eles — e ninguém é pulado enquanto você
-        espera. Todos continuam exatamente no mesmo ponto do jogo.</div>
-    </div>`;
-  const pe = `<div class="cl-esp-foot-nota">${ehHost?'Você é o anfitrião da sala.':'Só o anfitrião pode seguir sem eles.'}</div>`
-    + btn('Aguardar','clWaitMore()',{icon:'⏳',cls:'cl-btn-ok'})
-    + (ehHost ? btn('Começar sem eles','clWaitSkipAbsent()',{icon:'⏭',cls:'cl-btn-cancel'}) : '');
+  const corpo=(typeof rfSalaEsperaHTML==='function') ? rfSalaEsperaHTML(st) : '';
+  const pe = `<span class="rf-esp-foot-nota">${ehHost?'Você é o anfitrião da sala.'
+        :'Só o anfitrião pode seguir sem eles.'}</span><div class="rf-sp"></div>`
+    + `<button type="button" class="rf-ov-cta" onclick="clWaitMore()">⏳ Aguardar</button>`
+    + (ehHost?`<button type="button" class="rf-ov-b2" onclick="clWaitSkipAbsent()">⏭ Começar sem eles</button>`:'');
   CL._waitOpen=true;
-  overlayC(dlg('Resenha — sala em espera', corpo, {w:560, std:true, footer:pe, bodyClass:'cl-body-green'}));
+  /* no telefone o título completo não cabe na barra e saía "Resenha — sala em es…" */
+  const tit=(typeof isPhone==='function'&&isPhone())?'Sala em espera':'Resenha — sala em espera';
+  overlayC(dlg(tit, corpo, {w:560, glyph:'⏳', footer:pe}));
 }
 /* O AVISO PARA QUEM ESTÁ SEGURANDO A SALA. Mesma linguagem visual do painel de espera, mensagem
    invertida — e com o botão que resolve, para o jogador não ter de adivinhar o que o jogo quer. */
