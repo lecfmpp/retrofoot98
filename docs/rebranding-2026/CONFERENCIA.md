@@ -265,7 +265,16 @@ conteúdo, e o caixa da tela bate com o `S.budget` do motor. Obras do estádio
       clube marcada — responde à única pergunta real: quanto rende subir
 - [x] **"R$ 0k"** — o preço é por lugar (8, 10, 25 reais) e passava pelo `fmt`,
       que encurta para milhares. Agora usa um formatador de dinheiro miúdo
-# 7 · E-mail — a conferir
+# 7 · E-mail
+
+### Corrigido nesta rodada
+- [x] **Abrir uma mensagem não fazia nada.** As linhas chamavam `clInboxOpen`,
+      que **não existe** — o real é `clOpenEmail(key)`. A página inteira era
+      inerte: clicar numa mensagem não abria, não marcava como lida, nada
+- [x] Arquivar e Responder ligados (ver a tabela dos diálogos, secção 5)
+
+Conferido: clicar abre a mensagem, marca como lida e o par Arquivar/Responder
+age.
 # 8 · Modo Resenha
 
 ## 8.1 Sala em espera (diálogo) — DESKTOP e MOBILE
@@ -354,5 +363,26 @@ Conferida contra `Modo Resenha.html`.
 - A linha "Divisão" fica, além das quatro do pacote: numa sala é informação
   que ninguém deduz
 
-# 9 · Configurações — a conferir (deve ficar só com Perfil · Opções)
-# 10 · Sair do jogo — a conferir (abas: Gravar e sair · Outros saves · Apagar)
+# 9 · Configurações
+
+Duas abas (Opções · Jogo), sem rolagem lateral em 375px, e todos os botões
+apontam para funções que existem.
+
+### Corrigido nesta rodada
+- [x] **As preferências moravam onde nada é guardado.** Os seis interruptores
+      escreviam em `CL.options` — e `CL` é o estado da **sessão**: só o `S` vai
+      para o disco. Voltavam ao padrão a cada recarregamento, e ninguém
+      percebia porque o interruptor mudava na tela.
+      Pior no **Som da partida**: o motor lê `S.config.sound` e o interruptor
+      escrevia noutro sítio — desligar o som não desligava som nenhum.
+      Agora as chaves que o motor conhece vão para `S.config`, as de interface
+      para `S.config.ui`, e alternar grava
+# 10 · Sair do jogo
+
+Quatro ações, todas ligadas: Gravar e sair · Começar outro save · Sair da conta ·
+Apagar este save. Sem rolagem lateral em 375px.
+
+### Divergência deliberada
+- O pacote desenha três **abas** (Gravar e sair · Outros saves · Apagar); o jogo
+  usa dois blocos (SAVE ATUAL · CONTA) com as quatro ações. As abas do pacote
+  separariam o que cabe numa tela só — anotado, não perseguido

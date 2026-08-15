@@ -194,6 +194,9 @@ function rfOb2(){
           <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();clPickSolo()">${rfIcone('jogar',16)} Começar agora</button>
         </div>
       </div>
+      <!-- o ramo do "em breve" chamava rfObAvisar(), que nao existe: se alguem
+           voltasse a ligar o RESENHA_EM_BREVE, o botao da lista de espera seria um
+           clique morto. Aponta para clWaitlistOpen, que e quem abre a lista. -->
       <div class="rf-modo resenha ${RESENHA_EM_BREVE?'off':''}" ${RESENHA_EM_BREVE?'':'onclick="clPickResenha()"'}>
         <img class="rf-modo-bg" src="img/modos/modo-resenha.webp" alt="" aria-hidden="true" loading="lazy">
         <div class="rf-modo-veu"></div>
@@ -201,7 +204,7 @@ function rfOb2(){
           <span class="rf-modo-tag">${RESENHA_EM_BREVE?'Em novembro':'Online'}</span>
           <span class="rf-modo-t">Modo Resenha</span>
           <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até 20 treinadores jogam a mesma rodada ao vivo, com tabela, mercado e zoeira no chat.</span>
-          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?'rfObAvisar()':'clPickResenha()'}">${RESENHA_EM_BREVE?rfIcone('coroa',16)+' Entrar na lista de espera':rfIcone('chat',16)+' Criar a sala'}</button>
+          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?"clWaitlistOpen('onboarding')":'clPickResenha()'}">${RESENHA_EM_BREVE?rfIcone('coroa',16)+' Entrar na lista de espera':rfIcone('chat',16)+' Criar a sala'}</button>
         </div>
       </div>
     </div>

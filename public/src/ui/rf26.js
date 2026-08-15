@@ -1963,7 +1963,7 @@ function rfOfertasHTML(){
 }
 /* perfil: preferências, com interruptor de verdade onde o jogo tem opção */
 function rfPerfilHTML(){
-  const auto=!!(CL.options&&CL.options.autoSalary);
+  const auto=rfPref('autoSalary');
   return `<div class="rf-perfil">
     <div class="rf-pref"><span class="rf-pref-l">Salários automáticos</span>
       <button type="button" class="rf-switch ${auto?'on':''}" onclick="rfTogglePref('autoSalary')"
@@ -1975,7 +1975,46 @@ function rfPerfilHTML(){
     <div class="rf-acts">${btn('Abrir opções','clOptions()')}</div>
   </div>`;
 }
-function rfTogglePref(k){ CL.options=CL.options||{}; CL.options[k]=!CL.options[k]; cdraw(); }
+/* =====================================================================
+   AS PREFERÊNCIAS MORAVAM ONDE NADA É GUARDADO.
+
+   `rfTogglePref` escrevia em `CL.options`. `CL` é o estado da SESSÃO — só o `S`
+   vai para o disco. Os seis interruptores da página de Configurações voltavam
+   ao padrão a cada recarregamento, e ninguém percebia porque o desenho
+   mostrava o interruptor a mudar.
+
+   Pior no "Som da partida": o motor lê `S.config.sound` (ver o Audio_ no topo
+   do core.js) e o interruptor escrevia noutro sítio. Desligar o som não
+   desligava som nenhum.
+
+   Agora cada chave vai para a sua casa: as que o motor já conhece vão para o
+   `S.config`, e as que são só da interface vão para `S.config.ui` — dentro do
+   `S`, portanto guardadas. E gravar é gravar. */
+const RF_PREF_MOTOR={ som:'sound', voz:'voice', classico:'classic' };
+function rfPref(k){
+  if(!S) return false;
+  S.config=S.config||{};
+  const nativa=RF_PREF_MOTOR[k];
+  if(nativa) return !!S.config[nativa];
+  return !!(S.config.ui&&S.config.ui[k]);
+}
+function rfPrefDef(k, padrao){
+  if(!S) return !!padrao;
+  S.config=S.config||{};
+  const nativa=RF_PREF_MOTOR[k];
+  if(nativa) return S.config[nativa]!=null ? !!S.config[nativa] : !!padrao;
+  const ui=S.config.ui||{};
+  return ui[k]!=null ? !!ui[k] : !!padrao;
+}
+function rfTogglePref(k){
+  if(!S){ cdraw(); return; }
+  S.config=S.config||{};
+  const nativa=RF_PREF_MOTOR[k];
+  if(nativa) S.config[nativa]=!S.config[nativa];
+  else { S.config.ui=S.config.ui||{}; S.config.ui[k]=!S.config.ui[k]; }
+  if(typeof rfGravar==='function') rfGravar();
+  cdraw();
+}
 
 const RF_BL_TREINADOR=[
   { k:'historia', t:'História', col:1, corpo:()=>rfHistoriaHTML(),
@@ -2008,7 +2047,7 @@ function rfListaEmailsHTML(){
   if(!box.length) return '<span class="rf-note">Caixa de entrada vazia.</span>';
   return `<div class="rf-mails">${box.slice(0,20).map(e=>`
     <div class="rf-mail ${e.read?'':'novo'} ${CL.inboxOpen===e.key?'aberto':''}"
-         onclick="clInboxOpen('${escC(e.key)}')">
+         onclick="clOpenEmail('${escC(e.key)}')">
       <div class="rf-mail-top">
         <span class="rf-mail-a">${e.read?'':'● '}${escC(e.subject||'')}</span>
         <span class="rf-mail-q">${escC(rfQuandoHTML(e))}</span>

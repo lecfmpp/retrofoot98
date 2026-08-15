@@ -32,7 +32,7 @@ function rfEmCaixaHTML(){
    o assunto e desalinhava a coluna inteira. */
 function rfEmLinha(e){
   return `<div class="rf-mail ${e.read?'':'novo'} ${CL.inboxOpen===e.key?'aberto':''}"
-       onclick="clInboxOpen('${escC(e.key)}')">
+       onclick="clOpenEmail('${escC(e.key)}')">
     <span class="rf-mail-i">${(typeof inboxIcon==='function'?inboxIcon(e.kind):rfIcone('email',16)+'')}</span>
     <div class="rf-mail-id">
       <div class="rf-mail-top">
@@ -147,7 +147,7 @@ function rfCfCampo(rot, valor, acao){
   </label>`;
 }
 function rfCfSwitch(k, rot, padrao){
-  const v=(CL.options&&CL.options[k]!=null)?!!CL.options[k]:!!padrao;
+  const v=(typeof rfPrefDef==='function')?rfPrefDef(k,padrao):!!padrao;
   return `<div class="rf-cf-sw">
     <span class="rf-cf-sw-l">${escC(rot)}</span>
     <button type="button" class="rf-switch ${v?'on':''}" onclick="rfTogglePref('${k}')"
