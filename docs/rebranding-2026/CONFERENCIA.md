@@ -69,12 +69,23 @@ Arquivos do pacote: `Hub do Time - Sidebar.html`, `Hub do Time - Mobile.html`,
 - [x] Campo continua existindo, com **326×406px** — exatamente a medida do pacote
 - [x] Sem rolagem horizontal
 
-### A corrigir
-- [ ] **Tabela do Elenco no mobile.** O pacote reduz para **3 colunas** —
-      JOGADOR · FRC · ENER. Hoje mostramos as 8 do desktop espremidas em 375px.
+### Corrigido nesta rodada
+- [x] **Elenco em 3 colunas** — JOGADOR · FRC · ENER, como no pacote
+- [x] **Ordem dos blocos** — o pacote intercala as duas colunas em vez de empilhar
+      uma depois da outra. Agora: campo → formações → elenco → destaques →
+      indicadores → classificação
+- [x] **Anúncio foi para o pé** — estava no topo, empurrando o jogo para baixo da
+      dobra em 375px
+- [x] **Rótulo da tática** — "titulares marcados com T na lista" sai no telefone;
+      era a armadilha nº 1 do prompt (nowrap em flex corta em vez de quebrar)
 
 ## 1.3 Formação — SIDEBAR RECOLHIDA
 - [ ] Ainda não conferida.
+
+## Decisão registrada
+- **Resolução:** fica como está publicado. A divergência de largura do pacote
+  (coluna de 530px, grade de 1476px, rolagem horizontal em 1440) **não será
+  perseguida** — decisão sua. O desktop da Formação está aprovado.
 
 ---
 

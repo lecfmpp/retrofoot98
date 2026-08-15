@@ -520,29 +520,29 @@ function rfHubHTML(){
   const moral=Math.round(sq.reduce((s,p)=>s+(p.moral||70),0)/Math.max(1,sq.length));
 
   const esquerda=`
-    <div class="rf-card rf-card-flat">
+    <div class="rf-card rf-card-flat" data-hub="elenco">
       <div class="rf-card-hd">
         <span class="rf-label-t">Elenco</span>
         <span class="rf-label-r">${sq.length} jogadores · <b>${xi.length}</b> titulares</span>
       </div>
       ${rfSquadTableHTML('hub')}
     </div>
-    <div class="rf-duo">
+    <div class="rf-duo" data-hub="indicadores">
       ${rfMedidorHTML('Moral do plantel', moral, rfFormaHTML()||'sem jogos',
         'var(--brand-primary)', moralTipText())}
       ${rfSegurancaHTML()}
     </div>
-    <div class="rf-card rf-card-grow">${rfClassifHTML()}</div>`;
+    <div class="rf-card rf-card-grow" data-hub="classificacao">${rfClassifHTML()}</div>`;
 
   const direita=`
-    <div class="rf-card rf-pitch-card">
+    <div class="rf-card rf-pitch-card" data-hub="campo">
       <div class="rf-card-hd">
         <span class="rf-label-t">Tática ${escC(CL.formation||'—')}</span>
-        <span class="rf-label-r">onze <b>${xi.length}/11</b> · titulares marcados com T na lista</span>
+        <span class="rf-label-r">onze <b>${xi.length}/11</b><span class="rf-so-desktop"> · titulares marcados com T na lista</span></span>
       </div>
       ${pitchHTML()}
     </div>
-    <div class="rf-card" id="rf-taticas">
+    <div class="rf-card" id="rf-taticas" data-hub="formacoes">
       <span class="rf-label-t">Formações</span>
       ${rfFormacoesHTML()}
       <div class="rf-acts">
@@ -550,7 +550,7 @@ function rfHubHTML(){
           title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
       </div>
     </div>
-    <div class="rf-hub-baixo">
+    <div class="rf-hub-baixo" data-hub="destaques">
       ${rfNotasHTML()}
       ${rfAdversarioCardHTML()}
     </div>`;

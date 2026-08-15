@@ -5278,3 +5278,27 @@
   background:var(--brand-secondary);border:none;color:var(--brand-primary);
   font-family:var(--font-sans);font-size:var(--fs-body-sm);font-weight:var(--fw-bold)}
 .rf-band-gravar:hover{filter:brightness(1.06)}
+
+/* ===== ORDEM DOS BLOCOS DO HUB NO TELEFONE =====
+   O pacote (Hub do Time - Mobile) não empilha "coluna esquerda inteira, depois
+   coluna direita": ele INTERCALA — campo, formações e suplentes primeiro, depois
+   o elenco, o adversário e só então a classificação. E o anúncio vai para o PÉ,
+   não para o topo: em 375px um banner antes do conteúdo empurra o jogo para
+   debaixo da dobra.
+   `display:contents` nas duas colunas dissolve os contêineres para que os cartões
+   participem da mesma pilha e possam ser ordenados um a um. */
+@media (max-width:760px){
+  .rf-cols{display:flex;flex-direction:column;gap:10px}
+  .rf-col{display:contents}
+  .rf-content>.rf-ad-top{order:90}
+  [data-hub="campo"]{order:1}
+  [data-hub="formacoes"]{order:2}
+  [data-hub="elenco"]{order:3}
+  [data-hub="destaques"]{order:4}
+  [data-hub="indicadores"]{order:5}
+  [data-hub="classificacao"]{order:6}
+}
+/* Armadilha 1 do pacote: rótulo com nowrap dentro de flex só corta, nunca quebra.
+   No telefone o pacote escreve apenas "Tática 3-3-4 · onze 11/11"; a explicação
+   do "T" sai, em vez de virar "titulares marcados c…". */
+@media (max-width:760px){ .rf-so-desktop{display:none} }
