@@ -5291,12 +5291,55 @@
   .rf-cols{display:flex;flex-direction:column;gap:10px}
   .rf-col{display:contents}
   .rf-content>.rf-ad-top{order:90}
-  [data-hub="campo"]{order:1}
-  [data-hub="formacoes"]{order:2}
-  [data-hub="elenco"]{order:3}
-  [data-hub="destaques"]{order:4}
-  [data-hub="indicadores"]{order:5}
-  [data-hub="classificacao"]{order:6}
+  /* CADA ABA MOSTRA O SEU, o resto sai da tela. Antes eu empilhava tudo numa
+     rolagem só e apenas ordenava os blocos — o telefone virava uma página de
+     três metros. O pacote trata o Hub como app: Formação, Elenco e Jogo são
+     abas, e o que não é da aba ativa não existe. */
+  .rf-cols[data-hubtab] > * > [data-hub]{display:none}
+  .rf-cols[data-hubtab="formacao"] > * > [data-hub="campo"],
+  .rf-cols[data-hubtab="formacao"] > * > [data-hub="formacoes"],
+  .rf-cols[data-hubtab="elenco"]   > * > [data-hub="elenco"],
+  .rf-cols[data-hubtab="jogo"]     > * > [data-hub="destaques"],
+  .rf-cols[data-hubtab="jogo"]     > * > [data-hub="classificacao"]{display:flex}
+  /* moral e segurança não aparecem em nenhuma das três abas do pacote: no
+     telefone eles vivem na faixa do topo, junto da FORMA */
+  [data-hub="indicadores"]{display:none !important}
+}
+
+/* ---- barra de abas do Hub: só existe no telefone ---- */
+.rf-hub-abas{display:none}
+@media (max-width:760px){
+  .rf-hub-abas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
+    background:var(--surface-card);border:var(--border-hairline);
+    border-radius:var(--r-card);padding:6px;margin-bottom:10px}
+  .rf-hub-aba{padding:11px 8px;border:none;border-radius:11px;cursor:pointer;
+    background:transparent;color:#3a473f;
+    font-family:var(--font-sans);font-size:var(--fs-body-sm);font-weight:var(--fw-medium)}
+  .rf-hub-aba.on{background:var(--brand-primary);color:#fff;font-weight:var(--fw-bold)}
+}
+
+/* ---- ROLAGEM LATERAL NO TELEFONE (autorizada para todas as telas) ----
+   Formações e suplentes viravam grades de duas colunas altíssimas em 375px.
+   Em faixa que rola de lado, cabem inteiros na altura de um cartão e a pessoa
+   percorre com o polegar, como no pacote. */
+@media (max-width:760px){
+  .rf-formgrid{display:flex !important;flex-wrap:nowrap !important;overflow-x:auto;
+    gap:8px;padding-bottom:6px;scroll-snap-type:x proximity;
+    -webkit-overflow-scrolling:touch}
+  .rf-formgrid>*{flex:0 0 auto;scroll-snap-align:start}
+  /* menores no telefone, como no pacote: a pastilha vira sigla + tecla empilhadas */
+  .rf-formgrid .rf-chip{min-width:66px;padding:7px 9px;flex-direction:column;gap:1px}
+  .rf-formgrid .rf-chip-l{font-size:var(--fs-body-sm);font-weight:var(--fw-bold)}
+  .rf-formgrid .rf-chip-h{font-size:9px;opacity:.75}
+  .rf-banco-lista{display:flex !important;flex-direction:row !important;flex-wrap:nowrap !important;
+    overflow-x:auto;gap:8px;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+  .rf-banco-lista>*{flex:0 0 auto}
+  .rf-bgrupo{display:flex;flex-direction:row;gap:8px;align-items:stretch}
+  .rf-bp{min-width:132px}
+  /* a faixa que rola ganha uma barra fina em vez da barra grossa do sistema */
+  .rf-formgrid::-webkit-scrollbar,.rf-banco-lista::-webkit-scrollbar{height:4px}
+  .rf-formgrid::-webkit-scrollbar-thumb,.rf-banco-lista::-webkit-scrollbar-thumb{
+    background:var(--line-2);border-radius:99px}
 }
 /* Armadilha 1 do pacote: rótulo com nowrap dentro de flex só corta, nunca quebra.
    No telefone o pacote escreve apenas "Tática 3-3-4 · onze 11/11"; a explicação

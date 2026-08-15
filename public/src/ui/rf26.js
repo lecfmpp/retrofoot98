@@ -555,11 +555,29 @@ function rfHubHTML(){
       ${rfAdversarioCardHTML()}
     </div>`;
 
+  /* NO TELEFONE O HUB TEM ABAS — Formação · Elenco · Jogo (ver os três mobiles do
+     pacote). Não é a mesma página rolando: cada aba mostra o seu conteúdo e o
+     resto não existe na tela. No desktop a barra não aparece e as duas colunas
+     seguem inteiras, que é o desenho de lá. */
   return `${rfBandHTML('Formação')}
-    <div class="rf-cols">
+    ${rfHubAbasHTML()}
+    <div class="rf-cols" data-hubtab="${escC(rfHubTab())}">
       <div class="rf-col">${esquerda}</div>
       <div class="rf-col">${direita}</div>
     </div>`;
+}
+/* ---- as abas do Hub no telefone ---- */
+const RF_HUB_ABAS=[['formacao','Formação'],['elenco','Elenco'],['jogo','Jogo']];
+function rfHubTab(){
+  const t=CL.hubTab;
+  return RF_HUB_ABAS.some(a=>a[0]===t)?t:'formacao';
+}
+function rfHubIrAba(k){ CL.hubTab=k; cdraw(); }
+function rfHubAbasHTML(){
+  const at=rfHubTab();
+  return `<div class="rf-hub-abas">${RF_HUB_ABAS.map(([k,l])=>
+    `<button type="button" class="rf-hub-aba ${k===at?'on':''}" onclick="rfHubIrAba('${k}')">${escC(l)}</button>`
+  ).join('')}</div>`;
 }
 
 /* as oito pastilhas de formação (seis + Auto + Melhores), com o atalho embaixo */
@@ -985,7 +1003,7 @@ const RF_NAV_MOBILE=['hub','elenco','mercado','campeonatos'];
 function rfBottomNavHTML(){
   const st=rfState();
   const chaves=RF_NAV_MOBILE.slice();
-  if(CL.online) chaves.splice(2,0,'chat');          // chat é o terceiro item na Resenha
+  if(CL.online && rfChatDisponivel()) chaves.splice(2,0,'chat');   // no telefone o chat não existe (ver rfChatDisponivel)
   const itens=chaves.slice(0,5).map(k=>{
     if(k==='chat'){
       const n=(typeof rfChatNaoLidas==='function')?rfChatNaoLidas():0;
@@ -1029,7 +1047,7 @@ function rfSheet(titulo, corpo, opts){
 }
 function rfMaisSheet(){
   const st=rfState();
-  const chaves=RF_NAV_MOBILE.concat(CL.online?['chat']:[]);
+  const chaves=RF_NAV_MOBILE.concat((CL.online&&rfChatDisponivel())?['chat']:[]);
   const resto=RF_PAGES.filter(p=>chaves.indexOf(p.key)<0);
   const linhas=resto.map(p=>`<button type="button" class="rf-sheet-i ${st.page===p.key?'on':''}"
     onclick="clCloseOverlay();rfGo('${p.key}')">
@@ -1062,7 +1080,14 @@ function rfChatMudo(){
   if(RF_CHAT_TELAS_MUDAS.indexOf(CL.screen)>=0) return true;
   return !!(CL.camaroteOn || CL.camOpen);      // Modo Camarote
 }
-function rfChatDisponivel(){ return !!(CL.online && typeof NET!=='undefined' && NET.room); }
+/* CHAT DESLIGADO NO TELEFONE, por decisão do usuário. Ele estava abrindo a
+   qualquer toque na tela — e num ecrã de 375px uma folha que cobre 66% da altura
+   por engano inviabiliza o uso. Desligando na FONTE, some a bolha, some o item da
+   barra inferior, somem os atalhos e some a folha: nada mais o invoca. */
+function rfChatDisponivel(){
+  if(typeof isPhone==='function' && isPhone()) return false;
+  return !!(CL.online && typeof NET!=='undefined' && NET.room);
+}
 function rfChatAberto(){ return !!CL.chatOpen; }
 function rfChatNaoLidas(){ return CL.chatUnread||0; }
 function rfChatToggle(){
