@@ -640,6 +640,8 @@ function rfOb7(){
   const artGols=art?((S.scorers&&S.scorers[art.n])||0):0;
   const vencendo=sq.filter(p=>(p.contract||9)<=1).length;
   const foto=(typeof stadiumPhotoFor==='function')?stadiumPhotoFor(CL.clubId):'';
+  const videoBv=(typeof clubWelcomeVideo==='function')?clubWelcomeVideo(CL.clubId)
+               :(window.WELCOME_VIDEO_DEFAULT||'');
   const seg=(S.jobSecurity!=null)?S.jobSecurity:60;
   const corpo=`
     <div class="rf-bv-media">
@@ -657,11 +659,19 @@ function rfOb7(){
       </div>
       <div class="rf-bv-video">
         <span class="rf-bv-eyebrow claro">Apresentação</span>
+        <!-- O ESPAÇO 16:9 DO PACOTE É PARA O VÍDEO DE VERDADE — o do presidente
+             entregando a camisa, o mesmo que a versão atual mostra aqui depois do
+             sorteio, no Solo e na Resenha (ver clubWelcomeVideo). Ficou como
+             maquete no port. O cartaz continua desenhado ATRÁS: se o ficheiro
+             faltar, o onerror esconde o vídeo e o cartaz reaparece, em vez de
+             deixar um retângulo preto. Sem som e em laço, como no jogo atual. -->
         <div class="rf-bv-play">
-          <span class="rf-bv-pb">▶</span>
+          <span class="rf-bv-pb">${rfIcone('jogar',19)}</span>
           <span class="rf-bv-pt">Vídeo do treinador contratado</span>
-          <span class="rf-bv-ps">ESPAÇO RESERVADO · 16:9</span>
+          <span class="rf-bv-ps">${escC(cl.short||'')}</span>
         </div>
+        ${videoBv?`<video class="rf-bv-vid" src="${escC(videoBv)}" autoplay muted loop playsinline
+          onerror="this.style.display='none'"></video>`:''}
       </div>
     </div>
     <div class="rf-bv-kpis">
