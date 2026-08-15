@@ -119,11 +119,21 @@ function rfLiveHTML(RL){
     && typeof camOn==='function' && camOn();
   const porDiv={};
   (RL.matches||[]).forEach((m,i)=>{ const d=m.div||S.division; (porDiv[d]=porDiv[d]||[]).push({m,i}); });
-  const ordem=(typeof divOrderUserFirst==='function')?divOrderUserFirst():Object.keys(porDiv);
+  /* A ORDEM NÃO PODE DESCARTAR GRUPO NENHUM. `divOrderUserFirst()` devolve só as
+     quatro divisões da liga; numa rodada de COPA os jogos vêm marcados com a
+     chave da competição (libertadores, copa do brasil…), que não está nessa
+     lista — e o filtro logo abaixo apagava TODOS os cartões. O resultado era a
+     tela ao vivo com a faixa azul dizendo "16 jogos em andamento" e nada por
+     baixo, justamente quando o utilizador é espectador e a tela é tudo o que ele
+     tem. Agora a ordem preferida vem primeiro e o que sobrar entra atrás, em vez
+     de sumir. */
+  const preferida=(typeof divOrderUserFirst==='function')?divOrderUserFirst():[];
+  const restantes=Object.keys(porDiv).filter(d=>preferida.indexOf(d)<0);
+  const ordem=preferida.concat(restantes);
   const cards=ordem.filter(d=>porDiv[d]&&porDiv[d].length).map(d=>`
     <div class="rf-lv-card">
       <div class="rf-lv-chd">
-        <span class="rf-label-t">${escC(classifDivName(d))}</span>
+        <span class="rf-label-t">${escC(rfLvNomeGrupo(d))}</span>
         <span class="rf-label-r">${porDiv[d].length} jogo${porDiv[d].length>1?'s':''}</span>
       </div>
       <div class="rf-lv-head">
@@ -157,6 +167,14 @@ function rfLiveHTML(RL){
    antigo (título, ficha do árbitro, banner) fica de fora de propósito, porque
    cada uma dessas telas já traz o próprio envelope de tela cheia.
    ===================================================================== */
+/* NOME DO GRUPO DE JOGOS. `classifDivName` só conhece as divisões da liga e
+   devolvia a chave crua ("libertadores") como título do cartão numa rodada de
+   copa. COMPETICOES tem o nome próprio de cada torneio. */
+function rfLvNomeGrupo(d){
+  const comp=(typeof COMPETICOES!=='undefined')?COMPETICOES[d]:null;
+  if(comp) return comp.name||comp.short||String(d);
+  return (typeof classifDivName==='function')?classifDivName(d):String(d);
+}
 function rfLvSobreposicaoHTML(RL){
   const m=(RL.matches||[]).find(x=>x.user); if(!m) return '';
   if(RL.pensPicking) return (typeof shootoutPickerHTML==='function')?shootoutPickerHTML():'';
