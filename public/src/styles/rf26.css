@@ -4491,7 +4491,9 @@
   border:1px solid var(--line-1);border-radius:11px;background:transparent;
   font-family:inherit;text-align:left;cursor:pointer;
   transition:background var(--dur-fast) var(--ease)}
-.rf-fi-preco:hover{background:#f5f8f4}
+/* deixaram de ser botões (o preço não se escolhe): o hover de clique sai, e o
+   cursor volta ao normal — ver a nota em rf26-financas.js */
+.rf-fi-preco{cursor:default}
 .rf-fi-preco.on{background:var(--club-primary-soft);border-color:var(--club-primary)}
 .rf-fi-preco-v{font-family:var(--font-mono);font-size:var(--fs-body);font-weight:var(--fw-semibold);
   color:var(--text-1);flex:0 0 auto;min-width:58px}

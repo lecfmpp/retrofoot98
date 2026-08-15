@@ -147,6 +147,13 @@ function rfFiExtratoHTML(){
       </div>
     </div>`;
 }
+/* dinheiro miúdo (preço por lugar): o `fmt` encurta para k/M e transformava
+   8 reais em "R$ 0k" */
+function rfFiReais(v){
+  const sim=(typeof curSym==='function')?curSym():'R$';
+  const n=Math.round((typeof curConv==='function')?curConv(v||0):(v||0));
+  return sim+' '+((typeof grp==='function')?grp(n):String(n));
+}
 function rfFiExportar(){
   const linhas=(S.finances||[]).map(f=>[f.round!=null?f.round:'', f.income||0, f.playerSales||0,
     f.salaries||0, f.opex||0, f.playerPurchases||0, f.stadium||0, f.net||0].join(';'));
@@ -223,20 +230,29 @@ function rfFiEstadioHTML(){
   const cl=clubOf(CL.clubId)||{short:'—'};
   const att=CL.lastAtt||0;
   const ocup=cap&&att?Math.round(att/cap*100):0;
-  const preco=CL.ticket||0;
+  /* O PREÇO VEM DA DIVISÃO, e é o motor que o diz. `CL.ticket` é uma cópia
+     recalculada a cada carregamento (ver main.js) e o motor nunca a lê: a
+     bilheteria usa `ticketPriceForDivision(div)`, uma tabela fixa
+     (A:25 · B:20 · C:15 · D:10). Ler daqui é ler da mesma fonte que paga. */
+  const preco=(typeof ticketPriceForDivision==='function')
+    ? ticketPriceForDivision(S.division) : (CL.ticket||0);
   const casa=(S.results||[]).filter(r=>r.h===CL.clubId);
   const publicos=casa.map(r=>r.att||0).filter(Boolean);
   const medio=publicos.length?Math.round(publicos.reduce((a,b)=>a+b,0)/publicos.length):0;
   const maiorP=publicos.length?Math.max.apply(null,publicos):0;
   const receita=(S.seasonTotals&&S.seasonTotals.gate)||0;
-  /* AS TRÊS FAIXAS DE PREÇO são o desenho do pacote: o motor tem UM preço, e
-     as outras duas são o mesmo preço 25% abaixo e 30% acima. O efeito no
-     público segue a mesma proporção — é estimativa de tela, não do motor. */
-  const faixas=[
-    {p:Math.max(1,Math.round(preco*.75)), obs:'+18% de público'},
-    {p:preco, obs:'como está hoje', atual:true},
-    {p:Math.round(preco*1.3), obs:'−22% de público'},
-  ];
+  /* O PREÇO DO BILHETE NÃO É UMA ESCOLHA DESTE JOGO.
+     Aqui havia três faixas clicáveis — 25% abaixo, o preço de hoje, 30% acima —
+     com o efeito no público ao lado. Nenhuma delas mudava coisa nenhuma: as
+     três chamavam `clTicketPrice && clTicketPrice()`, e `clTicketPrice` NÃO
+     EXISTE — o `&&` transformava o clique num silêncio. E não podia existir:
+     a bilheteria do motor é `att × ticketPriceForDivision(div)`, uma tabela
+     fixa por divisão que o jogador não toca.
+     De caminho, os três valores saíam como "R$ 0k": o preço é por lugar (8, 10,
+     25 reais) e estava a passar pelo `fmt`, que encurta para milhares.
+     No lugar da escolha falsa fica a tabela verdadeira — o que se paga em cada
+     divisão — que responde à única pergunta real: quanto rende subir. */
+  const TAB_PRECO=[['A','Série A',25],['B','Série B',20],['C','Série C',15],['D','Série D',10]];
   return `<div class="rf-card rf-fi-est">
       <div class="rf-fi-est-foto"${foto?` style="background-image:url('${escC(foto)}')"`:''}>
         <span class="rf-fi-est-veu"></span>
@@ -251,19 +267,21 @@ function rfFiEstadioHTML(){
       <div class="rf-el-stats">
         ${rfElStat('PÚBLICO MÉDIO', medio?grp(medio):'—', casa.length+' jogo'+(casa.length===1?'':'s')+' em casa')}
         ${rfElStat('MAIOR PÚBLICO', maiorP?grp(maiorP):'—', maiorP?'nesta temporada':'ainda sem jogo em casa')}
-        ${rfElStat('PREÇO DO BILHETE', fmt(preco), 'por lugar')}
+        ${rfElStat('PREÇO DO BILHETE', rfFiReais(preco), 'por lugar')}
         ${rfElStat('RECEITA NO ANO', receita?fmt(receita):'—', 'só bilheteria')}
       </div>
     </div>
     <div class="rf-fi-duo">
       <div class="rf-card">
-        <div class="rf-label"><span class="rf-label-t">PREÇO DO BILHETE</span></div>
-        ${faixas.map(f=>`<button type="button" class="rf-fi-preco ${f.atual?'on':''}"
-          onclick="clTicketPrice&&clTicketPrice()">
-          <span class="rf-fi-preco-v">${escC(fmt(f.p))}</span>
-          <span class="rf-fi-preco-o">${escC(f.obs)}</span>
-          <span class="rf-fi-preco-r">${f.atual?'preço de hoje':'estimativa'}</span>
-        </button>`).join('')}
+        <div class="rf-label"><span class="rf-label-t">PREÇO DO BILHETE</span>
+          <span class="rf-label-r">definido pela divisão</span></div>
+        ${TAB_PRECO.map(([d,nome,v])=>`<div class="rf-fi-preco ${d===S.division?'on':''}">
+          <span class="rf-fi-preco-v">${escC(rfFiReais(v))}</span>
+          <span class="rf-fi-preco-o">${escC(nome)}</span>
+          <span class="rf-fi-preco-r">${d===S.division?'a sua divisão':(v>preco?'subindo':'abaixo')}</span>
+        </div>`).join('')}
+        <span class="rf-note">A bilheteria de cada jogo é <b>público × preço</b>. O preço não se
+          escolhe: sobe quando o clube sobe de divisão.</span>
       </div>
       <div class="rf-card">
         <div class="rf-label"><span class="rf-label-t">OBRAS</span></div>

@@ -227,7 +227,23 @@ Três não tinham como funcionar, e passam a dizê-lo em vez de fingir:
 
 As restantes ("Continuar", "Entendi", "Fechar") são informativas: fechar **é** o
 que devem fazer.
-# 6 · Finanças — a conferir
+# 6 · Finanças
+
+Cinco abas (Resumo · Extrato · Histórico · Estádio · Patrocínio), todas com
+conteúdo, e o caixa da tela bate com o `S.budget` do motor. Obras do estádio
+(`clBuildStand`) funcionam.
+
+### Corrigido nesta rodada
+- [x] **O preço do bilhete não é uma escolha deste jogo.** Havia três faixas
+      clicáveis — 25% abaixo, hoje, 30% acima — com o efeito no público ao lado.
+      Nenhuma mudava nada: as três chamavam `clTicketPrice && clTicketPrice()`, e
+      **`clTicketPrice` não existe** — o `&&` transformava o clique num silêncio.
+      E não podia existir: a bilheteria do motor é `att × ticketPriceForDivision(div)`,
+      uma tabela fixa (A:25 · B:20 · C:15 · D:10) que o jogador não toca.
+      No lugar da escolha falsa entrou a tabela verdadeira, com a divisão do
+      clube marcada — responde à única pergunta real: quanto rende subir
+- [x] **"R$ 0k"** — o preço é por lugar (8, 10, 25 reais) e passava pelo `fmt`,
+      que encurta para milhares. Agora usa um formatador de dinheiro miúdo
 # 7 · E-mail — a conferir
 # 8 · Modo Resenha
 
