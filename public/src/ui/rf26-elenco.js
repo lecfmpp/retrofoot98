@@ -23,8 +23,12 @@ function rfElBarra(rot, valor, pct, cor){
 /* A CAMISA COM O NÚMERO — cinco caixas absolutas: corpo, duas mangas, gola e
    o número por cima. É a marca da tabela de elenco no pacote; sem ela a linha
    vira uma planilha. Vem em dois tamanhos: 'p' na tabela, 'g' na ficha. */
-function rfElCamisa(num, g){
-  return `<span class="rf-el-camisa ${g?'g':''}">
+/* `tam`: '' (28px, listas densas), 'm' (34px) ou 'g' (54px). É a ÚNICA camisa do
+   jogo — o Mercado tinha um desenho próprio, sem gola e com o número em 11px,
+   e as duas peças nunca coincidiam lado a lado. */
+function rfElCamisa(num, tam){
+  const cls = tam===true ? 'g' : (tam||'');
+  return `<span class="rf-el-camisa ${cls}">
     <i class="c-corpo"></i><i class="c-mgesq"></i><i class="c-mgdir"></i><i class="c-gola"></i>
     <b>${escC(String(num||''))}</b>
   </span>`;

@@ -92,14 +92,10 @@ function rfMkBt(rot, acao, cta){
     onclick="event.stopPropagation();${acao}">${escC(rot)}</button></span>`;
 }
 /* camisa pequena do Vender — a mesma peça do banco, sem colete */
-function rfMkCamisaHTML(num){
-  const th=(typeof clubTheme==='function')?clubTheme(CL.clubId):{};
-  const c1=th.col||'#17458F', c2=th.col2||'#F2B90C';
-  return `<span class="rf-mkt-camisa" aria-hidden="true">
-    <i class="rf-mkt-c-sl l" style="background:${c2}"></i><i class="rf-mkt-c-sl r" style="background:${c2}"></i>
-    <i class="rf-mkt-c-b" style="background:${c1}"><b style="color:${barTextColor(c1,c2)}">${escC(String(num||''))}</b></i>
-  </span>`;
-}
+/* MESMA CAMISA DO RESTO DO JOGO. Aqui havia um segundo desenho — 34×30, sem
+   gola, número em 11px preso ao corpo — e o número saía miúdo e desalinhado em
+   relação ao das outras listas. Agora é a peça canónica, no tamanho médio. */
+function rfMkCamisaHTML(num){ return rfElCamisa(num,'m'); }
 
 /* =====================================================================
    1 · COMPRAR
@@ -437,7 +433,11 @@ function rfMktTransfHTML(){
     const d=(S.round||0)-(h.round||0);
     return d<=0?'esta jornada':('há '+d+' jornada'+(d===1?'':'s'));
   };
-  const linhas=ent.map(({p,h})=>`<div class="rf-mkt-row ${h.to===CL.clubId||h.from===CL.clubId?'destaque':''}">
+  /* SEM DESTAQUE NAS LINHAS. Marcava toda transferência que envolvia o seu clube,
+     e numa janela movimentada isso enchia a tabela de faixas coloridas — o
+     realce perdia o sentido e o bloco ficava pesado de ler. O seu clube já se
+     identifica pelo escudo e pelo nome na própria linha. */
+  const linhas=ent.map(({p,h})=>`<div class="rf-mkt-row">
     <span class="rf-mkt-n">${escC(p.n)}</span>
     ${rfMkPos(p)}
     <span class="rf-mkt-f">${p.f}</span>
