@@ -123,7 +123,7 @@ const RF_PAGES=[
            {k:'historia',l:()=>'História',        build:()=>rfTrHistoriaHTML()},
            {k:'trofeus', l:()=>'Sala de Troféus', build:()=>rfTrTrofeusHTML()},
            {k:'ranking', l:()=>'Ranking',         build:()=>rfTrRankingHTML()},
-           {k:'ofertas', l:()=>'Ofertas'+rfSufixo(rfLen(S&&S.jobOffers)), build:()=>rfTrOfertasHTML()},
+           {k:'ofertas', l:()=>'Ofertas'+rfSufixo(rfLen(rfOfertas())), build:()=>rfTrOfertasHTML()},
            {k:'perfil',  l:()=>'Perfil',          build:()=>rfTrPerfilHTML()} ] },
 
   { key:'financas', ico:'financas', label:'Finanças', curto:'Finanças',
@@ -310,7 +310,7 @@ function rfBandHTML(titulo){
       <span class="rf-band-sl">Apito inicial${rfApitoFalta()?' em':''}</span>
       <span class="rf-band-sv rf-num">${escC(rfApitoFalta()||apito||'—')}</span>
     </div>
-    <button type="button" class="rf-band-gravar" onclick="clSaveGame&&clSaveGame()"
+    <button type="button" class="rf-band-gravar" onclick="rfAcGravar()"
       title="Gravar o jogo agora">${rfIcone('salvar',15)} Gravar</button>
   </div>
   ${rfFaixaEstadoHTML()}`;
@@ -365,7 +365,7 @@ function rfSidebarHTML(){
     if(key==='email') return unread;
     if(key==='mercado') return rfLen(typeof myIncomingOffers==='function'&&myIncomingOffers())
                              + rfLen(typeof myCounterOffers==='function'&&myCounterOffers());
-    if(key==='treinador') return rfLen(S&&S.jobOffers);
+    if(key==='treinador') return rfLen(rfOfertas());
     return 0;
   };
   const itens=RF_PAGES.map(p=>{
@@ -945,6 +945,11 @@ function rfGravar(){
   try{ if(typeof saveV3==='function') saveV3(); }catch(e){}
 }
 
+/* AS OFERTAS DE EMPREGO VIVEM EM `S.pendingJobOffers`.
+   Toda a pele nova lia `S.jobOffers` — um campo que o motor NUNCA escreve. A
+   aba Ofertas aparecia sempre vazia, o contador da barra lateral sempre a zero
+   e o resumo do Hub sempre em branco, mesmo com propostas reais na mesa. */
+function rfOfertas(){ return (typeof S!=='undefined'&&S&&S.pendingJobOffers)||[]; }
 function rfListaLim(chave){
   const v=CL.listaLim && CL.listaLim[chave];
   return RF_LISTA_PASSOS.indexOf(v)>=0 ? v : RF_LISTA_PASSOS[0];
@@ -1939,7 +1944,7 @@ function rfRankingHTML(lim){
   ${lim&&rows.length>lim?rfVerMais('treinador','ranking','Ver o ranking completo'):''}`;
 }
 function rfOfertasHTML(){
-  const of=(S.jobOffers||[]);
+  const of=rfOfertas();
   if(!of.length) return '<span class="rf-note">Nenhuma oferta na mesa agora.</span>';
   return of.slice(0,3).map(o=>{
     const c=(typeof jobOfferClub==='function')?jobOfferClub(o):{short:'?'};
@@ -1978,7 +1983,7 @@ const RF_BL_TREINADOR=[
   { k:'trofeus',  t:'Sala de Troféus', col:1, corpo:()=>rfTrofeusHTML(),
     dir:()=>{ const t=rfTitulosDoTreinador(); return t.length+(t.length===1?' título':' títulos'); } },
   { k:'ofertas',  t:'Ofertas', col:2, corpo:()=>rfOfertasHTML(),
-    dir:()=>(S.jobOffers||[]).length? (S.jobOffers||[]).length+' nova(s)':'' },
+    dir:()=>rfOfertas().length? rfOfertas().length+' nova(s)':'' },
   { k:'ranking',  t:'Ranking de treinadores', col:2, lim:4, corpo:l=>rfRankingHTML(l),
     dir:'por pontos somados' },
   { k:'perfil',   t:'Perfil', col:2, corpo:()=>rfPerfilHTML(), dir:'preferências' },

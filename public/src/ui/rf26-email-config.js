@@ -511,7 +511,6 @@ function rfSairHTML(){
 async function rfSairSaveGo(){
   rfAcFechar();
   try{ if(typeof rfGravar==='function') rfGravar(); }catch(e){}
-  try{ if(typeof clSaveGame==='function') await clSaveGame(); }catch(e){}
   CL.online=false; CL.live=null; CL.screen='abertura'; CL.landingView='home';
   cdraw();
   toastC('Jogo gravado. Até a próxima.','success');
@@ -618,7 +617,7 @@ function rfTrocarSenhaGo(){
 /* grava o que dá, encerra a sessão e volta para a abertura */
 async function rfSairContaGo(){
   rfAcFechar();
-  try{ if(typeof clSaveGame==='function') await clSaveGame(); }catch(e){}
+  try{ if(typeof rfGravar==='function') rfGravar(); }catch(e){}
   try{ if(typeof netAuthSignOut==='function') await netAuthSignOut(); }catch(e){}
   CL.soloSaves=null; CL.online=false; CL.net=null;
   CL.screen='abertura'; cdraw();

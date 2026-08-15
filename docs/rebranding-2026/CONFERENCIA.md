@@ -227,6 +227,27 @@ Três não tinham como funcionar, e passam a dizê-lo em vez de fingir:
 
 As restantes ("Continuar", "Entendi", "Fechar") são informativas: fechar **é** o
 que devem fazer.
+
+## As ofertas de emprego eram invisíveis
+
+Toda a pele nova lia **`S.jobOffers`** — um campo que o motor **nunca escreve**.
+O que existe é `S.pendingJobOffers`. Consequência: a aba Ofertas aparecia sempre
+vazia, o contador da barra lateral sempre a zero e o resumo do Hub sempre em
+branco, mesmo com propostas reais na mesa.
+
+E os dois botões do cartão chamavam `clAcceptJobOffer` / `clRejectJobOffer` —
+funções que **não existem**; o `&&` engolia o clique em silêncio. Aceitar entra
+agora no mesmo fluxo do convite que chega sozinho (jantar → proposta →
+boas-vindas), em vez de trocar de clube na hora.
+
+Conferido: a aba passou a marcar "Ofertas (1)", recusar grava no disco e aceitar
+abre a proposta.
+
+## O botão Gravar não gravava
+
+Na faixa do clube, `onclick="clSaveGame && clSaveGame()"` — e `clSaveGame` não
+existe. O botão mais visível do jogo não fazia nada. Passa a chamar
+`rfAcGravar()`, que grava e mostra a confirmação.
 # 6 · Finanças
 
 Cinco abas (Resumo · Extrato · Histórico · Estádio · Patrocínio), todas com

@@ -255,8 +255,34 @@ function rfTrRankingHTML(){
    destaca, e a única da tela com borda colorida.
    ===================================================================== */
 const RF_TR_SOND_COLS='22px minmax(0,1.2fr) minmax(0,.9fr) 92px minmax(0,1fr)';
+/* ACEITAR E RECUSAR NÃO FAZIAM NADA.
+   Os dois botões chamavam `clAcceptJobOffer && clAcceptJobOffer(i)` e o par
+   dele — funções que NÃO EXISTEM. O `&&` engolia o clique em silêncio: a
+   proposta ficava na mesa e nada acontecia, nos dois botões.
+
+   O motor tem o caminho pronto, e é o mesmo do convite que chega sozinho:
+   jantar → proposta → boas-vindas. Aceitar aqui entra por esse fluxo em vez de
+   trocar de clube na hora — senão a mesma decisão teria duas experiências
+   diferentes conforme a porta por onde se chega, e por aqui o treinador nem
+   veria os termos antes de confirmar. */
+function rfTrAceitarOferta(i){
+  const of=(typeof rfOfertas==='function')?rfOfertas():[];
+  const o=of[i]; if(!o){ toastC('Essa proposta não está mais na mesa.'); cdraw(); return; }
+  if(typeof clAcceptPendingOffer==='function') clAcceptPendingOffer(i);
+  else if(typeof showJobInvite==='function') showJobInvite(o);
+  else toastC('Não foi possível abrir a proposta.');
+}
+function rfTrRecusarOferta(i){
+  const of=(typeof rfOfertas==='function')?rfOfertas():[];
+  const o=of[i]; if(!o){ cdraw(); return; }
+  const c=(typeof jobOfferClub==='function')?jobOfferClub(o):{short:'o clube'};
+  (S.pendingJobOffers||[]).splice(i,1);
+  if(typeof rfGravar==='function') rfGravar();
+  toastC('Você recusou o convite do '+((c&&c.short)||'clube')+'.');
+  cdraw();
+}
 function rfTrOfertasHTML(){
-  const of=(S.jobOffers||[]);
+  const of=(typeof rfOfertas==='function')?rfOfertas():((S&&S.pendingJobOffers)||[]);
   const salAtual=(S.coachSalary!=null)?S.coachSalary:0;
   const verbaAtual=S.budget||0;
   const cards=of.map((o,i)=>{
@@ -273,8 +299,8 @@ function rfTrOfertasHTML(){
         </div>
         <div class="rf-sp"></div>
         <div class="rf-tr-of-acts">
-          <button type="button" class="rf-btn rf-btn-recusar" onclick="clRejectJobOffer&&clRejectJobOffer(${i})">Recusar</button>
-          <button type="button" class="rf-btn rf-btn-cta" onclick="clAcceptJobOffer&&clAcceptJobOffer(${i})">Aceitar o jantar</button>
+          <button type="button" class="rf-btn rf-btn-recusar" onclick="rfTrRecusarOferta(${i})">Recusar</button>
+          <button type="button" class="rf-btn rf-btn-cta" onclick="rfTrAceitarOferta(${i})">Aceitar o jantar</button>
         </div>
       </div>
       <div class="rf-el-stats">
