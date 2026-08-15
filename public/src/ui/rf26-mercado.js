@@ -69,6 +69,15 @@ function rfMkTabela(cols, cabecalho, linhas, vazio, chave){
     ${corpo}
   </div>`;
 }
+/* mesma conta do calendário (rfCpDataDaJornada): o motor não guarda data por
+   jornada, deriva do dia — sete por rodada */
+function rfMkDataDaJornada(i){
+  if(typeof realDateForDay!=='function') return '';
+  try{
+    const d=realDateForDay(1 + i*7 + 6);
+    return d.getDate()+'/'+((typeof PT_MONTHS_ABBR!=='undefined')?PT_MONTHS_ABBR[d.getMonth()]:(d.getMonth()+1));
+  }catch(e){ return ''; }
+}
 function rfMkClube(id){
   const c=anyClubOf(id)||{short:'—'};
   // ver rfCpClube: no telefone fica só o escudo, o nome chega pelo `title`, e o
@@ -428,13 +437,14 @@ function rfMktTransfHTML(){
     (p.transferHistory||[]).forEach(h=>ent.push({p,h}));
   }); });
   ent.sort((a,b)=>(b.h.season-a.h.season)||(b.h.round-a.h.round));
-  /* QUANDO: a referência escreve "há 2 dias". O jogo conta por rodada, e
-     uma rodada é uma jornada do calendário — então a distância sai em
-     jornadas, que é o tempo que o jogo realmente mede. */
+  /* QUANDO: data curta (7/mar), a mesma régua do calendário — sete dias por
+     jornada, ver rfCpDataDaJornada. Antes saía em texto ("há 3 jornadas",
+     "temporada 2027"), que ocupava o dobro da largura e ainda obrigava a contar
+     de cabeça para saber quando foi. De outra temporada, entra o ano. */
   const quando=h=>{
-    if(h.season!==S.season) return 'temporada '+h.season;
-    const d=(S.round||0)-(h.round||0);
-    return d<=0?'esta jornada':('há '+d+' jornada'+(d===1?'':'s'));
+    const d=rfMkDataDaJornada(h.round||0);
+    if(h.season!==S.season) return (d?d+'/':'')+String(h.season||'').slice(-2);
+    return d||'—';
   };
   /* SEM DESTAQUE NAS LINHAS. Marcava toda transferência que envolvia o seu clube,
      e numa janela movimentada isso enchia a tabela de faixas coloridas — o
@@ -450,8 +460,8 @@ function rfMktTransfHTML(){
     <span class="rf-mkt-v">${escC(rfDin(h.fee||0))}</span>
     <span class="rf-mkt-x">${escC(quando(h))}</span>
   </div>`);
-  const cabecalho=`<span>JOGADOR</span><span>POS</span><span>FOR</span><span>SAIU DE</span>
-    <span></span><span>FOI PARA</span><span class="dir">VALOR</span><span class="dir">QUANDO</span>`;
+  const cabecalho=`<span>JOGADOR</span><span>POS</span><span>FOR</span><span>DE</span>
+    <span></span><span>PARA</span><span class="dir">VALOR</span><span class="dir">QUANDO</span>`;
   const aberta=(typeof inTransferWindow==='function')?inTransferWindow():true;
   const jornadas=(S.sched||[]).length||14;
   const pct=Math.max(0,Math.min(100,Math.round((S.round||0)/jornadas*100)));
