@@ -87,12 +87,16 @@ function rfPlLinhaHTML(p, opts){
   opts=opts||{};
   const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(CL.clubId):{};
   const en=Math.round(p.energy!=null?p.energy:100);
-  return `<div class="rf-pl ${opts.sel?'sel':''} ${opts.off?'off':''}"
+  return `<div class="rf-pl ${opts.sel?'sel':''} ${opts.off?'off':''} ${opts.marca?'trocou '+opts.marca:''}"
       ${opts.on?`onclick="${opts.on}"`:''}>
     <span class="rf-pl-num">${escC(String(nums[p.pid]||''))}</span>
     <span class="rf-pl-id">
       <span class="rf-pl-n">${escC(p.n)}</span>
-      ${opts.sub?`<span class="rf-pl-s">${opts.sub}</span>`:''}
+      ${opts.marca?`<span class="rf-pl-marca">${
+        (typeof isPhone==='function'&&isPhone())
+          ? (opts.marca==='entrou'?'▲ entrou':'▼ saiu')
+          : (opts.marca==='entrou'?'▲ entrou agora':'▼ saiu agora')}</span>`
+        :(opts.sub?`<span class="rf-pl-s">${opts.sub}</span>`:'')}
     </span>
     <span class="rf-pl-pos">${escC(posLetter(p.s))}</span>
     <span class="rf-pl-en"><i class="rf-ener" style="--v:${en};--c:${rfEnergiaCor(en)}"></i></span>
@@ -109,6 +113,14 @@ function rfSubHTML(m){
   const xi=squad(id).filter(p=>xiSet.has(p.pid)).sort(bySquadOrder);
   const banco=squad(id).filter(p=>!xiSet.has(p.pid)&&!(p.suspended>0)&&!(p.injuredMatches>0)).sort(bySquadOrder);
   const usadas=CL.subsUsed||0, max=3;
+  /* A TROCA TEM DE SER VISTA. Confirmar mandava a substituicao para o motor e
+     chamava updateLive(), que so mexe no placar — as duas listas continuavam com
+     a escalacao velha, com o substituido ainda "em campo". Agora o painel e
+     redesenhado a partir do S.xi novo (os dois jogadores realmente trocam de
+     cartao, um sobe para Em campo e o outro desce para o banco) e cada um leva
+     uma marca por alguns segundos, para o olho acompanhar o salto. */
+  const tr=(CL._subTroca && (Date.now()-CL._subTroca.ts)<6000)?CL._subTroca:null;
+  const marcaDe=(pid)=>!tr?'':(tr.entrou===pid?'entrou':(tr.saiu===pid?'saiu':''));
   const sai=CL.subOut?xi.find(p=>p.pid===CL.subOut):null;
   const entra=CL.subIn?banco.find(p=>p.pid===CL.subIn):null;
   const pronto=!!(sai&&entra);
@@ -126,13 +138,14 @@ function rfSubHTML(m){
           <span class="rf-label-r">toque para sair</span></div>
         <div class="rf-pl-head"><span></span><span></span><span>POS</span><span>ENERGIA</span><span>FOR</span></div>
         ${xi.map(p=>rfPlLinhaHTML(p,{sel:CL.subOut===p.pid, on:`rfSubPick('out','${escC(p.pid)}')`,
-          sub:(p.energy!=null&&p.energy<45)?'cansado':''})).join('')}
+          marca:marcaDe(p.pid), sub:(p.energy!=null&&p.energy<45)?'cansado':''})).join('')}
       </div>
       <div class="rf-card">
         <div class="rf-label"><span class="rf-label-t">No banco</span>
           <span class="rf-label-r">toque para entrar</span></div>
         <div class="rf-pl-head"><span></span><span></span><span>POS</span><span>ENERGIA</span><span>FOR</span></div>
-        ${banco.length?banco.map(p=>rfPlLinhaHTML(p,{sel:CL.subIn===p.pid, on:`rfSubPick('in','${escC(p.pid)}')`})).join('')
+        ${banco.length?banco.map(p=>rfPlLinhaHTML(p,{sel:CL.subIn===p.pid, on:`rfSubPick('in','${escC(p.pid)}')`,
+          marca:marcaDe(p.pid)})).join('')
           :'<div class="rf-empty">Ninguém disponível no banco.</div>'}
       </div>
     </div>
@@ -155,13 +168,50 @@ function rfSubHTML(m){
   return rfOverlay({
     w:900, contexto:rfCtxPartida(m), titulo:'Substituição',
     hdDir:rfSubsPillsHTML(usadas,max), corpo,
-    acoes:`<button type="button" class="rf-ov-b2" onclick="rfSubFechar()">↩ Voltar ao jogo</button>
+    acoes:`<button type="button" class="rf-ov-b2" onclick="rfSubFechar()">↩ ${
+      (typeof isPhone==='function'&&isPhone())?'Voltar':'Voltar ao jogo'}</button>
       <div class="rf-sp"></div>
       <!-- no telefone o rótulo é só "Confirmar": "Confirmar substituição" não cabe
            na metade de uma barra de 375px e saía com reticências -->
       <button type="button" class="rf-ov-cta" ${pronto?'':'disabled'} onclick="rfSubConfirmar()">${
         (typeof isPhone==='function'&&isPhone())?'Confirmar':'Confirmar substituição'}</button>`
   });
+}
+/* Leva as duas linhas marcadas para dentro da vista. Sem isto, nas listas de 11
+   e de 20 as marcas caem quase sempre fora do que se ve, e a troca "acontece"
+   fora do ecra — que era exatamente a queixa. */
+function rfSubCentrarTroca(){
+  const m=[...document.querySelectorAll('.rf-ov-cols .rf-pl.trocou')];
+  if(!m.length) return;
+  /* Cada linha rola DENTRO do seu proprio rolador. No computador as duas listas
+     sao dois roladores separados, entao as duas marcas podem ser centradas ao
+     mesmo tempo sem uma desfazer a outra. */
+  const rolador=(el)=>{ let p=el.parentElement;
+    while(p && p!==document.body){
+      const st=getComputedStyle(p);
+      if(/(auto|scroll)/.test(st.overflowY) && p.scrollHeight>p.clientHeight+1) return p;
+      p=p.parentElement; }
+    return null; };
+  const naJanela=[];
+  m.forEach(function(el){
+    const box=rolador(el);
+    if(box){ const r=el.getBoundingClientRect(), b=box.getBoundingClientRect();
+      box.scrollTop=Math.max(0,box.scrollTop+(r.top-b.top)-(box.clientHeight-r.height)/2); }
+    else naJanela.push(el);
+  });
+  /* Sobrou quem divide a rolagem da pagina — no telefone as duas listas estao
+     empilhadas nela. Ai e um pedido so, para o ponto medio entre as duas: dois
+     pedidos na mesma pagina e o segundo desfaz o primeiro. E o alvo nao e o meio
+     da JANELA, e o meio da FAIXA LIVRE, porque o cabecalho e a barra de acoes
+     sao fixos e comem topo e base. */
+  if(!naJanela.length) return;
+  const cx=naJanela.map(el=>{const r=el.getBoundingClientRect(); return r.top+r.height/2;});
+  const meio=(Math.min(...cx)+Math.max(...cx))/2;
+  const hd=document.querySelector('.rf-ov-hd'), ft=document.querySelector('.rf-ov-foot');
+  const topo=hd?hd.getBoundingClientRect().height:0;
+  const base=ft?ft.getBoundingClientRect().height:0;
+  const doc=document.scrollingElement||document.documentElement;
+  doc.scrollTop=Math.max(0,doc.scrollTop+meio-(topo+(window.innerHeight-topo-base)/2));
 }
 const RF_SETOR_NOME={GK:'gol',DEF:'defesa',MID:'meio',ATT:'ataque'};
 function rfSetorNome(s){ return RF_SETOR_NOME[s]||'time'; }
@@ -192,9 +242,42 @@ function rfSubFechar(){
 }
 function rfSubConfirmar(){
   if(!CL.subOut||!CL.subIn) return;
-  if(typeof liveDoSub==='function') liveDoSub();   // já limpa subOut/subIn e redesenha
-  else { S.xi=(S.xi||[]).map(x=>x===CL.subOut?CL.subIn:x); CL.subsUsed=(CL.subsUsed||0)+1;
-         CL.subOut=null; CL.subIn=null; cdraw(); }
+  const saiu=CL.subOut, entrou=CL.subIn;
+  if(typeof liveDoSub==='function') liveDoSub();
+  else { S.xi=(S.xi||[]).map(x=>x===saiu?entrou:x); CL.subsUsed=(CL.subsUsed||0)+1;
+         CL.subOut=null; CL.subIn=null; }
+  /* So marca se a troca REALMENTE passou: liveDoSub recusa em silencio quando ja
+     ha 3 substituicoes ou quando se tenta trocar goleiro por jogador de linha.
+     O S.xi novo e a unica prova de que aconteceu. */
+  const entrouMesmo=(S.xi||[]).indexOf(entrou)>=0 && (S.xi||[]).indexOf(saiu)<0;
+  CL._subTroca = entrouMesmo ? {entrou:entrou, saiu:saiu, ts:Date.now()} : null;
+  cdraw();   // updateLive() so mexe no placar; quem redesenha as duas listas e o cdraw
+  if(entrouMesmo){
+    /* NAO BASTA MARCAR: nas listas de 11 e de 20, as duas linhas marcadas caem
+       quase sempre fora da vista, e o utilizador ve o painel piscar sem ver
+       troca nenhuma.
+       Um scrollIntoView por linha nao serve: sao dois pedidos na MESMA pagina,
+       e o segundo desfaz o primeiro — foi o que aconteceu no primeiro teste, com
+       a linha de quem entrou empurrada para fora por cima. Rolamos uma vez so,
+       para o PONTO MEDIO entre as duas, que e onde as duas cabem juntas quando
+       cabem, e o melhor meio-termo quando nao cabem. */
+    /* A centragem nao se pede daqui: quem a aplica e o fim de cada desenho
+       (devolveRolagem), enquanto a janela de 900ms de CL._subTroca durar. Um
+       setTimeout daqui perdia sempre a corrida contra o tique da partida, que
+       redesenha as listas e repoe o deslocamento logo a seguir. */
+    /* APAGAR A MARCA NAO PODE REDESENHAR. Um cdraw() aqui refaz o innerHTML das
+       duas listas, e a rolagem volta ao topo sozinha seis segundos depois da
+       troca — o painel dava um salto sem que ninguem tivesse tocado nele.
+       Tirar as classes a mao deixa a lista exatamente onde o utilizador a poisou. */
+    clearTimeout(CL._subTrocaT);
+    CL._subTrocaT=setTimeout(function(){
+      CL._subTroca=null;
+      document.querySelectorAll('.rf-pl.trocou').forEach(function(el){
+        el.classList.remove('trocou','entrou','saiu');
+        const mk=el.querySelector('.rf-pl-marca'); if(mk) mk.remove();
+      });
+    },6000);
+  }
 }
 
 /* =====================================================================

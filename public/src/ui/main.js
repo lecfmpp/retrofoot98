@@ -665,7 +665,11 @@ function hideSyncLoading(){ if(CL._syncLoadingTimer){ clearTimeout(CL._syncLoadi
    `.rf-main` é o rolo da página no painel novo e `.rf-lista` é o de cada
    lista longa; as duas primeiras são do skin antigo, que ainda tem telas
    vivas. */
-const CDRAW_ROLAGENS=['.cl-roster','.cl-mkt-squad','.rf-lista','.rf-sq-list','.rf-cam-narra'];
+const CDRAW_ROLAGENS=['.cl-roster','.cl-mkt-squad','.rf-lista','.rf-sq-list','.rf-cam-narra',
+  /* as duas listas do painel de substituicao: a partida continua a correr por
+     baixo e cada tique redesenha a tela, entao sem isto quem tinha descido ate
+     ao lateral-esquerdo era atirado de volta ao topo duas vezes por segundo. */
+  '.rf-ov-cols .rf-card'];
 /* O ROLO DA PÁGINA é caso à parte: restaurar sempre faria NAVEGAR de uma
    página para outra herdar o deslocamento da anterior — aí sim o utilizador
    cairia no meio de uma tela que nunca abriu. Só volta ao lugar quando a
@@ -748,6 +752,17 @@ function devolveRolagem(m){
         }
       }
     }
+  }catch(e){}
+  /* A SUBSTITUICAO TEM DE SER VISTA. Quem acabou de trocar leva as duas listas
+     ate as linhas marcadas — e isso nao pode ser feito com um setTimeout depois
+     do cdraw(), porque a partida redesenha a tela varias vezes por segundo e a
+     restauracao acima repoe o deslocamento logo a seguir. Como o `rolarPara`, a
+     intencao vive no estado e e reaplicada AQUI, no fim de cada desenho, durante
+     uma janela curta; e instantanea de proposito, que uma rolagem suave nao
+     sobrevive ao redesenho seguinte. */
+  try{
+    if(CL._subTroca && (Date.now()-CL._subTroca.ts)<900 && typeof rfSubCentrarTroca==='function')
+      rfSubCentrarTroca();
   }catch(e){}
   try{ RF_CTX_DESENHADO=rfContextoRolagem(); }catch(e){}
 }
