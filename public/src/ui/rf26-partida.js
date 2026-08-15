@@ -157,7 +157,10 @@ function rfSubHTML(m){
     hdDir:rfSubsPillsHTML(usadas,max), corpo,
     acoes:`<button type="button" class="rf-ov-b2" onclick="rfSubFechar()">↩ Voltar ao jogo</button>
       <div class="rf-sp"></div>
-      <button type="button" class="rf-ov-cta" ${pronto?'':'disabled'} onclick="rfSubConfirmar()">Confirmar substituição</button>`
+      <!-- no telefone o rótulo é só "Confirmar": "Confirmar substituição" não cabe
+           na metade de uma barra de 375px e saía com reticências -->
+      <button type="button" class="rf-ov-cta" ${pronto?'':'disabled'} onclick="rfSubConfirmar()">${
+        (typeof isPhone==='function'&&isPhone())?'Confirmar':'Confirmar substituição'}</button>`
   });
 }
 const RF_SETOR_NOME={GK:'gol',DEF:'defesa',MID:'meio',ATT:'ataque'};

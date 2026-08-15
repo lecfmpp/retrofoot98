@@ -119,8 +119,17 @@
    Empilhado no canto INFERIOR DIREITO. Ficava no meio do rodapé e passava por
    cima do que a pessoa estava lendo; no canto ele avisa sem disputar a leitura.
    NUNCA pede decisão — decisão é Dialog. */
+/* O TOAST FICA ACIMA DE TUDO (z-index 950). Com 60 ele nascia ATRÁS das
+   sobreposições de partida (65) e dos diálogos: a confirmação da substituição
+   era criada, existia no DOM e ninguém a via — o jogador trocava um jogador e
+   ficava sem resposta nenhuma na tela. Aviso que não se vê não é aviso. */
 #c-toast{position:fixed;right:24px;bottom:24px;left:auto;transform:none;display:flex;
-  flex-direction:column;align-items:flex-end;gap:var(--sp-4);z-index:60;pointer-events:none}
+  flex-direction:column;align-items:flex-end;gap:var(--sp-4);z-index:950;pointer-events:none}
+/* no telefone ele sobe acima da barra inferior, senão fica escondido atrás dela */
+@media (max-width:760px){
+  #c-toast{right:10px;left:10px;bottom:84px;align-items:stretch}
+  #c-toast .rf-toast{max-width:none}
+}
 
 /* entra deslizando da direita, sai voltando pra direita ENQUANTO a altura
    colapsa — sem o colapso, os toasts de baixo dariam um pulo quando o de cima
@@ -2665,8 +2674,18 @@
   border-radius:13px;background:var(--club-cta-bg,var(--club-secondary));border:1px solid transparent;
   color:var(--club-cta-fg,var(--club-on-secondary));font-family:var(--font-sans);
   font-weight:var(--fw-bold);font-size:var(--fs-body);white-space:nowrap;cursor:pointer}
-.rf-ov-cta:hover:not(:disabled){background:var(--club-secondary-hover)}
+.rf-ov-cta:hover:not(:disabled){filter:brightness(1.06)}
 .rf-ov-cta:disabled{opacity:.5;cursor:default}
+/* AÇÃO PRINCIPAL DE SOBREPOSIÇÃO É SEMPRE AMARELA. Ela puxava a secundária do
+   CLUBE: num time de secundária clara o botão ficava branco sobre branco e
+   sumia — no telefone, onde a sobreposição ocupa a tela toda, isso deixava o
+   utilizador sem saber onde confirmar. */
+.rf-ov-cta{background:var(--brand-secondary) !important;color:var(--brand-primary) !important}
+.rf-ov-cta .rf-ico{color:var(--brand-primary)}
+/* o botão secundário precisa de corpo: transparente com borda fina, ele
+   desaparecia sobre o gramado escurecido da sobreposição */
+.rf-ov-b2{background:var(--surface-card);color:var(--text-2);border-color:var(--line-2)}
+.rf-ov-b2:hover{background:var(--surface-sunken)}
 /* as três pílulas de substituição */
 .rf-ov-subs{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:0 0 auto}
 .rf-ov-subs-l{font-size:var(--fs-label-xs);font-weight:var(--fw-semibold);letter-spacing:var(--ls-label);
@@ -5456,3 +5475,41 @@
   .rf-sq-head.rf-sq-hub{padding-left:2px;padding-right:2px}
   .rf-sq-row.rf-sq-hub{padding:8px}
 }
+
+/* ===== MERCADO NO TELEFONE =====
+   O arquivo mobile do pacote só esconde barra lateral e trilhos de anúncio: ele
+   não trata a tabela, e as oito colunas em 390px colapsavam NOME e CLUBE para
+   0px — a linha ficava ilegível. Mesmo princípio já aprovado no Elenco do Hub:
+   ficam o nome, a força, o valor e a ação; posição, idade, clube e salário estão
+   na ficha do jogador, a um toque.
+   A grade vem de `--rf-mkt-cols` (inline, no JS), por isso o !important. */
+@media (max-width:760px){
+  .rf-mkt-head{display:none}
+  .rf-mkt-row{grid-template-columns:minmax(0,1fr) 28px 86px 60px !important;
+    column-gap:8px;padding:10px 6px;align-items:center}
+  .rf-mkt-row .rf-mkt-b,.rf-mkt-row button{padding:6px 8px;font-size:11px;width:100%}
+  .rf-mkt-row>*:nth-child(2),   /* POS   */
+  .rf-mkt-row>*:nth-child(3),   /* IDADE */
+  .rf-mkt-row>*:nth-child(5),   /* CLUBE */
+  .rf-mkt-row>*:nth-child(7){   /* SALÁRIO */
+    display:none}
+  /* os filtros viram faixa que rola de lado, como as formações */
+  .rf-mkf{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:8px;
+    padding-bottom:6px;-webkit-overflow-scrolling:touch}
+  .rf-mkf>*{flex:0 0 auto}
+  .rf-mkf::-webkit-scrollbar{height:4px}
+  .rf-mkf::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:99px}
+}
+
+/* Redesenho da MESMA tela não repete a animação de entrada (ver cdraw).
+   A transição de estado (hover, foco, barra de energia) continua — o que morre
+   aqui é só a entrada, que não deve tocar duas vezes na mesma tela. */
+.rf-sem-anim .rf-tabpane,
+.rf-sem-anim .rf-pagegrid,
+.rf-sem-anim .rf-kpis,
+.rf-sem-anim .rf-dlg,
+.rf-sem-anim .rf-ov,
+.rf-sem-anim .rf-stg,
+.rf-sem-anim .rf-lista,
+.rf-sem-anim .rf-chat-peek,
+.rf-sem-anim .rf-cbx-pop{animation:none !important}

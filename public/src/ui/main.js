@@ -752,6 +752,16 @@ function devolveRolagem(m){
   try{ RF_CTX_DESENHADO=rfContextoRolagem(); }catch(e){}
 }
 function cdraw(){ const r=$c('#c-root'); if(!r)return;
+  /* O PISCA-PISCA A CADA CLIQUE. Todo cdraw() recria a tela por innerHTML, e os
+     blocos com `animation: ds-fade-up` (painel de aba, grades, diálogos) tocam a
+     entrada DE NOVO — a cada clique de botão, filtro ou aba, a página parecia
+     recarregar. A animação existe para a chegada a uma tela nova, não para um
+     redesenho da mesma tela: quando o contexto (tela|página|aba) é o mesmo do
+     desenho anterior, ela é suprimida por `.rf-sem-anim` (ver rf26.css). */
+  try{
+    const mesmo = RF_CTX_DESENHADO && (RF_CTX_DESENHADO===rfContextoRolagem());
+    document.documentElement.classList.toggle('rf-sem-anim', !!mesmo);
+  }catch(e){}
   const _rolagem=capturaRolagem();
   // registra a força do meu elenco uma vez por rodada (no-op se nada mudou) — ver trackMyForces
   if(typeof trackMyForces==='function'){ try{ trackMyForces(); }catch(e){} }

@@ -86,11 +86,16 @@ const RF_PAGES=[
        permite", "Como negociar") vem embaixo. Espremer a tabela num
        1fr+340 comia justamente a coluna do NOME do jogador. */
     acoes:()=>rfMktAcoesHTML(), grid:'minmax(0,1fr)',
+    /* ORDEM DO PACOTE: Comprar · Vender · Leilão · Propostas · Contrapropostas.
+       "Vender" estava em quinto, depois de tudo o que é resposta a terceiros —
+       mas comprar e vender são as duas ações que o treinador inicia, e o desenho
+       as põe lado a lado. "Transferências" não consta na lista do pacote; fica
+       no fim até você decidir se some ou vira outra coisa. */
     tabs:[ {k:'comprar', l:()=>'Comprar',        build:()=>rfMktComprarHTML()},
+           {k:'vender',  l:()=>'Vender',         build:()=>rfMktVenderHTML()},
            {k:'leilao',  l:()=>'Leilão',         build:()=>rfMktLeilaoHTML()},
            {k:'propostas',l:()=>'Propostas'+rfSufixo(rfLen(rfPropostas())), build:()=>rfMktPropostasHTML()},
            {k:'contra',  l:()=>'Contrapropostas',build:()=>rfMktContraHTML()},
-           {k:'vender',  l:()=>'Vender',         build:()=>rfMktVenderHTML()},
            {k:'transf',  l:()=>'Transferências', build:()=>rfMktTransfHTML()} ] },
 
   { key:'elenco', ico:'elenco', label:'Elenco & Base', curto:'Elenco',

@@ -106,10 +106,23 @@ const RF_MKT_FILTROS=[
   { k:'forca', l:'Força',   op:[['all','qualquer'],['70','70+'],['80','80+'],['90','90+']] },
   { k:'idade', l:'Idade',   op:[['all','qualquer'],['23','até 23'],['27','até 27'],['30','até 30']] },
   { k:'preco', l:'Preço',   op:[['all','qualquer'],['caixa','o que cabe no caixa'],['meio','até metade do caixa']] },
+  /* o pacote traz CINCO filtros; faltava o de clube */
+  { k:'clube', l:'Clube',   op:()=>rfMktClubesOp() },
 ];
-function rfMktF(){ return CL.mktF||(CL.mktF={pos:'all',forca:'all',idade:'all',preco:'all'}); }
+/* os clubes que de facto têm alguém à venda, em ordem alfabética */
+/* Os clubes vêm de DATA.clubs, NÃO do mercado já filtrado: se saíssem da lista
+   filtrada, escolher um clube deixaria só ele na própria caixa de selecção e não
+   haveria como voltar a outro. */
+function rfMktClubesOp(){
+  const lista=(DATA.clubs||[])
+    .filter(c=>c.id!==CL.clubId)
+    .map(c=>[String(c.id), c.short||c.name||String(c.id)])
+    .sort((a,b)=>a[1].localeCompare(b[1],'pt-BR'));
+  return [['all','qualquer']].concat(lista);
+}
+function rfMktF(){ return CL.mktF||(CL.mktF={pos:'all',forca:'all',idade:'all',preco:'all',clube:'all'}); }
 function rfMktSetF(k,v){ rfMktF()[k]=v; CL._mktCache2=null; cdraw(); }
-function rfMktLimpar(){ CL.mktF={pos:'all',forca:'all',idade:'all',preco:'all'}; CL._mktCache2=null; cdraw(); }
+function rfMktLimpar(){ CL.mktF={pos:'all',forca:'all',idade:'all',preco:'all',clube:'all'}; CL._mktCache2=null; cdraw(); }
 /* o mercado inteiro, com os filtros da referência aplicados */
 function rfMktMercado(){
   const f=rfMktF();
@@ -125,6 +138,7 @@ function rfMktMercado(){
       const ask=(typeof playerAsk==='function')?playerAsk(p,c.id):(p.mv||0);
       if(f.preco==='caixa' && ask>teto) return;
       if(f.preco==='meio'  && ask>teto/2) return;
+      if(f.clube && f.clube!=='all' && String(c.id)!==String(f.clube)) return;
       out.push({p,clubId:c.id,ask});
     });
   });
@@ -137,7 +151,10 @@ function rfMktMercado(){
 function rfMktFiltrosHTML(){
   const f=rfMktF();
   return `<div class="rf-mkf">
-    ${RF_MKT_FILTROS.map(ff=>{
+    ${RF_MKT_FILTROS.map(ff0=>{
+      /* as opções podem ser LISTA ou FUNÇÃO: o filtro de clube só sabe quais
+         clubes existem depois de montar o mercado, e a lista muda a cada save */
+      const ff={...ff0, op:(typeof ff0.op==='function')?ff0.op():ff0.op};
       const at=(ff.op.find(o=>o[0]===f[ff.k])||ff.op[0])[1];
       return `<label class="rf-mkf-p">
         <span class="rf-mkf-l">${escC(ff.l)}</span>
@@ -175,7 +192,10 @@ function rfMktComprarHTML(){
     <span>CLUBE</span><span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
   return rfMktGavetaHTML(['oferta']) + rfCol(
     rfCard('Jogadores no mercado',
-      rfMktFiltrosHTML() + rfMkTabela('minmax(0,1fr) 44px 48px 48px minmax(0,160px) 108px 100px 104px',
+      /* GRADE LITERAL DO PACOTE (Mercado - Abas). A nossa dava `1fr` ao nome e um
+         teto fixo ao clube, então o nome comia toda a folga — 413px para um nome
+         de 90. O pacote usa DUAS colunas flexíveis (1.3fr e 1fr), que repartem. */
+      rfMktFiltrosHTML() + rfMkTabela('minmax(0,1.3fr) 28px 34px 34px minmax(0,1fr) 96px 84px 74px',
         cabecalho, linhas, 'Nenhum jogador com esses filtros.', 'mkt-mercado'),
       {right: mostra.length+' de '+todos.length})
     + rfCard('O que o caixa permite', `
