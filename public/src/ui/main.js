@@ -3056,7 +3056,15 @@ function finishHotseatMatch(){
   if(seat){
     const emCasa=m.h===seat.clubId;
     const outro=(anyClubOf(emCasa?m.a:m.h)||{short:'—'}).short;
-    CL._entrega={ nome:seat.name, adv:outro, mando:emCasa?'em casa':'fora',
+    /* O pacote pede POSIÇÃO no quarto bloco, e é a informação que interessa a
+       quem acabou de jogar. Mas `tablePos` lê a tabela da divisão do UTILIZADOR
+       (S.table): num assento de outro país ou de outra divisão ela não diz nada
+       sobre este clube. Só entra quando o clube está mesmo nessa tabela; senão
+       fica o mando, que é sempre verdade. */
+    let pos=null;
+    try{ if(typeof tablePos==='function' && (S.table||[]).some(t=>t.id===seat.clubId)){
+      const k=tablePos(seat.clubId); if(k>0) pos=k+'º'; } }catch(err){}
+    CL._entrega={ nome:seat.name, adv:outro, mando:emCasa?'em casa':'fora', pos:pos,
       placar:(emCasa?m.hg:m.ag)+'–'+(emCasa?m.ag:m.hg), att:emCasa?m.att:0 };
   }
   exitSeatContext(); // restaura o manager 1 (persistindo a tática do assento)

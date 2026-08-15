@@ -350,8 +350,8 @@ function rfEntregaHTML(){
           <span class="rf-ft-bv sm">${escC(e.adv)}</span></div>
         <div class="rf-ft-b"><span class="rf-ov-res-t">Público</span>
           <span class="rf-ft-bv">${e.att?grp(e.att):'—'}</span></div>
-        <div class="rf-ft-b"><span class="rf-ov-res-t">Mando</span>
-          <span class="rf-ft-bv sm">${escC(e.mando)}</span></div>
+        <div class="rf-ft-b"><span class="rf-ov-res-t">${e.pos?'Posição':'Mando'}</span>
+          <span class="rf-ft-bv sm">${escC(e.pos||e.mando)}</span></div>
       </div>
     </div>
     <span class="rf-note rf-en-nota">Jogo gravado${CL.online?' na nuvem':''}.</span>`,

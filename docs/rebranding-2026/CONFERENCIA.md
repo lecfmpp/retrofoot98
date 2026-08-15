@@ -162,11 +162,38 @@ Arquivos do pacote: `Modal - Sala em Espera.html`, `Modal - Sala em Espera - Mob
   desenha esse espaço, e o texto "Jornada 11 · Copa do Brasil" já diz qual é
 - Cabeçalho na cor do clube, não no azul da marca — é a exceção acordada no topo
 
-## 8.2 Pausa Patrocinada · A Espera da Rodada · Passe o Aparelho · Entrega do Aparelho
-- [ ] Existem e estão ligadas no desenho novo (`rf26-resenha.js`); falta o diff
-      tela a tela contra o pacote, desktop e mobile
+## 8.2 Pausa Patrocinada — DESKTOP e MOBILE
+- [x] Cabeçalho, barra "A preparar a próxima jornada" com percentagem, bloco de
+      patrocínio com esteira de logos, espaço 16:9 do patrocinador, checklist e
+      "Treinadores na sala 4/4"
+- [x] Mobile em 390px: uma coluna, sem rolagem lateral. A esteira de logos
+      transborda o trilho de propósito e é recortada por ele (`overflow:hidden`)
+- **Divergência deliberada:** o pacote escreve a checklist como texto fixo
+  ("Resultados da 8ª jornada", "Mercado e propostas"). No jogo os quatro passos
+  são ligados ao estado real da sincronização e mudam de "a processar" para
+  "feito" sozinhos — o texto difere, o desenho não
 
-## 8.3 Página Modo Resenha (Sala · Treinadores · Regras · Sincronização)
+## 8.3 À Espera da Rodada — DESKTOP e MOBILE
+- [x] Barra "Já jogaram", duas colunas (treinadores da sala · o seu resultado),
+      placar com escudos, blocos GOLS · PÚBLICO · BILHETERIA, rodapé com
+      "Sincronizar a Resenha" e "Abrir o chat"
+- [x] Mobile em 390px: uma coluna, sem rolagem lateral
+- **Divergência deliberada:** o pacote põe **NOTA DO JOGO 4,4** no quarto bloco.
+  O jogo não tem nota de partida — só nota de jogador (`playerNota`). Fica
+  **MANDO**, que é verdade, em vez de inventar um número
+
+## 8.4 Passe o Aparelho · Entrega do Aparelho — DESKTOP e MOBILE
+- [x] As duas conferem com o pacote: escudo grande, nome, "Assento 3 de 4",
+      aviso, e a lista de quem já jogou na primeira; aperto de mão, "Devolva o
+      aparelho a X" e os quatro blocos na segunda
+- [x] Mobile em 390px: uma coluna, sem rolagem lateral
+- [x] **Corrigido:** o quarto bloco da Entrega mostrava MANDO; o pacote pede
+      **POSIÇÃO**. Agora mostra a posição na tabela — mas só quando o clube do
+      assento está mesmo na tabela do utilizador (num assento de outro país ou
+      divisão, `tablePos` não diz nada sobre ele); fora disso, volta ao mando
+
+## 8.5 Página Modo Resenha (Sala · Treinadores · Regras · Sincronização)
 - [ ] A conferir
+
 # 9 · Configurações — a conferir (deve ficar só com Perfil · Opções)
 # 10 · Sair do jogo — a conferir (abas: Gravar e sair · Outros saves · Apagar)
