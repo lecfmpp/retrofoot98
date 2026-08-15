@@ -98,7 +98,7 @@ function rfElElencoHTML(){
     const media=g.length?Math.round(g.reduce((t,p)=>t+(p.f||0),0)/g.length):0;
     return rfElStat(l, g.length, media?('força média '+media):'sem jogadores');
   }).join('');
-  return `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_EL_COLS}">
+  return `<div class="rf-card rf-el-tbl" data-el="elenco" style="--el-cols:${RF_EL_COLS}">
       <div class="rf-label"><span class="rf-label-t">ELENCO PRINCIPAL</span>
         <span class="rf-label-r">${sq.length} no elenco</span></div>
       ${cab}
@@ -231,7 +231,7 @@ function rfElBaseHTML(){
   // inventado.
   const gasto=cands.reduce((t,c)=>t+(((c.contract&&c.contract.salary)||0)),0);
   const promovidos=(S.youthPromotedSeason===S.season)?1:0;
-  return `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_BASE_COLS}">
+  return `<div class="rf-card rf-el-tbl" data-el="base" style="--el-cols:${RF_BASE_COLS}">
       <div class="rf-label"><span class="rf-label-t">CATEGORIA DE BASE</span>
         <span class="rf-label-r">${cands.length} em formação</span></div>
       ${cab}
@@ -306,7 +306,7 @@ function rfElTreinoHTML(){
         <span class="rf-label-r">1 por semana</span></div>
       <div class="rf-el-focos">${cartoes}</div>
     </div>
-    <div class="rf-card rf-el-tbl" style="--el-cols:${RF_TRN_COLS}">
+    <div class="rf-card rf-el-tbl" data-el="treino" style="--el-cols:${RF_TRN_COLS}">
       <div class="rf-label"><span class="rf-label-t">QUEM VAI TREINAR</span>
         <span class="rf-label-r">${lista.length} de ${max} vagas</span></div>
       ${cab}

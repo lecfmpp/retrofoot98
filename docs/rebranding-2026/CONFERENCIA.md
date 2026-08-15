@@ -112,7 +112,27 @@ conforme se clica no menu e nas abas — vale para todas as telas.**
 ---
 
 # 2 · Mercado — a conferir
-# 3 · Elenco & Base — a conferir
+# 3 · Elenco & Base
+
+## 3.1 Elenco & Base — MOBILE (375px)
+
+### Corrigido nesta rodada
+- [x] **A tabela saía do card.** As colunas do desenho somam ~530px e o card tem
+      ~350px; a grade fazia o que uma grade faz: segurava as faixas fixas, esmagava
+      a única flexível (o NOME chegou a **0px**) e jogava FORMA · SALÁRIO · FIM
+      para fora da borda direita do card.
+      Agora cada uma das três tabelas tem a sua própria grade de telefone, com
+      largura explícita em todas as colunas, e o card rola de lado — a mesma regra
+      que você fixou para o Mercado ("todas na mesma linha se couber; se não
+      couber, scroll lateral"). Nada some e nada sai do card.
+- [x] **Identidade por tabela** (`data-el="elenco|base|treino"`) — as três dividiam
+      a mesma classe `.rf-el-tbl`, então qualquer regra de telefone acertava as três
+      de uma vez. É a mesma armadilha que já tinha dado problema no Mercado.
+- [x] Cabeçalho em **uma linha só** nas três abas (16px de altura)
+
+### A conferir ainda
+- [ ] Desktop da página, bloco a bloco contra o pacote
+
 # 4 · Campeonatos — a conferir
 # 5 · Treinador — a conferir
 # 6 · Finanças — a conferir

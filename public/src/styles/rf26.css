@@ -5679,3 +5679,30 @@
 .rf-ac-atalho-i{font-size:var(--fs-caption);font-weight:var(--fw-bold);color:var(--brand-primary)}
 .rf-ac-atalho-v{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);white-space:nowrap}
 @media (max-width:760px){ .rf-ac-atalho-v{font-size:10px} .rf-ac-atalho{padding:8px 4px} }
+
+/* ===== ELENCO & BASE NO TELEFONE: A TABELA ROLA DENTRO DO CARD =====
+   As colunas do desenho somam mais do que os ~315px do card, e a grade fazia o
+   que uma grade faz: mantinha as faixas fixas e ESMAGAVA a única flexível (o
+   NOME ia a 0px) enquanto as últimas células — forma, salário, fim de contrato —
+   escapavam para fora da borda direita do card.
+   Agora cada tabela tem a sua grade de telefone, com o nome garantido, e o card
+   rola de lado para alcançar o resto. Nada é escondido e nada sai do card. */
+@media (max-width:760px){
+  .rf-el-tbl{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .rf-el-tbl::-webkit-scrollbar{height:4px}
+  .rf-el-tbl::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:99px}
+  .rf-el-tbl .rf-el-head,.rf-el-tbl .rf-el-row{gap:0 8px}
+
+  /* ELENCO — camisa · nome · pos · idade · força · energia · forma · salário · fim */
+  [data-el="elenco"] .rf-el-head,[data-el="elenco"] .rf-el-row{
+    grid-template-columns:30px 118px 26px 30px 30px 56px 56px 74px 46px !important;
+    min-width:530px}
+  /* BASE — nome · pos · idade · força · e quatro colunas de números */
+  [data-el="base"] .rf-el-head,[data-el="base"] .rf-el-row{
+    grid-template-columns:118px 26px 30px 30px 68px 68px 68px 68px !important;
+    min-width:534px}
+  /* TREINO — camisa · nome · pos · força · progresso · ganho · ação */
+  [data-el="treino"] .rf-el-head,[data-el="treino"] .rf-el-row{
+    grid-template-columns:30px 118px 26px 30px 68px 96px 68px !important;
+    min-width:484px}
+}
