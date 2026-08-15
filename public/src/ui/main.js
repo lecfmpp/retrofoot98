@@ -5000,14 +5000,21 @@ const PITCH_LANES={
 /* PITCH_BANDS[formação] = altura (em % do gramado) das faixas ATT, MID, DEF, GK. O goleiro
    fica colado na pequena área; as outras faixas sobem ou descem conforme o desenho: um 4-2-4
    deixa o meio mais recuado (só dois), um 4-5-1 adianta o meio e isola o centroavante. */
+/* MEIO NO CÍRCULO CENTRAL, DISTÂNCIAS IGUAIS. O elemento do jogador tem 12% da
+   altura do gramado, então o CENTRO dele é `top + 6`. Para o meio-campo cair
+   sobre o círculo (50%), a faixa dele é 44. O goleiro fica onde estava (centro
+   ~92, dentro da pequena área) e as outras duas se distribuem igualmente entre
+   os dois: centros em 29 · 50 · 71 · 92, ou seja 21 de distância entre cada par.
+   As diferenças por formação que existiam aqui (meio recuado no 4-2-4, adiantado
+   no 4-5-1) foram achatadas de propósito — o pedido é espaçamento igual. */
 const PITCH_BANDS={
-  _        :[ 7,30,53,82],
-  '3-3-4'  :[ 6,30,54,82],
-  '3-4-3'  :[ 7,30,53,82],
-  '4-2-4'  :[ 5,32,55,82],
-  '4-3-3'  :[ 7,30,53,82],
-  '4-4-2'  :[ 8,31,54,82],
-  '4-5-1'  :[ 4,29,54,82],
+  _        :[23,44,65,82],
+  '3-3-4'  :[23,44,65,82],
+  '3-4-3'  :[23,44,65,82],
+  '4-2-4'  :[23,44,65,82],
+  '4-3-3'  :[23,44,65,82],
+  '4-4-2'  :[23,44,65,82],
+  '4-5-1'  :[23,44,65,82],
 };
 /* A LINHA DE BAIXO DA CAMISA: força em destaque + a seta de tendência, e a energia vira a
    mesma barrinha da lista de elenco. Antes era o percentual de energia em texto — número que

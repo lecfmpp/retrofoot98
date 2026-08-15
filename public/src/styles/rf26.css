@@ -1415,8 +1415,16 @@
 .rf-j-sl{top:7px;width:13px;height:16px;background:var(--club-secondary)}
 .rf-j-sl.l{left:0;border-radius:4px 2px 6px 5px;transform:rotate(-16deg)}
 .rf-j-sl.r{right:0;border-radius:2px 4px 5px 6px;transform:rotate(16deg)}
-.rf-j-body{left:10px;top:4px;width:24px;height:36px;background:var(--club-primary);
+/* `.rf-jersey i{display:block}` (0,1,1) vencia este `display:flex` (0,1,0), então
+   o corpo nunca foi flex e o número caía no TOPO da camisa, colado na gola — era
+   por isso que ele parecia alto. Com o seletor mais específico o corpo volta a
+   centrar, e o `margin-top` do número é só o ajuste fino que o pacote pede
+   (a área visível do peito começa abaixo da gola). */
+.rf-jersey .rf-j-body{left:10px;top:4px;width:24px;height:36px;background:var(--club-primary);
   border-radius:4px 4px 7px 7px;display:flex;align-items:center;justify-content:center}
+/* O número desce um pouco: com `margin-top:4px` ele ficava alto no peito, quase
+   encostado na gola. 8px o assenta no meio da área visível do corpo (que começa
+   abaixo da gola, não no topo da caixa). */
 .rf-j-body b{font-family:var(--font-mono);font-size:14px;font-weight:var(--fw-semibold);
   color:var(--club-secondary-on-primary,var(--club-secondary));margin-top:4px}
 .rf-j-collar{left:50%;top:2px;transform:translateX(-50%);width:14px;height:6px;
@@ -5609,3 +5617,16 @@
 /* célula de clube clicável: leva ao elenco do adversário */
 .rf-clicavel{cursor:pointer;border-radius:8px;transition:background var(--dur-fast) var(--ease)}
 .rf-clicavel:hover{background:var(--surface-sunken)}
+
+/* ===== "O QUE O CAIXA PERMITE" — NÚMEROS MENORES =====
+   Este bloco usa `.rf-kpis-4`, que herda o corpo de 26px dos KPIs grandes das
+   Finanças. Aqui são quatro valores em moeda ("R$ 1,54 mi") lado a lado: em
+   26px eles dominavam o cartão, e no telefone quebravam a linha. */
+.rf-kpis-4 .rf-kpi-v{font-size:19px;font-weight:var(--fw-semibold)}
+.rf-kpis-4 .rf-kpi-l{font-size:var(--fs-label)}
+@media (max-width:760px){
+  .rf-kpis-4{gap:8px}
+  .rf-kpis-4 .rf-kpi{padding:10px}
+  .rf-kpis-4 .rf-kpi-v{font-size:14px}
+  .rf-kpis-4 .rf-kpi-l{font-size:9px;letter-spacing:.06em}
+}
