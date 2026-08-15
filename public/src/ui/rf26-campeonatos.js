@@ -122,7 +122,7 @@ function rfCpCalendarioHTML(){
     const casa=p[0]===CL.clubId, outro=anyClubOf(casa?p[1]:p[0])||{short:'—'};
     const res=(S.results||[]).find(r=>r.round===i && r.h===p[0] && r.a===p[1]);
     const feito=!!res;
-    const gm=feito?(casa?res.gh:res.ga):null, gc=feito?(casa?res.ga:res.gh):null;
+    const gm=feito?(casa?res.hg:res.ag):null, gc=feito?(casa?res.ag:res.hg):null;
     const letra=feito?(gm>gc?'V':gm===gc?'E':'D'):'';
     const proximo=!feito && (i===(S.round||0));
     return `<div class="rf-el-row ${proximo?'sel':''} ${feito?'':'porvir'}">

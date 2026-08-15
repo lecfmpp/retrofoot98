@@ -141,7 +141,7 @@ function rfTrHistoriaHTML(){
      entra traço — o bloco existe do mesmo jeito. */
   const meus=(S.results||[]).filter(r=>r.h===CL.clubId||r.a===CL.clubId).map(r=>{
     const casa=r.h===CL.clubId;
-    return {gm:casa?r.gh:r.ga, gc:casa?r.ga:r.gh, adv:anyClubOf(casa?r.a:r.h)||{short:'—'}};
+    return {gm:casa?r.hg:r.ag, gc:casa?r.ag:r.hg, adv:anyClubOf(casa?r.a:r.h)||{short:'—'}};
   });
   const maiorV=meus.filter(x=>x.gm>x.gc).sort((a,b)=>(b.gm-b.gc)-(a.gm-a.gc))[0];
   const maiorD=meus.filter(x=>x.gm<x.gc).sort((a,b)=>(a.gm-a.gc)-(b.gm-b.gc))[0];

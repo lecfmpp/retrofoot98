@@ -259,7 +259,7 @@ function rfForma(){
   const id=CL.clubId; const out=[];
   const res=(S.results||[]).filter(r=>r.h===id||r.a===id).slice(-5);
   res.forEach(r=>{
-    const eu=r.h===id?r.gh:r.ga, ele=r.h===id?r.ga:r.gh;
+    const eu=r.h===id?r.hg:r.ag, ele=r.h===id?r.ag:r.hg;
     out.push(eu>ele?'v':eu<ele?'d':'e');
   });
   return out;
@@ -1586,7 +1586,7 @@ function rfCalendarioHTML(){
       const casa=m[0]===CL.clubId;
       const opp=anyClubOf(casa?m[1]:m[0])||{short:'—'};
       const res=(S.results||[]).find(r=>r.round===i && r.h===m[0] && r.a===m[1]);
-      const meu=res?(casa?res.gh:res.ga):null, dele=res?(casa?res.ga:res.gh):null;
+      const meu=res?(casa?res.hg:res.ag):null, dele=res?(casa?res.ag:res.hg):null;
       const tom=res?(meu>dele?'v':meu<dele?'d':'e'):'';
       linhas.push(`<div class="rf-cal-row ${i===S.round?'agora':''}">
         <span class="rf-cal-d">${escC((typeof calRowDate==='function'&&calRowDate(i))||((i+1)+'ª'))}</span>

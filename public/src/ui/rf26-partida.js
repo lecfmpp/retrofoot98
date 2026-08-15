@@ -316,6 +316,21 @@ function rfRedManter(){ if(typeof redCardConfirm==='function') redCardConfirm();
    você" à direita. As faixas de zona ficam, com legenda no pé do card —
    e vêm das mesmas constantes que decidem a virada de temporada.
    ===================================================================== */
+/* PÚBLICO DE UM JOGO JÁ ENCERRADO.
+   O resultado gravado (S.results) não guarda o público — quem sabe calculá-lo é
+   `attendanceFor(mandante, rnd)`, que devolve {att, price, cap} e espera uma
+   FUNÇÃO aleatória. Passar `r.round` ali estourava ("rnd is not a function") e
+   ler `r.att`, que nunca existiu, mostrava a bilheteria zerada.
+   O sorteio é DETERMINÍSTICO, derivado da própria partida: o mesmo jogo devolve
+   sempre o mesmo público, senão o número dançaria a cada redesenho da tela. */
+function rfPublicoDoJogo(r){
+  if(typeof attendanceFor!=='function') return 0;
+  let semente=0;
+  const chave=String(r.round)+'|'+String(r.h)+'|'+String(r.a);
+  for(let i=0;i<chave.length;i++) semente=(semente*31+chave.charCodeAt(i))>>>0;
+  const rnd=()=>{ semente=(semente*1664525+1013904223)>>>0; return semente/4294967296; };
+  try{ return (attendanceFor(r.h,rnd)||{}).att||0; }catch(e){ return 0; }
+}
 function rfPosRodadaHTML(){
   const linhas=(typeof sortedTable==='function')?sortedTable():[];
   const total=linhas.length;
@@ -346,10 +361,17 @@ function rfPosRodadaHTML(){
   const resultados=res.length?res.map(r=>{
     const h=anyClubOf(r.h)||{short:'—'}, a=anyClubOf(r.a)||{short:'—'};
     const meu=(r.h===CL.clubId||r.a===CL.clubId);
+    /* OS NOMES DOS CAMPOS SÃO `hg`/`ag`, não `gh`/`ga` — é assim que o motor grava
+       (ver S.results.push em engine/core.js). Trocados, o placar saía
+       "undefined–undefined" em toda a lista de resultados da rodada.
+       O PÚBLICO não é guardado no resultado: quem sabe calculá-lo é
+       attendanceFor(mandante, rodada). Lendo `r.att`, que nunca existiu, a
+       bilheteria aparecia zerada em todos os jogos. */
+    const pub=rfPublicoDoJogo(r);
     return `<div class="rf-pr-jogo ${meu?'meu':''}">
-      <span class="rf-pr-pub">${rfLvTicketHTML()}${grp(r.att||0)}</span>
+      <span class="rf-pr-pub">${rfLvTicketHTML()}${grp(pub||0)}</span>
       <span class="rf-pr-lado dir"><span class="rf-pr-jn">${escC(h.short)}</span>${rfCrest(h,18)}</span>
-      <span class="rf-pr-placar">${r.gh}–${r.ga}</span>
+      <span class="rf-pr-placar">${r.hg}–${r.ag}</span>
       <span class="rf-pr-lado">${rfCrest(a,18)}<span class="rf-pr-jn">${escC(a.short)}</span></span>
     </div>`;
   }).join(''):'<span class="rf-note">Os resultados aparecem quando a rodada fechar.</span>';
