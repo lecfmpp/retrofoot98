@@ -1371,23 +1371,16 @@
    preservar a largura do nome. O efeito colateral era o oposto do pretendido:
    NOTA aparecia com 0px, ou seja, sumia sem explicação. A troca agora é
    explícita — o nome cede espaço e as nove colunas ficam visíveis.
-   Alinhamento à ESQUERDA em todas: com números à direita e rótulos à esquerda,
-   cada coluna tinha o cabeçalho de um lado e o valor do outro, e a vista virava
-   um ziguezague. O gap de 6px é o respiro; os valores são curtos e não precisam
-   de mais do que isso para não encostarem. */
-.rf-sq-head.rf-sq-hub,.rf-sq-row.rf-sq-hub{column-gap:5px}
-.rf-sq-row.rf-sq-hub>.rf-sq-id,
-.rf-sq-row.rf-sq-hub>.rf-sq-frc,
-.rf-sq-row.rf-sq-hub>.rf-sq-nota,
-.rf-sq-row.rf-sq-hub>.rf-sq-sal,
-.rf-sq-row.rf-sq-hub>.rf-sq-val,
-.rf-sq-head.rf-sq-hub>span{text-align:left}
-.rf-sq-row.rf-sq-hub>.rf-sq-ener{justify-content:flex-start;gap:3px}
+   O ALINHAMENTO VOLTOU PARA A DIREITA nas colunas numéricas: é o que o pacote
+   de implementação exige ("números em IBM Plex Mono, alinhados à direita nas
+   colunas numéricas"). Cheguei a alinhar tudo à esquerda a pedido, mas o pacote
+   é a fonte da verdade e o usuário confirmou que ele vence aqui.
+   O gap de 5px é o respiro; os valores são curtos e não precisam de mais. */
+.rf-sq-head.rf-sq-hub,.rf-sq-row.rf-sq-hub{column-gap:8px}
 /* No Hub a célula de energia tem 40px, e barra 22 + número 26 não cabiam nisso —
    o valor saía cortado. Aqui a barra e o número encolhem; na página de Elenco,
    que tem largura de sobra, ficam no tamanho cheio. */
-.rf-sq-row.rf-sq-hub>.rf-sq-ener .rf-ener{width:14px}
-.rf-sq-row.rf-sq-hub>.rf-sq-ener b{min-width:22px;text-align:left}
+
 .rf-sq-nota.boa{color:var(--ok)}
 .rf-sq-nota.media{color:var(--warn)}
 .rf-sq-nota.ruim{color:var(--danger)}
@@ -5258,3 +5251,30 @@
 .rf-sair-s{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-muted)}
 /* o item Sair encosta no pé da lista, separado do resto */
 .rf-sb-item[data-pg="sair"]{margin-top:auto}
+
+/* ===== ELENCO NO TELEFONE: TRÊS COLUNAS =====
+   O pacote (Hub do Time - Mobile) reduz a tabela do Hub a JOGADOR · FRC · ENER.
+   As oito do desktop em 375px viravam tiras de 20px com tudo cortado. As colunas
+   que saem estão inteiras na página Elenco & Base, a um toque da barra inferior. */
+@media (max-width:760px){
+  .rf-sq-head.rf-sq-hub,.rf-sq-row.rf-sq-hub{
+    grid-template-columns:minmax(0,1fr) 34px 46px !important;column-gap:10px}
+  .rf-sq-head.rf-sq-hub>span:nth-child(1),
+  .rf-sq-head.rf-sq-hub>span:nth-child(2),
+  .rf-sq-head.rf-sq-hub>span:nth-child(4),
+  .rf-sq-head.rf-sq-hub>span:nth-child(6),
+  .rf-sq-head.rf-sq-hub>span:nth-child(8),
+  .rf-sq-head.rf-sq-hub>span:nth-child(9),
+  .rf-sq-row.rf-sq-hub>.rf-sq-mark,
+  .rf-sq-row.rf-sq-hub>.rf-sq-pos,
+  .rf-sq-row.rf-sq-hub>.rf-sq-id,
+  .rf-sq-row.rf-sq-hub>.rf-sq-nota,
+  .rf-sq-row.rf-sq-hub>.rf-sq-sal,
+  .rf-sq-row.rf-sq-hub>.rf-sq-val{display:none}
+}
+/* botão Gravar da faixa do clube */
+.rf-band-gravar{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
+  padding:8px 14px;border-radius:var(--r-control);cursor:pointer;
+  background:var(--brand-secondary);border:none;color:var(--brand-primary);
+  font-family:var(--font-sans);font-size:var(--fs-body-sm);font-weight:var(--fw-bold)}
+.rf-band-gravar:hover{filter:brightness(1.06)}

@@ -136,6 +136,10 @@ const RF_PAGES=[
     tabs:[ {k:'caixa',     l:()=>'Caixa de entrada'+rfSufixo(rfNaoLidas()), build:()=>rfEmCaixaHTML()},
            {k:'arquivadas',l:()=>'Arquivadas',                              build:()=>rfEmArquivadasHTML()} ] },
 
+  { key:'resenha', ico:'chopp', label:'Modo Resenha', curto:'Resenha',
+    titulo:'Modo Resenha', sub:()=>rfResenhaSubHTML(),
+    grid:'minmax(0,1fr)', resumo:()=>rfCfResenhaHTML() },
+
   { key:'config', ico:'config', label:'Configurações', curto:'Config',
     titulo:'Configurações', sub:()=>rfCfSubHTML(),
     acoes:()=>rfCfAcoesHTML(), grid:'minmax(0,1fr)',
@@ -145,14 +149,10 @@ const RF_PAGES=[
     tabs:[ {k:'opcoes',  l:()=>'Opções', build:()=>rfCfOpcoesHTML()},
            {k:'jogo',    l:()=>'Jogo',   build:()=>rfCfJogoHTML()} ] },
 
-  { key:'resenha', ico:'chopp', label:'Modo Resenha', curto:'Resenha',
-    titulo:'Modo Resenha', sub:()=>rfResenhaSubHTML(),
-    grid:'minmax(0,1fr)', resumo:()=>rfCfResenhaHTML() },
-
-  /* SAIR É O ÚLTIMO ITEM, sempre — é assim que se lê uma barra lateral: o que
-     tira a pessoa de dentro fica no fim, longe do que ela usa a toda hora. */
-  { key:'sair', ico:'sair', label:'Sair', curto:'Sair',
-    titulo:'Sair', sub:()=>rfSairSubHTML(),
+  /* ÚLTIMO ITEM, sempre. O nome e a chave são os do pacote: "Sair do jogo" /
+     `sairjogo` — não "Sair", que se confunde com sair da conta. */
+  { key:'sairjogo', ico:'sair', label:'Sair do jogo', curto:'Sair',
+    titulo:'Sair do jogo', sub:()=>rfSairSubHTML(),
     grid:'minmax(0,1fr)', resumo:()=>rfSairHTML() },
 ];
 
@@ -298,10 +298,31 @@ function rfBandHTML(titulo){
       ${rfFormaHTML()}
     </div>
     <div class="rf-band-stat end">
-      <span class="rf-band-sl">Apito inicial</span>
-      <span class="rf-band-sv rf-num">${escC(apito||'—')}</span>
+      <!-- O pacote escreve QUANTO FALTA ("2d 14h"), não a data do jogo: quem abre o
+           painel quer saber se dá tempo de mexer no time, e uma data exige contar de
+           cabeça. A data continua no card de Próximo jogo, na barra lateral. -->
+      <span class="rf-band-sl">Apito inicial${rfApitoFalta()?' em':''}</span>
+      <span class="rf-band-sv rf-num">${escC(rfApitoFalta()||apito||'—')}</span>
     </div>
+    <button type="button" class="rf-band-gravar" onclick="clSaveGame&&clSaveGame()"
+      title="Gravar o jogo agora">${rfIcone('salvar',15)} Gravar</button>
   </div>`;
+}
+/* QUANTO FALTA para a próxima rodada, no formato do pacote: "2d 14h", "14h 30m".
+   SÓ EXISTE NA RESENHA. Ali a sala tem ritmo (uma rodada por dia, por exemplo) e um
+   prazo de verdade correndo — `NET.room.deadline`. No Modo Solo não há relógio: o
+   jogo é por turnos e a próxima partida acontece quando o treinador mandar. Por isso
+   a faixa cai para a DATA do jogo quando não há prazo, em vez de inventar uma
+   contagem que não existe. */
+function rfApitoFalta(){
+  const dl=(typeof NET!=='undefined'&&NET.room)?NET.room.deadline:0;
+  if(!dl) return '';
+  const ms=dl-Date.now();
+  if(!isFinite(ms)||ms<=0) return '';
+  const min=Math.floor(ms/60000), h=Math.floor(min/60), d=Math.floor(h/24);
+  if(d>0) return d+'d '+(h%24)+'h';
+  if(h>0) return h+'h '+(min%60)+'m';
+  return Math.max(1,min)+'m';
 }
 
 /* sidebar: 216px → 62px, sete destinos, o "próximo jogo" ancorado no pé */
@@ -502,7 +523,7 @@ function rfHubHTML(){
     <div class="rf-card rf-card-flat">
       <div class="rf-card-hd">
         <span class="rf-label-t">Elenco</span>
-        <span class="rf-label-r">${sq.length} jogadores · <b>${xi.length}/11</b> titulares</span>
+        <span class="rf-label-r">${sq.length} jogadores · <b>${xi.length}</b> titulares</span>
       </div>
       ${rfSquadTableHTML('hub')}
     </div>
@@ -1398,12 +1419,20 @@ function windowClosesIn(){ const d=rfDiasJanela(); return d? (d+' rodada'+(d>1?'
    direita, nome em 14px/600, e o marcador de 17px à esquerda — "T" nas
    cores do clube pra titular, letra da posição em cinza pra reserva.
    ===================================================================== */
+/* O pacote escreve o valor COM a moeda e na forma CURTA — "R$ 2k", "R$ 99k".
+   NÃO se chama rfDin: esse nome já existe em rf26-mercado.js e devolve a forma
+   longa ("R$ 125 mil"), que não cabe nas colunas estreitas do Hub. Eu redefini
+   por engano e a outra venceu, estourando a tabela inteira. */
+function rfDinCurto(v){
+  const sim=(typeof curSym==='function')?curSym():'R$';
+  return sim+' '+((typeof mvShort==='function')?mvShort(v||0):String(v||0));
+}
 const RF_SQUAD_COLS={
-  /* O nome encolheu de propósito (era 1fr solto, comia toda a folga e deixava
-     NOTA com 0px). Agora cada coluna tem um piso que cabe o seu valor: idade
-     dois dígitos, força e nota dois, energia a barra + "100%", salário e valor
-     em forma curta ("125k", "12M"). */
-  hub:    {grid:'14px 18px minmax(0,1fr) 22px 24px 28px 44px 34px 40px', sal:true,  pad:'7px 8px'},
+  /* GRADE LITERAL DO PACOTE (Hub do Time - Sidebar.html). Cheguei a inventar
+     larguras menores para caber nos 380px que a nossa coluna esquerda tem hoje;
+     o certo é o contrário — a coluna é que está estreita. O pacote desenha esta
+     tabela numa coluna de 530px, onde estas medidas deixam ~180px para o nome. */
+  hub:    {grid:'20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px', sal:true,  pad:'7px 10px'},
   elenco: {grid:'22px 26px minmax(0,1fr) 30px 34px 40px 46px 62px',      sal:false, pad:'8px 10px'},
 };
 function rfSquadTableHTML(modo, opts){
@@ -1436,8 +1465,8 @@ function rfSquadTableHTML(modo, opts){
       <span class="rf-sq-frc">${p.f}</span>
       <span class="rf-sq-nota ${rfNotaTom(nota)}">${nota!=null?escC(String(nota).replace('.',',')):'–'}</span>
       <span class="rf-sq-ener"><i class="rf-ener" style="--v:${en};--c:${rfEnergiaCor(en)}"></i><b>${en}%</b></span>
-      ${cfg.sal?`<span class="rf-sq-sal">${escC(mvShort(sal))}</span>`:''}
-      <span class="rf-sq-val">${escC(mvShort(p.mv||0))}</span>
+      ${cfg.sal?`<span class="rf-sq-sal">${escC(rfDinCurto(sal))}</span>`:''}
+      <span class="rf-sq-val">${escC(rfDinCurto(p.mv||0))}</span>
     </div>`;
   }).join('');
   return `${cab}<div class="rf-sq-list">${linhas}</div>`;
