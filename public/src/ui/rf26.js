@@ -1399,7 +1399,11 @@ function windowClosesIn(){ const d=rfDiasJanela(); return d? (d+' rodada'+(d>1?'
    cores do clube pra titular, letra da posição em cinza pra reserva.
    ===================================================================== */
 const RF_SQUAD_COLS={
-  hub:    {grid:'20px 24px minmax(0,1fr) 26px 34px 34px 42px 46px 58px', sal:true,  pad:'7px 10px'},
+  /* O nome encolheu de propósito (era 1fr solto, comia toda a folga e deixava
+     NOTA com 0px). Agora cada coluna tem um piso que cabe o seu valor: idade
+     dois dígitos, força e nota dois, energia a barra + "100%", salário e valor
+     em forma curta ("125k", "12M"). */
+  hub:    {grid:'14px 18px minmax(0,1fr) 22px 24px 28px 44px 34px 40px', sal:true,  pad:'7px 8px'},
   elenco: {grid:'22px 26px minmax(0,1fr) 30px 34px 40px 46px 62px',      sal:false, pad:'8px 10px'},
 };
 function rfSquadTableHTML(modo, opts){
