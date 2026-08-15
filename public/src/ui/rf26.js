@@ -448,7 +448,13 @@ function rfFaltaTatica(){
   return xi.length>=11 && xiGKCount(xi)===1;
 }
 function rfJogarLabel(){
-  if(rfFaltaTatica()) return rfIcone('estrategia',16)+' Escolher tática';
+  /* "Escolher tática" tem 131px de texto e o botão da barra inferior tem 92 —
+     transbordava. No telefone o rótulo é só "Formação", que é para onde ele
+     leva; no desktop, onde há espaço, fica "Escolher formação". */
+  if(rfFaltaTatica()){
+    const curto=(typeof isPhone==='function' && isPhone());
+    return rfIcone('estrategia',curto?14:16)+(curto?' Formação':' Escolher formação');
+  }
   return (typeof estouPronto==='function' && estouPronto()) ? rfIcone('ok',16)+' Pronto' : rfIcone('jogar',16)+' Jogar';
 }
 function rfIrEscolherTatica(){

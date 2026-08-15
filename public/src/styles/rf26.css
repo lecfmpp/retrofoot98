@@ -1570,12 +1570,13 @@
   .rf-sq-id,.rf-sq-nota,.rf-sq-sal,.rf-sq-val{display:none}
   .rf-sq-list{max-height:none}
 
-  /* ---- Campeonatos: posição, equipa, saldo e pontos ---- */
-  .rf-tb-head,.rf-tb-row{grid-template-columns:30px minmax(0,1fr) 34px 26px}
-  .rf-tb-head>span:nth-child(3),.rf-tb-head>span:nth-child(4),
-  .rf-tb-head>span:nth-child(5),.rf-tb-head>span:nth-child(6){display:none}
-  .rf-tb-row>.rf-tb-x:nth-of-type(1),.rf-tb-row>.rf-tb-x:nth-of-type(2),
-  .rf-tb-row>.rf-tb-x:nth-of-type(3),.rf-tb-row>.rf-tb-x:nth-of-type(4){display:none}
+  /* ---- Campeonatos: as MESMAS colunas do card do adversário — J · V · D · P.
+     Esta regra escondia J, V, E e D e deixava só saldo e pontos; a tabela do
+     telefone não batia com o cabeçalho do card logo acima dela. Agora saem só
+     E (empates) e GM:GS, e o que fica cabe numa linha. ---- */
+  .rf-tb-head,.rf-tb-row{grid-template-columns:30px minmax(0,1fr) 26px 26px 26px 30px}
+  .rf-tb-head>span:nth-child(5),.rf-tb-head>span:nth-child(7),
+  .rf-tb-row>*:nth-child(5),.rf-tb-row>*:nth-child(7){display:none}
   .rf-tb-list{max-height:none}
   .rf-cal-head>span:nth-child(3){display:none}
   .rf-cal-head,.rf-cal-row{grid-template-columns:58px minmax(0,1fr) 52px}
@@ -5306,6 +5307,12 @@
   .rf-cols[data-hubtab="elenco"]   > * > [data-hub="elenco"],
   .rf-cols[data-hubtab="jogo"]     > * > [data-hub="destaques"],
   .rf-cols[data-hubtab="jogo"]     > * > [data-hub="classificacao"]{display:flex}
+  /* na aba Jogo o ADVERSÁRIO vem primeiro: é a informação da próxima partida,
+     e a tabela é o contexto dela */
+  .rf-cols[data-hubtab="jogo"] > * > [data-hub="destaques"]{order:1}
+  .rf-cols[data-hubtab="jogo"] > * > [data-hub="classificacao"]{order:2}
+
+
   /* moral e segurança não aparecem em nenhuma das três abas do pacote: no
      telefone eles vivem na faixa do topo, junto da FORMA */
   [data-hub="indicadores"]{display:none !important}
@@ -5351,18 +5358,19 @@
   .rf-bgrupo{display:flex;flex-direction:row;gap:8px;align-items:flex-start}
   .rf-bgrupo-t{align-self:center;writing-mode:horizontal-tb;white-space:nowrap;
     font-size:9px;letter-spacing:.1em;padding:0 2px}
-  /* O CARTÃO DO SUPLENTE ENCOLHE ATÉ A CAMISA. Ele era uma grade de três colunas
-     esticada a 132×163 para uma camisa de 30×28 — um quadrado enorme com a peça
-     perdida dentro. Agora é uma pilha centrada com o MESMO respiro nos quatro
-     lados (padding 8px), do tamanho do que carrega. */
+  /* CARTÃO DO SUPLENTE — medidas literais do pacote (Hub do Time - Mobile):
+     82px de largura, padding 8/6, gap 4, raio 12, fundo #f6f8f5, sem borda.
+     A pilha é camisa → nome → barra de energia, nessa ordem e só isso: o número
+     de força SAI (ele não está no desenho). Era uma grade de três colunas
+     esticada a 132×163 para uma camisa de 30×28. */
   .rf-pitch-card .rf-bp{display:flex;flex-direction:column;align-items:center;
-    justify-content:flex-start;gap:5px;padding:8px;width:auto;min-width:76px;
-    border:var(--border-hairline);border-radius:12px;background:var(--surface-card);
+    justify-content:flex-start;gap:4px;padding:8px 6px;width:82px;
+    border:0;border-radius:12px;background:var(--surface-sunken,#f6f8f5);
     text-align:center}
-  .rf-pitch-card .rf-bp .rf-bp-mid{align-items:center;width:100%;gap:3px}
-  .rf-pitch-card .rf-bp .rf-bp-n{font-size:10px;max-width:70px}
+  .rf-pitch-card .rf-bp .rf-bp-mid{align-items:center;width:100%;gap:4px}
+  .rf-pitch-card .rf-bp .rf-bp-n{font-size:10px;max-width:100%}
   .rf-pitch-card .rf-bp .rf-bp-bar{width:100%}
-  .rf-pitch-card .rf-bp .rf-bp-f{text-align:center;font-size:10px}
+  .rf-pitch-card .rf-bp .rf-bp-f{display:none}   /* força não entra no cartão do pacote */
   /* a faixa que rola ganha uma barra fina em vez da barra grossa do sistema */
   .rf-formgrid::-webkit-scrollbar,.rf-banco-lista::-webkit-scrollbar{height:4px}
   .rf-formgrid::-webkit-scrollbar-thumb,.rf-banco-lista::-webkit-scrollbar-thumb{
@@ -5402,4 +5410,12 @@
   .rf-band .rf-band-stat.end:last-of-type{  /* Apito inicial — a data está no Jogo */
     display:none}
   .rf-band .rf-band-stat.end:first-of-type{display:flex}
+}
+/* trava de segurança: o rótulo do botão Jogar da barra inferior nunca escapa da
+   caixa. A classe é `.rf-bn-jogar` — eu tinha mirado em `.rf-btn`, que ele não usa. */
+@media (max-width:760px){
+  .rf-bottomnav .rf-bn-jogar{font-size:12px;padding:0 8px;gap:4px;min-width:0;
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    overflow:hidden;white-space:nowrap}
+  .rf-bottomnav .rf-bn-jogar .rf-ico{flex:0 0 auto}
 }
