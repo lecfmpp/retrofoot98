@@ -298,7 +298,12 @@ function rfMktPropostasHTML(){
         <span class="rf-prop2-crest">${rfCrest(anyClubOf(o.buyerId)||{short:o.buyerName||'—'},44)}</span>
         <div class="rf-prop2-id">
           <span class="rf-prop2-t">${escC(o.buyerName||'Um clube')} quer o ${escC(o.playerName)}</span>
-          <span class="rf-prop2-s">${escC(rfPosInicial(p.s))} · ${p.age||'—'} anos · força ${o.playerForce||p.f||'—'} · resposta em ${rodadas} rodada${rodadas===1?'':'s'}</span>
+          <!-- no telefone o prazo entra curto: "resposta em 2 rodadas" quebrava a
+               linha em duas e o desenho mostra o contexto numa linha só.
+               Fica "rodadas", que é a unidade real do motor — o desenho escreve
+               "dias", mas dia não quer dizer nada aqui e seria falso. -->
+          <span class="rf-prop2-s">${escC(rfPosInicial(p.s))} · ${p.age||'—'} anos · força ${o.playerForce||p.f||'—'} · ${
+            (typeof isPhone==='function'&&isPhone())?'':'resposta em '}${rodadas} rodada${rodadas===1?'':'s'}</span>
         </div>
         <div class="rf-sp"></div>
         <div class="rf-prop2-acts">

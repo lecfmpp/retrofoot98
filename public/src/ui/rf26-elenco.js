@@ -139,8 +139,11 @@ function rfElFichaHTML(){
       </div>
       <div class="rf-sp"></div>
       <div class="rf-el-hd-acts">
-        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcAbrir('elenco-renovar',{pid:'${escC(p.pid)}'})">Renovar contrato</button>
-        <button type="button" class="rf-btn rf-btn-primary" onclick="rfAcAbrir('mkt-listar',{pid:'${escC(p.pid)}'})">Listar para venda</button>
+        <!-- Renovar é a ação que se quer: leva o amarelo padrão dos botões do jogo.
+             Listar para venda é a que desfaz o elenco: leva o vermelho claro, que
+             avisa sem gritar. Antes estavam ao contrário — vender era o amarelo. -->
+        <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcAbrir('elenco-renovar',{pid:'${escC(p.pid)}'})">Renovar contrato</button>
+        <button type="button" class="rf-btn rf-btn-vender" onclick="rfAcAbrir('mkt-listar',{pid:'${escC(p.pid)}'})">Listar para venda</button>
       </div>
     </div>`
   + rfCol(

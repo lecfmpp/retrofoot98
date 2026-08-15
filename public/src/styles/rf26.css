@@ -5790,3 +5790,37 @@
   .rf-esp-st{grid-column:2;white-space:normal}
   .rf-esp-foot-nota{white-space:normal;text-align:center;order:3}
 }
+
+/* ===== PROPOSTAS NO TELEFONE — UM BLOCO POR LINHA =====
+   Os quatro números ficavam em 2×2, e num telefone de 375px cada coluna sobrava
+   com 145px para um valor de 26px: "R$ 265,70 mi" e "R$ 762 mil" apareciam
+   impressos um por cima do outro, ilegíveis os dois. O desenho enviado põe cada
+   bloco na sua própria linha, de largura cheia — e aí o valor cabe inteiro sem
+   precisar de encolher nada.
+   Vem depois do bloco de 900px de propósito: é ele que esta regra corrige. */
+@media (max-width:760px){
+  .rf-prop2{padding-left:18px;gap:14px}
+  .rf-prop2-nums{grid-template-columns:minmax(0,1fr);gap:14px}
+  .rf-prop2-nums .rf-kpi-v{font-size:22px;line-height:1.15;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* o escudo e o título dividem a primeira linha; só as ações descem */
+  .rf-prop2-hd{flex-wrap:wrap;row-gap:12px;align-items:center}
+  .rf-prop2-crest{flex:0 0 auto}
+  .rf-prop2-id{flex:1 1 60%;min-width:0}
+  .rf-prop2-hd>.rf-sp{display:none}
+  .rf-prop2-acts{width:100%;gap:8px}
+  .rf-prop2-acts .rf-btn{flex:1 1 0;min-width:0;padding:0 10px;
+    font-size:var(--fs-body-sm);white-space:nowrap}
+  /* o mesmo aperto atinge o cartão "Impacto se aceitar" logo abaixo */
+  .rf-kpis-4{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .rf-kpis-4 .rf-kpi-v{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+
+/* "Listar para venda": vermelho CLARO — avisa que a ação desfaz o elenco, sem
+   gritar como o vermelho cheio do Recusar/Apagar, que é para o que não volta
+   atrás. Mesma altura e raio dos outros botões de controlo. */
+.rf-btn-vender{height:var(--h-control);border-radius:var(--r-control);
+  background:color-mix(in srgb,var(--danger) 12%,var(--surface-card));
+  border:1px solid color-mix(in srgb,var(--danger) 32%,var(--surface-card));
+  color:var(--danger);font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);padding:0 16px}
+.rf-btn-vender:hover:not(:disabled){background:color-mix(in srgb,var(--danger) 20%,var(--surface-card))}
