@@ -424,7 +424,12 @@ function rfPosRodadaHTML(){
   });
 }
 function rfPrTodas(){ if(typeof clClassifTodas==='function') clClassifTodas(); else toastC('Todas as divisões — em breve.','info'); }
-function rfPrContinuar(){ CL.screen='main'; cdraw(); }
+function rfPrContinuar(){
+  CL.screen='main'; cdraw();
+  /* leilões que fecharam para OUTROS clubes viram aviso aqui, ao voltar da
+     rodada — antes sumiam em silêncio (ver a resolução do lote no core) */
+  if(typeof rfMkLeilaoOutroPendente==='function') setTimeout(rfMkLeilaoOutroPendente,350);
+}
 /* a zona de playoff é a faixa entre acesso e permanência; nas divisões que
    não têm playoff ela simplesmente não aparece */
 function rfZonaTabelaPR(pos,total){ return rfZonaTabela(pos,total); }

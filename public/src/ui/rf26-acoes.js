@@ -238,6 +238,33 @@ const RF_ACOES = {
     acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar proposta',on:'rfMkProporFee()'}] });
 },
 
+/* LEILÃO DE OUTRO CLUBE — a ficha completa do jogador que saiu, e para onde foi.
+   O pacote desenha isto como aviso de tela cheia sobre véu: não é uma decisão,
+   é uma notícia que fecha com OK. Os dados vêm da fotografia guardada na
+   resolução do lote (S.auctionSales), porque nesse momento o jogador já trocou
+   de elenco e ler dele agora daria o clube errado. */
+'mkt-leilao-outro': d=>{
+  const v=d.venda||{};
+  const comprador=anyClubOf(v.comprador)||{short:'—'};
+  const vendedor=anyClubOf(v.vendedor)||{short:'—'};
+  const setor=({GK:'Goleiro',DEF:'Defesa',MID:'Meio-campo',ATT:'Atacante'})[v.pos]||'—';
+  const linha=(r,val)=>rfAcLinhaHTML(r,String(val==null?'—':val),'');
+  return rfAcao({ kicker:'MERCADO · LEILÃO DE OUTRO CLUBE',
+    titulo:'Venda de jogador por leilão', w:520,
+    corpo:
+      linha('Equipa', escC(vendedor.short||'—'))
+      + linha('Jogador', escC(v.nome||'—'))
+      + linha('Posição', setor)
+      + linha('Força', v.forca)
+      + linha('Salário pretendido', rfDin(v.salario||0))
+      + linha('Preço base', v.base?rfDin(v.base):'zero')
+      + linha('Gols nesta temporada', v.gols||0)
+      + rfAcSeloHTML(rfIcone('leilao',18), 'Vendido ao '+escC((comprador.short||'—').toUpperCase()),
+          'por '+escC(rfDin(v.preco||0)))
+      + rfAcNotaHTML('O jogador deixou o mercado — não é mais possível dar lance neste lote.'),
+    acoes:[{l:rfIcone('ok',16)+' OK'}] });
+},
+
 'mkt-lance': d=>{
   const lot=((S.auctions&&S.auctions.lots)||[]).find(l=>l.id===d.sellerId+'|'+d.player);
   const p=(typeof findP==='function')?findP(d.player,d.sellerId):null;

@@ -5567,6 +5567,32 @@
   [data-mkt="mkt-vender"] .rf-mkt-row>*:nth-child(7),
   [data-mkt="mkt-vender"] .rf-mkt-head>span:nth-child(7){flex:0 0 58px}
 
+  /* TRANSFERÊNCIAS — jogador · pos · força · saiu de · → · foi para · valor ·
+     quando, tudo numa linha. A tabela mostra DOIS clubes por linha (origem e
+     destino), então cada um fica só com o escudo; o nome do jogador é a coluna
+     que manda e recebe a folga. */
+  [data-mkt="mkt-transf"] .rf-mkt-head,
+  [data-mkt="mkt-transf"] .rf-mkt-row{
+    display:flex !important;flex-wrap:nowrap;align-items:center;gap:6px;min-width:430px}
+  [data-mkt="mkt-transf"] .rf-mkt-row>*:nth-child(1),
+  [data-mkt="mkt-transf"] .rf-mkt-head>span:nth-child(1){flex:1 1 104px;min-width:104px}
+  [data-mkt="mkt-transf"] .rf-mkt-row>*:nth-child(2),
+  [data-mkt="mkt-transf"] .rf-mkt-head>span:nth-child(2){flex:0 0 22px}
+  [data-mkt="mkt-transf"] .rf-mkt-row>*:nth-child(3),
+  [data-mkt="mkt-transf"] .rf-mkt-head>span:nth-child(3){flex:0 0 26px}
+  [data-mkt="mkt-transf"] .rf-mkt-row>*:nth-child(4),
+  [data-mkt="mkt-transf"] .rf-mkt-head>span:nth-child(4){flex:0 0 30px}
+  [data-mkt="mkt-transf"] .rf-mkt-row>*:nth-child(5),
+  [data-mkt="mkt-transf"] .rf-mkt-head>span:nth-child(5){flex:0 0 14px}
+  [data-mkt="mkt-transf"] .rf-mkt-row>*:nth-child(6),
+  [data-mkt="mkt-transf"] .rf-mkt-head>span:nth-child(6){flex:0 0 30px}
+  [data-mkt="mkt-transf"] .rf-mkt-row>*:nth-child(7),
+  [data-mkt="mkt-transf"] .rf-mkt-head>span:nth-child(7){flex:0 0 84px}
+  [data-mkt="mkt-transf"] .rf-mkt-row>*:nth-child(8),
+  [data-mkt="mkt-transf"] .rf-mkt-head>span:nth-child(8){flex:0 0 76px}
+  /* o cabeçalho nunca quebra em duas linhas */
+  [data-mkt="mkt-transf"] .rf-mkt-head>span{white-space:nowrap;overflow:hidden;text-overflow:clip}
+
   /* LEILÃO — mesma regra: tudo numa linha e rolagem lateral quando não couber.
      São nove colunas (jogador · pos · ida · for · clube · lance atual · seu
      lance · fecha · ação) e nenhuma delas é dispensável durante um lote aberto. */

@@ -466,7 +466,11 @@ function rfMktTransfHTML(){
       {right: aberta?('fecha em '+faltam+' jornada'+(faltam===1?'':'s')):'fechada'})
     + rfCard('Movimentações da divisão',
       rfMkTabela('minmax(0,1fr) 44px 48px minmax(0,150px) 28px minmax(0,150px) 116px 116px',
-        cabecalho, linhas, 'Nenhuma transferência registrada ainda nesta temporada.', 'mkt-contra'),
+        /* CHAVE PRÓPRIA. Esta tabela usava 'mkt-contra', a mesma das
+           contrapropostas: as duas dividiam o estado da lista longa e herdavam
+           uma da outra a grade do telefone, o que partia o cabeçalho em duas
+           linhas e desalinhava as colunas. */
+        cabecalho, linhas, 'Nenhuma transferência registrada ainda nesta temporada.', 'mkt-transf'),
       {right: ent.length? ent.length+' no total':''})
   );
 }
@@ -630,6 +634,17 @@ function rfMkLance(sellerId, player){
   // quando alguém já está na frente, e abre com o aviso de quem é.
   const cobrir = lot && lot.leader && lot.leader!==S.clubId && lot.myBid;
   rfAcAbrir(cobrir?'mkt-cobrir':'mkt-lance', {sellerId, player});
+}
+/* Mostra o próximo leilão fechado por OUTRO clube, um de cada vez, e só uma vez
+   por venda. Chamado ao voltar da rodada (ver rfPrContinuar): é o momento em que
+   o utilizador está a par do que aconteceu na jornada. */
+function rfMkLeilaoOutroPendente(){
+  const fila=(typeof S!=='undefined' && S.auctionSales)||[];
+  const v=fila.find(x=>x && !x._visto);
+  if(!v) return false;
+  v._visto=true;
+  rfAcAbrir('mkt-leilao-outro',{venda:v});
+  return true;
 }
 function rfMkLanceGo(){
   const P=CL.mkP; const id=P.sellerId+'|'+P.player;

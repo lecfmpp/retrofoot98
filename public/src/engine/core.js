@@ -1200,6 +1200,21 @@ function resolveAuctionLot(l){
   if(isMe){
     S.roundNews.push(`🔨 ${p.n} arrematado no leilão por ${fmt(price)} — você cobriu a concorrência!`);
     pushFinanceEntry({playerPurchases:price, log:[`🔨 ${p.n} arrematado no leilão por ${fmt(price)}.`]});
+  } else {
+    /* LEILÃO GANHO POR OUTRO CLUBE. Antes isto não gerava aviso nenhum: só o
+       arremate do PRÓPRIO utilizador virava notícia, e um jogador que ele estava
+       a acompanhar sumia do mercado sem explicação. Guarda uma FOTOGRAFIA do
+       jogador (o objeto muda de clube logo a seguir) para a tela poder mostrar a
+       ficha do pacote — ver o diálogo `mkt-leilao-outro`. */
+    S.auctionSales=S.auctionSales||[];
+    S.auctionSales.push({
+      nome:p.n, pos:p.s, forca:p.f, idade:p.age||null,
+      salario:(p.contract&&p.contract.salary)||0, base:l.base||0,
+      gols:(S.scorers&&S.scorers[p.n])||0,
+      vendedor:l.sellerId, comprador:winnerClubId, preco:price, round:S.round
+    });
+    if(S.auctionSales.length>12) S.auctionSales=S.auctionSales.slice(-12);
+    S.roundNews.push(`🔨 ${p.n} foi arrematado por ${fmt(price)}.`);
   }
 }
 /* usuário dá/aumenta o lance num lote (durante a gestão). Só valida — NÃO debita (o débito é na
