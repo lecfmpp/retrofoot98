@@ -145,7 +145,6 @@ function rfBancoJerseyHTML(th, num){
 function rfBancoHTML(th, nums){
   const xiSet=new Set(S.xi||[]);
   const banco=squad(CL.clubId).filter(p=>!xiSet.has(p.pid));
-  const aberto = CL.benchOpen!==false;
   const grupos = RF_BANCO_GRUPOS.map(([sec,rot])=>{
     const list=banco.filter(p=>p.s===sec).slice().sort((a,b)=>b.f-a.f);
     if(!list.length) return '';
@@ -169,13 +168,16 @@ function rfBancoHTML(th, nums){
     }).join('');
     return `<div class="rf-bgrupo"><span class="rf-bgrupo-t">${rot}</span>${linhas}</div>`;
   }).join('');
-  return `<div class="cl-bench rf-banco ${aberto?'':'fechado'}">
-    <button type="button" class="cl-bench-hd" onclick="clToggleBench()"
-      title="${aberto?'Recolher o banco e aumentar o campo':'Mostrar os suplentes'}">
+  /* SEM EXPANDIR/COLAPSAR. O banco vivia atrás de um botão que recolhia a lista
+     para alargar o campo; com o campo em tamanho fixo isso deixou de valer, e o
+     que sobrava era um clique a mais entre o treinador e os seus reservas — no
+     telefone, ainda por cima, escondia a única forma de ver quem está no banco.
+     O cabeçalho continua, mas como RÓTULO, não como interruptor. */
+  return `<div class="cl-bench rf-banco">
+    <div class="cl-bench-hd" role="presentation">
       <span class="cl-bench-hd-txt">SUPLENTES</span>
       <span class="cl-bench-hd-n">${banco.length}</span>
-      <span class="cl-bench-hd-seta">${aberto?'▸':'◂'}</span>
-    </button>
-    ${aberto?`<div class="rf-banco-lista">${grupos||'<div class="cl-bench-vazio">—</div>'}</div>`:''}
+    </div>
+    <div class="rf-banco-lista">${grupos||'<div class="cl-bench-vazio">—</div>'}</div>
   </div>`;
 }
