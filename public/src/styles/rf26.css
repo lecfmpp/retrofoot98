@@ -5898,3 +5898,8 @@
   /* sem rolagem, a ação não precisa de ficar presa nem de sombra */
   [data-el="treino"] .rf-el-act{box-shadow:none;position:static;padding-left:0}
 }
+
+/* o invólucro dos fatos herda o comportamento do recipiente: sem isto, o
+   `flex:1 1 auto` deixava de valer e as pastilhas colavam-se ao nome */
+.rf-lv-fatos-slot{flex:1 1 auto;min-width:0;display:flex;align-items:center;overflow:hidden}
+.rf-lv-fatos-slot>.rf-lv-fatos{flex:1 1 auto;min-width:0}

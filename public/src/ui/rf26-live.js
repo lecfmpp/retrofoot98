@@ -57,8 +57,10 @@ function rfLvLinhaHTML(m,i){
   const gh=m.hg!=null?m.hg:(m.gh||0), ga=m.ag!=null?m.ag:(m.ga||0);
   return `<div class="rf-lv-linha ${meu?'meu':''}" onclick="liveRowClick(${i})">
     <span class="rf-lv-pub">${rfLvTicketHTML()}${grp(m.att||0)}</span>
+    <!-- os dois recipientes de fatos levam id porque quem os actualiza a cada
+         tique e o updateLive(), e ele so mexe em nos com id. Ver a nota la. -->
     <span class="rf-lv-lado casa">
-      ${rfLvFatosHTML(fh,'esq')}
+      <span id="rf-lv-fh-${i}" class="rf-lv-fatos-slot">${rfLvFatosHTML(fh,'esq')}</span>
       <span class="rf-lv-n ${gh>ga?'frente':''}">${escC(hc.short)}</span>
       <span class="rf-lv-crest">${rfCrest(hc,30)}</span>
     </span>
@@ -66,9 +68,9 @@ function rfLvLinhaHTML(m,i){
     <span class="rf-lv-lado fora">
       <span class="rf-lv-crest">${rfCrest(ac,30)}</span>
       <span class="rf-lv-n ${ga>gh?'frente':''}">${escC(ac.short)}</span>
-      ${rfLvFatosHTML(fa,'dir')}
+      <span id="rf-lv-fa-${i}" class="rf-lv-fatos-slot">${rfLvFatosHTML(fa,'dir')}</span>
     </span>
-    <span class="rf-lv-min" id="cl-lg-${i}">${m.min!=null?m.min+"'":''}</span>
+    <span class="rf-lv-min" id="cl-lg-${i}">${m.done?'FIM':((m.min!=null?m.min:((CL.live&&(CL.live.minute||CL.live.min))||0))+"'")}</span>
   </div>`;
 }
 /* o motor não tem um tipo "vermelho": manda type:'cartao' com
@@ -79,6 +81,16 @@ function rfLvIncToFato(x){
   if(kind==='cartao' && String(x.cardType||'').toLowerCase().indexOf('verm')===0) kind='vermelho';
   if(kind==='penalti') kind=x.scored?'gol':'penperdido';
   return {kind, nome:x.player||x.name||x.n||'', min:x.min};
+}
+
+/* Os fatos de uma partida, prontos para os dois lados. Chamado no desenho e a
+   cada tique (updateLive), para os dois caminhos darem exactamente o mesmo
+   HTML — era a divergencia entre eles que punha os fatos fora do card. */
+function rfLvFatosDeJogo(m){
+  const inc=m.incidents||[];
+  const lado=x=>String(x.side||'').toUpperCase();
+  return { casa:inc.filter(x=>lado(x)==='H').map(rfLvIncToFato),
+           fora:inc.filter(x=>lado(x)==='A').map(rfLvIncToFato) };
 }
 
 /* ---- faixa de estado no topo ---- */

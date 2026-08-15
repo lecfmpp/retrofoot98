@@ -8708,14 +8708,23 @@ function updateLive(){ const RL=CL.live; if(!RL) return;
     // recente aparece por extenso e os anteriores viram um contador "+N". Sem isso, num
     // jogo de 4 a 3 a linha crescia e empurrava a lista inteira pra baixo no meio da
     // transmissão — a tabela dançava enquanto o usuário tentava ler o placar.
+    /* OS FATOS NAO MORAM MAIS AQUI. `#cl-lg-` era a celula de gol da pele
+       antiga, e na pele nova esse id ficou na coluna MIN, de 46px. Este bloco
+       continuava a despejar la dentro o texto do fato com as classes antigas
+       (cl-lgoal-*), que nao tem limite de largura nenhum: a cada tique o fato
+       era injectado na coluna do minuto e transbordava para fora do card, do
+       lado direito da tela.
+       Na pele nova cada fato e uma pastilha ao lado do NOME do seu time — a do
+       mandante a esquerda, a do visitante a direita — e e isso que se
+       actualiza. A coluna do minuto volta a mostrar o minuto. */
+    /* o minuto e da RODADA (RL.minute), nao da partida: `m.min` nunca existiu e
+       a coluna saia vazia. Jogo terminado mostra o apito final. */
     const lg=document.querySelector('#cl-lg-'+i);
-    if(lg){
-      const incs=m.incidents||[]; const inc=incs[incs.length-1];
-      const extras=Math.max(0,incs.length-1);
-      lg.innerHTML = inc
-        ? `<span class="cl-lgoal-t">${escC(lastIncidentTxt(inc))}</span>`
-          + (extras?`<span class="cl-lgoal-n" title="${extras} fato(s) anterior(es) nesta partida">+${extras}</span>`:'')
-        : '';
+    if(lg) lg.textContent = m.done ? 'FIM' : ((m.min!=null?m.min:(RL.minute||RL.min||0))+"'");
+    if(typeof rfLvFatosDeJogo==='function' && typeof rfLvFatosHTML==='function'){
+      const f=rfLvFatosDeJogo(m);
+      const fh=document.querySelector('#rf-lv-fh-'+i); if(fh) fh.innerHTML=rfLvFatosHTML(f.casa,'esq');
+      const fa=document.querySelector('#rf-lv-fa-'+i); if(fa) fa.innerHTML=rfLvFatosHTML(f.fora,'dir');
     } });
   if(RL.sel!=null){ const box=document.querySelector('#cl-livemodal'); if(box) box.innerHTML=liveModalHTML(RL.matches[RL.sel]); }
   camUpdate(); // Modo Camarote: relógio, placar, barra de pressão, narração e estatística

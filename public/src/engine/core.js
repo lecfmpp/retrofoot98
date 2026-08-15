@@ -1439,8 +1439,35 @@ function ensureIntlClub(name, countryCode){
   return id;
 }
 /* uma entrada de grupo é o id brasileiro (string numérica, já existe em DATA/clubPool) ou
-   [nome, código do país] pra um clube estrangeiro (gerado sob demanda) */
-function resolveGroupEntry(e){ return typeof e==='string' ? e : ensureIntlClub(e[0], e[1]); }
+   [nome, código do país] pra um clube estrangeiro.
+
+   O CLUBE DA COPA TEM DE SER O MESMO CLUBE DA LIGA, quando os dois existem.
+   `ensureIntlClub` fabrica sempre um id próprio — `intl_river_plate` — a partir
+   do nome. Mas num save argentino o River Plate já existe no mundo com o id do
+   bundle, `cmb_209`, e é esse que o utilizador comanda. O grupo ficava com uma
+   CÓPIA: dois River Plate no mesmo save, e o do utilizador nunca aparecia na
+   Libertadores. Era isto que punha o jogador a assistir a uma competição em que
+   o clube dele participa — `pendingUserCupMatches` procura o `CL.clubId` nos
+   grupos e não o encontrava, porque lá estava o sósia.
+
+   `realConmebolClub` já sabe casar o nome do grupo com o clube real do bundle e
+   guarda o id verdadeiro em `tk`. Se esse clube já existe neste save, é ele que
+   entra no grupo. Se não existe — um save brasileiro, onde os argentinos são só
+   adversários de copa — segue o caminho de sempre e nada muda. */
+function grupoIdLocal(nome, cc){
+  if(typeof S==='undefined' || !S) return null;
+  if(typeof realConmebolClub!=='function') return null;
+  let real=null; try{ real=realConmebolClub(nome, cc); }catch(e){ return null; }
+  const id=real&&real.tk;
+  if(!id) return null;
+  const existe=(S.clubPool&&S.clubPool[id]) || (S.squads&&S.squads[id])
+            || (S.clubPool&&Object.keys(S.clubPool).length===0 && false);
+  return existe ? id : null;
+}
+function resolveGroupEntry(e){
+  if(typeof e==='string') return e;
+  return grupoIdLocal(e[0], e[1]) || ensureIntlClub(e[0], e[1]);
+}
 function buildRealGroups(defs){
   const groups={};
   Object.entries(defs).forEach(([label,entries])=>{ groups[label]=entries.map(resolveGroupEntry); });
@@ -2122,12 +2149,22 @@ function topDivisionStandingsIds(){
 }
 function unifiedContinentalPool(){
   const pool={};
+  /* `S._topFinalStandings` e a tabela final da divisao de topo DO UNIVERSO ATIVO —
+     num save argentino ela e a Liga Profesional, nao o Brasileirao. Entregar
+     essa lista ao Brasil punha clubes argentinos nas seis vagas brasileiras (e
+     de novo nas argentinas, logo abaixo): o mesmo clube duas vezes na mesma
+     copa, e o Brasil representado por quem nunca jogou o Brasileirao.
+     A tabela real vale para o pais que o utilizador esta a jogar. Os outros
+     seguem a liga de fundo, se existir, ou a ordem do bundle. */
+  const primario=(typeof primaryCountry==='function')?primaryCountry():'Brasil';
   const realStandings=topDivisionStandingsIds();
-  pool['Brasil'] = realStandings
+  pool['Brasil'] = (primario==='Brasil' && realStandings)
     ? realStandings.map(id=>({id}))
     : ((typeof DATA!=='undefined'&&DATA.clubsSerieA)||[]).slice().sort((a,b)=>(b.overall||0)-(a.overall||0));
   const CLG=(typeof window!=='undefined'&&window.CONMEBOL_LEAGUES)||{};
   ['Argentina','Colômbia','Chile','Uruguai','Peru','Equador','Paraguai','Venezuela','Bolívia'].forEach(co=>{
+    // o pais que o utilizador joga tem campanha de verdade: a vaga sai da tabela dele
+    if(co===primario && realStandings){ pool[co]=realStandings.map(id=>({id})); return; }
     // país rodando como liga de fundo (o usuário o selecionou): a campanha dele existe de verdade,
     // então a vaga sai da tabela dele também. Sem liga de fundo não há campanha pra respeitar —
     // segue a ordem do bundle (dado real do Transfermarkt), como sempre foi.
@@ -2176,10 +2213,31 @@ function ensureContinentalCupClubs(ids){
   });
 }
 function initConmebolCups(){
-  const qual=unifiedContinentalQualification(S._intlUserFinish||0);
-  ensureContinentalCupClubs(qual.libertadores.concat(qual.sulamericana));
-  const libGroups=makeGroupStage(splitIntoGroups(qual.libertadores, hashSeed(S.seed,'libgroups',S.season)), 2);
-  const sulGroups=makeGroupStage(splitIntoGroups(qual.sulamericana, hashSeed(S.seed,'sulgroups',S.season)), 2);
+  /* EM 2026 VALEM OS GRUPOS REAIS, TAMBEM AQUI.
+     Este ramo montava a fase de grupos sorteando o pool por vagas de pais, e
+     ignorava LIBERTADORES_GROUPS_2026 / SULAMERICANA_GROUPS_2026 — que o ramo
+     brasileiro usa. O efeito era o relatado: a jogar a Liga Profesional, os
+     argentinos que estao MESMO na Libertadores de 2026 (Boca, Estudiantes,
+     Platense, Lanus, Central, Independiente Rivadavia) so entravam no sorteio
+     se calhassem no top-6 da ordem do bundle, e o utilizador ficava a assistir
+     a uma copa em que o clube dele participa na vida real.
+     Os grupos reais sao os mesmos nos dois universos — e sao uma lista de
+     clubes por nome e pais, sem nada de brasileiro no meio que os torne
+     exclusivos do Brasil. */
+  const real=(S.season===2026 && typeof real2026Qualification==='function')?real2026Qualification():null;
+  let qual, libGroups, sulGroups;
+  if(real && real.libertadoresGroups){
+    libGroups=makeGroupStage(real.libertadoresGroups, 2);
+    sulGroups=makeGroupStage(real.sulamericanaGroups, 2);
+    qual={ libertadores:Object.values(real.libertadoresGroups).flat(),
+           sulamericana:Object.values(real.sulamericanaGroups).flat() };
+    ensureContinentalCupClubs(qual.libertadores.concat(qual.sulamericana));
+  }else{
+    qual=unifiedContinentalQualification(S._intlUserFinish||0);
+    ensureContinentalCupClubs(qual.libertadores.concat(qual.sulamericana));
+    libGroups=makeGroupStage(splitIntoGroups(qual.libertadores, hashSeed(S.seed,'libgroups',S.season)), 2);
+    sulGroups=makeGroupStage(splitIntoGroups(qual.sulamericana, hashSeed(S.seed,'sulgroups',S.season)), 2);
+  }
   S.qualification={...qual};
   S.cups={ libertadores:{group:libGroups, bracket:null}, sulamericana:{group:sulGroups, bracket:null} };
 }
