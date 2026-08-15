@@ -5817,6 +5817,18 @@ function startLiveRound(){
     if(typeof onlineCompleteSeasonTurnover==='function') onlineCompleteSeasonTurnover();
     return;
   }
+  /* MESMA GUARDA NO SOLO — faltava, e era por isso que "Jogar" às vezes abria uma
+     tela ao vivo VAZIA, só com a faixa azul do topo. Sem jornada em `S.sched`
+     (temporada terminada, ou o diálogo de fim de temporada fechado e o botão
+     clicado de novo), `fxRaw` saía vazio, `RL.matches` também, e a tela desenhava
+     a barra e nada mais — sem erro no console e sem saída, porque o tique da
+     transmissão não tem em que pegar. Agora a rodada fantasma não chega a nascer. */
+  if(!CL.online && Array.isArray(S.sched) && (S.round||0) >= S.sched.length){
+    CL._liveBusy=false;
+    if(S.finished && typeof seasonEndDialog==='function') seasonEndDialog();
+    else toastC('A temporada acabou. Avance para a próxima.','info');
+    return;
+  }
   fixUserXIAvailability(); // segunda camada de proteção: nunca deixa suspenso/lesionado marcado como titular
   // Resenha (online): guarda a escalação que EU de fato uso nesta rodada pro meu clube —
   // é o que outros clientes vão enxergar como "última escalação conhecida" desse clube
@@ -5843,6 +5855,15 @@ function startLiveRound(){
     const oSeedBase=hashC('rnd'+S.season+'-'+S.round+'-'+d);
     oFx.forEach(([h,a])=>{ const seed=(oSeedBase+hashC(h)+hashC(a))>>>0;
       RL.matches.push(buildLiveMatchObject(h,a,seed,{user:false,div:d})); }); }); }
+  /* REDE DE SEGURANÇA. Mesmo com a guarda acima, qualquer caminho que chegue aqui
+     sem uma única partida produziria a tela vazia. Melhor recusar a entrada e
+     dizer o que houve do que deixar o utilizador preso numa tela morta. */
+  if(!RL.matches.length){
+    CL._liveBusy=false;
+    console.warn('rodada sem partidas: S.round='+S.round+' de '+((S.sched||[]).length)+' — entrada em campo cancelada');
+    toastC('Não há jogo para esta jornada.','warn');
+    return;
+  }
   RL.maxMin=Math.max(94,...RL.matches.map(m=>m.events.length?m.events[m.events.length-1].min:90));
   // FASE 1: alinha o INÍCIO da transmissão ao apito oficial do servidor (kickoff_at) — quem recebe
   // o evento de fase com um pouco de latência entra já no minuto em que os outros estão, em vez de
