@@ -46,7 +46,12 @@ function rfLpSecaoHTML(o){
     <h2 class="rf-lp-h2">${escC(o.titulo)}</h2>
     <p class="rf-lp-p">${escC(o.prosa)}</p>
     ${o.itens?`<ul class="rf-lp-itens">${o.itens.map(i=>`<li><span class="rf-lp-losango">◆</span>${escC(i)}</li>`).join('')}</ul>`:''}
-    ${o.cta?`<button type="button" class="rf-lp-cta2" onclick="${o.ctaOn||''}">${escC(o.cta)}</button>`:''}
+    <!-- SEM escC no rótulo: desde que os ícones viraram SVG, o rótulo traz marcação
+         (rfIcone(...) + texto). Escapado, o botão exibia o código do <svg> como
+         TEXTO e esticava a landing para mais de 7000px de largura. Mesmo defeito
+         que já tinha acontecido nos botões do assistente. Os rótulos são literais
+         do código, nunca entrada do utilizador. -->
+    ${o.cta?`<button type="button" class="rf-lp-cta2" onclick="${o.ctaOn||''}">${o.cta}</button>`:''}
   </div>`;
 }
 
