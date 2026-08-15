@@ -91,6 +91,29 @@ function rfEmArquivadasHTML(){
   </div>`;
 }
 
+/* `transferWindowStatus()` devolve {open,closesIn} ou {open:false,pre,opensIn} —
+   números, não frase. A frase é montada aqui, não lá dentro. */
+function rfResenhaJanela(){
+  if(typeof transferWindowStatus!=='function') return '—';
+  const w=transferWindowStatus()||{};
+  const r=n=>n+' rodada'+(n===1?'':'s');
+  if(w.open) return w.closesIn>0 ? ('aberta · fecha em '+r(w.closesIn)) : 'aberta · fecha nesta rodada';
+  if(w.opensIn!=null) return (w.pre?'pré-acordos · ':'')+'abre em '+r(w.opensIn);
+  return 'fechada';
+}
+
+/* "Última sincronização há 3 minutos". Sem carimbo nenhum ainda, diz isso em
+   vez de inventar um tempo. */
+function rfResenhaDesdeSync(){
+  const t=CL._roundSyncedAt||0;
+  if(!t) return 'Ainda não sincronizou nesta jornada';
+  const min=Math.floor((Date.now()-t)/60000);
+  if(min<1) return 'Última sincronização agora mesmo';
+  if(min<60) return 'Última sincronização há '+min+' minuto'+(min===1?'':'s');
+  const h=Math.floor(min/60);
+  return 'Última sincronização há '+h+' hora'+(h===1?'':'s');
+}
+
 /* ---- cabeçalho da página ---- */
 function rfEmSubHTML(){
   const box=rfInbox();
@@ -287,7 +310,7 @@ function rfCfResenhaHTML(){
         <button type="button" class="rf-btn rf-btn-cta" onclick="rfChatToggle()">${rfIcone('chat',16)} Abrir o chat</button>
       </div>
     </div>
-    <div class="rf-card rf-el-tbl" style="--el-cols:${RF_CF_SALA_COLS}">
+    <div class="rf-card rf-el-tbl" data-el="sala" style="--el-cols:${RF_CF_SALA_COLS}">
       <div class="rf-label"><span class="rf-label-t">TREINADORES</span>
         <span class="rf-label-r">${assentos.length} na sala</span></div>
       ${cab}
@@ -297,6 +320,9 @@ function rfCfResenhaHTML(){
       <div class="rf-card">
         <div class="rf-label"><span class="rf-label-t">REGRAS DA SALA</span></div>
         <div class="rf-cf-reg"><span>Ritmo</span><b>${escC(typeof tempoLabelAtual==='function'?tempoLabelAtual():'—')}</b></div>
+        <!-- o pacote pede "Janela de mercado" nesta linha; a divisão fica logo
+             abaixo porque numa sala ela é informação que ninguém deduz -->
+        <div class="rf-cf-reg"><span>Janela de mercado</span><b>${escC(rfResenhaJanela())}</b></div>
         <div class="rf-cf-reg"><span>Divisão</span><b>${escC(divisionLabel())}</b></div>
         <div class="rf-cf-reg"><span>Quem pode entrar</span><b>só por convite</b></div>
         <div class="rf-cf-reg"><span>Anfitrião</span><b>${anfitriao?escC(rfTreinadorNome()):'outro treinador'}</b></div>
@@ -304,7 +330,9 @@ function rfCfResenhaHTML(){
       <div class="rf-card">
         <div class="rf-label"><span class="rf-label-t">SINCRONIZAÇÃO</span></div>
         <div class="rf-cf-sinc-top">
-          <span class="rf-cf-sinc-t">Sala ${escC(codigo)}</span>
+          <!-- o código já está impresso em letras grandes no cartão de cima;
+               aqui o pacote diz há quanto tempo foi a última sincronização -->
+          <span class="rf-cf-sinc-t">${escC(rfResenhaDesdeSync())}</span>
           <span class="rf-cf-sinc-v">em dia</span>
         </div>
         <div class="rf-cf-sinc-barra"><i style="width:100%"></i></div>
@@ -315,7 +343,30 @@ function rfCfResenhaHTML(){
           <button type="button" class="rf-btn rf-btn-recusar" onclick="rfAcSairSala()">Sair da sala</button>
         </div>
       </div>
-    </div>`;
+    </div>
+    ${rfResenhaChatHTML()}`;
+}
+
+/* CHAT DA SALA — o pacote põe um cartão de chat nesta página, e o jogo só tinha
+   a bolha flutuante. As mensagens são as mesmas (`chatMsgsHTML`), então isto é
+   uma segunda porta para o mesmo chat, não um chat paralelo: escrever aqui
+   passa pelo mesmo `rfChatEnviar`, e o campo tem id próprio para os dois não
+   disputarem o mesmo `#rf-chat-in`. */
+function rfResenhaChatHTML(){
+  if(!CL.online || typeof chatMsgsHTML!=='function') return '';
+  let msgs=''; try{ msgs=chatMsgsHTML()||''; }catch(e){ msgs=''; }
+  const n=((typeof NET!=='undefined'&&NET.chat&&NET.chat.length)||0);
+  return `<div class="rf-card rf-cf-chat">
+    <div class="rf-label"><span class="rf-label-t">CHAT DA SALA</span>
+      <span class="rf-label-r">${n} mensage${n===1?'m':'ns'}</span></div>
+    <div class="rf-chat-msgs rf-cf-chat-msgs" id="rf-cf-chat-msgs">${
+      msgs || '<span class="rf-note">Ninguém falou nada ainda.</span>'}</div>
+    <div class="rf-chat-in">
+      <input id="rf-cf-chat-in" class="rf-chat-input" placeholder="Manda a braba"
+        onkeydown="if(event.key==='Enter')rfChatEnviar('rf-cf-chat-in')">
+      <button type="button" class="rf-chat-send" onclick="rfChatEnviar('rf-cf-chat-in')" aria-label="Enviar">➤</button>
+    </div>
+  </div>`;
 }
 
 /* ---- cabeçalho da página ---- */
@@ -339,7 +390,15 @@ function rfCfAcoesHTML(){
    Cada uma junta o dado que o diálogo mostra e abre o envelope. Nenhuma
    chama mais dlg()/overlayC — quem desenha é rfAcao().
    ===================================================================== */
-function rfAcSala(){ return (S.room&&(S.room.code||S.room.id))||(CL.roomCode||'—'); }
+/* O CÓDIGO DA SALA TINHA DUAS FONTES. O cartão da página lia `NET.room.code` e
+   o subtítulo lia `S.room`/`CL.roomCode` — que no Resenha ficam vazios. Dava a
+   tela a dizer "Sala —" com o código impresso em letras grandes logo abaixo.
+   Uma função só, que tenta as três pela ordem em que são preenchidas. */
+function rfAcSala(){
+  const net=(typeof NET!=='undefined')?NET:null;
+  return (net&&net.room&&net.room.code)||(net&&net.code)
+      ||(S&&S.room&&(S.room.code||S.room.id))||(CL.roomCode)||'—';
+}
 function rfAcGravar(){
   if(typeof saveV3==='function'){ try{ saveV3(); }catch(e){} }
   const t=CL._lastSaveAt?new Date(CL._lastSaveAt):new Date();
@@ -369,7 +428,17 @@ function rfResenhaSubHTML(){
   if(!CL.online) return 'Você está no Modo Solo';
   const sala=(typeof rfAcSala==='function')?rfAcSala():'—';
   const n=(S.seats&&S.seats.length)||(CL.humans?Object.keys(CL.humans).length:0);
-  return `Sala ${escC(sala)} · ${n} treinador${n===1?'':'es'}`;
+  // "Sala 7KP2M · 4 treinadores · 9ª jornada" — a jornada faltava
+  return `Sala ${escC(sala)} · ${n} treinador${n===1?'':'es'} · ${(S.round||0)+1}ª jornada`;
+}
+
+/* as duas ações do cabeçalho da página, como no pacote: sincronizar e convidar */
+function rfResenhaAcoesHTML(){
+  if(!CL.online) return '';
+  return `<div class="rf-mk-acoes">
+    <button type="button" class="rf-btn rf-btn-secondary" onclick="clInviteResenha()">${rfIcone('copiar',16)} Copiar convite</button>
+    <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcSincronizar()">${rfIcone('sincronizar',16)} Sincronizar</button>
+  </div>`;
 }
 
 /* =====================================================================

@@ -215,8 +215,38 @@ Arquivos do pacote: `Modal - Sala em Espera.html`, `Modal - Sala em Espera - Mob
       assento está mesmo na tabela do utilizador (num assento de outro país ou
       divisão, `tablePos` não diz nada sobre ele); fora disso, volta ao mando
 
-## 8.5 Página Modo Resenha (Sala · Treinadores · Regras · Sincronização)
-- [ ] A conferir
+## 8.5 Página Modo Resenha — DESKTOP e MOBILE
+
+Conferida contra `Modo Resenha.html`.
+
+### Corrigido nesta rodada
+- [x] **"Sala —" com o código impresso logo abaixo.** O cartão lia
+      `NET.room.code` e o subtítulo lia `S.room`/`CL.roomCode`, que no Resenha
+      ficam vazios: duas fontes para o mesmo código. Agora é uma função só
+- [x] **A jornada no subtítulo** — "Sala 7KP2M · 4 treinadores · 9ª jornada"
+- [x] **As duas ações do cabeçalho** (Copiar convite · Sincronizar), que o
+      pacote desenha e não existiam
+- [x] **"Janela de mercado" nas regras** — o pacote pede essa linha;
+      `transferWindowStatus()` devolve números, e a frase é montada a partir
+      deles ("aberta · fecha em 9 rodadas")
+- [x] **A sincronização diz há quanto tempo** em vez de repetir o código da sala,
+      que já está em letras grandes no cartão de cima
+- [x] **Cartão CHAT DA SALA** — o pacote põe o chat nesta página; o jogo só tinha
+      a bolha flutuante. É uma segunda porta para o mesmo chat, não um chat
+      paralelo, e cada campo ganhou id próprio para os dois não disputarem o
+      mesmo `#rf-chat-in`
+- [x] **Mobile:** a tabela da sala saía com "TREINADORCLUBE" — os dois rótulos
+      colados — e o clube em "Corin…". Faltava-lhe identidade (`data-el="sala"`)
+      para apanhar as regras de telefone das outras tabelas. Agora rola de lado
+      dentro do card, como no Elenco e no Mercado
+
+### Divergência deliberada
+- O pacote arruma CÓDIGO + REGRAS na primeira linha e TREINADORES +
+  SINCRONIZAÇÃO na segunda. O jogo dá a largura inteira à tabela de
+  treinadores: são 5 colunas, e em meia largura o nome do clube trunca — o
+  mesmo defeito que se acabou de corrigir no telefone
+- A linha "Divisão" fica, além das quatro do pacote: numa sala é informação
+  que ninguém deduz
 
 # 9 · Configurações — a conferir (deve ficar só com Perfil · Opções)
 # 10 · Sair do jogo — a conferir (abas: Gravar e sair · Outros saves · Apagar)

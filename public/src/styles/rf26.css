@@ -5824,3 +5824,20 @@
   border:1px solid color-mix(in srgb,var(--danger) 32%,var(--surface-card));
   color:var(--danger);font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);padding:0 16px}
 .rf-btn-vender:hover:not(:disabled){background:color-mix(in srgb,var(--danger) 20%,var(--surface-card))}
+
+/* CHAT DA SALA na página do Modo Resenha: a mesma lista de mensagens da bolha,
+   com altura fixa para o cartão não crescer sem fim numa conversa longa. */
+.rf-cf-chat-msgs{max-height:240px;min-height:96px;overflow-y:auto;
+  -webkit-overflow-scrolling:touch}
+@media (max-width:760px){ .rf-cf-chat-msgs{max-height:180px} }
+
+/* A TABELA DA SALA É UMA TABELA COMO AS OUTRAS. Sem identidade própria ela não
+   apanhava as regras de telefone das tabelas de elenco: a grade espremia, o
+   cabeçalho saía "TREINADORCLUBE" com os dois rótulos colados e o nome do clube
+   ficava em "Corin…". Agora tem largura explícita em cada coluna e o card rola
+   de lado, como no Elenco e no Mercado. */
+@media (max-width:760px){
+  [data-el="sala"] .rf-el-head,[data-el="sala"] .rf-el-row{
+    grid-template-columns:26px 104px 104px 40px 78px !important;
+    min-width:378px}
+}

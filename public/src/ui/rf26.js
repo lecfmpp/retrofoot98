@@ -143,6 +143,7 @@ const RF_PAGES=[
 
   { key:'resenha', ico:'chopp', label:'Modo Resenha', curto:'Resenha',
     titulo:'Modo Resenha', sub:()=>rfResenhaSubHTML(),
+    acoes:()=>rfResenhaAcoesHTML(),
     grid:'minmax(0,1fr)', resumo:()=>rfCfResenhaHTML() },
 
   { key:'config', ico:'config', label:'Configurações', curto:'Config',
@@ -1177,8 +1178,14 @@ function rfChatHTML(){
       ${n>0?`<span class="rf-chat-badge ${pulsa?'pulsa':''}">${n>99?'99+':n}</span>`:''}
     </button>`;
 }
-function rfChatEnviar(){
-  const el=document.getElementById('rf-chat-in'); if(!el) return;
+/* Há dois campos de chat: a bolha flutuante e o cartão da página do Modo
+   Resenha. Cada um diz qual é o seu, senão os dois disputavam o mesmo id e o
+   botão do cartão enviava o que estava escrito na bolha (ou nada). */
+function rfChatEnviar(campo){
+  const el=document.getElementById(campo||'rf-chat-in')
+        || document.getElementById('rf-chat-in')
+        || document.getElementById('rf-cf-chat-in');
+  if(!el) return;
   const txt=(el.value||'').trim(); if(!txt) return;
   el.value='';
   Promise.resolve(NET.sendChat(txt, CL.clubId||null))
