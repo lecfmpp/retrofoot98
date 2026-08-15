@@ -5484,15 +5484,76 @@
    na ficha do jogador, a um toque.
    A grade vem de `--rf-mkt-cols` (inline, no JS), por isso o !important. */
 @media (max-width:760px){
-  .rf-mkt-head{display:none}
-  .rf-mkt-row{grid-template-columns:minmax(0,1fr) 28px 86px 60px !important;
-    column-gap:8px;padding:10px 6px;align-items:center}
-  .rf-mkt-row .rf-mkt-b,.rf-mkt-row button{padding:6px 8px;font-size:11px;width:100%}
-  .rf-mkt-row>*:nth-child(2),   /* POS   */
-  .rf-mkt-row>*:nth-child(3),   /* IDADE */
-  .rf-mkt-row>*:nth-child(5),   /* CLUBE */
-  .rf-mkt-row>*:nth-child(7){   /* SALÁRIO */
-    display:none}
+  /* PRIORIDADE DAS COLUNAS NO TELEFONE (decisão sua).
+     A ordem de leitura é jogador · posição · idade · força · clube · valor · ação.
+     Elas cabem na largura da tela; as demais (salário, fim de contrato,
+     interesse) continuam na tabela e chegam ROLANDO DE LADO — nada é escondido,
+     porque a informação existe e o treinador pode precisar dela.
+     `min-width` na linha é o que obriga a barra horizontal a aparecer. */
+  .rf-mkt{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .rf-mkt::-webkit-scrollbar{height:4px}
+  .rf-mkt::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:99px}
+  .rf-mkt-head{display:grid;padding:0 6px 4px}
+  .rf-mkt-row{padding:10px 6px;align-items:center}
+  .rf-mkt-head,.rf-mkt-row{column-gap:6px}
+  .rf-mkt-row .rf-mkt-b,.rf-mkt-row button{padding:6px 6px;font-size:11px;width:100%}
+  /* o clube vira SÓ O ESCUDO: o nome não cabe e o escudo identifica igual */
+  .rf-mkt-clube>span{display:none}
+  .rf-mkt-clube{justify-content:center}
+
+  /* COMPRAR — exatamente a sua lista de prioridade: jogador · pos · ida · for ·
+     escudo · valor · Propor. Cabem em 375px sem rolar. O SALÁRIO sai daqui (não
+     está na lista e vive na ficha do jogador); tentei mandá-lo para o fim com
+     `order` e o botão quebrava para uma segunda linha. */
+  /* FLEX, NÃO GRID, no telefone. Em grid a linha criava uma faixa implícita e o
+     botão Propor descia para um segundo andar dentro da própria linha — cada
+     jogador ocupava dois níveis. Com `flex` e `nowrap` isso não acontece: o que
+     não couber empurra a largura e a tabela rola de lado, que é a sua regra. */
+  [data-mkt="mkt-mercado"] .rf-mkt-head,
+  [data-mkt="mkt-mercado"] .rf-mkt-row{
+    display:flex !important;flex-wrap:nowrap;align-items:center;gap:6px;min-width:366px}
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(1),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(1){flex:1 1 90px;min-width:90px}
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(2),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(2){flex:0 0 22px}
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(3),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(3){flex:0 0 24px}
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(4),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(4){flex:0 0 26px}
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(5),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(5){flex:0 0 26px}
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(6),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(6){flex:0 0 84px}
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(8),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(8){flex:0 0 58px}
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(7),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(7){display:none}
+
+  /* VENDER — mesma regra, mesmo motivo (flex em vez de grid): jogador · pos ·
+     ida · for · valor à frente; salário, fim de contrato e interesse ficam à
+     direita e chegam rolando. Nada é escondido. */
+  [data-mkt="mkt-vender"] .rf-mkt-head,
+  [data-mkt="mkt-vender"] .rf-mkt-row{
+    display:flex !important;flex-wrap:nowrap;align-items:center;gap:6px;min-width:520px}
+  [data-mkt="mkt-vender"] .rf-mkt-row>*:nth-child(1),
+  [data-mkt="mkt-vender"] .rf-mkt-head>span:nth-child(1){flex:1 1 96px;min-width:96px}
+  [data-mkt="mkt-vender"] .rf-mkt-row>*:nth-child(2),
+  [data-mkt="mkt-vender"] .rf-mkt-head>span:nth-child(2){flex:0 0 22px}
+  [data-mkt="mkt-vender"] .rf-mkt-row>*:nth-child(3),
+  [data-mkt="mkt-vender"] .rf-mkt-head>span:nth-child(3){flex:0 0 24px}
+  [data-mkt="mkt-vender"] .rf-mkt-row>*:nth-child(4),
+  [data-mkt="mkt-vender"] .rf-mkt-head>span:nth-child(4){flex:0 0 26px}
+  [data-mkt="mkt-vender"] .rf-mkt-row>*:nth-child(5),
+  [data-mkt="mkt-vender"] .rf-mkt-head>span:nth-child(5){flex:0 0 84px}
+  [data-mkt="mkt-vender"] .rf-mkt-row>*:nth-child(6),
+  [data-mkt="mkt-vender"] .rf-mkt-head>span:nth-child(6){flex:0 0 76px}
+  [data-mkt="mkt-vender"] .rf-mkt-row>*:nth-child(7),
+  [data-mkt="mkt-vender"] .rf-mkt-head>span:nth-child(7){flex:0 0 58px}
+  [data-mkt="mkt-vender"] .rf-mkt-row>*:nth-child(8),
+  [data-mkt="mkt-vender"] .rf-mkt-head>span:nth-child(8){flex:0 0 70px}
+  [data-mkt="mkt-vender"] .rf-mkt-row>*:nth-child(9),
+  [data-mkt="mkt-vender"] .rf-mkt-head>span:nth-child(9){flex:0 0 56px}
+
   /* os filtros viram faixa que rola de lado, como as formações */
   .rf-mkf{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:8px;
     padding-bottom:6px;-webkit-overflow-scrolling:touch}

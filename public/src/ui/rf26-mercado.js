@@ -61,7 +61,10 @@ function rfMkTabela(cols, cabecalho, linhas, vazio, chave){
   const corpo = chave
     ? rfLista(chave, arr, vazio)
     : `<div class="rf-mkt-body">${(Array.isArray(linhas)?linhas.join(''):linhas) || `<div class="rf-empty">${escC(vazio||'Nada aqui agora.')}</div>`}</div>`;
-  return `<div class="rf-mkt" style="--rf-mkt-cols:${cols}">
+  /* `data-mkt` dá nome à tabela: no telefone cada aba precisa da sua própria
+     prioridade de colunas, e sem isso uma regra escrita para o Comprar (7
+     colunas) desalinharia o Vender (9) e o Leilão. */
+  return `<div class="rf-mkt" data-mkt="${escC(chave||'')}" style="--rf-mkt-cols:${cols}">
     <div class="rf-mkt-head">${cabecalho}</div>
     ${corpo}
   </div>`;
