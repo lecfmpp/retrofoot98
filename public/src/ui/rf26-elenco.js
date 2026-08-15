@@ -110,6 +110,65 @@ function rfElElencoHTML(){
     </div>`;
 }
 function rfSelPlayer(pid){ CL.selPlayer=pid; rfSetTab('elenco','ficha'); }
+
+/* =====================================================================
+   RENOVAR CONTRATO — o botão existia, a renovação não acontecia.
+
+   `elenco-renovar` desenhava o salário, os anos e a chance de aceitar, e o
+   botão "Oferecer renovação" não tinha `on:` nenhum: fechava o diálogo e o
+   contrato ficava exatamente como estava. É o mesmo defeito que o "Promover"
+   da Base tinha — a tela inteira construída, sem o fio até ao motor.
+
+   Aqui não há função pronta para reaproveitar: o `clRenewPropose` da pele
+   antiga lê `CL.newSalary`, um estado que só o painel antigo preenchia, e fixa
+   três anos. Esta faz o mesmo trabalho a partir dos campos do diálogo novo, com
+   a mesma regra de caixa e o mesmo efeito na moral.
+
+   A CHANCE DE ACEITAR É REAL. O diálogo mostra uma percentagem; se ela fosse
+   decorativa, oferecer o mínimo teria o mesmo resultado que oferecer o dobro.
+   O sorteio usa a mesma conta que a tela imprime.
+   ===================================================================== */
+function rfElRenovarGo(pid){
+  const p=squad(CL.clubId).find(x=>String(x.pid)===String(pid));
+  if(!p){ toastC('Esse jogador não está mais no elenco.'); CL.acao=null; cdraw(); return; }
+  const salAtual=(p.contract&&p.contract.salary)||p.salary||0;
+  const novo=(typeof rfMkVal==='function')?rfMkVal('rf-ac-novo'):0;
+  const anosEl=document.querySelector('#rf-ac-anos');
+  const anos=Math.max(1,Math.min(6,parseInt(anosEl&&anosEl.textContent,10)||3));
+  if(novo<=0){ toastC('Digite o novo salário.'); return; }
+  if(novo<Math.round(salAtual*0.9)){
+    toastC(`${p.n} não escuta menos do que ganha hoje.`); return; }
+
+  /* CAIXA: a renovação não pode ser assinada com o clube no vermelho e a folha
+     a subir — mesma regra do caminho antigo (clRenewPropose). */
+  const semanas=(S.sched&&S.sched.length)||38;
+  const extra=(novo-salAtual)*semanas*anos;
+  if((S.budget||0)<0 && extra>0){ toastC('⚠️ Caixa insuficiente para renovar este contrato.'); return; }
+
+  const chance=rfElChanceRenovar(p, novo);
+  const R=(typeof makeRng==='function')?makeRng(hashSeed(S.seed,'renova',p.pid,S.round)):null;
+  const sorte=R?R.random()*100:Math.random()*100;
+  if(sorte>chance){
+    p.moral=Math.max(0,(p.moral||70)-3);
+    rfGravar();
+    CL.acao=null;
+    toastC(`${p.n} recusou a proposta. Ele quer mais.`);
+    cdraw(); return;
+  }
+  p.contract=Object.assign({}, p.contract||{}, {salary:novo, years:anos});
+  p.moral=Math.min(100,(p.moral||70)+6);
+  S.roundNews=S.roundNews||[];
+  S.roundNews.push(`✍️ ${p.n} renovou contrato: ${fmt(novo)}/mês por ${anos} ano${anos>1?'s':''}.`);
+  rfGravar();
+  CL.acao=null;
+  rfAcAbrir('elenco-renovado', {nome:p.n, salario:novo, ate:(S.season||2026)+anos});
+}
+/* a mesma conta que o diálogo imprime — uma fonte só para o número e o sorteio */
+function rfElChanceRenovar(p, novo){
+  const sal=(p.contract&&p.contract.salary)||p.salary||0;
+  return Math.max(5,Math.min(95, 50 + Math.round((novo-sal)/Math.max(1,sal)*140) - Math.max(0,(p.f||0)-70)));
+}
+
 /* =====================================================================
    2 · FICHA DO JOGADOR
    ===================================================================== */
@@ -394,7 +453,7 @@ function rfTrnToggle(pid){
     toastC(r.msg||'');
     if(!r.ok){ cdraw(); return; }
   }
-  if(typeof saveV3==='function'){ try{ saveV3(); }catch(e){} }
+  rfGravar();
   cdraw();
 }
 /* ---- as duas ações que precisam de dado antes de abrir o diálogo ---- */

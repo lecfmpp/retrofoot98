@@ -417,7 +417,11 @@ const RF_ACOES = {
   const p=squad(CL.clubId).find(x=>x.pid===d.pid); if(!p) return '';
   const sal=(p.contract&&p.contract.salary)||p.salary||0;
   const novo=Math.round(sal*1.2/1000)*1000;
-  const chance=Math.max(5,Math.min(95, 50 + Math.round((novo-sal)/Math.max(1,sal)*140) - Math.max(0,(p.f||0)-70)));
+  // a chance vem da MESMA função que o sorteio usa (ver rfElChanceRenovar):
+  // se fosse calculada duas vezes, a tela podia prometer um número e o motor
+  // usar outro — e oferecer mais deixaria de melhorar alguma coisa
+  const chance=(typeof rfElChanceRenovar==='function')?rfElChanceRenovar(p,novo)
+    :Math.max(5,Math.min(95, 50 + Math.round((novo-sal)/Math.max(1,sal)*140) - Math.max(0,(p.f||0)-70)));
   return rfAcao({ kicker:'ELENCO · RENOVAÇÃO', titulo:'Renovar com '+escC(p.n), w:500,
     corpo:
       rfAcFichaHTML(p,'SALÁRIO',sal?rfDin(sal):'—',d.num)
@@ -426,7 +430,7 @@ const RF_ACOES = {
       + rfAcPassoHTML('rf-ac-anos','Anos de contrato', 3, 'Mais anos seguram o jogador, mas travam a folha.')
       + rfAcChanceHTML('Chance de aceitar', chance)
       + rfAcNotaHTML('Contrato vencendo derruba o valor do passe: renovar cedo é o que segura o preço.'),
-    acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Oferecer renovação'}] });
+    acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Oferecer renovação',on:`rfElRenovarGo('${escC(String(d.pid))}')`}] });
 },
 
 'elenco-renovado': d=>rfAcao({ kicker:'ELENCO · RENOVAÇÃO', titulo:'Contrato renovado', w:440,

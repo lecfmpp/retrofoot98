@@ -582,7 +582,10 @@ function confirmYouthPromotion(candidate){
   }
   S.roundNews=S.roundNews||[]; S.roundNews.push(`🌱 ${youth.n} (${posNome}, ${youth.age} anos, força ${youth.f}) subiu das categorias de base.`);
   S._youthCandidates=null; S._youthCandidatesRound=null; // vaga da janela consumida -> lote atual não faz mais sentido
-  saveV3();
+  /* LOCAL ANTES DA NUVEM. `saveV3()` sozinho não escreve o localStorage — ele sai
+     cedo sem ligação — e em solo o garoto promovido desaparecia no recarregamento
+     seguinte. Todo o resto do motor grava com `save()`; esta linha era a exceção. */
+  save(); saveV3();
 }
 /* ===== CAIXA: toda mudança fora do fechamento de rodada TEM que ser publicada =====
    S.budget é só a cópia local. A autoridade do caixa de um humano é game_seats.budget: o

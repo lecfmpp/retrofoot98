@@ -400,7 +400,7 @@ function rfAcSala(){
       ||(S&&S.room&&(S.room.code||S.room.id))||(CL.roomCode)||'—';
 }
 function rfAcGravar(){
-  if(typeof saveV3==='function'){ try{ saveV3(); }catch(e){} }
+  rfGravar();
   const t=CL._lastSaveAt?new Date(CL._lastSaveAt):new Date();
   rfAcAbrir('sys-gravado', {quando:'às '+String(t.getHours()).padStart(2,'0')+'h'+String(t.getMinutes()).padStart(2,'0')});
 }

@@ -607,7 +607,7 @@ function rfMkAceitarAgente(){
 function rfMkFinalizar(){
   const M=CL.market; const r=finalizeTransfer(M.negoIdx);
   toastC(r.msg||'');
-  if(r.ok){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.market=null; CL.acao=null; }
+  if(r.ok){ rfGravar(); CL.mkP=null; CL.market=null; CL.acao=null; }
   cdraw();
 }
 function rfMkOfertaHTML(){
@@ -654,7 +654,7 @@ function rfMkOfertaHTML(){
 function rfMkEnviarHumano(){
   const M=CL.market; M.offer=rfMkVal('rf-mk-fee');
   const r=sendHumanOffer(M.clubId,M.player,M.offer); toastC(r.msg||'');
-  if(r.ok){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.market=null; CL.acao=null; }
+  if(r.ok){ rfGravar(); CL.mkP=null; CL.market=null; CL.acao=null; }
   cdraw();
 }
 function rfFolha(){
@@ -693,7 +693,7 @@ function rfMkLanceGo(){
   const r=placeAuctionBid(id, rfMkVal('rf-mk-lance'));
   if(r&&r.ok&&eraCobertura&&lot) lot.myCovers=(lot.myCovers||0)+1;
   toastC(r.msg||'');
-  if(r.ok){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.acao=null; }
+  if(r.ok){ rfGravar(); CL.mkP=null; CL.acao=null; }
   cdraw();
 }
 function rfMkLanceHTML(){
@@ -724,7 +724,7 @@ function rfMkContraporGo(){
   const r = humano ? counterHumanOffer(P.id, valor)
                    : (counterIncomingOffer(P.id, valor)||{ok:true});
   if(r&&r.msg) toastC(r.msg);
-  if(!r||r.ok!==false){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.acao=null; }
+  if(!r||r.ok!==false){ rfGravar(); CL.mkP=null; CL.acao=null; }
   cdraw();
 }
 function rfMkContraHTML(){
@@ -785,7 +785,7 @@ function rfMktGavetaHTML(abas){
 function rfMkAceitar(id){
   const r=(typeof acceptIncomingOffer==='function')?acceptIncomingOffer(id):null;
   toastC((r&&r.msg)||'');
-  if(r&&r.ok){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.acao=null; }
+  if(r&&r.ok){ rfGravar(); CL.mkP=null; CL.acao=null; }
   cdraw();
 }
 function rfMkRecusar(id){

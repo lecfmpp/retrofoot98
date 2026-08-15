@@ -925,6 +925,26 @@ function rfCol(html){ return `<div class="rf-pagecol" data-rf-col>${html}</div>`
    de jogo, e não deve viajar no arquivo do save.
    ===================================================================== */
 const RF_LISTA_PASSOS=[20,50,100];
+/* =====================================================================
+   GRAVAR É DUAS COISAS, E METADE DELAS ESTAVA A FALTAR.
+
+   `save()` escreve o save LOCAL (localStorage). `saveV3()` escreve na NUVEM — e
+   sai logo no início quando não há ligação, quando o jogo está online (a sala é
+   que manda) ou num assento de hotseat.
+
+   Onze ações do desenho novo chamavam só `saveV3()`: renovar contrato, promover
+   da base, propor, contrapor, listar, dar lance, mudar preferências. Em solo sem
+   ligação — que é como o jogo corre na maior parte do tempo — nenhuma delas
+   sobrevivia a um recarregamento. Medido: renovar por R$ 464k deixava o save com
+   os R$ 211k antigos.
+
+   Daqui para a frente há um nome só. Ele grava local SEMPRE e tenta a nuvem por
+   cima; a nuvem continua livre de decidir que não é a altura. */
+function rfGravar(){
+  try{ if(typeof save==='function') save(); }catch(e){}
+  try{ if(typeof saveV3==='function') saveV3(); }catch(e){}
+}
+
 function rfListaLim(chave){
   const v=CL.listaLim && CL.listaLim[chave];
   return RF_LISTA_PASSOS.indexOf(v)>=0 ? v : RF_LISTA_PASSOS[0];
