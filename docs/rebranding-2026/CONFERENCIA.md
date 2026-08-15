@@ -190,9 +190,15 @@ do motor.
       dos três possíveis: desligada no save, existe mas sem o seu clube, ou
       ainda não sorteada
 
-### A conferir ainda
-- [ ] Calendário: cabeçalhos repetidos quando há várias copas empilhadas
-      (anotado antes, ainda não tratado)
+### Calendário — corrigido
+- [x] **A fase de grupos faltava por inteiro.** O laço das copas só lia
+      `c.bracket.ties` — o mata-mata. Numa copa ainda nos grupos, que é onde a
+      Libertadores e a Sul-Americana passam metade da temporada, o cartão dizia
+      "sem jogos seus nesta copa ainda" com **seis jornadas sorteadas** no grupo
+      do clube. Medido: grupo F, 6 jornadas, 0 mostradas
+- [x] **Cabeçalhos sobre tabelas vazias** — com três copas empilhadas eram três
+      cabeçalhos a anunciar nada. Só entram quando há linha
+- [x] **Copa que o clube não disputa** deixou de ganhar cartão aqui também
 # 5 · Treinador
 
 Seis abas (Carreira · História · Sala de Troféus · Ranking · Ofertas · Perfil),

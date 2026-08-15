@@ -207,8 +207,41 @@ function rfCpCopasCalendarioHTML(){
   const out=[];
   ((typeof allCupKeys==='function')?allCupKeys():[]).forEach(k=>{
     const c=S.cups&&S.cups[k]; if(!c) return;
+    // copa que o clube não disputa não tem calendário nenhum a mostrar aqui
+    if(typeof rfCpInscrito==='function' && !rfCpInscrito(k,c)) return;
     const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[k])||{};
     const linhas=[];
+    /* A FASE DE GRUPOS FALTAVA POR INTEIRO. Este laço só lia
+       `c.bracket.ties` — o mata-mata. Numa copa que ainda está nos grupos, e é
+       onde a Libertadores e a Sul-Americana passam metade da temporada, o
+       cartão dizia "sem jogos seus nesta copa ainda" com seis jornadas
+       sorteadas no grupo do clube. Medido: grupo F, 6 jornadas, 0 mostradas.
+       As jornadas do grupo vêm de `g.sched[i]` (os pares) e o que já foi
+       jogado de `g.results`, casado por rodada e por par. */
+    const mg=c.group;
+    if(mg && mg.groups){
+      const meu=Object.values(mg.groups).find(g=>(g.teams||[]).indexOf(CL.clubId)>=0);
+      if(meu) (meu.sched||[]).forEach((jornada,i)=>{
+        (jornada||[]).forEach(par=>{
+          if(!par) return;
+          const [h,a]=par;
+          if(h!==CL.clubId && a!==CL.clubId) return;
+          const casa=h===CL.clubId, outro=anyClubOf(casa?a:h)||{short:'a sortear'};
+          const res=(meu.results||[]).find(r=>r && r.r===i && r.h===h && r.a===a);
+          const feito=!!(res && res.hg!=null);
+          const gm=feito?(casa?res.hg:res.ag):null, gc=feito?(casa?res.ag:res.hg):null;
+          const letra=feito?(gm>gc?'V':gm===gc?'E':'D'):'';
+          linhas.push(`<div class="rf-el-row ${feito?'':'porvir'}">
+            <span class="rf-cp-jor">${escC('Grupo '+(meu.label||'')+' · '+(i+1)+'ª')}</span>
+            ${rfCrest(outro,20)}
+            <span class="rf-el-nome">${escC(outro.short||outro.name||'a sortear')}</span>
+            <span class="rf-cp-local">${casa?'casa':'fora'}</span>
+            <span class="rf-cp-placar">${feito?(gm+'–'+gc):'—'}</span>
+            ${rfCpResultado(letra)}
+          </div>`);
+        });
+      });
+    }
     ((c.bracket&&c.bracket.ties)||[]).forEach(t=>{
       if(t.h!==CL.clubId && t.a!==CL.clubId) return;
       const casa=t.h===CL.clubId, outro=anyClubOf(casa?t.a:t.h)||{short:'a sortear'};
@@ -224,13 +257,17 @@ function rfCpCopasCalendarioHTML(){
         ${rfCpResultado(letra)}
       </div>`);
     });
-    out.push(`<div class="rf-card rf-el-tbl" style="--el-cols:${RF_CP_COPA_COLS}">
-      <div class="rf-label"><span class="rf-label-t">${escC(def.name||k)}</span></div>
-      <div class="rf-el-head" style="--el-cols:${RF_CP_COPA_COLS}">
+    /* cabeçalho de tabela em cima de tabela vazia é ruído: com três copas
+       empilhadas eram três cabeçalhos a anunciar nada. Só entra se houver linha. */
+    const cabCopa=linhas.length?`<div class="rf-el-head" style="--el-cols:${RF_CP_COPA_COLS}">
         <span>FASE</span><span></span><span>ADVERSÁRIO</span><span>LOCAL</span>
         <span class="dir">PLACAR</span><span></span>
-      </div>
-      ${linhas.join('') || '<div class="rf-empty">Sem jogos seus nesta copa ainda.</div>'}
+      </div>`:'';
+    out.push(`<div class="rf-card rf-el-tbl" style="--el-cols:${RF_CP_COPA_COLS}">
+      <div class="rf-label"><span class="rf-label-t">${escC(def.name||k)}</span>
+        ${linhas.length?`<span class="rf-label-r">${linhas.length} jogo${linhas.length>1?'s':''}</span>`:''}</div>
+      ${cabCopa}
+      ${linhas.join('') || '<div class="rf-empty">O sorteio desta fase ainda não saiu.</div>'}
     </div>`);
   });
   return out.join('');
