@@ -5332,15 +5332,37 @@
     gap:8px;padding-bottom:6px;scroll-snap-type:x proximity;
     -webkit-overflow-scrolling:touch}
   .rf-formgrid>*{flex:0 0 auto;scroll-snap-align:start}
-  /* menores no telefone, como no pacote: a pastilha vira sigla + tecla empilhadas */
-  .rf-formgrid .rf-chip{min-width:66px;padding:7px 9px;flex-direction:column;gap:1px}
-  .rf-formgrid .rf-chip-l{font-size:var(--fs-body-sm);font-weight:var(--fw-bold)}
-  .rf-formgrid .rf-chip-h{font-size:9px;opacity:.75}
+  /* CINCO E MEIA NA TELA, como no pacote — a meia pastilha é o que avisa que a
+     faixa rola. Na coluna de 317px com gap de 8: 5,5b + 5·8 = 317 => b ≈ 50px.
+     O `width:100%` da regra de desktop (.rf-formgrid>.rf-chip) precisa ser
+     desfeito aqui, senão cada pastilha ocupa a largura inteira — era o que
+     estava acontecendo. */
+  .rf-formgrid>.rf-chip{width:50px;min-width:50px;padding:7px 4px;
+    flex-direction:column;gap:1px}
+  .rf-formgrid .rf-chip-l{font-size:12px;font-weight:var(--fw-bold);letter-spacing:-.02em}
+  .rf-formgrid .rf-chip-h{font-size:9px;opacity:.75;max-width:100%;
+    overflow:hidden;text-overflow:ellipsis}
   .rf-banco-lista{display:flex !important;flex-direction:row !important;flex-wrap:nowrap !important;
-    overflow-x:auto;gap:8px;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+    overflow-x:auto;gap:8px;padding-bottom:6px;-webkit-overflow-scrolling:touch;
+    align-items:flex-start}
   .rf-banco-lista>*{flex:0 0 auto}
-  .rf-bgrupo{display:flex;flex-direction:row;gap:8px;align-items:stretch}
-  .rf-bp{min-width:132px}
+  /* `align-items:flex-start` nos dois níveis: com `stretch` (o padrão) todo
+     cartão herdava a altura do grupo mais alto — 163px para um conteúdo de ~70. */
+  .rf-bgrupo{display:flex;flex-direction:row;gap:8px;align-items:flex-start}
+  .rf-bgrupo-t{align-self:center;writing-mode:horizontal-tb;white-space:nowrap;
+    font-size:9px;letter-spacing:.1em;padding:0 2px}
+  /* O CARTÃO DO SUPLENTE ENCOLHE ATÉ A CAMISA. Ele era uma grade de três colunas
+     esticada a 132×163 para uma camisa de 30×28 — um quadrado enorme com a peça
+     perdida dentro. Agora é uma pilha centrada com o MESMO respiro nos quatro
+     lados (padding 8px), do tamanho do que carrega. */
+  .rf-pitch-card .rf-bp{display:flex;flex-direction:column;align-items:center;
+    justify-content:flex-start;gap:5px;padding:8px;width:auto;min-width:76px;
+    border:var(--border-hairline);border-radius:12px;background:var(--surface-card);
+    text-align:center}
+  .rf-pitch-card .rf-bp .rf-bp-mid{align-items:center;width:100%;gap:3px}
+  .rf-pitch-card .rf-bp .rf-bp-n{font-size:10px;max-width:70px}
+  .rf-pitch-card .rf-bp .rf-bp-bar{width:100%}
+  .rf-pitch-card .rf-bp .rf-bp-f{text-align:center;font-size:10px}
   /* a faixa que rola ganha uma barra fina em vez da barra grossa do sistema */
   .rf-formgrid::-webkit-scrollbar,.rf-banco-lista::-webkit-scrollbar{height:4px}
   .rf-formgrid::-webkit-scrollbar-thumb,.rf-banco-lista::-webkit-scrollbar-thumb{
