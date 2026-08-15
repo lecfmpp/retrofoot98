@@ -5841,3 +5841,60 @@
     grid-template-columns:26px 104px 104px 40px 78px !important;
     min-width:378px}
 }
+
+/* ===== A COLUNA DE AÇÃO NÃO PODE VIAJAR COM A ROLAGEM =====
+   Nas tabelas de Base e Treino a última coluna é um BOTÃO, e com a rolagem
+   lateral ele ia parar 200px fora da vista: quem abria a aba Base num telefone
+   não via que existia um "Promover" — só três linhas cortadas ao meio na borda
+   direita do card. Os números podem esperar por uma rolagem; a ação não.
+   Fica colada à direita, com fundo opaco para as células passarem por baixo. */
+@media (max-width:760px){
+  [data-el="base"] .rf-el-row,[data-el="treino"] .rf-el-row,
+  [data-el="base"] .rf-el-head,[data-el="treino"] .rf-el-head{position:relative}
+  [data-el="base"] .rf-el-act,[data-el="treino"] .rf-el-act{
+    position:sticky;right:0;z-index:2;
+    background:var(--surface-card);
+    box-shadow:-10px 0 10px -8px rgba(0,0,0,.14);
+    margin-right:-2px;padding-left:8px}
+  /* na linha selecionada o fundo do card entregaria o truque: usa o mesmo tom */
+  [data-el="base"] .rf-el-row.sel .rf-el-act,
+  [data-el="treino"] .rf-el-row.sel .rf-el-act{background:var(--club-primary-soft)}
+  /* com a ação presa, sobra menos largura visível: o botão encolhe o texto */
+  [data-el="base"] .rf-el-bt,[data-el="treino"] .rf-el-bt{
+    padding:0 9px;font-size:var(--fs-caption);white-space:nowrap}
+}
+
+/* Treino: o crescimento previsto é a razão de se escolher um jogador, então no
+   telefone ele desce para debaixo do nome — a coluna própria ficaria escondida
+   por baixo da coluna de ação, que está presa à direita. */
+.rf-el-sub{display:none}
+.rf-trn-star{color:var(--club-secondary);font-style:normal}
+@media (max-width:760px){
+  /* nada de display:none aqui — ver a nota das faixas mais abaixo; a célula do
+     crescimento é escondida por visibility, para não sair do fluxo da grade */
+  [data-el="treino"] .rf-el-sub{display:block;font-style:normal;
+    font-size:var(--fs-micro);color:var(--text-4);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+  [data-el="treino"] .rf-el-sub.sobe{color:var(--ok)}
+  [data-el="treino"] .rf-el-sub.cai{color:var(--danger)}
+  /* A LINHA TEM SETE CÉLULAS: camisa · nome · pos · força · idade · crescimento
+     · ação. A grade do telefone precisa das SETE faixas mesmo quando duas delas
+     não aparecem — com seis, a sétima célula caía numa faixa implícita e o
+     botão ia parar por cima da coluna FOR.
+     Idade e crescimento saem: a idade cabe na conta de ninguém aqui, e o
+     crescimento já está debaixo do nome. */
+  [data-el="treino"] .rf-el-head,[data-el="treino"] .rf-el-row{
+    grid-template-columns:26px minmax(0,1fr) 22px 30px 0 0 82px !important;
+    min-width:0}
+  /* `display:none` RETIRA A CÉLULA DO FLUXO DA GRADE, e a colocação automática
+     empurra a seguinte para a faixa vaga: com as duas escondidas assim, o botão
+     subia da faixa 7 para a 5 e ia parar por cima de POS e FOR. Escondidas com
+     visibility, elas continuam a ocupar a sua faixa — de largura zero — e cada
+     célula fica onde deve. */
+  [data-el="treino"] .rf-el-head>:nth-child(5),
+  [data-el="treino"] .rf-el-head>:nth-child(6),
+  [data-el="treino"] .rf-el-row>:nth-child(5),
+  [data-el="treino"] .rf-el-row>:nth-child(6){visibility:hidden;overflow:hidden;padding:0}
+  /* sem rolagem, a ação não precisa de ficar presa nem de sombra */
+  [data-el="treino"] .rf-el-act{box-shadow:none;position:static;padding-left:0}
+}

@@ -453,10 +453,12 @@ const RF_ACOES = {
   return rfAcao({ kicker:'BASE · PROMOÇÃO', titulo:'Promover '+escC(p.n||'—')+'?', w:480,
     corpo:
       rfAcFichaHTML(p,'PRONTO EM',d.pronto||'—',d.num)
+      + rfAcLinhaHTML('Força hoje', String(p.f||'—')+(d.teto?(' · pode chegar a '+d.teto):''), '')
       + rfAcLinhaHTML('Entra na folha', rfDin(d.salario||0)+'/mês', 'aviso', true)
-      + rfAcLinhaHTML('Elenco depois', (squad(CL.clubId).length+1)+' de 30', '')
-      + rfAcNotaHTML('Promovido, ele ocupa vaga no elenco e passa a contar na folha. Não dá para devolvê-lo à base nesta temporada.'),
-    acoes:[{l:'Deixar na base',tom:'fantasma'},{l:'Promover'}] });
+      /* o teto do motor é 40, não 30 — ver youthAvailable() */
+      + rfAcLinhaHTML('Elenco depois', (squad(CL.clubId).length+1)+' de 40', '')
+      + rfAcNotaHTML('Promovido, ele ocupa vaga no elenco e passa a contar na folha. Só sobe um jogador da base por janela de transferências.'),
+    acoes:[{l:'Deixar na base',tom:'fantasma'},{l:'Promover',on:`rfBasePromoverGo(${d.idx||0})`}] });
 },
 
 'treino-confirmar': d=>rfAcao({ kicker:'TREINO ESPECIAL · '+escC(String(d.semana||'')).toUpperCase(),

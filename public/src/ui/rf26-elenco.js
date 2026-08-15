@@ -221,9 +221,15 @@ function rfElBaseHTML(){
   const linhas=cands.map((c,i)=>{
     const y=c.youth; if(!y) return '';
     const pot=rfElPotencial(y);
-    const primeiro=i===0;
+    /* A ESCOLHA É DE QUEM JOGA. Todas as linhas chamavam `rfAcPromover()` sem
+       argumento, e essa função abria sempre o mais forte do lote: clicar no
+       terceiro garoto abria a ficha do primeiro. E a segunda e a terceira linha
+       diziam "Ver", que não levava a lado nenhum diferente. Agora cada linha
+       leva o seu índice e todas dizem Promover — são três candidatos, e o lote
+       só dá para promover um. */
+    const primeiro=i===(CL.baseSel||0);
     const sal=(c.contract&&c.contract.salary)||y.salary||0;
-    return `<div class="rf-el-row ${primeiro?'sel':''}">
+    return `<div class="rf-el-row ${primeiro?'sel':''}" onclick="rfBaseSel(${i})">
       <span class="rf-el-nome">${escC(y.n)}</span>
       <span class="rf-el-c">${escC(rfPosInicial(y.s))}</span>
       <span class="rf-el-c">${y.age||'—'}</span>
@@ -232,7 +238,7 @@ function rfElBaseHTML(){
       <span class="rf-el-d">${pot.anos?(pot.anos+' ano'+(pot.anos>1?'s':'')):'agora'}</span>
       <span class="rf-el-d">${escC(sal?rfDin(sal):'—')}</span>
       <span class="rf-el-act"><button type="button" class="rf-el-bt ${primeiro?'cta':''}"
-        onclick="event.stopPropagation();rfAcPromover()">${primeiro?'Promover':'Ver'}</button></span>
+        onclick="event.stopPropagation();rfAcPromover(${i})">Promover</button></span>
     </div>`;
   }).join('');
   const cab=`<div class="rf-el-head" style="--el-cols:${RF_BASE_COLS}">
@@ -263,81 +269,139 @@ function rfElBaseHTML(){
 
 /* =====================================================================
    4 · TREINO ESPECIAL
-   Grade do pacote: 34 / nome / 28 / 34 / 74 / 1fr / 74
+
+   ESTA TELA EXPLICAVA TRÊS MECÂNICAS QUE NÃO EXISTEM.
+
+   Havia um "FOCO DO TREINO" com três temas e promessas concretas ("+2 na
+   finalização de até 3 atacantes"), que o próprio código admitia não estarem
+   ligados a nada. Havia um bloco "CUSTO E RISCO" a dizer que o treino gasta
+   energia e dobra o risco de lesão — o motor não cobra energia nenhuma. E
+   havia um diálogo de confirmação semanal com "−10% de energia por jogador",
+   igualmente inventado. Por cima disso tudo, a coluna PROGRESSO mostrava
+   `rodada % 38 / 38`: o andamento da TEMPORADA, idêntico em todas as linhas.
+
+   O que o motor faz é uma coisa só, e cabe numa frase: até três jogadores em
+   treino, e quem está em treino ganha um sorteio extra de evolução por rodada
+   (5%, ou 9% com destaque). Sem custo. É isso que a tela passa a dizer.
+
+   O resto do ecrã agora vem de `growthProfileOf(p)`, que é o mesmo cálculo do
+   `evolvePlayer` lido de fora: dá a chance real por fonte e o ganho de força
+   por temporada. Números do motor, não promessas.
    ===================================================================== */
 const RF_TRN_COLS='34px minmax(0,1.2fr) 34px 40px minmax(74px,.5fr) minmax(0,1fr) minmax(74px,.5fr)';
-/* O FOCO DO TREINO é do desenho, não do motor: aqui o treino é por JOGADOR
-   (até TRAINING_MAX_SLOTS ao mesmo tempo), e não por tema da semana. Os três
-   cartões existem e guardam a escolha em CL.trnFoco, mas ainda não mudam o
-   resultado — é a primeira ligação a fazer quando formos ao motor. */
-const RF_TRN_FOCOS=[
-  {k:'finalizacao', ico:rfIcone('jogar',16)+'',  t:'Finalização', d:'+2 na finalização de até 3 atacantes'},
-  {k:'marcacao',    ico:rfIcone('marcacao',16)+'', t:'Marcação',    d:'+2 na defesa de até 4 defensores'},
-  {k:'resistencia', ico:rfIcone('resistencia',16)+'',  t:'Resistência', d:'+3 de energia para todo o elenco'},
-];
-function rfTrnFoco(k){ CL.trnFoco=k; cdraw(); }
+/* "+1,7 força" / "sem ganho previsto" */
+function rfTrnGanho(g){
+  const v=Math.round(((g&&g.forcaPorTemporada)||0)*10)/10;
+  if(!v) return {txt:'sem ganho previsto', v:0};
+  const sinal=v>0?'+':'−';
+  return {txt:sinal+String(Math.abs(v)).replace('.',',')+' força por temporada', v};
+}
+/* a chance do sorteio do treino, em percentagem inteira */
+function rfTrnChance(p){
+  const star=(typeof hasEstrelinha==='function')&&hasEstrelinha(p);
+  return {pct:star?9:5, star};
+}
 function rfElTreinoHTML(){
   const lista=(typeof myTrainingList==='function')?myTrainingList():[];
   const max=(typeof TRAINING_MAX_SLOTS!=='undefined')?TRAINING_MAX_SLOTS:3;
   const sq=squad(CL.clubId);
-  const foco=CL.trnFoco||RF_TRN_FOCOS[0].k;
-  const cartoes=RF_TRN_FOCOS.map(f=>`
-    <button type="button" class="rf-el-foco ${foco===f.k?'on':''}" onclick="rfTrnFoco('${f.k}')">
-      <span class="rf-el-foco-i">${f.ico}</span>
-      <span class="rf-el-foco-t">${escC(f.t)}</span>
-      <span class="rf-el-foco-d">${escC(f.d)}</span>
-    </button>`).join('');
+  const emTreino=new Set(lista.map(String));
   const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(CL.clubId):{};
-  const linhas=lista.map(pid=>{
-    const p=sq.find(x=>x.pid===pid); if(!p) return '';
-    // PROGRESSO é derivado: o quanto da força projetada da temporada já veio
-    const g=(typeof growthProfileOf==='function')?growthProfileOf(p):null;
-    // forcaPorTemporada vem fracionado do motor (1.68…) — na tela é um ganho,
-    // não uma medição: arredonda pra uma casa e some com o zero à direita.
-    const porTemp=Math.round(((g&&g.forcaPorTemporada)||0)*10)/10;
-    const pct=Math.max(0,Math.min(100, Math.round(((S.round||0)%38)/38*100)));
-    const ganho=porTemp?('+'+String(porTemp).replace('.',',')+' força'):'sem ganho previsto';
-    /* mesmo caso das outras duas listas: `sel` fixo em toda linha, então a
-       lista inteira aparecia marcada — o mesmo que nenhuma marcada */
-    return `<div class="rf-el-row">
+
+  /* A LISTA É O ELENCO INTEIRO, ordenado por quem mais cresce agora — e não só
+     os três já escolhidos. Antes, para pôr alguém em treino era preciso achar um
+     botão que abria OUTRO ecrã com outra lista; a escolha e a consequência
+     viviam em sítios diferentes. Aqui vê-se, na mesma linha, quanto o jogador
+     cresce e o botão que o põe a treinar. */
+  const comG=sq.map(p=>({p, g:(typeof growthProfileOf==='function')?growthProfileOf(p):null}))
+    .sort((a,b)=>{
+      const ta=emTreino.has(String(a.p.pid))?1:0, tb=emTreino.has(String(b.p.pid))?1:0;
+      if(ta!==tb) return tb-ta;                       // quem já treina fica em cima
+      return ((b.g&&b.g.forcaPorTemporada)||0)-((a.g&&a.g.forcaPorTemporada)||0);
+    });
+
+  const linhas=comG.map(({p,g})=>{
+    const treina=emTreino.has(String(p.pid));
+    const ganho=rfTrnGanho(g);
+    const ch=rfTrnChance(p);
+    const cheio=lista.length>=max;
+    return `<div class="rf-el-row ${treina?'sel':''}">
       ${rfElCamisa(nums[p.pid]||p.num||'')}
-      <span class="rf-el-nome">${escC(p.n)}</span>
+      <!-- o crescimento aparece DUAS vezes de propósito: como coluna no
+           computador e como segunda linha do nome no telefone, onde a coluna
+           de ação fica presa à direita e taparia a coluna. Só uma delas está
+           visível de cada vez (ver rf26.css). -->
+      <span class="rf-el-nome">${escC(p.n)}${ch.star?' <i class="rf-trn-star" title="Destaque: evolui mais rápido">★</i>':''}
+        <i class="rf-el-sub ${ganho.v<0?'cai':(ganho.v>0?'sobe':'')}">${escC(ganho.txt)}</i></span>
       <span class="rf-el-c">${escC(rfPosInicial(p.s))}</span>
       <span class="rf-el-forte">${p.f}</span>
-      ${rfElMini(pct, rfElTom(pct), 62)}
-      <span class="rf-el-ganho">${escC(ganho)}${pct>=80?' · quase':''}</span>
-      <span class="rf-el-act"><button type="button" class="rf-el-bt perigo"
-        onclick="event.stopPropagation();clStopTraining('${escC(p.pid)}');cdraw()">Tirar</button></span>
+      <span class="rf-el-c">${p.age||'—'} anos</span>
+      <span class="rf-el-ganho ${ganho.v<0?'cai':(ganho.v>0?'sobe':'')}">${escC(ganho.txt)}</span>
+      <span class="rf-el-act"><button type="button"
+        class="rf-el-bt ${treina?'perigo':'cta'}" ${(!treina&&cheio)?'disabled title="As 3 vagas estão ocupadas"':''}
+        onclick="event.stopPropagation();rfTrnToggle('${escC(p.pid)}')">${treina?'Tirar':'Treinar'}</button></span>
     </div>`;
   }).join('');
+
   const cab=`<div class="rf-el-head" style="--el-cols:${RF_TRN_COLS}">
     <span></span><span>JOGADOR</span><span>POS</span><span class="dir">FOR</span>
-    <span class="dir">PROGRESSO</span><span class="dir">GANHO ESPERADO</span><span></span>
+    <span class="dir">IDADE</span><span class="dir">CRESCIMENTO PREVISTO</span><span></span>
   </div>`;
+
+  /* Quem está em treino, dito por extenso: nome e a chance dele. Três linhas,
+     não uma tabela — é a resposta a "o que é que eu estou a ganhar com isto". */
+  const dentro=lista.map(pid=>{
+    const p=sq.find(x=>x.pid===pid); if(!p) return '';
+    const ch=rfTrnChance(p);
+    return `<div class="rf-linha"><span class="rf-linha-t">${escC(p.n)}${ch.star?' ★':''}</span>
+      <span class="rf-linha-v">+${ch.pct}% de evoluir por rodada</span></div>`;
+  }).join('');
+
   return `<div class="rf-card">
-      <div class="rf-label"><span class="rf-label-t">FOCO DO TREINO</span>
-        <span class="rf-label-r">1 por semana</span></div>
-      <div class="rf-el-focos">${cartoes}</div>
+      <div class="rf-label"><span class="rf-label-t">COMO FUNCIONA</span>
+        <span class="rf-label-r">${lista.length} de ${max} vagas</span></div>
+      <span class="rf-el-texto">Até <b>${max} jogadores</b> podem estar em treino especial ao mesmo
+        tempo. Quem está em treino ganha <b>um sorteio extra de evolução por rodada</b> — 5% de
+        chance, ou 9% para quem é destaque (★). <b>Não custa dinheiro nem energia</b>, e pode-se
+        trocar quem treina quando se quiser.</span>
+      ${dentro || '<span class="rf-note">Ninguém em treino. As três vagas estão livres.</span>'}
     </div>
     <div class="rf-card rf-el-tbl" data-el="treino" style="--el-cols:${RF_TRN_COLS}">
-      <div class="rf-label"><span class="rf-label-t">QUEM VAI TREINAR</span>
-        <span class="rf-label-r">${lista.length} de ${max} vagas</span></div>
+      <div class="rf-label"><span class="rf-label-t">QUEM PODE TREINAR</span>
+        <span class="rf-label-r">do que mais cresce ao que menos cresce</span></div>
       ${cab}
-      ${linhas || '<div class="rf-empty">Ninguém em treino especial agora.</div>'}
-      ${lista.length<max?`<div class="rf-acts"><button type="button" class="rf-btn rf-btn-cta"
-        onclick="rfAcTreino()">${rfIcone('resistencia',16)} Pôr alguém em treino</button></div>`:''}
+      ${linhas || '<div class="rf-empty">Elenco vazio.</div>'}
     </div>
     <div class="rf-card">
-      <div class="rf-label"><span class="rf-label-t">CUSTO E RISCO</span></div>
-      <span class="rf-el-texto">Treino especial gasta energia de cada jogador escalado, e jogador
-        com energia baixa tem risco de lesão dobrado — o departamento médico avisa antes.</span>
+      <div class="rf-label"><span class="rf-label-t">DE ONDE VEM O CRESCIMENTO</span></div>
+      <span class="rf-el-texto">A força não sobe sozinha: o jogador ganha ponto de atributo, e a
+        força é a média deles. <b>Jogar bem</b> é a maior fonte — nota acima de 6,8 dá dois
+        sorteios por rodada. <b>Ter até 20 anos</b> dá um sorteio mesmo sem jogar. O
+        <b>treino especial</b> soma o dele por cima. A partir dos <b>29 anos</b> começa o
+        desgaste, e quem passa <b>4 rodadas seguidas fora do time</b> perde ritmo — treinar
+        protege dessa perda.</span>
     </div>`;
+}
+function rfTrnToggle(pid){
+  const lista=(typeof myTrainingList==='function')?myTrainingList():[];
+  const treina=lista.map(String).indexOf(String(pid))>=0;
+  if(treina){
+    if(typeof stopTraining==='function') stopTraining(pid);
+    const p=squad(CL.clubId).find(x=>String(x.pid)===String(pid));
+    toastC((p?p.n:'Jogador')+' saiu do treino especial.');
+  }else{
+    const r=(typeof startTraining==='function')?startTraining(pid):{ok:false,msg:'Treino indisponível.'};
+    toastC(r.msg||'');
+    if(!r.ok){ cdraw(); return; }
+  }
+  if(typeof saveV3==='function'){ try{ saveV3(); }catch(e){} }
+  cdraw();
 }
 /* ---- as duas ações que precisam de dado antes de abrir o diálogo ---- */
 /* PROMOVER: o pacote desenha a confirmação de UM garoto, não a lista.
    Quem escolhe continua sendo a tela da base do motor; aqui abrimos a
    confirmação já com o candidato que ela devolve. */
-function rfAcPromover(){
+function rfAcPromover(idx){
   // A base sorteia UM LOTE por rodada (S._youthCandidates). O pacote
   // desenha a confirmação de um garoto, então abrimos com o mais forte do
   // lote. Sem lote — janela fechada, cota usada, elenco cheio — o diálogo
@@ -351,12 +415,33 @@ function rfAcPromover(){
   if(!(S._youthCandidates && S._youthCandidates.length && S._youthCandidatesRound===S.round)
      && typeof rollYouthCandidatesForRound==='function') rollYouthCandidatesForRound();
   // o candidato é um invólucro: o jogador de verdade mora em c.youth
-  const c=(S._youthCandidates||[]).slice()
-    .sort((a,b)=>((b.youth&&b.youth.f)||0)-((a.youth&&a.youth.f)||0))[0];
+  const lote=S._youthCandidates||[];
+  const i=(idx!=null && lote[idx]) ? idx : (CL.baseSel||0);
+  const c=lote[i];
   const y=c&&c.youth;
   if(!y){ rfAcAbrir('elenco-semrenovar', {motivo:'A base não tem candidatos nesta rodada.'}); return; }
-  rfAcAbrir('base-promover', {p:y, pronto:'agora',
-    salario:(y.contract&&y.contract.salary)||y.salary||0, num:y.num});
+  const pot=rfElPotencial(y);
+  rfAcAbrir('base-promover', {idx:i, p:y, pronto:pot.anos?(pot.anos+' ano'+(pot.anos>1?'s':'')):'agora',
+    teto:pot.teto, salario:(c.contract&&c.contract.salary)||y.salary||0, num:y.num});
+}
+function rfBaseSel(i){ CL.baseSel=i; cdraw(); }
+/* A PROMOÇÃO ACONTECE AQUI — e antes não acontecia em lado nenhum. O diálogo
+   `base-promover` tinha o botão "Promover" sem `on:` nenhum: clicava, fechava,
+   e o garoto continuava na base. O motor já tinha tudo pronto
+   (`confirmYouthPromotion`), faltava o fio. */
+function rfBasePromoverGo(idx){
+  const c=(S._youthCandidates||[])[idx];
+  if(!c || !c.youth){ toastC('Esse candidato não está mais disponível.'); CL.acao=null; cdraw(); return; }
+  if(typeof youthAvailable==='function' && !youthAvailable()){
+    toastC((typeof youthUnavailableMsg==='function')?youthUnavailableMsg():'Não dá para promover agora.');
+    CL.acao=null; cdraw(); return;
+  }
+  const nome=c.youth.n, forca=c.youth.f;
+  try{ confirmYouthPromotion(c); }
+  catch(e){ toastC('Não foi possível promover: '+(e&&e.message||'erro')); CL.acao=null; cdraw(); return; }
+  CL.baseSel=0; CL.acao=null;
+  toastC('🌱 '+nome+' subiu para o elenco principal (força '+forca+').');
+  cdraw();
 }
 function rfAcTreino(){
   const lista=(typeof myTrainingList==='function')?myTrainingList():[];
