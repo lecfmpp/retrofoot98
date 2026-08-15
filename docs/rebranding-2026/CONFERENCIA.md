@@ -79,6 +79,28 @@ Arquivos do pacote: `Hub do Time - Sidebar.html`, `Hub do Time - Mobile.html`,
 - [x] **Rótulo da tática** — "titulares marcados com T na lista" sai no telefone;
       era a armadilha nº 1 do prompt (nowrap em flex corta em vez de quebrar)
 
+### Mobile — segunda rodada (a regra do app)
+Regra que você fixou: **no telefone nada é rolagem única. O conteúdo aparece
+conforme se clica no menu e nas abas — vale para todas as telas.**
+
+- [x] **Três abas no Hub** — Formação · Elenco · Jogo. Cada uma mostra o seu; o que
+      não é da aba ativa não existe na tela
+- [x] **Chat desligado no telefone** — desligado na fonte (`rfChatDisponivel`), então
+      somem bolha, item da barra inferior, atalho de teclado e folha de baixo
+- [x] **Carrossel lateral** em Formações e Suplentes, com pastilhas menores
+      (autorizado para todas as telas no mobile)
+- [x] **Faixa de estado** FORMA · MORAL · janela de transferências, abaixo do
+      cabeçalho — é onde o pacote põe o moral, e por isso os cartões "Moral do
+      plantel" e "Segurança no cargo" não aparecem em nenhuma aba do telefone
+- [x] **Cabeçalho compacto** — saem Forma, Apito inicial e Gravar (que vivem na
+      faixa, na aba Jogo e na página Sair do jogo)
+- [x] **Crachá T/R** de volta na lista do Elenco
+
+### Pequenas divergências que sobraram no mobile
+- [ ] O rótulo da coluna diz **NOME**; o pacote escreve **JOGADOR**
+- [ ] O cabeçalho do bloco diz "31 jogadores · 11 titulares"; o pacote encurta para
+      "26 · 11 titulares"
+
 ## 1.3 Formação — SIDEBAR RECOLHIDA
 - [ ] Ainda não conferida.
 
