@@ -153,13 +153,23 @@ function rfElFichaHTML(){
       ${rfElBarra('Moral', moral, moral, 'var(--club-secondary)')}
       <span class="rf-note">O RetroFoot98 avalia o jogador por UMA força, do jeito clássico —
         não por atributos separados. Força, energia e moral são o que entra na conta da partida.</span>`)
-    + rfCard('Na temporada', `
-      <div class="rf-kpis">
-        ${rfKpiHTML('Gols', String((S.scorers&&S.scorers[p.n])||0), (st.apps||0)+' jogos')}
+    /* QUATRO BLOCOS, COMO NO PACOTE — mas o quarto dele é ASSISTÊNCIAS, e o
+       motor não regista assistência nenhuma (p.stats guarda r3, g3, apps, goals
+       e cs). Com três, o terceiro ficava órfão numa grade de dois em dois.
+       O quarto passa a ser o que existe de verdade: jogos sem sofrer gol para
+       o goleiro, jogos disputados para o resto. */
+    + rfCard('Na temporada', (()=>{
+        const gols=(S.scorers&&S.scorers[p.n])||0, apps=st.apps||0;
+        const ehGK=p.s==='GK';
+        const media4=(gols&&apps)?('1 a cada '+Math.max(1,Math.round(apps/gols))+' jogos'):'';
+        return `<div class="rf-kpis">
+        ${rfKpiHTML('Gols', String(gols), media4)}
         ${rfKpiHTML('Nota média', media?media.toFixed(1).replace('.',','):'—',
           melhor&&melhor.pid===p.pid?'melhor do elenco':'')}
         ${rfKpiHTML('Cartões', (tot.yellows||0)+'A '+(tot.reds||0)+'V', '')}
-      </div>`)
+        ${ehGK ? rfKpiHTML('Sem sofrer gol', String(st.cs||0), apps?('de '+apps+' jogos'):'')
+               : rfKpiHTML('Jogos', String(apps), 'na temporada')}
+      </div>`;})())
   ) + rfCol(
     rfCard('Contrato e moral', `
       <div class="rf-linha"><span class="rf-linha-t">Salário</span>

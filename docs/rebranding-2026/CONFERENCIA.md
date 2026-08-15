@@ -130,8 +130,31 @@ conforme se clica no menu e nas abas — vale para todas as telas.**
       de uma vez. É a mesma armadilha que já tinha dado problema no Mercado.
 - [x] Cabeçalho em **uma linha só** nas três abas (16px de altura)
 
-### A conferir ainda
-- [ ] Desktop da página, bloco a bloco contra o pacote
+## 3.2 Elenco & Base — DESKTOP (1440)
+
+Conferido bloco a bloco contra `Elenco e Base - Abas.html`.
+
+### Está correto
+- [x] **Elenco** — 9 colunas na ordem do pacote (camisa · JOGADOR · POS · IDA ·
+      FOR · ENERGIA · FORMA · SALÁRIO · FIM) e o bloco RESUMO POR SETOR com
+      GOLEIROS · DEFESA · MEIO · ATAQUE
+- [x] **Base** — CATEGORIA DE BASE com POTENCIAL e PRONTO EM na tabela, e
+      INVESTIMENTO NA BASE com os quatro do pacote: GASTO POR MÊS · NÍVEL DO CT ·
+      PROMOVIDOS EM 2026 · VENDIDOS DA BASE
+- [x] **Treino especial** — FOCO DO TREINO · QUEM VAI TREINAR (com PROGRESSO e
+      GANHO ESPERADO na tabela) · CUSTO E RISCO
+- [x] Colunas alinhadas ao pixel entre cabeçalho e linha nas três tabelas
+- [x] Sem rolagem horizontal em 1440
+
+### Corrigido nesta rodada
+- [x] **O quarto bloco de NA TEMPORADA.** O pacote desenha quatro; o jogo tinha
+      três, e o terceiro ficava órfão na grade. O quarto do pacote é
+      **ASSISTÊNCIAS**, que o motor não regista (`p.stats` guarda r3, g3, apps,
+      goals e cs). Entra o que existe de verdade: **jogos sem sofrer gol** para
+      o goleiro, **jogos** para o resto. A legenda de GOLS deixou de repetir a
+      contagem de jogos e passou a dar o aproveitamento ("1 a cada 4 jogos")
+- [x] **Botões da ficha** — Renovar contrato leva o amarelo padrão e Listar para
+      venda um vermelho claro; estavam ao contrário
 
 # 4 · Campeonatos — a conferir
 # 5 · Treinador — a conferir
