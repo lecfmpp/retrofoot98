@@ -458,6 +458,10 @@ function rfJogarLabel(){
   return (typeof estouPronto==='function' && estouPronto()) ? rfIcone('ok',16)+' Pronto' : rfIcone('jogar',16)+' Jogar';
 }
 function rfIrEscolherTatica(){
+  /* No telefone o Hub tem abas, e o bloco de formações vive na aba "Formação".
+     Sem trocar de aba primeiro, o destino está com `display:none` e a rolagem
+     não tem para onde ir — o botão parecia não fazer nada. */
+  CL.hubTab='formacao';
   CL.rolarPara='rf-taticas';   // aplicado no fim de cada desenho, em devolveRolagem
   CL.rolarAte=Date.now()+900;  // janela: sobrevive aos redesenhos que vêm logo atrás
   rfGo('hub');                 // a Formação é a página inicial do painel
@@ -1054,8 +1058,12 @@ function rfBottomNavHTML(){
     ${itens}
     <button type="button" class="rf-bn-i ${maisAtivo?'on':''}" onclick="rfMaisSheet()">
       <span class="rf-bn-ico">${rfIcone('menu',20)}</span><span class="rf-bn-l">Mais</span></button>
-    <button type="button" class="rf-bn-jogar ${pronto?'rf-btn-pulse':''}" ${pronto?'':'disabled'}
-      onclick="rfJogar()">${rfJogarLabel()}</button>
+    <!-- Sem tática escolhida o botão NÃO fica morto: vira "Formação" e leva ao
+         bloco de formações, igual ao da barra lateral no desktop. Ficava
+         desabilitado sem dizer o que faltava nem para onde ir. -->
+    <button type="button" class="rf-bn-jogar ${pronto?'rf-btn-pulse':''}"
+      ${(pronto||rfFaltaTatica())?'':'disabled'}
+      onclick="${rfFaltaTatica()?'rfIrEscolherTatica()':'rfJogar()'}">${rfJogarLabel()}</button>
   </nav>`;
 }
 

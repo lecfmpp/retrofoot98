@@ -720,9 +720,30 @@ function devolveRolagem(m){
         else {
           const alvo=document.getElementById(CL.rolarPara);
           if(alvo){
-            const y=main.scrollTop + alvo.getBoundingClientRect().top - main.getBoundingClientRect().top
-                  - Math.max(0,(main.clientHeight-alvo.offsetHeight)/2);
-            main.scrollTop=Math.max(0,y);
+            /* QUEM ROLA MUDA COM A LARGURA: no desktop é o `.rf-main`; no
+               telefone a barra lateral some, o painel deixa de ter altura fixa
+               e quem rola passa a ser o DOCUMENTO. Mirar sempre no `.rf-main`
+               fazia o "Formação" trocar de aba e não sair do lugar. */
+            /* A busca para no BODY de propósito: em modo padrão quem rola a
+               página é o `document.scrollingElement` (o <html>), e escrever em
+               `body.scrollTop` não move nada. Sem esta parada, o laço elegia o
+               body como "rolador" e a rolagem sumia no telefone. */
+            let cx=alvo.parentElement, rolador=null;
+            while(cx && cx!==document.body && cx!==document.documentElement){
+              const cs=getComputedStyle(cx);
+              if(/(auto|scroll)/.test(cs.overflowY) && cx.scrollHeight>cx.clientHeight+4){ rolador=cx; break; }
+              cx=cx.parentElement;
+            }
+            if(rolador){
+              const y=rolador.scrollTop + alvo.getBoundingClientRect().top - rolador.getBoundingClientRect().top
+                    - Math.max(0,(rolador.clientHeight-alvo.offsetHeight)/2);
+              rolador.scrollTop=Math.max(0,y);
+            }else{
+              const doc=document.scrollingElement||document.documentElement;
+              const y=doc.scrollTop + alvo.getBoundingClientRect().top
+                    - Math.max(0,(doc.clientHeight-alvo.offsetHeight)/2);
+              doc.scrollTop=Math.max(0,y);
+            }
           }
         }
       }
