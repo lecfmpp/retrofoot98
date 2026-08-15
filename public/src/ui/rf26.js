@@ -306,6 +306,28 @@ function rfBandHTML(titulo){
     </div>
     <button type="button" class="rf-band-gravar" onclick="clSaveGame&&clSaveGame()"
       title="Gravar o jogo agora">${rfIcone('salvar',15)} Gravar</button>
+  </div>
+  ${rfFaixaEstadoHTML()}`;
+}
+/* ---- FAIXA DE ESTADO — só no telefone ----
+   O pacote (Hub do Time - Mobile) põe, logo abaixo do cabeçalho azul, uma tira
+   branca com FORMA · MORAL · janela de transferências. É por isso que os cartões
+   "Moral do plantel" e "Segurança no cargo" não aparecem em nenhuma das três
+   abas do telefone: o número que importa já está aqui, e um cartão inteiro para
+   dois números seria desperdício de altura num ecrã de 375px. */
+function rfFaixaEstadoHTML(){
+  const sq=(typeof squad==='function')?squad(CL.clubId):[];
+  const moral=sq.length?Math.round(sq.reduce((t,p)=>t+(p.moral||70),0)/sq.length):0;
+  const j=(typeof transferWindowStatus==='function')?transferWindowStatus():null;
+  let janela='';
+  if(j&&j.open) janela=`<span class="rf-fx-chip aberta">Janela · ${j.closesIn} ${j.closesIn===1?'jornada':'jornadas'}</span>`;
+  else if(j&&j.opensIn!=null) janela=`<span class="rf-fx-chip">Janela abre em ${j.opensIn}</span>`;
+  else if(j) janela=`<span class="rf-fx-chip">Janela fechada</span>`;
+  return `<div class="rf-faixa-estado">
+    <span class="rf-fx-forma"><span class="rf-fx-l">FORMA</span>${rfFormaHTML()}</span>
+    <i class="rf-fx-sep"></i>
+    <span class="rf-fx-moral">MORAL ${moral}</span>
+    ${janela?'<i class="rf-fx-sep"></i>'+janela:''}
   </div>`;
 }
 /* QUANTO FALTA para a próxima rodada, no formato do pacote: "2d 14h", "14h 30m".

@@ -5257,20 +5257,25 @@
    As oito do desktop em 375px viravam tiras de 20px com tudo cortado. As colunas
    que saem estão inteiras na página Elenco & Base, a um toque da barra inferior. */
 @media (max-width:760px){
+  /* O CRACHÁ FICA. No pacote cada linha começa com o selo T (titular) ou R
+     (reserva) — é o que diz, de relance, quem está escalado. Eu o tinha
+     escondido junto com as colunas numéricas; são quatro faixas, não três. */
   .rf-sq-head.rf-sq-hub,.rf-sq-row.rf-sq-hub{
-    grid-template-columns:minmax(0,1fr) 34px 46px !important;column-gap:10px}
-  .rf-sq-head.rf-sq-hub>span:nth-child(1),
+    grid-template-columns:22px minmax(0,1fr) 34px 46px !important;column-gap:10px}
   .rf-sq-head.rf-sq-hub>span:nth-child(2),
   .rf-sq-head.rf-sq-hub>span:nth-child(4),
   .rf-sq-head.rf-sq-hub>span:nth-child(6),
   .rf-sq-head.rf-sq-hub>span:nth-child(8),
   .rf-sq-head.rf-sq-hub>span:nth-child(9),
-  .rf-sq-row.rf-sq-hub>.rf-sq-mark,
   .rf-sq-row.rf-sq-hub>.rf-sq-pos,
   .rf-sq-row.rf-sq-hub>.rf-sq-id,
   .rf-sq-row.rf-sq-hub>.rf-sq-nota,
   .rf-sq-row.rf-sq-hub>.rf-sq-sal,
   .rf-sq-row.rf-sq-hub>.rf-sq-val{display:none}
+  .rf-sq-row.rf-sq-hub>.rf-sq-mark{display:flex;align-items:center;justify-content:center;
+    width:22px;height:22px;border-radius:7px;background:var(--surface-desk);
+    color:var(--text-muted);font-size:10px;font-weight:var(--fw-bold)}
+  .rf-sq-row.rf-sq-hub>.rf-sq-mark.tit{background:var(--brand-primary);color:#fff}
 }
 /* botão Gravar da faixa do clube */
 .rf-band-gravar{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;
@@ -5345,3 +5350,34 @@
    No telefone o pacote escreve apenas "Tática 3-3-4 · onze 11/11"; a explicação
    do "T" sai, em vez de virar "titulares marcados c…". */
 @media (max-width:760px){ .rf-so-desktop{display:none} }
+
+/* ===== FAIXA DE ESTADO DO TELEFONE (FORMA · MORAL · JANELA) =====
+   Medidas do pacote: tira branca, 10px 16px, divisórias de 1×18px, rótulo de 9px
+   com letra espaçada, moral em mono de 11px e a janela num chip azul. */
+.rf-faixa-estado{display:none}
+@media (max-width:760px){
+  .rf-faixa-estado{display:flex;align-items:center;gap:8px;overflow-x:auto;
+    padding:10px 14px;margin:0 0 10px;background:var(--surface-card);
+    border:var(--border-hairline);border-radius:var(--r-card);
+    -webkit-overflow-scrolling:touch}
+  .rf-faixa-estado::-webkit-scrollbar{display:none}
+  .rf-fx-forma{display:flex;align-items:center;gap:5px;flex:0 0 auto}
+  .rf-fx-l{font-size:9px;font-weight:var(--fw-semibold);letter-spacing:.1em;
+    color:var(--text-faint);white-space:nowrap}
+  .rf-fx-sep{width:1px;height:18px;background:var(--line-1);flex:0 0 auto}
+  .rf-fx-moral{font-family:var(--font-mono);font-size:11px;color:var(--text-2);
+    white-space:nowrap;flex:0 0 auto}
+  .rf-fx-chip{font-size:11px;font-weight:var(--fw-semibold);color:var(--brand-primary);
+    background:#e9eff8;border:1px solid #d6e1f1;border-radius:var(--r-pill);
+    padding:4px 9px;white-space:nowrap;flex:0 0 auto}
+  .rf-fx-chip.aberta::before{content:'';display:inline-block;width:7px;height:7px;
+    border-radius:50%;background:var(--ok);margin-right:6px;vertical-align:middle}
+
+  /* o cabeçalho azul fica COMPACTO: sai o que a faixa e a barra inferior já dizem */
+  .rf-band-crest .rf-crest,.rf-band-crest img{width:34px;height:34px}
+  .rf-band .rf-band-stat.mid,               /* Forma — foi para a faixa */
+  .rf-band .rf-band-gravar,                 /* Gravar — vive na página Sair do jogo */
+  .rf-band .rf-band-stat.end:last-of-type{  /* Apito inicial — a data está no Jogo */
+    display:none}
+  .rf-band .rf-band-stat.end:first-of-type{display:flex}
+}
