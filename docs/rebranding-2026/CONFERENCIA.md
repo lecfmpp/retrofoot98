@@ -386,3 +386,28 @@ Apagar este save. Sem rolagem lateral em 375px.
 - O pacote desenha três **abas** (Gravar e sair · Outros saves · Apagar); o jogo
   usa dois blocos (SAVE ATUAL · CONTA) com as quatro ações. As abas do pacote
   separariam o que cabe numa tela só — anotado, não perseguido
+
+---
+
+# 11 · Auditoria de pele: o que ainda desenha o layout antigo
+
+Anotação antiga dizia que "7 passos da Resenha continuam na pele antiga".
+**Está desactualizada** — foram portados. Conferido rota a rota:
+
+- As 15 telas de `case '…'` em `main.js` delegam todas ao desenho novo
+  (`scWaitRound` → `rfPausa`/`rfEspera`, `scCupDraw` → `rfSorteio`, etc.)
+- Os 9 passos de `renderOnline()` desenham no invólucro novo do wizard —
+  `rf26.css` repinta o `cl-wiz-*`, então contar classes `cl-` engana. Verificado
+  visualmente e por medição
+
+### Corrigido nesta rodada
+- [x] **Os dois cartões de escolha ficavam numa coluna.** `rf26.css` punha
+      `.cl-wiz-cards{flex-direction:column}`: em 1440 os dois ocupavam a metade
+      esquerda de um cartão de 780px e a direita ficava vazia. São sempre
+      **dois** — Solo/Resenha, Novo/Continuar, Criar/Entrar — e a escolha entre
+      dois lê-se melhor a par. Agora é grade de duas colunas, uma no telefone,
+      igual ao `.rf-modos` do pacote
+
+### Estado
+Dez páginas + fluxo de onboarding + fluxo da Resenha: todas no desenho novo, sem
+rolagem lateral em 1440 e em 375, sem erros de consola.

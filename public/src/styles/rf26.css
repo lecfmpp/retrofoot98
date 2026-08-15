@@ -990,7 +990,15 @@
    O texto é alinhado à ESQUERDA mesmo quando o cabeçalho da tela é centrado:
    são três a quatro linhas de descrição por cartão, e prosa centrada nesse
    tamanho fica difícil de varrer — cada linha começa num lugar diferente. */
-.cl-wiz-cards{display:flex;flex-direction:column;gap:var(--gap-grid);text-align:left;width:100%}
+/* OS DOIS CARTÕES FICAM LADO A LADO, como na tela de Modo do pacote
+   (ver .rf-modos, a mesma decisão). Estavam empilhados numa coluna: em 1440 os
+   dois ocupavam a metade esquerda de um cartão de 780px e a direita ficava
+   vazia. São sempre DOIS — Solo/Resenha, Novo/Continuar, Criar/Entrar — e a
+   escolha entre dois lê-se melhor a par do que em fila. No telefone volta a
+   uma coluna, que é onde empilhar é o certo. */
+.cl-wiz-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:var(--gap-grid);text-align:left;width:100%;align-items:stretch}
+@media (max-width:760px){ .cl-wiz-cards{grid-template-columns:minmax(0,1fr)} }
 .cl-mc-card{background:var(--surface-card);border:1px solid var(--line-2);border-radius:var(--r-card);
   padding:20px;cursor:pointer;display:flex;flex-direction:column;gap:8px;text-align:left;align-items:flex-start;
   transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease)}
