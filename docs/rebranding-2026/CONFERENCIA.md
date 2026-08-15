@@ -102,7 +102,15 @@ conforme se clica no menu e nas abas — vale para todas as telas.**
       "26 · 11 titulares"
 
 ## 1.3 Formação — SIDEBAR RECOLHIDA
-- [ ] Ainda não conferida.
+Conferida contra `Hub do Time - Sidebar Recolhida.html`.
+- [x] A barra passa de 240px para **68px**, só ícones com `title`, e o painel
+      cresce para 1372 sem rolagem horizontal
+- [x] O **botão Jogar** próprio da barra recolhida existe e é **amarelo** — o
+      pacote desenha-o como peça à parte, e é a regra que você fixou ("sempre
+      com fundo amarelo, expandida e recolhida")
+- [x] O alternador fica no pé, e o cartão do próximo jogo dá lugar ao botão
+- [x] Efeito colateral bem-vindo: com 172px a mais, a tabela do Elenco mostra os
+      nomes por extenso ("Joaquín Piquerez", "Alexander Barboza")
 
 ### A grade do Elenco no Hub — a literal do pacote não cabe
 A literal do pacote soma 284px de faixas + 64px de folga = 348, numa coluna de
