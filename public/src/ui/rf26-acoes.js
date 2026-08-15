@@ -179,18 +179,61 @@ const RF_ACOES = {
   const sal=(p&&((p.contract&&p.contract.salary)||p.salary))||0;
   const caixa=(S.budget||0)-oferta;
   const folha=rfFolha()+sal;
-  return rfAcao({ kicker:'MERCADO · COMPRAR', titulo:'Proposta por '+escC((p&&p.n)||'—'), w:520,
+
+  /* ===== UMA COMPRA TEM TRÊS ETAPAS, E O DIÁLOGO PRECISA SABER EM QUAL ESTÁ =====
+     O motor já separa: `fee` (acertar a taxa com o CLUBE), `terms` (acertar o
+     salário com o JOGADOR) e `verdict` (fechar). O diálogo mostrava taxa e
+     salário juntos e nunca olhava o estágio — então, depois de o clube aceitar,
+     reaparecia igual, pedindo a taxa outra vez com um valor novo. Era impossível
+     saber se havia que refazer a proposta ou só preencher o salário.
+     Agora cada etapa tem a sua tela, e a etapa vencida aparece como FATO
+     ("taxa acertada"), não como campo para preencher de novo. */
+  const M=CL.market;
+  const n=(M && M.negoIdx!=null && S.negos) ? S.negos[M.negoIdx] : null;
+  const etapa=(n&&n.stage)||'fee';
+
+  if(n && etapa==='terms'){
+    const pedeAgente=n.agentCounter||0;
+    const salAtual=n.salary||sal;
+    const folhaDepois=rfFolha()+salAtual;
+    return rfAcao({ kicker:'MERCADO · COMPRAR · ETAPA 2 DE 3',
+      titulo:'Salário de '+escC((p&&p.n)||'—'), w:520,
+      corpo:
+        rfAcFichaHTML(p,'TAXA ACERTADA',rfDin(n.offerFee),d.num)
+        + rfAcAvisoHTML(`O ${escC(c.short)} <b>aceitou a taxa</b> de ${escC(rfDin(n.offerFee))}. Falta acertar o salário com o jogador.`,'ok')
+        + rfAcCampoHTML('rf-ac-sal','Salário oferecido', moneyDisp(salAtual),
+            pedeAgente?`O empresário pede ${escC(rfDin(pedeAgente))}/mês.`
+                      :`O jogador pede no mínimo ${escC(rfDin(Math.round(salAtual*0.9)))}.`,
+            {sufixo:'/mês', foco:true})
+        + rfAcLinhaHTML('Folha depois da contratação', rfDin(folhaDepois)+'/mês', 'aviso', true)
+        + rfAcNotaHTML('A taxa já está fechada — daqui em diante você negocia só com o jogador.'),
+      acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar termos',on:'rfMkTermos()'}] });
+  }
+
+  if(n && etapa==='verdict'){
+    const salFinal=n.salary||sal;
+    return rfAcao({ kicker:'MERCADO · COMPRAR · ETAPA 3 DE 3',
+      titulo:'Fechar a contratação de '+escC((p&&p.n)||'—'), w:520,
+      corpo:
+        rfAcFichaHTML(p,'TAXA',rfDin(n.offerFee),d.num)
+        + rfAcLinhaHTML('Salário combinado', rfDin(salFinal)+'/mês', '', true)
+        + rfAcLinhaHTML('Caixa depois', rfDin((S.budget||0)-n.offerFee), ((S.budget||0)-n.offerFee)<0?'ruim':'ok')
+        + rfAcLinhaHTML('Folha depois', rfDin(rfFolha()+salFinal)+'/mês', 'aviso')
+        + rfAcNotaHTML('Clube e jogador já concordaram. Confirmar transfere o jogador para o seu elenco.'),
+      acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Fechar contratação',on:'rfMkFinalizar()'}] });
+  }
+
+  const pediu = n && n.clubCounter;
+  return rfAcao({ kicker:'MERCADO · COMPRAR · ETAPA 1 DE 3',
+    titulo:'Proposta por '+escC((p&&p.n)||'—'), w:520,
     corpo:
       rfAcFichaHTML(p,'PEDIDO',rfDin(ask),d.num)
+      + (pediu?rfAcAvisoHTML(`O ${escC(c.short)} quer a partir de <b>${escC(rfDin(n.clubCounter))}</b>.`,'aviso'):'')
       + rfAcCampoHTML('rf-ac-fee','Valor da proposta', oferta?moneyDisp(oferta):'',
           `Abaixo de ${escC(rfDin(minimo))} o ${escC(c.short)} recusa direto.`, {foco:true})
-      + rfAcCampoHTML('rf-ac-sal','Salário oferecido', sal?moneyDisp(sal):'',
-          `O jogador pede no mínimo ${escC(rfDin(Math.round(sal*0.9)))}.`, {sufixo:'/mês'})
-      + rfAcPassoHTML('rf-ac-anos','Anos de contrato', d.anos||3,
-          'Contrato mais longo derruba o valor do passe em até 8%.')
       + rfAcLinhaHTML('Caixa depois da compra', rfDin(caixa), caixa<0?'ruim':'ok', true)
       + rfAcLinhaHTML('Folha depois da contratação', rfDin(folha)+'/mês', 'aviso')
-      + rfAcNotaHTML(`A proposta consome um dia da janela. O ${escC(c.short)} responde na próxima jornada.`),
+      + rfAcNotaHTML(`Primeiro acerta-se a TAXA com o ${escC(c.short)}. O salário do jogador vem na etapa seguinte.`),
     acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar proposta',on:'rfMkProporFee()'}] });
 },
 
