@@ -4892,15 +4892,25 @@
 
 /* ----- filtros como pílulas ----- */
 .rf-mkf{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
-.rf-mkf-p{position:relative;display:inline-flex;align-items:center;gap:8px;height:44px;
-  padding:0 14px;border:1px solid var(--line-2);border-radius:var(--r-pill);
-  background:var(--surface-card);cursor:pointer}
-.rf-mkf-p:hover{border-color:var(--brand-primary)}
+/* MEDIDAS LITERAIS DO PACOTE (Mercado - Abas): 36px de altura, padding 0 12px,
+   raio 11px, gap 7px, rótulo 11px e valor 12px. O nosso estava com 44px de
+   altura, raio de pílula e ambos os textos em 13px — cinco chips assim
+   dominavam o cartão e competiam com a tabela, que é o conteúdo. */
+.rf-mkf-p{position:relative;display:inline-flex;align-items:center;gap:7px;height:36px;
+  padding:0 12px;border:1px solid var(--line-2);border-radius:11px;
+  background:var(--surface-card);cursor:pointer;white-space:nowrap}
+.rf-mkf-p:hover{background:var(--surface-sunken);border-color:var(--line-2)}
 .rf-mkf-p:focus-within{border-color:var(--brand-primary);
-  box-shadow:0 0 0 3px var(--club-primary-soft,rgba(23,69,143,.1))}
-.rf-mkf-l{font-size:var(--fs-body-sm);color:var(--text-4)}
-.rf-mkf-v{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-1)}
-.rf-mkf-c{font-size:9px;color:var(--text-4)}
+  box-shadow:0 0 0 3px rgba(23,69,143,.1)}
+.rf-mkf-l{font-size:11px;color:var(--text-faint)}
+.rf-mkf-v{font-size:12px;font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-mkf-c{font-size:9px;color:var(--text-faint)}
+/* no telefone encolhem mais um pouco, já que a faixa rola de lado */
+@media (max-width:760px){
+  .rf-mkf-p{height:32px;padding:0 10px;gap:6px}
+  .rf-mkf-l{font-size:10px}
+  .rf-mkf-v{font-size:11px}
+}
 .rf-mkf-p select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;
   border:0;-webkit-appearance:none;appearance:none}
 .rf-mkf-x{height:44px;padding:0 18px;border:1px solid var(--line-2);border-radius:var(--r-pill);

@@ -68,8 +68,9 @@ function rfAcFichaHTML(p, rotulo, valor, num){
    botões com o VALOR RESULTANTE à vista: num leilão o que importa é decidir
    rápido, e obrigar a somar de cabeça sob relógio é o oposto disso. Cada botão
    escreve no campo do diálogo, então o handler continua lendo um só lugar. */
+const RF_LANCE_MIN=25000;   // incremento mínimo anunciado no diálogo e no 1º atalho
 function rfAcAtalhosLanceHTML(id, base){
-  const passos=[25000,50000,100000];
+  const passos=[RF_LANCE_MIN,50000,100000];
   return `<div class="rf-ac-atalhos">${passos.map(inc=>{
     const v=Math.round(base+inc);
     return `<button type="button" class="rf-ac-atalho" onclick="rfAcSetValor(event,'${id}',${v})">
@@ -241,13 +242,17 @@ const RF_ACOES = {
   const lot=((S.auctions&&S.auctions.lots)||[]).find(l=>l.id===d.sellerId+'|'+d.player);
   const p=(typeof findP==='function')?findP(d.player,d.sellerId):null;
   if(!lot||!p) return '';
-  const sug=Math.round(lot.bid+Math.max(50000,lot.bid*0.08));
+  /* O CAMPO PARTE DO LANCE MÍNIMO VÁLIDO. Vinha com uma sugestão 8% acima do
+     lance atual, que não batia com nenhum dos atalhos nem com a dica do
+     incremento — o utilizador via três números diferentes para a mesma coisa.
+     Agora o campo, o primeiro atalho e a dica dizem todos R$ 25 mil acima. */
+  const sug=Math.round(lot.bid+RF_LANCE_MIN);
   return rfAcao({ kicker:'MERCADO · LEILÃO · FECHA EM '+lot.roundsLeft+' RODADA'+(lot.roundsLeft===1?'':'S'),
     titulo:'Lance por '+escC(p.n), w:500,
     corpo:
       rfAcFichaHTML(p,'LANCE ATUAL',rfDin(lot.bid),d.num)
       + rfAcCampoHTML('rf-ac-lance','Seu lance', moneyDisp(sug),
-          `Incremento mínimo de ${escC(rfDin(Math.max(25000,Math.round(lot.bid*0.05))))}.`, {foco:true})
+          `Incremento mínimo de ${escC(rfDin(RF_LANCE_MIN))}.`, {foco:true})
       + rfAcAtalhosLanceHTML('rf-ac-lance', lot.bid)
       + rfAcLinhaHTML('Clubes na disputa', String(lot.interest||1), '', true)
       + rfAcLinhaHTML('Caixa disponível', rfDin(S.budget||0), '')
@@ -261,7 +266,7 @@ const RF_ACOES = {
   const p=(typeof findP==='function')?findP(d.player,d.sellerId):null;
   if(!lot||!p) return '';
   const lider=anyClubOf(lot.leader)||{short:'a concorrência'};
-  const sug=Math.round(lot.bid+Math.max(50000,lot.bid*0.08));
+  const sug=Math.round(lot.bid+RF_LANCE_MIN);   // ver mkt-lance: parte do mínimo
   return rfAcao({ kicker:'MERCADO · LEILÃO · FECHA EM '+lot.roundsLeft+' RODADA'+(lot.roundsLeft===1?'':'S'),
     titulo:'Cobrir o lance do '+escC(lider.short), w:500,
     corpo:
@@ -326,18 +331,19 @@ const RF_ACOES = {
   const p=squad(CL.clubId).find(x=>x.pid===d.pid); if(!p) return '';
   const vm=(typeof computeVM==='function')?computeVM(p):(p.mv||0);
   const titular=xiPlayers(CL.clubId).some(x=>x.pid===p.pid);
-  const sel=d.como!=null?d.como:0;
   return rfAcao({ kicker:'MERCADO · VENDER', titulo:'Listar '+escC(p.n)+' para venda', w:500,
     corpo:
       rfAcFichaHTML(p,'VALOR',rfDin(vm),d.num)
       + rfAcCampoHTML('rf-ac-preco','Preço pedido', moneyDisp(Math.round(vm/1000)*1000),
           'Pedir muito acima do valor afasta comprador; abaixo, sai na primeira jornada.', {foco:true})
-      + `<span class="rf-ac-l">Como listar</span>`
-      + rfAcOpcoesHTML('como',[
-          {t:'Venda direta ao mercado', s:'o primeiro clube que topar leva'},
-          {t:'Leilão', s:'os interessados disputam por algumas rodadas'}], sel)
+      /* AS DUAS OPÇÕES (venda direta / leilão) SAÍRAM. Elas eram decorativas: a
+         escolha nunca era lida pelo handler, o save não guarda "jogador listado"
+         e o motor não aceita o clube do utilizador como vendedor de leilão
+         (isCpuMarketProtected devolve true para S.clubId). Vender aqui é uma
+         venda IMEDIATA ao mercado da CPU — é isso que a nota abaixo diz agora,
+         em vez de prometer uma vitrine que não existe. */
       + (titular?rfAcAvisoHTML('É <b>titular</b>. Sair dele agora abre buraco no onze até você repor.','aviso'):'')
-      + rfAcNotaHTML('Dá para tirar da lista a qualquer momento enquanto ninguém tiver fechado.'),
+      + rfAcNotaHTML('A venda é imediata: um clube interessado fecha na hora pelo preço pedido.'),
     acoes:[{l:'Cancelar',tom:'fantasma'},{l:rfIcone('destaque',16)+' Listar',on:'rfMkListarGo()'}] });
 },
 
