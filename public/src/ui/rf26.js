@@ -1532,7 +1532,7 @@ function rfSquadTableHTML(modo, opts){
       <span class="rf-sq-nota ${rfNotaTom(nota)}">${nota!=null?escC(String(nota).replace('.',',')):'–'}</span>
       <span class="rf-sq-ener"><i class="rf-ener" style="--v:${en};--c:${rfEnergiaCor(en)}"></i><b>${en}%</b></span>
       ${cfg.sal?`<span class="rf-sq-sal">${escC(rfDinCurto(sal))}</span>`:''}
-      <span class="rf-sq-val">${escC(rfDinCurto(p.mv||0))}</span>
+      <span class="rf-sq-val">${escC(rfDinCurto(rfVM(p)))}</span>
     </div>`;
   }).join('');
   return `${cab}<div class="rf-sq-list">${linhas}</div>`;
@@ -1587,7 +1587,7 @@ function rfFichaHTML(){
     </div>
     <div class="rf-sep"></div>
     <div class="rf-ficha-linhas">
-      <div class="rf-linha"><span class="rf-linha-t">Valor de mercado</span><span class="rf-linha-v">${escC(fmt(p.mv||0))}</span></div>
+      <div class="rf-linha"><span class="rf-linha-t">Valor de mercado</span><span class="rf-linha-v">${escC(fmt(rfVM(p)))}</span></div>
       <div class="rf-linha"><span class="rf-linha-t">Salário</span><span class="rf-linha-v">${escC(fmt(sal))}/sem</span></div>
       <div class="rf-linha"><span class="rf-linha-t">Gols na temporada</span><span class="rf-linha-v">${gols}</span></div>
       <div class="rf-linha"><span class="rf-linha-t">Comportamento</span><span class="rf-linha-v">${escC(typeof playerBehaviorLabel==='function'?playerBehaviorLabel(p):'—')}</span></div>

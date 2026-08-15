@@ -19,8 +19,17 @@
 /* DINHEIRO POR EXTENSO — "R$ 620 mil", "R$ 1,25 mi". É a escrita das
    telas, e nenhuma outra: fmt() dá "R$ 762k" e mvShort() dá "50M", duas
    abreviações que a referência não usa em lugar nenhum do Mercado. */
+/* O SÍMBOLO SEM A CONVERSÃO É UMA MENTIRA. Esta função punha "€" (ou o que
+   fosse) à frente de um número que continuava em reais internos, enquanto o
+   `mvShort` e o `fmt` ao lado dela, na mesma linha da mesma tabela, convertiam.
+   Em Reais (taxa 1) ninguém via; em qualquer outra moeda os dois números da
+   mesma linha discordavam. O motor guarda tudo em R$ e converte só na
+   apresentação — aqui é a apresentação. */
+/* o valor de mercado que a interface mostra é sempre o VIVO (idade + fase),
+   nunca o `p.mv` de base — é o mesmo por que o motor precifica (ver liveMV) */
+function rfVM(p){ return (typeof computeVM==='function'&&p&&p.n)?computeVM(p):((p&&p.mv)||0); }
 function rfDin(v){
-  v=Math.round(v||0);
+  v=Math.round((typeof curConv==='function')?curConv(v||0):(v||0));
   const s=(typeof curSym==='function')?curSym():'R$';
   const neg=v<0?'-':''; v=Math.abs(v);
   const num=(n,c)=>String(n.toFixed(c)).replace('.',',').replace(/,0+$/,'');
@@ -513,6 +522,18 @@ function rfMkNum(id){
   const el=document.querySelector('#'+alt) || document.querySelector('#'+id);
   return el ? (parseInt((el.value||'').replace(/\D/g,''),10)||0) : 0;
 }
+/* O QUE ENTRA TEM DE VOLTAR NA MESMA MOEDA EM QUE SAIU.
+   Todo campo de dinheiro destes diálogos é preenchido com `moneyDisp(...)`, que
+   converte de R$ interno para a moeda escolhida. Mas quatro dos seis leitores
+   pegavam o número digitado e mandavam direto para o motor, sem desfazer a
+   conversão: a proposta, o salário da negociação, a proposta a humano e o lance
+   do leilão. Em Reais (taxa 1) ninguém via; em qualquer outra moeda o jogador
+   escrevia um valor e o caixa era debitado noutro — dinheiro a sério, errado.
+   `rfMkVal` é o leitor de dinheiro; `rfMkNum` fica para o que não é dinheiro. */
+function rfMkVal(id){
+  const v=rfMkNum(id);
+  return (typeof curParse==='function')?curParse(v):v;
+}
 /* moldura comum: título, subtítulo, o ✕ e o corpo */
 function rfMkGavetaHTML(titulo, sub, corpo){
   return `<div class="rf-card rf-gaveta">
@@ -555,7 +576,7 @@ function rfAcPreparar(clubId, nome){
 }
 function rfMkProporFee(){
   const M=CL.market; if(!M) return;
-  M.offer=rfMkNum('rf-mk-fee');
+  M.offer=rfMkVal('rf-mk-fee');
   if(M.offer<=0){ toastC('Digite quanto você quer oferecer.'); return; }
   if(M.negoIdx==null) M.negoIdx=startNego(M.clubId,M.player,M.offer);
   else S.negos[M.negoIdx].offerFee=M.offer;
@@ -571,7 +592,7 @@ function rfMkIgualar(){
 }
 function rfMkTermos(){
   const M=CL.market; const n=S.negos[M.negoIdx];
-  n.salary=rfMkNum('rf-mk-sal')||n.salary;
+  n.salary=rfMkVal('rf-mk-sal')||n.salary;
   const r=agentRespond(n); toastC(r.msg||''); cdraw();
 }
 function rfMkAceitarAgente(){
@@ -596,7 +617,7 @@ function rfMkOfertaHTML(){
     return rfMkGavetaHTML('Proposta por '+escC(p.n), sub, `
       <span class="rf-note">Este jogador é de outro treinador. A proposta vai direto pro e-mail dele — ele aceita, recusa ou negocia.</span>
       <div class="rf-mkg-linha">
-        ${rfMkCampoHTML('rf-mk-fee','Sua proposta',M.offer,'valor de mercado '+escC(rfDin(p.mv||0)))}
+        ${rfMkCampoHTML('rf-mk-fee','Sua proposta',M.offer,'valor de mercado '+escC(rfDin(rfVM(p))))}
         <button type="button" class="rf-btn rf-btn-primary" onclick="rfMkEnviarHumano()">Enviar proposta</button>
       </div>`);
   }
@@ -606,7 +627,7 @@ function rfMkOfertaHTML(){
       ${pediu?`<div class="rf-mkg-aviso">O ${escC(c.short)} quer a partir de <b>${escC(rfDin(n.clubCounter))}</b>.
         <button type="button" class="rf-btn rf-btn-ghost" onclick="rfMkIgualar()">Igualar pedido</button></div>`:''}
       <div class="rf-mkg-linha">
-        ${rfMkCampoHTML('rf-mk-fee','Sua proposta (taxa)',M.offer,'valor de mercado '+escC(rfDin(p.mv||0))+' · caixa '+escC(rfDin(S.budget||0)))}
+        ${rfMkCampoHTML('rf-mk-fee','Sua proposta (taxa)',M.offer,'valor de mercado '+escC(rfDin(rfVM(p)))+' · caixa '+escC(rfDin(S.budget||0)))}
         <button type="button" class="rf-btn rf-btn-primary" onclick="rfMkProporFee()">Propor</button>
       </div>`);
   }
@@ -626,7 +647,7 @@ function rfMkOfertaHTML(){
     </div>`);
 }
 function rfMkEnviarHumano(){
-  const M=CL.market; M.offer=rfMkNum('rf-mk-fee');
+  const M=CL.market; M.offer=rfMkVal('rf-mk-fee');
   const r=sendHumanOffer(M.clubId,M.player,M.offer); toastC(r.msg||'');
   if(r.ok){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.market=null; CL.acao=null; }
   cdraw();
@@ -664,7 +685,7 @@ function rfMkLanceGo(){
      lote fecha, então o número precisa existir em algum lugar. Fica no próprio
      lote, que é salvo junto com o resto do leilão. */
   const eraCobertura = !!(lot && lot.leader && lot.leader!==S.clubId);
-  const r=placeAuctionBid(id, rfMkNum('rf-mk-lance'));
+  const r=placeAuctionBid(id, rfMkVal('rf-mk-lance'));
   if(r&&r.ok&&eraCobertura&&lot) lot.myCovers=(lot.myCovers||0)+1;
   toastC(r.msg||'');
   if(r.ok){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.acao=null; }
@@ -691,12 +712,12 @@ function rfMkLanceHTML(){
 /* ---- 3 · CONTRAPROPOR (uma proposta recebida) ---- */
 function rfMkContrapor(id){ CL.mkP={tipo:'contra', id}; rfAcAbrir('mkt-contra',{id}); }
 function rfMkContraporGo(){
-  const P=CL.mkP; const valor=rfMkNum('rf-mk-ask');
+  const P=CL.mkP; const valor=rfMkVal('rf-mk-ask');
   if(valor<=0){ toastC('Digite quanto você quer pedir.'); return; }
   const o=rfPropostas().find(x=>x.id===P.id);
   const humano = o && CL.online && CL.humans && CL.humans[o.buyerId];
-  const r = humano ? counterHumanOffer(P.id, curParse(valor))
-                   : (counterIncomingOffer(P.id, curParse(valor))||{ok:true});
+  const r = humano ? counterHumanOffer(P.id, valor)
+                   : (counterIncomingOffer(P.id, valor)||{ok:true});
   if(r&&r.msg) toastC(r.msg);
   if(!r||r.ok!==false){ if(typeof saveV3==='function') saveV3(); CL.mkP=null; CL.acao=null; }
   cdraw();

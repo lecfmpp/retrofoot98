@@ -3469,7 +3469,7 @@ function squadTableHTML(clubId, opts){
         <span class="cl-rmark"></span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname" title="${escC(p.n)}">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
-        <span class="cl-rf">${p.f}${trainingIcon(clubId,p)}</span><span class="cl-rnota">${notaChip(p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(playerSalary(p))}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;
+        <span class="cl-rf">${p.f}${trainingIcon(clubId,p)}</span><span class="cl-rnota">${notaChip(p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(playerSalary(p))}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt((typeof computeVM==='function')?computeVM(p):(p.mv||0))}</span></div>`;
     }).join('')+`</div>`;
   });
   return html;
@@ -3496,7 +3496,7 @@ function rosterHTML(){
         <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname" title="${escC(p.n)}">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
-        <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}${trainingIcon(CL.clubId,p)}</span><span class="cl-rnota">${notaChip(p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(salary)}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;}).join('')+`</div>`;
+        <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}${trainingIcon(CL.clubId,p)}</span><span class="cl-rnota">${notaChip(p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(salary)}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt((typeof computeVM==='function')?computeVM(p):(p.mv||0))}</span></div>`;}).join('')+`</div>`;
   });
   return html;
 }

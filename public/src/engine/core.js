@@ -97,7 +97,7 @@ const STORY_EVENTS=[
     ]};}},
   {id:'europa',t:'Especulação',w:2,gen:()=>{const p=youngGem(S.clubId);return {
     title:'🌍 Mercado Europeu',
-    text:`Clube europeu prepara proposta de ${fmt(p.mv*1.4)} por ${p.n}. O jogador está com a cabeça na Europa.`,
+    text:`Clube europeu prepara proposta de ${fmt(liveMV(p)*1.4)} por ${p.n}. O jogador está com a cabeça na Europa.`,
     player:p.n,
     options:[
       {label:'Conversar e acalmar',eff:()=>{adjMoral(p.n,+8);toast(`${p.n} focado no clube.`);}},
@@ -134,6 +134,31 @@ function rollStory(R){
 }
 
 /* ====================== TRANSFER MARKET ====================== */
+/* UM VALOR SÓ, E É O QUE ESTÁ NA TELA.
+   Havia dois "valores de mercado" a correr em paralelo. A interface mostra
+   sempre `computeVM(p)` — o valor VIVO, que é o `p.mv` de base multiplicado
+   pela idade (1,5x até aos 19; 0,7x a partir dos 31) e pela fase (1,25x em
+   fase). O motor, por outro lado, precificava tudo em cima do `p.mv` cru.
+
+   Nos jogadores de 1,0x — a maioria — os dois batiam e ninguém notava. Num
+   jogador de 31 anos não batiam nada: a proposta recebida saía entre 1,0 e
+   1,7 do `p.mv`, e a tela ao lado dizia que ele valia 0,7 disso. A oferta
+   aparecia com até 2,4 vezes o "valor de mercado" impresso na mesma linha.
+
+   Pior: o teto do comprador (`maxFee`) nasce do mesmo `fee`. Quem contrapunha
+   ancorado no número da tela pedia acima de um teto calculado noutra escala, e
+   levava um "não pago mais do que isso" com um número bem abaixo do que a
+   própria tela chamava de valor de mercado.
+
+   Daqui para a frente há um nome só para esse número, e é ele que o motor usa
+   em toda a precificação: proposta recebida, mercado da CPU, leilão, cláusula
+   e assédio europeu. O `p.mv` continua a ser a base guardada; ninguém volta a
+   precificar por ela diretamente. */
+function liveMV(p){
+  if(!p) return 1e6;
+  const v=(typeof computeVM==='function')?computeVM(p):0;
+  return Math.max(1, v || p.mv || 1e6);
+}
 /* asking price = live VM (idade+desempenho) + seller momentum ("luvas") */
 function playerAsk(p, sellerId){
   let ask=computeVM(p)*1.15;
@@ -312,7 +337,7 @@ function startNego(sellerId,playerName,offerFee){
   S.negos.push({ sellerId, player:playerName, stage:'fee', status:'aberta',
     offerFee, clubCounter:null, feeAgreed:false,
     salary:REBAL.wage(p.f), role:'Titular Regular',
-    clauses:{gol:true, europa:false, europaValue:Math.round((p.mv||1e6)*2)},
+    clauses:{gol:true, europa:false, europaValue:Math.round(liveMV(p)*2)},
     agentCounter:null, interest:0, day:S.day });
   save();
   return S.negos.length-1;
@@ -687,7 +712,7 @@ function cpuBackgroundTransfers(R){
   const feitas=WORLD_RULES.cpuMarket(S, R, {
     clubes: cpuClubs.map(c=>({id:c.id, short:c.short})),
     podeSair: (clubId,p)=>canReleaseFromSquad(clubId,p).ok,
-    valor: p=>p.mv||1e6,
+    valor: p=>liveMV(p),
     n: 2+Math.floor(R.rnd(0,3))                 // 2-4 por rodada — a liga do usuário é o mercado mais ativo
   });
   if(!feitas.length) return;
@@ -730,7 +755,7 @@ function bgCpuTransfers(R){
       const buyers=clubsByCountry[buyerCountry];
       const buyerId=buyers[Math.floor(R.random()*buyers.length)];
       if(buyerId===sellerId || !ensureBgClubMaterialized(buyerId)) continue;
-      const fee=Math.round((p.mv||1e6)*(0.6+R.random()*0.6));
+      const fee=Math.round(liveMV(p)*(0.6+R.random()*0.6));
       S.squads[sellerId]=sq.filter(x=>x.n!==p.n);
       S.squads[buyerId]=S.squads[buyerId]||[]; S.squads[buyerId].push(p);
       const fromShort=(intlClubById(sellerId)||{}).short||sellerId, toShort=(intlClubById(buyerId)||{}).short||buyerId;
@@ -818,7 +843,7 @@ function generateIncomingOffers(R){
     const eligible=cand.filter(c=>clubWouldSign(c.overall, p.f));
     if(!eligible.length) return;
     const buyer=eligible[Math.floor(R.random()*eligible.length)];
-    const fee=Math.round((p.mv||1e6)*(1.0+R.random()*0.7)); // 1.0-1.7x (proposta cheia, às vezes acima)
+    const fee=Math.round(liveMV(p)*(1.0+R.random()*0.7)); // 1.0-1.7x do valor QUE A TELA MOSTRA
     // teto do comprador pra regatear: acima da 1ª oferta, maior se o jogador está em fase
     // (mais valorizado) — é até onde ele topa subir numa contraproposta sua.
     const maxFee=Math.round(fee*(1.15 + (isHot(p)?0.2:0) + R.random()*0.15));
@@ -1085,14 +1110,15 @@ function auctionInterest(p, R){ // 2..20 clubes disputando, crescendo com a desi
   return Math.max(2, Math.min(20, n));
 }
 function auctionCeiling(p, interest, R){ // teto que a CPU paga: mais concorrência = maior
-  const base=Math.max(1, p.mv||1e6);
+  const base=liveMV(p);
   return Math.round(base*(1 + (interest/20)*1.4 + R.random()*0.25)); // 2 clubes ~1.15x, 20 ~2.6x
 }
 function makeAuctionLot(club, p, R){
   const interest=auctionInterest(p, R);
-  return { id:club.id+'|'+p.n, sellerId:club.id, player:p.n, base:p.mv||1e6,
+  const vm=liveMV(p);
+  return { id:club.id+'|'+p.n, sellerId:club.id, player:p.n, base:vm,
     interest, ceiling:auctionCeiling(p, interest, R),
-    bid:Math.round((p.mv||1e6)*(0.6+R.random()*0.15)), leader:'cpu', myBid:0,
+    bid:Math.round(vm*(0.6+R.random()*0.15)), leader:'cpu', myBid:0,
     roundsLeft:AUCTION_ROUNDS, status:'open' };
 }
 function openAuctionLots(R, want){
