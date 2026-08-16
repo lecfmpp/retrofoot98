@@ -31,15 +31,15 @@
    Eu tinha inventado duas trilhas curtas e diferentes; o resultado é que a
    pessoa via um caminho no Solo e outro na Resenha, e o número do passo não
    batia com o cabeçalho. */
-const RF_WIZ_TRILHAS={
-  solo:   ['Entrar','Modo','País e liga','Sala','Convites','Clube','Jogar'],
-  resenha:['Entrar','Modo','País e liga','Sala','Convites','Clube','Jogar'],
-};
+/* UMA RÉGUA SÓ NO JOGO INTEIRO: RF_TRILHAS, em main.js. Havia duas listas de
+   rótulos — esta e a de lá — e elas divergiam (item 6 era 'Clube' aqui e
+   'Sorteio' lá), enquanto o funil da Resenha desenhava a de lá cortada a 5.
+   O jogador via a régua mudar de tamanho e de nome no mesmo caminho.
+   Aqui ficou só o apontador; quem manda é main.js. */
+const RF_WIZ_TRILHAS=RF_TRILHAS;
 /* a trilha vem do modo escolhido, mas pode ser forçada por quem desenha */
-function rfWizPassos(trilha){
-  return RF_WIZ_TRILHAS[trilha] || RF_WIZ_TRILHAS[CL.online?'resenha':'solo'] || RF_WIZ_TRILHAS.solo;
-}
-const RF_WIZ_PASSOS=RF_WIZ_TRILHAS.solo;
+function rfWizPassos(trilha){ return rfTrilhaDe(trilha); }
+const RF_WIZ_PASSOS=RF_TRILHAS.solo;
 
 /* ---- envelope: CABEÇALHO PÚBLICO + [ trilha · card · ação ] + RODAPÉ ----
    As telas de fora da área logada usam o mesmo cabeçalho e o mesmo rodapé das
@@ -180,7 +180,7 @@ function rfOb1(){
         </div>`:''}
       </div>
     </div>`;
-  return rfWiz({passo:1, corpo,
+  return rfWiz({passo:rfPasso('Entrar'), corpo,
     sobre:'Bem-vindo, treinador', titulo:'Crie sua conta e entre no jogo.',
     sub:'Seus saves ficam na nuvem — dá para começar no computador e continuar no telefone.',
     nota:'A gente só usa seu e-mail para o save e para avisar da vaga.',
@@ -230,7 +230,7 @@ function rfOb2(){
       </div>
     </div>
     ${rfObSavesHTML()}`;
-  return rfWiz({passo:2, corpo,
+  return rfWiz({passo:rfPasso('Modo'), corpo,
     sobre:'Como você quer jogar', titulo:'Comece a sua carreira contra a máquina.',
     sub:RESENHA_EM_BREVE
       ? 'O Modo Resenha, para jogar com a turma, chega em novembro. Na beta, o Solo já está completo.'
@@ -360,7 +360,7 @@ function rfOb3(){
     </div>`;
   const qtdEntrada=(cfg&&cfg.size&&cfg.size[entrada])||0;
   const lblEntrada=(cfg&&cfg.label&&cfg.label[entrada])||('Série '+entrada);
-  return rfWiz({passo:3, corpo,
+  return rfWiz({passo:rfPasso('País e liga','solo'), trilha:'solo', corpo,
     sobre:'Onde você vai treinar', titulo:'Escolha o país. O clube é sempre sorteado.',
     sub:'Você escolhe o país e a divisão em que quer começar; o clube sai no sorteio — é assim para todo mundo, inclusive na resenha.',
     nota:`Clube sorteado: ${lblEntrada} · ${principal}${qtdEntrada?' · '+qtdEntrada+' clubes no pote':''}`,
@@ -442,7 +442,7 @@ function rfOb4(){
         <div class="rf-sl-fx"><span class="rf-sl-l">CLUBES</span><span class="rf-sl-fx-v">por sorteio</span></div>
       </div>
     </div>`;
-  return rfWiz({trilha:'resenha', passo:4, contexto:'Modo Resenha',
+  return rfWiz({trilha:'resenha', passo:rfPasso('Sala','resenha'), contexto:'Modo Resenha',
     titulo:'Abrir a sua sala',
     sub:'Dê um nome e escolha onde a resenha começa. Você é o anfitrião: só você muda essas duas coisas.',
     corpo, nota:'A sala fica aberta por 7 dias sem ninguém entrar.',
@@ -467,7 +467,7 @@ function rfObCopiar(txt){
    ===================================================================== */
 function rfOb5(){
   const room=(typeof NET!=='undefined')?NET.room:null;
-  if(!room) return rfWiz({trilha:'resenha', passo:4, contexto:'Modo Resenha',
+  if(!room) return rfWiz({trilha:'resenha', passo:rfPasso('Sala','resenha'), contexto:'Modo Resenha',
     corpo:'<span class="rf-note">A ligar à sala</span>',
     titulo:'Sala', voltar:'clLobbyExit()', voltarLabel:'Sair da sala'});
   const anfitriao=NET.isHost;
@@ -561,7 +561,7 @@ function rfOb5(){
       </div>
     </div>`;
   const podeComecar=anfitriao && dentro>=2;
-  return rfWiz({trilha:'resenha', passo:5, contexto:divLbl||'',
+  return rfWiz({trilha:'resenha', passo:rfPasso('Convites','resenha'), contexto:divLbl||'',
     corpo,
     titulo: room.name||'Sala aberta',
     sub:'Chame os treinadores. Quando você começar, cada um recebe um clube por sorteio — ninguém escolhe.',
@@ -637,7 +637,7 @@ function rfOb6(){
   const fim=feitos>=total;
   /* CLUBE é o passo 6 da régua. Estava em 4 — a régua acendia "Sala" durante o
      sorteio do clube, dois passos atrás de onde o jogador estava. */
-  return rfWiz({passo:6, corpo,
+  return rfWiz({passo:rfPasso('Clube'), corpo,
     sobre:'Cerimônia do sorteio',
     titulo: fim?'Times sorteados!':'Sorteando os clubes, boa sorte!',
     sub:'Cada treinador escolheu o país; o clube sai no sorteio. É a mesma cerimônia no solo e na resenha.',
@@ -737,7 +737,7 @@ function rfOb7(){
       </div>
     </div>`;
   /* JOGAR é o passo 7, o último. Estava em 5 ("Convites"). */
-  return rfWiz({passo:7, corpo,
+  return rfWiz({passo:rfPasso('Jogar'), corpo,
     sobre:'Você é o novo treinador', titulo:'Bem-vindo ao '+(cl.short||'clube')+'.',
     sub:'A diretoria confia. A torcida quer acesso.',
     nota:'Daqui você cai direto na tela de Formação.',

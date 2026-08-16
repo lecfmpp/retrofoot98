@@ -1882,14 +1882,15 @@ function wizShell(o){
   // no meio (Países era 4/4 e a tela seguinte voltava pra 1/4) — o contador prometia um fim que
   // não era o fim. Agora cada fluxo declara o próprio total (ver WIZ_PASSOS): Solo tem seis
   // etapas, Resenha tem cinco, e a tela de escolha do modo — que é a bifurcação — só diz "Passo 1".
+  const totalDoModo = rfTrilhaDe(o.modo).length;
   const pill = o.pill!=null ? `<span class="cl-wiz-steppill">${o.pill}</span>`
-    : (o.step!=null ? `<span class="cl-wiz-steppill">${o.steps?`${o.step} / ${o.steps}`:`Passo ${o.step}`}</span>`
-                    : `<span class="cl-wiz-back-sp"></span>`);
+    : (o.step ? `<span class="cl-wiz-steppill">${o.step} / ${totalDoModo}</span>`
+              : `<span class="cl-wiz-back-sp"></span>`);
   // REBRANDING 2026: no desktop o passo vira uma TRILHA NUMERADA (o caminho inteiro
   // à vista, com o que já ficou pra trás marcado); no telefone, a mesma informação
   // vira barra de progresso no cabeçalho. O pill "N / 7" continua existindo como
   // fallback pras telas que não declaram passo (sala, convites com código próprio).
-  const trilha = (o.step!=null && o.steps) ? rfTrilhaHTML(o.step,o.steps) : '';
+  const trilha = o.step ? rfTrilhaHTML(o.step, o.modo) : '';
   return `<div class="cl-home cl-wiz ${o.rootCls||''}">
     <div class="cl-home-titlebar">
       <div class="cl-home-tb-l"><img src="img/logo.webp" width="500" height="500" alt="">RetroFoot98</div>
@@ -1924,27 +1925,55 @@ function wizShell(o){
 }
 
 /* ================= 02a · PASSO 1 — ESCOLHER MODO (Solo / Resenha) ================= */
-/* total de etapas de cada caminho — o contador do cabeçalho sai daqui */
-const WIZ_PASSOS={ solo:7, resenha:5 };
-/* ===== TRILHA DO ONBOARDING (rebranding 2026) =====
-   Os rótulos são os do fluxo Solo, que é o de sete passos; a Resenha usa os
-   cinco primeiros e o nome de cada um continua valendo. Passo cumprido leva ✓ —
-   é o que diferencia "já fiz" de "ainda vou fazer" sem precisar de legenda.
-   No telefone o CSS troca a trilha por uma barra de progresso (ver .rf-trilha). */
-const RF_TRILHA=['Entrar','Modo','País e ligas','Sala','Convites','Sorteio','Jogar'];
-function rfTrilhaHTML(passo, total){
-  const n=Math.max(1,Math.min(RF_TRILHA.length,total||RF_TRILHA.length));
+/* ===== A RÉGUA DO ASSISTENTE — UMA POR MODO =====
+   Havia UMA lista de rótulos ('Entrar..Jogar', 7 itens) e um mapa de totais
+   ({solo:7, resenha:5}) que a CORTAVA. Duas consequências, ambas no ar:
+
+   · O Solo carregava 'Sala' e 'Convites', que ele não tem — por isso a tela do
+     nº de treinadores acendia "Sala".
+   · A Resenha era truncada a 5, perdendo justamente 'Sorteio' e 'Jogar' — o
+     modo que TEM sorteio de clube era o que não o mostrava. E como a régua
+     encurtava a meio do caminho, o jogador via 5 itens no funil de entrada e
+     7 depois, no mesmo fluxo.
+
+   Agora cada modo declara o SEU caminho. Os dois compartilham o começo
+   (Entrar · Modo) e o fim (Clube · Jogar); o meio é o que realmente difere:
+   o Solo escolhe save e país, a Resenha abre sala e convida.
+
+   E O NÚMERO NUNCA MAIS É ESCRITO À MÃO: cada tela diz o NOME do seu passo
+   (ver rfPasso), e o número cai da régua do modo ativo. É por isso que os
+   números divergiam — vinham escritos em 4 ficheiros diferentes, e telas
+   partilhadas pelos dois modos (sorteio, boas-vindas) só podiam acertar num.
+   No telefone o CSS troca a régua por barra de progresso (ver .rf-trilha). */
+const RF_TRILHAS={
+  solo:   ['Entrar','Modo','Save','País e liga','Clube','Jogar'],
+  resenha:['Entrar','Modo','Resenha','Sala','Convites','Clube','Jogar'],
+};
+/* o modo ativo, quando quem desenha a tela não o diz */
+function rfModoAtual(){ return (typeof CL!=='undefined' && CL.online) ? 'resenha' : 'solo'; }
+function rfTrilhaDe(modo){ return RF_TRILHAS[modo] || RF_TRILHAS[rfModoAtual()] || RF_TRILHAS.solo; }
+/* O PASSO PELO NOME. Devolve a posição 1-based do passo na régua do modo, ou 0
+   quando aquele modo não tem esse passo (Solo não tem 'Convites') — 0 apaga a
+   régua em vez de acender o item errado. */
+function rfPasso(nome, modo){
+  const t=rfTrilhaDe(modo); const i=t.indexOf(nome);
+  return i<0 ? 0 : i+1;
+}
+const RF_TRILHA=RF_TRILHAS.solo;   // compat: quem ainda lê a lista solta
+function rfTrilhaHTML(passo, modo){
+  const rotulos=rfTrilhaDe(modo), n=rotulos.length;
+  if(!passo || passo<1 || passo>n) return '';   // passo que nao existe neste modo: sem regua
   const itens=[];
   for(let i=1;i<=n;i++){
     const feito=i<passo, atual=i===passo;
     itens.push(`<span class="rf-trilha-i ${feito?'feito':''} ${atual?'atual':''}">
       <span class="rf-trilha-n">${feito?'✓':i}</span>
-      <span class="rf-trilha-l">${escC(RF_TRILHA[i-1]||('Passo '+i))}</span>
+      <span class="rf-trilha-l">${escC(rotulos[i-1]||('Passo '+i))}</span>
     </span>`);
   }
   return `<nav class="rf-trilha" aria-label="Passo ${passo} de ${n}"
     style="--rf-trilha-pct:${Math.round(100*passo/n)}%">
-    <span class="rf-trilha-mob">Passo <b>${passo}</b> de <b>${n}</b> · ${escC(RF_TRILHA[passo-1]||'')}
+    <span class="rf-trilha-mob">Passo <b>${passo}</b> de <b>${n}</b> · ${escC(rotulos[passo-1]||'')}
       <span class="rf-trilha-bar"><i></i></span></span>
     ${itens.join('<span class="rf-trilha-sep"></span>')}
   </nav>`;
@@ -1962,7 +1991,7 @@ function rfTrilhaHTML(passo, total){
    daqui. */
 const RESENHA_EM_BREVE=false;
 function scModoChoice(){
-  return wizShell({ step:1, steps:WIZ_PASSOS.solo, title:'Escolher modo', back:'clGoAbertura()', backLabel:'Voltar ao início',
+  return wizShell({ step:rfPasso('Modo','solo'), modo:'solo', title:'Escolher modo', back:'clGoAbertura()', backLabel:'Voltar ao início',
     contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
     action:`<span class="cl-wiz-hint">Toque num cartão para continuar.</span>`,
     body:`
@@ -2011,7 +2040,7 @@ function scModoSolo(){
   if(step==='cont') return scSoloCont();
   const loading=CL.soloSaves==null; const n=(CL.soloSaves||[]).length;
   const contDesc = loading?'Carregando seus jogos salvos' : (n?`Você tem <b>${n}</b> jogo${n>1?'s':''} salvo${n>1?'s':''} na nuvem.`:'Nenhum jogo salvo ainda.');
-  return wizShell({ step:2, steps:WIZ_PASSOS.solo, title:'Modo Solo', back:'clGoModo()',
+  return wizShell({ step:rfPasso('Save','solo'), modo:'solo', title:'Modo Solo', back:'clGoModo()',
     contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
     action:`<span class="cl-wiz-hint">Toque num cartão para continuar.</span>`,
     body:`
@@ -2034,7 +2063,7 @@ function scModoSolo(){
 /* ================= PASSO 3 · NOVO JOGO — nome do save ================= */
 function scSoloNovo(){
   const val=CL.save||''; const ok=val.trim().length>0;
-  return wizShell({ step:3, steps:WIZ_PASSOS.solo, title:'Novo jogo', back:'clSoloBackChoice()',
+  return wizShell({ step:rfPasso('Save','solo'), modo:'solo', title:'Novo jogo', back:'clSoloBackChoice()',
     contentCls:'cl-wiz-top', actionCls:'cl-wiz-action-e',
     action:`${btn('Começar','clModoOk()',{icon:'✔',cls:'cl-btn-ok cl-wiz-cta',dis:!ok})}`,
     body:`
@@ -2141,7 +2170,7 @@ function scPaises(){
   const compHelp = selCountries.length
     ? '<div class="cl-wiz-comphelp">Todas as ligas e copas de cada país selecionado entram no seu save.</div>'
     : '<div class="cl-wiz-comphelp">Selecione países à esquerda para ver as competições disponíveis.</div>';
-  return wizShell({ step:4, steps:WIZ_PASSOS.solo, title:'Selecção de Países', back:'clPaisesBack()',
+  return wizShell({ step:rfPasso('País e liga','solo'), modo:'solo', title:'Selecção de Países', back:'clPaisesBack()',
     contentCls:'cl-wiz-paises', actionCls:'',
     action:`
       ${btn('Todas','clAllCountries()',{icon:'▤',cls:'cl-btn-row'})}
@@ -2392,7 +2421,7 @@ function scSorteio(){
   // SEM "PULAR": não há o que pular aqui — o clube ainda está sendo sorteado, e o botão só
   // convidava a sair da cerimônia antes de saber qual time saiu. A tela segue sozinha.
   const action=`<span class="cl-wiz-hint">${d.done?'Preparando a temporada':'Aguarde o sorteio'}</span>`;
-  return wizShell({ title:'Sorteio dos clubes', contentCls:'cl-wiz-center',
+  return wizShell({ step:rfPasso('Clube','solo'), modo:'solo', title:'Sorteio dos clubes', contentCls:'cl-wiz-center',
     body:`<div class="cl-rdraw"><div class="cl-rdraw-sub">${sub}</div><div class="cl-rdraw-list">${rows}</div></div>`,
     action });
 }

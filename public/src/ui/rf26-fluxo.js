@@ -45,7 +45,7 @@ function rfMoedaHTML(){
       <span class="rf-wiz-nota-c">O valor mostrado é o caixa inicial típico da divisão de entrada, convertido.</span>
     </div>`;
   return rfWiz({
-    titulo:'Em que moeda você quer jogar?', sub:'Vale para salários, transferências e o caixa do clube. Dá para trocar depois nas opções.', passo:3, corpo, nota:'Você pode trocar depois em Clube & Sistema.',
+    titulo:'Em que moeda você quer jogar?', sub:'Vale para salários, transferências e o caixa do clube. Dá para trocar depois nas opções.', passo:rfPasso('País e liga','solo'), trilha:'solo', corpo, nota:'Você pode trocar depois em Clube & Sistema.',
     voltar:'clMoedaBack()', voltarLabel:'‹ Voltar ao país',
     topoDir:'', cta:'Continuar', ctaOn:'clMoedaOk()' });
 }
@@ -74,7 +74,7 @@ function rfPaisHTML(){
       }).join('')}</div>
     </div>`;
   return rfWiz({
-    titulo:'Onde você vai treinar?', sub:'O país define as divisões, as copas e o calendário do save.', passo:3, corpo, nota:'Mais países entram nas próximas atualizações.',
+    titulo:'Onde você vai treinar?', sub:'O país define as divisões, as copas e o calendário do save.', passo:rfPasso('País e liga','solo'), trilha:'solo', corpo, nota:'Mais países entram nas próximas atualizações.',
     voltar:'clGoPaises()', voltarLabel:'‹ Voltar ao modo',
     cta:`Continuar com ${sel||'o país'}`, ctaOff:!sel, ctaOn:'clPaisJogavelOk()' });
 }
@@ -192,7 +192,7 @@ function rfTreinadoresHTML(){
       </div>
     </div>`;
   return rfWiz({
-    titulo:'Quantos treinadores na sala?', sub:'Cada treinador comanda um clube. Os outros ficam com a máquina.', passo:4, corpo,
+    titulo:'Quantos treinadores na sala?', sub:'Cada treinador comanda um clube. Os outros ficam com a máquina.', passo:rfPasso('País e liga','solo'), trilha:'solo', corpo,
     nota:'Os clubes que sobram ficam com a máquina.',
     voltar:'clGoMoeda()', voltarLabel:'‹ Voltar à moeda',
     cta:`Continuar com ${n}`, ctaOn:'clEscolherClubes()' });
@@ -240,8 +240,7 @@ function rfClubesHTML(){
           </select>
         </div>`).join('')}
       </div>`;
-    return rfWiz({ passo:4, corpo,
-      passo:6, titulo:'De onde sai cada clube?',
+    return rfWiz({ corpo, passo:rfPasso('Clube'), titulo:'De onde sai cada clube?',
       sub:'Cada treinador escolhe o país. O clube é sempre sorteado — ninguém escolhe o próprio time.',
       nota:'Os clubes restantes ficam com a máquina.',
       voltar:'clGoJogadores()', voltarLabel:'‹ Voltar aos treinadores',
@@ -263,8 +262,7 @@ function rfClubesHTML(){
       }).join('')}
       <span class="rf-wiz-nota-c">O caixa de cada clube é definido quando a temporada começa.</span>
     </div>`;
-  return rfWiz({ passo:4, corpo,
-    passo:6, titulo:'Times sorteados!',
+  return rfWiz({ corpo, passo:rfPasso('Clube'), titulo:'Times sorteados!',
     sub:'O sorteio distribuiu os clubes entre os treinadores. Confira antes de começar.',
     nota:'Os demais clubes ficam com a máquina.',
     voltar:'clSortearPick()', voltarLabel:rfIcone('sorteio',16)+' Sortear de novo',
@@ -300,7 +298,7 @@ function rfSavesHTML(){
           <span class="rf-sv-s">Escolha país, liga e clube outra vez</span></span>
       </div>
     </div>`;
-  return rfWiz({ passo:2, corpo,
+  return rfWiz({ corpo, passo:rfPasso('Save','solo'), trilha:'solo',
     sobre:'Modo solo', titulo:'Onde você parou',
     sub:'Os saves ficam na nuvem — entre de qualquer aparelho com a mesma conta.',
     nota:'Jogo gravado na nuvem.',
@@ -722,8 +720,7 @@ function rfObSoloHTML(){
       `:''}
     </div>`;
 
-  return rfWiz({ passo:2, corpo,
-    passo:2, contexto:'Modo solo',
+  return rfWiz({ corpo, passo:rfPasso('Save','solo'), trilha:'solo', contexto:'Modo solo',
     titulo:'Como você quer começar?',
     sub:'Comece do zero ou retome um dos seus saves na nuvem.',
     nota:'Os saves ficam na nuvem — entre de qualquer aparelho com a mesma conta.',

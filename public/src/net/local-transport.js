@@ -606,7 +606,7 @@ function scResenhaChoice(){
   const rooms=(CL.net.myRooms||[]).slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
   const rejoin = rooms.length ? `<button class="cl-wiz-rejoin" onclick="CL.net.step='minhassalas';cdraw()">↻ Você já joga ${rooms.length} Resenha${rooms.length>1?'s':''} — toque pra reentrar</button>` : '';
   return wizShell({
-    step:2, steps:WIZ_PASSOS.resenha, title:'Modo Resenha', back:'clGoModo()', backLabel:'Voltar ao início',
+    step:rfPasso('Resenha','resenha'), modo:'resenha', title:'Modo Resenha', back:'clGoModo()', backLabel:'Voltar ao início',
     contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
     action:`<span class="cl-wiz-hint">Toque num cartão para continuar.</span>`,
     body:`
@@ -641,7 +641,7 @@ function scJoinCode(){ const n=CL.net;
       </div>
     </div>`;
   return wizShell({
-    step:3, steps:WIZ_PASSOS.resenha, title:'Entrar numa Resenha', back:'clResenhaBackChoice()', backLabel:'Voltar',
+    step:rfPasso('Resenha','resenha'), modo:'resenha', title:'Entrar numa Resenha', back:'clResenhaBackChoice()', backLabel:'Voltar',
     contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
     action: btn('Entrar','clJoinCodeGo()',{icon:'✔',cls:'cl-wiz-cta',dis:!ok})
   });
@@ -687,7 +687,7 @@ function scWaitApproval(){ const n=CL.net;
       <div class="cl-wait-sub">Aguardando o anfitrião aprovar a sua entrada na Resenha${n.pendingName?` <b>${escC(n.pendingName)}</b>`:''}.<br>Assim que ele aprovar, você entra automaticamente.</div>
       <div class="cl-wait-dots"><span></span><span></span><span></span></div>
     </div>`;
-  return wizShell({ title:'À espera de aprovação', back:'clCancelJoinReq()', backLabel:'Cancelar pedido',
+  return wizShell({ step:rfPasso('Sala','resenha'), modo:'resenha', title:'À espera de aprovação', back:'clCancelJoinReq()', backLabel:'Cancelar pedido',
     contentCls:'cl-wiz-center', body, actionCls:'cl-wiz-action-c',
     action: btn('Cancelar pedido','clCancelJoinReq()',{icon:'✖',cls:'cl-wiz-sairbtn'}) });
 }
@@ -712,7 +712,7 @@ function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(ty
         ${join && NET.room?`<div class="cl-conta-room">Sala: <b>${escC(NET.room.name||n.code)}</b> · código <b>${escC(n.code)}</b></div>`:''}
         <div class="cl-conta-switch">Não é você? <a href="javascript:void(0)" onclick="clAuthSwitchAccount()">Trocar de conta</a></div>
       </div>`;
-    return wizShell({ step:3, steps:WIZ_PASSOS.resenha, title:join?'Entrar na sala':'Criar sala', back:'clGoModo()', backLabel:'Voltar',
+    return wizShell({ step:rfPasso(join?'Resenha':'Sala','resenha'), modo:'resenha', title:join?'Entrar na sala':'Criar sala', back:'clGoModo()', backLabel:'Voltar',
       contentCls:'cl-wiz-authcenter', body, actionCls:'cl-wiz-action-e',
       action: btn(join?'Entrar':'Continuar',join?'clContaJoin()':'clContaHost()',{icon:'✔',cls:'cl-wiz-cta',dis:!n.name}) });
   }
@@ -732,7 +732,7 @@ function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(ty
       </div>
       ${join && NET.room?`<div class="cl-conta-room">Sala: <b>${escC(NET.room.name||n.code)}</b> · código <b>${escC(n.code)}</b></div>`:''}
     </div>`;
-  return wizShell({ public:true, step:3, steps:WIZ_PASSOS.resenha, title:join?'Entrar na sala':(isSignup?'Criar conta':'Sua conta'), back:'clGoModo()', backLabel:'Voltar',
+  return wizShell({ public:true, step:rfPasso('Entrar','resenha'), modo:'resenha', title:join?'Entrar na sala':(isSignup?'Criar conta':'Sua conta'), back:'clGoModo()', backLabel:'Voltar',
     contentCls:'cl-wiz-authcenter', body, actionCls:'cl-wiz-action-e',
     action: btn(isSignup?'Criar conta':'Entrar',isSignup?'clAuthDoSignup()':'clAuthDoLogin()',{icon:'✔',cls:'cl-wiz-cta',dis:!(n.email&&n.password&&(!isSignup||n.name))}) });
 }
@@ -815,7 +815,7 @@ async function clAutoSeatLobby(){
 /* ---- escolher o próprio clube: aceitar convite (pré-temporada) ou entrar
    com a liga já rolando — sempre um clube livre, CPU até então ---- */
 function scMidJoin(){
-  const room=NET.room; if(!room) return wizShell({ title:'Sala', back:'clLobbyExit()', backLabel:'Sair', contentCls:'cl-wiz-center', body:`<div class="cl-wiz-sub">A ligar à sala…</div>` });
+  const room=NET.room; if(!room) return wizShell({ step:rfPasso('Convites','resenha'), modo:'resenha', title:'Sala', back:'clLobbyExit()', backLabel:'Sair', contentCls:'cl-wiz-center', body:`<div class="cl-wiz-sub">A ligar à sala…</div>` });
   const midSeason=room.phase!=='lobby';
   const free=freeClubIds();
   const msg=midSeason
@@ -828,7 +828,7 @@ function scMidJoin(){
       <div class="cl-midjoin-msg">${msg}</div>
       <div class="cl-midjoin-list" style="text-align:center;padding:14px 0">${cta}</div>
     </div>`;
-  return wizShell({ title:'Sala · '+escC(room.name||''), back:'clLobbyExit()', backLabel:'Sair', contentCls:'cl-wiz-top', body });
+  return wizShell({ step:rfPasso('Convites','resenha'), modo:'resenha', title:'Sala · '+escC(room.name||''), back:'clLobbyExit()', backLabel:'Sair', contentCls:'cl-wiz-top', body });
 }
 /* sorteio obrigatório: o convidado entra com um clube livre SORTEADO (não escolhe) */
 function clMidJoinRandom(){
@@ -863,7 +863,7 @@ function scMinhasSalas(){
       <div class="cl-wiz-authsub" style="text-align:left">Você já participa dessas salas ou foi convidado pra elas. Toque numa pra continuar.</div>
       <div class="cl-myrooms-list">${rows}</div>
     </div>`;
-  return wizShell({ pill:'Minhas salas', title:'Minhas salas', back:'clResenhaBackChoice()', backLabel:'Voltar',
+  return wizShell({ step:rfPasso('Resenha','resenha'), modo:'resenha', title:'Minhas salas', back:'clResenhaBackChoice()', backLabel:'Voltar',
     contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
     action: btn('Criar sala nova','clGoNovaSala()',{icon:'➕',cls:'cl-wiz-cta'}) });
 }
@@ -1156,6 +1156,7 @@ function scResenhaDraw(){
     ? `<span class="cl-wiz-hint">Preparando a temporada…</span>`
     : `<div class="cl-wiz-actbtns">${btn('Pular','clResenhaDrawSkip()',{icon:'⏩',cls:'cl-wiz-cta'})}</div>`;
   return wizShell({
+    step:rfPasso('Clube','resenha'), modo:'resenha',
     title:'Sorteio dos clubes',
     contentCls:'cl-wiz-center',
     body:`<div class="cl-rdraw"><div class="cl-rdraw-sub">${sub}</div><div class="cl-rdraw-list">${rows}</div></div>`,
