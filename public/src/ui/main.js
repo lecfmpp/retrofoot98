@@ -1868,9 +1868,13 @@ function _wizInline(o){ return !!(o.actionInline || (o.actionCls && String(o.act
 function wizShell(o){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   const user=st.name||CL.mgr||'jogador';
+  /* O VOLTAR VIVE NA BARRA DE ACAO, junto do avancar — o mesmo canto nos dois
+     assistentes (ver rfWiz). Estava no cabecalho do passo, longe do botao que
+     leva para a frente. Aqui devolve string vazia quando nao ha para onde
+     voltar, para nao abrir uma barra de acao so com um espacador dentro. */
   const back = o.back
     ? `<button class="cl-wiz-back" onclick="${o.back}">‹ ${escC(o.backLabel||'Voltar')}</button>`
-    : `<span class="cl-wiz-back-sp"></span>`;
+    : '';
   // navbar à direita: público (login/criar conta) mostra "Entrar"; logado mostra chip + usuário + Sair
   const navRight = o.public
     ? `<button class="cl-home-entrar" onclick="clGoAbertura()"><span>🔑</span>Entrar</button>`
@@ -1902,12 +1906,12 @@ function wizShell(o){
     <div class="cl-home-body cl-wiz-body">
       ${trilha}
       ${o.noHeader?'':`<div class="cl-wiz-stephead">
-        ${o.headLeft!=null?o.headLeft:back}
+        ${o.headLeft!=null?o.headLeft:'<span class="cl-wiz-back-sp"></span>'}
         <span class="cl-wiz-steptitle">${escC(o.title)}</span>
         ${pill}
       </div>`}
-      <div class="cl-wiz-content ${o.contentCls||''}">${o.body}${(_wizInline(o) && o.action!=null)?`<div class="cl-wiz-inlineaction ${o.actionCls||''}">${o.action}</div>`:''}</div>
-      ${(o.action!=null && !_wizInline(o))?`<div class="cl-wiz-actionbar ${o.actionCls||''}">${o.action}</div>`:''}
+      <div class="cl-wiz-content ${o.contentCls||''}">${o.body}${(_wizInline(o) && o.action!=null)?`<div class="cl-wiz-inlineaction ${o.actionCls||''}">${back}${o.action}</div>`:''}</div>
+      ${(!_wizInline(o) && (o.action!=null || back))?`<div class="cl-wiz-actionbar ${o.actionCls||''}">${back}${o.action||''}</div>`:''}
     </div>
     <div class="cl-home-footer">
       <div class="cl-home-foot-paginas">${rodapePaginasHTML()}</div>

@@ -689,7 +689,9 @@ function scWaitApproval(){ const n=CL.net;
       <div class="cl-wait-sub">Aguardando o anfitrião aprovar a sua entrada na Resenha${n.pendingName?` <b>${escC(n.pendingName)}</b>`:''}.<br>Assim que ele aprovar, você entra automaticamente.</div>
       <div class="cl-wait-dots"><span></span><span></span><span></span></div>
     </div>`;
-  return wizShell({ step:rfPasso('Sala','resenha'), modo:'resenha', title:'À espera de aprovação', back:'clCancelJoinReq()', backLabel:'Cancelar pedido',
+  /* SEM `back`: cancelar o pedido JA e a acao desta tela, e desde que o voltar
+     desceu para a barra de acao os dois ficavam lado a lado a dizer o mesmo. */
+  return wizShell({ step:rfPasso('Sala','resenha'), modo:'resenha', title:'À espera de aprovação',
     contentCls:'cl-wiz-center', body, actionCls:'cl-wiz-action-c',
     action: btn('Cancelar pedido','clCancelJoinReq()',{icon:'✖',cls:'cl-wiz-sairbtn'}) });
 }

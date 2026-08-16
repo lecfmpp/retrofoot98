@@ -6247,3 +6247,24 @@
 /* a jornada vive no subtítulo só no telemóvel — no desktop tem coluna própria */
 .rf-rc-sub-jor{display:none}
 @media (max-width:900px){ .rf-rc-sub-jor{display:inline} }
+
+/* ===== ASSISTENTE: NAVEGAÇÃO NUM CANTO SÓ =====
+   O "‹ Voltar" desceu do topo para a barra de ação, ao lado do avançar (ver
+   rfWiz e wizShell). No telemóvel os dois dividem a linha meio a meio, com o
+   avançar à direita — a mão vai ao mesmo sítio em todas as telas. */
+.rf-wiz-acao{flex-wrap:wrap}
+.rf-wiz-acao .rf-wiz-b2{order:8}
+.rf-wiz-acao .rf-wiz-cta{order:9}
+.rf-wiz-nota{flex:1 1 auto;min-width:0;text-wrap:pretty}
+@media (max-width:560px){
+  .rf-wiz-nota{flex-basis:100%;order:1}
+  .rf-wiz-acao .rf-wiz-b2,.rf-wiz-acao .rf-wiz-cta{flex:1 1 0;min-width:0}
+}
+/* o mesmo na barra do assistente antigo (conta, à espera de aprovação) */
+.cl-wiz-actionbar,.cl-wiz-inlineaction{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cl-wiz-actionbar .cl-wiz-back,.cl-wiz-inlineaction .cl-wiz-back{margin-right:auto}
+
+/* o assistente já não desenha a própria marca no topo: quem a dá é o cabeçalho
+   público. A régua fica a encostar no nav sem este respiro. */
+.rf-wiz>.rf-lp-nav{margin-bottom:0}
+.rf-wiz-in{padding-top:18px}

@@ -30,7 +30,7 @@ function rfLpNavHTML(extra){
       ${RF_LP_NAV.map(([k,l])=>`<button type="button" class="rf-lp-link" onclick="rfLpIr('${k}')">${escC(l)}</button>`).join('')}
     </div>
     <div class="rf-sp"></div>
-    ${extra ? extra : `<button type="button" class="rf-lp-entrar" onclick="clGoModo('solo')">${rfIcone('chave',16)} Entrar</button>
+    ${extra!=null ? extra : `<button type="button" class="rf-lp-entrar" onclick="clGoModo('solo')">${rfIcone('chave',16)} Entrar</button>
     <button type="button" class="rf-lp-btlista" onclick="rfLpIr('lista')">Entrar na lista</button>`}
   </nav>`;
 }

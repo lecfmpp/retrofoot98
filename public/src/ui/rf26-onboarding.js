@@ -87,16 +87,26 @@ function rfWiz(o){
      sem rodapé. Eu tinha envolvido o assistente no cabeçalho/rodapé públicos;
      dentro de um fluxo de sete passos isso é saída de emergência em cada linha,
      que é exatamente o que um assistente não deve oferecer. */
+  /* O VOLTAR DESCEU PARA A BARRA DE ACAO, ao lado do avancar. Estava sozinho no
+     canto superior direito, a um ecra de distancia do botao que leva para a
+     frente: a cada passo o utilizador saltava do rodape (avancar) para o topo
+     (voltar). Agora os dois vivem no mesmo canto, em todas as telas dos dois
+     modos, e o topo fica livre para o cabecalho.
+     `topoDir` continua a existir para quem precise mesmo de algo no topo. */
+  const bVoltar = o.voltar
+    ? `<button type="button" class="rf-wiz-b2" onclick="${o.voltar}">${o.voltarLabel||'‹ Voltar'}</button>`
+    : '';
+  /* CABECALHO E RODAPE PUBLICOS EM TODO O ASSISTENTE, por decisao do utilizador
+     (16/ago). Eu tinha-os retirado de proposito — dentro de um fluxo de sete
+     passos, links de navegacao sao saida de emergencia em cada linha. Ficou a
+     escolha dele; o que mantive foi tirar os CTAs "Entrar"/"Entrar na lista" do
+     nav (extra:''), que dentro do assistente apontariam para o proprio sitio
+     de onde a pessoa ja veio. */
+  const topo = (typeof rfLpNavHTML==='function') ? rfLpNavHTML(o.topoDir||'') : '';
+  const rodape = (typeof rfLpRodapeHTML==='function') ? rfLpRodapeHTML() : '';
   return `<div class="rf-wiz">
+    ${topo}
     <div class="rf-wiz-in">
-      <div class="rf-wiz-marca">
-        <img src="img/logo.webp" width="32" height="32" alt="RetroFoot98">
-        <span class="rf-wiz-marca-t">RetroFoot<span class="rf-wiz-marca-98">98</span></span>
-        <div class="rf-sp"></div>
-        ${o.topoDir || (o.voltar
-          ? `<button type="button" class="rf-wiz-b2" onclick="${o.voltar}">${o.voltarLabel||'‹ Voltar'}</button>`
-          : '')}
-      </div>
       ${o.semTrilha?'':`<div class="rf-wiz-fita">
         <div class="rf-wiz-fita-l">
           <img src="img/logo.webp" width="28" height="28" alt="">
@@ -117,6 +127,7 @@ function rfWiz(o){
         <div class="rf-wiz-acao">
           ${o.nota?`<span class="rf-wiz-nota">${escC(o.nota)}</span>`:''}
           <div class="rf-sp"></div>
+          ${bVoltar}
           <!-- SEM escC no rótulo: desde que os ícones viraram SVG, o rótulo pode
                trazer marcação (rfIcone(...) + texto). Escapando, o botão exibia
                o código do <svg> como texto e esticava a página para 6000px.
@@ -125,6 +136,7 @@ function rfWiz(o){
         </div>
       </div>
     </div>
+    ${rodape}
   </div>`;
 }
 function rfWizTrilhaHTML(passo, trilha){
