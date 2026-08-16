@@ -80,6 +80,17 @@ function rfMkTabela(cols, cabecalho, linhas, vazio, chave){
 }
 /* mesma conta do calendário (rfCpDataDaJornada): o motor não guarda data por
    jornada, deriva do dia — sete por rodada */
+/* FECHA: a DATA, nao a contagem. A coluna dizia "3 rodadas", que obriga a
+   contar de cabeca para saber quando e — e ocupava o dobro da largura. Agora
+   sai a data do dia em que o lote fecha, na mesma regua curta do calendario
+   (rfMkDataDaJornada: sete dias por jornada). Sem data calculavel, cai na
+   contagem de antes em vez de mostrar travessao. */
+function rfMkFechaEm(roundsLeft){
+  if(roundsLeft==null) return '—';
+  const d=rfMkDataDaJornada((S.round||0)+roundsLeft);
+  if(d) return d;
+  return roundsLeft+(roundsLeft===1?' rodada':' rodadas');
+}
 function rfMkDataDaJornada(i){
   if(typeof realDateForDay!=='function') return '';
   try{
@@ -248,7 +259,7 @@ function rfMktLeilaoHTML(){
       ${rfMkClube(l.sellerId)}
       <span class="rf-mkt-v">${escC(rfDin(l.bid))}</span>
       <span class="rf-mkt-v ${l.myBid?'meu':'leve'}">${l.myBid?escC(rfDin(l.myBid)):'—'}</span>
-      <span class="rf-mkt-prazo">${l.roundsLeft!=null?l.roundsLeft+(l.roundsLeft===1?' rodada':' rodadas'):'—'}</span>
+      <span class="rf-mkt-prazo">${escC(rfMkFechaEm(l.roundsLeft))}</span>
       ${rfMkBt(meu?'Cobrir':'Dar lance',`rfMkLance('${escC(l.sellerId)}','${escC(l.player)}')`, meu)}
     </div>`;
   };

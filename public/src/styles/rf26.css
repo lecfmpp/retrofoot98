@@ -314,7 +314,12 @@
 .rf-band{display:flex;align-items:center;gap:16px;
   background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
   border-radius:var(--r-card);padding:16px 20px;position:relative;overflow:hidden;color:#fff}
-.rf-band-filete{position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--club-secondary)}
+/* O FILETE E DA MARCA, NAO DO CLUBE. Saia de --club-secondary, entao em clubes
+   de segunda cor branca (Sao Jose) ele desaparecia contra o degrade escuro, e
+   noutros mudava de cor a cada save. E um elemento de identidade do jogo — o
+   mesmo filete amarelo do cabecalho dos dialogos —, nao da camisa. */
+.rf-band-filete{position:absolute;left:0;top:0;bottom:0;width:6px;
+  background:var(--brand-secondary,#F2B90C)}
 .rf-band-crest{width:48px;height:48px;border-radius:var(--r-inner);background:#fff;display:flex;
   align-items:center;justify-content:center;flex:0 0 auto;margin-left:6px;overflow:hidden}
 .rf-band-crest img{width:38px;height:38px;object-fit:contain}
@@ -5026,7 +5031,10 @@
 .rf-mkt-v.leve{color:var(--text-4)}
 .rf-mkt-v.meu{color:var(--brand-primary);font-weight:var(--fw-semibold)}
 .rf-mkt-v.ruim{color:var(--danger);font-weight:var(--fw-semibold)}
-.rf-mkt-prazo{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--danger);
+/* a data de fecho e informacao de apoio, nao o numero principal da linha:
+   um degrau abaixo do lance, e sem o vermelho de urgencia que a contagem
+   regressiva justificava */
+.rf-mkt-prazo{font-family:var(--font-mono);font-size:var(--fs-1);color:var(--text-3);
   text-align:right;white-space:nowrap}
 .rf-mkt-int{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-4);text-align:right}
 .rf-mkt-int b{color:var(--brand-primary);font-weight:var(--fw-semibold)}
@@ -6492,3 +6500,39 @@
 .rf-el-nota.ok{background:var(--surface-2);color:var(--text-2)}
 .rf-el-nota.ruim{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}
 .rf-el-nota.na{background:transparent;color:var(--text-4)}
+
+/* chips da data na faixa do clube — dia e ano, lado a lado */
+.rf-band-chip{display:inline-flex;align-items:center;height:22px;padding:0 9px;
+  border-radius:99px;background:rgba(255,255,255,.16);
+  font-size:var(--fs-1);font-weight:var(--fw-semibold);color:#fff;white-space:nowrap}
+.rf-band-chip+.rf-band-chip{margin-left:5px}
+@media (max-width:760px){ .rf-band-chip{height:20px;padding:0 8px} }
+
+/* ===== CABEÇALHO PÚBLICO NO TELEMÓVEL: HAMBÚRGUER =====
+   Abaixo de 900px o cabeçalho escondia os próprios links e não tinha menu —
+   "Entrar na lista" simplesmente desaparecia, e o "Sair" tinha de ficar à
+   vista, apertado ao lado do nome. Agora o que não cabe vai para o menu, e
+   no cabeçalho fica só o nome do treinador. */
+.rf-lp-burger{display:none;width:38px;height:36px;align-items:center;justify-content:center;
+  border-radius:11px;border:var(--border-control);background:var(--surface-card);
+  color:var(--text-2);cursor:pointer;padding:0;flex:0 0 auto}
+.rf-lp-burger:hover{background:var(--surface-2)}
+@media (max-width:900px){
+  .rf-lp-burger{display:flex}
+  /* o Sair sai do cabeçalho: vive no menu, junto do e-mail da conta */
+  .rf-lp-sair,.rf-lp-btlista{display:none}
+}
+.rf-sheet-i.destaque .rf-nav-l{color:var(--brand-primary);font-weight:var(--fw-bold)}
+
+/* ===== O BOTÃO PRO =====
+   Degradê dourado -> amarelo da marca, coroa e o selo "Pro". Está pronto e
+   não se acende sozinho: ver rfContaEhPro(), que devolve sempre false porque
+   NADA no jogo nem no banco diz quem é PRO. Quando existir a fonte, é lá que
+   se liga — e este estilo entra sem mais nada. */
+.rf-lp-conta.pro{background:linear-gradient(100deg,#C8901A,var(--brand-secondary,#F2B90C) 62%);
+  border-color:#C8901A;color:#3a2a00;box-shadow:0 2px 10px -4px rgba(200,144,26,.7)}
+.rf-lp-conta.pro:hover{filter:brightness(1.05)}
+.rf-lp-coroa{font-size:13px;line-height:1;flex:0 0 auto}
+.rf-lp-pro{font-family:var(--font-mono);font-size:9px;font-weight:var(--fw-bold);
+  letter-spacing:.08em;text-transform:uppercase;padding:2px 5px;border-radius:99px;
+  background:rgba(0,0,0,.22);color:#fff;flex:0 0 auto}

@@ -24,22 +24,67 @@ const RF_LP_NAV=[
    público, que é o MESMO da landing e de todas as telas do assistente,
    carrega sempre o estado da conta: nome + Sair quando há sessão, Entrar
    quando não há. */
+/* ===== É PRO? =====
+   NAO EXISTE ASSINATURA NESTE JOGO — nem no codigo, nem no banco. Procurei
+   coluna de plano/tier/subscricao em elifoot_v3 e so ha `games.day_plan`, que
+   e o calendario do dia e nada tem a ver. Entao esta funcao devolve SEMPRE
+   false: o botao PRO esta desenhado e pronto, mas nao se acende sozinho
+   porque nada no sistema sabe dizer quem e PRO.
+
+   Quando existir a fonte — uma coluna em `profiles`, um webhook de pagamento,
+   uma lista — e AQUI que se liga, num sitio so. Nao inventar um `st.pro` que
+   o adaptador nunca preenche: seria um badge que mente. */
+function rfContaEhPro(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  return st.pro===true;   // hoje: sempre indefinido -> false
+}
 function rfContaChipHTML(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   if(!st.loggedIn){
     return `<button type="button" class="rf-lp-entrar" onclick="clGoModo('solo')">${rfIcone('chave',16)} Entrar</button>`;
   }
   const nome=st.name||(st.email||'').split('@')[0]||'treinador';
+  const pro=rfContaEhPro();
   /* O NOME E O BOTAO DE JOGAR. Com sessao aberta o cabecalho ficava sem
      nenhuma porta de entrada: o "Entrar" some (ja esta dentro) e sobrava um
-     cracha passivo com o nome. Agora o nome E o botao — amarelo e com a mesma
-     bola do "Comecar agora", para se ler como acao e nao como etiqueta. */
-  return `<button type="button" class="rf-lp-conta" onclick="rfIrParaModo()"
+     cracha passivo com o nome. */
+  return `<button type="button" class="rf-lp-conta ${pro?'pro':''}" onclick="rfIrParaModo()"
       title="Jogar como ${escC(st.email||nome)}">
-      ${rfIcone('jogar',16)}
+      ${pro?'<span class="rf-lp-coroa" aria-hidden="true">👑</span>':rfIcone('jogar',16)}
       <span class="rf-lp-conta-n">${escC(nome)}</span>
+      ${pro?'<span class="rf-lp-pro">Pro</span>':''}
     </button>
-    <button type="button" class="rf-lp-sair" onclick="rfAcSairConta()">Sair</button>`;
+    <button type="button" class="rf-lp-sair" onclick="rfAcSairConta()">Sair</button>
+    <button type="button" class="rf-lp-burger" onclick="rfLpMenu()" aria-label="Menu">
+      ${rfIcone('menu',18)}
+    </button>`;
+}
+/* ===== O MENU DO TELEMOVEL =====
+   O cabecalho publico escondia os proprios links abaixo de 900px e nao tinha
+   hamburguer nenhum — por isso "Entrar na lista" desaparecia no telefone e o
+   "Sair" tinha de ficar a vista, apertado ao lado do nome. Agora tudo o que
+   nao cabe vive aqui, e no cabecalho fica so o nome. */
+function rfLpMenu(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+  const links=RF_LP_NAV.map(([k,l])=>
+    `<button type="button" class="rf-sheet-i" onclick="clCloseOverlay();rfLpIr('${k}')">
+      <span class="rf-nav-l">${escC(l)}</span></button>`).join('');
+  const lista=`<button type="button" class="rf-sheet-i destaque" onclick="clCloseOverlay();rfLpIr('lista')">
+      <span class="rf-nav-l">Entrar na lista</span></button>`;
+  const conta = st.loggedIn ? `<div class="rf-sheet-sep"></div>
+      <div class="rf-sheet-conta">
+        <span class="rf-sheet-conta-ic" aria-hidden="true">👤</span>
+        <span class="rf-sheet-conta-id">
+          <span class="rf-sheet-conta-n">${escC(st.name||'treinador')}</span>
+          <span class="rf-sheet-conta-e">${escC(st.email||'')}</span>
+        </span>
+      </div>
+      <button type="button" class="rf-sheet-i sair" onclick="clCloseOverlay();rfAcSairConta()">
+        <span class="rf-nav-l">Sair da conta</span></button>`
+    : `<div class="rf-sheet-sep"></div>
+      <button type="button" class="rf-sheet-i" onclick="clCloseOverlay();clGoModo('solo')">
+        <span class="rf-nav-l">Entrar na minha conta</span></button>`;
+  if(typeof rfSheet==='function') rfSheet('Menu', `<div class="rf-sheet-list">${links}${lista}${conta}</div>`);
 }
 /* `extra` é o encaixe da DIREITA do cabeçalho: dentro do assistente é ali que
    mora o "‹ Voltar ao modo" do desenho, no lugar dos botões de entrar. Nas

@@ -295,7 +295,8 @@ function rfBandHTML(titulo){
         <span class="rf-label-t">Treinador</span>
         <span>·</span><span>${universeFlag()} ${escC(universeCountryName())}</span>
         <span>·</span><span>${escC(divisionLabel())}</span>
-        <span>·</span><span class="rf-num">${escC(String(S.season||''))}</span>
+        <span>·</span>
+        ${rfBandDataHTML()}
       </span>
     </div>
     <div class="rf-band-sp"></div>
@@ -325,6 +326,24 @@ function rfBandHTML(titulo){
    (16/ago). Na faixa do clube ele é o irmão do Gravar — e é de propósito que
    grava antes de sair (ver rfSairContaGo). Só aparece com sessão: em hotseat
    local não há conta de que sair. */
+/* A DATA DO JOGO NO CABECALHO, em dois chips: o dia ("27/jul") e o ano.
+   A faixa so mostrava a temporada, solta no fim da linha de contexto — quem
+   olhava sabia o ANO mas nao em que ponto dele estava, e o dia so aparecia
+   dentro do calendario. Sao dois chips e nao um texto so porque o ano e o
+   dado estavel e o dia muda a cada jornada: separados, o olho volta sempre
+   ao mesmo sitio para cada um. */
+function rfBandDataHTML(){
+  let dia='';
+  try{
+    if(typeof realDateForDay==='function'){
+      const d=realDateForDay(S.day||1);
+      const mes=(typeof PT_MONTHS_ABBR!=='undefined')?PT_MONTHS_ABBR[d.getMonth()]:(d.getMonth()+1);
+      dia=d.getDate()+'/'+mes;
+    }
+  }catch(e){}
+  return `${dia?`<span class="rf-band-chip rf-num">${escC(dia)}</span>`:''}
+    <span class="rf-band-chip rf-num">${escC(String(S.season||''))}</span>`;
+}
 function rfBandContaHTML(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   if(!st.loggedIn) return '';
