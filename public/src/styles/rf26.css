@@ -6446,3 +6446,10 @@
   .rf-cam-shell{border-radius:var(--r-card)}
   .rf-gate-card{border-radius:var(--r-card);min-height:0}
 }
+
+/* a caixa do jogador perde 4px no telefone (as margens do nome e da meta),
+   para as quatro faixas nao se encostarem — ver PITCH_BANDS_MOBILE */
+@media (max-width:760px){
+  .rf-pitch-card .cl-pp .cl-pp-name{margin-top:1px}
+  .rf-pitch-card .cl-pp .rf-pp-meta{margin-top:1px}
+}

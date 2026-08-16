@@ -5072,6 +5072,18 @@ const PITCH_LANES={
    os dois: centros em 29 · 50 · 71 · 92, ou seja 21 de distância entre cada par.
    As diferenças por formação que existiam aqui (meio recuado no 4-2-4, adiantado
    no 4-5-1) foram achatadas de propósito — o pedido é espaçamento igual. */
+/* NO TELEFONE A REGUA E OUTRA, e a razao esta no proprio comentario acima: ela
+   foi calibrada para "o elemento do jogador tem 12% da altura do gramado". A
+   caixa do jogador, porem, tem 70px FIXOS (camisa 40 + nome 13 + meta 12 + as
+   margens). No campo do desktop 70px sao mesmo ~12%; no campo do telefone, que
+   tem 327px de altura, sao 21,4% — quase o dobro. Com faixas de 21 em 21 as
+   caixas passam a encostar-se, e a de tras invadia o goleiro, que e ancorado
+   pela BASE e por isso nao desce junto.
+
+   Aqui as tres faixas de linha sobem em bloco (mantendo o espacamento igual
+   entre elas) para abrir os ~70px que o goleiro ocupa em baixo:
+   ATT 33..99 · MID 101..167 · DEF 170..236 · GK 254..320. */
+const PITCH_BANDS_MOBILE=[10,31,52,82];
 const PITCH_BANDS={
   _        :[23,44,65,82],
   '3-3-4'  :[23,44,65,82],
@@ -5152,7 +5164,9 @@ function pitchHTML(){
   const th=clubTheme(CL.clubId);
   const nums=clubShirtNumbers(CL.clubId);
   // faixas de cima pra baixo: ataque, meio, defesa, goleiro (o gol do time fica embaixo)
-  const bandas=PITCH_BANDS[CL.formation]||PITCH_BANDS._;
+  const bandas=(typeof isPhone==='function'&&isPhone())
+    ? PITCH_BANDS_MOBILE
+    : (PITCH_BANDS[CL.formation]||PITCH_BANDS._);
   const linhas=[['ATT',bandas[0]],['MID',bandas[1]],['DEF',bandas[2]],['GK',bandas[3]]];
   const nodes=linhas.map(([sec,top])=>{
     const list=xi.filter(p=>p.s===sec);
