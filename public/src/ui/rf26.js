@@ -2185,7 +2185,26 @@ function rfTransferenciasHTML(){
    recusa em branco e o aceite em amarelo. Muda a largura (860 / 940), a
    coluna da direita (300 / 320) e o conteúdo da ficha.
    ===================================================================== */
-function rfVideoHTML(titulo, dur){
+/* O ESPAÇO 16:9 ERA UM ESPAÇO RESERVADO — E O VÍDEO JÁ EXISTIA.
+   O pacote desenha estes dois modais com um bloco "ESPAÇO RESERVADO · 16:9", e
+   o porte copiou o bloco à letra: o jogo mostrava o mockup do designer, com o
+   texto do mockup, enquanto `video/convite-jantar.mp4` e
+   `video/convite-assinatura.mp4` estavam no disco a não tocar em lado nenhum.
+   Eles TOCAVAM no desenho antigo; quando `showJobInvite`/`showJobProposal`
+   passaram a devolver o modal novo, o código velho — e o vídeo com ele — ficou
+   inalcançável depois do `return`.
+
+   Agora o espaço é o vídeo. Sem ficheiro, volta a ser o cartaz de antes, que é
+   o que faz sentido para os seis momentos que ainda não têm filme. Nunca com
+   som: `muted` + `volume=0` no play, porque um vídeo que fala sozinho por cima
+   de um jogo é a pior surpresa possível. */
+function rfVideoHTML(titulo, dur, src){
+  if(src) return `<div class="rf-video rf-video-on">
+    <video src="${escC(src)}" autoplay muted loop playsinline preload="metadata"
+      onloadeddata="this.muted=true;this.volume=0"
+      onerror="this.closest('.rf-video').classList.remove('rf-video-on')"></video>
+    <span class="rf-video-cap">${escC(titulo)}</span>
+  </div>`;
   return `<div class="rf-video">
     <span class="rf-video-play">▶</span>
     <span class="rf-video-t">${escC(titulo)}</span>
@@ -2217,7 +2236,7 @@ function rfModalConviteHTML(o){
     </div>
     <div class="rf-of-body">
       <div class="rf-of-esq">
-        ${rfVideoHTML('Convite para o jantar','0:18')}
+        ${rfVideoHTML('O presidente espera você para conversar.','0:18','video/convite-jantar.mp4')}
         <p class="rf-of-p">O presidente do <b>${escC(c.short)}</b> (${escC((typeof jobOfferDivLabel==='function'?jobOfferDivLabel(o):''))}) pediu para falar com você pessoalmente. Ele acompanha o seu trabalho no ${escC(me.short)} e quer conversar num jantar, sem compromisso.</p>
         <p class="rf-of-p2">Aceitar o jantar não é aceitar emprego nenhum — é só ouvir o que eles têm a dizer.</p>
       </div>
@@ -2265,7 +2284,7 @@ function rfModalPropostaHTML(o){
     </div>
     <div class="rf-of-body">
       <div class="rf-of-esq">
-        ${rfVideoHTML('A assinatura','0:24')}
+        ${rfVideoHTML('Presidente e treinador lendo o contrato.','0:24','video/convite-assinatura.mp4')}
         <div class="rf-card rf-card-quiet">
           <span class="rf-label-t">💬 O presidente do ${escC(c.short)}</span>
           <p class="rf-of-p">Treinador, a gente viu o que você fez no ${escC(me.short)}. Aqui o projeto é sério: elenco pronto, torcida do lado e paciência pra construir. Vem com a gente.</p>
