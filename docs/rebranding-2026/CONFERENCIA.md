@@ -490,3 +490,48 @@ Conferido nos cinco: tocam, em loop, mudos, e em 375px o quadro respeita o 16:9
 ### Se quiser mais vídeos
 Os seis buracos já têm chave e comentário em `VIDEOS_MOMENTO` (main.js): basta
 pôr o ficheiro em `public/video/` e trocar o `null` pelo caminho.
+
+---
+
+# 14 · Onboarding e fluxo (16 telas)
+
+### Varreduras estáticas — passam limpo
+Nenhum `onclick` para função inexistente e nenhum `<button>` sem ação em
+`rf26-onboarding.js` e `rf26-fluxo.js`.
+
+### Corrigido nesta rodada
+- [x] **"PASSO N DE M" era escrito à mão em cada tela, e eles contradiziam-se.**
+      Medido: três totais diferentes no mesmo fluxo — "2 de 7", "3 de 6",
+      "4 de 5" — duas telas seguidas a dizer ambas "3 de 6", e a régua desenhada
+      por cima com sete itens. O jogador não tinha como saber onde estava.
+
+      **O pacote também não decide**: tem três réguas diferentes entre os seus
+      próprios ficheiros (3, 6 e 7 passos) e metade das telas sem número nenhum.
+      Como não há uma versão do pacote a seguir, vale a regra que se pode
+      confiar: **a régua é a fonte e o rótulo é calculado a partir dela**.
+      Nenhuma tela volta a escrever um número.
+
+      Cada tela foi posta no passo certo da régua de 7:
+      | Passo | Telas |
+      |---|---|
+      | 1 Entrar | login |
+      | 2 Modo | modo, modo solo |
+      | 3 País e liga | países, país jogável, moeda |
+      | 4 Sala | nº de treinadores, abrir sala |
+      | 5 Convites | sala aberta |
+      | 6 Clube | escolha dos clubes, sorteio |
+      | 7 Jogar | boas-vindas |
+
+      Onde o pacote dá número, o novo bate: moeda 3, treinadores 4, escolha dos
+      clubes 6.
+
+### Divergência deliberada
+- As telas de Onboarding 1, 2 e 3 mostram uma **frase** ("Bem-vindo, treinador")
+  em vez do número. É o que o pacote faz nelas, e a régua acima já diz a posição
+
+### Falso alarme registado
+A tela de país jogável parecia vazia — mas só porque eu saltei direto para ela
+sem passar pela escolha de países, que é quem preenche o `CL.countries`. Pelo
+caminho real desenha os três países com divisões e contagem de clubes.
+
+Conferido: nove telas em 1440 e em 375, sem rolagem lateral, sem botão cortado.

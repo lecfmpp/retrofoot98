@@ -55,12 +55,33 @@ const RF_WIZ_PASSOS=RF_WIZ_TRILHAS.solo;
    faixa azul, junto da marca e da barra de progresso. Como CSS não move nó de
    um contêiner pro outro, os dois saem do mesmo texto e o CSS esconde o que
    não é daquela largura. */
+/* O NÚMERO DO PASSO SAI DA RÉGUA, NÃO DA MÃO DE QUEM ESCREVE A TELA.
+   Cada tela trazia o seu "Passo N de M" escrito à mão, e eles contradiziam-se:
+   três totais diferentes no mesmo fluxo (5, 6 e 7), duas telas seguidas a dizer
+   ambas "3 de 6", e a régua desenhada por cima com sete itens. O jogador não
+   tinha como saber onde estava.
+
+   O pacote também não ajuda — tem três réguas diferentes entre os seus próprios
+   ficheiros (3, 6 e 7 passos) e metade das telas sem número nenhum. Como não há
+   uma versão do pacote a seguir, vale a regra que se pode confiar: a régua é a
+   fonte, e o rótulo é calculado a partir dela. Nenhuma tela volta a escrever um
+   número.
+
+   Quem quiser acrescentar contexto passa `contexto` ("MODO SOLO"), que entra
+   depois do passo: "PASSO 2 DE 7 · MODO SOLO". */
+function rfWizSobre(passo, trilha, contexto){
+  const total=rfWizPassos(trilha).length;
+  const n=Math.max(1,Math.min(total, passo||1));
+  return 'PASSO '+n+' DE '+total+(contexto?' · '+String(contexto).toUpperCase():'');
+}
 function rfWiz(o){
   o=o||{};
   const passos=rfWizPassos(o.trilha);
   const passo=o.passo||1, total=passos.length;
-  const cabeca=(o.titulo||o.sobre||o.sub)
-    ? rfWizHead(o.sobre,o.titulo,o.sub) : '';
+  /* sem `sobre` explícito e com um passo, o rótulo nasce da régua */
+  const sobre=o.sobre || (o.passo && !o.semTrilha ? rfWizSobre(o.passo,o.trilha,o.contexto) : '');
+  const cabeca=(o.titulo||sobre||o.sub)
+    ? rfWizHead(sobre,o.titulo,o.sub) : '';
   /* CABEÇALHO MÍNIMO, não o menu público. O pacote do Modo Solo mostra só a
      marca à esquerda e o botão do passo à direita — sem links de navegação e
      sem rodapé. Eu tinha envolvido o assistente no cabeçalho/rodapé públicos;
@@ -421,8 +442,8 @@ function rfOb4(){
         <div class="rf-sl-fx"><span class="rf-sl-l">CLUBES</span><span class="rf-sl-fx-v">por sorteio</span></div>
       </div>
     </div>`;
-  return rfWiz({trilha:'resenha', passo:3,
-    sobre:'PASSO 3 DE 6 · MODO RESENHA', titulo:'Abrir a sua sala',
+  return rfWiz({trilha:'resenha', passo:4, contexto:'Modo Resenha',
+    titulo:'Abrir a sua sala',
     sub:'Dê um nome e escolha onde a resenha começa. Você é o anfitrião: só você muda essas duas coisas.',
     corpo, nota:'A sala fica aberta por 7 dias sem ninguém entrar.',
     voltar:'clBackConta()', cta:'Abrir a sala', ctaOff:!n.roomName, ctaOn:'clOpenRoom()'});
@@ -446,9 +467,9 @@ function rfObCopiar(txt){
    ===================================================================== */
 function rfOb5(){
   const room=(typeof NET!=='undefined')?NET.room:null;
-  if(!room) return rfWiz({trilha:'resenha', passo:4,
+  if(!room) return rfWiz({trilha:'resenha', passo:4, contexto:'Modo Resenha',
     corpo:'<span class="rf-note">A ligar à sala</span>',
-    sobre:'PASSO 4 DE 6 · MODO RESENHA', titulo:'Sala', voltar:'clLobbyExit()', voltarLabel:'Sair da sala'});
+    titulo:'Sala', voltar:'clLobbyExit()', voltarLabel:'Sair da sala'});
   const anfitriao=NET.isHost;
   if(anfitriao && typeof clStartHostReqPoll==='function') clStartHostReqPoll();
   else if(typeof clStartLobbyPoll==='function') clStartLobbyPoll();
@@ -540,8 +561,8 @@ function rfOb5(){
       </div>
     </div>`;
   const podeComecar=anfitriao && dentro>=2;
-  return rfWiz({trilha:'resenha', passo:4, corpo,
-    sobre:`PASSO 4 DE 6${divLbl?' · '+escC(divLbl).toUpperCase():''}`,
+  return rfWiz({trilha:'resenha', passo:5, contexto:divLbl||'',
+    corpo,
     titulo: room.name||'Sala aberta',
     sub:'Chame os treinadores. Quando você começar, cada um recebe um clube por sorteio — ninguém escolhe.',
     nota: anfitriao
