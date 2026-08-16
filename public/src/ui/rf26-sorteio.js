@@ -20,7 +20,13 @@
 
 /* ---- envelope comum: mesmo shell do onboarding, sem trilha ---- */
 function rfSorteioShell(o){
-  return `<div class="rf-wiz">
+  /* A CERIMÔNIA É MAIS LARGA QUE O ASSISTENTE. Ela reaproveitava o `.rf-wiz-in`
+     do onboarding, de 980px — largura pensada para uma coluna de perguntas, não
+     para oito grupos de quatro clubes lado a lado. Descontando os paddings
+     sobravam 131px por coluna de grupo e 63px para o nome do clube: quinze
+     nomes saíam cortados ("Coquimb…", "Universid…", "Always R…").
+     O pacote desenha esta tela a 1080, e é essa a largura que ela pede. */
+  return `<div class="rf-wiz rf-wiz-larga">
     <div class="rf-wiz-in">
       <div class="rf-wiz-marca">
         <img src="img/logo.webp" width="32" height="32" alt="RetroFoot98">

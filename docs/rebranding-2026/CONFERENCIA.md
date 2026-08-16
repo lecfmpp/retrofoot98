@@ -535,3 +535,42 @@ sem passar pela escolha de países, que é quem preenche o `CL.countries`. Pelo
 caminho real desenha os três países com divisões e contagem de clubes.
 
 Conferido: nove telas em 1440 e em 375, sem rolagem lateral, sem botão cortado.
+
+---
+
+# 15 · Pós-rodada, momentos e sorteios
+
+### Varreduras estáticas — passam limpo
+`rf26-sorteio.js`, `rf26-competicao.js` e `rf26-partida.js`: nenhum `onclick`
+para função inexistente, nenhum `<button>` sem ação.
+
+### Conferido
+- [x] **Os nove momentos** (campeão de liga e de copa, marcador de liga e de
+      copa, promovido, rebaixado, abertura e final de copa, crise) abrem, com
+      ação em todos os botões e vídeo nos três que têm filme
+- [x] **Pós-rodada** — tabela de 20 linhas, resultados da jornada e o bloco "o
+      que mudou para você" com posição, pontos, distância do acesso e o próximo
+      adversário
+- [x] Sorteios da Libertadores, Sul-Americana e Copa do Brasil
+
+### Corrigido nesta rodada
+- [x] **Quinze nomes de clube cortados na cerimônia do sorteio.** Ela
+      reaproveitava o contentor do assistente (`.rf-wiz-in`, 980px) — largura
+      pensada para uma coluna de perguntas, não para oito grupos de quatro
+      clubes lado a lado. Sobravam 131px por coluna e **63px para o nome**:
+      "Coquimb…", "Universid…", "Always R…".
+      O pacote desenha esta tela a **1080**, e é a largura que ela pede. Com
+      ela, as colunas passam a 156px e sobra um só nome cortado; a linha do
+      clube aperta 6px de folga e 2 de escudo, e passa a caber tudo.
+- [x] **No telefone**, os cartões de grupo ficam com 142px e o nome com 83 —
+      "Coquimbo Unido" precisa de 95. Escudo, folga e um degrau de letra
+      resolvem sem tirar uma coluna
+
+Medido depois: **32 de 32 nomes inteiros** em 1440 e em 375, sem rolagem lateral.
+
+### Dois falsos alarmes registados
+- "0ª JORNADA ENCERRADA" na pós-rodada — era o meu atalho: saltei para a tela
+  sem fechar a rodada, e o motor incrementa `S.round` no fecho. Pelo caminho
+  real diz "1ª jornada encerrada"
+- Antes disso, a tela de país jogável "vazia" (ver secção 14). Duas vezes o
+  mesmo erro meu: **julgar pelo atalho em vez do caminho do jogador**
