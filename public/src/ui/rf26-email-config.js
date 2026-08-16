@@ -197,64 +197,10 @@ function rfCfOpcoesHTML(){
 /* =====================================================================
    CONFIG · 2 · JOGO
    ===================================================================== */
-function rfCfJogoHTML(){
-  const cl=clubOf(CL.clubId)||{short:'—'};
-  const t=CL._lastSaveAt?new Date(CL._lastSaveAt):null;
-  const saves=(CL.soloSaves||[]).slice()
-    .sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0));
-  const quando=t
-    ? ('GRAVADO ÀS '+String(t.getHours()).padStart(2,'0')+'H'+String(t.getMinutes()).padStart(2,'0'))
-    : 'GRAVAÇÃO AUTOMÁTICA';
-  /* TEMPO DE JOGO e GRAVAÇÕES o motor não conta — o save guarda a jornada,
-     não o relógio da sessão nem quantas vezes gravou. Entram como traço. */
-  return `<div class="rf-cf-duo">
-      <div class="rf-card">
-        <div class="rf-label"><span class="rf-label-t">SAVE ATUAL</span></div>
-        <div class="rf-cf-save">
-          ${rfCrest(cl,40)}
-          <span class="rf-cf-save-id">
-            <span class="rf-cf-save-n">${escC(cl.short)} · ${escC(divisionLabel())} ${escC(String(S.season||''))}</span>
-            <span class="rf-cf-save-s">${(S.round||0)+1}ª JORNADA · ${escC(quando)}</span>
-          </span>
-        </div>
-        <div class="rf-el-stats dois">
-          ${rfElStat('JORNADAS JOGADAS', S.round||0)}
-          ${rfElStat('TEMPO DE JOGO', '—')}
-          ${rfElStat('GRAVAÇÕES', '—')}
-          ${rfElStat('NA NUVEM', CL.save?'sim':'não')}
-        </div>
-        <div class="rf-cf-fila comfilete">
-          <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcGravar()">${rfIcone('gravar',16)} Gravar agora</button>
-          <button type="button" class="rf-btn rf-btn-secondary" onclick="rfCfBaixarSave()">${rfIcone('baixar',16)} Baixar o save</button>
-        </div>
-      </div>
-      <div class="rf-card">
-        <div class="rf-label"><span class="rf-label-t">OUTROS SAVES</span>
-          <span class="rf-label-r">${saves.length} na nuvem</span></div>
-        ${saves.length
-          ? saves.slice(0,8).map(sv=>{
-              const c=anyClubOf(sv.clubId)||{short:sv.name||'—'};
-              return `<div class="rf-cf-save-lin">
-                ${rfCrest(c,24)}
-                <span class="rf-cf-save-ln">${escC(sv.name||c.short||'—')}</span>
-                <span class="rf-cf-save-lv">${escC((typeof rfSaveQuando==='function')?rfSaveQuando(sv):'')}</span>
-                <button type="button" class="rf-btn rf-btn-secondary rf-btn-mini"
-                  onclick="rfAcSairSave()">Abrir</button>
-              </div>`; }).join('')
-          : '<div class="rf-empty">Nenhum outro save na nuvem.</div>'}
-      </div>
-    </div>
-    <div class="rf-card">
-      <div class="rf-label"><span class="rf-label-t">SAIR DO SAVE</span></div>
-      <span class="rf-cf-texto">Sair grava a temporada no ponto atual. Você volta para a escolha de
-        save e nada é perdido.</span>
-      <div class="rf-cf-fila">
-        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSairSave()">${rfIcone('voltar',16)} Voltar aos saves</button>
-        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSairSave()">Começar outro save</button>
-        <button type="button" class="rf-btn rf-btn-recusar" onclick="rfAcApagarSave()">Apagar este save</button>
-      </div>
-    </div>`;
-}
+/* `rfCfJogoHTML` foi removida: era a página "Sair do jogo" desenhada uma
+   segunda vez dentro de Configurações — SAVE ATUAL repetido, OUTROS SAVES e
+   SAIR DO SAVE. O conteúdo que valia mudou-se para a página certa; o resto era
+   duplicado, e três dos seus botões chamavam todos o mesmo `rfAcSairSave()`. */
 function rfCfBaixarSave(){
   try{
     const a=document.createElement('a');
@@ -453,6 +399,37 @@ function rfSairSubHTML(){
   const t=CL._lastSaveAt?new Date(CL._lastSaveAt):null;
   return t?('Save gravado '+rfSaveQuando({updated_at:t.toISOString()})):'Nada é perdido ao sair';
 }
+/* OUTROS SAVES ESTAVA NA PÁGINA ERRADA.
+   O pacote desenha esta lista na tela de "Sair do jogo", que é onde o jogador
+   a procura — e a própria tela prometia que o save "volta a aparecer na lista
+   de saves" sem mostrar lista nenhuma. Ela vivia escondida numa aba "Jogo" de
+   Configurações, junto com um SAVE ATUAL duplicado do que já estava aqui.
+
+   E os botões não faziam o que diziam: "Abrir" (de cada save), "Voltar aos
+   saves" e "Começar outro save" chamavam TODOS o mesmo `rfAcSairSave()` — abrir
+   um save específico não o abria, só oferecia sair do atual. Agora "Abrir"
+   carrega aquele save pelo `clLoadSave`, que é quem sabe fazê-lo. */
+function rfSairOutrosSavesHTML(){
+  const atual=CL.save||null;
+  const saves=(CL.soloSaves||[]).filter(sv=>sv && sv.name!==atual);
+  const carregando=CL.soloSaves==null;
+  return `<div class="rf-card">
+    <div class="rf-label"><span class="rf-label-t">OUTROS SAVES</span>
+      <span class="rf-label-r">${carregando?'procurando':saves.length+' na nuvem'}</span></div>
+    ${carregando ? '<div class="rf-empty">Procurando os seus saves na nuvem.</div>'
+      : (saves.length
+        ? saves.slice(0,8).map(sv=>{
+            const c=anyClubOf(sv.clubId)||{short:sv.name||'—'};
+            return `<div class="rf-cf-save-lin">
+              ${rfCrest(c,24)}
+              <span class="rf-cf-save-ln">${escC(sv.name||c.short||'—')}</span>
+              <span class="rf-cf-save-lv">${escC((typeof rfSaveQuando==='function')?rfSaveQuando(sv):'')}</span>
+              <button type="button" class="rf-btn rf-btn-secondary rf-btn-mini"
+                onclick="clLoadSave('${escC(sv.name)}')">Abrir</button>
+            </div>`; }).join('')
+        : '<div class="rf-empty">Este é o seu único save na nuvem.</div>')}
+  </div>`;
+}
 function rfSairHTML(){
   const cl=clubOf(CL.clubId)||{short:'—'};
   const jornada=((S&&S.round)||0)+1;
@@ -468,12 +445,15 @@ function rfSairHTML(){
           <span class="rf-sair-s">${escC((typeof divisionLabel==='function'&&S)?divisionLabel():'')} · ${jornada}ª de ${total}</span>
         </span>
       </div>
-      <span class="rf-note">O save é gravado antes de sair e volta a aparecer na lista de saves. Nada se perde.</span>
+      <span class="rf-note">O save é gravado antes de sair e volta a aparecer na lista abaixo. Nada se perde.</span>
       <div class="rf-cf-fila">
         <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcSairSave()">${rfIcone('salvar',16)} Gravar e sair do save</button>
         <button type="button" class="rf-btn rf-btn-secondary" onclick="clSoloNew()">Começar outro save</button>
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfCfBaixarSave()">${rfIcone('baixar',16)} Baixar o save</button>
       </div>
     </div>
+
+    ${rfSairOutrosSavesHTML()}
 
     ${naSala?`<div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">SALA DA RESENHA</span></div>

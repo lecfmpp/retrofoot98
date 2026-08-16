@@ -574,3 +574,55 @@ Medido depois: **32 de 32 nomes inteiros** em 1440 e em 375, sem rolagem lateral
   real diz "1ª jornada encerrada"
 - Antes disso, a tela de país jogável "vazia" (ver secção 14). Duas vezes o
   mesmo erro meu: **julgar pelo atalho em vez do caminho do jogador**
+
+---
+
+# 16 · Diff de desenho das seis páginas
+
+Comparação bloco a bloco com `Campeonatos - Abas`, `Treinador - Abas`,
+`Financas - Abas`, `E-mail - Abas`, `Configuracoes - Abas` e `Sair do Jogo`.
+
+### Batem com o pacote
+- **Treinador** — REPUTAÇÃO 3 DE 5, os oito números da carreira (jogos,
+  vitórias, empates, derrotas, gols pró e contra, aproveitamento, títulos),
+  CLUBES TREINADOS com as colunas do pacote (mais JOGOS), SEGURANÇA NO CARGO,
+  LINHA DO TEMPO e MARCAS PESSOAIS
+- **Finanças** — CAIXA/ENTRA/SAI/PROJEÇÃO no resumo; extrato com
+  DATA·LANÇAMENTO·TIPO·VALOR·SALDO exatamente como o pacote; histórico por
+  temporada e evolução do caixa
+- **Campeonatos** — artilharia com JOGADOR·CLUBE·GOLS·G/JOGO (mais POS) e
+  história com ANO·COMPETIÇÃO·POSIÇÃO·DESFECHO·COPAS
+- **E-mail** — caixa de entrada e mensagem aberta; o pacote mostra "arquivadas"
+  no mesmo scroll e o jogo põe numa aba
+
+### Corrigido nesta rodada
+- [x] **"OUTROS SAVES" estava na página errada.** O pacote desenha a lista na
+      tela de **Sair do jogo** — que é onde o jogador a procura, e que até
+      prometia que o save "volta a aparecer na lista de saves" sem mostrar lista
+      nenhuma. Ela vivia escondida numa aba **Jogo** de Configurações, junto com
+      um SAVE ATUAL duplicado do que já estava em Sair.
+- [x] **Três botões, uma única ação.** No bloco de saves, o "Abrir" de cada
+      save, o "Voltar aos saves" e o "Começar outro save" chamavam **todos** o
+      mesmo `rfAcSairSave()` — abrir um save específico não o abria, só oferecia
+      sair do atual. Agora "Abrir" carrega aquele save (`clLoadSave`)
+- [x] **A aba "Jogo" de Configurações saiu**, como estava previsto desde o
+      início ("deve ficar só com Perfil · Opções"). O "Baixar o save" foi com a
+      lista para a página de Sair
+
+### O pacote desenha uma competição que não existe
+`PLAYOFF DO ACESSO · SORTEIO EM 2 DIAS` (em Campeonatos), `COM O PLAYOFF / SEM O
+PLAYOFF` (na projeção de Finanças) e as telas `Sorteio 5 - Playoff Serie D` e
+`Sorteio 6 - Playoff Libertadores` descrevem um **playoff que o motor não tem**:
+`COMP_DEFS` só conhece serieA, copaBrasil, libertadores, sulamericana e as duas
+europeias. O "playoff" existe apenas como **rótulo de zona da tabela**
+(`rf26-competicao.js`), não como competição sorteada e jogada.
+
+Nada foi inventado para preencher: a projeção de Finanças mostra saldo previsto,
+por rodada, jornadas que faltam e folha por rodada — dados reais. Fica registado
+como **funcionalidade a decidir**, não como tela por portar.
+
+### Divergência deliberada
+- O pacote põe FOTO DO TREINADOR, DADOS DO TREINADOR e A SUA CARREIRA em
+  Configurações; no jogo o perfil e os números vivem na página **Treinador**
+  (abas Perfil e Carreira). Não se perde nada — muda de página
+- Não há foto do treinador no jogo; o pacote reserva espaço para uma

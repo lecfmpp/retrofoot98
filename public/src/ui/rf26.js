@@ -152,8 +152,12 @@ const RF_PAGES=[
     /* A aba "Modo Resenha" SAIU daqui e virou página própria (abaixo): a sala é
        onde a pessoa passa o tempo numa resenha — código, treinadores, ritmo,
        sincronização — e isso não é uma preferência do sistema. */
-    tabs:[ {k:'opcoes',  l:()=>'Opções', build:()=>rfCfOpcoesHTML()},
-           {k:'jogo',    l:()=>'Jogo',   build:()=>rfCfJogoHTML()} ] },
+    /* A ABA "JOGO" SAIU. Ela era a página "Sair do jogo" outra vez: SAVE ATUAL
+       repetido, OUTROS SAVES e SAIR DO SAVE. O pacote põe tudo isso na tela de
+       Sair do jogo — que é onde o jogador procura — e deixa Configurações só
+       com as preferências. A lista de saves mudou-se para lá (ver
+       rfSairOutrosSavesHTML); o "Baixar o save" foi com ela. */
+    tabs:[ {k:'opcoes',  l:()=>'Opções', build:()=>rfCfOpcoesHTML()} ] },
 
   /* ÚLTIMO ITEM, sempre. O nome e a chave são os do pacote: "Sair do jogo" /
      `sairjogo` — não "Sair", que se confunde com sair da conta. */
