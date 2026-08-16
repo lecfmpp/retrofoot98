@@ -17,9 +17,29 @@ const RF_LP_NAV=[
   ['ligas','Ligas Oficiais'],['canais','Para canais'],['blog','Blog'],['apoie','Apoie o projeto'],
 ];
 
+/* ===== A CONTA VIVE NO CABEÇALHO, EM TODA A TELA =====
+   Sair da conta estava só dentro de Configurações — ou seja, só depois de
+   entrar num save. Quem ficasse preso no assistente (conta errada, convite
+   para a sala de outra pessoa) não tinha por onde sair. Agora o cabeçalho
+   público, que é o MESMO da landing e de todas as telas do assistente,
+   carrega sempre o estado da conta: nome + Sair quando há sessão, Entrar
+   quando não há. */
+function rfContaChipHTML(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+  if(!st.loggedIn){
+    return `<button type="button" class="rf-lp-entrar" onclick="clGoModo('solo')">${rfIcone('chave',16)} Entrar</button>`;
+  }
+  const nome=st.name||(st.email||'').split('@')[0]||'treinador';
+  return `<span class="rf-lp-conta" title="${escC(st.email||'')}">
+      <span class="rf-lp-conta-ic" aria-hidden="true">👤</span>
+      <span class="rf-lp-conta-n">${escC(nome)}</span>
+    </span>
+    <button type="button" class="rf-lp-sair" onclick="rfAcSairConta()">Sair</button>`;
+}
 /* `extra` é o encaixe da DIREITA do cabeçalho: dentro do assistente é ali que
    mora o "‹ Voltar ao modo" do desenho, no lugar dos botões de entrar. Nas
-   páginas públicas ele vem vazio e o cabeçalho é o de sempre. */
+   páginas públicas ele vem vazio e o cabeçalho é o de sempre.
+   A CONTA VEM SEMPRE DEPOIS do extra — nunca é substituída por ele. */
 function rfLpNavHTML(extra){
   return `<nav class="rf-lp-nav">
     <a class="rf-lp-marca" href="/" aria-label="RetroFoot98">
@@ -30,8 +50,9 @@ function rfLpNavHTML(extra){
       ${RF_LP_NAV.map(([k,l])=>`<button type="button" class="rf-lp-link" onclick="rfLpIr('${k}')">${escC(l)}</button>`).join('')}
     </div>
     <div class="rf-sp"></div>
-    ${extra!=null ? extra : `<button type="button" class="rf-lp-entrar" onclick="clGoModo('solo')">${rfIcone('chave',16)} Entrar</button>
-    <button type="button" class="rf-lp-btlista" onclick="rfLpIr('lista')">Entrar na lista</button>`}
+    ${extra||''}
+    ${extra==null ? `<button type="button" class="rf-lp-btlista" onclick="rfLpIr('lista')">Entrar na lista</button>` : ''}
+    ${rfContaChipHTML()}
   </nav>`;
 }
 function rfLpIr(k){

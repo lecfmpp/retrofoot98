@@ -105,7 +105,7 @@ function rfCodigoCaixasHTML(codigo){
    salta para o início (ver docs — é o erro que já apareceu noutros campos).
    Aqui só as caixas e o rodapé são repintados, e o input fica onde está. */
 function rfCodigoDigita(el){
-  const v=String(el.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,RF_CODIGO_TAM);
+  const v=rfCodigoLimpa(el.value);
   el.value=v;
   CL.net=CL.net||{}; CL.net.code=v;
   document.querySelectorAll('.rf-cod-cx').forEach((cx,i)=>{
@@ -265,7 +265,36 @@ function rfMinhasSalasHTML(){
    exigiria uma consulta por linha. O que entra é o que se sabe — "à
    espera de você" quando a rodada está parada no seu assento.
    ===================================================================== */
-const RF_SALA_TETO=20;
+/* ===== O TETO DA SALA SAI DO MOTOR, NAO DO DESENHO =====
+   A sala tem UM ASSENTO POR CLUBE DA DIVISAO — e por isso o teto e o tamanho
+   da divisao, nao um numero fixo. Hoje as quatro Series do Brasil tem 20, mas
+   a Championship tem 24 e a Bundesliga 18 (ver UNI_CONFIGS.size); escrever 20
+   a mao seria repetir noutro numero o erro do "ate 8" que o pacote trazia.
+   Confirmado no banco: o maximo real de assentos por sala e 20, igual ao
+   tamanho da Serie D, que e onde a Resenha comeca (RESENHA_START_DIV). */
+function rfSalaTeto(room){
+  room = room || (typeof NET!=='undefined' && NET.room) || null;
+  /* 1) sala montada: o numero de assentos e o proprio pool de clubes */
+  const assentos = room && (room.seatCount
+    || (Array.isArray(room.seats) && room.seats.length)
+    || (Array.isArray(room.clubs) && room.clubs.length));
+  if(assentos) return assentos;
+  /* 2) antes de existir sala: o tamanho da divisao onde ela vai comecar */
+  const div = (room && (room.division || room.div))
+    || (typeof RESENHA_START_DIV!=='undefined' ? RESENHA_START_DIV : 'D');
+  return (typeof DIVISION_SIZE!=='undefined' && DIVISION_SIZE[div]) || 20;
+}
+
+/* ===== O ALFABETO DO CODIGO TAMBEM =====
+   generate_room_code() no banco sorteia de ABCDEFGHJKLMNPQRSTUVWXYZ23456789:
+   SEM I, O, 0 e 1, tirados por serem confundiveis entre si. O filtro aceitava
+   [A-Z0-9], ou seja, deixava digitar quatro caracteres que nenhum codigo real
+   pode conter. */
+const RF_CODIGO_ALFA='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const RF_CODIGO_RE=new RegExp('[^'+RF_CODIGO_ALFA+']','g');
+function rfCodigoLimpa(v){
+  return String(v||'').toUpperCase().replace(RF_CODIGO_RE,'').slice(0,RF_CODIGO_TAM);
+}
 
 function rfResenhaComecarHTML(){
   CL.net=CL.net||{};
@@ -284,9 +313,9 @@ function rfResenhaComecarHTML(){
   const cartoes=[
     cartao({ic:'🍺', t:'Criar uma sala', on:'clResenhaCreate()', destaque:true,
       d:'Você é o anfitrião: escolhe divisão, ritmo e quem entra.',
-      selo:'ATÉ '+RF_SALA_TETO+' TREINADORES'}),
+      selo:'ATÉ '+rfSalaTeto()+' TREINADORES'}),
     cartao({ic:'🔑', t:'Entrar com código', on:'clResenhaJoinPrompt()',
-      d:'Alguém te passou um código de '+RF_CODIGO_TAM+' letras. Cole e entre direto.',
+      d:'Alguém te passou um código de '+RF_CODIGO_TAM+' caracteres. Cole e entre direto.',
       selo:'ENTRADA IMEDIATA'}),
   ];
   /* o terceiro cartão só existe se houver a que voltar */
@@ -345,7 +374,7 @@ function rfResenhaComecarHTML(){
 }
 /* como no campo das cinco caixas: sem cdraw() por tecla, senão o cursor salta */
 function rfComecarColar(el){
-  const v=String(el.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,RF_CODIGO_TAM);
+  const v=rfCodigoLimpa(el.value);
   el.value=v;
   CL.net=CL.net||{}; CL.net.code=v;
   const bt=document.querySelector('.rf-rc-bt'); if(bt) bt.disabled=v.length<RF_CODIGO_TAM;

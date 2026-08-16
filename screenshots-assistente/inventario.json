@@ -144,18 +144,18 @@
   "id": "escolha",
   "nome": "Criar ou entrar",
   "total": 7,
-  "passo": 3,
-  "rotulo": "3 Resenha",
-  "titulo": "O que você quer fazer?",
-  "ficheiro": "resenha 03 escolha - Criar ou entrar.png"
+  "passo": 2,
+  "rotulo": "2 Modo",
+  "titulo": "",
+  "ficheiro": "resenha 02 escolha - Criar ou entrar.png"
  },
  {
   "modo": "resenha",
   "id": "joincode",
   "nome": "Entrar por codigo",
-  "total": 7,
+  "total": 4,
   "passo": 3,
-  "rotulo": "3 Resenha",
+  "rotulo": "3 Código",
   "titulo": "",
   "ficheiro": "resenha 03 joincode - Entrar por codigo.png"
  },
@@ -163,11 +163,11 @@
   "modo": "resenha",
   "id": "minhassalas",
   "nome": "Minhas salas",
-  "total": 7,
-  "passo": 3,
-  "rotulo": "3 Resenha",
+  "total": 0,
+  "passo": 0,
+  "rotulo": "—",
   "titulo": "",
-  "ficheiro": "resenha 03 minhassalas - Minhas salas.png"
+  "ficheiro": "resenha 00 minhassalas - Minhas salas.png"
  },
  {
   "modo": "resenha",

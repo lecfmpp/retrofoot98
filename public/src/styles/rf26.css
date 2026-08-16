@@ -6268,3 +6268,43 @@
    público. A régua fica a encostar no nav sem este respiro. */
 .rf-wiz>.rf-lp-nav{margin-bottom:0}
 .rf-wiz-in{padding-top:18px}
+
+/* ===== A CONTA NO CABEÇALHO, EM TODA A TELA =====
+   Sair da conta vivia só em Configurações, dentro de um save. Agora está fixo
+   no cabeçalho público (landing + todas as telas do assistente) e na faixa do
+   clube dentro do jogo. */
+.rf-lp-conta{display:flex;align-items:center;gap:7px;height:36px;padding:0 12px;
+  border-radius:11px;background:var(--surface-2);color:var(--text-2);
+  font-size:var(--fs-2);font-weight:600;white-space:nowrap;max-width:180px}
+.rf-lp-conta-n{overflow:hidden;text-overflow:ellipsis}
+.rf-lp-sair{height:36px;padding:0 14px;border-radius:11px;background:var(--surface-card);
+  border:var(--border-control);color:var(--text-2);font-family:inherit;font-size:var(--fs-2);
+  font-weight:600;cursor:pointer;white-space:nowrap}
+.rf-lp-sair:hover{background:color-mix(in srgb,var(--danger) 10%,transparent);
+  border-color:var(--danger);color:var(--danger)}
+.rf-band-conta{display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;
+  border-radius:11px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);
+  color:#fff;font-family:inherit;font-size:var(--fs-1);font-weight:600;cursor:pointer;
+  white-space:nowrap;max-width:190px}
+.rf-band-conta:hover{background:rgba(255,255,255,.24)}
+.rf-band-conta-n{overflow:hidden;text-overflow:ellipsis;max-width:96px}
+@media (max-width:900px){
+  .rf-lp-conta{max-width:120px;padding:0 9px}
+  .rf-band-conta-n{display:none}
+}
+
+/* ----- passo 1 com sessão aberta ----- */
+.rf-ob-sessao{display:flex;align-items:center;gap:12px;padding:16px;border-radius:var(--r-3);
+  background:color-mix(in srgb,var(--ok) 10%,transparent);
+  border:1px solid color-mix(in srgb,var(--ok) 34%,transparent)}
+.rf-ob-sessao-ic{flex:0 0 auto;width:34px;height:34px;display:flex;align-items:center;
+  justify-content:center;border-radius:99px;background:var(--ok);color:#fff}
+.rf-ob-sessao-id{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-ob-sessao-t{font-size:var(--fs-3);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-ob-sessao-e{font-family:var(--font-mono);font-size:var(--fs-2);color:var(--text-3);
+  overflow:hidden;text-overflow:ellipsis}
+.rf-ob-trocar{margin-top:12px;width:100%;padding:13px;border-radius:var(--r-3);
+  border:1px dashed var(--line-2);background:transparent;font-family:inherit;
+  font-size:var(--fs-2);color:var(--text-3);cursor:pointer}
+.rf-ob-trocar b{color:var(--brand-primary)}
+.rf-ob-trocar:hover{background:var(--surface-2)}

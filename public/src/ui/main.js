@@ -1746,7 +1746,11 @@ function clGoModo(mode){
   (async ()=>{
     await netInitSupabase();
     const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
-    if(st.loggedIn){ CL.mgr=CL.mgr||st.name; CL.screen='modo'; }
+    /* O PASSO 1 NAO SE SALTA. Com sessao isto ia direto para 'modo', e quem ja
+       estava logado nunca via em que conta estava nem tinha por onde trocar.
+       Agora cai sempre em 'login', que com sessao mostra quem esta e oferece
+       as duas saidas (ver rfOb1Logado). */
+    if(st.loggedIn){ CL.mgr=CL.mgr||st.name; CL.auth=null; CL.screen='login'; }
     else { CL.auth={mode:mode||'login',name:CL.mgr||'',email:'',password:''}; CL.screen='login'; }
     cdraw();
   })();

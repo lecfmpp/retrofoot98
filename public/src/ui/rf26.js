@@ -316,9 +316,23 @@ function rfBandHTML(titulo){
     </div>
     <button type="button" class="rf-band-gravar" onclick="rfAcGravar()"
       title="Gravar o jogo agora">${rfIcone('salvar',15)} Gravar</button>
+    ${rfBandContaHTML()}
   </div>
   ${rfFaixaEstadoHTML()}`;
 }
+/* SAIR DA CONTA TAMBÉM AQUI DENTRO. Estava só em Configurações, a dois cliques
+   e dentro de uma aba; a decisão foi tê-lo fixo no cabeçalho de toda a tela
+   (16/ago). Na faixa do clube ele é o irmão do Gravar — e é de propósito que
+   grava antes de sair (ver rfSairContaGo). Só aparece com sessão: em hotseat
+   local não há conta de que sair. */
+function rfBandContaHTML(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+  if(!st.loggedIn) return '';
+  const nome=st.name||(st.email||'').split('@')[0]||'treinador';
+  return `<button type="button" class="rf-band-conta" onclick="rfAcSairConta()"
+    title="Sair da conta de ${escC(st.email||nome)}">👤 <span class="rf-band-conta-n">${escC(nome)}</span> · Sair</button>`;
+}
+
 /* ---- FAIXA DE ESTADO — só no telefone ----
    O pacote (Hub do Time - Mobile) põe, logo abaixo do cabeçalho azul, uma tira
    branca com FORMA · MORAL · janela de transferências. É por isso que os cartões

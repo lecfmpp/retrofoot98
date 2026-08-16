@@ -534,7 +534,10 @@ function rfDivisaoSala(room){
 function rfLobbyHTML(){
   const room=(typeof NET!=='undefined'&&NET.room)||{};
   const parts=room.participants||[];
-  const cap=room.capacity||room.max||4;
+  /* `room.capacity` e `room.max` NUNCA sao escritos pelo adaptador, entao isto
+     caia sempre no 4 — a sala mostrava "x de 4" quando o teto real e o numero
+     de assentos (20 na Serie D). Ver rfSalaTeto. */
+  const cap=room.capacity||room.max||rfSalaTeto(room);
   const prontos=parts.filter(p=>p.ready).length;
   const codigo=(typeof NET!=='undefined'&&NET.code)||room.code||'——————';
   const euId=(typeof NET!=='undefined'&&NET.self&&NET.self.id)||null;

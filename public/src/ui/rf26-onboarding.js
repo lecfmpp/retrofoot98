@@ -173,6 +173,13 @@ function rfInput(id, ph, valor, tipo, oninput){
    1 · ENTRAR
    ===================================================================== */
 function rfOb1(){
+  /* JA LOGADO: o passo 1 nao desaparece, muda de conteudo.
+     `clGoModo` saltava direto para "escolher modo" quando havia sessao, entao
+     quem ja estava logado nunca via em que conta estava — e nao tinha por onde
+     trocar sem ir a Configuracoes, que so existe dentro de um save. A Resenha
+     ja tinha esta tela (scConta, pele de 98); o Solo nao tinha nenhuma. */
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+  if(st.loggedIn && !(CL.auth&&CL.auth.trocando)) return rfOb1Logado(st);
   const a=CL.auth||(CL.auth={mode:'signup',name:CL.mgr||'',email:'',password:''});
   const criando=a.mode!=='login';
   const pronto=!!(a.email&&a.password&&(!criando||a.name));
@@ -198,6 +205,35 @@ function rfOb1(){
     nota:'A gente só usa seu e-mail para o save e para avisar da vaga.',
     cta: criando?'Criar conta e continuar':'Entrar e continuar',
     ctaOff:!pronto, ctaOn: criando?'clLoginSignup()':'clLoginDo()'});
+}
+/* o passo 1 com sessao: quem esta, e as duas saidas — seguir ou trocar */
+function rfOb1Logado(st){
+  const nome=st.name||(st.email||'').split('@')[0]||'treinador';
+  const corpo=`
+    <div class="rf-wiz-mid">
+      <div class="rf-ob-sessao">
+        <span class="rf-ob-sessao-ic" aria-hidden="true">${rfIcone('ok',20)||'✓'}</span>
+        <span class="rf-ob-sessao-id">
+          <span class="rf-ob-sessao-t">Você já está logado</span>
+          <span class="rf-ob-sessao-e">${escC(st.email||nome)}</span>
+        </span>
+      </div>
+      <button type="button" class="rf-ob-trocar" onclick="rfObTrocarConta()">
+        Não é você? <b>Entrar com outra conta</b>
+      </button>
+    </div>`;
+  return rfWiz({passo:rfPasso('Entrar'), corpo,
+    sobre:'Bem-vindo de volta', titulo:'Continuar como '+nome+'.',
+    sub:'Seus saves ficam na nuvem — dá para começar no computador e continuar no telefone.',
+    nota:'Dá para trocar de conta a qualquer momento pelo cabeçalho.',
+    cta:'Continuar', ctaOn:"CL.screen='modo';cdraw()"});
+}
+/* NAO desloga: so devolve o formulario, para quem se enganou nao perder a
+   sessao antes de ter a outra em maos. O logout real e o botao Sair do
+   cabecalho (rfAcSairConta). */
+function rfObTrocarConta(){
+  CL.auth={mode:'login',name:'',email:'',password:'',trocando:true};
+  cdraw();
 }
 function rfObAuthMode(m){ CL.auth=CL.auth||{}; CL.auth.mode=m; cdraw(); }
 function rfObSet(k,v){ CL.auth=CL.auth||{}; CL.auth[k]=v; if(k==='aviso') cdraw(); else rfObSyncCta(); }
@@ -236,7 +272,7 @@ function rfOb2(){
         <div class="rf-modo-txt">
           <span class="rf-modo-tag">${RESENHA_EM_BREVE?'Em novembro':'Online'}</span>
           <span class="rf-modo-t">Modo Resenha</span>
-          <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até 20 treinadores jogam a mesma rodada ao vivo, com tabela, mercado e zoeira no chat.</span>
+          <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até ${rfSalaTeto()} treinadores jogam a mesma rodada ao vivo, com tabela, mercado e zoeira no chat.</span>
           <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?"clWaitlistOpen('onboarding')":'clPickResenha()'}">${RESENHA_EM_BREVE?rfIcone('coroa',16)+' Entrar na lista de espera':rfIcone('chat',16)+' Criar a sala'}</button>
         </div>
       </div>
@@ -449,7 +485,7 @@ function rfOb4(){
       <div class="rf-sl-faixa">
         <div class="rf-sl-fx"><span class="rf-sl-l">CÓDIGO</span><span class="rf-sl-fx-v mono">${escC(codigo)}</span></div>
         <span class="rf-sl-fx-sep"></span>
-        <div class="rf-sl-fx"><span class="rf-sl-l">TREINADORES</span><span class="rf-sl-fx-v">até 20</span></div>
+        <div class="rf-sl-fx"><span class="rf-sl-l">TREINADORES</span><span class="rf-sl-fx-v">até ${rfSalaTeto()}</span></div>
         <span class="rf-sl-fx-sep"></span>
         <div class="rf-sl-fx"><span class="rf-sl-l">CLUBES</span><span class="rf-sl-fx-v">por sorteio</span></div>
       </div>
@@ -488,7 +524,8 @@ function rfOb5(){
   const parts=room.participants||[];
   const dentro=parts.filter(p=>p.confirmed).length;
   const convidados=parts.length-dentro;
-  const teto=20, vagas=Math.max(0,teto-parts.length);
+  /* o teto e o numero de assentos da sala, nao um numero escrito a mao (ver rfSalaTeto) */
+  const teto=rfSalaTeto(room), vagas=Math.max(0,teto-parts.length);
   const link=(typeof NET.inviteLink==='function')?NET.inviteLink():'';
   const codigo=room.code||'';
   // mesma armadilha do lobby: aqui `S` ainda é null (ver rfDivisaoSala)
