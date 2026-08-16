@@ -6453,3 +6453,16 @@
   .rf-pitch-card .cl-pp .cl-pp-name{margin-top:1px}
   .rf-pitch-card .cl-pp .rf-pp-meta{margin-top:1px}
 }
+
+/* ===== CARTÃO DO JOGADOR NÃO PODE SER MAIS LARGO QUE A SUA FAIXA =====
+   Na fila de 4 defesas as colunas ficam a 23% umas das outras (15·38·62·85).
+   O cartão media 113px contra uma faixa de 108 — sobrepunha-se 5px ao vizinho,
+   e por isso os números de força se colavam ("89" e "47" a correr juntos).
+   Quem o alargava era a barra de energia, com 48px fixos.
+   O tecto de 22% é sempre menor que a faixa mais apertada; a barra encolhe
+   dentro dele e o nome corta com reticências em vez de empurrar a caixa. */
+.rf-pitch-card .cl-pp{max-width:22%;box-sizing:border-box}
+.rf-pitch-card .cl-pp .rf-pp-meta{max-width:100%;min-width:0}
+.rf-pitch-card .cl-pp .rf-pp-bar{flex:1 1 auto;min-width:14px}
+.rf-pitch-card .cl-pp .cl-pp-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
