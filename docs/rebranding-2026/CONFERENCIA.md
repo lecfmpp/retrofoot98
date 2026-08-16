@@ -525,6 +525,25 @@ Nenhum `onclick` para função inexistente e nenhum `<button>` sem ação em
       Onde o pacote dá número, o novo bate: moeda 3, treinadores 4, escolha dos
       clubes 6.
 
+- [x] **Duas telas ficaram para trás na primeira passagem** (16/ago): o sorteio
+      do clube acendia o passo **4** ("Sala") e as boas-vindas o **5**
+      ("Convites") — dois e três passos atrás de onde o jogador estava. Eram as
+      únicas que não tinham rótulo escrito à mão, e por isso escaparam à
+      correção anterior. Agora acendem 6 (Clube) e 7 (Jogar).
+
+### Quadro conferido — as doze telas do assistente
+| # | Passo da régua | Telas | Rótulo |
+|---|---|---|---|
+| 1 | Entrar | login | frase |
+| 2 | Modo | modo · modo solo | frase · PASSO 2 DE 7 |
+| 3 | País e liga | países · país jogável · moeda | frase · PASSO 3 DE 7 |
+| 4 | Sala | nº de treinadores · criar sala | PASSO 4 DE 7 |
+| 5 | Convites | sala aberta | PASSO 5 DE 7 |
+| 6 | Clube | escolha dos clubes · sorteio | PASSO 6 DE 7 · frase |
+| 7 | Jogar | boas-vindas | frase |
+
+Em todas, o número impresso e o item aceso na régua **são o mesmo**.
+
 ### Divergência deliberada
 - As telas de Onboarding 1, 2 e 3 mostram uma **frase** ("Bem-vindo, treinador")
   em vez do número. É o que o pacote faz nelas, e a régua acima já diz a posição

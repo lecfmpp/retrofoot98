@@ -635,7 +635,9 @@ function rfOb6(){
       </div>
     </div>`;
   const fim=feitos>=total;
-  return rfWiz({passo:4, corpo,
+  /* CLUBE é o passo 6 da régua. Estava em 4 — a régua acendia "Sala" durante o
+     sorteio do clube, dois passos atrás de onde o jogador estava. */
+  return rfWiz({passo:6, corpo,
     sobre:'Cerimônia do sorteio',
     titulo: fim?'Times sorteados!':'Sorteando os clubes, boa sorte!',
     sub:'Cada treinador escolheu o país; o clube sai no sorteio. É a mesma cerimônia no solo e na resenha.',
@@ -734,7 +736,8 @@ function rfOb7(){
         <div class="rf-ob-esc-bar"><i style="width:${Math.max(0,Math.min(100,seg))}%"></i></div>
       </div>
     </div>`;
-  return rfWiz({passo:5, corpo,
+  /* JOGAR é o passo 7, o último. Estava em 5 ("Convites"). */
+  return rfWiz({passo:7, corpo,
     sobre:'Você é o novo treinador', titulo:'Bem-vindo ao '+(cl.short||'clube')+'.',
     sub:'A diretoria confia. A torcida quer acesso.',
     nota:'Daqui você cai direto na tela de Formação.',
