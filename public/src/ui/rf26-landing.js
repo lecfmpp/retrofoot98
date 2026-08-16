@@ -106,10 +106,16 @@ function rfLpMaqueteTabelaHTML(){
     <div class="rf-lpm-body">
       <div class="rf-label"><span class="rf-label-t">Classificação · Série D</span>
         <span class="rf-label-r">4º de 64</span></div>
-      <div class="rf-tabs">
-        <button type="button" class="rf-tab on">Série D</button>
-        <button type="button" class="rf-tab">Copa do Brasil</button>
-        <button type="button" class="rf-tab">Libertadores</button>
+      <!-- MAQUETE, NÃO CONTROLO. Estas abas e o botão do leilão mais abaixo são
+           o retrato do jogo dentro da página de apresentação: ninguém os pode
+           clicar, porque não há jogo nenhum por trás. Eram <button> de verdade,
+           e quem navegasse a landing pelo teclado batia em quatro paragens que
+           recebiam foco e não faziam nada. Viram <span>, com a aparência
+           intacta e escondidos do leitor de tela. -->
+      <div class="rf-tabs" aria-hidden="true">
+        <span class="rf-tab on">Série D</span>
+        <span class="rf-tab">Copa do Brasil</span>
+        <span class="rf-tab">Libertadores</span>
       </div>
       <div class="rf-tb-head"><span></span><span></span><span>J</span><span>V</span>
         <span>E</span><span>D</span><span>GM:GS</span><span>P</span></div>
@@ -160,7 +166,7 @@ function rfLpMaqueteLeilaoHTML(){
       ${l('Kauã Patrick','MEI',22,'R$ 240k')}
       ${l('Fidel Rocha','ATA',24,'R$ 230k')}
       ${l('Bruno Limão','ZAG',26,'R$ 120k')}
-      <button type="button" class="rf-lp-cta2">🔨 Cobrir lance</button>
+      <span class="rf-lp-cta2" aria-hidden="true">🔨 Cobrir lance</span>
     </div>
   </div>`;
 }

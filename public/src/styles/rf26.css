@@ -5957,3 +5957,20 @@
    quatro clubes lado a lado, e a 980px o nome do clube ficava com 63px. É a
    largura que o pacote desenha para estas telas. */
 .rf-wiz-larga>.rf-wiz-in{width:1080px}
+
+/* as peças de maquete da landing não são clicáveis: viraram <span> e precisam
+   do desenho do botão sem o comportamento dele (ver rf26-landing.js) */
+.rf-tabs>span.rf-tab,span.rf-lp-cta2{cursor:default;user-select:none}
+
+/* ===== NO TELEFONE, O PAUSAR NÃO VIAJA COM AS ABAS =====
+   A faixa do Camarote é [abas] · espaçador · [⏸ Pausar]. Em 375px ela não cabe
+   e rola de lado — as abas podem rolar, mas o Pausar não: ele ia parar a 478px,
+   fora da tela, e durante uma partida ao vivo o jogador tinha de arrastar as
+   abas para o encontrar. Controlo de partida não se procura.
+   No telefone a faixa quebra: as abas na primeira linha, o Pausar em largura
+   cheia na segunda, sempre à vista. */
+@media (max-width:760px){
+  .rf-cam-abas{flex-wrap:wrap;row-gap:6px}
+  .rf-cam-abas>.rf-sp{display:none}
+  .rf-cam-pausar,.rf-cam-ritmo{flex:1 0 100%;margin-right:0;text-align:center}
+}

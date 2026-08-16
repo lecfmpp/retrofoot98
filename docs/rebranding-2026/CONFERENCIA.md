@@ -618,11 +618,54 @@ europeias. O "playoff" existe apenas como **rótulo de zona da tabela**
 (`rf26-competicao.js`), não como competição sorteada e jogada.
 
 Nada foi inventado para preencher: a projeção de Finanças mostra saldo previsto,
-por rodada, jornadas que faltam e folha por rodada — dados reais. Fica registado
-como **funcionalidade a decidir**, não como tela por portar.
+por rodada, jornadas que faltam e folha por rodada — dados reais.
+
+**DECIDIDO (16/ago): o playoff da Série D não existe e não vai existir.** As
+telas `Sorteio 5 - Playoff Serie D` e `Sorteio 6 - Playoff Libertadores` e os
+blocos de playoff do pacote ficam **fora do porte** — não são telas pendentes.
 
 ### Divergência deliberada
 - O pacote põe FOTO DO TREINADOR, DADOS DO TREINADOR e A SUA CARREIRA em
   Configurações; no jogo o perfil e os números vivem na página **Treinador**
   (abas Perfil e Carreira). Não se perde nada — muda de página
 - Não há foto do treinador no jogo; o pacote reserva espaço para uma
+
+---
+
+# 17 · As seis últimas telas
+
+Imprensa, Camarote, Ver time do adversário, Competição (visão geral),
+Classificação da fase de copa e Landing.
+
+### Varreduras estáticas — passam limpo
+`rf26-competicao.js`, `rf26-landing.js`, `rf26-live.js`: nenhum `onclick` para
+função inexistente, nenhum campo de `S.` que o motor não escreva.
+
+### Conferido
+- [x] **Competição** — "O seu caminho" com a classificação do grupo do clube e
+      "Como estão os grupos" com os oito líderes, A a H
+- [x] **Classificação da fase** — resultado dos confrontos, o que o clube levou
+      até ali e possíveis adversários
+- [x] **Imprensa** e **Ver time do adversário** — desenham com ação em todos os
+      botões, sem transbordo em 375px
+- [x] **Landing** — sem rolagem lateral no telefone
+
+### Corrigido nesta rodada
+- [x] **Quatro botões de maquete na landing.** As abas "Série D · Copa do Brasil
+      · Libertadores" e o "Cobrir lance" dentro das ilustrações eram `<button>`
+      de verdade: quem navegasse a página de apresentação pelo teclado batia em
+      quatro paragens que recebiam foco e não faziam nada. Viraram `<span>`,
+      com a aparência intacta e `aria-hidden`. Medido depois: **zero elementos
+      focáveis dentro das maquetes**, e os três CTAs reais intactos
+- [x] **O "Pausar" do Camarote fugia da tela no telefone.** A faixa é
+      `[abas] · espaçador · [⏸ Pausar]`; em 375px ela não cabe e rola de lado.
+      As abas podem rolar — o Pausar não: ficava a 478px, fora da tela, e
+      durante uma partida ao vivo era preciso arrastar as abas para o encontrar.
+      Agora a faixa quebra: abas na primeira linha, Pausar em largura cheia na
+      segunda
+
+### Falso alarme registado
+Li no screenshot que "Como estão os grupos" mostrava letras repetidas (dois C,
+dois D, um "R"). Estava a ler a grade **por coluna** quando ela preenche **por
+linha**. Medido no DOM: A a H em ordem, cada um com o líder certo. Terceiro
+episódio do mesmo erro — **medir, não olhar**.
