@@ -5974,3 +5974,71 @@
   .rf-cam-abas>.rf-sp{display:none}
   .rf-cam-pausar,.rf-cam-ritmo{flex:1 0 100%;margin-right:0;text-align:center}
 }
+
+/* ===== AÇÕES: OPÇÕES E ESTÁDIO =====
+   As peças novas de "Acoes - Opcoes e Estadio": abas do diálogo, linha de
+   opção com botões segmentados, o salto AGORA→DEPOIS da obra, o bloco
+   "como funciona" e a tabela curta do histórico. */
+.rf-ac-abas{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--surface-2)}
+.rf-ac-aba{flex:1;height:34px;border:0;border-radius:9px;background:transparent;cursor:pointer;
+  font-size:var(--fs-3);font-weight:600;color:var(--text-2);font-family:inherit}
+.rf-ac-aba.on{background:var(--surface-1);color:var(--text-1);box-shadow:0 1px 3px rgba(20,33,26,.12)}
+.rf-ac-opanel{display:flex;flex-direction:column}
+
+.rf-ac-orow{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:11px 0;border-bottom:1px solid var(--line-1)}
+.rf-ac-orow:last-child{border-bottom:0}
+.rf-ac-or-id{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.rf-ac-or-t{font-size:var(--fs-3);color:var(--text-1);text-wrap:pretty}
+.rf-ac-or-s{font-size:var(--fs-1);color:var(--text-3);line-height:1.45;text-wrap:pretty}
+.rf-ac-seg{display:flex;gap:3px;padding:3px;border-radius:10px;background:var(--surface-2);flex:0 0 auto}
+.rf-ac-sg{height:28px;padding:0 10px;border:0;border-radius:8px;background:transparent;cursor:pointer;
+  font-size:var(--fs-1);font-weight:600;color:var(--text-2);white-space:nowrap;font-family:inherit}
+.rf-ac-sg.on{background:var(--brand-primary);color:#fff}
+.rf-ac-seg-lock{display:flex;align-items:center;gap:6px;font-size:var(--fs-2);color:var(--text-3);
+  white-space:nowrap;flex:0 0 auto}
+.rf-ac-bt.peq{height:34px;padding:0 13px;font-size:var(--fs-1);flex:0 0 auto}
+
+.rf-ac-salto{display:flex;align-items:stretch;gap:10px}
+.rf-ac-sl-c{flex:1;display:flex;flex-direction:column;gap:2px;padding:11px 13px;border-radius:var(--r-3);
+  background:var(--surface-2);min-width:0}
+.rf-ac-sl-c.depois{background:color-mix(in srgb,var(--ok) 12%,transparent)}
+.rf-ac-sl-l{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:9px;font-weight:600;
+  letter-spacing:.12em;color:var(--text-3);white-space:nowrap}
+.rf-ac-sl-v{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:19px;font-weight:600;
+  color:var(--text-1);white-space:nowrap}
+.rf-ac-sl-d{font-size:var(--fs-1);font-weight:700;color:var(--ok);white-space:nowrap}
+.rf-ac-sl-seta{align-self:center;font-size:17px;color:var(--text-3);flex:0 0 auto}
+
+.rf-ac-como{display:flex;flex-direction:column;gap:7px;padding:13px;border-radius:var(--r-3);
+  background:var(--surface-2)}
+.rf-ac-como-t{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:9px;font-weight:600;
+  letter-spacing:.12em;color:var(--text-3)}
+.rf-ac-como-i{display:flex;align-items:flex-start;gap:8px;min-width:0}
+.rf-ac-como-b{flex:0 0 auto;font-style:normal;font-size:var(--fs-2);line-height:1.5;color:var(--text-3)}
+.rf-ac-como-x{font-size:var(--fs-2);color:var(--text-2);line-height:1.5;text-wrap:pretty;min-width:0}
+.rf-ac-como-x b{color:var(--text-1)}
+
+.rf-ac-hsub{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:9px;font-weight:600;
+  letter-spacing:.12em;color:var(--text-3);text-transform:uppercase}
+.rf-ac-tab{display:flex;flex-direction:column}
+.rf-ac-tb-h,.rf-ac-tb-r{display:grid;gap:10px;align-items:center;padding:8px 0;min-width:0}
+.rf-ac-tb-h{border-bottom:1px solid var(--line-2);font-family:var(--font-mono,'IBM Plex Mono',monospace);
+  font-size:9px;font-weight:600;letter-spacing:.12em;color:var(--text-3)}
+.rf-ac-tb-r{border-bottom:1px solid var(--line-1);font-size:var(--fs-2);color:var(--text-1)}
+.rf-ac-tb-r:last-child{border-bottom:0}
+.rf-ac-tb-h>span,.rf-ac-tb-r>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rf-ac-tb-h>span.dir,.rf-ac-tb-r>span.dir{text-align:right}
+
+/* telemóvel: a linha de opção empilha, e os segmentados passam a ocupar a largura */
+@media (max-width:560px){
+  .rf-ac-orow{flex-direction:column;align-items:stretch;gap:8px}
+  /* cinco ritmos (Curto..Usain Bolt) nao cabem numa fila de 375px: com flex:1 e
+     texto nowrap os botoes nao encolhem abaixo do conteudo e transbordavam 32px.
+     A fila quebra em vez de esticar. */
+  .rf-ac-seg{width:100%;flex-wrap:wrap}
+  .rf-ac-sg{flex:1 1 auto;min-width:0;padding:0 10px;text-align:center}
+  .rf-ac-salto{flex-direction:column;gap:6px}
+  .rf-ac-sl-seta{transform:rotate(90deg)}
+  .rf-ac-bt.peq{width:100%}
+}

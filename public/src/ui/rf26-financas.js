@@ -285,7 +285,11 @@ function rfFiEstadioHTML(){
       </div>
       <div class="rf-card">
         <div class="rf-label"><span class="rf-label-t">OBRAS</span></div>
-        <button type="button" class="rf-fi-obra" onclick="clBuildStand&&clBuildStand()" ${cap>=max?'disabled':''}>
+        <!-- Vai ao diálogo, nunca direto ao motor: clBuildStand() constrói sem confirmar e,
+             quando recusa, reabria renderStadium() — o overlay de 98 — por cima da pele nova.
+             rfAcEstadio() mostra a obra ou a recusa certa, ambas no desenho novo. E deixou de
+             ser desativado no tecto: é justamente aí que a explicação do porque importa. -->
+        <button type="button" class="rf-fi-obra" onclick="rfAcEstadio()">
           <span class="rf-fi-obra-n">${cap>=max?'No teto de expansão':'Nova bancada'}</span>
           <span class="rf-fi-obra-v">${escC(fmt(custo))}</span>
           <span class="rf-fi-obra-p">+5.000</span>

@@ -553,3 +553,271 @@ function rfAcaoHTML(){
   if(!f){ CL.acao=null; return ''; }
   try{ return f(rfAcD())||''; }catch(e){ CL.acao=null; return ''; }
 }
+
+/* ---------- OPÇÕES E ESTÁDIO (9) ----------
+   Porte de "Acoes - Opcoes e Estadio.html", o último ficheiro do pacote que
+   ainda não tinha pele nova. As três telas que estes diálogos substituem
+   (clOptions, clStadium, clClubHistory) continuavam a desenhar-se com o
+   dlg()/overlayC() de 98 — e as três eram alcançáveis a partir da pele nova:
+   Configurações → "Abrir opções do jogo", Hub → "Gerir estádio", e o menu
+   do topo. Ver o override no fim deste ficheiro.
+
+   DUAS COISAS DO PACOTE QUE O MOTOR NÃO TEM, e que por isso não estão aqui:
+   · o NOME do estádio ("Barão de Serra Negra") — o save só guarda capacidade
+     (S.clubStadiumCap) e foto (STADIUM_IMG); não há tabela de nomes;
+   · a coluna PTS do histórico — S.history guarda posição, divisão e taças,
+     nunca os pontos. A coluna que entrou no lugar é TAÇAS, que é real. */
+
+/* abas do diálogo (Geral | Jogo) */
+function rfAcAbasHTML(abas, atual){
+  return `<div class="rf-ac-abas">${abas.map(a=>
+    `<button type="button" class="rf-ac-aba ${a.k===atual?'on':''}"
+      onclick="rfAcEscolher('aba','${a.k}')">${escC(a.l)}</button>`).join('')}</div>`;
+}
+/* linha de opção: rótulo à esquerda, botões segmentados à direita.
+   `travada` desenha o cadeado do pacote em vez dos botões. */
+function rfAcSegHTML(rotulo, chave, opcoes, val, dica, travada){
+  const dir = travada
+    ? `<span class="rf-ac-seg-lock">🔒 ${escC(travada)}</span>`
+    : `<span class="rf-ac-seg">${opcoes.map(o=>
+        `<button type="button" class="rf-ac-sg ${o===val?'on':''}"
+          onclick="rfOpcoesSet('${chave}',this.dataset.v)" data-v="${escC(o)}">${escC(o)}</button>`).join('')}</span>`;
+  return `<div class="rf-ac-orow">
+    <span class="rf-ac-or-id"><span class="rf-ac-or-t">${escC(rotulo)}</span>
+      ${dica?`<span class="rf-ac-or-s">${escC(dica)}</span>`:''}</span>
+    ${dir}
+  </div>`;
+}
+/* AGORA → DEPOIS DA OBRA */
+function rfAcSaltoHTML(rotA, a, rotB, b, delta){
+  return `<div class="rf-ac-salto">
+    <span class="rf-ac-sl-c"><span class="rf-ac-sl-l">${escC(rotA)}</span>
+      <span class="rf-ac-sl-v">${escC(a)}</span></span>
+    <span class="rf-ac-sl-seta">→</span>
+    <span class="rf-ac-sl-c depois"><span class="rf-ac-sl-l">${escC(rotB)}</span>
+      <span class="rf-ac-sl-v">${escC(b)}</span>
+      ${delta?`<span class="rf-ac-sl-d">${escC(delta)}</span>`:''}</span>
+  </div>`;
+}
+/* bloco "COMO FUNCIONA" — lista de itens com marcador */
+function rfAcComoHTML(titulo, itens){
+  return `<div class="rf-ac-como">
+    <span class="rf-ac-como-t">${escC(titulo)}</span>
+    ${itens.map(i=>`<span class="rf-ac-como-i">
+      <i class="rf-ac-como-b">${i.ico||'·'}</i>
+      <span class="rf-ac-como-x">${i.tt?`<b>${escC(i.tt)}</b> `:''}${escC(i.t)}</span></span>`).join('')}
+  </div>`;
+}
+/* tabela curta (histórico do clube) */
+function rfAcTabelaHTML(cols, linhas){
+  const g=cols.map(c=>c.w||'1fr').join(' ');
+  return `<div class="rf-ac-tab">
+    <div class="rf-ac-tb-h" style="grid-template-columns:${g}">
+      ${cols.map(c=>`<span class="${c.dir?'dir':''}">${escC(c.l)}</span>`).join('')}</div>
+    ${linhas.map(r=>`<div class="rf-ac-tb-r" style="grid-template-columns:${g}">
+      ${r.map((v,i)=>`<span class="${cols[i]&&cols[i].dir?'dir':''}">${v}</span>`).join('')}</div>`).join('')}
+  </div>`;
+}
+
+/* ===== OS DADOS REAIS DO ESTÁDIO =====
+   Uma só leitura do estado, usada pelo diálogo de obra e pelas três recusas,
+   pra que os números do "pode construir" e do "não pode" nunca discordem. */
+function rfEstadioEstado(){
+  const st=(typeof myStadium==='function')?myStadium():null;
+  const cap=(st&&st.capacity)||STAND_START;
+  const feito=(st&&st.builtThisSeason)||0;
+  const teto=(typeof stadiumMaxCapacity==='function')?stadiumMaxCapacity():cap;
+  const custo=(typeof standCost==='function')?standCost():0;
+  const caixa=(S&&S.budget)||0;
+  return { cap, feito, teto, custo, caixa,
+    sobraCota:Math.max(0,SEASON_BUILD_LIMIT-feito),
+    noTeto:(cap+STAND_SEATS)>teto,
+    semCota:((feito+STAND_SEATS)>SEASON_BUILD_LIMIT),
+    semCaixa:(caixa<custo) };
+}
+/* Abre a obra OU a recusa certa — a mesma ordem de checagem do clBuildStand,
+   para que o diálogo nunca ofereça um botão que o motor vai recusar. */
+function rfAcEstadio(){
+  const e=rfEstadioEstado();
+  if(e.noTeto)   return rfAcAbrir('est-teto');
+  if(e.semCota)  return rfAcAbrir('est-cota');
+  if(e.semCaixa) return rfAcAbrir('est-caixa');
+  rfAcAbrir('est-construir');
+}
+function rfEstConstruirGo(){
+  const e=rfEstadioEstado();
+  if(e.noTeto)   return rfAcAbrir('est-teto');
+  if(e.semCota)  return rfAcAbrir('est-cota');
+  if(e.semCaixa) return rfAcAbrir('est-caixa');
+  rfAcFechar();
+  if(typeof clBuildStand==='function') clBuildStand();
+}
+
+/* ===== AS OPÇÕES ===== */
+function rfOpcoesSet(k,v){
+  if(!CL.options) CL.options={};
+  CL.options[k]=v;
+  /* NAO chamar clSetTempo(): ele termina em renderOptions(), que reabre o overlay
+     de 98 por tras deste dialogo. O que ele faz de util e so a linha abaixo —
+     publicar o ritmo para a sala, e so o anfitriao pode. */
+  if(k==='tempo' && CL.online && typeof NET!=='undefined' && NET.isHost
+     && typeof clSetSpeed==='function' && typeof TEMPO_MULT!=='undefined'){
+    clSetSpeed(TEMPO_MULT[v]||1);
+  }
+  cdraw();
+}
+function rfOpcoesGuardar(){
+  rfAcFechar();
+  if(typeof rfGravar==='function') rfGravar();
+  if(typeof toastC==='function') toastC('Opções guardadas.');
+}
+
+const RF_ACOES_EXTRA = {
+
+'opcoes': d=>{
+  if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',
+    gravar:'De 3 em 3 jornadas',som:'Sim',subsIntervalo:'Sim',penaltisCPU:'Sim',tempo:TEMPO_DEFAULT};
+  if(!CL.options.autoSave) CL.options.autoSave='Sim';
+  const o=CL.options, aba=d.aba||'geral';
+  const online=!!CL.online, anfitriao=(typeof NET!=='undefined' && NET.isHost);
+  // na sala, só o anfitrião mexe no ritmo — a partida é uma só para todos
+  const trava = (online && !anfitriao)
+    ? ((typeof tempoLabelFromMult==='function')?tempoLabelFromMult(CL.speedMult):(o.tempo||'—')) : null;
+
+  const geral =
+      rfAcSegHTML('Mostrar chicotadas psicológicas','chicotadas',['Nunca','Dos humanos','De todos'],o.chicotadas)
+    + rfAcSegHTML('Ver sorteio da taça','sorteio',['Nunca','Quando houver humanos','Sempre'],o.sorteio)
+    + rfAcSegHTML('Gravar o jogo','gravar',['Nunca','De 3 em 3 jornadas','Sempre'],o.gravar)
+    + rfAcSegHTML('Som','som',['Sim','Não'],o.som)
+    + rfAcSegHTML('Salvamento automático','autoSave',['Sim','Não'],o.autoSave,
+        'Guarda as 3 últimas jornadas e o fim de cada temporada.')
+    + `<div class="rf-ac-orow">
+        <span class="rf-ac-or-id"><span class="rf-ac-or-t">Voltar a um ponto guardado</span>
+          <span class="rf-ac-or-s">Abre a lista dos pontos guardados neste save.</span></span>
+        <button type="button" class="rf-ac-bt fantasma peq" onclick="rfAcFechar();clAutoSaveAbrir&&clAutoSaveAbrir()">Escolher ponto…</button>
+      </div>`;
+
+  const jogo =
+      rfAcSegHTML('Substituições ao intervalo','subsIntervalo',['Sim','Não'],o.subsIntervalo)
+    + rfAcSegHTML('Ver desempates por penalties','penaltisCPU',['Sim','Não'],o.penaltisCPU,
+        'Nos jogos sem treinadores humanos.')
+    + rfAcSegHTML('Tempo de jogo','tempo',['Curto','Médio','Longo','Ultrassônico','Usain Bolt'],
+        o.tempo, trava?('Numa resenha, quem define o tempo de jogo é o Anfitrião. Fale com ele para mudar.'):'', trava)
+    + ((typeof TEMPO_TESTE!=='undefined' && TEMPO_TESTE)
+        ? rfAcAvisoHTML('🧪 <b>Modo de teste:</b> o ritmo está travado em <b>'+escC(TEMPO_TESTE)+'</b> no Solo e na Resenha, ignorando esta opção e a escolha do anfitrião.','aviso')
+        : '');
+
+  return rfAcao({
+    kicker:'OPÇÕES DO JOGO'+((online&&NET&&NET.room&&NET.room.code)?(' · SALA '+escC(String(NET.room.code).toUpperCase())):''),
+    titulo:'Opções', w:560,
+    corpo: rfAcAbasHTML([{k:'geral',l:'Geral'},{k:'jogo',l:'Jogo'}], aba)
+      + `<div class="rf-ac-opanel">${aba==='geral'?geral:jogo}</div>`,
+    acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Guardar',on:'rfOpcoesGuardar()'}] });
+},
+
+'hist-clube': d=>{
+  const id=d.clubId||CL.clubId;
+  const c=(typeof clubOf==='function')?clubOf(id):null;
+  const nome=(c&&(c.name||c.short))||'—';
+  const linhas=((S&&S.history)||[]).filter(h=>h.clubId===id).slice().reverse();
+  const tacas=h=>{
+    const t=[]; if(h.myCups){ Object.keys(h.myCups).forEach(k=>{ if(/campeã|campeao|vencedor|título|titulo/i.test(String(h.myCups[k]||''))) t.push('🏆'); }); }
+    if(h.champ && c && h.champ===(c.short||c.name)) t.unshift('🏆');
+    return t.length?t.join(''):'—';
+  };
+  const corpo = linhas.length
+    ? rfAcTabelaHTML(
+        [{l:'ANO',w:'52px'},{l:'DIVISÃO'},{l:'POSIÇÃO'},{l:'TAÇAS',w:'62px',dir:true}],
+        linhas.map(h=>[String(h.season||'—'),
+          'Série '+escC(h.division||'—'),
+          h.myPos?(h.myPos+'º'):'—',
+          tacas(h)]))
+      + rfAcNotaHTML('O histórico guarda só as temporadas em que <b>você</b> foi o treinador do clube. A temporada em curso entra aqui quando fechar.')
+    : rfAcSeloHTML('📕','Você nunca comandou o '+escC(nome),'')
+      + rfAcNotaHTML('O histórico guarda só as temporadas em que <b>você</b> foi o treinador do clube. O mundo do jogo começou em 2026 — nenhum clube tem passado antes disso.');
+  return rfAcao({ kicker:'HISTÓRICO NESTE SAVE', titulo:escC(nome), w:520,
+    corpo:
+      (linhas.length?`<div class="rf-ac-hsub">${linhas.length} temporada${linhas.length===1?'':'s'} sob o seu comando</div>`:'')
+      + corpo,
+    acoes:[{l:'Fechar'}] });
+},
+
+'est-construir': d=>{
+  const e=rfEstadioEstado();
+  const c=(typeof clubOf==='function')?clubOf(CL.clubId):null;
+  return rfAcao({ kicker:'ESTÁDIO DO '+escC(String((c&&(c.short||c.name))||'CLUBE')).toUpperCase(),
+    titulo:'Construir mais uma bancada', w:520,
+    corpo:
+      rfAcSaltoHTML('AGORA', grp(e.cap), 'DEPOIS DA OBRA', grp(e.cap+STAND_SEATS), '+'+grp(STAND_SEATS))
+      + rfAcLinhaHTML('Custo da bancada', rfDin(e.custo), 'aviso', true)
+      + rfAcLinhaHTML('Caixa depois da obra', rfDin(e.caixa-e.custo), (e.caixa-e.custo)>0?'ok':'ruim')
+      + rfAcLinhaHTML('Cota da temporada', grp(e.feito)+' de '+grp(SEASON_BUILD_LIMIT)+' usados', '')
+      + rfAcLinhaHTML('Tecto do porte do clube', grp(e.teto)+' lugares', '')
+      + rfAcComoHTML('COMO FUNCIONA A OBRA', [
+          {t:'Cada bancada são '+grp(STAND_SEATS)+' lugares.'},
+          {t:'No máximo '+grp(SEASON_BUILD_LIMIT)+' lugares por temporada — obra é lenta e cresce por anos.'},
+          {t:'O tecto sobe com o porte do clube: título e elenco melhor liberam mais.'} ])
+      + rfAcNotaHTML('Mais lugares rendem mais bilheteria nos jogos em casa. As bancadas novas só valem a partir do próximo jogo.'),
+    acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Construir',on:'rfEstConstruirGo()'}] });
+},
+
+'est-cota': d=>{
+  const e=rfEstadioEstado();
+  const ano=(S&&S.season)||2026;
+  return rfAcao({ kicker:'ESTÁDIO · OBRA RECUSADA', titulo:'Cota da temporada esgotada', w:480,
+    corpo:
+      rfAcAvisoHTML('Você já construiu '+grp(e.feito)+' lugares nesta temporada. O limite é por ano — a próxima bancada só na temporada de '+(ano+1)+'.','aviso')
+      + rfAcLinhaHTML('Construído em '+ano, grp(e.feito)+' lugares', 'aviso', true)
+      + rfAcLinhaHTML('Limite por temporada', grp(SEASON_BUILD_LIMIT)+' lugares', '')
+      + rfAcLinhaHTML('Capacidade atual', grp(e.cap)+' lugares', '')
+      + rfAcLinhaHTML('Libera em', 'temporada '+(ano+1), 'ok')
+      + rfAcNotaHTML('O caixa fica reservado para reforços até lá.'),
+    acoes:[{l:'Entendi'}] });
+},
+
+'est-teto': d=>{
+  const e=rfEstadioEstado();
+  const c=(typeof clubOf==='function')?clubOf(CL.clubId):null;
+  const nome=(c&&(c.short||c.name))||'clube';
+  return rfAcao({ kicker:'ESTÁDIO · OBRA RECUSADA', titulo:'O clube ainda não sustenta mais', w:480,
+    corpo:
+      rfAcAvisoHTML('O estádio chegou ao tecto do porte do '+escC(nome)+'. Para construir mais, o clube precisa crescer.','aviso')
+      + rfAcLinhaHTML('Capacidade atual', grp(e.cap)+' lugares', '', true)
+      + rfAcLinhaHTML('Tecto do porte atual', grp(e.teto)+' lugares', 'aviso')
+      + rfAcComoHTML('COMO SUBIR O TECTO', [
+          {ico:'🏆', tt:'Ganhar um título', t:'sobe o porte do clube de imediato'},
+          {ico:'📈', tt:'Subir de divisão',  t:'cada divisão amplia o tecto'},
+          {ico:'👤', tt:'Elenco mais forte', t:'a força média do plantel conta'} ]),
+    acoes:[{l:'Entendi'}] });
+},
+
+'est-caixa': d=>{
+  const e=rfEstadioEstado();
+  const falta=Math.max(0,e.custo-e.caixa);
+  return rfAcao({ kicker:'ESTÁDIO · OBRA RECUSADA', titulo:'Caixa insuficiente para a obra', w:480,
+    corpo:
+      rfAcAvisoHTML('Não há caixa para pagar a bancada à vista. A obra não é parcelada.','perigo')
+      + rfAcLinhaHTML('Custo da bancada', rfDin(e.custo), 'aviso', true)
+      + rfAcLinhaHTML('Caixa disponível', rfDin(e.caixa), '')
+      + rfAcLinhaHTML('Falta', rfDin(falta), 'ruim')
+      + rfAcNotaHTML('Vender um jogador do elenco ou esperar a bilheteria das próximas em casa são os caminhos mais rápidos.'),
+    acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Ir ao mercado',on:'rfAcFechar();rfSetTab(\'mercado\',\'vender\')'}] });
+},
+
+};
+Object.keys(RF_ACOES_EXTRA).forEach(k=>{ RF_ACOES[k]=RF_ACOES_EXTRA[k]; });
+
+/* ===== O OVERRIDE =====
+   As três funções antigas continuam a existir e a ser chamadas de vários
+   pontos (menu do topo, Hub, Configurações, Finanças). Em vez de caçar cada
+   chamada, redefinimos as três aqui — este ficheiro carrega depois do main.js
+   —, e assim TODO caminho, novo ou velho, cai na pele nova. */
+if(typeof clOptions==='function'){
+  window.clOptions=function(){ CL.menu=null; rfAcAbrir('opcoes',{aba:'geral'}); };
+}
+if(typeof clStadium==='function'){
+  window.clStadium=function(){ CL.menu=null; rfAcEstadio(); };
+}
+if(typeof clClubHistory==='function'){
+  window.clClubHistory=function(clubId){ CL.menu=null; rfAcAbrir('hist-clube',{clubId:clubId||CL.clubId}); };
+}

@@ -688,3 +688,63 @@ Li no screenshot que "Como estão os grupos" mostrava letras repetidas (dois C,
 dois D, um "R"). Estava a ler a grade **por coluna** quando ela preenche **por
 linha**. Medido no DOM: A a H em ordem, cada um com o líder certo. Terceiro
 episódio do mesmo erro — **medir, não olhar**.
+
+
+## Modais Solo — auditoria de desenho (16/ago)
+
+O zip `Modais Solo e Resenha_16-Ag.zip` e **byte a byte igual** ao pacote
+anterior na pasta `1-modo-solo/` (29 ficheiros, todos `cmp -s` identicos). Nao
+e desenho novo: e o mesmo recorte, separado por modo. A auditoria feita foi,
+por isso, o diff que faltava — os 33 dialogos das quatro galerias `Acoes - *`
+contra o que o jogo desenha de facto.
+
+| Galeria | No pacote | Ja implementados | Em falta |
+|---|---|---|---|
+| Mercado | 9 | 9 | — |
+| Sistema e Conta | 8 | 8 | — |
+| Elenco e E-mail | 7 | 6 | confirmar treino especial |
+| **Opcoes e Estadio** | **9** | **0** | **os nove** |
+
+### O que estava errado
+Tres telas continuavam a desenhar-se com o `dlg()`/`overlayC()` de 98 — e as
+tres eram alcancaveis a partir da pele nova, o que nao aparecia em nenhuma
+varredura porque nada falhava:
+
+- `clOptions()` ← Configuracoes "Abrir opcoes do jogo", Hub, menu do topo
+- `clStadium()` ← Hub "Gerir estadio", menu do topo
+- `clClubHistory()` ← menu do topo
+
+Alem disso, o botao **Financas ▸ Obras** chamava `clBuildStand()` direto: sem
+confirmacao, e quando o motor recusava a obra ele reabria `renderStadium()` —
+o overlay de 98 — por cima da pele nova.
+
+### O que foi feito
+Os nove dialogos portados para `rfAcao()` em `rf26-acoes.js`, e as tres funcoes
+antigas redefinidas no fim desse ficheiro (que carrega depois do `main.js`), de
+modo que **todo** caminho, novo ou velho, cai na pele nova sem cacar chamadas
+uma a uma. O botao das Financas passou a abrir `rfAcEstadio()`, que escolhe a
+obra ou a recusa certa pela MESMA ordem de checagem do `clBuildStand()` — o
+dialogo nunca oferece um botao que o motor vai recusar.
+
+### Duas coisas do pacote que nao entraram, por nao existirem
+Politica de sempre: nao inventar.
+- **Nome do estadio** ("Barao de Serra Negra"): o save so guarda capacidade
+  (`S.clubStadiumCap`) e foto (`STADIUM_IMG`). Nao ha tabela de nomes. O
+  sobrescrito diz "ESTADIO DO <clube>".
+- **Coluna PTS do historico**: `S.history` guarda temporada, divisao, posicao
+  e tacas — nunca os pontos. A coluna que entrou no lugar e TACAS, que e real.
+
+### Dois erros meus, apanhados a medir e nao a olhar
+- `rfOpcoesSet('tempo', ...)` chamava `clSetTempo()`, que termina em
+  `renderOptions()` — **reabria o overlay de 98 por tras do dialogo novo**. So
+  apareceu ao clicar de verdade num ritmo e ler o DOM depois. Agora publica o
+  ritmo para a sala sem passar pelo render antigo.
+- Os cinco ritmos (Curto..Usain Bolt) transbordavam **32px** a 375px: com
+  `flex:1` e texto `nowrap` os botoes nao encolhem abaixo do conteudo. A fila
+  quebra em vez de esticar.
+
+### O que fica em aberto (decisao do utilizador, nao tarefa)
+O dialogo **"confirmar treino especial"** do pacote nao existe porque o Treino
+especial foi reescrito a pedido — "eu nao consegui entender como funciona" — e
+passou a ligar/desligar na propria linha, sem passo de confirmacao. Repor o
+dialogo desfaria essa simplificacao; fica como esta ate haver indicacao.
