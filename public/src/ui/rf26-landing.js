@@ -25,18 +25,16 @@ const RF_LP_NAV=[
    carrega sempre o estado da conta: nome + Sair quando há sessão, Entrar
    quando não há. */
 /* ===== É PRO? =====
-   NAO EXISTE ASSINATURA NESTE JOGO — nem no codigo, nem no banco. Procurei
-   coluna de plano/tier/subscricao em elifoot_v3 e so ha `games.day_plan`, que
-   e o calendario do dia e nada tem a ver. Entao esta funcao devolve SEMPRE
-   false: o botao PRO esta desenhado e pronto, mas nao se acende sozinho
-   porque nada no sistema sabe dizer quem e PRO.
+   Agora tem fonte de verdade: elifoot_v3.user_plans, lida pela funcao my_plan()
+   do banco, que JA resolve o prazo — um `until` no passado deixa de ser PRO
+   sozinho, sem ninguem ter de rebaixar a conta a mao. O adaptador guarda o
+   resultado em cache por sessao (netCarregarPlano) porque isto e perguntado a
+   cada redesenho do cabecalho.
 
-   Quando existir a fonte — uma coluna em `profiles`, um webhook de pagamento,
-   uma lista — e AQUI que se liga, num sitio so. Nao inventar um `st.pro` que
-   o adaptador nunca preenche: seria um badge que mente. */
+   Continua a ser o UNICO sitio onde a interface decide se e PRO. */
 function rfContaEhPro(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
-  return st.pro===true;   // hoje: sempre indefinido -> false
+  return st.pro===true;
 }
 function rfContaChipHTML(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};

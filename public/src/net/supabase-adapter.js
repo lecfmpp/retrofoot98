@@ -61,7 +61,12 @@ async function netInitSupabase(){
         }, 1500);
         return;
       }
-      if(session && session.user) SB_AUTH_USER = session.user;
+      if(session && session.user){
+        SB_AUTH_USER = session.user;
+        /* trocou de conta -> o plano e outro. Redesenha quando chegar, para o
+           cabecalho passar a mostrar o botao PRO sem esperar por um clique. */
+        netCarregarPlano().then(()=>{ try{ cdraw(); }catch(e){} });
+      }
     });
     const { data:{ session } } = await sb.auth.getSession();
     if(session && session.user && session.user.is_anonymous){
@@ -71,7 +76,8 @@ async function netInitSupabase(){
     } else if(session) {
       SB_AUTH_USER = session.user;
     }
-    console.log('✓ Supabase pronto', SB_AUTH_USER ? '(sessão ativa: '+(SB_AUTH_USER.email||'?')+')' : '(sem sessão)');
+    if(SB_AUTH_USER) await netCarregarPlano();
+    console.log('✓ Supabase pronto', SB_AUTH_USER ? '(sessão ativa: '+(SB_AUTH_USER.email||'?')+', plano '+SB_PLANO.plan+')' : '(sem sessão)');
     return true;
   } catch(e) { console.warn('⚠ Supabase init erro:', e.message); return false; }
 }
@@ -148,9 +154,31 @@ function netWarnDeadSession(){
 }
 
 /* retorna {loggedIn, email, name} pra UI decidir se mostra login/cadastro ou "continuar como X" */
+/* PLANO DO TREINADOR (free/pro). Vem de elifoot_v3.user_plans pela funcao
+   my_plan(), que ja resolve o prazo — `until` no passado deixa de ser PRO sem
+   ninguem ter de rebaixar a conta a mao.
+
+   FICA EM CACHE NUMA VARIAVEL porque netAuthStatus() e chamada em todo o
+   desenho (o cabecalho pergunta a cada cdraw): uma consulta por redesenho
+   seria absurdo. A cache e preenchida uma vez por sessao, ao ligar, e ao
+   trocar de conta — ver netCarregarPlano. */
+let SB_PLANO = { plan:'free', pro:false, until:null };
+async function netCarregarPlano(){
+  SB_PLANO = { plan:'free', pro:false, until:null };
+  if(!sb || !SB_AUTH_USER) return SB_PLANO;
+  try{
+    const { data, error } = await sb.rpc('my_plan');
+    if(error) throw error;
+    const r = Array.isArray(data) ? data[0] : data;
+    if(r) SB_PLANO = { plan:r.plan||'free', pro:!!r.pro, until:r.until||null };
+  }catch(e){ console.warn('plano do treinador:', e && e.message); }
+  return SB_PLANO;
+}
 function netAuthStatus(){
   if(!SB_AUTH_USER) return { loggedIn:false };
-  return { loggedIn:true, email: SB_AUTH_USER.email, name: SB_AUTH_USER.user_metadata?.name || (SB_AUTH_USER.email||'').split('@')[0] };
+  return { loggedIn:true, email: SB_AUTH_USER.email,
+    name: SB_AUTH_USER.user_metadata?.name || (SB_AUTH_USER.email||'').split('@')[0],
+    plan: SB_PLANO.plan, pro: SB_PLANO.pro, proAte: SB_PLANO.until };
 }
 
 /* ---- Traduz os erros crus do GoTrue (vêm em inglês) pra mensagens claras em PT.
@@ -1632,6 +1660,7 @@ NET.saveGame = netSaveGame;
 NET.loadGame = netLoadGame;
 NET.isOnlineUser = netIsOnline;
 NET.authStatus = netAuthStatus;
+NET.carregarPlano = netCarregarPlano;   // releitura a pedido (ex.: depois de comprar o PRO)
 NET.authSignUp = netAuthSignUp;
 NET.authSignIn = netAuthSignIn;
 NET.authSignOut = netAuthSignOut;
