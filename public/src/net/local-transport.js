@@ -577,9 +577,11 @@ function onlineReconcileIfBehind(room){
    novo seguem com a tela antiga — feia, mas viva, que é melhor do que um beco. */
 function renderOnline(){ const n=CL.net||{};
   if(n.step==='escolha') return scResenhaChoice();
-  if(n.step==='joincode') return scJoinCode();
+  /* PORTADAS (ver src/ui/rf26-resenha-entrada.js). As antigas ficam abaixo,
+     sem chamador, ate o desenho novo passar pelo teste do usuario. */
+  if(n.step==='joincode') return (typeof rfEntrarCodigoHTML==='function') ? rfEntrarCodigoHTML() : scJoinCode();
   if(n.step==='conta')  return scConta();
-  if(n.step==='minhassalas') return scMinhasSalas();
+  if(n.step==='minhassalas') return (typeof rfMinhasSalasHTML==='function') ? rfMinhasSalasHTML() : scMinhasSalas();
   if(n.step==='sala')   return scSalaHost();     // -> rfOb4 (Criar Sala)
   if(n.step==='midjoin') return scMidJoin();
   if(n.step==='waitapproval') return scWaitApproval();

@@ -1078,8 +1078,12 @@ async function netListMyRooms(){
     const byCode = new Map();
     // (1) assento reivindicado — tem prioridade (traz o clubId escolhido)
     (seatData||[]).filter(r=>r.games && r.games.phase!=='deleted').forEach(r=>{
+      // `pronto` = is_ready deste assento, que a consulta JA buscava e era descartado. E o que
+      // permite dizer "a sua vez" em vez de so "12a jornada" na lista de salas: numa resenha o
+      // que a pessoa precisa saber e em QUAL das salas ela esta a segurar a rodada.
       byCode.set(r.game_id, { code:r.game_id, name:r.games.name, phase:r.games.phase, round:r.games.round,
-        isHost:r.games.host_id===SB_UID(), clubId:r.club_id, pending:false, createdAt:r.games.created_at });
+        isHost:r.games.host_id===SB_UID(), clubId:r.club_id, pending:false, pronto:r.is_ready!==false,
+        createdAt:r.games.created_at });
     });
     // (2) salas que eu criei (mesmo sem assento) — não sobrescreve um assento já mapeado
     (e3?[]:(hostData||[])).filter(g=>g.phase!=='deleted').forEach(g=>{

@@ -1,0 +1,212 @@
+[
+ {
+  "modo": "solo",
+  "id": "abertura",
+  "nome": "Landing",
+  "total": 0,
+  "passo": 0,
+  "rotulo": "—",
+  "titulo": "",
+  "ficheiro": "solo 00 abertura - Landing.png"
+ },
+ {
+  "modo": "solo",
+  "id": "login",
+  "nome": "Entrar ou criar conta",
+  "total": 6,
+  "passo": 1,
+  "rotulo": "1 Entrar",
+  "titulo": "",
+  "ficheiro": "solo 01 login - Entrar ou criar conta.png"
+ },
+ {
+  "modo": "solo",
+  "id": "modo",
+  "nome": "Escolher o modo",
+  "total": 6,
+  "passo": 2,
+  "rotulo": "2 Modo",
+  "titulo": "",
+  "ficheiro": "solo 02 modo - Escolher o modo.png"
+ },
+ {
+  "modo": "solo",
+  "id": "modosolo",
+  "nome": "Saves / comecar novo",
+  "total": 6,
+  "passo": 3,
+  "rotulo": "3 Save",
+  "titulo": "",
+  "ficheiro": "solo 03 modosolo - Saves - comecar novo.png"
+ },
+ {
+  "modo": "solo",
+  "id": "paises",
+  "nome": "Selecao de paises",
+  "total": 6,
+  "passo": 4,
+  "rotulo": "4 País e liga",
+  "titulo": "",
+  "ficheiro": "solo 04 paises - Selecao de paises.png"
+ },
+ {
+  "modo": "solo",
+  "id": "paisJogavel",
+  "nome": "Pais jogavel",
+  "total": 6,
+  "passo": 4,
+  "rotulo": "4 País e liga",
+  "titulo": "",
+  "ficheiro": "solo 04 paisJogavel - Pais jogavel.png"
+ },
+ {
+  "modo": "solo",
+  "id": "moeda",
+  "nome": "Escolha de moeda",
+  "total": 6,
+  "passo": 4,
+  "rotulo": "4 País e liga",
+  "titulo": "",
+  "ficheiro": "solo 04 moeda - Escolha de moeda.png"
+ },
+ {
+  "modo": "solo",
+  "id": "jogadores",
+  "nome": "Numero de treinadores",
+  "total": 6,
+  "passo": 4,
+  "rotulo": "4 País e liga",
+  "titulo": "",
+  "ficheiro": "solo 04 jogadores - Numero de treinadores.png"
+ },
+ {
+  "modo": "solo",
+  "id": "loading",
+  "nome": "Carregando",
+  "total": 0,
+  "passo": 0,
+  "rotulo": "—",
+  "titulo": "",
+  "ficheiro": "solo 00 loading - Carregando.png"
+ },
+ {
+  "modo": "solo",
+  "id": "escolhaclubes",
+  "nome": "Escolha dos clubes",
+  "total": 6,
+  "passo": 5,
+  "rotulo": "5 Clube",
+  "titulo": "",
+  "ficheiro": "solo 05 escolhaclubes - Escolha dos clubes.png"
+ },
+ {
+  "modo": "solo",
+  "id": "sorteio",
+  "nome": "Sorteio do clube",
+  "total": 6,
+  "passo": 5,
+  "rotulo": "5 Clube",
+  "titulo": "",
+  "ficheiro": "solo 05 sorteio - Sorteio do clube.png"
+ },
+ {
+  "modo": "solo",
+  "id": "boasvindas",
+  "nome": "Boas-vindas",
+  "total": 6,
+  "passo": 6,
+  "rotulo": "6 Jogar",
+  "titulo": "",
+  "ficheiro": "solo 06 boasvindas - Boas-vindas.png"
+ },
+ {
+  "modo": "resenha",
+  "id": "conta",
+  "nome": "Entrar ou criar conta",
+  "total": 7,
+  "passo": 1,
+  "rotulo": "1 Entrar",
+  "titulo": "",
+  "ficheiro": "resenha 01 conta - Entrar ou criar conta.png"
+ },
+ {
+  "modo": "resenha",
+  "id": "modo",
+  "nome": "Escolher o modo",
+  "total": 7,
+  "passo": 2,
+  "rotulo": "2 Modo",
+  "titulo": "",
+  "ficheiro": "resenha 02 modo - Escolher o modo.png"
+ },
+ {
+  "modo": "resenha",
+  "id": "escolha",
+  "nome": "Criar ou entrar",
+  "total": 7,
+  "passo": 3,
+  "rotulo": "3 Resenha",
+  "titulo": "O que você quer fazer?",
+  "ficheiro": "resenha 03 escolha - Criar ou entrar.png"
+ },
+ {
+  "modo": "resenha",
+  "id": "joincode",
+  "nome": "Entrar por codigo",
+  "total": 7,
+  "passo": 3,
+  "rotulo": "3 Resenha",
+  "titulo": "",
+  "ficheiro": "resenha 03 joincode - Entrar por codigo.png"
+ },
+ {
+  "modo": "resenha",
+  "id": "minhassalas",
+  "nome": "Minhas salas",
+  "total": 7,
+  "passo": 3,
+  "rotulo": "3 Resenha",
+  "titulo": "",
+  "ficheiro": "resenha 03 minhassalas - Minhas salas.png"
+ },
+ {
+  "modo": "resenha",
+  "id": "sala",
+  "nome": "Criar a sala",
+  "total": 7,
+  "passo": 4,
+  "rotulo": "4 Sala",
+  "titulo": "",
+  "ficheiro": "resenha 04 sala - Criar a sala.png"
+ },
+ {
+  "modo": "resenha",
+  "id": "waitapproval",
+  "nome": "A espera de aprovacao",
+  "total": 7,
+  "passo": 4,
+  "rotulo": "4 Sala",
+  "titulo": "",
+  "ficheiro": "resenha 04 waitapproval - A espera de aprovacao.png"
+ },
+ {
+  "modo": "resenha",
+  "id": "lobby",
+  "nome": "Sala aberta / convites",
+  "total": 7,
+  "passo": 5,
+  "rotulo": "5 Convites",
+  "titulo": "",
+  "ficheiro": "resenha 05 lobby - Sala aberta - convites.png"
+ },
+ {
+  "modo": "resenha",
+  "id": "reveal",
+  "nome": "Sorteio dos clubes",
+  "total": 7,
+  "passo": 6,
+  "rotulo": "6 Clube",
+  "titulo": "",
+  "ficheiro": "resenha 06 reveal - Sorteio dos clubes.png"
+ }
+]

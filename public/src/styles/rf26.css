@@ -6042,3 +6042,128 @@
   .rf-ac-sl-seta{transform:rotate(90deg)}
   .rf-ac-bt.peq{width:100%}
 }
+
+/* ===== ENTRADA DA RESENHA — código e minhas salas =====
+   Portado de "Resenha - Entrar com Codigo" e "Resenha - Minhas Salas".
+   Um só conjunto de regras para desktop e telemóvel: o pacote entrega os
+   dois ficheiros com o MESMO markup, e o que muda abaixo de 900px é a
+   régua sumir e a linha da sala empilhar. */
+
+/* --- as cinco caixas do código --- */
+.rf-cod-campo{display:flex;flex-direction:column;gap:8px;width:100%;max-width:440px;align-self:center}
+.rf-cod-l{font-size:11px;font-weight:var(--fw-bold);color:var(--text-3);letter-spacing:.12em;
+  white-space:nowrap;text-align:center}
+.rf-cod-caixas{position:relative;display:flex;gap:8px;justify-content:center}
+.rf-cod-cx{width:56px;height:66px;display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--line-2);border-radius:14px;background:var(--surface-1);
+  font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:28px;font-weight:600;
+  color:var(--text-3);box-sizing:border-box;transition:border-color var(--dur-fast) var(--ease),
+  background var(--dur-fast) var(--ease)}
+.rf-cod-cx.cheia{border-color:var(--brand-primary);background:color-mix(in srgb,var(--brand-primary) 8%,transparent);
+  color:var(--text-1)}
+/* o input REAL por cima das caixas, invisível: as caixas são pintura */
+.rf-cod-in{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;
+  font-size:28px;letter-spacing:52px;text-indent:20px;font-family:inherit;background:transparent;
+  color:transparent;caret-color:var(--brand-primary);cursor:text}
+.rf-cod-in:focus{outline:none}
+.rf-cod-caixas:focus-within .rf-cod-cx:not(.cheia):first-of-type{border-color:var(--brand-primary)}
+.rf-cod-d{font-size:var(--fs-2);color:var(--text-3);text-align:center;text-wrap:pretty;line-height:1.5}
+
+.rf-rs-dica{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;
+  background:var(--surface-2);border:1px solid var(--line-1);width:100%;max-width:440px;
+  align-self:center;box-sizing:border-box}
+.rf-rs-dica-i{flex:0 0 auto;font-size:14px}
+.rf-rs-dica-t{flex:1;min-width:0;font-size:var(--fs-2);color:var(--text-2);line-height:1.5;text-wrap:pretty}
+
+/* --- a lista curta de salas dentro do "entrar com código" --- */
+.rf-rs-jajoga{display:flex;flex-direction:column;gap:9px;width:100%;max-width:440px;align-self:center;
+  border-top:1px solid var(--line-1);padding-top:16px}
+.rf-rs-jajoga .rf-cod-l{text-align:left}
+.rf-rs-mini{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:12px;
+  border:1px solid var(--line-1);background:var(--surface-card);cursor:pointer;min-width:0;
+  font-family:inherit;text-align:left;width:100%}
+.rf-rs-mini:hover{background:var(--surface-2);border-color:var(--brand-primary)}
+.rf-rs-mini-id{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.rf-rs-mini-n{font-size:13px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.rf-rs-mini-s{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-rs-mini-s.chama{color:var(--brand-secondary);font-weight:600}
+.rf-rs-ver{border:0;background:transparent;font-family:inherit;font-size:var(--fs-2);font-weight:600;
+  color:var(--brand-primary);text-align:center;cursor:pointer;padding:4px}
+.rf-rs-ver:hover{text-decoration:underline}
+
+/* --- escudo (comum às duas telas) --- */
+.rf-rs-escudo{width:26px;height:26px;object-fit:contain;flex:0 0 auto}
+.rf-rs-escudo.vazio{display:flex;align-items:center;justify-content:center;border-radius:99px;
+  background:var(--surface-2);color:var(--text-3);font-size:12px;font-weight:700}
+
+/* --- MINHAS SALAS --- */
+.rf-rs-filtros{display:flex;flex-wrap:wrap;gap:7px}
+.rf-rs-f{font-family:inherit;font-size:var(--fs-2);font-weight:500;color:var(--text-2);
+  background:var(--surface-card);border:1px solid var(--line-2);border-radius:99px;padding:7px 13px;
+  white-space:nowrap;cursor:pointer}
+.rf-rs-f:hover{background:var(--surface-2)}
+.rf-rs-f.on{color:#fff;background:var(--brand-primary);border-color:var(--brand-primary);font-weight:var(--fw-bold)}
+
+.rf-rs-tab-h,.rf-rs-lin{display:grid;
+  grid-template-columns:28px minmax(0,1.4fr) minmax(0,1.2fr) 82px 74px 34px;gap:12px;min-width:0}
+.rf-rs-tab-h{padding:0 12px 2px;font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:9px;
+  color:var(--text-3);letter-spacing:.06em}
+.rf-rs-tab-h .dir{text-align:right}
+.rf-rs-lista{display:flex;flex-direction:column;gap:8px}
+.rf-rs-lin{align-items:center;padding:11px 12px;border-radius:13px;border:1px solid var(--line-1);
+  background:var(--surface-card);cursor:pointer}
+.rf-rs-lin:hover,.rf-rs-lin:focus-visible{background:var(--surface-2);border-color:var(--brand-primary);outline:none}
+.rf-rs-id{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-rs-n{font-size:14px;font-weight:var(--fw-bold);color:var(--text-1);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rf-rs-p{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-rs-onde{font-size:var(--fs-2);color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-rs-selo{justify-self:start;font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:9px;
+  font-weight:var(--fw-bold);border-radius:99px;padding:4px 9px;white-space:nowrap}
+.rf-rs-selo.espera{color:#5c4a00;background:var(--brand-secondary)}
+.rf-rs-selo.comecar{color:var(--brand-primary);background:color-mix(in srgb,var(--brand-primary) 12%,transparent)}
+.rf-rs-selo.correr{color:#fff;background:var(--ok)}
+.rf-rs-selo.fim{color:var(--text-3);background:var(--surface-2)}
+.rf-rs-cod{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:var(--fs-2);font-weight:600;
+  color:var(--brand-primary);letter-spacing:.08em;text-align:right;white-space:nowrap;flex:0 0 auto}
+.rf-rs-lixo{width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--line-1);border-radius:10px;background:transparent;color:var(--text-3);
+  cursor:pointer;flex:0 0 auto;padding:0}
+.rf-rs-lixo:hover{background:color-mix(in srgb,var(--danger) 12%,transparent);
+  border-color:var(--danger);color:var(--danger)}
+.rf-rs-vazio{padding:22px 12px;text-align:center;font-size:var(--fs-2);color:var(--text-3)}
+.rf-rs-nova{display:flex;align-items:center;gap:11px;padding:12px;border:1px dashed var(--line-2);
+  border-radius:13px;background:transparent;cursor:pointer;font-family:inherit;text-align:left;width:100%}
+.rf-rs-nova:hover{background:var(--surface-2)}
+.rf-rs-nova-i{width:26px;text-align:center;font-size:17px;color:var(--text-3);flex:0 0 auto}
+.rf-rs-nova-id{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-rs-nova-t{font-size:13px;font-weight:600;color:var(--text-1)}
+.rf-rs-nova-s{font-size:11px;color:var(--text-3)}
+
+/* --- telemóvel: a linha da sala empilha (grid 26px 1fr 34px do pacote) --- */
+@media (max-width:900px){
+  .rf-rs-tab-h{grid-template-columns:26px minmax(0,1fr) 34px}
+  .rf-rs-tab-h>span:nth-child(2){grid-column:2}
+  .rf-rs-tab-h>span:nth-child(3),.rf-rs-tab-h>span:nth-child(4),
+  .rf-rs-tab-h>span:nth-child(5){display:none}
+  .rf-rs-lin{display:flex;flex-wrap:wrap;gap:8px 10px}
+  /* O pacote desenha esta linha com nomes curtos de CLUBE ("Vasco"). Antes de
+     haver assento o que existe e o nome da SALA ("Resenha da firma"), e com
+     ellipsis de uma linha sobrava "Resen…" ao lado do selo e do codigo. No
+     telemovel o nome quebra em vez de truncar — a largura e o que falta, nao
+     o texto. */
+  .rf-rs-id{flex:1 1 120px}
+  .rf-rs-n,.rf-rs-p{white-space:normal;overflow:visible;text-overflow:clip}
+  .rf-rs-n{line-height:1.25}
+  /* o "onde está" ganha a linha inteira, por baixo — order:9 do pacote */
+  .rf-rs-onde{flex-basis:100%;order:9;white-space:normal;font-size:11px;color:var(--text-3);
+    line-height:1.4;text-wrap:pretty}
+  .rf-rs-selo,.rf-rs-cod,.rf-rs-lixo{flex:0 0 auto}
+  .rf-rs-cod{text-align:left}
+}
+/* as cinco caixas encolhem no telemóvel para caberem sem rolagem */
+@media (max-width:420px){
+  .rf-cod-cx{width:52px;height:60px;font-size:24px}
+  .rf-cod-in{letter-spacing:48px;text-indent:18px}
+}

@@ -1946,8 +1946,12 @@ function wizShell(o){
    partilhadas pelos dois modos (sorteio, boas-vindas) só podiam acertar num.
    No telefone o CSS troca a régua por barra de progresso (ver .rf-trilha). */
 const RF_TRILHAS={
-  solo:   ['Entrar','Modo','Save','País e liga','Clube','Jogar'],
-  resenha:['Entrar','Modo','Resenha','Sala','Convites','Clube','Jogar'],
+  solo:     ['Entrar','Modo','Save','País e liga','Clube','Jogar'],
+  resenha:  ['Entrar','Modo','Resenha','Sala','Convites','Clube','Jogar'],
+  /* QUEM ENTRA POR CÓDIGO tem caminho próprio, e curto: não escolhe país nem
+     convida ninguém — o anfitrião já fez isso. É a régua que o pacote desenha
+     em "Resenha - Entrar com Codigo" ("PASSO 3 DE 4 · CONVIDADO"). */
+  convidado:['Entrar','Modo','Código','Sala'],
 };
 /* o modo ativo, quando quem desenha a tela não o diz */
 function rfModoAtual(){ return (typeof CL!=='undefined' && CL.online) ? 'resenha' : 'solo'; }
