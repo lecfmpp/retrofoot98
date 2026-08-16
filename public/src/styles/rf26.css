@@ -5425,6 +5425,17 @@
      e a tabela é o contexto dela */
   .rf-cols[data-hubtab="jogo"] > * > [data-hub="destaques"]{order:1}
   .rf-cols[data-hubtab="jogo"] > * > [data-hub="classificacao"]{order:2}
+  /* O `display:flex` acima serve para REVELAR o bloco (desfazendo o
+     display:none das abas) — e, sem querer, deixava-o em LINHA. Por isso o
+     adversário e o artilheiro ficavam lado a lado em 375px, cada um com
+     metade da largura: o cartão do adversário espremia a mini-tabela e as
+     notas do plantel ficavam com 119px. A regra de uma coluna que existe
+     logo acima (linha ~4830) nunca pegou, porque é de GRID e aqui o
+     contentor virou flex.
+     Empilhados, e o ADVERSÁRIO primeiro: é a informação da próxima partida;
+     artilheiro, destaque e quem está em baixa são leitura de apoio. */
+  .rf-hub-baixo{flex-direction:column}
+  .rf-hub-baixo>.rf-adv,.rf-hub-baixo>.rf-adv-vazio{order:-1}
 
 
   /* moral e segurança não aparecem em nenhuma das três abas do pacote: no

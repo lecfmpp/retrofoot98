@@ -707,7 +707,7 @@ function rfOb6(){
     titulo: fim?'Times sorteados!':'Sorteando os clubes, boa sorte!',
     sub:'Cada treinador escolheu o país; o clube sai no sorteio. É a mesma cerimônia no solo e na resenha.',
     nota: fim?'Pronto — pode entrar no clube.':'Aguarde o sorteio',
-    cta: fim?'Conhecer o clube':rfIcone('raio',16)+' Acelerar',
+    cta: fim?'Iniciar temporada':rfIcone('raio',16)+' Acelerar',
     ctaOn: fim?'clEntrar()':'rfObAcelerar()'});
 }
 /* ⏩ não pula o sorteio: só encurta a espera entre uma revelação e outra */
