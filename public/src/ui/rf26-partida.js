@@ -168,13 +168,11 @@ function rfSubHTML(m){
   return rfOverlay({
     w:900, contexto:rfCtxPartida(m), titulo:'Substituição',
     hdDir:rfSubsPillsHTML(usadas,max), corpo,
-    acoes:`<button type="button" class="rf-ov-b2" onclick="rfSubFechar()">↩ ${
-      (typeof isPhone==='function'&&isPhone())?'Voltar':'Voltar ao jogo'}</button>
+    /* os rótulos voltaram ao completo: a barra de ação já quebra em duas
+       linhas no telefone em vez de decapitar o texto (ver rf26.css) */
+    acoes:`<button type="button" class="rf-ov-b2" onclick="rfSubFechar()">↩ Voltar ao jogo</button>
       <div class="rf-sp"></div>
-      <!-- no telefone o rótulo é só "Confirmar": "Confirmar substituição" não cabe
-           na metade de uma barra de 375px e saía com reticências -->
-      <button type="button" class="rf-ov-cta" ${pronto?'':'disabled'} onclick="rfSubConfirmar()">${
-        (typeof isPhone==='function'&&isPhone())?'Confirmar':'Confirmar substituição'}</button>`
+      <button type="button" class="rf-ov-cta" ${pronto?'':'disabled'} onclick="rfSubConfirmar()">Confirmar substituição</button>`
   });
 }
 /* Leva as duas linhas marcadas para dentro da vista. Sem isto, nas listas de 11

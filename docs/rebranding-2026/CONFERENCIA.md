@@ -425,3 +425,35 @@ Anotação antiga dizia que "7 passos da Resenha continuam na pele antiga".
 ### Estado
 Dez páginas + fluxo de onboarding + fluxo da Resenha: todas no desenho novo, sem
 rolagem lateral em 1440 e em 375, sem erros de consola.
+
+---
+
+# 12 · Modais de partida
+
+Sete modais auditados: substituição, lesão, expulsão, prorrogação, pênalti
+(batedor · suspense · resultado) e disputa de pênaltis.
+
+### Varreduras estáticas — passam limpo
+- Nenhum `onclick` para função inexistente
+- Nenhum `<button>` sem ação
+- Os sete campos de `S.` que o ficheiro lê são todos escritos pelo motor
+
+### Corrigido nesta rodada
+- [x] **Seis botões com o rótulo decapitado no telefone**, em quatro modais:
+      "Manter a formação", "Fazer uma substituição", "Começar a prorrogação",
+      "Deixar o capitão bater", "Bater com …", "⏩ Simular o resto".
+      A barra de ação espremia os dois botões numa linha só com reticências; em
+      375px cada um fica com ~160px e todo rótulo acima de ~14 caracteres saía
+      pela metade. **Um botão que não diz o que faz não é um botão.**
+
+      A barra passa a **quebrar** em vez de cortar. Quem decide é
+      `min-width:max-content`: o botão diz ao layout de quanto precisa para o
+      rótulo inteiro, e a linha quebra quando os dois não cabem juntos. Um
+      número fixo não servia — testei com 150px e dois rótulos de 22 caracteres
+      cabiam na conta e continuavam cortados.
+- [x] Com a barra a quebrar, os dois rótulos que eu tinha encurtado à mão
+      ("Confirmar", "Voltar") **voltaram ao completo** — eram remendos para o
+      mesmo problema, e o telefone deixou de precisar deles
+
+Conferido: 375px sem nada cortado nos sete modais; 1440 mantém os dois botões
+lado a lado.

@@ -2822,13 +2822,29 @@
   .rf-ov-cols{grid-template-columns:minmax(0,1fr)}
   /* sem isto, numa lista de reservas longa o botão de confirmar sai da tela */
   .rf-ov-foot{position:sticky;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px))}
-  /* sem min-width:0 o flex:1 não encolhe abaixo do texto do botão, e dois
-     botões longos (prorrogação) estouravam a largura em 375px.
+  /* A BARRA DE AÇÃO QUEBRA EM VEZ DE CORTAR O RÓTULO.
+     A regra anterior espremia os dois botões numa linha só, com reticências.
+     Em 375px cada um fica com ~160px, e todo rótulo acima de ~14 caracteres
+     era decapitado: "Manter a formação", "Começar a prorroga…", "Deixar o
+     capitão b…", "⏩ Simular o resto". Medido em quatro modais de partida.
+     Um botão que não diz o que faz não é um botão.
+
+     Agora a barra pode quebrar: `flex:1 1 150px` deixa dois rótulos curtos
+     partilharem a linha e dá a linha inteira a cada um dos longos. O
+     `white-space:nowrap` é de propósito — o rótulo ou cabe inteiro na sua
+     linha, ou ganha uma linha só para ele; o que não pode é sair pela metade.
+
      SÓ NAS BARRAS EM LINHA: num rodapé empilhado (o do Dialog, que no telefone
      é coluna) flex-basis:0 vira ALTURA zero, e o botão sumia com 2px. */
+  .rf-ov-foot,.rf-stg-foot{flex-wrap:wrap;row-gap:8px}
   .rf-ov-foot .rf-ov-b2,.rf-ov-foot .rf-ov-cta,
-  .rf-stg-foot .rf-ov-b2,.rf-stg-foot .rf-ov-cta{flex:1 1 0;min-width:0;padding:0 10px;
-    font-size:var(--fs-body-sm);overflow:hidden;text-overflow:ellipsis;
+  .rf-stg-foot .rf-ov-b2,.rf-stg-foot .rf-ov-cta{flex:1 1 auto;padding:0 12px;
+    font-size:var(--fs-body-sm);white-space:nowrap;
+    /* `min-width:max-content` é quem decide a quebra: o botão diz ao layout de
+       quanto precisa para mostrar o rótulo inteiro, e a linha quebra quando os
+       dois não cabem juntos. Um número fixo (150px) não serve — dois rótulos de
+       22 caracteres cabiam na conta e continuavam a ser cortados. */
+    min-width:max-content;max-width:100%;
     display:block;line-height:44px;text-align:center}
   .rf-dlg-foot>*{flex:0 0 auto}
   .rf-ov-resumo{flex-wrap:wrap;row-gap:8px}
