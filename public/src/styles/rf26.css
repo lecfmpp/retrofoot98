@@ -4028,7 +4028,17 @@
     padding:12px 16px calc(16px + env(safe-area-inset-bottom,0px));gap:8px;flex-wrap:wrap;
     border-top:1px solid var(--line-1)}
   .rf-wiz-nota{flex:1 1 100%;order:-1}
-  .rf-wiz-cta,.rf-wiz-b2{flex:1 1 140px;min-width:0;height:48px}
+  /* SO NA BARRA DE ACAO. Esta regra nao tinha escopo e valia para TODO
+     .rf-wiz-cta do telemovel — inclusive o "Garantir minha vaga", que vive num
+     cartao em COLUNA. Ali o `flex:1` nao reparte largura: cresce a ALTURA ate
+     ao basis, e o botao ficava com 140px de alto em vez dos 48. */
+  .rf-wiz-acao .rf-wiz-cta,.rf-wiz-acao .rf-wiz-b2{flex:1 1 140px;min-width:0;height:48px}
+  /* `flex-shrink:0` junto com a altura: em contentor de COLUNA o encolhimento
+     tambem vale no vertical. `flex:0 0 auto` anula os TRES de uma vez: o
+     `flex:1` que vem de outra regra deixava basis 0% e o botao colapsava para
+     21px — o oposto do problema, pelo mesmo motivo. Fora da barra de acao um
+     CTA nao e item elastico: tem a altura que tem. */
+  .rf-wiz-cta,.rf-wiz-b2{height:48px;flex:0 0 auto}
   .rf-ob3-paises,.rf-ob3-divs{grid-template-columns:repeat(2,minmax(0,1fr))}
   .rf-ob4,.rf-ob5,.rf-ob6,.rf-bv-media,.rf-bv-baixo{grid-template-columns:minmax(0,1fr)}
   .rf-ob4-2{grid-template-columns:1fr 1fr}

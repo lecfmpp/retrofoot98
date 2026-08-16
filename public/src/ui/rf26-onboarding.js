@@ -137,13 +137,21 @@ function rfWiz(o){
       </div>
     </div>
     ${rodape}
-  /* OS DIALOGOS DE ACAO PRECISAM DE QUEM OS DESENHE AQUI TAMBEM.
-     rfAcaoHTML() so era chamado dentro do envelope do jogo (rf26.js). Fora
-     dele — assistente e landing — rfAcAbrir() punha CL.acao e redesenhava, e
-     nada aparecia: o "Sair" do cabecalho ficava sem efeito nenhum. Todo shell
-     que mostre um botao capaz de abrir dialogo tem de o desenhar. */
-    ${typeof rfAcaoHTML==='function'?rfAcaoHTML():''}
+    <!-- os diálogos de ação: ver a nota em rfWizDialogos() -->
+    ${rfWizDialogos()}
   </div>`;
+}
+/* OS DIALOGOS DE ACAO PRECISAM DE QUEM OS DESENHE AQUI TAMBEM.
+   rfAcaoHTML() so era chamado dentro do envelope do jogo (rf26.js). Fora dele
+   — assistente e landing — rfAcAbrir() punha CL.acao e redesenhava, e nada
+   aparecia: o "Sair" do cabecalho ficava sem efeito nenhum. Todo shell que
+   mostre um botao capaz de abrir dialogo tem de o desenhar.
+
+   E FICA NUMA FUNCAO, nao inline: escrito dentro de um template literal, um
+   bloco de comentario deixa de ser comentario — vira TEXTO, e foi impresso no
+   rodape do assistente para o utilizador ver. */
+function rfWizDialogos(){
+  return (typeof rfAcaoHTML==='function') ? rfAcaoHTML() : '';
 }
 function rfWizTrilhaHTML(passo, trilha){
   const passos=rfWizPassos(trilha);
