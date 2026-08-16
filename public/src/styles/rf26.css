@@ -3003,8 +3003,16 @@
   .rf-pr-head>span:nth-child(4),.rf-pr-head>span:nth-child(5),
   .rf-pr-head>span:nth-child(6),.rf-pr-head>span:nth-child(7){display:none}
   .rf-pr-head,.rf-pr-row{grid-template-columns:20px 20px minmax(0,1fr) 44px 28px}
-  .rf-pr-row>.rf-tb-x:nth-of-type(1),.rf-pr-row>.rf-tb-x:nth-of-type(2),
-  .rf-pr-row>.rf-tb-x:nth-of-type(3),.rf-pr-row>.rf-tb-x:nth-of-type(4){display:none}
+  /* ERA `:nth-of-type`, QUE CONTA IRMAOS DO MESMO ELEMENTO — e aqui TODOS sao
+     <span>. `.rf-tb-x:nth-of-type(1..3)` nao casava com nada (os spans 1-3 sao
+     a zona, a posicao e o clube), e so o (4) escondia uma celula. Sobravam 8
+     celulas visiveis numa grelha de 5 colunas, e as tres que nao cabiam caiam
+     para uma segunda linha por baixo do nome do clube — era o "truncado".
+     O cabecalho ja usava :nth-child e por isso estava certo; so a linha e que
+     divergia. Com :nth-child ficam as 5 que a grelha declara:
+     zona · posicao · clube · GM:GS · P. */
+  .rf-pr-row>span:nth-child(4),.rf-pr-row>span:nth-child(5),
+  .rf-pr-row>span:nth-child(6),.rf-pr-row>span:nth-child(7){display:none}
   .rf-lb-t{grid-template-columns:26px minmax(0,1fr) 90px;row-gap:2px}
   .rf-lb-clube{display:none}
   .rf-lb-cod{font-size:var(--fs-title)}
@@ -6401,4 +6409,40 @@
 @media (max-width:760px){
   .rf-sc-lista{display:flex;flex-direction:column}
   .rf-sc-lista .rf-sv2.novo{order:-1;margin-bottom:2px}
+}
+
+/* =====================================================================
+   MODAIS NO TELEMÓVEL: O MESMO RESPIRO DA FAIXA DO CLUBE
+   Vários invólucros viravam full-bleed abaixo de 760px — `border-radius:0`
+   e largura total, encostados às bordas. A faixa do clube (.rf-band), que é
+   a peça de referência da página, nunca fez isso: fica dentro dos 12px de
+   padding do conteúdo e mantém o raio do cartão.
+
+   O resultado era uma página onde o cabeçalho do clube tinha cantos e
+   margem, e o cabeçalho da rodada ao vivo — logo abaixo — não tinha nem um
+   nem outro. Aqui os quatro shells de modal passam a seguir a mesma régua:
+   12px de cada lado e --r-card. Vem no fim do ficheiro de propósito, para
+   ganhar das regras de cima sem as ter de reescrever uma a uma.
+   ===================================================================== */
+@media (max-width:760px){
+  /* 1 · rodada ao vivo — o inset vivia só no .rf-lv-env, e a faixa está fora dele */
+  .rf-lv{padding:0 12px 24px}
+  .rf-lv-env{padding:0}
+  .rf-lv-faixa{border-radius:var(--r-card)}
+
+  /* 2 · sobreposições de partida (substituição, lesão, expulsão, pénaltis…) */
+  .rf-ov{padding:12px;align-items:center}
+  .rf-ov-win{width:100%;max-width:100%;border-radius:var(--r-card);
+    min-height:0;max-height:calc(100dvh - 24px);display:flex;flex-direction:column}
+  .rf-ov-body{flex:1 1 auto;min-height:0;overflow-y:auto}
+
+  /* 3 · pós-rodada ("Como ficou a tabela") */
+  .rf-stg{padding:12px;box-sizing:border-box}
+  .rf-stg-hd{border-radius:var(--r-card) var(--r-card) 0 0}
+  .rf-stg-shell{border-radius:0 0 var(--r-card) var(--r-card);
+    border-left:var(--border-hairline);border-right:var(--border-hairline)}
+
+  /* 4 · camarote e o portão de publicidade */
+  .rf-cam-shell{border-radius:var(--r-card)}
+  .rf-gate-card{border-radius:var(--r-card);min-height:0}
 }
