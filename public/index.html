@@ -777,7 +777,23 @@ document.addEventListener('DOMContentLoaded',async ()=>{
     /* aguarda init Supabase se online */
     try{ await netInitSupabase(); NET.useSupabase=true; }catch(e){ console.warn('Supabase fallback para local'); }
   }
-  else cdraw();
+  /* ONDE O UTILIZADOR ESTAVA. Sem isto, recarregar caia sempre na home: `CL`
+     e estado de sessao e CL.screen nasce em 'abertura'. rfPosRestaurar() le a
+     posicao gravada (ver rfPosGravar em main.js), recarrega o save da nuvem e
+     volta a mesma pagina. Precisa do Supabase de pe — o save vem de la —, e
+     se nao houver posicao, sessao ou save, cai no cdraw() de sempre. */
+  else {
+    let voltou=false;
+    try{
+      const pos=(typeof rfPosLer==='function')?rfPosLer():null;
+      if(pos && pos.save){
+        try{ await netInitSupabase(); }catch(e){ console.warn('Supabase (retomar posicao):', e); }
+        const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+        if(st.loggedIn && typeof rfPosRestaurar==='function') voltou=rfPosRestaurar();
+      }
+    }catch(e){ console.warn('retomar posicao:', e); }
+    if(!voltou) cdraw();
+  }
   if(typeof onlineTimerLoop==='function') onlineTimerLoop();
 });
 </script>

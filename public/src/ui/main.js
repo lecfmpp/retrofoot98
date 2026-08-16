@@ -688,6 +688,42 @@ function rfContextoRolagem(){
    destino batiam sempre e a rolagem era restaurada até ao navegar. Este
    guarda o contexto do último desenho concluído, que é com quem comparar. */
 let RF_CTX_DESENHADO='';
+let RF_IR_AO_TOPO=false;
+
+/* =====================================================================
+   ONDE O UTILIZADOR ESTAVA — sobrevive ao recarregar
+   `CL` e estado de sessao e nunca foi gravado: CL.screen nasce em 'abertura',
+   entao QUALQUER recarregar mandava a pessoa para a home, mesmo a meio de um
+   save. Aqui fica so a POSICAO (que save, que pagina) — nao o jogo, que
+   continua a vir da nuvem por clLoadSave.
+
+   SO A TELA PRINCIPAL se restaura. Partida ao vivo, sorteio, sala da Resenha e
+   afins tem estado que nao esta neste registo; reentrar neles a frio daria um
+   ecra meio montado. Nesses casos volta-se ao hub do clube, que e sempre
+   valido. A Resenha tem o seu proprio caminho de reentrada (ver o resync em
+   index.html) e por isso nem se grava. */
+const RF_POS_CHAVE='rf98:pos';
+function rfPosGravar(){
+  try{
+    if(CL.online) return;
+    if(CL.screen!=='main' || !CL.save) return;
+    const st=(typeof rfState==='function')?rfState():null;
+    localStorage.setItem(RF_POS_CHAVE, JSON.stringify({
+      save:CL.save, page:(st&&st.page)||'', quando:Date.now() }));
+  }catch(e){}
+}
+function rfPosLer(){
+  try{ return JSON.parse(localStorage.getItem(RF_POS_CHAVE)||'null'); }catch(e){ return null; }
+}
+function rfPosLimpar(){ try{ localStorage.removeItem(RF_POS_CHAVE); }catch(e){} }
+/* devolve true se assumiu o arranque */
+function rfPosRestaurar(){
+  const pos=rfPosLer();
+  if(!pos || !pos.save || typeof clLoadSave!=='function') return false;
+  CL._posPagina=pos.page||'';   // aplicada por clLoadSave quando o save chega
+  clLoadSave(pos.save);
+  return true;
+}
 function capturaRolagem(){
   const m={_ctx:RF_CTX_DESENHADO};
   try{ CDRAW_ROLAGENS.forEach(sel=>{ m[sel]=Array.from(document.querySelectorAll(sel)).map(el=>el.scrollTop); }); }catch(e){}
@@ -776,6 +812,13 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
   try{
     const mesmo = RF_CTX_DESENHADO && (RF_CTX_DESENHADO===rfContextoRolagem());
     document.documentElement.classList.toggle('rf-sem-anim', !!mesmo);
+    /* MUDOU DE TELA/PAGINA/ABA -> a leitura recomeca do TOPO. Sem isto, quem
+       estava a meio de uma lista longa e clicava noutra pagina caia no meio da
+       pagina nova: a rolagem da janela nao se mexe sozinha quando o conteudo e
+       trocado por innerHTML. Vale tambem para os links da home que levam a
+       outras paginas. Redesenho da MESMA tela nao mexe na rolagem — senao um
+       clique num filtro atirava a pagina para cima. */
+    RF_IR_AO_TOPO = !mesmo;
   }catch(e){}
   const _rolagem=capturaRolagem();
   // registra a força do meu elenco uma vez por rodada (no-op se nada mudou) — ver trackMyForces
@@ -850,6 +893,12 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
   if(typeof patchPickerFill==='function') patchPickerFill();
   if(CL.screen==='loading') runLoading();
   const f=$c('#cl-focus'); if(f) f.focus();
+  if(RF_IR_AO_TOPO){ RF_IR_AO_TOPO=false;
+    try{ window.scrollTo(0,0); }catch(e){}
+    /* o envelope do jogo rola por DENTRO (.rf-content), nao na janela */
+    try{ document.querySelectorAll('.rf-content,.rf-lv,.rf-stg').forEach(el=>{ el.scrollTop=0; }); }catch(e){}
+  }
+  rfPosGravar();
 }
 
 /* ================= 01 · ABERTURA (Home) =================
@@ -3298,7 +3347,11 @@ function clLoadSave(name){
     setUniverse(S.intlUniverse||'brasil'); // restaura a config de divisões do universo do save (Brasil/Inglaterra/...)
     CL.intlUniverse = S.intlUniverse||false;
     syncDataClubsFromState(); // realinha DATA.clubs com a divisão real do save carregado
-    CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null; cdraw();
+    CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
+    /* volta a pagina onde a pessoa estava antes de recarregar (ver rfPosRestaurar).
+       Consumida na hora: so vale para ESTE arranque. */
+    if(CL._posPagina){ try{ if(typeof rfGo==='function') rfGo(CL._posPagina); else CL.page=CL._posPagina; }catch(e){} CL._posPagina=''; }
+    cdraw();
     // sorteio de copa pode ter ficado pendente de uma sessão anterior (fila em
     // S._pendingDrawShows, ver initSeasonCups/advancePendingCups) — sem isso aqui, o
     // usuário só via o sorteio depois de terminar a PRÓXIMA rodada ao vivo (via
