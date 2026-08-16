@@ -281,7 +281,7 @@ function rfOb2(){
           </span>
           <span class="rf-modo-t">Modo Solo</span>
           <span class="rf-modo-d">Pega um clube da Série D e sobe até a elite no seu ritmo. Mercado, finanças e o calendário completo de copas — sem depender de ninguém entrar na sala.</span>
-          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();clPickSolo()">${rfIcone('jogar',16)} Começar agora</button>
+          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();clPickSolo()">${rfIcone('jogar',16)} Jogar sozinho</button>
         </div>
       </div>
       <!-- o ramo do "em breve" chamava rfObAvisar(), que nao existe: se alguem
@@ -297,19 +297,25 @@ function rfOb2(){
           </span>
           <span class="rf-modo-t">Modo Resenha</span>
           <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até ${rfSalaTeto()} treinadores jogam a mesma rodada ao vivo, com tabela, mercado e zoeira no chat.</span>
-          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?"clWaitlistOpen('onboarding')":'clPickResenha()'}">${RESENHA_EM_BREVE?rfIcone('coroa',16)+' Entrar na lista de espera':rfIcone('chat',16)+' Criar a sala'}</button>
+          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?"clWaitlistOpen('onboarding')":'clPickResenha()'}">${RESENHA_EM_BREVE?rfIcone('coroa',16)+' Entrar na lista de espera':rfIcone('chat',16)+' Jogar com a galera'}</button>
         </div>
       </div>
     </div>
-    ${rfObSavesHTML()}`;
+`;
+  /* DUAS ACOES E MAIS NADA. A tela tinha quatro caminhos para a mesma decisao:
+     os dois cartoes, um CTA no rodape que repetia o Solo, e o acordeao de
+     saves — que ainda por cima e a tela SEGUINTE do Solo (passo 3), aqui
+     antecipada. Quatro portas para escolher entre duas coisas.
+     Ficam os dois cartoes, cada um com o seu botao. O rodape nao leva CTA:
+     nao ha "continuar" possivel antes de escolher o modo, e a nota "toque num
+     cartao" era legenda de uma coisa que os proprios botoes ja dizem.
+     rfObSavesHTML() continua a existir — e usada noutro sitio. */
   return rfWiz({passo:rfPasso('Modo'), corpo,
-    sobre:'Como você quer jogar', titulo:'Comece a sua carreira contra a máquina.',
+    sobre:'Como você quer jogar', titulo:'Como você quer jogar?',
     sub:RESENHA_EM_BREVE
       ? 'O Modo Resenha, para jogar com a turma, chega em novembro. Na beta, o Solo já está completo.'
       : 'Você pode mudar de modo depois, a qualquer momento.',
-    nota:'Toque num cartão para continuar.',
-    voltar:'clGoAbertura()', voltarLabel:'‹ Voltar',
-    cta:'Continuar no Modo Solo', ctaOn:'clPickSolo()'});
+    voltar:'clGoAbertura()', voltarLabel:'‹ Voltar'});
 }
 /* ACORDEÃO DOS SAVES NA NUVEM. A lista chega assíncrona (NET.listSoloSaves),
    então enquanto CL.soloSaves for null o bloco diz que está carregando em vez

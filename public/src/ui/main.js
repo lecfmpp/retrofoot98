@@ -679,7 +679,16 @@ function rfContextoRolagem(){
     const st=(typeof rfState==='function')?rfState():null;
     const pg=st?st.page:'';
     const ab=(st&&st.tab&&pg)?(st.tab[pg]||''):'';
-    return String(CL.screen||'')+'|'+pg+'|'+ab;
+    /* O SUB-PASSO DO ASSISTENTE CONTA COMO MUDANCA DE TELA. No onboarding o
+       CL.screen muitas vezes NAO muda entre um passo e o seguinte — o funil da
+       Resenha inteiro vive em screen='online' e so CL.net.step anda, e o Solo
+       usa CL.soloStep. Sem isto o contexto ficava igual, o cdraw() concluia
+       "mesma tela" e nao levava a leitura ao topo: quem carregava em
+       "Continuar" chegava ao passo seguinte a meio da pagina. (E o mesmo
+       contexto que suprime a animacao de entrada, entao os dois passam a
+       tratar o avanco do assistente como o que ele e: uma tela nova.) */
+    const passo=(CL.net&&CL.net.step)||CL.soloStep||'';
+    return String(CL.screen||'')+'|'+pg+'|'+ab+'|'+passo;
   }catch(e){ return String(CL.screen||''); }
 }
 /* O contexto do que está NA TELA, não o que está sendo desenhado.
@@ -896,7 +905,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
   if(RF_IR_AO_TOPO){ RF_IR_AO_TOPO=false;
     try{ window.scrollTo(0,0); }catch(e){}
     /* o envelope do jogo rola por DENTRO (.rf-content), nao na janela */
-    try{ document.querySelectorAll('.rf-content,.rf-lv,.rf-stg').forEach(el=>{ el.scrollTop=0; }); }catch(e){}
+    try{ document.querySelectorAll('.rf-content,.rf-lv,.rf-stg,.rf-wiz,.rf-wiz-in,.cl-wiz-body').forEach(el=>{ el.scrollTop=0; }); }catch(e){}
   }
   rfPosGravar();
 }
