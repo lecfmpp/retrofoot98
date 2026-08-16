@@ -2052,7 +2052,6 @@ function clPickResenha(){
 function scModoSolo(){
   const step=CL.soloStep||'choice';
   if(step==='novo') return scSoloNovo();
-  if(step==='cont') return scSoloCont();
   const loading=CL.soloSaves==null; const n=(CL.soloSaves||[]).length;
   const contDesc = loading?'Carregando seus jogos salvos' : (n?`Você tem <b>${n}</b> jogo${n>1?'s':''} salvo${n>1?'s':''} na nuvem.`:'Nenhum jogo salvo ainda.');
   return wizShell({ step:rfPasso('Save','solo'), modo:'solo', title:'Modo Solo', back:'clGoModo()',
@@ -2067,7 +2066,7 @@ function scModoSolo(){
           <div class="cl-mc-t">Novo jogo</div>
           <div class="cl-mc-d">Comece uma carreira nova do zero, contra a máquina.</div>
         </div>
-        <div class="cl-mc-card" onclick="clSoloContinue()">
+        <div class="cl-mc-card" onclick="clPickSolo()">
           <div class="cl-mc-ic">📁</div>
           <div class="cl-mc-t">Continuar</div>
           <div class="cl-mc-d">${contDesc}</div>
@@ -2097,11 +2096,10 @@ function scSoloNovo(){
   });
 }
 function clSyncCount(){ const el=document.querySelector('.cl-wiz-count'); if(el) el.textContent=(CL.save||'').length+'/8'; }
-/* Continuar: lista de saves na nuvem (variante do passo 2) */
-function scSoloCont(){
-  // TELA PORTADA (telas/Fluxo - Continuar Save)
-  return rfSavesHTML();
-}
+/* scSoloCont() e clSoloContinue() foram removidas: eram o "passo 2 variante
+   Continuar", e o roteador ('modosolo') nunca leu CL.soloStep — clicar em
+   Continuar mudava o estado e redesenhava a MESMA tela. Hoje a lista de saves
+   e a propria tela (rfObSoloHTML), sem bifurcacao. */
 
 /* apagar um jogo salvo (solo) — confirmação + delete na nuvem */
 function clDeleteSave(name){
@@ -2133,7 +2131,6 @@ function clSaveNomeLivre(){
   return 'SAVE'+Date.now().toString(36).slice(-4).toUpperCase();
 }
 function clSoloNew(){ CL.save=clSaveNomeLivre(); CL.soloStep='novo'; clModoOk(); }
-function clSoloContinue(){ CL.soloStep='cont'; cdraw(); }
 function clSoloBackChoice(){ CL.soloStep='choice'; cdraw(); }
 function clSyncOk(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(b) b.disabled = !((CL.save||'').trim().length>0); }
 function clGoAbertura(){ CL.screen='abertura'; cdraw(); }

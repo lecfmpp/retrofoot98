@@ -276,39 +276,11 @@ function rfDivDoClube(c){
 /* =====================================================================
    6 · CONTINUAR UM SAVE (passo 2 — é onde o Modo Solo se abre)
    ===================================================================== */
-function rfSavesHTML(){
-  const carregando=CL.soloSaves==null;
-  const saves=(CL.soloSaves||[]).slice()
-    .sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0));
-  const corpo=`
-    <div class="rf-wiz-mid">
-      ${carregando?'<span class="rf-note">Carregando os seus jogos salvos</span>'
-        :saves.map((s,i)=>`<div class="rf-sv-lin ${i===0?'me':''}" onclick="clLoadSave('${escC(s.name)}')">
-          <span class="rf-sv-ico">${rfIcone('salvar',16)}</span>
-          <span class="rf-sv-id"><span class="rf-sv-n">${escC(rfSaveClube(s))}</span>
-            <span class="rf-sv-s">${escC(rfSaveOnde(s))}</span></span>
-          <div class="rf-sp"></div>
-          <span class="rf-sv-b">${i===0?'Continuar':'Abrir'}</span>
-          <button type="button" class="rf-sv-x" title="Apagar este jogo"
-            onclick="event.stopPropagation();clDeleteSave('${escC(s.name)}')">${rfIcone('apagar',15)}</button>
-        </div>`).join('')}
-      <div class="rf-sv-lin novo" onclick="clSoloNew()">
-        <span class="rf-sv-ico">${rfIcone('mais',16)}</span>
-        <span class="rf-sv-id"><span class="rf-sv-n">Começar um save novo</span>
-          <span class="rf-sv-s">Escolha país, liga e clube outra vez</span></span>
-      </div>
-    </div>`;
-  return rfWiz({ corpo, passo:rfPasso('Save','solo'), trilha:'solo',
-    sobre:'Modo solo', titulo:'Onde você parou',
-    sub:'Os saves ficam na nuvem — entre de qualquer aparelho com a mesma conta.',
-    nota:'Jogo gravado na nuvem.',
-    voltar:'clGoModo()', voltarLabel:'‹ Voltar ao modo',
-    cta: saves.length?`Continuar o ${rfSaveClube(saves[0])}`:'Começar um save novo',
-    ctaOn: saves.length?`clLoadSave('${(saves[0].name||'').replace(/'/g,"\\'")}')`:'clSoloNew()' });
-}
-/* O pacote mostra CLUBE e divisão nas linhas de save, não o nome do arquivo:
-   "XV Piracicaba / Série D · 2026", e o botão diz "Continuar o XV Piracicaba".
-   O nome cru (SAVE01) só aparece quando o save não guardou o clube. */
+/* rfSavesHTML() VIVIA AQUI — uma SEGUNDA implementacao desta mesma tela, com
+   desenho proprio. So era alcancavel por scSoloCont(), que por sua vez so era
+   chamada por clSoloContinue() — o caminho que nunca funcionou (o roteador
+   nunca leu CL.soloStep). Duas versoes da mesma tela e como se descobre tarde
+   que se andou a medir a errada: removida, fica so rfObSoloHTML. */
 function rfSaveClube(s){
   const st=(s&&s.state)||{};
   return st.clubName||st.club||s.club||s.name||s.save_name||'Jogo salvo';
@@ -662,70 +634,85 @@ function rfClubeEscolhe(nome){
    abaixo, sem precisar de um passo extra só pra digitar um nome.
    ===================================================================== */
 function rfObSoloHTML(){
+  /* SEM BIFURCACAO. Havia dois cartoes ("Novo jogo" / "Continuar") por cima da
+     lista de saves, e tres coisas erradas neles:
+
+     · "Novo jogo" nascia aceso — `CL.soloEscolha` e LIDO aqui e nunca escrito
+       em lado nenhum, entao a condicao dava sempre true. Parecia selecao, mas
+       os cartoes sao acoes diretas: nada estava selecionado.
+     · "Continuar" nao fazia nada. clSoloContinue() poe CL.soloStep='cont' e
+       redesenha — mas o roteador ('modosolo') nunca le CL.soloStep, entao a
+       mesma tela voltava identica. scSoloCont(), que desenharia a lista, ficou
+       orfa.
+     · e o cartao anunciava "7 passos", quando a regua do Solo tem 6.
+
+     A lista ja responde a pergunta que os cartoes faziam: quem quer continuar
+     toca no save, quem quer comecar toca na ultima linha. Um passo a menos
+     para quem so quer voltar ao jogo. */
   const carregando = CL.soloSaves==null;
   const saves=(CL.soloSaves||[]).slice()
     .sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0));
   const n=saves.length;
-  const recentes=saves.slice(0,3);
-  const novoSel = CL.soloEscolha!=='continuar';
-
-  const cartao=(sel,onclick,ico,titulo,desc,chip,chipCls)=>`
-    <button type="button" class="rf-sc-card ${sel?'sel':''}" onclick="${onclick}">
-      <span class="rf-sc-ico ${chipCls==='novo'?'novo':''}">${ico}</span>
-      <span class="rf-sc-t">${escC(titulo)}</span>
-      <span class="rf-sc-d">${escC(desc)}</span>
-      ${chip?`<span class="rf-sc-chip ${chipCls||''}">${escC(chip)}</span>`:''}
-    </button>`;
 
   const linha=(s,i)=>{
     const st=s.state||{};
-    const clube=st.clubName||st.club||s.club||s.save_name||s.name||'—';
+    const nome=s.name||s.save_name||'';
+    /* SEM cair no nome do save: sem clube identificado a linha mostrava
+       "SAVE05 / SAVE05", o mesmo texto duas vezes. O nome do save ja e a
+       segunda linha; aqui fica o clube ou nada. */
+    const clube=st.clubName||st.club||s.club||'';
     const serie=st.divisionLabel||st.division||s.division||'';
     const ano=st.season||s.season||'';
     const onde=st.roundLabel||(st.round?`${st.round}ª jornada`:'')||s.round_label||'';
-    const nome=s.name||s.save_name||'';
-    return `<div class="rf-sv2 ${i===0?'me':''}" onclick="clLoadSave('${escC(nome).replace(/'/g,"\\'")}')">
+    const sub=[serie,ano].filter(Boolean).join(' · ');
+    return `<div class="rf-sv2 ${i===0?'me':''}" role="button" tabindex="0"
+      onclick="clLoadSave('${escC(nome).replace(/'/g,"\\'")}')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clLoadSave('${escC(nome).replace(/'/g,"\\'")}')}">
       <span class="rf-sv2-cr">${rfSaveEscudoHTML(st)}</span>
       <span class="rf-sv2-id">
-        <span class="rf-sv2-n">${escC(clube)}</span>
-        <span class="rf-sv2-s">${escC([serie,ano].filter(Boolean).join(' · ')||nome)}</span>
+        <span class="rf-sv2-n">${escC(clube||nome||'—')}</span>
+        <span class="rf-sv2-s">${escC(clube ? [sub,nome].filter(Boolean).join(' · ') : sub)}</span>
       </span>
       <span class="rf-sv2-onde">${escC(onde)}</span>
       <span class="rf-sv2-q">${escC(rfSaveQuando(s))}</span>
       <span class="rf-sv2-b ${i===0?'forte':''}">${i===0?'Continuar':'Abrir'}</span>
+      <button type="button" class="rf-sv2-x" title="Apagar este jogo"
+        onclick="event.stopPropagation();clDeleteSave('${escC(nome).replace(/'/g,"\\'")}')">${rfIcone('apagar',15)}</button>
     </div>`;
   };
 
   const corpo=`
     <div class="rf-sc">
-      <div class="rf-sc-cards">
-        ${cartao(novoSel,'clSoloNew()','NEW','Novo jogo',
-          'Comece uma carreira do zero contra a máquina. Você escolhe país, divisão e clube.',
-          '7 passos · ~2 min','novo')}
-        ${cartao(!novoSel,'clSoloContinue()',rfIcone('arquivar',20),'Continuar',
-          'Retome um dos seus saves na nuvem, do ponto exato onde parou.',
-          carregando?'Carregando':`${n} save${n===1?'':'s'} gravado${n===1?'':'s'}`,'')}
-      </div>
-      ${(carregando||n)?`
-      <div class="rf-sc-sep"></div>
-      <div class="rf-sc-hd">
-        <span class="rf-label-t">Os seus saves mais recentes</span>
+      ${(carregando||n)?`<div class="rf-sc-hd">
+        <span class="rf-label-t">${carregando?'Os seus saves':'Os seus saves'}</span>
         <span class="rf-sc-cont">${carregando?'—':`${n} na nuvem`}</span>
-      </div>
+      </div>`:''}
       <div class="rf-sc-lista">
         ${carregando?'<span class="rf-note">Carregando os seus jogos salvos</span>'
-                    :recentes.map(linha).join('')}
+                    :saves.map(linha).join('')}
+        <button type="button" class="rf-sv2 novo" onclick="clSoloNew()">
+          <span class="rf-sv2-cr"><span class="rf-sv2-vazio">${rfIcone('mais',16)}</span></span>
+          <span class="rf-sv2-id">
+            <span class="rf-sv2-n">Começar um jogo novo</span>
+            <span class="rf-sv2-s">Uma carreira do zero contra a máquina — você escolhe país, divisão e clube</span>
+          </span>
+        </button>
       </div>
-      ${n>3?`<button type="button" class="rf-sc-todos" onclick="clSoloContinue()">Ver os ${n} saves</button>`:''}
-      `:''}
     </div>`;
 
+  const primeiro=saves[0];
+  const nomePrimeiro=primeiro?((primeiro.state&&(primeiro.state.clubName||primeiro.state.club))
+    ||primeiro.club||primeiro.name||primeiro.save_name||''):'';
   return rfWiz({ corpo, passo:rfPasso('Save','solo'), trilha:'solo', contexto:'Modo solo',
-    titulo:'Como você quer começar?',
-    sub:'Comece do zero ou retome um dos seus saves na nuvem.',
+    titulo: n?'Onde você quer jogar?':'Comece a sua carreira.',
+    sub: n?'Toque num save para continuar, ou comece um jogo novo.'
+          :'Uma carreira do zero contra a máquina. Você escolhe país, divisão e clube.',
     nota:'Os saves ficam na nuvem — entre de qualquer aparelho com a mesma conta.',
     voltar:'clGoModo()', voltarLabel:'‹ Voltar ao modo',
-    cta:'Começar do zero', ctaOn:'clSoloNew()' });
+    cta: nomePrimeiro?('Continuar o '+nomePrimeiro):'Começar do zero',
+    ctaOn: primeiro
+      ? `clLoadSave('${String(primeiro.name||primeiro.save_name||'').replace(/'/g,"\\'")}')`
+      : 'clSoloNew()' });
 }
 /* escudo do clube do save; sem clube identificado, o crachá fica vazio em vez
    de sumir — a linha perderia o alinhamento das colunas */

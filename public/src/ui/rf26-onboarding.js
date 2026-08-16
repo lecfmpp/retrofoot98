@@ -257,7 +257,14 @@ function rfOb2(){
         <img class="rf-modo-bg" src="img/modos/modo-solo.webp" alt="" aria-hidden="true" loading="lazy">
         <div class="rf-modo-veu"></div>
         <div class="rf-modo-txt">
-          <span class="rf-modo-tag rec">Recomendado</span>
+          <!-- Dois selos que dizem O QUE O MODO E, em vez de "Recomendado" —
+               que e opiniao, nao informacao, e nao ajuda a escolher. Vao num
+               contentor porque .rf-modo-tag e absoluto: soltos, empilhavam-se
+               um por cima do outro no mesmo canto. -->
+          <span class="rf-modo-tags">
+            <span class="rf-modo-tag rec">Online</span>
+            <span class="rf-modo-tag">Single Player</span>
+          </span>
           <span class="rf-modo-t">Modo Solo</span>
           <span class="rf-modo-d">Pega um clube da Série D e sobe até a elite no seu ritmo. Mercado, finanças e o calendário completo de copas — sem depender de ninguém entrar na sala.</span>
           <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();clPickSolo()">${rfIcone('jogar',16)} Começar agora</button>
@@ -270,7 +277,10 @@ function rfOb2(){
         <img class="rf-modo-bg" src="img/modos/modo-resenha.webp" alt="" aria-hidden="true" loading="lazy">
         <div class="rf-modo-veu"></div>
         <div class="rf-modo-txt">
-          <span class="rf-modo-tag">${RESENHA_EM_BREVE?'Em novembro':'Online'}</span>
+          <span class="rf-modo-tags">
+            <span class="rf-modo-tag rec">Online</span>
+            <span class="rf-modo-tag">Multi-player</span>
+          </span>
           <span class="rf-modo-t">Modo Resenha</span>
           <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até ${rfSalaTeto()} treinadores jogam a mesma rodada ao vivo, com tabela, mercado e zoeira no chat.</span>
           <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?"clWaitlistOpen('onboarding')":'clPickResenha()'}">${RESENHA_EM_BREVE?rfIcone('coroa',16)+' Entrar na lista de espera':rfIcone('chat',16)+' Criar a sala'}</button>
@@ -317,7 +327,7 @@ function rfObSavesHTML(){
           <span class="rf-obsv-q">${escC(rfSaveQuando(sv))}</span>
           <button type="button" class="rf-obsv-b" onclick="event.stopPropagation();clLoadSave('${escC(sv.name)}')">Continuar</button>
         </div>`;}).join('')}
-      <button type="button" class="rf-obsv-ger" onclick="clSoloContinue()">Gerenciar saves na nuvem</button>`);
+      <button type="button" class="rf-obsv-ger" onclick="clPickSolo()">Gerenciar saves na nuvem</button>`);
   /* O CONTROLE É UM BOTÃO, não um texto. Azul, com a seta amarela: para baixo
      abre, para cima fecha. O `aria-expanded` é o que conta o estado para quem
      usa leitor de tela — o desenho da seta é só para quem vê. */

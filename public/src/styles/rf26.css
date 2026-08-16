@@ -1863,7 +1863,11 @@
 .rf-modo.off:hover .rf-modo-bg{transform:none}
 .rf-modo-txt{display:flex;flex-direction:column;gap:8px;align-items:flex-start;min-width:0;
   margin-top:auto}
-.rf-modo-tag{position:absolute;right:14px;top:14px;z-index:1;
+/* os selos passaram a ser DOIS por cartao: quem posiciona agora e o contentor,
+   e cada selo volta ao fluxo — em absoluto, empilhavam-se no mesmo canto. */
+.rf-modo-tags{position:absolute;right:14px;top:14px;z-index:1;display:flex;
+  flex-wrap:wrap;justify-content:flex-end;gap:6px;max-width:calc(100% - 28px)}
+.rf-modo-tag{
   font-family:var(--font-mono);font-size:var(--fs-label);
   font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase;
   background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.28);
@@ -5295,7 +5299,9 @@
 
 /* uma linha de save: escudo | clube+série | jornada | quando | botão */
 .rf-sv2{display:grid;align-items:center;gap:14px;
-  grid-template-columns:34px minmax(0,1.1fr) minmax(0,.9fr) minmax(0,.9fr) auto;
+  /* +1 coluna para o apagar, que nao existia quando esta grelha foi escrita:
+     sem ela o botao caia para uma segunda linha dentro do cartao. */
+  grid-template-columns:34px minmax(0,1.1fr) minmax(0,.9fr) minmax(0,.9fr) auto 32px;
   padding:12px 14px;border:1px solid var(--line-2);border-radius:var(--r-card);
   background:var(--surface-card);cursor:pointer;min-width:0}
 .rf-sv2:hover{border-color:var(--brand-primary)}
@@ -6308,3 +6314,19 @@
   font-size:var(--fs-2);color:var(--text-3);cursor:pointer}
 .rf-ob-trocar b{color:var(--brand-primary)}
 .rf-ob-trocar:hover{background:var(--surface-2)}
+
+/* apagar um save, e a linha de "comecar um jogo novo" ----------------------- */
+.rf-sv2-x{width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--line-1);border-radius:10px;background:transparent;color:var(--text-3);
+  cursor:pointer;padding:0;flex:0 0 auto}
+.rf-sv2-x:hover{background:color-mix(in srgb,var(--danger) 12%,transparent);
+  border-color:var(--danger);color:var(--danger)}
+/* a ultima linha e um botao, nao um save: tracejada e sem as colunas da direita */
+.rf-sv2.novo{grid-template-columns:34px minmax(0,1fr);border-style:dashed;
+  background:transparent;font-family:inherit;text-align:left;width:100%}
+.rf-sv2.novo:hover{background:var(--surface-2)}
+@media (max-width:760px){
+  .rf-sv2{grid-template-columns:34px minmax(0,1fr) auto 32px}
+  .rf-sv2-onde,.rf-sv2-q{display:none}
+  .rf-sv2.novo{grid-template-columns:34px minmax(0,1fr)}
+}
