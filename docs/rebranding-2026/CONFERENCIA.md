@@ -457,3 +457,36 @@ Sete modais auditados: substituição, lesão, expulsão, prorrogação, pênalt
 
 Conferido: 375px sem nada cortado nos sete modais; 1440 mantém os dois botões
 lado a lado.
+
+---
+
+# 13 · Vídeos: os cinco que temos, e onde tocam
+
+| Vídeo | Modal | Estava a tocar? |
+|---|---|---|
+| `momento-campeao.mp4` | Momento campeão (liga e copa) | sim |
+| `momento-crise.mp4` | Momento de crise | sim |
+| `boas-vindas-presidente.mp4` | Boas-vindas do presidente | sim |
+| `convite-jantar.mp4` | Convite para jantar | **não** |
+| `convite-assinatura.mp4` | O jantar e a proposta | **não** |
+
+### Corrigido nesta rodada
+- [x] **Dois vídeos existiam no disco e não tocavam em lado nenhum.** O pacote
+      desenha estes dois modais com um bloco "ESPAÇO RESERVADO · 16:9", e o
+      porte copiou o bloco **à letra** — o jogo mostrava o cartaz do mockup, com
+      o texto do mockup, no lugar exato onde o vídeo devia estar.
+      Eles tocavam no desenho antigo: quando `showJobInvite`/`showJobProposal`
+      passaram a devolver o modal novo, o código velho — e o vídeo com ele —
+      ficou depois do `return`, inalcançável.
+- [x] `rfVideoHTML` passa a aceitar um ficheiro. Com ele, o espaço 16:9 **é** o
+      vídeo, com legenda sobre um rodapé escuro; sem ele continua o cartaz — que
+      é o certo para os **seis momentos que ainda não têm filme** (marcador de
+      liga e de copa, promovido, rebaixado, abertura e final de copa)
+- [x] Nunca com som: `muted` no HTML **e** `volume=0` ao carregar
+
+Conferido nos cinco: tocam, em loop, mudos, e em 375px o quadro respeita o 16:9
+(311×175) dentro da tela.
+
+### Se quiser mais vídeos
+Os seis buracos já têm chave e comentário em `VIDEOS_MOMENTO` (main.js): basta
+pôr o ficheiro em `public/video/` e trocar o `null` pelo caminho.
