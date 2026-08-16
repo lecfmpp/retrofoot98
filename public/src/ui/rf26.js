@@ -295,10 +295,13 @@ function rfBandHTML(titulo){
         <span class="rf-label-t">Treinador</span>
         <span>·</span><span>${universeFlag()} ${escC(universeCountryName())}</span>
         <span>·</span><span>${escC(divisionLabel())}</span>
-        <span>·</span>
-        ${rfBandDataHTML()}
+        <span class="rf-band-sep-data">·</span>
+        <span class="rf-band-data-inline">${rfBandDataHTML()}</span>
       </span>
     </div>
+    <!-- no telemovel a data sai da linha de contexto e sobe para o canto
+         direito da faixa (ver .rf-band-data-canto) -->
+    <div class="rf-band-data-canto">${rfBandDataHTML()}</div>
     <div class="rf-band-sp"></div>
     <div class="rf-band-stat end">
       <span class="rf-band-sl">Em caixa</span>

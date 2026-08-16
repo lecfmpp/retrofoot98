@@ -6435,10 +6435,13 @@
    saves primeiro, que é a ordem por recência); o que muda é a pintura.
    Razão: no desktop a linha aparece sem rolar, no telefone ficava enterrada
    debaixo de todos os saves — quem tem 21 gravados nunca a via. */
-@media (max-width:760px){
-  .rf-sc-lista{display:flex;flex-direction:column}
-  .rf-sc-lista .rf-sv2.novo{order:-1;margin-bottom:2px}
-}
+/* EM QUALQUER LARGURA. Estava so no telemovel, com o argumento de que no
+   desktop a linha aparece sem rolar — mas com 21 saves ela nao aparece
+   tambem, e a ordem passava a ser diferente nos dois tamanhos, o que e pior
+   do que qualquer das duas. A ordem no HTML nao muda (os saves seguem por
+   recencia, para o Tab e os leitores de ecra); o que muda e a pintura. */
+.rf-sc-lista{display:flex;flex-direction:column}
+.rf-sc-lista .rf-sv2.novo{order:-1;margin-bottom:2px}
 
 /* =====================================================================
    MODAIS NO TELEMÓVEL: O MESMO RESPIRO DA FAIXA DO CLUBE
@@ -6546,3 +6549,38 @@
 .rf-lp-pro{font-family:var(--font-mono);font-size:9px;font-weight:var(--fw-bold);
   letter-spacing:.08em;text-transform:uppercase;padding:2px 5px;border-radius:99px;
   background:rgba(0,0,0,.22);color:#fff;flex:0 0 auto}
+
+/* ===== A DATA NO CANTO, NO TELEMÓVEL =====
+   A linha de contexto da faixa junta treinador · país · divisão · dia · ano.
+   Em 375px isso é coisa a mais numa linha só, e o que interessa fica no fim.
+   No telefone a data sobe para o canto direito da faixa, e a linha volta a
+   ser só quem você é e onde está a jogar. No desktop nada muda: a linha tem
+   largura de sobra e a data continua onde estava. */
+.rf-band-data-canto{display:none}
+@media (max-width:760px){
+  .rf-band{position:relative;padding-right:14px}
+  .rf-band-data-canto{display:flex;flex-direction:column;align-items:flex-end;gap:4px;
+    position:absolute;right:14px;top:14px;z-index:1}
+  .rf-band-data-canto .rf-band-chip+.rf-band-chip{margin-left:0}
+  .rf-band-sep-data,.rf-band-data-inline{display:none}
+  /* o nome do clube não pode correr por baixo dos chips */
+  .rf-band-id{padding-right:78px}
+}
+
+/* ===== O SALÁRIO NÃO PODE ACABAR DEBAIXO DO "PROMOVER" =====
+   Na Base e no Treino a coluna de ação fica presa à direita (sticky) e as
+   outras passam por baixo — isso é de propósito: a ação não pode esperar por
+   uma rolagem. Mas o SALÁRIO é a última célula que rola, e é alinhado à
+   direita: medido a 375px, com a lista no fim do curso ele ocupava 211..279 e
+   o botão começa em 276. Os últimos pixels do valor — e a sombra do botão —
+   caíam por cima, e "R$ 1 mil" ficava cortado justamente no fim.
+   A folga à direita afasta o texto da borda do botão sem mexer na grelha nem
+   encurtar a rolagem. */
+@media (max-width:760px){
+  /* :nth-last-child(2), NAO :last-of-type. `of-type` conta o ultimo <span> —
+     e o ultimo span da linha e a propria acao, entao o selector nao casava com
+     nada. Mesma armadilha da tabela do pos-rodada, no mesmo dia. */
+  [data-el="base"] .rf-el-row>span:nth-last-child(2),
+  [data-el="base"] .rf-el-head>span:nth-last-child(2),
+  [data-el="treino"] .rf-el-row>span:nth-last-child(2){padding-right:18px;box-sizing:border-box}
+}
