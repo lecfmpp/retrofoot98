@@ -576,7 +576,7 @@ function onlineReconcileIfBehind(room){
    Onboarding 4 e `scLobby` devolve a Onboarding 5. As que ainda não têm desenho
    novo seguem com a tela antiga — feia, mas viva, que é melhor do que um beco. */
 function renderOnline(){ const n=CL.net||{};
-  if(n.step==='escolha') return scResenhaChoice();
+  if(n.step==='escolha') return (typeof rfResenhaComecarHTML==='function') ? rfResenhaComecarHTML() : scResenhaChoice();
   /* PORTADAS (ver src/ui/rf26-resenha-entrada.js). As antigas ficam abaixo,
      sem chamador, ate o desenho novo passar pelo teste do usuario. */
   if(n.step==='joincode') return (typeof rfEntrarCodigoHTML==='function') ? rfEntrarCodigoHTML() : scJoinCode();
@@ -608,7 +608,7 @@ function scResenhaChoice(){
   const rooms=(CL.net.myRooms||[]).slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
   const rejoin = rooms.length ? `<button class="cl-wiz-rejoin" onclick="CL.net.step='minhassalas';cdraw()">↻ Você já joga ${rooms.length} Resenha${rooms.length>1?'s':''} — toque pra reentrar</button>` : '';
   return wizShell({
-    step:rfPasso('Resenha','resenha'), modo:'resenha', title:'Modo Resenha', back:'clGoModo()', backLabel:'Voltar ao início',
+    step:rfPasso('Modo','resenha'), modo:'resenha', title:'Modo Resenha', back:'clGoModo()', backLabel:'Voltar ao início',
     contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
     action:`<span class="cl-wiz-hint">Toque num cartão para continuar.</span>`,
     body:`
@@ -643,7 +643,7 @@ function scJoinCode(){ const n=CL.net;
       </div>
     </div>`;
   return wizShell({
-    step:rfPasso('Resenha','resenha'), modo:'resenha', title:'Entrar numa Resenha', back:'clResenhaBackChoice()', backLabel:'Voltar',
+    step:rfPasso('Modo','resenha'), modo:'resenha', title:'Entrar numa Resenha', back:'clResenhaBackChoice()', backLabel:'Voltar',
     contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
     action: btn('Entrar','clJoinCodeGo()',{icon:'✔',cls:'cl-wiz-cta',dis:!ok})
   });
@@ -714,7 +714,7 @@ function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(ty
         ${join && NET.room?`<div class="cl-conta-room">Sala: <b>${escC(NET.room.name||n.code)}</b> · código <b>${escC(n.code)}</b></div>`:''}
         <div class="cl-conta-switch">Não é você? <a href="javascript:void(0)" onclick="clAuthSwitchAccount()">Trocar de conta</a></div>
       </div>`;
-    return wizShell({ step:rfPasso(join?'Resenha':'Sala','resenha'), modo:'resenha', title:join?'Entrar na sala':'Criar sala', back:'clGoModo()', backLabel:'Voltar',
+    return wizShell({ step:rfPasso(join?'Modo':'Sala','resenha'), modo:'resenha', title:join?'Entrar na sala':'Criar sala', back:'clGoModo()', backLabel:'Voltar',
       contentCls:'cl-wiz-authcenter', body, actionCls:'cl-wiz-action-e',
       action: btn(join?'Entrar':'Continuar',join?'clContaJoin()':'clContaHost()',{icon:'✔',cls:'cl-wiz-cta',dis:!n.name}) });
   }
@@ -865,7 +865,7 @@ function scMinhasSalas(){
       <div class="cl-wiz-authsub" style="text-align:left">Você já participa dessas salas ou foi convidado pra elas. Toque numa pra continuar.</div>
       <div class="cl-myrooms-list">${rows}</div>
     </div>`;
-  return wizShell({ step:rfPasso('Resenha','resenha'), modo:'resenha', title:'Minhas salas', back:'clResenhaBackChoice()', backLabel:'Voltar',
+  return wizShell({ step:rfPasso('Modo','resenha'), modo:'resenha', title:'Minhas salas', back:'clResenhaBackChoice()', backLabel:'Voltar',
     contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
     action: btn('Criar sala nova','clGoNovaSala()',{icon:'➕',cls:'cl-wiz-cta'}) });
 }

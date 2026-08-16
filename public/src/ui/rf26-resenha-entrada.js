@@ -45,7 +45,13 @@ function rfSalaEstado(r){
   }
   else if(r.phase==='ready'){ selo='comecar'; onde='a começar · escolha do clube'; }
   else { selo='espera'; onde='à espera dos treinadores'; chama=true; }   // lobby
-  return { clube:nome, temClube:!!cl,
+  /* `curto` = o estado SEM a jornada, para as telas que ja mostram a jornada
+     numa coluna propria (ver "Resenha - Comecar"): la, "2a jornada · a sua vez"
+     ao lado de "2a jornada" dizia a mesma coisa duas vezes. */
+  const curto = chama ? (r.pending?'convite pendente'
+                       : (r.phase==='running'?'à espera de você':'à espera dos treinadores'))
+                      : '';
+  return { clube:nome, temClube:!!cl, curto,
            escudo:(cl&&typeof clubCrestUrl==='function')?clubCrestUrl(cl):null,
            papel, onde, selo:RF_SALA_SELO[selo], chama };
 }
@@ -243,4 +249,110 @@ function rfMinhasSalasHTML(){
     ctaOn: primeira
       ? `clJoinMyRoom('${primeira.code}',${primeira.pending?'true':'false'})`
       : 'clGoNovaSala()' });
+}
+
+/* =====================================================================
+   3 · COMEÇAR NO MODO RESENHA  ("Onboarding 2c - Resenha Comecar")
+   A tela que abre quando se escolhe Modo Resenha: três caminhos (criar,
+   entrar por código, voltar a uma sala), mais os dois atalhos — colar o
+   código sem sair daqui, e a lista das salas ativas com "Voltar".
+
+   TETO REAL: 20, não 8. O pacote desenha o selo "ATÉ 8 TREINADORES" e o
+   motor aceita 20 participantes por sala (ver `teto` em rfOb5). Imprimir
+   8 seria anunciar um limite que não existe, então o selo diz 20.
+
+   "3/4 jogaram" do pacote não entra: a contagem de assentos por sala
+   exigiria uma consulta por linha. O que entra é o que se sabe — "à
+   espera de você" quando a rodada está parada no seu assento.
+   ===================================================================== */
+const RF_SALA_TETO=20;
+
+function rfResenhaComecarHTML(){
+  CL.net=CL.net||{};
+  const todas=rfSalasOrdenadas();
+  const ativas=todas.filter(r=>r.phase!=='finished');
+  const codigo=String(CL.net.code||'').toUpperCase();
+
+  const cartao=(o)=>`
+    <button type="button" class="rf-rc-card ${o.destaque?'on':''}" onclick="${o.on}">
+      <span class="rf-rc-ic" aria-hidden="true">${o.ic}</span>
+      <span class="rf-rc-t">${escC(o.t)}</span>
+      <span class="rf-rc-d">${escC(o.d)}</span>
+      <span class="rf-rc-selo ${o.destaque?'forte':''}">${escC(o.selo)}</span>
+    </button>`;
+
+  const cartoes=[
+    cartao({ic:'🍺', t:'Criar uma sala', on:'clResenhaCreate()', destaque:true,
+      d:'Você é o anfitrião: escolhe divisão, ritmo e quem entra.',
+      selo:'ATÉ '+RF_SALA_TETO+' TREINADORES'}),
+    cartao({ic:'🔑', t:'Entrar com código', on:'clResenhaJoinPrompt()',
+      d:'Alguém te passou um código de '+RF_CODIGO_TAM+' letras. Cole e entre direto.',
+      selo:'ENTRADA IMEDIATA'}),
+  ];
+  /* o terceiro cartão só existe se houver a que voltar */
+  if(ativas.length) cartoes.push(cartao({ic:'📂', t:'Voltar a uma sala',
+    on:"CL.net.step='minhassalas';cdraw()",
+    d:'Continue numa resenha que você já joga.',
+    selo:ativas.length+' SALA'+(ativas.length===1?'':'S')+' ATIVA'+(ativas.length===1?'':'S')}));
+
+  const colar=`
+    <div class="rf-rc-colar">
+      <span class="rf-rc-l">TEM UM CÓDIGO? COLE AQUI</span>
+      <div class="rf-rc-colar-lin">
+        <input class="rf-rc-in" type="text" inputmode="latin" autocomplete="off"
+          autocapitalize="characters" spellcheck="false" maxlength="${RF_CODIGO_TAM}"
+          aria-label="Código da Resenha" placeholder="7KP2M" value="${escC(codigo)}"
+          oninput="rfComecarColar(this)" onkeydown="if(event.key==='Enter')rfComecarEntrar()">
+        <button type="button" class="rf-rc-bt" onclick="rfComecarEntrar()"
+          ${codigo.length<RF_CODIGO_TAM?'disabled':''}>Entrar na sala</button>
+      </div>
+    </div>`;
+
+  const lista = ativas.length ? `
+    <div class="rf-rc-salas">
+      <div class="rf-rc-salas-h">
+        <span class="rf-rc-l">AS SUAS SALAS ATIVAS</span>
+        <span class="rf-rc-conta">${ativas.length} sala${ativas.length===1?'':'s'}</span>
+      </div>
+      ${ativas.map((r,i)=>{ const e=rfSalaEstado(r); return `
+        <div class="rf-rc-lin ${i===0?'on':''}" role="button" tabindex="0"
+          onclick="clJoinMyRoom('${escC(r.code)}',${r.pending?'true':'false'})"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clJoinMyRoom('${escC(r.code)}',${r.pending?'true':'false'})}">
+          ${rfSalaEscudoHTML(e)}
+          <span class="rf-rc-id">
+            <span class="rf-rc-n">${escC(r.name||e.clube)}</span>
+            <span class="rf-rc-sub">${escC(r.code)}${e.temClube?(' · '+escC(e.clube)):''}<span class="rf-rc-sub-jor">${escC(r.round?(' · '+r.round+'ª jornada'):'')}</span></span>
+          </span>
+          <span class="rf-rc-jor">${escC(r.round?(r.round+'ª jornada'):'')}</span>
+          <span class="rf-rc-est ${e.chama?'chama':''}">${escC(e.curto)}</span>
+          <span class="rf-rc-volta ${i===0?'forte':''}">Voltar</span>
+        </div>`; }).join('')}
+    </div>` : '';
+
+  const total=rfTrilhaDe('resenha').length;
+  return rfWiz({
+    trilha:'resenha', passo:rfPasso('Modo','resenha'),
+    /* o pacote põe o contexto ANTES do passo ("MODO RESENHA · PASSO 2 DE 7");
+       o número continua a sair da régua, não da mão. */
+    sobre:'MODO RESENHA · PASSO '+rfPasso('Modo','resenha')+' DE '+total,
+    titulo:'Criar ou entrar numa sala?',
+    sub:'Monte a sua resenha ou entre na de um amigo com o código dele.',
+    corpo:`<div class="rf-rc-cards">${cartoes.join('')}</div>
+      <div class="rf-rc-baixo">${colar}${lista}</div>`,
+    voltar:'clGoModo()', voltarLabel:'‹ Voltar ao modo',
+    nota:'A sala fica aberta até a temporada acabar — dá para sair e voltar.',
+    cta:'Criar a minha sala', ctaOn:'clResenhaCreate()' });
+}
+/* como no campo das cinco caixas: sem cdraw() por tecla, senão o cursor salta */
+function rfComecarColar(el){
+  const v=String(el.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,RF_CODIGO_TAM);
+  el.value=v;
+  CL.net=CL.net||{}; CL.net.code=v;
+  const bt=document.querySelector('.rf-rc-bt'); if(bt) bt.disabled=v.length<RF_CODIGO_TAM;
+}
+function rfComecarEntrar(){
+  const c=String((CL.net&&CL.net.code)||'');
+  if(c.length<RF_CODIGO_TAM) return;
+  CL.net.intent='join';
+  if(typeof clJoinCodeGo==='function') clJoinCodeGo();
 }

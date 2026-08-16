@@ -1947,7 +1947,10 @@ function wizShell(o){
    No telefone o CSS troca a régua por barra de progresso (ver .rf-trilha). */
 const RF_TRILHAS={
   solo:     ['Entrar','Modo','Save','País e liga','Clube','Jogar'],
-  resenha:  ['Entrar','Modo','Resenha','Sala','Convites','Clube','Jogar'],
+  /* "País e liga" no 3: quem cria a sala escolhe país e divisão nela (ver rfOb4).
+     Eu tinha posto "Resenha" aqui; o pacote ("Onboarding 2c - Resenha Comecar")
+     desenha a régua com "País e liga", e é a régua do desenho que manda. */
+  resenha:  ['Entrar','Modo','País e liga','Sala','Convites','Clube','Jogar'],
   /* QUEM ENTRA POR CÓDIGO tem caminho próprio, e curto: não escolhe país nem
      convida ninguém — o anfitrião já fez isso. É a régua que o pacote desenha
      em "Resenha - Entrar com Codigo" ("PASSO 3 DE 4 · CONVIDADO"). */

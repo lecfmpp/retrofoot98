@@ -6167,3 +6167,83 @@
   .rf-cod-cx{width:52px;height:60px;font-size:24px}
   .rf-cod-in{letter-spacing:48px;text-indent:18px}
 }
+
+/* ===== RESENHA · COMEÇAR (três caminhos) =====
+   Portado de "Onboarding 2c - Resenha Comecar". Desktop: três cartões lado
+   a lado e a linha da sala em cinco colunas. Telemóvel: cartões empilhados
+   (é o que o próprio pacote faz com [data-wiz-cards]) e a linha em três. */
+.rf-rc-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.rf-rc-card{display:flex;flex-direction:column;gap:8px;padding:20px;border-radius:18px;
+  border:2px solid var(--line-2);background:var(--surface-card);cursor:pointer;min-width:0;
+  font-family:inherit;text-align:left}
+.rf-rc-card:hover{border-color:var(--brand-primary)}
+.rf-rc-card.on{border-color:var(--brand-primary);
+  background:color-mix(in srgb,var(--brand-primary) 7%,transparent)}
+.rf-rc-ic{font-size:28px;line-height:1}
+.rf-rc-t{font-size:17px;font-weight:var(--fw-bold);color:var(--text-1);text-wrap:pretty}
+.rf-rc-d{font-size:var(--fs-2);color:var(--text-3);line-height:1.55;text-wrap:pretty}
+.rf-rc-selo{align-self:flex-start;margin-top:2px;font-family:var(--font-mono,'IBM Plex Mono',monospace);
+  font-size:10px;font-weight:var(--fw-bold);border-radius:99px;padding:4px 10px;white-space:nowrap;
+  color:var(--text-3);background:var(--surface-2)}
+.rf-rc-selo.forte{color:var(--brand-primary);background:var(--brand-secondary)}
+
+.rf-rc-baixo{display:flex;flex-direction:column;gap:14px;border-top:1px solid var(--line-1);
+  padding-top:16px}
+.rf-rc-l{font-size:10px;font-weight:var(--fw-bold);color:var(--text-3);letter-spacing:.12em;
+  white-space:nowrap}
+.rf-rc-colar{display:flex;flex-direction:column;gap:6px;max-width:420px}
+.rf-rc-colar-lin{display:flex;gap:8px}
+.rf-rc-in{flex:1;min-width:0;height:48px;padding:0 16px;border:1px solid var(--line-2);
+  border-radius:13px;background:var(--surface-card);color:var(--text-1);
+  font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:20px;font-weight:600;
+  letter-spacing:.22em;box-sizing:border-box;text-transform:uppercase}
+.rf-rc-in:focus{outline:none;border-color:var(--brand-primary)}
+.rf-rc-in::placeholder{color:var(--text-4,#9aa79e);letter-spacing:.22em}
+.rf-rc-bt{height:48px;padding:0 20px;display:flex;align-items:center;justify-content:center;
+  border-radius:13px;background:var(--surface-card);border:1px solid var(--line-2);
+  font-family:inherit;font-size:13px;font-weight:600;color:var(--text-2);white-space:nowrap;
+  cursor:pointer;flex:0 0 auto}
+.rf-rc-bt:hover:not(:disabled){background:var(--surface-2)}
+.rf-rc-bt:disabled{opacity:.5;cursor:default}
+
+.rf-rc-salas{display:flex;flex-direction:column;gap:8px}
+.rf-rc-salas-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rf-rc-conta{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:11px;
+  color:var(--text-3);white-space:nowrap}
+.rf-rc-lin{display:grid;grid-template-columns:26px minmax(0,1.2fr) minmax(0,1fr) 104px auto;
+  gap:12px;align-items:center;padding:10px;border-radius:13px;border:1px solid var(--line-1);
+  background:transparent;cursor:pointer;min-width:0}
+.rf-rc-lin:hover,.rf-rc-lin:focus-visible{background:var(--surface-2);outline:none}
+.rf-rc-lin.on{border-color:var(--brand-primary);
+  background:color-mix(in srgb,var(--brand-primary) 7%,transparent)}
+.rf-rc-id{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-rc-n{font-size:13px;font-weight:var(--fw-bold);color:var(--text-1);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rf-rc-sub{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:10px;
+  color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-rc-jor{font-size:var(--fs-2);color:var(--text-2);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.rf-rc-est{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.rf-rc-est.chama{color:var(--brand-secondary);font-weight:600}
+.rf-rc-volta{height:34px;padding:0 14px;display:flex;align-items:center;border-radius:11px;
+  background:var(--surface-card);border:1px solid var(--line-2);font-size:12px;font-weight:600;
+  color:var(--text-2);white-space:nowrap;flex:0 0 auto}
+.rf-rc-volta.forte{background:var(--brand-secondary);border-color:var(--brand-secondary);
+  color:var(--brand-primary);font-weight:var(--fw-bold)}
+
+@media (max-width:900px){
+  .rf-rc-cards{grid-template-columns:minmax(0,1fr)}
+  .rf-rc-colar{max-width:100%}
+  .rf-rc-colar-lin{flex-direction:column}
+  .rf-rc-bt{width:100%}
+  /* a linha perde as duas colunas do meio: a jornada desce para o subtítulo
+     (é o que o mobile do pacote faz) e o estado só aparece se chamar */
+  .rf-rc-lin{grid-template-columns:26px minmax(0,1fr) auto}
+  .rf-rc-jor{display:none}
+  .rf-rc-est{grid-column:1/-1;white-space:normal;text-wrap:pretty}
+  .rf-rc-est:empty{display:none}
+}
+/* a jornada vive no subtítulo só no telemóvel — no desktop tem coluna própria */
+.rf-rc-sub-jor{display:none}
+@media (max-width:900px){ .rf-rc-sub-jor{display:inline} }
