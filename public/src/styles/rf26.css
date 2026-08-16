@@ -6264,7 +6264,13 @@
 .rf-wiz-nota{flex:1 1 auto;min-width:0;text-wrap:pretty}
 @media (max-width:560px){
   .rf-wiz-nota{flex-basis:100%;order:1}
-  .rf-wiz-acao .rf-wiz-b2,.rf-wiz-acao .rf-wiz-cta{flex:1 1 0;min-width:0}
+  /* `flex:1 1 0` encolhia a CAIXA ate 132px, mas o rotulo e nowrap e nao
+     encolhe com ela: "Continuar o Cianorte" transbordava por cima do botao
+     vizinho. Com `min-width:max-content` o botao nunca fica menor do que o
+     seu texto — os dois dividem a linha quando cabem, e passam a duas linhas
+     quando nao cabem. (Mesma correcao que a barra de acao dos modais ja
+     precisou; um basis fixo falha sempre aqui.) */
+  .rf-wiz-acao .rf-wiz-b2,.rf-wiz-acao .rf-wiz-cta{flex:1 1 auto;min-width:max-content}
 }
 /* o mesmo na barra do assistente antigo (conta, à espera de aprovação) */
 .cl-wiz-actionbar,.cl-wiz-inlineaction{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -6279,9 +6285,16 @@
    Sair da conta vivia só em Configurações, dentro de um save. Agora está fixo
    no cabeçalho público (landing + todas as telas do assistente) e na faixa do
    clube dentro do jogo. */
-.rf-lp-conta{display:flex;align-items:center;gap:7px;height:36px;padding:0 12px;
-  border-radius:11px;background:var(--surface-2);color:var(--text-2);
-  font-size:var(--fs-2);font-weight:600;white-space:nowrap;max-width:180px}
+/* o nome do treinador E o botao de jogar: amarelo, com a bola do "Comecar
+   agora". Era um cracha cinzento e passivo, e com sessao aberta o cabecalho
+   ficava sem nenhuma porta de entrada para o jogo. */
+.rf-lp-conta{display:flex;align-items:center;gap:7px;height:36px;padding:0 14px;
+  border-radius:11px;border:1px solid var(--brand-secondary);
+  background:var(--brand-secondary);color:var(--brand-primary);
+  font-family:inherit;font-size:var(--fs-2);font-weight:var(--fw-bold);
+  white-space:nowrap;max-width:200px;cursor:pointer}
+.rf-lp-conta:hover{filter:brightness(1.06)}
+.rf-lp-conta svg{flex:0 0 auto}
 .rf-lp-conta-n{overflow:hidden;text-overflow:ellipsis}
 .rf-lp-sair{height:36px;padding:0 14px;border-radius:11px;background:var(--surface-card);
   border:var(--border-control);color:var(--text-2);font-family:inherit;font-size:var(--fs-2);
@@ -6294,10 +6307,35 @@
   white-space:nowrap;max-width:190px}
 .rf-band-conta:hover{background:rgba(255,255,255,.24)}
 .rf-band-conta-n{overflow:hidden;text-overflow:ellipsis;max-width:96px}
+/* NO TELEMOVEL O NOME E SO UM SINAL DE "ESTA LOGADO" — pequeno, a direita e
+   discreto, sem a bola e sem o amarelo de acao. E o Sair sai do cabecalho:
+   dentro do jogo ele mora no menu "Mais" (ver rfMaisSheet), que e onde a mao
+   ja vai no telefone.
+
+   UMA EXCECAO, DE PROPOSITO: no assistente e na landing o Sair CONTINUA no
+   cabecalho. Ali nao ha menu "Mais" — o cabecalho publico esconde os proprios
+   links abaixo de 900px e nao tem hamburguer nenhum —, entao tira-lo deixaria
+   o telefone sem NENHUMA forma de sair da conta antes de entrar num save.
+   .rf-wiz e .rf-lp-home marcam esses dois contextos. */
 @media (max-width:900px){
-  .rf-lp-conta{max-width:120px;padding:0 9px}
-  .rf-band-conta-n{display:none}
+  .rf-lp-conta{max-width:130px;padding:0 8px;height:30px;
+    background:transparent;border-color:transparent;color:var(--text-3);
+    font-size:var(--fs-1);font-weight:600;cursor:default}
+  .rf-lp-conta:hover{filter:none}
+  .rf-lp-conta svg{display:none}
+  .rf-band-conta-n,.rf-band-conta-s{display:none}
+  .rf-band-conta{padding:0 10px}
 }
+/* a folha "Mais": bloco da conta e o sair */
+.rf-sheet-sep{height:1px;background:var(--line-2);margin:8px 0}
+.rf-sheet-conta{display:flex;align-items:center;gap:10px;padding:6px 4px 10px}
+.rf-sheet-conta-ic{font-size:18px;flex:0 0 auto}
+.rf-sheet-conta-id{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-sheet-conta-n{font-size:var(--fs-3);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-sheet-conta-e{font-family:var(--font-mono);font-size:var(--fs-1);color:var(--text-3);
+  overflow:hidden;text-overflow:ellipsis}
+.rf-sheet-i.sair{color:var(--danger)}
+.rf-sheet-i.sair .rf-nav-ico{color:var(--danger)}
 
 /* ----- passo 1 com sessão aberta ----- */
 .rf-ob-sessao{display:flex;align-items:center;gap:12px;padding:16px;border-radius:var(--r-3);
@@ -6329,4 +6367,14 @@
   .rf-sv2{grid-template-columns:34px minmax(0,1fr) auto 32px}
   .rf-sv2-onde,.rf-sv2-q{display:none}
   .rf-sv2.novo{grid-template-columns:34px minmax(0,1fr)}
+}
+
+/* No telemóvel, "Começar um jogo novo" vem ANTES dos saves. A lista é a mesma
+   e a ordem no HTML não muda (leitores de ecrã e o Tab continuam a ver os
+   saves primeiro, que é a ordem por recência); o que muda é a pintura.
+   Razão: no desktop a linha aparece sem rolar, no telefone ficava enterrada
+   debaixo de todos os saves — quem tem 21 gravados nunca a via. */
+@media (max-width:760px){
+  .rf-sc-lista{display:flex;flex-direction:column}
+  .rf-sc-lista .rf-sv2.novo{order:-1;margin-bottom:2px}
 }

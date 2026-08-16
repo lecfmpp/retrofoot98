@@ -1917,6 +1917,7 @@ function wizShell(o){
       <div class="cl-wiz-content ${o.contentCls||''}">${o.body}${(_wizInline(o) && o.action!=null)?`<div class="cl-wiz-inlineaction ${o.actionCls||''}">${back}${o.action}</div>`:''}</div>
       ${(!_wizInline(o) && (o.action!=null || back))?`<div class="cl-wiz-actionbar ${o.actionCls||''}">${back}${o.action||''}</div>`:''}
     </div>
+    ${typeof rfAcaoHTML==='function'?rfAcaoHTML():''}
     <div class="cl-home-footer">
       <div class="cl-home-foot-paginas">${rodapePaginasHTML()}</div>
       <div class="cl-home-foot-linha">

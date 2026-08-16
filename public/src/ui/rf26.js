@@ -330,7 +330,7 @@ function rfBandContaHTML(){
   if(!st.loggedIn) return '';
   const nome=st.name||(st.email||'').split('@')[0]||'treinador';
   return `<button type="button" class="rf-band-conta" onclick="rfAcSairConta()"
-    title="Sair da conta de ${escC(st.email||nome)}">👤 <span class="rf-band-conta-n">${escC(nome)}</span> · Sair</button>`;
+    title="Sair da conta de ${escC(st.email||nome)}">👤 <span class="rf-band-conta-n">${escC(nome)}</span><span class="rf-band-conta-s"> · Sair</span></button>`;
 }
 
 /* ---- FAIXA DE ESTADO — só no telefone ----
@@ -1137,7 +1137,22 @@ function rfMaisSheet(){
   const linhas=resto.map(p=>`<button type="button" class="rf-sheet-i ${st.page===p.key?'on':''}"
     onclick="clCloseOverlay();rfGo('${p.key}')">
     <span class="rf-nav-ico">${rfIcone(p.ico,18)}</span><span class="rf-nav-l">${escC(p.label)}</span></button>`).join('');
-  rfSheet('Ir para', `<div class="rf-sheet-list">${linhas}</div>`);
+  /* A CONTA ENTRA AQUI. O menu "Mais" so listava paginas; sair da conta vivia
+     em Configuracoes, a dois toques e dentro de uma aba. Como no telefone a
+     faixa do clube nao tem espaco para o nome + Sair, e daqui que se sai. */
+  const auth=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+  const conta = auth.loggedIn ? `<div class="rf-sheet-sep"></div>
+    <div class="rf-sheet-conta">
+      <span class="rf-sheet-conta-ic" aria-hidden="true">👤</span>
+      <span class="rf-sheet-conta-id">
+        <span class="rf-sheet-conta-n">${escC(auth.name||'treinador')}</span>
+        <span class="rf-sheet-conta-e">${escC(auth.email||'')}</span>
+      </span>
+    </div>
+    <button type="button" class="rf-sheet-i sair" onclick="clCloseOverlay();rfAcSairConta()">
+      <span class="rf-nav-ico">${rfIcone('sair',18)}</span>
+      <span class="rf-nav-l">Sair da conta</span></button>` : '';
+  rfSheet('Ir para', `<div class="rf-sheet-list">${linhas}${conta}</div>`);
 }
 
 /* =====================================================================

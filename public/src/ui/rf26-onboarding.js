@@ -137,6 +137,12 @@ function rfWiz(o){
       </div>
     </div>
     ${rodape}
+  /* OS DIALOGOS DE ACAO PRECISAM DE QUEM OS DESENHE AQUI TAMBEM.
+     rfAcaoHTML() so era chamado dentro do envelope do jogo (rf26.js). Fora
+     dele — assistente e landing — rfAcAbrir() punha CL.acao e redesenhava, e
+     nada aparecia: o "Sair" do cabecalho ficava sem efeito nenhum. Todo shell
+     que mostre um botao capaz de abrir dialogo tem de o desenhar. */
+    ${typeof rfAcaoHTML==='function'?rfAcaoHTML():''}
   </div>`;
 }
 function rfWizTrilhaHTML(passo, trilha){

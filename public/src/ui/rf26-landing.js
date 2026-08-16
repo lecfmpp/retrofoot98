@@ -30,10 +30,15 @@ function rfContaChipHTML(){
     return `<button type="button" class="rf-lp-entrar" onclick="clGoModo('solo')">${rfIcone('chave',16)} Entrar</button>`;
   }
   const nome=st.name||(st.email||'').split('@')[0]||'treinador';
-  return `<span class="rf-lp-conta" title="${escC(st.email||'')}">
-      <span class="rf-lp-conta-ic" aria-hidden="true">👤</span>
+  /* O NOME E O BOTAO DE JOGAR. Com sessao aberta o cabecalho ficava sem
+     nenhuma porta de entrada: o "Entrar" some (ja esta dentro) e sobrava um
+     cracha passivo com o nome. Agora o nome E o botao — amarelo e com a mesma
+     bola do "Comecar agora", para se ler como acao e nao como etiqueta. */
+  return `<button type="button" class="rf-lp-conta" onclick="rfIrParaModo()"
+      title="Jogar como ${escC(st.email||nome)}">
+      ${rfIcone('jogar',16)}
       <span class="rf-lp-conta-n">${escC(nome)}</span>
-    </span>
+    </button>
     <button type="button" class="rf-lp-sair" onclick="rfAcSairConta()">Sair</button>`;
 }
 /* `extra` é o encaixe da DIREITA do cabeçalho: dentro do assistente é ali que
@@ -55,6 +60,10 @@ function rfLpNavHTML(extra){
     ${rfContaChipHTML()}
   </nav>`;
 }
+/* o cabecalho leva DIRETO ao modo: quem clica aqui ja esta logado e o passo 1
+   nao teria nada a perguntar (ver rfOb1Logado, que e a porta de quem chega
+   pelo "Entrar" da landing sem sessao aberta na cabeca). */
+function rfIrParaModo(){ CL.screen='modo'; cdraw(); }
 function rfLpIr(k){
   const el=document.getElementById('rf-lp-'+k);
   if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
@@ -258,6 +267,7 @@ function rfLandingHTML(){
     ${rfLpListaHTML()}
 
     ${rfLpRodapeHTML()}
+    ${typeof rfAcaoHTML==='function'?rfAcaoHTML():''}
   </div>`;
 }
 /* A BARRA DE VAGAS LÊ O NÚMERO DE VERDADE. O 318/500 da tela de referência é
