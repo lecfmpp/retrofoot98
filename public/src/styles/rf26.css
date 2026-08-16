@@ -711,8 +711,32 @@
 
   /* O CAMPO CONTINUA CAMPO: 326×406 com todas as marcações. Nunca vira lista. */
   .rf-pitch-card .cl-pitch-block{flex-direction:column;align-items:center;gap:10px}
-  .rf-pitch-card .cl-pitch{width:326px;height:406px}
-  .rf-pitch-card .cl-pitch-wrap{padding:4px}
+  /* O CAMPO ERA 326x406 FIXOS, e por isso ARREBENTAVA O CARTAO. Somando as
+     placas laterais (12+12), os intervalos (4+4) e o respiro do wrap (4+4),
+     o bloco pedia 366px — mas a 375px de ecra o cartao so oferece 319
+     (375 -12-12 de margem -16-16 de padding). O bloco transbordava 47px e,
+     centrado, sobrava ~23px de cada lado: as placas de publicidade acabavam
+     a 9px da borda do ecra em vez dos 28px do resto da pagina.
+     O campo base ja e elastico (flex:1 + aspect-ratio, ver main.css); aqui
+     o 326 passa a TETO em vez de medida fixa. */
+  /* o wrap precisa OCUPAR a largura: e ele que da a caixa onde o campo estica.
+     Ele nasce `flex:0 0 auto` (rf26.css, acima) e encolhia ao conteudo. */
+  .rf-pitch-card .cl-pitch-wrap{padding:4px;width:100%;max-width:326px;
+    box-sizing:border-box;margin:0 auto}
+  .rf-pitch-card .cl-pitch-block{width:100%;max-width:100%;box-sizing:border-box}
+  /* e o campo estica na LINHA (entre as duas placas laterais). No telemovel o
+     bloco vira coluna, entao o `flex:1` do main.css passa a valer na altura —
+     por isso a largura precisa de ser dita aqui. */
+  /* A PROPORCAO E OBRIGATORIA: os jogadores sao posicionados em % do campo,
+     entao um campo achatado empilha-os uns por cima dos outros. Duas coisas
+     tinham de vir juntas:
+     · `aspect-ratio` explicito — o do main.css estava a computar `auto` aqui;
+     · `align-self:flex-start` — a linha e `align-items:stretch`, e o stretch
+       impunha a altura das placas laterais (189px) por cima da altura que a
+       proporcao calcularia. Com flex-start a altura sai da proporcao, e sao
+       as placas que passam a acompanhar o campo. */
+  .rf-pitch-card .cl-pitch{flex:1 1 auto;width:auto;min-width:0;height:auto;
+    aspect-ratio:100/118;align-self:flex-start}
   .rf-pitch-card .cl-pitch-ads.left,.rf-pitch-card .cl-pitch-ads.right{width:12px;flex:0 0 12px}
   /* O banco desce pra baixo do campo e ROLA POR DENTRO. O clip precisa ser
      explícito nos dois níveis: sem ele os reservas (são 15+) transbordam a
