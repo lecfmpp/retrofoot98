@@ -664,6 +664,17 @@ function finalizeTransfer(negoIdx){
   const n=S.negos[negoIdx]; if(!n || n.stage!=='verdict' || n.status!=='aberta') return {ok:false,msg:'Negociação inválida.'};
   const p=findP(n.player,n.sellerId); if(!p) return {ok:false,msg:'Jogador não encontrado.'};
   const fq=checkForeignQuota(p); if(!fq.ok) return {ok:false,msg:fq.msg}; // cota de estrangeiros da liga
+  /* O SALARIO PEDIDO PELO EMPRESARIO NAO ERA VERIFICADO EM LADO NENHUM.
+     Quando o interesse passa de 45, agentRespond() poe n.agentCounter E manda a
+     negociacao direto para 'verdict' (ver acima). O ecra do veredito mostrava
+     "Salario combinado: n.salary" — o valor ANTIGO, mais baixo — e daqui saia
+     o contrato com esse valor. Ou seja: o empresario pedia mais, e a
+     transferencia fechava por menos, sem ninguem recusar nada.
+     A tela ja foi corrigida para trazer o pedido no campo; esta e a trava do
+     motor, para o caso valer por qualquer caminho e nao so por aquele ecra. */
+  if(n.agentCounter && (n.salary||0) < n.agentCounter){
+    return {ok:false, msg:'O empresário pede '+fmt(n.agentCounter)+'/sem — a sua oferta está abaixo disso.'};
+  }
   const totalCost=n.offerFee;
   if(totalCost>S.budget) return {ok:false,msg:'Caixa insuficiente pra fechar a taxa combinada.'};
   S.budget-=totalCost; commitBudget();                 // publica: senão o débito é revertido e o jogador sai de graça

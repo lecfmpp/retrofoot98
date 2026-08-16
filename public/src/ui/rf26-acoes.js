@@ -195,7 +195,10 @@ const RF_ACOES = {
 
   if(n && etapa==='terms'){
     const pedeAgente=n.agentCounter||0;
-    const salAtual=n.salary||sal;
+    /* O CAMPO NASCE COM O QUE O EMPRESARIO PEDE. Antes trazia a oferta ANTIGA
+       e o pedido dele aparecia so na linha de ajuda, em letra pequena: quem
+       carregasse em "Enviar termos" sem reparar reenviava o mesmo valor baixo. */
+    const salAtual=pedeAgente||n.salary||sal;
     const folhaDepois=rfFolha()+salAtual;
     return rfAcao({ kicker:'MERCADO · COMPRAR · ETAPA 2 DE 3',
       titulo:'Salário de '+escC((p&&p.n)||'—'), w:520,
@@ -212,16 +215,28 @@ const RF_ACOES = {
   }
 
   if(n && etapa==='verdict'){
-    const salFinal=n.salary||sal;
+    /* O EMPRESARIO PODE TER PEDIDO MAIS E A NEGOCIACAO VIR DIRETO PARA CA:
+       agentRespond() poe n.agentCounter e n.stage='verdict' na MESMA linha.
+       Este ecra mostrava "Salario combinado: n.salary" — o valor antigo — e
+       fechava por ele. Havendo pedido em aberto, o valor que vale e o dele,
+       e o campo fica editavel para o utilizador ver e decidir. */
+    const pede=n.agentCounter||0;
+    const emAberto=pede && (n.salary||0)<pede;
+    const salFinal=emAberto?pede:(n.salary||sal);
     return rfAcao({ kicker:'MERCADO · COMPRAR · ETAPA 3 DE 3',
       titulo:'Fechar a contratação de '+escC((p&&p.n)||'—'), w:520,
       corpo:
         rfAcFichaHTML(p,'TAXA',rfDin(n.offerFee),d.num)
-        + rfAcLinhaHTML('Salário combinado', rfDin(salFinal)+'/mês', '', true)
+        + (emAberto
+            ? rfAcAvisoHTML(`O empresário pede <b>${escC(rfDin(pede))}</b>/mês — acima da sua oferta de ${escC(rfDin(n.salary||0))}. O valor abaixo não fecha.`,'aviso')
+              + rfAcCampoHTML('rf-ac-sal','Salário oferecido', moneyDisp(pede),
+                  'Abaixo de '+escC(rfDin(pede))+' o empresário recusa.', {sufixo:'/mês', foco:true})
+            : rfAcLinhaHTML('Salário combinado', rfDin(salFinal)+'/mês', '', true))
         + rfAcLinhaHTML('Caixa depois', rfDin((S.budget||0)-n.offerFee), ((S.budget||0)-n.offerFee)<0?'ruim':'ok')
         + rfAcLinhaHTML('Folha depois', rfDin(rfFolha()+salFinal)+'/mês', 'aviso')
         + rfAcNotaHTML('Clube e jogador já concordaram. Confirmar transfere o jogador para o seu elenco.'),
-      acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Fechar contratação',on:'rfMkFinalizar()'}] });
+      acoes:[{l:'Cancelar',tom:'fantasma'},
+             {l:emAberto?'Aceitar e fechar':'Fechar contratação',on:'rfMkFinalizar()'}] });
   }
 
   const pediu = n && n.clubCounter;

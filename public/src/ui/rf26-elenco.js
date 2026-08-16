@@ -45,15 +45,27 @@ function rfElMini(pct, cor, larg){
 function rfElTom(pct){
   return pct>=80?'#2fbf5f':pct>=60?'#8cc63f':pct>=40?'#F2B90C':'#d94141';
 }
+/* A COLUNA MOSTRAVA V/E/D — vitoria, empate, derrota — que e forma de TIME.
+   Aplicada a um jogador nao dizia nada: ela pegava as ultimas tres NOTAS dele
+   (p.stats.r3) e reduzia cada uma a uma letra, com o corte em 6. Quem jogou
+   com 6,1 e quem jogou com 9,4 apareciam iguais, ambos "V", e a informacao
+   que o motor tinha — a nota — perdia-se na traducao.
+
+   Agora e a MEDIA das notas, que e o que playerForma() ja calculava no motor
+   e nunca chegava a esta tabela. `stats.r3` guarda so os ultimos tres jogos,
+   entao e a media dos tres — e o que existe; nao ha media de temporada
+   gravada em lado nenhum. Sem jogo nenhum fica travessao.
+   As faixas de cor sao as mesmas do resto do jogo (notaCls): 7,5 destaque ·
+   6,8 portao da evolucao · 6 abaixo disso foi mal. */
 function rfElForma(p){
-  const r=(p.stats&&p.stats.r3)||[];
-  // o pacote mostra SEMPRE três casas: sem jogo, entra travessão
-  const tres=[0,1,2].map(i=>{
-    const x=r.slice(-3)[i];
-    if(x==null) return '—';
-    return x>=6?'V':x>=5?'E':'D';
-  });
-  return `<span class="rf-el-forma">${tres.join(' ')}</span>`;
+  const n=(typeof playerForma==='function')?playerForma(p):null;
+  const jogos=((p.stats&&p.stats.r3)||[]).length;
+  const cls=(typeof notaCls==='function')?notaCls(n):'na';
+  const txt=(typeof notaTxt==='function')?notaTxt(n):(n==null?'—':String(n));
+  const titulo=n==null
+    ? 'Ainda não jogou nesta temporada'
+    : ('Média das notas dos últimos '+jogos+' jogo'+(jogos===1?'':'s'));
+  return `<span class="rf-el-forma"><span class="rf-el-nota ${cls}" title="${escC(titulo)}">${escC(txt)}</span></span>`;
 }
 /* linha de estatística dos rodapés (RESUMO POR SETOR, INVESTIMENTO NA BASE):
    rótulo micro em mono, número grande, e uma legenda opcional embaixo */

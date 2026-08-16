@@ -6477,3 +6477,18 @@
 .rf-pitch-card .cl-pp .rf-pp-bar{flex:1 1 auto;min-width:14px}
 .rf-pitch-card .cl-pp .cl-pp-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap}
+
+/* ===== NOTA MÉDIA NA COLUNA FORMA =====
+   A célula mostrava V/E/D em 10px com letter-spacing — desenho de sequência,
+   não de número. Agora é uma nota, e nota lê-se como valor: mono, tamanho de
+   corpo e a mesma escala de cor do resto do jogo (ver notaCls). */
+.rf-el-forma{font-family:var(--font-mono);font-size:var(--fs-caption);
+  text-align:center;white-space:nowrap;letter-spacing:0;color:var(--text-3)}
+.rf-el-nota{display:inline-block;min-width:34px;padding:2px 6px;border-radius:var(--r-chip);
+  font-family:var(--font-mono);font-size:var(--fs-caption);font-weight:var(--fw-semibold);
+  text-align:center;white-space:nowrap;box-sizing:border-box}
+.rf-el-nota.otima{background:var(--ok);color:#fff}
+.rf-el-nota.boa{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.rf-el-nota.ok{background:var(--surface-2);color:var(--text-2)}
+.rf-el-nota.ruim{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}
+.rf-el-nota.na{background:transparent;color:var(--text-4)}

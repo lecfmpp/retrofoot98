@@ -595,9 +595,18 @@ function rfMkIgualar(){
   S.negos[M.negoIdx].offerFee=M.offer;
   const r=clubRespond(S.negos[M.negoIdx]); toastC(r.msg||''); cdraw();
 }
+/* LIA O CAMPO ERRADO. O diálogo novo (rf26-acoes.js) desenha o input com o id
+   `rf-ac-sal`; aqui lia-se `rf-mk-sal`, que é o da gaveta ANTIGA. Fora dela o
+   selector não achava nada, `rfMkVal` devolvia 0 e o `||n.salary` repunha o
+   valor de antes — ou seja, o que o utilizador escrevesse no campo do salário
+   era simplesmente ignorado. Agora lê o que estiver na tela, seja qual for. */
+function rfMkSalarioDoCampo(){
+  const v=rfMkVal('rf-ac-sal');
+  return v || rfMkVal('rf-mk-sal') || 0;
+}
 function rfMkTermos(){
   const M=CL.market; const n=S.negos[M.negoIdx];
-  n.salary=rfMkVal('rf-mk-sal')||n.salary;
+  n.salary=rfMkSalarioDoCampo()||n.salary;
   const r=agentRespond(n); toastC(r.msg||''); cdraw();
 }
 function rfMkAceitarAgente(){
@@ -605,7 +614,12 @@ function rfMkAceitarAgente(){
   if(n.agentCounter) n.salary=n.agentCounter; cdraw();
 }
 function rfMkFinalizar(){
-  const M=CL.market; const r=finalizeTransfer(M.negoIdx);
+  const M=CL.market; const n=S.negos[M.negoIdx];
+  /* grava o que está no campo ANTES de fechar: no veredito com pedido do
+     empresário em aberto o campo é editável e é ele que manda */
+  const doCampo=rfMkSalarioDoCampo();
+  if(n && doCampo) n.salary=doCampo;
+  const r=finalizeTransfer(M.negoIdx);
   toastC(r.msg||'');
   if(r.ok){ rfGravar(); CL.mkP=null; CL.market=null; CL.acao=null; }
   cdraw();
