@@ -5863,8 +5863,11 @@
 .rf-esp-top{display:flex;flex-direction:column;gap:4px;min-width:0}
 .rf-esp-manchete{font-family:var(--font-serif);font-style:italic;font-size:32px;
   font-weight:var(--fw-bold);color:var(--text-1);letter-spacing:-.01em;line-height:1.1}
-.rf-esp-ctx{font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:var(--club-primary);
-  white-space:nowrap}
+/* MARCA, NAO CLUBE. O desenho pinta esta tela de azul/amarelo da marca — e com
+   razao: a espera e da SALA, nao do seu clube, e num clube de segunda cor
+   branca a barra de progresso desaparecia (mesmo caso do filete da faixa). */
+.rf-esp-ctx{font-size:var(--fs-caption);font-weight:var(--fw-semibold);
+  color:var(--brand-primary,#17458F);white-space:nowrap}
 .rf-esp-lista{display:flex;flex-direction:column;gap:8px}
 /* a linha de quem falta é AMARELA de propósito: é a pendência da tela */
 .rf-esp-quem{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;
@@ -5882,10 +5885,11 @@
 .rf-esp-prog-t{font-family:var(--font-mono);font-size:9px;font-weight:var(--fw-semibold);
   color:var(--text-faint);letter-spacing:.12em;white-space:nowrap}
 .rf-esp-prog-n{font-family:var(--font-mono);font-size:11px;font-weight:var(--fw-semibold);
-  color:var(--club-primary);white-space:nowrap}
+  color:var(--brand-primary,#17458F);white-space:nowrap}
 .rf-esp-barra{height:8px;border-radius:var(--r-pill);background:var(--line-3);overflow:hidden}
 .rf-esp-barra>i{display:block;height:100%;border-radius:var(--r-pill);
-  background:linear-gradient(90deg,var(--club-primary),var(--club-secondary));transition:width .18s}
+  background:linear-gradient(90deg,var(--brand-primary,#17458F),var(--brand-secondary,#F2B90C));
+  transition:width .18s}
 .rf-esp-foot-nota{font-size:var(--fs-caption);color:var(--text-3);white-space:nowrap}
 @media (max-width:760px){
   .rf-esp-manchete{font-size:24px}
@@ -6584,3 +6588,13 @@
   [data-el="base"] .rf-el-head>span:nth-last-child(2),
   [data-el="treino"] .rf-el-row>span:nth-last-child(2){padding-right:18px;box-sizing:border-box}
 }
+
+/* cabeçalho de diálogo no tom da MARCA (dlg com tone:'marca') — para as telas
+   que não são do seu clube, como a sala em espera da Resenha */
+.rf-dlg-marca>.rf-dlg-hd{border:none;
+  background:linear-gradient(100deg,var(--brand-primary-deep,#0e2f66),var(--brand-primary,#17458F) 62%)}
+.rf-dlg-marca .rf-dlg-t{color:var(--text-on-dark)}
+.rf-dlg-marca .rf-dlg-sub{color:var(--text-on-dark-soft)}
+.rf-dlg-marca .rf-dlg-x{color:#fff}
+.rf-dlg-marca .rf-dlg-glyph{margin-left:6px;color:var(--brand-secondary,#F2B90C)}
+.rf-dlg-marca .rf-dlg-filete{background:var(--brand-secondary,#F2B90C)}

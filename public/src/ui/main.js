@@ -420,7 +420,12 @@ function dlg(title,body,opts){
   const badgeTxt = opts.badge ? (typeof opts.badge==='string'?opts.badge:(opts.badge.label||'')) : '';
   const badgeIco = (opts.badge&&opts.badge.icon)||'';
   const glyph = opts.glyph||badgeIco||'';
-  return `<div class="rf-dlg ${claro?'':'rf-dlg-club'}" style="width:${w}px">
+  /* tone:'marca' -> cabecalho no azul/amarelo do JOGO, nao do clube. Serve as
+     telas que nao sao do seu clube: a sala em espera e da SALA, e num clube de
+     segunda cor branca o filete do cabecalho desaparecia (mesmo caso ja
+     corrigido na faixa do clube). */
+  const tom = claro ? '' : (opts.tone==='marca' ? 'rf-dlg-marca' : 'rf-dlg-club');
+  return `<div class="rf-dlg ${tom}" style="width:${w}px">
     <div class="rf-dlg-hd">
       ${claro?'':'<div class="rf-dlg-filete"></div>'}
       ${glyph?`<span class="rf-dlg-glyph">${glyph}</span>`:''}
@@ -11570,7 +11575,11 @@ function showResenhaWaiting(st){
   CL._waitOpen=true;
   /* no telefone o título completo não cabe na barra e saía "Resenha — sala em es…" */
   const tit=(typeof isPhone==='function'&&isPhone())?'Sala em espera':'Resenha — sala em espera';
-  overlayC(dlg(tit, corpo, {w:560, glyph:'⏳', footer:pe}));
+  /* 520 E A LARGURA PADRAO dos dialogos (.rf-dlg no CSS, e o w por omissao do
+     rfAcao). Este estava a 560 — so ele e mais um —, entao entre as telas da
+     Resenha o modal mudava de largura sem motivo. O glifo e o ponto do
+     desenho, nao a ampulheta: a ampulheta repete-se no botao "Aguardar". */
+  overlayC(dlg(tit, corpo, {w:520, glyph:'●', tone:'marca', footer:pe}));
 }
 /* O AVISO PARA QUEM ESTÁ SEGURANDO A SALA. Mesma linguagem visual do painel de espera, mensagem
    invertida — e com o botão que resolve, para o jogador não ter de adivinhar o que o jogo quer. */
