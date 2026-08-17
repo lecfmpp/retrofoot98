@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Campeão da Libertadores — Mobile" description="Bottom sheet de fim de competição: um clube levanta a copa, com arte da comemoração e placar da final" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;background:#0b1a12;overflow-x:hidden}
+a{color:#F2B90C;text-decoration:none}
+a:hover{color:#ffcb2e}
+</style>
+</helmet>
+
+<div style="position:relative;min-height:100vh;width:390px;max-width:100%;margin:0 auto;box-sizing:border-box;display:flex;align-items:flex-end;justify-content:center;font-family:'Space Grotesk',system-ui,sans-serif;background:radial-gradient(120% 90% at 50% 0%,#2f6f45 0%,#1d4a2e 55%,#0b1a12 100%);overflow:hidden">
+
+  <div style="position:absolute;inset:0;background:rgba(11,26,18,.5);pointer-events:none"></div>
+
+  <div style="position:relative;width:100%;background:#fff;border-radius:20px 20px 0 0;overflow:hidden;box-shadow:0 -20px 60px -20px rgba(6,14,9,.75);display:flex;flex-direction:column;box-sizing:border-box">
+
+    <div style="background:linear-gradient(100deg,#2b0a0d,#9e1b22 62%);padding:12px 14px 12px 20px;display:flex;align-items:center;gap:10px;position:relative;box-sizing:border-box">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+      <span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#eec4c4;white-space:nowrap">LIBERTADORES · 2026</span>
+        <span style="font-size:15px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Final — Libertadores</span>
+      </span>
+      <span style="flex:0 0 auto;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:9px;color:#a9bfe0;font-size:14px;cursor:pointer">✕</span>
+    </div>
+
+    <div style="padding:12px 14px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box">
+
+      <div style="position:relative;width:100%;aspect-ratio:4/3;border-radius:14px;overflow:hidden;background:#123021">
+        <image-slot id="campeao-liber-hero-mobile" shape="rect" fit="cover" placeholder="Arte da comemoração (4:3)"></image-slot>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:60%;background:linear-gradient(180deg,rgba(8,20,13,0),rgba(8,20,13,.9));pointer-events:none"></div>
+        <div style="position:absolute;left:13px;bottom:12px;display:flex;flex-direction:column;gap:3px;max-width:72%;pointer-events:none">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.14em;color:#F2B90C;white-space:nowrap">CAMPEÃO DA LIBERTADORES</span>
+          <span style="font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:22px;color:#fff;line-height:1.15;text-wrap:pretty">Fluminense é campeão.</span>
+        </div>
+        <div style="position:absolute;right:11px;bottom:11px;width:70px;height:70px;background:rgba(8,20,13,.72);border:1px solid rgba(242,185,12,.55);border-radius:11px;display:flex;align-items:center;justify-content:center;pointer-events:none">
+          <img src="assets/trofeus/libertadores.webp" alt="Troféu da Libertadores" style="width:54px;height:54px;object-fit:contain">
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px;background:#f7faf6;border:1px solid #dde7db;border-radius:13px;padding:11px 12px;box-sizing:border-box">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.12em;color:#8b978d;white-space:nowrap">FINAL · 04/NOV</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;white-space:nowrap">👥 71.902</span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 66px minmax(0,1fr);gap:8px;align-items:center">
+          <span style="display:flex;align-items:center;gap:7px;justify-content:flex-end;min-width:0">
+            <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Fluminense</span>
+            <img src="assets/crests/fluminense.png" alt="Escudo do Fluminense" style="width:26px;height:26px;object-fit:contain;flex:0 0 auto">
+          </span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#fff;background:#0e2f66;border-radius:8px;padding:5px 0;text-align:center;letter-spacing:.06em;white-space:nowrap">2–1</span>
+          <span style="display:flex;align-items:center;gap:7px;min-width:0">
+            <img src="assets/crests/corinthians.png" alt="Escudo do Boca Juniors" style="width:26px;height:26px;object-fit:contain;flex:0 0 auto">
+            <span style="font-size:13px;font-weight:500;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Boca Juniors</span>
+          </span>
+        </div>
+        <span style="font-size:11px;color:#5d6c62;line-height:1.45;text-wrap:pretty">Gols de Cano e John Kennedy.</span>
+      </div>
+
+      <div style="background:linear-gradient(100deg,#fff6dd,#fdeec0);border:1px solid #F2B90C;border-radius:13px;padding:12px 13px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px;box-sizing:border-box">
+        <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.12em;color:#8a6b00;white-space:nowrap">PREMIAÇÃO AO CAMPEÃO</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:#12201a;letter-spacing:-.01em;white-space:nowrap">R$ 130.000.000</span>
+        </span>
+        <span style="flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.12em;color:#9e1b22;white-space:nowrap">TREINADOR</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:#9e1b22;letter-spacing:-.01em;white-space:nowrap">+260</span>
+        </span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+        <div style="background:#fffbee;border:1px solid #f4e0a8;border-radius:11px;padding:9px 10px;display:flex;flex-direction:column;gap:2px;min-width:0;box-sizing:border-box">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.1em;color:#8a6b00;white-space:nowrap">JOGOS</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a;white-space:nowrap">14</span>
+        </div>
+        <div style="background:#fffbee;border:1px solid #f4e0a8;border-radius:11px;padding:9px 10px;display:flex;flex-direction:column;gap:2px;min-width:0;box-sizing:border-box">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.1em;color:#8a6b00;white-space:nowrap">FASES</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a;white-space:nowrap">6</span>
+        </div>
+        <div style="background:#fffbee;border:1px solid #f4e0a8;border-radius:11px;padding:9px 10px;display:flex;flex-direction:column;gap:2px;min-width:0;box-sizing:border-box">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.1em;color:#8a6b00;white-space:nowrap">TEMPORADA</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a;white-space:nowrap">2026</span>
+        </div>
+      </div>
+
+      <span style="font-size:12px;color:#78877c;line-height:1.5;text-wrap:pretty">A competição está encerrada nesta temporada. O Fluminense venceu o Boca Juniors na final, em 6 fases.</span>
+
+      <div style="width:100%;height:50px;display:flex;align-items:center;justify-content:center;border:1px dashed #c9d2ca;border-radius:12px;background:#f2f7f1;color:#9aa79e;font-size:9px;font-weight:700;letter-spacing:.16em;box-sizing:border-box">PUBLICIDADE 320×50</div>
+    </div>
+
+    <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 14px calc(14px + env(safe-area-inset-bottom));display:grid;grid-template-columns:minmax(0,1fr);gap:8px;box-sizing:border-box">
+      <span style="height:48px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:14px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">✔ Comemorar</span>
+      <span style="height:44px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #dde7db;color:#12201a;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#eef1ee">⏩ Ver o caminho</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844}}"></script>
+</body>
+</html>

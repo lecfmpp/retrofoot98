@@ -2656,13 +2656,24 @@ function clBoasVindasContinuar(tab){
    So se deriva quando o sufixo e SO digitos — id procedural (br_D_abc) nao vira URL invalida,
    continua a cair no mapa e, se nao houver, no badge. */
 function crestFromTmId(id){
-  const m=/^(?:cmb|br_[A-D])_(\d+)$/.exec(String(id||''));
+  const m=/^(?:cmb|intl|br_[A-D])_(\d+)$/.exec(String(id||''));
   return m ? 'https://tmssl.akamaized.net/images/wappen/big/'+m[1]+'.png' : null;
 }
+/* ===== O ID VERDADEIRO PODE ESTAR EM `tk`, NAO EM `id` =====
+   O clube que entra numa copa continental nao e o objeto do bundle: realConmebolClub fabrica um
+   id proprio a partir do NOME (`intl_estudiantes`, `intl_cusco`) e guarda o id de origem em
+   `tk`. Dai a tabela da Libertadores e da Sul-Americana ficar sem escudo nenhum enquanto o
+   bundle tinha os 160: o escudo era procurado por um id inventado, que nao esta em mapa nenhum
+   e nao tem numero de Transfermarkt para derivar. O numero estava ali ao lado, no `tk`, desde
+   sempre. */
 function clubCrestUrl(club){
+  if(!club) return null;
   if(club.crest) return club.crest;
-  const mapa=(typeof CLUB_CREST_BRASIL_LOWER!=='undefined' && CLUB_CREST_BRASIL_LOWER[club.id]);
-  return mapa || crestFromTmId(club.id) || null;
+  const M=(typeof CLUB_CREST_BRASIL_LOWER!=='undefined')?CLUB_CREST_BRASIL_LOWER:null;
+  return (M && (M[club.id] || M[club.tk]))
+      || crestFromTmId(club.id)
+      || crestFromTmId(club.tk)
+      || null;
 }
 function clubCrestHTML(club){
   const {col,col2}=clubColors(club);
