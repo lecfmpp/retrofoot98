@@ -5656,6 +5656,13 @@ function clAvancarDia(){
   /* as copas correm na virada da jornada como em qualquer rodada — sem isto,
      passar o dia saltaria por cima de uma rodada de copa devida */
   try{ if(typeof advancePendingCups==='function') advancePendingCups(); }catch(e){ console.warn('copas ao passar o dia:', e); }
+  /* se alguma final foi decidida neste avanco, a taca aparece agora — passar o
+     dia nao pode engolir a cerimonia (ver celebrarCopasDecididas) */
+  if(typeof celebrarCopasDecididas==='function' && celebrarCopasDecididas() && MOMENTO_FILA.length){
+    try{ if(typeof save==='function') save(); }catch(e){}
+    momentoSeguinte(()=>{ toastC('Dia passado — '+((typeof dataCurtaDaJornada==='function')?dataCurtaDaJornada(S.round,'liga'):'')); cdraw(); });
+    return;
+  }
   try{ if(typeof save==='function') save(); }catch(e){}
   toastC('Dia passado — '+((typeof dataCurtaDaJornada==='function')?dataCurtaDaJornada(S.round,'liga'):''));
   cdraw();
@@ -8904,8 +8911,41 @@ function cupOrderForRound(round){
   if(plan && plan.length) return plan.filter(e=>e && e.r===round && e.comp!=='liga').map(e=>e.comp);
   return (typeof cupDrawOrder==='function') ? cupDrawOrder().map(x=>x[0]) : [];
 }
+/* ===== TODA COPA DECIDIDA TEM CERIMONIA, TENHA EU JOGADO OU NAO =====
+   A cerimonia da taca so era enfileirada por dois caminhos: quem acabou de
+   jogar a final (clCupResultContinue) e quem passou pela tela de fim de fase
+   (cupClassifContinue). Uma final resolvida em segundo plano -- competicao em
+   que o clube nem entrou, ou rodada avancada pelo botao "Avancar" -- nao passa
+   por nenhum dos dois, e a temporada acabava sem nunca dizer quem levantou a
+   Copa do Brasil ou a Sul-Americana. Agora quem manda e o FATO: existe campeao
+   e ainda nao foi celebrado nesta temporada -> entra na fila.
+   O carimbo vive no SAVE (nao em CL): recarregar a pagina nao pode fazer a
+   cerimonia repetir, nem sumir. */
+function celebrarCopasDecididas(){
+  try{
+    if(!S || !S.cups || typeof enfileirarMomentosCopa!=='function') return 0;
+    S._copaCelebrada=S._copaCelebrada||{};
+    let n=0;
+    (typeof allCupKeys==='function'?allCupKeys():Object.keys(S.cups)).forEach(k=>{
+      const c=S.cups[k]; if(!c) return;
+      const b=(c.champion!==undefined)?c:c.bracket;
+      if(!b || b.champion==null) return;
+      const marca=k+':'+(S.season||1);
+      if(S._copaCelebrada[marca]) return;
+      S._copaCelebrada[marca]=true;
+      enfileirarMomentosCopa(k); n++;
+    });
+    return n;
+  }catch(e){ console.warn('celebrar copas:', e&&e.message); return 0; }
+}
 function queueRoundCupClassifs(round, done){
   done=done||function(){};
+  /* a taca vem ANTES da classificacao da jornada: primeiro o fecho da historia,
+     depois a tabela. Se houver cerimonia por mostrar, ela abre e esta funcao e
+     retomada quando a fila esvaziar. */
+  if(celebrarCopasDecididas() && MOMENTO_FILA.length){
+    momentoSeguinte(()=>queueRoundCupClassifs(round, done)); return;
+  }
   let keys=[];
   try{ keys=cupKeysPlayedInRound(round).filter(k=>!cupClassifWasShown(k, round)); }
   catch(e){ console.warn('classificação de copa da rodada:', e&&e.message); keys=[]; }

@@ -44,6 +44,13 @@ function rfDesfecho(sum){
   if(promo&&pos<=promo) return 'acesso';
   if(promo&&pos<=promo*2) return 'playoff';
   if(releg&&pos>total-releg) return 'rebaixado';
+  /* ULTIMO LUGAR NAO E "MEIO DE TABELA". Na Serie D nao ha rebaixamento
+     (releg=0), entao o 20o de 20 caia no `return 'meio'` e a tela dizia "fecha
+     no meio da tabela · OBJETIVO CUMPRIDO" para quem terminou em ultimo. Sem
+     divisao abaixo nao ha queda, mas ha fracasso: o terco de baixo da tabela le
+     como 'rebaixado' (o desfecho mais grave que existe nesta tela), e o resto
+     continua meio. */
+  if(total && pos>Math.ceil(total*2/3)) return 'rebaixado';
   return 'meio';
 }
 function rfFimTemporadaHTML(sum){
