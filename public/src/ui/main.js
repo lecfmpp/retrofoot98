@@ -6650,6 +6650,10 @@ function shootoutNextKick(){
    a bolinha aparecer junto com a revelação e não antes dela. */
 function shootoutRevelar(side, takerName, scored){
   const RL=CL.live; if(!RL || !RL.pens) return;
+  /* uma revelacao de cada vez: chamada duas vezes seguidas, a segunda apagava os relogios da
+     primeira e recomecava o suspense — a serie nunca avancava */
+  if(CL.penPhase) return;
+  if(CL._penPrazoTimer){ clearTimeout(CL._penPrazoTimer); CL._penPrazoTimer=null; }
   if(CL._penRevealTimer) clearTimeout(CL._penRevealTimer);
   if(CL._penCloseTimer) clearTimeout(CL._penCloseTimer);
   RL.pensPicking=true;
@@ -6683,6 +6687,19 @@ function openShootoutPickerModal(){
   if(CL.penAuto){ setTimeout(()=>resolveShootoutKick(CL.penSel), 220); return; }
   if(CL._penTimer) clearInterval(CL._penTimer);
   CL._penTimer=setInterval(shootoutPenaltyTick,200);
+  /* ===== A COBRANCA NAO PODE DEPENDER SO DO INTERVALO =====
+     O prazo de 10s vivia unicamente dentro de shootoutPenaltyTick, um setInterval que (a) escreve
+     num elemento `#cl-pen-count` que a pele nova JA NAO DESENHA e (b) se apaga sozinho sempre que
+     `pensPicking` pisca para falso. Morto o intervalo, NADA mais resolvia a cobranca:
+     resolveShootoutKick so e chamado por ele ou pelo clique em "Bater". A disputa ficava parada
+     para sempre a espera, com a tela ao vivo a redesenhar por tras — era o "piscando em loop".
+     Medido: prazo vencido ha 51 segundos, intervalo inexistente, zero cobrancas registadas.
+     Agora o prazo tem um relogio proprio, que dispara mesmo que o intervalo tenha morrido. */
+  if(CL._penPrazoTimer) clearTimeout(CL._penPrazoTimer);
+  CL._penPrazoTimer=setTimeout(()=>{
+    const R2=CL.live;
+    if(R2 && R2.pensPicking && !CL.penPhase) resolveShootoutKick(CL.penSel);
+  }, Math.max(300, CL.penDeadline-Date.now()+120));
 }
 function shootoutPenaltyTick(){ const RL=CL.live; if(!RL||!RL.pensPicking){ clearInterval(CL._penTimer); return; }
   const left=Math.max(0,CL.penDeadline-Date.now()); const secs=Math.ceil(left/1000);
@@ -6711,6 +6728,8 @@ function resolveShootoutKick(takerName){
 }
 function recordShootoutKick(side,takerName,scored){
   const RL=CL.live; if(!RL||!RL.pens) return;
+  if(CL._penPrazoTimer){ clearTimeout(CL._penPrazoTimer); CL._penPrazoTimer=null; }
+  if(CL._penTimer){ clearInterval(CL._penTimer); CL._penTimer=null; }
   RL.pensPicking=false;
   (side==='H'?RL.pens.h:RL.pens.a).push({name:takerName,scored});
   RL.pens.turn = side==='H' ? 'A' : 'H';
