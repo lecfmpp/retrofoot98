@@ -1967,22 +1967,34 @@ function buildCupSchedule(key, total){ return WORLD_RULES.buildCupSchedule(key, 
    Aqui o calendário é ancorado: o que passa do fim é puxado para as últimas jornadas livres,
    preservando a ORDEM das rodadas e sem empilhar duas rodadas da mesma copa na mesma jornada.
    Nunca se perde uma rodada — no pior caso ela chega mais cedo. */
+/* ====================== A COPA NÃO É ESPREMIDA DENTRO DA LIGA ======================
+   Isto ACHATAVA as datas reais das copas para caberem até à última jornada da
+   liga, em três passagens: puxava para trás o que estourasse o fim, forçava
+   ordem crescente, e comprimia outra vez se a segunda passagem estourasse.
+
+   O problema é que o calendário de 2026 é REAL, e nele a final da Copa do
+   Brasil é a 06/dez — DEPOIS do fim da liga, a 03/dez. Isso não é um erro de
+   dados: é assim no futebol. A compressão empurrava a final para dentro da
+   liga e, quando não cabia, ela perdia-se — a temporada virava sem a final ser
+   jogada, que foi exatamente o que o utilizador relatou.
+
+   Agora as rodadas de copa ficam ONDE A DATA MANDA, mesmo além do fim da liga.
+   Quem cobre o excedente é prorrogarSeFaltaCopa(), que já existe e já sabe
+   empurrar jornadas extra (S.sched.push([])) para as copas devedoras — em vez
+   de espremer a final para trás, a temporada estica para a alcançar.
+
+   Fica só a garantia de ordem crescente: duas rodadas da MESMA copa não podem
+   cair na mesma jornada (a fase seguinte precisa do resultado da anterior).
+   `folga` continua a afastar as finais de competições diferentes. */
 function ancorarCalendarioCopa(rodadas, last, folga){
   if(!Array.isArray(rodadas) || !rodadas.length) return rodadas||[];
-  const out=rodadas.slice();
-  // `folga` afasta o teto de cada competição em uma jornada, pra as finais das três copas não
-  // caírem todas no mesmo dia da última rodada da liga — o clube que chega em três finais
-  // jogaria as três (mais a liga) na mesma jornada.
-  const teto0=Math.max(0, last-(folga||0));
-  // 1) puxa de trás pra frente o que estourou o fim da temporada
-  for(let i=out.length-1, teto=teto0; i>=0; i--, teto--){
-    if(out[i]>teto) out[i]=teto;
-  }
-  // 2) garante ordem crescente estrita (o passo 1 pode ter empatado duas rodadas)
+  const out=rodadas.slice().map(r=>Math.max(0, r|0));
+  // ordem crescente estrita — sem isto duas rodadas da mesma copa colidiriam
   for(let i=1;i<out.length;i++) if(out[i]<=out[i-1]) out[i]=out[i-1]+1;
-  // 3) se a correção do passo 2 estourou de novo, comprime pela frente
-  for(let i=out.length-1, teto=last; i>=0; i--, teto--) if(out[i]>teto) out[i]=teto;
-  return out.map(r=>Math.max(0,r));
+  // a folga afasta a FINAL de cada competição, para quem chega a três finais
+  // não as jogar todas na mesma jornada
+  if(folga){ const ult=out.length-1; out[ult]=out[ult]+folga; }
+  return out;
 }
 function ensureCupCalendar(force){
   if(typeof S==='undefined' || !S || !S.cups) return;

@@ -219,16 +219,42 @@
       restante.forEach(p=>{ if(p.faltam>0){ fila.push(p.key); p.faltam--; sobrou=true; } });
     }
     if(!fila.length) return 0;
-    const cabe=Math.min(fila.length, teto-jaExtras);
     S.cupCalendar=S.cupCalendar||{};
+    /* A COPA JA SABE QUANDO JOGA — a temporada e que tem de a alcancar.
+       Antes isto EMPURRAVA uma jornada nova e escrevia o indice dela no fim do
+       calendario da copa. Desde que as copas deixaram de ser espremidas dentro
+       da liga (ver ancorarCalendarioCopa), elas ja tem rodadas marcadas ALEM do
+       fim da liga — a final da Libertadores cai na jornada 40 de um calendario
+       de 38, porque a data real dela e 28/nov e a liga acaba a 03/dez... e a da
+       Copa do Brasil e 06/dez, depois do fim.
+       Acrescentar por cima disso produzia `...,36,40,38`: fora de ordem, e a
+       final passava a ser jogada ANTES da meia-final. Agora a liga ESTICA ate
+       cobrir o que a copa ja tem marcado, e so inventa jornada nova para o que
+       nao tiver data nenhuma. */
+    const maiorMarcada=Object.keys(S.cupCalendar||{})
+      .filter(k=>k!=='_season' && Array.isArray(S.cupCalendar[k]))
+      .reduce((m,k)=>Math.max(m, ...S.cupCalendar[k]), -1);
+    let criadas=0;
+    // 1) estica a liga ate a maior jornada JA marcada por alguma copa
+    while(S.sched.length<=maiorMarcada && (jaExtras+criadas)<teto){
+      S.sched.push([]);                                   // jornada sem jogo de liga
+      criadas++;
+    }
+    // 2) o que ainda deve rodada e nao tem data marcada ganha jornada nova
+    const semData=fila.filter(k=>{
+      const a=S.cupCalendar[k]||[];
+      return !a.some(j=>j>=S.sched.length-criadas);
+    });
+    const cabe=Math.min(semData.length, teto-(jaExtras+criadas));
     for(let i=0;i<cabe;i++){
       const jornada=S.sched.length;
-      S.sched.push([]);                                   // jornada sem jogo de liga
-      const key=fila[i];
+      S.sched.push([]);
+      const key=semData[i];
       S.cupCalendar[key]=(S.cupCalendar[key]||[]).concat([jornada]);
+      criadas++;
     }
-    S._jornadasExtras=jaExtras+cabe;
-    return cabe;
+    S._jornadasExtras=jaExtras+criadas;
+    return criadas;
   }
   /* ---------- MERCADO E CAIXA DOS CLUBES DA CPU ----------
      POR QUE ESTÁ AQUI. O mercado da CPU só existia no cliente (cpuBackgroundTransfers, core.js),
