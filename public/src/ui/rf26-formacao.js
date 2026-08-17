@@ -87,8 +87,12 @@ function rfAdversarioCardHTML(){
       ${linhaTab(eu,true)}
       ${linhaTab(opp,false)}
     </div>
-    <button type="button" class="rf-adv-jogar ${pronto?'pulsa':''}" onclick="rfJogar()"
-      ${pronto?'':'disabled'}>${rfJogarLabel()}</button>
+    <!-- CLASSIFICACAO PENDENTE NAO PODE FICAR TRANCADA ATRAS DO ONZE. Este botao desliga com o
+         onze incompleto, o que esta certo para entrar em campo -- mas ver uma tabela nao e
+         entrar em campo, e clJogar resolve a fila antes de olhar para a escalacao. Trancado,
+         o jogador ficava sem caminho nenhum para a classificacao que o jogo lhe devia. -->
+    <button type="button" class="rf-adv-jogar ${pronto&&!rfClassifPendente()?'pulsa':''}" onclick="${rfJogarAcao()}"
+      ${(pronto||rfClassifPendente())?'':'disabled'}>${rfJogarLabel()}</button>
     ${pronto?'':'<span class="rf-adv-falta">Complete o onze e escolha a formação para entrar em campo.</span>'}
   </div>`;
 }

@@ -434,7 +434,7 @@ function rfSidebarHTML(){
       <button type="button" class="rf-btn rf-btn-primary rf-btn-full ${pronto?'rf-btn-pulse':''}"
         ${(pronto||rfFaltaTatica())?'':'disabled'}
         title="${pronto?'Jogar':rfFaltaTatica()?'Escolha a tática para liberar o Jogar':'Escale onze jogadores, com um goleiro'}"
-        onclick="${rfFaltaTatica()?'rfIrEscolherTatica()':'rfJogar()'}">${rfJogarLabel()}</button>
+        onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
     </div>` : '';
 
   /* O INTERRUPTOR DO MENU MORA NO PÉ, embaixo do botão Jogar, e é a mesma seta
@@ -585,7 +585,32 @@ function rfNadaParaJogar(){
     return true;
   }catch(e){ return false; }
 }
+/* ===== O BOTAO TEM DE DIZER O QUE O CLIQUE FAZ =====
+   Numa jornada com mais de uma competicao, a fila de classificacoes para na tela do clube entre
+   uma e outra (ver cupClassifContinue, main.js) e o proximo "Jogar" retoma dela. Do lado de quem
+   joga isso era: clico em Jogar -> aparece a tabela da Libertadores -> volto ao elenco -> clico
+   outra vez -> aparece a tabela da Copa do Brasil -> volto -> so no terceiro clique entro em
+   campo. O botao prometia partida tres vezes e cumpriu uma.
+   O rotulo passa a olhar a MESMA fila que o clJogar consulta primeiro, e na mesma ordem: se ha
+   classificacao por ver, ele diz "Ver classificacao" -- e entao o que aparece e o que estava
+   escrito. */
+function rfClassifPendente(){
+  try{ return !!(typeof CL!=='undefined' && CL && CL._cupClassifQueue && CL._cupClassifQueue.length); }
+  catch(e){ return false; }
+}
+/* a acao do botao, para os quatro lugares que o desenham. Com classificacao pendente ele NUNCA
+   desvia para a Formacao: clJogar trata a fila antes de olhar a tatica, entao mandar o jogador
+   escolher formacao aqui seria pedir uma coisa para fazer outra. */
+function rfJogarAcao(){
+  if(rfClassifPendente()) return 'rfJogar()';
+  return rfFaltaTatica()?'rfIrEscolherTatica()':'rfJogar()';
+}
 function rfJogarLabel(){
+  /* PRIMEIRO DE TODOS, como no clJogar: a fila de classificacoes e resolvida antes da tatica. */
+  if(rfClassifPendente()){
+    const curto=(typeof isPhone==='function' && isPhone());
+    return rfIcone('lista',16)+(curto?' Classificação':' Ver classificação');
+  }
   /* "Escolher tática" tem 131px de texto e o botão da barra inferior tem 92 —
      transbordava. No telefone o rótulo é só "Formação", que é para onde ele
      leva; no desktop, onde há espaço, fica "Escolher formação". */
@@ -816,7 +841,7 @@ function rfHubHTML(){
           title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
         <button type="button" class="rf-btn rf-btn-cta rf-acts-jogar"
           ${(rfFaltaTatica()||xiPlayers(CL.clubId).length>=11)?'':'disabled'}
-          onclick="${rfFaltaTatica()?'rfIrEscolherTatica()':'rfJogar()'}">${rfJogarLabel()}</button>
+          onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
       </div>
       ${rfSemanaHTML()}
     </div>
@@ -1478,7 +1503,7 @@ function rfBottomNavHTML(){
          desabilitado sem dizer o que faltava nem para onde ir. -->
     <button type="button" class="rf-bn-jogar ${pronto?'rf-btn-pulse':''}"
       ${(pronto||rfFaltaTatica())?'':'disabled'}
-      onclick="${rfFaltaTatica()?'rfIrEscolherTatica()':'rfJogar()'}">${rfJogarLabel()}</button>
+      onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
   </nav>`;
 }
 
