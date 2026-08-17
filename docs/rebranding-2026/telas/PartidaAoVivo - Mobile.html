@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template mobile="1" name="Partida ao Vivo — Mobile" description="Rodada ao vivo em 390px, com troféu e nome da competição" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#e8f0e7}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes aoVivoPulse{0%,100%{opacity:1}50%{opacity:.35}}
+</style>
+</helmet>
+
+<div style="width:390px;max-width:100%;min-height:100vh;margin:0 auto;background:#e8f0e7;font-family:'Space Grotesk',system-ui,sans-serif;display:flex;flex-direction:column;box-sizing:border-box">
+
+  <div style="{{ headStyle }}">
+    <div style="{{ headBar }}"></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-left:6px;min-width:0">
+      <span role="img" aria-label="Troféu da competição" style="{{ trofeuStyle }}"></span>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0">
+          <span style="{{ headTitleStyle }}">{{ compCurto }}</span>
+          <span style="{{ liveStyle }}"><span style="animation:aoVivoPulse 1.6s ease-in-out infinite">●</span> AO VIVO</span>
+        </div>
+        <span style="{{ headSubStyle }}">{{ compLinha }}</span>
+      </div>
+    </div>
+    <div style="{{ scoreBox }}">
+      <div style="{{ clockRing }}">
+        <div style="{{ clockInner }}">56'</div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+        <span style="{{ headKickerStyle }}">2º TEMPO · SEU JOGO</span>
+        <span style="{{ headScoreStyle }}">XV 1 × 1 Cianorte</span>
+      </div>
+      <span style="{{ ctaStyle }}">🎥 Camarote</span>
+    </div>
+  </div>
+
+  <div style="flex:1;padding:12px 12px 88px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box">
+
+    <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:7px;display:flex;align-items:center;gap:6px;overflow-x:auto">
+      <sc-for list="{{ comps }}" as="c" hint-placeholder-count="7">
+        <span style="{{ c.chipStyle }}" onClick="{{ c.onClick }}">
+          <span style="{{ c.chipBar }}"></span>
+          <span role="img" aria-label="Troféu" style="{{ c.chipImg }}"></span>
+          <span style="display:flex;flex-direction:column;gap:1px">
+            <span style="{{ c.chipName }}">{{ c.nome }}</span>
+            <span style="{{ c.chipMeta }}">{{ c.meta }}</span>
+          </span>
+        </span>
+      </sc-for>
+    </div>
+
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:9px;min-width:0">
+          <img src="assets/trofeus/serie-d.webp" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+            <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Brasileirão Série D</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em;white-space:nowrap">4ª DIVISÃO · GRUPO A8</span>
+          </span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap;flex:0 0 auto">2 jogos</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;padding:11px;border-radius:13px;background:#eef3fa;border:1px solid #17458F;cursor:pointer">
+          <div style="display:flex;align-items:center;gap:7px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px;justify-content:flex-end">
+              <span style="min-width:0;font-size:12px;font-weight:700;color:#12201a;line-height:1.25;text-align:right;text-wrap:pretty">XV Piracicaba</span>
+              <img src="uploads/pasted-1786581574687-0.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+            </span>
+            <span style="flex:0 0 auto;position:relative;display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:#F2B90C;background:#12201a;border-radius:8px;padding:5px 8px;overflow:hidden">
+              <span style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) .6px,transparent .7px);background-size:4px 4px;pointer-events:none"></span>
+              <span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">1</span><span style="position:relative;color:#5a6560;font-size:13px">:</span><span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">1</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px">
+              <img src="assets/crests/cruzeiro.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+              <span style="min-width:0;font-size:12px;font-weight:500;color:#12201a;line-height:1.25;text-wrap:pretty">Cianorte</span>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;justify-content:flex-end;gap:5px;overflow:hidden"><span style="display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;background:#fff;border:1px solid #e6ebe4;border-radius:99px;padding:2px 7px;white-space:nowrap"><span style="font-size:9px">⚽</span><span style="font-size:10px;color:#5d6c62;overflow:hidden;text-overflow:ellipsis">C. Miguel</span><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e">56'</span></span></span>
+            <span style="flex:0 0 auto;display:flex;align-items:center;gap:8px">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">👥 9.718</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap">56'</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;gap:5px;overflow:hidden"><span style="display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;background:#fff;border:1px solid #e6ebe4;border-radius:99px;padding:2px 7px;white-space:nowrap"><span style="font-size:9px">⚽</span><span style="font-size:10px;color:#5d6c62;overflow:hidden;text-overflow:ellipsis">Rafinha</span><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e">48'</span></span></span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;padding:11px;border-radius:13px;background:#f7faf6;border:1px solid transparent;cursor:pointer">
+          <div style="display:flex;align-items:center;gap:7px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px;justify-content:flex-end">
+              <span style="min-width:0;font-size:12px;font-weight:500;color:#12201a;line-height:1.25;text-align:right;text-wrap:pretty">Cascavel</span>
+              <img src="assets/crests/corinthians.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+            </span>
+            <span style="flex:0 0 auto;position:relative;display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:#F2B90C;background:#12201a;border-radius:8px;padding:5px 8px;overflow:hidden">
+              <span style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) .6px,transparent .7px);background-size:4px 4px;pointer-events:none"></span>
+              <span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">2</span><span style="position:relative;color:#5a6560;font-size:13px">:</span><span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">0</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px">
+              <img src="assets/crests/fluminense.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+              <span style="min-width:0;font-size:12px;font-weight:500;color:#12201a;line-height:1.25;text-wrap:pretty">Aimoré</span>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;justify-content:flex-end;gap:5px;overflow:hidden"><span style="display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;background:#fff;border:1px solid #e6ebe4;border-radius:99px;padding:2px 7px;white-space:nowrap"><span style="font-size:9px">⚽</span><span style="font-size:10px;color:#5d6c62;overflow:hidden;text-overflow:ellipsis">Tiago</span><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e">12'</span></span></span>
+            <span style="flex:0 0 auto;display:flex;align-items:center;gap:8px">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">👥 3.204</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap">61'</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;gap:5px;overflow:hidden"><span style="display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;background:#fff;border:1px solid #e6ebe4;border-radius:99px;padding:2px 7px;white-space:nowrap"><span style="font-size:9px">🟥</span><span style="font-size:10px;color:#5d6c62;overflow:hidden;text-overflow:ellipsis">Léo</span><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e">44'</span></span></span>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:9px;min-width:0">
+          <img src="assets/trofeus/serie-c.webp" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+            <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Brasileirão Série C</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em;white-space:nowrap">3ª DIVISÃO</span>
+          </span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap;flex:0 0 auto">2 jogos</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;padding:11px;border-radius:13px;background:#f7faf6;border:1px solid transparent;cursor:pointer">
+          <div style="display:flex;align-items:center;gap:7px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px;justify-content:flex-end">
+              <span style="min-width:0;font-size:12px;font-weight:500;color:#12201a;line-height:1.25;text-align:right;text-wrap:pretty">Ypiranga</span>
+              <img src="assets/crests/cruzeiro.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+            </span>
+            <span style="flex:0 0 auto;position:relative;display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:#F2B90C;background:#12201a;border-radius:8px;padding:5px 8px;overflow:hidden">
+              <span style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) .6px,transparent .7px);background-size:4px 4px;pointer-events:none"></span>
+              <span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">0</span><span style="position:relative;color:#5a6560;font-size:13px">:</span><span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">0</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px">
+              <img src="assets/crests/vasco.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+              <span style="min-width:0;font-size:12px;font-weight:500;color:#12201a;line-height:1.25;text-wrap:pretty">São José</span>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;justify-content:flex-end;gap:5px;overflow:hidden"></span>
+            <span style="flex:0 0 auto;display:flex;align-items:center;gap:8px">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">👥 2.860</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap">38'</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;gap:5px;overflow:hidden"></span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;padding:11px;border-radius:13px;background:#f7faf6;border:1px solid transparent;cursor:pointer">
+          <div style="display:flex;align-items:center;gap:7px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px;justify-content:flex-end">
+              <span style="min-width:0;font-size:12px;font-weight:500;color:#12201a;line-height:1.25;text-align:right;text-wrap:pretty">Botafogo-PB</span>
+              <img src="assets/crests/fluminense.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+            </span>
+            <span style="flex:0 0 auto;position:relative;display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:#F2B90C;background:#12201a;border-radius:8px;padding:5px 8px;overflow:hidden">
+              <span style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) .6px,transparent .7px);background-size:4px 4px;pointer-events:none"></span>
+              <span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">1</span><span style="position:relative;color:#5a6560;font-size:13px">:</span><span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">2</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px">
+              <img src="assets/crests/atletico-mg.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+              <span style="min-width:0;font-size:12px;font-weight:500;color:#12201a;line-height:1.25;text-wrap:pretty">Confiança</span>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;justify-content:flex-end;gap:5px;overflow:hidden"></span>
+            <span style="flex:0 0 auto;display:flex;align-items:center;gap:8px">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">👥 6.415</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap">72'</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;gap:5px;overflow:hidden"><span style="display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;background:#fff;border:1px solid #e6ebe4;border-radius:99px;padding:2px 7px;white-space:nowrap"><span style="font-size:9px">⚽</span><span style="font-size:10px;color:#5d6c62;overflow:hidden;text-overflow:ellipsis">Léo Vitor</span><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e">66'</span></span></span>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:9px;min-width:0">
+          <img src="assets/trofeus/serie-b.webp" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+            <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Brasileirão Série B</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em;white-space:nowrap">2ª DIVISÃO</span>
+          </span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap;flex:0 0 auto">2 jogos</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;padding:11px;border-radius:13px;background:#f7faf6;border:1px solid transparent;cursor:pointer">
+          <div style="display:flex;align-items:center;gap:7px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px;justify-content:flex-end">
+              <span style="min-width:0;font-size:12px;font-weight:500;color:#12201a;line-height:1.25;text-align:right;text-wrap:pretty">Novorizontino</span>
+              <img src="assets/crests/vasco.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+            </span>
+            <span style="flex:0 0 auto;position:relative;display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:#F2B90C;background:#12201a;border-radius:8px;padding:5px 8px;overflow:hidden">
+              <span style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) .6px,transparent .7px);background-size:4px 4px;pointer-events:none"></span>
+              <span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">2</span><span style="position:relative;color:#5a6560;font-size:13px">:</span><span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">1</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px">
+              <img src="assets/crests/flamengo.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+              <span style="min-width:0;font-size:12px;font-weight:500;color:#12201a;line-height:1.25;text-wrap:pretty">Avaí</span>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;justify-content:flex-end;gap:5px;overflow:hidden"><span style="display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;background:#fff;border:1px solid #e6ebe4;border-radius:99px;padding:2px 7px;white-space:nowrap"><span style="font-size:9px">⚽</span><span style="font-size:10px;color:#5d6c62;overflow:hidden;text-overflow:ellipsis">Jean</span><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e">74'</span></span></span>
+            <span style="flex:0 0 auto;display:flex;align-items:center;gap:8px">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">👥 11.240</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap">81'</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;gap:5px;overflow:hidden"></span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;padding:11px;border-radius:13px;background:#f7faf6;border:1px solid transparent;cursor:pointer">
+          <div style="display:flex;align-items:center;gap:7px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px;justify-content:flex-end">
+              <span style="min-width:0;font-size:12px;font-weight:500;color:#12201a;line-height:1.25;text-align:right;text-wrap:pretty">Ituano</span>
+              <img src="assets/crests/corinthians.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+            </span>
+            <span style="flex:0 0 auto;position:relative;display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:#F2B90C;background:#12201a;border-radius:8px;padding:5px 8px;overflow:hidden">
+              <span style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) .6px,transparent .7px);background-size:4px 4px;pointer-events:none"></span>
+              <span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">1</span><span style="position:relative;color:#5a6560;font-size:13px">:</span><span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">1</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px">
+              <img src="assets/crests/cruzeiro.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+              <span style="min-width:0;font-size:12px;font-weight:500;color:#12201a;line-height:1.25;text-wrap:pretty">Chapecoense</span>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;justify-content:flex-end;gap:5px;overflow:hidden"><span style="display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;background:#fff;border:1px solid #e6ebe4;border-radius:99px;padding:2px 7px;white-space:nowrap"><span style="font-size:9px">⚽</span><span style="font-size:10px;color:#5d6c62;overflow:hidden;text-overflow:ellipsis">F. Alves</span><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e">61'</span></span></span>
+            <span style="flex:0 0 auto;display:flex;align-items:center;gap:8px">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">👥 7.902</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap">81'</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;gap:5px;overflow:hidden"></span>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:9px;min-width:0">
+          <img src="assets/trofeus/serie-a.webp" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+            <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Brasileirão Série A</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em;white-space:nowrap">1ª DIVISÃO</span>
+          </span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap;flex:0 0 auto">2 jogos</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;padding:11px;border-radius:13px;background:#f7faf6;border:1px solid transparent;cursor:pointer">
+          <div style="display:flex;align-items:center;gap:7px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px;justify-content:flex-end">
+              <span style="min-width:0;font-size:12px;font-weight:500;color:#12201a;line-height:1.25;text-align:right;text-wrap:pretty">Flamengo</span>
+              <img src="assets/crests/flamengo.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+            </span>
+            <span style="flex:0 0 auto;position:relative;display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:#F2B90C;background:#12201a;border-radius:8px;padding:5px 8px;overflow:hidden">
+              <span style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) .6px,transparent .7px);background-size:4px 4px;pointer-events:none"></span>
+              <span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">2</span><span style="position:relative;color:#5a6560;font-size:13px">:</span><span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">2</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px">
+              <img src="assets/crests/cruzeiro.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+              <span style="min-width:0;font-size:12px;font-weight:500;color:#12201a;line-height:1.25;text-wrap:pretty">Palmeiras</span>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;justify-content:flex-end;gap:5px;overflow:hidden"><span style="display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;background:#fff;border:1px solid #e6ebe4;border-radius:99px;padding:2px 7px;white-space:nowrap"><span style="font-size:9px">⚽</span><span style="font-size:10px;color:#5d6c62;overflow:hidden;text-overflow:ellipsis">Pedro</span><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e">31'</span></span></span>
+            <span style="flex:0 0 auto;display:flex;align-items:center;gap:8px">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">👥 58.310</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap">77'</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;gap:5px;overflow:hidden"></span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;padding:11px;border-radius:13px;background:#f7faf6;border:1px solid transparent;cursor:pointer">
+          <div style="display:flex;align-items:center;gap:7px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px;justify-content:flex-end">
+              <span style="min-width:0;font-size:12px;font-weight:500;color:#12201a;line-height:1.25;text-align:right;text-wrap:pretty">Corinthians</span>
+              <img src="assets/crests/corinthians.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+            </span>
+            <span style="flex:0 0 auto;position:relative;display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:#F2B90C;background:#12201a;border-radius:8px;padding:5px 8px;overflow:hidden">
+              <span style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) .6px,transparent .7px);background-size:4px 4px;pointer-events:none"></span>
+              <span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">0</span><span style="position:relative;color:#5a6560;font-size:13px">:</span><span style="position:relative;text-shadow:0 0 8px rgba(242,185,12,.7)">1</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;align-items:center;gap:7px">
+              <img src="assets/crests/vasco.png" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+              <span style="min-width:0;font-size:12px;font-weight:500;color:#12201a;line-height:1.25;text-wrap:pretty">Grêmio</span>
+            </span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;min-width:0">
+            <span style="flex:1;min-width:0;display:flex;justify-content:flex-end;gap:5px;overflow:hidden"></span>
+            <span style="flex:0 0 auto;display:flex;align-items:center;gap:8px">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">👥 42.117</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap">55'</span>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;gap:5px;overflow:hidden"><span style="display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;min-width:0;background:#fff;border:1px solid #e6ebe4;border-radius:99px;padding:2px 7px;white-space:nowrap"><span style="font-size:9px">⚽</span><span style="font-size:10px;color:#5d6c62;overflow:hidden;text-overflow:ellipsis">Braithwaite</span><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e">20'</span></span></span>
+          </div>
+        </div>
+      </div>
+
+    <div style="height:80px;display:flex;align-items:center;justify-content:center;border:1px dashed #c9d2ca;border-radius:14px;background:#f2f7f1;color:#9aa79e;font-size:9px;font-weight:700;letter-spacing:.16em;text-align:center;box-sizing:border-box">PUBLICIDADE<br>320×80</div>
+  </div>
+
+  <div style="position:sticky;bottom:0;background:#fff;border-top:1px solid #dde7db;padding:9px 12px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+    <span style="flex:0 0 auto;display:flex;align-items:center;justify-content:center;height:44px;padding:0 15px;border:1px solid #d8e2d6;border-radius:13px;font-size:13px;font-weight:600;color:#5d6c62;white-space:nowrap;cursor:pointer">🏆 Tabela</span>
+    <span style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;height:44px;border-radius:13px;background:#F2B90C;color:#17458F;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer">🎥 Ver o meu jogo</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { comp: 0 };
+
+  get temas() {
+    return [
+      ['serie-d','Série D','1ª rodada · 8 jogos em andamento','64 clubes',
+       'linear-gradient(100deg,#0e2f66,#17458F 62%)','#F2B90C','#fff','#c3d3ec','#a9bfe0','#17458F','#f7faf6','#e6ebe4','#3a473f','#9aa79e'],
+      ['serie-a','Série A','1ª rodada · 20 clubes','20 clubes',
+       'linear-gradient(100deg,#0e2f66,#17458F 62%)','#F2B90C','#fff','#c3d3ec','#a9bfe0','#17458F','#f7faf6','#e6ebe4','#3a473f','#9aa79e'],
+      ['serie-b','Série B','1ª rodada · 20 clubes','20 clubes',
+       'linear-gradient(100deg,#0e2f66,#17458F 62%)','#F2B90C','#fff','#c3d3ec','#a9bfe0','#17458F','#f7faf6','#e6ebe4','#3a473f','#9aa79e'],
+      ['serie-c','Série C','1ª rodada · 20 clubes','20 clubes',
+       'linear-gradient(100deg,#0e2f66,#17458F 62%)','#F2B90C','#fff','#c3d3ec','#a9bfe0','#17458F','#f7faf6','#e6ebe4','#3a473f','#9aa79e'],
+      ['copa-do-brasil','Copa do Brasil','2ª fase · ida e volta','2ª fase',
+       'linear-gradient(100deg,#0b4d28,#1f8f4a 88%)','#9be8b8','#fff','#b9e8cb','#8fd3aa','#0b4d28','#eaf6ee','#c7e6d2','#0b4d28','#3f7a58'],
+      ['libertadores','Libertadores','Fase de grupos · 32 clubes','grupos',
+       'linear-gradient(100deg,#3d2704,#7d550b 42%,#a87a12 100%)','#f7dd8e','#fff','#fff8e6','#f5e4bb','#8a5f0d','#fbf3dc','#eddcae','#6b4c07','#8a6a2a'],
+      ['sul-americana','Sul-Americana','Fase de grupos · 32 clubes','grupos',
+       'linear-gradient(100deg,#14181c,#2e363d 55%,#6f7a84 100%)','#c9d2d9','#fff','#c9d2d9','#aab4bc','#2e363d','#eceef0','#d3d8dc','#2e363d','#69747c']
+    ];
+  }
+
+  renderVals() {
+    const MONO = "'IBM Plex Mono',monospace";
+    const T = this.temas;
+    const t = T[this.state.comp] || T[0];
+    const [arq, curto, linha, , grad, accent, ink, sub, kicker, deep] = t;
+    const dark = ink === '#fff';
+    const liga = arq.indexOf('serie-') === 0;
+
+    return {
+      headStyle: `background:${grad};padding:14px 16px;display:flex;flex-direction:column;gap:11px;position:relative;box-sizing:border-box;transition:background .28s ease`,
+      headBar: `position:absolute;left:0;top:0;bottom:0;width:5px;background:${accent}`,
+      headTitleStyle: `flex:0 0 auto;font-size:17px;font-weight:700;color:${ink};letter-spacing:-.02em;white-space:nowrap`,
+      headSubStyle: `font-size:11px;color:${sub};font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis`,
+      headKickerStyle: `font-size:9px;font-weight:600;letter-spacing:.12em;color:${kicker};white-space:nowrap`,
+      headScoreStyle: `font-family:${MONO};font-size:14px;font-weight:600;color:${ink};white-space:nowrap`,
+      liveStyle: `flex:0 0 auto;display:flex;align-items:center;gap:4px;font-family:${MONO};font-size:9px;font-weight:600;color:${dark ? '#ff5a5a' : '#8c1f16'};background:${dark ? 'rgba(217,65,65,.22)' : 'rgba(255,255,255,.55)'};border-radius:99px;padding:3px 8px`,
+      scoreBox: `display:flex;align-items:center;gap:12px;background:${dark ? 'rgba(255,255,255,.1)' : 'rgba(255,255,255,.28)'};border-radius:13px;padding:9px 12px;margin-left:6px`,
+      clockRing: `width:44px;height:44px;border-radius:99px;background:conic-gradient(${liga ? '#F2B90C' : '#fff'} 62%,${dark ? 'rgba(255,255,255,.18)' : 'rgba(0,0,0,.16)'} 0);display:flex;align-items:center;justify-content:center;flex:0 0 auto`,
+      clockInner: `width:34px;height:34px;border-radius:99px;background:${deep};display:flex;align-items:center;justify-content:center;font-family:${MONO};font-size:12px;font-weight:600;color:#fff`,
+      ctaStyle: `flex:0 0 auto;display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:${liga ? '#17458F' : deep};background:${liga ? '#F2B90C' : '#fff'};border-radius:99px;padding:8px 12px;white-space:nowrap;cursor:pointer`,
+      trofeuStyle: `width:44px;height:44px;flex:0 0 auto;background-image:url('assets/trofeus/${arq}.webp');background-size:contain;background-position:center;background-repeat:no-repeat;filter:drop-shadow(0 3px 8px rgba(0,0,0,.35))`,
+      compCurto: curto,
+      compLinha: linha,
+      comps: T.map((r, i) => {
+        const on = i === this.state.comp;
+        const [a, nm, , meta, g, , ci, cs, , , tb, tbd, ti, tm] = r;
+        const cores = g.match(/#[0-9a-f]{6}/gi);
+        return {
+          nome: nm,
+          meta,
+          chipStyle: `flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:11px;background:${on ? g : tb};border:1px solid ${on ? 'transparent' : tbd};box-shadow:${on ? '0 5px 14px -8px rgba(0,0,0,.45)' : 'none'};cursor:pointer;white-space:nowrap;position:relative;overflow:hidden;transition:background .2s ease`,
+          chipBar: on ? 'display:none' : `position:absolute;left:0;top:0;bottom:0;width:3px;background:${cores[1]}`,
+          chipImg: `width:22px;height:22px;flex:0 0 auto;margin-left:${on ? '0' : '3px'};background-image:url('assets/trofeus/${a}.webp');background-size:contain;background-position:center;background-repeat:no-repeat${on ? '' : ';opacity:.9'}`,
+          chipName: `font-size:12px;font-weight:${on ? 700 : 600};color:${on ? ci : ti};white-space:nowrap`,
+          chipMeta: `font-family:${MONO};font-size:8px;color:${on ? cs : tm};white-space:nowrap`,
+          onClick: () => this.setState({ comp: i })
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

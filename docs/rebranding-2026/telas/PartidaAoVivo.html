@@ -37,35 +37,53 @@ a:hover{color:#0e2f66}
 
     <div data-ad-top><div style="width:100%;height:100px;display:flex;align-items:center;justify-content:center;border:1px dashed #c9d2ca;border-radius:14px;background:#f2f7f1;color:#9aa79e;font-family:'Space Grotesk',system-ui,sans-serif;font-size:10px;font-weight:700;letter-spacing:.16em;text-align:center;box-sizing:border-box">PUBLICIDADE<br>970×90</div></div>
 
-    <div data-live-header style="display:flex;align-items:center;gap:16px;background:linear-gradient(100deg,#0e2f66,#17458F 62%);border-radius:18px;padding:16px 20px;position:relative;overflow:hidden">
-      <div style="position:absolute;left:0;top:0;bottom:0;width:6px;background:#F2B90C"></div>
-      <div style="display:flex;flex-direction:column;gap:3px;margin-left:6px;flex:0 0 auto">
+    <div data-live-header style="{{ headStyle }}">
+      <div style="{{ headBar }}"></div>
+      <span role="img" aria-label="Troféu da competição" style="{{ trofeuStyle }}"></span>
+      <div style="display:flex;flex-direction:column;gap:3px;flex:0 0 auto">
         <div style="display:flex;align-items:center;gap:10px;white-space:nowrap">
-          <span style="font-size:24px;font-weight:700;color:#fff;letter-spacing:-.02em">Rodada ao vivo</span>
-          <span style="display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#ff5a5a;background:rgba(217,65,65,.22);border-radius:99px;padding:4px 10px"><span style="animation:aoVivoPulse 1.6s ease-in-out infinite">●</span> AO VIVO</span>
+          <span style="{{ headTitleStyle }}">{{ compNome }}</span>
+          <span style="{{ liveStyle }}"><span style="animation:aoVivoPulse 1.6s ease-in-out infinite">●</span> AO VIVO</span>
         </div>
-        <span style="font-size:12px;color:#c3d3ec;font-weight:500;white-space:nowrap">Séries A–D · 1ª rodada · 2026</span>
+        <span style="{{ headSubStyle }}">{{ compLinha }}</span>
       </div>
       <div style="flex:1"></div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding-right:16px;border-right:1px solid rgba(255,255,255,.15)">
-        <span style="font-size:9px;font-weight:600;letter-spacing:.12em;color:#a9bfe0">JOGOS EM ANDAMENTO</span>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:#fff">8</span>
+      <div style="{{ headStatBox }}">
+        <span style="{{ headKickerStyle }}">JOGOS EM ANDAMENTO</span>
+        <span style="{{ headStatStyle }}">8</span>
       </div>
       <div data-live-clock style="display:flex;align-items:center;gap:12px;padding-left:16px">
-        <div style="width:52px;height:52px;border-radius:99px;background:conic-gradient(#F2B90C 62%,rgba(255,255,255,.18) 0);display:flex;align-items:center;justify-content:center;flex:0 0 auto">
-          <div style="width:40px;height:40px;border-radius:99px;background:#17458F;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#fff">56'</div>
+        <div style="{{ clockRing }}">
+          <div style="{{ clockInner }}">56'</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:2px">
-          <span style="font-size:9px;font-weight:600;letter-spacing:.12em;color:#a9bfe0">2º TEMPO</span>
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#fff">seu jogo: 1 × 1</span>
+          <span style="{{ headKickerStyle }}">2º TEMPO</span>
+          <span style="{{ headScoreStyle }}">seu jogo: 1 × 1</span>
         </div>
       </div>
-      <span data-live-cta style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#17458F;background:#F2B90C;border-radius:99px;padding:9px 15px;white-space:nowrap;cursor:pointer;margin-left:16px" style-hover="background:#ffcb2e">🎥 Modo Camarote</span>
+      <span data-live-cta style="{{ ctaStyle }}" style-hover="filter:brightness(1.08)">🎥 Modo Camarote</span>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #dde7db;border-radius:16px;padding:8px;overflow-x:auto">
+      <sc-for list="{{ comps }}" as="c" hint-placeholder-count="7">
+        <span style="{{ c.chipStyle }}" onClick="{{ c.onClick }}">
+          <span style="{{ c.chipBar }}"></span>
+          <span role="img" aria-label="Troféu" style="{{ c.chipImg }}"></span>
+          <span style="display:flex;flex-direction:column;gap:1px">
+            <span style="{{ c.chipName }}">{{ c.nome }}</span>
+            <span style="{{ c.chipMeta }}">{{ c.meta }}</span>
+          </span>
+        </span>
+      </sc-for>
     </div>
 
       <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:14px 14px 10px;display:flex;flex-direction:column;gap:6px">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 4px">
-          <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">1ª DIVISÃO · SÉRIE A</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 4px">
+          <span style="display:flex;align-items:center;gap:9px;min-width:0">
+            <img src="assets/trofeus/serie-a.webp" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+            <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap">Brasileirão Série A</span>
+            <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">1ª DIVISÃO</span>
+          </span>
           <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">2 jogos</span>
         </div>
         <div style="display:grid;grid-template-columns:64px minmax(0,1fr) 92px minmax(0,1fr) 46px;gap:0 12px;padding:0 12px 2px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
@@ -88,8 +106,12 @@ a:hover{color:#0e2f66}
       </div>
 
       <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:14px 14px 10px;display:flex;flex-direction:column;gap:6px">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 4px">
-          <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">2ª DIVISÃO · SÉRIE B</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 4px">
+          <span style="display:flex;align-items:center;gap:9px;min-width:0">
+            <img src="assets/trofeus/serie-b.webp" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+            <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap">Brasileirão Série B</span>
+            <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">2ª DIVISÃO</span>
+          </span>
           <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">2 jogos</span>
         </div>
         <div style="display:grid;grid-template-columns:64px minmax(0,1fr) 92px minmax(0,1fr) 46px;gap:0 12px;padding:0 12px 2px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
@@ -112,8 +134,12 @@ a:hover{color:#0e2f66}
       </div>
 
       <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:14px 14px 10px;display:flex;flex-direction:column;gap:6px">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 4px">
-          <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">3ª DIVISÃO · SÉRIE C</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 4px">
+          <span style="display:flex;align-items:center;gap:9px;min-width:0">
+            <img src="assets/trofeus/serie-c.webp" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+            <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap">Brasileirão Série C</span>
+            <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">3ª DIVISÃO</span>
+          </span>
           <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">2 jogos</span>
         </div>
         <div style="display:grid;grid-template-columns:64px minmax(0,1fr) 92px minmax(0,1fr) 46px;gap:0 12px;padding:0 12px 2px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
@@ -136,8 +162,12 @@ a:hover{color:#0e2f66}
       </div>
 
       <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:14px 14px 10px;display:flex;flex-direction:column;gap:6px">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 4px">
-          <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">4ª DIVISÃO · SÉRIE D</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 4px">
+          <span style="display:flex;align-items:center;gap:9px;min-width:0">
+            <img src="assets/trofeus/serie-d.webp" alt="" style="width:24px;height:24px;object-fit:contain;flex:0 0 auto">
+            <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap">Brasileirão Série D</span>
+            <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">4ª DIVISÃO</span>
+          </span>
           <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">2 jogos</span>
         </div>
         <div style="display:grid;grid-template-columns:64px minmax(0,1fr) 92px minmax(0,1fr) 46px;gap:0 12px;padding:0 12px 2px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
@@ -170,5 +200,71 @@ a:hover{color:#0e2f66}
   <div style="position:fixed;left:0;right:0;bottom:0;height:72px;background:#fff;border-top:1px solid #dde7db;display:flex;align-items:center;justify-content:center;color:#9aa79e;font-size:11px;font-weight:700;letter-spacing:.18em;z-index:9">ESPAÇO DE PATROCÍNIO · 320×50</div>
 </div>
 </x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { comp: 0 };
+
+  get temas() {
+    // [arquivo, nome, linha, meta, gradiente, tinta clara, borda clara, tinta escura, tinta média]
+    return [
+      ['serie-d','Brasileirão Série D','1ª rodada · 2026 · 64 clubes em 8 grupos','64 clubes',
+       'linear-gradient(100deg,#0e2f66,#17458F 62%)','#F2B90C','#fff','#c3d3ec','#a9bfe0','#17458F','#fff','#e6ebe4','#3a473f','#9aa79e'],
+      ['serie-a','Brasileirão Série A','1ª rodada · 2026 · 20 clubes','20 clubes',
+       'linear-gradient(100deg,#0e2f66,#17458F 62%)','#F2B90C','#fff','#c3d3ec','#a9bfe0','#17458F','#fff','#e6ebe4','#3a473f','#9aa79e'],
+      ['serie-b','Brasileirão Série B','1ª rodada · 2026 · 20 clubes','20 clubes',
+       'linear-gradient(100deg,#0e2f66,#17458F 62%)','#F2B90C','#fff','#c3d3ec','#a9bfe0','#17458F','#fff','#e6ebe4','#3a473f','#9aa79e'],
+      ['serie-c','Brasileirão Série C','1ª rodada · 2026 · 20 clubes','20 clubes',
+       'linear-gradient(100deg,#0e2f66,#17458F 62%)','#F2B90C','#fff','#c3d3ec','#a9bfe0','#17458F','#fff','#e6ebe4','#3a473f','#9aa79e'],
+      ['copa-do-brasil','Copa do Brasil','2ª fase · ida e volta · 92 clubes','2ª fase',
+       'linear-gradient(100deg,#0b4d28,#1f8f4a 88%)','#9be8b8','#fff','#b9e8cb','#8fd3aa','#0b4d28','#eaf6ee','#c7e6d2','#0b4d28','#3f7a58'],
+      ['libertadores','Libertadores','Fase de grupos · 32 clubes','grupos',
+       'linear-gradient(100deg,#3d2704,#7d550b 42%,#a87a12 100%)','#f7dd8e','#fff','#fff8e6','#f5e4bb','#8a5f0d','#fbf3dc','#eddcae','#6b4c07','#8a6a2a'],
+      ['sul-americana','Sul-Americana','Fase de grupos · 32 clubes','grupos',
+       'linear-gradient(100deg,#14181c,#2e363d 55%,#6f7a84 100%)','#c9d2d9','#fff','#c9d2d9','#aab4bc','#2e363d','#eceef0','#d3d8dc','#2e363d','#69747c']
+    ];
+  }
+
+  renderVals() {
+    const MONO = "'IBM Plex Mono',monospace";
+    const T = this.temas;
+    const t = T[this.state.comp] || T[0];
+    const [arq, nome, linha, , grad, accent, ink, sub, kicker, deep, tintBg, tintBd, tintInk, tintMeta] = t;
+    const dark = ink === '#fff';
+    const liga = arq.indexOf('serie-') === 0;
+
+    return {
+      headStyle: `display:flex;align-items:center;gap:16px;background:${grad};border-radius:18px;padding:16px 20px;position:relative;overflow:hidden;transition:background .28s ease`,
+      headBar: `position:absolute;left:0;top:0;bottom:0;width:6px;background:${accent}`,
+      headTitleStyle: `font-size:24px;font-weight:700;color:${ink};letter-spacing:-.02em`,
+      headSubStyle: `font-size:12px;color:${sub};font-weight:500;white-space:nowrap`,
+      headKickerStyle: `font-size:9px;font-weight:600;letter-spacing:.12em;color:${kicker}`,
+      headStatStyle: `font-family:${MONO};font-size:22px;font-weight:600;color:${ink}`,
+      headScoreStyle: `font-family:${MONO};font-size:12px;color:${ink};white-space:nowrap`,
+      headStatBox: `display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding-right:16px;border-right:1px solid ${dark ? 'rgba(255,255,255,.15)' : 'rgba(0,0,0,.18)'}`,
+      liveStyle: `display:flex;align-items:center;gap:5px;font-family:${MONO};font-size:11px;font-weight:600;color:${dark ? '#ff5a5a' : '#8c1f16'};background:${dark ? 'rgba(217,65,65,.22)' : 'rgba(255,255,255,.5)'};border-radius:99px;padding:4px 10px`,
+      clockRing: `width:52px;height:52px;border-radius:99px;background:conic-gradient(${liga ? '#F2B90C' : '#fff'} 62%,${dark ? 'rgba(255,255,255,.18)' : 'rgba(0,0,0,.16)'} 0);display:flex;align-items:center;justify-content:center;flex:0 0 auto`,
+      clockInner: `width:40px;height:40px;border-radius:99px;background:${deep};display:flex;align-items:center;justify-content:center;font-family:${MONO};font-size:14px;font-weight:600;color:#fff`,
+      ctaStyle: `display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:${liga ? '#17458F' : deep};background:${liga ? '#F2B90C' : '#fff'};border-radius:99px;padding:9px 15px;white-space:nowrap;cursor:pointer;margin-left:16px;box-shadow:0 4px 12px -6px rgba(0,0,0,.4)`,
+      trofeuStyle: `width:52px;height:52px;flex:0 0 auto;margin-left:8px;background-image:url('assets/trofeus/${arq}.webp');background-size:contain;background-position:center;background-repeat:no-repeat;filter:drop-shadow(0 3px 8px rgba(0,0,0,.35))`,
+      compNome: nome,
+      compLinha: linha,
+      comps: T.map((r, i) => {
+        const on = i === this.state.comp;
+        const [a, , , meta, g, , ci, cs, , , tb, tbd, ti, tm] = r;
+        return {
+          nome: a.startsWith('serie-') ? 'Série ' + a.slice(-1).toUpperCase() : r[1],
+          meta,
+          chipStyle: `flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:7px 14px 7px 9px;border-radius:12px;background:${on ? g : tb};border:1px solid ${on ? 'transparent' : tbd};box-shadow:${on ? '0 6px 16px -8px rgba(0,0,0,.45)' : 'none'};cursor:pointer;white-space:nowrap;position:relative;overflow:hidden;transition:background .2s ease`,
+          chipBar: on ? 'display:none' : `position:absolute;left:0;top:0;bottom:0;width:3px;background:${g.includes('#17458F') ? '#17458F' : g.match(/#[0-9a-f]{6}/gi)[1]}`,
+          chipImg: `width:26px;height:26px;flex:0 0 auto;margin-left:${on ? '0' : '3px'};background-image:url('assets/trofeus/${a}.webp');background-size:contain;background-position:center;background-repeat:no-repeat${on ? '' : ';opacity:.9'}`,
+          chipName: `font-size:13px;font-weight:${on ? 700 : 600};color:${on ? ci : ti};white-space:nowrap`,
+          chipMeta: `font-family:${MONO};font-size:9px;color:${on ? cs : tm};white-space:nowrap`,
+          onClick: () => this.setState({ comp: i })
+        };
+      })
+    };
+  }
+}
+</script>
 </body>
 </html>

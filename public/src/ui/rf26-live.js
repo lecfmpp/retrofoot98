@@ -93,6 +93,118 @@ function rfLvFatosDeJogo(m){
            fora:inc.filter(x=>lado(x)==='A').map(rfLvIncToFato) };
 }
 
+/* =====================================================================
+   IDENTIDADE DA COMPETIÇÃO — troféu, nome e paleta
+   ---------------------------------------------------------------------
+   A tela não dizia QUAL competição estava a rolar: oito jogos a correr e
+   o cabeçalho a dizer só "Rodada ao vivo". Agora o troféu real abre a
+   faixa, o nome vem por extenso e a paleta muda POR COMPETIÇÃO — nunca
+   por clube. As ligas nacionais ficam com o azul e o amarelo da marca
+   (vale para o Brasil, a Argentina ou Portugal); só as copas ganham cor
+   própria, e nelas todo controlo sobre o cabeçalho vira pílula branca
+   sólida, porque branco translúcido sobre dourado dá 3,3:1 e um controlo
+   precisa de 4,5:1.
+   ===================================================================== */
+const RF_COMP_TEMA={copaBrasil:'copa',libertadores:'liberta',sulamericana:'sula',
+  championsLeague:'liberta',europaLeague:'sula'};
+/* O TROFÉU AQUI VEM DO ARQUIVO, NÃO DO TROPHIES. A arte embutida em
+   data/trophies.js é achatada — fundo preto na Série A e na Libertadores,
+   branco na Série D — e por cima do degradê do cabeçalho ela aparecia como
+   um quadrado. Os .webp de public/img/trofeus/ têm alfa e recortam. */
+const RF_COMP_TROFEU={A:'serie-a',B:'serie-b',C:'serie-c',D:'serie-d',
+  copaBrasil:'copa-do-brasil',libertadores:'libertadores',sulamericana:'sul-americana',
+  championsLeague:'champions',europaLeague:'europa-league'};
+
+function rfCompInfo(d){
+  const comp=(typeof COMPETICOES!=='undefined')?COMPETICOES[d]:null;
+  if(comp) return {id:d,copa:true,tema:RF_COMP_TEMA[d]||'liga',trofeu:RF_COMP_TROFEU[d]||'',
+    nome:comp.name||comp.short||String(d), curto:comp.short||comp.name||String(d)};
+  const nome=(typeof divisionLabelOf==='function')?divisionLabelOf(d):('Série '+d);
+  return {id:d,copa:false,tema:'liga',trofeu:RF_COMP_TROFEU[d]||'', nome, curto:nome};
+}
+/* TROFÉU É ARTE REAL (public/img/trofeus). Onde a arte daquela competição
+   não existe — as ligas de fora do Brasil, por exemplo — o espaço fica
+   vazio, nunca um emoji nem o escudo de um clube. */
+function rfCompTrofeuHTML(info,size){
+  size=size||44;
+  if(!info||!info.trofeu) return '';
+  return `<span class="rf-comp-trofeu" style="--s:${size}px"
+    ><img src="img/trofeus/${escC(info.trofeu)}.webp" alt="" draggable="false"></span>`;
+}
+/* quantos clubes tem aquela divisão, pela configuração do universo do save */
+function rfCompTamanho(d){
+  const k=(typeof ACTIVE_UNI!=='undefined')?ACTIVE_UNI:null;
+  const cfg=(typeof UNI_CONFIGS!=='undefined'&&k)?UNI_CONFIGS[k]:null;
+  const n=cfg&&cfg.size&&cfg.size[d];
+  return n?(n+' clubes'):'';
+}
+/* a fase corrente de uma copa, do mesmo sítio de onde a tela Campeonatos a lê */
+function rfCompFase(info){
+  const c=(typeof S!=='undefined'&&S.cups)?S.cups[info.id]:null;
+  return (c&&typeof cupCompetitionRoundLabel==='function')?cupCompetitionRoundLabel(c,info.id):'';
+}
+/* a linha por baixo do nome: onde a competição está agora */
+function rfCompLinha(info,RL){
+  RL=RL||CL.live||{};
+  const temporada=(typeof S!=='undefined'&&S.season)?String(S.season):'';
+  if(info.copa) return [rfCompFase(info),temporada].filter(Boolean).join(' · ');
+  const jor=RL.jornada||(((typeof S!=='undefined'&&S.round)||0)+1);
+  return [jor+'ª rodada',temporada,rfCompTamanho(info.id)].filter(Boolean).join(' · ');
+}
+/* o segundo andar da pastilha do trilho */
+function rfCompMeta(info){
+  return info.copa?rfCompFase(info):rfCompTamanho(info.id);
+}
+
+/* ---- o trilho de competições ----
+   Uma pastilha por competição EM JOGO nesta rodada, na mesma ordem dos
+   cards. A ativa manda na paleta do cabeçalho; tocar noutra troca o
+   cabeçalho e leva ao card dela. Com uma competição só não há escolha a
+   fazer, e o trilho não aparece. */
+function rfLvOrdem(RL){
+  const vistas=[];
+  ((RL&&RL.matches)||[]).forEach(m=>{ const d=m.div||S.division; if(vistas.indexOf(d)<0) vistas.push(d); });
+  const preferida=(typeof divOrderUserFirst==='function')?divOrderUserFirst():[];
+  const primeiro=preferida.filter(d=>vistas.indexOf(d)>=0);
+  return primeiro.concat(vistas.filter(d=>primeiro.indexOf(d)<0));
+}
+function rfLvCompAtiva(RL){
+  const ids=rfLvOrdem(RL);
+  if(CL.lvComp && ids.indexOf(CL.lvComp)>=0) return CL.lvComp;
+  const meu=((RL&&RL.matches)||[]).find(m=>m.user);
+  return (meu&&(meu.div||S.division)) || ids[0] || S.division;
+}
+/* a pastilha guarda a paleta DELA, não a do cabeçalho: é assim que o
+   trilho mostra de relance que a Libertadores é dourada e a Copa do
+   Brasil é verde mesmo enquanto se vê a Série D. */
+function rfTrilhoHTML(RL){
+  const ids=rfLvOrdem(RL);
+  if(ids.length<2) return '';
+  const ativo=rfLvCompAtiva(RL);
+  return `<div class="rf-trilho">${ids.map(d=>{
+    const info=rfCompInfo(d), on=(d===ativo), meta=rfCompMeta(info);
+    return `<button type="button" class="rf-tema rf-trilho-chip${on?' on':''}" data-tema="${info.tema}"
+      onclick="rfLvComp('${escC(d)}')"${on?' aria-current="true"':''}>
+      <span class="rf-trilho-bar"></span>
+      ${rfCompTrofeuHTML(info,26)}
+      <span class="rf-trilho-txt">
+        <span class="rf-trilho-n">${escC(info.curto)}</span>
+        ${meta?`<span class="rf-trilho-m">${escC(meta)}</span>`:''}
+      </span>
+    </button>`;
+  }).join('')}</div>`;
+}
+/* trocar de competição no trilho: repinta o cabeçalho e leva ao card dela.
+   Vindo do Camarote, sai do Camarote primeiro — a rodada é que tem os
+   cards, e a nota da faixa promete que ela continua a rolar ao fundo. */
+function rfLvComp(d){
+  CL.lvComp=d;
+  const noCam=!!document.querySelector('.rf-cam');
+  if(noCam && typeof camToggle==='function') camToggle(); else cdraw();
+  setTimeout(()=>{ const el=document.getElementById('rf-lv-c-'+d);
+    if(el&&el.scrollIntoView) el.scrollIntoView({behavior:'smooth',block:'start'}); },60);
+}
+
 /* ---- faixa de estado no topo ---- */
 function rfLvFaixaHTML(RL){
   const meu=(RL.matches||[]).find(m=>m.user);
@@ -100,13 +212,18 @@ function rfLvFaixaHTML(RL){
   const periodo=min>45?'2º tempo':'1º tempo';
   const pct=(typeof liveClockPct==='function')?liveClockPct(RL):Math.min(100,Math.round(100*min/90));
   const camOk=meu && (typeof camSpeedOk!=='function' || camSpeedOk());
-  return `<div class="rf-lv-faixa">
+  const info=rfCompInfo(rfLvCompAtiva(RL));
+  const hc=meu?(anyClubOf(meu.h)||{}):null, ac=meu?(anyClubOf(meu.a)||{}):null;
+  return `<div class="rf-tema rf-lv-faixa" data-tema="${info.tema}">
     <div class="rf-band-filete"></div>
+    ${rfCompTrofeuHTML(info,52)}
     <div class="rf-lv-faixa-id">
-      <span class="rf-lv-faixa-t">Rodada ao vivo</span>
-      <span class="rf-lv-faixa-s">${escC(classifDivName(S.division))} · ${RL.jornada||((S.round||0)+1)}ª rodada · ${escC(String(S.season||''))}</span>
+      <div class="rf-lv-faixa-l1">
+        <span class="rf-lv-faixa-t">${escC(info.nome)}</span>
+        <span class="rf-lv-aovivo"><i>●</i> Ao vivo</span>
+      </div>
+      <span class="rf-lv-faixa-s">${escC(rfCompLinha(info,RL))}</span>
     </div>
-    <span class="rf-lv-aovivo">● Ao vivo</span>
     <div class="rf-sp"></div>
     <div class="rf-lv-stat">
       <span class="rf-lv-sl">Jogos em andamento</span>
@@ -114,12 +231,17 @@ function rfLvFaixaHTML(RL){
     </div>
     <!-- ids para o updateLive remendar sem redesenhar a faixa toda: quem so
          ASSISTE nao tinha relogio nenhum a andar (ver updateLive) -->
-    <div class="rf-lv-relogio" id="rf-lv-anel" style="--pct:${pct}"><span id="rf-lv-min">${min}'</span></div>
-    <div class="rf-lv-stat end">
-      <span class="rf-lv-sl">${escC(periodo)}</span>
-      <span class="rf-lv-sh">${meu?('seu jogo: '+(meu.hg||0)+' × '+(meu.ag||0)):'sem jogo seu'}</span>
+    <div class="rf-lv-jogo">
+      <div class="rf-lv-relogio" id="rf-lv-anel" style="--pct:${pct}"><span id="rf-lv-min">${min}'</span></div>
+      <div class="rf-lv-stat end">
+        <span class="rf-lv-sl${meu?' tem-jogo':''}">${escC(periodo)}</span>
+        ${meu?`<span class="rf-lv-sh rf-so-desktop">seu jogo: ${meu.hg||0} × ${meu.ag||0}</span>
+              <span class="rf-lv-sh rf-so-mobile">${escC(hc.short||hc.name||'—')} ${meu.hg||0} × ${meu.ag||0} ${escC(ac.short||ac.name||'—')}</span>`
+             :`<span class="rf-lv-sh">sem jogo seu</span>`}
+      </div>
+      ${camOk?`<button type="button" class="rf-lv-cam" onclick="camToggle()">${rfIcone('camarote',16)}
+        <b class="rf-so-desktop">Modo Camarote</b><b class="rf-so-mobile">Camarote</b></button>`:''}
     </div>
-    ${camOk?`<button type="button" class="rf-lv-cam" onclick="camToggle()">${rfIcone('camarote',16)} Modo Camarote</button>`:''}
   </div>`;
 }
 
@@ -141,26 +263,35 @@ function rfLiveHTML(RL){
      baixo, justamente quando o utilizador é espectador e a tela é tudo o que ele
      tem. Agora a ordem preferida vem primeiro e o que sobrar entra atrás, em vez
      de sumir. */
-  const preferida=(typeof divOrderUserFirst==='function')?divOrderUserFirst():[];
-  const restantes=Object.keys(porDiv).filter(d=>preferida.indexOf(d)<0);
-  const ordem=preferida.concat(restantes);
-  const cards=ordem.filter(d=>porDiv[d]&&porDiv[d].length).map(d=>`
-    <div class="rf-lv-card">
+  const ordem=rfLvOrdem(RL);
+  /* Cada faixa de divisao abre com o trofeu e o nome da competicao: sem
+     isso, quatro cards brancos seguidos nao diziam onde e que cada jogo
+     estava a acontecer. */
+  const cards=ordem.filter(d=>porDiv[d]&&porDiv[d].length).map(d=>{
+    const info=rfCompInfo(d);
+    const kicker=info.copa?rfCompFase(info)
+      :((typeof classifDivName==='function')?classifDivName(d):'');
+    return `
+    <div class="rf-lv-card" id="rf-lv-c-${escC(d)}">
       <div class="rf-lv-chd">
-        <span class="rf-label-t">${escC(rfLvNomeGrupo(d))}</span>
+        <span class="rf-lv-chd-id">
+          ${rfCompTrofeuHTML(info,24)}
+          <span class="rf-lv-chd-t">${escC(info.nome)}</span>
+          ${kicker?`<span class="rf-lv-chd-k">${escC(kicker)}</span>`:''}
+        </span>
         <span class="rf-label-r">${porDiv[d].length} jogo${porDiv[d].length>1?'s':''}</span>
       </div>
       <div class="rf-lv-head">
         <span>Público</span><span>Casa</span><span>Placar</span><span>Visitante</span><span>Min</span>
       </div>
       ${porDiv[d].map(x=>rfLvLinhaHTML(x.m,x.i)).join('')}
-    </div>`).join('');
+    </div>`;}).join('');
   return `<div class="rf-lv">
     <div class="rf-lv-env">
       ${rfRail('left')}
       <div class="rf-lv-mid">
-        ${rfTopAd()}
         ${rfLvFaixaHTML(RL)}
+        ${rfTrilhoHTML(RL)}
         ${cards}
       </div>
       ${rfRail('right')}
@@ -181,14 +312,6 @@ function rfLiveHTML(RL){
    antigo (título, ficha do árbitro, banner) fica de fora de propósito, porque
    cada uma dessas telas já traz o próprio envelope de tela cheia.
    ===================================================================== */
-/* NOME DO GRUPO DE JOGOS. `classifDivName` só conhece as divisões da liga e
-   devolvia a chave crua ("libertadores") como título do cartão numa rodada de
-   copa. COMPETICOES tem o nome próprio de cada torneio. */
-function rfLvNomeGrupo(d){
-  const comp=(typeof COMPETICOES!=='undefined')?COMPETICOES[d]:null;
-  if(comp) return comp.name||comp.short||String(d);
-  return (typeof classifDivName==='function')?classifDivName(d):String(d);
-}
 function rfLvSobreposicaoHTML(RL){
   const m=(RL.matches||[]).find(x=>x.user); if(!m) return '';
   if(RL.pensPicking) return (typeof shootoutPickerHTML==='function')?shootoutPickerHTML():'';
@@ -217,21 +340,29 @@ function rfCamHTML(RL){
   RL=RL||CL.live; if(!RL) return '';
   const m=(RL.matches||[]).find(x=>x.user); if(!m) return '';
   camEnsure(m);
-  return `<div class="rf-cam" onclick="camBackdrop(event)">
+  const info=rfCompInfo(m.div||S.division);
+  return `<div class="rf-cam rf-tema" data-tema="${info.tema}" onclick="camBackdrop(event)">
     <div class="rf-cam-env">
       ${rfRail('left')}
       <div class="rf-cam-mid">
-        ${rfTopAd()}
         <div class="rf-cam-shell">
           <div class="rf-cam-faixa">
             <div class="rf-band-filete"></div>
-            <span class="rf-cam-ic">🎥</span>
-            <span class="rf-cam-t">Camarote</span>
-            <span class="rf-cam-aovivo" id="rf-cam-onair" ${camMatchOver(m)?'hidden':''}><i>●</i> AO VIVO</span>
+            ${rfCompTrofeuHTML(info,44)}
+            <div class="rf-cam-id">
+              <div class="rf-cam-l1">
+                <span class="rf-cam-ic">🎥</span>
+                <span class="rf-cam-t">Camarote</span>
+                <span class="rf-cam-aovivo" id="rf-cam-onair" ${camMatchOver(m)?'hidden':''}><i>●</i> AO VIVO</span>
+              </div>
+              <span class="rf-cam-comp">${escC([info.nome,rfCompLinha(info)].filter(Boolean).join(' · '))}</span>
+            </div>
             <div class="rf-sp"></div>
             <span class="rf-cam-nota">os outros jogos seguem rolando ao fundo</span>
-            <button type="button" class="rf-cam-x" onclick="camToggle()" title="Voltar à rodada (Esc)">✖ Voltar à rodada</button>
+            <button type="button" class="rf-cam-x" onclick="camToggle()" title="Voltar à rodada (Esc)">
+              <b class="rf-so-desktop">✖ Voltar à rodada</b><b class="rf-so-mobile">✖</b></button>
           </div>
+          ${rfTrilhoHTML(CL.live)}
           <!-- A BANDA DE PATROCINIO SOBE PARA CIMA DO CONTEUDO. Estava entre o
                miolo dinamico e o rodape, ou seja, no fundo: quem entra no
                Camarote para VER O JOGO nunca rolava ate la, e o espaco vendido
@@ -287,22 +418,26 @@ function rfCamBoardHTML(m,mn,periodo){
   return `<div class="rf-cam-board"${foto?` style="background-image:url('${escC(foto)}')"`:''}>
     <span class="rf-cam-veu"></span>
     <div class="rf-cam-lado">
-      <span class="rf-cam-onde">EM CASA</span>
-      <span class="rf-cam-time">${escC(hc.short||hc.name||'—')}</span>
-      <span class="rf-cam-sub">${euEmCasa?meuSub:eleSub}</span>
+      <div class="rf-cam-lado-txt">
+        <span class="rf-cam-onde">EM CASA</span>
+        <span class="rf-cam-time">${escC(hc.short||hc.name||'—')}</span>
+        <span class="rf-cam-sub">${euEmCasa?meuSub:eleSub}</span>
+      </div>
+      <span class="rf-cam-crest">${rfCrest(hc,52)}</span>
     </div>
-    <span class="rf-cam-crest">${rfCrest(hc,52)}</span>
     <div class="rf-cam-placar">
       <span class="rf-cam-matriz"></span>
       <span class="rf-cam-g" id="rf-cam-hg">${m.hg}</span>
       <span class="rf-cam-d">:</span>
       <span class="rf-cam-g" id="rf-cam-ag">${m.ag}</span>
     </div>
-    <span class="rf-cam-crest">${rfCrest(ac,52)}</span>
     <div class="rf-cam-lado fim">
-      <span class="rf-cam-onde">VISITANTE</span>
-      <span class="rf-cam-time">${escC(ac.short||ac.name||'—')}</span>
-      <span class="rf-cam-sub">${euEmCasa?eleSub:meuSub}</span>
+      <span class="rf-cam-crest">${rfCrest(ac,52)}</span>
+      <div class="rf-cam-lado-txt">
+        <span class="rf-cam-onde">VISITANTE</span>
+        <span class="rf-cam-time">${escC(ac.short||ac.name||'—')}</span>
+        <span class="rf-cam-sub">${euEmCasa?eleSub:meuSub}</span>
+      </div>
     </div>
     <div class="rf-cam-relogio">
       <span class="rf-cam-anel" id="rf-cam-anel" style="--pct:${pct}"><b id="rf-cam-min">${mn}'</b></span>

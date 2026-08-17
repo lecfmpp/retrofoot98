@@ -2140,6 +2140,83 @@
    A rodada inteira acontecendo junto: faixa de estado, um card por
    divisão, uma linha por jogo. A LINHA TEM 56px E NÃO CRESCE.
    ===================================================================== */
+/* =====================================================================
+   PALETA POR COMPETIÇÃO — não por clube
+   ---------------------------------------------------------------------
+   As ligas nacionais ficam com o azul e o amarelo do RetroFoot98, seja no
+   Brasil, na Argentina ou em Portugal: é a identidade do produto. Só as
+   copas ganham cor própria. Duas regras que o dourado da Libertadores
+   impôs e que é fácil desfazer sem perceber:
+     1. o gradiente começa escuro e PARA em #a87a12 — mais claro que isso
+        derruba o contraste dos rótulos de 9px, que caem na metade clara;
+     2. em copa, todo controlo por cima do cabeçalho vira pílula BRANCA
+        SÓLIDA com texto na cor profunda do tema — branco translúcido
+        sobre dourado dá 3,3:1 e um controlo precisa de 4,5:1.
+   ===================================================================== */
+.rf-tema{
+  --cx-grad:linear-gradient(100deg,var(--brand-primary-deep,#0e2f66),var(--brand-primary,#17458F) 62%);
+  --cx-topo:#0e2f66; --cx-deep:#17458F;
+  --cx-bar:#F2B90C; --cx-accent:#F2B90C; --cx-ink:#fff;
+  --cx-sub:#c3d3ec; --cx-kicker:#a9bfe0;
+  --cx-tint-bg:#fff; --cx-tint-bd:#e6ebe4; --cx-tint-ink:#3a473f; --cx-tint-meta:#9aa79e;
+  --cx-ctrl-bg:rgba(255,255,255,.14); --cx-ctrl-fg:#fff;
+  --cx-cta-bg:#F2B90C; --cx-cta-fg:#17458F;
+  --cx-ring:#F2B90C; --cx-glow:rgba(242,185,12,.75);
+}
+.rf-tema[data-tema="copa"]{
+  --cx-grad:linear-gradient(100deg,#0b4d28,#1f8f4a 88%);
+  --cx-topo:#0b4d28; --cx-deep:#0b4d28;
+  --cx-bar:#2fbf5f; --cx-accent:#9be8b8; --cx-sub:#b9e8cb; --cx-kicker:#8fd3aa;
+  --cx-tint-bg:#eaf6ee; --cx-tint-bd:#c7e6d2; --cx-tint-ink:#0b4d28; --cx-tint-meta:#3f7a58;
+  --cx-ctrl-bg:#fff; --cx-ctrl-fg:#0b4d28; --cx-cta-bg:#fff; --cx-cta-fg:#0b4d28;
+  --cx-ring:#fff; --cx-glow:rgba(255,255,255,.55);
+}
+.rf-tema[data-tema="liberta"]{
+  --cx-grad:linear-gradient(100deg,#3d2704,#7d550b 42%,#a87a12 100%);
+  --cx-topo:#3d2704; --cx-deep:#8a5f0d;
+  --cx-bar:#c9971f; --cx-accent:#f7dd8e; --cx-sub:#fff8e6; --cx-kicker:#f5e4bb;
+  --cx-tint-bg:#fbf3dc; --cx-tint-bd:#eddcae; --cx-tint-ink:#6b4c07; --cx-tint-meta:#8a6a2a;
+  --cx-ctrl-bg:#fff; --cx-ctrl-fg:#8a5f0d; --cx-cta-bg:#fff; --cx-cta-fg:#8a5f0d;
+  --cx-ring:#fff; --cx-glow:rgba(255,255,255,.55);
+}
+.rf-tema[data-tema="sula"]{
+  --cx-grad:linear-gradient(100deg,#14181c,#2e363d 55%,#6f7a84 100%);
+  --cx-topo:#14181c; --cx-deep:#2e363d;
+  --cx-bar:#9aa6b0; --cx-accent:#c9d2d9; --cx-sub:#c9d2d9; --cx-kicker:#aab4bc;
+  --cx-tint-bg:#eceef0; --cx-tint-bd:#d3d8dc; --cx-tint-ink:#2e363d; --cx-tint-meta:#69747c;
+  --cx-ctrl-bg:#fff; --cx-ctrl-fg:#2e363d; --cx-cta-bg:#fff; --cx-cta-fg:#2e363d;
+  --cx-ring:#fff; --cx-glow:rgba(255,255,255,.55);
+}
+.rf-tema .rf-band-filete{background:var(--cx-bar)}
+/* o troféu da competição, em arte real */
+.rf-comp-trofeu{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  width:var(--s,44px);height:var(--s,44px)}
+.rf-comp-trofeu img{width:100%;height:100%;object-fit:contain;
+  filter:drop-shadow(0 3px 8px rgba(0,0,0,.35));background:none;border:none;box-shadow:none}
+
+/* ----- o trilho de competições -----
+   Uma tira branca de pastilhas, cada uma com a paleta da SUA competição:
+   é assim que se vê de relance que a Libertadores é dourada enquanto se
+   está a ver a Série D. No telefone o trilho rola na horizontal. */
+.rf-trilho{display:flex;align-items:center;gap:8px;background:var(--surface-card);
+  border:var(--border-hairline);border-radius:var(--r-card);padding:8px;overflow-x:auto}
+.rf-trilho-chip{flex:0 0 auto;position:relative;overflow:hidden;display:flex;align-items:center;gap:9px;
+  padding:7px 14px 7px 9px;border-radius:var(--r-control);border:1px solid var(--cx-tint-bd);
+  background:var(--cx-tint-bg);cursor:pointer;white-space:nowrap;font-family:var(--font-sans);
+  transition:background var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease)}
+.rf-trilho-chip:hover{transform:translateY(-1px)}
+.rf-trilho-chip .rf-comp-trofeu{margin-left:3px;opacity:.9}
+.rf-trilho-bar{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cx-bar)}
+.rf-trilho-txt{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0}
+.rf-trilho-n{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--cx-tint-ink);white-space:nowrap}
+.rf-trilho-m{font-family:var(--font-mono);font-size:9px;color:var(--cx-tint-meta);white-space:nowrap}
+.rf-trilho-chip.on{background:var(--cx-grad);border-color:transparent;
+  box-shadow:0 6px 16px -8px rgba(0,0,0,.45)}
+.rf-trilho-chip.on .rf-trilho-bar{display:none}
+.rf-trilho-chip.on .rf-comp-trofeu{margin-left:0;opacity:1}
+.rf-trilho-chip.on .rf-trilho-n{font-weight:var(--fw-bold);color:var(--cx-ink)}
+.rf-trilho-chip.on .rf-trilho-m{color:var(--cx-sub)}
+
 .rf-lv{min-height:100vh;background:var(--surface-desk);padding:18px;box-sizing:border-box;
   display:flex;flex-direction:column;align-items:center;gap:14px;font-family:var(--font-sans);color:var(--text-1)}
 .rf-lv-env{display:flex;gap:14px;align-items:flex-start;width:max-content;max-width:100%}
@@ -2151,36 +2228,47 @@
      tempo, então ela usa o degradê da MARCA, como o cabeçalho dos diálogos
      de ação — pintá-la com a cor do clube do utilizador sugeria que aquela
      tela era só dele. */
-  background:linear-gradient(100deg,var(--brand-primary-deep,#0e2f66),var(--brand-primary,#17458F) 62%);
-  border-radius:var(--r-card);padding:16px 20px;color:#fff}
-.rf-lv-faixa-id{display:flex;flex-direction:column;gap:3px;margin-left:6px;min-width:0}
+  background:var(--cx-grad);transition:background var(--dur-slow,.28s) var(--ease);
+  border-radius:var(--r-card);padding:16px 20px;color:var(--cx-ink)}
+.rf-lv-faixa-id{display:flex;flex-direction:column;gap:3px;min-width:0;flex:0 0 auto}
+.rf-lv-faixa-l1{display:flex;align-items:center;gap:10px;white-space:nowrap}
 .rf-lv-faixa-t{font-size:var(--fs-title);font-weight:var(--fw-bold);letter-spacing:var(--ls-tight);white-space:nowrap}
-.rf-lv-faixa-s{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-on-dark-soft);white-space:nowrap}
+.rf-lv-faixa-s{font-size:var(--fs-caption);font-weight:var(--fw-medium);color:var(--cx-sub);white-space:nowrap}
 .rf-lv-aovivo{flex:0 0 auto;font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);
   letter-spacing:var(--ls-label);text-transform:uppercase;color:#ff8a8a;background:rgba(255,255,255,.12);
   border-radius:var(--r-pill);padding:4px 10px;white-space:nowrap;animation:rf-cam-pulse 1.6s steps(2,end) infinite}
 .rf-lv-stat{display:flex;flex-direction:column;align-items:center;gap:2px;flex:0 0 auto}
 .rf-lv-stat.end{align-items:flex-end}
 .rf-lv-sl{font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
-  text-transform:uppercase;color:var(--text-on-dark-faint);white-space:nowrap}
-.rf-lv-sv{font-family:var(--font-mono);font-size:var(--fs-heading);font-weight:var(--fw-semibold);color:#fff}
-.rf-lv-sh{font-family:var(--font-mono);font-size:var(--fs-caption);color:#fff;white-space:nowrap}
+  text-transform:uppercase;color:var(--cx-kicker);white-space:nowrap}
+.rf-lv-sv{font-family:var(--font-mono);font-size:var(--fs-heading);font-weight:var(--fw-semibold);color:var(--cx-ink)}
+.rf-lv-sh{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--cx-ink);white-space:nowrap}
+/* relógio, período e CTA andam juntos: no telefone viram uma caixa só */
+.rf-lv-jogo{flex:0 0 auto;display:flex;align-items:center;gap:12px}
+.rf-lv-jogo .rf-lv-stat.end{align-items:flex-start}
+.rf-so-mobile{display:none}
 /* relógio: anel de progresso do minuto */
 .rf-lv-relogio{flex:0 0 auto;width:52px;height:52px;border-radius:var(--r-pill);
-  background:conic-gradient(var(--club-secondary) calc(var(--pct,0)*1%),rgba(255,255,255,.18) 0);
-  display:flex;align-items:center;justify-content:center}
-.rf-lv-relogio>span{width:40px;height:40px;border-radius:var(--r-pill);background:var(--brand-primary,#17458F);
+  background:conic-gradient(var(--cx-ring) calc(var(--pct,0)*1%),rgba(255,255,255,.18) 0);
+  display:flex;align-items:center;justify-content:center;transition:background .45s var(--ease)}
+.rf-lv-relogio>span{width:40px;height:40px;border-radius:var(--r-pill);background:var(--cx-deep);
   display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);
   font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:#fff}
-.rf-lv-cam{flex:0 0 auto;margin-left:16px;height:38px;padding:0 16px;border:none;border-radius:var(--r-chip);
-  background:var(--club-cta-bg,var(--club-secondary));color:var(--club-cta-fg,var(--club-on-secondary));
+.rf-lv-cam{flex:0 0 auto;margin-left:4px;height:38px;padding:0 16px;border:none;border-radius:var(--r-chip);
+  display:flex;align-items:center;gap:7px;
+  background:var(--cx-cta-bg);color:var(--cx-cta-fg);
   font-family:var(--font-sans);font-size:var(--fs-body-sm);font-weight:var(--fw-bold);
   cursor:pointer;white-space:nowrap}
+.rf-lv-cam:hover{filter:brightness(1.08)}
 
 /* card de divisão */
 .rf-lv-card{background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);
   padding:14px 14px 10px;display:flex;flex-direction:column;gap:6px}
-.rf-lv-chd{display:flex;align-items:baseline;justify-content:space-between;padding:0 4px}
+.rf-lv-chd{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 4px}
+.rf-lv-chd-id{display:flex;align-items:center;gap:9px;min-width:0}
+.rf-lv-chd-t{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-1);white-space:nowrap}
+.rf-lv-chd-k{font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
+  text-transform:uppercase;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rf-lv-head,.rf-lv-linha{display:grid;grid-template-columns:64px minmax(0,1fr) 92px minmax(0,1fr) 46px;
   gap:0 12px;align-items:center}
 .rf-lv-head{padding:0 12px 2px;font-family:var(--font-mono);font-size:var(--fs-label-xs);
@@ -2244,8 +2332,30 @@
 
 @media (max-width:1560px){ .rf-lv-env [data-ad-rail="right"]{display:none} }
 @media (max-width:1320px){ .rf-lv-env [data-ad-rail]{display:none} }
-@media (max-width:1024px){
-  .rf-lv-faixa{flex-wrap:wrap;row-gap:10px}
+/* ----- ABAIXO DO DESKTOP A FAIXA JA SIMPLIFICA -----
+   Entre o telefone e o desktop a faixa era um flex de seis pecas com
+   `white-space:nowrap` em quase todas: com `flex-wrap` elas caiam em
+   linhas soltas, o contador de jogos ficava a boiar no meio e, com um
+   nome comprido (Libertadores, Sul-Americana), passavam por cima umas
+   das outras. Da largura de tablet para baixo ela passa a usar a MESMA
+   grade de duas linhas do telefone -- trofeu e nome em cima, a caixa do
+   seu jogo em baixo -- e o contador sai. Assim nao ha faixa de largura
+   nenhuma em que as pecas possam sobrepor-se. */
+@media (max-width:1280px){
+  .rf-lv-faixa{display:grid;align-items:center;
+    grid-template-columns:auto minmax(0,1fr);
+    grid-template-areas:"trofeu id" "jogo jogo";column-gap:14px;row-gap:12px}
+  .rf-lv-faixa>.rf-comp-trofeu{grid-area:trofeu}
+  .rf-lv-faixa-id{grid-area:id;min-width:0}
+  .rf-lv-faixa-l1{min-width:0}
+  .rf-lv-faixa-t{overflow:hidden;text-overflow:ellipsis}
+  .rf-lv-faixa-s{overflow:hidden;text-overflow:ellipsis}
+  /* o contador de jogos e o espacador do flex nao entram na grade */
+  .rf-lv-faixa>.rf-sp,.rf-lv-faixa>.rf-lv-stat{display:none}
+  .rf-lv-jogo{grid-area:jogo;width:100%;box-sizing:border-box;
+    background:rgba(255,255,255,.1);border-radius:13px;padding:9px 12px}
+  .rf-lv-jogo .rf-lv-stat.end{flex:1 1 auto;min-width:0;align-items:flex-start}
+  .rf-lv-sh{overflow:hidden;text-overflow:ellipsis;max-width:100%}
   .rf-lv-cam{margin-left:0}
 }
 /* ----- No telefone a linha perde os fatos e o público: fica time, placar,
@@ -2254,8 +2364,30 @@
   .rf-lv{padding:0 0 24px}
   .rf-lv-env{width:auto;padding:0 12px}
   .rf-lv-mid{width:auto}
-  .rf-lv-faixa{border-radius:0;padding:14px 16px}
+  /* A FAIXA VIRA DUAS LINHAS: em cima o troféu e o nome da competição, em
+     baixo uma caixa clara com relógio, período, o seu placar e a entrada
+     do Camarote. A contagem de jogos sai — no telefone ela empurrava o
+     nome da competição para fora. */
+  /* a grade de duas linhas ja vem do bloco de 1024px; aqui so encolhe */
+  .rf-lv-faixa{border-radius:0;padding:14px 16px;column-gap:12px;row-gap:11px}
+  .rf-lv-faixa>.rf-comp-trofeu{--s:44px;width:44px;height:44px}
+  .rf-lv-faixa-l1{gap:8px}
   .rf-lv-faixa-t{font-size:var(--fs-subhead)}
+  .rf-lv-jogo{gap:12px}
+  .rf-lv-relogio{width:44px;height:44px}
+  .rf-lv-relogio>span{width:34px;height:34px}
+  .rf-lv-sl.tem-jogo::after{content:' · seu jogo'}
+  .rf-lv-sh{overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .rf-so-mobile{display:inline}
+  .rf-lv-cam{margin-left:0;height:34px;padding:0 12px;font-size:var(--fs-caption)}
+  /* o trilho rola na horizontal, sem barra à vista */
+  .rf-trilho{border-radius:var(--r-control);padding:7px;gap:6px}
+  .rf-trilho::-webkit-scrollbar{height:0}
+  .rf-trilho-chip{gap:8px;padding:6px 12px 6px 8px}
+  .rf-trilho-chip .rf-comp-trofeu{--s:22px;width:22px;height:22px}
+  .rf-trilho-n{font-size:var(--fs-caption)}
+  .rf-trilho-m{font-size:8px}
+  .rf-lv-chd-k{display:none}
   .rf-lv-head,.rf-lv-linha{grid-template-columns:minmax(0,1fr) 78px minmax(0,1fr);gap:0 8px}
   .rf-lv-head>span:nth-child(1),.rf-lv-head>span:nth-child(5),
   .rf-lv-pub,.rf-lv-min,.rf-lv-fatos{display:none}
@@ -2500,20 +2632,28 @@
 
 /* ----- faixa ----- */
 .rf-cam-faixa{position:relative;overflow:hidden;display:flex;align-items:center;gap:14px;
-  background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
-  border-radius:var(--r-card);padding:14px 18px;color:#fff}
-.rf-cam-ic{font-size:18px;margin-left:6px}
+  background:var(--cx-grad);transition:background var(--dur-slow,.28s) var(--ease);
+  border-radius:var(--r-card);padding:14px 18px;color:var(--cx-ink)}
+/* O CAMAROTE DIZ QUAL É A COMPETIÇÃO. Antes abria só com "🎥 Camarote": o
+   jogador via o seu jogo em tela cheia sem saber se aquilo era a Série D
+   ou a Copa do Brasil — e é a competição, não o clube, que manda na cor. */
+.rf-cam-id{display:flex;flex-direction:column;gap:2px;min-width:0;flex:0 0 auto}
+.rf-cam-l1{display:flex;align-items:center;gap:9px;white-space:nowrap}
+.rf-cam-comp{font-size:var(--fs-caption);font-weight:var(--fw-medium);color:var(--cx-sub);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-cam-ic{font-size:16px}
 .rf-cam-t{font-size:var(--fs-title);font-weight:var(--fw-bold);letter-spacing:var(--ls-tight);white-space:nowrap}
 .rf-cam-aovivo{flex:0 0 auto;display:flex;align-items:center;gap:5px;font-family:var(--font-mono);
   font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
   color:#ff8a8a;background:rgba(217,65,65,.22);border-radius:var(--r-pill);padding:4px 10px;white-space:nowrap}
 .rf-cam-aovivo>i{font-style:normal;animation:rf-cam-pulse 1.6s ease-in-out infinite}
 .rf-cam-nota{flex:0 1 auto;min-width:0;font-family:var(--font-mono);font-size:var(--fs-caption);
-  color:var(--text-on-dark-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  color:var(--cx-kicker);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* em copa a pílula é BRANCA SÓLIDA: translúcida sobre dourado dá 3,3:1 */
 .rf-cam-x{flex:0 0 auto;height:34px;padding:0 14px;border:none;border-radius:var(--r-pill);
-  background:rgba(255,255,255,.12);color:#fff;font-family:var(--font-sans);
+  margin-left:14px;background:var(--cx-ctrl-bg);color:var(--cx-ctrl-fg);font-family:var(--font-sans);
   font-weight:var(--fw-semibold);font-size:var(--fs-caption);cursor:pointer;white-space:nowrap}
-.rf-cam-x:hover{background:rgba(255,255,255,.22)}
+.rf-cam-x:hover{filter:brightness(1.14)}
 @keyframes rf-cam-pulse{0%,100%{opacity:1}50%{opacity:.35}}
 
 /* ----- placar de estádio -----
@@ -2521,21 +2661,24 @@
    a arte do acervo varia demais (fundo claro, fundo cinza) pra o texto branco
    se apoiar nela sozinho. Clube sem foto fica com o navy chapado do véu. */
 .rf-cam-board{position:relative;display:flex;align-items:center;gap:18px;
-  background-color:var(--club-primary-deep);background-size:cover;background-position:center;
-  border-radius:var(--r-card);padding:18px 150px 18px 20px;overflow:hidden;color:#fff}
+  background-color:var(--cx-deep);background-size:cover;background-position:center;
+  border:1px solid var(--cx-deep);border-radius:var(--r-card);padding:18px 150px 18px 20px;
+  overflow:hidden;color:#fff;transition:background-color var(--dur-slow,.28s) var(--ease)}
 .rf-cam-veu{position:absolute;inset:0;z-index:1;pointer-events:none;
-  background:linear-gradient(180deg,var(--club-primary-deep) 0%,
-    color-mix(in srgb,var(--club-primary-deep) 82%,transparent) 45%,
-    color-mix(in srgb,var(--club-primary-deep) 35%,transparent) 100%)}
-.rf-cam-lado{position:relative;z-index:2;flex:1 1 0;min-width:0;display:flex;flex-direction:column;
-  align-items:flex-end;gap:3px}
-.rf-cam-lado.fim{align-items:flex-start}
+  background:linear-gradient(180deg,var(--cx-topo) 0%,
+    color-mix(in srgb,var(--cx-deep) 82%,transparent) 45%,
+    color-mix(in srgb,var(--cx-deep) 35%,transparent) 100%)}
+.rf-cam-lado{position:relative;z-index:2;flex:1 1 0;min-width:0;display:flex;align-items:center;
+  justify-content:flex-end;gap:14px}
+.rf-cam-lado.fim{justify-content:flex-start}
+.rf-cam-lado-txt{display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:0}
+.rf-cam-lado.fim .rf-cam-lado-txt{align-items:flex-start}
 .rf-cam-onde{font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
-  color:var(--text-on-dark-faint);white-space:nowrap}
+  color:var(--cx-kicker);white-space:nowrap}
 .rf-cam-time{font-size:var(--fs-title);font-weight:var(--fw-bold);letter-spacing:var(--ls-tight);
   white-space:nowrap;text-shadow:0 1px 6px rgba(0,0,0,.4)}
 .rf-cam-sub{font-family:var(--font-mono);font-size:var(--fs-caption);
-  color:var(--text-on-dark-soft);white-space:nowrap}
+  color:var(--cx-sub);white-space:nowrap}
 .rf-cam-crest{position:relative;z-index:2;flex:0 0 auto;display:flex}
 .rf-cam-crest img,.rf-cam-crest .rf-crest-fb{width:52px;height:52px;object-fit:contain;
   background:transparent;border:none;box-shadow:none;border-radius:0}
@@ -2547,7 +2690,7 @@
 .rf-cam-matriz{position:absolute;inset:0;pointer-events:none;
   background-image:radial-gradient(rgba(255,255,255,.14) .6px,transparent .7px);background-size:4px 4px}
 .rf-cam-g{position:relative;font-family:var(--font-mono);font-size:38px;font-weight:var(--fw-semibold);
-  color:var(--brand-secondary,#F2B90C);text-shadow:0 0 12px rgba(242,185,12,.75)}
+  color:var(--cx-accent);text-shadow:0 0 12px var(--cx-glow)}
 .rf-cam-d{position:relative;font-family:var(--font-mono);font-size:38px;
   font-weight:var(--fw-semibold);color:#5a6560}
 /* relógio: anel de progresso (--pct) encostado na direita do placar */
@@ -2555,13 +2698,13 @@
   display:flex;align-items:center;gap:10px}
 .rf-cam-anel{width:44px;height:44px;flex:0 0 auto;border-radius:var(--r-pill);
   display:flex;align-items:center;justify-content:center;
-  background:conic-gradient(var(--brand-secondary,#F2B90C) calc(var(--pct,0)*1%),rgba(255,255,255,.25) 0);
+  background:conic-gradient(var(--cx-ring) calc(var(--pct,0)*1%),rgba(255,255,255,.25) 0);
   transition:background .45s var(--ease)}
 .rf-cam-anel>b{width:34px;height:34px;border-radius:var(--r-pill);background:#fff;
   display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);
   font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:#12201a}
 .rf-cam-per{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);
-  letter-spacing:var(--ls-label);color:var(--brand-secondary,#F2B90C);white-space:nowrap}
+  letter-spacing:var(--ls-label);color:var(--cx-accent);white-space:nowrap}
 
 /* ----- barra de pressão ----- */
 .rf-cam-pressao{display:flex;align-items:center;gap:14px;background:var(--surface-card);
@@ -2660,6 +2803,15 @@
 
 @media (max-width:1560px){ .rf-cam-env [data-ad-rail="right"]{display:none} }
 @media (max-width:1320px){ .rf-cam-env [data-ad-rail]{display:none} }
+/* A faixa do Camarote simplifica junto com a da rodada: abaixo do desktop
+   a nota "os outros jogos seguem rolando ao fundo" sai, e o nome da
+   competicao fica com todo o espaco que sobra em vez de disputar a linha
+   com ela e com o botao de voltar. */
+@media (max-width:1280px){
+  .rf-cam-nota,.rf-cam-faixa>.rf-sp{display:none}
+  .rf-cam-id{flex:1 1 auto;min-width:0}
+  .rf-cam-l1{min-width:0}
+}
 @media (max-width:1120px){
   .rf-cam-body{grid-template-columns:minmax(0,1fr)}
   /* o relógio sai do canto absoluto e vira mais uma peça da linha */
@@ -2673,21 +2825,32 @@
   .rf-cam{padding:0}
   .rf-cam-shell{border-radius:0;padding:12px;gap:12px}
   #rf-cam-dyn{gap:12px}
-  .rf-cam-faixa{gap:8px;padding:12px 14px}
-  .rf-cam-nota{display:none}
-  .rf-cam-x{padding:0 11px;font-size:0}
-  .rf-cam-x::first-letter{font-size:var(--fs-body-sm)}
+  .rf-cam-faixa{gap:10px;padding:12px 14px}
+  .rf-cam-faixa>.rf-comp-trofeu{--s:40px;width:40px;height:40px}
+  .rf-cam-id{flex:1 1 auto;min-width:0}
+  .rf-cam-l1{gap:7px;min-width:0}
+  .rf-cam-t{font-size:var(--fs-subhead)}
+  .rf-cam-nota,.rf-cam-faixa>.rf-sp{display:none}
+  .rf-cam-x{margin-left:0;padding:0 11px}
 
+  /* O PLACAR EMPILHA: escudo por cima do nome, e o nome QUEBRA em duas
+     linhas em vez de truncar — é a regra do pacote novo, e a razão é que
+     "Athletico Paranaense" cortado no meio não identifica clube nenhum. */
   .rf-cam-board{flex-wrap:wrap;justify-content:center;gap:10px;padding:14px 12px}
-  .rf-cam-lado{flex:1 1 0}
-  /* o nome cede em corpo, não em quebra: "Palmeiras" partido em "Palmei/ras"
-     lê pior do que o mesmo nome dois pontos menor */
-  .rf-cam-time{font-size:var(--fs-caption);white-space:nowrap;text-shadow:none}
-  .rf-cam-onde,.rf-cam-sub{display:none}
-  .rf-cam-crest img,.rf-cam-crest .rf-crest-fb{width:30px;height:30px}
+  .rf-cam-lado{flex:1 1 0;flex-direction:column;justify-content:center;gap:5px}
+  .rf-cam-lado .rf-cam-crest{order:-1}
+  .rf-cam-lado-txt,.rf-cam-lado.fim .rf-cam-lado-txt{align-items:center;gap:2px}
+  .rf-cam-time{font-size:var(--fs-body-sm);white-space:normal;text-align:center;
+    line-height:1.25;text-wrap:pretty;text-shadow:none}
+  .rf-cam-onde{font-size:8px}
+  .rf-cam-sub{font-size:10px}
+  .rf-cam-crest img,.rf-cam-crest .rf-crest-fb{width:44px;height:44px}
   .rf-cam-placar{padding:6px 10px;gap:6px}
   .rf-cam-g,.rf-cam-d{font-size:24px}
-  .rf-cam-relogio{order:9;width:100%;justify-content:center;gap:8px}
+  /* o relógio abre o placar no telefone, como no pacote */
+  .rf-cam-relogio{order:-2;width:100%;justify-content:center;gap:8px}
+  .rf-cam-anel{width:40px;height:40px}
+  .rf-cam-anel>b{width:29px;height:29px}
 
   .rf-cam-pressao{gap:10px;padding:12px 14px}
   .rf-cam-pressao-l{display:none}

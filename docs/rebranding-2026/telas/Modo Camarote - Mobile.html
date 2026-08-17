@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template mobile="1" name="Modo Camarote — Mobile" description="Camarote em 390px, com troféu e nome da competição" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0b1a12}
+a{color:#F2B90C;text-decoration:none}
+a:hover{color:#ffcb2e}
+@keyframes camLive{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes camLineIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="width:390px;max-width:100%;min-height:100vh;margin:0 auto;background:#e8f0e7;font-family:'Space Grotesk',system-ui,sans-serif;display:flex;flex-direction:column;box-sizing:border-box">
+
+  <div style="{{ headStyle }}">
+    <div style="{{ headBar }}"></div>
+    <span role="img" aria-label="Troféu da competição" style="{{ trofeuStyle }}"></span>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+      <div style="display:flex;align-items:center;gap:7px;min-width:0">
+        <span style="font-size:15px">🎥</span>
+        <span style="{{ headTitleStyle }}">Camarote</span>
+        <span style="{{ liveStyle }}"><span style="animation:camLive 1.6s ease-in-out infinite">●</span> AO VIVO</span>
+      </div>
+      <span style="{{ headSubStyle }}">{{ compLinha }}</span>
+    </div>
+    <span style="{{ closeStyle }}">✖</span>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:7px;background:#fff;border-bottom:1px solid #dde7db;padding:8px 12px;overflow-x:auto;box-sizing:border-box">
+    <sc-for list="{{ comps }}" as="c" hint-placeholder-count="7">
+      <span style="{{ c.chipStyle }}" onClick="{{ c.onClick }}">
+        <span role="img" aria-label="Troféu" style="{{ c.chipImg }}"></span>
+        <span style="{{ c.chipName }}">{{ c.nome }}</span>
+      </span>
+    </sc-for>
+  </div>
+
+  <div style="{{ boardStyle }}">
+    <div style="{{ boardVeil }}"></div>
+
+    <div style="position:relative;z-index:2;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px">
+        <div style="{{ boardRing }}">
+          <div style="width:29px;height:29px;border-radius:99px;background:#fff;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#12201a">56'</div>
+        </div>
+        <span style="{{ boardPhase }}">2º TEMPO</span>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:5px">
+          <img src="uploads/pasted-1786581574687-0.png" alt="Escudo do XV" style="width:44px;height:44px;object-fit:contain">
+          <span style="{{ boardKicker }}">EM CASA</span>
+          <span style="font-size:14px;font-weight:700;color:#fff;text-align:center;line-height:1.25;text-wrap:pretty">XV Piracicaba</span>
+          <span style="{{ boardMeta }}">3-3-4</span>
+        </div>
+
+        <div style="{{ scoreBox }}">
+          <span style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) .6px,transparent .7px);background-size:4px 4px;pointer-events:none"></span>
+          <span style="{{ scoreDigit }}">1</span><span style="position:relative;color:#5a6560">:</span><span style="{{ scoreDigit }}">1</span>
+        </div>
+
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:5px">
+          <img src="assets/crests/cruzeiro.png" alt="Escudo do Cianorte" style="width:44px;height:44px;object-fit:contain">
+          <span style="{{ boardKicker }}">VISITANTE</span>
+          <span style="font-size:14px;font-weight:700;color:#fff;text-align:center;line-height:1.25;text-wrap:pretty">Cianorte</span>
+          <span style="{{ boardMeta }}">4-4-2</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex:1;padding:12px 12px 16px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box">
+
+    <div style="background:#fff;border:1px solid #dde7db;border-radius:15px;padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+        <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">PRESSÃO</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#17458F;white-space:nowrap">XV PRESSIONA</span>
+      </div>
+      <div style="position:relative;height:11px;border-radius:99px;overflow:hidden;display:flex">
+        <span style="width:58%;background:#17458F;transition:width .4s ease"></span>
+        <span style="width:42%;background:#3a473f;transition:width .4s ease"></span>
+        <span style="position:absolute;left:50%;top:0;bottom:0;width:2px;background:rgba(255,255,255,.7);transform:translateX(-50%)"></span>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #dde7db;border-radius:15px;padding:6px;overflow-x:auto">
+      <span style="flex:0 0 auto;font-size:12px;font-weight:700;color:#fff;background:#17458F;border-radius:10px;padding:8px 13px;white-space:nowrap;cursor:pointer">Panorama</span>
+      <span style="flex:0 0 auto;font-size:12px;font-weight:500;color:#3a473f;border-radius:10px;padding:8px 12px;white-space:nowrap;cursor:pointer">Comentários</span>
+      <span style="flex:0 0 auto;font-size:12px;font-weight:500;color:#3a473f;border-radius:10px;padding:8px 12px;white-space:nowrap;cursor:pointer">Estatísticas</span>
+      <span style="flex:0 0 auto;font-size:12px;font-weight:500;color:#3a473f;border-radius:10px;padding:8px 12px;white-space:nowrap;cursor:pointer">Ficha</span>
+    </div>
+
+    <div style="background:#fff;border:1px solid #dde7db;border-radius:15px;padding:12px 14px;display:flex;flex-direction:column;gap:7px;min-width:0">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+        <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">NARRAÇÃO AO VIVO</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">👥 9.718</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;max-height:300px;overflow:auto">
+        <sc-for list="{{ narration }}" as="l" hint-placeholder-count="9">
+          <div style="{{ l.rowStyle }}">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;width:26px;flex:0 0 auto;text-align:right">{{ l.min }}</span>
+            <span style="font-size:12px;flex:0 0 auto">{{ l.icon }}</span>
+            <span style="{{ l.textStyle }}">{{ l.text }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="background:#fff;border:1px solid #dde7db;border-radius:15px;padding:14px;display:flex;flex-direction:column;gap:9px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+        <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">ESTATÍSTICAS</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">XV · CIA</span>
+      </div>
+      <sc-for list="{{ stats }}" as="s" hint-placeholder-count="6">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#12201a">
+            <span>{{ s.a }}</span>
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:11px;color:#78877c;white-space:nowrap">{{ s.label }}</span>
+            <span>{{ s.b }}</span>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center">
+            <span style="flex:1;height:5px;border-radius:99px;background:#eef1ee;overflow:hidden;display:flex;justify-content:flex-end"><span style="{{ s.barA }}"></span></span>
+            <span style="flex:1;height:5px;border-radius:99px;background:#eef1ee;overflow:hidden;display:flex"><span style="{{ s.barB }}"></span></span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="background:#fff;border:1px solid #dde7db;border-radius:15px;padding:14px;display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">FICHA</span>
+      <div style="display:flex;justify-content:space-between;gap:10px;font-size:12px"><span style="color:#5d6c62;white-space:nowrap">Árbitro</span><span style="font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ferreira Rodrigues</span></div>
+      <div style="display:flex;justify-content:space-between;gap:10px;font-size:12px"><span style="color:#5d6c62;white-space:nowrap">Público</span><span style="font-family:'IBM Plex Mono',monospace;color:#12201a;white-space:nowrap">9.718</span></div>
+      <div style="display:flex;justify-content:space-between;gap:10px;font-size:12px"><span style="color:#5d6c62;white-space:nowrap">Ingresso</span><span style="font-family:'IBM Plex Mono',monospace;color:#12201a;white-space:nowrap">R$ 25</span></div>
+      <div style="display:flex;justify-content:space-between;gap:10px;font-size:12px"><span style="color:#5d6c62;white-space:nowrap">Sua tática</span><span style="font-weight:600;color:#12201a;white-space:nowrap">3-3-4 ofensivo</span></div>
+      <div style="height:1px;background:#eef1ee"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Substituições</span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <span style="display:flex;gap:3px">
+            <span style="width:9px;height:9px;border-radius:99px;background:#17458F"></span>
+            <span style="width:9px;height:9px;border-radius:99px;background:#17458F"></span>
+            <span style="width:9px;height:9px;border-radius:99px;background:#e7ece6"></span>
+          </span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#12201a;white-space:nowrap">2 de 3</span>
+        </span>
+      </div>
+    </div>
+
+    <div style="background:#12201a;border-radius:15px;padding:13px 14px;display:flex;flex-direction:column;gap:10px">
+      <span style="font-size:9px;font-weight:700;color:#8fa896;letter-spacing:.14em;white-space:nowrap">CAMAROTE APRESENTADO POR</span>
+      <div style="display:flex;align-items:center;gap:8px;overflow-x:auto">
+        <span style="flex:0 0 auto;min-height:32px;padding:0 14px;display:flex;align-items:center;border-radius:8px;white-space:nowrap;background:#fff;color:#12201a;font-size:12px;font-weight:700;letter-spacing:.04em">MARCA 01</span>
+        <span style="flex:0 0 auto;min-height:32px;padding:0 14px;display:flex;align-items:center;border-radius:8px;white-space:nowrap;background:rgba(255,255,255,.12);color:#8fa896;font-size:12px;font-weight:700;letter-spacing:.04em">MARCA 02</span>
+        <span style="flex:0 0 auto;min-height:32px;padding:0 14px;display:flex;align-items:center;border-radius:8px;white-space:nowrap;background:rgba(255,255,255,.12);color:#8fa896;font-size:12px;font-weight:700;letter-spacing:.04em">MARCA 03</span>
+      </div>
+      <span style="height:40px;display:flex;align-items:center;justify-content:center;border-radius:11px;background:#F2B90C;color:#17458F;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer">Conhecer a marca</span>
+    </div>
+
+    <span style="font-size:11px;color:#78877c;text-align:center;line-height:1.5;text-wrap:pretty">O Camarote mostra só o seu jogo — a rodada inteira continua rolando ao fundo.</span>
+  </div>
+
+  <div style="position:sticky;bottom:0;background:#fff;border-top:1px solid #dde7db;padding:9px 12px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+    <span style="flex:0 0 auto;display:flex;align-items:center;justify-content:center;height:44px;padding:0 15px;border:1px solid #d8e2d6;border-radius:13px;font-size:13px;font-weight:600;color:#5d6c62;white-space:nowrap;cursor:pointer">🔄 Substituir</span>
+    <span style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;height:44px;border-radius:13px;background:#F2B90C;color:#17458F;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer">⏸ Pausar</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { comp: 0 };
+
+  get temas() {
+    const liga = (n, l) => ['serie-' + n.toLowerCase(), 'Série ' + n, l,
+      'linear-gradient(100deg,#0e2f66,#17458F 62%)','#F2B90C','#fff','#c3d3ec','#a9bfe0','#17458F','#fff','#e6ebe4','#3a473f'];
+    return [
+      liga('D', 'Série D · Grupo A8 · 8ª jornada'),
+      liga('A', 'Série A · 8ª rodada'),
+      liga('B', 'Série B · 8ª rodada'),
+      liga('C', 'Série C · Grupo B · 8ª rodada'),
+      ['copa-do-brasil','Copa do Brasil','Copa do Brasil · 2ª fase',
+       'linear-gradient(100deg,#0b4d28,#1f8f4a 88%)','#9be8b8','#fff','#b9e8cb','#8fd3aa','#0b4d28','#eaf6ee','#c7e6d2','#0b4d28'],
+      ['libertadores','Libertadores','Libertadores · Grupo F · 4ª rodada',
+       'linear-gradient(100deg,#3d2704,#7d550b 42%,#a87a12 100%)','#f7dd8e','#fff','#fff8e6','#f5e4bb','#8a5f0d','#fbf3dc','#eddcae','#6b4c07'],
+      ['sul-americana','Sul-Americana','Sul-Americana · Grupo C · 4ª rodada',
+       'linear-gradient(100deg,#14181c,#2e363d 55%,#6f7a84 100%)','#c9d2d9','#fff','#c9d2d9','#aab4bc','#2e363d','#eceef0','#d3d8dc','#2e363d']
+    ];
+  }
+
+  renderVals() {
+    const P = '#17458F';
+    const MONO = "'IBM Plex Mono',monospace";
+    const T = this.temas;
+    const t = T[this.state.comp] || T[0];
+    const [arq, , linha, grad, accent, ink, sub, kicker, deep] = t;
+    const isLiga = arq.indexOf('serie-') === 0;
+    const glow = isLiga ? 'rgba(242,185,12,.75)' : 'rgba(255,255,255,.55)';
+    const hex = (g) => g.match(/#[0-9a-f]{6}/gi);
+    const rgba = (h, a) => { const n = parseInt(h.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; };
+    const theme = {
+      headStyle: 'background:' + grad + ';padding:13px 16px;display:flex;align-items:center;gap:11px;position:relative;box-sizing:border-box;transition:background .28s ease',
+      headBar: 'position:absolute;left:0;top:0;bottom:0;width:5px;background:' + accent,
+      headTitleStyle: 'font-size:16px;font-weight:700;color:' + ink + ';letter-spacing:-.02em;white-space:nowrap',
+      headSubStyle: 'font-size:11px;color:' + sub + ';font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis',
+      liveStyle: 'flex:0 0 auto;display:flex;align-items:center;gap:4px;font-family:' + MONO + ';font-size:9px;font-weight:600;color:#ff5a5a;background:rgba(217,65,65,.22);border-radius:99px;padding:3px 8px',
+      closeStyle: 'flex:0 0 auto;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:14px;color:' + (isLiga ? '#fff' : deep) + ';background:' + (isLiga ? 'rgba(255,255,255,.14)' : '#fff') + ';border-radius:11px;cursor:pointer;box-shadow:' + (isLiga ? 'none' : '0 3px 10px -5px rgba(0,0,0,.4)'),
+      trofeuStyle: "width:38px;height:38px;flex:0 0 auto;margin-left:6px;background-image:url('assets/trofeus/" + arq + ".webp');background-size:contain;background-position:center;background-repeat:no-repeat;filter:drop-shadow(0 3px 8px rgba(0,0,0,.35))",
+      compLinha: linha,
+      boardStyle: "position:relative;background-color:" + deep + ";background-image:url('assets/estadios/xv-piracicaba.webp');background-size:cover;background-position:center;padding:16px 14px;box-sizing:border-box;overflow:hidden;transition:background-color .28s ease",
+      boardVeil: 'position:absolute;inset:0;background:linear-gradient(180deg,' + hex(grad)[0] + ' 0%,' + rgba(deep, .84) + ' 45%,' + rgba(deep, .42) + ' 100%);pointer-events:none',
+      boardRing: 'width:38px;height:38px;border-radius:99px;background:conic-gradient(' + (isLiga ? '#F2B90C' : '#fff') + ' 62%,rgba(255,255,255,.25) 0);display:flex;align-items:center;justify-content:center;flex:0 0 auto',
+      boardPhase: 'font-family:' + MONO + ';font-size:10px;font-weight:600;color:' + accent + ';letter-spacing:.1em;white-space:nowrap',
+      boardKicker: 'font-size:9px;font-weight:700;color:' + kicker + ';letter-spacing:.12em;white-space:nowrap',
+      boardMeta: 'font-family:' + MONO + ';font-size:10px;color:' + sub + ';white-space:nowrap',
+      scoreBox: 'flex:0 0 auto;position:relative;display:flex;align-items:center;gap:9px;font-family:' + MONO + ';font-size:32px;font-weight:600;color:' + (isLiga ? '#F2B90C' : accent) + ';background:#12201a;border-radius:13px;padding:9px 16px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)',
+      scoreDigit: 'position:relative;text-shadow:0 0 12px ' + glow,
+      comps: T.map((r, i) => {
+        const on = i === this.state.comp;
+        const [a, nm, , g, , ci, , , , tb, tbd, ti] = r;
+        return {
+          nome: nm,
+          chipStyle: 'flex:0 0 auto;display:flex;align-items:center;gap:7px;padding:7px 12px 7px 8px;border-radius:11px;background:' + (on ? g : tb) + ';border:1px solid ' + (on ? 'transparent' : tbd) + ';cursor:pointer;white-space:nowrap;transition:background .2s ease',
+          chipImg: "width:22px;height:22px;flex:0 0 auto;background-image:url('assets/trofeus/" + a + ".webp');background-size:contain;background-position:center;background-repeat:no-repeat" + (on ? '' : ';opacity:.9'),
+          chipName: 'font-size:12px;font-weight:' + (on ? 700 : 600) + ';color:' + (on ? ci : ti) + ';white-space:nowrap',
+          onClick: () => this.setState({ comp: i })
+        };
+      })
+    };
+    const lines = [
+      ['56', '⚽', 'GOL DO XV! Carlos Miguel apareceu na segunda trave e empurrou pro fundo.', 'goal'],
+      ['54', '🧤', 'Victor Gomes espalma o chute de fora da área. Que defesa.', 'save'],
+      ['51', '🟨', 'Amarelo para Léo Costa, que segurou o contra-ataque.', 'card'],
+      ['48', '⚽', 'Cianorte abre o placar: Rafinha girou na entrada da área e bateu no canto.', 'goal-against'],
+      ['46', '▶', 'Recomeça o jogo em Piracicaba.', 'mark'],
+      ['45', '⏸', 'Intervalo. Zero a zero, mas o XV pressiona.', 'mark'],
+      ['38', '🔄', 'Substituição no XV: entra Kauã Silva, sai Wesley Pires.', 'sub'],
+      ['22', '⚽', 'Anulado! Impedimento marcado no lance do gol do XV.', 'neutral'],
+      ['1', '▶', 'Bola rolando. Ferreira Rodrigues apita o começo.', 'mark']
+    ];
+    const tone = {
+      goal: { bg: '#eef3fa', ink: '#12201a', weight: 700 },
+      'goal-against': { bg: '#fdf0f0', ink: '#12201a', weight: 600 },
+      save: { bg: 'transparent', ink: '#3a473f', weight: 500 },
+      card: { bg: 'transparent', ink: '#3a473f', weight: 500 },
+      sub: { bg: 'transparent', ink: '#3a473f', weight: 500 },
+      mark: { bg: '#f2f7f1', ink: '#5d6c62', weight: 600 },
+      neutral: { bg: 'transparent', ink: '#78877c', weight: 500 }
+    };
+    const stats = [
+      ['Posse de bola', '58%', '42%', 58, 42],
+      ['Finalizações', '11', '7', 11, 7],
+      ['No alvo', '5', '3', 5, 3],
+      ['Defesas', '2', '4', 2, 4],
+      ['Cartões', '1🟨', '2🟨', 1, 2],
+      ['Substituições', '2', '1', 2, 1]
+    ];
+    return Object.assign(theme, {
+      narration: lines.map(([min, icon, text, kind], i) => {
+        const t = tone[kind];
+        return {
+          min: min + "'", icon, text,
+          rowStyle: 'display:flex;align-items:flex-start;gap:8px;padding:7px 9px;border-radius:9px;background:' + t.bg + (i === 0 ? ';animation:camLineIn .3s ease' : ''),
+          textStyle: 'flex:1;min-width:0;font-size:12px;line-height:1.45;font-weight:' + t.weight + ';color:' + t.ink
+        };
+      }),
+      stats: stats.map(([label, a, b, va, vb]) => {
+        const mx = Math.max(va, vb, 1);
+        return {
+          label, a, b,
+          barA: 'width:' + Math.round(100 * va / mx) + '%;height:100%;border-radius:99px;background:' + P,
+          barB: 'width:' + Math.round(100 * vb / mx) + '%;height:100%;border-radius:99px;background:#3a473f'
+        };
+      })
+    });
+  }
+}
+</script>
+</body>
+</html>
