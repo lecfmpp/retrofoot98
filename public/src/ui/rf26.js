@@ -1273,6 +1273,16 @@ function rfCard(rotulo, corpo, opts){
         // 7 (boas-vindas) sem refazer o fluxo inteiro a cada recarga.
         if(/^ob[1-7]$/.test(alvo)){ rfBancadaOnboarding(alvo); return; }
         if(alvo!=='hub'&&alvo!=='1') rfState().page=alvo;
+        /* ?rf=hub&temporadas=30 -> cai no hub ja na temporada 30 (ver
+           rfSimularTemporadas). O save de bancada e descartavel, entao nao ha
+           nada a perder ao correr trinta temporadas por cima dele. */
+        /* o save da nuvem chega DEPOIS deste atalho (a carga e assincrona) e
+           substitui o S inteiro: simular aqui seria simular um estado que ja
+           vai ser deitado fora. Por isso espera-se um pouco. Em caso de duvida,
+           chame `rfSimularTemporadas(30)` na consola com o jogo ja aberto. */
+        const temps=Number(new URLSearchParams(location.search).get('temporadas')||0);
+        if(temps>1 && typeof rfSimularTemporadas==='function')
+          setTimeout(()=>rfSimularTemporadas(temps), 1200);
         cdraw();
         console.info('[rf26] bancada:', clubOf(cid).short, '→', alvo);
       }catch(e){ console.error('[rf26] bancada falhou:', e); }
@@ -1280,6 +1290,77 @@ function rfCard(rotulo, corpo, opts){
   });
 })();
 
+/* =====================================================================
+   SIMULADOR DE TEMPORADAS — bancada, so em localhost
+   ---------------------------------------------------------------------
+   Testar o que acontece na temporada 30 exigia jogar 38 rodadas trinta vezes.
+   Isto corre a temporada inteira pelo MOTOR (o mesmo playRound que a rodada de
+   verdade usa: mesmas partidas, mesmas financas, mesmas copas, mesma virada de
+   temporada), so que sem desenhar nada -- por isso e rapido.
+
+   Uso, na consola (ou pelo atalho ?rf=hub&temporadas=30):
+     rfSimularTemporadas(30)                 -> avanca ate a temporada 30
+     rfSimularTemporadas(30,{gravar:'Teste'}) -> e grava o save com esse nome
+
+   `gravar` usa o gravador do proprio jogo, entao o save vai para a conta que
+   estiver ligada NESTE navegador -- e o unico jeito de ele aparecer no perfil de
+   alguem, porque o save mora na nuvem, por conta.
+   ===================================================================== */
+function rfSimularTemporadas(alvo, opts){
+  opts=opts||{};
+  if(typeof S==='undefined' || !S){ console.warn('[rf26] nao ha jogo aberto'); return Promise.resolve(null); }
+  const t0=Date.now();
+  /* "temporada 30" e a 30a DO SAVE, nao o ano 30: o jogo comeca em 2026 e conta
+     por ano. Numero pequeno (ate 100) = quantas temporadas o save tera; numero
+     grande = o ano em que se quer parar. */
+  const n=Number(alvo)||2;
+  /* a PRIMEIRA temporada do save fica carimbada na primeira vez que se conta.
+     Nao da para deduzi-la de S.history: ele leva mais de uma entrada por ano
+     (fecho da temporada e virada), e a conta saia sempre curta. */
+  if(S._season0==null) S._season0=S.season||2026;
+  const season0=S._season0;
+  const limite = n>100 ? n : (season0 + Math.max(1,n) - 1);
+  /* UMA TEMPORADA POR VEZ, E ENTRE ELAS O NAVEGADOR RESPIRA. Trinta temporadas
+     de uma assentada seguram a thread por um minuto: a aba fica sem responder e
+     as ferramentas do navegador chegam a matar o script a meio. Com um respiro
+     entre temporadas, da para acompanhar o progresso na consola e nada trava. */
+  return new Promise(resolve=>{
+    let voltas=0;
+    const umaTemporada=()=>{
+      if((S.season||1)>=limite || voltas>=200) return terminar();
+      voltas++;
+      const total=(S.sched||[]).length;
+      while((S.round||0) < total){
+        try{ playRound(null); }
+        catch(e){ console.warn('[rf26] rodada '+S.round+' falhou:', e&&e.message); S.round++; }
+      }
+      try{ endSeason(); }catch(e){ console.warn('[rf26] fim de temporada:', e&&e.message); }
+      try{ newSeasonReset(); }catch(e){ console.warn('[rf26] virada de temporada:', e&&e.message); }
+      S.finished=false;
+      S._season0=season0;    // a virada de temporada reescreve o S; o carimbo volta
+      const cl0=(typeof clubOf==='function'&&clubOf(CL.clubId))||{short:'?'};
+      console.info('[rf26] temporada '+S.season+' · '+cl0.short+' na '+S.division+
+        ' · '+Math.round((Date.now()-t0)/1000)+'s');
+      setTimeout(umaTemporada, 0);
+    };
+    const terminar=()=>{
+      const cl=(typeof clubOf==='function'&&clubOf(CL.clubId))||{short:'?'};
+      const res={temporada:S.season, doSave:(S.season-season0)+1,
+        divisao:S.division, clube:cl.short, segundos:Math.round((Date.now()-t0)/1000)};
+      console.info('[rf26] pronto:', res);
+      try{ console.table((S.history||[]).slice(-8).map(h=>({temporada:h.season,campeao:h.champion}))); }catch(e){}
+      if(opts.gravar && typeof saveV3==='function'){
+        CL.save=String(opts.gravar);
+        Promise.resolve(saveV3(true))
+          .then(()=>console.info('[rf26] gravado como "'+CL.save+'" — abre em Continuar save'))
+          .catch(e=>console.warn('[rf26] nao deu para gravar (e preciso ter sessao iniciada):', e&&e.message));
+      }
+      if(typeof cdraw==='function') cdraw();
+      resolve(res);
+    };
+    umaTemporada();
+  });
+}
 /* monta o estado mínimo de cada passo e desenha só ele (ver o atalho acima) */
 function rfBancadaOnboarding(alvo){
   const n=Number(alvo.slice(2));
