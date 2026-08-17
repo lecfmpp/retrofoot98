@@ -3579,7 +3579,7 @@ function checkManagerJobEvent(){
 /* coachCareerStats/_coachCareerSeason: o Ranking de Treinadores (pontos somados + títulos por
    clube). Vivia em CL e sumia a cada recarga — o acumulado só é somado na virada de temporada e
    S._prevSeason é consumido ali, então não havia como recomputar. Ver accrueCareerStats. */
-const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub','criseVista','history','titlesByClub','financeHistory','_titlesRegisteredSeason','coachCareerStats','_coachCareerSeason'];
+const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub','criseVista','history','titlesByClub','financeHistory','_titlesRegisteredSeason','coachCareerStats','_coachCareerSeason','coachSpells'];
 /* ---- EVOLUÇÃO DO ELENCO (o que o treino de fato fez) ----
    O ícone 🔺 dizia "está em treino", mas não dizia se rendeu alguma coisa. Aqui fica o histórico
    de FORÇA do meu elenco: uma entrada por MUDANÇA (não por rodada), então uma temporada inteira
@@ -3725,6 +3725,99 @@ function tickResenhaCareer(){
 }
 /* aplica a troca de clube do treinador (demissão aceita ou proposta aceita) — o clube antigo
    segue existindo normalmente, agora controlado só pela própria simulação (como qualquer CPU) */
+/* =====================================================================
+   PASSAGENS DO TREINADOR (S.coachSpells)
+   S.history so e escrito no FIM da temporada, e com o clube em que o treinador estava naquele
+   instante. Quem saiu do Fluminense para o Flamengo a meio da primeira temporada nunca teve o
+   Fluminense registado em lado nenhum: a Carreira listava um clube so, e a Historia tambem.
+   Aqui fica o registo do que aconteceu QUANDO aconteceu — uma passagem por clube, aberta ao ser
+   contratado e fechada ao sair, com os numeros do periodo e os titulos ganhos nele.
+
+   OS NUMEROS SAO EXATOS SEM PRECISAR DE GANCHO POR RODADA: a tabela da temporada e cumulativa,
+   entao guarda-se a marca no momento em que a passagem abre e o que conta e a DIFERENCA ate
+   agora. Na virada de temporada o acumulado da temporada e somado ao total e a marca zera.
+   ===================================================================== */
+function _spellTabelaDe(clubId){
+  const t=(S && S.table && S.table[clubId]) || null;
+  return { P:(t&&t.P)||0, W:(t&&t.W)||0, D:(t&&t.D)||0, L:(t&&t.L)||0,
+           GF:(t&&t.GF)||0, GA:(t&&t.GA)||0, Pts:(t&&t.Pts)||0 };
+}
+function coachSpellAtual(){
+  const l=(S&&S.coachSpells)||[];
+  for(let i=l.length-1;i>=0;i--) if(l[i] && l[i].fim==null) return l[i];
+  return null;
+}
+function coachSpellAbrir(clubId, motivo){
+  if(!S) return null;
+  S.coachSpells=S.coachSpells||[];
+  const c=(typeof anyClubOf==='function'&&anyClubOf(clubId))||(typeof clubOf==='function'&&clubOf(clubId))||{};
+  const sp={ clubId, curto:(c.short||c.name||String(clubId)), divisao:S.division,
+    inicio:{season:S.season||1, round:S.round||0}, fim:null, motivo:motivo||'contratado',
+    tot:{P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0}, marca:_spellTabelaDe(clubId), titulos:[] };
+  S.coachSpells.push(sp);
+  return sp;
+}
+/* soma ao total da passagem o que ela rendeu desde a marca, e re-marca no ponto atual */
+function coachSpellAcumular(sp){
+  sp=sp||coachSpellAtual(); if(!sp) return;
+  /* UMA VEZ POR TEMPORADA. endSeason pode correr mais do que uma vez no mesmo ano (fecho normal,
+     virada da Resenha, retomar um save fechado) e sem esta trava a passagem contava os mesmos
+     jogos outra vez -- o aproveitamento subia sozinho a cada recarga. */
+  if(sp._accSeason===(S.season||1)) return;
+  sp._accSeason=(S.season||1);
+  const ag=_spellTabelaDe(sp.clubId), m=sp.marca||{};
+  ['P','W','D','L','GF','GA','Pts'].forEach(k=>{
+    sp.tot[k]=(sp.tot[k]||0)+Math.max(0,(ag[k]||0)-(m[k]||0));
+  });
+  sp.marca={P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0};   // temporada nova comeca do zero
+}
+function coachSpellFechar(motivo){
+  const sp=coachSpellAtual(); if(!sp) return null;
+  const ag=_spellTabelaDe(sp.clubId), m=sp.marca||{};
+  ['P','W','D','L','GF','GA','Pts'].forEach(k=>{
+    sp.tot[k]=(sp.tot[k]||0)+Math.max(0,(ag[k]||0)-(m[k]||0));
+  });
+  sp.fim={season:S.season||1, round:S.round||0};
+  sp.desfecho=motivo||'saiu';
+  return sp;
+}
+/* TITULO CARIMBADO NA HORA, nao so no fim da temporada. Uma taca de copa ganha em maio ficava
+   invisivel ate a temporada fechar — a Sala, a Carreira e a Historia so soubessem dela meses
+   depois. `comp` e a chave da competicao ou a divisao. */
+function coachSpellTitulo(comp){
+  const sp=coachSpellAtual(); if(!sp || !comp) return false;
+  sp.titulos=sp.titulos||[];
+  const ja=sp.titulos.some(t=>t.comp===comp && t.season===(S.season||1));
+  if(ja) return false;
+  sp.titulos.push({comp, season:S.season||1});
+  return true;
+}
+/* saves anteriores a este registo: reconstroi o que da a partir de S.history (uma passagem por
+   clube, do primeiro ao ultimo ano em que ele aparece). Passagem que acabou a meio de uma
+   temporada nao esta la e nao ha como inventar — mas a partir daqui fica tudo registado. */
+function coachSpellsMigrar(){
+  if(!S) return;
+  if(Array.isArray(S.coachSpells) && S.coachSpells.length) return;
+  S.coachSpells=[];
+  const porClube={};
+  ((S.history)||[]).forEach(h=>{
+    if(!h || h.clubId==null) return;
+    const k=String(h.clubId);
+    porClube[k]=porClube[k]||{clubId:h.clubId, anos:[], tot:{P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0}, titulos:[]};
+    porClube[k].anos.push(h.season);
+    if(h.myPos===1 && h.division) porClube[k].titulos.push({comp:'serie'+h.division, season:h.season});
+    Object.entries(h.myCups||{}).forEach(([c,v])=>{ if(v && /campe/i.test(String(v))) porClube[k].titulos.push({comp:c, season:h.season}); });
+  });
+  Object.values(porClube).forEach(x=>{
+    const c=(typeof anyClubOf==='function'&&anyClubOf(x.clubId))||{};
+    const de=Math.min.apply(null,x.anos), ate=Math.max.apply(null,x.anos);
+    S.coachSpells.push({ clubId:x.clubId, curto:(c.short||c.name||String(x.clubId)), divisao:null,
+      inicio:{season:de,round:0}, fim:(String(x.clubId)===String(S.clubId))?null:{season:ate,round:0},
+      motivo:'contratado', desfecho:(String(x.clubId)===String(S.clubId))?null:'saiu',
+      tot:x.tot, marca:_spellTabelaDe(x.clubId), titulos:x.titulos, reconstruida:true });
+  });
+  if(!coachSpellAtual() && S.clubId!=null) coachSpellAbrir(S.clubId,'contratado');
+}
 function applyManagerJobChange(newClubId, newDivision, newCountry){
   // FASE 4: troca de PAÍS — o universo primário passa a ser o do novo clube; o país antigo
   // vira liga de fundo (e o novo país sai do fundo). Materializa o novo clube no primário.
@@ -3732,6 +3825,8 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
   const crossCountry = !!newCountry && newCountry!==oldCountry;
   // o marcador de humano acompanha o treinador pro novo clube (o clube antigo volta a ser CPU)
   const oldClubId=S.clubId, mgrName=(CL.humans&&CL.humans[oldClubId])||CL.mgr;
+  /* a passagem que termina aqui fica registada com os numeros dela — ver coachSpells acima */
+  try{ coachSpellsMigrar(); coachSpellFechar('saiu'); }catch(e){ console.warn('passagem:', e&&e.message); }
   if(CL.humans && oldClubId!=null){ delete CL.humans[oldClubId]; if(mgrName) CL.humans[newClubId]=mgrName; }
   if(crossCountry){
     setUniverse(uniKeyOf(newCountry));
@@ -3744,6 +3839,7 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
   }
   const sameDivision = !crossCountry && newDivision===S.division;
   S.clubId=newClubId; CL.clubId=newClubId;
+  try{ coachSpellAbrir(newClubId,'contratado'); }catch(e){ console.warn('passagem nova:', e&&e.message); }
   if(!sameDivision){
     // A divisão de destino JÁ EXISTE e está em andamento — S.otherDivs a simula em segundo plano
     // com tabela e calendário próprios. Adotá-la preserva a rodada e a classificação.
@@ -4743,6 +4839,10 @@ function endSeason(){
     if(qual.libertadores.includes(S.clubId)) qualifiedFor.push('libertadores');
     else if(qual.sulamericana.includes(S.clubId)) qualifiedFor.push('sulamericana');
   }
+  try{ coachSpellsMigrar();
+       if(tablePos(S.clubId)===1) coachSpellTitulo('serie'+S.division);
+       Object.entries(myCups||{}).forEach(([k,v])=>{ if(v && /campe/i.test(String(v))) coachSpellTitulo(k); });
+       coachSpellAcumular(); }catch(e){ console.warn('passagem no fecho:', e&&e.message); }
   S.history.push({season:S.season,division:S.division,clubId:S.clubId,champ,
     top3:tbl.slice(0,3).map(t=>clubOf(t.id).short),
     relegated:tbl.slice(-4).map(t=>clubOf(t.id).short),

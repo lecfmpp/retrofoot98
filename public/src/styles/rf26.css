@@ -7378,3 +7378,4 @@
 .rf-ft-gols{font-family:var(--font-mono);font-size:var(--fs-1);color:var(--text-3);
   margin-left:8px;white-space:nowrap}
 .rf-ft-nota{display:block;margin-top:8px}
+.rf-tr-tit{font-weight:700;font-size:var(--fs-1);color:var(--club-secondary,#F2B90C);margin-left:5px}

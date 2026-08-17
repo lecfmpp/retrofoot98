@@ -569,6 +569,10 @@ function newGame(clubId, division, compToggle, seedOverride){
     finished:false,
   };
   S.xi = autoXI(clubId);
+  /* A PRIMEIRA PASSAGEM ABRE AQUI, com a tabela ainda zerada — e o unico ponto por onde TODOS os
+     caminhos de novo jogo passam. Aberta mais tarde, a marca da passagem ja apanhava jogos
+     jogados e o periodo comecava a contar do meio. Ver coachSpells em engine/core.js. */
+  try{ if(typeof coachSpellAbrir==='function'){ S.coachSpells=[]; coachSpellAbrir(clubId,'contratado'); } }catch(e){}
   // F3.3: caixa por-clube pra divisão do usuário (as outras entram em buildOtherDivisions).
   // Determinístico pela seed -> igual em todos os clientes da Resenha.
   DATA.clubs.forEach(c=>{ S.budgets[c.id]=REBAL.budget(division, makeRng(hashSeed(seed,'budget',c.id))); });

@@ -2531,6 +2531,7 @@ function clEntrar(){
   CL.ticket=ticketPriceForDivision(S.division);
   CL.formation=null; CL.tacticChosen=false;   // precisa escolher tática no menu p/ liberar "Jogar"
   S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
+  try{ if(typeof coachSpellAbrir==='function'){ S.coachSpells=[]; coachSpellAbrir(CL.clubId,'contratado'); } }catch(e){}
   /* IDADE DE PARTIDA DO TREINADOR, escolhida no assistente (ver rfIdadeTreinador).
      Antes a ficha mostrava sempre "36 anos" porque o dado nao existia -- era uma
      conta fixa. Fica gravada uma vez; a partir dai ele envelhece uma temporada
@@ -8996,6 +8997,11 @@ function celebrarCopasDecididas(){
       const marca=k+':'+(S.season||1);
       if(S._copaCelebrada[marca]) return;
       S._copaCelebrada[marca]=true;
+      /* O TITULO ENTRA NA CARREIRA NA HORA, nao no fim da temporada. Uma taca ganha em maio
+         ficava invisivel na Sala, na Carreira e na Historia ate a temporada fechar. */
+      try{ if(String(b.champion)===String(CL.clubId) && typeof coachSpellTitulo==='function'){
+             if(typeof coachSpellsMigrar==='function') coachSpellsMigrar();
+             coachSpellTitulo(k); } }catch(e){ console.warn('titulo na carreira:', e&&e.message); }
       enfileirarMomentosCopa(k); n++;
     });
     return n;

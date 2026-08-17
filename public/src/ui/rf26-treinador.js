@@ -52,26 +52,33 @@ function rfTrCarreiraHTML(){
   const aprov=jogos?Math.round(((car.pts||0)+(t.Pts||0))/(jogos*3)*100):0;
   const pct=n=>jogos?Math.round(n/jogos*100)+'%':'';
   const seg=(S.jobSecurity!=null)?S.jobSecurity:60;
-  const clubes=[...new Set((S.history||[]).filter(h=>h.clubId).map(h=>h.clubId))];
-  if(!clubes.includes(CL.clubId)) clubes.push(CL.clubId);
-  const linhas=clubes.slice().reverse().map(id=>{
-    const c=anyClubOf(id)||{short:id};
-    const h=(S.history||[]).filter(x=>x.clubId===id);
-    const atual=id===CL.clubId;
-    const anos=h.map(x=>x.season).filter(x=>x!=null);
-    const de=anos.length?Math.min.apply(null,anos):(S.season||'');
-    const ate=atual?'hoje':(anos.length?Math.max.apply(null,anos):'—');
-    const j=h.reduce((s,x)=>s+((x.games)||0),0)+(atual?(t.P||0):0);
-    const p=h.reduce((s,x)=>s+((x.pts)||0),0)+(atual?(t.Pts||0):0);
-    return `<div class="rf-el-row ${atual?'sel':''}">
+  /* ===== CADA PASSAGEM, INCLUSIVE A QUE ACABOU A MEIO DA TEMPORADA =====
+     Isto lia S.history, que so e escrito no FIM da temporada e com o clube em que o treinador
+     estava naquele instante: sair do Fluminense para o Flamengo em maio nao deixava rasto nenhum
+     — o Fluminense simplesmente nao existia nesta lista. Agora a fonte e S.coachSpells, escrito
+     QUANDO a coisa acontece (ver coachSpellAbrir/Fechar no core). */
+  if(typeof coachSpellsMigrar==='function'){ try{ coachSpellsMigrar(); }catch(e){} }
+  const spells=((S&&S.coachSpells)||[]).slice().reverse();
+  const linhas=spells.map(sp=>{
+    const c=anyClubOf(sp.clubId)||{short:sp.curto||sp.clubId};
+    const aberta=!sp.fim;
+    /* passagem aberta: o total ja fechado mais o que corre desde a marca */
+    const m=sp.marca||{}, ag=aberta?((S.table&&S.table[sp.clubId])||{}):{};
+    const j=(sp.tot&&sp.tot.P||0)+(aberta?Math.max(0,(ag.P||0)-(m.P||0)):0);
+    const p=(sp.tot&&sp.tot.Pts||0)+(aberta?Math.max(0,(ag.Pts||0)-(m.Pts||0)):0);
+    const de=(sp.inicio&&sp.inicio.season)||'—';
+    const ate=aberta?'hoje':((sp.fim&&sp.fim.season)||'—');
+    const tit=(sp.titulos||[]).length;
+    return `<div class="rf-el-row ${aberta?'sel':''}">
       ${rfCrest(c,20)}
-      <span class="rf-tr-clube">${escC(c.short||c.name||'—')}</span>
+      <span class="rf-tr-clube">${escC(c.short||c.name||'—')}${tit?' <b class="rf-tr-tit">'+tit+'🏆</b>':''}</span>
       <span class="rf-tr-periodo">${escC(String(de))} — ${escC(String(ate))}</span>
       <span class="rf-tr-num">${j||'—'}</span>
       <span class="rf-tr-num forte">${j?Math.round(p/(j*3)*100)+'%':'—'}</span>
-      <span class="rf-tr-desf">${atual?'em curso':(h.length?'encerrado':'—')}</span>
+      <span class="rf-tr-desf">${aberta?'em curso':escC(sp.desfecho==='demitido'?'demitido':'encerrado')}</span>
     </div>`;
   }).join('');
+  const clubes=spells;
   const cab=`<div class="rf-el-head" style="--el-cols:${RF_TR_CLUBES_COLS}">
     <span></span><span>CLUBE</span><span>PERÍODO</span>
     <span class="dir">JOGOS</span><span class="dir">APROV.</span><span class="dir">DESFECHO</span>
@@ -119,10 +126,33 @@ function rfTrCarreiraHTML(){
    2 · HISTÓRIA — linha do tempo + marcas pessoais
    ===================================================================== */
 function rfTrHistoriaHTML(){
-  const h=(S.history||[]).filter(x=>x.clubId===CL.clubId).slice().reverse();
-  const atual={season:S.season, clubId:CL.clubId, division:S.division,
-    myPos:rfMinhaPosicao(), emCurso:true};
-  const todas=[atual].concat(h);
+  /* ===== A LINHA DO TEMPO SEGUE AS PASSAGENS, NAO SO O CLUBE DE AGORA =====
+     Isto filtrava S.history por `clubId===CL.clubId`: o clube anterior desaparecia da historia
+     assim que o treinador saia, e uma passagem terminada a meio da temporada nunca chegava a
+     entrar (S.history so e escrito no fecho). Agora a espinha e S.coachSpells — cada passagem
+     rende as temporadas que ela cobre, e a que ainda corre aparece como "em curso". */
+  if(typeof coachSpellsMigrar==='function'){ try{ coachSpellsMigrar(); }catch(e){} }
+  const hist=(S.history||[]);
+  const spells=((S&&S.coachSpells)||[]).slice();
+  const todas=[];
+  spells.forEach(sp=>{
+    const de=(sp.inicio&&sp.inicio.season)||S.season, ate=sp.fim?((sp.fim.season)||de):(S.season||de);
+    const fechadas=hist.filter(x=>String(x.clubId)===String(sp.clubId)
+      && x.season>=de && x.season<=ate);
+    fechadas.forEach(x=>todas.push(Object.assign({},x,{titulos:sp.titulos})));
+    /* a temporada corrente so entra se ainda nao houver o registo fechado dela — senao apareciam
+       duas linhas do mesmo ano, uma "em curso" e a fechada logo abaixo */
+    const aberta=!sp.fim;
+    const jaFechada=fechadas.some(x=>String(x.season)===String(S.season));
+    if(aberta && !jaFechada) todas.push({season:S.season, clubId:sp.clubId, division:S.division,
+      myPos:rfMinhaPosicao(), emCurso:true, titulos:sp.titulos});
+    /* passagem fechada sem temporada registada (saiu no meio do ano): a linha existe do mesmo
+       jeito, dizendo o periodo — e o caso que nao aparecia em lado nenhum */
+    if(!aberta && !fechadas.length) todas.push({season:de, clubId:sp.clubId, division:sp.divisao||S.division,
+      myPos:null, parcial:true, titulos:sp.titulos});
+  });
+  todas.reverse();
+  const h=hist.filter(x=>String(x.clubId)===String(CL.clubId)).slice().reverse();
   const linha=todas.map((e,i)=>{
     const c=anyClubOf(e.clubId)||{short:'—'};
     const titulo=e.myPos===1;
@@ -131,7 +161,8 @@ function rfTrHistoriaHTML(){
       <span class="rf-tl-p ${titulo?'ouro':(i===0?'agora':'')}"></span>
       <div class="rf-tl-id">
         <span class="rf-tl-t">${escC(c.short)} · ${escC((typeof divisionLabelOf==='function')?divisionLabelOf(e.division):('Série '+e.division))}</span>
-        <span class="rf-tl-s">${e.myPos?(e.myPos+'º'+(e.emCurso?'':' no grupo')):'—'}${e.emCurso?' · em curso':''}</span>
+        <!-- "no grupo" era heranca do desenho: uma liga de pontos corridos nao tem grupo. -->
+        <span class="rf-tl-s">${e.myPos?(e.myPos+'º'+(e.emCurso?'':' na tabela')):(e.parcial?'passagem encerrada durante a temporada':'—')}${e.emCurso?' · em curso':''}</span>
         <span class="rf-tl-c">${escC(e.emCurso?'—':rfCpDesfecho(e))}</span>
       </div>
     </div>`;
