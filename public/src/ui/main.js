@@ -6564,8 +6564,34 @@ function shootoutNextKick(){
     const R=makeRng(hashSeed(S.seed,S.round,'pens',m.h,m.a,side,RL.pens.h.length+RL.pens.a.length));
     const taker=pickPenaltyTaker(eligible,R);
     const scored=R.random()<penaltyConvChance(taker,gk);
-    setTimeout(()=>recordShootoutKick(side,taker?taker.n:null,scored),700);
+    /* A COBRANÇA DO ADVERSÁRIO TAMBÉM SE VÊ. Antes era `setTimeout(record…,700)`:
+       o placar de bolinhas mudava sozinho e o utilizador nunca via quem bateu nem
+       se entrou — a série "piscava" e no fim aparecia um resultado que ninguém
+       tinha acompanhado. Agora passa pela MESMA revelação da cobrança dele
+       (suspense → resultado), que é o que a disputa tem de dramático. */
+    shootoutRevelar(side, taker?taker.n:null, scored);
   }
+}
+/* ===== A REVELAÇÃO DE UMA COBRANÇA, IGUAL PARA OS DOIS LADOS =====
+   Mantém `pensPicking` ligado enquanto anima: é essa bandeira que faz a tela
+   ao vivo desenhar o modal da disputa (ver liveModalHTML/shootoutPickerHTML).
+   Só ao fim é que a cobrança é REGISTADA — antes disso o placar não muda, para
+   a bolinha aparecer junto com a revelação e não antes dela. */
+function shootoutRevelar(side, takerName, scored){
+  const RL=CL.live; if(!RL || !RL.pens) return;
+  if(CL._penRevealTimer) clearTimeout(CL._penRevealTimer);
+  if(CL._penCloseTimer) clearTimeout(CL._penCloseTimer);
+  RL.pensPicking=true;
+  CL.penPhase='suspense'; CL.penResultScorer=takerName; CL.penResultScored=scored;
+  cdraw();
+  const rapido=!!CL.penAuto;               // "⏩ Simular o resto" continua a valer
+  CL._penRevealTimer=setTimeout(()=>{
+    CL.penPhase='result'; sfx(scored?'penaltiGol':'penaltiPerdido'); cdraw();
+    CL._penCloseTimer=setTimeout(()=>{
+      CL.penPhase=null; CL.penResultScorer=null; CL.penResultScored=null;
+      recordShootoutKick(side, takerName, scored);
+    }, rapido?350:1800);
+  }, rapido?200:1200);
 }
 function openShootoutPickerModal(){
   const RL=CL.live;
@@ -6609,15 +6635,8 @@ function resolveShootoutKick(takerName){
   const kickIdx=RL.pens.h.length+RL.pens.a.length;
   const R=makeRng(hashSeed(S.seed,S.round,'pens',m.h,m.a,side,kickIdx,takerName));
   const scored=R.random()<penaltyConvChance(taker,gk,{humano:true,canto:CL.penCanto});
-  CL.penPhase='suspense'; CL.penResultScorer=taker?taker.n:takerName; CL.penResultScored=scored;
-  cdraw();
-  CL._penRevealTimer=setTimeout(()=>{
-    CL.penPhase='result'; sfx(scored?'penaltiGol':'penaltiPerdido'); cdraw();
-    CL._penCloseTimer=setTimeout(()=>{
-      CL.penPhase=null; CL.penResultScorer=null; CL.penResultScored=null;
-      recordShootoutKick(side, taker?taker.n:takerName, scored);
-    },2200);
-  },1400);
+  /* mesma revelação da cobrança do adversário — uma função só para os dois lados */
+  shootoutRevelar(side, taker?taker.n:takerName, scored);
 }
 function recordShootoutKick(side,takerName,scored){
   const RL=CL.live; if(!RL||!RL.pens) return;

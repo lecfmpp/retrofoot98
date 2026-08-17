@@ -292,7 +292,7 @@ function rfOb2(){
                um por cima do outro no mesmo canto. -->
           <span class="rf-modo-tags">
             <span class="rf-modo-tag rec">Online</span>
-            <span class="rf-modo-tag">Single Player</span>
+            <span class="rf-modo-tag">Single-player</span>
           </span>
           <span class="rf-modo-t">Modo Solo</span>
           <span class="rf-modo-d">Pega um clube da Série D e sobe até a elite no seu ritmo. Mercado, finanças e o calendário completo de copas — sem depender de ninguém entrar na sala.</span>

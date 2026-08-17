@@ -3098,6 +3098,17 @@
 /* o rodapé de ação nunca empurra a tela: quando os botões não cabem lado a
    lado (telefone, ou uma barra com dois botões e um aviso), ele quebra em vez
    de estourar a largura do envelope */
+/* ===== OS BOTOES VEM ANTES DO CONTEUDO =====
+   Estas telas (pos-rodada, fim de fase, fim de temporada) aparecem varias vezes
+   por temporada e a acao delas e quase sempre a mesma: continuar. Com o rodape
+   depois do conteudo, uma tabela de 20 clubes obrigava a rolar a tela inteira
+   para achar o botao -- vezes trinta e oito. `order` poe a barra logo abaixo do
+   cabecalho, sem mexer na ordem do HTML (leitores de ecra continuam a ler o
+   conteudo antes da acao, que e a ordem certa para quem ouve). */
+.rf-stg-in{display:flex;flex-direction:column}
+.rf-stg-hd{order:0}
+.rf-stg-foot{order:1;margin-bottom:2px}
+.rf-stg-shell{order:2}
 .rf-stg-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
 .rf-stg-foot>.rf-sp{flex:1 1 0;min-width:0}
 .rf-stg-foot .rf-im-auto{flex:1 1 160px;min-width:0}

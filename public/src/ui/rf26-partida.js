@@ -797,7 +797,14 @@ function rfPenaltiSuspenseHTML(extra){
 /* ---- 3 · PÊNALTI: resultado ---- */
 function rfPenaltiResultadoHTML(extra){
   const m=(CL.live&&CL.live.penMatch)||null;
-  const gol=!!CL.penScored;
+  /* ===== A TELA DIZIA SEMPRE QUE O GOLEIRO PEGOU =====
+     Aqui lia-se `CL.penScored`, que nao existe em lado nenhum -- quem guarda o
+     resultado da cobranca e `CL.penResultScored` (ver resolvePenalty e
+     resolveShootoutKick). `undefined` e falso, entao o modal anunciava defesa em
+     100% dos penaltis, enquanto o toast e a narracao -- que leem o valor certo --
+     diziam gol. Era essa a dessincronia relatada: o placar mudava e a tela
+     dizia que nao. */
+  const gol=!!CL.penResultScored;
   return rfOverlay({
     w:800, semX:true, cls:gol?'':'rf-ov-grave', contexto:rfCtxPartida(m),
     titulo:gol?'Gol!':'Perdeu!',
