@@ -5586,22 +5586,31 @@ function clJogar(){
      copa resolvida noutro caminho, ou por qualquer desvio de estado. Ai nao ha
      o que jogar, e o certo e FECHAR a temporada em vez de ficar parado.
      Melhor uma temporada que fecha do que um jogo que nao anda. */
-  const temLiga=!!((S.sched||[])[S.round]||[]).length;
-  if(!temLiga){
-    const temCopa = (typeof nextUserMatch==='function' && (nextUserMatch()||{}).kind==='cup')
-                 || (typeof cupRoundsUserSitsOut==='function' && cupRoundsUserSitsOut().length>0);
-    if(!temCopa){
-      if(S.round>=(S.sched||[]).length-1 && typeof endSeason==='function'){
-        toastC('Temporada encerrada.'); endSeason(); cdraw(); return;
-      }
-      /* no meio da temporada uma jornada vazia sem copa nao devia existir:
-         avanca em vez de travar, e deixa rasto para se investigar */
-      console.warn('jornada '+S.round+' sem jogo de liga e sem copa — avancando');
-      toastC('Jornada sem jogos — seguindo para a próxima.');
-      S.round++; S.week++; S.day+=7; save(); cdraw(); return;
-    }
-  }
+  if(typeof rfNadaParaJogar==='function' && rfNadaParaJogar()){ clAvancarDia(); return; }
   startLiveRound();
+}
+/* ===== PASSAR O DIA (fase 2 do calendario) =====
+   Jornada sem jogo de liga e sem copa. Desde que as copas deixaram de ser
+   espremidas dentro da liga, isto acontece de propria: entre o fim da liga e a
+   final da Libertadores ha semanas sem nada em campo, e a temporada precisa de
+   as atravessar. Antes o botao dizia "Jogar" e nao fazia NADA — medido: sem
+   partida, sem tela nova, sem erro. Agora ele diz "Avancar" e avanca.
+
+   E se ja nao ha mais jornada nenhuma, a temporada FECHA aqui. Melhor uma
+   temporada que termina do que um jogo que nao anda. */
+function clAvancarDia(){
+  if(CL.online) return;                        // na Resenha quem manda no dia e o servidor
+  const total=(S.sched||[]).length;
+  if(S.round>=total-1){
+    if(typeof endSeason==='function'){ endSeason(); cdraw(); return; }
+  }
+  S.round++; S.week++; S.day+=7;
+  /* as copas correm na virada da jornada como em qualquer rodada — sem isto,
+     passar o dia saltaria por cima de uma rodada de copa devida */
+  try{ if(typeof advancePendingCups==='function') advancePendingCups(); }catch(e){ console.warn('copas ao passar o dia:', e); }
+  try{ if(typeof save==='function') save(); }catch(e){}
+  toastC('Dia passado — '+((typeof dataCurtaDaJornada==='function')?dataCurtaDaJornada(S.round,'liga'):''));
+  cdraw();
 }
 /* ---- MARCADOR DE COPA JÁ VISTA NESTA RODADA ----
    Antes eram dois arrays (_spectatedKeysThisRound no solo, _cupIdleShownThisRound na Resenha)

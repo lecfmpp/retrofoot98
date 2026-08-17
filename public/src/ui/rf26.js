@@ -479,6 +479,10 @@ function rfTreinadorNome(){
 }
 function rfJogar(){
   if(typeof estouPronto==='function' && estouPronto()){ clCancelarPronto(); return; }
+  /* dia sem nada em campo: o botao passa o dia (ver rfNadaParaJogar e o rotulo).
+     So no SOLO — na Resenha quem manda na jornada e o servidor, e adiantar o dia
+     por conta propria partiria a sala. La o clJogar de sempre trata do caso. */
+  if(!CL.online && rfNadaParaJogar() && typeof clAvancarDia==='function'){ clAvancarDia(); return; }
   if(typeof clJogar==='function') clJogar();
 }
 /* SEM TÁTICA O BOTÃO NÃO FICA MORTO. Ele ficava desabilitado dizendo "Jogar",
@@ -492,6 +496,26 @@ function rfFaltaTatica(){
   const xi=xiPlayers(CL.clubId);
   return xi.length>=11 && xiGKCount(xi)===1;
 }
+/* ===== DIA SEM JOGO: O BOTAO E "AVANCAR", NAO "JOGAR" =====
+   Desde que as copas deixaram de ser espremidas dentro da liga (fase 1), a
+   temporada tem jornadas genuinamente vazias: entre o fim da liga e as finais
+   das continentais ha semanas sem nada em campo. Antes o botao continuava a
+   dizer "Jogar" e nao fazia nada — o jogo parecia travado, que foi o relato.
+   Agora ele diz o que faz, e faz.
+
+   Nao ha jogo quando: a jornada nao tem partida da liga E nao ha copa para
+   jogar nem para assistir. `rfFaltaTatica` continua a mandar primeiro — sem
+   onze nao se avanca, porque a jornada seguinte pode ter jogo. */
+function rfNadaParaJogar(){
+  try{
+    if(typeof S==='undefined' || !S || !Array.isArray(S.sched)) return false;
+    if(((S.sched[S.round]||[]).length)>0) return false;          // ha jogo de liga
+    const prox=(typeof nextUserMatch==='function')?nextUserMatch():null;
+    if(prox && prox.kind==='cup') return false;                  // tenho copa hoje
+    if(typeof cupRoundsUserSitsOut==='function' && cupRoundsUserSitsOut().length) return false; // ha copa para ver
+    return true;
+  }catch(e){ return false; }
+}
 function rfJogarLabel(){
   /* "Escolher tática" tem 131px de texto e o botão da barra inferior tem 92 —
      transbordava. No telefone o rótulo é só "Formação", que é para onde ele
@@ -500,6 +524,10 @@ function rfJogarLabel(){
     const curto=(typeof isPhone==='function' && isPhone());
     return rfIcone('estrategia',curto?14:16)+(curto?' Formação':' Escolher formação');
   }
+  /* SO NO SOLO. Na Resenha quem manda na jornada e o servidor: o clique ja
+     estava protegido (clAvancarDia sai logo se CL.online), mas o ROTULO dizia
+     "Avancar" na mesma — prometia uma acao que ali nao existe. */
+  if(!CL.online && rfNadaParaJogar()) return rfIcone('calendario',16)+' Avançar';
   return (typeof estouPronto==='function' && estouPronto()) ? rfIcone('ok',16)+' Pronto' : rfIcone('jogar',16)+' Jogar';
 }
 function rfIrEscolherTatica(){
