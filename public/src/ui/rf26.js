@@ -1250,8 +1250,20 @@ function rfCard(rotulo, corpo, opts){
         CL.countries=new Set(['Brasil']);
         CL.compToggle={libertadores:true,copaBrasil:true,sulamericana:true};
         CL.intlUniverse=false; CL.mgr='Gringo'; CL.mode='solo'; CL.save='bancada';
-        const pool=DATA.clubs.filter(c=>c.div==='D'||c.division==='D');
-        const cid=(pool[0]||DATA.clubs[0]).id;
+        /* O SAVE DE BANCADA ESTAVA A NASCER MENTINDO. `DATA.clubs` no arranque
+           e a lista da SERIE A (o padrao do bundle), e nenhum desses clubes tem
+           `div==='D'` -- o filtro devolvia vazio e caia-se no `DATA.clubs[0]`,
+           ou seja, o Palmeiras. Dai `newGame(cid,'D')` montava uma "Serie D"
+           inteira com os clubes da Serie A: a tabela da divisao, o filtro da
+           rodada ao vivo e as ligas de fundo mostravam a Serie A duas vezes.
+           Quem escolhe os clubes de uma divisao e `clubsForDivision` -- e o que
+           o fluxo real do assistente faz antes de chamar newGame (ver clGoMoeda
+           em main.js). A bancada passa a fazer o mesmo. */
+        if(typeof clubsForDivision==='function'){
+          const daDiv=clubsForDivision('D');
+          if(daDiv && daDiv.length) DATA.clubs=daDiv.slice();
+        }
+        const cid=DATA.clubs[0].id;
         newGame(cid,'D',CL.compToggle);
         CL.clubId=cid; S.xi=autoXI(cid); CL.humans={}; CL.humans[cid]=CL.mgr;
         CL.online=false; CL.formation='4-4-2'; CL.tacticChosen=true; CL.tab='seleccao';

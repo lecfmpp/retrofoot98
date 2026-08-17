@@ -845,6 +845,17 @@
   /* O banco desce pra baixo do campo e ROLA POR DENTRO. O clip precisa ser
      explícito nos dois níveis: sem ele os reservas (são 15+) transbordam a
      altura do bloco e vão desenhar por cima dos cards seguintes da página. */
+  /* A LARGURA INTRINSECA DA FAIXA DE SUPLENTES NAO PODE SUBIR. A lista tem 20
+     cartoes de 82px -- quase 2000px de largura natural -- e rola por dentro. Só
+     que, sem `min-width:0` em cada elo da cadeia flex, essa largura natural
+     escapa para os pais: em Safari e em varios navegadores de telemovel a
+     pagina fica mais larga do que o ecra e o navegador encolhe tudo para caber
+     (conteudo apertado, faixa vazia a direita). Aqui a cadeia inteira e
+     travada. */
+  .rf-pitch-card .cl-pitch-block{min-width:0;max-width:100%;box-sizing:border-box}
+  .rf-pitch-card .cl-bench,.rf-pitch-card .cl-bench-list,
+  .rf-pitch-card .rf-banco-lista{min-width:0;max-width:100%;box-sizing:border-box}
+  .rf-pitch-card .rf-banco-lista{width:100%}
   .rf-pitch-card .cl-bench{width:100%;flex:0 0 auto;height:230px;max-height:230px;overflow:hidden}
   .rf-pitch-card .cl-bench-list{grid-template-columns:1fr 1fr;overflow-y:auto;min-height:0;flex:1 1 auto}
   .rf-formgrid{grid-template-columns:repeat(3,1fr)}
@@ -2105,6 +2116,13 @@
   .rf-wiz-sub{font-size:var(--fs-body-sm)}
   .rf-wiz-form{width:100%}
   .rf-wiz-nota{font-size:var(--fs-label)}
+  /* A LISTA DE COMPETICOES QUE NAO SE DISPUTA vem da pele antiga e traz
+     `min-width:420px` -- num ecra de 375 ela sozinha empurrava a pagina 53px
+     para o lado, e era ela que fazia a barra inferior parecer maior do que a
+     tela nos Campeonatos. */
+  .cl-complist{min-width:0}
+  .cl-complist-row{grid-template-columns:24px minmax(0,1fr) auto;padding:9px 10px}
+  .cl-complist-st{white-space:normal;text-align:right}
   .rf-conv{grid-template-columns:minmax(0,1fr)}
   .rf-divs{grid-template-columns:repeat(2,1fr)}
   .rf-paises{grid-template-columns:repeat(2,1fr)}
@@ -4671,6 +4689,17 @@
 .rf-cp-fora-n{flex:1;min-width:0;font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);
   color:var(--text-4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rf-cp-fora-v{font-size:var(--fs-caption);color:var(--text-faint);white-space:nowrap}
+/* NO TELEMOVEL A LINHA QUEBRA EM VEZ DE ESTICAR A PAGINA. O motivo por que o
+   clube nao disputa aquela competicao e uma frase inteira ("em disputa, sem o
+   seu clube -- a vaga vem da classificacao") e ela vinha com `white-space:nowrap`:
+   341px de texto numa linha de 317, e a pagina dos Campeonatos ganhava 53px de
+   rolagem lateral -- o suficiente para a barra inferior parecer maior do que o
+   ecra. */
+@media (max-width:760px){
+  .rf-cp-fora{flex-wrap:wrap;row-gap:2px}
+  .rf-cp-fora-n{flex:1 1 auto}
+  .rf-cp-fora-v{flex:1 1 100%;white-space:normal;padding-left:46px}
+}
 
 /* ---- células das quatro tabelas de Campeonatos (a linha é a do Elenco) ---- */
 .rf-cp-jor{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-3);white-space:nowrap}
@@ -5504,7 +5533,14 @@
 @media (max-width:900px){
   .rf-prop2-nums,.rf-kpis-4{grid-template-columns:repeat(2,minmax(0,1fr))}
   .rf-prop2-hd{flex-wrap:wrap}
-  .rf-mk-acoes{flex-wrap:wrap}
+  /* OS DOIS BOTOES DO CABECALHO FICAM NA MESMA LINHA. Com `flex-wrap:wrap` e
+     rotulos compridos ("Calendario completo" e "Ver classificacao") cada um
+     ficava com a largura inteira, um por cima do outro -- duas faixas a comer o
+     topo da pagina. Agora repartem a linha ao meio e o rotulo corta com
+     reticencias se apertar, que e a regra da barra de acao do assistente. */
+  .rf-mk-acoes{flex-wrap:nowrap;width:100%}
+  .rf-mk-acoes>.rf-btn{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;padding:0 12px}
 }
 
 /* =====================================================================

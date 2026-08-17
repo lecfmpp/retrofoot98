@@ -10369,7 +10369,15 @@ function cupBracketStageHTML(c, key, opts){
   // no sorteio quem manda no troféu é o painel lateral da cerimônia (ver cupDrawSideHTML) —
   // duas taças na mesma tela só competiriam entre si.
   const trofeu=opts.draw?'':`<div class="cl-cuptrophy" style="left:${CUP_STAGE_W/2-90}px">
-      <div class="cl-cuptrophy-box${champ?'':' pending'}">${trophyImg(key,104)||'🏆'}</div>
+      <!-- A ARTE DO TROFEU VEM DO ARQUIVO, NAO DO trophies.js. A embutida e
+           achatada (fundo preto na Serie A e na Libertadores, branco na Serie D)
+           e no meio da chave aparecia como um quadrado escuro. Os .webp de
+           img/trofeus tem alfa e recortam -- mesma regra da faixa da rodada ao
+           vivo (ver rfCompTrofeuHTML). -->
+      <div class="cl-cuptrophy-box${champ?'':' pending'}">${
+        (typeof rfCompTrofeuHTML==='function' && typeof rfCompInfo==='function' && (rfCompInfo(key)||{}).trofeu)
+          ? rfCompTrofeuHTML(rfCompInfo(key),104)
+          : (trophyImg(key,104)||'🏆')}</div>
       <div class="cl-cuptrophy-lbl">${champ?'CAMPEÃO':'A TAÇA'}</div>
       ${champ?`<div class="cl-cuptrophy-club" style="${clubStripe(champCl)}">${escC(champCl?champCl.short:champ)}</div>`
              :`<div class="cl-cuptrophy-club pending">${escC(cupPhaseLabel(b.round,b.roundsTotal))}</div>`}

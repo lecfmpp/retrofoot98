@@ -502,6 +502,24 @@ function newGame(clubId, division, compToggle, seedOverride){
   division = division || 'A';
   compToggle = compToggle || {libertadores:true, copaBrasil:true, sulamericana:true};
   PROC_USED_NAMES=new Set(); // novo save -> zera o controle de nomes procedurais únicos
+  /* REDE DE SEGURANCA: os clubes TEM de ser os da divisao que se vai comecar.
+     newGame monta tudo (tabela, elencos, calendario) a partir de DATA.clubs, e
+     quem enche DATA.clubs e o CHAMADOR (clubsForDivision, no assistente). Um
+     chamador que se esqueca disso cria uma divisao com os clubes de outra -- foi
+     assim que a "Serie D" da bancada nasceu com o Palmeiras e o Flamengo, e a
+     Serie A aparecia duas vezes na tabela e no filtro da rodada ao vivo. Aqui
+     nao se corrige em silencio (o save da Resenha traz lista propria, curada):
+     avisa-se alto, para o engano aparecer no primeiro teste. */
+  try{
+    if(typeof clubsForDivision==='function'){
+      const esperados=clubsForDivision(division)||[];
+      const ids0=new Set(DATA.clubs.map(c=>c.id));
+      const iguais=esperados.length && esperados.filter(c=>ids0.has(c.id)).length>=Math.ceil(esperados.length*0.5);
+      if(esperados.length && !iguais)
+        console.warn('[newGame] DATA.clubs nao parece ser a divisao '+division+
+          ' — chame clubsForDivision('+division+') antes de newGame.');
+    }
+  }catch(e){}
   const ids=DATA.clubs.map(c=>c.id);
   const sched=makeSchedule(ids);
   const table={};

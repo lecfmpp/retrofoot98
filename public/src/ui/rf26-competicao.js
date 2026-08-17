@@ -168,6 +168,19 @@ function rfSetTabIr(page,tab){ clCloseOverlay(); rfState().page=page; rfState().
 /* Fiel a telas/Competicao - Visao Geral.html: 1080px, barra de abas com as
    competições do clube, coluna esquerda com o TROFÉU REAL a 112px + ficha de
    4 blocos, coluna direita com "o seu caminho" e "quem segue na copa". */
+/* ===== A CHAVE DE UMA COPA TEM DUAS FORMAS =====
+   Copa com fase de grupos (Libertadores, Sul-Americana) guarda `{group, bracket}`.
+   Copa que e mata-mata do principio ao fim (Copa do Brasil) E o proprio objeto
+   da chave -- tem `round`, `ties`, `history` e `champion` a nascenca, e nao tem
+   `.bracket` nenhum. Todo o ecra da competicao lia so `c.bracket`: para a Copa
+   do Brasil isso dava sempre null, e dai vinha a tela vazia (sem caminho, sem
+   quem segue, sem chave). `cupBracketStageHTML` ja sabia distinguir as duas; o
+   resto do ecra passa a saber tambem. */
+function rfCompChave(c){
+  if(!c) return null;
+  if(c.champion!==undefined) return c;      // a copa E a chave (mata-mata puro)
+  return c.bracket||null;                   // a chave vive dentro da copa
+}
 function rfCompAbas(key){
   const abas=[{k:'__div', l:divisionLabel()}];
   ((typeof allCupKeys==='function')?allCupKeys():[]).forEach(k=>{
@@ -207,7 +220,7 @@ function rfCompeticaoHTML(key){
   const c=(S.cups&&S.cups[key])||{};
   const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[key])||{};
   const meu=CL.clubId;
-  const br=c.bracket||null;
+  const br=rfCompChave(c);
   const gobj=(c.group&&c.group.groups)||null;
   const letras=gobj?Object.keys(gobj).sort():[];
   const meuGrupo=letras.find(L=>(gobj[L].teams||[]).includes(meu));
@@ -221,7 +234,7 @@ function rfCompeticaoHTML(key){
      na linha de baixo -- numa copa que nem grupos tem. E as quatro fichas
      ficavam a tracejado sem dizer porque. Agora, enquanto o sorteio nao sair, a
      tela diz isso: "Sorteio pendente". */
-  const sorteada = !!(br || gobj);
+  const sorteada = !!((br && ((br.ties||[]).length || (br.history||[]).length)) || gobj);
   const fase = br ? cupPhaseLabel(br.round, br.roundsTotal)
     : (gobj ? ((typeof cupCompetitionRoundLabel==='function'&&cupCompetitionRoundLabel(c,key))||'—')
             : 'Sorteio pendente');
@@ -263,11 +276,29 @@ function rfCompeticaoHTML(key){
   const campeao=(typeof cupCompetitionChampion==='function')?cupCompetitionChampion(c):null;
   const jogos=caminho.length;
 
+  /* ===== A CHAVE, COM A TACA NO MEIO =====
+   O desenho da chave espelhada -- os confrontos a convergir dos dois lados para
+   o trofeu ao centro -- ja existia (cupBracketStageHTML), mas so a pele antiga o
+   mostrava: aqui via-se apenas a lista do "seu caminho", que diz onde EU estou e
+   nao como esta a competicao. Agora ela entra em todas as copas com mata-mata.
+
+   E SO QUANDO O MATA-MATA ESTA A SER JOGADO. Antes disso -- copa ainda nos
+   grupos, ou sorteio por sair -- nao ha chave nenhuma para desenhar, e uma
+   moldura vazia com a taca ao centro promete uma fase que ainda nao comecou. */
+  const chave = (br && (br.ties||br.history) && typeof cupBracketStageHTML==='function')
+    ? `<div class="rf-card rf-cp-chave">
+         <div class="rf-label"><span class="rf-label-t">A chave</span>
+           <span class="rf-label-r">${escC(fase)}</span></div>
+         ${cupBracketStageHTML(c,key,{})}
+       </div>`
+    : '';
+
   return rfStage({
     w:1080, comp:key,
     contexto:`Minhas competições · ${S.season||''}`,
     titulo:def.name||key,
     corpo:`${rfCompAbas(key)}
+    ${chave}
     <div class="rf-cp-cols">
       <div class="rf-card rf-cp-esq">
         ${rfTrofeuHTML(key,112)}
@@ -349,13 +380,34 @@ function rfCampeaoAtual(key){
    3 · COPA — CLASSIFICAÇÃO DA FASE (substitui scCupClassif)
    ===================================================================== */
 function rfCopaFaseHTML(key){
-  key=key||CL._cupClassifKey||CL._cupKey;
+  key=key||CL._cupClassifKey||CL._cupClassifKey||CL._cupKey;
   const c=(S.cups&&S.cups[key])||{};
   const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[key])||{};
-  const br=c.bracket||{};
+  const br=rfCompChave(c)||{};
   const meu=CL.clubId;
   const fechada=(br.history||[]).length?br.history[br.history.length-1]:null;
   const confrontos=(fechada&&fechada.ties)||br.ties||[];
+
+  /* ===== "QUEM PASSOU DE FASE" SO DEPOIS DE ALGUEM PASSAR =====
+     Numa copa com os dois formatos, esta tela aparecia a cada jornada da FASE DE
+     GRUPOS -- com o titulo a falar de passagem de fase, a chave vazia e nada por
+     baixo, porque ainda nao ha confronto eliminatorio nenhum. Enquanto a
+     competicao estiver nos grupos, o que ha para mostrar sao os grupos, e e isso
+     que ela mostra. A tela de fase encerrada volta quando a chave existe. */
+  if(!rfCompChave(c) && c.group){
+    const meuG=Object.keys((c.group.groups)||{}).find(L=>((c.group.groups[L].teams)||[]).includes(meu));
+    return rfStage({
+      w:1020, comp:key,
+      contexto:`${escC(def.name||key)} ${escC(String(S.season||''))} · fase de grupos`,
+      titulo:'Como estão os grupos',
+      corpo:(typeof cupGroupGridHTML==='function')
+        ? cupGroupGridHTML(c,key,{})
+        : '<div class="rf-empty">A fase de grupos ainda não começou.</div>',
+      acoes:`<button type="button" class="rf-ov-b2" onclick="rfSetTabIr('campeonatos','calendario')">${rfIcone('calendario',16)} Calendário</button>
+        <div class="rf-sp"></div>
+        <button type="button" class="rf-ov-cta" onclick="cupClassifContinue()">Continuar</button>`
+    });
+  }
   const rodadaFechada=fechada?fechada.round:br.round;
   const fase=(typeof cupPhaseLabel==='function'&&br.roundsTotal)
     ? cupPhaseLabel(rodadaFechada, br.roundsTotal) : 'Mata-mata';
