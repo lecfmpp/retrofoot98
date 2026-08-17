@@ -1361,6 +1361,7 @@ function slotHTML(e, editar){
       <div><span>Padrão</span><b>${h(e.iab||'—')}</b></div>
       <div><span>Desktop</span><b>${e.w}×${e.h}</b></div>
       <div><span>Celular</span><b>${e.mw}×${e.mh}</b></div>
+      ${e.dur_max_s!=null?`<div><span>Vídeo</span><b>até ${e.dur_max_s}s${e.sem_audio===false?'':' · sem som'}</b></div>`:''}
       <div><span>Formatos</span><b>${h((e.formatos||[]).join(', '))}</b></div>
       <div><span>Peso máx.</span><b>${e.peso_kb} KB</b></div>
       <div><span>Impressões (30d)</span><b>${num(e.impressoes)} · ${num(e.cliques)} cliques</b></div>
@@ -1421,7 +1422,7 @@ function modalPatrocinador(){
 
 /* ---------- upload de criativo ---------- */
 const MIME_EXT = { jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', webp:'image/webp',
-                   mp4:'video/mp4', gif:'image/gif' };
+                   mp4:'video/mp4', webm:'video/webm', gif:'image/gif' };
 function modalUpload(chave){
   const e = (D.pub.espacos||[]).find(x=>x.chave===chave);
   if(!e) return;
@@ -1429,6 +1430,8 @@ function modalUpload(chave){
   const accept = exts.map(x=>'.'+x).join(',');
   const patros = D.pub.patrocinadores||[];
   const razao = (e.w/e.h).toFixed(2);
+  /* vídeo: o espaço só o aceita se tiver duração máxima definida E um formato de vídeo na lista */
+  const aceitaVideo = e.dur_max_s != null && exts.some(x=>x==='mp4'||x==='webm');
   let arquivo = null;
 
   abrirModal(`
@@ -1442,6 +1445,9 @@ function modalUpload(chave){
       <div><span style="color:var(--dim2)">Formatos</span><b>${h((e.formatos||[]).join(', '))}</b></div>
       <div><span style="color:var(--dim2)">Peso máx.</span><b>${e.peso_kb} KB</b></div>
       <div><span style="color:var(--dim2)">Proporção</span><b>${razao}:1</b></div>
+      ${aceitaVideo ? `<div><span style="color:var(--dim2)">Duração máx.</span><b>${e.dur_max_s}s</b></div>
+      <div><span style="color:var(--dim2)">Áudio</span><b>${e.sem_audio===false?'permitido':'sem som'}</b></div>` : ''}
+      ${e.nota ? `<div class="full" style="color:var(--dim2);line-height:1.5">${h(e.nota)}</div>` : ''}
     </div>
     <div class="col">
       <div class="drop" id="up-drop">
@@ -1494,10 +1500,13 @@ function modalUpload(chave){
   function medir(f, ext){
     return new Promise((res, rej) => {
       const url = URL.createObjectURL(f);
-      if(ext==='mp4'){
+      if(ext==='mp4'||ext==='webm'){
         const v = document.createElement('video');
+        /* o limite é o DO ESPAÇO (ad_spaces.dur_max_s) — era 15 s fixo para todos, e a pausa
+           patrocinada precisa de 8 s. Meio segundo de folga para o arredondamento do encoder. */
+        const limite = (e.dur_max_s != null ? e.dur_max_s : 15) + 0.5;
         v.onloadedmetadata = () => { URL.revokeObjectURL(url);
-          if(v.duration > 15.5) return rej(new Error('vídeo maior que 15 s'));
+          if(v.duration > limite) return rej(new Error('vídeo maior que '+(e.dur_max_s!=null?e.dur_max_s:15)+' s'));
           res({w:v.videoWidth, h:v.videoHeight}); };
         v.onerror = () => { URL.revokeObjectURL(url); rej(new Error('vídeo inválido')); };
         v.src = url;

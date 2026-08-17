@@ -7458,3 +7458,7 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   body.rf-tem-anchor .rf-content{padding-bottom:calc(130px + env(safe-area-inset-bottom,0px))}
   body.rf-tem-anchor .rf-bottomnav{bottom:0}
 }
+
+
+/* o marcador do video da pausa herda a caixa 16:9 do espaco desenhado */
+.rf-adph.rf-pz-video{width:100%; aspect-ratio:16/9; min-height:0}
