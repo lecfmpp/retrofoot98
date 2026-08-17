@@ -640,13 +640,10 @@ function rfHubHTML(){
     <div class="rf-card rf-card-grow" data-hub="classificacao">${rfClassifHTML()}</div>`;
 
   const direita=`
-    <div class="rf-card rf-pitch-card" data-hub="campo">
-      <div class="rf-card-hd">
-        <span class="rf-label-t">Tática ${escC(CL.formation||'—')}</span>
-        <span class="rf-label-r">onze <b>${xi.length}/11</b><span class="rf-so-desktop"> · titulares marcados com T na lista</span></span>
-      </div>
-      ${pitchHTML()}
-    </div>
+    <!-- AS FORMACOES VEM ANTES DO CAMPO. Trocar de esquema e a decisao mais
+         frequente desta tela, e era a que ficava mais longe: com o campo em
+         cima, era preciso rolar por baixo dele para chegar as taticas. O campo
+         e para VER o resultado da escolha — vem depois dela. -->
     <div class="rf-card" id="rf-taticas" data-hub="formacoes">
       <span class="rf-label-t">Formações</span>
       ${rfFormacoesHTML()}
@@ -663,6 +660,13 @@ function rfHubHTML(){
           ${(rfFaltaTatica()||xiPlayers(CL.clubId).length>=11)?'':'disabled'}
           onclick="${rfFaltaTatica()?'rfIrEscolherTatica()':'rfJogar()'}">${rfJogarLabel()}</button>
       </div>
+    </div>
+    <div class="rf-card rf-pitch-card" data-hub="campo">
+      <div class="rf-card-hd">
+        <span class="rf-label-t">Tática ${escC(CL.formation||'—')}</span>
+        <span class="rf-label-r">onze <b>${xi.length}/11</b><span class="rf-so-desktop"> · titulares marcados com T na lista</span></span>
+      </div>
+      ${pitchHTML()}
     </div>
     <div class="rf-hub-baixo" data-hub="destaques">
       ${rfNotasHTML()}

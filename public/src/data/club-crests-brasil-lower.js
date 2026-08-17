@@ -53,7 +53,13 @@ window.CLUB_CREST_BRASIL_LOWER = {
   "br_D_crac": "https://tmssl.akamaized.net/images/wappen/big/12602.png",
   "br_D_csa": "https://tmssl.akamaized.net/images/wappen/big/61687.png",
   "br_D_ferroviario": "https://tmssl.akamaized.net/images/wappen/big/11931.png",
-  "br_D_gama": "https://tmssl.akamaized.net/images/wappen/big/978.png",
+  /* ESCUDO ERRADO, REMOVIDO (16/ago): 978 e o id do VASCO DA GAMA no
+     Transfermarkt. O gerador casa por nome, e "Gama" bateu com "Vasco da
+     GAMA" com pontuacao suficiente para passar — o Gama de Brasilia acabou
+     com o escudo do Vasco. Sem entrada, o clube cai no cracha de iniciais,
+     que e honesto; um escudo de outro clube nao e.
+     Para repor: e preciso o id real do Gama no Transfermarkt — nao adivinhar.
+  "br_D_gama": "https://tmssl.akamaized.net/images/wappen/big/978.png", */
   "br_D_luverdense": "https://tmssl.akamaized.net/images/wappen/big/21599.png",
   "br_D_marciliodias": "https://tmssl.akamaized.net/images/wappen/big/4759.png",
   "br_D_nacional": "https://tmssl.akamaized.net/images/wappen/big/22782.png",
