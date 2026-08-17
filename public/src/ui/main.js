@@ -5715,19 +5715,20 @@ function cupPhaseLabelFor(pending){
    O QUE NÃO SAIU: a cerimônia de abertura de fase eliminatória e a de FINAL de copa. Aquilo é
    jogo, não sincronia — aparece uma vez por confronto e continua aparecendo, encadeando direto na
    partida ao fechar. */
+/* ===== A ANTECAMARA DA PARTIDA DE COPA SAIU (17/08/2026) =====
+   Antes de cada confronto eliminatorio abria-se um momento -- "A COPA COMECA
+   HOJE / Bola sorteada, jogo marcado" -- com area de video preta (nunca houve
+   ficheiro para 'abertura-copa' nem para 'final-copa'), o trofeu achatado e uma
+   faixa de publicidade. Ou seja: uma tela a mais entre o clique e o jogo, sem
+   dizer nada que a propria partida nao diga a seguir. Decisao do dono do jogo:
+   fora. Vai-se direto para a partida.
+
+   Os momentos que FICAM sao os que fecham historia: campeao da copa (com o
+   video de comemoracao), campeao da liga, artilheiro, acesso e queda. As
+   entradas 'abertura-copa'/'final-copa' continuam definidas em MOMENTO_DEFS
+   porque nada custa e um dia pode haver video; simplesmente ja ninguem as
+   chama. */
 function showCupIntro(pending, auto){
-  if(!CL._momPreCopa){
-    const b=pending.bracket, ehFinal=!!(b && (b.roundsTotal-b.round)<=0);
-    const marca=pending.key+':'+(b?b.round:pending.stage)+':'+(S.season||1);
-    CL._momCupVista=CL._momCupVista||{};
-    const vale = ehFinal || pending.stage==='bracket';   // grupos não têm "abertura de fase"
-    if(vale && !CL._momCupVista[marca] && typeof abrirMomento==='function'){
-      CL._momCupVista[marca]=true; CL._momPreCopa=true;
-      abrirMomento(ehFinal?'final-copa':'abertura-copa', dadosCopaJogo(pending, ehFinal),
-        ()=>{ CL._momPreCopa=false; showCupIntro(pending, auto); });
-      return;
-    }
-  }
   CL._momPreCopa=false;
   startCupLiveMatch(pending);
 }
