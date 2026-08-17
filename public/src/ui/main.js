@@ -4676,7 +4676,13 @@ function abrirMomento(id, dados, aoFechar){
   // dois catálogos diferentes no jogo. Resolve nos dois, na ordem, e some se não houver arte.
   let trof='';
   if(dados.trofeu){
-    trof=(typeof trophyImg==='function' && trophyImg(dados.trofeu,72))||'';
+    /* a arte com alfa primeiro (img/trofeus): a embutida em trophies.js e
+       achatada e aparece como quadrado preto sobre o video -- ver rfCompTrofeuHTML */
+    if(typeof rfCompTrofeuHTML==='function' && typeof rfCompInfo==='function'){
+      const info=rfCompInfo(dados.trofeu);
+      if(info && info.trofeu) trof=rfCompTrofeuHTML(info,72);
+    }
+    if(!trof) trof=(typeof trophyImg==='function' && trophyImg(dados.trofeu,72))||'';
     if(!trof && typeof divisionTrophyImg==='function') trof=divisionTrophyImg(dados.trofeu,72)||'';
   }
   const cards=(dados.stats||[]).slice(0,3).map(s=>
@@ -4769,16 +4775,35 @@ function dadosArtilheiro(escopo){
     stats:[{k:'GOLS',v:String(gols)},{k:'JOGOS',v:String(jogos)},{k:'MÉDIA',v:media}],
     rodape:'Renove o contrato antes que apareça proposta.' };
 }
+/* ===== A FINAL DE CADA COPA TEM CERIMONIA, SEJA QUEM FOR O CAMPEAO =====
+   Isto so devolvia dados quando o campeao era o clube do utilizador; nas outras
+   vezes nao havia modal nenhum, e o que ficava na tela era a de fim de fase --
+   com "possiveis adversarios" depois da final e a campanha de um clube que
+   muitas vezes nem disputou a competicao. A taca a levantar-se e o fecho da
+   historia da competicao, mesmo quando quem a levanta e outro: e assim que o
+   jogador sabe que aquilo acabou. O video e o mesmo; muda o texto. */
 function dadosCampeaoCopa(key){
   const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[key])||{name:'Copa',short:'Copa'};
   const c=S.cups&&S.cups[key]; const b=(c&&c.champion!==undefined)?c:(c&&c.bracket);
-  if(!b || String(b.champion)!==String(CL.clubId)) return null;
-  const fin=(b.ties||[]).find(t=>t.winner!=null) || null;
+  if(!b || b.champion==null) return null;
+  const souEu=String(b.champion)===String(CL.clubId);
+  const camp=(typeof anyClubOf==='function'&&anyClubOf(b.champion))||clubOf(b.champion)||{short:String(b.champion)};
+  /* o placar da FINAL: a decisao e o ultimo confronto resolvido -- ora esta em
+     `ties` (a fase corrente, que ja fechou), ora no ultimo bloco do historico */
+  const ultimaFase=(b.history||[]).length?b.history[b.history.length-1]:null;
+  const fin=(b.ties||[]).find(t=>t.winner!=null && t.hg!=null)
+    || ((ultimaFase&&ultimaFase.ties)||[]).find(t=>t.winner!=null && t.hg!=null)
+    || (b.ties||[]).find(t=>t.winner!=null) || null;
   const placar=fin&&fin.hg!=null?`${fin.hg} × ${fin.ag}`:'—';
-  return { titulo:'Final — '+def.name, manchete:'A taça é nossa.', trofeu:key,
-    linha:`Título da ${def.short} conquistado na decisão.`,
+  return { titulo:'Final — '+def.name, trofeu:key,
+    clubId: b.champion,                       // o modal mostra o escudo de quem venceu
+    kicker: souEu ? undefined : ('CAMPEÃO DA '+String(def.short||def.name).toUpperCase()),
+    manchete: souEu?'A taça é nossa.':`${camp.short||camp.name} é campeão.`,
+    linha: souEu?`Título da ${def.short} conquistado na decisão.`
+                :`${camp.short||camp.name} levanta a ${def.short} de ${S.season}.`,
     stats:[{k:'FINAL',v:placar},{k:'FASES',v:String(b.roundsTotal||'—')},{k:'TEMPORADA',v:String(S.season)}],
-    rodape:'O clube entra na competição continental do ano que vem.' };
+    rodape: souEu?'O clube entra na competição continental do ano que vem.'
+                 :'A competição está encerrada nesta temporada.' };
 }
 function dadosCopaJogo(pending, ehFinal){
   const key=pending.key, def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[key])||{name:'Copa',short:'Copa'};
@@ -8737,6 +8762,19 @@ function scCupClassif(){
 
 function cupClassifContinue(){
   clearCupFlowTimer();
+  /* CERIMONIA DA FINAL, mesmo quando o campeao e outro (ver dadosCampeaoCopa):
+     a tela de fim de fase que se estava a fechar era a da FINAL, entao a
+     competicao acabou aqui -- e o fecho dela e a taca, nao um "Continuar". */
+  try{
+    const k=CL._cupClassifKey;
+    if(k && typeof enfileirarMomentosCopa==='function'){
+      const c=S.cups&&S.cups[k], b=(c&&c.champion!==undefined)?c:(c&&c.bracket);
+      if(b && b.champion!=null){
+        enfileirarMomentosCopa(k);
+        if(MOMENTO_FILA.length){ momentoSeguinte(()=>cupClassifContinue()); return; }
+      }
+    }
+  }catch(e){ console.warn('cerimonia da final:', e&&e.message); }
   // AGORA SIM: a tela foi de fato mostrada e o jogador está saindo dela (no botão ou no
   // auto-avanço). Só neste ponto a competição conta como vista nesta jornada — ver showCupClassif.
   if(CL._cupClassifKey) cupClassifMarkShown(CL._cupClassifKey, CL._cupClassifRound);

@@ -446,11 +446,27 @@ function rfCopaFaseHTML(key){
   }));
   /* possíveis adversários: quem também passou e não é o meu clube */
   const adiante=linhas.filter(l=>l.ok===true && l.id!==meu);
+  /* ===== DEPOIS DA FINAL NAO HA "PROXIMA FASE" =====
+     Esta tela e a de fim de FASE, e a final e uma fase como as outras -- so que
+     depois dela nao ha adversario a sortear, nem vaga, nem "quem passou". Com o
+     campeao decidido ela dizia "Quem passou de fase", listava "possiveis
+     adversarios" (o proprio campeao) e mostrava a campanha de um clube que
+     muitas vezes nem disputou a competicao. Agora a final tem a sua leitura: o
+     campeao, e mais nada. */
+  const campeao=(typeof cupCompetitionChampion==='function')?cupCompetitionChampion(c):(br.champion||null);
+  const ehFinal=!!campeao || (br.roundsTotal && rodadaFechada>=br.roundsTotal);
+  const clCampeao=campeao?(anyClubOf(campeao)||{short:campeao}):null;
+  const souEu=campeao && String(campeao)===String(meu);
+  /* o clube do utilizador tem alguma coisa a ver com esta competicao? sem isso,
+     "O que o Avai levou ate aqui" aparecia numa copa em que o Avai nao entrou */
+  const euEntrei=jogos>0 || linhas.some(l=>l.eu);
 
   return rfStage({
     w:1020, comp:key,
-    contexto:`${escC(def.name||key)} ${escC(String(S.season||''))} · ${escC(fase)} encerrada`,
-    titulo:proxima?`Quem passou para a ${escC(proxima.toLowerCase())}`:'Quem passou de fase',
+    contexto:`${escC(def.name||key)} ${escC(String(S.season||''))} · ${ehFinal?'final encerrada':escC(fase)+' encerrada'}`,
+    titulo: ehFinal
+      ? (clCampeao?`${escC(clCampeao.short||clCampeao.name)} é campeão`:'Campeão decidido')
+      : (proxima?`Quem passou para a ${escC(proxima.toLowerCase())}`:'Quem passou de fase'),
     corpo:`<div class="rf-cf-cols">
       <div class="rf-card">
         <div class="rf-label"><span class="rf-label-t">Resultado dos confrontos</span>
@@ -465,17 +481,22 @@ function rfCopaFaseHTML(key){
       </div>
       <div class="rf-cf-dir">
         <div class="rf-card rf-cf-selo">
-          ${rfTrofeuHTML(key,56)}
+          ${(typeof rfCompTrofeuHTML==='function')?rfCompTrofeuHTML(rfCompInfo(key),56):rfTrofeuHTML(key,56)}
           <div class="rf-cf-selod">
-            <span class="rf-cf-selot">${minha
-              ? (passou?`${escC(proxima||'Próxima fase')} garantida`:`Eliminado ${escC(fase.toLowerCase())}`)
-              : 'O seu clube não está nesta competição'}</span>
-            <span class="rf-cf-selos">${passou&&cotaProx
-              ? `Sorteio da próxima fase · ${escC(fmt(cotaProx))} por passar`
-              : (minha?'A campanha na copa termina aqui.':'Acompanhando de fora.')}</span>
+            <span class="rf-cf-selot">${ehFinal
+              ? (souEu?'A taça é nossa'
+                 :(clCampeao?`${escC(clCampeao.short||clCampeao.name)} levanta a taça`:'Campeão decidido'))
+              : (minha
+                 ? (passou?`${escC(proxima||'Próxima fase')} garantida`:`Eliminado ${escC(fase.toLowerCase())}`)
+                 : 'O seu clube não está nesta competição')}</span>
+            <span class="rf-cf-selos">${ehFinal
+              ? `${escC(def.name||key)} ${escC(String(S.season||''))} · competição encerrada`
+              : (passou&&cotaProx
+                 ? `Sorteio da próxima fase · ${escC(fmt(cotaProx))} por passar`
+                 : (minha?'A campanha na copa termina aqui.':'Acompanhando de fora.'))}</span>
           </div>
         </div>
-        <div class="rf-card">
+        ${euEntrei?`<div class="rf-card">
           <span class="rf-label-t">O que o ${escC((clubOf(meu)||{short:'clube'}).short)} levou até aqui</span>
           <div class="rf-ft-grid">
             <div class="rf-ft-b"><span class="rf-ov-res-t">Prêmio acumulado</span>
@@ -487,8 +508,8 @@ function rfCopaFaseHTML(key){
             <div class="rf-ft-b"><span class="rf-ov-res-t">Próximo prêmio</span>
               <span class="rf-ft-bv">${cotaProx?escC(fmt(cotaProx)):'—'}</span></div>
           </div>
-        </div>
-        <div class="rf-card">
+        </div>`:''}
+        ${ehFinal?'':`<div class="rf-card">
           <div class="rf-label"><span class="rf-label-t">Possíveis adversários</span>
             <span class="rf-label-r">${proxima?escC(proxima.toLowerCase()):''}</span></div>
           ${adiante.length?adiante.slice(0,6).map(l=>`<div class="rf-cf-adv">
@@ -497,7 +518,7 @@ function rfCopaFaseHTML(key){
             <div class="rf-sp"></div>
             <span class="rf-cf-advd">${(l.cc.div||l.cc.division)?escC(divisionLabelOf(l.cc.div||l.cc.division)):''}</span>
           </div>`).join(''):'<span class="rf-note">O sorteio da próxima fase define o confronto.</span>'}
-        </div>
+        </div>`}
       </div>
     </div>`,
     acoes:`${CL.online?'<span class="rf-im-auto">avança sozinho em alguns segundos</span>':''}
