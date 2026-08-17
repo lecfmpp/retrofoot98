@@ -793,6 +793,10 @@ function rfMkContraporGo(){
   const P=CL.mkP; const valor=rfMkVal('rf-mk-ask');
   if(valor<=0){ toastC('Digite quanto você quer pedir.'); return; }
   const o=rfPropostas().find(x=>x.id===P.id);
+  /* PEDIR ABAIXO DA OFERTA NAO E CONTRAPROPOSTA. O motor aceita e responde "segue valendo X" —
+     so que gasta uma das tres rodadas de negociacao e nada muda no ecra. Barrado aqui, com o
+     numero a bater: e a mesma conta que enche o campo. */
+  if(o && valor<=(o.fee||0)){ toastC('Peça mais do que os '+rfDin(o.fee||0)+' que eles já oferecem.'); return; }
   const humano = o && CL.online && CL.humans && CL.humans[o.buyerId];
   const r = humano ? counterHumanOffer(P.id, valor)
                    : (counterIncomingOffer(P.id, valor)||{ok:true});

@@ -362,13 +362,25 @@ const RF_ACOES = {
   const o=rfPropostas().find(x=>x.id===d.id); if(!o) return '';
   const p=squad(CL.clubId).find(x=>x.n===o.playerName)||{};
   const vm=(typeof computeVM==='function'&&p.n)?computeVM(p):(p.mv||0);
-  const pedido=d.pedido||Math.round((vm||o.fee)*1.15/1000)*1000;
+  /* ===== O PEDIDO SUGERIDO TEM DE OLHAR PARA A OFERTA DE HOJE =====
+     Era `vm*1.15` e mais nada. A cada rodada de negociação o clube SOBE a oferta (ver
+     counterIncomingOffer), mas o campo continuava a mostrar o mesmo número de sempre — e assim
+     que a oferta deles passava o valor de mercado, o campo sugeria MENOS do que eles já
+     ofereciam. Pior: mandar um pedido abaixo da oferta cai no ramo "segue valendo X", que
+     gasta uma das três rodadas e não muda nada. Dava a sensação exata do relato: o campo não
+     acompanha e o que eu escrevo não adianta.
+     Agora o piso é o maior entre o valor de mercado e a oferta atual, e o que eu PEDI da
+     última vez fica guardado na proposta (o.ask) e volta ao campo — a menos que eles já
+     tenham subido acima dele, caso em que a sugestão sobe junto. */
+  const piso=Math.max(vm||0, o.fee||0);
+  const anterior=(o.ask && o.ask>(o.fee||0)) ? o.ask : 0;
+  const pedido=d.pedido || anterior || Math.round(piso*1.15/1000)*1000;
   const chance=Math.max(5,Math.min(95,Math.round(100-((pedido-o.fee)/Math.max(1,o.fee))*180)));
   return rfAcao({ kicker:'MERCADO · CONTRAPROPOSTA', titulo:'Contrapropor ao '+escC(o.buyerName||'clube'), w:500,
     corpo:
       rfAcFichaHTML(p,'OFERTA DELES',rfDin(o.fee),d.num)
       + rfAcCampoHTML('rf-ac-ask','Seu pedido', moneyDisp(pedido),
-          `Valor de mercado: ${escC(rfDin(vm))}.`, {foco:true})
+          `Valor de mercado: ${escC(rfDin(vm))}. Peça acima dos ${escC(rfDin(o.fee||0))} que eles oferecem.`, {foco:true})
       + rfAcChanceHTML('Chance de aceitarem', chance)
       + rfAcNotaHTML('Pedir muito acima do valor de mercado costuma matar a negociação — o clube some da janela.'),
     acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar contraproposta',on:'rfMkContraporGo()'}] });

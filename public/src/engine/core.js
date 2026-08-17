@@ -1110,6 +1110,7 @@ function counterIncomingOffer(id, askFee){
   const o=myIncomingOffers().find(x=>x.id===id); if(!o) return {ok:false,msg:'Proposta não existe mais.'};
   if(o.state==='final'){ return {ok:false, msg:`${o.buyerName} já deu a palavra final: ${fmt(o.fee)}. Aceite ou recuse.`, final:true}; }
   askFee=Math.round(askFee)||0;
+  o.ask=askFee;    // fica guardado: o campo "Seu pedido" reabre com o que EU pedi, não com um palpite
   o.negRound=(o.negRound||0)+1;
   if(askFee<=o.fee){ o.lastMsg=`Seu pedido ficou abaixo da oferta — segue valendo ${fmt(o.fee)}.`; save(); return {ok:true, agreed:true, msg:o.lastMsg}; }
   if(askFee<=o.maxFee){
