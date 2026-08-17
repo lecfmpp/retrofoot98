@@ -624,6 +624,39 @@
 
 /* ----- Formações: grade de 4 colunas, oito pastilhas em duas linhas ----- */
 .rf-formgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap-tight)}
+
+/* ----- a tira dos sete dias da jornada (ver rfSemanaHTML) ----- */
+.rf-semana{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line-1);
+  margin-top:2px;padding-top:12px}
+.rf-semana-l{display:flex;align-items:baseline;justify-content:space-between;gap:10px;min-width:0}
+.rf-semana-r{font-size:var(--fs-label);color:var(--text-faint);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rf-semana-g{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.rf-sem-dia{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;
+  border:1px solid var(--line-2);border-radius:var(--r-control);padding:7px 4px;
+  background:var(--surface-card);text-align:center}
+.rf-sem-s{font-style:normal;font-family:var(--font-mono);font-size:9px;
+  letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--text-faint)}
+.rf-sem-d{font-family:var(--font-mono);font-size:var(--fs-caption);font-weight:var(--fw-semibold);
+  color:var(--text-2);white-space:nowrap}
+.rf-sem-c{font-style:normal;font-size:9px;font-weight:var(--fw-bold);color:var(--text-4);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.rf-sem-c.vazio{color:var(--line-2)}
+/* dia com jogo SEU: a cor da competicao, cheia */
+.rf-sem-dia.jogo{background:var(--cx-grad);border-color:transparent}
+.rf-sem-dia.jogo .rf-sem-s{color:var(--cx-kicker)}
+.rf-sem-dia.jogo .rf-sem-d{color:var(--cx-ink)}
+.rf-sem-dia.jogo .rf-sem-c{color:var(--cx-sub)}
+/* dia em que a competicao corre sem mim: a mesma cor, mas em tinta clara */
+.rf-sem-dia.assiste{background:var(--cx-tint-bg);border-color:var(--cx-tint-bd)}
+.rf-sem-dia.assiste .rf-sem-d{color:var(--cx-tint-ink)}
+.rf-sem-dia.assiste .rf-sem-c{color:var(--cx-tint-meta)}
+.rf-sem-dia.vazio{background:var(--surface-sunken);border-style:dashed}
+@media (max-width:760px){
+  .rf-semana-g{gap:4px}
+  .rf-sem-dia{padding:6px 2px}
+  .rf-sem-c{display:none}
+}
 .rf-formgrid>.rf-chip{width:100%}
 
 /* ----- O CAMPO: 470×585 FIXOS. Não encolhe em largura de janela nenhuma,
@@ -4798,7 +4831,9 @@
 .rf-fi-total-v.ok{color:var(--ok)} .rf-fi-total-v.ruim{color:var(--danger)}
 
 /* EXTRATO */
-.rf-fi-data{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-3);white-space:nowrap}
+.rf-fi-data{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-3);
+  white-space:nowrap;display:flex;flex-direction:column;gap:1px}
+.rf-fi-jor{font-style:normal;font-size:9px;color:var(--text-faint)}
 .rf-fi-lanc{font-size:var(--fs-caption);font-weight:var(--fw-medium);color:var(--text-1);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rf-fi-tipo{font-family:var(--font-mono);font-size:9px;font-weight:var(--fw-bold);

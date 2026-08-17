@@ -491,6 +491,70 @@ function rfJogar(){
    a Formação, rolada até o bloco de táticas.
    Só a TÁTICA vira atalho; onze incompleto continua desabilitado, porque aí
    não há um clique que resolva (é preciso escalar jogador por jogador). */
+/* ===== A SEMANA DA JORNADA, DIA A DIA =====
+   Desde que as copas sairam de dentro da liga (fase 1 do calendario), uma
+   jornada e uma SEMANA e cada competicao tem o seu dia dentro dela -- a liga ao
+   domingo, a Copa do Brasil na quarta, a Libertadores na quinta, a
+   Sul-Americana na sexta (DIA_DA_COMPETICAO, no motor). So que nada disso
+   aparecia: o utilizador clicava "Jogar" e o dia saltava sete dias sem
+   explicacao, e nas semanas vazias o botao dizia "Avancar" sem dizer para onde.
+
+   Esta tira mostra os sete dias por baixo do botao: o dia com jogo SEU vem na
+   cor da competicao, o dia em que a competicao corre sem si vem apagado (da
+   para acompanhar), e o dia sem nada fica vazio. E o mesmo calendario que a
+   aba Campeonatos ja mostra, so que a semana em que se esta. */
+function rfSemanaDias(){
+  if(typeof S==='undefined' || !S) return [];
+  const OFF=(typeof DIA_DA_COMPETICAO!=='undefined')?DIA_DA_COMPETICAO
+    :{liga:6,copaBrasil:2,libertadores:3,sulamericana:4,_copa:3};
+  const diaDe=k=>(OFF[k]!=null?OFF[k]:OFF._copa);
+  const eventos={};
+  /* o dia so "melhora": se a liga e a copa caissem no mesmo dia, ganha o jogo
+     em que EU entro em campo -- e esse que manda no botao. */
+  const marca=(o,comp,meu)=>{ const e=eventos[o]; if(!e || (meu && !e.meu)) eventos[o]={comp,meu}; };
+  try{
+    if(((S.sched&&S.sched[S.round])||[]).length)
+      marca(OFF.liga, S.division, !!(typeof userFixture==='function' && userFixture()));
+    if(typeof pendingUserCupMatches==='function')
+      pendingUserCupMatches().forEach(p=>marca(diaDe(p.key),p.key,true));
+    if(typeof cupRoundsUserSitsOut==='function')
+      cupRoundsUserSitsOut().forEach(p=>marca(diaDe(p.key),p.key,false));
+  }catch(e){}
+  const base=1+((S.round||0)*7);
+  const out=[];
+  for(let o=0;o<7;o++){
+    let d=null;
+    try{ d=(typeof realDateForDay==='function')?realDateForDay(base+o):null; }catch(e){}
+    const ev=eventos[o]||null;
+    out.push({ off:o, data:d, comp:ev?ev.comp:null, meu:ev?ev.meu:false });
+  }
+  return out;
+}
+function rfSemanaHTML(){
+  const dias=rfSemanaDias();
+  if(!dias.length) return '';
+  const SEM=['dom','seg','ter','qua','qui','sex','sab'];
+  const temAlgo=dias.some(d=>d.comp);
+  const celulas=dias.map(d=>{
+    const info=d.comp&&typeof rfCompInfo==='function'?rfCompInfo(d.comp):null;
+    const cls=d.comp?(d.meu?'jogo':'assiste'):'vazio';
+    const rot=d.data?(d.data.getDate()+'/'+((typeof PT_MONTHS_ABBR!=='undefined')?PT_MONTHS_ABBR[d.data.getMonth()]:'')):'';
+    const sem=d.data?SEM[d.data.getDay()]:'';
+    return `<span class="rf-tema rf-sem-dia ${cls}" ${info?`data-tema="${escC(info.tema)}"`:''}
+      title="${escC(info?(info.nome+(d.meu?' — seu jogo':' — sem o seu clube')):'sem jogo')}">
+      <i class="rf-sem-s">${escC(sem)}</i>
+      <b class="rf-sem-d">${escC(rot)}</b>
+      ${info?`<em class="rf-sem-c">${escC(info.curto)}</em>`:'<em class="rf-sem-c vazio">—</em>'}
+    </span>`;
+  }).join('');
+  return `<div class="rf-semana" aria-label="Os sete dias desta jornada">
+    <div class="rf-semana-l">
+      <span class="rf-label-t">Esta semana</span>
+      <span class="rf-semana-r">${temAlgo?'o dia colorido e o seu jogo':'semana sem jogos — o botao passa a semana'}</span>
+    </div>
+    <div class="rf-semana-g">${celulas}</div>
+  </div>`;
+}
 function rfFaltaTatica(){
   if(CL.tacticChosen) return false;
   const xi=xiPlayers(CL.clubId);
@@ -739,6 +803,7 @@ function rfHubHTML(){
           ${(rfFaltaTatica()||xiPlayers(CL.clubId).length>=11)?'':'disabled'}
           onclick="${rfFaltaTatica()?'rfIrEscolherTatica()':'rfJogar()'}">${rfJogarLabel()}</button>
       </div>
+      ${rfSemanaHTML()}
     </div>
     <div class="rf-card rf-pitch-card" data-hub="campo">
       <div class="rf-card-hd">

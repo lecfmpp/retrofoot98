@@ -4149,7 +4149,12 @@ function pushFinanceEntry(patch){
   S.finances=S.finances||[];
   S.seasonTotals=S.seasonTotals||{income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
   if(S.seasonTotals.opex==null) S.seasonTotals.opex=0;                 // saves antigos, salvos antes do custo operacional existir
-  const entry=Object.assign({round:S.round+1,income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0,net:0,log:[]},patch);
+  /* O DIA DO SAVE VAI NO LANCAMENTO. So o `round` nao chega para dizer QUANDO:
+     desde o calendario por dia, uma jornada tem sete dias e ha movimentacao que
+     acontece fora do fecho da rodada (compra, venda, obra). Com o dia carimbado
+     o extrato mostra a data real; saves antigos, sem ele, caem na data da
+     jornada (ver rfFiExtratoHTML). */
+  const entry=Object.assign({round:S.round+1,day:S.day,income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0,net:0,log:[]},patch);
   entry.net=(entry.income||0)+(entry.playerSales||0)-(entry.salaries||0)-(entry.bonuses||0)-(entry.opex||0)-(entry.playerPurchases||0)-(entry.stadium||0);
   S.finances.unshift(entry);
   if(S.finances.length>12) S.finances.pop();

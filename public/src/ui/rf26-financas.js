@@ -105,7 +105,21 @@ function rfFiResumoHTML(){
    2 · EXTRATO
    Grade do pacote: 58 / lançamento / 74 / 92 / 92
    ===================================================================== */
-const RF_FI_EXT_COLS='70px minmax(0,1.6fr) minmax(74px,.5fr) minmax(92px,.6fr) minmax(92px,.6fr)';
+const RF_FI_EXT_COLS='86px minmax(0,1.6fr) minmax(74px,.5fr) minmax(92px,.6fr) minmax(92px,.6fr)';
+/* QUANDO A TRANSACAO ACONTECEU, e nao so em que jornada. A coluna DATA mostrava
+   "4ª" -- o numero da jornada --, que nao diz nada a quem olha o extrato para
+   perceber o mes em que o caixa virou. Agora sai a data do calendario do save
+   ("7/mar"), com a jornada por baixo em letra pequena para nao se perder a
+   referencia. A data vem do dia carimbado no lancamento (ver pushFinanceEntry);
+   nos saves gravados antes disso cai na data da jornada da liga, que e a fonte
+   unica que o calendario e a faixa do clube ja usam. */
+function rfFiDataHTML(f){
+  let d=null;
+  if(f.day!=null && typeof realDateForDay==='function'){ try{ d=realDateForDay(f.day); }catch(e){} }
+  if(!d && f.round!=null && typeof dataDaJornada==='function') d=dataDaJornada(Math.max(0,f.round-1),'liga');
+  const dia=d?(d.getDate()+'/'+PT_MONTHS_ABBR[d.getMonth()]):'—';
+  return `${escC(dia)}${f.round!=null?`<i class="rf-fi-jor">${f.round}ª jor.</i>`:''}`;
+}
 function rfFiExtratoHTML(){
   const fin=(S.finances||[]);
   let saldo=S.budget||0;
@@ -122,7 +136,7 @@ function rfFiExtratoHTML(){
     itens.forEach(([rot,valor])=>{
       const entrada=valor>0;
       linhas.push(`<div class="rf-el-row">
-        <span class="rf-fi-data">${(f.round!=null?f.round:'—')}ª</span>
+        <span class="rf-fi-data">${rfFiDataHTML(f)}</span>
         <span class="rf-fi-lanc">${escC(rot)}${f.log?(' · '+escC(String(f.log).slice(0,40))):''}</span>
         <span class="rf-fi-tipo ${entrada?'entrada':'saida'}">${entrada?'ENTRADA':'SAÍDA'}</span>
         <span class="rf-fi-valor ${entrada?'ok':'ruim'}">${escC(fmt(Math.abs(valor)))}</span>
