@@ -408,6 +408,38 @@ const RF_ACOES = {
     acoes });
 },
 
+/* ===== CONTRAPROPOSTA RECEBIDA (Resenha) — O MESMO APERTO DE MAO DO SOLO =====
+   No solo o clube da CPU responde na hora e o acordo fecha-se dentro do diálogo (ver
+   'mkt-contra'). Entre humanos a resposta é assíncrona: o vendedor recusa a minha proposta
+   sinalizando um valor, e isso chega-me como CONTRAPROPOSTA (ver counterHumanOffer). O papel é
+   o mesmo — "o outro lado pôs um número na mesa" — e faltava aqui exatamente o que faltava lá:
+   um botão para fechar. A lista mostrava a negociação e o botão levava a um diálogo de proposta
+   NOVA, como se nada tivesse sido pedido.
+   Aceitar aqui manda a proposta no valor pedido (acceptCounterOffer -> sendHumanOffer), que é o
+   caminho normal até o vendedor — sem via paralela de compra. */
+'mkt-contra-receb': d=>{
+  const c=((typeof myCounterOffers==='function')?myCounterOffers():[]).find(x=>x.id===d.id);
+  if(!c) return '';
+  const p=(typeof findP==='function')?(findP(c.playerName,c.sellerId)||{}):{};
+  const pedido=c.askFee||0, minha=c.offeredFee||0, dif=pedido-minha;
+  const caixa=S.budget||0;
+  const cabe=caixa>=pedido;
+  const quem=escC(c.sellerHumanName||c.sellerName||'o outro treinador');
+  return rfAcao({ kicker:'MERCADO · CONTRAPROPOSTA RECEBIDA', titulo:quem+' pediu '+escC(rfDin(pedido)), w:500,
+    corpo:
+      rfAcFichaHTML(p,'PEDIDO DELES',rfDin(pedido),p.num)
+      + rfAcLinhaHTML('Você ofereceu', rfDin(minha), '', true)
+      + rfAcLinhaHTML('Diferença', dif>0?('+'+rfDin(dif)):'—', dif>0?'ruim':'ok')
+      + rfAcLinhaHTML('Seu caixa', rfDin(caixa), cabe?'ok':'ruim')
+      + (cabe?'':rfAcAvisoHTML('<b>Caixa insuficiente.</b> Venda alguém ou espere o fecho da rodada antes de aceitar.','perigo'))
+      + rfAcNotaHTML('Aceitar envia a proposta no valor pedido. Ela ainda passa pelo '+quem+', que confirma do lado dele.'),
+    acoes:[
+      {l:'Recusar',tom:'perigo',on:`rfMkContraRecebRecusar(${d.id})`},
+      {l:'Propor outro valor',tom:'fantasma',on:`rfAcFechar();rfMkPropor('${escC(String(c.sellerId||''))}','${escC(c.playerName||'')}')`},
+      {l:'Aceitar '+escC(rfDin(pedido)),on:`rfMkContraRecebAceitar(${d.id})`}
+    ] });
+},
+
 'mkt-listar': d=>{
   const p=squad(CL.clubId).find(x=>x.pid===d.pid); if(!p) return '';
   const vm=(typeof computeVM==='function')?computeVM(p):(p.mv||0);

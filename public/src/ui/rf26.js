@@ -1829,10 +1829,12 @@ function rfMercadoRailHTML(){
   const props = ofertas.length
     ? ofertas.slice(0,3).map(rfPropostaCardHTML).join('')
     : '<span class="rf-note">Nenhuma proposta aberta agora.</span>';
+  /* `askFee`, nao `fee`: a contraproposta guarda o que ELES pedem (ver counterHumanOffer).
+     Com o campo errado o trilho mostrava R$ 0 em todas as linhas. */
   const contraHTML = contra.length
     ? contra.slice(0,3).map(c=>`<div class="rf-linha">
         <span class="rf-linha-t">${escC(c.playerName||'')}</span>
-        <span class="rf-linha-v">${escC(mvShort(c.fee||0))}</span></div>`).join('')
+        <span class="rf-linha-v">${escC(mvShort(c.askFee||0))}</span></div>`).join('')
     : '<span class="rf-note">Nenhuma contraproposta aberta agora.</span>';
   // O jogo não guarda um log global de transferências: o histórico VIAJA COM O
   // JOGADOR (p.transferHistory, ver recordTransferHistory no core). Então as
@@ -2546,13 +2548,13 @@ function rfHistorialHTML(){
 function rfContrapropostasHTML(){
   const lista=(typeof myCounterOffers==='function')?myCounterOffers():[];
   const corpo = lista.length
-    ? lista.map(o=>`<div class="rf-prop">
+    ? lista.map(o=>`<div class="rf-prop" onclick="rfMkContraReceb(${o.id})">
         <div class="rf-prop-top">
           <span class="rf-prop-n">${escC(o.playerName||'')}</span>
-          <span class="rf-prop-fee">${escC(mvShort(o.fee||0))}</span>
+          <span class="rf-prop-fee">${escC(mvShort(o.askFee||0))}</span>
         </div>
-        <span class="rf-prop-sub">${escC(o.buyerName||o.sellerName||'')}${o.state?' · '+escC(o.state):''}</span>
-        ${o.lastMsg?`<span class="rf-prop-msg">${rfIcone('chat',16)} ${escC(o.lastMsg)}</span>`:''}
+        <span class="rf-prop-sub">${escC(o.sellerHumanName||o.sellerName||'')} · você ofereceu ${escC(mvShort(o.offeredFee||0))}</span>
+        <span class="rf-prop-msg">${rfIcone('chat',16)} Toque para aceitar, recusar ou propor outro valor.</span>
       </div>`).join('')
     : '<span class="rf-note">Nenhuma contraproposta aberta agora.</span>';
   return rfCol(rfCard('Contrapropostas', corpo, {right:lista.length?lista.length+' aberta(s)':''}));

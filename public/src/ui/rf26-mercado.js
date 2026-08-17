@@ -416,11 +416,17 @@ function rfMkSituacao(minha, pedido){
 function rfMktContraHTML(){
   const lista=(typeof myCounterOffers==='function')?myCounterOffers():[];
   const linhas=lista.map(o=>{
-    const pedido=o.ask||o.counter||0, minha=o.fee||0;
+    /* OS NOMES DOS CAMPOS ESTAVAM ERRADOS, E A TABELA MENTIA POR ISSO.
+       A contraproposta guarda `askFee` (o que eles pedem) e `offeredFee` (o que eu ofereci) —
+       ver counterHumanOffer no core. Aqui liam-se `o.ask`/`o.counter`/`o.fee`, que não existem:
+       PEDIDO DELES saía sempre "—", SUA OFERTA saía R$ 0 e, como rfMkSituacao trata pedido 0
+       como "não pediram nada", TODA linha aparecia verde com a etiqueta ACEITO e um botão
+       "Fechar". Uma negociação por decidir era mostrada como negócio feito. */
+    const pedido=o.askFee||0, minha=o.offeredFee||0;
     const dif=pedido-minha;
     const st=rfMkSituacao(minha,pedido);
     const feito=st.k==='ok';
-    return `<div class="rf-mkt-row ${feito?'destaque':''}">
+    return `<div class="rf-mkt-row ${feito?'destaque':''}" onclick="rfMkContraReceb(${o.id})">
       <span class="rf-mkt-n">${escC(o.playerName||'')}</span>
       <span class="rf-mkt-pos">${escC(o.playerPos||'—')}</span>
       ${o.sellerId?rfMkClube(o.sellerId):'<span class="rf-mkt-clube">—</span>'}
@@ -428,7 +434,7 @@ function rfMktContraHTML(){
       <span class="rf-mkt-v">${pedido?escC(rfDin(pedido)):'—'}</span>
       <span class="rf-mkt-v ${dif>0?'ruim':'leve'}">${dif>0?escC(rfDin(dif)):'—'}</span>
       <span class="rf-mkt-tag ${st.k}">${st.t}</span>
-      ${rfMkBt(feito?'Fechar':'Subir',`rfMkPropor('${escC(o.sellerId||'')}','${escC(o.playerName||'')}')`, feito)}
+      ${rfMkBt('Responder',`rfMkContraReceb(${o.id})`, true)}
     </div>`;
   });
   const cabecalho=`<span>JOGADOR</span><span>POS</span><span>CLUBE</span>
@@ -871,6 +877,22 @@ function rfMkAceitar(id){
   toastC((r&&r.msg)||'');
   if(r&&r.ok){ rfGravar(); CL.mkP=null; CL.acao=null; }
   cdraw();
+}
+/* ===== CONTRAPROPOSTA RECEBIDA (Resenha) =====
+   Aceitar = mandar a proposta no valor pedido (acceptCounterOffer -> sendHumanOffer). Pode
+   falhar por caixa, janela fechada ou cota: nesse caso o diálogo FICA aberto com a mensagem,
+   senão a recusa do motor sumia junto com a tela e parecia que o botão não fez nada. */
+function rfMkContraReceb(id){ rfAcAbrir('mkt-contra-receb',{id}); }
+function rfMkContraRecebAceitar(id){
+  const r=(typeof acceptCounterOffer==='function')?acceptCounterOffer(id):null;
+  toastC((r&&r.msg)||'');
+  if(r&&r.ok){ rfGravar(); CL.acao=null; }
+  cdraw();
+}
+function rfMkContraRecebRecusar(id){
+  const r=(typeof rejectCounterOffer==='function')?rejectCounterOffer(id):null;
+  toastC((r&&r.msg)||'');
+  rfGravar(); CL.acao=null; cdraw();
 }
 function rfMkRecusar(id){
   if(typeof rejectIncomingOffer==='function') rejectIncomingOffer(id);
