@@ -276,29 +276,22 @@ function rfCompeticaoHTML(key){
   const campeao=(typeof cupCompetitionChampion==='function')?cupCompetitionChampion(c):null;
   const jogos=caminho.length;
 
-  /* ===== A CHAVE, COM A TACA NO MEIO =====
-   O desenho da chave espelhada -- os confrontos a convergir dos dois lados para
-   o trofeu ao centro -- ja existia (cupBracketStageHTML), mas so a pele antiga o
-   mostrava: aqui via-se apenas a lista do "seu caminho", que diz onde EU estou e
-   nao como esta a competicao. Agora ela entra em todas as copas com mata-mata.
+  /* ===== A CHAVE SAIU DAQUI (17/08/2026) =====
+   Eu tinha trazido para esta tela a chave espelhada da pele antiga
+   (cupBracketStageHTML): ela e desenhada num palco de tamanho fixo que um
+   script redimensiona a cada quadro (cupFitStage), e dentro do cartao novo isso
+   tomava a tela inteira e prendia a visualizacao -- nao dava para sair.
 
-   E SO QUANDO O MATA-MATA ESTA A SER JOGADO. Antes disso -- copa ainda nos
-   grupos, ou sorteio por sair -- nao ha chave nenhuma para desenhar, e uma
-   moldura vazia com a taca ao centro promete uma fase que ainda nao comecou. */
-  const chave = (br && (br.ties||br.history) && typeof cupBracketStageHTML==='function')
-    ? `<div class="rf-card rf-cp-chave">
-         <div class="rf-label"><span class="rf-label-t">A chave</span>
-           <span class="rf-label-r">${escC(fase)}</span></div>
-         ${cupBracketStageHTML(c,key,{})}
-       </div>`
-    : '';
+   Ela volta quando chegar o desenho novo, e volta como OPCAO DE VISTA desta
+   tela (ao lado da classificacao da fase), nao como bloco fixo por cima dela.
+   Ate la nao ha chave nenhuma aqui: `cupBracketStageHTML` continua a existir e
+   a servir a tela antiga, sem nada dependente deste ecra. */
 
   return rfStage({
     w:1080, comp:key,
     contexto:`Minhas competições · ${S.season||''}`,
     titulo:def.name||key,
     corpo:`${rfCompAbas(key)}
-    ${chave}
     <div class="rf-cp-cols">
       <div class="rf-card rf-cp-esq">
         ${rfTrofeuHTML(key,112)}
