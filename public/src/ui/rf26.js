@@ -1247,6 +1247,12 @@ function rfCard(rotulo, corpo, opts){
   window.addEventListener('load',()=>{
     setTimeout(()=>{
       try{
+        /* O ?rf= MANDA MAIS QUE A ULTIMA POSICAO GUARDADA. rfPosRestaurar()
+           recarrega o ultimo save assim que a pagina abre e substitui o S
+           inteiro -- era ele que trazia de volta o save de bancada antigo (com
+           a Serie A dentro da Serie D) por cima do novo, e que fazia as
+           simulacoes correrem sobre um estado que ja ia ser deitado fora. */
+        if(typeof rfPosLimpar==='function') rfPosLimpar();
         CL.countries=new Set(['Brasil']);
         CL.compToggle={libertadores:true,copaBrasil:true,sulamericana:true};
         CL.intlUniverse=false; CL.mgr='Gringo'; CL.mode='solo'; CL.save='bancada';
@@ -1306,6 +1312,47 @@ function rfCard(rotulo, corpo, opts){
    estiver ligada NESTE navegador -- e o unico jeito de ele aparecer no perfil de
    alguem, porque o save mora na nuvem, por conta.
    ===================================================================== */
+/* ===== IR ATE A BEIRA DA VIRADA DE TEMPORADA =====
+   Este e o atalho para testar A VIRADA, e nao para a saltar: ele joga por si as
+   rodadas do meio -- pelo motor, como uma rodada normal -- e para com UMA
+   rodada por jogar. Dai em diante e o jogo de sempre, na velocidade de sempre:
+   carrega-se em Jogar, ve-se a ultima rodada, e a seguir vem tudo o que a virada
+   traz (fim de temporada, premios, acesso ou queda, novas copas, temporada nova).
+
+     rfIrAoFimDaTemporada()      -> para a uma rodada do fim desta temporada
+     rfIrAoFimDaTemporada(3)     -> para a tres rodadas do fim
+     rfIrAoFimDaTemporada(1,{temporadas:5}) -> antes disso, avanca 5 temporadas
+
+   Se ja estiver perto do fim, nao faz nada -- nunca recua. */
+function rfIrAoFimDaTemporada(faltam, opts){
+  opts=opts||{};
+  if(typeof S==='undefined' || !S){ console.warn('[rf26] nao ha jogo aberto'); return Promise.resolve(null); }
+  const restar=Math.max(1,Number(faltam)||1);
+  const correr=()=>{
+    const total=(S.sched||[]).length;
+    const parar=Math.max(0,total-restar);
+    if((S.round||0)>=parar){
+      console.info('[rf26] ja esta a '+(total-(S.round||0))+' rodada(s) do fim — nada a fazer');
+    } else {
+      const t0=Date.now();
+      while((S.round||0)<parar){
+        try{ playRound(null); }
+        catch(e){ console.warn('[rf26] rodada '+S.round+' falhou:', e&&e.message); S.round++; }
+      }
+      console.info('[rf26] parado na rodada '+((S.round||0)+1)+' de '+total+
+        ' ('+Math.round((Date.now()-t0)/1000)+'s). Carregue em Jogar para ver a virada.');
+    }
+    /* a proxima rodada tem de estar jogavel: tatica escolhida e onze completo */
+    try{ if(!CL.tacticChosen && typeof clSelFormation==='function'){ clSelFormation(CL.formation||'4-4-2'); CL.tacticChosen=true; } }catch(e){}
+    try{ if(typeof autoXI==='function') S.xi=autoXI(CL.clubId); }catch(e){}
+    if(typeof cdraw==='function') cdraw();
+    const pos=(typeof rfMinhaPosicao==='function')?rfMinhaPosicao():null;
+    return {temporada:S.season, rodada:(S.round||0)+1, de:(S.sched||[]).length, posicao:pos, divisao:S.division};
+  };
+  if(opts.temporadas>1 && typeof rfSimularTemporadas==='function')
+    return rfSimularTemporadas(opts.temporadas).then(()=>correr());
+  return Promise.resolve(correr());
+}
 function rfSimularTemporadas(alvo, opts){
   opts=opts||{};
   if(typeof S==='undefined' || !S){ console.warn('[rf26] nao ha jogo aberto'); return Promise.resolve(null); }

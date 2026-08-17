@@ -804,7 +804,11 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   else {
     let voltou=false;
     try{
-      const pos=(typeof rfPosLer==='function')?rfPosLer():null;
+      /* ?rf= (bancada) MANDA MAIS QUE A POSICAO GUARDADA: ele pede um save novo,
+         em memoria, e restaurar o ultimo save da nuvem por cima trazia de volta
+         o estado antigo -- inclusive saves de bancada com a divisao errada. */
+      const bancada=/[?&]rf=/.test(location.search);
+      const pos=(!bancada && typeof rfPosLer==='function')?rfPosLer():null;
       if(pos && pos.save){
         try{ await netInitSupabase(); }catch(e){ console.warn('Supabase (retomar posicao):', e); }
         const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
