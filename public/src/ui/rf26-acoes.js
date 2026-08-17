@@ -30,6 +30,11 @@ function rfAcao(o){
       <div class="rf-ac-hd">
         <span class="rf-ac-k">${o.kicker||''}</span>
         <span class="rf-ac-t">${o.titulo||''}</span>
+        <!-- TODO DIALOGO TEM SAIDA VISIVEL. Fechava-se por fora (clique no veu)
+             ou pelo botao "Cancelar" do rodape, quando existia -- havia dialogos
+             sem nenhum dos dois, e num telemovel o veu quase nao sobra. -->
+        <button type="button" class="rf-ac-x" title="Fechar (Esc)" aria-label="Fechar"
+          onclick="${o.fechar||'rfAcFechar()'}">✕</button>
       </div>
       <div class="rf-ac-corpo">${o.corpo||''}</div>
       ${rodape.length?`<div class="rf-ac-pe">${barra}</div>`:''}

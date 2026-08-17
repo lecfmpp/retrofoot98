@@ -42,11 +42,30 @@ function rfOverlay(o){
         </div>
         <div class="rf-sp"></div>
         ${o.hdDir||''}
+        ${o.semX?'':`<button type="button" class="rf-ov-x" title="Fechar (Esc)" aria-label="Fechar"
+          onclick="${o.fechar||'rfOvFecharPadrao()'}">✕</button>`}
       </div>
       <div class="rf-ov-body">${o.corpo||''}</div>
       ${o.acoes?`<div class="rf-ov-foot">${o.acoes}</div>`:''}
     </div>
   </div>`;
+}
+/* ===== TODO MODAL TEM SAIDA =====
+   O X nao pode ser so "esconder": estes modais param a partida a espera de uma
+   decisao, e fechar sem decidir deixaria o jogo em pausa para sempre -- que e o
+   mesmo beco de onde vinha o bug da lesao. Entao o X aplica a decisao mais
+   conservadora: seguir com dez na lesao, manter a formacao na expulsao, deixar
+   o capitao bater no penalti. Fora de partida, fecha a sobreposicao. */
+function rfOvFecharPadrao(){
+  const RL=(typeof CL!=='undefined')?CL.live:null;
+  if(RL){
+    if(RL.injEvent && typeof rfInjSeguir==='function') return rfInjSeguir();
+    if(RL.redEvent && typeof rfRedManter==='function') return rfRedManter();
+    if(RL.penEvent && typeof resolvePenalty==='function') return resolvePenalty(CL.penSel||null);
+    if(RL.pensPicking && typeof resolveShootoutKick==='function') return resolveShootoutKick(CL.penSel);
+  }
+  if(typeof clCloseOverlay==='function') return clCloseOverlay();
+  CL.acao=null; if(typeof cdraw==='function') cdraw();
 }
 /* contexto do cabeçalho: "2º TEMPO · 63' · XV 1 × 1 CIANORTE" */
 function rfCtxPartida(m){
@@ -180,7 +199,7 @@ function rfSubHTML(m){
     <span class="rf-note">Toque primeiro num titular para substituir. Máximo de ${max} substituições por jogo.</span>`;
 
   return rfOverlay({
-    w:900, contexto:rfCtxPartida(m), titulo:'Substituição',
+    w:900, contexto:rfCtxPartida(m), titulo:'Substituição', fechar:'rfSubFechar()',
     hdDir:rfSubsPillsHTML(usadas,max), corpo,
     /* os rótulos voltaram ao completo: a barra de ação já quebra em duas
        linhas no telefone em vez de decapitar o texto (ver rf26.css) */
@@ -347,8 +366,21 @@ function rfForaDePosicao(p, ferido){
   return rfSetorLongo(p.s).toLowerCase()+' · fora de posição −'+(dist*4);
 }
 function rfInjPick(pid){ CL.injSel=pid; cdraw(); }
-function rfInjConfirmar(){ if(typeof injuryConfirm==='function') injuryConfirm(); else cdraw(); }
-function rfInjSeguir(){ if(typeof injurySkip==='function') injurySkip(); else cdraw(); }
+/* ===== OS DOIS BOTOES DA LESAO CHAMAVAM FUNCOES QUE NAO EXISTEM =====
+   `injuryConfirm` e `injurySkip` nunca existiram em lado nenhum -- o `typeof
+   ... === 'function'` engolia o engano em silencio e o clique caia num
+   `cdraw()`, que redesenha o MESMO modal. O jogo ficava preso: a partida em
+   pausa, o modal aberto, e nenhum dos botoes com efeito. As funcoes de verdade
+   sao `resolveInjurySub(pid)` e `resolveInjuryNoSub()`, as mesmas que o modal
+   antigo usava. */
+function rfInjConfirmar(){
+  if(!CL.injSel){ toastC('Escolha quem entra no lugar.'); return; }
+  if(typeof resolveInjurySub==='function') resolveInjurySub(CL.injSel);
+  else if(typeof resolveInjuryNoSub==='function') resolveInjuryNoSub();
+}
+function rfInjSeguir(){
+  if(typeof resolveInjuryNoSub==='function') resolveInjuryNoSub();
+}
 
 /* =====================================================================
    3 · EXPULSÃO — substitui redCardHTML()
@@ -401,12 +433,17 @@ function rfExpulsaoHTML(m,e){
   });
 }
 function rfRedForm(f){ CL.redForm=f; cdraw(); }
+/* MESMO ENGANO DA LESAO: `redCardConfirm` nao existe, e os dois botoes da
+   expulsao so redesenhavam o modal. A decisao que o motor espera aqui e
+   "segue com um a menos" (`resolveRedSkip`) -- a outra, 'expulsao-reorg',
+   pede um par sai/entra que esta tela nao recolhe: ela escolhe FORMACAO.
+   Entao aplicar a formacao e destravar sao duas coisas, nesta ordem. */
 function rfRedAplicar(){
   const f=CL.redForm||'3-3-3';
   if(typeof clSelFormation==='function' && FORMATIONS[f]) clSelFormation(f);
-  if(typeof redCardConfirm==='function') redCardConfirm(); else cdraw();
+  if(typeof resolveRedSkip==='function') resolveRedSkip();
 }
-function rfRedManter(){ if(typeof redCardConfirm==='function') redCardConfirm(); else cdraw(); }
+function rfRedManter(){ if(typeof resolveRedSkip==='function') resolveRedSkip(); }
 
 /* =====================================================================
    4 · PÓS-RODADA · CLASSIFICAÇÃO — substitui scClassif()
@@ -722,7 +759,7 @@ function rfPenCanto(i){ CL.penCanto=i; cdraw(); }
 function rfPenaltiSuspenseHTML(extra){
   const m=(CL.live&&CL.live.penMatch)||null;
   return rfOverlay({
-    w:800, contexto:rfCtxPartida(m), titulo:'A bola no ponto',
+    w:800, semX:true, contexto:rfCtxPartida(m), titulo:'A bola no ponto',
     hdDir:'<span class="rf-ov-bola" aria-hidden="true">⚽</span>',
     corpo:`${extra||''}
       ${rfGolHTML(CL.penCanto,{txt:''})}
@@ -738,7 +775,7 @@ function rfPenaltiResultadoHTML(extra){
   const m=(CL.live&&CL.live.penMatch)||null;
   const gol=!!CL.penScored;
   return rfOverlay({
-    w:800, cls:gol?'':'rf-ov-grave', contexto:rfCtxPartida(m),
+    w:800, semX:true, cls:gol?'':'rf-ov-grave', contexto:rfCtxPartida(m),
     titulo:gol?'Gol!':'Perdeu!',
     hdDir:`<span class="rf-ov-bola" aria-hidden="true">${gol?rfIcone('jogar',16):'🧤'}</span>`,
     corpo:`${extra||''}
@@ -830,7 +867,14 @@ function rfSoSituacao(gh,ga,eu){
   if(meu<dele) return 'Precisa converter para seguir vivo';
   return 'Cobrança para manter a série';
 }
-function rfSoSimular(){ if(typeof shootoutSkip==='function') shootoutSkip(); else { CL.penFast=true; cdraw(); } }
+/* "SIMULAR O RESTO" TAMBEM NAO FAZIA NADA: `shootoutSkip` nunca existiu e o
+   fallback punha uma bandeira (`CL.penFast`) que ninguem lia. Agora liga o modo
+   automatico -- daqui para a frente cada cobranca sai com o batedor
+   pre-escolhido, sem esperar pelos dez segundos -- e bate a desta vez. */
+function rfSoSimular(){
+  CL.penAuto=true;
+  if(typeof resolveShootoutKick==='function') resolveShootoutKick(CL.penSel);
+}
 
 /* ---- 5 · PRORROGAÇÃO ---- */
 /* a QUARTA pílula aparece em verde: é a troca extra que só a prorrogação
@@ -844,7 +888,7 @@ function rfProrrogacaoHTML(RL){
   const estado=en=>en<35?'exausto':en<55?'pesado':en<75?'aguenta':'inteiro';
   return rfOverlay({
     w:760, contexto:`${escC(m.comp||'Mata-mata')} · fim dos 90'`,
-    titulo:'Vamos para a prorrogação',
+    titulo:'Vamos para a prorrogação', fechar:'rfPrrComecar()',
     hdDir:`<span class="rf-prr-placar">${(m.hg||0)} – ${(m.ag||0)}</span>`,
     corpo:`
       <div class="rf-card rf-prr-tempos">

@@ -2946,6 +2946,12 @@
   letter-spacing:var(--ls-label-wide);text-transform:uppercase;color:var(--text-on-dark-faint);white-space:nowrap}
 .rf-ov-t{font-size:22px;font-weight:var(--fw-bold);color:#fff;letter-spacing:var(--ls-tight);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* o X da sobreposicao de partida: mesma familia do dialogo, sobre o degrade */
+.rf-ov-x{flex:0 0 auto;width:32px;height:32px;margin-left:10px;display:flex;
+  align-items:center;justify-content:center;border:none;border-radius:var(--r-chip);
+  background:rgba(255,255,255,.16);color:#fff;font-family:inherit;font-size:15px;line-height:1;
+  cursor:pointer;transition:background var(--dur-fast) var(--ease)}
+.rf-ov-x:hover{background:rgba(255,255,255,.3)}
 .rf-ov-body{padding:20px 22px 22px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box}
 .rf-ov-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 .rf-ov-foot{border-top:1px solid var(--line-3);background:#f7faf6;padding:14px 22px;
@@ -5480,6 +5486,14 @@
   letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rf-ac-t{font-size:17px;font-weight:var(--fw-bold);color:#fff;letter-spacing:-.01em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* o X do dialogo: canto de cima, dentro do degrade, sem empurrar o titulo
+   (o cabecalho e uma coluna; ele fica absoluto) */
+.rf-ac-x{position:absolute;top:8px;right:10px;width:30px;height:30px;display:flex;
+  align-items:center;justify-content:center;border:none;border-radius:var(--r-chip);
+  background:rgba(255,255,255,.14);color:#fff;font-family:inherit;font-size:14px;line-height:1;
+  cursor:pointer;transition:background var(--dur-fast) var(--ease)}
+.rf-ac-x:hover{background:rgba(255,255,255,.28)}
+.rf-ac-hd{padding-right:48px}
 .rf-ac-corpo{padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box}
 .rf-ac-pe{border-top:1px solid var(--line-3);background:var(--surface-sunken);
   padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box}

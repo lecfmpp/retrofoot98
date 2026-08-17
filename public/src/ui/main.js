@@ -6537,6 +6537,9 @@ function openShootoutPickerModal(){
   CL.penDeadline=Date.now()+10000;
   RL.pensPicking=true;
   sfx('penalti'); cdraw();
+  /* modo automatico ligado pelo "Simular o resto": nao espera os dez segundos,
+     bate com o batedor pre-escolhido e segue para a proxima */
+  if(CL.penAuto){ setTimeout(()=>resolveShootoutKick(CL.penSel), 220); return; }
   if(CL._penTimer) clearInterval(CL._penTimer);
   CL._penTimer=setInterval(shootoutPenaltyTick,200);
 }
@@ -6581,6 +6584,7 @@ function recordShootoutKick(side,takerName,scored){
   setTimeout(shootoutNextKick,1200);
 }
 function finishPenaltyShootout(){
+  CL.penAuto=false;                     // o modo automatico vale so para esta disputa
   const RL=CL.live; const P=RL.pens;
   P.finalH=P.h.filter(k=>k.scored).length; P.finalA=P.a.filter(k=>k.scored).length;
   // se bateu o teto de segurança (20 cobranças cada) ainda empatado — praticamente
@@ -11823,6 +11827,16 @@ document.addEventListener('keydown', (e)=>{
   if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return; // não atrapalha quem tá digitando
   // Esc fecha o Modo Camarote e devolve a visão de tabela (todos os jogos da rodada)
   if(e.key==='Escape' && CL.screen==='live' && camOn() && camMatch()){ camToggle(); e.preventDefault(); return; }
+  /* ESC FECHA O QUE ESTIVER ABERTO — a mesma saida do X (ver rfOvFecharPadrao):
+     dialogo de acao, ou a sobreposicao de partida aplicando a decisao mais
+     conservadora, para a partida nunca ficar em pausa sem dono. */
+  if(e.key==='Escape'){
+    if(CL.acao && typeof rfAcFechar==='function'){ rfAcFechar(); e.preventDefault(); return; }
+    const RL=CL.live;
+    if(RL && (RL.injEvent||RL.redEvent||RL.penEvent||RL.pensPicking) && typeof rfOvFecharPadrao==='function'){
+      rfOvFecharPadrao(); e.preventDefault(); return;
+    }
+  }
   if(FKEY_INV[e.key] && handleTacticShortcut(e.key)) e.preventDefault(); // evita F1=ajuda do navegador, F5=recarregar, etc.
 });
 
