@@ -4865,6 +4865,8 @@
   color:var(--club-on-secondary);background:var(--club-secondary)}
 .rf-cp-selo.verde{background:var(--ok);color:#fff}
 .rf-cp-selo.cinza{background:var(--line-2);color:var(--text-3)}
+/* faltava o tom de queda: o selo dizia "ZONA DE QUEDA" pintado de dourado */
+.rf-cp-selo.vermelho{background:var(--danger);color:#fff}
 .rf-linha.me{background:var(--club-primary-soft);border-radius:var(--r-chip);
   padding-left:8px;padding-right:8px}
 

@@ -76,7 +76,7 @@ function rfCpCards(){
     nome:classifDivName(S.division),
     linha1: pos? (pos+'º de '+total) : 'a começar',
     linha2: (t.Pts||0)+' pontos em '+(t.P||0)+' jogos',
-    selo: rfCpSeloDivisao(pos,total), tom:'ouro',
+    selo: rfCpSeloDivisao(pos,total), tom:rfCpTomDivisao(rfCpSeloDivisao(pos,total)),
     acao:"rfSetTab('campeonatos','calendario')" });
   ((typeof allCupKeys==='function')?allCupKeys():[]).forEach(k=>{
     if(S.compToggle && S.compToggle[k]===false) return;
@@ -94,13 +94,31 @@ function rfCpCards(){
   });
   return cards;
 }
+/* ===== O 1o LUGAR NAO E "MEIO DE TABELA" =====
+   A conta so conhecia duas zonas: acesso e queda. Na 1a Divisao nao ha divisao acima, entao
+   DIVISION_PROMO.A e 0 e o primeiro ramo NUNCA dispara -- o lider da Serie A caia no `return`
+   final e a etiqueta dizia "meio de tabela" a quem estava em primeiro. E o mesmo tipo de furo
+   do ultimo lugar na Serie D (releg=0), corrigido antes em rfDesfecho.
+   A liderança e um facto por si, independente de haver divisao acima; e na 1a Divisao as vagas
+   continentais tambem sao zona, e sao o que aquela tabela de facto disputa. */
 function rfCpSeloDivisao(pos,total){
   if(!pos) return '';
   const promo=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[S.division])||0;
   const releg=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[S.division])||0;
+  if(pos===1) return (S&&S.finished)?'CAMPEÃO':'LÍDER';
   if(promo&&pos<=promo) return 'ZONA DE ACESSO';
   if(releg&&pos>total-releg) return 'ZONA DE QUEDA';
+  const z=(typeof qualificationZone==='function')?qualificationZone(S.division,pos):null;
+  if(z==='lib') return 'ZONA DE LIBERTADORES';
+  if(z==='sul') return 'ZONA DE SUL-AMERICANA';
   return 'MEIO DE TABELA';
+}
+/* o tom do selo acompanha o que ele diz — antes era sempre 'ouro', mesmo a anunciar queda */
+function rfCpTomDivisao(selo){
+  if(selo==='CAMPEÃO'||selo==='LÍDER') return 'ouro';
+  if(selo==='ZONA DE ACESSO'||selo==='ZONA DE LIBERTADORES') return 'verde';
+  if(selo==='ZONA DE QUEDA') return 'vermelho';
+  return 'cinza';
 }
 function rfCpMinhasHTML(){
   const cards=rfCpCards();
