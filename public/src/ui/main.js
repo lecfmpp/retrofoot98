@@ -7069,7 +7069,25 @@ function camOn(){ const RL=CL.live; return !!(RL && RL.camarote!==false) && camS
 function camMatch(){ const RL=CL.live; return RL ? (RL.matches||[]).find(m=>m.user) : null; }
 function camToggle(){ if(!camSpeedOk()){ toastC(camSpeedHint()); return; }   // trancado pela velocidade
   const RL=CL.live; if(!RL) return;
-  RL.camarote=!camOn(); cdraw(); }
+  RL.camarote=!camOn(); cdraw();
+  /* O RELOGIO TEM DE CONTINUAR A ANDAR AO TROCAR DE MODO. camToggle so mudava
+     a bandeira e redesenhava — nao mexia no temporizador. E liveTick NAO SE
+     REAGENDA quando sai cedo (done/paused/userPaused): basta a cadeia morrer
+     uma vez para o relogio parar de vez, e ai so um clique que por acaso
+     chamasse o tique e que o fazia andar. Era o relatado: sair do Camarote
+     para "ver todos os jogos" e o cronometro ficar parado, avancando so ao
+     clicar. Aqui a cadeia e sempre devolvida. */
+  liveRetomaRelogio(); }
+/* ---- devolve a batida do relogio se ela tiver morrido ----
+   Chamar isto e sempre seguro: se a partida acabou ou esta pausada de
+   proposito, nao faz nada; e o clearTimeout antes evita duas cadeias a correr
+   ao mesmo tempo, que fariam o minuto saltar de dois em dois. */
+function liveRetomaRelogio(){
+  const RL=CL.live;
+  if(!RL || RL.done || RL.paused || RL.userPaused) return;
+  clearTimeout(CL._liveTimer);
+  CL._liveTimer=setTimeout(liveTick,200);
+}
 function camSpeedHint(){
   return CL.online
     ? '🎥 Camarote indisponível: o anfitrião está no Usain Bolt. Disponível até Ultrassônico.'
