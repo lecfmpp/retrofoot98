@@ -5555,7 +5555,11 @@
 .rf-mkc-in{flex:1;min-width:0;border:0;outline:0;background:none;font-family:var(--font-mono);
   font-size:16px;font-weight:var(--fw-semibold);color:var(--text-1)}
 .rf-mkc-d{font-size:var(--fs-micro);color:var(--text-4)}
-.rf-btn-recusar{border:1px solid var(--danger);background:var(--surface-card);color:var(--danger)}
+/* MESMA GEOMETRIA DO "CONTRAPROPOR" AO LADO. Isto so pintava borda, fundo e cor: altura,
+   raio, padding e corpo de letra nao vinham de lado nenhum (.rf-btn nao os define), entao o
+   botao saia mais baixo, mais estreito e de cantos quase retos ao lado dos irmaos. */
+.rf-btn-recusar{height:var(--h-control);border-radius:var(--r-control);padding:0 14px;
+  font-size:var(--fs-body-sm);border:1px solid var(--danger);background:var(--surface-card);color:var(--danger)}
 .rf-btn-recusar:hover{background:var(--danger);color:#fff}
 .rf-btn-ghost{border:1px solid var(--line-2);background:var(--surface-card);
   color:var(--brand-primary);font-weight:var(--fw-semibold)}

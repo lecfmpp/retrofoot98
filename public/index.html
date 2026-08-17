@@ -215,7 +215,10 @@ function curInfo(){ return window.MARKET.currencyInfo((typeof CL!=='undefined'&&
 function curSym(){ return curInfo().sym; }
 function curConv(n){ return (n||0)*curInfo().rate; }            // R$ interno -> moeda exibida
 function curParse(n){ return Math.round((n||0)/curInfo().rate); } // valor digitado -> R$ interno
-const fmt = n => { const v=curConv(n); return curSym()+' '+(v>=1e6?(v/1e6).toFixed(v>=1e7?0:1)+'M':(v/1e3).toFixed(0)+'k'); };
+/* UMA CASA DECIMAL SEMPRE, E VIRGULA. Acima de 10M isto arredondava para inteiro e escrevia
+   ponto decimal: a mesma quantia saia "R$ 11M" aqui e "R$ 10,60 mi" no cartao ao lado (rfDin),
+   como se fossem valores diferentes. E "R$ 1.5M" nao e como se escreve numero em portugues. */
+const fmt = n => { const v=curConv(n); return curSym()+' '+(v>=1e6?(v/1e6).toFixed(1).replace(/\.0$/,'').replace('.',',')+'M':(v/1e3).toFixed(0)+'k'); };
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const rnd=(a,b)=>a+Math.random()*(b-a);
 function gauss(mu,sd){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return mu+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}

@@ -77,7 +77,11 @@ function spellMoney(n){ n=Math.round(curConv(n));
   const word={BRL:'reais',USD:'dólares',EUR:'euros'}[curInfo().iso]||'reais';
   const joined = p.length>1 ? p.slice(0,-1).join(', ')+' e '+p[p.length-1] : p[0];
   return (neg?'-':'')+joined+' '+word; }
-function mvShort(mv){ mv=curConv(mv||0); return mv>=1e6? (mv/1e6).toFixed(mv>=1e7?0:1).replace('.',',')+'M' : Math.round(mv/1e3)+'k'; }
+/* UMA CASA DECIMAL SEMPRE, ACIMA DE 10M TAMBEM. Arredondar para inteiro a partir de 10M fazia
+   a mesma quantia aparecer com dois numeros diferentes no mesmo cartao: a proposta dizia
+   "R$ 10,60 mi" (rfDin) e a mensagem do clube, logo abaixo, "R$ 11M" — lido como se o clube
+   tivesse oferecido outra coisa. */
+function mvShort(mv){ mv=curConv(mv||0); return mv>=1e6? (mv/1e6).toFixed(1).replace(/\.0$/,'').replace('.',',')+'M' : Math.round(mv/1e3)+'k'; }
 function posLetter(s){ return ({GK:'G',DEF:'D',MID:'M',ATT:'A'})[s]||'M'; }
 /* ordena por posição (G, D, M, A) e depois por força — usado em listas de escalação/troca
    pra que jogador comprado apareça na posição certa, não no fim da lista */
@@ -2643,9 +2647,22 @@ function clBoasVindasContinuar(tab){
    oficiais do clube com as iniciais — mesma identidade visual que clubStripe já usa em todo o
    resto do jogo. onerror também cai pro badge (link quebrado do Transfermarkt não deixa o
    escudo em branco). */
+/* O ID DO CLUBE JA CARREGA O ID DO TRANSFERMARKT — falta so montar o endereco.
+   Os 160 clubes da America do Sul (CONMEBOL_LEAGUES) vinham sem `crest` nenhum e nao estao no
+   mapa das Series B/C/D: TODOS caiam no badge de iniciais, em todas as telas. Mas o id deles e
+   `cmb_<n>` e esse `n` E o id do clube no Transfermarkt (River Plate 209, Boca 189, Penarol
+   861...), o mesmo numero que o mapa do Brasil ja usa no fim da URL. Medido: os cinco testados
+   devolvem a imagem de 180px.
+   So se deriva quando o sufixo e SO digitos — id procedural (br_D_abc) nao vira URL invalida,
+   continua a cair no mapa e, se nao houver, no badge. */
+function crestFromTmId(id){
+  const m=/^(?:cmb|br_[A-D])_(\d+)$/.exec(String(id||''));
+  return m ? 'https://tmssl.akamaized.net/images/wappen/big/'+m[1]+'.png' : null;
+}
 function clubCrestUrl(club){
   if(club.crest) return club.crest;
-  return (typeof CLUB_CREST_BRASIL_LOWER!=='undefined' && CLUB_CREST_BRASIL_LOWER[club.id]) || null;
+  const mapa=(typeof CLUB_CREST_BRASIL_LOWER!=='undefined' && CLUB_CREST_BRASIL_LOWER[club.id]);
+  return mapa || crestFromTmId(club.id) || null;
 }
 function clubCrestHTML(club){
   const {col,col2}=clubColors(club);
@@ -2947,7 +2964,13 @@ function buildPickPool(){
   const pool={};
   // as cores viajam junto: a cerimônia do sorteio (scSorteio) pinta a faixa do clube revelado a
   // partir DESTE pool — DATA.clubs ainda é o bundle da Série A quando o sorteio roda.
-  selectedPlayableCountries().forEach(c=>{ pool[c]=startClubsForCountry(c).map(x=>({id:x.id,short:x.short,name:x.name,color:x.color,color2:x.color2})); });
+  /* O ESCUDO TAMBEM VIAJA. Este `map` copiava cinco campos e deixava `crest` para tras, e a
+     cerimonia do sorteio desenha o clube SO a partir daqui (DATA.clubs ainda e o bundle da
+     Serie A quando ela roda). Sem o campo, clubCrestUrl caia no mapa de escudos da Serie A,
+     que nao tem os clubes das divisoes de baixo: no lugar do escudo aparecia a caixa de
+     iniciais. O clube da Serie D vinha do Supabase COM escudo — perdia-se aqui, a um passo
+     de ser desenhado. */
+  selectedPlayableCountries().forEach(c=>{ pool[c]=startClubsForCountry(c).map(x=>({id:x.id,short:x.short,name:x.name,color:x.color,color2:x.color2,crest:x.crest})); });
   setUniverse('brasil'); // reset — clConfirmarClubes/clEntrar seta o universo certo depois
   return pool;
 }
@@ -9460,9 +9483,11 @@ function clStub(t){ CL.menu=null; toastC(t+' — em breve.'); cdraw(); }
    mudar — os convidados ficam travados no valor que ele escolheu (games.speed_mult, já
    sincronizado/restrito por RLS ao host — ver netSetSpeed). Baseline 'Usain Bolt'=1x preserva o
    comportamento padrão de hoje pra quem nunca mexeu na opção (games.speed_mult nasce em 1). */
-/* O ritmo 'Foguete' (6ms) SAIU: era de bancada, para atravessar temporadas depressa
-   durante os testes de virada, e nao para ir a producao. */
-const TEMPO_MS={Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37};
+/* 'Foguete' e o degrau acima do Usain Bolt, para atravessar temporadas depressa e ver o que
+   acontece no fim delas. 6ms por minuto de jogo bate no piso do proprio navegador (setTimeout
+   nao desce abaixo de ~4ms) e quem manda passa a ser o desenho de cada minuto: da a partida em
+   cerca de um segundo. E de TESTE — a opcao diz isso na tela. */
+const TEMPO_MS={Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37,Foguete:6};
 /* PADRÃO (solo e sala nova): Ultrassônico. 'Usain Bolt' (37ms) resolve a rodada em ~3,5s — rápido
    demais pra acompanhar qualquer coisa e, na prática, deixaria o Modo Camarote TRANCADO por padrão
    (ver camSpeedOk), escondendo o modo de quem nunca abriu as Opções. Ultrassônico (110ms, ~10s de
@@ -9526,7 +9551,7 @@ function renderOptions(){ const o=CL.options; const tab=CL.optTab||'geral';
   const amHost=typeof NET!=='undefined' && NET.isHost;
   const tempoRow = (CL.online && !amHost)
     ? `<div class="cl-orow"><span>Tempo de jogo</span><span class="cl-oval-locked">🔒 ${escC(tempoLabelFromMult(CL.speedMult))} <i>(definido pelo Anfitrião)</i></span></div>`
-    : `<div class="cl-orow"><span>Tempo de jogo${CL.online?' <i>(vale pra todos)</i>':''}</span><select class="cl-osel" onchange="clSetTempo(this.value)">${['Curto','Médio','Longo','Ultrassônico','Usain Bolt'].map(x=>`<option ${x===o.tempo?'selected':''}>${escC(x)}</option>`).join('')}</select></div>`;
+    : `<div class="cl-orow"><span>Tempo de jogo${CL.online?' <i>(vale pra todos)</i>':''}</span><select class="cl-osel" onchange="clSetTempo(this.value)">${['Curto','Médio','Longo','Ultrassônico','Usain Bolt','Foguete'].map(x=>`<option ${x===o.tempo?'selected':''}>${escC(x)}</option>`).join('')}</select></div>`;
   const jogo=`<div class="cl-orow"><span>Substituições ao intervalo</span>${sel('subsIntervalo',['Sim','Não'],o.subsIntervalo)}</div>
     <div class="cl-orow"><span>Ver os desempates por penalties<br>nos jogos sem treinadores humanos</span>${sel('penaltisCPU',['Sim','Não'],o.penaltisCPU)}</div>
     ${tempoRow}${avisoTeste}`;

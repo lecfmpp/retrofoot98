@@ -337,7 +337,12 @@ const RF_ACOES = {
   const sub=squad(CL.clubId).filter(x=>x.s===p.s&&x.n!==p.n).sort((a,b)=>(b.f||0)-(a.f||0))[0];
   return rfAcao({ kicker:'MERCADO · PROPOSTAS', titulo:'Aceitar a venda de '+escC(o.playerName)+'?', w:500,
     corpo:
-      rfAcFichaHTML(p,'OFERTA',rfDin(o.fee),d.num)
+      rfAcFichaHTML(p, o.state==='final'?'OFERTA FINAL':((o.negRound||0)>0?'OFERTA ATUAL':'OFERTA'), rfDin(o.fee), d.num)
+      /* DE ONDE VEM ESTE NUMERO. Depois de uma contraproposta o valor aqui ja nao e o da
+         proposta original, e o dialogo nao dizia isso: quem tinha acabado de negociar via um
+         numero "novo" sem explicacao e nao reconhecia o acordo que fechou. A frase do clube e
+         a mesma do cartao. */
+      + (o.lastMsg?rfAcAvisoHTML(escC(o.lastMsg), o.state==='final'?'perigo':''):'')
       + rfAcLinhaHTML('Entra no caixa', '+'+rfDin(o.fee), 'ok', true)
       + rfAcLinhaHTML('Sai da folha', sal?('−'+rfDin(sal)+'/mês'):'—', 'ok')
       + rfAcLinhaHTML('Valor de mercado dele', vm?rfDin(vm):'—', o.fee>=vm?'ok':'ruim')
@@ -788,9 +793,9 @@ const RF_ACOES_EXTRA = {
       rfAcSegHTML('Substituições ao intervalo','subsIntervalo',['Sim','Não'],o.subsIntervalo)
     + rfAcSegHTML('Ver desempates por penalties','penaltisCPU',['Sim','Não'],o.penaltisCPU,
         'Nos jogos sem treinadores humanos.')
-    + rfAcSegHTML('Tempo de jogo','tempo',['Curto','Médio','Longo','Ultrassônico','Usain Bolt'],
+    + rfAcSegHTML('Tempo de jogo','tempo',['Curto','Médio','Longo','Ultrassônico','Usain Bolt','Foguete'],
         o.tempo, trava?('Numa resenha, quem define o tempo de jogo é o Anfitrião. Fale com ele para mudar.')
-          :'Ultrassônico dá a partida em cerca de dez segundos; Usain Bolt, em três e meio.', trava)
+          :'Foguete é de teste: a partida passa em cerca de um segundo.', trava)
     + ((typeof TEMPO_TESTE!=='undefined' && TEMPO_TESTE)
         ? rfAcAvisoHTML('🧪 <b>Modo de teste:</b> o ritmo está travado em <b>'+escC(TEMPO_TESTE)+'</b> no Solo e na Resenha, ignorando esta opção e a escolha do anfitrião.','aviso')
         : '');
