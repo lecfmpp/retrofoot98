@@ -6912,6 +6912,28 @@
   .rf-lv-env{padding:0}
   .rf-lv-faixa{border-radius:var(--r-card)}
 
+  /* ===== A SUBSTITUICAO CABE NO ECRA =====
+     Ela ocupava 788px dos 812 e mesmo assim so mostrava sete titulares e dois
+     reservas: a barra de acao levava 121px (os dois botoes empilhados), as
+     linhas tinham a altura do desktop e as duas listas rolavam dentro de um
+     corpo unico -- para ver o banco era preciso rolar para la de onze nomes.
+     Aqui a janela encolhe para 88% do ecra, cada lista rola por si (a de campo
+     um pouco maior, porque tem onze), a linha aperta, e a barra volta a uma
+     linha so (ver os rotulos curtos em rfSubHTML). */
+  .rf-ov-win{max-height:calc(100dvh - 72px)}
+  .rf-ov-cols{gap:10px}
+  .rf-ov-cols>.rf-card{padding:10px;gap:6px}
+  .rf-ov-cols>.rf-card:nth-child(1){max-height:33vh;overflow-y:auto}
+  .rf-ov-cols>.rf-card:nth-child(2){max-height:26vh;overflow-y:auto}
+  .rf-ov-body{padding:12px 14px 14px;gap:10px}
+  .rf-pl{padding:6px 8px}
+  .rf-pl-head{padding:0 8px 2px}
+  .rf-ov-foot{flex-wrap:nowrap;gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px))}
+  .rf-ov-foot>.rf-sp{display:none}
+  .rf-ov-foot .rf-ov-b2,.rf-ov-foot .rf-ov-cta{flex:1 1 0;min-width:0;height:44px;
+    padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rf-ov-hd{padding:10px 14px}
+
   /* 2 · sobreposições de partida (substituição, lesão, expulsão, pénaltis…) */
   .rf-ov{padding:12px;align-items:center}
   .rf-ov-win{width:100%;max-width:100%;border-radius:var(--r-card);

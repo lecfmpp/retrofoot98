@@ -196,16 +196,21 @@ function rfSubHTML(m){
         <span class="rf-ov-res-n ${depois>=antes?'sobe':'cai'}">${antes} → ${depois}</span>
       </span>
     </div>`:''}
-    <span class="rf-note">Toque primeiro num titular para substituir. Máximo de ${max} substituições por jogo.</span>`;
+    <span class="rf-note">
+      <span class="rf-so-desktop">Toque primeiro num titular para substituir. Máximo de ${max} substituições por jogo.</span>
+      <span class="rf-so-mobile">Toque num titular e depois num reserva · ${usadas}/${max}</span></span>`;
 
   return rfOverlay({
     w:900, contexto:rfCtxPartida(m), titulo:'Substituição', fechar:'rfSubFechar()',
     hdDir:rfSubsPillsHTML(usadas,max), corpo,
-    /* os rótulos voltaram ao completo: a barra de ação já quebra em duas
-       linhas no telefone em vez de decapitar o texto (ver rf26.css) */
-    acoes:`<button type="button" class="rf-ov-b2" onclick="rfSubFechar()">↩ Voltar ao jogo</button>
+    /* No desktop os rotulos vao por extenso. No telemovel encurtam para os dois
+       caberem na MESMA linha: empilhados, a barra levava 121px dos 812 do ecra
+       -- espaco que falta as duas listas. Encurta-se o rotulo, nunca a barra. */
+    acoes:`<button type="button" class="rf-ov-b2" onclick="rfSubFechar()">
+        <span class="rf-so-desktop">↩ Voltar ao jogo</span><span class="rf-so-mobile">↩ Voltar</span></button>
       <div class="rf-sp"></div>
-      <button type="button" class="rf-ov-cta" ${pronto?'':'disabled'} onclick="rfSubConfirmar()">Confirmar substituição</button>`
+      <button type="button" class="rf-ov-cta" ${pronto?'':'disabled'} onclick="rfSubConfirmar()">
+        <span class="rf-so-desktop">Confirmar substituição</span><span class="rf-so-mobile">Confirmar</span></button>`
   });
 }
 /* Leva as duas linhas marcadas para dentro da vista. Sem isto, nas listas de 11
