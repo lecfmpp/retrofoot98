@@ -5188,9 +5188,26 @@ const PITCH_ADS=[
   {t:'SUA MARCA',    c:'azul'},
   {t:'PATROCÍNIO',   c:'verde'},
 ];
+/* ===== AS PLACAS PASSARAM A SER INVENTARIO =====
+   Eram texto fixo da lista acima -- nao havia como um anunciante entrar nelas. Agora ha duas
+   chaves: rf98.campo.deitada (as seis de cima e de baixo) e rf98.campo.empe (as seis dos lados).
+   Publicada a arte, ela aparece nas seis placas daquele feitio, como a mesma marca se repete em
+   volta de um campo de verdade. Sem criativo, ficam os rotulos de casa -- o jogo nao muda. */
+function pitchAdArte(lado){
+  if(typeof ADS==='undefined' || !window.ADS) return '';
+  const chave = (lado==='left'||lado==='right') ? 'rf98.campo.empe' : 'rf98.campo.deitada';
+  const c = ADS.get(chave);
+  if(!c || !c.ficheiro_url) return '';
+  return `<div class="cl-pitch-ad arte" data-ad-chave="${escC(chave)}" data-ad-id="${escC(c.id)}"
+    onclick="ADS.clique('${escC(chave)}')" style="cursor:${c.link_destino?'pointer':'default'}"
+    ><img src="${escC(c.ficheiro_url)}" alt="Publicidade"></div>`;
+}
 function pitchAdsHTML(lado, n, off){
+  const arte=pitchAdArte(lado);
   let out='';
-  for(let i=0;i<n;i++){ const a=PITCH_ADS[(i+(off||0))%PITCH_ADS.length];
+  for(let i=0;i<n;i++){
+    if(arte){ out+=arte; continue; }
+    const a=PITCH_ADS[(i+(off||0))%PITCH_ADS.length];
     out+=`<div class="cl-pitch-ad ${a.c}"><span>${escC(a.t)}</span></div>`; }
   return `<div class="cl-pitch-ads ${lado}">${out}</div>`;
 }

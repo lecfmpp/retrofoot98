@@ -7462,3 +7462,8 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 
 /* o marcador do video da pausa herda a caixa 16:9 do espaco desenhado */
 .rf-adph.rf-pz-video{width:100%; aspect-ratio:16/9; min-height:0}
+
+/* placa com arte de anunciante: a imagem preenche a placa, recortando o que sobrar —
+   a caixa e a mesma dos rotulos de casa, so muda o conteudo */
+.rf-pitch-card .cl-pitch-ad.arte{padding:0;overflow:hidden;background:#0d1a12}
+.rf-pitch-card .cl-pitch-ad.arte img{width:100%;height:100%;object-fit:cover;display:block}
