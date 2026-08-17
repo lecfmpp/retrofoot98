@@ -201,28 +201,53 @@ function rfTrHistoriaHTML(){
 /* =====================================================================
    3 · SALA DE TROFÉUS — os cinco ladrilhos, apagados quando não conquistados
    ===================================================================== */
+/* ===== A ESTANTE MOSTRA QUANTAS, NAO SO SE =====
+   O ladrilho dizia apenas "conquistado" — cinco titulos da Serie A e um so ficavam iguais. Agora
+   a taca aparece repetida (a do meio maior, as das pontas menores) e a contagem vem num selo.
+   A arte vem dos .webp de public/img/trofeus, que tem alfa: o `trophyImg` de data/trophies.js e
+   achatado e trazia o retangulo preto atras de cada taca. */
+function rfTrPilhaHTML(k, n){
+  const chave=/^serie[A-D]$/.test(k)?k.replace('serie',''):k;
+  const info=(typeof rfCompInfo==='function')?rfCompInfo(chave):null;
+  const taca=(sz)=>(info&&info.trofeu&&typeof rfCompTrofeuHTML==='function')
+    ? rfCompTrofeuHTML(info,sz)
+    : rfTrofeuHTML(k,sz);
+  if(!n) return `<span class="rf-tr-pilha vazia">${taca(52)}</span>`;
+  if(n===1) return `<span class="rf-tr-pilha">${taca(60)}</span>`;
+  /* tres posicoes no maximo: a do meio grande, uma em cada ponta menor. Acima de tres, quem
+     conta e o selo — empilhar sete tacas de 20px nao diz mais do que "7x". */
+  return `<span class="rf-tr-pilha">
+    <i class="rf-tr-lado">${taca(40)}</i>
+    <i class="rf-tr-meio">${taca(62)}</i>
+    <i class="rf-tr-lado">${taca(40)}</i>
+  </span>`;
+}
 function rfTrTrofeusHTML(){
   const meus=rfTitulosDoTreinador();
-  const ganhou=k=>meus.some(t=>t.comp===k || String(t.comp||'').includes(k));
+  /* CONTA, nao so verifica: cada titulo daquela competicao soma um */
+  const quantos=k=>meus.filter(t=>String(t.comp||'')===String(k)).length;
   const lista=[];
   ((typeof DIV_ORDER!=='undefined')?DIV_ORDER:['A','B','C','D']).slice().reverse().forEach(d=>{
     lista.push({ k:'serie'+d, nome:(typeof divisionLabelOf==='function')?divisionLabelOf(d):('Série '+d),
-      tem:meus.some(t=>String(t.comp||'').indexOf('serie'+d)>=0 || String(t.label||'').indexOf('Série '+d)>=0) });
+      n:quantos('serie'+d) });
   });
   ((typeof allCupKeys==='function')?allCupKeys():[]).forEach(k=>{
     const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[k])||{};
-    lista.push({ k, nome:def.short||def.name||k, tem:ganhou(k) });
+    lista.push({ k, nome:def.short||def.name||k, n:quantos(k) });
   });
+  lista.forEach(x=>{ x.tem=x.n>0; });
   const n=lista.filter(x=>x.tem).length;
+  const total=lista.reduce((s,x)=>s+x.n,0);
   const falta=lista.filter(x=>!x.tem)[0];
   return `<div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">SALA DE TROFÉUS</span>
-        <span class="rf-label-r">${n} de ${lista.length}</span></div>
+        <span class="rf-label-r">${n} de ${lista.length}${total>n?(' · '+total+' taças'):''}</span></div>
       <div class="rf-tr-sala">${lista.map(x=>`
         <div class="rf-tr-tro ${x.tem?'tem':''}">
-          ${rfTrofeuHTML(x.k,56)}
+          ${x.n>1?`<b class="rf-tr-vezes">${x.n}x</b>`:''}
+          ${rfTrPilhaHTML(x.k,x.n)}
           <span class="rf-tr-tro-n">${escC(x.nome)}</span>
-          <span class="rf-tr-tro-s">${x.tem?'conquistado':'não conquistado'}</span>
+          <span class="rf-tr-tro-s">${x.tem?(x.n===1?'conquistado':(x.n+' vezes campeão')):'não conquistado'}</span>
         </div>`).join('')}</div>
     </div>
     <div class="rf-card">

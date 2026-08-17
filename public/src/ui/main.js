@@ -916,6 +916,18 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
   // é remontada inteira a cada cdraw() e contar no desenho inflaria tudo (ver ads.js).
   if(window.ADS) ADS.scan();
   if(typeof patchPickerFill==='function') patchPickerFill();
+  /* ===== VIDEO INJETADO POR innerHTML NAO ARRANCA SOZINHO =====
+     O atributo `muted` e ignorado por alguns navegadores quando o <video> entra no DOM por
+     innerHTML — e sem `muted` reconhecido, o telefone bloqueia o autoplay e fica so o cartaz de
+     tras, pequeno no meio da moldura. Era o caso do video de boas-vindas. As duas telas que ja
+     tinham video (momento e campeao) resolviam isto a mao, cada uma na sua funcao; aqui vale
+     para qualquer video da tela, incluindo os que vierem depois. */
+  try{
+    r.querySelectorAll('video[autoplay]').forEach(v=>{
+      v.muted=true; v.volume=0; v.setAttribute('playsinline','');
+      const p=v.play(); if(p&&p.catch) p.catch(()=>{});
+    });
+  }catch(e){}
   if(CL.screen==='loading') runLoading();
   const f=$c('#cl-focus'); if(f) f.focus();
   if(RF_IR_AO_TOPO){ RF_IR_AO_TOPO=false;

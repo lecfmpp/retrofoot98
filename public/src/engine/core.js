@@ -2080,6 +2080,22 @@ function cupDrawReleased(key, round){
    Quem quiser desligar outra e so acrescentar aqui. */
 const CUP_SEM_CERIMONIA={ copaBrasil:true };
 function cupTemCerimonia(key){ return !CUP_SEM_CERIMONIA[key]; }
+/* ===== HA SORTEIO A VER? — PERGUNTA SEM EFEITO COLATERAL =====
+   queueDueCupDraws() ENFILEIRA enquanto responde, entao nao serve para um rotulo de botao (o
+   desenho da tela passaria a mexer no estado do save). Esta e a mesma conta, sem escrever nada. */
+function haSorteioPendente(){
+  try{
+    if(typeof S==='undefined' || !S || !S.cups) return false;
+    if((S._pendingDrawShows||[]).some(x=>typeof cupTemCerimonia!=='function' || cupTemCerimonia((x&&x.key)||x))) return true;
+    const season=S.season||1, marcadas=S._cupDrawQueued||{};
+    return Object.keys(cupSeasonDrawDays()).some(key=>{
+      if(!S.cups[key]) return false;
+      if(!cupDrawReleased(key)) return false;
+      if(marcadas[key+':'+season]) return false;
+      return (typeof cupTemCerimonia!=='function') || cupTemCerimonia(key);
+    });
+  }catch(e){ return false; }
+}
 function queueDueCupDraws(){
   if(typeof S==='undefined' || !S || !S.cups) return 0;
   if(typeof queueDrawShow!=='function') return 0;

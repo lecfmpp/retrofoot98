@@ -643,6 +643,13 @@ function rfJogarLabel(){
   /* SO NO SOLO. Na Resenha quem manda na jornada e o servidor: o clique ja
      estava protegido (clAvancarDia sai logo se CL.online), mas o ROTULO dizia
      "Avancar" na mesma — prometia uma acao que ali nao existe. */
+  /* SORTEIO ANTES DE QUALQUER BOLA. clJogar resolve a cerimonia logo depois da tatica: quem
+     clicava em "Jogar" caia num sorteio de copa, que e outra coisa. Mesma ideia do "Ver
+     classificacao" -- o botao diz o que o clique faz. */
+  if(typeof haSorteioPendente==='function' && haSorteioPendente()){
+    const curto=(typeof isPhone==='function' && isPhone());
+    return rfIcone('sorteio',16)+(curto?' Sorteio':' Ver o sorteio');
+  }
   if(!CL.online && rfNadaParaJogar()) return rfIcone('calendario',16)+' Avançar';
   if(!(typeof estouPronto==='function' && estouPronto()) && rfSoAssistir()){
     const curto=(typeof isPhone==='function' && isPhone());
