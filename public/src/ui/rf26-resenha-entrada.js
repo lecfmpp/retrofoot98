@@ -246,6 +246,7 @@ function rfMinhasSalasHTML(){
           ? ('Entrar na do '+rfSalaEstado(primeira).clube)
           : ('Entrar na '+rfSalaEstado(primeira).clube))
       : 'Criar uma sala nova',
+    ctaCurto: primeira ? 'Entrar' : 'Criar sala',
     ctaOn: primeira
       ? `clJoinMyRoom('${primeira.code}',${primeira.pending?'true':'false'})`
       : 'clGoNovaSala()' });
@@ -370,7 +371,7 @@ function rfResenhaComecarHTML(){
       <div class="rf-rc-baixo">${colar}${lista}</div>`,
     voltar:'clGoModo()', voltarLabel:'‹ Voltar ao modo',
     nota:'A sala fica aberta até a temporada acabar — dá para sair e voltar.',
-    cta:'Criar a minha sala', ctaOn:'clResenhaCreate()' });
+    cta:'Criar a minha sala', ctaCurto:'Criar sala', ctaOn:'clResenhaCreate()' });
 }
 /* como no campo das cinco caixas: sem cdraw() por tecla, senão o cursor salta */
 function rfComecarColar(el){

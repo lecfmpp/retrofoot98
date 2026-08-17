@@ -93,8 +93,18 @@ function rfWiz(o){
      (voltar). Agora os dois vivem no mesmo canto, em todas as telas dos dois
      modos, e o topo fica livre para o cabecalho.
      `topoDir` continua a existir para quem precise mesmo de algo no topo. */
+  /* NO TELEMOVEL O ROTULO ENCURTA, a barra nunca. Os dois botoes dividem a
+     largura do ecra ao meio: em 360px cabe pouco mais do que uma palavra, e
+     "‹ Voltar aos treinadores" cortava a meio. O rotulo longo fica no desktop,
+     onde ha espaco; no telemovel entra o curto (por omissao, "‹ Voltar" — o
+     passo anterior ja se sabe qual e, acabou-se de sair dele). */
+  const rotuloDuplo=(longo,curto)=> (curto && curto!==longo)
+    ? `<span class="rf-so-desktop">${longo}</span><span class="rf-so-mobile">${curto}</span>`
+    : longo;
+  const voltarLongo=o.voltarLabel||'‹ Voltar';
   const bVoltar = o.voltar
-    ? `<button type="button" class="rf-wiz-b2" onclick="${o.voltar}">${o.voltarLabel||'‹ Voltar'}</button>`
+    ? `<button type="button" class="rf-wiz-b2" onclick="${o.voltar}">${
+        rotuloDuplo(voltarLongo, o.voltarCurto||'‹ Voltar')}</button>`
     : '';
   /* CABECALHO E RODAPE PUBLICOS EM TODO O ASSISTENTE, por decisao do utilizador
      (16/ago). Eu tinha-os retirado de proposito — dentro de um fluxo de sete
@@ -124,7 +134,11 @@ function rfWiz(o){
       <div class="rf-wiz-shell">
         ${o.semTrilha?'':rfWizTrilhaHTML(passo,o.trilha)}
         <div class="rf-wiz-card">${cabeca}${o.corpo||''}</div>
-        <div class="rf-wiz-acao">
+        <!-- TELA SEM ACAO NAO TEM BARRA. No telemovel a barra e a ultima linha
+             da moldura, com borda e sombra proprias: desenhada vazia (a tela de
+             carregamento, que avanca sozinha) ficava uma faixa branca de 76px a
+             ocupar o pe do ecra sem nada dentro. -->
+        ${(o.cta||o.voltar||o.nota)?`<div class="rf-wiz-acao">
           ${o.nota?`<span class="rf-wiz-nota">${escC(o.nota)}</span>`:''}
           <div class="rf-sp"></div>
           ${bVoltar}
@@ -132,8 +146,9 @@ function rfWiz(o){
                trazer marcação (rfIcone(...) + texto). Escapando, o botão exibia
                o código do <svg> como texto e esticava a página para 6000px.
                Os rótulos são literais do código, nunca entrada do utilizador. -->
-          ${o.cta?`<button type="button" class="rf-wiz-cta" ${o.ctaOff?'disabled':''} onclick="${o.ctaOn||''}">${o.cta}</button>`:''}
-        </div>
+          ${o.cta?`<button type="button" class="rf-wiz-cta" ${o.ctaOff?'disabled':''} onclick="${o.ctaOn||''}">${
+            rotuloDuplo(o.cta, o.ctaCurto)}</button>`:''}
+        </div>`:''}
       </div>
     </div>
     ${rodape}
@@ -650,6 +665,7 @@ function rfOb5(){
       : 'À espera do anfitrião — toque em Sincronizar se ele já começou.',
     voltar:'clLobbyExit()', voltarLabel:rfIcone('fechar',16)+' Fechar a sala',
     cta: anfitriao?'Começar (sortear times)':'Sincronizar',
+    ctaCurto: anfitriao?'Começar':'Sincronizar',
     ctaOff: anfitriao&&!podeComecar,
     ctaOn: anfitriao?'clLobbyStart()':'clSyncResenha()'});
 }
@@ -722,6 +738,7 @@ function rfOb6(){
     sub:'Cada treinador escolheu o país; o clube sai no sorteio. É a mesma cerimônia no solo e na resenha.',
     nota: fim?'Pronto — pode entrar no clube.':'Aguarde o sorteio',
     cta: fim?'Iniciar temporada':rfIcone('raio',16)+' Acelerar',
+    ctaCurto: fim?'Começar':rfIcone('raio',16)+' Acelerar',
     ctaOn: fim?'clEntrar()':'rfObAcelerar()'});
 }
 /* ⏩ não pula o sorteio: só encurta a espera entre uma revelação e outra */
@@ -820,7 +837,7 @@ function rfOb7(){
     sobre:'Você é o novo treinador', titulo:'Bem-vindo ao '+(cl.short||'clube')+'.',
     sub:'A diretoria confia. A torcida quer acesso.',
     nota:'Daqui você cai direto na tela de Formação.',
-    cta:rfIcone('jogar',16)+' Entrar no clube', ctaOn:'clBoasVindasContinuar()'});
+    cta:rfIcone('jogar',16)+' Entrar no clube', ctaCurto:rfIcone('jogar',16)+' Entrar', ctaOn:'clBoasVindasContinuar()'});
 }
 /* O SAVE NÃO GUARDA O NOME DO ESTÁDIO — S.clubStadiumCap[id] só tem capacidade
    e o quanto foi construído na temporada. Então a linha diz "Casa do <clube>"

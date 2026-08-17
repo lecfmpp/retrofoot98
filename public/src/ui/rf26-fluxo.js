@@ -76,7 +76,7 @@ function rfPaisHTML(){
   return rfWiz({
     titulo:'Onde você vai treinar?', sub:'O país define as divisões, as copas e o calendário do save.', passo:rfPasso('País e liga','solo'), trilha:'solo', corpo, nota:'Mais países entram nas próximas atualizações.',
     voltar:'clGoPaises()', voltarLabel:'‹ Voltar ao modo',
-    cta:`Continuar com ${sel||'o país'}`, ctaOff:!sel, ctaOn:'clPaisJogavelOk()' });
+    cta:`Continuar com ${sel||'o país'}`, ctaCurto:'Continuar', ctaOff:!sel, ctaOn:'clPaisJogavelOk()' });
 }
 function rfPaisSel(c){ CL.playCountry=c; cdraw(); }
 /* as divisões daquele país saem do UNI_CONFIGS, não de uma lista à parte */
@@ -195,7 +195,7 @@ function rfTreinadoresHTML(){
     titulo:'Quantos treinadores na sala?', sub:'Cada treinador comanda um clube. Os outros ficam com a máquina.', passo:rfPasso('País e liga','solo'), trilha:'solo', corpo,
     nota:'Os clubes que sobram ficam com a máquina.',
     voltar:'clGoMoeda()', voltarLabel:'‹ Voltar à moeda',
-    cta:`Continuar com ${n}`, ctaOn:'clEscolherClubes()' });
+    cta:`Continuar com ${n}`, ctaCurto:'Continuar', ctaOn:'clEscolherClubes()' });
 }
 function rfTreinadoresSel(k){
   CL.names=CL.names||[];
@@ -244,7 +244,7 @@ function rfClubesHTML(){
       sub:'Cada treinador escolhe o país. O clube é sempre sorteado — ninguém escolhe o próprio time.',
       nota:'Os clubes restantes ficam com a máquina.',
       voltar:'clGoJogadores()', voltarLabel:'‹ Voltar aos treinadores',
-      cta:rfIcone('sorteio',16)+' Sortear os clubes', ctaOn:'clSortearPick()' });
+      cta:rfIcone('sorteio',16)+' Sortear os clubes', ctaCurto:rfIcone('sorteio',16)+' Sortear', ctaOn:'clSortearPick()' });
   }
 
   const corpo=`
@@ -266,7 +266,7 @@ function rfClubesHTML(){
     sub:'O sorteio distribuiu os clubes entre os treinadores. Confira antes de começar.',
     nota:'Os demais clubes ficam com a máquina.',
     voltar:'clSortearPick()', voltarLabel:rfIcone('sorteio',16)+' Sortear de novo',
-    cta:rfIcone('jogar',16)+' Começar a temporada', ctaOn:'startSoloDraw()' });
+    cta:rfIcone('jogar',16)+' Começar a temporada', ctaCurto:rfIcone('jogar',16)+' Começar', ctaOn:'startSoloDraw()' });
 }
 function rfDivDoClube(c){
   const d=c.div||c.division||c.lg;
@@ -710,6 +710,7 @@ function rfObSoloHTML(){
     nota:'Os saves ficam na nuvem — entre de qualquer aparelho com a mesma conta.',
     voltar:'clGoModo()', voltarLabel:'‹ Voltar ao modo',
     cta: nomePrimeiro?('Continuar o '+nomePrimeiro):'Começar do zero',
+    ctaCurto: nomePrimeiro?'Continuar':'Começar',
     ctaOn: primeiro
       ? `clLoadSave('${String(primeiro.name||primeiro.save_name||'').replace(/'/g,"\\'")}')`
       : 'clSoloNew()' });

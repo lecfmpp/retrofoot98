@@ -1985,8 +1985,12 @@
    A trilha vira barra de progresso no cabeçalho e a ação principal fica
    FIXA no rodapé — é o que as sete telas mobile mostram.
    ===================================================================== */
+/* A MOLDURA E A BARRA ESTAO NO BLOCO DE 760px MAIS ABAIXO ("MOLDURA DE APP").
+   Aqui ficam so os ajustes de conteudo: o que dizia respeito a barra de acao
+   vivia nos dois sitios e o de baixo ganhava, entao a barra tinha `fixed` neste
+   e `sticky` naquele -- e valia o `sticky`, colado ao fundo do .rf-wiz-shell em
+   vez do fundo do ecra. */
 @media (max-width:760px){
-  .rf-wiz{padding:0 0 84px}
   .rf-wiz-in{gap:0}
   .rf-wiz-marca{padding:14px 16px;background:var(--surface-card);border-bottom:1px solid var(--line-1)}
   .rf-wiz-shell{border:none;border-radius:0;box-shadow:none;padding:14px 12px;gap:12px}
@@ -2001,13 +2005,7 @@
   .rf-wiz-h{font-size:var(--fs-title)}
   .rf-wiz-sub{font-size:var(--fs-body-sm)}
   .rf-wiz-form{width:100%}
-  /* a ação principal nunca sai da tela */
-  .rf-wiz-acao{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--surface-card);
-    border-top:1px solid var(--line-1);padding:10px 12px calc(12px + env(safe-area-inset-bottom,0px));
-    flex-wrap:wrap;row-gap:6px}
-  .rf-wiz-nota{flex:1 1 100%;order:-1;font-size:var(--fs-label)}
-  .rf-wiz-cta{flex:1;min-width:0}
-  .rf-wiz-b2{flex:0 0 auto}
+  .rf-wiz-nota{font-size:var(--fs-label)}
   .rf-conv{grid-template-columns:minmax(0,1fr)}
   .rf-divs{grid-template-columns:repeat(2,1fr)}
   .rf-paises{grid-template-columns:repeat(2,1fr)}
@@ -4177,31 +4175,87 @@
   letter-spacing:var(--ls-label)}
 
 /* ---- telefone: a trilha vira fita azul e a ação gruda no pé ---- */
-@media (max-width:760px){
-  .rf-wiz{padding:0}
-  .rf-wiz-in{gap:0}
-  .rf-wiz-marca{display:none}
-  .rf-wiz-fita{display:flex}
-  .rf-wiz-trilha{display:none}
-  .rf-wiz-shell{border:none;border-radius:0;box-shadow:none;padding:14px 16px 96px;gap:12px;
-    background:var(--surface-desk)}
-  .rf-wiz-card{border:none;border-radius:0;padding:0;background:transparent;min-height:0;gap:12px}
-  .rf-wiz-head{display:none}          /* o cabeçalho já está na fita azul */
-  .rf-wiz-acao{position:sticky;bottom:0;background:var(--surface-card);
-    padding:12px 16px calc(16px + env(safe-area-inset-bottom,0px));gap:8px;flex-wrap:wrap;
-    border-top:1px solid var(--line-1)}
-  .rf-wiz-nota{flex:1 1 100%;order:-1}
+/* =====================================================================
+   ABAIXO DO DESKTOP, O ASSISTENTE E UM APP
+   Vale do telemovel ao tablet: entre 761 e 1024px a tela cabia toda menos
+   nas listas longas (o passo do pais e das ligas), e ali era preciso rolar
+   ate ao fim para achar o "Continuar" -- o mesmo defeito do telemovel, so
+   que intermitente. A moldura passa a ser o ecra em toda esta faixa; o
+   aspecto de tela cheia (sem bordas, cabecalho na fita) continua a ser so
+   do telemovel, no bloco de 760px.
+   ===================================================================== */
+@media (max-width:1024px){
+  /* ===== MOLDURA DE APP =====
+     Tres camadas, e a ordem importa (pacote "Barra de acao fixa no onboarding
+     mobile"): moldura de ALTURA FIXA > corpo que rola > barra que nao rola.
+     `position:sticky` sozinho nao chega: ele cola ao fundo do bloco que o
+     contem, e como o assistente crescia com o conteudo a barra assentava no
+     fim do documento -- era preciso rolar ate ao fim para a ver, que e
+     exatamente o que se queria eliminar. Aqui a moldura e o ecra (100dvh, que
+     acompanha a barra de endereco do navegador; `vh` nao acompanha) e a barra
+     e a ultima linha dela.
+     O rodape publico sai no telemovel: dentro de uma moldura de altura fixa
+     ele comeria a tela, e as telas mobile do pacote nao o tem. */
+  .rf-wiz{height:100vh;height:100dvh;min-height:0;padding:0;overflow:hidden;
+    display:flex;flex-direction:column}
+  .rf-wiz>.rf-lp-nav{flex:0 0 auto}
+  .rf-wiz>.rf-lp-rodape{display:none}
+  .rf-wiz-in{flex:1 1 auto;min-height:0;width:100%;padding:0;overflow:hidden;
+    display:flex;flex-direction:column}
+  .rf-wiz-fita{flex:0 0 auto}
+  .rf-wiz-shell{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+  /* o corpo e a UNICA coisa que rola */
+  .rf-wiz-card{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;
+    overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  /* NUM CORPO QUE ROLA, FILHO NENHUM ENCOLHE. O corpo e flex em coluna: por
+     omissao os filhos tem `flex-shrink:1` e, em vez de transbordarem para a
+     rolagem, espremem-se para caber na altura da moldura -- um cartao de 400px
+     ficava com 200 e o texto saia por baixo dele. */
+  .rf-wiz-card>*{flex-shrink:0}
+  /* a barra: grade, nunca flex -- de um para dois botoes e uma linha so, e os
+     dois nunca empilham (duas linhas dariam 116px de barra). */
+  .rf-wiz-acao{flex:0 0 auto;position:static;display:grid;
+    grid-template-columns:minmax(0,1fr);gap:8px;align-items:center;
+    background:var(--surface-card);border-top:1px solid var(--line-1);
+    padding:12px 16px calc(16px + env(safe-area-inset-bottom,0px));
+    box-shadow:0 -8px 20px -14px rgba(20,33,26,.35);
+    /* no tablet a barra sangra ate a borda do cartao, em vez de flutuar dentro
+       do padding do envelope */
+    margin:0 -18px -18px;border-radius:0 0 var(--r-shell) var(--r-shell)}
+  /* duas colunas so quando ha MESMO dois botoes: com so o "Voltar" (a tela do
+     modo, que avanca ao escolher o cartao) uma coluna de metade deixava meia
+     barra vazia. */
+  .rf-wiz-acao:has(.rf-wiz-b2):has(.rf-wiz-cta){grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .rf-wiz-acao>.rf-sp{display:none}
+  .rf-wiz-acao .rf-wiz-b2{order:1}
+  .rf-wiz-acao .rf-wiz-cta{order:2}
+  .rf-wiz-nota{grid-column:1/-1;order:0}
   /* SO NA BARRA DE ACAO. Esta regra nao tinha escopo e valia para TODO
      .rf-wiz-cta do telemovel — inclusive o "Garantir minha vaga", que vive num
      cartao em COLUNA. Ali o `flex:1` nao reparte largura: cresce a ALTURA ate
      ao basis, e o botao ficava com 140px de alto em vez dos 48. */
-  .rf-wiz-acao .rf-wiz-cta,.rf-wiz-acao .rf-wiz-b2{flex:1 1 140px;min-width:0;height:48px}
+  .rf-wiz-acao .rf-wiz-cta,.rf-wiz-acao .rf-wiz-b2{flex:0 0 auto;min-width:0;height:48px;
+    padding:0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* `flex-shrink:0` junto com a altura: em contentor de COLUNA o encolhimento
      tambem vale no vertical. `flex:0 0 auto` anula os TRES de uma vez: o
      `flex:1` que vem de outra regra deixava basis 0% e o botao colapsava para
      21px — o oposto do problema, pelo mesmo motivo. Fora da barra de acao um
      CTA nao e item elastico: tem a altura que tem. */
   .rf-wiz-cta,.rf-wiz-b2{height:48px;flex:0 0 auto}
+}
+
+@media (max-width:760px){
+  .rf-wiz{padding:0}
+  .rf-wiz-in{gap:0}
+  .rf-wiz-marca{display:none}
+  .rf-wiz-fita{display:flex}
+  .rf-wiz-trilha{display:none}
+  /* aspecto de tela cheia: a moldura ja vem do bloco de 1024px acima */
+  .rf-wiz-shell{border:none;border-radius:0;box-shadow:none;padding:0;gap:0;
+    background:var(--surface-desk)}
+  .rf-wiz-card{border:none;border-radius:0;background:transparent;padding:14px 16px 16px;gap:12px}
+  .rf-wiz-head{display:none}          /* o cabeçalho já está na fita azul */
+  .rf-wiz-acao{margin:0;border-radius:0}
   .rf-ob3-paises,.rf-ob3-divs{grid-template-columns:repeat(2,minmax(0,1fr))}
   .rf-ob4,.rf-ob5,.rf-ob6,.rf-bv-media,.rf-bv-baixo{grid-template-columns:minmax(0,1fr)}
   .rf-ob4-2{grid-template-columns:1fr 1fr}
@@ -6492,12 +6546,13 @@
 .rf-wiz-nota{flex:1 1 auto;min-width:0;text-wrap:pretty}
 @media (max-width:560px){
   .rf-wiz-nota{flex-basis:100%;order:1}
-  /* `flex:1 1 0` encolhia a CAIXA ate 132px, mas o rotulo e nowrap e nao
-     encolhe com ela: "Continuar o Cianorte" transbordava por cima do botao
-     vizinho. Com `min-width:max-content` o botao nunca fica menor do que o
-     seu texto — os dois dividem a linha quando cabem, e passam a duas linhas
-     quando nao cabem. (Mesma correcao que a barra de acao dos modais ja
-     precisou; um basis fixo falha sempre aqui.) */
+}
+/* Fora do telemovel a barra continua a ser flex e os botoes nao encolhem abaixo
+   do proprio rotulo. No telemovel ela e grade de colunas iguais (ver "MOLDURA DE
+   APP"), e ali `min-width:max-content` era o que fazia um rotulo comprido
+   estourar a coluna e passar por cima do botao vizinho: la o rotulo corta com
+   reticencias, e a regra e encurtar o rotulo, nao a barra. */
+@media (min-width:761px) and (max-width:900px){
   .rf-wiz-acao .rf-wiz-b2,.rf-wiz-acao .rf-wiz-cta{flex:1 1 auto;min-width:max-content}
 }
 /* o mesmo na barra do assistente antigo (conta, à espera de aprovação) */
@@ -6623,6 +6678,33 @@
    12px de cada lado e --r-card. Vem no fim do ficheiro de propósito, para
    ganhar das regras de cima sem as ter de reescrever uma a uma.
    ===================================================================== */
+/* O PALCO DO MEIO DO JOGO TAMBEM E APP ABAIXO DO DESKTOP (ver a moldura do
+   assistente): vale do telemovel ao tablet, pela mesma razao -- e na faixa do
+   meio que a tabela de 20 clubes deixa de caber e o "Continuar" foge da vista. */
+@media (max-width:1024px){
+  /* 3 · pós-rodada ("Como ficou a tabela") e as telas de palco do Resenha
+     ---------------------------------------------------------------------
+     A MESMA MOLDURA DE APP DO ASSISTENTE (ver "MOLDURA DE APP"): o palco tem a
+     altura do ecra, so o miolo rola e o rodape de acao e a ultima linha.
+     O `position:sticky` que estava aqui funcionava por acaso -- o rodape e o
+     ultimo filho de um envelope tao alto quanto a pagina --, mas quem rolava a
+     PAGINA inteira levava o cabecalho embora e, com zoom, a barra saia de vista.
+     Agora nao ha rolagem de pagina nenhuma: "Continuar" e "Avancar" estao
+     sempre no mesmo sitio, como num aplicativo. */
+  .rf-stg{padding:12px;box-sizing:border-box;height:100vh;height:100dvh;min-height:0;
+    overflow:hidden}
+  .rf-stg-in{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:0;padding:0}
+  .rf-stg-hd{flex:0 0 auto;border-radius:var(--r-card) var(--r-card) 0 0}
+  .rf-stg-shell{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;
+    overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+    border-radius:0;border-left:var(--border-hairline);border-right:var(--border-hairline)}
+  .rf-stg-shell>*{flex-shrink:0}   /* mesma razao do .rf-wiz-card acima */
+  .rf-stg-foot{position:static;flex:0 0 auto;border-radius:0 0 var(--r-card) var(--r-card);
+    background:var(--surface-card);border:var(--border-hairline);border-top:1px solid var(--line-1);
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));margin:0;
+    box-shadow:0 -8px 20px -14px rgba(20,33,26,.35)}
+}
+
 @media (max-width:760px){
   /* 1 · rodada ao vivo — o inset vivia só no .rf-lv-env, e a faixa está fora dele */
   .rf-lv{padding:0 12px 24px}
@@ -6635,11 +6717,6 @@
     min-height:0;max-height:calc(100dvh - 24px);display:flex;flex-direction:column}
   .rf-ov-body{flex:1 1 auto;min-height:0;overflow-y:auto}
 
-  /* 3 · pós-rodada ("Como ficou a tabela") */
-  .rf-stg{padding:12px;box-sizing:border-box}
-  .rf-stg-hd{border-radius:var(--r-card) var(--r-card) 0 0}
-  .rf-stg-shell{border-radius:0 0 var(--r-card) var(--r-card);
-    border-left:var(--border-hairline);border-right:var(--border-hairline)}
 
   /* 4 · camarote e o portão de publicidade */
   .rf-cam-shell{border-radius:var(--r-card)}

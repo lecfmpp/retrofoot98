@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#c9d2cb;overflow-x:hidden}
+*{-webkit-tap-highlight-color:transparent}
+@media (max-width:430px){
+  [data-phone]{width:100%!important;min-height:100vh;min-height:100dvh;border-radius:0!important;border-left:none!important;border-right:none!important;box-shadow:none!important}
+  [data-shell]{padding:0!important}
+}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes ctaPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+</style>
+</helmet>
+
+<div data-shell style="display:flex;justify-content:center;padding:24px;font-family:'Space Grotesk',system-ui,sans-serif">
+  <div data-phone style="width:390px;max-width:100%;height:min(780px,calc(100vh - 48px));flex:0 0 auto;box-sizing:border-box;background:#e8f0e7;border:1px solid #d2e0d0;border-radius:28px;overflow:hidden;box-shadow:0 24px 60px -30px rgba(20,33,26,.6);position:relative;display:flex;flex-direction:column">
+
+    <div style="background:#eef0ee;border-bottom:1px solid #dde7db;padding:10px 14px;display:flex;align-items:center;gap:10px">
+      <img src="uploads/pasted-1786581574687-0.png" alt="RetroFoot98" style="width:28px;height:28px;object-fit:contain;flex:0 0 auto">
+      <span style="font-size:15px;font-weight:700;color:#12201a;letter-spacing:-.02em;white-space:nowrap">RetroFoot<span style="font-family:'IBM Plex Mono',monospace;color:#17458F">98</span></span>
+      <div style="flex:1"></div>
+      <span style="height:36px;padding:0 13px;display:flex;align-items:center;gap:6px;border:1px solid #d8e2d6;border-radius:11px;background:#fff;font-size:12px;font-weight:600;color:#3a473f;white-space:nowrap;cursor:pointer;flex:0 0 auto" style-hover="background:#f2f7f1">🔑 Entrar</span>
+    </div>
+
+    <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 16px;display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-left:5px">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap">PASSO 1 DE 5</span>
+        <div style="flex:1"></div>
+        <span style="font-size:11px;color:#c3d3ec;white-space:nowrap">Entrar</span>
+      </div>
+      <div style="display:flex;gap:4px;margin-left:5px">
+        <span style="flex:1;height:4px;border-radius:99px;background:#F2B90C"></span>
+        <span style="flex:1;height:4px;border-radius:99px;background:rgba(255,255,255,.22)"></span>
+        <span style="flex:1;height:4px;border-radius:99px;background:rgba(255,255,255,.22)"></span>
+        <span style="flex:1;height:4px;border-radius:99px;background:rgba(255,255,255,.22)"></span>
+        <span style="flex:1;height:4px;border-radius:99px;background:rgba(255,255,255,.22)"></span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;margin-left:5px;padding-top:2px">
+        <span style="font-size:19px;font-weight:700;color:#fff;letter-spacing:-.02em;line-height:1.2;text-wrap:pretty">Crie sua conta e entre no jogo.</span>
+        <span style="font-size:12px;color:#c3d3ec;line-height:1.5;text-wrap:pretty">Seus saves ficam na nuvem — comece no computador e continue no telefone.</span>
+      </div>
+    </div>
+
+    <div data-scroll style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box">
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0">
+        <div style="display:flex;gap:5px;background:#f2f7f1;border-radius:12px;padding:4px">
+          <span style="flex:1;text-align:center;font-size:12px;font-weight:700;color:#fff;background:#17458F;border-radius:9px;padding:9px 0;cursor:pointer">Criar conta</span>
+          <span style="flex:1;text-align:center;font-size:12px;font-weight:600;color:#5d6c62;border-radius:9px;padding:9px 0;cursor:pointer" style-hover="background:#e8efe7">Entrar</span>
+        </div>
+        <label style="display:flex;flex-direction:column;gap:5px;min-width:0">
+          <span style="font-size:11px;font-weight:600;color:#5d6c62;white-space:nowrap">Nome do treinador</span>
+          <span style="height:46px;display:flex;align-items:center;padding:0 13px;border:1px solid #17458F;border-radius:12px;font-size:14px;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box">Gringo</span>
+          <span style="font-size:11px;color:#9aa79e;line-height:1.4">É como a imprensa e os outros treinadores vão te chamar.</span>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;min-width:0">
+          <span style="font-size:11px;font-weight:600;color:#5d6c62;white-space:nowrap">E-mail</span>
+          <span style="height:46px;display:flex;align-items:center;padding:0 13px;border:1px solid #d8e2d6;border-radius:12px;font-size:14px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box">voce@email.com</span>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;min-width:0">
+          <span style="font-size:11px;font-weight:600;color:#5d6c62;white-space:nowrap">Senha</span>
+          <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 13px;border:1px solid #d8e2d6;border-radius:12px;box-sizing:border-box">
+            <span style="flex:1;min-width:0;font-size:14px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">mínimo 8 caracteres</span>
+            <span style="font-size:13px;color:#9aa79e;flex:0 0 auto;cursor:pointer">👁</span>
+          </span>
+        </label>
+        <div style="display:flex;align-items:flex-start;gap:8px;cursor:pointer">
+          <span style="width:18px;height:18px;border-radius:5px;background:#17458F;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto">✓</span>
+          <span style="font-size:11px;color:#78877c;line-height:1.45;text-wrap:pretty">Quero aviso quando abrir vaga nas Ligas Oficiais.</span>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;gap:9px;background:#fff;border:1px solid #dde7db;border-radius:16px;padding:13px 14px">
+        <span style="font-size:14px;flex:0 0 auto">☁️</span>
+        <span style="font-size:11px;color:#5d6c62;line-height:1.5;text-wrap:pretty">Já tem conta? Toque em <strong style="color:#17458F">Entrar</strong> acima — seus saves aparecem na hora.</span>
+      </div>
+
+      <span style="font-size:11px;color:#9aa79e;text-align:center;line-height:1.5;padding:0 8px;text-wrap:pretty">Ao criar a conta você aceita os <a href="#">Termos</a> e a <a href="#">Privacidade</a>.</span>
+    </div>
+
+    <div data-actionbar style="position:sticky;bottom:0;z-index:20;background:#fff;border-top:1px solid #dde7db;padding:12px 16px calc(16px + env(safe-area-inset-bottom));display:grid;grid-template-columns:minmax(0,1fr);gap:8px;box-sizing:border-box;box-shadow:0 -8px 20px -14px rgba(20,33,26,.35)">
+      <span style="min-width:0;height:48px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer;animation:ctaPulse 2.4s ease-in-out infinite" style-hover="background:#ffcb2e;animation:none">Criar conta e continuar</span>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+</body>
+</html>

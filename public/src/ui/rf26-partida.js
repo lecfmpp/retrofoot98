@@ -499,7 +499,12 @@ function rfPosRodadaHTML(){
         <div class="rf-card"><span class="rf-label-t">O que mudou para você</span>${mudou}</div>
       </div>
     </div>`,
-    acoes:`<button type="button" class="rf-ov-b2" onclick="rfPrTodas()">${rfIcone('trofeu',16)} Ver todas as divisões</button>
+    /* No telemovel o rotulo encurta para os dois botoes caberem NA MESMA LINHA:
+       "Ver todas as divisoes" ao lado de "Continuar" empilhava a barra em duas
+       linhas e ela passava a comer 200px do ecra (regra do pacote da barra
+       fixa: encurta-se o rotulo, nunca a barra). */
+    acoes:`<button type="button" class="rf-ov-b2" onclick="rfPrTodas()">${rfIcone('trofeu',16)}
+        <span class="rf-so-desktop">Ver todas as divisões</span><span class="rf-so-mobile">Divisões</span></button>
       <div class="rf-sp"></div>
       <button type="button" class="rf-ov-cta" onclick="rfPrContinuar()">Continuar</button>`
   });
