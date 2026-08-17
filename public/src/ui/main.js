@@ -384,6 +384,10 @@ function menuSairHTML(){
 function adSlotHTML(slot, opts){
   opts = typeof opts==='string' ? {cls:opts} : (opts||{});
   if(window.ADS){ const real=ADS.html(slot, {cls:'cl-ad '+(opts.cls||'')}); if(real) return real; }
+  /* espaco de venda (chave rf98.*) sem criativo: mostra o LUGAR, nao o anuncio-casa — e o
+     inventario que o painel vende, e ele tem de ser visivel para se poder conferir */
+  if(/^rf98\./.test(String(slot||'')) && typeof rfAdEspaco==='function')
+    return rfAdEspaco(slot, {cls:'cl-ad '+(opts.cls||''), formato:opts.formato||'728×90'});
   const i=Math.abs(hashC(String(slot||'')))%AD_SPONSORS.length;
   const s=AD_SPONSORS[i];
   return `<div class="cl-ad ${opts.cls||''}" data-ad-slot="${escC(slot||'')}">
@@ -3539,7 +3543,7 @@ function scMain(){
           trofeu:(nm&&nm.kind==='cup')?(trophyImg(nm.cupKey,13)||'🏆'):'',
           dia:(nm&&shortMatchDate(nm))||'', season:S.season, chip:th.bg2})}
         <div class="cl-panel">${panel}</div>
-        ${window.ADS?ADS.html('rf98.hub.sidebar',{cls:'rf-ad-rect'}):''}
+        ${rfAdEspaco('rf98.hub.sidebar',{cls:'rf-ad-rect',formato:'300×250'})}
         ${tabBar}
       </div>
     </div>
@@ -3551,7 +3555,7 @@ function scMain(){
    criativo publicado, e no telefone o CSS sobe a faixa para cima da barra de abas em vez
    de a tapar (ver .rf-anchor em main.css). */
 function anchorAdHTML(){
-  return window.ADS ? ADS.html('rf98.anchor.bottom', {cls:'rf-anchor'}) : '';
+  return rfAdEspaco('rf98.anchor.bottom', {cls:'rf-anchor', formato:'970×90'});
 }
 /* cabeçalho fixo das colunas do elenco — precisa ficar em sincronia com o grid-template-columns
    de .cl-rrow (main.css): T/R · Pos · Nome · Idade · Força · Salário. Sem isto o usuário via 6
@@ -7203,7 +7207,7 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
     ${RL.pens ? '' : `<div class="cl-live-clock" id="cl-liveclock" style="--pct:${liveClockPct(RL)}">${RL.extraStartMinute!=null?'<span class="cl-live-clock-lbl">PRORR.</span>':''}</div>`}
     ${shootoutBoard}
     ${groups}
-    ${window.ADS?ADS.html('rf98.live.inline',{cls:'rf-ad-inline'}):''}
+    ${rfAdEspaco('rf98.live.inline',{cls:'rf-ad-inline',formato:'468×60'})}
     ${camAberto?camaroteHTML(userMatch):''}
     ${RL.sel!=null?`<div class="cl-live-overlay"><div class="cl-live-modal" id="cl-livemodal">${liveModalHTML(RL.matches[RL.sel])}</div></div>`:''}
   </div>`;
@@ -10182,7 +10186,7 @@ function clInviteResenha(){ CL.menu=null; if(!CL.online){ toastC('Modo Resenha r
   const link=(typeof NET!=='undefined')?NET.inviteLink():'';
   // rf98.resenha.invite (1200×630): o cartão que acompanha o convite partilhado. Aqui ele
   // aparece como pré-visualização do que o amigo vai receber — vazio, o modal fica igual.
-  const cartao = window.ADS ? ADS.html('rf98.resenha.invite', {cls:'rf-ad-card'}) : '';
+  const cartao = rfAdEspaco('rf98.resenha.invite', {cls:'rf-ad-card', formato:'1200×630'});
   overlayC(dlg('Chamar pra Resenha', `<div class="cl-invres">
     <div class="cl-invres-msg">Convide amigos para assumir times de CPU nesta partida. Eles entrarão agora mesmo na sua sala de jogo.</div>
     ${cartao}

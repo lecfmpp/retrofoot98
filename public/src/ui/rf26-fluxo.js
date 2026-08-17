@@ -107,7 +107,7 @@ function rfCarregandoHTML(){
   const pct=CL._loadPct||0;
   const atual=RF_LOAD_ETAPAS.find(e=>pct<e.ate)||RF_LOAD_ETAPAS[RF_LOAD_ETAPAS.length-1];
   const dica=RF_LOAD_DICAS[Math.abs(pct)%RF_LOAD_DICAS.length];
-  const splash=window.ADS?ADS.html('rf98.loading.splash',{cls:'rf-ad-splash'}):'';
+  const splash=rfAdEspaco('rf98.loading.splash',{cls:'rf-ad-splash',formato:'16:9'});
   const corpo=`
     <div class="rf-wiz-mid">
       ${splash}

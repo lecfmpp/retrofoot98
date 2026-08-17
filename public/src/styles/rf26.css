@@ -520,8 +520,13 @@
    ao vivo e Camarote), que são tomadas de tela cheia com desenho próprio. Na
    área logada eles saíram: o painel usa a largura toda e a publicidade passa a
    morar dentro da página. */
-@media (max-width:1928px){ [data-ad-rail="right"]{display:none} }
-@media (max-width:1754px){ [data-ad-rail]{display:none} }
+/* ===== OS TRILHOS CABIAM SO EM MONITOR 4K =====
+   O direito so aparecia acima de 1928px e ambos sumiam abaixo de 1754px: na pratica quase
+   ninguem via o par, e a tela ficava torta (conteudo empurrado para a esquerda com um trilho
+   so). Os pontos de corte passam a ser a largura que o par de facto precisa -- 160+160 de
+   trilho, 24 de folga cada lado e a coluna de conteudo. */
+@media (max-width:1420px){ [data-ad-rail="right"]{display:none} }
+@media (max-width:1180px){ [data-ad-rail]{display:none} }
 
 @media (max-width:1024px){
   .rf-band{flex-wrap:wrap;row-gap:12px}
@@ -2445,7 +2450,7 @@
 .rf-lv-min{font-family:var(--font-mono);font-size:12px;font-weight:var(--fw-semibold);
   color:var(--brand-primary,#17458F);text-align:right}
 
-@media (max-width:1560px){ .rf-lv-env [data-ad-rail="right"]{display:none} }
+@media (max-width:1420px){ .rf-lv-env [data-ad-rail="right"]{display:none} }
 @media (max-width:1320px){ .rf-lv-env [data-ad-rail]{display:none} }
 /* ----- ABAIXO DO DESKTOP A FAIXA JA SIMPLIFICA -----
    Entre o telefone e o desktop a faixa era um flex de seis pecas com
@@ -2953,7 +2958,7 @@
 .rf-cam-rodape{display:flex;align-items:center;justify-content:space-between;gap:12px;
   color:var(--text-4);font-size:var(--fs-caption)}
 
-@media (max-width:1560px){ .rf-cam-env [data-ad-rail="right"]{display:none} }
+@media (max-width:1420px){ .rf-cam-env [data-ad-rail="right"]{display:none} }
 @media (max-width:1320px){ .rf-cam-env [data-ad-rail]{display:none} }
 /* A faixa do Camarote simplifica junto com a da rodada: abaixo do desktop
    a nota "os outros jogos seguem rolando ao fundo" sai, e o nome da
@@ -7418,3 +7423,38 @@
   font-family:var(--font-mono,monospace);font-size:11px;font-weight:700;
   background:var(--club-secondary,#F2B90C);color:var(--club-on-secondary,#17458F);
   border-radius:var(--r-pill,999px);padding:2px 8px;line-height:1.5}
+
+
+/* ===== MARCADOR DE ESPAÇO PUBLICITÁRIO =====
+   O lugar do anúncio fica à vista mesmo sem criativo publicado (ver rfAdEspaco).
+   Herda a medida da classe do espaço — aqui só entram a moldura e o rótulo. */
+.rf-adph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  background:var(--surface-sunken);border:1px dashed var(--line-2);border-radius:var(--r-inner,12px);
+  box-sizing:border-box;overflow:hidden;min-height:44px}
+.rf-adph-l{font-size:var(--fs-label-xs,9px);letter-spacing:var(--ls-label,.12em);
+  color:var(--text-faint,#9aa79e);text-transform:uppercase;font-family:var(--font-mono,monospace)}
+.rf-adph-f{font-family:var(--font-mono,monospace);font-size:10px;color:var(--text-4,#9aa79e);opacity:.75}
+/* cada espaço com a sua medida, para o marcador ocupar EXATAMENTE o que o anúncio vai ocupar */
+.rf-adph.rf-ad-top{width:100%;height:90px}
+.rf-adph.rf-ad-slot{width:160px;height:600px}
+.rf-adph.rf-ad-rect{width:100%;max-width:300px;height:250px;margin:8px auto 0}
+.rf-adph.rf-ad-inline{width:100%;max-width:468px;height:60px;margin:10px auto}
+.rf-adph.rf-ad-splash,.rf-adph.rf-ad-card{width:100%;max-width:520px;aspect-ratio:16/9;margin:14px auto}
+.rf-adph.cl-ad{width:100%;max-width:728px;height:90px;margin:12px auto 0;background:var(--surface-sunken)}
+.rf-adph.rf-anchor{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:44;
+  width:min(970px,100vw);height:90px;border-radius:var(--r-inner,12px) var(--r-inner,12px) 0 0;
+  border-bottom:none;padding-bottom:env(safe-area-inset-bottom,0px)}
+/* A FAIXA ANCORA RESERVA O PROPRIO ESPACO. Ela e `fixed`: sem isto tapava a ultima linha de
+   qualquer tabela e o rodape da pagina. A pele antiga ja reservava para as telas dela
+   (.cl-wrap/.cl-lp-page); o envelope novo rola por dentro de .rf-content. */
+body.rf-tem-anchor .rf-content{padding-bottom:106px}
+@media (max-width:760px){
+  .rf-adph.rf-anchor{width:100vw;height:50px}   /* 320×50 é o formato de telefone */
+  .rf-adph.rf-ad-top{height:100px}
+  /* No telefone a barra de navegacao ja mora no rodape: a ancora fica ACIMA dela. A conta e a
+     altura real da nav — conteudo (47px) + o padding de baixo (12px) + a area segura do
+     aparelho, que a propria nav ja soma. Medida no telefone: 67px sem area segura. */
+  .rf-adph.rf-anchor,.rf-anchor{bottom:calc(67px + env(safe-area-inset-bottom,0px))}
+  body.rf-tem-anchor .rf-content{padding-bottom:calc(130px + env(safe-area-inset-bottom,0px))}
+  body.rf-tem-anchor .rf-bottomnav{bottom:0}
+}

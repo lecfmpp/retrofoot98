@@ -668,11 +668,29 @@ function rfIrEscolherTatica(){
 }
 
 
+/* =====================================================================
+   ESPAÇO DE PUBLICIDADE — com o criativo real ou com o lugar dele à vista
+   ---------------------------------------------------------------------
+   A regra antiga era "espaço sem criativo NÃO é desenhado": enquanto ninguém
+   publicasse, o espaço não existia. O efeito é que oito dos dez espaços do
+   jogo eram invisíveis — não dava para ver o inventário nem conferir se ele
+   cabe no desenho. Agora o espaço aparece SEMPRE: com a arte quando há
+   criativo publicado, e com o marcador do formato quando não há.
+   `formato` é só rótulo (o tamanho vem do CSS da classe), e serve para quem
+   está a montar a campanha saber o que aquele lugar pede.
+   ===================================================================== */
+function rfAdEspaco(chave, opts){
+  opts=opts||{};
+  const real=window.ADS?ADS.html(chave,{cls:opts.cls||''}):'';
+  if(real) return real;
+  return `<div class="rf-adph ${opts.cls||''}" data-ad-vazio="${escC(chave)}">
+    <span class="rf-adph-l">Publicidade</span>
+    ${opts.formato?`<span class="rf-adph-f">${escC(opts.formato)}</span>`:''}
+  </div>`;
+}
 /* trilhos de publicidade — ficam FORA da coluna de conteúdo e somem antes dela */
 function rfRail(lado){
-  const slot='rf98.rail.'+lado;
-  const real=window.ADS?ADS.html(slot,{cls:'rf-ad-slot'}):'';
-  return `<div data-ad-rail="${lado}">${real||`<div class="rf-ad-slot"><span class="rf-ad-lbl">Publicidade</span></div>`}</div>`;
+  return `<div data-ad-rail="${lado}">${rfAdEspaco('rf98.rail.'+lado,{cls:'rf-ad-slot',formato:'160×600'})}</div>`;
 }
 /* =====================================================================
    IDENTIDADE DA COMPETIÇÃO — troféu, nome e paleta
@@ -764,8 +782,7 @@ function rfCompMeta(info){
 }
 
 function rfTopAd(){
-  const real=window.ADS?ADS.html('rf98.top.970x90',{cls:'rf-ad-top'}):'';
-  return real||`<div class="rf-ad-top"><span class="rf-ad-lbl">Publicidade</span></div>`;
+  return rfAdEspaco('rf98.top.970x90',{cls:'rf-ad-top',formato:'970×90'});
 }
 
 /* O ENVELOPE — painel, não cápsula.
@@ -791,6 +808,7 @@ function rfEnvelope(conteudo){
       </div>
     </main>
     ${rfBottomNavHTML()}
+    ${rfAdEspaco('rf98.anchor.bottom',{cls:'rf-anchor',formato:'970×90 · 320×50'})}
     ${typeof rfAcaoHTML==='function'?rfAcaoHTML():''}
   </div>`;
 }
@@ -853,7 +871,11 @@ function rfHubHTML(){
         'var(--brand-primary)', moralTipText())}
       ${rfSegurancaHTML()}
     </div>
-    <div class="rf-card rf-card-grow" data-hub="classificacao">${rfClassifHTML()}</div>`;
+    <div class="rf-card rf-card-grow" data-hub="classificacao">${rfClassifHTML()}</div>
+    <!-- data-hub e o que o telefone usa para mostrar um bloco de cada vez (abas do Hub). Sem
+         ele o retangulo aparecia SEMPRE, encaixado entre o cabecalho do clube e as formacoes —
+         no meio do caminho de quem so queria escalar. Vai junto da classificacao. -->
+    <div data-hub="classificacao">${rfAdEspaco('rf98.hub.sidebar',{cls:'rf-ad-rect',formato:'300×250'})}</div>`;
 
   const direita=`
     <!-- AS FORMACOES VEM ANTES DO CAMPO. Trocar de esquema e a decisao mais
