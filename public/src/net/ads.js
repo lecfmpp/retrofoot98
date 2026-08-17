@@ -5,22 +5,29 @@
    aqui o jogo lê o que está no ar e desenha. As chaves são o contrato entre os
    dois lados e estão em elifoot_v3.ad_spaces — nunca renomear de um lado só:
 
-     rf98.anchor.bottom  · faixa fixa no rodapé (abertura + hub)
-     rf98.hub.sidebar    · retângulo 300×250 na coluna direita do hub
+     rf98.top.970x90     · faixa 970×90 no topo de todas as páginas
+     rf98.anchor.bottom  · faixa 970×90 fixa no rodapé (320×50 no telefone)
+     rf98.hub.sidebar    · retângulo 300×250 na coluna do hub
      rf98.match.halftime · modal do intervalo da partida
      rf98.copa.sponsor   · cabeçalho dos modais de copa
      rf98.auction.footer · faixa do modal de leilão
      rf98.loading.splash · tela de carregamento do jogo
-     rf98.live.inline    · faixa entre divisões na partida ao vivo
+     rf98.live.inline    · faixa 468×60 na rodada ao vivo
      rf98.resenha.invite · cartão do convite da Resenha
+     rf98.rail.esq/dir   · trilhos 160×600 da rodada ao vivo e do Camarote
 
    POR QUE FETCH CRU E NÃO O SDK: este arquivo é um <script> clássico que roda
    ANTES do SDK do Supabase estar pronto (ele carrega com async). Uma leitura
    pública de uma tabela com RLS de leitura aberta não precisa de SDK — é um GET
    com a chave publicável, igual ao que o SDK faria.
 
-   REGRA DE OURO: espaço sem criativo NÃO é desenhado. Enquanto os sócios não
-   publicarem nada, o jogo fica exatamente como estava.
+   O ESPAÇO É SEMPRE VISÍVEL (desde ago/2026). A regra era o contrário — espaço
+   sem criativo não era desenhado — e o efeito era que oito das dez chaves não
+   existiam na tela: não dava para ver o inventário nem conferir se ele cabia no
+   desenho. Quem desenha o lugar vazio é rfAdEspaco (ui/rf26.js), com a medida
+   EXATA do anúncio; publicar não mexe no layout, só troca o conteúdo do lugar
+   que já estava reservado. `html()` aqui continua a devolver '' sem criativo —
+   é o chamador que decide o que pôr no lugar.
    ============================================================================ */
 (function(){
 'use strict';
