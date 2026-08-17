@@ -8904,6 +8904,20 @@ function updateLive(){ const RL=CL.live; if(!RL) return;
       const fa=document.querySelector('#rf-lv-fa-'+i); if(fa) fa.innerHTML=rfLvFatosHTML(f.fora,'dir');
     } });
   if(RL.sel!=null){ const box=document.querySelector('#cl-livemodal'); if(box) box.innerHTML=liveModalHTML(RL.matches[RL.sel]); }
+  /* O RELOGIO DA RODADA, na faixa do topo. Era escrito so no desenho da tela e
+     nunca mais tocado: o updateLive remendava o minuto de CADA JOGO mas nao
+     este. Quem joga nao dava por isso — o Camarote tem o seu proprio relogio,
+     que camUpdate atualiza. Mas quem SO ASSISTE nao tem partida com m.user,
+     entao camMatch() devolve undefined, camUpdate() sai na primeira linha, e
+     nenhum relogio andava na tela. Era o relatado: "o relogio nao anda quando
+     o usuario so assiste". Agora a faixa e remendada sempre. */
+  if(RL){
+    const mn=(RL.minute!=null?RL.minute:0);
+    const el=document.querySelector('#rf-lv-min');
+    if(el){ const txt=mn+"'"; if(el.textContent!==txt) el.textContent=txt; }
+    const anel=document.querySelector('#rf-lv-anel');
+    if(anel && typeof liveClockPct==='function') anel.style.setProperty('--pct', String(liveClockPct(RL)));
+  }
   camUpdate(); // Modo Camarote: relógio, placar, barra de pressão, narração e estatística
 }
 function lastIncidentTxt(inc){

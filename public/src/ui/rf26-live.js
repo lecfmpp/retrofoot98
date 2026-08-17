@@ -112,7 +112,9 @@ function rfLvFaixaHTML(RL){
       <span class="rf-lv-sl">Jogos em andamento</span>
       <span class="rf-lv-sv">${(RL.matches||[]).length}</span>
     </div>
-    <div class="rf-lv-relogio" style="--pct:${pct}"><span>${min}'</span></div>
+    <!-- ids para o updateLive remendar sem redesenhar a faixa toda: quem so
+         ASSISTE nao tinha relogio nenhum a andar (ver updateLive) -->
+    <div class="rf-lv-relogio" id="rf-lv-anel" style="--pct:${pct}"><span id="rf-lv-min">${min}'</span></div>
     <div class="rf-lv-stat end">
       <span class="rf-lv-sl">${escC(periodo)}</span>
       <span class="rf-lv-sh">${meu?('seu jogo: '+(meu.hg||0)+' × '+(meu.ag||0)):'sem jogo seu'}</span>
