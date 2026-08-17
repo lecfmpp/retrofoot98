@@ -91,12 +91,11 @@ function rfMkFechaEm(roundsLeft){
   if(d) return d;
   return roundsLeft+(roundsLeft===1?' rodada':' rodadas');
 }
+/* mesma fonte unica do calendario (ver dataCurtaDaJornada). Tinha aqui a sua
+   propria conta `1+i*7+6`, que e a da LIGA — e por isso o mercado e o
+   calendario podiam discordar se uma delas mudasse. */
 function rfMkDataDaJornada(i){
-  if(typeof realDateForDay!=='function') return '';
-  try{
-    const d=realDateForDay(1 + i*7 + 6);
-    return d.getDate()+'/'+((typeof PT_MONTHS_ABBR!=='undefined')?PT_MONTHS_ABBR[d.getMonth()]:(d.getMonth()+1));
-  }catch(e){ return ''; }
+  return (typeof dataCurtaDaJornada==='function') ? dataCurtaDaJornada(i, 'liga') : '';
 }
 function rfMkClube(id){
   const c=anyClubOf(id)||{short:'—'};

@@ -1832,6 +1832,38 @@ function cupMatchDay(key, jornada){
   return d;
 }
 const PT_MONTHS_ABBR=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+/* ====================== A DATA DE UMA JORNADA — FONTE ÚNICA ======================
+   Havia TRÊS contas diferentes de "que dia é" espalhadas pelo jogo, e a mesma
+   jornada dava três datas: a faixa do clube mostrava `S.day` cru (1/mar — o
+   INÍCIO da semana), o calendário da liga fazia `1+i*7+6` (7/mar) e o de copa
+   `1+i*7+3` (4/mar). Quem olhava para o elenco e depois para o calendário via
+   dois dias diferentes para o mesmo jogo.
+
+   E TODAS AS COPAS USAVAM O MESMO +3. No calendário de um save real há 11
+   jornadas com mais de uma copa — três delas com AS TRÊS —, e como a conta
+   ignorava qual era a competição, saíam todas no mesmo dia. No futebol de
+   verdade essas partidas dividem-se pela semana: por isso cada competição tem
+   agora o seu dia dentro da jornada.
+
+   Uma jornada é uma SEMANA (S.day += 7 por rodada, ver playRound). O dia 0 da
+   semana i é `1 + i*7`; o deslocamento abaixo escolhe o dia dentro dela. */
+const DIA_DA_COMPETICAO = { liga:6, copaBrasil:2, libertadores:3, sulamericana:4, _copa:3 };
+function diaDaJornada(i, comp){
+  const off = (comp && DIA_DA_COMPETICAO[comp]!=null) ? DIA_DA_COMPETICAO[comp]
+            : (comp ? DIA_DA_COMPETICAO._copa : DIA_DA_COMPETICAO.liga);
+  return 1 + (i||0)*7 + off;
+}
+/* a data real (Date) da jornada i de uma competição — 'liga' quando omitida */
+function dataDaJornada(i, comp){
+  if(typeof realDateForDay!=='function') return null;
+  try{ return realDateForDay(diaDaJornada(i, comp)); }catch(e){ return null; }
+}
+/* "7/mar" — o formato curto que o calendário, o mercado e a faixa usam */
+function dataCurtaDaJornada(i, comp){
+  const d=dataDaJornada(i, comp);
+  return d ? (d.getDate()+'/'+PT_MONTHS_ABBR[d.getMonth()]) : '';
+}
 function fmtRealDate(d){ return `${d.getDate()} de ${PT_MONTHS_ABBR[d.getMonth()]}`; }
 /* data real do sorteio do MATA-MATA (oitavas) por competição, na temporada 2026:
    CONMEBOL sorteou as oitavas em 29/mai; UEFA (Champions/Europa) sorteia as oitavas em

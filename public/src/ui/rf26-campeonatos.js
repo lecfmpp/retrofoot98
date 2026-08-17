@@ -157,12 +157,12 @@ function rfCpMinhasHTML(){
    O motor não guarda data por jornada — ele deriva do dia do calendário
    (7 dias por rodada, ver shortMatchDate), então a conta é a mesma aqui. */
 const RF_CP_CAL_COLS='46px 54px 22px minmax(0,1.4fr) minmax(62px,.5fr) minmax(62px,.5fr) 34px';
+/* delega na fonte unica (dataCurtaDaJornada, engine/core.js). `copa` deixou de
+   ser um booleano: e a CHAVE da competicao ('copaBrasil', 'libertadores', ...),
+   porque cada uma tem o seu dia dentro da semana — antes as tres caiam no mesmo
+   dia sempre que partilhavam a jornada, e isso acontece 11 vezes por temporada. */
 function rfCpDataDaJornada(i, copa){
-  if(typeof realDateForDay!=='function') return '';
-  try{
-    const d=realDateForDay(1 + i*7 + (copa?3:6));
-    return d.getDate()+'/'+((typeof PT_MONTHS_ABBR!=='undefined')?PT_MONTHS_ABBR[d.getMonth()]:(d.getMonth()+1));
-  }catch(e){ return ''; }
+  return (typeof dataCurtaDaJornada==='function') ? dataCurtaDaJornada(i, copa||'liga') : '';
 }
 function rfCpCalendarioHTML(){
   const sched=S.sched||[];

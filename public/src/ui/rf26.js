@@ -336,13 +336,12 @@ function rfBandHTML(titulo){
    dado estavel e o dia muda a cada jornada: separados, o olho volta sempre
    ao mesmo sitio para cada um. */
 function rfBandDataHTML(){
+  /* A DATA DA JORNADA, nao o S.day cru. S.day e o INICIO da semana (1/mar na
+     jornada 0) e o jogo e no fim dela (7/mar) — o chip dizia um dia e o
+     calendario outro, para a mesma rodada. Agora os dois saem da mesma conta. */
   let dia='';
   try{
-    if(typeof realDateForDay==='function'){
-      const d=realDateForDay(S.day||1);
-      const mes=(typeof PT_MONTHS_ABBR!=='undefined')?PT_MONTHS_ABBR[d.getMonth()]:(d.getMonth()+1);
-      dia=d.getDate()+'/'+mes;
-    }
+    if(typeof dataCurtaDaJornada==='function') dia=dataCurtaDaJornada(S.round||0,'liga');
   }catch(e){}
   return `${dia?`<span class="rf-band-chip rf-num">${escC(dia)}</span>`:''}
     <span class="rf-band-chip rf-num">${escC(String(S.season||''))}</span>`;
