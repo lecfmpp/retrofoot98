@@ -93,68 +93,9 @@ function rfLvFatosDeJogo(m){
            fora:inc.filter(x=>lado(x)==='A').map(rfLvIncToFato) };
 }
 
-/* =====================================================================
-   IDENTIDADE DA COMPETIÇÃO — troféu, nome e paleta
-   ---------------------------------------------------------------------
-   A tela não dizia QUAL competição estava a rolar: oito jogos a correr e
-   o cabeçalho a dizer só "Rodada ao vivo". Agora o troféu real abre a
-   faixa, o nome vem por extenso e a paleta muda POR COMPETIÇÃO — nunca
-   por clube. As ligas nacionais ficam com o azul e o amarelo da marca
-   (vale para o Brasil, a Argentina ou Portugal); só as copas ganham cor
-   própria, e nelas todo controlo sobre o cabeçalho vira pílula branca
-   sólida, porque branco translúcido sobre dourado dá 3,3:1 e um controlo
-   precisa de 4,5:1.
-   ===================================================================== */
-const RF_COMP_TEMA={copaBrasil:'copa',libertadores:'liberta',sulamericana:'sula',
-  championsLeague:'liberta',europaLeague:'sula'};
-/* O TROFÉU AQUI VEM DO ARQUIVO, NÃO DO TROPHIES. A arte embutida em
-   data/trophies.js é achatada — fundo preto na Série A e na Libertadores,
-   branco na Série D — e por cima do degradê do cabeçalho ela aparecia como
-   um quadrado. Os .webp de public/img/trofeus/ têm alfa e recortam. */
-const RF_COMP_TROFEU={A:'serie-a',B:'serie-b',C:'serie-c',D:'serie-d',
-  copaBrasil:'copa-do-brasil',libertadores:'libertadores',sulamericana:'sul-americana',
-  championsLeague:'champions',europaLeague:'europa-league'};
-
-function rfCompInfo(d){
-  const comp=(typeof COMPETICOES!=='undefined')?COMPETICOES[d]:null;
-  if(comp) return {id:d,copa:true,tema:RF_COMP_TEMA[d]||'liga',trofeu:RF_COMP_TROFEU[d]||'',
-    nome:comp.name||comp.short||String(d), curto:comp.short||comp.name||String(d)};
-  const nome=(typeof divisionLabelOf==='function')?divisionLabelOf(d):('Série '+d);
-  return {id:d,copa:false,tema:'liga',trofeu:RF_COMP_TROFEU[d]||'', nome, curto:nome};
-}
-/* TROFÉU É ARTE REAL (public/img/trofeus). Onde a arte daquela competição
-   não existe — as ligas de fora do Brasil, por exemplo — o espaço fica
-   vazio, nunca um emoji nem o escudo de um clube. */
-function rfCompTrofeuHTML(info,size){
-  size=size||44;
-  if(!info||!info.trofeu) return '';
-  return `<span class="rf-comp-trofeu" style="--s:${size}px"
-    ><img src="img/trofeus/${escC(info.trofeu)}.webp" alt="" draggable="false"></span>`;
-}
-/* quantos clubes tem aquela divisão, pela configuração do universo do save */
-function rfCompTamanho(d){
-  const k=(typeof ACTIVE_UNI!=='undefined')?ACTIVE_UNI:null;
-  const cfg=(typeof UNI_CONFIGS!=='undefined'&&k)?UNI_CONFIGS[k]:null;
-  const n=cfg&&cfg.size&&cfg.size[d];
-  return n?(n+' clubes'):'';
-}
-/* a fase corrente de uma copa, do mesmo sítio de onde a tela Campeonatos a lê */
-function rfCompFase(info){
-  const c=(typeof S!=='undefined'&&S.cups)?S.cups[info.id]:null;
-  return (c&&typeof cupCompetitionRoundLabel==='function')?cupCompetitionRoundLabel(c,info.id):'';
-}
-/* a linha por baixo do nome: onde a competição está agora */
-function rfCompLinha(info,RL){
-  RL=RL||CL.live||{};
-  const temporada=(typeof S!=='undefined'&&S.season)?String(S.season):'';
-  if(info.copa) return [rfCompFase(info),temporada].filter(Boolean).join(' · ');
-  const jor=RL.jornada||(((typeof S!=='undefined'&&S.round)||0)+1);
-  return [jor+'ª rodada',temporada,rfCompTamanho(info.id)].filter(Boolean).join(' · ');
-}
-/* o segundo andar da pastilha do trilho */
-function rfCompMeta(info){
-  return info.copa?rfCompFase(info):rfCompTamanho(info.id);
-}
+/* A identidade da competicao (tema, trofeu, nome, linha) vive em rf26.js:
+   e usada pela rodada ao vivo, pelo Camarote, pelos Campeonatos e por todas
+   as telas de palco de competicao. */
 
 /* ---- o trilho de competições ----
    Uma pastilha por competição EM JOGO nesta rodada, na mesma ordem dos

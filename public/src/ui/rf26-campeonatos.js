@@ -72,7 +72,7 @@ function rfCpCards(){
   const cards=[];
   const pos=rfMinhaPosicao(), total=Object.keys(S.table||{}).length;
   const t=(S.table&&S.table[CL.clubId])||{Pts:0,P:0};
-  cards.push({ trofeu:'serie'+(S.division||'D'),
+  cards.push({ chave:S.division, trofeu:'serie'+(S.division||'D'),
     nome:classifDivName(S.division),
     linha1: pos? (pos+'º de '+total) : 'a começar',
     linha2: (t.Pts||0)+' pontos em '+(t.P||0)+' jogos',
@@ -85,7 +85,7 @@ function rfCpCards(){
     const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[k])||{};
     const vivo=(typeof cupCompetitionTeamAlive==='function')&&cupCompetitionTeamAlive(c,CL.clubId);
     const campeao=(typeof cupCompetitionChampion==='function')?cupCompetitionChampion(c):null;
-    cards.push({ trofeu:k, nome:def.name||k,
+    cards.push({ chave:k, trofeu:k, nome:def.name||k,
       linha1:(typeof cupCompetitionRoundLabel==='function'&&cupCompetitionRoundLabel(c,k))||'—',
       linha2: campeao===CL.clubId ? 'campeão' : (vivo?'na disputa':'fora da competição'),
       selo: campeao===CL.clubId?'CAMPEÃO':(vivo?'NA DISPUTA':'ELIMINADO'),
@@ -110,10 +110,13 @@ function rfCpMinhasHTML(){
     if(!c) return true;               // nem existe neste save
     return !rfCpInscrito(k,c);        // existe, mas o clube não foi sorteado nela
   });
+  /* CADA CARTAO NA COR DA SUA COMPETICAO (ver rfCompInfo): a mesma tinta que a
+     rodada ao vivo, o Camarote e o palco de fim de fase usam. E o que faz a
+     grade dizer "Libertadores" antes de o utilizador ler o nome. */
   const grade=`<div class="rf-cp-cards">${cards.map(c=>`
-    <div class="rf-card rf-cp-card">
+    <div class="rf-card rf-cp-card rf-tema" data-tema="${escC(rfCompTemaDe(c.chave))}">
       <div class="rf-cp-card-hd">
-        ${rfTrofeuHTML(c.trofeu,64)}
+        ${rfCompTrofeuHTML(rfCompInfo(c.chave),56)}
         <div class="rf-cp-card-id">
           <span class="rf-cp-card-n">${escC(c.nome)}</span>
           <span class="rf-cp-card-1">${escC(c.linha1)}</span>
@@ -194,7 +197,7 @@ function rfCpCalendarioHTML(){
   const grupo=(typeof myGroupLabel==='function')?myGroupLabel():'';
   return `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_CP_CAL_COLS}">
       <div class="rf-label">
-        <span class="rf-label-t">${escC(classifDivName(S.division))}${grupo?' · '+escC(grupo):''}</span>
+        <span class="rf-label-t">${rfCompTagHTML(S.division)}${grupo?' <i class="rf-cp-grupo">'+escC(grupo)+'</i>':''}</span>
         <span class="rf-label-r">${(S.round||0)} de ${sched.length||14} jornadas</span></div>
       ${cab}
       ${rfLista('cal-liga', jogos, 'O calendário ainda não foi sorteado.')}

@@ -21,13 +21,21 @@
    ===================================================================== */
 
 /* ---- envelope 1: sobreposição sobre o gramado ---- */
+/* `comp` PINTA A TELA COM A COR DA COMPETICAO. Sem ele o cabecalho e o degrade
+   do CLUBE, o que esta certo para uma tela do clube (substituicao, lesao) e
+   errado para uma tela da COMPETICAO: a Libertadores tinha de ser dourada em
+   todo lado, e nao azul aqui e dourada na rodada ao vivo. Ver rfCompInfo. */
 function rfOverlay(o){
   o=o||{};
-  return `<div class="rf-ov ${o.cls||''}">
+  const tema=o.comp?` rf-tema" data-tema="${escC(rfCompTemaDe(o.comp))}`:'';
+  const trofeu=o.comp&&typeof rfCompTrofeuHTML==='function'
+    ? rfCompTrofeuHTML(rfCompInfo(o.comp),34) : '';
+  return `<div class="rf-ov ${o.cls||''}${tema}">
     <div class="rf-ov-faixas" aria-hidden="true"></div>
     <div class="rf-ov-win" style="${o.w?`width:${o.w}px`:''}" onclick="event.stopPropagation()">
       <div class="rf-ov-hd">
         <div class="rf-band-filete"></div>
+        ${trofeu}
         <div class="rf-ov-ttl">
           <span class="rf-ov-eyebrow">${escC(o.contexto||'')}</span>
           <span class="rf-ov-t">${escC(o.titulo||'')}</span>
@@ -61,11 +69,17 @@ function rfSubsPillsHTML(usadas,total){
 function rfStage(o){
   o=o||{};
   const cl=clubOf(CL.clubId)||{short:'—'};
-  return `<div class="rf-stg">
+  /* mesma regra do rfOverlay: tela DA COMPETICAO usa a cor e o trofeu dela, e
+     o escudo do clube sai do cabecalho -- quem manda ali e o torneio. */
+  const tema=o.comp?` rf-tema" data-tema="${escC(rfCompTemaDe(o.comp))}`:'';
+  const marca=o.comp
+    ? (typeof rfCompTrofeuHTML==='function'?rfCompTrofeuHTML(rfCompInfo(o.comp),40):'')
+    : (o.semEscudo?'':`<span class="rf-stg-crest">${rfCrest(o.crest||cl,38)}</span>`);
+  return `<div class="rf-stg${tema}">
     <div class="rf-stg-in" style="${o.w?`width:${o.w}px`:''}">
       <div class="rf-stg-hd">
         <div class="rf-band-filete"></div>
-        ${o.semEscudo?'':`<span class="rf-stg-crest">${rfCrest(o.crest||cl,38)}</span>`}
+        ${marca}
         <div class="rf-ov-ttl">
           <span class="rf-ov-eyebrow">${escC(o.contexto||'')}</span>
           <span class="rf-stg-t">${escC(o.titulo||'')}</span>
@@ -485,7 +499,7 @@ function rfPosRodadaHTML(){
     </div>`;
 
   return rfStage({
-    w:1080,
+    w:1080, comp:S.division,
     contexto:`${(S.round||0)}ª jornada encerrada · ${classifDivName(S.division)} ${S.season||''}`,
     titulo:'Como ficou a tabela',
     corpo:`<div class="rf-pr-cols">

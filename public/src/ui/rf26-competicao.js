@@ -64,7 +64,8 @@ function rfFimTemporadaHTML(sum){
     demitido:'Fim de ciclo no '+cl.short+'.'}[d];
 
   return rfStage({
-    w:1080, contexto:`${classifDivName(S.division)} ${S.season||''} · temporada encerrada`,
+    w:1080, comp:S.division,
+    contexto:`${classifDivName(S.division)} ${S.season||''} · temporada encerrada`,
     titulo:'Fim da temporada',
     corpo:`<div class="rf-ft-cols">
       <div class="rf-card rf-ft-esq">
@@ -252,7 +253,7 @@ function rfCompeticaoHTML(key){
   const jogos=caminho.length;
 
   return rfStage({
-    w:1080,
+    w:1080, comp:key,
     contexto:`Minhas competições · ${S.season||''}`,
     titulo:def.name||key,
     corpo:`${rfCompAbas(key)}
@@ -371,7 +372,7 @@ function rfCopaFaseHTML(key){
   const adiante=linhas.filter(l=>l.ok===true && l.id!==meu);
 
   return rfStage({
-    w:1020,
+    w:1020, comp:key,
     contexto:`${escC(def.name||key)} ${escC(String(S.season||''))} · ${escC(fase)} encerrada`,
     titulo:proxima?`Quem passou para a ${escC(proxima.toLowerCase())}`:'Quem passou de fase',
     corpo:`<div class="rf-cf-cols">

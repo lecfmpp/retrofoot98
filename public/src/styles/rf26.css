@@ -357,7 +357,15 @@
    1580px de janela: num monitor de 1440, que é o mais comum, o Hub empilhava e
    o campo ia parar abaixo da dobra. Com a esquerda cedendo, cabem lado a lado
    bem antes disso. */
-.rf-cols{display:grid;grid-template-columns:minmax(340px,1fr) auto;gap:14px;align-items:stretch}
+/* DUAS COLUNAS IGUAIS. A direita era `auto`, ou seja, a largura fixa do campo
+   (470 do gramado + 196 do banco = 678px): ela servia-se primeiro e o que
+   sobrava ia para a tabela do elenco -- num monitor de 1360 sobravam ~365px
+   para NOME, ID, FRC, NOTA, ENER e VALOR, e o nome do jogador saia truncado
+   com os numeros encostados. Agora as duas colunas repartem o miolo ao meio e
+   o campo encolhe PROPORCIONALMENTE (ver o `zoom` por degraus mais abaixo):
+   os botoes de formacao, que sao uma grade de 4 dentro da coluna, ficam com
+   metade da largura pelo mesmo motivo. */
+.rf-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:stretch}
 .rf-col{display:flex;flex-direction:column;gap:14px;min-width:0}
 /* Empilha pela largura da COLUNA (ver container-type em .rf-content), não da
    janela — então recolher a sidebar também conta: ela devolve 172px e o campo
@@ -365,8 +373,22 @@
    1130 é a conta, não um número redondo: 340 da coluna mínima da esquerda + 14
    de respiro + 770 do campo (470 do gramado + 196 do banco + folga). Abaixo
    disso a esquerda passaria do mínimo e a grade transbordaria. */
-@container miolo (max-width:1130px){
+/* O CAMPO ENCOLHE POR DEGRAUS, com `zoom` e nao com largura: o gramado posiciona
+   os jogadores em percentagem mas as camisas, os numeros e os nomes sao px --
+   estreitar a caixa amontoava os nomes uns por cima dos outros. O `zoom` reduz
+   a peca inteira e reflui a altura junto, que e o que "proporcional" quer dizer.
+   A conta de cada degrau: (miolo/2 - 40 de respiro) / 678 da peca. */
+@container miolo (max-width:1460px){ .rf-pitch-card .cl-pitch-block{zoom:.96} }
+@container miolo (max-width:1360px){ .rf-pitch-card .cl-pitch-block{zoom:.90} }
+@container miolo (max-width:1260px){ .rf-pitch-card .cl-pitch-block{zoom:.84} }
+@container miolo (max-width:1160px){ .rf-pitch-card .cl-pitch-block{zoom:.76} }
+@container miolo (max-width:1060px){ .rf-pitch-card .cl-pitch-block{zoom:.70} }
+/* Abaixo disto nem com o campo encolhido sobra tabela: empilha. O limite era
+   1130 porque a direita pedia 678px fixos; com as colunas iguais e o campo a
+   encolher, a grade de duas colunas aguenta bem mais abaixo. */
+@container miolo (max-width:980px){
   .rf-cols{grid-template-columns:minmax(0,1fr)}
+  .rf-pitch-card .cl-pitch-block{zoom:1}
 }
 
 /* ----- Abas dentro da página (sub-itens de menu viram aba, nunca página nova) ----- */
@@ -2785,14 +2807,21 @@
 .rf-cam-bolinhas>i.on{background:var(--club-primary)}
 
 /* ----- banda de patrocínio e rodapé ----- */
-.rf-cam-patro{display:flex;align-items:center;gap:16px;background:#12201a;
-  border-radius:var(--r-card);padding:14px 18px}
+/* A BANDA DE PATROCINIO E CLARA. Era #12201a, quase preto: logo de marca vem
+   com fundo branco ou com tinta escura, e nos dois casos desaparecia -- as
+   escuras sumiam no fundo, as claras viravam um retangulo branco a boiar. Num
+   espaco VENDIDO isso e o pior defeito possivel. Agora e a superficie clara da
+   marca, com a linha de sempre, e nenhuma logo entra a cinzento: a que esta na
+   vez ganha destaque por contraste e tamanho, nao por apagar as outras. */
+.rf-cam-patro{display:flex;align-items:center;gap:16px;background:var(--surface-sunken);
+  border:var(--border-hairline);border-radius:var(--r-card);padding:14px 18px}
 .rf-cam-patro-l{flex:0 0 auto;font-size:var(--fs-label);font-weight:var(--fw-bold);
-  letter-spacing:var(--ls-label);color:#8fa896;white-space:nowrap}
+  letter-spacing:var(--ls-label);color:var(--text-4);white-space:nowrap}
 .rf-cam-patro-marcas{flex:1;min-width:0;display:flex;align-items:center;gap:10px;overflow:hidden}
-.rf-cam-ad{flex:0 0 auto;max-height:34px;width:auto;border-radius:var(--r-tag);
-  opacity:.4;filter:grayscale(1);transition:opacity .3s var(--ease),filter .3s var(--ease)}
-.rf-cam-ad.on{opacity:1;filter:none}
+.rf-cam-ad{flex:0 0 auto;max-height:30px;width:auto;border-radius:var(--r-tag);
+  background:var(--surface-card);padding:3px 6px;box-sizing:content-box;
+  opacity:.75;transition:opacity .3s var(--ease),max-height .3s var(--ease),box-shadow .3s var(--ease)}
+.rf-cam-ad.on{opacity:1;max-height:36px;box-shadow:0 2px 10px -4px rgba(20,33,26,.45)}
 .rf-cam-cta{flex:0 0 auto;height:38px;padding:0 18px;border:none;border-radius:11px;
   background:var(--brand-secondary,#F2B90C);color:var(--brand-primary,#17458F);font-family:var(--font-sans);
   font-size:var(--fs-body-sm);font-weight:var(--fw-bold);white-space:nowrap;cursor:pointer}
@@ -3016,6 +3045,38 @@
 .rf-reorg-rec{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);
   color:var(--club-on-secondary);background:var(--club-secondary);border-radius:var(--r-pill);
   padding:3px 9px;white-space:nowrap}
+
+/* =====================================================================
+   TELA DE COMPETICAO: A COR VEM DA COMPETICAO, NAO DO CLUBE
+   O cabecalho do palco e da sobreposicao usa o degrade do clube por omissao.
+   Quando a tela E DA COMPETICAO (classificacao da copa, fim de fase, fim de
+   temporada, sorteio, aviso da competicao), quem manda e o torneio: o mesmo
+   dourado da Libertadores que a rodada ao vivo mostra aparece aqui, e o
+   utilizador reconhece a competicao pela cor antes de ler o titulo.
+   ===================================================================== */
+.rf-ov.rf-tema .rf-ov-hd,.rf-stg.rf-tema .rf-stg-hd{background:var(--cx-grad)}
+.rf-ov.rf-tema .rf-band-filete,.rf-stg.rf-tema .rf-band-filete{background:var(--cx-bar)}
+.rf-ov.rf-tema .rf-ov-eyebrow,.rf-stg.rf-tema .rf-ov-eyebrow{color:var(--cx-kicker)}
+.rf-ov.rf-tema .rf-ov-t,.rf-stg.rf-tema .rf-stg-t{color:var(--cx-ink)}
+.rf-ov.rf-tema .rf-ov-hd .rf-comp-trofeu,
+.rf-stg.rf-tema .rf-stg-hd .rf-comp-trofeu{margin-left:8px}
+/* o cartao de competicao nos Campeonatos: uma fita da cor dela na borda de
+   cima, para a grade toda se ler de relance */
+.rf-cp-card.rf-tema{position:relative;overflow:hidden}
+.rf-cp-card.rf-tema::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;
+  background:var(--cx-grad)}
+.rf-cp-card.rf-tema .rf-cp-card-n{color:var(--cx-tint-ink)}
+/* o cabecalho de tabela/aviso de uma competicao: pastilha com a cor dela */
+.rf-comp-tag{display:inline-flex;align-items:center;gap:7px;min-width:0;
+  background:var(--cx-tint-bg);border:1px solid var(--cx-tint-bd);border-radius:var(--r-pill);
+  padding:4px 11px 4px 5px}
+.rf-comp-tag .rf-comp-trofeu{--s:20px;width:20px;height:20px}
+.rf-comp-tag-n{font-size:var(--fs-caption);font-weight:var(--fw-bold);color:var(--cx-tint-ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* a pastilha vive dentro de um .rf-label-t, que e um rotulo em maiusculas: ali
+   ela nao herda o text-transform nem o letter-spacing do rotulo. */
+.rf-label-t>.rf-comp-tag{text-transform:none;letter-spacing:normal;vertical-align:middle}
+.rf-cp-grupo{font-style:normal;margin-left:8px;color:var(--text-faint)}
 
 /* ----- MOBILE: a janela vira tela cheia e o rodapé gruda embaixo ----- */
 @media (max-width:760px){
@@ -5148,8 +5209,9 @@
   border:1px solid var(--line-2);background:var(--surface-card);color:var(--text-2);
   transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease),
     border-color var(--dur-fast) var(--ease)}
-.rf-comp-chip:hover{border-color:var(--brand-primary);color:var(--brand-primary)}
-.rf-comp-chip.on{background:var(--brand-primary);border-color:var(--brand-primary);color:#fff}
+.rf-comp-chip:hover{border-color:var(--cx-deep,var(--brand-primary));color:var(--cx-deep,var(--brand-primary))}
+/* a pastilha ligada usa o degrade DA COMPETICAO (rf-tema), nao o azul da marca */
+.rf-comp-chip.on{background:var(--cx-grad);border-color:transparent;color:var(--cx-ink)}
 .rf-cl-fill{flex:1}
 .rf-cl-ver{display:flex;align-items:center;justify-content:center;height:36px;
   border:1px solid var(--line-2);border-radius:11px;background:var(--surface-card);

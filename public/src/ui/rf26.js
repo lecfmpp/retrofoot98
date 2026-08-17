@@ -547,6 +547,85 @@ function rfRail(lado){
   const real=window.ADS?ADS.html(slot,{cls:'rf-ad-slot'}):'';
   return `<div data-ad-rail="${lado}">${real||`<div class="rf-ad-slot"><span class="rf-ad-lbl">Publicidade</span></div>`}</div>`;
 }
+/* =====================================================================
+   IDENTIDADE DA COMPETIÇÃO — troféu, nome e paleta
+   ---------------------------------------------------------------------
+   A tela não dizia QUAL competição estava a rolar: oito jogos a correr e
+   o cabeçalho a dizer só "Rodada ao vivo". Agora o troféu real abre a
+   faixa, o nome vem por extenso e a paleta muda POR COMPETIÇÃO — nunca
+   por clube. As ligas nacionais ficam com o azul e o amarelo da marca
+   (vale para o Brasil, a Argentina ou Portugal); só as copas ganham cor
+   própria, e nelas todo controlo sobre o cabeçalho vira pílula branca
+   sólida, porque branco translúcido sobre dourado dá 3,3:1 e um controlo
+   precisa de 4,5:1.
+   ===================================================================== */
+const RF_COMP_TEMA={copaBrasil:'copa',libertadores:'liberta',sulamericana:'sula',
+  championsLeague:'liberta',europaLeague:'sula'};
+/* O TROFÉU AQUI VEM DO ARQUIVO, NÃO DO TROPHIES. A arte embutida em
+   data/trophies.js é achatada — fundo preto na Série A e na Libertadores,
+   branco na Série D — e por cima do degradê do cabeçalho ela aparecia como
+   um quadrado. Os .webp de public/img/trofeus/ têm alfa e recortam. */
+const RF_COMP_TROFEU={A:'serie-a',B:'serie-b',C:'serie-c',D:'serie-d',
+  copaBrasil:'copa-do-brasil',libertadores:'libertadores',sulamericana:'sul-americana',
+  championsLeague:'champions',europaLeague:'europa-league'};
+
+function rfCompInfo(d){
+  const comp=(typeof COMPETICOES!=='undefined')?COMPETICOES[d]:null;
+  if(comp) return {id:d,copa:true,tema:RF_COMP_TEMA[d]||'liga',trofeu:RF_COMP_TROFEU[d]||'',
+    nome:comp.name||comp.short||String(d), curto:comp.short||comp.name||String(d)};
+  const nome=(typeof divisionLabelOf==='function')?divisionLabelOf(d):('Série '+d);
+  return {id:d,copa:false,tema:'liga',trofeu:RF_COMP_TROFEU[d]||'', nome, curto:nome};
+}
+/* TROFÉU É ARTE REAL (public/img/trofeus). Onde a arte daquela competição
+   não existe — as ligas de fora do Brasil, por exemplo — o espaço fica
+   vazio, nunca um emoji nem o escudo de um clube. */
+function rfCompTrofeuHTML(info,size){
+  size=size||44;
+  if(!info||!info.trofeu) return '';
+  return `<span class="rf-comp-trofeu" style="--s:${size}px"
+    ><img src="img/trofeus/${escC(info.trofeu)}.webp" alt="" draggable="false"></span>`;
+}
+/* O ATRIBUTO DE TEMA, pronto a colar na raiz de qualquer tela de competicao.
+   E o que da consistencia: a mesma competicao tem a mesma cor na rodada ao
+   vivo, no Camarote, no cartao dos Campeonatos, na classificacao, no palco de
+   fim de fase e nos avisos dela. */
+/* pastilha da competicao: trofeu + nome, na tinta clara do tema dela. Serve de
+   assinatura em qualquer tabela, aviso ou dialogo que fale de UMA competicao. */
+function rfCompTagHTML(d,rotulo){
+  const info=rfCompInfo(d);
+  return `<span class="rf-tema rf-comp-tag" data-tema="${escC(info.tema)}">
+    ${rfCompTrofeuHTML(info,20)}
+    <span class="rf-comp-tag-n">${escC(rotulo||info.nome)}</span></span>`;
+}
+function rfCompTema(d){ return `rf-tema" data-tema="${escC(rfCompInfo(d).tema)}`; }
+/* idem, mas para quem monta o atributo a mao: devolve so o nome do tema */
+function rfCompTemaDe(d){ return rfCompInfo(d).tema; }
+
+/* quantos clubes tem aquela divisão, pela configuração do universo do save */
+function rfCompTamanho(d){
+  const k=(typeof ACTIVE_UNI!=='undefined')?ACTIVE_UNI:null;
+  const cfg=(typeof UNI_CONFIGS!=='undefined'&&k)?UNI_CONFIGS[k]:null;
+  const n=cfg&&cfg.size&&cfg.size[d];
+  return n?(n+' clubes'):'';
+}
+/* a fase corrente de uma copa, do mesmo sítio de onde a tela Campeonatos a lê */
+function rfCompFase(info){
+  const c=(typeof S!=='undefined'&&S.cups)?S.cups[info.id]:null;
+  return (c&&typeof cupCompetitionRoundLabel==='function')?cupCompetitionRoundLabel(c,info.id):'';
+}
+/* a linha por baixo do nome: onde a competição está agora */
+function rfCompLinha(info,RL){
+  RL=RL||CL.live||{};
+  const temporada=(typeof S!=='undefined'&&S.season)?String(S.season):'';
+  if(info.copa) return [rfCompFase(info),temporada].filter(Boolean).join(' · ');
+  const jor=RL.jornada||(((typeof S!=='undefined'&&S.round)||0)+1);
+  return [jor+'ª rodada',temporada,rfCompTamanho(info.id)].filter(Boolean).join(' · ');
+}
+/* o segundo andar da pastilha do trilho */
+function rfCompMeta(info){
+  return info.copa?rfCompFase(info):rfCompTamanho(info.id);
+}
+
 function rfTopAd(){
   const real=window.ADS?ADS.html('rf98.top.970x90',{cls:'rf-ad-top'}):'';
   return real||`<div class="rf-ad-top"><span class="rf-ad-lbl">Publicidade</span></div>`;
@@ -759,12 +838,17 @@ function rfSetHubComp(k){ CL.hubComp=k; cdraw(); }
 function rfClassifHTML(){
   const comps=rfHubComps();
   const atual = comps.find(c=>c.key===CL.hubComp) || comps[0];
+  /* AS PASTILHAS GUARDAM A COR DA SUA COMPETICAO, como o trilho da rodada ao
+     vivo: ve-se de relance que uma e a Libertadores e a outra a Copa do Brasil
+     mesmo antes de ler o rotulo. E a tabela em baixo diz de qual e. */
+  const chaveDe=k=>k==='liga'?S.division:k;
   const chips = comps.length>1 ? `<div class="rf-comp-chips">${comps.map(c=>
-    `<button type="button" class="rf-comp-chip ${c.key===atual.key?'on':''}"
+    `<button type="button" class="rf-tema rf-comp-chip ${c.key===atual.key?'on':''}"
+      data-tema="${escC(rfCompTemaDe(chaveDe(c.key)))}"
       onclick="rfSetHubComp('${escC(c.key)}')">${escC(c.rot)}</button>`).join('')}</div>` : '';
   const corpo = atual.key==='liga' ? rfClassifLigaHTML() : rfClassifCopaHTML(atual.key);
   return `<div class="rf-cl-hd">
-      <span class="rf-label-t">Classificação · ${escC(atual.rot)}</span>
+      <span class="rf-label-t">${rfCompTagHTML(chaveDe(atual.key), atual.rot)}</span>
       <span class="rf-label-r">${corpo.meta}</span>
     </div>
     ${chips}
@@ -1638,7 +1722,11 @@ const RF_SQUAD_COLS={
 
      Com ela fora e a folga em 7px, o NOME passa de 10px para ~103px e a NOTA de
      34 (que era exatamente a largura de "9,4", sem um pixel de sobra) para 40. */
-  hub:    {grid:'18px 22px minmax(0,1fr) 24px 30px 40px 40px 52px', sal:false, gap:'7px', pad:'7px 9px'},
+  /* A GRADE DO HUB RESPIRA depois de as duas colunas passarem a ser iguais (ver
+     .rf-cols): a coluna da tabela ganhou ~250px, e o que era aperto -- a barra
+     de energia colada ao "100%", o valor em 52px, a nota em 40 -- deixou de
+     precisar de ser. O NOME continua a ficar com todo o resto. */
+  hub:    {grid:'20px 24px minmax(0,1fr) 28px 32px 44px 62px 64px', sal:false, gap:'8px', pad:'7px 10px'},
   elenco: {grid:'22px 26px minmax(0,1fr) 30px 34px 42px 46px 62px', sal:false, gap:'8px', pad:'8px 10px'},
 };
 function rfSquadTableHTML(modo, opts){
