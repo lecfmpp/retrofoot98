@@ -5574,6 +5574,33 @@ function clJogar(){
     showCupIdleMessage(cand); return;   // sem confrontos pra mostrar: mantém o aviso antigo
   }
   if(CL.online){ onlineMarkReady(); return; }
+  /* REDE DE SEGURANCA: JORNADA SEM NADA PARA JOGAR.
+     startLiveRound() monta a rodada a partir de S.sched[S.round]. Numa jornada
+     sem jogo de liga E sem copa pendente ele nao faz NADA — sem erro, sem
+     aviso, sem partida: o botao "Jogar" fica mudo e a temporada nunca fecha.
+     Medido: CL.live continua nulo, 0 jogos, a tela nao muda.
+
+     A jornada vazia e legitima e existe de proposito — prorrogarPorCopasPendentes
+     empurra `S.sched.push([])` para as copas devedoras jogarem. O problema e o
+     caso em que essa jornada tambem nao tem copa: por teto de prorrogacao, por
+     copa resolvida noutro caminho, ou por qualquer desvio de estado. Ai nao ha
+     o que jogar, e o certo e FECHAR a temporada em vez de ficar parado.
+     Melhor uma temporada que fecha do que um jogo que nao anda. */
+  const temLiga=!!((S.sched||[])[S.round]||[]).length;
+  if(!temLiga){
+    const temCopa = (typeof nextUserMatch==='function' && (nextUserMatch()||{}).kind==='cup')
+                 || (typeof cupRoundsUserSitsOut==='function' && cupRoundsUserSitsOut().length>0);
+    if(!temCopa){
+      if(S.round>=(S.sched||[]).length-1 && typeof endSeason==='function'){
+        toastC('Temporada encerrada.'); endSeason(); cdraw(); return;
+      }
+      /* no meio da temporada uma jornada vazia sem copa nao devia existir:
+         avanca em vez de travar, e deixa rasto para se investigar */
+      console.warn('jornada '+S.round+' sem jogo de liga e sem copa — avancando');
+      toastC('Jornada sem jogos — seguindo para a próxima.');
+      S.round++; S.week++; S.day+=7; save(); cdraw(); return;
+    }
+  }
   startLiveRound();
 }
 /* ---- MARCADOR DE COPA JÁ VISTA NESTA RODADA ----
