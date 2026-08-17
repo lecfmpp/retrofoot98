@@ -7391,3 +7391,13 @@
   height:30px;padding:0 12px;border-radius:var(--r-pill,999px)}
 .rf-tmp-chip:hover:not(.on){background:var(--surface-sunken)}
 .rf-tmp-chip.on{background:var(--brand-primary);border-color:var(--brand-primary);color:#fff}
+
+/* filtro do Calendário por competição — o chip com troféu vira botão */
+.rf-cp-calchips{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.rf-cp-calchip{border:1px solid var(--line-2);background:var(--surface-card);cursor:pointer;
+  border-radius:var(--r-pill,999px);padding:4px 12px 4px 6px;display:inline-flex;align-items:center;
+  font-family:inherit;transition:background var(--dur-fast) var(--ease)}
+.rf-cp-calchip>.rf-comp-tag-n{padding:0 6px}
+.rf-cp-calchip:hover:not(.on){background:var(--surface-sunken)}
+.rf-cp-calchip.on{border-color:var(--brand-primary);box-shadow:inset 0 0 0 1px var(--brand-primary)}
+.rf-cp-calchip .rf-comp-tag{background:none;padding:0}

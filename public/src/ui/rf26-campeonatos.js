@@ -121,7 +121,8 @@ function rfCpTomDivisao(selo){
   return 'cinza';
 }
 function rfCpMinhasHTML(){
-  const cards=rfCpCards();
+  const selMin=rfCpCompFiltro();
+  const cards=rfCpCards().filter(c=>selMin==='todas'||String(c.chave)===String(selMin));
   const fora=((typeof allCupKeys==='function')?allCupKeys():[]).filter(k=>{
     if(S.compToggle && S.compToggle[k]===false) return true;
     const c=S.cups&&S.cups[k];
@@ -185,7 +186,40 @@ const RF_CP_CAL_COLS='46px 54px 22px minmax(0,1.4fr) minmax(62px,.5fr) minmax(62
 function rfCpDataDaJornada(i, copa){
   return (typeof dataCurtaDaJornada==='function') ? dataCurtaDaJornada(i, copa||'liga') : '';
 }
+/* ===== O CALENDARIO E DE TODAS AS COMPETICOES, E O CHIP ESCOLHE QUAL =====
+   As copas ja apareciam — mas empilhadas em cartoes por baixo do da liga, de forma que era
+   preciso rolar a pagina inteira para achar o jogo da Libertadores. Agora o mesmo chip com
+   trofeu que ja identificava a Serie A vira FILTRO: uma fila com todas as competicoes em que o
+   clube esta inscrito, mais "Todas". */
+function rfCpCompFiltro(){
+  const st=(typeof rfState==='function')?rfState():null;
+  if(!st) return 'todas';
+  return st.calComp||'todas';
+}
+function rfCpCompIr(k){ const st=rfState(); st.calComp=k; cdraw(); }
+function rfCpCalCompeticoes(){
+  const out=[{k:S.division, tag:rfCompTagHTML(S.division)}];
+  ((typeof allCupKeys==='function')?allCupKeys():[]).forEach(k=>{
+    const c=S.cups&&S.cups[k]; if(!c) return;
+    if(typeof rfCpInscrito==='function' && !rfCpInscrito(k,c)) return;
+    out.push({k, tag:rfCompTagHTML(k)});
+  });
+  return out;
+}
+function rfCpCompChipsHTML(){
+  const comps=rfCpCalCompeticoes();
+  if(comps.length<2) return '';           // so a liga: o chip do cartao ja diz tudo
+  const sel=rfCpCompFiltro();
+  const chip=(k,dentro,on)=>`<button type="button" class="rf-cp-calchip ${on?'on':''}"
+    onclick="rfCpCompIr('${escC(String(k))}')">${dentro}</button>`;
+  return `<div class="rf-cp-calchips" role="group" aria-label="Filtrar por competição">
+    ${chip('todas','<span class="rf-comp-tag-n">Todas</span>', sel==='todas')}
+    ${comps.map(c=>chip(c.k, c.tag, String(sel)===String(c.k))).join('')}
+  </div>`;
+}
 function rfCpCalendarioHTML(){
+  const sel=rfCpCompFiltro();
+  const mostraLiga = (sel==='todas' || String(sel)===String(S.division));
   const sched=S.sched||[];
   // o calendário do motor é [[casaId, foraId], …] por jornada, e o placar mora
   // em S.results com gh/ga (não hg/ag — essa é a pegadinha do lado da liga)
@@ -213,20 +247,23 @@ function rfCpCalendarioHTML(){
     <span class="dir">PLACAR</span><span></span>
   </div>`;
   const grupo=(typeof myGroupLabel==='function')?myGroupLabel():'';
-  return `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_CP_CAL_COLS}">
+  const cartaoLiga = mostraLiga ? `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_CP_CAL_COLS}">
       <div class="rf-label">
         <span class="rf-label-t">${rfCompTagHTML(S.division)}${grupo?' <i class="rf-cp-grupo">'+escC(grupo)+'</i>':''}</span>
         <span class="rf-label-r">${(S.round||0)} de ${sched.length||14} jornadas</span></div>
       ${cab}
       ${rfLista('cal-liga', jogos, 'O calendário ainda não foi sorteado.')}
-    </div>
-    ${rfCpCopasCalendarioHTML()}`;
+    </div>` : '';
+  const copas=rfCpCopasCalendarioHTML(sel==='todas'?null:sel);
+  return cartaoLiga + copas
+    + ((!cartaoLiga && !copas) ? '<div class="rf-empty">Nada marcado nesta competição ainda.</div>' : '');
 }
 /* uma copa por cartão, com FASE no lugar de JORNADA */
 const RF_CP_COPA_COLS='78px 22px minmax(0,1.4fr) minmax(62px,.5fr) minmax(62px,.5fr) 34px';
-function rfCpCopasCalendarioHTML(){
+function rfCpCopasCalendarioHTML(so){
   const out=[];
   ((typeof allCupKeys==='function')?allCupKeys():[]).forEach(k=>{
+    if(so && String(so)!==String(k)) return;   // filtro do chip
     const c=S.cups&&S.cups[k]; if(!c) return;
     // copa que o clube não disputa não tem calendário nenhum a mostrar aqui
     if(typeof rfCpInscrito==='function' && !rfCpInscrito(k,c)) return;
@@ -285,7 +322,7 @@ function rfCpCopasCalendarioHTML(){
         <span class="dir">PLACAR</span><span></span>
       </div>`:'';
     out.push(`<div class="rf-card rf-el-tbl" style="--el-cols:${RF_CP_COPA_COLS}">
-      <div class="rf-label"><span class="rf-label-t">${escC(def.name||k)}</span>
+      <div class="rf-label"><span class="rf-label-t">${(typeof rfCompTagHTML==='function')?rfCompTagHTML(k):escC(def.name||k)}</span>
         ${linhas.length?`<span class="rf-label-r">${linhas.length} jogo${linhas.length>1?'s':''}</span>`:''}</div>
       ${cabCopa}
       ${linhas.join('') || '<div class="rf-empty">O sorteio desta fase ainda não saiu.</div>'}
@@ -301,7 +338,20 @@ function rfCpCopasCalendarioHTML(){
 const RF_CP_ART_COLS='30px minmax(0,1.2fr) minmax(0,1fr) 34px 44px minmax(56px,.5fr)';
 function rfCpArtilhariaHTML(){
   const jogos=Math.max(1,(S.round||0));
-  const arr=Object.entries(S.scorers||{}).map(([n,g])=>({n,g})).sort((a,b)=>b.g-a.g).slice(0,20);
+  /* ===== A ARTILHARIA SEGUE O CHIP DA PAGINA =====
+     Era sempre o pote unico (S.scorers), que mistura gol de liga com gol de copa. Com uma
+     competicao escolhida, a lista passa a ser a DELA — o mapa por competicao existe desde que
+     cada gol passou a ser carimbado onde caiu (ver recordScorers no core). Save antigo nao tem o
+     mapa: nesse caso o cartao diz isso, em vez de mostrar uma lista vazia sem explicacao. */
+  const selArt=rfCpCompFiltro();
+  const fonte=(selArt==='todas')
+    ? (S.scorers||{})
+    : ((S.scorersByComp&&S.scorersByComp[selArt])||null);
+  if(fonte===null){
+    return `<div class="rf-card"><div class="rf-label"><span class="rf-label-t">${rfCompTagHTML(selArt)}</span></div>
+      <span class="rf-note">Ainda não há gol registrado nesta competição nesta temporada.</span></div>`;
+  }
+  const arr=Object.entries(fonte).map(([n,g])=>({n,g})).sort((a,b)=>b.g-a.g).slice(0,20);
   const meu=squad(CL.clubId);
   const meuNome=new Set(meu.map(p=>p.n));
   const posDe=n=>{ const p=meu.find(x=>x.n===n); return p?rfPosInicial(p.s):'—'; };
@@ -341,8 +391,13 @@ function rfCpArtilhariaHTML(){
           <span class="rf-cp-mini-v">${t.GA||0}</span></div>`; }).join('')
     : '<span class="rf-note">A tabela ainda não tem jogos.</span>';
   return `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_CP_ART_COLS}">
-      <div class="rf-label"><span class="rf-label-t">ARTILHARIA DA ${escC(String(divisionLabel()).toUpperCase())}</span>
-        <span class="rf-label-r">todos os grupos</span></div>
+      <!-- o titulo tem de dizer QUAL artilharia: com o filtro na Copa do Brasil ele continuava
+           a anunciar a da divisao, por cima de uma lista que ja era outra -->
+      <div class="rf-label"><span class="rf-label-t">${selArt==='todas'
+        ? 'ARTILHARIA DA TEMPORADA'
+        : ('ARTILHARIA · '+escC(String(((typeof rfCompInfo==='function')?rfCompInfo(selArt).curto:selArt)).toUpperCase()))}</span>
+        <!-- "todos os grupos" nao queria dizer nada numa liga de pontos corridos -->
+        <span class="rf-label-r">${arr.length?(arr.length+(arr.length===1?' artilheiro':' artilheiros')):''}</span></div>
       ${cab}
       ${rfLista('artilharia', linhas, 'Sem gols marcados ainda nesta temporada.')}
     </div>

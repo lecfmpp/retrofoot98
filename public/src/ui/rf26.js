@@ -209,6 +209,12 @@ function rfLen(x){ return (x&&x.length)||0; }
 function rfLen0(n){ return n||0; }
 function rfPageDef(key){ return RF_PAGES.find(p=>p.key===key)||RF_PAGES[0]; }
 /* abas visíveis de uma página (a de ligas internacionais só existe se houver liga carregada) */
+/* a barra de competicoes e da PAGINA Campeonatos, nao de uma aba: o filtro vale para
+   Minhas competicoes, Calendario e Artilharia ao mesmo tempo */
+function rfCompChipsDaPagina(page){
+  if(page!=='campeonatos') return '';
+  return (typeof rfCpCompChipsHTML==='function')?rfCpCompChipsHTML():'';
+}
 function rfTabs(def){ return (def.tabs||[]).filter(t=>!t.show||t.show()); }
 function rfTabLabel(t){ return typeof t.l==='function'? t.l() : t.l; }
 /* A ABA ATIVA PODE SER NENHUMA. O estado em que a página abre é o RESUMO: os
@@ -1169,13 +1175,13 @@ function rfScreenHTML(){
   // a faixa fica ACIMA da grade, atravessando as duas colunas.
   const s=String(corpo);
   const iCol=s.indexOf('data-rf-col');
-  if(iCol<0) return rfEnvelope(`${rfPageHeadHTML(def)}${rfTemporadaChipsHTML(def.key)}
+  if(iCol<0) return rfEnvelope(`${rfPageHeadHTML(def)}${rfTemporadaChipsHTML(def.key)}${rfCompChipsDaPagina(def.key)}
     <div class="rf-tabpane" data-tab="${at?at.k:''}">${s}</div>`);
   // tudo que vem antes do primeiro <div class="rf-pagecol"> é faixa de topo
   const corte=s.lastIndexOf('<div class="rf-pagecol"', iCol);
   const topo=corte>0?s.slice(0,corte):'';
   const colunas=corte>0?s.slice(corte):s;
-  return rfEnvelope(`${rfPageHeadHTML(def)}${rfTemporadaChipsHTML(def.key)}
+  return rfEnvelope(`${rfPageHeadHTML(def)}${rfTemporadaChipsHTML(def.key)}${rfCompChipsDaPagina(def.key)}
     ${topo}
     <div class="rf-pagegrid" style="grid-template-columns:${def.grid||'minmax(0,1fr) 340px'}">${colunas}</div>`);
 }
