@@ -9364,7 +9364,14 @@ function clStub(t){ CL.menu=null; toastC(t+' — em breve.'); cdraw(); }
    mudar — os convidados ficam travados no valor que ele escolheu (games.speed_mult, já
    sincronizado/restrito por RLS ao host — ver netSetSpeed). Baseline 'Usain Bolt'=1x preserva o
    comportamento padrão de hoje pra quem nunca mexeu na opção (games.speed_mult nasce em 1). */
-const TEMPO_MS={Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37};
+/* TEMPORARIO — TIRAR DEPOIS DOS TESTES DE VIRADA DE TEMPORADA (17/08/2026):
+   'Foguete' e um degrau acima do Usain Bolt, para atravessar temporadas
+   depressa a ver o que acontece no fim delas. 6ms por minuto de jogo bate no
+   piso do proprio navegador (setTimeout nao desce abaixo de ~4ms) e o que manda
+   passa a ser o desenho de cada minuto: da partida em cerca de um segundo.
+   PARA REMOVER: apagar a entrada aqui e o rotulo das duas listas de Opcoes
+   (rf26-acoes.js e a lista antiga em renderOptions). Mais nada depende dele. */
+const TEMPO_MS={Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37,Foguete:6};
 /* PADRÃO (solo e sala nova): Ultrassônico. 'Usain Bolt' (37ms) resolve a rodada em ~3,5s — rápido
    demais pra acompanhar qualquer coisa e, na prática, deixaria o Modo Camarote TRANCADO por padrão
    (ver camSpeedOk), escondendo o modo de quem nunca abriu as Opções. Ultrassônico (110ms, ~10s de
@@ -9382,7 +9389,10 @@ const TEMPO_DEFAULT='Ultrassônico';
 
    Enquanto estiver ligado, a tela de Opções mostra o aviso (ver renderOptions) pra ninguém
    passar meia hora achando que a preferência dele quebrou. */
-const TEMPO_TESTE='Ultrassônico';   // ← null desliga
+/* DESLIGADO (17/08/2026): com o ritmo 'Foguete' na lista, quem decide a
+   velocidade volta a ser quem joga -- travar aqui era o que fazia a escolha em
+   Opcoes nao ter efeito nenhum. */
+const TEMPO_TESTE=null;   // ← rótulo (ex.: 'Ultrassônico') liga a trava de bancada
 /* rótulo de ritmo que vale AGORA (o de teste, quando ligado; senão a opção do save) */
 function tempoLabelAtual(){
   if(TEMPO_TESTE && TEMPO_MS[TEMPO_TESTE]) return TEMPO_TESTE;
@@ -9421,7 +9431,7 @@ function renderOptions(){ const o=CL.options; const tab=CL.optTab||'geral';
   const amHost=typeof NET!=='undefined' && NET.isHost;
   const tempoRow = (CL.online && !amHost)
     ? `<div class="cl-orow"><span>Tempo de jogo</span><span class="cl-oval-locked">🔒 ${escC(tempoLabelFromMult(CL.speedMult))} <i>(definido pelo Anfitrião)</i></span></div>`
-    : `<div class="cl-orow"><span>Tempo de jogo${CL.online?' <i>(vale pra todos)</i>':''}</span><select class="cl-osel" onchange="clSetTempo(this.value)">${['Curto','Médio','Longo','Ultrassônico','Usain Bolt'].map(x=>`<option ${x===o.tempo?'selected':''}>${escC(x)}</option>`).join('')}</select></div>`;
+    : `<div class="cl-orow"><span>Tempo de jogo${CL.online?' <i>(vale pra todos)</i>':''}</span><select class="cl-osel" onchange="clSetTempo(this.value)">${['Curto','Médio','Longo','Ultrassônico','Usain Bolt','Foguete'].map(x=>`<option ${x===o.tempo?'selected':''}>${escC(x)}</option>`).join('')}</select></div>`;
   const jogo=`<div class="cl-orow"><span>Substituições ao intervalo</span>${sel('subsIntervalo',['Sim','Não'],o.subsIntervalo)}</div>
     <div class="cl-orow"><span>Ver os desempates por penalties<br>nos jogos sem treinadores humanos</span>${sel('penaltisCPU',['Sim','Não'],o.penaltisCPU)}</div>
     ${tempoRow}${avisoTeste}`;

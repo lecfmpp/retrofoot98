@@ -722,8 +722,11 @@ const RF_ACOES_EXTRA = {
       rfAcSegHTML('Substituições ao intervalo','subsIntervalo',['Sim','Não'],o.subsIntervalo)
     + rfAcSegHTML('Ver desempates por penalties','penaltisCPU',['Sim','Não'],o.penaltisCPU,
         'Nos jogos sem treinadores humanos.')
-    + rfAcSegHTML('Tempo de jogo','tempo',['Curto','Médio','Longo','Ultrassônico','Usain Bolt'],
-        o.tempo, trava?('Numa resenha, quem define o tempo de jogo é o Anfitrião. Fale com ele para mudar.'):'', trava)
+    /* 'Foguete' e TEMPORARIO — ver TEMPO_MS em main.js. Sai daqui e de la quando
+       os testes de virada de temporada acabarem. */
+    + rfAcSegHTML('Tempo de jogo','tempo',['Curto','Médio','Longo','Ultrassônico','Usain Bolt','Foguete'],
+        o.tempo, trava?('Numa resenha, quem define o tempo de jogo é o Anfitrião. Fale com ele para mudar.')
+          :'Foguete é de teste: a partida passa em cerca de um segundo.', trava)
     + ((typeof TEMPO_TESTE!=='undefined' && TEMPO_TESTE)
         ? rfAcAvisoHTML('🧪 <b>Modo de teste:</b> o ritmo está travado em <b>'+escC(TEMPO_TESTE)+'</b> no Solo e na Resenha, ignorando esta opção e a escolha do anfitrião.','aviso')
         : '');
