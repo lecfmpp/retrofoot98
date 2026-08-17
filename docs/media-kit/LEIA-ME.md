@@ -24,8 +24,22 @@ for f in telas/*.png; do sips -Z 1500 -s format jpeg -s formatOptions 78 "$f" \
   --out "web/$(basename "$f" .png).jpg"; done
 ```
 
+## Contatos no documento
+
+Capa e rodapé trazem `publicidade@retrofoot.com.br` e `+1 647 862 3292`. Estão escritos no
+HTML — para trocar, procure por `contato` em `media-kit.html`.
+
 ## O que fica de fora do inventário
 
-As **placas do campo** (6 de 169×22 e 6 de 19×192) e a **barra de patrocínio do Camarote**
-são desenhadas pelo jogo a partir de `AD_SPONSORS` e não passam pelo painel. Para as vender
-é preciso dar-lhes chave própria em `elifoot_v3.ad_spaces`, como as outras.
+Três peças estão desenhadas e no ar, mas **puxam as marcas de `AD_SPONSORS`** — a lista fixa
+dentro do jogo — em vez do painel. Para as vender é preciso dar-lhes chave própria em
+`elifoot_v3.ad_spaces` e trocar a chamada por `rfAdEspaco`, como as outras:
+
+| Peça | Onde | Formato |
+|---|---|---|
+| **Pausa patrocinada** | Modo Resenha, entre jornadas | vídeo/GIF 1280×720, até 8s, sem áudio |
+| Barra de patrocínio | na mesma pausa e no Camarote | trilho de logos + botão da marca |
+| Placas do campo | cartão de Formação | 6 de 169×22 e 6 de 19×192 |
+
+A **pausa** é a de maior atenção: tela cheia, sem concorrência, uma vez por jornada. Foi
+desenhada desde o nome para ser patrocinada e é a primeira que vale a pena ligar.
