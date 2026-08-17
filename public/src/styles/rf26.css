@@ -2575,6 +2575,36 @@
 /* =====================================================================
    LANDING — portada de telas/Landing - Home.html
    ===================================================================== */
+/* =====================================================================
+   FORA DO JOGO, A COR E DA MARCA — NUNCA DO CLUBE
+   ---------------------------------------------------------------------
+   `applyClubTokens` escreve --club-primary/--club-secondary no elemento RAIZ, e
+   dali elas descem para tudo. Isso esta certo dentro do jogo (a faixa do clube,
+   o botao Jogar, a linha do meu time na tabela seguem o clube), e errado fora
+   dele: a landing, o assistente, a escolha de modo e o sorteio sao produto, nao
+   clube -- e passavam a verde quando o sorteio dava Palmeiras, a vermelho no
+   Flamengo. Um utilizador com dois saves via a mesma home de duas cores.
+
+   Em vez de trocar as ~50 regras dessas telas uma a uma (e ter de lembrar disto
+   em cada regra nova), as proprias telas REDEFINEM os tokens de clube para os da
+   marca. Dentro delas, `var(--club-primary)` E o azul da marca e
+   `var(--club-secondary)` E o amarelo -- inclusive nos botoes da tela de modo,
+   que sao sempre amarelos, e em qualquer peca que venha a ser escrita ali
+   depois. Nada muda dentro do jogo.
+   ===================================================================== */
+.rf-lp,.rf-wiz,.rf-srt,.rf-modos{
+  --club-primary:var(--brand-primary);
+  --club-primary-deep:var(--brand-primary-deep);
+  --club-primary-soft:#e9eff8;
+  --club-primary-line:#d6e1f1;
+  --club-secondary:var(--brand-secondary);
+  --club-secondary-hover:#ffcb2e;
+  --club-on-primary:var(--brand-on-primary);
+  --club-on-secondary:var(--brand-on-secondary);
+  --club-secondary-on-primary:var(--brand-secondary);
+  --club-cta-bg:var(--brand-secondary);
+  --club-cta-fg:var(--brand-primary);
+}
 .rf-lp{min-height:100vh;background:var(--surface-desk);font-family:var(--font-sans);color:var(--text-1)}
 /* nav */
 .rf-lp-nav{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;
@@ -3178,6 +3208,94 @@
    ela nao herda o text-transform nem o letter-spacing do rotulo. */
 .rf-label-t>.rf-comp-tag{text-transform:none;letter-spacing:normal;vertical-align:middle}
 .rf-cp-grupo{font-style:normal;margin-left:8px;color:var(--text-faint)}
+
+/* =====================================================================
+   CHAVE DA COPA (pacote "chaves copas") — colunas em flex, conectores de borda
+   ---------------------------------------------------------------------
+   A geometria e toda relativa: cada coluna de fase tem a MESMA altura e
+   `justify-content:space-around`, o que centra cada confronto no seu quinhao e
+   faz o centro do confronto seguinte cair no meio do par. Os conectores sao
+   caixas com borda em tres lados ("]"), com a mesma altura da coluna e o mesmo
+   space-around. Nenhum valor depende da janela -- quando nao cabe, rola.
+   ===================================================================== */
+.rf-ch-rolo{overflow-x:auto;overflow-y:hidden;padding:2px 0}
+.rf-ch{display:flex;align-items:flex-start;justify-content:center;min-width:max-content;margin:0 auto}
+.rf-ch-col{display:flex;flex-direction:column;gap:10px;flex:0 0 auto}
+.rf-ch-col.final{width:190px}
+.rf-ch-fase{font-family:var(--font-mono);font-size:9px;font-weight:var(--fw-bold);
+  letter-spacing:var(--ls-label-wide);color:var(--club-primary);white-space:nowrap;height:14px}
+.rf-ch-slots{height:var(--rf-ch-h,480px);display:flex;flex-direction:column;
+  justify-content:space-around;align-items:flex-start}
+.rf-ch-slots.uma{height:auto}
+/* o cartao: duas linhas, cor do clube + nome + placar */
+.rf-ch-c{width:150px;flex:0 0 auto;display:flex;flex-direction:column;background:var(--surface-card);
+  border:1px solid var(--line-1);border-radius:10px;overflow:hidden}
+.rf-ch-c.meu{background:#fffbee;border-color:var(--brand-secondary)}
+.rf-ch-c.vazio{border-style:dashed;background:var(--surface-sunken)}
+.rf-ch-l{display:grid;grid-template-columns:8px minmax(0,1fr) 18px;gap:6px;align-items:center;
+  padding:6px 8px}
+.rf-ch-cor{width:8px;height:8px;border-radius:2px;background:var(--line-2);flex:0 0 auto}
+.rf-ch-n{font-size:11px;font-weight:var(--fw-medium);color:var(--text-faint);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.rf-ch-p{font-family:var(--font-mono);font-size:11px;font-weight:var(--fw-semibold);
+  color:var(--text-faint);text-align:right}
+.rf-ch-l.ok .rf-ch-n{font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-ch-l.ok .rf-ch-p{color:var(--text-1)}
+.rf-ch-pen{font-family:var(--font-mono);font-size:8px;color:var(--text-faint);
+  padding:0 8px 5px;white-space:nowrap}
+/* conector e stub */
+.rf-ch-lig{width:18px;flex:0 0 auto;margin-top:24px;height:var(--rf-ch-h,480px);
+  display:flex;flex-direction:column;justify-content:space-around}
+.rf-ch-lig>i{display:block;height:calc(var(--rf-ch-h,480px)/4);box-sizing:border-box;
+  border:2px solid var(--line-2);border-radius:0 8px 8px 0}
+.rf-ch-lig.e>i{border-width:2px 2px 2px 0}
+.rf-ch-lig.d>i{border-width:2px 0 2px 2px;border-radius:8px 0 0 8px}
+.rf-ch-lig>i.ouro{border-color:var(--brand-secondary)}
+.rf-ch-stub{width:8px;flex:0 0 auto;margin-top:24px;height:var(--rf-ch-h,480px);
+  display:flex;flex-direction:column;justify-content:space-around}
+.rf-ch-stub>i{display:block;height:0;border-top:2px solid var(--line-2)}
+.rf-ch-stub>i.ouro{border-color:var(--brand-secondary)}
+/* a coluna do meio: taca, campeao e premio */
+.rf-ch-taca{height:var(--rf-ch-h,480px);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:12px}
+.rf-ch-taca img{width:92px;height:92px;object-fit:contain}
+.rf-ch-taca img.cinza{filter:grayscale(1);opacity:.45}
+.rf-ch-taca-l{font-family:var(--font-mono);font-size:9px;font-weight:var(--fw-bold);
+  letter-spacing:var(--ls-label-wide);color:var(--text-faint)}
+.rf-ch-camp{width:170px;text-align:center;font-size:13px;font-weight:var(--fw-bold);
+  color:var(--text-3);background:var(--surface-card);border:1px dashed var(--line-2);
+  border-radius:10px;padding:8px 0}
+.rf-ch-camp.ok{background:var(--brand-secondary);border-color:var(--brand-secondary);
+  color:var(--brand-primary)}
+.rf-ch-premio{display:flex;align-items:center;gap:7px;background:var(--surface-row-active);
+  border:1px solid #d3dfef;border-radius:10px;padding:7px 11px;white-space:nowrap}
+.rf-ch-premio b{font-family:var(--font-mono);font-size:12px;font-weight:var(--fw-semibold);
+  color:var(--club-primary)}
+.rf-ch-premio i{font-family:var(--font-mono);font-style:normal;font-size:8px;
+  letter-spacing:var(--ls-label);color:var(--text-faint)}
+.rf-ch-legenda{display:flex;align-items:center;gap:16px;padding-top:10px;
+  font-size:var(--fs-caption);color:var(--text-4)}
+.rf-ch-legenda span{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.rf-ch-lg{width:14px;height:0;border-top:2px solid var(--line-2)}
+.rf-ch-lg.ouro{border-color:var(--brand-secondary)}
+.rf-ch-lg.tracejado{border-top-style:dashed}
+/* ----- a mesma chave no telemovel: uma fase de cada vez ----- */
+.rf-chm-fitas{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.rf-chm-fitas::-webkit-scrollbar{height:0}
+.rf-chm-p{flex:0 0 auto;font-family:var(--font-mono);font-size:10px;font-weight:var(--fw-bold);
+  letter-spacing:var(--ls-label);border:1px solid var(--line-2);background:var(--surface-card);
+  color:var(--text-3);border-radius:var(--r-pill);padding:7px 12px;cursor:pointer}
+.rf-chm-p.on{background:var(--club-primary);border-color:var(--club-primary);color:#fff}
+.rf-chm-p.meu:not(.on){border-color:var(--brand-secondary);color:#7a5c00}
+.rf-chm-c{gap:2px;padding:10px 12px}
+.rf-chm-c.meu{background:#fffbee;border-color:var(--brand-secondary)}
+.rf-chm-c .rf-ch-l{grid-template-columns:10px minmax(0,1fr) 26px;padding:7px 2px}
+.rf-chm-c .rf-ch-n{font-size:var(--fs-body-sm)}
+.rf-chm-c .rf-ch-p{font-size:var(--fs-body-sm)}
+.rf-label-r.ouro{color:#7a5c00;font-weight:var(--fw-bold)}
+.rf-chm-taca{align-items:center;text-align:center;gap:8px}
+.rf-chm-taca img{width:72px;height:72px;object-fit:contain;margin:0 auto}
+.rf-chm-taca img.cinza{filter:grayscale(1);opacity:.45}
 
 /* ----- fase de grupos da copa, no desenho novo (ver rfCopaGruposHTML) ----- */
 .rf-cg-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;align-items:start}

@@ -276,7 +276,18 @@ function rfCompeticaoHTML(key){
   const campeao=(typeof cupCompetitionChampion==='function')?cupCompetitionChampion(c):null;
   const jogos=caminho.length;
 
-  /* ===== A CHAVE SAIU DAQUI (17/08/2026) =====
+  /* A CHAVE VOLTOU, no desenho novo (ver rfChaveVistaHTML): so quando o
+     mata-mata esta a ser jogado. Antes disso a competicao mostra grupos ou o
+     estado do sorteio, e uma moldura vazia com a taca ao centro prometeria uma
+     fase que ainda nao comecou. */
+  const chave=(br && ((br.ties||[]).length || (br.history||[]).length))
+    ? `<div class="rf-card rf-cp-chave">
+         <div class="rf-label"><span class="rf-label-t">${escC(String(def.name||key).toUpperCase())} · MATA-MATA ${escC(String(S.season||''))}</span>
+           <span class="rf-label-r">${escC(fase)}</span></div>
+         ${rfChaveVistaHTML(key)}
+       </div>`
+    : '';
+  /* ===== (o palco antigo saiu daqui em 17/08/2026) =====
    Eu tinha trazido para esta tela a chave espelhada da pele antiga
    (cupBracketStageHTML): ela e desenhada num palco de tamanho fixo que um
    script redimensiona a cada quadro (cupFitStage), e dentro do cartao novo isso
@@ -292,6 +303,7 @@ function rfCompeticaoHTML(key){
     contexto:`Minhas competições · ${S.season||''}`,
     titulo:def.name||key,
     corpo:`${rfCompAbas(key)}
+    ${chave}
     <div class="rf-cp-cols">
       <div class="rf-card rf-cp-esq">
         ${rfTrofeuHTML(key,112)}
@@ -416,6 +428,173 @@ function rfCopaGruposHTML(c,key){
   }).join('');
   return `<div class="rf-cg-grade">${cartoes}</div>`;
 }
+/* =====================================================================
+   CHAVE DA COPA — pacote "chaves copas (campeonatos e pos-rodada)"
+   ---------------------------------------------------------------------
+   O DADO, PRIMEIRO. O motor nao guarda arvore: a cada fase ele re-sorteia os
+   vencedores (advanceCupBracket ordena por forca e emparelha de novo). A
+   arvore e reconstruida de tras para a frente, seguindo quem venceu -- e isso
+   ja existia em cupTiesOfRound/cupSourceTie/cupBuildTree, que aqui sao usados
+   so como FONTE DE DADOS. O desenho e outro: colunas em flex com
+   `justify-content:space-around` e conectores feitos de borda, sem palco de
+   tamanho fixo, sem transform:scale, sem SVG. Foi o palco escalado que tomou a
+   tela e prendeu a visualizacao na primeira tentativa.
+   ===================================================================== */
+function rfChaveDados(key){
+  const c=(S.cups&&S.cups[key])||null;
+  const b=(typeof rfCompChave==='function')?rfCompChave(c):(c&&(c.champion!==undefined?c:c.bracket));
+  if(!b || !b.roundsTotal) return null;
+  const meu=CL.clubId;
+  const info=(typeof rfCompInfo==='function')?rfCompInfo(key):{nome:key,trofeu:''};
+  /* quem esta vivo do meu lado: o caminho do clube do utilizador pinta-se de
+     dourado da primeira fase que ele jogou ate onde chegou */
+  const fases=[];
+  for(let r=1;r<=b.roundsTotal;r++){
+    const ties=(typeof cupTiesOfRound==='function')?cupTiesOfRound(b,r):null;
+    const rot=(typeof cupPhaseLabel==='function')?cupPhaseLabel(r,b.roundsTotal):('Fase '+r);
+    fases.push({ round:r, key:'f'+r, label:String(rot||'').toUpperCase(),
+      atual: !b.champion && b.round===r,
+      encerrada: !!(ties && ties.length && ties.every(t=>t.winner!=null)),
+      confrontos:(ties||[]).map((t,i)=>rfChaveConfronto(t,i,meu)) });
+  }
+  const campeao=b.champion?(anyClubOf(b.champion)||{short:String(b.champion)}):null;
+  return { chave:key, competicao:info.nome, temporada:S.season||'', trofeu:info.trofeu,
+    roundsTotal:b.roundsTotal, campeao, meuClube:(clubOf(meu)||{}).short||'',
+    faseAtual:b.round, fases,
+    premio:(typeof PRIZES!=='undefined'&&PRIZES.copaBrasilPhaseCash&&key==='copaBrasil')
+      ? PRIZES.copaBrasilPhaseCash(b.roundsTotal,b.roundsTotal,true) : 0 };
+}
+/* um confronto no formato que a tela desenha */
+function rfChaveConfronto(t,i,meu){
+  const lado=(id)=>{
+    const cl=id!=null?(anyClubOf(id)||{short:String(id)}):null;
+    return { id, nome:cl?(cl.short||cl.name||String(id)):null,
+      cor:(typeof clubTheme==='function'&&cl)?((clubTheme(id)||{}).col||'#5d6c62'):'#5d6c62',
+      eu:id!=null&&id===meu };
+  };
+  const h=lado(t.h), a=lado(t.a);
+  const jogado=(t.hg!=null&&t.ag!=null);
+  return { n:i+1,
+    estado: t.winner!=null?'decidido':(h.id!=null&&a.id!=null?'marcado':'indefinido'),
+    meu: h.eu||a.eu,
+    pen: t.pens?((t.pens.h!=null&&t.pens.a!=null)?(t.pens.h+'–'+t.pens.a):''):'',
+    lados:[ {...h, placar:jogado?t.hg:null, venceu:t.winner!=null&&t.winner===t.h},
+            {...a, placar:jogado?t.ag:null, venceu:t.winner!=null&&t.winner===t.a} ] };
+}
+/* ---- uma linha do cartao (cor do clube, nome, placar) ---- */
+function rfChaveLinhaHTML(l){
+  const perdeu=l.venceu===false && l.placar!=null;
+  return `<span class="rf-ch-l ${l.venceu?'ok':''} ${perdeu?'out':''}">
+    <i class="rf-ch-cor" style="background:${escC(l.cor||'#5d6c62')}"></i>
+    <span class="rf-ch-n">${escC(l.nome||'a definir')}</span>
+    <span class="rf-ch-p">${l.placar!=null?l.placar:'—'}</span>
+  </span>`;
+}
+function rfChaveCartaoHTML(cf){
+  if(!cf) return `<span class="rf-ch-c vazio"><span class="rf-ch-l"><i class="rf-ch-cor"></i>
+    <span class="rf-ch-n">a definir</span><span class="rf-ch-p">—</span></span>
+    <span class="rf-ch-l"><i class="rf-ch-cor"></i><span class="rf-ch-n">a definir</span>
+    <span class="rf-ch-p">—</span></span></span>`;
+  return `<span class="rf-ch-c ${cf.meu?'meu':''} ${cf.estado==='indefinido'?'vazio':''}">
+    ${rfChaveLinhaHTML(cf.lados[0])}${rfChaveLinhaHTML(cf.lados[1])}
+    ${cf.pen?`<span class="rf-ch-pen">${escC(cf.pen)} nos pênaltis</span>`:''}
+  </span>`;
+}
+
+/* ---- A CHAVE ESPELHADA (desktop) ----
+   Cada fase e uma coluna de altura FIXA com `justify-content:space-around`: e
+   isso, e so isso, que faz o centro de cada confronto da fase seguinte cair no
+   meio do par anterior. Entre duas colunas vao o conector (caixa com borda em
+   tres lados, o "]" ) e um stub de 8px. Nada aqui depende da largura da janela;
+   quando nao cabe, o contentor rola na horizontal. */
+function rfChaveHTML(d){
+  if(!d) return '<div class="rf-empty">O mata-mata ainda não começou.</div>';
+  const fases=d.fases;
+  const final=fases[fases.length-1];
+  const antes=fases.slice(0,-1);
+  const meia=(cfs,lado)=>{
+    const n=cfs.length, meio=Math.ceil(n/2);
+    return lado==='E'?cfs.slice(0,meio):cfs.slice(meio);
+  };
+  /* o lado do clube do utilizador e sempre o esquerdo */
+  const colunas=(lado)=>antes.map((f,idx)=>{
+    const cfs=meia(f.confrontos,lado);
+    const alvo=antes[idx+1]?meia(antes[idx+1].confrontos,lado).length:1;
+    const col=`<div class="rf-ch-col">
+      <span class="rf-ch-fase">${escC(f.label)}</span>
+      <div class="rf-ch-slots">${(cfs.length?cfs:[null]).map(rfChaveCartaoHTML).join('')}</div>
+    </div>`;
+    const lig=`<div class="rf-ch-lig ${lado==='E'?'e':'d'}">${
+      Array.from({length:Math.max(1,alvo)},(_,i)=>{
+        const dourado=cfs[i*2]&&(cfs[i*2].meu)||cfs[i*2+1]&&(cfs[i*2+1].meu);
+        return `<i class="${dourado?'ouro':''}"></i>`;}).join('')}</div>
+      <div class="rf-ch-stub ${lado==='E'?'e':'d'}">${
+      Array.from({length:Math.max(1,alvo)},(_,i)=>{
+        const dourado=cfs[i*2]&&(cfs[i*2].meu)||cfs[i*2+1]&&(cfs[i*2+1].meu);
+        return `<i class="${dourado?'ouro':''}"></i>`;}).join('')}</div>`;
+    return lado==='E'?(col+lig):(lig+col);
+  });
+  const camp=d.campeao;
+  const centro=`<div class="rf-ch-col final">
+    <span class="rf-ch-fase">${escC(final?final.label:'FINAL')}</span>
+    <div class="rf-ch-taca">
+      ${d.trofeu?`<img src="img/trofeus/${escC(d.trofeu)}.webp" alt="" class="${camp?'':'cinza'}">`:''}
+      <span class="rf-ch-taca-l">CAMPEÃO</span>
+      <span class="rf-ch-camp ${camp?'ok':''}">${escC(camp?(camp.short||camp.name):'a definir')}</span>
+      ${d.premio?`<span class="rf-ch-premio"><b>${escC(fmt(d.premio))}</b><i>AO CAMPEÃO</i></span>`:''}
+      ${final&&final.confrontos.length?`<div class="rf-ch-slots uma">${rfChaveCartaoHTML(final.confrontos[0])}</div>`:''}
+    </div>
+  </div>`;
+  return `<div class="rf-ch-rolo">
+    <div class="rf-ch">${colunas('E').join('')}${centro}${colunas('D').reverse().join('')}</div>
+  </div>
+  <div class="rf-ch-legenda">
+    <span><i class="rf-ch-lg ouro"></i>caminho do ${escC(d.meuClube||'seu clube')}</span>
+    <span><i class="rf-ch-lg tracejado"></i>confronto a definir</span>
+  </div>`;
+}
+/* ---- MOBILE: uma fase de cada vez ----
+   A chave espelhada nao cabe em 375px sem zoom, e zoom e o que o pacote proibe.
+   Aqui as fases viram pilhas: uma fita de pastilhas em cima (com o estado no
+   proprio rotulo) e os confrontos daquela fase como cartoes de largura cheia. */
+function rfChaveFase(){ return CL._chaveFase||null; }
+function rfChaveIrFase(k){ CL._chaveFase=k; cdraw(); }
+function rfChaveMobileHTML(d){
+  if(!d) return '<div class="rf-empty">O mata-mata ainda não começou.</div>';
+  const atual=d.fases.find(f=>f.atual)||d.fases[d.fases.length-1];
+  const sel=d.fases.find(f=>f.key===rfChaveFase())||atual;
+  const pastilhas=d.fases.map(f=>{
+    const marca=f.encerrada?'✓':(f.atual?'•':'—');
+    const meu=f.confrontos.some(c=>c.meu);
+    return `<button type="button" class="rf-chm-p ${f.key===sel.key?'on':''} ${meu?'meu':''}"
+      onclick="rfChaveIrFase('${escC(f.key)}')">${escC(f.label)} ${marca}</button>`;
+  }).join('');
+  const cfs=sel.confrontos.slice().sort((a,b)=>(b.meu?1:0)-(a.meu?1:0));
+  const cartoes=cfs.length?cfs.map(cf=>`<div class="rf-card rf-chm-c ${cf.meu?'meu':''}">
+      <div class="rf-label"><span class="rf-label-t">${escC(sel.label)} · jogo ${cf.n}</span>
+        ${cf.meu?'<span class="rf-label-r ouro">SEU JOGO</span>':''}</div>
+      ${cf.lados.map(rfChaveLinhaHTML).join('')}
+      ${cf.pen?`<span class="rf-note">${escC(cf.pen)} nos pênaltis</span>`:''}
+    </div>`).join('')
+    :'<div class="rf-empty">Os confrontos desta fase saem no sorteio.</div>';
+  const camp=d.campeao;
+  const taca=(sel.key==='f'+d.roundsTotal)
+    ? `<div class="rf-card rf-chm-taca">
+         ${d.trofeu?`<img src="img/trofeus/${escC(d.trofeu)}.webp" alt="" class="${camp?'':'cinza'}">`:''}
+         <span class="rf-ch-taca-l">CAMPEÃO</span>
+         <span class="rf-ch-camp ${camp?'ok':''}">${escC(camp?(camp.short||camp.name):'a definir')}</span>
+         ${d.premio?`<span class="rf-ch-premio"><b>${escC(fmt(d.premio))}</b><i>AO CAMPEÃO</i></span>`:''}
+       </div>` : '';
+  return `<div class="rf-chm-fitas">${pastilhas}</div>${taca}${cartoes}`;
+}
+/* a tela escolhe sozinha: no telemovel, fases; no resto, a chave espelhada */
+function rfChaveVistaHTML(key){
+  const d=rfChaveDados(key);
+  if(!d) return '';
+  const curto=(typeof isPhone==='function')&&isPhone();
+  return curto?rfChaveMobileHTML(d):rfChaveHTML(d);
+}
+
 /* =====================================================================
    3 · COPA — CLASSIFICAÇÃO DA FASE (substitui scCupClassif)
    ===================================================================== */
