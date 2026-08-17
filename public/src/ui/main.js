@@ -5607,9 +5607,14 @@ function clJogar(){
   if(idle.length){
     if(onlineJogarGate()) return;    // mesmo portão: quem assiste entra JUNTO com quem joga
     const cand=idle[0];
-    cupMarkSeen(cand.key);
     CL._pendingCupIdleQueue=idle.slice(1);
-    if(startCupRound(cand.key, cand.stage, null)) return;
+    /* FASE 3: O CARIMBO SO DEPOIS DE A TELA ABRIR.
+       cupMarkSeen era escrito ANTES de startCupRound. Se a rodada nao chegasse a entrar em
+       campo (estado inesperado, erro no meio, o jogador a sair da tela), a competicao ficava
+       marcada como vista sem nunca ter sido mostrada — e o avanco em segundo plano resolvia-a
+       em silencio. Uma competicao inteira desaparecia da jornada. */
+    if(startCupRound(cand.key, cand.stage, null)){ cupMarkSeen(cand.key); return; }
+    cupMarkSeen(cand.key);
     showCupIdleMessage(cand); return;   // sem confrontos pra mostrar: mantém o aviso antigo
   }
   if(CL.online){ onlineMarkReady(); return; }
@@ -5639,6 +5644,21 @@ function clJogar(){
    temporada que termina do que um jogo que nao anda. */
 function clAvancarDia(){
   if(CL.online) return;                        // na Resenha quem manda no dia e o servidor
+  /* ===== FASE 3: NUNCA PASSAR POR CIMA DE UM JOGO =====
+     Este botao so devia aparecer em jornada vazia, mas ele tambem e o caminho por onde
+     clJogar fecha a temporada — e uma jornada com jogo de liga ou com copa por ver nao pode
+     ser saltada nem fechar temporada nenhuma. Se ainda ha o que jogar hoje, o clique vale
+     como "Jogar". */
+  if(typeof rfNadaParaJogar==='function' && !rfNadaParaJogar()){ clJogar(); return; }
+  /* ===== FASE 3: A TEMPORADA SO ACABA DEPOIS DE TODAS AS COMPETICOES =====
+     Antes de olhar para o fim do calendario, toda competicao que ainda deve rodada ganha dia
+     marcado (ver copasPendentes/prorrogarPorCopasPendentes). E barato e so cria o que falta:
+     competicao com dias suficientes ja marcados nao mexe em nada. Sem isto, o "Avancar" da
+     ultima jornada encerrava a temporada com a final da Copa do Brasil e da Sul-Americana por
+     jogar — sem partida, sem cerimonia e sem campeao. Era o relatado. */
+  if(!S.finished && typeof prorrogarSeFaltaCopa==='function'){
+    try{ prorrogarSeFaltaCopa(); }catch(e){ console.warn('prorrogar:', e&&e.message); }
+  }
   const total=(S.sched||[]).length;
   /* ===== O "AVANCAR" DEPOIS DA ULTIMA RODADA NAO PODIA MORRER AQUI =====
      Ele fechava a temporada (endSeason) e redesenhava a MESMA tela: nem o dia

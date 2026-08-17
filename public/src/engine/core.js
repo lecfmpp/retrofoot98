@@ -2094,6 +2094,26 @@ function cupTickMatchesRound(key, round){ return WORLD_RULES.cupTickMatchesRound
 /* a cada 3 rodadas de liga, avança a rodada pendente de cada copa ativa (uma competição
    por rodada, ver CUP_TICK_OFFSET) — roda inteiramente em segundo plano (quick-sim), sem
    bloquear o usuário */
+/* ===== FASE 3 — EU AINDA DEVO ESTA COMPETICAO HOJE? =====
+   Uma competicao esta por cumprir quando eu tenho partida nela nesta jornada, ou quando ha
+   rodada dela a decorrer e eu nao entro em campo (nao disputo, fui eliminado, ou peguei bye)
+   — e, nos dois casos, eu ainda nao a joguei nem assisti. E a pergunta que a tela usa para
+   dizer o que falta hoje e para o botao nunca passar por cima de um jogo.
+
+   NAO SERVE PARA TRAVAR O AVANCO EM SEGUNDO PLANO. Tentei: advancePendingCups adiava a
+   competicao que eu ainda devia. Medido, a temporada nunca fechava — a resposta depende de
+   marcadores do cliente (cupDayDone, myCupTurnDone) e basta um deles nao chegar para a
+   competicao ser adiada para sempre. Quem garante a ordem e o clJogar, que poe as copas
+   ANTES da liga; esta funcao so informa. */
+function humanoDeveCompeticao(key){
+  try{
+    if(typeof CL==='undefined' || !CL || !CL.clubId) return false;
+    if(typeof cupDayDone==='function' && cupDayDone(key)) return false;   // ja joguei ou ja assisti hoje
+    if(typeof pendingUserCupMatches==='function' && pendingUserCupMatches().some(p=>p.key===key)) return true;
+    if(typeof cupRoundsUserSitsOut==='function' && cupRoundsUserSitsOut().some(c=>c.key===key)) return true;
+    return false;
+  }catch(e){ return false; }
+}
 function advancePendingCups(){
   if(!S.cups) return;
   // a copa cuja rodada JÁ foi resolvida na quarta (o usuário jogou ao vivo e resolveCupRoundRest
@@ -4611,21 +4631,57 @@ function accrueTitlesByClub(prevTables){
 /* quantas rodadas cada copa ainda deve. Uma copa sem campeão ainda deve pelo menos uma rodada;
    quantas exatamente sai da diferença entre o total de rodadas dela e o número de dias que o
    calendário reservou — que é justamente onde o erro nasceu (10 datas pra 11 rodadas). */
+/* ===== FASE 3 — QUANTAS RODADAS ESTA COPA AINDA TEM DE JOGAR =====
+   Conta o que FALTA, não o tamanho da competição: rodadas do mata-mata que ainda não
+   aconteceram, ou o que resta da fase de grupos mais o tique de transição do sorteio mais
+   o mata-mata inteiro. É a conta que a prorrogação precisa para saber quantas jornadas
+   acrescentar — a antiga (`total - vagas no calendário`) contava também as vagas JÁ GASTAS
+   e chegava a zero com a final por jogar. */
+function cupRodadasQueFaltam(key){
+  const c=S.cups&&S.cups[key]; if(!c) return 0;
+  const b=(c.champion!==undefined)?c:c.bracket;
+  if(b){
+    if(cupIsFinished(b)) return 0;
+    /* MATA-MATA SEM CONFRONTO ABERTO E SEM CAMPEAO = EMPERRADO, NAO DEVEDOR.
+       advanceCupBracket monta os confrontos da fase seguinte no fim de cada rodada, entao
+       `ties` vazio sem campeao e um estado que nao anda sozinho. Contar isso como divida
+       punha a temporada a criar jornadas vazias para uma competicao que nunca ia avancar —
+       o jogador clicava "Avancar" dezenas de vezes sem nada em campo. */
+    if(!(b.ties||[]).length) return 0;
+    return Math.max(1, (b.roundsTotal||0)-(b.round||0));
+  }
+  if(c.group){
+    const faltamGrupo=Math.max(0, (c.group.roundsTotal||0)-(c.group.round||0));
+    const nG=Object.keys(c.group.groups||{}).length, adv=c.group.advancePerGroup||2;
+    const ko=Math.max(1, Math.ceil(Math.log2(Math.max(2, nG*adv))));
+    return faltamGrupo + 1 + ko;    // +1 = o tique que só cria o mata-mata (ver cupTotalRounds)
+  }
+  return 1;
+}
+/* ===== FASE 3 — A TEMPORADA SÓ ACABA DEPOIS DE TODAS AS COMPETIÇÕES =====
+   `criar` é o número que interessa: rodadas devidas MENOS os dias já marcados no calendário
+   DAQUI PARA A FRENTE. Antes o desconto usava o calendário inteiro, incluindo as jornadas
+   que já passaram — uma competição que perdeu tiques pelo caminho (o tique gasto só para
+   sortear as oitavas, uma jornada anterior ao sorteio, uma rodada resolvida ao vivo) chegava
+   ao fim da temporada devendo a FINAL com o calendário aparentemente cheio. A prorrogação
+   não criava jornada nenhuma, `extras` vinha 0, e endSeason() fechava a temporada com copa
+   por decidir: sem final, sem cerimônia, sem taça — exatamente o relatado. */
 function copasPendentes(){
   if(!S.cups) return [];
+  const agora=S.round||0;
   return allCupKeys().map(key=>{
     const c=S.cups[key]; if(!c) return null;
-    const b=(c.champion!==undefined)?c:c.bracket;
-    if(b && cupIsFinished(b)) return null;
-    const reservadas=((S.cupCalendar&&S.cupCalendar[key])||[]).length;
-    return { key, faltam: Math.max(1, cupTotalRounds(key)-reservadas) };
+    const faltam=cupRodadasQueFaltam(key);
+    if(!faltam) return null;
+    const marcadas=(((S.cupCalendar&&S.cupCalendar[key])||[]).filter(j=>j>=agora)).length;
+    return { key, faltam, marcadas, criar: Math.max(0, faltam-marcadas) };
   }).filter(Boolean);
 }
 function prorrogarSeFaltaCopa(){
   const pend=copasPendentes();
   if(!pend.length) return 0;
   const extras=(typeof WORLD_RULES!=='undefined' && WORLD_RULES.prorrogarPorCopasPendentes)
-    ? WORLD_RULES.prorrogarPorCopasPendentes(S, pend, 10) : 0;
+    ? WORLD_RULES.prorrogarPorCopasPendentes(S, pend, 24) : 0;
   const lista=pend.map(p=>((COMP_DEFS[p.key]&&COMP_DEFS[p.key].short)||p.key)+' ('+p.faltam+')').join(', ');
   if(extras){
     console.log('temporada prorrogada em '+extras+' jornada(s): faltava jogar '+lista);

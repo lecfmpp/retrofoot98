@@ -206,55 +206,60 @@
      foram acrescentadas (0 = nada a fazer, ou teto atingido). */
   function prorrogarPorCopasPendentes(S, pendentes, maximo){
     if(!S || !Array.isArray(S.sched) || !Array.isArray(pendentes) || !pendentes.length) return 0;
-    const teto=(maximo!=null)?maximo:10;
+    const teto=(maximo!=null)?maximo:60;
     const jaExtras=S._jornadasExtras||0;
     if(jaExtras>=teto) return 0;
-    // uma jornada por rodada devedora, intercalando as competições: se a Libertadores deve 2 e a
-    // Copa do Brasil deve 1, a ordem é Lib, Copa, Lib — nunca duas finais no mesmo dia.
-    const fila=[];
-    const restante=pendentes.map(p=>({ key:p.key, faltam:Math.max(0, p.faltam|0) }));
-    let sobrou=true;
-    while(sobrou){
-      sobrou=false;
-      restante.forEach(p=>{ if(p.faltam>0){ fila.push(p.key); p.faltam--; sobrou=true; } });
-    }
-    if(!fila.length) return 0;
     S.cupCalendar=S.cupCalendar||{};
-    /* A COPA JA SABE QUANDO JOGA — a temporada e que tem de a alcancar.
-       Antes isto EMPURRAVA uma jornada nova e escrevia o indice dela no fim do
-       calendario da copa. Desde que as copas deixaram de ser espremidas dentro
-       da liga (ver ancorarCalendarioCopa), elas ja tem rodadas marcadas ALEM do
-       fim da liga — a final da Libertadores cai na jornada 40 de um calendario
-       de 38, porque a data real dela e 28/nov e a liga acaba a 03/dez... e a da
-       Copa do Brasil e 06/dez, depois do fim.
-       Acrescentar por cima disso produzia `...,36,40,38`: fora de ordem, e a
-       final passava a ser jogada ANTES da meia-final. Agora a liga ESTICA ate
-       cobrir o que a copa ja tem marcado, e so inventa jornada nova para o que
-       nao tiver data nenhuma. */
-    const maiorMarcada=Object.keys(S.cupCalendar||{})
-      .filter(k=>k!=='_season' && Array.isArray(S.cupCalendar[k]))
-      .reduce((m,k)=>Math.max(m, ...S.cupCalendar[k]), -1);
-    let criadas=0;
-    // 1) estica a liga ate a maior jornada JA marcada por alguma copa
-    while(S.sched.length<=maiorMarcada && (jaExtras+criadas)<teto){
-      S.sched.push([]);                                   // jornada sem jogo de liga
-      criadas++;
-    }
-    // 2) o que ainda deve rodada e nao tem data marcada ganha jornada nova
-    const semData=fila.filter(k=>{
-      const a=S.cupCalendar[k]||[];
-      return !a.some(j=>j>=S.sched.length-criadas);
+    const cals=()=>Object.keys(S.cupCalendar).filter(k=>k!=='_season' && Array.isArray(S.cupCalendar[k]));
+    let criadas=0, agendadas=0;
+
+    /* 1) A LIGA ESTICA ATE ALCANCAR O QUE A COPA JA TEM MARCADO.
+       As copas deixaram de ser espremidas dentro da liga: a final da Libertadores cai na
+       jornada 40 de um calendario de 38, porque a data real dela e depois do fim da liga.
+       Acrescentar jornada nova por cima disso produzia `...,36,40,38` — a final jogada ANTES
+       da meia-final. Primeiro estica, depois inventa. */
+    const maiorMarcada=cals().reduce((m,k)=>Math.max(m, ...S.cupCalendar[k]), -1);
+    while(S.sched.length<=maiorMarcada && (jaExtras+criadas)<teto){ S.sched.push([]); criadas++; }
+
+    /* 2) CADA RODADA DEVIDA SEM DIA MARCADO GANHA UMA JORNADA SO DELA.
+       `p.criar` ja vem descontado dos tiques FUTUROS que a competicao tem (ver copasPendentes
+       no core) — aqui so se cria o que falta mesmo. Duas invariantes a respeitar:
+       - FAIXA: toda jornada de uma competicao tem o mesmo resto na divisao por 3 (ver
+         CUP_TICK_OFFSET). E a faixa que garante que duas copas nunca caem na mesma jornada,
+         que era o "cada humano numa competicao diferente no mesmo dia".
+       - UMA POR JORNADA: nem sequer duas competicoes diferentes partilham a jornada, para a
+         sala inteira estar sempre na mesma tela. */
+    const ocupadas=new Set();
+    cals().forEach(k=>S.cupCalendar[k].forEach(j=>ocupadas.add(j)));
+    const faixaDe=(key)=>{
+      const cal=S.cupCalendar[key]||[];
+      if(cal.length) return ((cal[cal.length-1]%3)+3)%3;
+      const f=CUP_FIRST_ROUND[key];
+      return f!=null ? ((f%3)+3)%3 : 0;
+    };
+    pendentes.forEach(p=>{
+      let criar=Math.max(0, (p.criar!=null?p.criar:p.faltam)|0);
+      if(!criar) return;
+      const cal=(S.cupCalendar[p.key]||[]).slice();
+      const faixa=faixaDe(p.key);
+      let j=Math.max(S.sched.length, (cal.length?cal[cal.length-1]:(S.round||0))+1);
+      while(((j%3)+3)%3!==faixa) j++;
+      let voltas=0;
+      while(criar>0 && (jaExtras+criadas)<teto && voltas++<400){
+        if(!ocupadas.has(j)){
+          cal.push(j); ocupadas.add(j); agendadas++; criar--;
+          while(S.sched.length<=j && (jaExtras+criadas)<teto){ S.sched.push([]); criadas++; }
+        }
+        j+=3;
+      }
+      cal.sort((a,b)=>a-b);
+      S.cupCalendar[p.key]=cal;
     });
-    const cabe=Math.min(semData.length, teto-(jaExtras+criadas));
-    for(let i=0;i<cabe;i++){
-      const jornada=S.sched.length;
-      S.sched.push([]);
-      const key=semData[i];
-      S.cupCalendar[key]=(S.cupCalendar[key]||[]).concat([jornada]);
-      criadas++;
-    }
     S._jornadasExtras=jaExtras+criadas;
-    return criadas;
+    /* Devolve TUDO o que foi arrumado, nao so as jornadas criadas. Quando a copa devedora ja
+       tinha jornada no calendario (a liga so precisou esticar), `criadas` podia vir 0 e quem
+       chama lia isso como "nao ha nada a fazer" e fechava a temporada na mesma. */
+    return criadas+agendadas;
   }
   /* ---------- MERCADO E CAIXA DOS CLUBES DA CPU ----------
      POR QUE ESTÁ AQUI. O mercado da CPU só existia no cliente (cpuBackgroundTransfers, core.js),
