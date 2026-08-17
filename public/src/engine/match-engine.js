@@ -59,13 +59,16 @@
     let tot=weights.reduce(function(a,b){return a+b;},0), r=R.random()*tot;
     for(let i=0;i<list.length;i++){ r-=weights[i]; if(r<=0) return list[i]; }
     return list[list.length-1]; }
-  function penaltyConvChance(taker, gk){ if(!taker) return 0.75;
+  /* espelho do de simulate.js, incluindo o `opts.humano` (ver la o porque) */
+  function penaltyConvChance(taker, gk, opts){ if(!taker) return (opts&&opts.humano)?0.78:0.75;
     const base=0.76;
     const takerBonus=((taker.f||65)-70)/100*0.35;
     const posBonus = taker.s==='ATT'?0.05:taker.s==='MID'?0.02:taker.s==='DEF'?-0.02:-0.08;
     const gkPenalty = gk ? (((gk.f||65)-65)/100)*0.22 : 0;
     const moralAdj = ((taker.moral||70)-70)/100*0.12;
-    return clamp(base+takerBonus+posBonus-gkPenalty+moralAdj, 0.42, 0.93); }
+    const bruto=base+takerBonus+posBonus-gkPenalty+moralAdj;
+    if(opts&&opts.humano) return clamp(bruto+(opts.canto!=null?0.06:0), 0.72, 0.95);
+    return clamp(bruto, 0.42, 0.93); }
 
   /* ===== a PARTIDA (espelho fiel de simulateMatch/simEventsC) =====
      side H/A: { rat:{OS,MS,DS,mor}, xi:[{n,f,s,energy,moral,behavior}], tactic, cap, short }

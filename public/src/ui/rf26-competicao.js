@@ -215,8 +215,19 @@ function rfCompeticaoHTML(key){
   const ordenado=tab?Object.values(tab.table||{}).sort((a,b)=>(b.Pts-a.Pts)||((b.GF-b.GA)-(a.GF-a.GA))):[];
   // com chave montada, a fase é a da chave — cupCompetitionRoundLabel só serve
   // enquanto a competição ainda está no formato de grupos
+  /* ANTES DO SORTEIO A TELA MENTIA DUAS VEZES: dizia "Oitavas de final" no
+     titulo do bloco (cupCompetitionRoundLabel devolve a fase teorica em que a
+     competicao entra, mesmo sem chave montada) e "Fase de grupos em andamento"
+     na linha de baixo -- numa copa que nem grupos tem. E as quatro fichas
+     ficavam a tracejado sem dizer porque. Agora, enquanto o sorteio nao sair, a
+     tela diz isso: "Sorteio pendente". */
+  const sorteada = !!(br || gobj);
   const fase = br ? cupPhaseLabel(br.round, br.roundsTotal)
-    : ((typeof cupCompetitionRoundLabel==='function'&&cupCompetitionRoundLabel(c,key))||'—');
+    : (gobj ? ((typeof cupCompetitionRoundLabel==='function'&&cupCompetitionRoundLabel(c,key))||'—')
+            : 'Sorteio pendente');
+  /* quem ja esta dentro da competicao, mesmo antes de haver chave: e a lista de
+     qualificados que o motor guarda quando a temporada e montada. */
+  const inscritos=(S.qualification&&Array.isArray(S.qualification[key]))?S.qualification[key]:[];
   // PREMIAÇÃO: a cota real da fase corrente, do mesmo PRIZES que credita o caixa —
   // nada de número decorativo que o motor não vai pagar
   const cota = (br && typeof PRIZES!=='undefined' && PRIZES.copaBrasilPhaseCash && key==='copaBrasil')
@@ -261,7 +272,12 @@ function rfCompeticaoHTML(key){
       <div class="rf-card rf-cp-esq">
         ${rfTrofeuHTML(key,112)}
         <span class="rf-cp-nome">${escC(tab?('Grupo '+meuGrupo):fase)}</span>
-        <span class="rf-cp-fase">${escC(def.sub||def.drawSub||(br?`${(vivos.length||0)} clubes seguem na disputa.`:'Fase de grupos em andamento.'))}</span>
+        <span class="rf-cp-fase">${escC(
+          br ? `${(vivos.length||0)} clubes seguem na disputa.`
+          : gobj ? 'Fase de grupos em andamento.'
+          : (inscritos.length
+              ? `${inscritos.length} clubes inscritos — o sorteio ainda não saiu.`
+              : (def.drawSub||def.sub||'O sorteio ainda não saiu.')))}</span>
         <div class="rf-cp-ficha">
           <div class="rf-ft-b"><span class="rf-ov-res-t">Campeão atual</span>
             <span class="rf-ft-bv sm">${escC(rfCampeaoAtual(key))}</span></div>
@@ -271,7 +287,8 @@ function rfCompeticaoHTML(key){
             <span class="rf-ft-bv sm">${jogos?jogos+(jogos===1?' jogo':' jogos'):'—'}</span></div>
           <div class="rf-ft-b"><span class="rf-ov-res-t">Situação</span>
             <span class="rf-ft-bv sm">${campeao===meu?'Campeão'
-              :((typeof cupCompetitionTeamAlive==='function'&&cupCompetitionTeamAlive(c,meu))?'Na disputa':'Fora')}</span></div>
+              :((typeof cupCompetitionTeamAlive==='function'&&cupCompetitionTeamAlive(c,meu))?'Na disputa'
+                :(!sorteada&&inscritos.indexOf(meu)>=0?'Inscrito':'Fora'))}</span></div>
         </div>
       </div>
       <div class="rf-cp-dir">
@@ -290,11 +307,13 @@ function rfCompeticaoHTML(key){
                   <span class="rf-cp-p">${t.Pts||0}</span>
                 </div>`;}).join(''):'<span class="rf-note">A fase começa depois do sorteio.</span>')
             : (caminho.length?caminho.map(x=>rfCpEtapa(x.f,x.adv,x.pl,x.m,x.e)).join('')
-               :'<span class="rf-note">O seu caminho aparece quando o sorteio sair.</span>')}
+               :`<span class="rf-note">${sorteada?'O seu clube não entrou nesta fase.'
+                 :(inscritos.indexOf(meu)>=0?'O seu clube está inscrito. Os confrontos saem no sorteio.'
+                   :'O seu caminho aparece quando o sorteio sair.')}</span>`)}
         </div>
         <div class="rf-card">
           <div class="rf-label"><span class="rf-label-t">${escC(tab?'Como estão os grupos':'Quem segue na copa')}</span>
-            <span class="rf-label-r">${tab?letras.length+' grupos':(vivos.length?vivos.length+' clubes':'')}</span></div>
+            <span class="rf-label-r">${tab?letras.length+' grupos':(vivos.length?vivos.length+' clubes':(inscritos.length?inscritos.length+' inscritos':''))}</span></div>
           <div class="rf-cp-segue">${
             tab
               ? (letras.slice(0,8).map(L=>{
@@ -306,7 +325,12 @@ function rfCompeticaoHTML(key){
                   const c2=anyClubOf(id)||{short:id};
                   return `<div class="rf-cp-g ${id===meu?'me':''}"><span class="rf-ft-crest">${rfCrest(c2,20)}</span>
                     <span class="rf-ft-n">${escC(c2.short)}</span></div>`;}).join('')
-                 :'<span class="rf-note">Ainda não há clubes classificados.</span>')
+                 : (inscritos.length
+                     ? inscritos.slice(0,12).map(id=>{
+                         const c2=anyClubOf(id)||{short:id};
+                         return `<div class="rf-cp-g ${id===meu?'me':''}"><span class="rf-ft-crest">${rfCrest(c2,20)}</span>
+                           <span class="rf-ft-n">${escC(c2.short)}</span></div>`;}).join('')
+                     : '<span class="rf-note">Ainda não há clubes classificados.</span>'))
           }</div>
         </div>
       </div>

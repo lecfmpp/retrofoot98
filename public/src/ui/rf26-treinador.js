@@ -359,9 +359,11 @@ function rfTrPerfilHTML(){
   const rep=Math.round(S.coachRep!=null?S.coachRep:50);
   const temps=(S.coachHistory||[]).length||1;
   const inicio=(S.season||0)-(temps-1);
-  /* IDADE e ESPECIALIDADE o motor não guarda: a idade sai do início da
-     carreira (começa aos 36) e a especialidade, do que a campanha mostra. */
-  const idade=36+(temps-1);
+  /* A IDADE E ESCOLHIDA NO ASSISTENTE e envelhece com as temporadas (S.coachAge0).
+     Saves gravados antes disso nao a tem: la continua a conta antiga, que
+     comecava aos 36. A ESPECIALIDADE o motor continua a nao guardar -- sai do
+     que a campanha mostra. */
+  const idade=(S.coachAge0||36)+(temps-1);
   const especial = rep>=70 ? 'montar elenco caro' : (S.youthPromotedSeason?'desenvolver a base':'segurar time pequeno');
   const chips=[];
   const tat=(typeof CAM_TATICA!=='undefined'&&CAM_TATICA[S.tactic])||S.tactic||'';

@@ -179,6 +179,13 @@ function rfTreinadoresHTML(){
           `<input class="rf-campo-c maiuscula" ${i===0?'id="cl-focus"':''} maxlength="12" placeholder="TREINADOR"
              value="${escC(nm||'')}" oninput="rfNomeTreinador(${i},this.value)">`)).join('')}
       </div>
+      <!-- A IDADE DO TREINADOR DEIXA DE SER INVENTADA. A ficha em Treinador
+           mostrava "36 anos" para toda a gente: o numero saia de uma conta fixa
+           (36 + temporadas-1) porque o dado nao existia. Agora escolhe-se aqui,
+           uma vez, e a partir dai ele envelhece uma temporada de cada vez. -->
+      ${rfCampo('A sua idade (25 a 75)',
+        `<input class="rf-campo-c" id="rf-ob-idade" inputmode="numeric" maxlength="2" placeholder="36"
+           value="${escC(String(CL.coachAge||36))}" oninput="rfIdadeTreinador(this.value)">`)}
       ${RF_HOTSEAT_LIGADO?'':`<div class="rf-aviso"><span class="rf-aviso-i">${rfIcone('elenco',16)}</span>
         <span>Jogar com mais gente é o <b>Modo Resenha</b>: cada um no seu aparelho, online,
         com tabela e chat da liga.</span></div>`}
@@ -211,6 +218,16 @@ function rfTreinadoresSel(k){
    então guardar no estado basta. O MAIÚSCULO agora é do CSS (.maiuscula): mexer
    em `this.value` empurraria o cursor pro fim no meio de uma edição. */
 function rfNomeTreinador(i,v){ CL.names[i]=String(v||'').toUpperCase(); }
+/* SEM cdraw(): redesenhar por tecla devolve o cursor ao inicio do campo e o
+   numero sai invertido (a mesma armadilha do nome do treinador). */
+function rfIdadeTreinador(v){
+  const n=parseInt(String(v||'').replace(/\D/g,''),10);
+  CL.coachAge=isFinite(n)?n:null;
+}
+function rfIdadeTreinadorValida(){
+  const n=CL.coachAge;
+  return (isFinite(n)&&n>=25&&n<=75)?n:36;
+}
 function rfClubesNaDivisao(){
   const pool=CL._pickPool&&CL._pickPool[(CL.playCountry||'Brasil')];
   if(pool&&pool.length) return pool.length;

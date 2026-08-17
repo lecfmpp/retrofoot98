@@ -843,8 +843,15 @@ function rfOb7(){
    e o quanto foi construído na temporada. Então a linha diz "Casa do <clube>"
    em vez de inventar um nome próprio que o jogo não tem. A tela de referência
    escreve "Barão de Serra Negra"; quando o dado existir, entra aqui. */
+/* O ESTADIO TEM NOME. O save guarda so capacidade e foto, e todas as telas
+   diziam "Casa do Palmeiras" -- generico para clubes que tem nome proprio e
+   conhecido. A tabela esta em data/estadios.js, com ~80 estadios brasileiros;
+   quem nao estiver la continua no generico honesto, que e melhor do que um
+   nome inventado para um clube real. */
 function rfObEstadioNome(cl,st){
-  return (st&&st.name) || ('Casa do '+(cl.short||'clube'));
+  if(st&&st.name) return st.name;
+  if(typeof estadioNomeDe==='function') return estadioNomeDe(cl);
+  return 'Casa do '+((cl&&cl.short)||'clube');
 }
 /* o objetivo é o que a divisão realmente cobra, não um texto fixo */
 function rfObObjetivo(){

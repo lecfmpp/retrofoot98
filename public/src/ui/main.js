@@ -2520,6 +2520,11 @@ function clEntrar(){
   CL.ticket=ticketPriceForDivision(S.division);
   CL.formation=null; CL.tacticChosen=false;   // precisa escolher tática no menu p/ liberar "Jogar"
   S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
+  /* IDADE DE PARTIDA DO TREINADOR, escolhida no assistente (ver rfIdadeTreinador).
+     Antes a ficha mostrava sempre "36 anos" porque o dado nao existia -- era uma
+     conta fixa. Fica gravada uma vez; a partir dai ele envelhece uma temporada
+     de cada vez, como toda a gente. */
+  S.coachAge0=(typeof rfIdadeTreinadorValida==='function')?rfIdadeTreinadorValida():36;
   CL.speedMult=1;  // 1.0x, 1.5x, 2x, 3x (só anfitrião no modo Resenha pode mudar)
   // modo solo de verdade: garante que nada do modo online "vaza" pra cá (ex: se o usuário
   // tinha entrado numa sala online antes, na mesma aba, CL.online ficava travado em true e
@@ -2687,7 +2692,7 @@ function scBoasVindas(){
           <div class="cl-welc-frame cl-welc-stadium">
             ${photo?`<img src="${escC(photo)}" alt="Estádio do ${escC(club.short)}">`:standSVG(cap)}
           </div>
-          <div class="cl-welc-cap">Estádio do <strong style="color:#fff">${escC(club.short)}</strong> — ${grp(cap)} lugares.</div>
+          <div class="cl-welc-cap"><strong style="color:#fff">${escC(typeof estadioNomeDe==='function'?estadioNomeDe(club):('Casa do '+club.short))}</strong> — ${grp(cap)} lugares.</div>
         </div>
       </div>
 
@@ -6556,7 +6561,7 @@ function resolveShootoutKick(takerName){
   const gk=squad(oppId).find(p=>p.s==='GK')||null;
   const kickIdx=RL.pens.h.length+RL.pens.a.length;
   const R=makeRng(hashSeed(S.seed,S.round,'pens',m.h,m.a,side,kickIdx,takerName));
-  const scored=R.random()<penaltyConvChance(taker,gk);
+  const scored=R.random()<penaltyConvChance(taker,gk,{humano:true,canto:CL.penCanto});
   CL.penPhase='suspense'; CL.penResultScorer=taker?taker.n:takerName; CL.penResultScored=scored;
   cdraw();
   CL._penRevealTimer=setTimeout(()=>{
@@ -6614,7 +6619,7 @@ function resolvePenalty(takerName){
     // FASE 3B (visitante): mando a escolha do batedor pro mandante e fico no suspense — a
     // revelação chega pelo stream (closeRemoteDecision). Timer de segurança fecha se nada vier.
     if(typeof NET!=='undefined' && NET.broadcastDecision && CL._remoteDecision)
-      NET.broadcastDecision({ k:CL._remoteDecision.k, side:(RL.penMatch.h===CL.clubId?'H':'A'), decision:{tipo:'penalti', batedor:takerName} });
+      NET.broadcastDecision({ k:CL._remoteDecision.k, side:(RL.penMatch.h===CL.clubId?'H':'A'), decision:{tipo:'penalti', batedor:takerName, canto:CL.penCanto} });
     CL.penPhase='suspense'; CL.penResultScorer=takerName; CL.penResultScored=null;
     cdraw();
     CL._penRevealTimer=setTimeout(()=>{ if(CL.penPhase==='suspense'){ CL._remoteDecision=null; closePenaltyModal(); } }, 9000);
@@ -6623,14 +6628,14 @@ function resolvePenalty(takerName){
   let scored;
   if(RL.penMatch && RL.penMatch.sim){
     // FASE 3A: a SESSÃO decide (mesma RNG determinística de sempre) e já aplica placar/artilheiro/log
-    scored=RL.penMatch.sim.applyDecision({tipo:'penalti', batedor:takerName});
+    scored=RL.penMatch.sim.applyDecision({tipo:'penalti', batedor:takerName, canto:CL.penCanto});
     e._resolved=true;
   } else {
     const taker=findP(takerName,CL.clubId);
     const oppId = RL.penMatch.h===CL.clubId ? RL.penMatch.a : RL.penMatch.h;
     const gk=squad(oppId).find(p=>p.s==='GK')||null;
     const R=makeRng(hashSeed(S.seed,S.round,'pen',e.min,takerName));
-    const pConv=penaltyConvChance(taker,gk);
+    const pConv=penaltyConvChance(taker,gk,{humano:true,canto:CL.penCanto});
     scored=R.random()<pConv;
     e.scored=scored; e.scorer=taker?taker.n:e.scorer; e._resolved=true;
   }
@@ -11288,8 +11293,13 @@ function clSellConfirm(){
   const buyers=DATA.clubs.filter(c=>c.id!==CL.clubId && !(CL.online && CL.humans && CL.humans[c.id]));
   const buyer=buyers[Math.floor(rnd()*buyers.length)];
   const base=Math.round(p.mv/1000); const ask=Math.round((parseInt(CL.sellPrice,10)||0)/1000); // sellPrice em reais -> milhares
-  let feeK=Math.max(1,Math.round(base*(0.7+rnd()*0.7)));           // proposta do mercado em milhares
-  if(ask>0 && ask<=feeK*1.2) feeK=Math.max(ask,Math.round(feeK*0.9)); else if(ask>feeK*1.2) feeK=Math.round(feeK*0.85);
+  /* VENDER DEIXOU DE SER CASTIGO. A faixa era 0,7-1,4x do valor de mercado e,
+     pior, pedir acima de 1,2x da proposta cortava-a para 0,85x: quem escrevia o
+     preco que queria recebia MENOS do que quem nao escrevia nada. Agora a faixa
+     e 0,85-1,55x, o pedido e coberto ate 1,35x, e pedir acima disso custa 8% em
+     vez de 15% -- continua a haver limite, mas pedir o justo passa a compensar. */
+  let feeK=Math.max(1,Math.round(base*(0.85+rnd()*0.7)));          // proposta do mercado em milhares
+  if(ask>0 && ask<=feeK*1.35) feeK=Math.max(ask,feeK); else if(ask>feeK*1.35) feeK=Math.round(feeK*0.92);
   const fee=feeK*1000;
   const preOpen=inPreWindow();
   if(!inTransferWindow() && preOpen){

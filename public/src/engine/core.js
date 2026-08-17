@@ -851,8 +851,13 @@ function generateIncomingOffers(R){
   const targetClubIds=(typeof CL!=='undefined' && CL.online && CL.humans) ? Object.keys(CL.humans) : [S.clubId];
   targetClubIds.forEach(myClubId=>{
     const myOffers=S.incomingOffersByClub[myClubId]=S.incomingOffersByClub[myClubId]||[];
-    if(myOffers.length>=4) return;   // no máximo 4 propostas pendentes
-    if(R.random()>0.5) return;                       // nem toda rodada de janela gera proposta
+    /* MAIS PROPOSTAS A CHEGAR. Com teto de 4 e meia rodada de hipotese, uma
+       janela inteira dava duas ou tres ofertas -- vender um jogador dependia de
+       sorte. Teto de 6 e dois tercos das rodadas: continua a nao ser todas as
+       rodadas, e o teto continua a existir para a caixa de entrada nao virar
+       lista de spam. */
+    if(myOffers.length>=6) return;   // no máximo 6 propostas pendentes
+    if(R.random()>0.66) return;                      // nem toda rodada de janela gera proposta
     const mySquad=S.squads[myClubId]||[]; if(mySquad.length<=16) return;
     const pending=new Set(myOffers.map(o=>o.playerName));
     // clubes miram preferencialmente os melhores do elenco (que ainda não têm proposta).

@@ -101,14 +101,31 @@ function pickPenaltyTaker(pool, R){
   for(let i=0;i<list.length;i++){ r-=weights[i]; if(r<=0) return list[i]; }
   return list[list.length-1];
 }
-function penaltyConvChance(taker, gk){
-  if(!taker) return 0.75;
+/* ===== PENALTI COBRADO POR GENTE, NAO PELO MOTOR =====
+   `opts.humano` marca a cobranca que passou pelo modal -- o pênalti em campo e a
+   disputa do mata-mata. Duas coisas mudam nela:
+
+   1. O PISO SOBE PARA 72%. A curva normal desce ate 42% (batedor fraco contra
+      goleirao), o que e justo numa simulacao mas cruel na unica cobranca que o
+      utilizador VE e em que decide: a queixa era "todos os penaltis sao
+      defendidos". Com o piso em 72% e o teto em 95%, a media fica na casa dos
+      75-80% que se pediu, e continua a haver defesa.
+   2. ESCOLHER O CANTO VALE ALGUMA COISA. A tela de cobranca (rfPenaltiBatedorHTML)
+      pede o canto desde o pacote novo e o resultado ignorava-o por completo --
+      escolha sem consequencia nenhuma. Agora da +6 pontos percentuais.
+
+   O penalti simulado (o dos outros jogos, e os do proprio jogo quando nao ha
+   modal) fica exatamente como estava: mexer nele mudaria o placar de toda a liga. */
+function penaltyConvChance(taker, gk, opts){
+  if(!taker) return (opts&&opts.humano)?0.78:0.75;
   const base=0.76;
   const takerBonus=((taker.f||65)-70)/100*0.35;      // batedor mais forte que a média converte mais
   const posBonus = taker.s==='ATT'?0.05:taker.s==='MID'?0.02:taker.s==='DEF'?-0.02:-0.08; // GK batendo é raríssimo/pior
   const gkPenalty = gk ? (((gk.f||65)-65)/100)*0.22 : 0; // goleiro bom defende mais
   const moralAdj = ((taker.moral||70)-70)/100*0.12;
-  return clamp(base+takerBonus+posBonus-gkPenalty+moralAdj, 0.42, 0.93); // nunca abaixo de 42% nem acima de 93% — sempre emoção
+  const bruto=base+takerBonus+posBonus-gkPenalty+moralAdj;
+  if(opts&&opts.humano) return clamp(bruto+(opts.canto!=null?0.06:0), 0.72, 0.95);
+  return clamp(bruto, 0.42, 0.93); // nunca abaixo de 42% nem acima de 93% — sempre emoção
 }
 
 /* tática usada por um clube na simulação: o clube do usuário usa S.tactic; na Resenha, um clube
@@ -556,7 +573,9 @@ function liveMatchSession(homeId, awayId, seed, opts){
         || cur[side].filter(x=>x.s!=='GK').slice().sort((a,b)=>b.f-a.f)[0]
         || cur[side][0] || null;
       const R2=makeRng(hashSeed(S.seed,S.round,'pen',p.ev.min,d.batedor));
-      const scored=R2.random()<penaltyConvChance(taker,p.gk);
+      /* cobranca decidida por gente (modal local ou decisao remota da Resenha):
+         piso de 72% e bonus de canto -- ver penaltyConvChance */
+      const scored=R2.random()<penaltyConvChance(taker,p.gk,{humano:true,canto:d.canto});
       p.ev.scored=scored; p.ev.scorer=taker?taker.n:d.batedor; p.ev.scorerPid=taker?taker.pid:null;
       if(scored){ if(side==='H'){hg++;}else{ag++;} perf[side].goals++; scorers.push({id:clubIdOf[side],name:p.ev.scorer,pid:p.ev.scorerPid,min:p.ev.min}); pos=side==='H'?-0.15:0.15; }
       out=scored;
