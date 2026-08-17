@@ -472,7 +472,8 @@ const RF_ACOES = {
   return rfAcao({ kicker:'BASE · PROMOÇÃO', titulo:'Promover '+escC(p.n||'—')+'?', w:480,
     corpo:
       rfAcFichaHTML(p,'PRONTO EM',d.pronto||'—',d.num)
-      + rfAcLinhaHTML('Força hoje', String(p.f||'—')+(d.teto?(' · pode chegar a '+d.teto):''), '')
+      /* idem: p.f vem fracionario do motor */
+      + rfAcLinhaHTML('Força hoje', (p.f!=null?String(Math.round(p.f)):'—')+(d.teto?(' · pode chegar a '+Math.round(d.teto)):''), '')
       + rfAcLinhaHTML('Entra na folha', rfDin(d.salario||0)+'/mês', 'aviso', true)
       /* o teto do motor é 40, não 30 — ver youthAvailable() */
       + rfAcLinhaHTML('Elenco depois', (squad(CL.clubId).length+1)+' de 40', '')

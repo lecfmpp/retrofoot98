@@ -650,9 +650,18 @@ function rfHubHTML(){
     <div class="rf-card" id="rf-taticas" data-hub="formacoes">
       <span class="rf-label-t">Formações</span>
       ${rfFormacoesHTML()}
-      <div class="rf-acts">
+      <!-- O JOGAR VEM PARA JUNTO DA FORMACAO. Ficava so na barra de baixo, longe
+           de onde se escala: escolhe-se o onze aqui em cima e procura-se o botao
+           la em baixo. Agora os dois dividem a linha — descansados a esquerda,
+           jogar a direita — e o "Seleccionar descansados" deixa de ocupar a
+           largura toda sozinho. A barra inferior mantem o seu (e a mesma funcao,
+           rfJogar), para quem esta noutro ponto da pagina. -->
+      <div class="rf-acts rf-acts-2">
         ${btn('Seleccionar descansados','clSelectRested()',{icon:rfIcone('energia',16)+'',dis:!CL.tacticChosen,
           title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
+        <button type="button" class="rf-btn rf-btn-cta rf-acts-jogar"
+          ${(rfFaltaTatica()||xiPlayers(CL.clubId).length>=11)?'':'disabled'}
+          onclick="${rfFaltaTatica()?'rfIrEscolherTatica()':'rfJogar()'}">${rfJogarLabel()}</button>
       </div>
     </div>
     <div class="rf-hub-baixo" data-hub="destaques">

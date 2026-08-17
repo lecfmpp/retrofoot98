@@ -230,8 +230,13 @@ function rfCamHTML(RL){
             <span class="rf-cam-nota">os outros jogos seguem rolando ao fundo</span>
             <button type="button" class="rf-cam-x" onclick="camToggle()" title="Voltar à rodada (Esc)">✖ Voltar à rodada</button>
           </div>
-          <div id="rf-cam-dyn" data-tab="${escC(CL.camTab||'panorama')}">${camDynHTML(m)}</div>
+          <!-- A BANDA DE PATROCINIO SOBE PARA CIMA DO CONTEUDO. Estava entre o
+               miolo dinamico e o rodape, ou seja, no fundo: quem entra no
+               Camarote para VER O JOGO nunca rolava ate la, e o espaco vendido
+               ficava sem audiencia. Aqui em cima ela e vista sem rolar, e nao
+               empurra o jogo para fora da dobra porque tem 60px de altura. -->
           ${rfCamPatroHTML()}
+          <div id="rf-cam-dyn" data-tab="${escC(CL.camTab||'panorama')}">${camDynHTML(m)}</div>
           <div class="rf-cam-rodape">
             <span>Esc ou ✖ para voltar à rodada</span>
             <span>O Camarote mostra só o seu jogo — a rodada inteira continua ao fundo</span>

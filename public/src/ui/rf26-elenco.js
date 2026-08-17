@@ -280,7 +280,10 @@ function rfElPotencial(y){
   const g=(typeof growthProfileOf==='function')?growthProfileOf(y):null;
   const porTemp=(g&&g.forcaPorTemporada)||2;
   const anos=Math.max(0, 24-(y.age||18));
-  const teto=Math.min(99,(y.f||0)+porTemp*anos);
+  /* ARREDONDADO. A forca do motor e fracionaria (33.509940930...) e o teto
+     herdava as casas todas — a tela mostrava "pode chegar a 41.8199404". Numero
+     de forca le-se inteiro; a precisao interna continua intacta no motor. */
+  const teto=Math.round(Math.min(99,(y.f||0)+porTemp*anos));
   return {teto, anos, pct:Math.round(100*teto/99)};
 }
 function rfElBaseHTML(){

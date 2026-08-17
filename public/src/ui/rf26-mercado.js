@@ -211,15 +211,15 @@ function rfMktComprarHTML(){
   const sq=squad(CL.clubId);
   const linhas=mostra.map(({p,clubId,ask})=>`<div class="rf-mkt-row" onclick="rfMkPropor('${escC(clubId)}','${escC(p.n)}')">
     <span class="rf-mkt-n">${escC(p.n)}</span>
+    <span class="rf-mkt-f">${p.f}</span>
     ${rfMkPos(p)}
     <span class="rf-mkt-x">${p.age||'—'}</span>
-    <span class="rf-mkt-f">${p.f}</span>
     ${rfMkClube(clubId)}
     <span class="rf-mkt-v">${escC(rfDin(ask))}</span>
     <span class="rf-mkt-v leve">${escC(rfMkSalario(p))}</span>
     ${rfMkBt('Propor',`rfMkPropor('${escC(clubId)}','${escC(p.n)}')`)}
   </div>`);
-  const cabecalho=`<span>JOGADOR</span><span>POS</span><span>IDA</span><span>FOR</span>
+  const cabecalho=`<span>JOGADOR</span><span>FOR</span><span>POS</span><span>IDA</span>
     <span>CLUBE</span><span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
   return rfMktGavetaHTML(['oferta']) + rfCol(
     rfCard('Jogadores no mercado',
@@ -252,9 +252,9 @@ function rfMktLeilaoHTML(){
     const meu=l.leader===S.clubId;
     return `<div class="rf-mkt-row ${meu?'destaque':''}">
       <span class="rf-mkt-n">${escC(p.n)}</span>
+      <span class="rf-mkt-f">${p.f}</span>
       ${rfMkPos(p)}
       <span class="rf-mkt-x">${p.age||'—'}</span>
-      <span class="rf-mkt-f">${p.f}</span>
       ${rfMkClube(l.sellerId)}
       <span class="rf-mkt-v">${escC(rfDin(l.bid))}</span>
       <span class="rf-mkt-v ${l.myBid?'meu':'leve'}">${l.myBid?escC(rfDin(l.myBid)):'—'}</span>
@@ -262,7 +262,7 @@ function rfMktLeilaoHTML(){
       ${rfMkBt(meu?'Cobrir':'Dar lance',`rfMkLance('${escC(l.sellerId)}','${escC(l.player)}')`, meu)}
     </div>`;
   };
-  const cabecalho=`<span>JOGADOR</span><span>POS</span><span>IDA</span><span>FOR</span>
+  const cabecalho=`<span>JOGADOR</span><span>FOR</span><span>POS</span><span>IDA</span>
     <span>CLUBE</span><span class="dir">LANCE ATUAL</span><span class="dir">SEU LANCE</span>
     <span class="dir">FECHA</span><span></span>`;
   const arrematados=fechados.map(l=>{
@@ -327,7 +327,9 @@ function rfMktPropostasHTML(){
         ${rfKpiHTML('Salário que sai', sal?rfDin(sal):'—', sal?'alívio na folha':'', sal?'bom':'')}
         ${rfKpiHTML('Valor de mercado', vm?rfDin(vm):'—',
           acima===null?'':(acima?'acima do valor':'abaixo do valor'), acima===null?'':(acima?'bom':'ruim'))}
-        ${rfKpiHTML('Substituto', sub?sub.n:'—', sub?'já no elenco':'sem reserva no setor', sub?'':'ruim')}
+        <!-- "PROVAVEL": e o palpite do jogo sobre quem herda a vaga, nao uma
+             escalacao. Quem decide continua a ser o utilizador. -->
+        ${rfKpiHTML('Provável substituto', sub?sub.n:'—', sub?'já no elenco':'sem reserva no setor', sub?'':'ruim')}
       </div>
       ${o.lastMsg?`<span class="rf-prop-msg">${rfIcone('chat',16)} ${escC(o.lastMsg)}</span>`:''}
     </div>`;
@@ -414,9 +416,9 @@ function rfMktVenderHTML(){
        em vez de orientar. */
     return `<div class="rf-mkt-row" onclick="rfMkListar('${escC(p.pid)}')">
       <span class="rf-mkt-nome">${rfMkCamisaHTML(nums[p.pid]||p.num)}<b>${escC(p.n)}</b></span>
+      <span class="rf-mkt-f">${p.f}</span>
       ${rfMkPos(p)}
       <span class="rf-mkt-x">${p.age||'—'}</span>
-      <span class="rf-mkt-f">${p.f}</span>
       <span class="rf-mkt-v">${escC(rfDin(vm))}</span>
       <span class="rf-mkt-v leve">${escC(rfMkSalario(p))}</span>
       ${rfMkBt('Listar',`rfMkListar('${escC(p.pid)}')`)}
@@ -424,7 +426,7 @@ function rfMktVenderHTML(){
   });
   /* FIM DE CONTRATO e INTERESSE saíram: com nove colunas o botão Listar só
      aparecia depois de rolar. As duas continuam na ficha do jogador. */
-  const cabecalho=`<span>JOGADOR</span><span>POS</span><span>IDA</span><span>FOR</span>
+  const cabecalho=`<span>JOGADOR</span><span>FOR</span><span>POS</span><span>IDA</span>
     <span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
   // QUEM VOCÊ NÃO DEVERIA VENDER: o titular mais caro de repor
   const chave=[...xi].map(pid=>sq.find(p=>p.pid===pid)).filter(Boolean).filter(p=>{

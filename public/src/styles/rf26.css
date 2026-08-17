@@ -6598,3 +6598,12 @@
 .rf-dlg-marca .rf-dlg-x{color:#fff}
 .rf-dlg-marca .rf-dlg-glyph{margin-left:6px;color:var(--brand-secondary,#F2B90C)}
 .rf-dlg-marca .rf-dlg-filete{background:var(--brand-secondary,#F2B90C)}
+
+/* "Seleccionar descansados" + "Jogar" dividem a linha, junto da formação —
+   antes o primeiro ocupava a largura toda e o Jogar vivia só na barra de baixo,
+   longe de onde se escala o time. */
+.rf-acts-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
+.rf-acts-2>*{width:100%;min-width:0}
+.rf-acts-jogar{display:flex;align-items:center;justify-content:center;gap:8px;
+  height:42px;border-radius:12px;font-weight:var(--fw-bold);white-space:nowrap}
+@media (max-width:560px){ .rf-acts-2{grid-template-columns:1fr} }
