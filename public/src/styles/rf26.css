@@ -377,12 +377,35 @@
    os jogadores em percentagem mas as camisas, os numeros e os nomes sao px --
    estreitar a caixa amontoava os nomes uns por cima dos outros. O `zoom` reduz
    a peca inteira e reflui a altura junto, que e o que "proporcional" quer dizer.
-   A conta de cada degrau: (miolo/2 - 40 de respiro) / 678 da peca. */
-@container miolo (max-width:1460px){ .rf-pitch-card .cl-pitch-block{zoom:.96} }
-@container miolo (max-width:1360px){ .rf-pitch-card .cl-pitch-block{zoom:.90} }
-@container miolo (max-width:1260px){ .rf-pitch-card .cl-pitch-block{zoom:.84} }
-@container miolo (max-width:1160px){ .rf-pitch-card .cl-pitch-block{zoom:.76} }
-@container miolo (max-width:1060px){ .rf-pitch-card .cl-pitch-block{zoom:.70} }
+   A conta de cada degrau, medida e nao estimada: a coluna e
+   (miolo - 36 da pagina - 14 do vao)/2, o cartao come 28 de padding, e a peca do
+   campo pede 678 (470 do gramado + 12 + 196 do banco). Logo
+   zoom = (coluna - 28) / 678, com um ponto de folga. */
+@container miolo (max-width:1578px){ .rf-pitch-card .cl-pitch-block{zoom:.92} }
+@container miolo (max-width:1466px){ .rf-pitch-card .cl-pitch-block{zoom:.85} }
+@container miolo (max-width:1370px){ .rf-pitch-card .cl-pitch-block{zoom:.80} }
+/* ----- E ANTES DE O CAMPO FICAR PEQUENO DEMAIS, O BANCO DESCE -----
+   Continuar a encolher levava o campo a 0,55 num monitor de 1180 -- os nomes
+   deixavam de se ler, que era o defeito que o `zoom` veio evitar. O banco
+   (196px) e a peca que se pode mudar de sitio: por baixo do campo ele fica em
+   faixa, como ja acontece no telemovel, e o campo volta a caber inteiro. */
+@container miolo (max-width:1290px){
+  /* seletor mais especifico de proposito: a largura fixa do banco
+     (.rf-pitch-card .cl-bench, mais abaixo neste ficheiro) ganharia por vir
+     depois, e o banco continuava colado ao lado do campo. */
+  .rf-pitch-card .cl-pitch-block{flex-wrap:wrap;zoom:1}
+  .rf-pitch-card .cl-pitch-block>.cl-bench{width:100%;flex:1 1 100%;height:auto;
+    max-height:none;overflow:visible}
+  /* o banco em faixa e uma LINHA DE GRUPOS (goleiros, defesa, meio, ataque),
+     cada um continuando a ser a sua coluna -- virar tudo em linha punha os
+     reservas todos lado a lado e transbordava outra vez. */
+  .rf-pitch-card .cl-pitch-block>.cl-bench .rf-banco-lista{flex-direction:row;flex-wrap:wrap;
+    align-items:flex-start;gap:10px;overflow:visible}
+  .rf-pitch-card .cl-pitch-block>.cl-bench .rf-bgrupo{flex:1 1 150px;min-width:0}
+}
+@container miolo (max-width:1162px){ .rf-pitch-card .cl-pitch-block{zoom:.94} }
+@container miolo (max-width:1090px){ .rf-pitch-card .cl-pitch-block{zoom:.88} }
+@container miolo (max-width:1020px){ .rf-pitch-card .cl-pitch-block{zoom:.84} }
 /* Abaixo disto nem com o campo encolhido sobra tabela: empilha. O limite era
    1130 porque a direita pedia 678px fixos; com as colunas iguais e o campo a
    encolher, a grade de duas colunas aguenta bem mais abaixo. */
@@ -629,8 +652,8 @@
 .rf-semana{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line-1);
   margin-top:2px;padding-top:12px}
 .rf-semana-l{display:flex;align-items:baseline;justify-content:space-between;gap:10px;min-width:0}
-.rf-semana-r{font-size:var(--fs-label);color:var(--text-faint);white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis}
+.rf-semana-r{flex:0 1 auto;min-width:0;font-size:var(--fs-label);color:var(--text-faint);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rf-semana-g{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .rf-sem-dia{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;
   border:1px solid var(--line-2);border-radius:var(--r-control);padding:7px 4px;
@@ -656,6 +679,8 @@
   .rf-semana-g{gap:4px}
   .rf-sem-dia{padding:6px 2px}
   .rf-sem-c{display:none}
+  /* a legenda nao cabe ao lado do rotulo em 375px: o que importa e a tira */
+  .rf-semana-r{display:none}
 }
 .rf-formgrid>.rf-chip{width:100%}
 
