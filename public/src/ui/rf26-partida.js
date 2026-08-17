@@ -826,37 +826,100 @@ function rfPenaltiResultadoHTML(extra){
 function rfShootoutBolasHTML(lista, total){
   total=total||5;
   return `<div class="rf-so-bolas">${Array.from({length:Math.max(total,lista.length)},(_,i)=>{
-    const v=lista[i];
-    return `<span class="rf-so-b ${v===true?'ok':v===false?'no':''}">${v===true?'●':v===false?rfIcone('fechar',16):''}</span>`;
+    /* cada item e a COBRANCA do motor -- {name,scored} --, nao um booleano. A comparacao
+       era `v===true`, que num objeto nunca da certo: as bolinhas ficavam todas cinzentas
+       do inicio ao fim da disputa, mesmo com a serie ja decidida. */
+    const k=lista[i];
+    const ok=!!(k&&k.scored), errou=!!(k&&!k.scored);
+    return `<span class="rf-so-b ${ok?'ok':errou?'no':''}" title="${k?escC((k.name||'')+(ok?' converteu':' perdeu')):''}">${ok?'●':errou?rfIcone('fechar',16):''}</span>`;
   }).join('')}</div>`;
 }
+/* ===== A DISPUTA INTEIRA NUMA TELA SO =====
+   Antes esta tela era o "placar" e era EMBUTIDA dentro das outras: o modal de escolha do
+   batedor, o de suspense e o de resultado punham-na no corpo deles como `extra`. So que
+   ela e um rfOverlay -- ecra inteiro, fundo proprio -- entao ficava POR CIMA dos tres e
+   era a unica coisa que se via, sempre igual, em todas as fases. Dai o relato "bati o
+   primeiro penalti e travou tudo": a serie continuava por baixo, mas na tela nada mudava
+   e o botao "Bater" so respondia numa fresta (na vez do adversario e durante a revelacao
+   ele e barrado de proposito, em resolveShootoutKick/shootoutRevelar).
+   Por cima disso, as bolinhas e o placar liam `pens.h` como se fosse uma lista de
+   booleanos, e o motor guarda {name,scored}: um objeto e sempre truthy, entao o placar
+   contava COBRANCAS em vez de GOLS (um penalti perdido somava ponto) e nenhuma bolinha
+   chegava a pintar -- ficavam as cinco cinzentas do inicio ao fim.
+   Agora e uma tela unica que muda de corpo conforme a fase (escolher / suspense /
+   resultado), le {name,scored} e so mostra o botao quando a cobranca e mesmo minha. */
 function rfDisputaHTML(RL){
   RL=RL||CL.live||{};
-  const pens=RL.pens||{h:[],a:[]};
-  const m=RL.penMatch||(RL.matches&&RL.matches[0])||{};
+  const pens=RL.pens||{h:[],a:[],turn:'H'};
+  const m=(RL.matches&&RL.matches[0])||RL.penMatch||{};
   const hc=anyClubOf(m.h)||{short:'—'}, ac=anyClubOf(m.a)||{short:'—'};
-  const gh=pens.h.filter(Boolean).length, ga=pens.a.filter(Boolean).length;
+  const gols=l=>l.filter(k=>k&&k.scored).length;
+  /* A BOLINHA TEM DE ACENDER NA REVELACAO. A cobranca so e REGISTADA em
+     recordShootoutKick, 1,8s depois -- de proposito, para o placar nao se adiantar ao
+     suspense. Mas isso fazia a tela anunciar "Perdeu!" com as cinco bolinhas ainda
+     cinzentas e o placar em 0: a bolinha acendia sozinha um segundo e meio mais tarde,
+     ja com a tela noutra fase. Aqui a cobranca em revelacao entra ANTECIPADA so no
+     desenho -- e exatamente a mesma que sera registada a seguir. */
+  const emRevelacao=(CL.penPhase==='result')
+    ? {name:CL.penResultScorer, scored:!!CL.penResultScored} : null;
+  const lh=(emRevelacao && pens.turn==='H') ? pens.h.concat([emRevelacao]) : pens.h;
+  const la=(emRevelacao && pens.turn==='A') ? pens.a.concat([emRevelacao]) : pens.a;
+  const gh=gols(lh), ga=gols(la);
   const eu=(m.h===CL.clubId);
-  const takers=(typeof penaltyTakerPool==='function')?penaltyTakerPool(m,CL.clubId):[];
-  const bate=takers.find(p=>p.n===CL.penSel)||takers[0];
+  const fase=CL.penPhase||null;                       // null | 'suspense' | 'result'
+  const minhaVez=!!m.user && ((pens.turn==='H')===eu);
+  const escolhendo=(fase===null && minhaVez && !!RL.pensPicking);
+  const total=Math.max(5,lh.length,la.length);
   const nCob=Math.max(pens.h.length,pens.a.length)+1;
-  const linha=(c,gols,lista,meu)=>`<div class="rf-so-time ${meu?'meu':''}">
+  const morteSubita=(pens.h.length>=5 && pens.a.length>=5);
+
+  const pool=(typeof penaltyTakerPool==='function')?penaltyTakerPool(m,CL.clubId):[];
+  const jaBateram=new Set((eu?pens.h:pens.a).map(k=>k.name));
+  const livres=(typeof shootoutEligibleTakers==='function')?shootoutEligibleTakers(pool,jaBateram):pool;
+  const cicloReabriu=(livres.length===pool.length);
+  const bate=pool.find(p=>p.n===CL.penSel)||livres[0]||pool[0];
+
+  const linha=(c,g,lista,meu)=>`<div class="rf-so-time ${meu?'meu':''}">
     <span class="rf-so-crest">${rfCrest(c,22)}</span>
     <span class="rf-so-n">${escC(c.short)}</span>
     <div class="rf-sp"></div>
-    <span class="rf-so-g">${gols}</span>
-    ${rfShootoutBolasHTML(lista)}
+    <span class="rf-so-g">${g}</span>
+    ${rfShootoutBolasHTML(lista,total)}
   </div>`;
-  return rfOverlay({
-    w:760,
-    contexto:`${escC(m.comp||'Mata-mata')} · ${(m.hg||0)} × ${(m.ag||0)} no tempo normal`,
-    titulo:'Disputa de pênaltis',
-    hdDir:`<span class="rf-so-cob">${nCob}ª cobrança</span>`,
-    corpo:`
-      <div class="rf-card">
-        ${linha(hc,gh,pens.h,eu)}
-        ${linha(ac,ga,pens.a,!eu)}
-      </div>
+  const placar=`<div class="rf-card">
+    ${linha(hc,gh,lh,eu)}
+    ${linha(ac,ga,la,!eu)}
+  </div>`;
+
+  /* quem esta na marca AGORA: na revelacao e sempre quem o motor mandou bater
+     (CL.penResultScorer), inclusive do lado do adversario -- e por isso que a
+     cobranca deles tambem se ve. */
+  const nomeNaMarca = fase ? (CL.penResultScorer||'') : (minhaVez ? ((bate&&bate.n)||'') : '');
+  const ladoDaVez = pens.turn==='H' ? hc : ac;
+
+  let corpo, acoes='', titulo, cls='rf-ov-disputa';
+  if(fase==='result'){
+    const gol=!!CL.penResultScored;
+    titulo = gol?'Gol!':'Perdeu!';
+    cls += gol?'':' rf-ov-grave';
+    corpo=`${placar}
+      <div class="rf-pen-res ${gol?'gol':'perdeu'}">
+        <span class="rf-pen-res-t">${gol
+          ? rfIcone('jogar',16)+' Gol de '+escC(nomeNaMarca)
+          : '🧤 '+escC(nomeNaMarca)+' parou no goleiro'}</span>
+        <span class="rf-pen-res-s">${escC(rfSoDepoisDoChute(gh,ga,eu,gol,minhaVez))}</span>
+      </div>`;
+  } else if(fase==='suspense'){
+    titulo='A bola no ponto';
+    corpo=`${placar}
+      <div class="rf-pen-susp">
+        <span class="rf-pen-susp-n">${escC(nomeNaMarca)}</span>
+        <span class="rf-pen-susp-s">${escC(ladoDaVez.short||'')} · ajeita a bola, recua e espera o apito</span>
+      </div>`;
+  } else if(escolhendo){
+    titulo='Sua cobrança';
+    const segs=Math.max(0,Math.ceil(((CL.penDeadline||0)-Date.now())/1000));
+    corpo=`${placar}
       ${bate?`<div class="rf-ov-alerta rf-so-agora">
         <span class="rf-pl-num">${escC(String((clubShirtNumbers(CL.clubId)||{})[bate.pid]||''))}</span>
         <div class="rf-ov-al-id">
@@ -868,30 +931,70 @@ function rfDisputaHTML(RL){
           <span class="rf-bat-frn ${rfFriezaTom(rfFrieza(bate))}">${rfFrieza(bate)}</span></div>
       </div>`:''}
       <div class="rf-card">
-        <span class="rf-label-t">Como está a série</span>
-        <div class="rf-so-info">
-          <div class="rf-so-i"><span class="rf-ov-res-t">Situação</span>
-            <span class="rf-so-iv">${escC(rfSoVantagem(gh,ga,hc,ac))}</span>
-            <span class="rf-pr-ms">${escC(rfSoSubtexto(gh,ga))}</span></div>
-          <div class="rf-so-i"><span class="rf-ov-res-t">Defendidos</span>
-            <span class="rf-so-iv">${pens.h.filter(v=>v===false).length} × ${pens.a.filter(v=>v===false).length}</span>
-            <span class="rf-pr-ms">quem parou mais</span></div>
-          <div class="rf-so-i"><span class="rf-ov-res-t">Reserva</span>
-            <span class="rf-so-iv">${escC(takers[1]?takers[1].n.split(' ')[0]:'—')}</span>
-            <span class="rf-pr-ms">fora da série</span></div>
-        </div>
-      </div>`,
-    acoes:`<button type="button" class="rf-ov-b2" onclick="rfSoSimular()">⏩ Simular o resto</button>
+        <div class="rf-label"><span class="rf-label-t">Quem bate a ${nCob}ª</span>
+          <span class="rf-label-r">bate sozinho em <b id="cl-pen-count">${segs}s</b></span></div>
+        <div class="rf-bat-lista">${pool.map(p=>{
+          const bloq=!cicloReabriu && jaBateram.has(p.n);
+          return rfBatedorLinhaHTML(p, CL.penSel===p.n && !bloq,
+            bloq?'':`penaltySelect('${escC(p.n)}')`,
+            bloq?'já bateu nesta disputa':null);
+        }).join('')}</div>
+      </div>
+      ${serieHTML()}`;
+    acoes=`<button type="button" class="rf-ov-b2" onclick="rfSoSimular()">⏩ Simular o resto</button>
       <div class="rf-sp"></div>
-      <button type="button" class="rf-ov-cta" onclick="resolveShootoutKick(CL.penSel)">Bater</button>`
+      <button type="button" class="rf-ov-cta" onclick="resolveShootoutKick(CL.penSel)">Bater com ${escC(bate?bate.n.split(' ')[0]:'')}</button>`;
+  } else {
+    // vez do adversario (ou o respiro entre duas cobrancas): nada a decidir, e por isso
+    // NAO ha botao -- o que havia antes era um "Bater" que nao fazia nada quando clicado.
+    titulo=morteSubita?'Morte súbita':'Disputa de pênaltis';
+    corpo=`${placar}
+      <div class="rf-pen-susp">
+        <span class="rf-pen-susp-n">${escC(minhaVez?'Prepare a cobrança':(ladoDaVez.short||'')+' vai bater')}</span>
+        <span class="rf-pen-susp-s">${escC(rfSoSituacao(gh,ga,eu))}</span>
+      </div>
+      ${serieHTML()}`;
+  }
+
+  function serieHTML(){
+    return `<div class="rf-card">
+      <span class="rf-label-t">Como está a série</span>
+      <div class="rf-so-info">
+        <div class="rf-so-i"><span class="rf-ov-res-t">Situação</span>
+          <span class="rf-so-iv">${escC(rfSoVantagem(gh,ga,hc,ac))}</span>
+          <span class="rf-pr-ms">${escC(rfSoSubtexto(gh,ga,morteSubita))}</span></div>
+        <div class="rf-so-i"><span class="rf-ov-res-t">Perdidos</span>
+          <span class="rf-so-iv">${lh.filter(k=>k&&!k.scored).length} × ${la.filter(k=>k&&!k.scored).length}</span>
+          <span class="rf-pr-ms">quem desperdiçou mais</span></div>
+        <div class="rf-so-i"><span class="rf-ov-res-t">Fase</span>
+          <span class="rf-so-iv">${morteSubita?'Morte súbita':'Melhor de 5'}</span>
+          <span class="rf-pr-ms">${morteSubita?'uma cada, quem errar sozinho perde':'cinco cobranças por lado'}</span></div>
+      </div>
+    </div>`;
+  }
+
+  return rfOverlay({
+    w:760, semX:true, cls,       // sem X: a disputa nao tem como ser fechada no meio
+    contexto:`${escC(m.comp||'Mata-mata')} · ${(m.hg||0)} × ${(m.ag||0)} no tempo normal`,
+    titulo,
+    hdDir:`<span class="rf-so-cob">${nCob}ª cobrança</span>`,
+    corpo, acoes
   });
+}
+/* frase curta logo depois do chute -- muda conforme foi meu ou deles */
+function rfSoDepoisDoChute(gh,ga,eu,gol,minhaVez){
+  if(minhaVez) return gol?'A torcida foi ao delírio.':'Ainda dá tempo de virar.';
+  return gol?'Agora a pressão volta pro seu lado.':'O goleiro salvou — a série vira a seu favor.';
 }
 function rfSoVantagem(gh,ga,hc,ac){
   if(gh>ga) return 'Vantagem '+hc.short;
   if(ga>gh) return 'Vantagem '+ac.short;
   return 'Empatado';
 }
-function rfSoSubtexto(gh,ga){ return gh===ga?'quem errar primeiro decide':'converta e acaba'; }
+function rfSoSubtexto(gh,ga,morteSubita){
+  if(morteSubita) return gh===ga?'quem errar sozinho perde':'basta o outro errar';
+  return gh===ga?'quem errar primeiro decide':'converta e acaba';
+}
 function rfSoSituacao(gh,ga,eu){
   const meu=eu?gh:ga, dele=eu?ga:gh;
   if(meu>dele) return 'Se converter, fica muito perto';

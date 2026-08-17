@@ -7561,9 +7561,14 @@ function liveClockPct(RL){
 }
 /* placar da disputa de pênaltis: uma linha de bolinhas por time, ✔ verde quando converte,
    ✖ vermelho quando desperdiça/defende — cresce cobrança a cobrança, igual ao clássico. */
+/* O PLACAR COMPACTO NAO PODE SER A TELA INTEIRA. Isto devolvia rfDisputaHTML -- um
+   rfOverlay de ecra cheio -- e quem chama embutia o resultado DENTRO de outro modal
+   (escolha do batedor, suspense, revelacao). Overlay dentro de overlay: o de dentro
+   tapava o de fora em todas as fases, e a disputa parecia congelada numa tela so.
+   Agora a tela cheia da disputa e desenhada por shootoutPickerHTML, uma vez so, e
+   este continua a ser apenas a fita de bolinhas do caminho antigo. */
 function shootoutScoreboardHTML(RL){
-  // TELA PORTADA (telas/Modal - Disputa de Penaltis)
-  return rfDisputaHTML(RL);
+  return shootoutScoreboardHTMLLegado(RL);
 }
 function shootoutScoreboardHTMLLegado(RL){
   const m=RL.matches[0], hc=clubOf(m.h), ac=clubOf(m.a);
@@ -7679,17 +7684,21 @@ function penaltyPickerHTMLLegado(){
    `extra` pras 3 fases (escolha/suspense/revelação) — só aparece nas variantes de
    DISPUTA de pênaltis; o pênalti normal em campo (penaltyPickerHTML) não passa `extra`. */
 function shootoutPickerHTML(){
+  // TELA PORTADA (telas/Modal - Disputa de Penaltis) -- UMA tela para as tres fases da
+  // cobranca (escolher, suspense, resultado). Ver rfDisputaHTML: e la que a fase decide
+  // o corpo e se ha botao. Antes daqui saiam tres modais diferentes com o placar embutido
+  // dentro deles, e o placar (que e ecra cheio) tapava os tres.
+  return rfDisputaHTML(CL.live);
+}
+function shootoutPickerHTMLLegado(){
   const RL=CL.live;
-  const board=shootoutScoreboardHTML(RL);
+  const board=shootoutScoreboardHTMLLegado(RL);
   if(CL.penPhase==='suspense') return penaltySuspenseHTML(board);
   if(CL.penPhase==='result') return penaltyResultHTML(board);
   const pool=penaltyTakerPool(RL.matches[0], CL.clubId);
-  // quem já bateu NESTA disputa fica desabilitado na lista (regra oficial: só pode bater
-  // de novo depois que todo mundo elegível já bateu uma vez) — mas continua visível, só
-  // sem poder ser escolhido, pro treinador entender por que sumiu da seleção normal.
   const takenNames=new Set((RL.pens.turn==='H'?RL.pens.h:RL.pens.a).map(k=>k.name));
   const eligible=shootoutEligibleTakers(pool, takenNames);
-  const cycleReset = eligible.length===pool.length; // ninguém bateu ainda, ou o ciclo reabriu (todo mundo já bateu 1x)
+  const cycleReset = eligible.length===pool.length;
   const secsLeft=Math.max(0,Math.ceil((CL.penDeadline-Date.now())/1000));
   const kickNum=(RL.pens.h.length+RL.pens.a.length)+1;
   const rows=pool.map(p=>{

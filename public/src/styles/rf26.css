@@ -3625,6 +3625,12 @@
 .rf-so-cob{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--text-on-dark-soft);white-space:nowrap}
 .rf-so-agora{border-left-color:var(--club-secondary)}
+/* A DISPUTA NAO PODE PISCAR A CADA COBRANCA. `.rf-ov-win` entra com `ds-fade-up`, e a
+   tela da disputa e redesenhada quatro vezes por cobranca (escolher, suspense,
+   resultado, respiro): a animacao de entrada recomecava em todas, e o que se via era
+   o modal a apagar e acender sem parar. Aqui ela entra uma vez, sem animacao, e so o
+   conteudo muda por baixo do cabecalho. */
+.rf-ov-disputa .rf-ov-win{animation:none}
 .rf-so-info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .rf-so-i{display:flex;flex-direction:column;gap:2px;min-width:0}
 .rf-so-iv{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1);

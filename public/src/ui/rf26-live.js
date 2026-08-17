@@ -256,7 +256,12 @@ function rfLiveHTML(RL){
    ===================================================================== */
 function rfLvSobreposicaoHTML(RL){
   const m=(RL.matches||[]).find(x=>x.user); if(!m) return '';
-  if(RL.pensPicking) return (typeof shootoutPickerHTML==='function')?shootoutPickerHTML():'';
+  /* A DISPUTA FICA NA TELA DO INICIO AO FIM. O gatilho era `RL.pensPicking`, que so e
+     verdadeiro enquanto uma cobranca esta a decorrer -- entre uma cobranca e a seguinte
+     (o respiro de 1,2s de recordShootoutKick) ele volta a falso e a tela da disputa
+     DESAPARECIA, deixando ver a rodada por tras. Piscava a cada cobranca. Agora basta
+     existir disputa: e a propria tela que muda de corpo conforme a fase. */
+  if(RL.pens && !RL.done) return (typeof shootoutPickerHTML==='function')?shootoutPickerHTML():'';
   if(RL.penEvent && RL.penMatch===m) return (typeof penaltyPickerHTML==='function')?penaltyPickerHTML():'';
   if(RL.injEvent && RL.injMatch===m) return (typeof rfLesaoHTML==='function')?rfLesaoHTML(m,RL.injEvent):'';
   if(RL.redEvent && RL.redMatch===m) return (typeof rfExpulsaoHTML==='function')?rfExpulsaoHTML(m,RL.redEvent):'';
