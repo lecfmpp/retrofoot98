@@ -152,6 +152,20 @@ function rfAcSeloHTML(emoji, titulo, sub){
   </div>`;
 }
 /* lista de opções de rádio (o que responder, como listar, o que fazer) */
+/* AS TRES FALAS E O QUE CADA UMA CUSTA. `moral` vai para todo o elenco (p.moral, 0-100) e
+   `cargo` para S.jobSecurity (0-100). Os numeros sao pequenos de proposito: uma coletiva
+   inclina a temporada, nao a decide. */
+const RF_IMPRENSA=[
+  { t:'O mérito é todo do elenco',
+    s:'vestiário ganha moral (+6); a diretoria gosta da postura (+2 no cargo)',
+    moral:6, cargo:2, fala:'creditou o título ao elenco' },
+  { t:'Prometo mais na próxima temporada',
+    s:'a diretoria compra a promessa (+8 no cargo); o elenco sente a cobrança (−3 de moral)',
+    moral:-3, cargo:8, fala:'prometeu mais para a temporada seguinte' },
+  { t:'Chegámos aqui sem os reforços que pedi',
+    s:'o elenco sente-se defendido (+4 de moral); a diretoria não gostou (−10 no cargo)',
+    moral:4, cargo:-10, fala:'cobrou reforços em público' }
+];
 function rfAcOpcoesHTML(nome, opcoes, sel){
   return `<div class="rf-ac-ops">${opcoes.map((o,i)=>`
     <button type="button" class="rf-ac-op ${(sel==null?i===0:sel===i)?'on':''}"
@@ -512,6 +526,32 @@ const RF_ACOES = {
   acoes:[{l:'Reduzir a oferta',tom:'fantasma'},{l:'Ir ao mercado',on:"rfAcFechar();rfSetTab('mercado','vender')"}] }),
 
 /* ---------- ELENCO E E-MAIL (7) ---------- */
+/* ===== FALAR COM A IMPRENSA DEPOIS DA PREMIACAO =====
+   O e-mail da premiacao abria o mesmo dialogo de todos os outros, o "responder a diretoria" —
+   com tres opcoes sobre ACEITAR UMA META. Nao ha meta nenhuma num aviso de premio recebido: as
+   respostas nao tinham que ver com a mensagem, e nenhuma delas fazia coisa alguma (a escolha era
+   guardada no e-mail e mais nada).
+   Aqui o treinador fala com a imprensa, e a fala CUSTA ou RENDE: cada opcao mexe na moral do
+   elenco e na seguranca no cargo, os dois valores que o motor ja usa (p.moral alimenta o
+   desempenho; S.jobSecurity manda na demissao abaixo de 15 e nas propostas acima de 80). O
+   efeito esta escrito em cada opcao — a escolha e informada, nao adivinhada. */
+'mail-imprensa': d=>{
+  const e=((CL.inbox||[]).find(x=>x.key===d.key))||{};
+  const jaFalou=!!e.reply;
+  const seg=(S&&S.jobSecurity!=null)?S.jobSecurity:60;
+  const corpo = jaFalou
+    ? rfAcSeloHTML(rfIcone('megafone',18),'Você já falou','“'+escC((e.reply&&e.reply.opcao)||'—')+'”')
+      + rfAcNotaHTML('A coletiva desta premiação já aconteceu. A próxima vem no fim da temporada.')
+    : rfAcOpcoesHTML('resp', RF_IMPRENSA.map(o=>({t:o.t, s:o.s})), d.resp)
+      + rfAcLinhaHTML('Segurança no cargo agora', seg+'/100', seg>=60?'ok':(seg<=25?'ruim':''), true)
+      + rfAcNotaHTML('O que você diz pesa no vestiário e na sala da diretoria. Não dá para voltar atrás.');
+  return rfAcao({ kicker:'IMPRENSA · COLETIVA', titulo:escC(d.assunto||'Falar com a imprensa'), w:520,
+    corpo,
+    acoes: jaFalou
+      ? [{l:'Fechar'}]
+      : [{l:'Não falar agora',tom:'fantasma'},{l:'Falar com a imprensa',on:`rfImprensaGo('${escC(String(d.key||''))}')`}] });
+},
+
 'mail-responder': d=>rfAcao({ kicker:'E-MAIL · RESPOSTA À DIRETORIA', titulo:escC(d.assunto||'Resposta'), w:520,
   corpo:
     `<span class="rf-ac-l">O que responder</span>`
@@ -649,9 +689,13 @@ const RF_ACOES = {
      sair ficava a pensar que tinha saído. O adaptador não expõe nenhuma
      chamada de remoção de conta; enquanto não existir, o diálogo explica o que
      dá para fazer hoje. */
+  /* O texto era um paragrafo de aviso mais outro de nota, os dois a explicar a mesma coisa por
+     palavras diferentes — cinco linhas de conversa para duas informacoes. Ficou o facto e as
+     duas saidas, cada uma numa linha. */
   corpo:
-    rfAcAvisoHTML('Apagar a conta ainda <b>não é possível de dentro do jogo</b>. Este botão não fazia nada — agora diz porquê.','aviso')
-    + rfAcNotaHTML('O que dá para fazer hoje: <b>apagar um save</b> (em Sair do jogo → Apagar) tira aquela carreira da nuvem, e <b>sair da conta</b> desliga este aparelho sem perder nada.'),
+    rfAcAvisoHTML('Ainda não dá para apagar a conta de dentro do jogo.','aviso')
+    + rfAcLinhaHTML('Apagar um save', 'tira a carreira da nuvem', '', true)
+    + rfAcLinhaHTML('Sair da conta', 'desliga só este aparelho', ''),
   acoes:[{l:'Fechar',tom:'fantasma'},{l:'Apagar um save',on:"rfAcFechar();rfGo('sairjogo')"}] }),
 
 'sys-sincronizar': d=>rfAcao({ kicker:'MODO RESENHA · SALA '+escC(String(d.sala||'')).toUpperCase(), titulo:'Sincronizando a rodada', w:460,
@@ -692,13 +736,23 @@ function rfAcAbasHTML(abas, atual){
 }
 /* linha de opção: rótulo à esquerda, botões segmentados à direita.
    `travada` desenha o cadeado do pacote em vez dos botões. */
+/* ===== A LINHA EMPILHA QUANDO O SEGMENTADO NAO CABE AO LADO DO ROTULO =====
+   `.rf-ac-seg` nunca encolhe (flex:0 0 auto), entao com muitas opcoes ele comia a largura toda
+   e a coluna do rotulo colapsava: "Tempo de jogo" saia uma palavra por linha e a dica ao lado
+   virava uma coluna de 50px com vinte linhas. O dialogo ficava alto e ilegivel — era o
+   reportado.
+   A conta e do conteudo, nao da tela: soma-se o texto de todas as opcoes e, passando do que
+   cabe folgado ao lado de um rotulo, a linha passa a empilhar (rotulo em cima, botoes por baixo
+   em largura inteira). Deterministico, sem medir DOM. */
 function rfAcSegHTML(rotulo, chave, opcoes, val, dica, travada){
+  const largura=opcoes.reduce((n,o)=>n+String(o).length,0)+opcoes.length*3;
+  const empilha=!travada && (opcoes.length>=4 || largura>34);
   const dir = travada
     ? `<span class="rf-ac-seg-lock">🔒 ${escC(travada)}</span>`
     : `<span class="rf-ac-seg">${opcoes.map(o=>
         `<button type="button" class="rf-ac-sg ${o===val?'on':''}"
           onclick="rfOpcoesSet('${chave}',this.dataset.v)" data-v="${escC(o)}">${escC(o)}</button>`).join('')}</span>`;
-  return `<div class="rf-ac-orow">
+  return `<div class="rf-ac-orow ${empilha?'empilha':''}">
     <span class="rf-ac-or-id"><span class="rf-ac-or-t">${escC(rotulo)}</span>
       ${dica?`<span class="rf-ac-or-s">${escC(dica)}</span>`:''}</span>
     ${dir}
@@ -801,25 +855,25 @@ const RF_ACOES_EXTRA = {
     ? ((typeof tempoLabelFromMult==='function')?tempoLabelFromMult(CL.speedMult):(o.tempo||'—')) : null;
 
   const geral =
-      rfAcSegHTML('Mostrar chicotadas psicológicas','chicotadas',['Nunca','Dos humanos','De todos'],o.chicotadas)
+      rfAcSegHTML('Chicotadas psicológicas','chicotadas',['Nunca','Dos humanos','De todos'],o.chicotadas)
     + rfAcSegHTML('Ver sorteio da taça','sorteio',['Nunca','Quando houver humanos','Sempre'],o.sorteio)
     + rfAcSegHTML('Gravar o jogo','gravar',['Nunca','De 3 em 3 jornadas','Sempre'],o.gravar)
     + rfAcSegHTML('Som','som',['Sim','Não'],o.som)
     + rfAcSegHTML('Salvamento automático','autoSave',['Sim','Não'],o.autoSave,
-        'Guarda as 3 últimas jornadas e o fim de cada temporada.')
+        'As 3 últimas jornadas e o fim de cada temporada.')
+    /* a dica daqui saiu: o botao ao lado ja diz o que acontece ("Escolher ponto…") */
     + `<div class="rf-ac-orow">
-        <span class="rf-ac-or-id"><span class="rf-ac-or-t">Voltar a um ponto guardado</span>
-          <span class="rf-ac-or-s">Abre a lista dos pontos guardados neste save.</span></span>
+        <span class="rf-ac-or-id"><span class="rf-ac-or-t">Voltar a um ponto guardado</span></span>
         <button type="button" class="rf-ac-bt fantasma peq" onclick="rfAcFechar();clAutoSaveAbrir&&clAutoSaveAbrir()">Escolher ponto…</button>
       </div>`;
 
   const jogo =
       rfAcSegHTML('Substituições ao intervalo','subsIntervalo',['Sim','Não'],o.subsIntervalo)
     + rfAcSegHTML('Ver desempates por penalties','penaltisCPU',['Sim','Não'],o.penaltisCPU,
-        'Nos jogos sem treinadores humanos.')
+        'Só nos jogos sem humanos.')
     + rfAcSegHTML('Tempo de jogo','tempo',['Curto','Médio','Longo','Ultrassônico','Usain Bolt','Foguete'],
-        o.tempo, trava?('Numa resenha, quem define o tempo de jogo é o Anfitrião. Fale com ele para mudar.')
-          :'Foguete é de teste: a partida passa em cerca de um segundo.', trava)
+        o.tempo, trava?'Na resenha, quem define o ritmo é o anfitrião.'
+          :'Foguete é de teste: a partida passa num segundo.', trava)
     + ((typeof TEMPO_TESTE!=='undefined' && TEMPO_TESTE)
         ? rfAcAvisoHTML('🧪 <b>Modo de teste:</b> o ritmo está travado em <b>'+escC(TEMPO_TESTE)+'</b> no Solo e na Resenha, ignorando esta opção e a escolha do anfitrião.','aviso')
         : '');

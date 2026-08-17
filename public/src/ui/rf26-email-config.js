@@ -70,8 +70,9 @@ function rfEmLeituraHTML(){
       <div class="rf-ml-acts">
         <button type="button" class="rf-btn rf-btn-secondary"
           onclick="rfAcAbrir('mail-arquivar',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">Arquivar</button>
+        <!-- premiação não se "responde à diretoria": dá-se uma coletiva (ver 'mail-imprensa') -->
         <button type="button" class="rf-btn rf-btn-cta"
-          onclick="rfAcAbrir('mail-responder',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">Responder</button>
+          onclick="rfAcAbrir('${e.kind==='prize'?'mail-imprensa':'mail-responder'}',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">${e.kind==='prize'?'Falar com a imprensa':'Responder'}</button>
       </div>
     </div>
   </div>`;
@@ -556,6 +557,30 @@ function rfMailArquivarGo(key){
   toastC('Mensagem arquivada.');
 }
 
+/* ===== A COLETIVA MEXE NO JOGO =====
+   Aplica a fala escolhida: moral de TODO o elenco e segurança no cargo. Uma vez por prêmio —
+   o botão "Responder" continua lá depois, e sem esta trava dava para reabrir e somar moral
+   sem limite. O que aconteceu fica escrito no e-mail e nas notícias da rodada. */
+function rfImprensaGo(key){
+  const e=(CL.inbox||[]).find(x=>x.key===key);
+  if(e && e.reply){ toastC('Você já falou sobre esta premiação.'); rfAcFechar(); return; }
+  const d=(typeof rfAcD==='function')?rfAcD():{};
+  const i=(d.resp!=null)?d.resp:0;
+  const f=(typeof RF_IMPRENSA!=='undefined' && RF_IMPRENSA[i])||null;
+  if(!f){ toastC('Escolha o que dizer.'); return; }
+  const lim=(v)=>Math.max(0,Math.min(100,v));
+  let n=0;
+  try{ (squad(CL.clubId)||[]).forEach(p=>{ p.moral=lim((p.moral==null?70:p.moral)+f.moral); n++; }); }catch(err){ console.warn('moral:', err&&err.message); }
+  S.jobSecurity=lim((S.jobSecurity==null?60:S.jobSecurity)+f.cargo);
+  if(e){ e.reply={ opcao:f.t, nota:'', at:Date.now() }; e.read=true; if(typeof saveInbox==='function') saveInbox(); }
+  S.roundNews=S.roundNews||[];
+  S.roundNews.push('🎙️ Na coletiva da premiação, você '+f.fala+'. '
+    + (f.moral>=0?('Moral do elenco +'+f.moral):('Moral do elenco '+f.moral))
+    + ' · segurança no cargo '+(f.cargo>=0?'+':'')+f.cargo+' (agora '+S.jobSecurity+'/100).');
+  try{ if(typeof rfGravar==='function') rfGravar(); else if(typeof save==='function') save(); }catch(err){}
+  rfAcFechar();
+  toastC('Coletiva dada — moral '+(f.moral>=0?'+':'')+f.moral+' em '+n+' jogadores, cargo '+(f.cargo>=0?'+':'')+f.cargo+'.');
+}
 /* Responder à diretoria: guarda a resposta escolhida no próprio e-mail e
    marca-o lido. O motor não tem um "histórico da direção" separado — o e-mail
    é o registo, e a resposta fica nele. */

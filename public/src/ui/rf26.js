@@ -2473,7 +2473,7 @@ function rfLeituraHTML(){
       <button type="button" class="rf-btn rf-btn-secondary"
         onclick="rfAcAbrir('mail-arquivar',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">📥 Arquivar</button>
       <button type="button" class="rf-btn rf-btn-cta"
-        onclick="rfAcAbrir('mail-responder',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">↩ Responder</button>
+        onclick="rfAcAbrir('${e.kind==='prize'?'mail-imprensa':'mail-responder'}',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">${e.kind==='prize'?'🎙️ Falar com a imprensa':'↩ Responder'}</button>
     </div>`;
 }
 /* OPÇÕES: cada linha é rótulo + explicação + controle, como na referência */

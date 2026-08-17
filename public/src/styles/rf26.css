@@ -6657,20 +6657,34 @@
    As peças novas de "Acoes - Opcoes e Estadio": abas do diálogo, linha de
    opção com botões segmentados, o salto AGORA→DEPOIS da obra, o bloco
    "como funciona" e a tabela curta do histórico. */
-.rf-ac-abas{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--surface-2)}
-.rf-ac-aba{flex:1;height:34px;border:0;border-radius:9px;background:transparent;cursor:pointer;
-  font-size:var(--fs-3);font-weight:600;color:var(--text-2);font-family:inherit}
-.rf-ac-aba.on{background:var(--surface-1);color:var(--text-1);box-shadow:0 1px 3px rgba(20,33,26,.12)}
+/* ABAS COM CARA DE ABA. Eram duas pilulas de contraste baixo em cima de um fundo quase igual
+   ao do dialogo — nao se liam como navegacao, e num dialogo de duas paginas isso e a peca mais
+   importante. Agora a activa e do azul da marca, em texto branco, e a barra fica assente numa
+   linha que separa da lista. */
+.rf-ac-abas{display:flex;gap:6px;margin:0 0 4px;padding:0 0 10px;border-bottom:1px solid var(--line-2)}
+.rf-ac-aba{flex:1;height:36px;border:1px solid var(--line-2);border-radius:var(--r-control,10px);
+  background:var(--surface-card);cursor:pointer;
+  font-size:var(--fs-2);font-weight:700;color:var(--text-2);font-family:inherit;
+  letter-spacing:.02em;transition:background var(--dur-fast) var(--ease)}
+.rf-ac-aba:hover:not(.on){background:var(--surface-sunken)}
+.rf-ac-aba.on{background:var(--brand-primary);border-color:var(--brand-primary);color:#fff;box-shadow:none}
 .rf-ac-opanel{display:flex;flex-direction:column}
 
+/* AS LINHAS ENCOLHERAM. O dialogo de Opcoes tem oito linhas: com 11px em cima e em baixo mais
+   corpo de texto grande, ele passava a altura do ecra e obrigava a rolar para chegar ao
+   "Guardar". Menos respiro por linha e um degrau abaixo na letra poem tudo a vista. */
 .rf-ac-orow{display:flex;align-items:center;justify-content:space-between;gap:14px;
-  padding:11px 0;border-bottom:1px solid var(--line-1)}
+  padding:9px 0;border-bottom:1px solid var(--line-1)}
 .rf-ac-orow:last-child{border-bottom:0}
-.rf-ac-or-id{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
-.rf-ac-or-t{font-size:var(--fs-3);color:var(--text-1);text-wrap:pretty}
-.rf-ac-or-s{font-size:var(--fs-1);color:var(--text-3);line-height:1.45;text-wrap:pretty}
+/* linha empilhada: o segmentado nao cabe ao lado do rotulo (ver rfAcSegHTML) */
+.rf-ac-orow.empilha{flex-direction:column;align-items:stretch;gap:7px}
+.rf-ac-orow.empilha .rf-ac-seg{width:100%;flex:1 1 auto;flex-wrap:wrap}
+.rf-ac-orow.empilha .rf-ac-sg{flex:1 1 auto;min-width:0}
+.rf-ac-or-id{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.rf-ac-or-t{font-size:var(--fs-2);font-weight:600;color:var(--text-1);text-wrap:pretty}
+.rf-ac-or-s{font-size:var(--fs-1);color:var(--text-3);line-height:1.35;text-wrap:pretty}
 .rf-ac-seg{display:flex;gap:3px;padding:3px;border-radius:10px;background:var(--surface-2);flex:0 0 auto}
-.rf-ac-sg{height:28px;padding:0 10px;border:0;border-radius:8px;background:transparent;cursor:pointer;
+.rf-ac-sg{height:26px;padding:0 9px;border:0;border-radius:8px;background:transparent;cursor:pointer;
   font-size:var(--fs-1);font-weight:600;color:var(--text-2);white-space:nowrap;font-family:inherit}
 .rf-ac-sg.on{background:var(--brand-primary);color:#fff}
 .rf-ac-seg-lock{display:flex;align-items:center;gap:6px;font-size:var(--fs-2);color:var(--text-3);
