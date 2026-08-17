@@ -363,12 +363,12 @@ const RF_ACOES = {
   const p=squad(CL.clubId).find(x=>x.n===o.playerName)||{};
   const vm=(typeof computeVM==='function'&&p.n)?computeVM(p):(p.mv||0);
   /* ===== O PEDIDO SUGERIDO TEM DE OLHAR PARA A OFERTA DE HOJE =====
-     Era `vm*1.15` e mais nada. A cada rodada de negociação o clube SOBE a oferta (ver
-     counterIncomingOffer), mas o campo continuava a mostrar o mesmo número de sempre — e assim
-     que a oferta deles passava o valor de mercado, o campo sugeria MENOS do que eles já
-     ofereciam. Pior: mandar um pedido abaixo da oferta cai no ramo "segue valendo X", que
-     gasta uma das três rodadas e não muda nada. Dava a sensação exata do relato: o campo não
-     acompanha e o que eu escrevo não adianta.
+     Era `valor de mercado x 1,15` e mais nada. A cada rodada de negociação o clube SOBE a
+     oferta (ver counterIncomingOffer), mas o campo continuava a mostrar o mesmo número de
+     sempre — e assim que a oferta deles passava o valor de mercado, o campo sugeria MENOS do
+     que eles já ofereciam. Pior: mandar um pedido abaixo da oferta cai no ramo "segue valendo
+     X", que gasta uma das três rodadas e não muda nada. Dava a sensação exata do relato: o
+     campo não acompanha e o que eu escrevo não adianta.
      Agora o piso é o maior entre o valor de mercado e a oferta atual, e o que eu PEDI da
      última vez fica guardado na proposta (o.ask) e volta ao campo — a menos que eles já
      tenham subido acima dele, caso em que a sugestão sobe junto. */
@@ -376,14 +376,36 @@ const RF_ACOES = {
   const anterior=(o.ask && o.ask>(o.fee||0)) ? o.ask : 0;
   const pedido=d.pedido || anterior || Math.round(piso*1.15/1000)*1000;
   const chance=Math.max(5,Math.min(95,Math.round(100-((pedido-o.fee)/Math.max(1,o.fee))*180)));
+  /* ===== FECHAR O ACORDO SEM SAIR DAQUI =====
+     A negociação acontece toda dentro deste diálogo: eu peço, o clube responde com um valor
+     novo, eu peço outra vez. Só que para ACEITAR o valor que eles acabaram de pôr na mesa era
+     preciso fechar o diálogo, voltar à lista e procurar a proposta outra vez — e o número que
+     estava a ser negociado desaparecia do ecrã no caminho. Agora o aperto de mão está onde a
+     conversa está. */
+  const respondeu=(o.negRound||0)>0;
+  const fechado=o.state==='final';       // palavra final deles: contrapropor já não faz nada
+  const aceite=o.state==='agreed';       // toparam o meu pedido: só falta confirmar
+  const sub=squad(CL.clubId).filter(x=>x.s===p.s&&x.n!==p.n).sort((a,b)=>(b.f||0)-(a.f||0))[0];
+  const acoes=[{l:'Cancelar',tom:'fantasma'}];
+  acoes.push({ l:'Aceitar '+escC(rfDin(o.fee||0)), on:`rfMkAceitar(${d.id})`,
+               tom:(fechado||aceite)?'':'fantasma' });
+  if(!fechado) acoes.push({l:'Enviar contraproposta',on:'rfMkContraporGo()',tom:(fechado||aceite)?'fantasma':''});
   return rfAcao({ kicker:'MERCADO · CONTRAPROPOSTA', titulo:'Contrapropor ao '+escC(o.buyerName||'clube'), w:500,
     corpo:
-      rfAcFichaHTML(p,'OFERTA DELES',rfDin(o.fee),d.num)
-      + rfAcCampoHTML('rf-ac-ask','Seu pedido', moneyDisp(pedido),
-          `Valor de mercado: ${escC(rfDin(vm))}. Peça acima dos ${escC(rfDin(o.fee||0))} que eles oferecem.`, {foco:true})
-      + rfAcChanceHTML('Chance de aceitarem', chance)
-      + rfAcNotaHTML('Pedir muito acima do valor de mercado costuma matar a negociação — o clube some da janela.'),
-    acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar contraproposta',on:'rfMkContraporGo()'}] });
+      rfAcFichaHTML(p,respondeu?'OFERTA AGORA':'OFERTA DELES',rfDin(o.fee),d.num)
+      /* A RESPOSTA DELES FICA A VISTA. Ela só existia como toast — passava em três segundos e
+         o diálogo continuava a mostrar os mesmos números, sem dizer o que tinha mudado. */
+      + (o.lastMsg?rfAcAvisoHTML(escC(o.lastMsg), fechado?'perigo':(aceite?'':'aviso')):'')
+      + (fechado?'':rfAcCampoHTML('rf-ac-ask','Seu pedido', moneyDisp(pedido),
+          `Valor de mercado: ${escC(rfDin(vm))}. Peça acima dos ${escC(rfDin(o.fee||0))} que eles oferecem.`, {foco:true}))
+      + (fechado?'':rfAcChanceHTML('Chance de aceitarem', chance))
+      + (sub?'':rfAcAvisoHTML('<b>Sem reserva no setor.</b> Vender agora abre um buraco no onze que o banco não cobre.','aviso'))
+      + rfAcNotaHTML(fechado
+          ? 'Eles deram a palavra final. Daqui só há aceitar ou deixar a proposta cair.'
+          : (aceite
+            ? 'Eles toparam o seu pedido. Aceitar fecha a venda já nesta jornada.'
+            : 'Pedir muito acima do valor de mercado costuma matar a negociação — o clube some da janela.')),
+    acoes });
 },
 
 'mkt-listar': d=>{

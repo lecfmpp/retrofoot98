@@ -801,7 +801,14 @@ function rfMkContraporGo(){
   const r = humano ? counterHumanOffer(P.id, valor)
                    : (counterIncomingOffer(P.id, valor)||{ok:true});
   if(r&&r.msg) toastC(r.msg);
-  if(!r||r.ok!==false){ rfGravar(); CL.mkP=null; CL.acao=null; }
+  if(!r||r.ok!==false) rfGravar();
+  /* ===== O DIALOGO SO FECHA QUANDO NAO HA MAIS NADA A DECIDIR =====
+     Ele fechava sempre que a resposta vinha "ok" — e o caso mais importante e justamente esse:
+     "toparam o seu pedido". A venda NAO estava feita (falta aceitar), mas o diálogo desaparecia
+     e o jogador tinha de voltar à lista e procurar a proposta outra vez, sem o número que
+     acabara de negociar à frente. Agora fica aberto enquanto a proposta existir: ali estão a
+     resposta deles, o valor novo e o botão de aceitar. */
+  if(!rfPropostas().find(x=>x.id===P.id)){ CL.mkP=null; CL.acao=null; }
   cdraw();
 }
 function rfMkContraHTML(){
