@@ -4419,6 +4419,16 @@
 .rf-mkf-s{height:34px;border:var(--border-control);border-radius:var(--r-chip);
   background:var(--surface-card);font-family:var(--font-sans);font-size:var(--fs-caption);
   color:var(--text-1);padding:0 8px;cursor:pointer}
+/* ----- busca por nome, dentro da barra de filtros do Mercado ----- */
+.rf-mkf-busca{flex:1 1 220px;min-width:160px;max-width:320px;display:flex;align-items:center;gap:7px;
+  height:34px;padding:0 11px;border:1px solid var(--line-2);border-radius:var(--r-pill);
+  background:var(--surface-card)}
+.rf-mkf-busca:focus-within{border-color:var(--brand-primary)}
+.rf-mkf-busca-i{flex:0 0 auto;display:flex;color:var(--text-faint)}
+.rf-mkf-busca input{flex:1;min-width:0;border:none;outline:none;background:transparent;
+  font-family:var(--font-sans);font-size:var(--fs-caption);color:var(--text-1)}
+.rf-mkf-busca input::placeholder{color:var(--text-faint)}
+.rf-mkf-busca input::-webkit-search-cancel-button{cursor:pointer}
 .rf-mkf-x{height:34px;padding:0 12px;border:0;background:transparent;color:var(--club-primary);
   font-family:var(--font-sans);font-size:var(--fs-caption);font-weight:var(--fw-semibold);cursor:pointer}
 .rf-mkf-x:hover{text-decoration:underline}

@@ -44,7 +44,7 @@ function rfDin(v){
 function rfMktAcoesHTML(){
   return `<div class="rf-mk-acoes">
     <button type="button" class="rf-btn rf-btn-secondary" onclick="rfMktExportar()">${rfIcone('exportar',16)} Exportar lista</button>
-    <button type="button" class="rf-btn rf-btn-cta" onclick="rfSetTab('mercado','comprar')">${rfIcone('buscar',16)} Buscar jogador</button>
+    <button type="button" class="rf-btn rf-btn-cta" onclick="rfMktIrBuscar()">${rfIcone('buscar',16)} Buscar jogador</button>
   </div>`;
 }
 function rfMktExportar(){
@@ -151,9 +151,39 @@ function rfMktClubesOp(){
     .sort((a,b)=>a[1].localeCompare(b[1],'pt-BR'));
   return [['all','qualquer']].concat(lista);
 }
-function rfMktF(){ return CL.mktF||(CL.mktF={pos:'all',forca:'all',idade:'all',preco:'all',clube:'all'}); }
+function rfMktF(){ return CL.mktF||(CL.mktF={pos:'all',forca:'all',idade:'all',preco:'all',clube:'all',q:''}); }
 function rfMktSetF(k,v){ rfMktF()[k]=v; CL._mktCache2=null; cdraw(); }
-function rfMktLimpar(){ CL.mktF={pos:'all',forca:'all',idade:'all',preco:'all',clube:'all'}; CL._mktCache2=null; cdraw(); }
+function rfMktLimpar(){ CL.mktF={pos:'all',forca:'all',idade:'all',preco:'all',clube:'all',q:''}; CL._mktCache2=null; cdraw(); }
+/* ===== BUSCA POR NOME =====
+   "Buscar jogador", no Resumo, levava para a aba Comprar e mais nada: nao havia
+   campo nenhum onde escrever um nome. Quem procura alguem em concreto tinha de
+   percorrer sessenta linhas ordenadas por forca.
+
+   O CAMPO NAO REDESENHA A TELA A CADA TECLA. `cdraw()` recria o HTML por
+   innerHTML: o input perderia o foco e o cursor voltaria ao inicio, o que
+   inverte o texto de quem escreve depressa (ja aconteceu no nome do treinador).
+   Aqui so a LISTA e refeita, no lugar, e o campo nem sabe. */
+/* "Buscar jogador" leva a aba Comprar E poe o cursor no campo -- antes so
+   trocava de aba, e quem procurava um nome ficava a olhar para a lista. */
+function rfMktIrBuscar(){
+  rfSetTab('mercado','comprar');
+  setTimeout(()=>{ const i=document.querySelector('#rf-mkt-q'); if(i){ i.focus(); i.select(); } },40);
+}
+function rfMktNorm(t){
+  return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function rfMktBusca(v){
+  rfMktF().q=v||'';
+  CL._mktCache2=null;
+  const alvo=document.querySelector('.rf-mkt[data-mkt="mkt-mercado"]');
+  if(!alvo) { cdraw(); return; }
+  const novo=document.createElement('div');
+  novo.innerHTML=rfMktComprarTabelaHTML();
+  const cheio=novo.querySelector('.rf-mkt[data-mkt="mkt-mercado"]');
+  if(cheio) alvo.replaceWith(cheio);
+  const cnt=document.querySelector('[data-mkt-conta]');
+  if(cnt) cnt.textContent=rfMktConta();
+}
 /* o mercado inteiro, com os filtros da referência aplicados */
 function rfMktMercado(){
   const f=rfMktF();
@@ -170,6 +200,7 @@ function rfMktMercado(){
       if(f.preco==='caixa' && ask>teto) return;
       if(f.preco==='meio'  && ask>teto/2) return;
       if(f.clube && f.clube!=='all' && String(c.id)!==String(f.clube)) return;
+      if(f.q && rfMktNorm(p.n).indexOf(rfMktNorm(f.q))<0) return;
       out.push({p,clubId:c.id,ask});
     });
   });
@@ -196,19 +227,20 @@ function rfMktFiltrosHTML(){
         </select>
       </label>`;
     }).join('')}
+    <label class="rf-mkf-busca">
+      <span class="rf-mkf-busca-i">${rfIcone('buscar',15)}</span>
+      <input id="rf-mkt-q" type="search" placeholder="Buscar jogador pelo nome"
+        value="${escC(f.q||'')}" oninput="rfMktBusca(this.value)"
+        onkeydown="if(event.key==='Escape'){this.value='';rfMktBusca('')}">
+    </label>
     <div class="rf-sp"></div>
     <button type="button" class="rf-mkf-x" onclick="rfMktLimpar()">Limpar filtros</button>
   </div>`;
 }
-function rfMktComprarHTML(){
-  if(typeof canNegotiate==='function' && !canNegotiate())
-    return rfCol(rfCard('Jogadores no mercado',
-      `<div class="rf-empty">${escC(typeof windowClosedMsg==='function'?windowClosedMsg():'A janela de transferências está fechada.')}</div>`));
-  const todos=rfMktMercado();
-  const mostra=todos.slice(0,60);
-  const teto=S.budget||0;
-  const folha=rfFolha();
-  const sq=squad(CL.clubId);
+/* A TABELA SEPARADA DA TELA: a busca por nome refaz so isto, no lugar, sem
+   passar por cdraw() -- ver rfMktBusca. */
+function rfMktComprarTabelaHTML(){
+  const mostra=rfMktMercado().slice(0,60);
   const linhas=mostra.map(({p,clubId,ask})=>`<div class="rf-mkt-row" onclick="rfMkPropor('${escC(clubId)}','${escC(p.n)}')">
     <span class="rf-mkt-n">${escC(p.n)}</span>
     <span class="rf-mkt-f">${p.f}</span>
@@ -221,14 +253,29 @@ function rfMktComprarHTML(){
   </div>`);
   const cabecalho=`<span>JOGADOR</span><span>FOR</span><span>POS</span><span>IDA</span>
     <span>CLUBE</span><span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
+  const vazio=(rfMktF().q||'').trim()
+    ? 'Nenhum jogador com esse nome — e os filtros de posicao, forca e preco tambem contam.'
+    : 'Nenhum jogador com esses filtros.';
+  /* GRADE LITERAL DO PACOTE (Mercado - Abas): duas colunas flexiveis (1.3fr e
+     1fr) repartem nome e clube. */
+  return rfMkTabela('minmax(0,1.3fr) 28px 34px 34px minmax(0,1fr) 96px 84px 74px',
+    cabecalho, linhas, vazio, 'mkt-mercado');
+}
+function rfMktConta(){
+  const todos=rfMktMercado();
+  return Math.min(60,todos.length)+' de '+todos.length;
+}
+function rfMktComprarHTML(){
+  if(typeof canNegotiate==='function' && !canNegotiate())
+    return rfCol(rfCard('Jogadores no mercado',
+      `<div class="rf-empty">${escC(typeof windowClosedMsg==='function'?windowClosedMsg():'A janela de transferências está fechada.')}</div>`));
+  const teto=S.budget||0;
+  const folha=rfFolha();
+  const sq=squad(CL.clubId);
   return rfMktGavetaHTML(['oferta']) + rfCol(
     rfCard('Jogadores no mercado',
-      /* GRADE LITERAL DO PACOTE (Mercado - Abas). A nossa dava `1fr` ao nome e um
-         teto fixo ao clube, então o nome comia toda a folga — 413px para um nome
-         de 90. O pacote usa DUAS colunas flexíveis (1.3fr e 1fr), que repartem. */
-      rfMktFiltrosHTML() + rfMkTabela('minmax(0,1.3fr) 28px 34px 34px minmax(0,1fr) 96px 84px 74px',
-        cabecalho, linhas, 'Nenhum jogador com esses filtros.', 'mkt-mercado'),
-      {right: mostra.length+' de '+todos.length})
+      rfMktFiltrosHTML() + rfMktComprarTabelaHTML(),
+      {right: `<span data-mkt-conta>${escC(rfMktConta())}</span>`})
     + rfCard('O que o caixa permite', `
       <div class="rf-kpis rf-kpis-4">
         ${rfKpiHTML('Caixa', rfDin(teto))}

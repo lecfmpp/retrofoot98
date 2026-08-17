@@ -165,7 +165,12 @@ function playerAsk(p, sellerId){
   const pos=sellerId?tablePos(sellerId):10;
   if(pos>=17)ask*=1.40;        // clube no Z-4 exige luvas p/ liberar
   else if(pos<=6)ask*=1.20;    // clube grande segura o atleta
-  return Math.round(ask);
+  /* O PEDIDO E UM NUMERO REDONDO, ao milhar. As telas mostram o dinheiro
+     abreviado ("R$ 24,35 mi"), e com um pedido de 24.354.321 quem oferecia
+     exatamente o que estava escrito ficava abaixo do pedido -- a proposta com o
+     "valor exato" era respondida com contraproposta, como se nao cobrisse. Um
+     clube tambem nao pede 24.354.321: pede 24,35 milhoes. */
+  return Math.round(ask/1000)*1000;
 }
 
 /* ---- TRAVA DE NEGOCIAÇÃO: jogador comprado fica bloqueado pro resto da TEMPORADA em que a
@@ -342,13 +347,22 @@ function startNego(sellerId,playerName,offerFee){
   save();
   return S.negos.length-1;
 }
+/* O QUE ESTA ESCRITO NA TELA E O QUE VALE. As telas mostram dinheiro abreviado a
+   duas casas ("R$ 24,35 mi") e ha ainda a conversao de moeda pelo meio: um
+   pedido cru de 24.354.321 nunca era coberto por quem digitava o valor que lia.
+   Alem de o pedido passar a ser redondo (playerAsk), qualquer comparacao de
+   dinheiro nesta negociacao aceita meio por cento de folga -- a diferenca de
+   arredondamento, nunca uma pechincha: meio por cento de 24 milhoes sao 120 mil,
+   e ninguem perde um negocio por isso. */
+const NEGO_FOLGA=0.995;
+function cobre(oferta, pedido){ return (oferta||0) >= Math.round((pedido||0)*NEGO_FOLGA); }
 function clubRespond(n){ // Dia 1
   const p=findP(n.player,n.sellerId); const ask=playerAsk(p,n.sellerId);
   // se já houve contraproposta, cobrir o valor pedido FECHA o acordo (antes re-comparava
   // com o pedido original e gerava contrapropostas infinitas — oferta "igual" nunca era aceita)
-  if(n.clubCounter && n.offerFee>=n.clubCounter){ n.feeAgreed=true; n.stage='terms'; return {ok:true,msg:'Clube aceitou a taxa! Negocie os termos pessoais (Dia 2).'}; }
-  if(n.offerFee>=ask){ n.feeAgreed=true; n.stage='terms'; return {ok:true,msg:'Clube aceitou a taxa! Negocie os termos pessoais (Dia 2).'}; }
-  if(n.offerFee>=ask*0.82){ n.clubCounter=Math.round((ask+n.offerFee)/2); n.stage='counterFee'; return {ok:false,counter:n.clubCounter,msg:`Clube pediu ${fmt(n.clubCounter)} pela taxa.`}; }
+  if(n.clubCounter && cobre(n.offerFee,n.clubCounter)){ n.feeAgreed=true; n.stage='terms'; return {ok:true,msg:'Clube aceitou a taxa! Negocie os termos pessoais (Dia 2).'}; }
+  if(cobre(n.offerFee,ask)){ n.feeAgreed=true; n.stage='terms'; return {ok:true,msg:'Clube aceitou a taxa! Negocie os termos pessoais (Dia 2).'}; }
+  if(n.offerFee>=ask*0.82){ n.clubCounter=Math.round((ask+n.offerFee)/2/1000)*1000; n.stage='counterFee'; return {ok:false,counter:n.clubCounter,msg:`Clube pediu ${fmt(n.clubCounter)} pela taxa.`}; }
   n.status='recusada'; n.stage='done'; return {ok:false,msg:'Clube recusou de imediato.'};
 }
 function agentInterest(n){ // Dia 2 satisfaction %
@@ -368,7 +382,7 @@ function agentRespond(n){ // Dia 2 -> Dia 3
   n.interest=agentInterest(n);
   const p=findP(n.player,n.sellerId);
   if(n.interest>=70){ n.stage='verdict'; return {ok:true,msg:'Empresário topou. Feche no Dia 3!'}; }
-  if(n.interest>=45){ n.agentCounter=Math.round(REBAL.wage(p.f)*1.15); n.stage='verdict'; return {ok:false,counter:n.agentCounter,msg:`Empresário pede ${fmt(n.agentCounter)}/sem.`}; }
+  if(n.interest>=45){ n.agentCounter=Math.round(REBAL.wage(p.f)*1.15/100)*100; n.stage='verdict'; return {ok:false,counter:n.agentCounter,msg:`Empresário pede ${fmt(n.agentCounter)}/sem.`}; }
   return {ok:false,msg:'Empresário sem interesse nas condições.'};
 }
 
@@ -672,7 +686,7 @@ function finalizeTransfer(negoIdx){
      transferencia fechava por menos, sem ninguem recusar nada.
      A tela ja foi corrigida para trazer o pedido no campo; esta e a trava do
      motor, para o caso valer por qualquer caminho e nao so por aquele ecra. */
-  if(n.agentCounter && (n.salary||0) < n.agentCounter){
+  if(n.agentCounter && !cobre(n.salary,n.agentCounter)){
     return {ok:false, msg:'O empresário pede '+fmt(n.agentCounter)+'/sem — a sua oferta está abaixo disso.'};
   }
   const totalCost=n.offerFee;
