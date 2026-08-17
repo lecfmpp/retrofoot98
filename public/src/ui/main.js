@@ -4709,6 +4709,15 @@ function momentoAcao(acao){
 function abrirMomento(id, dados, aoFechar){
   const def=MOMENTO_DEFS[id]; if(!def) return;
   dados=dados||{};
+  /* ===== O TITULO TEM TELA PROPRIA (pacote "modal celebracao copas/ligas") =====
+     Copa e liga passam pelo modal de campeao, que monta o resultado da final, a premiacao e a
+     campanha a partir do estado — em vez dos tres cartoes genericos deste momento. `dados.trofeu`
+     ja e a chave certa nos dois casos: a competicao (copaBrasil, libertadores...) ou a divisao
+     (A..D). Se por alguma razao nao houver campeao para montar, cai no momento de sempre. */
+  if((id==='campeao-copa'||id==='campeao-liga') && dados.trofeu && typeof rfCampeaoAbrir==='function'){
+    CL._momentoAtual={id, aoFechar:aoFechar||null};
+    if(rfCampeaoAbrir(dados.trofeu, aoFechar)) return;
+  }
   CL._momentoAtual={id, aoFechar:aoFechar||null};
   const clube=clubOf(dados.clubId!=null?dados.clubId:CL.clubId)||{short:'—'};
   const claro = def.corpo==='green';

@@ -7273,3 +7273,97 @@
 .rf-acts-jogar{display:flex;align-items:center;justify-content:center;gap:8px;
   height:42px;border-radius:12px;font-weight:var(--fw-bold);white-space:nowrap}
 @media (max-width:560px){ .rf-acts-2{grid-template-columns:1fr} }
+
+/* =====================================================================
+   MODAL DE CAMPEÃO (pacote "modal celebracao copas/ligas")
+   Uma estrutura para copa e liga. Todas as cores saem das variáveis
+   --cx-* do tema da competição (.rf-tema[data-tema]) — a mesma paleta
+   que ela usa na rodada ao vivo, no Camarote e em Campeonatos.
+   ===================================================================== */
+.rf-cmp-fundo{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;
+  padding:24px;background:rgba(10,18,14,.62);backdrop-filter:blur(3px);overflow:auto}
+.rf-cmp{width:min(560px,100%);background:var(--surface-card,#fff);border-radius:var(--r-2,16px);
+  overflow:hidden;box-shadow:0 24px 70px rgba(10,18,14,.4);display:flex;flex-direction:column;
+  max-height:calc(100dvh - 48px)}
+
+.rf-cmp-hd{position:relative;display:flex;align-items:center;gap:12px;padding:14px 16px 14px 20px;
+  background:var(--cx-grad);color:var(--cx-ink,#fff)}
+.rf-cmp-filete{position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--cx-bar,#F2B90C)}
+.rf-cmp-hd-id{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.rf-cmp-k{font-family:var(--font-mono,monospace);font-size:9px;font-weight:600;letter-spacing:.14em;
+  color:var(--cx-kicker,#cfd9ea);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-cmp-t{font-size:var(--fs-4,17px);font-weight:700;color:var(--cx-ink,#fff)}
+.rf-cmp-x{flex:0 0 auto;width:30px;height:30px;border:0;border-radius:50%;cursor:pointer;
+  background:var(--cx-ctrl-bg,rgba(255,255,255,.16));color:var(--cx-ctrl-fg,#fff);font-size:14px}
+
+.rf-cmp-corpo{padding:16px;display:flex;flex-direction:column;gap:12px;overflow:auto;min-height:0}
+
+/* a arte: 16:9 no desktop, com o vídeo de taça por baixo do scrim */
+.rf-cmp-arte{position:relative;aspect-ratio:16/9;border-radius:var(--r-3,12px);overflow:hidden;
+  background:#101c15;display:flex;align-items:flex-end}
+.rf-cmp-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.rf-cmp-scrim{position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(8,14,11,.15) 30%,rgba(8,14,11,.88) 100%)}
+.rf-cmp-arte-txt{position:relative;display:flex;flex-direction:column;gap:4px;padding:16px;min-width:0;flex:1}
+.rf-cmp-rot{font-family:var(--font-mono,monospace);font-size:10px;font-weight:700;letter-spacing:.14em;
+  color:var(--cx-accent,#F2B90C)}
+.rf-cmp-manchete{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:700;
+  font-size:clamp(22px,4.4vw,30px);line-height:1.1;color:#fff;text-wrap:balance}
+.rf-cmp-selo{position:relative;margin:0 16px 16px 0;flex:0 0 auto;display:flex;align-items:center;
+  justify-content:center;width:78px;height:78px;border-radius:14px;
+  border:1px solid var(--cx-bar,#F2B90C);background:rgba(8,14,11,.55)}
+
+/* o confronto da final (ou a campanha, na liga) */
+.rf-cmp-final{border:1px solid var(--line-1,#eceee9);border-radius:var(--r-3,12px);
+  background:var(--surface-2,#f6f7f4);padding:12px 14px;display:flex;flex-direction:column;gap:9px}
+.rf-cmp-fh{font-family:var(--font-mono,monospace);font-size:9px;font-weight:600;letter-spacing:.12em;
+  color:var(--text-3,#8a948d);text-transform:uppercase}
+.rf-cmp-placar{display:flex;align-items:center;gap:10px}
+.rf-cmp-lado{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.rf-cmp-placar .rf-cmp-lado:first-child{justify-content:flex-end}
+.rf-cmp-cl{font-size:var(--fs-2,13px);color:var(--text-3,#8a948d);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.rf-cmp-lado.venceu .rf-cmp-cl{font-weight:700;color:var(--text-1,#14211a)}
+.rf-cmp-cr{flex:0 0 auto;display:flex}
+.rf-cmp-placar .rf-cmp-lado:first-child .rf-cmp-cr{order:2}
+.rf-cmp-sc{flex:0 0 auto;display:inline-flex;align-items:baseline;gap:3px;padding:7px 14px;border-radius:10px;
+  background:var(--cx-topo,#17458F);color:#fff;font-family:var(--font-mono,monospace);
+  font-size:19px;font-weight:700}
+.rf-cmp-sc i{font-style:normal;font-size:10px;opacity:.75}
+.rf-cmp-gols{font-size:var(--fs-1,12px);color:var(--text-2,#4b574f);line-height:1.4;text-wrap:pretty}
+
+/* premiação: ocupa a linha inteira (não há painel de pontos de treinador — ver rf26-competicao.js) */
+.rf-cmp-premio{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:var(--r-3,12px);
+  border:1px solid #eddcae;background:linear-gradient(180deg,#fdf6e3,#fbefd0)}
+.rf-cmp-pk{font-family:var(--font-mono,monospace);font-size:9px;font-weight:700;letter-spacing:.12em;color:#8a6a2a}
+.rf-cmp-pv{font-family:var(--font-mono,monospace);font-size:clamp(21px,4.6vw,27px);font-weight:700;color:#5c4409}
+.rf-cmp-ps{font-size:var(--fs-1,12px);color:#8a6a2a}
+
+.rf-cmp-inds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.rf-cmp-ind{display:flex;flex-direction:column;gap:1px;padding:10px 11px;border-radius:var(--r-3,12px);
+  border:1px solid var(--cx-tint-bd,#e6ebe4);background:var(--cx-tint-bg,#fff);min-width:0}
+.rf-cmp-ik{font-family:var(--font-mono,monospace);font-size:9px;font-weight:600;letter-spacing:.12em;
+  color:var(--cx-tint-meta,#9aa79e)}
+.rf-cmp-iv{font-family:var(--font-mono,monospace);font-size:19px;font-weight:700;color:var(--cx-tint-ink,#3a473f)}
+.rf-cmp-is{font-size:var(--fs-1,12px);color:var(--cx-tint-meta,#9aa79e);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.rf-cmp-nota{font-size:var(--fs-1,12px);color:var(--text-3,#8a948d);line-height:1.45;text-wrap:pretty}
+
+.rf-cmp-pe{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line-1,#eceee9);
+  background:var(--surface-sunken,#f2f5ef)}
+.rf-cmp-bt{flex:1;height:var(--h-control,42px);border-radius:var(--r-control,12px);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;font-family:inherit;
+  font-size:var(--fs-body-sm,13px);font-weight:700}
+.rf-cmp-bt.fantasma{border:1px solid var(--line-2,#dfe3da);background:var(--surface-card,#fff);color:var(--text-2,#4b574f)}
+.rf-cmp-bt.cta{border:0;background:var(--brand-secondary,#F2B90C);color:var(--brand-primary,#17458F)}
+
+/* telemóvel: folha de baixo, arte 4:3, ações empilhadas com o principal primeiro */
+@media (max-width:560px){
+  .rf-cmp-fundo{padding:0;align-items:flex-end}
+  .rf-cmp{width:100%;max-height:calc(100dvh - 24px);border-radius:18px 18px 0 0}
+  .rf-cmp-arte{aspect-ratio:4/3}
+  .rf-cmp-inds{gap:6px}
+  .rf-cmp-ind{padding:9px}
+  .rf-cmp-pe{flex-direction:column-reverse;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  .rf-cmp-bt{width:100%;height:48px}
+}

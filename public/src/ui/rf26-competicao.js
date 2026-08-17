@@ -1080,3 +1080,234 @@ function rfPosDe(id){
   const i=ord.findIndex(t=>t.id===id);
   return i<0?'—':i+1;
 }
+
+/* =====================================================================
+   MODAL DE CAMPEÃO — uma estrutura, a identidade de cada competição
+   Pacote "modal celebracao copas/ligas" (docs/rebranding-2026/pacote-campeao-copas).
+   Serve copa E liga: o que muda é o tema (data-tema, a MESMA paleta que a
+   competição já usa no resto do jogo — ver RF_COMP_TEMA), o troféu e o rótulo.
+
+   O QUE NÃO ENTROU, E PORQUÊ. O desenho previa "pontos de treinador"
+   (+260, nível 7) e público na final. Nenhum dos dois existe no motor:
+   não há sistema de pontuação de treinador, e o público não é guardado por
+   partida (a bilheteria sai de uma fórmula de ocupação média). Pela regra do
+   brief — tela que mostra número que o motor não calcula não pode ser
+   construída — os dois blocos saíram, e a premiação ocupa a linha inteira,
+   exatamente como o pacote já prevê para o campeão que não é o teu clube.
+   ===================================================================== */
+/* O VALOR CHEIO, como o pacote pede: "R$ 24.000.000", nao "R$ 24 mi". A abreviatura serve
+   para caber numa tabela; aqui o numero E o destaque da tela. */
+function rfCampeaoDinCheio(v){
+  const n=Math.round((typeof curConv==='function')?curConv(v||0):(v||0));
+  const sim=(typeof curSym==='function')?curSym():'R$';
+  return sim+' '+((typeof grp==='function')?grp(n):String(n));
+}
+function rfCampeaoPremio(key, b, souEu){
+  try{
+    if(typeof PRIZES==='undefined') return 0;
+    if(key==='copaBrasil') return PRIZES.copaBrasilPhaseCash(b.roundsTotal||0, b.roundsTotal||0, true)||0;
+    return PRIZES.cupPrize(key,'campeao')||0;
+  }catch(e){ return 0; }
+}
+/* a FINAL: o último confronto resolvido da competição */
+function rfCampeaoFinal(b){
+  const ult=(b.history||[]).length?b.history[b.history.length-1]:null;
+  return (b.ties||[]).find(t=>t.winner!=null && t.hg!=null)
+      || ((ult&&ult.ties)||[]).find(t=>t.winner!=null && t.hg!=null)
+      || (b.ties||[]).find(t=>t.winner!=null) || null;
+}
+/* CAMPANHA DO CAMPEÃO — contada dos confrontos que ele jogou de facto, não estimada.
+   history guarda cada fase com os ties daquela rodada; o `b.ties` corrente traz a final. */
+function rfCampeaoCampanha(b, campId){
+  let jogos=0, gols=0;
+  const conta=t=>{
+    if(!t || t.hg==null) return;
+    if(String(t.h)===String(campId)){ jogos++; gols+=t.hg||0; }
+    else if(String(t.a)===String(campId)){ jogos++; gols+=t.ag||0; }
+  };
+  (b.history||[]).forEach(f=>(f.ties||[]).forEach(conta));
+  (b.ties||[]).forEach(conta);
+  return { jogos, gols, fases:(b.history||[]).length||b.roundsTotal||0 };
+}
+/* a linha dos gols da final, a partir dos eventos do confronto */
+function rfCampeaoGols(fin){
+  const evs=(fin&&fin.events)||[];
+  const nomes=evs.filter(e=>e && (e.type==='gol'||e.type==='goal') && e.player)
+    .map(e=>String(e.player).split(' ')[0]);
+  const unicos=[...new Set(nomes)];
+  let txt = unicos.length
+    ? ('Gols de '+(unicos.length===1?unicos[0]:unicos.slice(0,-1).join(', ')+' e '+unicos.slice(-1)))
+    : '';
+  if(fin && fin.pens) txt=(txt?txt+'. ':'')+'Decidido nos pênaltis, '+fin.pens.h+'×'+fin.pens.a;
+  return txt?txt+'.':'';
+}
+/* quantos títulos DESTA competição o meu clube já tem neste save. Só vale para o meu clube —
+   o jogo não guarda o palmarés dos outros, e inventar um número seria pior que não mostrar. */
+function rfCampeaoTitulos(key, souEu){
+  if(!souEu) return '';
+  try{
+    let n=1;   // o de agora
+    ((S&&S.history)||[]).forEach(h=>{
+      if(String(h.clubId)!==String(CL.clubId)) return;
+      const v=(h.myCups&&h.myCups[key])||'';
+      if(/campe/i.test(String(v))) n++;
+    });
+    return n+'º título';
+  }catch(e){ return ''; }
+}
+/* Monta TUDO o que o modal mostra, a partir do estado. Devolve null quando não há campeão. */
+function rfCampeaoDados(key){
+  if(typeof S==='undefined' || !S) return null;
+  const liga=/^[A-D]$/.test(String(key));
+  const info=(typeof rfCompInfo==='function')?rfCompInfo(key):null;
+  if(liga) return rfCampeaoDadosLiga(key, info);
+  const c=S.cups&&S.cups[key];
+  const b=(c&&c.champion!==undefined)?c:(c&&c.bracket);
+  if(!b || b.champion==null) return null;
+  const souEu=String(b.champion)===String(CL.clubId);
+  const camp=(typeof anyClubOf==='function'&&anyClubOf(b.champion))||{short:String(b.champion)};
+  const fin=rfCampeaoFinal(b);
+  const casa=fin?((typeof anyClubOf==='function'&&anyClubOf(fin.h))||{short:String(fin.h)}):null;
+  const fora=fin?((typeof anyClubOf==='function'&&anyClubOf(fin.a))||{short:String(fin.a)}):null;
+  const cmp=rfCampeaoCampanha(b, b.champion);
+  return {
+    key, tema:(info&&info.tema)||'liga', trofeu:(info&&info.trofeu)||'',
+    nome:(info&&info.nome)||String(key), curto:(info&&info.curto)||String(key),
+    titulo:'Final — '+((info&&info.nome)||key), temporada:S.season||'',
+    souEu, campeao:camp,
+    manchete: souEu?'A taça é nossa.':((camp.short||camp.name)+' é campeão.'),
+    data:(typeof dataCurtaDaJornada==='function')?dataCurtaDaJornada(S.round||0,key):'',
+    estadio:(casa&&typeof estadioNomeDe==='function')?estadioNomeDe(casa):'',
+    final: fin?{ casa, fora, hg:fin.hg, ag:fin.ag, pens:fin.pens||null,
+                 vencedorCasa:String(fin.winner)===String(fin.h) }:null,
+    gols: rfCampeaoGols(fin),
+    premio: rfCampeaoPremio(key,b,souEu),
+    campanha: cmp, titulos: rfCampeaoTitulos(key,souEu),
+    rodape: souEu?'O clube entra na competição continental do ano que vem.'
+                 :'A competição está encerrada nesta temporada.'
+  };
+}
+/* a mesma casa para o título de LIGA: não há final, então o bloco do confronto dá lugar à
+   campanha (pontos, vitórias, saldo) — o resto da estrutura é idêntico. */
+function rfCampeaoDadosLiga(div, info){
+  const tb=(typeof sortedTable==='function')?sortedTable():[];
+  const t=tb[0]; if(!t) return null;
+  const souEu=String(t.id)===String(CL.clubId);
+  const camp=(typeof anyClubOf==='function'&&anyClubOf(t.id))||{short:String(t.id)};
+  return {
+    key:div, tema:'liga', trofeu:(info&&info.trofeu)||'', liga:true,
+    nome:(info&&info.nome)||('Série '+div), curto:(info&&info.curto)||('Série '+div),
+    titulo:'Fim de temporada — '+((info&&info.nome)||('Série '+div)), temporada:S.season||'',
+    souEu, campeao:camp,
+    manchete: souEu?'A taça é nossa.':((camp.short||camp.name)+' é campeão.'),
+    data:(typeof dataCurtaDaJornada==='function')?dataCurtaDaJornada((S.sched||[]).length-1,'liga'):'',
+    estadio:'', final:null, gols:'',
+    premio:(typeof PRIZES!=='undefined'&&PRIZES.leaguePrize)?(PRIZES.leaguePrize(div,1)||0):0,
+    campanha:{ jogos:t.P||0, gols:t.GF||0, fases:0, pontos:t.Pts||0,
+               campanhaTxt:(t.W||0)+'V '+(t.D||0)+'E '+(t.L||0)+'D', saldo:(t.GF||0)-(t.GA||0) },
+    titulos: rfCampeaoTitulos(div,souEu),
+    rodape: souEu?'A vaga continental está garantida.':'A temporada está encerrada.'
+  };
+}
+
+/* O DESENHO. Uma estrutura só; o tema entra por data-tema na raiz e todas as cores saem
+   das variáveis --cx-* que a competição já usa no resto do jogo (ver .rf-tema no rf26.css).
+   A "arte da comemoração" do pacote é o vídeo de taça que o jogo já tem — sem ele, o fundo
+   escuro + troféu + manchete continuam legíveis, que é o critério de aceite do próprio pacote. */
+function rfCampeaoHTML(d){
+  if(!d) return '';
+  const vid=(typeof VIDEOS_MOMENTO!=='undefined' && VIDEOS_MOMENTO['campeao-copa'])||'';
+  const trof=(typeof rfCompTrofeuHTML==='function' && d.trofeu)
+    ? rfCompTrofeuHTML({trofeu:d.trofeu}, 64) : '';
+  const lado=(cl,gols,venceu)=>`<span class="rf-cmp-lado ${venceu?'venceu':''}">
+      <span class="rf-cmp-cl">${escC((cl&&(cl.short||cl.name))||'—')}</span>
+      <span class="rf-cmp-cr">${(typeof rfCrest==='function')?rfCrest(cl||{},28):''}</span>
+    </span>`;
+  const confronto = d.final ? `
+    <div class="rf-cmp-final">
+      <div class="rf-cmp-fh">FINAL${d.data?' · '+escC(d.data):''}${d.estadio?' · '+escC(d.estadio):''}</div>
+      <div class="rf-cmp-placar">
+        ${lado(d.final.casa,d.final.hg,d.final.vencedorCasa)}
+        <span class="rf-cmp-sc">${d.final.hg}–${d.final.ag}</span>
+        ${lado(d.final.fora,d.final.ag,!d.final.vencedorCasa)}
+      </div>
+      ${d.gols?`<div class="rf-cmp-gols">${escC(d.gols)}</div>`:''}
+    </div>` : `
+    <div class="rf-cmp-final">
+      <div class="rf-cmp-fh">CAMPANHA${d.data?' · '+escC(d.data):''}</div>
+      <div class="rf-cmp-placar liga">
+        ${lado(d.campeao,null,true)}
+        <span class="rf-cmp-sc">${escC(String(d.campanha.pontos||0))}<i>pts</i></span>
+        <span class="rf-cmp-lado"><span class="rf-cmp-cl">${escC(d.campanha.campanhaTxt||'')}</span></span>
+      </div>
+    </div>`;
+  const ind=[
+    {k:'JOGOS', v:String(d.campanha.jogos||0), s:(d.campanha.gols?d.campanha.gols+' gols marcados':'')},
+    d.liga ? {k:'SALDO', v:(d.campanha.saldo>0?'+':'')+String(d.campanha.saldo||0), s:''}
+           : {k:'FASES', v:String(d.campanha.fases||0), s:''},
+    {k:'TEMPORADA', v:String(d.temporada||''), s:d.titulos||''}
+  ];
+  return `<div class="rf-cmp rf-tema" data-tema="${escC(d.tema||'liga')}">
+    <div class="rf-cmp-hd">
+      <i class="rf-cmp-filete"></i>
+      <div class="rf-cmp-hd-id">
+        <span class="rf-cmp-k">${escC(String(d.curto||'').toUpperCase())} · TEMPORADA ${escC(String(d.temporada||''))}</span>
+        <span class="rf-cmp-t">${escC(d.titulo||'')}</span>
+      </div>
+      <button type="button" class="rf-cmp-x" aria-label="Fechar" onclick="rfCampeaoFechar()">✕</button>
+    </div>
+    <div class="rf-cmp-corpo">
+      <div class="rf-cmp-arte">
+        ${vid?`<video class="rf-cmp-vid" src="${escC(vid)}" autoplay muted loop playsinline onerror="this.style.display='none'"></video>`:''}
+        <i class="rf-cmp-scrim"></i>
+        <div class="rf-cmp-arte-txt">
+          <span class="rf-cmp-rot">CAMPEÃO DA ${escC(String(d.curto||'').toUpperCase())}</span>
+          <span class="rf-cmp-manchete">${escC(d.manchete||'')}</span>
+        </div>
+        ${trof?`<span class="rf-cmp-selo">${trof}</span>`:''}
+      </div>
+      ${confronto}
+      ${d.premio?`<div class="rf-cmp-premio">
+        <span class="rf-cmp-pk">PREMIAÇÃO AO CAMPEÃO</span>
+        <span class="rf-cmp-pv">${escC(rfCampeaoDinCheio(d.premio))}</span>
+        <span class="rf-cmp-ps">${d.souEu?'creditado no caixa do clube':'creditado ao campeão'}</span>
+      </div>`:''}
+      <div class="rf-cmp-inds">${ind.map(i=>`<div class="rf-cmp-ind">
+        <span class="rf-cmp-ik">${escC(i.k)}</span>
+        <span class="rf-cmp-iv">${escC(i.v)}</span>
+        ${i.s?`<span class="rf-cmp-is">${escC(i.s)}</span>`:''}
+      </div>`).join('')}</div>
+      <div class="rf-cmp-nota">${escC(d.rodape||'')}</div>
+    </div>
+    <div class="rf-cmp-pe">
+      <button type="button" class="rf-cmp-bt fantasma" onclick="rfCampeaoVerCaminho('${escC(String(d.key))}')">${(typeof rfIcone==='function')?rfIcone('lista',15):''} Ver o caminho</button>
+      <button type="button" class="rf-cmp-bt cta" onclick="rfCampeaoFechar()">${(typeof rfIcone==='function')?rfIcone('ok',15):''} ${d.souEu?'Comemorar':'Fechar'}</button>
+    </div>
+  </div>`;
+}
+function rfCampeaoAbrir(key, aoFechar){
+  const d=rfCampeaoDados(key);
+  if(!d){ if(typeof aoFechar==='function') aoFechar(); return false; }
+  CL._campeaoFechar=aoFechar||null;
+  const host=document.createElement('div');
+  host.id='rf-cmp-host'; host.className='rf-cmp-fundo';
+  host.innerHTML=rfCampeaoHTML(d);
+  document.body.appendChild(host);
+  try{ const v=host.querySelector('.rf-cmp-vid'); if(v){ v.muted=true; v.volume=0; const p=v.play(); if(p&&p.catch) p.catch(()=>{}); } }catch(e){}
+  return true;
+}
+function rfCampeaoFechar(){
+  const h=document.querySelector('#rf-cmp-host'); if(h) h.remove();
+  const f=CL._campeaoFechar; CL._campeaoFechar=null;
+  if(typeof f==='function') f();
+}
+/* "Ver o caminho" abre a chave DAQUELA competição em Campeonatos — critério 4 do pacote. */
+function rfCampeaoVerCaminho(key){
+  rfCampeaoFechar();
+  try{
+    if(/^[A-D]$/.test(String(key))){ if(typeof rfGo==='function') rfGo('campeonatos'); return; }
+    if(typeof rfPrIrAba==='function' && typeof rfPrCopasComChave==='function' && rfPrCopasComChave().indexOf(key)>=0){ rfPrIrAba(key); return; }
+    if(typeof rfGo==='function') rfGo('campeonatos');
+    if(typeof rfCompAbrir==='function') rfCompAbrir(key);
+  }catch(e){ console.warn('ver o caminho:', e&&e.message); }
+}
