@@ -378,7 +378,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-select{font-family:var(--sans);font-size:22px;font-weight:700;color:#fff;background:var(--navy);border:1px solid var(--line-1);padding:6px 8px;width:100%;outline:none}
 /* 05 loading */
 .cl-loadbar{width:640px;max-width:90vw;background:var(--navy);padding:3px}
-.cl-loadbar-title{color:#fff;font-weight:700;text-align:center;padding:6px;font-size:14px}
+.cl-loadbar-title{color:#fff;font-weight:700;text-align:center;padding:6px;font-size:14px}   /* fica branco: .cl-loadbar tem fundo navy */
 .cl-loadbar-track{height:34px;background:#fff;border:1px solid var(--line-1);margin:0 4px 4px;position:relative}
 .cl-loadbar-fill{height:100%;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;transition:width .18s}
 .cl-loadbar-fill span{position:absolute;left:0;right:0;text-align:center;color:#000;mix-blend-mode:difference;filter:invert(1)}
@@ -1188,11 +1188,19 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 .cl-cls-zone.zone-sul{background:#5a4a1a;color:#ffd97a}
 .cl-cls-row.zone-lib{border-left:4px solid #2f8f2f}
 .cl-cls-row.zone-sul{border-left:4px solid #cc9a1a}
+/* ===== TEXTO BRANCO QUE FICOU INVISIVEL NA PELE NOVA =====
+   Estas regras nasceram quando o corpo do modal era ESCURO: --felt e --chrome eram um verde de
+   mesa e um cinza de moldura. Na pele 2026 os dois apontam para superficies CLARAS
+   (--surface-desk e --surface-card), e o texto branco por cima delas passou a ser branco sobre
+   branco -- so aparecia quando o utilizador selecionava com o rato, que foi como se deu por
+   isto no "Convite recusado".
+   Quem tem fundo proprio escuro (cl-loadbar-fill, cl-ddi, cl-esp-av, a manchete sobre o video)
+   continua branco de proposito e nao foi tocado. */
 /* overlay res */
 .cl-res{text-align:center;min-width:280px}
-.cl-res-score{font-family:var(--mono);font-size:30px;font-weight:800;color:#fff;margin-bottom:6px}
-.cl-body-green .cl-res-score{color:#fff}
-.cl-res-verd{font-weight:700;color:#fff;margin-bottom:14px;font-size:16px}
+.cl-res-score{font-family:var(--mono);font-size:30px;font-weight:800;color:var(--text-1,#14211a);margin-bottom:6px}
+.cl-body-green .cl-res-score{color:var(--text-1,#14211a)}
+.cl-res-verd{font-weight:700;color:var(--text-1,#14211a);margin-bottom:14px;font-size:16px}
 /* toast */
 #c-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;gap:6px;align-items:center}
 .cl-toast{background:#000080;color:#fff;padding:9px 16px;font-size:13px;font-weight:600;border:1px solid var(--line-1)}
@@ -2607,10 +2615,10 @@ body.rf-tem-anchor .cl-wrap{padding-bottom:118px}
 .cl-speed-btn{background:var(--chrome);border:1px solid var(--line-1);color:#000;font-weight:700;font-size:13px;padding:4px 12px;cursor:pointer}
 .cl-speed-btn.on{background:var(--navy);color:var(--yellow);border-color:var(--line-1)}
 /* chamar pra resenha */
-.cl-invres{min-height:160px;color:#fff}
+.cl-invres{min-height:160px;color:var(--text-1,#14211a)}
 .cl-invres-msg{font-size:14px;margin-bottom:16px;line-height:1.4;color:#eaffea}
 .cl-invres-opt{display:flex;flex-direction:column;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:14px}
-.cl-invres-lbl{color:#fff;font-weight:700;font-size:13px}
+.cl-invres-lbl{color:var(--text-1,#14211a);font-weight:700;font-size:13px}
 .cl-invres-item{display:flex;align-items:center;gap:12px}
 .cl-invres-club{font-weight:700;font-size:14px;min-width:140px}
 .cl-invres-sel{font-family:var(--sans);font-size:13px;padding:5px 8px;flex:1;max-width:300px}
