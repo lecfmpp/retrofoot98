@@ -2575,6 +2575,8 @@ function startSeasonOpeningDraws(onDone){
     S._cupDrawQueued=S._cupDrawQueued||{};
     defs.forEach(([key,stage])=>{
       const c=S.cups&&S.cups[key]; if(!c) return;
+      // competição sem cerimônia (Copa do Brasil — ver CUP_SEM_CERIMONIA no core)
+      if(typeof cupTemCerimonia==='function' && !cupTemCerimonia(key)) return;
       // SÓ OS SORTEIOS CUJA DATA JÁ CHEGOU. O calendário oficial dá uma data a cada cerimônia
       // (02/03 Libertadores, 11/03 Sul-Americana, 21/03 Copa do Brasil), sempre antes da estreia
       // da própria competição — não é mais "todos no dia 1". Os que ainda não venceram entram
@@ -10850,7 +10852,12 @@ function cupFitStage(){
    um único destaque no modo solo, ou um por jogador humano (cores do próprio clube) na Resenha. */
 /* fila de sorteios a mostrar: cada item é {key, stage} — stage 'group' (fase de grupos,
    time -> grupo) ou 'bracket' (mata-mata, pares/isento). */
-function queueDrawShow(key, stage){ S._pendingDrawShows=S._pendingDrawShows||[]; stage=stage||'bracket';
+function queueDrawShow(key, stage){
+  /* PORTA UNICA DA FILA DE CERIMONIAS: competicao sem cerimonia nunca entra,
+     venha o pedido de onde vier (abertura da temporada, data do sorteio, ou o
+     sorteio do mata-mata das continentais). Ver CUP_SEM_CERIMONIA, no core. */
+  if(typeof cupTemCerimonia==='function' && !cupTemCerimonia(key)) return;
+  S._pendingDrawShows=S._pendingDrawShows||[]; stage=stage||'bracket';
   if(!S._pendingDrawShows.some(x=>(x&&x.key)===key && (x&&x.stage||'bracket')===stage)) S._pendingDrawShows.push({key, stage}); }
 /* ONLINE: cada cliente enfileira o sorteio da copa NOVA da temporada por conta própria.
    Antes o sorteio dependia de S._pendingDrawShows, uma fila de UI que vivia no cliente que
@@ -10978,6 +10985,10 @@ function checkPendingCupDraws(onDone){
    por aqui cedo demais. */
 function startCupDrawReplay(key, stage, onDone){
   if(typeof stage==='function'){ onDone=stage; stage='bracket'; } // retrocompat
+  /* competicao sem cerimonia (ver CUP_SEM_CERIMONIA, no core): devolve false e
+     quem chamou segue em frente -- e o mesmo caminho de quando os dados do
+     sorteio ainda nao existem, ja tratado por todos os chamadores. */
+  if(typeof cupTemCerimonia==='function' && !cupTemCerimonia(key)) return false;
   const c=S.cups&&S.cups[key];
   let reveal=[], remaining=[];
   if(stage==='group'){

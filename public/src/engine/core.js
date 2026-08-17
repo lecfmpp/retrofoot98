@@ -2062,6 +2062,15 @@ function cupDrawReleased(key, round){
 }
 /* enfileira as cerimônias cuja data chegou (uma vez por temporada). Devolve quantas entraram —
    quem chama usa isso pra mostrar o sorteio ANTES das partidas da rodada (ver clJogar). */
+/* ===== QUE COMPETICOES TEM CERIMONIA DE SORTEIO =====
+   A cerimonia -- as bolas a sair uma a uma -- existe para dizer QUEM cai COM
+   QUEM quando isso ainda nao se sabe: os grupos das continentais. Na Copa do
+   Brasil ela nao acrescenta nada: sao 80 clubes e 16 confrontos de uma vez, o
+   utilizador nao conhece metade dos nomes e a chave logo a seguir mostra tudo
+   outra vez. Decisao do dono do jogo (17/08): a Copa do Brasil deixa de a ter.
+   Quem quiser desligar outra e so acrescentar aqui. */
+const CUP_SEM_CERIMONIA={ copaBrasil:true };
+function cupTemCerimonia(key){ return !CUP_SEM_CERIMONIA[key]; }
 function queueDueCupDraws(){
   if(typeof S==='undefined' || !S || !S.cups) return 0;
   if(typeof queueDrawShow!=='function') return 0;
@@ -2071,6 +2080,8 @@ function queueDueCupDraws(){
     if(!S.cups[key]) return;
     if(!cupDrawReleased(key)) return;
     const mark=key+':'+season; if(S._cupDrawQueued[mark]) return;
+    /* marca como enfileirada e sai: sem a marca, cada rodada tentaria de novo */
+    if(!cupTemCerimonia(key)){ S._cupDrawQueued[mark]=true; return; }
     // só a cerimônia de ABERTURA da competição (grupo, ou chave na Copa do Brasil); o sorteio
     // do mata-mata das continentais continua saindo em advancePendingCups, na data real dele.
     const c=S.cups[key];
