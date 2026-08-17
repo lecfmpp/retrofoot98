@@ -31,15 +31,6 @@ HTML — para trocar, procure por `contato` em `media-kit.html`.
 
 ## O que fica de fora do inventário
 
-Três peças estão desenhadas e no ar, mas **puxam as marcas de `AD_SPONSORS`** — a lista fixa
-dentro do jogo — em vez do painel. Para as vender é preciso dar-lhes chave própria em
-`elifoot_v3.ad_spaces` e trocar a chamada por `rfAdEspaco`, como as outras:
-
-| Peça | Onde | Formato |
-|---|---|---|
-| **Pausa patrocinada** | Modo Resenha, entre jornadas | vídeo/GIF 1280×720, até 8s, sem áudio |
-| Barra de patrocínio | na mesma pausa e no Camarote | trilho de logos + botão da marca |
-| Placas do campo | cartão de Formação | 6 de 169×22 e 6 de 19×192 |
-
-A **pausa** é a de maior atenção: tela cheia, sem concorrência, uma vez por jornada. Foi
-desenhada desde o nome para ser patrocinada e é a primeira que vale a pena ligar.
+Nada, desde agosto de 2026 — os quinze espaços passam pelo painel. A única coisa que **não** é
+inventário são as marcas na tela de **Finanças**: ali elas ilustram quanto os espaços do estádio
+rendem ao clube, que é ficção do jogo, não publicidade a vender.
