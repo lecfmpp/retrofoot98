@@ -796,7 +796,11 @@ function rfMkLanceHTML(){
 /* ---- 3 · CONTRAPROPOR (uma proposta recebida) ---- */
 function rfMkContrapor(id){ CL.mkP={tipo:'contra', id}; rfAcAbrir('mkt-contra',{id}); }
 function rfMkContraporGo(){
-  const P=CL.mkP; const valor=rfMkVal('rf-mk-ask');
+  /* mesma regra do rfMkListarGo: o id vem do dialogo aberto, com CL.mkP so como reserva */
+  const d=(typeof rfAcD==='function')?rfAcD():{};
+  const P={ id:(d&&d.id!=null)?d.id:(CL.mkP&&CL.mkP.id) };
+  if(P.id==null){ toastC('Escolha a proposta primeiro.'); return; }
+  const valor=rfMkVal('rf-mk-ask');
   if(valor<=0){ toastC('Digite quanto você quer pedir.'); return; }
   const o=rfPropostas().find(x=>x.id===P.id);
   /* PEDIR ABAIXO DA OFERTA NAO E CONTRAPROPOSTA. O motor aceita e responde "segue valendo X" —
@@ -833,14 +837,29 @@ function rfMkContraHTML(){
 
 /* ---- 4 · LISTAR PRA VENDA ---- */
 function rfMkListar(pid){ CL.mkP={tipo:'listar', pid}; CL.selPlayer=pid; rfAcAbrir('mkt-listar',{pid}); }
+/* ===== QUEM MANDA E O DIALOGO ABERTO, NAO O CL.mkP =====
+   Isto lia `CL.mkP.pid` a seco. Pela aba Vender funcionava (rfMkListar escreve o CL.mkP antes
+   de abrir), mas pela FICHA DO JOGADOR o botao chama rfAcAbrir('mkt-listar') direto, sem
+   escrever nada — CL.mkP estava null e o clique morria num TypeError, sem toast, sem tela nova,
+   sem nada no ecra. Era o "clico em Listar e nao acontece nada".
+   O pid ja viaja nos dados do proprio dialogo (rfAcD), que e a fonte que existe nos dois
+   caminhos; o CL.mkP fica so como reserva para quem ainda o escreve. */
 function rfMkListarGo(){
-  CL.selPlayer=CL.mkP.pid;
+  const d=(typeof rfAcD==='function')?rfAcD():{};
+  const pid=(d&&d.pid) || (CL.mkP&&CL.mkP.pid);
+  if(!pid){ toastC('Escolha o jogador primeiro.'); return; }
+  CL.selPlayer=pid;
   CL.sellPrice=String(rfMkNum('rf-mk-preco')||'');
   CL.mkP=null; CL.acao=null;
+  /* TIRA ESTE DIALOGO DO ECRA ANTES DE A VENDA DESENHAR O DELA. clSellConfirm termina em
+     auctionDialog, uma tela legada que se sobrepoe sem refazer o desenho todo: sem este cdraw
+     o "Listar para venda" ficava por cima do resultado da venda, e o jogador via os dois
+     empilhados. Zerar CL.acao nao chega — quem tira do DOM e o redesenho. */
+  if(typeof cdraw==='function') cdraw();
   clSellConfirm();
 }
 function rfMkListarHTML(){
-  const p=squad(CL.clubId).find(x=>x.pid===CL.mkP.pid);
+  const p=squad(CL.clubId).find(x=>x.pid===(CL.mkP&&CL.mkP.pid));
   if(!p){ CL.mkP=null; return ''; }
   const vm=(typeof computeVM==='function')?computeVM(p):(p.mv||0);
   const titular=xiPlayers(CL.clubId).some(x=>x.pid===p.pid);
