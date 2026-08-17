@@ -10828,7 +10828,16 @@ function scCupViewLegado(){
   const key=CL._cupKey; if(!key || !(S.cups&&S.cups[key])) { CL.screen='main'; return scMain(); }
   return cupScreenHTML(key, {actions:btn('Voltar','clCupViewBack()',{icon:'◀',cls:'cl-btn-cancel cl-btn-sm'})});
 }
-function clCupViewBack(){ CL.screen=CL._seatContext?'seatturn':'main'; CL._cupTie=null; cdraw(); clCompList(); }
+/* FECHAR A COMPETICAO VOLTA AO JOGO, e mais nada. Ao sair da tela de uma copa
+   abria-se por cima o dialogo antigo "Minhas competicoes" -- a lista das quatro
+   competicoes com o selo de estado. Ele fazia sentido quando era a UNICA porta
+   para as copas; hoje a pagina Campeonatos tem as abas (Minhas competicoes,
+   Calendario, Artilharia, Historia) e o cartao de cada competicao, ou seja: a
+   lista reaparecia por cima da tela que a substituiu.
+
+   `clCompList` continua a existir -- e a servir o menu antigo (Campeonatos >
+   Minhas competicoes), que ainda e a navegacao do desktop legado. */
+function clCupViewBack(){ CL.screen=CL._seatContext?'seatturn':'main'; CL._cupTie=null; cdraw(); }
 /* ---- leitura do estado da cerimônia (CL.cupDraw) pelos componentes da tela ---- */
 function cupDrawLast(dr){ return dr && dr.drawn.length ? dr.drawn[dr.drawn.length-1] : null; }
 function cupDrawHasTie(dr, t){ return !!(dr && dr.drawn.some(p=>!p.bye && p.group==null && p.h===t.h && p.a===t.a)); }
