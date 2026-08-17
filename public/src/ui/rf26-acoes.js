@@ -476,6 +476,30 @@ const RF_ACOES = {
     acoes:[{l:'Ver o elenco',tom:'fantasma',on:"rfAcFechar();rfGo('elenco')"},{l:'Continuar'}] });
 },
 
+/* ===== VENDA CONCLUIDA — a irma do 'mkt-arrematado' =====
+   A tela antiga (auctionDialog, em main.js) era a unica do Mercado que ainda vinha da pele
+   velha: fundo amarelo, cabecalho preto, caixa de "Historial" com legenda. E dizia coisas que
+   o motor nao produz — "Nacionalidade: Brasil" estava ESCRITO NO CODIGO (todo jogador saia
+   brasileiro), "Preco base: zero" era resto de um leilao que aqui nao existe, e o salario era
+   recalculado a partir do valor de mercado em vez de vir do contrato. Pela regra do brief, o
+   que o motor nao calcula nao entra: ficou o que e verdade.
+   O jogador JA SAIU do elenco quando isto abre, entao os dados vem no `d` (ver clSellConfirm),
+   nao de squad(). */
+'mkt-vendido': d=>rfAcao({ kicker:'MERCADO · VENDA CONCLUÍDA', titulo:'Vendido!', w:480,
+  fechar:'rfMkVendidoFechar()',
+  corpo:
+    rfAcSeloHTML(rfIcone('moedas',18), d.player||'—', 'sai para o '+(d.buyer||'comprador'))
+    + rfAcLinhaHTML('Entrou no caixa', '+'+rfDin(d.fee||0), 'ok', true)
+    + rfAcLinhaHTML('Caixa agora', rfDin(S.budget||0), '')
+    + (d.salario?rfAcLinhaHTML('Sai da folha', '−'+rfDin(d.salario)+'/mês', 'ok'):'')
+    + (d.vm?rfAcLinhaHTML('Valor de mercado dele', rfDin(d.vm), (d.fee||0)>=d.vm?'ok':'ruim'):'')
+    + rfAcLinhaHTML('Quem herda a vaga', d.sub||'ninguém no setor', d.sub?'':'ruim')
+    + (d.sub?'':rfAcAvisoHTML('<b>Sem reserva no setor.</b> O onze fica com um buraco até você repor.','aviso'))
+    + rfAcNotaHTML('A venda é definitiva e já está no extrato desta jornada.'),
+  acoes:[{l:'Ver o elenco',tom:'fantasma',on:"rfMkVendidoFechar();rfGo('elenco')"},
+         {l:'Ir ao mercado',tom:'fantasma',on:"rfMkVendidoFechar();rfGo('mercado')"},
+         {l:'Continuar',on:'rfMkVendidoFechar()'}] }),
+
 'mkt-semcaixa': d=>rfAcao({ kicker:'MERCADO', titulo:'Caixa insuficiente', w:460,
   corpo:
     rfAcAvisoHTML(`A proposta é de <b>${escC(rfDin(d.pedido||0))}</b> e o caixa tem <b>${escC(rfDin(S.budget||0))}</b>.`,'perigo')

@@ -11528,34 +11528,20 @@ function clSellConfirm(){
   pushFinanceEntry({playerSales:fee, log:[`💰 ${p.n} vendido ao ${clubOf(buyer.id).short} por ${fmt(fee)}.`]});
   S.roundNews=S.roundNews||[]; S.roundNews.push(`💰 ${p.n} vendido ao ${clubOf(buyer.id).short} por ${fmt(fee)}.`);
   saveV3(); auctionDialog(p,buyer,feeK); }
+/* A TELA DE VENDA PASSOU PARA A PELE NOVA (ver 'mkt-vendido' em rf26-acoes.js). Era a ultima
+   do Mercado que ainda abria em overlay legado — fundo amarelo, cabecalho preto — e mostrava
+   dados que o motor nao produz (a nacionalidade vinha escrita "Brasil" para todo jogador).
+   O jogador ja saiu do elenco aqui, por isso os dados dele viajam no objeto do dialogo. */
 function auctionDialog(p,buyer,feeK){
-  const st=p.stats||{}; const beh=playerBehaviorLabel(p);
-  overlayC(dlg('Venda de jogador por leilão', `<div class="cl-leilao">
-    <div class="cl-lei-grid">
-      <div class="cl-lei-l">
-        <div class="cl-lei-row"><span>Equipa</span><b class="cl-lei-team" style="${clubStripe(clubOf(CL.clubId))}">${escC(clubOf(CL.clubId).short)}</b></div>
-        <div class="cl-lei-row"><span>Jogador</span><b>${escC(p.n)}</b></div>
-        <div class="cl-lei-row"><span>Posição</span><b>${({GK:'Goleiro',DEF:'Zagueiro',MID:'Meia',ATT:'Atacante'})[p.s]||'Meia'}</b></div>
-        <div class="cl-lei-row"><span>Força</span><b class="cl-lei-big">${p.f}</b></div>
-        <div class="cl-lei-row" style="margin-top:14px"><span>Salário pretendido</span><b>${curSym()} ${moneyDisp(Math.round(p.mv*0.0006))}</b></div>
-        <div class="cl-lei-row"><span>Preço base</span><b>zero</b></div>
-      </div>
-      <div class="cl-lei-r">
-        <div class="cl-lei-row"><span>Nacionalidade</span><b>${flagImg('Brasil')} Brasil</b></div>
-        <div class="cl-lei-row"><span>Comportamento</span><b>${beh}</b></div>
-        <div class="cl-lei-row"><span>Gols nesta temporada</span><b>${(S.scorers&&S.scorers[p.n])||0}</b></div>
-        <fieldset class="cl-hist" style="max-width:300px;color:#000"><legend style="color:#000">Historial</legend>
-          <div class="cl-hist-row"><span>Jogos</span><b>${st.apps||0}</b></div>
-          <div class="cl-hist-row"><span>Gols</span><b>${st.goals||0}</b></div>
-          <div class="cl-hist-row"><span>Cartões amarelos</span><b>${st.yellows||0}</b></div>
-          <div class="cl-hist-row"><span>Cartões vermelhos</span><b>${st.reds||0}</b></div>
-          <div class="cl-hist-row"><span>Lesões</span><b>${st.injuries||0}</b></div>
-        </fieldset>
-      </div>
-    </div>
-    <div class="cl-lei-sold">Vendido ao ${escC(buyer.short.toUpperCase())} por ${spellMoney(feeK*1000)}</div>
-    <div class="cl-lei-ok">${btn('OK','clCloseAuction()',{icon:'✔',cls:'cl-btn-ok'})}</div>
-  </div>`,{w:760,bodyClass:'cl-body-yellow',min:true})); }
+  const sq=squad(CL.clubId);
+  const sub=sq.filter(x=>x.s===p.s).sort((a,b)=>(b.f||0)-(a.f||0))[0];
+  const dados={ player:p.n, buyer:(clubOf(buyer.id)||buyer).short||'', fee:feeK*1000,
+    salario:(p.contract&&p.contract.salary)||0,
+    vm:(typeof computeVM==='function')?computeVM(p):(p.mv||0),
+    sub:sub?(sub.n+' (força '+sub.f+')'):'' };
+  if(typeof rfAcAbrir==='function'){ rfAcAbrir('mkt-vendido', dados); return; }
+  toastC('Jogador vendido.'); cdraw();
+}
 function clCloseAuction(){ clCloseOverlay(); CL.rightMode=null; CL.selPlayer=squad(CL.clubId)[0]?.pid||null; cdraw(); toastC('Jogador vendido.'); }
 
 /* ---- Jogador (aba) > Renovar contrato (painel) ---- */

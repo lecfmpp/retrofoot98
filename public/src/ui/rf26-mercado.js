@@ -901,6 +901,14 @@ function rfMkAceitar(id){
    Aceitar = mandar a proposta no valor pedido (acceptCounterOffer -> sendHumanOffer). Pode
    falhar por caixa, janela fechada ou cota: nesse caso o diálogo FICA aberto com a mensagem,
    senão a recusa do motor sumia junto com a tela e parecia que o botão não fez nada. */
+/* fecha a tela de venda concluida e devolve a selecao do Elenco a um jogador que existe —
+   o vendido saiu, e a ficha ficaria a apontar para um pid que ja nao esta la */
+function rfMkVendidoFechar(){
+  CL.acao=null; CL.rightMode=null;
+  const sq=(typeof squad==='function')?squad(CL.clubId):[];
+  CL.selPlayer=(sq[0]&&sq[0].pid)||null;
+  if(typeof cdraw==='function') cdraw();
+}
 function rfMkContraReceb(id){ rfAcAbrir('mkt-contra-receb',{id}); }
 function rfMkContraRecebAceitar(id){
   const r=(typeof acceptCounterOffer==='function')?acceptCounterOffer(id):null;
