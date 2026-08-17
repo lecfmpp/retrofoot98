@@ -507,31 +507,56 @@ function rfChaveCartaoHTML(cf){
    meio do par anterior. Entre duas colunas vao o conector (caixa com borda em
    tres lados, o "]" ) e um stub de 8px. Nada aqui depende da largura da janela;
    quando nao cabe, o contentor rola na horizontal. */
+/* QUANTAS FASES CABEM NA CHAVE ESPELHADA. A Copa do Brasil comeca com 80 clubes
+   e SETE fases: desenhar as sete daria 64 cartoes na coluna de fora, ilegiveis
+   em qualquer tela. A chave mostra as ultimas quatro (oitavas -> final), que e o
+   recorte que interessa a quem esta a ver quanto falta para o titulo; as fases
+   anteriores continuam inteiras na vista por fases (telemovel) e no "seu
+   caminho", ao lado. Competicao pequena -- playoff de oito, quartas em diante --
+   usa a mesma estrutura com menos colunas, sem nada a esconder. */
+const RF_CH_MAX_FASES=4;
 function rfChaveHTML(d){
   if(!d) return '<div class="rf-empty">O mata-mata ainda não começou.</div>';
-  const fases=d.fases;
+  const todas=d.fases;
+  const fases=todas.length>RF_CH_MAX_FASES?todas.slice(-RF_CH_MAX_FASES):todas;
+  const cortou=todas.length-fases.length;
   const final=fases[fases.length-1];
   const antes=fases.slice(0,-1);
   const meia=(cfs,lado)=>{
     const n=cfs.length, meio=Math.ceil(n/2);
     return lado==='E'?cfs.slice(0,meio):cfs.slice(meio);
   };
+  /* QUANTOS SLOTS TEM CADA COLUNA, POR LADO. A chave e uma arvore: a coluna
+     colada a final tem 1 confronto de cada lado, a anterior 2, a anterior 4.
+     Isto NAO pode sair do que o motor ja produziu -- as fases futuras ainda nao
+     existem, e uma coluna com um unico cartao "a definir" fazia o conector medir
+     a altura toda e apontar para o vazio. Os slots vazios sao desenhados como
+     cartao tracejado, que e o estado "a definir" do pacote. */
+  const slots=(idx)=>Math.pow(2, antes.length-1-idx);
+  const preenche=(lista,n)=>{ const out=lista.slice(0,n); while(out.length<n) out.push(null); return out; };
   /* o lado do clube do utilizador e sempre o esquerdo */
   const colunas=(lado)=>antes.map((f,idx)=>{
-    const cfs=meia(f.confrontos,lado);
-    const alvo=antes[idx+1]?meia(antes[idx+1].confrontos,lado).length:1;
+    const n=slots(idx);
+    const cfs=preenche(meia(f.confrontos,lado), n);
+    const alvo=idx+1<antes.length?slots(idx+1):1;
     const col=`<div class="rf-ch-col">
       <span class="rf-ch-fase">${escC(f.label)}</span>
-      <div class="rf-ch-slots">${(cfs.length?cfs:[null]).map(rfChaveCartaoHTML).join('')}</div>
+      <div class="rf-ch-slots">${cfs.map(rfChaveCartaoHTML).join('')}</div>
     </div>`;
-    const lig=`<div class="rf-ch-lig ${lado==='E'?'e':'d'}">${
-      Array.from({length:Math.max(1,alvo)},(_,i)=>{
-        const dourado=cfs[i*2]&&(cfs[i*2].meu)||cfs[i*2+1]&&(cfs[i*2+1].meu);
-        return `<i class="${dourado?'ouro':''}"></i>`;}).join('')}</div>
+    /* A ALTURA DO CONECTOR E A DISTANCIA ENTRE OS DOIS CENTROS QUE ELE LIGA.
+       Com `space-around`, uma coluna de N confrontos poe os centros a cada H/N --
+       entao o "]" tem exatamente H/N de altura, e isso muda a cada fase (4
+       confrontos: H/4; 2 confrontos: H/2). */
+    const h=`calc(var(--rf-ch-h,480px)/${n})`;
+    const ouro=i=>((cfs[i*2]&&cfs[i*2].meu)||(cfs[i*2+1]&&cfs[i*2+1].meu))?'ouro':'';
+    /* UM SO CONFRONTO NAO PRECISA DE CHAVETA: da semifinal para a final nao ha
+       par a juntar, ha uma linha. Desenhar o "]" ali dava uma chaveta da altura
+       da coluna inteira a apontar para o nada. */
+    const linha = n===1 && alvo===1;
+    const lig=`<div class="rf-ch-lig ${lado==='E'?'e':'d'} ${linha?'reta':''}">${
+      Array.from({length:alvo},(_,i)=>`<i class="${ouro(i)}" ${linha?'':`style="height:${h}"`}></i>`).join('')}</div>
       <div class="rf-ch-stub ${lado==='E'?'e':'d'}">${
-      Array.from({length:Math.max(1,alvo)},(_,i)=>{
-        const dourado=cfs[i*2]&&(cfs[i*2].meu)||cfs[i*2+1]&&(cfs[i*2+1].meu);
-        return `<i class="${dourado?'ouro':''}"></i>`;}).join('')}</div>`;
+      Array.from({length:alvo},(_,i)=>`<i class="${ouro(i)}"></i>`).join('')}</div>`;
     return lado==='E'?(col+lig):(lig+col);
   });
   const camp=d.campeao;
@@ -551,6 +576,7 @@ function rfChaveHTML(d){
   <div class="rf-ch-legenda">
     <span><i class="rf-ch-lg ouro"></i>caminho do ${escC(d.meuClube||'seu clube')}</span>
     <span><i class="rf-ch-lg tracejado"></i>confronto a definir</span>
+    ${cortou?`<span>as ${cortou} fases anteriores estão no seu caminho, ao lado</span>`:''}
   </div>`;
 }
 /* ---- MOBILE: uma fase de cada vez ----
@@ -567,6 +593,7 @@ function rfChaveMobileHTML(d){
     const marca=f.encerrada?'✓':(f.atual?'•':'—');
     const meu=f.confrontos.some(c=>c.meu);
     return `<button type="button" class="rf-chm-p ${f.key===sel.key?'on':''} ${meu?'meu':''}"
+      ${f.key===sel.key?'data-rf-centrar="1"':''}
       onclick="rfChaveIrFase('${escC(f.key)}')">${escC(f.label)} ${marca}</button>`;
   }).join('');
   const cfs=sel.confrontos.slice().sort((a,b)=>(b.meu?1:0)-(a.meu?1:0));

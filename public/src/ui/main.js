@@ -745,6 +745,13 @@ function capturaRolagem(){
   return m;
 }
 function devolveRolagem(m){
+  /* A FASE ABERTA TEM DE ESTAR A VISTA. A fita de fases da chave (telemovel) rola
+     na horizontal e a fase corrente costuma ser das ultimas: sem isto, a tela
+     abria mostrando "1a FASE" enquanto os cartoes por baixo eram das oitavas. */
+  try{
+    const alvo=document.querySelector('[data-rf-centrar]');
+    if(alvo && alvo.scrollIntoView) alvo.scrollIntoView({block:'nearest',inline:'center'});
+  }catch(e){}
   try{ CDRAW_ROLAGENS.forEach(sel=>{
     const els=document.querySelectorAll(sel), vals=m[sel]||[];
     if(!els.length || els.length!==vals.length) return;

@@ -3246,11 +3246,15 @@
 /* conector e stub */
 .rf-ch-lig{width:18px;flex:0 0 auto;margin-top:24px;height:var(--rf-ch-h,480px);
   display:flex;flex-direction:column;justify-content:space-around}
-.rf-ch-lig>i{display:block;height:calc(var(--rf-ch-h,480px)/4);box-sizing:border-box;
+.rf-ch-lig>i{display:block;box-sizing:border-box;   /* a altura vem inline: H/N da coluna */
   border:2px solid var(--line-2);border-radius:0 8px 8px 0}
 .rf-ch-lig.e>i{border-width:2px 2px 2px 0}
 .rf-ch-lig.d>i{border-width:2px 0 2px 2px;border-radius:8px 0 0 8px}
 .rf-ch-lig>i.ouro{border-color:var(--brand-secondary)}
+/* ligacao simples (semifinal -> final): uma linha, nao uma chaveta */
+.rf-ch-lig.reta{justify-content:center}
+.rf-ch-lig.reta>i{height:0;border:none;border-top:2px solid var(--line-2);border-radius:0}
+.rf-ch-lig.reta>i.ouro{border-top-color:var(--brand-secondary)}
 .rf-ch-stub{width:8px;flex:0 0 auto;margin-top:24px;height:var(--rf-ch-h,480px);
   display:flex;flex-direction:column;justify-content:space-around}
 .rf-ch-stub>i{display:block;height:0;border-top:2px solid var(--line-2)}
