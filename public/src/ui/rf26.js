@@ -538,12 +538,17 @@ function rfSemanaHTML(){
   const celulas=dias.map(d=>{
     const info=d.comp&&typeof rfCompInfo==='function'?rfCompInfo(d.comp):null;
     const cls=d.comp?(d.meu?'jogo':'assiste'):'vazio';
-    const rot=d.data?(d.data.getDate()+'/'+((typeof PT_MONTHS_ABBR!=='undefined')?PT_MONTHS_ABBR[d.data.getMonth()]:'')):'';
+    /* DUAS ESCRITAS DA MESMA DATA. "29/mar" nao cabe num setimo de 375px -- o
+       texto encostava nas bordas da caixa. No telemovel entra a forma numerica
+       ("29/3"); no desktop fica o mes por extenso, que se le melhor. */
+    const dia=d.data?d.data.getDate():'';
+    const rotLongo=d.data?(dia+'/'+((typeof PT_MONTHS_ABBR!=='undefined')?PT_MONTHS_ABBR[d.data.getMonth()]:'')):'';
+    const rotCurto=d.data?(dia+'/'+(d.data.getMonth()+1)):'';
     const sem=d.data?SEM[d.data.getDay()]:'';
     return `<span class="rf-tema rf-sem-dia ${cls}" ${info?`data-tema="${escC(info.tema)}"`:''}
       title="${escC(info?(info.nome+(d.meu?' — seu jogo':' — sem o seu clube')):'sem jogo')}">
       <i class="rf-sem-s">${escC(sem)}</i>
-      <b class="rf-sem-d">${escC(rot)}</b>
+      <b class="rf-sem-d"><span class="rf-so-desktop">${escC(rotLongo)}</span><span class="rf-so-mobile">${escC(rotCurto)}</span></b>
       ${info?`<em class="rf-sem-c">${escC(info.curto)}</em>`:'<em class="rf-sem-c vazio">—</em>'}
     </span>`;
   }).join('');
@@ -678,12 +683,22 @@ function rfCompFase(info){
   return (c&&typeof cupCompetitionRoundLabel==='function')?cupCompetitionRoundLabel(c,info.id):'';
 }
 /* a linha por baixo do nome: onde a competição está agora */
+/* O DIA DAQUELA COMPETICAO, e nao so a fase. Cada competicao tem o seu dia
+   dentro da jornada (DIA_DA_COMPETICAO, no motor): a liga ao sabado, a Copa do
+   Brasil na quarta, a Libertadores na quinta, a Sul-Americana na sexta. Sem a
+   data na faixa, ver a rodada da copa e logo a seguir a da liga parecia tudo no
+   mesmo dia -- e e essa a pergunta que a tela tem de responder sozinha. */
+function rfCompDia(info){
+  if(typeof dataCurtaDaJornada!=='function' || typeof S==='undefined' || !S) return '';
+  try{ return dataCurtaDaJornada(S.round||0, info.copa?info.id:null)||''; }catch(e){ return ''; }
+}
 function rfCompLinha(info,RL){
   RL=RL||CL.live||{};
   const temporada=(typeof S!=='undefined'&&S.season)?String(S.season):'';
-  if(info.copa) return [rfCompFase(info),temporada].filter(Boolean).join(' · ');
+  const dia=rfCompDia(info);
+  if(info.copa) return [dia,rfCompFase(info),temporada].filter(Boolean).join(' · ');
   const jor=RL.jornada||(((typeof S!=='undefined'&&S.round)||0)+1);
-  return [jor+'ª rodada',temporada,rfCompTamanho(info.id)].filter(Boolean).join(' · ');
+  return [dia,jor+'ª rodada',temporada,rfCompTamanho(info.id)].filter(Boolean).join(' · ');
 }
 /* o segundo andar da pastilha do trilho */
 function rfCompMeta(info){

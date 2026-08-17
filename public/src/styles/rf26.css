@@ -389,29 +389,48 @@
    deixavam de se ler, que era o defeito que o `zoom` veio evitar. O banco
    (196px) e a peca que se pode mudar de sitio: por baixo do campo ele fica em
    faixa, como ja acontece no telemovel, e o campo volta a caber inteiro. */
-@container miolo (max-width:1290px){
-  /* seletor mais especifico de proposito: a largura fixa do banco
-     (.rf-pitch-card .cl-bench, mais abaixo neste ficheiro) ganharia por vir
-     depois, e o banco continuava colado ao lado do campo. */
-  .rf-pitch-card .cl-pitch-block{flex-wrap:wrap;zoom:1}
-  .rf-pitch-card .cl-pitch-block>.cl-bench{width:100%;flex:1 1 100%;height:auto;
-    max-height:none;overflow:visible}
-  /* o banco em faixa e uma LINHA DE GRUPOS (goleiros, defesa, meio, ataque),
-     cada um continuando a ser a sua coluna -- virar tudo em linha punha os
-     reservas todos lado a lado e transbordava outra vez. */
-  .rf-pitch-card .cl-pitch-block>.cl-bench .rf-banco-lista{flex-direction:row;flex-wrap:wrap;
-    align-items:flex-start;gap:10px;overflow:visible}
-  .rf-pitch-card .cl-pitch-block>.cl-bench .rf-bgrupo{flex:1 1 150px;min-width:0}
+/* TUDO ISTO E DE TABLET PARA CIMA. No telemovel o banco ja e uma faixa que ROLA
+   por dentro (@media 760, mais abaixo), e estes seletores -- mais especificos
+   do que os de la -- desfaziam-na: a faixa deixava de rolar e empurrava a
+   pagina 215px para o lado. */
+@media (min-width:761px){
+  @container miolo (max-width:1290px){
+    /* seletor mais especifico de proposito: a largura fixa do banco
+       (.rf-pitch-card .cl-bench, mais abaixo neste ficheiro) ganharia por vir
+       depois, e o banco continuava colado ao lado do campo. */
+    .rf-pitch-card .cl-pitch-block{flex-wrap:wrap;zoom:1}
+    .rf-pitch-card .cl-pitch-block>.cl-bench{width:100%;flex:1 1 100%;height:auto;
+      max-height:none;overflow:visible}
+    /* o banco em faixa e uma LINHA DE GRUPOS (goleiros, defesa, meio, ataque),
+       cada um continuando a ser a sua coluna -- virar tudo em linha punha os
+       reservas todos lado a lado e transbordava outra vez. */
+    .rf-pitch-card .cl-pitch-block>.cl-bench .rf-banco-lista{flex-direction:row;flex-wrap:wrap;
+      align-items:flex-start;gap:10px;overflow:visible}
+    .rf-pitch-card .cl-pitch-block>.cl-bench .rf-bgrupo{flex:1 1 150px;min-width:0}
+  }
 }
 @container miolo (max-width:1162px){ .rf-pitch-card .cl-pitch-block{zoom:.94} }
-@container miolo (max-width:1090px){ .rf-pitch-card .cl-pitch-block{zoom:.88} }
-@container miolo (max-width:1020px){ .rf-pitch-card .cl-pitch-block{zoom:.84} }
-/* Abaixo disto nem com o campo encolhido sobra tabela: empilha. O limite era
-   1130 porque a direita pedia 678px fixos; com as colunas iguais e o campo a
-   encolher, a grade de duas colunas aguenta bem mais abaixo. */
-@container miolo (max-width:980px){
+/* ----- E ABAIXO DE 1130 A GRADE EMPILHA, como sempre fez -----
+   Eu tinha descido este limite para 980 achando que, com o campo a encolher, a
+   grade de duas colunas aguentava mais abaixo. Aguenta em pixeis e nao aguenta
+   em leitura: num tablet em pe ou num telemovel deitado (761-1130px) as duas
+   colunas espremidas faziam a tela da Formacao parecer uma miniatura -- tudo
+   junto, tudo pequeno. Empilhado, cada bloco tem a largura toda: e o desenho
+   que o pacote mostra para essas larguras. */
+@container miolo (max-width:1130px){
   .rf-cols{grid-template-columns:minmax(0,1fr)}
   .rf-pitch-card .cl-pitch-block{zoom:1}
+}
+/* O BANCO SO VOLTA PARA O LADO DO CAMPO ACIMA DOS 760px. Esta regra desfaz a
+   faixa do bloco de 1290, e sem a guarda de telemovel ela desfazia tambem a
+   faixa do telemovel -- que vem de um @media, com menos especificidade do que
+   este seletor, e por isso perdia: o banco voltava a ser uma coluna de 196px ao
+   lado de um campo de 375, e a pagina ganhava 245px de rolagem lateral. */
+@media (min-width:761px){
+  @container miolo (max-width:1130px){
+    .rf-pitch-card .cl-pitch-block{flex-wrap:nowrap}
+    .rf-pitch-card .cl-pitch-block>.cl-bench{width:var(--col-bench);flex:0 0 var(--col-bench)}
+  }
 }
 
 /* ----- Abas dentro da página (sub-itens de menu viram aba, nunca página nova) ----- */
