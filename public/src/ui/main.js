@@ -5633,8 +5633,17 @@ function clJogar(){
 function clAvancarDia(){
   if(CL.online) return;                        // na Resenha quem manda no dia e o servidor
   const total=(S.sched||[]).length;
-  if(S.round>=total-1){
-    if(typeof endSeason==='function'){ endSeason(); cdraw(); return; }
+  /* ===== O "AVANCAR" DEPOIS DA ULTIMA RODADA NAO PODIA MORRER AQUI =====
+     Ele fechava a temporada (endSeason) e redesenhava a MESMA tela: nem o dia
+     passava nem aparecia nada -- o botao parecia morto, e clicar de novo so
+     repetia o fecho em silencio. Quem mostra o fim de temporada e
+     seasonEndDialog(), e e por la que se avanca para a temporada seguinte.
+     A temporada tambem pode ja estar fechada (o proprio playRound fecha-a na
+     ultima rodada): nesse caso nao se fecha outra vez, so se abre a tela. */
+  if(S.round>=total-1 || S.finished){
+    if(!S.finished && typeof endSeason==='function'){ try{ endSeason(); }catch(e){ console.warn('fim de temporada:', e&&e.message); } }
+    if(typeof seasonEndDialog==='function'){ seasonEndDialog(); return; }
+    cdraw(); return;
   }
   S.round++; S.week++; S.day+=7;
   /* as copas correm na virada da jornada como em qualquer rodada — sem isto,
