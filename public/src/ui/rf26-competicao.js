@@ -61,7 +61,16 @@ function rfFimTemporadaHTML(sum){
   const total=linhas.length;
   const pos = sum ? sum.myPos : rfMinhaPosicao();
   const artilheiro=Object.entries(S.scorers||{}).sort((a,b)=>b[1]-a[1])[0];
+  /* o goleador do MEU plantel, dos numeros que o motor guarda por jogador */
+  const artCasa=(function(){
+    try{
+      const l=squad(CL.clubId).map(p=>({n:p.n,g:(p.stats&&p.stats.goals)||0}))
+        .filter(x=>x.g>0).sort((a,b)=>b.g-a.g);
+      return l[0]||null;
+    }catch(e){ return null; }
+  })();
   const pz = sum || S._seasonPrizes || null;
+  const video=rfFimVideo(d);
   const premio = pz && pz.total ? pz.total : 0;
   const titulo={titulo:'O '+cl.short+' é campeão.',
     acesso:'O '+cl.short+' subiu de série.',
@@ -76,15 +85,18 @@ function rfFimTemporadaHTML(sum){
     titulo:'Fim da temporada',
     corpo:`<div class="rf-ft-cols">
       <div class="rf-card rf-ft-esq">
+        <!-- O VIDEO E O DESFECHO DO CLUBE, nao ilustracao. Titulo/acesso puxam a taca, queda e
+             demissao puxam a crise; meio de tabela e playoff nao tem video proprio e ficam com a
+             moldura. A caixa de especificacao ("1280x720, ate 12s") era anotacao de desenho e
+             saiu -- estava a ser mostrada ao jogador. -->
         <div class="rf-ft-video">
-          <span class="rf-ft-claquete">🎬</span>
-          <span class="rf-ft-vt">Vídeo do fim de temporada</span>
+          ${video?`<video class="rf-ft-vid" src="${escC(video)}" autoplay muted loop playsinline
+             onerror="this.style.display='none'"></video><i class="rf-ft-vshade"></i>`:`
+            <span class="rf-ft-claquete">🎬</span>
+            <span class="rf-ft-vt">${escC(classifDivName(S.division))} ${escC(String(S.season||''))}</span>`}
           <span class="rf-ft-selo">${escC(info.selo)}</span>
-          <span class="rf-ft-vs">1280×720 · até 12s · um vídeo por desfecho</span>
           ${rfTrofeuHTML('serie'+(S.division||'D'), 52)}
         </div>
-        <div class="rf-ft-pills">${RF_DESFECHOS.map(x=>
-          `<span class="rf-chip ${d===x.k?'on':''}">${escC(x.l)}</span>`).join('')}</div>
         <span class="rf-ft-h">${escC(titulo)}</span>
         <p class="rf-ft-p">${escC(rfFimTexto(d,pos,total))}</p>
         <span class="rf-ft-objetivo ${d==='rebaixado'||d==='demitido'?'ruim':''}">${
@@ -92,7 +104,9 @@ function rfFimTemporadaHTML(sum){
       </div>
       <div class="rf-ft-dir">
         <div class="rf-card">
-          <span class="rf-label-t">Como terminou o grupo</span>
+          <!-- "Como terminou o grupo" era heranca do desenho: uma liga de pontos corridos nao
+               tem grupo, e o rotulo nao batia com o que estava por baixo dele. -->
+          <span class="rf-label-t">Como terminou a ${escC(classifDivName(S.division))}</span>
           ${linhas.slice(0,6).map((t,i)=>{
             const c=anyClubOf(t.id)||{short:t.id}, eu=t.id===CL.clubId;
             const z=rfZonaTabela(i+1,total);
@@ -105,6 +119,35 @@ function rfFimTemporadaHTML(sum){
             </div>`;
           }).join('')}
         </div>
+        ${(function(){
+          const camp=rfCampeoesDaTemporada(sum);
+          if(!camp.length) return '';
+          return `<div class="rf-card">
+            <div class="rf-label"><span class="rf-label-t">Campeões da temporada</span>
+              <span class="rf-label-r">${camp.length} competiç${camp.length===1?'ão':'ões'}</span></div>
+            ${camp.map(x=>{ const c=anyClubOf(x.clubId)||{short:String(x.clubId)}, eu=String(x.clubId)===String(CL.clubId);
+              return `<div class="rf-ft-lin ${eu?'me':''}">
+                <span class="rf-ft-comp">${escC(x.nome)}</span>
+                <div class="rf-sp"></div>
+                <span class="rf-ft-crest">${rfCrest(c,20)}</span>
+                <span class="rf-ft-n">${escC(c.short||c.name||'—')}</span>
+              </div>`; }).join('')}
+          </div>`;
+        })()}
+        ${(function(){
+          const art=rfArtilheirosDaTemporada();
+          if(!art.length) return '';
+          return `<div class="rf-card">
+            <div class="rf-label"><span class="rf-label-t">Artilheiros por competição</span></div>
+            ${art.map(a=>`<div class="rf-ft-lin">
+              <span class="rf-ft-comp">${escC(a.nome)}</span>
+              <div class="rf-sp"></div>
+              <span class="rf-ft-n">${escC(a.jogador)}</span>
+              <span class="rf-ft-gols">${a.gols} ${a.gols===1?'gol':'gols'}</span>
+            </div>`).join('')}
+            <span class="rf-note rf-ft-nota">Contado a partir desta temporada — saves antigos só mostram as competições que já registraram gol.</span>
+          </div>`;
+        })()}
         <div class="rf-card">
           <span class="rf-label-t">Premiação e balanço</span>
           <div class="rf-ft-grid">
@@ -114,9 +157,11 @@ function rfFimTemporadaHTML(sum){
             <div class="rf-ft-b"><span class="rf-ov-res-t">Caixa após fechar</span>
               <span class="rf-ft-bv">${escC(fmt(S.budget||0))}</span>
               <span class="rf-pr-ms">no ano</span></div>
-            <div class="rf-ft-b"><span class="rf-ov-res-t">Artilheiro</span>
-              <span class="rf-ft-bv sm">${escC(artilheiro?artilheiro[0]:'—')}</span>
-              <span class="rf-pr-ms">${artilheiro?artilheiro[1]+' gols':''}</span></div>
+            <!-- O artilheiro da competicao subiu para o cartao proprio (um por competicao);
+                 aqui fica o do MEU elenco, que e outra informacao e nao repete a de cima. -->
+            <div class="rf-ft-b"><span class="rf-ov-res-t">Artilheiro do elenco</span>
+              <span class="rf-ft-bv sm">${escC(artCasa?artCasa.n:'—')}</span>
+              <span class="rf-pr-ms">${artCasa?(artCasa.g+' gol'+(artCasa.g===1?'':'s')):''}</span></div>
             <div class="rf-ft-b"><span class="rf-ov-res-t">Melhor nota</span>
               <span class="rf-ft-bv sm">${escC(rfMelhorNota())}</span>
               <span class="rf-pr-ms">do plantel</span></div>
@@ -1310,4 +1355,78 @@ function rfCampeaoVerCaminho(key){
     if(typeof rfGo==='function') rfGo('campeonatos');
     if(typeof rfCompAbrir==='function') rfCompAbrir(key);
   }catch(e){ console.warn('ver o caminho:', e&&e.message); }
+}
+
+/* =====================================================================
+   FIM DE TEMPORADA — O ANO INTEIRO, NÃO SÓ A MINHA TABELA
+   A tela fechava a temporada mostrando apenas a divisão do jogador. Quem foi
+   campeão da Copa do Brasil, da Libertadores, das outras divisões — nada disso
+   aparecia, e o ano acabava sem se saber o que aconteceu no resto do mundo.
+   ===================================================================== */
+/* Todos os campeões desta temporada, com a competição e o clube. Só entra quem
+   TEM campeão de facto — competição por decidir fica de fora, nunca com "—". */
+function rfCampeoesDaTemporada(sum){
+  const out=[];
+  const nomeDiv=d=>(typeof divisionLabelOf==='function')?divisionLabelOf(d):('Série '+d);
+  /* 1) a minha divisão: a tabela final que a própria tela já usa */
+  try{
+    const linhas = sum ? (sum.myTable||[]) : ((typeof sortedTable==='function')?sortedTable():[]);
+    if(linhas.length) out.push({ comp:S.division, nome:nomeDiv(S.division), clubId:linhas[0].id, minha:true });
+  }catch(e){}
+  /* 2) as outras divisões do país (rodam em segundo plano, com tabela de verdade) */
+  try{
+    ((typeof DIV_ORDER!=='undefined')?DIV_ORDER:[]).forEach(d=>{
+      if(d===S.division) return;
+      const od=S.otherDivs&&S.otherDivs[d]; const t=od&&od.table; if(!t) return;
+      const tab=(typeof mpSortTable==='function')?mpSortTable({table:t}):Object.values(t).sort((a,b)=>b.Pts-a.Pts);
+      if(tab && tab.length) out.push({ comp:d, nome:nomeDiv(d), clubId:tab[0].id });
+    });
+  }catch(e){}
+  /* 3) as copas */
+  try{
+    ((typeof allCupKeys==='function')?allCupKeys():Object.keys(S.cups||{})).forEach(k=>{
+      const c=S.cups&&S.cups[k]; if(!c) return;
+      const b=(c.champion!==undefined)?c:c.bracket;
+      if(!b || b.champion==null) return;
+      const info=(typeof rfCompInfo==='function')?rfCompInfo(k):null;
+      out.push({ comp:k, nome:(info&&info.curto)||k, clubId:b.champion, copa:true });
+    });
+  }catch(e){}
+  /* 4) as ligas dos outros países que o jogador escolheu acompanhar */
+  try{
+    Object.keys(S.bgLeagues||{}).forEach(pais=>{
+      const cfg=(typeof UNI_CONFIGS!=='undefined')&&UNI_CONFIGS[(typeof uniKeyOf==='function')?uniKeyOf(pais):pais];
+      const topo=cfg&&cfg.order&&cfg.order[0]; if(!topo) return;
+      const tab=(typeof bgStandings==='function')?bgStandings(pais,topo):[];
+      if(tab && tab.length) out.push({ comp:pais+':'+topo, nome:pais, clubId:tab[0].id, fora:true });
+    });
+  }catch(e){}
+  return out;
+}
+/* Artilheiro de cada competição. Só aparece quem o motor de facto contou (ver
+   recordScorers/topScorerOf no core) — save antigo, sem o mapa por competição,
+   simplesmente não mostra a linha em vez de mostrar o artilheiro errado. */
+function rfArtilheirosDaTemporada(){
+  const out=[];
+  const push=(comp,nome)=>{
+    const a=(typeof topScorerOf==='function')?topScorerOf(comp):null;
+    if(a && a[0]) out.push({ nome, jogador:a[0], gols:a[1] });
+  };
+  try{ push(S.division,(typeof divisionLabelOf==='function')?divisionLabelOf(S.division):('Série '+S.division)); }catch(e){}
+  try{
+    ((typeof allCupKeys==='function')?allCupKeys():Object.keys(S.cups||{})).forEach(k=>{
+      const info=(typeof rfCompInfo==='function')?rfCompInfo(k):null;
+      push(k,(info&&info.curto)||k);
+    });
+  }catch(e){}
+  return out;
+}
+/* O VÍDEO SEGUE O QUE ACONTECEU AO CLUBE DO JOGADOR — não é ilustração genérica.
+   Título e acesso puxam a taça; queda e demissão puxam a crise. Meio de tabela e
+   playoff não têm vídeo próprio, e aí não se mostra nenhum. */
+function rfFimVideo(d){
+  const V=(typeof VIDEOS_MOMENTO!=='undefined')?VIDEOS_MOMENTO:{};
+  if(d==='titulo'||d==='acesso') return V['campeao-liga']||'';
+  if(d==='rebaixado'||d==='demitido') return V['crise']||'';
+  return '';
 }

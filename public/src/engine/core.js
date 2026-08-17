@@ -1565,7 +1565,7 @@ function cupTeamAlive(b,id){ if(!b) return false; if(b.champion===id) return tru
   return b.ties.some(t=>t.h===id||t.a===id) || (b.pendingByes||[]).includes(id) || (b.round>1 && !b.eliminated[id] && b.history.some(h=>h.advanced&&h.advanced.includes(id))) ; }
 /* resolve TODAS as partidas pendentes da rodada atual de um mata-mata (quick-sim
    completo, com cartões/lesões/suspensões aplicados igual às partidas de liga) */
-function advanceCupBracket(b, roundLabel){
+function advanceCupBracket(b, roundLabel, comp){
   if(!b || cupIsFinished(b)) return;
   const winners=[];
   b.ties.forEach(t=>{
@@ -1578,7 +1578,7 @@ function advanceCupBracket(b, roundLabel){
     applyResult1off(t.h,t.a,fin.hg,fin.ag);
     const Rm=makeRng(hashSeed(seed,'rate'));
     applyMatchIncidents(evs);
-    recordScorers(fin.scorers); // sem isso, gol de copa não entrava em S.scorers -> "Gols nesta temporada" (só liga) ficava dessincronizado do Historial (soma liga+copa via ratePlayers)
+    recordScorers(fin.scorers, comp); // sem isso, gol de copa não entrava em S.scorers -> "Gols nesta temporada" (só liga) ficava dessincronizado do Historial (soma liga+copa via ratePlayers)
     ratePlayers(t.h,fin.hg,fin.ag,fin.scorers,Rm,fin.perf&&fin.perf.H,fin.perf&&fin.perf.A,fin.caps&&fin.caps.H,fin.matchMinutes); ratePlayers(t.a,fin.ag,fin.hg,fin.scorers,Rm,fin.perf&&fin.perf.A,fin.perf&&fin.perf.H,fin.caps&&fin.caps.A,fin.matchMinutes);
     // empate no tempo normal: prorrogação + pênaltis de verdade (ver resolveDrawnKnockoutTie
     // em simulate.js) — nada de sorteio 50/50, e a MESMA seed de sempre garante que bate com
@@ -1653,7 +1653,7 @@ function markMyCupTurnDone(key){
 function myCupTurnDone(key){
   return !!(typeof CL!=='undefined' && CL._myCupTurn && CL._myCupTurn[myCupTurnKey(key)]);
 }
-function advanceGroupStageRound(mg, roundLabel){
+function advanceGroupStageRound(mg, roundLabel, comp){
   if(!mg || mg.finished) return;
   Object.values(mg.groups).forEach(g=>{
     const fx=(g.sched[mg.round])||[];
@@ -1669,7 +1669,7 @@ function advanceGroupStageRound(mg, roundLabel){
       let steps=0; while(!fin&&steps++<600) sim.step();
       applyMatchIncidents(evs);
       const Rm=makeRng(hashSeed(seed,'rate'));
-      recordScorers(fin.scorers); // idem ao bracket de mata-mata: gol de copa (aqui, fase de grupos) tem que contar em S.scorers
+      recordScorers(fin.scorers, comp); // idem ao bracket de mata-mata: gol de copa (aqui, fase de grupos) tem que contar em S.scorers
       ratePlayers(h,fin.hg,fin.ag,fin.scorers,Rm,fin.perf&&fin.perf.H,fin.perf&&fin.perf.A,fin.caps&&fin.caps.H,fin.matchMinutes); ratePlayers(a,fin.ag,fin.hg,fin.scorers,Rm,fin.perf&&fin.perf.A,fin.perf&&fin.perf.H,fin.caps&&fin.caps.A,fin.matchMinutes);
       const T=g.table;
       // placar da partida: a tabela só acumula o agregado, então sem isto o resultado de uma
@@ -2122,7 +2122,7 @@ function advancePendingCups(){
   const jaResolvida=k=>WORLD_RULES.cupAlreadyResolved(S._cupResolvedRound, k, S.round);   // folha única
   if(cupTickMatchesRound('copaBrasil',S.round) && cupDrawReleased('copaBrasil') && !jaResolvida('copaBrasil')){
     const cb=S.cups.copaBrasil;
-    if(cb && !cupIsFinished(cb) && cb.ties.length) advanceCupBracket(cb, 'copaBrasil-r'+cb.round);
+    if(cb && !cupIsFinished(cb) && cb.ties.length) advanceCupBracket(cb, 'copaBrasil-r'+cb.round, 'copaBrasil');
   }
   groupCupKeys().forEach(key=>{
     if(!cupTickMatchesRound(key,S.round)) return;
@@ -2130,7 +2130,7 @@ function advancePendingCups(){
     if(jaResolvida(key)) return;
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket){
-      if(!c.group.finished) advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round);
+      if(!c.group.finished) advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round, key);
       if(c.group.finished){
         // fase de grupos encerrada: só sorteia o mata-mata quando a data real do sorteio
         // já tiver passado no calendário do jogo (ver COMP_R16_DRAW_2026) — enquanto isso,
@@ -2143,7 +2143,7 @@ function advancePendingCups(){
         }
       }
     } else if(c.bracket && !cupIsFinished(c.bracket) && c.bracket.ties.length){
-      advanceCupBracket(c.bracket, key+'-r'+c.bracket.round);
+      advanceCupBracket(c.bracket, key+'-r'+c.bracket.round, key);
     }
   });
 }
@@ -3850,7 +3850,30 @@ function applyResult(h,a,hg,ag){
   else if(hg<ag){T[a].W++;T[h].L++;T[a].Pts+=3;}
   else{T[h].D++;T[a].D++;T[h].Pts++;T[a].Pts++;}
 }
-function recordScorers(scorers){scorers.forEach(s=>{S.scorers[s.name]=(S.scorers[s.name]||0)+1;});}
+/* ===== ARTILHARIA POR COMPETICAO =====
+   S.scorers e UM pote so: gol de liga e gol de copa caem no mesmo balde desde sempre (e tem de
+   continuar a cair, porque o "Gols nesta temporada" da ficha soma tudo). Isso torna impossivel
+   dizer quem foi o artilheiro DA Libertadores ou DA Copa do Brasil — a pergunta nao tinha
+   resposta no estado.
+   Agora cada gol tambem e carimbado na competicao em que caiu, num mapa a parte. O pote antigo
+   nao muda; este e um segundo livro, so para leitura. `comp` e a chave da competicao
+   (copaBrasil, libertadores...) ou a divisao ('A'..'D') quando e jogo de liga.
+   Save antigo nao tem o mapa: quem le trata a ausencia como "nao sei", nunca como zero. */
+function recordScorers(scorers, comp){
+  scorers.forEach(s=>{S.scorers[s.name]=(S.scorers[s.name]||0)+1;});
+  if(!comp) return;
+  S.scorersByComp=S.scorersByComp||{};
+  const m=S.scorersByComp[comp]=S.scorersByComp[comp]||{};
+  scorers.forEach(s=>{ m[s.name]=(m[s.name]||0)+1; });
+}
+/* artilheiro de UMA competicao: [nome, gols] ou null quando nao ha registo (save antigo,
+   competicao que ainda nao teve gol) */
+function topScorerOf(comp){
+  const m=(S.scorersByComp&&S.scorersByComp[comp])||null;
+  if(!m) return null;
+  const e=Object.entries(m).sort((a,b)=>b[1]-a[1])[0];
+  return e||null;
+}
 function topScorers(n=10){return Object.entries(S.scorers).sort((a,b)=>b[1]-a[1]).slice(0,n);}
 
 /* ============ MULTIPLAYER — pure round resolver (host-authority) ============
@@ -4067,7 +4090,7 @@ function playRound(userResult, humanResults){
     if(c){ if(c.H) roundCaps[h]=c.H; if(c.A) roundCaps[a]=c.A; }
     roundMins[h]=t; roundMins[a]=t; };
   const capsOf=cid=>roundCaps[cid]||null;
-  if(uf&&userResult){ const [h,a]=uf; const uev=(typeof simEvents==='function')?simEvents(h,a,matchSeed(h,a)).events:undefined; applyResult(h,a,userResult.hg,userResult.ag); recordScorers(userResult.scorers);
+  if(uf&&userResult){ const [h,a]=uf; const uev=(typeof simEvents==='function')?simEvents(h,a,matchSeed(h,a)).events:undefined; applyResult(h,a,userResult.hg,userResult.ag); recordScorers(userResult.scorers, S.division);
     noteCaps(h,a,userResult);
     const Rm=makeRng(hashSeed(matchSeed(h,a),'rate'));
     const mm=userResult.matchMinutes||90;
@@ -4077,7 +4100,7 @@ function playRound(userResult, humanResults){
     if(uf&&(h===uf[0]&&a===uf[1]))return;
     // FASE 2: se OUTRO humano (hotseat) jogou esta partida ao vivo, aplica o resultado dele em vez de simular
     const hr=humanResults[h+'-'+a];
-    if(hr){ applyResult(h,a,hr.hg,hr.ag); recordScorers(hr.scorers||[]);
+    if(hr){ applyResult(h,a,hr.hg,hr.ag); recordScorers(hr.scorers||[], S.division);
       noteCaps(h,a,hr);
       const Rmh=makeRng(hashSeed(matchSeed(h,a),'rate'));
       const mmh=hr.matchMinutes||90;
@@ -4085,7 +4108,7 @@ function playRound(userResult, humanResults){
       S.results.push({round:S.round,h,a,hg:hr.hg,ag:hr.ag,scorers:hr.scorers||[],events:hr.events,human:true});
       return; }
     const ms=matchSeed(h,a);
-    const r=(typeof simEvents==='function')?simEvents(h,a,ms):quickSim(h,a,ms); applyResult(h,a,r.hg,r.ag); recordScorers(r.scorers);
+    const r=(typeof simEvents==='function')?simEvents(h,a,ms):quickSim(h,a,ms); applyResult(h,a,r.hg,r.ag); recordScorers(r.scorers, S.division);
     noteCaps(h,a,r);
     const Rm=makeRng(hashSeed(ms,'rate'));
     const mm=r.matchMinutes||90;

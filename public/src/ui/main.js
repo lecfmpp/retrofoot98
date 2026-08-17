@@ -8592,11 +8592,11 @@ function resolveCupRoundRest(key){
   if(WORLD_RULES.cupAlreadyResolved(S._cupResolvedRound, key, S.round)) return;   // folha única
   try{
     if(key==='copaBrasil'){
-      if(!cupIsFinished(c) && (c.ties||[]).length) advanceCupBracket(c,'copaBrasil-r'+c.round);
+      if(!cupIsFinished(c) && (c.ties||[]).length) advanceCupBracket(c,'copaBrasil-r'+c.round,'copaBrasil');
     } else if(c.group && !c.bracket){
-      if(!c.group.finished) advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round);
+      if(!c.group.finished) advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round, key);
     } else if(c.bracket && !cupIsFinished(c.bracket) && (c.bracket.ties||[]).length){
-      advanceCupBracket(c.bracket, key+'-r'+c.bracket.round);
+      advanceCupBracket(c.bracket, key+'-r'+c.bracket.round, key);
     }
     S._cupResolvedRound=WORLD_RULES.markCupResolved(S._cupResolvedRound, key, S.round);
   }catch(e){ console.warn('resolveCupRoundRest('+key+'):', e && e.message); }
@@ -8606,7 +8606,7 @@ function finishCupLiveMatch(){
   applyMatchIncidents(m.events);
   const scorers=m.events.filter(e=>e.type==='gol'||(e.type==='penalti'&&e.scored)).map(e=>({name:e.scorer,id:e.team}));
   const Rm=makeRng(hashSeed(S.seed,'cuprate',pending.key,S.round,m.h,m.a));
-  if(typeof recordScorers==='function') recordScorers(scorers); // gol na PRÓPRIA partida de copa ao vivo também tem que contar em S.scorers (ver core.js)
+  if(typeof recordScorers==='function') recordScorers(scorers, pending.key); // gol na PRÓPRIA partida de copa ao vivo também tem que contar em S.scorers (ver core.js)
   const mm=liveMatchMinutes(m);
   ratePlayers(m.h,m.hg,m.ag,scorers,Rm,m.perf&&m.perf.H,m.perf&&m.perf.A,liveCaps(m,'H'),mm); ratePlayers(m.a,m.ag,m.hg,scorers,Rm,m.perf&&m.perf.A,m.perf&&m.perf.H,liveCaps(m,'A'),mm);
   if(m.h===CL.clubId) S.budget=(S.budget||0)+(m.att*m.price); // bilheteria do mando de campo, igual à liga

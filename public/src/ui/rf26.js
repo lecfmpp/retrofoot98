@@ -2315,16 +2315,37 @@ function rfTreinadorTopoHTML(){
     ${rfKpiHTML('Temporadas', String(temps), 'registradas na carreira')}
   </div>`;
 }
-/* os títulos do treinador, lidos de S.titlesByClub (mesma fonte da Sala) */
+/* ===== OS TITULOS SAO MEUS, NAO DO MUNDO =====
+   Isto lia S.titlesByClub — que e o palmares de TODOS os clubes do save: o Flamengo ganhou a
+   Libertadores, o Boca ganhou duas, a Aguia de Maraba ganhou a Serie D. A funcao despejava tudo
+   numa lista chamada "os titulos do treinador", e a Sala de Trofeus, ao perguntar "ganhei a
+   Libertadores?", encontrava a do Flamengo e respondia que sim. Bastavam duas ou tres
+   temporadas para o mundo encher a estante inteira: a sala dizia 7 de 7 a quem nunca levantou
+   nada. Era o relatado, e explica porque nao aparecia num save recem-criado (o mundo ainda nao
+   tinha campeao nenhum).
+   A fonte certa e o MEU historico: S.history guarda, por temporada que EU comandei, a minha
+   posicao na liga (myPos) e o meu desfecho em cada copa (myCups). Titulo e myPos===1 ou um
+   myCups que diz "campeao" — nada mais.
+   S.titlesByClub continua a servir a sala LEGADA (clTrophyRoom), que mostra taças POR CLUBE e
+   para a qual ele e a fonte certa. */
 function rfTitulosDoTreinador(){
   const out=[];
-  const porClube=(S&&S.titlesByClub)||{};
-  Object.keys(porClube).forEach(id=>{
-    Object.entries(porClube[id]||{}).forEach(([comp,n])=>{
-      for(let i=0;i<(n||0);i++) out.push({comp,clubId:id});
+  const vistos={};
+  ((S&&S.history)||[]).forEach(h=>{
+    if(!h) return;
+    if(CL && CL.clubId!=null && h.clubId!=null && String(h.clubId)!==String(CL.clubId)) return;
+    const marca=(x)=>x+':'+(h.season||'')+':'+(h.clubId||'');
+    if(h.myPos===1 && h.division){
+      const k='serie'+h.division;
+      if(!vistos[marca(k)]){ vistos[marca(k)]=1; out.push({comp:k, clubId:h.clubId, season:h.season}); }
+    }
+    Object.entries(h.myCups||{}).forEach(([k,v])=>{
+      if(!v || !/campe/i.test(String(v))) return;
+      if(vistos[marca(k)]) return;
+      vistos[marca(k)]=1; out.push({comp:k, clubId:h.clubId, season:h.season});
     });
   });
-  // e o histórico do treinador traz o ano de cada conquista
+  // o historico do treinador tambem carimba titulo, com o ano
   (S.coachHistory||[]).forEach(h=>{ if(h.type==='titulo') out.push({comp:h.text,season:h.season}); });
   return out;
 }

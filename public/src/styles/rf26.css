@@ -7367,3 +7367,14 @@
   .rf-cmp-pe{flex-direction:column-reverse;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
   .rf-cmp-bt{width:100%;height:48px}
 }
+
+/* fim de temporada: video real do desfecho, competicao nas listas novas */
+.rf-ft-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.rf-ft-vshade{position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(180deg,rgba(8,14,11,.05) 45%,rgba(8,14,11,.45) 100%)}
+.rf-ft-video .rf-ft-selo{position:relative;z-index:1}
+.rf-ft-comp{font-size:var(--fs-2);color:var(--text-2);min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.rf-ft-gols{font-family:var(--font-mono);font-size:var(--fs-1);color:var(--text-3);
+  margin-left:8px;white-space:nowrap}
+.rf-ft-nota{display:block;margin-top:8px}
