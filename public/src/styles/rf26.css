@@ -3219,6 +3219,14 @@
    space-around. Nenhum valor depende da janela -- quando nao cabe, rola.
    ===================================================================== */
 .rf-ch-rolo{overflow-x:auto;overflow-y:hidden;padding:2px 0}
+/* a variante do modal: mais baixa, cartao menor, sem espelho */
+.rf-ch-rolo.reduzida{--rf-ch-h:320px}
+.rf-ch-rolo.reduzida .rf-ch{justify-content:flex-start}
+.rf-ch-rolo.reduzida .rf-ch-c{width:138px}   /* 146 do pacote menos os 8 que faltavam para caber na coluna do modal */
+.rf-ch-rolo.reduzida .rf-ch-col.final{width:auto}
+.rf-ch-rolo.reduzida .rf-ch-taca img{width:64px;height:64px}
+.rf-ch-rolo.reduzida .rf-ch-camp{width:120px;font-size:12px;padding:6px 0}
+.rf-ch-rolo.reduzida .rf-ch-stub{width:6px}
 .rf-ch{display:flex;align-items:flex-start;justify-content:center;min-width:max-content;margin:0 auto}
 .rf-ch-col{display:flex;flex-direction:column;gap:10px;flex:0 0 auto}
 .rf-ch-col.final{width:190px}
@@ -3300,6 +3308,30 @@
 .rf-chm-taca{align-items:center;text-align:center;gap:8px}
 .rf-chm-taca img{width:72px;height:72px;object-fit:contain;margin:0 auto}
 .rf-chm-taca img.cinza{filter:grayscale(1);opacity:.45}
+
+/* ----- abas do cartao da esquerda no pos-rodada (tabela | chaves da copa) ----- */
+.rf-pr-abas{display:flex;gap:6px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px solid var(--line-3);
+  margin-bottom:4px}
+.rf-pr-aba{flex:0 1 auto;min-width:0;border:1px solid var(--line-2);background:var(--surface-card);
+  color:var(--text-3);font-family:var(--font-sans);font-size:var(--fs-caption);
+  font-weight:var(--fw-semibold);border-radius:var(--r-pill);padding:6px 12px;cursor:pointer;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-pr-aba.on{background:var(--club-primary);border-color:var(--club-primary);color:#fff}
+/* na vista de chave a coluna da esquerda manda na largura: a chave e larga.
+   SO DE TABLET PARA CIMA: no telemovel a grade e de uma coluna so, e esta regra
+   -- mais especifica do que a do @media -- reinstalava as duas colunas e
+   espremia a da direita ("POSICAOPONTOS" colado). Mesmo padrao de armadilha do
+   banco de suplentes; por isso vem com a guarda. */
+@media (min-width:761px){
+  .rf-pr-cols.chave{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+}
+.rf-pr-faixa{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;
+  background:#fffbee;border:1px solid var(--brand-secondary);border-radius:var(--r-inner);
+  padding:9px 12px;font-size:var(--fs-body-sm);color:#5c4a00;margin-bottom:10px}
+.rf-pr-faixa.out{background:var(--surface-sunken);border-color:var(--line-2);color:var(--text-3)}
+.rf-pr-verchave{margin-top:10px;border:none;background:none;padding:0;cursor:pointer;
+  font-family:var(--font-sans);font-size:var(--fs-caption);color:var(--club-primary);
+  text-decoration:underline;text-underline-offset:2px}
 
 /* ----- fase de grupos da copa, no desenho novo (ver rfCopaGruposHTML) ----- */
 .rf-cg-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;align-items:start}

@@ -540,14 +540,33 @@ function rfPosRodadaHTML(){
         <span class="rf-pr-ms">${nm?(nm.home?'em casa':'fora'):''}</span></div>
     </div>`;
 
+  /* ===== A CHAVE DA COPA COMO ABA, AO LADO DA TABELA =====
+     O cartao da esquerda passa a ter abas quando o clube esta vivo no mata-mata
+     de alguma copa: a tabela da liga (padrao) e uma aba por copa. Se a rodada
+     que acabou de ser processada foi de copa, e a aba da copa que abre -- e ali
+     a chave mostra da fase corrente em diante, porque isto e recibo do que
+     acabou de acontecer, nao o historico da competicao. Sem copa no mata-mata a
+     tela fica exatamente como estava, sem abas. */
+  const copas=(typeof rfPrCopasComChave==='function')?rfPrCopasComChave():[];
+  const daCopa=(CL._cupResultKeysThisRound||[]).find(k=>copas.indexOf(k)>=0)||null;
+  const abaAtual=(rfPrAba()&&(rfPrAba()==='tabela'||copas.indexOf(rfPrAba())>=0))?rfPrAba():(daCopa||'tabela');
+  const abas=copas.length?`<div class="rf-pr-abas">
+      <button type="button" class="rf-pr-aba ${abaAtual==='tabela'?'on':''}" onclick="rfPrIrAba('tabela')">Tabela do grupo</button>
+      ${copas.map(k=>{const nome=((typeof COMP_DEFS!=='undefined'&&COMP_DEFS[k])||{}).short||k;
+        return `<button type="button" class="rf-pr-aba ${abaAtual===k?'on':''}" onclick="rfPrIrAba('${escC(k)}')">${escC(nome)} · chaves</button>`;}).join('')}
+    </div>`:'';
+  const esquerda = abaAtual==='tabela'
+    ? `<div class="rf-label">
+        <span class="rf-label-t">${escC(classifDivName(S.division))}</span>
+        <span class="rf-label-r">${minha?minha+'º de '+total:''}</span></div>${tabela}`
+    : rfPrChaveHTML(abaAtual);
+
   return rfStage({
-    w:1080, comp:S.division,
+    w:1080, comp:abaAtual==='tabela'?S.division:abaAtual,
     contexto:`${(S.round||0)}ª jornada encerrada · ${classifDivName(S.division)} ${S.season||''}`,
     titulo:'Como ficou a tabela',
-    corpo:`<div class="rf-pr-cols">
-      <div class="rf-card"><div class="rf-label">
-        <span class="rf-label-t">${escC(classifDivName(S.division))}</span>
-        <span class="rf-label-r">${minha?minha+'º de '+total:''}</span></div>${tabela}</div>
+    corpo:`<div class="rf-pr-cols ${abaAtual==='tabela'?'':'chave'}">
+      <div class="rf-card">${abas}${esquerda}</div>
       <div class="rf-pr-dir">
         <div class="rf-card"><div class="rf-label">
           <span class="rf-label-t">Resultados da rodada</span>

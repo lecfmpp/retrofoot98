@@ -440,7 +440,8 @@ function rfCopaGruposHTML(c,key){
    tamanho fixo, sem transform:scale, sem SVG. Foi o palco escalado que tomou a
    tela e prendeu a visualizacao na primeira tentativa.
    ===================================================================== */
-function rfChaveDados(key){
+function rfChaveDados(key,opts){
+  opts=opts||{};
   const c=(S.cups&&S.cups[key])||null;
   const b=(typeof rfCompChave==='function')?rfCompChave(c):(c&&(c.champion!==undefined?c:c.bracket));
   if(!b || !b.roundsTotal) return null;
@@ -458,9 +459,13 @@ function rfChaveDados(key){
       confrontos:(ties||[]).map((t,i)=>rfChaveConfronto(t,i,meu)) });
   }
   const campeao=b.champion?(anyClubOf(b.champion)||{short:String(b.champion)}):null;
+  /* RECORTE "DA FASE ATUAL EM DIANTE" — e o que o modal pos-rodada mostra: ali a
+     chave e recibo do que acabou de acontecer, nao o historico da competicao. */
+  const desde=opts.desde||0;
+  const recorte=desde?fases.filter(f=>f.round>=desde):fases;
   return { chave:key, competicao:info.nome, temporada:S.season||'', trofeu:info.trofeu,
     roundsTotal:b.roundsTotal, campeao, meuClube:(clubOf(meu)||{}).short||'',
-    faseAtual:b.round, fases,
+    faseAtual:b.round, fases:recorte, todas:fases,
     premio:(typeof PRIZES!=='undefined'&&PRIZES.copaBrasilPhaseCash&&key==='copaBrasil')
       ? PRIZES.copaBrasilPhaseCash(b.roundsTotal,b.roundsTotal,true) : 0 };
 }
@@ -515,8 +520,16 @@ function rfChaveCartaoHTML(cf){
    caminho", ao lado. Competicao pequena -- playoff de oito, quartas em diante --
    usa a mesma estrutura com menos colunas, sem nada a esconder. */
 const RF_CH_MAX_FASES=4;
-function rfChaveHTML(d){
+/* ===== A CHAVE REDUZIDA DO MODAL POS-RODADA =====
+   No modal ela nao e espelhada: e uma faixa da esquerda para a direita, da fase
+   corrente em diante, com a taca no fim. E o pacote que manda assim, e por uma
+   razao pratica -- a coluna do modal tem ~600px e a chave espelhada pede 1540:
+   cortava a meio da taca. Tres fases bastam para responder "de onde vim e para
+   onde vou"; o resto esta no atalho para Campeonatos, logo abaixo. */
+function rfChaveHTML(d,opts){
+  opts=opts||{};
   if(!d) return '<div class="rf-empty">O mata-mata ainda não começou.</div>';
+  if(opts.reduzida) return rfChaveReduzidaHTML(d);
   const todas=d.fases;
   const fases=todas.length>RF_CH_MAX_FASES?todas.slice(-RF_CH_MAX_FASES):todas;
   const cortou=todas.length-fases.length;
@@ -579,6 +592,42 @@ function rfChaveHTML(d){
     ${cortou?`<span>as ${cortou} fases anteriores estão no seu caminho, ao lado</span>`:''}
   </div>`;
 }
+function rfChaveReduzidaHTML(d){
+  const fases=d.fases.slice(0,3);
+  const slots=(idx)=>{
+    const n=fases[idx].confrontos.length;
+    if(n) return n;
+    /* fase futura: metade da anterior, minimo 1 */
+    let base=fases[0].confrontos.length||1;
+    for(let i=0;i<idx;i++) base=Math.max(1,Math.ceil(base/2));
+    return base;
+  };
+  const preenche=(lista,n)=>{ const out=lista.slice(0,n); while(out.length<n) out.push(null); return out; };
+  const cols=fases.map((f,idx)=>{
+    const n=slots(idx);
+    const cfs=preenche(f.confrontos,n);
+    const alvo=idx+1<fases.length?slots(idx+1):1;
+    const ouro=i=>((cfs[i*2]&&cfs[i*2].meu)||(cfs[i*2+1]&&cfs[i*2+1].meu))?'ouro':'';
+    const linha=n===1&&alvo===1;
+    const col=`<div class="rf-ch-col">
+      <span class="rf-ch-fase">${escC(f.label)}</span>
+      <div class="rf-ch-slots">${cfs.map(rfChaveCartaoHTML).join('')}</div>
+    </div>`;
+    const lig=`<div class="rf-ch-lig e ${linha?'reta':''}">${
+        Array.from({length:alvo},(_,i)=>`<i class="${ouro(i)}" ${linha?'':`style="height:calc(var(--rf-ch-h,320px)/${n})"`}></i>`).join('')}</div>
+      <div class="rf-ch-stub e">${Array.from({length:alvo},(_,i)=>`<i class="${ouro(i)}"></i>`).join('')}</div>`;
+    return col+lig;
+  }).join('');
+  const camp=d.campeao;
+  const selo=`<div class="rf-ch-col final">
+    <span class="rf-ch-fase">TAÇA</span>
+    <div class="rf-ch-taca">
+      ${d.trofeu?`<img src="img/trofeus/${escC(d.trofeu)}.webp" alt="" class="${camp?'':'cinza'}">`:''}
+      <span class="rf-ch-camp ${camp?'ok':''}">${escC(camp?(camp.short||camp.name):'a definir')}</span>
+    </div>
+  </div>`;
+  return `<div class="rf-ch-rolo reduzida"><div class="rf-ch">${cols}${selo}</div></div>`;
+}
 /* ---- MOBILE: uma fase de cada vez ----
    A chave espelhada nao cabe em 375px sem zoom, e zoom e o que o pacote proibe.
    Aqui as fases viram pilhas: uma fita de pastilhas em cima (com o estado no
@@ -615,11 +664,55 @@ function rfChaveMobileHTML(d){
   return `<div class="rf-chm-fitas">${pastilhas}</div>${taca}${cartoes}`;
 }
 /* a tela escolhe sozinha: no telemovel, fases; no resto, a chave espelhada */
-function rfChaveVistaHTML(key){
-  const d=rfChaveDados(key);
+function rfChaveVistaHTML(key,opts){
+  opts=opts||{};
+  const d=rfChaveDados(key,opts);
   if(!d) return '';
   const curto=(typeof isPhone==='function')&&isPhone();
-  return curto?rfChaveMobileHTML(d):rfChaveHTML(d);
+  return curto?rfChaveMobileHTML(d):rfChaveHTML(d,opts);
+}
+/* ===== A CHAVE NO MODAL POS-RODADA =====
+   Aba ao lado da tabela, uma por copa em que o clube esta VIVO no mata-mata --
+   nao ha chave para mostrar de uma copa em que ele nem entrou, e na fase de
+   grupos a aba nem existe (a chave so comeca no mata-mata). Se a rodada que
+   acabou de ser processada foi de copa, e essa aba que abre. */
+function rfPrCopasComChave(){
+  if(typeof allCupKeys!=='function') return [];
+  return allCupKeys().filter(k=>{
+    if(S.compToggle && S.compToggle[k]===false) return false;
+    const c=S.cups&&S.cups[k]; if(!c) return false;
+    const b=rfCompChave(c); if(!b || !((b.ties||[]).length||(b.history||[]).length)) return false;
+    return (typeof cupCompetitionTeamAlive==='function')?cupCompetitionTeamAlive(c,CL.clubId):false;
+  });
+}
+function rfPrAba(){ return CL._prAba||null; }
+function rfPrIrAba(k){ CL._prAba=k; cdraw(); }
+/* a faixa dourada: o que aconteceu COMIGO nesta fase da copa */
+function rfPrChaveFaixa(key){
+  const c=S.cups&&S.cups[key], b=rfCompChave(c); if(!b) return '';
+  const meu=CL.clubId;
+  const ult=(b.history||[]).length?b.history[b.history.length-1]:null;
+  const t=((ult&&ult.ties)||[]).find(x=>x.h===meu||x.a===meu);
+  if(!t || t.winner==null) return '';
+  const eu=t.h===meu, adv=anyClubOf(eu?t.a:t.h)||{short:'—'};
+  const meuG=eu?t.hg:t.ag, advG=eu?t.ag:t.hg;
+  const clube=(clubOf(meu)||{short:'—'}).short;
+  const passou=t.winner===meu;
+  const prox=passou?((b.ties||[]).find(x=>x.h===meu||x.a===meu)):null;
+  const advProx=prox?(anyClubOf(prox.h===meu?prox.a:prox.h)||null):null;
+  const fase=(typeof cupPhaseLabel==='function')?cupPhaseLabel(b.round,b.roundsTotal):'';
+  return `<div class="rf-pr-faixa ${passou?'ok':'out'}">
+    <b>${escC(passou?'Você passou':'Você foi eliminado')}:</b>
+    ${escC(clube)} ${meuG}${' × '}${advG} ${escC(adv.short)}.
+    ${passou?(advProx?`${escC(fase)} contra o ${escC(advProx.short)}.`:`Espera o sorteio da ${escC(String(fase).toLowerCase())}.`):''}
+  </div>`;
+}
+function rfPrChaveHTML(key){
+  const c=S.cups&&S.cups[key], b=rfCompChave(c);
+  const desde=b?Math.max(1,(b.round||1)-(b.champion?1:0)):1;
+  return `${rfPrChaveFaixa(key)}
+    ${rfChaveVistaHTML(key,{desde,reduzida:true})}
+    <button type="button" class="rf-pr-verchave" onclick="rfCompVer('${escC(key)}')">chave completa em Campeonatos</button>`;
 }
 
 /* =====================================================================
