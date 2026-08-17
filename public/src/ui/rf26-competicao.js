@@ -370,6 +370,53 @@ function rfCampeaoAtual(key){
 }
 
 /* =====================================================================
+   FASE DE GRUPOS, NO DESENHO NOVO
+   ---------------------------------------------------------------------
+   Eu tinha reaproveitado a grade da pele antiga (cupGroupGridHTML). Ela foi
+   desenhada para viver num palco de ALTURA DEFINIDA: la dentro o cartao do
+   grupo reparte essa altura e cada linha da tabela tambem (`flex:1 1 0`).
+   Dentro do cartao novo nao ha altura para repartir, e flex sobre contentor sem
+   altura faz as linhas sobreporem-se -- escudo por cima de nome, nome por cima
+   dos pontos, tudo cortado. Era o que se via.
+
+   Esta versao usa so pecas do desenho novo: um cartao por grupo, a linha do
+   confronto e a tabela em grade fixa. Nada aqui depende de altura herdada.
+   ===================================================================== */
+function rfCopaGruposHTML(c,key){
+  const g=c&&c.group; if(!g||!g.groups) return '<div class="rf-empty">A fase de grupos ainda não começou.</div>';
+  const meu=CL.clubId;
+  const letras=Object.keys(g.groups).sort();
+  const rodada=(g.round||0)+1, total=(g.rounds||6);
+  const cartoes=letras.map(L=>{
+    const grp=g.groups[L];
+    const meuGrupo=(grp.teams||[]).indexOf(meu)>=0;
+    const ordem=Object.values(grp.table||{})
+      .sort((a,b)=>(b.Pts-a.Pts)||((b.GF-b.GA)-(a.GF-a.GA))||(b.GF-a.GF));
+    const linhas=ordem.map((t,i)=>{
+      const cl=anyClubOf(t.id)||{short:t.id};
+      const passa=i<2;   // dois por grupo, como em toda a Conmebol
+      return `<div class="rf-cg-lin ${t.id===meu?'meu':''} ${passa?'passa':''}">
+        <span class="rf-cg-pos">${i+1}</span>
+        <span class="rf-ft-crest">${rfCrest(cl,18)}</span>
+        <span class="rf-cg-n">${escC(cl.short||t.id)}</span>
+        <span class="rf-cg-x">${t.P||0}</span>
+        <span class="rf-cg-x">${((t.GF||0)-(t.GA||0))>0?'+':''}${(t.GF||0)-(t.GA||0)}</span>
+        <span class="rf-cg-p">${t.Pts||0}</span>
+      </div>`;
+    }).join('');
+    return `<div class="rf-card rf-cg ${meuGrupo?'meu':''}">
+      <div class="rf-label">
+        <span class="rf-label-t">Grupo ${escC(L)}</span>
+        <span class="rf-label-r">${rodada} de ${total}</span>
+      </div>
+      <div class="rf-cg-head"><span></span><span></span><span></span>
+        <span>J</span><span>SG</span><span>P</span></div>
+      ${linhas||'<span class="rf-note">O grupo aparece depois do sorteio.</span>'}
+    </div>`;
+  }).join('');
+  return `<div class="rf-cg-grade">${cartoes}</div>`;
+}
+/* =====================================================================
    3 · COPA — CLASSIFICAÇÃO DA FASE (substitui scCupClassif)
    ===================================================================== */
 function rfCopaFaseHTML(key){
@@ -388,14 +435,11 @@ function rfCopaFaseHTML(key){
      competicao estiver nos grupos, o que ha para mostrar sao os grupos, e e isso
      que ela mostra. A tela de fase encerrada volta quando a chave existe. */
   if(!rfCompChave(c) && c.group){
-    const meuG=Object.keys((c.group.groups)||{}).find(L=>((c.group.groups[L].teams)||[]).includes(meu));
     return rfStage({
       w:1020, comp:key,
       contexto:`${escC(def.name||key)} ${escC(String(S.season||''))} · fase de grupos`,
       titulo:'Como estão os grupos',
-      corpo:(typeof cupGroupGridHTML==='function')
-        ? cupGroupGridHTML(c,key,{})
-        : '<div class="rf-empty">A fase de grupos ainda não começou.</div>',
+      corpo:rfCopaGruposHTML(c,key),
       acoes:`<button type="button" class="rf-ov-b2" onclick="rfSetTabIr('campeonatos','calendario')">${rfIcone('calendario',16)} Calendário</button>
         <div class="rf-sp"></div>
         <button type="button" class="rf-ov-cta" onclick="cupClassifContinue()">Continuar</button>`

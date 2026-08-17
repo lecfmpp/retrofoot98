@@ -3179,6 +3179,26 @@
 .rf-label-t>.rf-comp-tag{text-transform:none;letter-spacing:normal;vertical-align:middle}
 .rf-cp-grupo{font-style:normal;margin-left:8px;color:var(--text-faint)}
 
+/* ----- fase de grupos da copa, no desenho novo (ver rfCopaGruposHTML) ----- */
+.rf-cg-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;align-items:start}
+.rf-cg{gap:6px;padding:12px}
+.rf-cg.meu{border-color:var(--club-primary);box-shadow:0 0 0 1px var(--club-primary) inset}
+.rf-cg-head,.rf-cg-lin{display:grid;grid-template-columns:18px 20px minmax(0,1fr) 22px 34px 26px;
+  align-items:center;gap:8px}
+.rf-cg-head{font-family:var(--font-mono);font-size:var(--fs-label-xs);letter-spacing:var(--ls-label);
+  color:var(--text-faint);padding:0 4px 4px;border-bottom:1px solid var(--line-3)}
+.rf-cg-head>span:nth-child(n+4){text-align:right}
+.rf-cg-lin{padding:5px 4px;border-radius:var(--r-control);min-height:30px}
+.rf-cg-lin.passa{background:var(--surface-row-active)}
+.rf-cg-lin.meu{outline:1px solid var(--club-primary)}
+.rf-cg-pos{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-faint);text-align:center}
+.rf-cg-n{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-cg-x{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-3);text-align:right}
+.rf-cg-p{font-family:var(--font-mono);font-size:var(--fs-body-sm);font-weight:var(--fw-bold);
+  color:var(--text-1);text-align:right}
+@media (max-width:760px){ .rf-cg-grade{grid-template-columns:minmax(0,1fr)} }
+
 /* ----- MOBILE: a janela vira tela cheia e o rodapé gruda embaixo ----- */
 @media (max-width:760px){
   .rf-ov{padding:0;align-items:stretch}

@@ -11003,6 +11003,13 @@ function sortPendingDrawShows(){
   S._pendingDrawShows.sort((a,b)=>pos((a&&a.key)||a)-pos((b&&b.key)||b));
 }
 function checkPendingCupDraws(onDone){
+  /* LIMPA A FILA DAS COMPETICOES QUE JA NAO TEM CERIMONIA. A fila mora no SAVE
+     (S._pendingDrawShows): quem ja tinha a Copa do Brasil enfileirada antes de
+     ela deixar de ter sorteio continuava a ver a tela antiga a cada carregamento
+     -- a porta de entrada foi fechada, mas quem ja estava dentro ficou. */
+  if(S._pendingDrawShows && S._pendingDrawShows.length && typeof cupTemCerimonia==='function'){
+    S._pendingDrawShows=S._pendingDrawShows.filter(x=>cupTemCerimonia((x&&x.key)||x));
+  }
   if(!S._pendingDrawShows || !S._pendingDrawShows.length){ if(onDone) onDone(); return false; }
   sortPendingDrawShows();
   const item=S._pendingDrawShows.shift();
