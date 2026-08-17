@@ -888,8 +888,16 @@ function generateIncomingOffers(R){
     }
     // fila de toasts de proposta (mostrados ao voltar pra tela principal — ver liveDone), também
     // escopada por clube: senão o anfitrião via toast de proposta de OUTRO treinador.
+    /* O AVISO VIAJA COM O ID DA PROPOSTA. A fila so e esvaziada ao voltar de uma partida
+       (liveDone); se o jogador passa varias jornadas sem entrar em campo, ela acumula — e
+       depois dispara tudo de uma vez, inclusive avisos de propostas que ja EXPIRARAM
+       (expiresRound = rodada+3) e que ele nao encontra em Propostas. Guardando o id, quem
+       mostra confere se a proposta ainda existe antes de avisar. */
     S._offerToastsByClub[myClubId]=S._offerToastsByClub[myClubId]||[];
-    S._offerToastsByClub[myClubId].push(`💰 ${buyer.name} fez uma oferta por ${p.n}`);
+    const _oid=myOffers[myOffers.length-1].id;
+    S._offerToastsByClub[myClubId].push({ id:_oid, round:S.round,
+      msg:`💰 ${buyer.name} fez uma oferta por ${p.n}` });
+    if(S._offerToastsByClub[myClubId].length>6) S._offerToastsByClub[myClubId].splice(0, S._offerToastsByClub[myClubId].length-6);
   });
 }
 function acceptIncomingOffer(id){
@@ -4843,7 +4851,25 @@ function endSeason(){
        if(tablePos(S.clubId)===1) coachSpellTitulo('serie'+S.division);
        Object.entries(myCups||{}).forEach(([k,v])=>{ if(v && /campe/i.test(String(v))) coachSpellTitulo(k); });
        coachSpellAcumular(); }catch(e){ console.warn('passagem no fecho:', e&&e.message); }
-  S.history.push({season:S.season,division:S.division,clubId:S.clubId,champ,
+  /* ===== O QUE A TEMPORADA DEIXA PARA TRAS =====
+     O filtro por temporada le daqui. Faltavam duas coisas para a foto ficar completa: o campeao
+     de CADA divisao (so ficava o da minha) e o artilheiro de CADA competicao (S.scorersByComp e
+     da temporada corrente e zera na virada). Ficam gravados agora, enquanto o dado ainda existe. */
+  const divChamps={};
+  try{
+    DIV_ORDER.forEach(d=>{
+      const linhas=(S._prevSeason&&S._prevSeason.tables&&S._prevSeason.tables[d])||[];
+      if(linhas.length) divChamps[d]=linhas[0].id;
+    });
+  }catch(e){ console.warn('campeoes por divisao:', e&&e.message); }
+  const artPorComp={};
+  try{
+    Object.keys(S.scorersByComp||{}).forEach(k=>{
+      const e=Object.entries(S.scorersByComp[k]||{}).sort((a,b)=>b[1]-a[1])[0];
+      if(e) artPorComp[k]={nome:e[0], gols:e[1]};
+    });
+  }catch(e){}
+  S.history.push({season:S.season,division:S.division,clubId:S.clubId,champ,divChamps,artPorComp,
     top3:tbl.slice(0,3).map(t=>clubOf(t.id).short),
     relegated:tbl.slice(-4).map(t=>clubOf(t.id).short),
     artilheiro:arty?`${arty[0]} (${arty[1]})`:'—',
@@ -5171,7 +5197,7 @@ function newSeasonReset(){
     buildOtherDivisions();
   }
   S.week=1; S.day=1; S.season++;
-  S.results=[]; S.scorers={}; S.negos=[]; S.finished=false; S.pendingEvent=null;
+  S.results=[]; S.scorers={}; S.scorersByComp={}; S.negos=[]; S.finished=false; S.pendingEvent=null;
   S.finances=[]; S.roundNews=[];
   S.seasonTotals={income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0}; // zera pra temporada nova
   // libera a cota de obras da nova temporada pro estádio do usuário (crescimento lento) — CPU já

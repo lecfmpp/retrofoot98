@@ -7379,3 +7379,13 @@
   margin-left:8px;white-space:nowrap}
 .rf-ft-nota{display:block;margin-top:8px}
 .rf-tr-tit{font-weight:700;font-size:var(--fs-1);color:var(--club-secondary,#F2B90C);margin-left:5px}
+
+/* barra de temporadas (Campeonatos e Treinador) */
+.rf-tmp-barra{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.rf-tmp-l{font-family:var(--font-mono,monospace);font-size:9px;font-weight:600;letter-spacing:.12em;
+  color:var(--text-3);margin-right:2px}
+.rf-tmp-chip{border:1px solid var(--line-2);background:var(--surface-card);cursor:pointer;
+  font-family:inherit;font-size:var(--fs-1);font-weight:600;color:var(--text-2);
+  height:30px;padding:0 12px;border-radius:var(--r-pill,999px)}
+.rf-tmp-chip:hover:not(.on){background:var(--surface-sunken)}
+.rf-tmp-chip.on{background:var(--brand-primary);border-color:var(--brand-primary);color:#fff}

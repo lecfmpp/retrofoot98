@@ -7788,8 +7788,18 @@ function scClassifLegado(){
 function liveDone(){ _prLog('liveDone -> main'); if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classifTimer){clearTimeout(CL._classifTimer);CL._classifTimer=null;} clearInjuryTimer(); clearCupFlowTimer(); CL.live=null; CL.subsUsed=0; CL._liveBusy=false; CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||CL.selPlayer; cdraw();
   if(CL.lastGate) toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0;
   // notificação de propostas de compra recebidas nesta rodada (toast no topo, ~3s cada) — só as do MEU clube
-  const myToasts=(S._offerToastsByClub&&S._offerToastsByClub[S.clubId])||[];
-  if(myToasts.length){ myToasts.forEach((m,i)=>setTimeout(()=>toastC(m), 500+i*400)); if(S._offerToastsByClub) S._offerToastsByClub[S.clubId]=[]; }
+  /* SO AVISA O QUE AINDA EXISTE. A fila acumula enquanto o jogador nao entra em campo, e
+     disparava tudo junto — incluindo propostas ja expiradas, que ele ia procurar em Propostas
+     e nao encontrava. Agora cada aviso carrega o id e e conferido contra a lista viva.
+     (entradas antigas, guardadas como texto, sao descartadas: nao da para as verificar) */
+  const fila=(S._offerToastsByClub&&S._offerToastsByClub[S.clubId])||[];
+  if(fila.length){
+    let vivas=[];
+    try{ vivas=(typeof myIncomingOffers==='function')?myIncomingOffers().map(o=>o.id):[]; }catch(e){}
+    const mostrar=fila.filter(t=>t && typeof t==='object' && vivas.indexOf(t.id)>=0);
+    mostrar.forEach((t,i)=>setTimeout(()=>toastC(t.msg), 500+i*400));
+    if(S._offerToastsByClub) S._offerToastsByClub[S.clubId]=[];
+  }
   // cronômetro soberano: QUALQUER cliente reabre a rodada seguinte (não só o host) — ver reopen_ready
   if(CL.online && typeof NET!=='undefined' && NET.gameId && !S.finished){
     if(NET.reopenReady) NET.reopenReady(); else if(NET.isHost) NET.start(); // fallback: transporte local

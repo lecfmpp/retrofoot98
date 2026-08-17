@@ -605,6 +605,22 @@ function rfJogarAcao(){
   if(rfClassifPendente()) return 'rfJogar()';
   return rfFaltaTatica()?'rfIrEscolherTatica()':'rfJogar()';
 }
+/* ===== HOJE EU SO ASSISTO =====
+   Numa jornada de copa que o meu clube nao disputa (nao entrou, foi eliminado, ou pegou bye) o
+   clique nao leva a campo nenhum: leva a ver a rodada dos outros. O botao dizia "Jogar" e abria
+   uma transmissao — a promessa nao batia com o que acontecia. */
+function rfSoAssistir(){
+  try{
+    if(typeof S==='undefined' || !S) return false;
+    /* NAO IMPORTA SE TENHO JOGO DE LIGA HOJE: o clJogar poe a rodada que eu ASSISTO antes de
+       libertar a minha partida. Cheguei a filtrar por "tenho jogo de liga" e o rotulo nunca
+       aparecia — a pergunta certa e so uma: o proximo clique leva a campo ou a arquibancada? */
+    const prox=(typeof nextUserMatch==='function')?nextUserMatch():null;
+    if(prox && prox.kind==='cup') return false;                     // tenho partida de copa hoje
+    if(typeof cupRoundsUserSitsOut!=='function') return false;
+    return cupRoundsUserSitsOut().some(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key));
+  }catch(e){ return false; }
+}
 function rfJogarLabel(){
   /* PRIMEIRO DE TODOS, como no clJogar: a fila de classificacoes e resolvida antes da tatica. */
   if(rfClassifPendente()){
@@ -622,6 +638,10 @@ function rfJogarLabel(){
      estava protegido (clAvancarDia sai logo se CL.online), mas o ROTULO dizia
      "Avancar" na mesma — prometia uma acao que ali nao existe. */
   if(!CL.online && rfNadaParaJogar()) return rfIcone('calendario',16)+' Avançar';
+  if(!(typeof estouPronto==='function' && estouPronto()) && rfSoAssistir()){
+    const curto=(typeof isPhone==='function' && isPhone());
+    return rfIcone('camarote',16)+(curto?' Assistir':' Assistir à rodada');
+  }
   return (typeof estouPronto==='function' && estouPronto()) ? rfIcone('ok',16)+' Pronto' : rfIcone('jogar',16)+' Jogar';
 }
 function rfIrEscolherTatica(){
@@ -1121,6 +1141,17 @@ function rfScreenHTML(){
   const at=rfActiveTab(def);
   let corpo='<div class="rf-empty">Nada a mostrar aqui agora.</div>';
   const monta = at ? at.build : def.resumo;
+  /* ===== FILTRO POR TEMPORADA (Campeonatos e Treinador) =====
+     Ponto unico onde o conteudo de qualquer aba e montado — as barras de temporada entram aqui
+     para nao ter de ser repetidas nas onze abas das duas paginas. Com uma temporada passada
+     escolhida, a pagina mostra o ARQUIVO daquele ano (o que ficou gravado no fecho) em vez do
+     estado de agora. */
+  if(RF_TEMPORADA_PAGS.indexOf(def.key)>=0){
+    const sel=rfTemporadaSel(def.key);
+    if(sel!=null){
+      return rfEnvelope(rfTemporadaChipsHTML(def.key)+rfTemporadaArquivoHTML(def.key, sel));
+    }
+  }
   if(monta){
     try{ corpo = monta(); }
     catch(e){
@@ -1138,13 +1169,13 @@ function rfScreenHTML(){
   // a faixa fica ACIMA da grade, atravessando as duas colunas.
   const s=String(corpo);
   const iCol=s.indexOf('data-rf-col');
-  if(iCol<0) return rfEnvelope(`${rfPageHeadHTML(def)}
+  if(iCol<0) return rfEnvelope(`${rfPageHeadHTML(def)}${rfTemporadaChipsHTML(def.key)}
     <div class="rf-tabpane" data-tab="${at?at.k:''}">${s}</div>`);
   // tudo que vem antes do primeiro <div class="rf-pagecol"> é faixa de topo
   const corte=s.lastIndexOf('<div class="rf-pagecol"', iCol);
   const topo=corte>0?s.slice(0,corte):'';
   const colunas=corte>0?s.slice(corte):s;
-  return rfEnvelope(`${rfPageHeadHTML(def)}
+  return rfEnvelope(`${rfPageHeadHTML(def)}${rfTemporadaChipsHTML(def.key)}
     ${topo}
     <div class="rf-pagegrid" style="grid-template-columns:${def.grid||'minmax(0,1fr) 340px'}">${colunas}</div>`);
 }

@@ -134,7 +134,14 @@ function rfMkCamisaHTML(num){ return rfElCamisa(num,'m'); }
    ===================================================================== */
 const RF_MKT_FILTROS=[
   { k:'pos',   l:'Posição', op:[['all','Todas'],['GK','Goleiros'],['DEF','Defesa'],['MID','Meio'],['ATT','Ataque']] },
-  { k:'forca', l:'Força',   op:[['all','qualquer'],['70','70+'],['80','80+'],['90','90+']] },
+  /* ===== A ESCALA DO FILTRO NAO ERA A ESCALA DO JOGO =====
+     As opcoes eram 70+/80+/90+, herdadas de um jogo em que a forca vai a 99 na media. Aqui a
+     forca REAL do plantel vive noutra faixa: medido nos 5175 jogadores de um save, a mediana e
+     34, o percentil 90 e 43 e SO 17 jogadores passam de 70. Ou seja, os tres degraus filtravam
+     praticamente tudo — o jogador abria a caixa, escolhia 70+ e a lista esvaziava.
+     Agora os degraus cobrem a faixa onde os jogadores de facto estao, sem perder o topo. */
+  { k:'forca', l:'Força',   op:[['all','qualquer'],['20','20+'],['30','30+'],['40','40+'],
+                                ['50','50+'],['60','60+'],['70','70+'],['80','80+'],['90','90+']] },
   { k:'idade', l:'Idade',   op:[['all','qualquer'],['23','até 23'],['27','até 27'],['30','até 30']] },
   { k:'preco', l:'Preço',   op:[['all','qualquer'],['caixa','o que cabe no caixa'],['meio','até metade do caixa']] },
   /* o pacote traz CINCO filtros; faltava o de clube */

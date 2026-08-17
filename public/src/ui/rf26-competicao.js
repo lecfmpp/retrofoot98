@@ -1430,3 +1430,101 @@ function rfFimVideo(d){
   if(d==='rebaixado'||d==='demitido') return V['crise']||'';
   return '';
 }
+
+/* =====================================================================
+   FILTRO POR TEMPORADA — Campeonatos e Treinador
+   O que aconteceu num ano fechado deixa de morrer com a virada: fica em
+   S.history (campeão de cada divisão e de cada copa, artilheiro de cada
+   competição, a minha posição e o meu desfecho em cada copa) e em
+   S.financeHistory. Estas barras dão acesso a esse arquivo.
+   Vale no solo e na Resenha — os dois campos viajam no estado do save.
+   ===================================================================== */
+const RF_TEMPORADA_PAGS=['campeonatos','treinador'];
+function rfTemporadaSel(page){
+  const st=(typeof rfState==='function')?rfState():null;
+  if(!st) return null;
+  st.temporada=st.temporada||{};
+  const v=st.temporada[page];
+  return (v==null||v==='')?null:v;
+}
+function rfTemporadaIr(page, season){
+  const st=rfState(); st.temporada=st.temporada||{};
+  st.temporada[page]=(season==='atual')?'':season;
+  cdraw();
+}
+/* as temporadas que existem no arquivo, da mais nova para a mais velha */
+function rfTemporadasArquivadas(){
+  const vistas={}; const out=[];
+  ((S&&S.history)||[]).forEach(h=>{ if(h&&h.season!=null && !vistas[h.season]){ vistas[h.season]=1; out.push(h.season); } });
+  return out.sort((a,b)=>b-a);
+}
+function rfTemporadaChipsHTML(page){
+  if(RF_TEMPORADA_PAGS.indexOf(page)<0) return '';
+  const anos=rfTemporadasArquivadas();
+  if(!anos.length) return '';
+  const sel=rfTemporadaSel(page);
+  const chip=(k,l,on)=>`<button type="button" class="rf-chip rf-tmp-chip ${on?'on':''}"
+    onclick="rfTemporadaIr('${escC(page)}','${escC(String(k))}')">${escC(l)}</button>`;
+  return `<div class="rf-tmp-barra" role="group" aria-label="Filtrar por temporada">
+    <span class="rf-tmp-l">TEMPORADA</span>
+    ${chip('atual','Atual', sel==null)}
+    ${anos.map(a=>chip(a,String(a), String(sel)===String(a))).join('')}
+  </div>`;
+}
+/* o arquivo de UMA temporada. Só mostra o que ficou gravado — competição sem
+   registo daquele ano não aparece, em vez de aparecer vazia. */
+function rfTemporadaArquivoHTML(page, season){
+  const h=((S&&S.history)||[]).filter(x=>String(x.season)===String(season));
+  if(!h.length) return `<div class="rf-card"><span class="rf-note">Nada gravado para ${escC(String(season))}.</span></div>`;
+  const e=h[h.length-1];
+  const nomeDiv=d=>(typeof divisionLabelOf==='function')?divisionLabelOf(d):('Série '+d);
+  const curto=id=>{ const c=(typeof anyClubOf==='function'&&anyClubOf(id))||null; return (c&&(c.short||c.name))||String(id); };
+  const meu=(typeof anyClubOf==='function'&&anyClubOf(e.clubId))||{short:e.myClubShort||'—'};
+
+  const campeoes=[];
+  Object.entries(e.divChamps||{}).forEach(([d,id])=>campeoes.push({nome:nomeDiv(d), clube:curto(id), id}));
+  if(!campeoes.length && e.champ) campeoes.push({nome:nomeDiv(e.division), clube:e.champ});
+  Object.entries(e.cups||{}).forEach(([k,short])=>{
+    if(!short) return;
+    const info=(typeof rfCompInfo==='function')?rfCompInfo(k):null;
+    campeoes.push({nome:(info&&info.curto)||k, clube:short});
+  });
+  const art=Object.entries(e.artPorComp||{}).map(([k,v])=>{
+    const info=(typeof rfCompInfo==='function')?rfCompInfo(k):null;
+    return {nome:(info&&info.curto)||((typeof divisionLabelOf==='function'&&/^[A-D]$/.test(k))?divisionLabelOf(k):k), jogador:v.nome, gols:v.gols};
+  });
+  const fin=((S&&S.financeHistory&&S.financeHistory[e.clubId])||[]).find(x=>String(x.season)===String(season));
+
+  const linha=(a,b)=>`<div class="rf-ft-lin"><span class="rf-ft-comp">${escC(a)}</span>
+    <div class="rf-sp"></div><span class="rf-ft-n">${escC(b)}</span></div>`;
+  return `
+    <div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">A SUA TEMPORADA ${escC(String(season))}</span>
+        <span class="rf-label-r">${escC(meu.short||'—')}</span></div>
+      ${linha('Divisão', nomeDiv(e.division))}
+      ${linha('Posição final', e.myPos?(e.myPos+'º'):'—')}
+      ${Object.entries(e.myCups||{}).filter(([,v])=>!!v).map(([k,v])=>{
+        const info=(typeof rfCompInfo==='function')?rfCompInfo(k):null;
+        return linha((info&&info.curto)||k, String(v));
+      }).join('')}
+      ${e.artilheiro&&e.artilheiro!=='—'?linha('Artilheiro da divisão', e.artilheiro):''}
+    </div>
+    ${campeoes.length?`<div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">CAMPEÕES DE ${escC(String(season))}</span>
+        <span class="rf-label-r">${campeoes.length}</span></div>
+      ${campeoes.map(c=>linha(c.nome, c.clube)).join('')}
+    </div>`:''}
+    ${art.length?`<div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">ARTILHEIROS DE ${escC(String(season))}</span></div>
+      ${art.map(a=>`<div class="rf-ft-lin"><span class="rf-ft-comp">${escC(a.nome)}</span>
+        <div class="rf-sp"></div><span class="rf-ft-n">${escC(a.jogador)}</span>
+        <span class="rf-ft-gols">${a.gols} ${a.gols===1?'gol':'gols'}</span></div>`).join('')}
+    </div>`:''}
+    ${fin?`<div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">FINANÇAS DE ${escC(String(season))}</span></div>
+      ${linha('Receitas', fmt((fin.income||0)+(fin.playerSales||0)))}
+      ${linha('Despesas', fmt((fin.salaries||0)+(fin.opex||0)+(fin.bonuses||0)+(fin.playerPurchases||0)+(fin.stadium||0)))}
+      ${linha('Saldo do ano', fmt(fin.net||0))}
+    </div>`:''}
+    <div class="rf-card"><span class="rf-note">Este é o registro gravado no fecho de ${escC(String(season))}. Para voltar ao que está acontecendo agora, toque em <b>Atual</b>.</span></div>`;
+}
