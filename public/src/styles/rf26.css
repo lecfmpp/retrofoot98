@@ -7467,3 +7467,9 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
    a caixa e a mesma dos rotulos de casa, so muda o conteudo */
 .rf-pitch-card .cl-pitch-ad.arte{padding:0;overflow:hidden;background:#0d1a12}
 .rf-pitch-card .cl-pitch-ad.arte img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* barra de patrocínio comprada: um logo grande no lugar do trilho de marcas de casa */
+.rf-spon-unico{display:flex;align-items:center;justify-content:center;padding:14px 10px;
+  background:var(--surface-card);border-radius:var(--r-inner);border:var(--border-hairline)}
+.rf-spon-unico img{max-height:52px;max-width:100%;width:auto;object-fit:contain;display:block}
+.rf-spon-cta-marca{background:var(--club-primary);color:#fff}

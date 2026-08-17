@@ -490,6 +490,16 @@ function rfCamStatsHTML(m){
 /* BANDA DE PATROCÍNIO — mesmo inventário AD_SPONSORS da pausa e da faixa de copa.
    A marca em destaque gira com o relógio (camAdIdx) e camUpdate acompanha. */
 function rfCamPatroHTML(){
+  /* mesma chave da barra da pausa: quem compra o patrocinio leva os dois lugares */
+  if(typeof ADS!=='undefined' && window.ADS){
+    const c=ADS.get('rf98.pausa.barra');
+    if(c && c.ficheiro_url) return `<div class="rf-cam-patro"
+      data-ad-chave="rf98.pausa.barra" data-ad-id="${escC(c.id)}">
+      <span class="rf-cam-patro-l">CAMAROTE APRESENTADO POR</span>
+      <div class="rf-cam-patro-marcas"><img class="rf-cam-ad on" src="${escC(c.ficheiro_url)}" alt="Patrocinador"></div>
+      ${c.link_destino?`<button type="button" class="rf-cam-cta" onclick="ADS.clique('rf98.pausa.barra')">Conhecer o patrocinador</button>`:''}
+    </div>`;
+  }
   if(typeof AD_SPONSORS==='undefined' || !AD_SPONSORS.length) return '';
   const i=camAdIdx(), s=AD_SPONSORS[i];
   return `<div class="rf-cam-patro">

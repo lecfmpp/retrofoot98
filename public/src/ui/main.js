@@ -9115,11 +9115,22 @@ function cupIdlePanelHTML(key){
       <div class="cl-cupidle-dica"><span class="cl-cupidle-ic">${d.ic}</span>
         <span><b>${escC(d.t)}:</b> ${escC(d.d)}</span></div>
     </div>
-    <div class="cl-cupidle-ad">
-      <span class="cl-cupidle-lbl">RODADA APRESENTADA POR</span>
-      <img class="cl-cupidle-logo" src="${s.src}" alt="${escC(s.nome)}">
-      <button class="cl-cupidle-cta" style="${camCtaStyle(si)}" onclick="cupIdleAdClick()">${escC(s.cta)}</button>
-    </div>
+    ${(function(){
+      /* MESMO PATROCINIO DAS OUTRAS FAIXAS (rf98.pausa.barra): quem compra a apresentacao leva
+         o Camarote, a pausa e esta tela. Sem criativo, ficam as marcas de casa. */
+      const c=(typeof ADS!=='undefined'&&window.ADS)?ADS.get('rf98.pausa.barra'):null;
+      if(c && c.ficheiro_url) return `<div class="cl-cupidle-ad"
+        data-ad-chave="rf98.pausa.barra" data-ad-id="${escC(c.id)}">
+        <span class="cl-cupidle-lbl">RODADA APRESENTADA POR</span>
+        <img class="cl-cupidle-logo" src="${escC(c.ficheiro_url)}" alt="Patrocinador">
+        ${c.link_destino?`<button class="cl-cupidle-cta" onclick="ADS.clique('rf98.pausa.barra')">Conhecer o patrocinador</button>`:''}
+      </div>`;
+      return `<div class="cl-cupidle-ad">
+        <span class="cl-cupidle-lbl">RODADA APRESENTADA POR</span>
+        <img class="cl-cupidle-logo" src="${s.src}" alt="${escC(s.nome)}">
+        <button class="cl-cupidle-cta" style="${camCtaStyle(si)}" onclick="cupIdleAdClick()">${escC(s.cta)}</button>
+      </div>`;
+    })()}
     <div class="cl-cupidle-ad2" data-ad-slot="tela-${escC(key)}-apresenta-300x90">
       <b>${escC(s.nome)}</b>
       <span>${escC(s.cta)}</span>

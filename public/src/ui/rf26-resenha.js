@@ -69,7 +69,28 @@ function rfSalaAssentos(){
 
 /* trilho de patrocinadores: ladrilhos brancos com o logo, duplicados pra
    a animação emendar sem salto. Mesmo inventário AD_SPONSORS do Camarote. */
+/* ===== A BARRA DE PATROCINIO TAMBEM E VENDAVEL =====
+   O trilho de logos e o botao da marca vinham de AD_SPONSORS, a lista fixa dentro do jogo:
+   ninguem conseguia comprar este lugar. Com criativo publicado em rf98.pausa.barra, a barra
+   passa a ser DAQUELA marca -- um logo, o botao com o link dela -- que e o que uma compra de
+   patrocinio deve parecer. Sem criativo, as marcas de casa continuam a girar como antes. */
+function rfPatroCompradoHTML(rotulo, direita){
+  if(typeof ADS==='undefined' || !window.ADS) return '';
+  const c=ADS.get('rf98.pausa.barra');
+  if(!c || !c.ficheiro_url) return '';
+  return `<div class="rf-card rf-spon" data-ad-chave="rf98.pausa.barra" data-ad-id="${escC(c.id)}">
+    <div class="rf-label"><span class="rf-label-t">${escC(rotulo)}</span>
+      <span class="rf-label-r">${escC(direita)}</span></div>
+    <div class="rf-spon-unico"><img src="${escC(c.ficheiro_url)}" alt="Patrocinador"></div>
+    ${c.link_destino?`<button type="button" class="rf-spon-cta rf-spon-cta-marca"
+      onclick="ADS.clique('rf98.pausa.barra')">
+      <span class="rf-spon-ctat">Conhecer o patrocinador</span><span class="rf-spon-seta">→</span>
+    </button>`:''}
+  </div>`;
+}
 function rfSponsorHTML(){
+  const comprado=rfPatroCompradoHTML('Patrocínio oficial','Quem banca a resenha');
+  if(comprado) return comprado;
   if(typeof AD_SPONSORS==='undefined') return '';
   const tiles=()=>AD_SPONSORS.map(s=>
     `<span class="rf-spon-tile"><img src="${escC(s.src)}" alt="${escC(s.nome)}"></span>`).join('');
