@@ -109,8 +109,13 @@ const RF_PAGES=[
   { key:'campeonatos', ico:'trofeu', label:'Campeonatos', curto:'Copas',
     titulo:'Campeonatos', sub:()=>rfCpSubHTML(),
     acoes:()=>rfCpAcoesHTML(), grid:'minmax(0,1fr)',
+    /* CALENDÁRIO e CLASSIFICAÇÃO são a MESMA navegação com corpos diferentes: os mesmos filtros
+       de país e competição em cima (ver rfMdFiltroHTML em rf26-campeonatos.js). Antes o
+       Calendário só sabia mostrar os jogos do clube do jogador e a tabela só existia na aba
+       "Minhas competições", presa à divisão dele — o resto do mundo corria sem porta nenhuma. */
     tabs:[ {k:'minhas',    l:()=>'Minhas competições', build:()=>rfCpMinhasHTML()},
-           {k:'calendario',l:()=>'Calendário',          build:()=>rfCpCalendarioHTML()},
+           {k:'calendario',l:()=>'Calendário',          build:()=>rfMdCalendarioHTML()},
+           {k:'classificacao',l:()=>'Classificação',    build:()=>rfMdClassifHTML()},
            {k:'artilharia',l:()=>'Artilharia',          build:()=>rfCpArtilhariaHTML()},
            {k:'historia',  l:()=>'História',            build:()=>rfCpHistoriaHTML()},
            {k:'intl',      l:()=>'Ligas internacionais',build:()=>rfCpIntlHTML(),

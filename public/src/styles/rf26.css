@@ -7553,3 +7553,58 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   background:var(--surface-card);border-radius:var(--r-inner);border:var(--border-hairline)}
 .rf-spon-unico img{max-height:52px;max-width:100%;width:auto;object-fit:contain;display:block}
 .rf-spon-cta-marca{background:var(--club-primary);color:#fff}
+
+/* =====================================================================
+   O MUNDO NAVEGÁVEL — filtros de país/competição, calendário completo
+   e classificação de qualquer divisão (ver rf26-campeonatos.js).
+   Reaproveita as peças que já existem: o chip do filtro é o mesmo do
+   .rf-cp-calchip, e a tabela é a mesma linha do Elenco (.rf-el-row).
+   ===================================================================== */
+.rf-md-filtros{display:flex;flex-direction:column;gap:8px;margin:0 0 14px}
+.rf-md-fila{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rf-md-chip{border:1px solid var(--line-2);background:var(--surface-card);cursor:pointer;
+  border-radius:var(--r-pill,999px);padding:4px 12px;display:inline-flex;align-items:center;gap:7px;
+  font-family:inherit;font-size:13px;color:var(--text-1);
+  transition:background var(--dur-fast) var(--ease)}
+.rf-md-chip:hover:not(.on){background:var(--surface-sunken)}
+.rf-md-chip.on{border-color:var(--brand-primary);box-shadow:inset 0 0 0 1px var(--brand-primary)}
+.rf-md-chip .rf-comp-tag{background:none;padding:0}
+.rf-md-chip img{border-radius:2px}
+/* o ponto diz "país jogável" — informação, não enfeite: numa sala misturada é ele que separa
+   o país onde há gente a jogar dos que correm sozinhos em segundo plano */
+.rf-md-jog{font-style:normal;color:var(--brand-primary);font-size:16px;line-height:1}
+
+/* ---- calendário: uma jornada, um bloco ---- */
+.rf-md-lista{display:flex;flex-direction:column;gap:2px}
+.rf-md-jornada{border-top:1px solid var(--line-1);padding:10px 0 12px}
+.rf-md-jornada:first-child{border-top:0}
+.rf-md-jornada.agora{background:var(--surface-sunken);border-radius:var(--r-sm,6px);
+  padding-left:10px;padding-right:10px}
+.rf-md-jhd{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.rf-md-jn{font-weight:700;font-size:14px;color:var(--text-1)}
+.rf-md-jd{font-family:var(--font-mono,monospace);font-size:12px;color:var(--text-3)}
+.rf-md-jag{margin-left:auto;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--brand-primary);font-weight:700}
+.rf-md-jogos{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:4px 14px}
+.rf-md-jogo{display:grid;grid-template-columns:var(--el-cols);align-items:center;
+  padding:5px 8px;border-radius:var(--r-sm,6px);font-size:13px}
+.rf-md-jogo:hover{background:var(--surface-sunken)}
+.rf-md-jogo.meu{box-shadow:inset 0 0 0 1px var(--brand-primary)}
+.rf-md-jogo.porvir{color:var(--text-3)}
+.rf-md-lado{display:inline-flex;align-items:center;gap:7px;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rf-md-lado.casa{justify-content:flex-end;text-align:right}
+.rf-md-lado.fora{justify-content:flex-start}
+.rf-md-placar{text-align:center;font-family:var(--font-mono,monospace);font-size:13px;
+  font-variant-numeric:tabular-nums;color:var(--text-2)}
+.rf-md-jogo.porvir .rf-md-placar{color:var(--text-3);opacity:.6}
+
+/* ---- classificação ---- */
+.rf-md-pos{font-family:var(--font-mono,monospace);font-size:12px;
+  font-variant-numeric:tabular-nums;color:var(--text-3)}
+.rf-md-pts{font-weight:700;text-align:right}
+
+@media (max-width:640px){
+  .rf-md-jogos{grid-template-columns:1fr}
+  .rf-md-jogo{font-size:12.5px}
+}

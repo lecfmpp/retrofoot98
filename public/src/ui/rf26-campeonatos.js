@@ -346,7 +346,8 @@ function rfCpArtilhariaHTML(){
        aparecia destacada, o que é o mesmo que nenhuma estar. */
     return `<div class="rf-el-row">
       <span class="rf-cp-rank">${i+1}</span>
-      <span class="rf-cp-art-n">${escC(s.n)}</span>
+      <span class="rf-cp-art-n rf-clicavel" title="Ver a ficha de ${escC(s.n)}"
+        onclick="rfMdVerJogador('${escC(s.n)}')">${escC(s.n)}</span>
       ${cid?rfCpClube(cid):'<span class="rf-cp-clube">—</span>'}
       <span class="rf-el-c">${escC(posDe(s.n))}</span>
       <span class="rf-cp-gols">${s.g}</span>
@@ -521,4 +522,341 @@ function rfCpAcoesHTML(){
     <button type="button" class="rf-btn rf-btn-cta"
       onclick="rfSetTab('campeonatos','minhas')">${rfIcone('trofeu',16)} Ver classificação</button>
   </div>`;
+}
+
+/* =====================================================================
+   O MUNDO NAVEGÁVEL — países, ligas e divisões, jogáveis e de fundo
+   ---------------------------------------------------------------------
+   As abas Calendário e Classificação mostravam UM campeonato: o do clube do
+   jogador. Tudo o resto do mundo existia no save — as outras divisões correm,
+   as ligas de fundo dos outros países correm — e não havia porta nenhuma para
+   o ver. Numa sala com países misturados isso é o oposto do que o jogo
+   promete: o companheiro de sala joga em Inglaterra e não dá para abrir a
+   tabela dele.
+
+   Estas funções são a fonte única das duas abas. Elas não sabem desenhar nada
+   — respondem a três perguntas: que países existem, que competições tem cada
+   um, e onde estão a tabela e o calendário de cada competição.
+   ===================================================================== */
+
+/* países que o save conhece: o do clube do jogador primeiro, depois os de fundo */
+function rfMdPaises(){
+  const out=[];
+  const meu=(typeof activeUniverseKey==='function')?activeUniverseKey():'brasil';
+  const nomeDe=k=>{ const cfg=(typeof UNI_CONFIGS!=='undefined')&&UNI_CONFIGS[k];
+    return (cfg&&cfg.country)||(k==='brasil'?'Brasil':k); };
+  out.push({ key:meu, nome:nomeDe(meu), jogavel:true });
+  Object.keys((typeof S!=='undefined'&&S&&S.bgLeagues)||{}).forEach(p=>{
+    if(out.some(x=>x.key===p || x.nome===p)) return;
+    out.push({ key:p, nome:nomeDe(p)||p, jogavel:false });
+  });
+  return out;
+}
+function rfMdPaisSel(){
+  const st=rfState(); const paises=rfMdPaises();
+  if(!st.mdPais || !paises.some(p=>p.key===st.mdPais)) st.mdPais=paises[0]?paises[0].key:null;
+  return st.mdPais;
+}
+function rfMdPaisIr(k){ const st=rfState(); st.mdPais=k; st.mdComp=null; cdraw(); }
+
+/* competições de um país. O país do jogador tem a pirâmide inteira MAIS as copas; um país de
+   fundo tem só as divisões que a simulação dele faz correr (copas continentais são do mundo do
+   jogador, não do país de fundo). */
+function rfMdCompeticoes(pais){
+  const meu=(typeof activeUniverseKey==='function')?activeUniverseKey():'brasil';
+  const out=[];
+  if(pais===meu){
+    (typeof DIV_ORDER!=='undefined'?DIV_ORDER:[]).forEach(d=>{
+      out.push({ k:'liga:'+d, tipo:'liga', div:d,
+        label:(typeof divLegend==='function')?divLegend(d):d, tag:(typeof rfCompTagHTML==='function')?rfCompTagHTML(d):null });
+    });
+    ((typeof allCupKeys==='function')?allCupKeys():[]).forEach(k=>{
+      if(!(S.cups&&S.cups[k])) return;
+      const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[k])||{};
+      out.push({ k:'copa:'+k, tipo:'copa', cup:k, label:def.name||k,
+        tag:(typeof rfCompTagHTML==='function')?rfCompTagHTML(k):null });
+    });
+    return out;
+  }
+  const L=(S.bgLeagues||{})[pais]; if(!L) return out;
+  Object.keys(L.divs||{}).forEach(d=>{
+    out.push({ k:'liga:'+d, tipo:'liga', div:d,
+      label:(typeof bgDivLabel==='function')?bgDivLabel(pais,d):d, tag:null });
+  });
+  return out;
+}
+function rfMdCompSel(){
+  const st=rfState(); const pais=rfMdPaisSel(); const comps=rfMdCompeticoes(pais);
+  if(!st.mdComp || !comps.some(c=>c.k===st.mdComp)){
+    /* A PRIMEIRA COISA A VER É O CAMPEONATO DELE. A lista começa na 1ª divisão do país, então
+       sem isto um treinador da Série D abria o Calendário na Série A — o campeonato de outra
+       gente. A divisão do jogador só é o primeiro item quando ele está mesmo no topo. */
+    const meu=(typeof activeUniverseKey==='function')?activeUniverseKey():'brasil';
+    const minha=(pais===meu) ? comps.find(c=>c.tipo==='liga' && c.div===S.division) : null;
+    st.mdComp=(minha||comps[0]||{}).k||null;
+  }
+  return st.mdComp;
+}
+function rfMdCompIr(k){ const st=rfState(); st.mdComp=k; cdraw(); }
+function rfMdComp(){ const sel=rfMdCompSel(); return rfMdCompeticoes(rfMdPaisSel()).find(c=>c.k===sel)||null; }
+
+/* onde moram a tabela e o calendário da competição escolhida. Três casos, e é por isto que esta
+   função existe: a MINHA divisão está em S.sched/S.table; as outras divisões do meu país em
+   S.otherDivs[d]; as de outro país em S.bgLeagues[pais].divs[d]. Quem desenha não deve ter de
+   saber isso. */
+function rfMdDados(pais, comp){
+  if(!comp || comp.tipo!=='liga') return null;
+  const meu=(typeof activeUniverseKey==='function')?activeUniverseKey():'brasil';
+  if(pais===meu){
+    if(comp.div===S.division) return { sched:S.sched||[], table:S.table||{}, minha:true };
+    const od=(S.otherDivs||{})[comp.div];
+    return od ? { sched:od.sched||[], table:od.table||{}, minha:false, fundo:false, div:comp.div, pais } : null;
+  }
+  const dd=(((S.bgLeagues||{})[pais]||{}).divs||{})[comp.div];
+  return dd ? { sched:dd.sched||[], table:dd.table||{}, minha:false, fundo:true, div:comp.div, pais } : null;
+}
+
+/* ---- a barra de filtros, partilhada pelas duas abas ---- */
+function rfMdFiltroHTML(opts){
+  opts=opts||{};
+  const paises=rfMdPaises(), pSel=rfMdPaisSel();
+  const comps=rfMdCompeticoes(pSel), cSel=rfMdCompSel();
+  /* Um país só (save sem ligas de fundo) não precisa de fila de países: uma fila com um botão
+     é ruído que não decide nada. As competições continuam, que aí há sempre mais de uma. */
+  const filaPaises = paises.length<2 ? '' : `<div class="rf-md-fila" role="group" aria-label="Filtrar por país">
+    ${paises.map(p=>`<button type="button" class="rf-md-chip ${p.key===pSel?'on':''}"
+        onclick="rfMdPaisIr('${escC(p.key)}')" title="${escC(p.jogavel?'País jogável':'Liga de fundo')}">
+        ${(typeof flagImg==='function')?flagImg(p.nome):''}<span>${escC(p.nome)}</span>
+        ${p.jogavel?'<i class="rf-md-jog" title="País jogável">•</i>':''}
+      </button>`).join('')}</div>`;
+  const filaComps = !comps.length ? '' : `<div class="rf-md-fila" role="group" aria-label="Filtrar por competição">
+    ${comps.map(c=>`<button type="button" class="rf-md-chip ${c.k===cSel?'on':''}"
+        onclick="rfMdCompIr('${escC(c.k)}')">${c.tag||('<span>'+escC(c.label)+'</span>')}</button>`).join('')}</div>`;
+  const extra=opts.vista||'';
+  return (filaPaises||filaComps||extra) ? `<div class="rf-md-filtros">${extra}${filaPaises}${filaComps}</div>` : '';
+}
+
+/* =====================================================================
+   CALENDÁRIO DO MUNDO — todos os jogos da temporada, sem paginação
+   ---------------------------------------------------------------------
+   O calendário mostrava só os jogos do clube do jogador: uma linha por
+   jornada, o adversário e o placar. Isso responde "quando é o meu próximo
+   jogo" e mais nada — não dá para ver a rodada inteira, nem o campeonato de
+   outra divisão, nem o do país do companheiro de sala.
+
+   Agora a jornada é a unidade: cada jornada é um bloco com TODOS os jogos
+   dela, do primeiro ao último, a temporada inteira de uma vez. Sem "ver
+   mais", sem página seguinte — quem quer procurar um jogo procura com o
+   Ctrl+F do navegador, que é mais rápido que qualquer paginação que eu
+   escrevesse.
+   ===================================================================== */
+const RF_MD_JOGO_COLS='minmax(0,1fr) 74px minmax(0,1fr)';
+/* ===== O PLACAR VEM DE ONDE ELE EXISTE, E NUNCA É INVENTADO =====
+   Três origens, porque o save guarda as três competições de maneiras diferentes:
+
+     · a MINHA divisão guarda cada resultado em S.results — é o caso exato;
+     · uma liga de FUNDO não guarda resultado nenhum: só faz a tabela andar. Mas o placar dela é
+       determinístico (bgQuickSim com uma semente feita de temporada+jornada+clubes), então
+       recalculá-lo aqui devolve exatamente o mesmo número que fez a tabela andar. Não é um
+       palpite: é a mesma conta;
+     · as OUTRAS divisões do meu país são simuladas partida a partida, com eventos, e o placar
+       delas não fica guardado em lado nenhum. Refazer 380 simulações completas para desenhar um
+       calendário não é aceitável, então ali o jogo diz que não tem o número em vez de o inventar
+       — e o cartão avisa porquê. */
+function rfMdPlacar(dados, jornada, h, a){
+  if(dados.minha){
+    const r=(S.results||[]).find(x=>x.round===jornada && x.h===h && x.a===a);
+    return r ? { hg:r.hg, ag:r.ag } : null;
+  }
+  if(dados.fundo && typeof bgQuickSim==='function' && typeof hashSeed==='function'){
+    try{
+      const r=bgQuickSim(h, a, hashSeed(S.seed,'bg',dados.pais,dados.div,jornada,h,a));
+      return { hg:r.hg, ag:r.ag };
+    }catch(e){ return null; }
+  }
+  return null;
+}
+function rfMdJogoHTML(dados, jornada, h, a, jogado){
+  const ch=anyClubOf(h)||{short:'—'}, ca=anyClubOf(a)||{short:'—'};
+  const p=jogado?rfMdPlacar(dados, jornada, h, a):null;
+  const meu=(h===CL.clubId||a===CL.clubId);
+  /* OS DOIS CLUBES SÃO CLICÁVEIS, e abrem o elenco — inclusive os de outro país. É o que
+     transforma o calendário de lista em navegação: ver o jogo, entrar no clube, ver o elenco. */
+  const lado=(c,id,dir)=>`<span class="rf-md-lado ${dir} rf-clicavel" title="Ver o elenco do ${escC(c.short||'clube')}"
+    onclick="clViewTeam('${escC(String(id))}')">${dir==='casa'
+      ? escC(c.short||c.name||'—')+rfCrest(c,20)
+      : rfCrest(c,20)+escC(c.short||c.name||'—')}</span>`;
+  return `<div class="rf-md-jogo ${meu?'meu':''} ${jogado?'':'porvir'}" style="--el-cols:${RF_MD_JOGO_COLS}">
+    ${lado(ch,h,'casa')}
+    <span class="rf-md-placar" ${p?'':'title="'+(jogado?'Jogo realizado — o placar não fica guardado nesta divisão':'Ainda por jogar')+'"'}>${
+      p?(p.hg+'–'+p.ag):(jogado?'—':'vs')}</span>
+    ${lado(ca,a,'fora')}
+  </div>`;
+}
+function rfMdCalendarioLigaHTML(pais, comp){
+  const dados=rfMdDados(pais, comp);
+  if(!dados) return '<div class="rf-empty">Esta competição ainda não tem calendário sorteado.</div>';
+  const sched=dados.sched||[];
+  if(!sched.length) return '<div class="rf-empty">Esta competição ainda não tem calendário sorteado.</div>';
+  const atual=dados.minha ? (S.round||0) : (S.round||0);
+  const blocos=sched.map((fx,i)=>{
+    if(!fx || !fx.length) return '';        // semana sem jogo de liga: não é bloco, é ausência
+    const jogado=i<atual;
+    const linhas=fx.map(([h,a])=>rfMdJogoHTML(dados,i,h,a,jogado)).join('');
+    return `<div class="rf-md-jornada ${i===atual?'agora':''}">
+      <div class="rf-md-jhd">
+        <span class="rf-md-jn">${i+1}ª jornada</span>
+        <span class="rf-md-jd">${escC(rfCpDataDaJornada(i))}</span>
+        ${i===atual?'<span class="rf-md-jag">a jogar</span>':''}
+      </div>
+      <div class="rf-md-jogos">${linhas}</div>
+    </div>`;
+  }).filter(Boolean);
+  const comJogo=sched.filter(f=>f&&f.length).length;
+  const semPlacar = !dados.minha && !dados.fundo;
+  return `<div class="rf-card">
+    <div class="rf-label"><span class="rf-label-t">${comp.tag||escC(comp.label)}</span>
+      <span class="rf-label-r">${comJogo} jornadas · temporada completa${
+        semPlacar?' · <i title="Esta divisão é simulada partida a partida e o placar de cada jogo não fica guardado no save; a classificação dela está certa.">sem placar guardado</i>':''}</span></div>
+    <div class="rf-md-lista">${blocos.join('')}</div>
+  </div>`;
+}
+/* copa: a competição não é uma grelha de jornadas, é uma sequência de fases. Cada fase mostra os
+   confrontos todos — não só os do clube do jogador, que era a limitação antiga. */
+function rfMdCalendarioCopaHTML(key){
+  const c=S.cups&&S.cups[key]; if(!c) return '<div class="rf-empty">Esta copa não existe neste save.</div>';
+  const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[key])||{};
+  const blocos=[];
+  const g=c.group;
+  if(g && g.groups){
+    Object.keys(g.groups).sort().forEach(L=>{
+      const grp=g.groups[L];
+      (grp.sched||[]).forEach((fx,i)=>{
+        if(!fx||!fx.length) return;
+        blocos.push(`<div class="rf-md-jornada">
+          <div class="rf-md-jhd"><span class="rf-md-jn">Grupo ${escC(L)} · rodada ${i+1}</span></div>
+          <div class="rf-md-jogos">${fx.map(([h,a])=>rfMdJogoHTML({minha:false},i,h,a,i<(g.round||0))).join('')}</div>
+        </div>`);
+      });
+    });
+  }
+  const b=(c.champion!==undefined)?c:c.bracket;
+  if(b){
+    (b.history||[]).forEach((fase,i)=>{
+      blocos.push(`<div class="rf-md-jornada">
+        <div class="rf-md-jhd"><span class="rf-md-jn">${escC((typeof cupPhaseName==='function'?cupPhaseName(key,fase.round):null)||('Fase '+(i+1)))}</span></div>
+        <div class="rf-md-jogos">${(fase.ties||[]).map(t=>rfMdJogoHTML({minha:false},0,t.h,t.a,true)).join('')}</div>
+      </div>`);
+    });
+    if((b.ties||[]).length) blocos.push(`<div class="rf-md-jornada agora">
+      <div class="rf-md-jhd"><span class="rf-md-jn">Fase atual</span><span class="rf-md-jag">a jogar</span></div>
+      <div class="rf-md-jogos">${b.ties.map(t=>rfMdJogoHTML({minha:false},0,t.h,t.a,false)).join('')}</div>
+    </div>`);
+  }
+  return `<div class="rf-card">
+    <div class="rf-label"><span class="rf-label-t">${(typeof rfCompTagHTML==='function')?rfCompTagHTML(key):escC(def.name||key)}</span>
+      <span class="rf-label-r">${blocos.length} fase${blocos.length===1?'':'s'}</span></div>
+    <div class="rf-md-lista">${blocos.join('')||'<div class="rf-empty">O sorteio desta copa ainda não saiu.</div>'}</div>
+  </div>`;
+}
+
+/* =====================================================================
+   CLASSIFICAÇÃO DO MUNDO — a tabela de qualquer divisão de qualquer país
+   ===================================================================== */
+/* SEM COLUNA DE ESCUDO SOLTA: `rfCpClube` já devolve escudo + nome, clicáveis juntos. Desenhar
+   um `rfCrest` ao lado punha o escudo duas vezes — e o primeiro caía no texto de recurso, que era
+   o "ARSArsenal" visto na tabela da Premier. */
+const RF_MD_TBL_COLS='30px minmax(0,1.6fr) 34px 34px 34px 34px 44px 44px 40px 44px';
+function rfMdClassificacaoHTML(){
+  const pais=rfMdPaisSel(), comp=rfMdComp();
+  if(!comp) return '<div class="rf-empty">Este save não tem competições para mostrar.</div>';
+  if(comp.tipo==='copa') return rfMdClassifCopaHTML(comp.cup);
+  const dados=rfMdDados(pais, comp);
+  if(!dados) return '<div class="rf-empty">Esta divisão ainda não começou.</div>';
+  const linhas=(typeof sortTableRows==='function')?sortTableRows(dados.table):Object.values(dados.table||{});
+  if(!linhas.length) return '<div class="rf-empty">Esta divisão ainda não começou.</div>';
+  const corpo=linhas.map((t,i)=>{
+    const eu=(t.id===CL.clubId);
+    const sd=(t.GF||0)-(t.GA||0);
+    return `<div class="rf-el-row ${eu?'sel':''}">
+      <span class="rf-md-pos">${i+1}</span>
+      <span class="rf-el-nome">${rfCpClube(t.id)}</span>
+      <span>${t.P||0}</span><span>${t.W||0}</span><span>${t.D||0}</span><span>${t.L||0}</span>
+      <span>${t.GF||0}</span><span>${t.GA||0}</span>
+      <span>${sd>0?'+':''}${sd}</span>
+      <span class="rf-md-pts">${t.Pts||0}</span>
+    </div>`;
+  }).join('');
+  return `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_MD_TBL_COLS}">
+    <div class="rf-label"><span class="rf-label-t">${comp.tag||escC(comp.label)}</span>
+      <span class="rf-label-r">${linhas.length} clubes · ${S.round||0} jornadas jogadas</span></div>
+    <div class="rf-el-head" style="--el-cols:${RF_MD_TBL_COLS}">
+      <span>#</span><span>CLUBE</span><span>J</span><span>V</span><span>E</span><span>D</span>
+      <span>GP</span><span>GC</span><span>SG</span><span class="dir">PTS</span>
+    </div>
+    ${corpo}
+  </div>`;
+}
+/* copa com grupos: uma tabela por grupo. Copa de mata-mata puro não tem classificação — tem
+   chave, e a chave já tem tela própria; dizer isso é melhor que mostrar uma tabela vazia. */
+function rfMdClassifCopaHTML(key){
+  const c=S.cups&&S.cups[key]; const g=c&&c.group;
+  if(!g || !g.groups) return `<div class="rf-empty">A ${escC(((typeof COMP_DEFS!=='undefined'&&COMP_DEFS[key])||{}).name||key)} é de mata-mata: a chave está na página da competição.</div>`;
+  const cols='30px minmax(0,1.6fr) 34px 44px 44px 40px 44px';
+  return Object.keys(g.groups).sort().map(L=>{
+    const grp=g.groups[L];
+    const linhas=(typeof sortTableRows==='function')?sortTableRows(grp.table):Object.values(grp.table||{});
+    return `<div class="rf-card rf-el-tbl" style="--el-cols:${cols}">
+      <div class="rf-label"><span class="rf-label-t">Grupo ${escC(L)}</span></div>
+      <div class="rf-el-head" style="--el-cols:${cols}">
+        <span>#</span><span>CLUBE</span><span>J</span><span>GP</span><span>GC</span><span>SG</span><span class="dir">PTS</span>
+      </div>
+      ${linhas.map((t,i)=>`<div class="rf-el-row ${t.id===CL.clubId?'sel':''}">
+        <span class="rf-md-pos">${i+1}</span>
+        <span class="rf-el-nome">${rfCpClube(t.id)}</span>
+        <span>${t.P||0}</span><span>${t.GF||0}</span><span>${t.GA||0}</span>
+        <span>${((t.GF||0)-(t.GA||0))>0?'+':''}${(t.GF||0)-(t.GA||0)}</span>
+        <span class="rf-md-pts">${t.Pts||0}</span></div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+/* as duas abas: mesma barra de filtros em cima, corpo diferente por baixo */
+/* ===== "TODOS OS JOGOS" NÃO PODE CUSTAR "OS MEUS JOGOS" =====
+   O calendário antigo mostrava só o clube do jogador: uma linha por jornada, o adversário, o
+   placar — e as copas dele por baixo. Trocar isso pela grelha do mundo responde "como está o
+   campeonato" e perde "quando é o meu próximo jogo", que é a pergunta mais feita da página.
+   As duas ficam, e o botão diz qual está em cima. */
+function rfMdSoMeus(){ const st=rfState(); return st.mdSoMeus===true; }
+function rfMdSoMeusIr(v){ const st=rfState(); st.mdSoMeus=!!v; cdraw(); }
+function rfMdVistaHTML(){
+  const meus=rfMdSoMeus();
+  return `<div class="rf-md-fila" role="group" aria-label="Escolher a vista do calendário">
+    <button type="button" class="rf-md-chip ${meus?'':'on'}" onclick="rfMdSoMeusIr(false)">Todos os jogos</button>
+    <button type="button" class="rf-md-chip ${meus?'on':''}" onclick="rfMdSoMeusIr(true)">Só os meus jogos</button>
+  </div>`;
+}
+function rfMdCalendarioHTML(){
+  if(rfMdSoMeus()) return `<div class="rf-md-filtros">${rfMdVistaHTML()}</div>`+rfCpCalendarioHTML();
+  const pais=rfMdPaisSel(), comp=rfMdComp();
+  const corpo = !comp ? '<div class="rf-empty">Este save não tem competições para mostrar.</div>'
+    : (comp.tipo==='copa' ? rfMdCalendarioCopaHTML(comp.cup) : rfMdCalendarioLigaHTML(pais, comp));
+  return rfMdFiltroHTML({vista:rfMdVistaHTML()})+corpo;
+}
+function rfMdClassifHTML(){ return rfMdFiltroHTML()+rfMdClassificacaoHTML(); }
+
+/* ===== O NOME DO JOGADOR ABRE A FICHA DELE =====
+   A artilharia listava o nome como texto morto e só o CLUBE era clicável: para ver o artilheiro
+   do campeonato era preciso abrir o clube e procurá-lo no elenco. `findPlayerClub` já sabe de
+   quem é o jogador, e a tela do clube já sabe abrir a ficha de um jogador (clViewSelPlayer) —
+   faltava ligar as duas. Clube que ainda não tem elenco materializado (liga de fundo nunca
+   aberta) cai na tela do clube, que é o passo anterior, em vez de não fazer nada. */
+function rfMdVerJogador(nome){
+  const cid=(typeof findPlayerClub==='function')?findPlayerClub(nome):null;
+  if(!cid){ toastC('Não achei em que clube esse jogador está.'); return; }
+  if(cid===CL.clubId && typeof clGoSquad==='function'){ clGoSquad(); return; }
+  if(typeof ensureBgClubMaterialized==='function') ensureBgClubMaterialized(cid);
+  const p=((typeof squad==='function')?squad(cid):[]).find(x=>x.n===nome);
+  if(typeof clViewTeam==='function') clViewTeam(cid);
+  if(p && typeof clViewSelPlayer==='function') clViewSelPlayer(p.pid);
 }
