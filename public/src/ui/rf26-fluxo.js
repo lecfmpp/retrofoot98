@@ -849,7 +849,16 @@ function clTesteTick(){
   if(CL.cupDraw){ T.ultimoPasso='sorteio a revelar'; CL.cupDraw.fast=true; if(typeof cupDrawTick==='function') cupDrawTick(); return; }
   if(CL.screen==='cupdraw'){ clTesteClicar(); return; }   // cerimónia sem estado: sai pelo botão
   /* 3) TELA DE RESULTADO/CLASSIFICAÇÃO: fecha pelo botão de verdade, nunca mexendo em CL.screen. */
-  if(CL.screen!=='main'){ const q=clTesteClicar(); T.ultimoPasso=q?('clicou: '+q):('tela '+CL.screen+' sem botão'); return; }
+  if(CL.screen!=='main'){
+    /* AS TELAS DE PASSAGEM TEM CADA UMA A SUA FUNCAO DE CONTINUAR. Adivinhar o botao no DOM
+       falhava justamente nas classificacoes (a da Libertadores foi a relatada): a tela tem chips
+       e abas com as mesmas classes de botao, e `querySelectorAll` devolve por ORDEM DA PAGINA e
+       nao por ordem da minha lista — a bancada clicava numa aba e ficava a navegar em circulos.
+       Chamar a funcao do jogo e exato; o clique fica para o que nao tem funcao conhecida. */
+    const q=clTesteContinuar();
+    T.ultimoPasso=q?('seguiu: '+q):('tela '+CL.screen+' sem saída');
+    return;
+  }
   /* 4) TELA DO CLUBE. Aqui aperta-se Jogar — o mesmo botão da pessoa. MAS o botão TEM DOIS
      ESTADOS: quando eu já disse que estou pronto, ele vira "Pronto" e a ação passa a ser
      CANCELAR (clCancelarPronto). Apertar às cegas fazia a bancada alternar pronto → cancelado →
@@ -873,12 +882,30 @@ const TESTE_SELETORES=[
   '.cl-btn-ok',                 // OK/Continuar das telas clássicas
   '.rf-btn-primary',            // ação principal de uma página
   '.rf-btn'                     // último recurso: qualquer botão do pacote
-].join(', ');
+];
+/* A SAIDA DE CADA TELA DE PASSAGEM, pela funcao do proprio jogo. E o caminho exato: e a mesma
+   coisa que o botao faz, sem depender de o encontrar no meio da pagina. */
+function clTesteContinuar(){
+  const tela=CL.screen;
+  try{
+    if((tela==='cupclassif') && typeof cupClassifContinue==='function'){ cupClassifContinue(); return 'classificação de copa'; }
+    if((tela==='classif'||tela==='seatclassif') && typeof clClassifContinue==='function'){ clClassifContinue(); return 'classificação'; }
+    if(tela==='cupview' && typeof clCupViewBack==='function'){ clCupViewBack(); return 'chave da copa'; }
+  }catch(e){ console.warn('bancada, saída de '+tela+':', e && e.message); }
+  return clTesteClicar();
+}
+/* CLIQUE POR PRIORIDADE, NAO POR ORDEM DA PAGINA. `querySelectorAll('a, b, c')` devolve os
+   elementos na ordem em que aparecem no DOM — nao na ordem em que eu os pedi. Numa tela de
+   classificacao, uma aba `.rf-btn` vem antes do `.rf-ov-cta` de Continuar, e a bancada clicava na
+   aba: navegava em vez de seguir, e ficava presa. Agora percorre-se seletor a seletor, do mais
+   especifico ao mais generico, e o primeiro que existir ganha. */
 function clTesteClicar(){
   const vis=(el)=>el && el.offsetParent!==null && !el.disabled;
   const proibido=(el)=>el.closest && el.closest('.rf-sidebar, .rf-nav, .rf-teste-painel');
-  const alvos=Array.from(document.querySelectorAll(TESTE_SELETORES)).filter(b=>vis(b) && !proibido(b));
-  if(alvos.length){ alvos[0].click(); return (alvos[0].textContent||'').trim().slice(0,24)||'clique'; }
+  for(const sel of TESTE_SELETORES){
+    const b=Array.from(document.querySelectorAll(sel)).find(x=>vis(x) && !proibido(x));
+    if(b){ b.click(); return (b.textContent||'').trim().slice(0,24)||'clique'; }
+  }
   if(typeof clCloseOverlay==='function'){ clCloseOverlay(); return 'fechou overlay'; }
   return false;
 }
@@ -902,7 +929,7 @@ function clTestePainelAbrir(){
   const d=document.createElement('div');
   d.id='rf-teste-painel'; d.className='rf-teste-painel';
   d.innerHTML=`<div class="rf-teste-cx">
-    <div class="rf-teste-tt">🧪 Bancada a correr</div>
+    <div class="rf-teste-tt">🧪 Simulador Teste</div>
     <div class="rf-teste-sub" id="rf-teste-sub">a preparar…</div>
     <div class="rf-teste-barra"><i id="rf-teste-bar"></i></div>
     <div class="rf-teste-passo" id="rf-teste-passo">—</div>
