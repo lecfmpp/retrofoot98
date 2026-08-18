@@ -295,8 +295,13 @@
      mesmo `(slot, janela)` DENTRO de um país — seria a mesma pessoa em duas telas. Entre países
      diferentes, dividir é o normal e é o objetivo.
 
-     Cada dia carrega o `pais` a que pertence. Quem desenha a tela mostra só os dias do próprio
-     país; o ponteiro anda pela fila inteira, que é o que mantém a sala junta. */
+     Cada dia carrega o `pais` a que pertence. REGRA (dono do jogo, 18/08): cada treinador assiste
+     e joga apenas as competições do país do CLUBE DELE. Quem se mudou para o Chelsea passa a
+     viver o calendário inglês e deixa de acompanhar o brasileiro — senão seriam times e
+     competições a mais para assistir, e a sessão viraria uma maratona.
+
+     O ponteiro, esse, anda pela fila INTEIRA: é isso que mantém a sala junta. Um dia que não é do
+     meu país eu não jogo, mas ele existe e passa — como um dia de folga no meu calendário. */
   function buildDayPlanMulti(paises, epoch, totaisPorPais, opts){
     opts=opts||{};
     const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
@@ -319,6 +324,14 @@
     dias.sort((a,b)=> (CAL.chaveDoDia(a.slot,a.janela)-CAL.chaveDoDia(b.slot,b.janela))
                    || ((ordem[a.pais]||0)-(ordem[b.pais]||0)) );
     return dias;
+  }
+
+  /* os dias que ESTE treinador vive, dado o país do clube dele. O resto da fila passa por ele
+     sem lhe pedir nada. */
+  function diasDoPais(plano, pais){
+    if(!Array.isArray(plano)) return [];
+    const alvo=pais||'brasil';
+    return plano.filter(d=>(d.pais||'brasil')===alvo);
   }
 
   /* ===================== PRORROGAÇÃO: A TEMPORADA ESPERA AS FINAIS =====================
@@ -548,7 +561,7 @@
 
   const API={ calendar, seasonStart, calDay, jornadaOfCalDate, leagueMatchDay, cupMatchDayByRound,
     diaDoSlot, diaParaMMDD, janelaDaCompeticao, cupMatchDayAt,
-    buildDayPlan, buildDayPlanMulti, DAY_MOMENTS, prorrogarPorCopasPendentes,
+    buildDayPlan, buildDayPlanMulti, diasDoPais, DAY_MOMENTS, prorrogarPorCopasPendentes,
     cupDrawDay, buildCupSchedule, cupTickMatchesRound, cupRoundIndexAt,
     cupAlreadyResolved, markCupResolved, CUP_FIRST_ROUND,
     cpuMarket, cpuCaixaRodada, cpuCrescerEstadio };

@@ -279,6 +279,37 @@ for (const pais of C.paisesComCalendario()) {
   });
 }
 
+/* 14. CADA TREINADOR VIVE SÓ O PAÍS DO CLUBE DELE.
+       Regra do dono do jogo (18/08): quem se mudou para o Chelsea passa a viver o calendário
+       inglês e deixa de acompanhar o brasileiro — senão seriam competições a mais para assistir e
+       a sessão viraria maratona. O ponteiro continua a andar pela fila INTEIRA (é o que mantém a
+       sala junta); os dias dos outros passam sem lhe pedir nada. */
+{
+  const paises = C.paisesComCalendario();
+  if (paises.length > 1) {
+    const totais = {};
+    paises.forEach((p) => {
+      const cal = C.calendarioDe(p); totais[p] = {};
+      Object.keys(cal.competicoes).forEach((k) => { if (k !== 'liga') totais[p][k] = (k === 'copaBrasil') ? 7 : 11; });
+    });
+    const plano = W.buildDayPlanMulti(paises, null, totais, {});
+    const fatias = paises.map((p) => W.diasDoPais(plano, p));
+    const soma = fatias.reduce((t, f) => t + f.length, 0);
+    if (soma !== plano.length) { falhas++; console.log('  ✘ dias do país: as fatias somam ' + soma + ' e a fila tem ' + plano.length); }
+    fatias.forEach((f, i) => {
+      // a fatia de cada um respeita a ordem da fila comum
+      for (let j = 1; j < f.length; j++) {
+        if (plano.indexOf(f[j]) < plano.indexOf(f[j - 1])) {
+          falhas++; console.log('  ✘ ' + paises[i] + ': a fatia dele está fora da ordem da fila'); break;
+        }
+      }
+      if (f.some((d) => (d.pais || 'brasil') !== paises[i])) {
+        falhas++; console.log('  ✘ ' + paises[i] + ': a fatia dele tem dia de outro país');
+      }
+    });
+  }
+}
+
 console.log('');
 if (falhas) { console.log('✘ ' + falhas + ' invariante(s) quebrada(s)'); process.exit(1); }
 console.log('✓ calendário íntegro — ' + C.paisesComCalendario().join(', '));

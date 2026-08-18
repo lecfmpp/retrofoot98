@@ -1282,10 +1282,27 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
   // 32-bit ESTÁVEL e NÃO-ZERO da string do games.seed (FNV-1a) — igual em todos os clientes.
   const seed32=resenhaSeed32(room.seed);
   newGame(CL.clubId, startDiv, undefined, seed32); if(!S.stadium) S.stadium={capacity:STAND_START}; // seed compartilhada -> mesma competição p/ todos
-  /* O PAÍS VIAJA NO ESTADO COMPARTILHADO. É por aqui que o servidor descobre a pirâmide, as copas
-     e as cotas desta sala (ver aplicarUniverso no resolve-round). `false` = Brasil, que é o que
-     toda sala criada até agora é — retrocompatível por construção. */
-  S.intlUniverse = (uniDaSala==='brasil') ? false : uniDaSala;
+  /* ===== DOIS CAMPOS COM SIGNIFICADOS DIFERENTES, E NENHUM DELES É "O PAÍS DO JOGADOR" =====
+     `S.intlUniverse` é o país da PIRÂMIDE ÂNCORA — a que mora em S.table/S.otherDivs e que o
+     servidor resolve a cada rodada. Não é "o país da sala" e muito menos "o meu país": num
+     mundo com humanos em países diferentes, essa frase não existe. Guardar um país único como
+     se descrevesse toda a gente seria uma segunda coordenada a discordar da primeira — o mesmo
+     erro que marcou a final antes da semifinal no calendário.
+
+     `S.paisesVivos` é a lista dos países que existem por inteiro neste mundo. É plural de
+     propósito: quando um humano aceita treinar no Chelsea, a Inglaterra entra aqui e o Brasil
+     CONTINUA — os outros treinadores seguem lá, com Cruzeiro e Santos, e o país deles não vira
+     "fundo" por causa da mudança de carreira de outra pessoa.
+
+     E o país de CADA jogador não se guarda em lado nenhum: sai do clube do próprio assento
+     (universoDoClube). Derivado, nunca armazenado, nunca capaz de mentir. */
+  S.intlUniverse = (uniDaSala==='brasil') ? false : uniDaSala;   // país da pirâmide âncora
+  const vivos=new Set([uniDaSala]);
+  (CL.bgCountries||[]).forEach(nome=>{
+    const k=(typeof countryUniverseKey==='function') ? countryUniverseKey(nome) : null;
+    vivos.add(k||nome);
+  });
+  S.paisesVivos=[...vivos];
   if(CL.bgCountries && CL.bgCountries.length) S.bgCountries=CL.bgCountries.slice();
   CL.humans={}; room.participants.forEach(p=>{ if(p.clubId) CL.humans[p.clubId]=p.name; });
   CL.online=true; CL._playedRound=null; CL._hostPendingCommit=null; CL._hostCloseSince=0; // zera controle de rodada do save novo

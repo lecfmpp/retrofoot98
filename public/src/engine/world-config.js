@@ -37,10 +37,20 @@
   const PADRAO='brasil';
   function universos(){ return root.UNIVERSOS || {}; }
   function uniCfg(key){ const U=universos(); return U[key] || U[PADRAO] || null; }
-  /* chave do universo a partir do estado do jogo. `S.intlUniverse` é o campo que o save já
-     guarda (core.js: activeUniverseKey) e que já viaja dentro do shared_state — ausente = Brasil,
-     que é o que toda sala criada até agosto/2026 é. Retrocompatível por construção. */
+  /* ===== O UNIVERSO DA PIRÂMIDE ÂNCORA — não "o país da sala" =====
+     `S.intlUniverse` diz de que país é a pirâmide que mora em S.table/S.otherDivs: a que o
+     servidor resolve a cada rodada. NÃO descreve os jogadores. Num mundo com humanos em países
+     diferentes não existe "o país da sala" — o país de cada um sai do clube do assento dele.
+     Ausente = Brasil, que é o que toda sala criada até agosto/2026 é. */
   function uniDoEstado(S){ return (S && S.intlUniverse) || PADRAO; }
+  /* Os países que existem por inteiro neste mundo. Plural de propósito: um humano ir treinar no
+     Chelsea acrescenta a Inglaterra e NÃO tira o Brasil — os outros treinadores continuam lá.
+     Saves antigos não têm a lista; nesse caso o mundo tem um país só, o da âncora. */
+  function paisesVivos(S){
+    const lista=(S && Array.isArray(S.paisesVivos) && S.paisesVivos.length) ? S.paisesVivos.slice() : [uniDoEstado(S)];
+    const set=new Set(lista); set.add(uniDoEstado(S));      // a âncora está sempre viva
+    return [...set];
+  }
 
   /* ---------- NÍVEL NA PIRÂMIDE ---------- */
   function nivelDaDivisao(uniKey, div){
@@ -207,7 +217,7 @@
   function nacionalidadeDe(uniKey){ const c=uniCfg(uniKey); return (c && c.nat && c.nat[0]) || 'Brasil'; }
   function codigoDaLiga(uniKey, div){ const c=uniCfg(uniKey); return (c && c.lg && c.lg[div]) || ('BRA-'+div); }
 
-  const API={ PADRAO, uniCfg, uniDoEstado, nivelDaDivisao, divisoesDe,
+  const API={ PADRAO, uniCfg, uniDoEstado, paisesVivos, nivelDaDivisao, divisoesDe,
     tamanhoDaDivisao, sobemDaDivisao, descemDaDivisao,
     BANDA_POR_NIVEL, FORCA_POR_NIVEL, CAP_POR_NIVEL,
     bandaDaDivisao, forcaDaDivisao, capDaDivisao, bandaDaDivisaoSemPais, tabelasDoUniverso,

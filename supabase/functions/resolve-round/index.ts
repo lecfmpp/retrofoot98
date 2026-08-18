@@ -826,8 +826,13 @@ const ME = (globalThis as any).MATCH_ENGINE;
      mesmo `(slot, janela)` DENTRO de um país — seria a mesma pessoa em duas telas. Entre países
      diferentes, dividir é o normal e é o objetivo.
 
-     Cada dia carrega o `pais` a que pertence. Quem desenha a tela mostra só os dias do próprio
-     país; o ponteiro anda pela fila inteira, que é o que mantém a sala junta. */
+     Cada dia carrega o `pais` a que pertence. REGRA (dono do jogo, 18/08): cada treinador assiste
+     e joga apenas as competições do país do CLUBE DELE. Quem se mudou para o Chelsea passa a
+     viver o calendário inglês e deixa de acompanhar o brasileiro — senão seriam times e
+     competições a mais para assistir, e a sessão viraria uma maratona.
+
+     O ponteiro, esse, anda pela fila INTEIRA: é isso que mantém a sala junta. Um dia que não é do
+     meu país eu não jogo, mas ele existe e passa — como um dia de folga no meu calendário. */
   function buildDayPlanMulti(paises, epoch, totaisPorPais, opts){
     opts=opts||{};
     const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
@@ -850,6 +855,14 @@ const ME = (globalThis as any).MATCH_ENGINE;
     dias.sort((a,b)=> (CAL.chaveDoDia(a.slot,a.janela)-CAL.chaveDoDia(b.slot,b.janela))
                    || ((ordem[a.pais]||0)-(ordem[b.pais]||0)) );
     return dias;
+  }
+
+  /* os dias que ESTE treinador vive, dado o país do clube dele. O resto da fila passa por ele
+     sem lhe pedir nada. */
+  function diasDoPais(plano, pais){
+    if(!Array.isArray(plano)) return [];
+    const alvo=pais||'brasil';
+    return plano.filter(d=>(d.pais||'brasil')===alvo);
   }
 
   /* ===================== PRORROGAÇÃO: A TEMPORADA ESPERA AS FINAIS =====================
@@ -1079,7 +1092,7 @@ const ME = (globalThis as any).MATCH_ENGINE;
 
   const API={ calendar, seasonStart, calDay, jornadaOfCalDate, leagueMatchDay, cupMatchDayByRound,
     diaDoSlot, diaParaMMDD, janelaDaCompeticao, cupMatchDayAt,
-    buildDayPlan, buildDayPlanMulti, DAY_MOMENTS, prorrogarPorCopasPendentes,
+    buildDayPlan, buildDayPlanMulti, diasDoPais, DAY_MOMENTS, prorrogarPorCopasPendentes,
     cupDrawDay, buildCupSchedule, cupTickMatchesRound, cupRoundIndexAt,
     cupAlreadyResolved, markCupResolved, CUP_FIRST_ROUND,
     cpuMarket, cpuCaixaRodada, cpuCrescerEstadio };
@@ -1192,10 +1205,20 @@ if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:ro
   const PADRAO='brasil';
   function universos(){ return root.UNIVERSOS || {}; }
   function uniCfg(key){ const U=universos(); return U[key] || U[PADRAO] || null; }
-  /* chave do universo a partir do estado do jogo. `S.intlUniverse` é o campo que o save já
-     guarda (core.js: activeUniverseKey) e que já viaja dentro do shared_state — ausente = Brasil,
-     que é o que toda sala criada até agosto/2026 é. Retrocompatível por construção. */
+  /* ===== O UNIVERSO DA PIRÂMIDE ÂNCORA — não "o país da sala" =====
+     `S.intlUniverse` diz de que país é a pirâmide que mora em S.table/S.otherDivs: a que o
+     servidor resolve a cada rodada. NÃO descreve os jogadores. Num mundo com humanos em países
+     diferentes não existe "o país da sala" — o país de cada um sai do clube do assento dele.
+     Ausente = Brasil, que é o que toda sala criada até agosto/2026 é. */
   function uniDoEstado(S){ return (S && S.intlUniverse) || PADRAO; }
+  /* Os países que existem por inteiro neste mundo. Plural de propósito: um humano ir treinar no
+     Chelsea acrescenta a Inglaterra e NÃO tira o Brasil — os outros treinadores continuam lá.
+     Saves antigos não têm a lista; nesse caso o mundo tem um país só, o da âncora. */
+  function paisesVivos(S){
+    const lista=(S && Array.isArray(S.paisesVivos) && S.paisesVivos.length) ? S.paisesVivos.slice() : [uniDoEstado(S)];
+    const set=new Set(lista); set.add(uniDoEstado(S));      // a âncora está sempre viva
+    return [...set];
+  }
 
   /* ---------- NÍVEL NA PIRÂMIDE ---------- */
   function nivelDaDivisao(uniKey, div){
@@ -1362,7 +1385,7 @@ if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:ro
   function nacionalidadeDe(uniKey){ const c=uniCfg(uniKey); return (c && c.nat && c.nat[0]) || 'Brasil'; }
   function codigoDaLiga(uniKey, div){ const c=uniCfg(uniKey); return (c && c.lg && c.lg[div]) || ('BRA-'+div); }
 
-  const API={ PADRAO, uniCfg, uniDoEstado, nivelDaDivisao, divisoesDe,
+  const API={ PADRAO, uniCfg, uniDoEstado, paisesVivos, nivelDaDivisao, divisoesDe,
     tamanhoDaDivisao, sobemDaDivisao, descemDaDivisao,
     BANDA_POR_NIVEL, FORCA_POR_NIVEL, CAP_POR_NIVEL,
     bandaDaDivisao, forcaDaDivisao, capDaDivisao, bandaDaDivisaoSemPais, tabelasDoUniverso,
@@ -2029,6 +2052,17 @@ let DIVISION_PROMO: any = { A: 0, B: 4, C: 4, D: 4 };
 let DIVISION_RELEG: any = { A: 4, B: 4, C: 4, D: 0 };
 let DIVISION_FORCE_RANGE: any = { A: [58, 88], B: [58, 80], C: [52, 74], D: [48, 68] };
 let DIV_FORCE_CAP: any = { B: 37, C: 24, D: 12 };
+/* ===== O SERVIDOR RESOLVE A PIRAMIDE ANCORA =====
+   `aplicarUniverso` monta as tabelas do pais da ANCORA -- a piramide que vive em S.table/
+   S.otherDivs e que este resolvedor faz andar. NAO e "o pais da sala": num mundo com humanos em
+   paises diferentes essa frase nao existe, e o pais de cada jogador sai do clube do assento dele.
+
+   O QUE AINDA FALTA, e esta escrito aqui para nao se perder: quando houver humano num segundo
+   pais, esse pais precisa da PROPRIA piramide resolvida -- hoje ele vive em S.bgLeagues, que so
+   tem tabela e calendario, sem elencos nem virada de temporada propria. `WORLD_CONFIG.paisesVivos(S)`
+   ja devolve a lista certa; falta o resolvedor iterar sobre ela. Enquanto nao itera, um segundo
+   pais vivo roda como fundo -- e isso contraria a regra do espectador, que manda o humano
+   assistir a tudo do pais dele. E o passo seguinte da Fase 5. */
 function aplicarUniverso(S: any) {
   const chave = WORLD_CONFIG.uniDoEstado(S);
   /* A FOLHA DE CALENDARIO DA SALA. Vem no shared_state, carimbada por quem montou a temporada
