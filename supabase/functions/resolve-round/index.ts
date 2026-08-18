@@ -1388,7 +1388,7 @@ function cupTickMatchesRound(S: any, key: string, round: number) {
 const CUP_KO_SPREAD = 4, CUP_LEAGUE_TAIL = 2;
 function cupTotalRoundsS(S: any, key: string) {
   const c = S.cups && S.cups[key]; if (!c) return 0;
-  if (key === 'copaBrasil') return c.roundsTotal || 0;
+  if (key === COPA_NACIONAL_KEY()) return c.roundsTotal || 0;   // copa nacional: e o proprio bracket
   if (c.group) {
     const nG = Object.keys(c.group.groups || {}).length, adv = c.group.advancePerGroup || 2;
     const ko = Math.max(1, Math.ceil(Math.log2(Math.max(2, nG * adv))));
@@ -1402,7 +1402,8 @@ function buildCupScheduleS(key: string, total: number, _lastLeagueRound: number)
   return WR.buildCupSchedule(key, total, SEASON_EPOCH_2026);   // folha única (WORLD_RULES)
 }
 function nextRoundStage(S: any) {
-  const keys = ['copaBrasil'].concat(GROUP_CUP_KEYS);
+  const nac = COPA_NACIONAL_KEY();
+  const keys = (nac ? [nac] : []).concat(GRUPO_KEYS());
   const temCopa = keys.some((k) => S.cups && S.cups[k] && cupTickMatchesRound(S, k, S.round));
   return temCopa ? 'cup' : 'league';
 }
@@ -1450,7 +1451,7 @@ function copaBrasilPhaseCash(round: number, roundsTotal: number, isChampion?: bo
   return round <= 1 ? CB_PHASE.f1 : CB_PHASE.f2;
 }
 function awardCupPhasePrize(S: any, key: string, b: any, t: any, humans?: Set<string>) {
-  if (key !== 'copaBrasil' || !t || !t.winner || t.prize) return;
+  if (key !== COPA_NACIONAL_KEY() || !t || !t.winner || t.prize) return;   // cota de fase e da copa nacional
   const loser = t.winner === t.h ? t.a : t.h;
   const isFinal = (b.roundsTotal - b.round) <= 0;
   const pagar: any[] = [[t.winner, copaBrasilPhaseCash(b.round, b.roundsTotal, true)]];
@@ -1532,7 +1533,14 @@ function realDateForDayS(day: number) {
 // CONMEBOL sorteou as oitavas em 29/mai/2026 — até lá a fase de grupos encerrada fica
 // "aguardando sorteio", igual à vida real (mesma tabela do cliente).
 const COMP_R16_DRAW_2026: any = { libertadores: new Date(2026, 4, 29), sulamericana: new Date(2026, 4, 29) };
-const GROUP_CUP_KEYS = ['libertadores', 'sulamericana'];   // Resenha é sempre Brasil (ver onlineBeginSeason)
+/* AS COPAS DO PAIS, NAO AS DO BRASIL. Era uma lista fixa com o comentario "Resenha e sempre
+   Brasil". Agora sai da folha: CONMEBOL -> Libertadores/Sul-Americana, UEFA -> Champions/Europa.
+   Funcoes (nao constantes) porque UNI_ATIVO so e conhecido depois de ler o shared_state. */
+function GRUPO_KEYS(): string[] { return WORLD_CONFIG.copasContinentaisDe(UNI_ATIVO); }
+/* A copa nacional: 'copaBrasil' no Brasil, e NENHUMA nos outros paises modelados hoje. Onde
+   estava o literal 'copaBrasil' passa a estar isto — e quem nao tem copa nacional simplesmente
+   pula o bloco em vez de ganhar uma Copa do Brasil de presente. */
+function COPA_NACIONAL_KEY(): string | null { return WORLD_CONFIG.COPA_NACIONAL[UNI_ATIVO] || null; }
 function groupTableStandingsS(g: any) {
   return Object.values(g.table || {}).sort((a: any, b: any) =>
     b.Pts - a.Pts || (b.GF - b.GA) - (a.GF - a.GA) || b.GF - a.GF || String(a.id).localeCompare(String(b.id)));
@@ -1593,13 +1601,14 @@ function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>) {
   // trava "uma rodada por competição por jornada" — MESMAS funções que o cliente usa (folha única)
   const jaResolvida = (k: string) => WR.cupAlreadyResolved(S._cupResolvedRound, k, S.round);
   const marcar = (k: string) => { S._cupResolvedRound = WR.markCupResolved(S._cupResolvedRound, k, S.round); };
-  if (cupTickMatchesRound(S, 'copaBrasil', S.round) && !jaResolvida('copaBrasil')) {
-    const cb = S.cups.copaBrasil;
+  const nacKey = COPA_NACIONAL_KEY();
+  if (nacKey && cupTickMatchesRound(S, nacKey, S.round) && !jaResolvida(nacKey)) {
+    const cb = S.cups[nacKey];
     if (cb && !cupIsFinished(cb) && cb.ties && cb.ties.length) {
-      advanceCupBracket(S, cb, 'copaBrasil-r' + cb.round, cupResultByFx, humans); marcar('copaBrasil');
+      advanceCupBracket(S, cb, nacKey + '-r' + cb.round, cupResultByFx, humans); marcar(nacKey);
     }
   }
-  GROUP_CUP_KEYS.forEach((key) => {
+  GRUPO_KEYS().forEach((key) => {
     if (!cupTickMatchesRound(S, key, S.round)) return;
     if (jaResolvida(key)) return;
     const c = S.cups[key]; if (!c) return;
@@ -1802,7 +1811,7 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   // cliente a partir daqui (acha a própria divisão/posição por clubId). Ver computeMyPrevSeasonPrizes.
   const _prevTables: any = {};
   DIV_ORDER.forEach((d) => { const t = (d === S.division) ? S.table : ((S.otherDivs[d] || {}).table || {}); _prevTables[d] = sortTblT(t).map((x: any) => ({ id: x.id, P: x.P, W: x.W, D: x.D, L: x.L, GF: x.GF, GA: x.GA, Pts: x.Pts })); });
-  S._prevSeason = { season: (S.season || 1), tables: _prevTables, scorers: S.scorers || {}, copaBrasil: (S.cups && S.cups.copaBrasil) || null };
+  S._prevSeason = { season: (S.season || 1), tables: _prevTables, scorers: S.scorers || {}, copaBrasil: (S.cups && COPA_NACIONAL_KEY() && S.cups[COPA_NACIONAL_KEY() as string]) || null };
   // AS COPAS CONTINENTAIS TAMBÉM PRECISAM SOBREVIVER À VIRADA. Só a Copa do Brasil era fotografada
   // aqui, então quem era campeão da Libertadores ou da Sul-Americana perdia a taça na virada: o
   // cliente registra os títulos a partir deste snapshot (registerPrevSeasonTitles, core.js) e
@@ -1813,7 +1822,7 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
     const limpaTies = (ties: any[]) => (ties || []).map((t: any) => { const { events, ...resto } = t; return resto; });
     return { ...b, ties: limpaTies(b.ties), history: (b.history || []).map((h: any) => ({ ...h, ties: limpaTies(h.ties) })) }; };
   S._prevSeason.cups = {};
-  ['libertadores', 'sulamericana'].forEach((k) => {
+  GRUPO_KEYS().forEach((k) => {
     const c = S.cups && S.cups[k]; if (!c) return;
     S._prevSeason.cups[k] = semEventos((c.champion !== undefined) ? c : c.bracket);
   });
@@ -1830,7 +1839,8 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   // wonCup só cobre a Copa do Brasil (única copa materializada com bracket no servidor —
   // Libertadores/Sul-Americana são só overall agregado em background, sem chave própria aqui).
   const tblDiv = _prevTables[S.division] || [];
-  const wonCup = (cid: string) => !!(S.cups && S.cups.copaBrasil && S.cups.copaBrasil.champion === cid);
+  const nacW = COPA_NACIONAL_KEY();
+  const wonCup = (cid: string) => !!(nacW && S.cups && S.cups[nacW] && S.cups[nacW].champion === cid);
   Object.keys(S.squads).forEach((cid) => {
     const pos = tblDiv.findIndex((t: any) => t.id === cid) + 1; // 1-based; 0 se o clube não estava nesta tabela
     const wonDivision = tblDiv[0] && tblDiv[0].id === cid;
@@ -1859,7 +1869,9 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   // acumula clubes continentais/de background materializados ao longo das temporadas (Libertadores/
   // Sul-Americana, mercado), que não disputam a Copa do Brasil e poluíam a chave.
   const cbClubs = DIV_ORDER.reduce((acc: string[], d) => acc.concat(newDiv[d]), [] as string[]);
-  S.cups = S.cups || {}; S.cups.copaBrasil = makeBracketT(cbClubs, ME.hashSeed(S.seed, 'copaBrasil', S.season), S.clubOverall); // 5) copa nova
+  S.cups = S.cups || {};
+  const nacNova = COPA_NACIONAL_KEY();   // pais sem copa nacional nao ganha uma de presente
+  if (nacNova) S.cups[nacNova] = makeBracketT(cbClubs, ME.hashSeed(S.seed, nacNova, S.season), S.clubOverall); // 5) copa nova
   // continentais da temporada nova: vagas brasileiras pela CLASSIFICAÇÃO FINAL da Série A que
   // acabou (_prevTables, capturado acima antes do reset das tabelas) — ver rebuildContinentalCups.
   rebuildContinentalCups(S, (_prevTables[DIV_ORDER[0]] || []).map((x: any) => x.id));
