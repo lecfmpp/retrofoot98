@@ -234,9 +234,17 @@
       const ultimo=cal.competicoes.liga.slots[Math.min(L.length,cal.competicoes.liga.slots.length)-1];
       base=calDay(L[L.length-1], e) + (slot-ultimo)*7;
     } else base=(slot-1)*7+1;
-    if(janela==='MIDWEEK_1') return base-4;
-    if(janela==='MIDWEEK_2') return base-3;
-    return base;
+    if(janela==='WEEKEND') return base;
+    const recuo=(janela==='MIDWEEK_1')?4:3;
+    /* O RÓTULO NUNCA ANDA PARA TRÁS. As datas reais da liga não são igualmente espaçadas — entre
+       24/10 e 27/10 há três dias —, então recuar 4 punha o meio de semana ANTES do jogo do slot
+       anterior. A ordem não dependia disso (quem ordena é o slot), mas a tela mostrava 27/10 e
+       logo a seguir 26/10, que é a espécie de coisa que faz o jogador desconfiar do calendário.
+       Aqui o dia é empurrado para depois do jogo anterior quando o recuo o levaria longe demais. */
+    const iAnterior=iLiga>0 ? iLiga-1 : -1;
+    const anterior=(L && iAnterior>=0 && L[iAnterior]!=null) ? calDay(L[iAnterior], e) : null;
+    const alvo=base-recuo;
+    return (anterior!=null && alvo<=anterior) ? anterior+1 : alvo;
   }
   function buildDayPlan(cups, epoch, totais, opts){
     opts=opts||{};

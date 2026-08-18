@@ -179,6 +179,26 @@ for (const pais of C.paisesComCalendario()) {
   });
 }
 
+/* 11. O RÓTULO DE DATA NUNCA ANDA PARA TRÁS.
+       A data deixou de ordenar coisa nenhuma, mas continua na tela. As datas reais da liga não
+       são igualmente espaçadas (entre 24/10 e 27/10 há três dias), e recuar quatro dias para a
+       janela de meio de semana punha o dia ANTES do jogo do slot anterior — a tela mostrava
+       27/10 e a seguir 26/10. */
+for (const pais of C.paisesComCalendario()) {
+  const cal = C.calendarioDe(pais);
+  const copas = Object.keys(cal.competicoes).filter((k) => k !== 'liga');
+  for (const totais of combinacoes(cal).combos) {
+    const plano = W.buildDayPlan(copas, null, totais, { pais });
+    for (let i = 1; i < plano.length; i++) {
+      if (plano[i].dia < plano[i - 1].dia) {
+        reprova(pais, 'data anda para trás: ' + plano[i - 1].comp + ' dia ' + plano[i - 1].dia +
+          ' -> ' + plano[i].comp + ' dia ' + plano[i].dia);
+        break;
+      }
+    }
+  }
+}
+
 console.log('');
 if (falhas) { console.log('✘ ' + falhas + ' invariante(s) quebrada(s)'); process.exit(1); }
 console.log('✓ calendário íntegro — ' + C.paisesComCalendario().join(', '));
