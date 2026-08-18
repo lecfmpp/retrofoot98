@@ -1929,9 +1929,63 @@ function dayPointerRound(){
   const d=(typeof NET!=='undefined' && NET.room) ? NET.room.day : null;
   return (d && d.round!=null) ? d.round : null;
 }
+/* =====================================================================
+   JORNADA SEM JOGO DE LIGA — ALGUEM TEM DE ATRAVESSA-LA
+   ---------------------------------------------------------------------
+   Desde que o calendario reserva semanas sem campeonato (a parada do meio do ano e as tres
+   semanas das finais, ver engine/calendars.js), existem jornadas em que a liga simplesmente nao
+   joga. No SOLO isso e o botao "Avancar", que empurra a jornada. Na Resenha nao havia ninguem:
+
+     · o ponteiro do dia anda quando o ultimo assento carimba, e `day_ack` grava em `games.round`
+       a jornada do dia NOVO;
+     · mas `shared_state.S.round` so anda quando o servidor RESOLVE uma rodada de liga;
+     · numa jornada sem liga nao ha rodada para resolver, entao `games.round` foi para 21 e o
+       estado ficou em 20 -- duas coordenadas a discordar, outra vez, e a sala parada no meio.
+
+   Medido na sala JGGK5 (18/08/2026): ponteiro no dia 35 (jornada 21, liga), estado na jornada 20,
+   dois humanos vivos, nenhum pronto, 28 minutos sem nada acontecer. Os clientes viam o desacordo
+   e nao tinham o que fazer com ele: quem esta atras do ponteiro espera pelo estado novo, e o
+   estado novo nunca vinha.
+
+   O servidor JA sabe resolver uma jornada vazia -- `fixtures = S.sched[round] || []` aceita lista
+   vazia e faz o resto da rodada (energia, mercado, evolucao) na mesma. So faltava alguem pedir.
+   Pede o ANFITRIAO, que e quem ja fecha as rodadas, e uma de cada vez: o laco volta a passar aqui
+   e atravessa a seguinte, se houver.
+
+   TRAVA IMPORTANTE: so atravessa quando TODAS as jornadas entre a minha e a do ponteiro estao
+   vazias. Se alguma tem jogo, o atraso e outra coisa (alguem que ainda nao jogou) e saltar por
+   cima dela seria comer uma rodada inteira da sala. */
+function onlineJornadaVaziaWatch(pt){
+  if(!CL.online || typeof S==='undefined' || !S || !Array.isArray(S.sched)) return;
+  if(typeof NET==='undefined' || !NET.isHost || typeof NET.resolveRound!=='function') return;
+  if(pt==null || pt<=(S.round||0)) return;
+  if(CL.live || CL._liveBusy || CL._vazioBusy) return;
+  for(let r=(S.round||0); r<pt; r++){
+    if(((S.sched[r]||[]).length)>0) return;          // ha jogo pelo caminho: nao e este o caso
+  }
+  const alvo=S.round||0;
+  CL._vazioBusy=true;
+  console.warn('jornada '+alvo+' nao tem jogo de liga e o ponteiro ja esta na '+pt+
+               ' — pedindo ao servidor para a atravessar');
+  (async ()=>{
+    try{
+      const res=await NET.resolveRound(alvo);
+      if(!res || res.error){
+        console.warn('atravessar jornada vazia falhou:', res && res.error, '— tenta de novo no proximo tique');
+        return;
+      }
+      if(typeof NET.refreshRoom==='function') await NET.refreshRoom();
+      if(typeof onlineReconcileIfBehind==='function' && NET.room) onlineReconcileIfBehind(NET.room);
+    }catch(e){ console.warn('atravessar jornada vazia:', e && e.message); }
+    finally{ CL._vazioBusy=false; }
+  })();
+}
 function dayRoundWatch(){
   if(!CL.online || typeof S==='undefined' || !S || S.round==null){ CL._dayDriftSince=0; return; }
   const pt=dayPointerRound();
+  /* a jornada sem liga e atravessada aqui, ANTES de o desacordo virar "drift": ele nao e um
+     defeito a diagnosticar, e um dia que ninguem tinha a obrigacao de passar. */
+  onlineJornadaVaziaWatch(pt);
   if(pt==null || pt===S.round){ CL._dayDriftSince=0; return; }   // sala sem plano ou de acordo
   if(!CL._dayDriftSince){ CL._dayDriftSince=Date.now(); return; }
   if(Date.now()-CL._dayDriftSince < DAY_ROUND_DRIFT_MS) return;
