@@ -107,14 +107,29 @@ for (const pais of C.paisesComCalendario()) {
     plano.forEach((e) => { const c = (porDia[e.slot + ':' + e.janela] = porDia[e.slot + ':' + e.janela] || []); c.push(e.comp); });
     Object.entries(porDia).forEach(([d, l]) => { if (l.length > 1) reprova(caso, 'dia ' + d + ' com ' + l.join(' + ')); });
 
-    /* 6. TODA FINAL ACONTECE DEPOIS DO ÚLTIMO JOGO DA LIGA.
-          É o que o calendário antigo não sabia representar: espremia a final para trás (e ela
-          colidia) ou a perdia. Com slots, as finais moram em slots que a liga não usa. */
+    /* 6. TODA FINAL ACONTECE ANTES DO ÚLTIMO JOGO DA LIGA — e tem dia próprio.
+          A regra já foi a inversa (final depois do fim da liga, como na vida real) e o efeito
+          dentro do jogo era o oposto do pretendido: o campeonato acabava, a temporada dava-se
+          por encerrada, e as decisões viravam dias soltos no fim que o jogador atravessava sem
+          as ver. Agora a última rodada da liga fecha a temporada e as finais vêm antes dela. */
     const fimDaLiga = plano.map((e, i) => (e.comp === 'liga' ? i : -1)).filter((i) => i >= 0).pop();
     for (const k of copas) {
       const posFinal = plano.map((e, i) => (e.comp === k && e.idx === totais[k] - 1 ? i : -1)).filter((i) => i >= 0).pop();
       if (posFinal == null) { reprova(caso, k + ': sem final no plano'); continue; }
-      if (posFinal < fimDaLiga) reprova(caso, k + ': final antes do último jogo de liga');
+      /* FOLHA CURTA É OUTRO DEFEITO, E TEM OUTRO DONO. Quando o formato pede mais rodadas do que
+         a folha declara, o motor inventa dias — cresce para trás enquanto houver semana livre e,
+         esgotada essa, acrescenta no fim. Aí a final PODE cair depois da liga, e exigir o
+         contrário seria pedir ao motor que consertasse um erro de dado em silêncio, que é
+         exactamente o hábito que este projecto combate. O que se exige é que o erro seja
+         DENUNCIADO: o validador tem de o apontar, para ser corrigido na folha. */
+      const declarados = (cal.competicoes[k].slots || []).length;
+      if (totais[k] > declarados) {
+        const probs = C.validarCalendario(pais, { totais });
+        if (!probs.some((x) => x.nivel === 'erro' && x.comp === k))
+          reprova(caso, k + ': folha declara ' + declarados + ' slots para ' + totais[k] + ' rodadas e o validador não reclama');
+        continue;
+      }
+      if (posFinal > fimDaLiga) reprova(caso, k + ': final depois do último jogo de liga');
     }
   }
 }

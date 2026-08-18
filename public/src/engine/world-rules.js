@@ -215,24 +215,59 @@
        campeonato ainda a rolar. A competição apenas começa mais tarde, que é o comportamento
        certo para um mata-mata mais curto. */
     if(!total || total<=base.length) return { janela:c.janela, slots:total ? base.slice(base.length-total) : base };
-    // faltam slots: estende mantendo o passo médio da competição (mínimo 1), depois do último
+    /* FALTAM SLOTS: a competição cresce PARA TRÁS, nunca para a frente.
+       Estender depois do último slot declarado empurrava a final para além do fim da liga — o
+       exato defeito que a folha nova existe para evitar. E é fácil acontecer: basta um formato
+       com mais rodadas do que a folha previu (uma chave maior, um grupo a mais). O último slot é
+       onde a folha decidiu que a decisão mora, e essa escolha não se mexe; o que se mexe é a
+       ESTREIA, que passa a ser mais cedo. Se não houver semana livre antes do slot 1, aí sim
+       acrescenta-se no fim — melhor uma final fora de sítio do que uma rodada sem dia. */
     const passo=Math.max(1, Math.round((base[base.length-1]-base[0])/Math.max(1,base.length-1)));
-    let s=base[base.length-1];
-    while(base.length<total){ s+=passo; base.push(s); }
+    /* a semana anterior só serve se estiver LIVRE nesta janela. Duas competições partilham a
+       MIDWEEK_2 (Sul-Americana e Copa do Brasil, em slots disjuntos) — crescer para trás sem
+       olhar punha as duas no mesmo dia, que é a sala inteira em duas telas. */
+    const ocupados={};
+    Object.keys(cal.competicoes).forEach(k2=>{
+      if(k2===key) return; const o=cal.competicoes[k2];
+      if(o.janela!==c.janela) return;
+      (o.slots||[]).forEach(sl=>{ ocupados[sl]=true; });
+    });
+    while(base.length<total){
+      const alvo=base[0]-passo;
+      if(alvo<1 || ocupados[alvo]) break;      // sem semana livre antes da estreia: cresce no fim
+      base.unshift(alvo);
+    }
+    let f=base[base.length-1];
+    while(base.length<total){ f+=passo; base.push(f); }
     return { janela:c.janela, slots:base };
   }
   /* RÓTULO de data. Deriva do slot: o jogo de liga daquele slot é a data real da folha (quando o
-     país tem uma), e as janelas de meio de semana caem 4 e 3 dias antes. Slot sem data de liga
-     (os do fim da temporada, e os países sem folha) anda uma semana por slot a partir da última
-     conhecida. Nada disto ordena coisa nenhuma — quem ordena é a chave do slot. */
+     país tem uma), e as janelas de meio de semana caem 4 e 3 dias antes. Nada disto ordena coisa
+     nenhuma — quem ordena é a chave do slot.
+
+     SEMANA SEM LIGA: ancora na ÚLTIMA semana de liga ANTES dela e anda sete dias por slot. A
+     regra antiga ancorava sempre na última data da folha inteira, o que só estava certo enquanto
+     os buracos ficavam todos no FIM da temporada. Desde que as finais passaram a morar em
+     semanas próprias no meio-fim do calendário (e a parada do meio do ano ficou sem jogo), o
+     slot 21 era datado a partir de dezembro e recuado 21 semanas — o rótulo saltava meio ano
+     para trás. A data nunca pode andar para trás: é regra da casa, e é o que o teste cobre. */
+  function ancoraDeLiga(cal, slot){
+    const S=cal.competicoes.liga.slots||[], L=cal.datasLiga;
+    const n=L ? Math.min(L.length, S.length) : 0;
+    let i=-1;
+    for(let k=0;k<n;k++){ if(S[k]<=slot) i=k; else break; }
+    return i;                        // índice na folha de datas, ou -1 se o slot vem antes de tudo
+  }
   function dataDoDia(cal, slot, janela, epoch){
     const L=cal.datasLiga, e=epoch||cal.inicio||SEASON_START_2026;
-    const iLiga=(cal.competicoes.liga.slots||[]).indexOf(slot);
+    const slotsLiga=cal.competicoes.liga.slots||[];
+    const iLiga=slotsLiga.indexOf(slot);
     let base;
     if(L && iLiga>=0 && L[iLiga]!=null) base=calDay(L[iLiga], e);
     else if(L && L.length){
-      const ultimo=cal.competicoes.liga.slots[Math.min(L.length,cal.competicoes.liga.slots.length)-1];
-      base=calDay(L[L.length-1], e) + (slot-ultimo)*7;
+      const iAnc=ancoraDeLiga(cal, slot);
+      if(iAnc>=0) base=calDay(L[iAnc], e) + (slot-slotsLiga[iAnc])*7;
+      else base=calDay(L[0], e) - (slotsLiga[0]-slot)*7;
     } else base=(slot-1)*7+1;
     if(janela==='WEEKEND') return base;
     const recuo=(janela==='MIDWEEK_1')?4:3;
@@ -241,10 +276,32 @@
        anterior. A ordem não dependia disso (quem ordena é o slot), mas a tela mostrava 27/10 e
        logo a seguir 26/10, que é a espécie de coisa que faz o jogador desconfiar do calendário.
        Aqui o dia é empurrado para depois do jogo anterior quando o recuo o levaria longe demais. */
-    const iAnterior=iLiga>0 ? iLiga-1 : -1;
+    /* o jogo de liga anterior é o da última semana de liga ANTES desta — com buracos no meio do
+       calendário isso já não é `iLiga-1`, que só existe quando este slot é ele próprio de liga. */
+    const iAnterior=(iLiga>0) ? iLiga-1 : ancoraDeLiga(cal, slot-1);
     const anterior=(L && iAnterior>=0 && L[iAnterior]!=null) ? calDay(L[iAnterior], e) : null;
     const alvo=base-recuo;
     return (anterior!=null && alvo<=anterior) ? anterior+1 : alvo;
+  }
+  /* ===================== OS SLOTS DA LIGA DE UMA DIVISAO =====================
+     A folha declara os slots de liga da divisao MAIS LONGA do pais (a Championship joga 46
+     rodadas, a Premier 38). Quem joga menos rodadas usava os PRIMEIROS slots e acabava a
+     temporada no meio da folha -- e como as finais das copas moram nos ultimos slots, a liga
+     acabava antes delas. Era esse o "a temporada acaba na rodada 38": o campeonato fechava e o
+     que sobrava eram semanas soltas de copa.
+     Agora os slots sao ESPALHADOS: a divisao mais curta comeca no primeiro slot de liga e acaba
+     no ULTIMO, com as folgas distribuidas pelo meio. A ultima rodada da liga volta a ser o
+     ultimo dia da temporada em qualquer divisao de qualquer pais, que e a regra que a folha
+     escreve e esta funcao faz valer.
+     Passo maior que 1 (a lista e maior que n), entao os indices sao estritamente crescentes e
+     nenhum slot se repete. */
+  function slotsDaLiga(ligaSlots, n){
+    const base=(ligaSlots||[]).slice();
+    if(!base.length || !n || n>=base.length) return base;
+    if(n===1) return [base[base.length-1]];
+    const out=[];
+    for(let i=0;i<n;i++) out.push(base[Math.round(i*(base.length-1)/(n-1))]);
+    return out;
   }
   function buildDayPlan(cups, epoch, totais, opts){
     opts=opts||{};
@@ -260,7 +317,7 @@
        acabar. A temporada ganha essas jornadas sem jogo de liga pelo caminho que já existe
        (prorrogarPorCopasPendentes, logo abaixo). */
     const jornadaDoSlot=(slot)=>Math.max(0, slot-1);
-    const ligaSlots=cal.competicoes.liga.slots;
+    const ligaSlots=slotsDaLiga(cal.competicoes.liga.slots, nLiga);
     for(let r=0;r<nLiga;r++){
       const slot=ligaSlots[r]!=null ? ligaSlots[r] : (ligaSlots[ligaSlots.length-1]+(r-ligaSlots.length+1));
       dias.push({ r:jornadaDoSlot(slot), comp:'liga', idx:r, slot:slot, janela:'WEEKEND',
@@ -559,7 +616,7 @@
   /* os três momentos de cada dia, na ordem em que o jogador os vive */
   const DAY_MOMENTS=['escalando','jogando','classificacao'];
 
-  const API={ calendar, seasonStart, calDay, jornadaOfCalDate, leagueMatchDay, cupMatchDayByRound,
+  const API={ calendar, seasonStart, calDay, jornadaOfCalDate, leagueMatchDay, cupMatchDayByRound, slotsDaLiga,
     diaDoSlot, diaParaMMDD, janelaDaCompeticao, cupMatchDayAt,
     buildDayPlan, buildDayPlanMulti, diasDoPais, DAY_MOMENTS, prorrogarPorCopasPendentes,
     cupDrawDay, buildCupSchedule, cupTickMatchesRound, cupRoundIndexAt,

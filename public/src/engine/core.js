@@ -2062,7 +2062,7 @@ function ancorarCalendarioCopa(rodadas, last, folga){
   return out;
 }
 /* sobe sempre que a FORMA do calendário mudar — ver ensureCupCalendar */
-const CAL_VERSAO=2;   // 2 = folha de slots (18/08/2026)
+const CAL_VERSAO=3;   // 2 = folha de slots; 3 = finais ANTES da última rodada da liga (18/08/2026)
 function ensureCupCalendar(force){
   if(typeof S==='undefined' || !S || !S.cups) return;
   const last=(Array.isArray(S.sched)&&S.sched.length?S.sched.length:38)-1;
@@ -2115,13 +2115,41 @@ function ensureCupCalendar(force){
     }
   }
 
-  /* A TEMPORADA JÁ NASCE COM AS JORNADAS DAS FINAIS.
-     Com a folha de slots, a final de cada copa mora depois do último jogo de liga — é o que a
-     vida real faz, e é o que o calendário antigo não conseguia representar sem espremer a final
-     para trás ou perdê-la. Essas jornadas finais não têm jogo de liga: existem para dar dia à
-     decisão. Antes isto acontecia como CONSERTO no fim do ano (prorrogarSeFaltaCopa), depois de
-     a temporada já se ter dado por acabada — e era daí que vinham as finais jogadas sem ninguém
-     ver. `prorrogarSeFaltaCopa` continua como rede, e passa a quase nunca ter o que fazer. */
+  /* ===== AS RODADAS DA LIGA MORAM NOS SLOTS DA FOLHA, NÃO EM FILA CORRIDA =====
+     `makeSchedule` devolve as 38 rodadas do returno umas atrás das outras, e a jornada era o
+     índice dessa fila: jornada 0 = rodada 1, jornada 37 = rodada 38, fim. A folha, porém, diz
+     em que SEMANA cada rodada se joga — e agora ela reserva as semanas das finais (39, 40 e 41
+     no Brasil) sem jogo de campeonato, com a última rodada da liga a fechar o ano no slot 42.
+     Sem este encaixe as duas coisas discordavam outra vez: a liga acabava na jornada 37 e as
+     finais ficavam depois dela. É a mesma família de bug que os slots vieram acabar — duas
+     coordenadas a dizer coisas diferentes sobre o mesmo dia.
+     A conta é a mesma dos dois lados: `slotsDaLiga` é a folha partilhada com o servidor (ver
+     world-rules.js), e é ela que também monta o plano de dias. Uma divisão que jogue menos
+     rodadas do que a folha declara recebe os slots espalhados, e acaba na mesma semana.
+     Carimbado por temporada: reencaixar um calendário já encaixado embaralharia os jogos. */
+  if(Array.isArray(S.sched) && S._schedEmSlots!==(S.season||1)){
+    try{
+      const folha=(typeof CALENDARIOS_API!=='undefined'&&CALENDARIOS_API.calendarioDe)
+        ? CALENDARIOS_API.calendarioDe(activeUniverseKey()) : null;
+      const declarados=folha&&folha.competicoes&&folha.competicoes.liga ? folha.competicoes.liga.slots : null;
+      if(declarados&&declarados.length&&typeof WORLD_RULES!=='undefined'&&WORLD_RULES.slotsDaLiga){
+        const rodadas=S.sched.filter(fx=>fx&&fx.length);      // só as que têm jogo — as vazias renascem abaixo
+        const ligaSlots=WORLD_RULES.slotsDaLiga(declarados, rodadas.length);
+        const ultimo=ligaSlots.length?ligaSlots[ligaSlots.length-1]:0;
+        const total=Math.max(folha.slotsTotal||0, ultimo);
+        const novo=[]; for(let i=0;i<total;i++) novo.push([]);
+        rodadas.forEach((fx,r)=>{
+          const sl=ligaSlots[r]!=null ? ligaSlots[r] : (ultimo+(r-ligaSlots.length+1));
+          if(sl>=1&&sl<=novo.length) novo[sl-1]=fx; else novo.push(fx);
+        });
+        S.sched=novo; S._schedEmSlots=(S.season||1);
+      }
+    }catch(e){ console.warn('encaixe da liga nos slots:', e&&e.message); }
+  }
+  /* REDE: nenhuma rodada de copa pode ficar sem jornada. Com o encaixe acima a temporada já
+     nasce do tamanho da folha, então isto quase nunca tem o que fazer — mas uma copa que precise
+     de mais rodadas do que a folha declara ainda ganha os dias de que precisa (ver
+     slotsDaCompeticao, que estende), e `prorrogarSeFaltaCopa` continua como última rede. */
   if(Array.isArray(S.sched)){
     let maior=-1;
     chaves.forEach(k=>(cal[k]||[]).forEach(j=>{ if(j>maior) maior=j; }));
