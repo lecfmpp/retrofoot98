@@ -1191,13 +1191,20 @@ function rfScreenHTML(){
      para nao ter de ser repetidas nas onze abas das duas paginas. Com uma temporada passada
      escolhida, a pagina mostra o ARQUIVO daquele ano (o que ficou gravado no fecho) em vez do
      estado de agora. */
-  if(RF_TEMPORADA_PAGS.indexOf(def.key)>=0){
-    const sel=rfTemporadaSel(def.key);
-    if(sel!=null){
-      return rfEnvelope(rfTemporadaChipsHTML(def.key)+rfTemporadaArquivoHTML(def.key, sel));
+  /* ESCOLHER UM ANO NAO SAI DA PAGINA. Antes isto devolvia SO a barra de temporadas e um
+     resumo do arquivo -- sem cabecalho e sem abas --, entao carregar em "2026" era perder de
+     vista a propria pagina. Agora a pagina segue igual e o que muda e o CONTEUDO da aba, que
+     passa a ser o daquele ano (ver rfTemporadaAbaHTML). Aba sem registo por temporada diz isso
+     dentro dela mesma. */
+  const anoSel=(RF_TEMPORADA_PAGS.indexOf(def.key)>=0)?rfTemporadaSel(def.key):null;
+  if(anoSel!=null){
+    try{ corpo = rfTemporadaAbaHTML(def.key, at?at.k:'', anoSel) || rfTemporadaSemArquivoHTML(anoSel); }
+    catch(e){
+      console.warn('[rf26] arquivo da temporada falhou:', def.key+'/'+(at?at.k:'')+'/'+anoSel, e);
+      corpo=`<div class="rf-empty">Não foi possível abrir o arquivo de ${escC(String(anoSel))}.</div>`;
     }
   }
-  if(monta){
+  else if(monta){
     try{ corpo = monta(); }
     catch(e){
       console.warn('[rf26] página falhou:', def.key+'/'+(at?at.k:'resumo'), e);

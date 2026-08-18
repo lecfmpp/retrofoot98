@@ -7447,6 +7447,11 @@
 .rf-tr-tit{font-weight:700;font-size:var(--fs-1);color:var(--club-secondary,#F2B90C);margin-left:5px}
 
 /* barra de temporadas (Campeonatos e Treinador) */
+/* as tacas do ano no arquivo da temporada */
+.rf-tmp-tacas{display:flex;flex-wrap:wrap;gap:14px;padding:4px 0 2px}
+.rf-tmp-taca{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:96px}
+.rf-tmp-taca img,.rf-tmp-taca svg{width:44px;height:44px;object-fit:contain}
+.rf-tmp-taca-n{font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:var(--text-2);text-align:center}
 .rf-tmp-barra{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
 .rf-tmp-l{font-family:var(--font-mono,monospace);font-size:9px;font-weight:600;letter-spacing:.12em;
   color:var(--text-3);margin-right:2px}
