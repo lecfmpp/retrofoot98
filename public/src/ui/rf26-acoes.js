@@ -258,6 +258,33 @@ const RF_ACOES = {
              {l:emAberto?'Aceitar e fechar':'Fechar contratação',on:'rfMkFinalizar()'}] });
   }
 
+  /* ===== JOGADOR DE OUTRO TREINADOR NAO PASSA PELO REGATEIO DA MAQUINA =====
+     Este dialogo mandava SEMPRE em rfMkProporFee(), que chama startNego(). E startNego
+     devolve -1 de proposito quando o clube e de um humano (a negociacao algoritmica nao vale
+     para gente de verdade: a proposta tem de viajar ate ao outro aparelho). Com -1, a linha
+     seguinte lia S.negos[-1] -- undefined -- e a proposta morria ali: o botao "Enviar
+     proposta" simplesmente nao fazia nada. Dava para propor a clube da maquina e nao dava
+     para propor a clube de gente, que e o relato.
+     O caminho certo ja existia -- sendHumanOffer(), que poe a proposta no e-mail do outro
+     treinador e a manda pela rede -- mas so estava ligado na gaveta antiga do Mercado, que
+     deixou de ser desenhada (rfMktGavetaHTML devolve '' desde a pele nova). Aqui ele volta a
+     ter tela: mesma ficha, mesmo campo, outro destino. */
+  const humano = CL.online && CL.humans && CL.humans[d.clubId];
+  if(humano){
+    const quem=(CL.humans&&CL.humans[d.clubId])||'outro treinador';
+    return rfAcao({ kicker:'MERCADO · COMPRAR · PROPOSTA A OUTRO TREINADOR',
+      titulo:'Proposta por '+escC((p&&p.n)||'—'), w:520,
+      corpo:
+        rfAcFichaHTML(p,'VALOR DE MERCADO',rfDin(ask),d.num)
+        + rfAcAvisoHTML(`${escC(p&&p.n||'O jogador')} é do <b>${escC(c.short)}</b>, que tem treinador de verdade — <b>${escC(quem)}</b>. Aqui não há regateio: a proposta vai para o e-mail dele, que aceita, recusa ou pede outro valor.`,'aviso')
+        + rfAcCampoHTML('rf-ac-fee','Valor da proposta', oferta?moneyDisp(oferta):'',
+            `O valor de mercado dele é ${escC(rfDin(ask))} — quem decide é o outro treinador.`, {foco:true})
+        + rfAcLinhaHTML('Caixa depois da compra', rfDin(caixa), caixa<0?'ruim':'ok', true)
+        + rfAcLinhaHTML('Folha depois da contratação', rfDin(folha)+'/mês', 'aviso')
+        + rfAcNotaHTML('A proposta fica de pé por seis rodadas. Enquanto ele não responder, ela aparece em Propostas.'),
+      acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar proposta',on:'rfMkEnviarHumano()'}] });
+  }
+
   const pediu = n && n.clubCounter;
   return rfAcao({ kicker:'MERCADO · COMPRAR · ETAPA 1 DE 3',
     titulo:'Proposta por '+escC((p&&p.n)||'—'), w:520,

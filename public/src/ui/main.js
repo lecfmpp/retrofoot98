@@ -6379,14 +6379,28 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
       const m0=(RL.matches||[])[0]; if(m0 && m0.streamKey) NET.broadcastKickoff(m0.streamKey);
     }
   }
-  RL.minute+=1;
+  /* ===== O RELOGIO SEGUE A PARTIDA, NAO O RELOGIO DE PAREDE =====
+     Ele era incrementado a cada tique, aconteca o que acontecer com a simulacao. So que a
+     sessao PARA quando fica a espera de uma decisao (session.step devolve logo se houver
+     `pending`): se por qualquer motivo essa decisao nao for resolvida -- e o modal nao estiver
+     aberto, que e o unico caso em que o tique nem chega aqui --, a partida congela e o relogio
+     continua a correr sozinho. Foi isso que se viu numa liga: 90, 100, 135 minutos, sem ser
+     prorrogacao, e sem apito final. Agora, com uma partida travada a espera de decisao, o
+     relogio da rodada espera com ela. */
+  const travadaEmDecisao=(RL.matches||[]).some(m=>m.sim && !m.sim.done && m.sim.pending);
+  if(!travadaEmDecisao) RL.minute+=1;
   // FASE 3A: sessão interativa gera os eventos AO VIVO, minuto a minuto — avança até o minuto do
   // relógio (ou até uma decisão pendente travar). Enquanto a sessão não termina, o relógio da
   // rodada se estende junto (o acréscimo só é sorteado aos 90'). Eventos entram em m.events
   // (mesma referência) e são consumidos pelo laço normal abaixo — modais pausam igual sempre.
   RL.matches.forEach(m=>{ if(m.sim && !m.sim.done){
     while(!m.sim.pending && !m.sim.done && m.sim.minute<RL.minute){ m.sim.step(); }
-    if(!m.sim.done) RL.maxMin=Math.max(RL.maxMin, m.sim.totalMinutes || (RL.minute+2));
+    /* TETO DO RELOGIO VEM DA PARTIDA. Era `RL.minute+2` -- o relogio a alimentar-se de si
+       proprio: enquanto a sessao nao anunciava o total (so o faz ao chegar aos 90), cada tique
+       empurrava o teto dois minutos a frente do proprio tique, para sempre. Com a sessao
+       parada numa decisao isso e uma escada infinita. `m.sim.minute` e ate onde o jogo de
+       facto chegou, e e esse que manda. */
+    if(!m.sim.done) RL.maxMin=Math.max(RL.maxMin, m.sim.totalMinutes || (m.sim.minute+2));
     if(m.sim.done && m.sim.result){ m.fhg=m.sim.result.hg; m.fag=m.sim.result.ag; m.perf=m.sim.result.perf; }
     // FASE 3B: pendência do lado REMOTO (visitante humano) — espera a decisão dele via 'mdec'
     // por até 15s; sem resposta, aplica a padrão (o autoritativo nunca trava esperando quem caiu).
@@ -6395,8 +6409,22 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
       if(m.sim.pending.ev.side!==myS){
         if(!m.sim._remoteDeadline) m.sim._remoteDeadline=nowMs()+15000;
         if(nowMs()>m.sim._remoteDeadline){ const d=m.sim.defaultDecision(); if(d) m.sim.applyDecision(d); m.sim._remoteDeadline=null; }
+      } else {
+        /* PENDENCIA MINHA SEM MODAL ABERTO -- o beco de onde a partida nao sai sozinha.
+           Quando o modal abre, ele poe RL.paused e o tique nem chega aqui; se estamos a
+           passar por esta linha, a decisao e minha, nao ha modal, e ninguem a vai resolver.
+           Acontece quando o evento pendente nao chega a ser lido (o laco de eventos para no
+           primeiro por resolver, entao um evento do outro lado ainda em aberto segura a fila
+           inteira). Vinte segundos e aplica-se a mesma decisao padrao do lado remoto -- a
+           partida tem sempre de acabar. */
+        if(!m.sim._localDeadline) m.sim._localDeadline=nowMs()+20000;
+        if(nowMs()>m.sim._localDeadline){
+          const d=m.sim.defaultDecision();
+          if(d){ m.sim.applyDecision(d); console.warn('decisão pendente sem modal — aplicada a padrão:', d.tipo); }
+          m.sim._localDeadline=null;
+        }
       }
-    } else m.sim._remoteDeadline=null;
+    } else { m.sim._remoteDeadline=null; m.sim._localDeadline=null; }
     maybeBroadcastMatch(m); // transmite o snapshot pra sala (visitante + espectadores)
   } else if(m.sim && m.sim.done){
     // FASE 3C: continua batendo o snapshot FINAL enquanto a rodada não fecha. Sem isso o apito
@@ -9613,10 +9641,14 @@ const TEMPO_DEFAULT='Ultrassônico';
 
    Enquanto estiver ligado, a tela de Opções mostra o aviso (ver renderOptions) pra ninguém
    passar meia hora achando que a preferência dele quebrou. */
-/* DESLIGADO (17/08/2026): com o ritmo 'Foguete' na lista, quem decide a
-   velocidade volta a ser quem joga -- travar aqui era o que fazia a escolha em
-   Opcoes nao ter efeito nenhum. */
-const TEMPO_TESTE=null;   // ← rótulo (ex.: 'Ultrassônico') liga a trava de bancada
+/* LIGADO EM 'Foguete' (18/08/2026), A PEDIDO, PARA TESTES. Vale para TODAS as competicoes
+   (liga e copas correm no mesmo liveTick) e para os dois modos, Solo e Resenha -- na Resenha
+   ele passa por cima tanto da opcao de cada jogador como do ritmo escolhido pelo anfitriao,
+   que e justamente o ponto: todos correm igual, depressa, sem combinar nada.
+   ENQUANTO ESTIVER ASSIM, a escolha em Opcoes -> Tempo de jogo NAO tem efeito (a propria tela
+   avisa isso). Voltar a `null` devolve o comando a quem joga -- foi por isso que ele esteve
+   desligado desde 17/08. */
+const TEMPO_TESTE='Foguete';   // ← rótulo (ex.: 'Ultrassônico') liga a trava de bancada
 /* rótulo de ritmo que vale AGORA (o de teste, quando ligado; senão a opção do save) */
 function tempoLabelAtual(){
   if(TEMPO_TESTE && TEMPO_MS[TEMPO_TESTE]) return TEMPO_TESTE;

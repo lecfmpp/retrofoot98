@@ -653,10 +653,23 @@ function rfAcPreparar(clubId, nome){
 }
 function rfMkProporFee(){
   const M=CL.market; if(!M) return;
+  /* clube de outro treinador nao passa por aqui -- e sendHumanOffer que vale. Rede de
+     seguranca para qualquer caminho que ainda caia neste botao (ver o dialogo mkt-propor). */
+  if(CL.online && CL.humans && CL.humans[M.clubId]){ rfMkEnviarHumano(); return; }
   M.offer=rfMkVal('rf-mk-fee');
   if(M.offer<=0){ toastC('Digite quanto você quer oferecer.'); return; }
   if(M.negoIdx==null) M.negoIdx=startNego(M.clubId,M.player,M.offer);
-  else S.negos[M.negoIdx].offerFee=M.offer;
+  /* startNego devolve -1 quando recusa abrir (janela fechada, jogador travado, clube de
+     humano). S.negos[-1] e undefined, e o que se via era um botao que nao fazia nada --
+     sem toast, sem erro. Agora o motivo aparece. */
+  if(M.negoIdx==null || M.negoIdx<0){
+    M.negoIdx=null;
+    toastC('⚠ '+((typeof canNegotiate==='function' && !canNegotiate())
+      ? 'A janela de transferências está fechada.'
+      : 'Não é possível abrir negociação por este jogador agora.'));
+    return;
+  }
+  if(S.negos[M.negoIdx]) S.negos[M.negoIdx].offerFee=M.offer;
   const r=clubRespond(S.negos[M.negoIdx]); toastC(r.msg||''); cdraw();
 }
 function rfMkIgualar(){
