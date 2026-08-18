@@ -1675,11 +1675,16 @@ function hashC(s: any) { s = String(s); let h = 0; for (let i = 0; i < s.length;
    mesma regra mandante-autoritativa da divisão principal. Partida do humano = resultado submetido;
    as outras = motor. Os incidentes (cartão/lesão) do humano já foram aplicados globalmente no
    resolveLeagueRound (a partir de humanResultByFx), então aqui só o placar/tabela. */
-function advanceOtherDivs(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, preMatches?: any) {
-  if (!S.otherDivs) return; const round = S.round, season = S.season;
+/* `M` e o MUNDO do pais (ver resolverPiramideDoPais). As divisoes de baixo sao do pais; a rodada,
+   a temporada, a semente e os elencos sao do jogo inteiro. Sem M, o mundo e a propria ancora --
+   e o comportamento de sempre. Enquanto isto rodava uma vez so, a Championship ficava parada
+   enquanto a Premier jogava, e ninguem reparava ate a virada de temporada. */
+function advanceOtherDivs(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, preMatches?: any, M?: any) {
+  const mundo = M || S;
+  if (!mundo.otherDivs) return; const round = S.round, season = S.season;
   humanResultByFx = humanResultByFx || {};
-  for (const d in S.otherDivs) {
-    const od = S.otherDivs[d]; if (!od.sched || !od.sched.length) continue;
+  for (const d in mundo.otherDivs) {
+    const od = mundo.otherDivs[d]; if (!od.sched || !od.sched.length) continue;
     const oFx = od.sched[round % od.sched.length] || []; const base = hashC("rnd" + season + "-" + round + "-" + d);
     oFx.forEach((fx: any) => {
       const h = fx[0], a = fx[1]; if (h == null || a == null || !od.table[h] || !od.table[a]) return;
@@ -1939,22 +1944,31 @@ function advanceGroupStageRoundS(S: any, mg: any, roundLabel: string, cupResultB
    mesmo dia (medido: duas rodadas de grupo da Libertadores em 04/mar, e Copa do Brasil com 2ª
    fase e 16 avos juntas). O carimbo viaja no shared_state, então basta lê-lo — e escrevê-lo,
    pra uma segunda chamada do próprio servidor também ser inócua. */
-function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>) {
-  if (!S.cups) return;
-  // trava "uma rodada por competição por jornada" — MESMAS funções que o cliente usa (folha única)
-  const jaResolvida = (k: string) => WR.cupAlreadyResolved(S._cupResolvedRound, k, S.round);
-  const marcar = (k: string) => { S._cupResolvedRound = WR.markCupResolved(S._cupResolvedRound, k, S.round); };
-  const nacKey = COPA_NACIONAL_KEY();
-  if (nacKey && cupTickMatchesRound(S, nacKey, S.round) && !jaResolvida(nacKey)) {
-    const cb = S.cups[nacKey];
+/* `M` e o MUNDO do pais: as copas e o calendario de copa sao DELE. O resto -- semente, rodada,
+   dia, forca dos clubes -- e do jogo inteiro. Sem M, opera na ancora, como sempre operou.
+   Enquanto isto rodava uma vez so, a Champions do treinador ingles simplesmente nao avancava. */
+function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>, M?: any) {
+  const mundoC = M || S;
+  const uniC = (M && M.pais) || UNI_ATIVO;          // as copas sao do PAIS deste mundo
+  if (!mundoC.cups) return;
+  /* trava "uma rodada por competicao por jornada" — MESMAS funcoes que o cliente usa (folha unica).
+     A trava e por MUNDO: a Copa do Brasil e a Champions podem cair na mesma jornada sem uma
+     carimbar pela outra, porque cada pais tem a sua marca. */
+  const marcaDe = (k: string) => (M && M.pais) ? (M.pais + ':' + k) : k;
+  const jaResolvida = (k: string) => WR.cupAlreadyResolved(S._cupResolvedRound, marcaDe(k), S.round);
+  const marcar = (k: string) => { S._cupResolvedRound = WR.markCupResolved(S._cupResolvedRound, marcaDe(k), S.round); };
+  const tique = (k: string) => WR.cupTickMatchesRound(mundoC.cupCalendar, k, S.round);
+  const nacKey = WORLD_CONFIG.COPA_NACIONAL[uniC] || null;
+  if (nacKey && tique(nacKey) && !jaResolvida(nacKey)) {
+    const cb = mundoC.cups[nacKey];
     if (cb && !cupIsFinished(cb) && cb.ties && cb.ties.length) {
       advanceCupBracket(S, cb, nacKey + '-r' + cb.round, cupResultByFx, humans); marcar(nacKey);
     }
   }
-  GRUPO_KEYS().forEach((key) => {
-    if (!cupTickMatchesRound(S, key, S.round)) return;
+  WORLD_CONFIG.copasContinentaisDe(uniC).forEach((key: string) => {
+    if (!tique(key)) return;
     if (jaResolvida(key)) return;
-    const c = S.cups[key]; if (!c) return;
+    const c = mundoC.cups[key]; if (!c) return;
     if (c.group && !c.bracket) {
       if (!c.group.finished) { advanceGroupStageRoundS(S, c.group, key + '-grupo-r' + c.group.round, cupResultByFx); marcar(key); }
       if (c.group.finished) {
@@ -2537,6 +2551,10 @@ function resolverPiramideDoPais(S: any, M: any, ctx: any) {
   const humanResultByFx = ctx.humanResultByFx, humanClubs = ctx.humanClubs;
   const humanXI = ctx.humanXI, humanTactic = ctx.humanTactic, preMatches = ctx.preMatches;
   const rateR = ctx.rateR, capsByClub = ctx.capsByClub, minsByClub = ctx.minsByClub;
+  /* AS COPAS DESTE PAIS, ANTES DAS PARTIDAS DELE -- mesma ordem da ancora (copa na quarta, liga
+     no fim de semana). Enquanto isto rodava so na ancora, a Champions do treinador ingles nunca
+     avancava: ele veria a liga andar e a copa dele parada para sempre. */
+  if (ctx.avancarCopas) advancePendingCups(S, ctx.cupResultByFx || {}, humanClubs, M);
   const fixtures = (M.sched && M.sched[round]) || [];
   fixtures.forEach((fx: any) => {                                 // 3) resultados: humano=submetido, CPU=motor
     const h = fx[0], a = fx[1]; if (h == null || a == null) return; const k = h + "-" + a;
@@ -2574,6 +2592,10 @@ function resolverPiramideDoPais(S: any, M: any, ctx: any) {
     if (humanClubs.has(a)) postMatchMoraleS(S, a, capsByClub[a] ? poolA : xiA, ag, hg, scorers, capsByClub[a], matchMinutes);
     S.results.push({ round: round, h: h, a: a, hg: hg, ag: ag, scorers: scorers, pais: M.pais });
   });
+  /* AS DIVISOES DE BAIXO DESTE PAIS. Rodava uma vez so, sobre a ancora -- a Championship ficava
+     parada enquanto a Premier jogava, e so se daria por isso na virada de temporada, quando ela
+     subisse e descesse clubes com uma tabela de zeros. */
+  advanceOtherDivs(S, humanResultByFx, humanClubs, humanXI, humanTactic, preMatches, M);
 }
 
 function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any, humanTransfers?: any[], moraleByClub?: any, humanOffers?: any[], humanCounters?: any[], humanOfferDrops?: any[], preMatches?: any) {
@@ -2593,7 +2615,9 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   //     segurança do cliente, host que caiu antes de fechá-la) — nesse caso a liga avança as copas
   //     igual sempre, e a semana se resolve de qualquer jeito. É o que impede a divisão em dois
   //     estágios de virar um caminho onde a copa simplesmente não acontece.
-  if (S.roundStage == null || S.roundStage === 'cup') advancePendingCups(S, cupResultByFx || {}, humanClubs);
+  /* AS COPAS PASSARAM A SER POR PAIS (ver resolverPiramideDoPais). Aqui fica so a DECISAO de se
+     elas avancam nesta chamada -- a mesma de sempre: a quarta dedicada ja as avancou, ou nao. */
+  const avancarCopas = (S.roundStage == null || S.roundStage === 'cup');
   applyHumanMorale(S, moraleByClub || {});                        // 0b) efeito da coletiva na moral do elenco
   const fixtures = (S.sched[round] || []);
   advancePlayerAvailability(S);                                   // 1) cumpre suspensões/lesões
@@ -2611,10 +2635,10 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
      sala existente -- este laco da exatamente uma volta, no proprio S, e o resultado e
      byte-identico ao de antes. E essa a rede: a capacidade de iterar entra agora, sem mexer no
      que ja esta no ar. */
-  const ctxPais = { round, seed, humanResultByFx, humanClubs, humanXI, humanTactic, preMatches, rateR, capsByClub, minsByClub };
+  const ctxPais = { round, seed, humanResultByFx, humanClubs, humanXI, humanTactic, preMatches, rateR, capsByClub, minsByClub, avancarCopas, cupResultByFx };
   const ancora = WORLD_CONFIG.uniDoEstado(S);
   WORLD_CONFIG.paisesVivos(S).forEach((pais: string) => {
-    if (pais === ancora) { resolverPiramideDoPais(S, { pais, sched: S.sched, table: S.table, division: S.division, otherDivs: S.otherDivs }, ctxPais); return; }
+    if (pais === ancora) { resolverPiramideDoPais(S, { pais, sched: S.sched, table: S.table, division: S.division, otherDivs: S.otherDivs, cups: S.cups, cupCalendar: S.cupCalendar }, ctxPais); return; }
     const m = S.mundos && S.mundos[pais];
     if (!m || !m.sched) { console.warn('pais vivo sem mundo proprio (' + pais + '): roda como fundo nesta rodada'); return; }
     /* ATENCAO ao proximo passo: aqui resolve-se a DIVISAO DE TOPO deste pais. As outras divisoes
@@ -2635,7 +2659,7 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
     });
   });
   advanceDevelopment(S, humanClubs, humanXI, capsByClub);        // 4b) evolução/declínio dos jogadores
-  advanceOtherDivs(S, humanResultByFx, humanClubs, humanXI, humanTactic, preMatches); // 4c) outras divisões (CPU + override humano onde houver)
+  // 4c) as outras divisões passaram a ser resolvidas DENTRO do passo de cada país
   S.round++; S.week = (S.week || 1) + 1; S.day = (S.day || 1) + 7; // 5) avança a rodada
   cpuRoundCash(S, humanClubs);                                    // 6) caixa dos rivais anda TODA rodada (ver WR.cpuCaixaRodada)
   cpuMarketRound(S, humanClubs);                                  // 6a) mercado entre clubes da CPU (ver WR.cpuMarket)

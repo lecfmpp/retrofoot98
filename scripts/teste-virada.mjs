@@ -226,8 +226,17 @@ bloco('duas pirâmides', () => {
   Object.keys(ing.clubOverall).forEach((id) => S.clubOverall[id] = ing.clubOverall[id]);
   const idsPL = Object.keys(ing.table);
   const tabPL = {}; idsPL.forEach((id) => tabPL[id] = { id, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, Pts: 0 });
-  S.mundos = { Inglaterra: { pais: 'Inglaterra', division: 'PL', sched: RR.makeScheduleT(idsPL), table: tabPL, otherDivs: {} } };
+  // a divisão de baixo do inglês (Championship) e a copa dele (Champions), como criarMundoDoPais monta
+  const idsCH = Object.keys(ing.otherDivs.CH.table);
+  const tabCH = {}; idsCH.forEach((id) => tabCH[id] = { id, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, Pts: 0 });
+  const chave = RR.makeBracketT(idsPL.slice(0, 8), 12345, S.clubOverall);
+  S.mundos = { Inglaterra: { pais: 'Inglaterra', division: 'PL',
+    sched: RR.makeScheduleT(idsPL), table: tabPL,
+    otherDivs: { CH: { clubs: idsCH.map((id) => ({ id })), sched: RR.makeScheduleT(idsCH), table: tabCH } },
+    cups: { championsLeague: { group: null, bracket: chave } },
+    cupCalendar: { _season: S.season, championsLeague: [0] } } };
   S.paisesVivos = ['brasil', 'Inglaterra'];
+  const rodadaDaCopaAntes = chave.round;
 
   RR.resolveLeagueRound(S, {}, new Set(), {}, {}, {});
 
@@ -241,6 +250,16 @@ bloco('duas pirâmides', () => {
   conferir('resultados do Brasil', doBrasil, Object.keys(S.table).length / 2);
   conferir('resultados da Inglaterra', daIngl, idsPL.length / 2);
   conferir('a rodada avançou uma vez só', S.round, 1);
+
+  /* AS DIVISÕES DE BAIXO DO SEGUNDO PAÍS. Rodavam só na âncora: a Championship ficava parada
+     enquanto a Premier jogava, e só se daria por isso na virada, com uma tabela de zeros. */
+  const jogouCH = idsCH.map((id) => S.mundos.Inglaterra.otherDivs.CH.table[id].P);
+  conferir('a Championship também jogou', new Set(jogouCH).size === 1 && jogouCH[0] === 1, true);
+
+  /* AS COPAS DO SEGUNDO PAÍS. Rodavam só na âncora: a Champions do treinador inglês nunca
+     avançava — ele veria a liga andar e a copa dele parada para sempre. */
+  const chDepois = S.mundos.Inglaterra.cups.championsLeague.bracket;
+  conferir('a Champions avançou de fase', chDepois.round > rodadaDaCopaAntes, true);
 });
 
 console.log('');
