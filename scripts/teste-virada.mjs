@@ -29,6 +29,7 @@ function carregarServidor() {
   src += `
 ;globalThis.__RR = { aplicarUniverso, resolveSeasonTurnover, computeDivisionSwap,
   rebuildContinentalCups, cupTotalRoundsS, makeScheduleT, makeBracketT, rbForce, bandKeyDiv,
+  resolveLeagueRound, resolverPiramideDoPais,
   get DIV_ORDER(){ return DIV_ORDER; }, get DIVISION_SIZE(){ return DIVISION_SIZE; },
   get UNI_ATIVO(){ return UNI_ATIVO; } };`;
   const js = transformSync(src, { loader: 'ts', format: 'cjs' }).code;
@@ -172,6 +173,39 @@ for (const [uniKey, temCopaNacional, nat] of [['brasil', true, 'Brasil'], ['Ingl
   if (estranhas.length) reprova(uniKey + ': regen com nacionalidade ' + estranhas.join('/') + ', esperado ' + nat);
   if (!nascidos.length) console.log('      (' + uniKey + ': nenhum regen nesta semente — aposentadoria não disparou)');
 }
+
+/* ===== 5. UMA RODADA DE LIGA CONTINUA A ACONTECER =====
+   `resolveLeagueRound` passou a iterar os países vivos em vez de resolver uma pirâmide só. Com um
+   país vivo — que é toda sala existente — o laço tem de dar exatamente uma volta e o resultado
+   tem de ser o de sempre. É a rede desta refatoração: a capacidade de iterar entra sem mexer no
+   que já está no ar. */
+console.log('5. Rodada de liga: um país vivo, uma volta, tudo joga');
+bloco('rodada de liga', () => {
+  const S = mundo('brasil', U, W);
+  RR.aplicarUniverso(S);
+  S.sched = RR.makeScheduleT(Object.keys(S.table));
+  S.results = []; S.round = 0; S.week = 1; S.day = 1;
+  const clubes = Object.keys(S.table);
+  /* o mundo sintético vem com uma temporada INTEIRA jogada (é o que a virada precisa). Para medir
+     UMA rodada, a tabela começa do zero — senão os 38 jogos anteriores entram na conta. */
+  clubes.forEach((id) => { S.table[id] = { id, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, Pts: 0 }; });
+  const antes = 0;
+  RR.resolveLeagueRound(S, {}, new Set(), {}, {}, {});
+  const jogosPorClube = clubes.map((id) => S.table[id].P);
+  const depois = jogosPorClube.reduce((a, b) => a + b, 0);
+  conferir('cada clube jogou uma vez', new Set(jogosPorClube).size === 1 && jogosPorClube[0] === 1, true);
+  conferir('partidas somadas', depois - antes, clubes.length);
+  conferir('a rodada avançou', S.round, 1);
+  const daRodada = (S.results || []).filter((r) => r.round === 0);
+  conferir('resultados gravados', daRodada.length, clubes.length / 2);
+  // cada resultado sabe de que país é — é o que permite mais de uma pirâmide na mesma sala
+  conferir('resultados carregam o país', daRodada.every((r) => r.pais === 'brasil'), true);
+  // os pontos batem com os placares
+  let ptsEsperados = 0;
+  daRodada.forEach((r) => { ptsEsperados += (r.hg === r.ag) ? 2 : 3; });
+  const ptsNaTabela = clubes.map((id) => S.table[id].Pts).reduce((a, b) => a + b, 0);
+  conferir('pontos da tabela batem com os placares', ptsNaTabela, ptsEsperados);
+});
 
 console.log('');
 if (falhas) { console.log('✘ ' + falhas + ' divergência(s) na virada'); process.exit(1); }

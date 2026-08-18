@@ -2518,6 +2518,64 @@ function cpuRoundCash(S: any, humans: Set<string>) {
     OPEX,
   });
 }
+/* ===== A PIRAMIDE DE UM PAIS, RESOLVIDA =====
+   Extraido de resolveLeagueRound sem mudar uma virgula do que faz: e o passo 3 (as partidas da
+   divisao do jogador e o que elas escrevem na tabela). O que muda e de ONDE vem a tabela e o
+   calendario -- do MUNDO daquele pais, nao de S.
+
+   PORQUE ISTO EXISTE. Num mundo com humanos em paises diferentes, cada pais tem a sua piramide e
+   as partidas dele TEM de acontecer de verdade: a regra do espectador manda o treinador assistir
+   a tudo do pais dele, e nao da para assistir ao que foi resolvido por uma simulacao de fundo.
+   Com um pais vivo so -- que e toda sala existente -- o comportamento e identico ao de antes:
+   o mundo da ancora E o proprio S.
+
+   O que e do JOGO INTEIRO continua em S e continua partilhado: elencos, caixa, propostas. Um
+   jogador transferido do Fluminense para o Chelsea e o mesmo objeto nos dois mundos -- e por isso
+   que `squads` nunca entra no mundo. */
+function resolverPiramideDoPais(S: any, M: any, ctx: any) {
+  const round = ctx.round, seed = ctx.seed;
+  const humanResultByFx = ctx.humanResultByFx, humanClubs = ctx.humanClubs;
+  const humanXI = ctx.humanXI, humanTactic = ctx.humanTactic, preMatches = ctx.preMatches;
+  const rateR = ctx.rateR, capsByClub = ctx.capsByClub, minsByClub = ctx.minsByClub;
+  const fixtures = (M.sched && M.sched[round]) || [];
+  fixtures.forEach((fx: any) => {                                 // 3) resultados: humano=submetido, CPU=motor
+    const h = fx[0], a = fx[1]; if (h == null || a == null) return; const k = h + "-" + a;
+    let hg: number, ag: number, scorers: any[]; let perf: any = null;
+    const sub = humanResultByFx[k];
+    // FASE 2: precedência resultado submetido (humano jogou ao vivo) > stream pré-computado do
+    // apito (round_events — o que TODOS assistiram na tela ao vivo) > simular agora (fallback).
+    // Consumir o pré-computado importa porque transferências/moral de humanos são aplicadas ACIMA,
+    // mutando elencos DEPOIS do apito — re-simular aqui gravaria um placar diferente do assistido.
+    const pc = (!sub && preMatches) ? preMatches[k] : null;
+    /* SÚMULA DE MINUTOS da partida. Numa partida humana quem tem essa informação é o CLIENTE
+       (é ele que roda a sessão ao vivo, com as substituições), então ela viaja no last_result;
+       nas de CPU, o próprio motor devolve (expulsão e lesão já entram). Sem ela, cai no XI
+       inteiro — que é o que o servidor fazia até 2026-08-06 pra todo mundo. */
+    let caps: any = null, matchMinutes = 90;
+    if (sub) { hg = sub.hg; ag = sub.ag; scorers = sub.scorers || []; perf = sub.perf || null; caps = sub.caps || null; matchMinutes = sub.matchMinutes || 90; }
+    else if (pc) { hg = pc.hg; ag = pc.ag; scorers = pc.scorers || []; perf = pc.perf || null; caps = pc.caps || null; matchMinutes = pc.matchMinutes || 90; }
+    else {
+      const mseed = ME.hashSeed(seed, round, h, a);
+      const res = ME.simMatchPure(h, a, sideInputs(S, h, humanClubs.has(h), humanXI, humanTactic), sideInputs(S, a, humanClubs.has(a), humanXI, humanTactic), mseed, {});
+      hg = res.hg; ag = res.ag; scorers = res.scorers || []; perf = res.perf || null; caps = res.caps || null; matchMinutes = res.matchMinutes || 90;
+    }
+    capsByClub[h] = (caps && caps.H) || null; capsByClub[a] = (caps && caps.A) || null;
+    minsByClub[h] = matchMinutes; minsByClub[a] = matchMinutes;
+    applyResultT(M.table, h, a, hg, ag); recordScorers(S, scorers);
+    // 3b) súmula: nota + JOGO/gol/clean sheet de quem entrou em campo, dos dois lados (ver ratePlayersS)
+    const xiH = S.squads[h] ? ME.resolveXI(S.squads[h], humanClubs.has(h) ? (humanXI[h] || ME.autoXINames(S.squads[h])) : null) : null;
+    const xiA = S.squads[a] ? ME.resolveXI(S.squads[a], humanClubs.has(a) ? (humanXI[a] || ME.autoXINames(S.squads[a])) : null) : null;
+    // quem entrou do banco não está no XI resolvido — junta o elenco pra súmula achar todo mundo
+    const poolH = S.squads[h] || xiH, poolA = S.squads[a] || xiA;
+    ratePlayersS(S, h, capsByClub[h] ? poolH : xiH, hg, ag, scorers, rateR, perf && perf.H, perf && perf.A, capsByClub[h], matchMinutes);
+    ratePlayersS(S, a, capsByClub[a] ? poolA : xiA, ag, hg, scorers, rateR, perf && perf.A, perf && perf.H, capsByClub[a], matchMinutes);
+    // 3c) moral pós-jogo — só clube humano (mesmo alcance do solo, ver postMatchMoraleS)
+    if (humanClubs.has(h)) postMatchMoraleS(S, h, capsByClub[h] ? poolH : xiH, hg, ag, scorers, capsByClub[h], matchMinutes);
+    if (humanClubs.has(a)) postMatchMoraleS(S, a, capsByClub[a] ? poolA : xiA, ag, hg, scorers, capsByClub[a], matchMinutes);
+    S.results.push({ round: round, h: h, a: a, hg: hg, ag: ag, scorers: scorers, pais: M.pais });
+  });
+}
+
 function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any, humanTransfers?: any[], moraleByClub?: any, humanOffers?: any[], humanCounters?: any[], humanOfferDrops?: any[], preMatches?: any) {
   const seed = S.seed, round = S.round;
   applyHumanTransfers(S, humanTransfers || [], humanClubs);       // 0) contratações/vendas do humano ANTES de escalar/jogar
@@ -2546,41 +2604,24 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   // súmula da rodada por clube: quem entrou em campo e por quantos minutos (uma partida por
   // clube por rodada). Alimenta nota, moral, energia e o "jogou" da evolução.
   const capsByClub: Record<string, any> = {}, minsByClub: Record<string, number> = {};
-  fixtures.forEach((fx: any) => {                                 // 3) resultados: humano=submetido, CPU=motor
-    const h = fx[0], a = fx[1]; if (h == null || a == null) return; const k = h + "-" + a;
-    let hg: number, ag: number, scorers: any[]; let perf: any = null;
-    const sub = humanResultByFx[k];
-    // FASE 2: precedência resultado submetido (humano jogou ao vivo) > stream pré-computado do
-    // apito (round_events — o que TODOS assistiram na tela ao vivo) > simular agora (fallback).
-    // Consumir o pré-computado importa porque transferências/moral de humanos são aplicadas ACIMA,
-    // mutando elencos DEPOIS do apito — re-simular aqui gravaria um placar diferente do assistido.
-    const pc = (!sub && preMatches) ? preMatches[k] : null;
-    /* SÚMULA DE MINUTOS da partida. Numa partida humana quem tem essa informação é o CLIENTE
-       (é ele que roda a sessão ao vivo, com as substituições), então ela viaja no last_result;
-       nas de CPU, o próprio motor devolve (expulsão e lesão já entram). Sem ela, cai no XI
-       inteiro — que é o que o servidor fazia até 2026-08-06 pra todo mundo. */
-    let caps: any = null, matchMinutes = 90;
-    if (sub) { hg = sub.hg; ag = sub.ag; scorers = sub.scorers || []; perf = sub.perf || null; caps = sub.caps || null; matchMinutes = sub.matchMinutes || 90; }
-    else if (pc) { hg = pc.hg; ag = pc.ag; scorers = pc.scorers || []; perf = pc.perf || null; caps = pc.caps || null; matchMinutes = pc.matchMinutes || 90; }
-    else {
-      const mseed = ME.hashSeed(seed, round, h, a);
-      const res = ME.simMatchPure(h, a, sideInputs(S, h, humanClubs.has(h), humanXI, humanTactic), sideInputs(S, a, humanClubs.has(a), humanXI, humanTactic), mseed, {});
-      hg = res.hg; ag = res.ag; scorers = res.scorers || []; perf = res.perf || null; caps = res.caps || null; matchMinutes = res.matchMinutes || 90;
-    }
-    capsByClub[h] = (caps && caps.H) || null; capsByClub[a] = (caps && caps.A) || null;
-    minsByClub[h] = matchMinutes; minsByClub[a] = matchMinutes;
-    applyResultT(S.table, h, a, hg, ag); recordScorers(S, scorers);
-    // 3b) súmula: nota + JOGO/gol/clean sheet de quem entrou em campo, dos dois lados (ver ratePlayersS)
-    const xiH = S.squads[h] ? ME.resolveXI(S.squads[h], humanClubs.has(h) ? (humanXI[h] || ME.autoXINames(S.squads[h])) : null) : null;
-    const xiA = S.squads[a] ? ME.resolveXI(S.squads[a], humanClubs.has(a) ? (humanXI[a] || ME.autoXINames(S.squads[a])) : null) : null;
-    // quem entrou do banco não está no XI resolvido — junta o elenco pra súmula achar todo mundo
-    const poolH = S.squads[h] || xiH, poolA = S.squads[a] || xiA;
-    ratePlayersS(S, h, capsByClub[h] ? poolH : xiH, hg, ag, scorers, rateR, perf && perf.H, perf && perf.A, capsByClub[h], matchMinutes);
-    ratePlayersS(S, a, capsByClub[a] ? poolA : xiA, ag, hg, scorers, rateR, perf && perf.A, perf && perf.H, capsByClub[a], matchMinutes);
-    // 3c) moral pós-jogo — só clube humano (mesmo alcance do solo, ver postMatchMoraleS)
-    if (humanClubs.has(h)) postMatchMoraleS(S, h, capsByClub[h] ? poolH : xiH, hg, ag, scorers, capsByClub[h], matchMinutes);
-    if (humanClubs.has(a)) postMatchMoraleS(S, a, capsByClub[a] ? poolA : xiA, ag, hg, scorers, capsByClub[a], matchMinutes);
-    S.results.push({ round: round, h: h, a: a, hg: hg, ag: ag, scorers: scorers });
+  /* ===== UM MUNDO POR PAIS VIVO =====
+     `paisesVivos(S)` da os paises que existem por inteiro. O da ANCORA e o proprio S (a piramide
+     que sempre esteve aqui); os outros vivem em `S.mundos[pais]`, com a mesma forma
+     {division, sched, table, otherDivs}. Enquanto ninguem cria S.mundos -- que e o caso de toda
+     sala existente -- este laco da exatamente uma volta, no proprio S, e o resultado e
+     byte-identico ao de antes. E essa a rede: a capacidade de iterar entra agora, sem mexer no
+     que ja esta no ar. */
+  const ctxPais = { round, seed, humanResultByFx, humanClubs, humanXI, humanTactic, preMatches, rateR, capsByClub, minsByClub };
+  const ancora = WORLD_CONFIG.uniDoEstado(S);
+  WORLD_CONFIG.paisesVivos(S).forEach((pais: string) => {
+    if (pais === ancora) { resolverPiramideDoPais(S, { pais, sched: S.sched, table: S.table, division: S.division, otherDivs: S.otherDivs }, ctxPais); return; }
+    const m = S.mundos && S.mundos[pais];
+    if (!m || !m.sched) { console.warn('pais vivo sem mundo proprio (' + pais + '): roda como fundo nesta rodada'); return; }
+    /* ATENCAO ao proximo passo: aqui resolve-se a DIVISAO DE TOPO deste pais. As outras divisoes
+       dele ainda nao andam -- `advanceOtherDivs` roda uma vez so, sobre a ancora (passo 4c). Quem
+       for ligar o segundo mundo tem de tratar disso, senao a Championship fica parada enquanto a
+       Premier joga, e ninguem repara ate a virada de temporada. */
+    resolverPiramideDoPais(S, Object.assign({ pais }, m), ctxPais);
   });
   const Rr = ME.makeRng(ME.hashSeed(seed, round, "post"));        // 4) energia/moral
   for (const cid in S.squads) for (const p of S.squads[cid]) { p.energy = clampN((p.energy || 100) + Rr.rnd(6, 16), 0, 100); p.moral = clampN((p.moral || 70) + (70 - (p.moral || 70)) * 0.08, 0, 100); }
