@@ -5617,8 +5617,19 @@ function clJogar(){
      ficava marcada como vista, e o que aparecia na tela eram os 40 jogos da Série D. A copa
      nunca era assistida e era resolvida em segundo plano — exatamente o "não vejo as finais".
      Se já há partida em campo, não se começa outra. Quem termina uma partida chama o fim dela
-     (finishCupSpectate/finishCupLiveMatch/finishLiveRound), nunca este botão. */
-  if(CL.live) return;
+     (finishCupSpectate/finishCupLiveMatch/finishLiveRound), nunca este botão.
+
+     MAS A TRAVA NUNCA PODE MATAR O BOTÃO. `if(CL.live) return` era absoluto: bastava um `CL.live`
+     ficar para trás — partida encerrada cujo objeto não foi limpo, ou tela abandonada por outro
+     caminho — para Jogar / Assistir / Ver classificação deixarem de responder PARA SEMPRE, e o
+     save ficava sem saída. Foi o relatado a 18/08 ("parou de funcionar depois de uma rodada").
+     Então a trava vale só enquanto a partida está MESMO a decorrer e na tela dela; um objeto
+     órfão é limpo aqui e o jogo segue. Botão morto é pior que partida repetida. */
+  if(CL.live){
+    if(!CL.live.done && CL.screen==='live') return;      // em campo, a sério: nada entra por cima
+    console.warn('partida órfã em CL.live (done='+!!CL.live.done+', tela='+CL.screen+') — limpa para o botão voltar a responder');
+    CL.live=null;
+  }
   if(CL._seatContext){ clSeatPlay(); return; } // hotseat: "Jogar" na tela do assento inicia a partida dele
   // CLASSIFICAÇÃO DE COPA PENDENTE: numa jornada com mais de uma competição, a fila para na tela
   // do clube entre uma e outra (ver cupClassifContinue). O próximo "Jogar" retoma dela — antes de

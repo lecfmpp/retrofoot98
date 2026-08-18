@@ -765,12 +765,13 @@ function rfSaveEscudoHTML(st){
 const TESTE_ALVO_PADRAO = 31;
 
 function clTestePular30(){
-  if(!CL.online){ toastC('A bancada é do Modo Resenha.'); return; }
   const alvo = TESTE_ALVO_PADRAO;
   if((S.round||0) >= alvo){ toastC('A sala já passou da jornada '+alvo+'.'); return; }
-  /* A SALA INTEIRA entra junta. O dia só vira quando o ÚLTIMO assento carimba: se só um cliente
-     entrasse em auto-jogo, a sala pararia à espera dos outros e a bancada não sairia do lugar. */
-  if(NET && NET.broadcastTeste) NET.broadcastTeste({ alvo });
+  /* NA RESENHA, A SALA INTEIRA ENTRA JUNTA. O dia só vira quando o ÚLTIMO assento carimba: se só
+     um cliente entrasse em auto-jogo, a sala pararia à espera dos outros. No SOLO não há a quem
+     avisar — e a bancada serve igual, para testar a virada de temporada sem jogar trinta jornadas
+     à mão. */
+  if(CL.online && typeof NET!=='undefined' && NET.broadcastTeste) NET.broadcastTeste({ alvo });
   clTesteEntrar({ alvo });
 }
 function clTesteEntrar(p){
@@ -780,12 +781,19 @@ function clTesteEntrar(p){
   CL._testeRitmoAntes=(typeof CL.tempoLabel!=='undefined')?CL.tempoLabel:null;
   CL.tempoLabel='Foguete';                                   // 6ms por minuto de jogo
   CL.tacticChosen=true;                                      // a bancada não pára para escolher tática
+  /* RELÓGIO PRÓPRIO NO SOLO. Na Resenha a bancada pega boleia do laço da sala (onlineTimerLoop);
+     no solo esse laço não existe, e sem um relógio ela ficaria ligada sem nunca agir. */
+  if(!CL.online){
+    if(CL._testeTimer) clearInterval(CL._testeTimer);
+    CL._testeTimer=setInterval(()=>{ try{ clTesteTick(); }catch(e){ console.warn('bancada:', e&&e.message); } }, 120);
+  }
   toastC('🧪 Bancada ligada — a caminho da jornada '+alvo);
   cdraw();
 }
 function clTesteSair(motivo){
   if(!CL._teste) return;
   const T=CL._teste; CL._teste=null;
+  if(CL._testeTimer){ clearInterval(CL._testeTimer); CL._testeTimer=null; }
   if(CL._testeRitmoAntes!=null) CL.tempoLabel=CL._testeRitmoAntes;
   const seg=Math.round((Date.now()-T.t0)/1000);
   clCloseOverlay();
@@ -801,7 +809,7 @@ function clTesteSair(motivo){
 function clTesteTick(){
   const T=CL._teste; if(!T || !T.ligado) return;
   if(typeof S==='undefined' || !S){ return; }
-  if((S.round||0) >= T.alvo){ clTesteSair('A sala chegou à jornada '+(S.round||0)+'.'); return; }
+  if((S.round||0) >= T.alvo){ clTesteSair((CL.online?'A sala':'O jogo')+' chegou à jornada '+(S.round||0)+'.'); return; }
   /* teto de segurança: bancada que não avança em 3 minutos desiste e devolve a sala, em vez de
      ficar a carimbar para sempre sem ninguém perceber. */
   if(Date.now()-T.t0 > 180000 && (S.round||0)===T.inicio){ clTesteSair('A bancada não conseguiu avançar — a sala ficou na jornada '+(S.round||0)+'.'); return; }
@@ -856,8 +864,8 @@ function clTesteClicar(){
 }
 /* o botão, logo abaixo do JOGAR. Só na Resenha, e some quando a sala já passou do alvo. */
 function rfBotaoBancadaHTML(){
-  if(!CL.online) return '';
-  if((S && S.round||0) >= TESTE_ALVO_PADRAO) return '';
+  if(typeof S==='undefined' || !S) return '';
+  if((S.round||0) >= TESTE_ALVO_PADRAO) return '';       // vale nos dois modos: solo e Resenha
   const a=CL._teste && CL._teste.ligado;
   return `<button type="button" class="rf-btn rf-btn-secondary rf-btn-full rf-teste-btn"
     ${a?'disabled':''} title="Joga sozinho até à jornada ${TESTE_ALVO_PADRAO} e devolve a sala"
