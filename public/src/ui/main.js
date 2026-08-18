@@ -443,7 +443,7 @@ function dlg(title,body,opts){
       </div>
       <div class="rf-dlg-sp"></div>
       ${badgeTxt?`<span class="rf-dlg-badge">${escC(badgeTxt)}</span>`:''}
-      <button class="rf-dlg-x" type="button" title="Fechar" aria-label="Fechar" onclick="clCloseOverlay()">✖</button>
+      ${opts.obrigatorio?'':'<button class="rf-dlg-x" type="button" title="Fechar" aria-label="Fechar" onclick="clCloseOverlay()">✖</button>'}
     </div>
     <div class="rf-dlg-body">${opts.ad?dlgBodyComAd(body,opts.ad):body}</div>
     ${opts.footer?`<div class="rf-dlg-foot">${opts.footer}</div>`:''}
@@ -12206,9 +12206,18 @@ function clWaitSkipAbsent(){
     .catch(e=>console.warn('começar sem eles:', e && e.message));
 }
 /* ---- overlays / toasts ---- */
-function overlayC(html){ let o=$c('#c-overlay'); if(!o){ o=document.createElement('div'); o.id='c-overlay'; o.className='cl-overlay'; o.onclick=clCloseOverlay; document.body.appendChild(o); }
+/* ===== MODAL OBRIGATORIO: A DECISAO NAO PODE SER DISPENSADA =====
+   Todo modal do jogo tem tres saidas — o X no cabecalho, o clique fora e o Esc — e isso esta
+   certo para 99% deles: modal que se pode fechar e modal que nao esta a pedir nada. A janela da
+   demissao nao e desse tipo. Ela pergunta "qual e o seu proximo clube?" e, fechada sem resposta,
+   deixava o treinador no clube que acabou de o despedir: o jogo seguia como se nada fosse.
+   `obrigatorio` fecha as tres saidas de uma vez. Quem abre um modal assim TEM de dar um caminho
+   de saida dentro do corpo — senao o jogo tranca. */
+function overlayC(html, opts){ opts=opts||{};
+  let o=$c('#c-overlay'); if(!o){ o=document.createElement('div'); o.id='c-overlay'; o.className='cl-overlay'; o.onclick=()=>{ if(!o.dataset.obrigatorio) clCloseOverlay(); }; document.body.appendChild(o); }
+  if(opts.obrigatorio) o.dataset.obrigatorio='1'; else delete o.dataset.obrigatorio;
   o.innerHTML=`<div class="cl-overlay-in" onclick="event.stopPropagation()">${html}</div>`; o.style.display='flex'; }
-function clCloseOverlay(){ const o=$c('#c-overlay'); if(o){ o.style.display='none'; o.innerHTML=''; } }
+function clCloseOverlay(){ const o=$c('#c-overlay'); if(o){ delete o.dataset.obrigatorio; o.style.display='none'; o.innerHTML=''; } }
 /* Esc fecha o modal aberto — o terceiro caminho de fechamento do padrão de modais (os outros
    dois, ✕ na barra e clique fora, já existem). Alcance idêntico ao do clique fora: só o
    #c-overlay, que é sempre dispensável; o overlay de sincronização da rodada é outro elemento
@@ -12216,6 +12225,7 @@ function clCloseOverlay(){ const o=$c('#c-overlay'); if(o){ o.style.display='non
 document.addEventListener('keydown',e=>{
   if(e.key!=='Escape') return;
   const o=$c('#c-overlay'); if(!o || o.style.display==='none' || !o.innerHTML) return;
+  if(o.dataset.obrigatorio) return;                 // ver overlayC: decisao que nao se dispensa
   clCloseOverlay();
 });
 function resultDialog(score,verd){ overlayC(dlg('RetroFoot98', `<div class="cl-res"><div class="cl-res-score">${escC(score)}</div>

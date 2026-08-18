@@ -194,15 +194,26 @@ function rfSorteioHTML(key, dr){
     });
   }
 
-  // mata-mata: pares da fase corrente
-  const br=c.bracket||{};
-  const pares=(br.ties||br.matches||[]).map(t=>[t.h||t[0], t.a||t[1]]);
+  /* ===== A COPA DO BRASIL *É* A CHAVE, NAO TEM `.bracket` =====
+     As continentais guardam a fase de grupos em `c.group` e o mata-mata em `c.bracket`. A copa
+     nacional nao tem grupos: os confrontos moram no proprio objeto da competicao (`c.ties`), e e
+     assim que o resto do jogo a le (ver advancePendingCups e startCupDrawReplay, que fazem
+     exatamente esta pergunta). Aqui liamos `c.bracket` a seco: para a Copa do Brasil dava
+     `undefined`, a lista de confrontos saia vazia, e a cerimonia mostrava o palco e a barra de
+     progresso a andar sem um unico clube. Era o relatado. */
+  const br=(c && c.champion!==undefined) ? c : (c.bracket||{});
+  const todos=(br.ties||br.matches||[]).map(t=>[t.h!=null?t.h:t[0], t.a!=null?t.a:t[1]]);
+  /* AS BOLAS CAEM UMA A UMA, como na fase de grupos logo acima. Mostrar a chave inteira desde o
+     primeiro instante faria da cerimonia uma barra de progresso sobre um resultado ja dado. */
+  const jaSaiu=(h,a)=> !dr || dr.idx>=dr.reveal.length ||
+    (dr.drawn||[]).some(p=>!p.bye && p.group==null && p.h===h && p.a===a);
+  const pares=todos.map(([h,a])=> jaSaiu(h,a) ? [h,a] : [null,null]);
   const copaBR = key==='copaBrasil';
   return rfSorteioShell({
     titulo:def.name||key,
     sub: copaBR ? 'Mata-mata de ida e volta desde a primeira fase.' : 'Mata-mata de ida e volta.',
     trofeu, comp:def.short||def.name||key, fase:`${copaBR?'1ª FASE':'MATA-MATA'} · ${S.season||''}`,
-    ficha:[['Campeão atual',campeao],['Clubes',pares.length*2||'—'],
+    ficha:[['Campeão atual',campeao],['Clubes',todos.length*2||'—'],
            ['Formato','ida e volta'],['Premiação',def.prize||'—']],
     rotulo: copaBR?'Confrontos da 1ª fase':'Chave', estado:'volta em casa',
     corpo: copaBR ? rfSrtConfrontosHTML(pares,meu) : rfSrtChaveHTML([pares],meu),

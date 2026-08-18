@@ -4275,6 +4275,17 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
   advanceAuctions();
 }
 let DIV_LABEL_FULL={A:'Série A',B:'Série B',C:'Série C',D:'Série D'}; // reatribuído por setUniverse()
+/* ===== DEMITIDO: ESCOLHER CLUBE NAO E OPCIONAL =====
+   Este modal era um modal comum, com as tres saidas de sempre (X, clique fora, Esc). Fechado sem
+   escolher, o treinador continuava no clube que o acabara de despedir e o jogo seguia como se
+   nada fosse — a demissao virava um aviso que se podia ignorar. Foi o relatado a 18/08.
+   Duas travas, porque uma sozinha nao chega:
+     · `obrigatorio` fecha as tres saidas (ver overlayC em ui/main.js);
+     · a lista fica no SAVE. Recarregar a pagina esvazia o CL e levava a demissao com ela — F5
+       era a quarta saida, e a mais silenciosa de todas. Com a lista no save, ela volta a aparecer
+       (ver checkPendingManagerEvents). A escolha e que a apaga.
+   Trocar de clube aqui NAO recomeca a temporada: applyManagerJobChange adota a divisao de destino
+   em andamento e preserva S.round — o treinador cai na mesma jornada, no clube novo. */
 function showFiredModal(options){
   const rows=options.map((o,i)=>{ const c=clubOf(o.clubId);
     return `<div class="cl-jobopt" onclick="clAcceptJob(${i})">
@@ -4282,17 +4293,19 @@ function showFiredModal(options){
       <span class="cl-jobopt-div">${DIV_LABEL_FULL[o.division]}</span>
     </div>`; }).join('');
   CL._jobOptions=options;
+  S._demissaoPendente=options.map(o=>({clubId:o.clubId, division:o.division}));
   overlayC(dlg('Você foi demitido!', `<div class="cl-jobmodal">
-    <div class="cl-jobmodal-msg">Os resultados recentes custaram seu cargo. Escolha seu próximo desafio:</div>
+    <div class="cl-jobmodal-msg">Os resultados recentes custaram seu cargo.
+      <b>Escolha o seu próximo clube para continuar</b> — você assume ainda nesta jornada.</div>
     <div class="cl-joboptlist">${rows}</div>
-  </div>`, {w:560,bodyClass:'cl-body-red'}));
+  </div>`, {w:560,bodyClass:'cl-body-red',obrigatorio:true}), {obrigatorio:true});
 }
 function clAcceptJob(idx){
-  const opt=CL._jobOptions[idx]; if(!opt) return;
+  const opt=(CL._jobOptions||S._demissaoPendente||[])[idx]; if(!opt) return;
   applyManagerJobChange(opt.clubId, opt.division);
   S.coachHistory=S.coachHistory||[];
   S.coachHistory.push({season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(opt.clubId).short.toUpperCase()}`});
-  CL._jobOptions=null;
+  CL._jobOptions=null; S._demissaoPendente=null;
   clCloseOverlay(); saveV3(); cdraw();
 }
 /* O convite de outro clube virou um fluxo de 3 etapas (jantar -> proposta -> boas-vindas), que
@@ -4304,6 +4317,11 @@ function showJobOfferModal(offer){
   CL._jobOffer=offer; // rede de segurança: se a UI não carregou, ao menos não perde a oferta
 }
 function checkPendingManagerEvents(){
+  /* DEMISSAO POR RESOLVER VEM ANTES DE TUDO — e sobrevive ao recarregar da pagina, porque a lista
+     mora no save e nao no CL (ver showFiredModal). */
+  if(Array.isArray(S._demissaoPendente) && S._demissaoPendente.length && !CL._jobOptions){
+    showFiredModal(S._demissaoPendente); return;
+  }
   if(CL._pendingManagerEvent){
     const ev=CL._pendingManagerEvent; CL._pendingManagerEvent=null;
     if(ev.kind==='fired') showFiredModal(ev.options); else showJobOfferModal(ev.offer);
