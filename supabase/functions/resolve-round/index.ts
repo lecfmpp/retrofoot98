@@ -396,12 +396,108 @@ const ME = (globalThis as any).MATCH_ENGINE;
     datasLiga:null,          // sem folha de datas reais: os rótulos saem do passo semanal
   };
 
+  /* ===================== O VALIDADOR =====================
+     Uma folha de slots é DADO ESCRITO À MÃO, e dado escrito à mão erra. Estas são as regras que,
+     se quebradas, produzem os bugs que já aconteceram — cada uma tem um nome e uma história:
+
+       · POUCOS SLOTS: a competição precisa de mais rodadas do que a folha declara. Era assim que
+         a final desaparecia — as continentais tinham 10 datas para 11 rodadas, e a que sobrava
+         era sempre a última. O motor completa sozinho (slotsDaCompeticao estende), mas isso é
+         conserto todo ano em vez de o dado estar certo desde o começo.
+       · SLOT REPETIDO ou FORA DE ORDEM: duas rodadas da mesma copa no mesmo dia, ou a final
+         antes da semifinal.
+       · DIA PARTILHADO: duas competições no mesmo (slot, janela) — a sala inteira em duas telas
+         ao mesmo tempo.
+       · LIGA CURTA: a folha tem menos slots de liga do que a divisão mais longa do país joga
+         (uma Championship de 24 clubes joga 46 rodadas, não 38).
+       · FINAL DENTRO DA LIGA: a decisão acontece com o campeonato ainda a rolar. Não é erro de
+         motor — é escolha de calendário —, mas é a que faz o jogador sentir que perdeu a final.
+
+     AVISA, NUNCA TRAVA. Uma folha com problema tem de deixar o jogo abrir: travar já transformou
+     erro de dado em sala morta (ver prorrogarPorCopasPendentes). Quem chama decide o que fazer
+     com a lista — o painel pinta de vermelho, o teste reprova, o motor regista nos relatórios.
+
+     `totais` é quantas rodadas cada competição precisa nesta temporada (cupTotalRounds no core);
+     sem ele, a regra dos poucos slots não é verificável e é saltada.
+     `divisoes` é o tamanho de cada divisão do país (UNIVERSOS[pais].size); sem ele, idem. */
+  function validarCalendario(pais, opts){
+    opts=opts||{};
+    const cal=CALENDARIOS[pais];
+    const out=[];
+    const erro=(comp,texto)=>out.push({ nivel:'erro', comp, texto });
+    const aviso=(comp,texto)=>out.push({ nivel:'aviso', comp, texto });
+    if(!cal){ erro(null, 'não existe folha de calendário para "'+pais+'" — o jogo cai no calendário do Brasil'); return out; }
+
+    const ocupadas={};
+    Object.keys(cal.competicoes).forEach(key=>{
+      const c=cal.competicoes[key];
+      if(!c.slots || !c.slots.length){ erro(key, 'sem slots'); return; }
+      if(JANELAS.indexOf(c.janela)<0) erro(key, 'janela desconhecida: "'+c.janela+'"');
+      for(let i=1;i<c.slots.length;i++){
+        if(c.slots[i]===c.slots[i-1]) erro(key, 'slot '+c.slots[i]+' repetido — duas rodadas no mesmo dia');
+        else if(c.slots[i]<c.slots[i-1]) erro(key, 'slots fora de ordem ('+c.slots[i-1]+' depois de '+c.slots[i]+') — a final viria antes da semifinal');
+      }
+      c.slots.forEach(sl=>{
+        if(sl<1 || sl>cal.slotsTotal) erro(key, 'slot '+sl+' fora do intervalo 1..'+cal.slotsTotal);
+        const chave=sl+':'+c.janela;
+        if(ocupadas[chave]) erro(key, 'divide o dia '+sl+'/'+c.janela+' com '+ocupadas[chave]+' — a sala ficaria em duas telas');
+        else ocupadas[chave]=key;
+      });
+      const total=opts.totais && opts.totais[key];
+      if(total && total>c.slots.length)
+        erro(key, 'precisa de '+total+' rodadas e a folha declara '+c.slots.length+' slots — faltam '+(total-c.slots.length)+' (o motor completa, mas a folha fica errada)');
+    });
+
+    const liga=cal.competicoes.liga;
+    if(!liga) erro('liga', 'a folha não declara a liga');
+    else if(opts.divisoes){
+      let maior=0;
+      Object.keys(opts.divisoes).forEach(d=>{ const n=2*((opts.divisoes[d]||0)-1); if(n>maior) maior=n; });
+      if(maior>liga.slots.length)
+        erro('liga', 'a divisão mais longa joga '+maior+' rodadas e a folha declara '+liga.slots.length+' slots de liga');
+    }
+    if(liga && liga.slots.length){
+      const fim=liga.slots[liga.slots.length-1];
+      Object.keys(cal.competicoes).forEach(key=>{
+        if(key==='liga') return;
+        const c=cal.competicoes[key], total=(opts.totais && opts.totais[key]) || c.slots.length;
+        const usados=(total<=c.slots.length) ? c.slots.slice(c.slots.length-total) : c.slots;
+        const finalEm=usados[usados.length-1];
+        if(finalEm<=fim) aviso(key, 'a final cai no slot '+finalEm+', com a liga ainda a jogar até '+fim);
+      });
+    }
+    return out;
+  }
+
+  /* ===================== FOLHA VINDA DO PACOTE =====================
+     É isto que torna "acrescentar um país" trabalho de tela em vez de código: o painel admin grava
+     uma folha em `pack_edits` e o jogo instala-a por cima da que vem no repositório. O servidor lê
+     a mesma linha, pelo mesmo caminho — se só o cliente lesse, cliente e servidor jogariam
+     calendários diferentes, que é a família de bug que este arquivo inteiro existe para acabar.
+
+     REGRA DE ENTRADA: folha com ERRO não entra. Um calendário torto vindo do banco pode deixar
+     uma sala sem final ou com duas competições no mesmo dia, e ninguém repara até dezembro.
+     Aviso não bloqueia (é escolha de calendário, não defeito); erro bloqueia e a folha do
+     repositório continua a valer. Devolve o que aconteceu, para quem chamou poder registar. */
+  function instalarCalendario(pais, folha, opts){
+    if(!pais || !folha || !folha.competicoes) return { ok:false, motivo:'folha vazia', problemas:[] };
+    const anterior=CALENDARIOS[pais];
+    CALENDARIOS[pais]=folha;
+    const problemas=validarCalendario(pais, opts||{});
+    const erros=problemas.filter(x=>x.nivel==='erro');
+    if(erros.length){
+      if(anterior) CALENDARIOS[pais]=anterior; else delete CALENDARIOS[pais];
+      return { ok:false, motivo:'folha recusada: '+erros.length+' erro(s)', problemas };
+    }
+    return { ok:true, motivo:anterior?'folha substituída':'país novo', problemas };
+  }
+
   function calendarioDe(pais){ return CALENDARIOS[pais] || CALENDARIOS.brasil; }
   function temCalendario(pais){ return !!CALENDARIOS[pais]; }
   function paisesComCalendario(){ return Object.keys(CALENDARIOS); }
 
   const API={ JANELAS, ordemDaJanela, chaveDoDia, CALENDARIOS, calendarioDe, temCalendario,
-    paisesComCalendario };
+    paisesComCalendario, validarCalendario, instalarCalendario };
   root.CALENDARIOS_API=API;
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
 })(typeof globalThis!=='undefined'?globalThis:this);
@@ -1869,6 +1965,16 @@ let DIVISION_FORCE_RANGE: any = { A: [58, 88], B: [58, 80], C: [52, 74], D: [48,
 let DIV_FORCE_CAP: any = { B: 37, C: 24, D: 12 };
 function aplicarUniverso(S: any) {
   const chave = WORLD_CONFIG.uniDoEstado(S);
+  /* A FOLHA DE CALENDARIO DA SALA. Vem no shared_state, carimbada por quem montou a temporada
+     (core.js: ensureCupCalendar) ja com o pacote do painel aplicado. E assim que um pais criado
+     no painel admin vale tambem no servidor, sem o servidor ter de ler pack_edits -- que seria
+     uma consulta por rodada e uma segunda porta para o mesmo dado.
+     Folha recusada pelo validador nao entra: fica a do repositorio, que e a que o cliente
+     tambem usaria (instalarCalendario aplica o mesmo criterio nos dois lados). */
+  if (S && S.calFolha && S.calFolha.pais === chave && S.calFolha.folha) {
+    const r = CALENDARIOS_API.instalarCalendario(chave, S.calFolha.folha, {});
+    if (!r.ok) console.warn('calendario da sala recusado (' + chave + '): ' + r.motivo);
+  }
   const t = WORLD_CONFIG.tabelasDoUniverso(chave);
   UNI_ATIVO = chave;
   DIV_ORDER = t.ordem; DIVISION_SIZE = t.size; DIVISION_PROMO = t.promo; DIVISION_RELEG = t.releg;

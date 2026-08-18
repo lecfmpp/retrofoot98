@@ -3561,13 +3561,10 @@ function scMain(){
     ${anchorAdHTML()}
   </div>`;
 }
-/* rf98.anchor.bottom — faixa fixa no rodapé da Home e do Hub. É o único espaço que fica
-   POR CIMA do conteúdo (position:fixed), então duas salvaguardas: só existe quando há
-   criativo publicado, e no telefone o CSS sobe a faixa para cima da barra de abas em vez
-   de a tapar (ver .rf-anchor em main.css). */
-function anchorAdHTML(){
-  return rfAdEspaco('rf98.anchor.bottom', {cls:'rf-anchor', formato:'970×90'});
-}
+/* A FAIXA FIXA DO RODAPÉ SAIU (18/08/2026) — ver rfAncoraHTML em ui/rf26.js. Era o único
+   espaço `position:fixed`, por cima do conteúdo, em todas as páginas. Fica como função vazia
+   para o ponto de entrada continuar a existir num lugar só. */
+function anchorAdHTML(){ return ''; }
 /* cabeçalho fixo das colunas do elenco — precisa ficar em sincronia com o grid-template-columns
    de .cl-rrow (main.css): T/R · Pos · Nome · Idade · Força · Salário. Sem isto o usuário via 6
    colunas de números/letras sem saber o que cada uma significava, principalmente depois que
@@ -12097,7 +12094,19 @@ function showResenhaWaitingMe(d){
      passou a semana tirando do jogo. A ação vive num lugar só — o botão da tela do clube. Aqui
      fica o aviso e o caminho: feche e faça. */
   const pe = btn('Entendi','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'});
-  overlayC(dlg('Resenha — a sala espera por você', corpo, {w:560, std:true, footer:pe, bodyClass:'cl-body-green'}));
+  /* MESMO TOM E MESMA LARGURA DO IRMÃO (showResenhaWaiting, logo acima). Este modal ficou para
+     trás em três coisas ao mesmo tempo, e por isso destoava do resto da Resenha:
+       · sem `tone:'marca'`, o cabeçalho saía na cor do CLUBE. Num clube vermelho a tela da SALA
+         ficava vermelha — e a sala não é de ninguém. É exatamente o caso que o tom de marca
+         existe para atender (ver o comentário em dlg()).
+       · `w:560` quando o padrão é 520, então o modal mudava de largura entre uma tela da Resenha
+         e a seguinte. O irmão já tinha sido corrigido e o comentário de lá diz "só ele e mais
+         um" — este era o mais um.
+       · `std:true` era inerte (só decide a largura PADRÃO, e havia `w`), e `bodyClass` o dlg()
+         não lê — quem lê essa opção é o cartão da Home (cl-home-pagebox-b, ~linha 1783). Outras
+         chamadas de dlg() também a passam e também a perdem; não foram tocadas aqui porque é
+         varredura à parte, não defeito deste modal. */
+  overlayC(dlg('Resenha — a sala espera por você', corpo, {w:520, glyph:'●', tone:'marca', footer:pe}));
 }
 function clWaitMore(){ CL._waitSnoozeUntil=Date.now()+10000; CL._waitOpen=false; CL._waitAssin=null; clCloseOverlay(); }
 function clWaitSkipAbsent(){

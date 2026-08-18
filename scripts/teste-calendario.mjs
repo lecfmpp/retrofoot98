@@ -20,9 +20,10 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+require(resolve(raiz, 'public/src/data/universos.js'));
 require(resolve(raiz, 'public/src/engine/calendars.js'));
 require(resolve(raiz, 'public/src/engine/world-rules.js'));
-const W = globalThis.WORLD_RULES, C = globalThis.CALENDARIOS_API;
+const W = globalThis.WORLD_RULES, C = globalThis.CALENDARIOS_API, U = globalThis.UNIVERSOS;
 
 /* Totais plausíveis de rodada. As continentais variam com o formato: 6 de grupos + 1 tique só
    para sortear o mata-mata + 4 de mata-mata = 11, e 12 quando há uma fase a mais (ver
@@ -213,6 +214,19 @@ for (const pais of C.paisesComCalendario()) {
     if (d < ant) { reprova(pais, 'dia de liga anda para trás na jornada ' + j); break; }
     ant = d;
   }
+}
+
+/* 12. A FOLHA DE CADA PAÍS PASSA NO PRÓPRIO VALIDADOR.
+       `validarCalendario` é o mesmo código que o painel admin roda na tela e que o motor roda ao
+       montar a temporada — se ele reprova uma folha que está no repositório, é a folha que está
+       errada. Os totais aqui são os reais do Brasil (7 e 11) e o formato cheio das europeias. */
+for (const pais of C.paisesComCalendario()) {
+  const cal = C.calendarioDe(pais);
+  const totais = {};
+  Object.keys(cal.competicoes).forEach((k) => { if (k !== 'liga') totais[k] = (k === 'copaBrasil') ? 7 : 11; });
+  const problemas = C.validarCalendario(pais, { totais, divisoes: U[pais] && U[pais].size });
+  problemas.filter((x) => x.nivel === 'erro').forEach((x) => reprova(pais, 'validador: ' + (x.comp || '') + ' — ' + x.texto));
+  problemas.filter((x) => x.nivel === 'aviso').forEach((x) => console.log('      aviso: ' + pais + ' ' + (x.comp || '') + ' — ' + x.texto));
 }
 
 console.log('');

@@ -798,16 +798,18 @@ function rfTopAd(){
    mesma caixa da faixa do clube, que era o pedido.
    Os trilhos laterais saíram: a publicidade da área logada passa a morar
    dentro da página. */
-/* ===== A ANCORA FIXA NAO ENTRA NA FORMACAO =====
-   Ela e uma barra presa ao fundo da janela, e na Formacao o fundo da janela e o CAMPO: a
-   barra ficava por cima do gramado e do cartao do proximo jogo, justamente na tela em que a
-   pessoa arrasta jogadores. Nas outras paginas ela continua igual — o que muda e o pe da
-   Formacao, que ja tem publicidade propria (as placas do campo, rf98.campo.*). */
-function rfAncoraHTML(){
-  const pag=(typeof rfState==='function')?(rfState().page||''):'';
-  if(pag==='hub') return '';
-  return rfAdEspaco('rf98.anchor.bottom',{cls:'rf-anchor',formato:'970×90 · 320×50'});
-}
+/* ===== A ANCORA FIXA SAIU DO JOGO (18/08/2026) =====
+   Era a unica peca de publicidade `position:fixed` — uma barra presa ao fundo da janela, por
+   cima do conteudo, em todas as paginas. Comia a base da tela justamente onde ficam as acoes
+   (o cartao do proximo jogo, a barra de abas do telefone) e acompanhava o jogador o tempo todo,
+   em vez de aparecer no lugar dela.
+
+   Fica como funcao vazia, e nao apagada, porque `rfEnvelope` e `anchorAdHTML` (main.js) sao os
+   dois pontos por onde ela entrava: se voltar algum dia, volta por aqui, com a decisao num
+   lugar so. Os outros espacos de publicidade continuam todos — o que saiu foi a barra fixa.
+   O espaco `rf98.anchor.bottom` continua descrito no media kit (docs/media-kit) e no painel:
+   quem vende precisa saber que ele deixou de existir. */
+function rfAncoraHTML(){ return ''; }
 function rfEnvelope(conteudo){
   return `<div class="rf-app ${rfSidebarCollapsed()?'collapsed':''}">
     ${rfSidebarHTML()}

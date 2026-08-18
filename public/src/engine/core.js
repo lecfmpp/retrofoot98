@@ -2055,16 +2055,41 @@ function ensureCupCalendar(force){
      estica a temporada para alcançá-la é prorrogarSeFaltaCopa. */
   chaves.forEach((key)=>{ cal[key]=buildCupSchedule(key, cupTotalRounds(key), null, activeUniverseKey()); });
   S.cupCalendar=cal;
+
+  /* A FOLHA VIAJA COM A SALA. O servidor não lê `pack_edits` — e passar a ler seria uma consulta
+     por rodada e uma segunda porta para o mesmo dado. Em vez disso a folha do país (já com o
+     pacote do painel aplicado, se houver) fica no estado compartilhado, como o day_plan:
+     calculada uma vez por quem monta a temporada, lida por todos. Sem isto, um país criado no
+     painel valeria no cliente e não no servidor — a divergência exata que este projeto combate. */
+  if(typeof CALENDARIOS_API!=='undefined' && CALENDARIOS_API.calendarioDe){
+    S.calFolha={ pais:activeUniverseKey(), folha:CALENDARIOS_API.calendarioDe(activeUniverseKey()) };
+  }
+
+  /* CONFERE A FOLHA ANTES DE A TEMPORADA COMEÇAR — e AVISA, nunca trava.
+     A falta de dia para uma rodada só aparecia em dezembro, quando a final não acontecia. Agora
+     aparece no momento em que o calendário é montado, que é o único em que ainda dá para
+     corrigir. O motor segue jogando com o que tem (slotsDaCompeticao completa o que falta); o
+     aviso existe para o erro ser CORRIGIDO na folha em vez de remendado todo ano. */
+  if(typeof CALENDARIOS_API!=='undefined' && CALENDARIOS_API.validarCalendario){
+    const totaisV={}; chaves.forEach(k=>{ try{ totaisV[k]=cupTotalRounds(k); }catch(e){} });
+    const uni=(typeof UNI_CONFIGS!=='undefined' && UNI_CONFIGS[activeUniverseKey()]) || null;
+    const problemas=CALENDARIOS_API.validarCalendario(activeUniverseKey(), { totais:totaisV, divisoes:uni&&uni.size });
+    const erros=problemas.filter(x=>x.nivel==='erro');
+    if(erros.length){
+      console.warn('calendário de '+activeUniverseKey()+': '+erros.length+' problema(s) na folha de slots');
+      erros.forEach(x=>console.warn('  · '+(x.comp||'')+' — '+x.texto));
+      S.roundNews=S.roundNews||[];
+      S.roundNews.push('📅 O calendário da temporada tem '+erros.length+' problema(s) — o jogo completou o que faltava.');
+    }
+  }
+
   /* A TEMPORADA JÁ NASCE COM AS JORNADAS DAS FINAIS.
      Com a folha de slots, a final de cada copa mora depois do último jogo de liga — é o que a
-     vida real faz, e é o que impedia o calendário antigo de representá-la sem espremer ou perder.
-     Essas jornadas finais não têm jogo de liga: existem para dar dia à decisão.
-
-     Antes isto acontecia como CONSERTO, no fim do ano (prorrogarSeFaltaCopa), depois de a
-     temporada já se ter dado por acabada — e era daí que vinham as finais jogadas sem ninguém
-     ver. Agora acontece no momento em que o calendário é montado, que é o único momento em que
-     é possível garantir que toda competição tem dia antes de a primeira bola rolar.
-     `prorrogarSeFaltaCopa` continua como rede, e passa a quase nunca ter o que fazer. */
+     vida real faz, e é o que o calendário antigo não conseguia representar sem espremer a final
+     para trás ou perdê-la. Essas jornadas finais não têm jogo de liga: existem para dar dia à
+     decisão. Antes isto acontecia como CONSERTO no fim do ano (prorrogarSeFaltaCopa), depois de
+     a temporada já se ter dado por acabada — e era daí que vinham as finais jogadas sem ninguém
+     ver. `prorrogarSeFaltaCopa` continua como rede, e passa a quase nunca ter o que fazer. */
   if(Array.isArray(S.sched)){
     let maior=-1;
     chaves.forEach(k=>(cal[k]||[]).forEach(j=>{ if(j>maior) maior=j; }));

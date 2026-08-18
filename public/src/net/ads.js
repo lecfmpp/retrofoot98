@@ -6,7 +6,9 @@
    dois lados e estão em elifoot_v3.ad_spaces — nunca renomear de um lado só:
 
      rf98.top.970x90     · faixa 970×90 no topo de todas as páginas
-     rf98.anchor.bottom  · faixa 970×90 fixa no rodapé (320×50 no telefone)
+     rf98.anchor.bottom  · APOSENTADO em 18/08/2026 — era a faixa fixa no rodapé, e saiu por
+                           comer a base da tela em todas as páginas. Nada renderiza este espaço
+                           hoje (ver rfAncoraHTML em ui/rf26.js e anchorAdHTML em ui/main.js).
      rf98.hub.sidebar    · retângulo 300×250 na coluna do hub
      rf98.match.halftime · modal do intervalo da partida
      rf98.copa.sponsor   · cabeçalho dos modais de copa
