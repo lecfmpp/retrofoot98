@@ -1636,6 +1636,7 @@ function onlineTimerLoop(){
   roomDayTick();     // item 3: carimba o momento do dia que EU já cumpri (ver roomDayTick)
   if(typeof onlineMomentScreenTick==='function') onlineMomentScreenTick(); // o momento abre a tela dele
   if(typeof onlineWaitingTick==='function') onlineWaitingTick();   // "esperando por X" (ver main.js)
+  if(typeof clTesteTick==='function') clTesteTick();               // bancada "PULAR 30 E TESTAR" (ui/rf26-fluxo.js)
   dayRoundWatch();   // item 3: confere a jornada do ponteiro contra a local (ver dayRoundWatch)
   // TETO de 1s: o intervalo acompanha o ritmo, mas nos tempos lentos a conta explodia (em 'Longo'
   // dava ~6,6s entre sondagens — reconcile, cronômetro e barreira todos com essa latência).

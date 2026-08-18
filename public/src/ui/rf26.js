@@ -441,6 +441,7 @@ function rfSidebarHTML(){
         ${(pronto||rfFaltaTatica())?'':'disabled'}
         title="${pronto?'Jogar':rfFaltaTatica()?'Escolha a tática para liberar o Jogar':'Escale onze jogadores, com um goleiro'}"
         onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
+      ${(typeof rfBotaoBancadaHTML==='function')?rfBotaoBancadaHTML():''}
     </div>` : '';
 
   /* O INTERRUPTOR DO MENU MORA NO PÉ, embaixo do botão Jogar, e é a mesma seta

@@ -204,6 +204,7 @@
     if(g&&NET.room){ NET.room.kickoffLineups=g.kickoff_lineups||null; NET.room.kickoffAt=g.kickoff_at||null; } };
   NET.fetchRoundStreams=async function(){ return null; };
   NET.broadcastKickoff=function(){}; NET.broadcastMatch=function(){}; NET.broadcastDecision=function(){};
+  NET.broadcastTeste=function(){};
 
   /* RESOLVEDOR DA JORNADA — porta a semântica do resolve-round de produção usando o PRÓPRIO motor
      do jogo, no cliente HOST. Um fechamento por jornada: playRound resolve as copas da semana e a

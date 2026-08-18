@@ -1403,6 +1403,12 @@ function netSetupRealtime(){
   });
 
   // expulsão pelo anfitrião: sinal em tempo real pra TODOS (inclusive o expulso), independente de DB/RLS
+  /* BANCADA: o anfitrião liga o modo de teste para a SALA INTEIRA. Sem isto, só quem clicou
+     entraria em auto-jogo e a sala pararia à espera dos outros — o carimbo do dia exige todos. */
+  SB_CH.on('broadcast', { event:'teste' }, ({ payload })=>{
+    if(!payload || payload.from===SB_UID()) return;
+    if(typeof clTesteEntrar==='function') clTesteEntrar(payload);
+  });
   SB_CH.on('broadcast', { event:'kick' }, ({ payload })=>{
     if(!payload || !payload.uid) return;
     const uid=payload.uid, clubId=payload.clubId;
@@ -1711,6 +1717,10 @@ NET.fetchRoundStreams = netFetchRoundStreams;
 NET.clubOnline = netClubOnline;
 NET.broadcastMatch = netBroadcastMatch;
 NET.broadcastDecision = netBroadcastDecision;
+NET.broadcastTeste = function(payload){
+  if(!SB_CH || !SB_AUTH_USER) return;
+  try{ SB_CH.send({ type:'broadcast', event:'teste', payload:{ ...payload, from:SB_UID() } }); }catch(e){}
+};
 NET.broadcastKickoff = netBroadcastKickoff;
 NET.reopenReady = netReopenReady;
 NET.toLobby = netToLobby;

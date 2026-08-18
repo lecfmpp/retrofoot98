@@ -258,6 +258,8 @@
    esquerda fecha; o `aria-expanded` é o que conta o estado para leitor de
    tela. */
 .rf-sb-pe{flex:0 0 auto;display:flex;justify-content:center;padding-top:2px}
+.rf-teste-btn{margin-top:8px;font-size:12px;letter-spacing:.04em;opacity:.9}
+.rf-teste-btn:disabled{opacity:.55;cursor:default}
 .rf-sb-toggle{display:flex;align-items:center;justify-content:center;gap:8px;
   width:100%;height:40px;padding:0 10px;box-sizing:border-box;
   border:none;border-radius:var(--r-control);background:transparent;

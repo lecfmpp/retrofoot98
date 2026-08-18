@@ -740,3 +740,126 @@ function rfSaveEscudoHTML(st){
   return url?`<img class="rf-sv2-img" src="${escC(url)}" alt="">`
             :`<span class="rf-sv2-vazio">${rfIcone('camisa',16)}</span>`;
 }
+
+/* =====================================================================
+   BANCADA DE TEMPORADA — "PULAR 30 E TESTAR"
+   ---------------------------------------------------------------------
+   POR QUE EXISTE. Testar o fim de temporada exigia jogar trinta jornadas à mão, com três pessoas
+   ao mesmo tempo. Ninguém faz isso duas vezes — e é justamente o fim da temporada que concentra
+   as finais, a virada e os bugs que mais custaram a este projeto.
+
+   O QUE ELA NÃO É. Não é uma simulação de servidor: é o BOTÃO JOGAR a ser apertado, muito
+   depressa, por todos os treinadores da sala. Passa pelo mesmo caminho de sempre — escalar,
+   entrar em campo, ver a classificação, carimbar o dia — porque um atalho que passa por fora
+   testaria um jogo que ninguém joga.
+
+   AS QUATRO ARMADILHAS, aprendidas a caro numa bancada de fora do jogo (scripts/
+   teste-temporada-espectador.mjs) e resolvidas aqui:
+     1. nunca forçar `CL.screen` — quebra o encadeamento das cerimônias e leva a conclusões falsas;
+     2. a partida PAUSA no intervalo e espera um clique (liveContinue);
+     3. a cerimônia de sorteio anda por temporizador próprio: clicar por cima atropela-a;
+     4. o botão de ação não se acha por TEXTO — o rótulo muda ("Jogar", "Ver o sorteio", "Avançar").
+
+   PARA ONDE VAI. Pára na jornada alvo e devolve a sala às mãos das pessoas, para a virada de
+   temporada ser vivida a sério. É esse o pedaço que interessa observar. */
+const TESTE_ALVO_PADRAO = 31;
+
+function clTestePular30(){
+  if(!CL.online){ toastC('A bancada é do Modo Resenha.'); return; }
+  const alvo = TESTE_ALVO_PADRAO;
+  if((S.round||0) >= alvo){ toastC('A sala já passou da jornada '+alvo+'.'); return; }
+  /* A SALA INTEIRA entra junta. O dia só vira quando o ÚLTIMO assento carimba: se só um cliente
+     entrasse em auto-jogo, a sala pararia à espera dos outros e a bancada não sairia do lugar. */
+  if(NET && NET.broadcastTeste) NET.broadcastTeste({ alvo });
+  clTesteEntrar({ alvo });
+}
+function clTesteEntrar(p){
+  const alvo=(p&&p.alvo)||TESTE_ALVO_PADRAO;
+  if(CL._teste && CL._teste.ligado) return;                 // já está a correr
+  CL._teste={ ligado:true, alvo, inicio:(S.round||0), t0:Date.now(), ultimoAto:0 };
+  CL._testeRitmoAntes=(typeof CL.tempoLabel!=='undefined')?CL.tempoLabel:null;
+  CL.tempoLabel='Foguete';                                   // 6ms por minuto de jogo
+  CL.tacticChosen=true;                                      // a bancada não pára para escolher tática
+  toastC('🧪 Bancada ligada — a caminho da jornada '+alvo);
+  cdraw();
+}
+function clTesteSair(motivo){
+  if(!CL._teste) return;
+  const T=CL._teste; CL._teste=null;
+  if(CL._testeRitmoAntes!=null) CL.tempoLabel=CL._testeRitmoAntes;
+  const seg=Math.round((Date.now()-T.t0)/1000);
+  clCloseOverlay();
+  overlayC(dlg('Bancada concluída', `<div class="cl-res">
+    <div class="cl-res-verd" style="text-align:left">✓ ${escC(motivo||('A sala chegou à jornada '+(S.round||0)+'.'))}
+      <br><br>Foram ${escC(String((S.round||0)-T.inicio))} jornadas em ${escC(String(seg))}s.
+      Daqui em diante é no braço: joguem até ao fim e vejam as finais e a virada de temporada.</div>
+    <div class="cl-cal-ok">${btn('Continuar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>
+  </div>`, {w:520, tone:'marca', glyph:'🧪'}));
+  cdraw();
+}
+/* o que o jogador faria agora, feito por ela. Chamado pelo tique da sala (onlineTimerLoop). */
+function clTesteTick(){
+  const T=CL._teste; if(!T || !T.ligado) return;
+  if(typeof S==='undefined' || !S){ return; }
+  if((S.round||0) >= T.alvo){ clTesteSair('A sala chegou à jornada '+(S.round||0)+'.'); return; }
+  /* teto de segurança: bancada que não avança em 3 minutos desiste e devolve a sala, em vez de
+     ficar a carimbar para sempre sem ninguém perceber. */
+  if(Date.now()-T.t0 > 180000 && (S.round||0)===T.inicio){ clTesteSair('A bancada não conseguiu avançar — a sala ficou na jornada '+(S.round||0)+'.'); return; }
+  if(Date.now()-(T.ultimoAto||0) < 120) return;              // um ato de cada vez
+  T.ultimoAto=Date.now();
+
+  /* 1) PARTIDA EM CAMPO: deixa correr. Só o intervalo pede um clique — e é preciso cuidado com
+     ele. `liveContinue` só volta a armar o relógio no ramo `if(RL.paused)`; chamada quando a pausa
+     já tinha sido levantada (o intervalo da Resenha tem contagem própria de 10s), ela cai no outro
+     ramo e o relógio fica sem quem o toque. Foi o que congelou a partida no minuto 46 — logo
+     depois do intervalo — no harness de dois clientes.
+     Por isso: só se clica se estiver MESMO pausado, e há um cão de guarda para o caso de o
+     relógio morrer de qualquer maneira. */
+  if(CL.live){
+    const RL=CL.live;
+    if(RL.paused){ if(typeof liveContinue==='function') liveContinue(); T.minAnterior=null; T.paradoDesde=0; return; }
+    if(RL.done) return;                                    // acabou: o fluxo normal fecha
+    const min=RL.minute||0;
+    if(T.minAnterior===min){
+      if(!T.paradoDesde) T.paradoDesde=Date.now();
+      /* o relógio não anda há 5s: rearma o tique da partida pelo caminho do próprio jogo. */
+      if(Date.now()-T.paradoDesde > 5000 && typeof liveTick==='function'){
+        T.paradoDesde=Date.now();
+        try{ if(CL._liveTimer) clearTimeout(CL._liveTimer); CL._liveTimer=setTimeout(liveTick,60); }catch(e){}
+      }
+    } else { T.minAnterior=min; T.paradoDesde=0; }
+    return;
+  }
+  /* 2) CERIMÓNIA DE SORTEIO: anda sozinha, por temporizador. Clicar por cima atropela-a. */
+  if(CL.screen==='cupdraw' || CL.cupDraw) return;
+  /* 3) TELA DE RESULTADO/CLASSIFICAÇÃO: fecha pelo botão de verdade, nunca mexendo em CL.screen. */
+  if(CL.screen!=='main'){ clTesteClicar(); return; }
+  /* 4) TELA DO CLUBE. Aqui aperta-se Jogar — o mesmo botão da pessoa. MAS o botão TEM DOIS
+     ESTADOS: quando eu já disse que estou pronto, ele vira "Pronto" e a ação passa a ser
+     CANCELAR (clCancelarPronto). Apertar às cegas fazia a bancada alternar pronto → cancelado →
+     pronto para sempre, sem a sala nunca sair da jornada 0. Apanhado no harness de dois clientes
+     em vinte segundos — é para isto que a bancada serve.
+     Estando pronto, não há nada a fazer: espera-se pelos outros, que é o que a pessoa faria. */
+  if(typeof estouPronto==='function' && estouPronto()) return;
+  if(typeof rfJogar==='function') rfJogar(); else if(typeof clJogar==='function') clJogar();
+}
+/* clica a ação da tela, pela CLASSE e não pelo texto (o rótulo muda), e nunca na barra lateral —
+   navegar não é jogar. */
+function clTesteClicar(){
+  const vis=(el)=>el && el.offsetParent!==null && !el.disabled;
+  const proibido=(el)=>el.closest && el.closest('.rf-sidebar, .rf-nav');
+  const acao=Array.from(document.querySelectorAll('.rf-ov-cta, .rf-dlg-foot button, .cl-cal-ok button, .rf-btn-primary'))
+    .find(b=>vis(b) && !proibido(b));
+  if(acao){ acao.click(); return true; }
+  if(typeof clCloseOverlay==='function') clCloseOverlay();
+  return false;
+}
+/* o botão, logo abaixo do JOGAR. Só na Resenha, e some quando a sala já passou do alvo. */
+function rfBotaoBancadaHTML(){
+  if(!CL.online) return '';
+  if((S && S.round||0) >= TESTE_ALVO_PADRAO) return '';
+  const a=CL._teste && CL._teste.ligado;
+  return `<button type="button" class="rf-btn rf-btn-secondary rf-btn-full rf-teste-btn"
+    ${a?'disabled':''} title="Joga sozinho até à jornada ${TESTE_ALVO_PADRAO} e devolve a sala"
+    onclick="clTestePular30()">${a?'🧪 A correr…':'🧪 PULAR 30 E TESTAR'}</button>`;
+}
