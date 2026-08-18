@@ -857,6 +857,29 @@ function clTesteTick(){
       return;
     }
     if(RL.paused){ T.ultimoPasso='intervalo'; if(typeof liveContinue==='function') liveContinue(); T.minAnterior=null; T.paradoDesde=0; return; }
+
+    /* ===== NAO ESPERAR O RELOGIO: BATE-LO =====
+       A partida anda por `setTimeout` — um por minuto de jogo. Mesmo no ritmo mais rapido, isso e
+       refem do navegador: numa aba em segundo plano os temporizadores sao estrangulados e um
+       minuto de jogo chega a levar quase um minuto REAL. Medido aqui: 1,5 min/s enquanto a aba
+       esteve a frente, e 1 minuto em 53 segundos quando deixou de estar.
+       Esperar por ele nunca vai ser rapido. Entao a bancada bate o tique ela mesma, varias vezes
+       por volta — MESMO CAMINHO, mesmos eventos, mesma ordem; o que desaparece e a espera.
+       O laco para no primeiro modal ou no fim da partida, que e onde a decisao volta a ser de
+       quem joga. */
+    /* O TETO E ALTO DE PROPOSITO. O relogio da bancada e um `setInterval` de 120ms, e o navegador
+       estrangula-o -- numa aba em segundo plano passa a ~1 por segundo. Se cada volta so
+       adiantasse alguns minutos, a bancada ficaria refem disso. Com teto acima de uma partida
+       inteira (90 + prorrogacao), UMA volta resolve um jogo: quantas voltas o navegador deixa
+       passar deixa de importar. O laco para sozinho no primeiro modal ou no apito final. */
+    let batidas=0;
+    while(batidas++ < 150 && CL.live && typeof liveTick==='function'){
+      const L=CL.live;
+      if(L.done || L.paused || L.penEvent || L.injEvent || L.redEvent || (L.pens && L.pensPicking)) break;
+      if(CL._liveTimer){ clearTimeout(CL._liveTimer); CL._liveTimer=null; }
+      try{ liveTick(); }catch(e){ console.warn('bancada, tique da partida:', e && e.message); break; }
+    }
+    if(!CL.live) return;
     /* PARTIDA TERMINADA E AINDA EM CL.live: quem devia fechar nao fechou.
        `liveTick` marca `done` e chama o finalizador NA MESMA LINHA -- se o estado ficou `done`
        com a partida ainda de pe, o relogio morreu antes de la chegar. Esperar por ele e esperar
@@ -901,7 +924,25 @@ function clTesteTick(){
      clicar POR CIMA atropela, mas bater o TIQUE DELA é o caminho dela mesma, e sem isso a bancada
      fica presa na cerimónia para sempre — foi o "a correr e nada acontece" relatado a 18/08.
      `fast` é o modo que a própria cerimónia já tem para revelar depressa. */
-  if(CL.cupDraw){ T.ultimoPasso='sorteio a revelar'; CL.cupDraw.fast=true; if(typeof cupDrawTick==='function') cupDrawTick(); return; }
+  if(CL.cupDraw){
+    /* mesma ideia da partida: bater o tique da cerimonia em vez de esperar o temporizador dela.
+       Uma bola por volta de 120ms fazia um sorteio de 32 clubes levar quase cinco segundos, e sao
+       varios por temporada. Aqui revelam-se ate 12 por volta -- mesmo caminho, sem a espera. */
+    T.ultimoPasso='sorteio a revelar';
+    CL.cupDraw.fast=true;
+    let bolas=0;
+    while(bolas++ < 60 && CL.cupDraw && typeof cupDrawTick==='function'){
+      const st=CL.cupDraw;
+      /* SO SE BATE ENQUANTO HA BOLAS POR REVELAR. Na ULTIMA volta, cupDrawTick nao revela nada:
+         agenda o `onDone` — e e ele que fecha a cerimonia e devolve o fluxo. Limpar esse
+         temporizador e chamar de novo poe a cerimonia a reagendar-se para sempre, sem nunca
+         terminar. Foi o "sorteio a revelar" eterno de 18/08, criado por mim ao acelerar isto. */
+      if(!st.reveal || st.idx>=st.reveal.length) break;
+      if(CL._cupDrawTimer){ clearTimeout(CL._cupDrawTimer); CL._cupDrawTimer=null; }
+      try{ cupDrawTick(); }catch(e){ console.warn('bancada, sorteio:', e && e.message); break; }
+    }
+    return;
+  }
   if(CL.screen==='cupdraw'){ clTesteClicar(); return; }   // cerimónia sem estado: sai pelo botão
   /* 3) TELA DE RESULTADO/CLASSIFICAÇÃO: fecha pelo botão de verdade, nunca mexendo em CL.screen. */
   if(CL.screen!=='main'){
