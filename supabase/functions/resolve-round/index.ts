@@ -1851,7 +1851,8 @@ function rebuildContinentalCups(S: any, topStandings: string[]) {
    materializadas em S.squads, então a troca só remaneja quais clubes ficam em cada divisão
    (computeDivisionSwap, provado byte-idêntico ao cliente). Servidor = autoridade: os detalhes
    cosméticos do regen (atributos) são gerados de forma simples e determinística, sem precisar
-   bater com o genAttrs do cliente. Config brasileira (Resenha = sempre Brasil). ===== */
+   bater com o genAttrs do cliente. A configuração do país (pirâmide, copas, nomes) sai de
+   UNIVERSOS/WORLD_CONFIG a partir de `S.intlUniverse` — ver aplicarUniverso. ===== */
 /* ===== A PIRAMIDE DO PAIS, NAO A DO BRASIL =====
    Estas seis tabelas eram constantes congeladas no Brasil. Agora vêm de UNIVERSOS/WORLD_CONFIG,
    a mesma folha que o cliente lê — exatamente o que `setUniverse()` (core.js) já faz do outro
