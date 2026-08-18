@@ -7975,16 +7975,38 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
    O número é o do PIOR caso, de propósito: afinado para uma altura só, ele acertava a 900px e
    estourava 3px a 1080. Uns pixels de gramado a menos valem mais do que uma barra de rolagem no
    meio do palco. O gramado é 100:118, então limitar a largura continua a ser limitar a altura. */
+/* ===== O GRAMADO DEITADO =====
+   Proporção invertida (118:100 em vez de 100:118) e as camisas centradas nos DOIS eixos: em pé
+   `left` é o centro e `top` é a borda de cima (a camisa pendura do ponto); deitado é `top` que
+   passa a ser o centro da pista, e sem o `translateY` o onze inteiro ficava meia camisa abaixo do
+   lugar. A largura da camisa também desce: 24% de um campo deitado é muito mais pixels do que 24%
+   de um campo em pé. */
+.rf-teatro-campo .cl-pitch.deitado{ aspect-ratio:118/100; }
+.rf-teatro-campo .cl-pitch.deitado .cl-pp{ transform:translate(-50%,-50%);width:15%; }
+.rf-teatro-campo .cl-pitch.deitado .cl-pp.dense{ width:12.5%; }
+/* O GOLEIRO É ANCORADO PELA BORDA, não pelo centro — é o que o campo em pé já faz com ele
+   (`bottom:2%`, a camisa encostada na linha de fundo). Centrado como os outros, metade dele
+   ficava FORA do gramado: medi −25px à esquerda antes de escrever isto. Aqui só o eixo da pista
+   é centrado; o da profundidade encosta.
+   E o nome volta para baixo da camisa: em pé ele é `column-reverse` para o nome não vazar pela
+   linha de fundo, e deitado não há fundo por baixo dele. */
+.rf-teatro-campo .cl-pitch.deitado .cl-pp.gk{ flex-direction:column;transform:translateY(-50%); }
+
 /* A LARGURA TEM DE SER DEFINIDA, não `auto`: o bloco é item de um flex centrado, e com largura
    automática encolhe até ao conteúdo — foi o que fez o campo sair AINDA menor na primeira
    tentativa. Aqui ela é a conta do gramado MAIS a goleira do banco, que é padding do bloco. */
+/* ===== DEITADO, QUEM MANDA E A ALTURA OUTRA VEZ — MAS AO CONTRARIO =====
+   Em pé o gramado é mais alto que largo, então a altura da janela é o limite e a conta devolve
+   uma LARGURA. Deitado ele é mais largo que alto: a mesma altura disponível dá agora uma largura
+   1,18 vezes MAIOR (em vez de menor), e o limite passa a ser a largura da caixa do palco.
+   Daí `min()` com os dois: o que a altura permite e o que a caixa comporta. */
 .rf-teatro-campo .cl-pitch-block{
   max-width:none;
-  width:calc(min(780px, (100vh - 264px)/1.18 + 58px) + 186px);
+  width:calc(min(980px, (100vh - 264px)*1.18 + 58px) + 186px);
   padding-right:186px;                             /* a goleira do banco, mais larga aqui */
 }
 .rf-teatro-campo .cl-pitch-block.banco-fechado{
-  width:min(780px, calc((100vh - 264px)/1.18 + 58px));
+  width:min(980px, calc((100vh - 264px)*1.18 + 58px));
   padding-right:32px;
 }
 .rf-teatro-campo .cl-pitch-wrap{ max-width:none;width:100%; }

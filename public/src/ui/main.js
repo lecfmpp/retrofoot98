@@ -5407,6 +5407,10 @@ function benchHTML(th, nums){
 }
 function clToggleBench(){ CL.benchOpen = CL.benchOpen===false; cdraw(); }
 function pitchHTML(){
+  /* CAMPO DEITADO: só existe no palco (ver rfCampoDeitado em rf26-formacao.js). O ecrã é mais
+     largo do que alto, e o gramado em pé é mais alto do que largo — deitado ele usa o espaço que
+     sobra em vez de o desperdiçar. No cartão do Hub continua em pé, que é a leitura de sempre. */
+  const deitado=(typeof rfCampoDeitado==='function') && rfCampoDeitado();
   const xi=xiPlayers(CL.clubId);
   const th=clubTheme(CL.clubId);
   const nums=clubShirtNumbers(CL.clubId);
@@ -5431,9 +5435,17 @@ function pitchHTML(){
       const en = Math.round(p.energy!=null?p.energy:100);
       // o goleiro é ancorado pela BASE (e com o nome acima da camisa, ver .cl-pp.gk): assim ele
       // encosta na pequena área, como no jogo, sem o nome vazar pra fora do gramado
-      const pos = sec==='GK' ? `bottom:2%` : `top:${top}%`;
+      /* ===== O MESMO ONZE, DEITADO =====
+         No campo em pé a FAIXA (ataque/meio/defesa/gol) é vertical e a PISTA é horizontal. Deitado
+         os dois eixos trocam: a faixa passa a ser a distância da esquerda e a pista, a altura.
+         `100-top` é o que põe o ataque à DIREITA — no campo em pé a faixa conta do topo (ataque),
+         e deitado a leitura natural é atacar para a direita, com o próprio gol atrás. */
+      const pos = deitado
+        ? (sec==='GK' ? `left:4%` : `left:${(100-top).toFixed(2)}%`)
+        : (sec==='GK' ? `bottom:2%` : `top:${top}%`);
+      const eixo = deitado ? `top:${left.toFixed(2)}%` : `left:${left.toFixed(2)}%`;
       return `<button type="button" class="cl-pp${dense}${sec==='GK'?' gk':''} ${selc?'sel':''} ${unavail?'unavail':''}"
-        style="left:${left.toFixed(2)}%;${pos}" data-pid="${escC(p.pid)}" data-sec="${p.s}"
+        style="${eixo};${pos}" data-pid="${escC(p.pid)}" data-sec="${p.s}"
         onpointerdown="clDragStart(event,'${escC(p.pid)}')" onkeydown="if(event.key==='Enter'||event.key===' ')clSelPlayer('${escC(p.pid)}')"
         title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}% · arraste pro banco pra tirar">
         ${shirtHTML(p,th,nums[p.pid])}
@@ -5443,24 +5455,33 @@ function pitchHTML(){
     }).join('');
   }).join('');
 
+  /* ===== AS LINHAS SÃO O MESMO DESENHO, RODADO =====
+     O campo é desenhado à mão num espaço 100×118 (em pé). Manter um segundo SVG para o deitado
+     seria manter dois desenhos em sincronia para sempre — e o segundo ia ficar para trás no dia
+     em que alguém mexesse numa linha. Em vez disso o espaço passa a 118×100 e o conteúdo roda
+     90°: `translate(118,0) rotate(90)` leva (x,y) para (118−y, x), ou seja, o topo do campo (o
+     ataque) vai parar à direita, que é a leitura natural de um campo deitado. */
+  const vb   = deitado ? '0 0 118 100' : '0 0 100 118';
+  const gAbre= deitado ? '<g transform="translate(118,0) rotate(90)">' : '';
+  const gFecha= deitado ? '</g>' : '';
   return `<div class="cl-pitch-block ${CL.benchOpen===false?'banco-fechado':''}">
   <div class="cl-pitch-wrap">
     ${pitchAdsHTML('top',3,0)}
     <div class="cl-pitch-mid">
       ${pitchAdsHTML('left',3,1)}
-      <div class="cl-pitch">
+      <div class="cl-pitch ${deitado?'deitado':''}">
         ${typeof rfPitchMarcaHTML==='function'?rfPitchMarcaHTML():''}
-        <svg class="cl-pitch-lines" viewBox="0 0 100 118" preserveAspectRatio="none" aria-hidden="true">
+        <svg class="cl-pitch-lines" viewBox="${vb}" preserveAspectRatio="none" aria-hidden="true">${gAbre}
           ${[0,1,2,3,4,5,6,7,8,9].map(i=>`<rect x="0" y="${i*11.8}" width="100" height="11.8" fill="${i%2?'#2f7d34':'#35883a'}"/>`).join('')}
-        </svg>
+        ${gFecha}</svg>
         <!-- guia de setores: os quadrantes que a formação usa pra posicionar o time. Fica bem
              discreto (é orientação, não marcação de campo de verdade). -->
-        <svg class="cl-pitch-lines" viewBox="0 0 100 118" preserveAspectRatio="none" aria-hidden="true"
-             fill="none" stroke="rgba(255,255,255,.13)" stroke-width=".6" stroke-dasharray="2 3">
+        <svg class="cl-pitch-lines" viewBox="${vb}" preserveAspectRatio="none" aria-hidden="true"
+             fill="none" stroke="rgba(255,255,255,.13)" stroke-width=".6" stroke-dasharray="2 3">${gAbre}
           <path d="M3 24h94M3 54h94M3 84h94"/><path d="M36 3v112M67 3v112"/>
-        </svg>
-        <svg class="cl-pitch-lines" viewBox="0 0 100 118" preserveAspectRatio="none" aria-hidden="true"
-             fill="none" stroke="rgba(255,255,255,.8)" stroke-width=".7">
+        ${gFecha}</svg>
+        <svg class="cl-pitch-lines" viewBox="${vb}" preserveAspectRatio="none" aria-hidden="true"
+             fill="none" stroke="rgba(255,255,255,.8)" stroke-width=".7">${gAbre}
           <rect x="3" y="3" width="94" height="112"/>
           <path d="M3 59h94"/>
           <circle cx="50" cy="59" r="12"/><circle cx="50" cy="59" r="1" fill="rgba(255,255,255,.8)" stroke="none"/>
@@ -5473,7 +5494,7 @@ function pitchHTML(){
           <path d="M3 110a5 5 0 0 1 5 5"/><path d="M97 110a5 5 0 0 0-5 5"/>
           <rect x="42" y="0" width="16" height="3" stroke-width=".9" fill="rgba(255,255,255,.18)"/>
           <rect x="42" y="115" width="16" height="3" stroke-width=".9" fill="rgba(255,255,255,.18)"/>
-        </svg>
+        ${gFecha}</svg>
         ${nodes}
       </div>
       ${pitchAdsHTML('right',3,2)}

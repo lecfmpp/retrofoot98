@@ -218,6 +218,8 @@ function rfCampoAmpliado(){
   if(typeof isPhone==='function' && isPhone()) return false;
   return !!(typeof CL!=='undefined' && CL.campoAmpliado);
 }
+/* o gramado deitado existe SÓ no palco: no cartão do Hub a leitura é a de sempre, em pé */
+function rfCampoDeitado(){ return rfCampoAmpliado(); }
 function rfCampoAmpliar(){
   if(typeof isPhone==='function' && isPhone()) return;
   CL.campoAmpliado=true;
@@ -256,8 +258,8 @@ function rfCampoTeatroHTML(){
         <span class="rf-teatro-dica">Arraste um titular para o banco para o substituir.</span>
         <button type="button" class="rf-btn rf-btn-secondary" onclick="rfCampoFechar();rfIrEscolherTatica()">
           ${rfIcone('estrategia',16)} Escolher formação</button>
-        <button type="button" class="rf-btn rf-btn-primary ${pronto?'rf-btn-pulse':''}"
-          onclick="rfCampoFechar();${rfJogarAcao()}">${rfJogarLabel()}</button>
+        <button type="button" class="rf-btn rf-btn-primary rf-teatro-jogar ${pronto?'rf-btn-pulse':''}"
+          onclick="rfCampoJogar()">${rfJogarLabel()}</button>
       </div>
     </div>
   </div>`;
@@ -270,3 +272,19 @@ document.addEventListener('keydown', e=>{
   if(o && o.style.display!=='none' && o.innerHTML) return;   // há modal por cima: é dele a tecla
   rfCampoFechar();
 });
+
+/* ===== DAQUI VAI-SE DIRETO PARA O JOGO =====
+   O botão fazia `rfCampoFechar()` e só depois a ação — e fechar chama `cdraw()`, ou seja, a tela
+   era redesenhada uma vez só para ser substituída a seguir pela partida. Aqui a bandeira baixa
+   sem redesenho e a ação segue: quem entra em campo vê a partida, não o Hub a piscar pelo meio.
+   E baixar a bandeira é preciso: sem isso, ao voltar da partida o jogador caía outra vez no palco
+   em tela cheia, que não é onde ele estava. */
+function rfCampoJogar(){
+  CL.campoAmpliado=false;
+  if(CL._campoBancoAntes!==undefined){ CL.benchOpen=CL._campoBancoAntes; CL._campoBancoAntes=undefined; }
+  if(typeof rfProximaAcao==='function' && rfProximaAcao().k==='tatica'){
+    if(typeof rfIrEscolherTatica==='function') rfIrEscolherTatica();
+    return;
+  }
+  if(typeof rfJogar==='function') rfJogar(); else if(typeof clJogar==='function') clJogar();
+}
