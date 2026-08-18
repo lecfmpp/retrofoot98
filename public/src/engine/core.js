@@ -2038,11 +2038,20 @@ function ancorarCalendarioCopa(rodadas, last, folga){
   if(folga){ const ult=out.length-1; out[ult]=out[ult]+folga; }
   return out;
 }
+/* sobe sempre que a FORMA do calendário mudar — ver ensureCupCalendar */
+const CAL_VERSAO=2;   // 2 = folha de slots (18/08/2026)
 function ensureCupCalendar(force){
   if(typeof S==='undefined' || !S || !S.cups) return;
   const last=(Array.isArray(S.sched)&&S.sched.length?S.sched.length:38)-1;
-  if(!force && S.cupCalendar && S.cupCalendar._season===S.season) return;
-  const cal={ _season:S.season };
+  /* VERSÃO DA FOLHA. O calendário de copa é gravado no save e só era remontado quando a TEMPORADA
+     mudava — então um save começado antes de a folha de slots existir seguia a temporada inteira
+     com o calendário velho, aquele em que a final podia não ter dia nenhum. Quem continuou um
+     save no dia da publicação não viu diferença: o conserto estava no código e o save não o
+     alcançava. Subir CAL_VERSAO faz cada save remontar UMA vez, na primeira vez que abre.
+     Subir de novo sempre que a forma do calendário mudar. */
+  if(!force && S.cupCalendar && S.cupCalendar._season===S.season
+     && S.cupCalendar._v===CAL_VERSAO) return;
+  const cal={ _season:S.season, _v:CAL_VERSAO };
   // ordem fixa (copaBrasil, libertadores, sulamericana...) pra a folga ser sempre a mesma no
   // mesmo save — calendário não pode mudar de forma entre dois carregamentos
   const chaves=Object.keys(S.cups).filter(k=>S.cups[k]).sort();
@@ -2140,8 +2149,12 @@ function cupDrawReleased(key, round){
    Brasil ela nao acrescenta nada: sao 80 clubes e 16 confrontos de uma vez, o
    utilizador nao conhece metade dos nomes e a chave logo a seguir mostra tudo
    outra vez. Decisao do dono do jogo (17/08): a Copa do Brasil deixa de a ter.
-   Quem quiser desligar outra e so acrescentar aqui. */
-const CUP_SEM_CERIMONIA={ copaBrasil:true };
+   Quem quiser desligar outra e so acrescentar aqui.
+
+   REVERTIDO em 18/08/2026, a pedido do mesmo dono: sem a cerimonia, a Copa do Brasil passou a
+   comecar sem nada a dizer que ela comecou — o jogador abria a chave sem nunca ter visto o
+   sorteio. Fica LIGADA. Para desligar de novo, e so repor `copaBrasil:true` aqui. */
+const CUP_SEM_CERIMONIA={};
 function cupTemCerimonia(key){ return !CUP_SEM_CERIMONIA[key]; }
 /* ===== HA SORTEIO A VER? — PERGUNTA SEM EFEITO COLATERAL =====
    queueDueCupDraws() ENFILEIRA enquanto responde, entao nao serve para um rotulo de botao (o
