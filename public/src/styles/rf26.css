@@ -7787,7 +7787,14 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   position:relative;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;
   background:#0c0f0d;display:flex;align-items:center;justify-content:center;
 }
-.rf-art2-play{ display:flex;flex-direction:column;align-items:center;gap:9px; }
+/* o vídeo cobre o espaço 16:9; o marcador do formato fica por baixo dele e só aparece quando
+   não há vídeo (ou quando ele falha e o onerror o esconde) */
+.rf-art2-vid{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  z-index:0;pointer-events:none;
+}
+.rf-art2-play{ display:none;flex-direction:column;align-items:center;gap:9px; }
+.rf-art2-video.sem-video .rf-art2-play{ display:flex; }
 .rf-art2-play-b{
   width:56px;height:56px;border-radius:99px;border:1px solid rgba(255,255,255,.35);
   display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;
@@ -7797,11 +7804,11 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   color:rgba(255,255,255,.5);
 }
 .rf-art2-shade{
-  position:absolute;left:0;right:0;bottom:0;height:58%;pointer-events:none;
+  position:absolute;left:0;right:0;bottom:0;height:58%;pointer-events:none;z-index:1;
   background:linear-gradient(180deg,rgba(8,20,13,0),rgba(8,20,13,.9));
 }
 .rf-art2-over{
-  position:absolute;left:16px;bottom:14px;display:flex;flex-direction:column;gap:4px;
+  z-index:2;position:absolute;left:16px;bottom:14px;display:flex;flex-direction:column;gap:4px;
   max-width:70%;pointer-events:none;
 }
 .rf-art2-ok{
@@ -7813,7 +7820,7 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   font-size:27px;color:#fff;line-height:1.15;
 }
 .rf-art2-trofeu{
-  position:absolute;right:14px;bottom:14px;width:88px;height:88px;pointer-events:none;
+  z-index:2;position:absolute;right:14px;bottom:14px;width:88px;height:88px;pointer-events:none;
   background:rgba(8,20,13,.72);border:1px solid rgba(242,185,12,.55);border-radius:12px;
   display:flex;align-items:center;justify-content:center;
 }

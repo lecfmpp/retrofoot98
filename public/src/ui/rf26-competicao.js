@@ -1667,6 +1667,11 @@ function rfTemporadaArquivoHTML(page, season){
    ===================================================================== */
 function rfArtSetorCurto(s){ return s||'jogador'; }
 function rfArtilheiroHTML(d){
+  /* O VIDEO VEM DO MAPA DE SEMPRE (VIDEOS_MOMENTO, em ui/main.js): e la que o caminho de cada
+     momento vive, e e la que se troca sem tocar nesta tela. Ausente ou partido, o marcador do
+     formato fica no lugar dele — o `onerror` esconde o <video> e o desenho nao muda de altura. */
+  const vid=(typeof VIDEOS_MOMENTO!=='undefined')
+    ? VIDEOS_MOMENTO[d.ehLiga?'marcador-liga':'marcador-copa'] : null;
   const info=(typeof rfCompInfo==='function')?rfCompInfo(d.trofeu||d.comp):null;
   const trof=(info&&typeof rfCompTrofeuHTML==='function')?rfCompTrofeuHTML(info,68):'';
   const p1=d.podio[0], resto=d.podio.slice(1);
@@ -1682,7 +1687,13 @@ function rfArtilheiroHTML(d){
         onclick="rfArtilheiroFechar()">✕</button>
     </div>
     <div class="rf-art2-corpo">
-      <div class="rf-art2-video">
+      <div class="rf-art2-video ${vid?'':'sem-video'}">
+        ${vid?`<video src="${escC(vid)}" autoplay muted loop playsinline class="rf-art2-vid"
+          onerror="this.closest('.rf-art2-video').classList.add('sem-video');this.remove()"></video>`:''}
+        <!-- O MARCADOR DO FORMATO É O ESTADO "SEM VÍDEO", não uma legenda por cima dele. Ele vem
+             depois do <video> no DOM, então sem esta regra pintava POR CIMA da imagem — o play e o
+             "VÍDEO DOS GOLS · 16:9" ficavam sobre o vídeo a correr. Some quando há vídeo, e volta
+             sozinho se o ficheiro falhar (o onerror marca a caixa e tira o <video>). -->
         <span class="rf-art2-play">
           <span class="rf-art2-play-b">▶</span>
           <span class="rf-art2-play-l">VÍDEO DOS GOLS · 16:9</span>
@@ -1741,6 +1752,10 @@ function rfArtilheiroAbrir(dados, aoFechar){
   CL._art2={ dados, aoFechar:aoFechar||null };
   if(typeof overlayC!=='function') return false;
   overlayC(`<div class="rf-art2-wrap">${rfArtilheiroHTML(dados)}</div>`);
+  /* ÁUDIO SEMPRE DESLIGADO. O atributo `muted` é ignorado por alguns navegadores quando o
+     <video> é injetado por innerHTML — que é o caso aqui. Mesma rede do abrirMomento. */
+  try{ const v=document.querySelector('#c-overlay .rf-art2-vid');
+       if(v){ v.muted=true; v.volume=0; const pl=v.play(); if(pl&&pl.catch) pl.catch(()=>{}); } }catch(e){}
   return true;
 }
 function rfArtilheiroFechar(){

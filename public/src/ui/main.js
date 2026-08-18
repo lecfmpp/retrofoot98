@@ -4692,8 +4692,11 @@ const VIDEOS_MOMENTO = {
   // ao contexto — o troféu vem da divisão ou da competição, e o título/manchete do estado do jogo.
   'campeao-liga'  : 'video/momento-campeao.mp4',
   'campeao-copa'  : 'video/momento-campeao.mp4',
-  'marcador-liga' : null,   // video/momento-marcador-liga.mp4
-  'marcador-copa' : null,   // video/momento-marcador-copa.mp4
+  // MESMO vídeo de artilheiro para liga e copa, e de propósito: a cena é a mesma seja o artilheiro
+  // da Série D ou o da Libertadores. O que identifica a competição no modal é o kicker, o nome no
+  // cabeçalho e o troféu — não o vídeo (ver rfArtilheiroHTML).
+  'marcador-liga' : 'video/momento-artilheiro.mp4',
+  'marcador-copa' : 'video/momento-artilheiro.mp4',
   'promovido'     : null,   // video/momento-promovido.mp4
   'rebaixado'     : null,   // video/momento-rebaixado.mp4
   'abertura-copa' : null,   // video/momento-abertura-copa.mp4
