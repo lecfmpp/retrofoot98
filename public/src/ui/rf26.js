@@ -986,8 +986,15 @@ function rfHubHTML(){
       <div class="rf-card-hd">
         <span class="rf-label-t">Tática ${escC(CL.formation||'—')}</span>
         <span class="rf-label-r">onze <b>${xi.length}/11</b><span class="rf-so-desktop"> · titulares marcados com T na lista</span></span>
+        <button type="button" class="rf-campo-ampliar" title="Ver o campo em tela cheia"
+          aria-label="Ver o campo em tela cheia" onclick="rfCampoAmpliar()">${rfIcone('expandir',16)}</button>
       </div>
-      ${pitchHTML()}
+      ${rfCampoAmpliado()
+        ? `<div class="rf-campo-cedido">
+             <span class="rf-campo-cedido-t">O campo está em tela cheia</span>
+             <button type="button" class="rf-btn rf-btn-secondary" onclick="rfCampoFechar()">Trazer de volta</button>
+           </div>`
+        : pitchHTML()}
     </div>
     <div class="rf-hub-baixo" data-hub="destaques">
       ${rfNotasHTML()}
@@ -1253,7 +1260,7 @@ function rfScreenHTML(){
   const def=rfPageDef(st.page);
 
   // O HUB é a única página com faixa do clube e com a grade 530px + campo.
-  if(def.key==='hub') return rfEnvelope(rfHubHTML());
+  if(def.key==='hub') return rfEnvelope(rfHubHTML())+rfCampoTeatroHTML();
 
   const at=rfActiveTab(def);
   let corpo='<div class="rf-empty">Nada a mostrar aqui agora.</div>';

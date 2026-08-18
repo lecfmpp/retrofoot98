@@ -97,6 +97,9 @@ const RF_ICO_SVG={
 };
 /* nomes alternativos, para a chamada ler como a tela fala */
 Object.assign(RF_ICO_SVG,{
+  /* AMPLIAR/RECOLHER — as quatro setas para os cantos, o gesto universal de "tela cheia".
+     Usado no cartão do campo para abrir a visão de teatro (ver rfCampoAmpliar). */
+  expandir: '<path d="M9 3H3v6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/> <path d="M3 3l7 7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/> <path d="M15 3h6v6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/> <path d="M21 3l-7 7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/> <path d="M9 21H3v-6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/> <path d="M3 21l7-7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/> <path d="M15 21h6v-6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/> <path d="M21 21l-7-7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>',
   objetivo: RF_ICO_SVG.estrategia,
   etiqueta: RF_ICO_SVG.destaque,
   pronto: RF_ICO_SVG.ok,

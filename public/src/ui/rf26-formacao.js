@@ -185,3 +185,76 @@ function rfBancoHTML(th, nums){
     <div class="rf-banco-lista">${grupos||'<div class="cl-bench-vazio">—</div>'}</div>
   </div>`;
 }
+
+/* =====================================================================
+   CAMPO EM TELA CHEIA — a "visão de teatro"
+   ---------------------------------------------------------------------
+   No cartão do Hub o gramado divide a largura com o resto da página: as
+   camisas ficam pequenas, as placas de publicidade ficam menores ainda, e
+   arrastar um jogador para o banco é mira fina. Aqui o campo ocupa quase o
+   ecrã inteiro, o resto da página escurece e desfoca, e os dois botões que
+   importam — entrar em campo e trocar de formação — ficam à vista.
+
+   UM CAMPO DE CADA VEZ, e esta é a regra que faz tudo funcionar. O arraste
+   procura os alvos por selector GLOBAL (`document.querySelectorAll('.cl-pp,
+   .cl-bp')`, ver clDragStart em ui/main.js): com dois gramados no DOM haveria
+   dois botões com o mesmo `data-pid` e a zona de solte apanharia o gramado
+   errado. Por isso o cartão CEDE o campo enquanto o teatro está aberto, em
+   vez de o duplicar.
+
+   E vive dentro do desenho da página, não num overlay: `cdraw()` recria a tela
+   inteira por innerHTML a cada troca de jogador, e um overlay montado à parte
+   ficaria com o onze de antes.
+   ===================================================================== */
+function rfCampoAmpliado(){ return !!(typeof CL!=='undefined' && CL.campoAmpliado); }
+function rfCampoAmpliar(){
+  CL.campoAmpliado=true;
+  /* o banco tem de estar aberto: é para onde se arrasta quem sai, e é metade da razão de
+     ampliar. Guarda-se o estado anterior para o devolver ao fechar. */
+  CL._campoBancoAntes=CL.benchOpen;
+  CL.benchOpen=true;
+  cdraw();
+}
+function rfCampoFechar(){
+  if(!CL.campoAmpliado) return;
+  CL.campoAmpliado=false;
+  if(CL._campoBancoAntes!==undefined){ CL.benchOpen=CL._campoBancoAntes; CL._campoBancoAntes=undefined; }
+  cdraw();
+}
+function rfCampoTeatroHTML(){
+  if(!rfCampoAmpliado()) return '';
+  const xi=(typeof xiPlayers==='function')?xiPlayers(CL.clubId):[];
+  const cl=(typeof clubOf==='function'&&clubOf(CL.clubId))||{short:'—'};
+  const pronto=xi.length>=11 && CL.tacticChosen && (typeof xiGKCount==='function'?xiGKCount(xi)===1:true);
+  return `<div class="rf-teatro" role="dialog" aria-modal="true" aria-label="Campo em tela cheia"
+      onclick="if(event.target===this)rfCampoFechar()">
+    <div class="rf-teatro-cx">
+      <div class="rf-teatro-hd">
+        <span class="rf-teatro-id">
+          ${(typeof rfCrest==='function')?rfCrest(cl,26):''}
+          <span class="rf-teatro-n">${escC(cl.short||'')}</span>
+          <span class="rf-teatro-f">Tática ${escC(CL.formation||'—')} · onze ${xi.length}/11</span>
+        </span>
+        <div class="rf-sp"></div>
+        <button type="button" class="rf-teatro-x" title="Fechar (Esc)" aria-label="Fechar"
+          onclick="rfCampoFechar()">✕</button>
+      </div>
+      <div class="rf-teatro-campo">${(typeof pitchHTML==='function')?pitchHTML():''}</div>
+      <div class="rf-teatro-pe">
+        <span class="rf-teatro-dica">Arraste um titular para o banco para o substituir.</span>
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfCampoFechar();rfIrEscolherTatica()">
+          ${rfIcone('estrategia',16)} Escolher formação</button>
+        <button type="button" class="rf-btn rf-btn-primary ${pronto?'rf-btn-pulse':''}"
+          onclick="rfCampoFechar();${rfJogarAcao()}">${rfJogarLabel()}</button>
+      </div>
+    </div>
+  </div>`;
+}
+/* Esc fecha — o mesmo caminho dos modais do jogo, e sem apanhar o overlay deles (este layer não
+   é o #c-overlay; a tecla só age quando não há modal aberto por cima). */
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Escape' || !rfCampoAmpliado()) return;
+  const o=document.querySelector('#c-overlay');
+  if(o && o.style.display!=='none' && o.innerHTML) return;   // há modal por cima: é dele a tecla
+  rfCampoFechar();
+});

@@ -7900,3 +7900,122 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   .rf-art2-nota{ flex:1 0 100%; }
   .rf-art2-b2,.rf-art2-b1{ flex:1 1 0;height:44px; }
 }
+
+/* =====================================================================
+   CAMPO EM TELA CHEIA — a "visão de teatro" (ver rfCampoTeatroHTML)
+   O resto da página escurece e DESFOCA; o gramado fica com a altura toda
+   que a janela permite, as placas de publicidade crescem com ele, e os
+   dois botões que importam ficam no rodapé, sempre à vista.
+   ===================================================================== */
+.rf-campo-ampliar{
+  flex:0 0 auto;width:32px;height:32px;margin-left:8px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:transparent;border:1px solid var(--line-2);border-radius:var(--r-sm,6px);
+  color:var(--text-2);cursor:pointer;font-family:inherit;
+  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease);
+}
+.rf-campo-ampliar:hover{ background:var(--surface-sunken);color:var(--brand-primary);border-color:var(--brand-primary); }
+.rf-campo-ampliar:focus-visible{ outline:2px solid var(--brand-primary);outline-offset:2px; }
+
+/* o lugar que o campo deixou no cartão enquanto está em tela cheia */
+.rf-campo-cedido{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  min-height:220px;padding:24px;text-align:center;
+  border:1px dashed var(--line-2);border-radius:var(--r-sm,6px);
+  background:var(--surface-sunken);
+}
+.rf-campo-cedido-t{ font-size:14px;color:var(--text-3); }
+
+/* o palco */
+.rf-teatro{
+  position:fixed;inset:0;z-index:70;
+  display:flex;align-items:center;justify-content:center;
+  padding:clamp(10px,2vh,28px);
+  background:rgba(8,20,13,.72);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  animation:rf-teatro-entra var(--dur-med,.18s) var(--ease,ease-out);
+}
+@keyframes rf-teatro-entra{ from{opacity:0} to{opacity:1} }
+@media (prefers-reduced-motion:reduce){ .rf-teatro{ animation:none; } }
+.rf-teatro-cx{
+  width:min(1180px,100%);height:100%;
+  display:flex;flex-direction:column;gap:10px;
+  background:var(--surface-card);border-radius:16px;overflow:hidden;
+  box-shadow:0 40px 90px -30px rgba(6,14,9,.8);
+}
+.rf-teatro-hd{
+  display:flex;align-items:center;gap:10px;flex:0 0 auto;
+  padding:12px 14px;border-bottom:1px solid var(--line-1);
+}
+.rf-teatro-id{ display:inline-flex;align-items:center;gap:9px;min-width:0; }
+.rf-teatro-n{ font-weight:700;font-size:15px;color:var(--text-1);white-space:nowrap; }
+.rf-teatro-f{ font-size:12.5px;color:var(--text-3);white-space:nowrap; }
+.rf-teatro-x{
+  flex:0 0 auto;width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--line-2);border-radius:var(--r-sm,6px);background:transparent;
+  color:var(--text-2);font-size:15px;cursor:pointer;font-family:inherit;
+}
+.rf-teatro-x:hover{ background:var(--surface-sunken);color:var(--text-1); }
+
+/* o gramado toma toda a altura que sobra — é isto que faz a visão de teatro */
+.rf-teatro-campo{
+  flex:1 1 auto;min-height:0;overflow:auto;
+  padding:0 14px;display:flex;justify-content:center;
+}
+/* ===== O TETO DE LARGURA DO GRAMADO É OUTRO AQUI =====
+   `.cl-pitch-wrap` traz um teto calculado para a PÁGINA — `clamp(240px, (100vh − 482px)/1.18 +
+   58px, 460px)`. Aqueles 482px são o cabeçalho, as abas, a lista e o rodapé que rodeiam o campo
+   no Hub; o teto de 460px é o que sobra de largura na coluna. No palco não existe nada disso: há
+   só um cabeçalho fino e a barra de botões. Reaproveitar aquela conta era o que fazia o campo
+   ampliado sair MENOR que o do cartão — foi o que medi antes de escrever isto.
+   A conta é a mesma, com a moldura certa. Os 264px saem de medir, não de estimar: o cromo do
+   palco (cabeçalho 59 + rodapé 71 + o gap + o respiro, que vai de 20 a 56 conforme a altura da
+   janela) mais ~64px das placas de topo e base, que ficam FORA do gramado mas dentro do `wrap`.
+   O número é o do PIOR caso, de propósito: afinado para uma altura só, ele acertava a 900px e
+   estourava 3px a 1080. Uns pixels de gramado a menos valem mais do que uma barra de rolagem no
+   meio do palco. O gramado é 100:118, então limitar a largura continua a ser limitar a altura. */
+/* A LARGURA TEM DE SER DEFINIDA, não `auto`: o bloco é item de um flex centrado, e com largura
+   automática encolhe até ao conteúdo — foi o que fez o campo sair AINDA menor na primeira
+   tentativa. Aqui ela é a conta do gramado MAIS a goleira do banco, que é padding do bloco. */
+.rf-teatro-campo .cl-pitch-block{
+  max-width:none;
+  width:calc(min(780px, (100vh - 264px)/1.18 + 58px) + 186px);
+  padding-right:186px;                             /* a goleira do banco, mais larga aqui */
+}
+.rf-teatro-campo .cl-pitch-block.banco-fechado{
+  width:min(780px, calc((100vh - 264px)/1.18 + 58px));
+  padding-right:32px;
+}
+.rf-teatro-campo .cl-pitch-wrap{ max-width:none;width:100%; }
+/* O BANCO É ALVO DE ARRASTE, e alvo pequeno é mira fina: no palco ele ganha largura. */
+.rf-teatro-campo .cl-bench{ width:180px; }
+/* as placas crescem com o campo: é metade do motivo de ampliar */
+.rf-teatro-campo .cl-pitch-ad{ font-size:13px;letter-spacing:.04em; }
+
+.rf-teatro-pe{
+  flex:0 0 auto;display:flex;align-items:center;gap:10px;
+  padding:12px 14px;border-top:1px solid var(--line-1);
+}
+.rf-teatro-dica{ flex:1;min-width:0;font-size:12.5px;color:var(--text-3); }
+
+@media (max-width:760px){
+  .rf-teatro{ padding:0; }
+  .rf-teatro-cx{ border-radius:0;width:100%; }
+  .rf-teatro-f{ display:none; }
+  .rf-teatro-campo{ padding:0 8px; }
+  /* no telefone o rodapé empilha: a dica sai e os botões dividem a largura */
+  .rf-teatro-dica{ display:none; }
+  .rf-teatro-pe .rf-btn{ flex:1 1 0; }
+  /* ===== NO TELEFONE NÃO HÁ GOLEIRA: O BANCO FICA POR BAIXO =====
+     Abaixo de 760px o jogo já tira o banco da coluna da direita e põe-no debaixo do gramado
+     (ver .cl-pitch-block em main.css). As regras do palco continuavam a reservar os 186px da
+     goleira — num ecrã de 390px isso é metade da largura, e o campo ampliado saía MENOR que o do
+     cartão. Medido antes de escrever: 214px de gramado no palco contra 286px no cartão.
+     Aqui o gramado toma a largura toda e o banco desce com ele; a caixa rola, que é o
+     comportamento normal de uma folha no telefone. */
+  .rf-teatro-campo .cl-pitch-block,
+  .rf-teatro-campo .cl-pitch-block.banco-fechado{ width:100%;padding-right:0; }
+  .rf-teatro-campo .cl-pitch-wrap{ max-width:100%; }
+  .rf-teatro-campo .cl-bench{ width:auto; }
+}
