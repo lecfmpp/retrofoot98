@@ -7675,3 +7675,72 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   .rf-im-qa .rf-im-op{ flex-direction:column;align-items:flex-start;gap:5px;padding:13px 14px; }
   .rf-im-qa .rf-im-oe{ align-self:flex-end; }
 }
+
+/* =====================================================================
+   OBRAS NO ESTÁDIO — a calculadora e o recibo
+   O diálogo antigo dizia um preço e tinha um "Construir": não se via que
+   havia ali algo para clicar, e quem quisesse duas bancadas abria a obra
+   duas vezes sem nunca ver o total. Aqui a quantidade é uma peça com dois
+   alvos grandes, e o orçamento lista bancada a bancada — elas não custam o
+   mesmo, o preço sobe com a capacidade já construída.
+   ===================================================================== */
+/* a chamada no cartão de Finanças: linha inteira, clicável, com o preço à direita */
+.rf-obr-cta{
+  width:100%;display:flex;align-items:center;gap:12px;margin-top:10px;
+  padding:12px 14px;cursor:pointer;font-family:inherit;text-align:left;
+  background:var(--brand-primary);color:#fff;
+  border:0;border-radius:var(--r-sm,6px);
+  transition:filter var(--dur-fast) var(--ease);
+}
+.rf-obr-cta:hover{ filter:brightness(1.08); }
+.rf-obr-cta:focus-visible{ outline:2px solid var(--brand-primary);outline-offset:2px; }
+.rf-obr-cta-t{ flex:1;min-width:0;font-weight:700;font-size:14.5px;display:inline-flex;align-items:center;gap:8px; }
+.rf-obr-cta-v{ flex:0 0 auto;font-family:var(--font-mono,monospace);font-size:12px;opacity:.85; }
+
+/* o contador */
+.rf-obr-calc{
+  display:flex;align-items:center;justify-content:center;gap:18px;
+  padding:14px 0 16px;margin:4px 0 12px;
+  border-bottom:1px solid var(--line-1);
+}
+.rf-obr-b{
+  flex:0 0 auto;width:46px;height:46px;cursor:pointer;font-family:inherit;
+  font-size:24px;line-height:1;font-weight:700;
+  background:var(--surface-card);color:var(--brand-primary);
+  border:1px solid var(--line-2);border-radius:var(--r-sm,6px);
+  transition:background var(--dur-fast) var(--ease);
+}
+.rf-obr-b:hover:not(:disabled){ background:var(--surface-sunken);border-color:var(--brand-primary); }
+.rf-obr-b:disabled{ opacity:.35;cursor:not-allowed; }
+.rf-obr-qtd{ display:flex;flex-direction:column;align-items:center;min-width:132px; }
+.rf-obr-n{
+  font-family:var(--font-mono,monospace);font-size:38px;line-height:1;font-weight:700;
+  color:var(--text-1);font-variant-numeric:tabular-nums;
+}
+.rf-obr-u{ font-size:13px;font-weight:600;color:var(--text-2);margin-top:3px; }
+.rf-obr-l{ font-family:var(--font-mono,monospace);font-size:11.5px;color:var(--text-3);margin-top:2px; }
+
+/* o recibo */
+.rf-obr-recibo{
+  border:1px solid var(--line-2);border-radius:var(--r-sm,6px);
+  background:var(--surface-sunken);padding:10px 12px;margin-bottom:12px;
+}
+.rf-obr-rh{
+  display:flex;justify-content:space-between;gap:10px;
+  font-family:var(--font-mono,monospace);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text-3);
+  padding-bottom:7px;border-bottom:1px solid var(--line-1);
+}
+.rf-obr-rl{
+  display:flex;justify-content:space-between;gap:10px;align-items:baseline;
+  padding:7px 0;font-size:13.5px;color:var(--text-1);
+}
+.rf-obr-rl.vazio{ color:var(--text-3);font-style:italic; }
+.rf-obr-rd i{ font-style:normal;color:var(--text-3);font-size:12px; }
+.rf-obr-rv{ font-family:var(--font-mono,monospace);font-variant-numeric:tabular-nums;white-space:nowrap; }
+.rf-obr-rt{
+  display:flex;justify-content:space-between;gap:10px;
+  margin-top:4px;padding-top:9px;border-top:2px solid var(--line-2);
+  font-weight:700;font-size:15px;color:var(--text-1);
+}
+.rf-obr-rt span:last-child{ font-family:var(--font-mono,monospace);font-variant-numeric:tabular-nums; }

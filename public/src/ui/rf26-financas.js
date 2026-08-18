@@ -307,11 +307,15 @@ function rfFiEstadioHTML(){
         <!-- Vai ao diálogo, nunca direto ao motor: clBuildStand() constrói sem confirmar e,
              quando recusa, reabria renderStadium() — o overlay de 98 — por cima da pele nova.
              rfAcEstadio() mostra a obra ou a recusa certa, ambas no desenho novo. E deixou de
-             ser desativado no tecto: é justamente aí que a explicação do porque importa. -->
-        <button type="button" class="rf-fi-obra" onclick="rfAcEstadio()">
-          <span class="rf-fi-obra-n">${cap>=max?'No teto de expansão':'Nova bancada'}</span>
-          <span class="rf-fi-obra-v">${escC(fmt(custo))}</span>
-          <span class="rf-fi-obra-p">+5.000</span>
+             ser desativado no tecto: é justamente aí que a explicação do porque importa.
+
+             O BOTÃO TINHA A CARA DAS LINHAS DE INFORMAÇÃO. Este cartão tem três linhas com a
+             mesma pintura e só a primeira era clicável — não havia como adivinhar qual. Agora a
+             ação é uma chamada com o desenho de botão do jogo, e as outras duas continuam a ser
+             o que sempre foram: números. -->
+        <button type="button" class="rf-obr-cta" onclick="rfAcEstadio()">
+          <span class="rf-obr-cta-t">${rfIcone('estadio',16)} ${cap>=max?'Estádio no teto':'Construir bancadas'}</span>
+          <span class="rf-obr-cta-v">${cap>=max?'ver porquê':'a partir de '+escC(fmt(custo))}</span>
         </button>
         <div class="rf-fi-obra estatica">
           <span class="rf-fi-obra-n">Teto de expansão</span>
@@ -321,6 +325,11 @@ function rfFiEstadioHTML(){
         <div class="rf-fi-obra estatica">
           <span class="rf-fi-obra-n">Capacidade de hoje</span>
           <span class="rf-fi-obra-v">${grp(cap)}</span>
+          <span class="rf-fi-obra-p">lugares</span>
+        </div>
+        <div class="rf-fi-obra estatica">
+          <span class="rf-fi-obra-n">Obras liberadas este ano</span>
+          <span class="rf-fi-obra-v">${grp(Math.max(0,(typeof SEASON_BUILD_LIMIT!=='undefined'?SEASON_BUILD_LIMIT:0)-(((typeof myStadium==='function'&&myStadium())||{}).builtThisSeason||0)))}</span>
           <span class="rf-fi-obra-p">lugares</span>
         </div>
       </div>

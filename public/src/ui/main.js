@@ -11621,18 +11621,24 @@ function renderStadium(built){ const st0=myStadium(); const cap=(st0&&st0.capaci
     ${built?`<div class="cl-est-note">As novas bancadas só estarão disponíveis para o próximo jogo</div>`:''}
     ${atMax?`<div class="cl-est-note">⚠ Estádio no teto para o porte atual do clube. Cresça o clube pra ampliar mais.</div>`:seasonFull?`<div class="cl-est-note">⚠ Limite de obras da temporada atingido — o resto só na próxima temporada (obra é lenta).</div>`:''}
   </div>`,{w:660,bodyClass:'cl-body-estadio',min:true})); }
-function clBuildStand(){
+/* `silencioso` existe para a obra em SERIE: a calculadora do estádio (ver rfEstConstruirGo em
+   rf26-acoes.js) contrata várias bancadas de uma vez e chama esta função uma vez por bancada.
+   Sem ele, cada volta reabria o diálogo antigo por cima do novo. As regras não mudam — quem cobra
+   o caixa, sobe a capacidade, publica na sala e escreve nas finanças continua a ser esta função,
+   uma bancada de cada vez. Devolve `false` quando recusa, para quem está em série poder parar. */
+function clBuildStand(silencioso){
+  const _recusa=(msg)=>{ if(!silencioso){ toastC(msg); renderStadium(false); } return false; };
   S.clubStadiumCap=S.clubStadiumCap||{};
   if(!S.clubStadiumCap[CL.clubId])S.clubStadiumCap[CL.clubId]={capacity:STAND_START,builtThisSeason:0};
   const st=S.clubStadiumCap[CL.clubId]; const cap=st.capacity||STAND_START; const cost=standCost();
-  if(cap+STAND_SEATS>stadiumMaxCapacity()){ toastC('⚠ Estádio no teto para o porte do clube — cresça o clube (título/elenco) pra poder ampliar mais.'); renderStadium(false); return; }
-  if(((st.builtThisSeason||0)+STAND_SEATS)>SEASON_BUILD_LIMIT){ toastC('⚠ Obra é lenta: só '+grp(SEASON_BUILD_LIMIT)+' lugares por temporada. Continue na próxima.'); renderStadium(false); return; }
-  if((S.budget||0)<cost){ toastC('Caixa insuficiente para construir ('+fmt(cost)+').'); return; }
+  if(cap+STAND_SEATS>stadiumMaxCapacity()) return _recusa('⚠ Estádio no teto para o porte do clube — cresça o clube (título/elenco) pra poder ampliar mais.');
+  if(((st.builtThisSeason||0)+STAND_SEATS)>SEASON_BUILD_LIMIT) return _recusa('⚠ Obra é lenta: só '+grp(SEASON_BUILD_LIMIT)+' lugares por temporada. Continue na próxima.');
+  if((S.budget||0)<cost){ if(!silencioso) toastC('Caixa insuficiente para construir ('+fmt(cost)+').'); return false; }
   S.budget-=cost; commitBudget();                      // publica: senão o custo da obra é revertido na próxima rodada
   st.capacity+=STAND_SEATS; st.builtThisSeason=(st.builtThisSeason||0)+STAND_SEATS;
   commitStadium();                                      // publica: senão a bancada some na próxima rodada (Resenha)
   pushFinanceEntry({stadium:cost, log:[`🏟️ Bancada construída: +${grp(STAND_SEATS)} lugares (${fmt(cost)})`]});
-  saveV3(); renderStadium(true); }
+  saveV3(); if(!silencioso) renderStadium(true); return true; }
 
 /* ---- Jogador > Vender (painel na aba + leilão) ---- */
 function windowClosedMsg(){ const st=transferWindowStatus();

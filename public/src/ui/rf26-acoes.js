@@ -841,13 +841,62 @@ function rfAcEstadio(){
   if(e.semCaixa) return rfAcAbrir('est-caixa');
   rfAcAbrir('est-construir');
 }
-function rfEstConstruirGo(){
+/* ===================================================================
+   A OBRA E UMA CALCULADORA, E O ORCAMENTO E UM RECIBO
+   -------------------------------------------------------------------
+   O estadio tinha um dialogo de UMA bancada: dizia o preco e tinha um
+   "Construir". Duas coisas nao funcionavam. Do lado da tela, ninguem
+   percebia que havia ali um botao para clicar. Do lado do jogo, quem
+   quisesse duas bancadas tinha de abrir a obra duas vezes, sem nunca ver
+   quanto ia gastar ao todo.
+
+   O PRECO DE CADA BANCADA NAO E O MESMO. `standCostFor(cap)` cresce com a
+   capacidade JA construida, entao a segunda bancada custa mais que a
+   primeira. Multiplicar o preco de hoje pela quantidade daria um numero
+   errado -- por isso o recibo lista bancada a bancada, com o preco de cada
+   uma, e soma no fim. E o que um orcamento de obra faz.
+   =================================================================== */
+function rfObrasPrecos(){
   const e=rfEstadioEstado();
+  const linhas=[]; let cap=e.cap, total=0;
+  const cabeNaCota = n => (e.feito + n*STAND_SEATS) <= SEASON_BUILD_LIMIT;
+  for(let n=1; n<=12; n++){
+    if((cap+STAND_SEATS) > e.teto) break;              // tecto do porte do clube
+    if(!cabeNaCota(n)) break;                          // cota da temporada
+    const preco=(typeof standCostFor==='function')?standCostFor(cap):e.custo;
+    cap+=STAND_SEATS; total+=preco;
+    linhas.push({ n, preco, total, capDepois:cap, cabeNoCaixa:(total<=e.caixa) });
+  }
+  return { e, linhas, maxPorRegra:linhas.length,
+           maxPagavel:linhas.filter(l=>l.cabeNoCaixa).length };
+}
+function rfObrasQtd(){
+  const o=rfObrasPrecos();
+  let q=CL._obrasQtd;
+  if(q==null) q=Math.min(1,o.maxPorRegra);
+  return Math.max(0, Math.min(q, o.maxPorRegra));
+}
+function rfObrasMais(d){
+  const o=rfObrasPrecos();
+  CL._obrasQtd=Math.max(0, Math.min(rfObrasQtd()+d, o.maxPorRegra));
+  cdraw();
+}
+function rfEstConstruirGo(){
+  const o=rfObrasPrecos(), q=rfObrasQtd();
+  const e=o.e;
   if(e.noTeto)   return rfAcAbrir('est-teto');
   if(e.semCota)  return rfAcAbrir('est-cota');
-  if(e.semCaixa) return rfAcAbrir('est-caixa');
+  if(!q) return;
+  const linha=o.linhas[q-1];
+  if(!linha || !linha.cabeNoCaixa) return rfAcAbrir('est-caixa');
   rfAcFechar();
-  if(typeof clBuildStand==='function') clBuildStand();
+  /* constroi UMA a UMA pelo caminho do motor: e ele que cobra o caixa, sobe a capacidade,
+     publica na sala e escreve nas financas. O `true` so lhe diz para nao redesenhar o dialogo
+     antigo a cada volta. */
+  let feitas=0;
+  for(let i=0;i<q;i++){ if(typeof clBuildStand!=='function') break; if(clBuildStand(true)===false) break; feitas++; }
+  CL._obrasQtd=null;
+  if(feitas) rfAcAbrir('est-pronto', {qtd:feitas});
 }
 
 /* ===== AS OPÇÕES ===== */
@@ -941,22 +990,64 @@ const RF_ACOES_EXTRA = {
 },
 
 'est-construir': d=>{
-  const e=rfEstadioEstado();
+  const o=rfObrasPrecos(), e=o.e, q=rfObrasQtd();
   const c=(typeof clubOf==='function')?clubOf(CL.clubId):null;
+  const linha=q?o.linhas[q-1]:null;
+  const total=linha?linha.total:0;
+  const capDepois=linha?linha.capDepois:e.cap;
+  const paga=!linha || linha.cabeNoCaixa;
+  /* O CONTADOR: dois botões grandes e o número no meio, do tamanho de um número.
+     É a peça que faltava — antes não havia quantidade nenhuma para escolher. */
+  const contador=`<div class="rf-obr-calc">
+    <button type="button" class="rf-obr-b" onclick="rfObrasMais(-1)" ${q<=0?'disabled':''}
+      aria-label="Menos uma bancada">−</button>
+    <div class="rf-obr-qtd">
+      <span class="rf-obr-n">${q}</span>
+      <span class="rf-obr-u">bancada${q===1?'':'s'}</span>
+      <span class="rf-obr-l">${grp(q*STAND_SEATS)} lugares</span>
+    </div>
+    <button type="button" class="rf-obr-b" onclick="rfObrasMais(1)" ${q>=o.maxPorRegra?'disabled':''}
+      aria-label="Mais uma bancada">+</button>
+  </div>`;
+  /* O RECIBO: uma linha por bancada, com o preço de cada uma — elas não custam o mesmo. */
+  const recibo=`<div class="rf-obr-recibo">
+    <div class="rf-obr-rh"><span>ORÇAMENTO DA OBRA</span><span>${grp(STAND_SEATS)} lugares cada</span></div>
+    ${o.linhas.slice(0,q).map(l=>`<div class="rf-obr-rl">
+      <span class="rf-obr-rd">${l.n}ª bancada <i>· até ${grp(l.capDepois)} lugares</i></span>
+      <span class="rf-obr-rv">${escC(rfDin(l.preco))}</span>
+    </div>`).join('') || '<div class="rf-obr-rl vazio"><span class="rf-obr-rd">Nenhuma bancada escolhida</span><span class="rf-obr-rv">—</span></div>'}
+    <div class="rf-obr-rt"><span>Total da obra</span><span>${escC(rfDin(total))}</span></div>
+  </div>`;
   return rfAcao({ kicker:'ESTÁDIO DO '+escC(String((c&&(c.short||c.name))||'CLUBE')).toUpperCase(),
-    titulo:'Construir mais uma bancada', w:520,
+    titulo:'Obras no estádio', w:560,
     corpo:
-      rfAcSaltoHTML('AGORA', grp(e.cap), 'DEPOIS DA OBRA', grp(e.cap+STAND_SEATS), '+'+grp(STAND_SEATS))
-      + rfAcLinhaHTML('Custo da bancada', rfDin(e.custo), 'aviso', true)
-      + rfAcLinhaHTML('Caixa depois da obra', rfDin(e.caixa-e.custo), (e.caixa-e.custo)>0?'ok':'ruim')
-      + rfAcLinhaHTML('Cota da temporada', grp(e.feito)+' de '+grp(SEASON_BUILD_LIMIT)+' usados', '')
-      + rfAcLinhaHTML('Tecto do porte do clube', grp(e.teto)+' lugares', '')
-      + rfAcComoHTML('COMO FUNCIONA A OBRA', [
-          {t:'Cada bancada são '+grp(STAND_SEATS)+' lugares.'},
-          {t:'No máximo '+grp(SEASON_BUILD_LIMIT)+' lugares por temporada — obra é lenta e cresce por anos.'},
-          {t:'O tecto sobe com o porte do clube: título e elenco melhor liberam mais.'} ])
-      + rfAcNotaHTML('Mais lugares rendem mais bilheteria nos jogos em casa. As bancadas novas só valem a partir do próximo jogo.'),
-    acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Construir',on:'rfEstConstruirGo()'}] });
+      rfAcSaltoHTML('AGORA', grp(e.cap), 'DEPOIS DA OBRA', grp(capDepois), q?('+'+grp(q*STAND_SEATS)):'—')
+      + contador
+      + recibo
+      + rfAcLinhaHTML('Caixa hoje', rfDin(e.caixa), '', true)
+      + rfAcLinhaHTML('Caixa depois da obra', rfDin(e.caixa-total), paga?((e.caixa-total)>0?'ok':'aviso'):'ruim')
+      + rfAcLinhaHTML('Cota da temporada', grp(e.feito+q*STAND_SEATS)+' de '+grp(SEASON_BUILD_LIMIT)+' lugares', '')
+      + rfAcLinhaHTML('Teto do porte do clube', grp(e.teto)+' lugares', '')
+      + (paga?'':rfAcAvisoHTML('O caixa não cobre esta obra. Tire uma bancada ou venda antes de construir.','ruim'))
+      + rfAcNotaHTML('A obra fica pronta para o <b>próximo jogo em casa</b> — daí em diante cada lugar novo rende bilheteria em todos os jogos da temporada. O limite de '+grp(SEASON_BUILD_LIMIT)+' lugares por ano existe porque obra é lenta: o estádio cresce por temporadas, não de uma vez.'),
+    acoes:[{l:'Cancelar',tom:'fantasma'},
+           {l: q?('Construir por '+rfDin(total)):'Escolha a quantidade',
+            on: (q&&paga)?'rfEstConstruirGo()':'' }] });
+},
+
+/* o recibo depois de assinado: quanto cresceu, quanto custou, e quando fica pronto */
+'est-pronto': d=>{
+  const e=rfEstadioEstado();
+  const q=(d&&d.qtd)||1;
+  return rfAcao({ kicker:'ESTÁDIO · OBRA CONTRATADA', titulo:q===1?'Bancada contratada':'Bancadas contratadas', w:480,
+    corpo:
+      rfAcAvisoHTML('Obra fechada: '+q+' bancada'+(q===1?'':'s')+', '+grp(q*STAND_SEATS)+' lugares novos.','ok')
+      + rfAcLinhaHTML('Capacidade agora', grp(e.cap)+' lugares', 'ok', true)
+      + rfAcLinhaHTML('Fica pronta para', 'o próximo jogo em casa', '')
+      + rfAcLinhaHTML('Cota usada nesta temporada', grp(e.feito)+' de '+grp(SEASON_BUILD_LIMIT)+' lugares', '')
+      + rfAcLinhaHTML('Caixa', rfDin(e.caixa), (e.caixa>0)?'':'ruim')
+      + rfAcNotaHTML('A bilheteria dos jogos em casa passa a contar com os lugares novos.'),
+    acoes:[{l:'Fechar'}] });
 },
 
 'est-cota': d=>{

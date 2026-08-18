@@ -2416,11 +2416,21 @@ function rfEstadioCardHTML(){
   const cap=(st&&st.capacity)||(typeof STAND_START!=='undefined'?STAND_START:0);
   const max=(typeof stadiumMaxCapacity==='function')?stadiumMaxCapacity():cap;
   const custo=(typeof standCost==='function')?standCost():0;
+  /* O CONVITE PARA A OBRA TEM DE SER VISÍVEL. Este cartão listava quatro números e terminava num
+     botão discreto de "Gerir estádio" — não se percebia que dali se construía. Agora a última
+     linha é a própria chamada, com o preço ao lado, e abre a calculadora da obra. */
+  const st2=(typeof myStadium==='function')?myStadium():null;
+  const feito=(st2&&st2.builtThisSeason)||0;
+  const resta=Math.max(0,(typeof SEASON_BUILD_LIMIT!=='undefined'?SEASON_BUILD_LIMIT:0)-feito);
   return `<div class="rf-linha"><span class="rf-linha-t">Capacidade</span><span class="rf-linha-v">${grp(cap)} lugares</span></div>
     <div class="rf-linha"><span class="rf-linha-t">Teto de expansão</span><span class="rf-linha-v">${grp(max)}</span></div>
     <div class="rf-linha"><span class="rf-linha-t">Preço do bilhete</span><span class="rf-linha-v">${CL.ticket||0} reais</span></div>
-    <div class="rf-linha"><span class="rf-linha-t">Nova bancada</span><span class="rf-linha-v">${escC(fmt(custo))}</span></div>
-    <div class="rf-acts">${btn('Gerir estádio','clStadium()')}</div>`;
+    <div class="rf-linha"><span class="rf-linha-t">Obras liberadas este ano</span><span class="rf-linha-v">${grp(resta)} lugares</span></div>
+    <button type="button" class="rf-obr-cta" onclick="rfAcEstadio()">
+      <span class="rf-obr-cta-t">${rfIcone('estadio',16)} Construir bancadas</span>
+      <span class="rf-obr-cta-v">a partir de ${escC(fmt(custo))}</span>
+    </button>
+    <div class="rf-acts">${btn('Ver o estádio','clStadium()')}</div>`;
 }
 /* PATROCÍNIO: a referência traz camisa, manga e placas. Os valores saem da
    divisão e do porte do estádio — o jogo não tem contrato de patrocínio
