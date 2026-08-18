@@ -9956,6 +9956,21 @@ function clAcceptResenhaOffer(){
     if(!r||!r.ok){ toastC('Não deu pra assumir'+((r&&r.error)?' ('+r.error+')':'')+'.'); return; }
     CL.unemployed=false; CL._unempRounds=0; CL._pendingResenhaOffer=null;
     CL.clubId=offer.clubId; S.clubId=offer.clubId;
+    /* ===== CONVITE DE OUTRO PAÍS: O MUNDO DE LÁ NASCE AGORA =====
+       Enquanto ninguém joga num país, ele pode viver de simulação de fundo. A partir do momento
+       em que um treinador assume um clube lá, não pode: a regra é que ele assiste a todas as
+       partidas das competições do país dele, e uma quick-sim não dá partida para assistir.
+       `criarMundoDoPais` monta as divisões com elencos, calendário e tabela — reaproveitando a
+       tabela em curso da liga de fundo, para a temporada não recomeçar do zero no meio do ano.
+       O país ANTIGO continua vivo: os outros treinadores da sala seguem lá. */
+    try{
+      const uniNovo=(typeof universoDoClube==='function')?universoDoClube(offer.clubId):null;
+      const uniAtual=(typeof activeUniverseKey==='function')?activeUniverseKey():'brasil';
+      if(uniNovo && uniNovo!==uniAtual && typeof criarMundoDoPais==='function'){
+        criarMundoDoPais(uniNovo, offer.division||null);
+        if(typeof setUniverse==='function') setUniverse(uniNovo);   // a MINHA visão passa a ser a de lá
+      }
+    }catch(e){ console.warn('mundo do país novo:', e && e.message); }
     if(CL.humans){ if(from!=null) delete CL.humans[from]; CL.humans[offer.clubId]=CL.mgr; }
     if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
     S.xi=(typeof resolveClubXI==='function')?resolveClubXI(CL.clubId):(typeof autoXI==='function'?autoXI(CL.clubId):S.xi);

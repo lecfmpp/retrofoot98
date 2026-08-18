@@ -3390,6 +3390,76 @@ function divisionOfResenhaClub(clubId){
   }
   return RESENHA_START_DIV;
 }
+/* ===== O GATILHO: UM PAÍS DEIXA DE SER FUNDO E GANHA MUNDO PRÓPRIO =====
+   Quando um treinador aceita comandar um clube de outro país, aquele país não pode continuar a
+   ser resolvido por simulação de fundo: a regra é que ele assiste a TODAS as partidas das
+   competições do país do clube dele, e não se assiste ao que uma quick-sim decidiu.
+
+   Este é o momento em que o mundo daquele país nasce — divisões de verdade, com elencos
+   materializados, calendário próprio e tabela própria. `S.mundos[pais]` tem a MESMA forma que a
+   pirâmide âncora ({division, sched, table, otherDivs}), e é por isso que o resolvedor consegue
+   iterar sobre eles sem saber qual é qual (ver resolverPiramideDoPais no resolve-round).
+
+   O QUE NÃO ENTRA NO MUNDO: elencos, caixa, propostas. Isso é do jogo inteiro e continua em S,
+   partilhado — um jogador que vai do Fluminense para o Chelsea é o mesmo objeto nos dois lados.
+
+   O PAÍS ANTIGO NÃO MORRE. Ele continua na lista de países vivos e continua a ser resolvido: os
+   outros treinadores da sala seguem lá, e a carreira de um não pode apagar o campeonato dos
+   outros. É a correção que o dono do jogo apanhou em 18/08.
+
+   Custo medido: ~1 MB no shared_state por país com elencos. Por isso o mundo nasce QUANDO alguém
+   vai jogar nele, e não no arranque da sala. */
+function criarMundoDoPais(uniKey, divisaoDoTreinador){
+  if(typeof S==='undefined' || !S || !uniKey) return null;
+  const cfg=(typeof UNI_CONFIGS!=='undefined')?UNI_CONFIGS[uniKey]:null;
+  if(!cfg || !cfg.order || !cfg.order.length) return null;
+  S.mundos=S.mundos||{};
+  if(S.mundos[uniKey]) return S.mundos[uniKey];          // já existe: não se recria (apagaria a temporada em curso)
+
+  const nomePais=cfg.country||uniKey;
+  const L=(S.bgLeagues||{})[nomePais]||null;
+  const tabelaVazia=(ids)=>{ const t={}; ids.forEach(id=>t[id]={id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0}); return t; };
+  const porDivisao={};
+  cfg.order.forEach(d=>{
+    /* os clubes vêm da liga de fundo quando ela já existe — assim a tabela em curso NÃO se perde,
+       que é o que aconteceria se o mundo nascesse do zero no meio da temporada. Só quando não há
+       fundo nenhum é que se monta da folha do país. */
+    let ids=(L && L.divs && L.divs[d] && (L.divs[d].clubIds||[]).slice()) || [];
+    if(!ids.length && typeof clubesDoUniverso==='function') ids=clubesDoUniverso(uniKey,d).map(c=>c.id);
+    ids=ids.filter(Boolean);
+    if(!ids.length) return;
+    /* ELENCOS DE VERDADE. Sem isto o país teria tabela mas não teria jogo: o motor não consegue
+       simular nem transmitir uma partida de clubes sem elenco. */
+    if(typeof ensureBgClubMaterialized==='function') ids.forEach(id=>ensureBgClubMaterialized(id));
+    const anterior=(L && L.divs && L.divs[d]) || null;
+    porDivisao[d]={ clubs: ids.map(id=>({id})),
+      sched: (anterior && anterior.sched && anterior.sched.length) ? anterior.sched
+             : ((typeof makeSchedule==='function') ? makeSchedule(ids.slice()) : []),
+      table: (anterior && anterior.table) ? anterior.table : tabelaVazia(ids) };
+  });
+  const ordem=cfg.order.filter(d=>porDivisao[d]);
+  if(!ordem.length) return null;
+  const topo=(divisaoDoTreinador && porDivisao[divisaoDoTreinador]) ? divisaoDoTreinador : ordem[0];
+  const outras={};
+  ordem.forEach(d=>{ if(d!==topo) outras[d]=porDivisao[d]; });
+  S.mundos[uniKey]={ pais:uniKey, division:topo,
+    sched:porDivisao[topo].sched, table:porDivisao[topo].table, otherDivs:outras };
+
+  /* o país entra na lista de vivos — e o antigo FICA. Plural de propósito (ver paisesVivos). */
+  const vivos=new Set(Array.isArray(S.paisesVivos)?S.paisesVivos:[]);
+  vivos.add(uniKey);
+  if(typeof activeUniverseKey==='function') vivos.add(activeUniverseKey());
+  S.paisesVivos=[...vivos];
+
+  /* o calendário daquele país passa a existir na sala, para os dias dele entrarem na fila */
+  if(typeof CALENDARIOS_API!=='undefined' && CALENDARIOS_API.calendarioDe){
+    S.calFolhas=S.calFolhas||{};
+    S.calFolhas[uniKey]=CALENDARIOS_API.calendarioDe(uniKey);
+  }
+  console.log('mundo criado para '+uniKey+': '+ordem.length+' divisão(ões), topo '+topo);
+  return S.mundos[uniKey];
+}
+
 /* ===== DE QUE PAÍS É ESTE CLUBE — a peça-base do multi-país na Resenha =====
    Mesmo truque de `divisionOfResenhaClub`, e pela mesma razão: a sala NÃO precisa guardar o país
    em lugar nenhum. Cada cliente recebe o id do próprio clube (do sorteio) e deduz daí em que

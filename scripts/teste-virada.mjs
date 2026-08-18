@@ -207,6 +207,42 @@ bloco('rodada de liga', () => {
   conferir('pontos da tabela batem com os placares', ptsNaTabela, ptsEsperados);
 });
 
+/* ===== 6. DUAS PIRÂMIDES NA MESMA SALA =====
+   É o fecho da Fase 5: um humano foi treinar noutro país, `criarMundoDoPais` montou o mundo de lá
+   (S.mundos), e o resolvedor tem de fazer as DUAS andarem na mesma rodada — a do Brasil, onde os
+   outros treinadores continuam, e a da Inglaterra, onde ele está agora. Se só uma andar, ou o
+   inglês fica parado ou o campeonato dos outros para por causa da carreira dele. */
+console.log('6. Duas pirâmides vivas: as duas andam na mesma rodada');
+bloco('duas pirâmides', () => {
+  const S = mundo('brasil', U, W);
+  RR.aplicarUniverso(S);
+  const zerar = (t) => { Object.keys(t).forEach((id) => t[id] = { id, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, Pts: 0 }); };
+  S.sched = RR.makeScheduleT(Object.keys(S.table)); zerar(S.table);
+  S.results = []; S.round = 0; S.week = 1; S.day = 1;
+
+  // o mundo do segundo país, com a mesma forma da âncora — é o que criarMundoDoPais grava
+  const ing = mundo('Inglaterra', U, W);              // reaproveita o construtor: dá clubes + elencos
+  Object.keys(ing.squads).forEach((id) => S.squads[id] = ing.squads[id]);   // elencos são do jogo inteiro
+  Object.keys(ing.clubOverall).forEach((id) => S.clubOverall[id] = ing.clubOverall[id]);
+  const idsPL = Object.keys(ing.table);
+  const tabPL = {}; idsPL.forEach((id) => tabPL[id] = { id, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, Pts: 0 });
+  S.mundos = { Inglaterra: { pais: 'Inglaterra', division: 'PL', sched: RR.makeScheduleT(idsPL), table: tabPL, otherDivs: {} } };
+  S.paisesVivos = ['brasil', 'Inglaterra'];
+
+  RR.resolveLeagueRound(S, {}, new Set(), {}, {}, {});
+
+  const jogouBrasil = Object.keys(S.table).map((id) => S.table[id].P);
+  const jogouIngl = idsPL.map((id) => S.mundos.Inglaterra.table[id].P);
+  conferir('todo clube brasileiro jogou uma vez', new Set(jogouBrasil).size === 1 && jogouBrasil[0] === 1, true);
+  conferir('todo clube inglês jogou uma vez', new Set(jogouIngl).size === 1 && jogouIngl[0] === 1, true);
+
+  const doBrasil = (S.results || []).filter((r) => r.pais === 'brasil').length;
+  const daIngl = (S.results || []).filter((r) => r.pais === 'Inglaterra').length;
+  conferir('resultados do Brasil', doBrasil, Object.keys(S.table).length / 2);
+  conferir('resultados da Inglaterra', daIngl, idsPL.length / 2);
+  conferir('a rodada avançou uma vez só', S.round, 1);
+});
+
 console.log('');
 if (falhas) { console.log('✘ ' + falhas + ' divergência(s) na virada'); process.exit(1); }
 console.log('✓ virada de temporada íntegra — Brasil, Inglaterra e Argentina');
