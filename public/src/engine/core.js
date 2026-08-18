@@ -2215,6 +2215,34 @@ function humanoDeveCompeticao(key){
     return false;
   }catch(e){ return false; }
 }
+/* ===== UMA RODADA DE COPA NUNCA DEVE SER RESOLVIDA SEM TER SIDO VISTA =====
+   Regra do jogo (18/08/2026): o espectador segue sempre o calendário e mostra as partidas ao
+   vivo, o usuário participe da competição ou não. Quando uma rodada é resolvida aqui, em segundo
+   plano, sem que a competição tenha sido cumprida por quem está jogando, essa regra foi quebrada
+   — e o defeito era invisível: a competição simplesmente aparecia decidida mais tarde, e o
+   jogador só dava pela falta em dezembro, quando a final "não aconteceu".
+
+   Isto não trava nada (travar transforma defeito em jogo que não abre — ver
+   prorrogarPorCopasPendentes). Só torna a falha VISÍVEL: no console, com nome e jornada, e uma
+   vez por temporada nos relatórios. É a rede que substitui o condutor automático de teste, que
+   se mostrou pouco fiável — ele força telas e chega a conclusões erradas. Aqui quem observa é o
+   jogo a correr de verdade. */
+function avisarCopaNaoAssistida(key){
+  try{
+    if(typeof myCupTurnDone==='function' && myCupTurnDone(key)) return;   // foi cumprida: tudo certo
+    if(typeof cupRoundFixtures==='function' && !cupRoundFixtures(key,
+        (S.cups[key] && S.cups[key].group && !S.cups[key].group.finished) ? 'group' : 'bracket').length) return; // nada para ver
+    const nome=(typeof COMP_DEFS!=='undefined' && COMP_DEFS[key] && COMP_DEFS[key].short) || key;
+    console.warn('espectador: rodada da '+nome+' resolvida em segundo plano sem ter sido assistida (jornada '+S.round+')');
+    S._copaNaoAssistida=S._copaNaoAssistida||{};
+    const marca=key+':'+(S.season||1);
+    if(!S._copaNaoAssistida[marca]){
+      S._copaNaoAssistida[marca]=S.round;
+      S.roundNews=S.roundNews||[];
+      S.roundNews.push('⚠️ Uma rodada da '+nome+' foi resolvida sem você assistir.');
+    }
+  }catch(e){}
+}
 function advancePendingCups(){
   if(!S.cups) return;
   // a copa cuja rodada JÁ foi resolvida na quarta (o usuário jogou ao vivo e resolveCupRoundRest
@@ -2222,7 +2250,10 @@ function advancePendingCups(){
   const jaResolvida=k=>WORLD_RULES.cupAlreadyResolved(S._cupResolvedRound, k, S.round);   // folha única
   if(cupTickMatchesRound('copaBrasil',S.round) && cupDrawReleased('copaBrasil') && !jaResolvida('copaBrasil')){
     const cb=S.cups.copaBrasil;
-    if(cb && !cupIsFinished(cb) && cb.ties.length) advanceCupBracket(cb, 'copaBrasil-r'+cb.round, 'copaBrasil');
+    if(cb && !cupIsFinished(cb) && cb.ties.length){
+      avisarCopaNaoAssistida('copaBrasil');
+      advanceCupBracket(cb, 'copaBrasil-r'+cb.round, 'copaBrasil');
+    }
   }
   groupCupKeys().forEach(key=>{
     if(!cupTickMatchesRound(key,S.round)) return;
@@ -2230,7 +2261,7 @@ function advancePendingCups(){
     if(jaResolvida(key)) return;
     const c=S.cups[key]; if(!c) return;
     if(c.group && !c.bracket){
-      if(!c.group.finished) advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round, key);
+      if(!c.group.finished){ avisarCopaNaoAssistida(key); advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round, key); }
       if(c.group.finished){
         // fase de grupos encerrada: só sorteia o mata-mata quando a data real do sorteio
         // já tiver passado no calendário do jogo (ver COMP_R16_DRAW_2026) — enquanto isso,
@@ -2243,6 +2274,7 @@ function advancePendingCups(){
         }
       }
     } else if(c.bracket && !cupIsFinished(c.bracket) && c.bracket.ties.length){
+      avisarCopaNaoAssistida(key);
       advanceCupBracket(c.bracket, key+'-r'+c.bracket.round, key);
     }
   });
@@ -4320,9 +4352,14 @@ function playRound(userResult, humanResults){
   // semana N acontece aqui, no começo da rodada N, ANTES da partida de liga — que é a ordem em que
   // o jogador já joga (clJogar enfileira a copa antes de liberar a liga). A partida que ele jogou
   // ao vivo já está gravada no confronto e é PULADA aqui (ver advanceCupBracket).
+  /* AS NOTÍCIAS DA RODADA ZERAM ANTES DO AVANÇO DAS COPAS, não depois.
+     Estavam a ser zeradas DEPOIS de advancePendingCups(), então tudo o que o avanço de copa
+     escrevesse em S.roundNews era apagado na linha seguinte, sem deixar rasto. Foi encontrado ao
+     ligar o aviso de "rodada de copa resolvida sem ter sido assistida": o console mostrava, os
+     relatórios não. Vale para qualquer notícia gerada ali, não só para esta. */
+  S.roundNews=[];
   advancePendingCups();
   const uf=userFixture();
-  S.roundNews=[];
   const Rr=makeRng(hashSeed(S.seed,S.round,'post')); // deterministic post-match stream
   // capture who started THIS round before energy changes (for finances/enforcement)
   const startedNames = new Set(playedXI(S.clubId).map(p=>p.pid)); // pids
