@@ -777,7 +777,7 @@ function clTestePular30(){
 function clTesteEntrar(p){
   const alvo=(p&&p.alvo)||TESTE_ALVO_PADRAO;
   if(CL._teste && CL._teste.ligado) return;                 // já está a correr
-  CL._teste={ ligado:true, alvo, inicio:(S.round||0), t0:Date.now(), ultimoAto:0 };
+  CL._teste={ ligado:true, alvo, inicio:(S.round||0), t0:Date.now(), ultimoAto:0, passos:[], ultimoPasso:'' };
   CL._testeRitmoAntes=(typeof CL.tempoLabel!=='undefined')?CL.tempoLabel:null;
   CL.tempoLabel='Foguete';                                   // 6ms por minuto de jogo
   CL.tacticChosen=true;                                      // a bancada não pára para escolher tática
@@ -787,13 +787,14 @@ function clTesteEntrar(p){
     if(CL._testeTimer) clearInterval(CL._testeTimer);
     CL._testeTimer=setInterval(()=>{ try{ clTesteTick(); }catch(e){ console.warn('bancada:', e&&e.message); } }, 120);
   }
-  toastC('🧪 Bancada ligada — a caminho da jornada '+alvo);
+  clTestePainelAbrir();
   cdraw();
 }
 function clTesteSair(motivo){
   if(!CL._teste) return;
   const T=CL._teste; CL._teste=null;
   if(CL._testeTimer){ clearInterval(CL._testeTimer); CL._testeTimer=null; }
+  clTestePainelFechar();
   if(CL._testeRitmoAntes!=null) CL.tempoLabel=CL._testeRitmoAntes;
   const seg=Math.round((Date.now()-T.t0)/1000);
   clCloseOverlay();
@@ -815,6 +816,7 @@ function clTesteTick(){
   if(Date.now()-T.t0 > 180000 && (S.round||0)===T.inicio){ clTesteSair('A bancada não conseguiu avançar — a sala ficou na jornada '+(S.round||0)+'.'); return; }
   if(Date.now()-(T.ultimoAto||0) < 120) return;              // um ato de cada vez
   T.ultimoAto=Date.now();
+  clTestePainelAtualizar();
 
   /* 1) PARTIDA EM CAMPO: deixa correr. Só o intervalo pede um clique — e é preciso cuidado com
      ele. `liveContinue` só volta a armar o relógio no ramo `if(RL.paused)`; chamada quando a pausa
@@ -825,8 +827,8 @@ function clTesteTick(){
      relógio morrer de qualquer maneira. */
   if(CL.live){
     const RL=CL.live;
-    if(RL.paused){ if(typeof liveContinue==='function') liveContinue(); T.minAnterior=null; T.paradoDesde=0; return; }
-    if(RL.done) return;                                    // acabou: o fluxo normal fecha
+    if(RL.paused){ T.ultimoPasso='intervalo'; if(typeof liveContinue==='function') liveContinue(); T.minAnterior=null; T.paradoDesde=0; return; }
+    if(RL.done){ T.ultimoPasso='partida terminada'; return; }   // o fluxo normal fecha
     const min=RL.minute||0;
     if(T.minAnterior===min){
       if(!T.paradoDesde) T.paradoDesde=Date.now();
@@ -835,31 +837,49 @@ function clTesteTick(){
         T.paradoDesde=Date.now();
         try{ if(CL._liveTimer) clearTimeout(CL._liveTimer); CL._liveTimer=setTimeout(liveTick,60); }catch(e){}
       }
-    } else { T.minAnterior=min; T.paradoDesde=0; }
+    } else { T.minAnterior=min; T.paradoDesde=0; T.ultimoPasso='em campo · minuto '+min; }
     return;
   }
-  /* 2) CERIMÓNIA DE SORTEIO: anda sozinha, por temporizador. Clicar por cima atropela-a. */
-  if(CL.screen==='cupdraw' || CL.cupDraw) return;
+  /* 2) CERIMÓNIA DE SORTEIO: é PRECISO empurrá-la. Eu tinha-a deixado a "andar sozinha" — ela tem
+     temporizador próprio (cupDrawTick, 2s por bola) e eu concluíra, numa bancada de fora do jogo,
+     que clicar por cima a atropelava. As duas coisas são verdade e a conclusão estava errada:
+     clicar POR CIMA atropela, mas bater o TIQUE DELA é o caminho dela mesma, e sem isso a bancada
+     fica presa na cerimónia para sempre — foi o "a correr e nada acontece" relatado a 18/08.
+     `fast` é o modo que a própria cerimónia já tem para revelar depressa. */
+  if(CL.cupDraw){ T.ultimoPasso='sorteio a revelar'; CL.cupDraw.fast=true; if(typeof cupDrawTick==='function') cupDrawTick(); return; }
+  if(CL.screen==='cupdraw'){ clTesteClicar(); return; }   // cerimónia sem estado: sai pelo botão
   /* 3) TELA DE RESULTADO/CLASSIFICAÇÃO: fecha pelo botão de verdade, nunca mexendo em CL.screen. */
-  if(CL.screen!=='main'){ clTesteClicar(); return; }
+  if(CL.screen!=='main'){ const q=clTesteClicar(); T.ultimoPasso=q?('clicou: '+q):('tela '+CL.screen+' sem botão'); return; }
   /* 4) TELA DO CLUBE. Aqui aperta-se Jogar — o mesmo botão da pessoa. MAS o botão TEM DOIS
      ESTADOS: quando eu já disse que estou pronto, ele vira "Pronto" e a ação passa a ser
      CANCELAR (clCancelarPronto). Apertar às cegas fazia a bancada alternar pronto → cancelado →
      pronto para sempre, sem a sala nunca sair da jornada 0. Apanhado no harness de dois clientes
      em vinte segundos — é para isto que a bancada serve.
      Estando pronto, não há nada a fazer: espera-se pelos outros, que é o que a pessoa faria. */
-  if(typeof estouPronto==='function' && estouPronto()) return;
+  if(typeof estouPronto==='function' && estouPronto()){ T.ultimoPasso='pronto — à espera dos outros'; return; }
+  T.ultimoPasso='apertou Jogar';
   if(typeof rfJogar==='function') rfJogar(); else if(typeof clJogar==='function') clJogar();
 }
 /* clica a ação da tela, pela CLASSE e não pelo texto (o rótulo muda), e nunca na barra lateral —
    navegar não é jogar. */
+/* CLICA O QUE A TELA OFERECE. "Se todos os botões não forem clicados — classificação pós-rodada,
+   sorteios, continuar — o jogo não anda": é literalmente assim, e cada tela de passagem tem o seu
+   botão. A busca é por CLASSE e nunca por texto (o rótulo muda: "Jogar", "Ver o sorteio",
+   "Avançar dia", "Continuar", "Entendi"), e a barra lateral é proibida — navegar não é jogar. */
+const TESTE_SELETORES=[
+  '.rf-ov-cta',                 // ação principal dos overlays do pacote novo
+  '.rf-dlg-foot button',        // rodapé de diálogo
+  '.cl-cal-ok button',          // janelas antigas (classificação, resultado de copa)
+  '.cl-btn-ok',                 // OK/Continuar das telas clássicas
+  '.rf-btn-primary',            // ação principal de uma página
+  '.rf-btn'                     // último recurso: qualquer botão do pacote
+].join(', ');
 function clTesteClicar(){
   const vis=(el)=>el && el.offsetParent!==null && !el.disabled;
-  const proibido=(el)=>el.closest && el.closest('.rf-sidebar, .rf-nav');
-  const acao=Array.from(document.querySelectorAll('.rf-ov-cta, .rf-dlg-foot button, .cl-cal-ok button, .rf-btn-primary'))
-    .find(b=>vis(b) && !proibido(b));
-  if(acao){ acao.click(); return true; }
-  if(typeof clCloseOverlay==='function') clCloseOverlay();
+  const proibido=(el)=>el.closest && el.closest('.rf-sidebar, .rf-nav, .rf-teste-painel');
+  const alvos=Array.from(document.querySelectorAll(TESTE_SELETORES)).filter(b=>vis(b) && !proibido(b));
+  if(alvos.length){ alvos[0].click(); return (alvos[0].textContent||'').trim().slice(0,24)||'clique'; }
+  if(typeof clCloseOverlay==='function'){ clCloseOverlay(); return 'fechou overlay'; }
   return false;
 }
 /* o botão, logo abaixo do JOGAR. Só na Resenha, e some quando a sala já passou do alvo. */
@@ -870,4 +890,41 @@ function rfBotaoBancadaHTML(){
   return `<button type="button" class="rf-btn rf-btn-secondary rf-btn-full rf-teste-btn"
     ${a?'disabled':''} title="Joga sozinho até à jornada ${TESTE_ALVO_PADRAO} e devolve a sala"
     onclick="clTestePular30()">${a?'🧪 A correr…':'🧪 PULAR 30 E TESTAR'}</button>`;
+}
+
+/* ===== O PAINEL DA BANCADA =====
+   A tela fica em blur e só ele aparece à frente: o jogo está a andar por trás, e sem isto o
+   jogador vê telas a piscar e clica por cima do que a bancada está a fazer. Mostra a jornada, o
+   que ela acabou de tocar e há quanto tempo — para uma bancada parada se ver de imediato, em vez
+   de parecer que "não acontece nada". */
+function clTestePainelAbrir(){
+  clTestePainelFechar();
+  const d=document.createElement('div');
+  d.id='rf-teste-painel'; d.className='rf-teste-painel';
+  d.innerHTML=`<div class="rf-teste-cx">
+    <div class="rf-teste-tt">🧪 Bancada a correr</div>
+    <div class="rf-teste-sub" id="rf-teste-sub">a preparar…</div>
+    <div class="rf-teste-barra"><i id="rf-teste-bar"></i></div>
+    <div class="rf-teste-passo" id="rf-teste-passo">—</div>
+    <button type="button" class="rf-btn rf-btn-secondary rf-teste-parar"
+      onclick="clTesteSair('Bancada interrompida por você.')">Parar</button>
+  </div>`;
+  document.body.appendChild(d);
+  document.body.classList.add('rf-teste-on');
+  clTestePainelAtualizar();
+}
+function clTestePainelFechar(){
+  const d=document.getElementById('rf-teste-painel'); if(d) d.remove();
+  document.body.classList.remove('rf-teste-on');
+}
+function clTestePainelAtualizar(){
+  const T=CL._teste; if(!T) return;
+  const sub=document.getElementById('rf-teste-sub'); if(!sub) return;
+  const feitas=Math.max(0,(S.round||0)-T.inicio), faltam=Math.max(0,T.alvo-(S.round||0));
+  const total=Math.max(1,T.alvo-T.inicio);
+  sub.textContent='Jornada '+(S.round||0)+' de '+T.alvo+' · faltam '+faltam;
+  const bar=document.getElementById('rf-teste-bar');
+  if(bar) bar.style.width=Math.round(feitas/total*100)+'%';
+  const p=document.getElementById('rf-teste-passo');
+  if(p) p.textContent=T.ultimoPasso||('tela: '+CL.screen);
 }
