@@ -520,7 +520,7 @@ function rfCpAcoesHTML(){
     <button type="button" class="rf-btn rf-btn-secondary"
       onclick="rfSetTab('campeonatos','calendario')">${rfIcone('calendario',16)} Calendário completo</button>
     <button type="button" class="rf-btn rf-btn-cta"
-      onclick="rfSetTab('campeonatos','minhas')">${rfIcone('trofeu',16)} Ver classificação</button>
+      onclick="rfSetTab('campeonatos','classificacao')">${rfIcone('trofeu',16)} Ver classificação</button>
   </div>`;
 }
 
