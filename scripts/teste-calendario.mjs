@@ -229,6 +229,56 @@ for (const pais of C.paisesComCalendario()) {
   problemas.filter((x) => x.nivel === 'aviso').forEach((x) => console.log('      aviso: ' + pais + ' ' + (x.comp || '') + ' — ' + x.texto));
 }
 
+/* 13. A SALA COM VÁRIOS PAÍSES.
+       Regra: havendo um humano num país, esse país é jogável por inteiro e ele assiste a todas as
+       partidas das competições dele. É a fila de SLOTS que torna isso possível — o slot é da sala,
+       o país é um rótulo do dia. Duas invariantes, e a segunda é o contrário da primeira:
+         · DENTRO de um país, dois dias nunca partilham (slot, janela) — seria a mesma pessoa em
+           duas telas ao mesmo tempo;
+         · ENTRE países, partilhar é o OBJETIVO — o brasileiro vê a Libertadores enquanto o inglês
+           vê a Champions, no mesmo instante, sem ninguém esperar por ninguém. */
+{
+  const paises = C.paisesComCalendario();
+  const totais = {};
+  paises.forEach((p) => {
+    const cal = C.calendarioDe(p); totais[p] = {};
+    Object.keys(cal.competicoes).forEach((k) => { if (k !== 'liga') totais[p][k] = (k === 'copaBrasil') ? 7 : 11; });
+  });
+  const plano = W.buildDayPlanMulti(paises, null, totais, {});
+  if (!plano.length) { falhas++; console.log('  ✘ sala multi-país: plano vazio'); }
+  if (plano.some((d) => !d.pais)) { falhas++; console.log('  ✘ sala multi-país: dia sem país'); }
+
+  // a fila continua ordenada pela chave do slot
+  for (let i = 1; i < plano.length; i++) {
+    if (C.chaveDoDia(plano[i].slot, plano[i].janela) < C.chaveDoDia(plano[i - 1].slot, plano[i - 1].janela)) {
+      falhas++; console.log('  ✘ sala multi-país: fila fora de ordem na posição ' + i); break;
+    }
+  }
+  // dentro de cada país: nenhum (slot, janela) repetido
+  paises.forEach((p) => {
+    const vistos = new Set();
+    plano.filter((d) => d.pais === p).forEach((d) => {
+      const k = d.slot + ':' + d.janela;
+      if (vistos.has(k)) { falhas++; console.log('  ✘ ' + p + ': dois dias no mesmo ' + k); }
+      vistos.add(k);
+    });
+  });
+  // entre países: tem de haver partilha, senão a sala não está sincronizada
+  const porDia = {};
+  plano.forEach((d) => { const k = d.slot + ':' + d.janela; (porDia[k] = porDia[k] || new Set()).add(d.pais); });
+  const partilhados = Object.values(porDia).filter((s) => s.size > 1).length;
+  if (paises.length > 1 && !partilhados) {
+    falhas++; console.log('  ✘ sala multi-país: nenhum dia partilhado entre países — os jogadores nunca estariam juntos');
+  }
+  // cada país mantém todas as suas rodadas
+  paises.forEach((p) => {
+    Object.keys(totais[p]).forEach((k) => {
+      const n = plano.filter((d) => d.pais === p && d.comp === k).length;
+      if (n !== totais[p][k]) { falhas++; console.log('  ✘ ' + p + '/' + k + ': ' + n + ' rodadas na fila, esperado ' + totais[p][k]); }
+    });
+  });
+}
+
 console.log('');
 if (falhas) { console.log('✘ ' + falhas + ' invariante(s) quebrada(s)'); process.exit(1); }
 console.log('✓ calendário íntegro — ' + C.paisesComCalendario().join(', '));

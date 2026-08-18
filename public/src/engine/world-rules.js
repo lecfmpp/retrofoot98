@@ -281,6 +281,46 @@
     dias.sort((a,b)=>CAL.chaveDoDia(a.slot,a.janela)-CAL.chaveDoDia(b.slot,b.janela));
     return dias;
   }
+  /* ===================== A SALA COM VÁRIOS PAÍSES =====================
+     Regra do dono do jogo (18/08/2026): havendo um humano num país, esse país deixa de ser
+     "fundo" e passa a ser jogável por inteiro — o jogador assiste a TODAS as partidas de TODAS as
+     competições do país dele, como o brasileiro assiste às dele.
+
+     É a fila de semanas que torna isso possível, e é por isso que os slots vieram antes: o SLOT é
+     compartilhado pela sala inteira, e o que muda por país é qual competição entra em campo nele.
+     No slot 5, janela do meio de semana, o brasileiro vê a Libertadores e o inglês vê a Champions
+     — ao mesmo tempo, na mesma fila, sem ninguém esperar por ninguém.
+
+     Daí uma consequência que o validador precisa saber: duas competições NÃO podem dividir o
+     mesmo `(slot, janela)` DENTRO de um país — seria a mesma pessoa em duas telas. Entre países
+     diferentes, dividir é o normal e é o objetivo.
+
+     Cada dia carrega o `pais` a que pertence. Quem desenha a tela mostra só os dias do próprio
+     país; o ponteiro anda pela fila inteira, que é o que mantém a sala junta. */
+  function buildDayPlanMulti(paises, epoch, totaisPorPais, opts){
+    opts=opts||{};
+    const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
+    if(!CAL) return [];
+    const lista=(paises && paises.length) ? paises.slice() : ['brasil'];
+    const jornadasPorPais=opts.jornadasLiga || {};
+    const dias=[];
+    lista.forEach(pais=>{
+      const totais=(totaisPorPais && totaisPorPais[pais]) || null;
+      const cal=CAL.calendarioDe(pais);
+      const cups=(opts.cups && opts.cups[pais])
+        || Object.keys(cal.competicoes).filter(k=>k!=='liga');
+      const doPais=buildDayPlan(cups, epoch, totais, { pais, jornadasLiga:jornadasPorPais[pais] });
+      doPais.forEach(d=>{ d.pais=pais; dias.push(d); });
+    });
+    /* MESMA CHAVE, MESMA ORDEM. A fila é uma só; o país é um rótulo do dia, não uma fila à parte.
+       Empate entre países no mesmo (slot, janela) resolve-se pela ordem em que foram pedidos —
+       determinístico, e sem consequência: são dias simultâneos para pessoas diferentes. */
+    const ordem={}; lista.forEach((p,i)=>ordem[p]=i);
+    dias.sort((a,b)=> (CAL.chaveDoDia(a.slot,a.janela)-CAL.chaveDoDia(b.slot,b.janela))
+                   || ((ordem[a.pais]||0)-(ordem[b.pais]||0)) );
+    return dias;
+  }
+
   /* ===================== PRORROGAÇÃO: A TEMPORADA ESPERA AS FINAIS =====================
      A temporada acabava quando a LIGA acabava (S.round >= S.sched.length), sem perguntar se as
      copas tinham terminado. Quando o calendário de copa não coube dentro da liga — foi o que
@@ -508,7 +548,7 @@
 
   const API={ calendar, seasonStart, calDay, jornadaOfCalDate, leagueMatchDay, cupMatchDayByRound,
     diaDoSlot, diaParaMMDD, janelaDaCompeticao, cupMatchDayAt,
-    buildDayPlan, DAY_MOMENTS, prorrogarPorCopasPendentes,
+    buildDayPlan, buildDayPlanMulti, DAY_MOMENTS, prorrogarPorCopasPendentes,
     cupDrawDay, buildCupSchedule, cupTickMatchesRound, cupRoundIndexAt,
     cupAlreadyResolved, markCupResolved, CUP_FIRST_ROUND,
     cpuMarket, cpuCaixaRodada, cpuCrescerEstadio };
