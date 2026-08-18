@@ -2982,6 +2982,10 @@ function clJobProposalAccept(){
     text:`Contratado pelo ${String(c.short).toUpperCase()}${o.foreign?' ('+o.country+')':''}`});
   applyManagerJobChange(o.clubId, o.division, o.country); // country presente => troca de universo
   if(o.salary) S.coachSalary=o.salary;
+  /* O DESCANSO ENTRE MUDANÇAS É O MESMO DA RESENHA (ver SONDAGEM_EXTERIOR, no core). Estava
+     carimbado só no caminho da sala, então no solo a trava nunca chegava a engatar. Demissão não
+     carimba: quem foi despedido escolhe clube na hora e não pode ficar de fora do mercado. */
+  S.lastClubChangeSeason=S.season;
   // some da caixa de ofertas pendentes: aceitar por aqui resolve a mesma oferta que está lá
   if(Array.isArray(S.pendingJobOffers)) S.pendingJobOffers=S.pendingJobOffers.filter(x=>x.clubId!==o.clubId);
   CL._jobOffer=null;

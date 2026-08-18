@@ -3748,26 +3748,88 @@ function generateFiringOptions(){
 /* proposta de outro clube quando o treinador está indo bem: prioriza um clube um pouco melhor
    (por overall) na MESMA divisão; só raramente oferece um clube (fraco) da divisão de cima
    Critérios de sucesso: títulos, gestão financeira, moral do time */
-/* FASE 4: sondagem de clube de OUTRO país (liga de fundo). Mais rara que a doméstica e exige
-   estar muito bem no cargo. O treinador de sucesso pode ser levado pra o exterior. */
+/* =====================================================================
+   SONDAGEM DO EXTERIOR — UMA REGRA SÓ, PARA OS DOIS MODOS
+   ---------------------------------------------------------------------
+   Solo e Resenha tinham réguas diferentes para a MESMA decisão de carreira, e a diferença não era
+   escolha de desenho — era o solo e a Resenha terem sido escritos em momentos diferentes:
+
+     · o solo só deixava ser sondado quem estava na 1ª divisão; a Resenha, qualquer divisão;
+     · o solo pedia segurança no cargo 85; a Resenha, 80;
+     · o solo dava PRIORIDADE ao convite estrangeiro (vinha antes do doméstico, e em 40% das
+       vezes que rolava); a Resenha punha-o em 15%, atrás dos dois domésticos;
+     · a Resenha travava a próxima mudança por duas temporadas; o solo não travava nada, e um
+       treinador podia trocar de clube todos os anos.
+     · e o solo escolhia o clube de fora entre a METADE MAIS FORTE da 1ª divisão daquele país,
+       sem olhar para o clube que o treinador comanda — um técnico do meio da tabela podia ser
+       chamado pelo maior clube da Europa.
+
+   Agora a régua é esta, e vale igual nos dois modos. Ela é a da Resenha nos pontos em que a
+   Resenha era a mais realista (o degrau limitado, o descanso entre mudanças, o convite de fora
+   como o mais raro dos três) e mais frouxa que o solo onde o solo era arbitrário (a 1ª divisão
+   deixa de ser exigência: quem está a ganhar a segunda divisão TEM currículo).
+
+   O que a torna realista, em três traços:
+     · quem observa o mercado olha o TOPO da pirâmide, não a base (dois níveis, não um);
+     · o clube que chama é melhor que o atual, mas nunca um salto absurdo — é promoção, não sorte;
+     · quem acabou de mudar não muda outra vez no ano seguinte.
+   ===================================================================== */
+const SONDAGEM_EXTERIOR={
+  nivelMaximo:1,          // níveis do topo da pirâmide que o exterior observa (0 = 1ª divisão)
+  seguranca:82,           // a régua de "está a ir muito bem" (era 85 no solo, 80 na Resenha)
+  degrauMin:2,            // o clube de fora tem de ser melhor que o meu...
+  degrauMax:18,           // ...e não um salto absurdo
+  fatia:0.15,             // 15% das sondagens vêm de fora: mudar de país é a decisão mais pesada
+  descansoTemporadas:2,   // uma mudança VOLUNTÁRIA a cada duas temporadas
+};
+/* DESCANSO ENTRE MUDANÇAS. Só vale para mudança voluntária: quem foi DEMITIDO tem de poder
+   assumir o convite seguinte, senão ficaria duas temporadas sem clube. */
+function podeMudarDeClube(){
+  if(S.lastClubChangeSeason==null) return true;
+  return ((S.season||1) - S.lastClubChangeSeason) >= SONDAGEM_EXTERIOR.descansoTemporadas;
+}
+function resenhaCanMoveClub(){ return podeMudarDeClube(); }   // nome antigo, mesmo comportamento
+/* TENHO CURRÍCULO PARA SER OBSERVADO DE FORA? Nível na pirâmide + régua no cargo + descanso.
+   O nível é lido por ÍNDICE (order.indexOf), não pela letra da divisão — é o que faz a regra
+   valer num país de divisão única (Argentina: índice 0, elegível) sem escrever exceção. */
+function curriculoDeExportacao(){
+  const nivel=DIV_ORDER.indexOf(S.division);
+  if(nivel<0 || nivel>SONDAGEM_EXTERIOR.nivelMaximo) return false;
+  if((S.jobSecurity||0) < SONDAGEM_EXTERIOR.seguranca) return false;
+  return podeMudarDeClube();
+}
+/* CLUBES DE FORA DENTRO DO DEGRAU. Lê as ligas dos outros países da sala/save (S.bgLeagues) e
+   devolve só os que são um passo realista acima do clube atual. Assento de humano fica fora: não
+   está disponível. Ordenado do menor degrau para o maior, para o sorteio não puxar sempre o topo. */
+function clubesDoExterior(){
+  const fora=[], bg=S.bgLeagues||{};
+  const humanos=new Set(Object.keys((typeof CL!=='undefined'&&CL.humans)||{}));
+  if(S.clubId) humanos.add(S.clubId);
+  const meu=anyClubOverall(S.clubId);
+  Object.keys(bg).forEach(pais=>{
+    const divs=(bg[pais]&&bg[pais].divs)||{};
+    Object.keys(divs).forEach(d=>{
+      (divs[d].clubIds||[]).forEach(id=>{
+        if(humanos.has(id)) return;
+        const c=(typeof bgClubById==='function')?bgClubById(id):null; if(!c) return;
+        const ov=anyClubOverall(id,c);
+        if(ov>meu+SONDAGEM_EXTERIOR.degrauMin && ov<=meu+SONDAGEM_EXTERIOR.degrauMax)
+          fora.push({clubId:id, division:d, ov, country:pais});
+      });
+    });
+  });
+  fora.sort((a,b)=>a.ov-b.ov);
+  return fora.slice(0,6);
+}
+/* sondagem de clube de OUTRO país no modo solo — mesma régua da Resenha (ver acima) */
 function maybeForeignJobOffer(){
-  // só treinador da 1ª divisão do Brasil recebe sondagem do exterior — quem está nas séries
-  // B/C/D não tem "currículo" pra ser cobiçado fora do país ainda, e S.intlUniverse!=false
-  // significa que o treinador já está no exterior (não é mais "convite pro exterior" nesse caso).
-  if(S.intlUniverse || S.division!=='A') return null;
-  const bg=(S.bgCountries||[]).filter(c=>UNI_CONFIGS[uniKeyOf(c)]); if(!bg.length) return null;
+  if(!curriculoDeExportacao()) return null;
   const R=makeRng(hashSeed(S.seed,S.season,S.round,'foreignjob'));
-  if((S.jobSecurity||0)<85 || R.random()>=0.40) return null; // só quando MUITO bem, e não toda vez
-  const country=bg[Math.floor(R.random()*bg.length)];
-  const L=S.bgLeagues&&S.bgLeagues[country]; const cfg=UNI_CONFIGS[uniKeyOf(country)]; if(!L||!cfg) return null;
-  const topDiv=cfg.order[0]; const dd=L.divs[topDiv]; if(!dd) return null;
-  const ids=(dd.clubIds||[]).slice(); if(!ids.length) return null;
-  // um bom degrau: sorteia entre a metade mais forte da divisão de topo daquele país
-  const ranked=ids.map(id=>({id, ov:(bgClubById(id)||{}).overall||70})).sort((a,b)=>b.ov-a.ov);
-  const top=ranked.slice(0, Math.max(3, Math.ceil(ranked.length/2)));
-  const pick=top[Math.floor(R.random()*top.length)];
-  const bump=Math.round((S.coachSalary||150000)*(0.25 + Math.max(0,(pick.ov-clubOverall(S.clubId)))*0.02));
-  return { clubId:pick.id, division:topDiv, country, foreign:true, salary:(S.coachSalary||150000)+bump };
+  if(R.random()>=SONDAGEM_EXTERIOR.fatia) return null;   // o convite de fora é o mais raro dos três
+  const fora=clubesDoExterior(); if(!fora.length) return null;
+  const pick=fora[Math.floor(R.random()*fora.length)];
+  return { clubId:pick.clubId, division:pick.division, country:pick.country, foreign:true,
+           salary:proposedCoachSalary(pick.clubId, S.clubId) };
 }
 function generateJobOffer(){
   // verificar critérios de sucesso do treinador
@@ -3845,7 +3907,11 @@ function checkManagerJobEvent(){
         return {kind:'fired', options};
       }
     }
-  } else if(S.jobSecurity>=80){
+  } else if(S.jobSecurity>=80 && podeMudarDeClube()){
+    /* O DESCANSO ENTRE MUDANÇAS VALE NOS DOIS MODOS (ver SONDAGEM_EXTERIOR). A Resenha travava a
+       próxima troca por duas temporadas e o solo não travava nada: um treinador solo podia mudar
+       de clube todos os anos, o que é a forma mais rápida de subir quatro divisões em quatro
+       temporadas sem nunca ganhar nada. Demissão não conta — quem foi despedido escolhe na hora. */
     // só considerar ofertas se passaram pelo menos 4 rodadas desde demissão (ou nunca foi demitido)
     const minRoundsSinceFired = S.roundsSinceFired===null ? 0 : 4;
     if(S.roundsSinceFired===null || S.roundsSinceFired>=minRoundsSinceFired){
@@ -3982,21 +4048,11 @@ function resenhaOfferClubs(){
      critério de sempre — melhores que o meu, mas não absurdamente melhores.
      A troca em si já é resolvida por applyManagerJobChange, que sabe mudar de universo no meio da
      temporada (o país antigo vira liga de fundo e o novo sai dela). */
-  const fora=[];
-  const bg=S.bgLeagues||{};
-  Object.keys(bg).forEach(pais=>{
-    const divs=(bg[pais]&&bg[pais].divs)||{};
-    Object.keys(divs).forEach(d=>{
-      (divs[d].clubIds||[]).forEach(id=>{
-        if(humans.has(id)) return;
-        const c=(typeof bgClubById==='function')?bgClubById(id):null; if(!c) return;
-        const ov=(typeof anyClubOverall==='function')?anyClubOverall(id,c):(c.overall||70);
-        if(ov>cur+2 && ov<=cur+18) fora.push({clubId:id, division:d, ov, country:pais});
-      });
-    });
-  });
-  fora.sort((a,b)=>a.ov-b.ov);
-  return {same, up, fora:fora.slice(0,6)};
+  /* A LISTA DE FORA É A MESMA DO SOLO — ver clubesDoExterior e SONDAGEM_EXTERIOR. Esta função
+     tinha o degrau escrito à mão (cur+2..cur+18), e era com esses dois números que a régua da
+     Resenha divergia do solo sem ninguém decidir que devia divergir. */
+  const fora = curriculoDeExportacao() ? clubesDoExterior() : [];
+  return {same, up, fora};
 }
 /* UMA troca de clube a cada DUAS temporadas: o treinador de sucesso muda de ares, mas não escala
    quatro divisões em quatro temporadas. Vale só pra mudança VOLUNTÁRIA (sondagem aceita) — quem
@@ -4043,7 +4099,7 @@ function tickResenhaCareer(){
          E 15% vem de FORA DO PAÍS, quando há sala com mais de um país — é o convite internacional
          a um treinador humano. Fica atrás dos outros dois de propósito: mudar de país é a decisão
          mais pesada da carreira, e não deve ser a mais frequente. */
-      const deFora=(fora&&fora.length && R.random()<0.15) ? fora : null;
+      const deFora=(fora&&fora.length && R.random()<SONDAGEM_EXTERIOR.fatia) ? fora : null;
       const pool = deFora || ((up.length && (R.random()<0.25 || !same.length)) ? up : same);
       if(pool.length){
         const pick=pool[Math.floor(R.random()*pool.length)];
