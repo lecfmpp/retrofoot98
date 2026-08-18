@@ -374,8 +374,27 @@ async function netCreateRoom(name, host){
     catch(e){ console.warn('patch de dados da sala:', e && e.message); }
   }
   const testDiv = (typeof TESTING_FREE_DIVISION_PICK!=='undefined' && TESTING_FREE_DIVISION_PICK && CL.testStartDiv && CL.testStartDiv.brasil) || undefined;
-  const poolClubs = (typeof resenhaStartClubs==='function' && resenhaStartClubs(testDiv).length) ? resenhaStartClubs(testDiv)
-    : ((typeof DATA!=='undefined' && DATA.clubsSerieA && DATA.clubsSerieA.length) ? DATA.clubsSerieA : DATA.clubs);
+  /* ===== O SORTEIO É DE UM PAÍS SÓ =====
+     Sala com vários países NÃO quer dizer um treinador no Flamengo e outro no Manchester: quer
+     dizer que aquelas ligas existem por inteiro no mundo desta sala — simuladas, assistíveis,
+     com mercado e calendário próprios. Todos começam JUNTOS no mesmo país; sair para outro é uma
+     decisão de carreira, por convite (ver resenhaOfferClubs / applyManagerJobChange).
+
+     Por isso o pool do sorteio é o do país INICIAL, e só dele. Misturar aqui separaria a sala
+     logo no primeiro dia, que é o contrário do que a Resenha é.
+
+     E é também o desenho mais barato: no arranque só um país tem humano, logo só um precisa de
+     elencos completos (~1 MB no shared_state, medido). Um país ganha elencos quando um humano vai
+     treinar lá — o custo acompanha o uso, em vez de vir todo de uma vez. */
+  const paisInicial = (CL.net && CL.net.paisInicial) || 'brasil';
+  const divInicial = (paisInicial==='brasil') ? testDiv
+    : ((typeof UNI_CONFIGS!=='undefined' && UNI_CONFIGS[paisInicial] && UNI_CONFIGS[paisInicial].order)
+        ? UNI_CONFIGS[paisInicial].order[UNI_CONFIGS[paisInicial].order.length-1] : undefined);
+  let poolClubs = (typeof clubesDoUniverso==='function') ? clubesDoUniverso(paisInicial, divInicial) : [];
+  if(!poolClubs || !poolClubs.length){
+    poolClubs = (typeof resenhaStartClubs==='function' && resenhaStartClubs(testDiv).length) ? resenhaStartClubs(testDiv)
+      : ((typeof DATA!=='undefined' && DATA.clubsSerieA && DATA.clubsSerieA.length) ? DATA.clubsSerieA : DATA.clubs);
+  }
   const clubIds = poolClubs.map(c=>c.id);
   const { data: code, error } = await sb.rpc('create_game', { p_name:name, p_club_ids:clubIds, p_mode: CL.net.mode||'sorteio' });
   if(error) throw error;

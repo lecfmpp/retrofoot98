@@ -466,6 +466,20 @@ function rfObPais(n){
   cdraw();
 }
 function rfObDivisao(d){ CL.testStartDiv=CL.testStartDiv||{}; CL.testStartDiv.brasil=d; cdraw(); }
+/* LIGAS JOGÁVEIS DO MUNDO desta sala. NÃO é onde cada um começa: todos começam juntos no país
+   inicial, e sair para outro é decisão de carreira, por convite. Marcar um país aqui quer dizer
+   "esta liga existe por inteiro" — simulada, assistível, com mercado e calendário próprios —, e é
+   de onde podem vir convites para treinar lá fora.
+   O país inicial está sempre dentro e não se desliga. */
+function rfObPais(uni){
+  const n=CL.net||(CL.net={});
+  const atual=new Set(n.paises&&n.paises.length?n.paises:['brasil']);
+  if(uni==='brasil') return;                       // âncora da sala
+  if(atual.has(uni)) atual.delete(uni); else atual.add(uni);
+  atual.add('brasil');
+  n.paises=[...atual];
+  cdraw();
+}
 
 /* =====================================================================
    4 · CRIAR SALA (só Resenha) — substitui scSalaHost()
@@ -526,6 +540,44 @@ function rfOb4(){
             copas podem se comportar de forma estranha. A Série D é a que está pronta.</span>
         </div>`:''}
       </div>
+
+      ${(function(){
+        const API=(typeof CALENDARIOS_API!=='undefined')?CALENDARIOS_API:null;
+        if(!API) return '';
+        const disponiveis=API.paisesComCalendario();
+        if(disponiveis.length<2) return '';        // só há um país com calendário: nada a escolher
+        const sel=new Set((n.paises&&n.paises.length)?n.paises:['brasil']); sel.add('brasil');
+        const nomeDe=(k)=>k==='brasil'?'Brasil'
+          :(((typeof UNI_CONFIGS!=='undefined'&&UNI_CONFIGS[k]&&UNI_CONFIGS[k].country))||k);
+        const cartoes=disponiveis.map(k=>{
+          const u=(typeof UNI_CONFIGS!=='undefined')?UNI_CONFIGS[k]:null;
+          const divs=(u&&u.order)||[];
+          const clubes=divs.reduce((t,d)=>t+((u&&u.size&&u.size[d])||0),0);
+          const ancora=(k==='brasil');
+          return `<button type="button" class="rf-sl-div ${sel.has(k)?'on':''} ${ancora?'':'teste'}"
+              onclick="rfObPais('${escC(k)}')" ${ancora?'title="O Brasil é a âncora da sala"':''}>
+            <span class="rf-sl-div-id">
+              <span class="rf-sl-div-n">${escC(nomeDe(k))}</span>
+              <span class="rf-sl-div-s">${divs.length} ${divs.length>1?'divisões':'divisão'} · ${clubes} clubes</span>
+            </span>
+            <span class="rf-sl-selo ${ancora?'padrao':'teste'}">${ancora?'SEMPRE':(sel.has(k)?'NA SALA':'FORA')}</span>
+          </button>`;
+        }).join('');
+        const extras=[...sel].filter(k=>k!=='brasil').length;
+        return `<div class="rf-sl-bloco">
+          <div class="rf-sl-hd">
+            <span class="rf-sl-l">LIGAS JOGÁVEIS</span>
+            <span class="rf-sl-hd-s">Todos começam no Brasil · as outras existem no mundo e podem convidar você</span>
+          </div>
+          <div class="rf-sl-divs">${cartoes}</div>
+          ${extras?`<div class="rf-sl-aviso">
+            ${rfIcone('aviso',16)}
+            <span>Estas ligas rodam por inteiro no mundo da sala e podem sondar você como treinador.
+              Um país só ganha elencos completos quando alguém for treinar lá — aí custa cerca de
+              <b>1 MB</b> no estado da sala, lido e gravado a cada rodada.</span>
+          </div>`:''}
+        </div>`;
+      })()}
 
       <div class="rf-sl-faixa">
         <div class="rf-sl-fx"><span class="rf-sl-l">CÓDIGO</span><span class="rf-sl-fx-v mono">${escC(codigo)}</span></div>
