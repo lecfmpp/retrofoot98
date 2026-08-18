@@ -827,15 +827,42 @@ function clTesteTick(){
      relógio morrer de qualquer maneira. */
   if(CL.live){
     const RL=CL.live;
+    /* ===== OS MODAIS DE DENTRO DA PARTIDA =====
+       A partida PARA e espera uma decisão: pênalti, lesão, expulsão, e a disputa de pênaltis no
+       fim de um mata-mata. O simulador tem de responder a todos — foi o "parou na tela de
+       pênaltis" relatado a 18/08. Cada um tem a sua função no jogo, e é ela que se chama: é a
+       mesma decisão que o botão tomaria, e não um atalho por fora.
+       A escolha é sempre a mais neutra possível — o batedor já pré-selecionado, o substituto que
+       o jogo sugere —, porque a bancada existe para atravessar a temporada, não para jogar bem. */
+    if(RL.pens && RL.pensPicking && typeof resolveShootoutKick==='function'){
+      T.ultimoPasso='disputa de pênaltis'; resolveShootoutKick(CL.penSel); return;
+    }
+    if(RL.penEvent && typeof resolvePenalty==='function'){
+      T.ultimoPasso='pênalti'; resolvePenalty(CL.penSel); return;
+    }
+    if(RL.injEvent){
+      T.ultimoPasso='lesão';
+      if(CL.injSel && typeof resolveInjurySub==='function') resolveInjurySub(CL.injSel);
+      else if(typeof resolveInjuryNoSub==='function') resolveInjuryNoSub();
+      return;
+    }
+    if(RL.redEvent && typeof resolveRedConfirm==='function'){
+      T.ultimoPasso='expulsão'; resolveRedConfirm(); return;
+    }
     if(RL.paused){ T.ultimoPasso='intervalo'; if(typeof liveContinue==='function') liveContinue(); T.minAnterior=null; T.paradoDesde=0; return; }
     if(RL.done){ T.ultimoPasso='partida terminada'; return; }   // o fluxo normal fecha
     const min=RL.minute||0;
     if(T.minAnterior===min){
       if(!T.paradoDesde) T.paradoDesde=Date.now();
       /* o relógio não anda há 5s: rearma o tique da partida pelo caminho do próprio jogo. */
-      if(Date.now()-T.paradoDesde > 5000 && typeof liveTick==='function'){
+      if(Date.now()-T.paradoDesde > 5000){
         T.paradoDesde=Date.now();
-        try{ if(CL._liveTimer) clearTimeout(CL._liveTimer); CL._liveTimer=setTimeout(liveTick,60); }catch(e){}
+        /* o relógio não anda há 5s e nenhum modal conhecido está aberto: pode ser um que eu não
+           mapeei. Tenta o botão da tela antes de rearmar o relógio — se houver um modal por cima,
+           é ele que o fecha, e o passo escrito no painel diz qual foi. */
+        const q=clTesteClicar();
+        if(q){ T.ultimoPasso='destravou: '+q; return; }
+        try{ if(CL._liveTimer) clearTimeout(CL._liveTimer); if(typeof liveTick==='function') CL._liveTimer=setTimeout(liveTick,60); }catch(e){}
       }
     } else { T.minAnterior=min; T.paradoDesde=0; T.ultimoPasso='em campo · minuto '+min; }
     return;
