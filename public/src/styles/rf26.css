@@ -4919,7 +4919,11 @@
 }
 
 /* ---- células das quatro tabelas de Campeonatos (a linha é a do Elenco) ---- */
-.rf-cp-jor{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-3);white-space:nowrap}
+.rf-cp-jor{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-3);white-space:nowrap;
+  /* "Oitavas de final" nao cabe na largura da coluna e escorregava por cima da data
+     da coluna seguinte -- as duas liam-se sobrepostas. Corta com reticencias; o nome
+     inteiro fica no title. */
+  overflow:hidden;text-overflow:ellipsis;min-width:0}
 .rf-cp-local{font-family:var(--font-mono);font-size:10px;color:var(--text-3);white-space:nowrap}
 .rf-cp-placar{font-family:var(--font-mono);font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);
   color:var(--text-1);text-align:center;white-space:nowrap}
@@ -6394,6 +6398,10 @@
 }
 /* data do jogo no calendário — mono, discreta; no telefone encolhe ao máximo */
 .rf-cp-data{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-muted);white-space:nowrap}
+/* pênaltis do mata-mata, ao lado do placar do tempo normal */
+.rf-cp-pens{font-family:var(--font-mono);font-size:var(--fs-caption);font-style:normal;color:var(--text-faint)}
+/* linha de copa ainda sem adversário: guarda o lugar do escudo para as colunas não deslizarem */
+.rf-cp-semescudo{display:block;width:20px;height:20px}
 @media (max-width:760px){ .rf-cp-data{font-size:10px} }
 /* célula de clube clicável: leva ao elenco do adversário */
 .rf-clicavel{cursor:pointer;border-radius:8px;transition:background var(--dur-fast) var(--ease)}

@@ -798,6 +798,16 @@ function rfTopAd(){
    mesma caixa da faixa do clube, que era o pedido.
    Os trilhos laterais saíram: a publicidade da área logada passa a morar
    dentro da página. */
+/* ===== A ANCORA FIXA NAO ENTRA NA FORMACAO =====
+   Ela e uma barra presa ao fundo da janela, e na Formacao o fundo da janela e o CAMPO: a
+   barra ficava por cima do gramado e do cartao do proximo jogo, justamente na tela em que a
+   pessoa arrasta jogadores. Nas outras paginas ela continua igual — o que muda e o pe da
+   Formacao, que ja tem publicidade propria (as placas do campo, rf98.campo.*). */
+function rfAncoraHTML(){
+  const pag=(typeof rfState==='function')?(rfState().page||''):'';
+  if(pag==='hub') return '';
+  return rfAdEspaco('rf98.anchor.bottom',{cls:'rf-anchor',formato:'970×90 · 320×50'});
+}
 function rfEnvelope(conteudo){
   return `<div class="rf-app ${rfSidebarCollapsed()?'collapsed':''}">
     ${rfSidebarHTML()}
@@ -808,7 +818,7 @@ function rfEnvelope(conteudo){
       </div>
     </main>
     ${rfBottomNavHTML()}
-    ${rfAdEspaco('rf98.anchor.bottom',{cls:'rf-anchor',formato:'970×90 · 320×50'})}
+    ${rfAncoraHTML()}
     ${typeof rfAcaoHTML==='function'?rfAcaoHTML():''}
   </div>`;
 }

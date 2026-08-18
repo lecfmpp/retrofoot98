@@ -258,9 +258,23 @@ function rfCpCalendarioHTML(){
   return cartaoLiga + copas
     + ((!cartaoLiga && !copas) ? '<div class="rf-empty">Nada marcado nesta competição ainda.</div>' : '');
 }
-/* uma copa por cartão, com FASE no lugar de JORNADA */
-const RF_CP_COPA_COLS='78px 22px minmax(0,1.4fr) minmax(62px,.5fr) minmax(62px,.5fr) 34px';
+/* uma copa por cartão: FASE no lugar de JORNADA, e a DATA ao lado, igual à liga */
+const RF_CP_COPA_COLS='124px 54px 22px minmax(0,1.4fr) minmax(62px,.5fr) minmax(70px,.5fr) 34px';
+/* ===== A COPA NÃO TINHA DATA =====
+   Este cartão remontava o calendário à mão, lendo `c.bracket.ties` e `mg.groups[].sched`.
+   Nesses dois lugares está QUEM joga contra quem — não EM QUE SEMANA. Sem a semana não há
+   como calcular o dia (cada competição tem o seu dentro dela: a Sul-Americana joga na quinta,
+   a Libertadores na quarta, a Copa do Brasil na terça), então a coluna de data simplesmente
+   não existia aqui: a liga mostrava "sáb 14/mar" e a copa, nada.
+   O motor já responde isso e é ele quem manda no calendário: userCupPlayedRows() e
+   userCupCalendarRows() devolvem cada jogo do clube com a JORNADA (`w`) — as mesmas linhas que
+   o Calendário antigo sempre usou. Daí a data sai de dataCurtaDaJornada(w, chave), a mesma
+   função da liga. De quebra vêm juntos a fase certa, os pênaltis do mata-mata e o confronto
+   ainda "a definir", que a leitura à mão também deixava de fora. */
 function rfCpCopasCalendarioHTML(so){
+  const jogados=(typeof userCupPlayedRows==='function')?userCupPlayedRows():[];
+  const porvir=(typeof userCupCalendarRows==='function')?userCupCalendarRows():[];
+  const todas=jogados.concat(porvir);
   const out=[];
   ((typeof allCupKeys==='function')?allCupKeys():[]).forEach(k=>{
     if(so && String(so)!==String(k)) return;   // filtro do chip
@@ -268,57 +282,28 @@ function rfCpCopasCalendarioHTML(so){
     // copa que o clube não disputa não tem calendário nenhum a mostrar aqui
     if(typeof rfCpInscrito==='function' && !rfCpInscrito(k,c)) return;
     const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[k])||{};
-    const linhas=[];
-    /* A FASE DE GRUPOS FALTAVA POR INTEIRO. Este laço só lia
-       `c.bracket.ties` — o mata-mata. Numa copa que ainda está nos grupos, e é
-       onde a Libertadores e a Sul-Americana passam metade da temporada, o
-       cartão dizia "sem jogos seus nesta copa ainda" com seis jornadas
-       sorteadas no grupo do clube. Medido: grupo F, 6 jornadas, 0 mostradas.
-       As jornadas do grupo vêm de `g.sched[i]` (os pares) e o que já foi
-       jogado de `g.results`, casado por rodada e por par. */
-    const mg=c.group;
-    if(mg && mg.groups){
-      const meu=Object.values(mg.groups).find(g=>(g.teams||[]).indexOf(CL.clubId)>=0);
-      if(meu) (meu.sched||[]).forEach((jornada,i)=>{
-        (jornada||[]).forEach(par=>{
-          if(!par) return;
-          const [h,a]=par;
-          if(h!==CL.clubId && a!==CL.clubId) return;
-          const casa=h===CL.clubId, outro=anyClubOf(casa?a:h)||{short:'a sortear'};
-          const res=(meu.results||[]).find(r=>r && r.r===i && r.h===h && r.a===a);
-          const feito=!!(res && res.hg!=null);
-          const gm=feito?(casa?res.hg:res.ag):null, gc=feito?(casa?res.ag:res.hg):null;
-          const letra=feito?(gm>gc?'V':gm===gc?'E':'D'):'';
-          linhas.push(`<div class="rf-el-row ${feito?'':'porvir'}">
-            <span class="rf-cp-jor">${escC('Grupo '+(meu.label||'')+' · '+(i+1)+'ª')}</span>
-            ${rfCrest(outro,20)}
-            <span class="rf-el-nome">${escC(outro.short||outro.name||'a sortear')}</span>
-            <span class="rf-cp-local">${casa?'casa':'fora'}</span>
-            <span class="rf-cp-placar">${feito?(gm+'–'+gc):'—'}</span>
-            ${rfCpResultado(letra)}
-          </div>`);
-        });
+    const linhas=todas.filter(r=>r.key===k)
+      .sort((a,b)=>(a.w||0)-(b.w||0) || (a.played?0:1)-(b.played?0:1))
+      .map(r=>{
+        const feito=!!r.played;
+        const letra=!feito?'':(r.venceu===true?'V':r.venceu===false?'D':r.myG>r.oppG?'V':r.myG<r.oppG?'D':'E');
+        const outro=r.opp?(anyClubOf(r.opp)||{short:'—'}):null;
+        const data=rfCpDataDaJornada(r.w, k);
+        const pens=r.pens?` <i class="rf-cp-pens">(pên. ${escC(r.pens)})</i>`:'';
+        return `<div class="rf-el-row ${feito?'':'porvir'}">
+          <span class="rf-cp-jor" title="${escC(r.phase||'')}">${escC(r.phase||'—')}</span>
+          <span class="rf-cp-data">${escC(data)}</span>
+          ${outro?rfCrest(outro,20):'<span class="rf-cp-semescudo"></span>'}
+          <span class="rf-el-nome">${outro?escC(outro.short||outro.name||'—'):'<i>adversário a definir</i>'}</span>
+          <span class="rf-cp-local">${r.home==null?'—':(r.home?'casa':'fora')}</span>
+          <span class="rf-cp-placar">${feito?(r.myG+'–'+r.oppG+pens):'—'}</span>
+          ${rfCpResultado(letra)}
+        </div>`;
       });
-    }
-    ((c.bracket&&c.bracket.ties)||[]).forEach(t=>{
-      if(t.h!==CL.clubId && t.a!==CL.clubId) return;
-      const casa=t.h===CL.clubId, outro=anyClubOf(casa?t.a:t.h)||{short:'a sortear'};
-      const feito=(t.hg!=null&&t.ag!=null);
-      const gm=feito?(casa?t.hg:t.ag):null, gc=feito?(casa?t.ag:t.hg):null;
-      const letra=feito?(gm>gc?'V':gm===gc?'E':'D'):'';
-      linhas.push(`<div class="rf-el-row ${feito?'':'porvir'}">
-        <span class="rf-cp-jor">${escC(t.fase||(typeof cupCompetitionRoundLabel==='function'&&cupCompetitionRoundLabel(c,k))||'—')}</span>
-        ${rfCrest(outro,20)}
-        <span class="rf-el-nome">${escC(outro.short||outro.name||'a sortear')}</span>
-        <span class="rf-cp-local">${feito?(casa?'casa':'fora'):'—'}</span>
-        <span class="rf-cp-placar">${feito?(gm+'–'+gc):'—'}</span>
-        ${rfCpResultado(letra)}
-      </div>`);
-    });
     /* cabeçalho de tabela em cima de tabela vazia é ruído: com três copas
        empilhadas eram três cabeçalhos a anunciar nada. Só entra se houver linha. */
     const cabCopa=linhas.length?`<div class="rf-el-head" style="--el-cols:${RF_CP_COPA_COLS}">
-        <span>FASE</span><span></span><span>ADVERSÁRIO</span><span>LOCAL</span>
+        <span>FASE</span><span>DATA</span><span></span><span>ADVERSÁRIO</span><span>LOCAL</span>
         <span class="dir">PLACAR</span><span></span>
       </div>`:'';
     out.push(`<div class="rf-card rf-el-tbl" style="--el-cols:${RF_CP_COPA_COLS}">
