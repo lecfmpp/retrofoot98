@@ -108,6 +108,25 @@ Object.keys(U).forEach((k) => {
   if (!(v[0] > 0 && v[1] > 0)) { falhas++; console.log('  ✘ ' + nome + ': vaga zerada — o país não teria representante'); }
 });
 
+/* ===== 8. NOMES, NACIONALIDADE E CÓDIGO DE LIGA =====
+   O regen do servidor nascia sempre brasileiro — nome, `nat` e `lg`. `nat` decide se o jogador
+   conta na cota de estrangeiros, então um regen inglês contava como estrangeiro no próprio país.
+   O Brasil tem de continuar exatamente como estava. */
+console.log('8. Identidade do jogador criado do zero');
+const brNomes = W.nomesDoPais('brasil');
+conferir('1º nome brasileiro', brNomes.first[0], 'Gabriel');
+conferir('1º sobrenome brasileiro', brNomes.last[0], 'Silva');
+conferir('nº de nomes/sobrenomes do Brasil', [brNomes.first.length, brNomes.last.length], [50, 40]);
+conferir('nacionalidade do Brasil', W.nacionalidadeDe('brasil'), 'Brasil');
+conferir('código de liga do Brasil', ['A', 'B', 'C', 'D'].map((d) => W.codigoDaLiga('brasil', d)), ['BRA-A', 'BRA-B', 'BRA-C', 'BRA-D']);
+conferir('código de liga da Inglaterra', ['PL', 'CH'].map((d) => W.codigoDaLiga('Inglaterra', d)), ['ENG-1', 'ENG-2']);
+conferir('nacionalidade da Inglaterra', W.nacionalidadeDe('Inglaterra'), 'England');
+Object.keys(U).forEach((k) => {
+  const p = W.nomesDoPais(k);
+  if (!p || !p.first.length || !p.last.length) { falhas++; console.log('  ✘ ' + k + ': sem pool de nomes'); }
+  if (!W.nacionalidadeDe(k)) { falhas++; console.log('  ✘ ' + k + ': sem nacionalidade'); }
+});
+
 console.log('');
 if (falhas) { console.log('✘ ' + falhas + ' divergência(s)'); process.exit(1); }
 console.log('✓ pirâmide de país íntegra — Brasil inalterado, 15 países resolvem');

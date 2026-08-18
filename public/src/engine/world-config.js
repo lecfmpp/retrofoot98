@@ -127,12 +127,92 @@
     return v ? v.slice() : [4,2];
   }
 
+  /* ---------- NOMES DE JOGADOR POR PAÍS ----------
+     O servidor gerava TODO regen com nomes brasileiros: `pickProcName` só conhecia BR_FIRST/
+     BR_LAST, então a virada de temporada de um save inglês devolvia "Gabriel Silva" na Premier
+     League. O cliente já tinha os pools de Espanha, Itália, Alemanha e Portugal (INTL_NAME_POOL)
+     e um genérico hispânico (INTL_FIRST/INTL_LAST) para a CONMEBOL — mas só do lado dele.
+
+     As listas do Brasil são as MESMAS que estavam nos dois arquivos (conferidas idênticas antes
+     de mover), então nada muda para quem já joga. `Inglaterra` é nova: não existia em lugar
+     nenhum. `_hispano` é o fallback dos países CONMEBOL, como o cliente já fazia.
+     `nomesDoPais` nunca devolve vazio — sem pool, cai no hispânico para não gerar nome nulo. */
+  const NAME_POOLS={
+    brasil:{ first:[
+      'Gabriel','Lucas','Matheus','Rafael','Bruno','Léo','Vitor','João','Pedro','Gustavo','Felipe','Diego',
+      'Rodrigo','Thiago','Wesley','Éverton','Caio','Igor','Vinícius','Douglas','Renato','Marcos','André',
+      'Fábio','Danilo','Kaio','Yuri','Alan','Juninho','Guilherme','Paulinho','Rennan','Éder','Wellington',
+      'Luan','Nathan','Richard','Kevin','Wanderson','Jonathan','Ronaldo','Ricardo','Fernando','Cristian',
+      'Emerson','Robson','Adriano','Cléber','Maicon','Otávio'],
+      last:[
+      'Silva','Santos','Oliveira','Souza','Pereira','Lima','Costa','Ferreira','Almeida','Ribeiro','Rodrigues',
+      'Gomes','Martins','Barbosa','Rocha','Dias','Nascimento','Araújo','Cardoso','Teixeira','Moreira',
+      'Carvalho','Cavalcante','Mendes','Freitas','Vieira','Monteiro','Nunes','Correia','Machado','Fernandes',
+      'Ramos','Azevedo','Campos','Pinto','Cunha','Moraes','Farias','Batista','Andrade'] },
+    Espanha:{ first:[
+      'Álvaro','Sergio','Javier','Carlos','Pablo','Rubén','Iker','Marcos','Adrián','Diego','Jorge','Raúl',
+      'Óscar','Iván','Mario','Hugo','Dani','Nacho'],
+      last:[
+      'García','Fernández','Martínez','López','Sánchez','Gómez','Ruiz','Torres','Navarro','Molina','Ortega',
+      'Serrano','Castro','Vidal','Herrera','Cano','Rubio','Marín','Peña','Vega','Bravo','Nieto','Gallardo',
+      'Reyes'] },
+    Itália:{ first:[
+      'Marco','Luca','Andrea','Matteo','Alessandro','Federico','Davide','Simone','Giacomo','Nicolò','Lorenzo',
+      'Riccardo','Antonio','Gabriele','Stefano','Fabio','Emanuele','Christian'],
+      last:[
+      'Rossi','Bianchi','Romano','Colombo','Ricci','Marino','Greco','Bruno','Gallo','Conti','De Luca','Mancini',
+      'Costa','Giordano','Rizzo','Lombardi','Moretti','Barbieri','Fontana','Caruso','Ferrara','Longo',
+      'Marchetti','Villa'] },
+    Alemanha:{ first:[
+      'Lukas','Jonas','Leon','Finn','Tim','Niklas','Maximilian','Felix','Paul','Julian','Moritz','Jan','Tobias',
+      'Marvin','Philipp','Nico','Kevin','Sven'],
+      last:[
+      'Müller','Schmidt','Schneider','Fischer','Weber','Meyer','Wagner','Becker','Hoffmann','Schäfer','Koch',
+      'Bauer','Richter','Klein','Wolf','Neumann','Schwarz','Zimmermann','Braun','Krüger','Hofmann','Lange',
+      'Werner','Krause'] },
+    Portugal:{ first:[
+      'João','Miguel','Rui','Pedro','Tiago','André','Bruno','Diogo','Ricardo','Nuno','Gonçalo','Fábio','Rafael',
+      'Hélder','Vítor','Luís','Daniel','Sérgio'],
+      last:[
+      'Silva','Santos','Ferreira','Pereira','Oliveira','Costa','Rodrigues','Martins','Sousa','Fonseca','Gomes',
+      'Lopes','Marques','Almeida','Ribeiro','Pinto','Carvalho','Teixeira','Moreira','Cardoso','Nunes','Correia',
+      'Machado','Tavares'] },
+    Inglaterra:{ first:[
+      'Jack','Harry','Oliver','Charlie','George','Jacob','Alfie','Freddie','Archie','Thomas','Callum','Reece',
+      'Kieran','Declan','Mason','Ollie','Josh','Lewis'],
+      last:[
+      'Smith','Jones','Taylor','Brown','Wilson','Davies','Evans','Thomas','Roberts','Walker','Wright',
+      'Robinson','Thompson','White','Hughes','Edwards','Green','Hall','Wood','Harris','Clarke','Baker','Turner',
+      'Hill'] },
+    _hispano:{ first:[
+      'Martín','Diego','Franco','Nicolás','Iván','Bruno','Gonzalo','Sebastián','Rodrigo','Emiliano','Cristian',
+      'Federico','Agustín','Maximiliano','Ezequiel','Leandro','Matías','Joaquín','Tomás','Julián','Rafael',
+      'Andrés','Carlos','Luis','Pedro'],
+      last:[
+      'Gómez','Fernández','Rodríguez','Sosa','Díaz','Romero','Torres','Núñez','Silva','Acosta','Ramírez','Vega',
+      'Cabrera','Godoy','Molina','Ortiz','Benítez','Aguirre','Suárez','Ibáñez','Herrera','Castro','Flores',
+      'Rojas','Medina'] },
+  };
+  function nomesDoPais(uniKey){
+    const c=uniCfg(uniKey);
+    return NAME_POOLS[uniKey] || NAME_POOLS[(c&&c.country)] || NAME_POOLS._hispano;
+  }
+
+  /* ---------- IDENTIDADE DE UM JOGADOR CRIADO DO ZERO ----------
+     O regen do servidor nascia sempre com `nat:'Brasil'` e `lg:'BRA-'+divisao`, mesmo num save
+     inglês. `nat` é o que decide se o jogador conta na cota de estrangeiros (playerIsForeign,
+     core.js), então um regen inglês contava como estrangeiro no próprio país. Os valores do
+     Brasil são exatamente os que estavam escritos: nat[0] de `brasil` é 'Brasil', e o Brasil não
+     tem tabela `lg`, então continua a cair em 'BRA-'+divisao. */
+  function nacionalidadeDe(uniKey){ const c=uniCfg(uniKey); return (c && c.nat && c.nat[0]) || 'Brasil'; }
+  function codigoDaLiga(uniKey, div){ const c=uniCfg(uniKey); return (c && c.lg && c.lg[div]) || ('BRA-'+div); }
+
   const API={ PADRAO, uniCfg, uniDoEstado, nivelDaDivisao, divisoesDe,
     tamanhoDaDivisao, sobemDaDivisao, descemDaDivisao,
     BANDA_POR_NIVEL, FORCA_POR_NIVEL, CAP_POR_NIVEL,
     bandaDaDivisao, forcaDaDivisao, capDaDivisao, bandaDaDivisaoSemPais, tabelasDoUniverso,
     CONFEDERACOES, COPA_NACIONAL, nomeDoPais, confederacaoDe, copasContinentaisDe, copasDe,
-    vagasContinentais };
+    vagasContinentais, NAME_POOLS, nomesDoPais, nacionalidadeDe, codigoDaLiga };
   root.WORLD_CONFIG=API;
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -2862,21 +2862,21 @@ const PROC_SUFFIX=['FC','EC','AC','SC','Atlético','Esporte Clube','Futebol Club
 let PROC_USED_NAMES=new Set();
 /* nomes brasileiros reais pra jogadores procedurais/regens (antes eram "Oeste A", "Leste B"...
    — cidade+letra, que ficava horrível). nome + sobrenome; em colisão, acrescenta 2º sobrenome. */
-const BR_FIRST=['Gabriel','Lucas','Matheus','Rafael','Bruno','Léo','Vitor','João','Pedro','Gustavo',
-  'Felipe','Diego','Rodrigo','Thiago','Wesley','Éverton','Caio','Igor','Vinícius','Douglas',
-  'Renato','Marcos','André','Fábio','Danilo','Kaio','Yuri','Alan','Juninho','Guilherme',
-  'Paulinho','Rennan','Éder','Wellington','Luan','Nathan','Richard','Kevin','Wanderson','Jonathan',
-  'Ronaldo','Ricardo','Fernando','Cristian','Emerson','Robson','Adriano','Cléber','Maicon','Otávio'];
-const BR_LAST=['Silva','Santos','Oliveira','Souza','Pereira','Lima','Costa','Ferreira','Almeida','Ribeiro',
-  'Rodrigues','Gomes','Martins','Barbosa','Rocha','Dias','Nascimento','Araújo','Cardoso','Teixeira',
-  'Moreira','Carvalho','Cavalcante','Mendes','Freitas','Vieira','Monteiro','Nunes','Correia','Machado',
-  'Fernandes','Ramos','Azevedo','Campos','Pinto','Cunha','Moraes','Farias','Batista','Andrade'];
+/* As listas de nomes vivem em engine/world-config.js — a folha que o servidor também lê. Eram
+   idênticas nos dois lados (conferidas antes de mover), então nada muda para quem já joga; o que
+   deixa de existir é a segunda cópia. Lidas em tempo de chamada, com fallback mínimo para o caso
+   de a folha não ter carregado. */
+function _poolNomes(uniKey){
+  if(typeof WORLD_CONFIG!=='undefined' && WORLD_CONFIG.nomesDoPais) return WORLD_CONFIG.nomesDoPais(uniKey||'brasil');
+  return { first:['Gabriel','Lucas','Matheus'], last:['Silva','Santos','Oliveira'] };
+}
 function pickProcPlayerName(R){
   let nm, tries=0;
   do{
-    const fn=BR_FIRST[Math.floor(R.random()*BR_FIRST.length)];
-    const ln=BR_LAST[Math.floor(R.random()*BR_LAST.length)];
-    const ln2 = tries<1 ? '' : ' '+BR_LAST[Math.floor(R.random()*BR_LAST.length)]; // colisão -> 2º sobrenome
+    const P=_poolNomes(activeUniverseKey());
+    const fn=P.first[Math.floor(R.random()*P.first.length)];
+    const ln=P.last[Math.floor(R.random()*P.last.length)];
+    const ln2 = tries<1 ? '' : ' '+P.last[Math.floor(R.random()*P.last.length)]; // colisão -> 2º sobrenome
     nm = fn+' '+ln+ln2;
     tries++;
   }while(PROC_USED_NAMES.has(nm) && tries<400);
@@ -3146,18 +3146,11 @@ const INTL_LOWER_DIVISION_CLUBS={
 const INTL_LOWER_FORCE_RANGE={ 'ESP-2':[60,74], 'GER-2':[59,73], 'ITA-2':[59,73], 'POR-2':[54,68] };
 /* nomes de jogador por país (primeiro + sobrenome) — só pra os elencos procedurais das 2ªs
    divisões parecerem locais (não "Norte A" à brasileira). Únicos no jogo todo via PROC_USED_NAMES. */
-const INTL_NAME_POOL={
-  Espanha:{ first:['Álvaro','Sergio','Javier','Carlos','Pablo','Rubén','Iker','Marcos','Adrián','Diego','Jorge','Raúl','Óscar','Iván','Mario','Hugo','Dani','Nacho'],
-    last:['García','Fernández','Martínez','López','Sánchez','Gómez','Ruiz','Torres','Navarro','Molina','Ortega','Serrano','Castro','Vidal','Herrera','Cano','Rubio','Marín','Peña','Vega','Bravo','Nieto','Gallardo','Reyes'] },
-  'Itália':{ first:['Marco','Luca','Andrea','Matteo','Alessandro','Federico','Davide','Simone','Giacomo','Nicolò','Lorenzo','Riccardo','Antonio','Gabriele','Stefano','Fabio','Emanuele','Christian'],
-    last:['Rossi','Bianchi','Romano','Colombo','Ricci','Marino','Greco','Bruno','Gallo','Conti','De Luca','Mancini','Costa','Giordano','Rizzo','Lombardi','Moretti','Barbieri','Fontana','Caruso','Ferrara','Longo','Marchetti','Villa'] },
-  Alemanha:{ first:['Lukas','Jonas','Leon','Finn','Tim','Niklas','Maximilian','Felix','Paul','Julian','Moritz','Jan','Tobias','Marvin','Philipp','Nico','Kevin','Sven'],
-    last:['Müller','Schmidt','Schneider','Fischer','Weber','Meyer','Wagner','Becker','Hoffmann','Schäfer','Koch','Bauer','Richter','Klein','Wolf','Neumann','Schwarz','Zimmermann','Braun','Krüger','Hofmann','Lange','Werner','Krause'] },
-  Portugal:{ first:['João','Miguel','Rui','Pedro','Tiago','André','Bruno','Diogo','Ricardo','Nuno','Gonçalo','Fábio','Rafael','Hélder','Vítor','Luís','Daniel','Sérgio'],
-    last:['Silva','Santos','Ferreira','Pereira','Oliveira','Costa','Rodrigues','Martins','Sousa','Fonseca','Gomes','Lopes','Marques','Almeida','Ribeiro','Pinto','Carvalho','Teixeira','Moreira','Cardoso','Nunes','Correia','Machado','Tavares'] },
-};
+/* INTL_NAME_POOL mudou-se para engine/world-config.js (NAME_POOLS), junto com o do Brasil e com
+   o da Inglaterra, que não existia. `intlPlayerName` lê de lá. */
 function intlPlayerName(R, country){
-  const pool=INTL_NAME_POOL[country]; if(!pool) return pickProcPlayerName(R);
+  const W=(typeof WORLD_CONFIG!=='undefined') && WORLD_CONFIG.NAME_POOLS;
+  const pool=W ? W[country] : null; if(!pool) return pickProcPlayerName(R);
   let nm, tries=0;
   do{ const f=pool.first[Math.floor(R.random()*pool.first.length)];
       const l=pool.last[Math.floor(R.random()*pool.last.length)];

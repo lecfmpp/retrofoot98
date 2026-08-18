@@ -962,12 +962,92 @@ if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:ro
     return v ? v.slice() : [4,2];
   }
 
+  /* ---------- NOMES DE JOGADOR POR PAÍS ----------
+     O servidor gerava TODO regen com nomes brasileiros: `pickProcName` só conhecia BR_FIRST/
+     BR_LAST, então a virada de temporada de um save inglês devolvia "Gabriel Silva" na Premier
+     League. O cliente já tinha os pools de Espanha, Itália, Alemanha e Portugal (INTL_NAME_POOL)
+     e um genérico hispânico (INTL_FIRST/INTL_LAST) para a CONMEBOL — mas só do lado dele.
+
+     As listas do Brasil são as MESMAS que estavam nos dois arquivos (conferidas idênticas antes
+     de mover), então nada muda para quem já joga. `Inglaterra` é nova: não existia em lugar
+     nenhum. `_hispano` é o fallback dos países CONMEBOL, como o cliente já fazia.
+     `nomesDoPais` nunca devolve vazio — sem pool, cai no hispânico para não gerar nome nulo. */
+  const NAME_POOLS={
+    brasil:{ first:[
+      'Gabriel','Lucas','Matheus','Rafael','Bruno','Léo','Vitor','João','Pedro','Gustavo','Felipe','Diego',
+      'Rodrigo','Thiago','Wesley','Éverton','Caio','Igor','Vinícius','Douglas','Renato','Marcos','André',
+      'Fábio','Danilo','Kaio','Yuri','Alan','Juninho','Guilherme','Paulinho','Rennan','Éder','Wellington',
+      'Luan','Nathan','Richard','Kevin','Wanderson','Jonathan','Ronaldo','Ricardo','Fernando','Cristian',
+      'Emerson','Robson','Adriano','Cléber','Maicon','Otávio'],
+      last:[
+      'Silva','Santos','Oliveira','Souza','Pereira','Lima','Costa','Ferreira','Almeida','Ribeiro','Rodrigues',
+      'Gomes','Martins','Barbosa','Rocha','Dias','Nascimento','Araújo','Cardoso','Teixeira','Moreira',
+      'Carvalho','Cavalcante','Mendes','Freitas','Vieira','Monteiro','Nunes','Correia','Machado','Fernandes',
+      'Ramos','Azevedo','Campos','Pinto','Cunha','Moraes','Farias','Batista','Andrade'] },
+    Espanha:{ first:[
+      'Álvaro','Sergio','Javier','Carlos','Pablo','Rubén','Iker','Marcos','Adrián','Diego','Jorge','Raúl',
+      'Óscar','Iván','Mario','Hugo','Dani','Nacho'],
+      last:[
+      'García','Fernández','Martínez','López','Sánchez','Gómez','Ruiz','Torres','Navarro','Molina','Ortega',
+      'Serrano','Castro','Vidal','Herrera','Cano','Rubio','Marín','Peña','Vega','Bravo','Nieto','Gallardo',
+      'Reyes'] },
+    Itália:{ first:[
+      'Marco','Luca','Andrea','Matteo','Alessandro','Federico','Davide','Simone','Giacomo','Nicolò','Lorenzo',
+      'Riccardo','Antonio','Gabriele','Stefano','Fabio','Emanuele','Christian'],
+      last:[
+      'Rossi','Bianchi','Romano','Colombo','Ricci','Marino','Greco','Bruno','Gallo','Conti','De Luca','Mancini',
+      'Costa','Giordano','Rizzo','Lombardi','Moretti','Barbieri','Fontana','Caruso','Ferrara','Longo',
+      'Marchetti','Villa'] },
+    Alemanha:{ first:[
+      'Lukas','Jonas','Leon','Finn','Tim','Niklas','Maximilian','Felix','Paul','Julian','Moritz','Jan','Tobias',
+      'Marvin','Philipp','Nico','Kevin','Sven'],
+      last:[
+      'Müller','Schmidt','Schneider','Fischer','Weber','Meyer','Wagner','Becker','Hoffmann','Schäfer','Koch',
+      'Bauer','Richter','Klein','Wolf','Neumann','Schwarz','Zimmermann','Braun','Krüger','Hofmann','Lange',
+      'Werner','Krause'] },
+    Portugal:{ first:[
+      'João','Miguel','Rui','Pedro','Tiago','André','Bruno','Diogo','Ricardo','Nuno','Gonçalo','Fábio','Rafael',
+      'Hélder','Vítor','Luís','Daniel','Sérgio'],
+      last:[
+      'Silva','Santos','Ferreira','Pereira','Oliveira','Costa','Rodrigues','Martins','Sousa','Fonseca','Gomes',
+      'Lopes','Marques','Almeida','Ribeiro','Pinto','Carvalho','Teixeira','Moreira','Cardoso','Nunes','Correia',
+      'Machado','Tavares'] },
+    Inglaterra:{ first:[
+      'Jack','Harry','Oliver','Charlie','George','Jacob','Alfie','Freddie','Archie','Thomas','Callum','Reece',
+      'Kieran','Declan','Mason','Ollie','Josh','Lewis'],
+      last:[
+      'Smith','Jones','Taylor','Brown','Wilson','Davies','Evans','Thomas','Roberts','Walker','Wright',
+      'Robinson','Thompson','White','Hughes','Edwards','Green','Hall','Wood','Harris','Clarke','Baker','Turner',
+      'Hill'] },
+    _hispano:{ first:[
+      'Martín','Diego','Franco','Nicolás','Iván','Bruno','Gonzalo','Sebastián','Rodrigo','Emiliano','Cristian',
+      'Federico','Agustín','Maximiliano','Ezequiel','Leandro','Matías','Joaquín','Tomás','Julián','Rafael',
+      'Andrés','Carlos','Luis','Pedro'],
+      last:[
+      'Gómez','Fernández','Rodríguez','Sosa','Díaz','Romero','Torres','Núñez','Silva','Acosta','Ramírez','Vega',
+      'Cabrera','Godoy','Molina','Ortiz','Benítez','Aguirre','Suárez','Ibáñez','Herrera','Castro','Flores',
+      'Rojas','Medina'] },
+  };
+  function nomesDoPais(uniKey){
+    const c=uniCfg(uniKey);
+    return NAME_POOLS[uniKey] || NAME_POOLS[(c&&c.country)] || NAME_POOLS._hispano;
+  }
+
+  /* ---------- IDENTIDADE DE UM JOGADOR CRIADO DO ZERO ----------
+     O regen do servidor nascia sempre com `nat:'Brasil'` e `lg:'BRA-'+divisao`, mesmo num save
+     inglês. `nat` é o que decide se o jogador conta na cota de estrangeiros (playerIsForeign,
+     core.js), então um regen inglês contava como estrangeiro no próprio país. Os valores do
+     Brasil são exatamente os que estavam escritos: nat[0] de `brasil` é 'Brasil', e o Brasil não
+     tem tabela `lg`, então continua a cair em 'BRA-'+divisao. */
+  function nacionalidadeDe(uniKey){ const c=uniCfg(uniKey); return (c && c.nat && c.nat[0]) || 'Brasil'; }
+  function codigoDaLiga(uniKey, div){ const c=uniCfg(uniKey); return (c && c.lg && c.lg[div]) || ('BRA-'+div); }
+
   const API={ PADRAO, uniCfg, uniDoEstado, nivelDaDivisao, divisoesDe,
     tamanhoDaDivisao, sobemDaDivisao, descemDaDivisao,
     BANDA_POR_NIVEL, FORCA_POR_NIVEL, CAP_POR_NIVEL,
     bandaDaDivisao, forcaDaDivisao, capDaDivisao, bandaDaDivisaoSemPais, tabelasDoUniverso,
     CONFEDERACOES, COPA_NACIONAL, nomeDoPais, confederacaoDe, copasContinentaisDe, copasDe,
-    vagasContinentais };
+    vagasContinentais, NAME_POOLS, nomesDoPais, nacionalidadeDe, codigoDaLiga };
   root.WORLD_CONFIG=API;
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
 })(typeof globalThis!=='undefined'?globalThis:this);
@@ -1628,8 +1708,9 @@ function aplicarUniverso(S: any) {
   return chave;
 }
 const RETIRE_CHANCE_BY_AGE: any = { 32: 0.11, 33: 0.24, 34: 0.40, 35: 0.56, 36: 0.71, 37: 0.83, 38: 0.92, 39: 0.97 };
-const BR_FIRST = ['Gabriel', 'Lucas', 'Matheus', 'Rafael', 'Bruno', 'Léo', 'Vitor', 'João', 'Pedro', 'Gustavo', 'Felipe', 'Diego', 'Rodrigo', 'Thiago', 'Wesley', 'Éverton', 'Caio', 'Igor', 'Vinícius', 'Douglas', 'Renato', 'Marcos', 'André', 'Fábio', 'Danilo', 'Kaio', 'Yuri', 'Alan', 'Juninho', 'Guilherme', 'Paulinho', 'Rennan', 'Éder', 'Wellington', 'Luan', 'Nathan', 'Richard', 'Kevin', 'Wanderson', 'Jonathan', 'Ronaldo', 'Ricardo', 'Fernando', 'Cristian', 'Emerson', 'Robson', 'Adriano', 'Cléber', 'Maicon', 'Otávio'];
-const BR_LAST = ['Silva', 'Santos', 'Oliveira', 'Souza', 'Pereira', 'Lima', 'Costa', 'Ferreira', 'Almeida', 'Ribeiro', 'Rodrigues', 'Gomes', 'Martins', 'Barbosa', 'Rocha', 'Dias', 'Nascimento', 'Araújo', 'Cardoso', 'Teixeira', 'Moreira', 'Carvalho', 'Cavalcante', 'Mendes', 'Freitas', 'Vieira', 'Monteiro', 'Nunes', 'Correia', 'Machado', 'Fernandes', 'Ramos', 'Azevedo', 'Campos', 'Pinto', 'Cunha', 'Moraes', 'Farias', 'Batista', 'Andrade'];
+/* Os nomes de regen saem da folha (WORLD_CONFIG.NAME_POOLS), por pais. As listas do Brasil que
+   estavam aqui eram identicas as do cliente -- conferidas antes de mover -- entao nada muda para
+   quem ja joga; o que muda e que um regen ingles deixa de se chamar "Gabriel Silva". */
 const REGEN_ATTR_KEYS = ['fin', 'dri', 'vel', 'com', 'pos', 'pas', 'cab', 'agi', 'fis', 'res', 'vis', 'des', 'cru', 'ref', 'mao'];
 function sortTblT(t: any) { return Object.values(t || {}).sort((a: any, b: any) => b.Pts - a.Pts || (b.GF - b.GA) - (a.GF - a.GA) || b.GF - a.GF || String(a.id).localeCompare(String(b.id))); }
 function makeScheduleT(ids: string[]) {
@@ -1653,14 +1734,21 @@ function computeDivisionSwap(S: any) {
 }
 function ageForceFraction(a: number) { return a <= 22 ? 0.30 : a <= 29 ? 0.65 : a <= 32 ? 0.50 : 0.35; }
 function rollAgedForce(R: any, range: number[], age: number) { const t = Math.max(0, Math.min(1, ageForceFraction(age) + (R.random() * 2 - 1) * 0.28)); return Math.round(range[0] + t * (range[1] - range[0])); }
-function pickProcName(R: any, used: Set<string>) { let nm = '', tr = 0; do { const fn = BR_FIRST[Math.floor(R.random() * BR_FIRST.length)], ln = BR_LAST[Math.floor(R.random() * BR_LAST.length)]; nm = fn + ' ' + ln + (tr < 1 ? '' : ' ' + BR_LAST[Math.floor(R.random() * BR_LAST.length)]); tr++; } while (used.has(nm) && tr < 400); used.add(nm); return nm; }
+function pickProcName(R: any, used: Set<string>) {
+  const pool = WORLD_CONFIG.nomesDoPais(UNI_ATIVO); const PN = pool.first, SN = pool.last;
+  let nm = '', tr = 0;
+  do { const fn = PN[Math.floor(R.random() * PN.length)], ln = SN[Math.floor(R.random() * SN.length)];
+       nm = fn + ' ' + ln + (tr < 1 ? '' : ' ' + SN[Math.floor(R.random() * SN.length)]); tr++;
+  } while (used.has(nm) && tr < 400);
+  used.add(nm); return nm;
+}
 function makeRegen(S: any, pos: string, div: string, seedExtra: string, used: Set<string>) {
   const range = DIVISION_FORCE_RANGE[div] || DIVISION_FORCE_RANGE.D; const R = ME.makeRng(ME.hashSeed('retire-repl', (S.seed || 1), S.season, div, pos, seedExtra));
   const age = Math.round(18 + R.random() * 4); const rawF = rollAgedForce(R, range, age); const f = Math.min(rbForce(rawF, div), DIV_FORCE_CAP[div] || 99);
   const L = Math.max(1, Math.min(20, Math.round(6 + (rawF - 45) * 13 / 46))); const attr: any = {}; REGEN_ATTR_KEYS.forEach((k) => attr[k] = L);
   const mv = rbValue(f, age);
   S._pidSeq = (S._pidSeq || 0) + 1;   // pid único (identidade por ID): continua a sequência do save
-  return { n: pickProcName(R, used), pid: 'p' + S._pidSeq, p: pos, s: pos, f, rawF, _rb: 1, _div: div, age, lg: 'BRA-' + div, mv, ft: R.random() < 0.8 ? 'R' : 'L', num: String(Math.floor(R.random() * 40) + 1), nat: 'Brasil', ag: '—', moral: 70, energy: 100, attr, f0: rawF, mv0: mv, stats: { r3: [], g3: [], apps: 0, goals: 0, cs: 0 } };
+  return { n: pickProcName(R, used), pid: 'p' + S._pidSeq, p: pos, s: pos, f, rawF, _rb: 1, _div: div, age, lg: WORLD_CONFIG.codigoDaLiga(UNI_ATIVO, div), mv, ft: R.random() < 0.8 ? 'R' : 'L', num: String(Math.floor(R.random() * 40) + 1), nat: WORLD_CONFIG.nacionalidadeDe(UNI_ATIVO), ag: '—', moral: 70, energy: 100, attr, f0: rawF, mv0: mv, stats: { r3: [], g3: [], apps: 0, goals: 0, cs: 0 } };
 }
 /* motivos de aposentadoria (item 5) — sabor. Cada aposentadoria escolhe um motivo determinístico
    (mesma seed do sorteio de aposentar), com peso por idade/valor: velho tende à idade; craque rico
