@@ -3098,6 +3098,11 @@ function abaCompeticoes(pack, editar){
 
     ${calendarioHTML(comps)}`;
 
+  /* O SELETOR DE PAÍS DA GRADE fica FORA do `if(!editar)` de propósito: a grade é leitura, e
+     quem só tem permissão de ver precisa poder olhar o calendário de cada país. */
+  const selPais = el('cal-pais');
+  if(selPais) selPais.onchange = () => { ST.calPais = selPais.value; pgEditor(); };
+
   if(!editar) return;
   const cpImp = el('cp-importar-oficial');
   if(cpImp) cpImp.onclick = async () => {
