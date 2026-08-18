@@ -1006,21 +1006,33 @@ function rfImprensaHTML(P){
     acoes=`<span class="rf-im-auto">avança sozinho em ${seg}s</span><div class="rf-sp"></div>
       <button type="button" class="rf-ov-cta" onclick="pressGoQA()">Ir para a coletiva</button>`;
   } else if(P.step==='qa'){
+    /* ===== A PERGUNTA É O ASSUNTO DA TELA, NÃO UM CARTÃO NO CANTO =====
+       Ela vivia na coluna da DIREITA, debaixo dos medidores, no mesmo tamanho de corpo de texto
+       de tudo o resto — a tela dizia "Imprensa" e a única coisa que pedia decisão estava no
+       canto, pequena. Agora a pergunta abre a tela, ao centro e grande, e as respostas são a
+       peça a seguir.
+       E RESPONDER É CLICAR NA RESPOSTA. Havia dois passos para uma decisão: escolher a opção e
+       depois carregar em "Dar a entrevista". O segundo passo não acrescentava nada — não há nada
+       a rever entre um e outro, e ninguém escolhe uma resposta sem querer dá-la. Fica "Não
+       declarar nada", que é uma resposta diferente, não uma confirmação. */
     const q=PRESS_QUESTIONS[P.qIdx]||{opts:[]};
     contexto=`Coletiva de imprensa · pergunta ${P.qIdx+1} de ${total}`;
     titulo='Imprensa';
-    direita=rfImMedidoresHTML()+`<div class="rf-card">
-      <div class="rf-im-nt"><span class="rf-label-t">A sua resposta</span><div class="rf-sp"></div>
-        <span class="rf-im-oe">pergunta ${P.qIdx+1} de ${total}</span></div>
-      <p class="rf-im-perg">${escC(q.q||'')}</p>
-      ${(q.opts||[]).map((o,i)=>`<div class="rf-im-op ${CL.pressSel===i?'sel':''}" onclick="rfImSel(${i})">
-        <span class="rf-im-ot">${escC(o.t)}</span>
-        <span class="rf-im-oe">${escC(rfImEfeito(o.m||0))}</span>
-      </div>`).join('')}
-    </div>`;
+    direita='';
     acoes=`<span class="rf-im-auto">avança sozinho em ${seg}s</span><div class="rf-sp"></div>
-      <button type="button" class="rf-ov-b2" onclick="pressAnswer(-1)">Não declarar nada</button>
-      <button type="button" class="rf-ov-cta" onclick="rfImResponder()">Dar a entrevista</button>`;
+      <button type="button" class="rf-ov-b2" onclick="pressAnswer(-1)">Não declarar nada</button>`;
+    const perguntaHTML=`<div class="rf-im-qa">
+      <span class="rf-im-qn">Pergunta ${P.qIdx+1} de ${total}</span>
+      <p class="rf-im-q">${escC(q.q||'')}</p>
+      <div class="rf-im-ops">
+        ${(q.opts||[]).map((o,i)=>`<button type="button" class="rf-im-op" onclick="pressAnswer(${i})">
+          <span class="rf-im-ot">${escC(o.t)}</span>
+          <span class="rf-im-oe">${escC(rfImEfeito(o.m||0))}</span>
+        </button>`).join('')}
+      </div>
+      <div class="rf-im-medidores">${rfImMedidoresHTML()}</div>
+    </div>`;
+    return rfStage({ w:1020, contexto, titulo, corpo:perguntaHTML, acoes });
   } else {
     const d=Math.max(-15,Math.min(15,P.morale||0));
     const tom = d>0?'sobe':d<0?'cai':'estável';

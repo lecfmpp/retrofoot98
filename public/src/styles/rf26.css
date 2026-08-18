@@ -7590,3 +7590,88 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   font-size:13px;line-height:1.45;color:var(--text-3);
   padding:6px 0 10px;
 }
+
+/* =====================================================================
+   "A SALA ESTÁ ESPERANDO POR VOCÊ" — texto claro em fundo claro
+   ---------------------------------------------------------------------
+   O kicker e a manchete deste modal são as MESMAS peças dos "momentos" do
+   jogo (.cl-mom-kicker / .cl-mom-manchete), e essas nasceram para viver por
+   cima de uma FOTO escura: manchete branca, kicker amarelo, e uma sombra
+   preta a fazer de contorno. Aqui elas estão dentro do corpo de um diálogo,
+   que é claro — branco sobre branco, com um contorno preto a tentar salvar o
+   que não tem salvação. O mesmo vale para o contexto e a nota, que usavam
+   `--ontext-lite2` (um verde claro, também de fundo escuro).
+
+   As peças não mudam de casa: só se lhes dá, DENTRO deste modal, os tokens de
+   superfície clara da pele nova. Fora daqui continuam como estavam, sobre as
+   fotos onde funcionam.
+   ===================================================================== */
+.cl-esp .cl-mom-kicker{
+  color:var(--brand-primary);
+  text-shadow:none;
+}
+.cl-esp .cl-mom-manchete{
+  color:var(--text-1);
+  text-shadow:none;
+}
+.cl-esp .cl-esp-ctx{ color:var(--text-2); }
+.cl-esp .cl-esp-nota{ color:var(--text-3); }
+/* a faixa do recado tem fundo próprio (amarelo-papel): o texto dela é escuro por definição */
+.cl-esp .cl-esp-quem{
+  background:var(--surface-sunken);
+  border-color:var(--line-2);
+  color:var(--text-1);
+  border-radius:var(--r-sm,6px);
+}
+.cl-esp .cl-esp-msg{ color:var(--text-1); }
+.cl-esp .cl-esp-av{
+  background:var(--brand-primary);
+  color:#fff;
+  border:0;
+  border-radius:var(--r-pill,999px);
+}
+
+/* =====================================================================
+   COLETIVA DE IMPRENSA — a pergunta é o assunto da tela
+   A pergunta vivia na coluna da direita, no tamanho do corpo de texto. Aqui
+   ela abre a tela, ao centro, e as respostas são a peça imediatamente a
+   seguir. Clicar numa responde — não há passo de confirmação.
+   ===================================================================== */
+.rf-im-qa{
+  max-width:760px;margin:0 auto;
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+  text-align:center;
+}
+.rf-im-qn{
+  font-family:var(--font-mono,monospace);font-size:11.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--text-3);
+}
+.rf-im-q{
+  margin:0;
+  font-size:clamp(21px,3.4vw,30px);
+  line-height:1.25;font-weight:700;color:var(--text-1);
+  text-wrap:balance;
+}
+.rf-im-ops{
+  width:100%;display:flex;flex-direction:column;gap:9px;margin-top:6px;
+}
+/* a resposta é um alvo grande: é o único clique que a tela pede */
+.rf-im-qa .rf-im-op{
+  width:100%;display:flex;align-items:center;gap:14px;text-align:left;
+  padding:15px 18px;cursor:pointer;font-family:inherit;
+  background:var(--surface-card);color:var(--text-1);
+  border:1px solid var(--line-2);border-radius:var(--r-sm,6px);
+  transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease);
+}
+.rf-im-qa .rf-im-op:hover{ background:var(--surface-sunken);border-color:var(--brand-primary); }
+.rf-im-qa .rf-im-op:focus-visible{ outline:2px solid var(--brand-primary);outline-offset:2px; }
+.rf-im-qa .rf-im-ot{ flex:1;min-width:0;font-size:15.5px;line-height:1.4;font-weight:600; }
+.rf-im-qa .rf-im-oe{
+  flex:0 0 auto;font-family:var(--font-mono,monospace);font-size:11.5px;
+  color:var(--text-3);white-space:nowrap;
+}
+.rf-im-medidores{ width:100%;margin-top:8px; }
+@media (max-width:560px){
+  .rf-im-qa .rf-im-op{ flex-direction:column;align-items:flex-start;gap:5px;padding:13px 14px; }
+  .rf-im-qa .rf-im-oe{ align-self:flex-end; }
+}

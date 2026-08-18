@@ -636,8 +636,9 @@ function rfClassifPendente(){
    desvia para a Formacao: clJogar trata a fila antes de olhar a tatica, entao mandar o jogador
    escolher formacao aqui seria pedir uma coisa para fazer outra. */
 function rfJogarAcao(){
-  if(rfClassifPendente()) return 'rfJogar()';
-  return rfFaltaTatica()?'rfIrEscolherTatica()':'rfJogar()';
+  /* o unico desvio e a Formacao: rfJogar() nao leva la, so avisa. Todo o resto e o clJogar,
+     que ja sabe o que fazer com cada degrau (ver rfProximaAcao). */
+  return (rfProximaAcao().k==='tatica') ? 'rfIrEscolherTatica()' : 'rfJogar()';
 }
 /* ===== HOJE EU SO ASSISTO =====
    Numa jornada de copa que o meu clube nao disputa (nao entrou, foi eliminado, ou pegou bye) o
@@ -655,36 +656,77 @@ function rfSoAssistir(){
     return cupRoundsUserSitsOut().some(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key));
   }catch(e){ return false; }
 }
-function rfJogarLabel(){
-  /* PRIMEIRO DE TODOS, como no clJogar: a fila de classificacoes e resolvida antes da tatica. */
-  if(rfClassifPendente()){
-    const curto=(typeof isPhone==='function' && isPhone());
-    return rfIcone('lista',16)+(curto?' Classificação':' Ver classificação');
-  }
-  /* "Escolher tática" tem 131px de texto e o botão da barra inferior tem 92 —
-     transbordava. No telefone o rótulo é só "Formação", que é para onde ele
-     leva; no desktop, onde há espaço, fica "Escolher formação". */
-  if(rfFaltaTatica()){
-    const curto=(typeof isPhone==='function' && isPhone());
-    return rfIcone('estrategia',curto?14:16)+(curto?' Formação':' Escolher formação');
-  }
-  /* SO NO SOLO. Na Resenha quem manda na jornada e o servidor: o clique ja
-     estava protegido (clAvancarDia sai logo se CL.online), mas o ROTULO dizia
-     "Avancar" na mesma — prometia uma acao que ali nao existe. */
-  /* SORTEIO ANTES DE QUALQUER BOLA. clJogar resolve a cerimonia logo depois da tatica: quem
-     clicava em "Jogar" caia num sorteio de copa, que e outra coisa. Mesma ideia do "Ver
-     classificacao" -- o botao diz o que o clique faz. */
-  if(typeof haSorteioPendente==='function' && haSorteioPendente()){
-    const curto=(typeof isPhone==='function' && isPhone());
-    return rfIcone('sorteio',16)+(curto?' Sorteio':' Ver o sorteio');
-  }
-  if(!CL.online && rfNadaParaJogar()) return rfIcone('calendario',16)+' Avançar';
-  if(!(typeof estouPronto==='function' && estouPronto()) && rfSoAssistir()){
-    const curto=(typeof isPhone==='function' && isPhone());
-    return rfIcone('camarote',16)+(curto?' Assistir':' Assistir à rodada');
-  }
-  return (typeof estouPronto==='function' && estouPronto()) ? rfIcone('ok',16)+' Pronto' : rfIcone('jogar',16)+' Jogar';
+/* =====================================================================
+   O ROTULO DESCE A MESMA ESCADA QUE O CLIQUE
+   ---------------------------------------------------------------------
+   Havia DUAS escadas de decisao para a mesma coisa: a do `clJogar` (o que
+   acontece ao clicar) e a do rotulo (o que o botao promete). Nasceram juntas e
+   foram-se afastando -- e o afastamento so aparece no fim da temporada, quando
+   a jornada tem copa, sorteio e classificacao ao mesmo tempo e a ordem passa a
+   importar. Foi o relatado: "vejo muito Ver sorteio quando seria jogar ou ver
+   classificacao".
+
+   Tres degraus faltavam ao rotulo, todos do lado da Resenha:
+     · o goleiro em falta (o clique recusa e manda escalar; o rotulo dizia Jogar);
+     · os MOMENTOS da sala -- a acertar a jornada, a escalar, a fechar a rodada.
+       Na Resenha "Jogar" durante o 'escalando' quer dizer "estou pronto", e
+       durante o 'classificacao' nao quer dizer nada;
+     · o filtro do DIA nas copas. O clique so oferece a competicao que esta em
+       campo hoje (`copaDoDia`); o rotulo oferecia a primeira da minha lista, que
+       num dia de liga podia ser outra competicao qualquer.
+
+   `rfProximaAcao()` e agora a UNICA escada: devolve o que vai mesmo acontecer,
+   na ordem exata do clJogar, e o rotulo e so a leitura dela. Quem mexer no
+   clJogar tem de mexer aqui -- e e por isso que a ordem esta numerada dos dois
+   lados. */
+function rfProximaAcao(){
+  const curto=(typeof isPhone==='function' && isPhone());
+  const R=(k,ico,txt,txtCurto)=>({k, rotulo:rfIcone(ico,16)+' '+((curto&&txtCurto)||txt)});
+  try{
+    // 1) partida a decorrer: o botao nao comeca nada por cima dela
+    if(CL.live && !CL.live.done && CL.screen==='live') return R('emcampo','jogar','Em campo');
+    // 2) fila de classificacoes de copa
+    if(rfClassifPendente()) return R('classif','lista','Ver classificação','Classificação');
+    // 3) tatica por escolher
+    if(rfFaltaTatica()) return R('tatica','estrategia','Escolher formação','Formação');
+    // 4) sorteio por ver
+    if(typeof haSorteioPendente==='function' && haSorteioPendente())
+      return R('sorteio','sorteio','Ver o sorteio','Sorteio');
+    // 5) onze invalido (o clJogar recusa aqui, antes de qualquer porta da sala)
+    if(typeof xiGKCount==='function' && typeof xiPlayers==='function'){
+      const g=xiGKCount(xiPlayers(CL.clubId));
+      if(g!==1) return R('goleiro','estrategia', g===0?'Escalar um goleiro':'Só um goleiro','Goleiro');
+    }
+    // 6) os momentos da SALA (Resenha)
+    const dia=(typeof roomDay==='function')?roomDay():null;
+    if(dia && dia.hold) return R('espera','relogio','Acertando a jornada','Aguarde');
+    if(dia && dia.moment==='escalando'){
+      const pronto=(typeof estouPronto==='function' && estouPronto());
+      return pronto ? R('pronto','ok','Pronto') : R('marcarpronto','jogar','Estou pronto','Pronto');
+    }
+    if(dia && dia.moment==='classificacao') return R('fechando','relogio','Fechando a rodada','Aguarde');
+    const diaDeLiga=!!(dia && dia.comp==='liga');
+    const copaDoDia=(dia && dia.comp!=='liga') ? dia.comp : null;
+    // 7) tenho partida de copa HOJE (a do dia, nao a primeira da minha lista)
+    const prox=(typeof nextUserMatch==='function')?nextUserMatch():null;
+    if(prox && prox.kind==='cup' && !diaDeLiga && (!copaDoDia || (prox.pending&&prox.pending.key)===copaDoDia))
+      return R('copa','jogar','Jogar');
+    // 8) copa de hoje que eu nao disputo: assisto
+    if(typeof cupRoundsUserSitsOut==='function'){
+      const assisto=cupRoundsUserSitsOut()
+        .filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key))
+        .filter(c=>!diaDeLiga && (!copaDoDia || c.key===copaDoDia));
+      if(assisto.length) return R('assistir','camarote','Assistir à rodada','Assistir');
+    }
+    // 9) Resenha sem mais nada a cumprir: digo que estou pronto
+    if(CL.online) return R('marcarpronto','jogar','Estou pronto','Pronto');
+    // 10) SOLO: jornada sem nada em campo -> passa o dia
+    if(typeof rfNadaParaJogar==='function' && rfNadaParaJogar()) return R('avancar','calendario','Avançar');
+    // 11) a rodada de liga
+    return R('jogar','jogar','Jogar');
+  }catch(e){ return R('jogar','jogar','Jogar'); }
 }
+function rfJogarLabel(){ return rfProximaAcao().rotulo; }
 function rfIrEscolherTatica(){
   /* No telefone o Hub tem abas, e o bloco de formações vive na aba "Formação".
      Sem trocar de aba primeiro, o destino está com `display:none` e a rolagem
