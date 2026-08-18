@@ -781,6 +781,11 @@ function clTesteEntrar(p){
   CL._testeRitmoAntes=(typeof CL.tempoLabel!=='undefined')?CL.tempoLabel:null;
   CL.tempoLabel='Foguete';                                   // 6ms por minuto de jogo
   CL.tacticChosen=true;                                      // a bancada não pára para escolher tática
+  /* A REVELACAO DA DISPUTA DE PENALTIS TEM MODO RAPIDO, e o jogo ja o tem: e o "⏩ Simular o
+     resto". Sem ele cada cobranca gasta 1,2s de suspense mais 1,8s de resultado -- tres segundos
+     por penalti, numa disputa que pode ir a vinte cobrancas. Com ele sao 0,55s.
+     So na Resenha: no solo a bancada esta a funcionar e nao se lhe toca. */
+  if(CL.online) CL.penAuto=true;
   /* RELÓGIO PRÓPRIO NO SOLO. Na Resenha a bancada pega boleia do laço da sala (onlineTimerLoop);
      no solo esse laço não existe, e sem um relógio ela ficaria ligada sem nunca agir. */
   if(!CL.online){
@@ -792,6 +797,7 @@ function clTesteEntrar(p){
 }
 function clTesteSair(motivo){
   if(!CL._teste) return;
+  if(CL.online) CL.penAuto=false;                            // devolve a revelação ao ritmo normal
   const T=CL._teste; CL._teste=null;
   if(CL._testeTimer){ clearInterval(CL._testeTimer); CL._testeTimer=null; }
   clTestePainelFechar();
@@ -834,6 +840,31 @@ function clTesteTick(){
        mesma decisão que o botão tomaria, e não um atalho por fora.
        A escolha é sempre a mais neutra possível — o batedor já pré-selecionado, o substituto que
        o jogo sugere —, porque a bancada existe para atravessar a temporada, não para jogar bem. */
+    /* ===== UMA ANIMACAO A CORRER NAO SE INTERROMPE, E MUITO MENOS SE REPETE =====
+       `CL.penPhase` ('suspense' -> 'result') e a revelacao do penalti: uma cadeia de
+       temporizadores curtos que acaba por fechar sozinha. A bancada nao a via, e o que fazia era
+       pior do que esperar: com `pensPicking` ainda em true durante a revelacao, ela chamava
+       `resolveShootoutKick` OUTRA VEZ e cobrava o mesmo penalti duas vezes.
+
+       SO NA RESENHA, DE PROPOSITO. No solo esta bancada esta a funcionar e a regra do dono do
+       jogo e nao lhe tocar: o caminho local resolve o penalti na propria maquina, sem prazo
+       remoto nenhum, e nao foi ele que travou. Mexer no que funciona para arrumar o que nao
+       funciona e como se troca um defeito por dois.
+
+       O caso remoto e o que travava a Resenha. Um penalti no meio do jogo decidido pelo VISITANTE
+       manda a escolha ao mandante e fica em suspense a espera da revelacao, com um prazo de
+       seguranca de NOVE segundos. A bancada, sem saber disto, voltava a chamar `resolvePenalty` a
+       cada volta -- e cada chamada reemitia a decisao e rearmava o prazo, de forma que os nove
+       segundos nunca chegavam ao fim. Nao era lentidao: era um laco. Aqui usa-se a saida que esse
+       mesmo prazo usaria, e usa-se JA. */
+    if(CL.online && CL.penPhase){
+      T.ultimoPasso='revelação do pênalti';
+      if(RL.penEvent && !RL.pens && typeof closePenaltyModal==='function'){
+        if(CL._penRevealTimer){ clearTimeout(CL._penRevealTimer); CL._penRevealTimer=null; }
+        CL._remoteDecision=null; closePenaltyModal();
+      }
+      return;                       // a disputa tem temporizadores proprios, curtos com penAuto
+    }
     if(RL.pens && RL.pensPicking && typeof resolveShootoutKick==='function'){
       T.ultimoPasso='disputa de pênaltis'; resolveShootoutKick(CL.penSel); return;
     }
@@ -944,6 +975,17 @@ function clTesteTick(){
     return;
   }
   if(CL.screen==='cupdraw'){ clTesteClicar(); return; }   // cerimónia sem estado: sai pelo botão
+  /* ===== A PAUSA TECNICA NAO PRECISA DE ESPERAR OS DEZ SEGUNDOS =====
+     Entre rodadas a Resenha para numa janela de dez segundos: e o espaco do patrocinador, uma
+     decisao de produto, nao uma exigencia da sincronia (o proprio codigo diz isso -- ver
+     AD_MIN_MS). Numa corrida de trinta jornadas sao cinco minutos parado a olhar para um GIF.
+     `clAdSkip` e a funcao do botao "Pular" que ja existe nessa tela: quando o servidor ja fechou
+     a rodada (`CL._adCont` esta a espera), ela liberta na hora. Se ainda nao fechou, nao ha nada
+     a saltar -- ai a espera e mesmo pelo servidor, e a bancada espera com ela. */
+  if(CL.online && CL.screen==='waitround'){
+    if(CL._adCont && typeof clAdSkip==='function'){ T.ultimoPasso='pausa técnica saltada'; clAdSkip(); return; }
+    T.ultimoPasso='a sala está a fechar a rodada'; return;
+  }
   /* 3) TELA DE RESULTADO/CLASSIFICAÇÃO: fecha pelo botão de verdade, nunca mexendo em CL.screen. */
   if(CL.screen!=='main'){
     /* AS TELAS DE PASSAGEM TEM CADA UMA A SUA FUNCAO DE CONTINUAR. Adivinhar o botao no DOM
