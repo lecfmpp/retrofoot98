@@ -57,7 +57,7 @@ arrumação: é o critério de desempate que faltava.
 
 ---
 
-## Fase 0 — Stopgap (independente, publicável primeiro)
+## Fase 0 — Stopgap ✅ FEITO (commit 4fc9f33)
 
 **Objetivo:** voltar a ver as finais na próxima Resenha, sem esperar a fundação.
 
@@ -114,7 +114,7 @@ versionamento de plano** — o que corta a parte mais cara e mais arriscada do t
 
 ---
 
-## Fase 2b — Tirar o Brasil de dentro do `resolve-round` (antecipada)
+## Fase 2b — Tirar o Brasil de dentro do `resolve-round` ✅ FEITO (d0b3027, b44412e, b358785, 2b0e3c3)
 
 ### O diagnóstico, medido em 17/08 no código atual
 
@@ -189,6 +189,13 @@ o bloco do servidor diverge da fonte. A folha nova entra no mesmo `--check`. É 
 terceira cópia de voltar.
 
 ### Ordem de trabalho, cada passo verificável sozinho
+
+**Como ficou, medido em 18/08:** as seis tabelas da pirâmide, as bandas de força, as copas de
+cada país, as vagas continentais, os nomes de regen, a nacionalidade e o código de liga saem
+todos de `S.intlUniverse`. Sobraram no servidor apenas literais que são chave de tabela
+(`CUP_TICK_OFFSET`) ou o nome da tabela de cotas da copa nacional (`copaBrasilPhaseCash`), cujos
+VALORES continuam brasileiros — um país novo precisa da sua própria tabela de cotas, e isso é
+dado a preencher, não regra a mudar.
 
 | | Passo | Como se prova |
 |---|---|---|
@@ -380,7 +387,7 @@ como decisão explícita de quem está na sala.
 |---|---|---|
 | 1 | Stopgap | as finais voltam a acontecer, já na próxima Resenha |
 | 2 | Harness v2 (inclui cenário de virada) | nada visível; é o que impede a regressão |
-| 2b | `resolve-round` sem Brasil embutido | nada visível; fundação multi-país |
+| 2b | ✅ `resolve-round` sem Brasil embutido | nada visível; fundação multi-país |
 | 3 | Motor de slots | nada visível; a classe de bug morre |
 | 4 | Folha por país + validador | outros países ganham calendário de verdade |
 | 5 | Painel admin | acrescentar país vira trabalho de tela, não de código |
