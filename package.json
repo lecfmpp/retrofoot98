@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/sync-world-rules.mjs && vite build && node scripts/build-seo.mjs",
+    "build": "node scripts/sync-world-rules.mjs && node scripts/teste-calendario.mjs && vite build && node scripts/build-seo.mjs",
+    "teste:calendario": "node scripts/teste-calendario.mjs",
     "preview": "vite preview"
   },
   "devDependencies": {

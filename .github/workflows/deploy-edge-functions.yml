@@ -56,6 +56,13 @@ jobs:
       - name: Regras de mundo em dia (cliente = servidor)
         run: node scripts/sync-world-rules.mjs --check
 
+      # PORTÃO DO CALENDÁRIO: nenhuma competição pode aparecer no plano de dias fora da ordem em
+      # que se joga, e nenhuma rodada pode ficar sem dia. Foi assim que a final da Sul-Americana
+      # ficou agendada ANTES da própria semifinal nas três salas de agosto/2026 — o dia da final
+      # chegava sem finalistas e a temporada virava por cima da decisão.
+      - name: Calendário íntegro (a final nunca antes da semifinal)
+        run: node scripts/teste-calendario.mjs
+
       - name: Validar sintaxe das funções
         run: |
           npx esbuild supabase/functions/resolve-round/index.ts --outfile=/dev/null --platform=neutral --format=esm

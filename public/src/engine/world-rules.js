@@ -176,11 +176,50 @@
       doDia.forEach(d=>dias.push(d));
       dias.push({ r:r, comp:'liga', idx:r, dia:leagueMatchDay(r, epoch) });
     }
-    // A ORDEM É A DAS DATAS, não a das jornadas. Agrupar por jornada e pôr as copas antes da liga
-    // funciona quase sempre e erra no fim: a final da Copa do Brasil é 06/12 e o último jogo da
-    // liga é 03/12 — pela jornada ela vinha antes, pelo calendário vem depois. O ponteiro anda no
-    // tempo, então quem manda é a data.
-    dias.sort((a,b)=>a.dia-b.dia);
+    /* ===== A ORDEM: JORNADA PRIMEIRO, DATA COMO DESEMPATE DENTRO DA JORNADA =====
+       Ordenar SÓ pela data parece certo (o ponteiro anda no tempo) e produziu o pior bug do
+       calendário: a FINAL agendada ANTES da própria semifinal. Medido em 17/08/2026 nas três
+       salas com day_plan do banco — Sul-Americana idx 10 (final) na posição 60 e idx 9 (semi)
+       na 61 — e reproduzido aqui com 11 e com 12 rodadas continentais (12 é o total real da
+       Libertadores quando ela gasta o tique do sorteio das oitavas, ver cupTotalRounds).
+
+       A CAUSA são DUAS COORDENADAS que podem discordar:
+         · a JORNADA de cada rodada vem de ancorarNaTemporada(), que espreme a competição para
+           dentro da temporada;
+         · o DIA vem de cupMatchDayByRound(k,i) — a i-ésima data da FOLHA —, que NÃO se move
+           quando a ancoragem move a jornada. E a rodada que a folha não cobre (justamente a
+           final) recebe um dia sintético derivado da jornada já ancorada.
+       Concretamente: a semi da Sul-Americana ficou na jornada 34 com a data real 21/11 (dia 266),
+       e a final na jornada 35 sem data, herdando dia 264 do jogo de liga daquela jornada. Pela
+       data, a final vinha primeiro; o ponteiro chegava nela sem finalistas e o dia passava vazio.
+
+       A jornada é a coordenada que a ancoragem mantém crescente, então ela manda. A data continua
+       decidindo DENTRO da jornada, que é o caso que obrigou o sort por data: a final da Copa do
+       Brasil é 06/12 e o último jogo da liga é 03/12 — mesma jornada 37, e a final vem depois.
+
+       (A cura definitiva é o slot: uma coordenada só, com a data como rótulo derivado. Ver
+       docs/calendario/PLANO-SLOTS.md. Isto aqui é a trava que impede o sintoma até lá.) */
+    dias.sort((a,b)=> (a.r-b.r) || (a.dia-b.dia));
+
+    /* ===== A TRAVA: NENHUMA COMPETIÇÃO ANDA PARA TRÁS =====
+       A invariante que interessa é "as rodadas de uma competição aparecem no plano na ordem em
+       que se jogam". Ela nunca foi verificada — a que o código protegia era a das jornadas
+       crescentes, e o plano é ordenado por outra coisa. Aqui ela é CONFERIDA e, se estiver
+       quebrada, CONSERTADA: as entradas da competição são recolocadas nas mesmas posições, em
+       ordem de rodada. Conserta, nunca lança — travar já transformou erro de dado em sala morta
+       (ver prorrogarPorCopasPendentes). */
+    const porComp={};
+    dias.forEach((e,pos)=>{ if(e.comp==='liga') return; (porComp[e.comp]=porComp[e.comp]||[]).push(pos); });
+    Object.keys(porComp).forEach(k=>{
+      const pos=porComp[k];
+      const ordenadas=pos.map(i=>dias[i]).slice().sort((a,b)=>a.idx-b.idx);
+      const trocou=pos.some((p,i)=>dias[p].idx!==ordenadas[i].idx);
+      if(!trocou) return;
+      pos.forEach((p,i)=>{ dias[p]=ordenadas[i]; });
+      if(typeof console!=='undefined' && console.warn){
+        console.warn('calendário: '+k+' estava fora de ordem no plano de dias — reordenado por rodada');
+      }
+    });
     return dias;
   }
   /* ===================== PRORROGAÇÃO: A TEMPORADA ESPERA AS FINAIS =====================
