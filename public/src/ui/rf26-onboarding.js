@@ -580,8 +580,39 @@ function rfOb5(){
      pequeno, sendo o canal mais usado — agora abre, em azul, com o Copiar em
      amarelo. WhatsApp e e-mail viram dois cards iguais logo abaixo, e a busca
      de quem já tem conta desce para um campo simples. */
+  /* ===== OS PEDIDOS DE ENTRADA TÊM DE APARECER AQUI =====
+     Quem entra pelo CÓDIGO ou pelo LINK não entra direto: cria um pedido pendente e fica
+     numa tela de espera até o anfitrião aprovar (ver netRequestJoin). O painel de aprovação
+     existia só no lobby antigo; esta tela chamava `clStartHostReqPoll()` — portanto os
+     pedidos até chegavam a `CL.pendingJoins` — e depois não desenhava nenhum deles. Do lado
+     do anfitrião não havia sinal nenhum de que alguém tinha pedido para entrar, e do lado de
+     quem pediu a espera não acabava nunca. Medido numa sala real: pedido gravado em
+     join_requests com status 'pending', RLS a deixar o anfitrião ler e decidir, e a tela
+     dele sem uma linha sequer sobre isso.
+     Fica em PRIMEIRO na coluna de propósito: é o único bloco desta tela que segura outra
+     pessoa do lado de fora. */
+  const pedidos=(anfitriao && CL.pendingJoins)?CL.pendingJoins:[];
+  const pedidosHTML = (anfitriao && pedidos.length) ? `
+      <div class="rf-sa-ped">
+        <div class="rf-sa-lista-hd">
+          <span class="rf-sa-l">PEDIRAM PARA ENTRAR</span>
+          <span class="rf-sa-lista-c">${pedidos.length} aguardando você</span>
+        </div>
+        ${pedidos.map(r=>`<div class="rf-sa-ped-lin">
+          <span class="rf-sa-ped-ic">${rfIcone('aprovar',16)}</span>
+          <span class="rf-sa-id">
+            <span class="rf-sa-n">${escC(r.name||'Treinador')}</span>
+            <span class="rf-sa-p">entrou pelo código · esperando o seu OK</span>
+          </span>
+          <div class="rf-sp"></div>
+          <button type="button" class="rf-sa-ped-nao" onclick="clRejectJoin('${escC(r.user_id)}')">Recusar</button>
+          <button type="button" class="rf-sa-ped-sim" onclick="clApproveJoin('${escC(r.user_id)}')">Aprovar</button>
+        </div>`).join('')}
+      </div>` : '';
+
   const corpo=`
     <div class="rf-sa">
+      ${pedidosHTML}
       <div class="rf-sa-link">
         <span class="rf-sa-link-id">
           <span class="rf-sa-l">LINK DA SALA · O JEITO MAIS RÁPIDO</span>
