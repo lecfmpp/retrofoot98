@@ -903,7 +903,11 @@ async function netSeedDayPlan(force){
     // o total de rodadas de cada copa vem do jogo (cupTotalRounds), não do número de datas na
     // folha — senão a final das continentais fica sem dia no plano (ver buildDayPlan)
     const totais={}; cups.forEach(k=>{ try{ if(typeof cupTotalRounds==='function') totais[k]=cupTotalRounds(k); }catch(e){} });
-    const plan = WORLD_RULES.buildDayPlan(cups, epoch, totais);
+    /* O PAÍS DA SALA escolhe a folha de slots (engine/calendars.js), e a liga daquele save diz
+       quantas jornadas tem de verdade — uma Championship de 24 clubes joga 46, não 38. */
+    const pais = (typeof activeUniverseKey==='function') ? activeUniverseKey() : 'brasil';
+    const jornadasLiga = (typeof S!=='undefined' && S && Array.isArray(S.sched)) ? S.sched.length : null;
+    const plan = WORLD_RULES.buildDayPlan(cups, epoch, totais, { pais, jornadasLiga });
     if(!plan || !plan.length) return;
     await sb.from('games').update({ day_plan: plan, day_idx: 0, day_moment: 'escalando' }).eq('id', NET.gameId);
   }catch(e){ console.warn('seedDayPlan:', e && e.message); }

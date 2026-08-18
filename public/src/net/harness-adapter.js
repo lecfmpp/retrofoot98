@@ -135,7 +135,9 @@
         const tog=(typeof S!=='undefined' && S && S.compToggle)||{};
         const cups=(typeof allCupKeys==='function'?allCupKeys():[]).filter(k=>tog[k]!==false);
         const epoch=(typeof seasonEpoch==='function')?seasonEpoch():null;
-        SRV.dayPlanSet(NET.gameId, WORLD_RULES.buildDayPlan(cups, epoch));
+        const pais=(typeof activeUniverseKey==='function')?activeUniverseKey():'brasil';
+        const totais={}; cups.forEach(k=>{ try{ if(typeof cupTotalRounds==='function') totais[k]=cupTotalRounds(k); }catch(e){} });
+        SRV.dayPlanSet(NET.gameId, WORLD_RULES.buildDayPlan(cups, epoch, totais, { pais }));
       }
     }catch(e){ console.warn('[harness] dayPlanSet:', e&&e.message); }
     SRV.openSeason(NET.gameId);

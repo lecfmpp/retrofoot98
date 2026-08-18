@@ -308,6 +308,104 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const ME = (globalThis as any).MATCH_ENGINE;
 
+/* A FOLHA DE SLOTS. Vem ANTES do WORLD_RULES porque buildDayPlan e buildCupSchedule a leem. */
+/* <<< CALENDARIOS:INICIO — gerado por scripts/sync-world-rules.mjs, NÃO editar aqui >>> */
+/* ===================================================================
+   CALENDÁRIOS POR PAÍS — a folha de SLOTS.
+
+   POR QUE ISTO EXISTE. O calendário era uma tabela de datas reais (CAL_2026, em world-rules.js) e
+   a temporada era montada a partir dela. Isso produziu o pior bug do jogo: existiam DUAS
+   coordenadas — a jornada, que a ancoragem espremia para caber na temporada, e a data, que vinha
+   da folha e não se movia junto. O plano de dias era ordenado por data, então a FINAL, que não
+   tem data na folha e herdava um dia sintético, era marcada ANTES da própria semifinal. Medido
+   nas três salas com day_plan de agosto/2026.
+
+   AQUI SÓ EXISTE UMA COORDENADA: `(slot, janela)`.
+     · SLOT é a semana da temporada, 1..slotsTotal.
+     · JANELA é o momento dentro da semana: MIDWEEK_1 (ter/qua), MIDWEEK_2 (qui), WEEKEND.
+   A ordem da temporada é `slot` e, dentro dele, a ordem das janelas. A DATA passou a ser
+   RÓTULO derivado — ela aparece na tela e não decide nada. Duas coordenadas não podem discordar
+   quando só existe uma.
+
+   A JANELA É O DESEMPATE QUE FALTAVA. A ordenação era por data justamente porque a final da Copa
+   do Brasil é 06/12 e o último jogo da liga é 03/12: mesma semana, e a final vem depois. Com
+   slots isso é explícito — a final ocupa um slot PRÓPRIO, depois do último slot de liga.
+
+   O QUE MUDA PARA QUEM JOGA. No calendário antigo havia 11 semanas com mais de uma copa, três
+   delas com as três juntas — e metade da temporada sem copa nenhuma. Aqui cada copa tem a sua
+   janela e nenhuma semana tem duas copas. As finais acontecem depois do fim da liga, como na
+   vida real, em vez de serem espremidas para dentro dela.
+
+   COMO ACRESCENTAR UM PAÍS: copiar um bloco e trocar os slots. Não há regra a mexer — é dado.
+   `scripts/teste-calendario.mjs` confere as invariantes de todos os países declarados aqui.
+
+   Regra de ouro (a mesma do world-rules.js): dado, não algoritmo. Nada de S, CL ou DOM.
+   Injetada no resolve-round por scripts/sync-world-rules.mjs.
+   =================================================================== */
+(function(root){
+  'use strict';
+
+  /* A ordem das janelas DENTRO de um slot. É esta lista que resolve o caso da final da Copa do
+     Brasil, e é por ela que o plano de dias é ordenado. */
+  const JANELAS=['MIDWEEK_1','MIDWEEK_2','WEEKEND'];
+  function ordemDaJanela(j){ const i=JANELAS.indexOf(j); return i<0 ? JANELAS.length : i; }
+  /* chave ordenável de um dia — estritamente monótona, e a ÚNICA usada para ordenar */
+  function chaveDoDia(slot, janela){ return (slot|0)*JANELAS.length + ordemDaJanela(janela); }
+
+  function serie(de, ate){ const a=[]; for(let i=de;i<=ate;i++) a.push(i); return a; }
+
+  const CALENDARIOS={};
+
+  /* ---------------- BRASIL ----------------
+     Liga aos fins de semana, 38 rodadas nos slots 1..38. As três copas em janelas de meio de
+     semana, espaçadas, e nenhuma dividindo slot com outra: Libertadores na MIDWEEK_1;
+     Sul-Americana e Copa do Brasil dividem a MIDWEEK_2, em slots disjuntos.
+     Os slots 39 a 42 não têm liga — existem para as finais acontecerem DEPOIS de o Brasileirão
+     acabar, que é o que a vida real faz e o que o calendário antigo não conseguia representar sem
+     espremer a final para trás ou perdê-la. */
+  CALENDARIOS.brasil={
+    pais:'brasil', slotsTotal:42, inicio:[2026,2,1],
+    competicoes:{
+      liga:        { janela:'WEEKEND',   slots:serie(1,38) },
+      libertadores:{ janela:'MIDWEEK_1', slots:[2,5,8,11,14,17,20,24,28,32,36,40] },
+      sulamericana:{ janela:'MIDWEEK_2', slots:[3,6,9,12,15,18,21,25,29,33,37,41] },
+      copaBrasil:  { janela:'MIDWEEK_2', slots:[4,10,16,23,30,35,42] },
+    },
+    /* datas reais dos jogos de liga, na ordem dos slots — RÓTULO, não ordenação. As de copa são
+       derivadas: a MIDWEEK_1 cai 4 dias antes do jogo de liga daquele slot e a MIDWEEK_2, 3. */
+    datasLiga:['03-01','03-07','03-30','04-10','04-16','05-06','05-11','05-15','06-01','06-07',
+               '06-11','06-22','07-05','07-11','07-22','07-25','08-05','08-18','08-23','08-30',
+               '09-14','09-20','09-24','09-28','10-01','10-05','10-10','10-18','10-21','10-24',
+               '10-27','10-30','11-03','11-07','11-11','11-18','12-01','12-03'],
+  };
+
+  /* ---------------- INGLATERRA ----------------
+     Existe para provar a forma com uma pirâmide diferente, e porque é o país que o levantamento
+     de julho apontou como o mais caro: a Championship tem 24 clubes, logo 46 rodadas, contra as
+     38 da Premier League. Com slots isso deixa de ser problema — a lista de slots de liga cobre a
+     divisão MAIS LONGA, e quem joga numa divisão mais curta usa apenas os primeiros.
+     Sem copa nacional (a FA Cup não existe no motor); Champions e Europa nas janelas de meio de
+     semana, como as continentais do Brasil. */
+  CALENDARIOS.Inglaterra={
+    pais:'Inglaterra', slotsTotal:50, inicio:[2026,2,1],
+    competicoes:{
+      liga:           { janela:'WEEKEND',   slots:serie(1,46) },
+      championsLeague:{ janela:'MIDWEEK_1', slots:[2,5,8,11,14,17,20,25,30,35,40,48] },
+      europaLeague:   { janela:'MIDWEEK_2', slots:[3,6,9,12,15,18,21,26,31,36,41,49] },
+    },
+    datasLiga:null,          // sem folha de datas reais: os rótulos saem do passo semanal
+  };
+
+  function calendarioDe(pais){ return CALENDARIOS[pais] || CALENDARIOS.brasil; }
+  function temCalendario(pais){ return !!CALENDARIOS[pais]; }
+  function paisesComCalendario(){ return Object.keys(CALENDARIOS); }
+
+  const API={ JANELAS, ordemDaJanela, chaveDoDia, CALENDARIOS, calendarioDe, temCalendario,
+    paisesComCalendario };
+  root.CALENDARIOS_API=API;
+  if(typeof module!=='undefined' && module.exports){ module.exports=API; }
+})(typeof globalThis!=='undefined'?globalThis:this);
+/* <<< CALENDARIOS:FIM >>> */
 /* <<< WORLD_RULES:INICIO — gerado por scripts/sync-world-rules.mjs, NÃO editar aqui >>> */
 /* ===================================================================
    REGRAS DE MUNDO — fonte ÚNICA compartilhada cliente ⇄ servidor.
@@ -354,7 +452,45 @@ const ME = (globalThis as any).MATCH_ENGINE;
      escalonamento antigo pra que duas competições não estreiem na mesma jornada */
   const CUP_FIRST_ROUND={ copaBrasil:3, libertadores:1, sulamericana:2, championsLeague:1, europaLeague:2 };
 
-  function calendar(){ return CAL_2026; }
+  /* ---------- AS DATAS, DERIVADAS DOS SLOTS ----------
+     `slot = jornada + 1`, sempre. Com isso toda data do jogo é uma função de (slot, janela), e a
+     folha de datas deixa de ser uma segunda fonte de verdade — passa a ser o rótulo do slot.
+     CAL_2026 continua abaixo apenas como a lista de datas reais do Brasil, que o calendário de
+     slots consome (calendars.js: datasLiga). */
+  function janelaDaCompeticao(key, pais){
+    const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
+    if(!CAL) return 'WEEKEND';
+    const c=(CAL.calendarioDe(pais).competicoes||{})[key];
+    return c ? c.janela : 'MIDWEEK_1';
+  }
+  /* o dia (1-based na temporada) de um slot+janela — é por aqui que toda data passa agora */
+  function diaDoSlot(slot, janela, epoch, pais){
+    const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
+    if(!CAL) return Math.max(1,(slot-1)*7+1);
+    return dataDoDia(CAL.calendarioDe(pais), slot, janela||'WEEKEND', epoch);
+  }
+  /* 'MM-DD' de um dia da temporada — o inverso de calDay, para quem mostra data na tela */
+  function diaParaMMDD(dia, epoch){
+    const e=epoch||SEASON_START_2026;
+    const d=new Date(e[0], e[1], e[2]);
+    d.setDate(d.getDate()+(dia-1));
+    const mm=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+    return mm+'-'+dd;
+  }
+  /* A FOLHA DE DATAS COMO O PAINEL A LÊ — derivada dos slots, não uma tabela paralela. Enquanto
+     isto devolvia CAL_2026 diretamente, o painel mostrava um calendário e o jogo jogava outro. */
+  function calendar(pais, epoch){
+    const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
+    if(!CAL) return CAL_2026;
+    const cal=CAL.calendarioDe(pais), out={ draws:{} };
+    Object.keys(cal.competicoes).forEach(k=>{
+      const c=cal.competicoes[k];
+      const chave=(k==='liga')?'league':k;
+      out[chave]=c.slots.map(sl=>diaParaMMDD(diaDoSlot(sl, c.janela, epoch, pais), epoch));
+      if(k!=='liga') out.draws[k]=diaParaMMDD(Math.max(1, diaDoSlot(c.slots[0], c.janela, epoch, pais)-2), epoch);
+    });
+    return out;
+  }
   function seasonStart(){ return SEASON_START_2026.slice(); }
 
   /* 'MM-DD' -> dia (1-based) da temporada, contado do epoch */
@@ -374,11 +510,13 @@ const ME = (globalThis as any).MATCH_ENGINE;
     for(let i=0;i<L.length;i++){ if(calDay(L[i], epoch)>=d) return i; }
     return L.length-1;
   }
-  /* dia do jogo da jornada `round` da liga */
-  function leagueMatchDay(round, epoch){
-    const L=CAL_2026.league, i=Math.max(0, round||0);
-    if(L[i]!=null) return calDay(L[i], epoch);
-    return calDay(L[L.length-1], epoch) + (i-(L.length-1))*7;   // além da tabela: mantém o passo
+  /* dia do jogo da jornada `round` da liga — jornada+1 é o slot */
+  function leagueMatchDay(round, epoch, pais){
+    return diaDoSlot(Math.max(0, round||0)+1, 'WEEKEND', epoch, pais);
+  }
+  /* dia do jogo de uma copa numa jornada — mesma conta, com a janela da competição */
+  function cupMatchDayAt(key, jornada, epoch, pais){
+    return diaDoSlot(Math.max(0, jornada||0)+1, janelaDaCompeticao(key, pais), epoch, pais);
   }
   /* dia do jogo da rodada `idx` (0-based) de uma copa */
   function cupMatchDayByRound(key, idx, epoch){
@@ -386,30 +524,39 @@ const ME = (globalThis as any).MATCH_ENGINE;
     if(datas && datas[idx]!=null) return calDay(datas[idx], epoch);
     return null;
   }
-  function cupDrawDay(key, epoch){
-    const d=(CAL_2026.draws||{})[key];
-    return d ? calDay(d, epoch) : 1;    // competição fora da tabela: sorteia no dia 1 (nunca há jogo antes)
+  /* sorteio: dois dias antes da estreia da competição. Competição que a folha do país não
+     declara sorteia no dia 1 — nunca há jogo antes, que é o comportamento seguro. */
+  function cupDrawDay(key, epoch, pais){
+    const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
+    const c=CAL ? (CAL.calendarioDe(pais).competicoes||{})[key] : null;
+    if(!c || !c.slots.length) return 1;
+    return Math.max(1, diaDoSlot(c.slots[0], c.janela, epoch, pais)-2);
   }
 
   /* ---------- CRONOGRAMA: em que JORNADA cada rodada de cada copa acontece ----------
      Estritamente crescente por construção: as datas são crescentes e jornadaOfCalDate é
      monotônica; duas rodadas que caíssem na mesma jornada empurram a seguinte, porque uma
      competição nunca joga duas rodadas no mesmo bloco de semana. */
-  function buildCupSchedule(key, total, epoch){
+  /* ---------- EM QUE JORNADA CADA RODADA DE CADA COPA ACONTECE ----------
+     Sai dos SLOTS, como o plano de dias: jornada = slot - 1. É o que mantém o jogo SOLO e a
+     Resenha no mesmo calendário — enquanto isto lia a folha de datas e o plano de dias lia os
+     slots, existiam dois calendários, que é a forma exata do bug que os slots vieram resolver.
+
+     As jornadas de uma copa são estritamente crescentes porque os slots são, e a final pode cair
+     numa jornada além do fim da liga de propósito: é lá que ela acontece na vida real. Quem
+     estica a temporada para alcançá-la é prorrogarPorCopasPendentes, que já fazia exatamente
+     isso — só que a consertar um erro, e agora a cumprir um desenho. */
+  function buildCupSchedule(key, total, epoch, pais){
     if(!total || total<1) return [];
-    const datas=CAL_2026[key];
-    const out=[]; let prev=-1;
-    if(datas && datas.length){
-      for(let i=0;i<total;i++){
-        let j = (datas[i]!=null) ? jornadaOfCalDate(datas[i], epoch)
-                                 : (out.length?out[out.length-1]+3:0);
-        if(j<=prev) j=prev+1;
-        prev=j; out.push(j);
-      }
-      return out;
-    }
+    const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
+    if(!CAL) return [];
+    const cal=CAL.calendarioDe(pais);
+    const c=slotsDaCompeticao(cal, key, total);
+    if(c) return c.slots.map(s=>Math.max(0, s-1));
+    /* competição que a folha do país não declara (um universo sem aquela copa): mantém o
+       escalonamento antigo de 3 em 3 jornadas, que é o que existia antes de haver folha. */
     const first=CUP_FIRST_ROUND[key]; if(first==null) return [];
-    for(let i=0;i<total;i++) out.push(first+i*3);
+    const out=[]; for(let i=0;i<total;i++) out.push(first+i*3);
     return out;
   }
   /* esta copa entra em campo nesta jornada? */
@@ -454,83 +601,85 @@ const ME = (globalThis as any).MATCH_ENGINE;
     for(let i=out.length-1, teto=ultima; i>=0; i--, teto--) if(out[i]>teto) out[i]=teto;
     return out.map(r=>Math.max(0,r));
   }
-  function buildDayPlan(cups, epoch, totais){
-    const ativas=(cups&&cups.length)?cups:['copaBrasil','libertadores','sulamericana'];
-    const L=CAL_2026.league, dias=[];
-    /* QUANTAS RODADAS A COPA TEM ≠ QUANTAS DATAS ESTÃO NA TABELA. O plano usava d.length (as datas
-       de CAL_2026) como total — e as continentais têm 10 datas para 11 rodadas. A rodada que
-       sobrava era a ÚLTIMA: a FINAL nunca ganhava um dia no plano da sala, então ela não era
-       jogada e a temporada virava sem ela. Quem chama passa o total de verdade (cupTotalRounds);
-       sem ele, cai no comportamento antigo. buildCupSchedule já sabe estender as datas que
-       faltam (+3 jornadas a partir da última conhecida). */
-    const agenda={};
-    // NENHUMA RODADA DE COPA PODE FICAR FORA DO PLANO. O laço abaixo só caminha pelas jornadas da
-    // LIGA (0..L.length-1): rodada de copa marcada pra uma jornada além disso simplesmente não
-    // entrava no plano — e era assim que a final da Libertadores e a da Sul-Americana (jornada 39
-    // num calendário que acaba na 37) desapareciam da sala. Ancoro cada agenda dentro da
-    // temporada, com uma jornada de folga por competição pra as finais não caírem no mesmo dia.
-    const ultima=L.length-1;
-    ativas.slice().sort().forEach((k,i)=>{ const d=CAL_2026[k]; if(!(d&&d.length)) return;
-      const total=(totais && totais[k]) ? totais[k] : d.length;
-      agenda[k]=ancorarNaTemporada(buildCupSchedule(k, total, epoch), ultima, i); });
-    for(let r=0;r<L.length;r++){
-      const doDia=[];
-      Object.keys(agenda).forEach(k=>{
-        const i=agenda[k].indexOf(r);
-        if(i<0) return;
-        // rodada que a folha de datas não cobre (a final das continentais é uma delas) cai no dia
-        // seguinte ao jogo de liga da mesma jornada: sem data o dia sairia null e a ORDENAÇÃO do
-        // plano — que é por data — ficaria indefinida justamente no fim da temporada.
-        const dia=cupMatchDayByRound(k,i,epoch);
-        doDia.push({ r:r, comp:k, idx:i, dia:(dia!=null?dia:leagueMatchDay(r,epoch)+1) });
-      });
-      doDia.forEach(d=>dias.push(d));
-      dias.push({ r:r, comp:'liga', idx:r, dia:leagueMatchDay(r, epoch) });
+  /* ===================== O PLANO DE DIAS, SOBRE SLOTS =====================
+     A temporada é uma fila de dias. Cada dia é `(slot, janela)` — a semana e o momento dentro
+     dela —, e essa é a ÚNICA coordenada. A jornada e a data saem DELA; antes eram fontes
+     independentes que podiam discordar, e discordavam: a final marcada antes da semifinal.
+
+     `opts.pais` escolhe a folha (engine/calendars.js); `opts.jornadasLiga` diz quantas rodadas a
+     liga daquele save tem de verdade — uma Championship de 24 clubes tem 46, uma Bundesliga de 18
+     tem 34, e a folha do país declara slots para a mais longa. Sem o dado, usa o tamanho da folha.
+
+     `totais` é quantas rodadas cada copa precisa NESTA temporada (cupTotalRounds no core), que não
+     é o número de slots declarados: o formato varia com o número de grupos, e as continentais
+     gastam uma rodada só no sorteio do mata-mata. Quando faltam slots, a competição ganha os que
+     faltarem depois do fim da temporada, no mesmo passo que já vinha usando — a final atrasa, mas
+     NUNCA se perde. Quem confere isso antes de a temporada começar é scripts/teste-calendario.mjs. */
+  function slotsDaCompeticao(cal, key, total){
+    const c=(cal.competicoes||{})[key]; if(!c) return null;
+    const base=c.slots.slice();
+    /* SOBRAM SLOTS: fica com os ÚLTIMOS, não com os primeiros. A final tem de morar no último
+       slot declarado — é ele que a folha escolheu para ficar depois do fim da liga. Cortando pela
+       frente, uma copa com menos rodadas que o previsto decidia no meio da temporada, com o
+       campeonato ainda a rolar. A competição apenas começa mais tarde, que é o comportamento
+       certo para um mata-mata mais curto. */
+    if(!total || total<=base.length) return { janela:c.janela, slots:total ? base.slice(base.length-total) : base };
+    // faltam slots: estende mantendo o passo médio da competição (mínimo 1), depois do último
+    const passo=Math.max(1, Math.round((base[base.length-1]-base[0])/Math.max(1,base.length-1)));
+    let s=base[base.length-1];
+    while(base.length<total){ s+=passo; base.push(s); }
+    return { janela:c.janela, slots:base };
+  }
+  /* RÓTULO de data. Deriva do slot: o jogo de liga daquele slot é a data real da folha (quando o
+     país tem uma), e as janelas de meio de semana caem 4 e 3 dias antes. Slot sem data de liga
+     (os do fim da temporada, e os países sem folha) anda uma semana por slot a partir da última
+     conhecida. Nada disto ordena coisa nenhuma — quem ordena é a chave do slot. */
+  function dataDoDia(cal, slot, janela, epoch){
+    const L=cal.datasLiga, e=epoch||cal.inicio||SEASON_START_2026;
+    const iLiga=(cal.competicoes.liga.slots||[]).indexOf(slot);
+    let base;
+    if(L && iLiga>=0 && L[iLiga]!=null) base=calDay(L[iLiga], e);
+    else if(L && L.length){
+      const ultimo=cal.competicoes.liga.slots[Math.min(L.length,cal.competicoes.liga.slots.length)-1];
+      base=calDay(L[L.length-1], e) + (slot-ultimo)*7;
+    } else base=(slot-1)*7+1;
+    if(janela==='MIDWEEK_1') return base-4;
+    if(janela==='MIDWEEK_2') return base-3;
+    return base;
+  }
+  function buildDayPlan(cups, epoch, totais, opts){
+    opts=opts||{};
+    const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
+    if(!CAL) return [];
+    const cal=CAL.calendarioDe(opts.pais);
+    const nLiga=opts.jornadasLiga || cal.competicoes.liga.slots.length;
+    const ativas=(cups&&cups.length) ? cups.slice() : Object.keys(cal.competicoes).filter(k=>k!=='liga');
+    const dias=[];
+    /* A JORNADA É DERIVADA DO SLOT (slot 1 = jornada 0). Não é clampada ao fim da liga de
+       propósito: as finais moram em slots depois do último jogo de liga, e clampá-las traria as
+       três de volta para a mesma jornada — exatamente o amontoado que os slots existem para
+       acabar. A temporada ganha essas jornadas sem jogo de liga pelo caminho que já existe
+       (prorrogarPorCopasPendentes, logo abaixo). */
+    const jornadaDoSlot=(slot)=>Math.max(0, slot-1);
+    const ligaSlots=cal.competicoes.liga.slots;
+    for(let r=0;r<nLiga;r++){
+      const slot=ligaSlots[r]!=null ? ligaSlots[r] : (ligaSlots[ligaSlots.length-1]+(r-ligaSlots.length+1));
+      dias.push({ r:jornadaDoSlot(slot), comp:'liga', idx:r, slot:slot, janela:'WEEKEND',
+                  dia:dataDoDia(cal, slot, 'WEEKEND', epoch) });
     }
-    /* ===== A ORDEM: JORNADA PRIMEIRO, DATA COMO DESEMPATE DENTRO DA JORNADA =====
-       Ordenar SÓ pela data parece certo (o ponteiro anda no tempo) e produziu o pior bug do
-       calendário: a FINAL agendada ANTES da própria semifinal. Medido em 17/08/2026 nas três
-       salas com day_plan do banco — Sul-Americana idx 10 (final) na posição 60 e idx 9 (semi)
-       na 61 — e reproduzido aqui com 11 e com 12 rodadas continentais (12 é o total real da
-       Libertadores quando ela gasta o tique do sorteio das oitavas, ver cupTotalRounds).
-
-       A CAUSA são DUAS COORDENADAS que podem discordar:
-         · a JORNADA de cada rodada vem de ancorarNaTemporada(), que espreme a competição para
-           dentro da temporada;
-         · o DIA vem de cupMatchDayByRound(k,i) — a i-ésima data da FOLHA —, que NÃO se move
-           quando a ancoragem move a jornada. E a rodada que a folha não cobre (justamente a
-           final) recebe um dia sintético derivado da jornada já ancorada.
-       Concretamente: a semi da Sul-Americana ficou na jornada 34 com a data real 21/11 (dia 266),
-       e a final na jornada 35 sem data, herdando dia 264 do jogo de liga daquela jornada. Pela
-       data, a final vinha primeiro; o ponteiro chegava nela sem finalistas e o dia passava vazio.
-
-       A jornada é a coordenada que a ancoragem mantém crescente, então ela manda. A data continua
-       decidindo DENTRO da jornada, que é o caso que obrigou o sort por data: a final da Copa do
-       Brasil é 06/12 e o último jogo da liga é 03/12 — mesma jornada 37, e a final vem depois.
-
-       (A cura definitiva é o slot: uma coordenada só, com a data como rótulo derivado. Ver
-       docs/calendario/PLANO-SLOTS.md. Isto aqui é a trava que impede o sintoma até lá.) */
-    dias.sort((a,b)=> (a.r-b.r) || (a.dia-b.dia));
-
-    /* ===== A TRAVA: NENHUMA COMPETIÇÃO ANDA PARA TRÁS =====
-       A invariante que interessa é "as rodadas de uma competição aparecem no plano na ordem em
-       que se jogam". Ela nunca foi verificada — a que o código protegia era a das jornadas
-       crescentes, e o plano é ordenado por outra coisa. Aqui ela é CONFERIDA e, se estiver
-       quebrada, CONSERTADA: as entradas da competição são recolocadas nas mesmas posições, em
-       ordem de rodada. Conserta, nunca lança — travar já transformou erro de dado em sala morta
-       (ver prorrogarPorCopasPendentes). */
-    const porComp={};
-    dias.forEach((e,pos)=>{ if(e.comp==='liga') return; (porComp[e.comp]=porComp[e.comp]||[]).push(pos); });
-    Object.keys(porComp).forEach(k=>{
-      const pos=porComp[k];
-      const ordenadas=pos.map(i=>dias[i]).slice().sort((a,b)=>a.idx-b.idx);
-      const trocou=pos.some((p,i)=>dias[p].idx!==ordenadas[i].idx);
-      if(!trocou) return;
-      pos.forEach((p,i)=>{ dias[p]=ordenadas[i]; });
-      if(typeof console!=='undefined' && console.warn){
-        console.warn('calendário: '+k+' estava fora de ordem no plano de dias — reordenado por rodada');
-      }
+    ativas.forEach(key=>{
+      const total=(totais && totais[key]) ? totais[key] : null;
+      const c=slotsDaCompeticao(cal, key, total);
+      if(!c) return;
+      c.slots.forEach((slot,i)=>{
+        dias.push({ r:jornadaDoSlot(slot), comp:key, idx:i, slot:slot, janela:c.janela,
+                    dia:dataDoDia(cal, slot, c.janela, epoch) });
+      });
     });
+    /* UMA COORDENADA, UMA ORDEM. chaveDoDia é estritamente monótona em (slot, janela), e os slots
+       de cada competição são crescentes por construção — então uma rodada nunca pode aparecer
+       antes da anterior. É a invariante que o modelo antigo não conseguia garantir. */
+    dias.sort((a,b)=>CAL.chaveDoDia(a.slot,a.janela)-CAL.chaveDoDia(b.slot,b.janela));
     return dias;
   }
   /* ===================== PRORROGAÇÃO: A TEMPORADA ESPERA AS FINAIS =====================
@@ -759,6 +908,7 @@ const ME = (globalThis as any).MATCH_ENGINE;
   const DAY_MOMENTS=['escalando','jogando','classificacao'];
 
   const API={ calendar, seasonStart, calDay, jornadaOfCalDate, leagueMatchDay, cupMatchDayByRound,
+    diaDoSlot, diaParaMMDD, janelaDaCompeticao, cupMatchDayAt,
     buildDayPlan, DAY_MOMENTS, prorrogarPorCopasPendentes,
     cupDrawDay, buildCupSchedule, cupTickMatchesRound, cupRoundIndexAt,
     cupAlreadyResolved, markCupResolved, CUP_FIRST_ROUND,
@@ -1399,7 +1549,7 @@ function cupTotalRoundsS(S: any, key: string) {
 /* CALENDÁRIO OFICIAL — porte fiel de CAL_2026/buildCupSchedule do core.js. As jornadas de cada
    copa saem das DATAS, não de aritmética de faixa. Se mexer em um, mexer no outro. */
 function buildCupScheduleS(key: string, total: number, _lastLeagueRound: number) {
-  return WR.buildCupSchedule(key, total, SEASON_EPOCH_2026);   // folha única (WORLD_RULES)
+  return WR.buildCupSchedule(key, total, SEASON_EPOCH_2026, UNI_ATIVO);   // folha unica (slots do pais)
 }
 function nextRoundStage(S: any) {
   const nac = COPA_NACIONAL_KEY();

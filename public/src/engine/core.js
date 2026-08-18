@@ -1855,13 +1855,15 @@ function dayInWeek(week, weekday){
 }
 /* DIA DE CADA JOGO — sai do CALENDÁRIO, não de aritmética de semana. O dayInWeek continua como
    rede pra estado fora da tabela (jornada além das 38, universo europeu). */
-function leagueMatchDay(round){ return WORLD_RULES.leagueMatchDay(round, seasonEpoch()); }
+function leagueMatchDay(round){ return WORLD_RULES.leagueMatchDay(round, seasonEpoch(), activeUniverseKey()); }
 /* a data da copa é a da RODADA dela: traduz jornada -> índice de rodada pela tabela gravada em
    S.cupCalendar (que veio das mesmas datas), e pergunta o dia à folha única. */
 function cupMatchDay(key, jornada){
   const cal=(typeof S!=='undefined'&&S)?S.cupCalendar:null;
   const i=WORLD_RULES.cupRoundIndexAt(cal, key, jornada);
-  const d=(i>=0)?WORLD_RULES.cupMatchDayByRound(key, i, seasonEpoch()):null;
+  /* a data sai do SLOT da jornada, não do índice da rodada na folha de datas: eram duas
+     coordenadas, e é a discordância entre elas que marcava a final antes da semifinal. */
+  const d=(i>=0)?WORLD_RULES.cupMatchDayAt(key, jornada, seasonEpoch(), activeUniverseKey()):null;
   if(d!=null) return d;
   const wd=COMP_WEEKDAY[key];
   return dayInWeek(jornada, wd==null?3:wd);        // rede: copa fora da tabela (universo europeu)
@@ -1997,7 +1999,7 @@ function cupTotalRounds(key){
    Quando a competição não cabe na temporada, a faixa é ESTENDIDA além do teto — a final atrasa,
    mas ninguém sai da faixa nem perde rodada. Apertar o passo (o que eu tinha feito antes) resolve
    o tamanho e quebra a invariante 1, que é a pior das três. */
-function buildCupSchedule(key, total){ return WORLD_RULES.buildCupSchedule(key, total, seasonEpoch()); }
+function buildCupSchedule(key, total, _epoch, pais){ return WORLD_RULES.buildCupSchedule(key, total, seasonEpoch(), pais||activeUniverseKey()); }
 /* (re)constrói S.cupCalendar. Idempotente: não recalcula o que já existe pra esta temporada. */
 /* NENHUMA RODADA DE COPA PODE CAIR FORA DA TEMPORADA. As datas das copas vêm do calendário real
    de 2026 (ver buildCupSchedule) e são traduzidas em jornadas — só que a temporada tem um fim
@@ -2044,8 +2046,32 @@ function ensureCupCalendar(force){
   // ordem fixa (copaBrasil, libertadores, sulamericana...) pra a folga ser sempre a mesma no
   // mesmo save — calendário não pode mudar de forma entre dois carregamentos
   const chaves=Object.keys(S.cups).filter(k=>S.cups[k]).sort();
-  chaves.forEach((key,i)=>{ cal[key]=ancorarCalendarioCopa(buildCupSchedule(key, cupTotalRounds(key)), last, i); });
+  /* SEM ANCORAGEM. `ancorarCalendarioCopa` existia para duas coisas que a folha de slots já
+     garante: jornadas estritamente crescentes (os slots são) e finais em jornadas diferentes
+     (cada copa tem a sua janela e nenhum slot tem duas copas). Mantê-la deslocava a final em uma
+     jornada e o calendário do SOLO deixava de bater com o plano de dias da sala — dois
+     calendários outra vez, que é a forma exata do bug que os slots vieram resolver.
+     O `last` deixou de ser usado aqui: a final mora depois do fim da liga de propósito, e quem
+     estica a temporada para alcançá-la é prorrogarSeFaltaCopa. */
+  chaves.forEach((key)=>{ cal[key]=buildCupSchedule(key, cupTotalRounds(key), null, activeUniverseKey()); });
   S.cupCalendar=cal;
+  /* A TEMPORADA JÁ NASCE COM AS JORNADAS DAS FINAIS.
+     Com a folha de slots, a final de cada copa mora depois do último jogo de liga — é o que a
+     vida real faz, e é o que impedia o calendário antigo de representá-la sem espremer ou perder.
+     Essas jornadas finais não têm jogo de liga: existem para dar dia à decisão.
+
+     Antes isto acontecia como CONSERTO, no fim do ano (prorrogarSeFaltaCopa), depois de a
+     temporada já se ter dado por acabada — e era daí que vinham as finais jogadas sem ninguém
+     ver. Agora acontece no momento em que o calendário é montado, que é o único momento em que
+     é possível garantir que toda competição tem dia antes de a primeira bola rolar.
+     `prorrogarSeFaltaCopa` continua como rede, e passa a quase nunca ter o que fazer. */
+  if(Array.isArray(S.sched)){
+    let maior=-1;
+    chaves.forEach(k=>(cal[k]||[]).forEach(j=>{ if(j>maior) maior=j; }));
+    let criadas=0;
+    while(S.sched.length<=maior && criadas<24){ S.sched.push([]); criadas++; }
+    if(criadas) S._jornadasExtras=(S._jornadasExtras||0)+criadas;
+  }
 }
 /* ==================== DATA DO SORTEIO DE CADA COPA ====================
    TODOS OS SORTEIOS DE ABERTURA ACONTECEM NO COMEÇO DO JOGO, logo depois das boas-vindas ao
@@ -2070,7 +2096,7 @@ function cupRoundMatchDay(round, key){ return key ? cupMatchDay(key, round||0) :
 function cupSeasonDrawDays(){
   if(typeof S==='undefined' || !S || !S.cups) return {};
   const out={};
-  Object.keys(S.cups).forEach(k=>{ if(S.cups[k]) out[k]=WORLD_RULES.cupDrawDay(k, seasonEpoch()); });
+  Object.keys(S.cups).forEach(k=>{ if(S.cups[k]) out[k]=WORLD_RULES.cupDrawDay(k, seasonEpoch(), activeUniverseKey()); });
   return out;
 }
 /* a data do sorteio desta copa já chegou? Com as cerimônias todas no dia 1, isto é verdade desde
