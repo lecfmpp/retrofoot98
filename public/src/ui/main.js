@@ -5786,6 +5786,22 @@ function clAvancarDia(){
     cdraw(); return;
   }
   S.round++; S.week++; S.day+=7;
+  /* ===== O DIA NOVO PODE TER FINAL. QUEM DECIDE E A ARQUIBANCADA, NAO ESTE BOTAO. =====
+     Aqui estava o "nao vejo as finais" na sua forma final. O guarda la em cima pergunta se ha
+     jogo HOJE; passava, o dia virava, e a linha seguinte resolvia em segundo plano as copas do
+     dia NOVO -- que ninguem tinha visto ainda. Depois da jornada 38 a liga acaba e todos os
+     dias passam a ser dias de copa: um clique em "Avancar" atropelava a final da Libertadores,
+     a da Sul-Americana e a da Copa do Brasil de uma vez, e o que aparecia eram tres cerimonias
+     de campeao seguidas. Foi exatamente o relato.
+     O dia avanca e para. Se o dia novo tem copa para jogar ou para assistir, o botao passa a
+     dizer "Jogar" ou "Assistir a rodada" (ver rfJogarLabel) e a partida entra em campo pelo
+     caminho normal, com o jogador a ve-la. So um dia genuinamente sem nada para o humano e que
+     segue para o avanco em segundo plano. */
+  if(typeof rfNadaParaJogar==='function' && !rfNadaParaJogar()){
+    try{ if(typeof save==='function') save(); }catch(e){}
+    toastC('Dia passado — '+((typeof dataCurtaDaJornada==='function')?dataCurtaDaJornada(S.round,'liga'):''));
+    cdraw(); return;
+  }
   /* as copas correm na virada da jornada como em qualquer rodada — sem isto,
      passar o dia saltaria por cima de uma rodada de copa devida */
   try{ if(typeof advancePendingCups==='function') advancePendingCups(); }catch(e){ console.warn('copas ao passar o dia:', e); }
