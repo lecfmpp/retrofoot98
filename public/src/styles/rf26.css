@@ -7999,23 +7999,12 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 }
 .rf-teatro-dica{ flex:1;min-width:0;font-size:12.5px;color:var(--text-3); }
 
+/* ===== NO TELEFONE NAO HA PALCO =====
+   Decisao do dono do jogo: ali a pagina ja e o campo (o Hub tem abas, e a aba Formacao mostra o
+   gramado sozinho), entao a folha por cima faria o que a tela ja faz. O botao desaparece, e
+   `rfCampoAmpliado()` devolve falso no mesmo limiar — redimensionar a janela para o tamanho de
+   telefone fecha o palco sozinho. */
 @media (max-width:760px){
-  .rf-teatro{ padding:0; }
-  .rf-teatro-cx{ border-radius:0;width:100%; }
-  .rf-teatro-f{ display:none; }
-  .rf-teatro-campo{ padding:0 8px; }
-  /* no telefone o rodapé empilha: a dica sai e os botões dividem a largura */
-  .rf-teatro-dica{ display:none; }
-  .rf-teatro-pe .rf-btn{ flex:1 1 0; }
-  /* ===== NO TELEFONE NÃO HÁ GOLEIRA: O BANCO FICA POR BAIXO =====
-     Abaixo de 760px o jogo já tira o banco da coluna da direita e põe-no debaixo do gramado
-     (ver .cl-pitch-block em main.css). As regras do palco continuavam a reservar os 186px da
-     goleira — num ecrã de 390px isso é metade da largura, e o campo ampliado saía MENOR que o do
-     cartão. Medido antes de escrever: 214px de gramado no palco contra 286px no cartão.
-     Aqui o gramado toma a largura toda e o banco desce com ele; a caixa rola, que é o
-     comportamento normal de uma folha no telefone. */
-  .rf-teatro-campo .cl-pitch-block,
-  .rf-teatro-campo .cl-pitch-block.banco-fechado{ width:100%;padding-right:0; }
-  .rf-teatro-campo .cl-pitch-wrap{ max-width:100%; }
-  .rf-teatro-campo .cl-bench{ width:auto; }
+  .rf-campo-ampliar{ display:none; }
 }
+

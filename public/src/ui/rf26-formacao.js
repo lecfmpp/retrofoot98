@@ -206,8 +206,20 @@ function rfBancoHTML(th, nums){
    inteira por innerHTML a cada troca de jogador, e um overlay montado à parte
    ficaria com o onze de antes.
    ===================================================================== */
-function rfCampoAmpliado(){ return !!(typeof CL!=='undefined' && CL.campoAmpliado); }
+/* ===== O PALCO NAO EXISTE NO TELEFONE =====
+   Decisao do dono do jogo. E faz sentido: no telefone a pagina JA e o campo — o Hub tem abas e a
+   aba Formacao mostra o gramado sozinho, sem coluna ao lado a disputar largura. O ganho que o
+   palco da no desktop (o dobro da area, porque la o campo divide a tela com a lista) ali era de
+   1,2x, e em troca vinha uma folha por cima da tela toda para fazer o que a tela ja fazia.
+   A pergunta e feita por `isPhone()` (max-width:760px), a mesma que o resto do jogo usa — e e
+   feita AQUI, no leitor do estado, para que redimensionar a janela para o tamanho de telefone
+   feche o palco sozinho no desenho seguinte, sem ninguem ter de o vigiar. */
+function rfCampoAmpliado(){
+  if(typeof isPhone==='function' && isPhone()) return false;
+  return !!(typeof CL!=='undefined' && CL.campoAmpliado);
+}
 function rfCampoAmpliar(){
+  if(typeof isPhone==='function' && isPhone()) return;
   CL.campoAmpliado=true;
   /* o banco tem de estar aberto: é para onde se arrasta quem sai, e é metade da razão de
      ampliar. Guarda-se o estado anterior para o devolver ao fechar. */
