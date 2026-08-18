@@ -710,6 +710,10 @@ function rfLobbyHTML(){
    ===================================================================== */
 
 /* o gramado com o gol e os oito cantos */
+/* A BALIZA. `opts.on` liga os quadrantes (cobrança minha); sem ele a baliza é só ilustração e
+   fica `data-off`. `opts.txt` aceita STRING VAZIA — antes um `''` caía no `||` e a baliza dizia
+   "Escolha o canto" mesmo na fase de suspense e na cobrança do adversário, convidando a um clique
+   que não fazia nada. Quem quer o texto padrão simplesmente não passa `txt`. */
 function rfGolHTML(cantoSel, opts){
   opts=opts||{};
   return `<div class="rf-gol-campo">
@@ -722,7 +726,7 @@ function rfGolHTML(cantoSel, opts){
     <span class="rf-gol-alto">Alto</span>
     <span class="rf-gol-rasteiro">Rasteiro</span>
     <span class="rf-gol-marca"></span>
-    <span class="rf-gol-txt">${escC(opts.txt||'Escolha o canto')}</span>
+    <span class="rf-gol-txt">${escC(opts.txt!=null?opts.txt:'Escolha o canto')}</span>
   </div>`;
 }
 /* frieza: quanto o jogador aguenta a pressão. Cai com o cansaço e com quem
@@ -895,6 +899,9 @@ function rfDisputaHTML(RL){
      (CL.penResultScorer), inclusive do lado do adversario -- e por isso que a
      cobranca deles tambem se ve. */
   const nomeNaMarca = fase ? (CL.penResultScorer||'') : (minhaVez ? ((bate&&bate.n)||'') : '');
+  /* o canto desta cobrança sobrevive ao suspense e à revelação: `CL.penCanto` só é zerado quando
+     a PRÓXIMA cobrança abre (openShootoutPickerModal). */
+  const cantoDaVez = CL.penCanto;
   const ladoDaVez = pens.turn==='H' ? hc : ac;
 
   let corpo, acoes='', titulo, cls='rf-ov-disputa';
@@ -902,7 +909,12 @@ function rfDisputaHTML(RL){
     const gol=!!CL.penResultScored;
     titulo = gol?'Gol!':'Perdeu!';
     cls += gol?'':' rf-ov-grave';
+    /* A BALIZA TAMBÉM NA DISPUTA. Ela existia só na cobrança do meio de jogo
+       (rfPenaltiBatedorHTML); aqui o jogador batia às cegas, apesar de resolveShootoutKick já
+       passar `canto` para penaltyConvChance. O canto só se mostra quando a cobrança é MINHA —
+       na do adversário eu não escolhi canto nenhum, e marcar um seria mentir sobre o lance. */
     corpo=`${placar}
+      ${rfGolHTML(minhaVez?cantoDaVez:null, {txt: minhaVez?(gol?'no fundo da rede':'o goleiro pegou'):(gol?'no fundo da nossa rede':'nosso goleiro pegou')})}
       <div class="rf-pen-res ${gol?'gol':'perdeu'}">
         <span class="rf-pen-res-t">${gol
           ? rfIcone('jogar',16)+' Gol de '+escC(nomeNaMarca)
@@ -912,6 +924,7 @@ function rfDisputaHTML(RL){
   } else if(fase==='suspense'){
     titulo='A bola no ponto';
     corpo=`${placar}
+      ${rfGolHTML(minhaVez?cantoDaVez:null, {txt: minhaVez?'':'cobrança do '+escC(ladoDaVez.short||'adversário')})}
       <div class="rf-pen-susp">
         <span class="rf-pen-susp-n">${escC(nomeNaMarca)}</span>
         <span class="rf-pen-susp-s">${escC(ladoDaVez.short||'')} · ajeita a bola, recua e espera o apito</span>
@@ -920,6 +933,7 @@ function rfDisputaHTML(RL){
     titulo='Sua cobrança';
     const segs=Math.max(0,Math.ceil(((CL.penDeadline||0)-Date.now())/1000));
     corpo=`${placar}
+      ${rfGolHTML(CL.penCanto, {on:'rfPenCanto', txt:'Escolha o canto'})}
       ${bate?`<div class="rf-ov-alerta rf-so-agora">
         <span class="rf-pl-num">${escC(String((clubShirtNumbers(CL.clubId)||{})[bate.pid]||''))}</span>
         <div class="rf-ov-al-id">

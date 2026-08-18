@@ -6824,6 +6824,10 @@ function openShootoutPickerModal(){
   const takers=shootoutEligibleTakers(pool, takenNames);
   const best=takers.slice().sort((a,b)=>b.f-a.f)[0];
   CL.penSel=best?best.n:(takers[0]&&takers[0].n)||null;
+  /* CADA COBRANÇA COMEÇA SEM CANTO ESCOLHIDO. `CL.penCanto` é global e sobrevive à cobrança
+     anterior — sem zerar, a 2ª batida da série já nasceria com o canto da 1ª marcado na baliza e
+     levaria o bônus de escolha (penaltyConvChance, +6 pontos) sem o jogador ter escolhido nada. */
+  CL.penCanto=null;
   CL.penDeadline=Date.now()+10000;
   RL.pensPicking=true;
   sfx('penalti'); cdraw();
