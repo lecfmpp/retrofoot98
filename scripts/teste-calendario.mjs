@@ -184,18 +184,34 @@ for (const pais of C.paisesComCalendario()) {
        são igualmente espaçadas (entre 24/10 e 27/10 há três dias), e recuar quatro dias para a
        janela de meio de semana punha o dia ANTES do jogo do slot anterior — a tela mostrava
        27/10 e a seguir 26/10. */
+/* Varre também EPOCHS diferentes (cada temporada começa noutro dia da semana, e é aí que o
+   espaçamento das datas reais muda de forma) e ligas de tamanhos diferentes. */
+const EPOCHS = [null, [2026, 2, 1], [2027, 1, 15], [2028, 6, 3], [2029, 0, 29]];
 for (const pais of C.paisesComCalendario()) {
   const cal = C.calendarioDe(pais);
   const copas = Object.keys(cal.competicoes).filter((k) => k !== 'liga');
   for (const totais of combinacoes(cal).combos) {
-    const plano = W.buildDayPlan(copas, null, totais, { pais });
-    for (let i = 1; i < plano.length; i++) {
-      if (plano[i].dia < plano[i - 1].dia) {
-        reprova(pais, 'data anda para trás: ' + plano[i - 1].comp + ' dia ' + plano[i - 1].dia +
-          ' -> ' + plano[i].comp + ' dia ' + plano[i].dia);
-        break;
+    for (const ep of EPOCHS) {
+      for (const jl of [null, 34, 38, 46]) {
+        const plano = W.buildDayPlan(copas, ep, totais, { pais, jornadasLiga: jl });
+        for (let i = 1; i < plano.length; i++) {
+          if (plano[i].dia < plano[i - 1].dia) {
+            reprova(pais, 'data anda para trás (epoch ' + JSON.stringify(ep) + ', liga ' + jl + '): ' +
+              plano[i - 1].comp + ' dia ' + plano[i - 1].dia + ' -> ' + plano[i].comp + ' dia ' + plano[i].dia);
+            break;
+          }
+        }
       }
     }
+  }
+}
+/* E o caminho do SOLO, que mostra data pela mesma folha (leagueMatchDay / cupMatchDayAt). */
+for (const pais of C.paisesComCalendario()) {
+  let ant = -1;
+  for (let j = 0; j < C.calendarioDe(pais).slotsTotal; j++) {
+    const d = W.leagueMatchDay(j, null, pais);
+    if (d < ant) { reprova(pais, 'dia de liga anda para trás na jornada ' + j); break; }
+    ant = d;
   }
 }
 
