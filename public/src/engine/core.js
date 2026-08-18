@@ -3379,6 +3379,56 @@ function divisionOfResenhaClub(clubId){
   }
   return RESENHA_START_DIV;
 }
+/* ===== DE QUE PAÍS É ESTE CLUBE — a peça-base do multi-país na Resenha =====
+   Mesmo truque de `divisionOfResenhaClub`, e pela mesma razão: a sala NÃO precisa guardar o país
+   em lugar nenhum. Cada cliente recebe o id do próprio clube (do sorteio) e deduz daí em que
+   universo a temporada corre. Sem coluna nova, sem migração, e sem a possibilidade de o país
+   guardado divergir do clube realmente sorteado — que seria mais uma coordenada a discordar de
+   outra, o padrão que custou caro no calendário.
+
+   Devolve a CHAVE do universo (o que setUniverse espera: 'brasil', 'Inglaterra', …), não o nome
+   do país. Clube desconhecido cai em 'brasil', que é o comportamento de sempre. */
+function universoDoClube(clubId){
+  if(!clubId) return 'brasil';
+  // Brasil: Série A vem de DATA.clubsSerieA, as outras três de BRASIL_LOWER
+  if(typeof DATA!=='undefined' && DATA.clubsSerieA && DATA.clubsSerieA.some(c=>c.id===clubId)) return 'brasil';
+  if(typeof BRASIL_LOWER!=='undefined'){
+    for(const d of ['B','C','D']) if((BRASIL_LOWER[d]||[]).some(c=>c.id===clubId)) return 'brasil';
+  }
+  // demais países: as listas são por NOME de país; UNIVERSOS traduz nome -> chave de universo
+  const porNome={};
+  if(typeof UNI_CONFIGS!=='undefined') Object.keys(UNI_CONFIGS).forEach(k=>{
+    const nome=(UNI_CONFIGS[k]&&UNI_CONFIGS[k].country)||(k==='brasil'?'Brasil':k);
+    porNome[nome]=k;
+  });
+  const fontes=[(typeof INTL_LEAGUES!=='undefined')?INTL_LEAGUES:null,
+                (typeof CONMEBOL_LEAGUES!=='undefined')?CONMEBOL_LEAGUES:null];
+  for(const fonte of fontes){
+    if(!fonte) continue;
+    for(const nome in fonte){
+      if((fonte[nome]||[]).some(c=>c && c.id===clubId)) return porNome[nome] || 'brasil';
+    }
+  }
+  return 'brasil';
+}
+/* todos os clubes de um universo, na divisão pedida — o que a sala oferece no sorteio quando o
+   país deixa de ser sempre o Brasil. Para o Brasil mantém exatamente o caminho antigo
+   (resenhaStartClubs); para os outros vem da lista do país, cortada no tamanho da divisão. */
+function clubesDoUniverso(uniKey, div){
+  if(!uniKey || uniKey==='brasil') return resenhaStartClubs(div);
+  const cfg=(typeof UNI_CONFIGS!=='undefined')?UNI_CONFIGS[uniKey]:null;
+  if(!cfg) return resenhaStartClubs(div);
+  const nome=cfg.country||uniKey;
+  const fonte=(cfg.src==='conmebol' && typeof CONMEBOL_LEAGUES!=='undefined') ? CONMEBOL_LEAGUES
+            : ((typeof INTL_LEAGUES!=='undefined') ? INTL_LEAGUES : null);
+  const todos=(fonte && fonte[nome]) || [];
+  const alvo=div || (cfg.order && cfg.order[cfg.order.length-1]);
+  const codigo=(cfg.lg && cfg.lg[alvo]) || null;
+  // as listas trazem 1ª e 2ª divisões juntas; o campo `lg` de cada clube ('ENG-1'/'ENG-2') separa
+  const daDivisao=codigo ? todos.filter(c=>c && c.lg===codigo) : todos;
+  const tamanho=(cfg.size && cfg.size[alvo]) || 20;
+  return (daDivisao.length?daDivisao:todos).slice(0, tamanho);
+}
 /* ================= REGISTRO PERSISTENTE DE CLUBES POR DIVISÃO =================
    Antes, as 3 divisões que o usuário não joga eram regeneradas do zero (mesma seed)
    a cada troca de temporada — por isso a promoção/rebaixamento delas nunca "pegava"
