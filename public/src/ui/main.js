@@ -9954,6 +9954,12 @@ function enterResenhaUnemployment(){
   CL._firedFrom=CL.clubId; CL.unemployed=true; CL._unempRounds=0; CL._pendingResenhaOffer=null;
   S.coachHistory=S.coachHistory||[];
   S.coachHistory.push({season:S.season, type:'demissao', text:`Demitido pelo ${String((clubOf(CL._firedFrom)||{}).short||'clube').toUpperCase()}`});
+  /* a passagem pelo clube fecha AQUI e fecha como demissão — quem for demitido fica sem clube por
+     algumas rodadas, e esperar pela contratação seguinte para a fechar deixava a Carreira a
+     mostrar uma passagem "em curso" num clube que já não é dele. */
+  try{ if(typeof coachSpellsMigrar==='function') coachSpellsMigrar();
+       if(typeof coachSpellFechar==='function') coachSpellFechar('demitido'); }
+  catch(e){ console.warn('passagem (demissão):', e&&e.message); }
   if(typeof persistCareer==='function') persistCareer();   // a carreira mudou: grava no assento (ver #13)
   // libera o clube no servidor (vira CPU); se falhar, desfaz o estado local pra não travar o jogador
   if(typeof NET!=='undefined' && NET.setMyClub){

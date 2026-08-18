@@ -4264,7 +4264,12 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
   // o marcador de humano acompanha o treinador pro novo clube (o clube antigo volta a ser CPU)
   const oldClubId=S.clubId, mgrName=(CL.humans&&CL.humans[oldClubId])||CL.mgr;
   /* a passagem que termina aqui fica registada com os numeros dela — ver coachSpells acima */
-  try{ coachSpellsMigrar(); coachSpellFechar('saiu'); }catch(e){ console.warn('passagem:', e&&e.message); }
+  /* O DESFECHO DA PASSAGEM DIZ COMO ELA ACABOU. Era sempre 'saiu' — a Carreira mostrava
+     "encerrado" mesmo quando o treinador tinha sido posto na rua. Quem sabe a diferença é quem
+     chama (ver clAcceptJob e enterResenhaUnemployment), e diz-lo por este sinalizador. */
+  const _motivoSaida = S._saidaPorDemissao ? 'demitido' : 'saiu';
+  S._saidaPorDemissao=false;
+  try{ coachSpellsMigrar(); coachSpellFechar(_motivoSaida); }catch(e){ console.warn('passagem:', e&&e.message); }
   if(CL.humans && oldClubId!=null){ delete CL.humans[oldClubId]; if(mgrName) CL.humans[newClubId]=mgrName; }
   if(crossCountry){
     setUniverse(uniKeyOf(newCountry));
@@ -4358,8 +4363,20 @@ function showFiredModal(options){
 }
 function clAcceptJob(idx){
   const opt=(CL._jobOptions||S._demissaoPendente||[])[idx]; if(!opt) return;
-  applyManagerJobChange(opt.clubId, opt.division);
+  /* ===== SER DEMITIDO FAZ PARTE DA CARREIRA =====
+     Este caminho registava só a contratação seguinte: a Carreira do treinador mostrava uma
+     sequência de clubes como se cada mudança tivesse sido escolha dele, e a demissão — que é o
+     acontecimento que ele lembra — não estava em lado nenhum. Só a Resenha a escrevia (ver
+     enterResenhaUnemployment), então o mesmo facto existia num modo e não no outro.
+     Duas coisas ficam registadas, e as duas já têm lugar na tela: a linha no histórico (o ícone
+     🚪 de COACH_HIST_ICON existe desde sempre, sem ninguém que o produzisse no solo) e o desfecho
+     da PASSAGEM pelo clube, que passa a fechar como 'demitido' em vez de 'saiu'. */
+  const _saiDe=clubOf(S.clubId);
   S.coachHistory=S.coachHistory||[];
+  S.coachHistory.push({season:S.season, type:'demissao',
+    text:`Demitido pelo ${String((_saiDe&&_saiDe.short)||'clube').toUpperCase()}`});
+  S._saidaPorDemissao=true;                      // consumido por applyManagerJobChange
+  applyManagerJobChange(opt.clubId, opt.division);
   S.coachHistory.push({season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(opt.clubId).short.toUpperCase()}`});
   CL._jobOptions=null; S._demissaoPendente=null;
   clCloseOverlay(); saveV3(); cdraw();
