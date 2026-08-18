@@ -767,6 +767,168 @@ const ME = (globalThis as any).MATCH_ENGINE;
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
 })(typeof globalThis!=='undefined'?globalThis:this);
 /* <<< WORLD_RULES:FIM >>> */
+
+/* AS OUTRAS DUAS FOLHAS COMPARTILHADAS. `UNIVERSOS` descreve os 15 países (divisões, tamanho,
+   acesso, rebaixamento) e `WORLD_CONFIG` deriva delas as tabelas por NÍVEL da pirâmide. Antes
+   deste bloco o servidor tinha a pirâmide brasileira congelada em quatro constantes, com o
+   comentário "Resenha = sempre Brasil"; agora lê o mesmo dado que o cliente. Injetadas, nunca
+   editadas aqui — ver scripts/sync-world-rules.mjs. */
+/* <<< UNIVERSOS:INICIO — gerado por scripts/sync-world-rules.mjs, NÃO editar aqui >>> */
+/* ===================================================================
+   UNIVERSOS — que países são jogáveis e quais divisões cada um tem.
+   -------------------------------------------------------------------
+   Isto era um `const` no meio do core.js. Saiu para cá porque o PAINEL também
+   precisa da lista (para o editor perguntar em que país e em que divisão um
+   clube novo entra), e o painel não carrega o core.js. Copiar a lista para lá
+   criaria duas versões da mesma regra — exatamente o que world-rules.js
+   descreve como a causa dos bugs de calendário.
+
+   Consumido por engine/core.js (window.UNIVERSOS), por admin/admin.js e — desde que o
+   resolve-round deixou de ter a pirâmide brasileira congelada — pelo SERVIDOR, por injeção
+   (scripts/sync-world-rules.mjs). É por isso que o arquivo passou a atribuir em `globalThis` e
+   não em `window`: no Deno da edge function `window` não existe, e no navegador
+   `globalThis === window`, então nada muda para quem já lia.
+
+   Regra de ouro: dado, não algoritmo. Nada de S, CL ou DOM aqui.
+   =================================================================== */
+(function(root){
+'use strict';
+root.UNIVERSOS = {
+  brasil:    { order:['A','B','C','D'], size:{A:20,B:20,C:20,D:20}, promo:{A:0,B:4,C:4,D:4}, releg:{A:4,B:4,C:4,D:0},
+               label:{A:'Série A',B:'Série B',C:'Série C',D:'Série D'}, nat:['Brasil','Brazil'], foreignMax:8 },
+  Inglaterra:{ order:['PL','CH'], size:{PL:20,CH:24}, promo:{PL:0,CH:3}, releg:{PL:3,CH:0},
+               label:{PL:'Premier League',CH:'Championship'}, lg:{PL:'ENG-1',CH:'ENG-2'}, country:'Inglaterra',
+               nat:['England','Wales','Scotland','Northern Ireland'], foreignMax:22 },
+  Espanha:   { order:['ES','ES2'], size:{ES:20,ES2:18}, promo:{ES:0,ES2:3}, releg:{ES:3,ES2:0},
+               label:{ES:'La Liga',ES2:'La Liga 2'}, lg:{ES:'ESP-1',ES2:'ESP-2'}, country:'Espanha',
+               nat:['Spain'], foreignMax:15 },
+  'Itália':  { order:['IT','IT2'], size:{IT:20,IT2:18}, promo:{IT:0,IT2:3}, releg:{IT:3,IT2:0},
+               label:{IT:'Serie A',IT2:'Serie B'}, lg:{IT:'ITA-1',IT2:'ITA-2'}, country:'Itália',
+               nat:['Italy'], foreignMax:16 },
+  Alemanha:  { order:['DE','DE2'], size:{DE:18,DE2:18}, promo:{DE:0,DE2:3}, releg:{DE:3,DE2:0},
+               label:{DE:'Bundesliga',DE2:'2. Bundesliga'}, lg:{DE:'GER-1',DE2:'GER-2'}, country:'Alemanha',
+               nat:['Germany'], foreignMax:17 },
+  Portugal:  { order:['PT','PT2'], size:{PT:18,PT2:18}, promo:{PT:0,PT2:3}, releg:{PT:3,PT2:0},
+               label:{PT:'Primeira Liga',PT2:'Liga Portugal 2'}, lg:{PT:'POR-1',PT2:'POR-2'}, country:'Portugal',
+               nat:['Portugal'], foreignMax:18 },
+  /* CONMEBOL: divisão ÚNICA (só 1ª divisão real, sem pirâmide -> sem acesso/rebaixamento);
+     clubes reais em window.CONMEBOL_LEAGUES (src:'conmebol'). Classificam pra Libertadores/
+     Sul-Americana. size = nº real de clubes raspados (Argentina cortada em 20 p/ temporada padrão). */
+  Argentina: { order:['ARG'], size:{ARG:30}, promo:{ARG:0}, releg:{ARG:0}, label:{ARG:'Liga Profesional'}, lg:{ARG:'ARG-1'}, country:'Argentina', nat:['Argentina'], foreignMax:6, src:'conmebol' },
+  Uruguai:   { order:['URU'], size:{URU:16}, promo:{URU:0}, releg:{URU:0}, label:{URU:'Primera División'}, lg:{URU:'URU-1'}, country:'Uruguai', nat:['Uruguay'], foreignMax:6, src:'conmebol' },
+  'Colômbia':{ order:['COL'], size:{COL:20}, promo:{COL:0}, releg:{COL:0}, label:{COL:'Categoría Primera A'}, lg:{COL:'COL-1'}, country:'Colômbia', nat:['Colombia'], foreignMax:5, src:'conmebol' },
+  Chile:     { order:['CHI'], size:{CHI:16}, promo:{CHI:0}, releg:{CHI:0}, label:{CHI:'Primera División'}, lg:{CHI:'CHI-1'}, country:'Chile', nat:['Chile'], foreignMax:6, src:'conmebol' },
+  Peru:      { order:['PER'], size:{PER:18}, promo:{PER:0}, releg:{PER:0}, label:{PER:'Liga 1'}, lg:{PER:'PER-1'}, country:'Peru', nat:['Peru'], foreignMax:5, src:'conmebol' },
+  Equador:   { order:['ECU'], size:{ECU:16}, promo:{ECU:0}, releg:{ECU:0}, label:{ECU:'LigaPro Serie A'}, lg:{ECU:'ECU-1'}, country:'Equador', nat:['Ecuador'], foreignMax:5, src:'conmebol' },
+  Paraguai:  { order:['PAR'], size:{PAR:12},  promo:{PAR:0}, releg:{PAR:0}, label:{PAR:'División Profesional'}, lg:{PAR:'PAR-1'}, country:'Paraguai', nat:['Paraguay'], foreignMax:6, src:'conmebol' },
+  Venezuela: { order:['VEN'], size:{VEN:14}, promo:{VEN:0}, releg:{VEN:0}, label:{VEN:'Liga FUTVE'}, lg:{VEN:'VEN-1'}, country:'Venezuela', nat:['Venezuela'], foreignMax:6, src:'conmebol' },
+  'Bolívia': { order:['BOL'], size:{BOL:16}, promo:{BOL:0}, releg:{BOL:0}, label:{BOL:'División Profesional'}, lg:{BOL:'BOL-1'}, country:'Bolívia', nat:['Bolivia'], foreignMax:6, src:'conmebol' },
+};
+
+/* código ISO da bandeira de cada universo (UNIVERSOS só guarda o nome do país) */
+root.UNIVERSO_BANDEIRA = {brasil:'br',Inglaterra:'gb-eng',Espanha:'es','Itália':'it',Alemanha:'de',Portugal:'pt',
+  Argentina:'ar',Uruguai:'uy','Colômbia':'co',Chile:'cl',Peru:'pe',Equador:'ec',Paraguai:'py',Venezuela:'ve','Bolívia':'bo'};
+
+if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:root.UNIVERSOS, UNIVERSO_BANDEIRA:root.UNIVERSO_BANDEIRA }; }
+})(typeof globalThis!=='undefined'?globalThis:this);
+/* <<< UNIVERSOS:FIM >>> */
+/* <<< WORLD_CONFIG:INICIO — gerado por scripts/sync-world-rules.mjs, NÃO editar aqui >>> */
+/* ===================================================================
+   CONFIGURAÇÃO DE MUNDO — a segunda folha ÚNICA compartilhada cliente ⇄ servidor.
+
+   POR QUE ISTO EXISTE. O `world-rules.js` acabou com as duas versões das regras de CALENDÁRIO.
+   Faltava o mesmo para as regras de PAÍS. Hoje elas estão escritas em três lugares:
+
+     · `data/universos.js` descreve os 15 países (divisões, tamanho, acesso, rebaixamento) e o
+       cliente já os usa por `setUniverse()`;
+     · `resolve-round` tem DIV_ORDER / DIVISION_SIZE / DIVISION_PROMO / DIVISION_RELEG congelados
+       no Brasil, com o comentário "Config brasileira (Resenha = sempre Brasil)";
+     · `data/rebalance.js` e o `resolve-round` têm, CADA UM, um `BAND_BY_DIV` escrito à mão que
+       traduz PL/CH/ES/ES2/... para as faixas A/B — e que só cobre seis países.
+
+   Três cópias da mesma regra é exatamente o padrão que o cabeçalho do `world-rules.js` descreve
+   como a causa dos bugs de calendário. Esta folha é o lugar único.
+
+   A IDEIA CENTRAL: INDEXAR POR NÍVEL, NÃO PELA LETRA DA DIVISÃO.
+   `A/B/C/D` são nomes brasileiros. O que a regra realmente quer saber é a PROFUNDIDADE na
+   pirâmide — 1ª divisão, 2ª, 3ª. `UNIVERSOS[pais].order` já é essa lista, em ordem. Então:
+
+       nivel = order.indexOf(divisao)        brasil: A=0 B=1 C=2 D=3   ·   Inglaterra: PL=0 CH=1
+
+   Com isso o mapa escrito à mão desaparece e QUALQUER país novo — inclusive um criado no painel
+   admin — funciona sem tocar em código. Para o Brasil o resultado é idêntico ao de hoje, e é
+   isso que `scripts/teste-universos.mjs` prova.
+
+   REGRA DE OURO (a mesma do world-rules.js): nada de S, CL, DATA, DOM ou qualquer global do
+   jogo. `UNIVERSOS` é lido PREGUIÇOSAMENTE, dentro das funções — o painel admin carrega os
+   arquivos em paralelo, e ler no topo criaria dependência de ordem de carga.
+
+   PROPAGAÇÃO É AUTOMÁTICA: scripts/sync-world-rules.mjs injeta esta folha dentro do
+   resolve-round entre marcadores, no build e no CI. Não há porte manual.
+   =================================================================== */
+(function(root){
+  'use strict';
+
+  const PADRAO='brasil';
+  function universos(){ return root.UNIVERSOS || {}; }
+  function uniCfg(key){ const U=universos(); return U[key] || U[PADRAO] || null; }
+  /* chave do universo a partir do estado do jogo. `S.intlUniverse` é o campo que o save já
+     guarda (core.js: activeUniverseKey) e que já viaja dentro do shared_state — ausente = Brasil,
+     que é o que toda sala criada até agosto/2026 é. Retrocompatível por construção. */
+  function uniDoEstado(S){ return (S && S.intlUniverse) || PADRAO; }
+
+  /* ---------- NÍVEL NA PIRÂMIDE ---------- */
+  function nivelDaDivisao(uniKey, div){
+    const c=uniCfg(uniKey); if(!c || !c.order) return 0;
+    const i=c.order.indexOf(div);
+    return i<0 ? 0 : i;                       // divisão desconhecida conta como 1ª (nunca negativa)
+  }
+  function divisoesDe(uniKey){ const c=uniCfg(uniKey); return (c && c.order) ? c.order.slice() : ['A','B','C','D']; }
+  function tamanhoDaDivisao(uniKey, div){ const c=uniCfg(uniKey); return (c && c.size && c.size[div]) || 20; }
+  function sobemDaDivisao(uniKey, div){ const c=uniCfg(uniKey); return (c && c.promo && c.promo[div]) || 0; }
+  function descemDaDivisao(uniKey, div){ const c=uniCfg(uniKey); return (c && c.releg && c.releg[div]) || 0; }
+
+  /* ---------- TABELAS POR NÍVEL ----------
+     Os valores são EXATAMENTE os que estavam escritos por letra: para o Brasil, nível 0 = 'A',
+     1 = 'B', 2 = 'C', 3 = 'D'. Uma pirâmide mais funda que a tabela usa o último nível. */
+  const BANDA_POR_NIVEL=['A','B','C','D'];
+  const FORCA_POR_NIVEL=[[58,88],[58,80],[52,74],[48,68]];
+  const CAP_POR_NIVEL=[99,37,24,12];
+  function _porNivel(tab, n){ return tab[Math.max(0, Math.min(n, tab.length-1))]; }
+
+  function bandaDaDivisao(uniKey, div){ return _porNivel(BANDA_POR_NIVEL, nivelDaDivisao(uniKey, div)); }
+  function forcaDaDivisao(uniKey, div){ return _porNivel(FORCA_POR_NIVEL, nivelDaDivisao(uniKey, div)).slice(); }
+  function capDaDivisao(uniKey, div){ return _porNivel(CAP_POR_NIVEL, nivelDaDivisao(uniKey, div)); }
+
+  /* Tabelas prontas, com as LETRAS daquele país como chave. É o formato que o cliente e o
+     servidor já consomem (`DIVISION_FORCE_RANGE[division]`), então ligar a folha não exige
+     reescrever quem lê — só trocar de onde a tabela vem. */
+  function tabelasDoUniverso(uniKey){
+    const ordem=divisoesDe(uniKey);
+    const size={}, promo={}, releg={}, forca={}, cap={}, banda={};
+    ordem.forEach(d=>{
+      size[d]=tamanhoDaDivisao(uniKey,d); promo[d]=sobemDaDivisao(uniKey,d); releg[d]=descemDaDivisao(uniKey,d);
+      forca[d]=forcaDaDivisao(uniKey,d);  cap[d]=capDaDivisao(uniKey,d);     banda[d]=bandaDaDivisao(uniKey,d);
+    });
+    return { ordem, size, promo, releg, forca, cap, banda };
+  }
+  /* A banda de uma divisão SEM saber o país — é o que `rebalance.force(rawF, division)` tem em
+     mãos. Procura a letra em todos os universos; se dois países usarem a mesma letra, o nível é o
+     mesmo nos dois (é o que 'A'/'B' significam), então a ambiguidade não muda o resultado. */
+  function bandaDaDivisaoSemPais(div){
+    const U=universos();
+    for(const k in U){ const o=U[k] && U[k].order; if(o && o.indexOf(div)>=0) return _porNivel(BANDA_POR_NIVEL, o.indexOf(div)); }
+    return BANDA_POR_NIVEL[0];
+  }
+
+  const API={ PADRAO, uniCfg, uniDoEstado, nivelDaDivisao, divisoesDe,
+    tamanhoDaDivisao, sobemDaDivisao, descemDaDivisao,
+    BANDA_POR_NIVEL, FORCA_POR_NIVEL, CAP_POR_NIVEL,
+    bandaDaDivisao, forcaDaDivisao, capDaDivisao, bandaDaDivisaoSemPais, tabelasDoUniverso };
+  root.WORLD_CONFIG=API;
+  if(typeof module!=='undefined' && module.exports){ module.exports=API; }
+})(typeof globalThis!=='undefined'?globalThis:this);
+/* <<< WORLD_CONFIG:FIM >>> */
 const WR = (globalThis as any).WORLD_RULES;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -896,8 +1058,13 @@ function interp(anchors: any[], x: number) { const n = anchors.length;
   for (let i = 0; i < n - 1; i++) { const [x0, y0] = anchors[i], [x1, y1] = anchors[i + 1]; if (x >= x0 && x <= x1) { const t = (x1 === x0) ? 0 : (x - x0) / (x1 - x0); return y0 + t * (y1 - y0); } }
   return anchors[n - 1][1]; }
 const BANDS: any = { A:[[48,28],[64,38],[79,49],[82,58],[85,70],[88,81],[90,90],[94,98]], B:[[46,18],[58,26],[74,37],[77,46],[81,60],[85,74],[90,90]], C:[[42,8],[52,14],[66,24],[70,32],[76,48],[82,66]], D:[[38,2],[44,4],[58,12],[63,23],[70,40]] };
-const BAND_BY_DIV: any = { A:'A',B:'B',C:'C',D:'D', PL:'A',ES:'A',IT:'A',DE:'A',PT:'A', CH:'B',ES2:'B',IT2:'B',DE2:'B',PT2:'B' };
-function rbForce(rawF: number, division: string) { const rf = (typeof rawF === 'number' && isFinite(rawF)) ? rawF : 60; const b = BANDS[BAND_BY_DIV[division] || 'A'] || BANDS.A; return Math.max(1, Math.min(99, Math.round(interp(b, rf)))); }
+/* A BANDA DE FORCA DE UMA DIVISAO — pelo NIVEL na piramide do pais, nao por um mapa de letras.
+   Era `{A:'A',...,PL:'A',CH:'B',ES2:'B',...}`, escrito a mao e limitado a seis paises: um pais
+   novo criado no painel cairia silenciosamente na banda 'A'. WORLD_CONFIG deriva a banda de
+   UNIVERSOS[pais].order, entao qualquer piramide funciona — e para as letras que ja estavam no
+   mapa o resultado e o mesmo (PL e 1a divisao => nivel 0 => banda 'A'). */
+function bandKeyDiv(division: string) { return WORLD_CONFIG.bandaDaDivisao(UNI_ATIVO, division); }
+function rbForce(rawF: number, division: string) { const rf = (typeof rawF === 'number' && isFinite(rawF)) ? rawF : 60; const b = BANDS[bandKeyDiv(division)] || BANDS.A; return Math.max(1, Math.min(99, Math.round(interp(b, rf)))); }
 const V_ANCHORS = [[5,80e3],[10,200e3],[15,450e3],[20,700e3],[25,1e6],[30,1.6e6],[35,2.5e6],[40,4e6],[45,6e6],[50,9e6],[60,18e6],[70,35e6],[80,70e6],[90,150e6],[99,260e6]];
 function ageFactor(age: number) { const a = age || 26; if (a <= 21) return 1.35; if (a <= 27) return 1.00; if (a <= 31) return 0.80; if (a <= 35) return 0.50; return 0.25; }
 function rbValue(f: number, age: number) { return Math.max(30000, Math.round(interp(V_ANCHORS as any, f) * ageFactor(age))); }
@@ -919,7 +1086,7 @@ const LEAGUE_PRIZE: any = {
   D:{champ:2e6,vice:1.3e6,top4:0.9e6,upper:0.55e6,mid:0.35e6,lower:0.2e6},
 };
 function leaguePrizeT(div: string, pos: number, n: number) {
-  const t = LEAGUE_PRIZE[BAND_BY_DIV[div] || 'A'] || LEAGUE_PRIZE.A; n = n || 20;
+  const t = LEAGUE_PRIZE[bandKeyDiv(div)] || LEAGUE_PRIZE.A; n = n || 20;
   if (pos === 1) return t.champ; if (pos === 2) return t.vice; if (pos <= 4) return t.top4;
   if (pos <= Math.ceil(n * 0.35)) return t.upper;
   if (pos <= Math.ceil(n * 0.70)) return t.mid;
@@ -1384,12 +1551,28 @@ function rebuildContinentalCups(S: any, topStandings: string[]) {
    (computeDivisionSwap, provado byte-idêntico ao cliente). Servidor = autoridade: os detalhes
    cosméticos do regen (atributos) são gerados de forma simples e determinística, sem precisar
    bater com o genAttrs do cliente. Config brasileira (Resenha = sempre Brasil). ===== */
-const DIV_ORDER = ['A', 'B', 'C', 'D'];
-const DIVISION_SIZE: any = { A: 20, B: 20, C: 20, D: 20 };
-const DIVISION_PROMO: any = { A: 0, B: 4, C: 4, D: 4 };
-const DIVISION_RELEG: any = { A: 4, B: 4, C: 4, D: 0 };
-const DIVISION_FORCE_RANGE: any = { A: [58, 88], B: [58, 80], C: [52, 74], D: [48, 68] };
-const DIV_FORCE_CAP: any = { B: 37, C: 24, D: 12 };
+/* ===== A PIRAMIDE DO PAIS, NAO A DO BRASIL =====
+   Estas seis tabelas eram constantes congeladas no Brasil. Agora vêm de UNIVERSOS/WORLD_CONFIG,
+   a mesma folha que o cliente lê — exatamente o que `setUniverse()` (core.js) já faz do outro
+   lado. `aplicarUniverso(S)` é chamada uma vez por pedido, logo depois de ler o shared_state.
+
+   Para o Brasil o resultado é IDÊNTICO ao que estava escrito aqui, e é isso que
+   scripts/teste-universos.mjs prova — a generalização não pode mexer no que já está no ar. */
+let UNI_ATIVO = 'brasil';
+let DIV_ORDER: string[] = ['A', 'B', 'C', 'D'];
+let DIVISION_SIZE: any = { A: 20, B: 20, C: 20, D: 20 };
+let DIVISION_PROMO: any = { A: 0, B: 4, C: 4, D: 4 };
+let DIVISION_RELEG: any = { A: 4, B: 4, C: 4, D: 0 };
+let DIVISION_FORCE_RANGE: any = { A: [58, 88], B: [58, 80], C: [52, 74], D: [48, 68] };
+let DIV_FORCE_CAP: any = { B: 37, C: 24, D: 12 };
+function aplicarUniverso(S: any) {
+  const chave = WORLD_CONFIG.uniDoEstado(S);
+  const t = WORLD_CONFIG.tabelasDoUniverso(chave);
+  UNI_ATIVO = chave;
+  DIV_ORDER = t.ordem; DIVISION_SIZE = t.size; DIVISION_PROMO = t.promo; DIVISION_RELEG = t.releg;
+  DIVISION_FORCE_RANGE = t.forca; DIV_FORCE_CAP = t.cap;
+  return chave;
+}
 const RETIRE_CHANCE_BY_AGE: any = { 32: 0.11, 33: 0.24, 34: 0.40, 35: 0.56, 36: 0.71, 37: 0.83, 38: 0.92, 39: 0.97 };
 const BR_FIRST = ['Gabriel', 'Lucas', 'Matheus', 'Rafael', 'Bruno', 'Léo', 'Vitor', 'João', 'Pedro', 'Gustavo', 'Felipe', 'Diego', 'Rodrigo', 'Thiago', 'Wesley', 'Éverton', 'Caio', 'Igor', 'Vinícius', 'Douglas', 'Renato', 'Marcos', 'André', 'Fábio', 'Danilo', 'Kaio', 'Yuri', 'Alan', 'Juninho', 'Guilherme', 'Paulinho', 'Rennan', 'Éder', 'Wellington', 'Luan', 'Nathan', 'Richard', 'Kevin', 'Wanderson', 'Jonathan', 'Ronaldo', 'Ricardo', 'Fernando', 'Cristian', 'Emerson', 'Robson', 'Adriano', 'Cléber', 'Maicon', 'Otávio'];
 const BR_LAST = ['Silva', 'Santos', 'Oliveira', 'Souza', 'Pereira', 'Lima', 'Costa', 'Ferreira', 'Almeida', 'Ribeiro', 'Rodrigues', 'Gomes', 'Martins', 'Barbosa', 'Rocha', 'Dias', 'Nascimento', 'Araújo', 'Cardoso', 'Teixeira', 'Moreira', 'Carvalho', 'Cavalcante', 'Mendes', 'Freitas', 'Vieira', 'Monteiro', 'Nunes', 'Correia', 'Machado', 'Fernandes', 'Ramos', 'Azevedo', 'Campos', 'Pinto', 'Cunha', 'Moraes', 'Farias', 'Batista', 'Andrade'];
@@ -1978,6 +2161,10 @@ Deno.serve(async (req: Request) => {
     const stateObj = gameHost.shared_state;
     if (!stateObj || !stateObj.S) return json({ error: "sem estado salvo ainda" }, 409);
     const S = stateObj.S; const curVer = gameHost.state_version || 0;
+    /* O PAIS DA SALA MANDA, a partir daqui. Sala criada antes disto nao tem `intlUniverse` no
+       estado e cai em 'brasil' — que e o que ela e. Tem de vir ANTES de qualquer coisa que leia
+       DIV_ORDER, forca de divisao ou premiacao. */
+    aplicarUniverso(S);
     // idempotência: se a rodada esperada não é a atual, alguém já resolveu -> devolve o estado atual
     if (expectedRound != null && S.round !== expectedRound) return json({ ok: true, already: true, round: S.round, version: curVer });
     // IDEMPOTÊNCIA POR ESTÁGIO: se a quarta já foi resolvida (roundStage já virou 'league'), um

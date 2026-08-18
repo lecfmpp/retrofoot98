@@ -303,6 +303,12 @@ O trabalho é portanto:
 4. **O motor passa a ler o pacote.** `dados.js` já aplica `pack_edits` no cliente e `games.pack_id`
    já existe; o `resolve-round` passa a carregar a mesma linha. Ordem de precedência:
    `pacote da sala` > `arquivo do país` > erro do validador.
+**Armadilha medida em 18/08:** `carregarCatalogo()` busca os arquivos em `JOGO_URL`, que é
+**produção** (`https://retrofoot98.com.br`), não o localhost — e um único 404 rejeita o
+`Promise.all`, deixando a página do Editor sem catálogo nenhum. Acrescentar `world-config.js` (ou
+qualquer folha) à lista só depois de o site estar publicado com ela, e de preferência tornando o
+carregamento tolerante a folha ausente.
+
 5. **Botão "Duplicar país"** — partir de um país existente e trocar as datas é o caminho de 5
    minutos para acrescentar um calendário novo, que é o que o usuário pediu.
 

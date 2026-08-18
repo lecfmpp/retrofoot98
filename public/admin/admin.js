@@ -2058,6 +2058,10 @@ function carregarCatalogo(){
                     '/src/data/leagues-intl.js', '/src/data/leagues-conmebol.js',
                     '/src/data/universos.js', '/src/data/competicoes.js',
                     '/src/engine/world-rules.js'];
+  /* NÃO acrescente uma folha aqui antes de o site estar publicado com ela: os arquivos vêm de
+     JOGO_URL (produção, não do localhost) e um único 404 rejeita o Promise.all abaixo, deixando
+     a página do Editor inteira sem catálogo. `world-config.js` entra quando o editor de
+     calendário passar a usá-lo — ver docs/calendario/PLANO-SLOTS.md, Fase 5. */
   return Promise.all(arquivos.map(f => new Promise((ok, erro) => {
     const t = document.createElement('script');
     t.src = JOGO_URL + f; t.onload = ok;

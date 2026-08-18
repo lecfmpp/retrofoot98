@@ -66,10 +66,19 @@
     // Série D
     D:[[38,2],[44,4],[58,12],[63,23],[70,40]],
   };
-  // intl usa chaves de divisão próprias (PL/CH/ES/ES2/...) — mapeia por tier pras faixas A/B
-  const BAND_BY_DIV={ A:'A',B:'B',C:'C',D:'D',
+  /* A BANDA DE UMA DIVISÃO SAI DO NÍVEL DELA NA PIRÂMIDE (engine/world-config.js), não de um
+     mapa de letras escrito à mão. O mapa antigo — {A:'A',...,PL:'A',CH:'B',ES2:'B',...} — cobria
+     seis países, e um país novo (inclusive um criado no painel admin) cairia calado na banda 'A'.
+     Para as letras que ele cobria o resultado é o mesmo: PL é 1ª divisão, logo nível 0, logo 'A'.
+     Lido em tempo de chamada porque este arquivo carrega antes das folhas; o fallback mantém o
+     rebalanceamento de pé se a folha faltar. */
+  const BAND_FALLBACK={ A:'A',B:'B',C:'C',D:'D',
     PL:'A',ES:'A',IT:'A',DE:'A',PT:'A', CH:'B',ES2:'B',IT2:'B',DE2:'B',PT2:'B' };
-  function bandKey(div){ return BAND_BY_DIV[div] || 'A'; }
+  function bandKey(div){
+    const W=(typeof globalThis!=='undefined') && globalThis.WORLD_CONFIG;
+    if(W && W.bandaDaDivisaoSemPais) return W.bandaDaDivisaoSemPais(div);
+    return BAND_FALLBACK[div] || 'A';
+  }
   function force(rawF, division){
     const rf=(typeof rawF==='number' && isFinite(rawF))?rawF:60;
     const b=BANDS[bandKey(division)]||BANDS.A;

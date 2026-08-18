@@ -63,6 +63,13 @@ jobs:
       - name: Calendário íntegro (a final nunca antes da semifinal)
         run: node scripts/teste-calendario.mjs
 
+      # PORTÃO DA PIRÂMIDE: o servidor deixou de ter a pirâmide brasileira congelada e passou a
+      # lê-la de UNIVERSOS. Este teste prova que o Brasil continua byte a byte o que era — a
+      # virada de temporada roda uma vez a cada 38 jornadas, e um erro aqui só apareceria em
+      # dezembro, com a sala inteira dentro.
+      - name: Pirâmide de país íntegra (Brasil inalterado)
+        run: node scripts/teste-universos.mjs
+
       - name: Validar sintaxe das funções
         run: |
           npx esbuild supabase/functions/resolve-round/index.ts --outfile=/dev/null --platform=neutral --format=esm

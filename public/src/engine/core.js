@@ -2827,6 +2827,13 @@ function setUniverse(key){
   ACTIVE_UNI = UNI_CONFIGS[key] ? key : 'brasil';
   DIVISION_SIZE=cfg.size; DIVISION_PROMO=cfg.promo; DIVISION_RELEG=cfg.releg; DIV_ORDER=cfg.order.slice();
   DIV_LABEL_FULL=cfg.label;
+  /* FAIXA DE FORÇA E CAP TAMBÉM MUDAM DE PAÍS. Ficavam de fora, escritas em A/B/C/D, e num save
+     internacional a busca por 'PL' falhava e caía na faixa da Série D. Saem da mesma folha que o
+     servidor lê (engine/world-config.js), indexadas pelo NÍVEL na pirâmide. */
+  if(typeof WORLD_CONFIG!=='undefined' && WORLD_CONFIG.tabelasDoUniverso){
+    const t=WORLD_CONFIG.tabelasDoUniverso(ACTIVE_UNI);
+    DIVISION_FORCE_RANGE=t.forca; DIV_FORCE_CAP=t.cap;
+  }
   return ACTIVE_UNI;
 }
 function activeUniCfg(){ return UNI_CONFIGS[ACTIVE_UNI]||UNI_CONFIGS.brasil; }
@@ -2939,12 +2946,17 @@ const REAL_LOWER_DIVISION_CLUBS={
 /* faixa de força por divisão (jogadores B/C/D são procedurais; Série A usa dado real do
    Transfermarkt e nunca é gerada por aqui — a entrada 'A' só serve de referência pra
    gerar um jovem repositor quando um jogador real se aposenta, ver retirementReplacement). */
-const DIVISION_FORCE_RANGE={A:[58,88],B:[58,80],C:[52,74],D:[48,68]};
+/* FAIXA DE FORÇA POR DIVISÃO. Deixou de ser constante brasileira: `setUniverse()` remonta esta
+   tabela e a de cap a partir de engine/world-config.js, com as LETRAS do país ativo. Antes disto,
+   num save internacional `DIVISION_FORCE_RANGE['PL']` era undefined e caía no `||...D` logo
+   abaixo — um jogador criado na Premier League nascia com a faixa de força da Série D. Os valores
+   do Brasil são exatamente os que estavam escritos aqui. */
+let DIVISION_FORCE_RANGE={A:[58,88],B:[58,80],C:[52,74],D:[48,68]};
 /* teto de força (escala NOVA) por divisão pra jogadores GERADOS (procedurais/regens): a faixa
    de força-bruta remapeia acima da categoria no topo, então travamos no teto da divisão pra
    não nascer "craque" na Série D. Só divisões inferiores brasileiras — A e ligas intl não têm
    teto (podem ter estrelas reais). */
-const DIV_FORCE_CAP={B:37,C:24,D:12};
+let DIV_FORCE_CAP={B:37,C:24,D:12};
 /* força-base por idade dentro da faixa da divisão: em vez de sortear uniformemente,
    um jovem (18-22) tende à metade inferior (potencial, ainda não é o pico), o auge
    (23-29) tende à metade superior, e o veterano (30-35) recua um pouco — mesma lógica

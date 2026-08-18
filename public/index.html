@@ -177,6 +177,11 @@
      Para usar defer é preciso antes tirar aquele bloco inline para um arquivo — e aí ele entra na
      mesma fila destes. Enquanto isso, o que faz a home aparecer rápido é ela estar em HTML acima
      desta linha, e não a forma como o jogo carrega. -->
+<!-- FOLHAS COMPARTILHADAS cliente ⇄ servidor (as mesmas que scripts/sync-world-rules.mjs injeta
+     no resolve-round). world-config.js lê UNIVERSOS preguiçosamente, então basta estar na página
+     antes do primeiro uso — mas vem primeiro de propósito, porque rebalance.js consulta a banda
+     de divisão logo abaixo. -->
+<script src="src/engine/world-config.js"></script>
 <script src="src/data/match-config.js"></script>
 <script src="src/data/trophies.js"></script>
 <script src="src/data/trophy-room.js"></script>
