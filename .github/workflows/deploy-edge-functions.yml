@@ -70,6 +70,13 @@ jobs:
       - name: Pirâmide de país íntegra (Brasil inalterado)
         run: node scripts/teste-universos.mjs
 
+      # PORTÃO DA VIRADA: carrega o resolve-round de verdade num contexto de Node e roda a virada
+      # de temporada em três países. É o bloco mais perigoso da função — promoção, rebaixamento,
+      # aposentadoria, regen, copas novas — e roda uma vez a cada 38 jornadas, então sem isto um
+      # erro só apareceria em dezembro, com a sala inteira dentro.
+      - name: Virada de temporada íntegra
+        run: node scripts/teste-virada.mjs
+
       - name: Validar sintaxe das funções
         run: |
           npx esbuild supabase/functions/resolve-round/index.ts --outfile=/dev/null --platform=neutral --format=esm

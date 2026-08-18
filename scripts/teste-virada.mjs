@@ -1,0 +1,178 @@
+/* BANCO DE PROVAS DA VIRADA DE TEMPORADA — do SERVIDOR, não do cliente.
+
+   POR QUE EXISTE. A virada roda UMA VEZ a cada 38 jornadas e é o bloco mais perigoso do
+   resolve-round: promoção, rebaixamento, aposentadoria, regen, copas novas. O harness de dois
+   clientes (public/harness/) não a alcança — ele exercita o CLIENTE, e a virada é do servidor.
+   Resultado: quando a pirâmide brasileira deixou de estar congelada e passou a sair de
+   UNIVERSOS, não havia rede nenhuma. Um erro ali só apareceria em dezembro, com a sala dentro.
+
+   COMO FUNCIONA. O index.ts é um módulo só, com duas importações e um punhado de usos de `Deno`.
+   Aqui ele é lido, as importações e o `Deno.serve` são trocados por tocos, as funções internas
+   são expostas e o resultado roda num contexto de Node. Não há cópia do código do servidor: o
+   que se testa é o arquivo que vai para produção, tal e qual.
+
+   Uso:  node scripts/teste-virada.mjs   (sai 1 se algo divergir) */
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { transformSync } from 'esbuild';
+import { runInNewContext } from 'node:vm';
+
+const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const ALVO = resolve(raiz, 'supabase/functions/resolve-round/index.ts');
+
+/* ---- carrega o resolve-round num contexto de Node ---- */
+function carregarServidor() {
+  let src = readFileSync(ALVO, 'utf8');
+  src = src.replace(/^import .*$/gm, '');                       // as duas importações jsr:
+  src = src.replace(/Deno\.serve\(/, '((globalThis).__naoServe = ');   // não sobe servidor nenhum
+  src += `
+;globalThis.__RR = { aplicarUniverso, resolveSeasonTurnover, computeDivisionSwap,
+  rebuildContinentalCups, cupTotalRoundsS, makeScheduleT, makeBracketT, rbForce, bandKeyDiv,
+  get DIV_ORDER(){ return DIV_ORDER; }, get DIVISION_SIZE(){ return DIVISION_SIZE; },
+  get UNI_ATIVO(){ return UNI_ATIVO; } };`;
+  const js = transformSync(src, { loader: 'ts', format: 'cjs' }).code;
+  const ctx = {
+    console, Math, Date, JSON, Object, Array, String, Number, Boolean, Set, Map, isFinite, parseInt, parseFloat,
+    Deno: { env: { get: () => '' }, serve: () => {} },
+    createClient: () => ({ from: () => ({ select: () => ({}) }) }),
+    module: { exports: {} }, exports: {},
+  };
+  ctx.globalThis = ctx;
+  runInNewContext(js, ctx);
+  return ctx;
+}
+
+let falhas = 0;
+function reprova(msg) { falhas++; console.log('  ✘ ' + msg); }
+/* Um bloco que ESTOURA é uma reprovação, não um crash do banco de provas: quando a pirâmide sai
+   errada, o mundo sintético do país nem existe e o acesso a S.otherDivs falha. Sem isto o teste
+   morre com stack trace e os blocos seguintes nem rodam — verificado quebrando de propósito. */
+function bloco(nome, fn) { try { fn(); } catch (e) { reprova(nome + ': estourou — ' + e.message); } }
+function conferir(nome, obtido, esperado) {
+  if (JSON.stringify(obtido) === JSON.stringify(esperado)) return;
+  reprova(nome + '\n      obtido:   ' + JSON.stringify(obtido) + '\n      esperado: ' + JSON.stringify(esperado));
+}
+
+/* ---- um mundo sintético mínimo, mas completo o bastante para a virada rodar ---- */
+function mundo(uniKey, universos, worldConfig) {
+  const t = worldConfig.tabelasDoUniverso(uniKey);
+  const S = {
+    season: 1, seed: 12345, round: 0, division: t.ordem[0], intlUniverse: uniKey === 'brasil' ? undefined : uniKey,
+    squads: {}, budgets: {}, clubOverall: {}, clubPool: {}, otherDivs: {}, table: {}, cups: {}, scorers: {},
+  };
+  if (uniKey === 'brasil') delete S.intlUniverse;      // sala antiga: o campo nem existe
+  let n = 0;
+  const clubesDe = (div) => {
+    const ids = [];
+    for (let i = 0; i < t.size[div]; i++) {
+      const id = 'c' + (++n);
+      ids.push(id);
+      S.clubPool[id] = { id };
+      S.clubOverall[id] = 70 - (worldConfig.nivelDaDivisao(uniKey, div) * 8) + (i % 5);
+      S.squads[id] = [];
+      for (let p = 0; p < 20; p++) {
+        S.squads[id].push({ n: id + '-p' + p, pid: id + p, p: 'MC', s: 'MC', f: 60, rawF: 60, _div: div,
+          age: 20 + (p % 16), mv: 1e6, moral: 70, energy: 100, attr: {}, stats: { r3: [], g3: [], apps: 0, goals: 0 } });
+      }
+      S.budgets[id] = 5e6;
+    }
+    return ids;
+  };
+  const tabela = (ids) => { const tb = {}; ids.forEach((id, i) => tb[id] = { id, P: 38, W: 38 - i, D: 0, L: i, GF: 60 - i, GA: 20 + i, Pts: (38 - i) * 3 }); return tb; };
+  t.ordem.forEach((d, i) => {
+    const ids = clubesDe(d);
+    if (i === 0) { S.table = tabela(ids); S.sched = worldConfig ? [] : []; }
+    else S.otherDivs[d] = { clubs: ids.map((id) => ({ id })), sched: [], table: tabela(ids) };
+  });
+  return S;
+}
+
+console.log('Banco de provas da virada de temporada (servidor real)\n');
+const ctx = carregarServidor();
+const RR = ctx.__RR;
+const U = ctx.UNIVERSOS, W = ctx.WORLD_CONFIG;
+if (!RR || !U || !W) { console.log('✘ não consegui carregar o resolve-round'); process.exit(1); }
+
+/* ===== 1. O BRASIL VIRA A TEMPORADA COMO SEMPRE =====
+   4 divisões de 20, sobem 4 e descem 4 entre divisões vizinhas. */
+console.log('1. Brasil: 4 divisões de 20, sobe 4 / desce 4');
+bloco('Brasil', () => {
+  const S = mundo('brasil', U, W);
+  RR.aplicarUniverso(S);
+  conferir('universo ativo', RR.UNI_ATIVO, 'brasil');
+  conferir('DIV_ORDER', RR.DIV_ORDER, ['A', 'B', 'C', 'D']);
+
+  const antes = { A: Object.keys(S.table), B: S.otherDivs.B.clubs.map((c) => c.id) };
+  const nova = RR.computeDivisionSwap(S);
+  ['A', 'B', 'C', 'D'].forEach((d) => { if (nova[d].length !== 20) reprova('divisão ' + d + ' com ' + nova[d].length + ' clubes, esperado 20'); });
+  // os 4 últimos da A caem; os 4 primeiros da B sobem
+  const caem = antes.A.slice(-4), sobem = antes.B.slice(0, 4);
+  caem.forEach((id) => { if (!nova.B.includes(id)) reprova('rebaixado ' + id + ' não está na B'); });
+  sobem.forEach((id) => { if (!nova.A.includes(id)) reprova('promovido ' + id + ' não está na A'); });
+  // ninguém em duas divisões ao mesmo tempo
+  const todos = ['A', 'B', 'C', 'D'].flatMap((d) => nova[d]);
+  if (new Set(todos).size !== todos.length) reprova('clube repetido em mais de uma divisão');
+});
+
+/* ===== 2. A INGLATERRA VIRA COM A PIRÂMIDE DELA =====
+   2 divisões de tamanhos DIFERENTES (20 e 24) — o que a pirâmide congelada não sabia
+   representar — e sobem/descem 3. */
+console.log('2. Inglaterra: 2 divisões (20 e 24), sobe 3 / desce 3');
+bloco('Inglaterra', () => {
+  const S = mundo('Inglaterra', U, W);
+  RR.aplicarUniverso(S);
+  conferir('universo ativo', RR.UNI_ATIVO, 'Inglaterra');
+  conferir('DIV_ORDER', RR.DIV_ORDER, ['PL', 'CH']);
+
+  const antes = { PL: Object.keys(S.table), CH: S.otherDivs.CH.clubs.map((c) => c.id) };
+  const nova = RR.computeDivisionSwap(S);
+  conferir('tamanho da PL', nova.PL.length, 20);
+  conferir('tamanho da CH', nova.CH.length, 24);
+  antes.PL.slice(-3).forEach((id) => { if (!nova.CH.includes(id)) reprova('rebaixado ' + id + ' não está na CH'); });
+  antes.CH.slice(0, 3).forEach((id) => { if (!nova.PL.includes(id)) reprova('promovido ' + id + ' não está na PL'); });
+  const todos = nova.PL.concat(nova.CH);
+  if (new Set(todos).size !== todos.length) reprova('clube repetido nas duas divisões');
+});
+
+/* ===== 3. UM PAÍS DE DIVISÃO ÚNICA NÃO QUEBRA =====
+   CONMEBOL não tem pirâmide: ninguém sobe, ninguém desce, e a virada tem de passar. */
+console.log('3. Argentina: divisão única, ninguém sobe nem desce');
+bloco('Argentina', () => {
+  const S = mundo('Argentina', U, W);
+  RR.aplicarUniverso(S);
+  conferir('DIV_ORDER', RR.DIV_ORDER, ['ARG']);
+  const antes = Object.keys(S.table);
+  const nova = RR.computeDivisionSwap(S);
+  conferir('mesmos clubes, mesma ordem', nova.ARG.slice().sort(), antes.slice().sort());
+});
+
+/* ===== 4. A VIRADA INTEIRA RODA, NOS TRÊS PAÍSES =====
+   Não é só o swap: é aposentadoria, regen, copas novas, calendário novo. E o que importa aqui é
+   o que a mudança de país tocou — a copa nacional só existe onde há copa nacional, e os regens
+   nascem com a nacionalidade certa. */
+console.log('4. Virada completa: copa nacional e nacionalidade do regen');
+for (const [uniKey, temCopaNacional, nat] of [['brasil', true, 'Brasil'], ['Inglaterra', false, 'England'], ['Argentina', false, 'Argentina']]) {
+  const S = mundo(uniKey, U, W);
+  RR.aplicarUniverso(S);
+  try {
+    RR.resolveSeasonTurnover(S, new Set());
+  } catch (e) {
+    reprova(uniKey + ': virada lançou — ' + e.message);
+    continue;
+  }
+  conferir(uniKey + ': temporada avançou', S.season, 2);
+  conferir(uniKey + ': rodada zerada', S.round, 0);
+  const temCB = !!(S.cups && S.cups.copaBrasil);
+  if (temCB !== temCopaNacional) reprova(uniKey + ': copaBrasil ' + (temCB ? 'criada' : 'ausente') + ', esperado o contrário');
+  // regens: quem nasceu nesta virada tem de ter a nacionalidade do país
+  const nascidos = [];
+  Object.keys(S.squads).forEach((cid) => (S.squads[cid] || []).forEach((p) => { if (p.nat) nascidos.push(p.nat); }));
+  const estranhas = Array.from(new Set(nascidos)).filter((x) => x !== nat);
+  if (estranhas.length) reprova(uniKey + ': regen com nacionalidade ' + estranhas.join('/') + ', esperado ' + nat);
+  if (!nascidos.length) console.log('      (' + uniKey + ': nenhum regen nesta semente — aposentadoria não disparou)');
+}
+
+console.log('');
+if (falhas) { console.log('✘ ' + falhas + ' divergência(s) na virada'); process.exit(1); }
+console.log('✓ virada de temporada íntegra — Brasil, Inglaterra e Argentina');
