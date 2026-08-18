@@ -17,8 +17,11 @@
 
    REPROVA se alguma final não foi assistida.
 
-   ESTADO EM 18/08/2026: INCOMPLETA. Chega à jornada 32 e emperra na tela principal — clica a ação
-   principal e nada avança. Falta descobrir o quê. Fica no repositório porque as três armadilhas
+   ESTADO EM 18/08/2026: INCOMPLETA. Emperra na tela principal, a clicar a ação principal sem nada
+   avançar. Já não é a cerimônia (essa está tratada: ela anda por temporizador próprio e clicar
+   por cima atropelava-a). O que falta descobrir é por que o clique na tela principal deixa de
+   produzir efeito depois de uma cerimônia — provavelmente há uma segunda cerimônia na fila e o
+   ciclo volta a si mesmo. Fica no repositório porque as três armadilhas
    que ela já custou estão resolvidas aqui dentro e valem para qualquer automação futura:
      1. O botão de ação NÃO se acha por texto: o rótulo muda ("Jogar", "Ver o sorteio",
         "Avançar dia"). É `.rf-btn-primary.rf-btn-full`. Procurar por texto fazia a bancada clicar
@@ -131,6 +134,11 @@ while (passos++ < 1200) {
        ponto dela. Quando termina, `RL.done` fica verdadeiro e a tela espera um clique: sem tratar
        isso, a bancada fica presa para sempre num jogo que já acabou (foi o que aconteceu na
        primeira execução, parada na jornada 30). Acelera o relógio ao máximo que a UI oferece. */
+    /* A CERIMÔNIA DE SORTEIO ANDA SOZINHA, por temporizador próprio, e chama de volta o fluxo no
+       fim. Clicar por cima dela a cada volta atropela esse encadeamento e a bancada fica a
+       oscilar entre a cerimônia e a tela principal sem nunca avançar — foi onde ela parou na
+       jornada 32. Aqui só se espera. */
+    if (CL.screen === 'cupdraw' || CL.cupDraw) return 'cerimonia';
     if (CL.live) {
       CL.speedMult = 3;
       /* O INTERVALO PAUSA A PARTIDA no minuto 45 e espera um clique em Continuar. A primeira
@@ -156,6 +164,7 @@ while (passos++ < 1200) {
     return 'nada';
   });
   if (clicou === 'live-parado' || clicou === 'nada') semAcao++; else semAcao = 0;
+  if (clicou === 'cerimonia') { await sleep(300); continue; }
   if (semAcao === 25 && st.live) {
     // rede: encerra a partida pelo caminho oficial do jogo, nunca mexendo em CL.screen
     await page.evaluate(() => {
