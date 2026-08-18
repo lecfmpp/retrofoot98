@@ -660,10 +660,20 @@ function clRequestOrJoin(code){
   const me={ name: CL.mgr||CL.net.name, email: st.email };
   toastC('Entrando na Resenha...');
   (async ()=>{ try {
+    CL.net.erro=null;
     const res = await NET.requestJoin(code, me, clOnJoinDecision);
     if(res && res.entered){ routeAfterJoin(); }
     else { CL.net.code=code; CL.net.pendingName=(res&&res.name)||''; CL.net.step='waitapproval'; cdraw(); }
-  } catch(e){ toastC('⚠ '+(e.message||'Não foi possível entrar. Confira o código.')); } })();
+  } catch(e){
+    /* A FALHA TEM DE FICAR NA TELA. Era so um toast de tres segundos numa tela que nao mudava
+       em mais nada: quem tentava entrar ficava sem saber se o pedido tinha saido, e do outro
+       lado o anfitriao nao via pedido nenhum -- os dois a olhar para telas que nao diziam nada.
+       Agora o motivo fica escrito na tela do codigo, ate a pessoa mexer no campo. */
+    const msg=(e&&e.message)||'Não foi possível entrar. Confira o código.';
+    console.error('pedido de entrada falhou:', code, e);
+    CL.net.code=code; CL.net.erro=msg; CL.net.step='joincode';
+    toastC('⚠ '+msg); cdraw();
+  } })();
 }
 /* chamado pelo poll quando o anfitrião decide o pedido */
 function clOnJoinDecision(status, roomName){
@@ -751,7 +761,9 @@ function clAuthDoSignup(){ const n=CL.net; if(!(n.email&&n.password&&n.name)) re
   toastC('Criando conta...');
   (async ()=>{ try {
     await NET.authSignUp(n.email, n.password, n.name);
-    toastC('Conta criada!'); cdraw();
+    toastC('Conta criada!');
+    if(clSegueEntradaPorLink()) return;   // idem ao login: o convite nao pode parar aqui
+    cdraw();
   } catch(e) {
     if(e.code==='DUPLICATE_ACCOUNT'){ CL.net.authMode='login'; toastC('⚠ '+e.message); }
     else toastC('⚠ '+e.message);
@@ -763,8 +775,30 @@ function clAuthDoLogin(){ const n=CL.net; if(!(n.email&&n.password)) return;
   (async ()=>{ try {
     const user = await NET.authSignIn(n.email, n.password);
     CL.net.name = user.user_metadata?.name || n.email.split('@')[0];
-    toastC('Login feito!'); cdraw();
+    toastC('Login feito!');
+    if(clSegueEntradaPorLink()) return;   // veio de um link/código: o pedido sai agora
+    cdraw();
   } catch(e) { toastC('⚠ '+e.message); cdraw(); } })();
+}
+/* ===== O LINK DE CONVITE MORRIA NO LOGIN =====
+   Quem abre `?sala=CODIGO` cai na tela de conta com o titulo "Entrar na sala" e um botao
+   "Entrar". Esse botao era o do LOGIN. Feito o login, a mesma tela se redesenhava na variante
+   "Voce ja esta logado" -- com OUTRO botao, tambem escrito "Entrar", que era o que de facto
+   mandava o pedido ao anfitriao. Do lado de quem entra, ele ja tinha carregado em "Entrar" e a
+   tela so mudou: era natural achar que estava dentro e ficar a espera. Resultado no servidor:
+   NENHUM pedido criado, e o anfitriao sem nada para aprovar -- exatamente o que se viu numa
+   sala real (zero linhas em join_requests para o codigo dela).
+   Agora, quando a entrada veio de um link ou de um codigo, o login (ou o cadastro) emenda
+   sozinho no pedido. So segue se a sessao ficou mesmo de pe -- num cadastro que exija
+   confirmacao de e-mail nao ha sessao, e ai a tela normal continua a valer. */
+function clSegueEntradaPorLink(){
+  const n=CL.net||{};
+  if(!(n.intent==='join' && n.code)) return false;
+  const st=(typeof NET!=='undefined' && NET.authStatus)?NET.authStatus():{loggedIn:false};
+  if(!st.loggedIn) return false;
+  CL.mgr = CL.net.name || st.name || CL.mgr;
+  clRequestOrJoin(n.code);
+  return true;
 }
 function clContaHost(){ const st=NET.authStatus(); if(!st.loggedIn || !CL.net.name) return;
   CL.mgr = CL.net.name;

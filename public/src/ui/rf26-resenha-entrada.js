@@ -108,6 +108,9 @@ function rfCodigoDigita(el){
   const v=rfCodigoLimpa(el.value);
   el.value=v;
   CL.net=CL.net||{}; CL.net.code=v;
+  /* mexeu no codigo: o aviso da tentativa anterior deixa de valer. Sem cdraw aqui -- o campo
+     que se redesenha a cada tecla perde o cursor (ver rfCodigoCaixasHTML). */
+  if(CL.net.erro){ CL.net.erro=null; const b=document.querySelector('.rf-rs-erro'); if(b) b.remove(); }
   document.querySelectorAll('.rf-cod-cx').forEach((cx,i)=>{
     cx.textContent=v[i]||''; cx.classList.toggle('cheia', !!v[i]);
   });
@@ -144,8 +147,16 @@ function rfEntrarCodigoHTML(){
         : ''}
     </div>` : '';
 
+  /* o motivo de a ultima tentativa ter falhado fica AQUI, escrito, ate a pessoa mexer no
+     codigo (ver clRequestOrJoin) -- antes era so um toast que sumia em tres segundos */
+  const erro = CL.net.erro ? `<div class="rf-rs-erro">
+      <span class="rf-rs-erro-i" aria-hidden="true">⚠</span>
+      <span class="rf-rs-erro-t">${escC(CL.net.erro)}</span>
+    </div>` : '';
+
   const corpo=`
     ${rfCodigoCaixasHTML(codigo)}
+    ${erro}
     <div class="rf-rs-dica">
       <span class="rf-rs-dica-i" aria-hidden="true">🔗</span>
       <span class="rf-rs-dica-t">Recebeu um link? Abra que o código entra sozinho.</span>
@@ -378,6 +389,9 @@ function rfComecarColar(el){
   const v=rfCodigoLimpa(el.value);
   el.value=v;
   CL.net=CL.net||{}; CL.net.code=v;
+  /* mexeu no codigo: o aviso da tentativa anterior deixa de valer. Sem cdraw aqui -- o campo
+     que se redesenha a cada tecla perde o cursor (ver rfCodigoCaixasHTML). */
+  if(CL.net.erro){ CL.net.erro=null; const b=document.querySelector('.rf-rs-erro'); if(b) b.remove(); }
   const bt=document.querySelector('.rf-rc-bt'); if(bt) bt.disabled=v.length<RF_CODIGO_TAM;
 }
 function rfComecarEntrar(){
