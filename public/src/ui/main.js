@@ -5609,6 +5609,16 @@ function onlineJogarGate(){
   return true;
 }
 function clJogar(){
+  /* ===== UMA PARTIDA DE CADA VEZ =====
+     `clJogar` reentra: a cerimônia de sorteio chama-o de volta no fim (`checkPendingCupDraws(
+     ()=>clJogar())`), e o onDone dispara mais de uma vez. Sem esta porta, a primeira volta abria
+     a partida da COPA e a segunda — encontrando a copa já carimbada — seguia para a liga e
+     escrevia por cima de `CL.live`. Medido em 18/08/2026 numa jornada 4: a Libertadores abria,
+     ficava marcada como vista, e o que aparecia na tela eram os 40 jogos da Série D. A copa
+     nunca era assistida e era resolvida em segundo plano — exatamente o "não vejo as finais".
+     Se já há partida em campo, não se começa outra. Quem termina uma partida chama o fim dela
+     (finishCupSpectate/finishCupLiveMatch/finishLiveRound), nunca este botão. */
+  if(CL.live) return;
   if(CL._seatContext){ clSeatPlay(); return; } // hotseat: "Jogar" na tela do assento inicia a partida dele
   // CLASSIFICAÇÃO DE COPA PENDENTE: numa jornada com mais de uma competição, a fila para na tela
   // do clube entre uma e outra (ver cupClassifContinue). O próximo "Jogar" retoma dela — antes de
@@ -5698,7 +5708,14 @@ function clJogar(){
        campo (estado inesperado, erro no meio, o jogador a sair da tela), a competicao ficava
        marcada como vista sem nunca ter sido mostrada — e o avanco em segundo plano resolvia-a
        em silencio. Uma competicao inteira desaparecia da jornada. */
-    if(startCupRound(cand.key, cand.stage, null)){ cupMarkSeen(cand.key); return; }
+    /* O CARIMBO É O FIM DA PARTIDA, NÃO O COMEÇO. Ele era escrito aqui, assim que a tela abria —
+       e "abriu" não é "foi assistida": bastava a partida ser substituída no mesmo clique para a
+       competição ficar dada como cumprida sem ninguém ter visto nada. Quem carimba agora é
+       finishCupSpectate, ao terminar. A porta acima (`if(CL.live) return`) é que garante que a
+       competição não reaparece enquanto está a ser vista.
+       No caminho de baixo o carimbo FICA: aí não há confronto nenhum para mostrar, e sem ele a
+       competição voltaria a cada clique. */
+    if(startCupRound(cand.key, cand.stage, null)) return;
     cupMarkSeen(cand.key);
     showCupIdleMessage(cand); return;   // sem confrontos pra mostrar: mantém o aviso antigo
   }
@@ -5977,8 +5994,10 @@ function finishCupSpectate(){
   CL.live=null; CL.screen='main'; cdraw();
   const q=CL._pendingCupIdleQueue||[];
   if(q.length){ const nx=q[0]; CL._pendingCupIdleQueue=q.slice(1);
-    cupMarkSeen(nx.key);
-    if(startCupRound(nx.key, nx.stage, null)) return; }
+    /* mesma regra da primeira: carimbar ao abrir daria a competição por vista sem ela ter sido.
+       Quem carimba é esta mesma função, quando ESTA partida terminar. */
+    if(startCupRound(nx.key, nx.stage, null)) return;
+    cupMarkSeen(nx.key); }
   CL._pendingCupIdleQueue=null;
   // se a fase virou 'running' enquanto eu assistia (borda perdida pelo guard CL.screen==='live'),
   // destrava a rodada de liga ao terminar de assistir.
