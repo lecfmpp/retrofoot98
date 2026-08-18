@@ -6370,6 +6370,46 @@ function kickoffWaitingMatch(RL){
   if(pronto) return null;
   return m;
 }
+/* ATE ONDE AS FONTES VIVAS CHEGARAM. Duas fontes mandam no relogio de uma rodada: a sessao
+   local (a minha partida) e as transmissoes que eu assisto. Devolve o minuto mais adiantado
+   entre elas, ou null quando nao ha nenhuma viva -- caso das rodadas em que todas as partidas
+   ja vem com os eventos prontos, em que o relogio pode correr a vontade. */
+function liveFonteMax(RL){
+  let mx=null;
+  (RL&&RL.matches||[]).forEach(m=>{
+    if(m.sim && !m.sim.done){ mx=Math.max(mx||0, m.sim.minute||0); return; }
+    if(m.streamRemote && !m.streamDone && !m.streamDead){
+      const st=CL._liveStreams && CL._liveStreams[m.streamKey];
+      /* SO SEGURA SE ELA ESTIVER MESMO A CHEGAR. Segurar o relogio por uma transmissao que
+         nunca chega (ou que emudeceu) troca o relogio em fuga por uma rodada parada para
+         sempre -- medido: 1' durante um minuto inteiro, sem apito. Transmissao viva e a que
+         mandou snapshot ha menos de STREAM_MUDO_MS; passando disso ela deixa de mandar no
+         relogio e a rodada segue ate ao fim da partida (ver liveTetoMin). */
+      if(st && st.snap && (nowMs()-st.ts)<STREAM_MUDO_MS) mx=Math.max(mx||0, st.snap.minute||0);
+    }
+  });
+  return mx;
+}
+/* silencio a partir do qual uma transmissao deixa de contar: nem segura o relogio, nem
+   segura a rodada (ver o detetor de stream morto no laco das partidas) */
+const STREAM_MUDO_MS=20000;
+/* ===== O RELOGIO PARA NO FIM DA PARTIDA, E SO =====
+   Nao ha teto "de seguranca" generoso: o limite e o fim do jogo. Noventa minutos mais os
+   acrescimos; havendo prorrogacao em curso, mais trinta e os acrescimos dela. Se alguma
+   partida ja anunciou o proprio fim (a sessao local ou o snapshot de quem transmite dizem
+   `totalMinutes`), e esse numero que vale, porque e o fim de verdade daquele jogo.
+   Ja fomos mordidos duas vezes por caminhos que empurravam o teto sozinhos -- um na sessao
+   local, outro nas transmissoes. Com o limite amarrado ao fim da partida, nao ha terceiro. */
+function liveTetoMin(RL){
+  let teto = (RL && RL.extraStartMinute!=null) ? 130 : 96;   // 90+acrescimos / 120+acrescimos
+  (RL&&RL.matches||[]).forEach(m=>{
+    if(m.sim && m.sim.totalMinutes) teto=Math.max(teto, m.sim.totalMinutes);
+    const st=m.streamRemote && CL._liveStreams && CL._liveStreams[m.streamKey];
+    if(st && st.snap && st.snap.totalMinutes) teto=Math.max(teto, st.snap.totalMinutes);
+    const evs=m.events||[]; if(evs.length) teto=Math.max(teto, evs[evs.length-1].min);
+  });
+  return teto;
+}
 function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused) return;
   // BARREIRA: seguro o minuto 0 até o adversário humano entrar em campo (ou o cronômetro zerar).
   {
@@ -6399,7 +6439,18 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
      prorrogacao, e sem apito final. Agora, com uma partida travada a espera de decisao, o
      relogio da rodada espera com ela. */
   const travadaEmDecisao=(RL.matches||[]).some(m=>m.sim && !m.sim.done && m.sim.pending);
-  if(!travadaEmDecisao) RL.minute+=1;
+  /* ===== E TAMBEM NAO PASSA A FRENTE DE QUEM ESTA A TRANSMITIR =====
+     A correcao acima cobriu a sessao local. Faltava a outra fonte: as partidas que eu ASSISTO
+     (streamRemote). Nessas o relogio nao vem de mim, vem dos snapshots de quem joga -- e o
+     codigo empurrava o teto com `RL.minute+2` enquanto esperava, ou seja, outra escada
+     infinita. Quando o transmissor sai da tela ao vivo, o detetor de stream morto so age aos
+     20 SEGUNDOS de silencio; com o ritmo 'Foguete' (12ms por tique) esses 20 segundos sao
+     ~1600 minutos de relogio. Foi o 1399' visto numa rodada em que o utilizador nem jogava.
+     A regra passa a ser uma so, para as duas fontes: o relogio da rodada nunca vai alem do
+     ponto a que as fontes vivas de facto chegaram. Sem fonte viva (rodada toda pre-calculada)
+     ele corre livre, como sempre. */
+  const fonte=liveFonteMax(RL);
+  if(!travadaEmDecisao && (fonte==null || RL.minute<=fonte)) RL.minute+=1;
   // FASE 3A: sessão interativa gera os eventos AO VIVO, minuto a minuto — avança até o minuto do
   // relógio (ou até uma decisão pendente travar). Enquanto a sessão não termina, o relógio da
   // rodada se estende junto (o acréscimo só é sorteado aos 90'). Eventos entram em m.events
@@ -6447,7 +6498,8 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
     // rodada espera o fim dele.
     const st=CL._liveStreams && CL._liveStreams[m.streamKey];
     if(!m.streamDone && !m.streamDead){
-      RL.maxMin=Math.max(RL.maxMin, RL.minute+2);
+      /* teto vindo do PROPRIO stream, nao do relogio da rodada (ver liveFonteMax) */
+      RL.maxMin=Math.max(RL.maxMin, ((st&&st.snap&&st.snap.minute)||0)+2);
       // ANUNCIO QUE ESTOU EM CAMPO enquanto espero: é isto que destrava o mandante, que está
       // segurando o apito à minha espera (ver kickoffWaitingMatch).
       if(!m.spectate && typeof NET!=='undefined' && NET.broadcastKickoff) NET.broadcastKickoff(m.streamKey);
@@ -6470,7 +6522,11 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
           m.streamRemote=false; m.sim=liveMatchSession(m.h,m.a,m.seed,{}); m.events=m.sim.events; m.streamCast=true;
           toastC('⚠ Transmissão do mandante não chegou — assumindo a partida localmente.');
         }
-      } else if(st && nowMs()-st.ts>20000){
+      } else if((st && nowMs()-st.ts>STREAM_MUDO_MS)
+             || (!st && (nowMs()-(m._builtAt||0))>STREAM_MUDO_MS)){
+        /* O `!st` FALTAVA. O detetor so olhava para transmissoes que ja tinham chegado ALGUMA
+           vez; a que nunca chega caia fora dos dois ramos (o de cima exige `events.length===0`)
+           e ficava viva para sempre, segurando a rodada. Agora o silencio total conta igual. */
         m.streamDead=true; // stream morreu no meio: solta o relógio (o resultado oficial sai na classificação)
         if(m.spectate){ if(!m.events.length) fallbackSpectateToPre(m); } // partida de terceiros: sem toast (não é o jogo dele)
         else toastC('⚠ Transmissão interrompida — o resultado oficial sai na classificação.');
@@ -6502,6 +6558,7 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
     // estatística e empurrão na barra de pressão (ver camOnEvent). Só pra partida do usuário.
     if(m.user) camOnEvent(m,e);
   } });
+  { const teto=liveTetoMin(RL); if(RL.maxMin>teto) RL.maxMin=teto; }   // ver liveTetoMin
   { const um=RL.matches.find(m=>m.user); if(um) camEndCheck(um,RL); }
   updateLive();
   if(pendingPenalty){ openPenaltyModal(pendingPenalty.m, pendingPenalty.e); return; }
