@@ -3897,11 +3897,30 @@
 /* ---- pausa e espera ---- */
 .rf-pz-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
 .rf-pz-dir{display:flex;flex-direction:column;gap:14px;min-width:0}
+.rf-pz-esq{display:flex;flex-direction:column;gap:14px;min-width:0}
+/* A TV DA PAUSA dentro do cartao da pele nova. As pecas (.rf-gifbox/.rf-tv/.rf-gifcap) sao as
+   mesmas da pausa antiga, em main.css -- aqui so se lhes da a moldura e a altura certas, e os
+   cantos arredondados que o cartao pede. */
+.rf-pz-tvbox{display:flex;flex-direction:column;border-radius:var(--r-inner);overflow:hidden}
+.rf-pz-tvbox .rf-gifbox{flex:0 0 auto;height:250px;min-height:0}
+.rf-pz-tvbox .rf-tv{margin-top:22px}
+.rf-pz-tvbox .rf-gifcap{font-family:var(--font-mono);font-size:11px;letter-spacing:.03em;
+  border-top:none;background:var(--club-primary-deep);padding:9px 12px}
+.rf-pz-joke{margin:0;font-size:var(--fs-body-sm);color:var(--text-3);line-height:1.45}
+@media (max-width:760px){
+  .rf-pz-tvbox .rf-gifbox{height:auto}
+  .rf-pz-tvbox .rf-tv{margin-top:0}
+}
 .rf-pz-barra{display:flex;flex-direction:column;gap:7px}
 .rf-pz-pct{font-family:var(--font-mono);font-size:var(--fs-caption);font-weight:var(--fw-semibold);
   color:var(--text-1)}
 .rf-pz-trilho{height:10px;border-radius:var(--r-pill);background:var(--surface-sunken);overflow:hidden}
-.rf-pz-fill{height:100%;border-radius:var(--r-pill);background:var(--club-secondary);
+/* ===== A BARRA NAO PODE DEPENDER DA COR DO CLUBE =====
+   Ela era pintada com `--club-secondary`. No ABC essa cor e BRANCA e o trilho e um cinza
+   quase branco: a barra existia, andava de 10 em 10, e era invisivel -- 1,05:1 de contraste,
+   medido. Quem estava na pausa via um cartao parado sem nenhuma barra. O progresso e do JOGO,
+   nao do clube, entao passa a usar a cor da marca, que e a mesma em qualquer save. */
+.rf-pz-fill{height:100%;border-radius:var(--r-pill);background:var(--brand-primary,#17458F);
   transition:width var(--dur-slow) var(--ease)}
 .rf-pz-video{aspect-ratio:16/9;border-radius:var(--r-inner);background:var(--surface-sunken);
   border:1px dashed var(--line-2);display:flex;flex-direction:column;align-items:center;

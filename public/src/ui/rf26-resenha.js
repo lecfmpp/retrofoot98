@@ -167,13 +167,15 @@ function rfSalaEsperaHTML(st){
 /* =====================================================================
    1 · PAUSA PATROCINADA — a rodada está a fechar no servidor
    ===================================================================== */
-function rfPausaHTML(){
-  const pct=(typeof pausaPct==='function')?pausaPct():0;
-  const assentos=rfSalaAssentos();
-  const jogaram=assentos.filter(a=>a.jogou).length;
+/* ===== OS PASSOS SAO LIDOS DE NOVO A CADA SEGUNDO =====
+   Estavam escritos direto no corpo da tela, logo ficavam congelados no estado do primeiro
+   segundo -- "a processar" para sempre, mesmo com o servidor ja tendo fechado a rodada. Agora
+   sao uma funcao propria, e o tique da pausa (ensureSyncFunTicker, em main.js) reescreve o
+   bloco #rf-passos a cada segundo. Mesma fonte de verdade do checklist antigo. */
+function rfPausaPassosHTML(){
   const sincronizou=!!CL._roundSyncedAt;
   let outros=true;
-  if(CL.online && typeof NET!=='undefined' && NET.allHumanResultsIn){
+  if(CL.online && typeof NET!=='undefined' && NET.allHumanResultsIn && typeof S!=='undefined' && S){
     try{ outros=!!NET.allHumanResultsIn(S.round); }catch(e){ outros=true; }
   }
   const passo=(est,txt,rot)=>`<div class="rf-pz-lin">
@@ -181,6 +183,48 @@ function rfPausaHTML(){
     <span class="rf-pz-t">${escC(txt)}</span>
     <div class="rf-sp"></div>
     <span class="rf-pz-e">${escC(rot)}</span></div>`;
+  return passo('ok','A sua partida','feito')
+    /* fechada a rodada no servidor, os resultados dos outros ENTRARAM por definicao -- sem este
+       `sincronizou||` a linha ficava em "a processar" com as duas de baixo ja em "feito" */
+    + passo((sincronizou||outros)?'ok':'agora','Rodada dos outros treinadores',(sincronizou||outros)?'feito':'a processar')
+    + passo(sincronizou?'ok':(outros?'agora':''),'Fechamento da rodada no servidor',sincronizou?'feito':(outros?'a processar':'na fila'))
+    + passo(sincronizou?'ok':'','Tabela, finanças e propostas',sincronizou?'feito':'na fila');
+}
+/* ===== A TV DA PAUSA =====
+   Ela ja existia -- e o quadro de sala + televisao + GIF dos anos 90 que segurava a espera na
+   pele antiga --, mas a tela portada nao a desenhava. Sem ela a pausa era um cartao branco
+   parado, e (pior) o tique que atualiza a barra de progresso morria a procura do #rf-gif.
+   Os ids sao CONTRATO com ensureSyncFunTicker: rf-gif, rf-gifbg, rf-gifcap, rf-gifnum, rf-joke. */
+function rfPausaTvHTML(){
+  if(typeof PAUSA_GIFS==='undefined' || !PAUSA_GIFS.length) return '';
+  const g=pausaGif(), n=(CL._pausaI||0)%PAUSA_GIFS.length;
+  return `<div class="rf-card rf-pz-tvcard">
+    <div class="rf-label"><span class="rf-label-t">Enquanto a rodada fecha</span>
+      <span class="rf-label-r">resenha dos anos 90</span></div>
+    <div class="rf-pz-tvbox">
+      <div class="rf-gifbox">
+        <span class="rf-room"></span><span class="rf-roomtint"></span>
+        <div class="rf-tv">
+          <div class="rf-tvscreen">
+            <img class="rf-gifbg" id="rf-gifbg" src="${g.src}" alt="" aria-hidden="true">
+            <img class="rf-gif" id="rf-gif" src="${g.src}" alt="">
+            <span class="rf-tvglass"></span>
+          </div>
+          <img class="rf-tvimg" src="img/sync/tv.webp" alt="">
+        </div>
+      </div>
+      <div class="rf-gifcap">
+        <span class="rf-gifnum" id="rf-gifnum">${n+1}/${PAUSA_GIFS.length}</span>
+        <span id="rf-gifcap">${escC(g.cap)}</span>
+      </div>
+    </div>
+    <p class="rf-pz-joke" id="rf-joke">${escC((typeof pausaJoke==='function')?pausaJoke():'')}</p>
+  </div>`;
+}
+function rfPausaHTML(){
+  const pct=(typeof pausaPct==='function')?pausaPct():0;
+  const assentos=rfSalaAssentos();
+  const jogaram=assentos.filter(a=>a.jogou).length;
 
   return rfStage({
     w:1020,
@@ -195,6 +239,8 @@ function rfPausaHTML(){
     </div>
     ${rfSponsorHTML()}
     <div class="rf-pz-cols">
+      <div class="rf-pz-esq">
+      ${rfPausaTvHTML()}
       <div class="rf-card">
         <div class="rf-label"><span class="rf-label-t">Espaço do patrocinador</span>
           <span class="rf-label-r">16:9</span></div>
@@ -210,13 +256,11 @@ function rfPausaHTML(){
         <span class="rf-note">A pausa dura o tempo da sincronização. O vídeo entra sem som e não
           pode ser pulado nos primeiros 3 segundos.</span>
       </div>
+      </div>
       <div class="rf-pz-dir">
         <div class="rf-card">
           <span class="rf-label-t">O que está acontecendo</span>
-          ${passo('ok','A sua partida','feito')}
-          ${passo((sincronizou||outros)?'ok':'agora','Rodada dos outros treinadores',(sincronizou||outros)?'feito':'a processar')}
-          ${passo(sincronizou?'ok':'agora','Fechamento da rodada no servidor',sincronizou?'feito':'a processar')}
-          ${passo(sincronizou?'ok':'','Tabela, finanças e propostas',sincronizou?'feito':'na fila')}
+          <div id="rf-passos">${rfPausaPassosHTML()}</div>
         </div>
         ${assentos.length?`<div class="rf-card">
           <div class="rf-label"><span class="rf-label-t">Treinadores na sala</span>

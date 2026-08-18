@@ -616,13 +616,20 @@ function clAdSkip(){
 function ensureSyncFunTicker(){
   if(CL._syncFunT) return;
   CL._syncFunT=setInterval(()=>{
+    /* ===== O TIQUE MATAVA-SE A SI PROPRIO NA TELA NOVA =====
+       A condicao de vida era "existe #rf-gif". Esse elemento e a TV da pausa ANTIGA; a tela
+       portada (rfPausaHTML) nao a desenhava, entao logo no primeiro segundo o intervalo nao
+       encontrava a TV, limpava-se e ia embora -- levando com ele a barra de progresso, a
+       percentagem, o rotulo e o checklist do que o servidor esta a fazer. Era por isso que a
+       Pausa Patrocinada ficava simplesmente PARADA: nao havia nada por tras a mexer nela.
+       Quem manda na vida do tique e a TELA, nao um elemento dela. */
+    if(CL.screen!=='waitround'){ clearInterval(CL._syncFunT); CL._syncFunT=null; return; }
     const stage=$c('#rf-gif');
-    if(!stage){ clearInterval(CL._syncFunT); CL._syncFunT=null; return; }
     CL._pausaTick=(CL._pausaTick||0)+1;
     if(CL._pausaTick%5===0){                                  // 5s: próximo GIF + próxima piada
       CL._pausaI=((CL._pausaI||0)+1)%Math.max(PAUSA_GIFS.length,PAUSA_JOKES.length);
       const g=pausaGif();
-      stage.src=g.src;
+      if(stage) stage.src=g.src;
       const bg=$c('#rf-gifbg'); if(bg) bg.src=g.src;   // fundo desfocado acompanha o clipe
       const cap=$c('#rf-gifcap'), num=$c('#rf-gifnum'), jk=$c('#rf-joke');
       if(cap) cap.textContent=g.cap;
@@ -637,6 +644,10 @@ function ensureSyncFunTicker(){
     if(fill) fill.style.width=p+'%';
     if(lbl) lbl.textContent = pausaWaitLabel();
     if(chk) chk.innerHTML=pausaChecklist();
+    /* os passos da tela portada ("O que está acontecendo") são o mesmo dado do checklist,
+       noutro desenho — sem isto ficavam congelados no estado do primeiro segundo */
+    const pss=$c('#rf-passos');
+    if(pss && typeof rfPausaPassosHTML==='function') pss.innerHTML=rfPausaPassosHTML();
     const sk=$c('#cl-ad-skip'); if(sk && CL._adCont) sk.style.display='';   // sobrevive a um cdraw
     const esc=$c('#cl-wait-escape'); if(esc && pausaStuck()) esc.style.display=''; // destrava quem ficou preso
   }, 1000);
