@@ -1975,7 +1975,19 @@ function onlineJornadaVaziaWatch(pt){
         return;
       }
       if(typeof NET.refreshRoom==='function') await NET.refreshRoom();
-      if(typeof onlineReconcileIfBehind==='function' && NET.room) onlineReconcileIfBehind(NET.room);
+      /* ===== QUEM ADOTA O ESTADO NOVO E O ANFITRIAO, PELO CAMINHO DELE =====
+         Chamei aqui o `onlineReconcileIfBehind` e ele NAO faz nada para mim: a primeira linha
+         dele sai logo se `NET.isHost`. E o caminho do convidado, de proposito -- o anfitriao
+         normalmente nunca esta atras, porque e ele quem fecha a rodada e adota o resultado no
+         mesmo passo (onlineHostCloseRound -> onlineAdoptServerRound).
+         So que este passo aqui e a excecao: o servidor resolve a jornada vazia a meu pedido e eu
+         nao passo pelo fechamento. Sem adotar, eu ficava com o estado velho enquanto o servidor
+         seguia em frente -- e como sou eu quem publica o estado da sala, a sala inteira parava a
+         minha espera. Foi exatamente o que aconteceu na JGGK5: servidor na jornada 21, anfitriao
+         na 20, o outro treinador pronto ha meia hora.
+         `onlineAdoptServerRound` recarrega o estado do servidor e reaplica a minha carreira por
+         cima (a carreira e do assento, nao do mundo). O parametro dela nunca e usado. */
+      if(typeof onlineAdoptServerRound==='function') await onlineAdoptServerRound(null);
     }catch(e){ console.warn('atravessar jornada vazia:', e && e.message); }
     finally{ CL._vazioBusy=false; }
   })();

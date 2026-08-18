@@ -109,12 +109,13 @@ const RF_PAGES=[
   { key:'campeonatos', ico:'trofeu', label:'Campeonatos', curto:'Copas',
     titulo:'Campeonatos', sub:()=>rfCpSubHTML(),
     acoes:()=>rfCpAcoesHTML(), grid:'minmax(0,1fr)',
-    /* CALENDÁRIO e CLASSIFICAÇÃO são a MESMA navegação com corpos diferentes: os mesmos filtros
-       de país e competição em cima (ver rfMdFiltroHTML em rf26-campeonatos.js). Antes o
-       Calendário só sabia mostrar os jogos do clube do jogador e a tabela só existia na aba
-       "Minhas competições", presa à divisão dele — o resto do mundo corria sem porta nenhuma. */
+    /* DUAS PERGUNTAS, DUAS PÁGINAS. O CALENDÁRIO é do CLUBE: quando jogo, contra quem, a
+       temporada inteira, liga e copas. A CLASSIFICAÇÃO é a que navega o mundo: abre na liga do
+       próprio clube e tem os filtros de país, liga e divisão para quem quiser ver outra.
+       Cheguei a pôr a grelha do mundo no Calendário e o dono do jogo reprovou — com razão: ela
+       afoga o "quando é o meu próximo jogo" em vinte linhas por semana. */
     tabs:[ {k:'minhas',    l:()=>'Minhas competições', build:()=>rfCpMinhasHTML()},
-           {k:'calendario',l:()=>'Calendário',          build:()=>rfMdCalendarioHTML()},
+           {k:'calendario',l:()=>'Calendário',          build:()=>rfCpCalendarioHTML()},
            {k:'classificacao',l:()=>'Classificação',    build:()=>rfMdClassifHTML()},
            {k:'artilharia',l:()=>'Artilharia',          build:()=>rfCpArtilhariaHTML()},
            {k:'historia',  l:()=>'História',            build:()=>rfCpHistoriaHTML()},
@@ -218,6 +219,11 @@ function rfPageDef(key){ return RF_PAGES.find(p=>p.key===key)||RF_PAGES[0]; }
    Minhas competicoes, Calendario e Artilharia ao mesmo tempo */
 function rfCompChipsDaPagina(page){
   if(page!=='campeonatos') return '';
+  /* a aba Classificação tem filtro PRÓPRIO (país + competição, incluindo ligas de outros países).
+     Somar a barra da página em cima dela dava duas filas de chips a filtrar coisas diferentes na
+     mesma tela — a primeira só sabia das competições do clube, e clicar nela não mexia na tabela
+     que estava à vista. */
+  if(rfState().tab.campeonatos==='classificacao') return '';
   return (typeof rfCpCompChipsHTML==='function')?rfCpCompChipsHTML():'';
 }
 function rfTabs(def){ return (def.tabs||[]).filter(t=>!t.show||t.show()); }
