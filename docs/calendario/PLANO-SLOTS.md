@@ -75,7 +75,17 @@ uma sala nova mostra a semifinal antes da final nas três copas.
 
 ---
 
-## Fase 1 — Harness v2 (porta de entrada das fases seguintes)
+## Fase 1 — Rede de teste ✅ FEITO em parte (29233ce)
+
+**O que foi feito:** `scripts/teste-virada.mjs` carrega o `resolve-round` de verdade num contexto
+de Node e roda a virada de temporada em três pirâmides (Brasil, Inglaterra, Argentina). Era a
+lacuna mais perigosa: a virada roda uma vez a cada 38 jornadas e não tinha teste nenhum.
+
+**O que FALTA:** o harness de dois clientes no navegador continua sem cenário de semana com
+estágios de copa (sem `NET.resolveRound`, o anfitrião fecha pelo caminho local). Isso cobre a
+SINCRONIA entre clientes, que nenhum dos testes de Node alcança. Continua a ser pré-requisito
+antes de mexer em `local-transport.js`, `supabase-adapter.js` ou nos fluxos de rodada.
+
 
 Hoje o harness de 2 clientes (`public/harness/`) só exercita semana de UM estágio: sem
 `NET.resolveRound`, o anfitrião fecha pelo caminho local e a quarta dedicada de copa nunca é
@@ -90,7 +100,7 @@ Esse segundo cenário é o teste de regressão do bug da Fase 0. Ele é a rede p
 
 ---
 
-## Fase 2 — Motor de slots (`world-rules` v2)
+## Fase 2 — Motor de slots ✅ FEITO (4d6c2b8, 04befd2)
 
 Onde: `public/src/engine/world-rules.js` (propagado byte a byte ao `resolve-round` por
 `scripts/sync-world-rules.mjs`).
@@ -226,7 +236,7 @@ filtra só Brasil). Vale antecipar porque é fundação barata, porque evita mex
 temporada duas vezes, e porque é ela que faz "criar um país no painel" virar verdade em vez de
 promessa.
 
-## Fase 3 — Uma folha por país, fora do motor, com validador
+## Fase 3 — Folha por país ✅ FEITO para Brasil e Inglaterra (4d6c2b8)
 
 ### Formato
 
@@ -386,9 +396,9 @@ como decisão explícita de quem está na sala.
 | | Fase | Entrega para o jogador |
 |---|---|---|
 | 1 | Stopgap | as finais voltam a acontecer, já na próxima Resenha |
-| 2 | Harness v2 (inclui cenário de virada) | nada visível; é o que impede a regressão |
+| 2 | ✅ Rede de teste (virada de temporada) | nada visível; é o que impede a regressão |
 | 2b | ✅ `resolve-round` sem Brasil embutido | nada visível; fundação multi-país |
-| 3 | Motor de slots | nada visível; a classe de bug morre |
+| 3 | ✅ Motor de slots | acabou o amontoado de copas; finais depois da liga |
 | 4 | Folha por país + validador | outros países ganham calendário de verdade |
 | 5 | Painel admin | acrescentar país vira trabalho de tela, não de código |
 | 6 | Multi-país jogável | outras ligas jogáveis no solo e na Resenha |
