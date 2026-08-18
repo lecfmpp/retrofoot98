@@ -7583,3 +7583,10 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   .rf-md-jogos{grid-template-columns:1fr}
   .rf-md-jogo{font-size:12.5px}
 }
+
+/* semana sem jogo do clube: o cartão da barra lateral não fala de adversário nenhum, mas o botão
+   de ação continua lá (ver rfSidebarHTML) — a jornada avança por ele. */
+.rf-sb-next-livre{
+  font-size:13px;line-height:1.45;color:var(--text-3);
+  padding:6px 0 10px;
+}

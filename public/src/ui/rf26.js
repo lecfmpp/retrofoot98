@@ -436,6 +436,22 @@ function rfSidebarHTML(){
 
   const xi=xiPlayers(CL.clubId);
   const pronto = xi.length>=11 && CL.tacticChosen && xiGKCount(xi)===1;
+  /* ===== O BOTAO DE ACAO NAO DEPENDE DE HAVER PROXIMO JOGO =====
+     Este bloco inteiro -- cartao do proximo jogo, botao Jogar e botao da bancada -- so era
+     desenhado quando `nextUserMatch()` devolvia alguma coisa. Enquanto toda jornada tinha jogo do
+     clube isso passava despercebido. Desde que o calendario reserva semanas sem liga (a parada do
+     meio do ano e as tres das finais), existe jornada em que o clube nao joga -- e ai a barra
+     lateral ficava SEM botao nenhum: nem "Avancar" no solo, nem "Pronto" na Resenha. De fora
+     parece que o botao foi removido; o que aconteceu foi ficar preso a uma condicao que deixou de
+     ser sempre verdadeira. (O Hub e a barra do telefone sempre tiveram o seu, incondicional --
+     por isso o solo continuava a andar por ali.)
+     O CARTAO continua a depender do jogo, que e do que ele fala. O BOTAO passa a estar sempre,
+     porque a acao existe sempre: `rfJogarLabel` ja sabe dizer o que ela e hoje. */
+  const acaoJogar = `<button type="button" class="rf-btn rf-btn-primary rf-btn-full ${pronto?'rf-btn-pulse':''}"
+        ${(pronto||rfFaltaTatica())?'':'disabled'}
+        title="${pronto?'Jogar':rfFaltaTatica()?'Escolha a tática para liberar o Jogar':'Escale onze jogadores, com um goleiro'}"
+        onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
+      ${(typeof rfBotaoBancadaHTML==='function')?rfBotaoBancadaHTML():''}`;
   const proximo = nm ? `<div class="rf-sb-next">
       <div class="rf-sb-next-hd">
         <span class="rf-sb-next-l">Próximo jogo</span>
@@ -448,12 +464,12 @@ function rfSidebarHTML(){
           <span class="rf-sb-next-m">${nm.home?'CASA':'FORA'} · ${escC(nm.comp||'')}</span>
         </span>
       </div>
-      <button type="button" class="rf-btn rf-btn-primary rf-btn-full ${pronto?'rf-btn-pulse':''}"
-        ${(pronto||rfFaltaTatica())?'':'disabled'}
-        title="${pronto?'Jogar':rfFaltaTatica()?'Escolha a tática para liberar o Jogar':'Escale onze jogadores, com um goleiro'}"
-        onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
-      ${(typeof rfBotaoBancadaHTML==='function')?rfBotaoBancadaHTML():''}
-    </div>` : '';
+      ${acaoJogar}
+    </div>` : `<div class="rf-sb-next">
+      <div class="rf-sb-next-hd"><span class="rf-sb-next-l">Esta semana</span></div>
+      <div class="rf-sb-next-livre">O seu clube não entra em campo.</div>
+      ${acaoJogar}
+    </div>`;
 
   /* O INTERRUPTOR DO MENU MORA NO PÉ, embaixo do botão Jogar, e é a mesma seta
      nos dois estados — para a direita abre, para a esquerda fecha. Já esteve no
