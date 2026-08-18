@@ -917,16 +917,53 @@ async function netSeedDayPlan(force){
     // na última jornada dela, enquanto os clientes já estavam na jornada 0 da temporada nova.
     if(g && g.day_plan && !force) return;             // sala já tem o seu calendário
     const tog = (typeof S!=='undefined' && S && S.compToggle) || {};
-    const cups = (typeof allCupKeys==='function' ? allCupKeys() : []).filter(k=>tog[k]!==false);
     const epoch = (typeof seasonEpoch==='function') ? seasonEpoch() : null;
-    // o total de rodadas de cada copa vem do jogo (cupTotalRounds), não do número de datas na
-    // folha — senão a final das continentais fica sem dia no plano (ver buildDayPlan)
-    const totais={}; cups.forEach(k=>{ try{ if(typeof cupTotalRounds==='function') totais[k]=cupTotalRounds(k); }catch(e){} });
-    /* O PAÍS DA SALA escolhe a folha de slots (engine/calendars.js), e a liga daquele save diz
-       quantas jornadas tem de verdade — uma Championship de 24 clubes joga 46, não 38. */
-    const pais = (typeof activeUniverseKey==='function') ? activeUniverseKey() : 'brasil';
-    const jornadasLiga = (typeof S!=='undefined' && S && Array.isArray(S.sched)) ? S.sched.length : null;
-    const plan = WORLD_RULES.buildDayPlan(cups, epoch, totais, { pais, jornadasLiga });
+    const ancora = (typeof activeUniverseKey==='function') ? activeUniverseKey() : 'brasil';
+
+    /* ===== A FILA DE DIAS É DE TODOS OS PAÍSES VIVOS =====
+       O slot é da SALA e a mesma semana vale para toda a gente; o que muda por país é qual
+       competição entra em campo nele. No slot 5, meio de semana, o brasileiro vê a Libertadores e
+       o inglês vê a Champions — ao mesmo tempo, na mesma fila, sem ninguém esperar por ninguém.
+       Cada dia carrega o país; cada cliente vive só os do país do clube dele (diasDoPais).
+
+       Sala de um país só — que é toda sala existente — dá exatamente a fila de antes: o laço
+       percorre uma lista de um elemento. */
+    const vivos = (S && Array.isArray(S.paisesVivos) && S.paisesVivos.length) ? S.paisesVivos.slice() : [ancora];
+    if(vivos.indexOf(ancora)<0) vivos.push(ancora);
+
+    const cupsPorPais={}, totaisPorPais={}, jornadasPorPais={};
+    vivos.forEach(pais=>{
+      const naAncora = (pais===ancora);
+      const mundo = naAncora ? S : ((S.mundos||{})[pais]||null);
+      const cupsDoMundo = naAncora ? (S.cups||{}) : ((mundo&&mundo.cups)||{});
+      /* quais copas este país disputa vem da folha; a âncora mantém o caminho antigo (allCupKeys),
+         que também respeita o que o usuário desligou em compToggle. */
+      const lista = naAncora
+        ? (typeof allCupKeys==='function' ? allCupKeys() : []).filter(k=>tog[k]!==false)
+        : ((typeof WORLD_CONFIG!=='undefined' && WORLD_CONFIG.copasDe) ? WORLD_CONFIG.copasDe(pais) : [])
+            .filter(k=>cupsDoMundo[k]);
+      cupsPorPais[pais]=lista;
+      /* o total de rodadas vem do JOGO, não do número de slots na folha — senão a final das
+         continentais fica sem dia no plano (ver buildDayPlan). */
+      const nac = (typeof WORLD_CONFIG!=='undefined' && WORLD_CONFIG.COPA_NACIONAL) ? (WORLD_CONFIG.COPA_NACIONAL[pais]||null) : null;
+      const t={}; lista.forEach(k=>{ try{
+        t[k] = naAncora ? cupTotalRounds(k) : cupTotalRoundsDe(cupsDoMundo, k, nac);
+      }catch(e){} });
+      totaisPorPais[pais]=t;
+      /* QUANTAS JORNADAS A LIGA TEM DE VERDADE — não o tamanho de S.sched.
+         `sched` é maior do que a liga: a temporada nasce com jornadas a mais, sem jogo de liga,
+         só para dar dia às finais das copas (ver ensureCupCalendar). Usar o tamanho dele punha
+         no plano dias de LIGA que não têm partida nenhuma — no Brasil, quatro deles, nos slots
+         39 a 42, justamente onde moram as finais. O jogador via "dia de liga" e não havia jogo.
+         Conta-se as jornadas com partida; se vier tudo vazio (save a meio de uma migração),
+         cai no tamanho, que é o comportamento antigo. */
+      const sched = naAncora ? S.sched : (mundo&&mundo.sched);
+      const comJogo = Array.isArray(sched) ? sched.filter(j=>j && j.length).length : 0;
+      jornadasPorPais[pais] = Array.isArray(sched) ? (comJogo || sched.length) : null;
+    });
+
+    const plan = WORLD_RULES.buildDayPlanMulti(vivos, epoch, totaisPorPais,
+      { cups:cupsPorPais, jornadasLiga:jornadasPorPais });
     if(!plan || !plan.length) return;
     await sb.from('games').update({ day_plan: plan, day_idx: 0, day_moment: 'escalando' }).eq('id', NET.gameId);
   }catch(e){ console.warn('seedDayPlan:', e && e.message); }

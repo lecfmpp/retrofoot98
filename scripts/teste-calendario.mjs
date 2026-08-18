@@ -119,6 +119,27 @@ for (const pais of C.paisesComCalendario()) {
   }
 }
 
+/* 6b. NENHUM DIA DE LIGA ALÉM DAS JORNADAS QUE A LIGA TEM.
+       A temporada nasce com jornadas a mais, sem jogo de liga, só para dar dia às finais das
+       copas. Quem monta o plano de dias tem de passar as jornadas COM PARTIDA, não o tamanho de
+       S.sched — senão entram no plano dias de "liga" sem jogo nenhum, e no Brasil eram quatro,
+       nos slots 39 a 42, justamente onde moram as finais. O jogador via dia de liga e não havia
+       partida. Aqui a regra fica presa: pedindo N jornadas, o plano tem N dias de liga e nenhum
+       depois do último slot de liga da folha. */
+for (const pais of C.paisesComCalendario()) {
+  const cal = C.calendarioDe(pais);
+  const copas = Object.keys(cal.competicoes).filter((k) => k !== 'liga');
+  const totais = {}; copas.forEach((k) => totais[k] = (k === 'copaBrasil') ? 7 : 11);
+  const fimDaLiga = cal.competicoes.liga.slots[cal.competicoes.liga.slots.length - 1];
+  [10, 20, cal.competicoes.liga.slots.length].forEach((n) => {
+    const plano = W.buildDayPlan(copas, null, totais, { pais, jornadasLiga: n });
+    const daLiga = plano.filter((d) => d.comp === 'liga');
+    if (daLiga.length !== n) reprova(pais, 'pedi ' + n + ' jornadas de liga e o plano tem ' + daLiga.length);
+    const maior = Math.max(...daLiga.map((d) => d.slot));
+    if (maior > fimDaLiga) reprova(pais, 'dia de liga no slot ' + maior + ', além do fim da liga (' + fimDaLiga + ')');
+  });
+}
+
 /* 7. UMA LIGA MAIS CURTA QUE A FOLHA usa só os primeiros slots — é o que faz um país com
       divisões de tamanhos diferentes (Premier 38, Championship 46) caber na mesma folha. */
 {

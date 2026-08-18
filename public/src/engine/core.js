@@ -1978,6 +1978,19 @@ const CUP_LEAGUE_TAIL=2;   // jornadas finais reservadas pra decisão da liga (s
    (roundsTotal da chave). Nas continentais o mata-mata só é criado quando a fase de grupos acaba,
    então o total é PREVISTO: rodadas de grupo + as rodadas que o mata-mata terá com os
    classificados (nº de grupos × quantos avançam por grupo). */
+/* quantas rodadas esta copa precisa — a partir de um OBJETO de copas qualquer, não só do S.cups
+   da âncora. É o que permite calcular o calendário do segundo país (S.mundos[pais].cups) com a
+   mesma conta, em vez de duas versões da mesma regra. `nacKey` é a copa nacional daquele país. */
+function cupTotalRoundsDe(cups, key, nacKey){
+  const c=cups&&cups[key]; if(!c) return 0;
+  if(key===nacKey) return c.roundsTotal||0;                     // copa nacional: é o próprio bracket
+  if(c.group){
+    const nG=Object.keys(c.group.groups||{}).length, adv=c.group.advancePerGroup||2;
+    const ko=Math.max(1, Math.ceil(Math.log2(Math.max(2, nG*adv))));
+    return (c.group.roundsTotal||0) + 1 + ko;                   // +1 = o tique do sorteio (ver abaixo)
+  }
+  return (c.bracket&&c.bracket.roundsTotal)||0;
+}
 function cupTotalRounds(key){
   const c=S.cups&&S.cups[key]; if(!c) return 0;
   if(key===copaNacionalDoUniverso()) return c.roundsTotal||0;   // copa nacional: é o próprio bracket
