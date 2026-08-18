@@ -1620,6 +1620,16 @@ function applyResult1off(h,a,hg,ag){ /* copas não têm tabela de pontos corrido
    estrangeiros — ver LIBERTADORES_GROUPS_2026); Sul-Americana e temporadas seguintes (sem
    um sorteio real conhecido) usam um grupo único com todos os classificados brasileiros. */
 const COMP_HAS_GROUP={copaBrasil:false, libertadores:true, sulamericana:true, championsLeague:true, europaLeague:true};
+/* ===== A COPA NACIONAL DO PAÍS ATIVO, NÃO "A COPA DO BRASIL" =====
+   O jogo não pode depender da estrutura brasileira: o calendário é universal e cada país traz as
+   suas competições. O servidor já lê isto da folha desde 18/08 (COPA_NACIONAL_KEY no
+   resolve-round); o cliente continuava a escrever 'copaBrasil' à mão nos mesmos lugares — o
+   total de rodadas, o avanço da chave e a cota de fase. País sem copa nacional devolve null, e
+   quem chama simplesmente pula o bloco em vez de inventar uma Copa do Brasil. */
+function copaNacionalDoUniverso(){
+  if(typeof WORLD_CONFIG==='undefined' || !WORLD_CONFIG.COPA_NACIONAL) return 'copaBrasil';
+  return WORLD_CONFIG.COPA_NACIONAL[activeUniverseKey()] || null;
+}
 /* copas do universo ativo. Brasil: Copa do Brasil + Libertadores + Sul-Americana.
    Internacional: Champions League + Europa League (só as continentais de grupos+mata-mata).
    groupCupKeys = as que têm fase de grupos; allCupKeys = todas (inclui mata-mata puro). */
@@ -1762,7 +1772,7 @@ function cupPhaseLabel(round, roundsTotal){
    entra em S.budgets, que é o caixa por-clube do mundo. */
 function _cupKeyOf(roundLabel){ return String(roundLabel||'').split('-')[0]; }
 function awardCupPhasePrize(key, b, t){
-  if(key!=='copaBrasil' || !t || !t.winner || t.prize) return;
+  if(key!==copaNacionalDoUniverso() || !t || !t.winner || t.prize) return;
   if(typeof PRIZES==='undefined' || !PRIZES.copaBrasilPhaseCash) return;
   const loser=t.winner===t.h?t.a:t.h;
   const isFinal=(b.roundsTotal-b.round)<=0;
@@ -1970,7 +1980,7 @@ const CUP_LEAGUE_TAIL=2;   // jornadas finais reservadas pra decisão da liga (s
    classificados (nº de grupos × quantos avançam por grupo). */
 function cupTotalRounds(key){
   const c=S.cups&&S.cups[key]; if(!c) return 0;
-  if(key==='copaBrasil') return c.roundsTotal||0;
+  if(key===copaNacionalDoUniverso()) return c.roundsTotal||0;   // copa nacional: é o próprio bracket
   if(c.group){
     const nG=Object.keys(c.group.groups||{}).length, adv=c.group.advancePerGroup||2;
     const ko=Math.max(1, Math.ceil(Math.log2(Math.max(2, nG*adv))));
@@ -2248,11 +2258,12 @@ function advancePendingCups(){
   // a copa cuja rodada JÁ foi resolvida na quarta (o usuário jogou ao vivo e resolveCupRoundRest
   // fechou o resto dos confrontos na hora) não avança de novo aqui no sábado
   const jaResolvida=k=>WORLD_RULES.cupAlreadyResolved(S._cupResolvedRound, k, S.round);   // folha única
-  if(cupTickMatchesRound('copaBrasil',S.round) && cupDrawReleased('copaBrasil') && !jaResolvida('copaBrasil')){
-    const cb=S.cups.copaBrasil;
+  const nacKey=copaNacionalDoUniverso();
+  if(nacKey && cupTickMatchesRound(nacKey,S.round) && cupDrawReleased(nacKey) && !jaResolvida(nacKey)){
+    const cb=S.cups[nacKey];
     if(cb && !cupIsFinished(cb) && cb.ties.length){
-      avisarCopaNaoAssistida('copaBrasil');
-      advanceCupBracket(cb, 'copaBrasil-r'+cb.round, 'copaBrasil');
+      avisarCopaNaoAssistida(nacKey);
+      advanceCupBracket(cb, nacKey+'-r'+cb.round, nacKey);
     }
   }
   groupCupKeys().forEach(key=>{

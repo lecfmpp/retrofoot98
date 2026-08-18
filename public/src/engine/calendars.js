@@ -42,6 +42,22 @@
 
   function serie(de, ate){ const a=[]; for(let i=de;i<=ate;i++) a.push(i); return a; }
 
+  /* ===================== O EIXO É DO MUNDO, NÃO DE UM PAÍS =====================
+     O slot 40 tem de ser a MESMA semana para toda a gente. É isso que permite uma sala com
+     brasileiro e inglês andar junta — e é isso que vai permitir, mais à frente, uma competição
+     MUNDIAL (um Mundial de Clubes) em que clubes de países diferentes se enfrentam: ela ocupa um
+     slot do mundo, e os dois calendários nacionais já sabem que aquela semana está tomada.
+
+     Duas condições, e as duas são verificadas (validarCalendario):
+       · todo país começa a temporada no MESMO dia (`inicio`) — se um começasse uma semana depois,
+         o slot 40 dele seria outra semana e a fila da sala juntaria dias que não são simultâneos;
+       · nenhum país passa de SLOTS_DO_MUNDO — é o tamanho do ano, e o teto comum.
+
+     `slotsTotal` de cada país NÃO é o eixo: é onde a temporada daquele país acaba (o Brasil fecha
+     na 42, a Inglaterra na 50). O eixo é este: */
+  const SLOTS_DO_MUNDO=52;                 // as semanas do ano — o calendário é mundial
+  const INICIO_DO_MUNDO=[2026,2,1];        // 1º de março: todo país começa aqui
+
   const CALENDARIOS={};
 
   /* ---------------- BRASIL ----------------
@@ -136,6 +152,15 @@
         erro(key, 'precisa de '+total+' rodadas e a folha declara '+c.slots.length+' slots — faltam '+(total-c.slots.length)+' (o motor completa, mas a folha fica errada)');
     });
 
+    /* O EIXO COMUM. Um país que comece noutro dia, ou que passe do tamanho do ano, quebra a
+       simultaneidade da sala: o slot deixaria de ser a mesma semana para toda a gente. */
+    if(cal.slotsTotal>SLOTS_DO_MUNDO)
+      erro(null, 'a temporada usa '+cal.slotsTotal+' slots e o ano tem '+SLOTS_DO_MUNDO);
+    const ini=cal.inicio||INICIO_DO_MUNDO;
+    if(ini.join('-')!==INICIO_DO_MUNDO.join('-'))
+      erro(null, 'começa em '+ini.join('-')+' e o mundo começa em '+INICIO_DO_MUNDO.join('-')+
+                 ' — o slot deixaria de ser a mesma semana para todos');
+
     const liga=cal.competicoes.liga;
     if(!liga) erro('liga', 'a folha não declara a liga');
     else if(opts.divisoes){
@@ -185,6 +210,7 @@
   function paisesComCalendario(){ return Object.keys(CALENDARIOS); }
 
   const API={ JANELAS, ordemDaJanela, chaveDoDia, CALENDARIOS, calendarioDe, temCalendario,
+    SLOTS_DO_MUNDO, INICIO_DO_MUNDO,
     paisesComCalendario, validarCalendario, instalarCalendario };
   root.CALENDARIOS_API=API;
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
