@@ -5850,6 +5850,19 @@ function clAvancarDia(){
      dizer "Jogar" ou "Assistir a rodada" (ver rfJogarLabel) e a partida entra em campo pelo
      caminho normal, com o jogador a ve-la. So um dia genuinamente sem nada para o humano e que
      segue para o avanco em segundo plano. */
+  /* ===== A TACA DO DIA QUE ACABOU DE PASSAR VEM ANTES DE TUDO =====
+     Esta saida antecipada — a que impede o "Avancar" de atropelar a final do dia novo — foi posta
+     ANTES do `celebrarCopasDecididas` que ja existia mais abaixo. O efeito: cada dia de final era
+     um dia em que se saia por aqui, e a cerimonia nunca corria. As tacas ficavam guardadas e
+     saiam TODAS JUNTAS no fim da temporada, quando enfim aparecia um dia sem nada a cumprir.
+     Era o relato: "no solo, todas as telas de celebracao aparecem juntas no fim".
+     A regra e simples: uma copa decidida celebra-se assim que o dia dela passa, aconteca o que
+     acontecer com o dia seguinte. */
+  if(typeof celebrarCopasDecididas==='function' && celebrarCopasDecididas() && MOMENTO_FILA.length){
+    try{ if(typeof save==='function') save(); }catch(e){}
+    momentoSeguinte(()=>{ toastC('Dia passado — '+((typeof dataCurtaDaJornada==='function')?dataCurtaDaJornada(S.round,'liga'):'')); cdraw(); });
+    return;
+  }
   if(typeof rfNadaParaJogar==='function' && !rfNadaParaJogar()){
     try{ if(typeof save==='function') save(); }catch(e){}
     toastC('Dia passado — '+((typeof dataCurtaDaJornada==='function')?dataCurtaDaJornada(S.round,'liga'):''));
@@ -6079,6 +6092,18 @@ function finishCupSpectate(){
     if(startCupRound(nx.key, nx.stage, null)) return;
     cupMarkSeen(nx.key); }
   CL._pendingCupIdleQueue=null;
+  /* ===== SOLO: A TACA SAI NO APITO FINAL, NAO NA PROXIMA TELA =====
+     Assistir a final resolve a chave e cria o campeao — mas nada celebrava ali. A cerimonia
+     ficava a espera do proximo caminho que chamasse `celebrarCopasDecididas`, e numa semana de
+     finais (que nao tem rodada de liga) esse caminho so aparecia dias depois. O pedido do dono do
+     jogo e que cada copa celebre logo apos a ULTIMA RODADA dela, como ja acontece na Resenha.
+     SO NO SOLO, de proposito: na Resenha quem enfileira a cerimonia e o fechamento da rodada
+     (queueRoundCupClassifs), que ja funciona e nao se toca. */
+  if(!CL.online && typeof celebrarCopasDecididas==='function'
+     && celebrarCopasDecididas() && MOMENTO_FILA.length){
+    momentoSeguinte(()=>{ CL.screen='main'; CL.tab='jogo'; cdraw(); });
+    return;
+  }
   // se a fase virou 'running' enquanto eu assistia (borda perdida pelo guard CL.screen==='live'),
   // destrava a rodada de liga ao terminar de assistir.
   if(CL.online && typeof onlineRecoverRunRound==='function') onlineRecoverRunRound();
