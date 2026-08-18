@@ -2423,7 +2423,7 @@ function rfTitulosDoTreinador(){
       if(!vistos[marca(k)]){ vistos[marca(k)]=1; out.push({comp:k, clubId:h.clubId, season:h.season}); }
     }
     Object.entries(h.myCups||{}).forEach(([k,v])=>{
-      if(!v || !/campe/i.test(String(v))) return;
+      if(!foiCampeao(v)) return;   // vice não é título — ver foiCampeao no core
       if(vistos[marca(k)]) return;
       vistos[marca(k)]=1; out.push({comp:k, clubId:h.clubId, season:h.season});
     });

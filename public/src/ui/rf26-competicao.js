@@ -1195,7 +1195,7 @@ function rfCampeaoTitulos(key, souEu){
     ((S&&S.history)||[]).forEach(h=>{
       if(String(h.clubId)!==String(CL.clubId)) return;
       const v=(h.myCups&&h.myCups[key])||'';
-      if(/campe/i.test(String(v))) n++;
+      if(foiCampeao(v)) n++;   // 'Vice-campeão' contém 'campe' — ver foiCampeao no core
     });
     return n+'º título';
   }catch(e){ return ''; }
@@ -1496,7 +1496,7 @@ function rfTemporadaAbaHTML(page, tab, season){
      em cada uma) mais o titulo de divisao, quando o campeao da minha divisao fui eu */
   const meusTitulos=[];
   Object.entries(e.myCups||{}).forEach(([k,v])=>{
-    if(!v || !/camp/i.test(String(v))) return;
+    if(!foiCampeao(v)) return;   // vice não é título — ver foiCampeao no core
     const info=(typeof rfCompInfo==='function')?rfCompInfo(k):null;
     meusTitulos.push({nome:(info&&info.curto)||k, k});
   });

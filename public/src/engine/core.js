@@ -3808,6 +3808,19 @@ function coachSpellFechar(motivo){
 /* TITULO CARIMBADO NA HORA, nao so no fim da temporada. Uma taca de copa ganha em maio ficava
    invisivel ate a temporada fechar — a Sala, a Carreira e a Historia so soubessem dela meses
    depois. `comp` e a chave da competicao ou a divisao. */
+/* ===== "VICE-CAMPEAO" CONTEM "CAMPEAO" =====
+   Quem perde a final recebe de cupEliminationPhrase a frase 'Vice-campeao', e o teste que
+   decidia se havia titulo era `/campe/i.test(v)` -- que da VERDADE para 'Vice-campeao'. Cinco
+   sitios usavam essa regra: a Sala de Trofeus, a contagem de tacas, os clubes treinados, o
+   arquivo da temporada e -- o pior -- o fecho da temporada, que GRAVA o titulo na passagem do
+   treinador. Foi assim que uma Libertadores perdida na final virou taca na estante.
+   O motor so escreve uma palavra para quem ganha, e e esta. Qualquer outra coisa -- vice,
+   eliminado, fase de grupos -- nao e titulo. */
+function foiCampeao(v){
+  const t=String(v==null?'':v).trim().toLowerCase();
+  if(!t || t.indexOf('vice')>=0) return false;
+  return t==='campeão' || t==='campeao';
+}
 function coachSpellTitulo(comp){
   const sp=coachSpellAtual(); if(!sp || !comp) return false;
   sp.titulos=sp.titulos||[];
@@ -3819,8 +3832,39 @@ function coachSpellTitulo(comp){
 /* saves anteriores a este registo: reconstroi o que da a partir de S.history (uma passagem por
    clube, do primeiro ao ultimo ano em que ele aparece). Passagem que acabou a meio de uma
    temporada nao esta la e nao ha como inventar — mas a partir daqui fica tudo registado. */
+/* ===== TIRA DA ESTANTE O QUE NUNCA FOI GANHO =====
+   O fecho da temporada ja gravou titulos a mais nos saves existentes (ver foiCampeao), e isso
+   fica no disco: nao adianta so corrigir o teste daqui para a frente. Esta passagem re-julga
+   cada titulo gravado contra o que a temporada de facto registou -- `myCups` daquele ano para
+   as copas, `myPos===1` para a divisao -- e apaga o que nao se sustenta. So apaga o que
+   consegue DESMENTIR: titulo sem registo daquele ano fica onde esta, porque nao ha como saber.
+   Corre uma vez por save (carimbo em S._vicesLimpos). */
+function coachSpellsLimparVices(){
+  if(!S || S._vicesLimpos) return;
+  S._vicesLimpos=1;
+  const hist=Array.isArray(S.history)?S.history:[];
+  const doAno=(season,clubId)=>hist.filter(h=>h && String(h.season)===String(season)
+      && (clubId==null || h.clubId==null || String(h.clubId)===String(clubId))).pop()||null;
+  let tirados=0;
+  (Array.isArray(S.coachSpells)?S.coachSpells:[]).forEach(sp=>{
+    if(!sp || !Array.isArray(sp.titulos)) return;
+    sp.titulos=sp.titulos.filter(t=>{
+      if(!t || !t.comp) return true;
+      const h=doAno(t.season, sp.clubId);
+      if(!h) return true;                                   // sem registo do ano: nao da para desmentir
+      if(/^serie/i.test(t.comp)) return h.myPos===1 || h.myPos==null;
+      const v=(h.myCups||{})[t.comp];
+      if(v==null) return true;                              // a copa nao ficou registada nesse ano
+      const ok=foiCampeao(v);
+      if(!ok) tirados++;
+      return ok;
+    });
+  });
+  if(tirados) console.warn('sala de troféus: '+tirados+' título(s) removido(s) — eram vice-campeonatos.');
+}
 function coachSpellsMigrar(){
   if(!S) return;
+  coachSpellsLimparVices();
   if(Array.isArray(S.coachSpells) && S.coachSpells.length) return;
   S.coachSpells=[];
   const porClube={};
@@ -3830,7 +3874,7 @@ function coachSpellsMigrar(){
     porClube[k]=porClube[k]||{clubId:h.clubId, anos:[], tot:{P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0}, titulos:[]};
     porClube[k].anos.push(h.season);
     if(h.myPos===1 && h.division) porClube[k].titulos.push({comp:'serie'+h.division, season:h.season});
-    Object.entries(h.myCups||{}).forEach(([c,v])=>{ if(v && /campe/i.test(String(v))) porClube[k].titulos.push({comp:c, season:h.season}); });
+    Object.entries(h.myCups||{}).forEach(([c,v])=>{ if(foiCampeao(v)) porClube[k].titulos.push({comp:c, season:h.season}); });
   });
   Object.values(porClube).forEach(x=>{
     const c=(typeof anyClubOf==='function'&&anyClubOf(x.clubId))||{};
@@ -4865,7 +4909,7 @@ function endSeason(){
   }
   try{ coachSpellsMigrar();
        if(tablePos(S.clubId)===1) coachSpellTitulo('serie'+S.division);
-       Object.entries(myCups||{}).forEach(([k,v])=>{ if(v && /campe/i.test(String(v))) coachSpellTitulo(k); });
+       Object.entries(myCups||{}).forEach(([k,v])=>{ if(foiCampeao(v)) coachSpellTitulo(k); });
        coachSpellAcumular(); }catch(e){ console.warn('passagem no fecho:', e&&e.message); }
   /* ===== O QUE A TEMPORADA DEIXA PARA TRAS =====
      O filtro por temporada le daqui. Faltavam duas coisas para a foto ficar completa: o campeao
