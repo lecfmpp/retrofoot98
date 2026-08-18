@@ -857,7 +857,28 @@ function clTesteTick(){
       return;
     }
     if(RL.paused){ T.ultimoPasso='intervalo'; if(typeof liveContinue==='function') liveContinue(); T.minAnterior=null; T.paradoDesde=0; return; }
-    if(RL.done){ T.ultimoPasso='partida terminada'; return; }   // o fluxo normal fecha
+    /* PARTIDA TERMINADA E AINDA EM CL.live: quem devia fechar nao fechou.
+       `liveTick` marca `done` e chama o finalizador NA MESMA LINHA -- se o estado ficou `done`
+       com a partida ainda de pe, o relogio morreu antes de la chegar. Esperar por ele e esperar
+       para sempre: foi o "partida terminada" parado sobre a tabela dos grupos da Sul-Americana,
+       relatado a 18/08. Aqui chama-se o mesmo finalizador que ele chamaria -- cada tipo de
+       partida tem o seu, e trocar um pelo outro deixa a copa por resolver. */
+    if(RL.done){
+      /* JA SAI DA TELA DA PARTIDA: o que resta em CL.live e resto. Chamar o finalizador outra vez
+         seria fecha-la duas vezes -- e como ele deixa `CL.live` de pe e leva a tela para a
+         classificacao, a bancada entraria em laco a fechar a mesma partida para sempre. Aqui o
+         objeto e largado e quem manda passa a ser a tela, que tem a sua propria saida. */
+      if(CL.screen!=='live'){ CL.live=null; T.ultimoPasso='partida encerrada'; return; }
+      T.ultimoPasso='a fechar a partida';
+      try{
+        if(RL.cup && RL.cup.spectate && typeof finishCupSpectate==='function') finishCupSpectate();
+        else if(RL.cup && typeof finishCupLiveMatch==='function') finishCupLiveMatch();
+        else if(RL.humanSeat && typeof finishHotseatMatch==='function') finishHotseatMatch();
+        else if(typeof finishLiveRound==='function') finishLiveRound();
+        else clTesteClicar();
+      }catch(e){ console.warn('bancada, fecho da partida:', e && e.message); clTesteClicar(); }
+      return;
+    }
     const min=RL.minute||0;
     if(T.minAnterior===min){
       if(!T.paradoDesde) T.paradoDesde=Date.now();
