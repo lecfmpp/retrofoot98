@@ -837,17 +837,24 @@ function clTesteTick(){
     if(RL.pens && RL.pensPicking && typeof resolveShootoutKick==='function'){
       T.ultimoPasso='disputa de pênaltis'; resolveShootoutKick(CL.penSel); return;
     }
+    /* SEMPRE A SAIDA NEUTRA, NUNCA A QUE EXIGE ESCOLHA. `resolveRedConfirm` so age se o jogador
+       JA tiver escolhido quem entra E quem sai (CL.redIn/CL.redOut); chamada sem isso, ela
+       devolve sem fazer nada — e a bancada ficava a chamá-la para sempre com a partida parada.
+       Foi o "ainda para na expulsão e na lesão" relatado a 18/08. As funções de PRAZO
+       (resolveRedSkip, resolveInjuryNoSub, resolvePenalty(null)) não dependem de escolha nenhuma:
+       são exatamente o que aconteceria se o jogador não tocasse em nada, que é o comportamento
+       certo para quem só quer atravessar a temporada. */
     if(RL.penEvent && typeof resolvePenalty==='function'){
-      T.ultimoPasso='pênalti'; resolvePenalty(CL.penSel); return;
+      T.ultimoPasso='pênalti'; resolvePenalty(null); return;          // deixa o capitão bater
     }
-    if(RL.injEvent){
-      T.ultimoPasso='lesão';
-      if(CL.injSel && typeof resolveInjurySub==='function') resolveInjurySub(CL.injSel);
-      else if(typeof resolveInjuryNoSub==='function') resolveInjuryNoSub();
+    if(RL.injEvent && typeof resolveInjuryNoSub==='function'){
+      T.ultimoPasso='lesão'; resolveInjuryNoSub(); return;            // segue sem substituir
+    }
+    if(RL.redEvent){
+      T.ultimoPasso='expulsão';
+      if(typeof resolveRedSkip==='function') resolveRedSkip();        // segue sem reorganizar
+      else if(typeof resolveRedConfirm==='function') resolveRedConfirm();
       return;
-    }
-    if(RL.redEvent && typeof resolveRedConfirm==='function'){
-      T.ultimoPasso='expulsão'; resolveRedConfirm(); return;
     }
     if(RL.paused){ T.ultimoPasso='intervalo'; if(typeof liveContinue==='function') liveContinue(); T.minAnterior=null; T.paradoDesde=0; return; }
     if(RL.done){ T.ultimoPasso='partida terminada'; return; }   // o fluxo normal fecha
@@ -918,6 +925,10 @@ function clTesteContinuar(){
     if((tela==='cupclassif') && typeof cupClassifContinue==='function'){ cupClassifContinue(); return 'classificação de copa'; }
     if((tela==='classif'||tela==='seatclassif') && typeof clClassifContinue==='function'){ clClassifContinue(); return 'classificação'; }
     if(tela==='cupview' && typeof clCupViewBack==='function'){ clCupViewBack(); return 'chave da copa'; }
+    /* a tela de quem se classificou / como ficaram os grupos e uma cerimonia de fim de fase: ela
+       tem fila propria (_pendingMoments/_pendingDrawShows) e sai pelo mesmo Continuar das outras.
+       Se nao houver funcao conhecida, o clique por PRIORIDADE apanha o botao certo. */
+    if(tela==='entrega' && typeof clCloseOverlay==='function'){ clCloseOverlay(); return 'entrega'; }
   }catch(e){ console.warn('bancada, saída de '+tela+':', e && e.message); }
   return clTesteClicar();
 }
