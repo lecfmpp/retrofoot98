@@ -12015,11 +12015,31 @@ function onlineWaitingTick(){
   /* QUEM FECHOU A ABA NÃO PODE CONGELAR A SALA. Agora que ninguém entra em campo antes de o
      último assento carimbar, um jogador que simplesmente sumiu pararia a sala para sempre — o
      cronômetro, que antes o pulava, não pula mais ninguém (e é isso que a gente quer).
-     Passados 45s, o anfitrião dispensa automaticamente SÓ quem não dá sinal de vida há 45s. Quem
+     Passados 45s, o assento que não dá sinal de vida há 45s é dispensado e a sala segue. Quem
      está com o jogo aberto continua sendo esperado, com nome, no painel abaixo: presença é
-     respeitada, ausência não trava. */
-  if(NET.isHost && NET.dayAck && Date.now()-(CL._waitSince||0) > 45000
-     && Date.now()-(CL._absentTryT||0) > 15000){
+     respeitada, ausência não trava.
+
+     QUALQUER ASSENTO DISPARA ISTO, NÃO SÓ O ANFITRIÃO. Enquanto era `NET.isHost`, a saída da sala
+     dependia de UM navegador estar aberto — e o anfitrião é tão capaz de fechar a aba quanto os
+     outros. Quando era ele quem sumia, ninguém restante conseguia destravar: a sala esperava para
+     sempre, que é exatamente o que esta rede existe para impedir.
+
+     É seguro porque QUEM DECIDE É O SERVIDOR, não este cliente: a RPC `day_ack` com segundos
+     POSITIVOS só desconta assentos cujo `last_seen` já passou do prazo, e quem está com o jogo
+     aberto continua a contar. A liberação que dispensa gente PRESENTE é a de segundos negativos
+     ("começar sem eles"), e essa a própria função restringe ao anfitrião, no banco
+     (`v_host is not distinct from auth.uid()`) — a checagem no cliente é reforço, não a tranca.
+
+     O intervalo entre tentativas é escalonado por assento (0 a ~6s a partir do id) para os três
+     clientes não baterem na mesma linha no mesmo instante: a função tranca a sala com
+     `for update`, e disparar em uníssono é fila garantida sem ganho nenhum. */
+  const _meuOffset = (function(){
+    const id=(typeof NET!=='undefined' && NET.uid) ? String(NET.uid) : '';
+    let h=0; for(let i=0;i<id.length;i++) h=(h*31+id.charCodeAt(i))|0;
+    return Math.abs(h)%6000;
+  })();
+  if(NET.dayAck && Date.now()-(CL._waitSince||0) > 45000
+     && Date.now()-(CL._absentTryT||0) > 15000+_meuOffset){
     CL._absentTryT=Date.now();
     Promise.resolve(NET.dayAck(d.idx, d.moment, 45)).then(r=>{
       if(r && r.faltam===0) console.warn('assento sem sinal de vida há 45s dispensado — a sala segue');

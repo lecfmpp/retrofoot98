@@ -1691,7 +1691,12 @@ function roomDay(){
    tela e outra todo mundo está livre por um instante, e o dia virava sem ninguém ter cumprido nada.
    Agora cada assento CARIMBA o dia que viveu (day_ack) e o dia só vira quando o último carimbar.
    O caminho antigo fica como degradação pra servidor sem a função nova — nunca como preferência. */
-const DAY_ACK_IGNORAR_AUSENTES_SEG=0;   // "começar sem eles" entra no item 5, junto do modal do anfitrião
+/* O CARIMBO DE ROTINA ESPERA TODA A GENTE — zero de propósito. Dispensar ausente é outra coisa,
+   e tem dois caminhos próprios: o automático, 45s sem sinal de vida, disparado por QUALQUER
+   assento (onlineWaitingTick em ui/main.js), e o explícito do anfitrião, "começar sem eles",
+   que manda segundos negativos e o banco só aceita dele. Pôr um prazo aqui faria todo carimbo
+   normal pular quem está a escalar o time. */
+const DAY_ACK_IGNORAR_AUSENTES_SEG=0;
 /* OS TRÊS MOMENTOS VIRARAM FATOS, E CADA UM É CARIMBADO SOZINHO.
    A primeira versão fechava os três de uma vez porque nenhum deles desenhava tela — eram só um
    contador. Agora eles são a espinha do dia:

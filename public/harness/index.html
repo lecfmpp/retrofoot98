@@ -69,7 +69,12 @@ window.__HSRV={
     Object.values(g.seats).forEach(s=>s.is_ready=false);
     log('SRV: temporada aberta — fase ready, timer DESARMADO','info'); bcast(code); },
   setReady(code, uid, v){ const g=G(code); if(!g.seats[uid]) return; g.seats[uid].is_ready=!!v; bcast(code); },
-  seen(){},
+  /* HEARTBEAT DE PRESENÇA — era um no-op, e isso tornava o mock infiel justamente na regra que
+     decide se a sala espera por alguém. Em produção `netHeartbeatSeen` carimba `last_seen` no
+     assento a cada ~15s enquanto o jogo está aberto, e é esse carimbo que o `day_ack` com prazo
+     consulta para saber quem sumiu. Sem ele, todo assento do harness parecia ausente e a rede de
+     segurança dos 45s dispensava a sala inteira — um falso positivo que só existia aqui. */
+  seen(code, uid){ const g=G(code); if(g && g.seats[uid]) g.seats[uid].last_seen=Date.now(); },
   startRunning(code){ const g=G(code); if(g.phase==='running') return 'running';
     g.phase='running'; g.kickoff_at=Date.now();
     g.kickoff_lineups={}; Object.values(g.seats).forEach(s=>{ if(s.club_id&&s.last_xi) g.kickoff_lineups[s.club_id]={xi:s.last_xi,tactic:s.last_tactic||'equilibrado'}; });
@@ -116,9 +121,14 @@ window.__HSRV={
     // NEGATIVO = liberação explícita do anfitrião ("começar sem eles"), vale inclusive para quem
     // está presente e parado; positivo dispensa só quem sumiu; zero espera todos. Mesma semântica
     // da RPC de produção.
+    /* NULO É AUSÊNCIA, NÃO PRESENÇA — mesma regra da RPC de produção (migração
+       day_ack_assento_sem_sinal_de_vida_nao_trava_a_sala, 18/08/2026). Aqui o mock tratava
+       `last_seen` ausente como "está na sala" e segurava o dia para sempre; no banco eram 30%
+       dos assentos. Um mock com semântica diferente da RPC é a mesma armadilha das duas versões
+       da mesma regra: o cenário passa e a sala trava. */
     const faltam=(ignorarSeg<0) ? 0 : Object.keys(g.seats).filter(id=>{ const s=g.seats[id];
       if(s.club_id==null || s.day_ack===chave) return false;
-      if(ignorarSeg && s.last_seen && Date.now()-s.last_seen > ignorarSeg*1000) return false;  // sumiu
+      if(ignorarSeg>0) return !!(s.last_seen && Date.now()-s.last_seen <= ignorarSeg*1000);
       return true; }).length;
     if(faltam===0){
       if(g.day_moment==='escalando') g.day_moment='jogando';
