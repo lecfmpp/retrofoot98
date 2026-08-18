@@ -78,6 +78,36 @@ conferir('sem campo',   W.uniDoEstado({}), 'brasil');
 conferir('estado nulo', W.uniDoEstado(null), 'brasil');
 conferir('com campo',   W.uniDoEstado({ intlUniverse: 'Inglaterra' }), 'Inglaterra');
 
+/* ===== 6. AS COPAS DE CADA PAÍS =====
+   Reprodução literal do que `allCupKeys()`/`groupCupKeys()` (core.js) devolviam antes de
+   delegarem à folha. O servidor assumia Libertadores/Sul-Americana em seis lugares — um save
+   inglês remontava a Libertadores em vez da Champions. */
+console.log('6. Copas por país reproduzem allCupKeys()/groupCupKeys()');
+const antigoAll = (k) => {
+  const cfg = U[k] || {};
+  if (cfg.src === 'conmebol') return ['libertadores', 'sulamericana'];
+  return k !== 'brasil' ? ['championsLeague', 'europaLeague'] : ['copaBrasil', 'libertadores', 'sulamericana'];
+};
+const antigoGrupo = (k) => {
+  const cfg = U[k] || {};
+  return (k !== 'brasil' && cfg.src !== 'conmebol') ? ['championsLeague', 'europaLeague'] : ['libertadores', 'sulamericana'];
+};
+Object.keys(U).forEach((k) => {
+  conferir('copas de ' + k, W.copasDe(k), antigoAll(k));
+  conferir('copas de grupo de ' + k, W.copasContinentaisDe(k), antigoGrupo(k));
+});
+
+/* As vagas continentais eram 6 e 6 fixos no servidor; a tabela por país já existia no cliente
+   (LIB_SLOTS_UNI/SUL_SLOTS_UNI, core.js). Transcrita aqui — nenhum país pode ficar sem vaga. */
+console.log('7. Vagas continentais por país');
+const LIB_ANTIGO = { 'Brasil':6,'Argentina':6,'Colômbia':4,'Chile':3,'Uruguai':3,'Peru':3,'Equador':2,'Paraguai':2,'Venezuela':2,'Bolívia':1 };
+const SUL_ANTIGO = { 'Brasil':6,'Argentina':5,'Colômbia':4,'Chile':3,'Uruguai':3,'Peru':3,'Equador':2,'Paraguai':2,'Venezuela':2,'Bolívia':2 };
+Object.keys(U).forEach((k) => {
+  const nome = W.nomeDoPais(k), v = W.vagasContinentais(k);
+  if (LIB_ANTIGO[nome] != null) conferir('vagas de ' + nome, v, [LIB_ANTIGO[nome], SUL_ANTIGO[nome]]);
+  if (!(v[0] > 0 && v[1] > 0)) { falhas++; console.log('  ✘ ' + nome + ': vaga zerada — o país não teria representante'); }
+});
+
 console.log('');
 if (falhas) { console.log('✘ ' + falhas + ' divergência(s)'); process.exit(1); }
 console.log('✓ pirâmide de país íntegra — Brasil inalterado, 15 países resolvem');

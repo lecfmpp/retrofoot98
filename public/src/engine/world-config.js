@@ -86,10 +86,53 @@
     return BANDA_POR_NIVEL[0];
   }
 
+  /* ---------- CONFEDERAÇÃO E COPAS DE CADA PAÍS ----------
+     Quais copas um país disputa era decidido por três funções do cliente (isConmebolUniverse,
+     isIntlUniverse, allCupKeys em core.js) e o servidor não sabia nada disso: `rebuildContinental
+     Cups` assumia Libertadores/Sul-Americana e que `topStandings` era a Série A brasileira.
+
+     Aqui vira dado. `conf` sai do universo: `src:'conmebol'` e o Brasil são CONMEBOL, o resto é
+     UEFA — a mesma regra que o cliente aplicava, agora escrita uma vez. `copaNacional` é a copa
+     de país (só o Brasil tem uma modelada hoje).
+
+     As VAGAS são as tabelas que o cliente já tinha (LIB_SLOTS_UNI/SUL_SLOTS_UNI, core.js), aqui
+     chaveadas pelo NOME do país (`cfg.country`), como lá. O servidor usava 6 e 6 fixos. */
+  const CONFEDERACOES={
+    CONMEBOL:{ copas:['libertadores','sulamericana'],
+      vagas:{ 'Brasil':[6,6],'Argentina':[6,5],'Colômbia':[4,4],'Chile':[3,3],'Uruguai':[3,3],
+              'Peru':[3,3],'Equador':[2,2],'Paraguai':[2,2],'Venezuela':[2,2],'Bolívia':[1,2] } },
+    UEFA:{ copas:['championsLeague','europaLeague'],
+      vagas:{ 'Inglaterra':[4,2],'Espanha':[4,2],'Itália':[4,2],'Alemanha':[4,2],'Portugal':[2,2] } },
+  };
+  const COPA_NACIONAL={ brasil:'copaBrasil' };
+
+  function nomeDoPais(uniKey){ const c=uniCfg(uniKey); return (c && c.country) || (uniKey===PADRAO ? 'Brasil' : uniKey); }
+  function confederacaoDe(uniKey){
+    const c=uniCfg(uniKey);
+    if(uniKey===PADRAO || (c && c.src==='conmebol')) return 'CONMEBOL';
+    return 'UEFA';
+  }
+  function copasContinentaisDe(uniKey){ return (CONFEDERACOES[confederacaoDe(uniKey)]||{}).copas.slice(); }
+  /* TODAS as copas do país, na ordem que o cliente já usava em allCupKeys(): a nacional primeiro
+     (quando existe), depois as duas continentais. */
+  function copasDe(uniKey){
+    const nac=COPA_NACIONAL[uniKey];
+    return (nac ? [nac] : []).concat(copasContinentaisDe(uniKey));
+  }
+  /* [vagas na 1ª continental, vagas na 2ª]. País sem entrada na tabela cai em [4,2], que é o
+     padrão europeu — nunca zero, senão o país simplesmente não teria representantes. */
+  function vagasContinentais(uniKey){
+    const conf=CONFEDERACOES[confederacaoDe(uniKey)]||{};
+    const v=(conf.vagas||{})[nomeDoPais(uniKey)];
+    return v ? v.slice() : [4,2];
+  }
+
   const API={ PADRAO, uniCfg, uniDoEstado, nivelDaDivisao, divisoesDe,
     tamanhoDaDivisao, sobemDaDivisao, descemDaDivisao,
     BANDA_POR_NIVEL, FORCA_POR_NIVEL, CAP_POR_NIVEL,
-    bandaDaDivisao, forcaDaDivisao, capDaDivisao, bandaDaDivisaoSemPais, tabelasDoUniverso };
+    bandaDaDivisao, forcaDaDivisao, capDaDivisao, bandaDaDivisaoSemPais, tabelasDoUniverso,
+    CONFEDERACOES, COPA_NACIONAL, nomeDoPais, confederacaoDe, copasContinentaisDe, copasDe,
+    vagasContinentais };
   root.WORLD_CONFIG=API;
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
 })(typeof globalThis!=='undefined'?globalThis:this);

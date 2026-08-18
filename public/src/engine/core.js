@@ -1623,8 +1623,20 @@ const COMP_HAS_GROUP={copaBrasil:false, libertadores:true, sulamericana:true, ch
 /* copas do universo ativo. Brasil: Copa do Brasil + Libertadores + Sul-Americana.
    Internacional: Champions League + Europa League (só as continentais de grupos+mata-mata).
    groupCupKeys = as que têm fase de grupos; allCupKeys = todas (inclui mata-mata puro). */
-function groupCupKeys(){ return (isIntlUniverse()&&!isConmebolUniverse()) ? ['championsLeague','europaLeague'] : ['libertadores','sulamericana']; }
-function allCupKeys(){ if(isConmebolUniverse()) return ['libertadores','sulamericana']; return isIntlUniverse() ? ['championsLeague','europaLeague'] : ['copaBrasil','libertadores','sulamericana']; }
+/* Quais copas cada país disputa saiu daqui e foi para engine/world-config.js — a MESMA folha que
+   o servidor lê desde que `rebuildContinentalCups` deixou de assumir Libertadores/Sul-Americana.
+   O resultado é idêntico ao que estava escrito nestas duas linhas, para os 15 países
+   (scripts/teste-universos.mjs confere um a um). O fallback mantém o jogo de pé se a folha não
+   tiver carregado. */
+function groupCupKeys(){
+  if(typeof WORLD_CONFIG!=='undefined' && WORLD_CONFIG.copasContinentaisDe) return WORLD_CONFIG.copasContinentaisDe(activeUniverseKey());
+  return (isIntlUniverse()&&!isConmebolUniverse()) ? ['championsLeague','europaLeague'] : ['libertadores','sulamericana'];
+}
+function allCupKeys(){
+  if(typeof WORLD_CONFIG!=='undefined' && WORLD_CONFIG.copasDe) return WORLD_CONFIG.copasDe(activeUniverseKey());
+  if(isConmebolUniverse()) return ['libertadores','sulamericana'];
+  return isIntlUniverse() ? ['championsLeague','europaLeague'] : ['copaBrasil','libertadores','sulamericana'];
+}
 function makeGroupStage(groupsMap, advancePerGroup){
   const groups={};
   Object.entries(groupsMap).forEach(([label,ids])=>{

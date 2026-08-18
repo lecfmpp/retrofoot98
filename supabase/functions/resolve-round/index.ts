@@ -921,10 +921,53 @@ if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:ro
     return BANDA_POR_NIVEL[0];
   }
 
+  /* ---------- CONFEDERAÇÃO E COPAS DE CADA PAÍS ----------
+     Quais copas um país disputa era decidido por três funções do cliente (isConmebolUniverse,
+     isIntlUniverse, allCupKeys em core.js) e o servidor não sabia nada disso: `rebuildContinental
+     Cups` assumia Libertadores/Sul-Americana e que `topStandings` era a Série A brasileira.
+
+     Aqui vira dado. `conf` sai do universo: `src:'conmebol'` e o Brasil são CONMEBOL, o resto é
+     UEFA — a mesma regra que o cliente aplicava, agora escrita uma vez. `copaNacional` é a copa
+     de país (só o Brasil tem uma modelada hoje).
+
+     As VAGAS são as tabelas que o cliente já tinha (LIB_SLOTS_UNI/SUL_SLOTS_UNI, core.js), aqui
+     chaveadas pelo NOME do país (`cfg.country`), como lá. O servidor usava 6 e 6 fixos. */
+  const CONFEDERACOES={
+    CONMEBOL:{ copas:['libertadores','sulamericana'],
+      vagas:{ 'Brasil':[6,6],'Argentina':[6,5],'Colômbia':[4,4],'Chile':[3,3],'Uruguai':[3,3],
+              'Peru':[3,3],'Equador':[2,2],'Paraguai':[2,2],'Venezuela':[2,2],'Bolívia':[1,2] } },
+    UEFA:{ copas:['championsLeague','europaLeague'],
+      vagas:{ 'Inglaterra':[4,2],'Espanha':[4,2],'Itália':[4,2],'Alemanha':[4,2],'Portugal':[2,2] } },
+  };
+  const COPA_NACIONAL={ brasil:'copaBrasil' };
+
+  function nomeDoPais(uniKey){ const c=uniCfg(uniKey); return (c && c.country) || (uniKey===PADRAO ? 'Brasil' : uniKey); }
+  function confederacaoDe(uniKey){
+    const c=uniCfg(uniKey);
+    if(uniKey===PADRAO || (c && c.src==='conmebol')) return 'CONMEBOL';
+    return 'UEFA';
+  }
+  function copasContinentaisDe(uniKey){ return (CONFEDERACOES[confederacaoDe(uniKey)]||{}).copas.slice(); }
+  /* TODAS as copas do país, na ordem que o cliente já usava em allCupKeys(): a nacional primeiro
+     (quando existe), depois as duas continentais. */
+  function copasDe(uniKey){
+    const nac=COPA_NACIONAL[uniKey];
+    return (nac ? [nac] : []).concat(copasContinentaisDe(uniKey));
+  }
+  /* [vagas na 1ª continental, vagas na 2ª]. País sem entrada na tabela cai em [4,2], que é o
+     padrão europeu — nunca zero, senão o país simplesmente não teria representantes. */
+  function vagasContinentais(uniKey){
+    const conf=CONFEDERACOES[confederacaoDe(uniKey)]||{};
+    const v=(conf.vagas||{})[nomeDoPais(uniKey)];
+    return v ? v.slice() : [4,2];
+  }
+
   const API={ PADRAO, uniCfg, uniDoEstado, nivelDaDivisao, divisoesDe,
     tamanhoDaDivisao, sobemDaDivisao, descemDaDivisao,
     BANDA_POR_NIVEL, FORCA_POR_NIVEL, CAP_POR_NIVEL,
-    bandaDaDivisao, forcaDaDivisao, capDaDivisao, bandaDaDivisaoSemPais, tabelasDoUniverso };
+    bandaDaDivisao, forcaDaDivisao, capDaDivisao, bandaDaDivisaoSemPais, tabelasDoUniverso,
+    CONFEDERACOES, COPA_NACIONAL, nomeDoPais, confederacaoDe, copasContinentaisDe, copasDe,
+    vagasContinentais };
   root.WORLD_CONFIG=API;
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
 })(typeof globalThis!=='undefined'?globalThis:this);
@@ -1503,7 +1546,9 @@ function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>) {
    servidor não simula as ligas sul-americanas, então não existe campanha nova pra respeitar, e
    reaproveitar quem já está no estado (com elenco materializado) mantém o formato de 32 clubes
    sem inventar resultado que ninguém jogou. ===== */
-const LIB_SLOTS_BR = 6, SUL_SLOTS_BR = 6;
+/* As vagas saiam daqui, fixas em 6 e 6 — os numeros do Brasil. Agora vem da folha
+   (WORLD_CONFIG.vagasContinentais), que ja tinha a tabela por pais do lado do cliente
+   (LIB_SLOTS_UNI/SUL_SLOTS_UNI em core.js): Argentina 6+5, Colombia 4+4, Portugal 2+2... */
 function prevCupTeamIds(S: any, key: string) {
   const c = S.cups && S.cups[key]; const out: string[] = [];
   if (c && c.group && c.group.groups) Object.keys(c.group.groups).forEach((k) => ((c.group.groups[k] || {}).teams || []).forEach((id: string) => out.push(id)));
@@ -1533,17 +1578,26 @@ function makeGroupStageT(groupsMap: any, advancePerGroup: number) {
 }
 function rebuildContinentalCups(S: any, topStandings: string[]) {
   if (!topStandings || !topStandings.length) return;
-  const prevLib = prevCupTeamIds(S, 'libertadores'), prevSul = prevCupTeamIds(S, 'sulamericana');
-  if (!prevLib.length && !prevSul.length) return;   // save nunca teve continental (ex.: começou na D) — nada a remontar
-  const brSet = new Set(topStandings);              // todo id da Série A é brasileiro; o resto é CONMEBOL
-  const build = (key: string, br: string[], foreign: string[]) => {
-    const ids = br.concat(foreign).filter((id) => S.squads && S.squads[id]);   // sem elenco no save, não entra
+  /* QUAIS SAO AS DUAS CONTINENTAIS DEPENDE DA CONFEDERACAO DO PAIS. Estava escrito
+     'libertadores'/'sulamericana' em seis lugares: um save ingles remontava a Libertadores em vez
+     da Champions. A folha responde pelas duas coisas — quais copas e quantas vagas. */
+  const copas = WORLD_CONFIG.copasContinentaisDe(UNI_ATIVO);
+  const vagas = WORLD_CONFIG.vagasContinentais(UNI_ATIVO);
+  const prev = copas.map((k: string) => prevCupTeamIds(S, k));
+  if (!prev.some((l: string[]) => l.length)) return;   // save nunca teve continental (ex.: comecou na D) — nada a remontar
+  const daCasa = new Set(topStandings);             // todo id da 1a divisao e do pais; o resto e estrangeiro
+  const build = (key: string, locais: string[], estrangeiros: string[]) => {
+    const ids = locais.concat(estrangeiros).filter((id) => S.squads && S.squads[id]);   // sem elenco no save, nao entra
     const uniq = Array.from(new Set(ids)).slice(0, 32);
     if (uniq.length < 4) return;
     S.cups[key] = { group: makeGroupStageT(splitIntoGroupsT(uniq, ME.hashSeed(S.seed, key + 'groups', S.season)), 2), bracket: null };
   };
-  build('libertadores', topStandings.slice(0, LIB_SLOTS_BR), prevLib.filter((id) => !brSet.has(id)));
-  build('sulamericana', topStandings.slice(LIB_SLOTS_BR, LIB_SLOTS_BR + SUL_SLOTS_BR), prevSul.filter((id) => !brSet.has(id)));
+  let corte = 0;
+  copas.forEach((key: string, i: number) => {
+    const n = vagas[i] || 0;
+    build(key, topStandings.slice(corte, corte + n), (prev[i] || []).filter((id: string) => !daCasa.has(id)));
+    corte += n;
+  });
 }
 /* ===== VIRADA DE TEMPORADA (F3.2) — promoção/rebaixamento + envelhecimento/regen + reconstrução.
    Viewer-independente (não depende de S.clubId): opera no MUNDO. Todas as 4 divisões já são
