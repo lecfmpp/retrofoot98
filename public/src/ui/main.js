@@ -4747,6 +4747,13 @@ function abrirMomento(id, dados, aoFechar){
     CL._momentoAtual={id, aoFechar:aoFechar||null};
     if(rfCampeaoAbrir(dados.trofeu, aoFechar)) return;
   }
+  /* A ARTILHARIA TEM TELA PROPRIA, como o titulo — e entra logo a seguir a ele na fila (ver
+     enfileirarMomentosCopa/FimDeTemporada). Traz o podio dos tres e veste a identidade da
+     competicao: cor, nome e trofeu saem da chave que os dados carregam. */
+  if((id==='marcador-copa'||id==='marcador-liga') && dados.podio && typeof rfArtilheiroAbrir==='function'){
+    CL._momentoAtual={id, aoFechar:aoFechar||null};
+    if(rfArtilheiroAbrir(dados, aoFechar)) return;
+  }
   CL._momentoAtual={id, aoFechar:aoFechar||null};
   const clube=clubOf(dados.clubId!=null?dados.clubId:CL.clubId)||{short:'—'};
   const claro = def.corpo==='green';
@@ -4841,18 +4848,58 @@ function dadosRebaixado(){
     rodape:'A diretoria quer conversar sobre o seu contrato.' };
 }
 /* ARTILHEIRO: só vira modal se for jogador DO USUÁRIO — é o que o pedido especifica. */
-function dadosArtilheiro(escopo){
-  const sc=S.scorers||{}; const nomes=Object.keys(sc); if(!nomes.length) return null;
-  const top=nomes.sort((a,b)=>sc[b]-sc[a])[0]; const gols=sc[top];
-  const p=(squad(CL.clubId)||[]).find(x=>x.n===top); if(!p) return null;   // não é meu: sem modal
-  const jogos=(p.stats&&p.stats.apps)||0;
-  const media=jogos?(gols/jogos).toFixed(2).replace('.',','):'—';
-  const liga=escopo!=='copa';
-  return { titulo:'Artilharia — '+(liga?((typeof classifDivName==='function')?classifDivName(S.division,S.intlUniverse):'Liga'):'Copa'),
-    manchete:'Ele bateu todo mundo.', trofeu:null,
-    linha:`${p.n}, ${p.age} anos, ${({GK:'goleiro',DEF:'zagueiro',MID:'meia',ATT:'atacante'})[p.s]||'jogador'} — artilheiro da competição.`,
-    stats:[{k:'GOLS',v:String(gols)},{k:'JOGOS',v:String(jogos)},{k:'MÉDIA',v:media}],
-    rodape:'Renove o contrato antes que apareça proposta.' };
+/* ===== A ARTILHARIA E DE UMA COMPETICAO, E NAO E SO A MINHA =====
+   Esta funcao tinha dois defeitos, e os dois faziam o modal quase nunca aparecer certo:
+
+     · LIA O POTE UNICO. `S.scorers` junta TODOS os gols da temporada — liga e as tres copas
+       misturadas. O argumento que ela recebia so trocava a palavra do titulo, entao a Copa do
+       Brasil, a Libertadores e a Sul-Americana mostrariam o MESMO jogador com o MESMO numero, e
+       esse numero era o total do ano, nao o da competicao. O motor ja carimbava cada gol na
+       competicao onde caiu (`S.scorersByComp`, ver recordScorers) — faltava ler.
+     · SO ABRIA SE O ARTILHEIRO FOSSE MEU. Havia um `return null` com o comentario "nao e meu:
+       sem modal". Como o artilheiro de um campeonato raramente e do meu clube, o modal
+       simplesmente nao abria na maioria das temporadas. E o mesmo defeito que ja tinha sido
+       corrigido no modal de CAMPEAO de copa (ver dadosCampeaoCopa, logo abaixo): a historia da
+       competicao fecha-se mesmo quando quem a fecha e outro.
+
+   Devolve o PODIO — os tres primeiros —, porque e isso que o modal mostra. */
+function dadosArtilheiro(comp){
+  const chave=comp||'liga';
+  const mapa=(S.scorersByComp&&S.scorersByComp[chave])||null;
+  /* save antigo, ou competicao sem gol ainda: sem mapa nao ha artilharia daquela competicao, e
+     inventar com o pote geral era exatamente o defeito. Melhor nao abrir modal nenhum. */
+  if(!mapa) return null;
+  const ord=Object.entries(mapa).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  if(!ord.length) return null;
+  const POS={GK:'goleiro',DEF:'zagueiro',MID:'meia',ATT:'atacante'};
+  const doNome=n=>{
+    const cid=(typeof findPlayerClub==='function')?findPlayerClub(n):null;
+    const p=cid?((S.squads&&S.squads[cid])||[]).find(x=>x.n===n):null;
+    return { cid, clube:(cid&&(typeof anyClubOf==='function')&&anyClubOf(cid))||null, p };
+  };
+  const podio=ord.map(([nome,gols],i)=>{
+    const d=doNome(nome);
+    return { pos:i+1, nome, gols, clubId:d.cid,
+      clube:(d.clube&&(d.clube.short||d.clube.name))||'—',
+      idade:d.p?d.p.age:null, setor:d.p?(POS[d.p.s]||'jogador'):null,
+      jogos:(d.p&&d.p.stats&&d.p.stats.apps)||0 };
+  });
+  const primeiro=podio[0];
+  const media=primeiro.jogos?(primeiro.gols/primeiro.jogos).toFixed(2).replace('.',','):'—';
+  const ehLiga=(chave==='liga');
+  const nomeComp = ehLiga
+    ? ((typeof classifDivName==='function')?classifDivName(S.division,S.intlUniverse):'Liga')
+    : (((typeof COMP_DEFS!=='undefined'&&COMP_DEFS[chave])||{}).name||chave);
+  return { comp:chave, ehLiga, nomeComp, podio,
+    titulo:'Artilharia — '+nomeComp,
+    kicker:'ARTILHEIRO '+(ehLiga?'DA ':'DA ')+String(nomeComp).toUpperCase(),
+    manchete:'Ele bateu todo mundo.',
+    trofeu: ehLiga ? S.division : chave,
+    linha:`${primeiro.nome}, ${primeiro.idade!=null?primeiro.idade+' anos, ':''}${primeiro.setor||'jogador'} — artilheiro da competição.`,
+    stats:[{k:'GOLS',v:String(primeiro.gols)},{k:'JOGOS',v:String(primeiro.jogos)},{k:'MÉDIA',v:media}],
+    rodape: (String(primeiro.clubId)===String(CL.clubId))
+      ? 'Renove o contrato antes que apareça proposta.'
+      : 'O artilheiro da competição jogou contra você nesta temporada.' };
 }
 /* ===== A FINAL DE CADA COPA TEM CERIMONIA, SEJA QUEM FOR O CAMPEAO =====
    Isto so devolvia dados quando o campeao era o clube do utilizador; nas outras
@@ -4952,7 +4999,9 @@ function enfileirarMomentosCopa(key){
     const d=dadosCampeaoCopa(key); if(!d) return;
     CL._momCopaVista[marca]=true;
     enfileirarMomento('campeao-copa', d);
-    const art=dadosArtilheiro('copa'); if(art) enfileirarMomento('marcador-copa', art);
+    /* A CHAVE DA COPA VAI JUNTO. Passava-se a palavra 'copa', que nao identifica competicao
+       nenhuma — as tres copas do save mostrariam a mesma artilharia. */
+    const art=dadosArtilheiro(key); if(art) enfileirarMomento('marcador-copa', art);
   }catch(e){ console.warn('momentos de copa:', e&&e.message); }
 }
 

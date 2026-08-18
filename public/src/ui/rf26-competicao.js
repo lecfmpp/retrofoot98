@@ -1649,3 +1649,109 @@ function rfTemporadaArquivoHTML(page, season){
     </div>`:''}
     <div class="rf-card"><span class="rf-note">Este é o registro gravado no fecho de ${escC(String(season))}. Para voltar ao que está acontecendo agora, toque em <b>Atual</b>.</span></div>`;
 }
+
+/* =====================================================================
+   ARTILHARIA DA COMPETIÇÃO — a tela do pacote (desktop + folha no telefone)
+   ---------------------------------------------------------------------
+   Entra logo depois do modal de campeão da MESMA competição (a fila de
+   momentos garante a ordem: campeão → artilheiro, um de cada vez).
+
+   VESTE A COMPETIÇÃO. O cabeçalho, o kicker e o troféu saem da chave que os
+   dados carregam — `rfCompInfo` devolve o tema, o nome e a arte de cada
+   competição, e é o mesmo tema que a rodada ao vivo, o Camarote e o cartão
+   dos Campeonatos já usam. Nada aqui é escrito para uma copa em particular.
+
+   O TELEFONE É A MESMA PEÇA, não outra tela: no desenho do pacote ele é a
+   mesma caixa ancorada em baixo, com os cantos de cima arredondados e as
+   medidas mais apertadas. Isso é uma media query, não um segundo modelo.
+   ===================================================================== */
+function rfArtSetorCurto(s){ return s||'jogador'; }
+function rfArtilheiroHTML(d){
+  const info=(typeof rfCompInfo==='function')?rfCompInfo(d.trofeu||d.comp):null;
+  const trof=(info&&typeof rfCompTrofeuHTML==='function')?rfCompTrofeuHTML(info,68):'';
+  const p1=d.podio[0], resto=d.podio.slice(1);
+  const crest=(clubId,tam)=>{ const c=(typeof anyClubOf==='function')?anyClubOf(clubId):null;
+    return c?rfCrest(c,tam):`<span class="rf-art2-semescudo" style="--s:${tam}px"></span>`; };
+  return `<div class="rf-art2" ${info?`data-tema="${escC(info.tema)}"`:''}>
+    <div class="rf-art2-hd">
+      <span class="rf-art2-hd-t">
+        <span class="rf-art2-k">ARTILHARIA · TEMPORADA ${escC(String(S.season||''))}</span>
+        <span class="rf-art2-n">${escC(d.titulo||('Artilharia — '+d.nomeComp))}</span>
+      </span>
+      <button type="button" class="rf-art2-x" title="Fechar" aria-label="Fechar"
+        onclick="rfArtilheiroFechar()">✕</button>
+    </div>
+    <div class="rf-art2-corpo">
+      <div class="rf-art2-video">
+        <span class="rf-art2-play">
+          <span class="rf-art2-play-b">▶</span>
+          <span class="rf-art2-play-l">VÍDEO DOS GOLS · 16:9</span>
+        </span>
+        <span class="rf-art2-shade"></span>
+        <span class="rf-art2-over">
+          <span class="rf-art2-ok">${escC(d.kicker||'')}</span>
+          <span class="rf-art2-manchete">${escC(d.manchete||'')}</span>
+        </span>
+        ${trof?`<span class="rf-art2-trofeu">${trof}</span>`:''}
+      </div>
+
+      <div class="rf-art2-primeiro">
+        <span class="rf-art2-pos">1</span>
+        ${crest(p1.clubId,34)}
+        <span class="rf-art2-id">
+          <span class="rf-art2-nome">${escC(p1.nome)}</span>
+          <span class="rf-art2-sub">${escC(p1.clube)}${p1.idade!=null?' · '+p1.idade+' anos':''} · ${escC(rfArtSetorCurto(p1.setor))}</span>
+        </span>
+        <span class="rf-art2-gols">
+          <span class="rf-art2-g">${p1.gols}</span>
+          <span class="rf-art2-gl">GOLS</span>
+        </span>
+      </div>
+
+      ${resto.length?`<div class="rf-art2-resto">${resto.map(x=>`<div class="rf-art2-linha">
+        <span class="rf-art2-i">${x.pos}</span>
+        ${crest(x.clubId,26)}
+        <span class="rf-art2-id">
+          <span class="rf-art2-nome2">${escC(x.nome)}</span>
+          <span class="rf-art2-sub2">${escC(x.clube)}</span>
+        </span>
+        <span class="rf-art2-g2">${x.gols}</span>
+      </div>`).join('')}</div>`:''}
+
+      <div class="rf-art2-cards">
+        ${(d.stats||[]).map(s=>`<div class="rf-art2-card">
+          <span class="rf-art2-ck">${escC(s.k)}</span>
+          <span class="rf-art2-cv">${escC(s.v)}</span>
+        </div>`).join('')}
+      </div>
+
+      <div class="rf-art2-pe">
+        <span class="rf-art2-nota">${escC(d.rodape||'')}</span>
+        <button type="button" class="rf-art2-b2" onclick="rfArtilheiroVerJogador()">⏩ Ver o jogador</button>
+        <button type="button" class="rf-art2-b1" onclick="rfArtilheiroFechar()">✔ Fechar</button>
+      </div>
+      ${(typeof rfAdEspaco==='function')?rfAdEspaco('rf98.artilharia.468x60',{cls:'rf-art2-ad',formato:'468×60'}):''}
+    </div>
+  </div>`;
+}
+/* abre por cima de tudo, como os outros momentos, e devolve `true` para quem chamou saber que a
+   tela própria assumiu (ver abrirMomento). */
+function rfArtilheiroAbrir(dados, aoFechar){
+  if(!dados || !dados.podio || !dados.podio.length) return false;
+  CL._art2={ dados, aoFechar:aoFechar||null };
+  if(typeof overlayC!=='function') return false;
+  overlayC(`<div class="rf-art2-wrap">${rfArtilheiroHTML(dados)}</div>`);
+  return true;
+}
+function rfArtilheiroFechar(){
+  const a=CL._art2; CL._art2=null; CL._momentoAtual=null;
+  if(typeof clCloseOverlay==='function') clCloseOverlay();
+  if(a && typeof a.aoFechar==='function') a.aoFechar();
+}
+/* "Ver o jogador" leva à ficha de quem foi artilheiro — no meu elenco ou no de outro clube. */
+function rfArtilheiroVerJogador(){
+  const a=CL._art2; const p=a&&a.dados&&a.dados.podio&&a.dados.podio[0];
+  rfArtilheiroFechar();
+  if(!p) return;
+  if(typeof rfMdVerJogador==='function') rfMdVerJogador(p.nome);
+}

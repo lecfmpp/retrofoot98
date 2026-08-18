@@ -7744,3 +7744,152 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   font-weight:700;font-size:15px;color:var(--text-1);
 }
 .rf-obr-rt span:last-child{ font-family:var(--font-mono,monospace);font-variant-numeric:tabular-nums; }
+
+/* =====================================================================
+   ARTILHARIA DA COMPETIÇÃO (ver rfArtilheiroHTML) — desenho do pacote.
+   A cor do cabeçalho vem do TEMA da competição (data-tema), a mesma que a
+   rodada ao vivo e o cartão dos Campeonatos já usam: nada aqui é escrito
+   para uma copa em particular.
+   O telefone é a MESMA peça ancorada em baixo, não outra tela — por isso é
+   media query e não um segundo modelo.
+   ===================================================================== */
+.rf-art2-wrap{ display:flex;align-items:center;justify-content:center;width:100%; }
+.rf-art2{
+  position:relative;width:600px;max-width:100%;
+  background:var(--surface-card);border-radius:18px;overflow:hidden;
+  box-shadow:0 40px 80px -30px rgba(6,14,9,.7);
+  display:flex;flex-direction:column;
+}
+.rf-art2-hd{
+  background:linear-gradient(100deg,var(--comp-escuro,#0e2f66),var(--comp-cor,#17458F) 62%);
+  padding:14px 18px 14px 24px;display:flex;align-items:center;gap:12px;position:relative;
+}
+.rf-art2-hd::before{ content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--club-secondary,#F2B90C); }
+.rf-art2-hd-t{ display:flex;flex-direction:column;gap:2px;min-width:0;flex:1; }
+.rf-art2-k{
+  font-family:var(--font-mono,monospace);font-size:9px;font-weight:600;letter-spacing:.14em;
+  color:rgba(255,255,255,.72);white-space:nowrap;
+}
+.rf-art2-n{
+  font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.rf-art2-x{
+  flex:0 0 auto;width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  border-radius:9px;border:0;background:transparent;cursor:pointer;
+  color:rgba(255,255,255,.72);font-size:14px;font-family:inherit;
+}
+.rf-art2-x:hover{ background:rgba(255,255,255,.12);color:#fff; }
+.rf-art2-corpo{ padding:18px;display:flex;flex-direction:column;gap:14px; }
+
+/* o vídeo dos gols */
+.rf-art2-video{
+  position:relative;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;
+  background:#0c0f0d;display:flex;align-items:center;justify-content:center;
+}
+.rf-art2-play{ display:flex;flex-direction:column;align-items:center;gap:9px; }
+.rf-art2-play-b{
+  width:56px;height:56px;border-radius:99px;border:1px solid rgba(255,255,255,.35);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;
+}
+.rf-art2-play-l{
+  font-family:var(--font-mono,monospace);font-size:9px;font-weight:600;letter-spacing:.14em;
+  color:rgba(255,255,255,.5);
+}
+.rf-art2-shade{
+  position:absolute;left:0;right:0;bottom:0;height:58%;pointer-events:none;
+  background:linear-gradient(180deg,rgba(8,20,13,0),rgba(8,20,13,.9));
+}
+.rf-art2-over{
+  position:absolute;left:16px;bottom:14px;display:flex;flex-direction:column;gap:4px;
+  max-width:70%;pointer-events:none;
+}
+.rf-art2-ok{
+  font-family:var(--font-mono,monospace);font-size:9px;font-weight:700;letter-spacing:.16em;
+  color:var(--club-secondary,#F2B90C);
+}
+.rf-art2-manchete{
+  font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:700;
+  font-size:27px;color:#fff;line-height:1.15;
+}
+.rf-art2-trofeu{
+  position:absolute;right:14px;bottom:14px;width:88px;height:88px;pointer-events:none;
+  background:rgba(8,20,13,.72);border:1px solid rgba(242,185,12,.55);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* o primeiro lugar, em destaque */
+.rf-art2-primeiro{
+  display:flex;align-items:center;gap:13px;min-width:0;
+  background:linear-gradient(100deg,#fff6dd,#fdeec0);
+  border:1px solid var(--club-secondary,#F2B90C);border-radius:14px;padding:13px 15px;
+}
+.rf-art2-pos{
+  flex:0 0 auto;width:22px;text-align:center;
+  font-family:var(--font-mono,monospace);font-size:24px;font-weight:600;color:#8a6b00;
+}
+.rf-art2-id{ flex:1;min-width:0;display:flex;flex-direction:column;gap:2px; }
+.rf-art2-nome{ font-size:16px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.rf-art2-sub{ font-size:12px;color:#8a6b00;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.rf-art2-gols{ flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:1px; }
+.rf-art2-g{ font-family:var(--font-mono,monospace);font-size:28px;font-weight:600;color:#12201a;line-height:1; }
+.rf-art2-gl{ font-family:var(--font-mono,monospace);font-size:9px;font-weight:700;letter-spacing:.12em;color:#8a6b00; }
+
+/* segundo e terceiro */
+.rf-art2-resto{ display:flex;flex-direction:column; }
+.rf-art2-linha{
+  display:grid;grid-template-columns:22px 26px minmax(0,1fr) 34px;gap:12px;align-items:center;
+  padding:9px 4px;border-top:1px solid var(--line-1);
+}
+.rf-art2-i{ font-family:var(--font-mono,monospace);font-size:12px;font-weight:600;color:var(--text-3);text-align:center; }
+.rf-art2-nome2{ font-size:13px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.rf-art2-sub2{ font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.rf-art2-g2{ font-family:var(--font-mono,monospace);font-size:15px;font-weight:600;color:var(--text-1);text-align:right; }
+.rf-art2-semescudo{ display:block;width:var(--s,26px);height:var(--s,26px); }
+
+/* os três números */
+.rf-art2-cards{ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px; }
+.rf-art2-card{
+  background:var(--surface-sunken);border:1px solid var(--line-2);border-radius:12px;
+  padding:11px 13px;display:flex;flex-direction:column;gap:3px;min-width:0;
+}
+.rf-art2-ck{ font-family:var(--font-mono,monospace);font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--text-3); }
+.rf-art2-cv{ font-family:var(--font-mono,monospace);font-size:19px;font-weight:600;color:var(--text-1); }
+
+/* rodapé */
+.rf-art2-pe{ display:flex;align-items:center;gap:9px;padding-top:2px; }
+.rf-art2-nota{ flex:1;min-width:0;font-size:12px;color:var(--text-3);line-height:1.5; }
+.rf-art2-b1,.rf-art2-b2{
+  flex:0 0 auto;height:42px;display:flex;align-items:center;justify-content:center;gap:7px;
+  border-radius:12px;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer;font-family:inherit;
+}
+.rf-art2-b2{ padding:0 16px;background:var(--surface-card);border:1px solid var(--line-2);color:var(--text-1); }
+.rf-art2-b2:hover{ background:var(--surface-sunken); }
+.rf-art2-b1{
+  padding:0 18px;font-weight:700;
+  background:var(--club-secondary,#F2B90C);border:1px solid var(--club-secondary,#F2B90C);
+  color:var(--club-primary,#17458F);
+}
+.rf-art2-ad{ width:100%; }
+
+/* ---- telefone: a mesma caixa, ancorada em baixo ---- */
+@media (max-width:560px){
+  .rf-art2-wrap{ align-items:flex-end;height:100%; }
+  .rf-art2{ width:100%;border-radius:20px 20px 0 0;box-shadow:0 -20px 60px -20px rgba(6,14,9,.75); }
+  .rf-art2-hd{ padding:12px 14px 12px 20px;gap:10px; }
+  .rf-art2-n{ font-size:15px; }
+  .rf-art2-corpo{ padding:12px 14px;gap:12px; }
+  .rf-art2-play-b{ width:48px;height:48px;font-size:16px; }
+  .rf-art2-manchete{ font-size:21px; }
+  .rf-art2-over{ left:13px;bottom:12px;max-width:74%; }
+  .rf-art2-trofeu{ right:11px;bottom:11px;width:62px;height:62px;border-radius:11px; }
+  .rf-art2-primeiro{ gap:11px;padding:12px 13px;border-radius:13px; }
+  .rf-art2-pos{ font-size:20px;width:18px; }
+  .rf-art2-nome{ font-size:15px; }
+  .rf-art2-sub{ font-size:11px; }
+  .rf-art2-g{ font-size:24px; }
+  /* o rodapé passa a duas linhas: a nota em cima, os botões lado a lado em baixo */
+  .rf-art2-pe{ flex-wrap:wrap; }
+  .rf-art2-nota{ flex:1 0 100%; }
+  .rf-art2-b2,.rf-art2-b1{ flex:1 1 0;height:44px; }
+}
