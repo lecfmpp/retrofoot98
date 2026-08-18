@@ -1242,17 +1242,51 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
   // MODO TESTE (TESTING_FREE_DIVISION_PICK, ui/main.js): a divisão real desta sala pode não ser D
   // (anfitrião escolheu outra em scSalaHost) — divisionOfResenhaClub deriva do PRÓPRIO clube já
   // confirmado (me.clubId), então funciona igual pro anfitrião e pra qualquer convidado.
-  if(typeof setUniverse==='function') setUniverse('brasil');
-  const startDiv = (typeof divisionOfResenhaClub==='function') ? divisionOfResenhaClub(me.clubId) : ((typeof RESENHA_START_DIV!=='undefined') ? RESENHA_START_DIV : 'D');
-  const startClubs = (typeof resenhaStartClubs==='function' && resenhaStartClubs(startDiv).length) ? resenhaStartClubs(startDiv) : ((DATA.clubsSerieA||DATA.clubs)||[]);
+  /* ===== O PAÍS DA SALA SAI DO CLUBE, NÃO DE UM LITERAL =====
+     Isto dizia `setUniverse('brasil')` e `CL.bgCountries=[]` — as duas linhas que prendiam a
+     Resenha ao Brasil. O país agora vem do PRÓPRIO clube deste assento (universoDoClube), pelo
+     mesmo caminho que a divisão já usava (divisionOfResenhaClub): a sala não guarda o país em
+     lugar nenhum, e por isso ele nunca pode divergir do clube que foi de facto sorteado.
+
+     E os OUTROS países da sala não são fundo decorativo: pela regra do dono do jogo (18/08), um
+     país com humano é jogável por inteiro. `CL.bgCountries` recebe os países dos outros assentos
+     — é o que faz as ligas deles existirem neste cliente, para as tabelas, o mercado entre países
+     e as propostas a treinador.
+
+     `S.intlUniverse` é escrito logo após newGame porque é ELE que viaja no shared_state e é por
+     ele que o SERVIDOR sabe em que país a sala corre (WORLD_CONFIG.uniDoEstado). Sem isso o
+     resolve-round trataria uma sala inglesa como brasileira — a pirâmide, as copas e as cotas
+     todas erradas, e ninguém daria por isso até a virada de temporada. */
+  const uniDaSala = (typeof universoDoClube==='function') ? universoDoClube(me.clubId) : 'brasil';
+  if(typeof setUniverse==='function') setUniverse(uniDaSala);
+  const startDiv = (typeof divisionOfResenhaClub==='function' && uniDaSala==='brasil')
+    ? divisionOfResenhaClub(me.clubId)
+    : ((typeof DIV_ORDER!=='undefined' && DIV_ORDER.length) ? DIV_ORDER[DIV_ORDER.length-1]
+       : ((typeof RESENHA_START_DIV!=='undefined') ? RESENHA_START_DIV : 'D'));
+  const startClubs = (typeof clubesDoUniverso==='function' && clubesDoUniverso(uniDaSala, startDiv).length)
+    ? clubesDoUniverso(uniDaSala, startDiv)
+    : ((DATA.clubsSerieA||DATA.clubs)||[]);
   DATA.clubs = startClubs.slice();
-  CL.intlUniverse=false; CL.bgCountries=[]; CL.playCountry='Brasil';
+  /* os países dos OUTROS assentos — cada um deles é um país jogável desta sala */
+  const paisesDaSala=new Set();
+  (room.participants||[]).forEach(p=>{ if(p && p.clubId && typeof universoDoClube==='function')
+    paisesDaSala.add(universoDoClube(p.clubId)); });
+  const nomeDoPais=(k)=>(k==='brasil') ? 'Brasil'
+    : (((typeof UNI_CONFIGS!=='undefined' && UNI_CONFIGS[k] && UNI_CONFIGS[k].country)) || k);
+  CL.intlUniverse = (uniDaSala==='brasil') ? false : uniDaSala;
+  CL.bgCountries = [...paisesDaSala].filter(k=>k!==uniDaSala).map(nomeDoPais);
+  CL.playCountry = nomeDoPais(uniDaSala);
   CL.clubId=me.clubId; CL.mgr=me.name||CL.mgr; // clube SEMPRE do próprio assento (guardado acima)
   // SEED: games.seed é um bigint enorme; passar direto pra newGame trunca de formas diferentes por
   // cliente (e >>>0 podia dar 0, caindo no Math.random -> competições paralelas). Derivo um seed
   // 32-bit ESTÁVEL e NÃO-ZERO da string do games.seed (FNV-1a) — igual em todos os clientes.
   const seed32=resenhaSeed32(room.seed);
   newGame(CL.clubId, startDiv, undefined, seed32); if(!S.stadium) S.stadium={capacity:STAND_START}; // seed compartilhada -> mesma competição p/ todos
+  /* O PAÍS VIAJA NO ESTADO COMPARTILHADO. É por aqui que o servidor descobre a pirâmide, as copas
+     e as cotas desta sala (ver aplicarUniverso no resolve-round). `false` = Brasil, que é o que
+     toda sala criada até agora é — retrocompatível por construção. */
+  S.intlUniverse = (uniDaSala==='brasil') ? false : uniDaSala;
+  if(CL.bgCountries && CL.bgCountries.length) S.bgCountries=CL.bgCountries.slice();
   CL.humans={}; room.participants.forEach(p=>{ if(p.clubId) CL.humans[p.clubId]=p.name; });
   CL.online=true; CL._playedRound=null; CL._hostPendingCommit=null; CL._hostCloseSince=0; // zera controle de rodada do save novo
   CL.formation=null; CL.tacticChosen=false; S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];

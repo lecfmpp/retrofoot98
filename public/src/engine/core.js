@@ -3863,7 +3863,29 @@ function resenhaOfferClubs(){
   const upDiv = myIdx>0 ? DIV_ORDER[myIdx-1] : null;
   const up = upDiv ? livres((S.otherDivs&&S.otherDivs[upDiv]&&S.otherDivs[upDiv].clubs)||[], upDiv)
     .sort((a,b)=>a.ov-b.ov).slice(0,6) : [];
-  return {same, up};
+  /* ===== CONVITE DE FORA DO PAÍS =====
+     Esta lista só olhava o país primário — DATA.clubs (a minha divisão) e S.otherDivs. Numa sala
+     com países misturados isso quer dizer que um treinador brasileiro nunca seria sondado por um
+     clube inglês, por melhor que fosse a campanha dele: o mundo existia e as propostas não.
+     Agora entram também os clubes das ligas dos OUTROS países da sala (S.bgLeagues), com o mesmo
+     critério de sempre — melhores que o meu, mas não absurdamente melhores.
+     A troca em si já é resolvida por applyManagerJobChange, que sabe mudar de universo no meio da
+     temporada (o país antigo vira liga de fundo e o novo sai dela). */
+  const fora=[];
+  const bg=S.bgLeagues||{};
+  Object.keys(bg).forEach(pais=>{
+    const divs=(bg[pais]&&bg[pais].divs)||{};
+    Object.keys(divs).forEach(d=>{
+      (divs[d].clubIds||[]).forEach(id=>{
+        if(humans.has(id)) return;
+        const c=(typeof bgClubById==='function')?bgClubById(id):null; if(!c) return;
+        const ov=(typeof anyClubOverall==='function')?anyClubOverall(id,c):(c.overall||70);
+        if(ov>cur+2 && ov<=cur+18) fora.push({clubId:id, division:d, ov, country:pais});
+      });
+    });
+  });
+  fora.sort((a,b)=>a.ov-b.ov);
+  return {same, up, fora:fora.slice(0,6)};
 }
 /* UMA troca de clube a cada DUAS temporadas: o treinador de sucesso muda de ares, mas não escala
    quatro divisões em quatro temporadas. Vale só pra mudança VOLUNTÁRIA (sondagem aceita) — quem
@@ -3904,17 +3926,24 @@ function tickResenhaCareer(){
     const R=makeRng(hashSeed(S.seed,S.season,S.round,'resenha-joboffer',S.clubId));
     const extra=(S.jobSecurity>=90)?0.02:0;
     if(R.random()<(0.06+extra)){
-      const {same,up}=resenhaOfferClubs();
-      // 25% das vezes a sondagem vem da divisão de cima (quando existe); se não há ninguém
-      // elegível na mesma divisão, o convite de cima é o único caminho.
-      const pool = (up.length && (R.random()<0.25 || !same.length)) ? up : same;
+      const {same,up,fora}=resenhaOfferClubs();
+      /* 25% das vezes a sondagem vem da divisão de cima (quando existe); se não há ninguém
+         elegível na mesma divisão, o convite de cima é o único caminho.
+         E 15% vem de FORA DO PAÍS, quando há sala com mais de um país — é o convite internacional
+         a um treinador humano. Fica atrás dos outros dois de propósito: mudar de país é a decisão
+         mais pesada da carreira, e não deve ser a mais frequente. */
+      const deFora=(fora&&fora.length && R.random()<0.15) ? fora : null;
+      const pool = deFora || ((up.length && (R.random()<0.25 || !same.length)) ? up : same);
       if(pool.length){
         const pick=pool[Math.floor(R.random()*pool.length)];
-        const offer={clubId:pick.clubId, division:pick.division,
+        const offer={clubId:pick.clubId, division:pick.division, country:pick.country||null,
           salary:proposedCoachSalary(pick.clubId, S.clubId)};   // ver proposedCoachSalary
         CL._pendingResenhaOffer=offer;
         S.roundNews=S.roundNews||[];
-        S.roundNews.push(`🤝 Sondagem do ${(clubOf(pick.clubId)||{short:'outro clube'}).short}: eles querem você como treinador.`);
+        const nomeClube=((typeof clubOf==='function'&&clubOf(pick.clubId))||(typeof bgClubById==='function'&&bgClubById(pick.clubId))||{short:'outro clube'}).short;
+        S.roundNews.push(pick.country
+          ? `🌍 Sondagem do ${nomeClube} (${pick.country}): querem você para treinar lá fora.`
+          : `🤝 Sondagem do ${nomeClube}: eles querem você como treinador.`);
         return {kind:'offer', offer};
       }
     }
