@@ -258,7 +258,7 @@ function rfCampoTeatroHTML(){
         <span class="rf-teatro-dica">Arraste um titular para o banco para o substituir.</span>
         <button type="button" class="rf-btn rf-btn-secondary" onclick="rfCampoFechar();rfIrEscolherTatica()">
           ${rfIcone('estrategia',16)} Escolher formação</button>
-        <button type="button" class="rf-btn rf-btn-primary rf-teatro-jogar ${pronto?'rf-btn-pulse':''}"
+        <button type="button" class="rf-btn rf-btn-primary rf-teatro-jogar ${(typeof rfJogarClasse==='function')?rfJogarClasse():''} ${pronto?'rf-btn-pulse':''}"
           onclick="rfCampoJogar()">${rfJogarLabel()}</button>
       </div>
     </div>

@@ -447,7 +447,7 @@ function rfSidebarHTML(){
      por isso o solo continuava a andar por ali.)
      O CARTAO continua a depender do jogo, que e do que ele fala. O BOTAO passa a estar sempre,
      porque a acao existe sempre: `rfJogarLabel` ja sabe dizer o que ela e hoje. */
-  const acaoJogar = `<button type="button" class="rf-btn rf-btn-primary rf-btn-full ${pronto?'rf-btn-pulse':''}"
+  const acaoJogar = `<button type="button" class="rf-btn rf-btn-primary rf-btn-full ${rfJogarClasse()} ${pronto?'rf-btn-pulse':''}"
         ${(pronto||rfFaltaTatica())?'':'disabled'}
         title="${pronto?'Jogar':rfFaltaTatica()?'Escolha a tática para liberar o Jogar':'Escale onze jogadores, com um goleiro'}"
         onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
@@ -727,6 +727,20 @@ function rfProximaAcao(){
   }catch(e){ return R('jogar','jogar','Jogar'); }
 }
 function rfJogarLabel(){ return rfProximaAcao().rotulo; }
+/* ===== VERDE QUER DIZER "PODE ENTRAR EM CAMPO" =====
+   O botão era sempre azul, dissesse ele "Escolher formação", "Ver o sorteio" ou "Jogar" — a cor
+   não distinguia o passo que ainda falta cumprir do passo que É a partida. Verde fica reservado
+   aos dois estados em que o clique leva mesmo a jogo: entrar em campo, e o "estou pronto" da
+   Resenha já carimbado (aí a sala é que segura, não eu).
+   `pronto` é o portão de sempre: onze completo, um goleiro, tática escolhida. */
+const RF_PASSOS_DE_JOGO=['jogar','copa','marcarpronto','pronto'];
+function rfJogarClasse(){
+  const a=rfProximaAcao();
+  if(RF_PASSOS_DE_JOGO.indexOf(a.k)<0) return '';
+  const xi=(typeof xiPlayers==='function')?xiPlayers(CL.clubId):[];
+  const pronto = xi.length>=11 && CL.tacticChosen && (typeof xiGKCount==='function'?xiGKCount(xi)===1:true);
+  return pronto ? 'rf-btn-pronto' : '';
+}
 function rfIrEscolherTatica(){
   /* No telefone o Hub tem abas, e o bloco de formações vive na aba "Formação".
      Sem trocar de aba primeiro, o destino está com `display:none` e a rolagem
@@ -976,7 +990,7 @@ function rfHubHTML(){
       <div class="rf-acts rf-acts-2">
         ${btn('Seleccionar descansados','clSelectRested()',{icon:rfIcone('energia',16)+'',dis:!CL.tacticChosen,
           title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
-        <button type="button" class="rf-btn rf-btn-cta rf-acts-jogar"
+        <button type="button" class="rf-btn rf-btn-cta rf-acts-jogar ${rfJogarClasse()}"
           ${(rfFaltaTatica()||xiPlayers(CL.clubId).length>=11)?'':'disabled'}
           onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
       </div>
@@ -1663,7 +1677,7 @@ function rfBottomNavHTML(){
     <!-- Sem tática escolhida o botão NÃO fica morto: vira "Formação" e leva ao
          bloco de formações, igual ao da barra lateral no desktop. Ficava
          desabilitado sem dizer o que faltava nem para onde ir. -->
-    <button type="button" class="rf-bn-jogar ${pronto?'rf-btn-pulse':''}"
+    <button type="button" class="rf-bn-jogar ${rfJogarClasse()} ${pronto?'rf-btn-pulse':''}"
       ${(pronto||rfFaltaTatica())?'':'disabled'}
       onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
   </nav>`;

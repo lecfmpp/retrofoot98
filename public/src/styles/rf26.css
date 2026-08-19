@@ -8030,3 +8030,59 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   .rf-campo-ampliar{ display:none; }
 }
 
+
+/* =====================================================================
+   A SALA E AS CERIMÓNIAS SÃO DO JOGO, NÃO DO CLUBE
+   ---------------------------------------------------------------------
+   Regra do dono do jogo: o modal de espera da sala e os de celebração usam a
+   identidade do site — azul e amarelo —, nunca as cores do clube. Um clube
+   vermelho pintava de vermelho a tela da SALA, que não é de ninguém; num clube
+   de segunda cor branca o botão desaparecia no fundo.
+
+   A correção é num sítio só: dentro destes modais os tokens do CLUBE passam a
+   apontar para os da MARCA. Assim nenhum filho precisa de saber da regra —
+   botão, filete, faixa e realce continuam a ler `--club-*` como sempre, e o
+   que muda é o que esse nome vale ali dentro. É também à prova do futuro: uma
+   peça nova posta nestes modais nasce já com a cor certa.
+
+   `clubTheme()` escreve os `--club-*` no elemento do jogo em tempo de
+   execução (ver main.js); estas regras são mais específicas e vencem-nas
+   dentro do seu alcance, sem tocar no resto da tela.
+   ===================================================================== */
+.rf-dlg-marca,
+.cl-esp,            /* "a sala está esperando por você" */
+.cl-mom,            /* momentos: título, artilheiro, acesso, queda, crise */
+.rf-art2,           /* artilharia da competição */
+.rf-teatro{         /* o palco do campo: é tela do jogo, não do clube */
+  --club-primary:var(--brand-primary);
+  --club-primary-deep:var(--brand-primary-deep);
+  --club-primary-soft:#e9eff8;
+  --club-primary-line:#d6e1f1;
+  --club-secondary:var(--brand-secondary);
+  --club-secondary-hover:#ffcb2e;
+  --club-on-primary:#ffffff;
+  --club-on-secondary:var(--brand-primary);
+}
+
+/* VERDE = PODE ENTRAR EM CAMPO (ver rfJogarClasse). Reservado aos passos em que o clique leva
+   mesmo a jogo; em "Escolher formação", "Ver o sorteio" ou "Ver classificação" o botão fica na
+   cor de sempre, porque ali ainda falta cumprir alguma coisa antes da partida.
+
+   O `!important` NÃO é preguiça: o amarelo da barra lateral já o traz, e por bom motivo — ele
+   existe para o botão do jogo não ser pintado pela cor do clube. O verde é uma EXCEÇÃO de estado
+   a essa defesa, então precisa do mesmo peso e de vir depois. Sem isto a classe entrava e a cor
+   não mudava — foi o que medi. */
+.rf-btn.rf-btn-pronto,
+.rf-bn-jogar.rf-btn-pronto{
+  background:var(--ok,#2e7d32) !important;
+  border-color:var(--ok,#2e7d32) !important;
+  color:#fff !important;
+}
+.rf-btn.rf-btn-pronto:hover:not(:disabled),
+.rf-bn-jogar.rf-btn-pronto:hover:not(:disabled){ filter:brightness(1.1); }
+/* o halo do "pulse" é amarelo por padrão; num botão verde ele destoava */
+.rf-btn-pronto.rf-btn-pulse:not(:disabled){ animation:rf-pulse-ok 2.4s var(--ease) infinite; }
+@keyframes rf-pulse-ok{
+  0%,100%{ box-shadow:0 0 0 0 rgba(47,191,95,.55); }
+  50%    { box-shadow:0 0 0 10px rgba(47,191,95,0); }
+}
