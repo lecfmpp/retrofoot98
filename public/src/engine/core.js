@@ -3956,7 +3956,7 @@ function checkManagerJobEvent(){
   // incrementar contador de rodadas desde demissão
   if(S.roundsSinceFired!==null) S.roundsSinceFired++;
   // remover ofertas expiradas (>5 rodadas)
-  S.pendingJobOffers = (S.pendingJobOffers||[]).filter(o=>(o.roundOfferred||0)+5>=S.round);
+  S.pendingJobOffers = (S.pendingJobOffers||[]).filter(o=>(o.roundOfferred||0)+PRAZO_OFERTA>=S.round);
 
   const R=makeRng(hashSeed(S.seed,S.season,S.round,'jobevent-roll'));
   if(S.jobSecurity<=15){
@@ -4122,8 +4122,15 @@ function resenhaCanMoveClub(){
   if(S.lastClubChangeSeason==null) return true;
   return ((S.season||1) - S.lastClubChangeSeason) >= 2;
 }
+/* quantas jornadas um convite fica de pe. E o mesmo prazo do solo (ver checkManagerJobEvent),
+   agora com nome — o numero estava escrito a mao nos dois sitios. */
+const PRAZO_OFERTA=5;
 function tickResenhaCareer(){
   if(typeof CL==='undefined' || !CL.online || !S) return null;
+  /* CADUCAR TAMBEM VALE NA SALA. A limpeza morava no `checkManagerJobEvent`, que sai logo
+     quando `CL.online` — na Resenha os convites nunca expiravam. */
+  if(Array.isArray(S.pendingJobOffers))
+    S.pendingJobOffers=S.pendingJobOffers.filter(o=>((o&&o.roundOfferred)||0)+PRAZO_OFERTA>=(S.round||0));
   if((S.round||0)<5 && !CL.unemployed) return null;   // dá um tempo antes de qualquer demissão
   if(CL.unemployed){
     CL._unempRounds=(CL._unempRounds||0)+1;            // conta rodadas assistindo
@@ -4165,8 +4172,18 @@ function tickResenhaCareer(){
       if(pool.length){
         const pick=pool[Math.floor(R.random()*pool.length)];
         const offer={clubId:pick.clubId, division:pick.division, country:pick.country||null,
-          salary:proposedCoachSalary(pick.clubId, S.clubId)};   // ver proposedCoachSalary
+          salary:proposedCoachSalary(pick.clubId, S.clubId),    // ver proposedCoachSalary
+          roundOfferred:S.round, _resenha:true};
         CL._pendingResenhaOffer=offer;
+        /* ===== O CONVITE FICA EM CIMA DA MESA =====
+           Ele vivia so em `CL._pendingResenhaOffer`, em memoria: fechar a janela ou recarregar a
+           pagina apagava-o, e o treinador ficava sem forma de voltar a ele. Agora entra na CAIXA
+           DE OFERTAS (`S.pendingJobOffers`), que e por assento — esta em CAREER_KEYS e viaja em
+           `game_seats.career` —, aparece na pagina Treinador > Ofertas, e sobrevive ao fecho da
+           janela e a recarga. Continua a caducar: PRAZO_OFERTA rodadas depois de chegar. */
+        S.pendingJobOffers=S.pendingJobOffers||[];
+        if(!S.pendingJobOffers.some(x=>x && x.clubId===offer.clubId))
+          S.pendingJobOffers.push(offer);
         S.roundNews=S.roundNews||[];
         const nomeClube=((typeof clubOf==='function'&&clubOf(pick.clubId))||(typeof bgClubById==='function'&&bgClubById(pick.clubId))||{short:'outro clube'}).short;
         S.roundNews.push(pick.country

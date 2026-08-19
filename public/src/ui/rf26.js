@@ -300,8 +300,6 @@ function rfFormaHTML(){
 /* faixa do clube — o cabeçalho de TODAS as páginas */
 function rfBandHTML(titulo){
   const cl=clubOf(CL.clubId)||{short:'—'};
-  const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
-  const apito=nm&&typeof shortMatchDate==='function'?shortMatchDate(nm):'';
   return `<div class="rf-band">
     <div class="rf-band-filete"></div>
     <div class="rf-band-crest">${rfCrest(cl,38)}</div>
@@ -328,13 +326,13 @@ function rfBandHTML(titulo){
       <span class="rf-band-sl">Forma</span>
       ${rfFormaHTML()}
     </div>
-    <div class="rf-band-stat end">
-      <!-- O pacote escreve QUANTO FALTA ("2d 14h"), não a data do jogo: quem abre o
-           painel quer saber se dá tempo de mexer no time, e uma data exige contar de
-           cabeça. A data continua no card de Próximo jogo, na barra lateral. -->
-      <span class="rf-band-sl">Apito inicial${rfApitoFalta()?' em':''}</span>
-      <span class="rf-band-sv rf-num">${escC(rfApitoFalta()||apito||'—')}</span>
-    </div>
+    <!-- ===== UMA DATA SÓ NA FAIXA =====
+         Havia duas: os chips da esquerda (o dia da jornada) e este bloco, que ora mostrava
+         quanto falta para o apito ("2d 14h") ora a data do jogo. Duas datas lado a lado, uma
+         delas às vezes contagem e às vezes data, e nem sempre a falar do mesmo dia — o
+         resultado era confusão, e foi o relatado. Fica a data do DIA em que o jogo está, nos
+         chips; o quanto falta continua no cartão de Próximo jogo, na barra lateral, onde tem
+         o contexto do jogo ao lado. -->
     <button type="button" class="rf-band-gravar" onclick="rfAcGravar()"
       title="Gravar o jogo agora">${rfIcone('salvar',15)} Gravar</button>
     ${rfBandContaHTML()}
@@ -355,10 +353,16 @@ function rfBandHTML(titulo){
 function rfBandDataHTML(){
   /* A DATA DA JORNADA, nao o S.day cru. S.day e o INICIO da semana (1/mar na
      jornada 0) e o jogo e no fim dela (7/mar) — o chip dizia um dia e o
-     calendario outro, para a mesma rodada. Agora os dois saem da mesma conta. */
+     calendario outro, para a mesma rodada. Agora os dois saem da mesma conta.
+
+     E A COMPETICAO DO DIA MANDA NA DATA. Uma jornada tem ate tres dias (dois de meio de semana
+     e o fim de semana), e datar sempre pelo dia de LIGA fazia a faixa anunciar sabado enquanto
+     a sala jogava a copa de quarta. Com o ponteiro, a data e a do dia que esta a acontecer. */
   let dia='';
   try{
-    if(typeof dataCurtaDaJornada==='function') dia=dataCurtaDaJornada(S.round||0,'liga');
+    const d=(typeof roomDay==='function')?roomDay():null;
+    const comp=(d && d.comp) ? d.comp : 'liga';
+    if(typeof dataCurtaDaJornada==='function') dia=dataCurtaDaJornada(S.round||0, comp);
   }catch(e){}
   return `${dia?`<span class="rf-band-chip rf-num">${escC(dia)}</span>`:''}
     <span class="rf-band-chip rf-num">${escC(String(S.season||''))}</span>`;
@@ -391,22 +395,6 @@ function rfFaixaEstadoHTML(){
     <span class="rf-fx-moral">MORAL ${moral}</span>
     ${janela?'<i class="rf-fx-sep"></i>'+janela:''}
   </div>`;
-}
-/* QUANTO FALTA para a próxima rodada, no formato do pacote: "2d 14h", "14h 30m".
-   SÓ EXISTE NA RESENHA. Ali a sala tem ritmo (uma rodada por dia, por exemplo) e um
-   prazo de verdade correndo — `NET.room.deadline`. No Modo Solo não há relógio: o
-   jogo é por turnos e a próxima partida acontece quando o treinador mandar. Por isso
-   a faixa cai para a DATA do jogo quando não há prazo, em vez de inventar uma
-   contagem que não existe. */
-function rfApitoFalta(){
-  const dl=(typeof NET!=='undefined'&&NET.room)?NET.room.deadline:0;
-  if(!dl) return '';
-  const ms=dl-Date.now();
-  if(!isFinite(ms)||ms<=0) return '';
-  const min=Math.floor(ms/60000), h=Math.floor(min/60), d=Math.floor(h/24);
-  if(d>0) return d+'d '+(h%24)+'h';
-  if(h>0) return h+'h '+(min%60)+'m';
-  return Math.max(1,min)+'m';
 }
 
 /* sidebar: 216px → 62px, sete destinos, o "próximo jogo" ancorado no pé */

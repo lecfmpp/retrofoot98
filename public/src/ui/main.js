@@ -2895,7 +2895,12 @@ function showJobInvite(offer){
       </div>
     </div>`, {w:900, bodyClass:'cl-body-green'}));
 }
-function clJobInviteAccept(){ clCloseOverlay(); showJobProposal(); }
+function clJobInviteAccept(){
+  /* guarda a oferta em mesa: o fluxo tem duas telas (jantar -> proposta) e o `CL._jobOffer` e
+     limpo pelo caminho. Ver clAcceptResenhaOffer, que a usa como rede. */
+  CL._ofertaEmMesa=CL._jobOffer||CL._ofertaEmMesa||null;
+  clCloseOverlay(); showJobProposal();
+}
 function clJobInviteDecline(){ showJobDeclined('Você agradeceu o convite e seguiu em frente.'); }
 function showJobProposal(){
   const o=CL._jobOffer; if(!o) return;
@@ -2964,6 +2969,11 @@ function showJobDeclined(msg){
   CL._jobOffer=null;
   // Resenha: recusar também limpa a pendência da sala (e o demitido volta pra fila de convites)
   if(o && o._resenha){ CL._pendingResenhaOffer=null; if(CL.unemployed) CL._unempRounds=0; }
+  CL._ofertaEmMesa=null;   // recusou: a mesa fica limpa (ver clAcceptResenhaOffer)
+  /* recusar tira o convite da caixa: ele nao pode ficar na pagina Treinador depois de recusado */
+  if(o && o.clubId && Array.isArray(S.pendingJobOffers))
+    S.pendingJobOffers=S.pendingJobOffers.filter(x=>x.clubId!==o.clubId);
+  if(typeof persistCareer==='function') persistCareer();
   overlayC(dlg('Convite recusado', `<div class="cl-res">
     <div class="cl-res-verd" style="text-align:left">✓ ${escC(msg)} O ${escC(c.short)} foi informado${semClube?' e você segue sem clube, esperando outro convite.':` e você continua no comando do ${escC(me.short)}.`}</div>
     <div class="cl-cal-ok">${btn('Voltar ao jogo','clCloseOverlay()',{icon:'↩',cls:'cl-btn-ok'})}</div>
@@ -8747,7 +8757,19 @@ async function onlineAdoptServerRound(RL){
     CL._adoptedVer=(typeof NET!=='undefined' && NET._loadedVersion)||CL._adoptedVer||0; // versão do estado que acabei de adotar
     if(saved && saved.S){
       const oldSeason = S.season||0;
-      isTurnover = (saved.S.season||0) > oldSeason; // VIRADA de temporada (rodada volta a 0)
+      /* ===== A VIRADA E "AINDA NAO VI ESTA TEMPORADA", NAO "O NUMERO ACABOU DE MUDAR" =====
+         `season > oldSeason` so e verdade para quem estiver a olhar no INSTANTE em que o numero
+         muda. Basta o estado novo ter sido adotado por outro caminho antes deste — e ha varios
+         (o reconcile, o watch da jornada sem liga, uma sincronia manual) — para este teste dar
+         falso e a tela de fim de temporada nunca aparecer. Foi o relatado pelo anfitriao a
+         19/08/2026: a temporada virou e ele nao viu nada.
+         O carimbo e por cliente e por temporada, entao a tela aparece uma vez e so uma. */
+      const novaTemporada=(saved.S.season||0);
+      /* a primeira adocao ANCORA no que eu ja tinha, em vez de disparar: sem isto, entrar numa
+         sala a meio da temporada mostrava a tela de fim de temporada logo a chegada. */
+      if(CL._fimTemporadaVisto==null) CL._fimTemporadaVisto=oldSeason;
+      isTurnover = novaTemporada>CL._fimTemporadaVisto;
+      if(isTurnover) CL._fimTemporadaVisto=novaTemporada;
       const _career=(typeof snapshotCareer==='function')?snapshotCareer():null; // carreira é minha, não do anfitrião (ver CAREER_KEYS)
       Object.assign(S, saved.S);
       if(typeof restoreCareer==='function') restoreCareer(_career);
@@ -9302,18 +9324,41 @@ function cupOrderForRound(round){
    e ainda nao foi celebrado nesta temporada -> entra na fila.
    O carimbo vive no SAVE (nao em CL): recarregar a pagina nao pode fazer a
    cerimonia repetir, nem sumir. */
+/* ===== A TACA E A ARTILHARIA SAO DE CADA TREINADOR =====
+   O carimbo de "esta copa ja foi celebrada" vivia em `S._copaCelebrada` — o estado
+   COMPARTILHADO. Numa sala isso quer dizer que o PRIMEIRO cliente a chegar aqui carimba a
+   competicao para toda a gente, e os outros nunca veem a taca nem o artilheiro. Foi o relatado a
+   19/08/2026: "o modal de artilheiro so apareceu para o anfitriao", e "apareceu em momentos
+   diferentes para cada um" — porque cada um chegava aqui na sua hora e so o primeiro passava.
+
+   E o mesmo defeito do sorteio, no mesmo dia e pela mesma razao: cerimonia e UI, e UI nao viaja
+   no mundo. A marca passa para o registo POR CLIENTE (localStorage por sala+temporada, o mesmo
+   `rememberDrawSeen`/`drawAlreadySeen` dos sorteios), com um prefixo proprio.
+
+   O titulo na carreira anda junto e tambem esta certo assim: a carreira e do ASSENTO, entao cada
+   cliente tem de registar o seu — com o carimbo no mundo, quem chegasse depois ficava sem a taca
+   na estante. */
+function tacaJaCelebradaPorMim(marca){
+  const m='taca:'+marca;
+  if((CL._copaCelebrada||{})[m]) return true;
+  return (typeof drawAlreadySeen==='function') && drawAlreadySeen(m);
+}
+function marcarTacaCelebradaPorMim(marca){
+  const m='taca:'+marca;
+  CL._copaCelebrada=CL._copaCelebrada||{}; CL._copaCelebrada[m]=true;
+  if(typeof rememberDrawSeen==='function') rememberDrawSeen(m);
+}
 function celebrarCopasDecididas(){
   try{
     if(!S || !S.cups || typeof enfileirarMomentosCopa!=='function') return 0;
-    S._copaCelebrada=S._copaCelebrada||{};
     let n=0;
     (typeof allCupKeys==='function'?allCupKeys():Object.keys(S.cups)).forEach(k=>{
       const c=S.cups[k]; if(!c) return;
       const b=(c.champion!==undefined)?c:c.bracket;
       if(!b || b.champion==null) return;
       const marca=k+':'+(S.season||1);
-      if(S._copaCelebrada[marca]) return;
-      S._copaCelebrada[marca]=true;
+      if(tacaJaCelebradaPorMim(marca)) return;
+      marcarTacaCelebradaPorMim(marca);
       /* O TITULO ENTRA NA CARREIRA NA HORA, nao no fim da temporada. Uma taca ganha em maio
          ficava invisivel na Sala, na Carreira e na Historia ate a temporada fechar. */
       try{ if(String(b.champion)===String(CL.clubId) && typeof coachSpellTitulo==='function'){
@@ -10085,13 +10130,26 @@ function showResenhaOffer(offer){
   showJobInvite(offer);
 }
 function clAcceptResenhaOffer(){
-  const offer=CL._pendingResenhaOffer; if(!offer){ clCloseOverlay(); return; }
+  /* ===== A OFERTA QUE ESTA NA TELA VALE COMO REDE =====
+     `CL._pendingResenhaOffer` vive so em memoria: recarregar a pagina (ou uma sincronia da sala,
+     que recarrega) apaga-o. Quem tivesse o convite aberto carregava em "Aceitar" e o codigo saia
+     por aqui em silencio — o modal fechava e nada acontecia. Era o relatado a 19/08/2026.
+     A oferta que o jantar esta a mostrar (`CL._jobOffer`) e a mesma coisa e nao se perde entre
+     as duas telas do fluxo, entao serve de segunda fonte. */
+  const offer=CL._pendingResenhaOffer || CL._jobOffer || CL._ofertaEmMesa;
+  if(!offer || !offer.clubId){
+    console.warn('aceitar convite da sala: nao ha oferta em memoria — o modal fecha sem trocar de clube');
+    toastC('Esse convite expirou. Espere a próxima sondagem.','warn');
+    clCloseOverlay(); return;
+  }
+  CL._pendingResenhaOffer=offer;
   if(typeof NET==='undefined' || !NET.setMyClub){ toastC('Recurso indisponível.'); return; }
   const from = CL.unemployed ? CL._firedFrom : CL.clubId; // sondagem aceita por quem está empregado: o clube que fica pra trás é o ATUAL
   toastC('Assumindo o clube...');
   NET.setMyClub(offer.clubId).then(r=>{
     if(!r||!r.ok){ toastC('Não deu pra assumir'+((r&&r.error)?' ('+r.error+')':'')+'.'); return; }
-    CL.unemployed=false; CL._unempRounds=0; CL._pendingResenhaOffer=null;
+    CL.unemployed=false; CL._unempRounds=0; CL._pendingResenhaOffer=null; CL._ofertaEmMesa=null;
+    if(Array.isArray(S.pendingJobOffers)) S.pendingJobOffers=S.pendingJobOffers.filter(x=>x.clubId!==offer.clubId);
     CL.clubId=offer.clubId; S.clubId=offer.clubId;
     /* ===== CONVITE DE OUTRO PAÍS: O MUNDO DE LÁ NASCE AGORA =====
        Enquanto ninguém joga num país, ele pode viver de simulação de fundo. A partir do momento
@@ -10474,6 +10532,11 @@ function clJobOffers(){ CL.menu=null;
 function clAcceptPendingOffer(idx){
   const o=S.pendingJobOffers[idx]; if(!o) return;
   clCloseOverlay();
+  /* NA SALA, TODA OFERTA E DA SALA. `showJobInvite` sem esta marca leva o "aceitar" pelo caminho
+     do SOLO (applyManagerJobChange local), e ai o cliente fica com um clube que a sala nao
+     reconhece — de fora, "assumir o clube nao funcionou". Quem chega pela caixa de ofertas
+     entrava exatamente por aqui. */
+  if(CL.online) o._resenha=true;
   showJobInvite(o);
 }
 function clDeclinePendingOffer(idx){

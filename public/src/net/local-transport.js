@@ -489,7 +489,13 @@ function onlineReconcileIfBehind(room){
     if(typeof _prLog==='function') _prLog('GUEST reconcile: authRound='+(room.round||0)+' myRound='+(S.round||0)+' newer='+!!newer);
     if(!newer && typeof hideSyncLoading==='function') hideSyncLoading(); // nada pra adotar afinal -> não trava o loading
     if(newer){
-      const isTurnover = (sState.season||0) > oldSeason; // VIRADA de temporada (rodada volta a 0)
+      /* mesma regra do anfitriao (ver onlineAdoptServerRound): a virada e "ainda nao vi esta
+         temporada", nao "o numero acabou de mudar" — senao quem adotar o estado por outro
+         caminho antes deste nunca ve a tela de fim de temporada. */
+      const novaTemporada=(sState.season||0);
+      if(CL._fimTemporadaVisto==null) CL._fimTemporadaVisto=oldSeason;   // ancora, nao dispara
+      const isTurnover = novaTemporada>CL._fimTemporadaVisto;
+      if(isTurnover) CL._fimTemporadaVisto=novaTemporada;
       const _roundAntes = (S.round||0);                  // jornada que acabou de ser resolvida (ver queueRoundCupClassifs)
       const _career=(typeof snapshotCareer==='function')?snapshotCareer():null; // carreira é minha, não do anfitrião (ver CAREER_KEYS)
       Object.assign(S, sState);
