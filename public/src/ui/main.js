@@ -2611,7 +2611,6 @@ function startSeasonOpeningDraws(onDone){
     const defs=(typeof cupDrawOrder==='function') ? cupDrawOrder()
       : [['copaBrasil','bracket'],['libertadores','group'],['sulamericana','group'],['championsLeague','group'],['europaLeague','group']];
     const season=(S&&S.season)||1;
-    S._cupDrawQueued=S._cupDrawQueued||{};
     defs.forEach(([key,stage])=>{
       const c=S.cups&&S.cups[key]; if(!c) return;
       // competição sem cerimônia (Copa do Brasil — ver CUP_SEM_CERIMONIA no core)
@@ -2647,8 +2646,10 @@ function runNextOpeningDraw(onDone){
     console.warn('sorteio de abertura da '+item.key+' sem dados prontos — não marco no mundo, ele volta pelo queueDueCupDraws');
     return runNextOpeningDraw(onDone);      // segue a fila; a cerimônia continua devendo, para todos
   }
-  S._cupDrawQueued=S._cupDrawQueued||{};
-  S._cupDrawQueued[item.key+':'+((S&&S.season)||1)]=true;   // começou de verdade: agora sim
+  /* começou de verdade: agora sim. A marca é MINHA, não do mundo — no mundo ela impedia os
+     outros treinadores de verem a mesma cerimónia (ver sorteioJaVistoPorMim, no core). */
+  if(typeof marcarSorteioVistoPorMim==='function')
+    marcarSorteioVistoPorMim(item.key+':'+((S&&S.season)||1));
 }
 /* `opts.midSeason` = cheguei a este clube TROCANDO de time no meio da temporada (aceitei o
    convite de outro clube — ver showJobInvite). Muda só o texto: em vez de "a temporada começa
@@ -9639,9 +9640,10 @@ function userCupDrawRows(){
   // 1) sorteio de ABERTURA de cada copa (ver cupSeasonDrawDays no core): aparece no calendário
   //    enquanto não aconteceu, dois dias antes da estreia da competição
   if(typeof cupSeasonDrawDays==='function'){
-    const dias=cupSeasonDrawDays(), feitos=S._cupDrawQueued||{}, season=S.season||1;
+    const dias=cupSeasonDrawDays(), season=S.season||1;
+    const feito=k=>(typeof sorteioJaVistoPorMim==='function') && sorteioJaVistoPorMim(k+':'+season);
     Object.keys(dias).forEach(key=>{
-      if(!S.cups[key] || feitos[key+':'+season]) return;
+      if(!S.cups[key] || feito(key)) return;
       const dia=dias[key];
       out.push({key, n:Math.max(1,Math.floor((dia-1)/7)+1), date:realDateForDay(dia), abertura:true});
     });

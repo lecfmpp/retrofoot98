@@ -1562,8 +1562,25 @@ function makeBracket(teamIds, seedNum){
   const ranked=teamIds.slice().sort((a,b)=>clubOf(b).overall-clubOf(a).overall);
   let size=1; while(size<ranked.length) size*=2;
   const nByes=size-ranked.length;
-  const byeTeams=ranked.slice(0,nByes);
-  const playTeams=ranked.slice(nByes);
+  /* ===== OS ISENTOS TAMBEM SAO SORTEADOS =====
+     Os confrontos ja mudavam de ano para ano (a semente traz a temporada), mas os ISENTOS eram
+     sempre os mesmos: `ranked.slice(0, nByes)`, ou seja, os N mais fortes, na mesma ordem, todas
+     as temporadas. Era isso que fazia o sorteio parecer o mesmo de sempre — os grandes nunca
+     jogavam a primeira fase, e nunca mudava quem.
+     Agora eles saem de um POTE: os mais fortes continuam a ter a vantagem (o pote e so a metade
+     de cima da fila, o que preserva a ideia de cabeca-de-chave), mas quem dele sai isento e
+     sorteado com a semente da temporada. Clube na fronteira do pote ora escapa a primeira fase,
+     ora nao — que e o que torna o ano diferente do anterior. */
+  const garantidos=Math.floor(nByes/2);              // os cabeças de verdade: passam sempre
+  const sorteados=nByes-garantidos;
+  /* o pote é a faixa logo abaixo dos garantidos, com folga — é dela que sai a metade sorteada.
+     Sem a folga o pote teria exatamente o tamanho da vaga e não haveria sorteio nenhum. */
+  const fim=Math.min(ranked.length, garantidos+Math.max(sorteados, Math.round(sorteados*1.8)));
+  const fronteira=ranked.slice(garantidos, fim);
+  for(let i=fronteira.length-1;i>0;i--){ const j=Math.floor(R.random()*(i+1)); [fronteira[i],fronteira[j]]=[fronteira[j],fronteira[i]]; }
+  const byeTeams=ranked.slice(0,garantidos).concat(fronteira.slice(0,sorteados));
+  const isento=new Set(byeTeams);
+  const playTeams=ranked.filter(id=>!isento.has(id));
   for(let i=playTeams.length-1;i>0;i--){ const j=Math.floor(R.random()*(i+1)); [playTeams[i],playTeams[j]]=[playTeams[j],playTeams[i]]; }
   const ties=[]; for(let i=0;i<playTeams.length;i+=2){ ties.push({h:playTeams[i],a:playTeams[i+1],hg:null,ag:null,winner:null,events:[]}); }
   return { round:1, roundsTotal:Math.log2(size), byeTeams:byeTeams.slice(), ties, pendingByes:byeTeams.slice(), champion:null, eliminated:{}, history:[] };
@@ -2227,15 +2244,42 @@ function cupTemCerimonia(key){ return !CUP_SEM_CERIMONIA[key]; }
 /* ===== HA SORTEIO A VER? — PERGUNTA SEM EFEITO COLATERAL =====
    queueDueCupDraws() ENFILEIRA enquanto responde, entao nao serve para um rotulo de botao (o
    desenho da tela passaria a mexer no estado do save). Esta e a mesma conta, sem escrever nada. */
+/* ===== A CERIMONIA E DE CADA UM, ENTAO A MARCA TAMBEM TEM DE SER =====
+   "Ja enfileirei este sorteio nesta temporada" vivia em `S._cupDrawQueued` — o estado
+   COMPARTILHADO. Numa sala isso quer dizer que o primeiro cliente a passar por aqui carimba a
+   marca, ela viaja para todos no estado, e mais ninguem ve a cerimonia. Foi o relatado a
+   19/08/2026: ninguem viu o sorteio da Copa do Brasil na Resenha.
+
+   Ha um segundo caminho para o mesmo estrago, e explica por que NINGUEM viu (e nao "so um viu"):
+   enquanto a Copa do Brasil esteve sem cerimonia (CUP_SEM_CERIMONIA, ligado a 17/08 e revertido a
+   18/08), este codigo carimbava a marca SEM enfileirar nada. O carimbo ficou no save, e a
+   cerimonia nunca mais teve como aparecer naquela temporada.
+
+   A cerimonia e UI: cada humano tem de a ver. A marca passa para o registo POR CLIENTE que ja
+   existe — `drawAlreadySeen`/`rememberDrawSeen`, gravado por sala+temporada em localStorage, o
+   mesmo que faz o sorteio nao repetir quando alguem recarrega a pagina. Nada disto viaja no
+   mundo, que e o ponto.
+
+   O carimbo continua a ser posto ao ENFILEIRAR, e nao ao mostrar: sem isso, uma cerimonia que
+   nao chegue a renderizar (dados da chave ainda por montar) faria o botao dizer "Ver o sorteio"
+   para sempre. */
+function sorteioJaVistoPorMim(mark){
+  if((CL._cupDrawQueued||{})[mark]) return true;
+  return (typeof drawAlreadySeen==='function') && drawAlreadySeen(mark);
+}
+function marcarSorteioVistoPorMim(mark){
+  CL._cupDrawQueued=CL._cupDrawQueued||{}; CL._cupDrawQueued[mark]=true;
+  if(typeof rememberDrawSeen==='function') rememberDrawSeen(mark);
+}
 function haSorteioPendente(){
   try{
     if(typeof S==='undefined' || !S || !S.cups) return false;
     if((S._pendingDrawShows||[]).some(x=>typeof cupTemCerimonia!=='function' || cupTemCerimonia((x&&x.key)||x))) return true;
-    const season=S.season||1, marcadas=S._cupDrawQueued||{};
+    const season=S.season||1;
     return Object.keys(cupSeasonDrawDays()).some(key=>{
       if(!S.cups[key]) return false;
       if(!cupDrawReleased(key)) return false;
-      if(marcadas[key+':'+season]) return false;
+      if(sorteioJaVistoPorMim(key+':'+season)) return false;
       return (typeof cupTemCerimonia!=='function') || cupTemCerimonia(key);
     });
   }catch(e){ return false; }
@@ -2243,19 +2287,17 @@ function haSorteioPendente(){
 function queueDueCupDraws(){
   if(typeof S==='undefined' || !S || !S.cups) return 0;
   if(typeof queueDrawShow!=='function') return 0;
-  S._cupDrawQueued=S._cupDrawQueued||{};
   const season=S.season||1; let n=0;
   Object.keys(cupSeasonDrawDays()).forEach(key=>{
     if(!S.cups[key]) return;
     if(!cupDrawReleased(key)) return;
-    const mark=key+':'+season; if(S._cupDrawQueued[mark]) return;
-    /* marca como enfileirada e sai: sem a marca, cada rodada tentaria de novo */
-    if(!cupTemCerimonia(key)){ S._cupDrawQueued[mark]=true; return; }
+    const mark=key+':'+season; if(sorteioJaVistoPorMim(mark)) return;
+    if(!cupTemCerimonia(key)){ marcarSorteioVistoPorMim(mark); return; }
     // só a cerimônia de ABERTURA da competição (grupo, ou chave na Copa do Brasil); o sorteio
     // do mata-mata das continentais continua saindo em advancePendingCups, na data real dele.
     const c=S.cups[key];
     const stage=(c && c.group && !c.bracket)?'group':'bracket';
-    S._cupDrawQueued[mark]=true; queueDrawShow(key, stage); n++;
+    marcarSorteioVistoPorMim(mark); queueDrawShow(key, stage); n++;
   });
   return n;
 }
@@ -2746,7 +2788,9 @@ function initSeasonCups(qual, compToggle){
   // ou três sorteios seguidos) — cada uma entra na fila quando a data dela chega, dois dias
   // antes da estreia da competição. Ver cupSeasonDrawDays/queueDueCupDraws.
   ensureCupCalendar(true);
-  S._cupDrawQueued={};
+  /* `S._cupDrawQueued` deixou de existir: a marca de "já vi este sorteio" é de cada cliente, não
+     do mundo (ver sorteioJaVistoPorMim). As marcas trazem a temporada na chave, então a virada
+     não precisa de limpar nada. */
 }
 /* ORDEM DAS CERIMÔNIAS = ordem em que as competições ENTRAM EM CAMPO.
    As copas se revezam a cada 3 rodadas (CUP_TICK_OFFSET) e pendingUserCupMatches olha a rodada
