@@ -1575,6 +1575,15 @@ function cupTeamAlive(b,id){ if(!b) return false; if(b.champion===id) return tru
    completo, com cartões/lesões/suspensões aplicados igual às partidas de liga) */
 function advanceCupBracket(b, roundLabel, comp){
   if(!b || cupIsFinished(b)) return;
+  /* ===== TODA A GENTE TEM DE CHEGAR AO MESMO PLACAR =====
+     Esta funcao roda em CADA cliente, por conta propria, sobre a mesma chave e com a mesma
+     semente. Para o resultado bater, os TIMES tambem tem de bater — e nao batiam: no cliente do
+     dono de um clube humano a escalacao lida era a local (`S.xi`), nos outros era a publicada.
+     Foi a final da Libertadores com 4x0 num e 6x0 noutro. Aqui a conta passa a ser a do servidor:
+     escalacao publicada para todos, inclusive a minha. */
+  const _simCompartilhada=(typeof simEscalacaoPublicada==='function');
+  if(_simCompartilhada) simEscalacaoPublicada(true);
+  try{
   const winners=[];
   b.ties.forEach(t=>{
     if(t.winner) { winners.push(t.winner); return; }
@@ -1607,6 +1616,7 @@ function advanceCupBracket(b, roundLabel, comp){
   b.pendingByes=ranked.slice(0,nByes);
   const rest=ranked.slice(nByes);
   b.ties=[]; for(let i=0;i<rest.length;i+=2){ b.ties.push({h:rest[i],a:rest[i+1],hg:null,ag:null,winner:null,events:[]}); }
+  } finally { if(_simCompartilhada) simEscalacaoPublicada(false); }
 }
 /* aplica resultado de UMA partida avulsa (copas) sem mexer na tabela da liga */
 function applyResult1off(h,a,hg,ag){ /* copas não têm tabela de pontos corridos; placar já fica no objeto da chave */ }
@@ -1685,6 +1695,12 @@ function myCupTurnDone(key){
 }
 function advanceGroupStageRound(mg, roundLabel, comp){
   if(!mg || mg.finished) return;
+  /* mesma regra da chave (ver advanceCupBracket): resolucao que cada cliente faz por conta
+     propria tem de usar a escalacao PUBLICADA, senao o dono de um clube humano calcula um
+     resultado e os outros calculam outro. */
+  const _simCompartilhada=(typeof simEscalacaoPublicada==='function');
+  if(_simCompartilhada) simEscalacaoPublicada(true);
+  try{
   Object.values(mg.groups).forEach(g=>{
     const fx=(g.sched[mg.round])||[];
     fx.forEach(([h,a])=>{
@@ -1714,6 +1730,7 @@ function advanceGroupStageRound(mg, roundLabel, comp){
   });
   mg.round++;
   if(mg.round>=mg.roundsTotal) mg.finished=true;
+  } finally { if(_simCompartilhada) simEscalacaoPublicada(false); }
 }
 /* melhores colocados de CADA grupo (advancePerGroup por grupo) — quem avança pro mata-mata */
 function groupStageAdvancers(mg){

@@ -132,9 +132,27 @@ function penaltyConvChance(taker, gk, opts){
    de OUTRO humano usa a tática da ÚLTIMA rodada dele (S.clubTactic[id], guardada em startLiveRound)
    — assim, se ele não confirmar a tempo, o jogo dele é simulado com a tática que ele já vinha
    usando, em vez de cair no 'equilibrado' padrão. Fora isso (CPU), 'equilibrado'. */
+/* ===== SIMULACAO COMPARTILHADA: A ESCALACAO E A PUBLICADA, INCLUSIVE A MINHA =====
+   Numa partida que EU jogo, a escalacao que vale e a minha, local — sou eu que decido e sou eu
+   que publico o resultado. Mas numa resolucao de SEGUNDO PLANO (o resto de uma rodada de copa,
+   uma final que eu apenas assisto) cada cliente calcula a MESMA partida por conta propria, e ai
+   ler a minha escalacao local torna a minha conta diferente da de toda a gente.
+
+   Foi o que produziu a final da Libertadores com 4x0 num cliente e 6x0 noutro (19/08/2026): o
+   Cruzeiro era clube de um humano, entao no cliente DELE `availableXI` lia `S.xi` (a escalacao
+   viva, que ele ainda podia ter mexido) e no cliente do outro lia `S.clubXI[cruzeiro]` (a
+   publicada). Mesma semente, times diferentes, placares diferentes — e com eles a cerimonia de
+   campeao e o artilheiro.
+
+   O SERVIDOR nao tem "o meu clube": ele resolve tudo com `humanXI[id]`, a publicada. Ligar esta
+   bandeira faz o cliente calcular como o servidor calcula. Fica LIGADA so em volta das
+   resolucoes de segundo plano — a minha partida ao vivo continua a usar o meu onze. */
+let SIM_ESCALACAO_PUBLICADA=false;
+function simEscalacaoPublicada(v){ SIM_ESCALACAO_PUBLICADA=!!v; }
 function tacticForClub(id){
+  if(typeof CL!=='undefined' && CL.online && S.clubTactic && S.clubTactic[id]
+     && (id!==S.clubId || SIM_ESCALACAO_PUBLICADA)) return S.clubTactic[id];
   if(id===S.clubId) return S.tactic||'equilibrado';
-  if(typeof CL!=='undefined' && CL.online && S.clubTactic && S.clubTactic[id]) return S.clubTactic[id];
   return 'equilibrado';
 }
 function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
@@ -297,11 +315,17 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
 function availableXI(id){
   const avail=squad(id).filter(p=>!(p.suspended>0)&&!(p.injuredMatches>0));
   let chosen=[];
-  if(id===S.clubId){
+  const publicada=(S.clubXI&&S.clubXI[id])||null;
+  /* numa resolucao compartilhada o meu clube tambem entra pela publicada (ver
+     SIM_ESCALACAO_PUBLICADA): e a unica forma de a minha conta bater com a de todos */
+  const usarPublicada = (typeof CL!=='undefined' && CL.online) && publicada && publicada.length
+    && (id!==S.clubId || SIM_ESCALACAO_PUBLICADA);
+  if(usarPublicada){
+    const ids=new Set(publicada); chosen=avail.filter(p=>ids.has(p.pid));
+  } else if(id===S.clubId){
     const ids=new Set(S.xi||[]); chosen=avail.filter(p=>ids.has(p.pid));   // S.xi = pids
   } else if(CL.online && CL.humans && CL.humans[id]){
-    const stored=(S.clubXI&&S.clubXI[id])||null;
-    const ids=new Set((stored&&stored.length)?stored:autoXI(id));
+    const ids=new Set(autoXI(id));
     chosen=avail.filter(p=>ids.has(p.pid));
   }
   if(chosen.length<11){ const have=new Set(chosen.map(p=>p.pid));
