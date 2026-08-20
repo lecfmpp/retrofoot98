@@ -9631,12 +9631,38 @@ function userCupPlayedRows(){
    chaveamento antes de ser sorteado. Agora cada competição só entra na lista depois da data do
    seu sorteio (02/03, 11/03, 21/03 — ver cupSeasonDrawDays). Antes disso o que aparece é a linha
    da própria cerimônia (userCupDrawRows), que é a informação honesta naquele momento. */
-/* "hoje" é o dia da jornada que estou jogando (leagueMatchDay), não o dia da própria copa —
-   cupDrawReleased compara com a data da COMPETIÇÃO, o que é certo pra liberar a partida e cedo
-   demais pra exibir no Calendário (a Libertadores sorteia 02/03 e estreia 04/03: no dia 01/03 o
-   confronto ainda não pode aparecer). */
+/* ===== A DATA NAO E A REVELACAO; A CERIMONIA E =====
+   Esta pergunta ja existia, mas media a coisa errada: comparava a DATA do sorteio com o dia de
+   hoje. Com o calendario por slots as datas de sorteio andaram para o comeco da temporada (a
+   Libertadores sorteia no dia do slot 2 menos dois), entao a data ja tinha passado enquanto a
+   cerimonia ainda estava por acontecer — e o Calendario e os Campeonatos mostravam o grupo da
+   Libertadores antes de o utilizador ver uma bola sair. Foi o relatado a 19/08.
+
+   A regua passa a ser a mesma que decide se a cerimonia ainda te deve alguma coisa:
+   `sorteioJaVistoPorMim`, por cliente e por temporada. E o unico marcador honesto — a data diz
+   quando o sorteio PODE sair, so a marca diz que ele JA SAIU PARA MIM. Numa sala cada humano
+   tem a sua marca, entao ninguem ve o grupo do outro antes da propria cerimonia.
+
+   Duas saidas de seguranca, porque esconder a competicao inteira e caro se a marca faltar:
+   competicao sem cerimonia (CUP_SEM_CERIMONIA) volta a regra da data; e competicao que JA
+   ROLOU BOLA aparece sempre — save antigo a meio da temporada, ou quem entrou na sala depois,
+   nao pode ficar com a copa invisivel. */
+function cupJaRolouBola(c){
+  try{
+    if(!c) return false;
+    if(c.group && ((c.group.round||0)>0 || c.group.finished)) return true;
+    const b=c.bracket||((c.ties||c.history)?c:null);
+    if(b && (((b.history||[]).length>0) || (b.ties||[]).some(t=>t&&t.winner))) return true;
+    return false;
+  }catch(e){ return false; }
+}
 function cupRevelada(key){
   try{
+    if(typeof S==='undefined' || !S || !S.cups || !S.cups[key]) return true;
+    if(cupJaRolouBola(S.cups[key])) return true;
+    if(typeof cupTemCerimonia==='function' && cupTemCerimonia(key)
+       && typeof sorteioJaVistoPorMim==='function')
+      return !!sorteioJaVistoPorMim(key+':'+((S.season)||1));
     const dia=(typeof cupSeasonDrawDays==='function')?cupSeasonDrawDays()[key]:null;
     if(dia==null) return true;
     const hoje=(typeof leagueMatchDay==='function')?leagueMatchDay(S.round||0):(1+(S.round||0)*7);

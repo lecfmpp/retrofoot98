@@ -674,6 +674,9 @@ function rfMdClassificacaoHTML(){
 /* copa com grupos: uma tabela por grupo. Copa de mata-mata puro não tem classificação — tem
    chave, e a chave já tem tela própria; dizer isso é melhor que mostrar uma tabela vazia. */
 function rfMdClassifCopaHTML(key){
+  // o sorteio ainda nao saiu para mim: a tabela dos grupos E o sorteio (ver rfCompeticaoHTML)
+  if(typeof cupRevelada==='function' && !cupRevelada(key))
+    return '<div class="rf-empty">Os grupos saem no sorteio, que ainda não aconteceu.</div>';
   const c=S.cups&&S.cups[key]; const g=c&&c.group;
   if(!g || !g.groups) return `<div class="rf-empty">A ${escC(((typeof COMP_DEFS!=='undefined'&&COMP_DEFS[key])||{}).name||key)} é de mata-mata: a chave está na página da competição.</div>`;
   const cols='30px minmax(0,1.6fr) 34px 44px 44px 40px 44px';

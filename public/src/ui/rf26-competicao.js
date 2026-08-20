@@ -267,13 +267,21 @@ function rfCpEtapa(fase, advId, placar, mando, estado){
     <span class="rf-cp-etm">${escC(mando||'—')}</span>
   </div>`;
 }
+/* ===== NADA DE SORTEIO ANTES DA CERIMONIA =====
+   Os grupos e a chave sao criados quando a temporada e montada (initSeasonCups) — a cerimonia e
+   so a REVELACAO deles. Estas telas liam o estado direto, entao o grupo da Libertadores estava
+   aqui semanas antes de o utilizador ver o sorteio. `cupRevelada` (em main.js) e a pergunta
+   unica: enquanto ela disser que nao, a competicao mostra o que e honesto naquele momento —
+   os INSCRITOS e "Sorteio pendente" —, que e o caminho que a tela ja sabia desenhar para uma
+   copa sem chave montada. */
 function rfCompeticaoHTML(key){
   key=key||CL._cupKey;
   const c=(S.cups&&S.cups[key])||{};
+  const _revelada=(typeof cupRevelada!=='function') || cupRevelada(key);
   const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[key])||{};
   const meu=CL.clubId;
-  const br=rfCompChave(c);
-  const gobj=(c.group&&c.group.groups)||null;
+  const br=_revelada?rfCompChave(c):null;
+  const gobj=_revelada?((c.group&&c.group.groups)||null):null;
   const letras=gobj?Object.keys(gobj).sort():[];
   const meuGrupo=letras.find(L=>(gobj[L].teams||[]).includes(meu));
   const tab=gobj&&meuGrupo?gobj[meuGrupo]:null;
@@ -447,6 +455,8 @@ function rfCampeaoAtual(key){
    confronto e a tabela em grade fixa. Nada aqui depende de altura herdada.
    ===================================================================== */
 function rfCopaGruposHTML(c,key){
+  if(typeof cupRevelada==='function' && key && !cupRevelada(key))          // ver rfCompeticaoHTML
+    return '<div class="rf-empty">Os grupos saem no sorteio, que ainda não aconteceu.</div>';
   const g=c&&c.group; if(!g||!g.groups) return '<div class="rf-empty">A fase de grupos ainda não começou.</div>';
   const meu=CL.clubId;
   const letras=Object.keys(g.groups).sort();
@@ -495,6 +505,7 @@ function rfCopaGruposHTML(c,key){
 function rfChaveDados(key,opts){
   opts=opts||{};
   const c=(S.cups&&S.cups[key])||null;
+  if(typeof cupRevelada==='function' && !cupRevelada(key)) return null;   // ver rfCompeticaoHTML
   const b=(typeof rfCompChave==='function')?rfCompChave(c):(c&&(c.champion!==undefined?c:c.bracket));
   if(!b || !b.roundsTotal) return null;
   const meu=CL.clubId;
