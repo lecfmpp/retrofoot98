@@ -8092,3 +8092,9 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
    regra ele ficava igual ao ativo e prometia um clique que não acontecia. */
 .rf-ov-b2:disabled{ opacity:.45;cursor:default; }
 .rf-ov-b2:disabled:hover{ background:transparent; }
+
+/* O escudo passou a ser uma porta para o clube (ver rfCrestEnvolve). O invólucro não pode mexer
+   no desenho: ele herda o tamanho do contentor e só acrescenta o cursor e o foco de teclado. */
+.rf-crest-link{ display:inline-flex;align-items:center;cursor:pointer;line-height:0; }
+.rf-crest-link:focus-visible{ outline:2px solid var(--brand-primary);outline-offset:2px;border-radius:3px; }
+.rf-crest-link:hover{ filter:brightness(1.08); }

@@ -1127,8 +1127,12 @@ function rfVerTimeHTML(clubId){
         </div>
       </div>
     </div>`,
-    acoes:`<button type="button" class="rf-ov-b2" onclick="clCloseOverlay();rfGo('mercado')"><span>${rfIcone('mercado',16)}</span> Fazer uma proposta</button>
-      <div class="rf-sp"></div>
+    /* O "Fazer uma proposta" saiu. Ele so mandava para a pagina do Mercado, sem levar consigo o
+       clube que estava aberto nem jogador nenhum — o treinador chegava la e tinha de recomecar a
+       busca do zero. Um botao que promete uma acao e entrega uma navegacao e pior do que nao
+       existir. Quem quer propor por um jogador daqui clica no jogador; quem quer o mercado tem a
+       pagina no menu. */
+    acoes:`<div class="rf-sp"></div>
       <button type="button" class="rf-ov-cta" onclick="CL.viewClubId=null;CL.screen='main';cdraw()">Voltar</button>`
   });
 }

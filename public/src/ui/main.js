@@ -3569,7 +3569,8 @@ function scMain(){
           trofeu:(nm&&nm.kind==='cup')?(trophyImg(nm.cupKey,13)||'🏆'):'',
           dia:(nm&&shortMatchDate(nm))||'', season:S.season, chip:th.bg2})}
         <div class="cl-panel">${panel}</div>
-        ${rfAdEspaco('rf98.hub.sidebar',{cls:'rf-ad-rect',formato:'300×250'})}
+        <!-- o retangulo 300x250 saiu daqui pelo mesmo motivo da pele nova (ver rfHubHTML):
+             esta e a tela de escalar, e o quadrado ficava no meio da decisao -->
         ${tabBar}
       </div>
     </div>

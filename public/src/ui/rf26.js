@@ -266,6 +266,49 @@ function rfSetTab(page, tab){ rfState().tab[page]=tab; cdraw(); }
    Aqui o tamanho vem SEMPRE do contêiner (.rf-*-crest img/.rf-crest-fb), e o
    emblema de iniciais entra como irmão escondido — é ele que aparece quando a
    imagem do escudo não carrega. */
+/* ===== TODO ESCUDO E UMA PORTA PARA O CLUBE =====
+   O escudo aparece em toda a parte — tabela, calendario, chave, grupos, rodada ao vivo, cartao do
+   adversario, ofertas, mercado — e em quase todos esses lugares era so desenho. Ligar clube a
+   clube um a um seria repetir a mesma linha em vinte sitios e esquecer-me de metade; aqui e uma
+   funcao so, e todos os ecras ganham a porta ao mesmo tempo.
+
+   TRES CUIDADOS, e sao eles que fazem isto ser seguro:
+     · `stopPropagation`: muitas linhas ja tem accao propria (propor por um jogador, abrir um
+       confronto). O escudo e um DESVIO dentro da linha, nao a accao dela — sem isto, clicar no
+       escudo dispararia as duas.
+     · o MEU clube leva ao meu elenco, nao a tela de adversario.
+     · sem `id` (clube so com nome, um marcador vazio) fica como estava: desenho. */
+/* o mesmo clique do escudo, para as linhas que mostram so o NOME do clube (as tabelas). Devolve
+   os atributos prontos a colar, ou vazio quando nao ha para onde ir. */
+function rfClubeClique(id){
+  if(id==null || typeof S==='undefined' || !S) return '';
+  if(typeof CL!=='undefined' && (CL.screen==='live' || CL.screen==='cupdraw')) return '';   // ver rfCrestClicavel
+  const meu=(typeof CL!=='undefined') && String(id)===String(CL.clubId);
+  const acao=meu ? 'clGoSquad()' : `clViewTeam('${escC(String(id))}')`;
+  const nome=escC(((typeof anyClubOf==='function'&&anyClubOf(id))||{}).short||'clube');
+  return ` title="Ver o ${nome}" onclick="${acao}"`;
+}
+function rfCrestClicavel(club){
+  if(!club || club.id==null) return false;
+  if(typeof S==='undefined' || !S) return false;                 // telas de pre-jogo
+  /* ===== NAO DURANTE A PARTIDA =====
+     `clViewTeam` troca a tela, e a volta (`clViewTeamBack`) devolve ao Hub, nao ao jogo — um
+     toque distraido num escudo no meio da rodada tirava o jogador de campo sem caminho de
+     regresso, com o relogio da partida a correr por tras. Na tela ao vivo e nas cerimonias o
+     escudo volta a ser so desenho; em todo o resto e porta. */
+  if(typeof CL!=='undefined' && (CL.screen==='live' || CL.screen==='cupdraw')) return false;
+  return typeof clViewTeam==='function' || typeof clGoSquad==='function';
+}
+function rfCrestEnvolve(club, dentro){
+  if(!rfCrestClicavel(club)) return dentro;
+  const meu=(typeof CL!=='undefined') && String(club.id)===String(CL.clubId);
+  const acao=meu ? 'clGoSquad()' : `clViewTeam('${escC(String(club.id))}')`;
+  const nome=escC(club.short||club.name||'clube');
+  return `<span class="rf-crest-link rf-clicavel" title="Ver o ${nome}" role="link" tabindex="0"
+    onclick="event.stopPropagation();${acao}"
+    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();${acao}}"
+  >${dentro}</span>`;
+}
 function rfCrest(club, size){
   club=club||{};
   const {col,col2}=clubColors(club);
@@ -274,10 +317,10 @@ function rfCrest(club, size){
   const s=size?`width:${size}px;height:${size}px`:'';
   const fb=`<span class="rf-crest-fb" style="background:${col};color:${txt};${s}">${ini}</span>`;
   const url=(typeof clubCrestUrl==='function')?clubCrestUrl(club):'';
-  if(!url) return fb;
-  return `<img class="rf-crest" src="${escC(url)}" alt="Escudo do ${escC(club.short||'')}" style="${s}"
+  if(!url) return rfCrestEnvolve(club, fb);
+  return rfCrestEnvolve(club, `<img class="rf-crest" src="${escC(url)}" alt="Escudo do ${escC(club.short||'')}" style="${s}"
     onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'"
-  ><span class="rf-crest-fb" style="display:none;background:${col};color:${txt};${s}">${ini}</span>`;
+  ><span class="rf-crest-fb" style="display:none;background:${col};color:${txt};${s}">${ini}</span>`);
 }
 
 
@@ -955,11 +998,11 @@ function rfHubHTML(){
         'var(--brand-primary)', moralTipText())}
       ${rfSegurancaHTML()}
     </div>
-    <div class="rf-card rf-card-grow" data-hub="classificacao">${rfClassifHTML()}</div>
-    <!-- data-hub e o que o telefone usa para mostrar um bloco de cada vez (abas do Hub). Sem
-         ele o retangulo aparecia SEMPRE, encaixado entre o cabecalho do clube e as formacoes —
-         no meio do caminho de quem so queria escalar. Vai junto da classificacao. -->
-    <div data-hub="classificacao">${rfAdEspaco('rf98.hub.sidebar',{cls:'rf-ad-rect',formato:'300×250'})}</div>`;
+    <div class="rf-card rf-card-grow" data-hub="classificacao">${rfClassifHTML()}</div>`;
+  /* O RETANGULO 300x250 SAIU DA FORMACAO, no telefone e no computador. Esta e a tela de
+     trabalho do treinador — escalar o time e escolher o esquema —, e o quadrado ficava logo
+     abaixo da tabela, no caminho de quem esta a decidir. Os outros espacos do inventario
+     continuam onde estavam; e este lugar que nao servia. */
 
   const direita=`
     <!-- AS FORMACOES VEM ANTES DO CAMPO. Trocar de esquema e a decisao mais
@@ -1124,7 +1167,7 @@ function rfClassifLigaHTML(){
   const linhas=rows.map((r,i)=>{
     const z = (promo&&i<promo)?'promo' : (releg&&i>=rows.length-releg)?'drop' : '';
     const c=anyClubOf(r.id)||{short:r.id};
-    return `<div class="rf-tb-row ${r.id===CL.clubId?'me':''}">
+    return `<div class="rf-tb-row rf-clicavel ${r.id===CL.clubId?'me':''}"${rfClubeClique(r.id)}>
       <span class="rf-tb-pos"><i class="rf-zona ${z}"></i><b>${i+1}</b></span>
       <span class="rf-tb-n">${escC(c.short||r.id)}</span>
       <span class="rf-tb-x">${r.t.P}</span><span class="rf-tb-x">${r.t.W}</span>
@@ -1154,7 +1197,7 @@ function rfClassifCopaHTML(key){
       .sort((a,b)=>(b.Pts-a.Pts)||((b.GF-b.GA)-(a.GF-a.GA))||(b.GF-a.GF));
     const linhas=ord.map((t,i)=>{
       const cl=anyClubOf(t.id)||{short:t.id};
-      return `<div class="rf-tb-row ${t.id===CL.clubId?'me':''}">
+      return `<div class="rf-tb-row rf-clicavel ${t.id===CL.clubId?'me':''}"${rfClubeClique(t.id)}>
         <span class="rf-tb-pos"><i class="rf-zona ${i<2?'promo':''}"></i><b>${i+1}</b></span>
         <span class="rf-tb-n">${escC(cl.short||t.id)}</span>
         <span class="rf-tb-x">${t.P}</span><span class="rf-tb-x">${t.W}</span>
@@ -2270,7 +2313,12 @@ function rfTabelaHTML(lim){
     </div>
     <div class="rf-tb-list">${mostra.map(({t,i})=>{
       const eu=t.id===CL.clubId;
-      return `<div class="rf-tb-row ${eu?'me':''}" onclick="clubLink&&clClubHistory('${escC(t.id)}')">
+      /* ===== A LINHA DA TABELA ABRE O CLUBE =====
+         Ela chamava `clClubHistory`, que mostra as temporadas em que EU comandei aquele clube —
+         para qualquer outro clube isso e uma janela vazia. E vinha atras de `clubLink&&`, um
+         guarda que so servia para nao estourar: o clique nao fazia nada de util em lado nenhum.
+         Agora abre a tela do clube, a mesma a que o Calendario ja levava. */
+      return `<div class="rf-tb-row rf-clicavel ${eu?'me':''}"${rfClubeClique(t.id)}>
         <span class="rf-tb-pos"><i class="rf-zona ${rfZonaTabela(i+1,total)}"></i><b>${i+1}</b></span>
         <span class="rf-tb-n">${escC((anyClubOf(t.id)||{short:t.id}).short)}</span>
         <span class="rf-tb-x">${t.P}</span><span class="rf-tb-x">${t.W}</span>
