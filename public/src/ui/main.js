@@ -2903,7 +2903,9 @@ function clJobInviteAccept(){
 }
 function clJobInviteDecline(){ showJobDeclined('Você agradeceu o convite e seguiu em frente.'); }
 function showJobProposal(){
-  const o=CL._jobOffer; if(!o) return;
+  /* a mesa e a rede: entre as duas telas qualquer redesenho/sincronia pode limpar CL._jobOffer */
+  const o=CL._jobOffer||CL._ofertaEmMesa||CL._pendingResenhaOffer; if(!o) return;
+  CL._jobOffer=o;
   // MODAL PORTADO (telas/Modal - Jantar e Proposta)
   overlayC(rfModalPropostaHTML(o)); return;
   const c=jobOfferClub(o), me=clubOf(CL.clubId)||{short:'?'};
@@ -2982,7 +2984,13 @@ function showJobDeclined(msg){
 /* aceitou de verdade: troca o clube e cai na tela de boas-vindas em variante de meio de
    temporada. Mesmo efeito do antigo clAcceptJobOffer — o que muda é só o caminho até aqui. */
 function clJobProposalAccept(){
-  const o=CL._jobOffer; if(!o) return;
+  /* ===== ASSINAR NUNCA MORRE EM SILENCIO =====
+     `CL._jobOffer` vive so em memoria e qualquer redesenho entre o jantar e a assinatura pode
+     limpa-lo; o clique entao devolvia NADA — o modal ficava aberto e "o aceitar nao funcionava"
+     (relatado a 20/08). A mesa e a pendencia da sala servem de rede; sem nenhuma das tres, o
+     jogador ouve o que houve em vez do silencio. */
+  const o=CL._jobOffer||CL._ofertaEmMesa||CL._pendingResenhaOffer;
+  if(!o){ toastC('Esse convite expirou. Ele continua na página Treinador enquanto valer.','warn'); clCloseOverlay(); return; }
   // RESENHA: assumir o clube é uma troca de ASSENTO no servidor (NET.setMyClub), não a troca
   // local do solo — applyManagerJobChange aqui deixaria o cliente com um clube que a sala não
   // reconhece. clAcceptResenhaOffer já faz tudo (assento, humanos, XI, carreira, cooldown).

@@ -4223,6 +4223,14 @@ function tickResenhaCareer(){
       // salário na oferta: a mesa do jantar (showJobProposal) mostra o número em destaque —
       // sem isto a proposta da Resenha aparecia como "R$ 0/sem". Demitido não tem clube atual.
       pick.salary=proposedCoachSalary(pick.clubId, null);
+      /* O CONVITE DO DEMITIDO TAMBEM FICA EM CIMA DA MESA. So o da sondagem (empregado) entrava
+         na caixa de ofertas; o do demitido vivia apenas em memoria — fechar a janela apagava o
+         unico caminho de volta ao emprego. Mesmos carimbos do outro: roundOfferred (para caducar
+         por PRAZO_OFERTA) e _resenha (para aceitar pela mecanica da sala). */
+      pick.roundOfferred=S.round; pick._resenha=true;
+      S.pendingJobOffers=S.pendingJobOffers||[];
+      if(!S.pendingJobOffers.some(x=>x && x.clubId===pick.clubId)) S.pendingJobOffers.push(pick);
+      if(typeof persistCareer==='function') persistCareer();
       CL._pendingResenhaOffer=pick;
       return {kind:'offer', offer:pick};
     }

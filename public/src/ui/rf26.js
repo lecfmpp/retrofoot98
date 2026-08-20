@@ -3008,7 +3008,10 @@ function rfModalConviteHTML(o){
       <span class="rf-of-nota">Recusar encerra a conversa. O ${escC(me.short)} continua com você.</span>
       <div class="rf-sp"></div>
       <button type="button" class="rf-wiz-b2" onclick="clJobInviteDecline()">Recusar o convite</button>
-      <button type="button" class="rf-wiz-cta" onclick="showJobProposal()">🍽️ Aceitar o jantar</button>
+      <!-- clJobInviteAccept, nunca showJobProposal direto: e ele que guarda a oferta na MESA
+           (CL._ofertaEmMesa) — sem isso o Assinar da tela seguinte podia nao achar oferta
+           nenhuma e morrer em silencio. Era o "aceitar nao funcionava" relatado a 20/08. -->
+      <button type="button" class="rf-wiz-cta" onclick="clJobInviteAccept()">🍽️ Aceitar o jantar</button>
     </div>
   </div>`;
 }

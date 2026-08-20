@@ -2422,6 +2422,8 @@
 .rf-lv-relogio>span{width:40px;height:40px;border-radius:var(--r-pill);background:var(--cx-deep);
   display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);
   font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:#fff}
+/* trancado pela velocidade (Foguete/Usain Bolt): fica na tela, apagado — o clique explica */
+.rf-lv-cam.dis{opacity:.45;cursor:default}
 .rf-lv-cam{flex:0 0 auto;margin-left:4px;height:38px;padding:0 16px;border:none;border-radius:var(--r-chip);
   display:flex;align-items:center;gap:7px;
   background:var(--cx-cta-bg);color:var(--cx-cta-fg);

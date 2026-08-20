@@ -159,6 +159,11 @@ function rfLvFaixaHTML(RL){
     : (meu && typeof liveJogoEncerrado==='function' && liveJogoEncerrado(meu,RL)) ? 'Seu jogo encerrado'
     : min<=45 ? '1º tempo' : min<=90 ? '2º tempo' : 'Acréscimos';
   const pct=(typeof liveClockPct==='function')?liveClockPct(RL):Math.min(100,Math.round(100*min/90));
+  /* O INTERRUPTOR DO CAMAROTE NUNCA SOME. No Foguete/Usain Bolt a velocidade tranca o modo
+     (camSpeedOk) e este botao simplesmente desaparecia — parecia que o Camarote tinha sido
+     removido do jogo. O desenho de sempre (camSwitchHTML, pele antiga) mantem o controle na
+     tela, apagado e com a explicacao; aqui passa a ser igual: o clique no estado trancado
+     mostra o aviso (camToggle ja faz isso). */
   const camOk=meu && (typeof camSpeedOk!=='function' || camSpeedOk());
   const info=rfCompInfo(rfLvCompAtiva(RL));
   const hc=meu?(anyClubOf(meu.h)||{}):null, ac=meu?(anyClubOf(meu.a)||{}):null;
@@ -187,7 +192,8 @@ function rfLvFaixaHTML(RL){
               <span class="rf-lv-sh rf-so-mobile">${escC(hc.short||hc.name||'—')} ${meu.hg||0} × ${meu.ag||0} ${escC(ac.short||ac.name||'—')}</span>`
              :`<span class="rf-lv-sh">sem jogo seu</span>`}
       </div>
-      ${camOk?`<button type="button" class="rf-lv-cam" onclick="camToggle()">${rfIcone('camarote',16)}
+      ${meu?`<button type="button" class="rf-lv-cam ${camOk?'':'dis'}" onclick="camToggle()"
+        title="${camOk?'':escC((typeof camSpeedHint==='function')?camSpeedHint():'')}">${rfIcone('camarote',16)}
         <b class="rf-so-desktop">Modo Camarote</b><b class="rf-so-mobile">Camarote</b></button>`:''}
     </div>
   </div>`;
