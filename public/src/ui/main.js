@@ -10625,15 +10625,15 @@ function salaResenhaHTML(){
 }
 function clCoachRanking(){ CL.menu=null;
   migrateCoachCareerStats();   // save antigo (acumulado ainda em CL): adota antes de desenhar
-  const TITLE_BONUS=50; // um título vale ~50 pts no critério de desempate (só pesa quando tem título)
+  // pontuacao com o peso real das conquistas — ver coachRankingScore no core
   const rows=DATA.clubs.map((c,i)=>{
     const t=S.table[c.id]||{Pts:0};
-    const career=(S.coachCareerStats&&S.coachCareerStats[c.id])||{pts:0,titles:0};
-    const totalPts=career.pts + (t.Pts||0);          // pontos somados totais (temporadas anteriores + atual)
-    return {name:coachName(c.id,i),club:clubOf(c.id).short,pts:totalPts,titles:career.titles,human:!!(CL.humans&&CL.humans[c.id])};
-  }).sort((a,b)=> (b.pts + b.titles*TITLE_BONUS) - (a.pts + a.titles*TITLE_BONUS) || b.pts-a.pts);
+    const sc=(typeof coachRankingScore==='function')?coachRankingScore(c.id, t.Pts||0)
+      :{titles:0, total:(t.Pts||0)};
+    return {name:coachName(c.id,i),club:clubOf(c.id).short,pts:sc.total,titles:sc.titles,human:!!(CL.humans&&CL.humans[c.id])};
+  }).sort((a,b)=>b.pts-a.pts);
   const list=rows.map((r,i)=>`<div class="cl-rank-row ${r.human?'me':''}"><span class="cl-rank-p">${i+1}</span><span class="cl-rank-c">${escC(r.name)}</span><span class="cl-rank-t">${escC(r.club)}</span><span class="cl-rank-n">${r.titles?('🏆 '+r.titles):'—'}</span><span class="cl-rank-n b">${r.pts} pts</span></div>`).join('');
-  overlayC(dlg('Ranking de Treinadores', `<div class="cl-rank-head" style="font-size:12px;color:#666;padding:2px 10px 6px">Por pontos somados (todas as temporadas) — títulos desempatam.</div><div class="cl-rank">${list}</div>
+  overlayC(dlg('Ranking de Treinadores', `<div class="cl-rank-head" style="font-size:12px;color:#666;padding:2px 10px 6px">Pontos de jogo somados (todas as temporadas) + títulos com o peso real de cada competição.</div><div class="cl-rank">${list}</div>
     <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{ad:'modal-ranking-728x90',w:780,bodyClass:'cl-body-gray',min:true})); }
 
 /* ---- Treinador > Ofertas ---- */

@@ -3961,6 +3961,81 @@ function generateFiringOptions(){
      · o clube que chama é melhor que o atual, mas nunca um salto absurdo — é promoção, não sorte;
      · quem acabou de mudar não muda outra vez no ano seguinte.
    ===================================================================== */
+/* =====================================================================
+   PESO REAL DE CADA COMPETICAO — a regua unica do prestigio
+   ---------------------------------------------------------------------
+   Inspirada na tabela historica que pontua clubes por titulo (Libertadores 20,
+   Brasileirao 15, Copa do Brasil 12, Serie B 3, C 1, D 0,5), adaptada ao mundo
+   do jogo: cada pais tem um INDICE (o "tamanho" da liga), a 1ª divisao vale o
+   indice, as divisoes de baixo caem como no Brasil, e as copas continentais
+   tem valor fixo. E a MESMA regua que alimenta o Ranking de Treinadores, a
+   moral/seguranca pos-titulo e a frequencia de sondagem do exterior — uma
+   conta so, para as tres coisas nunca discordarem. */
+const INDICE_PAIS={ brasil:15, Inglaterra:18, Espanha:18, 'Itália':16, Alemanha:16,
+  'França':15, Portugal:12, 'Países Baixos':12, Argentina:12, Uruguai:8, 'Colômbia':8,
+  Chile:8, Peru:7, Equador:7, Paraguai:7, Venezuela:6, 'Bolívia':6, 'México':10 };
+function indiceDoPais(uni){ const v=INDICE_PAIS[uni]; return v!=null?v:8; }
+const PONTOS_TITULO_FIXO={ libertadores:20, championsLeague:20, sulamericana:10,
+  europaLeague:10, copaBrasil:12 };
+/* pontos por NIVEL de liga, escalados pelo indice do pais (Brasil: 15/3/1/0,5) */
+function pontosDeLigaPorNivel(indice, nivel){
+  if(nivel<=0) return indice;
+  if(nivel===1) return Math.max(2, Math.round(indice/5));
+  if(nivel===2) return 1;
+  return 0.5;
+}
+/* o peso de UM titulo. `comp` e a chave gravada no historico/titlesByClub
+   ('serieA'..'serieD', 'premier', 'liga:PAIS:DIV', ou chave de copa). */
+function pontosDeTitulo(comp, uni, div){
+  if(comp==null) return 0;
+  if(PONTOS_TITULO_FIXO[comp]!=null) return PONTOS_TITULO_FIXO[comp];
+  let pais=uni||'brasil', d=div||null;
+  if(comp==='serieA'){pais='brasil';d='A';} else if(comp==='serieB'){pais='brasil';d='B';}
+  else if(comp==='serieC'){pais='brasil';d='C';} else if(comp==='serieD'){pais='brasil';d='D';}
+  else if(comp==='premier'){pais='Inglaterra';d='PL';}
+  else if(/^liga:/.test(String(comp))){ const par=String(comp).split(':'); pais=par[1]; d=par[2]; }
+  else if(typeof COMP_DEFS!=='undefined' && COMP_DEFS[comp])
+    return Math.max(1, Math.round(indiceDoPais(pais)*0.8));   // copa nacional de outro pais: ~80% da liga
+  const idx=indiceDoPais(pais);
+  let nivel=0;
+  try{ if(d && typeof WORLD_CONFIG!=='undefined' && WORLD_CONFIG.nivelDaDivisao) nivel=WORLD_CONFIG.nivelDaDivisao(pais,d)||0; }catch(e){}
+  return pontosDeLigaPorNivel(idx, nivel);
+}
+/* pontos de titulo da MINHA carreira (a estante da Sala de Trofeus, pesada) */
+function coachTitlePoints(){
+  return (S && S.coachHistory||[]).filter(h=>h && h.type==='campeao')
+    .reduce((soma,h)=>soma+pontosDeTitulo(h.comp,h.uni,h.div),0);
+}
+/* pontos de titulo de um CLUBE do ranking (S.titlesByClub: comp -> contagem) */
+function clubTitlePoints(clubId){
+  const t=(S && S.titlesByClub && S.titlesByClub[clubId])||{};
+  return Object.keys(t).reduce((soma,k)=>soma+(t[k]||0)*pontosDeTitulo(k),0);
+}
+/* ===== A PONTUACAO DO RANKING DE TREINADORES =====
+   pontos de jogo somados (todas as temporadas + a atual) + titulos com o PESO REAL da
+   competicao. O multiplicador 25 poe as duas moedas na mesma escala: um Brasileirao
+   (15 pts de titulo) vale ~375 — na casa de 4-5 temporadas de meio de tabela — entao
+   titulo manda no topo do ranking, mas campanha consistente continua subindo degraus. */
+const PESO_TITULO_NO_RANKING=25;
+function coachRankingScore(clubId, ptsTabelaAtual){
+  const car=(S && S.coachCareerStats && S.coachCareerStats[clubId])||{pts:0,titles:0};
+  const jogo=(car.pts||0)+(ptsTabelaAtual||0);
+  const titulo=clubTitlePoints(clubId);
+  return { jogo, tituloPts:titulo, titles:car.titles||0,
+           total: Math.round(jogo + titulo*PESO_TITULO_NO_RANKING) };
+}
+/* ===== TITULO MEXE NO VESTIARIO E NA CADEIRA =====
+   Conquistar taca sobe a moral do plantel e a seguranca no cargo, proporcional ao PESO da
+   conquista (Serie D nao e Libertadores). Na Resenha a moral viaja pela mesma via da coletiva
+   de imprensa (S._netMorale), senao o servidor desfazia o ganho no proximo adopt. */
+function aplicarEfeitosDeTitulo(pontos){
+  if(!pontos || !S) return;
+  const moral=Math.min(12, 3+Math.round(pontos/3));       // Serie D +3 ... Libertadores +10
+  const cadeira=Math.min(25, 6+Math.round(pontos));       // e a diretoria agradece
+  S.jobSecurity=Math.min(95,(S.jobSecurity!=null?S.jobSecurity:60)+cadeira);
+  (squad(S.clubId)||[]).forEach(pl=>{ pl.moral=Math.min(100,(pl.moral!=null?pl.moral:70)+moral); });
+  if(typeof CL!=='undefined' && CL.online) S._netMorale=(S._netMorale||0)+moral;
+}
 const SONDAGEM_EXTERIOR={
   nivelMaximo:1,          // níveis do topo da pirâmide que o exterior observa (0 = 1ª divisão)
   seguranca:82,           // a régua de "está a ir muito bem" (era 85 no solo, 80 na Resenha)
@@ -3982,8 +4057,31 @@ function resenhaCanMoveClub(){ return podeMudarDeClube(); }   // nome antigo, me
 function curriculoDeExportacao(){
   const nivel=DIV_ORDER.indexOf(S.division);
   if(nivel<0 || nivel>SONDAGEM_EXTERIOR.nivelMaximo) return false;
-  if((S.jobSecurity||0) < SONDAGEM_EXTERIOR.seguranca) return false;
+  /* TITULO ABRE PORTA: cada ponto de titulo desconta da regua de seguranca exigida —
+     um campeao da Libertadores (20 pts) e observado mesmo num momento morno do cargo. */
+  const exigida=Math.max(60, SONDAGEM_EXTERIOR.seguranca - Math.min(22, coachTitlePoints()));
+  if((S.jobSecurity||0) < exigida) return false;
   return podeMudarDeClube();
+}
+/* a fatia de sondagens que vem de FORA cresce com a estante de trofeus:
+   sem titulo 15%; um Brasileirao (15 pts) ~45%; Libertadores (20) ~55%; teto 60%. */
+function fatiaExterior(){
+  return Math.min(0.6, SONDAGEM_EXTERIOR.fatia + coachTitlePoints()*0.02);
+}
+/* que paises chamam este treinador: liga grande (indice alto) exige estante — sem titulo o
+   convite da Premier League e raro; com uma Libertadores ele vira o mais provavel. */
+function pesoDoPaisParaOferta(pais){
+  const idx=indiceDoPais(pais), t=coachTitlePoints();
+  if(idx<=12) return 1;
+  return 0.2 + Math.min(1.3, t/15);
+}
+function escolherClubeDoExterior(R){
+  const fora=clubesDoExterior(); if(!fora.length) return null;
+  const w=fora.map(f=>pesoDoPaisParaOferta(f.country));
+  const tot=w.reduce((a,b)=>a+b,0); if(!(tot>0)) return fora[0];
+  let r=R.random()*tot;
+  for(let i=0;i<fora.length;i++){ r-=w[i]; if(r<=0) return fora[i]; }
+  return fora[fora.length-1];
 }
 /* CLUBES DE FORA DENTRO DO DEGRAU. Lê as ligas dos outros países da sala/save (S.bgLeagues) e
    devolve só os que são um passo realista acima do clube atual. Assento de humano fica fora: não
@@ -4012,9 +4110,8 @@ function clubesDoExterior(){
 function maybeForeignJobOffer(){
   if(!curriculoDeExportacao()) return null;
   const R=makeRng(hashSeed(S.seed,S.season,S.round,'foreignjob'));
-  if(R.random()>=SONDAGEM_EXTERIOR.fatia) return null;   // o convite de fora é o mais raro dos três
-  const fora=clubesDoExterior(); if(!fora.length) return null;
-  const pick=fora[Math.floor(R.random()*fora.length)];
+  if(R.random()>=fatiaExterior()) return null;   // titulos deixam o convite de fora bem mais frequente
+  const pick=escolherClubeDoExterior(R); if(!pick) return null;
   return { clubId:pick.clubId, division:pick.division, country:pick.country, foreign:true,
            salary:proposedCoachSalary(pick.clubId, S.clubId) };
 }
@@ -4294,10 +4391,10 @@ function tickResenhaCareer(){
          E 15% vem de FORA DO PAÍS, quando há sala com mais de um país — é o convite internacional
          a um treinador humano. Fica atrás dos outros dois de propósito: mudar de país é a decisão
          mais pesada da carreira, e não deve ser a mais frequente. */
-      const deFora=(fora&&fora.length && R.random()<SONDAGEM_EXTERIOR.fatia) ? fora : null;
+      const deFora=(fora&&fora.length && R.random()<fatiaExterior()) ? fora : null;
       const pool = deFora || ((up.length && (R.random()<0.25 || !same.length)) ? up : same);
       if(pool.length){
-        const pick=pool[Math.floor(R.random()*pool.length)];
+        const pick = deFora ? (escolherClubeDoExterior(R)||pool[0]) : pool[Math.floor(R.random()*pool.length)];
         const offer={clubId:pick.clubId, division:pick.division, country:pick.country||null,
           salary:proposedCoachSalary(pick.clubId, S.clubId),    // ver proposedCoachSalary
           roundOfferred:S.round, _resenha:true};
@@ -5367,6 +5464,11 @@ function registerPrevSeasonTitles(){
     const t=S.titlesByClub[clubId]=S.titlesByClub[clubId]||{}; t[comp]=(t[comp]||0)+1; };
   order.forEach(d=>{ const rows=pv.tables[d]; if(rows&&rows.length) add(rows[0].id, divisionCompKeyFor(d)); });
   Object.keys(campeoesCopa).forEach(k=>add(campeoesCopa[k], k));
+  /* os MEUS titulos desta virada mexem no vestiario e na cadeira, pelo peso de cada um */
+  { let pts=0;
+    if(myTable[0].id===CL.clubId) pts+=pontosDeTitulo(divisionCompKeyFor(myDiv), ACTIVE_UNI, myDiv);
+    Object.keys(campeoesCopa).forEach(k=>{ if(campeoesCopa[k]===CL.clubId) pts+=pontosDeTitulo(k); });
+    aplicarEfeitosDeTitulo(pts); }
   return { season:temporada, campeaoLiga:myTable[0].id===CL.clubId, copas:Object.keys(campeoesCopa).filter(k=>campeoesCopa[k]===CL.clubId) };
 }
 /* CAMINHO LOCAL (solo, ou fallback do anfitrião quando resolve-round falha — ver
@@ -5579,6 +5681,10 @@ function endSeason(){
       label:COMP_DEFS[k].short, uni:ACTIVE_UNI, clubId:S.clubId, clubShort:myShort,
       final:cupTitleFinal(k), text:`Campeão da ${COMP_DEFS[k].short} pelo ${myShort.toUpperCase()}`});
   }); }
+  /* titulo conquistado NESTA temporada mexe no vestiario e na cadeira, pelo PESO da conquista */
+  { const meusAgora=(S.coachHistory||[]).filter(h=>h&&h.type==='campeao'&&h.season===S.season)
+      .reduce((soma,h)=>soma+pontosDeTitulo(h.comp,h.uni,h.div),0);
+    aplicarEfeitosDeTitulo(meusAgora); }
   accrueTitlesByClub(_prevTables);
   /* histórico de carreira POR JOGADOR (títulos, temporadas na elite, melhor posição) —
      diferente de S.coachHistory (só do treinador) e S.allTimeScorers (só artilharia).

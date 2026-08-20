@@ -265,16 +265,19 @@ function rfTrTrofeusHTML(){
 const RF_TR_RANK_COLS='26px minmax(0,1.1fr) 22px minmax(0,1fr) 62px 62px 52px';
 function rfTrRankingHTML(){
   if(typeof migrateCoachCareerStats==='function'){ try{ migrateCoachCareerStats(); }catch(e){} }
-  const BONUS=50;
+  /* PONTUACAO COM O PESO REAL DAS CONQUISTAS (ver coachRankingScore no core): pontos de jogo
+     somados + titulos pesados pela competicao (Libertadores 20, Brasileirao 15, ... Serie D 0,5),
+     em vez do bonus chapado de 50 por titulo que valia igual para Serie D e Libertadores. */
   const rows=(DATA.clubs||[]).map((c,i)=>{
     const t=(S.table&&S.table[c.id])||{Pts:0,P:0};
+    const sc=(typeof coachRankingScore==='function')?coachRankingScore(c.id, t.Pts||0)
+      :{jogo:(t.Pts||0), tituloPts:0, titles:0, total:(t.Pts||0)};
     const car=(S.coachCareerStats&&S.coachCareerStats[c.id])||{pts:0,titles:0};
-    const pts=(car.pts||0)+(t.Pts||0);
     const jogos=(car.games||0)+(t.P||0);
     return { clubId:c.id, nome:(typeof coachName==='function')?coachName(c.id,i):'—',
-      pts, titles:car.titles||0, aprov: jogos?Math.round(pts/(jogos*3)*100):0,
+      pts:sc.total, titles:sc.titles, aprov: jogos?Math.round(sc.jogo/(jogos*3)*100):0,
       eu:!!(CL.humans&&CL.humans[c.id]) || c.id===CL.clubId };
-  }).sort((a,b)=>(b.pts+b.titles*BONUS)-(a.pts+a.titles*BONUS)||b.pts-a.pts);
+  }).sort((a,b)=>b.pts-a.pts);
   const linhas=rows.map((r,i)=>{
     const c=anyClubOf(r.clubId)||{short:r.clubId};
     return `<div class="rf-el-row ${r.eu?'sel':''}">

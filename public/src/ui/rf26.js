@@ -2674,14 +2674,13 @@ function rfHistoriaHTML(){
 /* ranking: posição · nome · pontos (mesma conta do clCoachRanking) */
 function rfRankingHTML(lim){
   if(typeof migrateCoachCareerStats==='function'){ try{ migrateCoachCareerStats(); }catch(e){} }
-  const BONUS=50;
+  // mesma conta do core (coachRankingScore): titulos com o peso real da competicao
   const rows=(DATA.clubs||[]).map((c,i)=>{
     const t=(S.table&&S.table[c.id])||{Pts:0};
-    const car=(S.coachCareerStats&&S.coachCareerStats[c.id])||{pts:0,titles:0};
+    const sc=(typeof coachRankingScore==='function')?coachRankingScore(c.id, t.Pts||0):{total:(t.Pts||0)};
     return {nome:(typeof coachName==='function')?coachName(c.id,i):'—',
-            pts:car.pts+(t.Pts||0), titles:car.titles||0,
-            eu:!!(CL.humans&&CL.humans[c.id])};
-  }).sort((a,b)=>(b.pts+b.titles*BONUS)-(a.pts+a.titles*BONUS)||b.pts-a.pts);
+            pts:sc.total, eu:!!(CL.humans&&CL.humans[c.id])};
+  }).sort((a,b)=>b.pts-a.pts);
   return `<div class="rf-rk-list">${rows.slice(0, lim||20).map((r,i)=>`<div class="rf-rk-row ${r.eu?'me':''}">
     <span class="rf-rk-i">${i+1}</span>
     <span class="rf-rk-n">${escC(r.nome)}</span>
