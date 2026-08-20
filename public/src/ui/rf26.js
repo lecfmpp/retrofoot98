@@ -767,13 +767,18 @@ function rfProximaAcao(){
     if(CL.live && !CL.live.done && CL.screen==='live') return R('emcampo','jogar','Em campo');
     // 2) fila de classificacoes de copa
     if(rfClassifPendente()) return R('classif','lista','Ver classificação','Classificação');
+    /* JORNADA SEM CAMPO NAO PEDE FORMACAO. Tatica e goleiro sao condicoes para ENTRAR EM
+       CAMPO; numa jornada em que o clube nao joga (parada, semana de finais) exigir a
+       formacao era pedir uma coisa para fazer outra — o botao dizia "Escolher formação"
+       quando o que ele ia fazer era Avançar. Os dois degraus so gateiam com jogo a vista. */
+    const semCampo = !CL.online && typeof rfNadaParaJogar==='function' && rfNadaParaJogar();
     // 3) tatica por escolher
-    if(rfFaltaTatica()) return R('tatica','estrategia','Escolher formação','Formação');
+    if(!semCampo && rfFaltaTatica()) return R('tatica','estrategia','Escolher formação','Formação');
     // 4) sorteio por ver
     if(typeof haSorteioPendente==='function' && haSorteioPendente())
       return R('sorteio','sorteio','Ver o sorteio','Sorteio');
     // 5) onze invalido (o clJogar recusa aqui, antes de qualquer porta da sala)
-    if(typeof xiGKCount==='function' && typeof xiPlayers==='function'){
+    if(!semCampo && typeof xiGKCount==='function' && typeof xiPlayers==='function'){
       const g=xiGKCount(xiPlayers(CL.clubId));
       if(g!==1) return R('goleiro','estrategia', g===0?'Escalar um goleiro':'Só um goleiro','Goleiro');
     }
@@ -1777,7 +1782,7 @@ function rfBottomNavHTML(){
          bloco de formações, igual ao da barra lateral no desktop. Ficava
          desabilitado sem dizer o que faltava nem para onde ir. -->
     <button type="button" class="rf-bn-jogar ${rfJogarClasse()} ${pronto?'rf-btn-pulse':''}"
-      ${(pronto||rfFaltaTatica())?'':'disabled'}
+      ${(pronto||rfFaltaTatica()||['avancar','sorteio','classif','assistir'].indexOf(rfProximaAcao().k)>=0)?'':'disabled'}
       onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
   </nav>`;
 }

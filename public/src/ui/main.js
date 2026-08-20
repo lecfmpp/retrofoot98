@@ -5726,7 +5726,12 @@ function clJogar(){
   if(CL._cupClassifQueue && CL._cupClassifQueue.length){
     showCupClassif(CL._cupClassifQueue.shift(), CL._cupClassifRound); return;
   }
-  if(!CL.tacticChosen){ toastC('Escolha a tática no menu Formação primeiro.'); CL.tab='seleccao'; cdraw(); return; }
+  /* JORNADA SEM CAMPO NAO PEDE FORMACAO — o mesmo desvio do rotulo (ver rfProximaAcao):
+     tatica e goleiro sao condicoes para entrar em campo, e numa jornada em que o clube nao
+     joga o clique e "Avançar". Sem isto o botao dizia Avançar e o clique respondia com o
+     toast da tatica. */
+  const _semCampo = !CL.online && typeof rfNadaParaJogar==='function' && rfNadaParaJogar();
+  if(!_semCampo && !CL.tacticChosen){ toastC('Escolha a tática no menu Formação primeiro.'); CL.tab='seleccao'; cdraw(); return; }
   /* SORTEIO ANTES DE ENTRAR EM CAMPO. Cada copa tem a sua data de sorteio (ver cupSeasonDrawDays
      no core: dois dias antes da própria estreia, nunca no dia 1 e nunca a menos de 2 dias do
      sorteio de outra). Aqui, no começo da rodada, entram na fila os sorteios cuja data já chegou —
@@ -5744,7 +5749,7 @@ function clJogar(){
       checkPendingCupDraws(()=>clJogar()); return;
     }
   }
-  { const gkc=xiGKCount(xiPlayers(CL.clubId));
+  if(!_semCampo){ const gkc=xiGKCount(xiPlayers(CL.clubId));
     if(gkc!==1){ toastC(gkc===0?'Escale um goleiro antes de jogar.':'Só pode ter 1 goleiro escalado.'); CL.tab='seleccao'; cdraw(); return; } }
   // semana de avanço de copa com partida do clube pendente: joga a copa primeiro, só
   // depois libera a rodada — ver pendingUserCupMatches/clCupResultContinue. Se houver
