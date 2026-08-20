@@ -448,7 +448,7 @@ async function netJoinRoom(code, me){
   // nunca mexe nele — ver 'caixa de humano é do assento' no resolve-round). Sem ler a coluna, o
   // cliente só conhecia o valor que ELE MESMO publicou nesta sessão, e depois de um reload
   // sobrava o número do mundo, que é sempre mais velho. Ver applyViewerDivision.
-  (seatsData||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round, last_bids:s.last_bids, last_seen:s.last_seen, budget:seatBudgetEmVoo(s), stadium:s.stadium }; });
+  (seatsData||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round, last_bids:s.last_bids, last_seen:s.last_seen, budget:seatBudgetEmVoo(s), stadium:s.stadium, last_cup_result:s.last_cup_result, last_cup_round:s.last_cup_round, day_ack:s.day_ack }; });
   NET.room = {
     code: gameData.id, gameId: gameData.id, name: gameData.name, hostId: gameData.host_id, mode: gameData.mode, phase: gameData.phase,
     participants: [], seed: gameData.seed, round: gameData.round||0, deadline: gameData.ready_deadline?new Date(gameData.ready_deadline).getTime():0,
@@ -498,7 +498,7 @@ async function netRefreshRoom(){
     }
     const { data: seats } = await sb.from('game_seats').select('*').eq('game_id', NET.gameId);
     NET._claimed = NET._claimed || {};
-    (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round, last_bids:s.last_bids, last_seen:s.last_seen, budget:seatBudgetEmVoo(s), stadium:s.stadium }; });
+    (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round, last_bids:s.last_bids, last_seen:s.last_seen, budget:seatBudgetEmVoo(s), stadium:s.stadium, last_cup_result:s.last_cup_result, last_cup_round:s.last_cup_round, day_ack:s.day_ack }; });
     netMergeParticipants(); // -> NET.onState (transição lobby->jogo + reconcile de rodada)
     return NET.room;
   }catch(e){ console.warn('refreshRoom:', e&&e.message); return null; }
@@ -1348,7 +1348,12 @@ function netSetupRealtime(){
   SB_CH.on('postgres_changes', { event:'*', schema:SB_SCHEMA, table:'game_seats', filter:'game_id=eq.'+NET.gameId }, (p)=>{
     const row = p.new && Object.keys(p.new).length ? p.new : null;
     if(row){
-      if(row.user_id){ NET._claimed[row.user_id] = { clubId:row.club_id, ready:row.is_ready, name:row.name, email:row.email, busy_until:row.busy_until, last_xi:row.last_xi, last_tactic:row.last_tactic, last_result:row.last_result, last_result_round:row.last_result_round, last_bids:row.last_bids, last_seen:row.last_seen }; }
+      /* O REALTIME NAO PODE EMPOBRECER O CACHE. Este bloco reescrevia o assento com um
+         subconjunto das colunas: budget/stadium/last_cup_result/day_ack sumiam do _claimed no
+         instante em que chegava QUALQUER update daquele assento — e sao exatamente as colunas
+         que os chips da sala e a adocao de resultado de copa leem. O payload do realtime traz a
+         linha inteira, entao o cache recebe a linha inteira. */
+      if(row.user_id){ NET._claimed[row.user_id] = { clubId:row.club_id, ready:row.is_ready, name:row.name, email:row.email, busy_until:row.busy_until, last_xi:row.last_xi, last_tactic:row.last_tactic, last_result:row.last_result, last_result_round:row.last_result_round, last_bids:row.last_bids, last_seen:row.last_seen, budget:seatBudgetEmVoo(row), stadium:row.stadium, last_cup_result:row.last_cup_result, last_cup_round:row.last_cup_round, day_ack:row.day_ack }; }
       else { // assento LIBERADO (ex.: expulsão): remove o dono anterior do cache — senão o clube fica
              // "fantasma-ocupado" pros outros clientes (freeClubIds não oferece de volta) e o ex-dono
              // continua listado como participante.

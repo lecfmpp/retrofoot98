@@ -45,11 +45,24 @@ function rfSalaAssentos(){
   const out=[];
   if(CL.online && typeof NET!=='undefined' && NET._claimed){
     const agora=Date.now();
+    /* ===== O CHIP LE O CARIMBO DO SERVIDOR, NAO O MEU PALPITE =====
+       "Jogou" era `last_result_round===S.round` -- comparado com o S.round LOCAL, que durante a
+       pausa esta um numero diferente em cada cliente (quem ja adotou a rodada nova ve todo mundo
+       "sem jogar"; quem ainda nao adotou ve o contrario). Cada humano via um conjunto de chips
+       diferente na MESMA sala -- o relatado a 19/08.
+       O fato que e igual para todos e o carimbo do dia no assento (game_seats.day_ack, texto
+       "idx:momento", limpo pelo servidor quando o momento vira): quem ja carimbou o momento
+       atual cumpriu a sua parte, quem nao carimbou e por quem a sala espera. E a MESMA conta do
+       day_status que o proprio servidor usa para virar o dia. Sala sem ponteiro (save antigo)
+       fica na regra velha. */
+    const d=NET.room && NET.room.day;
+    const chave=d ? (d.idx+':'+d.moment) : null;
     for(const uid in NET._claimed){
       const c=NET._claimed[uid]; if(!c || !c.clubId) continue;
       const cl=anyClubOf(c.clubId)||{short:String(c.clubId)};
       out.push({ clubId:c.clubId, clube:cl, nome:c.name||'(sem nome)',
-        jogou: !!(c.last_result && c.last_result_round===S.round),
+        jogou: chave ? (c.day_ack===chave)
+                     : !!(c.last_result && c.last_result_round===S.round),
         presente: !!(c.last_seen && (agora-new Date(c.last_seen).getTime())<45000),
         eu: c.clubId===CL.clubId });
     }

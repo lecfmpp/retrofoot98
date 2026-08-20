@@ -1590,8 +1590,40 @@ function cupTeamAlive(b,id){ if(!b) return false; if(b.champion===id) return tru
   return b.ties.some(t=>t.h===id||t.a===id) || (b.pendingByes||[]).includes(id) || (b.round>1 && !b.eliminated[id] && b.history.some(h=>h.advanced&&h.advanced.includes(id))) ; }
 /* resolve TODAS as partidas pendentes da rodada atual de um mata-mata (quick-sim
    completo, com cartões/lesões/suspensões aplicados igual às partidas de liga) */
+/* ===== A PARTIDA DE COPA DE OUTRO HUMANO NAO E MINHA PARA SIMULAR =====
+   advanceCupBracket/advanceGroupStageRound rodam em cada cliente, e ate aqui simulavam QUALQUER
+   confronto sem vencedor -- inclusive o que outro humano da sala estava jogando AO VIVO naquele
+   instante. O humano via o resultado da sessao interativa dele; os outros calculavam outro
+   placar (a sessao tem decisoes -- substituicao, penalti -- que a simulacao cega nao tem). Foi a
+   final com um placar para quem jogou e outro para quem assistiu, relatada duas vezes.
+   O servidor ja resolve isto ha muito: le last_cup_result do assento e aplica na chave ANTES de
+   simular o resto (mandante-autoritativo). O cliente passa a fazer o mesmo: confronto de outro
+   humano so entra com o resultado PUBLICADO por ele; sem resultado publicado ainda, o avanco
+   inteiro espera (devolve false, nada e tocado) -- o estado do servidor chega logo depois e
+   preenche. Solo e confrontos so-CPU nao mudam em nada. */
+function clubeDeOutroHumano(id){
+  return !!(typeof CL!=='undefined' && CL.online && CL.humans && CL.humans[id]
+            && String(id)!==String(CL.clubId));
+}
+function cupResultadoPublicado(key, h, a){
+  if(typeof CL==='undefined' || !CL.online || typeof NET==='undefined' || !NET._claimed) return null;
+  for(const uid in NET._claimed){
+    const c=NET._claimed[uid]; if(!c || (c.clubId!==h && c.clubId!==a)) continue;
+    if(c.last_cup_round!==(S.round||0) || !c.last_cup_result) continue;
+    const lista=(Array.isArray(c.last_cup_result.results) && c.last_cup_result.results.length)
+      ? c.last_cup_result.results : [c.last_cup_result];
+    const e=lista.find(x=>x && x.h===h && x.a===a && (!x.key || !key || x.key===key));
+    if(e) return e;
+  }
+  return null;
+}
 function advanceCupBracket(b, roundLabel, comp){
   if(!b || cupIsFinished(b)) return;
+  /* pre-scan ANTES de tocar em qualquer coisa: se falta o resultado publicado de um confronto
+     de outro humano, o avanco inteiro espera -- avancar pela metade corromperia a chave. */
+  if((b.ties||[]).some(t=>!t.winner
+      && (clubeDeOutroHumano(t.h)||clubeDeOutroHumano(t.a))
+      && !(cupResultadoPublicado(comp,t.h,t.a)||{}).winner)) return false;
   /* ===== TODA A GENTE TEM DE CHEGAR AO MESMO PLACAR =====
      Esta funcao roda em CADA cliente, por conta propria, sobre a mesma chave e com a mesma
      semente. Para o resultado bater, os TIMES tambem tem de bater — e nao batiam: no cliente do
@@ -1605,6 +1637,21 @@ function advanceCupBracket(b, roundLabel, comp){
   b.ties.forEach(t=>{
     if(t.winner) { winners.push(t.winner); return; }
     const seed=hashSeed(S.seed,'cup',roundLabel,t.h,t.a);
+    if(clubeDeOutroHumano(t.h)||clubeDeOutroHumano(t.a)){
+      // o placar que ELE viu e o que vale -- o mesmo payload que o servidor aplica
+      const pub=cupResultadoPublicado(comp,t.h,t.a);   // o pre-scan garante pub.winner
+      t.hg=pub.hg; t.ag=pub.ag; t.events=pub.events||[];
+      applyMatchIncidents(t.events);
+      recordScorers(pub.scorers||[], comp);
+      const Rp=makeRng(hashSeed(seed,'rate'));
+      ratePlayers(t.h,pub.hg,pub.ag,pub.scorers||[],Rp,pub.perf&&pub.perf.H,pub.perf&&pub.perf.A,pub.caps&&pub.caps.H,pub.matchMinutes||90);
+      ratePlayers(t.a,pub.ag,pub.hg,pub.scorers||[],Rp,pub.perf&&pub.perf.A,pub.perf&&pub.perf.H,pub.caps&&pub.caps.A,pub.matchMinutes||90);
+      t.winner=pub.winner; t.pens=pub.pens||null; winners.push(t.winner);
+      t.jornada=S.round;
+      awardCupPhasePrize(_cupKeyOf(roundLabel), b, t);
+      const loser=t.winner===t.h?t.a:t.h; b.eliminated[loser]=true;
+      return;
+    }
     const evs=[]; let fin=null;
     const sim=simulateMatch(t.h,t.a,false,(tk)=>{ if(tk.ev) evs.push(tk.ev); },(r)=>fin=r,seed);
     let g=0; while(!fin&&g++<600) sim.step();
@@ -1634,6 +1681,7 @@ function advanceCupBracket(b, roundLabel, comp){
   const rest=ranked.slice(nByes);
   b.ties=[]; for(let i=0;i<rest.length;i+=2){ b.ties.push({h:rest[i],a:rest[i+1],hg:null,ag:null,winner:null,events:[]}); }
   } finally { if(_simCompartilhada) simEscalacaoPublicada(false); }
+  return true;
 }
 /* aplica resultado de UMA partida avulsa (copas) sem mexer na tabela da liga */
 function applyResult1off(h,a,hg,ag){ /* copas não têm tabela de pontos corridos; placar já fica no objeto da chave */ }
@@ -1712,6 +1760,15 @@ function myCupTurnDone(key){
 }
 function advanceGroupStageRound(mg, roundLabel, comp){
   if(!mg || mg.finished) return;
+  /* mesma regra do bracket (ver advanceCupBracket): partida de OUTRO humano so entra com o
+     resultado publicado por ele; faltando um, a rodada inteira do grupo espera (false). */
+  const _jaGravada=(g,h,a)=>(g.results||[]).some(r=>r && r.r===mg.round && r.h===h && r.a===a);
+  if(Object.values(mg.groups).some(g=>((g.sched[mg.round])||[]).some(([h,a])=>{
+    if(h==null||a==null) return false;
+    if(_jaGravada(g,h,a)) return false;
+    if(!(clubeDeOutroHumano(h)||clubeDeOutroHumano(a))) return false;
+    return !cupResultadoPublicado(comp,h,a);
+  }))) return false;
   /* mesma regra da chave (ver advanceCupBracket): resolucao que cada cliente faz por conta
      propria tem de usar a escalacao PUBLICADA, senao o dono de um clube humano calcula um
      resultado e os outros calculam outro. */
@@ -1722,11 +1779,26 @@ function advanceGroupStageRound(mg, roundLabel, comp){
     const fx=(g.sched[mg.round])||[];
     fx.forEach(([h,a])=>{
       if(h==null||a==null) return; // bye (número ímpar de times no grupo)
-      // partida do usuário já jogada ao vivo nesta rodada (ver finishCupLiveMatch) — pula
-      // só ela, o resto do grupo simula normalmente.
-      // resultado JÁ GRAVADO nesta rodada do grupo (partida ao vivo do usuário) — dado real, não marcador
-      if((h===CL.clubId||a===CL.clubId) && (g.results||[]).some(r=>r && r.r===mg.round && r.h===h && r.a===a)) return;
+      // resultado JÁ GRAVADO nesta rodada do grupo (partida ao vivo, minha ou adotada) — dado
+      // real, não marcador; nunca se aplica duas vezes, de quem quer que seja
+      if(_jaGravada(g,h,a)) return;
       const seed=hashSeed(S.seed,roundLabel,g.label,h,a);
+      if(clubeDeOutroHumano(h)||clubeDeOutroHumano(a)){
+        // o placar publicado por quem jogou (o pre-scan garante que existe)
+        const pub=cupResultadoPublicado(comp,h,a);
+        applyMatchIncidents(pub.events||[]);
+        const Rp=makeRng(hashSeed(seed,'rate'));
+        recordScorers(pub.scorers||[], comp);
+        ratePlayers(h,pub.hg,pub.ag,pub.scorers||[],Rp,pub.perf&&pub.perf.H,pub.perf&&pub.perf.A,pub.caps&&pub.caps.H,pub.matchMinutes||90);
+        ratePlayers(a,pub.ag,pub.hg,pub.scorers||[],Rp,pub.perf&&pub.perf.A,pub.perf&&pub.perf.H,pub.caps&&pub.caps.A,pub.matchMinutes||90);
+        const T=g.table;
+        g.results=g.results||[]; g.results.push({r:mg.round, h, a, hg:pub.hg, ag:pub.ag, jornada:S.round});
+        T[h].P++; T[a].P++; T[h].GF+=pub.hg; T[h].GA+=pub.ag; T[a].GF+=pub.ag; T[a].GA+=pub.hg;
+        if(pub.hg>pub.ag){ T[h].W++; T[a].L++; T[h].Pts+=3; }
+        else if(pub.hg<pub.ag){ T[a].W++; T[h].L++; T[a].Pts+=3; }
+        else { T[h].D++; T[a].D++; T[h].Pts++; T[a].Pts++; }
+        return;
+      }
       const evs=[]; let fin=null;
       const sim=simulateMatch(h,a,false,(tk)=>{ if(tk.ev) evs.push(tk.ev); },(r)=>fin=r,seed);
       let steps=0; while(!fin&&steps++<600) sim.step();
@@ -1748,6 +1820,7 @@ function advanceGroupStageRound(mg, roundLabel, comp){
   mg.round++;
   if(mg.round>=mg.roundsTotal) mg.finished=true;
   } finally { if(_simCompartilhada) simEscalacaoPublicada(false); }
+  return true;
 }
 /* melhores colocados de CADA grupo (advancePerGroup por grupo) — quem avança pro mata-mata */
 function groupStageAdvancers(mg){
@@ -2274,7 +2347,20 @@ function marcarSorteioVistoPorMim(mark){
 function haSorteioPendente(){
   try{
     if(typeof S==='undefined' || !S || !S.cups) return false;
-    if((S._pendingDrawShows||[]).some(x=>typeof cupTemCerimonia!=='function' || cupTemCerimonia((x&&x.key)||x))) return true;
+    /* A FILA E COMPARTILHADA; O "JA VI" E MEU. S._pendingDrawShows viaja no shared_state (o host
+       salva ANTES de consumir), entao uma entrada que EU ja assisti continua na minha copia da
+       fila ate a proxima adocao. Contar essa entrada fazia o botao dizer "Ver o sorteio" para
+       sempre -- e o clique, que dispensa entradas ja vistas (checkPendingCupDraws), nao abria
+       nada: era o botao de acao falsa relatado a 19/08. O filtro e o MESMO do consumo: a marca
+       por cliente key:stage:season (CL._drawPlayedSeason / drawAlreadySeen). */
+    const _vi=x=>{
+      const key=(x&&x.key)||x, stage=(x&&x.stage)||'bracket';
+      if(typeof cupTemCerimonia==='function' && !cupTemCerimonia(key)) return true;
+      const mark=key+':'+stage+':'+(S.season||1);
+      if(typeof CL!=='undefined' && (CL._drawPlayedSeason||{})[mark]) return true;
+      return (typeof drawAlreadySeen==='function') && drawAlreadySeen(mark);
+    };
+    if((S._pendingDrawShows||[]).some(x=>!_vi(x))) return true;
     const season=S.season||1;
     return Object.keys(cupSeasonDrawDays()).some(key=>{
       if(!S.cups[key]) return false;
@@ -4114,13 +4200,6 @@ function resenhaOfferClubs(){
      Resenha divergia do solo sem ninguém decidir que devia divergir. */
   const fora = curriculoDeExportacao() ? clubesDoExterior() : [];
   return {same, up, fora};
-}
-/* UMA troca de clube a cada DUAS temporadas: o treinador de sucesso muda de ares, mas não escala
-   quatro divisões em quatro temporadas. Vale só pra mudança VOLUNTÁRIA (sondagem aceita) — quem
-   foi DEMITIDO precisa poder assumir o convite seguinte, senão ficaria duas temporadas sem clube. */
-function resenhaCanMoveClub(){
-  if(S.lastClubChangeSeason==null) return true;
-  return ((S.season||1) - S.lastClubChangeSeason) >= 2;
 }
 /* quantas jornadas um convite fica de pe. E o mesmo prazo do solo (ver checkManagerJobEvent),
    agora com nome — o numero estava escrito a mao nos dois sitios. */

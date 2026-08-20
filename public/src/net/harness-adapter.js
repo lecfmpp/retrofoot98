@@ -56,6 +56,7 @@
         email:'', busy_until:s.busy_until||null, last_xi:s.last_xi||null, last_tactic:s.last_tactic||null,
         last_result:s.last_result||null, last_result_round:s.last_result_round??null,
         last_cup_result:s.last_cup_result||null, last_cup_round:s.last_cup_round??null,
+        day_ack:s.day_ack||null,
         last_seen:Date.now() }; });
   }
   function pushState(g){

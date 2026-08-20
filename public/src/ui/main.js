@@ -5732,8 +5732,17 @@ function clJogar(){
      sorteio de outra). Aqui, no começo da rodada, entram na fila os sorteios cuja data já chegou —
      e a cerimônia roda ANTES de qualquer partida, que é a garantia de "só há jogo depois do
      sorteio daquela copa". Se enfileirou alguma coisa, mostra e volta pra cá quando terminar. */
-  if(typeof queueDueCupDraws==='function' && queueDueCupDraws() && typeof checkPendingCupDraws==='function'){
-    checkPendingCupDraws(()=>clJogar()); return;
+  {
+    const novos=(typeof queueDueCupDraws==='function')?queueDueCupDraws():0;
+    /* A FILA COMPARTILHADA TAMBEM CONTA. S._pendingDrawShows viaja no shared_state, entao ela
+       pode chegar aqui JA CHEIA sem que queueDueCupDraws enfileire nada de novo -- e o clique
+       caia direto nas portas da sala, sem abrir sorteio nenhum: era o "Ver o sorteio" que nunca
+       ia ao sorteio. checkPendingCupDraws ja sabe dispensar entrada que eu ja vi, entao drenar
+       aqui ou mostra a cerimonia devida ou limpa a fila velha e segue. */
+    const fila=(typeof S!=='undefined' && S && S._pendingDrawShows && S._pendingDrawShows.length)||0;
+    if((novos||fila) && typeof checkPendingCupDraws==='function'){
+      checkPendingCupDraws(()=>clJogar()); return;
+    }
   }
   { const gkc=xiGKCount(xiPlayers(CL.clubId));
     if(gkc!==1){ toastC(gkc===0?'Escale um goleiro antes de jogar.':'Só pode ter 1 goleiro escalado.'); CL.tab='seleccao'; cdraw(); return; } }
@@ -6428,6 +6437,42 @@ function maybeBroadcastMatch(m,force){
   m._cast={ts:now,n:evN,p:pend,d:done};
   NET.broadcastMatch({ k:m.streamKey, ...m.sim.snapshot() });
 }
+/* O RESULTADO QUE O DONO DA PARTIDA PUBLICOU NO ASSENTO — para a rodada corrente e exatamente
+   este confronto. E o registo do apito que NAO viaja por broadcast (colunas de game_seats via
+   realtime), entao sobrevive a perda de qualquer snapshot. Liga usa last_result; dia de copa usa
+   last_cup_result (ver cupResultadoPublicado, no core). */
+function liveResultadoPublicadoDe(m){
+  if(!CL.online || typeof NET==='undefined' || !NET._claimed) return null;
+  const RL=CL.live;
+  if(RL && RL.cup) return (typeof cupResultadoPublicado==='function')
+    ? cupResultadoPublicado(RL.cup.key, m.h, m.a) : null;
+  for(const uid in NET._claimed){
+    const c=NET._claimed[uid]; if(!c || (c.clubId!==m.h && c.clubId!==m.a)) continue;
+    if(c.last_result_round!==(S.round||0) || !c.last_result) continue;
+    const r=c.last_result;
+    if(r && r.h===m.h && r.a===m.a && r.hg!=null) return r;
+  }
+  return null;
+}
+/* ===== O APITO FINAL E REENVIADO DEPOIS DA RODADA FECHAR =====
+   O transmissor rebatia o snapshot final "enquanto a rodada nao fecha" -- so que a rodada DELE
+   fecha quase instantaneamente depois do proprio apito (piso de 12ms sem espectador a segurar), e
+   sobravam um punhado de envios num canal sem historico. Snapshot final perdido = quem assiste
+   espera o detetor de 20s. Aqui o final continua a ser batido por ~7s DEPOIS de a rodada fechar,
+   fora do liveTick (que ja morreu) -- barato, idempotente do lado de quem recebe (cumulativo), e
+   com o caminho do resultado publicado como segunda rede. */
+function liveAgendarReenvioFinal(RL){
+  if(!CL.online || typeof NET==='undefined' || !NET.broadcastMatch) return;
+  const finais=(RL.matches||[])
+    .filter(m=>m.sim && m.sim.done && m.streamCast)
+    .map(m=>({k:m.streamKey, snap:m.sim.snapshot()}));
+  if(!finais.length) return;
+  let n=0;
+  const t=setInterval(()=>{
+    if(++n>8){ clearInterval(t); return; }
+    finais.forEach(f=>{ try{ NET.broadcastMatch({k:f.k, ...f.snap}); }catch(e){} });
+  }, 900);
+}
 /* snapshot recebido: atualiza o cache e, se for a MINHA partida assistida (visitante), anexa os
    eventos novos e abre/fecha o modal de decisão remota conforme a pendência. */
 function onNetMatchLive(p){
@@ -6561,12 +6606,13 @@ const STREAM_MUDO_MS=20000;
    sessao so o sorteia ao chegar aos 90, e um snapshot pode ainda nao o ter trazido. */
 function liveFimDaPartida(m){
   if(!m) return null;
+  if(m.fimMin) return m.fimMin;   // pre-computada, ou adotado do resultado publicado (ver liveResultadoPublicadoDe)
   if(m.sim) return m.sim.totalMinutes || null;
   if(m.streamRemote && !m.streamDead){
     const st=CL._liveStreams && CL._liveStreams[m.streamKey];
     return (st && st.snap && st.snap.totalMinutes) || null;
   }
-  return m.fimMin || null;   // pre-computada: veio do proprio motor (ver buildLiveMatchObject)
+  return null;
 }
 /* essa partida ja apitou? */
 function liveJogoEncerrado(m, RL){
@@ -6691,6 +6737,26 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
     // rodada espera o fim dele.
     const st=CL._liveStreams && CL._liveStreams[m.streamKey];
     if(!m.streamDone && !m.streamDead){
+      /* ===== O RESULTADO PUBLICADO ENCERRA A TRANSMISSAO NA HORA =====
+         Quando o transmissor apita, a rodada DELE fecha em milissegundos (o piso de ritmo cai
+         para 12ms sem espectador a segurar) e ele para de emitir. Se o snapshot final se perde,
+         quem assiste ficava pendurado no detetor de stream morto -- VINTE SEGUNDOS parado na
+         tela ao vivo, e depois a rodada "voltava sozinha". Era a trava relatada a 19/08.
+         So que o apito dele tem um registo que nao se perde: o resultado PUBLICADO no assento
+         (last_result/last_cup_result), que chega por realtime em ~1s. Stream em silencio curto
+         + resultado publicado do confronto = a partida acabou de verdade: adota os eventos
+         oficiais e libera o relogio, sem toast e sem espera. */
+      const _mudoMs = st ? (nowMs()-st.ts) : (nowMs()-(m._builtAt||0));
+      if(_mudoMs>2500 && typeof liveResultadoPublicadoDe==='function'){
+        const pub=liveResultadoPublicadoDe(m);
+        if(pub){
+          (pub.events||[]).slice(m.events.length).forEach(e=>m.events.push({...e,_resolved:true}));
+          m.streamDone=true; m.fhg=pub.hg; m.fag=pub.ag;
+          if(pub.perf) m.perf=pub.perf;
+          if(pub.matchMinutes) m.fimMin=pub.matchMinutes;
+          return;   // nada de anunciar kickoff nem de detetor de morte: ela terminou
+        }
+      }
       /* teto vindo do PROPRIO stream, nao do relogio da rodada (ver liveFonteMax) */
       RL.maxMin=Math.max(RL.maxMin, ((st&&st.snap&&st.snap.minute)||0)+2);
       // ANUNCIO QUE ESTOU EM CAMPO enquanto espero: é isto que destrava o mandante, que está
@@ -6779,6 +6845,7 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
       }
     }
     { const um=RL.matches.find(m=>m.user); if(um) camFinal(um); } // apito final na narração do Camarote
+    if(typeof liveAgendarReenvioFinal==='function') liveAgendarReenvioFinal(RL);   // o apito final continua no ar por ~7s
     RL.done=true; if(RL.cup&&RL.cup.spectate) finishCupSpectate(); else if(RL.cup) finishCupLiveMatch(); else if(RL.humanSeat) finishHotseatMatch(); else finishLiveRound(); return;
   }
   // Online: o ritmo é o do ANFITRIÃO (games.speed_mult, sincronizado — ver clSetTempo/wireNet),
@@ -8972,14 +9039,19 @@ function resolveCupRoundRest(key){
   const c=S.cups[key]; if(!c) return;
   if(WORLD_RULES.cupAlreadyResolved(S._cupResolvedRound, key, S.round)) return;   // folha única
   try{
+    /* false = o avanco ESPEROU (falta o resultado publicado de um confronto de outro humano,
+       ver advanceCupBracket) -- nada foi tocado, entao nada e marcado como resolvido: a proxima
+       passada (ou o estado do servidor) completa. */
+    let ok=true;
     if(key==='copaBrasil'){
-      if(!cupIsFinished(c) && (c.ties||[]).length) advanceCupBracket(c,'copaBrasil-r'+c.round,'copaBrasil');
+      if(!cupIsFinished(c) && (c.ties||[]).length) ok=advanceCupBracket(c,'copaBrasil-r'+c.round,'copaBrasil')!==false;
     } else if(c.group && !c.bracket){
-      if(!c.group.finished) advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round, key);
+      if(!c.group.finished) ok=advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round, key)!==false;
     } else if(c.bracket && !cupIsFinished(c.bracket) && (c.bracket.ties||[]).length){
-      advanceCupBracket(c.bracket, key+'-r'+c.bracket.round, key);
+      ok=advanceCupBracket(c.bracket, key+'-r'+c.bracket.round, key)!==false;
     }
-    S._cupResolvedRound=WORLD_RULES.markCupResolved(S._cupResolvedRound, key, S.round);
+    if(ok) S._cupResolvedRound=WORLD_RULES.markCupResolved(S._cupResolvedRound, key, S.round);
+    else console.log('avanço da '+key+' aguarda resultado publicado de outro humano');
   }catch(e){ console.warn('resolveCupRoundRest('+key+'):', e && e.message); }
 }
 function finishCupLiveMatch(){
