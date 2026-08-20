@@ -507,6 +507,7 @@ function onlineReconcileIfBehind(room){
       S.xi = resolveClubXI(CL.clubId);
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       if(typeof pruneAppliedNetTransfers==='function') pruneAppliedNetTransfers(); // solta as transferências já aplicadas pelo servidor
+      if(typeof reaplicarMinhasTransferencias==='function') reaplicarMinhasTransferencias(); // o que eu já negociei vale por cima do estado adotado
       if(typeof pruneAppliedNetOffers==='function') pruneAppliedNetOffers();       // idem pras propostas mandadas a outro humano
       if(typeof pruneAppliedNetCounters==='function') pruneAppliedNetCounters(); // idem pras contrapropostas
       if(typeof pruneAppliedNetOfferDrops==='function') pruneAppliedNetOfferDrops(); // idem pras baixas de proposta

@@ -653,6 +653,27 @@ function pruneAppliedNetOffers(){
     return !fila.some(x=>x && x.id===o.id);                               // já aplicada -> solta
   });
 }
+/* ===== O QUE EU JA NEGOCIEI VALE POR CIMA DO ESTADO ADOTADO =====
+   Entre o aceite e a proxima resolucao do servidor existe uma rodada inteira em que o estado
+   adotado ainda TEM o jogador vendido: ele reaparecia no elenco (dava ate para escala-lo) e so
+   sumia quando o buffer viajava na publicacao seguinte. Depois de cada adopt, o buffer pendente
+   e reaplicado ao estado local: venda para fora do mundo (ou destino inexistente) remove o
+   jogador de novo; compra/venda entre clubes do mundo move de novo. Idempotente — usa o mesmo
+   match do prune — e nunca toca no que o servidor ja aplicou (o prune roda antes e ja soltou). */
+function reaplicarMinhasTransferencias(){
+  if(typeof CL==='undefined' || !CL.online || !S) return;
+  if(!S._netTransfers || !S._netTransfers.length) return;
+  const match=(x,t)=> (t.pid!=null && x.pid===t.pid) || x.n===t.p;
+  S._netTransfers.forEach(t=>{
+    if(!t || t.from==='BASE') return;   // o jovem da base e ADICAO, o servidor cuida
+    const src=(S.squads && S.squads[t.from])||null; if(!src) return;
+    const i=src.findIndex(x=>match(x,t)); if(i<0) return;   // ja fora da origem: nada a refazer
+    const dst=(t.to && S.squads && S.squads[t.to])||null;
+    const p=src.splice(i,1)[0];
+    if(dst && !dst.some(x=>match(x,t))){ if(t.contract) p.contract=t.contract; else delete p.contract; dst.push(p); }
+    // destino fora do mundo (to:null ou liga nao materializada): removido e pronto
+  });
+}
 function pruneAppliedNetTransfers(){
   if(!S) return;
   // moral da coletiva: o servidor aplica UMA vez, na rodada em que ela chega. Como já
@@ -709,6 +730,18 @@ function finalizeTransfer(negoIdx){
     return {ok:true,msg:`${p.n} agora joga pelo ${clubOf(S.clubId).short}!`};
   }
   // PRÉ-ACORDO (pré-janela): fecha o negócio agora, mas o jogador só chega na abertura da janela.
+  // RESENHA: o pre-acordo nao sobrevive ao adopt (ver acceptIncomingOffer) — o jogador chega AGORA.
+  if(typeof CL!=='undefined' && CL.online){
+    S.squads[n.sellerId]=S.squads[n.sellerId].filter(x=>x.n!==p.n);
+    p.contract=contract; p.moral=75; applyTradeLock(p); recordTransferHistory(p, n.sellerId, S.clubId, totalCost);
+    MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division));
+    S.squads[S.clubId]=S.squads[S.clubId]||[]; S.squads[S.clubId].push(p);
+    recordNetTransfer(n.sellerId, S.clubId, p.n, contract, totalCost, p.pid);
+    S.roundNews.push(`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`);
+    pushFinanceEntry({playerPurchases:totalCost, log:[`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`]});
+    save();
+    return {ok:true,msg:`${p.n} agora joga pelo ${clubOf(S.clubId).short}!`};
+  }
   S.pendingTransfers=S.pendingTransfers||[];
   S.pendingTransfers.push({ kind:'buy', sellerId:n.sellerId, buyerId:S.clubId, playerName:p.n,
     contract, fee:totalCost, executeRound:preOpen });
@@ -909,7 +942,14 @@ function acceptIncomingOffer(id){
   const preOpen=inPreWindow();
   dropIncomingOffer(S.clubId, id);                       // baixa que também viaja pro servidor
   S.roundNews=S.roundNews||[];
-  if(!inTransferWindow() && preOpen){
+  /* ===== NA RESENHA O ACORDO VALE NA HORA =====
+     O pre-acordo mora em S.pendingTransfers, que NAO viaja para o servidor nem esta em
+     CAREER_KEYS: na Resenha o proximo adopt apagava o acordo — dinheiro que nunca vinha,
+     jogador que nunca saia (e o executor, executePendingTransfers, so roda no playRound do
+     solo). Relatado a 20/08: "aceitei a proposta do time ingles, recebi o dinheiro e o
+     jogador ficou". Online nao ha pre-acordo: aceita, recebe e o jogador sai agora — para
+     QUALQUER destino, inclusive liga de fundo nao materializada (saida do mundo, to:null). */
+  if(!inTransferWindow() && preOpen && !(typeof CL!=='undefined' && CL.online)){
     // PRÉ-ACORDO: aceita agora, mas o jogador só sai na abertura da janela (segue jogando até lá)
     p._pendingSale=true;
     S.pendingTransfers=S.pendingTransfers||[];
