@@ -207,15 +207,15 @@ function rfSubHTML(m){
        caberem na MESMA linha: empilhados, a barra levava 121px dos 812 do ecra
        -- espaco que falta as duas listas. Encurta-se o rotulo, nunca a barra. */
     /* ===== VOLTAR AO JOGO E A ACAO PRINCIPAL, NAO A SAIDA DE EMERGENCIA =====
-       O rodape tinha "Voltar ao jogo" a esquerda, discreto, e "Confirmar substituicao" a
+       O rodape tinha "Voltar ao jogo" a esquerda, discreto, e "Fazer substituicao" a
        direita, em amarelo. So que a maior parte das visitas a esta tela acaba SEM troca — o
        treinador vem ver energia e forca e volta ao jogo. O botao amarelo estava na acao rara.
-       Agora "Continuar para o jogo" e o amarelo, na direita, e "Confirmar substituicao" fica ao
+       Agora "Continuar para o jogo" e o amarelo, na direita, e "Fazer substituicao" fica ao
        lado dele, em branco: quem quer trocar carrega no branco primeiro; quem so veio olhar
        carrega no amarelo e volta. */
     acoes:`<div class="rf-sp"></div>
       <button type="button" class="rf-ov-b2" ${pronto?'':'disabled'} onclick="rfSubConfirmar()">
-        <span class="rf-so-desktop">Confirmar substituição</span><span class="rf-so-mobile">Confirmar</span></button>
+        <span class="rf-so-desktop">Fazer substituição</span><span class="rf-so-mobile">Substituir</span></button>
       <button type="button" class="rf-ov-cta" onclick="rfSubFechar()">
         <span class="rf-so-desktop">Continuar para o jogo</span><span class="rf-so-mobile">Continuar</span></button>`
   });
