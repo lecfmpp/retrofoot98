@@ -5532,6 +5532,9 @@
 @media (prefers-reduced-motion:reduce){.rf-adv-jogar.pulsa{animation:none}}
 .rf-adv-falta{font-size:var(--fs-label);color:#c3d3ec;text-align:center}
 .rf-adv-vazio{gap:6px}
+/* o cartao sem jogo mantem o vestido escuro e o botao de avanco (ver rfAdversarioCardHTML) */
+.rf-adv-semjogo{justify-content:space-between}
+.rf-adv-livre{font-size:var(--fs-body);color:rgba(255,255,255,.85);line-height:1.5;padding:6px 0}
 @media (max-width:900px){ .rf-hub-baixo{grid-template-columns:minmax(0,1fr)} }
 
 /* =====================================================================

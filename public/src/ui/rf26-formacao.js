@@ -53,10 +53,23 @@ function rfNotasHTML(){
 /* ---- adversário: o cartão escuro com a mini-tabela e o Jogar ---- */
 function rfAdversarioCardHTML(){
   const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
-  if(!nm||!nm.oppId) return `<div class="rf-card rf-adv-vazio">
-    <span class="rf-label-t">Adversário</span>
-    <span class="rf-note">Sem jogo marcado agora. O calendário abre a próxima jornada.</span>
-  </div>`;
+  /* ===== SEM JOGO NAO E SEM BOTAO =====
+     Este cartao virou o UNICO ponto de avanco da tela (as Formacoes cederam o Jogar para ele,
+     20/08) — e a versao vazia nao tinha botao nenhum: numa jornada em que o clube nao entra em
+     campo (parada do calendario, semana de finais, eliminado das copas) o usuario ficava sem
+     como avancar. O cartao vazio continua a dizer que nao ha jogo, mas o botao fica — e o
+     rotulo desce a escada de sempre (rfJogarLabel): "Avançar" no solo, "Quase pronto"/"Pronto"
+     na Resenha, "Ver o sorteio"/"Ver classificação" quando e isso que se deve. */
+  if(!nm||!nm.oppId){
+    return `<div class="rf-adv rf-adv-semjogo">
+      <div class="rf-adv-hd">
+        <span class="rf-adv-l">Esta semana</span>
+        <span class="rf-adv-d">${S.season||''}</span>
+      </div>
+      <span class="rf-adv-livre">O seu clube não entra em campo nesta jornada.</span>
+      <button type="button" class="rf-adv-jogar" onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
+    </div>`;
+  }
   const opp=anyClubOf(nm.oppId)||{short:'—'};
   const eu=clubOf(CL.clubId)||{short:'—'};
   const data=(typeof shortMatchDate==='function')?shortMatchDate(nm):'';
