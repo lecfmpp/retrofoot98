@@ -504,7 +504,12 @@ function rfPosRodadaHTML(){
 
   // resultados da rodada: público em mono à esquerda, como no original
   const rod=S.round>0?S.round-1:0;
-  const res=(S.results||[]).filter(r=>r.round===rod).slice(0,8);
+  /* SO OS JOGOS DA MINHA LIGA. O filtro era apenas o numero da rodada — num save reparado da
+     troca de pais, os resultados VELHOS do Brasil (rodada 0 da temporada antiga) empatavam com a
+     rodada 0 nova da Premier e enchiam a lista com jogos brasileiros (relatado a 20/08). O jogo
+     e da rodada da MINHA liga quando os dois clubes estao na tabela ancora. */
+  const naMinhaLiga=r=>!!(S.table && S.table[r.h] && S.table[r.a]);
+  const res=(S.results||[]).filter(r=>r.round===rod && naMinhaLiga(r)).slice(0,8);
   const resultados=res.length?res.map(r=>{
     const h=anyClubOf(r.h)||{short:'—'}, a=anyClubOf(r.a)||{short:'—'};
     const meu=(r.h===CL.clubId||r.a===CL.clubId);

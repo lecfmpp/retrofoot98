@@ -4687,6 +4687,10 @@ function repararMundoQuimera(){
     S.sched=makeSchedule(ids); S.round=0;
     S.table={}; DATA.clubs.forEach(c=>S.table[c.id]={id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
     S._promoRelegNews=null;
+    /* os RESULTADOS do mundo antigo ficam para tras: a temporada recomecou, e a rodada 0 velha
+       do Brasil empatava com a rodada 0 nova da liga do clube na tela de pos-rodada. A
+       artilharia da temporada tambem — era a da liga que ja nao e a dele. */
+    S.results=[]; S.scorers={};
     buildOtherDivisions();
     initBgLeagues();
     S.xi=(typeof autoXI==='function')?autoXI(S.clubId):S.xi;
