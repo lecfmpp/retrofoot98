@@ -535,21 +535,50 @@ function rfSidebarHTML(){
    azul escuro) e a foto da camisa — CSS puro, duas camadas com keyframes de opacidade, nada de
    timer. Titulo do produto abaixo da imagem e o botao Comprar com o parcelado (o "3x de" sai
    pequeno, o valor grande). */
+/* ===== A VITRINE REVEZA OS PRODUTOS =====
+   Cada produto vive um ciclo inteiro do crossfade (logo -> camisa -> logo) e a troca acontece
+   no INICIO do ciclo, quando a logo esta opaca por cima da foto: nada de pulo visivel. Quem
+   avisa que o ciclo virou e o proprio CSS (animationiteration na face da logo) — sem timer
+   proprio, entao a troca nunca briga com o redesenho da tela (que reinicia a animacao e o
+   ciclo recomeca do zero, com a logo na frente). Titulo, preco e link trocam JUNTOS com a
+   foto: sao pecas do mesmo produto. */
+const RF_SB_PRODUTOS=[
+  { img:'img/sponsors/moda-fluminense-2004.webp',
+    titulo:'Fluminense - 2004 - Tricolor - Unimed - Adidas',
+    href:'https://modaec.com.br/produtos/fluminense-2004-tricolor-unimed-adidas-dwnu2/?utm=retrofoot-sidebar-proximo-jogo',
+    preco:'R$ 151,67' },
+  { img:'img/sponsors/moda-flamengo-1993.webp',
+    titulo:'Flamengo - 1993 - Lubrax',
+    href:'https://modaec.com.br/produtos/flamengo-1993-lubrax-4vhj0/?utm=retrofoot-sidebar-proxima-partida',
+    preco:'R$ 132,33' },
+];
 function rfSbAnuncioHTML(){
+  const p=RF_SB_PRODUTOS[(CL._sbAdIdx||0)%RF_SB_PRODUTOS.length];
   return `<div class="rf-sb-ad">
     <span class="rf-sb-ad-tag">Publicidade</span>
     <div class="rf-sb-ad-media">
       <span class="rf-sb-ad-face logo"><img src="img/sponsors/moda-esporte-logo.webp" alt="Moda Esporte Clube" loading="lazy" draggable="false"></span>
-      <span class="rf-sb-ad-face foto"><img src="img/sponsors/moda-fluminense-2004.webp" alt="Camisa Fluminense 2004" loading="lazy" draggable="false"></span>
+      <span class="rf-sb-ad-face foto"><img src="${escC(p.img)}" alt="${escC(p.titulo)}" loading="lazy" draggable="false"></span>
     </div>
-    <span class="rf-sb-ad-titulo">Fluminense - 2004 - Tricolor - Unimed - Adidas</span>
-    <a class="rf-sb-ad-cta" href="https://modaec.com.br/produtos/fluminense-2004-tricolor-unimed-adidas-dwnu2/?utm=retrofoot-sidebar-proximo-jogo"
-      target="_blank" rel="noopener sponsored">
+    <span class="rf-sb-ad-titulo">${escC(p.titulo)}</span>
+    <a class="rf-sb-ad-cta" href="${escC(p.href)}" target="_blank" rel="noopener sponsored">
       <b>Comprar</b>
-      <span class="rf-sb-ad-preco"><small>3x de</small> R$ 151,67</span>
+      <span class="rf-sb-ad-preco"><small>3x de</small> ${escC(p.preco)}</span>
     </a>
   </div>`;
 }
+/* a virada de produto, escondida atras da logo (ver a nota acima) */
+if(typeof document!=='undefined') document.addEventListener('animationiteration', function(e){
+  const el=e.target;
+  if(!el || !el.classList || !el.classList.contains('rf-sb-ad-face') || !el.classList.contains('logo')) return;
+  CL._sbAdIdx=((CL._sbAdIdx||0)+1)%RF_SB_PRODUTOS.length;
+  const p=RF_SB_PRODUTOS[CL._sbAdIdx];
+  const box=el.closest('.rf-sb-ad'); if(!box) return;
+  const img=box.querySelector('.rf-sb-ad-face.foto img'); if(img){ img.src=p.img; img.alt=p.titulo; }
+  const t=box.querySelector('.rf-sb-ad-titulo'); if(t) t.textContent=p.titulo;
+  const a=box.querySelector('.rf-sb-ad-cta'); if(a) a.href=p.href;
+  const pr=box.querySelector('.rf-sb-ad-preco'); if(pr) pr.innerHTML='<small>3x de</small> '+escC(p.preco);
+});
 /* O BOTÃO JOGAR DA SIDEBAR É O MESMO BOTÃO DE SEMPRE, não um atalho novo:
    fora da Resenha ele começa a partida (clJogar); dentro dela ele é o
    interruptor "Pronto" — clicar de novo cancela e a sala volta a esperar
