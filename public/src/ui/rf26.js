@@ -733,7 +733,7 @@ function rfProximaAcao(){
     if(dia && dia.hold) return R('espera','relogio','Acertando a jornada','Aguarde');
     if(dia && dia.moment==='escalando'){
       const pronto=(typeof estouPronto==='function' && estouPronto());
-      return pronto ? R('pronto','ok','Pronto') : R('marcarpronto','jogar','Estou pronto','Pronto');
+      return pronto ? R('pronto','ok','Pronto') : R('marcarpronto','jogar','Quase pronto','Quase');
     }
     if(dia && dia.moment==='classificacao') return R('fechando','relogio','Fechando a rodada','Aguarde');
     const diaDeLiga=!!(dia && dia.comp==='liga');
@@ -750,7 +750,7 @@ function rfProximaAcao(){
       if(assisto.length) return R('assistir','camarote','Assistir à rodada','Assistir');
     }
     // 9) Resenha sem mais nada a cumprir: digo que estou pronto
-    if(CL.online) return R('marcarpronto','jogar','Estou pronto','Pronto');
+    if(CL.online) return R('marcarpronto','jogar','Quase pronto','Quase');
     // 10) SOLO: jornada sem nada em campo -> passa o dia
     if(typeof rfNadaParaJogar==='function' && rfNadaParaJogar()) return R('avancar','calendario','Avançar');
     // 11) a rodada de liga
@@ -764,13 +764,21 @@ function rfJogarLabel(){ return rfProximaAcao().rotulo; }
    aos dois estados em que o clique leva mesmo a jogo: entrar em campo, e o "estou pronto" da
    Resenha já carimbado (aí a sala é que segura, não eu).
    `pronto` é o portão de sempre: onze completo, um goleiro, tática escolhida. */
-const RF_PASSOS_DE_JOGO=['jogar','copa','marcarpronto','pronto'];
+/* ===== E O AMARELO QUER DIZER "FALTA O RESTO DA SALA" =====
+   "Estou pronto" saia verde, a par de "Jogar" — mas os dois nao valem o mesmo. Verde diz que o
+   clique entra em campo; o "quase pronto" nao entra em lado nenhum, ele CARIMBA e fica a espera
+   dos outros treinadores. Pintar os dois de verde prometia campo onde havia fila.
+   Fica no amarelo da casa (o mesmo do rodape das sobreposicoes), e o verde so aparece depois do
+   carimbo — a acao 'pronto', em que so falta a sala fechar. */
+const RF_PASSOS_DE_JOGO=['jogar','copa','pronto'];
 function rfJogarClasse(){
   const a=rfProximaAcao();
-  if(RF_PASSOS_DE_JOGO.indexOf(a.k)<0) return '';
+  const meu=(RF_PASSOS_DE_JOGO.indexOf(a.k)>=0);
+  if(!meu && a.k!=='marcarpronto') return '';
   const xi=(typeof xiPlayers==='function')?xiPlayers(CL.clubId):[];
   const pronto = xi.length>=11 && CL.tacticChosen && (typeof xiGKCount==='function'?xiGKCount(xi)===1:true);
-  return pronto ? 'rf-btn-pronto' : '';
+  if(!pronto) return '';
+  return meu ? 'rf-btn-pronto' : 'rf-btn-quase';
 }
 function rfIrEscolherTatica(){
   /* No telefone o Hub tem abas, e o bloco de formações vive na aba "Formação".

@@ -70,7 +70,8 @@ function rfLvLinhaHTML(m,i){
       <span class="rf-lv-n ${ga>gh?'frente':''}">${escC(ac.short)}</span>
       <span id="rf-lv-fa-${i}" class="rf-lv-fatos-slot">${rfLvFatosHTML(fa,'dir')}</span>
     </span>
-    <span class="rf-lv-min" id="cl-lg-${i}">${m.done?'FIM':((m.min!=null?m.min:((CL.live&&(CL.live.minute||CL.live.min))||0))+"'")}</span>
+    <span class="rf-lv-min" id="cl-lg-${i}">${(m.done||((typeof liveJogoEncerrado==='function')&&liveJogoEncerrado(m,CL.live)))
+      ?'FIM':((m.min!=null?m.min:((CL.live&&(CL.live.minute||CL.live.min))||0))+"'")}</span>
   </div>`;
 }
 /* o motor não tem um tipo "vermelho": manda type:'cartao' com
@@ -150,7 +151,13 @@ function rfLvComp(d){
 function rfLvFaixaHTML(RL){
   const meu=(RL.matches||[]).find(m=>m.user);
   const min=RL.minute||RL.min||0;
-  const periodo=min>45?'2º tempo':'1º tempo';
+  /* A FAIXA TEM DE DIZER QUE O MEU JOGO ACABOU. Ela so sabia dizer "1º tempo"/"2º tempo", entao
+     aos 92, com o meu jogo ja apitado e a rodada a correr para os outros, continuava a anunciar
+     "2º tempo" -- e o relogio ao lado parecia parado sem motivo. Mesmo vocabulario do Camarote. */
+  const periodo = RL.pens ? 'Pênaltis'
+    : RL.extraStartMinute!=null ? 'Prorrogação'
+    : (meu && typeof liveJogoEncerrado==='function' && liveJogoEncerrado(meu,RL)) ? 'Seu jogo encerrado'
+    : min<=45 ? '1º tempo' : min<=90 ? '2º tempo' : 'Acréscimos';
   const pct=(typeof liveClockPct==='function')?liveClockPct(RL):Math.min(100,Math.round(100*min/90));
   const camOk=meu && (typeof camSpeedOk!=='function' || camSpeedOk());
   const info=rfCompInfo(rfLvCompAtiva(RL));

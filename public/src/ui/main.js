@@ -6297,10 +6297,15 @@ function buildLiveMatchObject(h,a,seed,opts){
       streamKey, streamCast:(CL.online && netLive) };
   }
   const ev = src
-    ? { events:(src.events||[]).map(e=>({...e,_resolved:true})), hg:src.hg, ag:src.ag, perf:src.perf||null }
+    ? { events:(src.events||[]).map(e=>({...e,_resolved:true})), hg:src.hg, ag:src.ag, perf:src.perf||null,
+        matchMinutes:src.matchMinutes||null }
     : simEventsC(h,a,seed);
   return { h,a,hg:0,ag:0,idx:0,events:ev.events,att:gate.att,price:gate.price,cap:gate.cap,
     ref:REFS_C[Math.floor(rnd()*REFS_C.length)], goals:[], incidents:[], fhg:ev.hg, fag:ev.ag, perf:ev.perf,
+    /* O APITO DESTA PARTIDA. `simEventsC` sempre devolveu `matchMinutes` (90 + o acrescimo
+       sorteado para ELA) e este objeto deitava fora. Sem ele, o fim de cada jogo era um palpite
+       de tabela; ver liveFimDaPartida. */
+    fimMin:ev.matchMinutes||null,
     user:opts.user!==undefined?opts.user:(h===CL.clubId||a===CL.clubId), div:opts.div, replay:!!src };
 }
 function startLiveRound(){
@@ -6550,22 +6555,53 @@ function liveFonteMax(RL){
 /* silencio a partir do qual uma transmissao deixa de contar: nem segura o relogio, nem
    segura a rodada (ver o detetor de stream morto no laco das partidas) */
 const STREAM_MUDO_MS=20000;
-/* ===== O RELOGIO PARA NO FIM DA PARTIDA, E SO =====
-   Nao ha teto "de seguranca" generoso: o limite e o fim do jogo. Noventa minutos mais os
-   acrescimos; havendo prorrogacao em curso, mais trinta e os acrescimos dela. Se alguma
-   partida ja anunciou o proprio fim (a sessao local ou o snapshot de quem transmite dizem
-   `totalMinutes`), e esse numero que vale, porque e o fim de verdade daquele jogo.
-   Ja fomos mordidos duas vezes por caminhos que empurravam o teto sozinhos -- um na sessao
-   local, outro nas transmissoes. Com o limite amarrado ao fim da partida, nao ha terceiro. */
+/* ===== CADA PARTIDA TEM O SEU APITO =====
+   90 mais o acrescimo sorteado para ELA, entre 1 e 4 (ver `session.step` no motor): 91, 92, 93
+   ou 94, e cada jogo sorteia o seu. Devolve null enquanto esse numero ainda nao existe -- a
+   sessao so o sorteia ao chegar aos 90, e um snapshot pode ainda nao o ter trazido. */
+function liveFimDaPartida(m){
+  if(!m) return null;
+  if(m.sim) return m.sim.totalMinutes || null;
+  if(m.streamRemote && !m.streamDead){
+    const st=CL._liveStreams && CL._liveStreams[m.streamKey];
+    return (st && st.snap && st.snap.totalMinutes) || null;
+  }
+  return m.fimMin || null;   // pre-computada: veio do proprio motor (ver buildLiveMatchObject)
+}
+/* essa partida ja apitou? */
+function liveJogoEncerrado(m, RL){
+  if(!m) return false;
+  if(m.done) return true;
+  if(m.sim) return !!m.sim.done;
+  if(m.streamRemote){
+    const st=CL._liveStreams && CL._liveStreams[m.streamKey];
+    return !!(m.streamDone || m.streamDead || (st && st.snap && st.snap.done));
+  }
+  const fim=liveFimDaPartida(m);
+  return fim!=null && !!RL && RL.minute>=fim && m.idx>=(m.events||[]).length;
+}
+/* ===== O RELOGIO DA RODADA PARA QUANDO O ULTIMO JOGO APITA =====
+   O teto era `Math.max(96, ...)` -- um piso fixo que nao pertence a partida nenhuma. Medido numa
+   rodada de 40 jogos: o jogo do utilizador apitava aos 92 e a rodada continuava ate 94, com
+   quatro a cinco lances de outros jogos a entrar DEPOIS do apito dele. E o mesmo desencontro de
+   sempre, duas coordenadas a discordar: o fim da minha partida sai do acrescimo sorteado para
+   ela, e o fim da rodada saia de um numero de tabela.
+   Agora ha uma coordenada so. A rodada acaba no ULTIMO apito de verdade -- o maior entre os fins
+   conhecidos de cada jogo (e nunca antes do ultimo lance ja escrito na timeline). O piso de
+   96/130 fica apenas enquanto algum jogo ainda nao revelou o proprio fim: sem isso a rodada
+   podia fechar antes de um jogo que ainda nem chegou aos 90. */
 function liveTetoMin(RL){
-  let teto = (RL && RL.extraStartMinute!=null) ? 130 : 96;   // 90+acrescimos / 120+acrescimos
-  (RL&&RL.matches||[]).forEach(m=>{
-    if(m.sim && m.sim.totalMinutes) teto=Math.max(teto, m.sim.totalMinutes);
-    const st=m.streamRemote && CL._liveStreams && CL._liveStreams[m.streamKey];
-    if(st && st.snap && st.snap.totalMinutes) teto=Math.max(teto, st.snap.totalMinutes);
-    const evs=m.events||[]; if(evs.length) teto=Math.max(teto, evs[evs.length-1].min);
+  const piso = (RL && RL.extraStartMinute!=null) ? 130 : 96;   // 90+acrescimos / 120+acrescimos
+  const jogos = (RL&&RL.matches) || [];
+  let mx=0, algumSemApito=false;
+  jogos.forEach(m=>{
+    const fim=liveFimDaPartida(m);
+    if(fim==null && !liveJogoEncerrado(m,RL)) algumSemApito=true;
+    if(fim!=null) mx=Math.max(mx, fim);
+    const evs=m.events||[]; if(evs.length) mx=Math.max(mx, evs[evs.length-1].min);
   });
-  return teto;
+  if(algumSemApito || !mx) return piso;
+  return mx;
 }
 function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused) return;
   // BARREIRA: seguro o minuto 0 até o adversário humano entrar em campo (ou o cronômetro zerar).
@@ -7811,10 +7847,14 @@ function camPatchFeed(m){
 }
 
 /* % do relógio circular — a prorrogação usa uma escala PRÓPRIA (34min: 30 + acréscimos),
-   proporcional ao tempo real dela, em vez da escala de 94min do tempo normal. */
+   proporcional ao tempo real dela, em vez da escala de 94min do tempo normal.
+   O 94 fixo era outra coordenada solta: o anel fechava aos 94 numa rodada que apitava aos 92
+   (e ficava a 97% numa que ia até lá). A escala passa a ser o FIM DE VERDADE desta rodada — o
+   mesmo teto que manda o apito (ver liveTetoMin). */
 function liveClockPct(RL){
   if(RL.extraStartMinute!=null) return Math.min(100, Math.round((RL.minute-RL.extraStartMinute)/34*100));
-  return Math.min(100, Math.round(RL.minute/94*100));
+  const fim=(typeof liveTetoMin==='function')?liveTetoMin(RL):94;
+  return Math.min(100, Math.round(RL.minute/Math.max(1,fim)*100));
 }
 /* placar da disputa de pênaltis: uma linha de bolinhas por time, ✔ verde quando converte,
    ✖ vermelho quando desperdiça/defende — cresce cobrança a cobrança, igual ao clássico. */
@@ -9464,8 +9504,12 @@ function updateLive(){ const RL=CL.live; if(!RL) return;
        actualiza. A coluna do minuto volta a mostrar o minuto. */
     /* o minuto e da RODADA (RL.minute), nao da partida: `m.min` nunca existiu e
        a coluna saia vazia. Jogo terminado mostra o apito final. */
+    /* FIM E POR JOGO, NAO POR RODADA. A coluna mostrava o relogio da rodada em TODAS as linhas,
+       entao um jogo que ja tinha apitado aos 91 continuava a marcar 92, 93, 94 -- a rodada
+       inteira parecia estar em campo ate ao ultimo segundo. Ver liveJogoEncerrado. */
     const lg=document.querySelector('#cl-lg-'+i);
-    if(lg) lg.textContent = m.done ? 'FIM' : ((m.min!=null?m.min:(RL.minute||RL.min||0))+"'");
+    if(lg){ const fim=(typeof liveJogoEncerrado==='function') && liveJogoEncerrado(m,RL);
+      lg.textContent = (m.done||fim) ? 'FIM' : ((m.min!=null?m.min:(RL.minute||RL.min||0))+"'"); }
     if(typeof rfLvFatosDeJogo==='function' && typeof rfLvFatosHTML==='function'){
       const f=rfLvFatosDeJogo(m);
       const fh=document.querySelector('#rf-lv-fh-'+i); if(fh) fh.innerHTML=rfLvFatosHTML(f.casa,'esq');

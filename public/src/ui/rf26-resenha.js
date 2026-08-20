@@ -241,21 +241,10 @@ function rfPausaHTML(){
     <div class="rf-pz-cols">
       <div class="rf-pz-esq">
       ${rfPausaTvHTML()}
-      <div class="rf-card">
-        <div class="rf-label"><span class="rf-label-t">Espaço do patrocinador</span>
-          <span class="rf-label-r">16:9</span></div>
-        <!-- LIGADO AO PAINEL. Este espaco era so a maquete do handoff: a tela mais valiosa do
-             produto (tela cheia, sem concorrencia, uma vez por jornada) nao tinha como ser
-             vendida. Agora e a chave rf98.pausa.video -- com criativo publicado entra a arte,
-             sem criativo fica o marcador com a medida. -->
-        ${(typeof rfAdEspaco==='function')
-          ? rfAdEspaco('rf98.pausa.video',{cls:'rf-pz-video',formato:'1280×720 · até 8s · sem áudio'})
-          : `<div class="rf-pz-video"><span class="rf-pz-tv">📺</span>
-             <span class="rf-ft-vt">Vídeo ou GIF do patrocinador</span>
-             <span class="rf-ft-vs">1280×720 · até 8s · sem áudio</span></div>`}
-        <span class="rf-note">A pausa dura o tempo da sincronização. O vídeo entra sem som e não
-          pode ser pulado nos primeiros 3 segundos.</span>
-      </div>
+      <!-- O ESPACO 16:9 DO PATROCINADOR SAIU DA PAUSA (pedido do dono, 20/08). Ele ocupava a
+           coluna inteira por baixo da TV e a pausa passou a ser mais anuncio do que espera. A
+           chave 'rf98.pausa.video' continua a existir no painel; se um dia voltar, e este bloco
+           que se repoe -- ver rfAdEspaco. -->
       </div>
       <div class="rf-pz-dir">
         <div class="rf-card">
