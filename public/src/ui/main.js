@@ -9845,6 +9845,7 @@ function userCupDrawRows(){
     const feito=k=>(typeof sorteioJaVistoPorMim==='function') && sorteioJaVistoPorMim(k+':'+season);
     Object.keys(dias).forEach(key=>{
       if(!S.cups[key] || feito(key)) return;
+      if(typeof cupDoMeuUniverso==='function' && !cupDoMeuUniverso(key)) return;
       const dia=dias[key];
       out.push({key, n:Math.max(1,Math.floor((dia-1)/7)+1), date:realDateForDay(dia), abertura:true});
     });
@@ -11739,6 +11740,8 @@ function checkPendingCupDraws(onDone){
   // O marcador vive em CL (não persiste): após recarregar a página, um sorteio pendente de verdade
   // ainda aparece normalmente.
   const mark=key+':'+stage+':'+(S.season||1);
+  // copa que nao e do MEU universo (fui treinar fora): a entrada e drenada sem cerimonia
+  if(typeof cupDoMeuUniverso==='function' && !cupDoMeuUniverso(key)) return checkPendingCupDraws(onDone);
   // o marcador também é lido do armazenamento (ver drawAlreadySeen): sem isso, a fila que veio no
   // shared_state re-exibia a cerimônia depois de um reload — inclusive o do botão de sincronizar.
   if((CL._drawPlayedSeason||{})[mark] || drawAlreadySeen(mark)) return checkPendingCupDraws(onDone);

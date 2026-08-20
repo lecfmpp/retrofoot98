@@ -2354,6 +2354,20 @@ function cupDrawReleased(key, round){
    sorteio. Fica LIGADA. Para desligar de novo, e so repor `copaBrasil:true` aqui. */
 const CUP_SEM_CERIMONIA={};
 function cupTemCerimonia(key){ return !CUP_SEM_CERIMONIA[key]; }
+/* ===== A CERIMONIA E DO MEU PAIS =====
+   Quem foi treinar noutro pais a meio da temporada carrega as copas do Brasil no estado ate a
+   virada (S.cups nao e reconstruido na troca) — e as cerimonias iteravam S.cups sem perguntar de
+   quem sao: o tecnico do Manchester City ficava vendo o sorteio da Copa do Brasil (relatado a
+   20/08). A pergunta e a folha do pais (WORLD_CONFIG.copasDe): copa que nao pertence ao MEU
+   universo nao me deve cerimonia. Brasil responde true para tudo — caminho de sempre. */
+function cupDoMeuUniverso(key){
+  try{
+    const uni=(typeof activeUniverseKey==='function')?activeUniverseKey():'brasil';
+    if(uni==='brasil') return true;
+    const lista=(typeof WORLD_CONFIG!=='undefined'&&WORLD_CONFIG.copasDe)?WORLD_CONFIG.copasDe(uni):null;
+    return !lista || lista.indexOf(key)>=0;
+  }catch(e){ return true; }
+}
 /* ===== HA SORTEIO A VER? — PERGUNTA SEM EFEITO COLATERAL =====
    queueDueCupDraws() ENFILEIRA enquanto responde, entao nao serve para um rotulo de botao (o
    desenho da tela passaria a mexer no estado do save). Esta e a mesma conta, sem escrever nada. */
@@ -2395,6 +2409,7 @@ function haSorteioPendente(){
        por cliente key:stage:season (CL._drawPlayedSeason / drawAlreadySeen). */
     const _vi=x=>{
       const key=(x&&x.key)||x, stage=(x&&x.stage)||'bracket';
+      if(typeof cupDoMeuUniverso==='function' && !cupDoMeuUniverso(key)) return true;   // copa de outro pais: nao me deve nada
       if(typeof cupTemCerimonia==='function' && !cupTemCerimonia(key)) return true;
       const mark=key+':'+stage+':'+(S.season||1);
       if(typeof CL!=='undefined' && (CL._drawPlayedSeason||{})[mark]) return true;
@@ -2404,6 +2419,7 @@ function haSorteioPendente(){
     const season=S.season||1;
     return Object.keys(cupSeasonDrawDays()).some(key=>{
       if(!S.cups[key]) return false;
+      if(!cupDoMeuUniverso(key)) return false;
       if(!cupDrawReleased(key)) return false;
       if(sorteioJaVistoPorMim(key+':'+season)) return false;
       return (typeof cupTemCerimonia!=='function') || cupTemCerimonia(key);
@@ -2416,6 +2432,7 @@ function queueDueCupDraws(){
   const season=S.season||1; let n=0;
   Object.keys(cupSeasonDrawDays()).forEach(key=>{
     if(!S.cups[key]) return;
+    if(!cupDoMeuUniverso(key)) return;   // copa de outro pais: cerimonia nao e minha
     if(!cupDrawReleased(key)) return;
     const mark=key+':'+season; if(sorteioJaVistoPorMim(mark)) return;
     if(!cupTemCerimonia(key)){ marcarSorteioVistoPorMim(mark); return; }
