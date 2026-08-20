@@ -719,45 +719,74 @@ function clCancelJoinReq(){
 function renderOnlineInto(){ const r=document.querySelector('#c-root'); if(!r) return; r.innerHTML=renderOnline(); const f=document.querySelector('#cl-focus'); if(f)f.focus(); }
 
 /* ---- login / criar conta (e-mail + senha reais — nunca mais anônimo) ---- */
+/* DESIGN NOVO (pedido do dono, 20/08): este passo desenhava o cartao da pele antiga
+   (cl-conta-logged / cl-authfield) dentro da regua nova — era a tela denunciada no print.
+   Agora usa as MESMAS pecas do onboarding novo (rf-ob-sessao, rfCampo/rfInput, rf-seg),
+   com os manipuladores da Resenha (CL.net + netContaSync). A caixa alta do nome e por CSS
+   (classe maiuscula) — nunca this.value=, que mata o cursor. */
 function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+  const salaInfo=(join && typeof NET!=='undefined' && NET.room)
+    ? `<div class="rf-conta-sala">Sala: <b>${escC(NET.room.name||n.code)}</b> · código <b>${escC(n.code)}</b></div>` : '';
 
   // já logado nesta sessão do navegador: mostra atalho claro em vez de pedir login de novo
   if(st.loggedIn){
-    const body=`<div class="cl-wiz-authcard">
-        <div class="cl-conta-logged">
-          <div class="cl-conta-logged-ic">✓</div>
-          <div><div class="cl-conta-logged-t">Você já está logado</div>
-          <div class="cl-conta-logged-e">${escC(st.email)}</div></div>
+    if(n.name==null||n.name==='') n.name=st.name||'';
+    const corpo=`
+      <div class="rf-wiz-mid">
+        <div class="rf-ob-sessao">
+          <span class="rf-ob-sessao-ic" aria-hidden="true">${(typeof rfIcone==='function'&&rfIcone('ok',20))||'✓'}</span>
+          <span class="rf-ob-sessao-id">
+            <span class="rf-ob-sessao-t">Você já está logado</span>
+            <span class="rf-ob-sessao-e">${escC(st.email||'')}</span>
+          </span>
         </div>
-        <div class="cl-authfield"><label>Nome de treinador</label><input id="cl-focus" maxlength="14" value="${escC(n.name||st.name)}" oninput="CL.net.name=this.value.toUpperCase();this.value=CL.net.name;netContaSync()"></div>
-        ${join && NET.room?`<div class="cl-conta-room">Sala: <b>${escC(NET.room.name||n.code)}</b> · código <b>${escC(n.code)}</b></div>`:''}
-        <div class="cl-conta-switch">Não é você? <a href="javascript:void(0)" onclick="clAuthSwitchAccount()">Trocar de conta</a></div>
+        <div class="rf-wiz-form">
+          ${rfCampo('Nome do treinador', `<input class="rf-campo-c maiuscula" id="cl-focus" maxlength="14"
+            value="${escC(n.name)}" oninput="CL.net.name=this.value.toUpperCase();netContaSync()">`)}
+        </div>
+        ${salaInfo}
+        <button type="button" class="rf-ob-trocar" onclick="clAuthSwitchAccount()">
+          Não é você? <b>Entrar com outra conta</b>
+        </button>
       </div>`;
-    return wizShell({ step:rfPasso(join?'Modo':'Sala','resenha'), modo:'resenha', title:join?'Entrar na sala':'Criar sala', back:'clGoModo()', backLabel:'Voltar',
-      contentCls:'cl-wiz-authcenter', body, actionCls:'cl-wiz-action-e',
-      action: btn(join?'Entrar':'Continuar',join?'clContaJoin()':'clContaHost()',{icon:'✔',cls:'cl-wiz-cta',dis:!n.name}) });
+    return rfWiz({passo:rfPasso(join?'Modo':'Sala','resenha'), trilha:'resenha', contexto:'Modo Resenha', corpo,
+      sobre:'Bem-vindo de volta', titulo:join?'Entrar na sala.':'Criar a sua sala.',
+      sub:'Confirme o nome de treinador que a turma vai ver na Resenha.',
+      nota:'Dá para trocar de conta a qualquer momento.',
+      voltar:'clGoModo()', voltarLabel:'‹ Voltar',
+      cta:join?'Entrar':'Continuar', ctaOff:!n.name,
+      ctaOn:join?'clContaJoin()':'clContaHost()'});
   }
 
   const mode=n.authMode||'login'; const isSignup=(mode==='signup');
-  const body=`<div class="cl-wiz-authcard">
-      <div class="cl-conta-tabs">
-        <div class="cl-conta-tab ${!isSignup?'on':''}" onclick="CL.net.authMode='login';cdraw()">Já tenho conta</div>
-        <div class="cl-conta-tab ${isSignup?'on':''}" onclick="CL.net.authMode='signup';cdraw()">Criar conta nova</div>
+  const corpo=`
+    <div class="rf-wiz-mid">
+      <div class="rf-wiz-form">
+        <div class="rf-seg">
+          <button type="button" class="rf-seg-b ${isSignup?'on':''}" onclick="CL.net.authMode='signup';cdraw()">Criar conta</button>
+          <button type="button" class="rf-seg-b ${isSignup?'':'on'}" onclick="CL.net.authMode='login';cdraw()">Entrar</button>
+        </div>
+        ${isSignup?rfCampo('Nome do treinador', `<input class="rf-campo-c maiuscula" id="cl-focus" maxlength="14"
+          placeholder="Como quer ser chamado" value="${escC(n.name)}" oninput="CL.net.name=this.value.toUpperCase();netContaSync()">`):''}
+        ${rfCampo('E-mail', `<input class="rf-campo-c" ${isSignup?'':'id="cl-focus"'} type="email"
+          placeholder="voce@exemplo.com" value="${escC(n.email)}" oninput="CL.net.email=this.value;netContaSync()">`)}
+        ${rfCampo('Senha', `<input class="rf-campo-c" type="password" minlength="6" placeholder="••••••••"
+          value="${escC(n.password||'')}" oninput="CL.net.password=this.value;netContaSync()"
+          onkeydown="if(event.key==='Enter')${isSignup?'clAuthDoSignup':'clAuthDoLogin'}()">`)}
       </div>
-      <div class="cl-wiz-authsub">${isSignup?'Primeira vez aqui? Crie sua conta com e-mail e senha.':'Entre com o e-mail e senha da sua conta.'}</div>
-      <div class="cl-authform">
-        ${isSignup?`<div class="cl-authfield"><label>Nome de treinador</label><input id="cl-focus" maxlength="14" placeholder="Como quer ser chamado" value="${escC(n.name)}" oninput="CL.net.name=this.value.toUpperCase();this.value=CL.net.name;netContaSync()"></div>`:''}
-        <div class="cl-authfield"><label>E-mail</label><input ${isSignup?'':'id="cl-focus"'} type="email" placeholder="voce@exemplo.com" value="${escC(n.email)}" oninput="CL.net.email=this.value;netContaSync()"></div>
-        <div class="cl-authfield"><label>Senha</label><input type="password" minlength="6" placeholder="••••••••" value="${escC(n.password||'')}" oninput="CL.net.password=this.value;netContaSync()" onkeydown="if(event.key==='Enter')${isSignup?'clAuthDoSignup':'clAuthDoLogin'}()"></div>
-        ${isSignup?`<div class="cl-authhint">Pelo menos 6 caracteres. Evite senhas óbvias (ex.: 123456).</div>`:''}
-      </div>
-      ${join && NET.room?`<div class="cl-conta-room">Sala: <b>${escC(NET.room.name||n.code)}</b> · código <b>${escC(n.code)}</b></div>`:''}
+      ${salaInfo}
     </div>`;
-  return wizShell({ public:true, step:rfPasso('Entrar','resenha'), modo:'resenha', title:join?'Entrar na sala':(isSignup?'Criar conta':'Sua conta'), back:'clGoModo()', backLabel:'Voltar',
-    contentCls:'cl-wiz-authcenter', body, actionCls:'cl-wiz-action-e',
-    action: btn(isSignup?'Criar conta':'Entrar',isSignup?'clAuthDoSignup()':'clAuthDoLogin()',{icon:'✔',cls:'cl-wiz-cta',dis:!(n.email&&n.password&&(!isSignup||n.name))}) });
+  return rfWiz({passo:rfPasso('Entrar','resenha'), trilha:'resenha', contexto:'Modo Resenha', corpo,
+    sobre:join?'Entrar na sala':'Bem-vindo, treinador',
+    titulo:isSignup?'Crie sua conta e entre na Resenha.':'Entre com a sua conta.',
+    sub:'Seus jogos ficam na nuvem — dá para começar no computador e continuar no telefone.',
+    nota:isSignup?'Pelo menos 6 caracteres na senha. Evite senhas óbvias.':'A gente só usa seu e-mail para o save.',
+    voltar:'clGoModo()', voltarLabel:'‹ Voltar',
+    cta:isSignup?'Criar conta e continuar':'Entrar',
+    ctaOff:!(n.email&&n.password&&(!isSignup||n.name)),
+    ctaOn:isSignup?'clAuthDoSignup()':'clAuthDoLogin()'});
 }
-function netContaSync(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(!b) return;
+function netContaSync(){ const b=document.querySelector('.rf-wiz-cta, .cl-wiz-cta, .cl-btn-ok'); if(!b) return;
   const n=CL.net; const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   if(st.loggedIn){ b.disabled=!n.name; return; }
   const isSignup=(n.authMode||'login')==='signup';
@@ -1182,7 +1211,20 @@ function clResenhaDrawSkip(){ const d=CL.net&&CL.net.draw; if(!d||d.done) return
   resenhaDrawTick();
 }
 function scResenhaDraw(){
+  /* DESIGN NOVO: a mesma cerimonia do solo (rfCerimoniaSorteio, rf26-onboarding) — a promessa
+     "e a mesma cerimonia no solo e na resenha" estava escrita la desde o porte e a Resenha
+     continuava na pele antiga (cl-rdraw). O que muda por modo: quem sou eu na lista, a regua
+     da trilha e os botoes (Pular enquanto anda; a Resenha entra sozinha quando acaba). */
   const d=(CL.net&&CL.net.draw)||{list:[],idx:0};
+  if(typeof rfCerimoniaSorteio==='function'){
+    const meuNome=String((typeof NET!=='undefined'&&NET.self&&NET.self.name)||CL.mgr||'').toUpperCase();
+    const meuIdx=(d.list||[]).findIndex(x=>String(x&&x.name||'').toUpperCase()===meuNome);
+    return rfCerimoniaSorteio({ lista:d.list||[], feitos:d.idx||0, poolById:d.poolById||{},
+      meuIdx:(meuIdx>=0?meuIdx:0), trilha:'resenha',
+      cta:{ andando:'⏩ Pular', andandoOn:'clResenhaDrawSkip()',
+            fim:'Entrando na Resenha…', fimNota:'Preparando a temporada…' } });
+  }
+  // rede: se o onboarding novo nao carregou, a versao antiga continua funcionando
   const poolById=d.poolById||{};
   const rows=(d.list||[]).map((p,i)=>{
     const revealed=i<d.idx;

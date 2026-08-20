@@ -471,7 +471,9 @@ function rfObDivisao(d){ CL.testStartDiv=CL.testStartDiv||{}; CL.testStartDiv.br
    "esta liga existe por inteiro" — simulada, assistível, com mercado e calendário próprios —, e é
    de onde podem vir convites para treinar lá fora.
    O país inicial está sempre dentro e não se desliga. */
-function rfObPais(uni){
+/* RENOMEADA: chamava-se rfObPais e SOBRESCREVIA a homonima logo acima (a do pais do solo) —
+   duas funcoes distintas dividindo o mesmo nome por acidente. */
+function rfObPaisSala(uni){
   const n=CL.net||(CL.net={});
   const atual=new Set(n.paises&&n.paises.length?n.paises:['brasil']);
   if(uni==='brasil') return;                       // âncora da sala
@@ -555,7 +557,7 @@ function rfOb4(){
           const clubes=divs.reduce((t,d)=>t+((u&&u.size&&u.size[d])||0),0);
           const ancora=(k==='brasil');
           return `<button type="button" class="rf-sl-div ${sel.has(k)?'on':''} ${ancora?'':'teste'}"
-              onclick="rfObPais('${escC(k)}')" ${ancora?'title="O Brasil é a âncora da sala"':''}>
+              onclick="rfObPaisSala('${escC(k)}')" ${ancora?'title="O Brasil é a âncora da sala"':''}>
             <span class="rf-sl-div-id">
               <span class="rf-sl-div-n">${escC(nomeDe(k))}</span>
               <span class="rf-sl-div-s">${divs.length} ${divs.length>1?'divisões':'divisão'} · ${clubes} clubes</span>
@@ -759,11 +761,25 @@ function rfOb5(){
 function rfOb6(){
   const d=CL.soloDraw||null;
   const lista=(d&&d.list)||((CL.draw||[]).map(x=>({name:x.name,clubId:x.clubId})));
-  const feitos=d?d.idx:lista.length;
+  return rfCerimoniaSorteio({ lista, feitos:d?d.idx:lista.length, poolById:(d&&d.poolById)||{},
+    meuIdx:0, trilha:'solo',
+    cta:{ fim:'Iniciar temporada', fimCurto:'Começar', fimOn:'clEntrar()',
+          andando:rfIcone('raio',16)+' Acelerar', andandoOn:'rfObAcelerar()' } });
+}
+/* ===== A CERIMONIA E UMA SO, SOLO E RESENHA =====
+   O comentario desta tela sempre disse "e a mesma cerimonia no solo e na resenha" — mas a
+   Resenha nunca foi ligada nela: scResenhaDraw continuava desenhando a versao da pele antiga
+   (cl-rdraw). Agora as duas trilhas entram AQUI; o que muda por modo e so quem sou eu na lista
+   (meuIdx), a regua (trilha) e os botoes. */
+function rfCerimoniaSorteio(o){
+  const lista=o.lista||[];
+  const feitos=o.feitos||0;
   const total=lista.length||1;
-  const poolById=(d&&d.poolById)||{};
+  const poolById=o.poolById||{};
   const doPool=id=>poolById[id]||(typeof anyClubOf==='function'?anyClubOf(id):null);
-  const meu=lista[0]?doPool(lista[0].clubId):null;
+  const meuIdx=(o.meuIdx!=null && o.meuIdx>=0)?o.meuIdx:0;
+  const meuSaiu=meuIdx<feitos;
+  const meu=(meuSaiu&&lista[meuIdx])?doPool(lista[meuIdx].clubId):null;
   /* A CERIMÔNIA RODA ANTES DE newGame() — `S` ainda é null aqui (o próprio
      startSoloDraw diz isso). `squad()` lê `S.squads`, então chamá-lo neste
      ponto ESTOURA o desenho inteiro: o cdraw morria, o soloDrawTick que vinha
@@ -785,7 +801,7 @@ function rfOb6(){
         <span class="rf-label-t">Clubes sorteados</span>
         ${lista.map((x,i)=>{
           const saiu=i<feitos, c=saiu?doPool(x.clubId):null;
-          return `<div class="rf-ob6-lin ${i===0&&saiu?'meu':''} ${saiu?'':'espera'}">
+          return `<div class="rf-ob6-lin ${i===meuIdx&&saiu?'meu':''} ${saiu?'':'espera'}">
             <span class="rf-ob6-nb ${saiu?'on':''}">${i+1}</span>
             <span class="rf-ob6-t">${escC(x.name||'Treinador')}${saiu&&c?' — '+escC(c.short||c.name||''):' — sorteando'}</span>
             ${saiu&&c?`<span class="rf-ob6-crest">${rfCrest(c,24)}</span>`:`<span class="rf-ob6-bola">${rfIcone('jogar',16)}</span>`}
@@ -813,16 +829,19 @@ function rfOb6(){
       </div>
     </div>`;
   const fim=feitos>=total;
+  const cta=o.cta||{};
   /* CLUBE é o passo 6 da régua. Estava em 4 — a régua acendia "Sala" durante o
      sorteio do clube, dois passos atrás de onde o jogador estava. */
-  return rfWiz({passo:rfPasso('Clube'), corpo,
+  return rfWiz({passo:rfPasso('Clube', o.trilha==='resenha'?'resenha':undefined), trilha:o.trilha, corpo,
+    contexto:o.trilha==='resenha'?'Modo Resenha':undefined,
     sobre:'Cerimônia do sorteio',
     titulo: fim?'Times sorteados!':'Sorteando os clubes, boa sorte!',
     sub:'Cada treinador escolheu o país; o clube sai no sorteio. É a mesma cerimônia no solo e na resenha.',
-    nota: fim?'Pronto — pode entrar no clube.':'Aguarde o sorteio',
-    cta: fim?'Iniciar temporada':rfIcone('raio',16)+' Acelerar',
-    ctaCurto: fim?'Começar':rfIcone('raio',16)+' Acelerar',
-    ctaOn: fim?'clEntrar()':'rfObAcelerar()'});
+    nota: fim?(cta.fimNota||'Pronto — pode entrar no clube.'):'Aguarde o sorteio',
+    cta: fim?cta.fim:cta.andando,
+    ctaCurto: fim?(cta.fimCurto||cta.fim):cta.andando,
+    ctaOn: fim?cta.fimOn:cta.andandoOn,
+    ctaOff: fim?!cta.fimOn:!cta.andandoOn});
 }
 /* ⏩ não pula o sorteio: só encurta a espera entre uma revelação e outra */
 function rfObAcelerar(){
