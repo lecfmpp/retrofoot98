@@ -8086,3 +8086,9 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   0%,100%{ box-shadow:0 0 0 0 rgba(47,191,95,.55); }
   50%    { box-shadow:0 0 0 10px rgba(47,191,95,0); }
 }
+
+/* O botão secundário da sobreposição passou a poder estar DESATIVADO — é o "Confirmar
+   substituição", que só acende depois de escolhidos os dois jogadores (ver rfSubHTML). Sem esta
+   regra ele ficava igual ao ativo e prometia um clique que não acontecia. */
+.rf-ov-b2:disabled{ opacity:.45;cursor:default; }
+.rf-ov-b2:disabled:hover{ background:transparent; }
