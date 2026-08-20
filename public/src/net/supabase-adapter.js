@@ -918,7 +918,13 @@ async function netSeedDayPlan(force){
     if(g && g.day_plan && !force) return;             // sala já tem o seu calendário
     const tog = (typeof S!=='undefined' && S && S.compToggle) || {};
     const epoch = (typeof seasonEpoch==='function') ? seasonEpoch() : null;
-    const ancora = (typeof activeUniverseKey==='function') ? activeUniverseKey() : 'brasil';
+    /* A ANCORA E A DO MUNDO DA SALA, NUNCA A DA ABA. netStart roda ANTES de o mundo novo existir:
+       se o navegador do anfitriao vinha de um save noutro universo (ACTIVE_UNI='Inglaterra'), o
+       semeador montava o plano do pais errado sobre um mundo do Brasil — plano vazio, sala sem
+       ponteiro. O estado (S.intlUniverse) e quem sabe de que pais o mundo e. */
+    const ancora = (typeof WORLD_CONFIG!=='undefined' && WORLD_CONFIG.uniDoEstado && typeof S!=='undefined' && S)
+      ? WORLD_CONFIG.uniDoEstado(S)
+      : ((typeof activeUniverseKey==='function') ? activeUniverseKey() : 'brasil');
 
     /* ===== A FILA DE DIAS É DE TODOS OS PAÍSES VIVOS =====
        O slot é da SALA e a mesma semana vale para toda a gente; o que muda por país é qual
@@ -999,8 +1005,14 @@ async function netRefreshDay(){
       NET.room.day = e ? { idx:r.idx, moment:r.momento, round:e.r, comp:e.comp,
                            cupIdx:e.idx, dia:e.dia, total:NET.room.dayPlan.length } : null;
     } else {
-      NET.room.day = { idx:r.idx, moment:r.momento, round:r.jornada, comp:r.competicao,
-                       dia:r.dia_da_temporada, total:r.total_dias };
+      /* SEM PLANO NAO HA DIA. A sala 6RZRX nasceu sem day_plan (o semeador falhou calado) e este
+         ramo fabricava um dia com jornada NULL — e null nunca e igual a S.round, entao roomDay()
+         devolvia hold para sempre: "a sala esta acertando a jornada" desde o dia zero. Sem
+         jornada de verdade, nao ha ponteiro: a sala degrada para o caminho sem plano (que
+         funciona), e o replantio do anfitriao (ver onlineTimerLoop) cria o plano que falta. */
+      NET.room.day = (r.jornada==null) ? null
+        : { idx:r.idx, moment:r.momento, round:r.jornada, comp:r.competicao,
+            dia:r.dia_da_temporada, total:r.total_dias };
     }
     return NET.room.day;
   }catch(e){ return null; }

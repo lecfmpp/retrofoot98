@@ -3333,7 +3333,11 @@ const MIN_POS={ GK:3, DEF:6, MID:6, ATT:4 };
 const POS_LABEL={ GK:'GOL', DEF:'ZAG', MID:'MEI', ATT:'ATA' };
 function makeRawPlayer(division, pos, clubKey, idx){
   const R=makeRng(hashSeed('pos-topup', String(clubKey||'x'), pos, idx));
-  const range=DIVISION_FORCE_RANGE[division]||DIVISION_FORCE_RANGE.D;
+  /* A FAIXA NUNCA PODE SAIR UNDEFINED. setUniverse reescreve DIVISION_FORCE_RANGE com as chaves
+     do pais novo ({PL,CH}); um clube com _div do Brasil ('D') materializado depois da troca caia
+     fora da tabela E do fallback .D — e rollAgedForce explodia NO MEIO da troca de pais, deixando
+     o save com rotulo da Premier e mundo do Brasil (o relatado a 20/08). Piso duro no fim. */
+  const range=DIVISION_FORCE_RANGE[division]||DIVISION_FORCE_RANGE.D||[48,68];
   const age=Math.round(19+R.random()*5);                         // reserva jovem, 19-24
   const rawF=rollAgedForce(R,range,age); const f=Math.min(REBAL.force(rawF,division), DIV_FORCE_CAP[division]||99);
   const lg=(typeof MARKET!=='undefined' && MARKET.divisionToLeague)?MARKET.divisionToLeague(division):('BRA-'+division);
@@ -5766,7 +5770,7 @@ function retireChance(age){
    tabela usada em proceduralDivisionClubs; Série A usa a faixa de referência A, ver
    DIVISION_FORCE_RANGE, já que dado real não existe pra um jogador que acabou de estrear). */
 function retirementReplacement(position, division, seedExtra){
-  const range=DIVISION_FORCE_RANGE[division]||DIVISION_FORCE_RANGE.D;
+  const range=DIVISION_FORCE_RANGE[division]||DIVISION_FORCE_RANGE.D||[48,68];   // ver makeRawPlayer
   const R=makeRng(hashSeed('retire-repl',(S&&S.seed)||1,S.season,division,position,seedExtra));
   const age=Math.round(18+R.random()*4);
   const rawF=rollAgedForce(R,range,age); const f=Math.min(REBAL.force(rawF,division), DIV_FORCE_CAP[division]||99); // item 4 + trava de cap por divisão

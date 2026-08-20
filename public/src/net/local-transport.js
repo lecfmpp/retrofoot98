@@ -1882,7 +1882,20 @@ function roomDayNadaACumprir(comp){
 }
 function roomDayTick(){
   if(!CL.online || typeof NET==='undefined' || !NET.room) return;
-  const d=NET.room.day; if(!d) return;                         // sala sem plano (save antigo)
+  const d=NET.room.day;
+  /* SALA COMECADA SEM PLANO: o anfitriao replanta. E o autorreparo da sala que nasceu com o
+     semeador falhando (ver netSeedDayPlan/netRefreshDay) — sem isto ela ficava para sempre sem
+     ponteiro. Throttle de 30s e so fora do lobby; o semeador e idempotente (sai se o plano
+     existir). */
+  if(!d && NET.isHost && NET.room.phase && NET.room.phase!=='lobby' && !NET.room.dayPlan
+     && typeof NET.reseedDayPlan==='function' && typeof S!=='undefined' && S && Array.isArray(S.sched) && S.sched.length){
+    if(Date.now()-(CL._replantioSemPlanoT||0)>30000){
+      CL._replantioSemPlanoT=Date.now();
+      console.warn('sala sem calendário de dias — replantando');
+      try{ NET.reseedDayPlan(); }catch(e){ console.warn('replantio sem plano:', e&&e.message); }
+    }
+  }
+  if(!d) return;                                               // sala sem plano (save antigo)
   if(!NET.dayAck) return;
   if(typeof S==='undefined' || !S) return;
   /* Que dias eu posso carimbar: o da MINHA jornada — e a CAUDA da que acabou de ser resolvida.
