@@ -543,10 +543,11 @@ function rfSbAnuncioHTML(){
       <span class="rf-sb-ad-face foto"><img src="img/sponsors/moda-fluminense-2004.webp" alt="Camisa Fluminense 2004" loading="lazy" draggable="false"></span>
     </div>
     <span class="rf-sb-ad-titulo">Fluminense - 2004 - Tricolor - Unimed - Adidas</span>
-    <button type="button" class="rf-sb-ad-cta">
+    <a class="rf-sb-ad-cta" href="https://modaec.com.br/produtos/fluminense-2004-tricolor-unimed-adidas-dwnu2/?utm=retrofoot-sidebar-proximo-jogo"
+      target="_blank" rel="noopener sponsored">
       <b>Comprar</b>
       <span class="rf-sb-ad-preco"><small>3x de</small> R$ 151,67</span>
-    </button>
+    </a>
   </div>`;
 }
 /* O BOTÃO JOGAR DA SIDEBAR É O MESMO BOTÃO DE SEMPRE, não um atalho novo:
