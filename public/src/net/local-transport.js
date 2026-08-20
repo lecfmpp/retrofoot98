@@ -1729,6 +1729,10 @@ function onlineCompleteSeasonTurnover(){
 
    PONTEIRO À FRENTE: sou EU que estou velho — reconcilio o meu mundo com o da sala. */
 function roomDay(){
+  /* O PONTEIRO E DA SALA — NO SOLO ELE NAO EXISTE. NET.room sobrevive na aba depois de sair de
+     uma Resenha; um save solo aberto em seguida lia o dia da sala antiga e obedecia a ele
+     ("Acertando a jornada" num jogo sem sala, relatado a 20/08). Fora do online, nulo sempre. */
+  if(typeof CL==='undefined' || !CL.online) return null;
   const d=(typeof NET!=='undefined' && NET.room) ? NET.room.day : null;
   if(!d || !S) return null;                 // sala sem plano (save antigo): caminho de sempre
   const meu=S.round||0;
