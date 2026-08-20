@@ -826,6 +826,12 @@ function rfAdEspaco(chave, opts){
   opts=opts||{};
   const real=window.ADS?ADS.html(chave,{cls:opts.cls||''}):'';
   if(real) return real;
+  /* CRIATIVO DE CASA: um patrocinador fixo pode ocupar o espaco enquanto o painel nao publica
+     nada naquela chave — o criativo do painel continua a mandar quando existe. */
+  if(opts.padrao) return `<a class="rf-ad-fixo ${opts.cls||''}" href="${escC(opts.padrao.href)}"
+      target="_blank" rel="noopener sponsored" data-ad-fixo="${escC(chave)}">
+      <img src="${escC(opts.padrao.img)}" alt="${escC(opts.padrao.alt||'Publicidade')}" loading="lazy" draggable="false">
+    </a>`;
   return `<div class="rf-adph ${opts.cls||''}" data-ad-vazio="${escC(chave)}">
     <span class="rf-adph-l">Publicidade</span>
     ${opts.formato?`<span class="rf-adph-f">${escC(opts.formato)}</span>`:''}
@@ -925,7 +931,12 @@ function rfCompMeta(info){
 }
 
 function rfTopAd(){
-  return rfAdEspaco('rf98.top.970x90',{cls:'rf-ad-top',formato:'970×90'});
+  /* o banner da Moda Esporte Clube e o criativo de casa do topo (pedido do dono, 20/08) —
+     arte recomposta em 970×90 a partir da pecas do patrocinador (img/sponsors) */
+  return rfAdEspaco('rf98.top.970x90',{cls:'rf-ad-top',formato:'970×90',
+    padrao:{ img:'img/sponsors/moda-banner-970x90.webp',
+      href:'https://modaec.com.br/?utm=retrofoot-banner-topo',
+      alt:'Moda Esporte Clube — cada camisa conta uma história' }});
 }
 
 /* O ENVELOPE — painel, não cápsula.

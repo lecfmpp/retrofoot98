@@ -310,6 +310,12 @@
   background:var(--club-cta-bg,var(--club-secondary))}
 .rf-app.collapsed .rf-sb-next .rf-btn .rf-ico{width:24px;height:24px;
   color:var(--club-cta-fg,var(--club-on-secondary))}
+/* ----- criativo de casa nos espacos de publicidade (ver rfAdEspaco/opts.padrao) -----
+   herda o tamanho da classe do espaco (rf-ad-top etc.); a imagem preenche sem distorcer */
+.rf-ad-fixo{display:flex;align-items:center;justify-content:center;overflow:hidden;
+  border-radius:12px;text-decoration:none}
+.rf-ad-fixo img{width:100%;height:100%;object-fit:cover;display:block}
+
 /* ----- O quadrado do patrocinador na barra lateral (ver rfSbAnuncioHTML) ----- */
 .rf-sb-ad{display:flex;flex-direction:column;gap:8px;min-width:0}
 .rf-sb-ad-tag{font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;
