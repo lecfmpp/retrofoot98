@@ -3459,6 +3459,13 @@ function clLoadSave(name){
     if(typeof NET!=='undefined'){ NET.isHost=false; NET.gameId=null; NET.onState=null; }
     setUniverse(S.intlUniverse||'brasil'); // restaura a config de divisões do universo do save (Brasil/Inglaterra/...)
     CL.intlUniverse = S.intlUniverse||false;
+    /* save quimera (a troca de pais que morreu no meio, ver repararMundoQuimera): reconstrui a
+       temporada na liga do clube do treinador antes de desenhar qualquer coisa */
+    if(typeof repararMundoQuimera==='function' && repararMundoQuimera()){
+      CL.intlUniverse=S.intlUniverse||false;
+      toastC('⚠ O save foi reparado: a temporada recomeça na liga do seu clube.');
+      if(typeof saveV3==='function') saveV3();
+    }
     syncDataClubsFromState(); // realinha DATA.clubs com a divisão real do save carregado
     CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
     /* volta a pagina onde a pessoa estava antes de recarregar (ver rfPosRestaurar).

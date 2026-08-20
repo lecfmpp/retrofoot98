@@ -4658,6 +4658,42 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
   CL.tacticChosen=false; CL.formation=null; CL.selPlayer=squad(newClubId)[0]?.pid||null; // pid (não nome): CL.selPlayer é comparado com p.pid em todo lugar
   advanceAuctions();
 }
+/* ===== REPARO DO SAVE QUIMERA =====
+   A troca de pais que explodia no meio (ver makeRawPlayer, 20/08) deixou saves com o rotulo de
+   um pais e o mundo de outro: S.division='PL', intlUniverse='Inglaterra', e a tabela/calendario
+   ainda do Brasil — o treinador do Manchester City vendo o mundo brasileiro para sempre. O
+   diagnostico e um so: O MEU CLUBE NAO ESTA EM LUGAR NENHUM DO MUNDO (nem na ancora, nem nas
+   outras divisoes). Nesse estado o reparo reconstrui a temporada na liga do clube — o mesmo
+   caminho da troca de pais que deveria ter completado (a tabela recomeca; a que existia era a
+   do Brasil, que nunca foi dele). Roda no carregar do save, solo apenas, e so quando doente. */
+function repararMundoQuimera(){
+  try{
+    if(typeof CL!=='undefined' && CL.online) return false;
+    if(!S || !S.clubId) return false;
+    if(S.table && S.table[S.clubId]) return false;               // o mundo contem o meu clube: são
+    const od=S.otherDivs||{};
+    for(const d in od){ if(od[d]&&od[d].table&&od[d].table[S.clubId]) return false; } // applyViewerDivision resolve
+    const uni=(typeof universoDoClube==='function')?universoDoClube(S.clubId):'brasil';
+    if(typeof setUniverse==='function') setUniverse(uni);
+    S.intlUniverse = uni==='brasil' ? false
+      : ((typeof UNI_CONFIGS!=='undefined'&&UNI_CONFIGS[uni]&&UNI_CONFIGS[uni].country)||uni);
+    const div = (S.division && DIV_ORDER.indexOf(S.division)>=0) ? S.division : DIV_ORDER[0];
+    S.division=div;
+    const allClubs=ensureDivisionClubs(div);
+    const others=allClubs.filter(c=>c.id!==S.clubId).slice(0,DIVISION_SIZE[div]-1);
+    DATA.clubs=[clubOf(S.clubId)||bgClubById(S.clubId), ...others].filter(Boolean);
+    DATA.clubs.forEach(c=>{ if(!S.squads[c.id]) S.squads[c.id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}))); });
+    const ids=DATA.clubs.map(c=>c.id);
+    S.sched=makeSchedule(ids); S.round=0;
+    S.table={}; DATA.clubs.forEach(c=>S.table[c.id]={id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
+    S._promoRelegNews=null;
+    buildOtherDivisions();
+    initBgLeagues();
+    S.xi=(typeof autoXI==='function')?autoXI(S.clubId):S.xi;
+    console.warn('mundo quimera reparado: temporada reconstruida em '+uni+' ('+div+')');
+    return true;
+  }catch(e){ console.warn('reparo quimera:', e&&e.message); return false; }
+}
 let DIV_LABEL_FULL={A:'Série A',B:'Série B',C:'Série C',D:'Série D'}; // reatribuído por setUniverse()
 /* ===== DEMITIDO: ESCOLHER CLUBE NAO E OPCIONAL =====
    Este modal era um modal comum, com as tres saidas de sempre (X, clique fora, Esc). Fechado sem
