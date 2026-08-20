@@ -310,6 +310,31 @@
   background:var(--club-cta-bg,var(--club-secondary))}
 .rf-app.collapsed .rf-sb-next .rf-btn .rf-ico{width:24px;height:24px;
   color:var(--club-cta-fg,var(--club-on-secondary))}
+/* ----- O quadrado do patrocinador na barra lateral (ver rfSbAnuncioHTML) ----- */
+.rf-sb-ad{display:flex;flex-direction:column;gap:8px;min-width:0}
+.rf-sb-ad-tag{font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--text-on-dark-faint);opacity:.7}
+.rf-sb-ad-media{position:relative;width:100%;aspect-ratio:1/1;border-radius:12px;overflow:hidden}
+.rf-sb-ad-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+/* a logo vive sobre o azul escuro; a foto da camisa sobre o fundo claro do estudio */
+.rf-sb-ad-face.logo{background:#0e1c3a;animation:rf-sb-ad-a 9s ease-in-out infinite}
+.rf-sb-ad-face.logo img{width:78%;height:auto;object-fit:contain}
+.rf-sb-ad-face.foto{background:#e9e9e7;animation:rf-sb-ad-b 9s ease-in-out infinite}
+.rf-sb-ad-face.foto img{width:100%;height:100%;object-fit:cover}
+/* crossfade suave: cada face fica ~3,5s inteira e cruza em ~1s com a outra */
+@keyframes rf-sb-ad-a{ 0%,42%{opacity:1} 53%,89%{opacity:0} 100%{opacity:1} }
+@keyframes rf-sb-ad-b{ 0%,42%{opacity:0} 53%,89%{opacity:1} 100%{opacity:0} }
+.rf-sb-ad-titulo{font-size:11px;font-weight:700;line-height:1.35;color:var(--text-on-dark,#fff)}
+.rf-sb-ad-cta{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
+  height:42px;padding:0 12px;border:none;border-radius:12px;cursor:pointer;
+  background:var(--brand-secondary);color:var(--brand-primary);
+  font-family:var(--font-sans);font-size:var(--fs-body);font-weight:var(--fw-bold)}
+.rf-sb-ad-cta:hover{filter:brightness(1.06)}
+.rf-sb-ad-preco{display:flex;align-items:baseline;gap:3px;font-weight:800;white-space:nowrap}
+.rf-sb-ad-preco small{font-size:9px;font-weight:700;opacity:.75}
+/* barra recolhida: o anuncio nao cabe — some junto com o resto do cartao */
+.rf-app.collapsed .rf-sb-ad{display:none}
+
 /* o badge vira um ponto no canto do ícone quando não há espaço pro número */
 .rf-app.collapsed .rf-nav-i{position:relative}
 .rf-app.collapsed .rf-nav-b{position:absolute;top:5px;right:6px;padding:0;min-width:8px;
@@ -7350,6 +7375,17 @@
 /* "Seleccionar descansados" + "Jogar" dividem a linha, junto da formação —
    antes o primeiro ocupava a largura toda e o Jogar vivia só na barra de baixo,
    longe de onde se escala o time. */
+/* ----- Formacoes em duas colunas: adversario (o botao principal de avanco) a esquerda,
+   taticas a direita (ver rfHubHTML). No estreito vira coluna unica, adversario primeiro. ----- */
+.rf-form-duas{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px;align-items:stretch}
+.rf-form-adv{min-width:0;display:flex}
+.rf-form-adv .rf-adv{flex:1;min-width:0}
+.rf-form-tat{min-width:0;display:flex;flex-direction:column;gap:10px}
+/* dentro da coluna estreita as fichas refluem para 2 por linha (o grid da pagina inteira e 4) */
+.rf-form-tat .rf-formgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.rf-form-tat .rf-acts{margin-top:auto}
+@media (max-width:900px){ .rf-form-duas{grid-template-columns:1fr} }
+
 .rf-acts-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
 .rf-acts-2>*{width:100%;min-width:0}
 .rf-acts-jogar{display:flex;align-items:center;justify-content:center;gap:8px;

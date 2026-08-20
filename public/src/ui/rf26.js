@@ -478,11 +478,11 @@ function rfSidebarHTML(){
      por isso o solo continuava a andar por ali.)
      O CARTAO continua a depender do jogo, que e do que ele fala. O BOTAO passa a estar sempre,
      porque a acao existe sempre: `rfJogarLabel` ja sabe dizer o que ela e hoje. */
-  const acaoJogar = `<button type="button" class="rf-btn rf-btn-primary rf-btn-full ${rfJogarClasse()} ${pronto?'rf-btn-pulse':''}"
-        ${(pronto||rfFaltaTatica())?'':'disabled'}
-        title="${pronto?'Jogar':rfFaltaTatica()?'Escolha a tática para liberar o Jogar':'Escale onze jogadores, com um goleiro'}"
-        onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
-      ${(typeof rfBotaoBancadaHTML==='function')?rfBotaoBancadaHTML():''}`;
+  /* ===== OS BOTOES SAIRAM DESTE CARTAO (pedido do dono, 20/08) =====
+     O Jogar e a bancada moravam aqui; no lugar deles entra o quadrado do patrocinador
+     (rfSbAnuncioHTML). A ACAO nao sumiu do jogo: o Hub tem o seu botao incondicional
+     (rf-acts-jogar) e a barra do telefone tambem (rf-bn-jogar) — este cartao volta a falar
+     so do jogo, e a barra lateral ganha o espaco vendavel. */
   const proximo = nm ? `<div class="rf-sb-next">
       <div class="rf-sb-next-hd">
         <span class="rf-sb-next-l">Próximo jogo</span>
@@ -495,11 +495,11 @@ function rfSidebarHTML(){
           <span class="rf-sb-next-m">${nm.home?'CASA':'FORA'} · ${escC(nm.comp||'')}</span>
         </span>
       </div>
-      ${acaoJogar}
+      ${rfSbAnuncioHTML()}
     </div>` : `<div class="rf-sb-next">
       <div class="rf-sb-next-hd"><span class="rf-sb-next-l">Esta semana</span></div>
       <div class="rf-sb-next-livre">O seu clube não entra em campo.</div>
-      ${acaoJogar}
+      ${rfSbAnuncioHTML()}
     </div>`;
 
   /* O INTERRUPTOR DO MENU MORA NO PÉ, embaixo do botão Jogar, e é a mesma seta
@@ -529,6 +529,25 @@ function rfSidebarHTML(){
       </button>
     </div>
   </aside>`;
+}
+/* ===== O QUADRADO DO PATROCINADOR DA BARRA LATERAL =====
+   Produto real da Moda Esporte Clube: a midia alterna em crossfade suave entre a logo (sobre
+   azul escuro) e a foto da camisa — CSS puro, duas camadas com keyframes de opacidade, nada de
+   timer. Titulo do produto abaixo da imagem e o botao Comprar com o parcelado (o "3x de" sai
+   pequeno, o valor grande). */
+function rfSbAnuncioHTML(){
+  return `<div class="rf-sb-ad">
+    <span class="rf-sb-ad-tag">Publicidade</span>
+    <div class="rf-sb-ad-media">
+      <span class="rf-sb-ad-face logo"><img src="img/sponsors/moda-esporte-logo.webp" alt="Moda Esporte Clube" loading="lazy" draggable="false"></span>
+      <span class="rf-sb-ad-face foto"><img src="img/sponsors/moda-fluminense-2004.webp" alt="Camisa Fluminense 2004" loading="lazy" draggable="false"></span>
+    </div>
+    <span class="rf-sb-ad-titulo">Fluminense - 2004 - Tricolor - Unimed - Adidas</span>
+    <button type="button" class="rf-sb-ad-cta">
+      <b>Comprar</b>
+      <span class="rf-sb-ad-preco"><small>3x de</small> R$ 151,67</span>
+    </button>
+  </div>`;
 }
 /* O BOTÃO JOGAR DA SIDEBAR É O MESMO BOTÃO DE SEMPRE, não um atalho novo:
    fora da Resenha ele começa a partida (clJogar); dentro dela ele é o
@@ -1017,21 +1036,22 @@ function rfHubHTML(){
          frequente desta tela, e era a que ficava mais longe: com o campo em
          cima, era preciso rolar por baixo dele para chegar as taticas. O campo
          e para VER o resultado da escolha — vem depois dela. -->
+    <!-- O ADVERSARIO E O BOTAO PRINCIPAL DE AVANCO, E MORA AQUI (pedido do dono, 20/08).
+         O cartao escuro do adversario — com a mini-tabela e o Jogar/Quase pronto — vira a
+         COLUNA ESQUERDA do bloco Formacoes; as taticas passam para a coluna da direita, com o
+         "Seleccionar descansados" abaixo delas. O Jogar duplicado que vivia na linha das acoes
+         sai: o botao do cartao e o principal, e a barra do telefone mantem o dela. -->
     <div class="rf-card" id="rf-taticas" data-hub="formacoes">
       <span class="rf-label-t">Formações</span>
-      ${rfFormacoesHTML()}
-      <!-- O JOGAR VEM PARA JUNTO DA FORMACAO. Ficava so na barra de baixo, longe
-           de onde se escala: escolhe-se o onze aqui em cima e procura-se o botao
-           la em baixo. Agora os dois dividem a linha — descansados a esquerda,
-           jogar a direita — e o "Seleccionar descansados" deixa de ocupar a
-           largura toda sozinho. A barra inferior mantem o seu (e a mesma funcao,
-           rfJogar), para quem esta noutro ponto da pagina. -->
-      <div class="rf-acts rf-acts-2">
-        ${btn('Seleccionar descansados','clSelectRested()',{icon:rfIcone('energia',16)+'',dis:!CL.tacticChosen,
-          title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
-        <button type="button" class="rf-btn rf-btn-cta rf-acts-jogar ${rfJogarClasse()}"
-          ${(rfFaltaTatica()||xiPlayers(CL.clubId).length>=11)?'':'disabled'}
-          onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
+      <div class="rf-form-duas">
+        <div class="rf-form-adv">${rfAdversarioCardHTML()}</div>
+        <div class="rf-form-tat">
+          ${rfFormacoesHTML()}
+          <div class="rf-acts">
+            ${btn('Seleccionar descansados','clSelectRested()',{icon:rfIcone('energia',16)+'',dis:!CL.tacticChosen,
+              title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
+          </div>
+        </div>
       </div>
       ${rfSemanaHTML()}
     </div>
@@ -1051,7 +1071,6 @@ function rfHubHTML(){
     </div>
     <div class="rf-hub-baixo" data-hub="destaques">
       ${rfNotasHTML()}
-      ${rfAdversarioCardHTML()}
     </div>`;
 
   /* NO TELEFONE O HUB TEM ABAS — Formação · Elenco · Jogo (ver os três mobiles do
