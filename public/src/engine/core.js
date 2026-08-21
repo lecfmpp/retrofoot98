@@ -1356,13 +1356,36 @@ function placeAuctionBid(lotId, amount){
    sem "vaga deslocada" por acúmulo de títulos): G6 do Brasileirão -> Libertadores
    (4 direto à fase de grupos + 2 na fase preliminar); 7º ao 12º -> Sul-Americana.  */
 const COMP_DEFS = window.COMPETICOES;   // ver src/data/competicoes.js (compartilhado com o painel)
+/* ===== CAMPEÃO E VICE DA COPA DO BRASIL TÊM VAGA NA LIBERTADORES (regra do dono, 20/08) =====
+   A final da copa nacional da temporada que FECHOU vive em S._prevSeason.copaBrasil (carimbada
+   no endSeason / resolveSeasonTurnover antes de qualquer reset). O campeão está no bracket; o
+   vice é o outro lado do confronto da última fase em que o campeão aparece — a final.
+   Só vale no Brasil: universo sem Copa do Brasil devolve lista vazia e nada muda. */
+function nationalCupFinalists(){
+  try{
+    if(typeof copaNacionalDoUniverso==='function' && copaNacionalDoUniverso()!=='copaBrasil') return [];
+    const b=S&&S._prevSeason&&S._prevSeason.copaBrasil;
+    if(!b||!b.champion) return [];
+    const rounds=(b.history||[]).concat((b.ties&&b.ties.length)?[{ties:b.ties}]:[]);
+    for(let i=rounds.length-1;i>=0;i--){
+      const t=(rounds[i].ties||[]).find(x=>x&&x.h&&x.a&&
+        (String(x.h)===String(b.champion)||String(x.a)===String(b.champion)));
+      if(t){ const vice=String(t.h)===String(b.champion)?t.a:t.h; return [b.champion, vice]; }
+    }
+    return [b.champion];
+  }catch(e){ return []; }
+}
 /* calcula quem se classifica pras copas continentais + Copa do Brasil, a partir
-   da tabela final (ordenada, posição 0 = campeão) da Série A da temporada ANTERIOR */
+   da tabela final (ordenada, posição 0 = campeão) da Série A da temporada ANTERIOR.
+   Campeão e vice da Copa do Brasil entram NA FRENTE nas vagas da Libertadores; a
+   tabela completa o resto, e a Sul-Americana fica com os melhores que sobraram. */
 function computeQualification(finalTableSorted){
   const ids=finalTableSorted.map(r=>r.id);
+  const lib=Array.from(new Set(nationalCupFinalists().concat(ids))).slice(0,6);
+  const naLib=new Set(lib);
   return {
-    libertadores: ids.slice(0,6),     // G6: 4 fase de grupos + 2 pré-Libertadores (só Série A, como na vida real)
-    sulamericana: ids.slice(6,12)     // 7º ao 12º colocado
+    libertadores: lib,                                    // finalistas da CdB + o topo do Brasileirão
+    sulamericana: ids.filter(id=>!naLib.has(id)).slice(0,6)
   };
 }
 /* ================= BANDEIRAS COMO IMAGEM =================
@@ -2672,9 +2695,29 @@ function unifiedContinentalPool(){
 }
 function unifiedContinentalQualification(userFinish){
   const pool=unifiedContinentalPool();
+  /* o campeão da Libertadores que fechou defende a vaga no ano seguinte (regra do dono,
+     20/08). O campeão da edição encerrada vive no arquivo permanente (ver archiveSeason). */
+  const champLib=(()=>{ try{
+    const arr=(S&&S.archive)||[]; const a=arr[arr.length-1];
+    return (a&&a.cups&&a.cups.libertadores&&a.cups.libertadores.champion)||null;
+  }catch(e){ return null; } })();
   let lib=[], sul=[];
-  Object.keys(LIB_SLOTS_UNI).forEach(co=>{ const clubs=pool[co]||[]; const nl=LIB_SLOTS_UNI[co], ns=SUL_SLOTS_UNI[co]||2;
-    lib.push(...clubs.slice(0,nl).map(c=>c.id)); sul.push(...clubs.slice(nl,nl+ns).map(c=>c.id)); });
+  Object.keys(LIB_SLOTS_UNI).forEach(co=>{ const clubs=(pool[co]||[]).map(c=>c.id); const nl=LIB_SLOTS_UNI[co], ns=SUL_SLOTS_UNI[co]||2;
+    let liberta=clubs.slice(0,nl), sula=clubs.slice(nl,nl+ns);
+    /* no Brasil, o campeão da Libertadores (se for brasileiro) e o campeão e o vice da
+       Copa do Brasil entram na frente das vagas de Libertadores (ver nationalCupFinalists)
+       — a tabela completa as 6, e a Sul-Americana fica com os melhores que sobraram */
+    if(co==='Brasil'){
+      const prio=(champLib&&clubs.indexOf(champLib)>=0?[champLib]:[]).concat(nationalCupFinalists());
+      if(prio.length){
+        liberta=Array.from(new Set(prio.concat(clubs))).slice(0,nl);
+        const naLib=new Set(liberta);
+        sula=clubs.filter(id=>!naLib.has(id)).slice(0,ns);
+      }
+    }
+    lib.push(...liberta); sul.push(...sula); });
+  /* campeão de outro país: garante a vaga dele mesmo que a cota do país o deixasse de fora */
+  if(champLib && lib.indexOf(champLib)<0) lib.unshift(champLib);
   const uid=S.clubId;
   if(uid){
     const already=lib.indexOf(uid)>=0?'lib':(sul.indexOf(uid)>=0?'sul':null);

@@ -291,6 +291,37 @@ bloco('arquivo permanente', () => {
   conferir('resgate é idempotente', S.archive.length, antes);
 });
 
+/* ===== 8. AS VAGAS DA LIBERTADORES OUVEM AS COPAS (regra do dono, 20/08) =====
+   Campeão e vice da Copa do Brasil e o campeão da Libertadores que fechou têm vaga na
+   Libertadores seguinte — mesmo mal colocados na liga. A tabela completa o resto das 6
+   vagas, e ninguém ocupa vaga nas duas continentais ao mesmo tempo. */
+console.log('8. Vagas continentais: CdB campeão+vice e o campeão da Libertadores têm vaga');
+bloco('vagas continentais', () => {
+  const S = mundo('brasil', U, W);
+  RR.aplicarUniverso(S);
+  const A = Object.keys(S.table);                       // c1..c20 já em ordem de tabela (1º..20º)
+  const tie = (h, a, w) => ({ h, a, hg: 1, ag: 0, winner: w, events: [] });
+  // a edição anterior das continentais, só o bastante pra reciclagem existir;
+  // o campeão da Libertadores é o 10º colocado — fora do G6 de propósito
+  S.cups.libertadores = { group: { groups: { A: { teams: A.slice(0, 4) }, B: { teams: A.slice(4, 8) } } },
+    bracket: { round: 3, roundsTotal: 3, ties: [], champion: A[9], eliminated: {}, history: [{ round: 3, ties: [tie(A[9], A[2], A[9])] }] } };
+  S.cups.sulamericana = { group: { groups: { A: { teams: A.slice(6, 10) }, B: { teams: A.slice(10, 14) } } }, bracket: null };
+  // Copa do Brasil decidida: campeão o 15º, vice o 18º — bem fora do G6
+  S.cups.copaBrasil = { round: 2, roundsTotal: 2, ties: [], champion: A[14], eliminated: {},
+    history: [{ round: 2, ties: [tie(A[14], A[17], A[14])] }] };
+  RR.resolveSeasonTurnover(S, new Set());
+  const doGrupo = (k) => { const g = (S.cups[k] && S.cups[k].group && S.cups[k].group.groups) || {};
+    return Object.keys(g).flatMap((x) => g[x].teams || []); };
+  const lib = doGrupo('libertadores'), sul = doGrupo('sulamericana');
+  [[A[14], 'campeão da CdB'], [A[17], 'vice da CdB'], [A[9], 'campeão da Libertadores']].forEach(([id, rot]) => {
+    if (lib.indexOf(id) < 0) reprova(rot + ' (' + id + ') ficou fora da Libertadores nova');
+    if (sul.indexOf(id) >= 0) reprova(rot + ' (' + id + ') também está na Sul-Americana');
+  });
+  conferir('as vagas brasileiras continuam 6', lib.filter((id) => A.indexOf(id) >= 0).length, 6);
+  conferir('o topo da tabela completa as vagas', [A[0], A[1], A[2]].every((id) => lib.indexOf(id) >= 0), true);
+  conferir('a Sul-Americana fica com os melhores que sobraram', [A[3], A[4], A[5]].every((id) => sul.indexOf(id) >= 0), true);
+});
+
 console.log('');
 if (falhas) { console.log('✘ ' + falhas + ' divergência(s) na virada'); process.exit(1); }
 console.log('✓ virada de temporada íntegra — Brasil, Inglaterra e Argentina');

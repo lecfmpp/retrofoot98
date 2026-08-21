@@ -2110,6 +2110,24 @@ function makeGroupStageT(groupsMap: any, advancePerGroup: number) {
   const lens = Object.keys(groups).map((k) => groups[k].sched.length);
   return { groups, round: 0, roundsTotal: Math.max(1, ...lens), finished: false, advancePerGroup: advancePerGroup || 2 };
 }
+/* ===== CAMPEÃO E VICE DA COPA DO BRASIL TÊM VAGA NA LIBERTADORES (regra do dono, 20/08) =====
+   Gêmeo do nationalCupFinalists do cliente (core.js): a final da copa nacional que FECHOU vive
+   em S._prevSeason.copaBrasil; o vice é o outro lado do confronto da última fase em que o
+   campeão aparece. Só o Brasil tem copa nacional materializada — outro universo devolve []. */
+function nationalCupFinalistsT(S: any) {
+  try {
+    if (UNI_ATIVO !== 'brasil') return [];
+    const b = S._prevSeason && S._prevSeason.copaBrasil;
+    if (!b || !b.champion) return [];
+    const rounds = (b.history || []).concat((b.ties && b.ties.length) ? [{ ties: b.ties }] : []);
+    for (let i = rounds.length - 1; i >= 0; i--) {
+      const t = (rounds[i].ties || []).find((x: any) => x && x.h && x.a &&
+        (String(x.h) === String(b.champion) || String(x.a) === String(b.champion)));
+      if (t) { const vice = String(t.h) === String(b.champion) ? t.a : t.h; return [b.champion, vice]; }
+    }
+    return [b.champion];
+  } catch (_e) { return []; }
+}
 function rebuildContinentalCups(S: any, topStandings: string[]) {
   if (!topStandings || !topStandings.length) return;
   /* QUAIS SAO AS DUAS CONTINENTAIS DEPENDE DA CONFEDERACAO DO PAIS. Estava escrito
@@ -2119,18 +2137,32 @@ function rebuildContinentalCups(S: any, topStandings: string[]) {
   const vagas = WORLD_CONFIG.vagasContinentais(UNI_ATIVO);
   const prev = copas.map((k: string) => prevCupTeamIds(S, k));
   if (!prev.some((l: string[]) => l.length)) return;   // save nunca teve continental (ex.: comecou na D) — nada a remontar
-  const daCasa = new Set(topStandings);             // todo id da 1a divisao e do pais; o resto e estrangeiro
+  /* O campeão da primeira continental (Libertadores/Champions) DEFENDE a vaga no ano
+     seguinte, e o campeão e o vice da copa nacional entram NA FRENTE das vagas dela; a
+     tabela completa o resto e a segunda copa fica com os melhores que sobraram. `usados`
+     garante que ninguém ocupa vaga nas duas — é a mesma alocação sequencial do corte antigo.
+     Campeão de fora do país não consome vaga local: ele volta pela reciclagem dos
+     participantes (prevCupTeamIds), que já o inclui. */
+  const champCont = (() => { try {
+    const c = S._prevSeason && S._prevSeason.cups && S._prevSeason.cups[copas[0]];
+    return (c && c.champion) || null;
+  } catch (_e) { return null; } })();
+  const finalistas = (champCont && topStandings.indexOf(champCont) >= 0 ? [champCont] : []).concat(nationalCupFinalistsT(S));
+  const daCasa = new Set(topStandings.concat(finalistas));  // id do pais (tabela ou final da copa); o resto e estrangeiro
+  const usados = new Set<string>();
+  const locaisDe = (n: number, prioridade: string[]) => {
+    const out: string[] = [];
+    prioridade.concat(topStandings).forEach((id) => { if (out.length < n && !usados.has(id)) { usados.add(id); out.push(id); } });
+    return out;
+  };
   const build = (key: string, locais: string[], estrangeiros: string[]) => {
     const ids = locais.concat(estrangeiros).filter((id) => S.squads && S.squads[id]);   // sem elenco no save, nao entra
     const uniq = Array.from(new Set(ids)).slice(0, 32);
     if (uniq.length < 4) return;
     S.cups[key] = { group: makeGroupStageT(splitIntoGroupsT(uniq, ME.hashSeed(S.seed, key + 'groups', S.season)), 2), bracket: null };
   };
-  let corte = 0;
   copas.forEach((key: string, i: number) => {
-    const n = vagas[i] || 0;
-    build(key, topStandings.slice(corte, corte + n), (prev[i] || []).filter((id: string) => !daCasa.has(id)));
-    corte += n;
+    build(key, locaisDe(vagas[i] || 0, i === 0 ? finalistas : []), (prev[i] || []).filter((id: string) => !daCasa.has(id)));
   });
 }
 /* ===== VIRADA DE TEMPORADA (F3.2) — promoção/rebaixamento + envelhecimento/regen + reconstrução.
