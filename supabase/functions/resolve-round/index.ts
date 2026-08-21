@@ -2110,22 +2110,15 @@ function makeGroupStageT(groupsMap: any, advancePerGroup: number) {
   const lens = Object.keys(groups).map((k) => groups[k].sched.length);
   return { groups, round: 0, roundsTotal: Math.max(1, ...lens), finished: false, advancePerGroup: advancePerGroup || 2 };
 }
-/* ===== CAMPEÃO E VICE DA COPA DO BRASIL TÊM VAGA NA LIBERTADORES (regra do dono, 20/08) =====
-   Gêmeo do nationalCupFinalists do cliente (core.js): a final da copa nacional que FECHOU vive
-   em S._prevSeason.copaBrasil; o vice é o outro lado do confronto da última fase em que o
-   campeão aparece. Só o Brasil tem copa nacional materializada — outro universo devolve []. */
+/* ===== O CAMPEÃO DA COPA DO BRASIL TEM VAGA NA LIBERTADORES (regra do dono, 20-21/08) =====
+   Gêmeo do nationalCupFinalists do cliente (core.js). Só o CAMPEÃO — o vice não leva vaga
+   (ajuste de 21/08). A copa nacional que FECHOU vive em S._prevSeason.copaBrasil. Só o
+   Brasil tem copa nacional materializada — outro universo devolve []. */
 function nationalCupFinalistsT(S: any) {
   try {
     if (UNI_ATIVO !== 'brasil') return [];
     const b = S._prevSeason && S._prevSeason.copaBrasil;
-    if (!b || !b.champion) return [];
-    const rounds = (b.history || []).concat((b.ties && b.ties.length) ? [{ ties: b.ties }] : []);
-    for (let i = rounds.length - 1; i >= 0; i--) {
-      const t = (rounds[i].ties || []).find((x: any) => x && x.h && x.a &&
-        (String(x.h) === String(b.champion) || String(x.a) === String(b.champion)));
-      if (t) { const vice = String(t.h) === String(b.champion) ? t.a : t.h; return [b.champion, vice]; }
-    }
-    return [b.champion];
+    return (b && b.champion) ? [b.champion] : [];
   } catch (_e) { return []; }
 }
 function rebuildContinentalCups(S: any, topStandings: string[]) {

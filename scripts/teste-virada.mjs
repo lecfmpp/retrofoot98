@@ -291,11 +291,11 @@ bloco('arquivo permanente', () => {
   conferir('resgate é idempotente', S.archive.length, antes);
 });
 
-/* ===== 8. AS VAGAS DA LIBERTADORES OUVEM AS COPAS (regra do dono, 20/08) =====
-   Campeão e vice da Copa do Brasil e o campeão da Libertadores que fechou têm vaga na
-   Libertadores seguinte — mesmo mal colocados na liga. A tabela completa o resto das 6
-   vagas, e ninguém ocupa vaga nas duas continentais ao mesmo tempo. */
-console.log('8. Vagas continentais: CdB campeão+vice e o campeão da Libertadores têm vaga');
+/* ===== 8. AS VAGAS DA LIBERTADORES OUVEM AS COPAS (regra do dono, 20-21/08) =====
+   O campeão da Copa do Brasil (só ele — o vice NÃO leva vaga, ajuste de 21/08) e o campeão
+   da Libertadores que fechou têm vaga na Libertadores seguinte — mesmo mal colocados na
+   liga. A tabela completa o resto das 6 vagas, e ninguém ocupa vaga nas duas continentais. */
+console.log('8. Vagas continentais: campeão da CdB e campeão da Libertadores têm vaga');
 bloco('vagas continentais', () => {
   const S = mundo('brasil', U, W);
   RR.aplicarUniverso(S);
@@ -313,13 +313,14 @@ bloco('vagas continentais', () => {
   const doGrupo = (k) => { const g = (S.cups[k] && S.cups[k].group && S.cups[k].group.groups) || {};
     return Object.keys(g).flatMap((x) => g[x].teams || []); };
   const lib = doGrupo('libertadores'), sul = doGrupo('sulamericana');
-  [[A[14], 'campeão da CdB'], [A[17], 'vice da CdB'], [A[9], 'campeão da Libertadores']].forEach(([id, rot]) => {
+  [[A[14], 'campeão da CdB'], [A[9], 'campeão da Libertadores']].forEach(([id, rot]) => {
     if (lib.indexOf(id) < 0) reprova(rot + ' (' + id + ') ficou fora da Libertadores nova');
     if (sul.indexOf(id) >= 0) reprova(rot + ' (' + id + ') também está na Sul-Americana');
   });
+  conferir('o vice da CdB NÃO ganha vaga', lib.indexOf(A[17]) < 0, true);
   conferir('as vagas brasileiras continuam 6', lib.filter((id) => A.indexOf(id) >= 0).length, 6);
-  conferir('o topo da tabela completa as vagas', [A[0], A[1], A[2]].every((id) => lib.indexOf(id) >= 0), true);
-  conferir('a Sul-Americana fica com os melhores que sobraram', [A[3], A[4], A[5]].every((id) => sul.indexOf(id) >= 0), true);
+  conferir('o topo da tabela completa as vagas', [A[0], A[1], A[2], A[3]].every((id) => lib.indexOf(id) >= 0), true);
+  conferir('a Sul-Americana fica com os melhores que sobraram', [A[4], A[5], A[6]].every((id) => sul.indexOf(id) >= 0), true);
 });
 
 console.log('');

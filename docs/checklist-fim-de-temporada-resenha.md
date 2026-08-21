@@ -30,7 +30,7 @@ Um jogador foi direto para o sorteio da Libertadores da temporada nova, sem ver 
 
 ## 3. [~] Vagas continentais por copa (regras do dono, 20/08)
 
-**Regra definida e implementada (aguardando teste):** no Brasil, **campeão e vice da Copa do Brasil** e o **campeão da Libertadores** garantem vaga na Libertadores seguinte. Eles entram na frente das 6 vagas; a tabela completa o resto e a Sul-Americana fica com os melhores que sobraram — ninguém ocupa vaga nas duas. Campeão estrangeiro da Libertadores mantém a vaga sem consumir vaga brasileira. Implementado no `rebuildContinentalCups` (servidor) e em `computeQualification`/`unifiedContinentalQualification` (solo), coberto pelo bloco 8 do `teste-virada.mjs`.
+**Regra definida e implementada (aguardando teste):** no Brasil, o **campeão da Copa do Brasil** (só ele — o vice NÃO leva vaga, ajuste de 21/08) e o **campeão da Libertadores** garantem vaga na Libertadores seguinte. Eles entram na frente das 6 vagas; a tabela completa o resto e a Sul-Americana fica com os melhores que sobraram — ninguém ocupa vaga nas duas. Campeão estrangeiro da Libertadores mantém a vaga sem consumir vaga brasileira. Implementado no `rebuildContinentalCups` (servidor) e em `computeQualification`/`unifiedContinentalQualification` (solo), coberto pelo bloco 8 do `teste-virada.mjs`.
 **Ainda em aberto:** campeão da **Sul-Americana** → vaga na Libertadores (regra a definir). Obs.: as zonas coloridas da tabela ("Lib"/"Sul" por posição) seguem aproximadas — não descontam as vagas tomadas pelos finalistas das copas.
 
 ### (histórico) Campeão da Sul-Americana não vai para a Libertadores seguinte

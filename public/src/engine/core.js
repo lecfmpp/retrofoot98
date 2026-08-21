@@ -1356,23 +1356,16 @@ function placeAuctionBid(lotId, amount){
    sem "vaga deslocada" por acúmulo de títulos): G6 do Brasileirão -> Libertadores
    (4 direto à fase de grupos + 2 na fase preliminar); 7º ao 12º -> Sul-Americana.  */
 const COMP_DEFS = window.COMPETICOES;   // ver src/data/competicoes.js (compartilhado com o painel)
-/* ===== CAMPEÃO E VICE DA COPA DO BRASIL TÊM VAGA NA LIBERTADORES (regra do dono, 20/08) =====
-   A final da copa nacional da temporada que FECHOU vive em S._prevSeason.copaBrasil (carimbada
-   no endSeason / resolveSeasonTurnover antes de qualquer reset). O campeão está no bracket; o
-   vice é o outro lado do confronto da última fase em que o campeão aparece — a final.
-   Só vale no Brasil: universo sem Copa do Brasil devolve lista vazia e nada muda. */
+/* ===== O CAMPEÃO DA COPA DO BRASIL TEM VAGA NA LIBERTADORES (regra do dono, 20-21/08) =====
+   Só o CAMPEÃO — o vice não leva vaga (ajuste de 21/08). A copa nacional da temporada que
+   FECHOU vive em S._prevSeason.copaBrasil (carimbada no endSeason / resolveSeasonTurnover
+   antes de qualquer reset). Só vale no Brasil: universo sem Copa do Brasil devolve lista
+   vazia e nada muda. */
 function nationalCupFinalists(){
   try{
     if(typeof copaNacionalDoUniverso==='function' && copaNacionalDoUniverso()!=='copaBrasil') return [];
     const b=S&&S._prevSeason&&S._prevSeason.copaBrasil;
-    if(!b||!b.champion) return [];
-    const rounds=(b.history||[]).concat((b.ties&&b.ties.length)?[{ties:b.ties}]:[]);
-    for(let i=rounds.length-1;i>=0;i--){
-      const t=(rounds[i].ties||[]).find(x=>x&&x.h&&x.a&&
-        (String(x.h)===String(b.champion)||String(x.a)===String(b.champion)));
-      if(t){ const vice=String(t.h)===String(b.champion)?t.a:t.h; return [b.champion, vice]; }
-    }
-    return [b.champion];
+    return (b&&b.champion)?[b.champion]:[];
   }catch(e){ return []; }
 }
 /* calcula quem se classifica pras copas continentais + Copa do Brasil, a partir
