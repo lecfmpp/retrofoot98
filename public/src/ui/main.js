@@ -3478,6 +3478,14 @@ function clLoadSave(name){
     if(typeof ensureBgLeaguesCompletas==='function'){ try{ ensureBgLeaguesCompletas(); }catch(e){} }
     syncDataClubsFromState(); // realinha DATA.clubs com a divisão real do save carregado
     CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
+    /* ABRIR UM SAVE SEMPRE VOLTA PRA FORMAÇÃO. CL.rf.page (o roteador novo) só muda quando
+       CL.tab de fato MUDA de valor (ver rfSyncFromLegacyTab) — e CL.tab já era 'jogo' na
+       maioria dos casos, então a linha acima não disparava nada. Quem abria outro save pela
+       tela "Sair do jogo" (que lista "Outros saves") ficava PRESO nessa mesma tela depois do
+       load, em vez de ir pra Formação (relato do dono, 21/08). rfGo('hub') força a página
+       certa sempre, incondicional — CL._posPagina (abaixo) ainda tem a palavra final quando
+       existe (é o caminho de reload de página, que deve voltar pra onde a pessoa estava). */
+    if(typeof rfGo==='function') rfGo('hub');
     /* volta a pagina onde a pessoa estava antes de recarregar (ver rfPosRestaurar).
        Consumida na hora: so vale para ESTE arranque. */
     if(CL._posPagina){ try{ if(typeof rfGo==='function') rfGo(CL._posPagina); else CL.page=CL._posPagina; }catch(e){} CL._posPagina=''; }
