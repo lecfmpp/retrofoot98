@@ -45,6 +45,17 @@ function squadSintetico(div, idx) {
   return sq;
 }
 const DIVS = ['A', 'B', 'C', 'D'];
+/* FORMAÇÕES: cada clube também joga a temporada inteira numa formação — e ela RODA entre os
+   clubes a cada temporada, como o perfil de tática. O XI é o melhor por setor para aquela
+   formação, e a nota (computeRatings) segue o XI escolhido — igual ao jogo. */
+const FORMS = { '4-3-3': [4, 3, 3], '4-4-2': [4, 4, 2], '3-4-3': [3, 4, 3], '3-3-4': [3, 3, 4], '4-5-1': [4, 5, 1], '4-2-4': [4, 2, 4] };
+const FORM_SLOTS = ['4-3-3','4-4-2','3-4-3','3-3-4','4-5-1','4-2-4','4-3-3','4-4-2','3-4-3','3-3-4','4-5-1','4-2-4','4-3-3','4-4-2','3-4-3','3-3-4','4-5-1','4-2-4','4-4-2','4-3-3'];
+function xiPorFormacao(squad, fm) {
+  const [nd, nm, na] = FORMS[fm];
+  const top = (s, n) => squad.filter(p => p.s === s).sort((x, y) => (y.f || 0) - (x.f || 0)).slice(0, n);
+  const xi = top('GK', 1).concat(top('DEF', nd), top('MID', nm), top('ATT', na));
+  return xi.length >= 8 ? xi : squad.slice(0, 11);
+}
 const TIMES = {};                                            // por divisão: [{nome, squad, rat, xi, ov, perfil}]
 DIVS.forEach((d) => {
   const lista = d === 'A'
@@ -52,10 +63,14 @@ DIVS.forEach((d) => {
     : (LOWER[d] || []).slice(0, 20).map((c, i) => ({ nome: c.short || c.name, squad: squadSintetico(d, i), ovRaw: 0 }));
   while (lista.length < 20) lista.push({ nome: d + '-Extra' + lista.length, squad: squadSintetico(d, lista.length), ovRaw: 0 });
   TIMES[d] = lista.map((t, i) => {
-    const rat = ME.computeRatings(t.squad, null);
-    const xi = ME.resolveXI(t.squad, null);
     const ov = t.ovRaw || Math.round(t.squad.reduce((s, p) => s + p.f, 0) / t.squad.length);
-    return { nome: t.nome, rat, xi, ov, idx: i };
+    // cache por formação: XI do melhor-por-setor + nota daquele XI
+    const porForm = {};
+    Object.keys(FORMS).forEach(fm => {
+      const xi = xiPorFormacao(t.squad, fm);
+      porForm[fm] = { xi, rat: ME.computeRatings(t.squad, xi.map(p => p.n)) };
+    });
+    return { nome: t.nome, porForm, ov, idx: i };
   });
   // perfis embaralhados deterministicamente: 5 de cada por divisão
   const perfis = []; ['ofensivo', 'equilibrado', 'retranca', 'adaptativo'].forEach((p) => { for (let k = 0; k < 5; k++) perfis.push(p); });
@@ -68,6 +83,7 @@ DIVS.forEach((d) => {
    numa, retranca noutra) — na média das temporadas, a posição por perfil isola a TÁTICA, não
    o clube que calhou com ela. A temporada representativa (s=0) usa a atribuição base. */
 function perfilDe(d, i, s){ return TIMES[d]._perfis[(i + s * 7) % 20]; }
+function formDe(i, s){ return FORM_SLOTS[(i * 3 + s * 11) % 20]; }
 
 function taticaDe(t, opp, emCasa) {
   if (t.perfil !== 'adaptativo') return t.perfil;
@@ -83,6 +99,7 @@ function schedDe(n) {
 const SCHED = schedDe(20);
 const NSEASONS = Number(process.argv[2] || 30);
 
+const formPos = {};
 const perfilPos = {};                                          // perfil -> {somaPos, n} por divisão
 DIVS.forEach((d) => perfilPos[d] = { ofensivo: [], equilibrado: [], retranca: [], adaptativo: [] });
 let tabelaRepresentativa = null;
@@ -92,11 +109,12 @@ for (let s = 0; s < NSEASONS; s++) {
   DIVS.forEach((d) => {
     const ts = TIMES[d];
     const tab = ts.map(() => ({ pts: 0, v: 0, e: 0, dd: 0, gp: 0, gc: 0 }));
-    ts.forEach((t, i) => t.perfil = perfilDe(d, i, s));
+    ts.forEach((t, i) => { t.perfil = perfilDe(d, i, s); t.form = formDe(i, s); });
     SCHED.forEach((rr, ri) => rr.forEach(([h, a]) => {
       const th = taticaDe(ts[h], ts[a], true), ta = taticaDe(ts[a], ts[h], false);
-      const H = { rat: ts[h].rat, xi: ts[h].xi, tactic: th, cap: 8000 + Math.max(0, ts[h].ov - 55) * 2100, short: ts[h].nome };
-      const A = { rat: ts[a].rat, xi: ts[a].xi, tactic: ta, cap: 20000, short: ts[a].nome };
+      const fH = ts[h].porForm[ts[h].form], fA = ts[a].porForm[ts[a].form];
+      const H = { rat: fH.rat, xi: fH.xi, tactic: th, cap: 8000 + Math.max(0, ts[h].ov - 55) * 2100, short: ts[h].nome };
+      const A = { rat: fA.rat, xi: fA.xi, tactic: ta, cap: 20000, short: ts[a].nome };
       const r = ME.simMatchPure('h', 'a', H, A, ((s * 53 + d.charCodeAt(0)) * 1e5 + ri * 1000 + h * 21 + a) >>> 0, {});
       tab[h].gp += r.hg; tab[h].gc += r.ag; tab[a].gp += r.ag; tab[a].gc += r.hg;
       if (r.hg > r.ag) { tab[h].pts += 3; tab[h].v++; tab[a].dd++; }
@@ -104,8 +122,8 @@ for (let s = 0; s < NSEASONS; s++) {
       else { tab[h].pts++; tab[a].pts++; tab[h].e++; tab[a].e++; }
     }));
     const ordem = ts.map((_, i) => i).sort((x, y) => tab[y].pts - tab[x].pts || (tab[y].gp - tab[y].gc) - (tab[x].gp - tab[x].gc) || tab[y].gp - tab[x].gp);
-    ordem.forEach((i, pos) => perfilPos[d][ts[i].perfil].push(pos + 1));
-    tabelas[d] = ordem.map((i, pos) => ({ pos: pos + 1, nome: ts[i].nome, perfil: ts[i].perfil, ov: ts[i].ov, ...tab[i] }));
+    ordem.forEach((i, pos) => { perfilPos[d][ts[i].perfil].push(pos + 1); (formPos[ts[i].form] = formPos[ts[i].form] || []).push(pos + 1); });
+    tabelas[d] = ordem.map((i, pos) => ({ pos: pos + 1, nome: ts[i].nome, perfil: ts[i].perfil, form: ts[i].form, ov: ts[i].ov, ...tab[i] }));
   });
   if (s === 0) tabelaRepresentativa = tabelas;
 }
@@ -114,10 +132,12 @@ const resumo = {};
 DIVS.forEach((d) => { resumo[d] = {}; Object.keys(perfilPos[d]).forEach((p) => { const l = perfilPos[d][p]; resumo[d][p] = +(l.reduce((a, b) => a + b, 0) / l.length).toFixed(1); }); });
 const geral = {}; ['ofensivo', 'equilibrado', 'retranca', 'adaptativo'].forEach((p) => { const l = DIVS.flatMap((d) => perfilPos[d][p]); geral[p] = +(l.reduce((a, b) => a + b, 0) / l.length).toFixed(2); });
 
-writeFileSync(RAIZ + '/scripts/arena-brasil-resultado.json', JSON.stringify({ NSEASONS, tabela: tabelaRepresentativa, resumo, geral }, null, 1));
+const geralForm = {}; Object.keys(formPos).forEach(f => { const l = formPos[f]; geralForm[f] = +(l.reduce((x, y) => x + y, 0) / l.length).toFixed(2); });
+writeFileSync(RAIZ + '/scripts/arena-brasil-resultado.json', JSON.stringify({ NSEASONS, tabela: tabelaRepresentativa, resumo, geral, geralForm }, null, 1));
 console.log(`${NSEASONS} temporadas × 4 divisões simuladas.`);
 console.log('POSIÇÃO MÉDIA por perfil (todas as divisões, ' + NSEASONS + ' temporadas; neutro = 10,5):');
 Object.entries(geral).sort((a, b) => a[1] - b[1]).forEach(([p, v]) => console.log('  ' + p.padEnd(12) + String(v)));
 console.log('\nPor divisão:'); DIVS.forEach((d) => console.log('  ' + d + ': ' + Object.entries(resumo[d]).map(([p, v]) => p + ' ' + v).join(' · ')));
 console.log('\nTEMPORADA REPRESENTATIVA — Série A:');
-tabelaRepresentativa.A.forEach((t) => console.log(`  ${String(t.pos).padStart(2)}. ${t.nome.padEnd(18)} ${t.perfil.padEnd(12)} ${String(t.pts).padStart(3)} pts  ${t.v}-${t.e}-${t.dd}  ${t.gp}×${t.gc}`));
+console.log('Posição média por FORMAÇÃO: ' + Object.entries(geralForm).sort((a,b)=>a[1]-b[1]).map(([f,v])=>f+' '+v).join(' · '));
+tabelaRepresentativa.A.forEach((t) => console.log(`  ${String(t.pos).padStart(2)}. ${t.nome.padEnd(18)} ${t.form.padEnd(6)} ${t.perfil.padEnd(12)} ${String(t.pts).padStart(3)} pts  ${t.v}-${t.e}-${t.dd}  ${t.gp}×${t.gc}`));
