@@ -37,8 +37,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
   /* ===== TÁTICA É TROCA, NÃO BOTÃO DE VITÓRIA (rebalance 21/08, medido na arena) =====
      O ofensivo ganha menos drift e passa a EXPOR a defesa; a retranca perde menos drift e
      passa a BLINDAR. Ver TACTIC_EMPHASIS logo abaixo e scripts/arena-motor.mjs. */
-  const TACTIC_BETA={retranca:-0.015, equilibrado:0, ofensivo:0.025};
-  const TACTIC_EMPHASIS={ retranca:{OS:0.92,DS:1.22}, equilibrado:{OS:1,DS:1}, ofensivo:{OS:1.05,DS:0.82} };
+  const TACTIC_BETA={retranca:-0.008, equilibrado:0, ofensivo:0.016};
+  const TACTIC_EMPHASIS={ retranca:{OS:0.93,DS:1.20}, equilibrado:{OS:1,DS:1}, ofensivo:{OS:1.04,DS:0.80} };
   const ENG={rev:0.82, sd:0.33, danger:0.58, shot:0.28, conv:0.52, penaltyChance:0.025}; // era 0.055
   const ENG2={ alphaAtk:0.08, alphaMid:0.05, alphaMidCount:0.004, convDiff:0.004 }; // alphaMidCount era 0.018: fazia do 4-5-1 o meta silencioso
   const BEHAVIOR_CARD_MULT={ 'Casca-Grossa':3.2, 'Brigão':2.4, 'Encrenqueiro':1.7, 'Discreto':1.0, 'Manso':0.75, 'Exemplar':0.4 };
@@ -262,6 +262,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
   /* ===== coleta de INPUTS pura (espelho de ratings()/availableXI()/autoXI()) =====
      O servidor precisa montar rat/xi IGUAL ao cliente. Tudo determinístico a partir do elenco. */
   function engForce(f){ if(typeof f!=='number' || !isFinite(f)) return 40; return f<=49 ? f : 49 + (f-49)*0.33; }
+  // goleiro: compressão leve (só 1 em campo — ver ratings() do cliente/rebalance.js)
+  function engForceGK(f){ if(typeof f!=='number' || !isFinite(f)) return 40; return f<=49 ? f : 49 + (f-49)*0.59; }
   function isAvail(p){ return !(p.suspended>0) && !(p.injuredMatches>0); }
   function best11(avail){ return avail.slice().sort(function(a,b){return b.f-a.f;}).slice(0,11); }
   /* ratings de um clube. players = elenco COMPLETO [{n,f,s,energy,moral,suspended,injuredMatches}].
@@ -274,7 +276,12 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
     else { used = best11(avail); }
     const bySec=function(s){return used.filter(function(p){return p.s===s;});};
     const avg=function(a){return a.length?a.reduce(function(s,p){return s+engForce(p.f)*(0.6+0.4*p.energy/100);},0)/a.length:28;};
-    let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avg(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
+    /* goleiro comprime com a curva LEVE (engForceGK), como o ratings() do cliente: só há um em
+       campo, então o motivo da compressão (empilhar craques) não se aplica — sem isto o goleiro
+       craque valia menos nas partidas resolvidas aqui do que nas ao vivo (divergência achada na
+       validação de 21/08). */
+    const avgGK=function(a){return a.length?a.reduce(function(s,p){return s+engForceGK(p.f)*(0.6+0.4*p.energy/100);},0)/a.length:28;};
+    let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avgGK(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
     const mor= used.length ? used.reduce(function(s,p){return s+(p.moral!=null?p.moral:70);},0)/used.length : 70;
     if(mor<50){ OS*=0.85; MS*=0.85; DS*=0.85; }
     return {OS:OS,MS:MS,DS:DS,mor:mor};

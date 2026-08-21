@@ -29,8 +29,8 @@ function matchSeed(homeId,awayId){ return hashSeed(S.seed, S.round, homeId, away
    caiu junto. Medido em scripts/arena-motor.mjs (times iguais, N=3000):
    ofensivo×equilibrado 46/28/27 (jogo aberto), retranca×equilibrado 32/30/38 (jogo fechado),
    formações todas entre 32-40%. O time 20% melhor segue vencendo 72% — qualidade decide. */
-const TACTIC_BETA={retranca:-0.015, equilibrado:0, ofensivo:0.025};
-const TACTIC_EMPHASIS={ retranca:{OS:0.92,DS:1.22}, equilibrado:{OS:1,DS:1}, ofensivo:{OS:1.05,DS:0.82} };
+const TACTIC_BETA={retranca:-0.008, equilibrado:0, ofensivo:0.016};
+const TACTIC_EMPHASIS={ retranca:{OS:0.93,DS:1.20}, equilibrado:{OS:1,DS:1}, ofensivo:{OS:1.04,DS:0.80} };
 const ENG={rev:0.82, sd:0.33, danger:0.58, shot:0.28, conv:0.52, penaltyChance:0.025}; // era 0.055 -> muito mais pênaltis por partida do que o futebol de verdade
 /* ===== MOTOR 2.0: meio-campo central + índices ofensivo/defensivo + contexto =====
    Toda a matemática que decide o jogo mora aqui (helpers compartilhados), pra os DOIS
