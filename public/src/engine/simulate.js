@@ -22,13 +22,21 @@ function matchSeed(homeId,awayId){ return hashSeed(S.seed, S.round, homeId, away
 
 /* ====================== MATCH ENGINE (Random Walk) ====================== */
 /* S_t in [-1,1]; +1 => home goal, -1 => away goal                         */
-const TACTIC_BETA={retranca:-0.09, equilibrado:0, ofensivo:0.10};
+/* ===== TÁTICA É TROCA, NÃO BOTÃO DE VITÓRIA (rebalance 21/08, medido na arena) =====
+   O ofensivo era só drift sem custo: 92% de vitórias contra o equilibrado com times iguais
+   (100% contra a retranca) — o "3-3-4 ganha tudo" era isto. Agora o ofensivo EXPÕE a defesa
+   e a retranca BLINDA (TACTIC_EMPHASIS multiplica OS/DS como a formação já fazia), e o drift
+   caiu junto. Medido em scripts/arena-motor.mjs (times iguais, N=3000):
+   ofensivo×equilibrado 46/28/27 (jogo aberto), retranca×equilibrado 32/30/38 (jogo fechado),
+   formações todas entre 32-40%. O time 20% melhor segue vencendo 72% — qualidade decide. */
+const TACTIC_BETA={retranca:-0.015, equilibrado:0, ofensivo:0.025};
+const TACTIC_EMPHASIS={ retranca:{OS:0.92,DS:1.22}, equilibrado:{OS:1,DS:1}, ofensivo:{OS:1.05,DS:0.82} };
 const ENG={rev:0.82, sd:0.33, danger:0.58, shot:0.28, conv:0.52, penaltyChance:0.025}; // era 0.055 -> muito mais pênaltis por partida do que o futebol de verdade
 /* ===== MOTOR 2.0: meio-campo central + índices ofensivo/defensivo + contexto =====
    Toda a matemática que decide o jogo mora aqui (helpers compartilhados), pra os DOIS
    motores (simulateMatch solo/ao-vivo e mpSim multiplayer) rodarem idêntico e determinístico.
    Calibrado por harness em massa (ver relatorios / scratchpad) pra placares realistas. */
-const ENG2={ alphaAtk:0.08, alphaMid:0.05, alphaMidCount:0.018, convDiff:0.004 };
+const ENG2={ alphaAtk:0.08, alphaMid:0.05, alphaMidCount:0.004, convDiff:0.004 }; // alphaMidCount era 0.018: fazia do 4-5-1 o meta silencioso (59% com times iguais)
 /* índice ofensivo: ataque alimentado pelo meio-campo; defensivo: defesa + ajuda do meio (docx) */
 function atkIndex(os,ms){ return 0.55*os + 0.45*ms; }
 function defIndex(ds,ms){ return 0.72*ds + 0.28*ms; }
@@ -162,8 +170,10 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
   const H0=ratings(homeId, isUser&&homeId===S.clubId), A0=ratings(awayId, isUser&&awayId===S.clubId);
   // emphasis por formação (contagem de setores no XI) — 3-5-2 domina meio, 5-3-2 defende, etc.
   const emH=formationEmphasis(hp), emA=formationEmphasis(ap);
-  const H={OS:H0.OS*emH.OS, MS:H0.MS*emH.MS, DS:H0.DS*emH.DS, mor:H0.mor};
-  const A={OS:A0.OS*emA.OS, MS:A0.MS*emA.MS, DS:A0.DS*emA.DS, mor:A0.mor};
+  const teH=TACTIC_EMPHASIS[tacticForClub(homeId)]||TACTIC_EMPHASIS.equilibrado;
+  const teA=TACTIC_EMPHASIS[tacticForClub(awayId)]||TACTIC_EMPHASIS.equilibrado;
+  const H={OS:H0.OS*emH.OS*teH.OS, MS:H0.MS*emH.MS, DS:H0.DS*emH.DS*teH.DS, mor:H0.mor};
+  const A={OS:A0.OS*emA.OS*teA.OS, MS:A0.MS*emA.MS, DS:A0.DS*emA.DS*teA.DS, mor:A0.mor};
   const betaH=TACTIC_BETA[tacticForClub(homeId)];
   const betaA=TACTIC_BETA[tacticForClub(awayId)];
   // contexto: mando por estádio + variância extra em clássico/decisão (imprevisibilidade)
@@ -426,8 +436,9 @@ function liveMatchSession(homeId, awayId, seed, opts){
   const rat={H:null,A:null}, nMid={H:0,A:0};
   function recompute(side){
     const em=formationEmphasis(cur[side]);
+    const te=TACTIC_EMPHASIS[tacticForClub(side==='H'?homeId:awayId)]||TACTIC_EMPHASIS.equilibrado;
     const r0=sessionRatingsFromPlayers(cur[side]);
-    rat[side]={OS:r0.OS*em.OS, MS:r0.MS*em.MS, DS:r0.DS*em.DS, mor:r0.mor};
+    rat[side]={OS:r0.OS*em.OS*te.OS, MS:r0.MS*em.MS, DS:r0.DS*em.DS*te.DS, mor:r0.mor};
     nMid[side]=em.nMID;
   }
   recompute('H'); recompute('A');
