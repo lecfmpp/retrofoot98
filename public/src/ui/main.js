@@ -4884,29 +4884,50 @@ function clMomentoSec(acao){
    artilheiro não é meu, etc). É o que garante que o modal só aparece quando é verdade. */
 function momentoClassif(){ return (typeof sortedTable==='function')?sortedTable():[]; }
 function momentoCampanha(t){ return t?`${t.W}V ${t.D}E ${t.L}D`:''; }
+/* A TABELA FINAL DE VERDADE É A DE ONTEM, NÃO A DE HOJE. Estas três funções rodam DEPOIS do
+   adopt da virada (enfileirarMomentosFimDeTemporada, chamada de dentro de
+   onlineAdoptServerRound/newSeasonReset) — a essa altura S.table já é a tabela ZERADA da
+   temporada NOVA (e S.division já é a divisão nova, pra quem subiu/desceu). Ler sortedTable()/
+   S.table aqui é ler zero a zero: numa tabela toda 0x0, o desempate por id (sortTableRows)
+   "elege" campeão quem quer que ordene primeiro alfabeticamente — sem relação nenhuma com a
+   campanha real. Foi assim que um clube REBAIXADO viu "A taça é nossa" com premiação de
+   campeão (relato do dono, 21/08: Bahia rebaixado, comemoração de campeão da própria Série B
+   pra onde ele caiu). A fonte certa, que já existe e já é usada em computeMyPrevSeasonPrizes/
+   registerPrevSeasonTitles/buildPressBriefing, é S._prevSeason.tables — o retrato que o
+   SERVIDOR tira da tabela final ANTES de zerar. Nunca trocar de volta pra sortedTable()/S.table
+   nestas três funções. */
+function momentoPrevSeasonPos(){
+  const pv=S._prevSeason; if(!pv || !pv.tables || !CL.clubId) return null;
+  const order=(typeof DIV_ORDER!=='undefined'&&DIV_ORDER.length)?DIV_ORDER:['A','B','C','D'];
+  let div=null, pos=0, table=null;
+  order.forEach(d=>{ const rows=pv.tables[d]; if(!rows||!rows.length) return;
+    const i=rows.findIndex(r=>r.id===CL.clubId); if(i>=0){ div=d; pos=i+1; table=rows; } });
+  if(!div) return null;
+  return { div, pos, t:table[pos-1], total:table.length };
+}
 function dadosCampeaoLiga(){
-  const tb=momentoClassif(); const t=tb[0]; if(!t || String(t.id)!==String(CL.clubId)) return null;
+  const m=momentoPrevSeasonPos(); if(!m || m.pos!==1) return null;
   const nome=(clubOf(CL.clubId)||{}).short||'O clube';
-  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(S.division,S.intlUniverse):'Liga'),
-    manchete:`${nome} é campeão.`, trofeu:S.division,
+  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(m.div,S.intlUniverse):'Liga'),
+    manchete:`${nome} é campeão.`, trofeu:m.div,
     linha:`Título conquistado na ${S.sched?S.sched.length:38}ª rodada da competição.`,
-    stats:[{k:'PONTOS',v:String(t.Pts)},{k:'CAMPANHA',v:momentoCampanha(t)},{k:'SALDO',v:String((t.GF||0)-(t.GA||0))}],
+    stats:[{k:'PONTOS',v:String(m.t.Pts)},{k:'CAMPANHA',v:momentoCampanha(m.t)},{k:'SALDO',v:String((m.t.GF||0)-(m.t.GA||0))}],
     rodape:'A vaga continental está garantida.' };
 }
 function dadosPromovido(){
-  const pos=(typeof tablePos==='function')?tablePos(CL.clubId):0; const t=momentoClassif()[pos-1];
-  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(S.division,S.intlUniverse):'Liga'),
-    manchete:'Subimos de divisão.', trofeu:S.division,
-    linha:`${pos}º lugar. Ano que vem o clube joga a divisão de cima.`,
-    stats:[{k:'POSIÇÃO',v:pos+'º'},{k:'PONTOS',v:t?String(t.Pts):'—'},{k:'CAMPANHA',v:momentoCampanha(t)}],
+  const m=momentoPrevSeasonPos(); if(!m) return null;
+  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(m.div,S.intlUniverse):'Liga'),
+    manchete:'Subimos de divisão.', trofeu:m.div,
+    linha:`${m.pos}º lugar. Ano que vem o clube joga a divisão de cima.`,
+    stats:[{k:'POSIÇÃO',v:m.pos+'º'},{k:'PONTOS',v:m.t?String(m.t.Pts):'—'},{k:'CAMPANHA',v:momentoCampanha(m.t)}],
     rodape:'A verba de reforços foi reajustada.' };
 }
 function dadosRebaixado(){
-  const pos=(typeof tablePos==='function')?tablePos(CL.clubId):0; const t=momentoClassif()[pos-1];
-  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(S.division,S.intlUniverse):'Liga'),
+  const m=momentoPrevSeasonPos(); if(!m) return null;
+  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(m.div,S.intlUniverse):'Liga'),
     manchete:'A queda foi confirmada.', trofeu:null,
-    linha:`${pos}º lugar. O clube disputa a divisão de baixo na próxima temporada.`,
-    stats:[{k:'POSIÇÃO',v:pos+'º'},{k:'PONTOS',v:t?String(t.Pts):'—'},{k:'CAMPANHA',v:momentoCampanha(t)}],
+    linha:`${m.pos}º lugar. O clube disputa a divisão de baixo na próxima temporada.`,
+    stats:[{k:'POSIÇÃO',v:m.pos+'º'},{k:'PONTOS',v:m.t?String(m.t.Pts):'—'},{k:'CAMPANHA',v:momentoCampanha(m.t)}],
     rodape:'A diretoria quer conversar sobre o seu contrato.' };
 }
 /* ARTILHEIRO: só vira modal se for jogador DO USUÁRIO — é o que o pedido especifica. */

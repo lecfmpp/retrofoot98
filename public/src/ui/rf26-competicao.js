@@ -1263,7 +1263,15 @@ function rfCampeaoDados(key){
 /* a mesma casa para o título de LIGA: não há final, então o bloco do confronto dá lugar à
    campanha (pontos, vitórias, saldo) — o resto da estrutura é idêntico. */
 function rfCampeaoDadosLiga(div, info){
-  const tb=(typeof sortedTable==='function')?sortedTable():[];
+  /* TABELA FINAL DE VERDADE, NÃO A DE HOJE. Quando esta tela abre (fim de temporada), S.table
+     já é a tabela ZERADA da temporada nova — ler sortedTable() aqui "elegia" campeão quem
+     ordenasse primeiro por id numa tabela toda 0x0 (desempate alfabético do sortTableRows),
+     inclusive um clube REBAIXADO (relato do dono, 21/08: Bahia rebaixado vendo "a taça é nossa"
+     com premiação de campeão). A fonte certa é S._prevSeason.tables[div], o retrato que o
+     servidor/endSeason tira ANTES de zerar — mesma fonte de computeMyPrevSeasonPrizes/
+     registerPrevSeasonTitles (core.js). Nunca trocar de volta pra sortedTable()/S.table aqui. */
+  const pv=S._prevSeason;
+  const tb=(pv && pv.tables && pv.tables[div]) || [];
   const t=tb[0]; if(!t) return null;
   const souEu=String(t.id)===String(CL.clubId);
   const camp=(typeof anyClubOf==='function'&&anyClubOf(t.id))||{short:String(t.id)};
