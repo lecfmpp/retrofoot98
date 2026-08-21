@@ -326,6 +326,18 @@ const POS_PROFILE={
 function forceToLevel(f){return Math.max(1,Math.min(20,Math.round((f-45)/46*13+6)));}
 function levelToForce(L){return Math.max(40,Math.min(95,Math.round((L-6)/13*46+45)));}
 function attrLevel(a,s){const prof=POS_PROFILE[s]||POS_PROFILE.MID;let sw=0,acc=0;for(const k in prof){sw+=prof[k];acc+=prof[k]*(a[k]||1);}return acc/sw;}
+/* ATRIBUTOS DE VERDADE NO RESULTADO (21/08) — mesma função em match-engine.js/resolve-round.ts/
+   kickoff-round.ts (a fonte do motor). Lê o(s) atributo(s) relevante(s) do jogador RELATIVO ao
+   seu próprio nível médio: um artilheiro nato finaliza melhor, um goleiro-reflexo defende mais,
+   mesmo com a MESMA força que um colega genérico. Puramente numérico — sem tela ainda (ver
+   ATTR_LABEL/ATTR_GROUP acima, já prontos pra quando decidirmos mostrar isso ao usuário). */
+function attrFactor(p,keys,lo,hi){
+  const a=p&&p.attr; if(!a) return 1;
+  let sv=0,n=0; for(const k of keys){ if(a[k]!=null){ sv+=a[k]; n++; } }
+  if(!n) return 1;
+  const rel=sv/n, base=forceToLevel(p.rawF!=null?p.rawF:p.f);
+  return Math.max(lo,Math.min(hi,1+(rel-base)/22));
+}
 function genAttrs(p){
   const rf=(p.rawF!=null?p.rawF:p.f);                       // atributos vêm da força na escala ANTIGA (rawF)
   const R=makeRng(hashSeed('attr',p.n,rf,p.s));
@@ -695,7 +707,7 @@ function ratings(id, useXI){
   // goleiro em campo, então "empilhar" não se aplica a ele; comprimir igual deixava um goleiro
   // Craque Mundial (f~95) quase indistinguível de um mediano (f~50) no DS (diferença de só
   // ~5 pontos), sem impacto perceptível na simulação apesar da diferença real de qualidade.
-  const avgGK=a=>a.length?a.reduce((s,p)=>s+REBAL.engForceGK(p.f)*(0.6+0.4*p.energy/100),0)/a.length:28;
+  const avgGK=a=>a.length?a.reduce((s,p)=>s+REBAL.engForceGK(p.f)*(0.6+0.4*p.energy/100)*attrFactor(p,['ref','mao'],0.85,1.15),0)/a.length:28;
   let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avgGK(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
   // morale coupling
   const mor=teamMorale(id,players);

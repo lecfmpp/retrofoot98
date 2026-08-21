@@ -115,8 +115,10 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
     function effRat(side){ const b=side==='H'?H:A; const tp=teamPenalty(side); return {OS:b.OS*tp, MS:b.MS*tp, DS:b.DS*tp}; }
     function currentMu(){ return matchMu(effRat('H'), effRat('A'), betaH, betaA, ctxMid); }
     function scorerFrom(id,players){ const atk=players.filter(function(p){return p.s==='ATT'||p.s==='MID';});
-      const pool=atk.length?atk:players; let tot=pool.reduce(function(s,p){return s+p.f;},0), r=R.random()*tot;
-      for(const p of pool){r-=p.f;if(r<=0)return p;} return pool[0]; }
+      const pool=atk.length?atk:players;
+      const w=function(p){return p.f*attrFactor(p,['fin'],0.82,1.28);};
+      let tot=pool.reduce(function(s,p){return s+w(p);},0), r=R.random()*tot;
+      for(const p of pool){r-=w(p);if(r<=0)return p;} return pool[0]; }
     function pickFoulPlayer(side){ const pool=activePool(side).filter(function(p){return p.s!=='GK';});
       const list=pool.length?pool:activePool(side); if(!list.length) return null;
       const w=function(p){return (110-p.f)*(BEHAVIOR_CARD_MULT[p.behavior]||1);};
@@ -264,6 +266,25 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
   function engForce(f){ if(typeof f!=='number' || !isFinite(f)) return 40; return f<=49 ? f : 49 + (f-49)*0.33; }
   // goleiro: compressão leve (só 1 em campo — ver ratings() do cliente/rebalance.js)
   function engForceGK(f){ if(typeof f!=='number' || !isFinite(f)) return 40; return f<=49 ? f : 49 + (f-49)*0.59; }
+  /* ===== ATRIBUTOS DE VERDADE NO RESULTADO (21/08) =====
+     Até aqui p.attr (fin/pas/dri/... — ver genAttrs em index.html) só influenciava o jogo
+     DEVAGAR, via evolvePlayer reescrevendo p.f a cada rodada; dentro da própria partida os
+     atributos individuais nunca eram lidos — dois jogadores da MESMA força decidiam o
+     resultado de forma idêntica. attrFactor lê o(s) atributo(s) relevante(s) do jogador
+     RELATIVO ao seu próprio nível médio (não à força do time): um artilheiro nato (fin acima
+     do seu nível) finaliza melhor que um "faz-tudo" da mesma força, um goleiro-reflexo
+     (ref/mao acima do seu nível) defende mais que um goleiro-linha da mesma força. Clamp
+     [lo,hi] mantém isso como TEMPERO, não substituto de f — ela ainda decide o grosso do jogo.
+     Puramente numérico: nenhuma tela lê p.attr hoje (ver ATTR_LABEL/ATTR_GROUP, index.html) —
+     é o dado pronto pra quando decidirmos mostrar isso ao usuário. */
+  function forceToLevel(f){ return Math.max(1,Math.min(20,Math.round((f-45)/46*13+6))); }
+  function attrFactor(p,keys,lo,hi){
+    const a=p&&p.attr; if(!a) return 1;
+    let sv=0,n=0; for(const k of keys){ if(a[k]!=null){ sv+=a[k]; n++; } }
+    if(!n) return 1;
+    const rel=sv/n, base=forceToLevel(p.rawF!=null?p.rawF:p.f);
+    return clamp(1+(rel-base)/22, lo, hi);
+  }
   function isAvail(p){ return !(p.suspended>0) && !(p.injuredMatches>0); }
   function best11(avail){ return avail.slice().sort(function(a,b){return b.f-a.f;}).slice(0,11); }
   /* ratings de um clube. players = elenco COMPLETO [{n,f,s,energy,moral,suspended,injuredMatches}].
@@ -280,7 +301,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
        campo, então o motivo da compressão (empilhar craques) não se aplica — sem isto o goleiro
        craque valia menos nas partidas resolvidas aqui do que nas ao vivo (divergência achada na
        validação de 21/08). */
-    const avgGK=function(a){return a.length?a.reduce(function(s,p){return s+engForceGK(p.f)*(0.6+0.4*p.energy/100);},0)/a.length:28;};
+    const avgGK=function(a){return a.length?a.reduce(function(s,p){return s+engForceGK(p.f)*(0.6+0.4*p.energy/100)*attrFactor(p,['ref','mao'],0.85,1.15);},0)/a.length:28;};
     let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avgGK(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
     const mor= used.length ? used.reduce(function(s,p){return s+(p.moral!=null?p.moral:70);},0)/used.length : 70;
     if(mor<50){ OS*=0.85; MS*=0.85; DS*=0.85; }
@@ -1629,6 +1650,28 @@ const POS_PROFILE: any = {
 };
 function attrLevel(a: any, s: string) { const prof = POS_PROFILE[s] || POS_PROFILE.MID; let sw = 0, acc = 0; for (const k in prof) { sw += prof[k]; acc += prof[k] * (a[k] || 1); } return acc / sw; }
 function levelToForce(L: number) { return Math.max(40, Math.min(95, Math.round((L - 6) / 13 * 46 + 45))); }
+function forceToLevel(f: number) { return Math.max(1, Math.min(20, Math.round((f - 45) / 46 * 13 + 6))); }
+const ATTR_KEYS_T = ['fin','pas','dri','des','cab','cru','vis','pos','com','det','vel','res','fis','agi','ref','mao'];
+/* PORTE FIEL do genAttrs (index.html) — precisa existir aqui porque um clube de LIGA DE FUNDO
+   materializado pela 1a vez (materializeBgClubT, ex: qualificação continental) nunca passou
+   pelo attachAttrs do cliente: sem isto ficava com attr:{} pra sempre (nunca evolui, nunca
+   participa do attrFactor do motor — jogador "fantasma" de atributos). */
+function genAttrsT(p: any) {
+  const rf = (p.rawF != null ? p.rawF : p.f);
+  const R = ME.makeRng(ME.hashSeed('attr', p.n, rf, p.s));
+  const lvl = forceToLevel(rf), prof = POS_PROFILE[p.s] || POS_PROFILE.MID, a: any = {};
+  for (const k of ATTR_KEYS_T) {
+    const w = prof[k] || 0; let base: number;
+    if (w > 0) base = lvl + (w >= 15 ? 2 : w >= 8 ? 1 : 0);
+    else if ((k === 'ref' || k === 'mao') && p.s !== 'GK') base = 2 + R.random() * 3;
+    else if (p.s === 'GK' && (k === 'fin' || k === 'dri' || k === 'cru' || k === 'cab')) base = 3 + R.random() * 4;
+    else base = lvl - 3 + R.random() * 2;
+    a[k] = Math.max(1, Math.min(20, Math.round(base + (R.random() * 2 - 1) * 1.5)));
+  }
+  const shift = lvl - attrLevel(a, p.s);
+  for (const k in prof) a[k] = Math.max(1, Math.min(20, Math.round(a[k] + shift)));
+  return a;
+}
 function interp(anchors: any[], x: number) { const n = anchors.length;
   if (x <= anchors[0][0]) { const [x0, y0] = anchors[0], [x1, y1] = anchors[1]; return y0 + (x - x0) / (x1 - x0) * (y1 - y0); }
   if (x >= anchors[n - 1][0]) { const [x0, y0] = anchors[n - 2], [x1, y1] = anchors[n - 1]; return y0 + (x - x0) / (x1 - x0) * (y1 - y0); }
@@ -2468,7 +2511,10 @@ function materializeBgClubT(S: any, co: string, id: string) {
   const L = S.bgLeagues && S.bgLeagues[co]; const raw = L && L.elencos && L.elencos[id];
   if (!raw || !raw.length) return false;
   S._pidSeq = S._pidSeq || 0;
-  S.squads[id] = raw.map((e: any) => { S._pidSeq++; return { n: e[0], pid: 'p' + S._pidSeq, p: e[1] || 'MC', s: e[2] || 'MID', f: e[3] || 50, rawF: e[3] || 50, age: e[4] || 26, mv: e[5] || 1e6, ft: 'R', num: '', nat: '', ag: '—', moral: 70, energy: 100, attr: {}, stats: { r3: [], g3: [], apps: 0, goals: 0, cs: 0 } }; });
+  S.squads[id] = raw.map((e: any) => { S._pidSeq++;
+    const pl: any = { n: e[0], pid: 'p' + S._pidSeq, p: e[1] || 'MC', s: e[2] || 'MID', f: e[3] || 50, rawF: e[3] || 50, age: e[4] || 26, mv: e[5] || 1e6, ft: 'R', num: '', nat: '', ag: '—', moral: 70, energy: 100, stats: { r3: [], g3: [], apps: 0, goals: 0, cs: 0 } };
+    pl.attr = genAttrsT(pl);   // atributos de verdade (não {}) — ver genAttrsT acima
+    return pl; });
   S.clubPool = S.clubPool || {}; if (!S.clubPool[id]) S.clubPool[id] = { id };
   S.clubOverall[id] = (L.ov && L.ov[id]) || Math.round(S.squads[id].reduce((s: number, p: any) => s + p.f, 0) / S.squads[id].length);
   return true;

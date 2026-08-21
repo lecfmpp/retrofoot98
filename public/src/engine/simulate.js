@@ -193,8 +193,9 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
   function scorerFrom(id,players){
     const atk=players.filter(p=>p.s==='ATT'||p.s==='MID');
     const pool=atk.length?atk:players;
-    let tot=pool.reduce((s,p)=>s+p.f,0), r=R.random()*tot;
-    for(const p of pool){r-=p.f;if(r<=0)return p;}
+    const w=p=>p.f*attrFactor(p,['fin'],0.82,1.28);
+    let tot=pool.reduce((s,p)=>s+w(p),0), r=R.random()*tot;
+    for(const p of pool){r-=w(p);if(r<=0)return p;}
     return pool[0];
   }
   function pickFoulPlayer(side){
@@ -410,7 +411,7 @@ function sessionRatingsFromPlayers(players){
   const eFG=(typeof REBAL!=='undefined'&&REBAL.engForceGK)?REBAL.engForceGK:eF;
   const bySec=s=>players.filter(p=>p.s===s);
   const avg=a=>a.length?a.reduce((s,p)=>s+eF(p.f)*(0.6+0.4*(p.energy!=null?p.energy:100)/100),0)/a.length:28;
-  const avgGK=a=>a.length?a.reduce((s,p)=>s+eFG(p.f)*(0.6+0.4*(p.energy!=null?p.energy:100)/100),0)/a.length:28;
+  const avgGK=a=>a.length?a.reduce((s,p)=>s+eFG(p.f)*(0.6+0.4*(p.energy!=null?p.energy:100)/100)*attrFactor(p,['ref','mao'],0.85,1.15),0)/a.length:28;
   let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avgGK(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
   const mor=players.length?players.reduce((s,p)=>s+(p.moral!=null?p.moral:70),0)/players.length:70;
   if(mor<50){OS*=0.85;MS*=0.85;DS*=0.85;}
@@ -461,8 +462,10 @@ function liveMatchSession(homeId, awayId, seed, opts){
   function currentMu(){ return matchMu(effRat('H'), effRat('A'), betaH, betaA, {nMidH:nMid.H, nMidA:nMid.A, homeAdv}); }
   function dispMin(){ return extraBase!=null ? 90+(session.minute-extraBase) : session.minute; }
   function scorerFrom(id,players){ const atk=players.filter(p=>p.s==='ATT'||p.s==='MID');
-    const pool=atk.length?atk:players; let tot=pool.reduce((s,p)=>s+p.f,0), r=R.random()*tot;
-    for(const p of pool){r-=p.f;if(r<=0)return p;} return pool[0]; }
+    const pool=atk.length?atk:players;
+    const w=p=>p.f*attrFactor(p,['fin'],0.82,1.28);
+    let tot=pool.reduce((s,p)=>s+w(p),0), r=R.random()*tot;
+    for(const p of pool){r-=w(p);if(r<=0)return p;} return pool[0]; }
   function pickFoulPlayer(side){ const pool=cur[side].filter(p=>p.s!=='GK');
     const list=pool.length?pool:cur[side]; if(!list.length) return null;
     const w=p=>(110-p.f)*(BEHAVIOR_CARD_MULT[p.behavior]||1);

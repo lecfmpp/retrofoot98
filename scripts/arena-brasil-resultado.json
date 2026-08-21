@@ -1,5 +1,5 @@
 {
- "NSEASONS": 40,
+ "NSEASONS": 30,
  "tabela": {
   "A": [
    {
@@ -1052,42 +1052,42 @@
  },
  "resumo": {
   "A": {
-   "ofensivo": 11.3,
-   "equilibrado": 11.2,
-   "retranca": 9.7,
-   "adaptativo": 9.9
+   "ofensivo": 11,
+   "equilibrado": 11.3,
+   "retranca": 9.6,
+   "adaptativo": 10.2
   },
   "B": {
-   "ofensivo": 9.2,
-   "equilibrado": 11.9,
+   "ofensivo": 9.1,
+   "equilibrado": 11.8,
    "retranca": 10.3,
-   "adaptativo": 10.7
+   "adaptativo": 10.8
   },
   "C": {
-   "ofensivo": 10.5,
-   "equilibrado": 11.2,
-   "retranca": 10,
-   "adaptativo": 10.3
+   "ofensivo": 10.4,
+   "equilibrado": 11.3,
+   "retranca": 9.8,
+   "adaptativo": 10.5
   },
   "D": {
    "ofensivo": 10.1,
-   "equilibrado": 10.8,
-   "retranca": 10.4,
+   "equilibrado": 10.7,
+   "retranca": 10.5,
    "adaptativo": 10.7
   }
  },
  "geral": {
-  "ofensivo": 10.25,
-  "equilibrado": 11.27,
-  "retranca": 10.08,
-  "adaptativo": 10.4
+  "ofensivo": 10.13,
+  "equilibrado": 11.29,
+  "retranca": 10.04,
+  "adaptativo": 10.55
  },
  "geralForm": {
-  "4-5-1": 8.17,
-  "3-3-4": 11.39,
-  "4-3-3": 11.29,
-  "4-4-2": 9.51,
-  "3-4-3": 9.68,
-  "4-2-4": 13.02
+  "4-5-1": 8.43,
+  "3-3-4": 11.13,
+  "4-3-3": 11.19,
+  "4-4-2": 9.61,
+  "3-4-3": 9.81,
+  "4-2-4": 12.9
  }
 }

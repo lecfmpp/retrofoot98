@@ -156,6 +156,24 @@ O ofensivo era drift sem custo (92-100% de vitórias com times iguais; a causa d
 
 ---
 
+---
+
+## 17. [~] Atributos do jogador passam a influenciar a partida de verdade (backend, sem tela)
+
+Pedido do dono (21/08): "quero que os atributos dos jogadores sejam reais e influenciem no resultado da partida... apenas no backend, de forma que quando decidirmos implementar o visual seja mais fácil". Investigação prévia mostrou que `p.attr` (fin/pas/dri/des/cab/cru/vis/pos/com/det/vel/res/fis/agi/ref/mao — `genAttrs`/`POS_PROFILE`, index.html) já era gerado de verdade pra todo elenco desde a sessão anterior, mas só influenciava o jogo DEVAGAR (via `evolvePlayer` reescrevendo `p.f` a cada rodada) — dentro da própria partida nunca era lido: dois jogadores da mesma força decidiam o resultado de forma idêntica.
+
+Nasce `attrFactor(p, keys, lo, hi)`: lê o(s) atributo(s) relevante(s) do jogador RELATIVO ao seu próprio nível médio (não à força do time) e devolve um multiplicador [lo,hi] — tempero, não substituto de `f`. Dois pontos de entrada no motor (mesma função, colada nos 4 lugares — `match-engine.js`, `resolve-round/index.ts`, `kickoff-round/index.ts`, e a versão solta em `simulate.js`/`index.html`):
+- **Quem finaliza** (`scorerFrom`): peso agora é `f × attrFactor(fin)` — um artilheiro nato (fin acima do seu nível) marca mais que um "faz-tudo" da mesma força.
+- **Quanto o goleiro segura** (`avgGK` dentro de `computeRatings`/`ratings`/`sessionRatingsFromPlayers`): multiplicado por `attrFactor(ref,mao)` — um goleiro-reflexo sofre menos que um goleiro-linha da mesma força.
+
+De quebra, corrigido um buraco: `materializeBgClubT` (clube de liga de fundo materializado pela 1ª vez, ex. qualificação continental) gravava `attr:{}` — jogador "fantasma" que nunca evoluía nem participava do `attrFactor`. Ganhou `genAttrsT`, porte fiel do `genAttrs` do cliente, rodando no servidor.
+
+Medido na arena (`scripts/arena-atributos.mjs`, motor real, N=4000, times iguais em força f=70): atacante com fin=20 marca **25% mais gols** que um parceiro fin=12 na mesma posição/força; goleiro com ref/mao=20 sofre **12% menos gols** que um ref/mao=4 na mesma força. Bateria de validação (`scripts/arena-validacao.mjs`) rodada de novo — times sintéticos sem `.attr` caem no `attrFactor` neutro (retorna 1), então os números de temporada por tática/formação já aprovados no item 16 continuam idênticos (zero regressão). `scripts/arena-brasil.mjs` com elencos reais também rodado — tabelas plausíveis, sem exploit.
+
+Puramente numérico — nenhuma tela lê `p.attr` hoje; os rótulos (`ATTR_LABEL`/`ATTR_GROUP`, index.html) já existem prontos pra quando decidirmos mostrar isso ao usuário. COMMITADO, NÃO PUBLICADO — espera o martelo do dono (mesmo status do item 16, que ainda está pendente).
+
+---
+
 ## Ordem sugerida
 
 1. **Item 6** (arquivar classificações) — urgente: salva a temporada que fechou na WEBLG antes da próxima virada.
