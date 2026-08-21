@@ -89,7 +89,7 @@ function rfMkFechaEm(roundsLeft){
   if(roundsLeft==null) return '—';
   const d=rfMkDataDaJornada((S.round||0)+roundsLeft);
   if(d) return d;
-  return roundsLeft+(roundsLeft===1?' rodada':' rodadas');
+  return roundsLeft+(roundsLeft===1?' semana':' semanas');
 }
 /* mesma fonte unica do calendario (ver dataCurtaDaJornada). Tinha aqui a sua
    propria conta `1+i*7+6`, que e a da LIGA — e por isso o mercado e o
@@ -380,7 +380,7 @@ function rfMktLeilaoHTML(){
   return rfMktGavetaHTML(['lance']) + rfCol(
     rfCard('Lotes abertos',
       rfMkTabela('minmax(0,1fr) 44px 48px 48px minmax(0,160px) 116px 108px 92px 104px',
-        cabecalho, abertos.map(linha), 'Nenhum leilão aberto nesta rodada.', 'mkt-leilao'),
+        cabecalho, abertos.map(linha), 'Nenhum leilão aberto nesta semana.', 'mkt-leilao'),
       {right: abertos.length? abertos.length+' ativos':''})
     + rfCard('Arrematados recentemente',
       arrematados || '<span class="rf-note">Ainda não houve arremate nesta temporada.</span>')
@@ -413,7 +413,7 @@ function rfMktPropostasHTML(){
                Fica "rodadas", que é a unidade real do motor — o desenho escreve
                "dias", mas dia não quer dizer nada aqui e seria falso. -->
           <span class="rf-prop2-s">${escC(rfPosInicial(p.s))} · ${p.age||'—'} anos · força ${o.playerForce||p.f||'—'} · ${
-            (typeof isPhone==='function'&&isPhone())?'':'resposta em '}${rodadas} rodada${rodadas===1?'':'s'}</span>
+            (typeof isPhone==='function'&&isPhone())?'':'resposta em '}${rodadas} semana${rodadas===1?'':'s'}</span>
         </div>
         <div class="rf-sp"></div>
         <div class="rf-prop2-acts">
@@ -601,11 +601,11 @@ function rfMktTransfHTML(){
   return rfCol(
     rfCard('Janela de transferências', `
       <div class="rf-jan-l">
-        <span class="rf-jan-t">${aberta?'Aberta desde a 1ª rodada':'Fechada'}</span>
+        <span class="rf-jan-t">${aberta?'Aberta desde a 1ª semana':'Fechada'}</span>
         <span class="rf-jan-p">${pct}%</span>
       </div>
       <div class="rf-jan-trilho"><i style="width:${pct}%"></i></div>`,
-      {right: aberta?('fecha em '+faltam+' rodada'+(faltam===1?'':'s')):'fechada'})
+      {right: aberta?('fecha em '+faltam+' semana'+(faltam===1?'':'s')):'fechada'})
     + rfCard('Movimentações da divisão',
       rfMkTabela('minmax(0,1fr) 44px 48px minmax(0,150px) 28px minmax(0,150px) 116px 116px',
         /* CHAVE PRÓPRIA. Esta tabela usava 'mkt-contra', a mesma das
@@ -855,7 +855,7 @@ function rfMkLanceHTML(){
   return rfMkGavetaHTML('Lance por '+escC(p.n),
     `${escC(rfPosInicial(p.s))} · força ${p.f} · ${escC(c.short)} · ${lot.interest} clubes na disputa`, `
     <div class="rf-mkg-aviso">Maior lance agora: <b>${escC(mvShort(lot.bid))}</b> ${meu?'(seu)':'(concorrência)'}
-      · fecha em <b>${lot.roundsLeft} rodada${lot.roundsLeft===1?'':'s'}</b></div>
+      · fecha em <b>${lot.roundsLeft} semana${lot.roundsLeft===1?'':'s'}</b></div>
     <div class="rf-mkg-linha">
       ${rfMkCampoHTML('rf-mk-lance','Seu lance',sugerido,'precisa passar de '+escC(mvShort(lot.bid))+' · caixa '+escC(rfDin(S.budget||0)))}
       <button type="button" class="rf-btn rf-btn-cta" onclick="rfMkLanceGo()">Confirmar lance</button>

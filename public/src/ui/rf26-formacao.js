@@ -39,9 +39,9 @@ function rfNotasHTML(){
           'gols em '+jogos+(jogos===1?' jogo':' jogos')+(assist?' · '+assist+' assistências':''), gols)
       : linha('Artilheiro do clube','—','ninguém marcou ainda','0')}
     ${destaque
-      ? linha('Destaque da rodada', destaque.n, 'nota do último jogo',
+      ? linha('Destaque da semana', destaque.n, 'nota do último jogo',
           String(notaDe(destaque)).replace('.',','))
-      : linha('Destaque da rodada','—','a primeira rodada ainda não foi jogada','—')}
+      : linha('Destaque da semana','—','a primeira semana ainda não foi jogada','—')}
     ${baixa
       ? linha('Em baixa', baixa.n,
           (baixa.injuredMatches>0?'lesionado':baixa.suspended>0?'suspenso':'energia baixa'),
@@ -66,7 +66,7 @@ function rfAdversarioCardHTML(){
         <span class="rf-adv-l">Esta semana</span>
         <span class="rf-adv-d">${S.season||''}</span>
       </div>
-      <span class="rf-adv-livre">O seu clube não entra em campo nesta rodada.</span>
+      <span class="rf-adv-livre">O seu clube não entra em campo nesta semana.</span>
       <button type="button" class="rf-adv-jogar" onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
     </div>`;
   }
@@ -92,7 +92,7 @@ function rfAdversarioCardHTML(){
       <span class="rf-adv-selo">${rfCrest(opp,36)}</span>
       <span class="rf-adv-id">
         <span class="rf-adv-nome">${escC(opp.short||'')}</span>
-        <span class="rf-adv-sub">${nm.home?'CASA':'FORA'} · ${escC(nm.comp||divisionLabel())} · ${escC(nm.fase||(((S.round||0)+1)+'ª Rodada'))}</span>
+        <span class="rf-adv-sub">${nm.home?'CASA':'FORA'} · ${escC(nm.comp||divisionLabel())} · ${escC(nm.fase||(((S.round||0)+1)+'ª Semana'))}</span>
       </span>
     </div>
     <div class="rf-adv-tab">

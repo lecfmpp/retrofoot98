@@ -39,8 +39,17 @@ function rfDesfecho(sum){
   const pos=sum?sum.myPos:rfMinhaPosicao();
   const total=sum?(sum.myTable||[]).length:Object.keys(S.table||{}).length;
   if(!pos) return 'meio';
-  const promo=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[S.division])||0;
-  const releg=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[S.division])||0;
+  /* A DIVISÃO DE REFERÊNCIA É A QUE FOI DISPUTADA, NÃO A DE HOJE. Com `sum` (caminho online:
+     onlineAdoptServerRound já rodou), S.division já é a divisão NOVA pós-virada — um clube
+     promovido de B pra A lia DIVISION_PROMO['A']=0 (não há promoção NA série A) em vez do
+     corte real de B, caía no 'meio'/'rebaixado' por engano e o vídeo de fim de temporada não
+     batia com o que realmente aconteceu (relato do dono, 21/08 — mesma causa raiz de
+     dadosCampeaoLiga/rfCampeaoDadosLiga, corrigidos mais cedo hoje: ler o campo de HOJE em vez
+     do de ontem). sum.myDiv é a divisão certa (S._prevSeason, tirada antes do reset). O
+     caminho solo (sem `sum`) roda ANTES do turnover, então S.division já é a certa ali. */
+  const divRef = sum ? sum.myDiv : S.division;
+  const promo=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[divRef])||0;
+  const releg=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[divRef])||0;
   if(pos===1) return 'titulo';
   if(promo&&pos<=promo) return 'acesso';
   if(promo&&pos<=promo*2) return 'playoff';
@@ -1095,7 +1104,7 @@ function rfVerTimeHTML(clubId){
   const h2h=(S.results||[]).filter(r=>(r.h===clubId&&r.a===meu)||(r.a===clubId&&r.h===meu))
     .slice().reverse().slice(0,4).map(r=>{
       const emCasa=r.h===meu;
-      return {j:(r.round!=null?(r.round+1)+'ª rodada':'—'),
+      return {j:(r.round!=null?(r.round+1)+'ª semana':'—'),
         p:emCasa?`${r.hg}–${r.ag}`:`${r.ag}–${r.hg}`, m:emCasa?'casa':'fora'};
     });
   return rfStage({
@@ -1404,15 +1413,21 @@ function rfCampeaoVerCaminho(key){
 function rfCampeoesDaTemporada(sum){
   const out=[];
   const nomeDiv=d=>(typeof divisionLabelOf==='function')?divisionLabelOf(d):('Série '+d);
+  /* A DIVISÃO É A DISPUTADA, NÃO A DE HOJE. Com `sum` (online, já pós-virada) S.division é a
+     divisão NOVA — rotular a tabela final com ela é dizer que um clube promovido de B pra A
+     "foi campeão da A" (mostrando o campeão de B com o nome da divisão errada), e a lista de
+     "outras divisões" abaixo excluía a própria A por engano (mesma causa raiz de rfDesfecho,
+     corrigida ao lado). sum.myDiv é a divisão certa (S._prevSeason). */
+  const divRef = sum ? sum.myDiv : S.division;
   /* 1) a minha divisão: a tabela final que a própria tela já usa */
   try{
     const linhas = sum ? (sum.myTable||[]) : ((typeof sortedTable==='function')?sortedTable():[]);
-    if(linhas.length) out.push({ comp:S.division, nome:nomeDiv(S.division), clubId:linhas[0].id, minha:true });
+    if(linhas.length) out.push({ comp:divRef, nome:nomeDiv(divRef), clubId:linhas[0].id, minha:true });
   }catch(e){}
   /* 2) as outras divisões do país (rodam em segundo plano, com tabela de verdade) */
   try{
     ((typeof DIV_ORDER!=='undefined')?DIV_ORDER:[]).forEach(d=>{
-      if(d===S.division) return;
+      if(d===divRef) return;
       const od=S.otherDivs&&S.otherDivs[d]; const t=od&&od.table; if(!t) return;
       const tab=(typeof mpSortTable==='function')?mpSortTable({table:t}):Object.values(t).sort((a,b)=>b.Pts-a.Pts);
       if(tab && tab.length) out.push({ comp:d, nome:nomeDiv(d), clubId:tab[0].id });

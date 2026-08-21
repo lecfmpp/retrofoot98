@@ -172,7 +172,7 @@ function rfSalaEsperaHTML(st){
       </div>
       <div class="rf-esp-barra"><i style="width:${pct}%"></i></div>
     </div>`:''}
-    <span class="rf-note">A rodada não começa sem eles — e ninguém é pulado enquanto você espera.
+    <span class="rf-note">A semana não começa sem eles — e ninguém é pulado enquanto você espera.
       Todos continuam exatamente no mesmo ponto do jogo.</span>
   </div>`;
 }
@@ -199,8 +199,8 @@ function rfPausaPassosHTML(){
   return passo('ok','A sua partida','feito')
     /* fechada a rodada no servidor, os resultados dos outros ENTRARAM por definicao -- sem este
        `sincronizou||` a linha ficava em "a processar" com as duas de baixo ja em "feito" */
-    + passo((sincronizou||outros)?'ok':'agora','Rodada dos outros treinadores',(sincronizou||outros)?'feito':'a processar')
-    + passo(sincronizou?'ok':(outros?'agora':''),'Fechamento da rodada no servidor',sincronizou?'feito':(outros?'a processar':'na fila'))
+    + passo((sincronizou||outros)?'ok':'agora','Semana dos outros treinadores',(sincronizou||outros)?'feito':'a processar')
+    + passo(sincronizou?'ok':(outros?'agora':''),'Fechamento da semana no servidor',sincronizou?'feito':(outros?'a processar':'na fila'))
     + passo(sincronizou?'ok':'','Tabela, finanças e propostas',sincronizou?'feito':'na fila');
 }
 /* ===== A TV DA PAUSA =====
@@ -212,7 +212,7 @@ function rfPausaTvHTML(){
   if(typeof PAUSA_GIFS==='undefined' || !PAUSA_GIFS.length) return '';
   const g=pausaGif(), n=(CL._pausaI||0)%PAUSA_GIFS.length;
   return `<div class="rf-card rf-pz-tvcard">
-    <div class="rf-label"><span class="rf-label-t">Enquanto a rodada fecha</span>
+    <div class="rf-label"><span class="rf-label-t">Enquanto a semana fecha</span>
       <span class="rf-label-r">resenha dos anos 90</span></div>
     <div class="rf-pz-tvbox">
       <div class="rf-gifbox">
@@ -241,11 +241,11 @@ function rfPausaHTML(){
 
   return rfStage({
     w:1020,
-    contexto:'Modo Resenha · a sincronizar a rodada',
+    contexto:'Modo Resenha · a sincronizar a semana',
     titulo:'Pausa patrocinada',
     corpo:`<div class="rf-card">
       <div class="rf-pz-barra">
-        <div class="rf-label"><span class="rf-label-t">A preparar a próxima rodada</span>
+        <div class="rf-label"><span class="rf-label-t">A preparar a próxima semana</span>
           <span class="rf-pz-pct" id="rf-pct">${(typeof pausaOvertime==='function'&&pausaOvertime())?'⏳':pct+'%'}</span></div>
         <div class="rf-pz-trilho"><div class="rf-pz-fill" id="rf-fill" style="width:${pct}%"></div></div>
       </div>
@@ -270,8 +270,8 @@ function rfPausaHTML(){
           <div class="rf-pz-gente">${assentos.map(a=>`<span class="rf-pz-p ${a.jogou?'ok':''}">
             <i class="rf-pz-dot"></i>${escC(a.nome)}</span>`).join('')}</div>
           <span class="rf-note">${jogaram>=assentos.length
-            ? 'Todos já jogaram. Assim que a tabela fechar, a próxima rodada abre.'
-            : 'A rodada abre quando todos publicarem o resultado.'}</span>
+            ? 'Todos já jogaram. Assim que a tabela fechar, a próxima semana abre.'
+            : 'A semana abre quando todos publicarem o resultado.'}</span>
         </div>`:''}
       </div>
     </div>`,
@@ -304,7 +304,7 @@ function rfEsperaHTML(){
 
   return rfStage({
     w:1020,
-    contexto:`Modo Resenha · ${(S.round||0)+1}ª rodada`,
+    contexto:`Modo Resenha · ${(S.round||0)+1}ª semana`,
     titulo:'À espera dos treinadores',
     corpo:`<div class="rf-card">
       <div class="rf-pz-barra">
@@ -328,7 +328,7 @@ function rfEsperaHTML(){
       <div class="rf-pz-dir">
         <div class="rf-card">
           <div class="rf-label"><span class="rf-label-t">O seu resultado</span>
-            <span class="rf-label-r">${(S.round||0)+1}ª rodada</span></div>
+            <span class="rf-label-r">${(S.round||0)+1}ª semana</span></div>
           ${meu?`<div class="rf-es-placar">
             <span class="rf-es-lado"><span class="rf-es-sig">${escC(eu.short)}</span>${rfCrest(eu,30)}</span>
             <span class="rf-es-sc">${emCasa?meu.hg:meu.ag} – ${emCasa?meu.ag:meu.hg}</span>
@@ -343,11 +343,11 @@ function rfEsperaHTML(){
               <span class="rf-ft-bv">${CL.lastGate?fmt(CL.lastGate):'—'}</span></div>
             <div class="rf-ft-b"><span class="rf-ov-res-t">Mando</span>
               <span class="rf-ft-bv sm">${emCasa?'em casa':'fora'}</span></div>
-          </div>`:'<span class="rf-note">Você não teve jogo nesta rodada.</span>'}
+          </div>`:'<span class="rf-note">Você não teve jogo nesta semana.</span>'}
         </div>
       </div>
     </div>`,
-    acoes:`<span class="rf-im-auto">A rodada fecha quando todos jogarem.</span>
+    acoes:`<span class="rf-im-auto">A semana fecha quando todos jogarem.</span>
       <div class="rf-sp"></div>
       <button type="button" class="rf-ov-b2" onclick="clResenhaSync()"><span>🔄</span> Sincronizar a Resenha</button>
       ${CL.online?`<button type="button" class="rf-ov-cta" onclick="rfChatToggle()"><span>${rfIcone('chat',16)}</span> Abrir o chat</button>`:''}`
@@ -383,7 +383,7 @@ function rfPasseHTML(item){
         As decisões do ${escC(c.short||'clube')} são só ${escC(rfDeleDela(seat.name))}.</span>
     </div>
     ${assentos.length?`<div class="rf-card">
-      <span class="rf-label-t">Quem já jogou nesta rodada</span>
+      <span class="rf-label-t">Quem já jogou nesta semana</span>
       <div class="rf-pz-gente">${assentos.map(a=>`<span class="rf-pz-p ${a.jogou?'ok':''}">
         <i class="rf-pz-i2">${a.jogou?'✓':'⏳'}</i>${escC(a.nome)}</span>`).join('')}</div>
     </div>`:''}`,
@@ -404,12 +404,12 @@ function rfEntregaHTML(){
     ? (CL.humans[CL._hotseat._prev.clubId]||'quem organiza a sala') : (CL.mgr||'quem organiza a sala');
   return rfGate({
     w:640,
-    contexto:'Modo Resenha · rodada concluída',
+    contexto:'Modo Resenha · semana concluída',
     titulo:'Acabou a sua vez',
     corpo:`<div class="rf-card rf-pa-alvo">
       <span class="rf-en-ico">🤝</span>
       <span class="rf-pa-n">Devolva o aparelho a ${escC(dono)}</span>
-      <span class="rf-pa-aviso">A rodada de ${escC(e.nome)} está gravada.
+      <span class="rf-pa-aviso">A semana de ${escC(e.nome)} está gravada.
         Quem organiza a sala continua daqui.</span>
     </div>
     <div class="rf-card">
@@ -450,7 +450,7 @@ function rfAssentoClassifHTML(seat){
   const prox=rfProximaJornada(assentos);
   return rfStage({
     w:1020,
-    contexto:`Modo Resenha · ${Math.max(1,S.round||0)}ª rodada fechada`,
+    contexto:`Modo Resenha · ${Math.max(1,S.round||0)}ª semana fechada`,
     titulo:'Como está a resenha',
     corpo:`<div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">Classificação dos treinadores</span>
@@ -469,19 +469,19 @@ function rfAssentoClassifHTML(seat){
     </div>
     <div class="rf-pz-cols">
       <div class="rf-card">
-        <span class="rf-label-t">A resenha da rodada</span>
+        <span class="rf-label-t">A resenha da semana</span>
         ${(rfResenhaDaRodada(assentos)||[]).map(x=>`<div class="rf-ac-nota">
           <span class="rf-ac-nn">${escC(x.n)}</span>
           <span class="rf-ac-nt">${escC(x.t)}</span></div>`).join('')
-          ||'<span class="rf-note">A rodada ainda não rendeu história.</span>'}
+          ||'<span class="rf-note">A semana ainda não rendeu história.</span>'}
       </div>
       <div class="rf-card">
-        <div class="rf-label"><span class="rf-label-t">Próxima rodada</span>
+        <div class="rf-label"><span class="rf-label-t">Próxima semana</span>
           <span class="rf-label-r">${(S.round||0)+1}ª</span></div>
         ${prox.length?prox.map(p=>`<div class="rf-ac-prox">
           <span class="rf-ac-px">${escC(p.t)}</span>
           ${p.tag?`<span class="rf-ac-ptag">${escC(p.tag)}</span>`:''}
-        </div>`).join(''):'<span class="rf-note">O calendário da próxima rodada ainda não saiu.</span>'}
+        </div>`).join(''):'<span class="rf-note">O calendário da próxima semana ainda não saiu.</span>'}
       </div>
     </div>`,
     acoes:`<div class="rf-sp"></div>

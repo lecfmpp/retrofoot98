@@ -328,7 +328,7 @@ function rfElBaseHTML(){
       <div class="rf-label"><span class="rf-label-t">CATEGORIA DE BASE</span>
         <span class="rf-label-r">${cands.length} em formação</span></div>
       ${cab}
-      ${linhas || `<div class="rf-empty">${escC((typeof youthUnavailableMsg==='function'&&!disp)?youthUnavailableMsg():'A base não tem candidatos nesta rodada.')}</div>`}
+      ${linhas || `<div class="rf-empty">${escC((typeof youthUnavailableMsg==='function'&&!disp)?youthUnavailableMsg():'A base não tem candidatos nesta semana.')}</div>`}
     </div>
     <div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">INVESTIMENTO NA BASE</span></div>
@@ -428,14 +428,14 @@ function rfElTreinoHTML(){
     const p=sq.find(x=>x.pid===pid); if(!p) return '';
     const ch=rfTrnChance(p);
     return `<div class="rf-linha"><span class="rf-linha-t">${escC(p.n)}${ch.star?' ★':''}</span>
-      <span class="rf-linha-v">+${ch.pct}% de evoluir por rodada</span></div>`;
+      <span class="rf-linha-v">+${ch.pct}% de evoluir por semana</span></div>`;
   }).join('');
 
   return `<div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">COMO FUNCIONA</span>
         <span class="rf-label-r">${lista.length} de ${max} vagas</span></div>
       <span class="rf-el-texto">Até <b>${max} jogadores</b> podem estar em treino especial ao mesmo
-        tempo. Quem está em treino ganha <b>um sorteio extra de evolução por rodada</b> — 5% de
+        tempo. Quem está em treino ganha <b>um sorteio extra de evolução por semana</b> — 5% de
         chance, ou 9% para quem é destaque (★). <b>Não custa dinheiro nem energia</b>, e pode-se
         trocar quem treina quando se quiser.</span>
       ${dentro || '<span class="rf-note">Ninguém em treino. As três vagas estão livres.</span>'}
@@ -450,9 +450,9 @@ function rfElTreinoHTML(){
       <div class="rf-label"><span class="rf-label-t">DE ONDE VEM O CRESCIMENTO</span></div>
       <span class="rf-el-texto">A força não sobe sozinha: o jogador ganha ponto de atributo, e a
         força é a média deles. <b>Jogar bem</b> é a maior fonte — nota acima de 6,8 dá dois
-        sorteios por rodada. <b>Ter até 20 anos</b> dá um sorteio mesmo sem jogar. O
+        sorteios por semana. <b>Ter até 20 anos</b> dá um sorteio mesmo sem jogar. O
         <b>treino especial</b> soma o dele por cima. A partir dos <b>29 anos</b> começa o
-        desgaste, e quem passa <b>4 rodadas seguidas fora do time</b> perde ritmo — treinar
+        desgaste, e quem passa <b>4 semanas seguidas fora do time</b> perde ritmo — treinar
         protege dessa perda.</span>
     </div>`;
 }
@@ -493,7 +493,7 @@ function rfAcPromover(idx){
   const i=(idx!=null && lote[idx]) ? idx : (CL.baseSel||0);
   const c=lote[i];
   const y=c&&c.youth;
-  if(!y){ rfAcAbrir('elenco-semrenovar', {motivo:'A base não tem candidatos nesta rodada.'}); return; }
+  if(!y){ rfAcAbrir('elenco-semrenovar', {motivo:'A base não tem candidatos nesta semana.'}); return; }
   const pot=rfElPotencial(y);
   rfAcAbrir('base-promover', {idx:i, p:y, pronto:pot.anos?(pot.anos+' ano'+(pot.anos>1?'s':'')):'agora',
     teto:pot.teto, salario:(c.contract&&c.contract.salary)||y.salary||0, num:y.num});

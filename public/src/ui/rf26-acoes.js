@@ -281,7 +281,7 @@ const RF_ACOES = {
             `O valor de mercado dele é ${escC(rfDin(ask))} — quem decide é o outro treinador.`, {foco:true})
         + rfAcLinhaHTML('Caixa depois da compra', rfDin(caixa), caixa<0?'ruim':'ok', true)
         + rfAcLinhaHTML('Folha depois da contratação', rfDin(folha)+'/mês', 'aviso')
-        + rfAcNotaHTML('A proposta fica de pé por seis rodadas. Enquanto ele não responder, ela aparece em Propostas.'),
+        + rfAcNotaHTML('A proposta fica de pé por seis semanas. Enquanto ele não responder, ela aparece em Propostas.'),
       acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar proposta',on:'rfMkEnviarHumano()'}] });
   }
 
@@ -345,7 +345,7 @@ const RF_ACOES = {
       + rfAcLinhaHTML('Clubes na disputa', String(lot.interest||1), '', true)
       + rfAcLinhaHTML('Caixa disponível', rfDin(S.budget||0), '')
       + rfAcLinhaHTML('Se vencer, sobra', rfDin((S.budget||0)-sug), (S.budget||0)-sug<0?'ruim':'ok')
-      + rfAcNotaHTML('Para <b>garantir</b>, ofereça acima do que a concorrência topa pagar — quem fica abaixo é coberto na rodada seguinte.'),
+      + rfAcNotaHTML('Para <b>garantir</b>, ofereça acima do que a concorrência topa pagar — quem fica abaixo é coberto na semana seguinte.'),
     acoes:[{l:'Cancelar',tom:'fantasma'},{l:rfIcone('leilao',16)+' Dar lance',on:'rfMkLanceGo()'}] });
 },
 
@@ -359,7 +359,7 @@ const RF_ACOES = {
     titulo:'Cobrir o lance do '+escC(lider.short), w:500,
     corpo:
       rfAcFichaHTML(p,'SEU LANCE',lot.myBid?rfDin(lot.myBid):'—',d.num)
-      + rfAcAvisoHTML(`O lance na frente é de <b>${escC(rfDin(lot.bid))}</b>. Se a rodada fechar assim, o lote é do ${escC(lider.short)}.`,'aviso')
+      + rfAcAvisoHTML(`O lance na frente é de <b>${escC(rfDin(lot.bid))}</b>. Se a semana fechar assim, o lote é do ${escC(lider.short)}.`,'aviso')
       + rfAcCampoHTML('rf-ac-lance','Cobrir com', moneyDisp(sug),
           `${escC(rfDin(sug-lot.bid))} acima do lance do ${escC(lider.short)}.`, {foco:true})
       + rfAcAtalhosLanceHTML('rf-ac-lance', lot.bid)
@@ -389,7 +389,7 @@ const RF_ACOES = {
       + rfAcLinhaHTML('Valor de mercado dele', vm?rfDin(vm):'—', o.fee>=vm?'ok':'ruim')
       + rfAcLinhaHTML('Quem herda a vaga', sub?sub.n+' (força '+sub.f+')':'ninguém no setor', sub?'':'ruim')
       + rfAcNotaHTML(sub
-          ? 'A venda é definitiva e vale já nesta rodada.'
+          ? 'A venda é definitiva e vale já nesta semana.'
           : '<b>Sem reserva no setor.</b> Vender agora abre um buraco no onze que o banco não cobre.'),
     acoes:[{l:'Voltar',tom:'fantasma'},{l:'Confirmar a venda',on:`rfMkAceitar(${d.id})`}] });
 },
@@ -449,7 +449,7 @@ const RF_ACOES = {
       + rfAcNotaHTML(fechado
           ? 'Eles deram a palavra final. Daqui só há aceitar ou deixar a proposta cair.'
           : (aceite
-            ? 'Eles toparam o seu pedido. Aceitar fecha a venda já nesta rodada.'
+            ? 'Eles toparam o seu pedido. Aceitar fecha a venda já nesta semana.'
             : 'Pedir muito acima do valor de mercado costuma matar a negociação — o clube some da janela.')),
     acoes });
 },
@@ -477,7 +477,7 @@ const RF_ACOES = {
       + rfAcLinhaHTML('Você ofereceu', rfDin(minha), '', true)
       + rfAcLinhaHTML('Diferença', dif>0?('+'+rfDin(dif)):'—', dif>0?'ruim':'ok')
       + rfAcLinhaHTML('Seu caixa', rfDin(caixa), cabe?'ok':'ruim')
-      + (cabe?'':rfAcAvisoHTML('<b>Caixa insuficiente.</b> Venda alguém ou espere o fecho da rodada antes de aceitar.','perigo'))
+      + (cabe?'':rfAcAvisoHTML('<b>Caixa insuficiente.</b> Venda alguém ou espere o fecho da semana antes de aceitar.','perigo'))
       + rfAcNotaHTML('Aceitar envia a proposta no valor pedido. Ela ainda passa pelo '+quem+', que confirma do lado dele.'),
     acoes:[
       {l:'Recusar',tom:'perigo',on:`rfMkContraRecebRecusar(${d.id})`},
@@ -494,7 +494,7 @@ const RF_ACOES = {
     corpo:
       rfAcFichaHTML(p,'VALOR',rfDin(vm),d.num)
       + rfAcCampoHTML('rf-ac-preco','Preço pedido', moneyDisp(Math.round(vm/1000)*1000),
-          'Pedir muito acima do valor afasta comprador; abaixo, sai na primeira rodada.', {foco:true})
+          'Pedir muito acima do valor afasta comprador; abaixo, sai na primeira semana.', {foco:true})
       /* AS DUAS OPÇÕES (venda direta / leilão) SAÍRAM. Elas eram decorativas: a
          escolha nunca era lida pelo handler, o save não guarda "jogador listado"
          e o motor não aceita o clube do utilizador como vendedor de leilão
@@ -536,7 +536,7 @@ const RF_ACOES = {
     + (d.vm?rfAcLinhaHTML('Valor de mercado dele', rfDin(d.vm), (d.fee||0)>=d.vm?'ok':'ruim'):'')
     + rfAcLinhaHTML('Quem herda a vaga', d.sub||'ninguém no setor', d.sub?'':'ruim')
     + (d.sub?'':rfAcAvisoHTML('<b>Sem reserva no setor.</b> O onze fica com um buraco até você repor.','aviso'))
-    + rfAcNotaHTML('A venda é definitiva e já está no extrato desta rodada.'),
+    + rfAcNotaHTML('A venda é definitiva e já está no extrato desta semana.'),
   acoes:[{l:'Ver o elenco',tom:'fantasma',on:"rfMkVendidoFechar();rfGo('elenco')"},
          {l:'Ir ao mercado',tom:'fantasma',on:"rfMkVendidoFechar();rfGo('mercado')"},
          {l:'Continuar',on:'rfMkVendidoFechar()'}] }),
@@ -548,7 +548,7 @@ const RF_ACOES = {
     + rfAcOpcoesHTML('donde',[
         {t:'Vender um jogador', s:'a aba Vender mostra quem sai sem abrir buraco'},
         {t:'Baixar a oferta', s:'o clube pode aceitar menos se o jogador for reserva lá'},
-        {t:'Esperar a próxima rodada', s:'bilheteria e patrocínio entram no fecho da rodada'}], d.donde)
+        {t:'Esperar a próxima semana', s:'bilheteria e patrocínio entram no fecho da semana'}], d.donde)
     + rfAcNotaHTML('O jogo não deixa o caixa ficar negativo — nenhuma compra passa acima do que existe.'),
   acoes:[{l:'Reduzir a oferta',tom:'fantasma'},{l:'Ir ao mercado',on:"rfAcFechar();rfSetTab('mercado','vender')"}] }),
 
@@ -630,8 +630,8 @@ const RF_ACOES = {
     + rfAcOpcoesHTML('fazer',[
         {t:'Baixar a oferta', s:'ele pode aceitar menos se for titular'},
         {t:'Liberar salário', s:'vender ou emprestar quem não joga'},
-        {t:'Esperar a rodada fechar', s:'bilheteria e patrocínio entram no caixa'}], d.fazer)
-    + rfAcNotaHTML('Enquanto isso o contrato segue correndo — e o passe cai a cada rodada.'),
+        {t:'Esperar a semana fechar', s:'bilheteria e patrocínio entram no caixa'}], d.fazer)
+    + rfAcNotaHTML('Enquanto isso o contrato segue correndo — e o passe cai a cada semana.'),
   acoes:[{l:'Entendi'}] }),
 
 'base-promover': d=>{
@@ -692,7 +692,7 @@ const RF_ACOES = {
 
 'sys-sair-sala': d=>rfAcao({ kicker:'MODO RESENHA · SALA '+escC(String(d.sala||'')).toUpperCase(), titulo:'Sair da resenha?', w:480,
   corpo:
-    rfAcAvisoHTML('Os outros treinadores continuam a rodada sem você — e seu clube passa a ser jogado pela máquina.','aviso')
+    rfAcAvisoHTML('Os outros treinadores continuam a semana sem você — e seu clube passa a ser jogado pela máquina.','aviso')
     + rfAcLinhaHTML('Treinadores na sala', String(d.n||'—'), '', true)
     + rfAcNotaHTML('Dá para voltar depois com o mesmo código, desde que a sala ainda esteja aberta.'),
   acoes:[{l:'Ficar na sala',tom:'fantasma'},{l:'Sair da resenha',on:'rfSairSalaGo()',tom:'perigo'}] }),
@@ -725,11 +725,11 @@ const RF_ACOES = {
     + rfAcLinhaHTML('Sair da conta', 'desliga só este aparelho', ''),
   acoes:[{l:'Fechar',tom:'fantasma'},{l:'Apagar um save',on:"rfAcFechar();rfGo('sairjogo')"}] }),
 
-'sys-sincronizar': d=>rfAcao({ kicker:'MODO RESENHA · SALA '+escC(String(d.sala||'')).toUpperCase(), titulo:'Sincronizando a rodada', w:460,
+'sys-sincronizar': d=>rfAcao({ kicker:'MODO RESENHA · SALA '+escC(String(d.sala||'')).toUpperCase(), titulo:'Sincronizando a semana', w:460,
   corpo:
     rfAcChanceHTML('Assentos prontos', Math.round(((d.prontos||0)/Math.max(1,d.total||1))*100))
     + rfAcLinhaHTML('Faltam', String(Math.max(0,(d.total||0)-(d.prontos||0)))+' treinador'+(((d.total||0)-(d.prontos||0))===1?'':'es'), 'aviso', true)
-    + rfAcNotaHTML('A rodada só fecha quando todos os assentos jogarem. Enquanto isso dá para ver a tabela e o elenco.'),
+    + rfAcNotaHTML('A semana só fecha quando todos os assentos jogarem. Enquanto isso dá para ver a tabela e o elenco.'),
   acoes:[{l:'Fechar',tom:'fantasma'},{l:'⏩ Pular espera',on:'rfPularEsperaGo()'}] }),
 };
 
@@ -922,7 +922,7 @@ const RF_ACOES_EXTRA = {
 
 'opcoes': d=>{
   if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',
-    gravar:'De 3 em 3 rodadas',som:'Sim',subsIntervalo:'Sim',penaltisCPU:'Sim',tempo:TEMPO_DEFAULT};
+    gravar:'De 3 em 3 semanas',som:'Sim',subsIntervalo:'Sim',penaltisCPU:'Sim',tempo:TEMPO_DEFAULT};
   if(!CL.options.autoSave) CL.options.autoSave='Sim';
   const o=CL.options, aba=d.aba||'geral';
   const online=!!CL.online, anfitriao=(typeof NET!=='undefined' && NET.isHost);
@@ -933,10 +933,10 @@ const RF_ACOES_EXTRA = {
   const geral =
       rfAcSegHTML('Chicotadas psicológicas','chicotadas',['Nunca','Dos humanos','De todos'],o.chicotadas)
     + rfAcSegHTML('Ver sorteio da taça','sorteio',['Nunca','Quando houver humanos','Sempre'],o.sorteio)
-    + rfAcSegHTML('Gravar o jogo','gravar',['Nunca','De 3 em 3 rodadas','Sempre'],o.gravar)
+    + rfAcSegHTML('Gravar o jogo','gravar',['Nunca','De 3 em 3 semanas','Sempre'],o.gravar)
     + rfAcSegHTML('Som','som',['Sim','Não'],o.som)
     + rfAcSegHTML('Salvamento automático','autoSave',['Sim','Não'],o.autoSave,
-        'As 3 últimas rodadas e o fim de cada temporada.')
+        'As 3 últimas semanas e o fim de cada temporada.')
     /* a dica daqui saiu: o botao ao lado ja diz o que acontece ("Escolher ponto…") */
     + `<div class="rf-ac-orow">
         <span class="rf-ac-or-id"><span class="rf-ac-or-t">Voltar a um ponto guardado</span></span>

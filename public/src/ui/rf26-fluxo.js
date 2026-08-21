@@ -99,7 +99,7 @@ const RF_LOAD_ETAPAS=[
 ];
 const RF_LOAD_DICAS=[
   'Na Série D o mercado é curto. Guarde caixa para a segunda janela.',
-  'Time cansado rende menos: rode o elenco nas rodadas seguidas.',
+  'Time cansado rende menos: rode o elenco nas semanas seguidas.',
   'Jogador com contrato acabando sai de graça — renove antes da última janela.',
   'Vitória em casa rende bilheteria: encher o estádio é dinheiro no caixa.',
 ];
@@ -190,7 +190,7 @@ function rfTreinadoresHTML(){
         <span>Jogar com mais gente é o <b>Modo Resenha</b>: cada um no seu aparelho, online,
         com tabela e chat da liga.</span></div>`}
       <div class="rf-ft-grid tres">
-        <div class="rf-ft-b"><span class="rf-ov-res-t">Rodada</span>
+        <div class="rf-ft-b"><span class="rf-ov-res-t">Semana</span>
           <span class="rf-ft-bv sm">1 por sessão</span></div>
         <div class="rf-ft-b"><span class="rf-ov-res-t">Clubes humanos</span>
           <span class="rf-ft-bv sm">${n} de ${rfClubesNaDivisao()}</span></div>
@@ -421,7 +421,7 @@ function rfInstitucionalCorpo(view){
     const passos=[
       ['1','Escolha o modo.','Solo contra a máquina ou Modo Resenha, com a liga da galera.'],
       ['2','Pegue um clube.','Elencos reais das quatro divisões. O clube é sorteado.'],
-      ['3','Monte a tática e jogue.','Escale os titulares, ajuste a formação e mande ver na rodada.'],
+      ['3','Monte a tática e jogue.','Escale os titulares, ajuste a formação e mande ver na semana.'],
     ];
     return passos.map(([n,t,d])=>`<div class="rf-in-passo">
       <span class="rf-in-pn">${n}</span>
@@ -682,8 +682,8 @@ function rfObSoloHTML(){
     const serie=(s.division&&typeof divisionLabelOf==='function'&&/^[A-D]$/.test(String(s.division)))
       ? divisionLabelOf(s.division) : (st.divisionLabel||s.division||st.division||'');
     const ano=s.season||st.season||'';
-    const onde=(s.round!=null&&s.round!=='')?`${Number(s.round)+1}ª rodada`
-      : (st.roundLabel||(st.round?`${st.round}ª rodada`:'')||s.round_label||'');
+    const onde=(s.round!=null&&s.round!=='')?`${Number(s.round)+1}ª semana`
+      : (st.roundLabel||(st.round?`${st.round}ª semana`:'')||s.round_label||'');
     const sub=[serie,ano].filter(Boolean).join(' · ');
     return `<div class="rf-sv2 ${i===0?'me':''}" role="button" tabindex="0"
       onclick="clLoadSave('${escC(nome).replace(/'/g,"\\'")}')"

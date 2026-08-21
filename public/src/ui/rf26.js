@@ -449,7 +449,7 @@ function rfFaixaEstadoHTML(){
   const moral=sq.length?Math.round(sq.reduce((t,p)=>t+(p.moral||70),0)/sq.length):0;
   const j=(typeof transferWindowStatus==='function')?transferWindowStatus():null;
   let janela='';
-  if(j&&j.open) janela=`<span class="rf-fx-chip aberta">Janela · ${j.closesIn} ${j.closesIn===1?'rodada':'rodadas'}</span>`;
+  if(j&&j.open) janela=`<span class="rf-fx-chip aberta">Janela · ${j.closesIn} ${j.closesIn===1?'semana':'semanas'}</span>`;
   else if(j&&j.opensIn!=null) janela=`<span class="rf-fx-chip">Janela abre em ${j.opensIn}</span>`;
   else if(j) janela=`<span class="rf-fx-chip">Janela fechada</span>`;
   return `<div class="rf-faixa-estado">
@@ -653,7 +653,7 @@ function rfSemanaHTML(){
       ${info?`<em class="rf-sem-c">${escC(info.curto)}</em>`:'<em class="rf-sem-c vazio">—</em>'}
     </span>`;
   }).join('');
-  return `<div class="rf-semana" aria-label="Os sete dias desta rodada">
+  return `<div class="rf-semana" aria-label="Os sete dias desta semana">
     <div class="rf-semana-l">
       <span class="rf-label-t">Esta semana</span>
       <span class="rf-semana-r">${temAlgo?'o dia colorido e o seu jogo':'semana sem jogos — o botao passa a semana'}</span>
@@ -771,12 +771,12 @@ function rfProximaAcao(){
     }
     // 6) os momentos da SALA (Resenha)
     const dia=(typeof roomDay==='function')?roomDay():null;
-    if(dia && dia.hold) return R('espera','relogio','Acertando a rodada','Aguarde');
+    if(dia && dia.hold) return R('espera','relogio','Acertando a semana','Aguarde');
     if(dia && dia.moment==='escalando'){
       const pronto=(typeof estouPronto==='function' && estouPronto());
       return pronto ? R('pronto','ok','Pronto') : R('marcarpronto','jogar','Quase pronto','Quase');
     }
-    if(dia && dia.moment==='classificacao') return R('fechando','relogio','Fechando a rodada','Aguarde');
+    if(dia && dia.moment==='classificacao') return R('fechando','relogio','Fechando a semana','Aguarde');
     const diaDeLiga=!!(dia && dia.comp==='liga');
     const copaDoDia=(dia && dia.comp!=='liga') ? dia.comp : null;
     // 7) tenho partida de copa HOJE (a do dia, nao a primeira da minha lista)
@@ -788,7 +788,7 @@ function rfProximaAcao(){
       const assisto=cupRoundsUserSitsOut()
         .filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key))
         .filter(c=>!diaDeLiga && (!copaDoDia || c.key===copaDoDia));
-      if(assisto.length) return R('assistir','camarote','Assistir à rodada','Assistir');
+      if(assisto.length) return R('assistir','camarote','Assistir à semana','Assistir');
     }
     // 9) Resenha sem mais nada a cumprir: digo que estou pronto
     if(CL.online) return R('marcarpronto','jogar','Quase pronto','Quase');
@@ -944,7 +944,7 @@ function rfCompLinha(info,RL){
   const dia=rfCompDia(info);
   if(info.copa) return [dia,rfCompFase(info),temporada].filter(Boolean).join(' · ');
   const jor=RL.jornada||(((typeof S!=='undefined'&&S.round)||0)+1);
-  return [dia,jor+'ª rodada',temporada,rfCompTamanho(info.id)].filter(Boolean).join(' · ');
+  return [dia,jor+'ª semana',temporada,rfCompTamanho(info.id)].filter(Boolean).join(' · ');
 }
 /* o segundo andar da pastilha do trilho */
 function rfCompMeta(info){
@@ -1234,7 +1234,7 @@ function rfClTabelaHTML(linhas){
 function rfClassifLigaHTML(){
   const ids=Object.keys(S.table||{});
   if(!ids.length) return {meta:'a começar',
-    html:'<div class="rf-empty">A tabela aparece depois da primeira rodada.</div>'};
+    html:'<div class="rf-empty">A tabela aparece depois da primeira semana.</div>'};
   const rows=ids.map(id=>({id,t:S.table[id]}))
     .sort((a,b)=>(b.t.Pts-a.t.Pts)||((b.t.GF-b.t.GA)-(a.t.GF-a.t.GA))||(b.t.GF-a.t.GF));
   const promo=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[S.division])||0;
@@ -1332,7 +1332,7 @@ function rfVenderHTML(){
 /* aba Modo Resenha dentro de Clube & Sistema */
 function rfResenhaHTML(){
   if(!CL.online) return `<div class="rf-empty">Você está no <b>Modo Solo</b>.<br>
-    <small>O Modo Resenha é o campeonato com a sua turma, na mesma rodada.</small></div>`;
+    <small>O Modo Resenha é o campeonato com a sua turma, na mesma semana.</small></div>`;
   const acts=[];
   if(typeof NET!=='undefined' && NET.isHost){
     const nr=(CL.pendingJoins&&CL.pendingJoins.length)||0;
@@ -2090,12 +2090,12 @@ function rfMktLeilaoCard(lim){
     </div>`;
   }).join('');
   const corpo=`
-    ${lim?'':'<span class="rf-note">Cubra a maior oferta antes das rodadas acabarem — se o seu lance ficar abaixo, a concorrência cobre na rodada seguinte.</span>'}
+    ${lim?'':'<span class="rf-note">Cubra a maior oferta antes das semanas acabarem — se o seu lance ficar abaixo, a concorrência cobre na semana seguinte.</span>'}
     <div class="rf-auc-head"><span>JOGADOR</span><span>FRC</span><span>SEU LANCE</span><span>MAIOR</span><span></span></div>
-    <div class="rf-auc-list">${linhas||'<div class="rf-empty">Nenhum leilão aberto nesta rodada.</div>'}</div>
+    <div class="rf-auc-list">${linhas||'<div class="rf-empty">Nenhum leilão aberto nesta semana.</div>'}</div>
     ${lim&&lots.length>lim?`<button type="button" class="rf-vermais" onclick="rfSetTab('mercado','leilao')">
       Ver os ${lots.length} leilões abertos</button>`:''}`;
-  return rfCard('Leilão de jogadores', corpo, {right: lots.length?'fecha em 2 rodadas':''});
+  return rfCard('Leilão de jogadores', corpo, {right: lots.length?'fecha em 2 semanas':''});
 }
 /* o RESUMO da página: coluna 1 com venda + leilão, coluna 2 com o trilho */
 function rfMercadoResumoHTML(){
@@ -2121,7 +2121,7 @@ function rfPropostaCardHTML(o){
       <span class="rf-prop-n">${escC(o.playerName)}</span>
       <span class="rf-prop-fee">${escC(mvShort(o.fee))}</span>
     </div>
-    <span class="rf-prop-sub">${escC(p?rfPosLabel(p.s):'—')} · ${o.playerForce} força · ${escC(o.buyerName||'')} · expira em ${rodadas} rodada(s)</span>
+    <span class="rf-prop-sub">${escC(p?rfPosLabel(p.s):'—')} · ${o.playerForce} força · ${escC(o.buyerName||'')} · expira em ${rodadas} semana(s)</span>
     ${o.lastMsg?`<span class="rf-prop-msg">${rfIcone('chat',16)} ${escC(o.lastMsg)}</span>`:''}
     <div class="rf-prop-acts">
       <button type="button" class="rf-btn rf-btn-primary rf-prop-b" onclick="clAcceptOffer(${o.id})">Aceitar</button>
@@ -2196,7 +2196,7 @@ function rfElencoHTML(so){ return rfBlocos(null, RF_BL_ELENCO, so); }
 /* base: quem dá pra subir agora, com o custo e o botão */
 function rfBaseHTML(){
   const disp=(typeof youthAvailable==='function')&&youthAvailable();
-  if(!disp) return `<span class="rf-note">A base não tem ninguém pronto nesta rodada.</span>`;
+  if(!disp) return `<span class="rf-note">A base não tem ninguém pronto nesta semana.</span>`;
   return `<span class="rf-note">Suba um jogador da base para o elenco principal. Cada promoção vale por temporada.</span>
     <div class="rf-acts">${btn('Ver jogadores da base','clPromoteYouth()',{cls:'cl-btn-ok'})}</div>`;
 }
@@ -2218,7 +2218,7 @@ function rfDiasJanela(){
   if(typeof transferWindowStatus!=='function') return null;
   try{ const st=transferWindowStatus(); return st&&st.closesIn?st.closesIn:null; }catch(e){ return null; }
 }
-function windowClosesIn(){ const d=rfDiasJanela(); return d? (d+' rodada'+(d>1?'s':'')) : null; }
+function windowClosesIn(){ const d=rfDiasJanela(); return d? (d+' semana'+(d>1?'s':'')) : null; }
 
 /* =====================================================================
    SQUADTABLE — a tabela de elenco do design system
@@ -2377,7 +2377,7 @@ function rfZonaTabela(pos, total){
    dele, não o líder. Sem `lim`, a tabela inteira. */
 function rfTabelaHTML(lim){
   const linhas=(typeof sortedTable==='function')?sortedTable():[];
-  if(!linhas.length) return '<div class="rf-empty">A tabela aparece depois da primeira rodada.</div>';
+  if(!linhas.length) return '<div class="rf-empty">A tabela aparece depois da primeira semana.</div>';
   const total=linhas.length;
   // a janela do resumo: eu no meio, os vizinhos em volta
   let mostra=linhas.map((t,i)=>({t,i}));
@@ -2467,7 +2467,7 @@ const RF_BL_CAMPEONATOS=[
     dir:()=>rfMinhaPosicao()?rfMinhaPosicao()+'º de '+Object.keys(S.table||{}).length:'' },
   { k:'calendario', t:'Calendário', col:1, corpo:()=>rfCalendarioHTML(),
     dir:()=>{ const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
-              return nm? ((S.round||0)+1)+'ª rodada em '+(shortMatchDate(nm)||'') : ''; } },
+              return nm? ((S.round||0)+1)+'ª semana em '+(shortMatchDate(nm)||'') : ''; } },
   { k:'artilharia', t:()=>'Artilharia da '+divisionLabel(), col:2, lim:4,
     corpo:l=>rfArtilhariaHTML(S.scorers,null,l) },
   { k:'historia',   t:'Últimos vencedores', col:2, corpo:()=>rfVencedoresHTML() },
@@ -2511,7 +2511,7 @@ function rfFinancasKpisHTML(){
   const ult=(S.finances||[])[0];
   const delta=ult?((ult.income||0)+(ult.playerSales||0)-((ult.salaries||0)+(ult.bonuses||0)+(ult.opex||0)+(ult.playerPurchases||0)+(ult.stadium||0))):0;
   return `<div class="rf-kpis">
-    ${rfKpiHTML('Em caixa', fmt(S.budget||0), (delta>=0?'+ ':'− ')+fmt(Math.abs(delta))+' na rodada')}
+    ${rfKpiHTML('Em caixa', fmt(S.budget||0), (delta>=0?'+ ':'− ')+fmt(Math.abs(delta))+' na semana')}
     ${rfKpiHTML('Folha salarial', fmt(folhaSem), 'por semana · '+sq.length+' jogadores','neg')}
     ${rfKpiHTML('Sócios', grp(socios), 'estimativa sobre a capacidade')}
     ${rfKpiHTML('Estádio', grp(cap), 'lugares')}
@@ -2797,7 +2797,7 @@ function rfTreinadorHTML(so){
 function rfInbox(){ if(typeof syncInbox==='function'){ try{ syncInbox(); }catch(e){} } return CL.inbox||[]; }
 function rfQuandoHTML(e){
   const r=(e.round||0)+1;
-  return 'rodada '+r+(e.season?(' · '+e.season):'');
+  return 'semana '+r+(e.season?(' · '+e.season):'');
 }
 function rfListaEmailsHTML(){
   const box=rfInbox();
@@ -2839,7 +2839,7 @@ function rfOpcaoHTML(titulo, explica, controle){
 function rfOpcoesHTML(){
   const tempo=(typeof tempoLabelAtual==='function')?tempoLabelAtual():'—';
   const moeda=(typeof curSym==='function')?curSym():'R$';
-  return rfOpcaoHTML('Tempo de jogo','Velocidade da rodada ao vivo — o Camarote trava no Usain Bolt',
+  return rfOpcaoHTML('Tempo de jogo','Velocidade da semana ao vivo — o Camarote trava no Usain Bolt',
       `<button type="button" class="rf-opt-c" onclick="clOptions()">${escC(tempo)}</button>`)
     + rfOpcaoHTML('Moeda','Símbolo usado em todo valor da tela',
       `<button type="button" class="rf-opt-c" onclick="clOptions()">${escC(moeda)}</button>`)
@@ -2854,7 +2854,7 @@ function rfJogoHTML(){
     `<button type="button" class="rf-acao perigo" onclick="clExit()">↩ Sair para o menu</button>`,
   ].filter(Boolean).join('');
   return `<div class="rf-acoes">${acoes}</div>
-    <span class="rf-note">O jogo grava sozinho a cada rodada. "Gravar jogo" força a gravação agora e mostra os saves guardados.</span>`;
+    <span class="rf-note">O jogo grava sozinho a cada semana. "Gravar jogo" força a gravação agora e mostra os saves guardados.</span>`;
 }
 /* Clube & Sistema inverte as colunas (a lista de e-mails é a de 340). O
    bloco de LEITURA não tem aba: ele é o corpo do e-mail selecionado na
@@ -2987,7 +2987,7 @@ const CRISE_PERGUNTAS=[
       {t:'Ninguém está livre de cobrança, todos precisam melhorar.', d:-3},
       {t:'O grupo é bom, faltou entrega em campo.', d:-8},
     ]},
-  { q:'Qual o plano para a próxima rodada?', opts:[
+  { q:'Qual o plano para a próxima semana?', opts:[
       {t:'Manter a base e confiar no trabalho que vem sendo feito.', d:+2},
       {t:'Mudar o sistema tático para reagir.', d:-2},
       {t:'Cobrar mais intensidade nos treinos.', d:-5},

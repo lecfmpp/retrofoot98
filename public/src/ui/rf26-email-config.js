@@ -97,8 +97,8 @@ function rfEmArquivadasHTML(){
 function rfResenhaJanela(){
   if(typeof transferWindowStatus!=='function') return '—';
   const w=transferWindowStatus()||{};
-  const r=n=>n+' rodada'+(n===1?'':'s');
-  if(w.open) return w.closesIn>0 ? ('aberta · fecha em '+r(w.closesIn)) : 'aberta · fecha nesta rodada';
+  const r=n=>n+' semana'+(n===1?'':'s');
+  if(w.open) return w.closesIn>0 ? ('aberta · fecha em '+r(w.closesIn)) : 'aberta · fecha nesta semana';
   if(w.opensIn!=null) return (w.pre?'pré-acordos · ':'')+'abre em '+r(w.opensIn);
   return 'fechada';
 }
@@ -107,7 +107,7 @@ function rfResenhaJanela(){
    vez de inventar um tempo. */
 function rfResenhaDesdeSync(){
   const t=CL._roundSyncedAt||0;
-  if(!t) return 'Ainda não sincronizou nesta rodada';
+  if(!t) return 'Ainda não sincronizou nesta semana';
   const min=Math.floor((Date.now()-t)/60000);
   if(min<1) return 'Última sincronização agora mesmo';
   if(min<60) return 'Última sincronização há '+min+' minuto'+(min===1?'':'s');
@@ -220,7 +220,7 @@ function rfCfResenhaHTML(){
   if(!CL.online) return `<div class="rf-card">
     <div class="rf-label"><span class="rf-label-t">MODO RESENHA</span></div>
     <div class="rf-empty">Você está no <b>Modo Solo</b>.<br>
-      <small>O Modo Resenha é o campeonato com a sua turma, todo mundo na mesma rodada.</small></div>
+      <small>O Modo Resenha é o campeonato com a sua turma, todo mundo na mesma semana.</small></div>
   </div>`;
   const room=(typeof NET!=='undefined')?NET.room:null;
   const codigo=(room&&room.code)||(typeof NET!=='undefined'&&NET.code)||'——————';
@@ -375,8 +375,8 @@ function rfResenhaSubHTML(){
   if(!CL.online) return 'Você está no Modo Solo';
   const sala=(typeof rfAcSala==='function')?rfAcSala():'—';
   const n=(S.seats&&S.seats.length)||(CL.humans?Object.keys(CL.humans).length:0);
-  // "Sala 7KP2M · 4 treinadores · 9ª rodada" — a rodada faltava
-  return `Sala ${escC(sala)} · ${n} treinador${n===1?'':'es'} · ${(S.round||0)+1}ª rodada`;
+  // "Sala 7KP2M · 4 treinadores · 9ª semana" — a rodada faltava
+  return `Sala ${escC(sala)} · ${n} treinador${n===1?'':'es'} · ${(S.round||0)+1}ª semana`;
 }
 
 /* as duas ações do cabeçalho da página, como no pacote: sincronizar e convidar */
@@ -458,7 +458,7 @@ function rfSairHTML(){
 
     ${naSala?`<div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">SALA DA RESENHA</span></div>
-      <span class="rf-note">Sair da sala não apaga o seu save — mas o seu clube fica sem treinador nas próximas rodadas.</span>
+      <span class="rf-note">Sair da sala não apaga o seu save — mas o seu clube fica sem treinador nas próximas semanas.</span>
       <div class="rf-cf-fila">
         <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcSairSala()">${rfIcone('sair',16)} Sair da sala</button>
       </div>
@@ -603,7 +603,7 @@ function rfPularEsperaGo(){
   rfAcFechar();
   if(typeof clWaitMore==='function') clWaitMore();
   else { CL._waitSnoozeUntil=Date.now()+10000; cdraw(); }
-  toastC('Seguindo. A rodada fecha assim que todos jogarem.');
+  toastC('Seguindo. A semana fecha assim que todos jogarem.');
 }
 
 /* Trocar a senha: manda o link de recuperação para o e-mail da conta — o

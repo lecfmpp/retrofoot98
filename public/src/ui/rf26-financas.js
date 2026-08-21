@@ -69,7 +69,7 @@ function rfFiResumoHTML(){
   const delta=ult?ult.net:0;
   return `<div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">CAIXA</span>
-        <span class="rf-label-r">${(S.round||0)}ª rodada de ${escC(String(S.season||''))}</span></div>
+        <span class="rf-label-r">${(S.round||0)}ª semana de ${escC(String(S.season||''))}</span></div>
       <div class="rf-fi-caixa">
         <span class="rf-fi-caixa-v">${escC(fmt(S.budget||0))}</span>
         <span class="rf-fi-caixa-s ${delta>=0?'ok':'ruim'}">${ult

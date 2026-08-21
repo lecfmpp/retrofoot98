@@ -138,7 +138,7 @@ function rfLpMaqueteAoVivoHTML(){
     <span class="rf-lpm-min">${min}'</span>
   </div>`;
   return `<div class="rf-lpm rf-lpm-live">
-    <div class="rf-lpm-hd"><span class="rf-lpm-t">Rodada ao vivo</span>
+    <div class="rf-lpm-hd"><span class="rf-lpm-t">Semana ao vivo</span>
       <span class="rf-lv-aovivo">● Ao vivo</span><div class="rf-sp"></div>
       <span class="rf-lpm-s">Séries A–D</span></div>
     <div class="rf-lpm-body">
@@ -276,15 +276,15 @@ function rfLandingHTML(){
 
     <section class="rf-lp-sec invertida" id="rf-lp-resenha">
       ${rfLpMaqueteChatHTML()}
-      ${rfLpSecaoHTML({eyebrow:'Modo Resenha', titulo:'Um campeonato com a sua turma, na mesma rodada.',
-        prosa:'Monte a liga do grupo do trabalho, da turma da faculdade ou da comunidade inteira. Todo mundo joga a mesma rodada ao vivo, com tabela, mercado e a zoeira rolando junto.',
-        itens:['Até 20 treinadores na mesma liga','Rodada ao vivo para todo mundo ao mesmo tempo','Chat da sala durante os jogos'],
+      ${rfLpSecaoHTML({eyebrow:'Modo Resenha', titulo:'Um campeonato com a sua turma, na mesma semana.',
+        prosa:'Monte a liga do grupo do trabalho, da turma da faculdade ou da comunidade inteira. Todo mundo joga a mesma semana ao vivo, com tabela, mercado e a zoeira rolando junto.',
+        itens:['Até 20 treinadores na mesma liga','Semana ao vivo para todo mundo ao mesmo tempo','Chat da sala durante os jogos'],
         cta:rfIcone('chat',16)+' Criar a minha sala', ctaOn:"clGoModo('resenha')"})}
     </section>
 
     <section class="rf-lp-sec">
       ${rfLpSecaoHTML({eyebrow:'Mercado global', titulo:'O leilão é onde a liga se decide.',
-        prosa:'Cada jogador tem vários clubes disputando. Para levar, cubra a maior oferta antes das rodadas acabarem — se o seu lance ficar abaixo, a concorrência cobre na rodada seguinte.',
+        prosa:'Cada jogador tem vários clubes disputando. Para levar, cubra a maior oferta antes das semanas acabarem — se o seu lance ficar abaixo, a concorrência cobre na semana seguinte.',
         itens:['Leilão aberto a todos os clubes da liga','Propostas e contrapropostas por jogador','Finanças de verdade: folha, bilheteria e sócios'],
         cta:rfIcone('leilao',16)+' Ver o mercado', ctaOn:"clGoModo('solo')"})}
       ${rfLpMaqueteLeilaoHTML()}

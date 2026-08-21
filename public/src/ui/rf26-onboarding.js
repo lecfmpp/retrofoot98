@@ -311,7 +311,7 @@ function rfOb2(){
             <span class="rf-modo-tag">Multi-player</span>
           </span>
           <span class="rf-modo-t">Modo Resenha</span>
-          <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até ${rfSalaTeto()} treinadores jogam a mesma rodada ao vivo, com tabela, mercado e zoeira no chat.</span>
+          <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até ${rfSalaTeto()} treinadores jogam a mesma semana ao vivo, com tabela, mercado e zoeira no chat.</span>
           <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?"clWaitlistOpen('onboarding')":'clPickResenha()'}">${RESENHA_EM_BREVE?rfIcone('coroa',16)+' Entrar na lista de espera':rfIcone('chat',16)+' Jogar com a galera'}</button>
         </div>
       </div>
@@ -398,7 +398,7 @@ function rfObSaveOnde(sv){
 }
 function rfObSaveJornada(sv){
   const r=sv.round!=null?sv.round:(sv.meta&&sv.meta.round);
-  return r!=null?((r+1)+'ª rodada'):'—';
+  return r!=null?((r+1)+'ª semana'):'—';
 }
 
 /* =====================================================================
@@ -513,7 +513,7 @@ function rfOb4(){
       ${rfTrofeuHTML('serie'+d,42)}
       <span class="rf-sl-div-id">
         <span class="rf-sl-div-n">${escC(lbl)}</span>
-        <span class="rf-sl-div-s">${clubes?clubes+' clubes':'—'}${jorn?' · '+jorn+' rodadas':''}</span>
+        <span class="rf-sl-div-s">${clubes?clubes+' clubes':'—'}${jorn?' · '+jorn+' semanas':''}</span>
       </span>
       <span class="rf-sl-selo ${teste?'teste':'padrao'}">${teste?'TESTE':'PADRÃO'}</span>
     </button>`;
@@ -576,7 +576,7 @@ function rfOb4(){
             ${rfIcone('aviso',16)}
             <span>Estas ligas rodam por inteiro no mundo da sala e podem sondar você como treinador.
               Um país só ganha elencos completos quando alguém for treinar lá — aí custa cerca de
-              <b>1 MB</b> no estado da sala, lido e gravado a cada rodada.</span>
+              <b>1 MB</b> no estado da sala, lido e gravado a cada semana.</span>
           </div>`:''}
         </div>`;
       })()}
