@@ -120,9 +120,10 @@
 .rf-chip.on .rf-tat-regua.rf-tat-equilibrado i:nth-child(2),
 .rf-chip.on .rf-tat-regua.rf-tat-ofensivo i:nth-child(3){opacity:1}
 .rf-tat-tip{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translate(-50%,4px);
-  width:150px;background:var(--text-1);color:var(--text-on-dark);text-align:left;
-  font-family:var(--font-sans);font-size:11px;font-weight:var(--fw-medium);line-height:1.35;
-  padding:7px 10px;border-radius:8px;box-shadow:var(--shadow-shell);
+  width:168px;background:var(--text-1);color:var(--text-on-dark);text-align:left;
+  font-family:var(--font-sans);font-size:11px;font-weight:var(--fw-medium);line-height:1.4;
+  white-space:normal;word-wrap:break-word;
+  padding:7px 10px;border-radius:8px;box-shadow:var(--shadow-shell);box-sizing:border-box;
   opacity:0;pointer-events:none;transition:opacity var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease);z-index:40}
 .rf-tat-tip b{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;
   color:var(--text-on-dark-soft);margin-bottom:2px}
@@ -137,6 +138,12 @@
 .rf-formgrid>.rf-chip-tat:nth-child(odd) .rf-tat-tip{left:-6px;transform:translate(0,4px)}
 .rf-formgrid>.rf-chip-tat:nth-child(odd) .rf-tat-tip::after{left:16px;transform:none}
 .rf-formgrid>.rf-chip-tat:nth-child(odd):hover .rf-tat-tip,.rf-formgrid>.rf-chip-tat:nth-child(odd):focus-visible .rf-tat-tip{transform:translate(0,0)}
+/* sem tooltip no telefone: a fita de formações vira faixa horizontal com scroll, e o balão
+   cortava nas pontas — toque também não dispara :hover de forma confiável. A régua colorida
+   (que não depende de hover) continua de pé. */
+@media (max-width:760px){
+  .rf-tat-tip{display:none}
+}
 
 /* números: SEMPRE mono, e à direita quando é coluna de tabela */
 .rf-num{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
@@ -2608,6 +2615,16 @@
 .rf-of-dir{display:flex;flex-direction:column;gap:12px;min-width:0}
 .rf-of-p{margin:0;font-size:var(--fs-body-sm);color:var(--text-2);line-height:var(--lh-normal)}
 .rf-of-p2{margin:0;font-size:var(--fs-caption);color:var(--text-4);line-height:var(--lh-normal)}
+/* perguntas da diretoria — modal de crise (rfCriseHTML) */
+.rf-crise-perg{display:flex;flex-direction:column;gap:8px}
+.rf-crise-q{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-crise-opts{display:flex;flex-direction:column;gap:6px}
+.rf-crise-opt{display:block;width:100%;text-align:left;font-family:var(--font-sans);
+  font-size:var(--fs-body-sm);color:var(--text-2);background:var(--surface-card);
+  border:var(--border-control);border-radius:var(--r-control);padding:9px 12px;cursor:pointer;
+  line-height:var(--lh-normal);transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease)}
+.rf-crise-opt:hover{background:var(--surface-sunken)}
+.rf-crise-opt.on{background:var(--club-primary-soft);color:var(--club-primary);border-color:var(--club-primary-line);font-weight:var(--fw-semibold)}
 
 /* o vídeo é um espaço reservado 16:9 — a arte entra depois */
 .rf-video{position:relative;aspect-ratio:16/9;border-radius:var(--r-inner);overflow:hidden;

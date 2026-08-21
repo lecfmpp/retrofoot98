@@ -2973,6 +2973,95 @@ function rfFichaLinha(l,v){
   return `<div class="rf-of-linha"><span class="rf-of-l">${escC(l)}</span>
     <span class="rf-of-v">${escC(String(v))}</span></div>`;
 }
+
+/* =====================================================================
+   MODAL DE CRISE — "A diretoria quer falar com você" (21/08)
+   Substitui o cl-mom genérico (desenho antigo, cl-btn-*, anúncio no rodapé) pela mesma família
+   visual dos modais de convite (.rf-of), sem anúncio. O botão "Assumir a responsa" não fazia
+   NADA além de fechar o modal — vira duas perguntas da diretoria, 3 respostas cada, e a escolha
+   mexe de verdade na moral do elenco (adjTeamMoral). Terceira opção de cada pergunta é sempre a
+   mais dura (maior queda de moral); a diplomática segura o vestiário. ===================== */
+const CRISE_PERGUNTAS=[
+  { q:'Por que os resultados pioraram?', opts:[
+      {t:'A responsabilidade é minha — vou rever a estratégia.', d:+3},
+      {t:'Ninguém está livre de cobrança, todos precisam melhorar.', d:-3},
+      {t:'O grupo é bom, faltou entrega em campo.', d:-8},
+    ]},
+  { q:'Qual o plano para a próxima rodada?', opts:[
+      {t:'Manter a base e confiar no trabalho que vem sendo feito.', d:+2},
+      {t:'Mudar o sistema tático para reagir.', d:-2},
+      {t:'Cobrar mais intensidade nos treinos.', d:-5},
+    ]},
+];
+function rfCriseHTML(){
+  const dados=CL._criseDados||{};
+  const resp=CL._criseResp||[null,null];
+  const pergHTML=(p,qi)=>`<div class="rf-crise-perg">
+    <span class="rf-crise-q">${escC(p.q)}</span>
+    <div class="rf-crise-opts">${p.opts.map((o,oi)=>
+      `<button type="button" class="rf-crise-opt ${resp[qi]===oi?'on':''}" onclick="rfCriseEscolher(${qi},${oi})">${escC(o.t)}</button>`).join('')}</div>
+  </div>`;
+  const pronto=resp.every(x=>x!=null);
+  return `<div class="rf-of rf-of-crise">
+    <div class="rf-of-hd">
+      <div class="rf-band-filete"></div>
+      <span class="rf-of-glyph">🗣️</span>
+      <div class="rf-of-ttl">
+        <span class="rf-of-t">${escC(dados.titulo||'A diretoria quer falar com você')}</span>
+        <span class="rf-of-sub">${escC(dados.manchete||'O clima azedou.')}</span>
+      </div>
+    </div>
+    <div class="rf-of-body">
+      <div class="rf-of-esq">
+        <p class="rf-of-p">${escC(dados.linha||'')}</p>
+        ${CRISE_PERGUNTAS.map(pergHTML).join('')}
+      </div>
+      <div class="rf-of-dir">
+        <div class="rf-card">
+          <span class="rf-label-t">A situação</span>
+          ${(dados.stats||[]).map(s=>rfFichaLinha(s.k,s.v)).join('')}
+        </div>
+        <div class="rf-card rf-card-quiet">
+          <p class="rf-of-p2">${escC(dados.rodape||'')}</p>
+        </div>
+      </div>
+    </div>
+    <div class="rf-of-foot">
+      <span class="rf-of-nota">${pronto?'As respostas vão sentir no vestiário.':'Responda as duas perguntas da diretoria.'}</span>
+      <div class="rf-sp"></div>
+      <button type="button" class="rf-wiz-b2" onclick="rfCriseVerTabela()">Ver a tabela</button>
+      <button type="button" class="rf-wiz-cta" onclick="rfCriseSubmeter()" ${pronto?'':'disabled'}>Falar com a diretoria</button>
+    </div>
+  </div>`;
+}
+function rfCriseAbrir(dados, aoFechar){
+  CL._criseDados=dados||{}; CL._criseResp=[null,null]; CL._criseFechar=aoFechar||null;
+  overlayC(rfCriseHTML());
+  return true;
+}
+function rfCriseEscolher(qi,oi){
+  if(!CL._criseResp) return;
+  CL._criseResp[qi]=oi;
+  overlayC(rfCriseHTML());
+}
+function rfCriseFechar(){
+  CL._momentoAtual=null;
+  const f=CL._criseFechar; CL._criseDados=null; CL._criseResp=null; CL._criseFechar=null;
+  clCloseOverlay();
+  if(typeof f==='function') f();
+}
+function rfCriseVerTabela(){
+  rfCriseFechar();
+  if(typeof momentoAcao==='function') momentoAcao('clClassif');
+}
+function rfCriseSubmeter(){
+  if(!CL._criseResp || CL._criseResp.some(x=>x==null)) return;
+  const total=CRISE_PERGUNTAS.reduce((s,p,qi)=>s+p.opts[CL._criseResp[qi]].d, 0);
+  if(typeof adjTeamMoral==='function') adjTeamMoral(CL.clubId, total);
+  if(typeof saveV3==='function') saveV3();
+  rfCriseFechar();
+}
+
 /* ---- 1 · CONVITE PARA JANTAR ---- */
 function rfModalConviteHTML(o){
   const c=(typeof jobOfferClub==='function')?jobOfferClub(o):{short:'—'};

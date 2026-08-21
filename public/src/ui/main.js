@@ -4807,6 +4807,15 @@ function abrirMomento(id, dados, aoFechar){
     CL._momentoAtual={id, aoFechar:aoFechar||null};
     if(rfArtilheiroAbrir(dados, aoFechar)) return;
   }
+  /* A CRISE TEM TELA PROPRIA (pacote "modal moderno", 21/08) — o cl-mom genérico abaixo é o
+     desenho antigo (botões cl-btn-*, publicidade no rodapé), e o "Assumir a responsa" não fazia
+     nada além de fechar o modal. rfCriseAbrir usa a MESMA família visual dos modais de convite
+     (.rf-of), sem anúncio, e troca o botão sem efeito por duas perguntas da diretoria que mexem
+     de verdade na moral do elenco — ver CRISE_PERGUNTAS. */
+  if(id==='crise' && typeof rfCriseAbrir==='function'){
+    CL._momentoAtual={id, aoFechar:aoFechar||null};
+    if(rfCriseAbrir(dados, aoFechar)) return;
+  }
   CL._momentoAtual={id, aoFechar:aoFechar||null};
   const clube=clubOf(dados.clubId!=null?dados.clubId:CL.clubId)||{short:'—'};
   const claro = def.corpo==='green';
@@ -5016,7 +5025,7 @@ function dadosCrise(){
   return { titulo:'A diretoria quer falar com você',
     manchete:'O clima azedou.', trofeu:null,
     linha:`${pos}º lugar e vestiário em baixa. A diretoria do ${nome} está de olho nas próximas rodadas.`,
-    stats:[{k:'SEGURANÇA',v:js+'%'},{k:'POSIÇÃO',v:pos?pos+'º':'—'},{k:'MORAL DO ELENCO',v:moral+'%'}],
+    stats:[{k:'Segurança no cargo',v:js+'%'},{k:'Posição',v:pos?pos+'º':'—'},{k:'Moral do elenco',v:moral+'%'}],
     rodape:'Abaixo de 15% de segurança, a demissão entra em sorteio a cada rodada.' };
 }
 /* enfileira o momento de crise se ele se aplica AGORA e ainda não apareceu nesta temporada */
