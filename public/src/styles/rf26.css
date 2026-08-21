@@ -7539,6 +7539,10 @@
 .rf-cp-calchip.on{border-color:var(--brand-primary);box-shadow:inset 0 0 0 1px var(--brand-primary)}
 .rf-cp-calchip .rf-comp-tag{background:none;padding:0}
 
+/* taça genérica de competição sem arte própria (título de outro país/liga) */
+.rf-trofeu-generico{font-style:normal;font-size:calc(var(--s,44px)*.72);line-height:1;
+  display:flex;align-items:center;justify-content:center;width:var(--s,44px);height:var(--s,44px)}
+
 /* ===== SALA DE TROFÉUS: a pilha de taças e a contagem =====
    A arte vem dos .webp com alfa (rfCompTrofeuHTML), não do trophyImg achatado —
    era ele que punha o retângulo preto atrás de cada taça. */

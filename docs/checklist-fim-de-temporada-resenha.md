@@ -102,6 +102,13 @@ Pedido de 2026-08-20: inverter as duas colunas do bloco Formações — pílulas
 
 ---
 
+## 10. [x] Sala de Troféus: TODOS os troféus, de todos os países e clubes, na mesma página
+
+Regra do dono (21/08): a estante nunca esquece — todas as divisões, países e ligas que o treinador já venceu, nos dois modos, nada se perde na virada.
+**Feito (aguardando teste):** a fonte vira o `S.coachHistory` (carimbado na hora da taça, append-only, por assento na Resenha — nenhum reset o toca); saiu o filtro por clube atual que escondia títulos de clubes anteriores; e a estante ganha ladrilho para toda competição fora do universo ativo (Premier, ligas CONMEBOL, etc.), com taça genérica quando não há arte própria.
+
+---
+
 ## Ordem sugerida
 
 1. **Item 6** (arquivar classificações) — urgente: salva a temporada que fechou na WEBLG antes da próxima virada.

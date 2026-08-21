@@ -235,6 +235,16 @@ function rfTrTrofeusHTML(){
     const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[k])||{};
     lista.push({ k, nome:def.short||def.name||k, n:quantos(k) });
   });
+  /* ===== NENHUM TÍTULO FICA FORA DA ESTANTE (regra do dono, 21/08) =====
+     Os ladrilhos acima são os do universo ATIVO — as metas deste save. Mas a carreira do
+     treinador pode ter taças de outro país ou de outra liga (chaves 'premier',
+     'liga:<país>:<div>', copas de outro universo): tudo o que ele já ganhou e não tem
+     ladrilho ganha um agora, com o rótulo carimbado no título. Tudo na mesma página. */
+  const chaves=new Set(lista.map(x=>x.k));
+  meus.forEach(t=>{
+    const k=String(t.comp||''); if(!k||chaves.has(k)) return; chaves.add(k);
+    lista.push({ k, nome:t.label||((typeof rfCompLabel==='function')?rfCompLabel(k):k), n:quantos(k) });
+  });
   lista.forEach(x=>{ x.tem=x.n>0; });
   const n=lista.filter(x=>x.tem).length;
   const total=lista.reduce((s,x)=>s+x.n,0);

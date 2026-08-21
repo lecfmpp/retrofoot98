@@ -14,7 +14,8 @@
 function rfTrofeuHTML(key, size){
   size=size||104;
   const img=(typeof trophyImg==='function')?trophyImg(key,size):'';
-  return `<span class="rf-trofeu-arte" style="--s:${size}px">${img}</span>`;
+  // competição sem arte própria (título de outro país/liga): a taça genérica, nunca um vazio
+  return `<span class="rf-trofeu-arte" style="--s:${size}px">${img||'<i class="rf-trofeu-generico">🏆</i>'}</span>`;
 }
 
 /* =====================================================================

@@ -2591,25 +2591,31 @@ function rfTreinadorTopoHTML(){
    myCups que diz "campeao" — nada mais.
    S.titlesByClub continua a servir a sala LEGADA (clTrophyRoom), que mostra taças POR CLUBE e
    para a qual ele e a fonte certa. */
+/* ===== TODOS os títulos do treinador — de todos os clubes, países e ligas =====
+   Regra do dono (21/08): a Sala de Troféus nunca esquece — o que o treinador ganhou fica,
+   não importa em que clube, divisão ou país foi, e nada se perde na virada de temporada.
+   A fonte primária é S.coachHistory type 'campeao': carimbado na hora da taça com a chave
+   da competição, o rótulo e o país (uni), append-only, e por assento na Resenha. S.history
+   entra como resgate de save antigo (de antes do coachHistory carimbar copa/divisão), com
+   dedupe por temporada+competição. O filtro por clube ATUAL que vivia aqui saiu: ele
+   escondia da estante os títulos ganhos nos clubes anteriores da carreira. */
 function rfTitulosDoTreinador(){
-  const out=[];
-  const vistos={};
+  const out=[]; const vistos={};
+  const poe=(comp,season,extra)=>{
+    const m=String(comp||'')+':'+String(season||'');
+    if(!comp||vistos[m]) return; vistos[m]=1;
+    out.push(Object.assign({comp,season},extra||{}));
+  };
+  ((S&&S.coachHistory)||[]).forEach(h=>{
+    if(h&&h.type==='campeao') poe(h.comp,h.season,{label:h.label,uni:h.uni,clubShort:h.clubShort});
+  });
   ((S&&S.history)||[]).forEach(h=>{
     if(!h) return;
-    if(CL && CL.clubId!=null && h.clubId!=null && String(h.clubId)!==String(CL.clubId)) return;
-    const marca=(x)=>x+':'+(h.season||'')+':'+(h.clubId||'');
-    if(h.myPos===1 && h.division){
-      const k='serie'+h.division;
-      if(!vistos[marca(k)]){ vistos[marca(k)]=1; out.push({comp:k, clubId:h.clubId, season:h.season}); }
-    }
-    Object.entries(h.myCups||{}).forEach(([k,v])=>{
-      if(!foiCampeao(v)) return;   // vice não é título — ver foiCampeao no core
-      if(vistos[marca(k)]) return;
-      vistos[marca(k)]=1; out.push({comp:k, clubId:h.clubId, season:h.season});
-    });
+    // só divisão brasileira no resgate: fora do Brasil o coachHistory é quem carimba (a chave
+    // de lá é outra — 'premier', 'liga:<país>:<div>' — e duplicaria o ladrilho)
+    if(h.myPos===1 && /^[A-D]$/.test(String(h.division||''))) poe('serie'+h.division,h.season);
+    Object.entries(h.myCups||{}).forEach(([k,v])=>{ if(foiCampeao(v)) poe(k,h.season); });
   });
-  // o historico do treinador tambem carimba titulo, com o ano
-  (S.coachHistory||[]).forEach(h=>{ if(h.type==='titulo') out.push({comp:h.text,season:h.season}); });
   return out;
 }
 function rfTrofeusHTML(){
