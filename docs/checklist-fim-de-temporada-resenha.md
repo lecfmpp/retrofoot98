@@ -7,7 +7,9 @@ Fluxo de trabalho: um item por vez → implementar → commitar → publicar →
 
 ---
 
-## 1. [ ] Tela de finalização de temporada não apareceu para todos os humanos
+## 1. [x] Tela de finalização de temporada não apareceu para todos os humanos
+
+**Feito em 2026-08-21 (aguardando teste):** (1) quem entra/reconecta com a virada já feita agora processa a virada na entrada — premiação em dinheiro + registro de títulos + a tela de fim de temporada — gateado pelo carimbo por assento `_titlesRegisteredSeason` (game_seats.career), idempotente; (2) o sorteio da copa nova passou a ESPERAR: com overlay, momento ou modal aberto ele não abre por cima do resumo; (3) fonte única no servidor — o extrato/carimbo de premiação (`_myFin`) saiu do localStorage e viaja no assento (CAREER_KEYS), com migração automática do que estava gravado localmente. Nenhum fato de jogo vive mais só no cliente.
 
 Um jogador foi direto para o sorteio da Libertadores da temporada nova, sem ver o resumo da temporada que fechou.
 

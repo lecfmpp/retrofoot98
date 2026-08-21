@@ -1413,12 +1413,25 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
           // rede de segurança: foto do estado ao fim da jornada (ver autosave.js). Idempotente por
           // (temporada, jornada), então chamar de mais de um caminho de adoção não duplica nada.
           if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
-          // REPARO DO PASSADO: salas que já viraram de temporada ANTES de a Resenha aprender a
-          // registrar título carregam o _prevSeason da última virada, e é dele que a taça sai.
-          // Carimbado por temporada, então quem já está em dia não ganha nada duas vezes.
+          /* ===== A VIRADA QUE ACONTECEU COM ESTE ASSENTO FORA (item 1 do checklist) =====
+             Quem estava desconectado (ou recarregou) quando o servidor virou a temporada adotava
+             o estado novo EM SILÊNCIO: sem resumo, sem sala de imprensa e — pior — sem a
+             premiação em dinheiro (applyMyPrevSeasonPrizes nunca rodava por aqui). O carimbo por
+             assento é o _titlesRegisteredSeason (viaja no game_seats.career): se o registro dos
+             títulos desta virada ainda não aconteceu para MIM, a virada é minha por processar —
+             premiação + resumo agora, na entrada. Idempotente: quem já viu não vê duas vezes. */
           if(typeof registerPrevSeasonTitles==='function'){
             const _t=registerPrevSeasonTitles();
-            if(_t) console.log('títulos da temporada '+_t.season+' registrados agora (a virada aconteceu antes desta correção)');
+            if(_t){
+              const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null;
+              if(typeof accrueCareerStats==='function') accrueCareerStats();
+              if(typeof persistCareer==='function') persistCareer();
+              console.log('virada da temporada '+_t.season+' processada agora (aconteceu com este assento fora da sala)');
+              setTimeout(()=>{ try{
+                if(typeof openPressRoom==='function') openPressRoom(_sum);
+                else if(typeof onlineSeasonEndDialog==='function') onlineSeasonEndDialog(_sum);
+              }catch(e){} }, 600);
+            }
           }
           console.log('✓ Jogo carregado (rodada', savedState.round, ') — clube:', CL.clubId); }
         // SEMENTE DO ESTADO COMPARTILHADO: sala nova, mundo recém-montado e NADA salvo ainda.
@@ -2373,6 +2386,15 @@ function onlineOpenQueuedDraw(){
   if(!CL.online || typeof S==='undefined' || !S) return;
   if(!S._pendingDrawShows || !S._pendingDrawShows.length) return;
   if(CL.screen!=='main' || CL.live || CL._liveBusy || CL._drawOpening) return;
+  /* ===== UM OVERLAY ABERTO SEGURA O SORTEIO (item 1 do checklist) =====
+     Os momentos de fim de temporada e o resumo da virada são overlays com CL.screen==='main' —
+     este guard só olhava a tela e o sorteio da copa NOVA abria por cima, engolindo a tela de
+     finalização (foi o relatado na WEBLG). Com overlay, momento ou modal aberto, o sorteio
+     espera a vez; o loop chama de novo no próximo tique. */
+  if(CL._momentoAtual || CL.acao) return;
+  if(typeof MOMENTO_FILA!=='undefined' && MOMENTO_FILA.length) return;
+  const _ov=document.getElementById('c-overlay');
+  if(_ov && _ov.style.display && _ov.style.display!=='none') return;
   if(typeof checkPendingCupDraws!=='function') return;
   CL._drawOpening=true;
   try{ checkPendingCupDraws(()=>{ CL._drawOpening=false; }); }

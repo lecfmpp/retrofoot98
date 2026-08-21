@@ -4316,7 +4316,11 @@ function checkManagerJobEvent(){
 /* coachCareerStats/_coachCareerSeason: o Ranking de Treinadores (pontos somados + títulos por
    clube). Vivia em CL e sumia a cada recarga — o acumulado só é somado na virada de temporada e
    S._prevSeason é consumido ali, então não havia como recomputar. Ver accrueCareerStats. */
-const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub','criseVista','history','titlesByClub','financeHistory','_titlesRegisteredSeason','coachCareerStats','_coachCareerSeason','coachSpells'];
+/* '_myFin' (extrato, totais da temporada, carimbo de premiação e propostas liquidadas) entrou a
+   21/08: era o ÚNICO fato de jogo que vivia só em localStorage — trocar de aparelho perdia o
+   extrato e podia recreditar a premiação. Agora viaja no assento como todo o resto; o
+   localStorage vira só migração/cache (ver saveMyFinances/restoreMyFinances). */
+const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub','criseVista','history','titlesByClub','financeHistory','_titlesRegisteredSeason','coachCareerStats','_coachCareerSeason','coachSpells','_myFin'];
 /* ---- EVOLUÇÃO DO ELENCO (o que o treino de fato fez) ----
    O ícone 🔺 dizia "está em treino", mas não dizia se rendeu alguma coisa. Aqui fica o histórico
    de FORÇA do meu elenco: uma entrada por MUDANÇA (não por rodada), então uma temporada inteira

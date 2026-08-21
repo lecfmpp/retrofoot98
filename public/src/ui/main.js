@@ -3807,10 +3807,16 @@ function myFinKey(){
 function saveMyFinances(){
   if(!CL.online || !S) return;                       // solo: o log já é meu e vai junto no save
   CL._myFin=CL._myFin||{};
-  CL._myFin.finances=S.finances||[]; CL._myFin.seasonTotals=S.seasonTotals||null;
+  // o extrato tem teto no assento: 200 lançamentos bastam pra tela e o jsonb não cresce sem fim
+  CL._myFin.finances=(S.finances||[]).slice(-200); CL._myFin.seasonTotals=S.seasonTotals||null;
   CL._myFin.prizeSeason=S._prevPrizesCreditedSeason||null;
   CL._myFin.settled=CL._myFin.settled||{};
   CL._myFinKey=myFinKey();                           // marca de qual sala+clube é o store em memória
+  /* FONTE ÚNICA É O SERVIDOR (regra do dono, 21/08): o blob viaja no assento via CAREER_KEYS
+     (game_seats.career._myFin) — sobrevive a troca de aparelho e a limpeza de navegador.
+     O localStorage continua como cache/migração, mas quem manda é o assento. */
+  S._myFin=CL._myFin;
+  if(typeof persistCareer==='function') persistCareer();
   try{ localStorage.setItem(myFinKey(), JSON.stringify(CL._myFin)); }catch(e){}
 }
 /* PROPOSTA MINHA JÁ LIQUIDADA (o jogador chegou e eu paguei). O registro é do CLIENTE, não do S:
@@ -3830,11 +3836,16 @@ function markOfferSettled(id){
 }
 function restoreMyFinances(){
   if(!CL.online || !S) return;
-  if(!CL._myFin || CL._myFinKey!==myFinKey()){       // troquei de sala/clube -> lê do storage
-    CL._myFinKey=myFinKey(); CL._myFin=null;
-    try{ const raw=localStorage.getItem(myFinKey()); if(raw) CL._myFin=JSON.parse(raw); }catch(e){}
+  /* A FONTE É O ASSENTO (game_seats.career._myFin), restaurado pelo restoreCareer que roda
+     ANTES desta função em todos os caminhos de adoção. O localStorage é só migração: quem
+     gravou por lá antes desta mudança sobe o blob pro assento na primeira passada. */
+  let doAssento = (S._myFin && typeof S._myFin==='object') ? S._myFin : null;
+  if(!doAssento){
+    try{ const raw=localStorage.getItem(myFinKey()); if(raw) doAssento=JSON.parse(raw); }catch(e){}
+    if(doAssento){ S._myFin=doAssento; if(typeof persistCareer==='function') persistCareer(); } // migra pro servidor
   }
-  if(!CL._myFin){
+  CL._myFinKey=myFinKey();
+  if(!doAssento){
     // NADA guardado ainda (sala que já estava rolando quando isto entrou, ou primeiro acesso).
     // Quem é ANFITRIÃO tem no S o próprio histórico — é dele mesmo, então vira a base do store.
     // Quem é CONVIDADO tem no S o histórico do anfitrião — esse não é dele: começa limpo, e o
@@ -3843,8 +3854,10 @@ function restoreMyFinances(){
       S.finances=[]; S.seasonTotals={income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
       S._prevPrizesCreditedSeason=null;
     }
+    CL._myFin=null;
     saveMyFinances(); return;
   }
+  CL._myFin=doAssento;
   S.finances=CL._myFin.finances||[];
   if(CL._myFin.seasonTotals) S.seasonTotals=CL._myFin.seasonTotals;
   S._prevPrizesCreditedSeason=CL._myFin.prizeSeason||null;
