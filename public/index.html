@@ -640,6 +640,15 @@ function clubOf(id){
   if(c && c.short==null && S && S.clubPool && S.clubPool[id]) c=S.clubPool[id];
   if(!c && S && S.intlClubs && S.intlClubs[id]) c=S.intlClubs[id];
   if(!c && S && S.clubPool && S.clubPool[id]) c=S.clubPool[id]; // adversários de copa (Champions/Europa) de outras ligas
+  /* STUB DE CLUBE DE FUNDO MATERIALIZADO (materializeBgClubT, servidor) — o servidor não tem
+     os bundles de liga (INTL_LEAGUES/CONMEBOL_LEAGUES são dado só do cliente), então quando ele
+     materializa um clube de fundo que classificou pra uma copa continental, S.clubPool[id] vira
+     só {id}, sem nome/cor nenhuma. Esse stub "vencia" a busca (retorno truthy) e a função nunca
+     chegava no bgClubById, que TEM o nome — um clube de liga de fundo que jogou uma copa
+     aparecia como "cmb_209" na tela em vez de "River Plate" dali em diante, inclusive na
+     classificação da própria liga dele (relato do dono, 21/08). Sem `short`, tenta o índice de
+     liga de fundo antes de aceitar o stub como resposta final. */
+  if(c && c.short==null && typeof bgClubById==='function'){ const b=bgClubById(id); if(b) c=b; }
   // item 4: normaliza o overall (agregado de forças) pra escala NOVA uma única vez, sob demanda.
   // _rbOv marca "já na escala nova" — tanto aqui quanto no recálculo por elenco (recompute overall).
   if(c && !c._rbOv && typeof c.overall==='number'){ c.overall=REBAL.force(c.overall); c._rbOv=1; }

@@ -1752,6 +1752,11 @@ function rfArqPaisesHTML(season){
         <div class="rf-sp"></div><span class="rf-ft-n">${escC(p.artilheiro.nome)}</span>
         <span class="rf-ft-gols">${p.artilheiro.gols} ${p.artilheiro.gols===1?'gol':'gols'}</span></div>`:''}
       <div class="rf-arq-tb">
+        <!-- SEM ISTO, "Artilheiro" (linha acima) era o único texto perto do topo do card,
+             e a tabela que vem logo depois parecia estar mal rotulada como "Artilheiro" em vez
+             de classificação (relato do dono, 21/08) — cabeçalho de coluna, mesmo padrão de
+             rfArqTabelaHTML, deixa claro que o que vem a seguir é a CLASSIFICAÇÃO. -->
+        <div class="rf-arq-lin head"><span>#</span><span>Classificação</span><span>J</span><span>V</span><span>E</span><span>D</span><span>SG</span><span>Pts</span></div>
         ${(p.table||[]).map((x,i)=>{const sg=(x.GF||0)-(x.GA||0);
           return `<div class="rf-arq-lin">
           <span class="rf-arq-p">${i+1}</span><span class="rf-arq-n">${escC(rfArqCurto(x.id))}</span>
