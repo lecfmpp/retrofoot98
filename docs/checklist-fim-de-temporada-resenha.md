@@ -144,6 +144,12 @@ Pedido do dono (21/08). Varredura em todos os textos do jogo (475 ocorrências),
 
 ---
 
+## 15. [x] Sondagens do exterior guiadas por um índice real de ligas
+
+Pedido do dono (21/08): pesos realistas por país — indo bem no Brasil, o convite vem da 1ª de Portugal/Argentina e das 2ªs divisões européias, não dos grandes da Premier. Nasceu o `NIVEL_LIGA` (escala 0-100 calibrada nos rankings reais de liga — UEFA/CONMEBOL/Opta): o prestígio do treinador = nível da liga atual + empurrão dos títulos (Libertadores 20 pts etc.); o convite só vem de liga até 4 pontos acima do prestígio (e não mais de 18 abaixo), com peso caindo com o quadrado da distância ao degrau ideal e no máximo 2 clubes por liga na cesta (variedade). Medido: Série A sem título → ARG/PT/2ªs; com Brasileirão → 1ªs IT/DE/ES e Premier como zebra; com Libertadores → Premier atende (17%). Solo e Resenha usam a mesma régua. A antiga trava de divisão saiu (o índice cuida — Série C não alcança ninguém). Aguardando teste.
+
+---
+
 ## Ordem sugerida
 
 1. **Item 6** (arquivar classificações) — urgente: salva a temporada que fechou na WEBLG antes da próxima virada.

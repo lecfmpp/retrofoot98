@@ -4268,13 +4268,45 @@ function aplicarEfeitosDeTitulo(pontos){
   if(typeof CL!=='undefined' && CL.online) S._netMorale=(S._netMorale||0)+moral;
 }
 const SONDAGEM_EXTERIOR={
-  nivelMaximo:1,          // níveis do topo da pirâmide que o exterior observa (0 = 1ª divisão)
   seguranca:82,           // a régua de "está a ir muito bem" (era 85 no solo, 80 na Resenha)
-  degrauMin:2,            // o clube de fora tem de ser melhor que o meu...
-  degrauMax:18,           // ...e não um salto absurdo
   fatia:0.15,             // 15% das sondagens vêm de fora: mudar de país é a decisão mais pesada
   descansoTemporadas:2,   // uma mudança VOLUNTÁRIA a cada duas temporadas
 };
+/* ===== O NÍVEL REAL DE CADA LIGA (regra do dono, 21/08) =====
+   Escala 0-100 calibrada pelos rankings reais de força de liga (coeficientes UEFA/CONMEBOL,
+   Opta Power Rankings): é ELA que decide de onde um convite pode vir — não a divisão nem o
+   overall sozinhos. Um treinador brilhando no Brasil é chamado pela 1ª de Portugal ou pelas
+   2ªs divisões de Espanha/Itália/Alemanha muito antes de um grande da Premier League; a
+   porta das ligas do topo só abre com estante de troféus, e ainda assim com peso raro. */
+const NIVEL_LIGA={
+  'Inglaterra':{PL:100,CH:78},
+  'Espanha':{ES:97,ES2:74},
+  'Alemanha':{DE:96,DE2:73},
+  'Itália':{IT:95,IT2:72},
+  'Portugal':{PT:85,PT2:62},
+  'Brasil':{A:88,B:68,C:52,D:40},
+  'Argentina':{ARG:82},
+  'Colômbia':{COL:72},
+  'Equador':{ECU:71},
+  'Uruguai':{URU:70},
+  'Paraguai':{PAR:68},
+  'Chile':{CHI:67},
+  'Peru':{PER:66},
+  'Venezuela':{VEN:62},
+  'Bolívia':{BOL:60},
+};
+function nivelDaLiga(pais, div){
+  const p=NIVEL_LIGA[pais]
+    ||NIVEL_LIGA[(typeof UNI_CONFIGS!=='undefined'&&UNI_CONFIGS[pais]&&UNI_CONFIGS[pais].country)||''];
+  return (p&&p[div]!=null)?p[div]:60;
+}
+/* o prestígio do treinador: o nível da liga onde ele está + o que a estante empurra pra cima.
+   Os pontos de título já pesam a conquista (Libertadores 20, Brasileirão 15, Série D 0,5);
+   com uma Libertadores o Brasil (88) passa dos 100 e até a Premier atende o telefone. */
+function nivelDoTreinador(){
+  const meuPais=(typeof primaryCountry==='function')?primaryCountry():'Brasil';
+  return nivelDaLiga(meuPais, S.division) + Math.min(14, coachTitlePoints()*0.6);
+}
 /* DESCANSO ENTRE MUDANÇAS. Só vale para mudança voluntária: quem foi DEMITIDO tem de poder
    assumir o convite seguinte, senão ficaria duas temporadas sem clube. */
 function podeMudarDeClube(){
@@ -4282,12 +4314,11 @@ function podeMudarDeClube(){
   return ((S.season||1) - S.lastClubChangeSeason) >= SONDAGEM_EXTERIOR.descansoTemporadas;
 }
 function resenhaCanMoveClub(){ return podeMudarDeClube(); }   // nome antigo, mesmo comportamento
-/* TENHO CURRÍCULO PARA SER OBSERVADO DE FORA? Nível na pirâmide + régua no cargo + descanso.
-   O nível é lido por ÍNDICE (order.indexOf), não pela letra da divisão — é o que faz a regra
-   valer num país de divisão única (Argentina: índice 0, elegível) sem escrever exceção. */
+/* TENHO CURRÍCULO PARA SER OBSERVADO DE FORA? Régua no cargo + descanso. A antiga trava de
+   divisão ("só o topo da pirâmide") saiu: o alcance agora é do ÍNDICE DE LIGA — um treinador
+   de Série C (nível 52) simplesmente não alcança liga estrangeira nenhuma (a mais fraca do
+   mundo do jogo é a Bolívia, 60), sem precisar de exceção escrita à mão. */
 function curriculoDeExportacao(){
-  const nivel=DIV_ORDER.indexOf(S.division);
-  if(nivel<0 || nivel>SONDAGEM_EXTERIOR.nivelMaximo) return false;
   /* TITULO ABRE PORTA: cada ponto de titulo desconta da regua de seguranca exigida —
      um campeao da Libertadores (20 pts) e observado mesmo num momento morno do cargo. */
   const exigida=Math.max(60, SONDAGEM_EXTERIOR.seguranca - Math.min(22, coachTitlePoints()));
@@ -4299,43 +4330,55 @@ function curriculoDeExportacao(){
 function fatiaExterior(){
   return Math.min(0.6, SONDAGEM_EXTERIOR.fatia + coachTitlePoints()*0.02);
 }
-/* que paises chamam este treinador: liga grande (indice alto) exige estante — sem titulo o
-   convite da Premier League e raro; com uma Libertadores ele vira o mais provavel. */
-function pesoDoPaisParaOferta(pais){
-  const idx=indiceDoPais(pais), t=coachTitlePoints();
-  if(idx<=12) return 1;
-  return 0.2 + Math.min(1.3, t/15);
-}
 function escolherClubeDoExterior(R){
   const fora=clubesDoExterior(); if(!fora.length) return null;
-  const w=fora.map(f=>pesoDoPaisParaOferta(f.country));
-  const tot=w.reduce((a,b)=>a+b,0); if(!(tot>0)) return fora[0];
+  const tot=fora.reduce((s,f)=>s+(f.w||1),0); if(!(tot>0)) return fora[0];
   let r=R.random()*tot;
-  for(let i=0;i<fora.length;i++){ r-=w[i]; if(r<=0) return fora[i]; }
+  for(let i=0;i<fora.length;i++){ r-=(fora[i].w||1); if(r<=0) return fora[i]; }
   return fora[fora.length-1];
 }
-/* CLUBES DE FORA DENTRO DO DEGRAU. Lê as ligas dos outros países da sala/save (S.bgLeagues) e
-   devolve só os que são um passo realista acima do clube atual. Assento de humano fica fora: não
-   está disponível. Ordenado do menor degrau para o maior, para o sorteio não puxar sempre o topo. */
+/* ===== CLUBES DE FORA AO ALCANCE DO ÍNDICE (regra do dono, 21/08) =====
+   Lê TODAS as divisões de TODOS os países de fundo e filtra pelo NÍVEL DA LIGA:
+   · liga até 4 pontos ACIMA do prestígio do treinador entra (o salto realista);
+   · liga mais de 18 pontos ABAIXO fica fora (convite sem sentido);
+   · o clube em si num degrau razoável de overall (de -8 a +18 do meu);
+   · o PESO cai com o quadrado da distância ao degrau ideal (~5 abaixo do prestígio):
+     brilhando no Brasil, quem mais liga é Portugal/Argentina/2ªs européias — a Premier
+     só entra na roda com a estante cheia, e ainda assim como zebra. */
 function clubesDoExterior(){
   const fora=[], bg=S.bgLeagues||{};
   const humanos=new Set(Object.keys((typeof CL!=='undefined'&&CL.humans)||{}));
   if(S.clubId) humanos.add(S.clubId);
-  const meu=anyClubOverall(S.clubId);
+  const meuOv=anyClubOverall(S.clubId);
+  const meuNivel=nivelDoTreinador();
   Object.keys(bg).forEach(pais=>{
     const divs=(bg[pais]&&bg[pais].divs)||{};
     Object.keys(divs).forEach(d=>{
+      const nl=nivelDaLiga(pais,d);
+      if(nl>meuNivel+4 || nl<meuNivel-18) return;
+      const dist=Math.abs(nl-(meuNivel-5));
+      const wLiga=1/(1+dist*dist*0.06);
       (divs[d].clubIds||[]).forEach(id=>{
         if(humanos.has(id)) return;
         const c=(typeof bgClubById==='function')?bgClubById(id):null; if(!c) return;
         const ov=anyClubOverall(id,c);
-        if(ov>meu+SONDAGEM_EXTERIOR.degrauMin && ov<=meu+SONDAGEM_EXTERIOR.degrauMax)
-          fora.push({clubId:id, division:d, ov, country:pais});
+        /* sem piso de overall: um clube de 2ª divisão européia vale MENOS em overall que um
+           grande da Série A, e é exatamente esse o convite realista — o contexto da liga já
+           legitimou o degrau. Só o teto fica (gigante absurdo não liga pra ninguém de fora). */
+        if(ov>meuOv+18) return;
+        const w=wLiga*(0.5+ov/140);   // dentro da liga, o clube melhor liga mais
+        fora.push({clubId:id, division:d, ov, country:pais, nivel:nl, w});
       });
     });
   });
-  fora.sort((a,b)=>a.ov-b.ov);
-  return fora.slice(0,6);
+  /* VARIEDADE: no máximo 2 clubes por liga na cesta — sem isto a liga de peso mais próximo
+     enchia o corte sozinha e TODA sondagem vinha dela (Argentina pra sempre, ninguém de
+     Portugal nem das 2ªs européias). Duas por liga, e a cesta final fica com as 12 melhores. */
+  fora.sort((a,b)=>b.w-a.w);
+  const porLiga={}; const cesta=[];
+  fora.forEach(f=>{ const k=f.country+'/'+f.division;
+    porLiga[k]=(porLiga[k]||0)+1; if(porLiga[k]<=2) cesta.push(f); });
+  return cesta.slice(0,12);
 }
 /* sondagem de clube de OUTRO país no modo solo — mesma régua da Resenha (ver acima) */
 function maybeForeignJobOffer(){
