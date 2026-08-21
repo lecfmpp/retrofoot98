@@ -2186,8 +2186,38 @@ function rebuildContinentalCups(S: any, topStandings: string[]) {
     if (uniq.length < 4) return;
     S.cups[key] = { group: makeGroupStageT(splitIntoGroupsT(uniq, ME.hashSeed(S.seed, key + 'groups', S.season)), 2), bracket: null };
   };
+  /* ===== ESTRANGEIROS PELA CAMPANHA REAL (item 4) =====
+     Com as ligas de fundo no estado, as vagas de cada país saem da CLASSIFICAÇÃO dele na
+     temporada que fechou — cota real por país (CONMEBOL) — em vez de reciclar os mesmos
+     clubes para sempre. Clube classificado que o servidor nunca viu é materializado do
+     elenco compacto do pacote (materializeBgClubT). Sem ligas de fundo no estado (sala
+     antiga, antes do seed chegar), vale a reciclagem de sempre. Universo europeu segue na
+     reciclagem por ora — as cotas de lá ainda não têm folha. */
+  const ehConmebol = (copas[0] === 'libertadores');
+  const paisAncora = (() => { try { const c = WORLD_CONFIG.uniCfg(UNI_ATIVO); return (c && c.country) || 'Brasil'; } catch (_e) { return 'Brasil'; } })();
+  let bgLib: string[] = [], bgSul: string[] = [], temBg = false;
+  if (ehConmebol) Object.keys(CONMEBOL_LIB_SLOTS).forEach((co) => {
+    if (co === paisAncora) return;                       // o país da âncora entra pelo topStandings
+    const ids = bgTopStandingsT(S, co); if (!ids) return; temBg = true;
+    bgLib.push(...ids.slice(0, CONMEBOL_LIB_SLOTS[co] || 0));
+    bgSul.push(...ids.slice(CONMEBOL_LIB_SLOTS[co] || 0, (CONMEBOL_LIB_SLOTS[co] || 0) + (CONMEBOL_SUL_SLOTS[co] || 0)));
+  });
+  if (temBg) {
+    // campeões estrangeiros mantêm/ganham a vaga por cima da cota do país deles
+    if (champCont && !daCasa.has(champCont) && bgLib.indexOf(champCont) < 0) bgLib.unshift(champCont);
+    if (champSegunda && !daCasa.has(champSegunda)) {
+      bgSul = bgSul.filter((id) => id !== champSegunda);
+      if (bgLib.indexOf(champSegunda) < 0) bgLib.unshift(champSegunda);
+    }
+    const naLib = new Set(bgLib); bgSul = bgSul.filter((id) => !naLib.has(id));
+    // classificado que o mundo ainda não conhece nasce agora, do elenco compacto do pacote
+    const co0f = (id: string) => Object.keys(S.bgLeagues || {}).find((co) => { const L = S.bgLeagues[co]; return L && L.elencos && L.elencos[id]; });
+    bgLib.concat(bgSul).forEach((id) => { if (!S.squads[id]) { const co = co0f(id); if (co) materializeBgClubT(S, co, id); } });
+  }
   copas.forEach((key: string, i: number) => {
-    build(key, locaisDe(vagas[i] || 0, i === 0 ? finalistas : []), (prev[i] || []).filter((id: string) => !daCasa.has(id)));
+    const estrangeiros = temBg ? (i === 0 ? bgLib : bgSul)
+      : (prev[i] || []).filter((id: string) => !daCasa.has(id));
+    build(key, locaisDe(vagas[i] || 0, i === 0 ? finalistas : []), estrangeiros);
   });
 }
 /* ===== VIRADA DE TEMPORADA (F3.2) — promoção/rebaixamento + envelhecimento/regen + reconstrução.
@@ -2324,6 +2354,126 @@ function makeBracketT(ids: string[], seedNum: number, clubOverall: any) {
   const ties: any[] = []; for (let i = 0; i < play.length; i += 2) ties.push({ h: play[i], a: play[i + 1], hg: null, ag: null, winner: null, events: [] });
   return { round: 1, roundsTotal: Math.log2(size), byeTeams: byeTeams.slice(), ties, pendingByes: byeTeams.slice(), champion: null, eliminated: {}, history: [] };
 }
+/* ===== LIGAS DE FUNDO NO SERVIDOR (item 4, aprovado 21/08) =====
+   Todo país com bundle roda de fundo: tabela por quick-sim (overall + fator casa) e artilharia
+   estatística nos jogadores reais (pool compacto). O servidor NÃO tem os bundles — o pacote
+   (S.bgLeagues: divs/ov/pool/elencos por país) é semeado pelo CLIENTE (bgInitCountry no core):
+   sala nova traz no estado inicial; sala antiga recebe via last_result.bgSeed (uma vez).
+   É desta classificação real que saem as vagas continentais de cada país — o fim da
+   reciclagem congelada — e o arquivo ganha campeão/artilheiro/tabela por país. */
+const CONMEBOL_LIB_SLOTS: any = { 'Argentina': 6, 'Colômbia': 4, 'Chile': 3, 'Uruguai': 3, 'Peru': 3, 'Equador': 2, 'Paraguai': 2, 'Venezuela': 2, 'Bolívia': 1, 'Brasil': 6 };
+const CONMEBOL_SUL_SLOTS: any = { 'Argentina': 5, 'Colômbia': 4, 'Chile': 3, 'Uruguai': 3, 'Peru': 3, 'Equador': 2, 'Paraguai': 2, 'Venezuela': 2, 'Bolívia': 2, 'Brasil': 6 };
+function bgSortRows(t: any) { return Object.values(t || {}).sort((a: any, b: any) => b.Pts - a.Pts || (b.GF - b.GA) - (a.GF - a.GA) || b.GF - a.GF || String(a.id).localeCompare(String(b.id))); }
+function bgTopDivKey(L: any) {
+  try { const cfg = WORLD_CONFIG.uniCfg(L.uniKey || L.universe); if (cfg && cfg.order && cfg.order[0]) return cfg.order[0]; } catch (_e) {}
+  return Object.keys(L.divs || {})[0];
+}
+/* a classificação final da divisão de topo de um país de fundo — null se o país nem rodou */
+function bgTopStandingsT(S: any, co: string) {
+  const L = S.bgLeagues && S.bgLeagues[co]; if (!L) return null;
+  const d = L.divs && L.divs[bgTopDivKey(L)]; if (!d || !d.table) return null;
+  const rows = bgSortRows(d.table);
+  if (!rows.length || !(rows[0] as any).P) return null;
+  return rows.map((x: any) => x.id);
+}
+/* uma rodada de todas as ligas de fundo — gêmeo do advanceBgLeagues do cliente */
+function advanceBgLeaguesT(S: any, rIdx: number) {
+  Object.keys(S.bgLeagues || {}).forEach((country) => {
+    const L = S.bgLeagues[country];
+    Object.keys(L.divs || {}).forEach((divKey) => {
+      const d = L.divs[divKey];
+      const sched = (d.sched && d.sched.length) ? d.sched : makeScheduleT((d.clubIds || []).slice());
+      if (!sched.length) return;
+      const fx = sched[rIdx % sched.length] || [];
+      fx.forEach((pair: any) => {
+        const hId = pair[0], aId = pair[1]; if (hId == null || aId == null) return;
+        const T = d.table; if (!T[hId] || !T[aId]) return;
+        const R = ME.makeRng(ME.hashSeed(S.seed, 'bg', country, divKey, rIdx, hId, aId) >>> 0);
+        const ovDe = (id: string) => (L.ov && L.ov[id] != null) ? L.ov[id] : 70;
+        const ho = ovDe(hId), ao = ovDe(aId);
+        const hExp = Math.max(0.2, 1.35 + (ho - ao) * 0.05), aExp = Math.max(0.2, 1.05 + (ao - ho) * 0.05);
+        const pois = (lam: number) => { const Lm = Math.exp(-lam); let k = 0, p = 1; do { k++; p *= R.random(); } while (p > Lm); return k - 1; };
+        const hg = Math.min(7, pois(hExp)), ag = Math.min(7, pois(aExp));
+        T[hId].P++; T[aId].P++; T[hId].GF += hg; T[hId].GA += ag; T[aId].GF += ag; T[aId].GA += hg;
+        if (hg > ag) { T[hId].W++; T[aId].L++; T[hId].Pts += 3; }
+        else if (hg < ag) { T[aId].W++; T[hId].L++; T[aId].Pts += 3; }
+        else { T[hId].D++; T[aId].D++; T[hId].Pts++; T[aId].Pts++; }
+        // artilharia estatística nos jogadores reais (pool do init), determinística pela seed
+        const Rg = ME.makeRng(ME.hashSeed(S.seed, 'bggol', country, divKey, rIdx, hId, aId) >>> 0);
+        const marca = (clubId: string, n: number) => {
+          const pool = L.pool && L.pool[clubId]; if (!pool || !pool.length || n <= 0) return;
+          for (let i = 0; i < n; i++) {
+            let best: any = pool[0], bestW = -1;
+            pool.forEach((e: any) => { const w = (e[1] || 50) * Rg.random(); if (w > bestW) { bestW = w; best = e; } });
+            if (best) { L.scorers = L.scorers || {}; L.allTimeScorers = L.allTimeScorers || {};
+              L.scorers[best[0]] = (L.scorers[best[0]] || 0) + 1; L.allTimeScorers[best[0]] = (L.allTimeScorers[best[0]] || 0) + 1; }
+          }
+        };
+        marca(hId, hg); marca(aId, ag);
+      });
+    });
+  });
+}
+/* virada das ligas de fundo — gêmeo do rollBgLeaguesSeason do cliente: história (campeão +
+   artilheiro), promoção/rebaixamento pela config do país, tabelas e artilharia zeradas.
+   O pool/elenco NÃO é renovado aqui (só o cliente tem os bundles) — promovido de 2ª divisão
+   fica sem pool até um cliente re-semear; a tabela dele anda normal pelo overall. */
+function rollBgLeaguesSeasonT(S: any) {
+  Object.keys(S.bgLeagues || {}).forEach((country) => {
+    const L = S.bgLeagues[country];
+    let cfg: any = null; try { cfg = WORLD_CONFIG.uniCfg(L.uniKey || country); } catch (_e) {}
+    const ordem: string[] = (cfg && cfg.order) || Object.keys(L.divs || {});
+    const top = ordem[0]; if (!top || !L.divs || !L.divs[top]) return;
+    const rows = bgSortRows(L.divs[top].table);
+    const arty = Object.entries(L.scorers || {}).sort((a: any, b: any) => (b[1] as number) - (a[1] as number))[0];
+    L.history = L.history || [];
+    L.history.push({ season: L.season, champId: rows[0] && (rows[0] as any).id,
+      artilheiro: arty ? (arty[0] + ' (' + arty[1] + ')') : '—' });
+    if (ordem.length > 1 && cfg) {
+      const finalIds: any = {}; ordem.forEach((d) => finalIds[d] = bgSortRows((L.divs[d] || {}).table).map((x: any) => x.id));
+      const promoted: any = {}, relegated: any = {}, stayed: any = {};
+      ordem.forEach((d) => { const ids = finalIds[d] || []; const rN = (cfg.releg && cfg.releg[d]) || 0, pN = (cfg.promo && cfg.promo[d]) || 0;
+        promoted[d] = pN > 0 ? ids.slice(0, pN) : []; relegated[d] = rN > 0 ? ids.slice(ids.length - rN) : []; stayed[d] = ids.slice(pN, Math.max(pN, ids.length - rN)); });
+      ordem.forEach((d, i) => { const above = ordem[i - 1], below = ordem[i + 1];
+        let list = (stayed[d] || []).slice(); if (above) list = list.concat(relegated[above]); if (below) list = list.concat(promoted[below]);
+        const ids = list.slice(0, (cfg.size && cfg.size[d]) || list.length);
+        const table: any = {}; ids.forEach((id: string) => table[id] = { id, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, Pts: 0 });
+        L.divs[d] = { clubIds: ids, table }; });
+    } else {
+      const d = top; const ids = (L.divs[d].clubIds || []).slice();
+      const table: any = {}; ids.forEach((id: string) => table[id] = { id, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, Pts: 0 });
+      L.divs[d].table = table; delete L.divs[d].sched;
+    }
+    L.scorers = {}; L.season = (S.season || 1) + 1;
+  });
+}
+/* materializa um clube de fundo que se classificou às continentais, a partir do elenco
+   compacto do pacote (bgInitCountry no cliente). Sem elenco no pacote, devolve false —
+   o build() da copa o deixa de fora e o fecho em múltiplo de 4 cobre o buraco. */
+function materializeBgClubT(S: any, co: string, id: string) {
+  if (S.squads[id]) return true;
+  const L = S.bgLeagues && S.bgLeagues[co]; const raw = L && L.elencos && L.elencos[id];
+  if (!raw || !raw.length) return false;
+  S._pidSeq = S._pidSeq || 0;
+  S.squads[id] = raw.map((e: any) => { S._pidSeq++; return { n: e[0], pid: 'p' + S._pidSeq, p: e[1] || 'MC', s: e[2] || 'MID', f: e[3] || 50, rawF: e[3] || 50, age: e[4] || 26, mv: e[5] || 1e6, ft: 'R', num: '', nat: '', ag: '—', moral: 70, energy: 100, attr: {}, stats: { r3: [], g3: [], apps: 0, goals: 0, cs: 0 } }; });
+  S.clubPool = S.clubPool || {}; if (!S.clubPool[id]) S.clubPool[id] = { id };
+  S.clubOverall[id] = (L.ov && L.ov[id]) || Math.round(S.squads[id].reduce((s: number, p: any) => s + p.f, 0) / S.squads[id].length);
+  return true;
+}
+/* a foto dos países de fundo pro arquivo — lida ANTES do rollBgLeaguesSeasonT zerar tudo */
+function archivePaisesT(S: any) {
+  const paises: any = {};
+  Object.keys(S.bgLeagues || {}).forEach((co) => {
+    try {
+      const L = S.bgLeagues[co]; const d = L.divs && L.divs[bgTopDivKey(L)]; if (!d) return;
+      const rows = bgSortRows(d.table).map((x: any) => ({ id: x.id, P: x.P, W: x.W, D: x.D, L: x.L, GF: x.GF, GA: x.GA, Pts: x.Pts }));
+      if (!rows.length || !rows[0].P) return;
+      const arty = Object.entries(L.scorers || {}).sort((a: any, b: any) => (b[1] as number) - (a[1] as number))[0];
+      paises[co] = { champ: rows[0].id, artilheiro: arty ? { nome: arty[0], gols: arty[1] } : null, table: rows };
+    } catch (_e) {}
+  });
+  return paises;
+}
 /* ===== O ARQUIVO PERMANENTE DA TEMPORADA (S.archive) =====
    O _prevSeason é um buffer de UMA temporada — a virada seguinte o sobrescreve, e da
    temporada N em N+2 já não sobrava classificação nenhuma. O archive é append-only e
@@ -2368,7 +2518,7 @@ function archiveSeasonT(S: any, tables: any) {
   const scorers = Object.entries(S.scorers || {}).sort((a: any, b: any) => (b[1] as number) - (a[1] as number)).slice(0, 25);
   const cups: any = {};
   Object.keys(S.cups || {}).forEach((k) => { const a = archiveCupT(S.cups[k]); if (a) cups[k] = a; });
-  S.archive.push({ season, tables, scorers, cups, artPorComp: topPorCompT(S.scorersByComp) });
+  S.archive.push({ season, tables, scorers, cups, artPorComp: topPorCompT(S.scorersByComp), paises: archivePaisesT(S) });
 }
 /* RESGATE: sala que virou a temporada ANTES do archive existir ainda tem o _prevSeason
    da temporada recém-fechada — a próxima virada o sobrescreveria e aí sim o dado morre.
@@ -2466,6 +2616,7 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   // continentais da temporada nova: vagas brasileiras pela CLASSIFICAÇÃO FINAL da Série A que
   // acabou (_prevTables, capturado acima antes do reset das tabelas) — ver rebuildContinentalCups.
   rebuildContinentalCups(S, (_prevTables[DIV_ORDER[0]] || []).map((x: any) => x.id));
+  rollBgLeaguesSeasonT(S);   // vira a temporada dos países de fundo (DEPOIS do rebuild ler as tabelas finais)
   S.round = 0; S.week = 1; S.day = 1; S.results = []; S.scorers = {}; S.scorersByComp = {}; S.negos = []; S.finished = false; // 6) reset de temporada
   buildCupCalendarS(S);   // 6b) calendário de copa da temporada NOVA (as copas acima são outras)
   Object.keys(S.squads).forEach((cid) => S.squads[cid].forEach((p: any) => { p.moral = 70; p.energy = 100; p.suspended = 0; p.injuredMatches = 0; p.stats = { r3: [], g3: [], apps: 0, goals: 0, cs: 0, yellows: 0, reds: 0, injuries: 0 }; }));
@@ -2884,6 +3035,7 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   });
   advanceDevelopment(S, humanClubs, humanXI, capsByClub);        // 4b) evolução/declínio dos jogadores
   // 4c) as outras divisões passaram a ser resolvidas DENTRO do passo de cada país
+  advanceBgLeaguesT(S, round);                                    // 4d) as ligas de fundo de TODOS os países andam junto (item 4)
   S.round++; S.week = (S.week || 1) + 1; S.day = (S.day || 1) + 7; // 5) avança a rodada
   cpuRoundCash(S, humanClubs);                                    // 6) caixa dos rivais anda TODA rodada (ver WR.cpuCaixaRodada)
   cpuMarketRound(S, humanClubs);                                  // 6a) mercado entre clubes da CPU (ver WR.cpuMarket)
@@ -2994,6 +3146,10 @@ Deno.serve(async (req: Request) => {
       if (s.stadium) { S.clubStadiumCap = S.clubStadiumCap || {}; S.clubStadiumCap[s.club_id] = s.stadium; } // estádio por-humano no mundo (mesmo mecanismo do caixa acima)
       const r = s.last_result;
       if (r && s.last_result_round === round && r.h && r.a) { const k = r.h + "-" + r.a; if (!humanResultByFx[k] || s.club_id === r.h) humanResultByFx[k] = { hg: r.hg, ag: r.ag, scorers: r.scorers || [], events: r.events || [], perf: r.perf || null }; }
+      // SEMENTE DAS LIGAS DE FUNDO (item 4): sala de antes do pacote existir — o cliente manda o
+      // bgInitCountry de todos os países uma vez (ver netPublishResult) e o servidor adota. Só
+      // quando ainda não há: o pacote vivo (tabelas andando) nunca é sobrescrito por um novo.
+      if (r && !S.bgLeagues && r.bgSeed && typeof r.bgSeed === 'object' && !Array.isArray(r.bgSeed)) S.bgLeagues = r.bgSeed;
       // trocas de elenco publicadas por este humano (compra/venda) — aplicadas no mundo antes da rodada
       if (r && s.last_result_round === round && Array.isArray(r.transfers) && r.transfers.length) humanTransfers.push(...r.transfers);
       // propostas que este humano mandou pro clube de outro humano (ver sendHumanOffer no cliente)

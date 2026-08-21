@@ -239,11 +239,20 @@ function rfMktMercado(){
       if(f.idade!=='all' && (p.age||0)>Number(f.idade)) return;
       let ask=p.mv||0;
       try{ if(typeof playerAsk==='function') ask=playerAsk(p,c.id); }catch(e){}
+      /* PERFORMANCE MEXE NO PREÇO (item 4): os gols da temporada na liga de fundo encarecem
+         o jogador — artilheiro custa mais, apagado custa o de tabela. O mesmo fator entra no
+         mv na materialização (ensureForeignClub), então a negociação cobra o que a lista diz. */
+      let gols=0;
+      if(fora){
+        const L=(S.bgLeagues||{})[f.pais];
+        gols=(L&&L.scorers&&L.scorers[p.n])||0;
+        if(gols>0) ask=Math.round(ask*(1+Math.min(0.5,gols*0.04)));
+      }
       if(f.preco==='caixa' && ask>teto) return;
       if(f.preco==='meio'  && ask>teto/2) return;
       if(f.clube && f.clube!=='all' && String(c.id)!==String(f.clube)) return;
       if(f.q && rfMktNorm(p.n).indexOf(rfMktNorm(f.q))<0) return;
-      out.push({p,clubId:c.id,ask,pais:fora?f.pais:null,clube:c});
+      out.push({p,clubId:c.id,ask,pais:fora?f.pais:null,clube:c,gols});
     });
   });
   out.sort((a,b)=>(b.p.f||0)-(a.p.f||0));
@@ -283,10 +292,10 @@ function rfMktFiltrosHTML(){
    passar por cdraw() -- ver rfMktBusca. */
 function rfMktComprarTabelaHTML(){
   const mostra=rfMktMercado().slice(0,60);
-  const linhas=mostra.map(({p,clubId,ask,pais,clube})=>{
+  const linhas=mostra.map(({p,clubId,ask,pais,clube,gols})=>{
     const propor=`rfMkPropor('${escC(clubId)}','${escC(p.n)}','${escC(pais||'')}')`;
     return `<div class="rf-mkt-row" onclick="${propor}">
-    <span class="rf-mkt-n">${escC(p.n)}</span>
+    <span class="rf-mkt-n">${escC(p.n)}${gols?` <em class="rf-mkt-gols" title="${gols} gols nesta temporada — a performance encarece o passe">⚽${gols}</em>`:''}</span>
     <span class="rf-mkt-f">${p.f}</span>
     ${rfMkPos(p)}
     <span class="rf-mkt-x">${p.age||'—'}</span>

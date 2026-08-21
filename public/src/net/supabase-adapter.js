@@ -562,7 +562,19 @@ async function netPublishResult(round, result){
   // antes de evoluir. Fonte única: S.trainingByClub (o que o menu de Treino especial escreve).
   const _trn = (typeof S!=='undefined' && S && S.trainingByClub && S.clubId!=null)
     ? (S.trainingByClub[S.clubId]||[]) : [];
+  // SEMENTE DAS LIGAS DE FUNDO (item 4): sala de antes do pacote existir. O estado adotado não
+  // tem S.bgLeagues — este cliente monta o pacote de todos os países (bgInitCountry) e manda
+  // UMA vez; o servidor só adota quando ainda não há (ver o seat loop no resolve-round).
+  let _bgSeed=null;
+  try{
+    if(typeof S!=='undefined' && S && !S.bgLeagues && typeof bgLeagueCountries==='function' && typeof bgInitCountry==='function'){
+      _bgSeed={};
+      bgLeagueCountries().forEach(co=>{ const L=bgInitCountry(co); if(L) _bgSeed[co]=L; });
+      if(!Object.keys(_bgSeed).length) _bgSeed=null;
+    }
+  }catch(e){ _bgSeed=null; }
   const payload = { round, h:result.h, a:result.a, hg:result.hg, ag:result.ag,
+    ...( _bgSeed ? { bgSeed:_bgSeed } : {} ),
     scorers:result.scorers||[], perf:result.perf||null, events:result.events||[],
     decisions:result.decisions||[], // Fase 3A: log de decisões da partida (pênalti/lesão/expulsão/substituição)
     // caps = súmula de minutos em campo dos dois lados. Só o CLIENTE sabe disso numa partida

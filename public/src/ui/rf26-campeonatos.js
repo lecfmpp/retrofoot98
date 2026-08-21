@@ -492,12 +492,42 @@ function rfCpIntlHTML(){
       </div>
     </div>`;
   }).join('');
+  /* ===== ARTILHARIA E CAMPEÕES PELO MUNDO (item 4) =====
+     Cada país de fundo agora tem artilharia estatística (jogadores reais, gols distribuídos
+     pela campanha do clube) e história de campeões — os dois nascem no advanceBgLeagues /
+     rollBgLeaguesSeason e, na Resenha, no servidor. */
+  const artMundo=paises.map(pais=>{
+    const L=(S.bgLeagues||{})[pais]; if(!L) return '';
+    const e=Object.entries(L.scorers||{}).sort((a,b)=>b[1]-a[1])[0]; if(!e) return '';
+    return `<div class="rf-ft-lin">
+      <span class="rf-cp-bandeira">${(typeof flagImg==='function')?flagImg(pais):''}</span>
+      <span class="rf-ft-comp">${escC(e[0])}</span><div class="rf-sp"></div>
+      <span class="rf-ft-gols">${e[1]} ${e[1]===1?'gol':'gols'}</span></div>`;
+  }).filter(Boolean).join('');
+  const campMundo=paises.map(pais=>{
+    const L=(S.bgLeagues||{})[pais]; const h=(L&&L.history&&L.history.length)?L.history[L.history.length-1]:null;
+    if(!h) return '';
+    const nome=h.champId?(((typeof bgClubById==='function'&&bgClubById(h.champId))||{}).short||h.champId):(h.champ||'—');
+    return `<div class="rf-ft-lin">
+      <span class="rf-cp-bandeira">${(typeof flagImg==='function')?flagImg(pais):''}</span>
+      <span class="rf-ft-comp">${escC(String(nome))}</span><div class="rf-sp"></div>
+      <span class="rf-ft-gols">${escC(String(h.season||''))}</span></div>`;
+  }).filter(Boolean).join('');
   return `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_CP_INTL_COLS}">
       <div class="rf-label"><span class="rf-label-t">LIGAS DO MUNDO</span>
         <span class="rf-label-r">líderes da rodada</span></div>
       ${cab}
       ${linhas || '<div class="rf-empty">Nenhuma liga de fundo neste save.</div>'}
     </div>
+    ${artMundo?`<div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">ARTILHEIROS PELO MUNDO</span>
+        <span class="rf-label-r">temporada em curso</span></div>
+      ${artMundo}
+    </div>`:''}
+    ${campMundo?`<div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">ÚLTIMOS CAMPEÕES POR PAÍS</span></div>
+      ${campMundo}
+    </div>`:''}
     <div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">COPAS CONTINENTAIS</span></div>
       ${copas ? `<div class="rf-cp-tiles">${copas}</div>`

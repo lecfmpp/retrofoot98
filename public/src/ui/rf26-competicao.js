@@ -1622,7 +1622,8 @@ function rfTemporadaAbaHTML(page, tab, season){
         ((rfArquivoDe(season)||{}).tables||{})[e.division], e.clubId);
     if(tab==='artilharia')return ((cartaoArt||'')+rfArqArtilhariaHTML(season))||null;
     if(tab==='historia')  return cartaoCampeoes+cartaoResumo+rfArqClassifHTML(season, e.clubId);
-    return null;   // Calendário e Ligas internacionais não guardam o ano fechado
+    if(tab==='intl')      return rfArqPaisesHTML(season);   // item 4: o mundo daquele ano
+    return null;   // o Calendário não guarda o ano fechado
   }
   return null;
 }
@@ -1635,7 +1636,8 @@ function rfArquivoDe(season){
   return ((typeof S!=='undefined'&&S&&S.archive)||[]).find(a=>a&&String(a.season)===String(season))||null;
 }
 function rfArqCurto(id){
-  const c=(typeof anyClubOf==='function'&&anyClubOf(id))||null;
+  const c=(typeof anyClubOf==='function'&&anyClubOf(id))
+    ||(typeof bgClubById==='function'&&bgClubById(id))||null;   // clube de liga de fundo (item 4)
   return (c&&(c.short||c.name))||String(id);
 }
 function rfArqTabelaHTML(rotulo, linhas, marcaId){
@@ -1726,6 +1728,30 @@ function rfArqRankingHTML(e, season){
         <span class="rf-ft-gols">${r.aprov}% · <b>${r.pts} pts</b></span></div>`;
     }).join('')}
   </div>`;
+}
+/* o mundo de um ano fechado: campeão, artilheiro e tabela final de cada país de fundo
+   (arq.paises, gravado por archivePaises/archivePaisesT no fecho — item 4) */
+function rfArqPaisesHTML(season){
+  const arq=rfArquivoDe(season);
+  const paises=(arq&&arq.paises)||null;
+  if(!paises||!Object.keys(paises).length) return null;
+  return Object.keys(paises).sort().map(co=>{
+    const p=paises[co]; if(!p) return '';
+    return `<div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">${escC(co.toUpperCase())} — ${escC(String(season))}</span>
+        <span class="rf-label-r">campeão: ${escC(rfArqCurto(p.champ))}</span></div>
+      ${p.artilheiro?`<div class="rf-ft-lin"><span class="rf-ft-comp">Artilheiro</span>
+        <div class="rf-sp"></div><span class="rf-ft-n">${escC(p.artilheiro.nome)}</span>
+        <span class="rf-ft-gols">${p.artilheiro.gols} ${p.artilheiro.gols===1?'gol':'gols'}</span></div>`:''}
+      <div class="rf-arq-tb">
+        ${(p.table||[]).map((x,i)=>{const sg=(x.GF||0)-(x.GA||0);
+          return `<div class="rf-arq-lin">
+          <span class="rf-arq-p">${i+1}</span><span class="rf-arq-n">${escC(rfArqCurto(x.id))}</span>
+          <span>${x.P||0}</span><span>${x.W||0}</span><span>${x.D||0}</span><span>${x.L||0}</span>
+          <span>${sg>0?'+':''}${sg}</span><b>${x.Pts||0}</b></div>`;}).join('')}
+      </div>
+    </div>`;
+  }).join('');
 }
 /* o que a aba escreve quando aquele ano nao tem registo dela */
 function rfTemporadaSemArquivoHTML(season){

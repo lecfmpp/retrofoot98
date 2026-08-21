@@ -46,7 +46,15 @@ Pergunta da memória de copas: antes de mexer, conferir colisão de jornada entr
 
 ---
 
-## 4. [ ] Jogo está repetindo os clubes das copas?
+## 4. [x] Jogo está repetindo os clubes das copas? → Ligas de fundo em TODOS os países
+
+**Feito em 2026-08-21 (aguardando teste; aprovado pelo dono: camadas 1+2).** Todo país com bundle roda de fundo, nos dois modos:
+- **Tabela real por país** (quick-sim por overall, rodada a rodada) com promoção/rebaixamento pela regra do país; visível na aba Ligas internacionais (14 ligas, líderes) e na Classificação.
+- **Artilharia estatística nos jogadores reais** (gols distribuídos pela campanha do clube, determinístico pela seed) — artilheiro por país na aba, e no fecho vai pro arquivo.
+- **Vagas continentais pela campanha real**: `rebuildContinentalCups`/`unifiedContinentalPool` usam a classificação de cada país com a cota real CONMEBOL — fim da reciclagem congelada. Classificado que o servidor nunca viu é materializado do elenco compacto do pacote.
+- **Mercado sente a performance**: gols da temporada na lista (⚽N) e no preço (até +50% pro artilheiro), aplicado também no valor na materialização.
+- **Arquivo por país**: campeão + artilheiro + tabela final de cada país por temporada (`arq.paises`), visível no filtro de temporada da aba Ligas internacionais.
+- **Resenha**: o servidor roda tudo (porte completo); sala antiga recebe o pacote via seed único de um cliente (`last_result.bgSeed`). Estado +~250KB (calendários regenerados na hora, não gravados). Bloco 10 do `teste-virada.mjs` cobre.
 
 **Resposta: parte sim, parte não.**
 - **Brasileiros: dinâmico e correto.** Usa a tabela final real da temporada que fechou (`_prevTables` no servidor, `S._topFinalStandings` no solo). O bug antigo da lista congelada por overall já foi corrigido.

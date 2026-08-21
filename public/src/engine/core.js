@@ -2814,7 +2814,18 @@ function ensureForeignClub(pais,id){
   if(pais==='Brasil' && !c.country && typeof CONMEBOL_COUNTRIES!=='undefined') c.country=CONMEBOL_COUNTRIES.BRA;
   else if(!c.country) c.country=pais;
   if(!S.clubPool[id]) S.clubPool[id]=c;
-  if(!S.squads[id]) S.squads[id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}),'A'));
+  if(!S.squads[id]){
+    S.squads[id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}),'A'));
+    /* a performance na liga de fundo entra no passe (item 4): os gols da temporada valorizam
+       o jogador na materialização — a negociação cobra o mesmo que a lista do mercado mostra */
+    try{
+      const L=(S.bgLeagues||{})[pais];
+      if(L&&L.scorers) S.squads[id].forEach(p=>{
+        const g=L.scorers[p.n]||0;
+        if(g>0) p.mv=Math.round((p.mv||1e6)*(1+Math.min(0.5,g*0.04)));
+      });
+    }catch(e){}
+  }
   return true;
 }
 function initConmebolCups(){
@@ -2892,37 +2903,97 @@ function bgClubById(id){ const i=intlClubById(id); let c=i||bgBrazilIndex()[id]|
   // item 4: normaliza overall pra escala nova (mesma lógica de clubOf; intl/procedurais já vêm com _rbOv)
   if(c && !c._rbOv && typeof c.overall==='number'){ c.overall=REBAL.force(c.overall); c._rbOv=1; }
   return c; }
+/* ===== TODO PAÍS COM BUNDLE RODA DE FUNDO (item 4, aprovado 21/08) =====
+   As ligas de fundo deixam de ser só "os países selecionados": TODOS os países da folha
+   simulam a classificação — menos o(s) país(es) VIVO(s), que já rodam de verdade (âncora e
+   S.mundos). É daqui que saem tabela, campeão e artilharia de cada país, e é esta
+   classificação real que alimenta as vagas continentais (unifiedContinentalPool /
+   rebuildContinentalCups) em vez da reciclagem congelada. */
+function bgLeagueCountries(){
+  const vivos=new Set((S&&S.paisesVivos&&S.paisesVivos.length)?S.paisesVivos:[(typeof ACTIVE_UNI!=='undefined')?ACTIVE_UNI:'brasil']);
+  const nomeDe=k=>(k==='brasil')?'Brasil':((UNI_CONFIGS[k]&&UNI_CONFIGS[k].country)||k);
+  const out=[];
+  Object.keys(UNI_CONFIGS).forEach(k=>{ if(vivos.has(k)) return; const n=nomeDe(k); if(out.indexOf(n)<0) out.push(n); });
+  return out;
+}
+/* o pacote de UM país: tabelas + calendário + overall por clube (pro quick-sim rodar em
+   qualquer lugar, inclusive no servidor, que não tem os bundles) + pool de artilharia da
+   divisão de topo (5 candidatos por clube, nome+peso — é neles que os gols caem) */
+function bgInitCountry(country){
+  const uniKey=uniKeyOf(country);
+  const cfg=UNI_CONFIGS[uniKey]; if(!cfg) return null;
+  const divs={}; const ov={}; const pool={}; const elencos={};
+  /* elenco compacto só pra quem pode se classificar às continentais do universo CONMEBOL —
+     é dele que o SERVIDOR materializa um clube que nunca viu quando a campanha o classifica
+     (materializeBgClubT). [nome, posição, setor, força, idade, valor], 18 por clube. */
+  const guardaElenco = (cfg.src==='conmebol' || uniKey==='brasil');
+  cfg.order.forEach((divKey,di)=>{
+    const clubes=bgClubsForDivision(country,divKey);
+    const ids=clubes.map(c=>c.id);
+    const table={}; ids.forEach(id=>table[id]={id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
+    // sem `sched` no estado: o calendário é determinístico dos clubIds e nasce na hora do uso
+    // (advanceBgLeagues) — guardá-lo custava ~156KB de save/shared_state à toa
+    divs[divKey]={clubIds:ids, table};
+    clubes.forEach(c=>{
+      ov[c.id]=c.overall||70;
+      if(di===0){ // divisão de topo: artilharia + elenco pro servidor
+        const cand=(c.squad||[]).filter(p=>p.s==='ATT'||p.s==='MID');
+        pool[c.id]=(cand.length?cand:(c.squad||[])).slice()
+          .sort((a,b)=>((b.f||50)*(b.s==='ATT'?1.6:0.7))-((a.f||50)*(a.s==='ATT'?1.6:0.7)))
+          .slice(0,5).map(p=>[p.n, Math.round((p.f||50)*(p.s==='ATT'?1.6:0.7))]);
+        if(guardaElenco && c.squad && c.squad.length)
+          elencos[c.id]=c.squad.slice(0,18).map(p=>[p.n,p.p||'MC',p.s||'MID',p.f||50,p.age||26,p.mv||1e6]);
+      }
+    });
+  });
+  // uniKey junto do pacote: é por ele que o SERVIDOR acha a config do país (promoção/vagas)
+  return {universe:country, uniKey, divs, ov, pool, elencos, scorers:{}, allTimeScorers:{}, history:[], season:S.season};
+}
 function initBgLeagues(){
   S.bgLeagues={};
-  (S.bgCountries||[]).forEach(country=>{
-    const cfg=UNI_CONFIGS[uniKeyOf(country)]; if(!cfg) return;
-    const divs={};
-    cfg.order.forEach(divKey=>{
-      const ids=bgClubsForDivision(country,divKey).map(c=>c.id);
-      const table={}; ids.forEach(id=>table[id]={id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
-      divs[divKey]={clubIds:ids, sched:makeSchedule(ids.slice()), table};
-    });
-    S.bgLeagues[country]={universe:country, divs, scorers:{}, allTimeScorers:{}, history:[], season:S.season};
-  });
+  bgLeagueCountries().forEach(country=>{ const L=bgInitCountry(country); if(L) S.bgLeagues[country]=L; });
 }
-/* quick-sim leve de uma partida de background (só placar, por overall + fator casa) */
-function bgQuickSim(homeId, awayId, seed){
+/* repara um save/sala de antes desta mudança: país que falta entra agora (idempotente).
+   No solo roda no carregar; na Resenha o pacote viaja pro servidor (ver netPublishResult). */
+function ensureBgLeaguesCompletas(){
+  S.bgLeagues=S.bgLeagues||{};
+  let novos=0;
+  bgLeagueCountries().forEach(country=>{
+    if(S.bgLeagues[country]) return;
+    const L=bgInitCountry(country); if(L){ S.bgLeagues[country]=L; novos++; }
+  });
+  return novos;
+}
+/* quick-sim leve de uma partida de background (só placar, por overall + fator casa).
+   O overall sai do pacote da liga (L.ov, gravado no init) — é o que permite o MESMO
+   quick-sim rodar no servidor, que não tem os bundles; o índice de clube fica de reserva. */
+function bgQuickSim(homeId, awayId, seed, L){
   const R=makeRng(seed>>>0);
-  const ho=(bgClubById(homeId)||{}).overall||70, ao=(bgClubById(awayId)||{}).overall||70;
+  const ovDe=id=>(L&&L.ov&&L.ov[id]!=null)?L.ov[id]:(((bgClubById(id)||{}).overall)||70);
+  const ho=ovDe(homeId), ao=ovDe(awayId);
   const hExp=Math.max(0.2, 1.35+(ho-ao)*0.05), aExp=Math.max(0.2, 1.05+(ao-ho)*0.05);
-  const pois=(lam)=>{ const L=Math.exp(-lam); let k=0,p=1; do{ k++; p*=R.random(); }while(p>L); return k-1; };
+  const pois=(lam)=>{ const Lm=Math.exp(-lam); let k=0,p=1; do{ k++; p*=R.random(); }while(p>Lm); return k-1; };
   return { hg:Math.min(7,pois(hExp)), ag:Math.min(7,pois(aExp)) };
 }
-/* atribui N gols a jogadores do clube (ponderado por força, atacantes/meias primeiro) */
-function bgAttributeGoals(L, clubId, n){
+/* atribui N gols a jogadores do clube (ponderado por força, atacantes/meias primeiro).
+   DETERMINÍSTICO (item 4): recebe o rng da partida — o Math.random que vivia aqui fazia a
+   artilharia divergir entre clientes e entre re-execuções. O pool compacto do init
+   (L.pool[clubId] = [[nome,peso]×5]) vale primeiro — é o que o servidor tem; o elenco
+   materializado/bundle fica de reserva pra clube fora do pool (divisões de baixo). */
+function bgAttributeGoals(L, clubId, n, R){
   if(n<=0) return;
-  // usa o elenco materializado se já existe (reflete transferências); senão o dado real
-  const squad=(S.squads&&S.squads[clubId]) || (bgClubById(clubId)||{}).squad;
-  if(!squad||!squad.length) return;
-  const cand=squad.filter(p=>p.s==='ATT'||p.s==='MID'); const pool=cand.length?cand:squad;
+  R=R||makeRng(hashSeed((S&&S.seed)||1,'bggol',clubId,n));
+  let cands=null;
+  if(L.pool&&L.pool[clubId]&&L.pool[clubId].length) cands=L.pool[clubId].map(e=>({n:e[0],w:e[1]||50}));
+  else{
+    const squad=(S.squads&&S.squads[clubId]) || (bgClubById(clubId)||{}).squad;
+    if(!squad||!squad.length) return;
+    const att=squad.filter(p=>p.s==='ATT'||p.s==='MID'); const base=att.length?att:squad;
+    cands=base.map(p=>({n:p.n, w:(p.f||50)*(p.s==='ATT'?1.6:0.7)}));
+  }
   for(let i=0;i<n;i++){
-    let best=pool[0], bestW=-1;
-    pool.forEach(p=>{ const w=(p.f||50)*(p.s==='ATT'?1.6:0.7)*Math.random(); if(w>bestW){bestW=w;best=p;} });
+    let best=cands[0], bestW=-1;
+    cands.forEach(c=>{ const w=c.w*R.random(); if(w>bestW){bestW=w;best=c;} });
     if(best){ L.scorers[best.n]=(L.scorers[best.n]||0)+1; L.allTimeScorers[best.n]=(L.allTimeScorers[best.n]||0)+1; }
   }
 }
@@ -2934,8 +3005,10 @@ function advanceBgLeagues(humanResults, roundIdx){
   Object.keys(S.bgLeagues).forEach(country=>{
     const L=S.bgLeagues[country];
     Object.keys(L.divs).forEach(divKey=>{
-      const d=L.divs[divKey]; if(!d.sched.length) return;
-      const fx=d.sched[rIdx % d.sched.length]||[];
+      const d=L.divs[divKey];
+      const sched=(d.sched&&d.sched.length)?d.sched:makeSchedule((d.clubIds||[]).slice());
+      if(!sched.length) return;
+      const fx=sched[rIdx % sched.length]||[];
       fx.forEach(pair=>{
         const hId=pair[0], aId=pair[1]; if(hId==null||aId==null) return;
         const T=d.table; if(!T[hId]||!T[aId]) return;
@@ -2943,14 +3016,17 @@ function advanceBgLeagues(humanResults, roundIdx){
         const hr=humanResults[hId+'-'+aId];
         let hg,ag;
         if(hr){ hg=hr.hg; ag=hr.ag; }
-        else { const r=bgQuickSim(hId,aId,hashSeed(S.seed,'bg',country,divKey,rIdx,hId,aId)); hg=r.hg; ag=r.ag; }
+        else { const r=bgQuickSim(hId,aId,hashSeed(S.seed,'bg',country,divKey,rIdx,hId,aId),L); hg=r.hg; ag=r.ag; }
         T[hId].P++; T[aId].P++; T[hId].GF+=hg; T[hId].GA+=ag; T[aId].GF+=ag; T[aId].GA+=hg;
         if(hg>ag){T[hId].W++;T[aId].L++;T[hId].Pts+=3;}
         else if(hg<ag){T[aId].W++;T[hId].L++;T[aId].Pts+=3;}
         else {T[hId].D++;T[aId].D++;T[hId].Pts++;T[aId].Pts++;}
         if(hr){ // artilheiros reais da partida ao vivo (por nome), em vez da atribuição ponderada
           (hr.scorers||[]).forEach(s=>{ if(!s||!s.name) return; L.scorers[s.name]=(L.scorers[s.name]||0)+1; L.allTimeScorers[s.name]=(L.allTimeScorers[s.name]||0)+1; });
-        } else { bgAttributeGoals(L,hId,hg); bgAttributeGoals(L,aId,ag); }
+        } else {
+          const Rg=makeRng(hashSeed(S.seed,'bggol',country,divKey,rIdx,hId,aId));
+          bgAttributeGoals(L,hId,hg,Rg); bgAttributeGoals(L,aId,ag,Rg);
+        }
       });
     });
   });
@@ -2981,12 +3057,15 @@ function rollBgLeaguesSeason(){
       cfg.order.forEach((d,i)=>{ const above=cfg.order[i-1], below=cfg.order[i+1];
         let list=stayed[d].slice(); if(above)list=list.concat(relegated[above]); if(below)list=list.concat(promoted[below]);
         const ids=list.slice(0,cfg.size[d]); const table={}; ids.forEach(id=>table[id]={id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
-        L.divs[d]={clubIds:ids, sched:makeSchedule(ids.slice()), table}; });
+        L.divs[d]={clubIds:ids, table}; });
     } else {
       const d=topDiv; const ids=L.divs[d].clubIds; const table={}; ids.forEach(id=>table[id]={id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
-      L.divs[d].table=table; L.divs[d].sched=makeSchedule(ids.slice());
+      L.divs[d].table=table; delete L.divs[d].sched;
     }
     L.scorers={}; L.season=S.season+1;
+    /* o pacote de simulação acompanha a dança das divisões: overall e pool de artilharia
+       renovados do bundle (um promovido da 2ª divisão entra na corrida de gols do ano novo) */
+    try{ const fresco=bgInitCountry(country); if(fresco){ L.ov=fresco.ov; L.pool=fresco.pool; } }catch(e){}
   });
 }
 function initSeasonCups(qual, compToggle){
@@ -5842,6 +5921,21 @@ function topPorComp(scorersByComp){
   });
   return out;
 }
+/* a foto dos países de fundo no fecho: campeão, artilheiro e a tabela final da divisão de
+   topo de cada país (item 4) — lida ANTES do rollBgLeaguesSeason zerar tudo */
+function archivePaises(){
+  const paises={};
+  Object.keys(S.bgLeagues||{}).forEach(co=>{
+    try{
+      const L=S.bgLeagues[co]; const cfg=UNI_CONFIGS[uniKeyOf(co)]; if(!L||!cfg) return;
+      const rows=bgStandings(co,cfg.order[0]).map(x=>({id:x.id,P:x.P,W:x.W,D:x.D,L:x.L,GF:x.GF,GA:x.GA,Pts:x.Pts}));
+      if(!rows.length||!rows[0].P) return;   // país que nem chegou a rodar não vira arquivo vazio
+      const arty=Object.entries(L.scorers||{}).sort((a,b)=>b[1]-a[1])[0];
+      paises[co]={ champ:rows[0].id, artilheiro:arty?{nome:arty[0],gols:arty[1]}:null, table:rows };
+    }catch(e){}
+  });
+  return paises;
+}
 function archiveSeason(tables){
   S.archive=S.archive||[];
   const season=S.season||1;
@@ -5849,7 +5943,7 @@ function archiveSeason(tables){
   const scorers=Object.entries(S.scorers||{}).sort((a,b)=>b[1]-a[1]).slice(0,25);
   const cups={};
   Object.keys(S.cups||{}).forEach(k=>{ const a=archiveCup(S.cups[k]); if(a) cups[k]=a; });
-  S.archive.push({season, tables, scorers, cups, artPorComp:topPorComp(S.scorersByComp)});
+  S.archive.push({season, tables, scorers, cups, artPorComp:topPorComp(S.scorersByComp), paises:archivePaises()});
 }
 /* RESGATE: save que virou a temporada antes do archive existir ainda tem o _prevSeason da
    temporada recém-fechada — a próxima virada o sobrescreveria. Roda no carregar do save solo

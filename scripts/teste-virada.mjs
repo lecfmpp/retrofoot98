@@ -30,6 +30,7 @@ function carregarServidor() {
 ;globalThis.__RR = { aplicarUniverso, resolveSeasonTurnover, computeDivisionSwap,
   rebuildContinentalCups, cupTotalRoundsS, makeScheduleT, makeBracketT, rbForce, bandKeyDiv,
   resolveLeagueRound, resolverPiramideDoPais, archiveSeasonT, backfillArchiveT,
+  advanceBgLeaguesT, rollBgLeaguesSeasonT, bgTopStandingsT, materializeBgClubT,
   get DIV_ORDER(){ return DIV_ORDER; }, get DIVISION_SIZE(){ return DIVISION_SIZE; },
   get UNI_ATIVO(){ return UNI_ATIVO; } };`;
   const js = transformSync(src, { loader: 'ts', format: 'cjs' }).code;
@@ -368,6 +369,52 @@ bloco('grupo de 3', () => {
   });
   const sulTeams = Object.keys(S.cups.sulamericana.group.groups).flatMap((x) => S.cups.sulamericana.group.groups[x].teams);
   conferir('a Sul-Americana fechou em 32 (31 + o próximo da tabela)', sulTeams.length, 32);
+});
+
+/* ===== 10. AS LIGAS DE FUNDO RODAM NO SERVIDOR E DÃO AS VAGAS REAIS (item 4) =====
+   Um país de fundo sintético (Argentina, 4 clubes) anda rodada a rodada com artilharia no
+   pool, vira a temporada com história, e a remontagem das copas usa a CLASSIFICAÇÃO dele
+   (cota real) em vez da reciclagem — materializando do elenco compacto quem o mundo não
+   conhecia. O arquivo ganha campeão/artilheiro/tabela do país. */
+console.log('10. Ligas de fundo no servidor: tabela, artilharia, vagas reais e arquivo');
+bloco('ligas de fundo', () => {
+  const S = mundo('brasil', U, W);
+  RR.aplicarUniverso(S);
+  const A = Object.keys(S.table);
+  const arg = ['arg1', 'arg2', 'arg3', 'arg4'];
+  const tb = {}; arg.forEach((id) => tb[id] = { id, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, Pts: 0 });
+  S.bgLeagues = { 'Argentina': { universe: 'Argentina', uniKey: 'Argentina',
+    divs: { ARG: { clubIds: arg.slice(), sched: RR.makeScheduleT(arg.slice()), table: tb } },
+    ov: { arg1: 90, arg2: 75, arg3: 65, arg4: 55 },
+    pool: { arg1: [['Craque Uno', 140], ['Meia Dos', 60]], arg2: [['Nueve Tres', 120]] },
+    elencos: { arg1: Array.from({ length: 18 }, (_, i) => ['Arg1 J' + i, 'MC', i < 6 ? 'ATT' : 'MID', 60, 25, 2e6]),
+               arg2: Array.from({ length: 18 }, (_, i) => ['Arg2 J' + i, 'MC', 'MID', 55, 26, 1e6]) },
+    scorers: {}, allTimeScorers: {}, history: [], season: 1 } };
+  for (let r = 0; r < 6; r++) RR.advanceBgLeaguesT(S, r);
+  const L = S.bgLeagues['Argentina'];
+  const jogaram = Object.values(L.divs.ARG.table).every((t) => t.P === 6);
+  conferir('todo clube argentino jogou 6 rodadas', jogaram, true);
+  conferir('a artilharia estatística existe', Object.keys(L.scorers).length > 0, true);
+  const standings = RR.bgTopStandingsT(S, 'Argentina');
+  conferir('há classificação real', Array.isArray(standings) && standings.length === 4, true);
+  // continentais da edição anterior (reciclagem viraria a fonte se não houvesse bgLeagues)
+  const gDe = (ids) => { const gr = {}; for (let i = 0; i < ids.length; i += 4) gr['G' + i] = { teams: ids.slice(i, i + 4) }; return gr; };
+  S.cups.libertadores = { group: { groups: gDe(A.slice(0, 8)) }, bracket: null };
+  S.cups.sulamericana = { group: { groups: gDe(A.slice(8, 16)) }, bracket: null };
+  RR.resolveSeasonTurnover(S, new Set());
+  const doGrupo = (k) => { const g = (S.cups[k] && S.cups[k].group && S.cups[k].group.groups) || {};
+    return Object.keys(g).flatMap((x) => g[x].teams || []); };
+  const lib = doGrupo('libertadores');
+  // arg1 e arg2 têm elenco compacto no pacote -> entram e são materializados;
+  // arg3/arg4 não têm -> ficam de fora (o build filtra quem não existe no mundo)
+  ['arg1', 'arg2'].forEach((id) => { if (lib.indexOf(id) < 0) reprova('argentino classificado (' + id + ') fora da Libertadores nova'); });
+  ['arg3', 'arg4'].forEach((id) => { if (lib.indexOf(id) >= 0) reprova(id + ' entrou sem elenco no pacote'); });
+  conferir('classificado desconhecido foi materializado do elenco compacto',
+    Array.isArray(S.squads['arg1']) && S.squads['arg1'].length === 18, true);
+  const arq = (S.archive || [])[0] || {};
+  conferir('o arquivo tem o país', !!(arq.paises && arq.paises['Argentina'] && arq.paises['Argentina'].champ), true);
+  conferir('a história do país registrou a temporada', L.history.length, 1);
+  conferir('a artilharia zerou pra temporada nova', Object.keys(L.scorers).length, 0);
 });
 
 console.log('');
