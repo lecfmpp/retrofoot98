@@ -2497,7 +2497,19 @@ function applyHumanTransfers(S: any, transfers: any[], humans?: Set<string>) {
       return;
     }
     const src = S.squads[t.from];
-    if (!Array.isArray(src)) return;
+    if (!Array.isArray(src)) {
+      /* CLUBE DE ORIGEM FORA DO MUNDO (mercado exterior, 21/08): o comprador humano navegou o
+         bundle no cliente e o clube nunca foi materializado aqui. O jogador viaja INTEIRO no
+         payload (t.player, ver recordNetTransfer) — adiciona ao destino, idempotente, mesmo
+         caminho do 'BASE'. Sem retrato não há o que aplicar (cliente antigo): nada a fazer. */
+      const dstF = t.to ? S.squads[t.to] : null;
+      if (Array.isArray(dstF) && t.player) {
+        if (dstF.some((x: any) => match(x, t) || (t.player.pid != null && x.pid === t.player.pid) || x.n === t.player.n)) return;
+        dstF.push(t.player);
+        if (dstF.length) S.clubOverall[t.to] = Math.round(dstF.reduce((s: number, x: any) => s + x.f, 0) / dstF.length);
+      }
+      return;
+    }
     const fee = Math.round(Number(t.fee) || 0);
 
     if (!t.to) {                                                  // saída do mundo (multa rescisória)

@@ -496,7 +496,17 @@ function recordNetTransfer(fromId, toId, playerName, contract, fee, pid){
   if(!fromId || !playerName) return;
   S._netTransfers = S._netTransfers || [];
   // pid = identidade por ID (move o homônimo CERTO no servidor); nome fica como fallback
-  S._netTransfers.push({ p:playerName, pid:pid||null, from:fromId, to:toId||null, contract:contract||null, fee:Math.round(fee||0) });
+  const t={ p:playerName, pid:pid||null, from:fromId, to:toId||null, contract:contract||null, fee:Math.round(fee||0) };
+  /* COMPRA PRO MEU CLUBE LEVA O RETRATO INTEIRO (mercado exterior, 21/08): o clube de origem
+     pode nem existir no mundo do servidor (bundle materializado só neste cliente) — sem o
+     retrato, o applyHumanTransfers não tinha de onde tirar o jogador e a compra evaporava no
+     adopt seguinte. Mesmo caminho do 'BASE' (jogador embutido, idempotente por pid). */
+  if(toId===S.clubId){
+    const acha=arr=>Array.isArray(arr)?arr.find(x=>x&&((pid&&x.pid===pid)||x.n===playerName)):null;
+    const pj=acha(S.squads&&S.squads[toId])||acha(S.squads&&S.squads[fromId]);
+    if(pj) t.player={...pj, stats:{r3:[],g3:[],apps:0,goals:0,cs:0}, contract:contract||pj.contract||null};
+  }
+  S._netTransfers.push(t);
 }
 /* ===== SUBIR JOGADOR DA BASE (item 5) — uma vez por TURNO do campeonato =====
    Gera um jovem das categorias de base (16-19 anos) no nível da divisão do time, na posição mais
@@ -2763,6 +2773,41 @@ function ensureContinentalCupClubs(ids){
     if(!S.clubPool[id]) S.clubPool[id]=c;
     if(!S.squads[id]) S.squads[id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}),'A'));
   });
+}
+/* ===== MERCADO EXTERIOR (regra do dono, 21/08) =====
+   O humano pode procurar jogador em QUALQUER país com bundle de clubes+elencos reais
+   (CONMEBOL_LEAGUES e INTL_LEAGUES), nos dois modos, desde a 1ª temporada — o talento
+   barato do vizinho e o astro europeu. A lista é NAVEGADA direto do bundle (nada entra
+   no mundo por olhar); o clube só é MATERIALIZADO (elenco no S.squads) quando o jogador
+   abre negociação — o mesmo caminho de ensureContinentalCupClubs. Na Resenha, a compra
+   viaja com o retrato inteiro do jogador (ver recordNetTransfer): o servidor pode nunca
+   ter visto o clube de origem. */
+function foreignMarketCountries(){
+  const CLG=(typeof window!=='undefined'&&window.CONMEBOL_LEAGUES)||{};
+  const INT=(typeof window!=='undefined'&&window.INTL_LEAGUES)||{};
+  const out=['Brasil'];
+  Object.keys(CLG).forEach(n=>{ if(out.indexOf(n)<0) out.push(n); });
+  Object.keys(INT).forEach(n=>{ if(out.indexOf(n)<0) out.push(n); });
+  return out;
+}
+function foreignClubsOf(pais){
+  if(pais==='Brasil') return ((typeof DATA!=='undefined'&&DATA.clubsSerieA)||[]);
+  const CLG=(typeof window!=='undefined'&&window.CONMEBOL_LEAGUES)||{};
+  const INT=(typeof window!=='undefined'&&window.INTL_LEAGUES)||{};
+  return (CLG[pais]||INT[pais]||[]);
+}
+function foreignClubById(pais,id){
+  return foreignClubsOf(pais).find(c=>String(c.id)===String(id))||null;
+}
+/* materializa UM clube do exterior no mundo (idempotente) — pré-condição de negociar com ele */
+function ensureForeignClub(pais,id){
+  const c=(S.clubPool&&S.clubPool[id])||foreignClubById(pais,id); if(!c) return false;
+  S.clubPool=S.clubPool||{}; S.squads=S.squads||{};
+  if(pais==='Brasil' && !c.country && typeof CONMEBOL_COUNTRIES!=='undefined') c.country=CONMEBOL_COUNTRIES.BRA;
+  else if(!c.country) c.country=pais;
+  if(!S.clubPool[id]) S.clubPool[id]=c;
+  if(!S.squads[id]) S.squads[id]=gkSquad(c).map(p=>attachAttrs(initStats({...p}),'A'));
+  return true;
 }
 function initConmebolCups(){
   /* EM 2026 VALEM OS GRUPOS REAIS, TAMBEM AQUI.

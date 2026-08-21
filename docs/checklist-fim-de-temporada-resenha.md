@@ -117,6 +117,13 @@ Pedido do dono (21/08): na Resenha o Gravar não faz sentido (o estado mora no s
 
 ---
 
+## 12. [x] Mercado exterior: buscar jogadores em qualquer país (dois modos, desde a 1ª temporada)
+
+Pedido do dono (21/08). O Mercado→Comprar ganhou o filtro **País** (primeiro da fila): "o meu campeonato" é o de sempre, e cada país com bundle real (CONMEBOL + Europa) vira prateleira navegável; o filtro de **Clube** carrega conforme o país. A lista é lida direto do bundle (nada entra no mundo por olhar); o clube só é materializado ao abrir negociação (`ensureForeignClub`), e daí toda a negociação existente funciona igual. Na Resenha, a compra viaja com o retrato inteiro do jogador (`t.player`, mesmo caminho do 'BASE') — o servidor adiciona ao destino mesmo sem nunca ter visto o clube de origem. Testado ponta a ponta no solo (compra de jogador do Bolívar-BOL: taxa, salário, contrato, débito e elenco).
+**Quirk pré-existente anotado:** clubes das copas 2026 vivem no mundo com ids `intl_*` enquanto o bundle usa `cmb_*` — o mesmo clube real pode existir duas vezes no mundo (ex.: dois Bolívar). Não é causado pelo mercado novo; ligado ao item 4/multi-país.
+
+---
+
 ## Ordem sugerida
 
 1. **Item 6** (arquivar classificações) — urgente: salva a temporada que fechou na WEBLG antes da próxima virada.

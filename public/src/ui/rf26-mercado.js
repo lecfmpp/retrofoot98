@@ -97,13 +97,19 @@ function rfMkFechaEm(roundsLeft){
 function rfMkDataDaJornada(i){
   return (typeof dataCurtaDaJornada==='function') ? dataCurtaDaJornada(i, 'liga') : '';
 }
-function rfMkClube(id){
-  const c=anyClubOf(id)||{short:'—'};
-  // ver rfCpClube: no telefone fica só o escudo, o nome chega pelo `title`, e o
-  // clique abre o elenco do clube
-  const acao = (id===CL.clubId) ? 'clGoSquad()' : `clViewTeam('${escC(String(id))}')`;
+function rfMkClube(id, cObj, pais){
+  // clube do exterior ainda não materializado: anyClubOf não o conhece — o objeto do bundle
+  // vem junto da linha (ver rfMktMercado) e o clique materializa antes de abrir o elenco
+  const c=cObj||anyClubOf(id)||{short:'—'};
+  const acao = (id===CL.clubId) ? 'clGoSquad()'
+    : pais ? `rfMkVerClubeFora('${escC(String(pais))}','${escC(String(id))}')`
+    : `clViewTeam('${escC(String(id))}')`;
   return `<span class="rf-mkt-clube rf-clicavel" title="Ver o elenco do ${escC(c.short||'')}"
     onclick="event.stopPropagation();${acao}">${rfCrest(c,22)}<span>${escC(c.short)}</span></span>`;
+}
+function rfMkVerClubeFora(pais,id){
+  if(typeof ensureForeignClub==='function') ensureForeignClub(pais,id);
+  if(typeof clViewTeam==='function') clViewTeam(id);
 }
 function rfMkPos(p){ return `<span class="rf-mkt-pos">${escC(rfPosInicial(p.s))}</span>`; }
 /* a referência usa UMA letra por setor (G/D/M/A) */
@@ -133,6 +139,13 @@ function rfMkCamisaHTML(num){ return rfElCamisa(num,'m'); }
    1 · COMPRAR
    ===================================================================== */
 const RF_MKT_FILTROS=[
+  /* ===== O MERCADO ABRE O MUNDO (regra do dono, 21/08) =====
+     O primeiro filtro é o PAÍS: "o meu campeonato" é o mercado de sempre, e cada país com
+     bundle de clubes+elencos reais (CONMEBOL + Europa) vira uma prateleira navegável — o
+     talento barato do vizinho e o astro internacional, nos dois modos, desde a 1ª temporada.
+     A lista é lida direto do bundle; o clube só entra no mundo quando se abre negociação
+     (ensureForeignClub). O filtro de clube carrega conforme o país escolhido. */
+  { k:'pais',  l:'País',    op:()=>rfMktPaisesOp() },
   { k:'pos',   l:'Posição', op:[['all','Todas'],['GK','Goleiros'],['DEF','Defesa'],['MID','Meio'],['ATT','Ataque']] },
   /* ===== A ESCALA DO FILTRO NAO ERA A ESCALA DO JOGO =====
      As opcoes eram 70+/80+/90+, herdadas de um jogo em que a forca vai a 99 na media. Aqui a
@@ -151,16 +164,29 @@ const RF_MKT_FILTROS=[
 /* Os clubes vêm de DATA.clubs, NÃO do mercado já filtrado: se saíssem da lista
    filtrada, escolher um clube deixaria só ele na própria caixa de selecção e não
    haveria como voltar a outro. */
+function rfMktPaisesOp(){
+  const paises=(typeof foreignMarketCountries==='function')?foreignMarketCountries():[];
+  return [['meu','o meu campeonato']].concat(paises.map(p=>[p,p]));
+}
 function rfMktClubesOp(){
-  const lista=(DATA.clubs||[])
+  const f=rfMktF();
+  const fonte = (f.pais && f.pais!=='meu' && typeof foreignClubsOf==='function')
+    ? foreignClubsOf(f.pais)
+    : (DATA.clubs||[]);
+  const lista=fonte
     .filter(c=>c.id!==CL.clubId)
     .map(c=>[String(c.id), c.short||c.name||String(c.id)])
     .sort((a,b)=>a[1].localeCompare(b[1],'pt-BR'));
   return [['all','qualquer']].concat(lista);
 }
-function rfMktF(){ return CL.mktF||(CL.mktF={pos:'all',forca:'all',idade:'all',preco:'all',clube:'all',q:''}); }
-function rfMktSetF(k,v){ rfMktF()[k]=v; CL._mktCache2=null; cdraw(); }
-function rfMktLimpar(){ CL.mktF={pos:'all',forca:'all',idade:'all',preco:'all',clube:'all',q:''}; CL._mktCache2=null; cdraw(); }
+function rfMktF(){ return CL.mktF||(CL.mktF={pais:'meu',pos:'all',forca:'all',idade:'all',preco:'all',clube:'all',q:''}); }
+function rfMktSetF(k,v){
+  const f=rfMktF(); f[k]=v;
+  if(k==='pais') f.clube='all';   // o filtro de clube é DO país escolhido — trocar de país o zera
+  if(f.pais==null) f.pais='meu';  // filtro salvo antes do país existir
+  CL._mktCache2=null; cdraw();
+}
+function rfMktLimpar(){ CL.mktF={pais:'meu',pos:'all',forca:'all',idade:'all',preco:'all',clube:'all',q:''}; CL._mktCache2=null; cdraw(); }
 /* ===== BUSCA POR NOME =====
    "Buscar jogador", no Resumo, levava para a aba Comprar e mais nada: nao havia
    campo nenhum onde escrever um nome. Quem procura alguem em concreto tinha de
@@ -196,19 +222,28 @@ function rfMktMercado(){
   const f=rfMktF();
   const teto=S.budget||0;
   const out=[];
-  (DATA.clubs||[]).forEach(c=>{
+  const fora = f.pais && f.pais!=='meu';
+  /* no exterior a fonte é o BUNDLE do país (clubes+elencos reais); um clube já materializado
+     no mundo (compra anterior, copa continental) usa o elenco VIVO do S.squads — é nele que
+     as vendas já feitas aparecem */
+  const clubes = (fora && typeof foreignClubsOf==='function') ? foreignClubsOf(f.pais) : (DATA.clubs||[]);
+  clubes.forEach(c=>{
     if(c.id===CL.clubId) return;
-    (squad(c.id)||[]).forEach(p=>{
+    const elenco = fora
+      ? ((S.squads&&S.squads[c.id]) || (typeof gkSquad==='function'?gkSquad(c):(c.squad||[])))
+      : (squad(c.id)||[]);
+    (elenco||[]).forEach(p=>{
       if(typeof isTradeLocked==='function' && isTradeLocked(p)) return;
       if(f.pos!=='all' && p.s!==f.pos) return;
       if(f.forca!=='all' && (p.f||0)<Number(f.forca)) return;
       if(f.idade!=='all' && (p.age||0)>Number(f.idade)) return;
-      const ask=(typeof playerAsk==='function')?playerAsk(p,c.id):(p.mv||0);
+      let ask=p.mv||0;
+      try{ if(typeof playerAsk==='function') ask=playerAsk(p,c.id); }catch(e){}
       if(f.preco==='caixa' && ask>teto) return;
       if(f.preco==='meio'  && ask>teto/2) return;
       if(f.clube && f.clube!=='all' && String(c.id)!==String(f.clube)) return;
       if(f.q && rfMktNorm(p.n).indexOf(rfMktNorm(f.q))<0) return;
-      out.push({p,clubId:c.id,ask});
+      out.push({p,clubId:c.id,ask,pais:fora?f.pais:null,clube:c});
     });
   });
   out.sort((a,b)=>(b.p.f||0)-(a.p.f||0));
@@ -248,16 +283,18 @@ function rfMktFiltrosHTML(){
    passar por cdraw() -- ver rfMktBusca. */
 function rfMktComprarTabelaHTML(){
   const mostra=rfMktMercado().slice(0,60);
-  const linhas=mostra.map(({p,clubId,ask})=>`<div class="rf-mkt-row" onclick="rfMkPropor('${escC(clubId)}','${escC(p.n)}')">
+  const linhas=mostra.map(({p,clubId,ask,pais,clube})=>{
+    const propor=`rfMkPropor('${escC(clubId)}','${escC(p.n)}','${escC(pais||'')}')`;
+    return `<div class="rf-mkt-row" onclick="${propor}">
     <span class="rf-mkt-n">${escC(p.n)}</span>
     <span class="rf-mkt-f">${p.f}</span>
     ${rfMkPos(p)}
     <span class="rf-mkt-x">${p.age||'—'}</span>
-    ${rfMkClube(clubId)}
+    ${rfMkClube(clubId, pais?clube:null, pais)}
     <span class="rf-mkt-v">${escC(rfDin(ask))}</span>
     <span class="rf-mkt-v leve">${escC(rfMkSalario(p))}</span>
-    ${rfMkBt('Propor',`rfMkPropor('${escC(clubId)}','${escC(p.n)}')`)}
-  </div>`);
+    ${rfMkBt('Propor',propor)}
+  </div>`;});
   const cabecalho=`<span>JOGADOR</span><span>FOR</span><span>POS</span><span>IDA</span>
     <span>CLUBE</span><span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
   const vazio=(rfMktF().q||'').trim()
@@ -635,7 +672,10 @@ function rfMkCampoHTML(id, rotulo, valor, dica){
 }
 
 /* ---- 1 · PROPOR / SUBIR A OFERTA (Comprar e Contrapropostas) ---- */
-function rfMkPropor(clubId, nome){
+function rfMkPropor(clubId, nome, pais){
+  // clube do exterior: entra no mundo AGORA (elenco real do bundle) — é a pré-condição de
+  // toda a negociação existente (findP, playerAsk, S.negos) funcionar sem saber de onde veio
+  if(pais && typeof ensureForeignClub==='function') ensureForeignClub(pais, clubId);
   rfAcPreparar(clubId, nome); if(!CL.market) return;
   rfAcAbrir('mkt-propor', {clubId, player:nome, oferta:CL.market.offer});
 }
