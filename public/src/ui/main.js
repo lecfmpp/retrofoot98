@@ -4827,7 +4827,12 @@ function abrirMomento(id, dados, aoFechar){
   CL._momentoAtual={id, aoFechar:aoFechar||null};
   const clube=clubOf(dados.clubId!=null?dados.clubId:CL.clubId)||{short:'—'};
   const claro = def.corpo==='green';
-  const vid=VIDEOS_MOMENTO[id];
+  // override do painel de admin (por país/divisão/competição) vence; sem ele, o arquivo de sempre
+  let vid=VIDEOS_MOMENTO[id];
+  if(typeof MOMENTO_VIDEOS!=='undefined'){
+    const ov=MOMENTO_VIDEOS.url(id, MOMENTO_VIDEOS.ctxDeTrofeu(dados.trofeu));
+    if(ov) vid=ov;
+  }
   // o troféu pode ser de COMPETIÇÃO (copaBrasil, libertadores…) ou de DIVISÃO (A, B, C, D) — são
   // dois catálogos diferentes no jogo. Resolve nos dois, na ordem, e some se não houver arte.
   let trof='';

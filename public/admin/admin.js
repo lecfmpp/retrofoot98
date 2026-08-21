@@ -23,6 +23,7 @@ const SB_KEY = 'sb_publishable_WxYyZVfS-ER00kl2q5bBHg_qifOGq5k';
 const SCHEMA = 'admin_rf98';      // schema padrão do painel
 const SCHEMA_JOGO = 'elifoot_v3'; // inventário de anúncios e tempo de jogo
 const BUCKET = 'publicidade';
+const BUCKET_VIDEOS = 'momentos';
 
 let sb = null;
 /* tabelas do jogo (ad_spaces, ad_creatives): mesmo client, outro schema */
@@ -154,10 +155,10 @@ const PAPEIS = { socio:'Sócio · vê tudo', financeiro:'Financeiro', produto:'P
 /* o que cada papel vê (o guia: socio=tudo, financeiro=Finanças+Publicidade,
    produto=Analytics/Usuários/Funcionalidades, leitura=tudo em modo leitura) */
 const ACESSO = {
-  socio:      ['visao','usuarios','jogos','analytics','financas','publicidade','parceiros','conteudo','features','editor','equipa'],
+  socio:      ['visao','usuarios','jogos','analytics','financas','publicidade','videos','parceiros','conteudo','features','editor','equipa'],
   financeiro: ['visao','financas','publicidade','parceiros'],
-  produto:    ['visao','usuarios','jogos','analytics','parceiros','conteudo','features','editor'],
-  leitura:    ['visao','usuarios','jogos','analytics','financas','publicidade','parceiros','conteudo','features','editor']
+  produto:    ['visao','usuarios','jogos','analytics','parceiros','videos','conteudo','features','editor'],
+  leitura:    ['visao','usuarios','jogos','analytics','financas','publicidade','videos','parceiros','conteudo','features','editor']
 };
 function podeVer(tab){ return (ACESSO[ME&&ME.papel] || ACESSO.leitura).includes(tab); }
 function podeEditar(area){
@@ -319,6 +320,7 @@ const NAV = [
   { id:'analytics',   ic:'◔', label:'Analytics',      tit:'Analytics',          sub:'Visitas, contas e funil' },
   { id:'financas',    ic:'▤', label:'Finanças',       tit:'Finanças',           sub:'Receita, despesa e fecho do mês' },
   { id:'publicidade', ic:'◫', label:'Publicidade',    tit:'Publicidade',        sub:'Patrocinadores e espaços do jogo' },
+  { id:'videos',      ic:'▶', label:'Vídeos',         tit:'Vídeos do jogo',     sub:'Celebrações e momentos — por tela, e por país/liga/competição' },
   { id:'features',    ic:'✦', label:'Funcionalidades',tit:'Funcionalidades',    sub:'O que os treinadores pedem' },
   { id:'parceiros',   ic:'★', label:'Parceiros',      tit:'Parceiros influenciadores', sub:'Canais, link de indicação e o que ele trouxe' },
   { id:'conteudo',    ic:'▦', label:'Conteúdo',       tit:'Calendário de conteúdo', sub:'Da ideia ao agendado, por canal' },
@@ -344,7 +346,7 @@ function irPara(tab, forcar){
   el('pg-tit').textContent = n.tit; el('pg-sub').textContent = n.sub;
   el('page').innerHTML = '<div class="vazio">Carregando…</div>';
   const fn = { visao:pgVisao, usuarios:pgUsuarios, jogos:pgJogos, analytics:pgAnalytics,
-               financas:pgFinancas, publicidade:pgPublicidade, features:pgFeatures,
+               financas:pgFinancas, publicidade:pgPublicidade, videos:pgVideos, features:pgFeatures,
                parceiros:pgParceiros, conteudo:pgConteudo,
                editor:pgEditor, equipa:pgEquipa }[tab];
   fn(forcar).catch(e => { el('page').innerHTML = `<div class="erro">${h(erroMsg(e))}</div>`; });
@@ -1547,6 +1549,233 @@ function modalUpload(chave){
       fecharModal(); toast('Criativo no ar em '+e.chave); pgPublicidade();
     }catch(err){
       btn.disabled = false; btn.textContent = 'Publicar criativo';
+      falhar(erroMsg(err));
+    }
+  };
+}
+
+/* ============================ VÍDEOS ============================
+   Cada "momento" é uma chave fixa que o próprio jogo já usa (VIDEOS_MOMENTO
+   em src/ui/main.js e afins) — não existe uma tabela-catálogo porque uma
+   chave nova só nasce junto de uma mudança de código, então o catálogo é
+   escrito à mão aqui, igual ao inventário de ad_spaces só que sem passar
+   pelo banco. O que É dinâmico é elifoot_v3.momento_videos: cada linha é um
+   vídeo publicado, global (escopo_tipo null) ou só para um país/divisão/
+   competição — o jogo escolhe o mais específico que encontrar e, se não
+   houver nenhum, usa o arquivo estático que já vem no jogo (sem quebrar
+   nada enquanto ninguém publica nada aqui). */
+const VIDEO_SLOTS = [
+  { chave:'campeao-liga',        nome:'Campeão da liga',        tela:'Fim de temporada', momento:'O clube do treinador foi campeão da própria divisão', modal:'Modal de celebração (tela cheia)' },
+  { chave:'campeao-copa',        nome:'Campeão de copa',        tela:'Fim de copa (Copa do Brasil, Libertadores, Sul-Americana…)', momento:'O clube venceu aquela copa', modal:'Modal de celebração (tela cheia)' },
+  { chave:'marcador-liga',       nome:'Artilheiro da liga',     tela:'Fim de temporada', momento:'Um jogador do clube foi o artilheiro da liga', modal:'Modal de artilheiro' },
+  { chave:'marcador-copa',       nome:'Artilheiro da copa',     tela:'Fim de copa', momento:'Um jogador do clube foi o artilheiro daquela copa', modal:'Modal de artilheiro' },
+  { chave:'promovido',           nome:'Acesso / promoção',      tela:'Fim de temporada', momento:'O clube subiu de divisão', modal:'Modal de resumo da temporada' },
+  { chave:'rebaixado',           nome:'Rebaixamento',           tela:'Fim de temporada', momento:'O clube caiu de divisão', modal:'Modal de resumo da temporada' },
+  { chave:'abertura-copa',       nome:'Abertura de copa',       tela:'Início da fase de grupos / mata-mata', momento:'Uma copa está começando', modal:'Modal de abertura da competição' },
+  { chave:'final-copa',          nome:'Véspera da final',       tela:'Véspera da final de copa', momento:'O clube vai disputar a final', modal:'Modal de pré-jogo' },
+  { chave:'crise',               nome:'Crise no clube',         tela:'Aviso da diretoria', momento:'A segurança no cargo do treinador caiu abaixo de 30%', modal:'Modal "a diretoria quer falar com você"' },
+  { chave:'boas-vindas',         nome:'Boas-vindas ao clube',   tela:'Início de carreira / troca de clube', momento:'O treinador assume um clube novo', modal:'Tela de boas-vindas' },
+  { chave:'convite-jantar',      nome:'Convite para jantar',    tela:'Sondagem de outro clube', momento:'Um clube convida o treinador para conversar', modal:'Modal "convite para jantar"' },
+  { chave:'convite-assinatura',  nome:'Proposta na mesa',       tela:'Sondagem de outro clube', momento:'O clube coloca uma proposta formal na mesa', modal:'Modal "a proposta"' }
+];
+const ESCOPO_LABEL = { pais:'País', divisao:'Divisão', competicao:'Competição' };
+
+async function pgVideos(){
+  const { data, error } = await jogo('momento_videos').select('*').eq('ativo', true).order('criado_em', {ascending:false});
+  if(error) throw error;
+  D.videos = data || [];
+  const editar = podeEditar('produto');
+  const porChave = {};
+  VIDEO_SLOTS.forEach(s => porChave[s.chave] = { global:null, escopos:[] });
+  D.videos.forEach(v => {
+    const b = porChave[v.chave_momento]; if(!b) return;
+    if(v.escopo_tipo) b.escopos.push(v); else if(!b.global) b.global = v;
+  });
+  const noAr = VIDEO_SLOTS.filter(s => porChave[s.chave].global).length;
+
+  el('page').innerHTML = `
+    <div class="g4">
+      ${kpiHTML({l:'Momentos com vídeo', v:`${noAr}/${VIDEO_SLOTS.length}`, d:`${VIDEO_SLOTS.length-noAr} ainda no arquivo padrão do jogo`})}
+      ${kpiHTML({l:'Variações por escopo', v:num(D.videos.filter(v=>v.escopo_tipo).length), d:'só para um país, divisão ou competição'})}
+    </div>
+    <div class="card card-p">
+      <div class="tt" style="margin-bottom:6px">Como o jogo escolhe o vídeo</div>
+      <div class="st" style="line-height:1.7">
+        Para cada momento, o jogo procura primeiro uma variação que bata com o país/divisão/competição
+        daquela partida; se não achar, usa o vídeo <b>global</b> publicado aqui; se também não houver,
+        cai no arquivo que já vem dentro do jogo — trocar ou tirar um vídeo aqui nunca deixa a tela sem vídeo.
+      </div>
+    </div>
+    <div class="g3">${VIDEO_SLOTS.map(s=>videoSlotHTML(s, porChave[s.chave], editar)).join('')}</div>`;
+
+  if(editar){
+    document.querySelectorAll('[data-vid-upload]').forEach(b => b.onclick = () => modalUploadVideo(b.dataset.vidUpload, null, null));
+    document.querySelectorAll('[data-vid-add-escopo]').forEach(b => b.onclick = () => modalEscopoVideo(b.dataset.vidAddEscopo));
+    document.querySelectorAll('[data-vid-tirar]').forEach(b => b.onclick = async () => {
+      if(!confirm('Tirar este vídeo do ar? O jogo volta a usar o próximo da lista (escopo mais amplo, ou o arquivo padrão).')) return;
+      const { error } = await jogo('momento_videos').update({ ativo:false }).eq('id', b.dataset.vidTirar);
+      if(error) return toast(erroMsg(error), true);
+      registrar('video.tirar', b.dataset.vidTirar);
+      toast('Vídeo fora do ar.'); pgVideos();
+    });
+  }
+}
+
+function videoPreviewHTML(v){
+  if(!v) return `<div class="prev"><span style="font-size:12.5px;font-weight:600;color:var(--dim2)">Arquivo padrão do jogo</span></div>`;
+  return `<div class="prev tem"><video src="${h(v.ficheiro_url)}" muted autoplay loop playsinline></video></div>`;
+}
+
+function videoSlotHTML(s, b, editar){
+  const g = b.global;
+  return `<div class="slot ${g?'no-ar':'livre'}">
+    <div style="display:flex;align-items:flex-start;gap:8px">
+      <div style="flex:1;min-width:0">
+        <b style="display:block;font-size:13.5px;font-weight:700">${h(s.nome)}</b>
+        <small style="display:block;font-size:11.5px;color:var(--dim2)">${h(s.tela)}</small>
+        <code>${h(s.chave)}</code>
+      </div>
+      <span class="tag t-roxo">${h(s.modal)}</span>
+    </div>
+    <div class="st" style="font-size:12px;color:var(--dim2);margin:6px 0">${h(s.momento)}</div>
+    ${videoPreviewHTML(g)}
+    <div class="foot">
+      <span style="flex:1;font-size:12px;color:${g?'var(--verde2)':'var(--dim2)'}">
+        ${g ? 'Vídeo global no ar' : 'Sem vídeo global — usando o arquivo padrão'}
+      </span>
+      ${editar ? (g?`<button class="btn btn-sm btn-ghost" data-vid-tirar="${g.id}">Tirar</button>`:'') +
+        `<button class="btn btn-sm" data-vid-upload="${h(s.chave)}">${g?'Trocar':'Enviar'}</button>` : ''}
+    </div>
+    ${b.escopos.length ? `<div class="col" style="gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--borda)">
+      ${b.escopos.map(v=>`
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="tag t-azul">${h(ESCOPO_LABEL[v.escopo_tipo]||v.escopo_tipo)}: ${h(v.escopo_valor)}</span>
+          <span style="flex:1"></span>
+          ${editar?`<span class="link" data-vid-tirar="${v.id}" style="color:var(--dim3);font-size:12px" title="Tirar">Tirar</span>`:''}
+        </div>`).join('')}
+    </div>` : ''}
+    ${editar ? `<div style="margin-top:8px"><span class="link" data-vid-add-escopo="${h(s.chave)}" style="font-size:12px;color:var(--dim2)">+ Variação por país / divisão / competição</span></div>` : ''}
+  </div>`;
+}
+
+function modalEscopoVideo(chave){
+  abrirModal(`
+    <h3>Nova variação</h3>
+    <div style="font-size:12.5px;color:var(--dim2);margin:-12px 0 18px">${h((VIDEO_SLOTS.find(s=>s.chave===chave)||{}).nome||chave)}</div>
+    <div class="col">
+      <label class="f">Vale para<select class="f" id="ve-tipo">
+        <option value="pais">País</option>
+        <option value="divisao">Divisão</option>
+        <option value="competicao">Competição</option>
+      </select></label>
+      <label class="f" id="ve-valor-l">Valor<input class="f" id="ve-valor" placeholder="Ex.: Brasil"></label>
+      <div class="st" style="font-size:11.5px;color:var(--dim3)">
+        Precisa bater exatamente com o valor interno do jogo — ex.: divisão costuma ser <code class="mono">A</code>,
+        <code class="mono">B</code>, <code class="mono">C</code> ou <code class="mono">D</code>; competição costuma ser
+        algo como <code class="mono">copaBrasil</code>, <code class="mono">libertadores</code>, <code class="mono">sulamericana</code>.
+        Se não bater com nada, o jogo simplesmente ignora essa variação e usa o vídeo global.
+      </div>
+      <div class="acoes">
+        <button class="btn" id="ve-ok">Continuar</button>
+        <button class="btn btn-ghost" data-fechar>Cancelar</button>
+      </div>
+    </div>`);
+  const dicas = { pais:'Ex.: Brasil, Inglaterra, Argentina', divisao:'Ex.: A, B, C, D', competicao:'Ex.: copaBrasil, libertadores, sulamericana' };
+  const atualizarDica = () => el('ve-valor').placeholder = dicas[el('ve-tipo').value];
+  el('ve-tipo').onchange = atualizarDica; atualizarDica();
+  el('ve-ok').onclick = () => {
+    const valor = el('ve-valor').value.trim();
+    if(!valor) return toast('Digite o valor do escopo.', true);
+    fecharModal(); modalUploadVideo(chave, el('ve-tipo').value, valor);
+  };
+}
+
+function modalUploadVideo(chave, escopoTipo, escopoValor){
+  const s = VIDEO_SLOTS.find(x=>x.chave===chave); if(!s) return;
+  let arquivo = null;
+  const tit = escopoTipo ? `${h(s.nome)} · ${h(ESCOPO_LABEL[escopoTipo])}: ${h(escopoValor)}` : `${h(s.nome)} · vídeo global`;
+
+  abrirModal(`
+    <h3>Enviar vídeo</h3>
+    <div style="font-size:12.5px;color:var(--dim2);margin:-12px 0 18px">${tit}</div>
+    <div class="spec">
+      <div class="full"><code class="mono" style="color:var(--verde2)">${h(s.chave)}</code>
+        <span style="color:var(--dim2);text-align:right">${h(s.tela)}</span></div>
+      <div><span style="color:var(--dim2)">Formatos</span><b>MP4, WEBM</b></div>
+      <div><span style="color:var(--dim2)">Peso máx.</span><b>15 MB</b></div>
+      <div><span style="color:var(--dim2)">Duração máx.</span><b>20s</b></div>
+    </div>
+    <div class="col">
+      <div class="drop" id="uv-drop">
+        <div class="ic">⬆</div>
+        <div class="t" id="uv-tit">Escolher arquivo</div>
+        <div class="s" id="uv-sub">.mp4 ou .webm até 15 MB</div>
+        <input type="file" id="uv-file" accept=".mp4,.webm" style="display:none">
+      </div>
+      <div class="erro hide" id="uv-erro"></div>
+      <div class="acoes">
+        <button class="btn" id="uv-ok">Publicar vídeo</button>
+        <button class="btn btn-ghost" data-fechar>Cancelar</button>
+      </div>
+    </div>`, 'lg');
+
+  const drop = el('uv-drop'), input = el('uv-file'), erro = el('uv-erro');
+  const falhar = m => { erro.textContent = m; erro.classList.remove('hide'); drop.classList.remove('ok'); arquivo=null; };
+  drop.onclick = () => input.click();
+  drop.ondragover = ev => { ev.preventDefault(); drop.classList.add('ok'); };
+  drop.ondragleave = () => drop.classList.remove('ok');
+  drop.ondrop = ev => { ev.preventDefault(); if(ev.dataTransfer.files[0]) validar(ev.dataTransfer.files[0]); };
+  input.onchange = () => { if(input.files[0]) validar(input.files[0]); };
+
+  const PESO_MAX = 15*1024*1024, DUR_MAX = 20;
+  async function validar(f){
+    erro.classList.add('hide');
+    const ext = (f.name.split('.').pop()||'').toLowerCase();
+    if(ext!=='mp4' && ext!=='webm') return falhar(`Formato .${ext} não é aceito (só mp4 ou webm).`);
+    if(f.size > PESO_MAX) return falhar(`O arquivo tem ${Math.round(f.size/1024/1024)} MB e o máximo é 15 MB.`);
+    try{ await medir(f); }catch(err){ return falhar(erroMsg(err)); }
+    arquivo = f; drop.classList.add('ok');
+    el('uv-tit').textContent = f.name;
+    el('uv-sub').textContent = `${Math.round(f.size/1024)} KB — pronto para publicar`;
+  }
+  function medir(f){
+    return new Promise((res, rej) => {
+      const url = URL.createObjectURL(f);
+      const v = document.createElement('video');
+      const limite = DUR_MAX + 0.5;
+      v.onloadedmetadata = () => { URL.revokeObjectURL(url);
+        if(v.duration > limite) return rej(new Error('vídeo maior que '+DUR_MAX+' s'));
+        res(); };
+      v.onerror = () => { URL.revokeObjectURL(url); rej(new Error('vídeo inválido')); };
+      v.src = url;
+    });
+  }
+
+  el('uv-ok').onclick = async () => {
+    if(!arquivo) return falhar('Escolha um arquivo primeiro.');
+    const btn = el('uv-ok'); btn.disabled = true; btn.textContent = 'Publicando…';
+    try{
+      const ext = (arquivo.name.split('.').pop()||'').toLowerCase();
+      const caminho = `${chave}/${escopoTipo||'global'}-${escopoValor||''}-${Date.now()}.${ext}`;
+      const up = await sb.storage.from(BUCKET_VIDEOS).upload(caminho, arquivo, {
+        contentType: ext==='webm'?'video/webm':'video/mp4', upsert:false, cacheControl:'300'
+      });
+      if(up.error) throw up.error;
+      const url = sb.storage.from(BUCKET_VIDEOS).getPublicUrl(caminho).data.publicUrl;
+      // publicar SUBSTITUI: só um vídeo ativo por (momento, escopo) de cada vez
+      let desativar = jogo('momento_videos').update({ ativo:false }).eq('chave_momento', chave).eq('ativo', true);
+      desativar = escopoTipo ? desativar.eq('escopo_tipo', escopoTipo).eq('escopo_valor', escopoValor) : desativar.is('escopo_tipo', null);
+      await desativar;
+      const ins = await jogo('momento_videos').insert({
+        chave_momento: chave, escopo_tipo: escopoTipo||null, escopo_valor: escopoValor||null,
+        ficheiro_url: url, ficheiro_path: caminho,
+        mime: ext==='webm'?'video/webm':'video/mp4', bytes: arquivo.size
+      });
+      if(ins.error) throw ins.error;
+      registrar('video.publicar', chave, {arquivo:caminho, bytes:arquivo.size, escopoTipo, escopoValor});
+      fecharModal(); toast('Vídeo no ar em '+chave); pgVideos();
+    }catch(err){
+      btn.disabled = false; btn.textContent = 'Publicar vídeo';
       falhar(erroMsg(err));
     }
   };

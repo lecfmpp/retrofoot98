@@ -1306,7 +1306,12 @@ function rfCampeaoDadosLiga(div, info){
    escuro + troféu + manchete continuam legíveis, que é o critério de aceite do próprio pacote. */
 function rfCampeaoHTML(d){
   if(!d) return '';
-  const vid=(typeof VIDEOS_MOMENTO!=='undefined' && VIDEOS_MOMENTO['campeao-copa'])||'';
+  let vid=(typeof VIDEOS_MOMENTO!=='undefined' && VIDEOS_MOMENTO['campeao-copa'])||'';
+  if(typeof MOMENTO_VIDEOS!=='undefined'){
+    const chave=d.liga?'campeao-liga':'campeao-copa';
+    const ov=MOMENTO_VIDEOS.url(chave, MOMENTO_VIDEOS.ctxDeTrofeu(d.trofeu||d.key));
+    if(ov) vid=ov;
+  }
   const trof=(typeof rfCompTrofeuHTML==='function' && d.trofeu)
     ? rfCompTrofeuHTML({trofeu:d.trofeu}, 64) : '';
   const lado=(cl,gols,venceu)=>`<span class="rf-cmp-lado ${venceu?'venceu':''}">
@@ -1865,8 +1870,12 @@ function rfArtilheiroHTML(d){
   /* O VIDEO VEM DO MAPA DE SEMPRE (VIDEOS_MOMENTO, em ui/main.js): e la que o caminho de cada
      momento vive, e e la que se troca sem tocar nesta tela. Ausente ou partido, o marcador do
      formato fica no lugar dele — o `onerror` esconde o <video> e o desenho nao muda de altura. */
-  const vid=(typeof VIDEOS_MOMENTO!=='undefined')
-    ? VIDEOS_MOMENTO[d.ehLiga?'marcador-liga':'marcador-copa'] : null;
+  const chaveVid=d.ehLiga?'marcador-liga':'marcador-copa';
+  let vid=(typeof VIDEOS_MOMENTO!=='undefined') ? VIDEOS_MOMENTO[chaveVid] : null;
+  if(typeof MOMENTO_VIDEOS!=='undefined'){
+    const ov=MOMENTO_VIDEOS.url(chaveVid, MOMENTO_VIDEOS.ctxDeTrofeu(d.trofeu||d.comp));
+    if(ov) vid=ov;
+  }
   const info=(typeof rfCompInfo==='function')?rfCompInfo(d.trofeu||d.comp):null;
   const trof=(info&&typeof rfCompTrofeuHTML==='function')?rfCompTrofeuHTML(info,68):'';
   const p1=d.podio[0], resto=d.podio.slice(1);
