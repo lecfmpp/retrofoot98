@@ -1381,7 +1381,10 @@ function rfScreenHTML(){
      vista a propria pagina. Agora a pagina segue igual e o que muda e o CONTEUDO da aba, que
      passa a ser o daquele ano (ver rfTemporadaAbaHTML). Aba sem registo por temporada diz isso
      dentro dela mesma. */
-  const anoSel=(RF_TEMPORADA_PAGS.indexOf(def.key)>=0)?rfTemporadaSel(def.key):null;
+  /* Perfil e Ofertas não têm tempo (regra do dono): nessas abas o ano escolhido nem se aplica —
+     elas mostram SEMPRE o agora, e a barra de temporadas não aparece (ver rfTemporadaChipsHTML) */
+  const abaSemTempo = def.key==='treinador' && at && (at.k==='perfil'||at.k==='ofertas');
+  const anoSel=(!abaSemTempo && RF_TEMPORADA_PAGS.indexOf(def.key)>=0)?rfTemporadaSel(def.key):null;
   if(anoSel!=null){
     try{ corpo = rfTemporadaAbaHTML(def.key, at?at.k:'', anoSel) || rfTemporadaSemArquivoHTML(anoSel); }
     catch(e){
@@ -1406,13 +1409,13 @@ function rfScreenHTML(){
   // a faixa fica ACIMA da grade, atravessando as duas colunas.
   const s=String(corpo);
   const iCol=s.indexOf('data-rf-col');
-  if(iCol<0) return rfEnvelope(`${rfPageHeadHTML(def)}${rfTemporadaChipsHTML(def.key)}${rfCompChipsDaPagina(def.key)}
+  if(iCol<0) return rfEnvelope(`${rfPageHeadHTML(def)}${rfTemporadaChipsHTML(def.key, at?at.k:'')}${rfCompChipsDaPagina(def.key)}
     <div class="rf-tabpane" data-tab="${at?at.k:''}">${s}</div>`);
   // tudo que vem antes do primeiro <div class="rf-pagecol"> é faixa de topo
   const corte=s.lastIndexOf('<div class="rf-pagecol"', iCol);
   const topo=corte>0?s.slice(0,corte):'';
   const colunas=corte>0?s.slice(corte):s;
-  return rfEnvelope(`${rfPageHeadHTML(def)}${rfTemporadaChipsHTML(def.key)}${rfCompChipsDaPagina(def.key)}
+  return rfEnvelope(`${rfPageHeadHTML(def)}${rfTemporadaChipsHTML(def.key, at?at.k:'')}${rfCompChipsDaPagina(def.key)}
     ${topo}
     <div class="rf-pagegrid" style="grid-template-columns:${def.grid||'minmax(0,1fr) 340px'}">${colunas}</div>`);
 }

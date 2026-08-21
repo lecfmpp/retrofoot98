@@ -1491,8 +1491,12 @@ function rfTemporadasArquivadas(){
   ((S&&S.archive)||[]).forEach(a=>a&&poe(a.season));
   return out.sort((a,b)=>b-a);
 }
-function rfTemporadaChipsHTML(page){
+function rfTemporadaChipsHTML(page, tab){
   if(RF_TEMPORADA_PAGS.indexOf(page)<0) return '';
+  /* PERFIL E OFERTAS NÃO TÊM TEMPO (regra do dono, 20/08): o perfil é estático — só o
+     usuário o edita — e as ofertas são do momento. A barra de temporadas nem aparece lá,
+     em vez de aparecer e responder "sem arquivo". */
+  if(page==='treinador' && (tab==='perfil'||tab==='ofertas')) return '';
   const anos=rfTemporadasArquivadas();
   if(!anos.length) return '';
   const sel=rfTemporadaSel(page);
@@ -1606,7 +1610,11 @@ function rfTemporadaAbaHTML(page, tab, season){
     if(tab==='carreira') return cartaoResumo+cartaoFin+cartaoTrofeus;
     if(tab==='historia') return cartaoResumo+cartaoCampeoes+cartaoArt;
     if(tab==='trofeus')  return cartaoTrofeus+cartaoCampeoes;
-    return null;   // Ranking, Ofertas e Perfil são do momento
+    /* Ranking TEM arquivo (regra do dono, 21/08): a foto tirada no fecho da temporada
+       (coachRankingSnapshot, gravada no S.history). Ano de antes da foto existir cai no
+       aviso de sempre. Perfil e Ofertas nem chegam aqui — a barra não aparece nelas. */
+    if(tab==='ranking')  return rfArqRankingHTML(e, season);
+    return null;
   }
   if(page==='campeonatos'){
     if(tab==='minhas')    return cartaoResumo+cartaoTrofeus
@@ -1700,6 +1708,23 @@ function rfArqArtilhariaHTML(season){
     ${arq.scorers.map(([n,g],i)=>`<div class="rf-ft-lin"><span class="rf-arq-p">${i+1}</span>
       <span class="rf-ft-comp">${escC(n)}</span><div class="rf-sp"></div>
       <span class="rf-ft-gols">${g} ${g===1?'gol':'gols'}</span></div>`).join('')}
+  </div>`;
+}
+/* o ranking de treinadores como ficou NO FECHO daquele ano (foto de coachRankingSnapshot) */
+function rfArqRankingHTML(e, season){
+  const rows=(e&&e.rankingFinal)||null;
+  if(!rows||!rows.length) return null;   // ano de antes da foto existir -> aviso padrão
+  return `<div class="rf-card">
+    <div class="rf-label"><span class="rf-label-t">RANKING NO FIM DE ${escC(String(season))}</span>
+      <span class="rf-label-r">top ${rows.length}</span></div>
+    ${rows.map(r=>{
+      const c=(typeof anyClubOf==='function'&&anyClubOf(r.clubId))||{short:String(r.clubId)};
+      return `<div class="rf-ft-lin ${r.humano?'meu':''}"><span class="rf-arq-p">${r.pos}</span>
+        <span class="rf-ft-comp">${escC(r.nome)}</span>
+        <span class="rf-arq-n" style="flex:0 1 auto">${escC(c.short||'')}</span>
+        <div class="rf-sp"></div>
+        <span class="rf-ft-gols">${r.aprov}% · <b>${r.pts} pts</b></span></div>`;
+    }).join('')}
   </div>`;
 }
 /* o que a aba escreve quando aquele ano nao tem registo dela */

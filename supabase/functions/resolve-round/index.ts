@@ -2146,12 +2146,22 @@ function rebuildContinentalCups(S: any, topStandings: string[]) {
      garante que ninguém ocupa vaga nas duas — é a mesma alocação sequencial do corte antigo.
      Campeão de fora do país não consome vaga local: ele volta pela reciclagem dos
      participantes (prevCupTeamIds), que já o inclui. */
-  const champCont = (() => { try {
-    const c = S._prevSeason && S._prevSeason.cups && S._prevSeason.cups[copas[0]];
+  const champDe = (i: number) => { try {
+    const c = S._prevSeason && S._prevSeason.cups && S._prevSeason.cups[copas[i]];
     return (c && c.champion) || null;
-  } catch (_e) { return null; } })();
-  const finalistas = (champCont && topStandings.indexOf(champCont) >= 0 ? [champCont] : []).concat(nationalCupFinalistsT(S));
+  } catch (_e) { return null; } };
+  const champCont = champDe(0);
+  /* o campeão da SEGUNDA continental (Sul-Americana/Europa League) SOBE para a primeira no ano
+     seguinte (regra do dono, 21/08 — a mesma da vida real). Da tabela do país, entra na
+     prioridade das vagas; estrangeiro TROCA de copa na reciclagem, logo abaixo. */
+  const champSegunda = champDe(1);
+  const finalistas = [champCont, champSegunda].filter((id) => id && topStandings.indexOf(id) >= 0)
+    .concat(nationalCupFinalistsT(S));
   const daCasa = new Set(topStandings.concat(finalistas));  // id do pais (tabela ou final da copa); o resto e estrangeiro
+  if (champSegunda && !daCasa.has(champSegunda)) {          // campeão estrangeiro da segunda: sobe de copa
+    prev[0] = Array.from(new Set([champSegunda].concat(prev[0] || [])));
+    prev[1] = (prev[1] || []).filter((id: string) => id !== champSegunda);
+  }
   const usados = new Set<string>();
   const locaisDe = (n: number, prioridade: string[]) => {
     const out: string[] = [];

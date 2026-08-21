@@ -2700,10 +2700,12 @@ function unifiedContinentalQualification(userFinish){
   const pool=unifiedContinentalPool();
   /* o campeão da Libertadores que fechou defende a vaga no ano seguinte (regra do dono,
      20/08). O campeão da edição encerrada vive no arquivo permanente (ver archiveSeason). */
-  const champLib=(()=>{ try{
+  const champDe=k=>{ try{
     const arr=(S&&S.archive)||[]; const a=arr[arr.length-1];
-    return (a&&a.cups&&a.cups.libertadores&&a.cups.libertadores.champion)||null;
-  }catch(e){ return null; } })();
+    return (a&&a.cups&&a.cups[k]&&a.cups[k].champion)||null;
+  }catch(e){ return null; } };
+  const champLib=champDe('libertadores');
+  const champSul=champDe('sulamericana');   // campeão da Sula SOBE pra Libertadores (regra do dono, 21/08)
   let lib=[], sul=[];
   Object.keys(LIB_SLOTS_UNI).forEach(co=>{ const clubs=(pool[co]||[]).map(c=>c.id); const nl=LIB_SLOTS_UNI[co], ns=SUL_SLOTS_UNI[co]||2;
     let liberta=clubs.slice(0,nl), sula=clubs.slice(nl,nl+ns);
@@ -2711,7 +2713,7 @@ function unifiedContinentalQualification(userFinish){
        Copa do Brasil entram na frente das vagas de Libertadores (ver nationalCupFinalists)
        — a tabela completa as 6, e a Sul-Americana fica com os melhores que sobraram */
     if(co==='Brasil'){
-      const prio=(champLib&&clubs.indexOf(champLib)>=0?[champLib]:[]).concat(nationalCupFinalists());
+      const prio=[champLib,champSul].filter(id=>id&&clubs.indexOf(id)>=0).concat(nationalCupFinalists());
       if(prio.length){
         liberta=Array.from(new Set(prio.concat(clubs))).slice(0,nl);
         const naLib=new Set(liberta);
@@ -2721,6 +2723,12 @@ function unifiedContinentalQualification(userFinish){
     lib.push(...liberta); sul.push(...sula); });
   /* campeão de outro país: garante a vaga dele mesmo que a cota do país o deixasse de fora */
   if(champLib && lib.indexOf(champLib)<0) lib.unshift(champLib);
+  /* o campeão da Sula sobe de copa, seja de onde for: sai da Sul-Americana e entra na
+     Libertadores (o fecho em múltiplo de 4, abaixo, repõe a vaga que abriu) */
+  if(champSul){
+    sul=sul.filter(id=>id!==champSul);
+    if(lib.indexOf(champSul)<0) lib.unshift(champSul);
+  }
   /* as reservas de cada país (quem ficou logo abaixo da cota), na ordem — é daqui que se
      completa uma copa que não fechou em múltiplo de 4 (ver o fecho no return) */
   const reservas=[];
@@ -4140,6 +4148,27 @@ function clubTitlePoints(clubId){
    (15 pts de titulo) vale ~375 — na casa de 4-5 temporadas de meio de tabela — entao
    titulo manda no topo do ranking, mas campanha consistente continua subindo degraus. */
 const PESO_TITULO_NO_RANKING=25;
+/* ===== FOTO DO RANKING NO FECHO DA TEMPORADA (regra do dono, 21/08: Ranking tem arquivo) =====
+   O ranking vivo é derivado do agora (tabela + carreira) e morre na virada. Esta foto compacta
+   (top 30 + todos os humanos) entra no S.history do assento a cada fecho — é o que a aba
+   Ranking mostra quando se escolhe um ano passado. */
+function coachRankingSnapshot(){
+  try{
+    const rows=((typeof DATA!=='undefined'&&DATA.clubs)||[]).map((c,i)=>{
+      const t=(S.table&&S.table[c.id])||{Pts:0,P:0};
+      const sc=coachRankingScore(c.id, t.Pts||0);
+      const car=(S.coachCareerStats&&S.coachCareerStats[c.id])||{};
+      const jogos=(car.games||0)+(t.P||0);
+      return { clubId:c.id,
+        nome:(typeof coachName==='function')?coachName(c.id,i):'—',
+        pts:sc.total, titles:sc.titles,
+        aprov: jogos?Math.round(sc.jogo/(jogos*3)*100):0,
+        humano:!!(typeof CL!=='undefined'&&CL.humans&&CL.humans[c.id]) };
+    }).sort((a,b)=>b.pts-a.pts);
+    const out=[]; rows.forEach((r,i)=>{ if(i<30||r.humano) out.push({...r, pos:i+1}); });
+    return out.length?out:null;
+  }catch(e){ return null; }
+}
 function coachRankingScore(clubId, ptsTabelaAtual){
   const car=(S && S.coachCareerStats && S.coachCareerStats[clubId])||{pts:0,titles:0};
   const jogo=(car.pts||0)+(ptsTabelaAtual||0);
@@ -5614,6 +5643,7 @@ function registerPrevSeasonTitles(){
   S.history=S.history||[];
   S.history.push({ season:temporada, division:myDiv, clubId:CL.clubId,
     champ:shortOf(myTable[0].id), divChamps, artPorComp,
+    rankingFinal:(typeof coachRankingSnapshot==='function')?coachRankingSnapshot():null,
     top3:myTable.slice(0,3).map(t=>shortOf(t.id)),
     relegated:relegN?myTable.slice(-relegN).map(t=>shortOf(t.id)):[],
     artilheiro:(arty&&arty[1]>0)?(arty[0]+' ('+arty[1]+')'):'—',
@@ -5885,6 +5915,7 @@ function endSeason(){
     });
   }catch(e){}
   S.history.push({season:S.season,division:S.division,clubId:S.clubId,champ,divChamps,artPorComp,
+    rankingFinal:coachRankingSnapshot(),
     top3:tbl.slice(0,3).map(t=>clubOf(t.id).short),
     relegated:tbl.slice(-4).map(t=>clubOf(t.id).short),
     artilheiro:arty?`${arty[0]} (${arty[1]})`:'—',

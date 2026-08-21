@@ -316,7 +316,9 @@ bloco('vagas continentais', () => {
   // a edição anterior das continentais; o campeão da Libertadores é o 10º colocado — fora do G6 de propósito
   S.cups.libertadores = { group: { groups: gDe(A.slice(0, 6).concat(estr('exl', 26))) },
     bracket: { round: 3, roundsTotal: 3, ties: [], champion: A[9], eliminated: {}, history: [{ round: 3, ties: [tie(A[9], A[2], A[9])] }] } };
-  S.cups.sulamericana = { group: { groups: gDe(A.slice(6, 12).concat(estr('exs', 26))) }, bracket: null };
+  // a Sula que fechou tem campeão ESTRANGEIRO (exs5): pela regra do dono ele SOBE pra Libertadores
+  S.cups.sulamericana = { group: { groups: gDe(A.slice(6, 12).concat(estr('exs', 26))) },
+    bracket: { round: 3, roundsTotal: 3, ties: [], champion: 'exs5', eliminated: {}, history: [{ round: 3, ties: [tie('exs5', 'exs6', 'exs5')] }] } };
   // Copa do Brasil decidida: campeão o 15º, vice o 18º — bem fora do G6
   S.cups.copaBrasil = { round: 2, roundsTotal: 2, ties: [], champion: A[14], eliminated: {},
     history: [{ round: 2, ties: [tie(A[14], A[17], A[14])] }] };
@@ -332,6 +334,10 @@ bloco('vagas continentais', () => {
   conferir('as vagas brasileiras continuam 6', lib.filter((id) => A.indexOf(id) >= 0).length, 6);
   conferir('o topo da tabela completa as vagas', [A[0], A[1], A[2], A[3]].every((id) => lib.indexOf(id) >= 0), true);
   conferir('a Sul-Americana fica com os melhores que sobraram', [A[4], A[5], A[6]].every((id) => sul.indexOf(id) >= 0), true);
+  // o campeão estrangeiro da Sula subiu de copa — e as duas continuam fechando em múltiplo de 4
+  conferir('campeão da Sula está na Libertadores nova', lib.indexOf('exs5') >= 0, true);
+  conferir('campeão da Sula saiu da Sul-Americana', sul.indexOf('exs5') < 0, true);
+  conferir('as duas copas fecham em múltiplo de 4', lib.length % 4 === 0 && sul.length % 4 === 0, true);
 });
 
 /* ===== 9. NADA DE GRUPO DE 3 (checklist da virada, item 2) =====

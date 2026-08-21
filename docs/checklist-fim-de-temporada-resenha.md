@@ -35,7 +35,7 @@ Um jogador foi direto para o sorteio da Libertadores da temporada nova, sem ver 
 ## 3. [~] Vagas continentais por copa (regras do dono, 20/08)
 
 **Regra definida e implementada (aguardando teste):** no Brasil, o **campeão da Copa do Brasil** (só ele — o vice NÃO leva vaga, ajuste de 21/08) e o **campeão da Libertadores** garantem vaga na Libertadores seguinte. Eles entram na frente das 6 vagas; a tabela completa o resto e a Sul-Americana fica com os melhores que sobraram — ninguém ocupa vaga nas duas. Campeão estrangeiro da Libertadores mantém a vaga sem consumir vaga brasileira. Implementado no `rebuildContinentalCups` (servidor) e em `computeQualification`/`unifiedContinentalQualification` (solo), coberto pelo bloco 8 do `teste-virada.mjs`.
-**Ainda em aberto:** campeão da **Sul-Americana** → vaga na Libertadores (regra a definir). Obs.: as zonas coloridas da tabela ("Lib"/"Sul" por posição) seguem aproximadas — não descontam as vagas tomadas pelos finalistas das copas.
+**Campeão da Sul-Americana (21/08, aguardando teste):** sobe para a Libertadores seguinte — brasileiro entra na prioridade das vagas; estrangeiro troca de copa na reciclagem (e o fecho em múltiplo de 4 repõe a vaga que abriu na Sula). Implementado nos dois lados, coberto no bloco 8 do teste. Obs.: as zonas coloridas da tabela ("Lib"/"Sul" por posição) seguem aproximadas — não descontam as vagas tomadas pelos finalistas das copas.
 
 ### (histórico) Campeão da Sul-Americana não vai para a Libertadores seguinte
 
@@ -81,7 +81,9 @@ Pergunta da memória de copas: antes de mexer, conferir colisão de jornada entr
 
 ---
 
-## 7. [ ] Filtro de temporada no Perfil está nas abas erradas (worktree rebranding)
+## 7. [x] Filtro de temporada no Perfil está nas abas erradas
+
+**Feito em 2026-08-21 (aguardando teste):** a barra de temporadas não aparece mais em Perfil e Ofertas (e o ano escolhido nem se aplica lá — sempre mostram o agora). O Ranking ganhou arquivo de verdade: a cada fecho de temporada uma foto do ranking (top 30 + humanos, `coachRankingSnapshot`) entra no `S.history` do assento, e escolher um ano passado mostra "RANKING NO FIM DE <ano>". Temporadas de antes da foto existir caem no aviso padrão.
 
 Regra definida pelo usuário:
 - **Sem filtro de tempo:** Perfil (estático, editável pelo usuário) e Ofertas (do momento).
