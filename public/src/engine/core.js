@@ -5530,9 +5530,20 @@ function registerPrevSeasonTitles(){
   });
   const arty=Object.entries(pv.scorers||{}).sort((a,b)=>b[1]-a[1])[0];
   const relegN=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[myDiv])||0;
+  /* a mesma foto completa que o endSeason grava no solo (filtro por temporada lê daqui):
+     campeão de CADA divisão (da tabela final) e artilheiro de CADA competição (do livro
+     por competição que o servidor passou a mandar em pv.scorersByComp; snapshot antigo
+     não o tem — aí os campos ficam vazios em vez de inventados) */
+  const divChamps={};
+  order.forEach(d=>{ const rows=pv.tables[d]; if(rows&&rows.length) divChamps[d]=rows[0].id; });
+  const artPorComp={};
+  Object.keys(pv.scorersByComp||{}).forEach(k=>{
+    const e=Object.entries(pv.scorersByComp[k]||{}).sort((a,b)=>b[1]-a[1])[0];
+    if(e) artPorComp[k]={nome:e[0], gols:e[1]};
+  });
   S.history=S.history||[];
   S.history.push({ season:temporada, division:myDiv, clubId:CL.clubId,
-    champ:shortOf(myTable[0].id),
+    champ:shortOf(myTable[0].id), divChamps, artPorComp,
     top3:myTable.slice(0,3).map(t=>shortOf(t.id)),
     relegated:relegN?myTable.slice(-relegN).map(t=>shortOf(t.id)):[],
     artilheiro:(arty&&arty[1]>0)?(arty[0]+' ('+arty[1]+')'):'—',
@@ -5722,6 +5733,15 @@ function archiveCup(c){
   }
   return out;
 }
+/* o artilheiro de cada competição, tirado do livro por competição: {comp:{nome,gols}} */
+function topPorComp(scorersByComp){
+  const out={};
+  Object.keys(scorersByComp||{}).forEach(k=>{
+    const e=Object.entries(scorersByComp[k]||{}).sort((a,b)=>b[1]-a[1])[0];
+    if(e) out[k]={nome:e[0], gols:e[1]};
+  });
+  return out;
+}
 function archiveSeason(tables){
   S.archive=S.archive||[];
   const season=S.season||1;
@@ -5729,7 +5749,7 @@ function archiveSeason(tables){
   const scorers=Object.entries(S.scorers||{}).sort((a,b)=>b[1]-a[1]).slice(0,25);
   const cups={};
   Object.keys(S.cups||{}).forEach(k=>{ const a=archiveCup(S.cups[k]); if(a) cups[k]=a; });
-  S.archive.push({season, tables, scorers, cups});
+  S.archive.push({season, tables, scorers, cups, artPorComp:topPorComp(S.scorersByComp)});
 }
 /* RESGATE: save que virou a temporada antes do archive existir ainda tem o _prevSeason da
    temporada recém-fechada — a próxima virada o sobrescreveria. Roda no carregar do save solo
@@ -5743,14 +5763,14 @@ function archiveBackfill(){
   const cups={};
   if(ps.copaBrasil){ const a=archiveCup(ps.copaBrasil); if(a) cups[(typeof copaNacionalDoUniverso==='function'&&copaNacionalDoUniverso())||'copaBrasil']=a; }
   Object.keys(ps.cups||{}).forEach(k=>{ if(cups[k]) return; const a=archiveCup(ps.cups[k]); if(a) cups[k]=a; });
-  S.archive.push({season:ps.season, tables:ps.tables||{}, scorers, cups});
+  S.archive.push({season:ps.season, tables:ps.tables||{}, scorers, cups, artPorComp:topPorComp(ps.scorersByComp)});
 }
 function endSeason(){
   const tbl=sortedTable();
   const _prevTables={};
   DIV_ORDER.forEach(d=>{ const t=(d===S.division) ? S.table : ((S.otherDivs&&S.otherDivs[d])||{}).table;
     _prevTables[d]= t ? mpSortTable({table:t}).map(x=>({id:x.id,P:x.P,W:x.W,D:x.D,L:x.L,GF:x.GF,GA:x.GA,Pts:x.Pts})) : []; });
-  S._prevSeason={ season:S.season||1, tables:_prevTables, scorers:S.scorers||{}, copaBrasil:(S.cups&&S.cups.copaBrasil)||null, retirements:[] };
+  S._prevSeason={ season:S.season||1, tables:_prevTables, scorers:S.scorers||{}, scorersByComp:S.scorersByComp||{}, copaBrasil:(S.cups&&S.cups.copaBrasil)||null, retirements:[] };
   // arquivo permanente da temporada que fecha — antes de qualquer reset (ver archiveSeason)
   try{ archiveSeason(_prevTables); }catch(e){ console.warn('archive da temporada:', e&&e.message); }
   const champ=clubOf(tbl[0].id).short;

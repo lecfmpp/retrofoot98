@@ -52,7 +52,9 @@ Pergunta da memória de copas: antes de mexer, conferir colisão de jornada entr
 
 ---
 
-## 5. [ ] Histórico de campeões e artilheiros de TODAS as competições, TODOS os anos
+## 5. [x] Histórico de campeões e artilheiros de TODAS as competições, TODOS os anos
+
+**Feito em 2026-08-21 (aguardando teste):** o servidor agora carimba cada gol na competição em que caiu (`S.scorersByComp` no resolve-round — liga por divisão + cada copa), manda o livro na foto da virada (`_prevSeason.scorersByComp`) e grava o artilheiro por competição no arquivo permanente (`archive.artPorComp`). No cliente, o caminho da Resenha (`registerPrevSeasonTitles`) passou a gravar `divChamps` (campeão de cada divisão) e `artPorComp` no `S.history` — a mesma foto que o solo já tinha. Coberto pelos asserts novos no bloco 7 do `teste-virada.mjs`.
 
 **Causa:** `S.history` guarda por temporada só o campeão **da divisão do jogador** e **1 artilheiro** (o da divisão do jogador). Campeões das outras divisões e das copas viram strings soltas; artilheiro por competição não existe no servidor (`S.scorersByComp` só existe no worktree do rebranding, e nem lá o caminho Resenha grava `divChamps`/`artPorComp`).
 

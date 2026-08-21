@@ -271,10 +271,14 @@ console.log('7. Arquivo permanente: a virada arquiva, o resgate recupera, ningu�
 bloco('arquivo permanente', () => {
   const S = mundo('brasil', U, W);
   RR.aplicarUniverso(S);
+  S.scorersByComp = { A: { 'Zé Gol': 10 }, copaBrasil: { 'Tico': 4 } };   // o livro por competição da temporada
   RR.resolveSeasonTurnover(S, new Set());
   conferir('uma entrada no archive', (S.archive || []).length, 1);
   const arq = (S.archive || [])[0] || {};
   conferir('o ano arquivado é o que fechou', arq.season, 1);
+  conferir('artilheiro por competição arquivado', (arq.artPorComp || {}).A, { nome: 'Zé Gol', gols: 10 });
+  conferir('o livro por competição viaja na foto da virada', (S._prevSeason.scorersByComp || {}).copaBrasil, { 'Tico': 4 });
+  conferir('o livro zera pra temporada nova', S.scorersByComp, {});
   ['A', 'B', 'C', 'D'].forEach((d) => {
     const n = ((arq.tables || {})[d] || []).length;
     if (n !== 20) reprova('divisão ' + d + ' arquivada com ' + n + ' linhas, esperado 20');

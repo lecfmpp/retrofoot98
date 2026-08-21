@@ -1498,7 +1498,17 @@ function applyResultT(T: any, h: string, a: string, hg: number, ag: number) {
   else if (hg < ag) { T[a].W++; T[h].L++; T[a].Pts += 3; }
   else { T[h].D++; T[a].D++; T[h].Pts++; T[a].Pts++; }
 }
-function recordScorers(S: any, scorers: any[]) { (scorers || []).forEach((s: any) => { S.scorers[s.name] = (S.scorers[s.name] || 0) + 1; }); }
+/* gol na artilharia geral e, quando `comp` vem, também no livro por competição — o gêmeo do
+   recordScorers do cliente (core.js). `comp` é a chave da copa (copaBrasil, libertadores...)
+   ou a divisão ('A'..'D') no jogo de liga. É o que alimenta o artilheiro POR COMPETIÇÃO da
+   virada (S._prevSeason.scorersByComp) — sem isto ele nunca existia na Resenha. */
+function recordScorers(S: any, scorers: any[], comp?: string) {
+  (scorers || []).forEach((s: any) => { S.scorers[s.name] = (S.scorers[s.name] || 0) + 1; });
+  if (!comp) return;
+  S.scorersByComp = S.scorersByComp || {};
+  const m = S.scorersByComp[comp] = S.scorersByComp[comp] || {};
+  (scorers || []).forEach((s: any) => { m[s.name] = (m[s.name] || 0) + 1; });
+}
 function findPlayerByName(S: any, clubId: string, name: string) { const sq = S.squads[clubId]; return sq && sq.find((p: any) => p.n === name); }
 function advancePlayerAvailability(S: any) {
   Object.values(S.squads).forEach((sq: any) => sq.forEach((p: any) => { if (p.suspended > 0) p.suspended--; if (p.injuredMatches > 0) p.injuredMatches--; }));
@@ -1905,7 +1915,7 @@ function awardCupPhasePrize(S: any, key: string, b: any, t: any, humans?: Set<st
    sobrescreve o S local pelo do servidor — então o gol de copa sumia da artilharia e o jogo
    nunca entrava no Historial. Aqui é o único lugar que sobrevive. */
 function cupSumula(S: any, h: string, a: string, hg: number, ag: number, scorers: any[], perf: any, roundLabel: string, caps?: any, matchMinutes?: number) {
-  recordScorers(S, scorers || []);
+  recordScorers(S, scorers || [], (roundLabel || '').split('-')[0]);   // a competição é o prefixo do label (idem advanceCupBracket)
   const R = ME.makeRng(ME.hashSeed(S.seed, 'cuprate', roundLabel, S.round, h, a));
   const capsH = (caps && caps.H) || null, capsA = (caps && caps.A) || null;
   const mm = matchMinutes || 90;
@@ -2320,6 +2330,15 @@ function archiveCupT(c: any) {
   }
   return out;
 }
+/* o artilheiro de cada competição, tirado do livro por competição: {comp:{nome,gols}} */
+function topPorCompT(scorersByComp: any) {
+  const out: any = {};
+  Object.keys(scorersByComp || {}).forEach((k) => {
+    const e = Object.entries(scorersByComp[k] || {}).sort((a: any, b: any) => (b[1] as number) - (a[1] as number))[0];
+    if (e) out[k] = { nome: e[0], gols: e[1] };
+  });
+  return out;
+}
 function archiveSeasonT(S: any, tables: any) {
   S.archive = S.archive || [];
   const season = S.season || 1;
@@ -2327,7 +2346,7 @@ function archiveSeasonT(S: any, tables: any) {
   const scorers = Object.entries(S.scorers || {}).sort((a: any, b: any) => (b[1] as number) - (a[1] as number)).slice(0, 25);
   const cups: any = {};
   Object.keys(S.cups || {}).forEach((k) => { const a = archiveCupT(S.cups[k]); if (a) cups[k] = a; });
-  S.archive.push({ season, tables, scorers, cups });
+  S.archive.push({ season, tables, scorers, cups, artPorComp: topPorCompT(S.scorersByComp) });
 }
 /* RESGATE: sala que virou a temporada ANTES do archive existir ainda tem o _prevSeason
    da temporada recém-fechada — a próxima virada o sobrescreveria e aí sim o dado morre.
@@ -2343,7 +2362,7 @@ function backfillArchiveT(S: any) {
   const nac = COPA_NACIONAL_KEY();
   if (nac && ps.copaBrasil) { const a = archiveCupT(ps.copaBrasil); if (a) cups[nac as string] = a; }
   Object.keys(ps.cups || {}).forEach((k) => { if (cups[k]) return; const a = archiveCupT(ps.cups[k]); if (a) cups[k] = a; });
-  S.archive.push({ season: ps.season, tables: ps.tables || {}, scorers, cups });
+  S.archive.push({ season: ps.season, tables: ps.tables || {}, scorers, cups, artPorComp: topPorCompT(ps.scorersByComp) });
 }
 function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   // 0) caixa dos clubes da CPU — ANTES do swap de divisões, com as tabelas/elencos do ano que fechou
@@ -2371,6 +2390,9 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
     const c = S.cups && S.cups[k]; if (!c) return;
     S._prevSeason.cups[k] = semEventos((c.champion !== undefined) ? c : c.bracket);
   });
+  // o livro de gols POR COMPETIÇÃO viaja na foto da virada — é dele que o cliente tira o
+  // artilheiro de cada competição (artPorComp) no registerPrevSeasonTitles
+  S._prevSeason.scorersByComp = S.scorersByComp || {};
   // arquivo permanente da temporada que fecha — antes de qualquer reset (ver archiveSeasonT)
   archiveSeasonT(S, _prevTables);
   // acumula artilharia histórica + Historial de carreira ANTES do reset — porte fiel do
@@ -2422,7 +2444,7 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   // continentais da temporada nova: vagas brasileiras pela CLASSIFICAÇÃO FINAL da Série A que
   // acabou (_prevTables, capturado acima antes do reset das tabelas) — ver rebuildContinentalCups.
   rebuildContinentalCups(S, (_prevTables[DIV_ORDER[0]] || []).map((x: any) => x.id));
-  S.round = 0; S.week = 1; S.day = 1; S.results = []; S.scorers = {}; S.negos = []; S.finished = false; // 6) reset de temporada
+  S.round = 0; S.week = 1; S.day = 1; S.results = []; S.scorers = {}; S.scorersByComp = {}; S.negos = []; S.finished = false; // 6) reset de temporada
   buildCupCalendarS(S);   // 6b) calendário de copa da temporada NOVA (as copas acima são outras)
   Object.keys(S.squads).forEach((cid) => S.squads[cid].forEach((p: any) => { p.moral = 70; p.energy = 100; p.suspended = 0; p.injuredMatches = 0; p.stats = { r3: [], g3: [], apps: 0, goals: 0, cs: 0, yellows: 0, reds: 0, injuries: 0 }; }));
   S._roundIncidents = {};
@@ -2747,7 +2769,7 @@ function resolverPiramideDoPais(S: any, M: any, ctx: any) {
     }
     capsByClub[h] = (caps && caps.H) || null; capsByClub[a] = (caps && caps.A) || null;
     minsByClub[h] = matchMinutes; minsByClub[a] = matchMinutes;
-    applyResultT(M.table, h, a, hg, ag); recordScorers(S, scorers);
+    applyResultT(M.table, h, a, hg, ag); recordScorers(S, scorers, (M.division || S.division));
     // 3b) súmula: nota + JOGO/gol/clean sheet de quem entrou em campo, dos dois lados (ver ratePlayersS)
     const xiH = S.squads[h] ? ME.resolveXI(S.squads[h], humanClubs.has(h) ? (humanXI[h] || ME.autoXINames(S.squads[h])) : null) : null;
     const xiA = S.squads[a] ? ME.resolveXI(S.squads[a], humanClubs.has(a) ? (humanXI[a] || ME.autoXINames(S.squads[a])) : null) : null;
