@@ -10,7 +10,8 @@ import { runInNewContext } from 'node:vm';
 
 const RAIZ = new URL('..', import.meta.url).pathname;
 function carregarServidor() {
-  let src = readFileSync(RAIZ + '/supabase/functions/resolve-round/index.ts', 'utf8');
+  // MOTOR_ALVO: aponta a arena pra OUTRO motor (ex.: o antigo, extraído do git) — comparação A/B
+  let src = readFileSync(process.env.MOTOR_ALVO || (RAIZ + '/supabase/functions/resolve-round/index.ts'), 'utf8');
   src = src.replace(/^import .*$/gm, '').replace(/Deno\.serve\(/, '((globalThis).__naoServe = ');
   src += `;globalThis.__ME = ME;`;
   const js = transformSync(src, { loader: 'ts', format: 'cjs' }).code;
@@ -133,7 +134,7 @@ DIVS.forEach((d) => { resumo[d] = {}; Object.keys(perfilPos[d]).forEach((p) => {
 const geral = {}; ['ofensivo', 'equilibrado', 'retranca', 'adaptativo'].forEach((p) => { const l = DIVS.flatMap((d) => perfilPos[d][p]); geral[p] = +(l.reduce((a, b) => a + b, 0) / l.length).toFixed(2); });
 
 const geralForm = {}; Object.keys(formPos).forEach(f => { const l = formPos[f]; geralForm[f] = +(l.reduce((x, y) => x + y, 0) / l.length).toFixed(2); });
-writeFileSync(RAIZ + '/scripts/arena-brasil-resultado.json', JSON.stringify({ NSEASONS, tabela: tabelaRepresentativa, resumo, geral, geralForm }, null, 1));
+writeFileSync(process.env.SAIDA || (RAIZ + '/scripts/arena-brasil-resultado.json'), JSON.stringify({ NSEASONS, tabela: tabelaRepresentativa, resumo, geral, geralForm }, null, 1));
 console.log(`${NSEASONS} temporadas × 4 divisões simuladas.`);
 console.log('POSIÇÃO MÉDIA por perfil (todas as divisões, ' + NSEASONS + ' temporadas; neutro = 10,5):');
 Object.entries(geral).sort((a, b) => a[1] - b[1]).forEach(([p, v]) => console.log('  ' + p.padEnd(12) + String(v)));
