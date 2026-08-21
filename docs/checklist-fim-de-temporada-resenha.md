@@ -150,6 +150,12 @@ Pedido do dono (21/08): pesos realistas por país — indo bem no Brasil, o conv
 
 ---
 
+## 16. [~] Rebalance das táticas e formações no motor (calibrado, aguardando martelo do dono)
+
+O ofensivo era drift sem custo (92-100% de vitórias com times iguais; a causa do "3-3-4 ganha tudo") e o bônus por meia fazia do 4-5-1 o meta silencioso (59%). Calibrado na arena (`scripts/arena-motor.mjs`, motor real do servidor, N=3000): nasce o `TACTIC_EMPHASIS` (ofensivo expõe a defesa ×0.82, retranca blinda ×1.22), o drift da tática cai (±0.10/0.09 → +0.025/−0.015) e o bônus por meia cai (0.018 → 0.004). Resultado: ofensivo×equilibrado 46/28/27 (jogo aberto), retranca×equilibrado 32/30/38 (jogo fechado), formações todas entre 32-40%, e o time 20% melhor segue vencendo 72%. Aplicado nas 4 cópias do motor (simulate.js, match-engine.js, resolve-round, kickoff-round). COMMITADO, NÃO PUBLICADO — muda partidas de sala em andamento; espera aprovação da tabela.
+
+---
+
 ## Ordem sugerida
 
 1. **Item 6** (arquivar classificações) — urgente: salva a temporada que fechou na WEBLG antes da próxima virada.
