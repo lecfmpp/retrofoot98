@@ -104,6 +104,39 @@
 .rf-chip-hint>.rf-chip-l{font-family:var(--font-mono);font-size:var(--fs-caption)}
 .rf-chip-h{font-family:var(--font-mono);font-size:var(--fs-label-xs);font-weight:var(--fw-medium);color:var(--text-faint)}
 .rf-chip.on .rf-chip-h{color:var(--club-secondary)}
+/* régua de tática (retranca·equilibrado·ofensivo) embutida no chip de formação — ver
+   rfFormacoesHTML/TATICA_DESC. Três tarjetas fixas, a que vale pra esta formação acesa. */
+.rf-chip-tat{position:relative}
+.rf-tat-regua{display:flex;gap:2px;width:100%;margin-top:3px;height:3px}
+.rf-tat-regua i{flex:1;border-radius:2px;background:currentColor;opacity:.22;transition:opacity var(--dur-fast) var(--ease)}
+.rf-tat-regua i:nth-child(1){background:#3E7FD1}
+.rf-tat-regua i:nth-child(2){background:var(--text-faint)}
+.rf-tat-regua i:nth-child(3){background:var(--warn)}
+.rf-tat-regua.rf-tat-retranca i:nth-child(1),
+.rf-tat-regua.rf-tat-equilibrado i:nth-child(2),
+.rf-tat-regua.rf-tat-ofensivo i:nth-child(3){opacity:1}
+.rf-chip.on .rf-tat-regua i{opacity:.32}
+.rf-chip.on .rf-tat-regua.rf-tat-retranca i:nth-child(1),
+.rf-chip.on .rf-tat-regua.rf-tat-equilibrado i:nth-child(2),
+.rf-chip.on .rf-tat-regua.rf-tat-ofensivo i:nth-child(3){opacity:1}
+.rf-tat-tip{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translate(-50%,4px);
+  width:150px;background:var(--text-1);color:var(--text-on-dark);text-align:left;
+  font-family:var(--font-sans);font-size:11px;font-weight:var(--fw-medium);line-height:1.35;
+  padding:7px 10px;border-radius:8px;box-shadow:var(--shadow-shell);
+  opacity:0;pointer-events:none;transition:opacity var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease);z-index:40}
+.rf-tat-tip b{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--text-on-dark-soft);margin-bottom:2px}
+.rf-tat-tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:5px solid transparent;border-top-color:var(--text-1)}
+.rf-chip-tat:hover .rf-tat-tip,.rf-chip-tat:focus-visible .rf-tat-tip{opacity:1;transform:translate(-50%,0)}
+/* grid de formações é sempre 2 colunas (desktop e telefone) — o chip da direita colado na
+   borda faria a dica de 150px vazar pra fora da tela. Ancora pela ponta em vez do centro. */
+.rf-formgrid>.rf-chip-tat:nth-child(2n) .rf-tat-tip{left:auto;right:-6px;transform:translate(0,4px)}
+.rf-formgrid>.rf-chip-tat:nth-child(2n) .rf-tat-tip::after{left:auto;right:16px;transform:none}
+.rf-formgrid>.rf-chip-tat:nth-child(2n):hover .rf-tat-tip,.rf-formgrid>.rf-chip-tat:nth-child(2n):focus-visible .rf-tat-tip{transform:translate(0,0)}
+.rf-formgrid>.rf-chip-tat:nth-child(odd) .rf-tat-tip{left:-6px;transform:translate(0,4px)}
+.rf-formgrid>.rf-chip-tat:nth-child(odd) .rf-tat-tip::after{left:16px;transform:none}
+.rf-formgrid>.rf-chip-tat:nth-child(odd):hover .rf-tat-tip,.rf-formgrid>.rf-chip-tat:nth-child(odd):focus-visible .rf-tat-tip{transform:translate(0,0)}
 
 /* números: SEMPRE mono, e à direita quando é coluna de tabela */
 .rf-num{font-family:var(--font-mono);font-variant-numeric:tabular-nums}

@@ -1132,17 +1132,32 @@ function rfHubAbasHTML(){
   ).join('')}</div>`;
 }
 
+/* A RÉGUA DE TÁTICA embaixo de cada formação: retranca/equilibrado/ofensivo não é uma escolha
+   à parte no jogo — sai direto da formação (tacticPosture(f), main.js), então quem olha só pro
+   nome "3-3-4" não tem como saber que aquilo joga ofensivo. Três tarjetas fixas (mesma cor em
+   toda pastilha) com a que vale pra ESTA formação acesa; a apagada mostra a régua inteira sem
+   pesar na leitura do chip. Tooltip só no hover, uma linha, sem novo componente global. */
+const TATICA_DESC={
+  ofensivo:{l:'Ofensivo', d:'Ataca mais, mas abre mais chances pro rival'},
+  equilibrado:{l:'Equilibrado', d:'Não pesa pra nenhum lado'},
+  retranca:{l:'Retranca', d:'Segura mais atrás, cria menos chances'},
+};
 /* as oito pastilhas de formação (seis + Auto + Melhores), com o atalho embaixo */
 function rfFormacoesHTML(){
-  const opts=Object.keys(FORMATIONS).map(f=>({sel:!CL.xiModo&&CL.formation===f, on:`clSelFormation('${f}');cdraw()`, l:f, h:FKEY[f], t:'Tecla '+FKEY[f]}))
+  const opts=Object.keys(FORMATIONS).map(f=>({sel:!CL.xiModo&&CL.formation===f, on:`clSelFormation('${f}');cdraw()`, l:f, h:FKEY[f], t:'Tecla '+FKEY[f],
+      tat:(typeof tacticPosture==='function')?tacticPosture(f):null}))
     .concat([
       {sel:CL.xiModo==='auto', on:"clSelFormation('auto');cdraw()", l:'Auto', h:'A', t:'Escalação automática'},
       {sel:CL.xiModo==='best', on:"clSelFormation('best');cdraw()", l:'11+', h:'Melhores', t:'O melhor de cada posição'},
     ]);
-  return `<div class="rf-formgrid">${opts.map(o=>
-    `<button type="button" class="rf-chip rf-chip-hint ${o.sel?'on':''}" title="${escC(o.t)}" onclick="${o.on}">
-      <span class="rf-chip-l">${escC(o.l)}</span><span class="rf-chip-h">${escC(o.h)}</span>
-    </button>`).join('')}</div>`;
+  return `<div class="rf-formgrid">${opts.map(o=>{
+    const info=o.tat && TATICA_DESC[o.tat];
+    const regua=o.tat?`<span class="rf-tat-regua rf-tat-${o.tat}"><i></i><i></i><i></i></span>`:'';
+    const tip=info?`<span class="rf-tat-tip"><b>${escC(info.l)}</b>${escC(info.d)}</span>`:'';
+    return `<button type="button" class="rf-chip rf-chip-hint ${o.sel?'on':''} ${o.tat?'rf-chip-tat':''}" title="${escC(o.t)}" onclick="${o.on}">
+      <span class="rf-chip-l">${escC(o.l)}</span><span class="rf-chip-h">${escC(o.h)}</span>${regua}${tip}
+    </button>`;
+  }).join('')}</div>`;
 }
 
 /* classificação compacta da coluna esquerda, com as competições como chips */

@@ -92,7 +92,7 @@ function rfAdversarioCardHTML(){
       <span class="rf-adv-selo">${rfCrest(opp,36)}</span>
       <span class="rf-adv-id">
         <span class="rf-adv-nome">${escC(opp.short||'')}</span>
-        <span class="rf-adv-sub">${nm.home?'CASA':'FORA'} · ${escC(divisionLabel())} · ${((S.round||0)+1)}ª RODADA</span>
+        <span class="rf-adv-sub">${nm.home?'CASA':'FORA'} · ${escC(nm.comp||divisionLabel())} · ${escC(nm.fase||(((S.round||0)+1)+'ª Rodada'))}</span>
       </span>
     </div>
     <div class="rf-adv-tab">
