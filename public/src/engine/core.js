@@ -1690,6 +1690,16 @@ function advanceCupBracket(b, roundLabel, comp){
   if((b.ties||[]).some(t=>!t.winner
       && (clubeDeOutroHumano(t.h)||clubeDeOutroHumano(t.a))
       && !(cupResultadoPublicado(comp,t.h,t.a)||{}).winner)) return false;
+  /* ===== REGRA DA RESENHA: RESULTADO ÚNICO, SEMPRE (21/08) =====
+     Confronto CPU×CPU (nenhum lado é humano) só é decidido pelo SERVIDOR — nunca aqui. Mesma
+     causa do bug documentado logo abaixo (escalação divergente entre clientes), só que pra
+     confronto que nenhum humano publica nada: cada cliente simulava por conta própria, e o
+     anfitrião podia nem chegar a rodar isto (ties ficavam "— de disputa") enquanto o outro
+     humano já tinha um placar inventado localmente — foi o relato das Oitavas da Sul-Americana
+     em 21/08 (um lado sem nenhum resultado, o outro com a chave inteira preenchida). Enquanto
+     restar qualquer confronto assim nesta chave, o avanço LOCAL espera por inteiro. Ver a mesma
+     regra em advanceGroupStageRound; NUNCA remover — é a garantia de resultado único da Resenha. */
+  if(CL.online && (b.ties||[]).some(t=>!t.winner && !clubeDeOutroHumano(t.h) && !clubeDeOutroHumano(t.a))) return false;
   /* ===== TODA A GENTE TEM DE CHEGAR AO MESMO PLACAR =====
      Esta funcao roda em CADA cliente, por conta propria, sobre a mesma chave e com a mesma
      semente. Para o resultado bater, os TIMES tambem tem de bater — e nao batiam: no cliente do
@@ -1834,6 +1844,19 @@ function advanceGroupStageRound(mg, roundLabel, comp){
     if(_jaGravada(g,h,a)) return false;
     if(!(clubeDeOutroHumano(h)||clubeDeOutroHumano(a))) return false;
     return !cupResultadoPublicado(comp,h,a);
+  }))) return false;
+  /* ===== REGRA DA RESENHA: RESULTADO ÚNICO, SEMPRE (21/08) =====
+     Confronto que NENHUM humano disputa só é decidido pelo SERVIDOR — nunca aqui. Cada cliente
+     rodava esta função por conta própria, mesma seed mas com o estado (energia/moral) que TINHA
+     na hora — e cada humano via uma tabela diferente pro MESMO clube de fundo (relato do dono,
+     21/08: Botafogo 4 pts fora da zona pra um, 7 pts dentro pra outro). Enquanto restar QUALQUER
+     confronto CPU×CPU por decidir nesta rodada, o avanço LOCAL espera por inteiro — só
+     resolve-round decide. Ver a mesma regra em advanceCupBracket; NUNCA remover este bloqueio
+     nem "otimizar" preenchendo local de novo — é a garantia de resultado único do modo Resenha. */
+  if(CL.online && Object.values(mg.groups).some(g=>((g.sched[mg.round])||[]).some(([h,a])=>{
+    if(h==null||a==null) return false;
+    if(_jaGravada(g,h,a)) return false;
+    return !(clubeDeOutroHumano(h)||clubeDeOutroHumano(a));
   }))) return false;
   /* mesma regra da chave (ver advanceCupBracket): resolucao que cada cliente faz por conta
      propria tem de usar a escalacao PUBLICADA, senao o dono de um clube humano calcula um

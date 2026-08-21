@@ -9098,18 +9098,8 @@ function resolveCupRoundRest(key){
     if(key==='copaBrasil'){
       if(!cupIsFinished(c) && (c.ties||[]).length) ok=advanceCupBracket(c,'copaBrasil-r'+c.round,'copaBrasil')!==false;
     } else if(c.group && !c.bracket){
-      /* RESENHA: a fase de grupos NUNCA resolve aqui os confrontos que nem eu nem o outro humano
-         jogamos. Cada cliente rodava esta simulação por conta própria (mesma seed, mas com o
-         estado de energia/moral que TINHA NA HORA — que diverge de cliente pra cliente rodada
-         após rodada, porque cada guess local nunca é sincronizado com o outro antes do fechamento
-         real da rodada), e cada humano ficava vendo uma tabela diferente pro MESMO clube de
-         fundo — 4 pontos pra um, 7 pra outro, um dentro da zona de classificação e o outro fora
-         (relato do dono, 21/08). Só o servidor (resolve-round/advanceGroupStageRoundS) resolve
-         fase de grupos em Resenha; até a rodada fechar de vez, a tabela fica como estava — sem
-         inventar placar que o outro humano nunca vai ver igual. O MEU próprio confronto continua
-         entrando na hora (mutação direta em finishCupLiveMatch, mandante-autoritativo — não passa
-         por aqui). Solo mode seque preenchendo local, sem outro cliente pra divergir. */
-      if(!CL.online && !c.group.finished) ok=advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round, key)!==false;
+      // regra de resultado único: ver o bloqueio CPU×CPU dentro de advanceGroupStageRound (core.js)
+      if(!c.group.finished) ok=advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round, key)!==false;
     } else if(c.bracket && !cupIsFinished(c.bracket) && (c.bracket.ties||[]).length){
       ok=advanceCupBracket(c.bracket, key+'-r'+c.bracket.round, key)!==false;
     }
