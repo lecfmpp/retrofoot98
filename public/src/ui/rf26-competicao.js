@@ -792,7 +792,7 @@ function rfCopaFaseHTML(key){
   const confrontos=(fechada&&fechada.ties)||br.ties||[];
 
   /* ===== "QUEM PASSOU DE FASE" SO DEPOIS DE ALGUEM PASSAR =====
-     Numa copa com os dois formatos, esta tela aparecia a cada jornada da FASE DE
+     Numa copa com os dois formatos, esta tela aparecia a cada rodada da FASE DE
      GRUPOS -- com o titulo a falar de passagem de fase, a chave vazia e nada por
      baixo, porque ainda nao ha confronto eliminatorio nenhum. Enquanto a
      competicao estiver nos grupos, o que ha para mostrar sao os grupos, e e isso
@@ -1095,7 +1095,7 @@ function rfVerTimeHTML(clubId){
   const h2h=(S.results||[]).filter(r=>(r.h===clubId&&r.a===meu)||(r.a===clubId&&r.h===meu))
     .slice().reverse().slice(0,4).map(r=>{
       const emCasa=r.h===meu;
-      return {j:(r.round!=null?(r.round+1)+'ª jornada':'—'),
+      return {j:(r.round!=null?(r.round+1)+'ª rodada':'—'),
         p:emCasa?`${r.hg}–${r.ag}`:`${r.ag}–${r.hg}`, m:emCasa?'casa':'fora'};
     });
   return rfStage({

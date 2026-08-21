@@ -7,7 +7,7 @@
    de contexto e o número grande à direita.
 
    ADVERSÁRIO — cartão azul-marinho com o selo do rival, o mando e a
-   jornada, e a MINI-TABELA comparando os dois clubes (J·V·D·GM:GS·P),
+   rodada, e a MINI-TABELA comparando os dois clubes (J·V·D·GM:GS·P),
    com o botão Jogar pulsando. Antes esta caixa chamava panAdversario(),
    que é a do skin antigo — daí não parecer nada com a tela.
    ===================================================================== */
@@ -55,7 +55,7 @@ function rfAdversarioCardHTML(){
   const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
   /* ===== SEM JOGO NAO E SEM BOTAO =====
      Este cartao virou o UNICO ponto de avanco da tela (as Formacoes cederam o Jogar para ele,
-     20/08) — e a versao vazia nao tinha botao nenhum: numa jornada em que o clube nao entra em
+     20/08) — e a versao vazia nao tinha botao nenhum: numa rodada em que o clube nao entra em
      campo (parada do calendario, semana de finais, eliminado das copas) o usuario ficava sem
      como avancar. O cartao vazio continua a dizer que nao ha jogo, mas o botao fica — e o
      rotulo desce a escada de sempre (rfJogarLabel): "Avançar" no solo, "Quase pronto"/"Pronto"
@@ -66,7 +66,7 @@ function rfAdversarioCardHTML(){
         <span class="rf-adv-l">Esta semana</span>
         <span class="rf-adv-d">${S.season||''}</span>
       </div>
-      <span class="rf-adv-livre">O seu clube não entra em campo nesta jornada.</span>
+      <span class="rf-adv-livre">O seu clube não entra em campo nesta rodada.</span>
       <button type="button" class="rf-adv-jogar" onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
     </div>`;
   }
@@ -92,7 +92,7 @@ function rfAdversarioCardHTML(){
       <span class="rf-adv-selo">${rfCrest(opp,36)}</span>
       <span class="rf-adv-id">
         <span class="rf-adv-nome">${escC(opp.short||'')}</span>
-        <span class="rf-adv-sub">${nm.home?'CASA':'FORA'} · ${escC(divisionLabel())} · ${((S.round||0)+1)}ª JORNADA</span>
+        <span class="rf-adv-sub">${nm.home?'CASA':'FORA'} · ${escC(divisionLabel())} · ${((S.round||0)+1)}ª RODADA</span>
       </span>
     </div>
     <div class="rf-adv-tab">

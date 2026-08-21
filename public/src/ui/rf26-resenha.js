@@ -162,7 +162,7 @@ function rfSalaEsperaHTML(st){
     <div class="rf-esp-top">
       <span class="rf-label-t">Sala em espera</span>
       <span class="rf-esp-manchete">${escC(manchete)}</span>
-      <span class="rf-esp-ctx">Jornada ${escC(String((st.jornada!=null?st.jornada:0)+1))} · ${escC(comp)}</span>
+      <span class="rf-esp-ctx">Rodada ${escC(String((st.jornada!=null?st.jornada:0)+1))} · ${escC(comp)}</span>
     </div>
     <div class="rf-esp-lista">${lista}</div>
     ${total?`<div class="rf-esp-prog">
@@ -245,7 +245,7 @@ function rfPausaHTML(){
     titulo:'Pausa patrocinada',
     corpo:`<div class="rf-card">
       <div class="rf-pz-barra">
-        <div class="rf-label"><span class="rf-label-t">A preparar a próxima jornada</span>
+        <div class="rf-label"><span class="rf-label-t">A preparar a próxima rodada</span>
           <span class="rf-pz-pct" id="rf-pct">${(typeof pausaOvertime==='function'&&pausaOvertime())?'⏳':pct+'%'}</span></div>
         <div class="rf-pz-trilho"><div class="rf-pz-fill" id="rf-fill" style="width:${pct}%"></div></div>
       </div>
@@ -270,8 +270,8 @@ function rfPausaHTML(){
           <div class="rf-pz-gente">${assentos.map(a=>`<span class="rf-pz-p ${a.jogou?'ok':''}">
             <i class="rf-pz-dot"></i>${escC(a.nome)}</span>`).join('')}</div>
           <span class="rf-note">${jogaram>=assentos.length
-            ? 'Todos já jogaram. Assim que a tabela fechar, a próxima jornada abre.'
-            : 'A jornada abre quando todos publicarem o resultado.'}</span>
+            ? 'Todos já jogaram. Assim que a tabela fechar, a próxima rodada abre.'
+            : 'A rodada abre quando todos publicarem o resultado.'}</span>
         </div>`:''}
       </div>
     </div>`,
@@ -304,7 +304,7 @@ function rfEsperaHTML(){
 
   return rfStage({
     w:1020,
-    contexto:`Modo Resenha · ${(S.round||0)+1}ª jornada`,
+    contexto:`Modo Resenha · ${(S.round||0)+1}ª rodada`,
     titulo:'À espera dos treinadores',
     corpo:`<div class="rf-card">
       <div class="rf-pz-barra">
@@ -328,7 +328,7 @@ function rfEsperaHTML(){
       <div class="rf-pz-dir">
         <div class="rf-card">
           <div class="rf-label"><span class="rf-label-t">O seu resultado</span>
-            <span class="rf-label-r">${(S.round||0)+1}ª jornada</span></div>
+            <span class="rf-label-r">${(S.round||0)+1}ª rodada</span></div>
           ${meu?`<div class="rf-es-placar">
             <span class="rf-es-lado"><span class="rf-es-sig">${escC(eu.short)}</span>${rfCrest(eu,30)}</span>
             <span class="rf-es-sc">${emCasa?meu.hg:meu.ag} – ${emCasa?meu.ag:meu.hg}</span>
@@ -343,7 +343,7 @@ function rfEsperaHTML(){
               <span class="rf-ft-bv">${CL.lastGate?fmt(CL.lastGate):'—'}</span></div>
             <div class="rf-ft-b"><span class="rf-ov-res-t">Mando</span>
               <span class="rf-ft-bv sm">${emCasa?'em casa':'fora'}</span></div>
-          </div>`:'<span class="rf-note">Você não teve jogo nesta jornada.</span>'}
+          </div>`:'<span class="rf-note">Você não teve jogo nesta rodada.</span>'}
         </div>
       </div>
     </div>`,
@@ -450,7 +450,7 @@ function rfAssentoClassifHTML(seat){
   const prox=rfProximaJornada(assentos);
   return rfStage({
     w:1020,
-    contexto:`Modo Resenha · ${Math.max(1,S.round||0)}ª jornada fechada`,
+    contexto:`Modo Resenha · ${Math.max(1,S.round||0)}ª rodada fechada`,
     titulo:'Como está a resenha',
     corpo:`<div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">Classificação dos treinadores</span>
@@ -476,12 +476,12 @@ function rfAssentoClassifHTML(seat){
           ||'<span class="rf-note">A rodada ainda não rendeu história.</span>'}
       </div>
       <div class="rf-card">
-        <div class="rf-label"><span class="rf-label-t">Próxima jornada</span>
+        <div class="rf-label"><span class="rf-label-t">Próxima rodada</span>
           <span class="rf-label-r">${(S.round||0)+1}ª</span></div>
         ${prox.length?prox.map(p=>`<div class="rf-ac-prox">
           <span class="rf-ac-px">${escC(p.t)}</span>
           ${p.tag?`<span class="rf-ac-ptag">${escC(p.tag)}</span>`:''}
-        </div>`).join(''):'<span class="rf-note">O calendário da próxima jornada ainda não saiu.</span>'}
+        </div>`).join(''):'<span class="rf-note">O calendário da próxima rodada ainda não saiu.</span>'}
       </div>
     </div>`,
     acoes:`<div class="rf-sp"></div>
@@ -506,7 +506,7 @@ function rfResenhaDaRodada(assentos){
   });
   return out;
 }
-/* confrontos da jornada que vem, com os jogos entre humanos marcados */
+/* confrontos da rodada que vem, com os jogos entre humanos marcados */
 function rfProximaJornada(assentos){
   const prox=(S.sched&&S.sched[(S.round||0)])||[];
   const donos=new Set(assentos.map(a=>String(a.clubId)));

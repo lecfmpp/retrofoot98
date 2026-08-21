@@ -126,6 +126,16 @@ Pedido do dono (21/08). O Mercado→Comprar ganhou o filtro **País** (primeiro 
 
 ---
 
+## 13. [x] Lista de saves do solo mostra o time (como a lista de salas da Resenha)
+
+Pedido do dono (21/08). O `listSoloSaves` passou a ler do próprio jsonb a identidade do clube (id/short/escudo, gravados pelo `saveV3` daqui em diante) e onde o save está (temporada, divisão, rodada) — sem baixar o estado inteiro. A linha mostra escudo + clube + "Série X · ano" + "Nª rodada". Save antigo sem identidade resolve pelo clubId nos bundles. Aguardando teste.
+
+## 14. [x] "Jornada" vira "rodada" em todo texto visível
+
+Pedido do dono (21/08). Varredura em todos os textos do jogo (475 ocorrências), preservando identificadores de código e o protocolo (`t.jornada` etc.). A folha world-rules foi re-sincronizada com o servidor (portão byte-a-byte passa). Aguardando teste.
+
+---
+
 ## Ordem sugerida
 
 1. **Item 6** (arquivar classificações) — urgente: salva a temporada que fechou na WEBLG antes da próxima virada.

@@ -15,7 +15,7 @@
    O EXTRATO É POR RODADA, não por dia: S.finances guarda uma entrada por
    rodada fechada (income, salaries, opex, playerSales, playerPurchases,
    stadium, net, log) — não existe data de lançamento no motor. A coluna que
-   o pacote chama de DATA mostra a jornada, que é a unidade em que o dinheiro
+   o pacote chama de DATA mostra a rodada, que é a unidade em que o dinheiro
    de facto se move aqui.
    ===================================================================== */
 
@@ -51,14 +51,14 @@ function rfFiResumoHTML(){
   const sq=squad(CL.clubId);
   const folha=sq.reduce((s,p)=>s+((p.contract&&p.contract.salary)||p.salary||0),0);
   const jornadas=(S.sched||[]).length||14;
-  const faltam=Math.max(0,jornadas-(S.round||0));
+  const faltam=Math.max(0,rodadas-(S.round||0));
   const rodadas=Math.max(1,S.round||1);
   const porRodada=Math.round((receita-despesa)/rodadas);
   const projecao=(S.budget||0)+porRodada*faltam;
   const entra=[['Receita da rodada', t.income||0],['Venda de jogadores', t.playerSales||0]];
   /* A FOLHA NAO NASCE A ZERO. `t.salaries` e o ACUMULADO da temporada, e antes
      da primeira rodada nao acumulou nada — a tela dizia "Folha salarial 0" com
-     o elenco todo contratado, e so na 2a jornada aparecia. O compromisso ja e
+     o elenco todo contratado, e so na 2a rodada aparecia. O compromisso ja e
      calculavel no minuto um: e a soma dos salarios do elenco (`folha`, acima).
      Enquanto nada foi pago, mostra-se o que VAI ser pago. */
   const sai=[['Folha salarial', (t.salaries||0) || folha],['Bônus', t.bonuses||0],
@@ -69,7 +69,7 @@ function rfFiResumoHTML(){
   const delta=ult?ult.net:0;
   return `<div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">CAIXA</span>
-        <span class="rf-label-r">${(S.round||0)}ª jornada de ${escC(String(S.season||''))}</span></div>
+        <span class="rf-label-r">${(S.round||0)}ª rodada de ${escC(String(S.season||''))}</span></div>
       <div class="rf-fi-caixa">
         <span class="rf-fi-caixa-v">${escC(fmt(S.budget||0))}</span>
         <span class="rf-fi-caixa-s ${delta>=0?'ok':'ruim'}">${ult
@@ -95,7 +95,7 @@ function rfFiResumoHTML(){
       <div class="rf-el-stats">
         ${rfElStat('SALDO PREVISTO', fmt(projecao), 'se manter o ritmo')}
         ${rfElStat('POR RODADA', (porRodada>=0?'+':'')+fmt(porRodada), 'média desta temporada')}
-        ${rfElStat('JORNADAS QUE FALTAM', faltam, faltam?'até o fim da fase':'temporada encerrada')}
+        ${rfElStat('RODADAS QUE FALTAM', faltam, faltam?'até o fim da fase':'temporada encerrada')}
         ${rfElStat('FOLHA POR RODADA', fmt(folha), 'compromisso fixo')}
       </div>
     </div>`;
@@ -106,12 +106,12 @@ function rfFiResumoHTML(){
    Grade do pacote: 58 / lançamento / 74 / 92 / 92
    ===================================================================== */
 const RF_FI_EXT_COLS='86px minmax(0,1.6fr) minmax(74px,.5fr) minmax(92px,.6fr) minmax(92px,.6fr)';
-/* QUANDO A TRANSACAO ACONTECEU, e nao so em que jornada. A coluna DATA mostrava
-   "4ª" -- o numero da jornada --, que nao diz nada a quem olha o extrato para
+/* QUANDO A TRANSACAO ACONTECEU, e nao so em que rodada. A coluna DATA mostrava
+   "4ª" -- o numero da rodada --, que nao diz nada a quem olha o extrato para
    perceber o mes em que o caixa virou. Agora sai a data do calendario do save
-   ("7/mar"), com a jornada por baixo em letra pequena para nao se perder a
+   ("7/mar"), com a rodada por baixo em letra pequena para nao se perder a
    referencia. A data vem do dia carimbado no lancamento (ver pushFinanceEntry);
-   nos saves gravados antes disso cai na data da jornada da liga, que e a fonte
+   nos saves gravados antes disso cai na data da rodada da liga, que e a fonte
    unica que o calendario e a faixa do clube ja usam. */
 function rfFiDataHTML(f){
   let d=null;
@@ -176,7 +176,7 @@ function rfFiReais(v){
 function rfFiExportar(){
   const linhas=(S.finances||[]).map(f=>[f.round!=null?f.round:'', f.income||0, f.playerSales||0,
     f.salaries||0, f.opex||0, f.playerPurchases||0, f.stadium||0, f.net||0].join(';'));
-  const txt='jornada;receita;vendas;salarios;operacional;compras;estadio;saldo\n'+linhas.join('\n');
+  const txt='rodada;receita;vendas;salarios;operacional;compras;estadio;saldo\n'+linhas.join('\n');
   try{
     const a=document.createElement('a');
     a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(txt);

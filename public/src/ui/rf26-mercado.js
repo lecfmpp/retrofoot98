@@ -79,11 +79,11 @@ function rfMkTabela(cols, cabecalho, linhas, vazio, chave){
   </div>`;
 }
 /* mesma conta do calendário (rfCpDataDaJornada): o motor não guarda data por
-   jornada, deriva do dia — sete por rodada */
+   rodada, deriva do dia — sete por rodada */
 /* FECHA: a DATA, nao a contagem. A coluna dizia "3 rodadas", que obriga a
    contar de cabeca para saber quando e — e ocupava o dobro da largura. Agora
    sai a data do dia em que o lote fecha, na mesma regua curta do calendario
-   (rfMkDataDaJornada: sete dias por jornada). Sem data calculavel, cai na
+   (rfMkDataDaJornada: sete dias por rodada). Sem data calculavel, cai na
    contagem de antes em vez de mostrar travessao. */
 function rfMkFechaEm(roundsLeft){
   if(roundsLeft==null) return '—';
@@ -561,7 +561,7 @@ function rfMktTransfHTML(){
   }); });
   ent.sort((a,b)=>(b.h.season-a.h.season)||(b.h.round-a.h.round));
   /* QUANDO: data curta (7/mar), a mesma régua do calendário — sete dias por
-     jornada, ver rfCpDataDaJornada. Antes saía em texto ("há 3 jornadas",
+     rodada, ver rfCpDataDaJornada. Antes saía em texto ("há 3 rodadas",
      "temporada 2027"), que ocupava o dobro da largura e ainda obrigava a contar
      de cabeça para saber quando foi. De outra temporada, entra o ano. */
   const quando=h=>{
@@ -587,16 +587,16 @@ function rfMktTransfHTML(){
     <span></span><span>PARA</span><span class="dir">VALOR</span><span class="dir">QUANDO</span>`;
   const aberta=(typeof inTransferWindow==='function')?inTransferWindow():true;
   const jornadas=(S.sched||[]).length||14;
-  const pct=Math.max(0,Math.min(100,Math.round((S.round||0)/jornadas*100)));
-  const faltam=Math.max(0,jornadas-(S.round||0));
+  const pct=Math.max(0,Math.min(100,Math.round((S.round||0)/rodadas*100)));
+  const faltam=Math.max(0,rodadas-(S.round||0));
   return rfCol(
     rfCard('Janela de transferências', `
       <div class="rf-jan-l">
-        <span class="rf-jan-t">${aberta?'Aberta desde a 1ª jornada':'Fechada'}</span>
+        <span class="rf-jan-t">${aberta?'Aberta desde a 1ª rodada':'Fechada'}</span>
         <span class="rf-jan-p">${pct}%</span>
       </div>
       <div class="rf-jan-trilho"><i style="width:${pct}%"></i></div>`,
-      {right: aberta?('fecha em '+faltam+' jornada'+(faltam===1?'':'s')):'fechada'})
+      {right: aberta?('fecha em '+faltam+' rodada'+(faltam===1?'':'s')):'fechada'})
     + rfCard('Movimentações da divisão',
       rfMkTabela('minmax(0,1fr) 44px 48px minmax(0,150px) 28px minmax(0,150px) 116px 116px',
         /* CHAVE PRÓPRIA. Esta tabela usava 'mkt-contra', a mesma das
@@ -812,7 +812,7 @@ function rfMkLance(sellerId, player){
 }
 /* Mostra o próximo leilão fechado por OUTRO clube, um de cada vez, e só uma vez
    por venda. Chamado ao voltar da rodada (ver rfPrContinuar): é o momento em que
-   o utilizador está a par do que aconteceu na jornada. */
+   o utilizador está a par do que aconteceu na rodada. */
 function rfMkLeilaoOutroPendente(){
   const fila=(typeof S!=='undefined' && S.auctionSales)||[];
   const v=fila.find(x=>x && !x._visto);

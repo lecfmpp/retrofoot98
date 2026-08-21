@@ -33,21 +33,21 @@ function rfSalaEstado(r){
   const cl=r.clubId && typeof clubOf==='function' ? clubOf(r.clubId) : null;
   const nome=(cl && (cl.short||cl.name)) || r.name || r.code || '—';
   const papel=r.isHost ? 'anfitrião' : 'convidado';
-  const jornada=r.round ? (r.round+'ª jornada') : '';
+  const jornada=r.round ? (r.round+'ª rodada') : '';
   let selo, onde, chama=false;
   if(r.pending){ selo='espera'; onde='convite pendente'; chama=true; }
   else if(r.phase==='finished'){ selo='fim'; onde='sala encerrada'; }
   else if(r.phase==='running'){
     /* `pronto` vem do is_ready do MEU assento (ver netListMyRooms). Falso = a
        rodada está parada à minha espera, e é isso que a pessoa precisa ver. */
-    if(r.pronto===false){ selo='espera'; onde=(jornada?jornada+' · ':'')+'a sua vez'; chama=true; }
-    else { selo='correr'; onde=jornada||'a correr'; }
+    if(r.pronto===false){ selo='espera'; onde=(jornada?rodada+' · ':'')+'a sua vez'; chama=true; }
+    else { selo='correr'; onde=rodada||'a correr'; }
   }
   else if(r.phase==='ready'){ selo='comecar'; onde='a começar · escolha do clube'; }
   else { selo='espera'; onde='à espera dos treinadores'; chama=true; }   // lobby
-  /* `curto` = o estado SEM a jornada, para as telas que ja mostram a jornada
-     numa coluna propria (ver "Resenha - Comecar"): la, "2a jornada · a sua vez"
-     ao lado de "2a jornada" dizia a mesma coisa duas vezes. */
+  /* `curto` = o estado SEM a rodada, para as telas que ja mostram a rodada
+     numa coluna propria (ver "Resenha - Comecar"): la, "2a rodada · a sua vez"
+     ao lado de "2a rodada" dizia a mesma coisa duas vezes. */
   const curto = chama ? (r.pending?'convite pendente'
                        : (r.phase==='running'?'à espera de você':'à espera dos treinadores'))
                       : '';
@@ -362,9 +362,9 @@ function rfResenhaComecarHTML(){
           ${rfSalaEscudoHTML(e)}
           <span class="rf-rc-id">
             <span class="rf-rc-n">${escC(r.name||e.clube)}</span>
-            <span class="rf-rc-sub">${escC(r.code)}${e.temClube?(' · '+escC(e.clube)):''}<span class="rf-rc-sub-jor">${escC(r.round?(' · '+r.round+'ª jornada'):'')}</span></span>
+            <span class="rf-rc-sub">${escC(r.code)}${e.temClube?(' · '+escC(e.clube)):''}<span class="rf-rc-sub-jor">${escC(r.round?(' · '+r.round+'ª rodada'):'')}</span></span>
           </span>
-          <span class="rf-rc-jor">${escC(r.round?(r.round+'ª jornada'):'')}</span>
+          <span class="rf-rc-jor">${escC(r.round?(r.round+'ª rodada'):'')}</span>
           <span class="rf-rc-est ${e.chama?'chama':''}">${escC(e.curto)}</span>
           <span class="rf-rc-volta ${i===0?'forte':''}">Voltar</span>
         </div>`; }).join('')}

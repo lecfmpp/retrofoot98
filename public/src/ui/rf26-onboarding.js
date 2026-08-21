@@ -350,7 +350,7 @@ function rfObSavesHTML(){
   const corpo = !aberto ? '' : (carregando
     ? '<div class="rf-obsv-vazio">Procurando os seus saves na nuvem</div>'
     : `<div class="rf-obsv-head">
-        <span></span><span>SAVE</span><span>JORNADA</span><span>GRAVADO</span><span></span></div>
+        <span></span><span>SAVE</span><span>RODADA</span><span>GRAVADO</span><span></span></div>
       ${saves.map(sv=>{
         const c=rfObSaveClube(sv);
         return `<div class="rf-obsv-lin">
@@ -384,7 +384,7 @@ function rfObSavesHTML(){
 }
 function rfObSaves(){ CL.obSavesOpen=(CL.obSavesOpen===false); cdraw(); }
 /* O QUE O SAVE SABE DE SI. A listagem da nuvem devolve nome e updated_at; o
-   clube, a divisão e a jornada só existem se o registro tiver o resumo. Sem
+   clube, a divisão e a rodada só existem se o registro tiver o resumo. Sem
    ele, a linha mostra o que tem e cala o resto — nada de clube inventado. */
 function rfObSaveClube(sv){
   const id=sv.clubId||sv.club_id||(sv.meta&&sv.meta.clubId);
@@ -398,7 +398,7 @@ function rfObSaveOnde(sv){
 }
 function rfObSaveJornada(sv){
   const r=sv.round!=null?sv.round:(sv.meta&&sv.meta.round);
-  return r!=null?((r+1)+'ª jornada'):'—';
+  return r!=null?((r+1)+'ª rodada'):'—';
 }
 
 /* =====================================================================
@@ -504,7 +504,7 @@ function rfOb4(){
   const cards=['D','C','B','A'].map(d=>{
     const lbl=(cfg&&cfg.label&&cfg.label[d])||('Série '+d);
     const clubes=(cfg&&cfg.size&&cfg.size[d])||0;
-    // jornadas = turno e returno entre os clubes da divisão; o motor não guarda
+    // rodadas = turno e returno entre os clubes da divisão; o motor não guarda
     // esse número, ele CAI da contagem de clubes (n-1 jogos, ida e volta)
     const jorn=clubes?((clubes-1)*2):0;
     const teste=d!=='D';
@@ -513,7 +513,7 @@ function rfOb4(){
       ${rfTrofeuHTML('serie'+d,42)}
       <span class="rf-sl-div-id">
         <span class="rf-sl-div-n">${escC(lbl)}</span>
-        <span class="rf-sl-div-s">${clubes?clubes+' clubes':'—'}${jorn?' · '+jorn+' jornadas':''}</span>
+        <span class="rf-sl-div-s">${clubes?clubes+' clubes':'—'}${jorn?' · '+jorn+' rodadas':''}</span>
       </span>
       <span class="rf-sl-selo ${teste?'teste':'padrao'}">${teste?'TESTE':'PADRÃO'}</span>
     </button>`;

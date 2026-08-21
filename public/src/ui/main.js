@@ -2315,7 +2315,7 @@ function clPaisesBack(){ CL.screen='modosolo'; CL.soloStep='novo'; cdraw(); }
 /* competições de UM país selecionado (divisões + copas), no mesmo visual do Brasil.
    Brasil: Séries A–D + Copa do Brasil/Libertadores/Sul-Americana (ligáveis por CL.compToggle).
    Países europeus: 1ª/2ª divisão + Champions League/Europa League (inclusas com o país).
-   'início' vai na divisão de baixo (onde a jornada começa se você jogar esse país). */
+   'início' vai na divisão de baixo (onde a rodada começa se você jogar esse país). */
 function countryCompSection(country){
   const uniKey = country==='Brasil' ? 'brasil' : country;
   const cfg = (typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[uniKey];
@@ -3241,7 +3241,7 @@ function clSeatPlay(){
   const fx=c.fx;
   CL.subsUsed=0; CL.liveDivOpen=null;
   const m=buildLiveMatchObject(fx.home,fx.away,fx.seed,{user:true, div:fx.div});
-  const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], humanSeat:{seat:c.seat,fx} };
+  const RL={ rodada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], humanSeat:{seat:c.seat,fx} };
   RL.maxMin=Math.max(94, m.events.length?m.events[m.events.length-1].min:90);
   CL.live=RL; camKickoffLine(RL); CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
 }
@@ -3368,7 +3368,7 @@ function scSeatTurnLegado(){
         <div class="cl-roster cl-acc-body">${rosterHTML()}</div>
       </div>
       <div class="cl-main-right ${ADV_HDR_TABS[CL.tab]?'':'sem-adv'}" style="background:${th.bg}">
-        ${advHeaderHTML({nome:opp.short||'—', home, comp:divisionLabel(), fase:((S.round||0)+1)+'ª Jornada', season:S.season, chip:th.bg2})}
+        ${advHeaderHTML({nome:opp.short||'—', home, comp:divisionLabel(), fase:((S.round||0)+1)+'ª Rodada', season:S.season, chip:th.bg2})}
         <div class="cl-panel">${panel}</div>
         ${tabBar}
       </div>
@@ -3399,7 +3399,13 @@ async function saveV3(explicit){
   if(CL._seatContext) return; // hotseat: contexto trocado pro assento — NÃO persistir (seria salvo com o clube errado como primário)
   if(CL.online) return; // online usa o save da sala (host-autoritativo), não o solo
   const name = CL.save||CL.mgr||'SAVE';
-  const payload = { ts:Date.now(), mgr:CL.mgr, clubId:CL.clubId, currency:CL.currency, ticket:CL.ticket, humans:CL.humans, S };
+  // identidade do clube junto do save: é o que a lista de saves mostra sem baixar o estado
+  // inteiro (clubShort/clubCrest via state->>, ver netListSoloSaves)
+  const _c=(typeof clubOf==='function'&&clubOf(CL.clubId))||{};
+  const payload = { ts:Date.now(), mgr:CL.mgr, clubId:CL.clubId,
+    clubShort:_c.short||_c.name||null,
+    clubCrest:(typeof clubCrestUrl==='function'?clubCrestUrl(_c):null)||null,
+    currency:CL.currency, ticket:CL.ticket, humans:CL.humans, S };
   if(typeof NET==='undefined' || !NET.saveSoloGame){ if(explicit&&typeof toastC==='function') toastC('⚠ Sem conexão pra gravar.'); return; }
   let finishSavingOverlay=null;
   if(explicit) finishSavingOverlay=showSavingOverlay();
@@ -3516,7 +3522,7 @@ function nextUserMatch(){
   if(!uf) return null;
   const home=uf[0]===CL.clubId;
   return { kind:'league', h:uf[0], a:uf[1], oppId:home?uf[1]:uf[0], home, uf,
-    comp:(typeof divisionLabel==='function')?divisionLabel():'', fase:`${(S.round||0)+1}ª Jornada` };
+    comp:(typeof divisionLabel==='function')?divisionLabel():'', fase:`${(S.round||0)+1}ª Rodada` };
 }
 function scMain(){
   const cl=clubOf(CL.clubId);
@@ -4137,7 +4143,7 @@ function scTeamViewLegado(){
       </div>
       <div class="cl-main-right ${ADV_HDR_TABS[CL.viewTab||'jogo']?'':'sem-adv'}" style="background:${th.bg}">
         ${advHeaderHTML({nome:oppId?clubOf(oppId).short:'—', home:uf?home:null,
-          fase:uf?(jornada+'ª Jornada'):'', season:S.season, chip:th.bg2})}
+          fase:uf?(jornada+'ª Rodada'):'', season:S.season, chip:th.bg2})}
         <div class="cl-panel">${panel}</div>
         ${tabBar}
       </div>
@@ -4158,7 +4164,7 @@ function panViewJogo(vid,oppId,uf){
   return `<div class="cl-jogo">
     ${uf?line(vid,me,false):''}
     ${oppId?line(oppId,op,true):''}
-    ${uf?`<div class="cl-blk"><div class="cl-blk-l">Árbitro</div><div class="cl-blk-v cl-strong">${escC(ref)}</div></div>`:'<div class="cl-jogo-empty">Sem jogo marcado nesta jornada.</div>'}
+    ${uf?`<div class="cl-blk"><div class="cl-blk-l">Árbitro</div><div class="cl-blk-v cl-strong">${escC(ref)}</div></div>`:'<div class="cl-jogo-empty">Sem jogo marcado nesta rodada.</div>'}
     <div class="cl-blk"><div class="cl-blk-l">Moral do elenco</div><div class="cl-bar cl-bar-moral" style="--val:${moral}"><div class="cl-bar-fill" style="width:${moral}%"></div></div></div>
   </div>`;
 }
@@ -4194,7 +4200,7 @@ function panViewJogador(vid){
   </div>`;
 }
 function panViewAdversario(oppId){
-  if(!oppId) return `<div class="cl-adv">Sem adversário nesta jornada.</div>`;
+  if(!oppId) return `<div class="cl-adv">Sem adversário nesta rodada.</div>`;
   const r=ratings(oppId,false); const forca=Math.max(6,Math.min(100,Math.round((r.OS+r.DS)/2)));
   const rnd=rngFrom(hashC(oppId)); const coach=COACHES_C[Math.floor(rnd()*COACHES_C.length)];
   return `<div class="cl-adv">
@@ -4290,7 +4296,7 @@ function forcaBlocoHTML(p){
   const total = g.atual-desde;
   const totalTxt = total>0?`+${total}`:total<0?String(total):'estável';
   const linhaMudanca = g.delta!==0
-    ? `<div class="cl-forca-sub">Antes <b>${g.anterior}</b> → agora <b>${g.atual}</b> ${seta} <i>(mudou na ${(g.desdeR!=null?g.desdeR+1:'?')}ª jornada)</i></div>`
+    ? `<div class="cl-forca-sub">Antes <b>${g.anterior}</b> → agora <b>${g.atual}</b> ${seta} <i>(mudou na ${(g.desdeR!=null?g.desdeR+1:'?')}ª rodada)</i></div>`
     : `<div class="cl-forca-sub">Sem mudança desde a última leitura.</div>`;
   const linhaTotal = g.hist.length>1
     ? `<div class="cl-forca-sub">Desde que passei a acompanhar: <b>${desde}</b> → <b>${g.atual}</b> (<b>${totalTxt}</b>)</div>`
@@ -4307,7 +4313,7 @@ function forcaBlocoHTML(p){
     ? 'Ainda não entrou em campo nesta temporada'
     : `Forma (últimas ${(p.stats.r3||[]).length}): <b>${notaTxt(forma)}</b>${forma>=6.8?' — evoluindo':''}`;
   const forcaSub = g.delta!==0
-    ? `Mudou na ${(g.desdeR!=null?g.desdeR+1:'?')}ª jornada: <b>${g.anterior}</b> → <b>${g.atual}</b>`
+    ? `Mudou na ${(g.desdeR!=null?g.desdeR+1:'?')}ª rodada: <b>${g.anterior}</b> → <b>${g.atual}</b>`
     : 'Sem mudança desde a última leitura';
   const detalhesAbertos=!!CL.jgdDetOpen;
   return `<div class="cl-forca" title="${escC(forcaImpactoTexto(p))}">
@@ -4366,7 +4372,7 @@ function growthSparkHTML(g){
   const vals=h.map(x=>x.f), min=Math.min(...vals), max=Math.max(...vals), span=(max-min)||1;
   const barras=h.map((x,i)=>{
     const pct=8+Math.round(92*(x.f-min)/span);
-    const quando=(x.r!=null?(x.r+1)+'ª jornada':'início');
+    const quando=(x.r!=null?(x.r+1)+'ª rodada':'início');
     return `<span class="cl-spark-b ${i===h.length-1?'now':''}" title="${quando} · força ${x.f}"><i style="height:${pct}%"></i></span>`;
   }).join('');
   return `<div class="cl-spark">
@@ -5732,7 +5738,7 @@ function clJogar(){
      `clJogar` reentra: a cerimônia de sorteio chama-o de volta no fim (`checkPendingCupDraws(
      ()=>clJogar())`), e o onDone dispara mais de uma vez. Sem esta porta, a primeira volta abria
      a partida da COPA e a segunda — encontrando a copa já carimbada — seguia para a liga e
-     escrevia por cima de `CL.live`. Medido em 18/08/2026 numa jornada 4: a Libertadores abria,
+     escrevia por cima de `CL.live`. Medido em 18/08/2026 numa rodada 4: a Libertadores abria,
      ficava marcada como vista, e o que aparecia na tela eram os 40 jogos da Série D. A copa
      nunca era assistida e era resolvida em segundo plano — exatamente o "não vejo as finais".
      Se já há partida em campo, não se começa outra. Quem termina uma partida chama o fim dela
@@ -5750,14 +5756,14 @@ function clJogar(){
     CL.live=null;
   }
   if(CL._seatContext){ clSeatPlay(); return; } // hotseat: "Jogar" na tela do assento inicia a partida dele
-  // CLASSIFICAÇÃO DE COPA PENDENTE: numa jornada com mais de uma competição, a fila para na tela
+  // CLASSIFICAÇÃO DE COPA PENDENTE: numa rodada com mais de uma competição, a fila para na tela
   // do clube entre uma e outra (ver cupClassifContinue). O próximo "Jogar" retoma dela — antes de
-  // qualquer partida, porque ela é da jornada que acabou de ser resolvida.
+  // qualquer partida, porque ela é da rodada que acabou de ser resolvida.
   if(CL._cupClassifQueue && CL._cupClassifQueue.length){
     showCupClassif(CL._cupClassifQueue.shift(), CL._cupClassifRound); return;
   }
-  /* JORNADA SEM CAMPO NAO PEDE FORMACAO — o mesmo desvio do rotulo (ver rfProximaAcao):
-     tatica e goleiro sao condicoes para entrar em campo, e numa jornada em que o clube nao
+  /* RODADA SEM CAMPO NAO PEDE FORMACAO — o mesmo desvio do rotulo (ver rfProximaAcao):
+     tatica e goleiro sao condicoes para entrar em campo, e numa rodada em que o clube nao
      joga o clique e "Avançar". Sem isto o botao dizia Avançar e o clique respondia com o
      toast da tatica. */
   const _semCampo = !CL.online && typeof rfNadaParaJogar==='function' && rfNadaParaJogar();
@@ -5803,7 +5809,7 @@ function clJogar(){
      Com o dia mandando, só existe uma pergunta: o que está em campo HOJE? Se eu tenho confronto
      nessa competição, eu jogo; se não tenho, eu assisto; se o dia é de liga, nenhuma copa entra. */
   const dia=(typeof roomDay==='function')?roomDay():null;
-  if(dia && dia.hold){ toastC('⏳ A sala está acertando a jornada — um instante.'); return; }
+  if(dia && dia.hold){ toastC('⏳ A sala está acertando a rodada — um instante.'); return; }
   /* PASSO 1: O MOMENTO MANDA NA TELA. Enquanto a sala está em 'escalando', "Jogar" quer dizer
      "ESTOU PRONTO" — e mais nada. A partida só entra em campo quando o servidor disser que o
      último assento chegou (momento 'jogando'), e aí ela entra para todos ao mesmo tempo. Era
@@ -5830,7 +5836,7 @@ function clJogar(){
   // por ela do mesmo jeito, uma competição de cada vez, antes de liberar a rodada de liga.
   // Assistir não escreve nada no estado, então cupWasSeen/cupMarkSeen é que lembram o que já foi
   // cumprido NESTA rodada — sem isso a mesma competição reapareceria a cada clique em "Jogar"
-  // (o marcador é por temporada+jornada, ver cupRoundKeyNow).
+  // (o marcador é por temporada+rodada, ver cupRoundKeyNow).
   // RODADA COLETIVA — VALE PROS DOIS MODOS. Quem não disputa a competição (ou já foi eliminado,
   // ou pegou bye) vê a MESMA rodada ao vivo que quem joga, e depois a mesma classificação. Não é
   // mais uma oferta ("quer assistir?") nem um aviso de que hoje não tem jogo pra ele: é a tela da
@@ -5851,7 +5857,7 @@ function clJogar(){
        cupMarkSeen era escrito ANTES de startCupRound. Se a rodada nao chegasse a entrar em
        campo (estado inesperado, erro no meio, o jogador a sair da tela), a competicao ficava
        marcada como vista sem nunca ter sido mostrada — e o avanco em segundo plano resolvia-a
-       em silencio. Uma competicao inteira desaparecia da jornada. */
+       em silencio. Uma competicao inteira desaparecia da rodada. */
     /* O CARIMBO É O FIM DA PARTIDA, NÃO O COMEÇO. Ele era escrito aqui, assim que a tela abria —
        e "abriu" não é "foi assistida": bastava a partida ser substituída no mesmo clique para a
        competição ficar dada como cumprida sem ninguém ter visto nada. Quem carimba agora é
@@ -5864,15 +5870,15 @@ function clJogar(){
     showCupIdleMessage(cand); return;   // sem confrontos pra mostrar: mantém o aviso antigo
   }
   if(CL.online){ onlineMarkReady(); return; }
-  /* REDE DE SEGURANCA: JORNADA SEM NADA PARA JOGAR.
-     startLiveRound() monta a rodada a partir de S.sched[S.round]. Numa jornada
+  /* REDE DE SEGURANCA: RODADA SEM NADA PARA JOGAR.
+     startLiveRound() monta a rodada a partir de S.sched[S.round]. Numa rodada
      sem jogo de liga E sem copa pendente ele nao faz NADA — sem erro, sem
      aviso, sem partida: o botao "Jogar" fica mudo e a temporada nunca fecha.
      Medido: CL.live continua nulo, 0 jogos, a tela nao muda.
 
-     A jornada vazia e legitima e existe de proposito — prorrogarPorCopasPendentes
+     A rodada vazia e legitima e existe de proposito — prorrogarPorCopasPendentes
      empurra `S.sched.push([])` para as copas devedoras jogarem. O problema e o
-     caso em que essa jornada tambem nao tem copa: por teto de prorrogacao, por
+     caso em que essa rodada tambem nao tem copa: por teto de prorrogacao, por
      copa resolvida noutro caminho, ou por qualquer desvio de estado. Ai nao ha
      o que jogar, e o certo e FECHAR a temporada em vez de ficar parado.
      Melhor uma temporada que fecha do que um jogo que nao anda. */
@@ -5880,19 +5886,19 @@ function clJogar(){
   startLiveRound();
 }
 /* ===== PASSAR O DIA (fase 2 do calendario) =====
-   Jornada sem jogo de liga e sem copa. Desde que as copas deixaram de ser
+   Rodada sem jogo de liga e sem copa. Desde que as copas deixaram de ser
    espremidas dentro da liga, isto acontece de propria: entre o fim da liga e a
    final da Libertadores ha semanas sem nada em campo, e a temporada precisa de
    as atravessar. Antes o botao dizia "Jogar" e nao fazia NADA — medido: sem
    partida, sem tela nova, sem erro. Agora ele diz "Avancar" e avanca.
 
-   E se ja nao ha mais jornada nenhuma, a temporada FECHA aqui. Melhor uma
+   E se ja nao ha mais rodada nenhuma, a temporada FECHA aqui. Melhor uma
    temporada que termina do que um jogo que nao anda. */
 function clAvancarDia(){
   if(CL.online) return;                        // na Resenha quem manda no dia e o servidor
   /* ===== FASE 3: NUNCA PASSAR POR CIMA DE UM JOGO =====
-     Este botao so devia aparecer em jornada vazia, mas ele tambem e o caminho por onde
-     clJogar fecha a temporada — e uma jornada com jogo de liga ou com copa por ver nao pode
+     Este botao so devia aparecer em rodada vazia, mas ele tambem e o caminho por onde
+     clJogar fecha a temporada — e uma rodada com jogo de liga ou com copa por ver nao pode
      ser saltada nem fechar temporada nenhuma. Se ainda ha o que jogar hoje, o clique vale
      como "Jogar". */
   if(typeof rfNadaParaJogar==='function' && !rfNadaParaJogar()){ clJogar(); return; }
@@ -5900,7 +5906,7 @@ function clAvancarDia(){
      Antes de olhar para o fim do calendario, toda competicao que ainda deve rodada ganha dia
      marcado (ver copasPendentes/prorrogarPorCopasPendentes). E barato e so cria o que falta:
      competicao com dias suficientes ja marcados nao mexe em nada. Sem isto, o "Avancar" da
-     ultima jornada encerrava a temporada com a final da Copa do Brasil e da Sul-Americana por
+     ultima rodada encerrava a temporada com a final da Copa do Brasil e da Sul-Americana por
      jogar — sem partida, sem cerimonia e sem campeao. Era o relatado. */
   if(!S.finished && typeof prorrogarSeFaltaCopa==='function'){
     try{ prorrogarSeFaltaCopa(); }catch(e){ console.warn('prorrogar:', e&&e.message); }
@@ -5922,7 +5928,7 @@ function clAvancarDia(){
   /* ===== O DIA NOVO PODE TER FINAL. QUEM DECIDE E A ARQUIBANCADA, NAO ESTE BOTAO. =====
      Aqui estava o "nao vejo as finais" na sua forma final. O guarda la em cima pergunta se ha
      jogo HOJE; passava, o dia virava, e a linha seguinte resolvia em segundo plano as copas do
-     dia NOVO -- que ninguem tinha visto ainda. Depois da jornada 38 a liga acaba e todos os
+     dia NOVO -- que ninguem tinha visto ainda. Depois da rodada 38 a liga acaba e todos os
      dias passam a ser dias de copa: um clique em "Avancar" atropelava a final da Libertadores,
      a da Sul-Americana e a da Copa do Brasil de uma vez, e o que aparecia eram tres cerimonias
      de campeao seguidas. Foi exatamente o relato.
@@ -5948,7 +5954,7 @@ function clAvancarDia(){
     toastC('Dia passado — '+((typeof dataCurtaDaJornada==='function')?dataCurtaDaJornada(S.round,'liga'):''));
     cdraw(); return;
   }
-  /* as copas correm na virada da jornada como em qualquer rodada — sem isto,
+  /* as copas correm na virada da rodada como em qualquer rodada — sem isto,
      passar o dia saltaria por cima de uma rodada de copa devida */
   try{ if(typeof advancePendingCups==='function') advancePendingCups(); }catch(e){ console.warn('copas ao passar o dia:', e); }
   /* se alguma final foi decidida neste avanco, a taca aparece agora — passar o
@@ -6139,7 +6145,7 @@ function startCupRound(key, stage, pending){
   const ordered = pending ? fixtures.filter(isMine).concat(fixtures.filter(f=>!isMine(f))) : fixtures;
   const matches=ordered.map((f,i)=>buildLiveMatchObject(f.h,f.a,f.seed,
     { user:(pending && i===0) ? true : false, div:key, cupKey:key }));
-  const RL={ jornada:S.round+1, minute:0, half:1, done:false,
+  const RL={ rodada:S.round+1, minute:0, half:1, done:false,
     sel:(matches.length===1?0:null), subOpen:false, matches,
     cup: pending ? pending : {key, stage, spectate:true} };
   RL.maxMin=Math.max(94,...matches.map(m=>m.events.length?m.events[m.events.length-1].min:90));
@@ -6278,7 +6284,7 @@ function buildLiveMatchObject(h,a,seed,opts){
   const isCup=CL.online && !isLeague && !!opts.cupKey;
   const netLive=isLeague||isCup;
   // A COMPETIÇÃO ENTRA NA CHAVE DA TRANSMISSÃO. Antes era só 'cp:'+mandante+'-'+visitante, e o
-  // calendário oficial põe Copa do Brasil e Sul-Americana na MESMA jornada: quando o mesmo par de
+  // calendário oficial põe Copa do Brasil e Sul-Americana na MESMA rodada: quando o mesmo par de
   // clubes se encontrava nas duas, as duas partidas nasciam com a MESMA streamKey. O onNetMatchLive
   // casa o stream pela chave (`find`), então os eventos de uma partida entravam na outra — e qual
   // das duas era "a primeira da lista" mudava de cliente pra cliente, que é exatamente o relato de
@@ -6370,7 +6376,7 @@ function startLiveRound(){
     return;
   }
   /* MESMA GUARDA NO SOLO — faltava, e era por isso que "Jogar" às vezes abria uma
-     tela ao vivo VAZIA, só com a faixa azul do topo. Sem jornada em `S.sched`
+     tela ao vivo VAZIA, só com a faixa azul do topo. Sem rodada em `S.sched`
      (temporada terminada, ou o diálogo de fim de temporada fechado e o botão
      clicado de novo), `fxRaw` saía vazio, `RL.matches` também, e a tela desenhava
      a barra e nada mais — sem erro no console e sem saída, porque o tique da
@@ -6396,7 +6402,7 @@ function startLiveRound(){
   const mine=fxRaw.filter(([h,a])=>h===CL.clubId||a===CL.clubId);
   const rest=fxRaw.filter(([h,a])=>!(h===CL.clubId||a===CL.clubId));
   const fx=mine.concat(rest);
-  const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[] };
+  const RL={ rodada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[] };
   fx.forEach(([h,a],i)=>{ const seed=(seedBase+hashC(h)+hashC(a))>>>0;
     RL.matches.push(buildLiveMatchObject(h,a,matchSeed(h,a),{div:S.division})); });
   // as outras 3 divisões rodam junto, em segundo plano, igual ao clássico (as 4 divisões
@@ -6413,7 +6419,7 @@ function startLiveRound(){
   if(!RL.matches.length){
     CL._liveBusy=false;
     console.warn('rodada sem partidas: S.round='+S.round+' de '+((S.sched||[]).length)+' — entrada em campo cancelada');
-    toastC('Não há jogo para esta jornada.','warn');
+    toastC('Não há jogo para esta rodada.','warn');
     return;
   }
   RL.maxMin=Math.max(94,...RL.matches.map(m=>m.events.length?m.events[m.events.length-1].min:90));
@@ -6453,7 +6459,7 @@ function startCupLiveMatch(pending){
   if(startCupRound(pending.key, pending.stage, pending)) return;
   const seed=hashSeed(S.seed,'cupmatch',pending.key,pending.stage,S.round,pending.h,pending.a);
   const m=buildLiveMatchObject(pending.h,pending.a,seed,{user:true,div:pending.key,cupKey:pending.key});
-  const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], cup:pending };
+  const RL={ rodada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], cup:pending };
   RL.maxMin=Math.max(94, m.events.length?m.events[m.events.length-1].min:90);
   CL.live=RL; camKickoffLine(RL); CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
 }
@@ -7608,11 +7614,11 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
   // cabeçalho da partida de assento (hotseat): nome do treinador + clube + país
   const hsTop = RL.humanSeat ? (function(){ const st=RL.humanSeat.seat; const c=clubOf(st.clubId)||{}; const fl=(typeof flagImg==='function')?flagImg(st.country):'';
     return `<div class="cl-live-cup-top">${camSw}<div class="cl-live-cup-name">${escC(st.name)} · ${escC(c.short||c.name||'')}</div>
-      <div class="cl-live-cup-stage">${fl} ${escC(st.country)} · ${RL.jornada}ª Jornada</div></div>`; })() : '';
-  // o dia entra junto da jornada: na partida ao vivo o jogador vê que aquele jogo é de um DIA
+      <div class="cl-live-cup-stage">${fl} ${escC(st.country)} · ${RL.jornada}ª Rodada</div></div>`; })() : '';
+  // o dia entra junto da rodada: na partida ao vivo o jogador vê que aquele jogo é de um DIA
   // (quarta de copa ou fim de semana de liga), não de um bloco de semana indistinto.
   const _liveDay = (typeof calRowDate==='function') ? calRowDate(Math.max(0,(RL.jornada||1)-1), RL.cup?(RL.cup.key||true):null) : '';
-  const topLabel = `${RL.jornada}ª Jornada - ${S.season}${_liveDay?' · '+_liveDay:''}`;
+  const topLabel = `${RL.jornada}ª Rodada - ${S.season}${_liveDay?' · '+_liveDay:''}`;
   const shootoutBoard = RL.pens ? shootoutScoreboardHTML(RL) : '';
   const camAberto = !!(userMatch && camOn());
   return `<div class="cl-live${camAberto?' rf-cam-open':''}">${kickoffWaitHTML(RL)}${cupTop}${hsTop}${single?'':`<div class="cl-live-top">${divisionTrophyImg(S.division,20)} ${topLabel}${camSw}</div>`}
@@ -8241,7 +8247,7 @@ function scClassifLegado(){
       ${btn('Continuar','clClassifContinue()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})}
     </div>
     <div class="cl-classif-autohint">avança sozinho em alguns segundos...</div>
-    <div class="cl-live-top">Classificação - ${S.round}ª jornada</div>
+    <div class="cl-live-top">Classificação - ${S.round}ª rodada</div>
     <div class="cl-clsacc-wrap">${DIV_ORDER.map(panelHTML).join('')}</div>
   </div>`;
 }
@@ -8754,22 +8760,22 @@ function onlineHostCloseRound(){
   // (netMergeParticipants) e, se nenhum evento do realtime chegar depois, um "true" velho ficava
   // pra sempre — o anfitrião esperava um jogador que já tinha saído da partida e a sala inteira
   // parava na pausa técnica. O busy_until é timestamp: comparado agora, expira sozinho.
-  /* ===== ITEM 3: QUEM DIZ QUE A JORNADA FOI CUMPRIDA É O SERVIDOR =====
+  /* ===== ITEM 3: QUEM DIZ QUE A RODADA FOI CUMPRIDA É O SERVIDOR =====
      Até aqui o anfitrião decidia sozinho a hora de fechar, por dois palpites LOCAIS: "ninguém está
      com o busy aceso" e "os resultados que eu enxergo já chegaram". Os dois são fotos do instante —
-     e foi exatamente delas que nasceram as salas paradas e as jornadas descasadas: bastava um
+     e foi exatamente delas que nasceram as salas paradas e as rodadas descasadas: bastava um
      cliente estar entre duas telas para o anfitrião ler "todo mundo livre" e fechar por cima de
      quem ainda não tinha jogado.
      Agora a decisão tem uma fonte só: o ponteiro do dia. Cada assento CARIMBA o momento que
      cumpriu (ver roomDayTick); quando o último carimba 'jogando', o SERVIDOR — e mais ninguém —
      vira o momento para 'classificacao'. Ver esse momento no ponteiro é o único sinal de que a
-     jornada foi de fato jogada por todos, e é ele que libera o fechamento aqui.
+     rodada foi de fato jogada por todos, e é ele que libera o fechamento aqui.
      Sala sem plano de dias (save antigo) continua no caminho de antes: degrada, não trava. */
   const _dia = (NET.room && NET.room.day) || null;
   if(_dia){
-    /* UMA PORTA SÓ: o dia de LIGA desta jornada com o momento já em 'classificacao' — o servidor
+    /* UMA PORTA SÓ: o dia de LIGA desta rodada com o momento já em 'classificacao' — o servidor
        dizendo que todos cumpriram a partida. Havia duas, porque existia a "quarta de copa" como um
-       fechamento à parte; ela acabou (ver docs/sincronia-resenha.md). As copas da jornada são
+       fechamento à parte; ela acabou (ver docs/sincronia-resenha.md). As copas da rodada são
        resolvidas neste mesmo fechamento, como sempre foi antes da divisão em dois estágios. */
     const portaAberta = (_dia.round===round && _dia.comp==='liga' && _dia.moment==='classificacao');
     if(!portaAberta){
@@ -8816,7 +8822,7 @@ function onlineHostCloseRound(){
       // ESTÁGIO: fechando a quarta-feira, o servidor resolve SÓ as copas e devolve a semana no
       // estágio de sábado; fechando o sábado, resolve a rodada inteira como sempre. Estado sem
       // roundStage (save antigo) cai no caminho de sempre — stage indefinido = 'league'.
-      const _stage=undefined;   // não existe mais quarta/sábado: um fechamento por jornada (ver docs/sincronia-resenha.md)
+      const _stage=undefined;   // não existe mais quarta/sábado: um fechamento por rodada (ver docs/sincronia-resenha.md)
       let res=null; try{ res=await NET.resolveRound(round, _stage); }catch(e){ res={error:(e&&e.message)||'erro'}; }
       if(!res || res.error){
         // NUNCA MAIS COMITAR LOCALMENTE. Aqui havia um fallback que chamava _commitLeagueRound —
@@ -8863,7 +8869,7 @@ function onlineHostCloseRound(){
    (eu ausente — o resolve-round simula a partida). O servidor carimba t.prize mas NÃO mexe no
    caixa de humano, porque a autoridade desse caixa é o assento (game_seats.budget), escrito só
    pelo meu cliente. Então o crédito sai daqui, ao adotar a rodada. Dois freios contra pagar duas
-   vezes: (1) só confronto carimbado com a jornada que acabou de ser resolvida, e (2) um registro
+   vezes: (1) só confronto carimbado com a rodada que acabou de ser resolvida, e (2) um registro
    em memória no CL — que é por-cliente e nunca viaja no shared_state (um contador dentro de S
    vazaria do anfitrião pros convidados no adopt). Quando EU jogo a partida ao vivo, quem paga é
    finishCupLiveMatch e este caminho não acha nada pendente. */
@@ -8903,7 +8909,7 @@ async function onlineAdoptServerRound(RL){
       /* ===== A VIRADA E "AINDA NAO VI ESTA TEMPORADA", NAO "O NUMERO ACABOU DE MUDAR" =====
          `season > oldSeason` so e verdade para quem estiver a olhar no INSTANTE em que o numero
          muda. Basta o estado novo ter sido adotado por outro caminho antes deste — e ha varios
-         (o reconcile, o watch da jornada sem liga, uma sincronia manual) — para este teste dar
+         (o reconcile, o watch da rodada sem liga, uma sincronia manual) — para este teste dar
          falso e a tela de fim de temporada nunca aparecer. Foi o relatado pelo anfitriao a
          19/08/2026: a temporada virou e ele nao viu nada.
          O carimbo e por cliente e por temporada, entao a tela aparece uma vez e so uma. */
@@ -8925,11 +8931,11 @@ async function onlineAdoptServerRound(RL){
       if(typeof pruneAppliedNetCounters==='function') pruneAppliedNetCounters(); // idem pras contrapropostas
       if(typeof pruneAppliedNetOfferDrops==='function') pruneAppliedNetOfferDrops(); // idem pras baixas de proposta
       if(typeof restoreMyFinances==='function') restoreMyFinances();               // meu log de finanças por cima do que veio do anfitrião
-      // rede de segurança: foto do estado ao fim da jornada (ver autosave.js). Idempotente por
-      // (temporada, jornada), então chamar de mais de um caminho de adoção não duplica nada.
+      // rede de segurança: foto do estado ao fim da rodada (ver autosave.js). Idempotente por
+      // (temporada, rodada), então chamar de mais de um caminho de adoção não duplica nada.
       if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
       if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
-      if(typeof persistCareer==='function') persistCareer();   // a carreira mudou nesta jornada: grava no meu assento
+      if(typeof persistCareer==='function') persistCareer();   // a carreira mudou nesta rodada: grava no meu assento
     }
   }catch(e){ console.warn('adotar estado do servidor:', e); }
   applyOwnPendingFinances(); // F3.3: aplica as finanças da MINHA rodada (o servidor não computa finanças)
@@ -8965,7 +8971,7 @@ async function onlineAdoptServerRound(RL){
   if((S.round||0)===_roundAntes){
     checkPendingCupDraws(()=>{
       hideSyncLoading();
-      // LIBERA A RODADA DE LIGA DESTA MESMA JORNADA — mas SÓ se eu ainda não a joguei.
+      // LIBERA A RODADA DE LIGA DESTA MESMA RODADA — mas SÓ se eu ainda não a joguei.
       // Este ramo é "a rodada voltou igual", e isso acontece em dois casos bem diferentes: o
       // fechamento da quarta (copas resolvidas, a liga ainda por jogar) e um fechamento
       // IDEMPOTENTE, quando o cão de guarda (onlineOrphanCloseCheck) reexecuta o resolve-round de
@@ -8986,7 +8992,7 @@ async function onlineAdoptServerRound(RL){
   checkPendingCupDraws(()=>{
     hideSyncLoading();
     adGate(()=>{                                   // janela de publicidade: segura a classificação (ver adGate)
-      // as copas da jornada vêm ANTES da tabela da liga — mesma ordem em que foram jogadas na
+      // as copas da rodada vêm ANTES da tabela da liga — mesma ordem em que foram jogadas na
       // semana (quarta antes de sábado). Na semana de dois estágios elas já foram vistas no
       // fechamento da quarta e são puladas; aqui cobrem a semana que degradou pra um estágio só.
       queueRoundCupClassifs(_roundAntes, ()=>{
@@ -9036,10 +9042,10 @@ function _commitLeagueRound(RL, userResult, humanResults, allEvents, _auditPaylo
   // Depois da classificação, se houver demissão/proposta pendente desta rodada, mostra o modal.
   queueSeasonCupDrawsIfNew(); // host (caminho local sem edge function): idem
   checkPendingCupDraws(()=>{
-    // RODADA COLETIVA (solo e hotseat): as copas que entraram em campo nesta jornada mostram a
+    // RODADA COLETIVA (solo e hotseat): as copas que entraram em campo nesta rodada mostram a
     // classificação delas ANTES da tabela da liga, mesmo pra quem não disputa a competição —
     // esse vê o painel de dicas + patrocinador. Ver queueRoundCupClassifs.
-    // rede de segurança: foto do estado com a jornada já fechada (ver autosave.js)
+    // rede de segurança: foto do estado com a rodada já fechada (ver autosave.js)
     if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
     queueRoundCupClassifs(_roundJogado, ()=>{
       const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
@@ -9156,12 +9162,12 @@ function finishCupLiveMatch(){
   } else {
     const mg=pending.group, g=Object.values(mg.groups).find(gr=>gr.label===pending.groupLabel);
     const T=g.table, h=m.h, a=m.a;
-    g.results=g.results||[]; g.results.push({r:mg.round, h, a, hg:m.hg, ag:m.ag, jornada:S.round}); // idem advanceGroupStageRound
+    g.results=g.results||[]; g.results.push({r:mg.round, h, a, hg:m.hg, ag:m.ag, rodada:S.round}); // idem advanceGroupStageRound
     T[h].P++; T[a].P++; T[h].GF+=m.hg; T[h].GA+=m.ag; T[a].GF+=m.ag; T[a].GA+=m.hg;
     if(m.hg>m.ag){ T[h].W++; T[a].L++; T[h].Pts+=3; }
     else if(m.hg<m.ag){ T[a].W++; T[h].L++; T[a].Pts+=3; }
     else { T[h].D++; T[a].D++; T[h].Pts++; T[a].Pts++; }
-    markMyCupTurnDone(pending.key); // cumpri esta competição NESTA jornada (ver myCupTurnDone no core)
+    markMyCupTurnDone(pending.key); // cumpri esta competição NESTA rodada (ver myCupTurnDone no core)
     // AS OUTRAS PARTIDAS DA MESMA RODADA, AGORA. Sem isto a tabela mostrada logo depois do jogo
     // tinha só os pontos do usuário: o resto da rodada da competição só era simulado quando a
     // rodada de LIGA rodasse (sábado), então a classificação do pós-jogo de quarta ficava com
@@ -9322,9 +9328,9 @@ function finishCupResultFlow(){
    fechá-lo, uma tela de chaveamento. Agora é uma tela só (cupScreenHTML): o resultado da
    partida entra como faixa no topo e a chave/grupos ocupa o resto — o usuário termina a
    rodada da copa e continua exatamente onde estava, sem fechar nada. ---- */
-/* A FAIXA DE RESULTADO SOBREVIVE ATÉ O FECHAMENTO, mas só da PRÓPRIA jornada: quem jogou a copa
+/* A FAIXA DE RESULTADO SOBREVIVE ATÉ O FECHAMENTO, mas só da PRÓPRIA rodada: quem jogou a copa
    guarda o placar em CL._cupResultByKey no fim da partida e só o vê na classificação coletiva,
-   que vem depois. Sem o carimbo de jornada, um placar da semana passada reapareceria na tela
+   que vem depois. Sem o carimbo de rodada, um placar da semana passada reapareceria na tela
    desta semana. */
 function cupResultForKey(key){
   if(!CL._cupResultByKey) return null;
@@ -9337,7 +9343,7 @@ function showCupClassif(key, round){ CL.screen='cupclassif'; CL._cupClassifKey=k
   // O MARCADOR DE "JÁ VI" É GRAVADO NA SAÍDA (cupClassifContinue), NÃO AQUI.
   // Ele persiste em disco, e marcar na ABERTURA queimava a tela sem o jogador ter visto nada: se
   // o fluxo fosse interrompido no meio — rodada repetindo, reload, sala travada —, a competição
-  // ficava marcada como vista para sempre e a classificação nunca mais aparecia naquela jornada.
+  // ficava marcada como vista para sempre e a classificação nunca mais aparecia naquela rodada.
   // Foi o que apagou as telas de classificação depois das sessões quebradas.
   // abre na aba da fase que ele acabou de jogar (sem fase de grupos, só existe o mata-mata)
   CL.cupTab = !cupHasGroupTab(key,c) ? 'chave' : (r ? (r.stage==='bracket'?'chave':'grupos') : (c.bracket?'chave':'grupos'));
@@ -9370,10 +9376,10 @@ function cupClassifContinue(){
     }
   }catch(e){ console.warn('cerimonia da final:', e&&e.message); }
   // AGORA SIM: a tela foi de fato mostrada e o jogador está saindo dela (no botão ou no
-  // auto-avanço). Só neste ponto a competição conta como vista nesta jornada — ver showCupClassif.
+  // auto-avanço). Só neste ponto a competição conta como vista nesta rodada — ver showCupClassif.
   if(CL._cupClassifKey) cupClassifMarkShown(CL._cupClassifKey, CL._cupClassifRound);
   const queue=CL._cupClassifQueue||[];
-  // ENTRE UMA COMPETIÇÃO E OUTRA, PASSA PELA TELA DO ELENCO. Numa jornada com duas competições
+  // ENTRE UMA COMPETIÇÃO E OUTRA, PASSA PELA TELA DO ELENCO. Numa rodada com duas competições
   // (Libertadores na quinta e Copa do Brasil na sexta, por exemplo) a fila emendava a
   // classificação de uma na da outra, e o jogador saltava de competição pra competição sem nunca
   // voltar ao time. Agora a fila para na tela do clube e o próximo "Jogar" pega a competição
@@ -9400,19 +9406,19 @@ function cupClassifContinue(){
    calendário diário veio resolver.
    A regra agora é uma só, pra qualquer país, liga ou copa: ao fim de uma rodada, TODO humano
    passa pela tela de classificação de TODAS as competições que entraram em campo naquela
-   jornada — jogue ele ou não. Quem jogou vê a faixa do próprio resultado; quem não disputa vê,
+   rodada — jogue ele ou não. Quem jogou vê a faixa do próprio resultado; quem não disputa vê,
    no mesmo lugar, o painel de dicas + patrocinador. Ninguém vê a mesma competição duas vezes na
-   mesma jornada (o marcador abaixo lembra o que já foi mostrado), então quem acabou de jogar a
+   mesma rodada (o marcador abaixo lembra o que já foi mostrado), então quem acabou de jogar a
    copa e já leu a chave logo depois do apito não repete a tela no fechamento. */
 const CUP_CLASSIF_ORDER=['copaBrasil','libertadores','sulamericana','championsLeague','europaLeague'];
-/* marcador por (temporada, jornada) — a jornada é sempre a da RODADA JOGADA, não a corrente:
+/* marcador por (temporada, rodada) — a rodada é sempre a da RODADA JOGADA, não a corrente:
    no fechamento de sábado o S.round já avançou, e sem isso a copa que o jogador acabou de ver na
    quarta apareceria de novo. */
 function cupClassifRoundKey(round){ return (S.season||1)+'-'+(round!=null?round:(S.round||0)); }
 /* O MARCADOR TAMBÉM PERSISTE (mesmo balde por save/sala do drawSeenKey). Só em memória ele não
    sobrevivia a um reload — e o botão "Sincronizar a Resenha" recarrega a página de propósito —,
    então a classificação da MESMA rodada reaparecia depois de sincronizar: a rodada parecia
-   acontecer duas vezes. Guardado por (temporada, jornada, competição), reabrir o jogo devolve o
+   acontecer duas vezes. Guardado por (temporada, rodada, competição), reabrir o jogo devolve o
    jogador ao ponto onde estava sem repetir tela nenhuma. */
 /* prefixo 'cls2': os marcadores gravados pela versão anterior foram escritos na ABERTURA da tela,
    então há telas marcadas como vistas que ninguém viu (as sessões que travaram queimaram várias).
@@ -9429,7 +9435,7 @@ function cupClassifWasShown(key, round){
   if(CL._cupClsSeen && CL._cupClsSeen.rk===rk && CL._cupClsSeen.keys.includes(key)) return true;
   return (typeof drawAlreadySeen==='function') && drawAlreadySeen(cupClassifSeenMark(key, round));
 }
-/* esta competição de fato entrou em campo NESTA jornada? Lê o carimbo `jornada` que cliente e
+/* esta competição de fato entrou em campo NESTA rodada? Lê o carimbo `rodada` que cliente e
    servidor gravam em todo confronto de mata-mata e em todo resultado de grupo — é o único sinal
    que vale nos dois modos. Perguntar só "é a semana dela" (cupTickMatchesRound) traria também a
    copa já encerrada, que bate o tique e não joga nada. */
@@ -9450,10 +9456,10 @@ function cupKeysPlayedInRound(round){
   if(!S || !S.cups) return [];
   return CUP_CLASSIF_ORDER.filter(k=>S.cups[k] && cupPlayedInRound(k, round));
 }
-/* mostra, uma depois da outra, a classificação de cada competição que teve rodada nesta jornada
+/* mostra, uma depois da outra, a classificação de cada competição que teve rodada nesta rodada
    e que este jogador ainda não viu — e só então chama `done` (a classificação da liga, ou a tela
    do clube). Ponto ÚNICO da regra: os três caminhos de fim de rodada passam por aqui. */
-/* A ORDEM DAS COMPETIÇÕES DE UMA JORNADA É A DO CALENDÁRIO DA SALA — o plano de dias, que mora no
+/* A ORDEM DAS COMPETIÇÕES DE UMA RODADA É A DO CALENDÁRIO DA SALA — o plano de dias, que mora no
    servidor e por isso é igual em todo cliente. Cada cliente ordenava pela sua própria lista, e
    assim os dois humanos viam as mesmas classificações em sequências diferentes. Sala sem plano
    (save antigo) cai na ordem do calendário do mundo (cupDrawOrder), que também é comum a todos. */
@@ -9519,7 +9525,7 @@ function celebrarCopasDecididas(){
 }
 function queueRoundCupClassifs(round, done){
   done=done||function(){};
-  /* a taca vem ANTES da classificacao da jornada: primeiro o fecho da historia,
+  /* a taca vem ANTES da classificacao da rodada: primeiro o fecho da historia,
      depois a tabela. Se houver cerimonia por mostrar, ela abre e esta funcao e
      retomada quando a fila esvaziar. */
   if(celebrarCopasDecididas() && MOMENTO_FILA.length){
@@ -9541,7 +9547,7 @@ function queueRoundCupClassifs(round, done){
    Ocupa exatamente o lugar da faixa de resultado na tela de classificação da copa. Em vez de
    fingir um placar que não existe, usa o espaço pra ensinar o que o jogador pode fazer com a
    semana livre — treino, rodízio, base, mercado, estádio — e pra dar uma inserção de marca. A
-   dica e a marca são escolhidas pela JORNADA, não por sorteio: assim todo mundo na sala vê a
+   dica e a marca são escolhidas pela RODADA, não por sorteio: assim todo mundo na sala vê a
    mesma coisa ao mesmo tempo, que é o ponto da rodada coletiva (e vira assunto de resenha). */
 const CUP_IDLE_DICAS=[
   { ic:'🏋', t:'Treino especial', d:'Em Jogador ▸ Treino especial dá pra pôr até 3 atletas ganhando chance extra de evolução a cada rodada. Jovem com ritmo rápido é onde o treino rende mais.' },
@@ -9648,7 +9654,7 @@ function lastIncidentTxt(inc){
 
 /* ---- painel: ADVERSÁRIO (+ Calendário) ---- */
 function panAdversario(oppId){
-  if(!oppId) return `<div class="cl-adv">Sem adversário nesta jornada.</div>`;
+  if(!oppId) return `<div class="cl-adv">Sem adversário nesta rodada.</div>`;
   const r=ratings(oppId,false); const forca=Math.max(6,Math.min(100,Math.round((r.OS+r.DS)/2)));
   const rnd=rngFrom(hashC(oppId)); const coach=COACHES_C[Math.floor(rnd()*COACHES_C.length)];
   return `<div class="cl-adv">
@@ -9674,14 +9680,14 @@ function userCalendar(){ const out=[]; (S.sched||[]).forEach((rd,i)=>{ const m=r
    em core.js — Copa do Brasil, Libertadores e Sul-Americana ficam defasadas por 1 rodada
    cada, 7 dias no calendário do jogo, bem acima do mínimo de 2 dias pra não parecer que
    clubes jogam duas competições no mesmo dia). Um confronto de copa só fica jogável ao
-   vivo na véspera do avanço daquela competição específica. Dá pra prever em QUAL jornada
-   de liga cada confronto pendente vai rolar: a próxima jornada em que essa competição bate
+   vivo na véspera do avanço daquela competição específica. Dá pra prever em QUAL rodada
+   de liga cada confronto pendente vai rolar: a próxima rodada em que essa competição bate
    (cupTickMatchesRound), +3 pra cada avanço seguinte (2º confronto de grupo pendente, 3º,
    ...) — é isso que permite intercalar copa e liga no calendário na ordem certa. */
-/* próxima jornada em que esta copa entra em campo, e as seguintes. Antes a conta era "acha a
-   próxima jornada da faixa e soma 3 por rodada", que só valia enquanto o passo era fixo. Agora as
-   jornadas vêm da tabela do calendário (S.cupCalendar, ver ensureCupCalendar no core) — o passo
-   estica no mata-mata, então somar 3 daria a jornada errada. Sem tabela (save antigo), a conta
+/* próxima rodada em que esta copa entra em campo, e as seguintes. Antes a conta era "acha a
+   próxima rodada da faixa e soma 3 por rodada", que só valia enquanto o passo era fixo. Agora as
+   rodadas vêm da tabela do calendário (S.cupCalendar, ver ensureCupCalendar no core) — o passo
+   estica no mata-mata, então somar 3 daria a rodada errada. Sem tabela (save antigo), a conta
    antiga continua valendo. */
 function nextCupJornada(key, stepsAhead){
   const cal=(S.cupCalendar&&S.cupCalendar[key])||null;
@@ -9698,20 +9704,20 @@ function nextCupJornada(key, stepsAhead){
   let j=S.round+1; while(!cupTickMatchesRound(key,j)) j++;
   return j + (stepsAhead||0)*3;
 }
-/* jornada em que a r-ésima rodada de uma copa foi/será jogada (r começa em 1). Serve de
+/* rodada em que a r-ésima rodada de uma copa foi/será jogada (r começa em 1). Serve de
    fallback pros confrontos JÁ jogados de saves antigos, que não têm o carimbo t.jornada
-   (ver advanceCupBracket): a competição bate a cada 3 jornadas, na jornada ≡ CUP_TICK_OFFSET
-   (mod 3), e a primeira batida acontece na primeira jornada >= 1 com esse resto. */
+   (ver advanceCupBracket): a competição bate a cada 3 rodadas, na rodada ≡ CUP_TICK_OFFSET
+   (mod 3), e a primeira batida acontece na primeira rodada >= 1 com esse resto. */
 /* SEMANA EM QUE A RODADA DE COPA É DE FATO JOGADA.
-   Existiu por causa de uma defasagem: os tiques eram numerados pela jornada em que a competição
+   Existiu por causa de uma defasagem: os tiques eram numerados pela rodada em que a competição
    AVANÇA (advancePendingCups rodava depois do S.round++) enquanto o jogador jogava a partida uma
-   sessão ANTES, então a semana certa era tique-1 e o Calendário mostrava tudo uma jornada à frente.
+   sessão ANTES, então a semana certa era tique-1 e o Calendário mostrava tudo uma rodada à frente.
    A defasagem foi desfeita na raiz: o avanço de copa passou pro COMEÇO da rodada (ver playRound no
    core) e pendingUserCupMatches olha a semana corrente — tique e semana são a mesma coisa agora.
    A função fica como ponto único de tradução: se a relação voltar a mudar, muda só aqui, e não nos
-   cinco lugares que exibem jornada de copa. */
+   cinco lugares que exibem rodada de copa. */
 function cupWeekOfTick(tick){ return Math.max(0, tick||0); }
-/* O Calendário rotula jornada de liga a partir de 1 (userCalendar: n=i+1) e a semana interna é
+/* O Calendário rotula rodada de liga a partir de 1 (userCalendar: n=i+1) e a semana interna é
    0-based. As linhas de copa carregavam a semana crua como rótulo, então copa e liga da MESMA
    semana apareciam com números diferentes — e, pior, a data que eu derivava do rótulo saía uma
    semana adiantada nas linhas de liga. Agora cada linha leva as duas coisas: `n` é o rótulo
@@ -9723,12 +9729,12 @@ function cupJornadaOfRound(key, r){
   if(cal && cal.length){
     if(i<cal.length) return cal[i];
     // FORA DA TABELA: extrapola em vez de grampear no último slot. O Math.min de antes fazia
-    // TODAS as rodadas excedentes caírem na MESMA jornada — várias linhas da mesma competição
+    // TODAS as rodadas excedentes caírem na MESMA rodada — várias linhas da mesma competição
     // no mesmo dia do Calendário, que é o "dois jogos de Sul-Americana no mesmo dia" relatado.
     return cal[cal.length-1] + (i-(cal.length-1))*3;
   }
   const off=CUP_TICK_OFFSET[key]||0;
-  const first=off>=1?off:3;              // offset 0 -> só bate na jornada 3 (jornada 0 não existe)
+  const first=off>=1?off:3;              // offset 0 -> só bate na rodada 3 (jornada 0 não existe)
   return first + i*3;
 }
 /* TODOS os confrontos de copa JÁ JOGADOS do clube do usuário, com placar — em qualquer
@@ -9881,7 +9887,7 @@ function userCupDrawRows(){
   return out;
 }
 /* DATA REAL DE CADA LINHA DO CALENDÁRIO — é o que torna o "calendário por dia" visível.
-   O Calendário listava só o número da jornada ("3ª"), então copa e liga da mesma semana apareciam
+   O Calendário listava só o número da rodada ("3ª"), então copa e liga da mesma semana apareciam
    com o MESMO rótulo e nada dizia que uma era no meio da semana e a outra no fim. Era exatamente a
    confusão entre competições: duas linhas iguais, dias diferentes.
    O modelo de dias (validado numa temporada inteira, 131 clubes, zero choques): dentro da semana N
@@ -9890,7 +9896,7 @@ function userCupDrawRows(){
 /* DIA DO PRÓXIMO JOGO — o mesmo modelo do Calendário, para o fluxo que o usuário percorre a cada
    rodada. O jogo passou a acontecer POR DIA (copa na quarta, liga no fim de semana da mesma
    semana), mas isso só aparecia na lista do Calendário: na tela do clube, na entrada em campo e na
-   partida ao vivo continuava tudo em "jornada", como se a semana fosse um bloco só. Aqui o dia
+   partida ao vivo continuava tudo em "rodada", como se a semana fosse um bloco só. Aqui o dia
    acompanha o jogador em todas essas telas, que é o que faz a mecânica nova ficar entendível. */
 function nextMatchDayLabel(nm){
   if(!nm || typeof calRowDate!=='function') return '';
@@ -9899,7 +9905,7 @@ function nextMatchDayLabel(nm){
 /* `comp`: chave da competição de copa, ou nada/false pra rodada de liga. O dia da semana é FIXO
    por competição (COMP_WEEKDAY/leagueMatchDay no core) — liga gira segunda/quarta/sábado,
    Sul-Americana joga terça, Libertadores quinta, Copa do Brasil sexta. Como o dia sai só da
-   competição e da jornada, todos os clubes que disputam a mesma competição veem a MESMA data. */
+   competição e da rodada, todos os clubes que disputam a mesma competição veem a MESMA data. */
 function calRowDay(n, comp){
   return comp
     ? (typeof cupMatchDay==='function' ? cupMatchDay(typeof comp==='string'?comp:null, n||0) : 1+(n||0)*7+3)
@@ -9916,7 +9922,7 @@ function calRowDate(n, comp){
    dispute o clube ou não. Antes, o dia de uma competição que eu não jogo simplesmente NÃO EXISTIA
    no meu Calendário — sumia da lista, e não havia como saber que havia rodada rolando naquela
    data (nem por que os outros clubes tinham jogo e eu não). Agora o dia aparece igual, vazio e
-   marcado como Folga: vale pra copa que eu não disputo (ou de que fui eliminado) e pra jornada de
+   marcado como Folga: vale pra copa que eu não disputo (ou de que fui eliminado) e pra rodada de
    liga em que o meu clube pegou bye. */
 function calFolgaRows(cupRows, ligaRows){
   const out=[];
@@ -9944,8 +9950,8 @@ function calFolgaRows(cupRows, ligaRows){
   return out;
 }
 function clCalendar(){
-  // intercala copa, sorteio e liga por jornada (ver nextCupJornada/jornadaForRealDate) —
-  // na mesma jornada, a(s) partida(s) de copa vêm antes da de liga, igual à ordem real de
+  // intercala copa, sorteio e liga por rodada (ver nextCupJornada/jornadaForRealDate) —
+  // na mesma rodada, a(s) partida(s) de copa vêm antes da de liga, igual à ordem real de
   // jogo (clJogar() enfileira as partidas de copa pendentes antes de liberar a rodada de
   // liga); sorteios entram como um marco à parte, sem confronto associado.
   // jogado (com placar) + pendente, na MESMA linha visual da liga — chip V/D/E e o placar,
@@ -9989,7 +9995,7 @@ function clCalendar(){
       <span class="cl-cal-r">${chip}${score}</span><span class="cl-cal-cf">${r.home?'C':'F'}</span></div>`};
   });
   // ORDENA PELO DIA DE VERDADE. Com um dia da semana próprio por competição, "copa antes da liga
-  // na mesma jornada" deixou de ser a ordem real: a Libertadores é quinta e a liga da mesma
+  // na mesma rodada" deixou de ser a ordem real: a Libertadores é quinta e a liga da mesma
   // semana pode cair na segunda. `ord` fica só como desempate de linhas do mesmo dia.
   const rows=cupRows.concat(drawRows).concat(ligaRows).concat(calFolgaRows(cupRows, ligaRows))
     .sort((a,b)=>(a.dia!=null&&b.dia!=null ? a.dia-b.dia : a.n-b.n) || a.n-b.n || a.ord-b.ord)
@@ -10002,7 +10008,7 @@ function clCalendar(){
 /* ---- menu dropdown (topo) ---- */
 /* rótulo de cada aba da tela principal — usado pelo hambúrguer pra dizer ONDE o jogador está
    (a barra de abas do rodapé mostra só ícones no telefone). */
-/* O cabeçalho "Adversário" (nome, mando, data, jornada) ocupa ~110px no telefone. Ele é contexto
+/* O cabeçalho "Adversário" (nome, mando, data, rodada) ocupa ~110px no telefone. Ele é contexto
    pro PRÓXIMO JOGO, então vale nas abas onde isso está em questão — Jogo, Formação (escalar
    contra alguém, dentro ou fora de casa, é a hora em que essa informação mais importa) e o
    próprio Adversário. Em Jogador, Finanças e E-mail é só espaço gasto antes do conteúdo. */
@@ -10116,7 +10122,7 @@ function clSetTempo(label){
   renderOptions();
 }
 function clOptions(){ CL.menu=null; CL.optTab='geral';
-  if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',gravar:'De 3 em 3 jornadas',som:'Sim',
+  if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',gravar:'De 3 em 3 rodadas',som:'Sim',
     subsIntervalo:'Sim',penaltisCPU:'Sim',tempo:TEMPO_DEFAULT};
   // LIGADO por padrão pra todo mundo, inclusive pra quem já tinha CL.options gravado antes de o
   // salvamento automático existir — daí o preenchimento aqui e não só no objeto acima.
@@ -10127,9 +10133,9 @@ function renderOptions(){ const o=CL.options; const tab=CL.optTab||'geral';
   const sel=(id,opts,val)=>`<select class="cl-osel" onchange="CL.options['${id}']=this.value">${opts.map(x=>`<option ${x===val?'selected':''}>${escC(x)}</option>`).join('')}</select>`;
   const geral=`<div class="cl-orow"><span>Mostrar chicotadas psicológicas</span>${sel('chicotadas',['Nunca','Dos humanos','De todos'],o.chicotadas)}</div>
     <div class="cl-orow"><span>Ver sorteio da taça</span>${sel('sorteio',['Nunca','Quando houver humanos','Sempre'],o.sorteio)}</div>
-    <div class="cl-orow"><span>Gravar o jogo</span>${sel('gravar',['Nunca','De 3 em 3 jornadas','Sempre'],o.gravar)}</div>
+    <div class="cl-orow"><span>Gravar o jogo</span>${sel('gravar',['Nunca','De 3 em 3 rodadas','Sempre'],o.gravar)}</div>
     <div class="cl-orow"><span>Habilitar som</span>${sel('som',['Sim','Não'],o.som)}</div>
-    <div class="cl-orow"><span>Salvamento automático<br><i>Guarda as 3 últimas jornadas e o fim de cada temporada</i></span>${sel('autoSave',['Sim','Não'],o.autoSave||'Sim')}</div>
+    <div class="cl-orow"><span>Salvamento automático<br><i>Guarda as 3 últimas rodadas e o fim de cada temporada</i></span>${sel('autoSave',['Sim','Não'],o.autoSave||'Sim')}</div>
     <div class="cl-orow"><span>Voltar a um ponto guardado</span>${btn('Ver pontos guardados','clAutoSaveAbrir()',{icon:'⏪'})}</div>`;
   const amHost=typeof NET!=='undefined' && NET.isHost;
   const tempoRow = (CL.online && !amHost)
@@ -10159,7 +10165,7 @@ function clAutoSaveAbrir(){
       const r=autoSaveRotulo(f);
       const acao=(online && !souAnfitriao) ? '' : btn('Voltar aqui','clAutoSaveVoltar('+f.id+')',{icon:'⏪'});
       return `<div class="cl-orow"><span>${r.fixa?'📌 ':''}${escC(r.que)}<br><i>guardado em ${escC(r.quando)}</i></span>${acao}</div>`;
-    }).join('') : '<div class="cl-orow"><span>Nenhum ponto guardado ainda. A primeira foto sai ao fim da próxima jornada.</span></div>';
+    }).join('') : '<div class="cl-orow"><span>Nenhum ponto guardado ainda. A primeira foto sai ao fim da próxima rodada.</span></div>';
     overlayC(dlg('Pontos guardados', `<div class="cl-opt"><div class="cl-opanel">${trava}${aviso}${linhas}</div>
       <div class="cl-oside">${btn('Fechar','clOptions()',{icon:'✖',cls:'cl-btn-cancel'})}</div></div>`,
       {w:700,bodyClass:'cl-body-gray',min:true}));
@@ -10181,7 +10187,7 @@ function clAutoSaveVoltarOk(id){
   autoSaveRestaurar(id).then(res=>{
     if(!res.ok){ toastC('Não deu para voltar: '+(res.erro||'erro desconhecido')); return; }
     clCloseOverlay(); CL.screen='main'; CL.tab='jogo'; cdraw();
-    toastC('⏪ Voltou para a temporada '+(S.season||'?')+', jornada '+((S.round||0)+1)+'.');
+    toastC('⏪ Voltou para a temporada '+(S.season||'?')+', rodada '+((S.round||0)+1)+'.');
   });
 }
 function clOptOk(){ saveV3(); clCloseOverlay(); toastC('Opções guardadas.'); }
@@ -12522,7 +12528,7 @@ function showResenhaWaitingMe(d){
         <div>
           <div class="cl-mom-kicker">A SALA ESTÁ ESPERANDO</div>
           <div class="cl-mom-manchete">Por você</div>
-          <div class="cl-esp-ctx">Jornada ${escC(String((d.round!=null?d.round:0)+1))} · ${escC(comp)}</div>
+          <div class="cl-esp-ctx">Rodada ${escC(String((d.round!=null?d.round:0)+1))} · ${escC(comp)}</div>
         </div>
         ${trof?`<div class="cl-esp-trofeu">${trof}</div>`:''}
       </div>

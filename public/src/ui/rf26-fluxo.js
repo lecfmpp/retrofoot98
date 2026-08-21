@@ -674,18 +674,21 @@ function rfObSoloHTML(){
   const linha=(s,i)=>{
     const st=s.state||{};
     const nome=s.name||s.save_name||'';
-    /* SEM cair no nome do save: sem clube identificado a linha mostrava
-       "SAVE05 / SAVE05", o mesmo texto duas vezes. O nome do save ja e a
-       segunda linha; aqui fica o clube ou nada. */
-    const clube=st.clubName||st.club||s.club||'';
-    const serie=st.divisionLabel||st.division||s.division||'';
-    const ano=st.season||s.season||'';
-    const onde=st.roundLabel||(st.round?`${st.round}ª jornada`:'')||s.round_label||'';
+    /* O TIME NA FRENTE, como na lista de salas da Resenha (pedido do dono, 21/08): escudo +
+       clube + onde o save está. A identidade vem do próprio registro (netListSoloSaves lê do
+       jsonb); save antigo sem ela resolve pelo clubId nos bundles (rfClubeDoSave). */
+    const cSave=rfClubeDoSave(s);
+    const clube=(cSave&&(cSave.short||cSave.name))||st.clubName||st.club||s.club||'';
+    const serie=(s.division&&typeof divisionLabelOf==='function'&&/^[A-D]$/.test(String(s.division)))
+      ? divisionLabelOf(s.division) : (st.divisionLabel||s.division||st.division||'');
+    const ano=s.season||st.season||'';
+    const onde=(s.round!=null&&s.round!=='')?`${Number(s.round)+1}ª rodada`
+      : (st.roundLabel||(st.round?`${st.round}ª rodada`:'')||s.round_label||'');
     const sub=[serie,ano].filter(Boolean).join(' · ');
     return `<div class="rf-sv2 ${i===0?'me':''}" role="button" tabindex="0"
       onclick="clLoadSave('${escC(nome).replace(/'/g,"\\'")}')"
       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clLoadSave('${escC(nome).replace(/'/g,"\\'")}')}">
-      <span class="rf-sv2-cr">${rfSaveEscudoHTML(st)}</span>
+      <span class="rf-sv2-cr">${rfSaveEscudoHTML({...st, clubId:s.clubId||st.clubId, crest:s.clubCrest||st.crest, clubName:clube})}</span>
       <span class="rf-sv2-id">
         <span class="rf-sv2-n">${escC(clube||nome||'—')}</span>
         <span class="rf-sv2-s">${escC(clube ? [sub,nome].filter(Boolean).join(' · ') : sub)}</span>
@@ -732,6 +735,23 @@ function rfObSoloHTML(){
       ? `clLoadSave('${String(primeiro.name||primeiro.save_name||'').replace(/'/g,"\\'")}')`
       : 'clSoloNew()' });
 }
+/* o clube do save, resolvido em qualquer bundle: a identidade gravada (clubShort) vale
+   primeiro; save antigo cai na busca por clubId — Série A, CONMEBOL, Europa e, para as
+   divisões de baixo do Brasil (ids br_X_slug), o próprio slug vira o nome */
+function rfClubeDoSave(s){
+  if(!s) return null;
+  if(s.clubShort) return {id:s.clubId, short:s.clubShort, crest:s.clubCrest||null};
+  const id=s.clubId; if(!id) return null;
+  const fontes=[((typeof DATA!=='undefined')&&DATA.clubsSerieA)||[]];
+  const CLG=(typeof window!=='undefined'&&window.CONMEBOL_LEAGUES)||{};
+  const INT=(typeof window!=='undefined'&&window.INTL_LEAGUES)||{};
+  Object.keys(CLG).forEach(k=>fontes.push(CLG[k]));
+  Object.keys(INT).forEach(k=>fontes.push(INT[k]));
+  for(const f of fontes){ const c=(f||[]).find(x=>x&&String(x.id)===String(id)); if(c) return c; }
+  const m=/^br_[A-D]_(.+)$/.exec(String(id));
+  if(m) return {id, short:m[1].replace(/[-_]/g,' ').toUpperCase()};
+  return null;
+}
 /* escudo do clube do save; sem clube identificado, o crachá fica vazio em vez
    de sumir — a linha perderia o alinhamento das colunas */
 function rfSaveEscudoHTML(st){
@@ -744,7 +764,7 @@ function rfSaveEscudoHTML(st){
 /* =====================================================================
    BANCADA DE TEMPORADA — "PULAR 30 E TESTAR"
    ---------------------------------------------------------------------
-   POR QUE EXISTE. Testar o fim de temporada exigia jogar trinta jornadas à mão, com três pessoas
+   POR QUE EXISTE. Testar o fim de temporada exigia jogar trinta rodadas à mão, com três pessoas
    ao mesmo tempo. Ninguém faz isso duas vezes — e é justamente o fim da temporada que concentra
    as finais, a virada e os bugs que mais custaram a este projeto.
 
@@ -760,16 +780,16 @@ function rfSaveEscudoHTML(st){
      3. a cerimônia de sorteio anda por temporizador próprio: clicar por cima atropela-a;
      4. o botão de ação não se acha por TEXTO — o rótulo muda ("Jogar", "Ver o sorteio", "Avançar").
 
-   PARA ONDE VAI. Pára na jornada alvo e devolve a sala às mãos das pessoas, para a virada de
+   PARA ONDE VAI. Pára na rodada alvo e devolve a sala às mãos das pessoas, para a virada de
    temporada ser vivida a sério. É esse o pedaço que interessa observar. */
 const TESTE_ALVO_PADRAO = 31;
 
 function clTestePular30(){
   const alvo = TESTE_ALVO_PADRAO;
-  if((S.round||0) >= alvo){ toastC('A sala já passou da jornada '+alvo+'.'); return; }
+  if((S.round||0) >= alvo){ toastC('A sala já passou da rodada '+alvo+'.'); return; }
   /* NA RESENHA, A SALA INTEIRA ENTRA JUNTA. O dia só vira quando o ÚLTIMO assento carimba: se só
      um cliente entrasse em auto-jogo, a sala pararia à espera dos outros. No SOLO não há a quem
-     avisar — e a bancada serve igual, para testar a virada de temporada sem jogar trinta jornadas
+     avisar — e a bancada serve igual, para testar a virada de temporada sem jogar trinta rodadas
      à mão. */
   if(CL.online && typeof NET!=='undefined' && NET.broadcastTeste) NET.broadcastTeste({ alvo });
   clTesteEntrar({ alvo });
@@ -805,8 +825,8 @@ function clTesteSair(motivo){
   const seg=Math.round((Date.now()-T.t0)/1000);
   clCloseOverlay();
   overlayC(dlg('Bancada concluída', `<div class="cl-res">
-    <div class="cl-res-verd" style="text-align:left">✓ ${escC(motivo||('A sala chegou à jornada '+(S.round||0)+'.'))}
-      <br><br>Foram ${escC(String((S.round||0)-T.inicio))} jornadas em ${escC(String(seg))}s.
+    <div class="cl-res-verd" style="text-align:left">✓ ${escC(motivo||('A sala chegou à rodada '+(S.round||0)+'.'))}
+      <br><br>Foram ${escC(String((S.round||0)-T.inicio))} rodadas em ${escC(String(seg))}s.
       Daqui em diante é no braço: joguem até ao fim e vejam as finais e a virada de temporada.</div>
     <div class="cl-cal-ok">${btn('Continuar','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>
   </div>`, {w:520, tone:'marca', glyph:'🧪'}));
@@ -816,10 +836,10 @@ function clTesteSair(motivo){
 function clTesteTick(){
   const T=CL._teste; if(!T || !T.ligado) return;
   if(typeof S==='undefined' || !S){ return; }
-  if((S.round||0) >= T.alvo){ clTesteSair((CL.online?'A sala':'O jogo')+' chegou à jornada '+(S.round||0)+'.'); return; }
+  if((S.round||0) >= T.alvo){ clTesteSair((CL.online?'A sala':'O jogo')+' chegou à rodada '+(S.round||0)+'.'); return; }
   /* teto de segurança: bancada que não avança em 3 minutos desiste e devolve a sala, em vez de
      ficar a carimbar para sempre sem ninguém perceber. */
-  if(Date.now()-T.t0 > 180000 && (S.round||0)===T.inicio){ clTesteSair('A bancada não conseguiu avançar — a sala ficou na jornada '+(S.round||0)+'.'); return; }
+  if(Date.now()-T.t0 > 180000 && (S.round||0)===T.inicio){ clTesteSair('A bancada não conseguiu avançar — a sala ficou na rodada '+(S.round||0)+'.'); return; }
   if(Date.now()-(T.ultimoAto||0) < 120) return;              // um ato de cada vez
   T.ultimoAto=Date.now();
   clTestePainelAtualizar();
@@ -978,7 +998,7 @@ function clTesteTick(){
   /* ===== A PAUSA TECNICA NAO PRECISA DE ESPERAR OS DEZ SEGUNDOS =====
      Entre rodadas a Resenha para numa janela de dez segundos: e o espaco do patrocinador, uma
      decisao de produto, nao uma exigencia da sincronia (o proprio codigo diz isso -- ver
-     AD_MIN_MS). Numa corrida de trinta jornadas sao cinco minutos parado a olhar para um GIF.
+     AD_MIN_MS). Numa corrida de trinta rodadas sao cinco minutos parado a olhar para um GIF.
      `clAdSkip` e a funcao do botao "Pular" que ja existe nessa tela: quando o servidor ja fechou
      a rodada (`CL._adCont` esta a espera), ela liberta na hora. Se ainda nao fechou, nao ha nada
      a saltar -- ai a espera e mesmo pelo servidor, e a bancada espera com ela. */
@@ -1000,7 +1020,7 @@ function clTesteTick(){
   /* 4) TELA DO CLUBE. Aqui aperta-se Jogar — o mesmo botão da pessoa. MAS o botão TEM DOIS
      ESTADOS: quando eu já disse que estou pronto, ele vira "Pronto" e a ação passa a ser
      CANCELAR (clCancelarPronto). Apertar às cegas fazia a bancada alternar pronto → cancelado →
-     pronto para sempre, sem a sala nunca sair da jornada 0. Apanhado no harness de dois clientes
+     pronto para sempre, sem a sala nunca sair da rodada 0. Apanhado no harness de dois clientes
      em vinte segundos — é para isto que a bancada serve.
      Estando pronto, não há nada a fazer: espera-se pelos outros, que é o que a pessoa faria. */
   if(typeof estouPronto==='function' && estouPronto()){ T.ultimoPasso='pronto — à espera dos outros'; return; }
@@ -1057,13 +1077,13 @@ function rfBotaoBancadaHTML(){
   if((S.round||0) >= TESTE_ALVO_PADRAO) return '';       // vale nos dois modos: solo e Resenha
   const a=CL._teste && CL._teste.ligado;
   return `<button type="button" class="rf-btn rf-btn-secondary rf-btn-full rf-teste-btn"
-    ${a?'disabled':''} title="Joga sozinho até à jornada ${TESTE_ALVO_PADRAO} e devolve a sala"
+    ${a?'disabled':''} title="Joga sozinho até à rodada ${TESTE_ALVO_PADRAO} e devolve a sala"
     onclick="clTestePular30()">${a?'🧪 A correr…':'🧪 PULAR 30 E TESTAR'}</button>`;
 }
 
 /* ===== O PAINEL DA BANCADA =====
    A tela fica em blur e só ele aparece à frente: o jogo está a andar por trás, e sem isto o
-   jogador vê telas a piscar e clica por cima do que a bancada está a fazer. Mostra a jornada, o
+   jogador vê telas a piscar e clica por cima do que a bancada está a fazer. Mostra a rodada, o
    que ela acabou de tocar e há quanto tempo — para uma bancada parada se ver de imediato, em vez
    de parecer que "não acontece nada". */
 function clTestePainelAbrir(){
@@ -1091,7 +1111,7 @@ function clTestePainelAtualizar(){
   const sub=document.getElementById('rf-teste-sub'); if(!sub) return;
   const feitas=Math.max(0,(S.round||0)-T.inicio), faltam=Math.max(0,T.alvo-(S.round||0));
   const total=Math.max(1,T.alvo-T.inicio);
-  sub.textContent='Jornada '+(S.round||0)+' de '+T.alvo+' · faltam '+faltam;
+  sub.textContent='Rodada '+(S.round||0)+' de '+T.alvo+' · faltam '+faltam;
   const bar=document.getElementById('rf-teste-bar');
   if(bar) bar.style.width=Math.round(feitas/total*100)+'%';
   const p=document.getElementById('rf-teste-passo');

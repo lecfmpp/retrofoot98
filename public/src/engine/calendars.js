@@ -3,7 +3,7 @@
 
    POR QUE ISTO EXISTE. O calendário era uma tabela de datas reais (CAL_2026, em world-rules.js) e
    a temporada era montada a partir dela. Isso produziu o pior bug do jogo: existiam DUAS
-   coordenadas — a jornada, que a ancoragem espremia para caber na temporada, e a data, que vinha
+   coordenadas — a rodada, que a ancoragem espremia para caber na temporada, e a data, que vinha
    da folha e não se movia junto. O plano de dias era ordenado por data, então a FINAL, que não
    tem data na folha e herdava um dia sintético, era marcada ANTES da própria semifinal. Medido
    nas três salas com day_plan de agosto/2026.

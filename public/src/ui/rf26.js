@@ -370,7 +370,7 @@ function rfBandHTML(titulo){
       ${rfFormaHTML()}
     </div>
     <!-- ===== UMA DATA SÓ NA FAIXA =====
-         Havia duas: os chips da esquerda (o dia da jornada) e este bloco, que ora mostrava
+         Havia duas: os chips da esquerda (o dia da rodada) e este bloco, que ora mostrava
          quanto falta para o apito ("2d 14h") ora a data do jogo. Duas datas lado a lado, uma
          delas às vezes contagem e às vezes data, e nem sempre a falar do mesmo dia — o
          resultado era confusão, e foi o relatado. Fica a data do DIA em que o jogo está, nos
@@ -411,14 +411,14 @@ function rfSincronizarSala(){
    A faixa so mostrava a temporada, solta no fim da linha de contexto — quem
    olhava sabia o ANO mas nao em que ponto dele estava, e o dia so aparecia
    dentro do calendario. Sao dois chips e nao um texto so porque o ano e o
-   dado estavel e o dia muda a cada jornada: separados, o olho volta sempre
+   dado estavel e o dia muda a cada rodada: separados, o olho volta sempre
    ao mesmo sitio para cada um. */
 function rfBandDataHTML(){
-  /* A DATA DA JORNADA, nao o S.day cru. S.day e o INICIO da semana (1/mar na
-     jornada 0) e o jogo e no fim dela (7/mar) — o chip dizia um dia e o
+  /* A DATA DA RODADA, nao o S.day cru. S.day e o INICIO da semana (1/mar na
+     rodada 0) e o jogo e no fim dela (7/mar) — o chip dizia um dia e o
      calendario outro, para a mesma rodada. Agora os dois saem da mesma conta.
 
-     E A COMPETICAO DO DIA MANDA NA DATA. Uma jornada tem ate tres dias (dois de meio de semana
+     E A COMPETICAO DO DIA MANDA NA DATA. Uma rodada tem ate tres dias (dois de meio de semana
      e o fim de semana), e datar sempre pelo dia de LIGA fazia a faixa anunciar sabado enquanto
      a sala jogava a copa de quarta. Com o ponteiro, a data e a do dia que esta a acontecer. */
   let dia='';
@@ -449,7 +449,7 @@ function rfFaixaEstadoHTML(){
   const moral=sq.length?Math.round(sq.reduce((t,p)=>t+(p.moral||70),0)/sq.length):0;
   const j=(typeof transferWindowStatus==='function')?transferWindowStatus():null;
   let janela='';
-  if(j&&j.open) janela=`<span class="rf-fx-chip aberta">Janela · ${j.closesIn} ${j.closesIn===1?'jornada':'jornadas'}</span>`;
+  if(j&&j.open) janela=`<span class="rf-fx-chip aberta">Janela · ${j.closesIn} ${j.closesIn===1?'rodada':'rodadas'}</span>`;
   else if(j&&j.opensIn!=null) janela=`<span class="rf-fx-chip">Janela abre em ${j.opensIn}</span>`;
   else if(j) janela=`<span class="rf-fx-chip">Janela fechada</span>`;
   return `<div class="rf-faixa-estado">
@@ -581,7 +581,7 @@ function rfTreinadorNome(){
 function rfJogar(){
   if(typeof estouPronto==='function' && estouPronto()){ clCancelarPronto(); return; }
   /* dia sem nada em campo: o botao passa o dia (ver rfNadaParaJogar e o rotulo).
-     So no SOLO — na Resenha quem manda na jornada e o servidor, e adiantar o dia
+     So no SOLO — na Resenha quem manda na rodada e o servidor, e adiantar o dia
      por conta propria partiria a sala. La o clJogar de sempre trata do caso. */
   if(!CL.online && rfNadaParaJogar() && typeof clAvancarDia==='function'){ clAvancarDia(); return; }
   if(typeof clJogar==='function') clJogar();
@@ -592,9 +592,9 @@ function rfJogar(){
    a Formação, rolada até o bloco de táticas.
    Só a TÁTICA vira atalho; onze incompleto continua desabilitado, porque aí
    não há um clique que resolva (é preciso escalar jogador por jogador). */
-/* ===== A SEMANA DA JORNADA, DIA A DIA =====
+/* ===== A SEMANA DA RODADA, DIA A DIA =====
    Desde que as copas sairam de dentro da liga (fase 1 do calendario), uma
-   jornada e uma SEMANA e cada competicao tem o seu dia dentro dela -- a liga ao
+   rodada e uma SEMANA e cada competicao tem o seu dia dentro dela -- a liga ao
    domingo, a Copa do Brasil na quarta, a Libertadores na quinta, a
    Sul-Americana na sexta (DIA_DA_COMPETICAO, no motor). So que nada disso
    aparecia: o utilizador clicava "Jogar" e o dia saltava sete dias sem
@@ -653,7 +653,7 @@ function rfSemanaHTML(){
       ${info?`<em class="rf-sem-c">${escC(info.curto)}</em>`:'<em class="rf-sem-c vazio">—</em>'}
     </span>`;
   }).join('');
-  return `<div class="rf-semana" aria-label="Os sete dias desta jornada">
+  return `<div class="rf-semana" aria-label="Os sete dias desta rodada">
     <div class="rf-semana-l">
       <span class="rf-label-t">Esta semana</span>
       <span class="rf-semana-r">${temAlgo?'o dia colorido e o seu jogo':'semana sem jogos — o botao passa a semana'}</span>
@@ -668,14 +668,14 @@ function rfFaltaTatica(){
 }
 /* ===== DIA SEM JOGO: O BOTAO E "AVANCAR", NAO "JOGAR" =====
    Desde que as copas deixaram de ser espremidas dentro da liga (fase 1), a
-   temporada tem jornadas genuinamente vazias: entre o fim da liga e as finais
+   temporada tem rodadas genuinamente vazias: entre o fim da liga e as finais
    das continentais ha semanas sem nada em campo. Antes o botao continuava a
    dizer "Jogar" e nao fazia nada — o jogo parecia travado, que foi o relato.
    Agora ele diz o que faz, e faz.
 
-   Nao ha jogo quando: a jornada nao tem partida da liga E nao ha copa para
+   Nao ha jogo quando: a rodada nao tem partida da liga E nao ha copa para
    jogar nem para assistir. `rfFaltaTatica` continua a mandar primeiro — sem
-   onze nao se avanca, porque a jornada seguinte pode ter jogo. */
+   onze nao se avanca, porque a rodada seguinte pode ter jogo. */
 function rfNadaParaJogar(){
   try{
     if(typeof S==='undefined' || !S || !Array.isArray(S.sched)) return false;
@@ -687,7 +687,7 @@ function rfNadaParaJogar(){
   }catch(e){ return false; }
 }
 /* ===== O BOTAO TEM DE DIZER O QUE O CLIQUE FAZ =====
-   Numa jornada com mais de uma competicao, a fila de classificacoes para na tela do clube entre
+   Numa rodada com mais de uma competicao, a fila de classificacoes para na tela do clube entre
    uma e outra (ver cupClassifContinue, main.js) e o proximo "Jogar" retoma dela. Do lado de quem
    joga isso era: clico em Jogar -> aparece a tabela da Libertadores -> volto ao elenco -> clico
    outra vez -> aparece a tabela da Copa do Brasil -> volto -> so no terceiro clique entro em
@@ -708,7 +708,7 @@ function rfJogarAcao(){
   return (rfProximaAcao().k==='tatica') ? 'rfIrEscolherTatica()' : 'rfJogar()';
 }
 /* ===== HOJE EU SO ASSISTO =====
-   Numa jornada de copa que o meu clube nao disputa (nao entrou, foi eliminado, ou pegou bye) o
+   Numa rodada de copa que o meu clube nao disputa (nao entrou, foi eliminado, ou pegou bye) o
    clique nao leva a campo nenhum: leva a ver a rodada dos outros. O botao dizia "Jogar" e abria
    uma transmissao — a promessa nao batia com o que acontecia. */
 function rfSoAssistir(){
@@ -729,13 +729,13 @@ function rfSoAssistir(){
    Havia DUAS escadas de decisao para a mesma coisa: a do `clJogar` (o que
    acontece ao clicar) e a do rotulo (o que o botao promete). Nasceram juntas e
    foram-se afastando -- e o afastamento so aparece no fim da temporada, quando
-   a jornada tem copa, sorteio e classificacao ao mesmo tempo e a ordem passa a
+   a rodada tem copa, sorteio e classificacao ao mesmo tempo e a ordem passa a
    importar. Foi o relatado: "vejo muito Ver sorteio quando seria jogar ou ver
    classificacao".
 
    Tres degraus faltavam ao rotulo, todos do lado da Resenha:
      · o goleiro em falta (o clique recusa e manda escalar; o rotulo dizia Jogar);
-     · os MOMENTOS da sala -- a acertar a jornada, a escalar, a fechar a rodada.
+     · os MOMENTOS da sala -- a acertar a rodada, a escalar, a fechar a rodada.
        Na Resenha "Jogar" durante o 'escalando' quer dizer "estou pronto", e
        durante o 'classificacao' nao quer dizer nada;
      · o filtro do DIA nas copas. O clique so oferece a competicao que esta em
@@ -754,8 +754,8 @@ function rfProximaAcao(){
     if(CL.live && !CL.live.done && CL.screen==='live') return R('emcampo','jogar','Em campo');
     // 2) fila de classificacoes de copa
     if(rfClassifPendente()) return R('classif','lista','Ver classificação','Classificação');
-    /* JORNADA SEM CAMPO NAO PEDE FORMACAO. Tatica e goleiro sao condicoes para ENTRAR EM
-       CAMPO; numa jornada em que o clube nao joga (parada, semana de finais) exigir a
+    /* RODADA SEM CAMPO NAO PEDE FORMACAO. Tatica e goleiro sao condicoes para ENTRAR EM
+       CAMPO; numa rodada em que o clube nao joga (parada, semana de finais) exigir a
        formacao era pedir uma coisa para fazer outra — o botao dizia "Escolher formação"
        quando o que ele ia fazer era Avançar. Os dois degraus so gateiam com jogo a vista. */
     const semCampo = !CL.online && typeof rfNadaParaJogar==='function' && rfNadaParaJogar();
@@ -771,7 +771,7 @@ function rfProximaAcao(){
     }
     // 6) os momentos da SALA (Resenha)
     const dia=(typeof roomDay==='function')?roomDay():null;
-    if(dia && dia.hold) return R('espera','relogio','Acertando a jornada','Aguarde');
+    if(dia && dia.hold) return R('espera','relogio','Acertando a rodada','Aguarde');
     if(dia && dia.moment==='escalando'){
       const pronto=(typeof estouPronto==='function' && estouPronto());
       return pronto ? R('pronto','ok','Pronto') : R('marcarpronto','jogar','Quase pronto','Quase');
@@ -792,7 +792,7 @@ function rfProximaAcao(){
     }
     // 9) Resenha sem mais nada a cumprir: digo que estou pronto
     if(CL.online) return R('marcarpronto','jogar','Quase pronto','Quase');
-    // 10) SOLO: jornada sem nada em campo -> passa o dia
+    // 10) SOLO: rodada sem nada em campo -> passa o dia
     if(typeof rfNadaParaJogar==='function' && rfNadaParaJogar()) return R('avancar','calendario','Avançar');
     // 11) a rodada de liga
     return R('jogar','jogar','Jogar');
@@ -930,7 +930,7 @@ function rfCompFase(info){
 }
 /* a linha por baixo do nome: onde a competição está agora */
 /* O DIA DAQUELA COMPETICAO, e nao so a fase. Cada competicao tem o seu dia
-   dentro da jornada (DIA_DA_COMPETICAO, no motor): a liga ao sabado, a Copa do
+   dentro da rodada (DIA_DA_COMPETICAO, no motor): a liga ao sabado, a Copa do
    Brasil na quarta, a Libertadores na quinta, a Sul-Americana na sexta. Sem a
    data na faixa, ver a rodada da copa e logo a seguir a da liga parecia tudo no
    mesmo dia -- e e essa a pergunta que a tela tem de responder sozinha. */
@@ -1455,7 +1455,7 @@ function rfCol(html){ return `<div class="rf-pagecol" data-rf-col>${html}</div>`
 
 /* =====================================================================
    LISTA LONGA — rola DENTRO do card, e não carrega tudo de uma vez.
-   Duas coisas que uma lista de 38 jornadas ou de 60 e-mails quebra:
+   Duas coisas que uma lista de 38 rodadas ou de 60 e-mails quebra:
    a página inteira vira um rolo (o cabeçalho da lista sai da vista logo na
    terceira linha), e o navegador monta centenas de nós que ninguém vai ler.
    Aqui a lista ganha rolagem própria — do mesmo jeito que o bloco Elenco do
@@ -2452,7 +2452,7 @@ const RF_BL_CAMPEONATOS=[
     dir:()=>rfMinhaPosicao()?rfMinhaPosicao()+'º de '+Object.keys(S.table||{}).length:'' },
   { k:'calendario', t:'Calendário', col:1, corpo:()=>rfCalendarioHTML(),
     dir:()=>{ const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
-              return nm? ((S.round||0)+1)+'ª jornada em '+(shortMatchDate(nm)||'') : ''; } },
+              return nm? ((S.round||0)+1)+'ª rodada em '+(shortMatchDate(nm)||'') : ''; } },
   { k:'artilharia', t:()=>'Artilharia da '+divisionLabel(), col:2, lim:4,
     corpo:l=>rfArtilhariaHTML(S.scorers,null,l) },
   { k:'historia',   t:'Últimos vencedores', col:2, corpo:()=>rfVencedoresHTML() },

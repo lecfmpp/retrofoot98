@@ -175,14 +175,14 @@ function rfCpMinhasHTML(){
    2 · CALENDÁRIO — a liga num cartão, cada copa no seu
    Grade da liga: 44 / 22 / adversário / 62 / 62 / 30
    ===================================================================== */
-/* DIA DO JOGO no calendário: a coluna DATA entra entre a jornada e o escudo.
-   O motor não guarda data por jornada — ele deriva do dia do calendário
+/* DIA DO JOGO no calendário: a coluna DATA entra entre a rodada e o escudo.
+   O motor não guarda data por rodada — ele deriva do dia do calendário
    (7 dias por rodada, ver shortMatchDate), então a conta é a mesma aqui. */
 const RF_CP_CAL_COLS='46px 54px 22px minmax(0,1.4fr) minmax(62px,.5fr) minmax(62px,.5fr) 34px';
 /* delega na fonte unica (dataCurtaDaJornada, engine/core.js). `copa` deixou de
    ser um booleano: e a CHAVE da competicao ('copaBrasil', 'libertadores', ...),
    porque cada uma tem o seu dia dentro da semana — antes as tres caiam no mesmo
-   dia sempre que partilhavam a jornada, e isso acontece 11 vezes por temporada. */
+   dia sempre que partilhavam a rodada, e isso acontece 11 vezes por temporada. */
 function rfCpDataDaJornada(i, copa){
   return (typeof dataCurtaDaJornada==='function') ? dataCurtaDaJornada(i, copa||'liga') : '';
 }
@@ -221,7 +221,7 @@ function rfCpCalendarioHTML(){
   const sel=rfCpCompFiltro();
   const mostraLiga = (sel==='todas' || String(sel)===String(S.division));
   const sched=S.sched||[];
-  // o calendário do motor é [[casaId, foraId], …] por jornada, e o placar mora
+  // o calendário do motor é [[casaId, foraId], …] por rodada, e o placar mora
   // em S.results com gh/ga (não hg/ag — essa é a pegadinha do lado da liga)
   const jogos=sched.map((j,i)=>{
     const p=(j||[]).find(m=>m[0]===CL.clubId||m[1]===CL.clubId);
@@ -243,14 +243,14 @@ function rfCpCalendarioHTML(){
     </div>`;
   }).filter(Boolean);
   const cab=`<div class="rf-el-head" style="--el-cols:${RF_CP_CAL_COLS}">
-    <span>JORNADA</span><span>DATA</span><span></span><span>ADVERSÁRIO</span><span>LOCAL</span>
+    <span>RODADA</span><span>DATA</span><span></span><span>ADVERSÁRIO</span><span>LOCAL</span>
     <span class="dir">PLACAR</span><span></span>
   </div>`;
   const grupo=(typeof myGroupLabel==='function')?myGroupLabel():'';
   const cartaoLiga = mostraLiga ? `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_CP_CAL_COLS}">
       <div class="rf-label">
         <span class="rf-label-t">${rfCompTagHTML(S.division)}${grupo?' <i class="rf-cp-grupo">'+escC(grupo)+'</i>':''}</span>
-        <span class="rf-label-r">${(S.round||0)} de ${sched.length||14} jornadas</span></div>
+        <span class="rf-label-r">${(S.round||0)} de ${sched.length||14} rodadas</span></div>
       ${cab}
       ${rfLista('cal-liga', jogos, 'O calendário ainda não foi sorteado.')}
     </div>` : '';
@@ -258,7 +258,7 @@ function rfCpCalendarioHTML(){
   return cartaoLiga + copas
     + ((!cartaoLiga && !copas) ? '<div class="rf-empty">Nada marcado nesta competição ainda.</div>' : '');
 }
-/* uma copa por cartão: FASE no lugar de JORNADA, e a DATA ao lado, igual à liga */
+/* uma copa por cartão: FASE no lugar de RODADA, e a DATA ao lado, igual à liga */
 const RF_CP_COPA_COLS='124px 54px 22px minmax(0,1.4fr) minmax(62px,.5fr) minmax(70px,.5fr) 34px';
 /* ===== A COPA NÃO TINHA DATA =====
    Este cartão remontava o calendário à mão, lendo `c.bracket.ties` e `mg.groups[].sched`.
@@ -267,7 +267,7 @@ const RF_CP_COPA_COLS='124px 54px 22px minmax(0,1.4fr) minmax(62px,.5fr) minmax(
    a Libertadores na quarta, a Copa do Brasil na terça), então a coluna de data simplesmente
    não existia aqui: a liga mostrava "sáb 14/mar" e a copa, nada.
    O motor já responde isso e é ele quem manda no calendário: userCupPlayedRows() e
-   userCupCalendarRows() devolvem cada jogo do clube com a JORNADA (`w`) — as mesmas linhas que
+   userCupCalendarRows() devolvem cada jogo do clube com a RODADA (`w`) — as mesmas linhas que
    o Calendário antigo sempre usou. Daí a data sai de dataCurtaDaJornada(w, chave), a mesma
    função da liga. De quebra vêm juntos a fase certa, os pênaltis do mata-mata e o confronto
    ainda "a definir", que a leitura à mão também deixava de fora. */
@@ -513,7 +513,7 @@ function rfCpSubHTML(){
     const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[k])||{};
     comps.push(def.name||k);
   });
-  return comps.join(' · ')+' · '+(S.round||0)+'ª jornada disputada';
+  return comps.join(' · ')+' · '+(S.round||0)+'ª rodada disputada';
 }
 function rfCpAcoesHTML(){
   return `<div class="rf-mk-acoes">
@@ -663,7 +663,7 @@ function rfMdClassificacaoHTML(){
   }).join('');
   return `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_MD_TBL_COLS}">
     <div class="rf-label"><span class="rf-label-t">${comp.tag||escC(comp.label)}</span>
-      <span class="rf-label-r">${linhas.length} clubes · ${S.round||0} jornadas jogadas</span></div>
+      <span class="rf-label-r">${linhas.length} clubes · ${S.round||0} rodadas jogadas</span></div>
     <div class="rf-el-head" style="--el-cols:${RF_MD_TBL_COLS}">
       <span>#</span><span>CLUBE</span><span>J</span><span>V</span><span>E</span><span>D</span>
       <span>GP</span><span>GC</span><span>SG</span><span class="dir">PTS</span>
@@ -699,8 +699,8 @@ function rfMdClassifCopaHTML(key){
 }
 
 /* ===== A CLASSIFICACAO E A PAGINA QUE NAVEGA O MUNDO; O CALENDARIO E DO CLUBE =====
-   Cheguei a por a grelha do mundo no Calendario -- todas as partidas de todos os clubes, jornada
-   a jornada. O dono do jogo experimentou e a resposta foi curta: nao ficou bom. E nao fica mesmo:
+   Cheguei a por a grelha do mundo no Calendario -- todas as partidas de todos os clubes, rodada
+   a rodada. O dono do jogo experimentou e a resposta foi curta: nao ficou bom. E nao fica mesmo:
    quem abre o Calendario quer saber quando joga o SEU clube e contra quem, e a grelha do mundo
    afoga essa resposta em vinte linhas por semana.
    Entao cada pagina volta a ter uma pergunta so. O Calendario continua a ser o do clube, a

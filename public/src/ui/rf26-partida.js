@@ -575,7 +575,7 @@ function rfPosRodadaHTML(){
 
   return rfStage({
     w:1080, comp:abaAtual==='tabela'?S.division:abaAtual,
-    contexto:`${(S.round||0)}ª jornada encerrada · ${classifDivName(S.division)} ${S.season||''}`,
+    contexto:`${(S.round||0)}ª rodada encerrada · ${classifDivName(S.division)} ${S.season||''}`,
     titulo:'Como ficou a tabela',
     corpo:`<div class="rf-pr-cols ${abaAtual==='tabela'?'':'chave'}">
       <div class="rf-card">${abas}${esquerda}</div>

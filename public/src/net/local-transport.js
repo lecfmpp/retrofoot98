@@ -496,7 +496,7 @@ function onlineReconcileIfBehind(room){
       if(CL._fimTemporadaVisto==null) CL._fimTemporadaVisto=oldSeason;   // ancora, nao dispara
       const isTurnover = novaTemporada>CL._fimTemporadaVisto;
       if(isTurnover) CL._fimTemporadaVisto=novaTemporada;
-      const _roundAntes = (S.round||0);                  // jornada que acabou de ser resolvida (ver queueRoundCupClassifs)
+      const _roundAntes = (S.round||0);                  // rodada que acabou de ser resolvida (ver queueRoundCupClassifs)
       const _career=(typeof snapshotCareer==='function')?snapshotCareer():null; // carreira é minha, não do anfitrião (ver CAREER_KEYS)
       Object.assign(S, sState);
       if(typeof restoreCareer==='function') restoreCareer(_career);
@@ -512,8 +512,8 @@ function onlineReconcileIfBehind(room){
       if(typeof pruneAppliedNetCounters==='function') pruneAppliedNetCounters(); // idem pras contrapropostas
       if(typeof pruneAppliedNetOfferDrops==='function') pruneAppliedNetOfferDrops(); // idem pras baixas de proposta
       if(typeof restoreMyFinances==='function') restoreMyFinances();               // finanças são individuais (ver restoreMyFinances)
-      // rede de segurança: foto do estado ao fim da jornada (ver autosave.js). Idempotente por
-      // (temporada, jornada), então chamar de mais de um caminho de adoção não duplica nada.
+      // rede de segurança: foto do estado ao fim da rodada (ver autosave.js). Idempotente por
+      // (temporada, rodada), então chamar de mais de um caminho de adoção não duplica nada.
       if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
       if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
       if(typeof applyOwnPendingFinances==='function') applyOwnPendingFinances(); // F3.3: finanças da MINHA rodada (convidado)
@@ -553,7 +553,7 @@ function onlineReconcileIfBehind(room){
             if(typeof checkPendingManagerEvents==='function') checkPendingManagerEvents();
             if(typeof handleResenhaCareer==='function') handleResenhaCareer(); // demissão/convite na Resenha — idem host
           };
-          // AS COPAS DA JORNADA VÊM ANTES DA TABELA DA LIGA — E ESTE É O CAMINHO DO CONVIDADO.
+          // AS COPAS DA RODADA VÊM ANTES DA TABELA DA LIGA — E ESTE É O CAMINHO DO CONVIDADO.
           // Era AQUI que morria a regra "todo mundo vê a classificação de todas as competições":
           // queueRoundCupClassifs existia só no onlineAdoptServerRound, que é o caminho de quem
           // FECHA a rodada (o anfitrião). O convidado espelha o estado por este reconcile e ia
@@ -1410,8 +1410,8 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
           // junto. Restaura os MEUS por cima — sem isto, toda vez que o convidado entrava na sala
           // ele voltava a ver as transações do anfitrião e as próprias sumiam (ver restoreMyFinances).
           if(typeof restoreMyFinances==='function') restoreMyFinances();
-          // rede de segurança: foto do estado ao fim da jornada (ver autosave.js). Idempotente por
-          // (temporada, jornada), então chamar de mais de um caminho de adoção não duplica nada.
+          // rede de segurança: foto do estado ao fim da rodada (ver autosave.js). Idempotente por
+          // (temporada, rodada), então chamar de mais de um caminho de adoção não duplica nada.
           if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
           /* ===== A VIRADA QUE ACONTECEU COM ESTE ASSENTO FORA (item 1 do checklist) =====
              Quem estava desconectado (ou recarregou) quando o servidor virou a temporada adotava
@@ -1665,7 +1665,7 @@ function onlineTimerLoop(){
        Segundo, e pior: o jogo se reconcilia sozinho na imensa maioria dos casos, então o modal
        aparecia e sumia sem ter feito nada — o que ensina o jogador a desconfiar do jogo.
        O convite automático agora depende de um sinal HONESTO de que este cliente está de fato
-       fora do lugar: a minha jornada diferente da jornada da sala, mantida por mais de 40s. Se as
+       fora do lugar: a minha rodada diferente da rodada da sala, mantida por mais de 40s. Se as
        duas coincidem, não há o que sincronizar — o que falta é o carimbo de alguém, e para isso
        existe o painel "esperando por X" e o botão do anfitrião.
        O botão manual continua onde sempre esteve: no menu e na própria tela de pausa. */
@@ -1674,7 +1674,7 @@ function onlineTimerLoop(){
     else if(!CL._foraSince) CL._foraSince=Date.now();
     if(_foraDoLugar && Date.now()-CL._foraSince>40000 && CL._syncOffered!==S.round && !CL.live
        && typeof clResenhaSync==='function'){
-      console.warn('minha jornada ('+(S.round||0)+') difere da sala ('+(room.round||0)+') há mais de 40s — oferecendo a sincronia');
+      console.warn('minha rodada ('+(S.round||0)+') difere da sala ('+(room.round||0)+') há mais de 40s — oferecendo a sincronia');
       clResenhaSync();
     }
     if(dt>12000 && Date.now()-(CL._waitDiagT||0)>10000){
@@ -1700,7 +1700,7 @@ function onlineTimerLoop(){
   if(typeof onlineWaitingTick==='function') onlineWaitingTick();   // "esperando por X" (ver main.js)
   if(typeof clTesteTick==='function') clTesteTick();               // bancada "PULAR 30 E TESTAR" (ui/rf26-fluxo.js)
   // (no SOLO este laço não roda — a bancada tem relógio próprio, ver clTesteEntrar)
-  dayRoundWatch();   // item 3: confere a jornada do ponteiro contra a local (ver dayRoundWatch)
+  dayRoundWatch();   // item 3: confere a rodada do ponteiro contra a local (ver dayRoundWatch)
   // TETO de 1s: o intervalo acompanha o ritmo, mas nos tempos lentos a conta explodia (em 'Longo'
   // dava ~6,6s entre sondagens — reconcile, cronômetro e barreira todos com essa latência).
   const intv=Math.max(100, Math.min(1000, 300/((typeof roundSpeedMult==='function'?roundSpeedMult():CL.speedMult)||1)));
@@ -1729,8 +1729,8 @@ function onlineCompleteSeasonTurnover(){
         S.xi = resolveClubXI(CL.clubId);
         if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
         if(typeof restoreMyFinances==='function') restoreMyFinances(); // ANTES da premiação: o carimbo de "já recebi" é meu, não do anfitrião
-        // rede de segurança: foto do estado ao fim da jornada (ver autosave.js). Idempotente por
-        // (temporada, jornada), então chamar de mais de um caminho de adoção não duplica nada.
+        // rede de segurança: foto do estado ao fim da rodada (ver autosave.js). Idempotente por
+        // (temporada, rodada), então chamar de mais de um caminho de adoção não duplica nada.
         if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
         if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
         CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
@@ -1744,9 +1744,9 @@ function onlineCompleteSeasonTurnover(){
         if(typeof openPressRoom==='function') openPressRoom(_sum);
         else { const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division); toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.'); }
         // O CALENDÁRIO DA SALA TAMBÉM VIRA DE TEMPORADA. O plano de dias era gravado uma vez e
-        // nunca mais: na virada, o ponteiro continuava apontando pra última jornada da temporada
-        // VELHA (r=37) enquanto todo mundo já estava na jornada 0 da nova — o desacordo não se
-        // resolvia sozinho e a sala ficava presa em "acertando a jornada, um instante".
+        // nunca mais: na virada, o ponteiro continuava apontando pra última rodada da temporada
+        // VELHA (r=37) enquanto todo mundo já estava na rodada 0 da nova — o desacordo não se
+        // resolvia sozinho e a sala ficava presa em "acertando a rodada, um instante".
         // Só o anfitrião reescreve (é ele quem já grava o plano na criação da sala).
         if(NET.isHost && typeof NET.reseedDayPlan==='function') NET.reseedDayPlan();
         // reabre a fase 'ready' pra próxima rodada (senão os dois ficam presos sem conseguir jogar)
@@ -1759,25 +1759,25 @@ function onlineCompleteSeasonTurnover(){
    ITEM 1 DO CHECKLIST. Até aqui cada cliente OLHAVA O PRÓPRIO ESTADO pra decidir o que mostrar:
    "tenho confronto de copa? então copa; senão, liga". Dois humanos podiam responder essa pergunta
    de formas diferentes e os dois estarem certos pelas suas contas — foi assim que acabaram
-   jogando competições diferentes na mesma jornada. A pergunta agora tem uma resposta só, e ela
+   jogando competições diferentes na mesma rodada. A pergunta agora tem uma resposta só, e ela
    mora numa linha do banco: games.day_idx aponta pra uma entrada do calendário da sala.
 
-   O QUE O PONTEIRO DECIDE: qual COMPETIÇÃO está em campo. A jornada continua andando pelo caminho
+   O QUE O PONTEIRO DECIDE: qual COMPETIÇÃO está em campo. A rodada continua andando pelo caminho
    de sempre (games.round + fechamento). São dois eixos, e eles se encontram aqui: o ponteiro só
-   manda quando fala da MESMA jornada que eu. Se falar de outra, devolvo null e o caminho antigo
+   manda quando fala da MESMA rodada que eu. Se falar de outra, devolvo null e o caminho antigo
    assume — desalinhamento degrada pro comportamento de antes, nunca em tela parada.
 
    DESACORDO SEGURA — NUNCA DEVOLVE A DECISÃO AO CLIENTE. A primeira versão desta função devolvia
-   null quando o ponteiro falava de outra jornada, e eu chamei isso de "degradar em vez de
+   null quando o ponteiro falava de outra rodada, e eu chamei isso de "degradar em vez de
    congelar". Era uma porta de divergência disfarçada de rede de segurança: medido no harness
    (cenário 3, sala 365ZV reproduzida), 12 instantes em que o cliente voltou a decidir sozinho —
    o único vermelho da execução. Agora discordância devolve {hold} e quem recebe hold ESPERA.
 
    PONTEIRO ATRÁS: eu espero, e o CARIMBO resolve. Aqui havia o day_sync — uma segunda função
-   capaz de mover o ponteiro, e ela o movia a partir da jornada local de quem chamasse: justamente
+   capaz de mover o ponteiro, e ela o movia a partir da rodada local de quem chamasse: justamente
    o número que o ponteiro veio substituir. Medido em produção, era ele (e não os carimbos) que
-   movia o ponteiro em TODAS as jornadas, e foi ele que escondeu por dias o fato de que o carimbo
-   nunca funcionava. Não é mais preciso: um dia de jornada já passada pode ser carimbado
+   movia o ponteiro em TODAS as rodadas, e foi ele que escondeu por dias o fato de que o carimbo
+   nunca funcionava. Não é mais preciso: um dia de rodada já passada pode ser carimbado
    normalmente (ver roomDayFact), então o ponteiro anda pelo caminho normal. Se ele ficar mesmo
    parado, é porque falta o carimbo de alguém — e isso hoje tem nome e botão ("esperando por X"),
    em vez de um empurrão silencioso pelo palpite local.
@@ -1786,7 +1786,7 @@ function onlineCompleteSeasonTurnover(){
 function roomDay(){
   /* O PONTEIRO E DA SALA — NO SOLO ELE NAO EXISTE. NET.room sobrevive na aba depois de sair de
      uma Resenha; um save solo aberto em seguida lia o dia da sala antiga e obedecia a ele
-     ("Acertando a jornada" num jogo sem sala, relatado a 20/08). Fora do online, nulo sempre. */
+     ("Acertando a rodada" num jogo sem sala, relatado a 20/08). Fora do online, nulo sempre. */
   if(typeof CL==='undefined' || !CL.online) return null;
   const d=(typeof NET!=='undefined' && NET.room) ? NET.room.day : null;
   if(!d || !S) return null;                 // sala sem plano (save antigo): caminho de sempre
@@ -1825,7 +1825,7 @@ const DAY_ACK_IGNORAR_AUSENTES_SEG=0;
    Cada carimbo é um fato do MEU assento, não uma leitura do relógio nem do "ocupado" de ninguém.
    Quando o último assento carimba, o servidor — e só ele — vira o momento; virado o terceiro, vira
    o DIA e escreve games.round a partir do plano. É por isso que o momento 'classificacao' aparecer
-   no ponteiro é o sinal de que a jornada foi cumprida por todos: é ele que o anfitrião espera para
+   no ponteiro é o sinal de que a rodada foi cumprida por todos: é ele que o anfitrião espera para
    fechar a rodada (ver onlineHostCloseRound).
    Uma chamada por (dia:momento) — o carimbo é idempotente no servidor, mas martelar não adianta:
    o que falta é o carimbo DO OUTRO. */
@@ -1868,8 +1868,8 @@ function roomDayNaTelaDoClube(){
 }
 function roomDayFact(d){
   const mom=d.moment;
-  // DIA DE JORNADA JÁ PASSADA: cumprido, seja qual for o momento. Eu não tenho como "ainda dever"
-  // um dia de uma jornada que já foi resolvida — segurar aqui é segurar a sala por nada.
+  // DIA DE RODADA JÁ PASSADA: cumprido, seja qual for o momento. Eu não tenho como "ainda dever"
+  // um dia de uma rodada que já foi resolvida — segurar aqui é segurar a sala por nada.
   if(typeof S!=='undefined' && S && d.round<(S.round||0)) return true;
   /* ESCALANDO = EU DISSE QUE ESTOU PRONTO. Antes bastava eu estar na tela do clube, e isso
      esvaziava o momento: o dia virava para 'jogando' com os jogadores ainda escolhendo o time, e a
@@ -1878,7 +1878,7 @@ function roomDayFact(d){
      por um cronômetro — ele aparece no "esperando por X", com nome. */
   if(mom==='escalando') return CL._readyForStage===onlineStageKey() || onlineStageDone();
   if(mom==='jogando'){
-    // CUMPRI A COMPETIÇÃO DESTE DIA. Tem que ser por COMPETIÇÃO, não por etapa da semana: a jornada
+    // CUMPRI A COMPETIÇÃO DESTE DIA. Tem que ser por COMPETIÇÃO, não por etapa da semana: a rodada
     // 3 tem Libertadores, Sul-Americana e Copa do Brasil, e as três dividem a mesma etapa 'cup' —
     // usar onlineStageDone() aqui faria terminar a primeira valer como carimbo das outras duas, que
     // é exatamente o atalho do last_cup_round que já nos custou uma sala travada.
@@ -1889,11 +1889,11 @@ function roomDayFact(d){
       if(typeof cupDayDone!=='function') return false;
       return cupDayDone(d.comp) || roomDayNadaACumprir(d.comp);
     }
-    /* DIA DE LIGA: a pergunta é "eu joguei a PARTIDA DE LIGA desta jornada?", e ela tem que ser
+    /* DIA DE LIGA: a pergunta é "eu joguei a PARTIDA DE LIGA desta rodada?", e ela tem que ser
        respondida por fatos da partida — nunca pela etapa da semana em que eu penso estar (ver
        onlineStageDone, que hoje usa a chave do DIA: foi respondendo pela etapa da semana que a
-       jornada 2 inteira sumiu). Três respostas honestas: joguei
-       (finishLiveRound), a etapa de LIGA desta jornada está marcada, ou eu não tenho partida
+       rodada 2 inteira sumiu). Três respostas honestas: joguei
+       (finishLiveRound), a etapa de LIGA desta rodada está marcada, ou eu não tenho partida
        nenhuma porque estou desempregado. */
     if(CL.unemployed) return true;
     // onlineStageDone() agora é "este DIA já foi cumprido por mim" (ver onlineStageKey) — a mesma
@@ -1957,19 +1957,19 @@ function roomDayTick(){
   if(!d) return;                                               // sala sem plano (save antigo)
   if(!NET.dayAck) return;
   if(typeof S==='undefined' || !S) return;
-  /* Que dias eu posso carimbar: o da MINHA jornada — e a CAUDA da que acabou de ser resolvida.
+  /* Que dias eu posso carimbar: o da MINHA rodada — e a CAUDA da que acabou de ser resolvida.
      A segunda parte não é folga: o momento 'classificacao' do dia de liga acontece, por
      construção, DEPOIS de a rodada fechar (é a tabela que sai do fechamento), e nesse instante o
      meu S.round já é o seguinte. Sem esta linha ninguém jamais carimbaria o último momento do dia,
-     o ponteiro ficaria preso no dia da jornada velha e só a rede de segurança do day_sync o
+     o ponteiro ficaria preso no dia da rodada velha e só a rede de segurança do day_sync o
      tiraria de lá — ou seja, o palpite local voltaria a decidir justamente o que o carimbo existe
      para decidir. */
-  /* Que dias eu posso carimbar: o da MINHA jornada e QUALQUER DIA JÁ PASSADO — nunca um futuro.
+  /* Que dias eu posso carimbar: o da MINHA rodada e QUALQUER DIA JÁ PASSADO — nunca um futuro.
      A primeira versão só liberava o momento 'classificacao' de um dia atrasado, e isso congelou o
      ponteiro a temporada inteira: quando a rodada fechava por fora (o cão de guarda fechava em 6s),
      o ponteiro ficava para trás num momento 'escalando' ou 'jogando' que ninguém tinha mais o
-     direito de carimbar — e só a rede de segurança de 45s o arrancava dali, jornada após jornada.
-     Um dia de uma jornada que eu já deixei para trás está, por definição, cumprido por mim: o
+     direito de carimbar — e só a rede de segurança de 45s o arrancava dali, rodada após rodada.
+     Um dia de uma rodada que eu já deixei para trás está, por definição, cumprido por mim: o
      ponteiro tem que poder andar pelo carimbo, que é o caminho normal, em vez de pelo socorro. */
   const meu=S.round||0;
   if(d.round>meu) return;
@@ -1990,48 +1990,48 @@ function roomDayTick(){
   }).catch(()=>{});
 }
 
-/* ==================== ITEM 3, PRIMEIRA METADE: LER A JORNADA DO PONTEIRO ====================
-   HOJE quem manda na jornada é o motor local do anfitrião: playRound() incrementa S.round, o
+/* ==================== ITEM 3, PRIMEIRA METADE: LER A RODADA DO PONTEIRO ====================
+   HOJE quem manda na rodada é o motor local do anfitrião: playRound() incrementa S.round, o
    saveGame publica, e games.round + o ponteiro SEGUEM esse número. O objetivo do item 3 é inverter
-   a causa — a jornada passa a sair do dia apontado (day_ack já escreve games.round a partir do
+   a causa — a rodada passa a sair do dia apontado (day_ack já escreve games.round a partir do
    plano) e todo cliente, inclusive o anfitrião, adota o número do ponteiro.
-   Inverter isso de uma vez seria trocar o dono da jornada no escuro. Então esta metade LÊ o número
+   Inverter isso de uma vez seria trocar o dono da rodada no escuro. Então esta metade LÊ o número
    do ponteiro e o CONFERE contra o local, mantendo a escrita antiga: se os dois nunca discordarem
    de forma sustentada, cortar a escrita local vira uma troca sem surpresa; se discordarem, o
    cenário 3 acusa ANTES de o cliente publicado depender disso.
-   Divergência INSTANTÂNEA é normal e não conta: o ponteiro só larga o dia da jornada N quando o
+   Divergência INSTANTÂNEA é normal e não conta: o ponteiro só larga o dia da rodada N quando o
    último assento carimba, então logo depois do fechamento ele fica legitimamente um dia atrás por
    alguns instantes. O que não pode existir é divergência que PERSISTE — essa é o ponteiro preso
-   (ninguém carimbou) ou a jornada andando por fora dele. */
+   (ninguém carimbou) ou a rodada andando por fora dele. */
 const DAY_ROUND_DRIFT_MS=12000;
 function dayPointerRound(){
   const d=(typeof NET!=='undefined' && NET.room) ? NET.room.day : null;
   return (d && d.round!=null) ? d.round : null;
 }
 /* =====================================================================
-   JORNADA SEM JOGO DE LIGA — ALGUEM TEM DE ATRAVESSA-LA
+   RODADA SEM JOGO DE LIGA — ALGUEM TEM DE ATRAVESSA-LA
    ---------------------------------------------------------------------
    Desde que o calendario reserva semanas sem campeonato (a parada do meio do ano e as tres
-   semanas das finais, ver engine/calendars.js), existem jornadas em que a liga simplesmente nao
-   joga. No SOLO isso e o botao "Avancar", que empurra a jornada. Na Resenha nao havia ninguem:
+   semanas das finais, ver engine/calendars.js), existem rodadas em que a liga simplesmente nao
+   joga. No SOLO isso e o botao "Avancar", que empurra a rodada. Na Resenha nao havia ninguem:
 
      · o ponteiro do dia anda quando o ultimo assento carimba, e `day_ack` grava em `games.round`
-       a jornada do dia NOVO;
+       a rodada do dia NOVO;
      · mas `shared_state.S.round` so anda quando o servidor RESOLVE uma rodada de liga;
-     · numa jornada sem liga nao ha rodada para resolver, entao `games.round` foi para 21 e o
+     · numa rodada sem liga nao ha rodada para resolver, entao `games.round` foi para 21 e o
        estado ficou em 20 -- duas coordenadas a discordar, outra vez, e a sala parada no meio.
 
-   Medido na sala JGGK5 (18/08/2026): ponteiro no dia 35 (jornada 21, liga), estado na jornada 20,
+   Medido na sala JGGK5 (18/08/2026): ponteiro no dia 35 (jornada 21, liga), estado na rodada 20,
    dois humanos vivos, nenhum pronto, 28 minutos sem nada acontecer. Os clientes viam o desacordo
    e nao tinham o que fazer com ele: quem esta atras do ponteiro espera pelo estado novo, e o
    estado novo nunca vinha.
 
-   O servidor JA sabe resolver uma jornada vazia -- `fixtures = S.sched[round] || []` aceita lista
+   O servidor JA sabe resolver uma rodada vazia -- `fixtures = S.sched[round] || []` aceita lista
    vazia e faz o resto da rodada (energia, mercado, evolucao) na mesma. So faltava alguem pedir.
    Pede o ANFITRIAO, que e quem ja fecha as rodadas, e uma de cada vez: o laco volta a passar aqui
    e atravessa a seguinte, se houver.
 
-   TRAVA IMPORTANTE: so atravessa quando TODAS as jornadas entre a minha e a do ponteiro estao
+   TRAVA IMPORTANTE: so atravessa quando TODAS as rodadas entre a minha e a do ponteiro estao
    vazias. Se alguma tem jogo, o atraso e outra coisa (alguem que ainda nao jogou) e saltar por
    cima dela seria comer uma rodada inteira da sala. */
 function onlineJornadaVaziaWatch(pt){
@@ -2044,13 +2044,13 @@ function onlineJornadaVaziaWatch(pt){
   }
   const alvo=S.round||0;
   CL._vazioBusy=true;
-  console.warn('jornada '+alvo+' nao tem jogo de liga e o ponteiro ja esta na '+pt+
+  console.warn('rodada '+alvo+' nao tem jogo de liga e o ponteiro ja esta na '+pt+
                ' — pedindo ao servidor para a atravessar');
   (async ()=>{
     try{
       const res=await NET.resolveRound(alvo);
       if(!res || res.error){
-        console.warn('atravessar jornada vazia falhou:', res && res.error, '— tenta de novo no proximo tique');
+        console.warn('atravessar rodada vazia falhou:', res && res.error, '— tenta de novo no proximo tique');
         return;
       }
       if(typeof NET.refreshRoom==='function') await NET.refreshRoom();
@@ -2059,22 +2059,22 @@ function onlineJornadaVaziaWatch(pt){
          dele sai logo se `NET.isHost`. E o caminho do convidado, de proposito -- o anfitriao
          normalmente nunca esta atras, porque e ele quem fecha a rodada e adota o resultado no
          mesmo passo (onlineHostCloseRound -> onlineAdoptServerRound).
-         So que este passo aqui e a excecao: o servidor resolve a jornada vazia a meu pedido e eu
+         So que este passo aqui e a excecao: o servidor resolve a rodada vazia a meu pedido e eu
          nao passo pelo fechamento. Sem adotar, eu ficava com o estado velho enquanto o servidor
          seguia em frente -- e como sou eu quem publica o estado da sala, a sala inteira parava a
-         minha espera. Foi exatamente o que aconteceu na JGGK5: servidor na jornada 21, anfitriao
+         minha espera. Foi exatamente o que aconteceu na JGGK5: servidor na rodada 21, anfitriao
          na 20, o outro treinador pronto ha meia hora.
          `onlineAdoptServerRound` recarrega o estado do servidor e reaplica a minha carreira por
          cima (a carreira e do assento, nao do mundo). O parametro dela nunca e usado. */
       if(typeof onlineAdoptServerRound==='function') await onlineAdoptServerRound(null);
-    }catch(e){ console.warn('atravessar jornada vazia:', e && e.message); }
+    }catch(e){ console.warn('atravessar rodada vazia:', e && e.message); }
     finally{ CL._vazioBusy=false; }
   })();
 }
 function dayRoundWatch(){
   if(!CL.online || typeof S==='undefined' || !S || S.round==null){ CL._dayDriftSince=0; return; }
   const pt=dayPointerRound();
-  /* a jornada sem liga e atravessada aqui, ANTES de o desacordo virar "drift": ele nao e um
+  /* a rodada sem liga e atravessada aqui, ANTES de o desacordo virar "drift": ele nao e um
      defeito a diagnosticar, e um dia que ninguem tinha a obrigacao de passar. */
   onlineJornadaVaziaWatch(pt);
   if(pt==null || pt===S.round){ CL._dayDriftSince=0; return; }   // sala sem plano ou de acordo
@@ -2084,13 +2084,13 @@ function dayRoundWatch(){
   if(CL._dayDriftKey===k) return;                                // um aviso por par, não uma enxurrada
   CL._dayDriftKey=k;
   CL._dayDrift=(CL._dayDrift||0)+1;
-  console.warn('ponteiro e jornada local discordam há '+Math.round((Date.now()-CL._dayDriftSince)/1000)+
+  console.warn('ponteiro e rodada local discordam há '+Math.round((Date.now()-CL._dayDriftSince)/1000)+
     's: ponteiro='+pt+' eu='+(S.round||0)+' — o item 3 vai tirar essa segunda fonte de verdade');
-  // AUTORREPARO DA VIRADA DE TEMPORADA. Um desacordo em que o ponteiro está numa jornada ADIANTE
-  // e eu estou na jornada 0 só tem uma explicação: a temporada virou e o calendário da sala é o
+  // AUTORREPARO DA VIRADA DE TEMPORADA. Um desacordo em que o ponteiro está numa rodada ADIANTE
+  // e eu estou na rodada 0 só tem uma explicação: a temporada virou e o calendário da sala é o
   // da temporada passada (ele era gravado uma vez e nunca mais). Aí ninguém carimba nada, porque
   // o dia apontado pertence a um campeonato que acabou — e a sala fica parada pra sempre em
-  // "acertando a jornada". O anfitrião reescreve o calendário e devolve o ponteiro pro dia 0.
+  // "acertando a rodada". O anfitrião reescreve o calendário e devolve o ponteiro pro dia 0.
   // Só o anfitrião, e uma vez por temporada: replantar em laço rebobinaria a sala.
   if(pt>(S.round||0) && (S.round||0)===0 && typeof NET!=='undefined' && NET.isHost
      && typeof NET.reseedDayPlan==='function' && CL._replantioTemporada!==(S.season||0)){
@@ -2109,7 +2109,7 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // rodada além do calendário -> a virada não completou: completa via servidor (não joga fantasma)
   if(Array.isArray(S.sched) && (S.round||0) >= S.sched.length){ onlineCompleteSeasonTurnover(); return; }
   // JÁ CUMPRI ESTA ETAPA: fico LIVRE aguardando o fechamento — NÃO re-simulo. A checagem
-  // definitiva é o mapa por (temporada, jornada, quarta|sábado), que nenhum caminho zera (ver
+  // definitiva é o mapa por (temporada, rodada, quarta|sábado), que nenhum caminho zera (ver
   // onlineMarkStageDone); o _playedRound fica como segunda linha pros caminhos degradados.
   if(onlineStageDone()) return;
   if(CL._playedRound===S.round) return;
@@ -2169,13 +2169,13 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // entra — nem pra quem não disputa aquela copa. Enquanto o dia é de liga, nenhuma copa entra.
   // É a trava que faltava: as duas ramificações abaixo consultavam só o meu estado.
   const dia=roomDay();
-  // SEGURAR É A RESPOSTA CERTA. Ponteiro e cliente discordando da jornada significa que um dos dois
+  // SEGURAR É A RESPOSTA CERTA. Ponteiro e cliente discordando da rodada significa que um dos dois
   // está velho — roomDay() já disparou a correção dos dois lados. Até eles concordarem eu não jogo
   // nada: qualquer coisa que eu decidisse aqui seria pelo meu palpite local, que é exatamente a
   // divergência que este ponteiro existe pra acabar.
   if(dia && dia.hold){
     if(CL._holdAviso!==dia.round){ CL._holdAviso=dia.round;
-      console.log('sala no dia da jornada '+dia.round+' ('+dia.comp+') e eu na '+(S.round||0) +
+      console.log('sala no dia da rodada '+dia.round+' ('+dia.comp+') e eu na '+(S.round||0) +
                   ' — esperando os dois concordarem, sem decidir nada por conta própria'); }
     return;
   }
@@ -2319,7 +2319,7 @@ function onlineOrphanCloseCheck(){
      fechava a rodada olhando "ninguém com o busy aceso" e um relógio de 6s — os mesmos palpites
      locais que o ponteiro veio substituir. No log de produção ele foi quem fechou PRATICAMENTE
      TODAS as rodadas ("rodada 2 aberta há 10s sem fechar", "rodada 5 há 15s"), inclusive com o
-     outro humano ainda em campo, e foi assim que a jornada 3 desapareceu entre a 2 e a 4.
+     outro humano ainda em campo, e foi assim que a rodada 3 desapareceu entre a 2 e a 4.
      Com ponteiro, a rodada só é "órfã" depois que o SERVIDOR disse que o dia foi cumprido — a
      mesma porta do anfitrião. Antes disso não há órfão nenhum: há gente jogando.
      E o relógio começa quando a porta abre, não antes: se o anfitrião estiver vivo ele fecha em
@@ -2376,7 +2376,7 @@ function onlineForceExpiredDecision(){
    fluxo PÓS-rodada de cada cliente (checkPendingCupDraws). Parado na tela do clube ninguém a
    consome — e a barreira lia "tem sorteio pra abrir" e declarava o jogador ocupado. Medido no
    cenário 3: os DOIS humanos na tela do clube, prontos, com ocupado='sorteio-na-fila', o anfitrião
-   sem liberar porque havia alguém "ocupado", e a sala parada na jornada 1 sem nada acontecendo.
+   sem liberar porque havia alguém "ocupado", e a sala parada na rodada 1 sem nada acontecendo.
    É a quinta repetição do mesmo padrão — pendência que só se resolve depois do avanço marcando o
    jogador como ocupado antes do avanço. A saída não é soltar a barreira (aí a cerimônia some pra
    quem tinha direito a vê-la): é RESOLVER a pendência onde ela está. Aqui a fila é aberta na
@@ -2405,7 +2405,7 @@ function onlineOpenQueuedDraw(){
 /* A ETAPA É O DIA. Houve um tempo em que existiam DUAS unidades para a mesma coisa: a "etapa da
    semana" (quarta de copa | sábado de liga, deduzida de um campo local e atrasado) e o DIA do
    ponteiro, que vem do servidor. As duas se contradiziam na janela em que o campo local ainda não
-   tinha sido adotado — daí a jornada que fechava sem partida e a rodada jogada duas vezes: o "já
+   tinha sido adotado — daí a rodada que fechava sem partida e a rodada jogada duas vezes: o "já
    cumpri" ficava guardado numa chave e a decisão de entrar em campo era tomada por outra. A etapa
    da semana foi removida do jogo; o dia é a única unidade. Um dia, uma coisa a cumprir, um carimbo.
    Sala sem ponteiro (save antigo) mantém a chave antiga — nada muda para ela. */
@@ -2416,10 +2416,10 @@ function onlineStageKey(){
   return temporada+':'+((typeof S!=='undefined'&&S?(S.round||0):0))+':league';
 }
 /* ---- ETAPA CUMPRIDA: O ANTI-REPETIÇÃO DEFINITIVO ----
-   Uma etapa (temporada, jornada, quarta|sábado) que este cliente JÁ cumpriu nunca é reentrada,
+   Uma etapa (temporada, rodada, quarta|sábado) que este cliente JÁ cumpriu nunca é reentrada,
    não importa por qual caminho a fase volte a 'running' — fechamento idempotente do cão de
    guarda, adoção repetida, reconcile atrasado. O CL._playedRound (um inteiro só) não dava conta:
-   a quarta e o sábado compartilham a jornada, e qualquer caminho que o zerasse reabria a rodada
+   a quarta e o sábado compartilham a rodada, e qualquer caminho que o zerasse reabria a rodada
    inteira ("repetiu o mesmo jogo da primeira rodada várias vezes"). O mapa é só-cresce e local:
    etapa cumprida é fato MEU, não do mundo. */
 /* PERSISTE: o "Sincronizar a Resenha" recarrega a página de propósito, e um mapa só em memória
@@ -2432,7 +2432,7 @@ function onlineMarkStageDone(){ const k=onlineStageKey();
 }
 /* PERGUNTA E RESPOSTA TÊM QUE USAR A MESMA CHAVE — e por um tempo não usaram.
    Quando a etapa virou o DIA, onlineMarkStageDone passou a gravar em 'temporada:diaN', mas esta
-   função continuou perguntando por 'temporada:jornada:league' — a chave da etapa da semana, que
+   função continuou perguntando por 'temporada:rodada:league' — a chave da etapa da semana, que
    deixou de existir. Ou seja: ela respondia NÃO para tudo, sempre. O que ela protege é o
    anti-repetição (um dia cumprido nunca é reentrado) e o carimbo do dia de liga, então a falha
    silenciosa abria a porta para reentrar numa etapa já jogada. Defeito meu, da limpeza; agora as

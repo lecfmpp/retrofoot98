@@ -5,7 +5,7 @@
    vezes: uma em engine/core.js (cliente) e outra em supabase/functions/resolve-round (servidor),
    com um comentário pedindo "se mexer em um, mexer no outro". Esse contrato falhou toda vez:
      · o gerador de calendário foi portado à mão duas vezes e divergiu nas duas;
-     · a trava "esta competição já avançou nesta jornada" existia só no cliente — e o servidor
+     · a trava "esta competição já avançou nesta rodada" existia só no cliente — e o servidor
        avançava a Libertadores de novo, o que punha DOIS jogos da mesma competição no mesmo dia
        no calendário do jogador;
      · a tabela de datas foi copiada manualmente.
@@ -40,11 +40,11 @@
     draws:{ libertadores:'03-02', sulamericana:'03-11', copaBrasil:'03-21' }
   };
   /* estreia de cada copa quando ela NÃO está na tabela (universo europeu) — mantém o
-     escalonamento antigo pra que duas competições não estreiem na mesma jornada */
+     escalonamento antigo pra que duas competições não estreiem na mesma rodada */
   const CUP_FIRST_ROUND={ copaBrasil:3, libertadores:1, sulamericana:2, championsLeague:1, europaLeague:2 };
 
   /* ---------- AS DATAS, DERIVADAS DOS SLOTS ----------
-     `slot = jornada + 1`, sempre. Com isso toda data do jogo é uma função de (slot, janela), e a
+     `slot = rodada + 1`, sempre. Com isso toda data do jogo é uma função de (slot, janela), e a
      folha de datas deixa de ser uma segunda fonte de verdade — passa a ser o rótulo do slot.
      CAL_2026 continua abaixo apenas como a lista de datas reais do Brasil, que o calendário de
      slots consome (calendars.js: datasLiga). */
@@ -92,22 +92,22 @@
     const base=new Date(e[0], e[1], e[2]);
     return Math.round((alvo-base)/86400000)+1;
   }
-  /* jornada de liga em que uma data de copa acontece: a PRIMEIRA jornada cuja data é >= a dela.
+  /* rodada de liga em que uma data de copa acontece: a PRIMEIRA rodada cuja data é >= a dela.
      Mantém a ordem da semana (o dia de copa vem antes do jogo de liga daquele bloco) sem que copa
      e liga precisem compartilhar unidade. Data depois do último jogo de liga (a final da Copa do
-     Brasil, 06/12) fica na última jornada. */
+     Brasil, 06/12) fica na última rodada. */
   function jornadaOfCalDate(mmdd, epoch){
     const L=CAL_2026.league, d=calDay(mmdd, epoch);
     for(let i=0;i<L.length;i++){ if(calDay(L[i], epoch)>=d) return i; }
     return L.length-1;
   }
-  /* dia do jogo da jornada `round` da liga — jornada+1 é o slot */
+  /* dia do jogo da rodada `round` da liga — rodada+1 é o slot */
   function leagueMatchDay(round, epoch, pais){
     return diaDoSlot(Math.max(0, round||0)+1, 'WEEKEND', epoch, pais);
   }
-  /* dia do jogo de uma copa numa jornada — mesma conta, com a janela da competição */
-  function cupMatchDayAt(key, jornada, epoch, pais){
-    return diaDoSlot(Math.max(0, jornada||0)+1, janelaDaCompeticao(key, pais), epoch, pais);
+  /* dia do jogo de uma copa numa rodada — mesma conta, com a janela da competição */
+  function cupMatchDayAt(key, rodada, epoch, pais){
+    return diaDoSlot(Math.max(0, rodada||0)+1, janelaDaCompeticao(key, pais), epoch, pais);
   }
   /* dia do jogo da rodada `idx` (0-based) de uma copa */
   function cupMatchDayByRound(key, idx, epoch){
@@ -124,17 +124,17 @@
     return Math.max(1, diaDoSlot(c.slots[0], c.janela, epoch, pais)-2);
   }
 
-  /* ---------- CRONOGRAMA: em que JORNADA cada rodada de cada copa acontece ----------
+  /* ---------- CRONOGRAMA: em que RODADA cada rodada de cada copa acontece ----------
      Estritamente crescente por construção: as datas são crescentes e jornadaOfCalDate é
-     monotônica; duas rodadas que caíssem na mesma jornada empurram a seguinte, porque uma
+     monotônica; duas rodadas que caíssem na mesma rodada empurram a seguinte, porque uma
      competição nunca joga duas rodadas no mesmo bloco de semana. */
-  /* ---------- EM QUE JORNADA CADA RODADA DE CADA COPA ACONTECE ----------
-     Sai dos SLOTS, como o plano de dias: jornada = slot - 1. É o que mantém o jogo SOLO e a
+  /* ---------- EM QUE RODADA CADA RODADA DE CADA COPA ACONTECE ----------
+     Sai dos SLOTS, como o plano de dias: rodada = slot - 1. É o que mantém o jogo SOLO e a
      Resenha no mesmo calendário — enquanto isto lia a folha de datas e o plano de dias lia os
      slots, existiam dois calendários, que é a forma exata do bug que os slots vieram resolver.
 
-     As jornadas de uma copa são estritamente crescentes porque os slots são, e a final pode cair
-     numa jornada além do fim da liga de propósito: é lá que ela acontece na vida real. Quem
+     As rodadas de uma copa são estritamente crescentes porque os slots são, e a final pode cair
+     numa rodada além do fim da liga de propósito: é lá que ela acontece na vida real. Quem
      estica a temporada para alcançá-la é prorrogarPorCopasPendentes, que já fazia exatamente
      isso — só que a consertar um erro, e agora a cumprir um desenho. */
   function buildCupSchedule(key, total, epoch, pais){
@@ -145,28 +145,28 @@
     const c=slotsDaCompeticao(cal, key, total);
     if(c) return c.slots.map(s=>Math.max(0, s-1));
     /* competição que a folha do país não declara (um universo sem aquela copa): mantém o
-       escalonamento antigo de 3 em 3 jornadas, que é o que existia antes de haver folha. */
+       escalonamento antigo de 3 em 3 rodadas, que é o que existia antes de haver folha. */
     const first=CUP_FIRST_ROUND[key]; if(first==null) return [];
     const out=[]; for(let i=0;i<total;i++) out.push(first+i*3);
     return out;
   }
-  /* esta copa entra em campo nesta jornada? */
+  /* esta copa entra em campo nesta rodada? */
   function cupTickMatchesRound(cupCalendar, key, round){
     const cal=cupCalendar ? cupCalendar[key] : null;
     if(cal && cal.length) return cal.indexOf(round)>=0;
     const first=CUP_FIRST_ROUND[key];
     return first!=null && round>=first && ((round-first)%3===0);
   }
-  /* índice (0-based) da rodada desta copa que acontece nesta jornada — -1 se nenhuma */
+  /* índice (0-based) da rodada desta copa que acontece nesta rodada — -1 se nenhuma */
   function cupRoundIndexAt(cupCalendar, key, round){
     const cal=cupCalendar ? cupCalendar[key] : null;
     return cal ? cal.indexOf(round) : -1;
   }
 
   /* ---------- A TRAVA QUE FALTAVA NO SERVIDOR ----------
-     UMA rodada por competição por jornada. Quando o humano joga a partida de copa ao vivo, o
+     UMA rodada por competição por rodada. Quando o humano joga a partida de copa ao vivo, o
      cliente fecha o RESTO daquela rodada na hora e carimba a competição como resolvida nesta
-     jornada. O servidor não lia esse carimbo e avançava a competição DE NOVO — dois jogos da
+     rodada. O servidor não lia esse carimbo e avançava a competição DE NOVO — dois jogos da
      mesma competição no mesmo dia. O carimbo viaja no estado compartilhado; agora os dois lados
      leem e escrevem pelas MESMAS funções. */
   function cupAlreadyResolved(resolvedMap, key, round){ return !!resolvedMap && resolvedMap[key]===round; }
@@ -181,7 +181,7 @@
      O banco guarda o resultado e anda com o índice; a regra continua num lugar só.
      `cups` = competições que existem neste save (as continentais não existem em todo universo). */
   /* puxa pra dentro da temporada o que a data real jogou pra fora, preservando a ordem das
-     rodadas e sem empilhar duas rodadas da mesma copa na mesma jornada. Mesma regra do calendário
+     rodadas e sem empilhar duas rodadas da mesma copa na mesma rodada. Mesma regra do calendário
      do solo (ver ancorarCalendarioCopa em core.js) — as duas leem a mesma folha de datas. */
   function ancorarNaTemporada(rodadas, ultima, folga){
     if(!Array.isArray(rodadas) || !rodadas.length) return rodadas||[];
@@ -194,7 +194,7 @@
   }
   /* ===================== O PLANO DE DIAS, SOBRE SLOTS =====================
      A temporada é uma fila de dias. Cada dia é `(slot, janela)` — a semana e o momento dentro
-     dela —, e essa é a ÚNICA coordenada. A jornada e a data saem DELA; antes eram fontes
+     dela —, e essa é a ÚNICA coordenada. A rodada e a data saem DELA; antes eram fontes
      independentes que podiam discordar, e discordavam: a final marcada antes da semifinal.
 
      `opts.pais` escolhe a folha (engine/calendars.js); `opts.jornadasLiga` diz quantas rodadas a
@@ -311,10 +311,10 @@
     const nLiga=opts.jornadasLiga || cal.competicoes.liga.slots.length;
     const ativas=(cups&&cups.length) ? cups.slice() : Object.keys(cal.competicoes).filter(k=>k!=='liga');
     const dias=[];
-    /* A JORNADA É DERIVADA DO SLOT (slot 1 = jornada 0). Não é clampada ao fim da liga de
+    /* A RODADA É DERIVADA DO SLOT (slot 1 = rodada 0). Não é clampada ao fim da liga de
        propósito: as finais moram em slots depois do último jogo de liga, e clampá-las traria as
-       três de volta para a mesma jornada — exatamente o amontoado que os slots existem para
-       acabar. A temporada ganha essas jornadas sem jogo de liga pelo caminho que já existe
+       três de volta para a mesma rodada — exatamente o amontoado que os slots existem para
+       acabar. A temporada ganha essas rodadas sem jogo de liga pelo caminho que já existe
        (prorrogarPorCopasPendentes, logo abaixo). */
     const jornadaDoSlot=(slot)=>Math.max(0, slot-1);
     const ligaSlots=slotsDaLiga(cal.competicoes.liga.slots, nLiga);
@@ -399,18 +399,18 @@
 
      A resposta aqui NÃO é travar. Travar transforma um erro de dado num jogo que não abre mais
      (foi o que aconteceu com a barreira do ponteiro de dia, que segurou corretamente e deixou a
-     sala morta). A resposta é CONSERTAR: acrescentar ao fim da temporada tantas jornadas quantas
+     sala morta). A resposta é CONSERTAR: acrescentar ao fim da temporada tantas rodadas quantas
      forem as rodadas de copa que ficaram devendo, e registrar cada uma no calendário da copa
      dona daquela rodada. A temporada segue andando pra frente; só demora um pouco mais.
 
-     Uma jornada acrescentada não tem jogo de liga (a liga acabou de verdade) — ela existe pra
+     Uma rodada acrescentada não tem jogo de liga (a liga acabou de verdade) — ela existe pra
      dar dia à rodada de copa. Por isso cada uma recebe EXATAMENTE uma competição: sem isso, uma
-     jornada acrescentada poderia ficar vazia e o jogador clicaria "Jogar" sem nada em campo.
+     rodada acrescentada poderia ficar vazia e o jogador clicaria "Jogar" sem nada em campo.
 
-     E há um teto. Se depois de `maximo` jornadas extras ainda faltar coisa, a temporada vira
+     E há um teto. Se depois de `maximo` rodadas extras ainda faltar coisa, a temporada vira
      assim mesmo: perder uma final é ruim, ficar presa pra sempre é pior. Quem chama avisa.
 
-     pendentes: [{key, faltam}] — quantas rodadas cada copa ainda deve. Devolve quantas jornadas
+     pendentes: [{key, faltam}] — quantas rodadas cada copa ainda deve. Devolve quantas rodadas
      foram acrescentadas (0 = nada a fazer, ou teto atingido). */
   function prorrogarPorCopasPendentes(S, pendentes, maximo){
     if(!S || !Array.isArray(S.sched) || !Array.isArray(pendentes) || !pendentes.length) return 0;
@@ -423,19 +423,19 @@
 
     /* 1) A LIGA ESTICA ATE ALCANCAR O QUE A COPA JA TEM MARCADO.
        As copas deixaram de ser espremidas dentro da liga: a final da Libertadores cai na
-       jornada 40 de um calendario de 38, porque a data real dela e depois do fim da liga.
-       Acrescentar jornada nova por cima disso produzia `...,36,40,38` — a final jogada ANTES
+       rodada 40 de um calendario de 38, porque a data real dela e depois do fim da liga.
+       Acrescentar rodada nova por cima disso produzia `...,36,40,38` — a final jogada ANTES
        da meia-final. Primeiro estica, depois inventa. */
     const maiorMarcada=cals().reduce((m,k)=>Math.max(m, ...S.cupCalendar[k]), -1);
     while(S.sched.length<=maiorMarcada && (jaExtras+criadas)<teto){ S.sched.push([]); criadas++; }
 
-    /* 2) CADA RODADA DEVIDA SEM DIA MARCADO GANHA UMA JORNADA SO DELA.
+    /* 2) CADA RODADA DEVIDA SEM DIA MARCADO GANHA UMA RODADA SO DELA.
        `p.criar` ja vem descontado dos tiques FUTUROS que a competicao tem (ver copasPendentes
        no core) — aqui so se cria o que falta mesmo. Duas invariantes a respeitar:
-       - FAIXA: toda jornada de uma competicao tem o mesmo resto na divisao por 3 (ver
-         CUP_TICK_OFFSET). E a faixa que garante que duas copas nunca caem na mesma jornada,
+       - FAIXA: toda rodada de uma competicao tem o mesmo resto na divisao por 3 (ver
+         CUP_TICK_OFFSET). E a faixa que garante que duas copas nunca caem na mesma rodada,
          que era o "cada humano numa competicao diferente no mesmo dia".
-       - UMA POR JORNADA: nem sequer duas competicoes diferentes partilham a jornada, para a
+       - UMA POR RODADA: nem sequer duas competicoes diferentes partilham a rodada, para a
          sala inteira estar sempre na mesma tela. */
     const ocupadas=new Set();
     cals().forEach(k=>S.cupCalendar[k].forEach(j=>ocupadas.add(j)));
@@ -464,8 +464,8 @@
       S.cupCalendar[p.key]=cal;
     });
     S._jornadasExtras=jaExtras+criadas;
-    /* Devolve TUDO o que foi arrumado, nao so as jornadas criadas. Quando a copa devedora ja
-       tinha jornada no calendario (a liga so precisou esticar), `criadas` podia vir 0 e quem
+    /* Devolve TUDO o que foi arrumado, nao so as rodadas criadas. Quando a copa devedora ja
+       tinha rodada no calendario (a liga so precisou esticar), `criadas` podia vir 0 e quem
        chama lia isso como "nao ha nada a fazer" e fechava a temporada na mesma. */
     return criadas+agendadas;
   }

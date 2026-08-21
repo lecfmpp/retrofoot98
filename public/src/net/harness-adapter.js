@@ -168,7 +168,7 @@
   NET.publishLineup=function(xi,tactic){ SRV.seatPatch(NET.gameId, uid, { last_xi:(xi||[]).slice(), last_tactic:tactic||'equilibrado' }); };
   NET.publishResult=function(round,res){ SRV.seatPatch(NET.gameId, uid, { last_result:res||null, last_result_round:round }); };
   /* espelha o acúmulo do adaptador real (ver cupResultsList no supabase-adapter): uma entrada por
-     competição, porque a mesma jornada pode ter Copa do Brasil, Libertadores e Sul-Americana e a
+     competição, porque a mesma rodada pode ter Copa do Brasil, Libertadores e Sul-Americana e a
      coluna é uma só. Sem isto o harness nunca reproduziria o bug de placar divergente entre copas. */
   NET.publishCupResult=function(round,res){
     if(!res){ SRV.seatPatch(NET.gameId, uid, { last_cup_result:null, last_cup_round:round }); return; }
@@ -207,8 +207,8 @@
   NET.broadcastKickoff=function(){}; NET.broadcastMatch=function(){}; NET.broadcastDecision=function(){};
   NET.broadcastTeste=function(){};
 
-  /* RESOLVEDOR DA JORNADA — porta a semântica do resolve-round de produção usando o PRÓPRIO motor
-     do jogo, no cliente HOST. Um fechamento por jornada: playRound resolve as copas da semana e a
+  /* RESOLVEDOR DA RODADA — porta a semântica do resolve-round de produção usando o PRÓPRIO motor
+     do jogo, no cliente HOST. Um fechamento por rodada: playRound resolve as copas da semana e a
      rodada de liga na mesma passada. A divisão em "quarta de copa" e "sábado de liga" foi removida
      do jogo — quem separa as competições agora é o DIA do ponteiro. */
   NET.resolveRound=async function(round){
@@ -220,7 +220,7 @@
       const myKey=uf?uf[0]+'-'+uf[1]:null;
       const userResult=(myKey&&map[myKey])?map[myKey]:null;
       if(typeof advancePlayerAvailability==='function') advancePlayerAvailability();
-      playRound(userResult, map);          // playRound já avança as copas da jornada (advancePendingCups)
+      playRound(userResult, map);          // playRound já avança as copas da rodada (advancePendingCups)
       await NET.saveGame({S, round:S.round});
       return { ok:true, round:S.round };
     }catch(e){ console.error('[harness] resolveRound:', e); return { error:String(e&&e.message||e) }; }
@@ -297,7 +297,7 @@
         if(CL.live) return 'live:'+((CL.live.cup&&CL.live.cup.key)||'liga');
         return CL.screen;
       })(),
-      // item 3: quantas vezes a jornada do ponteiro discordou da local DE FORMA SUSTENTADA. É a
+      // item 3: quantas vezes a rodada do ponteiro discordou da local DE FORMA SUSTENTADA. É a
       // medição que autoriza (ou proíbe) cortar a escrita local do S.round — ver dayRoundWatch.
       drift:CL._dayDrift||0,
       screen:CL.screen, round:(typeof S!=='undefined'&&S)?S.round:null,
@@ -335,7 +335,7 @@
       else if(CL.live && CL.live.pensPicking && typeof resolveShootoutKick==='function'){ try{ resolveShootoutKick(CL.penSel); }catch(e){} }
       else if(CL.live && CL.live.paused && typeof liveContinue==='function'){ try{ liveContinue(); }catch(e){} } // intervalo/pausas
       // ERA 20 TICKS POR EMPURRÃO. Uma partida tem ~90 minutos de jogo; a 20 ticks a cada 250ms do
-      // runner, cada partida levava minutos de relógio real — e um cenário que atravessa 4 jornadas
+      // runner, cada partida levava minutos de relógio real — e um cenário que atravessa 4 rodadas
       // com copas (9 sequências ao vivo × 2 clientes) estourava o próprio orçamento antes de chegar
       // ao que ele mede. O teto alto termina a partida no primeiro empurrão; o laço para sozinho em
       // 'done' ou 'paused' (intervalo), então nada é pulado — só deixa de esperar à toa.
@@ -346,7 +346,7 @@
       /* SORTEIO: puxa o relógio da cerimônia na mão, pelo mesmo motivo do liveTick. "Acelerar" só
          encurta o intervalo pra 150ms — e o Chrome não honra menos de ~1s em iframe de segundo
          plano, então a chave da Copa do Brasil (64 revelações) levava mais de um minuto de relógio
-         real, e a jornada 1 tem TRÊS sorteios. Limpa o timer pendente antes de cada passo: sem
+         real, e a rodada 1 tem TRÊS sorteios. Limpa o timer pendente antes de cada passo: sem
          isso cada chamada manual deixaria um setTimeout órfão e a cerimônia andaria duas casas por
          tique. O último passo (o que fecha a tela) fica pro timer, que é curto. */
       try{ if(CL.screen==='cupdraw'&&typeof clCupDrawSkip==='function') clCupDrawSkip(); }catch(e){}

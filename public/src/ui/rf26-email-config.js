@@ -107,7 +107,7 @@ function rfResenhaJanela(){
    vez de inventar um tempo. */
 function rfResenhaDesdeSync(){
   const t=CL._roundSyncedAt||0;
-  if(!t) return 'Ainda não sincronizou nesta jornada';
+  if(!t) return 'Ainda não sincronizou nesta rodada';
   const min=Math.floor((Date.now()-t)/60000);
   if(min<1) return 'Última sincronização agora mesmo';
   if(min<60) return 'Última sincronização há '+min+' minuto'+(min===1?'':'s');
@@ -353,7 +353,7 @@ function rfAcGravar(){
 }
 function rfAcSairSave(){
   const cl=clubOf(CL.clubId)||{short:'—'};
-  rfAcAbrir('sys-sair-save', {clube:cl.short, jornada:((S.round||0)+1)+'ª de '+((S.sched||[]).length||'—')});
+  rfAcAbrir('sys-sair-save', {clube:cl.short, rodada:((S.round||0)+1)+'ª de '+((S.sched||[]).length||'—')});
 }
 function rfAcApagarSave(){
   const cl=clubOf(CL.clubId)||{short:'—'};
@@ -375,8 +375,8 @@ function rfResenhaSubHTML(){
   if(!CL.online) return 'Você está no Modo Solo';
   const sala=(typeof rfAcSala==='function')?rfAcSala():'—';
   const n=(S.seats&&S.seats.length)||(CL.humans?Object.keys(CL.humans).length:0);
-  // "Sala 7KP2M · 4 treinadores · 9ª jornada" — a jornada faltava
-  return `Sala ${escC(sala)} · ${n} treinador${n===1?'':'es'} · ${(S.round||0)+1}ª jornada`;
+  // "Sala 7KP2M · 4 treinadores · 9ª rodada" — a rodada faltava
+  return `Sala ${escC(sala)} · ${n} treinador${n===1?'':'es'} · ${(S.round||0)+1}ª rodada`;
 }
 
 /* as duas ações do cabeçalho da página, como no pacote: sincronizar e convidar */
