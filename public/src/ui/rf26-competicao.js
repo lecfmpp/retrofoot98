@@ -461,7 +461,7 @@ function rfCopaGruposHTML(c,key){
   const g=c&&c.group; if(!g||!g.groups) return '<div class="rf-empty">A fase de grupos ainda não começou.</div>';
   const meu=CL.clubId;
   const letras=Object.keys(g.groups).sort();
-  const rodada=(g.round||0)+1, total=(g.rounds||6);
+  const rodada=(g.round||0)+1, total=(g.roundsTotal||6);
   const cartoes=letras.map(L=>{
     const grp=g.groups[L];
     const meuGrupo=(grp.teams||[]).indexOf(meu)>=0;
