@@ -3241,7 +3241,7 @@ function clSeatPlay(){
   const fx=c.fx;
   CL.subsUsed=0; CL.liveDivOpen=null;
   const m=buildLiveMatchObject(fx.home,fx.away,fx.seed,{user:true, div:fx.div});
-  const RL={ rodada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], humanSeat:{seat:c.seat,fx} };
+  const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], humanSeat:{seat:c.seat,fx} };
   RL.maxMin=Math.max(94, m.events.length?m.events[m.events.length-1].min:90);
   CL.live=RL; camKickoffLine(RL); CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
 }
@@ -6147,7 +6147,7 @@ function startCupRound(key, stage, pending){
   const ordered = pending ? fixtures.filter(isMine).concat(fixtures.filter(f=>!isMine(f))) : fixtures;
   const matches=ordered.map((f,i)=>buildLiveMatchObject(f.h,f.a,f.seed,
     { user:(pending && i===0) ? true : false, div:key, cupKey:key }));
-  const RL={ rodada:S.round+1, minute:0, half:1, done:false,
+  const RL={ jornada:S.round+1, minute:0, half:1, done:false,
     sel:(matches.length===1?0:null), subOpen:false, matches,
     cup: pending ? pending : {key, stage, spectate:true} };
   RL.maxMin=Math.max(94,...matches.map(m=>m.events.length?m.events[m.events.length-1].min:90));
@@ -6404,7 +6404,7 @@ function startLiveRound(){
   const mine=fxRaw.filter(([h,a])=>h===CL.clubId||a===CL.clubId);
   const rest=fxRaw.filter(([h,a])=>!(h===CL.clubId||a===CL.clubId));
   const fx=mine.concat(rest);
-  const RL={ rodada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[] };
+  const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[] };
   fx.forEach(([h,a],i)=>{ const seed=(seedBase+hashC(h)+hashC(a))>>>0;
     RL.matches.push(buildLiveMatchObject(h,a,matchSeed(h,a),{div:S.division})); });
   // as outras 3 divisões rodam junto, em segundo plano, igual ao clássico (as 4 divisões
@@ -6461,7 +6461,7 @@ function startCupLiveMatch(pending){
   if(startCupRound(pending.key, pending.stage, pending)) return;
   const seed=hashSeed(S.seed,'cupmatch',pending.key,pending.stage,S.round,pending.h,pending.a);
   const m=buildLiveMatchObject(pending.h,pending.a,seed,{user:true,div:pending.key,cupKey:pending.key});
-  const RL={ rodada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], cup:pending };
+  const RL={ jornada:S.round+1, minute:0, half:1, done:false, sel:null, subOpen:false, matches:[m], cup:pending };
   RL.maxMin=Math.max(94, m.events.length?m.events[m.events.length-1].min:90);
   CL.live=RL; camKickoffLine(RL); CL.screen='live'; cdraw(); CL._liveTimer=setTimeout(liveTick,650);
 }
@@ -9164,7 +9164,7 @@ function finishCupLiveMatch(){
   } else {
     const mg=pending.group, g=Object.values(mg.groups).find(gr=>gr.label===pending.groupLabel);
     const T=g.table, h=m.h, a=m.a;
-    g.results=g.results||[]; g.results.push({r:mg.round, h, a, hg:m.hg, ag:m.ag, rodada:S.round}); // idem advanceGroupStageRound
+    g.results=g.results||[]; g.results.push({r:mg.round, h, a, hg:m.hg, ag:m.ag, jornada:S.round}); // idem advanceGroupStageRound
     T[h].P++; T[a].P++; T[h].GF+=m.hg; T[h].GA+=m.ag; T[a].GF+=m.ag; T[a].GA+=m.hg;
     if(m.hg>m.ag){ T[h].W++; T[a].L++; T[h].Pts+=3; }
     else if(m.hg<m.ag){ T[a].W++; T[h].L++; T[a].Pts+=3; }

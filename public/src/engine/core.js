@@ -1858,7 +1858,7 @@ function advanceGroupStageRound(mg, roundLabel, comp){
         ratePlayers(h,pub.hg,pub.ag,pub.scorers||[],Rp,pub.perf&&pub.perf.H,pub.perf&&pub.perf.A,pub.caps&&pub.caps.H,pub.matchMinutes||90);
         ratePlayers(a,pub.ag,pub.hg,pub.scorers||[],Rp,pub.perf&&pub.perf.A,pub.perf&&pub.perf.H,pub.caps&&pub.caps.A,pub.matchMinutes||90);
         const T=g.table;
-        g.results=g.results||[]; g.results.push({r:mg.round, h, a, hg:pub.hg, ag:pub.ag, rodada:S.round});
+        g.results=g.results||[]; g.results.push({r:mg.round, h, a, hg:pub.hg, ag:pub.ag, jornada:S.round});
         T[h].P++; T[a].P++; T[h].GF+=pub.hg; T[h].GA+=pub.ag; T[a].GF+=pub.ag; T[a].GA+=pub.hg;
         if(pub.hg>pub.ag){ T[h].W++; T[a].L++; T[h].Pts+=3; }
         else if(pub.hg<pub.ag){ T[a].W++; T[h].L++; T[a].Pts+=3; }
@@ -1876,7 +1876,7 @@ function advanceGroupStageRound(mg, roundLabel, comp){
       // placar da partida: a tabela só acumula o agregado, então sem isto o resultado de uma
       // partida de grupo era impossível de recuperar depois (Calendário ficava só com os jogos
       // FUTUROS da competição, enquanto a liga mostrava todos os resultados).
-      g.results=g.results||[]; g.results.push({r:mg.round, h, a, hg:fin.hg, ag:fin.ag, rodada:S.round});
+      g.results=g.results||[]; g.results.push({r:mg.round, h, a, hg:fin.hg, ag:fin.ag, jornada:S.round});
       T[h].P++; T[a].P++; T[h].GF+=fin.hg; T[h].GA+=fin.ag; T[a].GF+=fin.ag; T[a].GA+=fin.hg;
       if(fin.hg>fin.ag){ T[h].W++; T[a].L++; T[h].Pts+=3; }
       else if(fin.hg<fin.ag){ T[a].W++; T[h].L++; T[a].Pts+=3; }
@@ -2049,7 +2049,7 @@ function cupMatchDay(key, rodada){
   const d=(i>=0)?WORLD_RULES.cupMatchDayAt(key, rodada, seasonEpoch(), activeUniverseKey()):null;
   if(d!=null) return d;
   const wd=COMP_WEEKDAY[key];
-  return dayInWeek(jornada, wd==null?3:wd);        // rede: copa fora da tabela (universo europeu)
+  return dayInWeek(rodada, wd==null?3:wd);        // rede: copa fora da tabela (universo europeu)
 }function realDateForDay(day){
   const e=seasonEpoch();
   const d=new Date(e[0],e[1],e[2]);

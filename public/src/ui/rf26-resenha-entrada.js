@@ -40,7 +40,7 @@ function rfSalaEstado(r){
   else if(r.phase==='running'){
     /* `pronto` vem do is_ready do MEU assento (ver netListMyRooms). Falso = a
        rodada está parada à minha espera, e é isso que a pessoa precisa ver. */
-    if(r.pronto===false){ selo='espera'; onde=(jornada?rodada+' · ':'')+'a sua vez'; chama=true; }
+    if(r.pronto===false){ selo='espera'; onde=(jornada?jornada+' · ':'')+'a sua vez'; chama=true; }
     else { selo='correr'; onde=rodada||'a correr'; }
   }
   else if(r.phase==='ready'){ selo='comecar'; onde='a começar · escolha do clube'; }

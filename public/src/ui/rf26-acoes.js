@@ -671,7 +671,7 @@ const RF_ACOES = {
 'sys-sair-save': d=>rfAcao({ kicker:'SAVE', titulo:'Sair deste save?', w:460,
   corpo:
     rfAcLinhaHTML('Clube', escC(d.clube||'—'), '', true)
-    + rfAcLinhaHTML('Rodada', String(d.jornada||'—'), '')
+    + rfAcLinhaHTML('Rodada', String(d.rodada||d.jornada||'—'), '')
     + rfAcNotaHTML('Nada se perde: o save é gravado antes de sair e aparece na lista de saves.'),
   acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Gravar e sair',on:'rfSairSaveGo()'}] }),
 
