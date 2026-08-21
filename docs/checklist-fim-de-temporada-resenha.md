@@ -20,7 +20,9 @@ Um jogador foi direto para o sorteio da Libertadores da temporada nova, sem ver 
 
 ---
 
-## 2. [ ] Grupo H da Sul-Americana com só 3 clubes
+## 2. [x] Grupo H da Sul-Americana com só 3 clubes
+
+**Feito em 2026-08-21 (aguardando teste):** o total de cada copa agora fecha em múltiplo de 4 antes do sorteio — completa com o próximo da tabela (o 13º, no caso da WEBLG) e, em último caso, apara os últimos reciclados. No solo, também: cada clube em uma copa só (dedupe entre Libertadores e Sul-Americana) e fechamento pelas reservas dos países. Blocos 8 e 9 do `teste-virada.mjs` cobrem, incluindo o cenário exato da WEBLG (31 → 32). **Obs.: vale a partir da PRÓXIMA virada — o grupo H de 3 da edição em andamento fica como está.**
 
 **Causa:** a edição real de 2026 tem **7 brasileiros** na Sul-Americana, mas a cota do servidor é fixa em 6 ([resolve-round/index.ts:1269](supabase/functions/resolve-round/index.ts): `SUL_SLOTS_BR = 6`). Na virada, o servidor recicla os estrangeiros da edição anterior (25) + 6 brasileiros novos = **31 clubes**, e `splitIntoGroupsT` fatia de 4 em 4 sem exigir múltiplo → 7 grupos de 4 + grupo H com 3. **É permanente**: 31 vira 31 de novo todo ano.
 

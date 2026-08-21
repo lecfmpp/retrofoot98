@@ -2160,7 +2160,19 @@ function rebuildContinentalCups(S: any, topStandings: string[]) {
   };
   const build = (key: string, locais: string[], estrangeiros: string[]) => {
     const ids = locais.concat(estrangeiros).filter((id) => S.squads && S.squads[id]);   // sem elenco no save, nao entra
-    const uniq = Array.from(new Set(ids)).slice(0, 32);
+    let uniq = Array.from(new Set(ids)).slice(0, 32);
+    /* ===== NADA DE GRUPO DE 3 (checklist da virada, item 2) =====
+       A edicao real de 2026 da Sul-Americana tem 7 brasileiros e a cota e 6: a remontagem
+       recicla 25 estrangeiros + 6 da tabela = 31, e o fatiador de 4 em 4 deixava o grupo H
+       com 3 — para sempre, porque 31 vira 31 de novo no ano seguinte. O total agora fecha
+       em multiplo de 4: completa com o PROXIMO da tabela do pais que ainda nao tem vaga
+       (o 13o, no caso) e, so se nao houver mais ninguem, apara os ultimos reciclados. */
+    for (const id of topStandings) {
+      if (uniq.length % 4 === 0 || uniq.length >= 32) break;
+      if (usados.has(id) || uniq.indexOf(id) >= 0 || !(S.squads && S.squads[id])) continue;
+      usados.add(id); uniq.push(id);
+    }
+    if (uniq.length % 4 !== 0) uniq = uniq.slice(0, uniq.length - (uniq.length % 4));
     if (uniq.length < 4) return;
     S.cups[key] = { group: makeGroupStageT(splitIntoGroupsT(uniq, ME.hashSeed(S.seed, key + 'groups', S.season)), 2), bracket: null };
   };

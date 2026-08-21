@@ -305,11 +305,18 @@ bloco('vagas continentais', () => {
   RR.aplicarUniverso(S);
   const A = Object.keys(S.table);                       // c1..c20 já em ordem de tabela (1º..20º)
   const tie = (h, a, w) => ({ h, a, hg: 1, ag: 0, winner: w, events: [] });
-  // a edição anterior das continentais, só o bastante pra reciclagem existir;
-  // o campeão da Libertadores é o 10º colocado — fora do G6 de propósito
-  S.cups.libertadores = { group: { groups: { A: { teams: A.slice(0, 4) }, B: { teams: A.slice(4, 8) } } },
+  // estrangeiros reciclados, como no mundo real (26 por copa) — sem eles o fecho em múltiplo
+  // de 4 (item 2) completaria as copas com mais brasileiros e as contas abaixo mudariam
+  const estr = (pref, n) => { const out = [];
+    for (let i = 1; i <= n; i++) { const id = pref + i; out.push(id);
+      S.clubPool[id] = { id }; S.clubOverall[id] = 70;
+      S.squads[id] = S.squads[A[0]].map((p, j) => ({ ...p, n: id + '-p' + j, pid: id + j })); }
+    return out; };
+  const gDe = (ids) => { const gr = {}; for (let i = 0; i < ids.length; i += 4) gr['G' + i] = { teams: ids.slice(i, i + 4) }; return gr; };
+  // a edição anterior das continentais; o campeão da Libertadores é o 10º colocado — fora do G6 de propósito
+  S.cups.libertadores = { group: { groups: gDe(A.slice(0, 6).concat(estr('exl', 26))) },
     bracket: { round: 3, roundsTotal: 3, ties: [], champion: A[9], eliminated: {}, history: [{ round: 3, ties: [tie(A[9], A[2], A[9])] }] } };
-  S.cups.sulamericana = { group: { groups: { A: { teams: A.slice(6, 10) }, B: { teams: A.slice(10, 14) } } }, bracket: null };
+  S.cups.sulamericana = { group: { groups: gDe(A.slice(6, 12).concat(estr('exs', 26))) }, bracket: null };
   // Copa do Brasil decidida: campeão o 15º, vice o 18º — bem fora do G6
   S.cups.copaBrasil = { round: 2, roundsTotal: 2, ties: [], champion: A[14], eliminated: {},
     history: [{ round: 2, ties: [tie(A[14], A[17], A[14])] }] };
@@ -325,6 +332,36 @@ bloco('vagas continentais', () => {
   conferir('as vagas brasileiras continuam 6', lib.filter((id) => A.indexOf(id) >= 0).length, 6);
   conferir('o topo da tabela completa as vagas', [A[0], A[1], A[2], A[3]].every((id) => lib.indexOf(id) >= 0), true);
   conferir('a Sul-Americana fica com os melhores que sobraram', [A[4], A[5], A[6]].every((id) => sul.indexOf(id) >= 0), true);
+});
+
+/* ===== 9. NADA DE GRUPO DE 3 (checklist da virada, item 2) =====
+   O cenário real da sala WEBLG: a edição 2026 da Sul-Americana tem 7 brasileiros + 25
+   estrangeiros; na remontagem a cota brasileira é 6, então 6 + 25 = 31 e o grupo H saía
+   com 3 clubes — para sempre. Agora o total fecha em múltiplo de 4, completando com o
+   próximo da tabela. */
+console.log('9. Sul-Americana fecha em múltiplo de 4: o grupo de 3 não volta');
+bloco('grupo de 3', () => {
+  const S = mundo('brasil', U, W);
+  RR.aplicarUniverso(S);
+  const A = Object.keys(S.table);
+  const forasteiros = [];
+  for (let i = 1; i <= 25; i++) { const id = 'ext' + i; forasteiros.push(id);
+    S.clubPool[id] = { id }; S.clubOverall[id] = 70;
+    S.squads[id] = S.squads[A[0]].map((p, j) => ({ ...p, n: id + '-p' + j, pid: id + j }));
+  }
+  const g = (ids) => { const gr = {}; for (let i = 0; i < ids.length; i += 4) gr['G' + i] = { teams: ids.slice(i, i + 4) }; return gr; };
+  // edição anterior: 7 brasileiros (7º-13º) + 25 estrangeiros na Sula — o formato real de 2026
+  S.cups.sulamericana = { group: { groups: g(A.slice(6, 13).concat(forasteiros)) }, bracket: null };
+  S.cups.libertadores = { group: { groups: g(A.slice(0, 6)) }, bracket: null };
+  RR.resolveSeasonTurnover(S, new Set());
+  ['libertadores', 'sulamericana'].forEach((k) => {
+    const gs = (S.cups[k] && S.cups[k].group && S.cups[k].group.groups) || {};
+    const tam = Object.keys(gs).map((x) => (gs[x].teams || []).length);
+    if (!tam.length) { reprova(k + ' não foi remontada'); return; }
+    tam.forEach((n) => { if (n !== 4) reprova(k + ' remontada com grupo de ' + n + ' clubes'); });
+  });
+  const sulTeams = Object.keys(S.cups.sulamericana.group.groups).flatMap((x) => S.cups.sulamericana.group.groups[x].teams);
+  conferir('a Sul-Americana fechou em 32 (31 + o próximo da tabela)', sulTeams.length, 32);
 });
 
 console.log('');

@@ -2711,6 +2711,11 @@ function unifiedContinentalQualification(userFinish){
     lib.push(...liberta); sul.push(...sula); });
   /* campeão de outro país: garante a vaga dele mesmo que a cota do país o deixasse de fora */
   if(champLib && lib.indexOf(champLib)<0) lib.unshift(champLib);
+  /* as reservas de cada país (quem ficou logo abaixo da cota), na ordem — é daqui que se
+     completa uma copa que não fechou em múltiplo de 4 (ver o fecho no return) */
+  const reservas=[];
+  Object.keys(LIB_SLOTS_UNI).forEach(co=>{ const clubs=(pool[co]||[]).map(c=>c.id);
+    reservas.push(...clubs.slice(LIB_SLOTS_UNI[co]+(SUL_SLOTS_UNI[co]||2))); });
   const uid=S.clubId;
   if(uid){
     const already=lib.indexOf(uid)>=0?'lib':(sul.indexOf(uid)>=0?'sul':null);
@@ -2728,7 +2733,23 @@ function unifiedContinentalQualification(userFinish){
     else if(already==='lib') lib.unshift(uid);
     else if(already==='sul') sul.unshift(uid);
   }
-  return { libertadores:lib.slice(0,32), sulamericana:sul.slice(0,32) };
+  /* ===== NADA DE GRUPO DE 3 (checklist da virada, item 2) =====
+     O fatiador de grupos corta de 4 em 4 sem conferir o total, e dois furos produziam lista
+     quebrada: o mesmo clube nas DUAS copas (o filtro de uid tirava todas as ocorrências e o
+     unshift devolvia uma) e pool com id duplicado (tabela do país + a mesma tabela como
+     "Brasil"). Aqui a lista fecha: cada clube numa copa só (quem está na Libertadores sai da
+     Sul-Americana), e o total termina em múltiplo de 4 — completa com as reservas dos países
+     e, em último caso, apara o fim da lista. */
+  const numaSo=new Set();
+  const dedup=list=>list.filter(id=>{ if(!id||numaSo.has(id)) return false; numaSo.add(id); return true; });
+  lib=dedup(lib).slice(0,32); sul=dedup(sul).slice(0,32);
+  const fecha=list=>{
+    for(const id of reservas){ if(list.length%4===0||list.length>=32) break;
+      if(numaSo.has(id)) continue; numaSo.add(id); list.push(id); }
+    if(list.length%4) list.length=list.length-(list.length%4);
+    return list;
+  };
+  return { libertadores:fecha(lib), sulamericana:fecha(sul) };
 }
 /* materializa elenco dos clubes de copa (Brasil Série A + CONMEBOL) que não estão na liga do usuário */
 function ensureContinentalCupClubs(ids){
