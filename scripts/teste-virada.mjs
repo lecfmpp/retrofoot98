@@ -29,7 +29,7 @@ function carregarServidor() {
   src += `
 ;globalThis.__RR = { aplicarUniverso, resolveSeasonTurnover, computeDivisionSwap,
   rebuildContinentalCups, cupTotalRoundsS, makeScheduleT, makeBracketT, rbForce, bandKeyDiv,
-  resolveLeagueRound, resolverPiramideDoPais,
+  resolveLeagueRound, resolverPiramideDoPais, archiveSeasonT, backfillArchiveT,
   get DIV_ORDER(){ return DIV_ORDER; }, get DIVISION_SIZE(){ return DIVISION_SIZE; },
   get UNI_ATIVO(){ return UNI_ATIVO; } };`;
   const js = transformSync(src, { loader: 'ts', format: 'cjs' }).code;
@@ -260,6 +260,35 @@ bloco('duas pirâmides', () => {
      avançava — ele veria a liga andar e a copa dele parada para sempre. */
   const chDepois = S.mundos.Inglaterra.cups.championsLeague.bracket;
   conferir('a Champions avançou de fase', chDepois.round > rodadaDaCopaAntes, true);
+});
+
+/* ===== 7. A TEMPORADA QUE FECHA VAI PARA O ARQUIVO, E NUNCA MAIS SAI =====
+   O _prevSeason é buffer de uma temporada — a virada seguinte o sobrescreve. O S.archive é a
+   memória permanente (checklist da virada, item 6): uma entrada por temporada, com as tabelas
+   finais de todas as divisões. E o resgate (backfillArchiveT) tem de recuperar uma temporada
+   fechada ANTES do archive existir, sem duplicar a que já está lá. */
+console.log('7. Arquivo permanente: a virada arquiva, o resgate recupera, ninguém duplica');
+bloco('arquivo permanente', () => {
+  const S = mundo('brasil', U, W);
+  RR.aplicarUniverso(S);
+  RR.resolveSeasonTurnover(S, new Set());
+  conferir('uma entrada no archive', (S.archive || []).length, 1);
+  const arq = (S.archive || [])[0] || {};
+  conferir('o ano arquivado é o que fechou', arq.season, 1);
+  ['A', 'B', 'C', 'D'].forEach((d) => {
+    const n = ((arq.tables || {})[d] || []).length;
+    if (n !== 20) reprova('divisão ' + d + ' arquivada com ' + n + ' linhas, esperado 20');
+  });
+  // segunda virada: o archive cresce, não sobrescreve
+  RR.resolveSeasonTurnover(S, new Set());
+  conferir('duas temporadas no archive', (S.archive || []).map((a) => a.season), [1, 2]);
+  // resgate: sala que virou antes do archive existir (archive apagado, _prevSeason vivo)
+  delete S.archive;
+  RR.backfillArchiveT(S);
+  conferir('resgate recuperou a temporada do _prevSeason', (S.archive || []).map((a) => a.season), [S._prevSeason.season]);
+  const antes = S.archive.length;
+  RR.backfillArchiveT(S);
+  conferir('resgate é idempotente', S.archive.length, antes);
 });
 
 console.log('');

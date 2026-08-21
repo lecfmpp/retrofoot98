@@ -1479,10 +1479,15 @@ function rfTemporadaIr(page, season){
   st.temporada[page]=(season==='atual')?'':season;
   cdraw();
 }
-/* as temporadas que existem no arquivo, da mais nova para a mais velha */
+/* as temporadas que existem no arquivo, da mais nova para a mais velha.
+   União de S.history (a foto pessoal) com S.archive (as classificações do mundo,
+   ver archiveSeason no core): na Resenha um ano pode existir só num dos dois —
+   o archive vem do servidor no shared_state, o history viaja na carreira do assento. */
 function rfTemporadasArquivadas(){
   const vistas={}; const out=[];
-  ((S&&S.history)||[]).forEach(h=>{ if(h&&h.season!=null && !vistas[h.season]){ vistas[h.season]=1; out.push(h.season); } });
+  const poe=s=>{ if(s!=null && !vistas[s]){ vistas[s]=1; out.push(s); } };
+  ((S&&S.history)||[]).forEach(h=>h&&poe(h.season));
+  ((S&&S.archive)||[]).forEach(a=>a&&poe(a.season));
   return out.sort((a,b)=>b-a);
 }
 function rfTemporadaChipsHTML(page){
@@ -1512,7 +1517,16 @@ function rfTemporadaChipsHTML(page){
 function rfTemporadaAbaHTML(page, tab, season){
   const h=((S&&S.history)||[]).filter(x=>String(x.season)===String(season));
   const e=h.length?h[h.length-1]:null;
-  if(!e) return `<div class="rf-card"><span class="rf-note">Nada gravado para ${escC(String(season))}.</span></div>`;
+  if(!e){
+    /* sem foto pessoal daquele ano (S.history), mas o arquivo do MUNDO pode existir —
+       na Resenha o archive chega do servidor mesmo pra quem entrou na sala depois */
+    if(page==='campeonatos'&&rfArquivoDe(season)){
+      if(tab==='historia'||tab==='minhas') return rfArqClassifHTML(season, (typeof CL!=='undefined'&&CL.clubId)||null);
+      if(tab==='artilharia') return rfArqArtilhariaHTML(season)||null;
+      return null;
+    }
+    return `<div class="rf-card"><span class="rf-note">Nada gravado para ${escC(String(season))}.</span></div>`;
+  }
   const nomeDiv=d=>(typeof divisionLabelOf==='function')?divisionLabelOf(d):('Série '+d);
   const curto=id=>{ const c=(typeof anyClubOf==='function'&&anyClubOf(id))||null; return (c&&(c.short||c.name))||String(id); };
   const meu=(typeof anyClubOf==='function'&&anyClubOf(e.clubId))||{short:e.myClubShort||'—'};
@@ -1594,12 +1608,98 @@ function rfTemporadaAbaHTML(page, tab, season){
     return null;   // Ranking, Ofertas e Perfil são do momento
   }
   if(page==='campeonatos'){
-    if(tab==='minhas')    return cartaoResumo+cartaoTrofeus;
-    if(tab==='artilharia')return cartaoArt||null;
-    if(tab==='historia')  return cartaoCampeoes+cartaoResumo;
+    if(tab==='minhas')    return cartaoResumo+cartaoTrofeus
+      +rfArqTabelaHTML((typeof divisionLabelOf==='function')?divisionLabelOf(e.division):('Série '+e.division),
+        ((rfArquivoDe(season)||{}).tables||{})[e.division], e.clubId);
+    if(tab==='artilharia')return ((cartaoArt||'')+rfArqArtilhariaHTML(season))||null;
+    if(tab==='historia')  return cartaoCampeoes+cartaoResumo+rfArqClassifHTML(season, e.clubId);
     return null;   // Calendário e Ligas internacionais não guardam o ano fechado
   }
   return null;
+}
+/* ===== AS CLASSIFICACOES FINAIS DO ARQUIVO (S.archive) =====
+   O archive (ver archiveSeason no core / archiveSeasonT no servidor) guarda por temporada as
+   tabelas finais de todas as divisoes e cada copa compacta. Estes cartoes sao a leitura dele:
+   tabela completa por divisao, grupos e mata-mata das copas. Save de antes do archive so tem
+   o que o resgate conseguiu recuperar — cartao que nao tem dado simplesmente nao aparece. */
+function rfArquivoDe(season){
+  return ((typeof S!=='undefined'&&S&&S.archive)||[]).find(a=>a&&String(a.season)===String(season))||null;
+}
+function rfArqCurto(id){
+  const c=(typeof anyClubOf==='function'&&anyClubOf(id))||null;
+  return (c&&(c.short||c.name))||String(id);
+}
+function rfArqTabelaHTML(rotulo, linhas, marcaId){
+  if(!linhas||!linhas.length) return '';
+  return `<div class="rf-card">
+    <div class="rf-label"><span class="rf-label-t">${escC(rotulo)}</span>
+      <span class="rf-label-r">classificação final</span></div>
+    <div class="rf-arq-tb">
+      <div class="rf-arq-lin head"><span>#</span><span></span><span>J</span><span>V</span><span>E</span><span>D</span><span>SG</span><span>Pts</span></div>
+      ${linhas.map((x,i)=>{const sg=(x.GF||0)-(x.GA||0);
+        return `<div class="rf-arq-lin ${marcaId&&String(x.id)===String(marcaId)?'meu':''}">
+        <span class="rf-arq-p">${i+1}</span><span class="rf-arq-n">${escC(rfArqCurto(x.id))}</span>
+        <span>${x.P||0}</span><span>${x.W||0}</span><span>${x.D||0}</span><span>${x.L||0}</span>
+        <span>${sg>0?'+':''}${sg}</span><b>${x.Pts||0}</b></div>`;}).join('')}
+    </div></div>`;
+}
+/* nome da fase pelo fim: a última rodada gravada é a final, a anterior a semi, e assim atrás */
+function rfArqFaseNome(idx, total){
+  const doFim=total-1-idx;
+  return doFim===0?'Final':doFim===1?'Semifinal':doFim===2?'Quartas de final':doFim===3?'Oitavas de final':('Fase '+(idx+1));
+}
+function rfArqCopaHTML(k, arq, marcaId){
+  if(!arq) return '';
+  const info=(typeof rfCompInfo==='function')?rfCompInfo(k):null;
+  const nome=(info&&info.curto)||k;
+  const grupos=arq.groups?Object.keys(arq.groups).sort():[];
+  const rounds=arq.rounds||[];
+  const tieLin=t=>{
+    const placar=(t.hg==null||t.ag==null)?'—':`${t.hg}x${t.ag}${t.pens?` (${t.pens})`:''}`;
+    return `<div class="rf-arq-lin jogo ${marcaId&&(String(t.h)===String(marcaId)||String(t.a)===String(marcaId))?'meu':''}">
+      <span class="rf-arq-n ${t.winner&&String(t.winner)===String(t.h)?'venceu':''}">${escC(rfArqCurto(t.h))}</span>
+      <span class="rf-arq-x">${placar}</span>
+      <span class="rf-arq-n dir ${t.winner&&String(t.winner)===String(t.a)?'venceu':''}">${escC(rfArqCurto(t.a))}</span>
+    </div>`;
+  };
+  return `<div class="rf-card">
+    <div class="rf-label"><span class="rf-label-t">${escC(nome.toUpperCase())}</span>
+      <span class="rf-label-r">${arq.champion?('campeão: '+escC(rfArqCurto(arq.champion))):'sem campeão gravado'}</span></div>
+    ${grupos.map(g=>{
+      const linhas=arq.groups[g]||[];
+      if(!linhas.length) return '';
+      return `<div class="rf-arq-grupo"><span class="rf-arq-gl">Grupo ${escC(g)}</span>
+        <div class="rf-arq-tb">${linhas.map((x,i)=>{const sg=(x.GF||0)-(x.GA||0);
+          return `<div class="rf-arq-lin ${marcaId&&String(x.id)===String(marcaId)?'meu':''}">
+          <span class="rf-arq-p">${i+1}</span><span class="rf-arq-n">${escC(rfArqCurto(x.id))}</span>
+          <span>${x.P||0}</span><span>${x.W||0}</span><span>${x.D||0}</span><span>${x.L||0}</span>
+          <span>${sg>0?'+':''}${sg}</span><b>${x.Pts||0}</b></div>`;}).join('')}</div></div>`;
+    }).join('')}
+    ${rounds.map((r,i)=>`<div class="rf-arq-grupo"><span class="rf-arq-gl">${escC(rfArqFaseNome(i,rounds.length))}</span>
+      ${(r.ties||[]).map(tieLin).join('')}</div>`).join('')}
+  </div>`;
+}
+/* todas as classificacoes finais de um ano: ligas por divisao + cada copa */
+function rfArqClassifHTML(season, marcaId){
+  const arq=rfArquivoDe(season);
+  if(!arq) return '';
+  const nomeDiv=d=>(typeof divisionLabelOf==='function')?divisionLabelOf(d):('Série '+d);
+  const ordem=(typeof DIV_ORDER!=='undefined')?DIV_ORDER:Object.keys(arq.tables||{});
+  const ligas=ordem.map(d=>rfArqTabelaHTML(nomeDiv(d), (arq.tables||{})[d], marcaId)).join('');
+  const copas=Object.keys(arq.cups||{}).map(k=>rfArqCopaHTML(k, arq.cups[k], marcaId)).join('');
+  return ligas+copas;
+}
+/* a artilharia arquivada do ano (top 25 do mundo naquela temporada) */
+function rfArqArtilhariaHTML(season){
+  const arq=rfArquivoDe(season);
+  if(!arq||!arq.scorers||!arq.scorers.length) return '';
+  return `<div class="rf-card">
+    <div class="rf-label"><span class="rf-label-t">ARTILHARIA DE ${escC(String(season))}</span>
+      <span class="rf-label-r">top ${arq.scorers.length}</span></div>
+    ${arq.scorers.map(([n,g],i)=>`<div class="rf-ft-lin"><span class="rf-arq-p">${i+1}</span>
+      <span class="rf-ft-comp">${escC(n)}</span><div class="rf-sp"></div>
+      <span class="rf-ft-gols">${g} ${g===1?'gol':'gols'}</span></div>`).join('')}
+  </div>`;
 }
 /* o que a aba escreve quando aquele ano nao tem registo dela */
 function rfTemporadaSemArquivoHTML(season){

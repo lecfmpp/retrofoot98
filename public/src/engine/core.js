@@ -5660,12 +5660,63 @@ function prorrogarSeFaltaCopa(){
   }
   return extras;
 }
+/* ===== O ARQUIVO PERMANENTE DA TEMPORADA (S.archive) =====
+   Gêmeo do archiveSeasonT do servidor (resolve-round) — no solo quem fecha a temporada é o
+   cliente, então o arquivo é escrito aqui. Append-only, nunca tocado por reset: uma entrada
+   por temporada, com as tabelas finais de todas as divisões, a artilharia (top 25) e cada
+   copa compacta (campeão, grupos e mata-mata, sem os `events` de narração). Na Resenha o
+   servidor é quem escreve; o cliente só lê o que vem no shared_state. */
+function archiveCup(c){
+  if(!c) return null;
+  const br=(c.champion!==undefined)?c:(c.bracket||null);
+  const out={champion:(br&&br.champion)||null};
+  if(c.group&&c.group.groups){
+    out.groups={};
+    Object.keys(c.group.groups).forEach(g=>{
+      out.groups[g]=mpSortTable({table:((c.group.groups[g]||{}).table)||{}})
+        .map(x=>({id:x.id,P:x.P,W:x.W,D:x.D,L:x.L,GF:x.GF,GA:x.GA,Pts:x.Pts}));
+    });
+  }
+  if(br){
+    const limpa=ties=>(ties||[]).map(t=>({h:t.h,a:t.a,hg:t.hg,ag:t.ag,winner:t.winner||null,pens:t.pens||null}));
+    const porRodada={};
+    (br.history||[]).forEach(h=>{ porRodada[h.round]=limpa(h.ties); });
+    if(br.ties&&br.ties.length&&!porRodada[br.round]) porRodada[br.round]=limpa(br.ties);
+    out.rounds=Object.keys(porRodada).map(Number).sort((a,b)=>a-b).map(r=>({round:r,ties:porRodada[r]}));
+  }
+  return out;
+}
+function archiveSeason(tables){
+  S.archive=S.archive||[];
+  const season=S.season||1;
+  if(S.archive.some(a=>a&&a.season===season)) return;   // idempotente
+  const scorers=Object.entries(S.scorers||{}).sort((a,b)=>b[1]-a[1]).slice(0,25);
+  const cups={};
+  Object.keys(S.cups||{}).forEach(k=>{ const a=archiveCup(S.cups[k]); if(a) cups[k]=a; });
+  S.archive.push({season, tables, scorers, cups});
+}
+/* RESGATE: save que virou a temporada antes do archive existir ainda tem o _prevSeason da
+   temporada recém-fechada — a próxima virada o sobrescreveria. Roda no carregar do save solo
+   (idempotente). O _prevSeason do solo não fotografa as copas continentais, então dele entram
+   as tabelas de liga, a artilharia e a copa nacional. */
+function archiveBackfill(){
+  const ps=S&&S._prevSeason; if(!ps||ps.season==null) return;
+  S.archive=S.archive||[];
+  if(S.archive.some(a=>a&&a.season===ps.season)) return;
+  const scorers=Object.entries(ps.scorers||{}).sort((a,b)=>b[1]-a[1]).slice(0,25);
+  const cups={};
+  if(ps.copaBrasil){ const a=archiveCup(ps.copaBrasil); if(a) cups[(typeof copaNacionalDoUniverso==='function'&&copaNacionalDoUniverso())||'copaBrasil']=a; }
+  Object.keys(ps.cups||{}).forEach(k=>{ if(cups[k]) return; const a=archiveCup(ps.cups[k]); if(a) cups[k]=a; });
+  S.archive.push({season:ps.season, tables:ps.tables||{}, scorers, cups});
+}
 function endSeason(){
   const tbl=sortedTable();
   const _prevTables={};
   DIV_ORDER.forEach(d=>{ const t=(d===S.division) ? S.table : ((S.otherDivs&&S.otherDivs[d])||{}).table;
     _prevTables[d]= t ? mpSortTable({table:t}).map(x=>({id:x.id,P:x.P,W:x.W,D:x.D,L:x.L,GF:x.GF,GA:x.GA,Pts:x.Pts})) : []; });
   S._prevSeason={ season:S.season||1, tables:_prevTables, scorers:S.scorers||{}, copaBrasil:(S.cups&&S.cups.copaBrasil)||null, retirements:[] };
+  // arquivo permanente da temporada que fecha — antes de qualquer reset (ver archiveSeason)
+  try{ archiveSeason(_prevTables); }catch(e){ console.warn('archive da temporada:', e&&e.message); }
   const champ=clubOf(tbl[0].id).short;
   const arty=topScorers(1)[0];
   const cups={};

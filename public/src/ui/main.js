@@ -3466,6 +3466,8 @@ function clLoadSave(name){
       toastC('⚠ O save foi reparado: a temporada recomeça na liga do seu clube.');
       if(typeof saveV3==='function') saveV3();
     }
+    // temporada fechada antes do S.archive existir: entra pro arquivo agora (idempotente)
+    if(typeof archiveBackfill==='function'){ try{ archiveBackfill(); }catch(e){} }
     syncDataClubsFromState(); // realinha DATA.clubs com a divisão real do save carregado
     CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
     /* volta a pagina onde a pessoa estava antes de recarregar (ver rfPosRestaurar).

@@ -7506,6 +7506,29 @@
 .rf-tmp-chip:hover:not(.on){background:var(--surface-sunken)}
 .rf-tmp-chip.on{background:var(--brand-primary);border-color:var(--brand-primary);color:#fff}
 
+/* ===== AS CLASSIFICAÇÕES FINAIS DO ARQUIVO (rfArqClassifHTML) =====
+   Tabela compacta em grid mono: posição, clube (única coluna que estica),
+   J V E D SG Pts. A linha do MEU clube leva o filete da marca. */
+.rf-arq-tb{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+.rf-arq-lin{display:grid;grid-template-columns:22px minmax(0,1fr) repeat(5,30px) 34px;
+  align-items:center;gap:4px;padding:4px 6px;border-radius:8px;
+  font-family:var(--font-mono,monospace);font-size:var(--fs-1);color:var(--text-2);
+  font-variant-numeric:tabular-nums;text-align:right}
+.rf-arq-lin.head{color:var(--text-3);font-size:10px;letter-spacing:.06em;padding-bottom:2px}
+.rf-arq-lin>b{font-weight:800;color:var(--text-1)}
+.rf-arq-lin.meu{background:var(--surface-sunken);box-shadow:inset 2px 0 0 var(--brand-primary)}
+.rf-arq-p{color:var(--text-3);text-align:left}
+.rf-arq-n{font-family:inherit;text-align:left;font-weight:600;color:var(--text-1);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* confronto de mata-mata: mandante · placar · visitante */
+.rf-arq-lin.jogo{grid-template-columns:minmax(0,1fr) 72px minmax(0,1fr)}
+.rf-arq-x{text-align:center;color:var(--text-2);white-space:nowrap}
+.rf-arq-n.dir{text-align:right}
+.rf-arq-n.venceu{font-weight:800}
+.rf-arq-grupo{margin-top:10px}
+.rf-arq-gl{font-family:var(--font-mono,monospace);font-size:10px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)}
+
 /* filtro do Calendário por competição — o chip com troféu vira botão */
 .rf-cp-calchips{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
 .rf-cp-calchip{border:1px solid var(--line-2);background:var(--surface-card);cursor:pointer;

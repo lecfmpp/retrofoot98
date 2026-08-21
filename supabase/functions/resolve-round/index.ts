@@ -2267,6 +2267,59 @@ function makeBracketT(ids: string[], seedNum: number, clubOverall: any) {
   const ties: any[] = []; for (let i = 0; i < play.length; i += 2) ties.push({ h: play[i], a: play[i + 1], hg: null, ag: null, winner: null, events: [] });
   return { round: 1, roundsTotal: Math.log2(size), byeTeams: byeTeams.slice(), ties, pendingByes: byeTeams.slice(), champion: null, eliminated: {}, history: [] };
 }
+/* ===== O ARQUIVO PERMANENTE DA TEMPORADA (S.archive) =====
+   O _prevSeason é um buffer de UMA temporada — a virada seguinte o sobrescreve, e da
+   temporada N em N+2 já não sobrava classificação nenhuma. O archive é append-only e
+   nunca é tocado por reset algum: uma entrada por temporada fechada, com as tabelas
+   finais de todas as divisões, a artilharia (top 25) e cada copa em forma compacta
+   (campeão, tabelas finais dos grupos e os confrontos do mata-mata, SEM os `events`
+   de narração — é neles que mora o peso). Viaja no shared_state, então todo assento
+   da sala lê o mesmo arquivo. O cliente tem o gêmeo em core.js (archiveSeason). */
+function archiveCupT(c: any) {
+  if (!c) return null;
+  const br = (c.champion !== undefined) ? c : (c.bracket || null);
+  const out: any = { champion: (br && br.champion) || null };
+  if (c.group && c.group.groups) {
+    out.groups = {};
+    Object.keys(c.group.groups).forEach((g) => {
+      out.groups[g] = sortTblT(((c.group.groups[g] || {}).table) || {}).map((x: any) => ({ id: x.id, P: x.P, W: x.W, D: x.D, L: x.L, GF: x.GF, GA: x.GA, Pts: x.Pts }));
+    });
+  }
+  if (br) {
+    const limpa = (ties: any[]) => (ties || []).map((t: any) => ({ h: t.h, a: t.a, hg: t.hg, ag: t.ag, winner: t.winner || null, pens: t.pens || null }));
+    // uma entrada por rodada, sem duplicar a que ainda vive em br.ties quando ela já foi pro history
+    const porRodada: any = {};
+    (br.history || []).forEach((h: any) => { porRodada[h.round] = limpa(h.ties); });
+    if (br.ties && br.ties.length && !porRodada[br.round]) porRodada[br.round] = limpa(br.ties);
+    out.rounds = Object.keys(porRodada).map(Number).sort((a, b) => a - b).map((r) => ({ round: r, ties: porRodada[r] }));
+  }
+  return out;
+}
+function archiveSeasonT(S: any, tables: any) {
+  S.archive = S.archive || [];
+  const season = S.season || 1;
+  if (S.archive.some((a: any) => a && a.season === season)) return;   // idempotente
+  const scorers = Object.entries(S.scorers || {}).sort((a: any, b: any) => (b[1] as number) - (a[1] as number)).slice(0, 25);
+  const cups: any = {};
+  Object.keys(S.cups || {}).forEach((k) => { const a = archiveCupT(S.cups[k]); if (a) cups[k] = a; });
+  S.archive.push({ season, tables, scorers, cups });
+}
+/* RESGATE: sala que virou a temporada ANTES do archive existir ainda tem o _prevSeason
+   da temporada recém-fechada — a próxima virada o sobrescreveria e aí sim o dado morre.
+   Roda a cada pedido (idempotente): se o ano do _prevSeason não está no archive, entra
+   agora. Só os grupos das continentais não são recuperáveis (o _prevSeason guarda apenas
+   o mata-mata delas); tabelas de liga, artilharia e copa nacional entram inteiros. */
+function backfillArchiveT(S: any) {
+  const ps = S._prevSeason; if (!ps || ps.season == null) return;
+  S.archive = S.archive || [];
+  if (S.archive.some((a: any) => a && a.season === ps.season)) return;
+  const scorers = Object.entries(ps.scorers || {}).sort((a: any, b: any) => (b[1] as number) - (a[1] as number)).slice(0, 25);
+  const cups: any = {};
+  const nac = COPA_NACIONAL_KEY();
+  if (nac && ps.copaBrasil) { const a = archiveCupT(ps.copaBrasil); if (a) cups[nac as string] = a; }
+  Object.keys(ps.cups || {}).forEach((k) => { if (cups[k]) return; const a = archiveCupT(ps.cups[k]); if (a) cups[k] = a; });
+  S.archive.push({ season: ps.season, tables: ps.tables || {}, scorers, cups });
+}
 function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   // 0) caixa dos clubes da CPU — ANTES do swap de divisões, com as tabelas/elencos do ano que fechou
   cpuSeasonFinances(S, humans || new Set<string>());
@@ -2293,6 +2346,8 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
     const c = S.cups && S.cups[k]; if (!c) return;
     S._prevSeason.cups[k] = semEventos((c.champion !== undefined) ? c : c.bracket);
   });
+  // arquivo permanente da temporada que fecha — antes de qualquer reset (ver archiveSeasonT)
+  archiveSeasonT(S, _prevTables);
   // acumula artilharia histórica + Historial de carreira ANTES do reset — porte fiel do
   // mesmo trecho em endSeason() (core.js). Sem isto, "melhores marcadores de sempre" e o
   // Historial (jogos/cartões/lesões) do jogador perdiam TUDO a cada virada de temporada na
@@ -2837,6 +2892,8 @@ Deno.serve(async (req: Request) => {
        estado e cai em 'brasil' — que e o que ela e. Tem de vir ANTES de qualquer coisa que leia
        DIV_ORDER, forca de divisao ou premiacao. */
     aplicarUniverso(S);
+    // resgata pro archive a temporada fechada antes do archive existir (idempotente; ver backfillArchiveT)
+    backfillArchiveT(S);
     // idempotência: se a rodada esperada não é a atual, alguém já resolveu -> devolve o estado atual
     if (expectedRound != null && S.round !== expectedRound) return json({ ok: true, already: true, round: S.round, version: curVer });
     // IDEMPOTÊNCIA POR ESTÁGIO: se a quarta já foi resolvida (roundStage já virou 'league'), um

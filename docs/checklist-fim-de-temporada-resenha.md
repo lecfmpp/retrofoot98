@@ -58,7 +58,9 @@ Pergunta da memória de copas: antes de mexer, conferir colisão de jornada entr
 
 ---
 
-## 6. [ ] Classificações finais de todas as competições — nunca se apagam, vão pro servidor
+## 6. [x] Classificações finais de todas as competições — nunca se apagam, vão pro servidor
+
+**Feito em 2026-08-21 (aguardando teste):** nasceu o `S.archive` — append-only, uma entrada por temporada, com as tabelas finais das 4 divisões, artilharia (top 25) e cada copa compacta (campeão, grupos, mata-mata, sem narração). Escrito pelo servidor na virada (`archiveSeasonT` no resolve-round) e pelo cliente no solo (`archiveSeason` no core.js). O resgate (`backfillArchiveT` / `archiveBackfill`) recupera a temporada fechada da WEBLG do `_prevSeason` no próximo resolve — só os grupos das continentais dessa 1ª temporada não são recuperáveis. UI: filtro de temporada em Campeonatos ganhou os cartões de classificação final (ligas, grupos e mata-mata das copas) e a artilharia arquivada. Coberto pelo bloco 7 do `teste-virada.mjs` (portão do deploy).
 
 **Causa:** a tabela completa da temporada vai para `S._prevSeason`, que é um **buffer de uma temporada só, sobrescrito na virada seguinte**. Da temporada N, em N+2 só sobra top3 + rebaixados da divisão do jogador. Não há tabela Supabase de histórico — tudo vive em `games.shared_state` (jsonb).
 
