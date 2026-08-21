@@ -17,11 +17,9 @@
       gauss:(mu,sd)=>{let u=0,v=0;while(!u)u=r();while(!v)v=r();return mu+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);},
       int:(n)=>Math.floor(r()*n), pick:(arr)=>arr[Math.floor(r()*arr.length)] }; }
 
-  /* ===== TÁTICA É TROCA, NÃO BOTÃO DE VITÓRIA (rebalance 21/08, ver simulate.js/arena) ===== */
-  const TACTIC_BETA={retranca:-0.015, equilibrado:0, ofensivo:0.025};
-  const TACTIC_EMPHASIS={ retranca:{OS:0.92,DS:1.22}, equilibrado:{OS:1,DS:1}, ofensivo:{OS:1.05,DS:0.82} };
+  const TACTIC_BETA={retranca:-0.09, equilibrado:0, ofensivo:0.10};
   const ENG={rev:0.82, sd:0.33, danger:0.58, shot:0.28, conv:0.52, penaltyChance:0.025}; // era 0.055
-  const ENG2={ alphaAtk:0.08, alphaMid:0.05, alphaMidCount:0.004, convDiff:0.004 }; // alphaMidCount era 0.018: fazia do 4-5-1 o meta silencioso
+  const ENG2={ alphaAtk:0.08, alphaMid:0.05, alphaMidCount:0.018, convDiff:0.004 };
   const BEHAVIOR_CARD_MULT={ 'Casca-Grossa':3.2, 'Brigão':2.4, 'Encrenqueiro':1.7, 'Discreto':1.0, 'Manso':0.75, 'Exemplar':0.4 };
   const BEHAVIOR_INJURY_MULT={ 'Discreto':1.6, 'Manso':0.55, 'Exemplar':0.85, 'Encrenqueiro':1.0, 'Brigão':1.05, 'Casca-Grossa':1.1 };
   const RIVALRIES=[
@@ -81,10 +79,8 @@
     const R=makeRng((seed>>>0));
     const hp=home.xi||[], ap=away.xi||[];
     const emH=formationEmphasis(hp), emA=formationEmphasis(ap);
-    const teH=TACTIC_EMPHASIS[home.tactic||'equilibrado']||TACTIC_EMPHASIS.equilibrado;
-    const teA=TACTIC_EMPHASIS[away.tactic||'equilibrado']||TACTIC_EMPHASIS.equilibrado;
-    const H={OS:home.rat.OS*emH.OS*teH.OS, MS:home.rat.MS*emH.MS, DS:home.rat.DS*emH.DS*teH.DS, mor:home.rat.mor};
-    const A={OS:away.rat.OS*emA.OS*teA.OS, MS:away.rat.MS*emA.MS, DS:away.rat.DS*emA.DS*teA.DS, mor:away.rat.mor};
+    const H={OS:home.rat.OS*emH.OS, MS:home.rat.MS*emH.MS, DS:home.rat.DS*emH.DS, mor:home.rat.mor};
+    const A={OS:away.rat.OS*emA.OS, MS:away.rat.MS*emA.MS, DS:away.rat.DS*emA.DS, mor:away.rat.mor};
     const betaH=TACTIC_BETA[home.tactic||'equilibrado'], betaA=TACTIC_BETA[away.tactic||'equilibrado'];
     const homeAdv=homeAdvantageFromCap(home.cap);
     const derby=isDerby(home.short, away.short);
