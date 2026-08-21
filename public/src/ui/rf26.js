@@ -444,8 +444,6 @@ function rfFaixaEstadoHTML(){
 function rfSidebarHTML(){
   const st=rfState();
   const cl=clubOf(CL.clubId)||{short:'—'};
-  const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
-  const opp=nm?(anyClubOf(nm.oppId)||{short:'—'}):null;
   const unread=(typeof inboxUnread==='function')?inboxUnread():0;
 
   const badgeDe=key=>{
@@ -465,42 +463,11 @@ function rfSidebarHTML(){
     </button>`;
   }).join('');
 
-  const xi=xiPlayers(CL.clubId);
-  const pronto = xi.length>=11 && CL.tacticChosen && xiGKCount(xi)===1;
-  /* ===== O BOTAO DE ACAO NAO DEPENDE DE HAVER PROXIMO JOGO =====
-     Este bloco inteiro -- cartao do proximo jogo, botao Jogar e botao da bancada -- so era
-     desenhado quando `nextUserMatch()` devolvia alguma coisa. Enquanto toda jornada tinha jogo do
-     clube isso passava despercebido. Desde que o calendario reserva semanas sem liga (a parada do
-     meio do ano e as tres das finais), existe jornada em que o clube nao joga -- e ai a barra
-     lateral ficava SEM botao nenhum: nem "Avancar" no solo, nem "Pronto" na Resenha. De fora
-     parece que o botao foi removido; o que aconteceu foi ficar preso a uma condicao que deixou de
-     ser sempre verdadeira. (O Hub e a barra do telefone sempre tiveram o seu, incondicional --
-     por isso o solo continuava a andar por ali.)
-     O CARTAO continua a depender do jogo, que e do que ele fala. O BOTAO passa a estar sempre,
-     porque a acao existe sempre: `rfJogarLabel` ja sabe dizer o que ela e hoje. */
-  /* ===== OS BOTOES SAIRAM DESTE CARTAO (pedido do dono, 20/08) =====
-     O Jogar e a bancada moravam aqui; no lugar deles entra o quadrado do patrocinador
-     (rfSbAnuncioHTML). A ACAO nao sumiu do jogo: o Hub tem o seu botao incondicional
-     (rf-acts-jogar) e a barra do telefone tambem (rf-bn-jogar) — este cartao volta a falar
-     so do jogo, e a barra lateral ganha o espaco vendavel. */
-  const proximo = nm ? `<div class="rf-sb-next">
-      <div class="rf-sb-next-hd">
-        <span class="rf-sb-next-l">Próximo jogo</span>
-        <span class="rf-sb-next-d">${escC(shortMatchDate(nm)||'')}</span>
-      </div>
-      <div class="rf-sb-next-opp">
-        <span class="rf-sb-next-crest">${rfCrest(opp,26)}</span>
-        <span style="min-width:0;display:flex;flex-direction:column">
-          <span class="rf-sb-next-n">${escC(opp.short)}</span>
-          <span class="rf-sb-next-m">${nm.home?'CASA':'FORA'} · ${escC(nm.comp||'')}</span>
-        </span>
-      </div>
-      ${rfSbAnuncioHTML()}
-    </div>` : `<div class="rf-sb-next">
-      <div class="rf-sb-next-hd"><span class="rf-sb-next-l">Esta semana</span></div>
-      <div class="rf-sb-next-livre">O seu clube não entra em campo.</div>
-      ${rfSbAnuncioHTML()}
-    </div>`;
+  /* ===== O CARTAO DO PE E SO O PATROCINADOR (pedido do dono, 20/08) =====
+     O "Próximo jogo" com o adversário saiu daqui: essa informação já mora no cartão do
+     adversário dentro do bloco Formações, e repetida aqui só disputava atenção com o
+     espaço vendável. O quadrado fica sozinho, com o rótulo "Publicidade" dele. */
+  const proximo = `<div class="rf-sb-next">${rfSbAnuncioHTML()}</div>`;
 
   /* O INTERRUPTOR DO MENU MORA NO PÉ, embaixo do botão Jogar, e é a mesma seta
      nos dois estados — para a direita abre, para a esquerda fecha. Já esteve no
@@ -1083,14 +1050,14 @@ function rfHubHTML(){
          cima, era preciso rolar por baixo dele para chegar as taticas. O campo
          e para VER o resultado da escolha — vem depois dela. -->
     <!-- O ADVERSARIO E O BOTAO PRINCIPAL DE AVANCO, E MORA AQUI (pedido do dono, 20/08).
-         O cartao escuro do adversario — com a mini-tabela e o Jogar/Quase pronto — vira a
-         COLUNA ESQUERDA do bloco Formacoes; as taticas passam para a coluna da direita, com o
-         "Seleccionar descansados" abaixo delas. O Jogar duplicado que vivia na linha das acoes
-         sai: o botao do cartao e o principal, e a barra do telefone mantem o dela. -->
+         O cartao escuro do adversario — com a mini-tabela e o Jogar/Quase pronto — vive na
+         COLUNA DIREITA do bloco Formacoes (invertido a 20/08: as taticas primeiro, que sao
+         a decisao; o proximo jogo ao lado), com o "Seleccionar descansados" abaixo das
+         taticas. O Jogar duplicado que vivia na linha das acoes sai: o botao do cartao e o
+         principal, e a barra do telefone mantem o dela. -->
     <div class="rf-card" id="rf-taticas" data-hub="formacoes">
       <span class="rf-label-t">Formações</span>
       <div class="rf-form-duas">
-        <div class="rf-form-adv">${rfAdversarioCardHTML()}</div>
         <div class="rf-form-tat">
           ${rfFormacoesHTML()}
           <div class="rf-acts">
@@ -1098,6 +1065,7 @@ function rfHubHTML(){
               title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
           </div>
         </div>
+        <div class="rf-form-adv">${rfAdversarioCardHTML()}</div>
       </div>
       ${rfSemanaHTML()}
     </div>

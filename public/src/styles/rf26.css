@@ -239,19 +239,10 @@
 .rf-nav-b{flex:0 0 auto;font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);
   color:#fff;background:var(--danger);border-radius:var(--r-pill);padding:2px 6px;min-width:18px;text-align:center}
 .rf-sb-sp{flex:1}
-/* card "próximo jogo" no pé da sidebar */
+/* card do pé da sidebar — só o patrocinador (o "próximo jogo" mora no bloco Formações) */
 .rf-sb-next{display:flex;flex-direction:column;gap:10px;
   background:linear-gradient(160deg,var(--club-primary-deep),var(--club-primary));
   border-radius:var(--r-inner);padding:12px}
-.rf-sb-next-hd{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.rf-sb-next-l{font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
-  color:var(--text-on-dark-faint);white-space:nowrap}
-.rf-sb-next-d{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--club-secondary-on-primary,var(--club-secondary));white-space:nowrap}
-.rf-sb-next-opp{display:flex;align-items:center;gap:8px;min-width:0}
-.rf-sb-next-crest{width:26px;height:26px;object-fit:contain;flex:0 0 auto}
-.rf-sb-next-n{font-size:var(--fs-body);font-weight:var(--fw-bold);color:#fff;white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis}
-.rf-sb-next-m{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-on-dark-faint);white-space:nowrap}
 /* A SETA DO MENU — pé da sidebar, embaixo do botão Jogar.
    Azul e maior que o resto do cromo, porque é o único controle daquela coluna
    e recolhido ele fica sozinho com a bola. Para a direita abre, para a
@@ -289,27 +280,12 @@
 
 /* estado recolhido: some tudo que é texto, o ícone centraliza */
 .rf-app.collapsed .rf-nav-l,
-.rf-app.collapsed .rf-sb-cnames,
-.rf-app.collapsed .rf-sb-next-hd,
-.rf-app.collapsed .rf-sb-next-opp{display:none}
+.rf-app.collapsed .rf-sb-cnames{display:none}
 .rf-app.collapsed .rf-nav-i{justify-content:center;padding:0 8px;gap:0}
 .rf-app.collapsed .rf-sb-club{justify-content:center;padding:4px 0 10px}
-/* Recolhida, o cartão do próximo jogo fica só com o botão, e o botão vira um
-   QUADRADO com a bola no meio. `rf-btn-full` é width:100% — herdado, ele virava
-   uma barra amarela achatada atravessando os 68px da sidebar, sem forma de
-   botão nenhuma. O rótulo sai por font-size:0 e a bola entra por ::before, em
-   vez de ::first-letter (que não pega o emoji de forma confiável). O sentido
-   não se perde: o title do botão continua dizendo o que ele faz. */
-/* Recolhida, o cartão do próximo jogo fica só com o botão, e o botão vira o
-   QUADRADO AMARELO com a bola no meio — o mesmo ícone do menu, não um emoji.
-   O fundo do cartão sai: no estreito ele virava uma moldura escura em volta de
-   um quadrado, e o desenho pede o quadrado sozinho sobre o branco. */
+/* Recolhida, o patrocinador some (.rf-sb-ad, abaixo) e o cartão do pé fica vazio:
+   sem padding nem fundo ele desaparece, e sobra só a seta do menu. */
 .rf-app.collapsed .rf-sb-next{padding:0;background:none;align-items:center;gap:8px}
-.rf-app.collapsed .rf-sb-next .rf-btn{width:48px;height:48px;flex:0 0 auto;padding:0;gap:0;
-  border-radius:14px;font-size:0;display:flex;align-items:center;justify-content:center;
-  background:var(--club-cta-bg,var(--club-secondary))}
-.rf-app.collapsed .rf-sb-next .rf-btn .rf-ico{width:24px;height:24px;
-  color:var(--club-cta-fg,var(--club-on-secondary))}
 /* a linha da sala no passo de conta da Resenha (ver scConta) */
 .rf-conta-sala{font-size:12px;color:var(--text-soft,#555);text-align:center;padding:2px 0}
 .rf-conta-sala b{color:var(--brand-primary)}
@@ -7393,7 +7369,8 @@
    longe de onde se escala o time. */
 /* ----- Formacoes em duas colunas: adversario (o botao principal de avanco) a esquerda,
    taticas a direita (ver rfHubHTML). No estreito vira coluna unica, adversario primeiro. ----- */
-.rf-form-duas{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px;align-items:stretch}
+/* táticas à esquerda, adversário à direita — o adversário fica com a coluna um pouco maior */
+.rf-form-duas{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:12px;align-items:stretch}
 .rf-form-adv{min-width:0;display:flex}
 .rf-form-adv .rf-adv{flex:1;min-width:0}
 .rf-form-tat{min-width:0;display:flex;flex-direction:column;gap:10px}
@@ -7634,13 +7611,6 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 @media (max-width:640px){
   .rf-md-jogos{grid-template-columns:1fr}
   .rf-md-jogo{font-size:12.5px}
-}
-
-/* semana sem jogo do clube: o cartão da barra lateral não fala de adversário nenhum, mas o botão
-   de ação continua lá (ver rfSidebarHTML) — a jornada avança por ele. */
-.rf-sb-next-livre{
-  font-size:13px;line-height:1.45;color:var(--text-3);
-  padding:6px 0 10px;
 }
 
 /* =====================================================================
