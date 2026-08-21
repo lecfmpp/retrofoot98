@@ -304,7 +304,24 @@
       cupKey:(CL.live&&CL.live.cup)?CL.live.cup.key:null,
       myClub:CL.clubId||null,
       played:CL._playedRound, stageDone:CL._stageDone||{}, live:!!CL.live,
-      netStep:CL.net&&CL.net.step||null, online:CL.online||false }; },
+      netStep:CL.net&&CL.net.step||null, online:CL.online||false,
+      /* PONTOS DE CADA CLUBE NO GRUPO — caçando o "Botafogo com 4 pts pra um e 7 pra outro"
+         relatado pelo dono (21/08). S.cups[key].group.table é local em cada cliente até a rodada
+         fechar (resolveCupRoundRest simula localmente); isto expõe o snapshot bruto pra comparar
+         A×B ponto a ponto, não só a tela em que cada um está. */
+      grupoPts:(function(){
+        try{
+          const k=CL._cupClassifKey; if(!k) return null;
+          const c=(typeof S!=='undefined'&&S&&S.cups)?S.cups[k]:null;
+          const g=c&&c.group; if(!g||!g.groups) return null;
+          const out={};
+          Object.keys(g.groups).forEach(L=>{
+            const t=g.groups[L].table||{};
+            Object.keys(t).forEach(id=>{ out[id]=t[id].Pts; });
+          });
+          return out;
+        }catch(e){ return null; }
+      })() }; },
     /* espelha a entrada de produção: no lobby o cliente ainda NÃO está online (CL.online=false,
        tela 'online') — é a transição de fase do wireNet que dispara o reveal e só o
        onlineBeginSeason liga o online de verdade. O atalho anterior ligava CL.online no lobby e
