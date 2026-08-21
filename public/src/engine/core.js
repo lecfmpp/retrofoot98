@@ -2608,27 +2608,43 @@ function intlContinentalQualification(userFinish){
   // vagas por liga (como a UEFA na vida real), não um ranking global por overall — senão a
   // Premier (mais rica) dominaria as duas copas. 7+7+6+6+6 = 32 pra cada competição.
   const CL_SLOTS={'ENG-1':7,'ESP-1':7,'ITA-1':6,'GER-1':6,'POR-1':6};
+  const uid=S.clubId;
+  /* A VAGA ACOMPANHA A DIVISÃO (correção 21/08, relato do dono): rebaixado da 1ª divisão não
+     joga Champions no ano seguinte — e quem terminou do 7º pra baixo também não fica com a vaga
+     "por overall" (o fallback antigo devolvia a vaga a qualquer clube grande, não importava a
+     campanha nem a divisão). O fallback por overall passa a valer SÓ na 1ª temporada (sem tabela
+     anterior, userFinish=0) e com o clube na divisão de topo. Quem sai do pote é herdado pelo
+     próximo clube da mesma liga, e a reserva completa qualquer buraco — as copas seguem com 32. */
+  const topDiv=(typeof DIV_ORDER!=='undefined'&&DIV_ORDER.length)?DIV_ORDER[0]:'A';
+  const naPrimeira = !uid || S.division===topDiv;
+  const qualCL = naPrimeira && userFinish>=1 && userFinish<=4;
+  const qualEL = naPrimeira && userFinish>=5 && userFinish<=6;
+  const semTabela = naPrimeira && !userFinish;
   const byLg={};
-  intlTopDivisionClubs().forEach(c=>{ (byLg[c.lg]=byLg[c.lg]||[]).push(c); });
+  intlTopDivisionClubs().forEach(c=>{
+    if(uid && c.id===uid && !qualCL && !qualEL && !semTabela) return;  // sem vaga por direito: fora do pote
+    (byLg[c.lg]=byLg[c.lg]||[]).push(c);
+  });
   Object.keys(byLg).forEach(lg=>byLg[lg].sort((a,b)=>(b.overall||0)-(a.overall||0)));
-  let cl=[], el=[];
+  let cl=[], el=[]; const reserva=[];
   Object.keys(CL_SLOTS).forEach(lg=>{
     const clubs=byLg[lg]||[]; const n=CL_SLOTS[lg];
     cl.push(...clubs.slice(0, n).map(c=>c.id));       // top N -> Champions
     el.push(...clubs.slice(n, n+n).map(c=>c.id));     // próximos N -> Europa
+    reserva.push(...clubs.slice(n+n).map(c=>c.id));   // o resto: completa buraco (nunca grupo de 3)
   });
-  const uid=S.clubId;
-  if(uid){
-    // garante a vaga do usuário conforme classificação doméstica (1º-4º Champions; 5º-6º Europa);
-    // na 1ª temporada (userFinish 0) mantém a vaga já obtida por overall, se houver.
+  if(uid && (qualCL||qualEL||semTabela)){
     const already = cl.indexOf(uid)>=0 ? 'cl' : (el.indexOf(uid)>=0 ? 'el' : null);
     cl=cl.filter(id=>id!==uid); el=el.filter(id=>id!==uid);
-    if(userFinish>=1 && userFinish<=4){ cl.unshift(uid); }
-    else if(userFinish>=5 && userFinish<=6){ el.unshift(uid); }
-    else if(already==='cl'){ cl.unshift(uid); }
+    if(qualCL){ cl.unshift(uid); }
+    else if(qualEL){ el.unshift(uid); }
+    else if(already==='cl'){ cl.unshift(uid); }       // 1ª temporada: mantém a vaga por overall
     else if(already==='el'){ el.unshift(uid); }
   }
-  return { championsLeague:cl.slice(0,32), europaLeague:el.slice(0,32) };
+  cl=cl.slice(0,32); el=el.slice(0,32);
+  while(cl.length<32 && reserva.length) cl.push(reserva.shift());
+  while(el.length<32 && reserva.length) el.push(reserva.shift());
+  return { championsLeague:cl, europaLeague:el };
 }
 /* monta Champions + Europa (fase de grupos). Chamado por initSeasonCups no universo intl. */
 function initIntlCups(){

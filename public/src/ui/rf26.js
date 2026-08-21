@@ -3058,6 +3058,10 @@ function rfCriseSubmeter(){
   if(!CL._criseResp || CL._criseResp.some(x=>x==null)) return;
   const total=CRISE_PERGUNTAS.reduce((s,p,qi)=>s+p.opts[CL._criseResp[qi]].d, 0);
   if(typeof adjTeamMoral==='function') adjTeamMoral(CL.clubId, total);
+  /* a diretoria também ouve: assumir a responsabilidade acalma a direção (metade do efeito da
+     moral, na mesma direção) — jogar a culpa no grupo pode segurar o vestiário de ninguém e
+     ainda piorar o cargo. Mesma régua de jobSecurity do resto do jogo (0-100). */
+  if(S.jobSecurity!=null) S.jobSecurity=Math.max(0,Math.min(100,S.jobSecurity+Math.round(total/2)));
   if(typeof saveV3==='function') saveV3();
   rfCriseFechar();
 }

@@ -50,8 +50,8 @@ function rfFiResumoHTML(){
   const ult=(S.finances||[])[0];
   const sq=squad(CL.clubId);
   const folha=sq.reduce((s,p)=>s+((p.contract&&p.contract.salary)||p.salary||0),0);
-  const jornadas=(S.sched||[]).length||14;
-  const faltam=Math.max(0,rodadas-(S.round||0));
+  const totalRodadas=(S.sched||[]).length||14;
+  const faltam=Math.max(0,totalRodadas-(S.round||0));
   const rodadas=Math.max(1,S.round||1);
   const porRodada=Math.round((receita-despesa)/rodadas);
   const projecao=(S.budget||0)+porRodada*faltam;
