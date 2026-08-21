@@ -109,6 +109,12 @@ Regra do dono (21/08): a estante nunca esquece — todas as divisões, países e
 
 ---
 
+## 11. [x] Botão "Sincronizar sala" no lugar do Gravar (Resenha)
+
+Pedido do dono (21/08): na Resenha o Gravar não faz sentido (o estado mora no servidor). O botão da faixa vira **Sincronizar sala**: grava o que é do assento (carreira, finanças, inbox), garante o `?sala=` na URL e recarrega a página — a reentrada adota o estado do servidor do zero, sem sair da sala e sem logout. No solo o Gravar continua igual. Aguardando teste.
+
+---
+
 ## Ordem sugerida
 
 1. **Item 6** (arquivar classificações) — urgente: salva a temporada que fechou na WEBLG antes da próxima virada.

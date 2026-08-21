@@ -376,11 +376,31 @@ function rfBandHTML(titulo){
          resultado era confusão, e foi o relatado. Fica a data do DIA em que o jogo está, nos
          chips; o quanto falta continua no cartão de Próximo jogo, na barra lateral, onde tem
          o contexto do jogo ao lado. -->
-    <button type="button" class="rf-band-gravar" onclick="rfAcGravar()"
-      title="Gravar o jogo agora">${rfIcone('salvar',15)} Gravar</button>
+    ${CL.online
+      ? `<button type="button" class="rf-band-gravar" onclick="rfSincronizarSala()"
+          title="Recarrega e força a sincronia com a sala — você continua no seu assento, sem sair nem deslogar">${rfIcone('sincronizar',15)} Sincronizar sala</button>`
+      : `<button type="button" class="rf-band-gravar" onclick="rfAcGravar()"
+          title="Gravar o jogo agora">${rfIcone('salvar',15)} Gravar</button>`}
     ${rfBandContaHTML()}
   </div>
   ${rfFaixaEstadoHTML()}`;
+}
+/* ===== SINCRONIZAR SALA (pedido do dono, 21/08) =====
+   Na Resenha o Gravar não faz sentido — o estado mora no servidor — e o que o
+   jogador precisa de verdade é FORÇAR a sincronia quando sente a tela velha.
+   O caminho mais limpo e completo é recarregar a página: a sala fica na URL
+   (?sala=CODE, ver resenhaRememberRoomInUrl), a sessão do Supabase persiste, e
+   a reentrada adota o estado do servidor do zero — sem sair da sala, sem
+   logout. Antes do reload, o que é DO ASSENTO (carreira, finanças) é gravado,
+   pra nada do lado local se perder no caminho. */
+function rfSincronizarSala(){
+  try{ if(typeof persistCareer==='function') persistCareer(); }catch(e){}
+  try{ if(typeof saveMyFinances==='function') saveMyFinances(); }catch(e){}
+  try{ if(typeof saveInbox==='function') saveInbox(); }catch(e){}
+  try{ if(typeof resenhaRememberRoomInUrl==='function') resenhaRememberRoomInUrl(); }catch(e){}
+  try{ if(typeof toastC==='function') toastC('Sincronizando a sala…','progress'); }catch(e){}
+  // um respiro pro persistCareer (fire-and-forget) sair do cliente antes do reload
+  setTimeout(()=>{ try{ location.reload(); }catch(e){} }, 400);
 }
 /* SAIR DA CONTA TAMBÉM AQUI DENTRO. Estava só em Configurações, a dois cliques
    e dentro de uma aba; a decisão foi tê-lo fixo no cabeçalho de toda a tela
