@@ -150,15 +150,15 @@ Pedido do dono (21/08): pesos realistas por país — indo bem no Brasil, o conv
 
 ---
 
-## 16. [~] Rebalance das táticas e formações no motor (calibrado, aguardando martelo do dono)
+## 16. [x] Rebalance das táticas e formações no motor
 
-O ofensivo era drift sem custo (92-100% de vitórias com times iguais; a causa do "3-3-4 ganha tudo") e o bônus por meia fazia do 4-5-1 o meta silencioso (59%). Calibrado na arena (`scripts/arena-motor.mjs`, motor real do servidor, N=3000): nasce o `TACTIC_EMPHASIS` (ofensivo expõe a defesa ×0.82, retranca blinda ×1.22), o drift da tática cai (±0.10/0.09 → +0.025/−0.015) e o bônus por meia cai (0.018 → 0.004). **Recalibrado após a bateria de validação do dono (21/08):** a 1ª calibração passava por partida mas reprovava em TEMPORADAS (regra dos 3 pontos: sempre-ofensivo fazia 59 pts e 72% dos títulos). Calibração final mira V≈D por confronto: `TACTIC_BETA` −0.008/0/+0.016, `TACTIC_EMPHASIS` retranca OS×0.93/DS×1.20, ofensivo OS×1.04/DS×0.80. Bateria completa (scripts/arena-validacao.mjs) APROVADA: temporadas por tática 50,7-51,9 pts e títulos 22-27% (neutro 25); matriz formação×formação ≤45%; formação×tática 31-40%, nenhum confronto ≥60%; curva de qualidade suave (+20%→72%, +40%→93%); mando 41/29/30; placares 1,84-2,44 gols/jogo com 1×0/2×1/1×1 no topo; temporadas com grandes e pequenos plausíveis. De quebra alinhou o goleiro do servidor à curva leve do cliente (engForceGK — divergência antiga). COMMITADO, NÃO PUBLICADO — espera o martelo final.
-
----
+O ofensivo era drift sem custo (92-100% de vitórias com times iguais; a causa do "3-3-4 ganha tudo") e o bônus por meia fazia do 4-5-1 o meta silencioso (59%). Calibrado na arena (`scripts/arena-motor.mjs`, motor real do servidor, N=3000): nasce o `TACTIC_EMPHASIS` (ofensivo expõe a defesa ×0.82, retranca blinda ×1.22), o drift da tática cai (±0.10/0.09 → +0.025/−0.015) e o bônus por meia cai (0.018 → 0.004). **Recalibrado após a bateria de validação do dono (21/08):** a 1ª calibração passava por partida mas reprovava em TEMPORADAS (regra dos 3 pontos: sempre-ofensivo fazia 59 pts e 72% dos títulos). Calibração final mira V≈D por confronto: `TACTIC_BETA` −0.008/0/+0.016, `TACTIC_EMPHASIS` retranca OS×0.93/DS×1.20, ofensivo OS×1.04/DS×0.80. Bateria completa (scripts/arena-validacao.mjs) APROVADA: temporadas por tática 50,7-51,9 pts e títulos 22-27% (neutro 25); matriz formação×formação ≤45%; formação×tática 31-40%, nenhum confronto ≥60%; curva de qualidade suave (+20%→72%, +40%→93%); mando 41/29/30; placares 1,84-2,44 gols/jogo com 1×0/2×1/1×1 no topo; temporadas com grandes e pequenos plausíveis. De quebra alinhou o goleiro do servidor à curva leve do cliente (engForceGK — divergência antiga). PUBLICADO (21/08) — martelo dado, confirmado em produção (TACTIC_BETA/TACTIC_EMPHASIS/alphaMidCount calibrados ao vivo em retrofoot.com.br).
 
 ---
 
-## 17. [~] Atributos do jogador passam a influenciar a partida de verdade (backend, sem tela)
+---
+
+## 17. [x] Atributos do jogador passam a influenciar a partida de verdade (backend, sem tela)
 
 Pedido do dono (21/08): "quero que os atributos dos jogadores sejam reais e influenciem no resultado da partida... apenas no backend, de forma que quando decidirmos implementar o visual seja mais fácil". Investigação prévia mostrou que `p.attr` (fin/pas/dri/des/cab/cru/vis/pos/com/det/vel/res/fis/agi/ref/mao — `genAttrs`/`POS_PROFILE`, index.html) já era gerado de verdade pra todo elenco desde a sessão anterior, mas só influenciava o jogo DEVAGAR (via `evolvePlayer` reescrevendo `p.f` a cada rodada) — dentro da própria partida nunca era lido: dois jogadores da mesma força decidiam o resultado de forma idêntica.
 
@@ -170,7 +170,7 @@ De quebra, corrigido um buraco: `materializeBgClubT` (clube de liga de fundo mat
 
 Medido na arena (`scripts/arena-atributos.mjs`, motor real, N=4000, times iguais em força f=70): atacante com fin=20 marca **25% mais gols** que um parceiro fin=12 na mesma posição/força; goleiro com ref/mao=20 sofre **12% menos gols** que um ref/mao=4 na mesma força. Bateria de validação (`scripts/arena-validacao.mjs`) rodada de novo — times sintéticos sem `.attr` caem no `attrFactor` neutro (retorna 1), então os números de temporada por tática/formação já aprovados no item 16 continuam idênticos (zero regressão). `scripts/arena-brasil.mjs` com elencos reais também rodado — tabelas plausíveis, sem exploit.
 
-Puramente numérico — nenhuma tela lê `p.attr` hoje; os rótulos (`ATTR_LABEL`/`ATTR_GROUP`, index.html) já existem prontos pra quando decidirmos mostrar isso ao usuário. COMMITADO, NÃO PUBLICADO — espera o martelo do dono (mesmo status do item 16, que ainda está pendente).
+Puramente numérico — nenhuma tela lê `p.attr` hoje; os rótulos (`ATTR_LABEL`/`ATTR_GROUP`, index.html) já existem prontos pra quando decidirmos mostrar isso ao usuário. PUBLICADO (21/08) — martelo dado junto com o item 16, confirmado em produção.
 
 ---
 
