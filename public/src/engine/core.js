@@ -4938,8 +4938,17 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
   }
   squad(newClubId).forEach(p=>{ if(!p.contract) p.contract=defaultContract(p); });
   S.xi=autoXI(newClubId);
-  // caixa ao trocar de clube = faixa da nova divisão (item 4)
-  S.budget=REBAL.budget(S.division, makeRng(hashSeed(S.seed,'budget',newClubId,S.season)));
+  /* A CAIXA TEM DE SER A QUE A PROPOSTA PROMETEU. O convite pro jantar e o modal da proposta
+     mostram "Caixa do clube" lendo S.budgets[clubId] — o caixa DE VERDADE daquele clube,
+     simulado temporada a temporada (applyCpuSeasonFinances). Aqui, na hora de assumir de
+     verdade, o caixa era RE-SORTEADO do zero pela faixa da divisão nova — um número genérico
+     que ignora tudo que o clube acumulou, quase sempre bem menor do que o prometido (relato do
+     dono, 22/08: proposta dizia R$17 mi, o clube chegou com R$4 mi e pouco). Usa o caixa real
+     quando ele existe; só recai no sorteio por divisão pra clube que nunca foi simulado (troca
+     de país, ou clube materializado agora pela primeira vez). */
+  S.budget=(S.budgets && S.budgets[newClubId]!=null)
+    ? S.budgets[newClubId]
+    : REBAL.budget(S.division, makeRng(hashSeed(S.seed,'budget',newClubId,S.season)));
   // inicializa salário do treinador baseado no overall do clube
   const clubOverallVal=clubOverall(newClubId);
   S.coachSalary=Math.round(100000 + clubOverallVal*5000); // salário base + bonus por força do clube
