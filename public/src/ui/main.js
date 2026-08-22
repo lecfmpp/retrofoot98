@@ -4918,6 +4918,24 @@ function momentoPrevSeasonPos(){
   if(!div) return null;
   return { div, pos, t:table[pos-1], total:table.length };
 }
+/* PROMOVIDO/REBAIXADO, DA MESMA FOTO QUE A POSIÇÃO EXIBIDA — nunca de S._promoRelegNews.
+   Esse campo só nasce dentro de switchToDivision() (core.js), chamada por newSeasonReset() —
+   e newSeasonReset() só roda quando o jogador clica em "continuar" na tela de resumo, BEM
+   DEPOIS de enfileirarMomentosFimDeTemporada() (chamada logo após endSeason(), pra montar o
+   modal). Nesse intervalo, S._promoRelegNews ainda tinha o veredito da ÚLTIMA virada — um
+   clube que subiu ano passado e caiu pro Z-4 agora via "Subimos de divisão" de novo, com a
+   posição (17º) certa e o veredito da temporada ERRADO (relato do dono, 22/08). Na Resenha o
+   problema era pior: switchToDivision nunca roda no cliente (quem vira é o servidor), então
+   S._promoRelegNews podia nem existir. Calculando aqui, direto da MESMA leitura de
+   momentoPrevSeasonPos() que decide a posição exibida, os dois nunca mais podem discordar. */
+function momentoPromoRelegOutcome(){
+  const m=momentoPrevSeasonPos(); if(!m) return null;
+  const promoN=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[m.div])||0;
+  const relegN=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[m.div])||0;
+  if(promoN>0 && m.pos<=promoN) return 'promoted';
+  if(relegN>0 && m.pos>m.total-relegN) return 'relegated';
+  return null;
+}
 function dadosCampeaoLiga(){
   const m=momentoPrevSeasonPos(); if(!m || m.pos!==1) return null;
   const nome=(clubOf(CL.clubId)||{}).short||'O clube';
@@ -5082,7 +5100,7 @@ function enfileirarMomentosFimDeTemporada(){
   try{
     const camp=dadosCampeaoLiga(); if(camp) enfileirarMomento('campeao-liga', camp);
     const art=dadosArtilheiro('liga'); if(art) enfileirarMomento('marcador-liga', art);
-    const pr=S._promoRelegNews;
+    const pr=momentoPromoRelegOutcome();
     if(pr==='promoted') enfileirarMomento('promovido', dadosPromovido());
     else if(pr==='relegated') enfileirarMomento('rebaixado', dadosRebaixado());
   }catch(e){ console.warn('momentos de fim de temporada:', e&&e.message); }
