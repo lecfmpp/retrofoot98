@@ -233,8 +233,14 @@ function rfMktCalibPreview(p){
   if(typeof REBAL==='undefined' || !REBAL.force) return p;
   const rawF=p.rawF!=null?p.rawF:p.f;
   const f=REBAL.force(rawF,'A');
-  const mv=REBAL.value(f,p.age);
-  return {...p, rawF, f, mv};
+  let mv=REBAL.value(f,p.age);
+  /* O COMPORTAMENTO TAMBÉM ENTRA NO VALOR (attachAttrs, index.html) — de 0,65x
+     (Casca-Grossa) a 1,35x (Exemplar) — e é sorteado de forma DETERMINÍSTICA
+     (hash do nome+posição, nunca Math.random()), então dá pra prever aqui o
+     mesmo resultado que a materialização real vai dar, sem materializar nada. */
+  const behavior=(typeof assignBehavior==='function')?assignBehavior({...p,rawF,f}):null;
+  if(behavior && typeof BEHAVIOR_MV_MULT!=='undefined') mv=Math.round(mv*(BEHAVIOR_MV_MULT[behavior]||1));
+  return {...p, rawF, f, mv, behavior};
 }
 function rfMktMercado(){
   const f=rfMktF();
