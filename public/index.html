@@ -654,7 +654,23 @@ function clubOf(id){
   if(c && !c._rbOv && typeof c.overall==='number'){ c.overall=REBAL.force(c.overall); c._rbOv=1; }
   return c;
 }
-function squad(id){return S.squads[id];}
+/* REDE DE SEGURANÇA: um clube sem elenco NUNCA pode travar uma partida. A Copa do Brasil
+   sorteia clubes das QUATRO divisões inteiras (copaBrasilQualification, core.js) — e um clube
+   "de reposição" que a virada de temporada usa pra tapar buraco na composição das divisões
+   (repairDivisionSwap) pode chegar até aqui sem nunca ter passado por buildOtherDivisions/
+   switchToDivision, que são quem de fato cria S.squads[id]. Sem elenco, squad(id) devolvia
+   undefined e QUALQUER simulação que envolvesse esse clube (mesmo em segundo plano, mesmo um
+   confronto que o usuário só assiste) quebrava com "Cannot read properties of undefined
+   (reading 'filter')" e travava o jogo pro resto da sessão (relato de usuário, 22/08 — save de
+   2 temporadas, Copa do Brasil). Materializa na hora, do mesmo jeito que todo clube de CPU
+   (gkSquad+attachAttrs+initStats), em vez de travar. */
+function squad(id){
+  if(S.squads[id]) return S.squads[id];
+  const c=(typeof clubOf==='function'&&clubOf(id))||(typeof bgClubById==='function'&&bgClubById(id));
+  if(!c || typeof gkSquad!=='function' || typeof attachAttrs!=='function') return S.squads[id];
+  S.squads[id]=gkSquad(c).map(p=>attachAttrs(initStats({...p})));
+  return S.squads[id];
+}
 
 /* ====================== BEST XI (4-3-3-ish by sector) ====================== */
 function autoXI(id){
