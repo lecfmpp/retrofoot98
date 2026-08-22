@@ -218,6 +218,24 @@ function rfMktBusca(v){
   if(cnt) cnt.textContent=rfMktConta();
 }
 /* o mercado inteiro, com os filtros da referência aplicados */
+/* PRÉVIA CALIBRADA DO ELENCO ESTRANGEIRO AINDA NÃO MATERIALIZADO. O bundle de um país
+   (leagues-intl.js/leagues-conmebol.js) guarda a força REAL, crua (ex.: 72) — a mesma
+   escala que `attachAttrs` (index.html) sempre remapeia via REBAL.force(rawF,'A') na hora
+   de materializar o clube (ensureForeignClub). Antes desta função, a lista de Comprar
+   mostrava o jogador com a força CRUA (72) porque o clube só é materializado quando a
+   negociação abre — daí "chegou com 72 lá fora e virou 44 no meu elenco", o mesmo número,
+   só que visto ANTES e DEPOIS do mesmo remapeamento. Aqui aplicamos o MESMO remapeamento
+   (força + valor) só para EXIBIR, numa cópia rasa — sem tocar no objeto do bundle nem
+   materializar nada, então "olhar" continua sem custo (ver o comentário de
+   ensureForeignClub: nada entra no mundo só de ser visto). */
+function rfMktCalibPreview(p){
+  if(!p || p._rb) return p;   // já materializado (ou sem REBAL disponível): os campos já são os certos
+  if(typeof REBAL==='undefined' || !REBAL.force) return p;
+  const rawF=p.rawF!=null?p.rawF:p.f;
+  const f=REBAL.force(rawF,'A');
+  const mv=REBAL.value(f,p.age);
+  return {...p, rawF, f, mv};
+}
 function rfMktMercado(){
   const f=rfMktF();
   const teto=S.budget||0;
@@ -229,10 +247,12 @@ function rfMktMercado(){
   const clubes = (fora && typeof foreignClubsOf==='function') ? foreignClubsOf(f.pais) : (DATA.clubs||[]);
   clubes.forEach(c=>{
     if(c.id===CL.clubId) return;
+    const jaMaterializado = !!(S.squads&&S.squads[c.id]);
     const elenco = fora
-      ? ((S.squads&&S.squads[c.id]) || (typeof gkSquad==='function'?gkSquad(c):(c.squad||[])))
+      ? (S.squads&&S.squads[c.id] || (typeof gkSquad==='function'?gkSquad(c):(c.squad||[])))
       : (squad(c.id)||[]);
-    (elenco||[]).forEach(p=>{
+    (elenco||[]).forEach(p0=>{
+      const p = (fora && !jaMaterializado) ? rfMktCalibPreview(p0) : p0;
       if(typeof isTradeLocked==='function' && isTradeLocked(p)) return;
       if(f.pos!=='all' && p.s!==f.pos) return;
       if(f.forca!=='all' && (p.f||0)<Number(f.forca)) return;
