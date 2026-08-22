@@ -694,8 +694,15 @@ function rfAcPreparar(clubId, nome){
   if(typeof isTradeLocked==='function' && isTradeLocked(p)){
     toastC(`${p.n} já foi negociado nesta temporada.`); return; }
   const ask=(typeof playerAsk==='function')?playerAsk(p,clubId):(p.mv||0);
-  // reaproveita a negociação já aberta com este jogador, se houver
-  const idx=(S.negos||[]).findIndex(n=>n && n.clubId===clubId && n.player===nome && !n.done);
+  /* REAPROVEITA A NEGOCIACAO JA ABERTA, SE HOUVER — mas o campo do vendedor no nego é
+     `sellerId` (ver startNego, core.js), nunca `clubId`. Este filtro comparava com
+     `n.clubId`, que não existe em nenhum nego: a busca nunca achava nada, então CADA
+     clique em "Propor" (mesmo no MESMO jogador, com contraproposta em aberto) começava
+     um negócio do zero, com o campo voltando a nascer no PEDIDO CHEIO (100% do ask) —
+     era isso que parecia "o valor sobe sozinho a cada clique". Também trocado `!n.done`
+     (campo que também não existe) por `n.stage!=='done'`, que é como o motor marca
+     negociação encerrada (aceita, recusada ou expirada — ver clubRespond/finalizeTransfer). */
+  const idx=(S.negos||[]).findIndex(n=>n && n.sellerId===clubId && n.player===nome && n.stage!=='done');
   CL.market={step:'offer', clubId, player:nome,
     offer: idx>=0 ? (S.negos[idx].clubCounter||S.negos[idx].offerFee) : Math.round(ask/1000)*1000,
     negoIdx: idx>=0?idx:null};
