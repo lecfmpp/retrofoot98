@@ -4094,8 +4094,17 @@ function switchToDivision(newDivision, promotedOrRelegated){
   // mantém a identidade do clube do usuário (nome/cor/escudo reais), só troca o elenco de adversários
   DATA.clubs = [myClub, ...newClubs];
   S.division = newDivision;
+  /* MESCLA, NUNCA SUBSTITUI. squads{} só cobre as 20 clubes da divisão NOVA (DATA.clubs) — um
+     `S.squads = squads` aqui APAGAVA o elenco de toda e qualquer clube que não estivesse nessa
+     lista: as outras três divisões inteiras. buildOtherDivisions() (linha de baixo) via os
+     elencos delas "sumidos" e recriava cada um do ZERO, direto do bundle original — qualquer
+     transferência, evolução de atributo, contrato, tudo que tinha acontecido àquele clube nas
+     temporadas anteriores desaparecia, e o jogador comprado por uma CPU "voltava" pro clube de
+     origem porque o elenco dele tinha sido reconstruído do bundle puro. Acontecia em TODA
+     promoção/rebaixamento do usuário — ou seja, quase toda temporada (relato do dono, 22/08:
+     "jogadores voltam pros seus clubes de origem" depois de algumas temporadas). */
   const squads={}; DATA.clubs.forEach(c=>{ squads[c.id] = c.id===S.clubId ? myPlayers : (S.squads[c.id] || gkSquad(c).map(p=>attachAttrs(initStats({...p}), newDivision))); }); // banda = divisão nova (ver buildOtherDivisions)
-  S.squads = squads;
+  S.squads = {...S.squads, ...squads};
   const ids = DATA.clubs.map(c=>c.id);
   S.sched = makeSchedule(ids);
   S.table = {}; DATA.clubs.forEach(c=>S.table[c.id]={id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
