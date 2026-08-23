@@ -423,6 +423,7 @@ function rfMktLeilaoHTML(){
       <span class="rf-mkt-n">${escC(p.n)}</span>
       <span class="rf-mkt-f">${p.f}</span>
       ${rfMkPos(p)}
+      ${(typeof rfNacHTML==='function')?rfNacHTML(p,'rf-mkt-x'):''}
       <span class="rf-mkt-x">${p.age||'—'}</span>
       ${rfMkClube(l.sellerId)}
       <span class="rf-mkt-v">${escC(rfDin(l.bid))}</span>
@@ -431,7 +432,7 @@ function rfMktLeilaoHTML(){
       ${rfMkBt(meu?'Cobrir':'Dar lance',`rfMkLance('${escC(l.sellerId)}','${escC(l.player)}')`, meu)}
     </div>`;
   };
-  const cabecalho=`<span>JOGADOR</span><span>FOR</span><span>POS</span><span>IDA</span>
+  const cabecalho=`<span>JOGADOR</span><span>FOR</span><span>POS</span><span>NAC</span><span>IDA</span>
     <span>CLUBE</span><span class="dir">LANCE ATUAL</span><span class="dir">SEU LANCE</span>
     <span class="dir">FECHA</span><span></span>`;
   const arrematados=fechados.map(l=>{
@@ -448,7 +449,7 @@ function rfMktLeilaoHTML(){
   }).join('');
   return rfMktGavetaHTML(['lance']) + rfCol(
     rfCard('Lotes abertos',
-      rfMkTabela('minmax(0,1fr) 44px 48px 48px minmax(0,160px) 116px 108px 92px 104px',
+      rfMkTabela('minmax(0,1fr) 44px 48px 40px 48px minmax(0,160px) 116px 108px 92px 104px',
         cabecalho, abertos.map(linha), 'Nenhum leilão aberto nesta semana.', 'mkt-leilao'),
       {right: abertos.length? abertos.length+' ativos':''})
     + rfCard('Arrematados recentemente',
@@ -593,6 +594,7 @@ function rfMktVenderHTML(){
       <span class="rf-mkt-nome">${rfMkCamisaHTML(nums[p.pid]||p.num)}<b>${escC(p.n)}</b></span>
       <span class="rf-mkt-f">${p.f}</span>
       ${rfMkPos(p)}
+      ${(typeof rfNacHTML==='function')?rfNacHTML(p,'rf-mkt-x'):''}
       <span class="rf-mkt-x">${p.age||'—'}</span>
       <span class="rf-mkt-v">${escC(rfDin(vm))}</span>
       <span class="rf-mkt-v leve">${escC(rfMkSalario(p))}</span>
@@ -601,7 +603,7 @@ function rfMktVenderHTML(){
   });
   /* FIM DE CONTRATO e INTERESSE saíram: com nove colunas o botão Listar só
      aparecia depois de rolar. As duas continuam na ficha do jogador. */
-  const cabecalho=`<span>JOGADOR</span><span>FOR</span><span>POS</span><span>IDA</span>
+  const cabecalho=`<span>JOGADOR</span><span>FOR</span><span>POS</span><span>NAC</span><span>IDA</span>
     <span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
   // QUEM VOCÊ NÃO DEVERIA VENDER: o titular mais caro de repor
   const chave=[...xi].map(pid=>sq.find(p=>p.pid===pid)).filter(Boolean).filter(p=>{
@@ -612,7 +614,7 @@ function rfMktVenderHTML(){
   const golsTime=sq.reduce((t,p)=>t+((p.stats&&p.stats.goals)||0),0);
   return rfMktGavetaHTML(['listar']) + rfCol(
     rfCard('Seu elenco à venda',
-      rfMkTabela('minmax(0,1.3fr) 28px 34px 34px 96px 92px 74px',
+      rfMkTabela('minmax(0,1.3fr) 28px 34px 34px 34px 96px 92px 74px',
         cabecalho, linhas, 'Elenco vazio.', 'mkt-vender'),
       {right: sq.length+' jogadores'})
     + rfCard('Quem você não deveria vender',

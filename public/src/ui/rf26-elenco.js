@@ -81,7 +81,8 @@ function rfElStat(rot, valor, sub){
    1 · ELENCO
    Grade do pacote: 34 / nome / 28 / 30 / 34 / 62 / 62 / 78 / 52
    ===================================================================== */
-const RF_EL_COLS='34px minmax(0,1.2fr) 34px 40px 40px minmax(62px,.5fr) minmax(62px,.5fr) minmax(78px,.6fr) minmax(52px,.45fr)';
+/* +34px de NAC (bandeira da nacionalidade) entre JOGADOR e POS — regra do dono, 22/08 */
+const RF_EL_COLS='34px minmax(0,1.2fr) 34px 34px 40px 40px minmax(62px,.5fr) minmax(62px,.5fr) minmax(78px,.6fr) minmax(52px,.45fr)';
 function rfElElencoHTML(){
   const sq=squad(CL.clubId).slice().sort(bySquadOrder);
   const xi=new Set(xiPlayers(CL.clubId).map(p=>p.pid));
@@ -91,6 +92,7 @@ function rfElElencoHTML(){
     return `<div class="rf-el-row ${CL.selPlayer===p.pid?'sel':''}" onclick="rfSelPlayer('${escC(p.pid)}')">
       ${rfElCamisa(nums[p.pid]||p.num||'')}
       <span class="rf-el-nome">${escC(p.n)}</span>
+      ${(typeof rfNacHTML==='function')?rfNacHTML(p,'rf-el-c'):''}
       <span class="rf-el-c">${escC(rfPosInicial(p.s))}</span>
       <span class="rf-el-c">${p.age||'—'}</span>
       <span class="rf-el-forte">${p.f}</span>
@@ -101,7 +103,7 @@ function rfElElencoHTML(){
     </div>`;
   });
   const cab=`<div class="rf-el-head" style="--el-cols:${RF_EL_COLS}">
-    <span></span><span>JOGADOR</span><span>POS</span><span>IDA</span><span>FOR</span>
+    <span></span><span>JOGADOR</span><span>NAC</span><span>POS</span><span>IDA</span><span>FOR</span>
     <span>ENERGIA</span><span>FORMA</span><span class="dir">SALÁRIO</span><span class="dir">FIM</span>
   </div>`;
   const setores=[['GK','GOLEIROS'],['DEF','DEFESA'],['MID','MEIO'],['ATT','ATAQUE']];
@@ -206,7 +208,7 @@ function rfElFichaHTML(){
       ${rfJerseyHTML(nums[p.pid]||p.num)}
       <div class="rf-el-hd-id">
         <span class="rf-el-hd-n">${escC(p.n)}</span>
-        <span class="rf-el-hd-s">${escC(rfPosLabel(p.s))} · ${p.age||'?'} anos${p.ft?' · '+(p.ft==='L'?'canhoto':'destro'):''}${p.nat?' · '+escC(p.nat):''}</span>
+        <span class="rf-el-hd-s">${escC(rfPosLabel(p.s))} · ${p.age||'?'} anos${p.ft?' · '+(p.ft==='L'?'canhoto':'destro'):''}${p.nat?' · '+((typeof rfNacHTML==='function')?rfNacHTML(p)+' ':'')+escC(p.nat):''}</span>
       </div>
       <div class="rf-sp"></div>
       <div class="rf-el-hd-acts">

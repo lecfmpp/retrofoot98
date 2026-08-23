@@ -2237,6 +2237,16 @@ function rfDinCurto(v){
   const sim=(typeof curSym==='function')?curSym():'R$';
   return sim+' '+((typeof mvShort==='function')?mvShort(v||0):String(v||0));
 }
+/* ===== COLUNA NAC — a bandeira da nacionalidade em TODA lista de jogador (regra do dono,
+   22/08). A cota de estrangeiros é regra de verdade em cada liga (checkForeignQuota), então a
+   nacionalidade tem de estar à vista onde houver jogador: Formação, Elenco, Mercado. O title
+   diz o país e o lado da cota — a MESMA régua do motor (playerIsForeign), nunca outra. */
+function rfNacHTML(p, cls){
+  const temNat=!!(p&&p.nat);
+  const estr=temNat && (typeof playerIsForeign==='function') && playerIsForeign(p);
+  const t=temNat?(p.nat+(estr?' · estrangeiro (conta na cota)':' · não conta na cota')):'nacionalidade desconhecida';
+  return `<span class="${cls||''} rf-nac" title="${escC(t)}">${(temNat&&typeof flagImg==='function')?flagImg(p.nat):'—'}</span>`;
+}
 const RF_SQUAD_COLS={
   /* A GRADE LITERAL DO PACOTE NÃO CABE NOS 380px QUE ESTA COLUNA TEM.
      O pacote desenha esta tabela numa coluna de 530px, e as nove medidas dele
@@ -2259,8 +2269,9 @@ const RF_SQUAD_COLS={
      .rf-cols): a coluna da tabela ganhou ~250px, e o que era aperto -- a barra
      de energia colada ao "100%", o valor em 52px, a nota em 40 -- deixou de
      precisar de ser. O NOME continua a ficar com todo o resto. */
-  hub:    {grid:'20px 24px minmax(0,1fr) 28px 32px 44px 62px 64px', sal:false, gap:'8px', pad:'7px 10px'},
-  elenco: {grid:'22px 26px minmax(0,1fr) 30px 34px 42px 46px 62px', sal:false, gap:'8px', pad:'8px 10px'},
+  /* +24px de NAC (a bandeira) logo após o nome — sai da folga do NOME, que segue com o resto */
+  hub:    {grid:'20px 24px minmax(0,1fr) 24px 28px 32px 44px 62px 64px', sal:false, gap:'8px', pad:'7px 10px'},
+  elenco: {grid:'22px 26px minmax(0,1fr) 24px 30px 34px 42px 46px 62px', sal:false, gap:'8px', pad:'8px 10px'},
 };
 function rfSquadTableHTML(modo, opts){
   opts=opts||{};
@@ -2272,7 +2283,7 @@ function rfSquadTableHTML(modo, opts){
   // a densidade vai na CLASSE, não só na grade inline: é por ela que o CSS
   // enxuga a tabela do Hub quando a coluna aperta, sem tocar na do Elenco.
   const cab=`<div class="rf-sq-head rf-sq-${modo||'hub'}" style="grid-template-columns:${cfg.grid};column-gap:${cfg.gap||'8px'}">
-    <span></span><span>POS</span><span>NOME</span>
+    <span></span><span>POS</span><span>NOME</span><span>NAC</span>
     <span>ID</span><span>FRC</span><span>NOTA</span><span>ENER</span>
     ${cfg.sal?'<span>SAL.</span>':''}<span>VALOR</span>
   </div>`;
@@ -2288,6 +2299,7 @@ function rfSquadTableHTML(modo, opts){
       <span class="rf-sq-mark ${tit?'tit':''}">${tit?'T':escC(posLetter(p.s))}</span>
       <span class="rf-sq-pos">${escC(posLetter(p.s))}</span>
       <span class="rf-sq-name">${escC(p.n)}${indisp?(p.suspended>0?' 🟥':' ✚'):''}</span>
+      ${rfNacHTML(p,'rf-sq-nac')}
       <span class="rf-sq-id">${p.age||''}</span>
       <span class="rf-sq-frc">${p.f}</span>
       <span class="rf-sq-nota ${rfNotaTom(nota)}">${nota!=null?escC(String(nota).replace('.',',')):'–'}</span>
@@ -2338,7 +2350,7 @@ function rfFichaHTML(){
       ${rfJerseyHTML(nums[p.pid])}
       <div class="rf-ficha-nm">
         <span class="rf-ficha-n">${escC(p.n)}</span>
-        <span class="rf-ficha-s">${escC(rfPosLabel(p.s))} · ${p.age||'?'} anos${fim?' · contrato até '+fim:''}</span>
+        <span class="rf-ficha-s">${p.nat?rfNacHTML(p)+' '+escC(p.nat)+' · ':''}${escC(rfPosLabel(p.s))} · ${p.age||'?'} anos${fim?' · contrato até '+fim:''}</span>
       </div>
     </div>
     <div class="rf-ficha-bars">
