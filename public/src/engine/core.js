@@ -1023,6 +1023,12 @@ function sendHumanOffer(targetSellerId, playerName, fee){
   if(!canNegotiate()) return {ok:false,msg:'A janela de transferências está fechada.'};
   const p=findP(playerName,targetSellerId); if(!p) return {ok:false,msg:'Jogador não encontrado.'};
   if(isTradeLocked(p)) return {ok:false,msg:`${p.n} foi negociado recentemente e ainda não pode ser negociado de novo.`};
+  /* A COTA DE ESTRANGEIROS VALE TAMBÉM ENTRE HUMANOS. Os três caminhos de compra da CPU
+     (negociação, lance, resolução de leilão) já checavam; a proposta a clube de OUTRO
+     treinador não — dava pra estourar a cota da liga comprando só de gente. Checa no envio
+     (acceptCounterOffer também passa por aqui), que é o único portão possível: quando a
+     resposta chega, o jogador já foi movido no estado do mundo pelo cliente do vendedor. */
+  const fq=checkForeignQuota(p); if(!fq.ok) return {ok:false,msg:fq.msg};
   fee=Math.round(fee||0); if(fee<=0) return {ok:false,msg:'Informe um valor de proposta.'};
   if(fee>S.budget) return {ok:false,msg:'Caixa insuficiente pra essa proposta.'};
   S.incomingOffersByClub=S.incomingOffersByClub||{};
@@ -3377,7 +3383,11 @@ function clubDivisionOf(clubId){
 /* jogador é estrangeiro no universo de um país? (nat doméstico definido em UNI_CONFIGS) */
 function playerIsForeign(p, uniKey){
   const cfg=UNI_CONFIGS[uniKey||ACTIVE_UNI]; if(!cfg||!cfg.nat) return false;
-  return cfg.nat.indexOf(p&&p.nat)<0;
+  /* SEM NACIONALIDADE = DOMÉSTICO, nunca estrangeiro. `indexOf(undefined)<0` é true, então um
+     jogador de save antigo sem o campo `nat` contava na cota — e podia BLOQUEAR contratação
+     ("cota cheia") contando gente que nem é estrangeira. Na dúvida, não conta. */
+  if(!p || !p.nat) return false;
+  return cfg.nat.indexOf(p.nat)<0;
 }
 function squadForeignCount(clubId, uniKey){
   return (S.squads[clubId]||[]).filter(p=>playerIsForeign(p, uniKey)).length;
@@ -3387,7 +3397,9 @@ function checkForeignQuota(p){
   const cfg=activeUniCfg(); if(!cfg||!cfg.foreignMax) return {ok:true};
   if(!playerIsForeign(p, ACTIVE_UNI)) return {ok:true}; // doméstico nunca conta cota
   const cur=squadForeignCount(S.clubId, ACTIVE_UNI);
-  if(cur>=cfg.foreignMax) return {ok:false, msg:`Cota de estrangeiros cheia (máx. ${cfg.foreignMax} na ${cfg.label[DIV_ORDER[0]]||'liga'}). Venda/dispense um estrangeiro ou contrate um nacional.`};
+  /* a cota é DO PAÍS, não de uma divisão — a mensagem dizia "na Primeira Liga" até pra quem
+     joga a segunda divisão do mesmo país, parecendo regra de outra competição */
+  if(cur>=cfg.foreignMax) return {ok:false, msg:`Cota de estrangeiros cheia (${cur} de ${cfg.foreignMax} no futebol ${cfg.country?('de '+cfg.country):'brasileiro'}). Venda/dispense um estrangeiro ou contrate um nacional.`};
   return {ok:true};
 }
 /* materializa o elenco de um clube de background sob demanda (pra ver/negociar no mercado) */
