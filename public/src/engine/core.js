@@ -3588,6 +3588,17 @@ function rollAgedForce(R,range,age){
    mínimos se mantêm nas temporadas seguintes). */
 const MIN_POS={ GK:3, DEF:6, MID:6, ATT:4 };
 const POS_LABEL={ GK:'GOL', DEF:'ZAG', MID:'MEI', ATT:'ATA' };
+/* A NACIONALIDADE DE UM JOGADOR GERADO É A DO PAÍS DO UNIVERSO ATIVO, nunca 'Brasil' fixo.
+   Os três geradores procedurais (reposição de posição, clube procedural, regen de
+   aposentadoria) carimbavam a nacionalidade brasileira fixa — num save de Portugal, o garoto que substituía um
+   aposentado na virada chegava "brasileiro", isto é, ESTRANGEIRO: quem estava certinho em
+   18/18 na cota acordava em 19/18 sem ter contratado ninguém (relato do dono, 22/08). O
+   servidor da Resenha já gera o regen com a nacionalidade do país (teste-virada, item 4);
+   este é o mesmo acerto no caminho solo/cliente. */
+function domesticNat(){
+  const cfg=(typeof activeUniCfg==='function')?activeUniCfg():null;
+  return (cfg && cfg.nat && cfg.nat[0]) || 'Brasil';
+}
 function makeRawPlayer(division, pos, clubKey, idx){
   const R=makeRng(hashSeed('pos-topup', String(clubKey||'x'), pos, idx));
   /* A FAIXA NUNCA PODE SAIR UNDEFINED. setUniverse reescreve DIVISION_FORCE_RANGE com as chaves
@@ -3599,7 +3610,7 @@ function makeRawPlayer(division, pos, clubKey, idx){
   const rawF=rollAgedForce(R,range,age); const f=Math.min(REBAL.force(rawF,division), DIV_FORCE_CAP[division]||99);
   const lg=(typeof MARKET!=='undefined' && MARKET.divisionToLeague)?MARKET.divisionToLeague(division):('BRA-'+division);
   return { n:pickProcPlayerName(R), p:POS_LABEL[pos]||pos, s:pos, f, rawF, _rb:1, _div:division, age, lg,
-    mv:REBAL.value(f,age), ft:R.random()<0.5?'R':'L', num:String(30+idx), nat:'Brasil', ag:'—', moral:70, energy:100 };
+    mv:REBAL.value(f,age), ft:R.random()<0.5?'R':'L', num:String(30+idx), nat:domesticNat(), ag:'—', moral:70, energy:100 };
 }
 function ensureClubPositions(club){
   if(!club || club._posTopped) return;
@@ -3634,7 +3645,7 @@ function proceduralDivisionClubs(division, n){
       const lg=MARKET.divisionToLeague(division);
       squad.push({n:pickProcPlayerName(R),
         p:pos,s:pos,f,rawF,_rb:1,_div:division,age,lg,mv:REBAL.value(f,age),ft:R.random()<0.8?'R':'L',
-        num:String(Math.floor(R.random()*40)+1),nat:'Brasil',ag:'—',moral:70,energy:100}); } });
+        num:String(Math.floor(R.random()*40)+1),nat:domesticNat(),ag:'—',moral:70,energy:100}); } });
     const overall=Math.round(squad.reduce((s,p)=>s+p.f,0)/squad.length);
     clubs.push({id,tk:id,name,short:real?real.short:name.split(' ')[0].slice(0,12),
       color:real?real.color:'#'+Math.floor(R.random()*16777215).toString(16).padStart(6,'0'),
@@ -6247,7 +6258,7 @@ function retirementReplacement(position, division, seedExtra){
   const rawF=rollAgedForce(R,range,age); const f=Math.min(REBAL.force(rawF,division), DIV_FORCE_CAP[division]||99); // item 4 + trava de cap por divisão
   const lg=MARKET.divisionToLeague(division);
   return { n:pickProcPlayerName(R), p:position, s:position, f, rawF, _rb:1, _div:division, age, lg, mv:REBAL.value(f,age),
-    ft:R.random()<0.8?'R':'L', num:String(Math.floor(R.random()*40)+1), nat:'Brasil', ag:'—',
+    ft:R.random()<0.8?'R':'L', num:String(Math.floor(R.random()*40)+1), nat:domesticNat(), ag:'—',
     moral:70, energy:100 };
 }
 /* envelhecimento + aposentadoria + reancoragem de valorização — uma vez por temporada,
