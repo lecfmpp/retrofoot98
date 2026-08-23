@@ -59,8 +59,13 @@ function rfDesfecho(sum){
      no meio da tabela · OBJETIVO CUMPRIDO" para quem terminou em ultimo. Sem
      divisao abaixo nao ha queda, mas ha fracasso: o terco de baixo da tabela le
      como 'rebaixado' (o desfecho mais grave que existe nesta tela), e o resto
-     continua meio. */
-  if(total && pos>Math.ceil(total*2/3)) return 'rebaixado';
+     continua meio.
+     SO VALE ONDE NAO HA REBAIXAMENTO DE VERDADE (releg=0). Numa liga com corte
+     real este fallback atropelava a regra de cima: na Primeira Liga (18 clubes,
+     caem 3), o 15o ESCAPOU — mas 15 > 2/3 de 18 e a tela dizia "Rebaixado" pra
+     quem continuou na divisao (relato do dono, 23/08). Onde ha corte real, quem
+     nao caiu no corte fica no 'meio', ponto. */
+  if(!releg && total && pos>Math.ceil(total*2/3)) return 'rebaixado';
   return 'meio';
 }
 function rfFimTemporadaHTML(sum){
