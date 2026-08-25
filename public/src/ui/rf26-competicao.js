@@ -1123,9 +1123,16 @@ function rfVerTimeHTML(clubId){
         <div class="rf-pl-head"><span></span><span></span><span>POS</span><span>FORMA</span><span>FOR</span></div>
         <div class="rf-vt-lista">${sq.slice().sort(bySquadOrder).map(p=>{
           const en=Math.round(p.energy!=null?p.energy:100);
-          return `<div class="rf-pl" style="cursor:default">
+          /* FOTO + PROPOSTA no clube visitado: a foto do Estúdio entra junto do
+             nome, e clicar num jogador de OUTRO clube abre direto o modal de
+             transferência (o mesmo Propor do Mercado, que já valida janela,
+             trava de negociado etc.). No próprio clube a linha segue inerte. */
+          const foto=(typeof rfMkFotoMini==='function')?rfMkFotoMini(p, clubId):'';
+          const deOutro = clubId!==CL.clubId;
+          const clique = deOutro ? ` onclick="rfMkPropor('${escC(clubId)}','${escC(p.n)}','')" title="Fazer proposta por ${escC(p.n)}"` : '';
+          return `<div class="rf-pl${deOutro?' rf-pl-clicavel':''}" style="cursor:${deOutro?'pointer':'default'}"${clique}>
             <span class="rf-pl-num">${escC(String(p.num!=null?p.num:'—'))}</span>
-            <span class="rf-pl-id"><span class="rf-pl-n">${escC(p.n)}</span></span>
+            <span class="rf-pl-id">${foto}<span class="rf-pl-n">${escC(p.n)}</span></span>
             <span class="rf-pl-pos">${escC(posLetter(p.s))}</span>
             <span class="rf-pl-en"><i class="rf-ener" style="--v:${en};--c:${rfEnergiaCor(en)}"></i></span>
             <span class="rf-pl-for">${p.f}</span>

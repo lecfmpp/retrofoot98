@@ -8439,12 +8439,16 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 
 /* retrato pequeno do jogador (formato padrão dos modais): quadrado arredondado
    40×40, foto em cover com foco no rosto (topo do retrato 2:3) */
-.rf-ac-cam.rf-ac-foto{width:40px;height:40px;border-radius:10px;overflow:hidden;background:#e8e8e4}
+.rf-ac-cam.rf-ac-foto{width:52px;height:52px;border-radius:12px;overflow:hidden;background:#e8e8e4}
 .rf-ac-cam.rf-ac-foto img{width:100%;height:100%;object-fit:cover;object-position:50% 8%;display:block}
 
 /* miniatura de foto do jogador nas tabelas (mercado, leilão) e na camisinha
    das listas: mesmo formato padrão — quadrado arredondado, foco no rosto */
-.rf-mkt-foto{width:22px;height:22px;border-radius:7px;object-fit:cover;object-position:50% 8%;
+.rf-mkt-foto{width:29px;height:29px;border-radius:8px;object-fit:cover;object-position:50% 8%;
   flex:0 0 auto;vertical-align:middle;margin-right:7px;display:inline-block}
-.rf-el-camisa.foto{overflow:hidden;border-radius:8px;height:26px;width:26px;background:#e8e8e4}
+.rf-el-camisa.foto{overflow:hidden;border-radius:9px;height:34px;width:34px;background:#e8e8e4}
 .rf-el-camisa.foto img{width:100%;height:100%;object-fit:cover;object-position:50% 8%;display:block}
+
+/* clube visitado: foto na linha do elenco e hover de quem é clicável */
+.rf-vt-lista .rf-pl-id{display:flex;align-items:center;gap:8px;min-width:0}
+.rf-pl-clicavel:hover{background:rgba(20,60,35,.06)}
