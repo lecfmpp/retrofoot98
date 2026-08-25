@@ -4294,6 +4294,22 @@ function modalConteudo(c){
    A chave da OpenAI mora nos secrets do Supabase — o browser nunca a vê.
    ============================================================================ */
 
+/* imagem em tela expandida, POR CIMA do modal que estiver aberto — não usa
+   abrirModal de propósito: ele substituiria o modal de fotos/escudo em curso.
+   Esc fecha só o lightbox (captura + stopImmediatePropagation, senão o Esc
+   também derrubaria o modal de trás). */
+function abrirLightbox(url, alt){
+  const lb = document.createElement('div');
+  lb.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000d;display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:24px';
+  lb.innerHTML = `<img src="${h(url)}" alt="${h(alt||'')}" style="max-width:92vw;max-height:92vh;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px #000">
+    <span style="position:absolute;top:14px;right:20px;font-size:26px;color:#fff9;line-height:1">✕</span>`;
+  const fechar = () => { lb.remove(); document.removeEventListener('keydown', esc, true); };
+  const esc = (e) => { if(e.key==='Escape'){ e.stopImmediatePropagation(); fechar(); } };
+  lb.onclick = fechar;
+  document.addEventListener('keydown', esc, true);
+  document.body.appendChild(lb);
+}
+
 /* chama a edge function e devolve a URL pública da imagem já no Storage */
 async function gerarImagemIA(tipo, prompt, qualidade){
   const { data, error } = await sb.functions.invoke('generate-image',
@@ -4532,7 +4548,8 @@ function modalEscudoIA(item){
         <span class="link" id="ia-recompor" style="font-size:11.5px;align-self:flex-start">↻ recompor o prompt a partir dos campos acima</span>
       </div>
       <div class="col" style="gap:10px;align-items:center;justify-content:center">
-        <div id="ia-preview" style="width:230px;height:230px;display:flex;align-items:center;justify-content:center;
+        <div id="ia-preview" title="Clique para ver em tela expandida"
+             style="width:230px;height:230px;display:flex;align-items:center;justify-content:center;cursor:zoom-in;
              border:1px dashed var(--bd2);border-radius:12px;background:repeating-conic-gradient(#0002 0 25%,transparent 0 50%) 0 0/18px 18px">
           ${atual?`<img src="${h(atual)}" style="max-width:88%;max-height:88%;object-fit:contain">`
                  :'<span style="font-size:12px;color:var(--dim3)">sem escudo ainda</span>'}
@@ -4545,6 +4562,11 @@ function modalEscudoIA(item){
       ${editar?`<button class="btn btn-ghost" id="ia-salvar" disabled>Salvar no clube</button>`:''}
       <button class="btn btn-ghost" data-fechar>Fechar</button>
     </div>`, 'lg');
+
+  el('ia-preview').onclick = () => {
+    const img = el('ia-preview').querySelector('img');
+    if(img) abrirLightbox(img.src, c.short||c.name);
+  };
 
   if(!editar) return;
 
@@ -4608,13 +4630,14 @@ function modalFotosIA(item){
   const linhaFoto = (p) => {
     const f = D.fotos[c.id+'|'+p.n];
     return `<div class="row" style="grid-template-columns:52px minmax(0,1.4fr) minmax(0,2fr) 150px;align-items:center" data-foto-jog="${h(p.n)}">
-      <span data-thumb>${f
+      <span data-thumb ${f?'style="cursor:zoom-in" title="Ver em tela expandida"':''}>${f
         ? `<img src="${h(f.url)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover">`
         : `<i class="av" style="width:40px;height:40px;border-radius:8px;background:${h(c.color||'#333')};color:#fff;font-size:12px">${h(iniciais(p.n))}</i>`}</span>
       <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(p.n)}</b>
         <small style="font-size:11px;color:var(--dim3)">${h(p.p||'—')} · ${p.age!=null?p.age+' anos':'idade —'} · força ${p.f!=null?p.f:'—'}</small></span>
       <small data-attrs style="font-size:11px;color:var(--dim2);line-height:1.5">${h(resumoAtributos(sorteios[p.n]))}</small>
       <span style="display:flex;gap:6px;justify-content:flex-end">
+        <button class="btn btn-sm btn-ghost" data-ver title="Ver em tela expandida" ${f?'':'disabled'}>⛶</button>
         ${editar?`<button class="btn btn-sm btn-ghost" data-sortear title="Sortear outro visual">↻</button>
         <button class="btn btn-sm" data-gerar>${f?'Refazer':'Gerar'}</button>`:''}
       </span>
@@ -4635,6 +4658,14 @@ function modalFotosIA(item){
     </div>
     <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>`, 'xl');
 
+  /* ver em tela expandida funciona para todo papel — inclusive leitura */
+  el('ft-lista').addEventListener('click', ev => {
+    if(!ev.target.closest('[data-ver], [data-thumb]')) return;
+    const linha = ev.target.closest('[data-foto-jog]'); if(!linha) return;
+    const f = D.fotos[c.id+'|'+linha.dataset.fotoJog];
+    if(f) abrirLightbox(f.url, linha.dataset.fotoJog);
+  });
+
   if(!editar) return;
 
   async function gerarPara(p, linha){
@@ -4645,9 +4676,11 @@ function modalFotosIA(item){
     if(error) throw new Error(erroMsg(error));
     D.fotos[c.id+'|'+p.n] = reg;
     if(linha){
-      linha.querySelector('[data-thumb]').innerHTML =
-        `<img src="${h(url)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover">`;
+      const th = linha.querySelector('[data-thumb]');
+      th.innerHTML = `<img src="${h(url)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover">`;
+      th.style.cursor = 'zoom-in'; th.title = 'Ver em tela expandida';
       const bt = linha.querySelector('[data-gerar]'); if(bt) bt.textContent = 'Refazer';
+      const bv = linha.querySelector('[data-ver]'); if(bv) bv.disabled = false;
     }
   }
 
