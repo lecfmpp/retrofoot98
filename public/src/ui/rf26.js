@@ -1069,7 +1069,7 @@ function rfPageHeadHTML(def){
   return `<div class="rf-pagehead">
     <div class="rf-pagehead-top">
       <div class="rf-pagehead-id">
-        <span class="rf-pagehead-t">${escC(def.titulo||def.label)}</span>
+        <span class="rf-pagehead-t">${escC((typeof def.titulo==='function'?def.titulo():def.titulo)||def.label)}</span>
         ${sub?`<span class="rf-pagehead-s">${escC(sub)}</span>`:''}
       </div>
       ${acoes||(pill?`<span class="rf-pill rf-pill-${pill.tom}">${escC(pill.txt)}</span>`:'')}
