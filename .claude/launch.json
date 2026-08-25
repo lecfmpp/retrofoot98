@@ -35,6 +35,20 @@
         "5177"
       ],
       "port": 5177
+    },
+    {
+      "name": "rf26-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "/Users/clawdio/Documents/GitHub/Elifoot/.claude/worktrees/calendar-multiplayer-sync-4c6601",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5199"
+      ],
+      "port": 5199
     }
   ]
 }

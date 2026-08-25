@@ -4666,7 +4666,19 @@ async function repintarTodosUniformes(btn){
         const caminho = `${caminhoClube(x)}/uniforme-${Date.now()}.webp`;
         const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
         if(up.error) throw new Error(up.error.message);
-        const reg = Object.assign({}, t, { url: sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl });
+        // a MINIATURA (camisa do campo na Formação) acompanha a repintura
+        let miniUrl = t.atributos.miniatura || null;
+        const moldeMini = D.fotos[MOLDE_KEY+'|mini-'+t.atributos.estilo];
+        if(moldeMini){
+          try{
+            const bm = await pintarMolde(moldeMini.url, t.atributos.cores[0], t.atributos.cores[1]);
+            const cm = `${caminhoClube(x)}/miniatura-${Date.now()}.webp`;
+            const um = await sb.storage.from('jogadores').upload(cm, bm, { upsert:false, cacheControl:'31536000' });
+            if(!um.error) miniUrl = sb.storage.from('jogadores').getPublicUrl(cm).data.publicUrl;
+          }catch(e2){ console.warn('miniatura na repintura falhou:', x.c.id, e2.message); }
+        }
+        const reg = Object.assign({}, t, { url: sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl,
+          atributos: Object.assign({}, t.atributos, { miniatura: miniUrl }) });
         const r = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
         if(r.error) throw new Error(r.error.message);
         D.fotos[x.c.id+'|'+TORSO_KEY] = reg;
@@ -5680,6 +5692,7 @@ function modalUniformeIA(item){
     <div class="duas-col">
       <div class="col" style="gap:0">${reguaHTML}</div>
       <div class="col" style="gap:10px;align-items:center">
+        ${editar?`<button class="btn btn-sm btn-ghost" id="wz-ajustar-topo" ${t()?'':'disabled'}>✥ Ajustar imagens</button>`:''}
         <div id="wz-preview" title="Clique para ver em tela expandida" style="cursor:zoom-in">
           ${basePreview() ? compostoHTML(basePreview(), null, 320, 12, camadasWiz())
             : `<div style="width:320px;height:${Math.round(320*RATIO_FOTO)}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px dashed var(--bd2);border-radius:12px;background:#d9d9d9">
@@ -5723,6 +5736,8 @@ function modalUniformeIA(item){
   }
   pintarPrevia();
 
+  const ajTopo = el('wz-ajustar-topo');
+  if(ajTopo) ajTopo.onclick = () => { ST.patroTeste = wiz.patroUrl; modalAjustePatrocinio(item, abrir); };
   el('wz-preview').onclick = () => {
     const base = basePreview(); if(!base) return;
     const lado = Math.min(520, Math.floor(Math.min(innerWidth*0.9, innerHeight*0.85/RATIO_FOTO)));
