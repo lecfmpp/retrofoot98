@@ -4734,9 +4734,11 @@ function modalFotosIA(item){
      (de antes das camadas) aparece como está */
   const thumbHTML = (f, px) => {
     const t = torso();
-    /* a montagem IA (rosto costurado no uniforme pela OpenAI) é a foto de verdade */
+    /* a montagem IA (rosto costurado no uniforme) é a base — e o escudo e o
+       patrocinador continuam entrando como camadas por cima: a costura mantém a
+       camisa idêntica à do uniforme, então as posições valem também aqui */
     if(f && f.atributos && f.atributos.montagem)
-      return `<img src="${h(f.atributos.montagem)}" style="width:${px}px;height:${px}px;border-radius:8px;object-fit:cover">`;
+      return compostoHTML(f.atributos.montagem, null, px, 8, ST.patroTeste, escudoClube(), t && t.atributos && t.atributos.patro);
     if(f && f.atributos && f.atributos.recorte==='rosto')
       return t ? compostoHTML(t.url, f.url, px, 8, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro)
                : `<span style="display:inline-block;width:${px}px;height:${px}px;border-radius:8px;background:#d9d9d9;overflow:hidden"><img src="${h(f.url)}" style="width:100%;height:100%;object-fit:contain"></span>`;
@@ -4795,7 +4797,8 @@ function modalFotosIA(item){
   const verExpandido = (f, alt) => {
     const t = torso();
     const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
-    if(f.atributos && f.atributos.montagem) abrirLightbox(f.atributos.montagem, alt);
+    if(f.atributos && f.atributos.montagem)
+      abrirLightboxHTML(compostoHTML(f.atributos.montagem, null, lado, 16, ST.patroTeste, escudoClube(), t && t.atributos && t.atributos.patro));
     else if(f.atributos && f.atributos.recorte==='rosto' && t)
       abrirLightboxHTML(compostoHTML(t.url, f.url, lado, 16, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro));
     else abrirLightbox(f.url, alt);
