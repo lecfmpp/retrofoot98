@@ -1113,7 +1113,7 @@ async function pgFinancas(){
   const [ov, lanc, ia] = await Promise.all([
     sb.rpc('overview', { p_dias: ST.periodo }),
     sb.from('adm_lancamentos').select('*').order('data', { ascending:false }).limit(400),
-    jogo('ia_custos').select('tipo,custo_usd')
+    jogo('ia_custos').select('tipo,custo_usd,criado_em')
   ]);
   if(ov.error) throw ov.error;
   if(lanc.error) throw lanc.error;
@@ -1121,6 +1121,42 @@ async function pgFinancas(){
   D.iaCustos = ia.error ? [] : (ia.data||[]);
 
   const mes = new Date().toISOString().slice(0,7);
+
+  /* GASTO DE IA VIRA DESPESA DO MÊS: uma linha única por mês em adm_lancamentos
+     (categoria creditos_ia), com o total de ia_custos convertido em R$ e
+     ATUALIZADA a cada abertura desta página — o extrato não vira poeira de
+     microlançamentos e a soma de despesas passa a incluir a IA. */
+  try{
+    const iaMesUsd = D.iaCustos
+      .filter(r => String(r.criado_em||'').slice(0,7) === mes)
+      .reduce((t,r) => t + Number(r.custo_usd), 0);
+    if(iaMesUsd > 0 && podeEditar('financas')){
+      let cotSync = 0;
+      try{
+        const cc = JSON.parse(localStorage.getItem('rf_cotacao')||'null');
+        if(cc && Date.now()-cc.t < 3600e3) cotSync = cc.v;
+        else{
+          const r = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL');
+          cotSync = parseFloat((await r.json()).USDBRL.bid)||0;
+          if(cotSync) localStorage.setItem('rf_cotacao', JSON.stringify({v:cotSync, t:Date.now()}));
+        }
+      }catch(e){}
+      if(!cotSync) cotSync = 5.5;
+      const DESC_IA = 'Gastos com IA — Estúdio de imagens';
+      const centavos = Math.round(iaMesUsd * cotSync * 100);
+      const existente = D.lancamentos.find(l =>
+        l.tipo==='despesa' && l.descricao===DESC_IA && String(l.data).slice(0,7)===mes);
+      if(!existente){
+        const ins = await sb.from('adm_lancamentos').insert({
+          data: mes+'-01', descricao: DESC_IA, categoria: 'creditos_ia',
+          tipo: 'despesa', valor_centavos: centavos }).select().single();
+        if(!ins.error && ins.data) D.lancamentos.unshift(ins.data);
+      } else if(Math.abs(existente.valor_centavos - centavos) >= 1){
+        const up = await sb.from('adm_lancamentos').update({ valor_centavos: centavos }).eq('id', existente.id);
+        if(!up.error) existente.valor_centavos = centavos;
+      }
+    }
+  }catch(e){ console.warn('sincronia da despesa de IA:', e && e.message); }
   const doMes = D.lancamentos.filter(l => String(l.data).slice(0,7)===mes);
   const desp = doMes.filter(l=>l.tipo==='despesa');
   const rec  = doMes.filter(l=>l.tipo==='receita');
