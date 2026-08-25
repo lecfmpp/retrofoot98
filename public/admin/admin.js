@@ -4945,8 +4945,7 @@ function modalEscudoIA(item){
             <option value="medium" selected>Média (~US$ 0,04)</option>
             <option value="high">Alta (~US$ 0,17)</option>
           </select></label>
-        ${editar?`<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim2);cursor:pointer">
-          <input type="checkbox" id="ia-nofundo"> Remover o fundo ao enviar arquivo (fundo sólido vira transparente)</label>`:''}
+        ${editar?`<button class="btn btn-sm btn-ghost" id="ia-rmfundo" style="align-self:flex-start">Remover fundo da imagem</button>`:''}
         ${editar?`<div class="col" style="gap:6px">
           <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <button class="btn btn-sm btn-ghost" id="ia-ref-btn">+ Imagem de referência (até 2)</button>
@@ -5033,18 +5032,32 @@ function modalEscudoIA(item){
   /* upload manual: mesmo destino e mesmo "Salvar no clube" do escudo gerado */
   el('ia-upload').onclick = () => el('ia-arquivo').click();
   el('ia-arquivo').onchange = async () => {
-    let f = el('ia-arquivo').files[0]; if(!f) return;
+    const f = el('ia-arquivo').files[0]; if(!f) return;
     if(f.size > 5*1024*1024) return toast('Arquivo acima de 5 MB.', true);
-    let ext = (f.name.split('.').pop()||'png').toLowerCase();
-    if(el('ia-nofundo') && el('ia-nofundo').checked){
-      try{ const b2 = await removerFundoDeImagem(f); if(b2){ f = b2; ext = 'png'; } }
-      catch(err){ return toast('Falha ao remover o fundo: '+err.message, true); }
-    }
+    const ext = (f.name.split('.').pop()||'png').toLowerCase();
     const caminho = `${caminhoClube(item)}/escudo-upload-${Date.now()}.${ext}`;
     const up = await sb.storage.from('escudos').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
     if(up.error) return toast(erroMsg(up.error), true);
     mostrarNoPreview(sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl,
-      'Arquivo enviado — salve para valer.');
+      'Arquivo enviado — confira o fundo no preview; "Remover fundo" limpa se precisar.');
+  };
+  /* age sobre a imagem ATUAL do preview (enviada ou gerada) e mostra o resultado */
+  el('ia-rmfundo').onclick = async () => {
+    const alvo = gerada || atual;
+    if(!alvo) return toast('Gere ou envie um escudo primeiro.', true);
+    const bt = el('ia-rmfundo'); bt.disabled = true; bt.textContent = 'Removendo fundo…';
+    try{
+      const r = await fetch(alvo);
+      if(!r.ok) throw new Error('não consegui baixar a imagem ('+r.status+')');
+      const limpo = await removerFundoDeImagem(await r.blob());
+      if(!limpo) throw new Error('falha ao processar');
+      const caminho = `${caminhoClube(item)}/escudo-semfundo-${Date.now()}.png`;
+      const up = await sb.storage.from('escudos').upload(caminho, limpo, { upsert:false, cacheControl:'31536000' });
+      if(up.error) throw new Error(up.error.message);
+      mostrarNoPreview(sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl,
+        'Fundo removido — salve para valer.');
+    }catch(err){ toast('Não deu para remover o fundo ('+err.message+').', true); }
+    bt.disabled = false; bt.textContent = 'Remover fundo da imagem';
   };
   el('ia-gerar').onclick = async () => {
     const btn = el('ia-gerar');
@@ -5320,8 +5333,6 @@ function modalLoteEscudos(){
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
       <button class="btn" id="lt-escolher">Escolher arquivos…</button>
       <input type="file" id="lt-arquivos" accept=".png,.webp,.jpg,.jpeg,.svg" multiple style="display:none">
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim2);cursor:pointer">
-        <input type="checkbox" id="lt-nofundo"> Remover fundo</label>
       <span id="lt-resumo" style="font-size:12.5px;color:var(--dim2)"></span>
     </div>
     <div id="lt-lista"></div>
@@ -5347,20 +5358,21 @@ function modalLoteEscudos(){
         ${clubes.map(x=>`<option value="${h(x.c.id)}" ${String(x.c.id)===String(p.clube)?'selected':''}>${h(x.c.short||x.c.name)}</option>`).join('')}</select>`;
   };
   const linhaHTML = (p, i) => `
-    <div class="row" style="grid-template-columns:34px minmax(0,1fr) 110px 86px minmax(0,1fr) 96px;gap:8px;align-items:center" data-linha="${i}">
+    <div class="row" style="grid-template-columns:34px minmax(0,1fr) 110px 86px minmax(0,1fr) 140px;gap:8px;align-items:center" data-linha="${i}">
       <img src="${h(p.urlPrevia)}" style="width:28px;height:28px;object-fit:contain">
       <span class="mono" style="font-size:11.5px;min-width:0;overflow:hidden;text-overflow:ellipsis" title="${h(p.f.name)}">${h(p.f.name)}</span>
       ${selHTML(i, p)}
-      <span style="text-align:right">${p.salvo
+      <span style="text-align:right;display:flex;gap:6px;justify-content:flex-end">${p.salvo
         ? '<span class="tag t-ok">salvo ✓</span>'
         : p.erro ? `<span class="tag t-erro" title="${h(p.erro)}">erro</span>`
-        : `<button class="btn btn-sm" data-conf="${i}" ${p.clube?'':'disabled'}>Confirmar</button>`}</span>
+        : `<button class="btn btn-sm btn-ghost" data-semfundo="${i}" title="Remover o fundo — a miniatura mostra o resultado">◌</button>
+           <button class="btn btn-sm" data-conf="${i}" ${p.clube?'':'disabled'}>Confirmar</button>`}</span>
     </div>`;
 
   function desenhar(){
     const pend = plano.filter(p=>!p.salvo && p.clube).length;
     el('lt-lista').innerHTML = plano.length ? `
-      <div class="rowh" style="grid-template-columns:34px minmax(0,1fr) 110px 86px minmax(0,1fr) 96px;gap:8px">
+      <div class="rowh" style="grid-template-columns:34px minmax(0,1fr) 110px 86px minmax(0,1fr) 140px;gap:8px">
         <span></span><span>Arquivo</span><span>País</span><span>Divisão</span><span>Clube</span><span style="text-align:right"></span>
       </div>
       <div style="max-height:44vh;overflow:auto">${plano.map((p,i)=>linhaHTML(p,i)).join('')}</div>` : '';
@@ -5378,6 +5390,16 @@ function modalLoteEscudos(){
       desenhar();
     });
     el('lt-lista').querySelectorAll('[data-conf]').forEach(bt => bt.onclick = () => confirmarLinha(+bt.dataset.conf));
+    el('lt-lista').querySelectorAll('[data-semfundo]').forEach(bt => bt.onclick = async () => {
+      const p2 = plano[+bt.dataset.semfundo]; if(!p2 || p2.salvo) return;
+      bt.disabled = true;
+      try{
+        const limpo = await removerFundoDeImagem(p2.f);
+        if(limpo){ p2.f = limpo; p2.extForcada = 'png';
+          URL.revokeObjectURL(p2.urlPrevia); p2.urlPrevia = URL.createObjectURL(limpo); }
+      }catch(err){ toast('Falha ao remover o fundo: '+err.message, true); }
+      desenhar();
+    });
   }
 
   async function confirmarLinha(i){
@@ -5386,10 +5408,7 @@ function modalLoteEscudos(){
     const item = (D.catalogo||[]).find(x => String(x.c.id)===String(p.clube));
     if(!item) return;
     try{
-      let arq = p.f, ext = (p.f.name.split('.').pop()||'png').toLowerCase();
-      if(el('lt-nofundo') && el('lt-nofundo').checked){
-        const b2 = await removerFundoDeImagem(p.f); if(b2){ arq = b2; ext = 'png'; }
-      }
+      const arq = p.f, ext = p.extForcada || ((p.f.name && p.f.name.split('.').pop()) || 'png').toLowerCase();
       const caminho = `${caminhoClube(item)}/escudo-lote-${Date.now()}.${ext}`;
       const up = await sb.storage.from('escudos').upload(caminho, arq, { upsert:false, cacheControl:'31536000' });
       if(up.error) throw new Error(up.error.message);
@@ -5597,8 +5616,7 @@ function modalUniformeIA(item){
       ${editar?`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <button class="btn btn-sm btn-ghost" id="wz-esc-btn">Enviar novo escudo</button>
         <input type="file" id="wz-esc-arq" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">
-        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim2);cursor:pointer">
-          <input type="checkbox" id="wz-esc-nofundo"> Remover fundo</label>
+        <button class="btn btn-sm btn-ghost" id="wz-esc-rmfundo" ${escudoEscolhido()?'':'disabled'}>Remover fundo</button>
         ${wiz.escudoNovo?'<span class="link" id="wz-esc-desfazer" style="font-size:12px">voltar ao atual</span>':''}
       </div>`:''}
       <button class="btn btn-sm" data-continuar style="align-self:flex-start">${escudoEscolhido()?'Manter e continuar':'Continuar sem escudo'}</button></div>`;
@@ -5770,14 +5788,30 @@ function modalUniformeIA(item){
   if(wiz.passo===4 && el('wz-esc-btn')){
     el('wz-esc-btn').onclick = () => el('wz-esc-arq').click();
     const desf = el('wz-esc-desfazer'); if(desf) desf.onclick = () => { wiz.escudoNovo=null; abrir(); };
+    const rmE = el('wz-esc-rmfundo');
+    if(rmE) rmE.onclick = async () => {
+      const alvo = escudoEscolhido();
+      if(!alvo) return toast('Envie ou tenha um escudo primeiro.', true);
+      rmE.disabled = true; rmE.textContent = 'Removendo…';
+      try{
+        const r = await fetch(alvo);
+        if(!r.ok) throw new Error('não consegui baixar ('+r.status+')');
+        const limpo = await removerFundoDeImagem(await r.blob());
+        if(!limpo) throw new Error('falha ao processar');
+        const caminho = `${caminhoClube(item)}/escudo-semfundo-${Date.now()}.png`;
+        const up = await sb.storage.from('escudos').upload(caminho, limpo, { upsert:false, cacheControl:'31536000' });
+        if(up.error) throw new Error(up.error.message);
+        wiz.escudoNovo = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
+        toast('Fundo removido — confira na miniatura e no preview.');
+        abrir();
+        return;
+      }catch(err){ toast('Não deu para remover o fundo ('+err.message+').', true); }
+      rmE.disabled = false; rmE.textContent = 'Remover fundo';
+    };
     el('wz-esc-arq').onchange = async () => {
-      let f = el('wz-esc-arq').files[0]; if(!f) return;
+      const f = el('wz-esc-arq').files[0]; if(!f) return;
       if(f.size > 5*1024*1024) return toast('Arquivo acima de 5 MB.', true);
-      let ext = (f.name.split('.').pop()||'png').toLowerCase();
-      if(el('wz-esc-nofundo').checked){
-        try{ const b2 = await removerFundoDeImagem(f); if(b2){ f=b2; ext='png'; } }
-        catch(err){ return toast('Falha ao remover o fundo: '+err.message, true); }
-      }
+      const ext = (f.name.split('.').pop()||'png').toLowerCase();
       const caminho = `${caminhoClube(item)}/escudo-upload-${Date.now()}.${ext}`;
       const up = await sb.storage.from('escudos').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
       if(up.error) return toast(erroMsg(up.error), true);
