@@ -4417,6 +4417,43 @@ async function removerFundoDeImagem(arquivo){
   } finally { URL.revokeObjectURL(url); }
 }
 
+/* ===== pílula de progresso: enquanto qualquer geração está no ar, uma pílula
+   fixa no rodapé diz a etapa e o tempo decorrido. Várias em paralelo somam. ===== */
+const IA_ROTULOS = {
+  escudo:   'Desenhando o escudo…',
+  torso:    'Gerando o uniforme…',
+  rosto:    'Gerando o rosto do jogador…',
+  jogador:  'Gerando a foto do jogador…',
+  montagem: 'Costurando rosto e uniforme…'
+};
+const IA_FILA = [];
+let iaTimer = null;
+function iaDesenha(){
+  let pill = el('ia-status');
+  if(!IA_FILA.length){
+    if(pill) pill.remove();
+    if(iaTimer){ clearInterval(iaTimer); iaTimer = null; }
+    return;
+  }
+  if(!pill){ pill = document.createElement('div'); pill.id = 'ia-status'; document.body.appendChild(pill); }
+  const atual = IA_FILA[IA_FILA.length-1];
+  const seg = Math.round((Date.now()-atual.inicio)/1000);
+  pill.innerHTML = `<span class="giro"></span><span>${h(atual.rotulo)}</span>
+    <small>${seg}s · normalmente até 1 min${IA_FILA.length>1?` · ${IA_FILA.length} na fila`:''}</small>`;
+}
+function iaComeca(rotulo){
+  const item = { rotulo, inicio: Date.now() };
+  IA_FILA.push(item);
+  iaDesenha();
+  if(!iaTimer) iaTimer = setInterval(iaDesenha, 1000);
+  return item;
+}
+function iaTermina(item){
+  const ix = IA_FILA.indexOf(item);
+  if(ix >= 0) IA_FILA.splice(ix, 1);
+  iaDesenha();
+}
+
 /* caminho organizado no Storage: pais/divisao/clube — os arquivos do clube
    ficam juntos e com nome legível (o sufixo de tempo evita colisão) */
 function caminhoClube(item){
