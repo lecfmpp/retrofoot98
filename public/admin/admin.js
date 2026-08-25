@@ -5459,7 +5459,7 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl){
   const e = D.edits[c.id];
   const escudoUrl = (e && e.patch && e.patch.crest) || c.crest || null;
   const at0 = t.atributos || {};
-  const fabUrl = at0.fabricanteUrl || null;
+  const fabUrl = ST.fabTeste || at0.fabricanteUrl || null;
   const pos = {
     patro:      Object.assign({}, PATRO_POS_PADRAO,  at0.patro      || {}),
     escudo:     Object.assign({}, ESCUDO_POS_PADRAO, at0.escudo     || {}),
@@ -5713,7 +5713,7 @@ function modalUniformeIA(item){
   pintarPrevia();
 
   const ajTopo = el('wz-ajustar-topo');
-  if(ajTopo) ajTopo.onclick = () => { ST.patroTeste = wiz.patroUrl; modalAjustePatrocinio(item, abrir); };
+  if(ajTopo) ajTopo.onclick = () => { ST.patroTeste = wiz.patroUrl; ST.fabTeste = wiz.fabUrl; modalAjustePatrocinio(item, abrir, basePreview()); };
   el('wz-preview').onclick = () => {
     const base = basePreview(); if(!base) return;
     const lado = Math.min(520, Math.floor(Math.min(innerWidth*0.9, innerHeight*0.85/RATIO_FOTO)));
@@ -5918,7 +5918,8 @@ function modalUniformeIA(item){
        pintada ou o salvo) — nunca a foto de um jogador, que confunde a edição */
     if(aj) aj.onclick = () => {
       ST.patroTeste = wiz.patroUrl;
-      modalAjustePatrocinio(item, abrir, wiz.pv || (t() && t().url));
+      ST.fabTeste = wiz.fabUrl;
+      modalAjustePatrocinio(item, abrir, basePreview());
     };
 
     async function salvar(aplicar){
