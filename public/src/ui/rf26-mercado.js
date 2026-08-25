@@ -133,7 +133,13 @@ function rfMkBt(rot, acao, cta){
 /* MESMA CAMISA DO RESTO DO JOGO. Aqui havia um segundo desenho — 34×30, sem
    gola, número em 11px preso ao corpo — e o número saía miúdo e desalinhado em
    relação ao das outras listas. Agora é a peça canónica, no tamanho médio. */
-function rfMkCamisaHTML(num){ return rfElCamisa(num,'m'); }
+function rfMkCamisaHTML(num, p){ return rfElCamisa(num,'m', p); }
+/* miniatura de foto nas TABELAS do mercado (comprar/leilão): entra antes do
+   nome quando o jogador tem foto do Estúdio; sem foto, nada muda */
+function rfMkFotoMini(p, clubId){
+  const foto = (typeof rfFotoDe==='function') ? rfFotoDe(p, clubId) : null;
+  return foto ? `<img class="rf-mkt-foto" src="${escC(foto)}" alt="" loading="lazy" draggable="false">` : '';
+}
 
 /* =====================================================================
    1 · COMPRAR
@@ -354,7 +360,7 @@ function rfMktComprarTabelaHTML(){
     const estr=(typeof playerIsForeign==='function') && playerIsForeign(p);
     const nac=`<span class="rf-mkt-x rf-mkt-nac" title="${escC(p.nat||'nacionalidade desconhecida')}${estr?' · estrangeiro (conta na cota)':' · não conta na cota'}">${(typeof flagImg==='function'&&p.nat)?flagImg(p.nat):'—'}</span>`;
     return `<div class="rf-mkt-row" onclick="${propor}">
-    <span class="rf-mkt-n">${escC(p.n)}${gols?` <em class="rf-mkt-gols" title="${gols} gols nesta temporada — a performance encarece o passe">⚽${gols}</em>`:''}</span>
+    <span class="rf-mkt-n">${rfMkFotoMini(p, clubId)}${escC(p.n)}${gols?` <em class="rf-mkt-gols" title="${gols} gols nesta temporada — a performance encarece o passe">⚽${gols}</em>`:''}</span>
     <span class="rf-mkt-f">${p.f}</span>
     ${rfMkPos(p)}
     ${nac}
@@ -420,7 +426,7 @@ function rfMktLeilaoHTML(){
     const p=(typeof findP==='function')?findP(l.player,l.sellerId):null; if(!p) return '';
     const meu=l.leader===S.clubId;
     return `<div class="rf-mkt-row ${meu?'destaque':''}">
-      <span class="rf-mkt-n">${escC(p.n)}</span>
+      <span class="rf-mkt-n">${rfMkFotoMini(p, l.sellerId)}${escC(p.n)}</span>
       <span class="rf-mkt-f">${p.f}</span>
       ${rfMkPos(p)}
       ${(typeof rfNacHTML==='function')?rfNacHTML(p,'rf-mkt-x'):''}
@@ -591,7 +597,7 @@ function rfMktVenderHTML(){
        Marca de seleção que não corresponde a uma escolha do utilizador confunde
        em vez de orientar. */
     return `<div class="rf-mkt-row" onclick="rfMkListar('${escC(p.pid)}')">
-      <span class="rf-mkt-nome">${rfMkCamisaHTML(nums[p.pid]||p.num)}<b>${escC(p.n)}</b></span>
+      <span class="rf-mkt-nome">${rfMkCamisaHTML(nums[p.pid]||p.num, p)}<b>${escC(p.n)}</b></span>
       <span class="rf-mkt-f">${p.f}</span>
       ${rfMkPos(p)}
       ${(typeof rfNacHTML==='function')?rfNacHTML(p,'rf-mkt-x'):''}

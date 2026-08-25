@@ -46,18 +46,32 @@ function rfAcFechar(){ CL.acao=null; cdraw(); }
 function rfAcD(){ return (CL.acao&&CL.acao.d)||{}; }
 
 /* ---------- as peças do corpo ---------- */
-/* faixa de identidade: camisa, nome + linha de contexto, e um número à direita */
+/* faixa de identidade: FOTO do jogador (Estúdio) quando existe — vale para o
+   jogador de QUALQUER clube (busca por clube atual e por nome, cobrindo o
+   comprado de fora) — e a camisinha CSS de sempre como fallback. É o formato
+   padrão de retrato pequeno: quadrado arredondado, foco no rosto. */
+function rfAcFotoDoJogador(p){
+  if(!p || !p.n) return null;
+  return (window.RF_FOTOS||{})[String(CL.clubId)+'|'+p.n]
+      || (window.RF_FOTOS_NOME||{})[p.n] || null;
+}
 function rfAcFichaHTML(p, rotulo, valor, num){
   const th=(typeof clubTheme==='function')?clubTheme(CL.clubId):{};
   const c1=th.col||'#17458F', c2=th.col2||'#F2B90C';
   const setor=({GK:'Goleiro',DEF:'Defesa',MID:'Meio-campo',ATT:'Atacante'})[p&&p.s]||'—';
-  return `<div class="rf-ac-ficha">
-    <span class="rf-ac-cam" aria-hidden="true">
+  const foto=rfAcFotoDoJogador(p);
+  const retrato = foto
+    ? `<span class="rf-ac-cam rf-ac-foto" aria-hidden="true">
+        <img src="${escC(foto)}" alt="" loading="lazy" draggable="false">
+      </span>`
+    : `<span class="rf-ac-cam" aria-hidden="true">
       <i class="rf-ac-cam-b" style="background:${c1}"></i>
       <i class="rf-ac-cam-l" style="background:${c2}"></i><i class="rf-ac-cam-r" style="background:${c2}"></i>
       <i class="rf-ac-cam-g" style="background:${c2}"></i>
       <b style="color:${barTextColor(c1,c2)}">${escC(String(num||''))}</b>
-    </span>
+    </span>`;
+  return `<div class="rf-ac-ficha">
+    ${retrato}
     <span class="rf-ac-f-id">
       <span class="rf-ac-f-n">${escC((p&&p.n)||'—')}</span>
       <span class="rf-ac-f-s">${escC(setor)} · ${(p&&p.age)||'—'} anos · força ${(p&&p.f)||'—'}</span>

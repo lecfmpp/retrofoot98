@@ -26,8 +26,17 @@ function rfElBarra(rot, valor, pct, cor){
 /* `tam`: '' (28px, listas densas), 'm' (34px) ou 'g' (54px). É a ÚNICA camisa do
    jogo — o Mercado tinha um desenho próprio, sem gola e com o número em 11px,
    e as duas peças nunca coincidiam lado a lado. */
-function rfElCamisa(num, tam){
+/* foto do Estúdio para QUALQUER jogador: pelo clube dele (quando informado),
+   pelo clube do usuário, ou pelo nome (cobre mercado/leilão de outros clubes) */
+function rfFotoDe(p, clubId){
+  if(!p || !p.n) return null;
+  const F = window.RF_FOTOS||{}, N = window.RF_FOTOS_NOME||{};
+  return (clubId!=null && F[String(clubId)+'|'+p.n]) || F[String(CL.clubId)+'|'+p.n] || N[p.n] || null;
+}
+function rfElCamisa(num, tam, p, clubId){
   const cls = tam===true ? 'g' : (tam||'');
+  const foto = rfFotoDe(p, clubId);
+  if(foto) return `<span class="rf-el-camisa foto ${cls}"><img src="${escC(foto)}" alt="" loading="lazy" draggable="false"></span>`;
   return `<span class="rf-el-camisa ${cls}">
     <i class="c-corpo"></i><i class="c-mgesq"></i><i class="c-mgdir"></i><i class="c-gola"></i>
     <b>${escC(String(num||''))}</b>
@@ -694,7 +703,7 @@ function rfElTreinoHTML(){
     const ch=rfTrnChance(p);
     const cheio=lista.length>=max;
     return `<div class="rf-el-row ${treina?'sel':''}">
-      ${rfElCamisa(nums[p.pid]||p.num||'')}
+      ${rfElCamisa(nums[p.pid]||p.num||'', '', p)}
       <!-- o crescimento aparece DUAS vezes de propósito: como coluna no
            computador e como segunda linha do nome no telefone, onde a coluna
            de ação fica presa à direita e taparia a coluna. Só uma delas está
