@@ -8525,3 +8525,12 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-fotonum.nota{width:64px;height:64px;border-radius:14px}
 .rf-fotonum.nota .rf-fnum{min-width:18px;height:18px;line-height:18px;font-size:11px;right:4px;bottom:4px}
 .rf-nota.com-foto .rf-nota-id{flex:1;min-width:0}
+
+/* perfil do jogador: hexágono e estatísticas lado a lado (duas colunas iguais),
+   para o modal caber sem rolagem */
+.rf-jp-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:center}
+.rf-jp-cols .rf-jp-hex{margin:0}
+.rf-jp-cols .rf-jp-hex svg{width:100%;max-width:100%;height:auto}
+.rf-jp-cols .rf-jp-grid{align-self:center}
+.rf-jp-cols .rf-jp-l:first-child{border-top:0}
+@media (max-width:560px){ .rf-jp-cols{grid-template-columns:1fr} }

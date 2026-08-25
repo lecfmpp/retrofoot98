@@ -648,7 +648,7 @@ const RF_ACOES = {
   const foto=(typeof rfFotoDe==='function')?rfFotoDe(p,cid):null;
   const linha=(rot,val,sub)=>`<div class="rf-jp-l"><span>${escC(rot)}</span><b>${escC(String(val))}</b>${sub?`<i>${escC(sub)}</i>`:''}</div>`;
   return rfAcao({
-    kicker:(c.short?escC(c.short).toUpperCase()+' · ':'')+'PERFIL DO JOGADOR', titulo:p.n, w:620,
+    kicker:(c.short?escC(c.short).toUpperCase()+' · ':'')+'PERFIL DO JOGADOR', titulo:p.n, w:640,
     corpo:`
       <div class="rf-jp">
         <div class="rf-jp-top">
@@ -659,13 +659,15 @@ const RF_ACOES = {
             <span class="rf-jp-f">Força <b>${p.f}</b></span>
           </div>
         </div>
-        ${hex?`<div class="rf-jp-hex">${hex}</div>`:''}
-        <div class="rf-jp-grid">
-          ${linha('Nesta temporada', jogosTemp+' jogo'+(jogosTemp===1?'':'s'), golsTemp?golsTemp+' gol'+(golsTemp>1?'s':''):'sem gols')}
-          ${linha('Nota média', notaTemp!=null?String(notaTemp):'—','')}
-          ${hist?linha('Na carreira', (hist.games||0)+' jogos', (hist.goals||0)+' gols'):''}
-          ${linha('Valor de mercado', rfDin(vm), meu?'':'pedido: '+rfDin(ask))}
-          ${linha('Salário', sal?rfDin(sal):'—','')}
+        <div class="rf-jp-cols">
+          ${hex?`<div class="rf-jp-hex">${hex}</div>`:'<div></div>'}
+          <div class="rf-jp-grid">
+            ${linha('Nesta temporada', jogosTemp+' jogo'+(jogosTemp===1?'':'s'), golsTemp?golsTemp+' gol'+(golsTemp>1?'s':''):'sem gols')}
+            ${linha('Nota média', notaTemp!=null?String(notaTemp):'—','')}
+            ${hist?linha('Na carreira', (hist.games||0)+' jogos', (hist.goals||0)+' gols'):''}
+            ${linha('Valor de mercado', rfDin(vm), meu?'':'pedido: '+rfDin(ask))}
+            ${linha('Salário', sal?rfDin(sal):'—','')}
+          </div>
         </div>
       </div>`,
     acoes: meu
