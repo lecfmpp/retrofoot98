@@ -4478,6 +4478,48 @@ function promptMontagem(){
   ].join(' ');
 }
 const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do clube
+const MOLDE_KEY = '__molde__';   // "clube" especial: um molde de uniforme por ESTILO
+
+/* PINTURA SEM IA: o molde do estilo é gerado UMA vez em cores-marcador (magenta
+   #FF00FF na principal, ciano #00FFFF na secundária) e daqui pra frente cada
+   clube só REPINTA o molde no navegador — magenta vira a cor principal, ciano a
+   secundária, preservando a sombra do tecido (luminância). Zero token por clube. */
+function hex2rgb(hx){
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hx||''));
+  const n = parseInt(m ? m[1] : '1b7a3d', 16);
+  return [n>>16&255, n>>8&255, n&255];
+}
+async function pintarMolde(moldeUrl, corA, corB){
+  const img = await new Promise((ok, erro) => {
+    const i = new Image(); i.crossOrigin = 'anonymous';
+    i.onload = () => ok(i); i.onerror = () => erro(new Error('Não consegui carregar o molde.'));
+    i.src = moldeUrl + (moldeUrl.includes('?') ? '&' : '?') + 'cors=1';
+  });
+  const W = img.naturalWidth, H = img.naturalHeight;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
+  const d = cx.getImageData(0, 0, W, H), px = d.data;
+  const A = hex2rgb(corA), B = hex2rgb(corB);
+  for(let i = 0; i < px.length; i += 4){
+    const r = px[i], g = px[i+1], b = px[i+2];
+    const qm = (Math.min(r, b) - g) / 255;   // quão magenta o pixel é
+    const qc = (Math.min(g, b) - r) / 255;   // quão ciano
+    if(qm <= 0.10 && qc <= 0.10) continue;   // pele, fundo e gola ficam como estão
+    if(qm >= qc){
+      const w = Math.min(1, (qm - 0.10) / 0.18);
+      const L = Math.min(1, ((r + b) / 2) / 230);
+      px[i] += (A[0]*L - r)*w; px[i+1] += (A[1]*L - g)*w; px[i+2] += (A[2]*L - b)*w;
+    } else {
+      const w = Math.min(1, (qc - 0.10) / 0.18);
+      const L = Math.min(1, ((g + b) / 2) / 230);
+      px[i] += (B[0]*L - r)*w; px[i+1] += (B[1]*L - g)*w; px[i+2] += (B[2]*L - b)*w;
+    }
+  }
+  cx.putImageData(d, 0, 0);
+  const blob = await new Promise(ok => cv.toBlob(ok, 'image/webp', 0.85));
+  if(!blob) throw new Error('Falha ao exportar a pintura.');
+  return blob;
+}
 /* miniatura/visual composto: a camisa por baixo, o rosto por cima. Os percentuais
    casam com o enquadramento pedido nos dois prompts — ajuste fino é aqui, num lugar só. */
 /* posição padrão do logo do patrocinador — o ajuste fino por clube (drag and
@@ -4540,7 +4582,7 @@ async function pgEstudio(){
   const fotosDoClube = (x) => (x.c.squad||[]).filter(p => D.fotos[x.c.id+'|'+p.n]).length;
   const uniformeDoClube = (x) => D.fotos[x.c.id+'|'+TORSO_KEY];
   const escudoIA = (x) => { const e=D.edits[x.c.id]; return !!(e && e.patch && e.patch.crest && /\/escudos\/ia\//.test(e.patch.crest)); };
-  const totalFotos = Object.keys(D.fotos).filter(k => !k.endsWith('|'+TORSO_KEY)).length;
+  const totalFotos = Object.keys(D.fotos).filter(k => !k.endsWith('|'+TORSO_KEY) && !k.startsWith(MOLDE_KEY+'|')).length;
   const totalEscudosIA = base.filter(escudoIA).length;
 
   el('page').innerHTML = `
@@ -5154,6 +5196,7 @@ function modalUniformeIA(item){
     </div>
     <div class="acoes">
       ${editar?`<button class="btn" id="un-gerar">${t()?'Refazer uniforme':'Gerar uniforme'}</button>`:''}
+      ${editar?`<button class="btn btn-ghost" id="un-gerar-ia" style="flex:0 0 auto" title="Gera uma camisa exclusiva por IA para este clube (~US$ 0,04)">IA exclusiva</button>`:''}
       <button class="btn btn-ghost" data-fechar>Fechar</button>
     </div>`, 'lg');
 
@@ -5189,22 +5232,63 @@ function modalUniformeIA(item){
   }
   el('un-ajustar').onclick = () => modalAjustePatrocinio(item, () => modalUniformeIA(item));
 
+  /* grava a imagem como o uniforme do clube (a posição salva do patrocínio/escudo sobrevive) */
+  async function salvarTorso(url, estilo, corA, corB, viaMolde){
+    const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: TORSO_KEY, url,
+      atributos: Object.assign({}, (t()||{}).atributos, { recorte:'torso', estilo, cores:[corA, corB], molde: !!viaMolde }) };
+    const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
+    if(error) throw new Error(erroMsg(error));
+    D.fotos[c.id+'|'+TORSO_KEY] = reg;
+    registrar('estudio.torso', String(c.id), { pacote: ST.packId, estilo, molde: !!viaMolde });
+  }
+
+  /* CAMINHO PADRÃO: molde do estilo + pintura no navegador — IA só na 1ª vez do estilo */
   el('un-gerar').onclick = async () => {
     const btn = el('un-gerar');
-    btn.disabled = true; const rot = btn.textContent; btn.textContent = 'Gerando… (até 1 min)';
-    el('un-estado').textContent = 'A OpenAI está costurando o uniforme…';
+    const estilo = el('un-estilo').value;
+    const corA = el('un-color').value, corB = el('un-color2').value;
+    btn.disabled = true; const rot = btn.textContent;
+    try{
+      let molde = D.fotos[MOLDE_KEY+'|'+estilo];
+      if(!molde){
+        if(!confirm('Primeiro uniforme neste estilo: o molde é gerado por IA UMA vez (~US$ 0,04) e todos os clubes deste estilo passam a ser pintados na hora, sem IA. Continuar?')){
+          btn.disabled = false; return;
+        }
+        btn.textContent = 'Gerando o molde… (até 1 min)';
+        el('un-estado').textContent = 'A OpenAI está criando o molde deste estilo (uma vez só)…';
+        const urlMolde = await gerarImagemIA('torso',
+          promptTorso(item, estilo, 'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)') +
+          ' The magenta and cyan are PLACEHOLDER colors for programmatic recoloring: keep them pure, flat and vivid, with shading coming only from fabric folds and lighting.', 'medium');
+        molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: estilo, url: urlMolde, atributos: { recorte:'molde', estilo } };
+        const rM = await jogo('player_photos').upsert(molde, { onConflict:'pack_id,club_id,jogador' });
+        if(rM.error) throw new Error(erroMsg(rM.error));
+        D.fotos[MOLDE_KEY+'|'+estilo] = molde;
+      }
+      btn.textContent = 'Pintando…';
+      el('un-estado').textContent = 'Pintando o molde nas cores do clube — sem IA, sem custo.';
+      const blob = await pintarMolde(molde.url, corA, corB);
+      const caminho = `uniformes/${c.id}-${Date.now()}.webp`;
+      const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
+      if(up.error) throw new Error(erroMsg(up.error));
+      await salvarTorso(sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl, estilo, corA, corB, true);
+      toast('Uniforme pintado e salvo — sem gastar IA.');
+      modalUniformeIA(item);
+      return;
+    }catch(err){ el('un-estado').textContent=''; toast(err.message||'Falha ao gerar o uniforme.', true); }
+    btn.disabled = false; btn.textContent = rot;
+  };
+
+  /* caminho alternativo: camisa exclusiva por IA para este clube */
+  el('un-gerar-ia').onclick = async () => {
+    const btn = el('un-gerar-ia');
+    btn.disabled = true; const rot = btn.textContent; btn.textContent = 'Gerando…';
+    el('un-estado').textContent = 'A OpenAI está criando uma camisa exclusiva…';
     const estilo = el('un-estilo').value;
     const corA = el('un-color').value, corB = el('un-color2').value;
     try{
       const url = await gerarImagemIA('torso', promptTorso(item, estilo, corA, corB), 'medium');
-      // a posição do patrocínio salva sobrevive ao refazer — o painel muda pouco e o ajuste é caro
-      const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: TORSO_KEY, url,
-        atributos: Object.assign({}, (t()||{}).atributos, { recorte:'torso', estilo, cores:[corA, corB] }) };
-      const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
-      if(error) throw new Error(erroMsg(error));
-      D.fotos[c.id+'|'+TORSO_KEY] = reg;
-      registrar('estudio.torso', String(c.id), { pacote: ST.packId, estilo });
-      toast('Uniforme salvo.');
+      await salvarTorso(url, estilo, corA, corB, false);
+      toast('Uniforme exclusivo salvo.');
       modalUniformeIA(item);
       return;
     }catch(err){ el('un-estado').textContent=''; toast(err.message||'Falha ao gerar o uniforme.', true); }
