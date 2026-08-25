@@ -29,11 +29,14 @@ function resp(status: number, body: unknown) {
   });
 }
 
-// tipo -> onde a imagem cai e como ela é pedida à OpenAI
-const TIPOS: Record<string, { bucket: string; background: "transparent" | "opaque"; format: "png" | "webp"; contentType: string }> = {
-  escudo:  { bucket: "escudos",   background: "transparent", format: "png",  contentType: "image/png" },
-  jogador: { bucket: "jogadores", background: "opaque",      format: "webp", contentType: "image/webp" },
+// tipo -> onde a imagem cai e como ela é pedida à OpenAI.
+// TUDO sai em WebP comprimido (o formato leve que o jogo já usa nos criativos);
+// o escudo mantém o fundo transparente — WebP suporta alfa.
+const TIPOS: Record<string, { bucket: string; background: "transparent" | "opaque" }> = {
+  escudo:  { bucket: "escudos",   background: "transparent" },
+  jogador: { bucket: "jogadores", background: "opaque" },
 };
+const FORMATO = "webp", CONTENT_TYPE = "image/webp", COMPRESSAO = 80; // 0-100, 80 é leve sem serrilhar
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -84,7 +87,8 @@ Deno.serve(async (req) => {
       size: "1024x1024",
       quality: qualidade,
       background: cfg.background,
-      output_format: cfg.format,
+      output_format: FORMATO,
+      output_compression: COMPRESSAO,
     }),
   });
   if (!oa.ok) {
@@ -99,9 +103,9 @@ Deno.serve(async (req) => {
   if (!b64) return resp(502, { error: "OpenAI não devolveu imagem." });
 
   const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-  const caminho = `ia/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${cfg.format}`;
+  const caminho = `ia/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${FORMATO}`;
   const up = await admin.storage.from(cfg.bucket).upload(caminho, bytes, {
-    contentType: cfg.contentType,
+    contentType: CONTENT_TYPE,
     cacheControl: "31536000",
     upsert: false,
   });
