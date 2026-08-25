@@ -4756,7 +4756,21 @@ const PATRO_POS_PADRAO  = { x:33, y:65, w:34 };  // left %, top %, largura % (al
 const ESCUDO_POS_PADRAO = { x:61, y:56, w:14 };  // peito esquerdo do jogador na foto final
 const RATIO_FOTO = 1.5;   // retrato 2:3 (1024x1536) — o formato do cartão do jogador no site
 const FAB_POS_PADRAO = { x:27, y:57, w:9 };   // fabricante: lado oposto ao escudo, menor
-function compostoHTML(torsoUrl, rostoUrl, px, raio, camadas){
+/* AS POSIÇÕES SÃO DO QUADRO DO UNIFORME (torso, sem cabeça). Na FOTO do jogador
+   a camisa fica mais para baixo e um pouco menor — este mapa desloca/encolhe as
+   camadas SÓ quando a base é a foto. Calibrado nos dois quadros; ajuste aqui. */
+const FOTO_AJUSTE = { y0:30, yEsc:0.70, xEsc:0.77 };
+function posParaFoto(p){
+  const w = p.w * FOTO_AJUSTE.xEsc;
+  const cx = 50 + (p.x + p.w/2 - 50) * FOTO_AJUSTE.xEsc;
+  return { x: cx - w/2, y: FOTO_AJUSTE.y0 + p.y * FOTO_AJUSTE.yEsc, w };
+}
+function posDaFoto(p){
+  const w = p.w / FOTO_AJUSTE.xEsc;
+  const cx = 50 + (p.x + p.w/2 - 50) / FOTO_AJUSTE.xEsc;
+  return { x: cx - w/2, y: (p.y - FOTO_AJUSTE.y0) / FOTO_AJUSTE.yEsc, w };
+}
+function compostoHTML(torsoUrl, rostoUrl, px, raio, camadas, emFoto){
   /* camadas, de baixo para cima: uniforme/foto final -> escudo -> fabricante ->
      patrocinador -> rosto. `camadas` = {patroUrl, escudoUrl, fabUrl, patro,
      escudo, fabricante}; posições arrastadas (✥/🛡) vencem os padrões — com o
@@ -4764,9 +4778,10 @@ function compostoHTML(torsoUrl, rostoUrl, px, raio, camadas){
      Contêiner RETRATO 2:3 — px é a LARGURA; quadrada antiga aparece em cover. */
   const cm = camadas || {};
   const alt = Math.round(px*RATIO_FOTO);
-  const pp = Object.assign({}, PATRO_POS_PADRAO,  cm.patro||{});
-  const pe = Object.assign({}, ESCUDO_POS_PADRAO, cm.escudo||{});
-  const pf = Object.assign({}, FAB_POS_PADRAO,    cm.fabricante||{});
+  let pp = Object.assign({}, PATRO_POS_PADRAO,  cm.patro||{});
+  let pe = Object.assign({}, ESCUDO_POS_PADRAO, cm.escudo||{});
+  let pf = Object.assign({}, FAB_POS_PADRAO,    cm.fabricante||{});
+  if(emFoto){ pp = posParaFoto(pp); pe = posParaFoto(pe); pf = posParaFoto(pf); }
   return `<span style="position:relative;display:inline-block;width:${px}px;height:${alt}px;border-radius:${raio!=null?raio:8}px;overflow:hidden;background:#d9d9d9">
     <img src="${h(torsoUrl)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
     ${cm.escudoUrl?`<img src="${h(cm.escudoUrl)}" style="position:absolute;left:${pe.x}%;top:${pe.y}%;width:${pe.w}%">`:''}
@@ -5061,7 +5076,7 @@ function modalFotosIA(item){
        patrocinador continuam entrando como camadas por cima: a costura mantém a
        camisa idêntica à do uniforme, então as posições valem também aqui */
     if(f && f.atributos && f.atributos.montagem)
-      return compostoHTML(f.atributos.montagem, null, px, 8, camadasClube());
+      return compostoHTML(f.atributos.montagem, null, px, 8, camadasClube(), true);
     if(f && f.atributos && f.atributos.recorte==='rosto')
       return t ? compostoHTML(t.url, f.url, px, 8, camadasClube())
                : `<span style="display:inline-block;width:${px}px;height:${px}px;border-radius:8px;background:#d9d9d9;overflow:hidden"><img src="${h(f.url)}" style="width:100%;height:100%;object-fit:contain"></span>`;
@@ -5125,7 +5140,7 @@ function modalFotosIA(item){
     const t = torso();
     const lado = Math.min(520, Math.floor(Math.min(innerWidth*0.9, innerHeight*0.85/RATIO_FOTO)));
     if(f.atributos && f.atributos.montagem)
-      abrirLightboxHTML(compostoHTML(f.atributos.montagem, null, lado, 16, camadasClube()));
+      abrirLightboxHTML(compostoHTML(f.atributos.montagem, null, lado, 16, camadasClube(), true));
     else if(f.atributos && f.atributos.recorte==='rosto' && t)
       abrirLightboxHTML(compostoHTML(t.url, f.url, lado, 16, camadasClube()));
     else abrirLightbox(f.url, alt);
@@ -5403,10 +5418,15 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl){
   const escudoUrl = (e && e.patch && e.patch.crest) || c.crest || null;
   const at0 = t.atributos || {};
   const fabUrl = ST.fabTeste || at0.fabricanteUrl || null;
+  /* as posições SALVAS são do quadro do uniforme; quando o fundo do editor é a
+     FOTO do jogador, mostramos/arrastamos no quadro da foto e convertemos de
+     volta no salvar — um único conjunto salvo serve aos dois quadros */
+  const noQuadroDaFoto = p2 => baseMontagem ? posParaFoto(p2) : p2;
+  const doQuadroDaFoto = p2 => baseMontagem ? posDaFoto(p2) : p2;
   const pos = {
-    patro:      Object.assign({}, PATRO_POS_PADRAO,  at0.patro      || {}),
-    escudo:     Object.assign({}, ESCUDO_POS_PADRAO, at0.escudo     || {}),
-    fabricante: Object.assign({}, FAB_POS_PADRAO,    at0.fabricante || {})
+    patro:      noQuadroDaFoto(Object.assign({}, PATRO_POS_PADRAO,  at0.patro      || {})),
+    escudo:     noQuadroDaFoto(Object.assign({}, ESCUDO_POS_PADRAO, at0.escudo     || {})),
+    fabricante: noQuadroDaFoto(Object.assign({}, FAB_POS_PADRAO,    at0.fabricante || {}))
   };
 
   const lado = Math.min(420, Math.floor(Math.min(innerWidth*0.85, (innerHeight*0.72)/RATIO_FOTO)));
@@ -5461,7 +5481,7 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl){
   ov.querySelector('#aj-cancelar').onclick = fechar;
 
   ov.querySelector('#aj-salvar').onclick = async () => {
-    const lim = o => ({ x:+o.x.toFixed(2), y:+o.y.toFixed(2), w:+o.w.toFixed(2) });
+    const lim = o => { const v = doQuadroDaFoto(o); return { x:+v.x.toFixed(2), y:+v.y.toFixed(2), w:+v.w.toFixed(2) }; };
     const at = Object.assign({}, t.atributos,
       { patro: lim(pos.patro), escudo: lim(pos.escudo), fabricante: lim(pos.fabricante) });
     const { error } = await jogo('player_photos').update({ atributos: at })
