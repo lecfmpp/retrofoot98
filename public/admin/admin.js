@@ -4480,6 +4480,28 @@ function promptMontagem(){
 const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do clube
 const MOLDE_KEY = '__molde__';   // "clube" especial: um molde de uniforme por ESTILO
 
+/* CONSISTÊNCIA DOS UNIFORMES: o primeiro molde gerado é a REFERÊNCIA de
+   enquadramento. Todo molde/camisa seguinte nasce como EDIÇÃO dessa foto
+   ("mantenha tudo idêntico, mude só o desenho da camisa") — corpo, pose, corte
+   e luz iguais em todos, em vez de cada geração sortear um enquadramento. */
+function moldeReferencia(){
+  for(const k of Object.keys(D.fotos||{}))
+    if(k.startsWith(MOLDE_KEY+'|')) return D.fotos[k];
+  return null;
+}
+function descrCamisa(estilo, corA, corB){
+  const est = ESTILOS_CAMISA.find(e=>e[0]===estilo) || ESTILOS_CAMISA[0];
+  return est[2](corA, corB);
+}
+function promptCamisaNaReferencia(camisa){
+  return [
+    'Edit the input photo. Keep EVERYTHING else IDENTICAL — the same headless male torso, the same pose, the same framing and crop (head cropped out just below the chin, no face visible, no shorts, chest-up only), the same soft studio lighting and the same plain light gray background.',
+    `ONLY change the football jersey to: ${camisa}.`,
+    'The jersey stays completely clean: no crest, no badge, no sponsor, no text, no logos anywhere.'
+  ].join(' ');
+}
+const AVISO_MARCADOR = ' The magenta and cyan are PLACEHOLDER colors for programmatic recoloring: keep them pure, flat and vivid, with shading coming only from fabric folds and lighting.';
+
 /* PINTURA SEM IA: o molde do estilo é gerado UMA vez em cores-marcador (magenta
    #FF00FF na principal, ciano #00FFFF na secundária) e daqui pra frente cada
    clube só REPINTA o molde no navegador — magenta vira a cor principal, ciano a
@@ -5263,9 +5285,12 @@ function modalUniformeIA(item){
         }
         btn.textContent = 'Gerando o molde… (até 1 min)';
         el('un-estado').textContent = 'A OpenAI está criando o molde deste estilo (uma vez só)…';
-        const urlMolde = await gerarImagemIA('torso',
-          promptTorso(item, estilo, 'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)') +
-          ' The magenta and cyan are PLACEHOLDER colors for programmatic recoloring: keep them pure, flat and vivid, with shading coming only from fabric folds and lighting.', 'medium');
+        const camisaM = descrCamisa(estilo, 'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)');
+        const ref = moldeReferencia();
+        const urlMolde = ref
+          ? await gerarImagemIA('montagem', promptCamisaNaReferencia(camisaM) + AVISO_MARCADOR, 'medium', [ref.url])
+          : await gerarImagemIA('torso', promptTorso(item, estilo,
+              'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)') + AVISO_MARCADOR, 'medium');
         molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: estilo, url: urlMolde, atributos: { recorte:'molde', estilo } };
         const rM = await jogo('player_photos').upsert(molde, { onConflict:'pack_id,club_id,jogador' });
         if(rM.error) throw new Error(erroMsg(rM.error));
@@ -5293,7 +5318,10 @@ function modalUniformeIA(item){
     const estilo = el('un-estilo').value;
     const corA = el('un-color').value, corB = el('un-color2').value;
     try{
-      const url = await gerarImagemIA('torso', promptTorso(item, estilo, corA, corB), 'medium');
+      const ref = moldeReferencia();
+      const url = ref
+        ? await gerarImagemIA('montagem', promptCamisaNaReferencia(descrCamisa(estilo, corA, corB)), 'medium', [ref.url])
+        : await gerarImagemIA('torso', promptTorso(item, estilo, corA, corB), 'medium');
       await salvarTorso(url, estilo, corA, corB, false);
       toast('Uniforme exclusivo salvo.');
       modalUniformeIA(item);

@@ -86,8 +86,8 @@ Deno.serve(async (req) => {
     // buscar URL arbitrária com a chave do projeto (SSRF).
     const urls = Array.isArray(body.imagens) ? body.imagens.map(String) : [];
     const prefixo = `${url}/storage/v1/object/public/`;
-    if (urls.length !== 2 || urls.some((u) => !u.startsWith(prefixo))) {
-      return resp(400, { error: "montagem exige exatamente 2 imagens do Storage do projeto (uniforme e rosto)." });
+    if (urls.length < 1 || urls.length > 3 || urls.some((u) => !u.startsWith(prefixo))) {
+      return resp(400, { error: "montagem exige de 1 a 3 imagens do Storage do projeto." });
     }
     const form = new FormData();
     form.append("model", "gpt-image-1");
