@@ -159,6 +159,7 @@ function buscarFotos(packId){
         if(!f || f.club_id === '__molde__') continue;
         const at = f.atributos || {};
         if(f.jogador === '__torso__'){
+          if(at.rascunho) continue;   // rascunho é do Estúdio — o jogo só mostra o APLICADO
           window.RF_UNIFORMES[String(f.club_id)] = Object.assign({ url:f.url }, at);
           continue;
         }

@@ -2324,6 +2324,14 @@ function rfNotaTom(n){ return n==null?'':(n>=7?'boa':n>=5?'media':'ruim'); }
    salário e gols. Nada de painel escuro: é card claro como o resto.
    ===================================================================== */
 function rfJerseyHTML(num){
+  // camisa do Estúdio quando o clube tem (mesma regra do gramado); CSS de fallback
+  const uni=(window.RF_UNIFORMES||{})[String(CL.clubId)];
+  if(uni && uni.miniatura){
+    return `<div class="rf-jersey rf-jersey-img" aria-hidden="true">
+      <img src="${escC(uni.miniatura)}" alt="" loading="lazy" draggable="false">
+      <b>${escC(String(num||''))}</b>
+    </div>`;
+  }
   return `<div class="rf-jersey" aria-hidden="true">
     <i class="rf-j-sl l"></i><i class="rf-j-sl r"></i>
     <i class="rf-j-body"><b>${escC(String(num||''))}</b></i>
