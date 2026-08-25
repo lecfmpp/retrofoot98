@@ -4412,10 +4412,10 @@ const ESTILOS_CAMISA = [
   ['diagonal',  'Faixa diagonal',           (a,b)=>`a plain ${a} football jersey with a single wide ${b} diagonal sash crossing the chest from the shoulder down to the bottom hem`],
   ['lisa',      'Cor única',                (a,b)=>`a plain solid ${a} football jersey with no secondary color`]
 ];
-function promptTorso(item, estiloChave){
+function promptTorso(item, estiloChave, corA, corB){
   const c = item.c;
   const est = ESTILOS_CAMISA.find(e=>e[0]===estiloChave) || ESTILOS_CAMISA[0];
-  const camisa = est[2](c.color||'#1b7a3d', c.color2||'#ffffff');
+  const camisa = est[2](corA||c.color||'#1b7a3d', corB||c.color2||'#ffffff');
   return [
     'Hyper-realistic studio photograph of the torso of a male professional football player, WITHOUT the head — the frame is cropped just below the chin, no face, no head visible at all.',
     `Wearing ${camisa}.`,
@@ -4485,6 +4485,7 @@ async function pgEstudio(){
             || String(x.c.id).toLowerCase().includes(busca)));
 
   const fotosDoClube = (x) => (x.c.squad||[]).filter(p => D.fotos[x.c.id+'|'+p.n]).length;
+  const uniformeDoClube = (x) => D.fotos[x.c.id+'|'+TORSO_KEY];
   const escudoIA = (x) => { const e=D.edits[x.c.id]; return !!(e && e.patch && e.patch.crest && /\/escudos\/ia\//.test(e.patch.crest)); };
   const totalFotos = Object.keys(D.fotos).filter(k => !k.endsWith('|'+TORSO_KEY)).length;
   const totalEscudosIA = base.filter(escudoIA).length;
@@ -4510,12 +4511,14 @@ async function pgEstudio(){
       ${kpiHTML({l:'Jogadores no catálogo', v:num(base.reduce((a,x)=>a+((x.c.squad||[]).length),0)), d:'candidatos a foto'})}
     </div>
     <div class="per" style="gap:6px;margin-bottom:2px">
-      ${[['escudos','Escudos'],['fotos','Fotos de jogadores']]
+      ${[['escudos','Escudos'],['uniformes','Uniformes'],['fotos','Fotos de jogadores']]
         .map(([id,l])=>`<span class="${aba===id?'on':''}" data-est-aba="${id}" style="padding:9px 16px">${l}</span>`).join('')}
     </div>
     <div class="card" style="overflow:hidden">
       <div class="card-h">
-        <b>${aba==='escudos'?'Escolha o clube para gerar o escudo':'Escolha o clube para gerar as fotos do elenco'}</b>
+        <b>${aba==='escudos'?'Escolha o clube para gerar o escudo'
+           : aba==='uniformes'?'Escolha o clube para gerar o uniforme'
+           :'Escolha o clube para gerar as fotos do elenco'}</b>
         <select class="busca" id="est-pais" style="width:170px">
           <option value="todos">Todos os países</option>
           ${paises.map(p=>`<option value="${h(p)}" ${p===paisSel?'selected':''}>${h(p)}</option>`).join('')}
@@ -4525,7 +4528,7 @@ async function pgEstudio(){
       </div>
       <div class="rowh" style="grid-template-columns:44px 1.7fr .9fr .6fr 1fr">
         <span></span><span>Clube</span><span>País</span><span style="text-align:center">Divisão</span>
-        <span style="text-align:right">${aba==='escudos'?'Escudo':'Fotos do elenco'}</span>
+        <span style="text-align:right">${aba==='escudos'?'Escudo':aba==='uniformes'?'Uniforme':'Fotos do elenco'}</span>
       </div>
       ${lista.length ? lista.slice(0,120).map(x => {
         const cor = x.c.color || '#333';
@@ -4544,6 +4547,10 @@ async function pgEstudio(){
             ? (escudoIA(x) ? '<span class="tag t-ok">IA salvo</span>'
                : (crest ? '<span style="font-size:12px;color:var(--dim3)">real / manual</span>'
                         : '<span style="font-size:12px;color:var(--dim3)">sem escudo</span>'))
+            : aba==='uniformes'
+            ? (uniformeDoClube(x)
+               ? `<span class="tag t-ok">${h((ESTILOS_CAMISA.find(e=>e[0]===((uniformeDoClube(x).atributos||{}).estilo))||[])[1]||'gerado')}</span>`
+               : '<span style="font-size:12px;color:var(--dim3)">sem uniforme</span>')
             : (tot ? `<span class="mono" style="font-size:12.5px;color:${nf>=tot?'var(--verde2)':nf?'var(--ambar)':'var(--dim3)'}">${nf}/${tot}</span>`
                    : '<span style="font-size:12px;color:var(--dim3)">sem elenco</span>')}</span>
         </div>`;
@@ -4561,7 +4568,10 @@ async function pgEstudio(){
   document.querySelectorAll('[data-est-clube]').forEach(r => r.onclick = () => {
     const item = (D.catalogo||[]).find(x => String(x.c.id)===String(r.dataset.estClube));
     if(!item) return;
-    if((ST.abaEstudio||'escudos')==='escudos') modalEscudoIA(item); else modalFotosIA(item);
+    const abaAtual = ST.abaEstudio||'escudos';
+    if(abaAtual==='escudos') modalEscudoIA(item);
+    else if(abaAtual==='uniformes') modalUniformeIA(item);
+    else modalFotosIA(item);
   });
 }
 
@@ -4745,19 +4755,12 @@ function modalFotosIA(item){
         ? `<img src="${h(torso().url)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover">`
         : `<i class="av" style="width:44px;height:44px;border-radius:8px;background:${h(c.color||'#333')};color:#fff;font-size:11px">⚽</i>`}</span>
       <span style="flex:1;min-width:0">
-        <b style="display:block;font-size:13px">Uniforme do clube — base única do elenco</b>
+        <b style="display:block;font-size:13px">Uniforme do clube</b>
         <small style="font-size:11.5px;color:var(--dim2)">${torso()
-          ?'Gerado limpo — o escudo do clube e o patrocinador entram como camadas, por cima.'
-          :'Ainda não gerado — sai limpo, com o painel branco do patrocinador; escudo e logo entram como camadas.'}</small>
+          ?'Gerado — os rostos são montados sobre ele. Cores, estilo e patrocínio: aba Uniformes.'
+          :'Ainda não gerado — gere na aba Uniformes; sem ele os rostos aparecem soltos.'}</small>
       </span>
-      ${editar?`<select class="busca" id="ft-estilo-camisa" style="width:170px" title="Estilo da camisa">
-        ${ESTILOS_CAMISA.map(e=>`<option value="${e[0]}" ${(torso()&&torso().atributos&&torso().atributos.estilo)===e[0]?'selected':''}>${h(e[1])}</option>`).join('')}
-      </select>`:''}
-      <input class="busca" id="ft-patro" style="width:180px" placeholder="URL do logo (prévia do patrocínio)" value="${h(ST.patroTeste||'')}">
-      ${editar?`<button class="btn btn-sm btn-ghost" id="ft-patro-up" title="Enviar arquivo do logo do patrocinador">↥ logo</button>
-        <input type="file" id="ft-patro-arq" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">
-        <button class="btn btn-sm btn-ghost" id="ft-patro-pos" title="Arrastar e redimensionar o logo sobre o painel branco">✥ Ajustar</button>`:''}
-      ${editar?`<button class="btn btn-sm ${torso()?'btn-ghost':''}" id="ft-torso">${torso()?'Refazer uniforme':'Gerar uniforme'}</button>`:''}
+      ${editar?`<button class="btn btn-sm btn-ghost" id="ft-ir-uniforme">Abrir na aba Uniformes</button>`:''}
     </div>
     ${editar && sq.length ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <button class="btn btn-sm" id="ft-todos">Gerar os que faltam (${faltantes().length})</button>
@@ -4788,25 +4791,8 @@ function modalFotosIA(item){
     const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
     abrirLightboxHTML(compostoHTML(t.url, null, lado, 16, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro));
   };
-  /* o logo de prévia entra na hora, sem regerar nada — é só uma camada */
-  el('ft-patro').onchange = () => { ST.patroTeste = el('ft-patro').value.trim(); modalFotosIA(item); };
-  const btPos = el('ft-patro-pos');
-  if(btPos) btPos.onclick = () => modalAjustePatrocinio(item, () => modalFotosIA(item));
-  const upPatro = el('ft-patro-up');
-  if(upPatro){
-    upPatro.onclick = () => el('ft-patro-arq').click();
-    el('ft-patro-arq').onchange = async () => {
-      const f = el('ft-patro-arq').files[0]; if(!f) return;
-      if(f.size > 2*1024*1024) return toast('Logo acima de 2 MB.', true);
-      const ext = (f.name.split('.').pop()||'png').toLowerCase();
-      const caminho = `logos/${Date.now()}-${chaveNome(f.name).slice(0,24)||'logo'}.${ext}`;
-      const up = await sb.storage.from('patrocinadores').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
-      if(up.error) return toast(erroMsg(up.error), true);
-      ST.patroTeste = sb.storage.from('patrocinadores').getPublicUrl(caminho).data.publicUrl;
-      toast('Logo enviado — aplicado na prévia de todo o elenco.');
-      modalFotosIA(item);
-    };
-  }
+  const irUni = el('ft-ir-uniforme');
+  if(irUni) irUni.onclick = () => { ST.abaEstudio='uniformes'; modalUniformeIA(item); };
 
   if(!editar) return;
 
@@ -4825,24 +4811,6 @@ function modalFotosIA(item){
       const bv = linha.querySelector('[data-ver]'); if(bv) bv.disabled = false;
     }
   }
-
-  const btTorso = el('ft-torso');
-  if(btTorso) btTorso.onclick = async () => {
-    btTorso.disabled = true; const rot = btTorso.textContent; btTorso.textContent = 'Gerando…';
-    const estilo = (el('ft-estilo-camisa')||{}).value || 'vertical';
-    try{
-      const url = await gerarImagemIA('torso', promptTorso(item, estilo), 'medium');
-      const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: TORSO_KEY, url, atributos:{ recorte:'torso', estilo } };
-      const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
-      if(error) throw new Error(erroMsg(error));
-      D.fotos[c.id+'|'+TORSO_KEY] = reg;
-      registrar('estudio.torso', String(c.id), { pacote: ST.packId });
-      toast('Camisa do clube salva.');
-      modalFotosIA(item);   // reabre: as miniaturas passam a compor sobre a camisa nova
-      return;
-    }catch(err){ toast(err.message||'Falha ao gerar a camisa.', true); }
-    btTorso.disabled = false; btTorso.textContent = rot;
-  };
 
   el('ft-lista').addEventListener('click', async ev => {
     const linha = ev.target.closest('[data-foto-jog]'); if(!linha) return;
@@ -5034,5 +5002,104 @@ function modalAjustePatrocinio(item, onSalvo){
     registrar('estudio.patro.pos', String(c.id), at.patro);
     toast('Posição do patrocínio salva.');
     fechar(); if(onSalvo) onSalvo();
+  };
+}
+
+/* ---------- modal: uniforme do clube ----------
+   A casa do uniforme: estilo da camisa, CORES (pré-preenchidas com as do clube,
+   editáveis só para a geração — não mexem no cadastro do clube), patrocínio
+   (URL, upload e ajuste por arrasto) e a prévia composta com escudo + logo. */
+function modalUniformeIA(item){
+  const c = item.c, editar = podeEditar('dados');
+  const t = () => D.fotos[c.id+'|'+TORSO_KEY];
+  const escudo = () => { const e = D.edits[c.id]; return (e && e.patch && e.patch.crest) || c.crest || null; };
+  const at = (t() && t().atributos) || {};
+  const corIni  = (at.cores && at.cores[0]) || c.color  || '#1b7a3d';
+  const corIni2 = (at.cores && at.cores[1]) || c.color2 || '#ffffff';
+
+  abrirModal(`
+    <h3>Uniforme — ${h(c.short||c.name)}</h3>
+    <div class="duas-col">
+      <div class="col" style="gap:12px">
+        <div class="st" style="line-height:1.6">Base única do elenco: sai limpa, com o painel branco
+          do patrocinador. Escudo e logo entram como camadas — trocou um deles, todas as fotos mudam juntas.</div>
+        <label class="f">Estilo da camisa
+          <select class="f" id="un-estilo">
+            ${ESTILOS_CAMISA.map(e=>`<option value="${e[0]}" ${(at.estilo||'vertical')===e[0]?'selected':''}>${h(e[1])}</option>`).join('')}
+          </select></label>
+        <div class="g2" style="gap:12px">
+          ${campoCor('un-color','Cor principal', corIni)}
+          ${campoCor('un-color2','Cor secundária', corIni2)}
+        </div>
+        <div id="un-preview-cores" style="padding:2px 0"></div>
+        <label class="f">Logo do patrocinador (prévia — camada sobre o painel branco)
+          <span style="display:flex;gap:8px">
+            <input class="f" id="un-patro" style="flex:1" placeholder="https://… ou envie um arquivo" value="${h(ST.patroTeste||'')}">
+            ${editar?`<button class="btn btn-sm btn-ghost" id="un-patro-up" style="flex:0 0 auto" title="Enviar arquivo do logo">↥</button>
+            <input type="file" id="un-patro-arq" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">`:''}
+          </span></label>
+        ${editar?`<button class="btn btn-sm btn-ghost" id="un-ajustar" style="align-self:flex-start" ${t()?'':'disabled'}>✥ Ajustar posição do patrocínio</button>`:''}
+      </div>
+      <div class="col" style="gap:10px;align-items:center;justify-content:center">
+        <div id="un-preview" title="Clique para ver em tela expandida" style="cursor:zoom-in">
+          ${t() ? compostoHTML(t().url, null, 240, 12, ST.patroTeste, escudo(), at.patro)
+                : `<div style="width:240px;height:240px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--bd2);border-radius:12px;font-size:12px;color:var(--dim3)">sem uniforme ainda</div>`}
+        </div>
+        <div id="un-estado" style="font-size:12px;color:var(--dim2);min-height:16px">${t()&&at.estilo?('Estilo atual: '+h((ESTILOS_CAMISA.find(e=>e[0]===at.estilo)||[])[1]||at.estilo)):''}</div>
+      </div>
+    </div>
+    <div class="acoes">
+      ${editar?`<button class="btn" id="un-gerar">${t()?'Refazer uniforme':'Gerar uniforme'}</button>`:''}
+      <button class="btn btn-ghost" data-fechar>Fechar</button>
+    </div>`, 'lg');
+
+  ligarCores('un-color','un-color2','un-preview-cores');
+
+  el('un-preview').onclick = () => {
+    const tt = t(); if(!tt) return;
+    const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
+    abrirLightboxHTML(compostoHTML(tt.url, null, lado, 16, ST.patroTeste, escudo(), (tt.atributos||{}).patro));
+  };
+  el('un-patro').onchange = () => { ST.patroTeste = el('un-patro').value.trim(); modalUniformeIA(item); };
+
+  if(!editar) return;
+
+  const upBt = el('un-patro-up');
+  if(upBt){
+    upBt.onclick = () => el('un-patro-arq').click();
+    el('un-patro-arq').onchange = async () => {
+      const f = el('un-patro-arq').files[0]; if(!f) return;
+      if(f.size > 2*1024*1024) return toast('Logo acima de 2 MB.', true);
+      const ext = (f.name.split('.').pop()||'png').toLowerCase();
+      const caminho = `logos/${Date.now()}-${chaveNome(f.name).slice(0,24)||'logo'}.${ext}`;
+      const up = await sb.storage.from('patrocinadores').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
+      if(up.error) return toast(erroMsg(up.error), true);
+      ST.patroTeste = sb.storage.from('patrocinadores').getPublicUrl(caminho).data.publicUrl;
+      toast('Logo enviado.');
+      modalUniformeIA(item);
+    };
+  }
+  el('un-ajustar').onclick = () => modalAjustePatrocinio(item, () => modalUniformeIA(item));
+
+  el('un-gerar').onclick = async () => {
+    const btn = el('un-gerar');
+    btn.disabled = true; const rot = btn.textContent; btn.textContent = 'Gerando… (até 1 min)';
+    el('un-estado').textContent = 'A OpenAI está costurando o uniforme…';
+    const estilo = el('un-estilo').value;
+    const corA = el('un-color').value, corB = el('un-color2').value;
+    try{
+      const url = await gerarImagemIA('torso', promptTorso(item, estilo, corA, corB), 'medium');
+      // a posição do patrocínio salva sobrevive ao refazer — o painel muda pouco e o ajuste é caro
+      const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: TORSO_KEY, url,
+        atributos: Object.assign({}, (t()||{}).atributos, { recorte:'torso', estilo, cores:[corA, corB] }) };
+      const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
+      if(error) throw new Error(erroMsg(error));
+      D.fotos[c.id+'|'+TORSO_KEY] = reg;
+      registrar('estudio.torso', String(c.id), { pacote: ST.packId, estilo });
+      toast('Uniforme salvo.');
+      modalUniformeIA(item);
+      return;
+    }catch(err){ el('un-estado').textContent=''; toast(err.message||'Falha ao gerar o uniforme.', true); }
+    btn.disabled = false; btn.textContent = rot;
   };
 }
