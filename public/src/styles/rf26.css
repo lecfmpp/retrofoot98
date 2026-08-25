@@ -8485,3 +8485,11 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-fotonum.g{width:52px;height:52px;border-radius:12px}
 .rf-fotonum.g .rf-fnum{min-width:17px;height:17px;line-height:17px;font-size:10.5px;right:4px;bottom:4px}
 .rf-fotonum.eln{width:40px;height:40px;border-radius:10px}
+
+
+/* ===== CABEÇALHO ALINHADO COM A COLUNA =====
+   A regra antiga alinhava à direita "do 3º em diante", sem olhar o conteúdo:
+   FOR ficava à esquerda do seu número e CLUBE à direita do seu nome. Agora o
+   rótulo só vai à direita quando tem .dir — igual ao dado que ele encima. */
+.rf-mkt-head>span:not(.dir){text-align:left}
+.rf-mkt-head>span.dir{text-align:right}

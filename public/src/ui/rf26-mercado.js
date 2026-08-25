@@ -373,7 +373,8 @@ function rfMktComprarTabelaHTML(){
     <span class="rf-mkt-v leve">${escC(rfMkSalario(p))}</span>
     ${rfMkBt('Propor',propor)}
   </div>`;});
-  const cabecalho=`<span>JOGADOR</span><span>FOR</span><span>POS</span><span>NAC</span><span>IDA</span>
+  const cabecalho=`<span>JOGADOR</span><span class="dir">FOR</span><span class="dir">POS</span>
+    <span class="dir">NAC</span><span class="dir">IDA</span>
     <span>CLUBE</span><span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
   const vazio=(rfMktF().q||'').trim()
     ? 'Nenhum jogador com esse nome — e os filtros de posicao, forca e preco tambem contam.'
@@ -441,7 +442,8 @@ function rfMktLeilaoHTML(){
       ${rfMkBt(meu?'Cobrir':'Dar lance',`rfMkLance('${escC(l.sellerId)}','${escC(l.player)}')`, meu)}
     </div>`;
   };
-  const cabecalho=`<span>JOGADOR</span><span>FOR</span><span>POS</span><span>NAC</span><span>IDA</span>
+  const cabecalho=`<span>JOGADOR</span><span class="dir">FOR</span><span class="dir">POS</span>
+    <span class="dir">NAC</span><span class="dir">IDA</span>
     <span>CLUBE</span><span class="dir">LANCE ATUAL</span><span class="dir">SEU LANCE</span>
     <span class="dir">FECHA</span><span></span>`;
   const arrematados=fechados.map(l=>{
@@ -600,7 +602,7 @@ function rfMktVenderHTML(){
        Marca de seleção que não corresponde a uma escolha do utilizador confunde
        em vez de orientar. */
     return `<div class="rf-mkt-row" onclick="rfVerFichaJogador('${escC(p.n)}','${escC(String(CL.clubId))}')" title="Ver a ficha de ${escC(p.n)}">
-      <span class="rf-mkt-nome">${rfMkCamisaHTML(nums[p.pid]||p.num, p)}${rfLinkJogador(p.n, CL.clubId, `<b>${escC(p.n)}</b>`)}</span>
+      <span class="rf-mkt-n">${rfMkFotoMini(p, CL.clubId)}${rfLinkJogador(p.n, CL.clubId)}</span>
       <span class="rf-mkt-f">${p.f}</span>
       ${rfMkPos(p)}
       ${(typeof rfNacHTML==='function')?rfNacHTML(p,'rf-mkt-x'):''}
@@ -612,7 +614,8 @@ function rfMktVenderHTML(){
   });
   /* FIM DE CONTRATO e INTERESSE saíram: com nove colunas o botão Listar só
      aparecia depois de rolar. As duas continuam na ficha do jogador. */
-  const cabecalho=`<span>JOGADOR</span><span>FOR</span><span>POS</span><span>NAC</span><span>IDA</span>
+  const cabecalho=`<span>JOGADOR</span><span class="dir">FOR</span><span class="dir">POS</span>
+    <span class="dir">NAC</span><span class="dir">IDA</span>
     <span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
   // QUEM VOCÊ NÃO DEVERIA VENDER: o titular mais caro de repor
   const chave=[...xi].map(pid=>sq.find(p=>p.pid===pid)).filter(Boolean).filter(p=>{

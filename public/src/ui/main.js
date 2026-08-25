@@ -4123,6 +4123,13 @@ function panCorreio(){
 function clViewTeam(clubId){
   clCloseOverlay();
   CL.viewClubId=clubId; CL.viewTab='jogo'; CL.viewSelPlayer=null;
+  /* VISITA DENTRO DO JOGO: a página Elenco & Base atende o clube visitado
+     (sem financeiro, sem Base/Treino) — o usuário não sai da estrutura de
+     menu para uma tela solta. O rf26 é a pele em produção; sem ela, cai na
+     tela antiga. */
+  if(typeof rfGo==='function' && typeof rfSetTab==='function'){
+    CL.screen='main'; rfGo('elenco'); rfSetTab('elenco','elenco'); return;
+  }
   CL.screen='teamview'; cdraw();
 }
 // hotseat: "voltar" durante a vez de um assento tem que devolver pra scSeatTurn, não pra

@@ -13,6 +13,9 @@
    ===================================================================== */
 
 /* ---- peças ---- */
+/* clube em VISITA (null = estou no meu). Vale para toda a página Elenco. */
+function rfElVisita(){ return (CL.viewClubId && String(CL.viewClubId)!==String(CL.clubId)) ? CL.viewClubId : null; }
+function rfElClubeAtivo(){ return rfElVisita() || CL.clubId; }
 function rfElBarra(rot, valor, pct, cor){
   return `<div class="rf-el-attr">
     <span class="rf-el-attr-l">${escC(rot)}</span>
@@ -150,25 +153,26 @@ function rfElnFormaHTML(p){
 }
 function rfElnRows(n){ CL.elnRows=n; cdraw(); }
 function rfElElencoHTML(){
-  const sq=squad(CL.clubId).slice().sort(bySquadOrder);
-  const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(CL.clubId):{};
-  const clube=clubOf(CL.clubId)||{};
+  const cid=rfElClubeAtivo(), vis=rfElVisita();
+  const sq=squad(cid).slice().sort(bySquadOrder);
+  const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(cid):{};
+  const clube=(typeof anyClubOf==='function'?anyClubOf(cid):clubOf(cid))||{};
   const crest=(typeof clubCrestUrl==='function')?clubCrestUrl(clube):null;
-  const pos=(typeof tablePos==='function')?tablePos(CL.clubId):0;
+  const pos=(typeof tablePos==='function')?tablePos(cid):0;
   const divLbl=(typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[S.division])||('Série '+S.division);
   const pais=(typeof universeCountryInfo==='function')?((universeCountryInfo()||{}).name||''):'';
   const fMedia=sq.length?Math.round(sq.reduce((t,p)=>t+(p.f||0),0)/sq.length):0;
   const idMedia=sq.length?(Math.round(10*sq.reduce((t,p)=>t+(p.age||0),0)/sq.length)/10):0;
-  const folha=rfFolha();
+  const folha=vis?0:rfFolha();
   const mostrar=CL.elnRows||20;
   const lista=sq.slice(0,mostrar);
-  const treinoSet=new Set(((S.trainingByClub&&S.trainingByClub[CL.clubId])||[]).map(String));
+  const treinoSet=new Set(((S.trainingByClub&&S.trainingByClub[cid])||[]).map(String));
   const linhas=lista.map(p=>{
-    const sel=CL.selPlayer===p.pid;
+    const sel=(vis?CL.viewSelPlayer:CL.selPlayer)===p.pid;
     const en=Math.round(p.energy!=null?p.energy:100);
     const emTreino=treinoSet.has(String(p.pid))||p._training;
     const tit=false;
-    return `<div class="rf-eln-row rf-eln-g ${sel?'sel':''}" onclick="rfSelPlayer('${escC(p.pid)}')">
+    return `<div class="rf-eln-row rf-eln-g ${sel?'sel':''}" onclick="rfSelPlayer('${escC(p.pid)}')" title="Ver a ficha de ${escC(p.n)}">
       <span class="rf-eln-jog">
         ${rfFotoNumHTML(rfFxFoto(p), nums[p.pid]||p.num||'', 'eln')}
         <b class="rf-eln-nome">${escC(p.n)}</b>
@@ -200,12 +204,12 @@ function rfElElencoHTML(){
       <div class="rf-eln-band-id">
         <span class="rf-fx-microt">${escC(divLbl.toUpperCase())} · TEMPORADA ${escC(String(S.season||''))}</span>
         <b class="rf-eln-band-n">${escC(clube.name||clube.short||'—')}</b>
-        <span class="rf-eln-band-s">${escC(pais)} · fundado em ${rfFxFundado(CL.clubId)}${pos?' · '+pos+'º na tabela':''}</span>
+        <span class="rf-eln-band-s">${escC(pais)} · fundado em ${rfFxFundado(cid)}${pos?' · '+pos+'º na tabela':''}</span>
       </div>
       <div class="rf-eln-band-kpis">
         <div class="rf-eln-bk"><span class="rf-fx-microt">FORÇA MÉDIA</span><b>${fMedia}</b></div>
         <div class="rf-eln-bk"><span class="rf-fx-microt">IDADE MÉDIA</span><b>${String(idMedia).replace('.',',')}</b></div>
-        <div class="rf-eln-bk oliva"><span class="rf-fx-microt">FOLHA / SEM</span><b>${escC(rfDin(folha))}</b></div>
+        ${vis?'':`<div class="rf-eln-bk oliva"><span class="rf-fx-microt">FOLHA / SEM</span><b>${escC(rfDin(folha))}</b></div>`}
       </div>
     </div>
     <div class="rf-card rf-eln-tbl">
@@ -228,7 +232,10 @@ function rfElElencoHTML(){
     </div>`;
 }
 
-function rfSelPlayer(pid){ CL.selPlayer=pid; rfSetTab('elenco','ficha'); }
+function rfSelPlayer(pid){
+  if(rfElVisita()) CL.viewSelPlayer=pid; else CL.selPlayer=pid;
+  rfSetTab('elenco','ficha');
+}
 
 /* =====================================================================
    RENOVAR CONTRATO — o botão existia, a renovação não acontecia.
@@ -467,7 +474,7 @@ function rfFxEvolucaoHTML(p){
 /* A MESMA ficha serve o meu elenco e o de qualquer clube visitado: recebe o
    clube e o jogador; sem argumentos, é o meu (comportamento de sempre). */
 function rfElFichaHTML(clubIdArg, pidArg){
-  const cid = clubIdArg || CL.clubId;
+  const cid = clubIdArg || rfElClubeAtivo();
   const doMeu = String(cid)===String(CL.clubId);
   const sq=squad(cid);
   const alvoPid = pidArg || (doMeu?CL.selPlayer:CL.viewSelPlayer);
@@ -837,17 +844,28 @@ function rfBasePromoverGo(idx){
 /* ---- cabeçalho da página: o subtítulo conta o elenco, e as duas ações do
    pacote ficam no canto (a amarela leva pra Formação, que é onde se escala) ---- */
 function rfElSubHTML(){
-  const sq=squad(CL.clubId);
+  const vis=rfElVisita();
+  const sq=squad(rfElClubeAtivo());
+  if(vis){
+    /* VISITA: nada de financeiro do outro clube — só o retrato do elenco */
+    const media=sq.length?Math.round(sq.reduce((t,p)=>t+(p.f||0),0)/sq.length):0;
+    const c=anyClubOf(vis)||{};
+    return `${sq.length} jogadores · força média ${media}${c.short?' · '+escC(c.short):''} · visualização`;
+  }
   const base=(S._youthCandidates&&S._youthCandidatesRound===S.round)?S._youthCandidates.length:0;
   const folha=sq.reduce((t,p)=>t+(typeof playerSalary==='function'?playerSalary(p):0),0);
   return `${sq.length} no principal · ${base} na base · folha ${fmt(folha)}/sem`;
 }
 function rfElAcoesHTML(){
+  if(rfElVisita()) return `<div class="rf-mk-acoes">
+    <button type="button" class="rf-btn rf-btn-cta" onclick="rfElVoltarMeu()">‹ Voltar ao meu elenco</button>
+  </div>`;
   return `<div class="rf-mk-acoes">
     <button type="button" class="rf-btn rf-btn-secondary" onclick="rfElExportar()">${rfIcone('exportar',16)} Exportar elenco</button>
     <button type="button" class="rf-btn rf-btn-cta" onclick="rfGo('hub')">${rfIcone('jogar',16)} Ir para a formação</button>
   </div>`;
 }
+function rfElVoltarMeu(){ CL.viewClubId=null; CL.viewSelPlayer=null; rfSetTab('elenco','elenco'); }
 function rfElExportar(){
   const sq=squad(CL.clubId).slice().sort(bySquadOrder);
   const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(CL.clubId):{};

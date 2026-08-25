@@ -98,13 +98,18 @@ const RF_PAGES=[
            {k:'contra',  l:()=>'Contrapropostas',build:()=>rfMktContraHTML()},
            {k:'transf',  l:()=>'Transferências', build:()=>rfMktTransfHTML()} ] },
 
+  /* ELENCO — a MESMA página serve o meu clube e a VISITA a outro (rfElVisita()):
+     na visita some o financeiro do subtítulo e as abas Base/Treino especial, e
+     o elenco entra em leitura. Assim ver o adversário não tira o usuário do
+     jogo para uma tela solta fora do menu. */
   { key:'elenco', ico:'elenco', label:'Elenco & Base', curto:'Elenco',
-    titulo:'Elenco & Base', sub:()=>rfElSubHTML(),
+    titulo:()=>rfElVisita()?('Elenco · '+((anyClubOf(rfElVisita())||{}).short||'clube')):'Elenco & Base',
+    sub:()=>rfElSubHTML(),
     acoes:()=>rfElAcoesHTML(), grid:'minmax(0,1fr) 340px',
     tabs:[ {k:'elenco', l:()=>'Elenco',           build:()=>rfElElencoHTML()},
            {k:'ficha',  l:()=>'Ficha do jogador', build:()=>rfElFichaHTML()},
-           {k:'base',   l:()=>'Base',             build:()=>rfElBaseHTML()},
-           {k:'treino', l:()=>'Treino especial',  build:()=>rfElTreinoHTML()} ] },
+           {k:'base',   l:()=>'Base',             build:()=>rfElBaseHTML(), show:()=>!rfElVisita()},
+           {k:'treino', l:()=>'Treino especial',  build:()=>rfElTreinoHTML(), show:()=>!rfElVisita()} ] },
 
   { key:'campeonatos', ico:'trofeu', label:'Campeonatos', curto:'Copas',
     titulo:'Campeonatos', sub:()=>rfCpSubHTML(),
@@ -337,7 +342,7 @@ function rfVerFichaJogador(nome, clubId){
   if(typeof ensureForeignClub==='function' && arguments.length>2 && arguments[2]) ensureForeignClub(arguments[2], cid);
   const p=((typeof squad==='function')?squad(cid):[]).find(x=>x.n===nome);
   if(typeof clViewTeam==='function') clViewTeam(cid);
-  if(p && typeof clViewSelPlayer==='function') clViewSelPlayer(p.pid);
+  if(p){ CL.viewSelPlayer=p.pid; if(typeof rfSetTab==='function') rfSetTab('elenco','ficha'); else cdraw(); }
 }
 function rfLinkJogador(nome, clubId, html, pais){
   const acao=`rfVerFichaJogador('${escC(String(nome))}','${escC(String(clubId||''))}'${pais?`,'${escC(String(pais))}'`:''})`;
