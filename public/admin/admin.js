@@ -5785,7 +5785,7 @@ function modalUniformeIA(item){
           if(wiz.pvMini && wiz.pvMini.startsWith('blob:')) URL.revokeObjectURL(wiz.pvMini);
           wiz.pvMini = URL.createObjectURL(blob); wiz.pvMiniChave = chave;
         }
-        alvo.innerHTML = `<img src="${h(wiz.pvMini)}" style="max-width:92%;max-height:92%;object-fit:contain">`;
+        alvo.innerHTML = `<img src="${h(wiz.pvMini)}" style="max-width:78%;max-height:78%;object-fit:contain;display:block">`;
       }catch(err){ alvo.innerHTML = '<small style="font-size:11px;color:var(--vermelho)">falha na pintura</small>'; }
     };
     desenharMini();
