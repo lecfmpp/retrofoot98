@@ -309,6 +309,12 @@ function rfCrestEnvolve(club, dentro){
     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();${acao}}"
   >${dentro}</span>`;
 }
+/* nome do clube CLICÁVEL (mesma porta do escudo): abre o plantel do clube em
+   todo lugar onde nome+escudo aparecem juntos. Fora da partida ao vivo. */
+function rfNomeClube(c, cls){
+  const nome = escC((c && (c.short||c.name)) || '—');
+  return rfCrestEnvolve(c||{}, `<span class="${cls||''}">${nome}</span>`);
+}
 function rfCrest(club, size){
   club=club||{};
   const {col,col2}=clubColors(club);
@@ -3101,7 +3107,7 @@ function rfModalConviteHTML(o){
         <span class="rf-of-sub">O empresário ligou — querem conversar com você.</span>
       </div>
       <div class="rf-sp"></div>
-      <span class="rf-of-clube">${rfCrest(c,22)}<span>${escC(c.short)}</span></span>
+      <span class="rf-of-clube">${rfCrest(c,22)}${rfNomeClube(c)}</span>
       <button type="button" class="rf-dlg-x" onclick="clCloseOverlay()" aria-label="Fechar">✖</button>
     </div>
     <div class="rf-of-body">
@@ -3152,7 +3158,7 @@ function rfModalPropostaHTML(o){
         <span class="rf-of-sub">Eles puseram os termos na mesa.</span>
       </div>
       <div class="rf-sp"></div>
-      <span class="rf-of-clube">${rfCrest(c,22)}<span>${escC(c.short)}</span></span>
+      <span class="rf-of-clube">${rfCrest(c,22)}${rfNomeClube(c)}</span>
       <button type="button" class="rf-dlg-x" onclick="clCloseOverlay()" aria-label="Fechar">✖</button>
     </div>
     <div class="rf-of-body">

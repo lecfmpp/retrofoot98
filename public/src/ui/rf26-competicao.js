@@ -128,7 +128,7 @@ function rfFimTemporadaHTML(sum){
             return `<div class="rf-ft-lin ${eu?'me':''}">
               <span class="rf-ft-pos">${i+1}º</span>
               <span class="rf-ft-crest">${rfCrest(c,22)}</span>
-              <span class="rf-ft-n">${escC(c.short)}</span>
+              ${rfNomeClube(c,"rf-ft-n")}
               <div class="rf-sp"></div>
               ${z?`<span class="rf-ft-tag ${z}">${z==='promo'?'Acesso à '+divisionLabelOf(rfDivAcima()):z==='drop'?'Rebaixado':'Playoff'}</span>`:''}
             </div>`;
@@ -145,7 +145,7 @@ function rfFimTemporadaHTML(sum){
                 <span class="rf-ft-comp">${escC(x.nome)}</span>
                 <div class="rf-sp"></div>
                 <span class="rf-ft-crest">${rfCrest(c,20)}</span>
-                <span class="rf-ft-n">${escC(c.short||c.name||'—')}</span>
+                ${rfNomeClube(c,"rf-ft-n")}
               </div>`; }).join('')}
           </div>`;
         })()}
@@ -412,7 +412,7 @@ function rfCompeticaoHTML(key){
                 return `<div class="rf-cp-lin ${eu?'me':''}">
                   <span class="rf-cp-pos">${i+1}º</span>
                   <span class="rf-ft-crest">${rfCrest(cc,20)}</span>
-                  <span class="rf-ft-n">${escC(cc.short)}</span>
+                  ${rfNomeClube(cc,"rf-ft-n")}
                   <div class="rf-sp"></div>
                   <span class="rf-cp-j">${t.P||0}j</span>
                   <span class="rf-cp-p">${t.Pts||0}</span>
@@ -431,16 +431,16 @@ function rfCompeticaoHTML(key){
                   const g=gobj[L]; const lider=(Object.values(g.table||{}).sort((a,b)=>b.Pts-a.Pts)[0])||null;
                   const c2=lider?(anyClubOf(lider.id)||{short:'—'}):null;
                   return `<div class="rf-cp-g"><span class="rf-cp-gl">${escC(L)}</span>
-                    <span class="rf-ft-n">${escC(c2?c2.short:'—')}</span></div>`;}).join(''))
+                    ${c2?rfNomeClube(c2,"rf-ft-n"):'<span class="rf-ft-n">—</span>'}</div>`;}).join(''))
               : (vivos.length?vivos.slice(0,12).map(id=>{
                   const c2=anyClubOf(id)||{short:id};
                   return `<div class="rf-cp-g ${id===meu?'me':''}"><span class="rf-ft-crest">${rfCrest(c2,20)}</span>
-                    <span class="rf-ft-n">${escC(c2.short)}</span></div>`;}).join('')
+                    ${rfNomeClube(c2,"rf-ft-n")}</div>`;}).join('')
                  : (inscritos.length
                      ? inscritos.slice(0,12).map(id=>{
                          const c2=anyClubOf(id)||{short:id};
                          return `<div class="rf-cp-g ${id===meu?'me':''}"><span class="rf-ft-crest">${rfCrest(c2,20)}</span>
-                           <span class="rf-ft-n">${escC(c2.short)}</span></div>`;}).join('')
+                           ${rfNomeClube(c2,"rf-ft-n")}</div>`;}).join('')
                      : '<span class="rf-note">Ainda não há clubes classificados.</span>'))
           }</div>
         </div>
@@ -887,7 +887,7 @@ function rfCopaFaseHTML(key){
           <span class="rf-label-r">${vagas?vagas+(vagas===1?' vaga':' vagas'):''}</span></div>
         ${linhas.length?linhas.map(l=>`<div class="rf-cf-lin ${l.eu?'meu':''}">
           <span class="rf-ft-crest">${rfCrest(l.cc,22)}</span>
-          <span class="rf-cf-t">${escC(l.nome)}</span>
+          ${rfNomeClube(l.cc,"rf-cf-t")}
           <span class="rf-cf-p">${escC(l.pl)}</span>
           ${l.ok===null?'<span class="rf-cf-tag em">em disputa</span>'
             :`<span class="rf-cf-tag ${l.ok?'ok':'no'}">${l.ok?'classificado':'eliminado'}</span>`}
@@ -928,7 +928,7 @@ function rfCopaFaseHTML(key){
             <span class="rf-label-r">${proxima?escC(proxima.toLowerCase()):''}</span></div>
           ${adiante.length?adiante.slice(0,6).map(l=>`<div class="rf-cf-adv">
             <span class="rf-ft-crest">${rfCrest(l.cc,22)}</span>
-            <span class="rf-ft-n">${escC(l.nome)}</span>
+            ${rfNomeClube(l.cc,"rf-ft-n")}
             <div class="rf-sp"></div>
             <span class="rf-cf-advd">${(l.cc.div||l.cc.division)?escC(divisionLabelOf(l.cc.div||l.cc.division)):''}</span>
           </div>`).join(''):'<span class="rf-note">O sorteio da próxima fase define o confronto.</span>'}
@@ -1127,12 +1127,18 @@ function rfVerTimeHTML(clubId){
              nome, e clicar num jogador de OUTRO clube abre direto o modal de
              transferência (o mesmo Propor do Mercado, que já valida janela,
              trava de negociado etc.). No próprio clube a linha segue inerte. */
-          const foto=(typeof rfMkFotoMini==='function')?rfMkFotoMini(p, clubId):'';
+          const foto=(typeof rfFotoDe==='function')?rfFotoDe(p, clubId):null;
           const deOutro = clubId!==CL.clubId;
           const clique = deOutro ? ` onclick="rfMkPropor('${escC(clubId)}','${escC(p.n)}','')" title="Fazer proposta por ${escC(p.n)}"` : '';
+          /* 1ª coluna: a MINIATURA com o número dentro (canto inferior direito,
+             com folga das bordas); sem foto, o crachá verde de sempre */
+          const numTxt=escC(String(p.num!=null?p.num:'—'));
+          const retrato = foto
+            ? `<span class="rf-vt-foto"><img src="${escC(foto)}" alt="" loading="lazy" draggable="false"><b>${numTxt}</b></span>`
+            : `<span class="rf-pl-num">${numTxt}</span>`;
           return `<div class="rf-pl${deOutro?' rf-pl-clicavel':''}" style="cursor:${deOutro?'pointer':'default'}"${clique}>
-            <span class="rf-pl-num">${escC(String(p.num!=null?p.num:'—'))}</span>
-            <span class="rf-pl-id">${foto}<span class="rf-pl-n">${escC(p.n)}</span></span>
+            ${retrato}
+            <span class="rf-pl-id"><span class="rf-pl-n">${escC(p.n)}</span></span>
             <span class="rf-pl-pos">${escC(posLetter(p.s))}</span>
             <span class="rf-pl-en"><i class="rf-ener" style="--v:${en};--c:${rfEnergiaCor(en)}"></i></span>
             <span class="rf-pl-for">${p.f}</span>
@@ -1327,7 +1333,7 @@ function rfCampeaoHTML(d){
   const trof=(typeof rfCompTrofeuHTML==='function' && d.trofeu)
     ? rfCompTrofeuHTML({trofeu:d.trofeu}, 64) : '';
   const lado=(cl,gols,venceu)=>`<span class="rf-cmp-lado ${venceu?'venceu':''}">
-      <span class="rf-cmp-cl">${escC((cl&&(cl.short||cl.name))||'—')}</span>
+      ${cl?rfNomeClube(cl,"rf-cmp-cl"):'<span class="rf-cmp-cl">—</span>'}
       <span class="rf-cmp-cr">${(typeof rfCrest==='function')?rfCrest(cl||{},28):''}</span>
     </span>`;
   const confronto = d.final ? `

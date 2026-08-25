@@ -3070,6 +3070,23 @@ function _assignRandomClubs(){
     if(pool.length){ const pk=pool[Math.floor(Math.random()*pool.length)]; p.clubId=pk.id; taken.add(pk.id); } });
 }
 function clSortearPick(){ _assignRandomClubs(); cdraw(); }
+/* ===== MODO TESTE (só quem entrou por /?acesso=...) =====
+   O testador ESCOLHE o próprio clube e pula o sorteio: o clube escolhido vai
+   para o manager 1, os demais managers recebem clube aleatório, e o jogo parte
+   direto para o loading — sem cerimônia. Jogador comum nunca vê esta porta. */
+function rfTesteAcesso(){ try{ return localStorage.getItem('rf_acesso_teste')==='1'; }catch(e){ return false; } }
+function rfTesteComecar(){
+  if(!rfTesteAcesso()) return;
+  const alvo=CL.pickTeste;
+  if(!alvo){ toastC('Escolha o clube de teste primeiro.'); return; }
+  const taken=new Set([String(alvo)]);
+  (CL.pick||[]).forEach((p,i)=>{
+    if(i===0){ p.clubId=alvo; return; }
+    const pool=((CL._pickPool||{})[p.country]||[]).filter(c=>!taken.has(String(c.id)));
+    if(pool.length){ const pk=pool[Math.floor(Math.random()*pool.length)]; p.clubId=pk.id; taken.add(String(pk.id)); }
+  });
+  clStartGame();
+}
 /* clubes -> loading (4/4) -> lança o jogo. Começar (1 jogador, clubes escolhidos) */
 function clStartGame(){ if(!(CL.pick||[]).every(p=>p.clubId)) return; CL._pendingLaunch=clConfirmarClubes; CL.screen='loading'; cdraw(); }
 /* multi-jogador: sorteia os times, MOSTRA o sorteio e só então começa */

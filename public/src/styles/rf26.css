@@ -8451,4 +8451,12 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 
 /* clube visitado: foto na linha do elenco e hover de quem é clicável */
 .rf-vt-lista .rf-pl-id{display:flex;align-items:center;gap:8px;min-width:0}
+/* miniatura do jogador no elenco visitado: 1ª coluna, com o NÚMERO dentro do
+   quadrado — canto inferior direito, 3px de folga, nunca vazando a borda */
+.rf-vt-foto{position:relative;width:38px;height:38px;border-radius:10px;overflow:hidden;
+  background:#e8e8e4;flex:0 0 auto;display:block}
+.rf-vt-foto img{width:100%;height:100%;object-fit:cover;object-position:50% 8%;display:block}
+.rf-vt-foto b{position:absolute;right:3px;bottom:3px;min-width:15px;height:15px;padding:0 4px;
+  box-sizing:border-box;border-radius:6px;background:rgba(10,22,14,.85);color:#fff;
+  font-size:9.5px;font-weight:700;line-height:15px;text-align:center;display:inline-block}
 .rf-pl-clicavel:hover{background:rgba(20,60,35,.06)}
