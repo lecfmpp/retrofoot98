@@ -4759,7 +4759,7 @@ const FAB_POS_PADRAO = { x:27, y:57, w:9 };   // fabricante: lado oposto ao escu
 /* AS POSIÇÕES SÃO DO QUADRO DO UNIFORME (torso, sem cabeça). Na FOTO do jogador
    a camisa fica mais para baixo e um pouco menor — este mapa desloca/encolhe as
    camadas SÓ quando a base é a foto. Calibrado nos dois quadros; ajuste aqui. */
-const FOTO_AJUSTE = { y0:30, yEsc:0.70, xEsc:0.77 };
+const FOTO_AJUSTE = { y0:34, yEsc:0.70, xEsc:0.77 };
 function posParaFoto(p){
   const w = p.w * FOTO_AJUSTE.xEsc;
   const cx = 50 + (p.x + p.w/2 - 50) * FOTO_AJUSTE.xEsc;
