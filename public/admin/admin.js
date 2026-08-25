@@ -4434,8 +4434,8 @@ function compostoHTML(torsoUrl, rostoUrl, px, raio, patrocinadorUrl, escudoUrl){
      lado direito da imagem) -> patrocinador (painel branco central) -> rosto */
   return `<span style="position:relative;display:inline-block;width:${px}px;height:${px}px;border-radius:${raio!=null?raio:8}px;overflow:hidden;background:#d9d9d9">
     <img src="${h(torsoUrl)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
-    ${escudoUrl?`<img src="${h(escudoUrl)}" style="position:absolute;left:61%;top:48%;width:23%;height:23%;object-fit:contain">`:''}
-    ${patrocinadorUrl?`<img src="${h(patrocinadorUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:71%;width:32%;height:14%;object-fit:contain">`:''}
+    ${escudoUrl?`<img src="${h(escudoUrl)}" style="position:absolute;left:62%;top:27%;width:21%;height:21%;object-fit:contain">`:''}
+    ${patrocinadorUrl?`<img src="${h(patrocinadorUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:49%;width:34%;height:13%;object-fit:contain">`:''}
     ${rostoUrl?`<img src="${h(rostoUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:-3%;height:72%;object-fit:contain">`:''}
   </span>`;
 }
