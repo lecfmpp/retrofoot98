@@ -4403,11 +4403,22 @@ function promptRosto(item, p, at){
     'This is a completely fictional person, not resembling any real footballer or celebrity.'
   ].join(' ');
 }
-function promptTorso(item){
+/* os 5 estilos de camisa — a variedade visual do jogo nasce aqui. Cada entrada
+   vira a frase da camisa dentro do prompt, sempre a partir das cores do clube. */
+const ESTILOS_CAMISA = [
+  ['vertical',  'Listras verticais',        (a,b)=>`a football jersey with classic vertical stripes in ${a} and ${b}`],
+  ['horizontal','Listras horizontais',      (a,b)=>`a football jersey with wide horizontal hoops (large horizontal stripes) in ${a} and ${b}`],
+  ['mangas',    'Lisa + mangas/gola',       (a,b)=>`a plain ${a} football jersey with the sleeves and the collar in ${b}`],
+  ['diagonal',  'Faixa diagonal',           (a,b)=>`a plain ${a} football jersey with a single wide ${b} diagonal sash crossing the chest from the shoulder down to the bottom hem`],
+  ['lisa',      'Cor única',                (a,b)=>`a plain solid ${a} football jersey with no secondary color`]
+];
+function promptTorso(item, estiloChave){
   const c = item.c;
+  const est = ESTILOS_CAMISA.find(e=>e[0]===estiloChave) || ESTILOS_CAMISA[0];
+  const camisa = est[2](c.color||'#1b7a3d', c.color2||'#ffffff');
   return [
     'Hyper-realistic studio photograph of the torso of a male professional football player, WITHOUT the head — the frame is cropped just below the chin, no face, no head visible at all.',
-    `Wearing a football jersey with vertical stripes in ${c.color||'#1b7a3d'} and ${c.color2||'#ffffff'}.`,
+    `Wearing ${camisa}.`,
     'MANDATORY: a plain solid WHITE rectangular sponsor panel across the center of the chest, completely BLANK — no text, no logo, no brand, just an empty white rectangle where a sponsor logo will be placed later.',
     'NO club crest, NO badge, NO logos anywhere on the jersey besides that blank white panel — the upper chest areas stay clean plain fabric, because the club crest will be overlaid there later as a separate layer.',
     'Shoulders and chest framing, facing the camera directly, official club media day photo style.',
@@ -4712,6 +4723,9 @@ function modalFotosIA(item){
           ?'Gerado limpo — o escudo do clube e o patrocinador entram como camadas, por cima.'
           :'Ainda não gerado — sai limpo, com o painel branco do patrocinador; escudo e logo entram como camadas.'}</small>
       </span>
+      ${editar?`<select class="busca" id="ft-estilo-camisa" style="width:170px" title="Estilo da camisa">
+        ${ESTILOS_CAMISA.map(e=>`<option value="${e[0]}" ${(torso()&&torso().atributos&&torso().atributos.estilo)===e[0]?'selected':''}>${h(e[1])}</option>`).join('')}
+      </select>`:''}
       <input class="busca" id="ft-patro" style="width:200px" placeholder="URL do logo (prévia do patrocínio)" value="${h(ST.patroTeste||'')}">
       ${editar?`<button class="btn btn-sm ${torso()?'btn-ghost':''}" id="ft-torso">${torso()?'Refazer uniforme':'Gerar uniforme'}</button>`:''}
     </div>
@@ -4768,9 +4782,10 @@ function modalFotosIA(item){
   const btTorso = el('ft-torso');
   if(btTorso) btTorso.onclick = async () => {
     btTorso.disabled = true; const rot = btTorso.textContent; btTorso.textContent = 'Gerando…';
+    const estilo = (el('ft-estilo-camisa')||{}).value || 'vertical';
     try{
-      const url = await gerarImagemIA('torso', promptTorso(item), 'medium');
-      const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: TORSO_KEY, url, atributos:{ recorte:'torso' } };
+      const url = await gerarImagemIA('torso', promptTorso(item, estilo), 'medium');
+      const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: TORSO_KEY, url, atributos:{ recorte:'torso', estilo } };
       const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
       if(error) throw new Error(erroMsg(error));
       D.fotos[c.id+'|'+TORSO_KEY] = reg;
