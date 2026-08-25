@@ -4944,16 +4944,6 @@ function modalEscudoIA(item){
         <div class="st" style="line-height:1.6">Escudo fictício nas cores do clube
           (<span class="mono">${h(c.color||'—')}</span> / <span class="mono">${h(c.color2||'—')}</span>).
           Salvar grava no patch em edição — o jogo passa a mostrar este escudo no lugar do real.</div>
-        <label class="f">Estilo
-          <select class="f" id="ia-estilo">
-            ${ESTILOS_ESCUDO.map(x=>`<option value="${x[0]}">${h(x[1])}</option>`).join('')}
-          </select></label>
-        <label class="f">Símbolo principal (opcional)
-          <input class="f" id="ia-simbolo" placeholder="Ex.: leão, âncora, estrela, galo…"></label>
-        <label class="f">Texto no escudo (opcional — texto sai errado às vezes)
-          <input class="f" id="ia-texto" maxlength="24" placeholder="Ex.: ${h((c.short||'').slice(0,18))}"></label>
-        <label class="f">Instruções extras (opcional)
-          <input class="f" id="ia-extra" placeholder="Ex.: duas estrelas em cima, faixa diagonal…"></label>
         <label class="f">Qualidade
           <select class="f" id="ia-qual">
             <option value="low">Rascunho (~US$ 0,01)</option>
@@ -4969,9 +4959,9 @@ function modalEscudoIA(item){
           </span>
           <small style="font-size:11.5px;color:var(--dim3)">A IA usa as referências como guia de estilo e conteúdo do escudo.</small>
         </div>`:''}
-        <label class="f">Prompt final (edite à vontade — é o que vai para a OpenAI)
-          <textarea class="f" id="ia-prompt" rows="6" style="resize:vertical;font-size:12px;line-height:1.5"></textarea></label>
-        <span class="link" id="ia-recompor" style="font-size:11.5px;align-self:flex-start">↻ recompor o prompt a partir dos campos acima</span>
+        <label class="f">Prompt (é o que vai para a OpenAI — descreva símbolo, texto e estilo aqui)
+          <textarea class="f" id="ia-prompt" rows="7" style="resize:vertical;font-size:12px;line-height:1.5"></textarea></label>
+        <span class="link" id="ia-recompor" style="font-size:11.5px;align-self:flex-start">↻ restaurar o prompt padrão do clube</span>
       </div>
       <div class="col" style="gap:10px;align-items:center;justify-content:center">
         <div id="ia-preview" title="Clique para ver em tela expandida"
@@ -4998,20 +4988,11 @@ function modalEscudoIA(item){
 
   if(!editar) return;
 
-  /* o prompt final é um campo de verdade: os campos estruturados o recompõem
-     enquanto ninguém digitar nele à mão — depois disso, o que vale é o texto */
-  let promptTocado = false;
-  const recompor = () => {
-    el('ia-prompt').value = promptEscudo(c, el('ia-estilo').value,
-      el('ia-simbolo').value.trim(), el('ia-texto').value.trim(), el('ia-extra').value.trim());
-  };
+  /* modal enxuto: SÓ o prompt manda. Ele nasce com o padrão do clube (cores +
+     estilo clássico) e o link restaura quando a pessoa quiser recomeçar. */
+  const recompor = () => { el('ia-prompt').value = promptEscudo(c, 'classico', '', '', ''); };
   recompor();
-  ['ia-estilo','ia-simbolo','ia-texto','ia-extra'].forEach(id => {
-    el(id).oninput = () => { if(!promptTocado) recompor(); };
-    el(id).onchange = () => { if(!promptTocado) recompor(); };
-  });
-  el('ia-prompt').oninput = () => { promptTocado = true; };
-  el('ia-recompor').onclick = () => { promptTocado = false; recompor(); };
+  el('ia-recompor').onclick = recompor;
 
   let gerada = null;
   /* referências: sobem para o Storage (a função só aceita imagem de lá) e vão
