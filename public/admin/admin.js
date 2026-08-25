@@ -5610,6 +5610,7 @@ function modalUniformeIA(item){
           ${mini?'<small style="font-size:11px;color:var(--dim3)">pintando…</small>':'<small style="font-size:11px;color:var(--dim3)">sem molde deste estilo</small>'}
         </div>
         ${editar && !mini ? `<button class="btn btn-sm btn-ghost" id="wz-mini-gerar" style="align-self:flex-start">Gerar molde da miniatura (~US$ 0,04, 1x por estilo)</button>`:''}
+        ${editar && mini ? `<span class="link" id="wz-mini-refazer" style="font-size:12px;align-self:flex-start">↻ miniatura não bate com o uniforme? Refazer (~US$ 0,04 — extraída do molde do uniforme)</span>`:''}
         <button class="btn btn-sm" data-continuar style="align-self:flex-start">Continuar</button></div>`;
     }
     if(n===4) return `<div class="col" style="gap:10px">
@@ -5794,6 +5795,23 @@ function modalUniformeIA(item){
       try{ await garantirMoldeMini(wiz.estilo, item); toast('Molde da miniatura pronto.'); abrir(); return; }
       catch(err){ toast(err.message||'Falha ao gerar o molde.', true); }
       bg.disabled = false; bg.textContent = 'Gerar molde da miniatura (~US$ 0,04, 1x por estilo)';
+    };
+    const rfM = el('wz-mini-refazer');
+    if(rfM) rfM.onclick = async () => {
+      if(!confirm('Refazer o molde da miniatura deste estilo (~US$ 0,04)? Ele será extraído do molde do uniforme — mesmo padrão de listras.')) return;
+      rfM.textContent = 'Refazendo…';
+      try{
+        const del = await jogo('player_photos').delete()
+          .eq('pack_id', ST.packId).eq('club_id', MOLDE_KEY).eq('jogador', 'mini-'+wiz.estilo);
+        if(del.error) throw new Error(erroMsg(del.error));
+        delete D.fotos[MOLDE_KEY+'|mini-'+wiz.estilo];
+        wiz.pvMini = null; wiz.pvMiniChave = '';
+        await garantirMoldeMini(wiz.estilo, item);
+        registrar('estudio.molde-mini.refazer', wiz.estilo, { pacote: ST.packId });
+        toast('Miniatura refeita a partir do uniforme.');
+        abrir();
+        return;
+      }catch(err){ toast(err.message||'Falha ao refazer.', true); rfM.textContent = '↻ refazer miniatura'; }
     };
   }
   if(wiz.passo===4 && el('wz-esc-btn')){
