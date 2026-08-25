@@ -5178,155 +5178,256 @@ function modalAjustePatrocinio(item, onSalvo){
   };
 }
 
-/* ---------- modal: uniforme do clube ----------
-   A casa do uniforme: estilo da camisa, CORES (pré-preenchidas com as do clube,
-   editáveis só para a geração — não mexem no cadastro do clube), patrocínio
-   (URL, upload e ajuste por arrasto) e a prévia composta com escudo + logo. */
+/* ---------- modal: uniforme do clube — passo a passo ----------
+   Régua vertical à esquerda guiando a criação: 1 Estilo -> 2 Cores -> 3 Escudo
+   -> 4 Patrocinador -> 5 Salvar. A prévia à direita é pintada LOCALMENTE
+   (molde + canvas, sem custo) a cada mudança; a IA só entra no molde novo.
+   Salvar tem dois desfechos: rascunho (fica no Estúdio) e aplicar no jogo
+   (grava o uniforme e, se houver escudo novo, o crest no patch). */
 function modalUniformeIA(item){
   const c = item.c, editar = podeEditar('dados');
   const t = () => D.fotos[c.id+'|'+TORSO_KEY];
-  const escudo = () => { const e = D.edits[c.id]; return (e && e.patch && e.patch.crest) || c.crest || null; };
+  const escudoAtual = () => { const e = D.edits[c.id]; return (e && e.patch && e.patch.crest) || c.crest || null; };
   const at = (t() && t().atributos) || {};
-  const corIni  = (at.cores && at.cores[0]) || c.color  || '#1b7a3d';
-  const corIni2 = (at.cores && at.cores[1]) || c.color2 || '#ffffff';
+
+  if(!D.wiz || D.wiz.clube !== c.id){
+    D.wiz = { clube:c.id, passo:1, max:1,
+      estilo: at.estilo || 'vertical',
+      corA: (at.cores && at.cores[0]) || c.color || '#1b7a3d',
+      corB: (at.cores && at.cores[1]) || c.color2 || '#ffffff',
+      escudoNovo: null,
+      patroUrl: at.patroUrl || ST.patroTeste || '',
+      pv: null, pvChave: '' };
+  }
+  const wiz = D.wiz;
+  const abrir = () => modalUniformeIA(item);
+  const escudoEscolhido = () => wiz.escudoNovo || escudoAtual();
+
+  const PASSOS = [
+    ['Estilo','o desenho da camisa'],
+    ['Cores','principal e secundária'],
+    ['Escudo','suba um novo ou mantenha'],
+    ['Patrocinador','logo sobre a camisa'],
+    ['Salvar','rascunho ou aplicar no jogo']];
+  const resumo = n =>
+    n===1 ? h((ESTILOS_CAMISA.find(e=>e[0]===wiz.estilo)||[])[1]||'') :
+    n===2 ? `<i style="display:inline-block;width:13px;height:13px;border-radius:4px;background:${h(wiz.corA)};vertical-align:-2px"></i>
+             <i style="display:inline-block;width:13px;height:13px;border-radius:4px;background:${h(wiz.corB)};border:1px solid var(--bd2);vertical-align:-2px"></i>` :
+    n===3 ? (wiz.escudoNovo ? 'novo escudo enviado' : (escudoAtual() ? 'mantém o atual' : 'sem escudo')) :
+    n===4 ? (wiz.patroUrl ? 'logo definido' : 'sem patrocinador') : '';
+
+  const corpoPasso = n => {
+    if(n===1) return `<div class="col" style="gap:6px">
+      ${ESTILOS_CAMISA.map(e=>`<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid ${wiz.estilo===e[0]?'var(--verde2)':'var(--bd2)'};border-radius:10px;cursor:pointer;font-size:13px">
+        <input type="radio" name="wz-estilo" value="${e[0]}" ${wiz.estilo===e[0]?'checked':''}> ${h(e[1])}</label>`).join('')}
+      <button class="btn btn-sm" data-continuar style="align-self:flex-start;margin-top:6px">Continuar</button></div>`;
+    if(n===2) return `<div class="col" style="gap:12px">
+      <div class="g2" style="gap:12px">${campoCor('wz-color','Cor principal', wiz.corA)}${campoCor('wz-color2','Cor secundária', wiz.corB)}</div>
+      <div id="wz-preview-cores"></div>
+      <button class="btn btn-sm" data-continuar style="align-self:flex-start">Continuar</button></div>`;
+    if(n===3) return `<div class="col" style="gap:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--bd2);border-radius:10px">
+          ${escudoEscolhido()?`<img src="${h(escudoEscolhido())}" style="max-width:44px;max-height:44px;object-fit:contain">`:'<small style="color:var(--dim3)">—</small>'}</span>
+        <small style="flex:1;font-size:12px;color:var(--dim2)">${wiz.escudoNovo?'Novo escudo enviado — entra no patch quando você aplicar no jogo.':(escudoAtual()?'Escudo atual do clube (do patch ou de fábrica).':'O clube ainda não tem escudo — envie um, ou gere na aba Escudos.')}</small>
+      </div>
+      ${editar?`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-ghost" id="wz-esc-btn">Enviar novo escudo</button>
+        <input type="file" id="wz-esc-arq" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim2);cursor:pointer">
+          <input type="checkbox" id="wz-esc-nofundo"> Remover fundo</label>
+        ${wiz.escudoNovo?'<span class="link" id="wz-esc-desfazer" style="font-size:12px">voltar ao atual</span>':''}
+      </div>`:''}
+      <button class="btn btn-sm" data-continuar style="align-self:flex-start">${escudoEscolhido()?'Manter e continuar':'Continuar sem escudo'}</button></div>`;
+    if(n===4) return `<div class="col" style="gap:10px">
+      <span style="display:flex;gap:8px">
+        <input class="f" id="wz-patro" style="flex:1;min-width:0" placeholder="https://… ou envie um arquivo" value="${h(wiz.patroUrl)}">
+        ${editar?`<button class="btn btn-sm btn-ghost" id="wz-patro-up" style="flex:0 0 auto" title="Enviar arquivo do logo">↥</button>
+        <input type="file" id="wz-patro-arq" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">`:''}
+      </span>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim2);cursor:pointer">
+        <input type="checkbox" id="wz-patro-nofundo"> Remover fundo do logo ao enviar</label>
+      <small style="font-size:12px;color:var(--dim2)">O logo fica salvo com o uniforme deste clube e entra como camada — trocar depois não custa nada.</small>
+      <button class="btn btn-sm" data-continuar style="align-self:flex-start">${wiz.patroUrl?'Continuar':'Continuar sem patrocinador'}</button></div>`;
+    return `<div class="col" style="gap:10px">
+      <small style="font-size:12.5px;color:var(--dim2);line-height:1.6">Confira a prévia ao lado. <b>Salvar rascunho</b> guarda o uniforme no Estúdio para continuar depois; <b>Salvar e aplicar no jogo</b> grava o uniforme do elenco${wiz.escudoNovo?' e põe o escudo novo no patch':''}.</small>
+      ${editar?`<button class="btn btn-sm btn-ghost" id="wz-ajustar" style="align-self:flex-start" ${t()?'':'disabled'}>✥ Ajustar escudo e patrocínio na foto</button>`:''}
+      <div id="wz-estado" style="font-size:12px;color:var(--dim2);min-height:16px"></div>
+      ${editar?`<div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost" id="wz-rascunho">Salvar rascunho</button>
+        <button class="btn" id="wz-aplicar">Salvar e aplicar no jogo</button>
+      </div>`:''}</div>`;
+  };
+
+  const reguaHTML = PASSOS.map((p,ix) => {
+    const n = ix+1, ativo = wiz.passo===n, feito = wiz.max>n || (ativo===false && wiz.max>=n);
+    const podeIr = n<=wiz.max;
+    return `<div style="display:grid;grid-template-columns:30px 1fr;gap:0 12px">
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <span data-passo="${n}" style="width:26px;height:26px;flex:0 0 26px;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;
+          ${ativo?'background:var(--verde2);color:#08210f':feito?'background:var(--bd2);color:var(--fg)':'border:1px solid var(--bd2);color:var(--dim3)'};${podeIr?'cursor:pointer':''}">${n}</span>
+        ${n<PASSOS.length?`<span style="flex:1;width:2px;background:var(--bd2);margin:4px 0"></span>`:''}
+      </div>
+      <div style="padding-bottom:${ativo?'16px':'12px'};min-width:0">
+        <div data-passo="${n}" style="display:flex;align-items:baseline;gap:8px;${podeIr?'cursor:pointer':''}">
+          <b style="font-size:13.5px;${ativo?'':'color:var(--dim)'}">${h(p[0])}</b>
+          <small style="font-size:11.5px;color:var(--dim3)">${ativo?h(p[1]):resumo(n)||''}</small>
+        </div>
+        ${ativo?`<div style="margin-top:10px">${corpoPasso(n)}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
 
   abrirModal(`
     <h3>Uniforme — ${h(c.short||c.name)}</h3>
     <div class="duas-col">
-      <div class="col" style="gap:12px">
-        <div class="st" style="line-height:1.6">Base única do elenco: a camisa sai totalmente limpa.
-          Escudo e logo do patrocinador entram como camadas direto sobre o tecido — trocou um deles, todas as fotos mudam juntas.</div>
-        <label class="f">Estilo da camisa
-          <select class="f" id="un-estilo">
-            ${ESTILOS_CAMISA.map(e=>`<option value="${e[0]}" ${(at.estilo||'vertical')===e[0]?'selected':''}>${h(e[1])}</option>`).join('')}
-          </select></label>
-        <div class="g2" style="gap:12px">
-          ${campoCor('un-color','Cor principal', corIni)}
-          ${campoCor('un-color2','Cor secundária', corIni2)}
+      <div class="col" style="gap:0">${reguaHTML}</div>
+      <div class="col" style="gap:10px;align-items:center">
+        <div id="wz-preview" title="Clique para ver em tela expandida" style="cursor:zoom-in">
+          ${(wiz.pv || t()) ? compostoHTML(wiz.pv || t().url, null, 250, 12, wiz.patroUrl, escudoEscolhido(), at.patro, at.escudo)
+            : `<div style="width:250px;height:250px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--bd2);border-radius:12px;font-size:12px;color:var(--dim3);text-align:center;padding:14px">a prévia aparece ao escolher estilo e cores</div>`}
         </div>
-        <div id="un-preview-cores" style="padding:2px 0"></div>
-        <label class="f">Logo do patrocinador (prévia — camada sobre a camisa; prefira logo com fundo transparente)
-          <span style="display:flex;gap:8px">
-            <input class="f" id="un-patro" style="flex:1" placeholder="https://… ou envie um arquivo" value="${h(ST.patroTeste||'')}">
-            ${editar?`<button class="btn btn-sm btn-ghost" id="un-patro-up" style="flex:0 0 auto" title="Enviar arquivo do logo">↥</button>
-            <input type="file" id="un-patro-arq" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">`:''}
-          </span></label>
-        ${editar?`<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim2);cursor:pointer">
-          <input type="checkbox" id="un-nofundo"> Remover o fundo do logo ao enviar (fundo sólido vira transparente)</label>`:''}
-        ${editar?`<button class="btn btn-sm btn-ghost" id="un-ajustar" style="align-self:flex-start" ${t()?'':'disabled'}>✥ Ajustar escudo e patrocínio na foto</button>`:''}
-      </div>
-      <div class="col" style="gap:10px;align-items:center;justify-content:center">
-        <div id="un-preview" title="Clique para ver em tela expandida" style="cursor:zoom-in">
-          ${t() ? compostoHTML(t().url, null, 240, 12, ST.patroTeste, escudo(), at.patro, at.escudo)
-                : `<div style="width:240px;height:240px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--bd2);border-radius:12px;font-size:12px;color:var(--dim3)">sem uniforme ainda</div>`}
-        </div>
-        <div id="un-estado" style="font-size:12px;color:var(--dim2);min-height:16px">${t()&&at.estilo?('Estilo atual: '+h((ESTILOS_CAMISA.find(e=>e[0]===at.estilo)||[])[1]||at.estilo)):''}</div>
+        <small style="font-size:11.5px;color:var(--dim3);text-align:center;max-width:250px">
+          ${wiz.pv?'Prévia pintada aqui no navegador — nada foi salvo ainda.':(t()?(at.rascunho?'Rascunho salvo.':'Uniforme atual do clube.'):'')}</small>
       </div>
     </div>
-    <div class="acoes">
-      ${editar?`<button class="btn" id="un-gerar">${t()?'Refazer uniforme':'Gerar uniforme'}</button>`:''}
-      ${editar?`<button class="btn btn-ghost" id="un-gerar-ia" style="flex:0 0 auto" title="Gera uma camisa exclusiva por IA para este clube (~US$ 0,04)">IA exclusiva</button>`:''}
-      <button class="btn btn-ghost" data-fechar>Fechar</button>
-    </div>`, 'lg');
+    <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>`, 'xl');
 
-  ligarCores('un-color','un-color2','un-preview-cores');
+  /* prévia local: com molde do estilo, pinta no canvas a cada mudança — zero IA */
+  async function pintarPrevia(){
+    const molde = D.fotos[MOLDE_KEY+'|'+wiz.estilo];
+    if(!molde) return;
+    const chave = wiz.estilo+'|'+wiz.corA+'|'+wiz.corB;
+    if(wiz.pvChave === chave && wiz.pv) return;
+    try{
+      const blob = await pintarMolde(molde.url, wiz.corA, wiz.corB);
+      if(wiz.pv && wiz.pv.startsWith('blob:')) URL.revokeObjectURL(wiz.pv);
+      wiz.pv = URL.createObjectURL(blob); wiz.pvChave = chave;
+      const alvo = el('wz-preview');
+      if(alvo) alvo.innerHTML = compostoHTML(wiz.pv, null, 250, 12, wiz.patroUrl, escudoEscolhido(), at.patro, at.escudo);
+    }catch(err){ console.warn('prévia local falhou:', err.message); }
+  }
+  pintarPrevia();
 
-  el('un-preview').onclick = () => {
-    const tt = t(); if(!tt) return;
+  el('wz-preview').onclick = () => {
+    const base = wiz.pv || (t() && t().url); if(!base) return;
     const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
-    abrirLightboxHTML(compostoHTML(tt.url, null, lado, 16, ST.patroTeste, escudo(), (tt.atributos||{}).patro, (tt.atributos||{}).escudo));
+    abrirLightboxHTML(compostoHTML(base, null, lado, 16, wiz.patroUrl, escudoEscolhido(), at.patro, at.escudo));
   };
-  el('un-patro').onchange = () => { ST.patroTeste = el('un-patro').value.trim(); modalUniformeIA(item); };
+  document.querySelectorAll('[data-passo]').forEach(x => x.onclick = () => {
+    const n = +x.dataset.passo; if(n<=wiz.max && n!==wiz.passo){ colher(); wiz.passo=n; abrir(); }
+  });
+  /* colhe os campos do passo ativo antes de navegar */
+  function colher(){
+    if(wiz.passo===1){ const r=document.querySelector('[name="wz-estilo"]:checked'); if(r) wiz.estilo=r.value; }
+    if(wiz.passo===2){ if(el('wz-color')) wiz.corA=el('wz-color').value; if(el('wz-color2')) wiz.corB=el('wz-color2').value; }
+    if(wiz.passo===4 && el('wz-patro')) wiz.patroUrl=el('wz-patro').value.trim();
+  }
+  document.querySelectorAll('[data-continuar]').forEach(b => b.onclick = () => {
+    colher(); wiz.passo=Math.min(5,wiz.passo+1); wiz.max=Math.max(wiz.max,wiz.passo); abrir();
+  });
 
+  if(wiz.passo===1) document.querySelectorAll('[name="wz-estilo"]').forEach(r => r.onchange = () => { wiz.estilo=r.value; pintarPrevia(); });
+  if(wiz.passo===2){
+    ligarCores('wz-color','wz-color2','wz-preview-cores');
+    ['wz-color','wz-color2','wz-color-hex','wz-color2-hex'].forEach(id => {
+      const n=el(id); if(n) n.addEventListener('input', ()=>{ colher(); pintarPrevia(); });
+    });
+  }
   if(!editar) return;
 
-  const upBt = el('un-patro-up');
-  if(upBt){
-    upBt.onclick = () => el('un-patro-arq').click();
-    el('un-patro-arq').onchange = async () => {
-      let f = el('un-patro-arq').files[0]; if(!f) return;
-      if(f.size > 2*1024*1024) return toast('Logo acima de 2 MB.', true);
+  if(wiz.passo===3 && el('wz-esc-btn')){
+    el('wz-esc-btn').onclick = () => el('wz-esc-arq').click();
+    const desf = el('wz-esc-desfazer'); if(desf) desf.onclick = () => { wiz.escudoNovo=null; abrir(); };
+    el('wz-esc-arq').onchange = async () => {
+      let f = el('wz-esc-arq').files[0]; if(!f) return;
+      if(f.size > 5*1024*1024) return toast('Arquivo acima de 5 MB.', true);
       let ext = (f.name.split('.').pop()||'png').toLowerCase();
-      if(el('un-nofundo') && el('un-nofundo').checked){
-        try{ const b2 = await removerFundoDeImagem(f); if(b2){ f = b2; ext = 'png'; } }
+      if(el('wz-esc-nofundo').checked){
+        try{ const b2 = await removerFundoDeImagem(f); if(b2){ f=b2; ext='png'; } }
         catch(err){ return toast('Falha ao remover o fundo: '+err.message, true); }
       }
-      const caminho = `logos/${Date.now()}-${chaveNome((el('un-patro-arq').files[0]||{name:'logo'}).name).slice(0,24)||'logo'}.${ext}`;
-      const up = await sb.storage.from('patrocinadores').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
+      const caminho = `upload/${c.id}-${Date.now()}.${ext}`;
+      const up = await sb.storage.from('escudos').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
       if(up.error) return toast(erroMsg(up.error), true);
-      ST.patroTeste = sb.storage.from('patrocinadores').getPublicUrl(caminho).data.publicUrl;
-      toast('Logo enviado.');
-      modalUniformeIA(item);
+      wiz.escudoNovo = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
+      toast('Escudo enviado — entra no patch quando você aplicar.'); abrir();
     };
   }
-  el('un-ajustar').onclick = () => modalAjustePatrocinio(item, () => modalUniformeIA(item));
-
-  /* grava a imagem como o uniforme do clube (a posição salva do patrocínio/escudo sobrevive) */
-  async function salvarTorso(url, estilo, corA, corB, viaMolde){
-    const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: TORSO_KEY, url,
-      atributos: Object.assign({}, (t()||{}).atributos, { recorte:'torso', estilo, cores:[corA, corB], molde: !!viaMolde }) };
-    const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
-    if(error) throw new Error(erroMsg(error));
-    D.fotos[c.id+'|'+TORSO_KEY] = reg;
-    registrar('estudio.torso', String(c.id), { pacote: ST.packId, estilo, molde: !!viaMolde });
-  }
-
-  /* CAMINHO PADRÃO: molde do estilo + pintura no navegador — IA só na 1ª vez do estilo */
-  el('un-gerar').onclick = async () => {
-    const btn = el('un-gerar');
-    const estilo = el('un-estilo').value;
-    const corA = el('un-color').value, corB = el('un-color2').value;
-    btn.disabled = true; const rot = btn.textContent;
-    try{
-      let molde = D.fotos[MOLDE_KEY+'|'+estilo];
-      if(!molde){
-        if(!confirm('Primeiro uniforme neste estilo: o molde é gerado por IA UMA vez (~US$ 0,04) e todos os clubes deste estilo passam a ser pintados na hora, sem IA. Continuar?')){
-          btn.disabled = false; return;
-        }
-        btn.textContent = 'Gerando o molde… (até 1 min)';
-        el('un-estado').textContent = 'A OpenAI está criando o molde deste estilo (uma vez só)…';
-        const camisaM = descrCamisa(estilo, 'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)');
-        const ref = moldeReferencia();
-        const urlMolde = ref
-          ? await gerarImagemIA('montagem', promptCamisaNaReferencia(camisaM) + AVISO_MARCADOR, 'medium', [ref.url])
-          : await gerarImagemIA('torso', promptTorso(item, estilo,
-              'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)') + AVISO_MARCADOR, 'medium');
-        molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: estilo, url: urlMolde, atributos: { recorte:'molde', estilo } };
-        const rM = await jogo('player_photos').upsert(molde, { onConflict:'pack_id,club_id,jogador' });
-        if(rM.error) throw new Error(erroMsg(rM.error));
-        D.fotos[MOLDE_KEY+'|'+estilo] = molde;
+  if(wiz.passo===4 && el('wz-patro-up')){
+    el('wz-patro').onchange = () => { colher(); pintarPrevia(); };
+    el('wz-patro-up').onclick = () => el('wz-patro-arq').click();
+    el('wz-patro-arq').onchange = async () => {
+      let f = el('wz-patro-arq').files[0]; if(!f) return;
+      if(f.size > 2*1024*1024) return toast('Logo acima de 2 MB.', true);
+      let ext = (f.name.split('.').pop()||'png').toLowerCase();
+      if(el('wz-patro-nofundo').checked){
+        try{ const b2 = await removerFundoDeImagem(f); if(b2){ f=b2; ext='png'; } }
+        catch(err){ return toast('Falha ao remover o fundo: '+err.message, true); }
       }
-      btn.textContent = 'Pintando…';
-      el('un-estado').textContent = 'Pintando o molde nas cores do clube — sem IA, sem custo.';
-      const blob = await pintarMolde(molde.url, corA, corB);
-      const caminho = `uniformes/${c.id}-${Date.now()}.webp`;
-      const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
-      if(up.error) throw new Error(erroMsg(up.error));
-      await salvarTorso(sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl, estilo, corA, corB, true);
-      toast('Uniforme pintado e salvo — sem gastar IA.');
-      modalUniformeIA(item);
-      return;
-    }catch(err){ el('un-estado').textContent=''; toast(err.message||'Falha ao gerar o uniforme.', true); }
-    btn.disabled = false; btn.textContent = rot;
-  };
+      const caminho = `logos/${Date.now()}-${chaveNome(f.name||'logo').slice(0,24)||'logo'}.${ext}`;
+      const up = await sb.storage.from('patrocinadores').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
+      if(up.error) return toast(erroMsg(up.error), true);
+      wiz.patroUrl = sb.storage.from('patrocinadores').getPublicUrl(caminho).data.publicUrl;
+      toast('Logo enviado.'); abrir();
+    };
+  }
+  if(wiz.passo===5){
+    const aj = el('wz-ajustar');
+    if(aj) aj.onclick = () => { ST.patroTeste = wiz.patroUrl; modalAjustePatrocinio(item, abrir); };
 
-  /* caminho alternativo: camisa exclusiva por IA para este clube */
-  el('un-gerar-ia').onclick = async () => {
-    const btn = el('un-gerar-ia');
-    btn.disabled = true; const rot = btn.textContent; btn.textContent = 'Gerando…';
-    el('un-estado').textContent = 'A OpenAI está criando uma camisa exclusiva…';
-    const estilo = el('un-estilo').value;
-    const corA = el('un-color').value, corB = el('un-color2').value;
-    try{
-      const ref = moldeReferencia();
-      const url = ref
-        ? await gerarImagemIA('montagem', promptCamisaNaReferencia(descrCamisa(estilo, corA, corB)), 'medium', [ref.url])
-        : await gerarImagemIA('torso', promptTorso(item, estilo, corA, corB), 'medium');
-      await salvarTorso(url, estilo, corA, corB, false);
-      toast('Uniforme exclusivo salvo.');
-      modalUniformeIA(item);
-      return;
-    }catch(err){ el('un-estado').textContent=''; toast(err.message||'Falha ao gerar o uniforme.', true); }
-    btn.disabled = false; btn.textContent = rot;
-  };
+    async function salvar(aplicar){
+      const bts = [el('wz-rascunho'), el('wz-aplicar')].filter(Boolean);
+      bts.forEach(b=>b.disabled=true);
+      try{
+        let molde = D.fotos[MOLDE_KEY+'|'+wiz.estilo];
+        if(!molde){
+          if(!confirm('Primeiro uniforme neste estilo: o molde é gerado por IA UMA vez (~US$ 0,04) e todos os clubes deste estilo passam a ser pintados na hora, sem IA. Continuar?')){
+            bts.forEach(b=>b.disabled=false); return;
+          }
+          el('wz-estado').textContent = 'Gerando o molde deste estilo (uma vez só)…';
+          const camisaM = descrCamisa(wiz.estilo, 'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)');
+          const ref = moldeReferencia();
+          const urlMolde = ref
+            ? await gerarImagemIA('montagem', promptCamisaNaReferencia(camisaM) + AVISO_MARCADOR, 'medium', [ref.url])
+            : await gerarImagemIA('torso', promptTorso(item, wiz.estilo,
+                'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)') + AVISO_MARCADOR, 'medium');
+          molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: wiz.estilo, url: urlMolde, atributos:{ recorte:'molde', estilo: wiz.estilo } };
+          const rM = await jogo('player_photos').upsert(molde, { onConflict:'pack_id,club_id,jogador' });
+          if(rM.error) throw new Error(erroMsg(rM.error));
+          D.fotos[MOLDE_KEY+'|'+wiz.estilo] = molde;
+        }
+        el('wz-estado').textContent = 'Pintando o molde nas cores do clube — sem IA, sem custo.';
+        const blob = await pintarMolde(molde.url, wiz.corA, wiz.corB);
+        const caminho = `uniformes/${c.id}-${Date.now()}.webp`;
+        const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
+        if(up.error) throw new Error(erroMsg(up.error));
+        const url = sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl;
+        const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: TORSO_KEY, url,
+          atributos: Object.assign({}, at, { recorte:'torso', estilo: wiz.estilo, cores:[wiz.corA, wiz.corB],
+            molde:true, patroUrl: wiz.patroUrl||null, rascunho: !aplicar }) };
+        const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
+        if(error) throw new Error(erroMsg(error));
+        D.fotos[c.id+'|'+TORSO_KEY] = reg;
+        if(aplicar && wiz.escudoNovo){
+          const ed = D.edits[c.id];
+          const linha = { pack_id: ST.packId, club_id: String(c.id), divisao: item.div, novo: !!(ed && ed.novo),
+            patch: Object.assign({}, ed && ed.patch, { crest: wiz.escudoNovo }) };
+          const rC = await jogo('pack_edits').upsert(linha, { onConflict:'pack_id,club_id' });
+          if(rC.error) throw new Error(erroMsg(rC.error));
+          D.edits[c.id] = linha;
+          await jogo('data_packs').update({ atualizado_em:new Date().toISOString() }).eq('id', ST.packId);
+        }
+        ST.patroTeste = wiz.patroUrl || ST.patroTeste;
+        registrar(aplicar?'estudio.uniforme.aplicar':'estudio.uniforme.rascunho', String(c.id), { pacote: ST.packId, estilo: wiz.estilo });
+        toast(aplicar?'Uniforme aplicado no jogo.':'Rascunho salvo — continue quando quiser.');
+        if(aplicar){ D.wiz=null; fecharModal(); pgEstudio(); }
+        else abrir();
+        return;
+      }catch(err){ el('wz-estado').textContent=''; toast(err.message||'Falha ao salvar.', true); }
+      bts.forEach(b=>b.disabled=false);
+    }
+    if(el('wz-rascunho')) el('wz-rascunho').onclick = () => salvar(false);
+    if(el('wz-aplicar')) el('wz-aplicar').onclick = () => salvar(true);
+  }
 }
