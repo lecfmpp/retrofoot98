@@ -5125,20 +5125,20 @@ function modalFotosIA(item){
     return `<img src="${h(f.url)}" style="width:${px}px;height:${px}px;border-radius:8px;object-fit:cover">`;
   };
 
+  /* linha enxuta: foto, nome e botões com TEXTO — o visual sorteado do jogador
+     continua existindo (influencia a geração), mas vive só no backend */
   const linhaFoto = (p) => {
     const f = D.fotos[c.id+'|'+p.n];
-    return `<div class="row" style="grid-template-columns:52px minmax(0,1.4fr) minmax(0,2fr) 150px;align-items:center" data-foto-jog="${h(p.n)}">
+    return `<div class="row" style="grid-template-columns:52px minmax(0,1fr) auto;gap:10px;align-items:center" data-foto-jog="${h(p.n)}">
       <span data-thumb ${f?'style="cursor:zoom-in" title="Ver em tela expandida"':''}>${f
         ? thumbHTML(f, 40)
         : `<i class="av" style="width:40px;height:40px;border-radius:8px;background:${h(c.color||'#333')};color:#fff;font-size:12px">${h(iniciais(p.n))}</i>`}</span>
       <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(p.n)}</b>
         <small style="font-size:11px;color:var(--dim3)">${h(p.p||'—')} · ${p.age!=null?p.age+' anos':'idade —'} · força ${p.f!=null?p.f:'—'}</small></span>
-      <small data-attrs style="font-size:11px;color:var(--dim2);line-height:1.5">${h(resumoAtributos(sorteios[p.n]))}</small>
-      <span style="display:flex;gap:6px;justify-content:flex-end">
-        <button class="btn btn-sm btn-ghost" data-escudo title="Arrastar e soltar o escudo no uniforme desta foto" ${f&&f.atributos&&f.atributos.montagem?'':'disabled'}>🛡</button>
-        <button class="btn btn-sm btn-ghost" data-ver title="Ver em tela expandida" ${f?'':'disabled'}>⛶</button>
-        ${editar?`<button class="btn btn-sm btn-ghost" data-sortear title="Sortear outro visual">↻</button>
-        <button class="btn btn-sm" data-gerar>${f?'Refazer':'Gerar'}</button>`:''}
+      <span style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap">
+        <button class="btn btn-sm btn-ghost" data-escudo title="Arrastar e soltar escudo/logos no uniforme desta foto" ${f&&f.atributos&&f.atributos.montagem?'':'disabled'}>Posicionar</button>
+        <button class="btn btn-sm btn-ghost" data-ver title="Ver em tela expandida" ${f?'':'disabled'}>Ver</button>
+        ${editar?`<button class="btn btn-sm" data-gerar>${f?'Refazer':'Gerar'}</button>`:''}
       </span>
     </div>`;
   };
@@ -5148,8 +5148,8 @@ function modalFotosIA(item){
     <div class="st" style="line-height:1.6;margin-bottom:10px">
       A foto é em DUAS camadas: o <b>rosto</b> (recortado, um por jogador) sobre a
       <b>camisa do clube</b> (base única para o elenco inteiro). Trocou de clube?
-      O visual do rosto (pele, cabelo, barba, sorriso, brinco, tatuagem) é sorteado — use ↻ antes
-      de gerar. Com o uniforme pronto, a IA <b>costura</b> rosto e uniforme numa foto natural
+      O visual do rosto (pele, cabelo, barba, sorriso, brinco, tatuagem) é sorteado automaticamente
+      por jogador. Com o uniforme pronto, a IA <b>costura</b> rosto e uniforme numa foto natural
       (a montagem); o rosto solto fica guardado para remontar barato na troca de clube.
       A idade vem do elenco. ~US$ 0,08 por jogador (rosto + montagem).
       <b>No primeiro jogador do clube, confira o encaixe:</b> escudo e patrocinador podem
@@ -5237,11 +5237,6 @@ function modalFotosIA(item){
       const f = D.fotos[c.id+'|'+p.n];
       if(f && f.atributos && f.atributos.montagem)
         modalAjustePatrocinio(item, () => modalFotosIA(item), f.atributos.montagem);
-      return;
-    }
-    if(ev.target.closest('[data-sortear]')){
-      sorteios[p.n] = sortearAtributos(p);
-      linha.querySelector('[data-attrs]').textContent = resumoAtributos(sorteios[p.n]);
       return;
     }
     const bt = ev.target.closest('[data-gerar]'); if(!bt) return;
