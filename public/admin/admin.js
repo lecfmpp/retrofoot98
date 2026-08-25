@@ -4643,7 +4643,7 @@ function promptCamisaNaReferencia(camisa){
     'The jersey stays completely clean: no crest, no badge, no sponsor, no text, no logos anywhere.'
   ].join(' ');
 }
-const AVISO_MARCADOR = ' The magenta and cyan are PLACEHOLDER colors for programmatic recoloring: keep them pure, flat and vivid, with shading coming only from fabric folds and lighting. The collar and the sleeve cuffs MUST also be one of these two placeholder colors (cyan preferred) — absolutely NO navy, NO gray and NO third color anywhere on the jersey.';
+const AVISO_MARCADOR = ' The magenta and cyan are PLACEHOLDER colors for programmatic recoloring: keep them pure, flat and vivid, with shading coming only from fabric folds and lighting. The collar and the sleeve cuffs MUST also be one of these two placeholder colors (cyan preferred) — absolutely NO navy, NO gray and NO third color anywhere on the jersey. Every stripe and section must be ONE single uninterrupted solid color from edge to edge — absolutely NO patches, NO spots and NO bleeding of one placeholder color inside an area of the other.';
 
 /* PINTURA SEM IA: o molde do estilo é gerado UMA vez em cores-marcador (magenta
    #FF00FF na principal, ciano #00FFFF na secundária) e daqui pra frente cada
@@ -5449,6 +5449,7 @@ function modalUniformeIA(item){
     if(n===1) return `<div class="col" style="gap:6px">
       ${ESTILOS_CAMISA.map(e=>`<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid ${wiz.estilo===e[0]?'var(--verde2)':'var(--bd2)'};border-radius:10px;cursor:pointer;font-size:13px">
         <input type="radio" name="wz-estilo" value="${e[0]}" ${wiz.estilo===e[0]?'checked':''}> ${h(e[1])}</label>`).join('')}
+      ${editar && D.fotos[MOLDE_KEY+'|'+wiz.estilo] ? `<span class="link" id="wz-refazer-molde" style="font-size:12px;align-self:flex-start">↻ molde deste estilo saiu com defeito? Refazer (~US$ 0,04 — repinta todos os clubes do estilo depois)</span>`:''}
       <button class="btn btn-sm" data-continuar style="align-self:flex-start;margin-top:6px">Continuar</button></div>`;
     if(n===2) return `<div class="col" style="gap:12px">
       <div class="g2" style="gap:12px">${campoCor('wz-color','Cor principal', wiz.corA)}${campoCor('wz-color2','Cor secundária', wiz.corB)}</div>
@@ -5577,7 +5578,25 @@ function modalUniformeIA(item){
     colher(); wiz.passo=Math.min(6,wiz.passo+1); wiz.max=Math.max(wiz.max,wiz.passo); abrir();
   });
 
-  if(wiz.passo===1) document.querySelectorAll('[name="wz-estilo"]').forEach(r => r.onchange = () => { wiz.estilo=r.value; pintarPrevia(); });
+  if(wiz.passo===1){
+    document.querySelectorAll('[name="wz-estilo"]').forEach(r => r.onchange = () => { wiz.estilo=r.value; pintarPrevia(); });
+    const rf = el('wz-refazer-molde');
+    if(rf) rf.onclick = async () => {
+      if(!confirm('Refazer o molde deste estilo (~US$ 0,04)? O molde atual é descartado; depois use "Repintar todos" na aba Uniformes para atualizar os clubes que já usam este estilo.')) return;
+      rf.textContent = 'Refazendo o molde…';
+      try{
+        const del = await jogo('player_photos').delete()
+          .eq('pack_id', ST.packId).eq('club_id', MOLDE_KEY).eq('jogador', wiz.estilo);
+        if(del.error) throw new Error(erroMsg(del.error));
+        delete D.fotos[MOLDE_KEY+'|'+wiz.estilo];
+        await garantirMolde(item, wiz.estilo);
+        registrar('estudio.molde.refazer', wiz.estilo, { pacote: ST.packId });
+        toast('Molde refeito — a prévia já usa o novo.');
+        abrir();
+        return;
+      }catch(err){ toast(err.message||'Falha ao refazer o molde.', true); rf.textContent = '↻ refazer o molde deste estilo'; }
+    };
+  }
   if(wiz.passo===2){
     ligarCores('wz-color','wz-color2','wz-preview-cores');
     ['wz-color','wz-color2','wz-color-hex','wz-color2-hex'].forEach(id => {
