@@ -4446,14 +4446,16 @@ const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do
    casam com o enquadramento pedido nos dois prompts — ajuste fino é aqui, num lugar só. */
 /* posição padrão do logo no painel branco — o ajuste fino por clube (drag and
    drop no Estúdio) fica salvo em atributos.patro do uniforme e vence o padrão */
-const PATRO_POS_PADRAO = { x:33, y:49, w:34 };   // left %, top %, largura % (altura acompanha)
-function compostoHTML(torsoUrl, rostoUrl, px, raio, patrocinadorUrl, escudoUrl, patroPos){
-  /* camadas, de baixo para cima: uniforme -> escudo (peito esquerdo do jogador,
-     lado direito da imagem) -> patrocinador (painel branco central) -> rosto */
-  const pp = Object.assign({}, PATRO_POS_PADRAO, patroPos||{});
+const PATRO_POS_PADRAO  = { x:33, y:65, w:34 };  // left %, top %, largura % (altura acompanha)
+const ESCUDO_POS_PADRAO = { x:61, y:56, w:14 };  // peito esquerdo do jogador na foto final
+function compostoHTML(torsoUrl, rostoUrl, px, raio, patrocinadorUrl, escudoUrl, patroPos, escudoPos){
+  /* camadas, de baixo para cima: uniforme/foto final -> escudo -> patrocinador -> rosto.
+     As posições por clube (arrastadas no ✥ Ajustar) vencem os padrões. */
+  const pp = Object.assign({}, PATRO_POS_PADRAO,  patroPos||{});
+  const pe = Object.assign({}, ESCUDO_POS_PADRAO, escudoPos||{});
   return `<span style="position:relative;display:inline-block;width:${px}px;height:${px}px;border-radius:${raio!=null?raio:8}px;overflow:hidden;background:#d9d9d9">
     <img src="${h(torsoUrl)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
-    ${escudoUrl?`<img src="${h(escudoUrl)}" style="position:absolute;left:62%;top:27%;width:21%;height:21%;object-fit:contain">`:''}
+    ${escudoUrl?`<img src="${h(escudoUrl)}" style="position:absolute;left:${pe.x}%;top:${pe.y}%;width:${pe.w}%">`:''}
     ${patrocinadorUrl?`<img src="${h(patrocinadorUrl)}" style="position:absolute;left:${pp.x}%;top:${pp.y}%;width:${pp.w}%">`:''}
     ${rostoUrl?`<img src="${h(rostoUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:-3%;height:72%;object-fit:contain">`:''}
   </span>`;
@@ -4738,9 +4740,9 @@ function modalFotosIA(item){
        patrocinador continuam entrando como camadas por cima: a costura mantém a
        camisa idêntica à do uniforme, então as posições valem também aqui */
     if(f && f.atributos && f.atributos.montagem)
-      return compostoHTML(f.atributos.montagem, null, px, 8, ST.patroTeste, escudoClube(), t && t.atributos && t.atributos.patro);
+      return compostoHTML(f.atributos.montagem, null, px, 8, ST.patroTeste, escudoClube(), t && t.atributos && t.atributos.patro, t && t.atributos && t.atributos.escudo);
     if(f && f.atributos && f.atributos.recorte==='rosto')
-      return t ? compostoHTML(t.url, f.url, px, 8, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro)
+      return t ? compostoHTML(t.url, f.url, px, 8, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro, t.atributos && t.atributos.escudo)
                : `<span style="display:inline-block;width:${px}px;height:${px}px;border-radius:8px;background:#d9d9d9;overflow:hidden"><img src="${h(f.url)}" style="width:100%;height:100%;object-fit:contain"></span>`;
     return `<img src="${h(f.url)}" style="width:${px}px;height:${px}px;border-radius:8px;object-fit:cover">`;
   };
@@ -4798,9 +4800,9 @@ function modalFotosIA(item){
     const t = torso();
     const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
     if(f.atributos && f.atributos.montagem)
-      abrirLightboxHTML(compostoHTML(f.atributos.montagem, null, lado, 16, ST.patroTeste, escudoClube(), t && t.atributos && t.atributos.patro));
+      abrirLightboxHTML(compostoHTML(f.atributos.montagem, null, lado, 16, ST.patroTeste, escudoClube(), t && t.atributos && t.atributos.patro, t && t.atributos && t.atributos.escudo));
     else if(f.atributos && f.atributos.recorte==='rosto' && t)
-      abrirLightboxHTML(compostoHTML(t.url, f.url, lado, 16, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro));
+      abrirLightboxHTML(compostoHTML(t.url, f.url, lado, 16, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro, t.atributos && t.atributos.escudo));
     else abrirLightbox(f.url, alt);
   };
   el('ft-lista').addEventListener('click', ev => {
@@ -4812,7 +4814,7 @@ function modalFotosIA(item){
   document.querySelector('[data-torso-thumb]').onclick = () => {
     const t = torso(); if(!t) return;
     const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
-    abrirLightboxHTML(compostoHTML(t.url, null, lado, 16, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro));
+    abrirLightboxHTML(compostoHTML(t.url, null, lado, 16, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro, t.atributos && t.atributos.escudo));
   };
   const irUni = el('ft-ir-uniforme');
   if(irUni) irUni.onclick = () => { ST.abaEstudio='uniformes'; modalUniformeIA(item); };
@@ -4982,56 +4984,78 @@ function modalAjustePatrocinio(item, onSalvo){
   const c = item.c;
   const t = D.fotos[c.id+'|'+TORSO_KEY];
   if(!t) return toast('Gere o uniforme primeiro.', true);
-  if(!ST.patroTeste) return toast('Informe ou envie o logo do patrocinador primeiro.', true);
-  const pos = Object.assign({}, PATRO_POS_PADRAO, (t.atributos && t.atributos.patro) || {});
+
+  /* O AJUSTE É SOBRE A FOTO FINAL: se algum jogador já tem montagem IA, ela é o
+     fundo do editor — é nela que escudo e logo precisam encaixar. Sem montagem
+     ainda, o fundo é o uniforme cru. As posições salvas valem para o clube todo. */
+  let base = t.url, baseMontagem = false;
+  for(const p of (c.squad||[])){
+    const f = D.fotos[c.id+'|'+p.n];
+    if(f && f.atributos && f.atributos.montagem){ base = f.atributos.montagem; baseMontagem = true; break; }
+  }
+  const e = D.edits[c.id];
+  const escudoUrl = (e && e.patch && e.patch.crest) || c.crest || null;
+  const at0 = t.atributos || {};
+  const pos = {
+    patro:  Object.assign({}, PATRO_POS_PADRAO,  at0.patro  || {}),
+    escudo: Object.assign({}, ESCUDO_POS_PADRAO, at0.escudo || {})
+  };
 
   const lado = Math.min(560, Math.floor(Math.min(innerWidth, innerHeight)*0.72));
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px';
   ov.innerHTML = `
-    <div id="aj-palco" style="position:relative;width:${lado}px;height:${lado}px;border-radius:12px;overflow:hidden;background:#d9d9d9;touch-action:none">
-      <img src="${h(t.url)}" draggable="false" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none">
-      <img id="aj-logo" src="${h(ST.patroTeste)}" draggable="false"
-           style="position:absolute;left:${pos.x}%;top:${pos.y}%;width:${pos.w}%;cursor:grab;outline:2px dashed #35c46a;outline-offset:3px">
+    <div style="position:relative;width:${lado}px;height:${lado}px;border-radius:12px;overflow:hidden;background:#d9d9d9;touch-action:none">
+      <img src="${h(base)}" draggable="false" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none">
+      ${escudoUrl?`<img data-alvo="escudo" src="${h(escudoUrl)}" draggable="false"
+        style="position:absolute;left:${pos.escudo.x}%;top:${pos.escudo.y}%;width:${pos.escudo.w}%;cursor:grab;outline:2px dashed #e3b23c;outline-offset:3px">`:''}
+      ${ST.patroTeste?`<img data-alvo="patro" src="${h(ST.patroTeste)}" draggable="false"
+        style="position:absolute;left:${pos.patro.x}%;top:${pos.patro.y}%;width:${pos.patro.w}%;cursor:grab;outline:2px dashed #35c46a;outline-offset:3px">`:''}
     </div>
-    <div style="display:flex;align-items:center;gap:12px;color:#fff;font-size:13px;flex-wrap:wrap;justify-content:center">
-      <span>Tamanho</span>
-      <input id="aj-w" type="range" min="8" max="60" step="0.5" value="${pos.w}" style="width:220px">
-      <button class="btn btn-sm" id="aj-salvar">Salvar posição</button>
+    <div style="display:flex;align-items:center;gap:14px;color:#fff;font-size:13px;flex-wrap:wrap;justify-content:center">
+      ${escudoUrl?`<span style="color:#e3b23c">Escudo</span>
+        <input data-w="escudo" type="range" min="5" max="40" step="0.5" value="${pos.escudo.w}" style="width:150px">`:''}
+      ${ST.patroTeste?`<span style="color:#35c46a">Logo</span>
+        <input data-w="patro" type="range" min="8" max="60" step="0.5" value="${pos.patro.w}" style="width:150px">`:''}
+      <button class="btn btn-sm" id="aj-salvar">Salvar posições</button>
       <button class="btn btn-sm btn-ghost" id="aj-cancelar" style="color:#fff">Cancelar</button>
     </div>
-    <small style="color:#fff8;text-align:center;max-width:${lado}px">Arraste o logo até encaixar no painel branco. A posição salva vale para este uniforme — todas as fotos do elenco (e o jogo) passam a usar.</small>`;
+    <small style="color:#fff8;text-align:center;max-width:${lado}px">
+      Arraste o escudo (tracejado amarelo) e o logo (tracejado verde) até encaixarem
+      ${baseMontagem?'— o fundo é uma foto final do elenco, o encaixe aqui é o que vale no jogo.':'— gere uma foto de jogador para ajustar sobre a foto final.'}
+    </small>`;
   document.body.appendChild(ov);
 
-  const img = ov.querySelector('#aj-logo');
-  let drag = null;
-  img.onpointerdown = e => {
-    drag = { cx:e.clientX, cy:e.clientY, x:pos.x, y:pos.y };
-    img.setPointerCapture(e.pointerId); img.style.cursor='grabbing';
-  };
-  img.onpointermove = e => {
-    if(!drag) return;
-    pos.x = Math.min(96, Math.max(-30, drag.x + (e.clientX-drag.cx)*100/lado));
-    pos.y = Math.min(96, Math.max(-30, drag.y + (e.clientY-drag.cy)*100/lado));
-    img.style.left = pos.x+'%'; img.style.top = pos.y+'%';
-  };
-  img.onpointerup = () => { drag=null; img.style.cursor='grab'; };
-  ov.querySelector('#aj-w').oninput = e => { pos.w = +e.target.value; img.style.width = pos.w+'%'; };
+  ov.querySelectorAll('[data-alvo]').forEach(img => {
+    const chave = img.dataset.alvo;
+    let drag = null;
+    img.onpointerdown = e2 => { drag = { cx:e2.clientX, cy:e2.clientY, x:pos[chave].x, y:pos[chave].y };
+      img.setPointerCapture(e2.pointerId); img.style.cursor='grabbing'; };
+    img.onpointermove = e2 => { if(!drag) return;
+      pos[chave].x = Math.min(96, Math.max(-30, drag.x + (e2.clientX-drag.cx)*100/lado));
+      pos[chave].y = Math.min(96, Math.max(-30, drag.y + (e2.clientY-drag.cy)*100/lado));
+      img.style.left = pos[chave].x+'%'; img.style.top = pos[chave].y+'%'; };
+    img.onpointerup = () => { drag=null; img.style.cursor='grab'; };
+  });
+  ov.querySelectorAll('[data-w]').forEach(sl => sl.oninput = e2 => {
+    const chave = sl.dataset.w; pos[chave].w = +e2.target.value;
+    const img = ov.querySelector(`[data-alvo="${chave}"]`); if(img) img.style.width = pos[chave].w+'%';
+  });
 
   const fechar = () => { ov.remove(); document.removeEventListener('keydown', esc, true); };
-  const esc = e => { if(e.key==='Escape'){ e.stopImmediatePropagation(); fechar(); } };
+  const esc = e2 => { if(e2.key==='Escape'){ e2.stopImmediatePropagation(); fechar(); } };
   document.addEventListener('keydown', esc, true);
   ov.querySelector('#aj-cancelar').onclick = fechar;
 
   ov.querySelector('#aj-salvar').onclick = async () => {
-    const at = Object.assign({}, t.atributos, { patro: {
-      x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), w:+pos.w.toFixed(2) } });
+    const lim = o => ({ x:+o.x.toFixed(2), y:+o.y.toFixed(2), w:+o.w.toFixed(2) });
+    const at = Object.assign({}, t.atributos, { patro: lim(pos.patro), escudo: lim(pos.escudo) });
     const { error } = await jogo('player_photos').update({ atributos: at })
       .eq('pack_id', ST.packId).eq('club_id', String(c.id)).eq('jogador', TORSO_KEY);
     if(error) return toast(erroMsg(error), true);
     t.atributos = at;
-    registrar('estudio.patro.pos', String(c.id), at.patro);
-    toast('Posição do patrocínio salva.');
+    registrar('estudio.camadas.pos', String(c.id), at);
+    toast('Posições salvas — valem para todo o elenco.');
     fechar(); if(onSalvo) onSalvo();
   };
 }
@@ -5069,11 +5093,11 @@ function modalUniformeIA(item){
             ${editar?`<button class="btn btn-sm btn-ghost" id="un-patro-up" style="flex:0 0 auto" title="Enviar arquivo do logo">↥</button>
             <input type="file" id="un-patro-arq" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">`:''}
           </span></label>
-        ${editar?`<button class="btn btn-sm btn-ghost" id="un-ajustar" style="align-self:flex-start" ${t()?'':'disabled'}>✥ Ajustar posição do patrocínio</button>`:''}
+        ${editar?`<button class="btn btn-sm btn-ghost" id="un-ajustar" style="align-self:flex-start" ${t()?'':'disabled'}>✥ Ajustar escudo e patrocínio na foto</button>`:''}
       </div>
       <div class="col" style="gap:10px;align-items:center;justify-content:center">
         <div id="un-preview" title="Clique para ver em tela expandida" style="cursor:zoom-in">
-          ${t() ? compostoHTML(t().url, null, 240, 12, ST.patroTeste, escudo(), at.patro)
+          ${t() ? compostoHTML(t().url, null, 240, 12, ST.patroTeste, escudo(), at.patro, at.escudo)
                 : `<div style="width:240px;height:240px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--bd2);border-radius:12px;font-size:12px;color:var(--dim3)">sem uniforme ainda</div>`}
         </div>
         <div id="un-estado" style="font-size:12px;color:var(--dim2);min-height:16px">${t()&&at.estilo?('Estilo atual: '+h((ESTILOS_CAMISA.find(e=>e[0]===at.estilo)||[])[1]||at.estilo)):''}</div>
@@ -5089,7 +5113,7 @@ function modalUniformeIA(item){
   el('un-preview').onclick = () => {
     const tt = t(); if(!tt) return;
     const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
-    abrirLightboxHTML(compostoHTML(tt.url, null, lado, 16, ST.patroTeste, escudo(), (tt.atributos||{}).patro));
+    abrirLightboxHTML(compostoHTML(tt.url, null, lado, 16, ST.patroTeste, escudo(), (tt.atributos||{}).patro, (tt.atributos||{}).escudo));
   };
   el('un-patro').onchange = () => { ST.patroTeste = el('un-patro').value.trim(); modalUniformeIA(item); };
 
