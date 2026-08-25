@@ -154,10 +154,10 @@ const PAPEIS = { socio:'Sócio · vê tudo', financeiro:'Financeiro', produto:'P
 /* o que cada papel vê (o guia: socio=tudo, financeiro=Finanças+Publicidade,
    produto=Analytics/Usuários/Funcionalidades, leitura=tudo em modo leitura) */
 const ACESSO = {
-  socio:      ['visao','usuarios','jogos','analytics','financas','publicidade','parceiros','conteudo','features','editor','equipa'],
+  socio:      ['visao','usuarios','jogos','analytics','financas','publicidade','parceiros','conteudo','features','editor','estudio','equipa'],
   financeiro: ['visao','financas','publicidade','parceiros'],
-  produto:    ['visao','usuarios','jogos','analytics','parceiros','conteudo','features','editor'],
-  leitura:    ['visao','usuarios','jogos','analytics','financas','publicidade','parceiros','conteudo','features','editor']
+  produto:    ['visao','usuarios','jogos','analytics','parceiros','conteudo','features','editor','estudio'],
+  leitura:    ['visao','usuarios','jogos','analytics','financas','publicidade','parceiros','conteudo','features','editor','estudio']
 };
 function podeVer(tab){ return (ACESSO[ME&&ME.papel] || ACESSO.leitura).includes(tab); }
 function podeEditar(area){
@@ -323,6 +323,7 @@ const NAV = [
   { id:'parceiros',   ic:'★', label:'Parceiros',      tit:'Parceiros influenciadores', sub:'Canais, link de indicação e o que ele trouxe' },
   { id:'conteudo',    ic:'▦', label:'Conteúdo',       tit:'Calendário de conteúdo', sub:'Da ideia ao agendado, por canal' },
   { id:'editor',      ic:'✎', label:'Editor de dados',tit:'Editor de dados do jogo', sub:'Clubes, elencos, escudos e força' },
+  { id:'estudio',     ic:'❖', label:'Estúdio IA',     tit:'Estúdio de imagens',  sub:'Escudos fictícios e fotos de jogadores por IA' },
   { id:'equipa',      ic:'☗', label:'Equipe admin',   tit:'Equipe admin',       sub:'Quem entra no painel' }
 ];
 function renderNav(){
@@ -346,7 +347,7 @@ function irPara(tab, forcar){
   const fn = { visao:pgVisao, usuarios:pgUsuarios, jogos:pgJogos, analytics:pgAnalytics,
                financas:pgFinancas, publicidade:pgPublicidade, features:pgFeatures,
                parceiros:pgParceiros, conteudo:pgConteudo,
-               editor:pgEditor, equipa:pgEquipa }[tab];
+               editor:pgEditor, estudio:pgEstudio, equipa:pgEquipa }[tab];
   fn(forcar).catch(e => { el('page').innerHTML = `<div class="erro">${h(erroMsg(e))}</div>`; });
 }
 
@@ -4165,5 +4166,391 @@ function modalConteudo(c){
     if(error) return toast(erroMsg(error), true);
     registrar('conteudo.apagar', c.titulo);
     fecharModal(); toast('Conteúdo apagado.'); pgConteudo();
+  };
+}
+
+/* ============================================================================
+   ESTÚDIO DE IMAGENS (IA)
+   ----------------------------------------------------------------------------
+   Gera, via OpenAI (edge function generate-image), duas coisas:
+   · ESCUDOS fictícios para substituir os escudos reais — o resultado entra no
+     patch em edição como `crest`, o MESMO campo que o jogo já aplica hoje;
+   · FOTOS realistas de jogador, variando cabelo, pele, barba, sorriso, brinco
+     e tatuagem conforme a idade do elenco. Ficam em elifoot_v3.player_photos
+     (fora do patch de propósito: salvar o clube no editor reescreve o patch
+     inteiro, e as fotos não podem se perder nesse movimento).
+   A chave da OpenAI mora nos secrets do Supabase — o browser nunca a vê.
+   ============================================================================ */
+
+/* chama a edge function e devolve a URL pública da imagem já no Storage */
+async function gerarImagemIA(tipo, prompt, qualidade){
+  const { data, error } = await sb.functions.invoke('generate-image',
+    { body:{ tipo, prompt, qualidade: qualidade||'medium' } });
+  if(error){
+    let msg = error.message || 'Falha ao gerar a imagem.';
+    try{ const j = await error.context.json(); if(j && j.error) msg = j.error; }catch(_e){}
+    throw new Error(msg);
+  }
+  if(!data || !data.url) throw new Error((data && data.error) || 'A função não devolveu imagem.');
+  return data.url;
+}
+
+const ESTILOS_ESCUDO = [
+  ['classico',  'Brasão clássico brasileiro', 'classic Brazilian football club crest, traditional shield shape, bold outlines, vintage 1990s style'],
+  ['europeu',   'Tradicional europeu',        'traditional European football club crest, ornate shield with laurel or star details, classic heraldic style'],
+  ['moderno',   'Moderno minimalista',        'modern minimalist football club badge, clean geometric shapes, flat design, simple and bold'],
+  ['retro',     'Retrô vintage',              'retro vintage football club badge, distressed classic look, circular or shield layout, old-school typography'],
+  ['varzea',    'Várzea raiz',                'humble amateur Brazilian neighborhood football club crest, simple hand-drawn feel, honest and charming']
+];
+
+function promptEscudo(c, estiloChave, simbolo, texto, extra){
+  const est = (ESTILOS_ESCUDO.find(e=>e[0]===estiloChave) || ESTILOS_ESCUDO[0])[2];
+  return [
+    `Football club crest logo for a fictional club, ${est}.`,
+    `Primary color ${c.color||'#1b7a3d'}, secondary color ${c.color2||'#ffffff'}.`,
+    simbolo ? `Main symbol: ${simbolo}.` : 'Main symbol: a football (soccer ball) integrated into the design.',
+    texto ? `The short text "${texto}" integrated into the crest, legible.` : 'No text or lettering at all.',
+    'Flat vector illustration style, sharp clean edges, centered composition, transparent background.',
+    'Must NOT resemble any real existing football club crest or trademark. No mockup, no 3D, no photo.',
+    extra || ''
+  ].filter(Boolean).join(' ');
+}
+
+/* variação da foto: sorteio honesto — é o que dá cara diferente a cada jogador */
+const FOTO_POOL = {
+  pele:    ['very light skin','light skin','medium tan skin','light brown skin','brown skin','dark brown skin','black skin'],
+  cabelo:  ['buzz cut','short fade haircut','curly top fade','medium curly hair','afro hair','short dreadlocks','slicked back hair','messy short hair','mullet haircut','completely bald head'],
+  corCab:  ['black','black','dark brown','brown','bleached blond','dyed platinum blond'],
+  barba:   ['clean-shaven','clean-shaven','light stubble','full short beard','goatee','thin mustache'],
+  sorriso: ['neutral serious expression','neutral serious expression','confident slight smile','big friendly smile'],
+  brinco:  ['no earrings','no earrings','no earrings','a small stud earring in one ear','small diamond earrings in both ears'],
+  tattoo:  ['no visible tattoos','no visible tattoos','no visible tattoos','a small tattoo visible on the neck','tattoos partially visible on the arm']
+};
+function sortearAtributos(p){
+  const pick = a => a[Math.floor(Math.random()*a.length)];
+  const at = {
+    idade: (p && p.age) || (18+Math.floor(Math.random()*17)),
+    pele: pick(FOTO_POOL.pele), cabelo: pick(FOTO_POOL.cabelo), corCab: pick(FOTO_POOL.corCab),
+    barba: pick(FOTO_POOL.barba), sorriso: pick(FOTO_POOL.sorriso),
+    brinco: pick(FOTO_POOL.brinco), tattoo: pick(FOTO_POOL.tattoo)
+  };
+  if(at.idade < 21){ at.barba = Math.random()<0.7 ? 'clean-shaven' : 'light stubble'; }
+  if(/bald/.test(at.cabelo)) at.corCab = '';
+  return at;
+}
+function resumoAtributos(at){
+  const t = {
+    'very light skin':'pele muito clara','light skin':'pele clara','medium tan skin':'pele morena',
+    'light brown skin':'pele parda','brown skin':'pele castanha','dark brown skin':'pele escura','black skin':'pele negra',
+    'buzz cut':'raspado','short fade haircut':'fade curto','curly top fade':'crespo com fade','medium curly hair':'cacheado',
+    'afro hair':'black power','short dreadlocks':'dreads','slicked back hair':'penteado pra trás','messy short hair':'despenteado',
+    'mullet haircut':'mullet','completely bald head':'careca',
+    'clean-shaven':'sem barba','light stubble':'barba rala','full short beard':'barba cheia','goatee':'cavanhaque','thin mustache':'bigode',
+    'neutral serious expression':'sério','confident slight smile':'meio sorriso','big friendly smile':'sorridente',
+    'no earrings':'sem brinco','a small stud earring in one ear':'brinco','small diamond earrings in both ears':'2 brincos',
+    'no visible tattoos':'sem tattoo','a small tattoo visible on the neck':'tattoo no pescoço','tattoos partially visible on the arm':'tattoo no braço',
+    'black':'preto','dark brown':'castanho escuro','brown':'castanho','bleached blond':'loiro descolorido','dyed platinum blond':'platinado'
+  };
+  const tr = s => t[s]||s;
+  return [at.idade+' anos', tr(at.pele), tr(at.cabelo)+(at.corCab?' '+tr(at.corCab):''),
+          tr(at.barba), tr(at.sorriso), tr(at.brinco), tr(at.tattoo)].join(' · ');
+}
+function promptFotoJogador(item, p, at){
+  const c = item.c;
+  const pais = item.pais==='Brasil' ? 'Brazil' : item.pais;
+  const cab = /bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`;
+  return [
+    `Hyper-realistic professional studio portrait photograph of a fictional professional football player from ${pais}.`,
+    `${at.idade} years old, ${at.pele}, ${cab}, ${at.barba}, ${at.sorriso}, ${at.brinco}, ${at.tattoo}.`,
+    'Chest-up framing, facing the camera directly, official club media day photo style.',
+    `Wearing a football jersey with vertical stripes in ${c.color||'#1b7a3d'} and ${c.color2||'#ffffff'}, with a small generic fictional club crest on the chest.`,
+    'Plain light gray studio background, soft professional studio lighting, sharp focus, DSLR photo quality.',
+    'This is a completely fictional person, not resembling any real footballer or celebrity.'
+  ].join(' ');
+}
+
+/* ---------- página ---------- */
+async function pgEstudio(){
+  try{ await carregarCatalogo(); }
+  catch(e){ el('page').innerHTML = `<div class="erro">${h(e.message)}</div>`; return; }
+
+  const packs = await jogo('data_packs').select('*').order('oficial', { ascending:false }).order('criado_em');
+  if(packs.error) throw packs.error;
+  D.packs = packs.data||[];
+  if(!ST.packId || !D.packs.some(p=>p.id===ST.packId))
+    ST.packId = (D.packs.find(p=>p.oficial)||D.packs[0]||{}).id;
+  const pack = D.packs.find(p=>p.id===ST.packId);
+  if(!pack){ el('page').innerHTML = '<div class="erro">Nenhum patch encontrado.</div>'; return; }
+
+  const [eds, fotos] = await Promise.all([
+    jogo('pack_edits').select('*').eq('pack_id', pack.id),
+    jogo('player_photos').select('*').eq('pack_id', pack.id)
+  ]);
+  if(eds.error) throw eds.error;
+  if(fotos.error) throw fotos.error;
+  D.edits = {}; (eds.data||[]).forEach(e => { D.edits[e.club_id] = e; });
+  D.fotos = {}; (fotos.data||[]).forEach(f => { D.fotos[f.club_id+'|'+f.jogador] = f; });
+
+  const base = clubesDeFabrica();
+  (eds.data||[]).filter(e => e.novo && e.club_id !== COMPETICOES_CHAVE).forEach(e => {
+    if(!base.some(x => String(x.c.id)===String(e.club_id)))
+      base.push({ div:e.divisao||'D', pais:(e.patch||{}).pais||'Brasil',
+                  c:Object.assign({id:e.club_id}, e.patch||{}), criado:true });
+  });
+  D.catalogo = base;
+
+  const aba = ST.abaEstudio || 'escudos';
+  const busca = (ST.buscaEstudio||'').toLowerCase();
+  const paisSel = ST.paisEstudio || 'todos';
+  const paises = Array.from(new Set(base.map(x=>x.pais))).sort((a,b)=> a==='Brasil'?-1:b==='Brasil'?1:a.localeCompare(b,'pt-BR'));
+  const lista = base.filter(x =>
+    (paisSel==='todos' || x.pais===paisSel) &&
+    (!busca || String(x.c.name||'').toLowerCase().includes(busca)
+            || String(x.c.short||'').toLowerCase().includes(busca)
+            || String(x.c.id).toLowerCase().includes(busca)));
+
+  const fotosDoClube = (x) => (x.c.squad||[]).filter(p => D.fotos[x.c.id+'|'+p.n]).length;
+  const escudoIA = (x) => { const e=D.edits[x.c.id]; return !!(e && e.patch && e.patch.crest && /\/escudos\/ia\//.test(e.patch.crest)); };
+  const totalFotos = Object.keys(D.fotos).length;
+  const totalEscudosIA = base.filter(escudoIA).length;
+
+  el('page').innerHTML = `
+    <div class="card card-p">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:240px">
+          <div class="tt">Estúdio de imagens</div>
+          <div class="st">Escudos fictícios (substituem os reais no jogo, via patch) e fotos realistas de jogador.
+            Cada imagem custa ~US$ 0,04 na qualidade média. Salvando no patch:
+            <b>${h(nomePatch(pack))}</b></div>
+        </div>
+        <select class="busca" id="est-pack" style="width:230px">
+          ${D.packs.map(p=>`<option value="${p.id}" ${p.id===pack.id?'selected':''}>${h(nomePatch(p))}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="g4" style="margin:16px 0">
+      ${kpiHTML({l:'Clubes no catálogo', v:num(base.length), d:`${paises.length} países`})}
+      ${kpiHTML({l:'Escudos gerados por IA', v:num(totalEscudosIA), d:'salvos neste patch'})}
+      ${kpiHTML({l:'Fotos de jogador', v:num(totalFotos), d:'geradas neste patch'})}
+      ${kpiHTML({l:'Jogadores no catálogo', v:num(base.reduce((a,x)=>a+((x.c.squad||[]).length),0)), d:'candidatos a foto'})}
+    </div>
+    <div class="per" style="gap:6px;margin-bottom:2px">
+      ${[['escudos','Escudos'],['fotos','Fotos de jogadores']]
+        .map(([id,l])=>`<span class="${aba===id?'on':''}" data-est-aba="${id}" style="padding:9px 16px">${l}</span>`).join('')}
+    </div>
+    <div class="card" style="overflow:hidden">
+      <div class="card-h">
+        <b>${aba==='escudos'?'Escolha o clube para gerar o escudo':'Escolha o clube para gerar as fotos do elenco'}</b>
+        <select class="busca" id="est-pais" style="width:170px">
+          <option value="todos">Todos os países</option>
+          ${paises.map(p=>`<option value="${h(p)}" ${p===paisSel?'selected':''}>${h(p)}</option>`).join('')}
+        </select>
+        <input class="busca" id="est-busca" placeholder="Procurar clube…" value="${h(ST.buscaEstudio||'')}">
+      </div>
+      <div class="rowh" style="grid-template-columns:44px 1.7fr .9fr .6fr 1fr">
+        <span></span><span>Clube</span><span>País</span><span style="text-align:center">Divisão</span>
+        <span style="text-align:right">${aba==='escudos'?'Escudo':'Fotos do elenco'}</span>
+      </div>
+      ${lista.length ? lista.slice(0,120).map(x => {
+        const cor = x.c.color || '#333';
+        const e = D.edits[x.c.id];
+        const crest = (e && e.patch && e.patch.crest) || x.c.crest;
+        const nf = fotosDoClube(x), tot = (x.c.squad||[]).length;
+        return `<div class="row" style="grid-template-columns:44px 1.7fr .9fr .6fr 1fr;cursor:pointer" data-est-clube="${h(x.c.id)}">
+          <span>${crest
+            ? `<img src="${h(crest)}" alt="" style="width:26px;height:26px;object-fit:contain">`
+            : `<i class="av" style="width:26px;height:26px;border-radius:6px;background:${h(cor)};color:#fff;font-size:10px">${h(iniciais(x.c.short||x.c.name))}</i>`}</span>
+          <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(x.c.short||x.c.name)}</b>
+            <small class="mono" style="font-size:11px;color:var(--dim3)">${h(x.c.id)}</small></span>
+          <span style="font-size:12px;color:var(--dim)">${h(x.pais)}</span>
+          <span class="mono" style="font-size:12px;text-align:center">${h(x.div)}</span>
+          <span style="text-align:right">${aba==='escudos'
+            ? (escudoIA(x) ? '<span class="tag t-ok">IA salvo</span>'
+               : (crest ? '<span style="font-size:12px;color:var(--dim3)">real / manual</span>'
+                        : '<span style="font-size:12px;color:var(--dim3)">sem escudo</span>'))
+            : (tot ? `<span class="mono" style="font-size:12.5px;color:${nf>=tot?'var(--verde2)':nf?'var(--ambar)':'var(--dim3)'}">${nf}/${tot}</span>`
+                   : '<span style="font-size:12px;color:var(--dim3)">sem elenco</span>')}</span>
+        </div>`;
+      }).join('') : '<div class="vazio">Nenhum clube encontrado.</div>'}
+      ${lista.length>120?`<div class="vazio">Mostrando 120 de ${lista.length} — refine a busca.</div>`:''}
+    </div>`;
+
+  el('est-pack').onchange = () => { ST.packId = el('est-pack').value; pgEstudio(); };
+  document.querySelectorAll('[data-est-aba]').forEach(x => x.onclick = () => { ST.abaEstudio=x.dataset.estAba; pgEstudio(); });
+  el('est-pais').onchange = () => { ST.paisEstudio = el('est-pais').value; pgEstudio(); };
+  const b = el('est-busca'); let t=null;
+  b.oninput = () => { clearTimeout(t); t=setTimeout(()=>{ ST.buscaEstudio=b.value.trim(); pgEstudio(); },300); };
+  document.querySelectorAll('[data-est-clube]').forEach(r => r.onclick = () => {
+    const item = (D.catalogo||[]).find(x => String(x.c.id)===String(r.dataset.estClube));
+    if(!item) return;
+    if((ST.abaEstudio||'escudos')==='escudos') modalEscudoIA(item); else modalFotosIA(item);
+  });
+}
+
+/* ---------- modal: gerar escudo ---------- */
+function modalEscudoIA(item){
+  const c = item.c, editar = podeEditar('dados');
+  const e = D.edits[c.id];
+  const atual = (e && e.patch && e.patch.crest) || c.crest;
+  abrirModal(`
+    <h3>Escudo por IA — ${h(c.short||c.name)}</h3>
+    <div class="duas-col">
+      <div class="col" style="gap:12px">
+        <div class="st" style="line-height:1.6">Escudo fictício nas cores do clube
+          (<span class="mono">${h(c.color||'—')}</span> / <span class="mono">${h(c.color2||'—')}</span>).
+          Salvar grava no patch em edição — o jogo passa a mostrar este escudo no lugar do real.</div>
+        <label class="f">Estilo
+          <select class="f" id="ia-estilo">
+            ${ESTILOS_ESCUDO.map(x=>`<option value="${x[0]}">${h(x[1])}</option>`).join('')}
+          </select></label>
+        <label class="f">Símbolo principal (opcional)
+          <input class="f" id="ia-simbolo" placeholder="Ex.: leão, âncora, estrela, galo…"></label>
+        <label class="f">Texto no escudo (opcional — texto sai errado às vezes)
+          <input class="f" id="ia-texto" maxlength="24" placeholder="Ex.: ${h((c.short||'').slice(0,18))}"></label>
+        <label class="f">Instruções extras (opcional)
+          <input class="f" id="ia-extra" placeholder="Ex.: duas estrelas em cima, faixa diagonal…"></label>
+        <label class="f">Qualidade
+          <select class="f" id="ia-qual">
+            <option value="low">Rascunho (~US$ 0,01)</option>
+            <option value="medium" selected>Média (~US$ 0,04)</option>
+            <option value="high">Alta (~US$ 0,17)</option>
+          </select></label>
+      </div>
+      <div class="col" style="gap:10px;align-items:center;justify-content:center">
+        <div id="ia-preview" style="width:230px;height:230px;display:flex;align-items:center;justify-content:center;
+             border:1px dashed var(--bd2);border-radius:12px;background:repeating-conic-gradient(#0002 0 25%,transparent 0 50%) 0 0/18px 18px">
+          ${atual?`<img src="${h(atual)}" style="max-width:88%;max-height:88%;object-fit:contain">`
+                 :'<span style="font-size:12px;color:var(--dim3)">sem escudo ainda</span>'}
+        </div>
+        <div id="ia-estado" style="font-size:12px;color:var(--dim2);min-height:16px"></div>
+      </div>
+    </div>
+    <div class="acoes">
+      ${editar?`<button class="btn" id="ia-gerar">Gerar escudo</button>`:''}
+      ${editar?`<button class="btn btn-ghost" id="ia-salvar" disabled>Salvar no clube</button>`:''}
+      <button class="btn btn-ghost" data-fechar>Fechar</button>
+    </div>`, 'lg');
+
+  if(!editar) return;
+  let gerada = null;
+  el('ia-gerar').onclick = async () => {
+    const btn = el('ia-gerar');
+    btn.disabled = true; btn.textContent = 'Gerando… (até 1 min)';
+    el('ia-estado').textContent = 'A OpenAI está desenhando o escudo…';
+    try{
+      const prompt = promptEscudo(c, el('ia-estilo').value,
+        el('ia-simbolo').value.trim(), el('ia-texto').value.trim(), el('ia-extra').value.trim());
+      const url = await gerarImagemIA('escudo', prompt, el('ia-qual').value);
+      gerada = url;
+      el('ia-preview').innerHTML = `<img src="${h(url)}" style="max-width:88%;max-height:88%;object-fit:contain">`;
+      el('ia-estado').textContent = 'Pronto — salve para valer, ou gere de novo.';
+      el('ia-salvar').disabled = false; el('ia-salvar').classList.remove('btn-ghost');
+    }catch(err){
+      el('ia-estado').textContent = '';
+      toast(err.message||'Falha ao gerar.', true);
+    }
+    btn.disabled = false; btn.textContent = 'Gerar de novo';
+  };
+  el('ia-salvar').onclick = async () => {
+    if(!gerada) return;
+    const ed = D.edits[c.id];
+    const linha = {
+      pack_id: ST.packId, club_id: String(c.id), divisao: item.div, novo: !!(ed && ed.novo),
+      patch: Object.assign({}, ed && ed.patch, { crest: gerada })
+    };
+    const { error } = await jogo('pack_edits').upsert(linha, { onConflict:'pack_id,club_id' });
+    if(error) return toast(erroMsg(error), true);
+    await jogo('data_packs').update({ atualizado_em:new Date().toISOString() }).eq('id', ST.packId);
+    registrar('estudio.escudo', String(c.id), { pacote: ST.packId });
+    fecharModal(); toast('Escudo salvo no patch.'); pgEstudio();
+  };
+}
+
+/* ---------- modal: fotos do elenco ---------- */
+function modalFotosIA(item){
+  const c = item.c, editar = podeEditar('dados');
+  const sq = (c.squad||[]).slice().sort((a,b)=>(b.f||0)-(a.f||0));
+  const sorteios = {};   // nome -> atributos sorteados nesta sessão do modal
+  sq.forEach(p => { sorteios[p.n] = sortearAtributos(p); });
+  const faltantes = () => sq.filter(p => !D.fotos[c.id+'|'+p.n]);
+
+  const linhaFoto = (p) => {
+    const f = D.fotos[c.id+'|'+p.n];
+    return `<div class="row" style="grid-template-columns:52px minmax(0,1.4fr) minmax(0,2fr) 150px;align-items:center" data-foto-jog="${h(p.n)}">
+      <span data-thumb>${f
+        ? `<img src="${h(f.url)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover">`
+        : `<i class="av" style="width:40px;height:40px;border-radius:8px;background:${h(c.color||'#333')};color:#fff;font-size:12px">${h(iniciais(p.n))}</i>`}</span>
+      <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(p.n)}</b>
+        <small style="font-size:11px;color:var(--dim3)">${h(p.p||'—')} · ${p.age!=null?p.age+' anos':'idade —'} · força ${p.f!=null?p.f:'—'}</small></span>
+      <small data-attrs style="font-size:11px;color:var(--dim2);line-height:1.5">${h(resumoAtributos(sorteios[p.n]))}</small>
+      <span style="display:flex;gap:6px;justify-content:flex-end">
+        ${editar?`<button class="btn btn-sm btn-ghost" data-sortear title="Sortear outro visual">↻</button>
+        <button class="btn btn-sm" data-gerar>${f?'Refazer':'Gerar'}</button>`:''}
+      </span>
+    </div>`;
+  };
+
+  abrirModal(`
+    <h3>Fotos por IA — ${h(c.short||c.name)}</h3>
+    <div class="st" style="line-height:1.6;margin-bottom:10px">
+      Retrato realista de estúdio com a camisa nas cores do clube. O visual (pele, cabelo, barba,
+      sorriso, brinco, tatuagem) é sorteado por jogador — use ↻ para sortear outro antes de gerar.
+      A idade vem do elenco. ~US$ 0,04 por foto.</div>
+    ${editar && sq.length ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <button class="btn btn-sm" id="ft-todos">Gerar os que faltam (${faltantes().length})</button>
+      <span id="ft-progresso" style="font-size:12px;color:var(--dim2)"></span></div>`:''}
+    <div class="jog-wrap">
+      <div id="ft-lista">${sq.map(linhaFoto).join('') || '<div class="vazio">Elenco vazio.</div>'}</div>
+    </div>
+    <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>`, 'xl');
+
+  if(!editar) return;
+
+  async function gerarPara(p, linha){
+    const at = sorteios[p.n];
+    const url = await gerarImagemIA('jogador', promptFotoJogador(item, p, at), 'medium');
+    const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: p.n, url, atributos: at };
+    const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
+    if(error) throw new Error(erroMsg(error));
+    D.fotos[c.id+'|'+p.n] = reg;
+    if(linha){
+      linha.querySelector('[data-thumb]').innerHTML =
+        `<img src="${h(url)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover">`;
+      const bt = linha.querySelector('[data-gerar]'); if(bt) bt.textContent = 'Refazer';
+    }
+  }
+
+  el('ft-lista').addEventListener('click', async ev => {
+    const linha = ev.target.closest('[data-foto-jog]'); if(!linha) return;
+    const p = sq.find(x => x.n === linha.dataset.fotoJog); if(!p) return;
+    if(ev.target.closest('[data-sortear]')){
+      sorteios[p.n] = sortearAtributos(p);
+      linha.querySelector('[data-attrs]').textContent = resumoAtributos(sorteios[p.n]);
+      return;
+    }
+    const bt = ev.target.closest('[data-gerar]'); if(!bt) return;
+    bt.disabled = true; const rotulo = bt.textContent; bt.textContent = '…';
+    try{ await gerarPara(p, linha); registrar('estudio.foto', c.id+'|'+p.n, { pacote: ST.packId }); toast('Foto salva.'); }
+    catch(err){ bt.textContent = rotulo; toast(err.message||'Falha ao gerar.', true); }
+    bt.disabled = false; if(bt.textContent==='…') bt.textContent = 'Refazer';
+  });
+
+  const btTodos = el('ft-todos');
+  if(btTodos) btTodos.onclick = async () => {
+    const fila = faltantes();
+    if(!fila.length) return toast('Todo o elenco já tem foto.');
+    const custo = (fila.length*0.04).toFixed(2);
+    if(!confirm(`Gerar ${fila.length} fotos agora? Custo estimado ~US$ ${custo}. Uma por vez, dá para acompanhar.`)) return;
+    btTodos.disabled = true;
+    let ok = 0, erroN = 0;
+    for(const p of fila){
+      el('ft-progresso').textContent = `Gerando ${ok+erroN+1}/${fila.length} — ${p.n}…`;
+      const linha = el('ft-lista').querySelector(`[data-foto-jog="${CSS.escape(p.n)}"]`);
+      try{ await gerarPara(p, linha); ok++; }
+      catch(err){ erroN++; console.warn('foto falhou:', p.n, err.message); }
+    }
+    registrar('estudio.foto.lote', String(c.id), { pacote: ST.packId, geradas: ok, falhas: erroN });
+    el('ft-progresso').textContent = `Pronto: ${ok} geradas${erroN?`, ${erroN} falharam`:''}.`;
+    btTodos.disabled = false; btTodos.textContent = `Gerar os que faltam (${faltantes().length})`;
   };
 }

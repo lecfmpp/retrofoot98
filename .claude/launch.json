@@ -4,20 +4,69 @@
     {
       "name": "elifoot-static",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "--port", "5173"],
+      "runtimeArgs": [
+        "vite",
+        "--port",
+        "5173"
+      ],
       "port": 5173
     },
     {
       "name": "elifoot-harness",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "--port", "5183"],
+      "runtimeArgs": [
+        "vite",
+        "--port",
+        "5183"
+      ],
       "port": 5183
     },
     {
       "name": "elifoot-dist",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "dist", "-l", "5174"],
+      "runtimeArgs": [
+        "serve",
+        "dist",
+        "-l",
+        "5174"
+      ],
       "port": 5174
+    },
+    {
+      "name": "rf26-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "/Users/clawdio/Documents/GitHub/Elifoot/.claude/worktrees/calendar-multiplayer-sync-4c6601",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5199"
+      ],
+      "port": 5199
+    },
+    {
+      "name": "rf26-dist",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "serve",
+        "/Users/clawdio/Documents/GitHub/Elifoot/.claude/worktrees/retrofoot-new-layout-design-c09780/dist",
+        "-l",
+        "4199"
+      ],
+      "port": 4199
+    },
+    {
+      "name": "admin-static",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "serve",
+        "public/admin",
+        "-l",
+        "5177"
+      ],
+      "port": 5177
     }
   ]
 }

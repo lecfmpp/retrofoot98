@@ -60,6 +60,7 @@ jobs:
         run: |
           npx esbuild supabase/functions/resolve-round/index.ts --outfile=/dev/null --platform=neutral --format=esm
           npx esbuild supabase/functions/kickoff-round/index.ts --outfile=/dev/null --platform=neutral --format=esm
+          npx esbuild supabase/functions/generate-image/index.ts --outfile=/dev/null --platform=neutral --format=esm
 
       - uses: supabase/setup-cli@v1
         with:
@@ -76,12 +77,13 @@ jobs:
         run: |
           supabase functions deploy resolve-round --project-ref "$PROJECT_REF"
           supabase functions deploy kickoff-round --project-ref "$PROJECT_REF"
+          supabase functions deploy generate-image --project-ref "$PROJECT_REF"
 
       # As funções têm que SUBIR, não só compilar. Sem Authorization o gateway responde 401 —
       # é o sinal de que o worker bootou. 5xx aqui significa erro em tempo de boot.
       - name: Verificar que as funções sobem
         run: |
-          for fn in resolve-round kickoff-round; do
+          for fn in resolve-round kickoff-round generate-image; do
             ok=0
             for i in 1 2 3; do
               code=$(curl -s -o /tmp/r.txt -w '%{http_code}' -X POST \
