@@ -464,15 +464,20 @@ function rfFxEvolucaoHTML(p){
     <span class="rf-fx-nota">Nesta faixa da escala, cada ponto de atributo vale ~${String(salto).replace('.',',')} de força.</span>
   </div>`;
 }
-function rfElFichaHTML(){
-  const sq=squad(CL.clubId);
-  const p=sq.find(x=>x.pid===CL.selPlayer)||sq[0];
+/* A MESMA ficha serve o meu elenco e o de qualquer clube visitado: recebe o
+   clube e o jogador; sem argumentos, é o meu (comportamento de sempre). */
+function rfElFichaHTML(clubIdArg, pidArg){
+  const cid = clubIdArg || CL.clubId;
+  const doMeu = String(cid)===String(CL.clubId);
+  const sq=squad(cid);
+  const alvoPid = pidArg || (doMeu?CL.selPlayer:CL.viewSelPlayer);
+  const p=sq.find(x=>x.pid===alvoPid)||sq[0];
   if(!p) return rfCol(rfCard('Ficha do jogador','<div class="rf-empty">Selecciona um jogador no Elenco.</div>'));
-  const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(CL.clubId):{};
+  const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(cid):{};
   const num=nums[p.pid]||p.num||'';
   const en=Math.round(p.energy!=null?p.energy:100);
   const moral=Math.round(p.moral!=null?p.moral:70);
-  const clube=clubOf(CL.clubId)||{};
+  const clube=(typeof anyClubOf==='function'?anyClubOf(cid):clubOf(cid))||{};
   const crest=(typeof clubCrestUrl==='function')?clubCrestUrl(clube):null;
   const divLbl=(typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[S.division])||('Série '+S.division);
   const pais=(typeof universeCountryInfo==='function')?((universeCountryInfo()||{}).name||''):'';
@@ -492,8 +497,11 @@ function rfElFichaHTML(){
         <span class="rf-fx-ident-sub">${escC(rfPosInicial(p.s))} · ${p.age||'?'} anos · ${p.ft==='L'?'canhoto':'destro'}${p.nat?' · '+((typeof rfNacHTML==='function')?rfNacHTML(p)+' ':'')+escC(p.nat):''} · ${escC(clube.short||'')}</span>
       </div>
       <div class="rf-fx-ident-acts">
+        ${doMeu ? `
         <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcAbrir('elenco-renovar',{pid:'${escC(p.pid)}'})">Renovar contrato</button>
-        <button type="button" class="rf-btn rf-btn-vender" onclick="rfAcAbrir('mkt-listar',{pid:'${escC(p.pid)}'})">Listar para venda</button>
+        <button type="button" class="rf-btn rf-btn-vender" onclick="rfAcAbrir('mkt-listar',{pid:'${escC(p.pid)}'})">Listar para venda</button>` : `
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="clViewTeam('${escC(String(cid))}')">‹ Elenco do ${escC(clube.short||'clube')}</button>
+        <button type="button" class="rf-btn rf-btn-cta" onclick="rfMkPropor('${escC(String(cid))}','${escC(p.n)}','')">Fazer proposta</button>`}
       </div>
     </div>
     <div class="rf-fx-destaques">${rfFxDestaques(p)}</div>
@@ -538,7 +546,7 @@ function rfElFichaHTML(){
             ${crest?`<img src="${escC(crest)}" alt="Escudo">`:''}
             <span><b>${escC(clube.name||clube.short||'—')}</b>
               <span class="rf-fx-clube-s">${escC(divLbl)} · ${escC(pais)}</span>
-              <span class="rf-fx-clube-f">Fundado em ${rfFxFundado(CL.clubId)}</span></span>
+              <span class="rf-fx-clube-f">Fundado em ${rfFxFundado(cid)}</span></span>
           </div>
         </div>
         <div class="rf-card rf-fx-card">
