@@ -4742,7 +4742,9 @@ async function pintarMolde(moldeUrl, corA, corB){
     else if(mx === g) matiz = (b - r) / croma * 60 + 120;
     else              matiz = (r - g) / croma * 60 + 240;
     let alvo = null;
-    if(matiz >= 262 && matiz <= 352)      alvo = A;    // magenta, roxo sombreado, vinho
+    /* a família quente FECHA o círculo até o vermelho (355°→8°): a sombra mais
+       funda do magenta desvia até lá e escapava, deixando a mancha vinho */
+    if(matiz >= 262 || matiz <= 8)        alvo = A;    // magenta, roxo, vinho, vermelho-sombra
     else if(matiz >= 148 && matiz < 262)  alvo = B;    // ciano, petróleo, azul (gola/punho)
     if(!alvo) continue;                                 // pele (~10-50°) e cabelo ficam
     const w = Math.min(1, (croma - 12) / 14);
