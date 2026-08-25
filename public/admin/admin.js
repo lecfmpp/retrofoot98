@@ -2965,7 +2965,7 @@ function campoCor(id, rotulo, valor){
     <span style="display:flex;align-items:center;gap:8px">
       <input type="color" id="${id}" value="${h(valor||'#1b7a3d')}"
              style="width:46px;height:34px;padding:2px;border:1px solid var(--bd2);border-radius:8px;background:var(--bg);cursor:pointer">
-      <input class="f mono" id="${id}-hex" value="${h(valor||'#1b7a3d')}" style="flex:1;font-size:12px" maxlength="7">
+      <input class="f mono" id="${id}-hex" value="${h(valor||'#1b7a3d')}" style="flex:1;min-width:0;font-size:12px" maxlength="7">
     </span></label>`;
 }
 /* mantém o seletor visual e o campo hexadecimal em sincronia, e redesenha a

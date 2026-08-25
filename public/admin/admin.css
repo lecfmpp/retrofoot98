@@ -92,7 +92,9 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
 .card-h b{font-size:14px;font-weight:700;flex:1;min-width:0}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+/* minmax(0,…): sem o mínimo zero, o conteúdo que não encolhe (ex.: seletor de
+   cor) estica a célula e a segunda coluna desliza para trás do vizinho */
+.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
 .kpi{border:1px solid var(--bd);background:var(--card);border-radius:14px;padding:16px 18px}
 .kpi .l{font-size:12px;font-weight:600;color:var(--dim2)}
 .kpi .v{font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:-1px;margin-top:6px}
