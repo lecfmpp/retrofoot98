@@ -4981,7 +4981,7 @@ async function padronizarEscudo(arquivo){
   } finally { URL.revokeObjectURL(url); }
 }
 
-function modalEscudoIA(item){
+function modalEscudoIA(item, onSalvo){
   const c = item.c, editar = podeEditar('dados');
   const e = D.edits[c.id];
   const atual = (e && e.patch && e.patch.crest) || c.crest;
@@ -5075,7 +5075,8 @@ function modalEscudoIA(item){
     D.edits[c.id] = linha;
     await jogo('data_packs').update({ atualizado_em:new Date().toISOString() }).eq('id', ST.packId);
     registrar('estudio.escudo', String(c.id), { pacote: ST.packId });
-    fecharModal(); toast('Escudo salvo no patch.'); pgEstudio();
+    fecharModal(); toast('Escudo salvo no patch.');
+    if(onSalvo) onSalvo(); else pgEstudio();
   };
 }
 
@@ -5556,14 +5557,13 @@ function modalUniformeIA(item){
       estilo: at.estilo || 'vertical',
       corA: (at.cores && at.cores[0]) || c.color || '#1b7a3d',
       corB: (at.cores && at.cores[1]) || c.color2 || '#ffffff',
-      escudoNovo: null,
       patroUrl: at.patroUrl || ST.patroTeste || '',
       fabUrl: at.fabricanteUrl || '',
       pv: null, pvChave: '' };
   }
   const wiz = D.wiz;
   const abrir = () => modalUniformeIA(item);
-  const escudoEscolhido = () => wiz.escudoNovo || escudoAtual();
+  const escudoEscolhido = () => escudoAtual();
 
   const PASSOS = [
     ['Estilo','o desenho da camisa'],
@@ -5584,7 +5584,7 @@ function modalUniformeIA(item){
     n===2 ? `<i style="display:inline-block;width:13px;height:13px;border-radius:4px;background:${h(wiz.corA)};vertical-align:-2px"></i>
              <i style="display:inline-block;width:13px;height:13px;border-radius:4px;background:${h(wiz.corB)};border:1px solid var(--bd2);vertical-align:-2px"></i>` :
     n===3 ? (D.fotos[MOLDE_KEY+'|mini-'+wiz.estilo] ? 'pronta — pinta ao salvar' : 'molde ainda não gerado') :
-    n===4 ? (wiz.escudoNovo ? 'novo escudo enviado' : (escudoAtual() ? 'mantém o atual' : 'sem escudo')) :
+    n===4 ? (escudoAtual() ? 'usa o escudo atual do clube' : 'sem escudo') :
     n===5 ? (wiz.patroUrl ? 'logo definido' : 'sem patrocinador') :
     n===6 ? (wiz.fabUrl ? 'logo definido' : 'sem fabricante') : '';
 
@@ -5617,16 +5617,13 @@ function modalUniformeIA(item){
     if(n===4) return `<div class="col" style="gap:10px">
       <div style="display:flex;align-items:center;gap:12px">
         <span style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--bd2);border-radius:10px">
-          ${escudoEscolhido()?`<img src="${h(escudoEscolhido())}" style="max-width:44px;max-height:44px;object-fit:contain">`:'<small style="color:var(--dim3)">—</small>'}</span>
-        <small style="flex:1;font-size:12px;color:var(--dim2)">${wiz.escudoNovo?'Novo escudo enviado — entra no patch quando você aplicar no jogo.':(escudoAtual()?'Escudo atual do clube (do patch ou de fábrica).':'O clube ainda não tem escudo — envie um, ou gere na aba Escudos.')}</small>
+          ${escudoAtual()?`<img src="${h(escudoAtual())}" style="max-width:44px;max-height:44px;object-fit:contain">`:'<small style="color:var(--dim3)">—</small>'}</span>
+        <small style="flex:1;font-size:12px;color:var(--dim2)">${escudoAtual()
+          ?'O uniforme usa o escudo ATUAL do clube (do patch ou de fábrica). Para trocá-lo, altere na aba Escudos e volte — o wizard pega o novo automaticamente.'
+          :'O clube ainda não tem escudo — cadastre um na aba Escudos e volte para continuar.'}</small>
       </div>
-      ${editar?`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-sm btn-ghost" id="wz-esc-btn">Enviar novo escudo</button>
-        <input type="file" id="wz-esc-arq" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">
-        <button class="btn btn-sm btn-ghost" id="wz-esc-rmfundo" ${escudoEscolhido()?'':'disabled'}>Remover fundo</button>
-        ${wiz.escudoNovo?'<span class="link" id="wz-esc-desfazer" style="font-size:12px">voltar ao atual</span>':''}
-      </div>`:''}
-      <button class="btn btn-sm" data-continuar style="align-self:flex-start">${escudoEscolhido()?'Manter e continuar':'Continuar sem escudo'}</button></div>`;
+      ${editar?`<button class="btn btn-sm btn-ghost" id="wz-esc-alterar" style="align-self:flex-start">${escudoAtual()?'Alterar escudo do clube':'Cadastrar escudo do clube'}</button>`:''}
+      <button class="btn btn-sm" data-continuar style="align-self:flex-start">${escudoAtual()?'Manter e continuar':'Continuar sem escudo'}</button></div>`;
     if(n===5) return `<div class="col" style="gap:10px">
       <span style="display:flex;gap:8px">
         <input class="f" id="wz-patro" style="flex:1;min-width:0" placeholder="https://… ou envie um arquivo" value="${h(wiz.patroUrl)}">
@@ -5646,7 +5643,7 @@ function modalUniformeIA(item){
       <small style="font-size:12px;color:var(--dim2)">A marca do material esportivo — entra pequena, no lado oposto ao escudo, como camada (trocar não custa nada). Fica salva com o uniforme do clube.</small>
       <button class="btn btn-sm" data-continuar style="align-self:flex-start">${wiz.fabUrl?'Continuar':'Continuar sem fabricante'}</button></div>`;
     return `<div class="col" style="gap:10px">
-      <small style="font-size:12.5px;color:var(--dim2);line-height:1.6">Confira a prévia ao lado. <b>Salvar rascunho</b> guarda o uniforme no Estúdio para continuar depois; <b>Salvar e aplicar no jogo</b> grava o uniforme do elenco${wiz.escudoNovo?' e põe o escudo novo no patch':''}.</small>
+      <small style="font-size:12.5px;color:var(--dim2);line-height:1.6">Confira a prévia ao lado. <b>Salvar rascunho</b> guarda o uniforme no Estúdio para continuar depois; <b>Salvar e aplicar no jogo</b> grava o uniforme do elenco.</small>
       ${editar?`<button class="btn btn-sm btn-ghost" id="wz-ajustar" style="align-self:flex-start" ${basePreview()?'':'disabled'}>✥ Ajustar escudo e patrocínio na foto</button>`:''}
       <div id="wz-estado" style="font-size:12px;color:var(--dim2);min-height:16px"></div>
       ${editar?`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
@@ -5825,40 +5822,8 @@ function modalUniformeIA(item){
       }catch(err){ toast(err.message||'Falha ao refazer.', true); rfM.textContent = '↻ refazer miniatura'; }
     };
   }
-  if(wiz.passo===4 && el('wz-esc-btn')){
-    el('wz-esc-btn').onclick = () => el('wz-esc-arq').click();
-    const desf = el('wz-esc-desfazer'); if(desf) desf.onclick = () => { wiz.escudoNovo=null; abrir(); };
-    const rmE = el('wz-esc-rmfundo');
-    if(rmE) rmE.onclick = async () => {
-      const alvo = escudoEscolhido();
-      if(!alvo) return toast('Envie ou tenha um escudo primeiro.', true);
-      rmE.disabled = true; rmE.textContent = 'Removendo…';
-      try{
-        const r = await fetch(alvo);
-        if(!r.ok) throw new Error('não consegui baixar ('+r.status+')');
-        const limpo = await removerFundoDeImagem(await r.blob());
-        if(!limpo) throw new Error('falha ao processar');
-        const padrao = await padronizarEscudo(limpo);
-        const caminho = `${caminhoClube(item)}/escudo-semfundo-${Date.now()}.webp`;
-        const up = await sb.storage.from('escudos').upload(caminho, padrao, { upsert:false, cacheControl:'31536000' });
-        if(up.error) throw new Error(up.error.message);
-        wiz.escudoNovo = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
-        toast('Fundo removido — confira na miniatura e no preview.');
-        abrir();
-        return;
-      }catch(err){ toast('Não deu para remover o fundo ('+err.message+').', true); }
-      rmE.disabled = false; rmE.textContent = 'Remover fundo';
-    };
-    el('wz-esc-arq').onchange = async () => {
-      const f = el('wz-esc-arq').files[0]; if(!f) return;
-      if(f.size > 5*1024*1024) return toast('Arquivo acima de 5 MB.', true);
-      const padrao = await padronizarEscudo(f);   // WebP 512×512
-      const caminho = `${caminhoClube(item)}/escudo-upload-${Date.now()}.webp`;
-      const up = await sb.storage.from('escudos').upload(caminho, padrao, { upsert:false, cacheControl:'31536000' });
-      if(up.error) return toast(erroMsg(up.error), true);
-      wiz.escudoNovo = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
-      toast('Escudo enviado — entra no patch quando você aplicar.'); abrir();
-    };
+  if(wiz.passo===4 && el('wz-esc-alterar')){
+    el('wz-esc-alterar').onclick = () => modalEscudoIA(item, abrir);
   }
   if(wiz.passo===5 && el('wz-patro-up')){
     el('wz-patro').onchange = () => { colher(); atualizarPreview(); pintarPrevia(); };
@@ -5979,15 +5944,6 @@ function modalUniformeIA(item){
         const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
         if(error) throw new Error(erroMsg(error));
         D.fotos[c.id+'|'+TORSO_KEY] = reg;
-        if(aplicar && wiz.escudoNovo){
-          const ed = D.edits[c.id];
-          const linha = { pack_id: ST.packId, club_id: String(c.id), divisao: item.div, novo: !!(ed && ed.novo),
-            patch: Object.assign({}, ed && ed.patch, { crest: wiz.escudoNovo }) };
-          const rC = await jogo('pack_edits').upsert(linha, { onConflict:'pack_id,club_id' });
-          if(rC.error) throw new Error(erroMsg(rC.error));
-          D.edits[c.id] = linha;
-          await jogo('data_packs').update({ atualizado_em:new Date().toISOString() }).eq('id', ST.packId);
-        }
         ST.patroTeste = wiz.patroUrl || ST.patroTeste;
         registrar(aplicar?'estudio.uniforme.aplicar':'estudio.uniforme.rascunho', String(c.id), { pacote: ST.packId, estilo: wiz.estilo });
 
