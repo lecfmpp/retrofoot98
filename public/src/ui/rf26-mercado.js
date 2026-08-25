@@ -138,7 +138,10 @@ function rfMkCamisaHTML(num, p){ return rfElCamisa(num,'m', p); }
    nome quando o jogador tem foto do Estúdio; sem foto, nada muda */
 function rfMkFotoMini(p, clubId){
   const foto = (typeof rfFotoDe==='function') ? rfFotoDe(p, clubId) : null;
-  return foto ? (rfFotoNumHTML(foto, p&&p.num, 'm')+' ') : '';
+  if(!foto) return '';
+  /* foto e nome levam ao MESMO lugar: a ficha do jogador (a proposta é só
+     pelo botão Propor da linha ou pelo botão dentro da ficha) */
+  return rfLinkJogador(p.n, clubId, rfFotoNumHTML(foto, p&&p.num, 'm'))+' ';
 }
 
 /* =====================================================================
@@ -359,7 +362,7 @@ function rfMktComprarTabelaHTML(){
        quem pode e quem não pode contratar (mesma régua do motor — playerIsForeign) */
     const estr=(typeof playerIsForeign==='function') && playerIsForeign(p);
     const nac=`<span class="rf-mkt-x rf-mkt-nac" title="${escC(p.nat||'nacionalidade desconhecida')}${estr?' · estrangeiro (conta na cota)':' · não conta na cota'}">${(typeof flagImg==='function'&&p.nat)?flagImg(p.nat):'—'}</span>`;
-    return `<div class="rf-mkt-row" onclick="${propor}">
+    return `<div class="rf-mkt-row" onclick="rfVerFichaJogador('${escC(p.n)}','${escC(String(clubId))}'${pais?`,'${escC(String(pais))}'`:''})" title="Ver a ficha de ${escC(p.n)}">
     <span class="rf-mkt-n">${rfMkFotoMini(p, clubId)}${rfLinkJogador(p.n, clubId)}${gols?` <em class="rf-mkt-gols" title="${gols} gols nesta temporada — a performance encarece o passe">⚽${gols}</em>`:''}</span>
     <span class="rf-mkt-f">${p.f}</span>
     ${rfMkPos(p)}
@@ -596,7 +599,7 @@ function rfMktVenderHTML(){
        estivesse selecionado, mas ninguém o selecionou — era só o mais valioso.
        Marca de seleção que não corresponde a uma escolha do utilizador confunde
        em vez de orientar. */
-    return `<div class="rf-mkt-row" onclick="rfMkListar('${escC(p.pid)}')">
+    return `<div class="rf-mkt-row" onclick="rfVerFichaJogador('${escC(p.n)}','${escC(String(CL.clubId))}')" title="Ver a ficha de ${escC(p.n)}">
       <span class="rf-mkt-nome">${rfMkCamisaHTML(nums[p.pid]||p.num, p)}${rfLinkJogador(p.n, CL.clubId, `<b>${escC(p.n)}</b>`)}</span>
       <span class="rf-mkt-f">${p.f}</span>
       ${rfMkPos(p)}
