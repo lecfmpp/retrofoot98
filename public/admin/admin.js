@@ -4753,7 +4753,7 @@ async function pintarMolde(moldeUrl, corA, corB){
 /* posição padrão do logo do patrocinador — o ajuste fino por clube (drag and
    drop no Estúdio) fica salvo em atributos.patro do uniforme e vence o padrão */
 const PATRO_POS_PADRAO  = { x:33, y:65, w:34 };  // left %, top %, largura % (altura acompanha)
-const ESCUDO_POS_PADRAO = { x:61, y:56, w:14 };  // peito esquerdo do jogador na foto final
+const ESCUDO_POS_PADRAO = { x:59, y:35, w:18 };  // peito esquerdo do jogador, altura do peito
 const RATIO_FOTO = 1.5;   // retrato 2:3 (1024x1536) — o formato do cartão do jogador no site
 const FAB_POS_PADRAO = { x:27, y:57, w:9 };   // fabricante: lado oposto ao escudo, menor
 /* AS POSIÇÕES SÃO DO QUADRO DO UNIFORME (torso, sem cabeça). Na FOTO do jogador
