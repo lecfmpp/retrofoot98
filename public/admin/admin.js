@@ -5593,6 +5593,8 @@ function modalUniformeIA(item){
       ${ESTILOS_CAMISA.map(e=>`<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid ${wiz.estilo===e[0]?'var(--verde2)':'var(--bd2)'};border-radius:10px;cursor:pointer;font-size:13px">
         <input type="radio" name="wz-estilo" value="${e[0]}" ${wiz.estilo===e[0]?'checked':''}> <span style="flex:1">${h(e[1])}</span>
         ${D.fotos[MOLDE_KEY+'|'+e[0]]?'<span class="tag t-ok" style="font-size:10px">pronto</span>':'<span style="font-size:10.5px;color:var(--dim3)">gera na 1ª vez</span>'}</label>`).join('')}
+      ${editar && (!D.fotos[MOLDE_KEY+'|'+wiz.estilo] || !D.fotos[MOLDE_KEY+'|mini-'+wiz.estilo]) ? `
+        <button class="btn btn-sm btn-ghost" id="wz-molde-gerar" style="align-self:flex-start;margin-top:4px">Gerar molde deste estilo (~US$ 0,08 — uniforme + miniatura, 1x por estilo)</button>`:''}
       ${editar && D.fotos[MOLDE_KEY+'|'+wiz.estilo] ? `<span class="link" id="wz-refazer-molde" style="font-size:12px;align-self:flex-start">↻ molde deste estilo saiu com defeito? Refazer (~US$ 0,04 — repinta todos os clubes do estilo depois)</span>`:''}
       <button class="btn btn-sm" data-continuar style="align-self:flex-start;margin-top:6px">Continuar</button></div>`;
     if(n===2) return `<div class="col" style="gap:12px">
@@ -5608,7 +5610,7 @@ function modalUniformeIA(item){
         <div id="wz-mini-preview" style="width:150px;height:150px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--bd2);border-radius:10px;background:repeating-conic-gradient(#0002 0 25%,transparent 0 50%) 0 0/16px 16px">
           ${mini?'<small style="font-size:11px;color:var(--dim3)">pintando…</small>':'<small style="font-size:11px;color:var(--dim3)">sem molde deste estilo</small>'}
         </div>
-        ${editar && !mini ? `<button class="btn btn-sm btn-ghost" id="wz-mini-gerar" style="align-self:flex-start">Gerar molde da miniatura (~US$ 0,04, 1x por estilo)</button>`:''}
+        ${editar && !mini ? `<small style="font-size:12px;color:var(--dim2)">O molde da miniatura é gerado junto com o do estilo — volte ao passo <b>Estilo</b> e use "Gerar molde deste estilo".</small>`:''}
         ${editar && mini ? `<span class="link" id="wz-mini-refazer" style="font-size:12px;align-self:flex-start">↻ miniatura não bate com o uniforme? Refazer (~US$ 0,04 — extraída do molde do uniforme)</span>`:''}
         <button class="btn btn-sm" data-continuar style="align-self:flex-start">Continuar</button></div>`;
     }
@@ -5752,6 +5754,18 @@ function modalUniformeIA(item){
       abrir();          // re-render: sem molde deste estilo, entra o placeholder
       pintarPrevia();   // com molde, repinta e o preview volta na sequência
     });
+    const bg1 = el('wz-molde-gerar');
+    if(bg1) bg1.onclick = async () => {
+      bg1.disabled = true; bg1.textContent = 'Gerando molde do estilo…';
+      try{
+        if(!D.fotos[MOLDE_KEY+'|'+wiz.estilo]) await garantirMolde(item, wiz.estilo);
+        if(!D.fotos[MOLDE_KEY+'|mini-'+wiz.estilo]) await garantirMoldeMini(wiz.estilo, item);
+        toast('Molde do estilo pronto (uniforme + miniatura).');
+        abrir(); pintarPrevia();
+        return;
+      }catch(err){ toast(err.message||'Falha ao gerar o molde.', true); }
+      bg1.disabled = false; bg1.textContent = 'Gerar molde deste estilo (~US$ 0,08 — uniforme + miniatura, 1x por estilo)';
+    };
     const rf = el('wz-refazer-molde');
     if(rf) rf.onclick = async () => {
       if(!confirm('Refazer o molde deste estilo (~US$ 0,04)? O molde atual é descartado; depois use "Repintar todos" na aba Uniformes para atualizar os clubes que já usam este estilo.')) return;
@@ -5793,13 +5807,6 @@ function modalUniformeIA(item){
       }catch(err){ alvo.innerHTML = '<small style="font-size:11px;color:var(--vermelho)">falha na pintura</small>'; }
     };
     desenharMini();
-    const bg = el('wz-mini-gerar');
-    if(bg) bg.onclick = async () => {
-      bg.disabled = true; bg.textContent = 'Gerando molde…';
-      try{ await garantirMoldeMini(wiz.estilo, item); toast('Molde da miniatura pronto.'); abrir(); return; }
-      catch(err){ toast(err.message||'Falha ao gerar o molde.', true); }
-      bg.disabled = false; bg.textContent = 'Gerar molde da miniatura (~US$ 0,04, 1x por estilo)';
-    };
     const rfM = el('wz-mini-refazer');
     if(rfM) rfM.onclick = async () => {
       if(!confirm('Refazer o molde da miniatura deste estilo (~US$ 0,04)? Ele será extraído do molde do uniforme — mesmo padrão de listras.')) return;
