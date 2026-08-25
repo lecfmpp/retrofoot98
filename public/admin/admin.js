@@ -5616,8 +5616,8 @@ function modalUniformeIA(item){
       <div class="col" style="gap:0">${reguaHTML}</div>
       <div class="col" style="gap:10px;align-items:center">
         <div id="wz-preview" title="Clique para ver em tela expandida" style="cursor:zoom-in">
-          ${(wiz.pv || t()) ? compostoCropHTML(wiz.pv || t().url, 250, 12, camadasWiz())
-            : `<div style="width:250px;height:${Math.round(250*RATIO_FOTO)}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px dashed var(--bd2);border-radius:12px;background:#d9d9d9">
+          ${(wiz.pv || t()) ? compostoHTML(wiz.pv || t().url, 320, 12, camadasWiz())
+            : `<div style="width:320px;height:${Math.round(320*RATIO_FOTO)}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px dashed var(--bd2);border-radius:12px;background:#d9d9d9">
                 <svg viewBox="0 0 100 100" style="width:150px;height:150px;opacity:.45">
                   <path fill="#8a8a8a" d="M35 12 L44 8 Q50 14 56 8 L65 12 L86 24 L79 42 L68 37 L68 92 L32 92 L32 37 L21 42 L14 24 Z"/>
                 </svg>
@@ -5646,7 +5646,7 @@ function modalUniformeIA(item){
       if(wiz.pv && wiz.pv.startsWith('blob:')) URL.revokeObjectURL(wiz.pv);
       wiz.pv = URL.createObjectURL(blob); wiz.pvChave = chave;
       const alvo = el('wz-preview');
-      if(alvo) alvo.innerHTML = compostoCropHTML(wiz.pv, 250, 12, camadasWiz());
+      if(alvo) alvo.innerHTML = compostoHTML(wiz.pv, 320, 12, camadasWiz());
     }catch(err){ console.warn('prévia local falhou:', err.message); }
   }
   pintarPrevia();
