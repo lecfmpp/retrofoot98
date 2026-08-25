@@ -107,7 +107,7 @@ const RF_PAGES=[
     sub:()=>rfElSubHTML(),
     acoes:()=>rfElAcoesHTML(), grid:'minmax(0,1fr) 340px',
     tabs:[ {k:'elenco', l:()=>'Elenco',           build:()=>rfElElencoHTML()},
-           {k:'ficha',  l:()=>'Ficha do jogador', build:()=>rfElFichaHTML()},
+           {k:'ficha',  l:()=>'Ficha do jogador', build:()=>rfElFichaHTML(), show:()=>!rfElVisita()},
            {k:'base',   l:()=>'Base',             build:()=>rfElBaseHTML(), show:()=>!rfElVisita()},
            {k:'treino', l:()=>'Treino especial',  build:()=>rfElTreinoHTML(), show:()=>!rfElVisita()} ] },
 
@@ -341,8 +341,8 @@ function rfVerFichaJogador(nome, clubId){
   if(typeof ensureBgClubMaterialized==='function') ensureBgClubMaterialized(cid);
   if(typeof ensureForeignClub==='function' && arguments.length>2 && arguments[2]) ensureForeignClub(arguments[2], cid);
   const p=((typeof squad==='function')?squad(cid):[]).find(x=>x.n===nome);
-  if(typeof clViewTeam==='function') clViewTeam(cid);
-  if(p){ CL.viewSelPlayer=p.pid; if(typeof rfSetTab==='function') rfSetTab('elenco','ficha'); else cdraw(); }
+  /* jogador de OUTRO clube: perfil limitado em MODAL, sem sair da página */
+  if(typeof rfAcAbrir==='function') rfAcAbrir('jogador-perfil', { clubId:cid, pid:p?p.pid:null, nome });
 }
 function rfLinkJogador(nome, clubId, html, pais){
   const acao=`rfVerFichaJogador('${escC(String(nome))}','${escC(String(clubId||''))}'${pais?`,'${escC(String(pais))}'`:''})`;

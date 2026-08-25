@@ -1100,20 +1100,6 @@ function rfVerTimeHTML(clubId){
   clubId=clubId||CL.viewClubId||CL.clubId;
   const c=anyClubOf(clubId)||{short:'—'};
   const sq=squad(clubId)||[];
-  /* JOGADOR SELECIONADO -> A FICHA É A TELA (a mesma ficha rica do meu elenco,
-     em leitura, com "Fazer proposta" e a volta para o elenco do clube). */
-  if(CL.viewSelPlayer && sq.some(x=>x.pid===CL.viewSelPlayer)){
-    const jog=sq.find(x=>x.pid===CL.viewSelPlayer);
-    return rfStage({
-      w:1020, crest:c,
-      contexto:`${escC(c.short||'')} · ficha do jogador`,
-      titulo:jog.n,
-      corpo:(typeof rfElFichaHTML==='function')?rfElFichaHTML(clubId, CL.viewSelPlayer):'',
-      acoes:`<button type="button" class="rf-ov-b2" onclick="CL.viewSelPlayer=null;cdraw()">‹ Voltar ao elenco</button>
-        <div class="rf-sp"></div>
-        <button type="button" class="rf-ov-cta" onclick="rfMkPropor('${escC(String(clubId))}','${escC(jog.n)}','')">Fazer proposta</button>`
-    });
-  }
   const forca=sq.length?Math.round(sq.reduce((s,p)=>s+(p.f||0),0)/sq.length):0;
   const perigo=sq.slice().sort((a,b)=>(b.f||0)-(a.f||0)).slice(0,3);
   const t=(S.table&&S.table[clubId])||null;
@@ -1144,7 +1130,7 @@ function rfVerTimeHTML(clubId){
           const foto=(typeof rfFotoDe==='function')?rfFotoDe(p, clubId):null;
           const deOutro = clubId!==CL.clubId;
           /* o clique abre a FICHA (a proposta mora dentro dela) */
-          const clique = ` onclick="clViewSelPlayer('${escC(p.pid)}')" title="Ver a ficha de ${escC(p.n)}"`;
+          const clique = ` onclick="rfAcAbrir('jogador-perfil',{clubId:'${escC(String(clubId))}',pid:'${escC(p.pid)}',nome:'${escC(p.n)}'})" title="Ver o perfil de ${escC(p.n)}"`;
           /* 1ª coluna: a MINIATURA com o número dentro (canto inferior direito,
              com folga das bordas); sem foto, o crachá verde de sempre */
           const numTxt=escC(String(p.num!=null?p.num:'—'));

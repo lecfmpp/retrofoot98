@@ -233,8 +233,15 @@ function rfElElencoHTML(){
 }
 
 function rfSelPlayer(pid){
-  if(rfElVisita()) CL.viewSelPlayer=pid; else CL.selPlayer=pid;
-  rfSetTab('elenco','ficha');
+  const vis=rfElVisita();
+  if(vis){
+    /* jogador de outro clube: PERFIL LIMITADO em modal — a ficha completa é
+       privilégio de quem é dono do jogador */
+    const p=(squad(vis)||[]).find(x=>x.pid===pid);
+    if(p && typeof rfAcAbrir==='function'){ rfAcAbrir('jogador-perfil',{clubId:vis,pid:p.pid,nome:p.n}); return; }
+    return;
+  }
+  CL.selPlayer=pid; rfSetTab('elenco','ficha');
 }
 
 /* =====================================================================

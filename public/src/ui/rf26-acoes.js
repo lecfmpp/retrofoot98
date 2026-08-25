@@ -627,6 +627,53 @@ const RF_ACOES = {
     acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Oferecer renovação',on:`rfElRenovarGo('${escC(String(d.pid))}')`}] });
 },
 
+/* PERFIL DE JOGADOR DE OUTRO CLUBE — visão LIMITADA, em modal.
+   Mostra o que interessa para negociar: foto, idade/posição, hexágono de
+   força, estatísticas da temporada e de sempre, valor de mercado e salário.
+   Nada de atributos detalhados, evolução ou contrato — isso é do dono. */
+'jogador-perfil': d=>{
+  const cid=d.clubId, p=((typeof squad==='function')?squad(cid):[]).find(x=>x.pid===d.pid || x.n===d.nome);
+  if(!p) return rfAcao({ kicker:'JOGADOR', titulo:'Jogador não encontrado', w:420,
+    corpo:rfAcNotaHTML('Não consegui carregar este jogador.'), acoes:[{l:'Fechar'}] });
+  const c=(typeof anyClubOf==='function'?anyClubOf(cid):null)||{};
+  const meu=String(cid)===String(CL.clubId);
+  const hist=(typeof careerHistTotals==='function')?careerHistTotals(p):null;
+  const golsTemp=((S.scorers&&S.scorers[p.n])||0);
+  const jogosTemp=(p.stats&&p.stats.games)||p.games||0;
+  const notaTemp=(typeof playerAvgRating==='function')?playerAvgRating(p):null;
+  const vm=(typeof computeVM==='function')?computeVM(p):(p.mv||0);
+  const ask=(typeof playerAsk==='function')?playerAsk(p,cid):vm;
+  const sal=(p.contract&&p.contract.salary)||p.salary||0;
+  const hex=(typeof rfFxHexSVG==='function')?rfFxHexSVG(p):'';
+  const foto=(typeof rfFotoDe==='function')?rfFotoDe(p,cid):null;
+  const linha=(rot,val,sub)=>`<div class="rf-jp-l"><span>${escC(rot)}</span><b>${escC(String(val))}</b>${sub?`<i>${escC(sub)}</i>`:''}</div>`;
+  return rfAcao({
+    kicker:(c.short?escC(c.short).toUpperCase()+' · ':'')+'PERFIL DO JOGADOR', titulo:p.n, w:620,
+    corpo:`
+      <div class="rf-jp">
+        <div class="rf-jp-top">
+          ${foto?`<span class="rf-jp-foto">${(typeof rfFotoNumHTML==='function')?rfFotoNumHTML(foto,p.num,'g'):''}</span>`:''}
+          <div class="rf-jp-id">
+            <b>${escC(p.n)}</b>
+            <span>${escC((typeof posLetter==='function')?posLetter(p.s):(p.s||''))} · ${p.age||'—'} anos · ${escC(c.short||'')}</span>
+            <span class="rf-jp-f">Força <b>${p.f}</b></span>
+          </div>
+        </div>
+        ${hex?`<div class="rf-jp-hex">${hex}</div>`:''}
+        <div class="rf-jp-grid">
+          ${linha('Nesta temporada', jogosTemp+' jogo'+(jogosTemp===1?'':'s'), golsTemp?golsTemp+' gol'+(golsTemp>1?'s':''):'sem gols')}
+          ${linha('Nota média', notaTemp!=null?String(notaTemp):'—','')}
+          ${hist?linha('Na carreira', (hist.games||0)+' jogos', (hist.goals||0)+' gols'):''}
+          ${linha('Valor de mercado', rfDin(vm), meu?'':'pedido: '+rfDin(ask))}
+          ${linha('Salário', sal?rfDin(sal):'—','')}
+        </div>
+      </div>`,
+    acoes: meu
+      ? [{l:'Fechar',tom:'fantasma'},{l:'Abrir ficha completa',on:`rfAcFechar();rfSelPlayer('${escC(String(p.pid))}')`}]
+      : [{l:'Fechar',tom:'fantasma'},{l:'Fazer proposta',on:`rfAcFechar();rfMkPropor('${escC(String(cid))}','${escC(p.n)}','')`}]
+  });
+},
+
 'elenco-renovado': d=>rfAcao({ kicker:'ELENCO · RENOVAÇÃO', titulo:'Contrato renovado', w:440,
   corpo:
     rfAcSeloHTML(rfIcone('ok',16), escC(d.nome||'—'), 'assinou com você')

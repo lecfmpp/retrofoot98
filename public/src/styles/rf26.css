@@ -8493,3 +8493,18 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
    rótulo só vai à direita quando tem .dir — igual ao dado que ele encima. */
 .rf-mkt-head>span:not(.dir){text-align:left}
 .rf-mkt-head>span.dir{text-align:right}
+
+/* perfil limitado de jogador de outro clube (modal) */
+.rf-jp{display:flex;flex-direction:column;gap:14px}
+.rf-jp-top{display:flex;gap:14px;align-items:center}
+.rf-jp-id{display:flex;flex-direction:column;gap:3px;min-width:0}
+.rf-jp-id>b{font-size:18px;font-weight:700}
+.rf-jp-id>span{font-size:12.5px;color:var(--text-dim,#68766c)}
+.rf-jp-f b{font-size:15px;color:var(--text-1,#16281c)}
+.rf-jp-hex{display:flex;justify-content:center}
+.rf-jp-hex svg{max-width:230px;height:auto}
+.rf-jp-grid{display:flex;flex-direction:column;gap:2px}
+.rf-jp-l{display:flex;align-items:baseline;gap:8px;padding:8px 0;border-top:1px solid var(--linha,#e6ece6)}
+.rf-jp-l>span{font-size:12.5px;color:var(--text-dim,#68766c);flex:1}
+.rf-jp-l>b{font-size:14px;font-weight:700}
+.rf-jp-l>i{font-style:normal;font-size:11.5px;color:var(--text-faint,#93a89a)}
