@@ -32,11 +32,13 @@ function resp(status: number, body: unknown) {
 // tipo -> onde a imagem cai e como ela é pedida à OpenAI.
 // TUDO sai em WebP comprimido (o formato leve que o jogo já usa nos criativos);
 // o escudo mantém o fundo transparente — WebP suporta alfa.
-const TIPOS: Record<string, { bucket: string; background: "transparent" | "opaque" }> = {
-  escudo:  { bucket: "escudos",   background: "transparent" },
-  jogador: { bucket: "jogadores", background: "opaque" },      // retrato inteiro (legado)
-  rosto:   { bucket: "jogadores", background: "transparent" }, // só cabeça+pescoço, recortado
-  torso:   { bucket: "jogadores", background: "opaque" },      // a camisa do clube, sem cabeça — base única
+// torso e montagem saem em RETRATO 2:3 (1024x1536) — o formato do cartão do
+// jogador no site do jogo; o resto continua quadrado.
+const TIPOS: Record<string, { bucket: string; background: "transparent" | "opaque"; size: string }> = {
+  escudo:  { bucket: "escudos",   background: "transparent", size: "1024x1024" },
+  jogador: { bucket: "jogadores", background: "opaque",      size: "1024x1024" }, // retrato inteiro (legado)
+  rosto:   { bucket: "jogadores", background: "transparent", size: "1024x1024" }, // só cabeça+pescoço, recortado
+  torso:   { bucket: "jogadores", background: "opaque",      size: "1024x1536" }, // a camisa do clube — base única
 };
 const FORMATO = "webp", CONTENT_TYPE = "image/webp", COMPRESSAO = 80; // 0-100, 80 é leve sem serrilhar
 
@@ -73,7 +75,9 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return resp(400, { error: "Body inválido." }); }
 
   const tipo = String(body.tipo || "");
-  const cfg = tipo === "montagem" ? { bucket: "jogadores", background: "opaque" as const } : TIPOS[tipo];
+  const cfg = tipo === "montagem"
+    ? { bucket: "jogadores", background: "opaque" as const, size: "1024x1536" }
+    : TIPOS[tipo];
   const prompt = String(body.prompt || "").trim();
   if (!cfg) return resp(400, { error: "tipo tem que ser escudo, jogador, rosto, torso ou montagem." });
   if (!prompt || prompt.length > 4000) return resp(400, { error: "prompt vazio ou longo demais." });
@@ -93,7 +97,7 @@ Deno.serve(async (req) => {
     form.append("model", "gpt-image-1");
     form.append("prompt", prompt);
     form.append("n", "1");
-    form.append("size", "1024x1024");
+    form.append("size", cfg.size);
     form.append("quality", qualidade);
     form.append("output_format", FORMATO);
     form.append("output_compression", String(COMPRESSAO));
@@ -117,7 +121,7 @@ Deno.serve(async (req) => {
         model: "gpt-image-1",
         prompt,
         n: 1,
-        size: "1024x1024",
+        size: cfg.size,
         quality: qualidade,
         background: cfg.background,
         output_format: FORMATO,
@@ -147,6 +151,18 @@ Deno.serve(async (req) => {
     console.error("Upload falhou:", up.error.message);
     return resp(500, { error: "Imagem gerada, mas o upload falhou: " + up.error.message });
   }
+
+  // custo REGISTRADO a cada geração — alimenta os cards de Finanças do painel.
+  // Tabela oficial de preço do gpt-image-1 por tamanho×qualidade (USD/imagem).
+  const PRECOS: Record<string, Record<string, number>> = {
+    "1024x1024": { low: 0.011, medium: 0.042, high: 0.167 },
+    "1024x1536": { low: 0.016, medium: 0.063, high: 0.25 },
+  };
+  const custo = PRECOS[cfg.size]?.[qualidade] ?? 0.042;
+  const { error: logErr } = await admin.schema("elifoot_v3").from("ia_custos").insert({
+    tipo, qualidade, tamanho: cfg.size, custo_usd: custo, quem: userData.user.id,
+  });
+  if (logErr) console.error("registro de custo falhou:", logErr.message);
 
   const publica = admin.storage.from(cfg.bucket).getPublicUrl(caminho).data.publicUrl;
   return resp(200, { url: publica, caminho });

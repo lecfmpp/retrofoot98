@@ -1110,13 +1110,15 @@ const CATS_RECEITA = ['publicidade','assinaturas','aportes'];
 async function pgFinancas(){
   // recorrência mensal/anual materializa os meses em falta antes de somar
   try{ await sb.rpc('gerar_recorrencias'); }catch(e){}
-  const [ov, lanc] = await Promise.all([
+  const [ov, lanc, ia] = await Promise.all([
     sb.rpc('overview', { p_dias: ST.periodo }),
-    sb.from('adm_lancamentos').select('*').order('data', { ascending:false }).limit(400)
+    sb.from('adm_lancamentos').select('*').order('data', { ascending:false }).limit(400),
+    jogo('ia_custos').select('tipo,custo_usd')
   ]);
   if(ov.error) throw ov.error;
   if(lanc.error) throw lanc.error;
   D.overview = ov.data; D.lancamentos = lanc.data||[];
+  D.iaCustos = ia.error ? [] : (ia.data||[]);
 
   const mes = new Date().toISOString().slice(0,7);
   const doMes = D.lancamentos.filter(l => String(l.data).slice(0,7)===mes);
@@ -1141,6 +1143,27 @@ async function pgFinancas(){
       ${editar?`<span class="link" data-del-lanc="${l.id}" title="Apagar" style="color:var(--dim3);text-align:center">✕</span>`:''}
     </div>`).join('') : '<div class="vazio">Nada lançado neste mês.</div>';
 
+  /* gastos com IA do Estúdio — registrados pela edge function a cada geração.
+     "Escudo" = escudo; "Uniforme" = torso (uniformes e moldes); "Jogador" =
+     rosto + montagem (e o retrato legado). Dólar, direto da tabela da OpenAI. */
+  const iaSoma = tipos => D.iaCustos.filter(r=>tipos.includes(r.tipo))
+    .reduce((a,r)=>({ n:a.n+1, v:a.v + Number(r.custo_usd) }), { n:0, v:0 });
+  const iaEsc = iaSoma(['escudo']), iaUni = iaSoma(['torso']),
+        iaJog = iaSoma(['rosto','montagem','jogador']);
+  const iaTot = iaEsc.v + iaUni.v + iaJog.v;
+  const usd = v => 'US$ ' + v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+  const iaCards = `
+    <div class="card card-p" style="margin-top:4px">
+      <div class="tt">Gastos com IA — Estúdio de imagens</div>
+      <div class="st" style="margin-bottom:12px">Registrado automaticamente a cada geração (contagem desde 25/08/2026). Pintura de molde e camadas não custam nada.</div>
+      <div class="g4">
+        ${kpiHTML({l:'Escudos gerados', v:usd(iaEsc.v), d:`${num(iaEsc.n)} gerações`})}
+        ${kpiHTML({l:'Uniformes e moldes', v:usd(iaUni.v), d:`${num(iaUni.n)} gerações`})}
+        ${kpiHTML({l:'Jogadores (rosto + costura)', v:usd(iaJog.v), d:`${num(iaJog.n)} gerações`})}
+        ${kpiHTML({l:'Total gasto com IA', v:usd(iaTot), d:`${num(iaEsc.n+iaUni.n+iaJog.n)} imagens`, c:'var(--ambar)'})}
+      </div>
+    </div>`;
+
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Receita do mês', v:brl(tRec), d:`${rec.length} lançamentos`, c:'var(--verde2)'})}
@@ -1149,6 +1172,7 @@ async function pgFinancas(){
       ${kpiHTML({l:'Por usuário ativo', v: ativos? brl(Math.round(tDesp/ativos)) : '—',
                  d: ativos? `receita ${brl(Math.round(tRec/ativos))} por ativo` : 'sem ativos no período'})}
     </div>
+    ${iaCards}
     <div class="card card-p">
       <div class="tt" style="margin-bottom:16px">Lucro por mês</div>
       <div style="height:130px;display:flex;align-items:flex-end;gap:16px">
@@ -4503,7 +4527,7 @@ function promptTorso(item, estiloChave, corA, corB){
     `Wearing ${camisa}.`,
     'The jersey is COMPLETELY CLEAN: no club crest, no badge, no sponsor, no text, no logos anywhere — plain fabric only, because the club crest and the sponsor logo will be overlaid later as separate layers.',
     'Shoulders and chest framing, facing the camera directly, official club media day photo style.',
-    'FRAMING IS FIXED (this exact layout is required): the jersey occupies ONLY the lower 60% of the square frame — the collar sits at 40% from the top, neckline centered horizontally — and the upper 40% of the frame is NOTHING but plain light gray studio background, left empty where the head would be in an official chest-up portrait.',
+    'FRAMING IS FIXED (this exact layout is required): PORTRAIT 2:3 frame; the jersey occupies ONLY the lower 60% of the frame — the collar sits at 40% from the top, neckline centered horizontally — and the upper 40% of the frame is NOTHING but plain light gray studio background, left empty where the head would be in an official chest-up portrait.',
     'Soft professional studio lighting, sharp focus, DSLR photo quality.'
   ].join(' ');
 }
@@ -4527,10 +4551,13 @@ const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do
    em cima onde entra a cabeça), só que com zoom na área da camisa. Uma imagem,
    um conjunto de posições — cada uso escolhe o recorte. */
 function compostoCropHTML(torsoUrl, px, raio, patroUrl, escudoUrl, patroPos, escudoPos){
-  const inner = Math.round(px / 0.6);            // a camisa ocupa os 60% de baixo
+  /* recorte quadrado px×px mostrando a área da camisa (os 60% de baixo do
+     retrato 2:3): mesma imagem, mesmas posições — só o zoom muda */
+  const innerW = Math.round(px / 0.9);
+  const innerH = Math.round(innerW * RATIO_FOTO);
   return `<span style="display:inline-block;width:${px}px;height:${px}px;border-radius:${raio!=null?raio:8}px;overflow:hidden;position:relative;background:#d9d9d9">
-    <span style="position:absolute;left:${Math.round((px-inner)/2)}px;top:${-Math.round(inner*0.4)}px">
-      ${compostoHTML(torsoUrl, null, inner, 0, patroUrl, escudoUrl, patroPos, escudoPos)}
+    <span style="position:absolute;left:${Math.round((px-innerW)/2)}px;top:${-Math.round(innerH*0.4)}px">
+      ${compostoHTML(torsoUrl, null, innerW, 0, patroUrl, escudoUrl, patroPos, escudoPos)}
     </span></span>`;
 }
 
@@ -4703,14 +4730,17 @@ async function pintarMolde(moldeUrl, corA, corB){
    drop no Estúdio) fica salvo em atributos.patro do uniforme e vence o padrão */
 const PATRO_POS_PADRAO  = { x:33, y:65, w:34 };  // left %, top %, largura % (altura acompanha)
 const ESCUDO_POS_PADRAO = { x:61, y:56, w:14 };  // peito esquerdo do jogador na foto final
+const RATIO_FOTO = 1.5;   // retrato 2:3 (1024x1536) — o formato do cartão do jogador no site
 function compostoHTML(torsoUrl, rostoUrl, px, raio, patrocinadorUrl, escudoUrl, patroPos, escudoPos){
   /* camadas, de baixo para cima: uniforme/foto final -> escudo -> patrocinador -> rosto.
-     As posições por clube (arrastadas no ✥ Ajustar) vencem os padrões. */
+     As posições por clube (arrastadas no ✥/🛡) vencem os padrões. O contêiner é
+     RETRATO 2:3 — px é a LARGURA; imagem quadrada antiga aparece cortada (cover). */
+  const alt = Math.round(px*RATIO_FOTO);
   const pp = Object.assign({}, PATRO_POS_PADRAO,  patroPos||{});
   /* o escudo SÓ entra depois de posicionado (✥/🛡) — sem posição salva, a foto
      sai limpa em vez de mostrar o escudo flutuando num lugar padrão errado */
   const pe = escudoPos || null;
-  return `<span style="position:relative;display:inline-block;width:${px}px;height:${px}px;border-radius:${raio!=null?raio:8}px;overflow:hidden;background:#d9d9d9">
+  return `<span style="position:relative;display:inline-block;width:${px}px;height:${alt}px;border-radius:${raio!=null?raio:8}px;overflow:hidden;background:#d9d9d9">
     <img src="${h(torsoUrl)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
     ${escudoUrl&&pe?`<img src="${h(escudoUrl)}" style="position:absolute;left:${pe.x}%;top:${pe.y}%;width:${pe.w}%">`:''}
     ${patrocinadorUrl?`<img src="${h(patrocinadorUrl)}" style="position:absolute;left:${pp.x}%;top:${pp.y}%;width:${pp.w}%">`:''}
@@ -5039,7 +5069,10 @@ function modalFotosIA(item){
       O visual do rosto (pele, cabelo, barba, sorriso, brinco, tatuagem) é sorteado — use ↻ antes
       de gerar. Com o uniforme pronto, a IA <b>costura</b> rosto e uniforme numa foto natural
       (a montagem); o rosto solto fica guardado para remontar barato na troca de clube.
-      A idade vem do elenco. ~US$ 0,08 por jogador (rosto + montagem).</div>
+      A idade vem do elenco. ~US$ 0,08 por jogador (rosto + montagem).
+      <b>No primeiro jogador do clube, confira o encaixe:</b> escudo e patrocinador podem
+      precisar de ajuste de posição — clique no 🛡 da linha dele, arraste e salve; a posição
+      vale para o elenco inteiro.</div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:10px 12px;border:1px solid var(--bd2);border-radius:10px">
       <span data-torso-thumb ${torso()?'style="cursor:zoom-in" title="Ver em tela expandida"':''}>${torso()
         ? `<img src="${h(torso().url)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover">`
@@ -5065,7 +5098,7 @@ function modalFotosIA(item){
      sem camisa, ou retrato antigo, abre a imagem sozinha. */
   const verExpandido = (f, alt) => {
     const t = torso();
-    const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
+    const lado = Math.min(520, Math.floor(Math.min(innerWidth*0.9, innerHeight*0.85/RATIO_FOTO)));
     if(f.atributos && f.atributos.montagem)
       abrirLightboxHTML(compostoHTML(f.atributos.montagem, null, lado, 16, ST.patroTeste, escudoClube(), t && t.atributos && t.atributos.patro, t && t.atributos && t.atributos.escudo));
     else if(f.atributos && f.atributos.recorte==='rosto' && t)
@@ -5080,7 +5113,7 @@ function modalFotosIA(item){
   });
   document.querySelector('[data-torso-thumb]').onclick = () => {
     const t = torso(); if(!t) return;
-    const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
+    const lado = Math.min(520, Math.floor(Math.min(innerWidth*0.9, innerHeight*0.85/RATIO_FOTO)));
     abrirLightboxHTML(compostoHTML(t.url, null, lado, 16, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro, t.atributos && t.atributos.escudo));
   };
   const irUni = el('ft-ir-uniforme');
@@ -5346,11 +5379,12 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl){
     escudo: Object.assign({}, ESCUDO_POS_PADRAO, at0.escudo || {})
   };
 
-  const lado = Math.min(560, Math.floor(Math.min(innerWidth, innerHeight)*0.72));
+  const lado = Math.min(420, Math.floor(Math.min(innerWidth*0.85, (innerHeight*0.72)/RATIO_FOTO)));
+  const ladoAlt = Math.round(lado*RATIO_FOTO);
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px';
   ov.innerHTML = `
-    <div style="position:relative;width:${lado}px;height:${lado}px;border-radius:12px;overflow:hidden;background:#d9d9d9;touch-action:none">
+    <div style="position:relative;width:${lado}px;height:${ladoAlt}px;border-radius:12px;overflow:hidden;background:#d9d9d9;touch-action:none">
       <img src="${h(base)}" draggable="false" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none">
       ${escudoUrl?`<img data-alvo="escudo" src="${h(escudoUrl)}" draggable="false"
         style="position:absolute;left:${pos.escudo.x}%;top:${pos.escudo.y}%;width:${pos.escudo.w}%;cursor:grab;outline:2px dashed #e3b23c;outline-offset:3px">`:''}
@@ -5378,7 +5412,7 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl){
       img.setPointerCapture(e2.pointerId); img.style.cursor='grabbing'; };
     img.onpointermove = e2 => { if(!drag) return;
       pos[chave].x = Math.min(96, Math.max(-30, drag.x + (e2.clientX-drag.cx)*100/lado));
-      pos[chave].y = Math.min(96, Math.max(-30, drag.y + (e2.clientY-drag.cy)*100/lado));
+      pos[chave].y = Math.min(96, Math.max(-30, drag.y + (e2.clientY-drag.cy)*100/ladoAlt));
       img.style.left = pos[chave].x+'%'; img.style.top = pos[chave].y+'%'; };
     img.onpointerup = () => { drag=null; img.style.cursor='grab'; };
   });
@@ -5526,7 +5560,7 @@ function modalUniformeIA(item){
       <div class="col" style="gap:10px;align-items:center">
         <div id="wz-preview" title="Clique para ver em tela expandida" style="cursor:zoom-in">
           ${(wiz.pv || t()) ? compostoCropHTML(wiz.pv || t().url, 250, 12, wiz.patroUrl, escudoEscolhido(), at.patro, at.escudo)
-            : `<div style="width:250px;height:250px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px dashed var(--bd2);border-radius:12px;background:#d9d9d9">
+            : `<div style="width:250px;height:${Math.round(250*RATIO_FOTO)}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px dashed var(--bd2);border-radius:12px;background:#d9d9d9">
                 <svg viewBox="0 0 100 100" style="width:150px;height:150px;opacity:.45">
                   <path fill="#8a8a8a" d="M35 12 L44 8 Q50 14 56 8 L65 12 L86 24 L79 42 L68 37 L68 92 L32 92 L32 37 L21 42 L14 24 Z"/>
                 </svg>
@@ -5562,7 +5596,7 @@ function modalUniformeIA(item){
 
   el('wz-preview').onclick = () => {
     const base = wiz.pv || (t() && t().url); if(!base) return;
-    const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
+    const lado = Math.min(520, Math.floor(Math.min(innerWidth*0.9, innerHeight*0.85/RATIO_FOTO)));
     abrirLightboxHTML(compostoHTML(base, null, lado, 16, wiz.patroUrl, escudoEscolhido(), at.patro, at.escudo));
   };
   document.querySelectorAll('[data-passo]').forEach(x => x.onclick = () => {
