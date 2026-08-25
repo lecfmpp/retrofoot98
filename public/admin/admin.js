@@ -4407,8 +4407,9 @@ function promptTorso(item){
   const c = item.c;
   return [
     'Hyper-realistic studio photograph of the torso of a male professional football player, WITHOUT the head — the frame is cropped just below the chin, no face, no head visible at all.',
-    `Wearing a football jersey with vertical stripes in ${c.color||'#1b7a3d'} and ${c.color2||'#ffffff'}, with a small generic fictional club crest on the upper left chest.`,
+    `Wearing a football jersey with vertical stripes in ${c.color||'#1b7a3d'} and ${c.color2||'#ffffff'}.`,
     'MANDATORY: a plain solid WHITE rectangular sponsor panel across the center of the chest, completely BLANK — no text, no logo, no brand, just an empty white rectangle where a sponsor logo will be placed later.',
+    'NO club crest, NO badge, NO logos anywhere on the jersey besides that blank white panel — the upper chest areas stay clean plain fabric, because the club crest will be overlaid there later as a separate layer.',
     'Shoulders and chest framing, facing the camera directly, official club media day photo style.',
     'Shoulders and chest fill the lower two thirds of the frame, neckline centered horizontally, only plain light gray studio background above the collar.',
     'Soft professional studio lighting, sharp focus, DSLR photo quality.'
@@ -4417,9 +4418,12 @@ function promptTorso(item){
 const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do clube
 /* miniatura/visual composto: a camisa por baixo, o rosto por cima. Os percentuais
    casam com o enquadramento pedido nos dois prompts — ajuste fino é aqui, num lugar só. */
-function compostoHTML(torsoUrl, rostoUrl, px, raio, patrocinadorUrl){
+function compostoHTML(torsoUrl, rostoUrl, px, raio, patrocinadorUrl, escudoUrl){
+  /* camadas, de baixo para cima: uniforme -> escudo (peito esquerdo do jogador,
+     lado direito da imagem) -> patrocinador (painel branco central) -> rosto */
   return `<span style="position:relative;display:inline-block;width:${px}px;height:${px}px;border-radius:${raio!=null?raio:8}px;overflow:hidden;background:#d9d9d9">
     <img src="${h(torsoUrl)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+    ${escudoUrl?`<img src="${h(escudoUrl)}" style="position:absolute;left:66%;top:58%;width:13%;height:13%;object-fit:contain">`:''}
     ${patrocinadorUrl?`<img src="${h(patrocinadorUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:71%;width:32%;height:14%;object-fit:contain">`:''}
     ${rostoUrl?`<img src="${h(rostoUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:-3%;height:72%;object-fit:contain">`:''}
   </span>`;
@@ -4655,6 +4659,12 @@ function modalFotosIA(item){
   sq.forEach(p => { sorteios[p.n] = sortearAtributos(p); });
   const faltantes = () => sq.filter(p => !D.fotos[c.id+'|'+p.n]);
   const torso = () => D.fotos[c.id+'|'+TORSO_KEY];
+  /* o escudo do clube entra como camada por cima do uniforme — o do patch em
+     edição vale primeiro (é o fictício gerado aqui), senão o de fábrica */
+  const escudoClube = () => {
+    const e = D.edits[c.id];
+    return (e && e.patch && e.patch.crest) || c.crest || null;
+  };
 
   /* miniatura: rosto composto sobre a camisa do clube quando as duas camadas
      existem; rosto solto se a camisa ainda não foi gerada; retrato antigo
@@ -4662,7 +4672,7 @@ function modalFotosIA(item){
   const thumbHTML = (f, px) => {
     const t = torso();
     if(f && f.atributos && f.atributos.recorte==='rosto')
-      return t ? compostoHTML(t.url, f.url, px, 8, ST.patroTeste)
+      return t ? compostoHTML(t.url, f.url, px, 8, ST.patroTeste, escudoClube())
                : `<span style="display:inline-block;width:${px}px;height:${px}px;border-radius:8px;background:#d9d9d9;overflow:hidden"><img src="${h(f.url)}" style="width:100%;height:100%;object-fit:contain"></span>`;
     return `<img src="${h(f.url)}" style="width:${px}px;height:${px}px;border-radius:8px;object-fit:cover">`;
   };
@@ -4699,8 +4709,8 @@ function modalFotosIA(item){
       <span style="flex:1;min-width:0">
         <b style="display:block;font-size:13px">Uniforme do clube — base única do elenco</b>
         <small style="font-size:11.5px;color:var(--dim2)">${torso()
-          ?'Gerado com o painel branco no peito — o patrocinador entra ali, por cima.'
-          :'Ainda não gerado — gere primeiro: sai com o painel branco no peito para o patrocinador.'}</small>
+          ?'Gerado limpo — o escudo do clube e o patrocinador entram como camadas, por cima.'
+          :'Ainda não gerado — sai limpo, com o painel branco do patrocinador; escudo e logo entram como camadas.'}</small>
       </span>
       <input class="busca" id="ft-patro" style="width:200px" placeholder="URL do logo (prévia do patrocínio)" value="${h(ST.patroTeste||'')}">
       ${editar?`<button class="btn btn-sm ${torso()?'btn-ghost':''}" id="ft-torso">${torso()?'Refazer uniforme':'Gerar uniforme'}</button>`:''}
@@ -4720,7 +4730,7 @@ function modalFotosIA(item){
     const t = torso();
     const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
     if(f.atributos && f.atributos.recorte==='rosto' && t)
-      abrirLightboxHTML(compostoHTML(t.url, f.url, lado, 16, ST.patroTeste));
+      abrirLightboxHTML(compostoHTML(t.url, f.url, lado, 16, ST.patroTeste, escudoClube()));
     else abrirLightbox(f.url, alt);
   };
   el('ft-lista').addEventListener('click', ev => {
@@ -4732,7 +4742,7 @@ function modalFotosIA(item){
   document.querySelector('[data-torso-thumb]').onclick = () => {
     const t = torso(); if(!t) return;
     const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
-    abrirLightboxHTML(compostoHTML(t.url, null, lado, 16, ST.patroTeste));
+    abrirLightboxHTML(compostoHTML(t.url, null, lado, 16, ST.patroTeste, escudoClube()));
   };
   /* o logo de prévia entra na hora, sem regerar nada — é só uma camada */
   el('ft-patro').onchange = () => { ST.patroTeste = el('ft-patro').value.trim(); modalFotosIA(item); };
