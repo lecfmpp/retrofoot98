@@ -4493,27 +4493,34 @@ async function pintarMolde(moldeUrl, corA, corB){
   const img = await new Promise((ok, erro) => {
     const i = new Image(); i.crossOrigin = 'anonymous';
     i.onload = () => ok(i); i.onerror = () => erro(new Error('Não consegui carregar o molde.'));
-    i.src = moldeUrl + (moldeUrl.includes('?') ? '&' : '?') + 'cors=1';
+    /* o sufixo evita pegar do cache uma resposta sem cabeçalho CORS (que
+       mancharia o canvas); data: URLs não têm query e vão como estão */
+    i.src = /^https?:/.test(moldeUrl) ? moldeUrl + (moldeUrl.includes('?') ? '&' : '?') + 'cors=1' : moldeUrl;
   });
   const W = img.naturalWidth, H = img.naturalHeight;
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
   const d = cx.getImageData(0, 0, W, H), px = d.data;
   const A = hex2rgb(corA), B = hex2rgb(corB);
+  /* Classificação por MATIZ, não por canal: na sombra o magenta do molde desvia
+     para roxo/vinho e o ciano para azul-petróleo — a faixa larga de matiz pega
+     essas variações inteiras (era o que deixava a mancha roxa). Pele (~25°),
+     fundo cinza (croma baixo) e gola azul-marinho (~220°) ficam fora das faixas. */
   for(let i = 0; i < px.length; i += 4){
     const r = px[i], g = px[i+1], b = px[i+2];
-    const qm = (Math.min(r, b) - g) / 255;   // quão magenta o pixel é
-    const qc = (Math.min(g, b) - r) / 255;   // quão ciano
-    if(qm <= 0.10 && qc <= 0.10) continue;   // pele, fundo e gola ficam como estão
-    if(qm >= qc){
-      const w = Math.min(1, (qm - 0.10) / 0.18);
-      const L = Math.min(1, ((r + b) / 2) / 230);
-      px[i] += (A[0]*L - r)*w; px[i+1] += (A[1]*L - g)*w; px[i+2] += (A[2]*L - b)*w;
-    } else {
-      const w = Math.min(1, (qc - 0.10) / 0.18);
-      const L = Math.min(1, ((g + b) / 2) / 230);
-      px[i] += (B[0]*L - r)*w; px[i+1] += (B[1]*L - g)*w; px[i+2] += (B[2]*L - b)*w;
-    }
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), croma = mx - mn;
+    if(croma < 20) continue;
+    let matiz;
+    if(mx === r)      matiz = ((g - b) / croma * 60 + 360) % 360;
+    else if(mx === g) matiz = (b - r) / croma * 60 + 120;
+    else              matiz = (r - g) / croma * 60 + 240;
+    let alvo = null;
+    if(matiz >= 252 && matiz <= 352)      alvo = A;   // família do magenta (inclui roxo sombreado)
+    else if(matiz >= 148 && matiz <= 214) alvo = B;   // família do ciano (inclui petróleo)
+    if(!alvo) continue;
+    const w = Math.min(1, (croma - 20) / 26);
+    const L = Math.min(1, mx / 240);                   // sombra do tecido preservada
+    px[i] += (alvo[0]*L - r)*w; px[i+1] += (alvo[1]*L - g)*w; px[i+2] += (alvo[2]*L - b)*w;
   }
   cx.putImageData(d, 0, 0);
   const blob = await new Promise(ok => cv.toBlob(ok, 'image/webp', 0.85));
