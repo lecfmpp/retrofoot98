@@ -5494,8 +5494,8 @@ function modalUniformeIA(item){
       ${editar?`<button class="btn btn-sm btn-ghost" id="wz-ajustar" style="align-self:flex-start" ${t()?'':'disabled'}>✥ Ajustar escudo e patrocínio na foto</button>`:''}
       <div id="wz-estado" style="font-size:12px;color:var(--dim2);min-height:16px"></div>
       ${editar?`<div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-ghost" id="wz-rascunho">Salvar rascunho</button>
-        <button class="btn" id="wz-aplicar">Salvar e aplicar no jogo</button>
+        <button class="btn btn-ghost" id="wz-rascunho">${t()?'Salvar rascunho':'Gerar uniforme'}</button>
+        <button class="btn" id="wz-aplicar">${t()?'Salvar e aplicar no jogo':'Gerar e aplicar no jogo'}</button>
       </div>`:''}</div>`;
   };
 
@@ -5529,7 +5529,7 @@ function modalUniformeIA(item){
                 <svg viewBox="0 0 100 100" style="width:150px;height:150px;opacity:.45">
                   <path fill="#8a8a8a" d="M35 12 L44 8 Q50 14 56 8 L65 12 L86 24 L79 42 L68 37 L68 92 L32 92 L32 37 L21 42 L14 24 Z"/>
                 </svg>
-                <small style="font-size:11.5px;color:#777">sem uniforme ainda — a prévia aparece ao salvar o estilo e as cores</small>
+                <small style="font-size:11.5px;color:#777;text-align:center;padding:0 14px;line-height:1.5"><b>O clube ainda não tem uniforme.</b><br>Escolha o estilo e as cores e conclua em "Gerar uniforme".</small>
               </div>`}
         </div>
         <small style="font-size:11.5px;color:var(--dim3);text-align:center;max-width:250px">
