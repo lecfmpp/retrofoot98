@@ -83,16 +83,21 @@ Deno.serve(async (req) => {
   if (!prompt || prompt.length > 4000) return resp(400, { error: "prompt vazio ou longo demais." });
   const qualidade = ["low", "medium", "high"].includes(String(body.qualidade)) ? String(body.qualidade) : "medium";
 
+  // IMAGENS DE ENTRADA/REFERÊNCIA (montagem exige; os outros tipos aceitam como
+  // referência opcional). Só do NOSSO Storage — nada de buscar URL arbitrária
+  // com a chave do projeto (SSRF).
+  const urls = Array.isArray(body.imagens) ? body.imagens.map(String).filter(Boolean) : [];
+  const prefixo = `${url}/storage/v1/object/public/`;
+  if (urls.length > 3 || urls.some((u) => !u.startsWith(prefixo))) {
+    return resp(400, { error: "no máximo 3 imagens, todas do Storage do projeto." });
+  }
+  if (tipo === "montagem" && urls.length < 1) {
+    return resp(400, { error: "montagem exige de 1 a 3 imagens do Storage do projeto." });
+  }
+
   let oa: Response;
-  if (tipo === "montagem") {
-    // MONTAGEM: costura rosto + uniforme numa foto só, via images/edits com as
-    // duas imagens de entrada. Só aceita imagem do NOSSO Storage — nada de
-    // buscar URL arbitrária com a chave do projeto (SSRF).
-    const urls = Array.isArray(body.imagens) ? body.imagens.map(String) : [];
-    const prefixo = `${url}/storage/v1/object/public/`;
-    if (urls.length < 1 || urls.length > 3 || urls.some((u) => !u.startsWith(prefixo))) {
-      return resp(400, { error: "montagem exige de 1 a 3 imagens do Storage do projeto." });
-    }
+  if (urls.length) {
+    // com imagens de entrada, a geração vira EDIÇÃO (images/edits)
     const form = new FormData();
     form.append("model", "gpt-image-1");
     form.append("prompt", prompt);
@@ -101,6 +106,7 @@ Deno.serve(async (req) => {
     form.append("quality", qualidade);
     form.append("output_format", FORMATO);
     form.append("output_compression", String(COMPRESSAO));
+    if (cfg.background === "transparent") form.append("background", "transparent");
     for (let i = 0; i < urls.length; i++) {
       const r = await fetch(urls[i]);
       if (!r.ok) return resp(400, { error: `Não consegui baixar a imagem ${i + 1} (${r.status}).` });

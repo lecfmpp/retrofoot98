@@ -4616,11 +4616,18 @@ function promptMiniCamisa(estilo){
     'Isolated cutout on a fully transparent background, soft even studio lighting, sharp focus.'
   ].join(' ') + AVISO_MARCADOR;
 }
-async function garantirMoldeMini(estilo){
+async function garantirMoldeMini(estilo, item){
   const chave = 'mini-'+estilo;
   let molde = D.fotos[MOLDE_KEY+'|'+chave];
   if(molde) return molde;
-  const url = await gerarImagemIA('rosto', promptMiniCamisa(estilo), 'medium', null, 'moldes/miniatura-'+estilo);
+  /* a miniatura é EXTRAÍDA do molde do uniforme (edição sobre a mesma imagem):
+     é o que garante listras com a mesma largura, espaçamento e simetria da
+     camisa vestida — gerar solta dava um padrão parecido, nunca igual. */
+  const moldeUni = D.fotos[MOLDE_KEY+'|'+estilo] || (item ? await garantirMolde(item, estilo) : null);
+  const prompt = moldeUni
+    ? 'From the input photo, isolate ONLY the football jersey as a ghost-mannequin product shot: keep the EXACT same jersey — identical stripe pattern, identical stripe widths, spacing and colors, pixel-faithful to the input. Remove the body, the arms, the neck and the background completely. Front view, centered, jersey filling most of the frame, fully transparent background. No crest, no sponsor, no text, no logos.' + AVISO_MARCADOR
+    : promptMiniCamisa(estilo);
+  const url = await gerarImagemIA('rosto', prompt, 'medium', moldeUni ? [moldeUni.url] : null, 'moldes/miniatura-'+estilo);
   molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: chave, url, atributos:{ recorte:'molde-mini', estilo } };
   const r = await jogo('player_photos').upsert(molde, { onConflict:'pack_id,club_id,jogador' });
   if(r.error) throw new Error(erroMsg(r.error));
@@ -4940,6 +4947,14 @@ function modalEscudoIA(item){
           </select></label>
         ${editar?`<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim2);cursor:pointer">
           <input type="checkbox" id="ia-nofundo"> Remover o fundo ao enviar arquivo (fundo sólido vira transparente)</label>`:''}
+        ${editar?`<div class="col" style="gap:6px">
+          <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-sm btn-ghost" id="ia-ref-btn">+ Imagem de referência (até 2)</button>
+            <input type="file" id="ia-ref-arq" accept=".png,.webp,.jpg,.jpeg" style="display:none">
+            <span id="ia-refs" style="display:flex;gap:6px"></span>
+          </span>
+          <small style="font-size:11.5px;color:var(--dim3)">A IA usa as referências como guia de estilo e conteúdo do escudo.</small>
+        </div>`:''}
         <label class="f">Prompt final (edite à vontade — é o que vai para a OpenAI)
           <textarea class="f" id="ia-prompt" rows="6" style="resize:vertical;font-size:12px;line-height:1.5"></textarea></label>
         <span class="link" id="ia-recompor" style="font-size:11.5px;align-self:flex-start">↻ recompor o prompt a partir dos campos acima</span>
@@ -4985,6 +5000,30 @@ function modalEscudoIA(item){
   el('ia-recompor').onclick = () => { promptTocado = false; recompor(); };
 
   let gerada = null;
+  /* referências: sobem para o Storage (a função só aceita imagem de lá) e vão
+     como imagens de entrada da geração — a OpenAI edita/inspira a partir delas */
+  const refs = [];
+  const desenharRefs = () => {
+    el('ia-refs').innerHTML = refs.map((u,i) =>
+      `<span style="position:relative;display:inline-block">
+        <img src="${h(u)}" style="width:30px;height:30px;object-fit:contain;border:1px solid var(--bd2);border-radius:6px">
+        <i data-ref-rm="${i}" style="position:absolute;top:-6px;right:-6px;width:14px;height:14px;border-radius:99px;background:var(--vermelho);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-style:normal">✕</i>
+      </span>`).join('');
+    el('ia-refs').querySelectorAll('[data-ref-rm]').forEach(x => x.onclick = () => { refs.splice(+x.dataset.refRm,1); desenharRefs(); });
+    el('ia-ref-btn').disabled = refs.length >= 2;
+  };
+  el('ia-ref-btn').onclick = () => el('ia-ref-arq').click();
+  el('ia-ref-arq').onchange = async () => {
+    const f = el('ia-ref-arq').files[0]; if(!f) return;
+    if(refs.length >= 2) return;
+    if(f.size > 5*1024*1024) return toast('Referência acima de 5 MB.', true);
+    const ext = (f.name.split('.').pop()||'png').toLowerCase();
+    const caminho = `referencias/${Date.now()}-${chaveNome(f.name||'ref').slice(0,20)||'ref'}.${ext}`;
+    const up = await sb.storage.from('escudos').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
+    if(up.error) return toast(erroMsg(up.error), true);
+    refs.push(sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl);
+    desenharRefs();
+  };
   const mostrarNoPreview = (url, aviso) => {
     gerada = url;
     el('ia-preview').innerHTML = `<img src="${h(url)}" style="max-width:88%;max-height:88%;object-fit:contain">`;
@@ -5616,7 +5655,7 @@ function modalUniformeIA(item){
       <div class="col" style="gap:0">${reguaHTML}</div>
       <div class="col" style="gap:10px;align-items:center">
         <div id="wz-preview" title="Clique para ver em tela expandida" style="cursor:zoom-in">
-          ${(wiz.pv || t()) ? compostoHTML(wiz.pv || t().url, 320, 12, camadasWiz())
+          ${(wiz.pv || t()) ? compostoHTML(wiz.pv || t().url, null, 320, 12, camadasWiz())
             : `<div style="width:320px;height:${Math.round(320*RATIO_FOTO)}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px dashed var(--bd2);border-radius:12px;background:#d9d9d9">
                 <svg viewBox="0 0 100 100" style="width:150px;height:150px;opacity:.45">
                   <path fill="#8a8a8a" d="M35 12 L44 8 Q50 14 56 8 L65 12 L86 24 L79 42 L68 37 L68 92 L32 92 L32 37 L21 42 L14 24 Z"/>
@@ -5633,6 +5672,13 @@ function modalUniformeIA(item){
   /* prévia local: com molde do estilo, pinta no canvas a cada mudança — zero IA.
      A CHAVE inclui a URL do molde: molde regenerado invalida a prévia antiga
      (era o que deixava o desenho velho preso na tela). */
+  /* re-renderiza o preview com as camadas ATUAIS (escudo/logo/fabricante) sem
+     repintar a base — é o tempo real da troca de camada */
+  function atualizarPreview(){
+    const alvo = el('wz-preview'); if(!alvo) return;
+    const base = wiz.pv || (t() && t().url);
+    if(base) alvo.innerHTML = compostoHTML(base, null, 320, 12, camadasWiz());
+  }
   async function pintarPrevia(){
     const molde = D.fotos[MOLDE_KEY+'|'+wiz.estilo];
     if(!molde){
@@ -5646,7 +5692,7 @@ function modalUniformeIA(item){
       if(wiz.pv && wiz.pv.startsWith('blob:')) URL.revokeObjectURL(wiz.pv);
       wiz.pv = URL.createObjectURL(blob); wiz.pvChave = chave;
       const alvo = el('wz-preview');
-      if(alvo) alvo.innerHTML = compostoHTML(wiz.pv, 320, 12, camadasWiz());
+      atualizarPreview();
     }catch(err){ console.warn('prévia local falhou:', err.message); }
   }
   pintarPrevia();
@@ -5716,7 +5762,7 @@ function modalUniformeIA(item){
     const bg = el('wz-mini-gerar');
     if(bg) bg.onclick = async () => {
       bg.disabled = true; bg.textContent = 'Gerando molde…';
-      try{ await garantirMoldeMini(wiz.estilo); toast('Molde da miniatura pronto.'); abrir(); return; }
+      try{ await garantirMoldeMini(wiz.estilo, item); toast('Molde da miniatura pronto.'); abrir(); return; }
       catch(err){ toast(err.message||'Falha ao gerar o molde.', true); }
       bg.disabled = false; bg.textContent = 'Gerar molde da miniatura (~US$ 0,04, 1x por estilo)';
     };
@@ -5740,7 +5786,8 @@ function modalUniformeIA(item){
     };
   }
   if(wiz.passo===5 && el('wz-patro-up')){
-    el('wz-patro').onchange = () => { colher(); pintarPrevia(); };
+    el('wz-patro').onchange = () => { colher(); atualizarPreview(); pintarPrevia(); };
+    el('wz-patro').oninput  = () => { colher(); atualizarPreview(); };
     el('wz-patro-up').onclick = () => el('wz-patro-arq').click();
     el('wz-patro-arq').onchange = async () => {
       const f = el('wz-patro-arq').files[0]; if(!f) return;
@@ -5776,7 +5823,8 @@ function modalUniformeIA(item){
     };
   }
   if(wiz.passo===6 && el('wz-fab-up')){
-    el('wz-fab').onchange = () => { colher(); pintarPrevia(); };
+    el('wz-fab').onchange = () => { colher(); atualizarPreview(); pintarPrevia(); };
+    el('wz-fab').oninput  = () => { colher(); atualizarPreview(); };
     el('wz-fab-up').onclick = () => el('wz-fab-arq').click();
     el('wz-fab-arq').onchange = async () => {
       const f = el('wz-fab-arq').files[0]; if(!f) return;
