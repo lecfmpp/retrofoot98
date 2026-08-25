@@ -4543,7 +4543,7 @@ function promptCamisaNaReferencia(camisa){
     'The jersey stays completely clean: no crest, no badge, no sponsor, no text, no logos anywhere.'
   ].join(' ');
 }
-const AVISO_MARCADOR = ' The magenta and cyan are PLACEHOLDER colors for programmatic recoloring: keep them pure, flat and vivid, with shading coming only from fabric folds and lighting.';
+const AVISO_MARCADOR = ' The magenta and cyan are PLACEHOLDER colors for programmatic recoloring: keep them pure, flat and vivid, with shading coming only from fabric folds and lighting. The collar and the sleeve cuffs MUST also be one of these two placeholder colors (cyan preferred) — absolutely NO navy, NO gray and NO third color anywhere on the jersey.';
 
 /* PINTURA SEM IA: o molde do estilo é gerado UMA vez em cores-marcador (magenta
    #FF00FF na principal, ciano #00FFFF na secundária) e daqui pra frente cada
@@ -4571,20 +4571,25 @@ async function pintarMolde(moldeUrl, corA, corB){
      para roxo/vinho e o ciano para azul-petróleo — a faixa larga de matiz pega
      essas variações inteiras (era o que deixava a mancha roxa). Pele (~25°),
      fundo cinza (croma baixo) e gola azul-marinho (~220°) ficam fora das faixas. */
+  /* Faixas LARGAS e peso duro: tudo que é da família fria (ciano→azul-marinho,
+     148°–262°, gola e punho inclusive) vira a cor secundária, e da família quente
+     (roxo→magenta→vinho, 262°–352°) vira a principal. O peso sobe rápido — pixel
+     colorido converte INTEIRO em vez de ficar meio convertido (era o chuvisco nas
+     bordas). A sombra é só nível: alvo × luminância, sem matiz residual. */
   for(let i = 0; i < px.length; i += 4){
     const r = px[i], g = px[i+1], b = px[i+2];
     const mx = Math.max(r, g, b), mn = Math.min(r, g, b), croma = mx - mn;
-    if(croma < 20) continue;
+    if(croma < 12) continue;                            // cinza/branco/preto: já é só nível
     let matiz;
     if(mx === r)      matiz = ((g - b) / croma * 60 + 360) % 360;
     else if(mx === g) matiz = (b - r) / croma * 60 + 120;
     else              matiz = (r - g) / croma * 60 + 240;
     let alvo = null;
-    if(matiz >= 252 && matiz <= 352)      alvo = A;   // família do magenta (inclui roxo sombreado)
-    else if(matiz >= 148 && matiz <= 214) alvo = B;   // família do ciano (inclui petróleo)
-    if(!alvo) continue;
-    const w = Math.min(1, (croma - 20) / 26);
-    const L = Math.min(1, mx / 240);                   // sombra do tecido preservada
+    if(matiz >= 262 && matiz <= 352)      alvo = A;    // magenta, roxo sombreado, vinho
+    else if(matiz >= 148 && matiz < 262)  alvo = B;    // ciano, petróleo, azul (gola/punho)
+    if(!alvo) continue;                                 // pele (~10-50°) e cabelo ficam
+    const w = Math.min(1, (croma - 12) / 14);
+    const L = Math.min(1, mx / 240);                    // sombra = só claro/escuro
     px[i] += (alvo[0]*L - r)*w; px[i+1] += (alvo[1]*L - g)*w; px[i+2] += (alvo[2]*L - b)*w;
   }
   cx.putImageData(d, 0, 0);
