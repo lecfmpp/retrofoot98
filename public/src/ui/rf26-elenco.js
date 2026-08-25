@@ -373,7 +373,7 @@ function rfFxForteFraco(p){
 function rfFxAttrLinha(rot,v,forte){
   const cor=v>=15?'#6f7d18':v>=10?'#8b9a1f':v>=7?'#b9c94a':'#c3ccc5';
   const num=v>=15?'alto':v<=6?'baixo':'';
-  return `<span class="rf-fx-attr"><span class="rf-fx-attr-n${forte?' forte':''}">${escC(rot)}</span>
+  return `<span class="rf-fx-attr"><span class="rf-fx-attr-n${forte?' forte':''}" title="${escC(rot)}">${escC(rot)}</span>
     <span class="rf-fx-attr-b"><i style="width:${Math.round(100*v/20)}%;background:${cor}"></i></span>
     <span class="rf-fx-attr-v ${num}">${v}</span></span>`;
 }

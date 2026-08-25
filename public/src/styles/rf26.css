@@ -8508,3 +8508,13 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-jp-l>span{font-size:12.5px;color:var(--text-dim,#68766c);flex:1}
 .rf-jp-l>b{font-size:14px;font-weight:700}
 .rf-jp-l>i{font-style:normal;font-size:11.5px;color:var(--text-faint,#93a89a)}
+
+/* ===== FICHA: rótulo nunca invade a barra/valor =====
+   A coluna do nome podia encolher, mas o TEXTO não truncava — "Posicionamento"
+   passava por cima da barra. Agora corta com reticências (nome completo no
+   title) e o mesmo cuidado vale para as linhas rótulo→valor da lateral. */
+.rf-fx-attr{grid-template-columns:minmax(0,1fr) 30px 20px}
+.rf-fx-attr-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rf-fx-attr-b{min-width:0}
+.rf-fx-linha>span:not(.rf-sp2){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rf-fx-clube-s,.rf-fx-clube-f{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
