@@ -1103,7 +1103,11 @@ function rfHubHTML(){
         'var(--brand-primary)', moralTipText())}
       ${rfSegurancaHTML()}
     </div>
-    <div class="rf-card rf-card-grow" data-hub="classificacao">${rfClassifHTML()}</div>`;
+    <div class="rf-card" data-hub="classificacao">${rfClassifHTML()}</div>
+    <!-- DESTAQUES DEBAIXO DA CLASSIFICACAO: a tabela deixou de esticar (rf-card-grow)
+         e os destaques do plantel sobem para o espaco vazio que sobrava aqui — quem
+         quer ver artilheiro e quem esta em baixa nao precisa mais rolar a pagina. -->
+    <div class="rf-card rf-card-grow" data-hub="destaques">${rfNotasHTML()}</div>`;
   /* O RETANGULO 300x250 SAIU DA FORMACAO, no telefone e no computador. Esta e a tela de
      trabalho do treinador — escalar o time e escolher o esquema —, e o quadrado ficava logo
      abaixo da tabela, no caminho de quem esta a decidir. Os outros espacos do inventario
@@ -1148,9 +1152,7 @@ function rfHubHTML(){
            </div>`
         : pitchHTML()}
     </div>
-    <div class="rf-hub-baixo" data-hub="destaques">
-      ${rfNotasHTML()}
-    </div>`;
+`;
 
   /* NO TELEFONE O HUB TEM ABAS — Formação · Elenco · Jogo (ver os três mobiles do
      pacote). Não é a mesma página rolando: cada aba mostra o seu conteúdo e o
