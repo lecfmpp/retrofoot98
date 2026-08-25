@@ -5259,7 +5259,7 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl){
     </div>
     <small style="color:#fff8;text-align:center;max-width:${lado}px">
       Arraste o escudo (tracejado amarelo) e o logo (tracejado verde) até encaixarem
-      ${baseMontagem?'— o fundo é uma foto final do elenco, o encaixe aqui é o que vale no jogo.':'— gere uma foto de jogador para ajustar sobre a foto final.'}
+      — as posições salvas valem para todas as fotos do clube.
     </small>`;
   document.body.appendChild(ov);
 
@@ -5510,7 +5510,12 @@ function modalUniformeIA(item){
   }
   if(wiz.passo===5){
     const aj = el('wz-ajustar');
-    if(aj) aj.onclick = () => { ST.patroTeste = wiz.patroUrl; modalAjustePatrocinio(item, abrir); };
+    /* no fluxo do UNIFORME o fundo do ajuste é o próprio uniforme (a prévia
+       pintada ou o salvo) — nunca a foto de um jogador, que confunde a edição */
+    if(aj) aj.onclick = () => {
+      ST.patroTeste = wiz.patroUrl;
+      modalAjustePatrocinio(item, abrir, wiz.pv || (t() && t().url));
+    };
 
     async function salvar(aplicar){
       const bts = [el('wz-rascunho'), el('wz-aplicar')].filter(Boolean);
