@@ -4439,8 +4439,8 @@ function caminhoClube(item){
           chaveNome(item.c.short||item.c.name)||String(item.c.id).toLowerCase()].join('/');
 }
 
-async function gerarImagemIA(tipo, prompt, qualidade, imagens, nome){
-  const carga = iaComeca(IA_ROTULOS[tipo] || 'Gerando imagem…');
+async function gerarImagemIA(tipo, prompt, qualidade, imagens, nome, rotulo){
+  const carga = iaComeca(rotulo || IA_ROTULOS[tipo] || 'Gerando imagem…');
   try{
     const { data, error } = await sb.functions.invoke('generate-image',
       { body:{ tipo, prompt, qualidade: qualidade||'medium', imagens, nome } });
@@ -4573,7 +4573,7 @@ async function garantirMolde(item, estilo){
      conta do prompt do torso, que já trava corte, pose e fundo. */
   const urlMolde = await gerarImagemIA('torso', promptTorso(item, estilo,
     'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)') + AVISO_MARCADOR, 'medium',
-    null, 'moldes/uniforme-'+estilo);
+    null, 'moldes/uniforme-'+estilo, 'Gerando o molde do estilo…');
   molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: estilo, url: urlMolde, atributos:{ recorte:'molde', estilo } };
   const rM = await jogo('player_photos').upsert(molde, { onConflict:'pack_id,club_id,jogador' });
   if(rM.error) throw new Error(erroMsg(rM.error));
@@ -4605,14 +4605,44 @@ async function garantirMoldeMini(estilo, item){
      camisa vestida — gerar solta dava um padrão parecido, nunca igual. */
   const moldeUni = D.fotos[MOLDE_KEY+'|'+estilo] || (item ? await garantirMolde(item, estilo) : null);
   const prompt = moldeUni
-    ? 'From the input photo, isolate ONLY the football jersey as a ghost-mannequin product shot: keep the EXACT same jersey — identical stripe pattern, identical stripe widths, spacing and colors, pixel-faithful to the input. Remove the body, the arms, the skin and the background completely, but KEEP the jersey\'s 3D ghost-mannequin volume: the shoulders slope naturally up into a fully formed round collar with the complete neckline opening visible — the top must NEVER be a flat straight cut. Front view, centered, jersey filling most of the frame, fully transparent background. No crest, no sponsor, no text, no logos.' + AVISO_MARCADOR
+    ? 'From the input photo, isolate ONLY the football jersey as a ghost-mannequin product shot: keep the EXACT same jersey — identical stripe pattern, identical stripe widths, spacing and colors, pixel-faithful to the input, PERFECTLY SYMMETRICAL left-right with BOTH sleeves identical in color. Remove the body, the arms, the skin and the background completely, but KEEP the jersey\'s 3D ghost-mannequin volume: the shoulders slope naturally up into a fully formed round collar with the complete neckline opening visible — the top must NEVER be a flat straight cut. Front view, centered, jersey filling most of the frame, fully transparent background. No crest, no sponsor, no text, no logos.' + AVISO_MARCADOR
     : promptMiniCamisa(estilo);
-  const url = await gerarImagemIA('rosto', prompt, 'medium', moldeUni ? [moldeUni.url] : null, 'moldes/miniatura-'+estilo);
+  const url = await gerarImagemIA('rosto', prompt, 'medium', moldeUni ? [moldeUni.url] : null,
+    'moldes/miniatura-'+estilo, 'Gerando a miniatura da camisa…');
   molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: chave, url, atributos:{ recorte:'molde-mini', estilo } };
   const r = await jogo('player_photos').upsert(molde, { onConflict:'pack_id,club_id,jogador' });
   if(r.error) throw new Error(erroMsg(r.error));
   D.fotos[MOLDE_KEY+'|'+chave] = molde;
   return molde;
+}
+
+/* PREPARAR ESTILOS: gera de uma vez os moldes que faltam (uniforme + miniatura)
+   dos 5 estilos — depois disso todo modal de Uniforme tem os estilos prontos
+   para reuso, e cada clube só escolhe cores (a pintura é local e grátis). */
+async function prepararEstilos(btn){
+  const item = (D.catalogo||[])[0];
+  if(!item) return toast('Catálogo ainda não carregou.', true);
+  const faltam = [];
+  for(const [chave] of ESTILOS_CAMISA){
+    if(!D.fotos[MOLDE_KEY+'|'+chave]) faltam.push(['uniforme', chave]);
+    if(!D.fotos[MOLDE_KEY+'|mini-'+chave]) faltam.push(['miniatura', chave]);
+  }
+  if(!faltam.length) return toast('Os 5 estilos já estão prontos (uniforme + miniatura).');
+  if(!confirm(`Gerar ${faltam.length} molde(s) que faltam (~US$ ${(faltam.length*0.05).toFixed(2)})? Depois disso os 5 estilos ficam prontos para todos os clubes. Confira cada um no wizard — molde torto se refaz pelos links ↻.`)) return;
+  btn.disabled = true; const rot = btn.textContent;
+  let ok=0, erros=0;
+  for(const [tipo, chave] of faltam){
+    btn.textContent = `${tipo==='uniforme'?'Molde':'Miniatura'} ${chave}… (${ok+erros+1}/${faltam.length})`;
+    try{
+      if(tipo==='uniforme') await garantirMolde(item, chave);
+      else await garantirMoldeMini(chave, item);
+      ok++;
+    }catch(err){ erros++; console.warn('preparar estilo falhou:', tipo, chave, err.message); }
+  }
+  registrar('estudio.estilos.preparar', String(ok), { pacote: ST.packId, falhas: erros });
+  toast(`Estilos preparados: ${ok} molde(s) gerado(s)${erros?`, ${erros} falharam`:''}.`);
+  btn.disabled = false; btn.textContent = rot;
+  pgEstudio();
 }
 
 /* repinta TODOS os uniformes de molde do patch com os moldes atuais — gera os
@@ -4692,7 +4722,7 @@ function promptCamisaNaReferencia(camisa){
     'The jersey stays completely clean: no crest, no badge, no sponsor, no text, no logos anywhere.'
   ].join(' ');
 }
-const AVISO_MARCADOR = ' The magenta and cyan are PLACEHOLDER colors for programmatic recoloring: keep them pure, flat and vivid, with shading coming only from fabric folds and lighting. The collar and the sleeve cuffs MUST also be one of these two placeholder colors (cyan preferred) — absolutely NO navy, NO gray and NO third color anywhere on the jersey. Every stripe and section must be ONE single uninterrupted solid color from edge to edge — absolutely NO patches, NO spots and NO bleeding of one placeholder color inside an area of the other.';
+const AVISO_MARCADOR = ' The magenta and cyan are PLACEHOLDER colors for programmatic recoloring: keep them pure, flat and vivid, with shading coming only from fabric folds and lighting. The collar and the sleeve cuffs MUST also be one of these two placeholder colors (cyan preferred) — absolutely NO navy, NO gray and NO third color anywhere on the jersey. Every stripe and section must be ONE single uninterrupted solid color from edge to edge — absolutely NO patches, NO spots and NO bleeding of one placeholder color inside an area of the other. The jersey must be PERFECTLY SYMMETRICAL left-right: BOTH sleeves identical in color and pattern, both sides of the chest mirrored.';
 
 /* PINTURA SEM IA: o molde do estilo é gerado UMA vez em cores-marcador (magenta
    #FF00FF na principal, ciano #00FFFF na secundária) e daqui pra frente cada
@@ -4873,7 +4903,8 @@ async function pgEstudio(){
         </select>
         <input class="busca" id="est-busca" placeholder="Procurar clube…" value="${h(ST.buscaEstudio||'')}">
         ${aba==='escudos' && podeEditar('dados') ? '<button class="btn btn-sm" id="est-lote">Enviar em lote</button>' : ''}
-        ${aba==='uniformes' && podeEditar('dados') ? '<button class="btn btn-sm btn-ghost" id="est-repintar" title="Repinta todos os uniformes de molde com os moldes atuais">Repintar todos</button>' : ''}
+        ${aba==='uniformes' && podeEditar('dados') ? `<button class="btn btn-sm" id="est-estilos" title="Gera os moldes que faltam (uniforme + miniatura) dos 5 estilos, para reuso em todos os clubes">Preparar estilos</button>
+        <button class="btn btn-sm btn-ghost" id="est-repintar" title="Repinta todos os uniformes de molde com os moldes atuais">Repintar todos</button>` : ''}
       </div>
       <div class="rowh" style="grid-template-columns:44px 1.7fr .9fr .6fr 1fr">
         <span></span><span>Clube</span><span>País</span><span style="text-align:center">Divisão</span>
@@ -4914,6 +4945,8 @@ async function pgEstudio(){
   if(btLote) btLote.onclick = modalLoteEscudos;
   const btRep = el('est-repintar');
   if(btRep) btRep.onclick = () => repintarTodosUniformes(btRep);
+  const btEst = el('est-estilos');
+  if(btEst) btEst.onclick = () => prepararEstilos(btEst);
   const b = el('est-busca'); let t=null;
   b.oninput = () => { clearTimeout(t); t=setTimeout(()=>{ ST.buscaEstudio=b.value.trim(); pgEstudio(); },300); };
   document.querySelectorAll('[data-est-clube]').forEach(r => r.onclick = () => {
@@ -5558,7 +5591,8 @@ function modalUniformeIA(item){
   const corpoPasso = n => {
     if(n===1) return `<div class="col" style="gap:6px">
       ${ESTILOS_CAMISA.map(e=>`<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid ${wiz.estilo===e[0]?'var(--verde2)':'var(--bd2)'};border-radius:10px;cursor:pointer;font-size:13px">
-        <input type="radio" name="wz-estilo" value="${e[0]}" ${wiz.estilo===e[0]?'checked':''}> ${h(e[1])}</label>`).join('')}
+        <input type="radio" name="wz-estilo" value="${e[0]}" ${wiz.estilo===e[0]?'checked':''}> <span style="flex:1">${h(e[1])}</span>
+        ${D.fotos[MOLDE_KEY+'|'+e[0]]?'<span class="tag t-ok" style="font-size:10px">pronto</span>':'<span style="font-size:10.5px;color:var(--dim3)">gera na 1ª vez</span>'}</label>`).join('')}
       ${editar && D.fotos[MOLDE_KEY+'|'+wiz.estilo] ? `<span class="link" id="wz-refazer-molde" style="font-size:12px;align-self:flex-start">↻ molde deste estilo saiu com defeito? Refazer (~US$ 0,04 — repinta todos os clubes do estilo depois)</span>`:''}
       <button class="btn btn-sm" data-continuar style="align-self:flex-start;margin-top:6px">Continuar</button></div>`;
     if(n===2) return `<div class="col" style="gap:12px">
