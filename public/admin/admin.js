@@ -4298,16 +4298,19 @@ function modalConteudo(c){
    abrirModal de propósito: ele substituiria o modal de fotos/escudo em curso.
    Esc fecha só o lightbox (captura + stopImmediatePropagation, senão o Esc
    também derrubaria o modal de trás). */
-function abrirLightbox(url, alt){
+function abrirLightboxHTML(miolo){
   const lb = document.createElement('div');
   lb.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000d;display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:24px';
-  lb.innerHTML = `<img src="${h(url)}" alt="${h(alt||'')}" style="max-width:92vw;max-height:92vh;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px #000">
+  lb.innerHTML = `${miolo}
     <span style="position:absolute;top:14px;right:20px;font-size:26px;color:#fff9;line-height:1">✕</span>`;
   const fechar = () => { lb.remove(); document.removeEventListener('keydown', esc, true); };
   const esc = (e) => { if(e.key==='Escape'){ e.stopImmediatePropagation(); fechar(); } };
   lb.onclick = fechar;
   document.addEventListener('keydown', esc, true);
   document.body.appendChild(lb);
+}
+function abrirLightbox(url, alt){
+  abrirLightboxHTML(`<img src="${h(url)}" alt="${h(alt||'')}" style="max-width:92vw;max-height:92vh;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px #000">`);
 }
 
 /* chama a edge function e devolve a URL pública da imagem já no Storage */
@@ -4383,18 +4386,41 @@ function resumoAtributos(at){
   return [at.idade+' anos', tr(at.pele), tr(at.cabelo)+(at.corCab?' '+tr(at.corCab):''),
           tr(at.barba), tr(at.sorriso), tr(at.brinco), tr(at.tattoo)].join(' · ');
 }
-function promptFotoJogador(item, p, at){
-  const c = item.c;
+/* A FOTO É EM DUAS CAMADAS, de propósito:
+   · ROSTO (cabeça+pescoço, recortado em fundo transparente) — um por jogador;
+   · TORSO (a camisa do clube, sem cabeça) — UM por clube, a base única.
+   A imagem final é a sobreposição rosto-sobre-torso. É o que faz a troca de
+   clube ser automática: muda a base, o rosto é o mesmo — sem gerar nada. */
+function promptRosto(item, p, at){
   const pais = item.pais==='Brasil' ? 'Brazil' : item.pais;
   const cab = /bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`;
   return [
-    `Hyper-realistic professional studio portrait photograph of a fictional professional football player from ${pais}.`,
+    `Hyper-realistic studio photograph cutout: ONLY the head and neck of a fictional professional football player from ${pais}, isolated on a fully transparent background.`,
     `${at.idade} years old, ${at.pele}, ${cab}, ${at.barba}, ${at.sorriso}, ${at.brinco}, ${at.tattoo}.`,
-    'Chest-up framing, facing the camera directly, official club media day photo style.',
-    `Wearing a football jersey with vertical stripes in ${c.color||'#1b7a3d'} and ${c.color2||'#ffffff'}, with a small generic fictional club crest on the chest.`,
-    'Plain light gray studio background, soft professional studio lighting, sharp focus, DSLR photo quality.',
+    'Facing the camera directly, official club media day photo style, soft professional studio lighting, sharp focus, DSLR quality.',
+    'The cutout ends in a clean straight cut at the base of the neck — NO shoulders, NO clothing, NO jersey, NO collar, NO background, nothing besides the head and neck.',
+    'Head centered horizontally, sized so head plus neck fill about 75% of the frame height, positioned in the upper part of the frame.',
     'This is a completely fictional person, not resembling any real footballer or celebrity.'
   ].join(' ');
+}
+function promptTorso(item){
+  const c = item.c;
+  return [
+    'Hyper-realistic studio photograph of the torso of a male professional football player, WITHOUT the head — the frame is cropped just below the chin, no face, no head visible at all.',
+    `Wearing a football jersey with vertical stripes in ${c.color||'#1b7a3d'} and ${c.color2||'#ffffff'}, with a small generic fictional club crest on the chest.`,
+    'Shoulders and chest framing, facing the camera directly, official club media day photo style.',
+    'Shoulders and chest fill the lower two thirds of the frame, neckline centered horizontally, only plain light gray studio background above the collar.',
+    'Soft professional studio lighting, sharp focus, DSLR photo quality.'
+  ].join(' ');
+}
+const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do clube
+/* miniatura/visual composto: a camisa por baixo, o rosto por cima. Os percentuais
+   casam com o enquadramento pedido nos dois prompts — ajuste fino é aqui, num lugar só. */
+function compostoHTML(torsoUrl, rostoUrl, px, raio){
+  return `<span style="position:relative;display:inline-block;width:${px}px;height:${px}px;border-radius:${raio!=null?raio:8}px;overflow:hidden;background:#d9d9d9">
+    <img src="${h(torsoUrl)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+    <img src="${h(rostoUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:-3%;height:72%;object-fit:contain">
+  </span>`;
 }
 
 /* ---------- página ---------- */
@@ -4439,7 +4465,7 @@ async function pgEstudio(){
 
   const fotosDoClube = (x) => (x.c.squad||[]).filter(p => D.fotos[x.c.id+'|'+p.n]).length;
   const escudoIA = (x) => { const e=D.edits[x.c.id]; return !!(e && e.patch && e.patch.crest && /\/escudos\/ia\//.test(e.patch.crest)); };
-  const totalFotos = Object.keys(D.fotos).length;
+  const totalFotos = Object.keys(D.fotos).filter(k => !k.endsWith('|'+TORSO_KEY)).length;
   const totalEscudosIA = base.filter(escudoIA).length;
 
   el('page').innerHTML = `
@@ -4626,12 +4652,24 @@ function modalFotosIA(item){
   const sorteios = {};   // nome -> atributos sorteados nesta sessão do modal
   sq.forEach(p => { sorteios[p.n] = sortearAtributos(p); });
   const faltantes = () => sq.filter(p => !D.fotos[c.id+'|'+p.n]);
+  const torso = () => D.fotos[c.id+'|'+TORSO_KEY];
+
+  /* miniatura: rosto composto sobre a camisa do clube quando as duas camadas
+     existem; rosto solto se a camisa ainda não foi gerada; retrato antigo
+     (de antes das camadas) aparece como está */
+  const thumbHTML = (f, px) => {
+    const t = torso();
+    if(f && f.atributos && f.atributos.recorte==='rosto')
+      return t ? compostoHTML(t.url, f.url, px)
+               : `<span style="display:inline-block;width:${px}px;height:${px}px;border-radius:8px;background:#d9d9d9;overflow:hidden"><img src="${h(f.url)}" style="width:100%;height:100%;object-fit:contain"></span>`;
+    return `<img src="${h(f.url)}" style="width:${px}px;height:${px}px;border-radius:8px;object-fit:cover">`;
+  };
 
   const linhaFoto = (p) => {
     const f = D.fotos[c.id+'|'+p.n];
     return `<div class="row" style="grid-template-columns:52px minmax(0,1.4fr) minmax(0,2fr) 150px;align-items:center" data-foto-jog="${h(p.n)}">
       <span data-thumb ${f?'style="cursor:zoom-in" title="Ver em tela expandida"':''}>${f
-        ? `<img src="${h(f.url)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover">`
+        ? thumbHTML(f, 40)
         : `<i class="av" style="width:40px;height:40px;border-radius:8px;background:${h(c.color||'#333')};color:#fff;font-size:12px">${h(iniciais(p.n))}</i>`}</span>
       <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(p.n)}</b>
         <small style="font-size:11px;color:var(--dim3)">${h(p.p||'—')} · ${p.age!=null?p.age+' anos':'idade —'} · força ${p.f!=null?p.f:'—'}</small></span>
@@ -4647,9 +4685,21 @@ function modalFotosIA(item){
   abrirModal(`
     <h3>Fotos por IA — ${h(c.short||c.name)}</h3>
     <div class="st" style="line-height:1.6;margin-bottom:10px">
-      Retrato realista de estúdio com a camisa nas cores do clube. O visual (pele, cabelo, barba,
-      sorriso, brinco, tatuagem) é sorteado por jogador — use ↻ para sortear outro antes de gerar.
-      A idade vem do elenco. ~US$ 0,04 por foto.</div>
+      A foto é em DUAS camadas: o <b>rosto</b> (recortado, um por jogador) sobre a
+      <b>camisa do clube</b> (base única para o elenco inteiro). Trocou de clube?
+      O mesmo rosto entra na camisa do clube novo, sem gerar nada. O visual do rosto
+      (pele, cabelo, barba, sorriso, brinco, tatuagem) é sorteado — use ↻ antes de gerar.
+      A idade vem do elenco. ~US$ 0,04 por imagem.</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:10px 12px;border:1px solid var(--bd2);border-radius:10px">
+      <span data-torso-thumb ${torso()?'style="cursor:zoom-in" title="Ver em tela expandida"':''}>${torso()
+        ? `<img src="${h(torso().url)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover">`
+        : `<i class="av" style="width:44px;height:44px;border-radius:8px;background:${h(c.color||'#333')};color:#fff;font-size:11px">⚽</i>`}</span>
+      <span style="flex:1;min-width:0">
+        <b style="display:block;font-size:13px">Camisa do clube — base única do elenco</b>
+        <small style="font-size:11.5px;color:var(--dim2)">${torso()?'Gerada — todos os rostos são montados sobre ela.':'Ainda não gerada — gere primeiro: sem ela os rostos aparecem soltos.'}</small>
+      </span>
+      ${editar?`<button class="btn btn-sm ${torso()?'btn-ghost':''}" id="ft-torso">${torso()?'Refazer camisa':'Gerar camisa'}</button>`:''}
+    </div>
     ${editar && sq.length ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <button class="btn btn-sm" id="ft-todos">Gerar os que faltam (${faltantes().length})</button>
       <span id="ft-progresso" style="font-size:12px;color:var(--dim2)"></span></div>`:''}
@@ -4658,31 +4708,60 @@ function modalFotosIA(item){
     </div>
     <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>`, 'xl');
 
-  /* ver em tela expandida funciona para todo papel — inclusive leitura */
+  /* ver em tela expandida funciona para todo papel — inclusive leitura.
+     Rosto novo com camisa gerada abre a MONTAGEM (como vai aparecer no jogo);
+     sem camisa, ou retrato antigo, abre a imagem sozinha. */
+  const verExpandido = (f, alt) => {
+    const t = torso();
+    const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
+    if(f.atributos && f.atributos.recorte==='rosto' && t)
+      abrirLightboxHTML(compostoHTML(t.url, f.url, lado, 16));
+    else abrirLightbox(f.url, alt);
+  };
   el('ft-lista').addEventListener('click', ev => {
     if(!ev.target.closest('[data-ver], [data-thumb]')) return;
     const linha = ev.target.closest('[data-foto-jog]'); if(!linha) return;
     const f = D.fotos[c.id+'|'+linha.dataset.fotoJog];
-    if(f) abrirLightbox(f.url, linha.dataset.fotoJog);
+    if(f) verExpandido(f, linha.dataset.fotoJog);
   });
+  document.querySelector('[data-torso-thumb]').onclick = () => {
+    const t = torso(); if(t) abrirLightbox(t.url, 'Camisa do clube');
+  };
 
   if(!editar) return;
 
   async function gerarPara(p, linha){
-    const at = sorteios[p.n];
-    const url = await gerarImagemIA('jogador', promptFotoJogador(item, p, at), 'medium');
+    const at = Object.assign({}, sorteios[p.n], { recorte:'rosto' });
+    const url = await gerarImagemIA('rosto', promptRosto(item, p, at), 'medium');
     const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: p.n, url, atributos: at };
     const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
     if(error) throw new Error(erroMsg(error));
     D.fotos[c.id+'|'+p.n] = reg;
     if(linha){
       const th = linha.querySelector('[data-thumb]');
-      th.innerHTML = `<img src="${h(url)}" style="width:40px;height:40px;border-radius:8px;object-fit:cover">`;
+      th.innerHTML = thumbHTML(reg, 40);
       th.style.cursor = 'zoom-in'; th.title = 'Ver em tela expandida';
       const bt = linha.querySelector('[data-gerar]'); if(bt) bt.textContent = 'Refazer';
       const bv = linha.querySelector('[data-ver]'); if(bv) bv.disabled = false;
     }
   }
+
+  const btTorso = el('ft-torso');
+  if(btTorso) btTorso.onclick = async () => {
+    btTorso.disabled = true; const rot = btTorso.textContent; btTorso.textContent = 'Gerando…';
+    try{
+      const url = await gerarImagemIA('torso', promptTorso(item), 'medium');
+      const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: TORSO_KEY, url, atributos:{ recorte:'torso' } };
+      const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
+      if(error) throw new Error(erroMsg(error));
+      D.fotos[c.id+'|'+TORSO_KEY] = reg;
+      registrar('estudio.torso', String(c.id), { pacote: ST.packId });
+      toast('Camisa do clube salva.');
+      modalFotosIA(item);   // reabre: as miniaturas passam a compor sobre a camisa nova
+      return;
+    }catch(err){ toast(err.message||'Falha ao gerar a camisa.', true); }
+    btTorso.disabled = false; btTorso.textContent = rot;
+  };
 
   el('ft-lista').addEventListener('click', async ev => {
     const linha = ev.target.closest('[data-foto-jog]'); if(!linha) return;

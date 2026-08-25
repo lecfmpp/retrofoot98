@@ -34,7 +34,9 @@ function resp(status: number, body: unknown) {
 // o escudo mantém o fundo transparente — WebP suporta alfa.
 const TIPOS: Record<string, { bucket: string; background: "transparent" | "opaque" }> = {
   escudo:  { bucket: "escudos",   background: "transparent" },
-  jogador: { bucket: "jogadores", background: "opaque" },
+  jogador: { bucket: "jogadores", background: "opaque" },      // retrato inteiro (legado)
+  rosto:   { bucket: "jogadores", background: "transparent" }, // só cabeça+pescoço, recortado
+  torso:   { bucket: "jogadores", background: "opaque" },      // a camisa do clube, sem cabeça — base única
 };
 const FORMATO = "webp", CONTENT_TYPE = "image/webp", COMPRESSAO = 80; // 0-100, 80 é leve sem serrilhar
 
@@ -72,7 +74,7 @@ Deno.serve(async (req) => {
 
   const cfg = TIPOS[String(body.tipo || "")];
   const prompt = String(body.prompt || "").trim();
-  if (!cfg) return resp(400, { error: "tipo tem que ser 'escudo' ou 'jogador'." });
+  if (!cfg) return resp(400, { error: "tipo tem que ser escudo, jogador, rosto ou torso." });
   if (!prompt || prompt.length > 4000) return resp(400, { error: "prompt vazio ou longo demais." });
   const qualidade = ["low", "medium", "high"].includes(String(body.qualidade)) ? String(body.qualidade) : "medium";
 
