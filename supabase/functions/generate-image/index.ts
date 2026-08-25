@@ -39,9 +39,13 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return resp(405, { error: "Método não suportado" });
 
-  const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY");
+  // o secret foi salvo no projeto com o nome OPENAI-RETROFOOT; os outros nomes
+  // são fallback caso o dashboard normalize o hífen para underscore
+  const OPENAI_KEY = Deno.env.get("OPENAI-RETROFOOT")
+    ?? Deno.env.get("OPENAI_RETROFOOT")
+    ?? Deno.env.get("OPENAI_API_KEY");
   if (!OPENAI_KEY) {
-    return resp(500, { error: "OPENAI_API_KEY não configurada nos secrets do projeto Supabase." });
+    return resp(500, { error: "Secret OPENAI-RETROFOOT não configurado no projeto Supabase." });
   }
 
   const url = Deno.env.get("SUPABASE_URL")!;
