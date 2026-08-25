@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     return resp(403, { error: "Só sócios do painel podem gerar imagens." });
   }
 
-  let body: { tipo?: string; prompt?: string; qualidade?: string; imagens?: string[] };
+  let body: { tipo?: string; prompt?: string; qualidade?: string; imagens?: string[]; nome?: string };
   try { body = await req.json(); } catch { return resp(400, { error: "Body inválido." }); }
 
   const tipo = String(body.tipo || "");
@@ -141,7 +141,12 @@ Deno.serve(async (req) => {
   if (!b64) return resp(502, { error: "OpenAI não devolveu imagem." });
 
   const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-  const caminho = `ia/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${FORMATO}`;
+  // nome organizado vindo do painel (pais/divisao/clube/...), saneado — só
+  // minúsculas, números, hífen, underscore e barras, sem subir de nível
+  const nomeSeguro = String(body.nome || "")
+    .toLowerCase().replace(/[^a-z0-9/_-]/g, "").replace(/\/{2,}/g, "/")
+    .replace(/^\/+|\/+$/g, "").slice(0, 180);
+  const caminho = `${nomeSeguro || "ia"}-${Date.now()}-${crypto.randomUUID().slice(0, 6)}.${FORMATO}`;
   const up = await admin.storage.from(cfg.bucket).upload(caminho, bytes, {
     contentType: CONTENT_TYPE,
     cacheControl: "31536000",

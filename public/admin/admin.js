@@ -4417,11 +4417,19 @@ function iaTermina(item){
   iaDesenha();
 }
 
-async function gerarImagemIA(tipo, prompt, qualidade, imagens){
+/* caminho organizado no Storage: pais/divisao/clube — os arquivos do clube
+   ficam juntos e com nome legível (o sufixo de tempo evita colisão) */
+function caminhoClube(item){
+  return [chaveNome(item.pais)||'outro',
+          'divisao-'+(chaveNome(String(item.div))||'x'),
+          chaveNome(item.c.short||item.c.name)||String(item.c.id).toLowerCase()].join('/');
+}
+
+async function gerarImagemIA(tipo, prompt, qualidade, imagens, nome){
   const carga = iaComeca(IA_ROTULOS[tipo] || 'Gerando imagem…');
   try{
     const { data, error } = await sb.functions.invoke('generate-image',
-      { body:{ tipo, prompt, qualidade: qualidade||'medium', imagens } });
+      { body:{ tipo, prompt, qualidade: qualidade||'medium', imagens, nome } });
     if(error){
       let msg = error.message || 'Falha ao gerar a imagem.';
       try{ const j = await error.context.json(); if(j && j.error) msg = j.error; }catch(_e){}
@@ -4571,7 +4579,8 @@ async function garantirMolde(item, estilo){
      que não atravessa, listras tortas e assimétricas). O enquadramento fica por
      conta do prompt do torso, que já trava corte, pose e fundo. */
   const urlMolde = await gerarImagemIA('torso', promptTorso(item, estilo,
-    'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)') + AVISO_MARCADOR, 'medium');
+    'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)') + AVISO_MARCADOR, 'medium',
+    null, 'moldes/uniforme-'+estilo);
   molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: estilo, url: urlMolde, atributos:{ recorte:'molde', estilo } };
   const rM = await jogo('player_photos').upsert(molde, { onConflict:'pack_id,club_id,jogador' });
   if(rM.error) throw new Error(erroMsg(rM.error));
@@ -4597,7 +4606,7 @@ async function garantirMoldeMini(estilo){
   const chave = 'mini-'+estilo;
   let molde = D.fotos[MOLDE_KEY+'|'+chave];
   if(molde) return molde;
-  const url = await gerarImagemIA('rosto', promptMiniCamisa(estilo), 'medium');
+  const url = await gerarImagemIA('rosto', promptMiniCamisa(estilo), 'medium', null, 'moldes/miniatura-'+estilo);
   molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: chave, url, atributos:{ recorte:'molde-mini', estilo } };
   const r = await jogo('player_photos').upsert(molde, { onConflict:'pack_id,club_id,jogador' });
   if(r.error) throw new Error(erroMsg(r.error));
@@ -4632,7 +4641,7 @@ async function repintarTodosUniformes(btn){
       try{
         const molde = D.fotos[MOLDE_KEY+'|'+t.atributos.estilo];
         const blob = await pintarMolde(molde.url, t.atributos.cores[0], t.atributos.cores[1]);
-        const caminho = `uniformes/${x.c.id}-${Date.now()}.webp`;
+        const caminho = `${caminhoClube(x)}/uniforme-${Date.now()}.webp`;
         const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
         if(up.error) throw new Error(up.error.message);
         const reg = Object.assign({}, t, { url: sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl });
@@ -4790,7 +4799,8 @@ async function pgEstudio(){
 
   const fotosDoClube = (x) => (x.c.squad||[]).filter(p => D.fotos[x.c.id+'|'+p.n]).length;
   const uniformeDoClube = (x) => D.fotos[x.c.id+'|'+TORSO_KEY];
-  const escudoIA = (x) => { const e=D.edits[x.c.id]; return !!(e && e.patch && e.patch.crest && /\/escudos\/ia\//.test(e.patch.crest)); };
+  const escudoIA = (x) => { const e=D.edits[x.c.id];
+    return !!(e && e.patch && e.patch.crest && /\/escudos\/(ia\/|ia-|.*\/escudo-\d)/.test(e.patch.crest)); };
   const totalFotos = Object.keys(D.fotos).filter(k => !k.endsWith('|'+TORSO_KEY) && !k.startsWith(MOLDE_KEY+'|')).length;
   const totalEscudosIA = base.filter(escudoIA).length;
 
@@ -4973,7 +4983,7 @@ function modalEscudoIA(item){
       try{ const b2 = await removerFundoDeImagem(f); if(b2){ f = b2; ext = 'png'; } }
       catch(err){ return toast('Falha ao remover o fundo: '+err.message, true); }
     }
-    const caminho = `upload/${c.id}-${Date.now()}.${ext}`;
+    const caminho = `${caminhoClube(item)}/escudo-upload-${Date.now()}.${ext}`;
     const up = await sb.storage.from('escudos').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
     if(up.error) return toast(erroMsg(up.error), true);
     mostrarNoPreview(sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl,
@@ -4986,7 +4996,7 @@ function modalEscudoIA(item){
     btn.disabled = true; btn.textContent = 'Gerando… (até 1 min)';
     el('ia-estado').textContent = 'A OpenAI está desenhando o escudo…';
     try{
-      const url = await gerarImagemIA('escudo', prompt, el('ia-qual').value);
+      const url = await gerarImagemIA('escudo', prompt, el('ia-qual').value, null, caminhoClube(item)+'/escudo');
       gerada = url;
       el('ia-preview').innerHTML = `<img src="${h(url)}" style="max-width:88%;max-height:88%;object-fit:contain">`;
       el('ia-estado').textContent = 'Pronto — salve para valer, ou gere de novo.';
@@ -5123,13 +5133,15 @@ function modalFotosIA(item){
 
   async function gerarPara(p, linha){
     const at = Object.assign({}, sorteios[p.n], { recorte:'rosto' });
-    const url = await gerarImagemIA('rosto', promptRosto(item, p, at), 'medium');
+    const url = await gerarImagemIA('rosto', promptRosto(item, p, at), 'medium', null,
+      caminhoClube(item)+'/jogadores/'+(chaveNome(p.n)||'jogador')+'-rosto');
     /* com o uniforme pronto, a OpenAI costura rosto+uniforme numa foto natural —
        é a montagem que o jogo mostra. O rosto solto fica guardado: é ele que
        permite refazer a montagem barata quando o jogador trocar de clube. */
     const t = torso();
     if(t){
-      try{ at.montagem = await gerarImagemIA('montagem', promptMontagem(), 'medium', [t.url, url]); }
+      try{ at.montagem = await gerarImagemIA('montagem', promptMontagem(), 'medium', [t.url, url],
+        caminhoClube(item)+'/jogadores/'+(chaveNome(p.n)||'jogador')+'-foto'); }
       catch(err){ console.warn('montagem falhou, fica a prévia por camadas:', err.message); }
     }
     const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: p.n, url, atributos: at };
@@ -5315,7 +5327,7 @@ function modalLoteEscudos(){
       if(el('lt-nofundo') && el('lt-nofundo').checked){
         const b2 = await removerFundoDeImagem(p.f); if(b2){ arq = b2; ext = 'png'; }
       }
-      const caminho = `lote/${item.c.id}-${Date.now()}.${ext}`;
+      const caminho = `${caminhoClube(item)}/escudo-lote-${Date.now()}.${ext}`;
       const up = await sb.storage.from('escudos').upload(caminho, arq, { upsert:false, cacheControl:'31536000' });
       if(up.error) throw new Error(up.error.message);
       const url = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
@@ -5674,7 +5686,7 @@ function modalUniformeIA(item){
         try{ const b2 = await removerFundoDeImagem(f); if(b2){ f=b2; ext='png'; } }
         catch(err){ return toast('Falha ao remover o fundo: '+err.message, true); }
       }
-      const caminho = `upload/${c.id}-${Date.now()}.${ext}`;
+      const caminho = `${caminhoClube(item)}/escudo-upload-${Date.now()}.${ext}`;
       const up = await sb.storage.from('escudos').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
       if(up.error) return toast(erroMsg(up.error), true);
       wiz.escudoNovo = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
@@ -5740,7 +5752,7 @@ function modalUniformeIA(item){
         }
         el('wz-estado').textContent = 'Pintando o molde nas cores do clube — sem IA, sem custo.';
         const blob = await pintarMolde(molde.url, wiz.corA, wiz.corB);
-        const caminho = `uniformes/${c.id}-${Date.now()}.webp`;
+        const caminho = `${caminhoClube(item)}/uniforme-${Date.now()}.webp`;
         const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
         if(up.error) throw new Error(erroMsg(up.error));
         const url = sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl;
@@ -5751,7 +5763,7 @@ function modalUniformeIA(item){
           try{
             el('wz-estado').textContent = 'Pintando a miniatura da camisa…';
             const bm = await pintarMolde(moldeMini.url, wiz.corA, wiz.corB);
-            const cm = `camisas/${c.id}-${Date.now()}.webp`;
+            const cm = `${caminhoClube(item)}/miniatura-${Date.now()}.webp`;
             const um = await sb.storage.from('jogadores').upload(cm, bm, { upsert:false, cacheControl:'31536000' });
             if(!um.error) miniUrl = sb.storage.from('jogadores').getPublicUrl(cm).data.publicUrl;
           }catch(err){ console.warn('miniatura falhou:', err.message); }
@@ -5785,7 +5797,8 @@ function modalUniformeIA(item){
             for(const f of comFoto){
               el('wz-estado').textContent = `Recosturando ${ok+falhas+1}/${comFoto.length} — ${f.jogador}…`;
               try{
-                const nova = await gerarImagemIA('montagem', promptMontagem(), 'medium', [url, f.url]);
+                const nova = await gerarImagemIA('montagem', promptMontagem(), 'medium', [url, f.url],
+                  caminhoClube(item)+'/jogadores/'+(chaveNome(f.jogador)||'jogador')+'-foto');
                 const at2 = Object.assign({}, f.atributos, { montagem: nova });
                 const r2 = await jogo('player_photos').update({ atributos: at2 })
                   .eq('pack_id', ST.packId).eq('club_id', String(c.id)).eq('jogador', f.jogador);
