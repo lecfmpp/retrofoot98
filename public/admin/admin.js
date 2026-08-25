@@ -5576,6 +5576,9 @@ function modalUniformeIA(item){
     ['Salvar','rascunho ou aplicar no jogo']];
   const camadasWiz = () => ({ patroUrl: wiz.patroUrl, escudoUrl: escudoEscolhido(), fabUrl: wiz.fabUrl,
     patro: at.patro, escudo: at.escudo, fabricante: at.fabricante });
+  /* o preview é do ESTILO selecionado: prévia pintada dele ou o uniforme salvo
+     se (e só se) for do mesmo estilo — estilo sem molde mostra o placeholder */
+  const basePreview = () => wiz.pv || ((t() && (t().atributos||{}).estilo === wiz.estilo) ? t().url : null);
   const resumo = n =>
     n===1 ? h((ESTILOS_CAMISA.find(e=>e[0]===wiz.estilo)||[])[1]||'') :
     n===2 ? `<i style="display:inline-block;width:13px;height:13px;border-radius:4px;background:${h(wiz.corA)};vertical-align:-2px"></i>
@@ -5642,9 +5645,10 @@ function modalUniformeIA(item){
       <small style="font-size:12.5px;color:var(--dim2);line-height:1.6">Confira a prévia ao lado. <b>Salvar rascunho</b> guarda o uniforme no Estúdio para continuar depois; <b>Salvar e aplicar no jogo</b> grava o uniforme do elenco${wiz.escudoNovo?' e põe o escudo novo no patch':''}.</small>
       ${editar?`<button class="btn btn-sm btn-ghost" id="wz-ajustar" style="align-self:flex-start" ${t()?'':'disabled'}>✥ Ajustar escudo e patrocínio na foto</button>`:''}
       <div id="wz-estado" style="font-size:12px;color:var(--dim2);min-height:16px"></div>
-      ${editar?`<div style="display:flex;gap:10px;flex-wrap:wrap">
+      ${editar?`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <button class="btn btn-ghost" id="wz-rascunho">${t()?'Salvar rascunho':'Gerar uniforme'}</button>
         <button class="btn" id="wz-aplicar">${t()?'Salvar e aplicar no jogo':'Gerar e aplicar no jogo'}</button>
+        ${t()?`<span class="link" id="wz-remover" style="font-size:12px;color:var(--vermelho)">Remover uniforme do clube</span>`:''}
       </div>`:''}</div>`;
   };
 
@@ -5673,7 +5677,7 @@ function modalUniformeIA(item){
       <div class="col" style="gap:0">${reguaHTML}</div>
       <div class="col" style="gap:10px;align-items:center">
         <div id="wz-preview" title="Clique para ver em tela expandida" style="cursor:zoom-in">
-          ${(wiz.pv || t()) ? compostoHTML(wiz.pv || t().url, null, 320, 12, camadasWiz())
+          ${basePreview() ? compostoHTML(basePreview(), null, 320, 12, camadasWiz())
             : `<div style="width:320px;height:${Math.round(320*RATIO_FOTO)}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px dashed var(--bd2);border-radius:12px;background:#d9d9d9">
                 <svg viewBox="0 0 100 100" style="width:150px;height:150px;opacity:.45">
                   <path fill="#8a8a8a" d="M35 12 L44 8 Q50 14 56 8 L65 12 L86 24 L79 42 L68 37 L68 92 L32 92 L32 37 L21 42 L14 24 Z"/>
@@ -5694,7 +5698,7 @@ function modalUniformeIA(item){
      repintar a base — é o tempo real da troca de camada */
   function atualizarPreview(){
     const alvo = el('wz-preview'); if(!alvo) return;
-    const base = wiz.pv || (t() && t().url);
+    const base = basePreview();
     if(base) alvo.innerHTML = compostoHTML(base, null, 320, 12, camadasWiz());
   }
   async function pintarPrevia(){
@@ -5716,7 +5720,7 @@ function modalUniformeIA(item){
   pintarPrevia();
 
   el('wz-preview').onclick = () => {
-    const base = wiz.pv || (t() && t().url); if(!base) return;
+    const base = basePreview(); if(!base) return;
     const lado = Math.min(520, Math.floor(Math.min(innerWidth*0.9, innerHeight*0.85/RATIO_FOTO)));
     abrirLightboxHTML(compostoHTML(base, null, lado, 16, camadasWiz()));
   };
@@ -5735,7 +5739,12 @@ function modalUniformeIA(item){
   });
 
   if(wiz.passo===1){
-    document.querySelectorAll('[name="wz-estilo"]').forEach(r => r.onchange = () => { wiz.estilo=r.value; pintarPrevia(); });
+    document.querySelectorAll('[name="wz-estilo"]').forEach(r => r.onchange = () => {
+      wiz.estilo = r.value;
+      if(wiz.pv){ if(wiz.pv.startsWith('blob:')) URL.revokeObjectURL(wiz.pv); wiz.pv=null; wiz.pvChave=''; }
+      abrir();          // re-render: sem molde deste estilo, entra o placeholder
+      pintarPrevia();   // com molde, repinta e o preview volta na sequência
+    });
     const rf = el('wz-refazer-molde');
     if(rf) rf.onclick = async () => {
       if(!confirm('Refazer o molde deste estilo (~US$ 0,04)? O molde atual é descartado; depois use "Repintar todos" na aba Uniformes para atualizar os clubes que já usam este estilo.')) return;
@@ -5982,5 +5991,18 @@ function modalUniformeIA(item){
     }
     if(el('wz-rascunho')) el('wz-rascunho').onclick = () => salvar(false);
     if(el('wz-aplicar')) el('wz-aplicar').onclick = () => salvar(true);
+    const rmU = el('wz-remover');
+    if(rmU) rmU.onclick = async () => {
+      if(!confirm('Remover o uniforme deste clube? Ele volta à silhueta (sem uniforme). As fotos já costuradas do elenco continuam com a camisa antiga até serem refeitas.')) return;
+      const { error } = await jogo('player_photos').delete()
+        .eq('pack_id', ST.packId).eq('club_id', String(c.id)).eq('jogador', TORSO_KEY);
+      if(error) return toast(erroMsg(error), true);
+      delete D.fotos[c.id+'|'+TORSO_KEY];
+      if(wiz.pv && wiz.pv.startsWith('blob:')) URL.revokeObjectURL(wiz.pv);
+      D.wiz = null;
+      registrar('estudio.uniforme.remover', String(c.id), { pacote: ST.packId });
+      toast('Uniforme removido — o clube voltou à silhueta.');
+      modalUniformeIA(item);
+    };
   }
 }
