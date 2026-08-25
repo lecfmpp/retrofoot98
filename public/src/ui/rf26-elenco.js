@@ -89,7 +89,17 @@ const RF_EL_COLS='34px minmax(0,1.2fr) 34px 34px 40px 40px minmax(62px,.5fr) min
 /* ano de fundação: o dado não existe no jogo — sai ESTÁVEL do id do clube
    (mesmo clube, mesmo ano, em todo save), nunca de Math.random() */
 function rfFxFundado(clubId){ return 1900+((typeof hashSeed==='function'?hashSeed('fundado',String(clubId)):0)>>>0)%80; }
-function rfFxFoto(){ return 'img/jogador-perfil.png'; }
+/* foto do jogador: a costurada no Estúdio (clube atual -> por nome, para o
+   transferido ainda sem recostura) e, sem nenhuma, o retrato único de sempre */
+function rfFxFoto(p){
+  if(p && p.n){
+    const porClube = window.RF_FOTOS && window.RF_FOTOS[String(CL.clubId)+'|'+p.n];
+    if(porClube) return porClube;
+    const porNome = window.RF_FOTOS_NOME && window.RF_FOTOS_NOME[p.n];
+    if(porNome) return porNome;
+  }
+  return 'img/jogador-perfil.png';
+}
 function rfElnEnCor(v){ return v>=80?'#35b34a':v>=55?'#8dc63f':'#f2b90c'; }
 function rfElnFormaHTML(p){
   const n=(typeof playerForma==='function')?playerForma(p):null;
@@ -121,7 +131,7 @@ function rfElElencoHTML(){
     const tit=false;
     return `<div class="rf-eln-row rf-eln-g ${sel?'sel':''}" onclick="rfSelPlayer('${escC(p.pid)}')">
       <span class="rf-eln-jog">
-        <span class="rf-eln-avwrap"><img class="rf-eln-av" src="${rfFxFoto()}" alt="" loading="lazy"><i class="rf-eln-num">${escC(String(nums[p.pid]||p.num||''))}</i></span>
+        <span class="rf-eln-avwrap"><img class="rf-eln-av" src="${rfFxFoto(p)}" alt="" loading="lazy"><i class="rf-eln-num">${escC(String(nums[p.pid]||p.num||''))}</i></span>
         <b class="rf-eln-nome">${escC(p.n)}</b>
         ${emTreino?'<img class="rf-eln-cone" src="img/treino-especial-cone.webp" width="13" height="13" alt="Em treino especial" title="Em treino especial — chance extra de evolução a cada rodada">':''}
         ${(p.suspended>0)?' 🟥':''}${(p.injuredMatches>0)?' ✚':''}
@@ -455,7 +465,7 @@ function rfElFichaHTML(){
           <span class="rf-fx-legenda"><i></i>MÉDIA DA POSIÇÃO NA SÉRIE</span></div>
         <div class="rf-fx-carac-grid">
           <div class="rf-fx-retrato">
-            <img src="${rfFxFoto()}" alt="${escC(p.n)}">
+            <img src="${rfFxFoto(p)}" alt="${escC(p.n)}">
             <i class="rf-fx-retrato-veu"></i>
             <span class="rf-fx-num flutua">${escC(String(num))}</span>
             ${crest?`<img class="rf-fx-retrato-crest" src="${escC(crest)}" alt="">`:''}

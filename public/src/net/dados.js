@@ -138,6 +138,39 @@ function buscarEdits(packId){
     .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)));
 }
 
+/* FOTOS E UNIFORMES DO PACOTE (Estúdio IA do painel dos sócios):
+   · RF_FOTOS[club_id|nome] -> foto final do jogador (rosto costurado no uniforme);
+   · RF_FOTOS_NOME[nome]    -> a mesma foto indexada só pelo nome (fallback para
+     jogador transferido, até a recostura no clube novo);
+   · RF_UNIFORMES[club_id]  -> uniforme do clube (url, miniatura, patrocinador e
+     posições das camadas), para o campo e as páginas do clube.
+   Carrega SOLTO depois do boot — a UI usa quando estiver no ar e cai no retrato
+   padrão enquanto isso; erro aqui não pode derrubar nada. */
+window.RF_FOTOS = window.RF_FOTOS || {};
+window.RF_FOTOS_NOME = window.RF_FOTOS_NOME || {};
+window.RF_UNIFORMES = window.RF_UNIFORMES || {};
+function buscarFotos(packId){
+  if(!packId) return;
+  fetch(REST + 'player_photos?select=club_id,jogador,url,atributos&pack_id=eq.'+encodeURIComponent(packId),
+    { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Accept-Profile':'elifoot_v3' } })
+    .then(r => r.ok ? r.json() : [])
+    .then(rows => {
+      for(const f of rows||[]){
+        if(!f || f.club_id === '__molde__') continue;
+        const at = f.atributos || {};
+        if(f.jogador === '__torso__'){
+          window.RF_UNIFORMES[String(f.club_id)] = Object.assign({ url:f.url }, at);
+          continue;
+        }
+        const foto = at.montagem || null;   // só a foto FINAL entra na UI
+        if(!foto) continue;
+        window.RF_FOTOS[String(f.club_id)+'|'+f.jogador] = foto;
+        window.RF_FOTOS_NOME[f.jogador] = foto;
+      }
+    })
+    .catch(()=>{});
+}
+
 let PACOTE_OFICIAL = null;
 const aplicados = new Set();
 
@@ -156,6 +189,7 @@ fetch(REST + 'data_packs?select=id,codigo,nome&oficial=is.true&limit=1',
   .then(ps => {
     if(!ps || !ps.length) return;
     PACOTE_OFICIAL = ps[0].id;
+    buscarFotos(PACOTE_OFICIAL);
     return buscarEdits(PACOTE_OFICIAL).then(edits => {
       aplicar(edits); aplicados.add('oficial');
       try{ localStorage.setItem(CACHE, JSON.stringify({ t:Date.now(), id:PACOTE_OFICIAL, v:edits })); }catch(e){}
