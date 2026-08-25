@@ -4429,13 +4429,17 @@ function promptTorso(item, estiloChave){
 const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do clube
 /* miniatura/visual composto: a camisa por baixo, o rosto por cima. Os percentuais
    casam com o enquadramento pedido nos dois prompts — ajuste fino é aqui, num lugar só. */
-function compostoHTML(torsoUrl, rostoUrl, px, raio, patrocinadorUrl, escudoUrl){
+/* posição padrão do logo no painel branco — o ajuste fino por clube (drag and
+   drop no Estúdio) fica salvo em atributos.patro do uniforme e vence o padrão */
+const PATRO_POS_PADRAO = { x:33, y:49, w:34 };   // left %, top %, largura % (altura acompanha)
+function compostoHTML(torsoUrl, rostoUrl, px, raio, patrocinadorUrl, escudoUrl, patroPos){
   /* camadas, de baixo para cima: uniforme -> escudo (peito esquerdo do jogador,
      lado direito da imagem) -> patrocinador (painel branco central) -> rosto */
+  const pp = Object.assign({}, PATRO_POS_PADRAO, patroPos||{});
   return `<span style="position:relative;display:inline-block;width:${px}px;height:${px}px;border-radius:${raio!=null?raio:8}px;overflow:hidden;background:#d9d9d9">
     <img src="${h(torsoUrl)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
     ${escudoUrl?`<img src="${h(escudoUrl)}" style="position:absolute;left:62%;top:27%;width:21%;height:21%;object-fit:contain">`:''}
-    ${patrocinadorUrl?`<img src="${h(patrocinadorUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:49%;width:34%;height:13%;object-fit:contain">`:''}
+    ${patrocinadorUrl?`<img src="${h(patrocinadorUrl)}" style="position:absolute;left:${pp.x}%;top:${pp.y}%;width:${pp.w}%">`:''}
     ${rostoUrl?`<img src="${h(rostoUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:-3%;height:72%;object-fit:contain">`:''}
   </span>`;
 }
@@ -4517,6 +4521,7 @@ async function pgEstudio(){
           ${paises.map(p=>`<option value="${h(p)}" ${p===paisSel?'selected':''}>${h(p)}</option>`).join('')}
         </select>
         <input class="busca" id="est-busca" placeholder="Procurar clube…" value="${h(ST.buscaEstudio||'')}">
+        ${aba==='escudos' && podeEditar('dados') ? '<button class="btn btn-sm" id="est-lote">Enviar em lote</button>' : ''}
       </div>
       <div class="rowh" style="grid-template-columns:44px 1.7fr .9fr .6fr 1fr">
         <span></span><span>Clube</span><span>País</span><span style="text-align:center">Divisão</span>
@@ -4549,6 +4554,8 @@ async function pgEstudio(){
   el('est-pack').onchange = () => { ST.packId = el('est-pack').value; pgEstudio(); };
   document.querySelectorAll('[data-est-aba]').forEach(x => x.onclick = () => { ST.abaEstudio=x.dataset.estAba; pgEstudio(); });
   el('est-pais').onchange = () => { ST.paisEstudio = el('est-pais').value; pgEstudio(); };
+  const btLote = el('est-lote');
+  if(btLote) btLote.onclick = modalLoteEscudos;
   const b = el('est-busca'); let t=null;
   b.oninput = () => { clearTimeout(t); t=setTimeout(()=>{ ST.buscaEstudio=b.value.trim(); pgEstudio(); },300); };
   document.querySelectorAll('[data-est-clube]').forEach(r => r.onclick = () => {
@@ -4703,7 +4710,7 @@ function modalFotosIA(item){
   const thumbHTML = (f, px) => {
     const t = torso();
     if(f && f.atributos && f.atributos.recorte==='rosto')
-      return t ? compostoHTML(t.url, f.url, px, 8, ST.patroTeste, escudoClube())
+      return t ? compostoHTML(t.url, f.url, px, 8, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro)
                : `<span style="display:inline-block;width:${px}px;height:${px}px;border-radius:8px;background:#d9d9d9;overflow:hidden"><img src="${h(f.url)}" style="width:100%;height:100%;object-fit:contain"></span>`;
     return `<img src="${h(f.url)}" style="width:${px}px;height:${px}px;border-radius:8px;object-fit:cover">`;
   };
@@ -4748,7 +4755,8 @@ function modalFotosIA(item){
       </select>`:''}
       <input class="busca" id="ft-patro" style="width:180px" placeholder="URL do logo (prévia do patrocínio)" value="${h(ST.patroTeste||'')}">
       ${editar?`<button class="btn btn-sm btn-ghost" id="ft-patro-up" title="Enviar arquivo do logo do patrocinador">↥ logo</button>
-        <input type="file" id="ft-patro-arq" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">`:''}
+        <input type="file" id="ft-patro-arq" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">
+        <button class="btn btn-sm btn-ghost" id="ft-patro-pos" title="Arrastar e redimensionar o logo sobre o painel branco">✥ Ajustar</button>`:''}
       ${editar?`<button class="btn btn-sm ${torso()?'btn-ghost':''}" id="ft-torso">${torso()?'Refazer uniforme':'Gerar uniforme'}</button>`:''}
     </div>
     ${editar && sq.length ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
@@ -4766,7 +4774,7 @@ function modalFotosIA(item){
     const t = torso();
     const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
     if(f.atributos && f.atributos.recorte==='rosto' && t)
-      abrirLightboxHTML(compostoHTML(t.url, f.url, lado, 16, ST.patroTeste, escudoClube()));
+      abrirLightboxHTML(compostoHTML(t.url, f.url, lado, 16, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro));
     else abrirLightbox(f.url, alt);
   };
   el('ft-lista').addEventListener('click', ev => {
@@ -4778,10 +4786,12 @@ function modalFotosIA(item){
   document.querySelector('[data-torso-thumb]').onclick = () => {
     const t = torso(); if(!t) return;
     const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
-    abrirLightboxHTML(compostoHTML(t.url, null, lado, 16, ST.patroTeste, escudoClube()));
+    abrirLightboxHTML(compostoHTML(t.url, null, lado, 16, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro));
   };
   /* o logo de prévia entra na hora, sem regerar nada — é só uma camada */
   el('ft-patro').onchange = () => { ST.patroTeste = el('ft-patro').value.trim(); modalFotosIA(item); };
+  const btPos = el('ft-patro-pos');
+  if(btPos) btPos.onclick = () => modalAjustePatrocinio(item, () => modalFotosIA(item));
   const upPatro = el('ft-patro-up');
   if(upPatro){
     upPatro.onclick = () => el('ft-patro-arq').click();
@@ -4866,5 +4876,163 @@ function modalFotosIA(item){
     registrar('estudio.foto.lote', String(c.id), { pacote: ST.packId, geradas: ok, falhas: erroN });
     el('ft-progresso').textContent = `Pronto: ${ok} geradas${erroN?`, ${erroN} falharam`:''}.`;
     btTodos.disabled = false; btTodos.textContent = `Gerar os que faltam (${faltantes().length})`;
+  };
+}
+
+/* ---------- escudos em lote ----------
+   O nome do ARQUIVO diz de que clube é o escudo: casa com o id do jogo
+   (br_D_gama.png), com o nome ou com o nome curto (Gama.png, "Ponte Preta.webp"),
+   tolerante a acento/caixa/pontuação — a mesma chaveNome do importador de dados.
+   Nada sobe sem revisão: primeiro a lista mostra o que casou (e o que não),
+   e só o botão de confirmar faz o upload + grava no patch. */
+function modalLoteEscudos(){
+  // índice nome-normalizado -> clube; ambiguidade (dois clubes com o mesmo nome) invalida a chave
+  const indice = new Map();
+  const registrarChave = (chave, item) => {
+    if(!chave) return;
+    if(indice.has(chave) && indice.get(chave) !== item) indice.set(chave, 'AMBIGUO');
+    else indice.set(chave, item);
+  };
+  (D.catalogo||[]).forEach(item => {
+    registrarChave(chaveNome(item.c.id), item);
+    registrarChave(chaveNome(item.c.name), item);
+    registrarChave(chaveNome(item.c.short), item);
+  });
+
+  abrirModal(`
+    <h3>Escudos em lote</h3>
+    <div class="st" style="line-height:1.7;margin-bottom:12px">
+      Selecione todos os arquivos de uma vez (PNG/WEBP/JPG/SVG, até 5 MB cada, de preferência com fundo
+      transparente). O <b>nome do arquivo</b> identifica o clube — serve o id do jogo
+      (<span class="mono">br_D_gama.png</span>) ou o nome (<span class="mono">Gama.png</span>,
+      <span class="mono">ponte-preta.webp</span>). Nada é gravado antes de você confirmar a lista.</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <button class="btn" id="lt-escolher">Escolher arquivos…</button>
+      <input type="file" id="lt-arquivos" accept=".png,.webp,.jpg,.jpeg,.svg" multiple style="display:none">
+      <span id="lt-resumo" style="font-size:12.5px;color:var(--dim2)"></span>
+    </div>
+    <div id="lt-lista"></div>
+    <div class="acoes">
+      <button class="btn" id="lt-subir" disabled>Subir escudos</button>
+      <button class="btn btn-ghost" data-fechar>Fechar</button>
+    </div>`, 'lg');
+
+  let plano = [];   // { f, item|null, motivo }
+  el('lt-escolher').onclick = () => el('lt-arquivos').click();
+  el('lt-arquivos').onchange = () => {
+    const arquivos = Array.from(el('lt-arquivos').files||[]);
+    plano = arquivos.map(f => {
+      const chave = chaveNome(f.name.replace(/\.[a-z0-9]+$/i,''));
+      const alvo = indice.get(chave);
+      if(f.size > 5*1024*1024) return { f, item:null, motivo:'acima de 5 MB' };
+      if(!alvo)               return { f, item:null, motivo:'nenhum clube com esse nome' };
+      if(alvo === 'AMBIGUO')  return { f, item:null, motivo:'mais de um clube com esse nome — use o id do jogo' };
+      return { f, item:alvo };
+    });
+    const ok = plano.filter(p=>p.item).length;
+    el('lt-resumo').textContent = `${ok} de ${plano.length} arquivos casaram com um clube.`;
+    el('lt-lista').innerHTML = `
+      <div class="rowh" style="grid-template-columns:1.4fr 1.6fr .9fr"><span>Arquivo</span><span>Clube</span><span style="text-align:right">Situação</span></div>
+      ${plano.map(p=>`<div class="row" style="grid-template-columns:1.4fr 1.6fr .9fr">
+        <span class="mono" style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis">${h(p.f.name)}</span>
+        <span style="font-size:12.5px">${p.item?h(p.item.c.short||p.item.c.name)+' <small class="mono" style="color:var(--dim3)">'+h(p.item.c.id)+'</small>':'—'}</span>
+        <span style="text-align:right">${p.item?'<span class="tag t-ok">pronto</span>':`<span class="tag t-erro" title="${h(p.motivo)}">${h(p.motivo)}</span>`}</span>
+      </div>`).join('')}`;
+    el('lt-subir').disabled = !ok;
+    el('lt-subir').textContent = `Subir ${ok} escudos`;
+  };
+
+  el('lt-subir').onclick = async () => {
+    const fila = plano.filter(p=>p.item);
+    if(!fila.length) return;
+    el('lt-subir').disabled = true;
+    let ok=0, erros=0;
+    for(const p of fila){
+      el('lt-resumo').textContent = `Subindo ${ok+erros+1}/${fila.length} — ${p.item.c.short||p.item.c.name}…`;
+      try{
+        const ext = (p.f.name.split('.').pop()||'png').toLowerCase();
+        const caminho = `lote/${p.item.c.id}-${Date.now()}.${ext}`;
+        const up = await sb.storage.from('escudos').upload(caminho, p.f, { upsert:false, cacheControl:'31536000' });
+        if(up.error) throw new Error(up.error.message);
+        const url = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
+        const ed = D.edits[p.item.c.id];
+        const linha = {
+          pack_id: ST.packId, club_id: String(p.item.c.id), divisao: p.item.div, novo: !!(ed && ed.novo),
+          patch: Object.assign({}, ed && ed.patch, { crest: url })
+        };
+        const r = await jogo('pack_edits').upsert(linha, { onConflict:'pack_id,club_id' });
+        if(r.error) throw new Error(r.error.message);
+        D.edits[p.item.c.id] = linha;
+        ok++;
+      }catch(err){ erros++; console.warn('lote escudo falhou:', p.f.name, err.message); }
+    }
+    await jogo('data_packs').update({ atualizado_em:new Date().toISOString() }).eq('id', ST.packId);
+    registrar('estudio.escudo.lote', String(ok), { pacote: ST.packId, falhas: erros });
+    el('lt-resumo').textContent = `Pronto: ${ok} escudos salvos no patch${erros?`, ${erros} falharam (veja o console)`:''}.`;
+    toast(`${ok} escudos salvos no patch.`);
+    el('lt-subir').textContent = 'Concluído';
+  };
+}
+
+/* ---------- ajuste do patrocínio: arrastar e redimensionar sobre o uniforme ----------
+   Abre POR CIMA do modal de fotos (overlay próprio, não abrirModal — que o
+   substituiria). O logo é arrastável no palco e o tamanho vem do controle
+   deslizante; salvar grava {x, y, w} em atributos.patro do uniforme — é essa
+   posição que todas as montagens (e depois o jogo) usam para este clube. */
+function modalAjustePatrocinio(item, onSalvo){
+  const c = item.c;
+  const t = D.fotos[c.id+'|'+TORSO_KEY];
+  if(!t) return toast('Gere o uniforme primeiro.', true);
+  if(!ST.patroTeste) return toast('Informe ou envie o logo do patrocinador primeiro.', true);
+  const pos = Object.assign({}, PATRO_POS_PADRAO, (t.atributos && t.atributos.patro) || {});
+
+  const lado = Math.min(560, Math.floor(Math.min(innerWidth, innerHeight)*0.72));
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px';
+  ov.innerHTML = `
+    <div id="aj-palco" style="position:relative;width:${lado}px;height:${lado}px;border-radius:12px;overflow:hidden;background:#d9d9d9;touch-action:none">
+      <img src="${h(t.url)}" draggable="false" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none">
+      <img id="aj-logo" src="${h(ST.patroTeste)}" draggable="false"
+           style="position:absolute;left:${pos.x}%;top:${pos.y}%;width:${pos.w}%;cursor:grab;outline:2px dashed #35c46a;outline-offset:3px">
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;color:#fff;font-size:13px;flex-wrap:wrap;justify-content:center">
+      <span>Tamanho</span>
+      <input id="aj-w" type="range" min="8" max="60" step="0.5" value="${pos.w}" style="width:220px">
+      <button class="btn btn-sm" id="aj-salvar">Salvar posição</button>
+      <button class="btn btn-sm btn-ghost" id="aj-cancelar" style="color:#fff">Cancelar</button>
+    </div>
+    <small style="color:#fff8;text-align:center;max-width:${lado}px">Arraste o logo até encaixar no painel branco. A posição salva vale para este uniforme — todas as fotos do elenco (e o jogo) passam a usar.</small>`;
+  document.body.appendChild(ov);
+
+  const img = ov.querySelector('#aj-logo');
+  let drag = null;
+  img.onpointerdown = e => {
+    drag = { cx:e.clientX, cy:e.clientY, x:pos.x, y:pos.y };
+    img.setPointerCapture(e.pointerId); img.style.cursor='grabbing';
+  };
+  img.onpointermove = e => {
+    if(!drag) return;
+    pos.x = Math.min(96, Math.max(-30, drag.x + (e.clientX-drag.cx)*100/lado));
+    pos.y = Math.min(96, Math.max(-30, drag.y + (e.clientY-drag.cy)*100/lado));
+    img.style.left = pos.x+'%'; img.style.top = pos.y+'%';
+  };
+  img.onpointerup = () => { drag=null; img.style.cursor='grab'; };
+  ov.querySelector('#aj-w').oninput = e => { pos.w = +e.target.value; img.style.width = pos.w+'%'; };
+
+  const fechar = () => { ov.remove(); document.removeEventListener('keydown', esc, true); };
+  const esc = e => { if(e.key==='Escape'){ e.stopImmediatePropagation(); fechar(); } };
+  document.addEventListener('keydown', esc, true);
+  ov.querySelector('#aj-cancelar').onclick = fechar;
+
+  ov.querySelector('#aj-salvar').onclick = async () => {
+    const at = Object.assign({}, t.atributos, { patro: {
+      x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), w:+pos.w.toFixed(2) } });
+    const { error } = await jogo('player_photos').update({ atributos: at })
+      .eq('pack_id', ST.packId).eq('club_id', String(c.id)).eq('jogador', TORSO_KEY);
+    if(error) return toast(erroMsg(error), true);
+    t.atributos = at;
+    registrar('estudio.patro.pos', String(c.id), at.patro);
+    toast('Posição do patrocínio salva.');
+    fechar(); if(onSalvo) onSalvo();
   };
 }
