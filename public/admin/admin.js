@@ -4661,7 +4661,7 @@ async function repintarTodosUniformes(btn){
       btn.textContent = `Repintando ${ok+erros+1}/${alvos.length}…`;
       try{
         const molde = D.fotos[MOLDE_KEY+'|'+t.atributos.estilo];
-        const blob = await pintarMolde(molde.url, t.atributos.cores[0], t.atributos.cores[1]);
+        const blob = await pintarMolde(molde.url, t.atributos.cores[0], t.atributos.cores[1], true);
         const caminho = `${caminhoClube(x)}/uniforme-${Date.now()}.webp`;
         const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
         if(up.error) throw new Error(up.error.message);
@@ -4711,7 +4711,7 @@ function hex2rgb(hx){
   const n = parseInt(m ? m[1] : '1b7a3d', 16);
   return [n>>16&255, n>>8&255, n&255];
 }
-async function pintarMolde(moldeUrl, corA, corB){
+async function pintarMolde(moldeUrl, corA, corB, normalizar){
   const img = await new Promise((ok, erro) => {
     const i = new Image(); i.crossOrigin = 'anonymous';
     i.onload = () => ok(i); i.onerror = () => erro(new Error('Não consegui carregar o molde.'));
@@ -4752,9 +4752,37 @@ async function pintarMolde(moldeUrl, corA, corB){
     px[i] += (alvo[0]*L - r)*w; px[i+1] += (alvo[1]*L - g)*w; px[i+2] += (alvo[2]*L - b)*w;
   }
   cx.putImageData(d, 0, 0);
-  const blob = await new Promise(ok => cv.toBlob(ok, 'image/webp', 0.85));
+  /* NORMALIZAÇÃO DO QUADRO (uniforme): o molde nem sempre respeita o vão da
+     cabeça pedido no prompt. Aqui é determinístico: acha a primeira linha com
+     conteúdo (ombros/gola — o molde não tem cabeça) e re-enquadra num retrato
+     2:3 com a gola cravada a 40% do topo. Todo uniforme pintado sai no MESMO
+     quadro, e as posições de escudo/logo valem em todas as visões. */
+  const cvFinal = normalizar ? normalizarQuadroCanvas(cv) : cv;
+  const blob = await new Promise(ok => cvFinal.toBlob(ok, 'image/webp', 0.85));
   if(!blob) throw new Error('Falha ao exportar a pintura.');
   return blob;
+}
+function normalizarQuadroCanvas(cv){
+  const W = cv.width, H = cv.height;
+  const d = cv.getContext('2d').getImageData(0, 0, W, H).data;
+  const bg = [d[0], d[1], d[2]];
+  let topo = 0;
+  for(let y=0; y<H; y++){
+    let n = 0, amostras = 0;
+    for(let x=0; x<W; x+=4){
+      const i = (y*W + x)*4; amostras++;
+      if(Math.abs(d[i]-bg[0]) + Math.abs(d[i+1]-bg[1]) + Math.abs(d[i+2]-bg[2]) > 60) n++;
+    }
+    if(n > amostras*0.06){ topo = y; break; }
+  }
+  const outW = 1024, outH = 1536, alvoTopo = Math.round(outH*0.40);
+  const esc = (outH - alvoTopo) / (H - topo);
+  const cv2 = document.createElement('canvas'); cv2.width = outW; cv2.height = outH;
+  const c2 = cv2.getContext('2d');
+  c2.fillStyle = `rgb(${bg[0]},${bg[1]},${bg[2]})`; c2.fillRect(0, 0, outW, outH);
+  const dw = W*esc, dh = (H - topo)*esc;
+  c2.drawImage(cv, 0, topo, W, H - topo, (outW - dw)/2, alvoTopo, dw, dh);
+  return cv2;
 }
 /* miniatura/visual composto: a camisa por baixo, o rosto por cima. Os percentuais
    casam com o enquadramento pedido nos dois prompts — ajuste fino é aqui, num lugar só. */
@@ -5713,7 +5741,7 @@ function modalUniformeIA(item){
     const chave = molde.url+'|'+wiz.estilo+'|'+wiz.corA+'|'+wiz.corB;
     if(wiz.pvChave === chave && wiz.pv) return;
     try{
-      const blob = await pintarMolde(molde.url, wiz.corA, wiz.corB);
+      const blob = await pintarMolde(molde.url, wiz.corA, wiz.corB, true);
       if(wiz.pv && wiz.pv.startsWith('blob:')) URL.revokeObjectURL(wiz.pv);
       wiz.pv = URL.createObjectURL(blob); wiz.pvChave = chave;
       const alvo = el('wz-preview');
@@ -5942,7 +5970,7 @@ function modalUniformeIA(item){
           molde = await garantirMolde(item, wiz.estilo);
         }
         el('wz-estado').textContent = 'Pintando o molde nas cores do clube — sem IA, sem custo.';
-        const blob = await pintarMolde(molde.url, wiz.corA, wiz.corB);
+        const blob = await pintarMolde(molde.url, wiz.corA, wiz.corB, true);
         const caminho = `${caminhoClube(item)}/uniforme-${Date.now()}.webp`;
         const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
         if(up.error) throw new Error(erroMsg(up.error));
