@@ -5471,6 +5471,15 @@ function shirtHTML(p, th, num){
   // o numero usa a secundaria SÓ quando ela se le sobre a primaria (Palmeiras tem
   // verde sobre verde); senao cai pro preto/branco que barTextColor garante.
   const cn=barTextColor(c1,c2);
+  // MINIATURA DO ESTÚDIO: quando o clube tem a camisa gerada no painel (transparente,
+  // pintada nas cores), ela substitui o desenho CSS — mesmo tamanho, número por cima.
+  const uni=(window.RF_UNIFORMES||{})[String(CL.clubId)];
+  if(uni && uni.miniatura){
+    return `<span class="cl-pp-shirt rf-jersey rf-jersey-img" aria-hidden="true">
+      <img src="${escC(uni.miniatura)}" alt="" loading="lazy" draggable="false">
+      <b>${num||''}</b>
+    </span>`;
+  }
   return `<span class="cl-pp-shirt rf-jersey" aria-hidden="true">
     <i class="rf-j-sl l" style="background:${c2}"></i><i class="rf-j-sl r" style="background:${c2}"></i>
     <i class="rf-j-body" style="background:${c1}"><b style="color:${cn}">${num||''}</b></i>
