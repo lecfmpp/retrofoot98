@@ -4313,6 +4313,43 @@ function abrirLightbox(url, alt){
   abrirLightboxHTML(`<img src="${h(url)}" alt="${h(alt||'')}" style="max-width:92vw;max-height:92vh;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px #000">`);
 }
 
+/* Remove o fundo SÓLIDO de um logo no próprio navegador: pega a cor dos cantos
+   e apaga, por inundação a partir das bordas, tudo que estiver perto dela.
+   Inundação (e não "apagar toda cor parecida") de propósito: um P branco DENTRO
+   do escudo não encosta na borda, então sobrevive. Devolve PNG com alfa. */
+async function removerFundoDeImagem(arquivo){
+  const url = URL.createObjectURL(arquivo);
+  try{
+    const img = await new Promise((ok, erro) => {
+      const i = new Image(); i.onload = () => ok(i); i.onerror = () => erro(new Error('Não consegui ler a imagem.')); i.src = url;
+    });
+    const W = img.naturalWidth, H = img.naturalHeight;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
+    const dados = cx.getImageData(0, 0, W, H), px = dados.data;
+    const cantos = [0, (W-1)*4, (H-1)*W*4, ((H-1)*W + W-1)*4];
+    const bg = [0,1,2].map(k => Math.round(cantos.reduce((a,i)=>a+px[i+k],0)/4));
+    const TOL = 120;  // soma das diferenças RGB — pega branco sujo e jpeg comprimido
+    const eFundo = i => px[i+3] !== 0 &&
+      (Math.abs(px[i]-bg[0]) + Math.abs(px[i+1]-bg[1]) + Math.abs(px[i+2]-bg[2])) <= TOL;
+    const fila = [], visto = new Uint8Array(W*H);
+    for(let x=0; x<W; x++){ fila.push(x, (H-1)*W + x); }
+    for(let y=0; y<H; y++){ fila.push(y*W, y*W + W-1); }
+    while(fila.length){
+      const p = fila.pop();
+      if(visto[p]) continue; visto[p] = 1;
+      const i = p*4;
+      if(!eFundo(i)) continue;
+      px[i+3] = 0;
+      const x = p%W, y = (p/W)|0;
+      if(x>0) fila.push(p-1); if(x<W-1) fila.push(p+1);
+      if(y>0) fila.push(p-W); if(y<H-1) fila.push(p+W);
+    }
+    cx.putImageData(dados, 0, 0);
+    return await new Promise(ok => cv.toBlob(ok, 'image/png'));
+  } finally { URL.revokeObjectURL(url); }
+}
+
 /* chama a edge function e devolve a URL pública da imagem já no Storage.
    `imagens` (opcional) alimenta a montagem: URLs do nosso Storage que a função
    manda para a OpenAI como imagens de entrada (images/edits). */
@@ -4619,6 +4656,8 @@ function modalEscudoIA(item){
             <option value="medium" selected>Média (~US$ 0,04)</option>
             <option value="high">Alta (~US$ 0,17)</option>
           </select></label>
+        ${editar?`<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim2);cursor:pointer">
+          <input type="checkbox" id="ia-nofundo"> Remover o fundo ao enviar arquivo (fundo sólido vira transparente)</label>`:''}
         <label class="f">Prompt final (edite à vontade — é o que vai para a OpenAI)
           <textarea class="f" id="ia-prompt" rows="6" style="resize:vertical;font-size:12px;line-height:1.5"></textarea></label>
         <span class="link" id="ia-recompor" style="font-size:11.5px;align-self:flex-start">↻ recompor o prompt a partir dos campos acima</span>
@@ -4673,9 +4712,13 @@ function modalEscudoIA(item){
   /* upload manual: mesmo destino e mesmo "Salvar no clube" do escudo gerado */
   el('ia-upload').onclick = () => el('ia-arquivo').click();
   el('ia-arquivo').onchange = async () => {
-    const f = el('ia-arquivo').files[0]; if(!f) return;
+    let f = el('ia-arquivo').files[0]; if(!f) return;
     if(f.size > 5*1024*1024) return toast('Arquivo acima de 5 MB.', true);
-    const ext = (f.name.split('.').pop()||'png').toLowerCase();
+    let ext = (f.name.split('.').pop()||'png').toLowerCase();
+    if(el('ia-nofundo') && el('ia-nofundo').checked){
+      try{ const b2 = await removerFundoDeImagem(f); if(b2){ f = b2; ext = 'png'; } }
+      catch(err){ return toast('Falha ao remover o fundo: '+err.message, true); }
+    }
     const caminho = `upload/${c.id}-${Date.now()}.${ext}`;
     const up = await sb.storage.from('escudos').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
     if(up.error) return toast(erroMsg(up.error), true);
@@ -4909,6 +4952,8 @@ function modalLoteEscudos(){
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <button class="btn" id="lt-escolher">Escolher arquivos…</button>
       <input type="file" id="lt-arquivos" accept=".png,.webp,.jpg,.jpeg,.svg" multiple style="display:none">
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim2);cursor:pointer">
+        <input type="checkbox" id="lt-nofundo"> Remover fundo</label>
       <span id="lt-resumo" style="font-size:12.5px;color:var(--dim2)"></span>
     </div>
     <div id="lt-lista"></div>
@@ -4950,9 +4995,12 @@ function modalLoteEscudos(){
     for(const p of fila){
       el('lt-resumo').textContent = `Subindo ${ok+erros+1}/${fila.length} — ${p.item.c.short||p.item.c.name}…`;
       try{
-        const ext = (p.f.name.split('.').pop()||'png').toLowerCase();
+        let arq = p.f, ext = (p.f.name.split('.').pop()||'png').toLowerCase();
+        if(el('lt-nofundo') && el('lt-nofundo').checked){
+          const b2 = await removerFundoDeImagem(p.f); if(b2){ arq = b2; ext = 'png'; }
+        }
         const caminho = `lote/${p.item.c.id}-${Date.now()}.${ext}`;
-        const up = await sb.storage.from('escudos').upload(caminho, p.f, { upsert:false, cacheControl:'31536000' });
+        const up = await sb.storage.from('escudos').upload(caminho, arq, { upsert:false, cacheControl:'31536000' });
         if(up.error) throw new Error(up.error.message);
         const url = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
         const ed = D.edits[p.item.c.id];
@@ -5092,6 +5140,8 @@ function modalUniformeIA(item){
             ${editar?`<button class="btn btn-sm btn-ghost" id="un-patro-up" style="flex:0 0 auto" title="Enviar arquivo do logo">↥</button>
             <input type="file" id="un-patro-arq" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">`:''}
           </span></label>
+        ${editar?`<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim2);cursor:pointer">
+          <input type="checkbox" id="un-nofundo"> Remover o fundo do logo ao enviar (fundo sólido vira transparente)</label>`:''}
         ${editar?`<button class="btn btn-sm btn-ghost" id="un-ajustar" style="align-self:flex-start" ${t()?'':'disabled'}>✥ Ajustar escudo e patrocínio na foto</button>`:''}
       </div>
       <div class="col" style="gap:10px;align-items:center;justify-content:center">
@@ -5122,10 +5172,14 @@ function modalUniformeIA(item){
   if(upBt){
     upBt.onclick = () => el('un-patro-arq').click();
     el('un-patro-arq').onchange = async () => {
-      const f = el('un-patro-arq').files[0]; if(!f) return;
+      let f = el('un-patro-arq').files[0]; if(!f) return;
       if(f.size > 2*1024*1024) return toast('Logo acima de 2 MB.', true);
-      const ext = (f.name.split('.').pop()||'png').toLowerCase();
-      const caminho = `logos/${Date.now()}-${chaveNome(f.name).slice(0,24)||'logo'}.${ext}`;
+      let ext = (f.name.split('.').pop()||'png').toLowerCase();
+      if(el('un-nofundo') && el('un-nofundo').checked){
+        try{ const b2 = await removerFundoDeImagem(f); if(b2){ f = b2; ext = 'png'; } }
+        catch(err){ return toast('Falha ao remover o fundo: '+err.message, true); }
+      }
+      const caminho = `logos/${Date.now()}-${chaveNome((el('un-patro-arq').files[0]||{name:'logo'}).name).slice(0,24)||'logo'}.${ext}`;
       const up = await sb.storage.from('patrocinadores').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
       if(up.error) return toast(erroMsg(up.error), true);
       ST.patroTeste = sb.storage.from('patrocinadores').getPublicUrl(caminho).data.publicUrl;
