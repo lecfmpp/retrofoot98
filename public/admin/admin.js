@@ -5194,7 +5194,7 @@ function modalFotosIA(item){
     if(ev.target.closest('[data-escudo]')){
       const f = D.fotos[c.id+'|'+p.n];
       if(f && f.atributos && f.atributos.montagem)
-        modalAjustePatrocinio(item, () => modalFotosIA(item), f.atributos.montagem);
+        modalAjustePatrocinio(item, () => modalFotosIA(item), f.atributos.montagem, true);
       return;
     }
     const bt = ev.target.closest('[data-gerar]'); if(!bt) return;
@@ -5400,7 +5400,7 @@ function modalLoteEscudos(){
    substituiria). O logo é arrastável no palco e o tamanho vem do controle
    deslizante; salvar grava {x, y, w} em atributos.patro do uniforme — é essa
    posição que todas as montagens (e depois o jogo) usam para este clube. */
-function modalAjustePatrocinio(item, onSalvo, baseUrl){
+function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto){
   const c = item.c;
   const t = D.fotos[c.id+'|'+TORSO_KEY];
   if(!t) return toast('Gere o uniforme primeiro.', true);
@@ -5409,7 +5409,9 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl){
      ou, sem ela, a primeira montagem do elenco — é aí que escudo e logo precisam
      encaixar. Sem montagem nenhuma, o fundo é o uniforme cru. As posições salvas
      valem para o clube todo. */
-  let base = baseUrl || t.url, baseMontagem = !!baseUrl;
+  /* baseMontagem = o fundo é FOTO DE JOGADOR (só aí o mapa torso→foto entra;
+     sobre o uniforme, o que se vê é o que se salva, sem conversão nenhuma) */
+  let base = baseUrl || t.url, baseMontagem = !!ehFoto;
   if(!baseUrl) for(const p of (c.squad||[])){
     const f = D.fotos[c.id+'|'+p.n];
     if(f && f.atributos && f.atributos.montagem){ base = f.atributos.montagem; baseMontagem = true; break; }
