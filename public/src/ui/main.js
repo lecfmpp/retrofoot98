@@ -3079,9 +3079,16 @@ function rfTesteComecar(){
   if(!rfTesteAcesso()) return;
   const alvo=CL.pickTeste;
   if(!alvo){ toastC('Escolha o clube de teste primeiro.'); return; }
-  const taken=new Set([String(alvo)]);
+  /* o <select> devolve STRING; o mundo compara ids com o tipo original (número
+     para os clubes do bundle). Resolve o clube no pool e usa o id NATIVO —
+     senão o newGame não acha o clube e o sorteio "vence" de novo. */
+  const pool0=((CL._pickPool||{})[(CL.pick&&CL.pick[0]&&CL.pick[0].country)||'Brasil']||[]);
+  const clubeAlvo=pool0.find(c=>String(c.id)===String(alvo));
+  if(!clubeAlvo){ toastC('Clube de teste não encontrado no pote — sorteie normalmente.'); return; }
+  const idAlvo=clubeAlvo.id;
+  const taken=new Set([String(idAlvo)]);
   (CL.pick||[]).forEach((p,i)=>{
-    if(i===0){ p.clubId=alvo; return; }
+    if(i===0){ p.clubId=idAlvo; return; }
     const pool=((CL._pickPool||{})[p.country]||[]).filter(c=>!taken.has(String(c.id)));
     if(pool.length){ const pk=pool[Math.floor(Math.random()*pool.length)]; p.clubId=pk.id; taken.add(String(pk.id)); }
   });
