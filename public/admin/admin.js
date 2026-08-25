@@ -4454,27 +4454,6 @@ async function gerarImagemIA(tipo, prompt, qualidade, imagens, nome){
   } finally { iaTermina(carga); }
 }
 
-const ESTILOS_ESCUDO = [
-  ['classico',  'Brasão clássico brasileiro', 'classic Brazilian football club crest, traditional shield shape, bold outlines, vintage 1990s style'],
-  ['europeu',   'Tradicional europeu',        'traditional European football club crest, ornate shield with laurel or star details, classic heraldic style'],
-  ['moderno',   'Moderno minimalista',        'modern minimalist football club badge, clean geometric shapes, flat design, simple and bold'],
-  ['retro',     'Retrô vintage',              'retro vintage football club badge, distressed classic look, circular or shield layout, old-school typography'],
-  ['varzea',    'Várzea raiz',                'humble amateur Brazilian neighborhood football club crest, simple hand-drawn feel, honest and charming']
-];
-
-function promptEscudo(c, estiloChave, simbolo, texto, extra){
-  const est = (ESTILOS_ESCUDO.find(e=>e[0]===estiloChave) || ESTILOS_ESCUDO[0])[2];
-  return [
-    `Football club crest logo for a fictional club, ${est}.`,
-    `Primary color ${c.color||'#1b7a3d'}, secondary color ${c.color2||'#ffffff'}.`,
-    simbolo ? `Main symbol: ${simbolo}.` : 'Main symbol: a football (soccer ball) integrated into the design.',
-    texto ? `The short text "${texto}" integrated into the crest, legible.` : 'No text or lettering at all.',
-    'Flat vector illustration style, sharp clean edges, centered composition, transparent background.',
-    'Must NOT resemble any real existing football club crest or trademark. No mockup, no 3D, no photo.',
-    extra || ''
-  ].filter(Boolean).join(' ');
-}
-
 /* variação da foto: sorteio honesto — é o que dá cara diferente a cada jogador */
 const FOTO_POOL = {
   pele:    ['very light skin','light skin','medium tan skin','light brown skin','brown skin','dark brown skin','black skin'],
@@ -4933,35 +4912,44 @@ async function pgEstudio(){
 }
 
 /* ---------- modal: gerar escudo ---------- */
+/* padroniza o escudo: WebP 512×512 com transparência preservada, desenho
+   centralizado e contido — todo escudo salvo tem o mesmo formato e peso baixo */
+async function padronizarEscudo(arquivo){
+  const url = URL.createObjectURL(arquivo);
+  try{
+    const img = await new Promise((ok, erro) => {
+      const i = new Image(); i.onload = () => ok(i);
+      i.onerror = () => erro(new Error('Não consegui ler a imagem.')); i.src = url;
+    });
+    const LADO = 512;
+    const cv = document.createElement('canvas'); cv.width = LADO; cv.height = LADO;
+    const cx = cv.getContext('2d');
+    const esc = Math.min(LADO/img.naturalWidth, LADO/img.naturalHeight);
+    const w = img.naturalWidth*esc, hh = img.naturalHeight*esc;
+    cx.drawImage(img, (LADO-w)/2, (LADO-hh)/2, w, hh);
+    const blob = await new Promise(ok => cv.toBlob(ok, 'image/webp', 0.9));
+    if(!blob) throw new Error('Falha ao converter.');
+    return blob;
+  } finally { URL.revokeObjectURL(url); }
+}
+
 function modalEscudoIA(item){
   const c = item.c, editar = podeEditar('dados');
   const e = D.edits[c.id];
   const atual = (e && e.patch && e.patch.crest) || c.crest;
   abrirModal(`
-    <h3>Escudo por IA — ${h(c.short||c.name)}</h3>
+    <h3>Escudo — ${h(c.short||c.name)}</h3>
     <div class="duas-col">
       <div class="col" style="gap:12px">
-        <div class="st" style="line-height:1.6">Escudo fictício nas cores do clube
-          (<span class="mono">${h(c.color||'—')}</span> / <span class="mono">${h(c.color2||'—')}</span>).
-          Salvar grava no patch em edição — o jogo passa a mostrar este escudo no lugar do real.</div>
-        <label class="f">Qualidade
-          <select class="f" id="ia-qual">
-            <option value="low">Rascunho (~US$ 0,01)</option>
-            <option value="medium" selected>Média (~US$ 0,04)</option>
-            <option value="high">Alta (~US$ 0,17)</option>
-          </select></label>
-        ${editar?`<button class="btn btn-sm btn-ghost" id="ia-rmfundo" style="align-self:flex-start">Remover fundo da imagem</button>`:''}
-        ${editar?`<div class="col" style="gap:6px">
-          <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <button class="btn btn-sm btn-ghost" id="ia-ref-btn">+ Imagem de referência (até 2)</button>
-            <input type="file" id="ia-ref-arq" accept=".png,.webp,.jpg,.jpeg" style="display:none">
-            <span id="ia-refs" style="display:flex;gap:6px"></span>
-          </span>
-          <small style="font-size:11.5px;color:var(--dim3)">A IA usa as referências como guia de estilo e conteúdo do escudo.</small>
-        </div>`:''}
-        <label class="f">Prompt (é o que vai para a OpenAI — descreva símbolo, texto e estilo aqui)
-          <textarea class="f" id="ia-prompt" rows="7" style="resize:vertical;font-size:12px;line-height:1.5"></textarea></label>
-        <span class="link" id="ia-recompor" style="font-size:11.5px;align-self:flex-start">↻ restaurar o prompt padrão do clube</span>
+        <div class="st" style="line-height:1.7">Envie o arquivo do escudo (PNG, WEBP, JPG ou SVG, até 5 MB).
+          O painel converte para <b>WebP 512×512</b> com transparência, e o "Remover fundo" limpa
+          fundo sólido se precisar. <b>Salvar no clube</b> grava no patch em edição — o jogo passa a
+          mostrar este escudo no lugar do real. Para vários clubes de uma vez, use o
+          <b>Enviar em lote</b> na aba Escudos.</div>
+        ${editar?`
+          <button class="btn" id="ia-upload" style="align-self:flex-start">Enviar arquivo…</button>
+          <input type="file" id="ia-arquivo" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">
+          <button class="btn btn-sm btn-ghost" id="ia-rmfundo" style="align-self:flex-start" ${atual?'':'disabled'}>Remover fundo da imagem</button>`:''}
       </div>
       <div class="col" style="gap:10px;align-items:center;justify-content:center">
         <div id="ia-preview" title="Clique para ver em tela expandida"
@@ -4974,10 +4962,7 @@ function modalEscudoIA(item){
       </div>
     </div>
     <div class="acoes">
-      ${editar?`<button class="btn" id="ia-gerar">Gerar escudo</button>`:''}
-      ${editar?`<button class="btn btn-ghost" id="ia-upload" style="flex:0 0 auto">Enviar arquivo</button>
-        <input type="file" id="ia-arquivo" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">`:''}
-      ${editar?`<button class="btn btn-ghost" id="ia-salvar" disabled>Salvar no clube</button>`:''}
+      ${editar?`<button class="btn" id="ia-salvar" disabled>Salvar no clube</button>`:''}
       <button class="btn btn-ghost" data-fechar>Fechar</button>
     </div>`, 'lg');
 
@@ -4988,91 +4973,48 @@ function modalEscudoIA(item){
 
   if(!editar) return;
 
-  /* modal enxuto: SÓ o prompt manda. Ele nasce com o padrão do clube (cores +
-     estilo clássico) e o link restaura quando a pessoa quiser recomeçar. */
-  const recompor = () => { el('ia-prompt').value = promptEscudo(c, 'classico', '', '', ''); };
-  recompor();
-  el('ia-recompor').onclick = recompor;
-
   let gerada = null;
-  /* referências: sobem para o Storage (a função só aceita imagem de lá) e vão
-     como imagens de entrada da geração — a OpenAI edita/inspira a partir delas */
-  const refs = [];
-  const desenharRefs = () => {
-    el('ia-refs').innerHTML = refs.map((u,i) =>
-      `<span style="position:relative;display:inline-block">
-        <img src="${h(u)}" style="width:30px;height:30px;object-fit:contain;border:1px solid var(--bd2);border-radius:6px">
-        <i data-ref-rm="${i}" style="position:absolute;top:-6px;right:-6px;width:14px;height:14px;border-radius:99px;background:var(--vermelho);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-style:normal">✕</i>
-      </span>`).join('');
-    el('ia-refs').querySelectorAll('[data-ref-rm]').forEach(x => x.onclick = () => { refs.splice(+x.dataset.refRm,1); desenharRefs(); });
-    el('ia-ref-btn').disabled = refs.length >= 2;
-  };
-  el('ia-ref-btn').onclick = () => el('ia-ref-arq').click();
-  el('ia-ref-arq').onchange = async () => {
-    const f = el('ia-ref-arq').files[0]; if(!f) return;
-    if(refs.length >= 2) return;
-    if(f.size > 5*1024*1024) return toast('Referência acima de 5 MB.', true);
-    const ext = (f.name.split('.').pop()||'png').toLowerCase();
-    const caminho = `referencias/${Date.now()}-${chaveNome(f.name||'ref').slice(0,20)||'ref'}.${ext}`;
-    const up = await sb.storage.from('escudos').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
-    if(up.error) return toast(erroMsg(up.error), true);
-    refs.push(sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl);
-    desenharRefs();
-  };
   const mostrarNoPreview = (url, aviso) => {
     gerada = url;
     el('ia-preview').innerHTML = `<img src="${h(url)}" style="max-width:88%;max-height:88%;object-fit:contain">`;
     el('ia-estado').textContent = aviso;
-    el('ia-salvar').disabled = false; el('ia-salvar').classList.remove('btn-ghost');
+    el('ia-salvar').disabled = false;
+    el('ia-rmfundo').disabled = false;
   };
-  /* upload manual: mesmo destino e mesmo "Salvar no clube" do escudo gerado */
+
   el('ia-upload').onclick = () => el('ia-arquivo').click();
   el('ia-arquivo').onchange = async () => {
     const f = el('ia-arquivo').files[0]; if(!f) return;
     if(f.size > 5*1024*1024) return toast('Arquivo acima de 5 MB.', true);
-    const ext = (f.name.split('.').pop()||'png').toLowerCase();
-    const caminho = `${caminhoClube(item)}/escudo-upload-${Date.now()}.${ext}`;
-    const up = await sb.storage.from('escudos').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
-    if(up.error) return toast(erroMsg(up.error), true);
-    mostrarNoPreview(sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl,
-      'Arquivo enviado — confira o fundo no preview; "Remover fundo" limpa se precisar.');
+    try{
+      const padrao = await padronizarEscudo(f);
+      const caminho = `${caminhoClube(item)}/escudo-upload-${Date.now()}.webp`;
+      const up = await sb.storage.from('escudos').upload(caminho, padrao, { upsert:false, cacheControl:'31536000' });
+      if(up.error) return toast(erroMsg(up.error), true);
+      mostrarNoPreview(sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl,
+        'Convertido para WebP 512×512 — confira o fundo; "Remover fundo" limpa se precisar.');
+    }catch(err){ toast(err.message||'Falha ao processar a imagem.', true); }
   };
-  /* age sobre a imagem ATUAL do preview (enviada ou gerada) e mostra o resultado */
+
   el('ia-rmfundo').onclick = async () => {
     const alvo = gerada || atual;
-    if(!alvo) return toast('Gere ou envie um escudo primeiro.', true);
+    if(!alvo) return toast('Envie um escudo primeiro.', true);
     const bt = el('ia-rmfundo'); bt.disabled = true; bt.textContent = 'Removendo fundo…';
     try{
       const r = await fetch(alvo);
       if(!r.ok) throw new Error('não consegui baixar a imagem ('+r.status+')');
       const limpo = await removerFundoDeImagem(await r.blob());
       if(!limpo) throw new Error('falha ao processar');
-      const caminho = `${caminhoClube(item)}/escudo-semfundo-${Date.now()}.png`;
-      const up = await sb.storage.from('escudos').upload(caminho, limpo, { upsert:false, cacheControl:'31536000' });
+      const padrao = await padronizarEscudo(limpo);
+      const caminho = `${caminhoClube(item)}/escudo-semfundo-${Date.now()}.webp`;
+      const up = await sb.storage.from('escudos').upload(caminho, padrao, { upsert:false, cacheControl:'31536000' });
       if(up.error) throw new Error(up.error.message);
       mostrarNoPreview(sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl,
         'Fundo removido — salve para valer.');
     }catch(err){ toast('Não deu para remover o fundo ('+err.message+').', true); }
     bt.disabled = false; bt.textContent = 'Remover fundo da imagem';
   };
-  el('ia-gerar').onclick = async () => {
-    const btn = el('ia-gerar');
-    const prompt = el('ia-prompt').value.trim();
-    if(!prompt) return toast('O prompt está vazio.', true);
-    btn.disabled = true; btn.textContent = 'Gerando… (até 1 min)';
-    el('ia-estado').textContent = 'A OpenAI está desenhando o escudo…';
-    try{
-      const url = await gerarImagemIA('escudo', prompt, el('ia-qual').value, null, caminhoClube(item)+'/escudo');
-      gerada = url;
-      el('ia-preview').innerHTML = `<img src="${h(url)}" style="max-width:88%;max-height:88%;object-fit:contain">`;
-      el('ia-estado').textContent = 'Pronto — salve para valer, ou gere de novo.';
-      el('ia-salvar').disabled = false; el('ia-salvar').classList.remove('btn-ghost');
-    }catch(err){
-      el('ia-estado').textContent = '';
-      toast(err.message||'Falha ao gerar.', true);
-    }
-    btn.disabled = false; btn.textContent = 'Gerar de novo';
-  };
+
   el('ia-salvar').onclick = async () => {
     if(!gerada) return;
     const ed = D.edits[c.id];
@@ -5082,6 +5024,7 @@ function modalEscudoIA(item){
     };
     const { error } = await jogo('pack_edits').upsert(linha, { onConflict:'pack_id,club_id' });
     if(error) return toast(erroMsg(error), true);
+    D.edits[c.id] = linha;
     await jogo('data_packs').update({ atualizado_em:new Date().toISOString() }).eq('id', ST.packId);
     registrar('estudio.escudo', String(c.id), { pacote: ST.packId });
     fecharModal(); toast('Escudo salvo no patch.'); pgEstudio();
@@ -5399,8 +5342,8 @@ function modalLoteEscudos(){
     const item = (D.catalogo||[]).find(x => String(x.c.id)===String(p.clube));
     if(!item) return;
     try{
-      const arq = p.f, ext = p.extForcada || ((p.f.name && p.f.name.split('.').pop()) || 'png').toLowerCase();
-      const caminho = `${caminhoClube(item)}/escudo-lote-${Date.now()}.${ext}`;
+      const arq = await padronizarEscudo(p.f);   // WebP 512×512, transparência preservada
+      const caminho = `${caminhoClube(item)}/escudo-lote-${Date.now()}.webp`;
       const up = await sb.storage.from('escudos').upload(caminho, arq, { upsert:false, cacheControl:'31536000' });
       if(up.error) throw new Error(up.error.message);
       const url = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
@@ -5819,8 +5762,9 @@ function modalUniformeIA(item){
         if(!r.ok) throw new Error('não consegui baixar ('+r.status+')');
         const limpo = await removerFundoDeImagem(await r.blob());
         if(!limpo) throw new Error('falha ao processar');
-        const caminho = `${caminhoClube(item)}/escudo-semfundo-${Date.now()}.png`;
-        const up = await sb.storage.from('escudos').upload(caminho, limpo, { upsert:false, cacheControl:'31536000' });
+        const padrao = await padronizarEscudo(limpo);
+        const caminho = `${caminhoClube(item)}/escudo-semfundo-${Date.now()}.webp`;
+        const up = await sb.storage.from('escudos').upload(caminho, padrao, { upsert:false, cacheControl:'31536000' });
         if(up.error) throw new Error(up.error.message);
         wiz.escudoNovo = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
         toast('Fundo removido — confira na miniatura e no preview.');
@@ -5832,9 +5776,9 @@ function modalUniformeIA(item){
     el('wz-esc-arq').onchange = async () => {
       const f = el('wz-esc-arq').files[0]; if(!f) return;
       if(f.size > 5*1024*1024) return toast('Arquivo acima de 5 MB.', true);
-      const ext = (f.name.split('.').pop()||'png').toLowerCase();
-      const caminho = `${caminhoClube(item)}/escudo-upload-${Date.now()}.${ext}`;
-      const up = await sb.storage.from('escudos').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
+      const padrao = await padronizarEscudo(f);   // WebP 512×512
+      const caminho = `${caminhoClube(item)}/escudo-upload-${Date.now()}.webp`;
+      const up = await sb.storage.from('escudos').upload(caminho, padrao, { upsert:false, cacheControl:'31536000' });
       if(up.error) return toast(erroMsg(up.error), true);
       wiz.escudoNovo = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
       toast('Escudo enviado — entra no patch quando você aplicar.'); abrir();
