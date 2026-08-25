@@ -40,10 +40,24 @@ function rfContaEhPro(){
    "Entrar" — a única porta é a lista de espera. Quem já tem conta (sessão
    aberta) continua entrando normalmente. Desligar = voltar o login. */
 const RF_SO_LISTA = true;
+/* PORTA DE TESTE dos admins: abrir /?acesso=embaixador98 UMA vez libera o
+   "Entrar" neste navegador (fica no localStorage). É trava de fase, não
+   segurança — serve para o público não ver porta de cadastro; quem tem o
+   link testa normalmente. Revogar = trocar o código aqui. */
+(function(){
+  try{
+    if(new URLSearchParams(location.search).get('acesso') === 'embaixador98')
+      localStorage.setItem('rf_acesso_teste', '1');
+  }catch(e){}
+})();
+function rfSoLista(){
+  if(!RF_SO_LISTA) return false;
+  try{ return localStorage.getItem('rf_acesso_teste') !== '1'; }catch(e){ return true; }
+}
 function rfContaChipHTML(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   if(!st.loggedIn){
-    if(RF_SO_LISTA) return '';
+    if(rfSoLista()) return '';
     return `<button type="button" class="rf-lp-entrar" onclick="clGoModo('solo')">${rfIcone('chave',16)} Entrar</button>`;
   }
   const nome=st.name||(st.email||'').split('@')[0]||'treinador';
@@ -84,7 +98,7 @@ function rfLpMenu(){
       </div>
       <button type="button" class="rf-sheet-i sair" onclick="clCloseOverlay();rfAcSairConta()">
         <span class="rf-nav-l">Sair da conta</span></button>`
-    : (RF_SO_LISTA ? '' : `<div class="rf-sheet-sep"></div>
+    : (rfSoLista() ? '' : `<div class="rf-sheet-sep"></div>
       <button type="button" class="rf-sheet-i" onclick="clCloseOverlay();clGoModo('solo')">
         <span class="rf-nav-l">Entrar na minha conta</span></button>`);
   if(typeof rfSheet==='function') rfSheet('Menu', `<div class="rf-sheet-list">${links}${lista}${conta}</div>`);
