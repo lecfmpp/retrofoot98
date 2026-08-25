@@ -5201,6 +5201,16 @@ function modalFotosIA(item){
       </span>
       ${editar?`<button class="btn btn-sm btn-ghost" id="ft-ir-uniforme">Abrir na aba Uniformes</button>`:''}
     </div>
+    ${(() => {
+      const t0 = torso();
+      const temMontagem = sq.some(p2 => { const f2 = D.fotos[c.id+'|'+p2.n]; return f2 && f2.atributos && f2.atributos.montagem; });
+      if(!(editar && t0 && temMontagem && !(t0.atributos||{}).camadasAjustadas)) return '';
+      return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;padding:10px 12px;border:1px solid var(--ambar);border-radius:10px;background:#2b230f">
+        <span style="flex:1;font-size:12.5px;line-height:1.5"><b style="color:var(--ambar)">Falta posicionar os elementos.</b>
+          Faça UMA vez, na foto de um jogador — escudo, patrocinador e fabricante entram no lugar certo em todo o elenco.</span>
+        <button class="btn btn-sm" id="ft-posicionar">Posicionar agora</button>
+      </div>`;
+    })()}
     ${editar && sq.length ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <button class="btn btn-sm" id="ft-todos">Gerar os que faltam (${faltantes().length})</button>
       <span id="ft-progresso" style="font-size:12px;color:var(--dim2)"></span></div>`:''}
@@ -5231,6 +5241,16 @@ function modalFotosIA(item){
     const t = torso(); if(!t) return;
     const lado = Math.min(520, Math.floor(Math.min(innerWidth*0.9, innerHeight*0.85/RATIO_FOTO)));
     abrirLightboxHTML(compostoHTML(t.url, null, lado, 16, camadasClube()));
+  };
+  const btPos0 = el('ft-posicionar');
+  if(btPos0) btPos0.onclick = () => {
+    for(const p2 of sq){
+      const f2 = D.fotos[c.id+'|'+p2.n];
+      if(f2 && f2.atributos && f2.atributos.montagem){
+        modalAjustePatrocinio(item, () => modalFotosIA(item), f2.atributos.montagem);
+        return;
+      }
+    }
   };
   const irUni = el('ft-ir-uniforme');
   if(irUni) irUni.onclick = () => { ST.abaEstudio='uniformes'; modalUniformeIA(item); };
@@ -5559,7 +5579,8 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl){
   ov.querySelector('#aj-salvar').onclick = async () => {
     const lim = o => ({ x:+o.x.toFixed(2), y:+o.y.toFixed(2), w:+o.w.toFixed(2) });
     const at = Object.assign({}, t.atributos,
-      { patro: lim(pos.patro), escudo: lim(pos.escudo), fabricante: lim(pos.fabricante) });
+      { patro: lim(pos.patro), escudo: lim(pos.escudo), fabricante: lim(pos.fabricante),
+        camadasAjustadas: true });
     const { error } = await jogo('player_photos').update({ atributos: at })
       .eq('pack_id', ST.packId).eq('club_id', String(c.id)).eq('jogador', TORSO_KEY);
     if(error) return toast(erroMsg(error), true);
@@ -5716,8 +5737,9 @@ function modalUniformeIA(item){
                 <small style="font-size:11.5px;color:#777;text-align:center;padding:0 14px;line-height:1.5"><b>O clube ainda não tem uniforme.</b><br>Escolha o estilo e as cores e conclua em "Gerar uniforme".</small>
               </div>`}
         </div>
-        <small style="font-size:11.5px;color:var(--dim3);text-align:center;max-width:250px">
-          ${wiz.pv?'Prévia pintada aqui no navegador — nada foi salvo ainda.':(t()?(at.rascunho?'Rascunho salvo.':'Uniforme atual do clube.'):'')}</small>
+        <small style="font-size:11.5px;color:var(--dim3);text-align:center;max-width:320px;line-height:1.5">
+          ${wiz.pv?'Prévia pintada aqui no navegador — nada foi salvo ainda. ':(t()?(at.rascunho?'Rascunho salvo. ':'Uniforme atual do clube. '):'')}
+          ${(t()||wiz.pv)?'As posições FINAIS de escudo/logo valem sobre a foto do jogador — ajuste uma vez no 🛡 após gerar o 1º do elenco.':''}</small>
       </div>
     </div>
     <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>`, 'xl');
