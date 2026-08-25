@@ -109,6 +109,10 @@ function rfStage(o){
       <div class="rf-stg-shell">${o.corpo||''}</div>
       ${o.acoes?`<div class="rf-stg-foot">${o.acoes}</div>`:''}
     </div>
+    ${/* MODAL DE AÇÃO DENTRO DA TELA CHEIA: rfAcAbrir só guarda o estado e
+         redesenha — sem esta chamada, um "Fazer proposta" aberto a partir da
+         visita a outro clube (ou de qualquer rf-stg) não desenhava nada. */
+      (typeof rfAcaoHTML==='function') ? rfAcaoHTML() : ''}
   </div>`;
 }
 
