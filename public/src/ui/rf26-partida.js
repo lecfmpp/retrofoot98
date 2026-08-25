@@ -126,7 +126,13 @@ function rfPlLinhaHTML(p, opts){
   const en=Math.round(p.energy!=null?p.energy:100);
   return `<div class="rf-pl ${opts.sel?'sel':''} ${opts.off?'off':''} ${opts.marca?'trocou '+opts.marca:''}"
       ${opts.on?`onclick="${opts.on}"`:''}>
-    <span class="rf-pl-num">${escC(String(nums[p.pid]||''))}</span>
+    ${(function(){ const n=nums[p.pid]||p.num||'';
+        const f=(typeof rfFotoDe==='function')?rfFotoDe(p, CL.clubId):null;
+        /* mesma miniatura padrão das outras telas (foto + número dentro);
+           sem foto, o crachá numérico de sempre */
+        return (f && typeof rfFotoNumHTML==='function')
+          ? rfFotoNumHTML(f, n, '')
+          : `<span class="rf-pl-num">${escC(String(n))}</span>`; })()}
     <span class="rf-pl-id">
       <span class="rf-pl-n">${escC(p.n)}</span>
       ${opts.marca?`<span class="rf-pl-marca">${
