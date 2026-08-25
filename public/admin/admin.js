@@ -4753,7 +4753,7 @@ async function pintarMolde(moldeUrl, corA, corB){
 /* posição padrão do logo do patrocinador — o ajuste fino por clube (drag and
    drop no Estúdio) fica salvo em atributos.patro do uniforme e vence o padrão */
 const PATRO_POS_PADRAO  = { x:33, y:65, w:34 };  // left %, top %, largura % (altura acompanha)
-const ESCUDO_POS_PADRAO = { x:59, y:35, w:18 };  // peito esquerdo do jogador, altura do peito
+const ESCUDO_POS_PADRAO = { x:57, y:30, w:22 };  // peito esquerdo do jogador, altura do peito
 const RATIO_FOTO = 1.5;   // retrato 2:3 (1024x1536) — o formato do cartão do jogador no site
 const FAB_POS_PADRAO = { x:27, y:57, w:9 };   // fabricante: lado oposto ao escudo, menor
 /* AS POSIÇÕES SÃO DO QUADRO DO UNIFORME (torso, sem cabeça). Na FOTO do jogador
@@ -5403,7 +5403,11 @@ function modalLoteEscudos(){
 function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto){
   const c = item.c;
   const t = D.fotos[c.id+'|'+TORSO_KEY];
-  if(!t) return toast('Gere o uniforme primeiro.', true);
+  /* sem uniforme salvo, as posições vivem PENDENTES no wizard (D.wiz.posPend)
+     e são gravadas junto quando o uniforme for gerado/salvo */
+  const pend = (!t && D.wiz && D.wiz.clube===c.id) ? D.wiz : null;
+  if(!t && !pend) return toast('Abra o uniforme do clube primeiro.', true);
+  if(!t && !baseUrl) return toast('Escolha estilo e cores primeiro — a prévia é o palco do ajuste.', true);
 
   /* O AJUSTE É SOBRE A FOTO FINAL: o fundo é a foto do jogador clicado (baseUrl)
      ou, sem ela, a primeira montagem do elenco — é aí que escudo e logo precisam
@@ -5411,14 +5415,14 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto){
      valem para o clube todo. */
   /* baseMontagem = o fundo é FOTO DE JOGADOR (só aí o mapa torso→foto entra;
      sobre o uniforme, o que se vê é o que se salva, sem conversão nenhuma) */
-  let base = baseUrl || t.url, baseMontagem = !!ehFoto;
+  let base = baseUrl || (t && t.url), baseMontagem = !!ehFoto;
   if(!baseUrl) for(const p of (c.squad||[])){
     const f = D.fotos[c.id+'|'+p.n];
     if(f && f.atributos && f.atributos.montagem){ base = f.atributos.montagem; baseMontagem = true; break; }
   }
   const e = D.edits[c.id];
   const escudoUrl = (e && e.patch && e.patch.crest) || c.crest || null;
-  const at0 = t.atributos || {};
+  const at0 = t ? (t.atributos || {}) : (pend.posPend || {});
   const fabUrl = ST.fabTeste || at0.fabricanteUrl || null;
   /* as posições SALVAS são do quadro do uniforme; quando o fundo do editor é a
      FOTO do jogador, mostramos/arrastamos no quadro da foto e convertemos de
@@ -5484,8 +5488,14 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto){
 
   ov.querySelector('#aj-salvar').onclick = async () => {
     const lim = o => { const v = doQuadroDaFoto(o); return { x:+v.x.toFixed(2), y:+v.y.toFixed(2), w:+v.w.toFixed(2) }; };
-    const at = Object.assign({}, t.atributos,
-      { patro: lim(pos.patro), escudo: lim(pos.escudo), fabricante: lim(pos.fabricante) });
+    const novas = { patro: lim(pos.patro), escudo: lim(pos.escudo), fabricante: lim(pos.fabricante) };
+    if(!t){
+      pend.posPend = novas;
+      toast('Posições guardadas — serão salvas junto com o uniforme.');
+      fechar(); if(onSalvo) onSalvo();
+      return;
+    }
+    const at = Object.assign({}, t.atributos, novas);
     const { error } = await jogo('player_photos').update({ atributos: at })
       .eq('pack_id', ST.packId).eq('club_id', String(c.id)).eq('jogador', TORSO_KEY);
     if(error) return toast(erroMsg(error), true);
@@ -5530,8 +5540,9 @@ function modalUniformeIA(item){
     ['Patrocinador','logo sobre a camisa'],
     ['Fabricante','logo pequena, lado oposto ao escudo'],
     ['Salvar','rascunho ou aplicar no jogo']];
-  const camadasWiz = () => ({ patroUrl: wiz.patroUrl, escudoUrl: escudoEscolhido(), fabUrl: wiz.fabUrl,
-    patro: at.patro, escudo: at.escudo, fabricante: at.fabricante });
+  const camadasWiz = () => { const pp = wiz.posPend || {};
+    return { patroUrl: wiz.patroUrl, escudoUrl: escudoEscolhido(), fabUrl: wiz.fabUrl,
+      patro: pp.patro || at.patro, escudo: pp.escudo || at.escudo, fabricante: pp.fabricante || at.fabricante }; };
   /* o preview é do ESTILO selecionado: prévia pintada dele ou o uniforme salvo
      se (e só se) for do mesmo estilo — estilo sem molde mostra o placeholder */
   const basePreview = () => wiz.pv || ((t() && (t().atributos||{}).estilo === wiz.estilo) ? t().url : null);
@@ -5600,7 +5611,7 @@ function modalUniformeIA(item){
       <button class="btn btn-sm" data-continuar style="align-self:flex-start">${wiz.fabUrl?'Continuar':'Continuar sem fabricante'}</button></div>`;
     return `<div class="col" style="gap:10px">
       <small style="font-size:12.5px;color:var(--dim2);line-height:1.6">Confira a prévia ao lado. <b>Salvar rascunho</b> guarda o uniforme no Estúdio para continuar depois; <b>Salvar e aplicar no jogo</b> grava o uniforme do elenco${wiz.escudoNovo?' e põe o escudo novo no patch':''}.</small>
-      ${editar?`<button class="btn btn-sm btn-ghost" id="wz-ajustar" style="align-self:flex-start" ${t()?'':'disabled'}>✥ Ajustar escudo e patrocínio na foto</button>`:''}
+      ${editar?`<button class="btn btn-sm btn-ghost" id="wz-ajustar" style="align-self:flex-start" ${basePreview()?'':'disabled'}>✥ Ajustar escudo e patrocínio na foto</button>`:''}
       <div id="wz-estado" style="font-size:12px;color:var(--dim2);min-height:16px"></div>
       ${editar?`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <button class="btn btn-ghost" id="wz-rascunho">${t()?'Salvar rascunho':'Gerar uniforme'}</button>
@@ -5633,7 +5644,7 @@ function modalUniformeIA(item){
     <div class="duas-col">
       <div class="col" style="gap:0">${reguaHTML}</div>
       <div class="col" style="gap:10px;align-items:center">
-        ${editar?`<button class="btn btn-sm btn-ghost" id="wz-ajustar-topo" ${t()?'':'disabled'}>✥ Ajustar imagens</button>`:''}
+        ${editar?`<button class="btn btn-sm btn-ghost" id="wz-ajustar-topo" ${basePreview()?'':'disabled'}>✥ Ajustar imagens</button>`:''}
         <div id="wz-preview" title="Clique para ver em tela expandida" style="cursor:zoom-in">
           ${basePreview() ? compostoHTML(basePreview(), null, 320, 12, camadasWiz())
             : `<div style="width:320px;height:${Math.round(320*RATIO_FOTO)}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px dashed var(--bd2);border-radius:12px;background:#d9d9d9">
@@ -5671,8 +5682,10 @@ function modalUniformeIA(item){
       const blob = await pintarMolde(molde.url, wiz.corA, wiz.corB);
       if(wiz.pv && wiz.pv.startsWith('blob:')) URL.revokeObjectURL(wiz.pv);
       wiz.pv = URL.createObjectURL(blob); wiz.pvChave = chave;
-      const alvo = el('wz-preview');
       atualizarPreview();
+      // a prévia chegou: os ajustes ganham palco, mesmo sem uniforme salvo
+      const bt1 = el('wz-ajustar-topo'); if(bt1) bt1.disabled = false;
+      const bt2 = el('wz-ajustar');      if(bt2) bt2.disabled = false;
     }catch(err){ console.warn('prévia local falhou:', err.message); }
   }
   pintarPrevia();
@@ -5919,7 +5932,7 @@ function modalUniformeIA(item){
           }catch(err){ console.warn('miniatura falhou:', err.message); }
         }
         const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: TORSO_KEY, url,
-          atributos: Object.assign({}, at, { recorte:'torso', estilo: wiz.estilo, cores:[wiz.corA, wiz.corB],
+          atributos: Object.assign({}, at, wiz.posPend || {}, { recorte:'torso', estilo: wiz.estilo, cores:[wiz.corA, wiz.corB],
             molde:true, patroUrl: wiz.patroUrl||null, fabricanteUrl: wiz.fabUrl||null,
             miniatura: miniUrl, rascunho: !aplicar }) };
         const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
