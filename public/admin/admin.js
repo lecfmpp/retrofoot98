@@ -4602,10 +4602,12 @@ function compostoHTML(torsoUrl, rostoUrl, px, raio, patrocinadorUrl, escudoUrl, 
   /* camadas, de baixo para cima: uniforme/foto final -> escudo -> patrocinador -> rosto.
      As posições por clube (arrastadas no ✥ Ajustar) vencem os padrões. */
   const pp = Object.assign({}, PATRO_POS_PADRAO,  patroPos||{});
-  const pe = Object.assign({}, ESCUDO_POS_PADRAO, escudoPos||{});
+  /* o escudo SÓ entra depois de posicionado (✥/🛡) — sem posição salva, a foto
+     sai limpa em vez de mostrar o escudo flutuando num lugar padrão errado */
+  const pe = escudoPos || null;
   return `<span style="position:relative;display:inline-block;width:${px}px;height:${px}px;border-radius:${raio!=null?raio:8}px;overflow:hidden;background:#d9d9d9">
     <img src="${h(torsoUrl)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
-    ${escudoUrl?`<img src="${h(escudoUrl)}" style="position:absolute;left:${pe.x}%;top:${pe.y}%;width:${pe.w}%">`:''}
+    ${escudoUrl&&pe?`<img src="${h(escudoUrl)}" style="position:absolute;left:${pe.x}%;top:${pe.y}%;width:${pe.w}%">`:''}
     ${patrocinadorUrl?`<img src="${h(patrocinadorUrl)}" style="position:absolute;left:${pp.x}%;top:${pp.y}%;width:${pp.w}%">`:''}
     ${rostoUrl?`<img src="${h(rostoUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:-3%;height:72%;object-fit:contain">`:''}
   </span>`;
@@ -4913,6 +4915,7 @@ function modalFotosIA(item){
         <small style="font-size:11px;color:var(--dim3)">${h(p.p||'—')} · ${p.age!=null?p.age+' anos':'idade —'} · força ${p.f!=null?p.f:'—'}</small></span>
       <small data-attrs style="font-size:11px;color:var(--dim2);line-height:1.5">${h(resumoAtributos(sorteios[p.n]))}</small>
       <span style="display:flex;gap:6px;justify-content:flex-end">
+        <button class="btn btn-sm btn-ghost" data-escudo title="Arrastar e soltar o escudo no uniforme desta foto" ${f&&f.atributos&&f.atributos.montagem?'':'disabled'}>🛡</button>
         <button class="btn btn-sm btn-ghost" data-ver title="Ver em tela expandida" ${f?'':'disabled'}>⛶</button>
         ${editar?`<button class="btn btn-sm btn-ghost" data-sortear title="Sortear outro visual">↻</button>
         <button class="btn btn-sm" data-gerar>${f?'Refazer':'Gerar'}</button>`:''}
@@ -4998,12 +5001,19 @@ function modalFotosIA(item){
       th.style.cursor = 'zoom-in'; th.title = 'Ver em tela expandida';
       const bt = linha.querySelector('[data-gerar]'); if(bt) bt.textContent = 'Refazer';
       const bv = linha.querySelector('[data-ver]'); if(bv) bv.disabled = false;
+      const be = linha.querySelector('[data-escudo]'); if(be) be.disabled = !at.montagem;
     }
   }
 
   el('ft-lista').addEventListener('click', async ev => {
     const linha = ev.target.closest('[data-foto-jog]'); if(!linha) return;
     const p = sq.find(x => x.n === linha.dataset.fotoJog); if(!p) return;
+    if(ev.target.closest('[data-escudo]')){
+      const f = D.fotos[c.id+'|'+p.n];
+      if(f && f.atributos && f.atributos.montagem)
+        modalAjustePatrocinio(item, () => modalFotosIA(item), f.atributos.montagem);
+      return;
+    }
     if(ev.target.closest('[data-sortear]')){
       sorteios[p.n] = sortearAtributos(p);
       linha.querySelector('[data-attrs]').textContent = resumoAtributos(sorteios[p.n]);
@@ -5206,16 +5216,17 @@ function modalLoteEscudos(){
    substituiria). O logo é arrastável no palco e o tamanho vem do controle
    deslizante; salvar grava {x, y, w} em atributos.patro do uniforme — é essa
    posição que todas as montagens (e depois o jogo) usam para este clube. */
-function modalAjustePatrocinio(item, onSalvo){
+function modalAjustePatrocinio(item, onSalvo, baseUrl){
   const c = item.c;
   const t = D.fotos[c.id+'|'+TORSO_KEY];
   if(!t) return toast('Gere o uniforme primeiro.', true);
 
-  /* O AJUSTE É SOBRE A FOTO FINAL: se algum jogador já tem montagem IA, ela é o
-     fundo do editor — é nela que escudo e logo precisam encaixar. Sem montagem
-     ainda, o fundo é o uniforme cru. As posições salvas valem para o clube todo. */
-  let base = t.url, baseMontagem = false;
-  for(const p of (c.squad||[])){
+  /* O AJUSTE É SOBRE A FOTO FINAL: o fundo é a foto do jogador clicado (baseUrl)
+     ou, sem ela, a primeira montagem do elenco — é aí que escudo e logo precisam
+     encaixar. Sem montagem nenhuma, o fundo é o uniforme cru. As posições salvas
+     valem para o clube todo. */
+  let base = baseUrl || t.url, baseMontagem = !!baseUrl;
+  if(!baseUrl) for(const p of (c.squad||[])){
     const f = D.fotos[c.id+'|'+p.n];
     if(f && f.atributos && f.atributos.montagem){ base = f.atributos.montagem; baseMontagem = true; break; }
   }
