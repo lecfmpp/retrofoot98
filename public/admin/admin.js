@@ -4602,6 +4602,8 @@ function modalEscudoIA(item){
     </div>
     <div class="acoes">
       ${editar?`<button class="btn" id="ia-gerar">Gerar escudo</button>`:''}
+      ${editar?`<button class="btn btn-ghost" id="ia-upload" style="flex:0 0 auto">Enviar arquivo</button>
+        <input type="file" id="ia-arquivo" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">`:''}
       ${editar?`<button class="btn btn-ghost" id="ia-salvar" disabled>Salvar no clube</button>`:''}
       <button class="btn btn-ghost" data-fechar>Fechar</button>
     </div>`, 'lg');
@@ -4629,6 +4631,24 @@ function modalEscudoIA(item){
   el('ia-recompor').onclick = () => { promptTocado = false; recompor(); };
 
   let gerada = null;
+  const mostrarNoPreview = (url, aviso) => {
+    gerada = url;
+    el('ia-preview').innerHTML = `<img src="${h(url)}" style="max-width:88%;max-height:88%;object-fit:contain">`;
+    el('ia-estado').textContent = aviso;
+    el('ia-salvar').disabled = false; el('ia-salvar').classList.remove('btn-ghost');
+  };
+  /* upload manual: mesmo destino e mesmo "Salvar no clube" do escudo gerado */
+  el('ia-upload').onclick = () => el('ia-arquivo').click();
+  el('ia-arquivo').onchange = async () => {
+    const f = el('ia-arquivo').files[0]; if(!f) return;
+    if(f.size > 5*1024*1024) return toast('Arquivo acima de 5 MB.', true);
+    const ext = (f.name.split('.').pop()||'png').toLowerCase();
+    const caminho = `upload/${c.id}-${Date.now()}.${ext}`;
+    const up = await sb.storage.from('escudos').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
+    if(up.error) return toast(erroMsg(up.error), true);
+    mostrarNoPreview(sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl,
+      'Arquivo enviado — salve para valer.');
+  };
   el('ia-gerar').onclick = async () => {
     const btn = el('ia-gerar');
     const prompt = el('ia-prompt').value.trim();
@@ -4726,7 +4746,9 @@ function modalFotosIA(item){
       ${editar?`<select class="busca" id="ft-estilo-camisa" style="width:170px" title="Estilo da camisa">
         ${ESTILOS_CAMISA.map(e=>`<option value="${e[0]}" ${(torso()&&torso().atributos&&torso().atributos.estilo)===e[0]?'selected':''}>${h(e[1])}</option>`).join('')}
       </select>`:''}
-      <input class="busca" id="ft-patro" style="width:200px" placeholder="URL do logo (prévia do patrocínio)" value="${h(ST.patroTeste||'')}">
+      <input class="busca" id="ft-patro" style="width:180px" placeholder="URL do logo (prévia do patrocínio)" value="${h(ST.patroTeste||'')}">
+      ${editar?`<button class="btn btn-sm btn-ghost" id="ft-patro-up" title="Enviar arquivo do logo do patrocinador">↥ logo</button>
+        <input type="file" id="ft-patro-arq" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">`:''}
       ${editar?`<button class="btn btn-sm ${torso()?'btn-ghost':''}" id="ft-torso">${torso()?'Refazer uniforme':'Gerar uniforme'}</button>`:''}
     </div>
     ${editar && sq.length ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
@@ -4760,6 +4782,21 @@ function modalFotosIA(item){
   };
   /* o logo de prévia entra na hora, sem regerar nada — é só uma camada */
   el('ft-patro').onchange = () => { ST.patroTeste = el('ft-patro').value.trim(); modalFotosIA(item); };
+  const upPatro = el('ft-patro-up');
+  if(upPatro){
+    upPatro.onclick = () => el('ft-patro-arq').click();
+    el('ft-patro-arq').onchange = async () => {
+      const f = el('ft-patro-arq').files[0]; if(!f) return;
+      if(f.size > 2*1024*1024) return toast('Logo acima de 2 MB.', true);
+      const ext = (f.name.split('.').pop()||'png').toLowerCase();
+      const caminho = `logos/${Date.now()}-${chaveNome(f.name).slice(0,24)||'logo'}.${ext}`;
+      const up = await sb.storage.from('patrocinadores').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
+      if(up.error) return toast(erroMsg(up.error), true);
+      ST.patroTeste = sb.storage.from('patrocinadores').getPublicUrl(caminho).data.publicUrl;
+      toast('Logo enviado — aplicado na prévia de todo o elenco.');
+      modalFotosIA(item);
+    };
+  }
 
   if(!editar) return;
 
