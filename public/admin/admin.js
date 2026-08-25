@@ -4572,14 +4572,14 @@ const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do
 /* VISÃO "SÓ UNIFORME": a MESMA imagem canônica (camisa nos 60% de baixo, vazio
    em cima onde entra a cabeça), só que com zoom na área da camisa. Uma imagem,
    um conjunto de posições — cada uso escolhe o recorte. */
-function compostoCropHTML(torsoUrl, px, raio, patroUrl, escudoUrl, patroPos, escudoPos){
+function compostoCropHTML(torsoUrl, px, raio, camadas){
   /* recorte quadrado px×px mostrando a área da camisa (os 60% de baixo do
      retrato 2:3): mesma imagem, mesmas posições — só o zoom muda */
   const innerW = Math.round(px / 0.9);
   const innerH = Math.round(innerW * RATIO_FOTO);
   return `<span style="display:inline-block;width:${px}px;height:${px}px;border-radius:${raio!=null?raio:8}px;overflow:hidden;position:relative;background:#d9d9d9">
     <span style="position:absolute;left:${Math.round((px-innerW)/2)}px;top:${-Math.round(innerH*0.4)}px">
-      ${compostoHTML(torsoUrl, null, innerW, 0, patroUrl, escudoUrl, patroPos, escudoPos)}
+      ${compostoHTML(torsoUrl, null, innerW, 0, camadas)}
     </span></span>`;
 }
 
@@ -4754,19 +4754,23 @@ async function pintarMolde(moldeUrl, corA, corB){
 const PATRO_POS_PADRAO  = { x:33, y:65, w:34 };  // left %, top %, largura % (altura acompanha)
 const ESCUDO_POS_PADRAO = { x:61, y:56, w:14 };  // peito esquerdo do jogador na foto final
 const RATIO_FOTO = 1.5;   // retrato 2:3 (1024x1536) — o formato do cartão do jogador no site
-function compostoHTML(torsoUrl, rostoUrl, px, raio, patrocinadorUrl, escudoUrl, patroPos, escudoPos){
-  /* camadas, de baixo para cima: uniforme/foto final -> escudo -> patrocinador -> rosto.
-     As posições por clube (arrastadas no ✥/🛡) vencem os padrões. O contêiner é
-     RETRATO 2:3 — px é a LARGURA; imagem quadrada antiga aparece cortada (cover). */
+const FAB_POS_PADRAO = { x:27, y:57, w:9 };   // fabricante: lado oposto ao escudo, menor
+function compostoHTML(torsoUrl, rostoUrl, px, raio, camadas){
+  /* camadas, de baixo para cima: uniforme/foto final -> escudo -> fabricante ->
+     patrocinador -> rosto. `camadas` = {patroUrl, escudoUrl, fabUrl, patro,
+     escudo, fabricante}; posições arrastadas (✥/🛡) vencem os padrões — com o
+     enquadramento canônico, os padrões já caem no lugar certo da camisa.
+     Contêiner RETRATO 2:3 — px é a LARGURA; quadrada antiga aparece em cover. */
+  const cm = camadas || {};
   const alt = Math.round(px*RATIO_FOTO);
-  const pp = Object.assign({}, PATRO_POS_PADRAO,  patroPos||{});
-  /* o escudo SÓ entra depois de posicionado (✥/🛡) — sem posição salva, a foto
-     sai limpa em vez de mostrar o escudo flutuando num lugar padrão errado */
-  const pe = escudoPos || null;
+  const pp = Object.assign({}, PATRO_POS_PADRAO,  cm.patro||{});
+  const pe = Object.assign({}, ESCUDO_POS_PADRAO, cm.escudo||{});
+  const pf = Object.assign({}, FAB_POS_PADRAO,    cm.fabricante||{});
   return `<span style="position:relative;display:inline-block;width:${px}px;height:${alt}px;border-radius:${raio!=null?raio:8}px;overflow:hidden;background:#d9d9d9">
     <img src="${h(torsoUrl)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
-    ${escudoUrl&&pe?`<img src="${h(escudoUrl)}" style="position:absolute;left:${pe.x}%;top:${pe.y}%;width:${pe.w}%">`:''}
-    ${patrocinadorUrl?`<img src="${h(patrocinadorUrl)}" style="position:absolute;left:${pp.x}%;top:${pp.y}%;width:${pp.w}%">`:''}
+    ${cm.escudoUrl?`<img src="${h(cm.escudoUrl)}" style="position:absolute;left:${pe.x}%;top:${pe.y}%;width:${pe.w}%">`:''}
+    ${cm.fabUrl?`<img src="${h(cm.fabUrl)}" style="position:absolute;left:${pf.x}%;top:${pf.y}%;width:${pf.w}%">`:''}
+    ${cm.patroUrl?`<img src="${h(cm.patroUrl)}" style="position:absolute;left:${pp.x}%;top:${pp.y}%;width:${pp.w}%">`:''}
     ${rostoUrl?`<img src="${h(rostoUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:-3%;height:72%;object-fit:contain">`:''}
   </span>`;
 }
@@ -5050,6 +5054,12 @@ function modalFotosIA(item){
     const e = D.edits[c.id];
     return (e && e.patch && e.patch.crest) || c.crest || null;
   };
+  /* as camadas do clube num lugar só: URLs salvas no uniforme + posições */
+  const camadasClube = () => {
+    const t0 = torso(), at0 = (t0 && t0.atributos) || {};
+    return { patroUrl: at0.patroUrl || ST.patroTeste, escudoUrl: escudoClube(), fabUrl: at0.fabricanteUrl,
+             patro: at0.patro, escudo: at0.escudo, fabricante: at0.fabricante };
+  };
 
   /* miniatura: rosto composto sobre a camisa do clube quando as duas camadas
      existem; rosto solto se a camisa ainda não foi gerada; retrato antigo
@@ -5060,9 +5070,9 @@ function modalFotosIA(item){
        patrocinador continuam entrando como camadas por cima: a costura mantém a
        camisa idêntica à do uniforme, então as posições valem também aqui */
     if(f && f.atributos && f.atributos.montagem)
-      return compostoHTML(f.atributos.montagem, null, px, 8, ST.patroTeste, escudoClube(), t && t.atributos && t.atributos.patro, t && t.atributos && t.atributos.escudo);
+      return compostoHTML(f.atributos.montagem, null, px, 8, camadasClube());
     if(f && f.atributos && f.atributos.recorte==='rosto')
-      return t ? compostoHTML(t.url, f.url, px, 8, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro, t.atributos && t.atributos.escudo)
+      return t ? compostoHTML(t.url, f.url, px, 8, camadasClube())
                : `<span style="display:inline-block;width:${px}px;height:${px}px;border-radius:8px;background:#d9d9d9;overflow:hidden"><img src="${h(f.url)}" style="width:100%;height:100%;object-fit:contain"></span>`;
     return `<img src="${h(f.url)}" style="width:${px}px;height:${px}px;border-radius:8px;object-fit:cover">`;
   };
@@ -5124,9 +5134,9 @@ function modalFotosIA(item){
     const t = torso();
     const lado = Math.min(520, Math.floor(Math.min(innerWidth*0.9, innerHeight*0.85/RATIO_FOTO)));
     if(f.atributos && f.atributos.montagem)
-      abrirLightboxHTML(compostoHTML(f.atributos.montagem, null, lado, 16, ST.patroTeste, escudoClube(), t && t.atributos && t.atributos.patro, t && t.atributos && t.atributos.escudo));
+      abrirLightboxHTML(compostoHTML(f.atributos.montagem, null, lado, 16, camadasClube()));
     else if(f.atributos && f.atributos.recorte==='rosto' && t)
-      abrirLightboxHTML(compostoHTML(t.url, f.url, lado, 16, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro, t.atributos && t.atributos.escudo));
+      abrirLightboxHTML(compostoHTML(t.url, f.url, lado, 16, camadasClube()));
     else abrirLightbox(f.url, alt);
   };
   el('ft-lista').addEventListener('click', ev => {
@@ -5138,7 +5148,7 @@ function modalFotosIA(item){
   document.querySelector('[data-torso-thumb]').onclick = () => {
     const t = torso(); if(!t) return;
     const lado = Math.min(520, Math.floor(Math.min(innerWidth*0.9, innerHeight*0.85/RATIO_FOTO)));
-    abrirLightboxHTML(compostoHTML(t.url, null, lado, 16, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro, t.atributos && t.atributos.escudo));
+    abrirLightboxHTML(compostoHTML(t.url, null, lado, 16, camadasClube()));
   };
   const irUni = el('ft-ir-uniforme');
   if(irUni) irUni.onclick = () => { ST.abaEstudio='uniformes'; modalUniformeIA(item); };
@@ -5400,9 +5410,11 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl){
   const e = D.edits[c.id];
   const escudoUrl = (e && e.patch && e.patch.crest) || c.crest || null;
   const at0 = t.atributos || {};
+  const fabUrl = at0.fabricanteUrl || null;
   const pos = {
-    patro:  Object.assign({}, PATRO_POS_PADRAO,  at0.patro  || {}),
-    escudo: Object.assign({}, ESCUDO_POS_PADRAO, at0.escudo || {})
+    patro:      Object.assign({}, PATRO_POS_PADRAO,  at0.patro      || {}),
+    escudo:     Object.assign({}, ESCUDO_POS_PADRAO, at0.escudo     || {}),
+    fabricante: Object.assign({}, FAB_POS_PADRAO,    at0.fabricante || {})
   };
 
   const lado = Math.min(420, Math.floor(Math.min(innerWidth*0.85, (innerHeight*0.72)/RATIO_FOTO)));
@@ -5414,19 +5426,23 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl){
       <img src="${h(base)}" draggable="false" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none">
       ${escudoUrl?`<img data-alvo="escudo" src="${h(escudoUrl)}" draggable="false"
         style="position:absolute;left:${pos.escudo.x}%;top:${pos.escudo.y}%;width:${pos.escudo.w}%;cursor:grab;outline:2px dashed #e3b23c;outline-offset:3px">`:''}
+      ${fabUrl?`<img data-alvo="fabricante" src="${h(fabUrl)}" draggable="false"
+        style="position:absolute;left:${pos.fabricante.x}%;top:${pos.fabricante.y}%;width:${pos.fabricante.w}%;cursor:grab;outline:2px dashed #7dd3fc;outline-offset:3px">`:''}
       ${ST.patroTeste?`<img data-alvo="patro" src="${h(ST.patroTeste)}" draggable="false"
         style="position:absolute;left:${pos.patro.x}%;top:${pos.patro.y}%;width:${pos.patro.w}%;cursor:grab;outline:2px dashed #35c46a;outline-offset:3px">`:''}
     </div>
     <div style="display:flex;align-items:center;gap:14px;color:#fff;font-size:13px;flex-wrap:wrap;justify-content:center">
       ${escudoUrl?`<span style="color:#e3b23c">Escudo</span>
         <input data-w="escudo" type="range" min="5" max="40" step="0.5" value="${pos.escudo.w}" style="width:150px">`:''}
+      ${fabUrl?`<span style="color:#7dd3fc">Fabricante</span>
+        <input data-w="fabricante" type="range" min="4" max="30" step="0.5" value="${pos.fabricante.w}" style="width:130px">`:''}
       ${ST.patroTeste?`<span style="color:#35c46a">Logo</span>
         <input data-w="patro" type="range" min="8" max="60" step="0.5" value="${pos.patro.w}" style="width:150px">`:''}
       <button class="btn btn-sm" id="aj-salvar">Salvar posições</button>
       <button class="btn btn-sm btn-ghost" id="aj-cancelar" style="color:#fff">Cancelar</button>
     </div>
     <small style="color:#fff8;text-align:center;max-width:${lado}px">
-      Arraste o escudo (tracejado amarelo) e o logo (tracejado verde) até encaixarem
+      Arraste o escudo (amarelo), o fabricante (azul) e o patrocinador (verde) até encaixarem
       — as posições salvas valem para todas as fotos do clube.
     </small>`;
   document.body.appendChild(ov);
@@ -5454,7 +5470,8 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl){
 
   ov.querySelector('#aj-salvar').onclick = async () => {
     const lim = o => ({ x:+o.x.toFixed(2), y:+o.y.toFixed(2), w:+o.w.toFixed(2) });
-    const at = Object.assign({}, t.atributos, { patro: lim(pos.patro), escudo: lim(pos.escudo) });
+    const at = Object.assign({}, t.atributos,
+      { patro: lim(pos.patro), escudo: lim(pos.escudo), fabricante: lim(pos.fabricante) });
     const { error } = await jogo('player_photos').update({ atributos: at })
       .eq('pack_id', ST.packId).eq('club_id', String(c.id)).eq('jogador', TORSO_KEY);
     if(error) return toast(erroMsg(error), true);
@@ -5484,6 +5501,7 @@ function modalUniformeIA(item){
       corB: (at.cores && at.cores[1]) || c.color2 || '#ffffff',
       escudoNovo: null,
       patroUrl: at.patroUrl || ST.patroTeste || '',
+      fabUrl: at.fabricanteUrl || '',
       pv: null, pvChave: '' };
   }
   const wiz = D.wiz;
@@ -5496,14 +5514,18 @@ function modalUniformeIA(item){
     ['Miniatura','só a camisa, para o campo'],
     ['Escudo','suba um novo ou mantenha'],
     ['Patrocinador','logo sobre a camisa'],
+    ['Fabricante','logo pequena, lado oposto ao escudo'],
     ['Salvar','rascunho ou aplicar no jogo']];
+  const camadasWiz = () => ({ patroUrl: wiz.patroUrl, escudoUrl: escudoEscolhido(), fabUrl: wiz.fabUrl,
+    patro: at.patro, escudo: at.escudo, fabricante: at.fabricante });
   const resumo = n =>
     n===1 ? h((ESTILOS_CAMISA.find(e=>e[0]===wiz.estilo)||[])[1]||'') :
     n===2 ? `<i style="display:inline-block;width:13px;height:13px;border-radius:4px;background:${h(wiz.corA)};vertical-align:-2px"></i>
              <i style="display:inline-block;width:13px;height:13px;border-radius:4px;background:${h(wiz.corB)};border:1px solid var(--bd2);vertical-align:-2px"></i>` :
     n===3 ? (D.fotos[MOLDE_KEY+'|mini-'+wiz.estilo] ? 'pronta — pinta ao salvar' : 'molde ainda não gerado') :
     n===4 ? (wiz.escudoNovo ? 'novo escudo enviado' : (escudoAtual() ? 'mantém o atual' : 'sem escudo')) :
-    n===5 ? (wiz.patroUrl ? 'logo definido' : 'sem patrocinador') : '';
+    n===5 ? (wiz.patroUrl ? 'logo definido' : 'sem patrocinador') :
+    n===6 ? (wiz.fabUrl ? 'logo definido' : 'sem fabricante') : '';
 
   const corpoPasso = n => {
     if(n===1) return `<div class="col" style="gap:6px">
@@ -5550,6 +5572,15 @@ function modalUniformeIA(item){
       ${editar?`<button class="btn btn-sm btn-ghost" id="wz-patro-rmfundo" style="align-self:flex-start" ${wiz.patroUrl?'':'disabled'}>Remover fundo do logo</button>`:''}
       <small style="font-size:12px;color:var(--dim2)">O logo fica salvo com o uniforme deste clube e entra como camada — trocar depois não custa nada. "Remover fundo" apaga fundo sólido (branco/chapado) do logo atual.</small>
       <button class="btn btn-sm" data-continuar style="align-self:flex-start">${wiz.patroUrl?'Continuar':'Continuar sem patrocinador'}</button></div>`;
+    if(n===6) return `<div class="col" style="gap:10px">
+      <span style="display:flex;gap:8px">
+        <input class="f" id="wz-fab" style="flex:1;min-width:0" placeholder="https://… ou envie um arquivo" value="${h(wiz.fabUrl)}">
+        ${editar?`<button class="btn btn-sm btn-ghost" id="wz-fab-up" style="flex:0 0 auto" title="Enviar arquivo do logo do fabricante">↥</button>
+        <input type="file" id="wz-fab-arq" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">`:''}
+      </span>
+      ${editar?`<button class="btn btn-sm btn-ghost" id="wz-fab-rmfundo" style="align-self:flex-start" ${wiz.fabUrl?'':'disabled'}>Remover fundo do logo</button>`:''}
+      <small style="font-size:12px;color:var(--dim2)">A marca do material esportivo — entra pequena, no lado oposto ao escudo, como camada (trocar não custa nada). Fica salva com o uniforme do clube.</small>
+      <button class="btn btn-sm" data-continuar style="align-self:flex-start">${wiz.fabUrl?'Continuar':'Continuar sem fabricante'}</button></div>`;
     return `<div class="col" style="gap:10px">
       <small style="font-size:12.5px;color:var(--dim2);line-height:1.6">Confira a prévia ao lado. <b>Salvar rascunho</b> guarda o uniforme no Estúdio para continuar depois; <b>Salvar e aplicar no jogo</b> grava o uniforme do elenco${wiz.escudoNovo?' e põe o escudo novo no patch':''}.</small>
       ${editar?`<button class="btn btn-sm btn-ghost" id="wz-ajustar" style="align-self:flex-start" ${t()?'':'disabled'}>✥ Ajustar escudo e patrocínio na foto</button>`:''}
@@ -5585,7 +5616,7 @@ function modalUniformeIA(item){
       <div class="col" style="gap:0">${reguaHTML}</div>
       <div class="col" style="gap:10px;align-items:center">
         <div id="wz-preview" title="Clique para ver em tela expandida" style="cursor:zoom-in">
-          ${(wiz.pv || t()) ? compostoCropHTML(wiz.pv || t().url, 250, 12, wiz.patroUrl, escudoEscolhido(), at.patro, at.escudo)
+          ${(wiz.pv || t()) ? compostoCropHTML(wiz.pv || t().url, 250, 12, camadasWiz())
             : `<div style="width:250px;height:${Math.round(250*RATIO_FOTO)}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px dashed var(--bd2);border-radius:12px;background:#d9d9d9">
                 <svg viewBox="0 0 100 100" style="width:150px;height:150px;opacity:.45">
                   <path fill="#8a8a8a" d="M35 12 L44 8 Q50 14 56 8 L65 12 L86 24 L79 42 L68 37 L68 92 L32 92 L32 37 L21 42 L14 24 Z"/>
@@ -5615,7 +5646,7 @@ function modalUniformeIA(item){
       if(wiz.pv && wiz.pv.startsWith('blob:')) URL.revokeObjectURL(wiz.pv);
       wiz.pv = URL.createObjectURL(blob); wiz.pvChave = chave;
       const alvo = el('wz-preview');
-      if(alvo) alvo.innerHTML = compostoHTML(wiz.pv, null, 250, 12, wiz.patroUrl, escudoEscolhido(), at.patro, at.escudo);
+      if(alvo) alvo.innerHTML = compostoCropHTML(wiz.pv, 250, 12, camadasWiz());
     }catch(err){ console.warn('prévia local falhou:', err.message); }
   }
   pintarPrevia();
@@ -5623,7 +5654,7 @@ function modalUniformeIA(item){
   el('wz-preview').onclick = () => {
     const base = wiz.pv || (t() && t().url); if(!base) return;
     const lado = Math.min(520, Math.floor(Math.min(innerWidth*0.9, innerHeight*0.85/RATIO_FOTO)));
-    abrirLightboxHTML(compostoHTML(base, null, lado, 16, wiz.patroUrl, escudoEscolhido(), at.patro, at.escudo));
+    abrirLightboxHTML(compostoHTML(base, null, lado, 16, camadasWiz()));
   };
   document.querySelectorAll('[data-passo]').forEach(x => x.onclick = () => {
     const n = +x.dataset.passo; if(n<=wiz.max && n!==wiz.passo){ colher(); wiz.passo=n; abrir(); }
@@ -5633,9 +5664,10 @@ function modalUniformeIA(item){
     if(wiz.passo===1){ const r=document.querySelector('[name="wz-estilo"]:checked'); if(r) wiz.estilo=r.value; }
     if(wiz.passo===2){ if(el('wz-color')) wiz.corA=el('wz-color').value; if(el('wz-color2')) wiz.corB=el('wz-color2').value; }
     if(wiz.passo===5 && el('wz-patro')) wiz.patroUrl=el('wz-patro').value.trim();
+    if(wiz.passo===6 && el('wz-fab')) wiz.fabUrl=el('wz-fab').value.trim();
   }
   document.querySelectorAll('[data-continuar]').forEach(b => b.onclick = () => {
-    colher(); wiz.passo=Math.min(6,wiz.passo+1); wiz.max=Math.max(wiz.max,wiz.passo); abrir();
+    colher(); wiz.passo=Math.min(7,wiz.passo+1); wiz.max=Math.max(wiz.max,wiz.passo); abrir();
   });
 
   if(wiz.passo===1){
@@ -5743,7 +5775,41 @@ function modalUniformeIA(item){
       rmf.disabled = false; rmf.textContent = 'Remover fundo do logo';
     };
   }
-  if(wiz.passo===6){
+  if(wiz.passo===6 && el('wz-fab-up')){
+    el('wz-fab').onchange = () => { colher(); pintarPrevia(); };
+    el('wz-fab-up').onclick = () => el('wz-fab-arq').click();
+    el('wz-fab-arq').onchange = async () => {
+      const f = el('wz-fab-arq').files[0]; if(!f) return;
+      if(f.size > 2*1024*1024) return toast('Logo acima de 2 MB.', true);
+      const ext = (f.name.split('.').pop()||'png').toLowerCase();
+      const caminho = `fabricantes/${Date.now()}-${chaveNome(f.name||'logo').slice(0,24)||'logo'}.${ext}`;
+      const up = await sb.storage.from('patrocinadores').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
+      if(up.error) return toast(erroMsg(up.error), true);
+      wiz.fabUrl = sb.storage.from('patrocinadores').getPublicUrl(caminho).data.publicUrl;
+      toast('Logo do fabricante enviado.'); abrir();
+    };
+    const rmfF = el('wz-fab-rmfundo');
+    if(rmfF) rmfF.onclick = async () => {
+      colher();
+      if(!wiz.fabUrl) return toast('Defina o logo primeiro (URL ou arquivo).', true);
+      rmfF.disabled = true; rmfF.textContent = 'Removendo fundo…';
+      try{
+        const r = await fetch(wiz.fabUrl);
+        if(!r.ok) throw new Error('não consegui baixar o logo ('+r.status+')');
+        const limpo = await removerFundoDeImagem(await r.blob());
+        if(!limpo) throw new Error('falha ao processar a imagem');
+        const caminho = `fabricantes/${Date.now()}-semfundo.png`;
+        const up = await sb.storage.from('patrocinadores').upload(caminho, limpo, { upsert:false, cacheControl:'31536000' });
+        if(up.error) throw new Error(up.error.message);
+        wiz.fabUrl = sb.storage.from('patrocinadores').getPublicUrl(caminho).data.publicUrl;
+        toast('Fundo removido — versão limpa salva.');
+        abrir();
+        return;
+      }catch(err){ toast('Não deu para remover o fundo daqui ('+err.message+') — baixe o arquivo e envie pelo ↥.', true); }
+      rmfF.disabled = false; rmfF.textContent = 'Remover fundo do logo';
+    };
+  }
+  if(wiz.passo===7){
     const aj = el('wz-ajustar');
     /* no fluxo do UNIFORME o fundo do ajuste é o próprio uniforme (a prévia
        pintada ou o salvo) — nunca a foto de um jogador, que confunde a edição */
@@ -5784,7 +5850,8 @@ function modalUniformeIA(item){
         }
         const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: TORSO_KEY, url,
           atributos: Object.assign({}, at, { recorte:'torso', estilo: wiz.estilo, cores:[wiz.corA, wiz.corB],
-            molde:true, patroUrl: wiz.patroUrl||null, miniatura: miniUrl, rascunho: !aplicar }) };
+            molde:true, patroUrl: wiz.patroUrl||null, fabricanteUrl: wiz.fabUrl||null,
+            miniatura: miniUrl, rascunho: !aplicar }) };
         const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
         if(error) throw new Error(erroMsg(error));
         D.fotos[c.id+'|'+TORSO_KEY] = reg;
