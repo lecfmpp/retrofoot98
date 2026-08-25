@@ -4540,6 +4540,32 @@ async function garantirMolde(item, estilo){
   return molde;
 }
 
+/* MINIATURA DA CAMISA: só a camisa (sem corpo, sem escudo), fundo transparente —
+   para o campo e as páginas do clube. Mesmo esquema do uniforme: um molde de
+   miniatura por estilo (IA 1x, magenta/ciano via tipo 'rosto', que é o
+   transparente) e pintura local por clube, de graça. */
+function promptMiniCamisa(estilo){
+  const camisa = descrCamisa(estilo, 'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)');
+  return [
+    'Product photograph of ONLY a football jersey — no person, no body, no mannequin, no hanger visible.',
+    `The jersey is ${camisa}.`,
+    'Front view, short sleeves spread naturally, ghost-mannequin style, centered, filling most of the frame.',
+    'Completely clean jersey: no crest, no badge, no sponsor, no text, no logos.',
+    'Isolated cutout on a fully transparent background, soft even studio lighting, sharp focus.'
+  ].join(' ') + AVISO_MARCADOR;
+}
+async function garantirMoldeMini(estilo){
+  const chave = 'mini-'+estilo;
+  let molde = D.fotos[MOLDE_KEY+'|'+chave];
+  if(molde) return molde;
+  const url = await gerarImagemIA('rosto', promptMiniCamisa(estilo), 'medium');
+  molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: chave, url, atributos:{ recorte:'molde-mini', estilo } };
+  const r = await jogo('player_photos').upsert(molde, { onConflict:'pack_id,club_id,jogador' });
+  if(r.error) throw new Error(erroMsg(r.error));
+  D.fotos[MOLDE_KEY+'|'+chave] = molde;
+  return molde;
+}
+
 /* repinta TODOS os uniformes de molde do patch com os moldes atuais — gera os
    moldes que faltarem (IA, 1x por estilo) e o resto é pintura local, grátis.
    É o botão de virada quando a pintura ou os moldes melhoram. */
@@ -5395,6 +5421,7 @@ function modalUniformeIA(item){
   const PASSOS = [
     ['Estilo','o desenho da camisa'],
     ['Cores','principal e secundária'],
+    ['Miniatura','só a camisa, para o campo'],
     ['Escudo','suba um novo ou mantenha'],
     ['Patrocinador','logo sobre a camisa'],
     ['Salvar','rascunho ou aplicar no jogo']];
@@ -5402,8 +5429,9 @@ function modalUniformeIA(item){
     n===1 ? h((ESTILOS_CAMISA.find(e=>e[0]===wiz.estilo)||[])[1]||'') :
     n===2 ? `<i style="display:inline-block;width:13px;height:13px;border-radius:4px;background:${h(wiz.corA)};vertical-align:-2px"></i>
              <i style="display:inline-block;width:13px;height:13px;border-radius:4px;background:${h(wiz.corB)};border:1px solid var(--bd2);vertical-align:-2px"></i>` :
-    n===3 ? (wiz.escudoNovo ? 'novo escudo enviado' : (escudoAtual() ? 'mantém o atual' : 'sem escudo')) :
-    n===4 ? (wiz.patroUrl ? 'logo definido' : 'sem patrocinador') : '';
+    n===3 ? (D.fotos[MOLDE_KEY+'|mini-'+wiz.estilo] ? 'pronta — pinta ao salvar' : 'molde ainda não gerado') :
+    n===4 ? (wiz.escudoNovo ? 'novo escudo enviado' : (escudoAtual() ? 'mantém o atual' : 'sem escudo')) :
+    n===5 ? (wiz.patroUrl ? 'logo definido' : 'sem patrocinador') : '';
 
   const corpoPasso = n => {
     if(n===1) return `<div class="col" style="gap:6px">
@@ -5414,7 +5442,19 @@ function modalUniformeIA(item){
       <div class="g2" style="gap:12px">${campoCor('wz-color','Cor principal', wiz.corA)}${campoCor('wz-color2','Cor secundária', wiz.corB)}</div>
       <div id="wz-preview-cores"></div>
       <button class="btn btn-sm" data-continuar style="align-self:flex-start">Continuar</button></div>`;
-    if(n===3) return `<div class="col" style="gap:10px">
+    if(n===3){
+      const mini = D.fotos[MOLDE_KEY+'|mini-'+wiz.estilo];
+      return `<div class="col" style="gap:10px">
+        <small style="font-size:12px;color:var(--dim2);line-height:1.6">Imagem só da camisa (sem jogador e sem escudo),
+          com fundo transparente — vira a miniatura do campo e das páginas do clube. O molde é gerado
+          por IA uma vez por estilo; a pintura nas cores é local e sai junto no salvar.</small>
+        <div id="wz-mini-preview" style="width:150px;height:150px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--bd2);border-radius:10px;background:repeating-conic-gradient(#0002 0 25%,transparent 0 50%) 0 0/16px 16px">
+          ${mini?'<small style="font-size:11px;color:var(--dim3)">pintando…</small>':'<small style="font-size:11px;color:var(--dim3)">sem molde deste estilo</small>'}
+        </div>
+        ${editar && !mini ? `<button class="btn btn-sm btn-ghost" id="wz-mini-gerar" style="align-self:flex-start">Gerar molde da miniatura (~US$ 0,04, 1x por estilo)</button>`:''}
+        <button class="btn btn-sm" data-continuar style="align-self:flex-start">Continuar</button></div>`;
+    }
+    if(n===4) return `<div class="col" style="gap:10px">
       <div style="display:flex;align-items:center;gap:12px">
         <span style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--bd2);border-radius:10px">
           ${escudoEscolhido()?`<img src="${h(escudoEscolhido())}" style="max-width:44px;max-height:44px;object-fit:contain">`:'<small style="color:var(--dim3)">—</small>'}</span>
@@ -5428,7 +5468,7 @@ function modalUniformeIA(item){
         ${wiz.escudoNovo?'<span class="link" id="wz-esc-desfazer" style="font-size:12px">voltar ao atual</span>':''}
       </div>`:''}
       <button class="btn btn-sm" data-continuar style="align-self:flex-start">${escudoEscolhido()?'Manter e continuar':'Continuar sem escudo'}</button></div>`;
-    if(n===4) return `<div class="col" style="gap:10px">
+    if(n===5) return `<div class="col" style="gap:10px">
       <span style="display:flex;gap:8px">
         <input class="f" id="wz-patro" style="flex:1;min-width:0" placeholder="https://… ou envie um arquivo" value="${h(wiz.patroUrl)}">
         ${editar?`<button class="btn btn-sm btn-ghost" id="wz-patro-up" style="flex:0 0 auto" title="Enviar arquivo do logo">↥</button>
@@ -5519,10 +5559,10 @@ function modalUniformeIA(item){
   function colher(){
     if(wiz.passo===1){ const r=document.querySelector('[name="wz-estilo"]:checked'); if(r) wiz.estilo=r.value; }
     if(wiz.passo===2){ if(el('wz-color')) wiz.corA=el('wz-color').value; if(el('wz-color2')) wiz.corB=el('wz-color2').value; }
-    if(wiz.passo===4 && el('wz-patro')) wiz.patroUrl=el('wz-patro').value.trim();
+    if(wiz.passo===5 && el('wz-patro')) wiz.patroUrl=el('wz-patro').value.trim();
   }
   document.querySelectorAll('[data-continuar]').forEach(b => b.onclick = () => {
-    colher(); wiz.passo=Math.min(5,wiz.passo+1); wiz.max=Math.max(wiz.max,wiz.passo); abrir();
+    colher(); wiz.passo=Math.min(6,wiz.passo+1); wiz.max=Math.max(wiz.max,wiz.passo); abrir();
   });
 
   if(wiz.passo===1) document.querySelectorAll('[name="wz-estilo"]').forEach(r => r.onchange = () => { wiz.estilo=r.value; pintarPrevia(); });
@@ -5534,7 +5574,31 @@ function modalUniformeIA(item){
   }
   if(!editar) return;
 
-  if(wiz.passo===3 && el('wz-esc-btn')){
+  if(wiz.passo===3){
+    const desenharMini = async () => {
+      const mini = D.fotos[MOLDE_KEY+'|mini-'+wiz.estilo];
+      const alvo = el('wz-mini-preview');
+      if(!mini || !alvo) return;
+      try{
+        const chave = mini.url+'|'+wiz.corA+'|'+wiz.corB;
+        if(wiz.pvMiniChave !== chave){
+          const blob = await pintarMolde(mini.url, wiz.corA, wiz.corB);
+          if(wiz.pvMini && wiz.pvMini.startsWith('blob:')) URL.revokeObjectURL(wiz.pvMini);
+          wiz.pvMini = URL.createObjectURL(blob); wiz.pvMiniChave = chave;
+        }
+        alvo.innerHTML = `<img src="${h(wiz.pvMini)}" style="max-width:92%;max-height:92%;object-fit:contain">`;
+      }catch(err){ alvo.innerHTML = '<small style="font-size:11px;color:var(--vermelho)">falha na pintura</small>'; }
+    };
+    desenharMini();
+    const bg = el('wz-mini-gerar');
+    if(bg) bg.onclick = async () => {
+      bg.disabled = true; bg.textContent = 'Gerando molde…';
+      try{ await garantirMoldeMini(wiz.estilo); toast('Molde da miniatura pronto.'); abrir(); return; }
+      catch(err){ toast(err.message||'Falha ao gerar o molde.', true); }
+      bg.disabled = false; bg.textContent = 'Gerar molde da miniatura (~US$ 0,04, 1x por estilo)';
+    };
+  }
+  if(wiz.passo===4 && el('wz-esc-btn')){
     el('wz-esc-btn').onclick = () => el('wz-esc-arq').click();
     const desf = el('wz-esc-desfazer'); if(desf) desf.onclick = () => { wiz.escudoNovo=null; abrir(); };
     el('wz-esc-arq').onchange = async () => {
@@ -5552,7 +5616,7 @@ function modalUniformeIA(item){
       toast('Escudo enviado — entra no patch quando você aplicar.'); abrir();
     };
   }
-  if(wiz.passo===4 && el('wz-patro-up')){
+  if(wiz.passo===5 && el('wz-patro-up')){
     el('wz-patro').onchange = () => { colher(); pintarPrevia(); };
     el('wz-patro-up').onclick = () => el('wz-patro-arq').click();
     el('wz-patro-arq').onchange = async () => {
@@ -5588,7 +5652,7 @@ function modalUniformeIA(item){
       rmf.disabled = false; rmf.textContent = 'Remover fundo do logo';
     };
   }
-  if(wiz.passo===5){
+  if(wiz.passo===6){
     const aj = el('wz-ajustar');
     /* no fluxo do UNIFORME o fundo do ajuste é o próprio uniforme (a prévia
        pintada ou o salvo) — nunca a foto de um jogador, que confunde a edição */
@@ -5615,9 +5679,21 @@ function modalUniformeIA(item){
         const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
         if(up.error) throw new Error(erroMsg(up.error));
         const url = sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl;
+        /* miniatura da camisa: pinta do molde-mini (se houver) e sobe junto */
+        let miniUrl = (at.miniatura || null);
+        const moldeMini = D.fotos[MOLDE_KEY+'|mini-'+wiz.estilo];
+        if(moldeMini){
+          try{
+            el('wz-estado').textContent = 'Pintando a miniatura da camisa…';
+            const bm = await pintarMolde(moldeMini.url, wiz.corA, wiz.corB);
+            const cm = `camisas/${c.id}-${Date.now()}.webp`;
+            const um = await sb.storage.from('jogadores').upload(cm, bm, { upsert:false, cacheControl:'31536000' });
+            if(!um.error) miniUrl = sb.storage.from('jogadores').getPublicUrl(cm).data.publicUrl;
+          }catch(err){ console.warn('miniatura falhou:', err.message); }
+        }
         const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: TORSO_KEY, url,
           atributos: Object.assign({}, at, { recorte:'torso', estilo: wiz.estilo, cores:[wiz.corA, wiz.corB],
-            molde:true, patroUrl: wiz.patroUrl||null, rascunho: !aplicar }) };
+            molde:true, patroUrl: wiz.patroUrl||null, miniatura: miniUrl, rascunho: !aplicar }) };
         const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
         if(error) throw new Error(erroMsg(error));
         D.fotos[c.id+'|'+TORSO_KEY] = reg;
