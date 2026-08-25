@@ -5000,7 +5000,8 @@ function modalFotosIA(item){
    Nada sobe sem revisão: primeiro a lista mostra o que casou (e o que não),
    e só o botão de confirmar faz o upload + grava no patch. */
 function modalLoteEscudos(){
-  // índice nome-normalizado -> clube; ambiguidade (dois clubes com o mesmo nome) invalida a chave
+  /* índice nome-normalizado -> clube (ambiguidade invalida a chave) + índices de
+     país e divisão para o palpite pelo nome do arquivo */
   const indice = new Map();
   const registrarChave = (chave, item) => {
     if(!chave) return;
@@ -5012,15 +5013,42 @@ function modalLoteEscudos(){
     registrarChave(chaveNome(item.c.name), item);
     registrarChave(chaveNome(item.c.short), item);
   });
+  const paises = Array.from(new Set((D.catalogo||[]).map(x=>x.pais)))
+    .sort((a,b)=> a==='Brasil'?-1:b==='Brasil'?1:a.localeCompare(b,'pt-BR'));
+  const chavePais = new Map(paises.map(p=>[chaveNome(p), p]));
+  const divisoesDe = pais => Array.from(new Set((D.catalogo||[]).filter(x=>x.pais===pais).map(x=>String(x.div))))
+    .sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const clubesDe = (pais, div) => (D.catalogo||[]).filter(x=>x.pais===pais && String(x.div)===String(div))
+    .sort((a,b)=>String(a.c.short||a.c.name).localeCompare(String(b.c.short||b.c.name),'pt-BR'));
+
+  /* palpite pelo nome do arquivo: 1º o clube inteiro (id, nome, nome curto);
+     sem clube, ainda tenta reconhecer país e divisão nos pedaços do nome */
+  function adivinhar(nomeArq){
+    const semExt = nomeArq.replace(/\.[a-z0-9]+$/i,'');
+    const cheio = indice.get(chaveNome(semExt));
+    if(cheio && cheio!=='AMBIGUO') return { item: cheio };
+    const pedacos = semExt.split(/[-_ .]+/).map(chaveNome).filter(Boolean);
+    // combinações contíguas, das mais longas para as mais curtas
+    for(let tam=pedacos.length; tam>=1; tam--)
+      for(let i=0; i+tam<=pedacos.length; i++){
+        const alvo = indice.get(pedacos.slice(i,i+tam).join(''));
+        if(alvo && alvo!=='AMBIGUO') return { item: alvo };
+      }
+    const out = {};
+    for(const t of pedacos){
+      if(chavePais.has(t)) out.pais = chavePais.get(t);
+      const m = /^serie([a-d])$/.exec(t); if(m) out.div = m[1].toUpperCase();
+    }
+    return out;
+  }
 
   abrirModal(`
     <h3>Escudos em lote</h3>
     <div class="st" style="line-height:1.7;margin-bottom:12px">
-      Selecione todos os arquivos de uma vez (PNG/WEBP/JPG/SVG, até 5 MB cada, de preferência com fundo
-      transparente). O <b>nome do arquivo</b> identifica o clube — serve o id do jogo
-      (<span class="mono">br_D_gama.png</span>) ou o nome (<span class="mono">Gama.png</span>,
-      <span class="mono">ponte-preta.webp</span>). Nada é gravado antes de você confirmar a lista.</div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      Selecione os arquivos (PNG/WEBP/JPG/SVG, até 5 MB, de preferência com fundo transparente).
+      O sistema aponta o clube pelo <b>nome do arquivo</b> (id do jogo, nome do clube — e reconhece
+      país/divisão no nome); confira ou corrija nos seletores e <b>confirme linha a linha</b>.</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
       <button class="btn" id="lt-escolher">Escolher arquivos…</button>
       <input type="file" id="lt-arquivos" accept=".png,.webp,.jpg,.jpeg,.svg" multiple style="display:none">
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim2);cursor:pointer">
@@ -5029,67 +5057,104 @@ function modalLoteEscudos(){
     </div>
     <div id="lt-lista"></div>
     <div class="acoes">
-      <button class="btn" id="lt-subir" disabled>Subir escudos</button>
+      <button class="btn" id="lt-subir" disabled>Confirmar todos os apontados</button>
       <button class="btn btn-ghost" data-fechar>Fechar</button>
-    </div>`, 'lg');
+    </div>`, 'xl');
 
-  let plano = [];   // { f, item|null, motivo }
+  let plano = [];   // { f, urlPrevia, pais, div, clube(id|''), salvo, erro }
+
+  const selHTML = (i, p) => {
+    const divs = p.pais ? divisoesDe(p.pais) : [];
+    const clubes = (p.pais && p.div) ? clubesDe(p.pais, p.div) : [];
+    return `
+      <select class="busca" data-i="${i}" data-sel="pais" style="width:110px" ${p.salvo?'disabled':''}>
+        <option value="">País…</option>
+        ${paises.map(x=>`<option ${x===p.pais?'selected':''}>${h(x)}</option>`).join('')}</select>
+      <select class="busca" data-i="${i}" data-sel="div" style="width:86px" ${p.salvo?'disabled':''}>
+        <option value="">Div…</option>
+        ${divs.map(d=>`<option ${d===p.div?'selected':''}>${h(d)}</option>`).join('')}</select>
+      <select class="busca" data-i="${i}" data-sel="clube" style="width:100%;min-width:0" ${p.salvo?'disabled':''}>
+        <option value="">Clube…</option>
+        ${clubes.map(x=>`<option value="${h(x.c.id)}" ${String(x.c.id)===String(p.clube)?'selected':''}>${h(x.c.short||x.c.name)}</option>`).join('')}</select>`;
+  };
+  const linhaHTML = (p, i) => `
+    <div class="row" style="grid-template-columns:34px minmax(0,1fr) 110px 86px minmax(0,1fr) 96px;gap:8px;align-items:center" data-linha="${i}">
+      <img src="${h(p.urlPrevia)}" style="width:28px;height:28px;object-fit:contain">
+      <span class="mono" style="font-size:11.5px;min-width:0;overflow:hidden;text-overflow:ellipsis" title="${h(p.f.name)}">${h(p.f.name)}</span>
+      ${selHTML(i, p)}
+      <span style="text-align:right">${p.salvo
+        ? '<span class="tag t-ok">salvo ✓</span>'
+        : p.erro ? `<span class="tag t-erro" title="${h(p.erro)}">erro</span>`
+        : `<button class="btn btn-sm" data-conf="${i}" ${p.clube?'':'disabled'}>Confirmar</button>`}</span>
+    </div>`;
+
+  function desenhar(){
+    const pend = plano.filter(p=>!p.salvo && p.clube).length;
+    el('lt-lista').innerHTML = plano.length ? `
+      <div class="rowh" style="grid-template-columns:34px minmax(0,1fr) 110px 86px minmax(0,1fr) 96px;gap:8px">
+        <span></span><span>Arquivo</span><span>País</span><span>Divisão</span><span>Clube</span><span style="text-align:right"></span>
+      </div>
+      <div style="max-height:44vh;overflow:auto">${plano.map((p,i)=>linhaHTML(p,i)).join('')}</div>` : '';
+    el('lt-resumo').textContent = plano.length
+      ? `${plano.filter(p=>p.salvo).length} salvos · ${pend} apontados · ${plano.filter(p=>!p.salvo && !p.clube).length} sem clube`
+      : '';
+    el('lt-subir').disabled = !pend;
+    el('lt-subir').textContent = pend ? `Confirmar todos os apontados (${pend})` : 'Confirmar todos os apontados';
+
+    el('lt-lista').querySelectorAll('[data-sel]').forEach(sel => sel.onchange = () => {
+      const p = plano[+sel.dataset.i];
+      if(sel.dataset.sel==='pais'){ p.pais = sel.value; p.div=''; p.clube=''; }
+      else if(sel.dataset.sel==='div'){ p.div = sel.value; p.clube=''; }
+      else p.clube = sel.value;
+      desenhar();
+    });
+    el('lt-lista').querySelectorAll('[data-conf]').forEach(bt => bt.onclick = () => confirmarLinha(+bt.dataset.conf));
+  }
+
+  async function confirmarLinha(i){
+    const p = plano[i];
+    if(!p || p.salvo || !p.clube) return;
+    const item = (D.catalogo||[]).find(x => String(x.c.id)===String(p.clube));
+    if(!item) return;
+    try{
+      let arq = p.f, ext = (p.f.name.split('.').pop()||'png').toLowerCase();
+      if(el('lt-nofundo') && el('lt-nofundo').checked){
+        const b2 = await removerFundoDeImagem(p.f); if(b2){ arq = b2; ext = 'png'; }
+      }
+      const caminho = `lote/${item.c.id}-${Date.now()}.${ext}`;
+      const up = await sb.storage.from('escudos').upload(caminho, arq, { upsert:false, cacheControl:'31536000' });
+      if(up.error) throw new Error(up.error.message);
+      const url = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
+      const ed = D.edits[item.c.id];
+      const linha = {
+        pack_id: ST.packId, club_id: String(item.c.id), divisao: item.div, novo: !!(ed && ed.novo),
+        patch: Object.assign({}, ed && ed.patch, { crest: url })
+      };
+      const r = await jogo('pack_edits').upsert(linha, { onConflict:'pack_id,club_id' });
+      if(r.error) throw new Error(r.error.message);
+      D.edits[item.c.id] = linha;
+      p.salvo = true; p.erro = null;
+      registrar('estudio.escudo.lote.item', String(item.c.id), { pacote: ST.packId, arquivo: p.f.name });
+    }catch(err){ p.erro = err.message; console.warn('lote escudo falhou:', p.f.name, err.message); }
+    desenhar();
+  }
+
   el('lt-escolher').onclick = () => el('lt-arquivos').click();
   el('lt-arquivos').onchange = () => {
-    const arquivos = Array.from(el('lt-arquivos').files||[]);
-    plano = arquivos.map(f => {
-      const chave = chaveNome(f.name.replace(/\.[a-z0-9]+$/i,''));
-      const alvo = indice.get(chave);
-      if(f.size > 5*1024*1024) return { f, item:null, motivo:'acima de 5 MB' };
-      if(!alvo)               return { f, item:null, motivo:'nenhum clube com esse nome' };
-      if(alvo === 'AMBIGUO')  return { f, item:null, motivo:'mais de um clube com esse nome — use o id do jogo' };
-      return { f, item:alvo };
+    plano = Array.from(el('lt-arquivos').files||[]).map(f => {
+      const palpite = adivinhar(f.name);
+      if(f.size > 5*1024*1024) return { f, urlPrevia:URL.createObjectURL(f), erro:'acima de 5 MB', pais:'', div:'', clube:'' };
+      if(palpite.item) return { f, urlPrevia:URL.createObjectURL(f),
+        pais:palpite.item.pais, div:String(palpite.item.div), clube:String(palpite.item.c.id) };
+      return { f, urlPrevia:URL.createObjectURL(f), pais:palpite.pais||'', div:palpite.div||'', clube:'' };
     });
-    const ok = plano.filter(p=>p.item).length;
-    el('lt-resumo').textContent = `${ok} de ${plano.length} arquivos casaram com um clube.`;
-    el('lt-lista').innerHTML = `
-      <div class="rowh" style="grid-template-columns:1.4fr 1.6fr .9fr"><span>Arquivo</span><span>Clube</span><span style="text-align:right">Situação</span></div>
-      ${plano.map(p=>`<div class="row" style="grid-template-columns:1.4fr 1.6fr .9fr">
-        <span class="mono" style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis">${h(p.f.name)}</span>
-        <span style="font-size:12.5px">${p.item?h(p.item.c.short||p.item.c.name)+' <small class="mono" style="color:var(--dim3)">'+h(p.item.c.id)+'</small>':'—'}</span>
-        <span style="text-align:right">${p.item?'<span class="tag t-ok">pronto</span>':`<span class="tag t-erro" title="${h(p.motivo)}">${h(p.motivo)}</span>`}</span>
-      </div>`).join('')}`;
-    el('lt-subir').disabled = !ok;
-    el('lt-subir').textContent = `Subir ${ok} escudos`;
+    desenhar();
   };
 
   el('lt-subir').onclick = async () => {
-    const fila = plano.filter(p=>p.item);
-    if(!fila.length) return;
     el('lt-subir').disabled = true;
-    let ok=0, erros=0;
-    for(const p of fila){
-      el('lt-resumo').textContent = `Subindo ${ok+erros+1}/${fila.length} — ${p.item.c.short||p.item.c.name}…`;
-      try{
-        let arq = p.f, ext = (p.f.name.split('.').pop()||'png').toLowerCase();
-        if(el('lt-nofundo') && el('lt-nofundo').checked){
-          const b2 = await removerFundoDeImagem(p.f); if(b2){ arq = b2; ext = 'png'; }
-        }
-        const caminho = `lote/${p.item.c.id}-${Date.now()}.${ext}`;
-        const up = await sb.storage.from('escudos').upload(caminho, arq, { upsert:false, cacheControl:'31536000' });
-        if(up.error) throw new Error(up.error.message);
-        const url = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
-        const ed = D.edits[p.item.c.id];
-        const linha = {
-          pack_id: ST.packId, club_id: String(p.item.c.id), divisao: p.item.div, novo: !!(ed && ed.novo),
-          patch: Object.assign({}, ed && ed.patch, { crest: url })
-        };
-        const r = await jogo('pack_edits').upsert(linha, { onConflict:'pack_id,club_id' });
-        if(r.error) throw new Error(r.error.message);
-        D.edits[p.item.c.id] = linha;
-        ok++;
-      }catch(err){ erros++; console.warn('lote escudo falhou:', p.f.name, err.message); }
-    }
+    for(let i=0; i<plano.length; i++) if(!plano[i].salvo && plano[i].clube) await confirmarLinha(i);
     await jogo('data_packs').update({ atualizado_em:new Date().toISOString() }).eq('id', ST.packId);
-    registrar('estudio.escudo.lote', String(ok), { pacote: ST.packId, falhas: erros });
-    el('lt-resumo').textContent = `Pronto: ${ok} escudos salvos no patch${erros?`, ${erros} falharam (veja o console)`:''}.`;
-    toast(`${ok} escudos salvos no patch.`);
-    el('lt-subir').textContent = 'Concluído';
   };
 }
 
@@ -5420,6 +5485,30 @@ function modalUniformeIA(item){
         }
         ST.patroTeste = wiz.patroUrl || ST.patroTeste;
         registrar(aplicar?'estudio.uniforme.aplicar':'estudio.uniforme.rascunho', String(c.id), { pacote: ST.packId, estilo: wiz.estilo });
+
+        /* UNIFORME NOVO = ELENCO ATUALIZADO: os rostos ficam guardados separados
+           exatamente para isto — recosturar cada um sobre o uniforme novo, sem
+           re-sortear visual. Só ao APLICAR, e sempre com custo confirmado. */
+        if(aplicar){
+          const comFoto = (c.squad||[]).map(p => D.fotos[c.id+'|'+p.n])
+            .filter(f => f && f.atributos && f.atributos.recorte==='rosto');
+          if(comFoto.length && confirm(`Uniforme aplicado. Recosturar as ${comFoto.length} fotos do elenco com o uniforme novo agora? ~US$ ${(comFoto.length*0.04).toFixed(2)} (os rostos são os mesmos — nada é sorteado de novo).`)){
+            let ok=0, falhas=0;
+            for(const f of comFoto){
+              el('wz-estado').textContent = `Recosturando ${ok+falhas+1}/${comFoto.length} — ${f.jogador}…`;
+              try{
+                const nova = await gerarImagemIA('montagem', promptMontagem(), 'medium', [url, f.url]);
+                const at2 = Object.assign({}, f.atributos, { montagem: nova });
+                const r2 = await jogo('player_photos').update({ atributos: at2 })
+                  .eq('pack_id', ST.packId).eq('club_id', String(c.id)).eq('jogador', f.jogador);
+                if(r2.error) throw new Error(erroMsg(r2.error));
+                f.atributos = at2; ok++;
+              }catch(err){ falhas++; console.warn('remontagem falhou:', f.jogador, err.message); }
+            }
+            registrar('estudio.elenco.remontar', String(c.id), { pacote: ST.packId, geradas: ok, falhas });
+            toast(`Elenco atualizado: ${ok} fotos recosturadas${falhas?`, ${falhas} falharam`:''}.`);
+          }
+        }
         toast(aplicar?'Uniforme aplicado no jogo.':'Rascunho salvo — continue quando quiser.');
         if(aplicar){ D.wiz=null; fecharModal(); pgEstudio(); }
         else abrir();
