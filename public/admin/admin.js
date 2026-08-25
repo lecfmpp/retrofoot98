@@ -4611,7 +4611,8 @@ function promptMiniCamisa(estilo){
   return [
     'Product photograph of ONLY a football jersey — no person, no body, no mannequin, no hanger visible.',
     `The jersey is ${camisa}.`,
-    'Front view, short sleeves spread naturally, ghost-mannequin style, centered, filling most of the frame.',
+    'GHOST-MANNEQUIN 3D shape: the jersey holds the volume of an invisible torso — the shoulders SLOPE naturally upward into a fully formed round collar, showing the complete neckline opening from the front. The top of the jersey must NEVER be a straight horizontal cut.',
+    'Front view, short sleeves spread naturally, centered, filling most of the frame.',
     'Completely clean jersey: no crest, no badge, no sponsor, no text, no logos.',
     'Isolated cutout on a fully transparent background, soft even studio lighting, sharp focus.'
   ].join(' ') + AVISO_MARCADOR;
@@ -4625,7 +4626,7 @@ async function garantirMoldeMini(estilo, item){
      camisa vestida — gerar solta dava um padrão parecido, nunca igual. */
   const moldeUni = D.fotos[MOLDE_KEY+'|'+estilo] || (item ? await garantirMolde(item, estilo) : null);
   const prompt = moldeUni
-    ? 'From the input photo, isolate ONLY the football jersey as a ghost-mannequin product shot: keep the EXACT same jersey — identical stripe pattern, identical stripe widths, spacing and colors, pixel-faithful to the input. Remove the body, the arms, the neck and the background completely. Front view, centered, jersey filling most of the frame, fully transparent background. No crest, no sponsor, no text, no logos.' + AVISO_MARCADOR
+    ? 'From the input photo, isolate ONLY the football jersey as a ghost-mannequin product shot: keep the EXACT same jersey — identical stripe pattern, identical stripe widths, spacing and colors, pixel-faithful to the input. Remove the body, the arms, the skin and the background completely, but KEEP the jersey\'s 3D ghost-mannequin volume: the shoulders slope naturally up into a fully formed round collar with the complete neckline opening visible — the top must NEVER be a flat straight cut. Front view, centered, jersey filling most of the frame, fully transparent background. No crest, no sponsor, no text, no logos.' + AVISO_MARCADOR
     : promptMiniCamisa(estilo);
   const url = await gerarImagemIA('rosto', prompt, 'medium', moldeUni ? [moldeUni.url] : null, 'moldes/miniatura-'+estilo);
   molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: chave, url, atributos:{ recorte:'molde-mini', estilo } };
