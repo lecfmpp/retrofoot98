@@ -4421,8 +4421,7 @@ function promptTorso(item, estiloChave, corA, corB){
   return [
     'Hyper-realistic studio photograph of the torso of a male professional football player, WITHOUT the head — the frame is cropped just below the chin, no face, no head visible at all.',
     `Wearing ${camisa}.`,
-    'MANDATORY: a plain solid WHITE rectangular sponsor panel across the center of the chest, completely BLANK — no text, no logo, no brand, just an empty white rectangle where a sponsor logo will be placed later.',
-    'NO club crest, NO badge, NO logos anywhere on the jersey besides that blank white panel — the upper chest areas stay clean plain fabric, because the club crest will be overlaid there later as a separate layer.',
+    'The jersey is COMPLETELY CLEAN: no club crest, no badge, no sponsor, no text, no logos anywhere — plain fabric only, because the club crest and the sponsor logo will be overlaid later as separate layers.',
     'Shoulders and chest framing, facing the camera directly, official club media day photo style.',
     'Shoulders and chest fill the lower two thirds of the frame, neckline centered horizontally, only plain light gray studio background above the collar.',
     'Soft professional studio lighting, sharp focus, DSLR photo quality.'
@@ -4437,14 +4436,14 @@ function promptMontagem(){
     'the FIRST image is the torso with the football jersey, the SECOND image is the player\'s head.',
     'Attach that EXACT head (same face, same hair, same skin tone, do not change the identity) naturally onto the torso:',
     'correct head size and position for the body, seamless neck-to-collar transition, unified soft studio lighting and color grading.',
-    'Keep the jersey EXACTLY as in the first image — same stripes and colors, and the blank white sponsor panel on the chest stays blank.',
+    'Keep the jersey EXACTLY as in the first image — same pattern and colors, completely clean, with no crest, sponsor, text or logos added.',
     'Plain light gray studio background, chest-up framing, facing the camera, sharp focus, DSLR quality.'
   ].join(' ');
 }
 const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do clube
 /* miniatura/visual composto: a camisa por baixo, o rosto por cima. Os percentuais
    casam com o enquadramento pedido nos dois prompts — ajuste fino é aqui, num lugar só. */
-/* posição padrão do logo no painel branco — o ajuste fino por clube (drag and
+/* posição padrão do logo do patrocinador — o ajuste fino por clube (drag and
    drop no Estúdio) fica salvo em atributos.patro do uniforme e vence o padrão */
 const PATRO_POS_PADRAO  = { x:33, y:65, w:34 };  // left %, top %, largura % (altura acompanha)
 const ESCUDO_POS_PADRAO = { x:61, y:56, w:14 };  // peito esquerdo do jogador na foto final
@@ -5076,8 +5075,8 @@ function modalUniformeIA(item){
     <h3>Uniforme — ${h(c.short||c.name)}</h3>
     <div class="duas-col">
       <div class="col" style="gap:12px">
-        <div class="st" style="line-height:1.6">Base única do elenco: sai limpa, com o painel branco
-          do patrocinador. Escudo e logo entram como camadas — trocou um deles, todas as fotos mudam juntas.</div>
+        <div class="st" style="line-height:1.6">Base única do elenco: a camisa sai totalmente limpa.
+          Escudo e logo do patrocinador entram como camadas direto sobre o tecido — trocou um deles, todas as fotos mudam juntas.</div>
         <label class="f">Estilo da camisa
           <select class="f" id="un-estilo">
             ${ESTILOS_CAMISA.map(e=>`<option value="${e[0]}" ${(at.estilo||'vertical')===e[0]?'selected':''}>${h(e[1])}</option>`).join('')}
@@ -5087,7 +5086,7 @@ function modalUniformeIA(item){
           ${campoCor('un-color2','Cor secundária', corIni2)}
         </div>
         <div id="un-preview-cores" style="padding:2px 0"></div>
-        <label class="f">Logo do patrocinador (prévia — camada sobre o painel branco)
+        <label class="f">Logo do patrocinador (prévia — camada sobre a camisa; prefira logo com fundo transparente)
           <span style="display:flex;gap:8px">
             <input class="f" id="un-patro" style="flex:1" placeholder="https://… ou envie um arquivo" value="${h(ST.patroTeste||'')}">
             ${editar?`<button class="btn btn-sm btn-ghost" id="un-patro-up" style="flex:0 0 auto" title="Enviar arquivo do logo">↥</button>
