@@ -5946,7 +5946,7 @@ function modalUniformeIA(item){
           if(comFoto.length && confirm(`Uniforme aplicado. Recosturar as ${comFoto.length} fotos do elenco com o uniforme novo agora? ~US$ ${(comFoto.length*0.04).toFixed(2)} (os rostos são os mesmos — nada é sorteado de novo).`)){
             let ok=0, falhas=0;
             for(const f of comFoto){
-              el('wz-estado').textContent = `Recosturando ${ok+falhas+1}/${comFoto.length} — ${f.jogador}…`;
+              el('wz-estado').textContent = `Aplicando novo uniforme nos jogadores atuais — ${ok+falhas+1}/${comFoto.length} (${f.jogador})…`;
               try{
                 const nova = await gerarImagemIA('montagem', promptMontagem(), 'medium', [url, f.url],
                   caminhoClube(item)+'/jogadores/'+(chaveNome(f.jogador)||'jogador')+'-foto');
