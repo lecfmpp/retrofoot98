@@ -4365,70 +4365,56 @@ async function removerFundoDeImagem(arquivo){
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
     const dados = cx.getImageData(0, 0, W, H), px = dados.data;
-    const cantos = [0, (W-1)*4, (H-1)*W*4, ((H-1)*W + W-1)*4];
-    const bg = [0,1,2].map(k => Math.round(cantos.reduce((a,i)=>a+px[i+k],0)/4));
-    const TOL = 120;  // soma das diferenças RGB — pega branco sujo e jpeg comprimido
-    const eFundo = i => px[i+3] !== 0 &&
-      (Math.abs(px[i]-bg[0]) + Math.abs(px[i+1]-bg[1]) + Math.abs(px[i+2]-bg[2])) <= TOL;
-    const fila = [], visto = new Uint8Array(W*H);
-    for(let x=0; x<W; x++){ fila.push(x, (H-1)*W + x); }
-    for(let y=0; y<H; y++){ fila.push(y*W, y*W + W-1); }
-    while(fila.length){
-      const p = fila.pop();
-      if(visto[p]) continue; visto[p] = 1;
+
+    /* COR DE FUNDO: histograma (quantizado) dos pixels OPACOS da borda. Se a
+       borda é toda transparente (imagem já padronizada), atravessa o
+       transparente a partir da borda e usa os primeiros opacos que encontrar —
+       é o que faz o "remover fundo" funcionar DEPOIS da conversão 512×512. */
+    const quant = i => ((px[i]>>4)<<8) | ((px[i+1]>>4)<<4) | (px[i+2]>>4);
+    const desquant = k => [((k>>8)&15)*17, ((k>>4)&15)*17, (k&15)*17];
+    const hist = new Map();
+    const somaBorda = i => { if(px[i+3] >= 8) hist.set(quant(i), (hist.get(quant(i))||0)+1); };
+    for(let x=0; x<W; x++){ somaBorda(x*4); somaBorda(((H-1)*W+x)*4); }
+    for(let y=0; y<H; y++){ somaBorda(y*W*4); somaBorda((y*W+W-1)*4); }
+    let bg = null;
+    if(hist.size){ let mk=null, mv=0; for(const [k,v] of hist) if(v>mv){ mv=v; mk=k; } bg = desquant(mk); }
+    else{
+      const visto = new Uint8Array(W*H), fila = [], h2 = new Map();
+      for(let x=0; x<W; x++){ fila.push(x, (H-1)*W+x); }
+      for(let y=0; y<H; y++){ fila.push(y*W, y*W+W-1); }
+      while(fila.length){
+        const p = fila.pop(); if(visto[p]) continue; visto[p] = 1;
+        const i = p*4;
+        if(px[i+3] >= 8){ h2.set(quant(i), (h2.get(quant(i))||0)+1); continue; }
+        const x = p%W, y = (p/W)|0;
+        if(x>0) fila.push(p-1); if(x<W-1) fila.push(p+1);
+        if(y>0) fila.push(p-W); if(y<H-1) fila.push(p+W);
+      }
+      let mk=null, mv=0; for(const [k,v] of h2) if(v>mv){ mv=v; mk=k; }
+      if(mk==null) return await new Promise(ok => cv.toBlob(ok, 'image/png'));
+      bg = desquant(mk);
+    }
+
+    /* INUNDAÇÃO da borda por (transparente OU perto do fundo): o transparente é
+       corredor, o perto-do-fundo é apagado. Branco DENTRO do desenho sobrevive. */
+    const TOL = 120;
+    const perto = i => (Math.abs(px[i]-bg[0]) + Math.abs(px[i+1]-bg[1]) + Math.abs(px[i+2]-bg[2])) <= TOL;
+    const visto2 = new Uint8Array(W*H), fila2 = [];
+    for(let x=0; x<W; x++){ fila2.push(x, (H-1)*W+x); }
+    for(let y=0; y<H; y++){ fila2.push(y*W, y*W+W-1); }
+    while(fila2.length){
+      const p = fila2.pop(); if(visto2[p]) continue; visto2[p] = 1;
       const i = p*4;
-      if(!eFundo(i)) continue;
-      px[i+3] = 0;
+      const transp = px[i+3] < 8;
+      if(!transp && !perto(i)) continue;
+      if(!transp) px[i+3] = 0;
       const x = p%W, y = (p/W)|0;
-      if(x>0) fila.push(p-1); if(x<W-1) fila.push(p+1);
-      if(y>0) fila.push(p-W); if(y<H-1) fila.push(p+W);
+      if(x>0) fila2.push(p-1); if(x<W-1) fila2.push(p+1);
+      if(y>0) fila2.push(p-W); if(y<H-1) fila2.push(p+W);
     }
     cx.putImageData(dados, 0, 0);
     return await new Promise(ok => cv.toBlob(ok, 'image/png'));
   } finally { URL.revokeObjectURL(url); }
-}
-
-/* chama a edge function e devolve a URL pública da imagem já no Storage.
-   `imagens` (opcional) alimenta a montagem: URLs do nosso Storage que a função
-   manda para a OpenAI como imagens de entrada (images/edits). */
-/* ===== pílula de progresso: enquanto qualquer geração está no ar, uma pílula
-   fixa no rodapé diz a etapa e o tempo decorrido. Várias em paralelo somam. ===== */
-const IA_ROTULOS = {
-  escudo:   'Desenhando o escudo…',
-  torso:    'Gerando o uniforme…',
-  rosto:    'Gerando o rosto do jogador…',
-  jogador:  'Gerando a foto do jogador…',
-  montagem: 'Costurando rosto e uniforme…'
-};
-const IA_FILA = [];   // rótulos das gerações em andamento
-let iaTimer = null;
-function iaDesenha(){
-  let p = el('ia-status');
-  if(!IA_FILA.length){
-    if(p) p.remove();
-    if(iaTimer){ clearInterval(iaTimer); iaTimer = null; }
-    return;
-  }
-  if(!p){
-    p = document.createElement('div'); p.id = 'ia-status';
-    document.body.appendChild(p);
-  }
-  const atual = IA_FILA[IA_FILA.length-1];
-  const seg = Math.round((Date.now()-atual.inicio)/1000);
-  p.innerHTML = `<span class="giro"></span><span>${h(atual.rotulo)}</span>
-    <small>${seg}s · normalmente até 1 min${IA_FILA.length>1?` · ${IA_FILA.length} na fila`:''}</small>`;
-}
-function iaComeca(rotulo){
-  const item = { rotulo, inicio: Date.now() };
-  IA_FILA.push(item);
-  iaDesenha();
-  if(!iaTimer) iaTimer = setInterval(iaDesenha, 1000);
-  return item;
-}
-function iaTermina(item){
-  const ix = IA_FILA.indexOf(item);
-  if(ix >= 0) IA_FILA.splice(ix, 1);
-  iaDesenha();
 }
 
 /* caminho organizado no Storage: pais/divisao/clube — os arquivos do clube
@@ -4969,12 +4955,25 @@ async function padronizarEscudo(arquivo){
       const i = new Image(); i.onload = () => ok(i);
       i.onerror = () => erro(new Error('Não consegui ler a imagem.')); i.src = url;
     });
-    const LADO = 512;
+    /* AUTO-AJUSTE: recorta a imagem pela caixa do que é visível (alfa) e
+       encaixa no quadro 512×512 com margem fixa — todo escudo salvo preenche o
+       MESMO espaço, não importa quanta folga o arquivo original tinha. */
+    const W = img.naturalWidth, H = img.naturalHeight;
+    const cvSrc = document.createElement('canvas'); cvSrc.width = W; cvSrc.height = H;
+    const cxSrc = cvSrc.getContext('2d'); cxSrc.drawImage(img, 0, 0);
+    const d = cxSrc.getImageData(0, 0, W, H).data;
+    let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for(let y=0; y<H; y++) for(let x=0; x<W; x++){
+      if(d[(y*W+x)*4+3] >= 8){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+    }
+    if(x1 < 0){ x0=0; y0=0; x1=W-1; y1=H-1; }   // imagem 100% transparente: mantém como veio
+    const bw = x1-x0+1, bh = y1-y0+1;
+    const LADO = 512, MARGEM = 14;
     const cv = document.createElement('canvas'); cv.width = LADO; cv.height = LADO;
     const cx = cv.getContext('2d');
-    const esc = Math.min(LADO/img.naturalWidth, LADO/img.naturalHeight);
-    const w = img.naturalWidth*esc, hh = img.naturalHeight*esc;
-    cx.drawImage(img, (LADO-w)/2, (LADO-hh)/2, w, hh);
+    const esc = Math.min((LADO-2*MARGEM)/bw, (LADO-2*MARGEM)/bh);
+    const w = bw*esc, hh = bh*esc;
+    cx.drawImage(cvSrc, x0, y0, bw, bh, (LADO-w)/2, (LADO-hh)/2, w, hh);
     const blob = await new Promise(ok => cv.toBlob(ok, 'image/webp', 0.9));
     if(!blob) throw new Error('Falha ao converter.');
     return blob;
@@ -5003,9 +5002,10 @@ function modalEscudoIA(item, onSalvo){
         <div id="ia-preview" title="Clique para ver em tela expandida"
              style="width:230px;height:230px;display:flex;align-items:center;justify-content:center;cursor:zoom-in;
              border:1px dashed var(--bd2);border-radius:12px;background:repeating-conic-gradient(#0002 0 25%,transparent 0 50%) 0 0/18px 18px">
-          ${atual?`<img src="${h(atual)}" style="max-width:88%;max-height:88%;object-fit:contain">`
+          ${atual?`<img src="${h(atual)}" style="width:100%;height:100%;object-fit:contain">`
                  :'<span style="font-size:12px;color:var(--dim3)">sem escudo ainda</span>'}
         </div>
+        <small style="font-size:11px;color:var(--dim3)">quadro real de 512×512 — como fica salvo e no jogo</small>
         <div id="ia-estado" style="font-size:12px;color:var(--dim2);min-height:16px"></div>
       </div>
     </div>
@@ -5024,7 +5024,7 @@ function modalEscudoIA(item, onSalvo){
   let gerada = null;
   const mostrarNoPreview = (url, aviso) => {
     gerada = url;
-    el('ia-preview').innerHTML = `<img src="${h(url)}" style="max-width:88%;max-height:88%;object-fit:contain">`;
+    el('ia-preview').innerHTML = `<img src="${h(url)}" style="width:100%;height:100%;object-fit:contain">`;
     el('ia-estado').textContent = aviso;
     el('ia-salvar').disabled = false;
     el('ia-rmfundo').disabled = false;
