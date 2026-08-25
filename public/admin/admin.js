@@ -5720,6 +5720,10 @@ function modalUniformeIA(item){
       <small style="font-size:12px;color:var(--dim2)">A marca do material esportivo — entra pequena, no lado oposto ao escudo, como camada (trocar não custa nada). Fica salva com o uniforme do clube.</small>
       <button class="btn btn-sm" data-continuar style="align-self:flex-start">${wiz.fabUrl?'Continuar':'Continuar sem fabricante'}</button></div>`;
     return `<div class="col" style="gap:10px">
+      ${!D.fotos[MOLDE_KEY+'|mini-'+wiz.estilo] ? `<div class="erro" style="margin-bottom:4px">
+        <b>Sem molde de miniatura neste estilo.</b> O uniforme salva normalmente, mas a
+        <b>camisa do campo</b> (Formação) continuará com o desenho padrão — gere o molde no passo
+        <b>Estilo</b> e salve de novo para a miniatura entrar.</div>`:''}
       <small style="font-size:12.5px;color:var(--dim2);line-height:1.6">Confira a prévia ao lado. <b>Salvar rascunho</b> guarda o uniforme no Estúdio para continuar depois; <b>Salvar e aplicar no jogo</b> grava o uniforme do elenco.</small>
       ${editar?`<button class="btn btn-sm btn-ghost" id="wz-ajustar" style="align-self:flex-start" ${basePreview()?'':'disabled'}>✥ Ajustar escudo e patrocínio na foto</button>`:''}
       <div id="wz-estado" style="font-size:12px;color:var(--dim2);min-height:16px"></div>
