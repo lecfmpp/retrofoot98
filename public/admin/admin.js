@@ -4503,7 +4503,7 @@ function promptTorso(item, estiloChave, corA, corB){
     `Wearing ${camisa}.`,
     'The jersey is COMPLETELY CLEAN: no club crest, no badge, no sponsor, no text, no logos anywhere — plain fabric only, because the club crest and the sponsor logo will be overlaid later as separate layers.',
     'Shoulders and chest framing, facing the camera directly, official club media day photo style.',
-    'Shoulders and chest fill the lower two thirds of the frame, neckline centered horizontally, only plain light gray studio background above the collar.',
+    'FRAMING IS FIXED (this exact layout is required): the jersey occupies ONLY the lower 60% of the square frame — the collar sits at 40% from the top, neckline centered horizontally — and the upper 40% of the frame is NOTHING but plain light gray studio background, left empty where the head would be in an official chest-up portrait.',
     'Soft professional studio lighting, sharp focus, DSLR photo quality.'
   ].join(' ');
 }
@@ -4516,11 +4516,23 @@ function promptMontagem(){
     'the FIRST image is the torso with the football jersey, the SECOND image is the player\'s head.',
     'Attach that EXACT head (same face, same hair, same skin tone, do not change the identity) naturally onto the torso:',
     'correct head size and position for the body, seamless neck-to-collar transition, unified soft studio lighting and color grading.',
-    'Keep the jersey EXACTLY as in the first image — same pattern and colors, completely clean, with no crest, sponsor, text or logos added.',
-    'Plain light gray studio background, chest-up framing, facing the camera, sharp focus, DSLR quality.'
+    'CRITICAL: do NOT move, scale, crop or reframe the jersey — it must stay in EXACTLY the same position and size as in the first image, pixel-aligned, same pattern and colors, completely clean (no crest, sponsor, text or logos added).',
+    'The head goes into the empty background space ABOVE the collar, where the first image is blank — the final framing is identical to the first image, just with the head filled in.',
+    'Plain light gray studio background, facing the camera, sharp focus, DSLR quality.'
   ].join(' ');
 }
 const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do clube
+
+/* VISÃO "SÓ UNIFORME": a MESMA imagem canônica (camisa nos 60% de baixo, vazio
+   em cima onde entra a cabeça), só que com zoom na área da camisa. Uma imagem,
+   um conjunto de posições — cada uso escolhe o recorte. */
+function compostoCropHTML(torsoUrl, px, raio, patroUrl, escudoUrl, patroPos, escudoPos){
+  const inner = Math.round(px / 0.6);            // a camisa ocupa os 60% de baixo
+  return `<span style="display:inline-block;width:${px}px;height:${px}px;border-radius:${raio!=null?raio:8}px;overflow:hidden;position:relative;background:#d9d9d9">
+    <span style="position:absolute;left:${Math.round((px-inner)/2)}px;top:${-Math.round(inner*0.4)}px">
+      ${compostoHTML(torsoUrl, null, inner, 0, patroUrl, escudoUrl, patroPos, escudoPos)}
+    </span></span>`;
+}
 
 /* garante o molde de um estilo: devolve o existente ou gera UMA vez por IA
    (ancorado na referência quando há) e grava. Usado pelo wizard e pela
@@ -5512,7 +5524,7 @@ function modalUniformeIA(item){
       <div class="col" style="gap:0">${reguaHTML}</div>
       <div class="col" style="gap:10px;align-items:center">
         <div id="wz-preview" title="Clique para ver em tela expandida" style="cursor:zoom-in">
-          ${(wiz.pv || t()) ? compostoHTML(wiz.pv || t().url, null, 250, 12, wiz.patroUrl, escudoEscolhido(), at.patro, at.escudo)
+          ${(wiz.pv || t()) ? compostoCropHTML(wiz.pv || t().url, 250, 12, wiz.patroUrl, escudoEscolhido(), at.patro, at.escudo)
             : `<div style="width:250px;height:250px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px dashed var(--bd2);border-radius:12px;background:#d9d9d9">
                 <svg viewBox="0 0 100 100" style="width:150px;height:150px;opacity:.45">
                   <path fill="#8a8a8a" d="M35 12 L44 8 Q50 14 56 8 L65 12 L86 24 L79 42 L68 37 L68 92 L32 92 L32 37 L21 42 L14 24 Z"/>
