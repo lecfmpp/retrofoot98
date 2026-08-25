@@ -1151,16 +1151,30 @@ async function pgFinancas(){
   const iaEsc = iaSoma(['escudo']), iaUni = iaSoma(['torso']),
         iaJog = iaSoma(['rosto','montagem','jogador']);
   const iaTot = iaEsc.v + iaUni.v + iaJog.v;
-  const usd = v => 'US$ ' + v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+  /* a moeda do painel é o REAL: converte pelo câmbio do dia (cache de 1h) e o
+     dólar da fatura da OpenAI aparece como secundário */
+  let cot = 0;
+  try{
+    const cc = JSON.parse(localStorage.getItem('rf_cotacao')||'null');
+    if(cc && Date.now()-cc.t < 3600e3) cot = cc.v;
+    else{
+      const r = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL');
+      cot = parseFloat((await r.json()).USDBRL.bid)||0;
+      if(cot) localStorage.setItem('rf_cotacao', JSON.stringify({v:cot, t:Date.now()}));
+    }
+  }catch(e){}
+  if(!cot) cot = 5.5;   // fallback honesto se a cotação não vier
+  const usd  = v => 'US$ ' + v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+  const emRe = v => 'R$ ' + (v*cot).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
   const iaCards = `
     <div class="card card-p" style="margin-top:4px">
       <div class="tt">Gastos com IA — Estúdio de imagens</div>
-      <div class="st" style="margin-bottom:12px">Registrado automaticamente a cada geração (contagem desde 25/08/2026). Pintura de molde e camadas não custam nada.</div>
+      <div class="st" style="margin-bottom:12px">Registrado automaticamente a cada geração (contagem desde 25/08/2026). Pintura de molde e camadas não custam nada. Câmbio do dia: R$ ${cot.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}.</div>
       <div class="g4">
-        ${kpiHTML({l:'Escudos gerados', v:usd(iaEsc.v), d:`${num(iaEsc.n)} gerações`})}
-        ${kpiHTML({l:'Uniformes e moldes', v:usd(iaUni.v), d:`${num(iaUni.n)} gerações`})}
-        ${kpiHTML({l:'Jogadores (rosto + costura)', v:usd(iaJog.v), d:`${num(iaJog.n)} gerações`})}
-        ${kpiHTML({l:'Total gasto com IA', v:usd(iaTot), d:`${num(iaEsc.n+iaUni.n+iaJog.n)} imagens`, c:'var(--ambar)'})}
+        ${kpiHTML({l:'Escudos gerados', v:emRe(iaEsc.v), d:`${usd(iaEsc.v)} · ${num(iaEsc.n)} gerações`})}
+        ${kpiHTML({l:'Uniformes e moldes', v:emRe(iaUni.v), d:`${usd(iaUni.v)} · ${num(iaUni.n)} gerações`})}
+        ${kpiHTML({l:'Jogadores (rosto + costura)', v:emRe(iaJog.v), d:`${usd(iaJog.v)} · ${num(iaJog.n)} gerações`})}
+        ${kpiHTML({l:'Total gasto com IA', v:emRe(iaTot), d:`${usd(iaTot)} · ${num(iaEsc.n+iaUni.n+iaJog.n)} imagens`, c:'var(--ambar)'})}
       </div>
     </div>`;
 
