@@ -5364,9 +5364,8 @@ function modalUniformeIA(item){
         ${editar?`<button class="btn btn-sm btn-ghost" id="wz-patro-up" style="flex:0 0 auto" title="Enviar arquivo do logo">↥</button>
         <input type="file" id="wz-patro-arq" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">`:''}
       </span>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim2);cursor:pointer">
-        <input type="checkbox" id="wz-patro-nofundo"> Remover fundo do logo ao enviar</label>
-      <small style="font-size:12px;color:var(--dim2)">O logo fica salvo com o uniforme deste clube e entra como camada — trocar depois não custa nada.</small>
+      ${editar?`<button class="btn btn-sm btn-ghost" id="wz-patro-rmfundo" style="align-self:flex-start" ${wiz.patroUrl?'':'disabled'}>Remover fundo do logo</button>`:''}
+      <small style="font-size:12px;color:var(--dim2)">O logo fica salvo com o uniforme deste clube e entra como camada — trocar depois não custa nada. "Remover fundo" apaga fundo sólido (branco/chapado) do logo atual.</small>
       <button class="btn btn-sm" data-continuar style="align-self:flex-start">${wiz.patroUrl?'Continuar':'Continuar sem patrocinador'}</button></div>`;
     return `<div class="col" style="gap:10px">
       <small style="font-size:12.5px;color:var(--dim2);line-height:1.6">Confira a prévia ao lado. <b>Salvar rascunho</b> guarda o uniforme no Estúdio para continuar depois; <b>Salvar e aplicar no jogo</b> grava o uniforme do elenco${wiz.escudoNovo?' e põe o escudo novo no patch':''}.</small>
@@ -5477,18 +5476,36 @@ function modalUniformeIA(item){
     el('wz-patro').onchange = () => { colher(); pintarPrevia(); };
     el('wz-patro-up').onclick = () => el('wz-patro-arq').click();
     el('wz-patro-arq').onchange = async () => {
-      let f = el('wz-patro-arq').files[0]; if(!f) return;
+      const f = el('wz-patro-arq').files[0]; if(!f) return;
       if(f.size > 2*1024*1024) return toast('Logo acima de 2 MB.', true);
-      let ext = (f.name.split('.').pop()||'png').toLowerCase();
-      if(el('wz-patro-nofundo').checked){
-        try{ const b2 = await removerFundoDeImagem(f); if(b2){ f=b2; ext='png'; } }
-        catch(err){ return toast('Falha ao remover o fundo: '+err.message, true); }
-      }
+      const ext = (f.name.split('.').pop()||'png').toLowerCase();
       const caminho = `logos/${Date.now()}-${chaveNome(f.name||'logo').slice(0,24)||'logo'}.${ext}`;
       const up = await sb.storage.from('patrocinadores').upload(caminho, f, { upsert:false, cacheControl:'31536000' });
       if(up.error) return toast(erroMsg(up.error), true);
       wiz.patroUrl = sb.storage.from('patrocinadores').getPublicUrl(caminho).data.publicUrl;
       toast('Logo enviado.'); abrir();
+    };
+    const rmf = el('wz-patro-rmfundo');
+    if(rmf) rmf.onclick = async () => {
+      colher();
+      if(!wiz.patroUrl) return toast('Defina o logo primeiro (URL ou arquivo).', true);
+      rmf.disabled = true; rmf.textContent = 'Removendo fundo…';
+      try{
+        const r = await fetch(wiz.patroUrl);
+        if(!r.ok) throw new Error('não consegui baixar o logo ('+r.status+')');
+        const limpo = await removerFundoDeImagem(await r.blob());
+        if(!limpo) throw new Error('falha ao processar a imagem');
+        const caminho = `logos/${Date.now()}-semfundo.png`;
+        const up = await sb.storage.from('patrocinadores').upload(caminho, limpo, { upsert:false, cacheControl:'31536000' });
+        if(up.error) throw new Error(up.error.message);
+        wiz.patroUrl = sb.storage.from('patrocinadores').getPublicUrl(caminho).data.publicUrl;
+        toast('Fundo removido — versão limpa salva.');
+        abrir();
+        return;
+      }catch(err){
+        toast('Não deu para remover o fundo daqui ('+err.message+') — baixe o arquivo e envie pelo ↥.', true);
+      }
+      rmf.disabled = false; rmf.textContent = 'Remover fundo do logo';
     };
   }
   if(wiz.passo===5){
