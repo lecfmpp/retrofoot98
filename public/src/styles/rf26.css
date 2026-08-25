@@ -8518,3 +8518,10 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-fx-attr-b{min-width:0}
 .rf-fx-linha>span:not(.rf-sp2){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rf-fx-clube-s,.rf-fx-clube-f{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* notas do plantel: retrato GRANDE do destaque (cartão, não tabela) */
+.rf-nota.com-foto{display:flex;align-items:center;gap:14px}
+.rf-nota-foto{flex:0 0 auto}
+.rf-fotonum.nota{width:64px;height:64px;border-radius:14px}
+.rf-fotonum.nota .rf-fnum{min-width:18px;height:18px;line-height:18px;font-size:11px;right:4px;bottom:4px}
+.rf-nota.com-foto .rf-nota-id{flex:1;min-width:0}
