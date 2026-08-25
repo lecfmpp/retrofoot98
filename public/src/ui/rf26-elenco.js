@@ -170,10 +170,7 @@ function rfElElencoHTML(){
     const tit=false;
     return `<div class="rf-eln-row rf-eln-g ${sel?'sel':''}" onclick="rfSelPlayer('${escC(p.pid)}')">
       <span class="rf-eln-jog">
-        ${(function(){ const f=rfFxFoto(p), n=nums[p.pid]||p.num||'';
-          return f!=='img/jogador-perfil.png'
-            ? rfFotoNumHTML(f, n, 'eln')
-            : `<span class="rf-eln-avwrap"><img class="rf-eln-av" src="${f}" alt="" loading="lazy"><i class="rf-eln-num">${escC(String(n))}</i></span>`; })()}
+        ${rfFotoNumHTML(rfFxFoto(p), nums[p.pid]||p.num||'', 'eln')}
         <b class="rf-eln-nome">${escC(p.n)}</b>
         ${emTreino?'<img class="rf-eln-cone" src="img/treino-especial-cone.webp" width="13" height="13" alt="Em treino especial" title="Em treino especial — chance extra de evolução a cada rodada">':''}
         ${(p.suspended>0)?' 🟥':''}${(p.injuredMatches>0)?' ✚':''}
