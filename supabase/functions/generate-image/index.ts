@@ -69,30 +69,62 @@ Deno.serve(async (req) => {
     return resp(403, { error: "Só sócios do painel podem gerar imagens." });
   }
 
-  let body: { tipo?: string; prompt?: string; qualidade?: string };
+  let body: { tipo?: string; prompt?: string; qualidade?: string; imagens?: string[] };
   try { body = await req.json(); } catch { return resp(400, { error: "Body inválido." }); }
 
-  const cfg = TIPOS[String(body.tipo || "")];
+  const tipo = String(body.tipo || "");
+  const cfg = tipo === "montagem" ? { bucket: "jogadores", background: "opaque" as const } : TIPOS[tipo];
   const prompt = String(body.prompt || "").trim();
-  if (!cfg) return resp(400, { error: "tipo tem que ser escudo, jogador, rosto ou torso." });
+  if (!cfg) return resp(400, { error: "tipo tem que ser escudo, jogador, rosto, torso ou montagem." });
   if (!prompt || prompt.length > 4000) return resp(400, { error: "prompt vazio ou longo demais." });
   const qualidade = ["low", "medium", "high"].includes(String(body.qualidade)) ? String(body.qualidade) : "medium";
 
-  // OpenAI Images — gpt-image-1 devolve base64
-  const oa = await fetch("https://api.openai.com/v1/images/generations", {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${OPENAI_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "gpt-image-1",
-      prompt,
-      n: 1,
-      size: "1024x1024",
-      quality: qualidade,
-      background: cfg.background,
-      output_format: FORMATO,
-      output_compression: COMPRESSAO,
-    }),
-  });
+  let oa: Response;
+  if (tipo === "montagem") {
+    // MONTAGEM: costura rosto + uniforme numa foto só, via images/edits com as
+    // duas imagens de entrada. Só aceita imagem do NOSSO Storage — nada de
+    // buscar URL arbitrária com a chave do projeto (SSRF).
+    const urls = Array.isArray(body.imagens) ? body.imagens.map(String) : [];
+    const prefixo = `${url}/storage/v1/object/public/`;
+    if (urls.length !== 2 || urls.some((u) => !u.startsWith(prefixo))) {
+      return resp(400, { error: "montagem exige exatamente 2 imagens do Storage do projeto (uniforme e rosto)." });
+    }
+    const form = new FormData();
+    form.append("model", "gpt-image-1");
+    form.append("prompt", prompt);
+    form.append("n", "1");
+    form.append("size", "1024x1024");
+    form.append("quality", qualidade);
+    form.append("output_format", FORMATO);
+    form.append("output_compression", String(COMPRESSAO));
+    for (let i = 0; i < urls.length; i++) {
+      const r = await fetch(urls[i]);
+      if (!r.ok) return resp(400, { error: `Não consegui baixar a imagem ${i + 1} (${r.status}).` });
+      const blob = await r.blob();
+      form.append("image[]", new File([blob], `entrada-${i}.webp`, { type: blob.type || "image/webp" }));
+    }
+    oa = await fetch("https://api.openai.com/v1/images/edits", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${OPENAI_KEY}` },
+      body: form,
+    });
+  } else {
+    // OpenAI Images — gpt-image-1 devolve base64
+    oa = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${OPENAI_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "gpt-image-1",
+        prompt,
+        n: 1,
+        size: "1024x1024",
+        quality: qualidade,
+        background: cfg.background,
+        output_format: FORMATO,
+        output_compression: COMPRESSAO,
+      }),
+    });
+  }
   if (!oa.ok) {
     const detalhe = await oa.text().catch(() => "");
     console.error("OpenAI falhou:", oa.status, detalhe.slice(0, 500));

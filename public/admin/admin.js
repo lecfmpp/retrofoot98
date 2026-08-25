@@ -4313,10 +4313,12 @@ function abrirLightbox(url, alt){
   abrirLightboxHTML(`<img src="${h(url)}" alt="${h(alt||'')}" style="max-width:92vw;max-height:92vh;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px #000">`);
 }
 
-/* chama a edge function e devolve a URL pública da imagem já no Storage */
-async function gerarImagemIA(tipo, prompt, qualidade){
+/* chama a edge function e devolve a URL pública da imagem já no Storage.
+   `imagens` (opcional) alimenta a montagem: URLs do nosso Storage que a função
+   manda para a OpenAI como imagens de entrada (images/edits). */
+async function gerarImagemIA(tipo, prompt, qualidade, imagens){
   const { data, error } = await sb.functions.invoke('generate-image',
-    { body:{ tipo, prompt, qualidade: qualidade||'medium' } });
+    { body:{ tipo, prompt, qualidade: qualidade||'medium', imagens } });
   if(error){
     let msg = error.message || 'Falha ao gerar a imagem.';
     try{ const j = await error.context.json(); if(j && j.error) msg = j.error; }catch(_e){}
@@ -4424,6 +4426,19 @@ function promptTorso(item, estiloChave, corA, corB){
     'Shoulders and chest framing, facing the camera directly, official club media day photo style.',
     'Shoulders and chest fill the lower two thirds of the frame, neckline centered horizontally, only plain light gray studio background above the collar.',
     'Soft professional studio lighting, sharp focus, DSLR photo quality.'
+  ].join(' ');
+}
+/* a MONTAGEM IA costura rosto + uniforme numa foto só (images/edits com as duas
+   imagens de entrada) — é ela que fica realmente natural. As camadas CSS seguem
+   como prévia barata; a montagem salva em atributos.montagem é a foto final. */
+function promptMontagem(){
+  return [
+    'Combine the two input images into ONE photorealistic official club media day portrait:',
+    'the FIRST image is the torso with the football jersey, the SECOND image is the player\'s head.',
+    'Attach that EXACT head (same face, same hair, same skin tone, do not change the identity) naturally onto the torso:',
+    'correct head size and position for the body, seamless neck-to-collar transition, unified soft studio lighting and color grading.',
+    'Keep the jersey EXACTLY as in the first image — same stripes and colors, and the blank white sponsor panel on the chest stays blank.',
+    'Plain light gray studio background, chest-up framing, facing the camera, sharp focus, DSLR quality.'
   ].join(' ');
 }
 const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do clube
@@ -4719,6 +4734,9 @@ function modalFotosIA(item){
      (de antes das camadas) aparece como está */
   const thumbHTML = (f, px) => {
     const t = torso();
+    /* a montagem IA (rosto costurado no uniforme pela OpenAI) é a foto de verdade */
+    if(f && f.atributos && f.atributos.montagem)
+      return `<img src="${h(f.atributos.montagem)}" style="width:${px}px;height:${px}px;border-radius:8px;object-fit:cover">`;
     if(f && f.atributos && f.atributos.recorte==='rosto')
       return t ? compostoHTML(t.url, f.url, px, 8, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro)
                : `<span style="display:inline-block;width:${px}px;height:${px}px;border-radius:8px;background:#d9d9d9;overflow:hidden"><img src="${h(f.url)}" style="width:100%;height:100%;object-fit:contain"></span>`;
@@ -4747,9 +4765,10 @@ function modalFotosIA(item){
     <div class="st" style="line-height:1.6;margin-bottom:10px">
       A foto é em DUAS camadas: o <b>rosto</b> (recortado, um por jogador) sobre a
       <b>camisa do clube</b> (base única para o elenco inteiro). Trocou de clube?
-      O mesmo rosto entra na camisa do clube novo, sem gerar nada. O visual do rosto
-      (pele, cabelo, barba, sorriso, brinco, tatuagem) é sorteado — use ↻ antes de gerar.
-      A idade vem do elenco. ~US$ 0,04 por imagem.</div>
+      O visual do rosto (pele, cabelo, barba, sorriso, brinco, tatuagem) é sorteado — use ↻ antes
+      de gerar. Com o uniforme pronto, a IA <b>costura</b> rosto e uniforme numa foto natural
+      (a montagem); o rosto solto fica guardado para remontar barato na troca de clube.
+      A idade vem do elenco. ~US$ 0,08 por jogador (rosto + montagem).</div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:10px 12px;border:1px solid var(--bd2);border-radius:10px">
       <span data-torso-thumb ${torso()?'style="cursor:zoom-in" title="Ver em tela expandida"':''}>${torso()
         ? `<img src="${h(torso().url)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover">`
@@ -4776,7 +4795,8 @@ function modalFotosIA(item){
   const verExpandido = (f, alt) => {
     const t = torso();
     const lado = Math.min(720, Math.floor(Math.min(innerWidth, innerHeight)*0.8));
-    if(f.atributos && f.atributos.recorte==='rosto' && t)
+    if(f.atributos && f.atributos.montagem) abrirLightbox(f.atributos.montagem, alt);
+    else if(f.atributos && f.atributos.recorte==='rosto' && t)
       abrirLightboxHTML(compostoHTML(t.url, f.url, lado, 16, ST.patroTeste, escudoClube(), t.atributos && t.atributos.patro));
     else abrirLightbox(f.url, alt);
   };
@@ -4799,6 +4819,14 @@ function modalFotosIA(item){
   async function gerarPara(p, linha){
     const at = Object.assign({}, sorteios[p.n], { recorte:'rosto' });
     const url = await gerarImagemIA('rosto', promptRosto(item, p, at), 'medium');
+    /* com o uniforme pronto, a OpenAI costura rosto+uniforme numa foto natural —
+       é a montagem que o jogo mostra. O rosto solto fica guardado: é ele que
+       permite refazer a montagem barata quando o jogador trocar de clube. */
+    const t = torso();
+    if(t){
+      try{ at.montagem = await gerarImagemIA('montagem', promptMontagem(), 'medium', [t.url, url]); }
+      catch(err){ console.warn('montagem falhou, fica a prévia por camadas:', err.message); }
+    }
     const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: p.n, url, atributos: at };
     const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
     if(error) throw new Error(erroMsg(error));
@@ -4831,7 +4859,7 @@ function modalFotosIA(item){
   if(btTodos) btTodos.onclick = async () => {
     const fila = faltantes();
     if(!fila.length) return toast('Todo o elenco já tem foto.');
-    const custo = (fila.length*0.04).toFixed(2);
+    const custo = (fila.length*(torso()?0.08:0.04)).toFixed(2);
     if(!confirm(`Gerar ${fila.length} fotos agora? Custo estimado ~US$ ${custo}. Uma por vez, dá para acompanhar.`)) return;
     btTodos.disabled = true;
     let ok = 0, erroN = 0;
