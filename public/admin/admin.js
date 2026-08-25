@@ -4521,6 +4521,69 @@ function promptMontagem(){
   ].join(' ');
 }
 const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do clube
+
+/* garante o molde de um estilo: devolve o existente ou gera UMA vez por IA
+   (ancorado na referência quando há) e grava. Usado pelo wizard e pela
+   repintura em massa. */
+async function garantirMolde(item, estilo){
+  let molde = D.fotos[MOLDE_KEY+'|'+estilo];
+  if(molde) return molde;
+  const camisaM = descrCamisa(estilo, 'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)');
+  const ref = moldeReferencia();
+  const urlMolde = ref
+    ? await gerarImagemIA('montagem', promptCamisaNaReferencia(camisaM) + AVISO_MARCADOR, 'medium', [ref.url])
+    : await gerarImagemIA('torso', promptTorso(item, estilo,
+        'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)') + AVISO_MARCADOR, 'medium');
+  molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: estilo, url: urlMolde, atributos:{ recorte:'molde', estilo } };
+  const rM = await jogo('player_photos').upsert(molde, { onConflict:'pack_id,club_id,jogador' });
+  if(rM.error) throw new Error(erroMsg(rM.error));
+  D.fotos[MOLDE_KEY+'|'+estilo] = molde;
+  return molde;
+}
+
+/* repinta TODOS os uniformes de molde do patch com os moldes atuais — gera os
+   moldes que faltarem (IA, 1x por estilo) e o resto é pintura local, grátis.
+   É o botão de virada quando a pintura ou os moldes melhoram. */
+async function repintarTodosUniformes(btn){
+  const alvos = [];
+  for(const x of (D.catalogo||[])){
+    const t = D.fotos[x.c.id+'|'+TORSO_KEY];
+    if(t && t.atributos && t.atributos.molde && t.atributos.estilo && t.atributos.cores) alvos.push({ x, t });
+  }
+  if(!alvos.length) return toast('Nenhum uniforme de molde para repintar.', true);
+  const estilos = Array.from(new Set(alvos.map(a=>a.t.atributos.estilo)));
+  const faltam = estilos.filter(e => !D.fotos[MOLDE_KEY+'|'+e]);
+  if(!confirm(`Repintar ${alvos.length} uniformes com os moldes atuais?`+
+    (faltam.length?` ${faltam.length} molde(s) serão gerados por IA antes (~US$ ${(faltam.length*0.04).toFixed(2)}).`:' Sem custo — é tudo pintura local.')+
+    ' As posições salvas de escudo/patrocínio são preservadas.')) return;
+  btn.disabled = true; const rot = btn.textContent;
+  let ok=0, erros=0;
+  try{
+    for(const e of faltam){
+      btn.textContent = `Gerando molde ${e}…`;
+      await garantirMolde(alvos[0].x, e);
+    }
+    for(const { x, t } of alvos){
+      btn.textContent = `Repintando ${ok+erros+1}/${alvos.length}…`;
+      try{
+        const molde = D.fotos[MOLDE_KEY+'|'+t.atributos.estilo];
+        const blob = await pintarMolde(molde.url, t.atributos.cores[0], t.atributos.cores[1]);
+        const caminho = `uniformes/${x.c.id}-${Date.now()}.webp`;
+        const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
+        if(up.error) throw new Error(up.error.message);
+        const reg = Object.assign({}, t, { url: sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl });
+        const r = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
+        if(r.error) throw new Error(r.error.message);
+        D.fotos[x.c.id+'|'+TORSO_KEY] = reg;
+        ok++;
+      }catch(err){ erros++; console.warn('repintura falhou:', x.c.id, err.message); }
+    }
+    registrar('estudio.uniformes.repintar', String(ok), { pacote: ST.packId, falhas: erros });
+    toast(`Repintados ${ok} uniformes${erros?`, ${erros} falharam`:''}.`);
+  }catch(err){ toast(err.message||'Falha na repintura.', true); }
+  btn.disabled = false; btn.textContent = rot;
+  pgEstudio();
+}
 const MOLDE_KEY = '__molde__';   // "clube" especial: um molde de uniforme por ESTILO
 
 /* CONSISTÊNCIA DOS UNIFORMES: o primeiro molde gerado é a REFERÊNCIA de
@@ -4699,6 +4762,7 @@ async function pgEstudio(){
         </select>
         <input class="busca" id="est-busca" placeholder="Procurar clube…" value="${h(ST.buscaEstudio||'')}">
         ${aba==='escudos' && podeEditar('dados') ? '<button class="btn btn-sm" id="est-lote">Enviar em lote</button>' : ''}
+        ${aba==='uniformes' && podeEditar('dados') ? '<button class="btn btn-sm btn-ghost" id="est-repintar" title="Repinta todos os uniformes de molde com os moldes atuais">Repintar todos</button>' : ''}
       </div>
       <div class="rowh" style="grid-template-columns:44px 1.7fr .9fr .6fr 1fr">
         <span></span><span>Clube</span><span>País</span><span style="text-align:center">Divisão</span>
@@ -4737,6 +4801,8 @@ async function pgEstudio(){
   el('est-pais').onchange = () => { ST.paisEstudio = el('est-pais').value; pgEstudio(); };
   const btLote = el('est-lote');
   if(btLote) btLote.onclick = modalLoteEscudos;
+  const btRep = el('est-repintar');
+  if(btRep) btRep.onclick = () => repintarTodosUniformes(btRep);
   const b = el('est-busca'); let t=null;
   b.oninput = () => { clearTimeout(t); t=setTimeout(()=>{ ST.buscaEstudio=b.value.trim(); pgEstudio(); },300); };
   document.querySelectorAll('[data-est-clube]').forEach(r => r.onclick = () => {
@@ -5532,16 +5598,7 @@ function modalUniformeIA(item){
             bts.forEach(b=>b.disabled=false); return;
           }
           el('wz-estado').textContent = 'Gerando o molde deste estilo (uma vez só)…';
-          const camisaM = descrCamisa(wiz.estilo, 'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)');
-          const ref = moldeReferencia();
-          const urlMolde = ref
-            ? await gerarImagemIA('montagem', promptCamisaNaReferencia(camisaM) + AVISO_MARCADOR, 'medium', [ref.url])
-            : await gerarImagemIA('torso', promptTorso(item, wiz.estilo,
-                'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)') + AVISO_MARCADOR, 'medium');
-          molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: wiz.estilo, url: urlMolde, atributos:{ recorte:'molde', estilo: wiz.estilo } };
-          const rM = await jogo('player_photos').upsert(molde, { onConflict:'pack_id,club_id,jogador' });
-          if(rM.error) throw new Error(erroMsg(rM.error));
-          D.fotos[MOLDE_KEY+'|'+wiz.estilo] = molde;
+          molde = await garantirMolde(item, wiz.estilo);
         }
         el('wz-estado').textContent = 'Pintando o molde nas cores do clube — sem IA, sem custo.';
         const blob = await pintarMolde(molde.url, wiz.corA, wiz.corB);
