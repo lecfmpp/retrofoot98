@@ -5558,6 +5558,7 @@ function modalUniformeIA(item){
       corA: (at.cores && at.cores[0]) || c.color || '#1b7a3d',
       corB: (at.cores && at.cores[1]) || c.color2 || '#ffffff',
       patroUrl: at.patroUrl || ST.patroTeste || '',
+      patroNome: at.patroNome || '',
       fabUrl: at.fabricanteUrl || '',
       pv: null, pvChave: '' };
   }
@@ -5631,7 +5632,10 @@ function modalUniformeIA(item){
         <input type="file" id="wz-patro-arq" accept=".png,.webp,.jpg,.jpeg,.svg" style="display:none">`:''}
       </span>
       ${editar?`<button class="btn btn-sm btn-ghost" id="wz-patro-rmfundo" style="align-self:flex-start" ${wiz.patroUrl?'':'disabled'}>Remover fundo do logo</button>`:''}
-      <small style="font-size:12px;color:var(--dim2)">O logo fica salvo com o uniforme deste clube e entra como camada — trocar depois não custa nada. "Remover fundo" apaga fundo sólido (branco/chapado) do logo atual.</small>
+      <label class="f" style="font-size:12.5px">Nome do patrocinador (aparece na aba Patrocínio do jogo)
+        <input class="f" id="wz-patro-nome" placeholder="Ex.: Betano" value="${h(wiz.patroNome||'')}"
+          oninput="D.wiz.patroNome=this.value"></label>
+      <small style="font-size:12px;color:var(--dim2)">O logo fica salvo com o uniforme deste clube e entra como camada — e o jogo mostra este patrocinador como o contrato da CAMISA na aba Patrocínio. Trocar depois não custa nada.</small>
       <button class="btn btn-sm" data-continuar style="align-self:flex-start">${wiz.patroUrl?'Continuar':'Continuar sem patrocinador'}</button></div>`;
     if(n===6) return `<div class="col" style="gap:10px">
       <span style="display:flex;gap:8px">
@@ -5939,7 +5943,8 @@ function modalUniformeIA(item){
         }
         const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: TORSO_KEY, url,
           atributos: Object.assign({}, at, wiz.posPend || {}, { recorte:'torso', estilo: wiz.estilo, cores:[wiz.corA, wiz.corB],
-            molde:true, patroUrl: wiz.patroUrl||null, fabricanteUrl: wiz.fabUrl||null,
+            molde:true, patroUrl: wiz.patroUrl||null, patroNome: (wiz.patroNome||'').trim()||null,
+            fabricanteUrl: wiz.fabUrl||null,
             miniatura: miniUrl, rascunho: !aplicar }) };
         const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
         if(error) throw new Error(erroMsg(error));
