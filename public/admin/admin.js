@@ -4527,6 +4527,9 @@ function modalEscudoIA(item){
             <option value="medium" selected>Média (~US$ 0,04)</option>
             <option value="high">Alta (~US$ 0,17)</option>
           </select></label>
+        <label class="f">Prompt final (edite à vontade — é o que vai para a OpenAI)
+          <textarea class="f" id="ia-prompt" rows="6" style="resize:vertical;font-size:12px;line-height:1.5"></textarea></label>
+        <span class="link" id="ia-recompor" style="font-size:11.5px;align-self:flex-start">↻ recompor o prompt a partir dos campos acima</span>
       </div>
       <div class="col" style="gap:10px;align-items:center;justify-content:center">
         <div id="ia-preview" style="width:230px;height:230px;display:flex;align-items:center;justify-content:center;
@@ -4544,14 +4547,30 @@ function modalEscudoIA(item){
     </div>`, 'lg');
 
   if(!editar) return;
+
+  /* o prompt final é um campo de verdade: os campos estruturados o recompõem
+     enquanto ninguém digitar nele à mão — depois disso, o que vale é o texto */
+  let promptTocado = false;
+  const recompor = () => {
+    el('ia-prompt').value = promptEscudo(c, el('ia-estilo').value,
+      el('ia-simbolo').value.trim(), el('ia-texto').value.trim(), el('ia-extra').value.trim());
+  };
+  recompor();
+  ['ia-estilo','ia-simbolo','ia-texto','ia-extra'].forEach(id => {
+    el(id).oninput = () => { if(!promptTocado) recompor(); };
+    el(id).onchange = () => { if(!promptTocado) recompor(); };
+  });
+  el('ia-prompt').oninput = () => { promptTocado = true; };
+  el('ia-recompor').onclick = () => { promptTocado = false; recompor(); };
+
   let gerada = null;
   el('ia-gerar').onclick = async () => {
     const btn = el('ia-gerar');
+    const prompt = el('ia-prompt').value.trim();
+    if(!prompt) return toast('O prompt está vazio.', true);
     btn.disabled = true; btn.textContent = 'Gerando… (até 1 min)';
     el('ia-estado').textContent = 'A OpenAI está desenhando o escudo…';
     try{
-      const prompt = promptEscudo(c, el('ia-estilo').value,
-        el('ia-simbolo').value.trim(), el('ia-texto').value.trim(), el('ia-extra').value.trim());
       const url = await gerarImagemIA('escudo', prompt, el('ia-qual').value);
       gerada = url;
       el('ia-preview').innerHTML = `<img src="${h(url)}" style="max-width:88%;max-height:88%;object-fit:contain">`;
