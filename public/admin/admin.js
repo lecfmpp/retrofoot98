@@ -5109,7 +5109,7 @@ function modalFotosIA(item){
       vale para o elenco inteiro.</div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:10px 12px;border:1px solid var(--bd2);border-radius:10px">
       <span data-torso-thumb ${torso()?'style="cursor:zoom-in" title="Ver em tela expandida"':''}>${torso()
-        ? `<img src="${h(torso().url)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover">`
+        ? compostoHTML(torso().url, null, 44, 8, camadasClube())
         : `<i class="av" style="width:44px;height:44px;border-radius:8px;background:${h(c.color||'#333')};color:#fff;font-size:11px">⚽</i>`}</span>
       <span style="flex:1;min-width:0">
         <b style="display:block;font-size:13px">Uniforme do clube</b>
