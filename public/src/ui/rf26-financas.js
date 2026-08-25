@@ -350,9 +350,16 @@ function rfFiPatrocinioHTML(){
   const peso={A:8,B:4,C:2,D:1}[S.division]||1;
   const base=Math.round(cap*peso*0.7);
   const marcas=(typeof AD_SPONSORS!=='undefined')?AD_SPONSORS:[];
+  /* SINCRONIA COM O UNIFORME: o patrocinador da CAMISA é o mesmo que está
+     estampado no uniforme do clube (Estúdio do painel -> RF_UNIFORMES).
+     Trocou o logo no uniforme, troca aqui — uma fonte só. Sem uniforme com
+     patrocinador, cai no rodízio de sempre (AD_SPONSORS). */
+  const uni=(window.RF_UNIFORMES||{})[String(CL.clubId)]||{};
   const ativos=[
-    {nome:'Camisa', papel:'Patrocinador principal', valor:base*2},
-    {nome:'Manga',  papel:'Manga da camisa',        valor:Math.round(base*1.3)},
+    {nome:'Camisa', papel:'Patrocinador principal — camisa', valor:base*2,
+     marcaSrc: uni.patroUrl||null, marcaNome: uni.patroNome||null},
+    {nome:'Manga',  papel:'Manga da camisa',        valor:Math.round(base*1.3),
+     marcaSrc: uni.fabricanteUrl||null, marcaNome: null},
     {nome:'Placas', papel:'Placas do estádio',      valor:base},
   ];
   const total=ativos.reduce((t,e)=>t+e.valor,0);
@@ -365,10 +372,12 @@ function rfFiPatrocinioHTML(){
         <span class="rf-label-r">${ativos.length} · ${escC(fmt(total))}/temporada</span></div>
       ${ativos.map((e,i)=>{
         const m=marcas[i%Math.max(1,marcas.length)];
+        const src=e.marcaSrc||(m&&m.src)||null;
+        const nomeMarca=e.marcaNome||(e.marcaSrc?'Patrocinador do clube':(m?m.nome:e.nome));
         return `<div class="rf-fi-contrato">
-          <span class="rf-fi-marca">${m?`<img src="${escC(m.src)}" alt="${escC(m.nome)}">`:'—'}</span>
+          <span class="rf-fi-marca">${src?`<img src="${escC(src)}" alt="${escC(nomeMarca)}">`:'—'}</span>
           <span class="rf-fi-contrato-id">
-            <span class="rf-fi-contrato-n">${escC(m?m.nome:e.nome)}</span>
+            <span class="rf-fi-contrato-n">${escC(nomeMarca)}</span>
             <span class="rf-fi-contrato-p">${escC(e.papel)}</span>
           </span>
           <span class="rf-fi-contrato-v">${escC(fmt(e.valor))}/temp.</span>
