@@ -36,9 +36,14 @@ function rfContaEhPro(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
   return st.pro===true;
 }
+/* FASE LISTA DE ESPERA: com a flag ligada, quem NÃO tem sessão não vê o
+   "Entrar" — a única porta é a lista de espera. Quem já tem conta (sessão
+   aberta) continua entrando normalmente. Desligar = voltar o login. */
+const RF_SO_LISTA = true;
 function rfContaChipHTML(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   if(!st.loggedIn){
+    if(RF_SO_LISTA) return '';
     return `<button type="button" class="rf-lp-entrar" onclick="clGoModo('solo')">${rfIcone('chave',16)} Entrar</button>`;
   }
   const nome=st.name||(st.email||'').split('@')[0]||'treinador';
@@ -79,9 +84,9 @@ function rfLpMenu(){
       </div>
       <button type="button" class="rf-sheet-i sair" onclick="clCloseOverlay();rfAcSairConta()">
         <span class="rf-nav-l">Sair da conta</span></button>`
-    : `<div class="rf-sheet-sep"></div>
+    : (RF_SO_LISTA ? '' : `<div class="rf-sheet-sep"></div>
       <button type="button" class="rf-sheet-i" onclick="clCloseOverlay();clGoModo('solo')">
-        <span class="rf-nav-l">Entrar na minha conta</span></button>`;
+        <span class="rf-nav-l">Entrar na minha conta</span></button>`);
   if(typeof rfSheet==='function') rfSheet('Menu', `<div class="rf-sheet-list">${links}${lista}${conta}</div>`);
 }
 /* `extra` é o encaixe da DIREITA do cabeçalho: dentro do assistente é ali que

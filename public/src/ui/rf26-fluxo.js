@@ -486,9 +486,9 @@ function rfWaitlistHTML(){
         <div class="rf-wl-ok">
           <span class="rf-wl-ok-i">✓</span>
           <span class="rf-wl-ok-d">
-            <span class="rf-wl-ok-t">Vaga garantida.</span>
-            <span class="rf-note">A gente avisa por e-mail quando a sua vaga entre os
-              ${vagas} primeiros for liberada.</span></span>
+            <span class="rf-wl-ok-t">Obrigado — vaga garantida!</span>
+            <span class="rf-note">Vamos te avisar por e-mail quando o jogo for lançado
+              para os primeiros embaixadores — você está entre os ${vagas} primeiros.</span></span>
         </div>
         ${CL.waitlistAmigosOk?'<div class="rf-aviso"><span class="rf-aviso-i">✓</span><span>Indicações guardadas.</span></div>':''}
         <p class="rf-in-p">Agora chama a galera: <b>cada amigo indicado sobe você na fila</b> —
