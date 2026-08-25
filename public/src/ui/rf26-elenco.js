@@ -91,6 +91,36 @@ const RF_EL_COLS='34px minmax(0,1.2fr) 34px 34px 40px 40px minmax(62px,.5fr) min
 function rfFxFundado(clubId){ return 1900+((typeof hashSeed==='function'?hashSeed('fundado',String(clubId)):0)>>>0)%80; }
 /* foto do jogador: a costurada no Estúdio (clube atual -> por nome, para o
    transferido ainda sem recostura) e, sem nenhuma, o retrato único de sempre */
+/* FOTO COMPOSTA da ficha: a foto costurada + as camadas do uniforme (escudo,
+   patrocinador, fabricante) nas MESMAS posições do painel. As posições salvas
+   são do quadro do uniforme; o mapa abaixo (idêntico ao do Estúdio) as desloca
+   para o quadro da foto. Tudo vive num quadro 2:3 que o contêiner corta em
+   cover — foto e camadas nunca desalinham entre si. */
+const RF_FOTO_AJUSTE = { y0:34, yEsc:0.70, xEsc:0.77 };
+const RF_POS_PADRAO = { patro:{x:33,y:65,w:34}, escudo:{x:57,y:30,w:22}, fabricante:{x:27,y:57,w:9} };
+function rfFxPosFoto(p2){
+  const w = p2.w * RF_FOTO_AJUSTE.xEsc;
+  const cx = 50 + (p2.x + p2.w/2 - 50) * RF_FOTO_AJUSTE.xEsc;
+  return { x: cx - w/2, y: RF_FOTO_AJUSTE.y0 + p2.y * RF_FOTO_AJUSTE.yEsc, w };
+}
+function rfFxFotoComposta(p, crest){
+  const foto = rfFxFoto(p);
+  if(foto === 'img/jogador-perfil.png')
+    return `<img src="${foto}" alt="${escC(p.n)}">`;
+  const uni = (window.RF_UNIFORMES||{})[String(CL.clubId)] || {};
+  const camada = (url, pos, padrao) => {
+    if(!url) return '';
+    const v = rfFxPosFoto(Object.assign({}, padrao, pos||{}));
+    return `<img src="${escC(url)}" alt="" loading="lazy" draggable="false"
+      style="position:absolute;left:${v.x}%;top:${v.y}%;width:${v.w}%">`;
+  };
+  return `<span class="rf-fx-quadro" aria-hidden="true">
+    <img src="${escC(foto)}" alt="${escC(p.n)}">
+    ${camada(crest, uni.escudo, RF_POS_PADRAO.escudo)}
+    ${camada(uni.fabricanteUrl, uni.fabricante, RF_POS_PADRAO.fabricante)}
+    ${camada(uni.patroUrl, uni.patro, RF_POS_PADRAO.patro)}
+  </span>`;
+}
 function rfFxFoto(p){
   if(p && p.n){
     const porClube = window.RF_FOTOS && window.RF_FOTOS[String(CL.clubId)+'|'+p.n];
@@ -465,10 +495,10 @@ function rfElFichaHTML(){
           <span class="rf-fx-legenda"><i></i>MÉDIA DA POSIÇÃO NA SÉRIE</span></div>
         <div class="rf-fx-carac-grid">
           <div class="rf-fx-retrato">
-            <img src="${rfFxFoto(p)}" alt="${escC(p.n)}">
+            ${rfFxFotoComposta(p, crest)}
             <i class="rf-fx-retrato-veu"></i>
             <span class="rf-fx-num flutua">${escC(String(num))}</span>
-            ${crest?`<img class="rf-fx-retrato-crest" src="${escC(crest)}" alt="">`:''}
+            ${(crest && rfFxFoto(p)==='img/jogador-perfil.png')?`<img class="rf-fx-retrato-crest" src="${escC(crest)}" alt="">`:''}
             <span class="rf-fx-retrato-id">
               <span class="rf-fx-microt claro">${escC(String(rfPosLabel(p.s)).toUpperCase())} · ${p.age||'?'} ANOS</span>
               <b>${escC(p.n)}</b>

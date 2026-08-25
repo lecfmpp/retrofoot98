@@ -8430,3 +8430,9 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-jersey-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .rf-jersey-img b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75)}
+
+/* quadro 2:3 da foto composta na ficha: cobre o retrato como o cover fazia,
+   ancorado no topo (a cabeça manda); foto e camadas cortam JUNTAS */
+.rf-fx-retrato .rf-fx-quadro{position:absolute;left:50%;top:0;transform:translateX(-50%);
+  height:100%;aspect-ratio:2/3;display:block}
+.rf-fx-retrato .rf-fx-quadro>img:first-child{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
